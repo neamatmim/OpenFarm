@@ -1,3 +1,5 @@
+import { payInCode } from "@OpenFarm/domain";
+
 import type { Tx } from "./audit";
 
 /** The Ventures whose Investors still count against the cap: everything but settled and called off. */
@@ -67,6 +69,23 @@ export const countedInvestors = async (
  *  percentage the Agreement stores, so the two halves can never be written down disagreeing. */
 export const theFarmsShare = (investorsPercent: number) =>
   100 - investorsPercent;
+
+/**
+ * The Pay-in Code the next Agreement signed on this Venture is given: the Venture's place on the farm, then the
+ * Agreement's own on the Venture in the order they were signed. Asked behind the Farm lock, as the Units are, and
+ * never asked again of an Agreement already holding one: no Agreement is ever undone, so the count only grows.
+ */
+export const nextPayInCode = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  run: { id: string; ordinal: number }
+): Promise<string> => {
+  const signed = await tx.query.investmentAgreement.findMany({
+    where: { farmId, ventureId: run.id },
+    columns: { id: true },
+  });
+  return payInCode(run.ordinal, signed.length + 1);
+};
 
 /** The Units of a Venture that are already spoken for. */
 export const unitsTaken = async (

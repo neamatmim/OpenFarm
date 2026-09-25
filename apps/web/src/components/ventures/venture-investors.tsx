@@ -114,7 +114,8 @@ export const PapersMenu = ({
  * capital may not be taken without.
  *
  * What is done about one man's Agreement is done from his row: his capital taken, his stamped paper photographed,
- * his papers made — the paper shown beneath the table. Signing somebody new sits over the table.
+ * his papers made — the paper shown beneath the table. Signing somebody new sits over the table, and so does capital
+ * that came with only the bank's reference to say whose it is.
  */
 export const VentureInvestors = ({
   venture,
@@ -149,17 +150,38 @@ export const VentureInvestors = ({
   const open = venture.state === "open";
   const cancelled = venture.state === "cancelled";
   const settled = venture.settlementApproved ?? false;
-  const actions =
-    open && unitsLeft > 0 ? (
-      <Button onClick={() => acts.sign(venture)} size="sm" type="button">
-        <PenLine aria-hidden data-icon="inline-start" />
-        {t("ventures.sign")}
-      </Button>
-    ) : null;
   if (agreements.isPending) {
     return <Skeleton className="h-40 rounded-xl" />;
   }
   const rows = agreements.data ?? [];
+  // Money that lands with only the bank's reference to go on is taken from over the table, where the reference's
+  // Pay-in Code chooses whose it is; money already known to be one man's is taken from his row.
+  const someoneMayPayIn = rows.some(
+    (one) =>
+      one.hasPaper &&
+      (one.capitalLeftBdt ?? one.units * venture.unitPriceBdt) !== 0
+  );
+  const actions = open ? (
+    <>
+      {someoneMayPayIn ? (
+        <Button
+          onClick={() => acts.takeCapital(venture)}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          <Banknote aria-hidden data-icon="inline-start" />
+          {t("ventures.takeCapital")}
+        </Button>
+      ) : null}
+      {unitsLeft > 0 ? (
+        <Button onClick={() => acts.sign(venture)} size="sm" type="button">
+          <PenLine aria-hidden data-icon="inline-start" />
+          {t("ventures.sign")}
+        </Button>
+      ) : null}
+    </>
+  ) : null;
   return (
     <Section
       action={actions}
@@ -207,8 +229,16 @@ export const VentureInvestors = ({
                 const hasPaid = paid.get(one.id) ?? 0;
                 return (
                   <TableRow key={one.id}>
-                    <TableCell className="ps-4 font-medium md:ps-5">
-                      {nameOf(one.investorId)}
+                    <TableCell className="ps-4 md:ps-5">
+                      <span className="font-medium">
+                        {nameOf(one.investorId)}
+                      </span>
+                      {/* What he writes on the transfer; an answer cached before the codes has none to show. */}
+                      {one.payInCode ? (
+                        <span className="text-muted-foreground block font-mono text-xs">
+                          {t("ventures.payInCodeIs", { code: one.payInCode })}
+                        </span>
+                      ) : null}
                     </TableCell>
                     <TableCell className="text-end tabular-nums">
                       {formatNumber(one.units, language)}

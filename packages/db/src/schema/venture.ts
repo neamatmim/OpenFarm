@@ -43,6 +43,9 @@ export const venture = pgTable(
     farmId: text("farm_id")
       .notNull()
       .references(() => farm.id, { onDelete: "cascade" }),
+    /** Its place among the farm's Ventures in the order they were opened, counted from one: the first number in its
+     *  Agreements' Pay-in Codes. Kept rather than counted, so a Venture written with an earlier day moves nobody's. */
+    ordinal: integer("ordinal").notNull(),
     name: text("name").notNull(),
     state: text("state", { enum: VENTURE_STATES }).notNull().default("open"),
     /** What the Owner is looking to raise, and the least it is worth starting on. */
@@ -68,7 +71,10 @@ export const venture = pgTable(
     openedByRole: text("opened_by_role", { enum: ROLES }).notNull(),
     createdAt: timestamp("created_at").notNull(),
   },
-  (table) => [index("venture_state_idx").on(table.farmId, table.state)]
+  (table) => [
+    index("venture_state_idx").on(table.farmId, table.state),
+    uniqueIndex("venture_ordinal_uidx").on(table.farmId, table.ordinal),
+  ]
 );
 
 /**
@@ -200,6 +206,9 @@ export const investmentAgreement = pgTable(
     templateVersionId: text("template_version_id").references(
       () => paperTemplateVersion.id
     ),
+    /** What the Investor writes on the transfer that sends its capital, so the money says whose it is: given when it
+     *  is recorded and never changed. Not the reference a Venture Movement carries, which is the bank's. */
+    payInCode: text("pay_in_code").notNull(),
     signedBy: text("signed_by").references(() => user.id),
     createdAt: timestamp("created_at").notNull(),
   },
@@ -207,6 +216,10 @@ export const investmentAgreement = pgTable(
     uniqueIndex("investment_agreement_uidx").on(
       table.ventureId,
       table.investorId
+    ),
+    uniqueIndex("investment_agreement_pay_in_code_uidx").on(
+      table.farmId,
+      table.payInCode
     ),
   ]
 );

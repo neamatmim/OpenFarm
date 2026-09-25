@@ -39,6 +39,22 @@ export const lockTheFarm = async (tx: Tx, farmId: string) => {
     .for("update");
 };
 
+/**
+ * The place the next Venture opened on this farm takes, counted from one: the first number in its Agreements'
+ * Pay-in Codes. Asked behind the Farm lock, so two opened at once are not both given the last place and one more.
+ */
+export const nextVentureOrdinal = async (
+  tx: Pick<Tx, "query">,
+  farmId: string
+): Promise<number> => {
+  const last = await tx.query.venture.findFirst({
+    where: { farmId },
+    columns: { ordinal: true },
+    orderBy: { ordinal: "desc" },
+  });
+  return (last?.ordinal ?? 0) + 1;
+};
+
 /** A Venture's row, as the columns hold it. */
 export interface VentureRow {
   id: string;

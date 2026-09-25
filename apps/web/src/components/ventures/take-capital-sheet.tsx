@@ -1,3 +1,5 @@
+import { payInCodeIn } from "@OpenFarm/domain";
+import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -5,7 +7,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { useInvestorNames } from "@/components/investors/investor-names";
-import { FormField, FormSheet } from "@/components/page-kit";
+import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
 import { useRefused } from "@/lib/refused";
@@ -26,9 +28,24 @@ const NOTHING_YET: Arrival = {
   reference: "",
 };
 
+/** Why a paper takes no capital now, as its option says it — paid up, or not yet papered — or nothing. */
+const whyNotThisPaper = (
+  one: { capitalLeftBdt: number; hasPaper: boolean },
+  t: (key: MessageKey) => string
+): string | undefined => {
+  if (one.capitalLeftBdt === 0) {
+    return t("ventures.paidInFull");
+  }
+  return one.hasPaper ? undefined : t("ventures.noPaperYet");
+};
+
 /**
  * Capital as it lands: which paper it came against, how much, the day the bank moved it, and the
  * reference on the transfer, cheque or deposit slip.
+ *
+ * Each paper is listed with its Pay-in Code, and a reference that carries one chooses that paper: the Owner types
+ * what the bank printed, and the farm says whose money it is. The reference is kept exactly as typed — the code
+ * inside it only chooses.
  *
  * There is no way to say "cash" here, because there is no way to take it: the sheet says bank because
  * the farm only takes bank.
@@ -70,9 +87,38 @@ export const TakeCapitalSheet = ({
       },
     })
   );
-  const paper = (agreements.data ?? []).find(
-    (one) => one.id === arrival.agreementId
-  );
+  const papers = agreements.data ?? [];
+  /** The paper whose Pay-in Code the reference carries. A list drawn from an answer cached before the codes has none. */
+  const carriedBy = (reference: string) => {
+    const code = payInCodeIn(
+      reference,
+      papers.map((one) => one.payInCode ?? "").filter((one) => one !== "")
+    );
+    return code === undefined
+      ? undefined
+      : papers.find((one) => one.payInCode === code);
+  };
+  const carried = carriedBy(arrival.reference);
+  const paper = papers.find((one) => one.id === arrival.agreementId);
+  const whyNotCarried = carried ? whyNotThisPaper(carried, t) : undefined;
+  /** What the choice says under it: whose code the reference carries, or what the chosen paper may still take. */
+  const said = () => {
+    if (carried) {
+      const named = {
+        code: carried.payInCode,
+        name: nameOf(carried.investorId),
+      };
+      return whyNotCarried === undefined
+        ? t("ventures.pickedByCode", named)
+        : t("ventures.codeButNotThisPaper", { ...named, why: whyNotCarried });
+    }
+    if (paper) {
+      return `${t("ventures.holdsUnits", {
+        units: formatNumber(paper.units, language),
+      })} · ${t("ventures.capitalLeft", { taka: taka(paper.capitalLeftBdt) })}`;
+    }
+    return t("ventures.whosePaperHint");
+  };
   const amount = Number(arrival.amountBdt);
   const ready =
     arrival.agreementId !== "" &&
@@ -98,15 +144,55 @@ export const TakeCapitalSheet = ({
       submitLabel={t("ventures.takeCapital")}
       title={t("ventures.takeCapital")}
     >
-      {/* Whose paper it comes against is the row it was opened from: said, not asked again. */}
-      {paper ? (
-        <p className="bg-muted rounded-md px-3 py-2 text-sm">
-          <span className="font-medium">{nameOf(paper.investorId)}</span>
-          {` · ${t("ventures.holdsUnits", {
-            units: formatNumber(paper.units, language),
-          })} · ${t("ventures.capitalLeft", { taka: taka(paper.capitalLeftBdt) })}`}
-        </p>
-      ) : null}
+      <FormField
+        hint={t("ventures.referenceHint")}
+        id="capital-reference"
+        label={t("ventures.reference")}
+      >
+        <Input
+          autoComplete="off"
+          id="capital-reference"
+          onChange={(event) => {
+            const typed = event.target.value;
+            // Chosen as it is typed rather than whenever it reads so, so a paper the Owner then chooses by hand stays
+            // chosen. A paper that may take nothing is named in the hint, and not chosen.
+            const by = carriedBy(typed);
+            const chosen =
+              by && whyNotThisPaper(by, t) === undefined
+                ? by.id
+                : arrival.agreementId;
+            setArrival({ ...arrival, reference: typed, agreementId: chosen });
+          }}
+          value={arrival.reference}
+        />
+      </FormField>
+      <FormField
+        hint={said()}
+        id="capital-agreement"
+        label={t("ventures.whosePaper")}
+      >
+        <NativeSelect
+          id="capital-agreement"
+          onChange={(event) =>
+            setArrival({ ...arrival, agreementId: event.target.value })
+          }
+          value={arrival.agreementId}
+        >
+          <option value="">—</option>
+          {papers.map((one) => {
+            // Paid up, or not yet papered: either way the farm would refuse capital on it, so it is not chosen.
+            const why = whyNotThisPaper(one, t);
+            const label = [nameOf(one.investorId), one.payInCode, why]
+              .filter(Boolean)
+              .join(" · ");
+            return (
+              <option disabled={why !== undefined} key={one.id} value={one.id}>
+                {label}
+              </option>
+            );
+          })}
+        </NativeSelect>
+      </FormField>
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField id="capital-amount" label={t("ventures.amount")}>
           <Input
@@ -130,20 +216,6 @@ export const TakeCapitalSheet = ({
           />
         </FormField>
       </div>
-      <FormField
-        hint={t("ventures.referenceHint")}
-        id="capital-reference"
-        label={t("ventures.reference")}
-      >
-        <Input
-          autoComplete="off"
-          id="capital-reference"
-          onChange={(event) =>
-            setArrival({ ...arrival, reference: event.target.value })
-          }
-          value={arrival.reference}
-        />
-      </FormField>
     </FormSheet>
   );
 };
