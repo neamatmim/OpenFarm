@@ -11,6 +11,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { grantRoles } from "./membership";
 import { appRouter } from "./routers/index";
 import { createTestClient } from "./test/client";
+import { invitedWithConsent } from "./test/portal-client";
 
 // Signing in tells a stranger nothing about who the farm knows (the exposure review, 1.7). A wrong password gets the
 // same answer whichever account it names — an Investor while the portal is shut, one whose access was taken away, a
@@ -71,7 +72,7 @@ beforeAll(async () => {
     phone: PHONE,
   });
   investorId = him.id;
-  const { code } = await owner.investors.inviteToPortal({ id: him.id });
+  const { code } = await invitedWithConsent(owner, him.id);
   const { client: nobody } = await createTestClient(appRouter, {
     as: null,
     clock,

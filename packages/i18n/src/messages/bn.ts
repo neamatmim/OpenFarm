@@ -322,6 +322,14 @@ export const bn: Record<MessageKey, string> = {
   "portal.lastIn": "শেষ এসেছেন {when}",
   "portal.notInYet": "এখনো পোর্টালে দেখা যায়নি",
   "portal.codeRanOut": "নতুন কোড দিন",
+  "portal.consent.signed": "সম্মতি সই {when} · ভাষার সংস্করণ {version}",
+  "portal.consent.sheetTitle": "পোর্টাল সম্মতিপত্র",
+  "portal.consent.sheetHint":
+    "ছাপুন, আর আপনার সামনে তাঁকে দিয়ে সই করান। সই হলে তবেই কোড দেওয়া হবে।",
+  "portal.consent.signedToday": "তিনি আজ সই করেছেন",
+  "portal.refused.noConsent":
+    "কোড দেওয়ার আগে তিনি আপনার সামনে পোর্টাল সম্মতিপত্রে সই করেন।",
+  "portal.refused.consentInForce": "তিনি সম্মতিপত্রে আগেই সই করেছেন।",
   "portal.codeGoodUntil": "কোডের মেয়াদ {when} পর্যন্ত",
   "portal.column": "পোর্টাল",
   "portal.anyStanding": "পোর্টালে সবাই",

@@ -6,6 +6,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { buildContext } from "../context";
 import { createTestClient } from "../test/client";
+import { invitedWithConsent } from "../test/portal-client";
 import { appRouter } from "./index";
 
 // The Investor portal's door (ADR 0007): shut until the Owner opens it, taken up only with the code the Owner handed
@@ -84,7 +85,7 @@ beforeAll(async () => {
 describe("the portal, shut", () => {
   it("takes up no invitation until the Owner opens it", async () => {
     const owner = await asOwner();
-    const { code } = await owner.investors.inviteToPortal({ id: investorId });
+    const { code } = await invitedWithConsent(owner, investorId);
     const nobody = await asNobody();
 
     await expect(
@@ -108,7 +109,7 @@ describe("an invitation", () => {
   it("is taken up with the phone and the code, however the phone is typed, and opens an account with no Role", async () => {
     const owner = await asOwner();
     await owner.investors.setPortalOpen({ open: true });
-    const { code } = await owner.investors.inviteToPortal({ id: investorId });
+    const { code } = await invitedWithConsent(owner, investorId);
     const nobody = await asNobody();
 
     await expect(
@@ -144,7 +145,7 @@ describe("an invitation", () => {
   it("is used once: the same code does not open anything again", async () => {
     const nobody = await asNobody();
     const owner = await asOwner();
-    const { code } = await owner.investors.inviteToPortal({ id: investorId });
+    const { code } = await invitedWithConsent(owner, investorId);
     await nobody.portal.join({ phone: PHONE, code, password: PASSWORD });
 
     await expect(
@@ -192,7 +193,7 @@ describe("the portal", () => {
       auth.api.signInEmail({ body: { email: loginEmail, password: PASSWORD } })
     ).rejects.toMatchObject({ statusCode: 403 });
 
-    const { code } = await owner.investors.inviteToPortal({ id: investorId });
+    const { code } = await invitedWithConsent(owner, investorId);
     const nobody = await asNobody();
     await nobody.portal.join({
       phone: PHONE,

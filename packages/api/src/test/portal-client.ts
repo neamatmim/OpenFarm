@@ -61,6 +61,18 @@ export const signedInAs = async (
 };
 
 /**
+ * An Owner's invitation as the farm gives one: the Portal Consent signed in front of them first — unless one is in
+ * force already, as for a second code — and then the code.
+ */
+export const invitedWithConsent = async (owner: Client, id: string) => {
+  const listed = await owner.investors.list();
+  if (!listed.people.find((one) => one.id === id)?.portalConsent) {
+    await owner.investors.recordConsent({ id });
+  }
+  return owner.investors.inviteToPortal({ id });
+};
+
+/**
  * An Investor the Owner wrote down and invited, who took the invitation up with their phone: their id, the account
  * they sign in as, and the API as they reach it at the moment given.
  */
@@ -79,7 +91,7 @@ export const anInvitedInvestor = async (
     nid: "1234567890",
     bankAccount: `01234${phone.slice(-5)}`,
   });
-  const { code } = await owner.investors.inviteToPortal({ id: them.id });
+  const { code } = await invitedWithConsent(owner, them.id);
   const { client: nobody } = await createTestClient(appRouter, {
     as: null,
     clock: new FakeClock(at),

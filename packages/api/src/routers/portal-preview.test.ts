@@ -2,7 +2,7 @@ import { FakeClock, thePerson } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
-import { anInvitedInvestor } from "../test/portal-client";
+import { anInvitedInvestor, invitedWithConsent } from "../test/portal-client";
 import { appRouter } from "./index";
 
 // The Portal Preview: the Owner reading one Investor's portal as they would read it today, from the Owner's own
@@ -167,9 +167,9 @@ describe("the Portal Preview", () => {
       return them.id;
     };
     const invited = await recorded("করিম", `0174${suffix}`);
-    await owner.investors.inviteToPortal({ id: invited });
+    await invitedWithConsent(owner, invited);
     const ranOut = await recorded("জামাল", `0175${suffix}`);
-    await owner.investors.inviteToPortal({ id: ranOut });
+    await invitedWithConsent(owner, ranOut);
     const takenAway = await anInvitedInvestor(
       { name: `কামাল ${suffix}`, phone: `0176${suffix}` },
       JANUARY

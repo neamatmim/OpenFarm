@@ -11,6 +11,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { grantRoles } from "./membership";
 import { appRouter } from "./routers/index";
 import { createTestClient } from "./test/client";
+import { invitedWithConsent } from "./test/portal-client";
 
 // A password everybody else uses is no secret (the exposure review, 1.4; ASVS 6.2.4): refused wherever somebody
 // chooses one — taking up a portal invitation, setting one with the farm's code, and changing one while signed in —
@@ -55,7 +56,7 @@ describe("a common password", () => {
       name: `সাধারণ বিনিয়োগকারী ${suffix}`,
       phone: `0181${suffix}`,
     });
-    const { code } = await owner.investors.inviteToPortal({ id: him.id });
+    const { code } = await invitedWithConsent(owner, him.id);
     const { client: nobody } = await createTestClient(appRouter, {
       as: null,
       clock,

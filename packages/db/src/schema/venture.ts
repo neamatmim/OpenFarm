@@ -167,6 +167,47 @@ export const investorAccess = pgTable(
   ]
 );
 
+/** How an Investor asked to withdraw their Portal Consent: a signed letter, or a message from their own number. */
+export const CONSENT_WITHDRAWN_BY = ["letter", "message"] as const;
+
+/**
+ * An Investor's Portal Consent: signed on paper in front of the Owner, before any code is given, to the portal showing
+ * them their own record (the glossary's **Portal Consent**). The paper is filed; the farm records the day, the wording
+ * they signed and who recorded it. Withdrawn, it stays on file with the day and how they asked, and a new one is a new
+ * row: consent is proven for the time it was given.
+ */
+export const portalConsent = pgTable(
+  "portal_consent",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    investorId: text("investor_id")
+      .notNull()
+      .references(() => investor.id),
+    /** The Version of the consent's wording they signed. */
+    versionId: text("version_id")
+      .notNull()
+      .references(() => paperTemplateVersion.id),
+    /** The farm day they signed it. */
+    signedOn: timestamp("signed_on").notNull(),
+    recordedBy: text("recorded_by")
+      .notNull()
+      .references(() => user.id),
+    recordedAt: timestamp("recorded_at").notNull(),
+    withdrawnOn: timestamp("withdrawn_on"),
+    withdrawnBy: text("withdrawn_by", { enum: CONSENT_WITHDRAWN_BY }),
+  },
+  (table) => [
+    index("portal_consent_investor_idx").on(table.investorId),
+    // One consent in force at a time; a withdrawn one stays on file beside the next.
+    uniqueIndex("portal_consent_in_force_uidx")
+      .on(table.investorId)
+      .where(sql`${table.withdrawnOn} is null`),
+  ]
+);
+
 /**
  * Where a Request to Join stands. Waiting for the Owner; told to come and sign; told not this time; withdrawn by the
  * Investor; answered by a signed Agreement; or closed by the farm when the Venture moved on or the Investor was

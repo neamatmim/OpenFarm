@@ -5,6 +5,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { buildContext } from "../context";
 import { createTestClient } from "../test/client";
+import { invitedWithConsent } from "../test/portal-client";
 import { appRouter } from "./index";
 
 // What an Investor reads in the portal (ADR 0007): their own Ventures, how they are doing today, and their own
@@ -130,7 +131,7 @@ beforeAll(async () => {
   const rahimId = await signAndPay("রহিম", `0172${suffix}`, 3);
   await signAndPay("সালমা", `0173${suffix}`, 5);
   await owner.investors.setPortalOpen({ open: true });
-  const { code } = await owner.investors.inviteToPortal({ id: rahimId });
+  const { code } = await invitedWithConsent(owner, rahimId);
   const { client: nobody } = await createTestClient(appRouter, {
     as: null,
     clock: clock(),

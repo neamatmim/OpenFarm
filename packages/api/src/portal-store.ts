@@ -18,6 +18,7 @@ import { audited } from "./audit";
 import { refuseCommonPassword } from "./chosen-password";
 import type { Context } from "./context";
 import { hashOfCodeAsTyped, newInviteCode, signedInOn } from "./membership";
+import { consentInForce } from "./portal-consent";
 import { whatTheyDidToTheirRequests } from "./requests-to-join";
 
 // An Investor's way into the portal (ADR 0007): the Owner's invitation, the Investor taking it up with their phone
@@ -149,6 +150,13 @@ export const inviteToPortal = async (
     throw refused(
       "Their phone is not a Bangladeshi mobile number, which is what they sign in with",
       "phone_not_mobile"
+    );
+  }
+  // No code before consent: the Investor signs the Portal Consent in front of the Owner first (the glossary's entry).
+  if (!(await consentInForce(context.db, farmId, investorId))) {
+    throw refused(
+      "They sign the Portal Consent in front of you before any code is given",
+      "no_consent"
     );
   }
   const sharing = await context.db.query.investorAccess.findFirst({

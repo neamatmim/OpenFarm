@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { CODE_ATTEMPTS } from "../attempts";
 import { createTestClient } from "../test/client";
+import { invitedWithConsent } from "../test/portal-client";
 import { appRouter } from "./index";
 
 // The Code Slip prints an invitation's code in two groups of four, so it can be read out over the phone: `K7QM 4PXA`.
@@ -40,7 +41,7 @@ const invited = async (phone: string) => {
     nid: "1234567890",
     bankAccount: "0123456789",
   });
-  const { code } = await owner.investors.inviteToPortal({ id: investor.id });
+  const { code } = await invitedWithConsent(owner, investor.id);
   return code;
 };
 

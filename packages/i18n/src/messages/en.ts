@@ -344,6 +344,14 @@ export const en = {
   "portal.lastIn": "Last in {when}",
   "portal.notInYet": "Not seen in the portal yet",
   "portal.codeRanOut": "Give them a new code",
+  "portal.consent.signed": "Consent signed {when} · wording Version {version}",
+  "portal.consent.sheetTitle": "Portal Consent",
+  "portal.consent.sheetHint":
+    "Print it, and have them sign it in front of you. Their code comes once it is signed.",
+  "portal.consent.signedToday": "They signed it today",
+  "portal.refused.noConsent":
+    "They sign the Portal Consent in front of you before any code is given.",
+  "portal.refused.consentInForce": "They have signed the consent already.",
   "portal.codeGoodUntil": "Code good until {when}",
   "portal.column": "Portal",
   "portal.anyStanding": "Any portal standing",

@@ -5,6 +5,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { buildContext } from "../context";
 import { createTestClient } from "../test/client";
+import { invitedWithConsent } from "../test/portal-client";
 import { appRouter } from "./index";
 
 // A Venture still gathering capital, shown in the portal (ADR 0008): only once the Owner shows it, then to every
@@ -77,7 +78,7 @@ const invited = async (name: string, phone: string) => {
     nid: "1234567890",
     bankAccount: `01234${phone.slice(-5)}`,
   });
-  const { code } = await owner.investors.inviteToPortal({ id: them.id });
+  const { code } = await invitedWithConsent(owner, them.id);
   const { client: nobody } = await createTestClient(appRouter, {
     as: null,
     clock: new FakeClock(JANUARY),
@@ -296,9 +297,9 @@ describe("the Owner showing a Venture", () => {
     expect(
       await refusalOf(owner.ventures.showInPortal({ id: over.id, words: "" }))
     ).toBe("venture_wrong_state");
-    expect(await refusalOf(owner.ventures.takeOutOfPortal({ id: over.id }))).toBe(
-      "venture_wrong_state"
-    );
+    expect(
+      await refusalOf(owner.ventures.takeOutOfPortal({ id: over.id }))
+    ).toBe("venture_wrong_state");
   });
 
   it("is the Owner's alone: the Manager cannot show one", async () => {
