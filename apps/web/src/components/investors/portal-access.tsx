@@ -36,14 +36,7 @@ import { orpc } from "@/utils/orpc";
 
 import type { Investor } from "./investor-types";
 import type { GivenCode, HandedOverPaper } from "./welcome-letter";
-import {
-  CodeSlip,
-  HANDED_OVER_ID,
-  LETTER_PAGE,
-  SLIP_PAGE,
-  WelcomeLetter,
-  inFours,
-} from "./welcome-letter";
+import { CODE_PAPER, HANDED_OVER_ID, inFours } from "./welcome-letter";
 
 /** Why the farm would not invite somebody to the portal, in the Owner's words. */
 const REFUSALS = {
@@ -54,6 +47,7 @@ const REFUSALS = {
   consent_in_force: "portal.refused.consentInForce",
   notice_unwritten: "portal.refused.noticeUnwritten",
   no_code_to_hand_over: "portal.refused.noCodeToHandOver",
+  letter_handed_over: "portal.refused.letterHandedOver",
 } as const;
 
 /** Where an Investor stands with the portal, as a word with its colour, in the order the list sorts them. */
@@ -208,13 +202,10 @@ export const PortalSwitch = ({ open }: { open: boolean }) => {
   );
 };
 
-/** What the code dialog holds: the code, until when it can be taken up, and whether it is their first invitation. */
-type Given = GivenCode & { first: boolean };
-
 /**
  * The code, shown once, to hand over in person with the address it is taken up at — and the paper it goes out with,
- * printed while it is on the screen: the Welcome Letter with a first invitation, the Code Slip alone with every code
- * after. Neither can be printed once this closes, since the farm keeps only the code's hash.
+ * printed while it is on the screen: the Welcome Letter until they have been handed one, the Code Slip alone with every
+ * code after. Neither can be printed once this closes, since the farm keeps only the code's hash.
  */
 const CodeDialog = ({
   investorId,
@@ -222,7 +213,7 @@ const CodeDialog = ({
   onClose,
 }: {
   investorId: string;
-  given: Given | null;
+  given: GivenCode | null;
   onClose: () => void;
 }) => {
   const { t, language } = useLanguage();
@@ -237,15 +228,12 @@ const CodeDialog = ({
         flushSync(() => setLaidOut(laid));
         const shown = document.querySelector<HTMLElement>(`#${HANDED_OVER_ID}`);
         if (shown) {
-          void printAlone(
-            shown,
-            asked.paper === "welcome_letter" ? LETTER_PAGE : SLIP_PAGE
-          );
+          void printAlone(shown, CODE_PAPER[asked.paper].page);
         }
       },
     })
   );
-  const paper = given?.first ? "welcome_letter" : "code_slip";
+  const printed = CODE_PAPER[given?.paper ?? "code_slip"];
   return (
     <Dialog
       onOpenChange={(open) => {
@@ -281,7 +269,9 @@ const CodeDialog = ({
         <div className="flex flex-col gap-2">
           <Button
             disabled={handing.isPending}
-            onClick={() => handing.mutate({ id: investorId, paper })}
+            onClick={() =>
+              given && handing.mutate({ id: investorId, paper: given.paper })
+            }
             type="button"
           >
             {handing.isPending ? (
@@ -289,21 +279,13 @@ const CodeDialog = ({
             ) : (
               <Printer aria-hidden data-icon="inline-start" />
             )}
-            {t(given?.first ? "portal.printLetter" : "portal.printSlip")}
+            {t(printed.print)}
           </Button>
-          <p className="text-muted-foreground text-xs">
-            {t(
-              given?.first ? "portal.printLetterHint" : "portal.printSlipHint"
-            )}
-          </p>
+          <p className="text-muted-foreground text-xs">{t(printed.hint)}</p>
         </div>
         {given && laidOut ? (
           <div className="hidden">
-            {paper === "welcome_letter" ? (
-              <WelcomeLetter given={given} paper={laidOut} />
-            ) : (
-              <CodeSlip given={given} paper={laidOut} />
-            )}
+            <printed.Paper given={given} paper={laidOut} />
           </div>
         ) : null}
       </DialogContent>
@@ -324,7 +306,7 @@ export const PortalAccess = ({
 }) => {
   const { t } = useLanguage();
   const refused = useRefused(REFUSALS);
-  const [given, setGiven] = useState<Given | null>(null);
+  const [given, setGiven] = useState<GivenCode | null>(null);
   const [asking, setAsking] = useState(false);
   // The consent sheet on screen to print, before any code: nothing while the Investor has signed one already.
   const [sheet, setSheet] = useState<PaperDocument | null>(null);

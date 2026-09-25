@@ -63,15 +63,41 @@ beforeAll(async () => {
 });
 
 describe("a code handed over", () => {
-  it("says whether it is their first invitation: the letter goes with the first, the slip alone after", async () => {
+  it("goes out with the Welcome Letter until they have been handed one, and with the Code Slip alone after", async () => {
     const owner = await as("owner");
     const id = await recorded("রহিম", `0179${suffix}1`);
 
     const first = await invitedWithConsent(owner, id);
+    await owner.investors.handOver({ id, paper: "welcome_letter" });
     const second = await invitedWithConsent(owner, id);
 
-    expect(first.first).toBe(true);
-    expect(second.first).toBe(false);
+    expect(first.paper).toBe("welcome_letter");
+    expect(second.paper).toBe("code_slip");
+  });
+
+  it("goes out with the letter for somebody invited before, who was never handed one", async () => {
+    const owner = await as("owner");
+    const id = await recorded("মোমেনা", `0179${suffix}9`);
+    // Invited, and the dialog closed with nothing printed — as for everybody invited before the letter existed.
+    await invitedWithConsent(owner, id);
+
+    const next = await invitedWithConsent(owner, id);
+
+    expect(next.paper).toBe("welcome_letter");
+  });
+
+  it("goes out with the slip for somebody whose access was taken away and who is invited again", async () => {
+    const owner = await as("owner");
+    const id = await recorded("বাদল", `0178${suffix}0`);
+    await invitedWithConsent(owner, id);
+    await owner.investors.handOver({ id, paper: "welcome_letter" });
+    await owner.investors.takePortalAway({ id });
+    const again = await invitedWithConsent(owner, id);
+
+    const slip = await owner.investors.handOver({ id, paper: "code_slip" });
+
+    expect(again.paper).toBe("code_slip");
+    expect(slip.investor.name).toBe(`বাদল ${suffix}`);
   });
 });
 
@@ -121,6 +147,19 @@ describe("the Welcome Letter", () => {
     const said = inspect(made, { depth: null });
     expect(said).not.toContain(code);
     expect(said).not.toContain(`${code.slice(0, 4)} ${code.slice(4)}`);
+  });
+
+  it("is handed over once: never printed a second time for the same Investor", async () => {
+    const owner = await as("owner");
+    const id = await recorded("রুবিনা", `0178${suffix}1`);
+    await invitedWithConsent(owner, id);
+    await owner.investors.handOver({ id, paper: "welcome_letter" });
+    await invitedWithConsent(owner, id);
+
+    await expect(
+      owner.investors.handOver({ id, paper: "welcome_letter" })
+    ).rejects.toMatchObject({ data: { refusal: "letter_handed_over" } });
+    expect(await exportsFor(id)).toHaveLength(1);
   });
 
   it("is not printed while the notice on its back still has a fact unwritten", async () => {

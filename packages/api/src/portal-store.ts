@@ -68,6 +68,16 @@ export const readAccess = async (
     },
   })) ?? null;
 
+/** Whether an access holds a code that can still be taken up: one given, and not past its week. A code given to
+ *  somebody whose access was taken away is open all the same — taking it up is what gives the access back. */
+export const codeIsOpen = (
+  access: { codeHash: string | null; codeExpiresAt: Date | null },
+  now: Date
+): boolean =>
+  access.codeHash !== null &&
+  access.codeExpiresAt !== null &&
+  access.codeExpiresAt > now;
+
 /** Where each Investor stands with the portal, by their id. */
 export const portalStandings = async (
   db: Pick<Tx, "query">,
@@ -87,10 +97,7 @@ export const portalStandings = async (
   });
   return new Map(
     rows.map((row) => {
-      const codeOpen =
-        row.codeHash !== null &&
-        row.codeExpiresAt !== null &&
-        row.codeExpiresAt > now;
+      const codeOpen = codeIsOpen(row, now);
       const standingOf = (): PortalStanding => {
         if (row.revokedAt) {
           return "taken_away";
@@ -122,13 +129,12 @@ export const portalClosed = () =>
 /**
  * Invites an Investor to the portal, or gives them a new code — for somebody who never used the first, or who has
  * forgotten their password: the code is shown once, to the Owner, to hand over in person, and the farm keeps only its
- * hash. Given again to somebody whose access was taken away, it gives it back once they take it up. Says whether this
- * was their first invitation, which is what decides the paper it goes out with.
+ * hash. Given again to somebody whose access was taken away, it gives it back once they take it up.
  */
 export const inviteToPortal = async (
   context: Owned,
   investorId: string
-): Promise<{ code: string; expiresAt: Date; first: boolean }> => {
+): Promise<{ code: string; expiresAt: Date }> => {
   const farmId = context.farm.id;
   const now = context.clock.now();
   const { loginEmail } = await invitable(context, investorId);
@@ -141,8 +147,6 @@ export const inviteToPortal = async (
   }
   const { code, codeHash } = await newInviteCode();
   const expiresAt = new Date(now.getTime() + A_WEEK);
-  // Their first invitation goes out with the Welcome Letter; every code after it, with the Code Slip alone.
-  const first = !(await readAccess(context.db, farmId, investorId));
   await audited(context).write(
     {
       entity: "investor_access",
@@ -177,7 +181,7 @@ export const inviteToPortal = async (
         });
     }
   );
-  return { code, expiresAt, first };
+  return { code, expiresAt };
 };
 
 /**
