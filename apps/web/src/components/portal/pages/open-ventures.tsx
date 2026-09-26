@@ -24,7 +24,11 @@ export const OpenVenturesPage = () => {
         {offered.data && offered.data.length > 0 ? (
           <OpenVentureCards ventures={offered.data} />
         ) : (
-          <EmptyState icon={Sprout} title={t("portal.open.none")} />
+          <EmptyState
+            description={t("portal.open.noneHint")}
+            icon={Sprout}
+            title={t("portal.open.none")}
+          />
         )}
       </Loaded>
     </Page>

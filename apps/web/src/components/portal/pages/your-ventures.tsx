@@ -267,23 +267,35 @@ const TheirVentures = ({
   tab,
 }: {
   theirs: TheirAgreements;
-  tab: Tab;
+  /** The tab the address asks for, if it says; otherwise the one with something in it. */
+  tab: Tab | undefined;
 }) => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const places = usePortalPlaces();
   if (theirs.agreements.length === 0) {
-    return <EmptyState icon={Handshake} title={t("portal.noVentures")} />;
+    return (
+      <EmptyState
+        description={t("portal.noVenturesHint")}
+        icon={Handshake}
+        title={t("portal.noVentures")}
+      />
+    );
   }
   const finished = theirs.agreements.filter(hasFinished);
   const running = theirs.agreements.filter((one) => !hasFinished(one));
+  // Unsaid, the list opens where there is something to read: on what has finished, when nothing is running.
+  const open: Tab =
+    tab ??
+    (running.length === 0 && finished.length > 0 ? "finished" : "running");
   return (
     <PageTabs
       onChange={(value) =>
         navigate({
           ...places.ventures.link,
           replace: true,
-          search: value === "running" ? {} : { tab: value },
+          // Said either way: unsaid, the page chooses for itself.
+          search: { tab: value },
         })
       }
       tabs={[
@@ -308,7 +320,7 @@ const TheirVentures = ({
           ),
         },
       ]}
-      value={tab}
+      value={open}
     />
   );
 };
@@ -318,7 +330,7 @@ const TheirVentures = ({
  * have settled or were called off — each opening their own page of it. A place of its own, because a portfolio page
  * with a card for every Venture of every year would bury the one running now.
  */
-export const PortalYourVentures = ({ tab = "running" }: { tab?: Tab }) => {
+export const PortalYourVentures = ({ tab }: { tab?: Tab }) => {
   const { t } = useLanguage();
   const theirs = useTheirPortfolio();
   return (
@@ -342,4 +354,5 @@ export interface YourVenturesSearch {
 /** The address's word on which tab is open, in the portal and in the Preview alike. */
 export const yourVenturesSearch = (
   search: Record<string, unknown>
-): YourVenturesSearch => (search.tab === "finished" ? { tab: "finished" } : {});
+): YourVenturesSearch =>
+  TABS.includes(search.tab as Tab) ? { tab: search.tab as Tab } : {};

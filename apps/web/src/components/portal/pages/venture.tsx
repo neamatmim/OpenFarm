@@ -1,4 +1,4 @@
-import { startOfFarmDay } from "@OpenFarm/domain";
+import { hasEnded, startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { cn } from "@OpenFarm/ui/lib/utils";
@@ -581,14 +581,28 @@ const VentureToday = ({
   const figures = useFigures(today, mine?.settlement ?? null);
   return (
     <>
-      <Link
-        className="text-muted-foreground hover:text-foreground -mb-2 inline-flex items-center gap-1 self-start text-sm"
-        params={places.home.link.params}
-        to={places.home.link.to}
-      >
-        <ArrowLeft aria-hidden className="size-4" />
-        {t("portal.back")}
-      </Link>
+      {/* Back to where it is listed: the portfolio keeps the running ones, and those that have finished are read from
+          the list of all their Ventures. */}
+      {hasEnded(today.venture.state) ? (
+        <Link
+          className="text-muted-foreground hover:text-foreground -mb-2 inline-flex items-center gap-1 self-start text-sm"
+          params={places.ventures.link.params}
+          search={{ tab: "finished" }}
+          to={places.ventures.link.to}
+        >
+          <ArrowLeft aria-hidden className="size-4" />
+          {t("portal.ventures.all")}
+        </Link>
+      ) : (
+        <Link
+          className="text-muted-foreground hover:text-foreground -mb-2 inline-flex items-center gap-1 self-start text-sm"
+          params={places.home.link.params}
+          to={places.home.link.to}
+        >
+          <ArrowLeft aria-hidden className="size-4" />
+          {t("portal.back")}
+        </Link>
+      )}
       <PageHeader
         description={t("portal.ventureHint")}
         meta={

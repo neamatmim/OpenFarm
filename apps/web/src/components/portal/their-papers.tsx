@@ -18,7 +18,13 @@ export const TheirPapers = ({
   const { t } = useLanguage();
   const papered = agreements.filter((one) => one.venture.state !== "cancelled");
   if (papered.length === 0) {
-    return <EmptyState icon={FileText} title={t("portal.noPapers")} />;
+    return (
+      <EmptyState
+        description={t("portal.noPapersHint")}
+        icon={FileText}
+        title={t("portal.noPapers")}
+      />
+    );
   }
   return (
     <div className="grid items-start gap-4 lg:grid-cols-2">

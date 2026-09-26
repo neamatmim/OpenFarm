@@ -10,6 +10,7 @@ import type { Figure } from "@/components/page-kit";
 import { SummaryFigures } from "@/components/page-kit";
 import { MoneySkeleton } from "@/components/portal/portal-skeletons";
 import { useTheirPortfolio } from "@/components/portal/portal-source";
+import { StillToPay } from "@/components/portal/still-to-pay";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
 
@@ -45,6 +46,7 @@ const useTotals = (theirs: TheirAgreements): Figure[] => {
 /** Their totals over their ledger, once it is read. */
 const TheirMoney = ({ theirs }: { theirs: TheirAgreements }) => (
   <>
+    <StillToPay theirs={theirs} />
     <SummaryFigures figures={useTotals(theirs)} hintsOnPhone />
     <InvestorMoney
       agreements={theirs.agreements}

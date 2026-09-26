@@ -1,3 +1,4 @@
+import { hasEnded } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { cn } from "@OpenFarm/ui/lib/utils";
 
@@ -54,17 +55,16 @@ const Line = ({
 const WHOLE = 100;
 
 /**
- * How much of what their Units promised they have paid in: a bar and the two sums, the way a fund's investor is shown
- * called against committed. Nothing for somebody whose every Venture was called off, who promised nothing that stands.
+ * How much of what their Units promised to the Ventures still running they have paid in: a bar and the two sums, the
+ * way a fund's investor is shown called against committed. Nothing once none is running: every taka of those has come
+ * home, and what came back from one called off is on their money page.
  */
 const PaidIn = ({
   paidInBdt,
   promisedBdt,
-  returnedBdt,
 }: {
   paidInBdt: number;
   promisedBdt: number;
-  returnedBdt: number;
 }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
@@ -89,9 +89,6 @@ const PaidIn = ({
           promised: taka(promisedBdt),
           percent: formatNumber(Math.round(share), language),
         })}
-        {returnedBdt > 0
-          ? ` · ${t("portal.sums.returned", { bdt: taka(returnedBdt) })}`
-          : ""}
       </p>
     </div>
   );
@@ -109,8 +106,7 @@ export const CapitalAccount = ({ theirs }: { theirs: TheirAgreements }) => {
   const sums = portfolioOf(theirs);
   // Counted as the Owner's page counts them: the Units of a Venture settled or called off are nobody's any more.
   const running = theirs.agreements.filter(
-    (one) =>
-      one.venture.state !== "settled" && one.venture.state !== "cancelled"
+    (one) => !hasEnded(one.venture.state)
   );
   const units = running.reduce((sum, one) => sum + one.units, 0);
   return (
@@ -130,10 +126,11 @@ export const CapitalAccount = ({ theirs }: { theirs: TheirAgreements }) => {
             {taka(sums.heldBdt)}
           </p>
         </div>
+        {/* Of what they promised to the Ventures still running: one that has finished has nothing left to pay in, and a
+            bar kept full by it sat under a held figure of nothing. */}
         <PaidIn
-          paidInBdt={sums.paidInBdt}
-          promisedBdt={sums.promisedBdt}
-          returnedBdt={sums.returnedBdt}
+          paidInBdt={running.reduce((sum, one) => sum + one.capitalHeldBdt, 0)}
+          promisedBdt={running.reduce((sum, one) => sum + one.promisedBdt, 0)}
         />
       </div>
       <dl className="grid grid-cols-2 gap-x-6 gap-y-5 border-t pt-5 lg:border-s lg:border-t-0 lg:ps-8 lg:pt-0">

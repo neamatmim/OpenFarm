@@ -155,6 +155,24 @@ export const bn: Record<MessageKey, string> = {
   "portal.request.changed": "আপনার অনুরোধ বদলানো হয়েছে",
   "portal.request.withdrawn": "আপনার অনুরোধ তুলে নেওয়া হয়েছে",
   "portal.request.yours": "আপনি {day} তারিখে {units}টি ইউনিট ({taka}) চেয়েছেন।",
+  "portal.requests.all": "আপনার সব অনুরোধ",
+  "portal.requests.live": "এখনো খোলা",
+  "portal.requests.past": "আগের",
+  "portal.requests.none": "আপনি এখনো কোনো ভেঞ্চারে যোগ দেওয়ার অনুরোধ করেননি",
+  "portal.requests.noneHint":
+    "খামার যে ভেঞ্চারের জন্য পুঁজি তুলছে সেখান থেকে অনুরোধ করুন। অনুরোধে কেউ বাঁধা পড়েন না।",
+  "portal.requests.failed": "আপনার অনুরোধগুলো পড়া যায়নি",
+  "portal.requests.comeAndSign": "{venture}-এ খামার আপনার সঙ্গে চুক্তি সই করবে",
+  "portal.owed.line": "{venture}-এ এখনো {taka} দেওয়া বাকি।",
+  "portal.owed.how": "কীভাবে দেবেন",
+  "portal.noVenturesHint":
+    "খামারের সঙ্গে সামনাসামনি চুক্তি সই করলে ভেঞ্চারটি এখানে দেখা যাবে।",
+  "portal.noPapersHint":
+    "কোনো ভেঞ্চারে যোগ দিলে আপনার কাগজ এখানে দেখা যাবে: প্রথমে যোগদানপত্র, পরে অগ্রগতি আর হিসাব নিকাশ।",
+  "portal.open.noneHint":
+    "খামার নতুন কোনো ভেঞ্চারের জন্য পুঁজি তুলে আপনাকে দেখালে তা এখানে দেখা যাবে।",
+  "portal.money.noneHint":
+    "কোনো ভেঞ্চারের হিসাবে আপনার মূলধন এলে টাকার হিসাব এখানে দেখা যাবে।",
   "portal.requests.title": "যোগ দেওয়ার অনুরোধ",
   "portal.requests.hint":
     "খামারের কাছে আপনি যা চেয়েছেন, আর প্রতিটি এখন কোথায় আছে। অনুরোধে কেউ বাঁধা পড়েন না।",

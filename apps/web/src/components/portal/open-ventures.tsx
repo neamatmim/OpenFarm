@@ -1,4 +1,4 @@
-import { startOfFarmDay } from "@OpenFarm/domain";
+import { isLiveRequest, startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate } from "@OpenFarm/i18n";
 import { Badge } from "@OpenFarm/ui/components/badge";
 import { cn } from "@OpenFarm/ui/lib/utils";
@@ -12,7 +12,9 @@ import {
   useLookedAtOffers,
   usePortalPlaces,
   useTheirOpenVentures,
+  useTheirRequests,
 } from "@/components/portal/portal-source";
+import { RequestStanding } from "@/components/portal/requests-to-join";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
 import type { orpc } from "@/utils/orpc";
@@ -42,6 +44,10 @@ export const Fact = ({
 export const OpenVentureCard = ({ one }: { one: OpenVenture }) => {
   const { t } = useLanguage();
   const taka = useTaka();
+  // Their own live Request on it, said on the card, so a list of offers tells the ones they have asked about.
+  const asked = (useTheirRequests().data ?? []).find(
+    (each) => each.ventureId === one.id && isLiveRequest(each.state)
+  );
   const { to, params } = usePortalPlaces().openVenture(one.id).link;
   return (
     <li>
@@ -61,6 +67,7 @@ export const OpenVentureCard = ({ one }: { one: OpenVenture }) => {
             className="text-muted-foreground mt-0.5 size-5 shrink-0"
           />
         </div>
+        {asked ? <RequestStanding state={asked.state} /> : null}
         {one.takingRequests ? null : (
           <Badge className="w-fit" variant="secondary">
             {t("portal.open.closed")}

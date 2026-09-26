@@ -267,13 +267,15 @@ export const InvestorAgreements = ({
 const MONEY_WORDS = {
   owner: {
     none: "investors.page.noMoney",
+    noneHint: null,
     back: "investors.page.toThem",
   },
   portal: {
     none: "portal.money.none",
+    noneHint: "portal.money.noneHint",
     back: "portal.money.toYou",
   },
-} as const satisfies Record<string, Record<string, MessageKey>>;
+} as const satisfies Record<string, Record<string, MessageKey | null>>;
 
 /** The Venture a line of their money moved in, leading to the page of it the reader has: the Owner's, or the
  *  Investor's own in the portal, which is asked for by their Agreement. */
@@ -347,7 +349,12 @@ export const InvestorMoney = ({
       title={inThePortal ? undefined : t("investors.page.tab.money")}
     >
       {movements.length === 0 ? (
-        <EmptyState bare icon={ScrollText} title={t(words.none)} />
+        <EmptyState
+          bare
+          description={words.noneHint ? t(words.noneHint) : undefined}
+          icon={ScrollText}
+          title={t(words.none)}
+        />
       ) : (
         <>
           {/* On a phone each line is a row of its own rather than six columns scrolled sideways: what it was and the
