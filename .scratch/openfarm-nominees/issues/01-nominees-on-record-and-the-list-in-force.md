@@ -4,7 +4,7 @@
 
 **Blocked by:** —
 
-**Status:** done on `feat/nominees-on-record`
+**Status:** done, merged (87b3871)
 
 **Spec:** [the spec](../spec.md), user stories 1–6 and 17–20. See also "The record", "The rules, in the domain package", "The parties part", "Where the list in force shows" and "Moving what exists".
 
