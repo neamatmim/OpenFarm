@@ -143,6 +143,8 @@ describe("a Venture shown in the portal", () => {
         takingRequests: true,
         // The Owner shows no Projections on this farm (ADR 0010).
         projection: null,
+        // Shown since they last looked at what they are offered, which they never have.
+        isNew: true,
       },
     ]);
   });

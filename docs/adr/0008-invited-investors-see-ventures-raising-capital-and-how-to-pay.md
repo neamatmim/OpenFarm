@@ -33,3 +33,11 @@ So the portal may now **show** an upcoming Venture to invited Investors and **ta
 **2026-09-25:** the shape of joining is designed. Its terms are in CONTEXT.md: **Request to Join**, **Pay-in Code**, and the **Investor Portal**, **Investor Cap** and **Venture Account** entries. The Owner chooses which Ventures are shown. A Request binds nobody and records whole Units and a note. The Owner alone is told, by one Notice carried by the Digest, and answers "come and sign" or "not this time". Bank details show only on an Agreement already signed. The screens are on ticket 07 for the written opinion to cover.
 
 **2026-09-26:** "no projections of return" gives way to ADR 0010: a labelled range, worked from the Owner's sale prices, shown only once the Owner turns it on. "No referrals, no advertising" stands.
+
+**2026-09-26, later:** the Owner chose to make the Ventures raising capital easier to find, inside the portal only:
+
+- They get their own menu entry with a count, which takes the account's place on a phone's bottom bar while there are any.
+- An Investor in no Venture yet reads them first on their home page. Everybody else gets one line at the top of it.
+- A Venture the Owner has newly shown is said as new, once, until the Investor has looked (`investor_access.offers_seen_at`).
+
+Still nothing leaves the portal: no push, SMS or email about an offer, and no "Units left" or other urgency. "No referrals, no advertising" is read as that. The notice is for the lawyer and the Shariah scholar to see alongside the Projection (ADR 0010).

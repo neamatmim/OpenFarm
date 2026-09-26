@@ -1,12 +1,15 @@
+import { startOfFarmDay } from "@OpenFarm/domain";
+import { formatDate } from "@OpenFarm/i18n";
 import { Badge } from "@OpenFarm/ui/components/badge";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Sprout } from "lucide-react";
 
 import { MORE_LINK } from "@/components/home/queue";
 import { SaidDate } from "@/components/list-cells";
-import { Section } from "@/components/page";
+import { Notice, Section } from "@/components/page";
 import {
+  useLookedAtOffers,
   usePortalPlaces,
   useTheirOpenVentures,
 } from "@/components/portal/portal-source";
@@ -48,7 +51,11 @@ export const OpenVentureCard = ({ one }: { one: OpenVenture }) => {
         to={to}
       >
         <div className="flex items-start justify-between gap-3">
-          <span className="text-base font-semibold">{one.name}</span>
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="text-base font-semibold">{one.name}</span>
+            {/* Shown since they last looked; an answer kept from before says nothing new. */}
+            {one.isNew === true ? <Badge>{t("portal.open.new")}</Badge> : null}
+          </span>
           <ChevronRight
             aria-hidden
             className="text-muted-foreground mt-0.5 size-5 shrink-0"
@@ -82,6 +89,61 @@ export const OpenVentureCards = ({
     ))}
   </ul>
 );
+
+/**
+ * One line at the top of an Investor's home while the farm is raising capital for a Venture it shows them — for
+ * somebody already in a Venture, whose offers are otherwise further down. A Venture shown since they last looked is
+ * said as news, once, in their portal and nowhere else; after that the line only counts them. Nothing when there are
+ * none.
+ */
+export const RaisingLine = () => {
+  const { t, language } = useLanguage();
+  const offered = useTheirOpenVentures();
+  const places = usePortalPlaces();
+  useLookedAtOffers(offered.data);
+  const ventures = offered.data ?? [];
+  if (ventures.length === 0) {
+    return null;
+  }
+  const fresh = ventures.filter((one) => one.isNew === true);
+  const [only] = fresh;
+  if (only && fresh.length === 1) {
+    const { to, params } = places.openVenture(only.id).link;
+    return (
+      <Notice
+        action={
+          <Link className={cn(MORE_LINK, "text-sm")} params={params} to={to}>
+            {t("portal.open.see")}
+            <ChevronRight aria-hidden className="size-4" />
+          </Link>
+        }
+        icon={Sprout}
+        title={t("portal.open.newLine", {
+          name: only.name,
+          day: formatDate(startOfFarmDay(only.decideBy), language, "date"),
+        })}
+        tone="info"
+      />
+    );
+  }
+  const all = places.openVentures.link;
+  const line = t("portal.open.countLine", { count: ventures.length });
+  const see = (
+    <Link className={cn(MORE_LINK, "text-sm")} params={all.params} to={all.to}>
+      {t("portal.open.see")}
+      <ChevronRight aria-hidden className="size-4" />
+    </Link>
+  );
+  return fresh.length > 0 ? (
+    <Notice action={see} icon={Sprout} title={line} tone="info" />
+  ) : (
+    <p className="text-muted-foreground flex flex-wrap items-center gap-x-3 text-sm">
+      <Sprout aria-hidden className="size-4" />
+      {line}
+      {see}
+    </p>
+  );
+};
 
 /**
  * The Ventures the farm is raising capital for, on the Investor's home page — only when there are any: an empty box

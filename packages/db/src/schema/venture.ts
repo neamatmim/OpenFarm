@@ -194,6 +194,9 @@ export const investorAccess = pgTable(
     revokedWhy: text("revoked_why", { enum: PORTAL_TAKEN_AWAY_WHY }),
     /** When they were last in the portal, to the hour: kept here because sessions end and are cleared. */
     lastSeenAt: timestamp("last_seen_at"),
+    /** When they last looked at the Ventures offered to them: one the Owner has shown since is new to them. Theirs to
+     *  set by looking; the Owner's Preview never sets it. */
+    offersSeenAt: timestamp("offers_seen_at"),
   },
   (table) => [
     uniqueIndex("investor_access_investor_uidx").on(table.investorId),

@@ -104,6 +104,12 @@ export const en = {
   "portal.yourVentures": "Your Ventures",
   "portal.notice":
     "This portal is not a public offer. Joining a Venture is only by an Agreement signed in person with the farm, and no money moves through this portal.",
+  "portal.nav.raising": "Raising",
+  "portal.open.new": "New",
+  "portal.open.newLine": "{name} is now raising capital. Decide by {day}.",
+  "portal.open.countLine":
+    "{count, plural, one {# Venture is} other {# Ventures are}} raising capital.",
+  "portal.open.see": "See",
   "portal.open.title": "Ventures raising capital",
   "portal.open.hint":
     "Ventures the farm is still raising capital for. Joining is only by signing a stamped Agreement with the farm, in person.",

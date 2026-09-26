@@ -127,7 +127,8 @@ const offeredAs = (
   row: VentureRow,
   investorsPercent: number,
   now: Date,
-  projection: ReturnType<typeof offeredProjection> | null
+  projection: ReturnType<typeof offeredProjection> | null,
+  isNew: boolean
 ) => ({
   id: row.id,
   name: row.name,
@@ -147,6 +148,8 @@ const offeredAs = (
   /** What it might make a Unit at the Owner's low and high sale prices, worked from the Owner's plan — an estimate,
    *  and nothing unless the Owner shows Projections (ADR 0010). */
   projection,
+  /** Shown since they last looked at what they are offered: said in their portal, and nowhere else. */
+  isNew,
 });
 
 /**
@@ -158,8 +161,15 @@ export const openVenturesFor = async (
   farm: { id: string; ventureInvestorsPercent: number },
   investorId: string,
   now: Date,
-  /** Whether each carries its Projection: when the Owner shows them, and in the Owner's own Preview. */
-  withProjections = false
+  {
+    withProjections = false,
+    offersSeenAt = null,
+  }: {
+    /** Whether each carries its Projection: when the Owner shows them, and in the Owner's own Preview. */
+    withProjections?: boolean;
+    /** When they last looked at what they are offered; a Venture shown since is new to them. */
+    offersSeenAt?: Date | null;
+  } = {}
 ) => {
   const them = await db.query.investor.findFirst({
     where: { id: investorId, farmId: farm.id },
@@ -198,7 +208,9 @@ export const openVenturesFor = async (
           one,
           farm.ventureInvestorsPercent,
           now,
-          projected ? offeredProjection(projected) : null
+          projected ? offeredProjection(projected) : null,
+          offersSeenAt === null ||
+            (one.shownInPortalAt !== null && one.shownInPortalAt > offersSeenAt)
         );
       })
   );

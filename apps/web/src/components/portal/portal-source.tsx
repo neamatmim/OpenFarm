@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef } from "react";
 import type { ReactNode } from "react";
 
 import { animalPhotoKey } from "@/components/portal/animal-photo-key";
@@ -127,6 +127,27 @@ export const useTheirAnimalPhoto = (
         : client.portal.animalPhoto(input),
     staleTime: Number.POSITIVE_INFINITY,
   });
+};
+
+/**
+ * Marks the Ventures offered to them as looked at, once, when a page showing them has any they have not seen — in
+ * their own portal only: the Owner's Preview leaves nothing on their side.
+ */
+export const useLookedAtOffers = (
+  offered: readonly { isNew?: boolean }[] | undefined
+) => {
+  const previewing = usePreviewing() !== null;
+  const marking = useMutation(orpc.portal.sawOffers.mutationOptions());
+  const { mutate } = marking;
+  const marked = useRef(false);
+  // An answer this phone kept from before offers could be new has none that are.
+  const anyNew = (offered ?? []).some((one) => one.isNew === true);
+  useEffect(() => {
+    if (anyNew && !previewing && !marked.current) {
+      marked.current = true;
+      mutate();
+    }
+  }, [anyNew, previewing, mutate]);
 };
 
 /** «আপনার তথ্য»: the notice as the portal shows it — to anybody in the Investor's own portal, and to the Owner in the
