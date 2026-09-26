@@ -454,6 +454,59 @@ describe("what a Venture's animals are doing", () => {
     expect(projection).toMatchObject({ investorsPercent: 60, units: 10 });
   });
 
+  it("prices each bull for the Owner at his Venture's prices against what he cost, and for nobody else", async () => {
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    await owner.client.ventures.setProjection({
+      ventureId: firstVenture,
+      saleLowBdtPerKg: 500,
+      saleHighBdtPerKg: 600,
+    });
+    const { animals } = await owner.client.fattening.prices();
+    const first = animals.find((one) => one.tagNumber === tags[0]);
+    // ৳60,000 off the lorry and nothing charged since; 228 kg on 1 February. At ৳500 a kilo he fetches ৳1,14,000,
+    // ৳54,000 over his cost; at ৳600, ৳1,36,800 and ৳76,800 over. He pays for himself at ৳263.16 a kilo.
+    expect(first).toMatchObject({
+      costBdt: 60_000,
+      costIsWhole: true,
+      bought: true,
+      latestKg: 228,
+      from: "venture",
+      breakEvenBdtPerKg: 263.16,
+      low: { priceBdt: 114_000, marginBdt: 54_000 },
+      high: { priceBdt: 136_800, marginBdt: 76_800 },
+    });
+
+    const manager = await asManager("2052-02-20T06:00:00.000Z");
+    await expect(manager.client.fattening.prices()).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+  });
+
+  it("keeps the farm's market price a kilo as the Owner sets it, and the Owner's alone", async () => {
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    await owner.client.fattening.setMarketPrice({
+      lowBdtPerKg: 480,
+      highBdtPerKg: 560,
+    });
+    // A request reads the farm as it stands when it is made.
+    const later = await at("2052-02-20T05:00:00.000Z");
+    const { market } = await later.client.fattening.prices();
+    expect(market).toMatchObject({ lowBdtPerKg: 480, highBdtPerKg: 560 });
+    await expect(
+      owner.client.fattening.setMarketPrice({
+        lowBdtPerKg: 600,
+        highBdtPerKg: 560,
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    const manager = await asManager("2052-02-20T06:00:00.000Z");
+    await expect(
+      manager.client.fattening.setMarketPrice({
+        lowBdtPerKg: 480,
+        highBdtPerKg: 560,
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
   it("counts the days to the window and never projects past it", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
     const theirs = await owner.client.ventures.herd({

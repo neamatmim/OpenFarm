@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { MarketPrice } from "@/components/fattening/animal-prices";
 import type {
   BoardRow,
   Suggestion,
@@ -174,6 +175,8 @@ const ReadyPage = () => {
       />
 
       <ReadyFigures board={board.data} suggestions={suggestions.data} />
+      {/* The Owner's own: what a kilo is fetching, which the farm's own animals below are priced at. */}
+      <MarketPrice />
 
       <SuggestionsBody
         failed={suggestions.isError}

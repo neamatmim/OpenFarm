@@ -110,6 +110,10 @@ export interface Context {
     investorPortal: boolean;
     /** Whether invited Investors are shown each Venture's Projection (ADR 0010). */
     investorProjections: boolean;
+    /** The market price a kilo of live weight, low and high, as the Owner last judged it; nothing until set. */
+    marketLowBdtPerKg: number | null;
+    marketHighBdtPerKg: number | null;
+    marketPriceSetAt: Date | null;
     pinAutoLockMinutes: number;
     milkTolerancePercent: number;
     feedTolerancePercent: number;

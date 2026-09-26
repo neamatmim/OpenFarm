@@ -10,6 +10,11 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import {
+  PriceCell,
+  PriceLine,
+  useIsOwner,
+} from "@/components/fattening/animal-prices";
 import { TagLink } from "@/components/fattening/fattening-words";
 import { Nothing } from "@/components/list-cells";
 import { EmptyState } from "@/components/page";
@@ -89,6 +94,22 @@ const sellableColumns = column.columns([
   }),
 ]);
 
+const PriceOfCell = ({ row }: { row: { original: SellableRow } }) => (
+  <PriceCell tagNumber={row.original.tagNumber} />
+);
+
+/** The same, with each animal's price against her cost before the last column: the Owner's list. */
+const sellableColumnsPriced = column.columns([
+  ...sellableColumns.slice(0, -1),
+  column.display({
+    id: "price",
+    header: listHeader("price.col"),
+    cell: PriceOfCell,
+    meta: { align: "end" },
+  }),
+  ...sellableColumns.slice(-1),
+]);
+
 /** A Ready animal on a phone: her tag and pen, what she last weighed, and the button that sells her. */
 const SellableCard = ({ row }: { row: SellableRow }) => (
   <div className="flex items-center justify-between gap-3">
@@ -100,6 +121,7 @@ const SellableCard = ({ row }: { row: SellableRow }) => (
       <span className="font-semibold tabular-nums">
         <LastWeight kg={row.latestKg} />
       </span>
+      <PriceLine tagNumber={row.tagNumber} />
     </div>
     <SellButton row={row} />
   </div>
@@ -119,8 +141,9 @@ export const ReadyToGo = ({
   onSell: (tagNumber: string) => void;
 }) => {
   const { t } = useLanguage();
+  const owner = useIsOwner();
   const table = useListTable({
-    columns: sellableColumns,
+    columns: owner ? sellableColumnsPriced : sellableColumns,
     data: sellable.map((row) => ({ ...row, handleSell: onSell })),
     getRowId: (row) => row.id,
   });
