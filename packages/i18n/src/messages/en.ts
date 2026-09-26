@@ -239,6 +239,7 @@ export const en = {
   "portal.nav.money": "Money",
   "portal.nav.papers": "Papers",
   "portal.moneyTitle": "Your money",
+  "portal.money.paidIn": "Capital you paid in",
   "portal.noPapers": "No papers yet",
   "portal.closed":
     "The investor portal is not open to you. Ask the farm's Owner.",

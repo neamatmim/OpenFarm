@@ -43,9 +43,9 @@ import {
 } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
-import { initialsOf } from "@/components/user-menu";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
+import { initialsOf } from "@/lib/initials";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 

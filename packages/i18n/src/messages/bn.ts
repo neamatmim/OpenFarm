@@ -221,6 +221,7 @@ export const bn: Record<MessageKey, string> = {
   "portal.nav.money": "টাকা",
   "portal.nav.papers": "কাগজ",
   "portal.moneyTitle": "আপনার টাকা",
+  "portal.money.paidIn": "আপনার জমা দেওয়া মূলধন",
   "portal.noPapers": "এখনো কোনো কাগজ নেই",
   "portal.closed":
     "বিনিয়োগকারী পোর্টাল আপনার জন্য খোলা নেই। খামারের মালিকের সঙ্গে কথা বলুন।",
