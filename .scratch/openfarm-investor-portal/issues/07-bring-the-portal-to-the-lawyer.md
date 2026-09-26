@@ -41,6 +41,8 @@ The Owner's part is the meeting. Resolved when the lawyer's written answer on th
 - what it changes: the portal stays shut, opens as built, or opens with changes
 - whether joining or paying may ever go through the portal, and on what terms.
 
+The same meeting also carries **several Nominees** (added 2026-09-26, pages 7–8 of the pack), from [the several-nominees map](../../openfarm-several-nominees/map.md).
+
 ## Answer so far (2026-09-25, verbal; written opinion to follow)
 
 The Owner reports the lawyer's answer. **Because the portal stays by invitation only:**
