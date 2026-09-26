@@ -149,7 +149,7 @@ server {
         add_header X-Content-Type-Options nosniff always;
         add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
     }
-    location ~ ^/(icon\.svg|manifest\.webmanifest|robots\.txt)$ { proxy_pass http://127.0.0.1:3001; }
+    location ~ ^/(icon\.svg|portal\.webmanifest|robots\.txt)$ { proxy_pass http://127.0.0.1:3001; }
 
     # Signing in and out, the session, and the password.
     location ~ ^/api/auth/(sign-in/email|sign-out|get-session|change-password|revoke-other-sessions)$ {

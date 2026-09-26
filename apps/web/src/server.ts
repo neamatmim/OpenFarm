@@ -3,6 +3,7 @@ import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
 
 import { FARM_POLICY, portalPolicy } from "./lib/content-policy";
 import { atTheWrongAddress } from "./lib/two-addresses";
+import { withTheWipe } from "./lib/wipe";
 
 const withSecurityHeaders = (response: Response, policy: string): Response => {
   const headers = new Headers(response.headers);
@@ -41,12 +42,18 @@ export default createServerEntry({
     }
     if (hostOf(request.url) === "portal") {
       const nonce = aNonce();
-      // The router puts it on the scripts it writes into the page (lib/nonce).
-      const answer = await handler.fetch(request, { context: { nonce } });
-      return withSecurityHeaders(answer, portalPolicy(nonce));
+      // The router puts it on the scripts it writes into the page (lib/page-context).
+      const answer = await handler.fetch(request, {
+        context: { host: "portal", nonce },
+      });
+      return withTheWipe(
+        request,
+        "portal",
+        withSecurityHeaders(answer, portalPolicy(nonce))
+      );
     }
     return withSecurityHeaders(
-      await handler.fetch(request, { context: {} }),
+      await handler.fetch(request, { context: { host: "farm" } }),
       FARM_POLICY
     );
   },

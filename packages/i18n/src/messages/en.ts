@@ -90,6 +90,9 @@ export const en = {
   "portal.activity.readNothing": "No paper read yet",
   "portal.activity.requested": "Their requests to join",
   "portal.askTheFarm": "Questions? Call {farm} on {phone}.",
+  "portal.noConnection": "No connection",
+  "portal.noConnectionHint":
+    "This phone is not online. The portal keeps nothing on the phone, so it shows no old figures — the page comes back once the connection does.",
   "portal.endedTitle": "Please sign in again",
   "portal.endedHint":
     "You were signed in for a working day, so the portal signed you out to keep your figures safe.",
