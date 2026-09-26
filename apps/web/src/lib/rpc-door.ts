@@ -1,4 +1,16 @@
+import type { Hosts } from "@OpenFarm/auth/hosts";
+import { hostOf, originOf } from "@OpenFarm/auth/hosts";
+
 export type Refusal = "another-site" | "not-by-link";
+
+/**
+ * The public origin the API trusts for a request, besides the one it was sent to: its own address's, and never the
+ * other's. The farm's two addresses are one site to a browser, which sends each one's cookie to a page of the other
+ * (ADR 0009).
+ */
+export const trustedAt = (url: string, hosts?: Hosts): string[] => [
+  originOf(hostOf(url, hosts), hosts),
+];
 
 /** The one page under the API a browser may simply open. */
 const API_REFERENCE = "/api/rpc/api-reference";

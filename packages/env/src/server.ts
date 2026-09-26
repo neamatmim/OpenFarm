@@ -7,6 +7,9 @@ export const env = createEnv({
     DATABASE_URL: z.string().min(1),
     BETTER_AUTH_SECRET: z.string().min(32),
     BETTER_AUTH_URL: z.url(),
+    /** The Investor Portal's own address, `investors.<farm-domain>` (ADR 0009). Unset, the portal is at `/portal` on
+     *  the farm's own address, as it was built. */
+    PORTAL_URL: z.url().optional(),
     /** Vercel sends this as a bearer token when invoking its generated cron route. */
     CRON_SECRET: z.string().min(32).optional(),
     NODE_ENV: z
@@ -36,6 +39,35 @@ if (
   !env.BETTER_AUTH_URL.startsWith("https://")
 ) {
   throw new Error("BETTER_AUTH_URL must use HTTPS in production");
+}
+
+if (
+  env.NODE_ENV === "production" &&
+  env.PORTAL_URL &&
+  !env.PORTAL_URL.startsWith("https://")
+) {
+  throw new Error("PORTAL_URL must use HTTPS in production");
+}
+
+if (env.PORTAL_URL) {
+  const portal = new URL(env.PORTAL_URL);
+  if (portal.host === new URL(env.BETTER_AUTH_URL).host) {
+    throw new Error(
+      "PORTAL_URL must be an address of its own, not the farm's BETTER_AUTH_URL"
+    );
+  }
+  if (portal.pathname !== "/" || portal.search || portal.hash) {
+    throw new Error(
+      "PORTAL_URL must be the portal's bare address, such as https://investors.farm.example.com"
+    );
+  }
+  // Better Auth adds these to every sign-in it runs, the portal's and the farm's alike, which would let each address
+  // trust the other (ADR 0009).
+  if (process.env.BETTER_AUTH_TRUSTED_ORIGINS) {
+    throw new Error(
+      "BETTER_AUTH_TRUSTED_ORIGINS must not be set while the portal has an address of its own"
+    );
+  }
 }
 
 if (env.NODE_ENV === "production" && process.env.VERCEL && !env.CRON_SECRET) {

@@ -12,7 +12,10 @@ import { deleteSessionCookie } from "better-auth/cookies";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 
 import { isCommonPassword } from "./common-passwords";
+import type { Host, Hosts } from "./hosts";
+import { HOSTS, originOf, portalOrigin, signInPageOf } from "./hosts";
 import { PASSWORD_MIN_LENGTH, PASSWORD_TOO_COMMON } from "./password";
+import { WRONG_ADDRESS } from "./wrong-address";
 
 /**
  * The other half of the door: an account is opened by somebody the farm is waiting for, and by nobody else.
@@ -71,12 +74,24 @@ const turnAwayWhoWasNotAsked = (db: Database) =>
     });
   });
 
+/** Which of the farm's addresses a sign-in answers on, and where the farm is deployed. */
+interface AnsweringOn {
+  host: Host;
+  hosts: Hosts;
+}
+
+/** Why the door stays shut, and for somebody at the wrong address, which is theirs. */
+type Shut =
+  | { why: "portal.closed" | "auth.noLongerHere" }
+  | { why: "auth.wrongAddress"; home: Host };
+
 /** Why the door stays shut for this address, or nothing when it opens. */
 const whyShut = async (
   db: Database,
   email: string,
-  disabled: boolean
-): Promise<"portal.closed" | "auth.noLongerHere" | null> => {
+  disabled: boolean,
+  { host, hosts }: AnsweringOn
+): Promise<Shut | null> => {
   // An Investor comes in only while the farm has its portal open and their access stands (ADR 0007).
   const access = await db.query.investorAccess.findFirst({
     where: { loginEmail: email },
@@ -88,11 +103,18 @@ const whyShut = async (
       where: { id: access.farmId },
       columns: { investorPortal: true },
     });
-    return !theFarm?.investorPortal || access.revokedAt || disabled
-      ? "portal.closed"
+    if (!theFarm?.investorPortal || access.revokedAt || disabled) {
+      return { why: "portal.closed" };
+    }
+    // Each address serves only its own people (ADR 0009): an Investor signs in at the portal's.
+    return hosts.portal !== null && host === "farm"
+      ? { why: "auth.wrongAddress", home: "portal" }
       : null;
   }
-  return disabled ? "auth.noLongerHere" : null;
+  if (disabled) {
+    return { why: "auth.noLongerHere" };
+  }
+  return host === "portal" ? { why: "auth.wrongAddress", home: "farm" } : null;
 };
 
 /**
@@ -104,8 +126,11 @@ const whyShut = async (
  * who has money in its Ventures. So a wrong password gets Better Auth's own answer whichever account it names, and only
  * the person themselves is told why the door stays shut, in their own language; the sign-in Better Auth just made for
  * them is undone before they are.
+ *
+ * Somebody signing in at the other of the farm's two addresses is turned away the same way, and told their own, with
+ * it in the answer for the page to make a link of (ADR 0009).
  */
-const turnAwayWhoseDoorIsShut = (db: Database) =>
+const turnAwayWhoseDoorIsShut = (db: Database, where: AnsweringOn) =>
   createAuthMiddleware(async (ctx) => {
     if (ctx.path !== "/sign-in/email") {
       return;
@@ -122,14 +147,24 @@ const turnAwayWhoseDoorIsShut = (db: Database) =>
     const language = isLanguage(person?.language)
       ? person.language
       : DEFAULT_LANGUAGE;
-    const why = await whyShut(db, email, Boolean(person?.disabledAt));
-    if (!why) {
+    const shut = await whyShut(db, email, Boolean(person?.disabledAt), where);
+    if (!shut) {
       return;
     }
     deleteSessionCookie(ctx, true);
     await ctx.context.internalAdapter.deleteSession(made.session.token);
     ctx.context.setNewSession(null);
-    throw new APIError("FORBIDDEN", { message: translate(language, why) });
+    if (shut.why === "auth.wrongAddress") {
+      const home = signInPageOf(shut.home, where.hosts);
+      throw new APIError("FORBIDDEN", {
+        code: WRONG_ADDRESS,
+        address: home,
+        message: translate(language, shut.why, {
+          address: new URL(home).host,
+        }),
+      });
+    }
+    throw new APIError("FORBIDDEN", { message: translate(language, shut.why) });
   });
 
 /**
@@ -194,19 +229,41 @@ const previewOrigin =
     ? asHttpsOrigin(process.env.VERCEL_URL)
     : null;
 
-const trustedOrigins = [
-  env.BETTER_AUTH_URL,
-  previewOrigin,
-  process.env.VERCEL_ENV === "preview"
-    ? asHttpsOrigin(process.env.VERCEL_BRANCH_URL)
-    : null,
-].filter((origin): origin is string => origin !== null);
+/**
+ * The pages each address's sign-in answers, and the address it names itself by. Each trusts only itself (ADR 0009): a
+ * portal page may never sign in at the farm's address, where the browser would send the farm's cookie with it, the two
+ * being one site to it — so the farm's sign-in and the portal's are two, each with its own base URL and origins, and
+ * not one answering both, which would trust every address it answered on.
+ */
+const originsFor = ({ host, hosts }: AnsweringOn) => {
+  const portal = portalOrigin(hosts);
+  if (host === "portal" && portal !== null) {
+    return { baseURL: portal, trustedOrigins: [portal] };
+  }
+  const farm = originOf("farm", hosts);
+  const trustedOrigins = [
+    farm,
+    previewOrigin,
+    process.env.VERCEL_ENV === "preview"
+      ? asHttpsOrigin(process.env.VERCEL_BRANCH_URL)
+      : null,
+  ].filter((origin): origin is string => origin !== null);
+  return { baseURL: previewOrigin ?? farm, trustedOrigins };
+};
 
-const authBaseUrl = previewOrigin ?? env.BETTER_AUTH_URL;
+/** The farm's own address, as this farm is deployed: where the sign-in answers unless told otherwise. */
+const AT_THE_FARM: AnsweringOn = { host: "farm", hosts: HOSTS };
 
-/** The farm's own auth. Given a database for a test to run it against a scratch one; the farm's otherwise. */
-export const createAuth = (against?: Database) => {
+/**
+ * The farm's own auth, answering on one of its addresses — the farm's own unless told otherwise. Given a database for a
+ * test to run it against a scratch one; the farm's otherwise.
+ */
+export const createAuth = (
+  against?: Database,
+  where: AnsweringOn = AT_THE_FARM
+) => {
   const db = against ?? createDb(env.DATABASE_URL);
+  const { baseURL, trustedOrigins } = originsFor(where);
 
   return betterAuth({
     database: drizzleAdapter(db, {
@@ -264,7 +321,7 @@ export const createAuth = (against?: Database) => {
       },
     },
     secret: env.BETTER_AUTH_SECRET,
-    baseURL: authBaseUrl,
+    baseURL,
     session: {
       expiresIn: 7 * 24 * 60 * 60,
       updateAge: 24 * 60 * 60,
@@ -274,16 +331,28 @@ export const createAuth = (against?: Database) => {
       // Local HTTP remains usable in development; production cookies are never sent
       // over plaintext even if a reverse proxy is misconfigured.
       useSecureCookies: env.NODE_ENV === "production",
+      // Asked in tests as in production: Better Auth skips it under test by default, which would leave the one check
+      // that keeps a portal page off the farm's sign-in untested.
+      disableOriginCheck: false,
     },
     hooks: {
       before: theDoor(db),
-      after: turnAwayWhoseDoorIsShut(db),
+      after: turnAwayWhoseDoorIsShut(db, where),
     },
     plugins: [tanstackStartCookies()],
   });
 };
 
 export const auth = createAuth();
+
+/** The portal's own sign-in, where it has an address of its own; the farm's where it has not. */
+const portalAuth =
+  HOSTS.portal === null
+    ? auth
+    : createAuth(undefined, { host: "portal", hosts: HOSTS });
+
+/** The sign-in that answers the address a request was sent to. */
+export const authFor = (host: Host) => (host === "portal" ? portalAuth : auth);
 
 /**
  * Sets somebody's password when they cannot sign in to change it themselves — the farm having handed them a

@@ -7,6 +7,7 @@ import {
   Outlet,
   Scripts,
   createRootRouteWithContext,
+  useRouter,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { createMiddleware } from "@tanstack/react-start";
@@ -28,43 +29,51 @@ export interface RouterAppContext {
   queryClient: QueryClient;
 }
 
-const RootDocument = () => (
-  // The theme class lands on the html element before React arrives, from what this device chose.
-  <html lang="bn" suppressHydrationWarning>
-    <head>
-      <HeadContent />
-    </head>
-    {/* Browser extensions (a grammar checker, a password manager) write attributes onto the body before React
+const RootDocument = () => {
+  // The theme's inline script runs under the Investor address's policy only with the page's nonce.
+  const { nonce } = useRouter().options.ssr ?? {};
+  return (
+    // The theme class lands on the html element before React arrives, from what this device chose.
+    <html lang="bn" suppressHydrationWarning>
+      <head>
+        <HeadContent />
+      </head>
+      {/* Browser extensions (a grammar checker, a password manager) write attributes onto the body before React
         arrives; they are not the page's, and must not make React throw the page away. */}
-    <body suppressHydrationWarning>
-      {/* Light by default — the shed is in sunlight — and dark or this device's own choice when the person asks. */}
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="light"
-        disableTransitionOnChange
-        enableSystem
-        storageKey="openfarm.theme"
-      >
-        <LanguageProvider>
-          <TooltipProvider>
-            <div className="min-h-svh">
-              <SkipToMain />
-              <Outlet />
-            </div>
-          </TooltipProvider>
-        </LanguageProvider>
-        <Toaster position="top-center" richColors />
-      </ThemeProvider>
-      {SHOW_DEVTOOLS ? (
-        <>
-          <TanStackRouterDevtools position="bottom-left" />
-          <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
-        </>
-      ) : null}
-      <Scripts />
-    </body>
-  </html>
-);
+      <body suppressHydrationWarning>
+        {/* Light by default — the shed is in sunlight — and dark or this device's own choice when the person asks. */}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          disableTransitionOnChange
+          enableSystem
+          nonce={nonce}
+          storageKey="openfarm.theme"
+        >
+          <LanguageProvider>
+            <TooltipProvider>
+              <div className="min-h-svh">
+                <SkipToMain />
+                <Outlet />
+              </div>
+            </TooltipProvider>
+          </LanguageProvider>
+          <Toaster position="top-center" richColors />
+        </ThemeProvider>
+        {SHOW_DEVTOOLS ? (
+          <>
+            <TanStackRouterDevtools position="bottom-left" />
+            <ReactQueryDevtools
+              position="bottom"
+              buttonPosition="bottom-right"
+            />
+          </>
+        ) : null}
+        <Scripts />
+      </body>
+    </html>
+  );
+};
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
   server: {

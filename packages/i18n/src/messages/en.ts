@@ -44,6 +44,9 @@ export const en = {
   "auth.passwordSet": "Password set — sign in with it",
   "auth.backToSignIn": "Back to signing in",
   "auth.signInSuccess": "Signed in",
+  "auth.goToYourAddress": "Go to your address",
+  "auth.wrongAddress":
+    "This address is not yours to sign in at. Sign in at your own: {address}",
   "auth.noLongerHere":
     "You no longer work on this farm. Ask the Owner if this is wrong.",
   "auth.notInvited":
