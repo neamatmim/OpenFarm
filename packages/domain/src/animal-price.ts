@@ -97,9 +97,6 @@ export const FEWEST_KEEP_READ_DAYS = 14;
  *  fed, but not for long enough to be a rate. */
 export const KEEP_NEEDS_DAYS = 7;
 
-/** How far ahead keeping her is weighed: a fortnight, from one Weigh-in to the next. */
-export const KEEP_AHEAD_DAYS = 14;
-
 /** Two readings closer together than this say more about what she ate and drank that morning than what she put on:
  *  a full gut alone moves a bull several kilos, which over three days reads as a kilo a day either way. */
 export const KEEP_RATE_NEEDS_DAYS = 7;
@@ -189,7 +186,7 @@ export const keptOver = ({
 };
 
 /**
- * Whether keeping her another fortnight pays: what each kilo she is putting on now costs, set beside the price a kilo
+ * Whether keeping her the days ahead pays: what each kilo she is putting on now costs, set beside the price a kilo
  * she is priced at. At or under the low price it pays whatever she fetches; over the high price she costs more to keep
  * than she puts on; between the two, what she fetches decides.
  */
@@ -199,7 +196,7 @@ export type Keeping = (typeof KEEPING)[number];
 /** Why the farm cannot say yet what keeping her is worth. */
 export type KeepUnknown = "too_new" | "not_fed" | "no_rate";
 
-/** What the next fortnight's kilos fetch at one end of her price, and what that leaves over the fortnight's keep. */
+/** What the days ahead's kilos fetch at one end of her price, and what that leaves over those days' keep. */
 export interface AheadEnd {
   worthBdt: number;
   overKeepBdt: number;
@@ -214,7 +211,7 @@ export type KeepOrSell =
       dailyGainKg: number;
       /** What each kilo she is putting on now costs; nothing while she is putting none on. */
       costOfGainNowBdt: number | null;
-      /** The next fortnight at the rate she is going: the kilos, their keep, and what they fetch at each end. */
+      /** The days ahead at the rate she is going: how many, the kilos, their keep, and what they fetch at each end. */
       ahead: {
         days: number;
         gainKg: number;
@@ -241,7 +238,7 @@ const keepingAt = (
 
 /**
  * Keep her or sell her, as money: what a day of her keep costs over her daily gain is what a kilo she is putting on now
- * costs, and the next fortnight at that rate is what keeping her would add at each end of her price. What she has cost
+ * costs, and the days ahead at that rate are what keeping her would add at each end of her price. What she has cost
  * already is spent whichever the Owner chooses, so it has no say here — that is her Margin's question, not this one.
  *
  * Unknown, and said why, while she has been here under a week, has had no Feeding charged to her in the days read, or has
@@ -251,10 +248,14 @@ export const keepOrSell = ({
   kept,
   dailyGainKg,
   range,
+  aheadDays,
 }: {
   kept: Kept;
   dailyGainKg: number | null;
   range: PriceRange | null;
+  /** The Farm Parameter: how many days ahead keeping her is worked. Sizes what the days ahead come to, never whether
+   *  keeping her pays — that is what a kilo costs to put on against what it fetches, however far ahead it is worked. */
+  aheadDays: number;
 }): KeepOrSell => {
   if (kept.days < KEEP_NEEDS_DAYS) {
     return { known: false, because: "too_new" };
@@ -267,8 +268,8 @@ export const keepOrSell = ({
   }
   const perDay = kept.bdt / kept.days;
   const costOfGainNow = dailyGainKg > 0 ? perDay / dailyGainKg : null;
-  const gainKg = dailyGainKg * KEEP_AHEAD_DAYS;
-  const keepBdt = roundTaka(perDay * KEEP_AHEAD_DAYS);
+  const gainKg = dailyGainKg * aheadDays;
+  const keepBdt = roundTaka(perDay * aheadDays);
   // Each end said from the figures as they are shown, so what is left over is what the two lines come to.
   const at = (bdtPerKg: number): AheadEnd => {
     const worthBdt = roundTaka(gainKg * bdtPerKg);
@@ -280,7 +281,7 @@ export const keepOrSell = ({
     dailyGainKg,
     costOfGainNowBdt: costOfGainNow === null ? null : roundTaka(costOfGainNow),
     ahead: {
-      days: KEEP_AHEAD_DAYS,
+      days: aheadDays,
       gainKg: roundKg(gainKg),
       keepBdt,
       low: range ? at(range.lowBdtPerKg) : null,

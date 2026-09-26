@@ -97,6 +97,9 @@ export const farm = pgTable("farm", {
    *  Costs — when it is set beside what she puts on or gives in milk: four weeks, two fortnightly Weigh-ins, unless the
    *  Owner says otherwise. */
   keepReadDays: integer("keep_read_days").notNull().default(28),
+  /** How many days ahead keeping a fattening animal is weighed, at the rate she is gaining and the keep she costs now:
+   *  a fortnight, from one Weigh-in to the next, unless the Owner says otherwise. */
+  keepAheadDays: integer("keep_ahead_days").notNull().default(14),
   /** How many days after her last Calving a cow still not in calf is named to the Owner as one to think about
    *  culling. The Owner's, as the list it shapes is: five months unless the Owner says otherwise. */
   cullOpenDays: integer("cull_open_days").notNull().default(150),

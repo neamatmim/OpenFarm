@@ -1,0 +1,1 @@
+ALTER TABLE "farm" ADD COLUMN "keep_ahead_days" integer DEFAULT 14 NOT NULL;

@@ -88,6 +88,9 @@ const parameters = z
       .min(FEWEST_KEEP_READ_DAYS)
       .max(90)
       .optional(),
+    /** How many days ahead keeping a fattening animal is worked for keep-or-sell: at least a week, and no more than
+     *  three months, past which her rate and her keep today say little about the days they are worked over. */
+    keepAheadDays: z.number().int().min(7).max(90).optional(),
     /** How many days after calving a cow still not in calf is named for culling: not before a cow that is going to
      *  settle has had her chances, and not past a year, when the question has long been answered. */
     cullOpenDays: z.number().int().min(60).max(365).optional(),
@@ -166,6 +169,7 @@ const A_VENTURES_OWN = [
  *  are theirs to read. */
 const WHAT_KEEP_AND_CULL_READ = [
   "keepReadDays",
+  "keepAheadDays",
   "cullOpenDays",
   "cullMilkAfterDays",
   "cullMilkPriceDays",
@@ -627,6 +631,7 @@ export const farmRouter = {
                 calvingPrepLeadDays: true,
                 repeatBreederThreshold: true,
                 keepReadDays: true,
+                keepAheadDays: true,
                 cullOpenDays: true,
                 cullMilkAfterDays: true,
                 cullMilkPriceDays: true,

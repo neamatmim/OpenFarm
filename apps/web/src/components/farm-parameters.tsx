@@ -36,6 +36,7 @@ type NumberKey =
   | "calvingPrepLeadDays"
   | "repeatBreederThreshold"
   | "keepReadDays"
+  | "keepAheadDays"
   | "cullOpenDays"
   | "cullMilkAfterDays"
   | "cullMilkPriceDays"
@@ -147,6 +148,13 @@ const GROUPS: {
         label: "params.keepReadDays",
         unit: "params.days",
         min: FEWEST_KEEP_READ_DAYS,
+        max: 90,
+      },
+      {
+        key: "keepAheadDays",
+        label: "params.keepAheadDays",
+        unit: "params.days",
+        min: 7,
         max: 90,
       },
       {
