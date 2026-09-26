@@ -734,6 +734,8 @@ export const bn: Record<MessageKey, string> = {
   "ventures.signAnswersYes": "আপনার হ্যাঁ: {units} ইউনিটে সই করতে আসুন",
   "ventures.signAnswersWaiting":
     "তাঁর {units} ইউনিটের অনুরোধ, এখনো উত্তর দেওয়া হয়নি",
+  "ventures.signNomineesHint":
+    "এই চুক্তিতে যাঁদের নমিনি লেখা হবে: তাঁর বহাল তালিকা, এই সইয়ের জন্য বদলাতে পারেন। সই হলে এটিই তাঁর মনোনয়ন হিসেবে লেখা হবে।",
   "ventures.signRequestHint": "অনুরোধের সাথে না মিললেও কাগজের ইউনিটই থাকবে",
   "ventures.signedWithCode": "চুক্তি লেখা হয়েছে। জমার কোড {code}",
   "ventures.payInCodeHint":
@@ -1178,7 +1180,7 @@ export const bn: Record<MessageKey, string> = {
   "nominees.notSignedForHint":
     "মনোনয়ন রাখা শুরুর আগে লেখা। তিনি মনোনয়নপত্রে বা এঁদের নাম থাকা চুক্তিতে সই করলে তবেই গণ্য হবে।",
   "nominees.from.nomination": "{day}-এ সই হওয়া মনোনয়নপত্র",
-  "nominees.from.agreement": "{day}-এ সই হওয়া চুক্তিতে",
+  "nominees.from.agreement": "{day}-এ সই হওয়া {venture}-এর চুক্তিতে",
   "nominees.from.carried_over": "{day}-এ আগের রেকর্ড থেকে",
   "nominees.born": "জন্ম {day}",
   "nominees.minor": "নাবালক",

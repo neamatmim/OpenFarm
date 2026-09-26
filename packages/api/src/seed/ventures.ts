@@ -1,6 +1,4 @@
 /* oxlint-disable no-await-in-loop -- a Venture's acts happen one after another, in the order they happened */
-import { uuidv7 } from "@OpenFarm/db/ids";
-import { nomination, nominee } from "@OpenFarm/db/schema/venture";
 import { farmDayOf } from "@OpenFarm/domain";
 
 import { balanceAtMonthEnd } from "../venture-store";
@@ -36,8 +34,7 @@ const A_STAMPED_PAPER =
   "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==";
 
 /** The people whose money is in. A known circle, as the law requires — neighbours, a brother-in-law, the
- *  pharmacy man in the bazaar — and every one of them with a nominee, because the agreement asks, written down
- *  as it was before Nominations were kept: carried over, and not yet signed for. */
+ *  pharmacy man in the bazaar — and every one of them with a nominee, named on the Agreement they sign. */
 const INVESTORS = [
   {
     name: "আবুল হাশেম মিয়া",
@@ -45,7 +42,12 @@ const INVESTORS = [
     address: "বিরুলিয়া বাজার, সাভার, ঢাকা",
     nid: "1994 7712 334455",
     bankAccount: "ডাচ্-বাংলা ব্যাংক · 1051 0023 44781",
-    nominee: { name: "রোকেয়া বেগম", phone: "01911-223344", relation: "স্ত্রী" },
+    nominee: {
+      name: "রোকেয়া বেগম",
+      phone: "01911-223344",
+      relation: "স্ত্রী",
+      bornOn: "1979-04-12",
+    },
   },
   {
     name: "মোঃ শাহজাহান সরকার",
@@ -53,7 +55,12 @@ const INVESTORS = [
     address: "আশুলিয়া, ঢাকা",
     nid: "1988 4410 227719",
     bankAccount: "ইসলামী ব্যাংক · 2050 1177 09923",
-    nominee: { name: "সাবিনা ইয়াসমিন", phone: "01715-889013", relation: "স্ত্রী" },
+    nominee: {
+      name: "সাবিনা ইয়াসমিন",
+      phone: "01715-889013",
+      relation: "স্ত্রী",
+      bornOn: "1986-07-21",
+    },
   },
   {
     name: "ডাঃ নুরুল আমিন",
@@ -61,7 +68,12 @@ const INVESTORS = [
     address: "ধামরাই, ঢাকা",
     nid: "1979 3302 118844",
     bankAccount: "ব্র্যাক ব্যাংক · 1501 2299 33410",
-    nominee: { name: "তানভীর আমিন", phone: "01819-445567", relation: "ছেলে" },
+    nominee: {
+      name: "তানভীর আমিন",
+      phone: "01819-445567",
+      relation: "ছেলে",
+      bornOn: "2005-03-09",
+    },
   },
   {
     name: "হাজী আব্দুল মালেক",
@@ -69,7 +81,12 @@ const INVESTORS = [
     address: "কালিয়াকৈর, গাজীপুর",
     nid: "1971 5590 662211",
     bankAccount: "সোনালী ব্যাংক · 0102 3344 55661",
-    nominee: { name: "মরিয়ম বিবি", phone: "01818-771204", relation: "স্ত্রী" },
+    nominee: {
+      name: "মরিয়ম বিবি",
+      phone: "01818-771204",
+      relation: "স্ত্রী",
+      bornOn: "1974-11-30",
+    },
   },
   {
     name: "ইঞ্জিনিয়ার রফিকুল ইসলাম",
@@ -77,7 +94,12 @@ const INVESTORS = [
     address: "উত্তরা সেক্টর ১১, ঢাকা",
     nid: "1985 2207 889933",
     bankAccount: "সিটি ব্যাংক · 3301 5566 77882",
-    nominee: { name: "নাসরিন আক্তার", phone: "01712-330098", relation: "স্ত্রী" },
+    nominee: {
+      name: "নাসরিন আক্তার",
+      phone: "01712-330098",
+      relation: "স্ত্রী",
+      bornOn: "1988-01-15",
+    },
   },
 ] as const;
 
@@ -121,36 +143,6 @@ export interface SeededVenture {
    *  reimburse one twice — which the app refuses, rightly. */
   kept: Set<string>;
 }
-
-/**
- * A nominee as the farm held one before Nominations were kept, carried over as the migration carries every one: that
- * person collecting the whole, with no date of birth, and not yet signed for. Written straight to the table, since no
- * paper the farm can record makes one.
- */
-const carryOver = async (
-  farm: Farm,
-  investorId: string,
-  who: { name: string; phone: string; relation: string }
-) => {
-  const at = farm.clock.now();
-  const id = uuidv7(at);
-  await farm.db.insert(nomination).values({
-    id,
-    farmId: farm.farmId,
-    investorId,
-    signedOn: farmDayOf(at),
-    how: "carried_over",
-    recordedAt: at,
-  });
-  await farm.db.insert(nominee).values({
-    nominationId: id,
-    place: 1,
-    name: who.name,
-    relation: who.relation,
-    phone: who.phone,
-    sharePercent: 100,
-  });
-};
 
 /**
  * The first Investor, a few days after signing, comes back to name his whole family rather than his wife alone: a
@@ -220,7 +212,6 @@ const signOn = async (
     nid: who.nid,
     bankAccount: who.bankAccount,
   });
-  await carryOver(farm, person.id, who.nominee);
   const agreement = await farm.as.owner.ventures.sign({
     ventureId,
     investorId: person.id,
@@ -230,6 +221,8 @@ const signOn = async (
     stampValueBdt: 300,
     stampedOn: on,
     stampSerial: `AA-${farm.random.int(100_000, 999_999)}`,
+    // The Agreement names their nominee, who collects the whole: signing makes it their Nomination.
+    nominees: [{ ...who.nominee, sharePercent: 100, receiver: null }],
   });
   // No capital is taken until the farm holds a photo of the stamped instrument. The app refuses
   // otherwise, which is why this is here and not an afterthought.

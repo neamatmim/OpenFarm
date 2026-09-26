@@ -72,7 +72,9 @@ const NomineeLine = ({ nominee }: { nominee: PaperNominee }) => {
 const FromWhere = ({
   nomination,
 }: {
-  nomination: Pick<Nomination, "how" | "signedOn" | "hasPhoto">;
+  nomination: Pick<Nomination, "how" | "signedOn" | "hasPhoto"> & {
+    ventureName?: string | null;
+  };
 }) => {
   const { t } = useLanguage();
   const day = useDay();
@@ -80,6 +82,7 @@ const FromWhere = ({
     <span>
       {t(`nominees.from.${nomination.how}`, {
         day: day(nomination.signedOn),
+        venture: nomination.ventureName ?? "",
       })}
       {nomination.hasPhoto ? <> · {t("nominees.photoKept")}</> : null}
     </span>

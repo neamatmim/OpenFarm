@@ -6,16 +6,19 @@ import {
 } from "@OpenFarm/db/schema/venture";
 import type { Nominee, PaperDocument } from "@OpenFarm/domain";
 import {
+  MOST_NOMINEES,
   farmDayOf,
   nomineeRowOf,
   nomineesProblem,
   paperFrom,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
+import { z } from "zod";
 
-import type { Tx } from "./audit";
+import type { Trail, Tx } from "./audit";
 import { audited } from "./audit";
 import { assertRegistered, exportedPaper } from "./export-store";
+import { farmDay } from "./farm-clock";
 import type { NominationOnFile } from "./nomination-store";
 import { nominationInForce, paperNominees } from "./nomination-store";
 import { paperInvestor, paperValues, producedAt } from "./paper-values";
@@ -24,6 +27,27 @@ import type { Owned } from "./portal-invitable";
 import { refused } from "./portal-invitable";
 import { languageOf } from "./reader-language";
 import { currentWording, giveStandardTemplates } from "./template-store";
+
+/** Somebody who collects a minor Nominee's share, as a form sends them. */
+const receiverInput = z.object({
+  name: z.string().trim().min(1).max(120),
+  relation: z.string().trim().max(60).nullable(),
+  phone: z.string().trim().max(20).nullable(),
+});
+
+/** The Nominees a paper names, as a form sends them: whether they may be named is the domain's rule, not the wire's. */
+export const nomineesInput = z
+  .array(
+    z.object({
+      name: z.string().trim().max(120),
+      relation: z.string().trim().max(60).nullable(),
+      phone: z.string().trim().max(20).nullable(),
+      bornOn: farmDay.nullable(),
+      sharePercent: z.number(),
+      receiver: receiverInput.nullable(),
+    })
+  )
+  .max(MOST_NOMINEES + 1);
 
 // The মনোনয়নপত্র (the glossary's **Nomination**): the only way an Investor's Nominees change outside signing an
 // Agreement. Printed from the farm's wording for the list the Owner writes down, signed in front of the Owner, and
@@ -47,7 +71,7 @@ const theirs = async (context: Owned, investorId: string) => {
 };
 
 /** The list refused, by what is wrong with it and which Nominee it is about. */
-const assertNamable = (nominees: readonly Nominee[], onDay: string) => {
+export const assertNamable = (nominees: readonly Nominee[], onDay: string) => {
   const problem = nomineesProblem(nominees, onDay);
   if (problem) {
     throw new ORPCError("BAD_REQUEST", {
@@ -245,4 +269,76 @@ export const recordNomination = async (
     }
   );
   return { id };
+};
+
+/**
+ * The Nominees an Agreement names when it is signed: those the Owner wrote down on the sign sheet, or — sent none — the
+ * list in force, as the paper printed it.
+ */
+export const nomineesToSign = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
+  investorId: string,
+  given: readonly Nominee[] | undefined
+): Promise<readonly Nominee[]> => {
+  if (given) {
+    return given;
+  }
+  const inForce = await nominationInForce(db, farmId, investorId);
+  return inForce?.nominees ?? [];
+};
+
+/**
+ * Records the Nominees an Investment Agreement names as that Investor's Nomination, made by the Agreement, on the day
+ * it was stamped — inside the signing's own transaction, so there is no Agreement without it. Recorded every time, even
+ * when it names the list already in force: the Agreement is a Nomination for what it named, and the history shows every
+ * paper. None named is a Nomination too, with no Nominees.
+ */
+export const nominationBySigning = async (
+  tx: Tx,
+  trail: Trail,
+  {
+    farmId,
+    investorId,
+    agreementId,
+    signedOn,
+    nominees,
+    recordedBy,
+    now,
+  }: {
+    farmId: string;
+    investorId: string;
+    agreementId: string;
+    signedOn: string;
+    nominees: readonly Nominee[];
+    recordedBy: string;
+    now: Date;
+  }
+) => {
+  const before = await readNominees(tx, farmId, investorId);
+  const id = uuidv7(now);
+  await tx.insert(nomination).values({
+    id,
+    farmId,
+    investorId,
+    signedOn,
+    how: "agreement",
+    agreementId,
+    recordedBy,
+    recordedAt: now,
+  });
+  const rows = nomineeRows(id, nominees);
+  if (rows.length > 0) {
+    await tx.insert(nominee).values(rows);
+  }
+  await trail(
+    tx,
+    {
+      entity: "nomination",
+      entityId: investorId,
+      action: "create",
+      after: (read) => readNominees(read, farmId, investorId),
+    },
+    { before }
+  );
 };

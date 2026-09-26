@@ -790,6 +790,8 @@ export const en = {
     "Your yes: come and sign for {units, plural, one {# Unit} other {# Units}}",
   "ventures.signAnswersWaiting":
     "Their request for {units, plural, one {# Unit} other {# Units}}, not answered yet",
+  "ventures.signNomineesHint":
+    "The Nominees this Agreement names: their list in force, which you may change for this signing. Signing records them as their Nomination.",
   "ventures.signRequestHint":
     "The Units on the paper stand, even where they differ from the request",
   "ventures.signedWithCode":
@@ -1280,7 +1282,7 @@ export const en = {
   "nominees.notSignedForHint":
     "Written down before Nominations were kept. It counts once they sign a মনোনয়নপত্র or an Agreement naming them.",
   "nominees.from.nomination": "মনোনয়নপত্র signed {day}",
-  "nominees.from.agreement": "Named in the Agreement signed {day}",
+  "nominees.from.agreement": "Named in the {venture} Agreement, signed {day}",
   "nominees.from.carried_over": "Carried over {day}",
   "nominees.born": "Born {day}",
   "nominees.minor": "Minor",

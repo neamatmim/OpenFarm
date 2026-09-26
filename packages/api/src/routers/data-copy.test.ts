@@ -177,8 +177,11 @@ describe("«খামারে আপনার তথ্য»", () => {
     if (nominees?.kind !== "facts") {
       throw new Error("expected his Nominees");
     }
+    // The Agreement he signed afterwards names the same list and is now the one in force; before it, his মনোনয়নপত্র;
+    // and first of all, the nominee carried over.
     expect(nominees.rows.map((row) => row.label.bn)).toEqual([
-      expect.stringContaining("মনোনয়নপত্র · এখন বহাল"),
+      expect.stringContaining("বিনিয়োগ চুক্তিতে · এখন বহাল"),
+      expect.stringContaining("মনোনয়নপত্র"),
       expect.stringContaining("এখনো সই হয়নি"),
     ]);
     expect(nominees.rows[0]?.value).toContain(`রাশেদের মেয়ে ${suffix}`);
@@ -186,7 +189,8 @@ describe("«খামারে আপনার তথ্য»", () => {
     expect(nominees.rows[0]?.value).toContain(
       `গ্রহণকারী রাশেদের স্ত্রী ${suffix} (মা)`
     );
-    expect(nominees.rows[1]?.value).toContain("অংশ ১০০%");
+    expect(nominees.rows[1]?.value).toContain(`রাশেদের মেয়ে ${suffix}`);
+    expect(nominees.rows[2]?.value).toContain("অংশ ১০০%");
     // Their Agreement, and the money it moved.
     expect(part("আপনার চুক্তি")).toContain(`S-${suffix}`);
     expect(part("আপনার টাকার লেনদেন")).toContain(`TRF-${suffix}`);
