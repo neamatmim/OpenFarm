@@ -28,7 +28,7 @@ Then these lines, under the table:
 
 ### Terms: the heirs clause and its rules
 
-This replaces today's clause «বিনিয়োগকারীর মৃত্যু হলে তাঁর মূলধন ও প্রাপ্য তাঁর নমিনির মাধ্যমে তাঁর আইনগত উত্তরাধিকারীদের দেওয়া হবে।». It prints on every Agreement, whether or not a Nominee is named:
+The Investment Agreement never had a heirs clause, so this is added to its Terms, before the last one, the Arbitrator. In the Master Agreement it replaces «বিনিয়োগকারীর মৃত্যু হলে তাঁর মূলধন ও প্রাপ্য তাঁর নমিনির মাধ্যমে তাঁর আইনগত উত্তরাধিকারীদের দেওয়া হবে।». It prints on every Agreement, whether or not a Nominee is named (corrected 2026-09-26, nominees ticket 04):
 
 > বিনিয়োগকারীর মৃত্যু হলে তাঁর মূলধন ও প্রাপ্য তাঁর আইনগত উত্তরাধিকারীদের দেওয়া হবে — নমিনি থাকলে তাঁদের মাধ্যমে, নিচের নিয়মে; না থাকলে সরাসরি, সাধারণত উত্তরাধিকার সনদ দেখে।
 > If the Investor dies, their capital and share are paid to their lawful heirs — through their Nominees where they named any, as follows; otherwise directly, usually against a succession certificate.

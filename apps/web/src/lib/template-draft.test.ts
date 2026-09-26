@@ -33,7 +33,7 @@ describe("the wording as the editor holds it", () => {
     }
     const fresh = fromDraft({ ...draft, sections: [newSection("parties")] });
 
-    expect(parties.nomineeLines.map((one) => one.key)).toHaveLength(2);
+    expect(parties.nomineeLines.map((one) => one.key)).toHaveLength(1);
     expect(fresh.sections[0]).not.toHaveProperty("nomineeLines");
   });
 

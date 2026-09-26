@@ -202,7 +202,8 @@ describe("the terms a letter repeats", () => {
       farmPercent: { bn: "৪৫", en: "45" },
     });
 
-    expect(terms).toHaveLength(14);
+    // Seven terms and the heirs clause with its five rules, then the data section's heading and its six clauses.
+    expect(terms).toHaveLength(20);
     expect(terms[1]).toBe(
       "২. মুনাফা ভাগ হবে বিনিয়োগকারী ৫৫% এবং খামার ৪৫%, মূলধন সম্পূর্ণ ফেরতের পর।"
     );
@@ -211,16 +212,18 @@ describe("the terms a letter repeats", () => {
   it("repeat each later part under its own heading, numbered as the Agreement numbers it", () => {
     const terms = termsOf(agreement, {});
 
-    expect(terms[7]).toBe("তথ্য");
-    expect(terms[8]).toMatch(/^১\. এই চুক্তি পালন করতে/u);
-    expect(terms[12]).toMatch(/^৫\. বিনিয়োগকারী যেকোনো সময় মালিককে লিখে/u);
+    expect(terms[12]).toMatch(/^১৩\. মতভেদ হলে সালিস/u);
+    expect(terms[13]).toBe("তথ্য");
+    expect(terms[14]).toMatch(/^১\. এই চুক্তি পালন করতে/u);
+    expect(terms[18]).toMatch(/^৫\. বিনিয়োগকারী যেকোনো সময় মালিককে লিখে/u);
   });
 
   it("never repeat the lines under the nominee, which are about who signs", () => {
     const terms = termsOf(agreement, {}).join("\n");
 
     expect(terms).not.toContain("নমিনি জানেন");
-    expect(terms).not.toContain("আঠারো");
+    // The rule about a minor's Receiver is a term; the line a Receiver signs is not.
+    expect(terms).not.toContain("গ্রহণকারী হিসেবে আমি");
   });
 });
 
@@ -265,23 +268,35 @@ describe("the Investment Agreement's data section and nominee lines", () => {
     expect(data.clauses[5]?.bn).toContain("আলাদা সম্মতিপত্রে সই করলে");
   });
 
-  it("prints the two nominee lines under the Investor, not the Farm, whether or not he has Nominees", () => {
-    for (const nominees of [[], [SALMA]]) {
+  it("prints under the Investor what each Nominee knows, and none under the Farm; with no Nominee, only that he named none", () => {
+    const partiesOf = (nominees: PaperParties["investors"][0]["nominees"]) => {
       const parties = laidOutFor(nominees).find(
         (section) => section.kind === "parties"
       );
       if (parties?.kind !== "parties") {
         throw new Error("expected the parties");
       }
-      const [farm, him] = parties.parties;
+      return parties.parties;
+    };
+    const [farm, withOne] = partiesOf([SALMA]);
+    const [, withNone] = partiesOf([]);
 
-      expect(farm?.lines).toEqual([]);
-      expect(him?.lines).toHaveLength(2);
-      expect(him?.lines[0]?.en).toContain("their nominee knows");
-      // The under-eighteen line every time, to be struck through by hand where it does not apply.
-      expect(him?.lines[1]?.bn).toContain("নমিনির বয়স আঠারো বছরের কম");
-      expect(him?.lines[1]?.en).toContain("Signature: ____________");
-    }
+    expect(farm?.lines).toEqual([]);
+    expect(withOne?.lines.map((line) => line.en)).toEqual([
+      expect.stringContaining("each Nominee knows"),
+    ]);
+    expect(withNone?.lines.map((line) => line.en)).toEqual([
+      expect.stringContaining("The Investor has named no Nominee"),
+    ]);
+  });
+
+  it("words the heirs clause for Nominees in the terms, with the five rules after it, and drops the old one", () => {
+    const terms = termsOf(agreement, {}).join("\n");
+
+    expect(terms).toContain("নমিনি থাকলে তাঁদের মাধ্যমে");
+    expect(terms).toContain("অংশ কেবল বলে কে কতটুকু সংগ্রহ করবেন");
+    expect(terms).toContain("সেই অংশের দায় থেকে খামার মুক্ত");
+    expect(terms).not.toContain("তাঁর নমিনির মাধ্যমে");
   });
 
   it("prints his Nominees as a table under him, a minor marked with who collects for her, and none under the Farm", () => {
