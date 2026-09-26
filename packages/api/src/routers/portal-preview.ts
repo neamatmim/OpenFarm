@@ -53,6 +53,7 @@ const readerFor = async (
     clock: context.clock,
     farm: theFarm,
     investor: them,
+    previewing: true,
   };
 };
 

@@ -141,6 +141,8 @@ describe("a Venture shown in the portal", () => {
         investorsPercent: 60,
         words: WORDS,
         takingRequests: true,
+        // The Owner shows no Projections on this farm (ADR 0010).
+        projection: null,
       },
     ]);
   });

@@ -313,6 +313,63 @@ export const en = {
     "Averages over the {weighed, plural, one {# animal} other {# animals}} weighed since they arrived.",
   "portal.arrivedKg": "On arrival {kg}",
   "portal.photos": "Photographs",
+  "projection.title": "Projected profit",
+  "projection.hint":
+    "Your own estimate, from the sale prices you expect. Investors see it only once you show projections on the Investors page, and it is never printed on a paper.",
+  "projection.none": "No sale prices are set yet.",
+  "projection.needsPlan":
+    "Give the buying plan as well: a Venture still gathering capital is projected from it.",
+  "projection.set": "Set prices",
+  "projection.change": "Change prices",
+  "projection.sheetHint":
+    "Your guesses, changed as the market moves. Each change is kept in the trail.",
+  "projection.saleLow": "Low sale price (৳ a kg, live)",
+  "projection.saleHigh": "High sale price (৳ a kg, live)",
+  "projection.lowAboveHigh": "The low price is above the high one",
+  "projection.plan": "Buying plan",
+  "projection.planHint":
+    "For animals still to buy: the cattle budget buys as many as it pays for at this price and weight, and each puts on this much a day until the sale window.",
+  "projection.buy": "Buying price (৳ a kg)",
+  "projection.buyWeight": "Weight when bought (kg)",
+  "projection.dailyGain": "Gain a day (kg)",
+  "projection.saved": "The prices are saved",
+  "projection.range": "{low} to {high}",
+  "projection.profit": "Profit",
+  "projection.perUnit": "A Unit",
+  "projection.kgAtSale": "Weight at sale",
+  "projection.prices": "Sale price a kg",
+  "projection.charged": "Costs counted",
+  "projection.realised": "Already sold for",
+  "projection.setOn": "Set on {day}",
+  "projection.lossAtLow":
+    "At the low price this is a loss, and a loss comes off the Investors' capital.",
+  "projection.switch.title": "Projections for Investors",
+  "projection.switch.shown": "Shown",
+  "projection.switch.hidden": "Hidden",
+  "projection.switch.show": "Show projections",
+  "projection.switch.hide": "Hide projections",
+  "projection.switch.shownHint":
+    "Invited Investors see each Venture's projected profit, as an estimate, on their Ventures and on the Ventures offered to them.",
+  "projection.switch.hiddenHint":
+    "Investors see no projections. You can read them in the Portal Preview before you show them.",
+  "projection.switch.confirmTitle": "Show projections to Investors?",
+  "projection.switch.confirmWhy":
+    "Every invited Investor will see what each Venture might make at your sale prices, labelled as an estimate. The farm's lawyer and Shariah scholar approved the portal without projections: show their wording to them first.",
+  "projection.switch.shownDone": "Investors now see projections",
+  "projection.switch.hiddenDone": "Projections are hidden from Investors",
+  "portal.projection.title": "What it might make",
+  "portal.projection.notAPromise": "An estimate, not a promise",
+  "portal.projection.hint":
+    "Worked from the sale prices the farm expects, {low} to {high} a kg, set on {day}, and what the animals should weigh by the sale window. Prices move, and animals are lost; what you are paid is what the Settlement comes to.",
+  "portal.projection.offerHint":
+    "Worked from the farm's plan: animals bought at {buy} a kg and {weight} each, putting on {gain} a day, and sold at {low} to {high} a kg (set on {day}). Prices move, and animals are lost; what a Unit is paid is what the Settlement comes to.",
+  "portal.projection.yourShare": "Your share of the profit",
+  "portal.projection.yourPayout": "What you would be paid",
+  "portal.projection.perUnit": "Profit a Unit",
+  "portal.projection.loss":
+    "At the low price this would be a loss, and a loss comes off your capital.",
+  "portal.projection.preview":
+    "In the Preview you see this whether or not Investors do: projections are shown or hidden on the Investors page.",
   "portal.weightLine.title": "Average weight over time",
   "portal.weightLine.summary":
     "From {from} on {fromDay} to {to} on {toDay}: on each day the farm weighed, the average of what it then knew each animal to weigh.",

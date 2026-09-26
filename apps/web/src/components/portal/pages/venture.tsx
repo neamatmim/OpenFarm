@@ -36,6 +36,7 @@ import {
   useTheirPortfolio,
   useTheirVenture,
 } from "@/components/portal/portal-source";
+import { HisProjectionSection } from "@/components/portal/projection";
 import { WeightLine } from "@/components/portal/weight-line";
 import { StageTrack } from "@/components/ventures/stage-track";
 import { useLanguage } from "@/i18n/language-provider";
@@ -606,6 +607,8 @@ const VentureToday = ({
       <SummaryFigures figures={figures} hintsOnPhone />
       {/* While their capital is owed. An answer this phone kept from before the farm said where to pay has none. */}
       <HowToPay paying={today.howToPay ?? null} />
+      {/* An answer this phone kept from before the portal could show one has none. */}
+      <HisProjectionSection projection={today.projection ?? null} />
       <PageTabs
         onChange={(value) =>
           navigate({

@@ -17,6 +17,8 @@ import { Link } from "@tanstack/react-router";
 import {
   DoorClosed,
   DoorOpen,
+  EyeOff,
+  TrendingUp,
   Eye,
   KeyRound,
   Printer,
@@ -230,6 +232,78 @@ export const PortalSwitch = ({ open }: { open: boolean }) => {
         open={asking}
         pending={turning.isPending}
         title={t("portal.openTitle")}
+      />
+    </Section>
+  );
+};
+
+/**
+ * Whether invited Investors are shown each Venture's Projection (ADR 0010). Showing them is asked about first, since
+ * the lawyer and the Shariah scholar approved the portal without projections; hiding them again takes nothing away.
+ */
+export const ProjectionsSwitch = ({ shown }: { shown: boolean }) => {
+  const { t } = useLanguage();
+  const refused = useRefused();
+  const [asking, setAsking] = useState(false);
+  const turning = useMutation(
+    orpc.investors.setProjectionsShown.mutationOptions({
+      onError: refused,
+      onSuccess: (done) => {
+        setAsking(false);
+        toast.success(
+          t(
+            done.shown
+              ? "projection.switch.shownDone"
+              : "projection.switch.hiddenDone"
+          )
+        );
+      },
+    })
+  );
+  return (
+    <Section
+      action={
+        shown ? (
+          <Button
+            disabled={turning.isPending}
+            onClick={() => turning.mutate({ shown: false })}
+            type="button"
+            variant="outline"
+          >
+            <EyeOff aria-hidden data-icon="inline-start" />
+            {t("projection.switch.hide")}
+          </Button>
+        ) : (
+          <Button
+            onClick={() => setAsking(true)}
+            type="button"
+            variant="outline"
+          >
+            <TrendingUp aria-hidden data-icon="inline-start" />
+            {t("projection.switch.show")}
+          </Button>
+        )
+      }
+      description={t(
+        shown ? "projection.switch.shownHint" : "projection.switch.hiddenHint"
+      )}
+      title={
+        <span className="flex flex-wrap items-center gap-2">
+          {t("projection.switch.title")}
+          <StatusBadge tone={shown ? "warning" : "neutral"}>
+            {t(shown ? "projection.switch.shown" : "projection.switch.hidden")}
+          </StatusBadge>
+        </span>
+      }
+    >
+      <ConfirmDialog
+        confirmLabel={t("projection.switch.show")}
+        description={t("projection.switch.confirmWhy")}
+        onConfirm={() => turning.mutate({ shown: true })}
+        onOpenChange={setAsking}
+        open={asking}
+        pending={turning.isPending}
+        title={t("projection.switch.confirmTitle")}
       />
     </Section>
   );

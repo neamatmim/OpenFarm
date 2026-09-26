@@ -233,6 +233,8 @@ export const investorsRouter = {
         nearingTheCap: counted.standing >= context.farm.investorWarnAt,
         /** Whether invited Investors may sign in to the portal (ADR 0007). */
         portalOpen: context.farm.investorPortal,
+        /** Whether invited Investors are shown each Venture's Projection (ADR 0010). */
+        projectionsShown: context.farm.investorProjections,
         people: rows.map((one) => ({
           id: one.id,
           name: one.name,
@@ -519,6 +521,33 @@ export const investorsRouter = {
             .where(eq(farm.id, context.farm.id))
       );
       return { open: input.open };
+    }),
+
+  /**
+   * Shows invited Investors each Venture's Projection in the portal, or stops showing it (ADR 0010). Off until the
+   * Owner turns it on — once the lawyer and the Shariah scholar have seen what it says — and the Portal Preview shows
+   * it to the Owner either way. The Owner's alone.
+   */
+  setProjectionsShown: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ shown: z.boolean() }))
+    .handler(async ({ context, input }) => {
+      await audited(context).write(
+        {
+          entity: "farm",
+          entityId: context.farm.id,
+          action: "update",
+          before: { investorProjections: context.farm.investorProjections },
+          after: { investorProjections: input.shown },
+        },
+        (tx) =>
+          tx
+            .update(farm)
+            .set({ investorProjections: input.shown })
+            .where(eq(farm.id, context.farm.id))
+      );
+      return { shown: input.shown };
     }),
 
   /**

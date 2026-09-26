@@ -422,6 +422,38 @@ describe("what a Venture's animals are doing", () => {
     expect(theirs.weights.at(-1)?.averageKg).toBe(theirs.averageLatestKg);
   });
 
+  it("is projected from the animals it stands on, what it sold, and what it has been charged (ADR 0010)", async () => {
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    await owner.client.ventures.setProjection({
+      ventureId: firstVenture,
+      saleLowBdtPerKg: 500,
+      saleHighBdtPerKg: 600,
+    });
+    const { projection } = await owner.client.ventures.projection({
+      ventureId: firstVenture,
+    });
+    const settlement = await owner.client.ventures.settlement({
+      ventureId: firstVenture,
+    });
+    // The three standing, grown to 1 April at their own whole-stay rates: 228 kg at a kilo a day for the 59 days from
+    // 1 February is 287; 221 kg at half a kilo for the 45 days from 15 February is 243.5; and the bull nobody weighed
+    // has no rate, so he is counted at the 200 kg he came at. 730.5 kg. The dead bull and the two sold are not in it.
+    expect(projection?.kgAtSale).toBeCloseTo(730.5, 6);
+    // What the one sold to a buyer fetched is a fact at both ends — the figure the Settlement counts.
+    expect(projection?.realisedBdt).toBe(settlement.proceedsBdt);
+    expect(projection?.chargedBdt).toBeGreaterThanOrEqual(
+      settlement.chargedBdt
+    );
+    expect(projection?.low.proceedsBdt).toBe(
+      Math.round(settlement.proceedsBdt + 730.5 * 500)
+    );
+    expect(projection?.high.proceedsBdt).toBe(
+      Math.round(settlement.proceedsBdt + 730.5 * 600)
+    );
+    // Its Agreements' own split: sixty per cent over the ten Units signed.
+    expect(projection).toMatchObject({ investorsPercent: 60, units: 10 });
+  });
+
   it("counts the days to the window and never projects past it", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
     const theirs = await owner.client.ventures.herd({

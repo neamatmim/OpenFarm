@@ -27,6 +27,7 @@ import { shareOfUnits } from "./investor-statement-words";
 import { signedInOn } from "./membership";
 import { nominationInForce, paperNominees } from "./nomination-store";
 import { ownerNameOf, requireTheirs } from "./portal-store";
+import { hisProjection, projectionOf } from "./projection-store";
 import { theirRequests } from "./requests-to-join";
 import { wordingInForce } from "./template-store";
 import { theirAgreements } from "./their-agreements";
@@ -43,7 +44,14 @@ export interface PortalReader {
   clock: Context["clock"];
   farm: NonNullable<Context["farm"]>;
   investor: { id: string; name: string; phone: string };
+  /** The Owner reading it in the Portal Preview, who is shown what Investors will be before they are. */
+  previewing?: boolean;
 }
+
+/** Whether this reader is shown Projections: every Investor once the Owner turns them on, and the Owner in the
+ *  Preview either way (ADR 0010). */
+const showsProjections = (reader: PortalReader) =>
+  reader.previewing === true || reader.farm.investorProjections;
 
 /** Whom an Investor calls about any of it: the farm, by name, phone and address. What the portal's account page shows
  *  and the Welcome Letter prints, from here alone, so the two cannot give different numbers. */
@@ -100,12 +108,14 @@ export const theirPortfolio = ({ db, clock, farm, investor }: PortalReader) =>
  * farm signs on today, and the Owner's few words — never how many Units are left, who else has asked or anything off
  * an Agreement. None for a retired Investor, and none they are already signed for.
  */
-export const theirOpenVentures = ({
-  db,
-  clock,
-  farm,
-  investor,
-}: PortalReader) => openVenturesFor(db, farm, investor.id, clock.now());
+export const theirOpenVentures = (reader: PortalReader) =>
+  openVenturesFor(
+    reader.db,
+    reader.farm,
+    reader.investor.id,
+    reader.clock.now(),
+    showsProjections(reader)
+  );
 
 /** Their own Requests to Join, the latest first, and where each stands. Never anybody else's. */
 export const theirOwnRequests = ({ db, farm, investor }: PortalReader) =>
@@ -132,21 +142,33 @@ export const theirSignIns = async (
 
 /**
  * One of their Ventures as it stands today, to draw rather than print: their part of it, how the animals are doing,
- * where the Venture's money has gone and what is left of its budgets. The same figures the progress statement says,
- * and no projection — days are counted, weights are read, nothing is forecast. Refused for an Agreement not theirs.
+ * where the Venture's money has gone and what is left of its budgets. The same figures the progress statement says —
+ * days are counted, weights are read — and, apart from them and only once the Owner shows it, its **Projection** as a
+ * labelled range (ADR 0010); the paper never carries one. Refused for an Agreement not theirs.
  */
 export const theirVentureToday = async (
-  { db, clock, farm, investor }: PortalReader,
+  reader: PortalReader,
   agreementId: string
 ) => {
+  const { db, clock, farm, investor } = reader;
   await requireTheirs(db, farm.id, investor.id, agreementId);
   const now = clock.now();
   const standing = await hisStanding(db, farm.id, agreementId, farmDayOf(now));
   const run = await theVentureOf(db, farm.id, standing.venture.id);
-  const [theirs, spend, paying] = await Promise.all([
+  const [theirs, spend, paying, projected] = await Promise.all([
     theirProgress(db, farm.id, run, now),
     theirSpend(db, farm.id, run),
     howToPay(db, farm.id, agreementId, run),
+    showsProjections(reader)
+      ? projectionOf(
+          db,
+          farm.id,
+          run,
+          // Theirs is frozen on their Agreement: an offer's own figure is for those who have not signed.
+          standing.agreement.investorsPercent,
+          now
+        )
+      : null,
   ]);
   return {
     agreementId,
@@ -194,6 +216,14 @@ export const theirVentureToday = async (
     },
     /** Where to pay and how much is left, while their capital is still owed; nothing once it is all in. */
     howToPay: paying,
+    /** What it might come to for their own Units at the Owner's low and high sale prices (ADR 0010): an estimate,
+     *  and nothing unless the Owner shows Projections, has set the prices, and the Venture is still running. */
+    projection: projected
+      ? hisProjection(projected, {
+          units: standing.agreement.units,
+          capitalBdt: standing.capitalBdt,
+        })
+      : null,
   };
 };
 
