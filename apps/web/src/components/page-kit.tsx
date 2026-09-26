@@ -64,13 +64,26 @@ export interface Figure {
 
 /** A page's few figures: tiles where there is room, and one small card on a phone so its first screen still reaches the
  *  work below. */
-export const SummaryFigures = ({ figures }: { figures: Figure[] }) => (
+export const SummaryFigures = ({
+  figures,
+  hintsOnPhone = false,
+}: {
+  figures: Figure[];
+  /** Keep each figure's line under it on a phone too, for a reader who has no work below and needs the figure's
+   *  meaning more than the room: the Investor, for whom "not paid yet" is the point of the figure. */
+  hintsOnPhone?: boolean;
+}) => (
   <>
     <dl className="bg-card grid grid-cols-2 gap-x-4 gap-y-3 rounded-xl border p-4 md:hidden">
       {figures.map((figure) => (
         <div className="flex min-w-0 flex-col gap-0.5" key={figure.label}>
           <dt
-            className="text-muted-foreground truncate text-xs"
+            className={cn(
+              "text-muted-foreground text-xs",
+              // A label cut short says no more than a missing line under it: «আপনাকে পরিশোধ করা হয়েছে» does not fit
+              // half a 375px phone.
+              !hintsOnPhone && "truncate"
+            )}
             data-slot="figure-label"
           >
             {figure.label}
@@ -83,6 +96,9 @@ export const SummaryFigures = ({ figures }: { figures: Figure[] }) => (
           >
             {figure.value}
           </dd>
+          {hintsOnPhone && figure.hint ? (
+            <dd className="text-muted-foreground text-xs">{figure.hint}</dd>
+          ) : null}
         </div>
       ))}
     </dl>

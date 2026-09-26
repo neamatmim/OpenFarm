@@ -311,6 +311,8 @@ export const en = {
   "portal.herd": "The animals",
   "portal.herdHint":
     "Averages over the {weighed, plural, one {# animal} other {# animals}} weighed since they arrived.",
+  "portal.lastWeighed": "Last weighed on {day}.",
+  "portal.figuresAsAt": "Figures as at {time}",
   "portal.herdGone": "No animals standing now",
   "portal.herdNoneYet": "No animals bought yet",
   "portal.averageIntake": "Average weight on arrival",

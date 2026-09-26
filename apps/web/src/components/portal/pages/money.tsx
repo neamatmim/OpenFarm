@@ -45,7 +45,7 @@ const useTotals = (theirs: TheirAgreements): Figure[] => {
 /** Their totals over their ledger, once it is read. */
 const TheirMoney = ({ theirs }: { theirs: TheirAgreements }) => (
   <>
-    <SummaryFigures figures={useTotals(theirs)} />
+    <SummaryFigures figures={useTotals(theirs)} hintsOnPhone />
     <InvestorMoney
       agreements={theirs.agreements}
       inThePortal

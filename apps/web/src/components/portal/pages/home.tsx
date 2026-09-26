@@ -16,6 +16,7 @@ import {
   Allocation,
   CapitalAccount,
 } from "@/components/portal/capital-account";
+import { FiguresAsAt } from "@/components/portal/figures-as-at";
 import { OpenVenturesOnHome } from "@/components/portal/open-ventures";
 import {
   usePortalPlaces,
@@ -145,6 +146,11 @@ export const PortalHome = () => {
     <Page>
       <PageHeader
         description={t("portal.homeHint")}
+        meta={
+          theirs.data ? (
+            <FiguresAsAt readAt={theirs.dataUpdatedAt} />
+          ) : undefined
+        }
         title={t("portal.homeTitle")}
       />
       <Loaded

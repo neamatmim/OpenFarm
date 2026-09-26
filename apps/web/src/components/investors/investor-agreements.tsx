@@ -349,69 +349,122 @@ export const InvestorMoney = ({
       {movements.length === 0 ? (
         <EmptyState bare icon={ScrollText} title={t(words.none)} />
       ) : (
-        <div className="-mx-4 overflow-x-auto md:-mx-5">
-          <Table className="min-w-[44rem]">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="ps-4 md:ps-5">
-                  {t("ventures.page.on")}
-                </TableHead>
-                <TableHead>{t("investors.page.venture")}</TableHead>
-                <TableHead>{t("ventures.page.what")}</TableHead>
-                <TableHead>{t("ventures.page.reference")}</TableHead>
-                <TableHead className="text-end">
-                  {t("investors.page.toTheFarm")}
-                </TableHead>
-                <TableHead className="pe-4 text-end md:pe-5">
-                  {t(words.back)}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {movements.map((one) => {
-                const venture = ventureOf.get(one.agreementId);
-                const into = INTO_THE_FARM[one.kind];
-                return (
-                  <TableRow key={`${one.kind}-${one.id}`}>
-                    <TableCell className="ps-4 whitespace-nowrap md:ps-5">
+        <>
+          {/* On a phone each line is a row of its own rather than six columns scrolled sideways: what it was and the
+              amount first, then the day, the Venture and the reference under them. */}
+          <ul className="divide-border flex flex-col divide-y md:hidden">
+            {movements.map((one) => {
+              const into = INTO_THE_FARM[one.kind];
+              return (
+                <li
+                  className="flex items-start justify-between gap-3 py-3 text-sm"
+                  key={`${one.kind}-${one.id}`}
+                >
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <span className="font-medium">
+                      {t(MOVEMENT_WORD[one.kind])}
+                    </span>
+                    <span className="text-muted-foreground flex flex-wrap gap-x-2 gap-y-0.5 text-xs">
                       <SaidDate at={one.movedOn} />
-                    </TableCell>
-                    <TableCell>
                       <VentureLink
                         agreementId={one.agreementId}
                         inThePortal={inThePortal}
-                        venture={venture}
+                        venture={ventureOf.get(one.agreementId)}
                       />
-                    </TableCell>
-                    <TableCell>{t(MOVEMENT_WORD[one.kind])}</TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {one.reference ?? <Nothing />}
-                    </TableCell>
-                    <TableCell className="text-end tabular-nums">
-                      {into ? taka(one.amountBdt) : <Nothing />}
-                    </TableCell>
-                    <TableCell className="pe-4 text-end tabular-nums md:pe-5">
-                      {into ? <Nothing /> : taka(one.amountBdt)}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell className="ps-4 font-medium md:ps-5" colSpan={4}>
-                  {t("ventures.page.total")}
-                </TableCell>
-                <TableCell className="text-end font-medium tabular-nums">
-                  {taka(inBdt)}
-                </TableCell>
-                <TableCell className="pe-4 text-end font-medium tabular-nums md:pe-5">
-                  {taka(outBdt)}
-                </TableCell>
-              </TableRow>
-            </TableFooter>
-          </Table>
-        </div>
+                      {one.reference ? (
+                        <span className="font-mono">{one.reference}</span>
+                      ) : null}
+                    </span>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-0.5">
+                    <span className="font-medium tabular-nums">
+                      {taka(one.amountBdt)}
+                    </span>
+                    <span className="text-muted-foreground text-xs">
+                      {into ? t("investors.page.toTheFarm") : t(words.back)}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+            <li className="flex items-start justify-between gap-3 py-3 text-sm font-medium">
+              <span>{t("ventures.page.total")}</span>
+              <dl className="grid grid-cols-[auto_auto] gap-x-3 gap-y-0.5 text-end">
+                <dt className="text-muted-foreground text-xs font-normal">
+                  {t("investors.page.toTheFarm")}
+                </dt>
+                <dd className="tabular-nums">{taka(inBdt)}</dd>
+                <dt className="text-muted-foreground text-xs font-normal">
+                  {t(words.back)}
+                </dt>
+                <dd className="tabular-nums">{taka(outBdt)}</dd>
+              </dl>
+            </li>
+          </ul>
+          <div className="-mx-4 hidden overflow-x-auto md:-mx-5 md:block">
+            <Table className="min-w-[44rem]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="ps-4 md:ps-5">
+                    {t("ventures.page.on")}
+                  </TableHead>
+                  <TableHead>{t("investors.page.venture")}</TableHead>
+                  <TableHead>{t("ventures.page.what")}</TableHead>
+                  <TableHead>{t("ventures.page.reference")}</TableHead>
+                  <TableHead className="text-end">
+                    {t("investors.page.toTheFarm")}
+                  </TableHead>
+                  <TableHead className="pe-4 text-end md:pe-5">
+                    {t(words.back)}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {movements.map((one) => {
+                  const venture = ventureOf.get(one.agreementId);
+                  const into = INTO_THE_FARM[one.kind];
+                  return (
+                    <TableRow key={`${one.kind}-${one.id}`}>
+                      <TableCell className="ps-4 whitespace-nowrap md:ps-5">
+                        <SaidDate at={one.movedOn} />
+                      </TableCell>
+                      <TableCell>
+                        <VentureLink
+                          agreementId={one.agreementId}
+                          inThePortal={inThePortal}
+                          venture={venture}
+                        />
+                      </TableCell>
+                      <TableCell>{t(MOVEMENT_WORD[one.kind])}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {one.reference ?? <Nothing />}
+                      </TableCell>
+                      <TableCell className="text-end tabular-nums">
+                        {into ? taka(one.amountBdt) : <Nothing />}
+                      </TableCell>
+                      <TableCell className="pe-4 text-end tabular-nums md:pe-5">
+                        {into ? <Nothing /> : taka(one.amountBdt)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+              <TableFooter>
+                <TableRow>
+                  <TableCell className="ps-4 font-medium md:ps-5" colSpan={4}>
+                    {t("ventures.page.total")}
+                  </TableCell>
+                  <TableCell className="text-end font-medium tabular-nums">
+                    {taka(inBdt)}
+                  </TableCell>
+                  <TableCell className="pe-4 text-end font-medium tabular-nums md:pe-5">
+                    {taka(outBdt)}
+                  </TableCell>
+                </TableRow>
+              </TableFooter>
+            </Table>
+          </div>
+        </>
       )}
     </Section>
   );
