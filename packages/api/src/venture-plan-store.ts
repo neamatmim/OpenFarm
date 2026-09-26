@@ -1,10 +1,22 @@
+import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { venturePlan, venturePlanLine } from "@OpenFarm/db/schema/venture";
 import type { PlanLine } from "@OpenFarm/domain";
-import { baselineOf, planTotals, startOfFarmDay } from "@OpenFarm/domain";
+import {
+  baselineOf,
+  buyingAgainstPlan,
+  planTotals,
+  plannedHeadKg,
+  plannedResult,
+  startOfFarmDay,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
+import { theirSpend } from "./investor-statement-store";
+import { projectionOf } from "./projection-store";
+import { theirProgress } from "./venture-herd-store";
+import { ownedThenByOf } from "./venture-store";
 import type { VentureRow } from "./venture-store";
 
 /**
@@ -152,4 +164,88 @@ export const savePlan = async (
     }))
   );
   return { version };
+};
+
+/**
+ * A Venture measured against the plan it opened on — its baseline, not the latest revision: what it bought in each
+ * band beside what the plan meant to buy there, and anything bought outside every band; what a head weighs today
+ * beside what the plan said it would by now; and the money — the cattle the plan costed against what the animals
+ * cost, the running budget against what has been spent, and what the plan said it would make against what it is now
+ * projected to. Nothing while it has no plan. The Owner's alone.
+ */
+export const planAgainstActual = async (
+  db: Database,
+  farmId: string,
+  /** The Venture as its row holds it, with when it was opened, which its Settlement is read from. */
+  run: VentureRow & { createdAt: Date },
+  offeredPercent: number,
+  now: Date
+) => {
+  const plan = await planOf(db, farmId, run);
+  const { baseline } = plan;
+  if (!baseline) {
+    return null;
+  }
+  // Bought for it: the animals that were its own on the day they came, wherever they are now.
+  const ownedThenBy = await ownedThenByOf(db, farmId);
+  const intakes = await db.query.intake.findMany({
+    where: { farmId },
+    columns: {
+      animalId: true,
+      weightKg: true,
+      purchasePriceBdt: true,
+      arrivedAt: true,
+    },
+  });
+  const bought = intakes
+    .filter((one) => ownedThenBy(one.animalId, one.arrivedAt) === run.id)
+    .map((one) => ({
+      weightKg: Number(one.weightKg),
+      priceBdt: one.purchasePriceBdt,
+    }));
+  const buying = buyingAgainstPlan(baseline.lines, bought);
+  const [progress, spend, projected] = await Promise.all([
+    theirProgress(db, farmId, run, now),
+    theirSpend(db, farmId, run),
+    projectionOf(db, farmId, run, offeredPercent, now),
+  ]);
+  const daysSinceBuying = Math.min(
+    plan.daysOnFeed,
+    Math.floor(
+      (now.getTime() - startOfFarmDay(run.decideBy).getTime()) / DAY_MS
+    )
+  );
+  const plannedRunningBdt = run.targetCapitalBdt - run.cattleBudgetBdt;
+  return {
+    baselineVersion: baseline.version,
+    buying,
+    growth: {
+      daysSinceBuying: Math.max(0, daysSinceBuying),
+      plannedKgToday: plannedHeadKg(baseline.lines, daysSinceBuying),
+      /** The average of the standing animals weighed since they came; nothing while none has been. */
+      actualKgToday: progress.averageLatestKg,
+      weighed: progress.weighedCount,
+      plannedKgAtWindow: plannedHeadKg(baseline.lines, plan.daysOnFeed),
+    },
+    money: {
+      plannedCattleBdt: baseline.totals.costBdt,
+      boughtBdt: buying.total.costBdt,
+      plannedRunningBdt,
+      runningSpentBdt: spend.runningSpentBdt,
+      planned: plannedResult({
+        saleKg: baseline.totals.saleKg,
+        cattleBdt: baseline.totals.costBdt,
+        runningBudgetBdt: plannedRunningBdt,
+        saleLowBdtPerKg: baseline.saleLowBdtPerKg,
+        saleHighBdtPerKg: baseline.saleHighBdtPerKg,
+      }),
+      /** What it is projected to make now, at the prices set for its projection; nothing while none are. */
+      projected: projected
+        ? {
+            lowBdt: projected.low.profitBdt,
+            highBdt: projected.high.profitBdt,
+          }
+        : null,
+    },
+  };
 };

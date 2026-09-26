@@ -382,8 +382,7 @@ export const bn: Record<MessageKey, string> = {
   "plan.daysOnFeed": "সিদ্ধান্তের দিন থেকে বিক্রির সময় পর্যন্ত {days} দিন খাওয়ানো",
   "plan.version": "সংস্করণ {version}, {day}",
   "plan.baseline": "মূল পরিকল্পনা",
-  "plan.measuredAgainst":
-    "সংস্করণ {version}-এর সঙ্গে মেলানো হয়, যা কেনা শুরুর আগে করা হয়েছিল।",
+  "plan.measuredAgainst": "মূল পরিকল্পনা, সংস্করণ {version}-এর সঙ্গে মেলানো হয়।",
   "plan.revision": "বদলের কারণ: {reason}",
   "plan.sheetHint":
     "প্রতিটি সীমা মানে দুই ওজনের মধ্যে কেনা এতগুলো পশু, কেজি প্রতি এত দামে, দিনে এতটা ওজন বাড়বে। প্রতিবার সংরক্ষণ রেখে দেওয়া হয়।",
@@ -400,6 +399,28 @@ export const bn: Record<MessageKey, string> = {
     "কেনা শুরু হয়ে গেছে: আগের পরিকল্পনার সঙ্গেই ভেঞ্চার মেলানো হবে, আর এটি একটি বদল হিসেবে রাখা হবে।",
   "plan.refused.reason": "কেনা শুরুর পর পরিকল্পনা বদলাতে কারণ লিখতে হয়",
   "plan.refused.ended": "শেষ হয়ে যাওয়া ভেঞ্চারের আর পরিকল্পনা নেই",
+  "plan.vs.title": "পরিকল্পনা বনাম বাস্তব",
+  "plan.vs.buying": "কেনা",
+  "plan.vs.growth": "বৃদ্ধি",
+  "plan.vs.money": "টাকা",
+  "plan.vs.planned": "পরিকল্পনা",
+  "plan.vs.bought": "কেনা হয়েছে",
+  "plan.vs.plannedCost": "পরিকল্পিত খরচ",
+  "plan.vs.cost": "খরচ",
+  "plan.vs.heads": "{count}টি, কেজি {perKg}",
+  "plan.vs.count": "{count}টি",
+  "plan.vs.outside": "কোনো সীমার বাইরে",
+  "plan.vs.plannedToday": "আজ পর্যন্ত প্রতিটির পরিকল্পিত ওজন",
+  "plan.vs.actualToday": "আজ প্রতিটির ওজন",
+  "plan.vs.weighedOf": "{count}টি পশুর ওজন নেওয়া",
+  "plan.vs.noneWeighed": "এখনো ওজন নেওয়া হয়নি",
+  "plan.vs.atWindow": "বিক্রির সময় প্রতিটির পরিকল্পিত ওজন",
+  "plan.vs.cattle": "গরু কেনা: পরিকল্পনা {planned}, কেনা হয়েছে {actual}-এ",
+  "plan.vs.running": "চালানো: বাজেট {budget}, খরচ হয়েছে {spent}",
+  "plan.vs.result":
+    "ফলাফল: পরিকল্পনা {plannedLow} থেকে {plannedHigh}; এখনকার হিসাবে {low} থেকে {high}",
+  "plan.vs.resultNoProjection":
+    "ফলাফল: পরিকল্পনা {plannedLow} থেকে {plannedHigh}; আনুমানিক দাম এখনো ঠিক করা নেই",
   "plan.saved": "পরিকল্পনা সংরক্ষণ হয়েছে",
   "projection.title": "আনুমানিক মুনাফা",
   "projection.hint":
