@@ -4,7 +4,7 @@
 
 **Blocked by:** None.
 
-**Status:** built on `feat/portal-own-address`; the two-browser sign-in waits on somebody signing in
+**Status:** done on `feat/portal-own-address`
 
 **Spec:** [the readiness spec](../spec.md), user stories 38–45.
 
@@ -18,7 +18,7 @@
 - [x] The code dialog and the Welcome Letter use `PORTAL_URL`.
 - [x] `investors.localhost` works in development.
 - [x] The deploy runbook gains the nginx server block, the certificate and the env value.
-- [ ] Somebody signs in as the Owner on one host and as an Investor on the other, in one browser, and both stay signed in.
+- [x] Somebody signs in as the Owner on one host and as an Investor on the other, in one browser, and both stay signed in. **Done 2026-09-26 by the user**, on a seed server run with `PORTAL_URL=http://investors.localhost:3003`: the Owner at `localhost:3003` and আবুল হাশেম মিয়া at `investors.localhost:3003`, and both stayed signed in.
 
 ## Checked before starting
 
