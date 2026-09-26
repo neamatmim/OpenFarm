@@ -1,8 +1,12 @@
 import type { Database } from "@OpenFarm/db";
-import { priceOfAnimal, priceRangeFor } from "@OpenFarm/domain";
+import { perKgOfSales, priceOfAnimal, priceRangeFor } from "@OpenFarm/domain";
 
 import { chargedOf, economicsOfAnimal, farmCosts } from "./cost-store";
 import { fatteningRows } from "./ready-store";
+
+/** How far back the farm's own sales are read for what a kilo has been fetching: two months of a market. */
+const RECENT_SALES_DAYS = 60;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** The fattening side as the board and the Ready list read it. */
 const ON_THE_SIDE = ["quarantine", "fattening", "ready_for_sale"] as const;
@@ -50,8 +54,27 @@ export const pricesOnTheSide = async (
         }
       : null;
   const costed = new Map(costs.animals.map((one) => [one.id, one]));
+  // Sales to a buyer only — an Internal Sale is a price the Owner set between purses, not one the market paid — and
+  // of fattened stock only: a cow culled to a butcher is a Sale too, and would drag down what a fattened bull fetches.
+  const since = new Date(now.getTime() - RECENT_SALES_DAYS * DAY_MS);
+  const sold = await db.query.sale.findMany({
+    where: { farmId: farm.id, soldAt: { gte: since } },
+    columns: { priceBdt: true, weightKg: true },
+    with: { animal: { columns: { side: true } } },
+  });
+  const recent = perKgOfSales(
+    sold
+      .filter((one) => one.animal?.side === "fattening")
+      .map((one) => ({
+        priceBdt: one.priceBdt,
+        weightKg: Number(one.weightKg),
+      }))
+  );
   return {
     market: market ? { ...market, setAt: farm.marketPriceSetAt } : null,
+    /** What a kilo fetched in the farm's own sales over the last two months, as a reference when the market price is
+     *  set; nothing where there were none. */
+    recentSales: recent ? { ...recent, since, days: RECENT_SALES_DAYS } : null,
     animals: rows.flatMap((row) => {
       const animal = costed.get(row.id);
       if (!animal) {

@@ -3,6 +3,7 @@ import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
+import { HerPrice } from "@/components/fattening/animal-prices";
 import { useReadsMoney } from "@/components/money";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka, useTakaToThePaisa } from "@/lib/taka";
@@ -113,6 +114,8 @@ export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
           <Line label={t("costs.costOfGain")}>
             {rateOrDash(her.costOfGainBdt)}
           </Line>
+          {/* What she might fetch now, against all that — the Owner's alone, and only while she is unsold. */}
+          {her.saleBdt === null ? <HerPrice tagNumber={tagNumber} /> : null}
         </>
       ) : null}
       {her.lactation ? (

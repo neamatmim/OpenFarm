@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { priceOfAnimal, priceRangeFor } from "./animal-price";
+import { perKgOfSales, priceOfAnimal, priceRangeFor } from "./animal-price";
 
 describe("what an animal might fetch against what she cost", () => {
   it("prices her latest weight at both ends, and says what each leaves over her cost", () => {
@@ -64,5 +64,23 @@ describe("the price a kilo an animal is priced at", () => {
     expect(
       priceRangeFor({ ofHerVenture: null, market: null, inAVenture: false })
     ).toBeNull();
+  });
+});
+
+describe("what a kilo fetched in the farm's own sales", () => {
+  it("is everything they fetched over everything they weighed, not the mean of each one's rate", () => {
+    // ৳1,00,000 for 200 kg (৳500) and ৳3,60,000 for 600 kg (৳600): ৳4,60,000 over 800 kg is ৳575 a kilo, where the
+    // mean of the two rates would say ৳550 and let the small bull count as much as the big one.
+    expect(
+      perKgOfSales([
+        { priceBdt: 100_000, weightKg: 200 },
+        { priceBdt: 360_000, weightKg: 600 },
+      ])
+    ).toEqual({ bdtPerKg: 575, animals: 2 });
+  });
+
+  it("says nothing where nothing was sold, or nothing weighed", () => {
+    expect(perKgOfSales([])).toBeNull();
+    expect(perKgOfSales([{ priceBdt: 100_000, weightKg: 0 }])).toBeNull();
   });
 });

@@ -148,6 +148,20 @@ const TheAnswer = ({ one }: { one: TheirRequest }) => {
   return null;
 };
 
+/** What they asked before on this Venture and let go, or the farm closed: one line, with the day it ended. */
+const EarlierRequest = ({ earlier }: { earlier: TheirRequest }) => {
+  const { t, language } = useLanguage();
+  return (
+    <p className="text-muted-foreground text-sm">
+      {t("portal.request.earlier", {
+        units: earlier.units,
+        state: t(STATE_WORDS[earlier.state]),
+        day: formatDate(new Date(earlier.changedAt), language, "date"),
+      })}
+    </p>
+  );
+};
+
 /**
  * Asking to join, or changing what was asked: whole Units, the taka they come to, a note, and — before anything is
  * sent — that it binds nobody. A Request still waiting can be withdrawn from here too.
@@ -155,9 +169,13 @@ const TheAnswer = ({ one }: { one: TheirRequest }) => {
 const RequestForm = ({
   one,
   live,
+  earlier,
 }: {
   one: OpenVenture;
   live: TheirRequest | null;
+  /** Their latest Request on it that is no longer live — withdrawn, or closed — said above a fresh form; none while
+   *  one is live. */
+  earlier: TheirRequest | null;
 }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
@@ -188,6 +206,7 @@ const RequestForm = ({
       description={t("portal.request.bindsNobody")}
       title={t("portal.request.title")}
     >
+      {earlier ? <EarlierRequest earlier={earlier} /> : null}
       <form
         className="flex max-w-md flex-col gap-4"
         noValidate
@@ -334,7 +353,21 @@ export const AskToJoin = ({ one }: { one: OpenVenture }) => {
   if (!(live || one.takingRequests)) {
     return null;
   }
-  return <RequestForm key={live?.id ?? "new"} live={live} one={one} />;
+  // What they asked before and let go, or the farm closed: said, so a fresh form does not read as their first.
+  const [earlier] = onThis
+    .filter((each) => each.state === "withdrawn" || each.state === "closed")
+    .toSorted(
+      (a, b) =>
+        new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime()
+    );
+  return (
+    <RequestForm
+      earlier={live ? null : (earlier ?? null)}
+      key={live?.id ?? "new"}
+      live={live}
+      one={one}
+    />
+  );
 };
 
 /**

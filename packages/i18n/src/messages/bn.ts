@@ -190,6 +190,7 @@ export const bn: Record<MessageKey, string> = {
   "portal.request.withdrawTitle": "অনুরোধটি তুলে নেবেন?",
   "portal.request.withdrawWhy":
     "অনুরোধে কেউ বাঁধা পড়েন না। ভেঞ্চারটি দেখানো থাকলে আবার অনুরোধ করতে পারবেন।",
+  "portal.request.earlier": "আপনার আগের অনুরোধ, {units}টি ইউনিট: {state}, {day}।",
   "portal.requests.title": "যোগ দেওয়ার অনুরোধ",
   "portal.requests.hint":
     "খামারের কাছে আপনি যা চেয়েছেন, আর প্রতিটি এখন কোথায় আছে। অনুরোধে কেউ বাঁধা পড়েন না।",
@@ -351,6 +352,9 @@ export const bn: Record<MessageKey, string> = {
   "market.title": "বাজারদর",
   "market.hint":
     "আপনার বিচারে জীবন্ত ওজনের এক কেজির দাম। খামারের নিজের পশুর দাম এতে ধরা হয়; ভেঞ্চারের পশুর দাম ধরা হয় সেই ভেঞ্চারের নিজের দামে। শুধু আপনার দেখার জন্য: ম্যানেজার বা বিনিয়োগকারী দাম দেখেন না।",
+  "market.recent":
+    "গত {days} দিনে ক্রেতার কাছে আপনার বিক্রিতে কেজি {perKg} দাম উঠেছে, {animals}টি পশুতে।",
+  "market.noRecent": "গত {days} দিনে ক্রেতার কাছে কোনো বিক্রি নেই।",
   "market.none": "ঠিক করা নেই: খামারের নিজের পশুর আনুমানিক দাম এখনো নেই।",
   "market.line": "কেজি {low} থেকে {high}, {day} তারিখে ঠিক করা",
   "market.set": "বাজারদর ঠিক করুন",

@@ -1,9 +1,30 @@
+import { cn } from "@OpenFarm/ui/lib/utils";
+import { Link } from "@tanstack/react-router";
 import { FileText } from "lucide-react";
 
 import type { TheirAgreements } from "@/components/investors/investor-agreements";
 import { EmptyState, Section } from "@/components/page";
 import { PortalPapers } from "@/components/portal/portal-papers";
+import { usePortalPlaces } from "@/components/portal/portal-source";
 import { useLanguage } from "@/i18n/language-provider";
+
+/** The Venture a card of papers is for, leading to its own page. */
+const VentureName = ({
+  one,
+}: {
+  one: TheirAgreements["agreements"][number];
+}) => {
+  const { to, params } = usePortalPlaces().venture(one.id).link;
+  return (
+    <Link
+      className="underline-offset-4 hover:underline focus-visible:underline"
+      params={params}
+      to={to}
+    >
+      {one.venture.name}
+    </Link>
+  );
+};
 
 /**
  * Every paper of theirs in one place, one card per Venture listing its joining letter, progress statement and
@@ -27,9 +48,15 @@ export const TheirPapers = ({
     );
   }
   return (
-    <div className="grid items-start gap-4 lg:grid-cols-2">
+    // Two to a row only when there are two: one Venture's papers across the whole page, not half of it.
+    <div
+      className={cn(
+        "grid items-start gap-4",
+        papered.length > 1 && "lg:grid-cols-2"
+      )}
+    >
       {papered.map((one) => (
-        <Section key={one.id} title={one.venture.name}>
+        <Section key={one.id} title={<VentureName one={one} />}>
           <PortalPapers
             agreementId={one.id}
             hasCapital={one.capitalHeldBdt > 0 || one.settlement !== null}

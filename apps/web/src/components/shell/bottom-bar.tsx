@@ -44,11 +44,23 @@ export const BottomBar = ({ items }: { items: readonly NavItem[] }) => {
           >
             <span
               className={cn(
-                "grid h-7 w-12 place-items-center rounded-full transition-colors",
+                "relative grid h-7 w-12 place-items-center rounded-full transition-colors",
                 here && "bg-secondary"
               )}
             >
               <item.icon aria-hidden className="size-5" />
+              {item.count ? (
+                <span
+                  className={cn(
+                    "absolute -top-1 right-1 min-w-4 rounded-full px-1 text-[0.625rem] leading-4 font-semibold tabular-nums",
+                    item.fresh
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-foreground"
+                  )}
+                >
+                  {item.count}
+                </span>
+              ) : null}
             </span>
             <span className="max-w-full truncate">{t(item.label)}</span>
           </Link>

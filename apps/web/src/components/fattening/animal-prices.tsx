@@ -47,18 +47,29 @@ const useHerPrice = (tagNumber: string): AnimalPriced | null => {
   );
 };
 
-/** Her cost and what it leaves unsaid: feed or a dose with no price yet, or no purchase in it for one born here. */
+/**
+ * Her cost and what it leaves unsaid — feed or a dose with no price yet, or no purchase in it for one born here — and
+ * her break-even, each a line of its own that never breaks inside itself, so a narrow column stacks them rather than
+ * leaving half a phrase alone.
+ */
 const CostLine = ({ one }: { one: AnimalPriced }) => {
   const { t } = useLanguage();
   const taka = useTaka();
+  const parts = [
+    t("price.cost", { cost: taka(one.costBdt) }),
+    one.breakEvenBdtPerKg === null
+      ? null
+      : t("price.breakEven", { perKg: taka(one.breakEvenBdtPerKg) }),
+    one.costIsWhole ? null : t("price.costShort"),
+    one.bought ? null : t("price.born"),
+  ].filter((part): part is string => part !== null);
   return (
-    <span className="text-muted-foreground text-xs">
-      {t("price.cost", { cost: taka(one.costBdt) })}
-      {one.breakEvenBdtPerKg === null
-        ? null
-        : ` · ${t("price.breakEven", { perKg: taka(one.breakEvenBdtPerKg) })}`}
-      {one.costIsWhole ? null : ` · ${t("price.costShort")}`}
-      {one.bought ? null : ` · ${t("price.born")}`}
+    <span className="text-muted-foreground flex flex-col text-xs">
+      {parts.map((part) => (
+        <span className="whitespace-nowrap" key={part}>
+          {part}
+        </span>
+      ))}
     </span>
   );
 };
@@ -105,7 +116,7 @@ export const PriceCell = ({ tagNumber }: { tagNumber: string }) => {
     return <Nothing />;
   }
   return (
-    <span className="flex flex-col items-end gap-0.5 text-end">
+    <span className="flex flex-col items-end gap-0.5 text-end whitespace-nowrap">
       <EstimateLine one={one} />
       <CostLine one={one} />
     </span>
@@ -124,6 +135,24 @@ export const PriceLine = ({ tagNumber }: { tagNumber: string }) => {
       <EstimateLine one={one} />
       <CostLine one={one} />
     </span>
+  );
+};
+
+/** Her price and cost on her own page, under what she has cost: for the Owner, while she is on the fattening side
+ *  and priced; nothing for anybody else. */
+export const HerPrice = ({ tagNumber }: { tagNumber: string }) => {
+  const { t } = useLanguage();
+  const owner = useIsOwner();
+  const one = useHerPrice(tagNumber);
+  if (!owner || !one) {
+    return null;
+  }
+  return (
+    <div className="flex flex-col gap-1 pt-4">
+      <h3 className="font-semibold">{t("price.col")}</h3>
+      <EstimateLine one={one} />
+      <CostLine one={one} />
+    </div>
   );
 };
 
@@ -225,6 +254,8 @@ export const MarketPrice = () => {
     return null;
   }
   const { market } = prices.data;
+  // An answer this phone kept from before the farm read its own sales has none.
+  const recent = prices.data.recentSales ?? null;
   return (
     <Section
       action={
@@ -246,6 +277,15 @@ export const MarketPrice = () => {
                 : "—",
             })
           : t("market.none")}
+      </p>
+      <p className="text-muted-foreground text-sm">
+        {recent
+          ? t("market.recent", {
+              days: recent.days,
+              perKg: taka(recent.bdtPerKg),
+              animals: recent.animals,
+            })
+          : t("market.noRecent", { days: 60 })}
       </p>
       {setting ? (
         <MarketSheet market={market} onOpenChange={setSetting} />
