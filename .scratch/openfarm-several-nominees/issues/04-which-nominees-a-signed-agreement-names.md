@@ -37,7 +37,7 @@ Grilled with the Owner, 2026-09-26. Named **Nomination** in [`CONTEXT.md`](../..
    - Each signed Agreement takes the nominee the Audit Event trail shows on its signing day. `readInvestor` records all three nominee fields, so the trail can recover them.
    - Each Investor's list in force is their latest signed Agreement's list.
    - A nominee the Owner edited after that signing, or one on an Investor with no Agreement, is the list in force but is marked **not yet signed for** until the Investor signs a Nomination.
-   - Still not known: whether any real Investor has signed yet. The Owner didn't say. If none has, this step is only a migration line.
+   - **No real Investor has signed yet** (the Owner, 2026-09-26). Only seed and test data exist, so for the spec this is a migration line: the seed and tests are rebuilt on the new shape, and the trail backfill is a safety net.
 
 **Found and left out of scope:** the reprint problem is wider than Nominees. A signed Agreement also reprints the Investor's name, phone, address and NID as they are today. The map's Out of scope section records this.
 
