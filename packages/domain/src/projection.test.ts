@@ -82,6 +82,48 @@ describe("a Projection", () => {
   });
 });
 
+describe("a Projection that allows for deaths", () => {
+  it("sells fewer at the low end by the share expected to die, and still charges what they cost", () => {
+    // Five per cent of the herd not living to be sold: 2,850 of the 3,000 kilos at ৳450 fetch ৳12,82,500, against the
+    // same twelve lakh charged — a profit of ৳82,500. The high end is every animal living: 3,000 kilos at ৳550.
+    const projected = projectedSettlement({
+      kgAtSale: 3000,
+      realisedBdt: 0,
+      chargedBdt: 1_200_000,
+      investorsPercent: 60,
+      units: 20,
+      saleLowBdtPerKg: 450,
+      saleHighBdtPerKg: 550,
+      deathsPercent: 5,
+    });
+    expect(projected.low).toMatchObject({
+      kgAtSale: 2850,
+      proceedsBdt: 1_282_500,
+      profitBdt: 82_500,
+    });
+    expect(projected.high).toMatchObject({
+      kgAtSale: 3000,
+      proceedsBdt: 1_650_000,
+      profitBdt: 450_000,
+    });
+  });
+
+  it("never takes deaths off what was already sold", () => {
+    // Half a lakh already fetched; ten per cent of the 1,000 kilos still to sell does not live: 900 at ৳400.
+    const projected = projectedSettlement({
+      kgAtSale: 1000,
+      realisedBdt: 50_000,
+      chargedBdt: 400_000,
+      investorsPercent: 60,
+      units: 10,
+      saleLowBdtPerKg: 400,
+      saleHighBdtPerKg: 500,
+      deathsPercent: 10,
+    });
+    expect(projected.low.proceedsBdt).toBe(410_000);
+  });
+});
+
 describe("the animals a budget has still to buy", () => {
   it("buys as many whole animals as the budget left will pay for, and grows each to the window", () => {
     // Ten lakh at ৳500 a kilo for 250 kg animals is ৳1,25,000 each: eight of them. A hundred days at 0.8 kg a day

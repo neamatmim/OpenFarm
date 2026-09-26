@@ -39,6 +39,9 @@ const LINE_FIELDS = [
 ] as const;
 
 /** Why the farm would not keep a plan, in the Owner's words. */
+/** The most of its animals a plan may expect to die, in per cent: the server's limit too. */
+const MOST_DEATHS_PERCENT = 50;
+
 const PLAN_REFUSALS = {
   plan_revision_needs_reason: "plan.refused.reason",
   plan_after_the_end: "plan.refused.ended",
@@ -125,6 +128,10 @@ const PlanSheet = ({
     low: latest ? String(latest.saleLowBdtPerKg) : "",
     high: latest ? String(latest.saleHighBdtPerKg) : "",
   });
+  // An answer this phone kept from before a plan could expect deaths has none: read as none.
+  const [deaths, setDeaths] = useState(() =>
+    String(latest?.deathsPercent ?? 0)
+  );
   const [reason, setReason] = useState("");
   const saving = useMutation(
     orpc.ventures.setPlan.mutationOptions({
@@ -140,11 +147,18 @@ const PlanSheet = ({
   const low = figureOf(sale.low);
   const high = figureOf(sale.high);
   const lowAboveHigh = low !== null && high !== null && low > high;
+  // Blank is none expected; more than half the herd is past planning, as the server says too.
+  const deathsPercent = figureOf(deaths) ?? 0;
+  const deathsOutOfRange =
+    !Number.isFinite(deathsPercent) ||
+    deathsPercent < 0 ||
+    deathsPercent > MOST_DEATHS_PERCENT;
   const ready =
     said.every((line) => line !== null) &&
     aFigure(low) &&
     aFigure(high) &&
     !lowAboveHigh &&
+    !deathsOutOfRange &&
     (!revising || reason.trim() !== "");
   const edit = (key: number, field: keyof TypedLine, value: string) =>
     setLines(
@@ -163,6 +177,7 @@ const PlanSheet = ({
           lines: said.filter((line) => line !== null),
           saleLowBdtPerKg: low ?? 0,
           saleHighBdtPerKg: high ?? 0,
+          deathsPercent,
           reason: revising ? reason.trim() : null,
         })
       }
@@ -247,6 +262,19 @@ const PlanSheet = ({
           />
         </FormField>
       </div>
+      <FormField
+        hint={t(deathsOutOfRange ? "plan.deathsOutOfRange" : "plan.deathsHint")}
+        id="plan-deaths"
+        label={t("plan.deaths")}
+      >
+        <Input
+          autoComplete="off"
+          id="plan-deaths"
+          inputMode="decimal"
+          onChange={(event) => setDeaths(event.target.value)}
+          value={deaths}
+        />
+      </FormField>
       {revising ? (
         <FormField
           hint={t("plan.reasonHint")}
@@ -371,6 +399,8 @@ const PlanRead = ({ plan, venture }: { plan: Plan; venture: Venture }) => {
     return <p className="text-muted-foreground text-sm">{t("plan.none")}</p>;
   }
   const isBaseline = baseline?.version === latest.version;
+  // Missing from an answer this phone kept from before a plan could expect deaths: read as none.
+  const expectsDeaths = (latest.deathsPercent ?? 0) > 0;
   return (
     <>
       <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -401,6 +431,15 @@ const PlanRead = ({ plan, venture }: { plan: Plan; venture: Venture }) => {
             high: taka(latest.saleHighBdtPerKg),
           })}
         </span>
+        {expectsDeaths ? (
+          <span>
+            {t("plan.deathsSaid", {
+              percent: t("portal.percent", {
+                percent: formatNumber(latest.deathsPercent, language),
+              }),
+            })}
+          </span>
+        ) : null}
         <span className="text-muted-foreground">
           {t("plan.daysOnFeed", { days: plan.daysOnFeed })}
         </span>

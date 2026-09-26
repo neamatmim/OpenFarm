@@ -1,0 +1,1 @@
+ALTER TABLE "venture_plan" ADD COLUMN "deaths_percent" numeric(5,2) DEFAULT '0' NOT NULL;

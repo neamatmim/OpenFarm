@@ -39,6 +39,9 @@ import { windowInForceOn } from "./venture-store";
 export interface ProjectionBasis {
   saleLowBdtPerKg: number;
   saleHighBdtPerKg: number;
+  /** The share of the animals still to sell expected not to live to be sold, taken off the low end: the plan's, or
+   *  none for prices set before it. */
+  deathsPercent: number;
   setAt: Date;
   /** The plan version it is worked from; nothing for prices set before the Venture had a plan. */
   planVersion: number | null;
@@ -123,6 +126,7 @@ export const projectionBasisOf = async (
     return {
       saleLowBdtPerKg: plan.saleLowBdtPerKg,
       saleHighBdtPerKg: plan.saleHighBdtPerKg,
+      deathsPercent: Number(plan.deathsPercent),
       setAt: plan.madeAt,
       planVersion: plan.version,
       lines,
@@ -138,6 +142,7 @@ export const projectionBasisOf = async (
   return {
     saleLowBdtPerKg: row.saleLowBdtPerKg,
     saleHighBdtPerKg: row.saleHighBdtPerKg,
+    deathsPercent: 0,
     setAt: row.setAt,
     planVersion: null,
     lines: [],
@@ -318,6 +323,7 @@ export const offerProjectionOf = async (
       ...figures,
       saleLowBdtPerKg: basis.saleLowBdtPerKg,
       saleHighBdtPerKg: basis.saleHighBdtPerKg,
+      deathsPercent: basis.deathsPercent,
     }),
   };
 };
@@ -382,16 +388,19 @@ export const projectionOf = async (
       ...figures,
       saleLowBdtPerKg: basis.saleLowBdtPerKg,
       saleHighBdtPerKg: basis.saleHighBdtPerKg,
+      deathsPercent: basis.deathsPercent,
     }),
   };
 };
 
-/** Where a Projection comes from, as an Investor is told it: the prices, when they were set, and the herd's weight. */
+/** Where a Projection comes from, as an Investor is told it: the prices, when they were set, the herd's weight, and
+ *  the share of it the lower figure allows not to live to be sold. */
 const saidBasis = (projection: Projection) => ({
   setAt: projection.basis.setAt,
   saleLowBdtPerKg: projection.basis.saleLowBdtPerKg,
   saleHighBdtPerKg: projection.basis.saleHighBdtPerKg,
   kgAtSale: Math.round(projection.kgAtSale),
+  deathsPercent: projection.basis.deathsPercent,
 });
 
 /**

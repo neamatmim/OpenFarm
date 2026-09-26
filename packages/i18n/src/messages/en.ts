@@ -422,6 +422,12 @@ export const en = {
   "plan.addLine": "Add a band",
   "plan.removeLine": "Remove this band",
   "plan.lineOf": "Band {number}",
+  "plan.deaths": "Animals that may die before sale (%)",
+  "plan.deathsHint":
+    "Taken off the low end of the projection only; the high end is every animal living.",
+  "plan.deathsOutOfRange": "Between 0 and 50",
+  "plan.deathsSaid":
+    "{percent} of the animals may die before sale: the low end allows for it",
   "plan.reason": "Why the plan changes",
   "plan.reasonHint":
     "Buying has begun: the plan made before stays what the Venture is measured against, and this is kept as a revision.",
@@ -492,6 +498,8 @@ export const en = {
     "Worked from the sale prices the farm expects, {low} to {high} a kg, set on {day}, and what the animals should weigh by the sale window. Prices move, and animals are lost; what you are paid is what the Settlement comes to.",
   "portal.projection.offerHint":
     "Worked from the farm's plan: animals bought at {buy} a kg and {weight} each, putting on {gain} a day, and sold at {low} to {high} a kg (set on {day}). Prices move, and animals are lost; what a Unit is paid is what the Settlement comes to.",
+  "portal.projection.deaths":
+    "The lower figure allows for {percent} of the animals not living to be sold; the higher, for every one of them living.",
   "portal.projection.yourShare": "Your share of the profit",
   "portal.projection.yourPayout": "What you would be paid",
   "portal.projection.perUnit": "Profit a Unit",

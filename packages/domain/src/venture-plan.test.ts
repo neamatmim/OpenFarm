@@ -145,4 +145,18 @@ describe("what the plan says the Venture makes", () => {
       })
     ).toEqual({ lowBdt: 267_800, highBdt: 583_000 });
   });
+
+  it("sells fewer at the low end by the share the plan expects to die", () => {
+    // Five per cent of 3,940 kg does not live to be sold: 3,743 kg at ৳520 is ৳19,46,360, less the same ৳17,81,000.
+    expect(
+      plannedResult({
+        saleKg: 3940,
+        cattleBdt: 1_381_000,
+        runningBudgetBdt: 400_000,
+        saleLowBdtPerKg: 520,
+        saleHighBdtPerKg: 600,
+        deathsPercent: 5,
+      })
+    ).toEqual({ lowBdt: 165_360, highBdt: 583_000 });
+  });
 });
