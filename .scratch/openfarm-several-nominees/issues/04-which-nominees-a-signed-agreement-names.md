@@ -1,6 +1,8 @@
 # Which Nominees a signed Agreement names
 
-Status: open
+Status: done
+
+Assignee: Neamat Khan Mim
 
 Type: grilling
 
@@ -18,3 +20,27 @@ Today a reprinted Investment Agreement prints the Investor's nominee **as the `i
 - **The same question for the Investor's other details** printed on the paper (address, phone), since the answer may apply to all of them. Say so, but decide only the Nominees here.
 
 ## Resolution
+
+Grilled with the Owner, 2026-09-26. Named **Nomination** in [`CONTEXT.md`](../../../CONTEXT.md), and the **Nominee** entry now points at it. No ADR: the choice follows the glossary's existing reason for keeping the nominee with the Investor.
+
+1. **The latest list governs, for every Agreement.** A Nominee list belongs to the Investor, not to the deal. The Investor's latest recorded Nomination names their Nominees for all their Agreements, whatever an earlier stamped paper says, as with a bank or a savings certificate. Changing it takes no Amendment, and it never differs between Ventures.
+2. **A change takes a signed Nomination.** It is a short, unstamped paper, signed and dated by the Investor in front of the Owner:
+   - It names every Nominee in full, never only the change, so any one Nomination can be read alone.
+   - It is printed from a farm Template (a new kind), and kept and photographed beside the Agreements.
+   - The record of Nominees changes only when a Nomination is recorded. The Owner never puts it right by hand, because the farm's answer to a family is that the Investor named these people themselves.
+   - **An Investment Agreement is a Nomination too**, for the list its parties part names on the day it is signed, so a new Investor signs nothing extra.
+3. **A signed Agreement reprints with the Nominees it was signed with.** That list is recorded at signing along with the Agreement, so the reprint matches the photo of the stamped paper.
+   - When a later Nomination has replaced that list, the **screen** says so beside the print ("Nominees since changed by the Nomination of <day>"). The paper never does, just as a missing lawyer approval is shown only on the screen.
+   - Everything that describes the Investor *today* shows the list in force: the portal's account page, the Data Copy, the Investor sheet and profile, and a যোগদানপত্র printed now.
+   - An unsigned Agreement, printed for signing, shows the list in force.
+4. **Moving what exists, once:**
+   - Each signed Agreement takes the nominee the Audit Event trail shows on its signing day. `readInvestor` records all three nominee fields, so the trail can recover them.
+   - Each Investor's list in force is their latest signed Agreement's list.
+   - A nominee the Owner edited after that signing, or one on an Investor with no Agreement, is the list in force but is marked **not yet signed for** until the Investor signs a Nomination.
+   - Still not known: whether any real Investor has signed yet. The Owner didn't say. If none has, this step is only a migration line.
+
+**Found and left out of scope:** the reprint problem is wider than Nominees. A signed Agreement also reprints the Investor's name, phone, address and NID as they are today. The map's Out of scope section records this.
+
+**For the other tickets:**
+- The prototype (05) now has a second paper to draft, the Nomination itself.
+- The lawyer's page (06) should ask whether an unstamped Nomination can replace the nominee named in a stamped Agreement.

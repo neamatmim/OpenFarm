@@ -38,12 +38,15 @@ A **ready-for-agent spec**, like [Joining a Venture](../openfarm-joining-a-ventu
 
 <!-- one line per closed ticket: gist + link -->
 
+- [Which Nominees a signed Agreement names](./issues/04-which-nominees-a-signed-agreement-names.md) — the Investor's latest **Nomination** governs every Agreement they hold. A Nomination is a short, unstamped paper signed in front of the Owner naming every Nominee in full, and the only way the list changes. An Agreement is one too, and reprints with the Nominees it was signed with; the screen, not the paper, says when a later Nomination replaced them. What exists moves over from the Audit Event trail, with any list not yet signed for marked as such.
+
 ## Not yet specified
 
 - **Where else the Nominees show.** The portal's account page, the Data Copy, the যোগদানপত্র, the Investor sheet and table, and the audit words. Probably spec detail once [How several Nominees stand together](./issues/03-how-several-nominees-stand-together.md) is answered, but a Nominee with a share might need more than a list, which could make it a question.
 - **Consent for each Nominee's data.** The **Portal Consent** sheet and the Agreement's data clause both name "nominee details". With several Nominees, possibly including minors, the wording may need to change. That depends on 03 and on the prototype.
-- **Moving today's single nominee across.** Each existing nominee becomes the first of that Investor's Nominees. If Nominees take shares, that one takes the whole. This may be only a migration line in the spec, unless 04 decides that signed Agreements hold their Nominees as signed, which would mean backfilling past Agreements.
 
 ## Out of scope
+
+- **A signed Agreement reprinting the Investor's other details as they are today** (name, phone, address, NID). This is the same problem the Nominees had, found while deciding [Which Nominees a signed Agreement names](./issues/04-which-nominees-a-signed-agreement-names.md). It concerns every party detail, not only Nominees, so it would be its own small effort.
 
 - **What happens when an Investor dies.** This covers recording the death, holding their share, and a **Settlement** paying the Nominee(s) or the heirs. OpenFarm does none of it today, and several Nominees don't widen that gap. If wanted, it is its own effort. Decided while charting.
