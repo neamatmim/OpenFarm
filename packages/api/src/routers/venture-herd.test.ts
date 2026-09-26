@@ -404,6 +404,24 @@ describe("what a Venture's animals are doing", () => {
     expect(weighed?.latestAt).toEqual(new Date("2052-02-01T07:30:00.000Z"));
   });
 
+  it("follows the averages back through each day the farm weighed, without reading one bull's day as the herd's", async () => {
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    const theirs = await owner.client.ventures.herd({
+      ventureId: firstVenture,
+    });
+    // The two averaged bulls, as the farm knew them on each day: both off the lorry at 200; the first at 228 on
+    // 1 February while the other still stood at his 200; and 228 and 221 on the 15th. Averaging only who was on the
+    // scale that day would have read 228 and then 221 — a herd losing weight, from two different bulls.
+    expect(theirs.weights).toEqual([
+      { day: "2052-01-04", averageKg: 200, animals: 2 },
+      { day: "2052-02-01", averageKg: 214, animals: 2 },
+      { day: "2052-02-15", averageKg: 224.5, animals: 2 },
+    ]);
+    // Its ends are the two averages the page says in words.
+    expect(theirs.weights.at(0)?.averageKg).toBe(theirs.averageIntakeKg);
+    expect(theirs.weights.at(-1)?.averageKg).toBe(theirs.averageLatestKg);
+  });
+
   it("counts the days to the window and never projects past it", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
     const theirs = await owner.client.ventures.herd({

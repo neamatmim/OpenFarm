@@ -60,6 +60,8 @@ export interface Figure {
   hint?: ReactNode;
   icon?: LucideIcon;
   tone?: Tone;
+  /** The figure the page is read by, set larger than the rest — at most one. */
+  lead?: boolean;
 }
 
 /** A page's few figures: tiles where there is room, and one small card on a phone so its first screen still reaches the
@@ -74,9 +76,15 @@ export const SummaryFigures = ({
   hintsOnPhone?: boolean;
 }) => (
   <>
-    <dl className="bg-card grid grid-cols-2 gap-x-4 gap-y-3 rounded-xl border p-4 md:hidden">
+    <dl className="surface grid grid-cols-2 gap-x-4 gap-y-3 p-4 md:hidden">
       {figures.map((figure) => (
-        <div className="flex min-w-0 flex-col gap-0.5" key={figure.label}>
+        <div
+          className={cn(
+            "flex min-w-0 flex-col gap-0.5",
+            figure.lead && "col-span-2"
+          )}
+          key={figure.label}
+        >
           <dt
             className={cn(
               "text-muted-foreground text-xs",
@@ -90,7 +98,8 @@ export const SummaryFigures = ({
           </dt>
           <dd
             className={cn(
-              "text-lg font-semibold tabular-nums",
+              "font-semibold tabular-nums",
+              figure.lead ? "text-2xl tracking-tight" : "text-lg",
               TONE_TEXT[figure.tone ?? "neutral"]
             )}
           >
@@ -115,6 +124,7 @@ export const SummaryFigures = ({
           icon={figure.icon}
           key={figure.label}
           label={figure.label}
+          lead={figure.lead}
           tone={figure.tone}
           value={figure.value}
         />

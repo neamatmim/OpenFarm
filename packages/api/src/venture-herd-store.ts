@@ -1,4 +1,4 @@
-import { isExitState, startOfFarmDay } from "@OpenFarm/domain";
+import { farmDayOf, isExitState, startOfFarmDay } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
 import { fatteningOf } from "./fattening-store";
@@ -50,6 +50,15 @@ export interface HerProgress {
   photoAt: Date | null;
 }
 
+/** The herd's average weight as the farm knew it on one day. */
+export interface HerdWeight {
+  /** The farm day, `YYYY-MM-DD`. */
+  day: string;
+  averageKg: number;
+  /** How many animals it is over: those that had arrived by that day. */
+  animals: number;
+}
+
 /** What a Venture's cattle are doing, on the day it is asked. */
 export interface TheirProgress {
   /** Still standing in the shed. */
@@ -88,6 +97,16 @@ export interface TheirProgress {
   /** The latest reading off the scale among the animals the two averages are over, so a reader knows how old
    *  "now" is. Null while none of them has been weighed. */
   lastWeighedAt: Date | null;
+  /**
+   * The two averages followed back through every day one of their animals arrived or was weighed: on each, the
+   * average of what the farm then knew each of them to weigh — her latest reading by that day, or what she came off
+   * the lorry at. Over the same animals as the averages, so its first day is the average on arrival (when they came
+   * together) and its last is the average now.
+   *
+   * Not the average of whoever was on the scale that day. A round that weighs one bull and the next that weighs
+   * another would read as the herd losing weight when neither did.
+   */
+  weights: HerdWeight[];
   /** Whole days until the Target Window opens, and 0 once it has. A count of days, never a prediction. */
   daysToWindow: number;
   animals: HerProgress[];
@@ -106,6 +125,32 @@ const roundedRate = (value: number) =>
 /** The later of two moments, either of which may be missing. */
 const laterOf = (one: Date | null, other: Date | null): Date | null =>
   one && other && one > other ? one : (other ?? one);
+
+/** One weight the farm learned of one animal, and when. */
+interface Learned {
+  animalId: string;
+  kg: number;
+  at: Date;
+}
+
+/** The average of each animal's latest weight at the end of every day one of them was weighed or arrived. */
+const weightsOverTime = (learned: Learned[]): HerdWeight[] => {
+  const latest = new Map<string, number>();
+  const byDay = new Map<string, HerdWeight>();
+  for (const one of learned.toSorted(
+    (a, b) => a.at.getTime() - b.at.getTime()
+  )) {
+    latest.set(one.animalId, one.kg);
+    const kgs = [...latest.values()];
+    // A later reading the same day replaces the day's figure: it is the day as it ended.
+    byDay.set(farmDayOf(one.at), {
+      day: farmDayOf(one.at),
+      averageKg: roundedKg(kgs.reduce((sum, kg) => sum + kg, 0) / kgs.length),
+      animals: kgs.length,
+    });
+  }
+  return [...byDay.values()];
+};
 
 const meanOf = (values: number[]): number | null =>
   values.length === 0
@@ -161,6 +206,8 @@ export const theirProgress = async (
   let gainKg = 0;
   let gainDays = 0;
   let lastWeighedAt: Date | null = null;
+  /** The animals the averages are over, with what they came off the lorry at. */
+  const averaged: Learned[] = [];
   let standingCount = 0;
   let soldCount = 0;
   let diedCount = 0;
@@ -178,6 +225,13 @@ export const theirProgress = async (
         standingIntake.push(intakeKg);
         standingLatest.push(view.latestKg);
         lastWeighedAt = laterOf(lastWeighedAt, view.latestAt);
+        if (one.intake) {
+          averaged.push({
+            animalId: one.id,
+            kg: intakeKg,
+            at: one.intake.arrivedAt,
+          });
+        }
       }
       // The herd's own rate: kilogrammes on over days on feed. A beast nobody has weighed contributes
       // neither, rather than a zero that would drag the figure down for a fact the farm does not have.
@@ -216,6 +270,18 @@ export const theirProgress = async (
     });
   }
 
+  // Every reading of theirs, not the latest few the rates need: the line runs back to the day they came.
+  const readings =
+    averaged.length === 0
+      ? []
+      : await tx.query.weighIn.findMany({
+          where: {
+            farmId,
+            animalId: { in: averaged.map((one) => one.animalId) },
+          },
+          columns: { animalId: true, weightKg: true, weighedAt: true },
+        });
+
   const opensAt = startOfFarmDay(venture.targetWindowStart);
   return {
     standingCount,
@@ -226,6 +292,14 @@ export const theirProgress = async (
     averageLatestKg: meanOf(standingLatest),
     gainKgPerDay: gainDays > 0 ? roundedRate(gainKg / gainDays) : null,
     lastWeighedAt,
+    weights: weightsOverTime([
+      ...averaged,
+      ...readings.map((one) => ({
+        animalId: one.animalId,
+        kg: Number(one.weightKg),
+        at: one.weighedAt,
+      })),
+    ]),
     // Whole days, and never negative: once the window has opened there are none left to count.
     daysToWindow: Math.max(
       0,

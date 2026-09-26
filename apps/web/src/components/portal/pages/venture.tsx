@@ -36,6 +36,7 @@ import {
   useTheirPortfolio,
   useTheirVenture,
 } from "@/components/portal/portal-source";
+import { WeightLine } from "@/components/portal/weight-line";
 import { StageTrack } from "@/components/ventures/stage-track";
 import { useLanguage } from "@/i18n/language-provider";
 import { CHARGE_WORD } from "@/lib/charge-words";
@@ -73,6 +74,8 @@ const useFigures = (
     {
       label: t("portal.capital"),
       value: taka(today.his.capitalBdt),
+      // What investors open the page to see, as the portfolio sets its capital first and largest.
+      lead: true,
       hint: t("portal.unitsShare", {
         count: today.his.units,
         share: formatNumber(today.his.sharePercent, language),
@@ -316,6 +319,8 @@ const Herd = ({ today }: { today: Today }) => {
           </dd>
         </div>
       </dl>
+      {/* An answer this phone kept from before the portal drew the line has no days to draw it over. */}
+      <WeightLine weights={today.herd.weights ?? []} />
       <HerdPhotos today={today} />
       {today.herd.animals.length > 0 ? (
         <>

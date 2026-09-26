@@ -142,8 +142,7 @@ export const Section = ({
     aria-labelledby={title && id ? `${id}-title` : undefined}
     className={cn(
       "flex flex-col gap-4",
-      !plain &&
-        "bg-card rounded-xl border p-4 shadow-(--surface-shadow) md:p-5",
+      !plain && "surface p-4 md:p-5",
       className
     )}
     id={id}
@@ -190,12 +189,15 @@ export const StatTile = ({
   hint,
   icon: Icon,
   tone = "neutral",
+  lead = false,
 }: {
   label: ReactNode;
   value: ReactNode;
   hint?: ReactNode;
   icon?: LucideIcon;
   tone?: Tone;
+  /** The figure its page is read by, set a size larger than the tiles beside it. */
+  lead?: boolean;
 }) => (
   <div className="surface flex h-full flex-col gap-3 p-4 md:p-5">
     <div className="text-muted-foreground flex items-center justify-between gap-2 text-sm font-medium">
@@ -212,7 +214,8 @@ export const StatTile = ({
       className={cn(
         // Wrapped, not clipped: a Venture's balance carries its paisa, and the longest figure the farm
         // has ran off the side of its tile rather than taking a second line.
-        "text-2xl font-semibold tracking-tight break-words tabular-nums md:text-3xl",
+        "font-semibold tracking-tight break-words tabular-nums",
+        lead ? "text-3xl md:text-4xl" : "text-2xl md:text-3xl",
         TILE_TONE[tone]
       )}
     >

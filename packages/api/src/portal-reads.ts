@@ -172,6 +172,7 @@ export const theirVentureToday = async (
       averageLatestKg: theirs.averageLatestKg,
       gainKgPerDay: theirs.gainKgPerDay,
       lastWeighedAt: theirs.lastWeighedAt,
+      weights: theirs.weights,
       animals: theirs.animals
         .filter((one) => one.standing)
         .map((one) => ({

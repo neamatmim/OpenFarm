@@ -107,7 +107,8 @@
 
   --chart-1: oklch(0.38 0.075 160);
   --chart-2: oklch(0.62 0.11 150);
-  --chart-3: oklch(0.72 0.12 85);
+  /* 3.4:1 on a white card; 0.72 was 2.5:1, under the 3:1 a mark that carries meaning needs (WCAG 1.4.11). */
+  --chart-3: oklch(0.64 0.12 85);
   --chart-4: oklch(0.55 0.1 250);
   --chart-5: oklch(0.6 0.13 30);
 
