@@ -12,6 +12,7 @@ import type {
 import {
   farmDayOf,
   letterheadOf,
+  nomineeRowOf,
   phoneOfInvestorLogin,
 } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
@@ -23,6 +24,8 @@ import { audited } from "./audit";
 import type { ExportedPaper } from "./export-store";
 import { assertRegistered, exportedPaper } from "./export-store";
 import { signedInOn } from "./membership";
+import type { NominationHow } from "./nomination-store";
+import { nominationsOf, paperNominees } from "./nomination-store";
 import { producedAt } from "./paper-values";
 import type { Owned } from "./portal-invitable";
 import { refused } from "./portal-invitable";
@@ -126,17 +129,7 @@ const TAKEN_AWAY_WHY: Record<string, string> = {
 export const TRAILED = {
   investor: {
     what: "আপনার রেকর্ড",
-    fields: [
-      "name",
-      "phone",
-      "address",
-      "nid",
-      "bankAccount",
-      "nominee",
-      "nomineePhone",
-      "nomineeRelation",
-      "retiredAt",
-    ],
+    fields: ["name", "phone", "address", "nid", "bankAccount", "retiredAt"],
   },
   investor_access: {
     what: "পোর্টাল প্রবেশাধিকার",
@@ -156,6 +149,13 @@ export const TRAILED = {
 
 type Trailed = keyof typeof TRAILED;
 type TrailedField = (typeof TRAILED)[Trailed]["fields"][number];
+
+/** How a Nomination came to be on file, as the Bangla paper says it. */
+const NOMINATION_HOW_WORDS: Record<NominationHow, string> = {
+  nomination: "মনোনয়নপত্র",
+  agreement: "বিনিয়োগ চুক্তিতে",
+  carried_over: "আগের রেকর্ড থেকে, এখনো সই হয়নি",
+};
 
 /** Whether an entity on the trail is one the paper reads. */
 const isTrailed = (entity: string): entity is Trailed => entity in TRAILED;
@@ -353,6 +353,7 @@ export const dataCopyOf = async (
       theirConsents(db, farm.id, investorId),
       changesAboutThem(db, farm.id, investorId),
     ]);
+  const nominations = await nominationsOf(db, farm.id, investorId);
   const places = access?.userId ? await signedInOn(db, access.userId, now) : [];
   const ventureOf = new Map(
     money.agreements.map((one) => [one.id, one.venture.name] as const)
@@ -371,21 +372,42 @@ export const dataCopyOf = async (
       ...linesFor({ bn: "ঠিকানা", en: "Address" }, them.address),
       ...linesFor({ bn: "এনআইডি নম্বর", en: "NID" }, them.nid),
       ...linesFor({ bn: "ব্যাংক হিসাব", en: "Bank account" }, them.bankAccount),
-      ...linesFor({ bn: "নমিনি", en: "Nominee" }, them.nomineeName),
-      ...linesFor(
-        { bn: "নমিনির সম্পর্ক", en: "Nominee's relation" },
-        them.nomineeRelation
-      ),
-      ...linesFor(
-        { bn: "নমিনির ফোন", en: "Nominee's phone" },
-        them.nomineePhone
-      ),
       ...linesFor({ bn: "লেখা হয়েছে", en: "Recorded" }, when(them.createdAt)),
       ...linesFor(
         { bn: "বাদ দেওয়ার দিন", en: "Retired" },
         them.retiredAt ? when(them.retiredAt) : null
       ),
     ]),
+    // Every Nomination on file, the list in force first: who they named, and on which paper.
+    facts(
+      { bn: "আপনার নমিনি", en: "Your Nominees" },
+      nominations.map((one, index) => ({
+        label: {
+          bn: joined(
+            onDay(one.signedOn),
+            NOMINATION_HOW_WORDS[one.how],
+            index === 0 ? "এখন বহাল" : null
+          ),
+          en: "",
+        },
+        value:
+          one.nominees.length === 0
+            ? "কোনো নমিনি নেই"
+            : paperNominees(one, one.signedOn)
+                .map((nominee) => {
+                  const row = nomineeRowOf(nominee);
+                  return joined(
+                    row.name,
+                    row.relation,
+                    row.born ? `জন্ম ${row.born}` : null,
+                    row.phone,
+                    `অংশ ${row.share}`,
+                    row.receiver ? `গ্রহণকারী ${row.receiver}` : null
+                  );
+                })
+                .join("; "),
+      }))
+    ),
     facts(
       { bn: "আপনার চুক্তি", en: "Your Agreements" },
       money.agreements.map((one) => ({

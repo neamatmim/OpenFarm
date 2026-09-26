@@ -65,13 +65,43 @@ const PhoneCell = ({ row }: Cell) => (
   <span className="tabular-nums">{row.original.investor.phone}</span>
 );
 
-/** Who the money goes to if they die before the Venture settles; a dash where nobody was named. */
+/** The first Nominee in force, by name, and how many more there are; nothing where nobody is named. */
+const firstNominee = (investor: Investor) =>
+  investor.nomination?.nominees[0]?.name;
+
+/** The Nominees in force as one short phrase: the first by name, and how many more. */
+const nomineesSaid = (
+  investor: Investor,
+  t: ReturnType<typeof useLanguage>["t"]
+) => {
+  const first = firstNominee(investor);
+  if (!first) {
+    return null;
+  }
+  const more = (investor.nomination?.nominees.length ?? 1) - 1;
+  return more > 0 ? t("investors.nomineesAre", { name: first, more }) : first;
+};
+
+/** Who collects for the heirs if they die before the Venture settles: the first Nominee and how many more, said to be
+ *  not yet signed for where the list was carried over; a dash where nobody is named. */
 const NomineeCell = ({ row }: Cell) => {
-  const { nominee } = row.original.investor;
-  if (!nominee) {
+  const { t } = useLanguage();
+  const { investor } = row.original;
+  const said = nomineesSaid(investor, t);
+  if (!said) {
     return <Nothing />;
   }
-  return <span>{nominee.name}</span>;
+  const notSignedFor = investor.nomination?.how === "carried_over";
+  return (
+    <span className="flex flex-col">
+      <span>{said}</span>
+      {notSignedFor ? (
+        <span className="text-warning text-xs">
+          {t("nominees.notSignedFor")}
+        </span>
+      ) : null}
+    </span>
+  );
 };
 
 /** What they hold across the Ventures still running; nothing at all where they hold none. */
@@ -117,14 +147,11 @@ const phoneColumn = column.accessor((row) => row.investor.phone, {
   header: listHeader("investors.phone"),
   cell: PhoneCell,
 });
-const nomineeColumn = column.accessor(
-  (row) => row.investor.nominee?.name ?? undefined,
-  {
-    id: "nominee",
-    header: listHeader("investors.nominee"),
-    cell: NomineeCell,
-  }
-);
+const nomineeColumn = column.accessor((row) => firstNominee(row.investor), {
+  id: "nominee",
+  header: listHeader("investors.nominee"),
+  cell: NomineeCell,
+});
 const unitsColumn = column.accessor((row) => row.investor.unitsHeld, {
   id: "units",
   header: listHeader("investors.unitsHeld"),
@@ -180,8 +207,10 @@ const InvestorCard = ({ row }: { row: InvestorRow }) => {
           {[
             investor.phone,
             investor.address,
-            investor.nominee
-              ? t("investors.nomineeIs", { name: investor.nominee.name })
+            firstNominee(investor)
+              ? t("investors.nomineeIs", {
+                  name: nomineesSaid(investor, t) ?? "",
+                })
               : "",
           ]
             .filter(Boolean)

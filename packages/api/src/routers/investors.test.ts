@@ -44,7 +44,6 @@ const someone = async (owner: Awaited<ReturnType<typeof as>>, which: number) =>
     address: "ময়মনসিংহ",
     nid: `1984${String(which).padStart(9, "0")}`,
     bankAccount: `IBBL ****${String(which).padStart(4, "0")}`,
-    nominee: { name: `নমিনি ${which}`, phone: "01900000000", relation: "স্ত্রী" },
   });
 
 beforeAll(async () => {

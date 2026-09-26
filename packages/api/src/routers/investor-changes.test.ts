@@ -41,7 +41,6 @@ const person = (which: number) => ({
   address: "ময়মনসিংহ",
   nid: `1984${String(which).padStart(9, "0")}`,
   bankAccount: `IBBL ****${String(which).padStart(4, "0")}`,
-  nominee: { name: `নমিনি ${which}`, phone: "01900000000", relation: "স্ত্রী" },
 });
 
 beforeAll(async () => {
@@ -62,15 +61,12 @@ describe("an Investor's record", () => {
       ...person(1),
       address: "ত্রিশাল, ময়মনসিংহ",
       bankAccount: "করিম মিয়া\nডাচ্-বাংলা ব্যাংক · 1051 0023 44781\nত্রিশাল শাখা",
-      nominee: { name: "রোকেয়া বেগম", relation: "মা" },
     });
 
     const { people } = await owner.client.investors.list();
     expect(people.find((one) => one.id === id)).toMatchObject({
       address: "ত্রিশাল, ময়মনসিংহ",
       bankAccount: "করিম মিয়া\nডাচ্-বাংলা ব্যাংক · 1051 0023 44781\nত্রিশাল শাখা",
-      // A nominee's phone left out of the correction is a phone taken off, not one kept.
-      nominee: { name: "রোকেয়া বেগম", phone: null, relation: "মা" },
     });
     const trail = await owner.client.audit.list({
       entity: "investor",

@@ -15,7 +15,7 @@ const aPerson = (some: Partial<Investor> = {}): Investor =>
     address: "বিরুলিয়া বাজার, সাভার, ঢাকা",
     nid: "1994 7712 334455",
     bankAccount: "ডাচ্-বাংলা ব্যাংক · 1051 0023 44781",
-    nominee: null,
+    nomination: null,
     unitsHeld: 16,
     ...some,
   }) as Investor;

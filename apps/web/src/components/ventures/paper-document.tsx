@@ -1,11 +1,14 @@
 import type {
   DocumentRow,
+  NomineeRow,
   PaperDocument,
   PaperSection,
   Said,
 } from "@OpenFarm/domain";
+import { NOMINEE_HEADINGS } from "@OpenFarm/domain";
 import { formatDigits } from "@OpenFarm/i18n";
 import type { ReactNode } from "react";
+import { Fragment } from "react";
 
 /** The id a paper is found by to print it alone (lib/print-alone). */
 export const PAPER_DOCUMENT_ID = "paper-document";
@@ -113,12 +116,74 @@ const PartyLines = ({ lines }: { lines: Said[] }) => {
   );
 };
 
+/** An Investor's Nominees as the paper prints them: one row each, a minor marked, and who collects for a minor on the
+ *  row beneath. The farm's facts, printed whatever the wording's Version; nothing where there are none. */
+const NomineeTable = ({ nominees }: { nominees: NomineeRow[] }) => {
+  const noNominees = nominees.length === 0;
+  if (noNominees) {
+    return null;
+  }
+  const head = NOMINEE_HEADINGS;
+  return (
+    <table className="mt-3 w-full border-collapse border-t text-left text-xs">
+      <thead>
+        <tr className="text-muted-foreground border-b">
+          <th className="py-1.5 pr-2 font-normal">
+            <Inline said={head.name} />
+          </th>
+          <th className="pr-2 font-normal">{head.relation.bn}</th>
+          <th className="pr-2 font-normal">{head.born.bn}</th>
+          <th className="pr-2 font-normal">{head.phone.bn}</th>
+          <th className="text-right font-normal">{head.share.bn}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {nominees.map((one) => (
+          <Fragment key={`${one.name}-${one.share}`}>
+            <tr className="border-b">
+              <td className="py-1.5 pr-2 font-medium">{one.name}</td>
+              <td className="pr-2">{one.relation ?? "—"}</td>
+              <td className="pr-2">
+                {one.born ?? "—"}
+                {one.minor ? (
+                  <span className="bg-muted ml-1 rounded px-1 text-[0.65rem]">
+                    {head.minor.bn}
+                  </span>
+                ) : null}
+              </td>
+              <td className="pr-2 tabular-nums">{one.phone ?? "—"}</td>
+              <td className="text-right font-semibold">{one.share}</td>
+            </tr>
+            {one.receiver ? (
+              <tr className="text-muted-foreground border-b">
+                <td className="py-1.5 pl-3" colSpan={5}>
+                  ↳ <Inline said={head.receiver} />: {one.receiver}
+                </td>
+              </tr>
+            ) : null}
+          </Fragment>
+        ))}
+      </tbody>
+    </table>
+  );
+};
+
 /** What goes under one section's heading, by the kind of section it is. */
 const SectionBody = ({ section }: { section: PaperSection }) => {
   switch (section.kind) {
     case "parties": {
+      // A Nominee table is too wide for half a page: with one, the parties stand one above the other.
+      const anyNominees = section.parties.some(
+        (party) => party.nominees.length > 0
+      );
       return (
-        <div className="grid gap-4 md:grid-cols-2 print:grid-cols-2">
+        <div
+          className={
+            anyNominees
+              ? "grid gap-4"
+              : "grid gap-4 md:grid-cols-2 print:grid-cols-2"
+          }
+        >
           {section.parties.map((party, index) => (
             <div
               className="rounded-md border p-4"
@@ -128,6 +193,7 @@ const SectionBody = ({ section }: { section: PaperSection }) => {
                 <Inline said={party.role} />
               </p>
               <Rows rows={party.rows} />
+              <NomineeTable nominees={party.nominees ?? []} />
               <PartyLines lines={party.lines} />
             </div>
           ))}

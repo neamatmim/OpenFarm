@@ -1,4 +1,6 @@
 import type { FarmIdentity } from "./farm";
+import type { NomineeRow, PaperNominee } from "./nominees";
+import { nomineeRowOf } from "./nominees";
 import type { DocumentRow, Said } from "./papers";
 import { NO_GUARANTEE_LINES } from "./papers";
 
@@ -412,11 +414,9 @@ export interface PaperInvestor {
   phone: string;
   address: string | null;
   nid: string | null;
-  nominee: {
-    name: string;
-    phone: string | null;
-    relation: string | null;
-  } | null;
+  /** The Nominees the paper names: the list being signed, on a paper to sign that names its own; the list in force,
+   *  on every other. */
+  nominees: PaperNominee[];
 }
 
 /**
@@ -434,9 +434,15 @@ export type PaperSection =
   | {
       kind: "parties";
       heading: Said;
-      /** Each party: its role, what the farm writes of it, and the lines printed under it — an Investor's nominee
-       *  lines, none under the Farm. */
-      parties: { role: Said; rows: DocumentRow[]; lines: Said[] }[];
+      /** Each party: its role, what the farm writes of it, an Investor's Nominees as a table (none under the Farm),
+       *  and the lines printed under it — an Investor's nominee lines. The table is the farm's facts, printed on
+       *  every Version; the lines are the wording's. */
+      parties: {
+        role: Said;
+        rows: DocumentRow[];
+        nominees: NomineeRow[];
+        lines: Said[];
+      }[];
     }
   | { kind: "facts"; heading: Said; rows: DocumentRow[]; note: Said | null }
   | { kind: "clauses"; heading: Said; clauses: Said[] }
@@ -469,17 +475,6 @@ const row = (bn: string, en: string, value: string | null | undefined) =>
 const rows = (...all: (DocumentRow | null)[]): DocumentRow[] =>
   all.filter((one) => one !== null);
 
-const nomineeLine = (nominee: PaperInvestor["nominee"]) =>
-  nominee
-    ? [
-        nominee.name,
-        nominee.relation?.trim() || null,
-        nominee.phone?.trim() || null,
-      ]
-        .filter((part) => part !== null)
-        .join(" · ")
-    : null;
-
 /** Who the Farm is, as every paper with a parties part writes the first party — the farm's facts, not the Owner's
  *  wording. */
 const farmRows = (parties: PaperParties): DocumentRow[] =>
@@ -496,8 +491,7 @@ const investorRows = (him: PaperInvestor): DocumentRow[] =>
     row("নাম", "Name", him.name),
     row("ঠিকানা", "Address", him.address),
     row("মোবাইল", "Phone", him.phone),
-    row("জাতীয় পরিচয়পত্র", "NID", him.nid),
-    row("নমিনি", "Nominee", nomineeLine(him.nominee))
+    row("জাতীয় পরিচয়পত্র", "NID", him.nid)
   );
 
 /** The blanks of the stamp box: the farm records all three when the paper comes back stamped. */
@@ -574,6 +568,7 @@ const inBanglaOnly = (section: PaperSection): PaperSection => {
             ...one,
             label: banglaOnly(one.label),
           })),
+          nominees: party.nominees,
           lines: party.lines.map(banglaOnly),
         })),
       };
@@ -639,11 +634,13 @@ const laidOut = (
           {
             role: filled(section.first, values),
             rows: farmRows(parties),
+            nominees: [],
             lines: [],
           },
           ...parties.investors.map((him) => ({
             role: second,
             rows: investorRows(him),
+            nominees: him.nominees.map(nomineeRowOf),
             lines,
           })),
         ],

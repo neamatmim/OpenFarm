@@ -11,6 +11,7 @@ import { audited } from "./audit";
 import type { Context } from "./context";
 import { farmsOwnValues } from "./data-keepers";
 import { assertRegistered, exportedPaper } from "./export-store";
+import { nominationInForce, paperNominees } from "./nomination-store";
 import { paperInvestor, paperValues, producedAt } from "./paper-values";
 import type { Owned } from "./portal-invitable";
 import { invitable, refused } from "./portal-invitable";
@@ -158,7 +159,13 @@ export const consentSheet = async (
   assertRegistered(context.farm, "portal_consent");
   await giveStandardTemplates(context);
   const wording = await currentWording(context.db, farmId, "portal_consent");
-  const him = paperInvestor(them);
+  const him = paperInvestor(
+    them,
+    paperNominees(
+      await nominationInForce(context.db, farmId, investorId),
+      farmDayOf(context.clock.now())
+    )
+  );
   const values = {
     ...(await farmsOwnValues(context.db, context.farm, context.actor.name)),
     ...paperValues({ farm: context.farm, ownerName: context.actor.name, him }),

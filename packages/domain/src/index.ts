@@ -536,3 +536,21 @@ export {
 } from "./investor-login";
 export { maskedDigits } from "./masked-digits";
 export { payInCode, payInCodeIn } from "./pay-in-code";
+export {
+  COMING_OF_AGE,
+  MOST_NOMINEES,
+  NOMINEE_HEADINGS,
+  dayInBangla,
+  isMinorOn,
+  nomineeRowOf,
+  nomineesProblem,
+  receiverLine,
+  shareInBangla,
+} from "./nominees";
+export type {
+  Nominee,
+  NomineeRow,
+  NomineesProblem,
+  PaperNominee,
+  Receiver,
+} from "./nominees";

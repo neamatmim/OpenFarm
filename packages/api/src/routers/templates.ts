@@ -153,7 +153,7 @@ export const templatesRouter = {
               phone: named("investorPhone"),
               address: named("investorAddress"),
               nid: named("investorNid"),
-              nominee: null,
+              nominees: [],
             },
           ],
         },

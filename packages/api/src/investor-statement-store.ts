@@ -1,10 +1,12 @@
 import type { Database } from "@OpenFarm/db";
 import type { AdjustmentOutcome } from "@OpenFarm/db/schema/venture";
+import type { PaperNominee } from "@OpenFarm/domain";
 import { exitOf, roundTaka } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import { farmCosts } from "./cost-store";
+import { nominationInForce, paperNominees } from "./nomination-store";
 import type { ChargeWord } from "./settlement-store";
 import { readSettlement, whatItWasCharged } from "./settlement-store";
 import type { VentureRow } from "./venture-store";
@@ -49,18 +51,15 @@ export interface HisCapital {
   reference: string;
 }
 
-/** Him, as a paper addresses him, and the person his family would come to the farm about. */
-export interface HimAndHisNominee {
+/** Him, as a paper addresses him, and the people his family would come to the farm about: his Nominees in force on
+ *  the paper's day. */
+export interface HimAndHisNominees {
   id: string;
   name: string;
   phone: string;
   address: string | null;
   nid: string | null;
-  nominee: {
-    name: string;
-    phone: string | null;
-    relation: string | null;
-  } | null;
+  nominees: PaperNominee[];
 }
 
 /** The Venture a paper is about, as a paper says it. */
@@ -73,7 +72,7 @@ export interface TheVenture {
 /** Everything a paper may print about one man on one Venture, and nothing about anybody else. */
 export interface HisStanding {
   venture: TheVenture;
-  him: HimAndHisNominee;
+  him: HimAndHisNominees;
   agreement: HisAgreement;
   capital: HisCapital[];
   /** What the Farm holds of his: received less returned. */
@@ -127,6 +126,7 @@ export const hisStanding = async (
   if (!(venture && investor)) {
     throw noSuchAgreement();
   }
+  const inForce = await nominationInForce(tx, farmId, investor.id);
   // His own capital, asked for by his Agreement: a Float or a Reimbursement is the Venture's money and no
   // Investor's, and another man's capital is none of his business. Refunds as well as what came in — a
   // cancelled Venture sends every taka back, and those movements carry his Agreement too.
@@ -164,13 +164,7 @@ export const hisStanding = async (
       phone: investor.phone,
       address: investor.address,
       nid: investor.nid,
-      nominee: investor.nomineeName
-        ? {
-            name: investor.nomineeName,
-            phone: investor.nomineePhone,
-            relation: investor.nomineeRelation,
-          }
-        : null,
+      nominees: paperNominees(inForce, on),
     },
     agreement: {
       id: agreement.id,

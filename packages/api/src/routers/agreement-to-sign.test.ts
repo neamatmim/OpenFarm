@@ -3,6 +3,7 @@ import { FakeClock, thePerson } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { nominationOnFile, theWhole } from "../test/nominations";
 import { appRouter } from "./index";
 
 // The Investment Agreement handled inside the farm's own system: printed from the terms before it is signed, and
@@ -134,6 +135,44 @@ describe("the Investment Agreement, laid out to be signed", () => {
     expect(him?.lines.map((line) => line.en)).toEqual([
       expect.stringContaining("their nominee knows"),
       expect.stringContaining("The nominee is under eighteen"),
+    ]);
+  });
+
+  it("prints his Nominees in force as a table under him, a minor marked on the day it is printed", async () => {
+    const { client: owner } = await as("owner");
+    await nominationOnFile({
+      investorId,
+      how: "nomination",
+      nominees: [
+        {
+          ...theWhole(`রহিমা ${suffix}`),
+          bornOn: "2000-03-14",
+          sharePercent: 80,
+        },
+        {
+          ...theWhole(`সাদিয়া ${suffix}`, "মেয়ে"),
+          bornOn: "2040-11-20",
+          sharePercent: 20,
+          receiver: { name: `রহিমা ${suffix}`, relation: "মা", phone: null },
+        },
+      ],
+      signedOn: "2052-01-01",
+      recordedAt: new Date(JANUARY),
+    });
+
+    const { document } =
+      await owner.investorStatements.agreementToSign(terms());
+
+    const [farm, him] = partOf(document, "parties").parties;
+    expect(farm?.nominees).toEqual([]);
+    expect(him?.nominees).toMatchObject([
+      { name: `রহিমা ${suffix}`, share: "৮০%", minor: false, receiver: null },
+      {
+        name: `সাদিয়া ${suffix}`,
+        share: "২০%",
+        minor: true,
+        receiver: `রহিমা ${suffix} (মা)`,
+      },
     ]);
   });
 });

@@ -25,11 +25,11 @@ import {
 import {
   InvestorActs,
   InvestorProfile,
-  phoneLink,
 } from "@/components/investors/investor-profile";
 import { InvestorRequests } from "@/components/investors/investor-requests";
 import { InvestorSheet } from "@/components/investors/investor-sheet";
 import type { Investor } from "@/components/investors/investor-types";
+import { phoneLink } from "@/components/investors/phone-link";
 import {
   PortalStandingBadge,
   standingOf,

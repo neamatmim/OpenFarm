@@ -1,7 +1,11 @@
+import { formatDigits } from "@OpenFarm/i18n";
+
 import type { FarmIdentity, RegistrationStanding } from "./farm";
 import { farmOfOriginLines } from "./farm";
 import type { Side } from "./lifecycle";
 import type { MoneySummary } from "./money-summary";
+import type { PaperNominee } from "./nominees";
+import { nomineeRowOf } from "./nominees";
 
 /**
  * The papers the farm hands somebody: the receipt for what a buyer bought, the card the lorry
@@ -704,11 +708,8 @@ export interface JoiningLetter {
     phone: string;
     address: string | null;
     nid: string | null;
-    nominee: {
-      name: string;
-      phone: string | null;
-      relation: string | null;
-    } | null;
+    /** The Nominees in force: the letter describes him as he is today. */
+    nominees: PaperNominee[];
   };
   ventureName: string;
   /** Taka, formatted. */
@@ -758,6 +759,16 @@ export const stampLines = (stamp: StampLine): string[] =>
         field("স্ট্যাম্প সিরিয়াল", "Stamp serial", stamp.serial),
       ];
 
+/** One Nominee on a letter's line: name, relation, phone and share, and who collects for a minor. */
+const nomineeLineOf = (one: PaperNominee) => {
+  const row = nomineeRowOf(one);
+  const parts = [row.name, row.relation, row.phone, row.share].filter(
+    (part): part is string => part !== null
+  );
+  const line = parts.join(" · ");
+  return row.receiver ? `${line} (গ্রহণকারী: ${row.receiver})` : line;
+};
+
 /**
  * The paper an Investor gets when he joins: that the Farm has his money, and what he has agreed to.
  *
@@ -785,19 +796,13 @@ export const joiningLetter = (letter: JoiningLetter): string => {
       letter.him.nid?.trim()
         ? field("জাতীয় পরিচয়পত্র", "NID", letter.him.nid)
         : null,
-      letter.him.nominee
-        ? field(
-            "নমিনি",
-            "Nominee",
-            [
-              letter.him.nominee.name,
-              letter.him.nominee.relation?.trim() || null,
-              letter.him.nominee.phone?.trim() || null,
-            ]
-              .filter((part) => part !== null)
-              .join(" · ")
-          )
-        : null,
+      ...letter.him.nominees.map((one, index) =>
+        field(
+          `নমিনি ${formatDigits(index + 1, "bn")}`,
+          `Nominee ${index + 1}`,
+          nomineeLineOf(one)
+        )
+      ),
       "",
       field("ভেঞ্চার", "Venture", letter.ventureName),
       field("প্রতি ইউনিট", "Unit price", `${letter.unitPrice} টাকা`),

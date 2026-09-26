@@ -2,6 +2,7 @@ import type {
   FarmIdentity,
   FieldValues,
   PaperInvestor,
+  PaperNominee,
   Said,
 } from "@OpenFarm/domain";
 import type { Language } from "@OpenFarm/i18n";
@@ -93,27 +94,21 @@ export const paperValues = (facts: PaperFacts): FieldValues => {
   );
 };
 
-/** An Investor row as a paper writes him down. */
-export const paperInvestor = (row: {
-  name: string;
-  phone: string;
-  address: string | null;
-  nid: string | null;
-  nomineeName: string | null;
-  nomineePhone: string | null;
-  nomineeRelation: string | null;
-}): PaperInvestor => ({
+/** An Investor row as a paper writes him down, with the Nominees the paper names. */
+export const paperInvestor = (
+  row: {
+    name: string;
+    phone: string;
+    address: string | null;
+    nid: string | null;
+  },
+  nominees: PaperNominee[]
+): PaperInvestor => ({
   name: row.name,
   phone: row.phone,
   address: row.address,
   nid: row.nid,
-  nominee: row.nomineeName
-    ? {
-        name: row.nomineeName,
-        phone: row.nomineePhone,
-        relation: row.nomineeRelation,
-      }
-    : null,
+  nominees,
 });
 
 /** When a paper was made, as its reader reads it. */
