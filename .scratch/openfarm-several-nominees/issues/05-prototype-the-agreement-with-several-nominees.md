@@ -16,7 +16,13 @@ What does the Investment Agreement print under each Investor when they have seve
 - The **nominee lines** (`NOMINEE_LINES` in `packages/domain/src/standard-templates.ts`): the confirmation that the Nominees know, and the guardian line. Once per Nominee, once for all, or only where a Nominee is a minor?
 - **The Nomination** itself, a new paper decided in [Which Nominees a signed Agreement names](./04-which-nominees-a-signed-agreement-names.md). It is a short, unstamped letter naming every Nominee in full, signed and dated in front of the Owner, on the farm's letterhead, in Bangla with English beside it.
 - **The discharge line**, from [What a Nominee is in OpenFarm](./02-what-a-nominee-is-in-openfarm.md): once the Farm pays the Nominee(s) it has met its obligation, and the heirs settle among themselves with whoever was paid. It goes in both the Agreement and the Nomination, and the wording must not let a share read as inheritance.
-- An Investor with none, one, and four Nominees, including a minor.
+- From [How several Nominees stand together](./03-how-several-nominees-stand-together.md):
+  - each Nominee's share % and date of birth;
+  - a line saying a share is of the collecting, not of the inheritance;
+  - the survivors rule;
+  - a minor Nominee's **Receiver**, with the guardian line printed only for them and signed by the Receiver;
+  - what the paper says when there is no Nominee.
+- An Investor with none, one, and three Nominees (the most allowed), one of them a minor.
 
 The outcome is the draft wording for the next standard Template Version and the page the lawyer is shown.
 
