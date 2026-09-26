@@ -10,6 +10,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ChevronRight, PenLine, RotateCw, Send, Undo2 } from "lucide-react";
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { toast } from "sonner";
 
 import { MORE_LINK } from "@/components/home/queue";
@@ -24,7 +25,7 @@ import {
   Section,
   StatusBadge,
 } from "@/components/page";
-import { FormField } from "@/components/page-kit";
+import { ConfirmDialog, FormField } from "@/components/page-kit";
 import type { OpenVenture } from "@/components/portal/open-ventures";
 import { ListSkeleton } from "@/components/portal/portal-skeletons";
 import {
@@ -337,17 +338,21 @@ export const AskToJoin = ({ one }: { one: OpenVenture }) => {
 };
 
 /**
- * Withdrawing a Request from the list of them, for one still live: it binds nobody, and a yes on a Venture taken out
- * of the portal has no page of its own left to withdraw it from.
+ * Withdrawing a Request from the list of them, for one still live, asked about first: it binds nobody, and a yes on a
+ * Venture taken out of the portal has no page of its own left to withdraw it from.
  */
 const WithdrawFromTheList = ({ requestId }: { requestId: string }) => {
   const { t } = useLanguage();
   const acting = useCanAct();
   const refused = useRefused(REQUEST_REFUSALS);
+  const [asking, setAsking] = useState(false);
   const withdraw = useMutation(
     orpc.portal.withdrawRequest.mutationOptions({
       onError: refused,
-      onSuccess: () => toast.success(t("portal.request.withdrawn")),
+      onSuccess: () => {
+        setAsking(false);
+        toast.success(t("portal.request.withdrawn"));
+      },
     })
   );
   return (
@@ -355,7 +360,7 @@ const WithdrawFromTheList = ({ requestId }: { requestId: string }) => {
       <Button
         className="w-fit"
         disabled={withdraw.isPending || !acting.can}
-        onClick={() => withdraw.mutate({ requestId })}
+        onClick={() => setAsking(true)}
         size="sm"
         type="button"
         variant="outline"
@@ -364,6 +369,15 @@ const WithdrawFromTheList = ({ requestId }: { requestId: string }) => {
         {t("portal.request.withdraw")}
       </Button>
       <WhyNot acting={acting} />
+      <ConfirmDialog
+        confirmLabel={t("portal.request.withdraw")}
+        description={t("portal.request.withdrawWhy")}
+        onConfirm={() => withdraw.mutate({ requestId })}
+        onOpenChange={setAsking}
+        open={asking}
+        pending={withdraw.isPending}
+        title={t("portal.request.withdrawTitle")}
+      />
     </div>
   );
 };
@@ -410,50 +424,225 @@ const byLatestChange = (requests: readonly TheirRequest[]) =>
       a.id.localeCompare(b.id)
   );
 
+/** The three steps a Request goes through, and how far this one has got: asked, answered, signed. */
+const STEPS = ["asked", "answered", "signed"] as const;
+
+const STEP_WORDS = {
+  asked: "portal.requests.step.asked",
+  answered: "portal.requests.step.answered",
+  signed: "portal.requests.step.signed",
+} as const satisfies Record<(typeof STEPS)[number], MessageKey>;
+
+/** How many of the steps it has taken: every Request has been asked; a yes or a no is an answer; signed is all three. */
+const stepsTaken = (state: RequestToJoinState) => {
+  if (state === "signed") {
+    return 3;
+  }
+  return state === "come_and_sign" || state === "not_this_time" ? 2 : 1;
+};
+
 /**
- * Some of their Requests to Join as a list, and where each stands. One on a Venture still offered leads to it, where it
- * can be changed, and one signed leads to the Agreement that answered it; any still live can be withdrawn from here.
+ * Where a Request is on its way, as three marks in a row — for one still on it: a withdrawn or closed Request has left
+ * the road, and its badge says so.
  */
-const RequestList = ({ requests }: { requests: readonly TheirRequest[] }) => {
+const RequestTrack = ({ state }: { state: RequestToJoinState }) => {
+  const { t } = useLanguage();
+  if (state === "withdrawn" || state === "closed") {
+    return null;
+  }
+  const taken = stepsTaken(state);
+  return (
+    <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+      {STEPS.map((step, at) => {
+        const done = at < taken;
+        return (
+          <li className="flex items-center gap-2" key={step}>
+            {at > 0 ? (
+              <span
+                aria-hidden
+                className={cn("h-px w-6", done ? "bg-primary" : "bg-border")}
+              />
+            ) : null}
+            <span
+              className={cn(
+                "flex items-center gap-1.5",
+                done ? "text-foreground font-medium" : "text-muted-foreground"
+              )}
+            >
+              <span
+                aria-hidden
+                className={cn(
+                  "size-2 rounded-full",
+                  done ? "bg-primary" : "border-muted-foreground/40 border"
+                )}
+              />
+              {t(STEP_WORDS[step])}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+};
+
+/** One thing that happened to a Request, as its history says it. */
+interface Happened {
+  at: Date | string;
+  said: string;
+}
+
+/**
+ * What happened to a Request, oldest first: each thing they did to it, with the Units it then said, and when the farm
+ * answered or closed it. Folded away under its count, since the card above already says where it stands.
+ */
+const RequestHistory = ({ one }: { one: TheirRequest }) => {
+  const { t } = useLanguage();
+  // An answer this phone kept from before the farm sent the history has none, and says nothing here.
+  const theirs: Happened[] = (one.history ?? []).map((each) => ({
+    at: each.at,
+    said:
+      each.kind === "withdrawn"
+        ? t("portal.requests.history.withdrawn")
+        : t(
+            each.kind === "made"
+              ? "portal.requests.history.made"
+              : "portal.requests.history.changed",
+            { units: each.units }
+          ),
+  }));
+  const farms: Happened[] = [];
+  const answeredAt = one.answeredAt ?? null;
+  if (answeredAt && (one.state === "come_and_sign" || one.state === "signed")) {
+    farms.push({ at: answeredAt, said: t("portal.requests.history.yes") });
+  }
+  if (answeredAt && one.state === "not_this_time") {
+    farms.push({ at: answeredAt, said: t("portal.requests.history.no") });
+  }
+  const closedAt = one.closedAt ?? null;
+  if (closedAt) {
+    farms.push({ at: closedAt, said: t("portal.requests.history.closed") });
+  }
+  const all = [...theirs, ...farms].toSorted(
+    (a, b) => new Date(a.at).getTime() - new Date(b.at).getTime()
+  );
+  if (all.length === 0) {
+    return null;
+  }
+  return (
+    <details className="text-sm">
+      <summary className="text-muted-foreground hover:text-foreground w-fit cursor-pointer">
+        {t("portal.requests.history")}
+      </summary>
+      <ol className="mt-2 flex flex-col gap-1.5 border-l pl-3">
+        {all.map((each, at) => (
+          <li
+            className="flex flex-wrap justify-between gap-x-4"
+            // oxlint-disable-next-line no-array-index-key -- a history's order is its identity
+            key={at}
+          >
+            <span>{each.said}</span>
+            <span className="text-muted-foreground text-xs">
+              <SaidDate at={each.at} withTime />
+            </span>
+          </li>
+        ))}
+      </ol>
+    </details>
+  );
+};
+
+/** One fact of a Request, under its name. */
+const Fact = ({ label, children }: { label: string; children: ReactNode }) => (
+  <div className="flex min-w-0 flex-col gap-0.5">
+    <dt className="text-muted-foreground text-xs">{label}</dt>
+    <dd className="font-medium tabular-nums">{children}</dd>
+  </div>
+);
+
+/**
+ * One of their Requests as a card: the Venture and where it stands, how far it has got, what they asked and when, their
+ * note, the farm's answer, what happened to it, and what they may still do — change it where the Venture is still
+ * offered and nobody has answered, withdraw it while it is live.
+ */
+const RequestCard = ({
+  one,
+  stillOffered,
+}: {
+  one: TheirRequest;
+  stillOffered: boolean;
+}) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
+  const places = usePortalPlaces();
+  const live = isLiveRequest(one.state);
+  const changeable = one.state === "waiting" && stillOffered;
+  const offer = places.openVenture(one.ventureId).link;
+  return (
+    <li className="surface flex flex-col gap-4 p-4 md:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <span className="text-base">
+          <RequestVentureName one={one} stillOffered={stillOffered} />
+        </span>
+        <RequestStanding state={one.state} />
+      </div>
+      <RequestTrack state={one.state} />
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
+        <Fact label={t("portal.units")}>
+          {formatNumber(one.units, language)}
+        </Fact>
+        <Fact label={t("portal.requests.comesTo")}>{taka(one.bdt)}</Fact>
+        <Fact label={t("portal.requests.askedOn")}>
+          <SaidDate at={one.madeAt} />
+        </Fact>
+        <Fact label={t("portal.requests.lastChange")}>
+          <SaidDate at={one.changedAt} />
+        </Fact>
+      </dl>
+      {one.note ? (
+        <div className="flex flex-col gap-1 text-sm">
+          <span className="text-muted-foreground text-xs">
+            {t("portal.requests.yourNote")}
+          </span>
+          <p className="border-l-2 pl-3 break-words">{one.note}</p>
+        </div>
+      ) : null}
+      {one.state === "waiting" || one.state === "withdrawn" ? null : (
+        <div className="bg-muted/50 rounded-lg p-3">
+          <TheAnswer one={one} />
+        </div>
+      )}
+      <RequestHistory one={one} />
+      {live ? (
+        <div className="flex flex-wrap items-start gap-2 border-t pt-3">
+          {changeable ? (
+            <Button
+              render={<Link params={offer.params} to={offer.to} />}
+              size="sm"
+              variant="outline"
+            >
+              <PenLine aria-hidden data-icon="inline-start" />
+              {t("portal.request.change")}
+            </Button>
+          ) : null}
+          <WithdrawFromTheList requestId={one.id} />
+        </div>
+      ) : null}
+    </li>
+  );
+};
+
+/** Some of their Requests to Join as cards, the latest-changed first. */
+const RequestList = ({ requests }: { requests: readonly TheirRequest[] }) => {
   const offered = useTheirOpenVentures();
   const stillOffered = new Set((offered.data ?? []).map((one) => one.id));
   return (
-    <ul className="divide-border -my-3 flex flex-col divide-y">
+    <ul className="flex flex-col gap-3">
       {byLatestChange(requests).map((one) => (
-        <li
-          className="flex flex-col gap-1.5 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
+        <RequestCard
           key={one.id}
-        >
-          <div className="flex min-w-0 flex-col gap-1">
-            <RequestVentureName
-              one={one}
-              stillOffered={stillOffered.has(one.ventureId)}
-            />
-            <span className="text-sm tabular-nums">
-              {t("portal.requests.line", {
-                units: formatNumber(one.units, language),
-                taka: taka(one.bdt),
-              })}
-            </span>
-            {one.note ? (
-              <span className="text-muted-foreground text-sm break-words">
-                {one.note}
-              </span>
-            ) : null}
-            <TheAnswer one={one} />
-            {isLiveRequest(one.state) ? (
-              <WithdrawFromTheList requestId={one.id} />
-            ) : null}
-          </div>
-          <div className="flex shrink-0 flex-col gap-1 sm:items-end">
-            <RequestStanding state={one.state} />
-            <span className="text-muted-foreground text-xs">
-              <SaidDate at={one.changedAt} />
-            </span>
-          </div>
-        </li>
+          one={one}
+          stillOffered={stillOffered.has(one.ventureId)}
+        />
       ))}
     </ul>
   );
@@ -517,6 +706,7 @@ export const TheirRequestsOnHome = () => {
         </Link>
       }
       description={t("portal.requests.hint")}
+      plain
       title={t("portal.requests.title")}
     >
       <RequestList requests={live} />
@@ -562,12 +752,12 @@ export const PortalRequestsPage = () => {
         ) : (
           <>
             {live.length > 0 ? (
-              <Section title={t("portal.requests.live")}>
+              <Section plain title={t("portal.requests.live")}>
                 <RequestList requests={live} />
               </Section>
             ) : null}
             {past.length > 0 ? (
-              <Section title={t("portal.requests.past")}>
+              <Section plain title={t("portal.requests.past")}>
                 <RequestList requests={past} />
               </Section>
             ) : null}

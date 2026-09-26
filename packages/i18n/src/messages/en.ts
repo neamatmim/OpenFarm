@@ -178,11 +178,28 @@ export const en = {
     "When the farm raises capital for a new Venture and shows it to you, it appears here.",
   "portal.money.noneHint":
     "Money shows here once your capital comes in to a Venture's account.",
+  "portal.requests.step.asked": "Asked",
+  "portal.requests.step.answered": "The farm's answer",
+  "portal.requests.step.signed": "Signed",
+  "portal.requests.comesTo": "Comes to",
+  "portal.requests.askedOn": "Asked on",
+  "portal.requests.lastChange": "Last change",
+  "portal.requests.yourNote": "Your note",
+  "portal.requests.history": "History",
+  "portal.requests.history.made":
+    "{units, plural, one {Asked for # Unit} other {Asked for # Units}}",
+  "portal.requests.history.changed":
+    "{units, plural, one {Changed to # Unit} other {Changed to # Units}}",
+  "portal.requests.history.withdrawn": "Withdrawn",
+  "portal.requests.history.yes": "The farm said it will sign with you",
+  "portal.requests.history.no": "The farm said not this time",
+  "portal.requests.history.closed": "Closed",
+  "portal.request.withdrawTitle": "Withdraw this request?",
+  "portal.request.withdrawWhy":
+    "A request binds nobody. You can ask again while the Venture is still offered.",
   "portal.requests.title": "Your requests to join",
   "portal.requests.hint":
     "What you have asked the farm for, and where each stands. A request binds nobody.",
-  "portal.requests.line":
-    "{units, plural, one {# Unit} other {# Units}} · {taka}",
   "portal.requests.state.waiting": "Waiting for the farm",
   "portal.requests.state.come_and_sign": "The farm will sign with you",
   "portal.requests.state.not_this_time": "Not this time",
