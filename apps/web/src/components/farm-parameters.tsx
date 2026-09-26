@@ -34,6 +34,7 @@ type NumberKey =
   | "repeatBreederThreshold"
   | "cullOpenDays"
   | "cullMilkAfterDays"
+  | "cullMilkPriceDays"
   | "approvalThresholdBdt"
   | "ventureFloorPercent"
   | "ventureRunningPercent"
@@ -150,6 +151,13 @@ const GROUPS: {
         unit: "params.days",
         min: LEAST_DAYS_BEFORE_MILK_IS_WEIGHED,
         max: 180,
+      },
+      {
+        key: "cullMilkPriceDays",
+        label: "params.cullMilkPriceDays",
+        unit: "params.days",
+        min: 7,
+        max: 365,
       },
     ],
   },

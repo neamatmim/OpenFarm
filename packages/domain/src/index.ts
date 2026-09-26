@@ -438,7 +438,6 @@ export {
 export {
   CULL_REASONS,
   LEAST_DAYS_BEFORE_MILK_IS_WEIGHED,
-  MILK_PRICE_DAYS,
   cullReasonsOf,
   litresOver,
   milkAgainstKeep,

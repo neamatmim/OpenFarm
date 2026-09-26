@@ -1,6 +1,5 @@
 import type { Database } from "@OpenFarm/db";
 import {
-  MILK_PRICE_DAYS,
   cullReasonsOf,
   daysInMilk,
   groupedBy,
@@ -39,6 +38,7 @@ export const cullList = async (
     repeatBreederThreshold: number;
     cullOpenDays: number;
     cullMilkAfterDays: number;
+    cullMilkPriceDays: number;
   },
   now: Date
 ) => {
@@ -70,7 +70,7 @@ export const cullList = async (
     unsettled.map((one) => [one.animalId, one.failedAttempts] as const)
   );
   // Only milk that left: what a buyer paid a litre is the price, not what the farm hoped for.
-  const since = new Date(now.getTime() - MILK_PRICE_DAYS * DAY_MS);
+  const since = new Date(now.getTime() - farm.cullMilkPriceDays * DAY_MS);
   const dispatched = await db.query.dispatch.findMany({
     where: { farmId: farm.id, dispatchedAt: { gte: since, lte: now } },
     columns: { litres: true, pricePerLitreBdt: true },
@@ -83,8 +83,10 @@ export const cullList = async (
   );
   const stoodBy = groupedBy(costs.history, (line) => line.animalId);
   return {
-    /** What a litre fetched in the farm's Dispatches over the last two months; nothing where none left. */
-    milkPrice: price ? { ...price, since, days: MILK_PRICE_DAYS } : null,
+    /** What a litre fetched in the farm's Dispatches over its milk price window; nothing where none left. */
+    milkPrice: price ? { ...price, since, days: farm.cullMilkPriceDays } : null,
+    /** The Farm Parameter the Dispatches were read back over, in days, priced or not. */
+    milkPriceDays: farm.cullMilkPriceDays,
     /** The Farm Parameter a cow still empty after calving is named at, for the page to say. */
     openDays: farm.cullOpenDays,
     /** The Farm Parameter a cow's milk is weighed from, in days of her Lactation. */

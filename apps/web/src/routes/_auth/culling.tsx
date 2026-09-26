@@ -1,5 +1,4 @@
 import type { CullReason } from "@OpenFarm/domain";
-import { MILK_PRICE_DAYS } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { createFileRoute } from "@tanstack/react-router";
@@ -69,13 +68,24 @@ const CullFigures = ({
 };
 
 /** What a litre is priced at for every cow on the page, and where that came from — or that nothing could be. */
-const MilkPriceLine = ({ price }: { price: CullList["milkPrice"] }) => {
+const MilkPriceLine = ({
+  price,
+  days,
+}: {
+  price: CullList["milkPrice"];
+  /** The farm's price window; missing from an answer this phone kept from before it was a setting. */
+  days: number | undefined;
+}) => {
   const { t } = useLanguage();
   const perLitre = useTakaToThePaisa();
   if (!price) {
     return (
       <Notice
-        title={t("cull.unpriced", { days: MILK_PRICE_DAYS })}
+        title={
+          days === undefined
+            ? t("cull.unpricedUnset")
+            : t("cull.unpriced", { days })
+        }
         tone="warning"
       />
     );
@@ -124,7 +134,10 @@ const CullingPage = () => {
     <Page>
       {header}
       <CullFigures cows={list.data.cows} openDays={list.data.openDays} />
-      <MilkPriceLine price={list.data.milkPrice} />
+      <MilkPriceLine
+        days={list.data.milkPriceDays}
+        price={list.data.milkPrice}
+      />
       <CullBoard cows={list.data.cows} />
     </Page>
   );

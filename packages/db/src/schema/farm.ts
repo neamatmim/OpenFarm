@@ -99,6 +99,9 @@ export const farm = pgTable("farm", {
   /** How many days into her Lactation before a cow's milk is weighed against her keep for the Owner's culling list:
    *  her calf's week and the four weeks read after it, unless the Owner would rather wait for her peak. */
   cullMilkAfterDays: integer("cull_milk_after_days").notNull().default(35),
+  /** How many days back the farm's own Dispatches are read for what a litre of its milk fetches, when a cow's milk is
+   *  set against her keep: two months of a milk buyer unless the Owner says otherwise. */
+  cullMilkPriceDays: integer("cull_milk_price_days").notNull().default(60),
   /** What part of a Venture's target capital is the least worth starting on, as a percentage. A plan that
    *  raises less than this buys too few animals to be the run anybody signed for. */
   ventureFloorPercent: integer("venture_floor_percent").notNull().default(70),
