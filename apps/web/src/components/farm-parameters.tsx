@@ -1,3 +1,4 @@
+import { LEAST_DAYS_BEFORE_MILK_IS_WEIGHED } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -32,6 +33,7 @@ type NumberKey =
   | "calvingPrepLeadDays"
   | "repeatBreederThreshold"
   | "cullOpenDays"
+  | "cullMilkAfterDays"
   | "approvalThresholdBdt"
   | "ventureFloorPercent"
   | "ventureRunningPercent"
@@ -141,6 +143,13 @@ const GROUPS: {
         unit: "params.days",
         min: 60,
         max: 365,
+      },
+      {
+        key: "cullMilkAfterDays",
+        label: "params.cullMilkAfterDays",
+        unit: "params.days",
+        min: LEAST_DAYS_BEFORE_MILK_IS_WEIGHED,
+        max: 180,
       },
     ],
   },

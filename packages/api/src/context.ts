@@ -91,6 +91,8 @@ export interface Context {
     repeatBreederThreshold: number;
     /** How many days after calving a cow still not in calf is named to the Owner for culling. */
     cullOpenDays: number;
+    /** How many days into her Lactation before a cow's milk is weighed against her keep for culling. */
+    cullMilkAfterDays: number;
     /** The taka above which a Money Event waits for the Owner. */
     approvalThresholdBdt: number;
     /** What part of a Venture's target capital is the least worth starting on. */

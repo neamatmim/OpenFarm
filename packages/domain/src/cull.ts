@@ -1,5 +1,9 @@
 import type { Kept } from "./animal-price";
-import { KEEP_NEEDS_DAYS, inTheKeepWindow } from "./animal-price";
+import {
+  KEEP_NEEDS_DAYS,
+  KEEP_READ_DAYS,
+  inTheKeepWindow,
+} from "./animal-price";
 import { roundLitres } from "./milk";
 import { roundTaka } from "./money";
 
@@ -15,9 +19,16 @@ export const CULL_REASONS = [
 ] as const;
 export type CullReason = (typeof CULL_REASONS)[number];
 
-/** Days into her Lactation before her milk is weighed against her keep: her first week's milk is her calf's, and the
- *  four weeks after it are what is read. */
-export const MILK_NEEDS_DAYS_IN_MILK = 35;
+/** The days after calving whose milk is her calf's, and never goes to Bulk. */
+const CALF_MILK_DAYS = 7;
+
+/**
+ * The fewest days into her Lactation the farm may set before her milk is weighed against her keep: her calf's week and
+ * the four weeks after it that are read. Any sooner and the four weeks would take in the calf's milk, and every cow
+ * fresh from calving would look short. A Farm Parameter says how many (the Owner's, 35 by default); this is its floor.
+ */
+export const LEAST_DAYS_BEFORE_MILK_IS_WEIGHED =
+  CALF_MILK_DAYS + KEEP_READ_DAYS;
 
 /** How far back the farm's own Dispatches are read for what a litre fetches: two months of a milk buyer. */
 export const MILK_PRICE_DAYS = 60;
@@ -80,23 +91,27 @@ export type MilkAgainstKeep =
  * Dispatches got a litre, set beside what keeping her cost. Milk to her calf or poured away under Withdrawal fetched
  * nothing, so it counts for nothing — a treatment costs the milk it spoils as well as the dose.
  *
- * Not weighed, and said why, until she is five weeks into her Lactation, while no Feeding was charged to her in the four
- * weeks, or while the farm sold no milk in two months to put a price on a litre.
+ * Not weighed, and said why, until she is as many days into her Lactation as the farm says, while no Feeding was
+ * charged to her in the four weeks, or while the farm sold no milk in two months to put a price on a litre.
  */
 export const milkAgainstKeep = ({
   kept,
   litres,
   daysInMilk,
+  weighedAfterDays,
   price,
 }: {
   kept: Kept;
   litres: number;
   daysInMilk: number | null;
+  /** The Farm Parameter: how many days into her Lactation before her milk is weighed. Never fewer than
+   *  `LEAST_DAYS_BEFORE_MILK_IS_WEIGHED`, which the Parameter itself refuses. */
+  weighedAfterDays: number;
   price: { bdtPerLitre: number } | null;
 }): MilkAgainstKeep => {
   const tooSoon =
     daysInMilk === null ||
-    daysInMilk < MILK_NEEDS_DAYS_IN_MILK ||
+    daysInMilk < weighedAfterDays ||
     kept.days < KEEP_NEEDS_DAYS;
   if (tooSoon) {
     return { known: false, because: "too_soon" };

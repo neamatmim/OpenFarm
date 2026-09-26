@@ -369,6 +369,7 @@ describe("why the farm names a dairy cow to the Owner", () => {
     const { list, of } = await theList();
     // The farm's own days, as a new farm starts with them.
     expect(list.openDays).toBe(150);
+    expect(list.milkAfterDays).toBe(35);
     expect(list.milkPrice).toMatchObject({
       bdtPerLitre: 55,
       litres: 240,
@@ -453,5 +454,28 @@ describe("why the farm names a dairy cow to the Owner", () => {
     expect(of(cow.short)?.reasons).toEqual(["milk_short", "open_long"]);
     // Put back as the farm had it, for whatever reads this farm after.
     await owner.client.farm.setParameters({ cullOpenDays: 150 });
+  });
+
+  it("weighs a cow's milk only as many days into her Lactation as the Owner says, and never before five weeks", async () => {
+    const owner = await as("owner", "2041-03-01T04:00:00.000Z");
+    const manager = await as("manager", "2041-03-01T04:00:00.000Z");
+    await expect(
+      manager.client.farm.setParameters({ cullMilkAfterDays: 125 })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    // Her calf's week and the four weeks read after it: any sooner and the four weeks take in the calf's milk.
+    await expect(
+      owner.client.farm.setParameters({ cullMilkAfterDays: 34 })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await owner.client.farm.setParameters({ cullMilkAfterDays: 125 });
+    // 121 days into her Lactation: not yet weighed at 125, so her short milk is no reason yet.
+    const { list, of } = await theList();
+    expect(list.milkAfterDays).toBe(125);
+    expect(of(cow.short)).toMatchObject({
+      milk: { known: false, because: "too_soon" },
+      reasons: [],
+    });
+    // The one 181 days in is weighed as before.
+    expect(of(cow.emptyLong)?.milk).toMatchObject({ overKeepBdt: 200 });
+    await owner.client.farm.setParameters({ cullMilkAfterDays: 35 });
   });
 });
