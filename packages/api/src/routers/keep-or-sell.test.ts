@@ -353,6 +353,44 @@ describe("keep her or sell her", () => {
     }
   });
 
+  it("works keeping her as many days ahead as the Owner says, a week to three months, and only the Owner", async () => {
+    const owner = await as("owner", "2040-03-01T04:00:00.000Z");
+    const manager = await as("manager", "2040-03-01T04:00:00.000Z");
+    await expect(
+      manager.client.farm.setParameters({ keepAheadDays: 7 })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    for (const keepAheadDays of [6, 91]) {
+      // oxlint-disable-next-line no-await-in-loop -- one refusal at a time
+      await expect(
+        owner.client.farm.setParameters({ keepAheadDays })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    }
+    await owner.client.farm.setParameters({ keepAheadDays: 7 });
+    try {
+      const later = await as("owner", "2040-03-01T04:30:00.000Z");
+      const { animals, keepAheadDays } = await later.client.fattening.prices();
+      expect(keepAheadDays).toBe(7);
+      // Her ৳320 a day over the four weeks read, a week ahead at a kilo a day: 7 kg for ৳2,240 of keep, fetching ৳1,960
+      // at ৳280 (৳280 short) and ৳2,240 at ৳320 (nothing over). A kilo still costs ৳320 to put on: the same verdict.
+      expect(animals.find((one) => one.tagNumber === kept)?.keep).toMatchObject(
+        {
+          costOfGainNowBdt: 320,
+          ahead: {
+            days: 7,
+            gainKg: 7,
+            keepBdt: 2240,
+            low: { worthBdt: 1960, overKeepBdt: -280 },
+            high: { worthBdt: 2240, overKeepBdt: 0 },
+          },
+          keeping: "close",
+        }
+      );
+    } finally {
+      // Put back whatever went wrong above, so no later test reads this farm's week.
+      await owner.client.farm.setParameters({ keepAheadDays: 14 });
+    }
+  });
+
   it("says why it cannot tell for one never fed in four weeks, and one a few days off the lorry", async () => {
     const owner = await as("owner", "2040-03-01T07:00:00.000Z");
     const { animals } = await owner.client.fattening.prices();

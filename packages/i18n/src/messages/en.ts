@@ -374,9 +374,9 @@ export const en = {
   "price.noPrice": "No price a kg set",
   "keep.title": "Keep or sell",
   "keep.hint":
-    "Whether another fortnight pays: feed, medicine, vet visits and share of the herd costs over the last {days, plural, one {# day} other {# days}}, over the kilos being put on now, against the price a kg. What the animal has cost already is spent either way, so it has no say here. It does not know the price will change at Eid.",
+    "Whether keeping an animal {ahead, plural, one {# more day} other {# more days}} pays: feed, medicine, vet visits and share of the herd costs over the last {days, plural, one {# day} other {# days}}, over the kilos being put on now, against the price a kg. What the animal has cost already is spent either way, so it has no say here. It does not know the price will change at Eid.",
   "keep.hintUnset":
-    "Whether another fortnight pays: recent feed, medicine, vet visits and share of the herd costs, over the kilos being put on now, against the price a kg. What the animal has cost already is spent either way, so it has no say here. It does not know the price will change at Eid.",
+    "Whether keeping an animal a while longer pays: recent feed, medicine, vet visits and share of the herd costs, over the kilos being put on now, against the price a kg. What the animal has cost already is spent either way, so it has no say here. It does not know the price will change at Eid.",
   "keep.pays": "Keeping pays",
   "keep.close": "Depends on the price",
   "keep.costsMore": "Costs more to keep",
@@ -835,8 +835,9 @@ export const en = {
   "params.managerCorrection": "Manager may correct for",
   "params.keepAndCull": "Keep, sell or cull",
   "params.keepAndCullHint":
-    "How far back an animal's keep is read for keep-or-sell and the culling list, and what puts a dairy cow on that list. Yours alone to set, as the two are yours alone to read.",
+    "How far back an animal's keep is read for keep-or-sell and the culling list, how far ahead keeping her is weighed, and what puts a dairy cow on that list. Yours alone to set, as the two are yours alone to read.",
   "params.keepReadDays": "Read an animal's keep over the last",
+  "params.keepAheadDays": "Weigh keeping an animal over the next",
   "params.cullOpenDays": "Empty too long after calving",
   "params.cullMilkAfterDays": "Weigh milk against keep from, after calving",
   "params.cullMilkPriceDays": "Price milk from dispatches of the last",

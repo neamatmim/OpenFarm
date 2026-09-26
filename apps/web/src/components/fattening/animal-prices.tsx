@@ -282,9 +282,11 @@ export const HerPrice = ({ tagNumber }: { tagNumber: string }) => {
   const { t } = useLanguage();
   const owner = useIsOwner();
   const one = useHerPrice(tagNumber);
-  // How many days back the farm reads a keep, for the hint to say; missing from an answer this phone kept from before
-  // it was a setting.
-  const keepReadDays = usePrices().data?.keepReadDays;
+  // How far back the farm reads a keep and how far ahead it works keeping her, for the hint to say; either is missing
+  // from an answer this phone kept from before it was a setting.
+  const prices = usePrices();
+  const keepReadDays = prices.data?.keepReadDays;
+  const keepAheadDays = prices.data?.keepAheadDays;
   if (!owner || !one) {
     return null;
   }
@@ -298,9 +300,9 @@ export const HerPrice = ({ tagNumber }: { tagNumber: string }) => {
         <KeepLine full one={one} />
       </div>
       <p className="text-muted-foreground text-xs">
-        {keepReadDays === undefined
+        {keepReadDays === undefined || keepAheadDays === undefined
           ? t("keep.hintUnset")
-          : t("keep.hint", { days: keepReadDays })}
+          : t("keep.hint", { days: keepReadDays, ahead: keepAheadDays })}
       </p>
     </div>
   );

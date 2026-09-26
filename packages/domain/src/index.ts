@@ -423,7 +423,6 @@ export {
 export type { Split, ToSplit } from "./venture";
 export {
   FEWEST_KEEP_READ_DAYS,
-  KEEP_AHEAD_DAYS,
   KEEP_NEEDS_DAYS,
   KEEP_RATE_NEEDS_DAYS,
   KEEPING,

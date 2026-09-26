@@ -32,7 +32,7 @@ const ON_THE_SIDE = ["quarantine", "fattening", "ready_for_sale"] as const;
  * at her Venture's plan's sale prices, the farm's own at its market price; either may not be set yet.
  *
  * The same costing the Venture's economics reads, so an animal's cost here and on its Venture's page are one sum. And
- * whether keeping her another fortnight pays: her keep over the days the farm reads a keep over, over the rate she is
+ * whether keeping her the days ahead pays: her keep over the days the farm reads a keep over, over the rate she is
  * gaining at now, set beside those same prices.
  */
 export const pricesOnTheSide = async (
@@ -43,6 +43,7 @@ export const pricesOnTheSide = async (
     marketHighBdtPerKg: number | null;
     marketPriceSetAt: Date | null;
     keepReadDays: number;
+    keepAheadDays: number;
   },
   now: Date
 ) => {
@@ -106,6 +107,8 @@ export const pricesOnTheSide = async (
     market: market ? { ...market, setAt: farm.marketPriceSetAt } : null,
     /** The Farm Parameter each animal's keep was read back over, in days. */
     keepReadDays: farm.keepReadDays,
+    /** The Farm Parameter keeping each animal was worked ahead over, in days. */
+    keepAheadDays: farm.keepAheadDays,
     /** What a kilo fetched in the farm's own sales over the last two months, as a reference when the market price is
      *  set; nothing where there were none. */
     recentSales: recent ? { ...recent, since, days: RECENT_SALES_DAYS } : null,
@@ -150,6 +153,7 @@ export const pricesOnTheSide = async (
             }),
             dailyGainKg: keepRateOf(row.view.recent, row.view.sinceIntake),
             range,
+            aheadDays: farm.keepAheadDays,
           }),
         },
       ];

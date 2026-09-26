@@ -214,6 +214,7 @@ describe("keep her or sell her", () => {
         kept,
         dailyGainKg: 1,
         range: { lowBdtPerKg: 280, highBdtPerKg: 320 },
+        aheadDays: 14,
       })
     ).toEqual({
       known: true,
@@ -232,12 +233,36 @@ describe("keep her or sell her", () => {
     });
   });
 
+  it("works as many days ahead as the farm says, and the verdict does not move with them", () => {
+    // A week ahead at ৳300 a day and a kilo a day: 7 kg for ৳2,100 of keep, fetching ৳1,960 at ৳280 (৳140 short) and
+    // ৳2,240 at ৳320 (৳140 over). What a kilo costs to put on is the same ৳300 however far ahead it is worked.
+    expect(
+      keepOrSell({
+        kept,
+        dailyGainKg: 1,
+        range: { lowBdtPerKg: 280, highBdtPerKg: 320 },
+        aheadDays: 7,
+      })
+    ).toMatchObject({
+      costOfGainNowBdt: 300,
+      ahead: {
+        days: 7,
+        gainKg: 7,
+        keepBdt: 2100,
+        low: { worthBdt: 1960, overKeepBdt: -140 },
+        high: { worthBdt: 2240, overKeepBdt: 140 },
+      },
+      keeping: "close",
+    });
+  });
+
   it("says keeping pays when a kilo costs no more than the low price, and costs more when it costs over the high", () => {
     const at = (lowBdtPerKg: number, highBdtPerKg: number) =>
       keepOrSell({
         kept,
         dailyGainKg: 1,
         range: { lowBdtPerKg, highBdtPerKg },
+        aheadDays: 14,
       });
     const pays = at(300, 360);
     const costsMore = at(250, 290);
@@ -248,7 +273,7 @@ describe("keep her or sell her", () => {
 
   it("says a beast putting nothing on, or losing, costs more to keep at any price", () => {
     const range = { lowBdtPerKg: 500, highBdtPerKg: 700 };
-    const still = keepOrSell({ kept, dailyGainKg: 0, range });
+    const still = keepOrSell({ kept, dailyGainKg: 0, range, aheadDays: 14 });
     expect(still).toMatchObject({
       known: true,
       costOfGainNowBdt: null,
@@ -259,7 +284,12 @@ describe("keep her or sell her", () => {
         low: { worthBdt: 0, overKeepBdt: -4200 },
       },
     });
-    const losing = keepOrSell({ kept, dailyGainKg: -0.5, range });
+    const losing = keepOrSell({
+      kept,
+      dailyGainKg: -0.5,
+      range,
+      aheadDays: 14,
+    });
     // Half a kilo a day off her for a fortnight is 7 kg gone, and ৳4,200 spent on it.
     expect(losing).toMatchObject({
       keeping: "costs_more",
@@ -275,6 +305,7 @@ describe("keep her or sell her", () => {
         kept: { bdt: 10_000, days: 28, fed: true, whole: false },
         dailyGainKg: 0.85,
         range: { lowBdtPerKg: 400, highBdtPerKg: 450 },
+        aheadDays: 14,
       })
     ).toEqual({
       known: true,
@@ -294,7 +325,9 @@ describe("keep her or sell her", () => {
   });
 
   it("gives the figures but no verdict while no price a kilo is set for her", () => {
-    expect(keepOrSell({ kept, dailyGainKg: 1, range: null })).toMatchObject({
+    expect(
+      keepOrSell({ kept, dailyGainKg: 1, range: null, aheadDays: 14 })
+    ).toMatchObject({
       known: true,
       costOfGainNowBdt: 300,
       keeping: null,
@@ -305,12 +338,24 @@ describe("keep her or sell her", () => {
   it("says why it cannot tell: too few days here, no Feeding charged to her, or no rate to work from", () => {
     const range = { lowBdtPerKg: 500, highBdtPerKg: 700 };
     expect(
-      keepOrSell({ kept: { ...kept, days: 6.9 }, dailyGainKg: 1, range })
+      keepOrSell({
+        kept: { ...kept, days: 6.9 },
+        dailyGainKg: 1,
+        range,
+        aheadDays: 14,
+      })
     ).toEqual({ known: false, because: "too_new" });
     expect(
-      keepOrSell({ kept: { ...kept, fed: false }, dailyGainKg: 1, range })
+      keepOrSell({
+        kept: { ...kept, fed: false },
+        dailyGainKg: 1,
+        range,
+        aheadDays: 14,
+      })
     ).toEqual({ known: false, because: "not_fed" });
-    expect(keepOrSell({ kept, dailyGainKg: null, range })).toEqual({
+    expect(
+      keepOrSell({ kept, dailyGainKg: null, range, aheadDays: 14 })
+    ).toEqual({
       known: false,
       because: "no_rate",
     });
