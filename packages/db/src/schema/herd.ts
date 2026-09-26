@@ -127,10 +127,6 @@ export const animal = pgTable(
     ownerVentureId: text("owner_venture_id").references(() => venture.id),
     /** Her breed, from the farm's list. */
     breedId: text("breed_id").references(() => breed.id),
-    /** The breed as it was typed before the farm kept a list. Read by nothing: the migration that made the list
-     *  carried every one of these into it. Kept one release so an app still running against the new schema can
-     *  read the column it knows, then dropped. */
-    breedAsTyped: text("breed"),
     birthDate: timestamp("birth_date"),
     /** Set when a photo exists; the client uses it to bust its cache. */
     photoUpdatedAt: timestamp("photo_updated_at"),
