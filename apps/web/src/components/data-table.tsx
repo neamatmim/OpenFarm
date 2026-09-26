@@ -83,7 +83,16 @@ export const ActionsHeader = () => (
 
 const SORT_ICON = { asc: ArrowUp, desc: ArrowDown } as const;
 
-/** One column's heading: a button that sorts by it where the column sorts, its name alone where it does not. */
+/** Joins the sort arrow to the heading's last word, so it is never left on a line of its own. */
+const WORD_JOINER = "\u2060";
+
+/**
+ * One column's heading: a button that sorts by it where the column sorts, its name alone where it does not.
+ *
+ * The arrow runs in the heading's own line of text, after its last word, rather than beside the heading as a box of
+ * its own: beside it, a heading that wrapped stretched the box across the column and left its arrow alone at the far
+ * edge, halfway up, where it read as the next column's.
+ */
 const Heading = <TData extends object>({
   header,
 }: {
@@ -101,20 +110,24 @@ const Heading = <TData extends object>({
   return (
     <button
       className={cn(
-        "hover:text-foreground -mx-1 inline-flex items-center gap-1 rounded px-1 text-start outline-none focus-visible:ring-2",
-        column.columnDef.meta?.align === "end" && "flex-row-reverse text-end"
+        "hover:text-foreground -mx-1 rounded px-1 text-start outline-none focus-visible:ring-2",
+        column.columnDef.meta?.align === "end" && "text-end",
+        sorted && "text-foreground"
       )}
       onClick={column.getToggleSortingHandler()}
       type="button"
     >
       <FlexRender header={header} />
-      <SortIcon
-        aria-hidden
-        className={cn(
-          "size-3.5 shrink-0",
-          !sorted && "text-muted-foreground/60"
-        )}
-      />
+      <span className="whitespace-nowrap">
+        {WORD_JOINER}
+        <SortIcon
+          aria-hidden
+          className={cn(
+            "ms-1 inline-block size-3.5 align-[-0.125em]",
+            !sorted && "opacity-50"
+          )}
+        />
+      </span>
     </button>
   );
 };
@@ -236,13 +249,15 @@ export const DataTable = <TData extends object>({
                     <TableHead
                       aria-sort={sorted ? ARIA_SORT[sorted] : undefined}
                       className={cn(
-                        // A heading wraps rather than setting its column's width: the figures under it say how wide
-                        // the column is, and a long heading over a short figure takes two lines, on the bottom one.
-                        "align-bottom whitespace-normal first:pl-4 last:pr-4 md:first:pl-5 md:last:pr-5",
+                        // One line, as a list's headings are read across: sentence case and the small size keep them
+                        // short enough that the figures under them still say how wide a column is. (They wrapped while
+                        // they were capitals, which pushed the Ventures table off its card; the table scrolls sideways
+                        // on its own rather than the page, where one is still too wide.)
+                        "text-muted-foreground align-bottom text-xs whitespace-nowrap first:pl-4 last:pr-4 md:first:pl-5 md:last:pr-5",
                         look?.align === "end" && "text-right",
                         look?.className,
-                        // Last, so a column that keeps its figures on one line does not keep its heading on one.
-                        "whitespace-normal"
+                        // Last, so a column that lets its figures wrap does not wrap its heading with them.
+                        "whitespace-nowrap"
                       )}
                       key={header.id}
                     >
