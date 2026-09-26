@@ -1,6 +1,5 @@
-import { Skeleton } from "@OpenFarm/ui/components/skeleton";
-
 import { Loaded, Page, PageHeader } from "@/components/page";
+import { ListSkeleton } from "@/components/portal/portal-skeletons";
 import { useTheirPortfolio } from "@/components/portal/portal-source";
 import { TheirPapers } from "@/components/portal/their-papers";
 import { useLanguage } from "@/i18n/language-provider";
@@ -15,10 +14,7 @@ export const PortalPapersPage = () => {
         description={t("portal.papersHint")}
         title={t("portal.papers")}
       />
-      <Loaded
-        query={theirs}
-        skeleton={<Skeleton className="h-32 rounded-xl" />}
-      >
+      <Loaded query={theirs} skeleton={<ListSkeleton />}>
         {theirs.data ? (
           <TheirPapers agreements={theirs.data.agreements} />
         ) : null}

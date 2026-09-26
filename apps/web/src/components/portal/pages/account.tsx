@@ -28,6 +28,7 @@ import {
 import { FormField, SideTabs } from "@/components/page-kit";
 import { deviceOf } from "@/components/people/person-sign-ins";
 import { YourDataLink } from "@/components/portal/portal-door";
+import { ListSkeleton } from "@/components/portal/portal-skeletons";
 import {
   WhyNot,
   useCanAct,
@@ -348,7 +349,7 @@ export const PortalAccount = ({ tab = "details" }: { tab?: Tab }) => {
         description={t("portal.account.hint")}
         title={t("portal.account.title")}
       />
-      <Loaded query={me} skeleton={<Skeleton className="h-40 rounded-xl" />}>
+      <Loaded query={me} skeleton={<ListSkeleton lines={4} />}>
         {me.data ? (
           <SideTabs
             label={t("portal.account.title")}

@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { createContext, useContext, useMemo } from "react";
 import type { ReactNode } from "react";
 
+import { animalPhotoKey } from "@/components/portal/animal-photo-key";
 import { useT } from "@/i18n/language-provider";
 import { client, orpc } from "@/utils/orpc";
 
@@ -99,6 +100,33 @@ export const useTheirVenture = (agreementId: string) => {
         })
       : orpc.portal.venture.queryOptions({ input: { agreementId } })
   );
+};
+
+/**
+ * One animal's photograph, standing in one of their Ventures — asked only for an animal that has one. Keyed by when it
+ * was taken as well, so a photograph the farm replaces is asked for again, and never otherwise: it is up to two
+ * megabytes.
+ */
+export const useTheirAnimalPhoto = (
+  agreementId: string,
+  tagNumber: string,
+  photoAt: Date | string
+) => {
+  const whose = useWhose();
+  const previewing = usePreviewing() !== null;
+  const input = { agreementId, tagNumber };
+  return useQuery({
+    queryKey: animalPhotoKey({
+      previewing,
+      input: previewing ? { ...whose, ...input } : input,
+      photoAt,
+    }),
+    queryFn: () =>
+      previewing
+        ? client.portalPreview.animalPhoto({ ...whose, ...input })
+        : client.portal.animalPhoto(input),
+    staleTime: Number.POSITIVE_INFINITY,
+  });
 };
 
 /** «আপনার তথ্য»: the notice as the portal shows it — to anybody in the Investor's own portal, and to the Owner in the

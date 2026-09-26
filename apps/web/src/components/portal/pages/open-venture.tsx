@@ -1,7 +1,6 @@
 import { startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Badge } from "@OpenFarm/ui/components/badge";
-import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, Sprout } from "lucide-react";
 
@@ -15,6 +14,7 @@ import {
 } from "@/components/page";
 import type { OpenVenture } from "@/components/portal/open-ventures";
 import { Fact } from "@/components/portal/open-ventures";
+import { OfferSkeleton } from "@/components/portal/portal-skeletons";
 import {
   usePortalPlaces,
   useTheirOpenVentures,
@@ -103,10 +103,7 @@ export const OpenVenturePage = ({ ventureId }: { ventureId: string }) => {
         <ArrowLeft aria-hidden className="size-4" />
         {t("portal.open.back")}
       </Link>
-      <Loaded
-        query={offered}
-        skeleton={<Skeleton className="h-64 rounded-xl" />}
-      >
+      <Loaded query={offered} skeleton={<OfferSkeleton />}>
         {one ? (
           <>
             <PageHeader

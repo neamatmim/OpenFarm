@@ -97,6 +97,8 @@ const UNWORDED = [
   "already_sold",
   "exit_needs_a_record",
   "meat_withdrawal",
+  // A portal photograph asked for an animal gone from the Venture since the page was read: the thumbnail stays grey.
+  "no_such_animal",
   "no_such_product",
   "no_such_venture",
   "no_withdrawal_days",

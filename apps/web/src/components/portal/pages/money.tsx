@@ -1,4 +1,3 @@
-import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { Banknote, Landmark, Wallet } from "lucide-react";
 
 import type { TheirAgreements } from "@/components/investors/investor-agreements";
@@ -9,6 +8,7 @@ import {
 import { Loaded, Page, PageHeader } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { SummaryFigures } from "@/components/page-kit";
+import { MoneySkeleton } from "@/components/portal/portal-skeletons";
 import { useTheirPortfolio } from "@/components/portal/portal-source";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
@@ -67,10 +67,7 @@ export const PortalMoney = () => {
         description={t("portal.money.hint")}
         title={t("portal.moneyTitle")}
       />
-      <Loaded
-        query={theirs}
-        skeleton={<Skeleton className="h-40 rounded-xl" />}
-      >
+      <Loaded query={theirs} skeleton={<MoneySkeleton />}>
         {theirs.data ? <TheirMoney theirs={theirs.data} /> : null}
       </Loaded>
     </Page>

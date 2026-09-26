@@ -29,8 +29,10 @@ import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { FiguresAsAt } from "@/components/portal/figures-as-at";
 import { HowToPay } from "@/components/portal/how-to-pay";
 import { PortalPapers } from "@/components/portal/portal-papers";
+import { VentureSkeleton } from "@/components/portal/portal-skeletons";
 import {
   usePortalPlaces,
+  useTheirAnimalPhoto,
   useTheirPortfolio,
   useTheirVenture,
 } from "@/components/portal/portal-source";
@@ -133,6 +135,116 @@ const useFigures = (
 /** One figure set in its own shaded box, as the Spending tab sets its two budgets. */
 const AVERAGE_BOX = "bg-muted/50 flex flex-col gap-0.5 rounded-lg p-3";
 
+type HerAnimal = Today["herd"]["animals"][number];
+
+/** One animal's photograph, captioned with her tag and the day it was taken; grey while it comes. */
+const HerPhoto = ({
+  agreementId,
+  one,
+  photoAt,
+}: {
+  agreementId: string;
+  one: HerAnimal;
+  photoAt: Date | string;
+}) => {
+  const photo = useTheirAnimalPhoto(agreementId, one.tagNumber, photoAt);
+  const tile = "aspect-square w-full rounded-lg";
+  let picture: ReactNode = <Skeleton className={tile} />;
+  if (photo.data) {
+    picture = (
+      <img
+        alt={one.tagNumber}
+        className={cn("bg-muted border object-cover", tile)}
+        height={112}
+        src={`data:${photo.data.contentType};base64,${photo.data.data}`}
+        width={112}
+      />
+    );
+  } else if (photo.isError || photo.data === null) {
+    // Gone from the Venture since the page was read, its photograph taken away, or no signal: a still tile rather
+    // than a placeholder that pulses for ever.
+    picture = <div className={cn("bg-muted border", tile)} />;
+  }
+  return (
+    <figure className="flex w-28 shrink-0 flex-col gap-1.5">
+      {picture}
+      <figcaption className="flex flex-col text-xs">
+        <span className="font-mono font-medium">{one.tagNumber}</span>
+        <span className="text-muted-foreground">
+          <SaidDate at={photoAt} />
+        </span>
+      </figcaption>
+    </figure>
+  );
+};
+
+/**
+ * The standing animals' photographs, in a row that scrolls sideways on its own: the same photographs their progress
+ * statement prints, so nothing is shown here that the paper does not. Nothing at all while none has one.
+ */
+const HerdPhotos = ({ today }: { today: Today }) => {
+  const { t } = useLanguage();
+  // An answer this phone kept from before the portal showed photographs says of none.
+  const photographed = today.herd.animals.flatMap((one) =>
+    one.photoAt ? [{ one, photoAt: one.photoAt }] : []
+  );
+  if (photographed.length === 0) {
+    return null;
+  }
+  return (
+    <div className="flex flex-col gap-2">
+      <h3 className="text-sm font-medium">{t("portal.photos")}</h3>
+      <ul className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 md:-mx-5 md:px-5">
+        {photographed.map(({ one, photoAt }) => (
+          <li key={one.tagNumber}>
+            <HerPhoto
+              agreementId={today.agreementId}
+              one={one}
+              photoAt={photoAt}
+            />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+/** One animal as a row of its own on a phone: her tag, what she arrived at and puts on a day, and what she weighs now
+ *  and on which day. */
+const HerRow = ({ one }: { one: HerAnimal }) => {
+  const said = useLanguage();
+  const { t, language } = said;
+  const now = saidKg(one.latestKg, said);
+  const arrived = saidKg(one.intakeKg, said);
+  return (
+    <li className="flex items-start justify-between gap-3 py-3 text-sm">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <span className="font-mono font-medium">{one.tagNumber}</span>
+        <span className="text-muted-foreground flex flex-col text-xs tabular-nums">
+          {arrived ? (
+            <span>{t("portal.arrivedKg", { kg: arrived })}</span>
+          ) : null}
+          {one.dailyGainKg === null ? null : (
+            <span>
+              {t("portal.kgADay", {
+                kg: formatNumber(one.dailyGainKg, language),
+              })}
+            </span>
+          )}
+        </span>
+      </div>
+      <div className="flex shrink-0 flex-col items-end gap-0.5">
+        <span className="font-medium tabular-nums">{now ?? <Nothing />}</span>
+        {one.latestAt ? (
+          <span className="text-muted-foreground text-xs">
+            <SaidDate at={one.latestAt} />
+          </span>
+        ) : null}
+      </div>
+    </li>
+  );
+};
+
 /** How the animals are doing: what they came in at, what they weigh now, and what they put on a day. */
 const Herd = ({ today }: { today: Today }) => {
   const said = useLanguage();
@@ -204,61 +316,70 @@ const Herd = ({ today }: { today: Today }) => {
           </dd>
         </div>
       </dl>
+      <HerdPhotos today={today} />
       {today.herd.animals.length > 0 ? (
-        <div className="-mx-4 overflow-x-auto md:-mx-5">
-          <table className="w-full min-w-[28rem] text-sm">
-            <thead className="text-muted-foreground border-b text-xs">
-              <tr>
-                <th
-                  className="px-4 py-2 text-start font-medium md:px-5"
-                  scope="col"
-                >
-                  {t("portal.tag")}
-                </th>
-                <th className="px-4 py-2 text-end font-medium" scope="col">
-                  {t("portal.intake")}
-                </th>
-                <th className="px-4 py-2 text-end font-medium" scope="col">
-                  {t("portal.now")}
-                </th>
-                <th
-                  className="px-4 py-2 text-end font-medium md:px-5"
-                  scope="col"
-                >
-                  {t("portal.dailyGain")}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {today.herd.animals.map((one) => (
-                <tr key={one.tagNumber}>
-                  <td className="px-4 py-2 font-mono md:px-5">
-                    {one.tagNumber}
-                  </td>
-                  <td className="px-4 py-2 text-end tabular-nums">
-                    {kg(one.intakeKg) ?? <Nothing />}
-                  </td>
-                  <td className="px-4 py-2 text-end tabular-nums">
-                    {kg(one.latestKg) ?? <Nothing />}
-                    {/* The day of that weight, so one animal's "now" can be told from a month-old one. */}
-                    {one.latestAt ? (
-                      <span className="text-muted-foreground block text-xs">
-                        <SaidDate at={one.latestAt} />
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className="px-4 py-2 text-end tabular-nums md:px-5">
-                    {one.dailyGainKg === null ? (
-                      <Nothing />
-                    ) : (
-                      formatNumber(one.dailyGainKg, language)
-                    )}
-                  </td>
+        <>
+          {/* A phone lists them one to a row rather than four columns scrolled sideways. */}
+          <ul className="divide-border flex flex-col divide-y sm:hidden">
+            {today.herd.animals.map((one) => (
+              <HerRow key={one.tagNumber} one={one} />
+            ))}
+          </ul>
+          <div className="-mx-4 hidden overflow-x-auto sm:block md:-mx-5">
+            <table className="w-full min-w-[28rem] text-sm">
+              <thead className="text-muted-foreground border-b text-xs">
+                <tr>
+                  <th
+                    className="px-4 py-2 text-start font-medium md:px-5"
+                    scope="col"
+                  >
+                    {t("portal.tag")}
+                  </th>
+                  <th className="px-4 py-2 text-end font-medium" scope="col">
+                    {t("portal.intake")}
+                  </th>
+                  <th className="px-4 py-2 text-end font-medium" scope="col">
+                    {t("portal.now")}
+                  </th>
+                  <th
+                    className="px-4 py-2 text-end font-medium md:px-5"
+                    scope="col"
+                  >
+                    {t("portal.dailyGain")}
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y">
+                {today.herd.animals.map((one) => (
+                  <tr key={one.tagNumber}>
+                    <td className="px-4 py-2 font-mono md:px-5">
+                      {one.tagNumber}
+                    </td>
+                    <td className="px-4 py-2 text-end tabular-nums">
+                      {kg(one.intakeKg) ?? <Nothing />}
+                    </td>
+                    <td className="px-4 py-2 text-end tabular-nums">
+                      {kg(one.latestKg) ?? <Nothing />}
+                      {/* The day of that weight, so one animal's "now" can be told from a month-old one. */}
+                      {one.latestAt ? (
+                        <span className="text-muted-foreground block text-xs">
+                          <SaidDate at={one.latestAt} />
+                        </span>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-2 text-end tabular-nums md:px-5">
+                      {one.dailyGainKg === null ? (
+                        <Nothing />
+                      ) : (
+                        formatNumber(one.dailyGainKg, language)
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       ) : null}
     </Section>
   );
@@ -538,7 +659,7 @@ export const PortalVenture = ({
   const today = useTheirVenture(agreementId);
   return (
     <Page>
-      <Loaded query={today} skeleton={<Skeleton className="h-96 rounded-xl" />}>
+      <Loaded query={today} skeleton={<VentureSkeleton />}>
         {today.data ? (
           <VentureToday
             readAt={today.dataUpdatedAt}

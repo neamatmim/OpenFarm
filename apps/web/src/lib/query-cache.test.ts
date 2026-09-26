@@ -1,6 +1,7 @@
 import type { PersistedClient } from "@tanstack/query-persist-client-core";
 import { describe, expect, it } from "vitest";
 
+import { animalPhotoKey } from "@/components/portal/animal-photo-key";
 import { orpc } from "@/utils/orpc";
 
 import { keptOnDevice, readKept, writeKept } from "./query-cache";
@@ -63,6 +64,29 @@ describe("what a phone keeps", () => {
         "farm"
       )
     ).toBe(false);
+  });
+
+  it("never keeps an Investor's photographs, and keeps the Owner's Preview of them as the farm's own", () => {
+    const input = { agreementId: "a", tagNumber: "F-0021" };
+    const at = "2026-09-22T05:00:00.000Z";
+    expect(
+      keptOnDevice(
+        answered(animalPhotoKey({ previewing: false, input, photoAt: at })),
+        "farm"
+      )
+    ).toBe(false);
+    expect(
+      keptOnDevice(
+        answered(
+          animalPhotoKey({
+            previewing: true,
+            input: { ...input, investorId: "i" },
+            photoAt: at,
+          })
+        ),
+        "farm"
+      )
+    ).toBe(true);
   });
 
   it("never keeps a question that failed", () => {

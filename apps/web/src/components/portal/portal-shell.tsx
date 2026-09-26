@@ -38,7 +38,7 @@ import {
   UserRound,
   WifiOff,
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 
 import LanguageToggle from "@/components/language-toggle";
@@ -350,6 +350,35 @@ const useLeaveWhenTheDayIsDone = () => {
 };
 
 /**
+ * Keeps the page's scroll padding as tall as what is pinned over it — the Preview's band wraps onto a second line on a
+ * phone — so a control reached by Tab never stops under it (WCAG 2.4.11; `--pinned-top` in globals.css).
+ */
+const usePinnedTop = () => {
+  const pinned = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const block = pinned.current;
+    const root = document.documentElement;
+    if (!block) {
+      return;
+    }
+    const measure = () =>
+      root.style.setProperty("--pinned-top", `${block.offsetHeight}px`);
+    // Measured now, and again whenever it changes height: an observer says nothing until the page is next painted.
+    measure();
+    const watching =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(measure);
+    watching?.observe(block);
+    return () => {
+      watching?.disconnect();
+      root.style.removeProperty("--pinned-top");
+    };
+  }, []);
+  return pinned;
+};
+
+/**
  * Every portal page, framed as every farm page is (ADR 0007 keeps the two apart, not unalike): the sidebar, the bar
  * over the page with the reader's settings and their menu, the page, the phone's bottom bar — and under every page,
  * what the portal is and whom to ask.
@@ -369,12 +398,13 @@ export const PortalShell = ({
   // the portal keeps nothing on the phone to open with (ADR 0009).
   const online = useOnline();
   useLeaveWhenTheDayIsDone();
+  const pinned = usePinnedTop();
   return (
     <SidebarProvider>
       <PortalSidebar farmName={me.data?.farm.name ?? null} />
       <SidebarInset className="min-w-0">
         {/* The band and the bar are pinned together, so the Preview's band never covers the reader's settings. */}
-        <div className="sticky top-0 z-30" data-app-chrome>
+        <div className="sticky top-0 z-30" data-app-chrome ref={pinned}>
           {band}
           <header className="bg-background/85 supports-[backdrop-filter]:bg-background/70 flex h-14 shrink-0 items-center gap-2 border-b px-3 backdrop-blur md:px-5">
             <SidebarTrigger

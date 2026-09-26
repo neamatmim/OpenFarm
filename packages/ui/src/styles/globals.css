@@ -234,6 +234,16 @@
     @apply font-sans;
     -webkit-text-size-adjust: 100%;
     text-rendering: optimizeLegibility;
+    /* A control reached by Tab, or a link's target, comes into sight below the bar pinned over the page rather than
+       under it (WCAG 2.4.11). The bar is 3.5rem; a shell whose pinned top is taller — the Preview's band over the
+       portal's bar — measures it into --pinned-top. */
+    scroll-padding-top: var(--pinned-top, 3.5rem);
+  }
+  /* And above the bar pinned under a phone's page, where there is one. */
+  @media (width < 48rem) {
+    html:has([data-slot="bottom-bar"]) {
+      scroll-padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+    }
   }
   /* One line height for each size, the same in both languages, and tall enough for Bangla's vowel marks and
      conjuncts: a line of text is as tall in English as in Bangla, so changing the language changes the words and
