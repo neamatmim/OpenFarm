@@ -342,7 +342,7 @@ export const en = {
     "No Investor can sign in. Invite each one from their record once it is open.",
   "portal.openTitle": "Open the investor portal?",
   "portal.openWhy":
-    "Investors you invite will be able to sign in and read their own Ventures and papers — nothing else. The lawyer has not yet answered whether a portal makes the farm an investment platform; you can shut it again at any time.",
+    "Investors you invite will be able to sign in and read their own Ventures and papers — nothing else. The farm's lawyer approved the portal as built; you can shut it again at any time.",
   "portal.opened": "The investor portal is open",
   "portal.shut": "The investor portal is shut",
   "portal.shutForAll": "The portal is shut for everybody",
@@ -3707,8 +3707,7 @@ export const en = {
     "A short schedule for each Venture an Investor joins under their Master Agreement: Units, capital, split and window.",
   "templates.kindHint.agreement_amendment":
     "One paper moving a Venture's split or target window, signed by every Investor in it. Printed from the Venture's amend sheet.",
-  "templates.waitsOnLawyer":
-    "Waits on the lawyer's answer before anyone signs one",
+  "templates.notInUse": "Not in use: every Venture is signed with its own Investment Agreement",
   "templates.versionOn": "Version {number} · {day}",
   "templates.approvedBy": "Approved by {lawyer} on {day}",
   "templates.notApproved": "Not yet approved by a lawyer",

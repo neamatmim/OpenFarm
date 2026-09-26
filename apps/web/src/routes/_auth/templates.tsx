@@ -14,9 +14,9 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   BadgeCheck,
+  CircleSlash,
   Eye,
   FileClock,
-  Hourglass,
   Pencil,
   ScrollText,
   ShieldAlert,
@@ -54,13 +54,11 @@ const REFUSALS: Record<string, MessageKey> = {
   reviewed_in_the_future: "templates.refused.reviewedInTheFuture",
 };
 
-/** The kinds of paper that wait on the lawyer's answer before anybody signs one. */
-const WAITING_ON_THE_LAWYER: ReadonlySet<TemplateKind> = new Set([
+/** The kinds of paper the farm keeps worded but does not use: the lawyer's answer left every Venture signed with its
+ *  own Investment Agreement, so nobody signs a Master Agreement or its Schedule. */
+const NOT_IN_USE: ReadonlySet<TemplateKind> = new Set([
   "master_agreement",
   "venture_schedule",
-  "portal_consent",
-  "privacy_notice",
-  "nomination",
 ]);
 
 /** A farm day as the reader writes a date. */
@@ -168,9 +166,9 @@ const TemplateCard = ({
           })}
         </StatusBadge>
         <ApprovalBadge version={current} />
-        {WAITING_ON_THE_LAWYER.has(kind) ? (
-          <StatusBadge icon={Hourglass} tone="info">
-            {t("templates.waitsOnLawyer")}
+        {NOT_IN_USE.has(kind) ? (
+          <StatusBadge icon={CircleSlash} tone="neutral">
+            {t("templates.notInUse")}
           </StatusBadge>
         ) : null}
       </div>

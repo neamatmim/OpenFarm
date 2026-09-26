@@ -45,6 +45,8 @@ A **ready-for-agent spec**, like [Joining a Venture](../openfarm-joining-a-ventu
 - [Prototype the Agreement's parties part with several Nominees](./issues/05-prototype-the-agreement-with-several-nominees.md) — a Nominee table under the Investor, and a Receiver line per minor signed by the Receiver. The five rules are printed once in the Terms, in a heirs clause that reads right with none. The Nomination opens «আমি … মনোনীত করছি» and carries the rules in full. গ্রহণকারী for Receiver. [Draft wording](./assets/05-nominee-wording-draft.md); prototype on `prototype/several-nominees`.
 - [Add the Nominees to the pending lawyer meeting](./issues/06-add-the-nominees-to-the-pending-lawyer-meeting.md) — pages 7–8 of the lawyer's printable pack, and a Several Nominees section in its checklist. They ask about an unstamped Nomination, discharge against heirs, a succession-certificate threshold, shares as bequests, a minor's Receiver, and the *amin* reading for the Shariah scholar. Both lawyer tickets point at them. The answer arrives there, and the spec doesn't wait for it.
 
+- **The lawyer and the Shariah scholar approved the nominee wording as drafted (2026-09-26):** no changes needed. See [the advisers' answer](../openfarm-investor-projects/issues/11-take-the-structure-to-a-lawyer-and-a-shariah-scholar.md). The build is merged (tickets 01–04 of [the spec](../openfarm-nominees/README.md)), and the Owner records the approval on the published Versions.
+
 ## Not yet specified
 
 Nothing. Every ticket is closed (2026-09-26). **The destination is reached: [the spec](../openfarm-nominees/spec.md)**, ready for an agent. The two patches left in the fog turned out to be spec detail, and are handed to the spec rather than ticketed:
