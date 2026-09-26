@@ -102,6 +102,17 @@ describe("a save refreshes the screen", () => {
     work.unsubscribe();
   });
 
+  it("reads nothing again when an Investor has only looked at the Ventures offered to them", async () => {
+    const client = aClient();
+    const offered = await onScreen(client, ["portal", "openVentures"]);
+
+    await save(client, ["portal", "sawOffers"]);
+
+    // The "New" on the page they are reading stays until they next open it.
+    expect(offered.asked()).toBe(1);
+    offered.unsubscribe();
+  });
+
   it("reads nothing again for an entry the phone only queued for the Outbox", async () => {
     const client = aClient();
     const work = await onScreen(client, ["instances", "byId"]);

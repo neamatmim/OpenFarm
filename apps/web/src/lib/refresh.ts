@@ -11,6 +11,12 @@ const OPENING_THE_APP: ReadonlySet<string> = new Set([
   "alerts.digest",
 ]);
 
+/**
+ * Saves that change nothing anybody is reading: an Investor having looked at the Ventures offered to them. Refreshing
+ * would take the "New" off the page they opened to read it on; it goes the next time they open it.
+ */
+const ONLY_LOOKED: ReadonlySet<string> = new Set(["portal.sawOffers"]);
+
 /** A save's procedure, as oRPC keys it: `[["drugs", "purchase"], { type: "mutation" }]` is `drugs.purchase`. */
 const procedureOf = (mutation: Pick<Mutation, "options">): string | null => {
   const path = mutation.options.mutationKey?.[0];
@@ -19,14 +25,18 @@ const procedureOf = (mutation: Pick<Mutation, "options">): string | null => {
 
 /**
  * Does a save that went through refresh the screen? Every one the farm took does, but those the app makes on
- * opening. One that only put an entry in the phone's Outbox does not: the farm has not been told yet, the screen
+ * opening and an Investor having only looked at what they are offered. One that only put an entry in the phone's Outbox does not: the farm has not been told yet, the screen
  * already shows what was written, and reading the farm now would take it back.
  */
 export const refreshesTheScreen = (
   mutation: Pick<Mutation, "options">
 ): boolean => {
   const procedure = procedureOf(mutation);
-  return procedure !== null && !OPENING_THE_APP.has(procedure);
+  return (
+    procedure !== null &&
+    !OPENING_THE_APP.has(procedure) &&
+    !ONLY_LOOKED.has(procedure)
+  );
 };
 
 /**

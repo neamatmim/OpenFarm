@@ -1,3 +1,5 @@
+import { and, eq } from "@OpenFarm/db/operators";
+import { investorAccess } from "@OpenFarm/db/schema/venture";
 import {
   FIELDS_OF,
   factsMissing,
@@ -108,14 +110,44 @@ export const theirPortfolio = ({ db, clock, farm, investor }: PortalReader) =>
  * farm signs on today, and the Owner's few words — never how many Units are left, who else has asked or anything off
  * an Agreement. None for a retired Investor, and none they are already signed for.
  */
-export const theirOpenVentures = (reader: PortalReader) =>
-  openVenturesFor(
+export const theirOpenVentures = async (reader: PortalReader) => {
+  const access = await reader.db.query.investorAccess.findFirst({
+    where: { farmId: reader.farm.id, investorId: reader.investor.id },
+    columns: { offersSeenAt: true },
+  });
+  return openVenturesFor(
     reader.db,
     reader.farm,
     reader.investor.id,
     reader.clock.now(),
-    showsProjections(reader)
+    {
+      withProjections: showsProjections(reader),
+      offersSeenAt: access?.offersSeenAt ?? null,
+    }
   );
+};
+
+/**
+ * They have looked at the Ventures offered to them: none shown until now is new to them any more. Theirs alone, like
+ * when they were last in — not an Audit Event, since it records nothing the farm did.
+ */
+export const theySawOffers = async ({
+  db,
+  clock,
+  farm,
+  investor,
+}: PortalReader) => {
+  await db
+    .update(investorAccess)
+    .set({ offersSeenAt: clock.now() })
+    .where(
+      and(
+        eq(investorAccess.farmId, farm.id),
+        eq(investorAccess.investorId, investor.id)
+      )
+    );
+  return { seen: true };
+};
 
 /** Their own Requests to Join, the latest first, and where each stands. Never anybody else's. */
 export const theirOwnRequests = ({ db, farm, investor }: PortalReader) =>

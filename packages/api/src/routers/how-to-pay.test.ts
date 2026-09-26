@@ -309,6 +309,8 @@ describe("a Venture an Investor has not signed for", () => {
       takingRequests: true,
       // The Owner shows no Projections on this farm (ADR 0010).
       projection: null,
+      // Shown since they last looked at what they are offered, which they never have.
+      isNew: true,
     });
     expect(JSON.stringify(offered)).not.toContain(ACCOUNT.accountNumber);
   });

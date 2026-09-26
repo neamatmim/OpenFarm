@@ -1,0 +1,1 @@
+ALTER TABLE "investor_access" ADD COLUMN "offers_seen_at" timestamp;

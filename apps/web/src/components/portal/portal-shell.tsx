@@ -1,3 +1,4 @@
+import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import {
   DropdownMenu,
@@ -16,6 +17,7 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
@@ -23,6 +25,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@OpenFarm/ui/components/sidebar";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
@@ -46,6 +49,7 @@ import { Notice } from "@/components/page";
 import {
   usePortalPlaces,
   usePreviewing,
+  useTheirOpenVentures,
   useTheirPortfolio,
   useTheirRecord,
 } from "@/components/portal/portal-source";
@@ -54,7 +58,7 @@ import type { NavItem } from "@/components/shell/navigation";
 import { ThemeMenu } from "@/components/theme-menu";
 import { Initials } from "@/components/user-menu";
 import { Wordmark } from "@/components/wordmark";
-import { useT } from "@/i18n/language-provider";
+import { useLanguage, useT } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
 import { leaveTheEndedSignIn } from "@/lib/ended-sign-in";
 import { useOnline } from "@/lib/online";
@@ -64,9 +68,11 @@ import { wordOf } from "@/lib/saying";
 import { PortalNotice } from "./portal-door";
 
 /** The portal's destinations on a phone, beside More for the Ventures: their portfolio, their money, their papers and
- *  their account — wherever the portal is drawn. */
+ *  their account — wherever the portal is drawn. While the farm is raising capital for a Venture it shows them, that
+ *  takes their account's place, which is still under More: a sixth would crowd the bar. */
 const bottomBarOf = (
-  places: ReturnType<typeof usePortalPlaces>
+  places: ReturnType<typeof usePortalPlaces>,
+  raising: boolean
 ): readonly NavItem[] => [
   {
     to: places.home.path,
@@ -86,12 +92,19 @@ const bottomBarOf = (
     icon: FileText,
     audience: "anyone",
   },
-  {
-    to: places.account.path,
-    label: "portal.nav.account",
-    icon: UserRound,
-    audience: "anyone",
-  },
+  raising
+    ? {
+        to: places.openVentures.path,
+        label: "portal.nav.raising",
+        icon: Sprout,
+        audience: "anyone",
+      }
+    : {
+        to: places.account.path,
+        label: "portal.nav.account",
+        icon: UserRound,
+        audience: "anyone",
+      },
 ];
 /** Whether a destination is the page being shown. The portfolio is only itself: every portal page is inside it. */
 const isHere = (to: string, home: string, pathname: string) =>
@@ -107,6 +120,8 @@ const PortalNavLink = ({
   icon: Icon,
   here,
   onGo,
+  count,
+  fresh = false,
 }: {
   to: string;
   params?: { agreementId: string };
@@ -114,6 +129,10 @@ const PortalNavLink = ({
   icon: LucideIcon;
   here: boolean;
   onGo: () => void;
+  /** How many there are, in the reader's own digits, said beside it; nothing for none. */
+  count?: string;
+  /** Whether any of them is new to the reader, which sets the count in the brand's colour. */
+  fresh?: boolean;
 }) => (
   <SidebarMenuItem>
     <SidebarMenuButton
@@ -132,6 +151,16 @@ const PortalNavLink = ({
       <Icon aria-hidden />
       <span className="truncate">{label}</span>
     </SidebarMenuButton>
+    {count ? (
+      <SidebarMenuBadge
+        className={cn(
+          "tabular-nums",
+          fresh && "bg-sidebar-primary text-sidebar-primary-foreground"
+        )}
+      >
+        {count}
+      </SidebarMenuBadge>
+    ) : null}
   </SidebarMenuItem>
 );
 
@@ -142,6 +171,7 @@ const PortalNavLink = ({
  */
 const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
   const t = useT();
+  const { language } = useLanguage();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const theirs = useTheirPortfolio();
   const places = usePortalPlaces();
@@ -154,6 +184,7 @@ const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
     }
   };
   const ventures = theirs.data?.agreements ?? [];
+  const offered = useTheirOpenVentures().data ?? [];
   return (
     <Sidebar collapsible="icon" data-app-chrome mobileTitle={t("nav.menu")}>
       <SidebarHeader className="px-3 pt-4 pb-2 group-data-[collapsible=icon]:px-2.5">
@@ -201,6 +232,18 @@ const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
                 onGo={close}
                 to={places.papers.path}
               />
+              {/* Only while the farm is raising capital for a Venture it shows them. */}
+              {offered.length > 0 ? (
+                <PortalNavLink
+                  count={formatNumber(offered.length, language)}
+                  fresh={offered.some((one) => one.isNew === true)}
+                  here={here(places.openVentures.path)}
+                  icon={Sprout}
+                  label={t("portal.open.title")}
+                  onGo={close}
+                  to={places.openVentures.path}
+                />
+              ) : null}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -399,6 +442,7 @@ export const PortalShell = ({
   const online = useOnline();
   useLeaveWhenTheDayIsDone();
   const pinned = usePinnedTop();
+  const raising = (useTheirOpenVentures().data?.length ?? 0) > 0;
   return (
     <SidebarProvider>
       <PortalSidebar farmName={me.data?.farm.name ?? null} />
@@ -454,7 +498,7 @@ export const PortalShell = ({
           </PortalNotice>
         </main>
       </SidebarInset>
-      <BottomBar items={bottomBarOf(places)} />
+      <BottomBar items={bottomBarOf(places, raising)} />
     </SidebarProvider>
   );
 };

@@ -16,7 +16,10 @@ import {
   CapitalAccount,
 } from "@/components/portal/capital-account";
 import { FiguresAsAt } from "@/components/portal/figures-as-at";
-import { OpenVenturesOnHome } from "@/components/portal/open-ventures";
+import {
+  OpenVenturesOnHome,
+  RaisingLine,
+} from "@/components/portal/open-ventures";
 import { HomeSkeleton } from "@/components/portal/portal-skeletons";
 import {
   usePortalPlaces,
@@ -144,6 +147,7 @@ const Portfolio = ({ theirs }: { theirs: TheirAgreements }) => {
 export const PortalHome = () => {
   const { t } = useLanguage();
   const theirs = useTheirPortfolio();
+  const notInAnyYet = theirs.data?.agreements.length === 0;
   return (
     <Page>
       <PageHeader
@@ -155,11 +159,14 @@ export const PortalHome = () => {
         }
         title={t("portal.homeTitle")}
       />
+      {/* Somebody in no Venture yet reads what the farm is raising capital for first; everybody else is told in one
+          line, with their own money straight after it. */}
+      {notInAnyYet ? <OpenVenturesOnHome /> : <RaisingLine />}
       <Loaded query={theirs} skeleton={<HomeSkeleton />}>
         {theirs.data ? <Portfolio theirs={theirs.data} /> : null}
       </Loaded>
       <TheirRequestsOnHome />
-      <OpenVenturesOnHome />
+      {notInAnyYet ? null : <OpenVenturesOnHome />}
     </Page>
   );
 };

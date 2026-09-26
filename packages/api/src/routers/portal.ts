@@ -12,6 +12,7 @@ import {
   theirRecord,
   theirSignIns,
   theirAnimalPhoto,
+  theySawOffers,
   theirVentureToday,
 } from "../portal-reads";
 import {
@@ -107,6 +108,9 @@ export const portalRouter = {
   openVentures: investorProcedure.handler(({ context }) =>
     theirOpenVentures(context)
   ),
+
+  /** They have looked at the Ventures offered to them (`theySawOffers`): none is new to them any more. */
+  sawOffers: investorProcedure.handler(({ context }) => theySawOffers(context)),
 
   /**
    * Asking to join a Venture the farm is showing, for whole Units and a note if they like — or, with a Request still

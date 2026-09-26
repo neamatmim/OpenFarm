@@ -16,6 +16,7 @@ import type { OpenVenture } from "@/components/portal/open-ventures";
 import { Fact } from "@/components/portal/open-ventures";
 import { OfferSkeleton } from "@/components/portal/portal-skeletons";
 import {
+  useLookedAtOffers,
   usePortalPlaces,
   useTheirOpenVentures,
 } from "@/components/portal/portal-source";
@@ -95,6 +96,7 @@ export const OpenVenturePage = ({ ventureId }: { ventureId: string }) => {
   const { t } = useLanguage();
   const places = usePortalPlaces();
   const offered = useTheirOpenVentures();
+  useLookedAtOffers(offered.data);
   const one = (offered.data ?? []).find((each) => each.id === ventureId);
   return (
     <Page>
