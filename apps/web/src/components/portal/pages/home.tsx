@@ -1,7 +1,9 @@
+import { hasEnded } from "@OpenFarm/domain";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
 import { ChevronRight, Handshake } from "lucide-react";
 
+import { MORE_LINK } from "@/components/home/queue";
 import type { TheirAgreements } from "@/components/investors/investor-agreements";
 import { SaidDate } from "@/components/list-cells";
 import {
@@ -111,32 +113,53 @@ const VentureCard = ({
 
 /**
  * Their whole part, once it is read: the capital account first — what investors open a portal to see — then where it
- * sits and each Venture. Their money and their papers are places of their own, in the menu.
+ * sits and each Venture still running. Those that have finished, their money and their papers are places of their
+ * own, in the menu.
  */
 const Portfolio = ({ theirs }: { theirs: TheirAgreements }) => {
   const { t } = useLanguage();
+  const { ventures } = usePortalPlaces();
   if (theirs.agreements.length === 0) {
     return <EmptyState icon={Handshake} title={t("portal.noVentures")} />;
   }
+  const running = theirs.agreements.filter(
+    (one) => !hasEnded(one.venture.state)
+  );
   return (
     <>
       <CapitalAccount theirs={theirs} />
       <Allocation theirs={theirs} />
-      <Section plain title={t("portal.yourVentures")}>
-        <ul
-          className={cn(
-            "grid gap-3",
-            theirs.agreements.length > 1 && "md:grid-cols-2"
-          )}
-        >
-          {theirs.agreements.map((one) => (
-            <VentureCard
-              alone={theirs.agreements.length === 1}
-              key={one.id}
-              one={one}
-            />
-          ))}
-        </ul>
+      <Section
+        action={
+          <Link
+            className={cn(MORE_LINK, "text-sm")}
+            params={ventures.link.params}
+            to={ventures.link.to}
+          >
+            {t("portal.ventures.all")}
+            <ChevronRight aria-hidden className="size-4" />
+          </Link>
+        }
+        plain
+        title={t("portal.yourVentures")}
+      >
+        {running.length > 0 ? (
+          <ul
+            className={cn("grid gap-3", running.length > 1 && "md:grid-cols-2")}
+          >
+            {running.map((one) => (
+              <VentureCard
+                alone={running.length === 1}
+                key={one.id}
+                one={one}
+              />
+            ))}
+          </ul>
+        ) : (
+          <p className="text-muted-foreground text-sm">
+            {t("portal.ventures.noneRunning")}
+          </p>
+        )}
       </Section>
     </>
   );
