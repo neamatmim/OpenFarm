@@ -100,6 +100,13 @@ export const farm = pgTable("farm", {
   /** How many days ahead keeping a fattening animal is weighed, at the rate she is gaining and the keep she costs now:
    *  a fortnight, from one Weigh-in to the next, unless the Owner says otherwise. */
   keepAheadDays: integer("keep_ahead_days").notNull().default(14),
+  /** How many days an animal must have been on the farm before her keep is judged: fewer, and she has been fed but not
+   *  for long enough to be a rate. A week unless the Owner says otherwise; never more than the days a keep is read
+   *  over. */
+  keepNeedsDays: integer("keep_needs_days").notNull().default(7),
+  /** How many days apart her last two Weigh-ins must be before the gain between them is trusted for keep-or-sell: closer,
+   *  and a full gut moves her more than she grew. A week unless the Owner says otherwise. */
+  keepRateGapDays: integer("keep_rate_gap_days").notNull().default(7),
   /** How many days after her last Calving a cow still not in calf is named to the Owner as one to think about
    *  culling. The Owner's, as the list it shapes is: five months unless the Owner says otherwise. */
   cullOpenDays: integer("cull_open_days").notNull().default(150),

@@ -215,6 +215,7 @@ describe("keep her or sell her", () => {
         dailyGainKg: 1,
         range: { lowBdtPerKg: 280, highBdtPerKg: 320 },
         aheadDays: 14,
+        needsDays: 7,
       })
     ).toEqual({
       known: true,
@@ -242,6 +243,7 @@ describe("keep her or sell her", () => {
         dailyGainKg: 1,
         range: { lowBdtPerKg: 280, highBdtPerKg: 320 },
         aheadDays: 7,
+        needsDays: 7,
       })
     ).toMatchObject({
       costOfGainNowBdt: 300,
@@ -263,6 +265,7 @@ describe("keep her or sell her", () => {
         dailyGainKg: 1,
         range: { lowBdtPerKg, highBdtPerKg },
         aheadDays: 14,
+        needsDays: 7,
       });
     const pays = at(300, 360);
     const costsMore = at(250, 290);
@@ -273,7 +276,13 @@ describe("keep her or sell her", () => {
 
   it("says a beast putting nothing on, or losing, costs more to keep at any price", () => {
     const range = { lowBdtPerKg: 500, highBdtPerKg: 700 };
-    const still = keepOrSell({ kept, dailyGainKg: 0, range, aheadDays: 14 });
+    const still = keepOrSell({
+      kept,
+      dailyGainKg: 0,
+      range,
+      aheadDays: 14,
+      needsDays: 7,
+    });
     expect(still).toMatchObject({
       known: true,
       costOfGainNowBdt: null,
@@ -289,6 +298,7 @@ describe("keep her or sell her", () => {
       dailyGainKg: -0.5,
       range,
       aheadDays: 14,
+      needsDays: 7,
     });
     // Half a kilo a day off her for a fortnight is 7 kg gone, and ৳4,200 spent on it.
     expect(losing).toMatchObject({
@@ -306,6 +316,7 @@ describe("keep her or sell her", () => {
         dailyGainKg: 0.85,
         range: { lowBdtPerKg: 400, highBdtPerKg: 450 },
         aheadDays: 14,
+        needsDays: 7,
       })
     ).toEqual({
       known: true,
@@ -326,13 +337,43 @@ describe("keep her or sell her", () => {
 
   it("gives the figures but no verdict while no price a kilo is set for her", () => {
     expect(
-      keepOrSell({ kept, dailyGainKg: 1, range: null, aheadDays: 14 })
+      keepOrSell({
+        kept,
+        dailyGainKg: 1,
+        range: null,
+        aheadDays: 14,
+        needsDays: 7,
+      })
     ).toMatchObject({
       known: true,
       costOfGainNowBdt: 300,
       keeping: null,
       ahead: { low: null, high: null },
     });
+  });
+
+  it("judges an animal as soon as the farm says she has been here long enough", () => {
+    // Five days of her at ৳300 a day: a farm that waits a week cannot tell yet, one that waits three days can.
+    const fiveDays = { ...kept, bdt: 1500, days: 5 };
+    const range = { lowBdtPerKg: 280, highBdtPerKg: 320 };
+    expect(
+      keepOrSell({
+        kept: fiveDays,
+        dailyGainKg: 1,
+        range,
+        aheadDays: 14,
+        needsDays: 7,
+      })
+    ).toEqual({ known: false, because: "too_new" });
+    expect(
+      keepOrSell({
+        kept: fiveDays,
+        dailyGainKg: 1,
+        range,
+        aheadDays: 14,
+        needsDays: 3,
+      })
+    ).toMatchObject({ known: true, keepBdtPerDay: 300, keeping: "close" });
   });
 
   it("says why it cannot tell: too few days here, no Feeding charged to her, or no rate to work from", () => {
@@ -343,6 +384,7 @@ describe("keep her or sell her", () => {
         dailyGainKg: 1,
         range,
         aheadDays: 14,
+        needsDays: 7,
       })
     ).toEqual({ known: false, because: "too_new" });
     expect(
@@ -351,10 +393,17 @@ describe("keep her or sell her", () => {
         dailyGainKg: 1,
         range,
         aheadDays: 14,
+        needsDays: 7,
       })
     ).toEqual({ known: false, because: "not_fed" });
     expect(
-      keepOrSell({ kept, dailyGainKg: null, range, aheadDays: 14 })
+      keepOrSell({
+        kept,
+        dailyGainKg: null,
+        range,
+        aheadDays: 14,
+        needsDays: 7,
+      })
     ).toEqual({
       known: false,
       because: "no_rate",
@@ -368,7 +417,8 @@ describe("the daily gain keeping her is weighed on", () => {
     expect(
       keepRateOf(
         { dailyGainKg: 0.4, overDays: 14 },
-        { dailyGainKg: 0.9, overDays: 90 }
+        { dailyGainKg: 0.9, overDays: 90 },
+        7
       )
     ).toBe(0.4);
   });
@@ -378,10 +428,20 @@ describe("the daily gain keeping her is weighed on", () => {
     expect(
       keepRateOf(
         { dailyGainKg: 0.33, overDays: 3 },
-        { dailyGainKg: 0.57, overDays: 92 }
+        { dailyGainKg: 0.57, overDays: 92 },
+        7
       )
     ).toBe(0.57);
-    expect(keepRateOf(null, { dailyGainKg: 1.2, overDays: 5 })).toBeNull();
-    expect(keepRateOf(null, null)).toBeNull();
+    expect(keepRateOf(null, { dailyGainKg: 1.2, overDays: 5 }, 7)).toBeNull();
+    expect(keepRateOf(null, null, 7)).toBeNull();
+  });
+
+  it("trusts two readings as close together as the farm says, and no closer", () => {
+    // Weighed three days apart: a farm that trusts a three-day gap reads her last three days; one that wants a week
+    // reads her whole stay.
+    const recent = { dailyGainKg: 0.33, overDays: 3 };
+    const sinceIntake = { dailyGainKg: 0.57, overDays: 92 };
+    expect(keepRateOf(recent, sinceIntake, 3)).toBe(0.33);
+    expect(keepRateOf(recent, sinceIntake, 7)).toBe(0.57);
   });
 });

@@ -37,6 +37,7 @@ export const cullList = async (
     id: string;
     repeatBreederThreshold: number;
     keepReadDays: number;
+    keepNeedsDays: number;
     cullOpenDays: number;
     cullMilkAfterDays: number;
     cullMilkPriceDays: number;
@@ -117,6 +118,7 @@ export const cullList = async (
                 ),
                 daysInMilk: daysSinceCalving,
                 weighedAfterDays: farm.cullMilkAfterDays,
+                needsDays: farm.keepNeedsDays,
                 price,
               })
             : null;

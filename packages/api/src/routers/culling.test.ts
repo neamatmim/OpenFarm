@@ -557,6 +557,35 @@ describe("why the farm names a dairy cow to the Owner", () => {
     }
   });
 
+  it("weighs a cow bought in long in milk once she has been here as many days as the Owner says", async () => {
+    // Bought in on the 26th of February, five months since she calved: three days on this farm by the 1st of March.
+    const buying = await as("owner", "2041-02-26T04:00:00.000Z");
+    const bought = await buying.client.animals.importRegister({
+      csv: [
+        "sex,side,state,pen,source,calved_at,expected_calving",
+        `female,dairy,milking,দোহন পেন ${suffix},bought,2040-10-01,`,
+      ].join("\n"),
+    });
+    const newcomer = bought.imported[0]?.tagNumber ?? "";
+    const before = await theList();
+    expect(before.of(newcomer)?.milk).toEqual({
+      known: false,
+      because: "too_soon",
+    });
+    const owner = await as("owner", "2041-03-01T04:00:00.000Z");
+    await owner.client.farm.setParameters({ keepNeedsDays: 2 });
+    try {
+      // Three days is long enough at two: what stops the farm now is that nothing was fed in her Pen since she came.
+      const after = await theList();
+      expect(after.of(newcomer)?.milk).toEqual({
+        known: false,
+        because: "not_fed",
+      });
+    } finally {
+      await owner.client.farm.setParameters({ keepNeedsDays: 7 });
+    }
+  });
+
   it("reads a keep over as many days as the Owner says, a fortnight to three months, and holds the milk wait a week past them", async () => {
     const owner = await as("owner", "2041-03-01T04:00:00.000Z");
     const manager = await as("manager", "2041-03-01T04:00:00.000Z");

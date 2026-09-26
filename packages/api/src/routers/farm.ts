@@ -91,6 +91,12 @@ const parameters = z
     /** How many days ahead keeping a fattening animal is worked for keep-or-sell: at least a week, and no more than
      *  three months, past which her rate and her keep today say little about the days they are worked over. */
     keepAheadDays: z.number().int().min(7).max(90).optional(),
+    /** How many days an animal must have been here before her keep is judged: at least one, and no more than four
+     *  weeks — which the handler also holds under the days this farm reads a keep over. */
+    keepNeedsDays: z.number().int().min(1).max(28).optional(),
+    /** How many days apart her last two Weigh-ins must be before their gain is trusted for keep-or-sell: at least one,
+     *  and no more than four weeks, past which a fortnightly weighing would never be read. */
+    keepRateGapDays: z.number().int().min(1).max(28).optional(),
     /** How many days after calving a cow still not in calf is named for culling: not before a cow that is going to
      *  settle has had her chances, and not past a year, when the question has long been answered. */
     cullOpenDays: z.number().int().min(60).max(365).optional(),
@@ -170,6 +176,8 @@ const A_VENTURES_OWN = [
 const WHAT_KEEP_AND_CULL_READ = [
   "keepReadDays",
   "keepAheadDays",
+  "keepNeedsDays",
+  "keepRateGapDays",
   "cullOpenDays",
   "cullMilkAfterDays",
   "cullMilkPriceDays",
@@ -223,6 +231,25 @@ const refuseMilkWeighedTooSoon = (
     throw new ORPCError("BAD_REQUEST", {
       message: `A cow's milk is weighed a week past the days her keep is read over: ${soonest} days at the soonest`,
       data: { refusal: "milk_weighed_too_soon", soonestDays: soonest },
+    });
+  }
+};
+
+/**
+ * Refuses more days here before a keep is judged than the days a keep is read over, as the farm would have the two once
+ * this request is saved: no animal could ever have been kept long enough to be judged, and every one would read "too
+ * new" for ever. Said, not moved for the Owner: the two are set together or not at all.
+ */
+const refuseKeepNeededLongerThanRead = (
+  input: ParametersInput,
+  standing: { keepReadDays: number; keepNeedsDays: number }
+) => {
+  const readDays = input.keepReadDays ?? standing.keepReadDays;
+  const needsDays = input.keepNeedsDays ?? standing.keepNeedsDays;
+  if (readDays < needsDays) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `An animal's keep is judged within the days it is read over: ${readDays} days at the most`,
+      data: { refusal: "keep_needed_longer_than_read", readDays },
     });
   }
 };
@@ -573,6 +600,7 @@ export const farmRouter = {
         });
       }
       refuseMilkWeighedTooSoon(input, context.farm);
+      refuseKeepNeededLongerThanRead(input, context.farm);
       const opens = input.aiWindowStartHours ?? context.farm.aiWindowStartHours;
       const closes = input.aiWindowEndHours ?? context.farm.aiWindowEndHours;
       if (closes <= opens) {
@@ -632,6 +660,8 @@ export const farmRouter = {
                 repeatBreederThreshold: true,
                 keepReadDays: true,
                 keepAheadDays: true,
+                keepNeedsDays: true,
+                keepRateGapDays: true,
                 cullOpenDays: true,
                 cullMilkAfterDays: true,
                 cullMilkPriceDays: true,

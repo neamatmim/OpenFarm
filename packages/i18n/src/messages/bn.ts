@@ -799,6 +799,8 @@ export const bn: Record<MessageKey, string> = {
     "রাখা না বেচা আর ছাঁটাই তালিকার জন্য পশুর রাখার খরচ কত দিন পেছন থেকে ধরা হবে, আরও কত দিন রাখার হিসাব হবে, আর কোন গাভী ছাঁটাই তালিকায় উঠবে। তালিকা দুটো যেমন শুধু আপনার, এগুলোও ঠিক করবেন শুধু আপনি।",
   "params.keepReadDays": "পশুর রাখার খরচ ধরা হবে গত এত দিনের",
   "params.keepAheadDays": "আরও এত দিন রাখলে কী হয়, তা মাপা হবে",
+  "params.keepNeedsDays": "খামারে এত দিন থাকার পর রাখার খরচের বিচার",
+  "params.keepRateGapDays": "দুই ওজনের মাঝে অন্তত এত দিন হলে বাড়ার হার ধরা",
   "params.cullOpenDays": "বাছুর হওয়ার পর গর্ভ না এলে তালিকায়",
   "params.cullMilkAfterDays": "বাছুর হওয়ার পর দুধ ও খরচ মাপা শুরু",
   "params.cullMilkPriceDays": "দুধের দাম ধরা হবে গত এত দিনের বিক্রি থেকে",
@@ -1165,6 +1167,8 @@ export const bn: Record<MessageKey, string> = {
   "ventures.herdMargin": "পুরো পালের মুনাফা",
   "ventures.herdCostOfGain": "প্রতি কেজি বাড়াতে খরচ",
   "ventures.noAnimalsYet": "এই ভেঞ্চারে এখনো কোনো গরু নেই",
+  "refusal.keepNeededLongerThanRead":
+    "রাখার খরচ যত দিন ধরা হয়, তার মধ্যেই পশুর বিচার হয়: সবচেয়ে বেশি {readDays} দিন। দুটো একসঙ্গে বদলান।",
   "refusal.milkWeighedTooSoon":
     "রাখার খরচ যত দিন ধরা হয়, তার অন্তত এক সপ্তাহ পর থেকে গাভীর দুধ মাপা হয়: সবচেয়ে আগে {soonestDays} দিনে। দুটো একসঙ্গে বদলান।",
   "refusal.capitalOverUnits": "এই চুক্তির ইউনিটের দামের চেয়ে বেশি টাকা",
