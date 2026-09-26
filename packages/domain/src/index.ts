@@ -437,7 +437,7 @@ export {
 } from "./animal-price";
 export {
   CULL_REASONS,
-  MILK_NEEDS_DAYS_IN_MILK,
+  LEAST_DAYS_BEFORE_MILK_IS_WEIGHED,
   MILK_PRICE_DAYS,
   cullReasonsOf,
   litresOver,

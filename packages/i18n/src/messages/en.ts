@@ -831,6 +831,7 @@ export const en = {
   "params.cullingHint":
     "What puts a dairy cow on your culling list. Yours alone to set, as the list is yours alone to read.",
   "params.cullOpenDays": "Empty too long after calving",
+  "params.cullMilkAfterDays": "Weigh milk against keep from, after calving",
   "params.ventures": "Ventures",
   "params.venturesHint":
     "What a Venture is planned by when you open one: the least it is worth starting on, how much of its capital keeps the animals rather than buys them, and how long it keeps selling after its window closes.",

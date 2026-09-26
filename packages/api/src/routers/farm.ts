@@ -2,6 +2,7 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq, sql } from "@OpenFarm/db/operators";
 import { farm, roleAssignment } from "@OpenFarm/db/schema/farm";
 import {
+  LEAST_DAYS_BEFORE_MILK_IS_WEIGHED,
   MAX_GRACE_MINUTES,
   STANDARD_KINDS,
   identityView,
@@ -80,6 +81,14 @@ const parameters = z
     /** How many days after calving a cow still not in calf is named for culling: not before a cow that is going to
      *  settle has had her chances, and not past a year, when the question has long been answered. */
     cullOpenDays: z.number().int().min(60).max(365).optional(),
+    /** How many days into her Lactation before a cow's milk is weighed against her keep: never before her calf's week
+     *  and the four weeks read after it, and not past half a year, when the question has long been answered. */
+    cullMilkAfterDays: z
+      .number()
+      .int()
+      .min(LEAST_DAYS_BEFORE_MILK_IS_WEIGHED)
+      .max(180)
+      .optional(),
     /** The taka above which a Money Event waits for the Owner. */
     approvalThresholdBdt: z.number().int().min(0).max(100_000_000).optional(),
     /** What part of a Venture's target capital is the least worth starting on. */
@@ -143,7 +152,7 @@ const aVenturesOwn = (input: z.infer<typeof parameters>): boolean =>
   A_VENTURES_OWN.some((key) => input[key] !== undefined);
 
 /** What shapes the Owner's list of cows to think about culling: the Owner's to set, as the list is theirs to read. */
-const THE_CULL_LISTS = ["cullOpenDays"] as const;
+const THE_CULL_LISTS = ["cullOpenDays", "cullMilkAfterDays"] as const;
 
 const theCullLists = (input: z.infer<typeof parameters>): boolean =>
   THE_CULL_LISTS.some((key) => input[key] !== undefined);
@@ -568,6 +577,7 @@ export const farmRouter = {
                 calvingPrepLeadDays: true,
                 repeatBreederThreshold: true,
                 cullOpenDays: true,
+                cullMilkAfterDays: true,
                 approvalThresholdBdt: true,
                 ventureFloorPercent: true,
                 ventureRunningPercent: true,

@@ -34,7 +34,12 @@ const BREEDING_STATES = [
  */
 export const cullList = async (
   db: Database,
-  farm: { id: string; repeatBreederThreshold: number; cullOpenDays: number },
+  farm: {
+    id: string;
+    repeatBreederThreshold: number;
+    cullOpenDays: number;
+    cullMilkAfterDays: number;
+  },
   now: Date
 ) => {
   const costs = await farmCosts(db, farm.id);
@@ -82,6 +87,8 @@ export const cullList = async (
     milkPrice: price ? { ...price, since, days: MILK_PRICE_DAYS } : null,
     /** The Farm Parameter a cow still empty after calving is named at, for the page to say. */
     openDays: farm.cullOpenDays,
+    /** The Farm Parameter a cow's milk is weighed from, in days of her Lactation. */
+    milkAfterDays: farm.cullMilkAfterDays,
     cows: cows
       .filter(
         (cow) =>
@@ -102,6 +109,7 @@ export const cullList = async (
                   now
                 ),
                 daysInMilk: daysSinceCalving,
+                weighedAfterDays: farm.cullMilkAfterDays,
                 price,
               })
             : null;

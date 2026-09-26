@@ -51,7 +51,13 @@ describe("her milk against her keep", () => {
     // 280 litres in 28 days is 10 a day. At ৳55 they fetch ৳15,400 against ৳8,400 of keep: ৳7,000 over, and a
     // litre costs her ৳30 to make.
     expect(
-      milkAgainstKeep({ kept, litres: 280, daysInMilk: 90, price })
+      milkAgainstKeep({
+        kept,
+        litres: 280,
+        daysInMilk: 90,
+        weighedAfterDays: 35,
+        price,
+      })
     ).toEqual({
       known: true,
       days: 28,
@@ -69,11 +75,23 @@ describe("her milk against her keep", () => {
   it("says where her milk falls short of her keep", () => {
     // 140 litres at ৳55 is ৳7,700, ৳700 short of ৳8,400; a litre costs her ৳60 to make.
     expect(
-      milkAgainstKeep({ kept, litres: 140, daysInMilk: 200, price })
+      milkAgainstKeep({
+        kept,
+        litres: 140,
+        daysInMilk: 200,
+        weighedAfterDays: 35,
+        price,
+      })
     ).toMatchObject({ overKeepBdt: -700, costPerLitreBdt: 60 });
     // None at all to Bulk: every taka of her keep is short, and a litre has no cost to say.
     expect(
-      milkAgainstKeep({ kept, litres: 0, daysInMilk: 200, price })
+      milkAgainstKeep({
+        kept,
+        litres: 0,
+        daysInMilk: 200,
+        weighedAfterDays: 35,
+        price,
+      })
     ).toMatchObject({ worthBdt: 0, overKeepBdt: -8400, costPerLitreBdt: null });
   });
 
@@ -83,6 +101,7 @@ describe("her milk against her keep", () => {
         kept,
         litres: 140,
         daysInMilk: 90,
+        weighedAfterDays: 35,
         price,
         ...overrides,
       });
@@ -104,11 +123,45 @@ describe("her milk against her keep", () => {
     });
     expect(at({ price: null })).toEqual({ known: false, because: "no_price" });
   });
+
+  it("waits as many days into her Lactation as the farm says, and weighs her from that day on", () => {
+    // A farm that waits for her peak, at 60 days, does not weigh a cow at 59; at 60 it does.
+    expect(
+      milkAgainstKeep({
+        kept,
+        litres: 140,
+        daysInMilk: 59,
+        weighedAfterDays: 60,
+        price,
+      })
+    ).toEqual({ known: false, because: "too_soon" });
+    expect(
+      milkAgainstKeep({
+        kept,
+        litres: 140,
+        daysInMilk: 60,
+        weighedAfterDays: 60,
+        price,
+      })
+    ).toMatchObject({ known: true, overKeepBdt: -700 });
+  });
 });
 
 describe("why the farm names a cow to the Owner", () => {
-  const short = milkAgainstKeep({ kept, litres: 140, daysInMilk: 90, price });
-  const paying = milkAgainstKeep({ kept, litres: 280, daysInMilk: 90, price });
+  const short = milkAgainstKeep({
+    kept,
+    litres: 140,
+    daysInMilk: 90,
+    weighedAfterDays: 35,
+    price,
+  });
+  const paying = milkAgainstKeep({
+    kept,
+    litres: 280,
+    daysInMilk: 90,
+    weighedAfterDays: 35,
+    price,
+  });
   const cow = {
     state: "milking",
     inCalf: false,
