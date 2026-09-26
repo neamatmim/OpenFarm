@@ -62,7 +62,7 @@ These are the questions for the written opinion. Tick each one as the lawyer ans
 - [ ] **NID.** Is the NID Act 2023 repealed? Is keeping a photocopy of an Investor's NID card for the Agreement a "reasonable cause" (s.19 of 2010, or s.24 of 2023)?
 - [ ] **The wording.** Are the notice and consent sheet enough for s.5(2) and s.15(2) until regulations set a form?
 - [ ] **A nominee under 18.** Does a parent's or guardian's signature on the Agreement meet s.9 while no regulations exist? _See clause 8._
-- [ ] **Investors signed before the clause (s.40).** If any real Investors signed before the data clause existed, is handing them the notice with their next statement enough? Or must they sign something? _The Owner has not yet said whether any exist._
+- ~~**Investors signed before the clause (s.40).**~~ _Not needed: the Owner confirmed on 2026-09-26 that no real Investor has signed yet, so every real Investor signs an Agreement with the data clause. Dropped from the printable pack._
 - [ ] **The host.** What must the farm's contract with the Singapore host (and the backup store) say to make them processors bound by s.8?
 
 ### After the meeting
