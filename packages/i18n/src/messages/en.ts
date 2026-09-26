@@ -372,6 +372,23 @@ export const en = {
   "price.costShort": "some costs have no price yet",
   "price.born": "born here: no purchase in the cost",
   "price.noPrice": "No price a kg set",
+  "keep.title": "Keep or sell",
+  "keep.hint":
+    "Whether another fortnight pays: the last four weeks' feed and share of the herd costs, over the kilos being put on now, against the price a kg. What the animal has cost already is spent either way, so it has no say here. It does not know the price will change at Eid.",
+  "keep.pays": "Keeping pays",
+  "keep.close": "Depends on the price",
+  "keep.costsMore": "Costs more to keep",
+  "keep.over":
+    "Next {days, plural, one {# day} other {# days}}: {over} over keep",
+  "keep.ahead": "{gain} for {keep} of keep",
+  "keep.perKg": "a kg costs {perKg} to put on",
+  "keep.notGaining":
+    "Not gaining: {keep} for {days, plural, one {# day} other {# days}} of keep",
+  "keep.short": "some feed has no price yet",
+  "keep.tooNew": "Keep or sell: too soon to tell",
+  "keep.notFed": "Keep or sell: no feeding recorded in four weeks",
+  "keep.noRate": "Keep or sell: weigh again to tell",
+  "keep.all": "Keep or sell: all",
   "market.title": "Market price",
   "market.hint":
     "What a kilo of live weight is fetching, as you judge it. The farm's own animals are priced at it; a Venture's animals at their Venture's own prices. Yours to read: the Manager and Investors do not see prices.",
@@ -2978,6 +2995,7 @@ export const en = {
   "owner.fatteningTitle": "Fattening and sale",
   "owner.maySell": "{count} may be sold",
   "owner.noneToSell": "None ready to sell yet",
+  "owner.costsMoreToKeep": "{count} cost more to keep than they put on",
   "owner.feedLow": "{feed}: {onHand} {unit} left",
   "owner.allStocked": "No feed running low",
   "owner.noLosses": "No animals lost in the last 30 days",

@@ -2,7 +2,7 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { buttonVariants } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   Beef,
   CircleCheck,
@@ -12,7 +12,11 @@ import {
 } from "lucide-react";
 
 import { MarketPrice } from "@/components/fattening/animal-prices";
-import { FatteningBoard } from "@/components/fattening/fattening-board";
+import type { KeepingFilter } from "@/components/fattening/fattening-board";
+import {
+  FatteningBoard,
+  KEEPING_FILTERS,
+} from "@/components/fattening/fattening-board";
 import type { BoardRow } from "@/components/fattening/fattening-types";
 import { ORDER, standingOf } from "@/components/fattening/fattening-types";
 import { NextEid } from "@/components/fattening/next-eid";
@@ -86,6 +90,8 @@ const IntakeButton = () => {
 const FatteningPage = () => {
   const { t } = useLanguage();
   const board = useQuery(orpc.fattening.board.queryOptions({ input: {} }));
+  const { keeping = "all" } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
 
   const header = (
     <PageHeader
@@ -141,7 +147,16 @@ const FatteningPage = () => {
       <MarketPrice />
       <NextEid />
       <OutOfBand />
-      <FatteningBoard rows={rows} />
+      <FatteningBoard
+        keeping={keeping}
+        onKeeping={(value) =>
+          navigate({
+            replace: true,
+            search: value === "all" ? {} : { keeping: value },
+          })
+        }
+        rows={rows}
+      />
     </Page>
   );
 };
@@ -149,4 +164,11 @@ const FatteningPage = () => {
 export const Route = createFileRoute("/_auth/fattening")({
   beforeLoad: onlyFor("runsTheFarm"),
   component: FatteningPage,
+  // Which of the Owner's answers to keep or sell the board was filtered to, so the farm's home can link to one.
+  validateSearch: (
+    search: Record<string, unknown>
+  ): { keeping?: Exclude<KeepingFilter, "all"> } => {
+    const keeping = KEEPING_FILTERS.find((one) => one === search.keeping);
+    return keeping === undefined || keeping === "all" ? {} : { keeping };
+  },
 });

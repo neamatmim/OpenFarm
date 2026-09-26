@@ -10,10 +10,11 @@ import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ChevronRight, CircleCheck, Store } from "lucide-react";
+import { ChevronRight, CircleCheck, Store, TrendingDown } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { stillHeld } from "@/components/animal/animal-words";
+import { useKeepings } from "@/components/fattening/animal-prices";
 import { standingOf as gainStandingOf } from "@/components/fattening/fattening-types";
 import { standingOf, valueOf } from "@/components/feed/feed-types";
 import { MORE_LINK } from "@/components/home/queue";
@@ -307,12 +308,17 @@ export const HerdPanel = ({
   );
 };
 
-/** The fattening side: how many are on it, who will miss their target weight, and who the farm thinks may be sold. */
+/** The fattening side: how many are on it, who will miss their target weight, who the farm thinks may be sold, and
+ *  which cost more to keep another fortnight than they would put on. */
 export const FatteningPanel = () => {
   const { t, language } = useLanguage();
   const board = useQuery(orpc.fattening.board.queryOptions({ input: {} }));
   const ready = useQuery(orpc.ready.suggestions.queryOptions());
+  const keepings = useKeepings();
   const rows = board.data ?? [];
+  const costsMore = rows.filter(
+    (row) => keepings?.get(row.tagNumber) === "costs_more"
+  ).length;
   const behind = rows.filter(
     (row) => gainStandingOf(row.onTrack) === "behind"
   ).length;
@@ -366,6 +372,19 @@ export const FatteningPanel = () => {
               {t("owner.noneToSell")}
             </p>
           )}
+          {costsMore > 0 ? (
+            <Link
+              className="bg-danger-surface text-danger hover:bg-danger-surface/80 focus-visible:ring-ring flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium outline-none focus-visible:ring-2"
+              search={{ keeping: "costs_more" }}
+              to="/fattening"
+            >
+              <TrendingDown aria-hidden className="size-4 shrink-0" />
+              <span className="flex-1">
+                {t("owner.costsMoreToKeep", { count: costsMore })}
+              </span>
+              <ChevronRight aria-hidden className="size-4 shrink-0" />
+            </Link>
+          ) : null}
         </>
       ) : (
         <Waiting />
