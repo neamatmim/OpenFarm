@@ -698,41 +698,77 @@ export const termsAcrossOn = async (
 };
 
 /**
- * A Venture's Target Window as it stood on a given day: the latest **Amendment** signed on or before it — one paper
- * moves every Agreement on the Venture at once, so the latest on any of them is the Venture's — or, with none, the
- * window it opened with. The Venture's own row is never edited by an Amendment, so reading it alone would count days
- * and grow a herd to a window everybody has signed away.
+ * Ventures with the Target Window each had on a given day: the latest **Amendment** signed on or before it — one paper
+ * moves every Agreement on a Venture at once, so the latest on any of them is the Venture's — or, with none, the window
+ * it opened with. The Venture's own row is never edited by an Amendment, so reading it alone would count days, grow a
+ * herd and end a Wind-up Period by a window everybody has signed away. Ordered as `termsInForceOn` orders them: `id`
+ * behind the day, so two papers of one day read the same way twice.
  */
+export const withWindowsInForce = async <
+  Row extends {
+    id: string;
+    targetWindowStart: string;
+    targetWindowEnd: string;
+  },
+>(
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  rows: Row[],
+  on: string
+): Promise<Row[]> => {
+  if (rows.length === 0) {
+    return rows;
+  }
+  const signed = await tx.query.investmentAgreement.findMany({
+    where: { farmId, ventureId: { in: rows.map((one) => one.id) } },
+    columns: { id: true, ventureId: true },
+  });
+  if (signed.length === 0) {
+    return rows;
+  }
+  const ventureOf = new Map(signed.map((one) => [one.id, one.ventureId]));
+  const amended = await tx.query.agreementAmendment.findMany({
+    where: {
+      farmId,
+      agreementId: { in: signed.map((one) => one.id) },
+      signedOn: { lte: on },
+    },
+    orderBy: { signedOn: "desc", id: "desc" },
+    columns: {
+      agreementId: true,
+      targetWindowStart: true,
+      targetWindowEnd: true,
+    },
+  });
+  // Newest first, so the first seen for a Venture is its latest.
+  const latest = new Map<
+    string,
+    { targetWindowStart: string; targetWindowEnd: string }
+  >();
+  for (const one of amended) {
+    const ventureId = ventureOf.get(one.agreementId);
+    if (ventureId && !latest.has(ventureId)) {
+      latest.set(ventureId, {
+        targetWindowStart: one.targetWindowStart,
+        targetWindowEnd: one.targetWindowEnd,
+      });
+    }
+  }
+  return rows.map((one) => ({ ...one, ...latest.get(one.id) }));
+};
+
+/** One Venture's Target Window as it stood on a given day: see `withWindowsInForce`. */
 export const windowInForceOn = async (
   tx: Pick<Tx, "query">,
   farmId: string,
   run: { id: string; targetWindowStart: string; targetWindowEnd: string },
   on: string
 ): Promise<{ targetWindowStart: string; targetWindowEnd: string }> => {
-  const signed = await tx.query.investmentAgreement.findMany({
-    where: { farmId, ventureId: run.id },
-    columns: { id: true },
-  });
-  const [latest] =
-    signed.length === 0
-      ? []
-      : await tx.query.agreementAmendment.findMany({
-          where: {
-            farmId,
-            agreementId: { in: signed.map((one) => one.id) },
-            signedOn: { lte: on },
-          },
-          // As `termsInForceOn` orders them: `id` behind the day, so two papers of one day read the same way twice.
-          orderBy: { signedOn: "desc", id: "desc" },
-          limit: 1,
-          columns: { targetWindowStart: true, targetWindowEnd: true },
-        });
-  return (
-    latest ?? {
-      targetWindowStart: run.targetWindowStart,
-      targetWindowEnd: run.targetWindowEnd,
-    }
-  );
+  const [inForce] = await withWindowsInForce(tx, farmId, [run], on);
+  return {
+    targetWindowStart: inForce?.targetWindowStart ?? run.targetWindowStart,
+    targetWindowEnd: inForce?.targetWindowEnd ?? run.targetWindowEnd,
+  };
 };
 
 /** What the farm thinks a Venture Account held at the end of one month. */

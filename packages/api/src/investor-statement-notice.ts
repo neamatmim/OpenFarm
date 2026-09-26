@@ -5,7 +5,11 @@ import { formatDate } from "@OpenFarm/i18n";
 import { holdersOf } from "./alerts-store";
 import type { Tx } from "./audit";
 import { tell } from "./notice";
-import { signedForEach, windUpEndsOn } from "./venture-store";
+import {
+  signedForEach,
+  windUpEndsOn,
+  withWindowsInForce,
+} from "./venture-store";
 
 /**
  * Telling the Owner that a Venture's Investors are due their **অগ্রগতি**.
@@ -129,14 +133,26 @@ export const papersToTell = async (
   now: Date,
   windUpDays: number
 ): Promise<PaperDue[]> => {
-  const ventures = await db.query.venture.findMany({
-    where: { farmId, state: { in: [...RUNNING] } },
-    columns: { id: true, name: true, state: true, targetWindowEnd: true },
-  });
+  const today = farmDayOf(now);
+  // Each with the window its Investors signed last: an Amendment that moved it moved their Wind-up too.
+  const ventures = await withWindowsInForce(
+    db,
+    farmId,
+    await db.query.venture.findMany({
+      where: { farmId, state: { in: [...RUNNING] } },
+      columns: {
+        id: true,
+        name: true,
+        state: true,
+        targetWindowStart: true,
+        targetWindowEnd: true,
+      },
+    }),
+    today
+  );
   if (ventures.length === 0) {
     return [];
   }
-  const today = farmDayOf(now);
   const thisMonth = today.slice(0, "YYYY-MM".length);
   const due = ventures.flatMap((one) => {
     const occasions: Occasion[] = [{ kind: "month", month: thisMonth }];

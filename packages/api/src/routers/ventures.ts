@@ -123,7 +123,9 @@ import {
   stillHersByEach,
   priceAtWeight,
   stillHersOf,
+  windowInForceOn,
   windUpEndsOn,
+  withWindowsInForce,
   ownedThenByOf,
 } from "../venture-store";
 
@@ -593,10 +595,16 @@ export const venturesRouter = {
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())
     .handler(async ({ context }) => {
-      const rows = await context.db.query.venture.findMany({
-        where: { farmId: context.farm.id },
-        orderBy: { createdAt: "desc", id: "desc" },
-      });
+      // Each with the window its Investors signed last, which is the one its Wind-up Period runs from.
+      const rows = await withWindowsInForce(
+        context.db,
+        context.farm.id,
+        await context.db.query.venture.findMany({
+          where: { farmId: context.farm.id },
+          orderBy: { createdAt: "desc", id: "desc" },
+        }),
+        farmDayOf(context.clock.now())
+      );
       const ids = rows.map((one) => one.id);
       const held = await heldByEach(context.db, context.farm.id, ids);
       const signed = await signedForEach(context.db, context.farm.id, ids);
@@ -636,10 +644,15 @@ export const venturesRouter = {
   running: protectedProcedure
     .use(requireRole("owner", "manager"))
     .handler(async ({ context }) => {
-      const rows = await context.db.query.venture.findMany({
-        where: { farmId: context.farm.id, state: { in: [...AT_WORK] } },
-        orderBy: { createdAt: "desc", id: "desc" },
-      });
+      const rows = await withWindowsInForce(
+        context.db,
+        context.farm.id,
+        await context.db.query.venture.findMany({
+          where: { farmId: context.farm.id, state: { in: [...AT_WORK] } },
+          orderBy: { createdAt: "desc", id: "desc" },
+        }),
+        farmDayOf(context.clock.now())
+      );
       const ids = rows.map((one) => one.id);
       const [held, stillHers] = await Promise.all([
         heldByEach(context.db, context.farm.id, ids),
@@ -1165,6 +1178,13 @@ export const venturesRouter = {
             });
           }
           const given = await nextPayInCode(tx, context.farm.id, row);
+          // As the Amendments the Investors before them signed have left it, not as the Venture opened.
+          const window = await windowInForceOn(
+            tx,
+            context.farm.id,
+            row,
+            farmDayOf(now)
+          );
           await tx.insert(investmentAgreement).values({
             id,
             farmId: context.farm.id,
@@ -1173,8 +1193,8 @@ export const venturesRouter = {
             units: input.units,
             investorsPercent: input.investorsPercent,
             // The window the Venture means to sell in, as it stands today, written onto this paper.
-            targetWindowStart: row.targetWindowStart,
-            targetWindowEnd: row.targetWindowEnd,
+            targetWindowStart: window.targetWindowStart,
+            targetWindowEnd: window.targetWindowEnd,
             arbitrator: input.arbitrator,
             stampKind: input.stampKind,
             stampValueBdt: input.stampValueBdt,
@@ -2617,9 +2637,15 @@ export const venturesRouter = {
           whatSheLastWeighed(context.db, context.farm.id, her.id)
         )
       );
+      const window = await windowInForceOn(
+        context.db,
+        context.farm.id,
+        row,
+        farmDayOf(context.clock.now())
+      );
       return {
         windUpEndsOn: windUpEndsOn(
-          row.targetWindowEnd,
+          window.targetWindowEnd,
           context.farm.windUpDays
         ),
         animals: hers.map((her, at) => ({
@@ -2681,7 +2707,12 @@ export const venturesRouter = {
           await assertNotSettledUp(tx, context.farm.id, row.id);
           const held = await tx.query.venture.findFirst({
             where: { id: row.id, farmId: context.farm.id },
-            columns: { state: true, targetWindowEnd: true },
+            columns: {
+              id: true,
+              state: true,
+              targetWindowStart: true,
+              targetWindowEnd: true,
+            },
           });
           // A run still going, whichever stage it is at. One that never sold a single bull is exactly
           // the case the clock exists for — but one called off has sent its money back, and one settled
@@ -2692,8 +2723,15 @@ export const venturesRouter = {
               data: { refusal: "venture_wrong_state" },
             });
           }
+          // From the window its Investors signed last: an Amendment that moved it moved their Wind-up too.
+          const window = await windowInForceOn(
+            tx,
+            context.farm.id,
+            held,
+            farmDayOf(now)
+          );
           const endsOn = windUpEndsOn(
-            held.targetWindowEnd,
+            window.targetWindowEnd,
             context.farm.windUpDays
           );
           if (farmDayOf(now) <= endsOn) {

@@ -8,6 +8,7 @@ import {
 } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { papersToTell } from "../investor-statement-notice";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
@@ -375,5 +376,111 @@ describe("the buy-back at wind-up", () => {
         ...buying,
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});
+
+describe("a Venture whose Target Window an Amendment moved", () => {
+  it("winds up from the window everybody signed last, not the one it opened with", async () => {
+    const owner = await as("owner", "2047-02-10T04:00:00.000Z");
+    const moved = await funded(owner, 7);
+    // Everybody signs to sell two months later: 17 to 19 June, so the Wind-up Period runs to 19 July.
+    await owner.client.ventures.amend({
+      ventureId: moved,
+      investorsPercent: 60,
+      targetWindowStart: "2047-06-17",
+      targetWindowEnd: "2047-06-19",
+      signedOn: "2047-02-10",
+      reason: `ঈদ পিছিয়েছে ${suffix}`,
+      contentType: "image/jpeg",
+      data: "aGVsbG8=",
+    });
+
+    const later = await as("owner", "2047-05-20T04:00:00.000Z");
+    const left = await later.client.ventures.whatIsLeft({ ventureId: moved });
+    expect(left.windUpEndsOn).toBe("2047-07-19");
+    const all = await later.client.ventures.list();
+    const listed = all.find((one) => one.id === moved);
+    expect(listed?.windUpEndsOn).toBe("2047-07-19");
+    // The day after the window it opened with would have ended its Wind-up: the Investors signed for more.
+    await expect(
+      later.client.ventures.buyWhatIsLeft({
+        ventureId: moved,
+        boughtOn: "2047-05-20",
+        ...buying,
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "wind_up_not_over", endsOn: "2047-07-19" },
+    });
+
+    // Nor is the Owner told its Wind-up has begun until the window they signed for has closed: 10 May is inside the
+    // Wind-up the Venture opened with, and outside the one they signed.
+    const windUpTold = async (instant: string) => {
+      const due = await papersToTell(
+        scratchDb(),
+        theFarm().id,
+        new Date(instant),
+        30
+      );
+      return due.some(
+        (one) => one.venture.id === moved && one.occasion.kind === "wind_up"
+      );
+    };
+    expect(await windUpTold("2047-05-10T04:00:00.000Z")).toBe(false);
+    expect(await windUpTold("2047-06-25T04:00:00.000Z")).toBe(true);
+  });
+
+  it("writes the window in force onto a paper signed after an Amendment", async () => {
+    const owner = await as("owner", "2047-02-11T04:00:00.000Z");
+    const open = await owner.client.ventures.open({
+      name: `পরে সই ${suffix}`,
+      ...plan,
+    });
+    const first = await owner.client.investors.record({
+      name: `আগে ${suffix}`,
+      phone: "01931000081",
+    });
+    const second = await owner.client.investors.record({
+      name: `পরে ${suffix}`,
+      phone: "01931000082",
+    });
+    const paper = {
+      units: 5,
+      investorsPercent: 60,
+      arbitrator: `মাওলানা ${suffix}`,
+      stampValueBdt: 300,
+      stampedOn: "2047-02-11",
+    };
+    await owner.client.ventures.sign({
+      ventureId: open.id,
+      investorId: first.id,
+      stampSerial: `AA 81 ${suffix}`,
+      ...paper,
+    });
+    await owner.client.ventures.amend({
+      ventureId: open.id,
+      investorsPercent: 60,
+      targetWindowStart: "2047-06-17",
+      targetWindowEnd: "2047-06-19",
+      signedOn: "2047-02-11",
+      reason: `ঈদ পিছিয়েছে ${suffix}`,
+      contentType: "image/jpeg",
+      data: "aGVsbG8=",
+    });
+    const later = await owner.client.ventures.sign({
+      ventureId: open.id,
+      investorId: second.id,
+      stampSerial: `AA 82 ${suffix}`,
+      ...paper,
+    });
+    // The paper itself, as stored: the list reads terms through the Amendments and would show June either way.
+    const stored = await scratchDb().query.investmentAgreement.findFirst({
+      where: { id: later.id },
+      columns: { targetWindowStart: true, targetWindowEnd: true },
+    });
+    expect(stored).toEqual({
+      targetWindowStart: "2047-06-17",
+      targetWindowEnd: "2047-06-19",
+    });
   });
 });
