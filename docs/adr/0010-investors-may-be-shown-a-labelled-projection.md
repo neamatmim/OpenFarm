@@ -5,6 +5,8 @@ date: 2026-09-26
 
 # Investors may be shown a labelled Projection of profit, behind the Owner's switch
 
+> Amended by ADR 0011: the sale prices and the buying a Projection is worked from now come from the Venture Plan, not from figures typed for the Projection.
+
 ADR 0008 kept the circle closed with "no referrals, no advertising and no projections of return", and CONTEXT.md's **Investor Portal** entry said the portal shows "never ... a price to come or a gain to expect". The lawyer and the Shariah scholar approved the portal in writing on 2026-09-26 on that footing.
 
 On 2026-09-26 the Owner decided to show Investors a **Projection**: what a Venture might make, as a range. It shows on the Ventures they are in, and on the Ventures offered to them. This was chosen against the recommendation to keep facts only. The research behind that recommendation is in [`docs/research/investor-portal-design.md`](../research/investor-portal-design.md) and [`docs/research/bangladesh-pooled-investment.md`](../research/bangladesh-pooled-investment.md). The schemes shut down in Bangladesh all promised a fixed or expected return. A promise of principal or a return is what makes pooled money a deposit, and in a mudarabah profit is a share of what was actually made. The pooled-investment research leaves one opening: a projection "labelled as an estimate and kept apart from contract terms".

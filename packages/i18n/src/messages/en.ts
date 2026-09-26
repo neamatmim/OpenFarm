@@ -447,28 +447,17 @@ export const en = {
   "plan.vs.result":
     "Result: planned {plannedLow} to {plannedHigh}; projected now {low} to {high}",
   "plan.vs.resultNoProjection":
-    "Result: planned {plannedLow} to {plannedHigh}; no projection prices set yet",
+    "Result: planned {plannedLow} to {plannedHigh}; it has ended, so nothing is projected",
   "plan.saved": "The plan is saved",
   "projection.title": "Projected profit",
   "projection.hint":
-    "Your own estimate, from the sale prices you expect. Investors see it only once you show projections on the Investors page, and it is never printed on a paper.",
-  "projection.none": "No sale prices are set yet.",
+    "Your own estimate, worked from the Venture's plan: its sale prices, and what it has still to buy. Investors see it only once you show projections on the Investors page, and it is never printed on a paper.",
+  "projection.none": "No plan yet. Write one above and this is worked from it.",
   "projection.needsPlan":
-    "Give the buying plan as well: a Venture still gathering capital is projected from it.",
-  "projection.set": "Set prices",
-  "projection.change": "Change prices",
-  "projection.sheetHint":
-    "Your guesses, changed as the market moves. Each change is kept in the trail.",
+    "These prices were set before the Venture had a plan. Write a plan above to project it.",
   "projection.saleLow": "Low sale price (৳ a kg, live)",
   "projection.saleHigh": "High sale price (৳ a kg, live)",
   "projection.lowAboveHigh": "The low price is above the high one",
-  "projection.plan": "Buying plan",
-  "projection.planHint":
-    "For animals still to buy: the cattle budget buys as many as it pays for at this price and weight, and each puts on this much a day until the sale window.",
-  "projection.buy": "Buying price (৳ a kg)",
-  "projection.buyWeight": "Weight when bought (kg)",
-  "projection.dailyGain": "Gain a day (kg)",
-  "projection.saved": "The prices are saved",
   "projection.range": "{low} to {high}",
   "projection.profit": "Profit",
   "projection.perUnit": "A Unit",
@@ -476,7 +465,8 @@ export const en = {
   "projection.prices": "Sale price a kg",
   "projection.charged": "Costs counted",
   "projection.realised": "Already sold for",
-  "projection.setOn": "Set on {day}",
+  "projection.fromPlan": "Worked from plan version {version}, saved on {day}",
+  "projection.setOn": "From prices set on {day}, before it had a plan",
   "projection.lossAtLow":
     "At the low price this is a loss, and a loss comes off the Investors' capital.",
   "projection.switch.title": "Projections for Investors",

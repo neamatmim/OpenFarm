@@ -12,7 +12,6 @@ import {
   investmentAgreement,
   venture,
   ventureMovement,
-  ventureProjection,
 } from "@OpenFarm/db/schema/venture";
 import type { PaymentMethod } from "@OpenFarm/domain";
 import {
@@ -250,12 +249,6 @@ const assertNotSettledUp = async (
 };
 
 /** This Farm's Venture, or nothing the caller may act on. */
-/** A Venture's Projection figures as the trail keeps them, before and after the Owner changes them. */
-const basisSnapshot = async (tx: Tx, farmId: string, ventureId: string) => {
-  const basis = await projectionBasisOf(tx, farmId, ventureId);
-  return basis ? { ...basis } : null;
-};
-
 const ours = async (context: Context, id: string) => {
   const row = await context.db.query.venture.findFirst({
     where: { id, farmId: context.farm.id },
@@ -941,68 +934,6 @@ export const venturesRouter = {
           context.clock.now()
         ),
       };
-    }),
-
-  /**
-   * What the Owner expects of a Venture, which its Projection is worked from: the low and the high price a kilo of
-   * live weight will sell at, and — for animals it has still to buy — the price a kilo, the weight each is bought at
-   * and the gain a day. The Owner's own guesses, changed as the market moves, each change an Audit Event keeping what
-   * was said before. Never a term of any Agreement.
-   */
-  setProjection: protectedProcedure
-    .use(requireOnly("owner", OWNER_ONLY))
-    .use(requirePersonalSession())
-    .input(
-      z
-        .object({
-          ventureId: z.string(),
-          saleLowBdtPerKg: z.number().positive().max(100_000),
-          saleHighBdtPerKg: z.number().positive().max(100_000),
-          buyBdtPerKg: z
-            .number()
-            .positive()
-            .max(100_000)
-            .nullable()
-            .default(null),
-          buyWeightKg: z.number().positive().max(2000).nullable().default(null),
-          dailyGainKg: z.number().positive().max(5).nullable().default(null),
-        })
-        .refine((one) => one.saleLowBdtPerKg <= one.saleHighBdtPerKg, {
-          message: "The low price is above the high one",
-          path: ["saleLowBdtPerKg"],
-        })
-    )
-    .handler(async ({ context, input }) => {
-      const row = await ours(context, input.ventureId);
-      const figures = {
-        saleLowBdtPerKg: input.saleLowBdtPerKg,
-        saleHighBdtPerKg: input.saleHighBdtPerKg,
-        buyBdtPerKg: input.buyBdtPerKg,
-        buyWeightKg:
-          input.buyWeightKg === null ? null : input.buyWeightKg.toFixed(2),
-        dailyGainKg:
-          input.dailyGainKg === null ? null : input.dailyGainKg.toFixed(2),
-        setAt: context.clock.now(),
-        setBy: context.session?.user.id ?? null,
-      };
-      await audited(context).write(
-        {
-          entity: "venture_projection",
-          entityId: row.id,
-          action: "update",
-          before: (tx) => basisSnapshot(tx, context.farm.id, row.id),
-          after: (tx) => basisSnapshot(tx, context.farm.id, row.id),
-        },
-        (tx) =>
-          tx
-            .insert(ventureProjection)
-            .values({ ventureId: row.id, farmId: context.farm.id, ...figures })
-            .onConflictDoUpdate({
-              target: ventureProjection.ventureId,
-              set: figures,
-            })
-      );
-      return { ventureId: row.id };
     }),
 
   /**

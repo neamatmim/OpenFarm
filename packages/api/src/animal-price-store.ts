@@ -2,6 +2,7 @@ import type { Database } from "@OpenFarm/db";
 import { perKgOfSales, priceOfAnimal, priceRangeFor } from "@OpenFarm/domain";
 
 import { chargedOf, economicsOfAnimal, farmCosts } from "./cost-store";
+import { projectionBasisOf } from "./projection-store";
 import { fatteningRows } from "./ready-store";
 
 /** How far back the farm's own sales are read for what a kilo has been fetching: two months of a market. */
@@ -15,7 +16,7 @@ const ON_THE_SIDE = ["quarantine", "fattening", "ready_for_sale"] as const;
  * Every animal on the fattening side priced for the Owner: what she has cost the farm so far — bought for, and every
  * charge the farm's costing puts on her — what she weighs, the price a kilo at which she pays for herself, and what she
  * might fetch at the low and the high price a kilo, with what each leaves over her cost. A Venture's animal is priced
- * at her Venture's projected prices, the farm's own at its market price; either may not be set yet.
+ * at her Venture's plan's sale prices, the farm's own at its market price; either may not be set yet.
  *
  * The same costing the Venture's economics reads, so an animal's cost here and on its Venture's page are one sum.
  */
@@ -36,15 +37,29 @@ export const pricesOnTheSide = async (
     columns: { id: true, ownerVentureId: true },
   });
   const ventureOf = new Map(owners.map((one) => [one.id, one.ownerVentureId]));
-  const projected = await db.query.ventureProjection.findMany({
-    where: { farmId: farm.id },
-    columns: { ventureId: true, saleLowBdtPerKg: true, saleHighBdtPerKg: true },
-  });
+  // Each Venture's prices as its Projection reads them: its plan's, or those set before it had one.
+  const ventureIds = [
+    ...new Set(owners.flatMap((one) => one.ownerVentureId ?? [])),
+  ];
+  const bases = await Promise.all(
+    ventureIds.map(
+      async (id) => [id, await projectionBasisOf(db, farm.id, id)] as const
+    )
+  );
   const ventureRange = new Map(
-    projected.map((one) => [
-      one.ventureId,
-      { lowBdtPerKg: one.saleLowBdtPerKg, highBdtPerKg: one.saleHighBdtPerKg },
-    ])
+    bases.flatMap(([id, basis]) =>
+      basis
+        ? [
+            [
+              id,
+              {
+                lowBdtPerKg: basis.saleLowBdtPerKg,
+                highBdtPerKg: basis.saleHighBdtPerKg,
+              },
+            ] as const,
+          ]
+        : []
+    )
   );
   const market =
     farm.marketLowBdtPerKg !== null && farm.marketHighBdtPerKg !== null
