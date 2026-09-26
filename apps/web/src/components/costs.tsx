@@ -3,6 +3,7 @@ import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
+import { HerCull } from "@/components/culling/cull-list";
 import { HerPrice } from "@/components/fattening/animal-prices";
 import { useReadsMoney } from "@/components/money";
 import { useLanguage } from "@/i18n/language-provider";
@@ -132,6 +133,8 @@ export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
           </Line>
         </>
       ) : null}
+      {/* Whether she gives the farm a reason to let her go — the Owner's alone. */}
+      {her.side === "dairy" ? <HerCull tagNumber={tagNumber} /> : null}
     </section>
   );
 };

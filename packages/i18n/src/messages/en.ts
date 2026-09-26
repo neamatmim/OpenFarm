@@ -389,6 +389,43 @@ export const en = {
   "keep.notFed": "Keep or sell: no feeding recorded in four weeks",
   "keep.noRate": "Keep or sell: weigh again to tell",
   "keep.all": "Keep or sell: all",
+  "cull.subtitle":
+    "Cows the farm names for you to think about letting go, and why. Nothing here is decided: culling one is still a sale to a butcher, or a death recorded.",
+  "cull.reason.milk_short": "Milk under keep",
+  "cull.reason.open_long": "Empty too long",
+  "cull.reason.repeat_breeder": "Will not settle",
+  "cull.named": "Might be culled",
+  "cull.namedHint": "Cows with at least one reason",
+  "cull.milkHint": "Four weeks' milk fetched less than her keep",
+  "cull.openHint":
+    "Not in calf {days, plural, one {# day} other {# days}} after calving, or dry and not in calf",
+  "cull.repeatHint": "Served heat after heat without settling",
+  "cull.all": "All cows",
+  "cull.col.reasons": "Reasons",
+  "cull.col.milk": "Milk against keep",
+  "cull.col.calving": "Calving",
+  "cull.milk": "Milk {worth} · keep {keep}",
+  "cull.over": "{over} over keep in four weeks",
+  "cull.rate": "{litres} L a day · a litre costs {cost}",
+  "cull.noneToBulk": "no milk to bulk",
+  "cull.dry": "Dry: no milk",
+  "cull.tooSoon": "Too soon after calving to weigh",
+  "cull.notFed": "No feeding recorded in four weeks",
+  "cull.noPrice": "No milk sold in two months to price it",
+  "cull.inCalf": "In calf, due {day}",
+  "cull.sinceCalving":
+    "{days, plural, one {# day} other {# days}} since calving",
+  "cull.notInCalf": "Not in calf",
+  "cull.price":
+    "Milk is priced at {price} a litre: what the farm's dispatches fetched over the last {days, plural, one {# day} other {# days}}.",
+  "cull.unpriced":
+    "No milk sold in the last {days, plural, one {# day} other {# days}}, so no cow's milk can be set against her keep.",
+  "cull.none": "No cow gives a reason to cull",
+  "cull.noneHint":
+    "Every cow in milk pays for her keep, every one that should be is in calf, and none is failing to settle.",
+  "cull.noneInFilter": "No cow in this list",
+  "cull.hint":
+    "For you alone, and never a decision: her milk and her keep over her last four weeks, whether she is in calf, and whether she has settled.",
   "market.title": "Market price",
   "market.hint":
     "What a kilo of live weight is fetching, as you judge it. The farm's own animals are priced at it; a Venture's animals at their Venture's own prices. Yours to read: the Manager and Investors do not see prices.",
@@ -2999,6 +3036,8 @@ export const en = {
   "owner.feedLow": "{feed}: {onHand} {unit} left",
   "owner.allStocked": "No feed running low",
   "owner.noLosses": "No animals lost in the last 30 days",
+  "owner.mightCull":
+    "{count, plural, one {# cow} other {# cows}} might be culled",
   "owner.losses": "Lost in 30 days: {died} died · {culled} culled",
   "owner.todayMark": "Today",
   "mortality.happenedAt": "When she went",
@@ -3801,6 +3840,7 @@ export const en = {
   "ready.kpi.held": "Held by withdrawal",
   "ready.kpi.heldHint": "Cannot be confirmed or sold yet",
   "nav.sale": "Sale",
+  "nav.culling": "Culling",
   "sale.title": "Sell an animal",
   "papers.passport": "Passport",
   "papers.withdrawalSummary": "Withdrawal summary",

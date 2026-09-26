@@ -427,6 +427,7 @@ export {
   KEEP_RATE_NEEDS_DAYS,
   KEEP_READ_DAYS,
   KEEPING,
+  inTheKeepWindow,
   keepOrSell,
   keepRateOf,
   keptOver,
@@ -434,6 +435,17 @@ export {
   priceOfAnimal,
   priceRangeFor,
 } from "./animal-price";
+export {
+  CULL_REASONS,
+  MILK_NEEDS_DAYS_IN_MILK,
+  MILK_PRICE_DAYS,
+  OPEN_DAYS_TO_NAME,
+  cullReasonsOf,
+  litresOver,
+  milkAgainstKeep,
+  milkPriceOf,
+} from "./cull";
+export type { CullReason, MilkAgainstKeep, MilkUnknown } from "./cull";
 export {
   bandOf,
   baselineOf,
