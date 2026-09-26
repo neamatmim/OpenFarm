@@ -586,6 +586,48 @@ describe("why the farm names a dairy cow to the Owner", () => {
     }
   });
 
+  it("holds the milk wait past the calf's days the Owner sets as well as the days a keep is read over", async () => {
+    const owner = await as("owner", "2041-03-01T04:00:00.000Z");
+    const manager = await as("manager", "2041-03-01T04:00:00.000Z");
+    try {
+      await expect(
+        manager.client.farm.setParameters({ cullCalfMilkDays: 4 })
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      for (const cullCalfMilkDays of [0, 31]) {
+        // oxlint-disable-next-line no-await-in-loop -- one refusal at a time
+        await expect(
+          owner.client.farm.setParameters({ cullCalfMilkDays })
+        ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      }
+      // Ten days of calf milk and four weeks of keep: milk weighed at 35 days would take in three of the calf's days.
+      await expect(
+        owner.client.farm.setParameters({ cullCalfMilkDays: 10 })
+      ).rejects.toMatchObject({
+        code: "BAD_REQUEST",
+        data: { refusal: "milk_weighed_too_soon", soonestDays: 38 },
+      });
+      // A calf's week and four weeks of keep: 32 days is three days too soon.
+      await expect(
+        owner.client.farm.setParameters({ cullMilkAfterDays: 32 })
+      ).rejects.toMatchObject({
+        code: "BAD_REQUEST",
+        data: { refusal: "milk_weighed_too_soon", soonestDays: 35 },
+      });
+      // A calf fed from her mother for four days only: set together, milk weighed from 32 days agrees.
+      await owner.client.farm.setParameters({
+        cullCalfMilkDays: 4,
+        cullMilkAfterDays: 32,
+      });
+      const { list } = await theList();
+      expect(list.milkAfterDays).toBe(32);
+    } finally {
+      await owner.client.farm.setParameters({
+        cullCalfMilkDays: 7,
+        cullMilkAfterDays: 35,
+      });
+    }
+  });
+
   it("reads a keep over as many days as the Owner says, a fortnight to three months, and holds the milk wait a week past them", async () => {
     const owner = await as("owner", "2041-03-01T04:00:00.000Z");
     const manager = await as("manager", "2041-03-01T04:00:00.000Z");

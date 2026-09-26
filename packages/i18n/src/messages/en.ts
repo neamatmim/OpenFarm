@@ -842,6 +842,7 @@ export const en = {
   "params.keepRateGapDays": "Trust a gain between weigh-ins at least",
   "params.cullOpenDays": "Empty too long after calving",
   "params.cullMilkAfterDays": "Weigh milk against keep from, after calving",
+  "params.cullCalfMilkDays": "A cow's milk is her calf's for the first",
   "params.cullMilkPriceDays": "Price milk from dispatches of the last",
   "params.ventures": "Ventures",
   "params.venturesHint":
@@ -1252,7 +1253,7 @@ export const en = {
   "refusal.keepNeededLongerThanRead":
     "An animal's keep is judged within the days it is read over: {readDays, plural, one {# day} other {# days}} at the most. Change the two together.",
   "refusal.milkWeighedTooSoon":
-    "A cow's milk is weighed at least a week past the days her keep is read over: {soonestDays, plural, one {# day} other {# days}} at the soonest. Change the two together.",
+    "A cow's milk is weighed only past her calf's days and then the days her keep is read over: {soonestDays, plural, one {# day} other {# days}} at the soonest. Change them together.",
   "refusal.capitalOverUnits":
     "That is more than this Agreement's Units are worth",
   "refusal.refundNotItsMoney":

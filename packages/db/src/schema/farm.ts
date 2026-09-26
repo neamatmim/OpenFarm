@@ -113,6 +113,9 @@ export const farm = pgTable("farm", {
   /** How many days into her Lactation before a cow's milk is weighed against her keep for the Owner's culling list:
    *  her calf's week and then the days her keep is read over, unless the Owner would rather wait for her peak. */
   cullMilkAfterDays: integer("cull_milk_after_days").notNull().default(35),
+  /** How many days after calving a cow's milk is her calf's and never goes to Bulk: the days a milk wait has to be past
+   *  before the days her keep is read over begin. A week unless the Owner says otherwise. */
+  cullCalfMilkDays: integer("cull_calf_milk_days").notNull().default(7),
   /** How many days back the farm's own Dispatches are read for what a litre of its milk fetches, when a cow's milk is
    *  set against her keep: two months of a milk buyer unless the Owner says otherwise. */
   cullMilkPriceDays: integer("cull_milk_price_days").notNull().default(60),

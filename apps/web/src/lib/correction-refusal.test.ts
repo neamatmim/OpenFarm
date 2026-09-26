@@ -71,7 +71,7 @@ describe("a refused Correction", () => {
         t
       )
     ).toBe(
-      "A cow's milk is weighed at least a week past the days her keep is read over: 49 days at the soonest. Change the two together."
+      "A cow's milk is weighed only past her calf's days and then the days her keep is read over: 49 days at the soonest. Change them together."
     );
   });
 

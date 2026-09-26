@@ -803,6 +803,7 @@ export const bn: Record<MessageKey, string> = {
   "params.keepRateGapDays": "দুই ওজনের মাঝে অন্তত এত দিন হলে বাড়ার হার ধরা",
   "params.cullOpenDays": "বাছুর হওয়ার পর গর্ভ না এলে তালিকায়",
   "params.cullMilkAfterDays": "বাছুর হওয়ার পর দুধ ও খরচ মাপা শুরু",
+  "params.cullCalfMilkDays": "বাছুর হওয়ার পর প্রথম এত দিনের দুধ বাছুরের",
   "params.cullMilkPriceDays": "দুধের দাম ধরা হবে গত এত দিনের বিক্রি থেকে",
   "params.ventures": "ভেঞ্চার",
   "params.venturesHint":
@@ -1170,7 +1171,7 @@ export const bn: Record<MessageKey, string> = {
   "refusal.keepNeededLongerThanRead":
     "রাখার খরচ যত দিন ধরা হয়, তার মধ্যেই পশুর বিচার হয়: সবচেয়ে বেশি {readDays} দিন। দুটো একসঙ্গে বদলান।",
   "refusal.milkWeighedTooSoon":
-    "রাখার খরচ যত দিন ধরা হয়, তার অন্তত এক সপ্তাহ পর থেকে গাভীর দুধ মাপা হয়: সবচেয়ে আগে {soonestDays} দিনে। দুটো একসঙ্গে বদলান।",
+    "বাছুরের দুধের দিন আর রাখার খরচ যত দিন ধরা হয়, দুটো পেরোলে তবেই গাভীর দুধ মাপা হয়: সবচেয়ে আগে {soonestDays} দিনে। এগুলো একসঙ্গে বদলান।",
   "refusal.capitalOverUnits": "এই চুক্তির ইউনিটের দামের চেয়ে বেশি টাকা",
   "refusal.refundNotItsMoney": "এই ভেঞ্চার এই টাকা কখনো নেয়নি",
   "refusal.wageIsTheFarms": "মজুরি খামারের নিজের — লোক খামারই দেয়",

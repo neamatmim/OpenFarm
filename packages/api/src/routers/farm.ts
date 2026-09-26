@@ -2,6 +2,7 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq, sql } from "@OpenFarm/db/operators";
 import { farm, roleAssignment } from "@OpenFarm/db/schema/farm";
 import {
+  FEWEST_CALF_MILK_DAYS,
   FEWEST_KEEP_READ_DAYS,
   MAX_GRACE_MINUTES,
   STANDARD_KINDS,
@@ -100,14 +101,27 @@ const parameters = z
     /** How many days after calving a cow still not in calf is named for culling: not before a cow that is going to
      *  settle has had her chances, and not past a year, when the question has long been answered. */
     cullOpenDays: z.number().int().min(60).max(365).optional(),
-    /** How many days into her Lactation before a cow's milk is weighed against her keep: never before her calf's week
-     *  and the days her keep is read over after it — which the handler holds against the farm's own days — and not
-     *  past half a year, when the question has long been answered. */
+    /** How many days into her Lactation before a cow's milk is weighed against her keep: never before her calf's days
+     *  and the days her keep is read over after them — which the handler holds against the farm's own — and not past
+     *  half a year, when the question has long been answered. */
     cullMilkAfterDays: z
       .number()
       .int()
-      .min(fewestDaysBeforeMilkIsWeighed(FEWEST_KEEP_READ_DAYS))
+      .min(
+        fewestDaysBeforeMilkIsWeighed(
+          FEWEST_KEEP_READ_DAYS,
+          FEWEST_CALF_MILK_DAYS
+        )
+      )
       .max(180)
+      .optional(),
+    /** How many days after calving a cow's milk is her calf's: at least her first day, and no more than a month, past
+     *  which a calf is drinking from a bucket, not from her mother. */
+    cullCalfMilkDays: z
+      .number()
+      .int()
+      .min(FEWEST_CALF_MILK_DAYS)
+      .max(30)
       .optional(),
     /** How many days back the Dispatches are read for what a litre fetches: at least a week of a milk buyer, and no
      *  more than a year, past which the price is last year's. */
@@ -180,6 +194,7 @@ const WHAT_KEEP_AND_CULL_READ = [
   "keepRateGapDays",
   "cullOpenDays",
   "cullMilkAfterDays",
+  "cullCalfMilkDays",
   "cullMilkPriceDays",
 ] as const;
 
@@ -216,20 +231,26 @@ const refuseWhatIsTheOwners = (
 };
 
 /**
- * Refuses a milk wait shorter than a week past the days a keep is read over, as the farm would have the two once this
- * request is saved. Weighed sooner, the days her milk is read over would take in her calf's week, and every cow fresh
- * from calving would look short of her keep. Said, not moved for the Owner: the two are set together or not at all.
+ * Refuses a milk wait shorter than her calf's days and then the days a keep is read over, as the farm would have the
+ * three once this request is saved. Weighed sooner, the days her milk is read over would take in her calf's milk, and
+ * every cow fresh from calving would look short of her keep. Said, not moved for the Owner: they are set together or not
+ * at all.
  */
 const refuseMilkWeighedTooSoon = (
   input: ParametersInput,
-  standing: { keepReadDays: number; cullMilkAfterDays: number }
+  standing: {
+    keepReadDays: number;
+    cullMilkAfterDays: number;
+    cullCalfMilkDays: number;
+  }
 ) => {
   const keepReadDays = input.keepReadDays ?? standing.keepReadDays;
   const milkAfterDays = input.cullMilkAfterDays ?? standing.cullMilkAfterDays;
-  const soonest = fewestDaysBeforeMilkIsWeighed(keepReadDays);
+  const calfMilkDays = input.cullCalfMilkDays ?? standing.cullCalfMilkDays;
+  const soonest = fewestDaysBeforeMilkIsWeighed(keepReadDays, calfMilkDays);
   if (milkAfterDays < soonest) {
     throw new ORPCError("BAD_REQUEST", {
-      message: `A cow's milk is weighed a week past the days her keep is read over: ${soonest} days at the soonest`,
+      message: `A cow's milk is weighed past her calf's days and the days her keep is read over: ${soonest} days at the soonest`,
       data: { refusal: "milk_weighed_too_soon", soonestDays: soonest },
     });
   }
@@ -664,6 +685,7 @@ export const farmRouter = {
                 keepRateGapDays: true,
                 cullOpenDays: true,
                 cullMilkAfterDays: true,
+                cullCalfMilkDays: true,
                 cullMilkPriceDays: true,
                 approvalThresholdBdt: true,
                 ventureFloorPercent: true,
