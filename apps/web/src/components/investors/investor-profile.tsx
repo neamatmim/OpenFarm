@@ -17,6 +17,8 @@ import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 import { DataCopyAct } from "./data-copy";
+import { Nominees } from "./nominees";
+import { phoneLink } from "./phone-link";
 
 /** How long "copied" stays on the button before it offers to copy again. */
 const COPIED_FOR_MS = 2000;
@@ -63,21 +65,6 @@ const DetailCard = ({
     <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">{children}</dl>
   </Section>
 );
-
-/** Everything in a phone number a dialler does not dial: spaces, dashes, brackets. */
-const NOT_DIALLED = /[^\d+]/gu;
-
-/** A number to ring from the phone the page is open on, or nothing where none was given — so the Detail
- *  it stands in still says so in words. */
-export const phoneLink = (phone: string | null | undefined) =>
-  phone ? (
-    <a
-      className="tabular-nums underline-offset-4 hover:underline focus-visible:underline"
-      href={`tel:${phone.replaceAll(NOT_DIALLED, "")}`}
-    >
-      {phone}
-    </a>
-  ) : null;
 
 /** The account the money goes to, set apart as it will be read out or pasted into a bank's app, with a button
  *  that copies it where the browser allows one. */
@@ -378,17 +365,7 @@ export const InvestorProfile = ({
             ) : null}
           </Detail>
         </DetailCard>
-        <DetailCard title={t("investors.nominee")}>
-          <Detail label={t("investors.nomineeName")}>
-            {investor.nominee?.name}
-          </Detail>
-          <Detail label={t("investors.nomineeRelation")}>
-            {investor.nominee?.relation}
-          </Detail>
-          <Detail label={t("investors.nomineePhone")}>
-            {phoneLink(investor.nominee?.phone)}
-          </Detail>
-        </DetailCard>
+        <Nominees investor={investor} />
       </div>
       <div className="flex flex-col gap-4">
         <Section description={t("portal.recordHint")} title={t("portal.title")}>

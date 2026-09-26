@@ -2,6 +2,7 @@ import {
   PASSWORD_MIN_LENGTH,
   PASSWORD_TOO_COMMON,
 } from "@OpenFarm/auth/password";
+import type { PaperNominee } from "@OpenFarm/domain";
 import { formatDate, formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
@@ -14,7 +15,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { PasswordInput } from "@/components/auth/password-input";
-import { phoneLink } from "@/components/investors/investor-profile";
+import { NomineeList } from "@/components/investors/nominees";
+import { phoneLink } from "@/components/investors/phone-link";
 import {
   Loaded,
   Notice,
@@ -65,6 +67,18 @@ const Held = ({ label, children }: { label: string; children: ReactNode }) => {
   );
 };
 
+/** Their Nominees in force, each with the share they collect and who collects for a minor — theirs to check, and to
+ *  ask the Owner in writing to change, by a paper they sign. */
+const TheirNominees = ({ nominees }: { nominees: PaperNominee[] }) => {
+  const { t } = useLanguage();
+  return (
+    <div className="mt-4 flex flex-col gap-2 border-t pt-4">
+      <h3 className="text-muted-foreground text-xs">{t("nominees.title")}</h3>
+      <NomineeList nominees={nominees} />
+    </div>
+  );
+};
+
 /**
  * Their record as the farm holds it, to check against their own papers — the NID and the bank account with all but
  * their last digits hidden, enough to know them by. Put right by the Owner, never here: the portal changes nothing
@@ -89,14 +103,8 @@ const TheirDetails = ({ me }: { me: Me }) => {
         <Held label={t("investors.address")}>{record.address}</Held>
         <Held label={t("investors.nid")}>{record.nid}</Held>
         <Held label={t("investors.bank")}>{record.bankAccount}</Held>
-        <Held label={t("investors.nomineeName")}>
-          {record.nominee
-            ? [record.nominee.name, record.nominee.relation]
-                .filter(Boolean)
-                .join(" · ")
-            : null}
-        </Held>
       </dl>
+      <TheirNominees nominees={record.nominees ?? []} />
     </Section>
   );
 };

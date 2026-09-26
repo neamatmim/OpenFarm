@@ -4,6 +4,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -90,7 +91,8 @@ export const venture = pgTable(
  * here, and one of at most twenty at a time, the Owner among them.
  *
  * Not a **Counterparty**, who is paid for something. An Investor shares what the Farm makes, and so needs
- * what paying them and their family needs: a bank account, and a nominee.
+ * what paying them and their family needs: a bank account, and their Nominees — kept as each **Nomination** they
+ * signed, never on this row, since only a signed paper changes who they are.
  */
 export const investor = pgTable(
   "investor",
@@ -106,9 +108,6 @@ export const investor = pgTable(
     nid: text("nid"),
     /** Where their money goes: bank channels only, so the account is the way to pay them. */
     bankAccount: text("bank_account"),
-    nomineeName: text("nominee_name"),
-    nomineePhone: text("nominee_phone"),
-    nomineeRelation: text("nominee_relation"),
     recordedBy: text("recorded_by").references(() => user.id),
     createdAt: timestamp("created_at").notNull(),
     /** Retired, never removed: their Agreements, payouts and statements are kept for twelve years and every
@@ -449,6 +448,98 @@ export const agreementAmendment = pgTable(
 /** The photograph of an amendment, kept once for the one paper everybody signed. */
 export const amendmentPaper = pgTable("amendment_paper", {
   amendedId: text("amended_id").primaryKey(),
+  farmId: text("farm_id")
+    .notNull()
+    .references(() => farm.id, { onDelete: "cascade" }),
+  contentType: text("content_type").notNull(),
+  /** Downscaled on the device before upload, base64. */
+  data: text("data").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+});
+
+/**
+ * How a Nomination came to be on file: a মনোনয়নপত্র signed in front of the Owner; an Investment Agreement, which
+ * names the Nominees it was signed with and so is one too; or a nominee written down before Nominations were kept,
+ * carried over and not yet signed for.
+ */
+export const NOMINATION_HOW = [
+  "nomination",
+  "agreement",
+  "carried_over",
+] as const;
+
+/**
+ * One paper naming an Investor's Nominees (the glossary's **Nomination**), with every one of them in full. The latest
+ * on file is the list in force for all their Agreements. Never edited and never removed: the next one is recorded
+ * beside it, and the history of who was named, and when, is the farm's answer to a family.
+ */
+export const nomination = pgTable(
+  "nomination",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    investorId: text("investor_id")
+      .notNull()
+      .references(() => investor.id),
+    /** The farm day it was signed, as an Agreement's stamp day is kept; the day it was carried over, for one never
+     *  signed. */
+    signedOn: text("signed_on").notNull(),
+    how: text("how", { enum: NOMINATION_HOW }).notNull(),
+    /** The Agreement that is this Nomination, when it is one. */
+    agreementId: text("agreement_id").references(() => investmentAgreement.id),
+    /** The Version of the মনোনয়নপত্র's wording it was signed in, when it is one. */
+    templateVersionId: text("template_version_id").references(
+      () => paperTemplateVersion.id
+    ),
+    /** Nobody, for one carried over. */
+    recordedBy: text("recorded_by").references(() => user.id),
+    recordedAt: timestamp("recorded_at").notNull(),
+  },
+  (table) => [
+    index("nomination_investor_idx").on(table.investorId),
+    uniqueIndex("nomination_agreement_uidx")
+      .on(table.agreementId)
+      .where(sql`${table.agreementId} is not null`),
+  ]
+);
+
+/**
+ * One person a Nomination names (the glossary's **Nominee**): who collects their share of what the Farm pays on the
+ * Investor's death and hands it on to the heirs. Up to three on a Nomination, in the order printed. A Nominee under
+ * eighteen on the day it was signed collects through their **Receiver**, written down with them.
+ */
+export const nominee = pgTable(
+  "nominee",
+  {
+    nominationId: text("nomination_id")
+      .notNull()
+      .references(() => nomination.id, { onDelete: "cascade" }),
+    /** From one, in the order the paper prints them. */
+    place: integer("place").notNull(),
+    name: text("name").notNull(),
+    /** Their relation to the Investor, in words. */
+    relation: text("relation"),
+    phone: text("phone"),
+    /** Unknown only for a nominee carried over from before dates of birth were kept. */
+    bornOn: text("born_on"),
+    /** Whole percent of the collecting, never of the inheritance; a Nomination's add to a hundred. */
+    sharePercent: integer("share_percent").notNull(),
+    receiverName: text("receiver_name"),
+    /** The Receiver's relation to the Nominee, in words. */
+    receiverRelation: text("receiver_relation"),
+    receiverPhone: text("receiver_phone"),
+  },
+  (table) => [primaryKey({ columns: [table.nominationId, table.place] })]
+);
+
+/** The photo of a signed মনোনয়নপত্র, kept beside it as an Agreement's is: the farm's proof that the Investor named
+ *  these people themselves. An Agreement's Nomination has none of its own; its proof is the Agreement's photo. */
+export const nominationPaper = pgTable("nomination_paper", {
+  nominationId: text("nomination_id")
+    .primaryKey()
+    .references(() => nomination.id, { onDelete: "cascade" }),
   farmId: text("farm_id")
     .notNull()
     .references(() => farm.id, { onDelete: "cascade" }),

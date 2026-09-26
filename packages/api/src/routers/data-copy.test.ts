@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { TRAILED } from "../data-copy";
 import { createTestClient } from "../test/client";
+import { nominationOnFile, theWhole } from "../test/nominations";
 import { invitingInvestors } from "../test/portal-client";
 import { appRouter } from "./index";
 
@@ -49,7 +50,32 @@ const withAHistory = async () => {
     address: `আশুলিয়া ${suffix}`,
     nid: NID,
     bankAccount: BANK,
-    nominee: { name: `রাশেদের ছেলে ${suffix}`, relation: "ছেলে" },
+  });
+  // His Nominees as they were written down before Nominations, then as he signed them afterwards.
+  await nominationOnFile({
+    investorId: them.id,
+    nominees: [theWhole(`রাশেদের ছেলে ${suffix}`, "ছেলে")],
+    signedOn: "2061-01-01",
+    recordedAt: new Date(JANUARY),
+  });
+  await nominationOnFile({
+    investorId: them.id,
+    how: "nomination",
+    nominees: [
+      {
+        ...theWhole(`রাশেদের ছেলে ${suffix}`, "ছেলে"),
+        bornOn: "1990-02-03",
+        sharePercent: 60,
+      },
+      {
+        ...theWhole(`রাশেদের মেয়ে ${suffix}`, "মেয়ে"),
+        bornOn: "2050-04-05",
+        sharePercent: 40,
+        receiver: { name: `রাশেদের স্ত্রী ${suffix}`, relation: "মা", phone: null },
+      },
+    ],
+    signedOn: "2061-01-01",
+    recordedAt: new Date(Date.parse(JANUARY) + 1000),
   });
   const venture = await owner.ventures.open({
     name: `তথ্যের ভেঞ্চার ${suffix}`,
@@ -143,7 +169,24 @@ describe("«খামারে আপনার তথ্য»", () => {
     const record = part("আপনার রেকর্ড");
     expect(record).toContain(NID);
     expect(record).toContain(BANK);
-    expect(record).toContain(`রাশেদের ছেলে ${suffix}`);
+    expect(record).not.toContain("নমিনি");
+    // Every Nomination on file, the one in force first and said so, each Nominee with a minor's Receiver.
+    const nominees = document.sections.find(
+      (one) => one.heading.bn === "আপনার নমিনি"
+    );
+    if (nominees?.kind !== "facts") {
+      throw new Error("expected his Nominees");
+    }
+    expect(nominees.rows.map((row) => row.label.bn)).toEqual([
+      expect.stringContaining("মনোনয়নপত্র · এখন বহাল"),
+      expect.stringContaining("এখনো সই হয়নি"),
+    ]);
+    expect(nominees.rows[0]?.value).toContain(`রাশেদের মেয়ে ${suffix}`);
+    expect(nominees.rows[0]?.value).toContain("অংশ ৪০%");
+    expect(nominees.rows[0]?.value).toContain(
+      `গ্রহণকারী রাশেদের স্ত্রী ${suffix} (মা)`
+    );
+    expect(nominees.rows[1]?.value).toContain("অংশ ১০০%");
     // Their Agreement, and the money it moved.
     expect(part("আপনার চুক্তি")).toContain(`S-${suffix}`);
     expect(part("আপনার টাকার লেনদেন")).toContain(`TRF-${suffix}`);
@@ -161,7 +204,6 @@ describe("«খামারে আপনার তথ্য»", () => {
     // The change to their record, what it was and what it became.
     const changes = part("আপনার সম্পর্কে প্রতিটি বদল");
     expect(changes).toContain(`আশুলিয়া ${suffix}`);
-    expect(changes).toContain(`রাশেদের ছেলে ${suffix}`);
     // Their portal access and consent changed too, on the trail beside their record.
     expect(changes).toContain("পোর্টাল প্রবেশাধিকার");
     expect(changes).toContain("পোর্টাল সম্মতি");

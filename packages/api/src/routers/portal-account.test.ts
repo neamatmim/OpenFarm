@@ -5,6 +5,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { buildContext } from "../context";
 import { createTestClient } from "../test/client";
+import { nominationOnFile, theWhole } from "../test/nominations";
 import { invitedWithConsent } from "../test/portal-client";
 import { appRouter } from "./index";
 
@@ -86,8 +87,21 @@ const signAndPay = async (
     name: `${name} ${suffix}`,
     phone,
     address: "সাভার",
-    nominee: { name: "রোকেয়া", relation: "স্ত্রী" },
     ...record,
+  });
+  await nominationOnFile({
+    investorId: person.id,
+    nominees: [
+      {
+        ...theWhole("রোকেয়া"),
+        bornOn: "2040-01-01",
+        sharePercent: 60,
+        receiver: { name: "রহিম", relation: "বাবা", phone: null },
+      },
+      { ...theWhole("করিম", "ভাই"), bornOn: "1980-01-01", sharePercent: 40 },
+    ],
+    signedOn: "2054-01-01",
+    recordedAt: new Date(JANUARY),
   });
   const signed = await owner.ventures.sign({
     ventureId,
@@ -167,7 +181,16 @@ describe("an Investor's own record", () => {
       `Rahim Uddin\n••••-••••-${suffix.slice(-4)}\nSonali Bank, Savar`
     );
     expect(JSON.stringify(me)).not.toContain(NID);
-    expect(me.record.nominee).toMatchObject({ name: "রোকেয়া" });
+    // Their Nominees in force, each with the share they collect, and a minor on today's date with who collects for her.
+    expect(me.record.nominees).toMatchObject([
+      {
+        name: "রোকেয়া",
+        sharePercent: 60,
+        minor: true,
+        receiver: { name: "রহিম" },
+      },
+      { name: "করিম", sharePercent: 40, minor: false, receiver: null },
+    ]);
     expect(me.farm).toMatchObject({
       phone: "+8801711000097",
       address: `সাভার, ঢাকা ${suffix}`,

@@ -29,12 +29,22 @@ const PARTIES: PaperParties = {
       phone: "01811000000",
       address: null,
       nid: "1985220788",
-      nominee: null,
+      nominees: [],
     },
   ],
 };
 
 const agreement = STANDARD_TEMPLATES.investment_agreement;
+
+const SALMA = {
+  name: "সালমা",
+  relation: "মেয়ে",
+  phone: "01911000000",
+  bornOn: "1990-05-06",
+  sharePercent: 100,
+  minor: false,
+  receiver: null,
+};
 
 describe("the standard wording", () => {
   it("publishes as it is, every kind of it", () => {
@@ -211,13 +221,13 @@ describe("the terms a letter repeats", () => {
 });
 
 describe("the Investment Agreement's data section and nominee lines", () => {
-  /** The laid-out paper's parts, for an Investor with a nominee or without one. */
-  const laidOutFor = (nominee: PaperParties["investors"][0]["nominee"]) =>
+  /** The laid-out paper's parts, for an Investor with Nominees or without. */
+  const laidOutFor = (nominees: PaperParties["investors"][0]["nominees"]) =>
     paperFrom(agreement, {
       kind: "investment_agreement",
       parties: {
         ...PARTIES,
-        investors: [{ ...PARTIES.investors[0], nominee }],
+        investors: [{ ...PARTIES.investors[0], nominees }],
       },
       values: {},
       producedBy: "করিম",
@@ -251,12 +261,9 @@ describe("the Investment Agreement's data section and nominee lines", () => {
     expect(data.clauses[5]?.bn).toContain("আলাদা সম্মতিপত্রে সই করলে");
   });
 
-  it("prints the two nominee lines under the Investor, not the Farm, whether or not the farm has a nominee for him", () => {
-    for (const nominee of [
-      null,
-      { name: "সালমা", phone: "01911000000", relation: "মেয়ে" },
-    ]) {
-      const parties = laidOutFor(nominee).find(
+  it("prints the two nominee lines under the Investor, not the Farm, whether or not he has Nominees", () => {
+    for (const nominees of [[], [SALMA]]) {
+      const parties = laidOutFor(nominees).find(
         (section) => section.kind === "parties"
       );
       if (parties?.kind !== "parties") {
@@ -271,6 +278,48 @@ describe("the Investment Agreement's data section and nominee lines", () => {
       expect(him?.lines[1]?.bn).toContain("নমিনির বয়স আঠারো বছরের কম");
       expect(him?.lines[1]?.en).toContain("Signature: ____________");
     }
+  });
+
+  it("prints his Nominees as a table under him, a minor marked with who collects for her, and none under the Farm", () => {
+    const parties = laidOutFor([
+      { ...SALMA, sharePercent: 80 },
+      {
+        name: "তানিয়া",
+        relation: "নাতনি",
+        phone: null,
+        bornOn: "2015-01-02",
+        sharePercent: 20,
+        minor: true,
+        receiver: { name: "সালমা", relation: "মা", phone: "01911000000" },
+      },
+    ]).find((section) => section.kind === "parties");
+    if (parties?.kind !== "parties") {
+      throw new Error("expected the parties");
+    }
+    const [farm, him] = parties.parties;
+
+    expect(farm?.nominees).toEqual([]);
+    expect(him?.nominees).toEqual([
+      {
+        name: "সালমা",
+        relation: "মেয়ে",
+        born: expect.stringContaining("১৯৯০"),
+        minor: false,
+        phone: "01911000000",
+        share: "৮০%",
+        receiver: null,
+      },
+      {
+        name: "তানিয়া",
+        relation: "নাতনি",
+        born: expect.stringContaining("২০১৫"),
+        minor: true,
+        phone: null,
+        share: "২০%",
+        receiver: "সালমা (মা), 01911000000",
+      },
+    ]);
+    expect(him?.rows.map((row) => row.label.en)).not.toContain("Nominee");
   });
 
   it("checks the nominee lines as it checks a clause", () => {

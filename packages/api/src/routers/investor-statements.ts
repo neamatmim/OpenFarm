@@ -1,4 +1,4 @@
-import { paperFrom } from "@OpenFarm/domain";
+import { farmDayOf, paperFrom } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -11,6 +11,11 @@ import {
   progressStatementFor,
   settlementStatementFor,
 } from "../investor-papers";
+import {
+  nominationInForce,
+  nominationsInForceFor,
+  paperNominees,
+} from "../nomination-store";
 import { paperInvestor, paperValues, producedAt } from "../paper-values";
 import { noticeFilling } from "../portal-reads";
 import { languageOf } from "../reader-language";
@@ -82,7 +87,14 @@ export const investorStatementsRouter = {
       );
       const now = context.clock.now();
       const language = await languageOf(context.db, context.actor.id);
-      const investor = paperInvestor(him);
+      // The Nominees in force, each judged a minor or not on the day it is printed to be signed.
+      const investor = paperInvestor(
+        him,
+        paperNominees(
+          await nominationInForce(context.db, context.farm.id, him.id),
+          farmDayOf(now)
+        )
+      );
       const document = paperFrom(wording.content, {
         kind: "investment_agreement",
         parties: {
@@ -175,7 +187,8 @@ export const investorStatementsRouter = {
         parties: {
           farm: context.farm,
           ownerName: context.actor.name,
-          investors: [paperInvestor(him)],
+          // The notice has no parties part: it names nobody's Nominees.
+          investors: [paperInvestor(him, [])],
         },
         values,
         producedBy: context.actor.name,
@@ -239,9 +252,22 @@ export const investorStatementsRouter = {
           id: { in: signed.map((one) => one.investorId) },
         },
       });
+      const inForce = await nominationsInForceFor(
+        context.db,
+        context.farm.id,
+        investors.map((him) => him.id)
+      );
+      const today = farmDayOf(context.clock.now());
       const [first, ...rest] = signed.flatMap((one) => {
         const row = investors.find((him) => him.id === one.investorId);
-        return row ? [paperInvestor(row)] : [];
+        return row
+          ? [
+              paperInvestor(
+                row,
+                paperNominees(inForce.get(row.id) ?? null, today)
+              ),
+            ]
+          : [];
       });
       if (!first) {
         throw new ORPCError("BAD_REQUEST", {

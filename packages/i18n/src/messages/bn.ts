@@ -1129,11 +1129,6 @@ export const bn: Record<MessageKey, string> = {
   "investors.bank": "ব্যাংক হিসাব",
   "investors.bankHint": "টাকা এই হিসাবেই যাবে — বিনিয়োগকারীকে খামার কখনো হাতে টাকা দেয় না",
   "investors.nominee": "নমিনি",
-  "investors.nomineeHint":
-    "ভেঞ্চারের হিসাব শেষ হওয়ার আগে তিনি মারা গেলে টাকা যাঁর কাছে যাবে",
-  "investors.nomineePhone": "নমিনির ফোন",
-  "investors.nomineeRelation": "সম্পর্ক",
-  "investors.nomineeName": "নমিনির নাম",
   "investors.relation.wife": "স্ত্রী",
   "investors.relation.husband": "স্বামী",
   "investors.relation.son": "ছেলে",
@@ -1143,7 +1138,6 @@ export const bn: Record<MessageKey, string> = {
   "investors.relation.brother": "ভাই",
   "investors.relation.sister": "বোন",
   "investors.relation.other": "অন্য কেউ",
-  "investors.relationInWords": "সম্পর্কটি লিখুন",
   "investors.section.who": "পরিচয়",
   "investors.section.money": "টাকা কোথায় যাবে",
   "investors.noVentures": "এখনো কোনো ভেঞ্চারে নেই।",
@@ -1173,6 +1167,24 @@ export const bn: Record<MessageKey, string> = {
   "investors.stillIn":
     "চলমান একটি ভেঞ্চারে তাঁর টাকা আছে, তাই ভেঞ্চারের হিসাব শেষ বা বাতিল না হওয়া পর্যন্ত বাদ দেওয়া যাবে না।",
   "investors.nomineeIs": "নমিনি: {name}",
+  "investors.nomineesAre": "{name} ও আরও {more} জন",
+  "nominees.title": "নমিনি",
+  "nominees.hint":
+    "ভেঞ্চারের হিসাব শেষ হওয়ার আগে তিনি মারা গেলে যাঁরা তাঁর মূলধন ও প্রাপ্য সংগ্রহ করে আইনগত উত্তরাধিকারীদের বুঝিয়ে দেবেন। শুধু তাঁর সই করা কাগজেই বদলায়।",
+  "nominees.none": "কোনো নমিনি নেই",
+  "nominees.noneHint":
+    "তিনি মারা গেলে টাকা সরাসরি তাঁর আইনগত উত্তরাধিকারীদের দেওয়া হবে, সাধারণত উত্তরাধিকার সনদ দেখে।",
+  "nominees.notSignedFor": "এখনো সই হয়নি",
+  "nominees.notSignedForHint":
+    "মনোনয়ন রাখা শুরুর আগে লেখা। তিনি মনোনয়নপত্রে বা এঁদের নাম থাকা চুক্তিতে সই করলে তবেই গণ্য হবে।",
+  "nominees.from.nomination": "{day}-এ সই হওয়া মনোনয়নপত্র",
+  "nominees.from.agreement": "{day}-এ সই হওয়া চুক্তিতে",
+  "nominees.from.carried_over": "{day}-এ আগের রেকর্ড থেকে",
+  "nominees.born": "জন্ম {day}",
+  "nominees.minor": "নাবালক",
+  "nominees.share": "{share}%",
+  "nominees.receiver": "সংগ্রহ করবেন {name}",
+  "nominees.earlier": "আগের মনোনয়ন",
   "investors.holds": "{units} ইউনিট",
   "investors.none": "এখনো কোনো বিনিয়োগকারী লেখা হয়নি",
   "investors.nearingTheCap":
@@ -1498,6 +1510,7 @@ export const bn: Record<MessageKey, string> = {
   "audit.entity.repeat_breeder_answer": "বারবার প্রজননের সিদ্ধান্ত",
   "audit.entity.ready_set_aside": "বিক্রয় থেকে সরানো",
   "audit.entity.investor": "বিনিয়োগকারী",
+  "audit.entity.nomination": "মনোনয়ন",
   "audit.entity.invite": "আমন্ত্রণ",
   "audit.entity.farm": "খামার",
   "audit.system": "সিস্টেম",

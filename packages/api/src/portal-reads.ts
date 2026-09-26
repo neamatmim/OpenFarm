@@ -23,6 +23,7 @@ import {
 } from "./investor-statement-store";
 import { shareOfUnits } from "./investor-statement-words";
 import { signedInOn } from "./membership";
+import { nominationInForce, paperNominees } from "./nomination-store";
 import { ownerNameOf, requireTheirs } from "./portal-store";
 import { theirRequests } from "./requests-to-join";
 import { wordingInForce } from "./template-store";
@@ -53,12 +54,20 @@ export const farmToCall = (farm: PortalReader["farm"]) => ({
 /**
  * Who the portal is for, which farm's and how to reach it, and their own record as the farm holds it — the NID and
  * the bank account with all but their last digits hidden, enough to know them by on a screen somebody may be looking
- * over. They are put right by the Owner, not in the portal.
+ * over. They are put right by the Owner, not in the portal; their Nominees change only by a paper they sign.
  */
-export const theirRecord = async ({ db, farm, investor }: PortalReader) => {
-  const theirs = await db.query.investor.findFirst({
-    where: { id: investor.id, farmId: farm.id },
-  });
+export const theirRecord = async ({
+  db,
+  clock,
+  farm,
+  investor,
+}: PortalReader) => {
+  const [theirs, inForce] = await Promise.all([
+    db.query.investor.findFirst({
+      where: { id: investor.id, farmId: farm.id },
+    }),
+    nominationInForce(db, farm.id, investor.id),
+  ]);
   return {
     investorId: investor.id,
     name: investor.name,
@@ -70,13 +79,8 @@ export const theirRecord = async ({ db, farm, investor }: PortalReader) => {
       bankAccount: theirs?.bankAccount
         ? maskedDigits(theirs.bankAccount)
         : null,
-      nominee: theirs?.nomineeName
-        ? {
-            name: theirs.nomineeName,
-            relation: theirs.nomineeRelation,
-            phone: theirs.nomineePhone,
-          }
-        : null,
+      // The list in force, each marked a minor or not today: theirs to read, and to ask the Owner in writing to change.
+      nominees: paperNominees(inForce, farmDayOf(clock.now())),
     },
   };
 };

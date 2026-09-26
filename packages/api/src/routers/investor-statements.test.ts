@@ -2,6 +2,7 @@ import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { nominationOnFile, theWhole } from "../test/nominations";
 import { appRouter } from "./index";
 
 /**
@@ -88,11 +89,20 @@ beforeAll(async () => {
     address: `সাভার, ঢাকা ${suffix}`,
     nid: "1234567890",
     bankAccount: "0123456789",
-    nominee: {
-      name: `আমেনা বেগম ${suffix}`,
-      phone: "01977000012",
-      relation: "স্ত্রী",
-    },
+  });
+  await nominationOnFile({
+    investorId: him.id,
+    nominees: [
+      { ...theWhole(`আমেনা বেগম ${suffix}`), sharePercent: 70 },
+      {
+        ...theWhole(`সাকিব ${suffix}`, "ছেলে"),
+        bornOn: "2040-06-01",
+        sharePercent: 30,
+        receiver: { name: `আমেনা বেগম ${suffix}`, relation: "মা", phone: null },
+      },
+    ],
+    signedOn: "2051-01-01",
+    recordedAt: new Date("2051-01-01T04:00:00.000Z"),
   });
   const other = await owner.client.investors.record({
     name: THE_OTHER_MAN,
@@ -149,13 +159,18 @@ describe("the paper an Investor gets when he joins", () => {
     expect(text).toContain("৩,০০,০০০");
   });
 
-  it("carries the letterhead, his nominee, the stamp and the terms he signed", async () => {
+  it("carries the letterhead, his Nominees, the stamp and the terms he signed", async () => {
     const owner = await as("owner", "2051-01-20T04:00:00.000Z");
     const { text } = await owner.client.investorStatements.joining({
       agreementId: hisFirst,
     });
     expect(text).toContain("নিবন্ধন নম্বর");
-    expect(text).toContain(`আমেনা বেগম ${suffix}`);
+    // Each of his Nominees in force on its own line, with the share each collects and who collects for a minor.
+    expect(text).toContain(`নমিনি ১ / Nominee 1`);
+    expect(text).toContain(`আমেনা বেগম ${suffix} · স্ত্রী · ৭০%`);
+    expect(text).toContain(
+      `সাকিব ${suffix} · ছেলে · ৩০% (গ্রহণকারী: আমেনা বেগম ${suffix} (মা))`
+    );
     expect(text).toContain(`AA 1 ${suffix}`);
     expect(text).toContain(`মাওলানা 1 ${suffix}`);
     // The split as his own paper froze it, in words rather than as a percentage on its own.

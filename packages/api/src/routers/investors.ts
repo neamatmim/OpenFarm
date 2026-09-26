@@ -18,6 +18,12 @@ import {
   readInvestor,
   theSamePerson,
 } from "../investor-store";
+import type { NominationOnFile } from "../nomination-store";
+import {
+  nominationsInForceFor,
+  nominationsOf,
+  paperNominees,
+} from "../nomination-store";
 import type { ConsentWithdrawnSaid } from "../portal-consent";
 import {
   consentSheet,
@@ -64,13 +70,6 @@ const personInput = z.object({
   /** Bank channels only, so the account is how they are paid. Written out as the bank would want it — the
    *  name on the account, its number, the bank and the branch — often on a line each. */
   bankAccount: z.string().trim().max(300).optional(),
-  nominee: z
-    .object({
-      name: z.string().trim().min(1).max(120),
-      phone: z.string().trim().max(20).optional(),
-      relation: z.string().trim().max(60).optional(),
-    })
-    .optional(),
 });
 
 const updateInput = personInput.extend({ id: z.string().min(1) });
@@ -89,6 +88,20 @@ const alreadyHere = (retired: boolean) =>
         data: { refusal: "investor_exists" },
       });
 
+/** A Nomination as a screen shows it: how it came, the day, each Nominee marked a minor or not on `today`, and
+ *  whether it has its photo. */
+const nominationSaid = (nomination: NominationOnFile | null, today: string) =>
+  nomination
+    ? {
+        id: nomination.id,
+        how: nomination.how,
+        signedOn: nomination.signedOn,
+        agreementId: nomination.agreementId,
+        hasPhoto: nomination.hasPhoto,
+        nominees: paperNominees(nomination, today),
+      }
+    : null;
+
 /** Everything written down about one person, as a correction replaces it: a field left out is a field
  *  cleared, since the form sends the whole record as it now stands. */
 const theRecord = (input: z.infer<typeof personInput>) => ({
@@ -97,9 +110,6 @@ const theRecord = (input: z.infer<typeof personInput>) => ({
   address: input.address ?? null,
   nid: input.nid ?? null,
   bankAccount: input.bankAccount ?? null,
-  nomineeName: input.nominee?.name ?? null,
-  nomineePhone: input.nominee?.phone ?? null,
-  nomineeRelation: input.nominee?.relation ?? null,
 });
 
 /** The farm's Investors, as the one way a list is kept keeps it: retired, never removed, because everything they
@@ -153,22 +163,35 @@ export const investorsRouter = {
         where: { farmId: context.farm.id },
         orderBy: { name: "asc", id: "asc" },
       });
-      const [counted, signed, ventures, portal, consents, withdrawals] =
-        await Promise.all([
-          countedInvestors(context.db, context.farm.id),
-          context.db.query.investmentAgreement.findMany({
-            where: { farmId: context.farm.id },
-            columns: { investorId: true, ventureId: true, units: true },
-            orderBy: { createdAt: "desc", id: "desc" },
-          }),
-          context.db.query.venture.findMany({
-            where: { farmId: context.farm.id },
-            columns: { id: true, name: true, state: true },
-          }),
-          portalStandings(context.db, context.farm.id, context.clock.now()),
-          consentsInForce(context.db, context.farm.id),
-          lastConsentsWithdrawn(context.db, context.farm.id),
-        ]);
+      const [
+        counted,
+        signed,
+        ventures,
+        portal,
+        consents,
+        withdrawals,
+        nominations,
+      ] = await Promise.all([
+        countedInvestors(context.db, context.farm.id),
+        context.db.query.investmentAgreement.findMany({
+          where: { farmId: context.farm.id },
+          columns: { investorId: true, ventureId: true, units: true },
+          orderBy: { createdAt: "desc", id: "desc" },
+        }),
+        context.db.query.venture.findMany({
+          where: { farmId: context.farm.id },
+          columns: { id: true, name: true, state: true },
+        }),
+        portalStandings(context.db, context.farm.id, context.clock.now()),
+        consentsInForce(context.db, context.farm.id),
+        lastConsentsWithdrawn(context.db, context.farm.id),
+        nominationsInForceFor(
+          context.db,
+          context.farm.id,
+          rows.map((one) => one.id)
+        ),
+      ]);
+      const today = farmDayOf(context.clock.now());
       // Every Venture each person signed into, the latest first, running or long settled — so their
       // record leads to each run their money went to.
       const ventureOf = new Map(ventures.map((one) => [one.id, one]));
@@ -209,13 +232,9 @@ export const investorsRouter = {
           address: one.address,
           nid: one.nid,
           bankAccount: one.bankAccount,
-          nominee: one.nomineeName
-            ? {
-                name: one.nomineeName,
-                phone: one.nomineePhone,
-                relation: one.nomineeRelation,
-              }
-            : null,
+          /** Their Nominees in force — how the list came, the day, and each Nominee marked a minor or not today — or
+           *  null for somebody who has never had one on file. */
+          nomination: nominationSaid(nominations.get(one.id) ?? null, today),
           /** The Units this person holds across the Ventures still running. */
           unitsHeld: counted.unitsOf.get(one.id) ?? 0,
           /** The Ventures they signed into, the latest first, with the Units of each Agreement. */
@@ -291,8 +310,30 @@ export const investorsRouter = {
     ),
 
   /**
-   * One person recorded once, and reused for every Venture they join: name, phone, address, NID, the bank
-   * account they are paid into, and a nominee for their family's sake.
+   * Every Nomination one Investor has on file, newest first, so the first is the list in force: how each came, the
+   * day it was signed, and its Nominees, each marked a minor or not on that day. The history of who was named, and
+   * when, is the farm's answer to a family. The Owner's alone.
+   */
+  nominations: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string() }))
+    .handler(async ({ context, input }) => {
+      const all = await nominationsOf(context.db, context.farm.id, input.id);
+      return all.map((one) => ({
+        id: one.id,
+        how: one.how,
+        signedOn: one.signedOn,
+        agreementId: one.agreementId,
+        hasPhoto: one.hasPhoto,
+        recordedAt: one.recordedAt,
+        nominees: paperNominees(one, one.signedOn),
+      }));
+    }),
+
+  /**
+   * One person recorded once, and reused for every Venture they join: name, phone, address, NID and the bank
+   * account they are paid into. Their Nominees are not written here: only a paper they sign names them.
    */
   record: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
@@ -324,9 +365,6 @@ export const investorsRouter = {
             address: input.address,
             nid: input.nid,
             bankAccount: input.bankAccount,
-            nomineeName: input.nominee?.name,
-            nomineePhone: input.nominee?.phone,
-            nomineeRelation: input.nominee?.relation,
             recordedBy: context.actor.id,
             createdAt: now,
           })
@@ -335,8 +373,8 @@ export const investorsRouter = {
     }),
 
   /**
-   * What was written down about somebody, put right — a phone changed, a bank account moved, a nominee who
-   * has died replaced. The whole record as it now stands replaces the old one, and the trail keeps what it
+   * What was written down about somebody, put right — a phone changed, a bank account moved. Never their
+   * Nominees, which only a paper they sign changes. The whole record as it now stands replaces the old one, and the trail keeps what it
    * said before: a payout sent to an account that was typed over has to be traceable to who typed it.
    */
   update: protectedProcedure

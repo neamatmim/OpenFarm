@@ -1,4 +1,6 @@
 /* oxlint-disable no-await-in-loop -- a Venture's acts happen one after another, in the order they happened */
+import { uuidv7 } from "@OpenFarm/db/ids";
+import { nomination, nominee } from "@OpenFarm/db/schema/venture";
 import { farmDayOf } from "@OpenFarm/domain";
 
 import { balanceAtMonthEnd } from "../venture-store";
@@ -34,7 +36,8 @@ const A_STAMPED_PAPER =
   "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==";
 
 /** The people whose money is in. A known circle, as the law requires — neighbours, a brother-in-law, the
- *  pharmacy man in the bazaar — and every one of them with a nominee, because the agreement asks. */
+ *  pharmacy man in the bazaar — and every one of them with a nominee, because the agreement asks, written down
+ *  as it was before Nominations were kept: carried over, and not yet signed for. */
 const INVESTORS = [
   {
     name: "আবুল হাশেম মিয়া",
@@ -119,6 +122,36 @@ export interface SeededVenture {
   kept: Set<string>;
 }
 
+/**
+ * A nominee as the farm held one before Nominations were kept, carried over as the migration carries every one: that
+ * person collecting the whole, with no date of birth, and not yet signed for. Written straight to the table, since no
+ * paper the farm can record makes one.
+ */
+const carryOver = async (
+  farm: Farm,
+  investorId: string,
+  who: { name: string; phone: string; relation: string }
+) => {
+  const at = farm.clock.now();
+  const id = uuidv7(at);
+  await farm.db.insert(nomination).values({
+    id,
+    farmId: farm.farmId,
+    investorId,
+    signedOn: farmDayOf(at),
+    how: "carried_over",
+    recordedAt: at,
+  });
+  await farm.db.insert(nominee).values({
+    nominationId: id,
+    place: 1,
+    name: who.name,
+    relation: who.relation,
+    phone: who.phone,
+    sharePercent: 100,
+  });
+};
+
 /** One Investor signed onto a Venture: recorded, signed for, the stamped paper kept, and the money in. */
 const signOn = async (
   farm: Farm,
@@ -137,8 +170,8 @@ const signOn = async (
     address: who.address,
     nid: who.nid,
     bankAccount: who.bankAccount,
-    nominee: { ...who.nominee },
   });
+  await carryOver(farm, person.id, who.nominee);
   const agreement = await farm.as.owner.ventures.sign({
     ventureId,
     investorId: person.id,

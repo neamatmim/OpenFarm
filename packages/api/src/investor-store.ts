@@ -19,7 +19,7 @@ export const theSamePerson = async (
   return row ?? null;
 };
 
-/** One Investor as the trail records them, and their nominee. */
+/** One Investor as the trail records them. Their Nominees are each Nomination's own trail, not theirs. */
 export const readInvestor = async (tx: Tx, farmId: string, id: string) => {
   const row = await tx.query.investor.findFirst({ where: { id, farmId } });
   return row
@@ -29,9 +29,6 @@ export const readInvestor = async (tx: Tx, farmId: string, id: string) => {
         address: row.address,
         nid: row.nid,
         bankAccount: row.bankAccount,
-        nominee: row.nomineeName,
-        nomineePhone: row.nomineePhone,
-        nomineeRelation: row.nomineeRelation,
         retiredAt: row.retiredAt,
       }
     : null;

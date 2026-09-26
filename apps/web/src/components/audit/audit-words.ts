@@ -52,6 +52,7 @@ export const ENTITIES = [
   "repeat_breeder_answer",
   "ready_set_aside",
   "investor",
+  "nomination",
   "eid_announcement",
   "paper_template",
   "paper_template_version",

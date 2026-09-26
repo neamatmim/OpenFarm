@@ -1230,11 +1230,6 @@ export const en = {
   "investors.bankHint":
     "How they are paid: the farm pays Investors by bank, never by hand",
   "investors.nominee": "Nominee",
-  "investors.nomineeHint":
-    "Who the money goes to if they die before the Venture settles",
-  "investors.nomineePhone": "Nominee's phone",
-  "investors.nomineeRelation": "Relation",
-  "investors.nomineeName": "Nominee's name",
   "investors.relation.wife": "Wife",
   "investors.relation.husband": "Husband",
   "investors.relation.son": "Son",
@@ -1244,7 +1239,6 @@ export const en = {
   "investors.relation.brother": "Brother",
   "investors.relation.sister": "Sister",
   "investors.relation.other": "Someone else",
-  "investors.relationInWords": "Their relation, in words",
   "investors.section.who": "Who they are",
   "investors.section.money": "Where their money goes",
   "investors.noVentures": "Not in any venture yet.",
@@ -1275,6 +1269,24 @@ export const en = {
   "investors.stillIn":
     "Their money is in a Venture still running, so they cannot be retired until it settles or is called off.",
   "investors.nomineeIs": "Nominee: {name}",
+  "investors.nomineesAre": "{name} and {more} more",
+  "nominees.title": "Nominees",
+  "nominees.hint":
+    "Who collects their capital and share for their lawful heirs if they die before a Venture settles. Only a paper they sign changes them.",
+  "nominees.none": "No Nominee",
+  "nominees.noneHint":
+    "If they die, the money goes straight to their lawful heirs, usually against a succession certificate.",
+  "nominees.notSignedFor": "Not yet signed for",
+  "nominees.notSignedForHint":
+    "Written down before Nominations were kept. It counts once they sign a মনোনয়নপত্র or an Agreement naming them.",
+  "nominees.from.nomination": "মনোনয়নপত্র signed {day}",
+  "nominees.from.agreement": "Named in the Agreement signed {day}",
+  "nominees.from.carried_over": "Carried over {day}",
+  "nominees.born": "Born {day}",
+  "nominees.minor": "Minor",
+  "nominees.share": "{share}%",
+  "nominees.receiver": "Collected by {name}",
+  "nominees.earlier": "Earlier Nominations",
   "investors.holds": "{units, plural, one {# Unit} other {# Units}}",
   "investors.none": "No Investor is recorded yet",
   "investors.nearingTheCap":
@@ -1608,6 +1620,7 @@ export const en = {
   "audit.entity.repeat_breeder_answer": "Repeat breeder decision",
   "audit.entity.ready_set_aside": "Set aside from sale",
   "audit.entity.investor": "Investor",
+  "audit.entity.nomination": "Nomination",
   "audit.entity.invite": "Invite",
   "audit.entity.farm": "Farm",
   "audit.system": "System",
