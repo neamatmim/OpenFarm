@@ -17,7 +17,7 @@ Once [What a Nominee is in OpenFarm](./02-what-a-nominee-is-in-openfarm.md) is s
 - **When one Nominee dies first**, what happens to their share or place.
 - **A Nominee under eighteen.** Today one guardian line is printed and struck through by hand. Does each minor Nominee need their own guardian, recorded or only printed? The farm doesn't record a Nominee's age.
 - **What is recorded of each one**: name, phone, relation, and whether anything more (NID, address) is needed.
-- **Still per Investor?** Or may an Investor name different Nominees for different Ventures? The glossary keeps them with the Investor "because it is the person the family would come to the Farm about".
+- ~~Still per Investor?~~ Settled by 04: one list per Investor, governing every Agreement they hold.
 - **Today's single nominee** becomes the first of that Investor's Nominees; if Nominees take shares, it takes the whole until a Nomination says otherwise. Confirm that.
 
 ## Resolution
