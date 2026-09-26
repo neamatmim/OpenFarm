@@ -1,3 +1,4 @@
+import { portalOrigin } from "@OpenFarm/auth/hosts";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { farm } from "@OpenFarm/db/schema/farm";
 import { investor } from "@OpenFarm/db/schema/venture";
@@ -476,7 +477,8 @@ export const investorsRouter = {
   /**
    * Invites one Investor to the portal, or gives them a new code: shown once, to hand over in person, good for a week.
    * They take it up with their phone and a password of their own — once they have signed the Portal Consent. Says
-   * which paper it goes out with (`codePaperFor`).
+   * which paper it goes out with (`codePaperFor`), and the portal's own address where it has one, for the screen and
+   * the paper to send them to (ADR 0009).
    */
   inviteToPortal: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
@@ -487,6 +489,7 @@ export const investorsRouter = {
       return {
         ...given,
         paper: await codePaperFor(context.db, context.farm.id, input.id),
+        portalOrigin: portalOrigin(),
       };
     }),
 

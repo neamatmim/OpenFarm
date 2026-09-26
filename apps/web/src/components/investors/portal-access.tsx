@@ -287,7 +287,9 @@ const CodeDialog = ({
         <dl className="flex flex-col gap-2 text-sm">
           <div className="flex flex-col gap-0.5">
             <dt className="text-muted-foreground">{t("portal.codeWhere")}</dt>
-            <dd className="font-mono break-all">{portalAddress("/join")}</dd>
+            <dd className="font-mono break-all">
+              {portalAddress(given?.portalOrigin ?? null, "/join")}
+            </dd>
           </div>
           <div className="flex flex-col gap-0.5">
             <dt className="text-muted-foreground">{t("portal.codeUntil")}</dt>

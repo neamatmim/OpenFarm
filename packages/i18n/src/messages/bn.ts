@@ -46,6 +46,9 @@ export const bn: Record<MessageKey, string> = {
   "auth.passwordSet": "পাসওয়ার্ড হয়ে গেছে — এটি দিয়ে সাইন ইন করুন",
   "auth.backToSignIn": "সাইন ইনে ফিরে যান",
   "auth.signInSuccess": "সাইন ইন হয়েছে",
+  "auth.goToYourAddress": "আপনার ঠিকানায় যান",
+  "auth.wrongAddress":
+    "এই ঠিকানা আপনার জন্য নয়। আপনার নিজের ঠিকানায় সাইন ইন করুন: {address}",
   "auth.noLongerHere": "আপনি আর এই খামারে কাজ করেন না। ভুল হলে মালিককে বলুন।",
   "auth.notInvited":
     "এই ঠিকানায় খামার কাউকে ডাকেনি। মালিককে বলুন আপনাকে যোগ করতে, তারপর যে কোড পাবেন তা দিয়ে অ্যাকাউন্ট খুলুন।",

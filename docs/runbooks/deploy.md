@@ -43,6 +43,9 @@ is the part that is easy to believe was done and was not:
       the caller sent (nginx: `proxy_set_header X-Forwarded-For $remote_addr;`). Sign-in and
       Shed Phone enrolment count wrong guesses per address, read from that header; a proxy
       that appends lets a script name a new address on every try.
+- [ ] The proxy passes the **Host** the browser asked for (nginx: `proxy_set_header Host $host;`).
+      The app tells the farm's address from the Investor Portal's by it; a proxy that sends
+      `127.0.0.1` makes every request the farm's.
 - [ ] `/api/health` returns 200 and `/api/ready` returns 200 through the public hostname.
 - [ ] **The Owner signs up the moment the app is up.** Until a Farm exists the door is open,
       and whoever opens the app first and creates the Farm becomes its Owner. Once it exists,
@@ -102,6 +105,87 @@ journalctl -u openfarm --since today
 The environment file contains the runtime values from `.env.example`. `BETTER_AUTH_URL`
 must be the public HTTPS origin. The service runs unprivileged, restarts after failures, and
 writes structured application events to the system journal.
+
+## The Investor Portal's own address
+
+Investors reach the portal at `investors.<farm-domain>` (ADR 0009), a second name on the same
+app. Until it is set up the portal stays at `/portal` on the farm's address, so this can wait
+until the first Investor is invited — but not until after their Welcome Letter is printed,
+because the letter prints whichever address the app has.
+
+1. **DNS:** an `A` (and `AAAA`) record for `investors.farm.example.com` pointing at the same
+   host as the farm's name.
+2. **Certificate:** one for the new name. With certbot, add it beside the farm's:
+   `sudo certbot --nginx -d farm.example.com -d investors.farm.example.com`.
+3. **The environment:** add `PORTAL_URL=https://investors.farm.example.com` to
+   `/etc/openfarm/app.env` and restart. It must use HTTPS, be the bare address with no path,
+   and be a different name from `BETTER_AUTH_URL`, or the app refuses to start. It also
+   refuses while `BETTER_AUTH_TRUSTED_ORIGINS` is set, since Better Auth would trust those
+   on both addresses.
+4. **nginx:** a server block of its own that passes only the portal's paths, so a stranger
+   typing the Investor address never reaches the staff app even if the app's own check were
+   wrong. The app checks the same list (`apps/web/src/lib/two-addresses.ts`); change both
+   together.
+
+```nginx
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name investors.farm.example.com;
+    # ssl_certificate lines as certbot wrote them
+
+    # What every request passes on: the name asked for, and the address it came from.
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    # The front door, the portal's pages and the files they load.
+    location = / { proxy_pass http://127.0.0.1:3001; }
+    location /portal { proxy_pass http://127.0.0.1:3001; }
+    # The built files are served before the app sees the request, so they carry none of its headers.
+    location /assets/ {
+        proxy_pass http://127.0.0.1:3001;
+        add_header X-Content-Type-Options nosniff always;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    }
+    location ~ ^/(icon\.svg|manifest\.webmanifest|robots\.txt)$ { proxy_pass http://127.0.0.1:3001; }
+
+    # Signing in and out, the session, and the password.
+    location ~ ^/api/auth/(sign-in/email|sign-out|get-session|change-password|revoke-other-sessions)$ {
+        proxy_pass http://127.0.0.1:3001;
+    }
+
+    # The portal's own calls, who is asking, the language they read in, and who is signed in.
+    location ~ ^/api/rpc/(portal/[^/]+|people/me|language/[^/]+)$ { proxy_pass http://127.0.0.1:3001; }
+    location /_serverFn/ { proxy_pass http://127.0.0.1:3001; }
+
+    # Nothing else of the farm app — the service worker included, which the app itself cannot refuse: like the
+    # built files, it is served before the app's own check runs.
+    location / { return 404; }
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name investors.farm.example.com;
+    return 301 https://$host$request_uri;
+}
+```
+
+The farm's own server block needs `proxy_set_header Host $host;` too. It does not need to
+redirect `/portal` itself: the app answers `/portal/...` on the farm's address with a
+permanent redirect to the same page on the Investor address.
+
+**Check it:**
+
+- `curl -I https://investors.farm.example.com/` answers 302 to `/portal`.
+- `curl -I https://investors.farm.example.com/login` answers 404.
+- `curl -I https://farm.example.com/portal/login` answers 301 to the Investor address.
+- `curl -sI https://investors.farm.example.com/portal/login | grep -i content-security`
+  shows a policy with `script-src 'self' 'nonce-…'`.
+- Sign in as the Owner on the farm's address and as an Investor on the Investor address in one
+  browser: both stay signed in, because each name keeps its own cookie.
 
 ## Afterwards
 

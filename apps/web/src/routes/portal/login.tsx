@@ -11,6 +11,8 @@ import {
 import { useState } from "react";
 
 import { PasswordInput } from "@/components/auth/password-input";
+import type { SignInRefusal } from "@/components/auth/refused-notice";
+import { RefusedNotice, refusalOf } from "@/components/auth/refused-notice";
 import { Notice } from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import { PortalDoor } from "@/components/portal/portal-door";
@@ -29,12 +31,12 @@ const PortalLogin = () => {
   const navigate = useNavigate();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [refused, setRefused] = useState<string | null>(null);
+  const [refused, setRefused] = useState<SignInRefusal | null>(null);
   const [pending, setPending] = useState(false);
   const signIn = async () => {
     const email = investorLoginOf(phone);
     if (!email) {
-      setRefused(t("portal.phoneNotMobile"));
+      setRefused({ message: t("portal.phoneNotMobile"), home: null });
       return;
     }
     setPending(true);
@@ -46,7 +48,7 @@ const PortalLogin = () => {
           void navigate({ to: "/portal" });
         },
         onError: (error) => {
-          setRefused(error.error.message || t("portal.signInRefused"));
+          setRefused(refusalOf(error.error, t("portal.signInRefused")));
         },
       }
     );
@@ -75,11 +77,7 @@ const PortalLogin = () => {
             {t("portal.endedHint")}
           </Notice>
         ) : null}
-        {refused ? (
-          <Notice title={t("auth.refused")} tone="danger">
-            {refused}
-          </Notice>
-        ) : null}
+        {refused ? <RefusedNotice refusal={refused} /> : null}
         <FormField id="portal-phone" label={t("portal.phone")}>
           <Input
             autoComplete="tel"

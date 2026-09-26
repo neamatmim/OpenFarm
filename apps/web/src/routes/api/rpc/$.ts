@@ -10,7 +10,7 @@ import { ZodToJsonSchemaConverter } from "@orpc/zod";
 import { createFileRoute } from "@tanstack/react-router";
 import type { RequestLogger } from "evlog";
 
-import { whyRefused } from "@/lib/rpc-door";
+import { trustedAt, whyRefused } from "@/lib/rpc-door";
 import { logTheFailure } from "@/lib/rpc-failure-log";
 
 const rpcHandler = new RPCHandler(appRouter, {
@@ -45,14 +45,9 @@ const apiHandler = new OpenAPIHandler(appRouter, {
   ],
 });
 
-/** The farm's own public address, besides whatever address this request was sent to. */
-const trustedOrigins = process.env.BETTER_AUTH_URL
-  ? [process.env.BETTER_AUTH_URL]
-  : [];
-
 /** Answers a request; one the browser gave up on — a page moving on before its reply came — is not an error. */
 const handle = async ({ request }: { request: Request }) => {
-  const refused = whyRefused(request, trustedOrigins);
+  const refused = whyRefused(request, trustedAt(request.url));
   if (refused === "another-site") {
     return new Response("Forbidden", { status: 403 });
   }

@@ -11,7 +11,8 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { PasswordInput } from "@/components/auth/password-input";
-import { Notice } from "@/components/page";
+import type { SignInRefusal } from "@/components/auth/refused-notice";
+import { RefusedNotice, refusalOf } from "@/components/auth/refused-notice";
 import { useLanguage } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
 
@@ -31,7 +32,7 @@ const SignInForm = ({
   const { t, language } = useLanguage();
   // What the farm said when it refused, kept on the card as well as in the toast: a toast is gone before somebody
   // who reads slowly has read it.
-  const [refused, setRefused] = useState<string | null>(null);
+  const [refused, setRefused] = useState<SignInRefusal | null>(null);
 
   const form = useForm({
     defaultValues: {
@@ -52,8 +53,9 @@ const SignInForm = ({
             toast.success(t("auth.signInSuccess"));
           },
           onError: (error) => {
-            setRefused(error.error.message || error.error.statusText);
-            toast.error(error.error.message || error.error.statusText);
+            const refusal = refusalOf(error.error, t("auth.refused"));
+            setRefused(refusal);
+            toast.error(refusal.message);
           },
         }
       );
@@ -94,11 +96,7 @@ const SignInForm = ({
         className="flex flex-col gap-4"
         noValidate
       >
-        {refused ? (
-          <Notice title={t("auth.refused")} tone="danger">
-            {refused}
-          </Notice>
-        ) : null}
+        {refused ? <RefusedNotice refusal={refused} /> : null}
         <div>
           <form.Field name="email">
             {(field) => (

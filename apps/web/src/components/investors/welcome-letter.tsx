@@ -126,12 +126,12 @@ const Slip = ({
 );
 
 /** The steps in, the QR beside them: the address, the join button's own words, their phone, the slip, a password. */
-const Steps = ({ phone }: { phone: string }) => {
+const Steps = ({ phone, own }: { phone: string; own: string | null }) => {
   const steps = [
     <>
       ফোনের ক্যামেরায় পাশের QR কোডটি স্ক্যান করুন, অথবা ব্রাউজারে লিখুন:{" "}
       <span className="font-mono font-semibold break-all">
-        {portalAddressTyped()}
+        {portalAddressTyped(own)}
       </span>
     </>,
     <>“{said("portal.haveCode")}” চাপুন।</>,
@@ -162,7 +162,7 @@ const Steps = ({ phone }: { phone: string }) => {
         ))}
       </ol>
       <div className="flex flex-col items-center gap-1">
-        <Qr size="34mm" value={portalAddress()} />
+        <Qr size="34mm" value={portalAddress(own)} />
         <span className="text-[10px] text-neutral-500">স্ক্যান করুন</span>
       </div>
     </div>
@@ -231,7 +231,7 @@ export const WelcomeLetter = ({
           দেখার জন্য: এতে কিছু সই হয় না, কোনো টাকা দেওয়া-নেওয়া হয় না।
         </p>
 
-        <Steps phone={paper.investor.phone} />
+        <Steps own={given.portalOrigin} phone={paper.investor.phone} />
 
         <div className="mt-5 grid grid-cols-2 gap-4 text-[12px]">
           <div>

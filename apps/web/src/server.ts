@@ -1,17 +1,15 @@
+import { hostOf } from "@OpenFarm/auth/hosts";
 import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
 
-const withSecurityHeaders = (response: Response): Response => {
+import { FARM_POLICY, portalPolicy } from "./lib/content-policy";
+import { atTheWrongAddress } from "./lib/two-addresses";
+
+const withSecurityHeaders = (response: Response, policy: string): Response => {
   const headers = new Headers(response.headers);
   headers.set("x-content-type-options", "nosniff");
   headers.set("x-frame-options", "DENY");
   headers.set("referrer-policy", "strict-origin-when-cross-origin");
-  // Only the parts of a policy that cannot break the app: no plugins, no framing, no rewriting where relative
-  // links point, forms sent only to the farm. Scripts are left alone — the theme and the server render write
-  // inline ones — so this is not a defence against injected script, only against the page being borrowed.
-  headers.set(
-    "content-security-policy",
-    "base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'"
-  );
+  headers.set("content-security-policy", policy);
   headers.set(
     "permissions-policy",
     "geolocation=(), microphone=(), payment=(), usb=()"
@@ -29,6 +27,27 @@ const withSecurityHeaders = (response: Response): Response => {
   });
 };
 
+/** A nonce nobody can guess, fresh for each answer. */
+const aNonce = () => {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return btoa(String.fromCodePoint(...bytes));
+};
+
 export default createServerEntry({
-  fetch: async (request) => withSecurityHeaders(await handler.fetch(request)),
+  fetch: async (request) => {
+    const elsewhere = atTheWrongAddress(request);
+    if (elsewhere) {
+      return withSecurityHeaders(elsewhere, FARM_POLICY);
+    }
+    if (hostOf(request.url) === "portal") {
+      const nonce = aNonce();
+      // The router puts it on the scripts it writes into the page (lib/nonce).
+      const answer = await handler.fetch(request, { context: { nonce } });
+      return withSecurityHeaders(answer, portalPolicy(nonce));
+    }
+    return withSecurityHeaders(
+      await handler.fetch(request, { context: {} }),
+      FARM_POLICY
+    );
+  },
 });
