@@ -1287,6 +1287,52 @@ export const en = {
   "nominees.share": "{share}%",
   "nominees.receiver": "Collected by {name}",
   "nominees.earlier": "Earlier Nominations",
+  "refusal.signedInFuture": "A paper cannot be signed on a day still to come.",
+  "refusal.signedBeforeInForce":
+    "This মনোনয়নপত্র is dated before the one in force. Check the day it was signed.",
+  "nominees.problem.too_many": "At most three Nominees.",
+  "nominees.problem.name_missing": "Every Nominee needs a name.",
+  "nominees.problem.born_missing":
+    "Every Nominee needs a date of birth: it decides who is a minor.",
+  "nominees.problem.born_in_future": "A date of birth cannot be in the future.",
+  "nominees.problem.shares_not_whole":
+    "Each share is a whole percentage, at least 1.",
+  "nominees.problem.shares_not_hundred": "The shares must add up to 100%.",
+  "nominees.problem.receiver_missing":
+    "A Nominee under eighteen needs a Receiver to collect for them.",
+  "nominees.problem.receiver_not_needed":
+    "Only a Nominee under eighteen has a Receiver.",
+  "nominees.new": "New মনোনয়নপত্র",
+  "nominees.newTitle": "A new মনোনয়নপত্র for {name}",
+  "nominees.newHint":
+    "Write down every Nominee they want, print the মনোনয়নপত্র, and have them sign it in front of you. Once recorded, it replaces the list in force for all their Agreements.",
+  "nominees.add": "Add a Nominee",
+  "nominees.remove": "Take this one off",
+  "nominees.place": "Nominee {place}",
+  "nominees.name": "Name",
+  "nominees.relation": "Relation to them",
+  "nominees.bornOn": "Date of birth",
+  "nominees.phone": "Phone",
+  "nominees.sharePercent": "Share (%)",
+  "nominees.receiverHeading": "Under eighteen: who collects for them",
+  "nominees.receiverName": "Receiver's name",
+  "nominees.receiverRelation": "Relation to the Nominee",
+  "nominees.receiverPhone": "Receiver's phone",
+  "nominees.total": "Shares so far: {total}%",
+  "nominees.noneYet": "No Nominee: the money would go straight to their heirs.",
+  "nominees.print": "Print the মনোনয়নপত্র to sign",
+  "nominees.printHint":
+    "Laid out from the Nominees above, for them to sign and date in front of you.",
+  "nominees.paperTitle": "মনোনয়নপত্র",
+  "nominees.signedOn": "Day they signed it",
+  "nominees.photo": "The signed paper",
+  "nominees.photoHint":
+    "A photo of the signed মনোনয়নপত্র, kept as the farm's proof that they named these people themselves.",
+  "nominees.photoTake": "Photograph the মনোনয়নপত্র",
+  "nominees.record": "Record the মনোনয়নপত্র",
+  "nominees.recorded": "মনোনয়নপত্র recorded: these are now their Nominees",
+  "nominees.photoKept": "Photo kept",
+  "investors.relationInWords": "Their relation, in words",
   "investors.holds": "{units, plural, one {# Unit} other {# Units}}",
   "investors.none": "No Investor is recorded yet",
   "investors.nearingTheCap":
@@ -1565,6 +1611,8 @@ export const en = {
   "auditField.revokedWhy": "Why it was taken away",
   "auditField.codeExpiresAt": "Code good until",
   "auditField.signedOn": "Day signed",
+  "auditField.nominationHow": "Which paper",
+  "auditField.nominees": "Nominees",
   "auditField.withdrawnOn": "Day withdrawn",
   "auditField.withdrawnHow": "How it was withdrawn",
   "auditField.visitedOn": "Visited on",
@@ -3632,10 +3680,13 @@ export const en = {
   "templates.kind.agreement_amendment": "Amendment",
   "templates.kind.portal_consent": "Portal Consent",
   "templates.kind.privacy_notice": "Privacy notice «আপনার তথ্য»",
+  "templates.kind.nomination": "মনোনয়নপত্র (Nomination)",
   "templates.kindHint.portal_consent":
     "Signed on paper in front of the Owner before any portal code is given: showing an Investor their record online, keeping it abroad, and holding their NID, bank and nominee details for it.",
   "templates.kindHint.privacy_notice":
     "What the farm keeps about an Investor, why, where, for how long, and how to ask. Handed over at signing, on the back of the Welcome Letter, and a page of the portal.",
+  "templates.kindHint.nomination":
+    "Signed in front of the Owner to change an Investor's Nominees: every Nominee in full, with the share each collects for the heirs and a minor's Receiver. The latest governs all their Agreements.",
   "templates.keepers.title": "Who keeps the farm's records",
   "templates.keepers.hint":
     "The privacy notice names them. Write them in once they are chosen; until then the notice says what is missing.",
@@ -3724,7 +3775,13 @@ export const en = {
   "templates.clauseNumber": "Clause {number}",
   "templates.nomineeLines": "Lines under the nominee",
   "templates.nomineeLinesHint":
-    "Printed under each Investor, right after the nominee the farm writes down. A line that does not fit everybody is printed every time, and struck through by hand where it does not apply.",
+    "Printed under each Investor who has Nominees, right after the table of them. A line that does not fit everybody is printed every time, and struck through by hand where it does not apply.",
+  "templates.receiverLine": "Line for a minor's Receiver",
+  "templates.receiverLineHint":
+    "Printed once under an Investor for each Nominee under eighteen, and only for them, for the Receiver to sign. It may name {fields}.",
+  "templates.noNomineeLine": "Line when there is no Nominee",
+  "templates.noNomineeLineHint":
+    "Printed under an Investor who names nobody, in place of the table and the lines. Leave both empty to print nothing.",
   "templates.addClause": "Add a clause",
   "templates.stampHint":
     "The stamp box's blanks are the farm's own and are the same on every paper.",

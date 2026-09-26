@@ -24,6 +24,8 @@ const section = z.discriminatedUnion("kind", [
     first: said,
     second: said,
     nomineeLines: z.array(said).max(MOST_LINES).optional(),
+    receiverLine: said.optional(),
+    noNomineeLine: said.optional(),
   }),
   z.object({
     kind: z.literal("facts"),

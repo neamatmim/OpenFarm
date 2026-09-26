@@ -1185,6 +1185,51 @@ export const bn: Record<MessageKey, string> = {
   "nominees.share": "{share}%",
   "nominees.receiver": "সংগ্রহ করবেন {name}",
   "nominees.earlier": "আগের মনোনয়ন",
+  "refusal.signedInFuture": "ভবিষ্যতের কোনো দিনে কাগজে সই হতে পারে না।",
+  "refusal.signedBeforeInForce":
+    "এই মনোনয়নপত্রের তারিখ এখন বহাল মনোনয়নের আগের। সইয়ের দিনটি দেখে নিন।",
+  "nominees.problem.too_many": "সর্বোচ্চ তিনজন নমিনি।",
+  "nominees.problem.name_missing": "প্রত্যেক নমিনির নাম লাগবে।",
+  "nominees.problem.born_missing":
+    "প্রত্যেক নমিনির জন্মতারিখ লাগবে: কে নাবালক, তা এতে ঠিক হয়।",
+  "nominees.problem.born_in_future": "জন্মতারিখ ভবিষ্যতের হতে পারে না।",
+  "nominees.problem.shares_not_whole": "প্রতিটি অংশ পূর্ণ শতাংশে, অন্তত ১।",
+  "nominees.problem.shares_not_hundred": "অংশগুলো মিলে ১০০% হতে হবে।",
+  "nominees.problem.receiver_missing":
+    "আঠারো বছরের কম বয়সী নমিনির হয়ে সংগ্রহ করবেন এমন একজন গ্রহণকারী লাগবে।",
+  "nominees.problem.receiver_not_needed":
+    "শুধু আঠারো বছরের কম বয়সী নমিনিরই গ্রহণকারী থাকে।",
+  "nominees.new": "নতুন মনোনয়নপত্র",
+  "nominees.newTitle": "{name}-এর নতুন মনোনয়নপত্র",
+  "nominees.newHint":
+    "তিনি যাঁদের চান, সব নমিনির কথা লিখুন, মনোনয়নপত্র ছাপুন, আর আপনার সামনে তাঁকে দিয়ে সই করান। লেখা হলে এটিই তাঁর সব চুক্তির বহাল মনোনয়ন হবে।",
+  "nominees.add": "নমিনি যোগ করুন",
+  "nominees.remove": "এঁকে বাদ দিন",
+  "nominees.place": "নমিনি {place}",
+  "nominees.name": "নাম",
+  "nominees.relation": "তাঁর সঙ্গে সম্পর্ক",
+  "nominees.bornOn": "জন্মতারিখ",
+  "nominees.phone": "ফোন",
+  "nominees.sharePercent": "অংশ (%)",
+  "nominees.receiverHeading": "আঠারোর কম: তাঁর হয়ে কে সংগ্রহ করবেন",
+  "nominees.receiverName": "গ্রহণকারীর নাম",
+  "nominees.receiverRelation": "নমিনির সঙ্গে সম্পর্ক",
+  "nominees.receiverPhone": "গ্রহণকারীর ফোন",
+  "nominees.total": "এ পর্যন্ত অংশ: {total}%",
+  "nominees.noneYet": "কোনো নমিনি নেই: টাকা সরাসরি তাঁর উত্তরাধিকারীদের কাছে যাবে।",
+  "nominees.print": "সইয়ের জন্য মনোনয়নপত্র ছাপুন",
+  "nominees.printHint":
+    "ওপরের নমিনিদের নিয়ে সাজানো, আপনার সামনে তিনি সই করে তারিখ দেবেন।",
+  "nominees.paperTitle": "মনোনয়নপত্র",
+  "nominees.signedOn": "সইয়ের দিন",
+  "nominees.photo": "সই করা কাগজ",
+  "nominees.photoHint":
+    "সই করা মনোনয়নপত্রের ছবি: তিনি নিজেই এঁদের নাম দিয়েছেন, তার প্রমাণ হিসেবে খামারে থাকে।",
+  "nominees.photoTake": "মনোনয়নপত্রের ছবি তুলুন",
+  "nominees.record": "মনোনয়নপত্র লিখে রাখুন",
+  "nominees.recorded": "মনোনয়নপত্র লেখা হলো: এঁরাই এখন তাঁর নমিনি",
+  "nominees.photoKept": "ছবি রাখা আছে",
+  "investors.relationInWords": "তাঁর সম্পর্ক, কথায়",
   "investors.holds": "{units} ইউনিট",
   "investors.none": "এখনো কোনো বিনিয়োগকারী লেখা হয়নি",
   "investors.nearingTheCap":
@@ -1455,6 +1500,8 @@ export const bn: Record<MessageKey, string> = {
   "auditField.revokedWhy": "কেন তুলে নেওয়া",
   "auditField.codeExpiresAt": "কোডের মেয়াদ",
   "auditField.signedOn": "সইয়ের দিন",
+  "auditField.nominationHow": "কোন কাগজে",
+  "auditField.nominees": "নমিনি",
   "auditField.withdrawnOn": "তুলে নেওয়ার দিন",
   "auditField.withdrawnHow": "কীভাবে তুলে নিয়েছেন",
   "auditField.visitedOn": "ভিজিটের দিন",
@@ -3395,10 +3442,13 @@ export const bn: Record<MessageKey, string> = {
   "templates.kind.agreement_amendment": "সংশোধনী",
   "templates.kind.portal_consent": "পোর্টাল সম্মতিপত্র",
   "templates.kind.privacy_notice": "গোপনীয়তা নোটিশ «আপনার তথ্য»",
+  "templates.kind.nomination": "মনোনয়নপত্র",
   "templates.kindHint.portal_consent":
     "পোর্টালের কোড দেওয়ার আগে মালিকের সামনে কাগজে সই হয়: অনলাইনে বিনিয়োগকারীকে তাঁর হিসাব দেখানো, দেশের বাইরে রাখা, আর এর জন্য এনআইডি, ব্যাংক ও নমিনির তথ্য রাখা।",
   "templates.kindHint.privacy_notice":
     "খামার বিনিয়োগকারীর সম্পর্কে কী রাখে, কেন, কোথায়, কতদিন, আর কীভাবে চাইবেন। চুক্তির সময় হাতে দেওয়া হয়, স্বাগতপত্রের পেছনে থাকে, আর পোর্টালের একটি পাতা।",
+  "templates.kindHint.nomination":
+    "বিনিয়োগকারীর নমিনি বদলাতে মালিকের সামনে সই হয়: সব নমিনি পুরোপুরি, উত্তরাধিকারীদের জন্য প্রত্যেকে কতটুকু সংগ্রহ করবেন, আর নাবালকের গ্রহণকারী। সর্বশেষটিই তাঁর সব চুক্তির জন্য প্রযোজ্য।",
   "templates.keepers.title": "খামারের তথ্য কে রাখে",
   "templates.keepers.hint":
     "গোপনীয়তা নোটিশে এদের নাম থাকে। ঠিক হলে লিখে রাখুন; ততদিন নোটিশ বলবে কী বাকি।",
@@ -3483,7 +3533,13 @@ export const bn: Record<MessageKey, string> = {
   "templates.clauseNumber": "শর্ত {number}",
   "templates.nomineeLines": "নমিনির নিচের লাইন",
   "templates.nomineeLinesHint":
-    "প্রত্যেক বিনিয়োগকারীর নিচে, খামারের লেখা নমিনির ঠিক পরে ছাপা হয়। যে লাইন সবার বেলায় খাটে না, সেটিও প্রতিবার ছাপা হয়, আর না খাটলে হাতে কেটে দেওয়া হয়।",
+    "নমিনি আছেন এমন প্রত্যেক বিনিয়োগকারীর নিচে, নমিনিদের টেবিলের ঠিক পরে ছাপা হয়। যে লাইন সবার বেলায় খাটে না, সেটিও প্রতিবার ছাপা হয়, আর না খাটলে হাতে কেটে দেওয়া হয়।",
+  "templates.receiverLine": "নাবালকের গ্রহণকারীর লাইন",
+  "templates.receiverLineHint":
+    "আঠারোর কম বয়সী প্রত্যেক নমিনির জন্য বিনিয়োগকারীর নিচে একবার ছাপা হয়, শুধু তাঁদের জন্য, গ্রহণকারী সই করবেন। এতে {fields} লেখা যায়।",
+  "templates.noNomineeLine": "কোনো নমিনি না থাকলে যে লাইন",
+  "templates.noNomineeLineHint":
+    "যিনি কাউকে মনোনীত করেননি, তাঁর নিচে টেবিল আর লাইনগুলোর জায়গায় ছাপা হয়। কিছুই না ছাপতে দুটোই খালি রাখুন।",
   "templates.addClause": "শর্ত যোগ করুন",
   "templates.stampHint": "স্ট্যাম্পের ঘরগুলো খামারের নিজের, প্রতিটি কাগজে একই।",
   "templates.witnesses": "সাক্ষী",

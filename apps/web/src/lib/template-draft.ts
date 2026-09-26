@@ -79,14 +79,30 @@ export const toDraft = (content: TemplateContent): TemplateDraft => ({
 const unkeyed = <T extends object>({ key: _key, ...rest }: Keyed<T>): T =>
   rest as unknown as T;
 
+/** Whether an optional line has anything written in it: one left empty in both languages is no line at all. */
+const written = (said: Said | undefined): said is Said =>
+  said !== undefined && (said.bn.trim() !== "" || said.en.trim() !== "");
+
 const plainSection = (section: DraftSection): TemplateSection => {
   switch (section.kind) {
     case "parties": {
-      // A parties part with no lines under the nominee is published as one worded before there were any.
-      const { key: _key, nomineeLines, ...rest } = section;
-      return nomineeLines.length > 0
-        ? { ...rest, nomineeLines: nomineeLines.map(unkeyed) }
-        : rest;
+      // A parties part with no lines under the nominee, and no Receiver's or no-Nominee line, is published as one
+      // worded before there were any.
+      const {
+        key: _key,
+        nomineeLines,
+        receiverLine,
+        noNomineeLine,
+        ...rest
+      } = section;
+      return {
+        ...rest,
+        ...(nomineeLines.length > 0
+          ? { nomineeLines: nomineeLines.map(unkeyed) }
+          : {}),
+        ...(written(receiverLine) ? { receiverLine } : {}),
+        ...(written(noNomineeLine) ? { noNomineeLine } : {}),
+      };
     }
     case "facts": {
       const { key: _key, rows, ...rest } = section;

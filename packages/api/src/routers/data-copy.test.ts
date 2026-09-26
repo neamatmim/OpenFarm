@@ -58,9 +58,8 @@ const withAHistory = async () => {
     signedOn: "2061-01-01",
     recordedAt: new Date(JANUARY),
   });
-  await nominationOnFile({
-    investorId: them.id,
-    how: "nomination",
+  await owner.investors.recordNomination({
+    id: them.id,
     nominees: [
       {
         ...theWhole(`রাশেদের ছেলে ${suffix}`, "ছেলে"),
@@ -75,7 +74,8 @@ const withAHistory = async () => {
       },
     ],
     signedOn: "2061-01-01",
-    recordedAt: new Date(Date.parse(JANUARY) + 1000),
+    contentType: "image/jpeg",
+    data: "aGVsbG8=",
   });
   const venture = await owner.ventures.open({
     name: `তথ্যের ভেঞ্চার ${suffix}`,
@@ -204,6 +204,9 @@ describe("«খামারে আপনার তথ্য»", () => {
     // The change to their record, what it was and what it became.
     const changes = part("আপনার সম্পর্কে প্রতিটি বদল");
     expect(changes).toContain(`আশুলিয়া ${suffix}`);
+    // Their Nominees changed by the মনোনয়নপত্র they signed: what the list was, and what it became.
+    expect(changes).toContain("আপনার নমিনি");
+    expect(changes).toContain(`রাশেদের মেয়ে ${suffix} ৪০%`);
     // Their portal access and consent changed too, on the trail beside their record.
     expect(changes).toContain("পোর্টাল প্রবেশাধিকার");
     expect(changes).toContain("পোর্টাল সম্মতি");

@@ -28,6 +28,7 @@ export const TEMPLATE_KINDS = [
   "agreement_amendment",
   "portal_consent",
   "privacy_notice",
+  "nomination",
 ] as const;
 export type TemplateKind = (typeof TEMPLATE_KINDS)[number];
 
@@ -59,6 +60,20 @@ export const TEMPLATE_FIELDS = {
   backupCountry: { bn: "ব্যাকআপ যে দেশে", en: "Where the backup is kept" },
 } as const satisfies Record<string, Said>;
 export type TemplateField = keyof typeof TEMPLATE_FIELDS;
+
+/**
+ * The facts of the one line printed for a minor Nominee: whose line it is, and who collects for them. Fields of that
+ * line alone — a paper has several minors or none, so no other wording may ask for them.
+ */
+export const RECEIVER_FIELDS = {
+  nomineeName: { bn: "নাবালক নমিনির নাম", en: "The minor Nominee's name" },
+  receiverName: { bn: "গ্রহণকারীর নাম", en: "The Receiver's name" },
+  receiverRelation: {
+    bn: "নমিনির সঙ্গে গ্রহণকারীর সম্পর্ক",
+    en: "The Receiver's relation to the Nominee",
+  },
+} as const satisfies Record<string, Said>;
+export type ReceiverField = keyof typeof RECEIVER_FIELDS;
 
 /** Who the farm is, as a paper names it. */
 const THE_FARM: readonly TemplateField[] = [
@@ -141,7 +156,9 @@ const AN_AGREEMENT = {
 /**
  * Each kind of paper's rules. A Master Agreement belongs to no one Venture, so it names none. A Portal Consent names
  * the Investor in its own words, is signed and dated by him first and countersigned by the Owner, and carries no stamp.
- * The notice is read, not signed. Neither of the two is about money, and each is handed to the Investor in Bangla.
+ * The notice is read, not signed. Neither of the two is about money, and each is handed to the Investor in Bangla. A
+ * মনোনয়নপত্র is the Investor's own paper: signed and dated by him first in front of the Owner, in both languages, with
+ * his Nominees in its parties part and no stamp.
  */
 const RULES: Record<TemplateKind, PaperRules> = {
   investment_agreement: {
@@ -197,6 +214,19 @@ const RULES: Record<TemplateKind, PaperRules> = {
     dated: false,
     signers: null,
   },
+  nomination: {
+    fields: WHO,
+    required: ["parties", "clauses", "signatures"],
+    refused: ["stamp"],
+    aboutMoney: false,
+    englishPrinted: true,
+    dated: true,
+    signers: {
+      investor: { bn: "বিনিয়োগকারী", en: "Investor" },
+      farm: { bn: "সামনে — মালিক", en: "Before — the Owner" },
+      investorFirst: true,
+    },
+  },
 };
 
 /** The facts each kind of paper may say. */
@@ -234,6 +264,10 @@ export type TemplateSection =
       first: Said;
       second: Said;
       nomineeLines?: Said[];
+      /** Printed once under an Investor for each minor Nominee, and only for them; its own fields name them. */
+      receiverLine?: Said;
+      /** Printed under an Investor with no Nominee, in place of the table and the lines. */
+      noNomineeLine?: Said;
     }
   | { kind: "facts"; heading: Said; rows: FactLine[]; note: Said | null }
   | { kind: "clauses"; heading: Said; clauses: Said[] }
@@ -285,6 +319,7 @@ const wordingOf = (section: TemplateSection): Said[] => {
         section.first,
         section.second,
         ...(section.nomineeLines ?? []),
+        ...(section.noNomineeLine ? [section.noNomineeLine] : []),
       ];
     }
     case "facts": {
@@ -312,9 +347,10 @@ const ONCE: readonly TemplateSectionKind[] = ["parties", "stamp", "signatures"];
 const fieldProblems = (
   kind: TemplateKind,
   said: Said,
-  at: TemplateProblem["at"]
+  at: TemplateProblem["at"],
+  alsoAllowed: readonly string[] = []
 ): TemplateProblem[] => {
-  const allowed = new Set<string>(FIELDS_OF[kind]);
+  const allowed = new Set<string>([...FIELDS_OF[kind], ...alsoAllowed]);
   return [...fieldsIn(said.bn), ...fieldsIn(said.en)]
     .filter((name) => !allowed.has(name))
     .map((name) => ({ code: "unknown_field", at, about: name }));
@@ -329,6 +365,15 @@ const sectionProblems = (
     ...(said.bn.trim() === "" ? [{ code: "text_missing" as const, at }] : []),
     ...fieldProblems(kind, said, at),
   ]);
+  if (section.kind === "parties" && section.receiverLine) {
+    const line = section.receiverLine;
+    if (line.bn.trim() === "") {
+      problems.push({ code: "text_missing", at });
+    }
+    problems.push(
+      ...fieldProblems(kind, line, at, Object.keys(RECEIVER_FIELDS))
+    );
+  }
   if (section.kind === "clauses" && section.clauses.length === 0) {
     problems.push({ code: "no_clauses", at });
   }
@@ -523,6 +568,11 @@ const before = (said: Said): Said => ({
  * with no parties part of its own signs by its kind's words, or as the first and the second party.
  */
 const signersOf = (kind: TemplateKind, content: TemplateContent): Signers => {
+  // A paper that is the Investor's own names its signers itself, parties part or none.
+  const own = RULES[kind].signers;
+  if (own) {
+    return own;
+  }
   const parties = content.sections.find(
     (section) => section.kind === "parties"
   );
@@ -533,13 +583,11 @@ const signersOf = (kind: TemplateKind, content: TemplateContent): Signers => {
       investorFirst: false,
     };
   }
-  return (
-    RULES[kind].signers ?? {
-      farm: { bn: "প্রথম পক্ষ", en: "First party" },
-      investor: { bn: "দ্বিতীয় পক্ষ", en: "Second party" },
-      investorFirst: false,
-    }
-  );
+  return {
+    farm: { bn: "প্রথম পক্ষ", en: "First party" },
+    investor: { bn: "দ্বিতীয় পক্ষ", en: "Second party" },
+    investorFirst: false,
+  };
 };
 
 /** The signature lines in the order they are signed: the Farm first, unless the paper is the Investor's to give. */
@@ -614,6 +662,48 @@ const inBanglaOnly = (section: PaperSection): PaperSection => {
   }
 };
 
+/** The one line for a minor Nominee, filled with whose it is and who collects for them. */
+const receiverLineFor = (line: Said, minor: PaperNominee): Said => {
+  const local: Record<ReceiverField, string> = {
+    nomineeName: minor.name,
+    receiverName: minor.receiver?.name ?? "____________",
+    receiverRelation: minor.receiver?.relation?.trim() || "____________",
+  };
+  const fill = (text: string) =>
+    text.replace(FIELD, (match, name: string) =>
+      Object.hasOwn(local, name) ? local[name as ReceiverField] : match
+    );
+  return { bn: fill(line.bn), en: fill(line.en) };
+};
+
+/**
+ * What prints under one Investor: with no Nominee, the Version's line saying so, where it has one; otherwise the lines
+ * every Investor's Nominees print under, then a line for each minor Nominee's Receiver to sign. A Version worded before
+ * there were Receivers prints its lines as it always did.
+ */
+const linesUnder = (
+  section: Extract<TemplateSection, { kind: "parties" }>,
+  him: PaperInvestor,
+  values: FieldValues
+): Said[] => {
+  const noNominees = him.nominees.length === 0;
+  if (noNominees && section.noNomineeLine) {
+    return [filled(section.noNomineeLine, values)];
+  }
+  const lines = (section.nomineeLines ?? []).map((line) =>
+    filled(line, values)
+  );
+  const { receiverLine } = section;
+  if (!receiverLine) {
+    return lines;
+  }
+  const minors = him.nominees.filter((one) => one.minor);
+  return [
+    ...lines,
+    ...minors.map((one) => filled(receiverLineFor(receiverLine, one), values)),
+  ];
+};
+
 const laidOut = (
   section: TemplateSection,
   values: FieldValues,
@@ -624,9 +714,6 @@ const laidOut = (
   switch (section.kind) {
     case "parties": {
       const second = filled(section.second, values);
-      const lines = (section.nomineeLines ?? []).map((line) =>
-        filled(line, values)
-      );
       return {
         kind: "parties",
         heading: filled(section.heading, values),
@@ -641,7 +728,7 @@ const laidOut = (
             role: second,
             rows: investorRows(him),
             nominees: him.nominees.map(nomineeRowOf),
-            lines,
+            lines: linesUnder(section, him, values),
           })),
         ],
       };

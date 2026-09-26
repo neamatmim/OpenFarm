@@ -36,4 +36,32 @@ describe("the wording as the editor holds it", () => {
     expect(parties.nomineeLines.map((one) => one.key)).toHaveLength(2);
     expect(fresh.sections[0]).not.toHaveProperty("nomineeLines");
   });
+
+  it("publishes a Receiver's or no-Nominee line left empty as no line at all, and one written as it was written", () => {
+    const draft = toDraft(STANDARD_TEMPLATES.nomination);
+    const [parties, ...rest] = draft.sections;
+    if (parties?.kind !== "parties") {
+      throw new Error("expected the parties first");
+    }
+    const cleared = fromDraft({
+      ...draft,
+      sections: [
+        {
+          ...parties,
+          receiverLine: { bn: " ", en: "" },
+          noNomineeLine: { bn: "", en: "" },
+        },
+        ...rest,
+      ],
+    });
+
+    expect(cleared.sections[0]).not.toHaveProperty("receiverLine");
+    expect(cleared.sections[0]).not.toHaveProperty("noNomineeLine");
+    expect(fromDraft(draft).sections[0]).toHaveProperty(
+      "receiverLine",
+      STANDARD_TEMPLATES.nomination.sections[0]?.kind === "parties"
+        ? STANDARD_TEMPLATES.nomination.sections[0].receiverLine
+        : undefined
+    );
+  });
 });
