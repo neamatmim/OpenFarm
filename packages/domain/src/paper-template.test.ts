@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import type { PaperParties, TemplateContent } from "./paper-template";
+import type {
+  PaperDocument,
+  PaperParties,
+  TemplateContent,
+} from "./paper-template";
 import {
   TEMPLATE_KINDS,
   factsMissing,
@@ -560,6 +564,106 @@ describe("a notice read as a page", () => {
 
     expect(read.parts).toEqual([
       { heading: "সংক্ষেপে", lines: ["খামার: সবুজ খামার"] },
+    ]);
+  });
+});
+
+/** The Investor's party on a laid-out paper. */
+const himOn = (document: PaperDocument) => {
+  const parties = document.sections.find(
+    (section) => section.kind === "parties"
+  );
+  if (parties?.kind !== "parties") {
+    throw new Error("expected the parties");
+  }
+  return parties.parties[1];
+};
+
+describe("the মনোনয়নপত্র", () => {
+  const { nomination } = STANDARD_TEMPLATES;
+  const MINOR = {
+    name: "তানিয়া",
+    relation: "নাতনি",
+    phone: null,
+    bornOn: "2015-01-02",
+    sharePercent: 20,
+    minor: true,
+    receiver: { name: "সালমা", relation: "মা", phone: null },
+  };
+  const laidOutFor = (nominees: PaperParties["investors"][0]["nominees"]) =>
+    paperFrom(nomination, {
+      kind: "nomination",
+      parties: {
+        ...PARTIES,
+        investors: [{ ...PARTIES.investors[0], nominees }],
+      },
+      values: { investorName: { bn: "রহিম", en: "রহিম" } },
+      producedBy: "করিম",
+      producedAt: "২৬ সেপ্টেম্বর ২০২৬",
+    });
+
+  it("prints a Receiver's line for each minor Nominee and no other, after what every Nominee knows", () => {
+    const him = himOn(laidOutFor([{ ...SALMA, sharePercent: 80 }, MINOR]));
+
+    expect(him?.lines.map((line) => line.bn)).toEqual([
+      expect.stringContaining("প্রত্যেক নমিনি জানেন"),
+      expect.stringContaining(
+        "নমিনি তানিয়া-এর বয়স আঠারো বছরের কম। তাঁর গ্রহণকারী হিসেবে আমি, সালমা (মা)"
+      ),
+    ]);
+  });
+
+  it("says so, in place of the table and the lines, when he names nobody", () => {
+    const him = himOn(laidOutFor([]));
+
+    expect(him?.nominees).toEqual([]);
+    expect(him?.lines.map((line) => line.en)).toEqual([
+      expect.stringContaining("The Investor has named no Nominee"),
+    ]);
+  });
+
+  it("is signed and dated by the Investor first, then by the Owner before whom he signed, with no stamp", () => {
+    const document = laidOutFor([SALMA]);
+    const signatures = document.sections.find(
+      (section) => section.kind === "signatures"
+    );
+    if (signatures?.kind !== "signatures") {
+      throw new Error("expected the signatures");
+    }
+
+    expect(signatures.signers.map((one) => one.role.en)).toEqual([
+      "Investor",
+      "Before — the Owner",
+    ]);
+    expect(signatures.dateBlank).not.toBeNull();
+    expect(document.sections.some((one) => one.kind === "stamp")).toBe(false);
+    expect(document.preamble.bn).toContain("আমি, রহিম,");
+  });
+
+  it("lets only the Receiver's line ask for the minor and their Receiver", () => {
+    const [parties, ...rest] = nomination.sections;
+    if (parties?.kind !== "parties") {
+      throw new Error("expected the parties first");
+    }
+    const asking: TemplateContent = {
+      ...nomination,
+      sections: [
+        {
+          ...parties,
+          receiverLine: { bn: "{receiverName} {nomineeAge}", en: "" },
+        },
+        {
+          kind: "clauses",
+          heading: { bn: "আর", en: "" },
+          clauses: [{ bn: "{receiverName}", en: "" }],
+        },
+        ...rest,
+      ],
+    };
+
+    expect(templateProblems("nomination", asking)).toEqual([
+      { code: "unknown_field", at: 1, about: "nomineeAge" },
+      { code: "unknown_field", at: 2, about: "receiverName" },
     ]);
   });
 });

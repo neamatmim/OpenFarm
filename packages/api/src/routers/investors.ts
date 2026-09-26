@@ -2,7 +2,7 @@ import { portalOrigin } from "@OpenFarm/auth/hosts";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { farm } from "@OpenFarm/db/schema/farm";
 import { investor } from "@OpenFarm/db/schema/venture";
-import { farmDayOf } from "@OpenFarm/domain";
+import { MOST_NOMINEES, farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -10,6 +10,7 @@ import { z } from "zod";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { dataCopyOf } from "../data-copy";
+import { farmDay } from "../farm-clock";
 import type { FarmList } from "../farm-list";
 import { bringBackToList, retireFromList } from "../farm-list";
 import { protectedProcedure } from "../index";
@@ -24,6 +25,8 @@ import {
   nominationsOf,
   paperNominees,
 } from "../nomination-store";
+import { nominationToSign, recordNomination } from "../nominations";
+import { photoInput } from "../photo-input";
 import type { ConsentWithdrawnSaid } from "../portal-consent";
 import {
   consentSheet,
@@ -87,6 +90,27 @@ const alreadyHere = (retired: boolean) =>
         message: "This person is already an Investor here",
         data: { refusal: "investor_exists" },
       });
+
+/** Somebody who collects a minor Nominee's share, as a form sends them. */
+const receiverInput = z.object({
+  name: z.string().trim().min(1).max(120),
+  relation: z.string().trim().max(60).nullable(),
+  phone: z.string().trim().max(20).nullable(),
+});
+
+/** The Nominees a paper names, as a form sends them: whether they may be named is the domain's rule, not the wire's. */
+const nomineesInput = z
+  .array(
+    z.object({
+      name: z.string().trim().max(120),
+      relation: z.string().trim().max(60).nullable(),
+      phone: z.string().trim().max(20).nullable(),
+      bornOn: farmDay.nullable(),
+      sharePercent: z.number(),
+      receiver: receiverInput.nullable(),
+    })
+  )
+  .max(MOST_NOMINEES + 1);
 
 /** A Nomination as a screen shows it: how it came, the day, each Nominee marked a minor or not on `today`, and
  *  whether it has its photo. */
@@ -330,6 +354,41 @@ export const investorsRouter = {
         nominees: paperNominees(one, one.signedOn),
       }));
     }),
+
+  /**
+   * The মনোনয়নপত্র for one Investor and the Nominees the Owner has written down, laid out to print and have signed in
+   * front of them today. Refused for Nominees no paper may name, and for a retired Investor. An Export on the Investor.
+   */
+  nominationToSign: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string(), nominees: nomineesInput }))
+    .handler(({ context, input }) =>
+      nominationToSign(context, input.id, input.nominees)
+    ),
+
+  /**
+   * Records a মনোনয়নপত্র signed in front of the Owner, with its day and a photo of it: from then on the list in force for
+   * all the Investor's Agreements. The Owner's alone, from their own phone.
+   */
+  recordNomination: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      photoInput.extend({
+        id: z.string(),
+        nominees: nomineesInput,
+        signedOn: farmDay,
+      })
+    )
+    .handler(({ context, input }) =>
+      recordNomination(context, {
+        investorId: input.id,
+        nominees: input.nominees,
+        signedOn: input.signedOn,
+        photo: { contentType: input.contentType, data: input.data },
+      })
+    ),
 
   /**
    * One person recorded once, and reused for every Venture they join: name, phone, address, NID and the bank

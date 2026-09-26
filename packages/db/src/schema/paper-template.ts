@@ -19,6 +19,7 @@ export const TEMPLATE_KINDS = [
   "agreement_amendment",
   "portal_consent",
   "privacy_notice",
+  "nomination",
 ] as const;
 
 /**

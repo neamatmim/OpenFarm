@@ -152,6 +152,55 @@ const carryOver = async (
   });
 };
 
+/**
+ * The first Investor, a few days after signing, comes back to name his whole family rather than his wife alone: a
+ * মনোনয়নপত্র signed in front of the Owner and photographed, naming three Nominees, the youngest a minor with her mother
+ * to collect for her. So the seed has a list signed for beside the ones carried over.
+ */
+const hashemNamesHisFamily = async (farm: Farm, on: string) => {
+  const [hashem] = INVESTORS;
+  const him = await farm.db.query.investor.findFirst({
+    where: { farmId: farm.farmId, name: hashem.name, phone: hashem.phone },
+    columns: { id: true },
+  });
+  if (!him) {
+    throw new Error(`${hashem.name} was never written down`);
+  }
+  farm.clock.set(onFarm(on, "16:00"));
+  await farm.as.owner.investors.recordNomination({
+    id: him.id,
+    signedOn: on,
+    nominees: [
+      {
+        name: "রোকেয়া বেগম",
+        relation: "স্ত্রী",
+        phone: "01911-223344",
+        bornOn: "1979-04-12",
+        sharePercent: 50,
+        receiver: null,
+      },
+      {
+        name: "মোঃ রাকিবুল হাসান",
+        relation: "ছেলে",
+        phone: "01911-223355",
+        bornOn: "2001-10-03",
+        sharePercent: 30,
+        receiver: null,
+      },
+      {
+        name: "সুমাইয়া আক্তার",
+        relation: "মেয়ে",
+        phone: null,
+        bornOn: "2013-02-18",
+        sharePercent: 20,
+        receiver: { name: "রোকেয়া বেগম", relation: "মা", phone: "01911-223344" },
+      },
+    ],
+    contentType: "image/jpeg",
+    data: A_STAMPED_PAPER,
+  });
+};
+
 /** One Investor signed onto a Venture: recorded, signed for, the stamped paper kept, and the money in. */
 const signOn = async (
   farm: Farm,
@@ -639,6 +688,7 @@ export const openTheVentures = async (
       { who: 4, units: 8 },
     ],
   });
+  await hashemNamesHisFamily(farm, addDays(start, -4));
   // The finished Venture's animals are made ready before the month turns: their last month goes unsprayed.
   for (const tag of settling.tags) {
     const bull = herd.bulls.get(tag);

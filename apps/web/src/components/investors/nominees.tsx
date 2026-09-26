@@ -1,12 +1,16 @@
 import type { PaperNominee } from "@OpenFarm/domain";
 import { formatDate } from "@OpenFarm/i18n";
+import { Button } from "@OpenFarm/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
+import { FilePen } from "lucide-react";
+import { useState } from "react";
 
 import type { Investor } from "@/components/investors/investor-types";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
+import { NominationSheet } from "./nomination-sheet";
 import { phoneLink } from "./phone-link";
 
 type Nomination = NonNullable<Investor["nomination"]>;
@@ -68,7 +72,7 @@ const NomineeLine = ({ nominee }: { nominee: PaperNominee }) => {
 const FromWhere = ({
   nomination,
 }: {
-  nomination: Pick<Nomination, "how" | "signedOn">;
+  nomination: Pick<Nomination, "how" | "signedOn" | "hasPhoto">;
 }) => {
   const { t } = useLanguage();
   const day = useDay();
@@ -77,6 +81,7 @@ const FromWhere = ({
       {t(`nominees.from.${nomination.how}`, {
         day: day(nomination.signedOn),
       })}
+      {nomination.hasPhoto ? <> · {t("nominees.photoKept")}</> : null}
     </span>
   );
 };
@@ -139,15 +144,33 @@ const Earlier = ({ investorId }: { investorId: string }) => {
  */
 export const Nominees = ({ investor }: { investor: Investor }) => {
   const { t } = useLanguage();
+  const [naming, setNaming] = useState(false);
   // A list cached before Nominations has no such field: nobody on it has one yet.
   const nomination = investor.nomination ?? null;
   const notSignedFor = nomination?.how === "carried_over";
+  // A retired Investor signs nothing new until the Owner brings them back.
+  const maySign = !investor.retiredAt;
   return (
     <Section
       action={
-        notSignedFor ? (
-          <StatusBadge tone="warning">{t("nominees.notSignedFor")}</StatusBadge>
-        ) : null
+        <span className="flex flex-wrap items-center gap-2">
+          {notSignedFor ? (
+            <StatusBadge tone="warning">
+              {t("nominees.notSignedFor")}
+            </StatusBadge>
+          ) : null}
+          {maySign ? (
+            <Button
+              onClick={() => setNaming(true)}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              <FilePen aria-hidden data-icon="inline-start" />
+              {t("nominees.new")}
+            </Button>
+          ) : null}
+        </span>
       }
       description={t("nominees.hint")}
       title={t("nominees.title")}
@@ -160,6 +183,11 @@ export const Nominees = ({ investor }: { investor: Investor }) => {
       ) : null}
       <NomineeList nominees={nomination?.nominees ?? []} />
       <Earlier investorId={investor.id} />
+      <NominationSheet
+        investor={investor}
+        onOpenChange={setNaming}
+        open={naming}
+      />
     </Section>
   );
 };

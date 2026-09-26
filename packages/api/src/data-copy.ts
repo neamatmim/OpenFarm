@@ -97,6 +97,7 @@ const PAPER_NAMES = {
   agreement_draft: { bn: "চুক্তির খসড়া", en: "Agreement to sign" },
   amendment_draft: { bn: "সংশোধনী", en: "Amendment" },
   portal_consent: both("portal.consent.sheetTitle"),
+  nomination: { bn: "মনোনয়নপত্র", en: "Nomination" },
   privacy_notice: { bn: "আপনার তথ্য", en: "Your data" },
   welcome_letter: { bn: "স্বাগত চিঠি", en: "Welcome Letter" },
   code_slip: { bn: "কোডের স্লিপ", en: "Code Slip" },
@@ -145,6 +146,10 @@ export const TRAILED = {
     what: "পোর্টাল সম্মতি",
     fields: ["signedOn", "version", "withdrawnOn", "withdrawnHow"],
   },
+  nomination: {
+    what: "আপনার নমিনি",
+    fields: ["signedOn", "nominationHow", "nominees"],
+  },
 } as const;
 
 type Trailed = keyof typeof TRAILED;
@@ -156,6 +161,9 @@ const NOMINATION_HOW_WORDS: Record<NominationHow, string> = {
   agreement: "বিনিয়োগ চুক্তিতে",
   carried_over: "আগের রেকর্ড থেকে, এখনো সই হয়নি",
 };
+
+const isNominationHow = (text: string): text is NominationHow =>
+  Object.hasOwn(NOMINATION_HOW_WORDS, text);
 
 /** Whether an entity on the trail is one the paper reads. */
 const isTrailed = (entity: string): entity is Trailed => entity in TRAILED;
@@ -180,6 +188,9 @@ const valueWords = (field: TrailedField, value: unknown): string => {
   }
   if (field.endsWith("At")) {
     return when(new Date(text));
+  }
+  if (field === "nominationHow" && isNominationHow(text)) {
+    return NOMINATION_HOW_WORDS[text];
   }
   if (field === "revokedWhy") {
     return TAKEN_AWAY_WHY[text] ?? text;

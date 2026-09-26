@@ -54,12 +54,13 @@ const REFUSALS: Record<string, MessageKey> = {
   reviewed_in_the_future: "templates.refused.reviewedInTheFuture",
 };
 
-/** The two kinds of paper that wait on the lawyer's answer before anybody signs one. */
+/** The kinds of paper that wait on the lawyer's answer before anybody signs one. */
 const WAITING_ON_THE_LAWYER: ReadonlySet<TemplateKind> = new Set([
   "master_agreement",
   "venture_schedule",
   "portal_consent",
   "privacy_notice",
+  "nomination",
 ]);
 
 /** A farm day as the reader writes a date. */

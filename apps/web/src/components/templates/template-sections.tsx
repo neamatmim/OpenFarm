@@ -1,5 +1,5 @@
 import type { FactLine, Said } from "@OpenFarm/domain";
-import { MOST_WITNESSES } from "@OpenFarm/domain";
+import { MOST_WITNESSES, RECEIVER_FIELDS } from "@OpenFarm/domain";
 import { formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
@@ -129,9 +129,13 @@ const SaidList = ({
   );
 };
 
+/** An optional line nobody has written: left so in both languages, it is not printed. */
+const NOTHING_WRITTEN = { bn: "", en: "" };
+
 /**
  * The two parties' names on the paper — who they are is written from what the farm holds — and the lines printed
- * under each Investor beside the nominee.
+ * under each Investor beside their Nominees: the ones under every Investor, the one for each minor's Receiver, and the
+ * one in place of the table when there is no Nominee.
  */
 const PartiesBody = ({
   section,
@@ -171,6 +175,35 @@ const PartiesBody = ({
           nameOf={(number) => t("templates.lineNumber", { number })}
           onChange={(nomineeLines) => onChange({ ...section, nomineeLines })}
         />
+      </div>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-0.5">
+          <h3 className="text-sm font-medium">{t("templates.receiverLine")}</h3>
+          <p className="text-muted-foreground text-xs">
+            {t("templates.receiverLineHint", {
+              fields: Object.keys(RECEIVER_FIELDS)
+                .map((name) => `{${name}}`)
+                .join(" "),
+            })}
+          </p>
+        </div>
+        <SaidField
+          id={`${section.key}-receiver`}
+          label={t("templates.receiverLine")}
+          onChange={(receiverLine) => onChange({ ...section, receiverLine })}
+          passage
+          value={section.receiverLine ?? NOTHING_WRITTEN}
+        />
+        <SaidField
+          id={`${section.key}-no-nominee`}
+          label={t("templates.noNomineeLine")}
+          onChange={(noNomineeLine) => onChange({ ...section, noNomineeLine })}
+          passage
+          value={section.noNomineeLine ?? NOTHING_WRITTEN}
+        />
+        <p className="text-muted-foreground text-xs">
+          {t("templates.noNomineeLineHint")}
+        </p>
       </div>
     </>
   );
