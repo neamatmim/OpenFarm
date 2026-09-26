@@ -5,6 +5,7 @@ import type {
   FeedShare,
   FeedingToCost,
   HerdCostToSplit,
+  KeepCharge,
   PenHistoryLine,
 } from "@OpenFarm/domain";
 import {
@@ -440,6 +441,41 @@ export const farmCosts = async (db: Db, farmId: string) => {
 };
 
 export type FarmCosts = Awaited<ReturnType<typeof farmCosts>>;
+
+/**
+ * What was charged to one animal's keep, as the costing shares it out: her feed, her doses, her part of the Vet's fees
+ * for visits that named her, and her part of the Herd Costs — a fattening Animal's Cost of Gain now and a dairy cow's
+ * milk against her keep both read it, so the two keeps are one sum.
+ */
+export const keepChargesOf = (
+  costs: FarmCosts,
+  animalId: string
+): KeepCharge[] => [
+  ...(costs.ofAnimal.feed.get(animalId) ?? []).map((one) => ({
+    at: one.at,
+    bdt: one.feedBdt,
+    fed: true,
+    priced: one.unpricedKg === 0,
+  })),
+  ...(costs.ofAnimal.doses.get(animalId) ?? []).map((one) => ({
+    at: one.at,
+    bdt: one.medicineBdt ?? 0,
+    fed: false,
+    priced: one.medicineBdt !== null,
+  })),
+  ...(costs.ofAnimal.vet.get(animalId) ?? []).map((one) => ({
+    at: one.at,
+    bdt: one.vetBdt,
+    fed: false,
+    priced: true,
+  })),
+  ...(costs.ofAnimal.herd.get(animalId) ?? []).map((one) => ({
+    at: one.at,
+    bdt: one.bdt,
+    fed: false,
+    priced: true,
+  })),
+];
 
 /** The shares a report adds up: what she ate, what she was dosed and visited for, what her arrival and the
  *  outings cost, and her part of the month's Herd Costs. */

@@ -1,5 +1,4 @@
 import type { Database } from "@OpenFarm/db";
-import type { KeepCharge } from "@OpenFarm/domain";
 import {
   groupedBy,
   keepOrSell,
@@ -10,8 +9,12 @@ import {
   priceRangeFor,
 } from "@OpenFarm/domain";
 
-import type { FarmCosts } from "./cost-store";
-import { chargedOf, economicsOfAnimal, farmCosts } from "./cost-store";
+import {
+  chargedOf,
+  economicsOfAnimal,
+  farmCosts,
+  keepChargesOf,
+} from "./cost-store";
 import { projectionBasisOf } from "./projection-store";
 import { fatteningRows } from "./ready-store";
 
@@ -21,35 +24,6 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** The fattening side as the board and the Ready list read it. */
 const ON_THE_SIDE = ["quarantine", "fattening", "ready_for_sale"] as const;
-
-/** What was charged to her keep, as the costing shares it out: her feed, her doses, her part of the Vet's fees for
- *  visits that named her, and her part of the Herd Costs. */
-const keepChargesOf = (costs: FarmCosts, animalId: string): KeepCharge[] => [
-  ...(costs.ofAnimal.feed.get(animalId) ?? []).map((one) => ({
-    at: one.at,
-    bdt: one.feedBdt,
-    fed: true,
-    priced: one.unpricedKg === 0,
-  })),
-  ...(costs.ofAnimal.doses.get(animalId) ?? []).map((one) => ({
-    at: one.at,
-    bdt: one.medicineBdt ?? 0,
-    fed: false,
-    priced: one.medicineBdt !== null,
-  })),
-  ...(costs.ofAnimal.vet.get(animalId) ?? []).map((one) => ({
-    at: one.at,
-    bdt: one.vetBdt,
-    fed: false,
-    priced: true,
-  })),
-  ...(costs.ofAnimal.herd.get(animalId) ?? []).map((one) => ({
-    at: one.at,
-    bdt: one.bdt,
-    fed: false,
-    priced: true,
-  })),
-];
 
 /**
  * Every animal on the fattening side priced for the Owner: what she has cost the farm so far — bought for, and every

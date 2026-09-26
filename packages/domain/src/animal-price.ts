@@ -144,6 +144,12 @@ export interface Kept {
   whole: boolean;
 }
 
+/** Whether something happened inside her last four weeks, as her keep reads them: the one window anything set beside
+ *  her keep — a dairy cow's milk, say — has to be read over too, or the two are not the same weeks. */
+export const inTheKeepWindow = (at: Date, now: Date): boolean =>
+  now.getTime() - KEEP_READ_DAYS * DAY_MS <= at.getTime() &&
+  at.getTime() <= now.getTime();
+
 /** What she was charged for her keep over the last four weeks, and how many of those days she was here to be kept. */
 export const keptOver = ({
   charges,
@@ -156,9 +162,7 @@ export const keptOver = ({
   now: Date;
 }): Kept => {
   const from = now.getTime() - KEEP_READ_DAYS * DAY_MS;
-  const inside = charges.filter(
-    (one) => from <= one.at.getTime() && one.at.getTime() <= now.getTime()
-  );
+  const inside = charges.filter((one) => inTheKeepWindow(one.at, now));
   let ms = 0;
   for (const spell of stood) {
     const start = Math.max(spell.from.getTime(), from);

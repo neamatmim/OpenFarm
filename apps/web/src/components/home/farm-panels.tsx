@@ -10,10 +10,17 @@ import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ChevronRight, CircleCheck, Store, TrendingDown } from "lucide-react";
+import {
+  ChevronRight,
+  CircleCheck,
+  ListX,
+  Store,
+  TrendingDown,
+} from "lucide-react";
 import type { ReactNode } from "react";
 
 import { stillHeld } from "@/components/animal/animal-words";
+import { useCullList } from "@/components/culling/cull-list";
 import { useKeepings } from "@/components/fattening/animal-prices";
 import { standingOf as gainStandingOf } from "@/components/fattening/fattening-types";
 import { standingOf, valueOf } from "@/components/feed/feed-types";
@@ -258,6 +265,10 @@ export const HerdPanel = ({
     orpc.animals.list.queryOptions({ input: { includeExited: false } })
   );
   const herd = animals.data ?? [];
+  const culling = useCullList();
+  const mightCull = (culling.data?.cows ?? []).filter(
+    (cow) => cow.reasons.length > 0
+  ).length;
   const milkHeld = herd.filter((a) => stillHeld(a.milkWithdrawalUntil)).length;
   const meatHeld = herd.filter((a) => stillHeld(a.meatWithdrawalUntil)).length;
   const lost = died + culled;
@@ -300,6 +311,18 @@ export const HerdPanel = ({
               {t("owner.noLosses")}
             </p>
           )}
+          {mightCull > 0 ? (
+            <Link
+              className="bg-warning-surface text-warning hover:bg-warning-surface/80 focus-visible:ring-ring flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium outline-none focus-visible:ring-2"
+              to="/culling"
+            >
+              <ListX aria-hidden className="size-4 shrink-0" />
+              <span className="flex-1">
+                {t("owner.mightCull", { count: mightCull })}
+              </span>
+              <ChevronRight aria-hidden className="size-4 shrink-0" />
+            </Link>
+          ) : null}
         </>
       ) : (
         <Waiting />
