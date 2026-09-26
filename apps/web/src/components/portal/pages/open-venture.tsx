@@ -19,6 +19,7 @@ import {
   usePortalPlaces,
   useTheirOpenVentures,
 } from "@/components/portal/portal-source";
+import { OfferProjectionSection } from "@/components/portal/projection";
 import { AskToJoin } from "@/components/portal/requests-to-join";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
@@ -69,6 +70,8 @@ const TheOffer = ({ one }: { one: OpenVenture }) => {
           </Fact>
         </dl>
       </Section>
+      {/* Before the rules, so "nothing is guaranteed" is read after it. */}
+      <OfferProjectionSection projection={one.projection ?? null} />
       <Section title={t("portal.open.rules")}>
         <ul className="flex list-disc flex-col gap-2 pl-5 text-sm">
           <li>

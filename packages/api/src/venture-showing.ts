@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import type { Tx } from "./audit";
 import { audited } from "./audit";
+import { offerProjectionOf, offeredProjection } from "./projection-store";
 import { closeRequests } from "./requests-to-join";
 import type { VentureRow } from "./venture-act";
 import { actOnVenture } from "./venture-act";
@@ -122,7 +123,12 @@ export const takeOutOfPortal = (context: ActorContext, id: string) =>
   });
 
 /** A Venture as an invited Investor is offered it: its terms and the Owner's words, and nothing anybody signed. */
-const offeredAs = (row: VentureRow, investorsPercent: number, now: Date) => ({
+const offeredAs = (
+  row: VentureRow,
+  investorsPercent: number,
+  now: Date,
+  projection: ReturnType<typeof offeredProjection> | null
+) => ({
   id: row.id,
   name: row.name,
   unitPriceBdt: row.unitPriceBdt,
@@ -138,6 +144,9 @@ const offeredAs = (row: VentureRow, investorsPercent: number, now: Date) => ({
   investorsPercent,
   words: row.portalWords,
   takingRequests: !isPastDecideBy(row.decideBy, now),
+  /** What it might make a Unit at the Owner's low and high sale prices, worked from the Owner's plan — an estimate,
+   *  and nothing unless the Owner shows Projections (ADR 0010). */
+  projection,
 });
 
 /**
@@ -148,7 +157,9 @@ export const openVenturesFor = async (
   db: Pick<Tx, "query">,
   farm: { id: string; ventureInvestorsPercent: number },
   investorId: string,
-  now: Date
+  now: Date,
+  /** Whether each carries its Projection: when the Owner shows them, and in the Owner's own Preview. */
+  withProjections = false
 ) => {
   const them = await db.query.investor.findFirst({
     where: { id: investorId, farmId: farm.id },
@@ -170,7 +181,25 @@ export const openVenturesFor = async (
     columns: { ventureId: true },
   });
   const theirs = new Set(signed.map((one) => one.ventureId));
-  return shown
-    .filter((one) => !theirs.has(one.id))
-    .map((one) => offeredAs(one, farm.ventureInvestorsPercent, now));
+  return Promise.all(
+    shown
+      .filter((one) => !theirs.has(one.id))
+      .map(async (one) => {
+        const projected = withProjections
+          ? await offerProjectionOf(
+              db,
+              farm.id,
+              one,
+              farm.ventureInvestorsPercent,
+              now
+            )
+          : null;
+        return offeredAs(
+          one,
+          farm.ventureInvestorsPercent,
+          now,
+          projected ? offeredProjection(projected) : null
+        );
+      })
+  );
 };

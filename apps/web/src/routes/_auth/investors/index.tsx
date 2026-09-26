@@ -14,6 +14,7 @@ import { InvestorsTable } from "@/components/investors/investors-table";
 import type { PortalStanding } from "@/components/investors/portal-access";
 import {
   PortalSwitch,
+  ProjectionsSwitch,
   STANDING,
   portalInUse,
   standingOf,
@@ -145,6 +146,10 @@ const InvestorsPage = () => {
       />
       <SummaryFigures figures={figures} />
       {counted ? <PortalSwitch open={counted.portalOpen} /> : null}
+      {/* An answer this phone kept from before projections could be shown says nothing of them: hidden. */}
+      {counted ? (
+        <ProjectionsSwitch shown={counted.projectionsShown ?? false} />
+      ) : null}
       {counted?.nearingTheCap ? (
         <Notice
           title={t("investors.nearingTheCap", {

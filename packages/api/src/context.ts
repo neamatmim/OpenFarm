@@ -108,6 +108,8 @@ export interface Context {
     runningBudgetWarnBdt: number;
     /** Whether invited Investors may sign in to the portal (ADR 0007). */
     investorPortal: boolean;
+    /** Whether invited Investors are shown each Venture's Projection (ADR 0010). */
+    investorProjections: boolean;
     pinAutoLockMinutes: number;
     milkTolerancePercent: number;
     feedTolerancePercent: number;

@@ -31,3 +31,5 @@ So the portal may now **show** an upcoming Venture to invited Investors and **ta
 **Revisit** when the written opinion arrives. If it differs from what was said, this ADR follows the writing. Until it arrives, the portal stays switched off for real Investors, as the portal map already has it.
 
 **2026-09-25:** the shape of joining is designed. Its terms are in CONTEXT.md: **Request to Join**, **Pay-in Code**, and the **Investor Portal**, **Investor Cap** and **Venture Account** entries. The Owner chooses which Ventures are shown. A Request binds nobody and records whole Units and a note. The Owner alone is told, by one Notice carried by the Digest, and answers "come and sign" or "not this time". Bank details show only on an Agreement already signed. The screens are on ticket 07 for the written opinion to cover.
+
+**2026-09-26:** "no projections of return" gives way to ADR 0010: a labelled range, worked from the Owner's sale prices, shown only once the Owner turns it on. "No referrals, no advertising" stands.

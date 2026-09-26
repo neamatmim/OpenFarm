@@ -419,6 +419,8 @@ export {
   splitOfProfit,
 } from "./venture";
 export type { Split, ToSplit } from "./venture";
+export { projectedSettlement, unboughtKgAtWindow } from "./projection";
+export type { Projected, ProjectedEnd, ToBuy, ToProject } from "./projection";
 export type { RequestCloseReason, RequestToJoinState } from "./request-to-join";
 export {
   ANSWERED_REQUEST_STATES,

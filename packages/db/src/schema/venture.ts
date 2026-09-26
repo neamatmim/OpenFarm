@@ -3,6 +3,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgTable,
   primaryKey,
   text,
@@ -85,6 +86,29 @@ export const venture = pgTable(
     uniqueIndex("venture_ordinal_uidx").on(table.farmId, table.ordinal),
   ]
 );
+
+/**
+ * What the Owner expects of one Venture, which its **Projection** is worked from: the low and the high price a kilo
+ * of live weight will sell at, and — while it has animals still to buy — the price a kilo it expects to buy at, what
+ * each animal will weigh when bought, and what it will put on a day. The Owner's own guesses, said as theirs and
+ * changed as the market moves; each change is in the trail. Never part of an Agreement, and never printed on a paper.
+ */
+export const ventureProjection = pgTable("venture_projection", {
+  ventureId: text("venture_id")
+    .primaryKey()
+    .references(() => venture.id, { onDelete: "cascade" }),
+  farmId: text("farm_id")
+    .notNull()
+    .references(() => farm.id, { onDelete: "cascade" }),
+  saleLowBdtPerKg: taka("sale_low_bdt_per_kg").notNull(),
+  saleHighBdtPerKg: taka("sale_high_bdt_per_kg").notNull(),
+  /** The three a Venture with animals still to buy is projected from; none of them once they are all bought. */
+  buyBdtPerKg: taka("buy_bdt_per_kg"),
+  buyWeightKg: numeric("buy_weight_kg", { precision: 7, scale: 2 }),
+  dailyGainKg: numeric("daily_gain_kg", { precision: 5, scale: 2 }),
+  setAt: timestamp("set_at").notNull(),
+  setBy: text("set_by").references(() => user.id),
+});
 
 /**
  * Somebody whose money is in a Venture: known to the Owner personally or personally introduced, resident
