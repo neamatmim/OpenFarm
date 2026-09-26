@@ -5,7 +5,7 @@ date: 2026-09-26
 
 # Investors may be shown a labelled Projection of profit, behind the Owner's switch
 
-> Amended by ADR 0011: the sale prices and the buying a Projection is worked from now come from the Venture Plan, not from figures typed for the Projection.
+> Amended by ADR 0011: the sale prices and the buying a Projection is worked from now come from the Venture Plan, not from figures typed for the Projection. A Venture still to buy is charged what its plan's animals cost rather than its whole cattle budget, so an offer is charged its running budget and its plan's cattle, not its whole capital.
 
 ADR 0008 kept the circle closed with "no referrals, no advertising and no projections of return", and CONTEXT.md's **Investor Portal** entry said the portal shows "never ... a price to come or a gain to expect". The lawyer and the Shariah scholar approved the portal in writing on 2026-09-26 on that footing.
 
