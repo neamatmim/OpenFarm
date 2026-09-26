@@ -1,6 +1,8 @@
 # Prototype the Agreement's parties part with several Nominees
 
-Status: open
+Status: done
+
+Assignee: Neamat Khan Mim
 
 Type: prototype
 
@@ -27,3 +29,24 @@ What does the Investment Agreement print under each Investor when they have seve
 The outcome is the draft wording for the next standard Template Version and the page the lawyer is shown.
 
 ## Resolution
+
+Prototyped 2026-09-26 and chosen by the Owner. The prototype is on branch `prototype/several-nominees` (1765765): `/prototype/nominees?variant=A|B|C|D&case=none|one|three`. The draft wording is in [assets/05-nominee-wording-draft.md](../assets/05-nominee-wording-draft.md).
+
+Four layouts were tried: **A** a table under the Investor, **B** a part of its own with a card per Nominee, **C** the Investor's first-person declaration, and **D**, the pick, which combines them:
+
+- **The Agreement keeps A's table under the Investor in the parties part.** It fits the Template's existing parties part, which already prints lines under each Investor.
+  - Under the table go only the Nominees-know line and a Receiver line per minor, signed by the Receiver.
+  - With no Nominee, one sentence replaces the table.
+- **The five rules move into the Terms, printed once**, replacing today's single heirs clause. The clause is reworded so it reads right with no Nominee: "through their Nominees where they named any, … otherwise directly, usually against a succession certificate". This was found while looking at the no-Nominee case.
+- **The Nomination opens in the Investor's own words** (C's «আমি … মনোনীত করছি»), then A's table and lines, then the five rules in full because it is read alone. It closes with "replaces every earlier one, governs all my Agreements", and is signed by the Investor, the Owner and each Receiver.
+- **B's cards were dropped.** A card grid wastes space for one Nominee and matches no part of the Template.
+
+**Words fixed:** গ্রহণকারী for Receiver (not অভিভাবক, because the farm does not decide guardianship), মনোনয়নপত্র for Nomination, অংশ for share, and সংগ্রহ করা for collect.
+
+**For the spec:**
+- The Template needs:
+  - a new kind for the Nomination;
+  - a parties part that carries a Nominee table, not one row;
+  - the guardian line printed per minor rather than always.
+- The heirs clause and the Nominees-know line are the standard wording's to change, in the next standard Version.
+- The "Nominees since changed" note belongs on the screen, never on the paper (ticket 04).
