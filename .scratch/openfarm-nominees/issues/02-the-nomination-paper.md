@@ -4,7 +4,7 @@
 
 **Blocked by:** 01.
 
-**Status:** done on `feat/the-nomination-paper`
+**Status:** done, merged
 
 **Spec:** [the spec](../spec.md), user stories 7–11. See also "Recording a Nomination" and "The parties part", for the Template's new lines.
 
