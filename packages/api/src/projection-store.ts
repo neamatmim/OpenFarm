@@ -25,12 +25,13 @@ import type { VentureRow } from "./venture-store";
  *
  * Worked from its **Venture Plan** (ADR 0011) — the version in force, since a projection is what the Owner expects now,
  * where plan-against-actual measures against the baseline. A Venture still gathering capital has no animals, so it is
- * the plan alone: every band bought at its middle once the decide-by day comes, grown to the window at its own gain,
- * and the whole capital spent. Once it is buying, the animals it stands on are its own — each grown at her own rate
- * over her whole stay, or her band's planned gain while nobody has weighed her — and, while it is still buying, what
- * each band has still to buy comes from the plan. What it has sold fetched what it fetched; what it has been charged is
- * what the Settlement counts, and the rest of its running budget is taken as spent, which errs towards the lower
- * figure. A Venture whose prices were set before it had a plan is projected from those until it has one.
+ * the plan alone: every band bought at its middle once the decide-by day comes, at its own price, and grown to the
+ * window at its own gain. Once it is buying, the animals it stands on are its own — each grown at her own rate over her
+ * whole stay, or her band's planned gain while nobody has weighed her — and, while it is still buying, what each band
+ * has still to buy comes from the plan, at its price. Every animal counted is paid for, over the cattle budget or
+ * under it. What it has sold fetched what it fetched; what it has been charged is what the Settlement counts, and the
+ * rest of its running budget is taken as spent, which errs towards the lower figure. A Venture whose prices were set
+ * before it had a plan is projected from those until it has one.
  */
 
 /** What a Projection is worked from: the plan in force, or the prices set before the Venture had a plan. */
@@ -216,21 +217,22 @@ interface Run {
 }
 
 /**
- * What the Venture has still to buy would weigh between them when its window opens: bought once it stops gathering
- * capital and not before today, and grown until the window opens. From the plan, each band's animals less those
- * already bought in it; from prices set before the plan, as many as the cattle budget left pays for. Nothing once it
- * has stopped buying.
+ * What the Venture has still to buy: what those animals would weigh between them when its window opens — bought once it
+ * stops gathering capital and not before today, and grown until the window opens — and what they cost. From the plan,
+ * each band's animals less those already bought in it, at the band's price; from prices set before the plan, as many
+ * as the cattle budget left pays for, and so the whole of it. Every animal counted is paid for, and nothing is paid
+ * for that is not counted. Nothing once it has stopped buying.
  */
-const unboughtKg = async (
+const stillToBuy = async (
   db: Pick<Tx, "query">,
   farmId: string,
   run: Run,
   basis: ProjectionBasis,
   cattleBudgetLeftBdt: number,
   now: Date
-) => {
+): Promise<{ kg: number; costBdt: number }> => {
   if (run.state !== "open" && run.state !== "buying") {
-    return 0;
+    return { kg: 0, costBdt: 0 };
   }
   const buyingFrom = new Date(
     Math.max(now.getTime(), startOfFarmDay(run.decideBy).getTime())
@@ -241,25 +243,33 @@ const unboughtKg = async (
       run.state === "open" ? [] : await boughtFor(db, farmId, run.id);
     const { bands } = buyingAgainstPlan(basis.lines, bought);
     let kg = 0;
+    let costBdt = 0;
     for (const [at, line] of basis.lines.entries()) {
       const left = Math.max(0, line.animals - (bands[at]?.bought.animals ?? 0));
       kg += left * (middleOf(line) + line.dailyGainKg * days);
+      costBdt += left * middleOf(line) * line.buyBdtPerKg;
     }
-    return kg;
+    return { kg, costBdt: Math.round(costBdt) };
   }
   const figures = buyingFiguresOf(basis);
-  return figures
-    ? unboughtKgAtWindow({
-        cattleBudgetLeftBdt,
-        ...figures,
-        daysToWindow: days,
-      })
-    : 0;
+  if (!figures) {
+    return { kg: 0, costBdt: 0 };
+  }
+  const left = Math.max(0, cattleBudgetLeftBdt);
+  return {
+    kg: unboughtKgAtWindow({
+      cattleBudgetLeftBdt: left,
+      ...figures,
+      daysToWindow: days,
+    }),
+    costBdt: left,
+  };
 };
 
 /**
- * The Projection of a Venture still gathering capital, from its plan alone: every band bought, its whole capital
- * charged, and every Unit it offers taken. Nothing while it has no plan, or only prices set before one with no buying.
+ * The Projection of a Venture still gathering capital, from its plan alone: every band bought and paid for, its whole
+ * running budget charged, and every Unit it offers taken. Nothing while it has no plan, or only prices set before one
+ * with no buying.
  */
 export const offerProjectionOf = async (
   db: Pick<Tx, "query">,
@@ -273,9 +283,17 @@ export const offerProjectionOf = async (
   if (!basis || !saysWhatItBuys(basis)) {
     return null;
   }
+  const buying = await stillToBuy(
+    db,
+    farmId,
+    { ...run, state: "open" },
+    basis,
+    run.cattleBudgetBdt,
+    now
+  );
   const figures = {
     realisedBdt: 0,
-    chargedBdt: run.targetCapitalBdt,
+    chargedBdt: run.targetCapitalBdt - run.cattleBudgetBdt + buying.costBdt,
     investorsPercent: offeredPercent,
     units: run.units,
   };
@@ -283,14 +301,7 @@ export const offerProjectionOf = async (
     basis,
     ...figures,
     ...projectedSettlement({
-      kgAtSale: await unboughtKg(
-        db,
-        farmId,
-        { ...run, state: "open" },
-        basis,
-        run.cattleBudgetBdt,
-        now
-      ),
+      kgAtSale: buying.kg,
       ...figures,
       saleLowBdtPerKg: basis.saleLowBdtPerKg,
       saleHighBdtPerKg: basis.saleHighBdtPerKg,
@@ -332,15 +343,7 @@ export const projectionOf = async (
       now
     ),
   ]);
-  const figures = {
-    realisedBdt: settled.proceedsBdt,
-    chargedBdt:
-      settled.chargedBdt +
-      Math.max(0, spend.runningBudgetBdt - spend.runningSpentBdt),
-    investorsPercent: settled.investorsPercent,
-    units: settled.units,
-  };
-  const stillToBuy = await unboughtKg(
+  const buying = await stillToBuy(
     db,
     farmId,
     run,
@@ -348,11 +351,20 @@ export const projectionOf = async (
     spend.cattleBudgetLeftBdt,
     now
   );
+  const figures = {
+    realisedBdt: settled.proceedsBdt,
+    chargedBdt:
+      settled.chargedBdt +
+      Math.max(0, spend.runningBudgetBdt - spend.runningSpentBdt) +
+      buying.costBdt,
+    investorsPercent: settled.investorsPercent,
+    units: settled.units,
+  };
   return {
     basis,
     ...figures,
     ...projectedSettlement({
-      kgAtSale: standingKg + stillToBuy,
+      kgAtSale: standingKg + buying.kg,
       ...figures,
       saleLowBdtPerKg: basis.saleLowBdtPerKg,
       saleHighBdtPerKg: basis.saleHighBdtPerKg,

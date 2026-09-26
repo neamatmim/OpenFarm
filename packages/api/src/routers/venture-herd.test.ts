@@ -603,6 +603,41 @@ describe("what a Venture's animals are doing", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
+  it("counts an animal bought across from another Venture as bought, at what she weighed and cost that day", async () => {
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    // The second Venture means to buy one bull of 220 to 240 kg, and has: the one it took across at 228 kg for ৳1,14,000.
+    await owner.client.ventures.setPlan({
+      ventureId: secondVenture,
+      lines: [
+        {
+          animals: 1,
+          fromKg: 220,
+          toKg: 240,
+          buyBdtPerKg: 500,
+          dailyGainKg: 1,
+        },
+      ],
+      saleLowBdtPerKg: 500,
+      saleHighBdtPerKg: 600,
+      reason: "পরিকল্পনা পরে লেখা হলো",
+    });
+    const measured = await owner.client.ventures.planAgainstActual({
+      ventureId: secondVenture,
+    });
+    expect(measured?.buying.bands[0]?.bought).toEqual({
+      animals: 1,
+      kg: 228,
+      costBdt: 114_000,
+      bdtPerKg: 500,
+    });
+    // So nothing is left to buy, and he is counted once: 228 kg on 1 February at a kilo a day for the 59 days to the
+    // window, 287 kg — not again as a bull the plan has still to buy.
+    const { projection } = await owner.client.ventures.projection({
+      ventureId: secondVenture,
+    });
+    expect(projection?.kgAtSale).toBeCloseTo(287, 6);
+  });
+
   it("counts the days to the window and never projects past it", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
     const theirs = await owner.client.ventures.herd({

@@ -13,8 +13,8 @@ import { appRouter } from "./index";
 // in the Portal Preview either way.
 //
 // Every figure is worked by hand. Both Ventures here are still gathering capital, so they are projected from the
-// plan: ৳500 a kilo for 250 kg animals is ৳1,25,000 each, and an ৳8,00,000 cattle budget buys six of them. Bought
-// on the decide-by day, 20 January 2052, each puts on 0.8 kg a day until its window opens.
+// plan: six animals at ৳500 a kilo for 250 kg, ৳1,25,000 each and ৳7,50,000 between them, inside an ৳8,00,000 cattle
+// budget. Bought on the decide-by day, 20 January 2052, each puts on 0.8 kg a day until its window opens.
 
 const suffix = `${Date.now()}`.slice(-7);
 const JANUARY = "2052-01-01T04:00:00.000Z";
@@ -78,12 +78,17 @@ const TERMS = {
   cattleBudgetBdt: 800_000,
 };
 
-/** Six animals of 240 to 260 kg — 250 kg at the middle — at ৳500 a kilo, putting on 0.8 kg a day, sold at ৳600 to
- *  ৳700: the Venture Plan both Ventures are projected from. */
+/** Six animals of 240 to 260 kg — 250 kg at the middle — at ৳500 a kilo, putting on 0.8 kg a day. */
+const PLAN_LINE = {
+  animals: 6,
+  fromKg: 240,
+  toKg: 260,
+  buyBdtPerKg: 500,
+  dailyGainKg: 0.8,
+};
+/** That line, sold at ৳600 to ৳700: the Venture Plan both Ventures are projected from. */
 const PLAN = {
-  lines: [
-    { animals: 6, fromKg: 240, toKg: 260, buyBdtPerKg: 500, dailyGainKg: 0.8 },
-  ],
+  lines: [PLAN_LINE],
   saleLowBdtPerKg: 600,
   saleHighBdtPerKg: 700,
 };
@@ -179,7 +184,7 @@ describe("what a Venture is projected from", () => {
 });
 
 describe("a Venture still gathering capital", () => {
-  it("is projected from the plan: six animals grown to the window, the whole capital charged, every Unit taken", async () => {
+  it("is projected from the plan: six animals grown to the window, charged what they cost and the whole running budget, every Unit taken", async () => {
     const owner = await asOwner();
     await owner.ventures.setPlan({ ventureId: hisVenture, ...PLAN });
     const { projection } = await owner.ventures.projection({
@@ -189,14 +194,39 @@ describe("a Venture still gathering capital", () => {
     expect(projection?.kgAtSale).toBeCloseTo(1773.6, 6);
     expect(projection).toMatchObject({
       realisedBdt: 0,
-      chargedBdt: 1_000_000,
+      // Six at ৳1,25,000 is ৳7,50,000 of cattle, and the ৳2,00,000 running budget taken as spent.
+      chargedBdt: 950_000,
       investorsPercent: 60,
       units: 20,
-      // 1,773.6 kg at ৳600 is ৳10,64,160, a profit of ৳64,160: sixty per cent is ৳38,496, ৳1,924 a Unit.
-      low: { proceedsBdt: 1_064_160, profitBdt: 64_160, perUnitBdt: 1924 },
-      // At ৳700 it is ৳12,41,520, a profit of ৳2,41,520: ৳1,44,912 to the Investors, ৳7,245 a Unit.
-      high: { proceedsBdt: 1_241_520, profitBdt: 241_520, perUnitBdt: 7245 },
+      // 1,773.6 kg at ৳600 is ৳10,64,160, a profit of ৳1,14,160: sixty per cent is ৳68,496, ৳3,424 a Unit.
+      low: { proceedsBdt: 1_064_160, profitBdt: 114_160, perUnitBdt: 3424 },
+      // At ৳700 it is ৳12,41,520, a profit of ৳2,91,520: ৳1,74,912 to the Investors, ৳8,745 a Unit.
+      high: { proceedsBdt: 1_241_520, profitBdt: 291_520, perUnitBdt: 8745 },
     });
+  });
+});
+
+describe("a plan that spends past its cattle budget", () => {
+  it("is charged what its animals cost, not only the budget", async () => {
+    const owner = await asOwner();
+    const over = await owner.ventures.open({
+      name: `বাজেটের বাইরে ${suffix}`,
+      ...TERMS,
+      targetWindowStart: "2052-03-17",
+      targetWindowEnd: "2052-03-19",
+    });
+    // Seven at ৳1,25,000 is ৳8,75,000: ৳75,000 past the ৳8,00,000 cattle budget.
+    await owner.ventures.setPlan({
+      ventureId: over.id,
+      ...PLAN,
+      lines: [{ ...PLAN_LINE, animals: 7 }],
+    });
+    const { projection } = await owner.ventures.projection({
+      ventureId: over.id,
+    });
+    // Seven grown to 295.6 kg is 2,069.2 kg; charged ৳8,75,000 of cattle and the ৳2,00,000 running budget.
+    expect(projection?.kgAtSale).toBeCloseTo(2069.2, 6);
+    expect(projection?.chargedBdt).toBe(1_075_000);
   });
 });
 
@@ -265,6 +295,14 @@ describe("a Venture still buying", () => {
     // 20 January and fed the 57 days to the window: two more of the first band at 250 + 45.6 = 295.6 kg, and both of
     // the second at 320 + 34.2 = 354.2 kg. 310.8 + 400 + 591.2 + 708.4 = 2,010.4 kg.
     expect(projection?.kgAtSale).toBeCloseTo(2010.4, 6);
+    // And charged what those four still to buy cost: two at ৳1,25,000 and two at 320 kg for ৳480, ৳1,53,600 — ৳5,57,200
+    // on top of what it has been charged and the ৳2,00,000 running budget it has not yet spent.
+    const settlement = await owner.ventures.settlement({
+      ventureId: buying.id,
+    });
+    expect(projection?.chargedBdt).toBe(
+      settlement.chargedBdt + 200_000 + 557_200
+    );
     // The plan's buying as one average, as an offer says it: ৳6,82,200 for 1,390 kg is ৳490.79 a kilo; 278 kg a head;
     // 3.6 kg a day over five head is 0.72.
     expect(basis).toMatchObject({
@@ -303,9 +341,9 @@ describe("an Investor's own Venture in the portal", () => {
       saleLowBdtPerKg: 600,
       saleHighBdtPerKg: 700,
       kgAtSale: 1774,
-      // Three Units at ৳1,924 and ৳7,245 a Unit, on top of the ৳1,50,000 they put in.
-      low: { shareBdt: 5772, payoutBdt: 155_772 },
-      high: { shareBdt: 21_735, payoutBdt: 171_735 },
+      // Three Units at ৳3,424 and ৳8,745 a Unit, on top of the ৳1,50,000 they put in.
+      low: { shareBdt: 10_272, payoutBdt: 160_272 },
+      high: { shareBdt: 26_235, payoutBdt: 176_235 },
     });
     // Their own figures; the Venture's whole split is not theirs to read.
     const said = JSON.stringify(today.projection);
@@ -335,9 +373,9 @@ describe("a Venture offered in the portal", () => {
       buyWeightKg: 250,
       dailyGainKg: 0.8,
       kgAtSale: 2138,
-      // 2,138.4 kg at ৳600 makes ৳2,83,040, ৳8,491 a Unit; at ৳700, ৳4,96,880 and ৳14,906 a Unit.
-      low: { profitBdt: 283_040, perUnitBdt: 8491 },
-      high: { profitBdt: 496_880, perUnitBdt: 14_906 },
+      // 2,138.4 kg at ৳600 makes ৳3,33,040, ৳9,991 a Unit; at ৳700, ৳5,46,880 and ৳16,406 a Unit.
+      low: { profitBdt: 333_040, perUnitBdt: 9991 },
+      high: { profitBdt: 546_880, perUnitBdt: 16_406 },
     });
   });
 });
