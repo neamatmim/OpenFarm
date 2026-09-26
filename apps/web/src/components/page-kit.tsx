@@ -64,6 +64,49 @@ export interface Figure {
   lead?: boolean;
 }
 
+/** How loud a figure's value is: a term among many, an ordinary figure, a range set above the facts about it, and the
+ *  figures beside the one that matters most. */
+const FIGURE_SIZE = {
+  sm: "text-sm font-medium",
+  md: "font-medium",
+  lg: "text-lg font-semibold",
+  xl: "text-xl font-semibold",
+} as const;
+
+/**
+ * One figure under its name, inside a `<dl>`: a small label, the value, and a line under it saying what it means. One
+ * shape for every figure a page states, so a label reads the same everywhere and only how loud the value is changes.
+ */
+export const FigureTerm = ({
+  label,
+  children,
+  hint,
+  tone = "neutral",
+  size = "md",
+}: {
+  label: string;
+  children: ReactNode;
+  hint?: string;
+  tone?: "neutral" | "warning";
+  size?: keyof typeof FIGURE_SIZE;
+}) => (
+  <div className="flex min-w-0 flex-col gap-0.5">
+    <dt className="text-muted-foreground text-xs" data-slot="figure-label">
+      {label}
+    </dt>
+    <dd
+      className={cn(
+        FIGURE_SIZE[size],
+        "break-words tabular-nums",
+        tone === "warning" && "text-warning"
+      )}
+    >
+      {children}
+    </dd>
+    {hint ? <dd className="text-muted-foreground text-xs">{hint}</dd> : null}
+  </div>
+);
+
 /** A page's few figures: tiles where there is room, and one small card on a phone so its first screen still reaches the
  *  work below. */
 export const SummaryFigures = ({

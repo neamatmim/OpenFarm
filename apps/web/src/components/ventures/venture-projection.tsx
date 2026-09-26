@@ -2,7 +2,10 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { useQuery } from "@tanstack/react-query";
 
 import { Loaded, Section } from "@/components/page";
+import { FigureTerm } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useKg } from "@/lib/kg";
+import { useRange } from "@/lib/range";
 import { useTaka } from "@/lib/taka";
 import type { Venture } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
@@ -10,60 +13,50 @@ import type { client } from "@/utils/orpc";
 
 type Read = Awaited<ReturnType<typeof client.ventures.projection>>;
 
-/** One figure of a projection, under its name. */
-const Fact = ({ label, children }: { label: string; children: string }) => (
-  <div className="flex flex-col gap-0.5">
-    <dt className="text-muted-foreground text-sm">{label}</dt>
-    <dd className="font-medium tabular-nums">{children}</dd>
-  </div>
-);
-
 /** What the projection comes to, at both ends, with what it is worked from. */
 const Figures = ({ read }: { read: Read }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
+  const kg = useKg();
+  const range = useRange();
   const { basis, projection } = read;
   if (!(basis && projection)) {
     return (
       <p className="text-muted-foreground text-sm">{t("projection.none")}</p>
     );
   }
-  const range = (low: string, high: string) =>
-    t("projection.range", { low, high });
   const day = formatDate(new Date(basis.setAt), language, "date");
-  const kg = (value: number) =>
-    t("units.kg", { kg: formatNumber(value, language) });
   // Fewer at the low end by the deaths the plan expects. An answer this phone kept from before has one weight only.
   const highKg = Math.round(projection.kgAtSale);
   const lowKg = Math.round(projection.low.kgAtSale ?? projection.kgAtSale);
   return (
     <>
       <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
-        <Fact label={t("projection.profit")}>
+        <FigureTerm label={t("projection.profit")}>
           {range(
             taka(projection.low.profitBdt),
             taka(projection.high.profitBdt)
           )}
-        </Fact>
-        <Fact label={t("projection.perUnit")}>
+        </FigureTerm>
+        <FigureTerm label={t("projection.perUnit")}>
           {range(
             taka(projection.low.perUnitBdt),
             taka(projection.high.perUnitBdt)
           )}
-        </Fact>
-        <Fact label={t("projection.prices")}>
+        </FigureTerm>
+        <FigureTerm label={t("projection.prices")}>
           {range(taka(basis.saleLowBdtPerKg), taka(basis.saleHighBdtPerKg))}
-        </Fact>
-        <Fact label={t("projection.kgAtSale")}>
-          {lowKg === highKg ? kg(highKg) : range(kg(lowKg), kg(highKg))}
-        </Fact>
-        <Fact label={t("projection.charged")}>
+        </FigureTerm>
+        <FigureTerm label={t("projection.kgAtSale")}>
+          {range(kg(lowKg), kg(highKg))}
+        </FigureTerm>
+        <FigureTerm label={t("projection.charged")}>
           {taka(projection.chargedBdt)}
-        </Fact>
+        </FigureTerm>
         {projection.realisedBdt > 0 ? (
-          <Fact label={t("projection.realised")}>
+          <FigureTerm label={t("projection.realised")}>
             {taka(projection.realisedBdt)}
-          </Fact>
+          </FigureTerm>
         ) : null}
       </dl>
       {projection.low.profitBdt < 0 ? (

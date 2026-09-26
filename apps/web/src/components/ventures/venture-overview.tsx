@@ -2,6 +2,7 @@ import { isRunning, startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 
 import { Section } from "@/components/page";
+import { FigureTerm } from "@/components/page-kit";
 import { InThePortal } from "@/components/ventures/in-the-portal";
 import { PlanAgainstActual } from "@/components/ventures/plan-against-actual";
 import { VentureAccountPanel } from "@/components/ventures/venture-account";
@@ -122,14 +123,6 @@ const TheMoney = ({ venture }: { venture: Venture }) => {
   );
 };
 
-/** One term of the run: what it is called, and what it says. */
-const Term = ({ label, children }: { label: string; children: string }) => (
-  <div className="flex min-w-0 flex-col gap-0.5">
-    <dt className="text-muted-foreground text-xs">{label}</dt>
-    <dd className="text-sm font-medium break-words tabular-nums">{children}</dd>
-  </div>
-);
-
 /**
  * The terms it was opened on, each under its own name: what a Unit costs and how many there are, the two
  * budgets, the Floor and the day it is decided by, the selling window and the day the Wind-up Period ends.
@@ -142,30 +135,34 @@ const TheTerms = ({ venture }: { venture: Venture }) => {
   return (
     <Section title={t("ventures.page.terms")}>
       <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
-        <Term label={t("ventures.units")}>
+        <FigureTerm size="sm" label={t("ventures.units")}>
           {t("ventures.unitsAt", {
             units: formatNumber(venture.units, language),
             price: taka(venture.unitPriceBdt),
           })}
-        </Term>
-        <Term label={t("ventures.target")}>
+        </FigureTerm>
+        <FigureTerm size="sm" label={t("ventures.target")}>
           {taka(venture.targetCapitalBdt)}
-        </Term>
-        <Term label={t("ventures.page.cattleBudget")}>
+        </FigureTerm>
+        <FigureTerm size="sm" label={t("ventures.page.cattleBudget")}>
           {taka(venture.cattleBudgetBdt)}
-        </Term>
-        <Term label={t("ventures.page.runningBudget")}>
+        </FigureTerm>
+        <FigureTerm size="sm" label={t("ventures.page.runningBudget")}>
           {taka(venture.runningBudgetBdt)}
-        </Term>
-        <Term label={t("ventures.floor")}>{taka(venture.floorBdt)}</Term>
-        <Term label={t("ventures.decideBy")}>{day(venture.decideBy)}</Term>
-        <Term label={t("ventures.window")}>
+        </FigureTerm>
+        <FigureTerm size="sm" label={t("ventures.floor")}>
+          {taka(venture.floorBdt)}
+        </FigureTerm>
+        <FigureTerm size="sm" label={t("ventures.decideBy")}>
+          {day(venture.decideBy)}
+        </FigureTerm>
+        <FigureTerm size="sm" label={t("ventures.window")}>
           {`${day(venture.targetWindow.start)} – ${day(venture.targetWindow.end)}`}
-        </Term>
+        </FigureTerm>
         {venture.windUpEndsOn ? (
-          <Term label={t("ventures.windUpEnds")}>
+          <FigureTerm size="sm" label={t("ventures.windUpEnds")}>
             {day(venture.windUpEndsOn)}
-          </Term>
+          </FigureTerm>
         ) : null}
       </dl>
       {venture.cancelledReason ? (

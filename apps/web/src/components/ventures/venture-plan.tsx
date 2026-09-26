@@ -1,4 +1,4 @@
-import { formatDate, formatNumber, numberAsTyped } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -11,8 +11,10 @@ import { toast } from "sonner";
 import { Loaded, Section, StatusBadge } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useKg } from "@/lib/kg";
 import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
+import { aFigure, figureOf } from "@/lib/typed-figure";
 import type { Venture } from "@/lib/ventures";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
@@ -46,18 +48,6 @@ const PLAN_REFUSALS = {
   plan_revision_needs_reason: "plan.refused.reason",
   plan_after_the_end: "plan.refused.ended",
 } as const satisfies Record<string, MessageKey>;
-
-/** A typed figure as a number, Bangla digits and all; nothing for a blank. */
-const figureOf = (typed: string): number | null => {
-  const plain = numberAsTyped(typed);
-  return plain === "" ? null : Number(plain);
-};
-
-/** A figure the Owner may plan with: a real number above nothing — or, for a gain, not below it. */
-const aFigure = (value: number | null, orNothing = false): value is number =>
-  value !== null &&
-  Number.isFinite(value) &&
-  (orNothing ? value >= 0 : value > 0);
 
 let nextKey = 0;
 const blankLine = (): TypedLine => {
@@ -308,6 +298,7 @@ const PlanTable = ({ version }: { version: Version }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
   const kg = (value: number) => formatNumber(value, language);
+  const weight = useKg();
   const head = "text-muted-foreground px-2 py-1.5 text-xs font-medium";
   return (
     <div className="-mx-4 overflow-x-auto md:-mx-5">
@@ -350,12 +341,10 @@ const PlanTable = ({ version }: { version: Version }) => {
                 {taka(version.totals.lines[at]?.costBdt ?? 0)}
               </td>
               <td className="px-2 py-2 text-end tabular-nums">
-                {t("units.kg", { kg: kg(line.dailyGainKg) })}
+                {weight(line.dailyGainKg)}
               </td>
               <td className="px-2 py-2 pe-4 text-end tabular-nums md:pe-5">
-                {t("units.kg", {
-                  kg: kg(version.totals.lines[at]?.saleKgEach ?? 0),
-                })}
+                {weight(version.totals.lines[at]?.saleKgEach ?? 0)}
               </td>
             </tr>
           ))}
@@ -378,10 +367,10 @@ const PlanTable = ({ version }: { version: Version }) => {
               {taka(version.totals.costBdt)}
             </td>
             <td className="px-2 py-2 text-end tabular-nums">
-              {t("units.kg", { kg: kg(averageGainOf(version)) })}
+              {weight(averageGainOf(version))}
             </td>
             <td className="px-2 py-2 pe-4 text-end tabular-nums md:pe-5">
-              {t("units.kg", { kg: kg(version.totals.saleKg) })}
+              {weight(version.totals.saleKg)}
             </td>
           </tr>
         </tfoot>

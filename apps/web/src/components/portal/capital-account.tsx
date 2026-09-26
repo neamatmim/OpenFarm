@@ -1,10 +1,10 @@
-import { hasEnded } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { cn } from "@OpenFarm/ui/lib/utils";
 
 import type { TheirAgreements } from "@/components/investors/investor-agreements";
 import { portfolioOf } from "@/components/investors/investor-agreements";
 import { Section } from "@/components/page";
+import { FigureTerm } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
 
@@ -22,34 +22,6 @@ const SWATCHES = [
 const PERCENT_SCALE = 1000;
 const shareOf = (part: number, whole: number) =>
   whole > 0 ? Math.round((part / whole) * PERCENT_SCALE) / 10 : 0;
-
-/** One figure of the account, in the grid beside the one that matters most: a label, a sum, and what it means. */
-const Line = ({
-  label,
-  value,
-  hint,
-  tone = "neutral",
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  tone?: "neutral" | "warning";
-}) => (
-  <div className="flex min-w-0 flex-col gap-1">
-    <dt className="text-muted-foreground text-xs" data-slot="figure-label">
-      {label}
-    </dt>
-    <dd
-      className={cn(
-        "text-xl font-semibold tabular-nums",
-        tone === "warning" && "text-warning"
-      )}
-    >
-      {value}
-    </dd>
-    {hint ? <dd className="text-muted-foreground text-xs">{hint}</dd> : null}
-  </div>
-);
 
 /** The whole of a share, as the percent the bar is drawn to. */
 const WHOLE = 100;
@@ -104,11 +76,6 @@ export const CapitalAccount = ({ theirs }: { theirs: TheirAgreements }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
   const sums = portfolioOf(theirs);
-  // Counted as the Owner's page counts them: the Units of a Venture settled or called off are nobody's any more.
-  const running = theirs.agreements.filter(
-    (one) => !hasEnded(one.venture.state)
-  );
-  const units = running.reduce((sum, one) => sum + one.units, 0);
   return (
     <section
       aria-labelledby="capital-account-title"
@@ -129,13 +96,16 @@ export const CapitalAccount = ({ theirs }: { theirs: TheirAgreements }) => {
         {/* Of what they promised to the Ventures still running: one that has finished has nothing left to pay in, and a
             bar kept full by it sat under a held figure of nothing. */}
         <PaidIn
-          paidInBdt={running.reduce((sum, one) => sum + one.capitalHeldBdt, 0)}
-          promisedBdt={running.reduce((sum, one) => sum + one.promisedBdt, 0)}
+          paidInBdt={sums.runningPaidInBdt}
+          promisedBdt={sums.runningPromisedBdt}
         />
       </div>
       <dl className="grid grid-cols-2 gap-x-6 gap-y-5 border-t pt-5 lg:border-s lg:border-t-0 lg:ps-8 lg:pt-0">
-        <Line label={t("money.payouts")} value={taka(sums.paidOutBdt)} />
-        <Line
+        <FigureTerm size="xl" label={t("money.payouts")}>
+          {taka(sums.paidOutBdt)}
+        </FigureTerm>
+        <FigureTerm
+          size="xl"
           hint={
             sums.settled
               ? t("investors.page.fromSettled", { count: sums.settled })
@@ -143,17 +113,19 @@ export const CapitalAccount = ({ theirs }: { theirs: TheirAgreements }) => {
           }
           label={t("portal.profit")}
           tone={sums.profitBdt < 0 ? "warning" : "neutral"}
-          value={taka(sums.profitBdt)}
-        />
-        <Line
-          label={t("investors.unitsHeld")}
-          value={formatNumber(units, language)}
-        />
-        <Line
+        >
+          {taka(sums.profitBdt)}
+        </FigureTerm>
+        <FigureTerm size="xl" label={t("investors.unitsHeld")}>
+          {formatNumber(sums.runningUnits, language)}
+        </FigureTerm>
+        <FigureTerm
+          size="xl"
           hint={t("portal.sums.settledCount", { count: sums.settled })}
           label={t("portal.sums.running")}
-          value={formatNumber(running.length, language)}
-        />
+        >
+          {formatNumber(sums.running, language)}
+        </FigureTerm>
       </dl>
     </section>
   );

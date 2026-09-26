@@ -11,14 +11,12 @@ import {
 } from "@/components/data-table";
 import type { TheirAgreements } from "@/components/investors/investor-agreements";
 import { Nothing, SaidDate } from "@/components/list-cells";
-import type { Tone } from "@/components/page";
 import {
   EmptyState,
   Loaded,
   Page,
   PageHeader,
   Section,
-  StatusBadge,
 } from "@/components/page";
 import { PageTabs } from "@/components/page-kit";
 import { ListSkeleton } from "@/components/portal/portal-skeletons";
@@ -26,6 +24,7 @@ import {
   usePortalPlaces,
   useTheirPortfolio,
 } from "@/components/portal/portal-source";
+import { StateBadge } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
 
@@ -36,16 +35,6 @@ type Tab = (typeof TABS)[number];
 
 /** Whether a Venture has run its course: settled, or called off with every taka sent back. */
 const hasFinished = (one: HisAgreement) => hasEnded(one.venture.state);
-
-/** How each stage is said beside its name: under way, done, or called off. */
-const STAGE_TONE: Record<HisAgreement["venture"]["state"], Tone> = {
-  open: "info",
-  buying: "info",
-  fattening: "info",
-  selling: "info",
-  settled: "success",
-  cancelled: "neutral",
-};
 
 /** The Venture's name, opening their own page of it. */
 const VentureCell = ({ row }: { row: { original: HisAgreement } }) => {
@@ -61,15 +50,10 @@ const VentureCell = ({ row }: { row: { original: HisAgreement } }) => {
   );
 };
 
-const StageCell = ({ row }: { row: { original: HisAgreement } }) => {
-  const { t } = useLanguage();
-  const { state } = row.original.venture;
-  return (
-    <StatusBadge tone={STAGE_TONE[state]}>
-      {t(`ventures.state.${state}`)}
-    </StatusBadge>
-  );
-};
+/** Where the Venture stands, in the same word and colour the Owner's list says it in. */
+const StageCell = ({ row }: { row: { original: HisAgreement } }) => (
+  <StateBadge state={row.original.venture.state} />
+);
 
 const UnitsCell = ({ row }: { row: { original: HisAgreement } }) => {
   const { language } = useLanguage();

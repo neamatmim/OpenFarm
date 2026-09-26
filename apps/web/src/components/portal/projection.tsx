@@ -3,9 +3,12 @@ import { Info } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Section, StatusBadge } from "@/components/page";
+import { FigureTerm } from "@/components/page-kit";
 import type { OpenVenture } from "@/components/portal/open-ventures";
 import { usePreviewing } from "@/components/portal/portal-source";
 import { useLanguage } from "@/i18n/language-provider";
+import { useKg } from "@/lib/kg";
+import { useRange } from "@/lib/range";
 import { useTaka } from "@/lib/taka";
 import type { client } from "@/utils/orpc";
 
@@ -24,15 +27,12 @@ const Range = ({
   low: number;
   high: number;
 }) => {
-  const { t } = useLanguage();
   const taka = useTaka();
+  const range = useRange();
   return (
-    <div className="flex flex-col gap-0.5">
-      <dt className="text-muted-foreground text-sm">{label}</dt>
-      <dd className="text-lg font-semibold tabular-nums">
-        {t("projection.range", { low: taka(low), high: taka(high) })}
-      </dd>
-    </div>
+    <FigureTerm label={label} size="lg">
+      {range(taka(low), taka(high))}
+    </FigureTerm>
   );
 };
 
@@ -138,11 +138,11 @@ export const OfferProjectionSection = ({
 }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
+  const weight = useKg();
   if (!projection) {
     return null;
   }
-  const kg = (value: number | null) =>
-    t("units.kg", { kg: formatNumber(value ?? 0, language) });
+  const kg = (value: number | null) => weight(value ?? 0);
   return (
     <Said
       hint={t("portal.projection.offerHint", {

@@ -418,7 +418,7 @@ const Money = ({ today }: { today: Today }) => {
         </div>
       </dl>
       <dl className="grid gap-3 text-sm sm:grid-cols-2">
-        <div className="bg-muted/50 flex flex-col gap-0.5 rounded-lg p-3">
+        <div className={AVERAGE_BOX}>
           <dt className="text-muted-foreground">{t("portal.cattleBudget")}</dt>
           <dd className="font-medium tabular-nums">
             {t("portal.budgetLeft", {
@@ -427,7 +427,7 @@ const Money = ({ today }: { today: Today }) => {
             })}
           </dd>
         </div>
-        <div className="bg-muted/50 flex flex-col gap-0.5 rounded-lg p-3">
+        <div className={AVERAGE_BOX}>
           <dt className="text-muted-foreground">{t("portal.runningBudget")}</dt>
           <dd className="font-medium tabular-nums">
             {t("portal.budgetSpent", {
