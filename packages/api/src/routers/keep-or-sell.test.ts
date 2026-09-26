@@ -5,7 +5,8 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
-// Keep her or sell her, as money: what her keep — feed, doses and Herd Costs — has cost a day over her last four weeks,
+// Keep her or sell her, as money: what her keep — feed, doses, the Vet's visits and Herd Costs — has cost a day over her
+// last four weeks,
 // over the rate she is gaining at now, set beside the price a kilo she is priced at.
 //
 // Every expected figure is worked by hand from the feedings and the readings, never re-derived the way the code derives
@@ -255,6 +256,13 @@ beforeAll(async () => {
   // Wormed on the 20th of February, ৳280 inside the four weeks; and a dose of the tonic nobody paid for on the 21st.
   await dose(wormingId, kept, "2040-02-20T04:00:00.000Z");
   await dose(tonicId, kept, "2040-02-21T04:00:00.000Z");
+  // The Vet saw both bulls on one visit on the 22nd, for ৳560: ৳280 each.
+  const visiting = await as("vet", "2040-02-22T08:00:00.000Z");
+  await visiting.client.money.vetFee({
+    amountBdt: 560,
+    visitedOn: "2040-02-22",
+    animalTags: [kept, unfed],
+  });
 
   // 300 kg on the 1st of February and 314 kg a fortnight later: a kilo a day, lately.
   await weigh(fedPen, "2040-02-01T02:00:00.000Z", [[kept, 300]]);
@@ -278,21 +286,22 @@ describe("keep her or sell her", () => {
     const owner = await as("owner", "2040-03-01T04:00:00.000Z");
     const { animals } = await owner.client.fattening.prices();
     const hers = animals.find((one) => one.tagNumber === kept);
-    // ৳8,400 of feed and a ৳280 dose over the 28 days since the 2nd of February is ৳310 a day; January's feeding is not
-    // in it. A kilo a day on that is ৳310 a kilo, between the market's ৳280 and ৳320, so what she fetches decides. The
-    // next fortnight: 14 kg for ৳4,340 of keep, fetching ৳3,920 at ৳280 (৳420 short) and ৳4,480 at ৳320 (৳140 over).
-    // The tonic nobody bought is in it at nothing, and said: her keep is short by it.
+    // ৳8,400 of feed, a ৳280 dose and ৳280 of the Vet's visit over the 28 days since the 2nd of February is ৳320 a day;
+    // January's feeding is not in it. A kilo a day on that is ৳320 a kilo: not over the market's high price of ৳320, so
+    // what she fetches still decides. The next fortnight: 14 kg for ৳4,480 of keep, fetching ৳3,920 at ৳280 (৳560
+    // short) and ৳4,480 at ৳320 (nothing over). The tonic nobody bought is in it at nothing, and said: her keep is short
+    // by it.
     expect(hers?.keep).toEqual({
       known: true,
-      keepBdtPerDay: 310,
+      keepBdtPerDay: 320,
       dailyGainKg: 1,
-      costOfGainNowBdt: 310,
+      costOfGainNowBdt: 320,
       ahead: {
         days: 14,
         gainKg: 14,
-        keepBdt: 4340,
-        low: { worthBdt: 3920, overKeepBdt: -420 },
-        high: { worthBdt: 4480, overKeepBdt: 140 },
+        keepBdt: 4480,
+        low: { worthBdt: 3920, overKeepBdt: -560 },
+        high: { worthBdt: 4480, overKeepBdt: 0 },
       },
       keeping: "close",
       whole: false,
@@ -302,8 +311,8 @@ describe("keep her or sell her", () => {
   it("says keeping pays once a kilo fetches more than it costs to put on", async () => {
     const owner = await as("owner", "2040-03-01T05:00:00.000Z");
     await owner.client.fattening.setMarketPrice({
-      lowBdtPerKg: 310,
-      highBdtPerKg: 360,
+      lowBdtPerKg: 320,
+      highBdtPerKg: 380,
     });
     const later = await as("owner", "2040-03-01T06:00:00.000Z");
     const { animals } = await later.client.fattening.prices();

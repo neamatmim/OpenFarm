@@ -374,7 +374,7 @@ export const en = {
   "price.noPrice": "No price a kg set",
   "keep.title": "Keep or sell",
   "keep.hint":
-    "Whether another fortnight pays: the last four weeks' feed, medicine and share of the herd costs, over the kilos being put on now, against the price a kg. What the animal has cost already is spent either way, so it has no say here. It does not know the price will change at Eid.",
+    "Whether another fortnight pays: the last four weeks' feed, medicine, vet visits and share of the herd costs, over the kilos being put on now, against the price a kg. What the animal has cost already is spent either way, so it has no say here. It does not know the price will change at Eid.",
   "keep.pays": "Keeping pays",
   "keep.close": "Depends on the price",
   "keep.costsMore": "Costs more to keep",
