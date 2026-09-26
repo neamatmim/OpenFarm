@@ -430,8 +430,8 @@ export {
 } from "./venture-plan";
 export type { PlanLine } from "./venture-plan";
 export type { AnimalPrice, PriceEnd, PriceRange } from "./animal-price";
-export { projectedSettlement, unboughtKgAtWindow } from "./projection";
-export type { Projected, ProjectedEnd, ToBuy, ToProject } from "./projection";
+export { projectedSettlement } from "./projection";
+export type { Projected, ProjectedEnd, ToProject } from "./projection";
 export type { RequestCloseReason, RequestToJoinState } from "./request-to-join";
 export {
   ANSWERED_REQUEST_STATES,

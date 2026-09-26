@@ -23,16 +23,9 @@ const Figures = ({ read }: { read: Read }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
   const { basis, projection } = read;
-  if (!basis) {
+  if (!(basis && projection)) {
     return (
       <p className="text-muted-foreground text-sm">{t("projection.none")}</p>
-    );
-  }
-  if (!projection) {
-    return (
-      <p className="text-muted-foreground text-sm">
-        {t("projection.needsPlan")}
-      </p>
     );
   }
   const range = (low: string, high: string) =>
@@ -76,14 +69,15 @@ const Figures = ({ read }: { read: Read }) => {
       {projection.low.profitBdt < 0 ? (
         <p className="text-warning text-sm">{t("projection.lossAtLow")}</p>
       ) : null}
-      <p className="text-muted-foreground text-xs">
-        {basis.planVersion === null
-          ? t("projection.setOn", { day })
-          : t("projection.fromPlan", {
-              version: formatNumber(basis.planVersion, language),
-              day,
-            })}
-      </p>
+      {/* An answer this phone kept from before a plan version was said has none: the line is left out. */}
+      {typeof basis.planVersion === "number" ? (
+        <p className="text-muted-foreground text-xs">
+          {t("projection.fromPlan", {
+            version: formatNumber(basis.planVersion, language),
+            day,
+          })}
+        </p>
+      ) : null}
     </>
   );
 };

@@ -462,8 +462,6 @@ export const en = {
   "projection.hint":
     "Your own estimate, worked from the Venture's plan: its sale prices, and what it has still to buy. Investors see it only once you show projections on the Investors page, and it is never printed on a paper.",
   "projection.none": "No plan yet. Write one above and this is worked from it.",
-  "projection.needsPlan":
-    "These prices were set before the Venture had a plan. Write a plan above to project it.",
   "projection.saleLow": "Low sale price (৳ a kg, live)",
   "projection.saleHigh": "High sale price (৳ a kg, live)",
   "projection.lowAboveHigh": "The low price is above the high one",
@@ -475,7 +473,6 @@ export const en = {
   "projection.charged": "Costs counted",
   "projection.realised": "Already sold for",
   "projection.fromPlan": "Worked from plan version {version}, saved on {day}",
-  "projection.setOn": "From prices set on {day}, before it had a plan",
   "projection.lossAtLow":
     "At the low price this is a loss, and a loss comes off the Investors' capital.",
   "projection.switch.title": "Projections for Investors",

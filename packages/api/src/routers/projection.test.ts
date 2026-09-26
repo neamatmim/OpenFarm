@@ -265,6 +265,62 @@ describe("a plan that expects some animals to die", () => {
       lowBdt: 7744,
       highBdt: 291_520,
     });
+    // And what it is projected to make now is the projection's own profit at both ends. Buying has begun but nothing is
+    // bought, so the plan's animals are all still to buy: charged ৳9,50,000 as before.
+    const now = await owner.ventures.projection({ ventureId: run.id });
+    expect(measured?.money.projected).toEqual({
+      lowBdt: now.projection?.low.profitBdt,
+      highBdt: now.projection?.high.profitBdt,
+    });
+    expect(now.projection?.chargedBdt).toBe(950_000);
+  });
+});
+
+describe("a plan's refusals", () => {
+  it("wants a reason once buying has begun, and spaces are not one", async () => {
+    const owner = await asOwner();
+    const run = await owner.ventures.open({
+      name: `কারণ ${suffix}`,
+      ...TERMS,
+      targetWindowStart: "2052-03-17",
+      targetWindowEnd: "2052-03-19",
+    });
+    await owner.ventures.startBuying({ id: run.id });
+    // Nothing measured before there is a plan to measure against.
+    expect(
+      await owner.ventures.planAgainstActual({ ventureId: run.id })
+    ).toBeNull();
+    await expect(
+      owner.ventures.setPlan({ ventureId: run.id, ...PLAN, reason: "   " })
+    ).rejects.toMatchObject({
+      data: { refusal: "plan_revision_needs_reason" },
+    });
+    const plan = await owner.ventures.plan({ ventureId: run.id });
+    expect(plan.versions).toEqual([]);
+  });
+
+  it("has nothing left to plan once the Venture is called off", async () => {
+    const owner = await asOwner();
+    const run = await owner.ventures.open({
+      name: `বাতিল ${suffix}`,
+      ...TERMS,
+      targetWindowStart: "2052-03-17",
+      targetWindowEnd: "2052-03-19",
+    });
+    await owner.ventures.setPlan({ ventureId: run.id, ...PLAN });
+    await owner.ventures.cancel({ id: run.id, reason: `মূলধন ওঠেনি ${suffix}` });
+    await expect(
+      owner.ventures.setPlan({
+        ventureId: run.id,
+        ...PLAN,
+        reason: "বাতিলের পরে",
+      })
+    ).rejects.toMatchObject({ data: { refusal: "plan_after_the_end" } });
+    const plan = await owner.ventures.plan({ ventureId: run.id });
+    expect(plan.versions.map((one) => one.version)).toEqual([1]);
+    // Nor is anything projected for it.
+    const read = await owner.ventures.projection({ ventureId: run.id });
+    expect(read.projection).toBeNull();
   });
 });
 
