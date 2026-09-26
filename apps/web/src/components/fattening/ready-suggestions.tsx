@@ -12,6 +12,11 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import {
+  PriceCell,
+  PriceLine,
+  useIsOwner,
+} from "@/components/fattening/animal-prices";
 import { GainFigures, WeightAgainstTarget } from "@/components/gain";
 import { EmptyState, SegmentedControl, StatusBadge } from "@/components/page";
 import { FilterBar, NativeSelect } from "@/components/page-kit";
@@ -132,6 +137,17 @@ const AnswerCell = ({ row }: SuggestionCell) => (
 );
 
 const column = createListColumns<SuggestionRow>();
+
+const PriceOfCell = ({ row }: SuggestionCell) => (
+  <PriceCell tagNumber={row.original.tagNumber} />
+);
+
+const answerColumn = column.display({
+  id: "answer",
+  header: ActionsHeader,
+  cell: AnswerCell,
+  meta: { align: "end" },
+});
 const suggestionColumns = column.columns([
   column.accessor("tagNumber", {
     header: listHeader("animals.col.tag"),
@@ -167,12 +183,19 @@ const suggestionColumns = column.columns([
     sortUndefined: "last",
     meta: { align: "end" },
   }),
+  answerColumn,
+]);
+
+/** The same, with each animal's price against her cost before the answers: the Owner's list. */
+const suggestionColumnsPriced = column.columns([
+  ...suggestionColumns.slice(0, -1),
   column.display({
-    id: "answer",
-    header: ActionsHeader,
-    cell: AnswerCell,
+    id: "price",
+    header: listHeader("price.col"),
+    cell: PriceOfCell,
     meta: { align: "end" },
   }),
+  answerColumn,
 ]);
 
 /** A suggestion on a phone: her tag, her pen and why on top, her weight against her target large, her rates beneath,
@@ -200,6 +223,7 @@ const SuggestionCard = ({ row }: { row: SuggestionRow }) => {
         )}
       </p>
       <RatesLine recent={row.recent} sinceIntake={row.sinceIntake} />
+      <PriceLine tagNumber={row.tagNumber} />
       <Answers answering={row.answering} className="mt-1" row={row} />
     </div>
   );
@@ -235,8 +259,9 @@ export const ReadySuggestions = ({
       (ground === "" || row.grounds.includes(ground)) &&
       (pen === "" || row.penName === pen)
   );
+  const owner = useIsOwner();
   const table = useListTable({
-    columns: suggestionColumns,
+    columns: owner ? suggestionColumnsPriced : suggestionColumns,
     data: shown.map((row) => ({ ...row, answering })),
     getRowId: (row) => row.id,
   });

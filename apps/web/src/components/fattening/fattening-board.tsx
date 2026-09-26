@@ -12,6 +12,11 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import {
+  PriceCell,
+  PriceLine,
+  useIsOwner,
+} from "@/components/fattening/animal-prices";
 import { GainFigures, WeightAgainstTarget } from "@/components/gain";
 import { Nothing } from "@/components/list-cells";
 import { EmptyState, ProgressBar } from "@/components/page";
@@ -160,6 +165,22 @@ const boardColumns = column.columns([
   }),
 ]);
 
+const PriceOfCell = ({ row }: { row: { original: BoardRow } }) => (
+  <PriceCell tagNumber={row.original.tagNumber} />
+);
+
+/** The same, with each animal's price against her cost before the last column: the Owner's list. */
+const boardColumnsPriced = column.columns([
+  ...boardColumns.slice(0, -1),
+  column.display({
+    id: "price",
+    header: listHeader("price.col"),
+    cell: PriceOfCell,
+    meta: { align: "end" },
+  }),
+  ...boardColumns.slice(-1),
+]);
+
 /** What she weighs now against her target, large, with how far she has come beneath — or why there is no bar. */
 const WeightNow = ({ row }: { row: BoardRow }) => {
   const { t, language } = useLanguage();
@@ -213,6 +234,7 @@ const BoardCard = ({ row }: { row: BoardRow }) => {
           {details.join(" · ")}
         </span>
         <RatesLine recent={row.recent} sinceIntake={row.sinceIntake} />
+        <PriceLine tagNumber={row.tagNumber} />
       </div>
       <SellHer row={row} />
     </div>
@@ -323,8 +345,9 @@ export const FatteningBoard = ({ rows }: { rows: BoardRow[] }) => {
       (penId === "" || row.penId === penId) &&
       (wanted === "" || row.tagNumber.toUpperCase().includes(wanted))
   );
+  const owner = useIsOwner();
   const table = useListTable({
-    columns: boardColumns,
+    columns: owner ? boardColumnsPriced : boardColumns,
     data: shown,
     getRowId: (row) => row.id,
   });

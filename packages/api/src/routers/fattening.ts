@@ -1,9 +1,18 @@
+import { eq } from "@OpenFarm/db/operators";
+import { farm } from "@OpenFarm/db/schema/farm";
 import { z } from "zod";
 
+import { pricesOnTheSide } from "../animal-price-store";
+import { audited } from "../audit";
 import { outOfTheirBand } from "../band-store";
 import { protectedProcedure } from "../index";
 import { fatteningRows } from "../ready-store";
-import { requireRole } from "../roles";
+import {
+  OWNER_ONLY,
+  requireOnly,
+  requirePersonalSession,
+  requireRole,
+} from "../roles";
 
 export const fatteningRouter = {
   /**
@@ -36,6 +45,66 @@ export const fatteningRouter = {
           ...view,
         })
       );
+    }),
+
+  /**
+   * Every animal on the fattening side priced for the Owner: what she has cost so far, her break-even price a kilo,
+   * and what she might fetch at the low and the high price a kilo — her Venture's, or the farm's market price for the
+   * farm's own — with what each leaves over her cost (`pricesOnTheSide`). The Owner's alone, as an animal's money is:
+   * the Manager reads what she weighs, not what she made.
+   */
+  prices: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .handler(
+      async ({ context }) =>
+        await pricesOnTheSide(context.db, context.farm, context.clock.now())
+    ),
+
+  /**
+   * What a kilo of live weight is fetching, low and high, as the Owner judges the market: what the farm's own animals
+   * are priced at. The Owner's guess, changed as the market moves, each change an Audit Event.
+   */
+  setMarketPrice: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z
+        .object({
+          lowBdtPerKg: z.number().positive().max(100_000),
+          highBdtPerKg: z.number().positive().max(100_000),
+        })
+        .refine((one) => one.lowBdtPerKg <= one.highBdtPerKg, {
+          message: "The low price is above the high one",
+          path: ["lowBdtPerKg"],
+        })
+    )
+    .handler(async ({ context, input }) => {
+      const setAt = context.clock.now();
+      await audited(context).write(
+        {
+          entity: "farm",
+          entityId: context.farm.id,
+          action: "update",
+          before: {
+            marketLowBdtPerKg: context.farm.marketLowBdtPerKg,
+            marketHighBdtPerKg: context.farm.marketHighBdtPerKg,
+          },
+          after: {
+            marketLowBdtPerKg: input.lowBdtPerKg,
+            marketHighBdtPerKg: input.highBdtPerKg,
+          },
+        },
+        (tx) =>
+          tx
+            .update(farm)
+            .set({
+              marketLowBdtPerKg: input.lowBdtPerKg,
+              marketHighBdtPerKg: input.highBdtPerKg,
+              marketPriceSetAt: setAt,
+            })
+            .where(eq(farm.id, context.farm.id))
+      );
+      return { setAt };
     }),
 
   /**

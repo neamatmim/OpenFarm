@@ -419,6 +419,8 @@ export {
   splitOfProfit,
 } from "./venture";
 export type { Split, ToSplit } from "./venture";
+export { priceOfAnimal, priceRangeFor } from "./animal-price";
+export type { AnimalPrice, PriceEnd, PriceRange } from "./animal-price";
 export { projectedSettlement, unboughtKgAtWindow } from "./projection";
 export type { Projected, ProjectedEnd, ToBuy, ToProject } from "./projection";
 export type { RequestCloseReason, RequestToJoinState } from "./request-to-join";

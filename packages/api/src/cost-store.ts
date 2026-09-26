@@ -576,7 +576,7 @@ export const economicsOfAnimal = (costs: FarmCosts, animal: FarmAnimal) => {
  * something a paisa away from it.
  */
 /** Everything charged to one animal, as her own line shows it. */
-const chargedOf = (one: Costs) =>
+export const chargedOf = (one: Costs) =>
   one.feedBdt +
   one.medicineBdt +
   one.vetBdt +

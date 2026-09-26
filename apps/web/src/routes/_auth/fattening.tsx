@@ -11,6 +11,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 
+import { MarketPrice } from "@/components/fattening/animal-prices";
 import { FatteningBoard } from "@/components/fattening/fattening-board";
 import type { BoardRow } from "@/components/fattening/fattening-types";
 import { ORDER, standingOf } from "@/components/fattening/fattening-types";
@@ -137,6 +138,7 @@ const FatteningPage = () => {
     <Page>
       {header}
       <BoardFigures rows={rows} />
+      <MarketPrice />
       <NextEid />
       <OutOfBand />
       <FatteningBoard rows={rows} />
