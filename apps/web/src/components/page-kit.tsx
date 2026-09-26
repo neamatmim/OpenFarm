@@ -88,8 +88,8 @@ export const SummaryFigures = ({
           <dt
             className={cn(
               "text-muted-foreground text-xs",
-              // A label cut short says no more than a missing line under it: «আপনাকে পরিশোধ করা হয়েছে» does not fit
-              // half a 375px phone.
+              // A label cut short says no more than a missing line under it, and a Bangla label of three words may
+              // not fit half a 375px phone.
               !hintsOnPhone && "truncate"
             )}
             data-slot="figure-label"

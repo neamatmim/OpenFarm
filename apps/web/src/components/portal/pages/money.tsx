@@ -1,4 +1,4 @@
-import { Banknote, Landmark, Wallet } from "lucide-react";
+import { Banknote, Landmark, Undo2, Wallet } from "lucide-react";
 
 import type { TheirAgreements } from "@/components/investors/investor-agreements";
 import {
@@ -14,12 +14,20 @@ import { StillToPay } from "@/components/portal/still-to-pay";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
 
-/** What the lines below come to, as a statement opens with its totals: what they paid in, what has come back to
- *  them, and what the farm holds of theirs now — the same sums their portfolio shows. */
+/** What the lines below come to, as a statement opens with its totals: what they paid in, what came back to them —
+ *  Settlement payouts, and apart from them any capital refunded when a Venture was cancelled, so each figure says what
+ *  it counts and together they are the ledger's "back to you" — and what the farm holds of theirs now, the same sums
+ *  their portfolio shows. */
 const useTotals = (theirs: TheirAgreements): Figure[] => {
   const { t } = useLanguage();
   const taka = useTaka();
   const sums = portfolioOf(theirs);
+  const refunded: Figure = {
+    label: t("portal.money.refunded"),
+    value: taka(sums.returnedBdt),
+    hint: t("portal.money.refundedHint"),
+    icon: Undo2,
+  };
   return [
     {
       label: t("portal.money.paidIn"),
@@ -27,14 +35,12 @@ const useTotals = (theirs: TheirAgreements): Figure[] => {
       icon: Landmark,
     },
     {
-      label: t("portal.paidOut"),
+      label: t("portal.money.payouts"),
       value: taka(sums.paidOutBdt),
-      hint:
-        sums.returnedBdt > 0
-          ? t("portal.sums.returned", { bdt: taka(sums.returnedBdt) })
-          : undefined,
       icon: Wallet,
     },
+    // Only for somebody a Venture was cancelled on: everybody else would read a line of nothing.
+    ...(sums.returnedBdt > 0 ? [refunded] : []),
     {
       label: t("portal.heldNow"),
       value: taka(sums.heldBdt),

@@ -97,7 +97,7 @@ const PaidIn = ({
 /**
  * Their capital account, the first thing on the page — the way a fund's investor is shown committed, called and
  * distributed: the one figure that matters most, the capital the Farm holds of theirs now, set large, with how much of
- * what they promised they have paid in under it; and beside it what was paid out to them, their share of the profit,
+ * what they promised they have paid in under it; and beside it their Settlement payouts, their share of the profit,
  * the Units they hold and the Ventures they are in. Counted, never forecast.
  */
 export const CapitalAccount = ({ theirs }: { theirs: TheirAgreements }) => {
@@ -134,7 +134,7 @@ export const CapitalAccount = ({ theirs }: { theirs: TheirAgreements }) => {
         />
       </div>
       <dl className="grid grid-cols-2 gap-x-6 gap-y-5 border-t pt-5 lg:border-s lg:border-t-0 lg:ps-8 lg:pt-0">
-        <Line label={t("portal.paidOut")} value={taka(sums.paidOutBdt)} />
+        <Line label={t("portal.money.payouts")} value={taka(sums.paidOutBdt)} />
         <Line
           hint={
             sums.settled
