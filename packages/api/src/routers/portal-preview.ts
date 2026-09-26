@@ -13,6 +13,7 @@ import {
   theirPortfolio,
   theirRecord,
   theirSignIns,
+  theirAnimalPhoto,
   theirVentureToday,
 } from "../portal-reads";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
@@ -109,6 +110,17 @@ export const portalPreviewRouter = {
       theirVentureToday(
         await readerFor(context, input.investorId),
         input.agreementId
+      )
+    ),
+
+  /** One animal's photograph, as their portal shows it. Refused for an animal not standing in their Venture. */
+  animalPhoto: ownersPreview
+    .input(whose.extend({ agreementId: z.string(), tagNumber: z.string() }))
+    .handler(async ({ context, input }) =>
+      theirAnimalPhoto(
+        await readerFor(context, input.investorId),
+        input.agreementId,
+        input.tagNumber
       )
     ),
 

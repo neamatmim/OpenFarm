@@ -25,6 +25,7 @@ export const BottomBar = ({ items }: { items: readonly NavItem[] }) => {
       aria-label={t("nav.menu")}
       className="bg-background/95 supports-[backdrop-filter]:bg-background/85 fixed inset-x-0 bottom-0 z-30 flex gap-1 border-t px-2 pt-1 pb-[max(env(safe-area-inset-bottom),0.25rem)] backdrop-blur md:hidden"
       data-app-chrome
+      data-slot="bottom-bar"
     >
       {items.map((item) => {
         const here = pathname === item.to || pathname.startsWith(`${item.to}/`);

@@ -11,6 +11,7 @@ import {
   theirPortfolio,
   theirRecord,
   theirSignIns,
+  theirAnimalPhoto,
   theirVentureToday,
 } from "../portal-reads";
 import {
@@ -143,6 +144,13 @@ export const portalRouter = {
     .input(z.object({ agreementId: z.string() }))
     .handler(({ context, input }) =>
       theirVentureToday(context, input.agreementId)
+    ),
+
+  /** One animal's photograph, standing in one of their own Ventures (`theirAnimalPhoto`). */
+  animalPhoto: investorProcedure
+    .input(z.object({ agreementId: z.string(), tagNumber: z.string() }))
+    .handler(({ context, input }) =>
+      theirAnimalPhoto(context, input.agreementId, input.tagNumber)
     ),
 
   /** One of their own papers (`theirPaper`), an Export in the trail attributed to the Investor. */

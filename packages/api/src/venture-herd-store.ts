@@ -46,6 +46,8 @@ export interface HerProgress {
   overDays: number | null;
   /** Whether the Farm holds a photograph of her, so a sheet knows whether to leave room for one. */
   hasPhoto: boolean;
+  /** When her photograph was taken, or last replaced; null while there is none. */
+  photoAt: Date | null;
 }
 
 /** What a Venture's cattle are doing, on the day it is asked. */
@@ -210,6 +212,7 @@ export const theirProgress = async (
       dailyGainKg: since?.dailyGainKg ?? null,
       overDays: since?.overDays ?? null,
       hasPhoto: one.photoUpdatedAt !== null,
+      photoAt: one.photoUpdatedAt,
     });
   }
 

@@ -1,4 +1,6 @@
+import { uuidv7 } from "@OpenFarm/db/ids";
 import { session as sessionTable } from "@OpenFarm/db/schema/auth";
+import { animal, animalPhoto } from "@OpenFarm/db/schema/herd";
 import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { createRouterClient } from "@orpc/server";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -189,6 +191,96 @@ describe("another Investor's Agreement", () => {
         rahim.portal.paper({ agreementId: hers, kind })
       ).rejects.toMatchObject({ data: { refusal: "no_such_agreement" } });
     }
+  });
+});
+
+describe("the photographs of their animals", () => {
+  const standing = `PR-A-${suffix}`;
+  const gone = `PR-B-${suffix}`;
+  const elsewhere = `PR-C-${suffix}`;
+
+  /** Three photographed bulls: one standing in their Venture, one of theirs already sold, one standing in another
+   *  Venture. Written straight in: how a bull came to be where he is is not what this asks. */
+  beforeAll(async () => {
+    const owner = await asOwner();
+    const shed = await owner.herd.createShed({ name: `ছবি ${suffix}` });
+    const pen = await owner.herd.createPen({
+      shedId: shed.id,
+      name: `ছবির খোঁয়াড় ${suffix}`,
+    });
+    const other = await owner.ventures.open({
+      name: `অন্য ভেঞ্চার ${suffix}`,
+      targetCapitalBdt: 500_000,
+      floorBdt: 0,
+      decideBy: "2052-01-20",
+      targetWindowStart: "2052-03-17",
+      targetWindowEnd: "2052-03-19",
+      unitPriceBdt: 50_000,
+      units: 10,
+      cattleBudgetBdt: 400_000,
+    });
+    const db = scratchDb();
+    const farmId = theFarm().id;
+    const rows = await db
+      .insert(animal)
+      .values(
+        (
+          [
+            [standing, "fattening", ventureId],
+            [gone, "sold", ventureId],
+            [elsewhere, "fattening", other.id],
+          ] as const
+        ).map(([tagNumber, state, ownerVentureId]) => ({
+          id: uuidv7(),
+          farmId,
+          tagNumber,
+          sex: "male" as const,
+          side: "fattening" as const,
+          state,
+          penId: pen.id,
+          source: "bought" as const,
+          ownerVentureId,
+          photoUpdatedAt: new Date("2052-01-05T05:00:00.000Z"),
+        }))
+      )
+      .returning({ id: animal.id });
+    await db.insert(animalPhoto).values(
+      rows.map((one) => ({
+        animalId: one.id,
+        farmId,
+        contentType: "image/jpeg",
+        data: "aGVsbG8=",
+        updatedAt: new Date("2052-01-05T05:00:00.000Z"),
+      }))
+    );
+  });
+
+  it("show each standing animal of their Venture, with the day it was taken", async () => {
+    const agreementId = agreementOf["রহিম"] ?? "";
+    const today = await rahim.portal.venture({ agreementId });
+    const his = today.herd.animals.find((one) => one.tagNumber === standing);
+    expect(his?.photoAt).toEqual(new Date("2052-01-05T05:00:00.000Z"));
+
+    await expect(
+      rahim.portal.animalPhoto({ agreementId, tagNumber: standing })
+    ).resolves.toEqual({ contentType: "image/jpeg", data: "aGVsbG8=" });
+  });
+
+  it("never one that has left, nor another Venture's, nor on somebody else's Agreement", async () => {
+    const agreementId = agreementOf["রহিম"] ?? "";
+    for (const tagNumber of [gone, elsewhere]) {
+      // Sequential: each refusal is its own question.
+      // oxlint-disable-next-line no-await-in-loop
+      await expect(
+        rahim.portal.animalPhoto({ agreementId, tagNumber })
+      ).rejects.toMatchObject({ data: { refusal: "no_such_animal" } });
+    }
+    await expect(
+      rahim.portal.animalPhoto({
+        agreementId: agreementOf["সালমা"] ?? "",
+        tagNumber: standing,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "no_such_agreement" } });
   });
 });
 

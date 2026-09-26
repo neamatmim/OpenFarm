@@ -1,4 +1,3 @@
-import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
 import { ChevronRight, Handshake } from "lucide-react";
@@ -18,6 +17,7 @@ import {
 } from "@/components/portal/capital-account";
 import { FiguresAsAt } from "@/components/portal/figures-as-at";
 import { OpenVenturesOnHome } from "@/components/portal/open-ventures";
+import { HomeSkeleton } from "@/components/portal/portal-skeletons";
 import {
   usePortalPlaces,
   useTheirPortfolio,
@@ -94,8 +94,10 @@ const VentureCard = ({
             <dt className="text-muted-foreground text-xs">
               {t("portal.window")}
             </dt>
+            {/* The whole window, as the Venture's own page says it: its first day alone reads as a promised date. */}
             <dd className="font-medium">
-              <SaidDate at={one.targetWindow.start} />
+              <SaidDate at={one.targetWindow.start} /> –{" "}
+              <SaidDate at={one.targetWindow.end} />
             </dd>
           </div>
         </dl>
@@ -153,10 +155,7 @@ export const PortalHome = () => {
         }
         title={t("portal.homeTitle")}
       />
-      <Loaded
-        query={theirs}
-        skeleton={<Skeleton className="h-48 rounded-xl" />}
-      >
+      <Loaded query={theirs} skeleton={<HomeSkeleton />}>
         {theirs.data ? <Portfolio theirs={theirs.data} /> : null}
       </Loaded>
       <TheirRequestsOnHome />

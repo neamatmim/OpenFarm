@@ -1,8 +1,8 @@
-import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { Sprout } from "lucide-react";
 
 import { EmptyState, Loaded, Page, PageHeader } from "@/components/page";
 import { OpenVentureCards } from "@/components/portal/open-ventures";
+import { CardsSkeleton } from "@/components/portal/portal-skeletons";
 import { useTheirOpenVentures } from "@/components/portal/portal-source";
 import { useLanguage } from "@/i18n/language-provider";
 
@@ -16,10 +16,7 @@ export const OpenVenturesPage = () => {
         description={t("portal.open.hint")}
         title={t("portal.open.title")}
       />
-      <Loaded
-        query={offered}
-        skeleton={<Skeleton className="h-40 rounded-xl" />}
-      >
+      <Loaded query={offered} skeleton={<CardsSkeleton />}>
         {offered.data && offered.data.length > 0 ? (
           <OpenVentureCards ventures={offered.data} />
         ) : (

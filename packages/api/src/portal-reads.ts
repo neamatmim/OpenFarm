@@ -2,10 +2,12 @@ import {
   FIELDS_OF,
   factsMissing,
   farmDayOf,
+  isExitState,
   maskedDigits,
   readingOf,
 } from "@OpenFarm/domain";
 import type { TemplateContent } from "@OpenFarm/domain";
+import { ORPCError } from "@orpc/server";
 
 import type { Context } from "./context";
 import { farmsOwnValues } from "./data-keepers";
@@ -178,6 +180,7 @@ export const theirVentureToday = async (
           latestKg: one.latestKg,
           latestAt: one.latestAt,
           dailyGainKg: one.dailyGainKg,
+          photoAt: one.photoAt,
         })),
     },
     spend: {
@@ -191,6 +194,35 @@ export const theirVentureToday = async (
     /** Where to pay and how much is left, while their capital is still owed; nothing once it is all in. */
     howToPay: paying,
   };
+};
+
+/**
+ * The photograph of one animal standing in one of their Ventures, one at a time: a photograph is up to two megabytes,
+ * so the Venture's own answer says only which animals have one and when it was taken. The same photographs the
+ * progress statement prints, so nothing is shown here that the paper does not. Refused for an Agreement not theirs,
+ * and for an animal that is not standing in its Venture — another Venture's, or one already sold or lost.
+ */
+export const theirAnimalPhoto = async (
+  { db, farm, investor }: PortalReader,
+  agreementId: string,
+  tagNumber: string
+): Promise<{ contentType: string; data: string } | null> => {
+  const agreement = await requireTheirs(db, farm.id, investor.id, agreementId);
+  const her = await db.query.animal.findFirst({
+    where: { farmId: farm.id, tagNumber, ownerVentureId: agreement.ventureId },
+    columns: { id: true, state: true },
+  });
+  if (!her || isExitState(her.state)) {
+    throw new ORPCError("NOT_FOUND", {
+      message: "No such animal",
+      data: { refusal: "no_such_animal" },
+    });
+  }
+  const photo = await db.query.animalPhoto.findFirst({
+    where: { farmId: farm.id, animalId: her.id },
+    columns: { contentType: true, data: true },
+  });
+  return photo ?? null;
 };
 
 /** The three papers the portal shows an Investor. */
