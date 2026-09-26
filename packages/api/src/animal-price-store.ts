@@ -44,6 +44,8 @@ export const pricesOnTheSide = async (
     marketPriceSetAt: Date | null;
     keepReadDays: number;
     keepAheadDays: number;
+    keepNeedsDays: number;
+    keepRateGapDays: number;
   },
   now: Date
 ) => {
@@ -151,9 +153,14 @@ export const pricesOnTheSide = async (
               now,
               readDays: farm.keepReadDays,
             }),
-            dailyGainKg: keepRateOf(row.view.recent, row.view.sinceIntake),
+            dailyGainKg: keepRateOf(
+              row.view.recent,
+              row.view.sinceIntake,
+              farm.keepRateGapDays
+            ),
             range,
             aheadDays: farm.keepAheadDays,
+            needsDays: farm.keepNeedsDays,
           }),
         },
       ];

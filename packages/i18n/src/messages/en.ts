@@ -838,6 +838,8 @@ export const en = {
     "How far back an animal's keep is read for keep-or-sell and the culling list, how far ahead keeping her is weighed, and what puts a dairy cow on that list. Yours alone to set, as the two are yours alone to read.",
   "params.keepReadDays": "Read an animal's keep over the last",
   "params.keepAheadDays": "Weigh keeping an animal over the next",
+  "params.keepNeedsDays": "Judge an animal's keep once she has been here",
+  "params.keepRateGapDays": "Trust a gain between weigh-ins at least",
   "params.cullOpenDays": "Empty too long after calving",
   "params.cullMilkAfterDays": "Weigh milk against keep from, after calving",
   "params.cullMilkPriceDays": "Price milk from dispatches of the last",
@@ -1247,6 +1249,8 @@ export const en = {
   "ventures.herdMargin": "The herd's margin",
   "ventures.herdCostOfGain": "Each kilogram they put on",
   "ventures.noAnimalsYet": "No animals on this venture yet",
+  "refusal.keepNeededLongerThanRead":
+    "An animal's keep is judged within the days it is read over: {readDays, plural, one {# day} other {# days}} at the most. Change the two together.",
   "refusal.milkWeighedTooSoon":
     "A cow's milk is weighed at least a week past the days her keep is read over: {soonestDays, plural, one {# day} other {# days}} at the soonest. Change the two together.",
   "refusal.capitalOverUnits":

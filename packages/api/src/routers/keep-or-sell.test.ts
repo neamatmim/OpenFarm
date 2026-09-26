@@ -356,17 +356,17 @@ describe("keep her or sell her", () => {
   it("works keeping her as many days ahead as the Owner says, a week to three months, and only the Owner", async () => {
     const owner = await as("owner", "2040-03-01T04:00:00.000Z");
     const manager = await as("manager", "2040-03-01T04:00:00.000Z");
-    await expect(
-      manager.client.farm.setParameters({ keepAheadDays: 7 })
-    ).rejects.toMatchObject({ code: "FORBIDDEN" });
-    for (const keepAheadDays of [6, 91]) {
-      // oxlint-disable-next-line no-await-in-loop -- one refusal at a time
-      await expect(
-        owner.client.farm.setParameters({ keepAheadDays })
-      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    }
-    await owner.client.farm.setParameters({ keepAheadDays: 7 });
     try {
+      await expect(
+        manager.client.farm.setParameters({ keepAheadDays: 7 })
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      for (const keepAheadDays of [6, 91]) {
+        // oxlint-disable-next-line no-await-in-loop -- one refusal at a time
+        await expect(
+          owner.client.farm.setParameters({ keepAheadDays })
+        ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      }
+      await owner.client.farm.setParameters({ keepAheadDays: 7 });
       const later = await as("owner", "2040-03-01T04:30:00.000Z");
       const { animals, keepAheadDays } = await later.client.fattening.prices();
       expect(keepAheadDays).toBe(7);
@@ -388,6 +388,73 @@ describe("keep her or sell her", () => {
     } finally {
       // Put back whatever went wrong above, so no later test reads this farm's week.
       await owner.client.farm.setParameters({ keepAheadDays: 14 });
+    }
+  });
+
+  it("judges an animal once she has been here as many days as the Owner says, and never more than the days read", async () => {
+    const owner = await as("owner", "2040-03-01T04:00:00.000Z");
+    const manager = await as("manager", "2040-03-01T04:00:00.000Z");
+    try {
+      await expect(
+        manager.client.farm.setParameters({ keepNeedsDays: 3 })
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      for (const keepNeedsDays of [0, 29]) {
+        // oxlint-disable-next-line no-await-in-loop -- one refusal at a time
+        await expect(
+          owner.client.farm.setParameters({ keepNeedsDays })
+        ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      }
+      // Twenty days here before a keep is judged, over a fortnight's keep: no animal could ever be judged.
+      await expect(
+        owner.client.farm.setParameters({ keepReadDays: 14, keepNeedsDays: 20 })
+      ).rejects.toMatchObject({
+        code: "BAD_REQUEST",
+        data: { refusal: "keep_needed_longer_than_read", readDays: 14 },
+      });
+      await owner.client.farm.setParameters({ keepNeedsDays: 3 });
+      const later = await as("owner", "2040-03-01T04:30:00.000Z");
+      const { animals } = await later.client.fattening.prices();
+      // Four days off the lorry is long enough at three: what stops the farm now is that nobody fed him in the Pen.
+      expect(animals.find((one) => one.tagNumber === newcomer)?.keep).toEqual({
+        known: false,
+        because: "not_fed",
+      });
+    } finally {
+      await owner.client.farm.setParameters({
+        keepReadDays: 28,
+        keepNeedsDays: 7,
+      });
+    }
+  });
+
+  it("trusts a gain between two Weigh-ins only as far apart as the Owner says", async () => {
+    const owner = await as("owner", "2040-03-01T04:00:00.000Z");
+    const manager = await as("manager", "2040-03-01T04:00:00.000Z");
+    try {
+      await expect(
+        manager.client.farm.setParameters({ keepRateGapDays: 15 })
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      for (const keepRateGapDays of [0, 29]) {
+        // oxlint-disable-next-line no-await-in-loop -- one refusal at a time
+        await expect(
+          owner.client.farm.setParameters({ keepRateGapDays })
+        ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      }
+      await owner.client.farm.setParameters({ keepRateGapDays: 15 });
+      const later = await as("owner", "2040-03-01T04:30:00.000Z");
+      const { animals } = await later.client.fattening.prices();
+      // Her last two readings are a fortnight apart, short of fifteen days: her gain since she came is read instead,
+      // 64 kg over the 43 days and 22 hours from 04:00 on the 2nd of January to 02:00 on the 15th of February, 1.46 kg
+      // a day. ৳320 a day over that is ৳219.18 a kilo, under the market's low price of ৳280: keeping her pays.
+      expect(animals.find((one) => one.tagNumber === kept)?.keep).toMatchObject(
+        {
+          dailyGainKg: 1.46,
+          costOfGainNowBdt: 219.18,
+          keeping: "pays",
+        }
+      );
+    } finally {
+      await owner.client.farm.setParameters({ keepRateGapDays: 7 });
     }
   });
 

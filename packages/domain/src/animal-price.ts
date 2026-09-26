@@ -93,25 +93,21 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  *  Owner's, four weeks unless the Owner says otherwise); this is its floor. */
 export const FEWEST_KEEP_READ_DAYS = 14;
 
-/** Fewer days on the farm than this say nothing about a day of her keep: a beast a few days off the lorry has been
- *  fed, but not for long enough to be a rate. */
-export const KEEP_NEEDS_DAYS = 7;
-
-/** Two readings closer together than this say more about what she ate and drank that morning than what she put on:
- *  a full gut alone moves a bull several kilos, which over three days reads as a kilo a day either way. */
-export const KEEP_RATE_NEEDS_DAYS = 7;
-
 /**
  * The daily gain keeping her is weighed on: between her last two readings, because a bull who has stopped gaining has
- * stopped paying for his keep — unless they are under a week apart, when it is her gain since she came instead. Nothing
- * while neither spans a week.
+ * stopped paying for his keep — unless they are closer together than the farm trusts, when it is her gain since she
+ * came instead. Nothing while neither spans that many days.
  */
 export const keepRateOf = (
   recent: { dailyGainKg: number; overDays: number } | null,
-  sinceIntake: { dailyGainKg: number; overDays: number } | null
+  sinceIntake: { dailyGainKg: number; overDays: number } | null,
+  /** The Farm Parameter: how many days apart two readings must be. Closer, and they say more about what she ate and
+   *  drank that morning than what she put on — a full gut alone moves a bull several kilos, which over three days
+   *  reads as a kilo a day either way. A week unless the Owner says otherwise. */
+  gapDays: number
 ): number | null => {
   const longEnough = [recent, sinceIntake].find(
-    (basis) => basis !== null && KEEP_RATE_NEEDS_DAYS <= basis.overDays
+    (basis) => basis !== null && gapDays <= basis.overDays
   );
   return longEnough?.dailyGainKg ?? null;
 };
@@ -241,14 +237,15 @@ const keepingAt = (
  * costs, and the days ahead at that rate are what keeping her would add at each end of her price. What she has cost
  * already is spent whichever the Owner chooses, so it has no say here — that is her Margin's question, not this one.
  *
- * Unknown, and said why, while she has been here under a week, has had no Feeding charged to her in the days read, or has
- * no rate of gain to work from. A figure for the Owner, never a decision.
+ * Unknown, and said why, while she has been here fewer days than the farm says, has had no Feeding charged to her in
+ * the days read, or has no rate of gain to work from. A figure for the Owner, never a decision.
  */
 export const keepOrSell = ({
   kept,
   dailyGainKg,
   range,
   aheadDays,
+  needsDays,
 }: {
   kept: Kept;
   dailyGainKg: number | null;
@@ -256,8 +253,11 @@ export const keepOrSell = ({
   /** The Farm Parameter: how many days ahead keeping her is worked. Sizes what the days ahead come to, never whether
    *  keeping her pays — that is what a kilo costs to put on against what it fetches, however far ahead it is worked. */
   aheadDays: number;
+  /** The Farm Parameter: how many days she must have been here before her keep is judged. Fewer, and a beast a few
+   *  days off the lorry has been fed but not for long enough to be a rate. A week unless the Owner says otherwise. */
+  needsDays: number;
 }): KeepOrSell => {
-  if (kept.days < KEEP_NEEDS_DAYS) {
+  if (kept.days < needsDays) {
     return { known: false, because: "too_new" };
   }
   if (!kept.fed) {

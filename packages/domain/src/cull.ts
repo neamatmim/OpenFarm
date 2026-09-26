@@ -1,5 +1,5 @@
 import type { Kept } from "./animal-price";
-import { KEEP_NEEDS_DAYS, inTheKeepWindow } from "./animal-price";
+import { inTheKeepWindow } from "./animal-price";
 import { roundLitres } from "./milk";
 import { roundTaka } from "./money";
 
@@ -95,6 +95,7 @@ export const milkAgainstKeep = ({
   litres,
   daysInMilk,
   weighedAfterDays,
+  needsDays,
   price,
 }: {
   kept: Kept;
@@ -103,12 +104,15 @@ export const milkAgainstKeep = ({
   /** The Farm Parameter: how many days into her Lactation before her milk is weighed. Never fewer than
    *  `fewestDaysBeforeMilkIsWeighed`, which the Parameter itself refuses. */
   weighedAfterDays: number;
+  /** The Farm Parameter: how many days she must have been on this farm before her keep is judged — a cow bought in
+   *  long in milk is weighed only once she has. */
+  needsDays: number;
   price: { bdtPerLitre: number } | null;
 }): MilkAgainstKeep => {
   const tooSoon =
     daysInMilk === null ||
     daysInMilk < weighedAfterDays ||
-    kept.days < KEEP_NEEDS_DAYS;
+    kept.days < needsDays;
   if (tooSoon) {
     return { known: false, because: "too_soon" };
   }

@@ -81,6 +81,7 @@ describe("her milk against her keep", () => {
         litres: 280,
         daysInMilk: 90,
         weighedAfterDays: 35,
+        needsDays: 7,
         price,
       })
     ).toEqual({
@@ -105,6 +106,7 @@ describe("her milk against her keep", () => {
         litres: 140,
         daysInMilk: 200,
         weighedAfterDays: 35,
+        needsDays: 7,
         price,
       })
     ).toMatchObject({ overKeepBdt: -700, costPerLitreBdt: 60 });
@@ -115,6 +117,7 @@ describe("her milk against her keep", () => {
         litres: 0,
         daysInMilk: 200,
         weighedAfterDays: 35,
+        needsDays: 7,
         price,
       })
     ).toMatchObject({ worthBdt: 0, overKeepBdt: -8400, costPerLitreBdt: null });
@@ -127,6 +130,7 @@ describe("her milk against her keep", () => {
         litres: 140,
         daysInMilk: 90,
         weighedAfterDays: 35,
+        needsDays: 7,
         price,
         ...overrides,
       });
@@ -149,6 +153,31 @@ describe("her milk against her keep", () => {
     expect(at({ price: null })).toEqual({ known: false, because: "no_price" });
   });
 
+  it("weighs a cow bought in as soon as the farm says she has been here long enough", () => {
+    // Long in milk but five days on this farm: a farm that waits a week cannot weigh her yet, one that waits three can.
+    const fiveDays = { ...kept, bdt: 1500, days: 5 };
+    expect(
+      milkAgainstKeep({
+        kept: fiveDays,
+        litres: 50,
+        daysInMilk: 90,
+        weighedAfterDays: 35,
+        needsDays: 7,
+        price,
+      })
+    ).toEqual({ known: false, because: "too_soon" });
+    expect(
+      milkAgainstKeep({
+        kept: fiveDays,
+        litres: 50,
+        daysInMilk: 90,
+        weighedAfterDays: 35,
+        needsDays: 3,
+        price,
+      })
+    ).toMatchObject({ known: true, worthBdt: 2750, keepBdt: 1500 });
+  });
+
   it("waits as many days into her Lactation as the farm says, and weighs her from that day on", () => {
     // A farm that waits for her peak, at 60 days, does not weigh a cow at 59; at 60 it does.
     expect(
@@ -157,6 +186,7 @@ describe("her milk against her keep", () => {
         litres: 140,
         daysInMilk: 59,
         weighedAfterDays: 60,
+        needsDays: 7,
         price,
       })
     ).toEqual({ known: false, because: "too_soon" });
@@ -166,6 +196,7 @@ describe("her milk against her keep", () => {
         litres: 140,
         daysInMilk: 60,
         weighedAfterDays: 60,
+        needsDays: 7,
         price,
       })
     ).toMatchObject({ known: true, overKeepBdt: -700 });
@@ -178,6 +209,7 @@ describe("why the farm names a cow to the Owner", () => {
     litres: 140,
     daysInMilk: 90,
     weighedAfterDays: 35,
+    needsDays: 7,
     price,
   });
   const paying = milkAgainstKeep({
@@ -185,6 +217,7 @@ describe("why the farm names a cow to the Owner", () => {
     litres: 280,
     daysInMilk: 90,
     weighedAfterDays: 35,
+    needsDays: 7,
     price,
   });
   const cow = {

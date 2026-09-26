@@ -37,6 +37,8 @@ type NumberKey =
   | "repeatBreederThreshold"
   | "keepReadDays"
   | "keepAheadDays"
+  | "keepNeedsDays"
+  | "keepRateGapDays"
   | "cullOpenDays"
   | "cullMilkAfterDays"
   | "cullMilkPriceDays"
@@ -156,6 +158,20 @@ const GROUPS: {
         unit: "params.days",
         min: 7,
         max: 90,
+      },
+      {
+        key: "keepNeedsDays",
+        label: "params.keepNeedsDays",
+        unit: "params.days",
+        min: 1,
+        max: 28,
+      },
+      {
+        key: "keepRateGapDays",
+        label: "params.keepRateGapDays",
+        unit: "params.days",
+        min: 1,
+        max: 28,
       },
       {
         key: "cullOpenDays",

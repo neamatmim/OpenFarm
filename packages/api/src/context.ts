@@ -93,6 +93,10 @@ export interface Context {
     keepReadDays: number;
     /** How many days ahead keeping a fattening animal is weighed, for keep-or-sell. */
     keepAheadDays: number;
+    /** How many days an animal must have been here before her keep is judged. */
+    keepNeedsDays: number;
+    /** How many days apart her last two Weigh-ins must be before their gain is trusted for keep-or-sell. */
+    keepRateGapDays: number;
     /** How many days after calving a cow still not in calf is named to the Owner for culling. */
     cullOpenDays: number;
     /** How many days into her Lactation before a cow's milk is weighed against her keep for culling. */
