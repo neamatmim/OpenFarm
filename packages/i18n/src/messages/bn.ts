@@ -293,6 +293,13 @@ export const bn: Record<MessageKey, string> = {
   "portal.herdHint": "আসার পর থেকে ওজন নেওয়া {weighed}টি পশুর গড়।",
   "portal.arrivedKg": "আসার সময় {kg}",
   "portal.photos": "ছবি",
+  "portal.weightLine.title": "সময়ের সাথে গড় ওজন",
+  "portal.weightLine.summary":
+    "{fromDay}-এ {from} থেকে {toDay}-এ {to}: খামার যেদিন ওজন নিয়েছে, সেদিন প্রতিটি পশুর জানা ওজনের গড়।",
+  "portal.weightLine.figures": "হিসাবগুলো",
+  "portal.weightLine.day": "দিন",
+  "portal.weightLine.animals": "পশু",
+  "portal.weightLine.average": "গড় ওজন",
   "portal.lastWeighed": "শেষ ওজন নেওয়া হয়েছে {day}।",
   "portal.figuresAsAt": "হিসাব {time} পর্যন্ত",
   "portal.herdGone": "এখন কোনো পশু দাঁড়িয়ে নেই",

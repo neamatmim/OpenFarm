@@ -313,6 +313,13 @@ export const en = {
     "Averages over the {weighed, plural, one {# animal} other {# animals}} weighed since they arrived.",
   "portal.arrivedKg": "On arrival {kg}",
   "portal.photos": "Photographs",
+  "portal.weightLine.title": "Average weight over time",
+  "portal.weightLine.summary":
+    "From {from} on {fromDay} to {to} on {toDay}: on each day the farm weighed, the average of what it then knew each animal to weigh.",
+  "portal.weightLine.figures": "The figures",
+  "portal.weightLine.day": "Day",
+  "portal.weightLine.animals": "Animals",
+  "portal.weightLine.average": "Average weight",
   "portal.lastWeighed": "Last weighed on {day}.",
   "portal.figuresAsAt": "Figures as at {time}",
   "portal.herdGone": "No animals standing now",
