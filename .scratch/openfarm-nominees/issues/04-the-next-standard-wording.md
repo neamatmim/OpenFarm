@@ -7,7 +7,7 @@
 
 **Blocked by:** 02, for the Template's `receiverLine` and `noNomineeLine`.
 
-**Status:** done on `feat/the-next-standard-wording`
+**Status:** done, merged
 
 **Spec:** [the spec](../spec.md), user stories 21–22. See also "The next standard Version".
 
@@ -45,3 +45,9 @@
 - **Tests:**
   - `standard-nominee-wording.test.ts`: a farm given its wording now prints the rules and a Receiver's line for the minor alone. A farm that publishes `FIRST_PRINTED_AGREEMENT` prints its own words (no lines, no rules), with the Nominee table under the Investor all the same.
   - Updated for the new standard: the domain terms counts (7 → 13 terms, 14 → 20 lines), the Agreement to sign (13 clauses; the no-Nominee line for somebody with none), and the web editor's line count (2 → 1).
+- **Opened on the rebuilt seed farm, in Bangla, after the user signed in:** "চুক্তি সই" for আবুল হাশেম মিয়া on কোরবানি ২০২৭ ভেঞ্চার filled in his three Nominees and সুমাইয়া's Receiver. In the paper dialog:
+  - the table, with সুমাইয়া marked নাবালক and রোকেয়া বেগম (মা) on the row beneath;
+  - «… প্রত্যেক নমিনি জানেন …», and the Receiver's line for সুমাইয়া alone;
+  - the Terms: ৭ the heirs clause, ৮–১২ the rules, ১৩ the Arbitrator.
+
+  Closed without signing.
