@@ -17,7 +17,13 @@ import type { ReactNode } from "react";
 
 import type { TheirAgreements } from "@/components/investors/investor-agreements";
 import { Nothing, SaidDate } from "@/components/list-cells";
-import { Loaded, Page, PageHeader, Section } from "@/components/page";
+import {
+  EmptyState,
+  Loaded,
+  Page,
+  PageHeader,
+  Section,
+} from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { HowToPay } from "@/components/portal/how-to-pay";
@@ -132,6 +138,28 @@ const Herd = ({ today }: { today: Today }) => {
   const { t, language } = said;
   const kg = (value: number | null) => saidKg(value, said);
   const gain = today.herd.gainKgPerDay;
+  // No animal standing and none ever weighed: three boxes of dashes say nothing, so say why there are none.
+  const noHerd = today.herd.standing === 0 && today.herd.weighed === 0;
+  if (noHerd) {
+    const gone = today.herd.sold + today.herd.died > 0;
+    return (
+      <Section title={t("portal.herd")}>
+        <EmptyState
+          bare
+          description={
+            gone
+              ? t("portal.animalsHint", {
+                  sold: today.herd.sold,
+                  died: today.herd.died,
+                })
+              : undefined
+          }
+          icon={Beef}
+          title={gone ? t("portal.herdGone") : t("portal.herdNoneYet")}
+        />
+      </Section>
+    );
+  }
   return (
     <Section
       description={t("portal.herdHint", { weighed: today.herd.weighed })}

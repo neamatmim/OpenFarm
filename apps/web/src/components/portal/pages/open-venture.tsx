@@ -34,15 +34,7 @@ const TheOffer = ({ one }: { one: OpenVenture }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
   return (
-    <>
-      <PageHeader
-        meta={
-          one.takingRequests ? null : (
-            <Badge variant="secondary">{t("portal.open.closed")}</Badge>
-          )
-        }
-        title={one.name}
-      />
+    <div className="flex min-w-0 flex-col gap-4 lg:col-span-2">
       {one.words ? (
         <Section title={t("portal.open.fromTheFarm")}>
           <p className="text-sm break-words whitespace-pre-line">{one.words}</p>
@@ -90,12 +82,12 @@ const TheOffer = ({ one }: { one: OpenVenture }) => {
           <li>{t("portal.open.ruleSigning")}</li>
         </ul>
       </Section>
-    </>
+    </div>
   );
 };
 
-/** One Venture the farm is raising capital for, by its address, with the Investor's own Request to Join beneath it;
- *  one no longer offered opens nothing but a way back. */
+/** One Venture the farm is raising capital for, by its address, with the Investor's own Request to Join beside it
+ *  (beneath it on a phone); one no longer offered opens nothing but a way back. */
 export const OpenVenturePage = ({ ventureId }: { ventureId: string }) => {
   const { t } = useLanguage();
   const places = usePortalPlaces();
@@ -117,8 +109,22 @@ export const OpenVenturePage = ({ ventureId }: { ventureId: string }) => {
       >
         {one ? (
           <>
-            <TheOffer one={one} />
-            <AskToJoin one={one} />
+            <PageHeader
+              meta={
+                one.takingRequests ? null : (
+                  <Badge variant="secondary">{t("portal.open.closed")}</Badge>
+                )
+              }
+              title={one.name}
+            />
+            {/* The offer read down the page, and the Request beside it where there is room — kept in sight while the
+                terms are read, below the bar and the Preview's band that stay pinned over the page. */}
+            <div className="grid items-start gap-4 lg:grid-cols-3">
+              <TheOffer one={one} />
+              <div className="min-w-0 lg:sticky lg:top-28">
+                <AskToJoin one={one} />
+              </div>
+            </div>
           </>
         ) : (
           <EmptyState icon={Sprout} title={t("portal.open.notFound")} />
