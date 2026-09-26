@@ -106,6 +106,17 @@ describe("an Investor asking to join", () => {
         answerLine: null,
         closedBecause: null,
         agreementId: null,
+        // Their own acts on it, oldest first, and when the farm answered or closed it: nobody has yet.
+        history: [
+          {
+            kind: "made",
+            units: 4,
+            note: "ঈদের পরে টাকা দিতে পারব",
+            at: new Date(JANUARY),
+          },
+        ],
+        answeredAt: null,
+        closedAt: null,
       },
     ]);
   });
@@ -127,6 +138,13 @@ describe("an Investor asking to join", () => {
 
     expect(again.id).toBe(first.id);
     const hers = await salma.client.portal.myRequests();
+    // "I only asked for four": what they asked first, and what they changed it to, both read back to them.
+    expect(
+      hers[0]?.history.map((one) => [one.kind, one.units, one.note])
+    ).toEqual([
+      ["made", 4, null],
+      ["changed", 6, "ছয়টা নেব"],
+    ]);
     expect(hers.map((one) => [one.units, one.note, one.state])).toEqual([
       [6, "ছয়টা নেব", "waiting"],
     ]);

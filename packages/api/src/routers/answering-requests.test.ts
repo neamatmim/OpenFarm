@@ -199,6 +199,12 @@ describe("the Owner saying come and sign", () => {
         agreementId: null,
         madeAt: new Date(JANUARY),
         changedAt: new Date(JANUARY),
+        history: [
+          { kind: "made", units: 4, note: null, at: new Date(JANUARY) },
+        ],
+        // When the farm said yes, which is theirs to know; who said it is not on their page.
+        answeredAt: new Date(JANUARY),
+        closedAt: null,
       },
     ]);
   });

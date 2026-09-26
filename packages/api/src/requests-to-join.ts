@@ -878,6 +878,17 @@ export const theirRequests = async (
         one.state === "signed"
           ? (agreementOn.get(one.ventureId) ?? null)
           : null,
+      /** Their own acts on it, oldest first, with the Units and note each left it at: every one of them theirs, so
+       *  "I only asked for four" has its answer on their side too. */
+      history: (changes.get(one.id) ?? []).map(({ kind, units, note, at }) => ({
+        kind,
+        units,
+        note,
+        at,
+      })),
+      /** When the farm said yes or not this time, and when it closed it; nothing for what has not happened. */
+      answeredAt: one.answeredAt,
+      closedAt: one.closedAt,
     };
   });
 };
