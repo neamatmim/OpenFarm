@@ -350,10 +350,10 @@ const PlanTable = ({ version }: { version: Version }) => {
                 {taka(version.totals.lines[at]?.costBdt ?? 0)}
               </td>
               <td className="px-2 py-2 text-end tabular-nums">
-                {t("portal.kg", { kg: kg(line.dailyGainKg) })}
+                {t("units.kg", { kg: kg(line.dailyGainKg) })}
               </td>
               <td className="px-2 py-2 pe-4 text-end tabular-nums md:pe-5">
-                {t("portal.kg", {
+                {t("units.kg", {
                   kg: kg(version.totals.lines[at]?.saleKgEach ?? 0),
                 })}
               </td>
@@ -378,10 +378,10 @@ const PlanTable = ({ version }: { version: Version }) => {
               {taka(version.totals.costBdt)}
             </td>
             <td className="px-2 py-2 text-end tabular-nums">
-              {t("portal.kg", { kg: kg(averageGainOf(version)) })}
+              {t("units.kg", { kg: kg(averageGainOf(version)) })}
             </td>
             <td className="px-2 py-2 pe-4 text-end tabular-nums md:pe-5">
-              {t("portal.kg", { kg: kg(version.totals.saleKg) })}
+              {t("units.kg", { kg: kg(version.totals.saleKg) })}
             </td>
           </tr>
         </tfoot>

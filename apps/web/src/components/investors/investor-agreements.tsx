@@ -67,9 +67,9 @@ export const portfolioOf = (theirs: TheirAgreements) => {
 
 /** What each line of their money was, in words. */
 const MOVEMENT_WORD = {
-  capital_in: "investors.page.move.capitalIn",
-  refund: "investors.page.move.refund",
-  payout: "investors.page.move.payout",
+  capital_in: "money.capitalIn",
+  refund: "money.refund",
+  payout: "money.payout",
 } as const satisfies Record<Movement["kind"], MessageKey>;
 
 /** Which way each kind of line moved their money: into the Farm's keeping, or back to them. */

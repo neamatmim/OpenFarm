@@ -53,7 +53,7 @@ type Tab = (typeof TABS)[number];
 const saidKg = (kg: number | null, said: ReturnType<typeof useLanguage>) =>
   kg === null
     ? null
-    : said.t("portal.kg", { kg: formatNumber(kg, said.language) });
+    : said.t("units.kg", { kg: formatNumber(kg, said.language) });
 
 /** What an approved Settlement came to on their paper, as their portfolio answers it. */
 type HisSettlement = NonNullable<
@@ -105,7 +105,7 @@ const useFigures = (
         tone: settlement.shareBdt < 0 ? "warning" : "neutral",
       },
       {
-        label: t("investors.page.move.payout"),
+        label: t("money.payout"),
         value: taka(settlement.payoutBdt),
         hint: settlement.paidOn
           ? t("portal.paidOnDay", {
@@ -230,7 +230,7 @@ const HerRow = ({ one }: { one: HerAnimal }) => {
           ) : null}
           {one.dailyGainKg === null ? null : (
             <span>
-              {t("portal.kgADay", {
+              {t("units.kgADay", {
                 kg: formatNumber(one.dailyGainKg, language),
               })}
             </span>
@@ -315,7 +315,7 @@ const Herd = ({ today }: { today: Today }) => {
             {gain === null ? (
               <Nothing />
             ) : (
-              t("portal.kgADay", { kg: formatNumber(gain, language) })
+              t("units.kgADay", { kg: formatNumber(gain, language) })
             )}
           </dd>
         </div>

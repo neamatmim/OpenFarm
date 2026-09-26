@@ -65,7 +65,7 @@ export const VentureAnimals = ({ venture }: { venture: Venture }) => {
   const kg = (value: number | null | undefined) =>
     value === null || value === undefined
       ? "—"
-      : t("ventures.page.kg", { kg: formatNumber(value, language) });
+      : t("units.kg", { kg: formatNumber(value, language) });
   return (
     <div className="flex flex-col gap-4">
       <Section>
@@ -143,7 +143,7 @@ export const VentureAnimals = ({ venture }: { venture: Venture }) => {
                       {weighed?.dailyGainKg === null ||
                       weighed?.dailyGainKg === undefined
                         ? "—"
-                        : t("ventures.page.kgADay", {
+                        : t("units.kgADay", {
                             kg: formatNumber(weighed.dailyGainKg, language),
                           })}
                     </TableCell>

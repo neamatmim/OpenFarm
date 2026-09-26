@@ -34,7 +34,7 @@ export const WeightLine = ({ weights }: { weights: HerdWeight[] }) => {
     return null;
   }
   const kg = (value: number) =>
-    t("portal.kg", { kg: formatNumber(value, language) });
+    t("units.kg", { kg: formatNumber(value, language) });
   const day = (value: string) => formatDate(startOfFarmDay(value), language);
 
   const heaviest = Math.max(...weights.map((one) => one.averageKg));

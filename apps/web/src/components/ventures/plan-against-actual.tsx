@@ -159,7 +159,7 @@ const Fact = ({
 const Growth = ({ measured }: { measured: Measured }) => {
   const { t, language } = useLanguage();
   const kg = (value: number) =>
-    t("portal.kg", { kg: formatNumber(value, language) });
+    t("units.kg", { kg: formatNumber(value, language) });
   const { growth } = measured;
   const actual = growth.actualKgToday;
   // Named, not written into the list: the check for untranslated words reads a less-than beside JSX as a tag.

@@ -134,7 +134,7 @@ export const CapitalAccount = ({ theirs }: { theirs: TheirAgreements }) => {
         />
       </div>
       <dl className="grid grid-cols-2 gap-x-6 gap-y-5 border-t pt-5 lg:border-s lg:border-t-0 lg:ps-8 lg:pt-0">
-        <Line label={t("portal.money.payouts")} value={taka(sums.paidOutBdt)} />
+        <Line label={t("money.payouts")} value={taka(sums.paidOutBdt)} />
         <Line
           hint={
             sums.settled

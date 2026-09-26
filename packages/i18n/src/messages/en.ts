@@ -290,9 +290,6 @@ export const en = {
   "portal.nav.papers": "Papers",
   "portal.moneyTitle": "Your money",
   "portal.money.paidIn": "Capital you paid in",
-  "portal.money.payouts": "Settlement payouts",
-  "portal.money.refunded": "Capital refunded",
-  "portal.money.refundedHint": "When a Venture was cancelled",
   "portal.noPapers": "No papers yet",
   "portal.closed":
     "The investor portal is not open to you. Ask the farm's Owner.",
@@ -518,8 +515,6 @@ export const en = {
   "portal.averageIntake": "Average weight on arrival",
   "portal.averageNow": "Average weight now",
   "portal.dailyGain": "Daily gain",
-  "portal.kg": "{kg} kg",
-  "portal.kgADay": "{kg} kg a day",
   "portal.tag": "Tag",
   "portal.intake": "On arrival (kg)",
   "portal.now": "Now (kg)",
@@ -1395,8 +1390,6 @@ export const en = {
   "ventures.page.standing": "Still here",
   "ventures.page.sold": "Sold",
   "ventures.page.gone": "Died or culled",
-  "ventures.page.kg": "{kg} kg",
-  "ventures.page.kgADay": "{kg} kg a day",
   "ventures.page.tag": "Tag",
   "ventures.page.whereSheIs": "Where she is",
   "ventures.page.weight": "Weight, then → now",
@@ -1576,8 +1569,6 @@ export const en = {
   "investors.page.onPapers":
     "{count, plural, one {On # Agreement} other {On # Agreements}}",
   "investors.page.inRunning": "In the Ventures still running",
-  "investors.page.refundedApart":
-    "Apart from these, {bdt} of capital refunded when a Venture was cancelled",
   "investors.page.profit": "Their share of the profit",
   "investors.page.fromSettled":
     "{count, plural, one {From # settled Venture} other {From # settled Ventures}}",
@@ -1596,9 +1587,6 @@ export const en = {
   "investors.page.noMoney": "None of their money has moved yet",
   "investors.page.toTheFarm": "In",
   "investors.page.toThem": "Back to them",
-  "investors.page.move.capitalIn": "Capital received",
-  "investors.page.move.refund": "Capital returned",
-  "investors.page.move.payout": "Settlement payout",
   "portal.recordHint": "Their way in to read their own Ventures and papers.",
   "investors.notGiven": "Not given",
   "nav.investors": "Investors",
@@ -4027,6 +4015,16 @@ export const en = {
   "templates.problem.partMissing": "The paper needs {part}.",
   "templates.problem.partNotHere": "{where}: this kind of paper has no {part}.",
   "templates.problem.witnesses": "{where}: witnesses are from none to four.",
+  // Money and weights, said the same way to the Owner and to an Investor.
+  "money.capitalIn": "Capital received",
+  "money.payout": "Settlement payout",
+  "money.payouts": "Settlement payouts",
+  "money.refund": "Capital refunded",
+  "money.refundedApart":
+    "Apart from these, {bdt} of capital refunded when a Venture was cancelled",
+  "money.refundedHint": "When a Venture was cancelled",
+  "units.kg": "{kg} kg",
+  "units.kgADay": "{kg} kg a day",
 } as const;
 
 export type MessageKey = keyof typeof en;

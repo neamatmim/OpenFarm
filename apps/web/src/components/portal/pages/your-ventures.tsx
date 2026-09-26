@@ -187,7 +187,7 @@ const FINISHED = columns.columns([
   }),
   columns.accessor((row) => row.settlement?.payoutBdt ?? null, {
     id: "payout",
-    header: listHeader("investors.page.move.payout"),
+    header: listHeader("money.payout"),
     cell: PayoutCell,
     meta: FIGURE,
   }),

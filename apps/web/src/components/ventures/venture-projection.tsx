@@ -32,7 +32,7 @@ const Figures = ({ read }: { read: Read }) => {
     t("projection.range", { low, high });
   const day = formatDate(new Date(basis.setAt), language, "date");
   const kg = (value: number) =>
-    t("portal.kg", { kg: formatNumber(value, language) });
+    t("units.kg", { kg: formatNumber(value, language) });
   // Fewer at the low end by the deaths the plan expects. An answer this phone kept from before has one weight only.
   const highKg = Math.round(projection.kgAtSale);
   const lowKg = Math.round(projection.low.kgAtSale ?? projection.kgAtSale);

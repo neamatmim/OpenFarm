@@ -82,11 +82,11 @@ const useFiguresOf = (
       icon: IdCard,
     },
     {
-      label: t("portal.money.payouts"),
+      label: t("money.payouts"),
       value: sums ? taka(sums.paidOutBdt) : loading,
       // Capital refunded is not a payout: said beside it, as the portal's money page counts it apart.
       hint: sums?.returnedBdt
-        ? t("investors.page.refundedApart", { bdt: taka(sums.returnedBdt) })
+        ? t("money.refundedApart", { bdt: taka(sums.returnedBdt) })
         : undefined,
       icon: Wallet,
     },

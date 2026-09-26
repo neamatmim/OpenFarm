@@ -142,7 +142,7 @@ export const OfferProjectionSection = ({
     return null;
   }
   const kg = (value: number | null) =>
-    t("portal.kg", { kg: formatNumber(value ?? 0, language) });
+    t("units.kg", { kg: formatNumber(value ?? 0, language) });
   return (
     <Said
       hint={t("portal.projection.offerHint", {
