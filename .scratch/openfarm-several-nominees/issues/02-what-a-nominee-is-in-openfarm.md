@@ -1,6 +1,8 @@
 # What a Nominee is in OpenFarm
 
-Status: open
+Status: done
+
+Assignee: Neamat Khan Mim
 
 Type: grilling
 
@@ -19,3 +21,18 @@ CONTEXT.md's **Nominee** is "the person an Investor names to **receive** their c
 Death handling is out of scope. This decides only what the word means, which every later ticket rests on.
 
 ## Resolution
+
+Grilled with the Owner, 2026-09-26, on [the research](../../../docs/research/nominees-in-bangladeshi-law-and-shariah.md). No ADR: the law, Shariah and the Agreement already agreed, and only the glossary was out of step.
+
+1. **A Nominee collects for the heirs.** They collect the Investor's capital and share from the Farm and hand it on to the lawful heirs. What they are paid is not theirs. Naming them decides whom the Farm pays, never who inherits. The alternative, a Nominee who keeps the money, would be a bequest: void past one third, and void for an heir without the other heirs' consent. CONTEXT.md's **Nominee** entry is rewritten to say so, and now agrees with the Agreement ("paid through their nominee to their lawful heirs").
+2. **The farm owes a Nominee nothing directly while the Investor lives.**
+   - The Investor tells their Nominees they are named, and confirms it on the Agreement or the Nomination, as the nominee line does today.
+   - The farm never writes to, calls or notifies a Nominee, and a Nominee has no portal access.
+   - Their name, phone and relation are held only to find them if the Investor dies.
+
+**Handed on:**
+- **The prototype (05):** a line in the Agreement and the Nomination saying the Farm has met its obligation once it pays the Nominee(s), with the heirs settling among themselves with whoever was paid, as under Bank Company Act s.103(4).
+- **The lawyer (06):**
+  - Does that line hold against heirs who dispute a payment?
+  - Should the farm pay above a threshold only against a succession certificate?
+- **The Shariah scholar (06):** confirm the *amin* reading, and that naming an heir as a Nominee is unobjectionable.
