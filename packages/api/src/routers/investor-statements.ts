@@ -11,11 +11,8 @@ import {
   progressStatementFor,
   settlementStatementFor,
 } from "../investor-papers";
-import {
-  nominationInForce,
-  nominationsInForceFor,
-  paperNominees,
-} from "../nomination-store";
+import { nominationsInForceFor, paperNominees } from "../nomination-store";
+import { assertNamable, nomineesInput, nomineesToSign } from "../nominations";
 import { paperInvestor, paperValues, producedAt } from "../paper-values";
 import { noticeFilling } from "../portal-reads";
 import { languageOf } from "../reader-language";
@@ -48,6 +45,8 @@ export const investorStatementsRouter = {
         units: z.number().int().min(1).max(10_000),
         investorsPercent: z.number().int().min(0).max(100),
         arbitrator: z.string().trim().min(1).max(200),
+        /** The Nominees it is to name, as written on the sign sheet; left out, the list in force. */
+        nominees: nomineesInput.optional(),
       })
     )
     .handler(async ({ context, input }) => {
@@ -87,13 +86,19 @@ export const investorStatementsRouter = {
       );
       const now = context.clock.now();
       const language = await languageOf(context.db, context.actor.id);
-      // The Nominees in force, each judged a minor or not on the day it is printed to be signed.
+      // The Nominees it will name — written on the sign sheet, or the list in force — each judged a minor or not on the
+      // day it is printed to be signed.
+      const today = farmDayOf(now);
+      const nominees = await nomineesToSign(
+        context.db,
+        context.farm.id,
+        him.id,
+        input.nominees
+      );
+      assertNamable(nominees, today);
       const investor = paperInvestor(
         him,
-        paperNominees(
-          await nominationInForce(context.db, context.farm.id, him.id),
-          farmDayOf(now)
-        )
+        paperNominees({ nominees: [...nominees] }, today)
       );
       const document = paperFrom(wording.content, {
         kind: "investment_agreement",

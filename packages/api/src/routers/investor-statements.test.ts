@@ -93,7 +93,11 @@ beforeAll(async () => {
   await nominationOnFile({
     investorId: him.id,
     nominees: [
-      { ...theWhole(`আমেনা বেগম ${suffix}`), sharePercent: 70 },
+      {
+        ...theWhole(`আমেনা বেগম ${suffix}`),
+        bornOn: "1985-05-05",
+        sharePercent: 70,
+      },
       {
         ...theWhole(`সাকিব ${suffix}`, "ছেলে"),
         bornOn: "2040-06-01",

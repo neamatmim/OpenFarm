@@ -1,5 +1,5 @@
 import type { PaperDocument } from "@OpenFarm/domain";
-import { isLiveRequest } from "@OpenFarm/domain";
+import { farmDayOf, isLiveRequest } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -9,6 +9,13 @@ import { ArrowLeft, FileText } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import type { NomineeDraft } from "@/components/investors/nominee-draft";
+import {
+  draftsOf,
+  draftsProblem,
+  nomineesOf,
+} from "@/components/investors/nominee-draft";
+import { NomineesForm } from "@/components/investors/nominees-form";
 import { SegmentedControl } from "@/components/page";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { PhotoField } from "@/components/photo-field";
@@ -216,6 +223,8 @@ const AnswersRequest = ({
 const PrintToSign = ({
   drafting,
   splitGiven,
+  nomineeDrafts,
+  today,
 }: {
   drafting: {
     ventureId: string;
@@ -225,6 +234,9 @@ const PrintToSign = ({
     arbitrator: string;
   };
   splitGiven: boolean;
+  /** The Nominees it will name, as written on the sheet, judged on the day it is printed. */
+  nomineeDrafts: NomineeDraft[];
+  today: string;
 }) => {
   const { t } = useLanguage();
   const refused = useRefused();
@@ -246,6 +258,7 @@ const PrintToSign = ({
     })
   );
   const mayDraft =
+    draftsProblem(nomineeDrafts, today) === null &&
     drafting.ventureId !== "" &&
     drafting.investorId !== "" &&
     drafting.units > 0 &&
@@ -257,7 +270,12 @@ const PrintToSign = ({
       <Button
         className="self-start"
         disabled={!mayDraft || laying.isPending}
-        onClick={() => laying.mutate(drafting)}
+        onClick={() =>
+          laying.mutate({
+            ...drafting,
+            nominees: nomineesOf(nomineeDrafts, today),
+          })
+        }
         type="button"
         variant="outline"
       >
@@ -310,6 +328,35 @@ const PrintToSign = ({
   );
 };
 
+/** The Nominees the Agreement names, once somebody is chosen to sign: their list in force, to change for this signing. */
+const TheNomineesItNames = ({
+  chosen,
+  drafts,
+  onChange,
+  onDay,
+}: {
+  chosen: boolean;
+  drafts: NomineeDraft[];
+  onChange: (drafts: NomineeDraft[]) => void;
+  onDay: string;
+}) => {
+  const { t } = useLanguage();
+  if (!chosen) {
+    return null;
+  }
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-sm font-medium" data-slot="form-label">
+        {t("nominees.title")}
+      </span>
+      <p className="text-muted-foreground text-xs">
+        {t("ventures.signNomineesHint")}
+      </p>
+      <NomineesForm drafts={drafts} onChange={onChange} onDay={onDay} />
+    </div>
+  );
+};
+
 /**
  * One Investment Agreement: the Units this person takes of this Venture, the split those Units earn, the
  * Arbitrator both sides name, and the stamped instrument — its value, day and serial, with a photo of the
@@ -337,10 +384,16 @@ export const SignAgreementSheet = ({
       : undefined;
   const [terms, setTerms] = useState<Terms>(NOTHING_SIGNED);
   const [paper, setPaper] = useState<Photo | null>(null);
+  // The Nominees it names: the chosen Investor's list in force, which the Owner may change for this signing.
+  const [nomineeDrafts, setNomineeDrafts] = useState<NomineeDraft[]>([]);
   useFreshFor(venture?.id, () => {
     setTerms(NOTHING_SIGNED);
     setPaper(null);
+    setNomineeDrafts([]);
   });
+  const today = farmDayOf(new Date());
+  // Judged on the day it is stamped, as the farm judges it; before a day is typed, on today.
+  const stampDay = terms.stampedOn === "" ? today : terms.stampedOn;
   const { signable, left, nobodyLeft } = useWhoMaySign(venture);
   const { live, answering, yes } = useTheRequestItAnswers(
     venture,
@@ -401,6 +454,7 @@ export const SignAgreementSheet = ({
   const ready =
     venture !== null &&
     split !== "" &&
+    draftsProblem(nomineeDrafts, stampDay) === null &&
     fitToSign(terms, { units, percent, left });
   return (
     <FormSheet
@@ -417,6 +471,7 @@ export const SignAgreementSheet = ({
           stampValueBdt: Number(terms.stampValueBdt),
           stampedOn: terms.stampedOn,
           stampSerial: terms.stampSerial,
+          nominees: nomineesOf(nomineeDrafts, stampDay),
           ...(answering ? { requestId: answering.id } : {}),
         })
       }
@@ -437,13 +492,17 @@ export const SignAgreementSheet = ({
       >
         <NativeSelect
           id="agreement-investor"
-          onChange={(event) =>
+          onChange={(event) => {
+            const chosen = signable.find(
+              (one) => one.id === event.target.value
+            );
             setTerms({
               ...terms,
               investorId: event.target.value,
               answersNone: false,
-            })
-          }
+            });
+            setNomineeDrafts(draftsOf(chosen?.nomination?.nominees ?? []));
+          }}
           value={terms.investorId}
         >
           <option value="">—</option>
@@ -519,7 +578,18 @@ export const SignAgreementSheet = ({
           value={terms.arbitrator}
         />
       </FormField>
-      <PrintToSign drafting={drafting} splitGiven={split !== ""} />
+      <TheNomineesItNames
+        chosen={terms.investorId !== ""}
+        drafts={nomineeDrafts}
+        onChange={setNomineeDrafts}
+        onDay={stampDay}
+      />
+      <PrintToSign
+        drafting={drafting}
+        nomineeDrafts={nomineeDrafts}
+        splitGiven={split !== ""}
+        today={today}
+      />
       <div className="flex flex-col gap-1.5">
         <span className="text-sm font-medium" data-slot="form-label">
           {t("ventures.stampKind")}

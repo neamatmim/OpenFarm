@@ -53,6 +53,12 @@ import {
 } from "../investor-store";
 import { monthInput } from "../money-inputs";
 import { bookMoney, bookingOf } from "../money-store";
+import {
+  assertNamable,
+  nominationBySigning,
+  nomineesInput,
+  nomineesToSign,
+} from "../nominations";
 import { photoInput } from "../photo-input";
 import {
   answerBySigning,
@@ -185,6 +191,8 @@ const signInput = z.object({
   /** The Request to Join this paper answers: that Investor's live Request on this Venture. None for somebody who
    *  joined by phone. */
   requestId: z.string().optional(),
+  /** The Nominees the paper names, as the sign sheet printed them; left out, the list in force. */
+  nominees: nomineesInput.optional(),
 });
 
 const capitalInput = z.object({
@@ -935,7 +943,8 @@ export const venturesRouter = {
    * both sides name, and the stamped instrument's value, day and serial.
    *
    * Refused once the Venture has left Open, so every share is fixed for the run; refused for more Units
-   * than are left; and refused when it would take the farm past the Investors it may have.
+   * than are left; and refused when it would take the farm past the Investors it may have. It names the Nominees the
+   * sign sheet printed, and records them as the Investor's Nomination made by this Agreement.
    */
   sign: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
@@ -951,6 +960,14 @@ export const venturesRouter = {
           data: { refusal: "venture_wrong_state" },
         });
       }
+      // The Nominees it names, judged on the day it is stamped: a Nominee who turns eighteen that day is of age on it.
+      const nominees = await nomineesToSign(
+        context.db,
+        context.farm.id,
+        input.investorId,
+        input.nominees
+      );
+      assertNamable(nominees, input.stampedOn);
       // Signed in the wording the farm prints Agreements in now, and recorded against it for good.
       await giveStandardTemplates(context);
       const wording = await currentWording(
@@ -1049,6 +1066,16 @@ export const venturesRouter = {
             requestId: input.requestId ?? null,
             signedBy: context.actor.id,
             createdAt: now,
+          });
+          // The Agreement is a Nomination too, for the Nominees it names.
+          await nominationBySigning(tx, auditing.recordEvent, {
+            farmId: context.farm.id,
+            investorId: input.investorId,
+            agreementId: id,
+            signedOn: input.stampedOn,
+            nominees,
+            recordedBy: context.actor.id,
+            now,
           });
           return given;
         }

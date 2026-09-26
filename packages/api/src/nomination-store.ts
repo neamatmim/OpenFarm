@@ -16,7 +16,10 @@ export interface NominationOnFile {
   templateVersionId: string | null;
   recordedBy: string | null;
   recordedAt: Date;
+  /** Whether the paper's photo is kept: the মনোনয়নপত্র's own, or — made by an Agreement — the stamped Agreement's. */
   hasPhoto: boolean;
+  /** The Venture of the Agreement that made it, when an Agreement did. */
+  ventureName: string | null;
   nominees: Nominee[];
 }
 
@@ -60,6 +63,7 @@ const onFile = (row: {
   recordedBy: row.recordedBy,
   recordedAt: row.recordedAt,
   hasPhoto: row.paper !== null,
+  ventureName: null,
   nominees: row.nominees.map((one) => ({
     name: one.name,
     relation: one.relation,
@@ -81,6 +85,54 @@ const WITH_NOMINEES = {
   paper: { columns: { nominationId: true } },
 } as const;
 
+/**
+ * What an Agreement adds to the Nominations it made: its Venture's name, and its stamped paper's photo as the proof.
+ * Three reads rather than a join, as `ventures.agreements` does it: an Agreement declares no relations.
+ */
+const withTheirAgreements = async (
+  db: Reader,
+  farmId: string,
+  nominations: NominationOnFile[]
+): Promise<NominationOnFile[]> => {
+  const agreementIds = nominations.flatMap((one) =>
+    one.agreementId ? [one.agreementId] : []
+  );
+  if (agreementIds.length === 0) {
+    return nominations;
+  }
+  const [agreements, papers] = await Promise.all([
+    db.query.investmentAgreement.findMany({
+      where: { farmId, id: { in: agreementIds } },
+      columns: { id: true, ventureId: true },
+    }),
+    db.query.agreementPaper.findMany({
+      where: { farmId, agreementId: { in: agreementIds } },
+      columns: { agreementId: true },
+    }),
+  ]);
+  const ventures = await db.query.venture.findMany({
+    where: {
+      farmId,
+      id: { in: [...new Set(agreements.map((one) => one.ventureId))] },
+    },
+    columns: { id: true, name: true },
+  });
+  const nameOf = new Map(ventures.map((one) => [one.id, one.name]));
+  const ventureOf = new Map(
+    agreements.map((one) => [one.id, nameOf.get(one.ventureId) ?? null])
+  );
+  const photographed = new Set(papers.map((one) => one.agreementId));
+  return nominations.map((one) =>
+    one.agreementId
+      ? {
+          ...one,
+          ventureName: ventureOf.get(one.agreementId) ?? null,
+          hasPhoto: one.hasPhoto || photographed.has(one.agreementId),
+        }
+      : one
+  );
+};
+
 /** Every Nomination an Investor has on file, newest first. */
 export const nominationsOf = async (
   db: Reader,
@@ -92,7 +144,7 @@ export const nominationsOf = async (
     orderBy: NEWEST_FIRST,
     with: WITH_NOMINEES,
   });
-  return rows.map(onFile);
+  return withTheirAgreements(db, farmId, rows.map(onFile));
 };
 
 /**
@@ -109,7 +161,11 @@ export const nominationInForce = async (
     orderBy: NEWEST_FIRST,
     with: WITH_NOMINEES,
   });
-  return row ? onFile(row) : null;
+  if (!row) {
+    return null;
+  }
+  const [inForce] = await withTheirAgreements(db, farmId, [onFile(row)]);
+  return inForce ?? null;
 };
 
 /** The list in force for each of several Investors at once, for a list of them; one who has none is not in it. */
@@ -126,13 +182,19 @@ export const nominationsInForceFor = async (
     orderBy: NEWEST_FIRST,
     with: WITH_NOMINEES,
   });
-  const inForce = new Map<string, NominationOnFile>();
+  const latest = new Map<string, NominationOnFile>();
   for (const row of rows) {
-    if (!inForce.has(row.investorId)) {
-      inForce.set(row.investorId, onFile(row));
+    if (!latest.has(row.investorId)) {
+      latest.set(row.investorId, onFile(row));
     }
   }
-  return inForce;
+  const told = await withTheirAgreements(db, farmId, [...latest.values()]);
+  return new Map(
+    [...latest.keys()].map((investorId, index) => [
+      investorId,
+      told[index] ?? (latest.get(investorId) as NominationOnFile),
+    ])
+  );
 };
 
 /** The Nominees a paper for `onDay` prints: each marked a minor or not on that day. None, for no Nomination. */

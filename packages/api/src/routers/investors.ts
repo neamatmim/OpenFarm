@@ -2,7 +2,7 @@ import { portalOrigin } from "@OpenFarm/auth/hosts";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { farm } from "@OpenFarm/db/schema/farm";
 import { investor } from "@OpenFarm/db/schema/venture";
-import { MOST_NOMINEES, farmDayOf } from "@OpenFarm/domain";
+import { farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -25,7 +25,11 @@ import {
   nominationsOf,
   paperNominees,
 } from "../nomination-store";
-import { nominationToSign, recordNomination } from "../nominations";
+import {
+  nominationToSign,
+  nomineesInput,
+  recordNomination,
+} from "../nominations";
 import { photoInput } from "../photo-input";
 import type { ConsentWithdrawnSaid } from "../portal-consent";
 import {
@@ -91,27 +95,6 @@ const alreadyHere = (retired: boolean) =>
         data: { refusal: "investor_exists" },
       });
 
-/** Somebody who collects a minor Nominee's share, as a form sends them. */
-const receiverInput = z.object({
-  name: z.string().trim().min(1).max(120),
-  relation: z.string().trim().max(60).nullable(),
-  phone: z.string().trim().max(20).nullable(),
-});
-
-/** The Nominees a paper names, as a form sends them: whether they may be named is the domain's rule, not the wire's. */
-const nomineesInput = z
-  .array(
-    z.object({
-      name: z.string().trim().max(120),
-      relation: z.string().trim().max(60).nullable(),
-      phone: z.string().trim().max(20).nullable(),
-      bornOn: farmDay.nullable(),
-      sharePercent: z.number(),
-      receiver: receiverInput.nullable(),
-    })
-  )
-  .max(MOST_NOMINEES + 1);
-
 /** A Nomination as a screen shows it: how it came, the day, each Nominee marked a minor or not on `today`, and
  *  whether it has its photo. */
 const nominationSaid = (nomination: NominationOnFile | null, today: string) =>
@@ -121,6 +104,7 @@ const nominationSaid = (nomination: NominationOnFile | null, today: string) =>
         how: nomination.how,
         signedOn: nomination.signedOn,
         agreementId: nomination.agreementId,
+        ventureName: nomination.ventureName,
         hasPhoto: nomination.hasPhoto,
         nominees: paperNominees(nomination, today),
       }
@@ -349,6 +333,7 @@ export const investorsRouter = {
         how: one.how,
         signedOn: one.signedOn,
         agreementId: one.agreementId,
+        ventureName: one.ventureName,
         hasPhoto: one.hasPhoto,
         recordedAt: one.recordedAt,
         nominees: paperNominees(one, one.signedOn),
