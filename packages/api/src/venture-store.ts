@@ -697,6 +697,44 @@ export const termsAcrossOn = async (
   );
 };
 
+/**
+ * A Venture's Target Window as it stood on a given day: the latest **Amendment** signed on or before it — one paper
+ * moves every Agreement on the Venture at once, so the latest on any of them is the Venture's — or, with none, the
+ * window it opened with. The Venture's own row is never edited by an Amendment, so reading it alone would count days
+ * and grow a herd to a window everybody has signed away.
+ */
+export const windowInForceOn = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  run: { id: string; targetWindowStart: string; targetWindowEnd: string },
+  on: string
+): Promise<{ targetWindowStart: string; targetWindowEnd: string }> => {
+  const signed = await tx.query.investmentAgreement.findMany({
+    where: { farmId, ventureId: run.id },
+    columns: { id: true },
+  });
+  const [latest] =
+    signed.length === 0
+      ? []
+      : await tx.query.agreementAmendment.findMany({
+          where: {
+            farmId,
+            agreementId: { in: signed.map((one) => one.id) },
+            signedOn: { lte: on },
+          },
+          // As `termsInForceOn` orders them: `id` behind the day, so two papers of one day read the same way twice.
+          orderBy: { signedOn: "desc", id: "desc" },
+          limit: 1,
+          columns: { targetWindowStart: true, targetWindowEnd: true },
+        });
+  return (
+    latest ?? {
+      targetWindowStart: run.targetWindowStart,
+      targetWindowEnd: run.targetWindowEnd,
+    }
+  );
+};
+
 /** What the farm thinks a Venture Account held at the end of one month. */
 export const balanceAtMonthEnd = async (
   tx: Pick<Tx, "query">,

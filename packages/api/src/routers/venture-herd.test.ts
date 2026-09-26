@@ -458,9 +458,17 @@ describe("what a Venture's animals are doing", () => {
     expect(projection?.kgAtSale).toBeCloseTo(818.5, 6);
     // What the one sold to a buyer fetched is a fact at both ends — the figure the Settlement counts.
     expect(projection?.realisedBdt).toBe(settlement.proceedsBdt);
-    expect(projection?.chargedBdt).toBeGreaterThanOrEqual(
-      settlement.chargedBdt
+    // Charged what the Settlement counts, and the rest of the ৳1,00,000 running budget (৳5,00,000 of capital less
+    // ৳4,00,000 for cattle) taken as spent. Selling, it has nothing left to buy.
+    const measured = await owner.client.ventures.planAgainstActual({
+      ventureId: firstVenture,
+    });
+    const runningLeft = Math.max(
+      0,
+      100_000 - (measured?.money.runningSpentBdt ?? 0)
     );
+    expect(runningLeft).toBeGreaterThan(0);
+    expect(projection?.chargedBdt).toBe(settlement.chargedBdt + runningLeft);
     expect(projection?.low.proceedsBdt).toBe(
       Math.round(settlement.proceedsBdt + 818.5 * 500)
     );
@@ -840,5 +848,32 @@ describe("অগ্রগতি — the sheet while the run goes on", () => {
     await expect(
       manager.client.investorStatements.progress({ agreementId })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});
+
+describe("a Venture whose Target Window an Amendment moved", () => {
+  it("counts the days and grows the herd to the window in force, not the one it opened with", async () => {
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    // Everybody on the second Venture signs to sell a month later: 1 May rather than 1 April.
+    await owner.client.ventures.amend({
+      ventureId: secondVenture,
+      investorsPercent: 60,
+      targetWindowStart: "2052-05-01",
+      targetWindowEnd: "2052-05-10",
+      signedOn: "2052-02-19",
+      reason: `ঈদ পিছিয়েছে ${suffix}`,
+      contentType: "image/jpeg",
+      data: "aGVsbG8=",
+    });
+    const theirs = await owner.client.ventures.herd({
+      ventureId: secondVenture,
+    });
+    // 20 February to 1 May: the 41 days to 1 April and 30 more.
+    expect(theirs.daysToWindow).toBe(71);
+    // The bull taken across grows a kilo a day for those 30 days more: 287 kg becomes 317.
+    const { projection } = await owner.client.ventures.projection({
+      ventureId: secondVenture,
+    });
+    expect(projection?.kgAtSale).toBeCloseTo(317, 6);
   });
 });

@@ -17,6 +17,7 @@ import { theirSpend } from "./investor-statement-store";
 import { settlementOf } from "./settlement-store";
 import { boughtFor } from "./venture-bought";
 import type { VentureRow } from "./venture-store";
+import { windowInForceOn } from "./venture-store";
 
 /**
  * A Venture's **Projection**: what its Settlement might come to at the low and the high of the sale prices the Owner
@@ -211,10 +212,22 @@ interface Run {
   createdAt: Date;
   decideBy: string;
   targetWindowStart: string;
+  targetWindowEnd: string;
   targetCapitalBdt: number;
   cattleBudgetBdt: number;
   units: number;
 }
+
+/** The Venture with the Target Window in force today, which an Amendment may have moved from the one it opened with. */
+const inForce = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
+  run: Run,
+  now: Date
+): Promise<Run> => ({
+  ...run,
+  ...(await windowInForceOn(db, farmId, run, farmDayOf(now))),
+});
 
 /**
  * What the Venture has still to buy: what those animals would weigh between them when its window opens — bought once it
@@ -286,7 +299,7 @@ export const offerProjectionOf = async (
   const buying = await stillToBuy(
     db,
     farmId,
-    { ...run, state: "open" },
+    { ...(await inForce(db, farmId, run, now)), state: "open" },
     basis,
     run.cattleBudgetBdt,
     now
@@ -316,17 +329,18 @@ export const offerProjectionOf = async (
 export const projectionOf = async (
   db: Database,
   farmId: string,
-  run: Run,
+  asOpened: Run,
   /** The share of profit an offer's Investors would take, for one still gathering capital. */
   offeredPercent: number,
   now: Date
 ): Promise<Projection | null> => {
-  if (run.state === "settled" || run.state === "cancelled") {
+  if (asOpened.state === "settled" || asOpened.state === "cancelled") {
     return null;
   }
-  if (run.state === "open") {
-    return offerProjectionOf(db, farmId, run, offeredPercent, now);
+  if (asOpened.state === "open") {
+    return offerProjectionOf(db, farmId, asOpened, offeredPercent, now);
   }
+  const run = await inForce(db, farmId, asOpened, now);
   const basis = await projectionBasisOf(db, farmId, run.id);
   if (!basis) {
     return null;
