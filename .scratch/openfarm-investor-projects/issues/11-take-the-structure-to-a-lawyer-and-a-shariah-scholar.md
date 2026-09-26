@@ -37,6 +37,8 @@ The investor portal (ADR 0007), asked by the Owner on 2026-09-25. The detail is 
 
 - [ ] **The portal's data questions** (Personal Data Protection Act 2026): the ground for the portal and the records, Singapore hosting, twelve years, a nominee under 18, and whether the notice, consent sheet and Agreement data clause suffice. They are listed in full, with the drafts, in [the lawyer's pack for the Investor Portal](../../openfarm-investor-portal/assets/07-lawyer-pack.md).
 
+- [ ] **Several Nominees** (added 2026-09-26): an unstamped Nomination replacing a stamped Agreement's Nominees, whether paying a Nominee discharges the farm against disputing heirs, a succession-certificate threshold, shares not read as bequests, and a minor Nominee's Receiver. The drafts and questions are on pages 7–8 of [the lawyer's pack](../../openfarm-investor-portal/assets/07-lawyer-pack.md), from [the several-nominees map](../../openfarm-several-nominees/map.md).
+
 The portal as built, invitation-only, was said to be acceptable too. That answers the checklist's "Would a future investor login?" for the portal, verbally. See [ADR 0008](../../../docs/adr/0008-invited-investors-see-ventures-raising-capital-and-how-to-pay.md).
 
 Checklist for the Shariah scholar:
@@ -44,5 +46,6 @@ Checklist for the Shariah scholar:
 - [ ] May a Buying or Selling Trip's men's food and lodging, and Herd Costs, be charged to the pool, given that the manager's ordinary staff costs are the manager's own?
 - [ ] Is the Owner investing alongside others acceptable under the chosen structure, and how does their share take loss?
 - [ ] Are interim payouts before capital is intact acceptable if reversible?
+- [ ] **Nominees** (added 2026-09-26): is a Nominee who only collects and hands on an *amin*, not a legatee, so the one-third limit and "no bequest to an heir" are not engaged? May an heir be named as a Nominee on that footing? See page 8 of [the lawyer's pack](../../openfarm-investor-portal/assets/07-lawyer-pack.md).
 
 Resolved when the written answers are in hand. The answer records what each adviser said, where the written opinions are kept, and any change they force on decided tickets.
