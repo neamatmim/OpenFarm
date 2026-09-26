@@ -2,14 +2,16 @@ import type { Database } from "@OpenFarm/db";
 import type { PlanLine, Projected } from "@OpenFarm/domain";
 import {
   bandOf,
-  buyingAgainstPlan,
   farmDayOf,
   hasEnded,
   isExitState,
   isStillBuying,
   payoutOf,
+  planAverages,
   projectedSettlement,
   startOfFarmDay,
+  stillToBuyOf,
+  wholeDaysFrom,
 } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
@@ -17,6 +19,7 @@ import { fatteningOf } from "./fattening-store";
 import { theirSpend } from "./investor-statement-store";
 import { settlementOf } from "./settlement-store";
 import { boughtFor } from "./venture-bought";
+import { latestPlanOf } from "./venture-plan-read";
 import type { VentureRow } from "./venture-store";
 import { windowInForceOn } from "./venture-store";
 
@@ -62,69 +65,24 @@ export interface Projection extends Projected {
   units: number;
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** Whole days from one farm day's start to another's, and none backwards. */
-const daysFromTo = (from: Date, to: Date) =>
-  Math.max(0, Math.round((to.getTime() - from.getTime()) / DAY_MS));
-
-const middleOf = (line: PlanLine) => (line.fromKg + line.toKg) / 2;
-
-/** A plan's buying as one average: the price a kilo and the weight each is bought at, and the gain a day, each
- *  weighted as the plan buys — the kilo price by kilos, the rest by head. */
-const averagesOf = (lines: readonly PlanLine[]) => {
-  const animals = lines.reduce((sum, line) => sum + line.animals, 0);
-  const kg = lines.reduce(
-    (sum, line) => sum + line.animals * middleOf(line),
-    0
-  );
-  if (animals === 0 || kg === 0) {
-    return { buyBdtPerKg: null, buyWeightKg: null, dailyGainKg: null };
-  }
-  const cost = lines.reduce(
-    (sum, line) => sum + line.animals * middleOf(line) * line.buyBdtPerKg,
-    0
-  );
-  const gain = lines.reduce(
-    (sum, line) => sum + line.animals * line.dailyGainKg,
-    0
-  );
-  return {
-    buyBdtPerKg: Math.round((cost / kg) * 100) / 100,
-    buyWeightKg: Math.round((kg / animals) * 10) / 10,
-    dailyGainKg: Math.round((gain / animals) * 100) / 100,
-  };
-};
-
 /** What a Venture's Projection is worked from: the latest version of its plan. Nothing while it has none. */
 export const projectionBasisOf = async (
   db: Pick<Tx, "query">,
   farmId: string,
   ventureId: string
 ): Promise<ProjectionBasis | null> => {
-  const plan = await db.query.venturePlan.findFirst({
-    where: { farmId, ventureId },
-    orderBy: { version: "desc" },
-    with: { lines: { orderBy: { position: "asc" } } },
-  });
+  const plan = await latestPlanOf(db, farmId, ventureId);
   if (!plan) {
     return null;
   }
-  const lines = plan.lines.map((line): PlanLine => ({
-    animals: line.animals,
-    fromKg: Number(line.fromKg),
-    toKg: Number(line.toKg),
-    buyBdtPerKg: line.buyBdtPerKg,
-    dailyGainKg: Number(line.dailyGainKg),
-  }));
   return {
     saleLowBdtPerKg: plan.saleLowBdtPerKg,
     saleHighBdtPerKg: plan.saleHighBdtPerKg,
-    deathsPercent: Number(plan.deathsPercent),
+    deathsPercent: plan.deathsPercent,
     setAt: plan.madeAt,
     planVersion: plan.version,
-    lines,
-    ...averagesOf(lines),
+    lines: plan.lines,
+    ...planAverages(plan.lines),
   };
 };
 
@@ -165,23 +123,26 @@ const standingKgAtWindow = async (
     const rate =
       view.sinceIntake?.dailyGainKg ?? view.recent?.dailyGainKg ?? planned;
     const from = view.latestAt ?? now;
-    kg += (view.latestKg ?? 0) + rate * daysFromTo(from, opensAt);
+    kg += (view.latestKg ?? 0) + rate * wholeDaysFrom(from, opensAt);
   }
   return kg;
 };
 
 /** A Venture as its Projection needs it. */
-interface Run {
-  id: string;
-  state: VentureRow["state"];
+type Run = Pick<
+  VentureRow,
+  | "id"
+  | "state"
+  | "decideBy"
+  | "targetWindowStart"
+  | "targetWindowEnd"
+  | "targetCapitalBdt"
+  | "cattleBudgetBdt"
+  | "units"
+> & {
+  /** When it was opened, which its Settlement is read from. */
   createdAt: Date;
-  decideBy: string;
-  targetWindowStart: string;
-  targetWindowEnd: string;
-  targetCapitalBdt: number;
-  cattleBudgetBdt: number;
-  units: number;
-}
+};
 
 /** The Venture with the Target Window in force today, which an Amendment may have moved from the one it opened with. */
 const inForce = async (
@@ -213,18 +174,11 @@ const stillToBuy = async (
   const buyingFrom = new Date(
     Math.max(now.getTime(), startOfFarmDay(run.decideBy).getTime())
   );
-  const days = daysFromTo(buyingFrom, startOfFarmDay(run.targetWindowStart));
-  const bought =
-    run.state === "open" ? [] : await boughtFor(db, farmId, run.id);
-  const { bands } = buyingAgainstPlan(basis.lines, bought);
-  let kg = 0;
-  let costBdt = 0;
-  for (const [at, line] of basis.lines.entries()) {
-    const left = Math.max(0, line.animals - (bands[at]?.bought.animals ?? 0));
-    kg += left * (middleOf(line) + line.dailyGainKg * days);
-    costBdt += left * middleOf(line) * line.buyBdtPerKg;
-  }
-  return { kg, costBdt: Math.round(costBdt) };
+  return stillToBuyOf({
+    lines: basis.lines,
+    bought: run.state === "open" ? [] : await boughtFor(db, farmId, run.id),
+    days: wholeDaysFrom(buyingFrom, startOfFarmDay(run.targetWindowStart)),
+  });
 };
 
 /**

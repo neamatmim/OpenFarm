@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 
+import { farmDaysApart } from "./farm-clock";
 import {
   bandOf,
   baselineOf,
   buyingAgainstPlan,
+  planAverages,
   planTotals,
   plannedHeadKg,
   plannedResult,
+  stillToBuyOf,
 } from "./venture-plan";
 
 const LINES = [
@@ -158,5 +161,57 @@ describe("what the plan says the Venture makes", () => {
         deathsPercent: 5,
       })
     ).toEqual({ lowBdt: 165_360, highBdt: 583_000 });
+  });
+});
+
+describe("a plan's buying as one average", () => {
+  it("weighs the price by kilos, and the weight and gain by head", () => {
+    // 8 × 225 kg = 1,800 kg at ৳480 and 4 × 275 kg = 1,100 kg at ৳470: ৳13,81,000 for 2,900 kg is ৳476.21 a kilo;
+    // 2,900 kg over 12 head is 241.7 kg; 8 × 0.9 + 4 × 0.8 = 10.4 kg a day over 12 is 0.87.
+    expect(planAverages(LINES)).toEqual({
+      buyBdtPerKg: 476.21,
+      buyWeightKg: 241.7,
+      dailyGainKg: 0.87,
+    });
+    expect(planAverages([])).toEqual({
+      buyBdtPerKg: null,
+      buyWeightKg: null,
+      dailyGainKg: null,
+    });
+  });
+});
+
+describe("what a plan has still to buy", () => {
+  it("is each band less what was bought in it, grown to the window and paid for at the band's price", () => {
+    // Two of the first band bought, and one past every band that fills nothing. Left: six at 225 kg and four at 275,
+    // fed 50 days — 6 × 270 + 4 × 315 = 2,880 kg — costing 6 × 225 × ৳480 + 4 × 275 × ৳470 = ৳6,48,000 + ৳5,17,000.
+    expect(
+      stillToBuyOf({
+        lines: LINES,
+        bought: [
+          { weightKg: 210, priceBdt: 100_800 },
+          { weightKg: 240, priceBdt: 115_200 },
+          { weightKg: 320, priceBdt: 150_000 },
+        ],
+        days: 50,
+      })
+    ).toEqual({ kg: 2880, costBdt: 1_165_000 });
+  });
+
+  it("never goes below nothing in a band bought past its plan", () => {
+    const over = Array.from({ length: 10 }, () => ({
+      weightKg: 230,
+      priceBdt: 110_000,
+    }));
+    expect(
+      stillToBuyOf({ lines: LINES.slice(0, 1), bought: over, days: 50 })
+    ).toEqual({ kg: 0, costBdt: 0 });
+  });
+});
+
+describe("the farm days between two days", () => {
+  it("counts whole days, and backwards as fewer than none", () => {
+    expect(farmDaysApart("2052-01-03", "2052-04-01")).toBe(89);
+    expect(farmDaysApart("2052-04-01", "2052-01-03")).toBe(-89);
   });
 });

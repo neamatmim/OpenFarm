@@ -843,7 +843,12 @@ export const venturesRouter = {
     .input(z.object({ ventureId: z.string() }))
     .handler(async ({ context, input }) => {
       const row = await ours(context, input.ventureId);
-      return await planOf(context.db, context.farm.id, row);
+      return await planOf(
+        context.db,
+        context.farm.id,
+        row,
+        farmDayOf(context.clock.now())
+      );
     }),
 
   /**

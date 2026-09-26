@@ -73,6 +73,7 @@ export {
 export {
   FARM_UTC_OFFSET_MINUTES,
   farmDayOf,
+  farmDaysApart,
   farmDaysBetween,
   farmTimeOf,
   startOfFarmDay,
@@ -90,6 +91,7 @@ export {
   PLAUSIBLE_DAILY_GAIN_KG,
   PLAUSIBLE_DAILY_LOSS_KG,
   daysOnFeedOf,
+  wholeDaysFrom,
   fatteningView,
   implausibleChange,
 } from "./fattening";
@@ -424,9 +426,12 @@ export {
   bandOf,
   baselineOf,
   buyingAgainstPlan,
+  middleOf,
+  planAverages,
   planTotals,
   plannedHeadKg,
   plannedResult,
+  stillToBuyOf,
 } from "./venture-plan";
 export type { PlanLine } from "./venture-plan";
 export type { AnimalPrice, PriceEnd, PriceRange } from "./animal-price";

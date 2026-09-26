@@ -875,5 +875,10 @@ describe("a Venture whose Target Window an Amendment moved", () => {
       ventureId: secondVenture,
     });
     expect(projection?.kgAtSale).toBeCloseTo(317, 6);
+    // And its plan is fed to the same window: 3 January to 1 May is 119 days, where 1 April was 89.
+    const itsPlan = await owner.client.ventures.plan({
+      ventureId: secondVenture,
+    });
+    expect(itsPlan.daysOnFeed).toBe(119);
   });
 });
