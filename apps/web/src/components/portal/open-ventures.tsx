@@ -108,7 +108,8 @@ export const RaisingLine = () => {
   const offered = useTheirOpenVentures();
   const places = usePortalPlaces();
   useLookedAtOffers(offered.data);
-  const ventures = offered.data ?? [];
+  // Only those still taking requests are news or worth counting: one past its decide-by day is shown, not raising.
+  const ventures = (offered.data ?? []).filter((one) => one.takingRequests);
   if (ventures.length === 0) {
     return null;
   }

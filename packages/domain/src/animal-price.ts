@@ -68,3 +68,19 @@ export const priceRangeFor = ({
   }
   return market ? { ...market, from: "market" } : null;
 };
+
+/**
+ * What a kilo fetched across some of the farm's sales: everything they fetched over everything they weighed — so a
+ * heavy bull counts for his weight, not as one vote beside a light one. Nothing where nothing with a weight was sold.
+ */
+export const perKgOfSales = (
+  sales: readonly { priceBdt: number; weightKg: number }[]
+): { bdtPerKg: number; animals: number } | null => {
+  const weighed = sales.filter((one) => one.weightKg > 0);
+  const kg = weighed.reduce((sum, one) => sum + one.weightKg, 0);
+  if (kg === 0) {
+    return null;
+  }
+  const bdt = weighed.reduce((sum, one) => sum + one.priceBdt, 0);
+  return { bdtPerKg: roundTaka(bdt / kg), animals: weighed.length };
+};

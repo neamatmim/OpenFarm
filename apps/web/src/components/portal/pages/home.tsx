@@ -199,7 +199,7 @@ export const PortalHome = () => {
       {/* The one answer they have to act on comes first: the farm will sign with them. */}
       <ComeAndSign />
       {/* Somebody in no Venture yet reads what the farm is raising capital for, and what they have asked, before being
-          told they are in none; everybody else is told of offers in one line, with their own money straight after. */}
+          told they are in none; everybody else is told of offers in one line, which leads to them. */}
       {notInAnyYet ? (
         <>
           <OpenVenturesOnHome />
@@ -211,12 +211,8 @@ export const PortalHome = () => {
       <Loaded query={theirs} skeleton={<HomeSkeleton />}>
         {theirs.data ? <Portfolio theirs={theirs.data} /> : null}
       </Loaded>
-      {notInAnyYet ? null : (
-        <>
-          <TheirRequestsOnHome />
-          <OpenVenturesOnHome />
-        </>
-      )}
+      {/* The offers themselves are the line at the top and their own page: said once here, not twice. */}
+      {notInAnyYet ? null : <TheirRequestsOnHome />}
     </Page>
   );
 };

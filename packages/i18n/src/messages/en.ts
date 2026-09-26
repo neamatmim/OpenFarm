@@ -197,6 +197,8 @@ export const en = {
   "portal.request.withdrawTitle": "Withdraw this request?",
   "portal.request.withdrawWhy":
     "A request binds nobody. You can ask again while the Venture is still offered.",
+  "portal.request.earlier":
+    "Your earlier request, {units, plural, one {# Unit} other {# Units}}: {state}, {day}.",
   "portal.requests.title": "Your requests to join",
   "portal.requests.hint":
     "What you have asked the farm for, and where each stands. A request binds nobody.",
@@ -373,6 +375,10 @@ export const en = {
   "market.title": "Market price",
   "market.hint":
     "What a kilo of live weight is fetching, as you judge it. The farm's own animals are priced at it; a Venture's animals at their Venture's own prices. Yours to read: the Manager and Investors do not see prices.",
+  "market.recent":
+    "Your sales to buyers in the last {days, plural, one {# day} other {# days}} fetched {perKg} a kg, over {animals, plural, one {# animal} other {# animals}}.",
+  "market.noRecent":
+    "No sales to a buyer in the last {days, plural, one {# day} other {# days}}.",
   "market.none": "Not set: the farm's own animals have no estimated price yet.",
   "market.line": "{low} to {high} a kg, set on {day}",
   "market.set": "Set market price",

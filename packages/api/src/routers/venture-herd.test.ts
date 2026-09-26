@@ -1,4 +1,7 @@
+import { uuidv7 } from "@OpenFarm/db/ids";
 import { and } from "@OpenFarm/db/operators";
+import { sale } from "@OpenFarm/db/schema/fattening";
+import { animal } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import { sopDefinition } from "@OpenFarm/db/schema/sop";
 import type { SopContent } from "@OpenFarm/domain";
@@ -480,6 +483,46 @@ describe("what a Venture's animals are doing", () => {
     await expect(manager.client.fattening.prices()).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
+  });
+
+  it("says what a kilo fetched in the farm's own sales lately, as a reference beside the market price", async () => {
+    // An old cow culled to a butcher on the 19th, 400 kg for ৳1,52,000 — ৳380 a kilo, a Sale like any other.
+    const db = scratchDb();
+    const bull = await db.query.animal.findFirst({
+      where: { tagNumber: tags[5] ?? "" },
+      columns: { farmId: true },
+      with: { sale: { columns: { counterpartyId: true } } },
+    });
+    const cow = uuidv7();
+    await db.insert(animal).values({
+      id: cow,
+      farmId: bull?.farmId ?? "",
+      tagNumber: `D-C-${suffix}`,
+      sex: "female",
+      side: "dairy",
+      state: "sold",
+      penId,
+      source: "born",
+    });
+    await db.insert(sale).values({
+      id: uuidv7(),
+      farmId: bull?.farmId ?? "",
+      animalId: cow,
+      counterpartyId: bull?.sale?.counterpartyId ?? "",
+      priceBdt: 152_000,
+      weightKg: "400",
+      destination: `কসাই ${suffix}`,
+      vehicle: "ভ্যান",
+      driver: "চালক",
+      note: "বয়স হয়েছে",
+      soldAt: new Date("2052-02-19T05:00:00.000Z"),
+    });
+
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    const { recentSales } = await owner.client.fattening.prices();
+    // The one bull sold to a buyer, on the 18th: ৳2,50,000 for 228 kg, ৳1,096.49 a kilo. The one sold across to the
+    // other Venture is not a sale to a buyer, and the culled cow is not what a fattened animal fetches: neither is in it.
+    expect(recentSales).toMatchObject({ bdtPerKg: 1096.49, animals: 1 });
   });
 
   it("keeps the farm's market price a kilo as the Owner sets it, and the Owner's alone", async () => {

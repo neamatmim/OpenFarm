@@ -75,7 +75,7 @@ import { PortalNotice } from "./portal-door";
  *  takes their account's place, which is still under More: a sixth would crowd the bar. */
 const bottomBarOf = (
   places: ReturnType<typeof usePortalPlaces>,
-  raising: boolean
+  raising: { shown: boolean; count?: string; fresh: boolean }
 ): readonly NavItem[] => [
   {
     to: places.home.path,
@@ -95,12 +95,14 @@ const bottomBarOf = (
     icon: FileText,
     audience: "anyone",
   },
-  raising
+  raising.shown
     ? {
         to: places.openVentures.path,
         label: "portal.nav.raising",
         icon: Sprout,
         audience: "anyone",
+        count: raising.count,
+        fresh: raising.fresh,
       }
     : {
         to: places.account.path,
@@ -197,6 +199,8 @@ const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
       (one) => hasEnded(one.venture.state) && here(places.venture(one.id).path)
     );
   const offered = useTheirOpenVentures().data ?? [];
+  // Counted and marked new only while taking requests: one past its decide-by day is still shown, not raising.
+  const joinable = offered.filter((one) => one.takingRequests);
   // Every Request they have made gives the page its place; the count is of those still live, and a yes lights it.
   const requests = useTheirRequests().data ?? [];
   const live = requests.filter((one) => isLiveRequest(one.state));
@@ -274,8 +278,12 @@ const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
               {/* Only while the farm is raising capital for a Venture it shows them. */}
               {offered.length > 0 ? (
                 <PortalNavLink
-                  count={formatNumber(offered.length, language)}
-                  fresh={offered.some((one) => one.isNew === true)}
+                  count={
+                    joinable.length > 0
+                      ? formatNumber(joinable.length, language)
+                      : undefined
+                  }
+                  fresh={joinable.some((one) => one.isNew === true)}
                   here={here(places.openVentures.path)}
                   icon={Sprout}
                   label={t("portal.open.title")}
@@ -481,7 +489,18 @@ export const PortalShell = ({
   const online = useOnline();
   useLeaveWhenTheDayIsDone();
   const pinned = usePinnedTop();
-  const raising = (useTheirOpenVentures().data?.length ?? 0) > 0;
+  const { language } = useLanguage();
+  const shownToThem = useTheirOpenVentures().data ?? [];
+  // Counted, and marked new, only while taking requests — as the sidebar counts them.
+  const joinableNow = shownToThem.filter((one) => one.takingRequests);
+  const raising = {
+    shown: shownToThem.length > 0,
+    count:
+      joinableNow.length > 0
+        ? formatNumber(joinableNow.length, language)
+        : undefined,
+    fresh: joinableNow.some((one) => one.isNew === true),
+  };
   return (
     <SidebarProvider>
       <PortalSidebar farmName={me.data?.farm.name ?? null} />
