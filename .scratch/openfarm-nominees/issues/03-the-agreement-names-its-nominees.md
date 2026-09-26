@@ -4,7 +4,7 @@
 
 **Blocked by:** 02.
 
-**Status:** done on `feat/the-agreement-names-its-nominees`
+**Status:** done, merged
 
 **Spec:** [the spec](../spec.md), user stories 12–16. See also "The Investment Agreement".
 
