@@ -54,8 +54,9 @@ type Tab = (typeof TABS)[number];
 
 /**
  * The four figures one Investor is read by: the capital the Farm holds of theirs now, the Units they hold in the
- * Ventures still running, what the Farm has paid them, and what their share of the profit has come to. Money still
- * in a Venture and money already home are counted apart, so neither passes for the other.
+ * Ventures still running, their Settlement payouts — with any capital refunded from a cancelled Venture said apart,
+ * as their own portal says it — and what their share of the profit has come to. Money still in a Venture and money
+ * already home are counted apart, so neither passes for the other.
  */
 const useFiguresOf = (
   investor: Investor,
@@ -81,8 +82,12 @@ const useFiguresOf = (
       icon: IdCard,
     },
     {
-      label: t("investors.page.paidOut"),
+      label: t("portal.money.payouts"),
       value: sums ? taka(sums.paidOutBdt) : loading,
+      // Capital refunded is not a payout: said beside it, as the portal's money page counts it apart.
+      hint: sums?.returnedBdt
+        ? t("investors.page.refundedApart", { bdt: taka(sums.returnedBdt) })
+        : undefined,
       icon: Wallet,
     },
     {

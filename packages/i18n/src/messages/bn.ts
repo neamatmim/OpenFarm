@@ -1460,7 +1460,8 @@ export const bn: Record<MessageKey, string> = {
   "investors.page.heldNow": "এখন খামারের কাছে মূলধন",
   "investors.page.onPapers": "{count}টি চুক্তিতে",
   "investors.page.inRunning": "চলমান ভেঞ্চারগুলোতে",
-  "investors.page.paidOut": "তাঁকে পরিশোধ করা হয়েছে",
+  "investors.page.refundedApart":
+    "এর বাইরে, ভেঞ্চার বাতিল হওয়ায় {bdt} মূলধন ফেরত দেওয়া হয়েছে",
   "investors.page.profit": "মুনাফায় তাঁর অংশ",
   "investors.page.fromSettled": "{count}টি হিসাব নিকাশ হওয়া ভেঞ্চার থেকে",
   "investors.page.noneSettled": "এখনো কোনো ভেঞ্চারের হিসাব নিকাশ হয়নি",
