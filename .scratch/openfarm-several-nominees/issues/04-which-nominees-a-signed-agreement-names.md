@@ -44,3 +44,7 @@ Grilled with the Owner, 2026-09-26. Named **Nomination** in [`CONTEXT.md`](../..
 **For the other tickets:**
 - The prototype (05) now has a second paper to draft, the Nomination itself.
 - The lawyer's page (06) should ask whether an unstamped Nomination can replace the nominee named in a stamped Agreement.
+
+**Correction, 2026-09-26, found while writing the spec:** the question's premise, "a reprinted Agreement prints today's nominee", was read from `paperInvestor` and not checked. **OpenFarm has no reprint of a signed Agreement.** `agreementToSign` prints only before signing, and the photo of the stamped paper is the record. The papers that print the nominee after signing are the যোগদানপত্র, an Amendment to sign and the Portal Consent sheet, and point 3 already has them describe today.
+
+The decisions stand. Recording the Agreement's own Nominees is still needed, because the Agreement is a Nomination. "Reprints with the Nominees it was signed with" now describes what a reprint must do if one is ever built, and the spec rules that out of scope.

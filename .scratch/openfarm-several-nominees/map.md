@@ -47,7 +47,7 @@ A **ready-for-agent spec**, like [Joining a Venture](../openfarm-joining-a-ventu
 
 ## Not yet specified
 
-Nothing. Every ticket is closed (2026-09-26), and the way to the spec is clear. The two patches left in the fog turned out to be spec detail, and are handed to the spec rather than ticketed:
+Nothing. Every ticket is closed (2026-09-26). **The destination is reached: [the spec](../openfarm-nominees/spec.md)**, ready for an agent. The two patches left in the fog turned out to be spec detail, and are handed to the spec rather than ticketed:
 
 - **Where the Nominees show:** the portal's account page, the Data Copy, the যোগদানপত্র, the Investor sheet, profile and table, and the audit words. They show the list in force as the Agreement's table does, with the "Nominees since changed" note on screen beside a signed Agreement's print (ticket 04).
 - **The consent words:** the Portal Consent sheet and the data clause say "nominee details". Whether they add "dates of birth" and the Receivers is the spec's to settle against [the wording draft](./assets/05-nominee-wording-draft.md). The lawyer sees both.
