@@ -407,8 +407,7 @@ export const en = {
     "{days, plural, one {# day} other {# days}} on feed, from the decide-by day to the window",
   "plan.version": "Version {version}, {day}",
   "plan.baseline": "Baseline",
-  "plan.measuredAgainst":
-    "Measured against version {version}, the plan made before buying began.",
+  "plan.measuredAgainst": "Measured against its baseline, version {version}.",
   "plan.revision": "Revised: {reason}",
   "plan.sheetHint":
     "Each band is so many animals bought between two weights, at a price a kg, putting on so much a day. Every save is kept.",
@@ -425,6 +424,30 @@ export const en = {
     "Buying has begun: the plan made before stays what the Venture is measured against, and this is kept as a revision.",
   "plan.refused.reason": "A plan changed after buying began needs its reason",
   "plan.refused.ended": "A Venture that has ended has nothing left to plan",
+  "plan.vs.title": "Plan against actual",
+  "plan.vs.buying": "Buying",
+  "plan.vs.growth": "Growth",
+  "plan.vs.money": "Money",
+  "plan.vs.planned": "Planned",
+  "plan.vs.bought": "Bought",
+  "plan.vs.plannedCost": "Planned cost",
+  "plan.vs.cost": "Cost",
+  "plan.vs.heads":
+    "{count, plural, one {# animal} other {# animals}} at {perKg} a kg",
+  "plan.vs.count": "{count, plural, one {# animal} other {# animals}}",
+  "plan.vs.outside": "Outside every band",
+  "plan.vs.plannedToday": "Planned a head by today",
+  "plan.vs.actualToday": "A head today",
+  "plan.vs.weighedOf":
+    "{count, plural, one {# animal weighed} other {# animals weighed}}",
+  "plan.vs.noneWeighed": "None weighed yet",
+  "plan.vs.atWindow": "Planned a head at the window",
+  "plan.vs.cattle": "Cattle: planned {planned}, bought for {actual}",
+  "plan.vs.running": "Running: budget {budget}, spent {spent}",
+  "plan.vs.result":
+    "Result: planned {plannedLow} to {plannedHigh}; projected now {low} to {high}",
+  "plan.vs.resultNoProjection":
+    "Result: planned {plannedLow} to {plannedHigh}; no projection prices set yet",
   "plan.saved": "The plan is saved",
   "projection.title": "Projected profit",
   "projection.hint":

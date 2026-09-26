@@ -93,7 +93,7 @@ import {
 import { currentWording, giveStandardTemplates } from "../template-store";
 import { actOnVenture } from "../venture-act";
 import { theirProgress } from "../venture-herd-store";
-import { planOf, savePlan } from "../venture-plan-store";
+import { planAgainstActual, planOf, savePlan } from "../venture-plan-store";
 import {
   changePortalWords,
   portalWords,
@@ -838,6 +838,24 @@ export const venturesRouter = {
     .handler(async ({ context, input }) => {
       const row = await ours(context, input.ventureId);
       return await planOf(context.db, context.farm.id, row);
+    }),
+
+  /**
+   * A Venture measured against the plan it opened on (`planAgainstActual`): buying by band, growth and money beside
+   * the baseline. The Owner's alone; nothing while it has no plan.
+   */
+  planAgainstActual: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .input(z.object({ ventureId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const row = await ours(context, input.ventureId);
+      return await planAgainstActual(
+        context.db,
+        context.farm.id,
+        row,
+        context.farm.ventureInvestorsPercent,
+        context.clock.now()
+      );
     }),
 
   /**

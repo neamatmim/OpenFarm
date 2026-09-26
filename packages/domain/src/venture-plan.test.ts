@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { baselineOf, bandOf, planTotals } from "./venture-plan";
+import {
+  bandOf,
+  baselineOf,
+  buyingAgainstPlan,
+  planTotals,
+  plannedHeadKg,
+  plannedResult,
+} from "./venture-plan";
 
 const LINES = [
   // Eight bulls of 200 to 250 kg at ৳480 a kilo, putting on 0.9 kg a day.
@@ -73,5 +80,69 @@ describe("the baseline a Venture is measured against", () => {
       ])
     ).toBe(1);
     expect(baselineOf([])).toBeNull();
+  });
+});
+
+describe("what was bought against the plan", () => {
+  it("counts each animal in the band she was bought in, and any outside every band apart", () => {
+    // Bought: 210 kg for ৳1,00,800 and 240 kg for ৳1,15,200 (৳480 a kilo, both in the first band), 260 kg for ৳1,22,200
+    // (the second band), and a 320 kg bull for ৳1,50,000 that no band planned.
+    const bought = buyingAgainstPlan(LINES, [
+      { weightKg: 210, priceBdt: 100_800 },
+      { weightKg: 240, priceBdt: 115_200 },
+      { weightKg: 260, priceBdt: 122_200 },
+      { weightKg: 320, priceBdt: 150_000 },
+    ]);
+    expect(bought.bands[0]).toEqual({
+      planned: { animals: 8, kg: 1800, costBdt: 864_000, bdtPerKg: 480 },
+      bought: { animals: 2, kg: 450, costBdt: 216_000, bdtPerKg: 480 },
+    });
+    expect(bought.bands[1]?.bought).toEqual({
+      animals: 1,
+      kg: 260,
+      costBdt: 122_200,
+      bdtPerKg: 470,
+    });
+    expect(bought.outside).toEqual({
+      animals: 1,
+      kg: 320,
+      costBdt: 150_000,
+      bdtPerKg: 468.75,
+    });
+    expect(bought.total).toMatchObject({ animals: 4, costBdt: 488_200 });
+  });
+
+  it("says no price a kilo for a band nothing was bought in", () => {
+    const bought = buyingAgainstPlan(LINES, []);
+    expect(bought.bands[0]?.bought).toEqual({
+      animals: 0,
+      kg: 0,
+      costBdt: 0,
+      bdtPerKg: null,
+    });
+  });
+});
+
+describe("what the plan says a head weighs by a day", () => {
+  it("grows each band from its middle at its own gain, and weighs the herd by its animals", () => {
+    // Fifty days on: the first band's 8 at 225 + 45 = 270 kg, the second's 4 at 275 + 40 = 315 kg — 285 kg a head.
+    expect(plannedHeadKg(LINES, 50)).toBe(285);
+    // Nothing before they are bought.
+    expect(plannedHeadKg(LINES, -5)).toBe(241.7);
+  });
+});
+
+describe("what the plan says the Venture makes", () => {
+  it("sells the herd's weight at both prices, less the cattle it buys and the whole running budget", () => {
+    // 3,940 kg at ৳520 is ৳20,48,800 and at ৳600 ৳23,64,000; less ৳13,81,000 of cattle and ৳4,00,000 of running.
+    expect(
+      plannedResult({
+        saleKg: 3940,
+        cattleBdt: 1_381_000,
+        runningBudgetBdt: 400_000,
+        saleLowBdtPerKg: 520,
+        saleHighBdtPerKg: 600,
+      })
+    ).toEqual({ lowBdt: 267_800, highBdt: 583_000 });
   });
 });

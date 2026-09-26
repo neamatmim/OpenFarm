@@ -550,6 +550,64 @@ describe("what a Venture's animals are doing", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
+  it("measures what it bought, how it grows and what it makes against its plan", async () => {
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    // Its first plan, made after buying began: its own baseline, and it says why.
+    await owner.client.ventures.setPlan({
+      ventureId: firstVenture,
+      lines: [
+        {
+          animals: 6,
+          fromKg: 180,
+          toKg: 220,
+          buyBdtPerKg: 320,
+          dailyGainKg: 1,
+        },
+        {
+          animals: 2,
+          fromKg: 260,
+          toKg: 300,
+          buyBdtPerKg: 300,
+          dailyGainKg: 1,
+        },
+      ],
+      saleLowBdtPerKg: 500,
+      saleHighBdtPerKg: 600,
+      reason: "পরিকল্পনা পরে লেখা হলো",
+    });
+    const measured = await owner.client.ventures.planAgainstActual({
+      ventureId: firstVenture,
+    });
+
+    // Six bulls of 200 kg at ৳60,000 each, ৳300 a kilo, all in the first band — the one later sold across to the other
+    // Venture was this one's when it came. The plan had six there at 200 kg and ৳320: ৳3,84,000.
+    expect(measured?.buying.bands[0]).toEqual({
+      planned: { animals: 6, kg: 1200, costBdt: 384_000, bdtPerKg: 320 },
+      bought: { animals: 6, kg: 1200, costBdt: 360_000, bdtPerKg: 300 },
+    });
+    expect(measured?.buying.bands[1]?.bought.animals).toBe(0);
+    expect(measured?.buying.outside.animals).toBe(0);
+    // Forty-eight days after the decide-by day the plan has six at 248 kg and two at 328: 268 kg a head. The two
+    // weighed standing average 224.5.
+    expect(measured?.growth).toMatchObject({
+      plannedKgToday: 268,
+      actualKgToday: 224.5,
+      weighed: 2,
+    });
+    // 2,472 kg at sale after 89 days on feed, sold at ৳500 and ৳600, less ৳5,52,000 of cattle and the ৳1,00,000
+    // running budget.
+    expect(measured?.money).toMatchObject({
+      plannedCattleBdt: 552_000,
+      boughtBdt: 360_000,
+      planned: { lowBdt: 584_000, highBdt: 831_200 },
+    });
+
+    const manager = await asManager("2052-02-20T06:00:00.000Z");
+    await expect(
+      manager.client.ventures.planAgainstActual({ ventureId: firstVenture })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
   it("counts the days to the window and never projects past it", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
     const theirs = await owner.client.ventures.herd({
