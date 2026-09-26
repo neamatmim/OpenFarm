@@ -99,7 +99,6 @@ export const en = {
   "portal.forgot":
     "Forgotten your password? Ask the farm's Owner for a new code and set a new password with it.",
   "portal.heldNow": "Your capital held now",
-  "portal.paidOut": "Paid out to you",
   "portal.profit": "Your share of the profit",
   "portal.ventures.hint":
     "Every Venture you are in or have been in. Open one to read how it stands, and its papers.",
@@ -273,7 +272,6 @@ export const en = {
   "portal.nav.portfolio": "Portfolio",
   "portal.nav.account": "Account",
   "portal.anInvestor": "Investor",
-  "portal.sums.returned": "{bdt} sent back to you",
   "portal.allocation": "Where your capital is",
   "portal.allocationHint": "The capital held now, by Venture.",
   "portal.stageOf": "Step {at} of {of} · {stage}",
@@ -292,6 +290,9 @@ export const en = {
   "portal.nav.papers": "Papers",
   "portal.moneyTitle": "Your money",
   "portal.money.paidIn": "Capital you paid in",
+  "portal.money.payouts": "Settlement payouts",
+  "portal.money.refunded": "Capital refunded",
+  "portal.money.refundedHint": "When a Venture was cancelled",
   "portal.noPapers": "No papers yet",
   "portal.closed":
     "The investor portal is not open to you. Ask the farm's Owner.",
@@ -353,6 +354,8 @@ export const en = {
   "portal.back": "Your portfolio",
   "portal.ventureHint":
     "How the Venture stands today. Days are counted and weights are read; nothing here is a forecast.",
+  "portal.ventureHintWithProjection":
+    "How the Venture stands today. Days are counted and weights are read; only “{title}” below is an estimate, and it is not a promise.",
   "portal.amendedOn": "Amended on",
   "portal.unitsShare":
     "{count, plural, one {# unit} other {# units}} · {share}% of the Venture",

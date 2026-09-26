@@ -105,7 +105,7 @@ const useFigures = (
         tone: settlement.shareBdt < 0 ? "warning" : "neutral",
       },
       {
-        label: t("portal.paidOut"),
+        label: t("investors.page.move.payout"),
         value: taka(settlement.payoutBdt),
         hint: settlement.paidOn
           ? t("portal.paidOnDay", {
@@ -604,7 +604,14 @@ const VentureToday = ({
         </Link>
       )}
       <PageHeader
-        description={t("portal.ventureHint")}
+        // "Nothing here is a forecast" is not true of a page that shows a projection: then it says which part is one.
+        description={
+          today.projection
+            ? t("portal.ventureHintWithProjection", {
+                title: t("portal.projection.title"),
+              })
+            : t("portal.ventureHint")
+        }
         meta={
           <>
             <FiguresAsAt readAt={readAt} />

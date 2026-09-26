@@ -98,7 +98,6 @@ export const bn: Record<MessageKey, string> = {
   "portal.forgot":
     "পাসওয়ার্ড ভুলে গেছেন? খামারের মালিকের কাছে নতুন কোড চেয়ে নিন, আর তা দিয়ে নতুন পাসওয়ার্ড ঠিক করুন।",
   "portal.heldNow": "এখন আপনার মূলধন",
-  "portal.paidOut": "আপনাকে পরিশোধ করা হয়েছে",
   "portal.profit": "মুনাফায় আপনার অংশ",
   "portal.ventures.hint":
     "আপনি যে সব ভেঞ্চারে আছেন বা ছিলেন। কোনোটি খুলে দেখুন সেটি কেমন চলছে, আর তার কাগজ।",
@@ -253,7 +252,6 @@ export const bn: Record<MessageKey, string> = {
   "portal.nav.portfolio": "পোর্টফোলিও",
   "portal.nav.account": "অ্যাকাউন্ট",
   "portal.anInvestor": "বিনিয়োগকারী",
-  "portal.sums.returned": "{bdt} আপনাকে ফেরত",
   "portal.allocation": "আপনার মূলধন কোথায় আছে",
   "portal.allocationHint": "এখনকার মূলধন, ভেঞ্চার অনুযায়ী।",
   "portal.stageOf": "ধাপ {at}/{of} · {stage}",
@@ -271,6 +269,9 @@ export const bn: Record<MessageKey, string> = {
   "portal.nav.papers": "কাগজ",
   "portal.moneyTitle": "আপনার টাকা",
   "portal.money.paidIn": "আপনার জমা দেওয়া মূলধন",
+  "portal.money.payouts": "হিসাব নিকাশের পরিশোধ",
+  "portal.money.refunded": "ফেরত দেওয়া মূলধন",
+  "portal.money.refundedHint": "ভেঞ্চার বাতিল হওয়ায়",
   "portal.noPapers": "এখনো কোনো কাগজ নেই",
   "portal.closed":
     "বিনিয়োগকারী পোর্টাল আপনার জন্য খোলা নেই। খামারের মালিকের সঙ্গে কথা বলুন।",
@@ -332,6 +333,8 @@ export const bn: Record<MessageKey, string> = {
   "portal.back": "আপনার পোর্টফোলিও",
   "portal.ventureHint":
     "আজ ভেঞ্চারটি যেমন আছে। দিন গোনা আর ওজন মাপা; এখানে কিছুই পূর্বাভাস নয়।",
+  "portal.ventureHintWithProjection":
+    "আজ ভেঞ্চারটি যেমন আছে। দিন গোনা আর ওজন মাপা; শুধু নিচের “{title}” একটি অনুমান, কোনো প্রতিশ্রুতি নয়।",
   "portal.amendedOn": "সংশোধনের তারিখ",
   "portal.unitsShare": "{count}টি ইউনিট · ভেঞ্চারের {share}%",
   "portal.animals": "দাঁড়িয়ে থাকা পশু",
