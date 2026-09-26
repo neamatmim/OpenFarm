@@ -121,20 +121,59 @@ export const FIRST_PRINTED_AGREEMENT: TemplateContent = {
 };
 
 /**
- * What the Investor confirms of his nominee, printed under him beside the nominee the farm writes down. The second
- * line prints every time and is struck through by hand where the nominee is of age: the farm does not record a
- * nominee's age, and a line that came and went with it would be a paper nobody could check.
+ * The five rules a Nominee stands by, the same on every paper that names them: a share of the collecting, never of the
+ * inheritance; a Nominee who dies first; a minor's Receiver; the Farm clear once it pays; and the latest মনোনয়নপত্র.
+ * From the several-nominees map's wording draft, for the lawyer to read.
  */
-const NOMINEE_LINES = [
+const NOMINEE_RULES: Said[] = [
   {
-    bn: "বিনিয়োগকারী নিশ্চিত করছেন যে তাঁর নমিনি জানেন, খামার তাঁর নাম, ফোন ও সম্পর্ক রাখছে, শুধু এই চুক্তির অধীনে বিনিয়োগকারীর উত্তরাধিকারীদের টাকা দেওয়ার জন্য।",
-    en: "The Investor confirms that their nominee knows the Farm holds the nominee's name, phone and relationship, only to pay the Investor's heirs under this Agreement.",
+    bn: "প্রত্যেক নমিনি তাঁর অংশটুকু খামার থেকে সংগ্রহ করে বিনিয়োগকারীর আইনগত উত্তরাধিকারীদের বুঝিয়ে দেবেন। অংশ কেবল বলে কে কতটুকু সংগ্রহ করবেন; কে উত্তরাধিকারী আর কে কত পাবেন, তা আইন ঠিক করে।",
+    en: "Each Nominee collects their part from the Farm and hands it to the Investor's lawful heirs. A share says only who collects how much; who inherits, and how much, the law decides.",
   },
   {
-    bn: "নমিনির বয়স আঠারো বছরের কম। তাঁর বাবা / মা / আইনগত অভিভাবক হিসেবে আমি এই তথ্য রাখায় সম্মতি দিচ্ছি। নাম: ____________ সই: ____________",
-    en: "The nominee is under eighteen. As their father / mother / legal guardian I consent to this data being kept. Name: ____________ Signature: ____________",
+    bn: "বিনিয়োগকারীর আগে কোনো নমিনি মারা গেলে তাঁর অংশ বাকি নমিনিরা নিজ নিজ অংশের অনুপাতে সংগ্রহ করবেন; কেউ না থাকলে টাকা সরাসরি আইনগত উত্তরাধিকারীদের দেওয়া হবে।",
+    en: "If a Nominee dies before the Investor, the others collect their part in proportion to their own shares; if none is left, the money is paid to the lawful heirs.",
+  },
+  {
+    bn: "নমিনির বয়স আঠারো না হওয়া পর্যন্ত তাঁর অংশ তাঁর গ্রহণকারী সংগ্রহ করবেন; আঠারো হলে নমিনি নিজেই সংগ্রহ করবেন।",
+    en: "Until a Nominee turns eighteen, their Receiver collects their part; from eighteen, the Nominee collects it.",
+  },
+  {
+    bn: "খামার কোনো নমিনিকে বা নাবালক নমিনির গ্রহণকারীকে তাঁর অংশ দিলে সেই অংশের দায় থেকে খামার মুক্ত; উত্তরাধিকারীরা তাঁদের পাওনা যাঁকে দেওয়া হয়েছে তাঁর কাছ থেকে বুঝে নেবেন।",
+    en: "Once the Farm pays a Nominee, or a minor Nominee's Receiver, their part, it owes nothing more for that part; the heirs settle what they are owed with whoever was paid.",
+  },
+  {
+    bn: "বিনিয়োগকারী পরে নতুন মনোনয়নপত্রে সই করলে সেটিই তাঁর সব চুক্তির জন্য প্রযোজ্য হবে।",
+    en: "If the Investor later signs a new Nomination, that one governs all their Agreements.",
   },
 ];
+
+/** What the Investor confirms of every Nominee a paper names, printed under him beside the table. */
+const EACH_NOMINEE_KNOWS: Said = {
+  bn: "বিনিয়োগকারী নিশ্চিত করছেন যে তাঁর প্রত্যেক নমিনি জানেন, খামার তাঁদের নাম, সম্পর্ক, জন্মতারিখ ও ফোন রাখছে, শুধু বিনিয়োগকারীর উত্তরাধিকারীদের টাকা দেওয়ার জন্য।",
+  en: "The Investor confirms that each Nominee knows the Farm holds their name, relationship, date of birth and phone, only to pay the Investor's heirs.",
+};
+
+/** Printed once for each minor Nominee, and only for them, and signed by their Receiver. */
+const RECEIVER_LINE: Said = {
+  bn: "নমিনি {nomineeName}-এর বয়স আঠারো বছরের কম। তাঁর গ্রহণকারী হিসেবে আমি, {receiverName} ({receiverRelation}), আঠারো বছর না হওয়া পর্যন্ত তাঁর অংশ সংগ্রহ করতে এবং তাঁর এই তথ্য রাখায় সম্মতি দিচ্ছি। সই: ____________",
+  en: "Nominee {nomineeName} is under eighteen. As their Receiver I, {receiverName} ({receiverRelation}), agree to collect their part until they turn eighteen, and consent to their data being kept. Signature: ____________",
+};
+
+/** Printed in place of the table when an Investor names no Nominee. */
+const NO_NOMINEE_LINE: Said = {
+  bn: "বিনিয়োগকারী কোনো নমিনি মনোনীত করেননি। তাঁর মৃত্যু হলে তাঁর মূলধন ও প্রাপ্য তাঁর আইনগত উত্তরাধিকারীদের দেওয়া হবে, সাধারণত উত্তরাধিকার সনদ দেখে।",
+  en: "The Investor has named no Nominee. If they die, their capital and share are paid to their lawful heirs, usually against a succession certificate.",
+};
+
+/**
+ * The Terms' clause on the Investor's death, opening the five rules: the money goes to the heirs — through the
+ * Nominees where they named any, and otherwise straight to the heirs. Worded to read right on a paper naming nobody.
+ */
+const HEIRS_CLAUSE: Said = {
+  bn: "বিনিয়োগকারীর মৃত্যু হলে তাঁর মূলধন ও প্রাপ্য তাঁর আইনগত উত্তরাধিকারীদের দেওয়া হবে — নমিনি থাকলে তাঁদের মাধ্যমে, নিচের নিয়মে; না থাকলে সরাসরি, সাধারণত উত্তরাধিকার সনদ দেখে।",
+  en: "If the Investor dies, their capital and share are paid to their lawful heirs — through their Nominees where they named any, as follows; otherwise directly, usually against a succession certificate.",
+};
 
 /**
  * তথ্য / Data: what the farm holds of the Investor to keep the Agreement, where, who sees it, for how long, and what he
@@ -146,8 +185,8 @@ const DATA: TemplateSection = {
   heading: { bn: "তথ্য", en: "Data" },
   clauses: [
     {
-      bn: "এই চুক্তি পালন করতে, বিনিয়োগকারীকে টাকা দিতে এবং আইন যে হিসাব রাখতে বলে তা রাখতে খামার বিনিয়োগকারীর নাম, ফোন, ঠিকানা, এনআইডি নম্বর, ব্যাংক হিসাব ও নমিনির তথ্য, আর এই চুক্তির সব টাকার হিসাব রাখবে।",
-      en: "To keep this Agreement, pay the Investor and keep the books the law requires, the Farm holds the Investor's name, phone, address, NID number, bank account and nominee's details, and every money record under this Agreement.",
+      bn: "এই চুক্তি পালন করতে, বিনিয়োগকারীকে টাকা দিতে এবং আইন যে হিসাব রাখতে বলে তা রাখতে খামার বিনিয়োগকারীর নাম, ফোন, ঠিকানা, এনআইডি নম্বর, ব্যাংক হিসাব, আর তাঁর নমিনি ও গ্রহণকারীর তথ্য, আর এই চুক্তির সব টাকার হিসাব রাখবে।",
+      en: "To keep this Agreement, pay the Investor and keep the books the law requires, the Farm holds the Investor's name, phone, address, NID number, bank account, the details of their Nominees and Receivers, and every money record under this Agreement.",
     },
     {
       bn: "এই তথ্য সিঙ্গাপুরে খামারের পক্ষে চালানো একটি সার্ভারে রাখা হয়, আর প্রতি রাতে এর একটি তালাবদ্ধ (এনক্রিপ্ট করা) কপি অন্য জায়গায় রাখা হয়।",
@@ -172,16 +211,40 @@ const DATA: TemplateSection = {
   ],
 };
 
-/** The standard Investment Agreement: the words the farm first printed, with the nominee lines under the Investor
- *  and the data section after the terms. */
+/**
+ * The standard Investment Agreement: the words the farm first printed, with the lines under the Investor for their
+ * Nominees — what each knows, a minor's Receiver, and none named — the heirs clause and its five rules in the terms,
+ * before the Arbitrator, and the data section after them. A farm holding an earlier Version takes this only when the Owner publishes it.
+ */
 const investmentAgreement: TemplateContent = {
   ...FIRST_PRINTED_AGREEMENT,
   sections: FIRST_PRINTED_AGREEMENT.sections.flatMap(
     (section): TemplateSection[] => {
       if (section.kind === "parties") {
-        return [{ ...section, nomineeLines: NOMINEE_LINES }];
+        return [
+          {
+            ...section,
+            nomineeLines: [EACH_NOMINEE_KNOWS],
+            receiverLine: RECEIVER_LINE,
+            noNomineeLine: NO_NOMINEE_LINE,
+          },
+        ];
       }
-      return section.kind === "clauses" ? [section, DATA] : [section];
+      if (section.kind !== "clauses") {
+        return [section];
+      }
+      // The heirs clause and its rules go before the last term, the Arbitrator, who settles any dispute over them too.
+      const arbitration = section.clauses.at(-1);
+      const terms = {
+        ...section,
+        clauses: [
+          ...section.clauses.slice(0, -1),
+          HEIRS_CLAUSE,
+          ...NOMINEE_RULES,
+          ...(arbitration ? [arbitration] : []),
+        ],
+      };
+      return [terms, DATA];
     }
   ),
 };
@@ -233,10 +296,8 @@ const masterAgreement: TemplateContent = {
           bn: "প্রতিটি ভেঞ্চারে খামার বিনিয়োগকারীকে যোগদানপত্র, চলাকালীন অগ্রগতি এবং শেষে হিসাব নিকাশ দেবে।",
           en: "For each Venture the Farm gives the Investor a joining letter, progress statements while it runs, and a settlement statement at the end.",
         },
-        {
-          bn: "বিনিয়োগকারীর মৃত্যু হলে তাঁর মূলধন ও প্রাপ্য তাঁর নমিনির মাধ্যমে তাঁর আইনগত উত্তরাধিকারীদের দেওয়া হবে।",
-          en: "If the Investor dies, their capital and share are paid through their nominee to their lawful heirs.",
-        },
+        HEIRS_CLAUSE,
+        ...NOMINEE_RULES,
         {
           bn: "যে কোনো পক্ষ লিখিত নোটিশ দিয়ে এই চুক্তি শেষ করতে পারেন; তবে চলমান ভেঞ্চার তার নিজের শর্তে শেষ হবে।",
           en: "Either party may end this Agreement by written notice; a Venture already running is completed on its own terms.",
@@ -379,8 +440,8 @@ const portalConsent: TemplateContent = {
           en: "For this, my data will be kept on a server in Singapore run for the farm, and an encrypted copy will be kept elsewhere each night.",
         },
         {
-          bn: "এর জন্য খামার আমার এনআইডি নম্বর, ব্যাংক হিসাব ও নমিনির তথ্য রাখবে। পোর্টালে এনআইডি আর ব্যাংক হিসাবের শুধু শেষ চারটি অঙ্ক দেখা যাবে।",
-          en: "For this, the farm will hold my NID number, bank account and nominee's details. The portal shows only the last four digits of my NID and bank account.",
+          bn: "এর জন্য খামার আমার এনআইডি নম্বর, ব্যাংক হিসাব, আর আমার নমিনি ও গ্রহণকারীর তথ্য রাখবে। পোর্টালে এনআইডি আর ব্যাংক হিসাবের শুধু শেষ চারটি অঙ্ক দেখা যাবে।",
+          en: "For this, the farm will hold my NID number, bank account, and the details of my Nominees and Receivers. The portal shows only the last four digits of my NID and bank account.",
         },
       ],
     },
@@ -448,8 +509,8 @@ const privacyNotice: TemplateContent = {
       },
       clauses: [
         {
-          bn: "আপনার নাম, ফোন, ঠিকানা, এনআইডি নম্বর, ব্যাংক হিসাব, আর আপনার নমিনির নাম, ফোন ও সম্পর্ক। এগুলো আপনি নিজে দিয়েছেন।",
-          en: "Your name, phone, address, NID number and bank account, and your nominee's name, phone and relationship. You gave these yourself.",
+          bn: "আপনার নাম, ফোন, ঠিকানা, এনআইডি নম্বর, ব্যাংক হিসাব; আপনার নমিনিদের নাম, সম্পর্ক, জন্মতারিখ, ফোন ও অংশ; আর নাবালক নমিনির গ্রহণকারীর নাম, সম্পর্ক ও ফোন। এগুলো আপনি নিজে দিয়েছেন।",
+          en: "Your name, phone, address, NID number and bank account; your Nominees' names, relationships, dates of birth, phones and shares; and a minor Nominee's Receiver's name, relationship and phone. You gave these yourself.",
         },
         {
           bn: "আপনার চুক্তি, আপনার পুঁজি, আপনাকে দেওয়া টাকা, আপনার কাগজ (যোগদানপত্র, অগ্রগতি, হিসাব নিকাশ), আর পোর্টালে আপনি কবে এসেছেন ও কোন কাগজ খুলেছেন। এগুলো খামার নিজে লিখে রাখে।",
@@ -579,52 +640,6 @@ const privacyNotice: TemplateContent = {
       ],
     },
   ],
-};
-
-/**
- * The five rules a Nominee stands by, the same on every paper that names them: a share of the collecting, never of the
- * inheritance; a Nominee who dies first; a minor's Receiver; the Farm clear once it pays; and the latest মনোনয়নপত্র.
- * From the several-nominees map's wording draft, for the lawyer to read.
- */
-const NOMINEE_RULES: Said[] = [
-  {
-    bn: "প্রত্যেক নমিনি তাঁর অংশটুকু খামার থেকে সংগ্রহ করে বিনিয়োগকারীর আইনগত উত্তরাধিকারীদের বুঝিয়ে দেবেন। অংশ কেবল বলে কে কতটুকু সংগ্রহ করবেন; কে উত্তরাধিকারী আর কে কত পাবেন, তা আইন ঠিক করে।",
-    en: "Each Nominee collects their part from the Farm and hands it to the Investor's lawful heirs. A share says only who collects how much; who inherits, and how much, the law decides.",
-  },
-  {
-    bn: "বিনিয়োগকারীর আগে কোনো নমিনি মারা গেলে তাঁর অংশ বাকি নমিনিরা নিজ নিজ অংশের অনুপাতে সংগ্রহ করবেন; কেউ না থাকলে টাকা সরাসরি আইনগত উত্তরাধিকারীদের দেওয়া হবে।",
-    en: "If a Nominee dies before the Investor, the others collect their part in proportion to their own shares; if none is left, the money is paid to the lawful heirs.",
-  },
-  {
-    bn: "নমিনির বয়স আঠারো না হওয়া পর্যন্ত তাঁর অংশ তাঁর গ্রহণকারী সংগ্রহ করবেন; আঠারো হলে নমিনি নিজেই সংগ্রহ করবেন।",
-    en: "Until a Nominee turns eighteen, their Receiver collects their part; from eighteen, the Nominee collects it.",
-  },
-  {
-    bn: "খামার কোনো নমিনিকে বা নাবালক নমিনির গ্রহণকারীকে তাঁর অংশ দিলে সেই অংশের দায় থেকে খামার মুক্ত; উত্তরাধিকারীরা তাঁদের পাওনা যাঁকে দেওয়া হয়েছে তাঁর কাছ থেকে বুঝে নেবেন।",
-    en: "Once the Farm pays a Nominee, or a minor Nominee's Receiver, their part, it owes nothing more for that part; the heirs settle what they are owed with whoever was paid.",
-  },
-  {
-    bn: "বিনিয়োগকারী পরে নতুন মনোনয়নপত্রে সই করলে সেটিই তাঁর সব চুক্তির জন্য প্রযোজ্য হবে।",
-    en: "If the Investor later signs a new Nomination, that one governs all their Agreements.",
-  },
-];
-
-/** What the Investor confirms of every Nominee a paper names, printed under him beside the table. */
-const EACH_NOMINEE_KNOWS: Said = {
-  bn: "বিনিয়োগকারী নিশ্চিত করছেন যে তাঁর প্রত্যেক নমিনি জানেন, খামার তাঁদের নাম, সম্পর্ক, জন্মতারিখ ও ফোন রাখছে, শুধু বিনিয়োগকারীর উত্তরাধিকারীদের টাকা দেওয়ার জন্য।",
-  en: "The Investor confirms that each Nominee knows the Farm holds their name, relationship, date of birth and phone, only to pay the Investor's heirs.",
-};
-
-/** Printed once for each minor Nominee, and only for them, and signed by their Receiver. */
-const RECEIVER_LINE: Said = {
-  bn: "নমিনি {nomineeName}-এর বয়স আঠারো বছরের কম। তাঁর গ্রহণকারী হিসেবে আমি, {receiverName} ({receiverRelation}), আঠারো বছর না হওয়া পর্যন্ত তাঁর অংশ সংগ্রহ করতে এবং তাঁর এই তথ্য রাখায় সম্মতি দিচ্ছি। সই: ____________",
-  en: "Nominee {nomineeName} is under eighteen. As their Receiver I, {receiverName} ({receiverRelation}), agree to collect their part until they turn eighteen, and consent to their data being kept. Signature: ____________",
-};
-
-/** Printed in place of the table when an Investor names no Nominee. */
-const NO_NOMINEE_LINE: Said = {
-  bn: "বিনিয়োগকারী কোনো নমিনি মনোনীত করেননি। তাঁর মৃত্যু হলে তাঁর মূলধন ও প্রাপ্য তাঁর আইনগত উত্তরাধিকারীদের দেওয়া হবে, সাধারণত উত্তরাধিকার সনদ দেখে।",
-  en: "The Investor has named no Nominee. If they die, their capital and share are paid to their lawful heirs, usually against a succession certificate.",
 };
 
 /**

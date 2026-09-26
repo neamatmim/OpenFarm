@@ -75,7 +75,7 @@ const terms = () => ({
 });
 
 describe("the Investment Agreement, laid out to be signed", () => {
-  it("names both parties, the Venture, his Units and capital, and the seven terms", async () => {
+  it("names both parties, the Venture, his Units and capital, and the terms with the heirs clause and its rules", async () => {
     const { client: owner } = await as("owner");
 
     const { document } =
@@ -94,10 +94,12 @@ describe("the Investment Agreement, laid out to be signed", () => {
     expect(said).toContain("১,৫০,০০০ টাকা");
     // The terms unnumbered — the page numbers them — and the joining letter's own words.
     const { clauses } = partOf(document, "clauses");
-    expect(clauses).toHaveLength(7);
+    // Seven terms, the heirs clause with its five rules before the last of them, the Arbitrator.
+    expect(clauses).toHaveLength(13);
     expect(clauses[1]?.bn).toContain("বিনিয়োগকারী ৬০% এবং খামার ৪০%");
     expect(clauses[1]?.en).toContain("60% to the Investor");
-    expect(clauses[6]?.bn).toContain(ARBITRATOR);
+    expect(clauses[6]?.bn).toContain("নমিনি থাকলে তাঁদের মাধ্যমে");
+    expect(clauses[12]?.bn).toContain(ARBITRATOR);
     expect(
       partOf(document, "signatures").signers.map((one) => one.name)
     ).toContain(HIM);
@@ -132,9 +134,10 @@ describe("the Investment Agreement, laid out to be signed", () => {
     );
     expect(data?.kind === "clauses" && data.clauses).toHaveLength(6);
     const [, him] = partOf(document, "parties").parties;
+    // He has named nobody yet: the one line saying so, in place of the table and the lines.
+    expect(him?.nominees).toEqual([]);
     expect(him?.lines.map((line) => line.en)).toEqual([
-      expect.stringContaining("their nominee knows"),
-      expect.stringContaining("The nominee is under eighteen"),
+      expect.stringContaining("The Investor has named no Nominee"),
     ]);
   });
 
