@@ -65,43 +65,49 @@ export const Page = ({
   </div>
 );
 
-/** What the page is, in one line, what it is for, and what can be done from it. */
+/** What the page is, in one line, what it is for, and what can be done from it — and, on the page of one person or
+ *  one thing, a mark of whose record it is before the name (`leading`), as a record's header is drawn. */
 export const PageHeader = ({
   title,
   description,
   eyebrow,
   actions,
   meta,
+  leading,
 }: {
   title: ReactNode;
   description?: ReactNode;
   eyebrow?: ReactNode;
   actions?: ReactNode;
   meta?: ReactNode;
+  leading?: ReactNode;
 }) => (
   <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-    <div className="flex min-w-0 flex-col gap-1.5">
-      {eyebrow ? (
-        <p className="text-primary text-xs font-semibold tracking-wider uppercase">
-          {eyebrow}
-        </p>
-      ) : null}
-      <h1
-        className="text-xl font-semibold tracking-tight md:text-2xl"
-        data-slot="page-title"
-      >
-        {title}
-      </h1>
-      {description ? (
-        <p className="text-muted-foreground max-w-2xl text-sm md:text-base">
-          {description}
-        </p>
-      ) : null}
-      {meta ? (
-        <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-sm">
-          {meta}
-        </div>
-      ) : null}
+    <div className="flex min-w-0 items-start gap-4">
+      {leading}
+      <div className="flex min-w-0 flex-col gap-1.5">
+        {eyebrow ? (
+          <p className="text-primary text-xs font-semibold tracking-wider uppercase">
+            {eyebrow}
+          </p>
+        ) : null}
+        <h1
+          className="text-xl font-semibold tracking-tight md:text-2xl"
+          data-slot="page-title"
+        >
+          {title}
+        </h1>
+        {description ? (
+          <p className="text-muted-foreground max-w-2xl text-sm md:text-base">
+            {description}
+          </p>
+        ) : null}
+        {meta ? (
+          <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-sm">
+            {meta}
+          </div>
+        ) : null}
+      </div>
     </div>
     {actions ? (
       <div className="flex shrink-0 flex-wrap items-center gap-2">

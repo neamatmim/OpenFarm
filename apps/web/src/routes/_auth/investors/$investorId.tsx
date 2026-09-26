@@ -43,6 +43,7 @@ import {
 } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
+import { initialsOf } from "@/components/user-menu";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { useTaka } from "@/lib/taka";
@@ -128,6 +129,14 @@ const TheInvestor = ({
           <InvestorActs investor={investor} onEdit={() => setEditing(true)} />
         }
         description={investor.address ?? undefined}
+        leading={
+          <span
+            aria-hidden
+            className="bg-primary/10 text-primary hidden size-14 shrink-0 place-items-center rounded-full text-lg font-semibold sm:grid"
+          >
+            {initialsOf(investor.name)}
+          </span>
+        }
         meta={
           <>
             {investor.retiredAt ? (

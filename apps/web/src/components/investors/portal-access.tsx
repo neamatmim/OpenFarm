@@ -543,8 +543,11 @@ export const PortalAccess = ({
           </span>
         )}
       </div>
-      <div className="flex flex-wrap gap-2">
+      {/* One under another, the width of the column they sit in: three buttons of different lengths wrapped two and
+          one, which read as two groups where there is one. */}
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
         <Button
+          className="justify-start"
           disabled={whyNot !== null || inviting.isPending || printing.isPending}
           onClick={invite}
           size="sm"
@@ -555,6 +558,7 @@ export const PortalAccess = ({
           {t(inviteWord)}
         </Button>
         <Button
+          className="justify-start"
           render={
             <Link
               params={{ investorId: investor.id }}
@@ -570,6 +574,7 @@ export const PortalAccess = ({
         </Button>
         {hasAccessToTake(standing) || canWithdraw(investor) ? (
           <Button
+            className="text-danger hover:text-danger justify-start"
             onClick={() => setAsking(true)}
             size="sm"
             type="button"

@@ -332,6 +332,16 @@ export const en = {
   "portal.paper.joining": "Joining letter",
   "portal.paper.progress": "Progress statement",
   "portal.paper.settlement": "Settlement statement",
+  "portal.paper.joiningHint":
+    "Acknowledges your capital and sets out the terms you agreed to.",
+  "portal.paper.progressHint":
+    "While the Venture runs: what the animals weigh and where the money has gone.",
+  "portal.paper.settlementHint":
+    "At the end: the proceeds, every charge, the split and your payout.",
+  "portal.paper.open": "Open",
+  "portal.paper.afterCapital": "Ready once your capital arrives",
+  "portal.paper.afterSettlement": "Ready once the Venture is settled",
+  "portal.paidOnDay": "Paid on {day}",
   "portal.isOpen": "Open",
   "portal.isShut": "Shut",
   "portal.openIt": "Open the portal",
@@ -3707,7 +3717,8 @@ export const en = {
     "A short schedule for each Venture an Investor joins under their Master Agreement: Units, capital, split and window.",
   "templates.kindHint.agreement_amendment":
     "One paper moving a Venture's split or target window, signed by every Investor in it. Printed from the Venture's amend sheet.",
-  "templates.notInUse": "Not in use: every Venture is signed with its own Investment Agreement",
+  "templates.notInUse":
+    "Not in use: every Venture is signed with its own Investment Agreement",
   "templates.versionOn": "Version {number} · {day}",
   "templates.approvedBy": "Approved by {lawyer} on {day}",
   "templates.notApproved": "Not yet approved by a lawyer",

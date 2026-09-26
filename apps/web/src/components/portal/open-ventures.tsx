@@ -3,6 +3,7 @@ import { cn } from "@OpenFarm/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 
+import { MORE_LINK } from "@/components/home/queue";
 import { SaidDate } from "@/components/list-cells";
 import { Section } from "@/components/page";
 import {
@@ -84,7 +85,8 @@ export const OpenVentureCards = ({
 
 /**
  * The Ventures the farm is raising capital for, on the Investor's home page — only when there are any: an empty box
- * saying the farm is raising nothing would be the portal talking about offers where there are none.
+ * saying the farm is raising nothing would be the portal talking about offers where there are none. Plain, since the
+ * cards are surfaces of their own.
  */
 export const OpenVenturesOnHome = () => {
   const { t } = useLanguage();
@@ -98,14 +100,16 @@ export const OpenVenturesOnHome = () => {
     <Section
       action={
         <Link
-          className="text-primary text-sm underline"
+          className={cn(MORE_LINK, "text-sm")}
           params={openVentures.link.params}
           to={openVentures.link.to}
         >
           {t("portal.open.back")}
+          <ChevronRight aria-hidden className="size-4" />
         </Link>
       }
       description={t("portal.open.hint")}
+      plain
       title={t("portal.open.title")}
     >
       <OpenVentureCards ventures={ventures} />
