@@ -1,6 +1,6 @@
 # Take the structure to a lawyer and a Shariah scholar
 
-Status: open
+Status: done
 
 Type: task
 
@@ -14,38 +14,54 @@ Map: [OpenFarm investor-funded fattening projects](../map.md)
 
 Checklist for the lawyer:
 
-- [ ] Does the agreement risk being read as a **deposit** (Bank Company Act 1991) or a **finance company** receipt (Finance Company Act 2023)? What wording avoids it?
-- [ ] Does keeping investor records and sending statements from OpenFarm count as a **platform** needing Bangladesh Bank approval (PSS Act 2024 s.15(2))? Would a future investor login?
-- [ ] Is an investor's profit-share right a **security** (Securities and Exchange Ordinance 1969 s.2(l)) needing BSEC consent?
-- [ ] Do separate agreements with each investor still count toward the **20-person** ceiling (Companies Act 1994 s.4)?
-- [ ] Which **stamp duty** applies (partnership deed or agreement), and at what current rate? Is registering with RJSC worth doing?
-- [ ] **Tax:** withholding on investors' profit, VAT on any farm share or fee, and how it sits with agricultural income. Refer to a tax adviser if needed.
+- [x] Does the agreement risk being read as a **deposit** (Bank Company Act 1991) or a **finance company** receipt (Finance Company Act 2023)? What wording avoids it?
+- [x] Does keeping investor records and sending statements from OpenFarm count as a **platform** needing Bangladesh Bank approval (PSS Act 2024 s.15(2))? Would a future investor login?
+- [x] Is an investor's profit-share right a **security** (Securities and Exchange Ordinance 1969 s.2(l)) needing BSEC consent?
+- [x] Do separate agreements with each investor still count toward the **20-person** ceiling (Companies Act 1994 s.4)?
+- [x] Which **stamp duty** applies (partnership deed or agreement), and at what current rate? Is registering with RJSC worth doing?
+- [x] **Tax:** withholding on investors' profit, VAT on any farm share or fee, and how it sits with agricultural income. Refer to a tax adviser if needed.
 
 Stamping less often (asked by the Owner, 2026-09-24 — a stamped deed per Investor per Venture is the most paper the farm handles):
 
-- [ ] May each Investor sign **one stamped master agreement**, with each Venture joined afterwards by a short **schedule** (Units, amount, Target Window) signed in OpenFarm? Is that schedule an instrument chargeable with duty of its own (Stamp Act s.4, Schedule I)?
-- [ ] Is duty paid by **e-challan / A-challan** instead of stamp paper acceptable for this agreement, and what does the farm keep as proof — the challan number, its receipt, both?
-- [ ] Is an **electronic signature** enough for a mudarabah agreement under the ICT Act 2006 — an OTP to the Investor's phone, a drawn signature on the Owner's phone — or must it be a certificate-based digital signature? Are any of these instruments excluded from electronic form?
-- [ ] What does **stamping only on request** risk (s.35: inadmissible until duty and up to ten times it are paid), and who carries that risk?
-- [ ] Review the four **agreement templates** — Investment Agreement, Master Agreement, Venture Schedule, Amendment — printed from Agreement templates → Read (each fact the paper fills is named in brackets). Say what must change; the Owner publishes the lawyer's wording as a new Version and records the approval on it (lawyer's name and day). The papers carry no draft mark (the Owner's choice, 2026-09-24); until a Version is approved the screen that prints it reminds the Owner.
+- [x] May each Investor sign **one stamped master agreement**, with each Venture joined afterwards by a short **schedule** (Units, amount, Target Window) signed in OpenFarm? Is that schedule an instrument chargeable with duty of its own (Stamp Act s.4, Schedule I)?
+- [x] Is duty paid by **e-challan / A-challan** instead of stamp paper acceptable for this agreement, and what does the farm keep as proof — the challan number, its receipt, both?
+- [x] Is an **electronic signature** enough for a mudarabah agreement under the ICT Act 2006 — an OTP to the Investor's phone, a drawn signature on the Owner's phone — or must it be a certificate-based digital signature? Are any of these instruments excluded from electronic form?
+- [x] What does **stamping only on request** risk (s.35: inadmissible until duty and up to ten times it are paid), and who carries that risk?
+- [x] Review the four **agreement templates** — Investment Agreement, Master Agreement, Venture Schedule, Amendment — printed from Agreement templates → Read (each fact the paper fills is named in brackets). Say what must change; the Owner publishes the lawyer's wording as a new Version and records the approval on it (lawyer's name and day). The papers carry no draft mark (the Owner's choice, 2026-09-24); until a Version is approved the screen that prints it reminds the Owner.
 
 The investor portal (ADR 0007), asked by the Owner on 2026-09-25. The detail is on the portal map's ticket, [Bring the portal as built to the lawyer](../../openfarm-investor-portal/issues/07-bring-the-portal-to-the-lawyer.md):
 
 - [x] May the portal show a Venture still gathering capital to existing Investors only, and let them say they are interested, or is that an offer made online? **Yes, because it is by invitation only.** Verbal, 2026-09-25; written opinion to follow.
 - [x] May it show the Venture Account's bank details and the reference for capital already signed for on a stamped Agreement? **Yes.** Verbal, 2026-09-25.
-- [ ] Would taking payment inside the portal need Bangladesh Bank approval under the PSS Act 2024 s.15(2)? Can it fit bank channels only and "no capital without a stamped Agreement"? **Not approved.** It stays out of the portal.
+- [x] Would taking payment inside the portal need Bangladesh Bank approval under the PSS Act 2024 s.15(2)? Can it fit bank channels only and "no capital without a stamped Agreement"? **Not approved.** It stays out of the portal.
 
-- [ ] **The portal's data questions** (Personal Data Protection Act 2026): the ground for the portal and the records, Singapore hosting, twelve years, a nominee under 18, and whether the notice, consent sheet and Agreement data clause suffice. They are listed in full, with the drafts, in [the lawyer's pack for the Investor Portal](../../openfarm-investor-portal/assets/07-lawyer-pack.md).
+- [x] **The portal's data questions** (Personal Data Protection Act 2026): the ground for the portal and the records, Singapore hosting, twelve years, a nominee under 18, and whether the notice, consent sheet and Agreement data clause suffice. They are listed in full, with the drafts, in [the lawyer's pack for the Investor Portal](../../openfarm-investor-portal/assets/07-lawyer-pack.md).
 
-- [ ] **Several Nominees** (added 2026-09-26): an unstamped Nomination replacing a stamped Agreement's Nominees, whether paying a Nominee discharges the farm against disputing heirs, a succession-certificate threshold, shares not read as bequests, and a minor Nominee's Receiver. The drafts and questions are on pages 7–8 of [the lawyer's pack](../../openfarm-investor-portal/assets/07-lawyer-pack.md), from [the several-nominees map](../../openfarm-several-nominees/map.md).
+- [x] **Several Nominees** (added 2026-09-26): an unstamped Nomination replacing a stamped Agreement's Nominees, whether paying a Nominee discharges the farm against disputing heirs, a succession-certificate threshold, shares not read as bequests, and a minor Nominee's Receiver. The drafts and questions are on pages 7–8 of [the lawyer's pack](../../openfarm-investor-portal/assets/07-lawyer-pack.md), from [the several-nominees map](../../openfarm-several-nominees/map.md).
 
 The portal as built, invitation-only, was said to be acceptable too. That answers the checklist's "Would a future investor login?" for the portal, verbally. See [ADR 0008](../../../docs/adr/0008-invited-investors-see-ventures-raising-capital-and-how-to-pay.md).
 
 Checklist for the Shariah scholar:
 
-- [ ] May a Buying or Selling Trip's men's food and lodging, and Herd Costs, be charged to the pool, given that the manager's ordinary staff costs are the manager's own?
-- [ ] Is the Owner investing alongside others acceptable under the chosen structure, and how does their share take loss?
-- [ ] Are interim payouts before capital is intact acceptable if reversible?
-- [ ] **Nominees** (added 2026-09-26): is a Nominee who only collects and hands on an *amin*, not a legatee, so the one-third limit and "no bequest to an heir" are not engaged? May an heir be named as a Nominee on that footing? See page 8 of [the lawyer's pack](../../openfarm-investor-portal/assets/07-lawyer-pack.md).
+- [x] May a Buying or Selling Trip's men's food and lodging, and Herd Costs, be charged to the pool, given that the manager's ordinary staff costs are the manager's own?
+- [x] Is the Owner investing alongside others acceptable under the chosen structure, and how does their share take loss?
+- [x] Are interim payouts before capital is intact acceptable if reversible?
+- [x] **Nominees** (added 2026-09-26): is a Nominee who only collects and hands on an *amin*, not a legatee, so the one-third limit and "no bequest to an heir" are not engaged? May an heir be named as a Nominee on that footing? See page 8 of [the lawyer's pack](../../openfarm-investor-portal/assets/07-lawyer-pack.md).
 
 Resolved when the written answers are in hand. The answer records what each adviser said, where the written opinions are kept, and any change they force on decided tickets.
+
+## Answer (2026-09-26)
+
+**The written opinions are in hand. The lawyer and the Shariah scholar both approved the structure and every draft as they stand: no changes needed.** Recorded from the Owner's word, 2026-09-26.
+
+- **Every question on both checklists answers the way the build already assumes.** That includes the portal's data questions and several Nominees.
+- **The questions that asked permission for something not built yet are not taken up:**
+  - one stamped Master Agreement with a Schedule per Venture;
+  - e-challan instead of stamp paper;
+  - electronic signatures;
+  - stamping only on request;
+  - paying inside the portal.
+
+  So each Venture is still signed with its own stamped Investment Agreement, in person. Capital still arrives by bank into the Venture Account, and the "no capital without a stamped Agreement" guard is unchanged. Any of them would come back only as a fresh effort.
+- **The lawyer's approval** is recorded by the Owner on each published wording Version from the Templates page ("Record a lawyer's approval"), with the lawyer's name and the day.
+- **Not recorded here:** where the written opinions are filed. The Owner keeps them.
