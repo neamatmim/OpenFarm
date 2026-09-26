@@ -31,6 +31,7 @@ describe("the Investor address", () => {
       ["/portal/ventures/abc", "GET"],
       ["/assets/index-abc.js", "GET"],
       ["/icon.svg", "GET"],
+      ["/portal.webmanifest", "GET"],
       ["/api/auth/sign-in/email", "POST"],
       ["/api/auth/sign-out", "POST"],
       ["/api/auth/get-session", "GET"],

@@ -1,3 +1,4 @@
+import type { Host } from "@OpenFarm/auth/hosts";
 import { IndexedDBAdapter } from "@tanstack/offline-transactions";
 import type {
   PersistedClient,
@@ -23,6 +24,12 @@ const KEEP_FOR_MS = 14 * 24 * 60 * 60 * 1000;
  *  made of, the one after that because a Venture says what it owes the Owner and whether it is running
  *  low, and this one because it says whether the bank agreed. */
 const CACHE_KEY = "kept-with-the-adjustments";
+
+/** The database the kept cache lives in, on this address. */
+const KEPT_DATABASE = "openfarm-queries";
+
+/** Where the kept cache, and each person's put-away screens, are written. */
+const cacheStore = () => new IndexedDBAdapter(KEPT_DATABASE, "cache");
 
 /** How a date is written into the kept cache, so it is read back as a date rather than as the string JSON makes of
  *  it. The API's answers carry real dates, and every screen formats them as dates. */
@@ -64,7 +71,7 @@ export const readKept = (raw: string): PersistedClient =>
  * standing in a shed with no bars would have nothing to work from at all.
  */
 const onDevice = (): Persister => {
-  const storage = new IndexedDBAdapter("openfarm-queries", "cache");
+  const storage = cacheStore();
   return {
     persistClient: async (client: PersistedClient) => {
       await storage.set(CACHE_KEY, writeKept(client));
@@ -89,25 +96,51 @@ const isPortalQuery = (queryKey: readonly unknown[]): boolean => {
  * Whether an answer is kept on the device: only what actually answered — a query that failed is not a picture of the
  * farm — and never an Investor's. An Investor has no shed with no signal to read in, and their capital, their record
  * and their papers left on a phone for a fortnight after they sign out are anybody's who picks it up (the exposure
- * review, 2.5; ASVS 14.3.1).
+ * review, 2.5; ASVS 14.3.1). On the portal's own address nothing is kept at all, whoever's it is (ADR 0009).
  */
-export const keptOnDevice = (query: {
-  queryKey: readonly unknown[];
-  state: { status: string };
-}): boolean =>
-  query.state.status === "success" && !isPortalQuery(query.queryKey);
+export const keptOnDevice = (
+  query: { queryKey: readonly unknown[]; state: { status: string } },
+  host: Host
+): boolean =>
+  host === "farm" &&
+  query.state.status === "success" &&
+  !isPortalQuery(query.queryKey);
 
-/** Starts keeping and restoring the cache. Browser only: the server renders the same
- *  components and has neither IndexedDB nor any need of them. */
-export const keepQueriesOnDevice = (queryClient: QueryClient): void => {
+/**
+ * Takes away the database the kept cache lives in, whatever an older visit left there — deleted rather than emptied,
+ * since opening it to empty it would make one where there was none.
+ */
+const forgetKeptDatabase = () => {
+  try {
+    indexedDB.deleteDatabase(KEPT_DATABASE);
+  } catch {
+    // No storage on this phone: nothing kept to forget.
+  }
+};
+
+/**
+ * Starts keeping and restoring the cache — on the farm's address. On the portal's own it keeps nothing, and forgets
+ * whatever an older visit left there (ADR 0009). Browser only: the server renders the same components and has neither
+ * IndexedDB nor any need of them.
+ */
+export const keepQueriesOnDevice = (
+  queryClient: QueryClient,
+  host: Host
+): void => {
   if (typeof window === "undefined") {
+    return;
+  }
+  if (host === "portal") {
+    forgetKeptDatabase();
     return;
   }
   persistQueryClient({
     queryClient,
     persister: onDevice(),
     maxAge: KEEP_FOR_MS,
-    dehydrateOptions: { shouldDehydrateQuery: keptOnDevice },
+    dehydrateOptions: {
+      shouldDehydrateQuery: (query) => keptOnDevice(query, host),
+    },
   });
 };
 
@@ -126,13 +159,11 @@ export const forgetWhatThisPhoneRead = async (
   if (typeof window === "undefined") {
     return;
   }
-  await new IndexedDBAdapter("openfarm-queries", "cache").delete(CACHE_KEY);
+  await cacheStore().delete(CACHE_KEY);
 };
 
 /** Where one person's screens are put away on a Shed Phone while somebody else works on it. */
 const shelfOf = (userId: string) => `person:${userId}`;
-
-const cacheStore = () => new IndexedDBAdapter("openfarm-queries", "cache");
 
 /**
  * Puts away what this phone has read for the person leaving it, under their name alone, then clears the screen for

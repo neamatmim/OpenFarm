@@ -36,10 +36,13 @@ import {
   ScrollText,
   Sprout,
   UserRound,
+  WifiOff,
 } from "lucide-react";
+import { useEffect } from "react";
 import type { ReactNode } from "react";
 
 import LanguageToggle from "@/components/language-toggle";
+import { Notice } from "@/components/page";
 import {
   usePortalPlaces,
   usePreviewing,
@@ -53,7 +56,10 @@ import { Initials } from "@/components/user-menu";
 import { Wordmark } from "@/components/wordmark";
 import { useT } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
+import { leaveTheEndedSignIn } from "@/lib/ended-sign-in";
+import { useOnline } from "@/lib/online";
 import { forgetWhatThisPhoneRead } from "@/lib/query-cache";
+import { wordOf } from "@/lib/saying";
 
 import { PortalNotice } from "./portal-door";
 
@@ -317,6 +323,33 @@ const PortalUserMenu = ({ name, phone }: { name: string; phone: string }) => {
 };
 
 /**
+ * Leaves the portal the moment any question it asks is answered that the sign-in has run its day — not only at the
+ * next page, since a tab left open past its day would otherwise go on showing what it read in it.
+ */
+const useLeaveWhenTheDayIsDone = () => {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  useEffect(
+    () =>
+      queryClient.getQueryCache().subscribe((event) => {
+        const dayIsDone =
+          event.type === "updated" &&
+          event.action.type === "error" &&
+          wordOf(event.action.error) === "signed_in_too_long";
+        if (!dayIsDone) {
+          return;
+        }
+        const leave = async () => {
+          await leaveTheEndedSignIn(queryClient);
+          await navigate({ search: { ended: true }, to: "/portal/login" });
+        };
+        void leave();
+      }),
+    [queryClient, navigate]
+  );
+};
+
+/**
  * Every portal page, framed as every farm page is (ADR 0007 keeps the two apart, not unalike): the sidebar, the bar
  * over the page with the reader's settings and their menu, the page, the phone's bottom bar — and under every page,
  * what the portal is and whom to ask.
@@ -332,6 +365,10 @@ export const PortalShell = ({
   const t = useT();
   const me = useTheirRecord();
   const places = usePortalPlaces();
+  // With no connection the page says so, rather than show figures the tab read earlier as though they were today's:
+  // the portal keeps nothing on the phone to open with (ADR 0009).
+  const online = useOnline();
+  useLeaveWhenTheDayIsDone();
   return (
     <SidebarProvider>
       <PortalSidebar farmName={me.data?.farm.name ?? null} />
@@ -362,7 +399,19 @@ export const PortalShell = ({
           id="main"
           tabIndex={-1}
         >
-          {children}
+          {online ? (
+            children
+          ) : (
+            <div className="px-4 py-6 md:px-8">
+              <Notice
+                icon={WifiOff}
+                title={t("portal.noConnection")}
+                tone="warning"
+              >
+                {t("portal.noConnectionHint")}
+              </Notice>
+            </div>
+          )}
           <PortalNotice>
             {me.data?.farm.phone ? (
               <p>

@@ -1,0 +1,20 @@
+{
+  "name": "বিনিয়োগকারী পোর্টাল",
+  "short_name": "পোর্টাল",
+  "description": "আপনার ভেঞ্চার ও কাগজ",
+  "lang": "bn",
+  "start_url": "/portal",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

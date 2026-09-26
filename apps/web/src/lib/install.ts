@@ -17,6 +17,22 @@ export const keepStorage = async (): Promise<boolean> => {
   }
 };
 
+/**
+ * Takes away any service worker this address has: the portal's own address runs none, keeping nothing on the phone to
+ * open with (ADR 0009), and one left from an older visit would go on answering from what it kept.
+ */
+export const forgetShell = async (): Promise<void> => {
+  if (!navigator.serviceWorker) {
+    return;
+  }
+  try {
+    const registered = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registered.map((one) => one.unregister()));
+  } catch {
+    // Nothing the page may reach: the wipe on signing out takes it instead.
+  }
+};
+
 /** Registers the service worker that lets the app open with no signal. */
 export const installShell = async (): Promise<void> => {
   if (!navigator.serviceWorker) {

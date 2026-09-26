@@ -89,6 +89,9 @@ export const bn: Record<MessageKey, string> = {
   "portal.activity.readNothing": "এখনো কোনো কাগজ পড়েননি",
   "portal.activity.requested": "যোগ দেওয়ার অনুরোধ",
   "portal.askTheFarm": "প্রশ্ন আছে? {farm}-কে ফোন করুন {phone} নম্বরে।",
+  "portal.noConnection": "সংযোগ নেই",
+  "portal.noConnectionHint":
+    "ফোন ইন্টারনেটে নেই। পোর্টাল ফোনে কিছু রাখে না, তাই পুরোনো হিসাব দেখায় না — সংযোগ ফিরলে পাতাটি আবার আসবে।",
   "portal.endedTitle": "আবার সাইন ইন করুন",
   "portal.endedHint":
     "একটি কর্মদিবস ধরে সাইন ইন ছিলেন, তাই আপনার হিসাব নিরাপদ রাখতে পোর্টাল আপনাকে সাইন আউট করেছে।",

@@ -12,7 +12,7 @@ const PORTAL_PAGE = /^\/portal(?:\/|$)/u;
 const SERVED_TO_INVESTORS: readonly RegExp[] = [
   PORTAL_PAGE,
   /^\/assets\//u,
-  /^\/(?:icon\.svg|manifest\.webmanifest|robots\.txt)$/u,
+  /^\/(?:icon\.svg|portal\.webmanifest|robots\.txt)$/u,
   /^\/api\/auth\/(?:sign-in\/email|sign-out|get-session|change-password|revoke-other-sessions)$/u,
   /^\/api\/rpc\/(?:portal\/[^/]+|people\/me|language\/[^/]+)$/u,
   // Every server function, since they are told apart only by a hash of the build: today there is one, `getUser`, and a

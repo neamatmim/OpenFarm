@@ -13,7 +13,10 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { createMiddleware } from "@tanstack/react-start";
 import { evlogErrorHandler } from "evlog/nitro/v3";
 import { ThemeProvider } from "next-themes";
+import { useEffect } from "react";
 
+import { forgetShell } from "@/lib/install";
+import { HOST_ATTRIBUTE, pageHost } from "@/lib/page-context";
 import type { orpc } from "@/utils/orpc";
 
 import { LanguageProvider, useT } from "../i18n/language-provider";
@@ -29,12 +32,24 @@ export interface RouterAppContext {
   queryClient: QueryClient;
 }
 
+/** On the portal's own address, whatever service worker an older visit left there is taken away. */
+const useNoShellOnThePortal = () => {
+  useEffect(() => {
+    if (pageHost() === "portal") {
+      void forgetShell();
+    }
+  }, []);
+};
+
 const RootDocument = () => {
+  useNoShellOnThePortal();
   // The theme's inline script runs under the Investor address's policy only with the page's nonce.
   const { nonce } = useRouter().options.ssr ?? {};
+  // Which address this is, written on the page for the browser to read back (lib/page-context).
+  const host = pageHost();
   return (
     // The theme class lands on the html element before React arrives, from what this device chose.
-    <html lang="bn" suppressHydrationWarning>
+    <html {...{ [HOST_ATTRIBUTE]: host }} lang="bn" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
@@ -106,10 +121,14 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         rel: "stylesheet",
         href: appCss,
       },
-      // What makes the app installable on a barn phone's home screen.
+      // What makes the app installable on a barn phone's home screen — and on the portal's own address, an icon that
+      // opens the portal there rather than the farm's first page, which that address does not serve.
       {
         rel: "manifest",
-        href: "/manifest.webmanifest",
+        href:
+          pageHost() === "portal"
+            ? "/portal.webmanifest"
+            : "/manifest.webmanifest",
       },
       {
         rel: "icon",
