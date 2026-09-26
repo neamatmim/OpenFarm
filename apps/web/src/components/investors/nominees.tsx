@@ -2,7 +2,7 @@ import type { PaperNominee } from "@OpenFarm/domain";
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
-import { FilePen } from "lucide-react";
+import { ChevronRight, FilePen } from "lucide-react";
 import { useState } from "react";
 
 import type { Investor } from "@/components/investors/investor-types";
@@ -122,8 +122,12 @@ const Earlier = ({ investorId }: { investorId: string }) => {
     return null;
   }
   return (
-    <details className="text-sm">
-      <summary className="text-muted-foreground cursor-pointer text-xs">
+    <details className="group text-sm">
+      <summary className="text-muted-foreground hover:text-foreground inline-flex min-h-9 cursor-pointer list-none items-center gap-1 text-xs font-medium [&::-webkit-details-marker]:hidden">
+        <ChevronRight
+          aria-hidden
+          className="size-4 transition-transform group-open:rotate-90"
+        />
         {t("nominees.earlier")}
       </summary>
       <ol className="mt-2 flex flex-col gap-3">

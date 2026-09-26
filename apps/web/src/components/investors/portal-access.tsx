@@ -1,7 +1,7 @@
 import type { PaperDocument } from "@OpenFarm/domain";
 import { farmDayOf, mobileNumberOf } from "@OpenFarm/domain";
 import { formatDate, formatDigits } from "@OpenFarm/i18n";
-import { Button } from "@OpenFarm/ui/components/button";
+import { Button, buttonVariants } from "@OpenFarm/ui/components/button";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import {
 } from "@OpenFarm/ui/components/dialog";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
@@ -543,8 +544,11 @@ export const PortalAccess = ({
           </span>
         )}
       </div>
-      <div className="flex flex-wrap gap-2">
+      {/* One under another, the width of the column they sit in: three buttons of different lengths wrapped two and
+          one, which read as two groups where there is one. */}
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
         <Button
+          className="justify-start"
           disabled={whyNot !== null || inviting.isPending || printing.isPending}
           onClick={invite}
           size="sm"
@@ -554,22 +558,21 @@ export const PortalAccess = ({
           <KeyRound aria-hidden data-icon="inline-start" />
           {t(inviteWord)}
         </Button>
-        <Button
-          render={
-            <Link
-              params={{ investorId: investor.id }}
-              to="/investors/$investorId/as-they-see-it"
-            />
-          }
-          size="sm"
+        <Link
+          className={cn(
+            buttonVariants({ size: "sm", variant: "outline" }),
+            "justify-start"
+          )}
+          params={{ investorId: investor.id }}
           title={t("portal.preview.seeAsTheyDoHint")}
-          variant="outline"
+          to="/investors/$investorId/as-they-see-it"
         >
           <Eye aria-hidden data-icon="inline-start" />
           {t("portal.preview.seeAsTheyDo")}
-        </Button>
+        </Link>
         {hasAccessToTake(standing) || canWithdraw(investor) ? (
           <Button
+            className="text-danger hover:text-danger justify-start"
             onClick={() => setAsking(true)}
             size="sm"
             type="button"

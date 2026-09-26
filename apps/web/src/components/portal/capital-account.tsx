@@ -107,13 +107,12 @@ export const CapitalAccount = ({ theirs }: { theirs: TheirAgreements }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
   const sums = portfolioOf(theirs);
-  const standing = theirs.agreements.filter(
-    (one) => one.venture.state !== "cancelled"
+  // Counted as the Owner's page counts them: the Units of a Venture settled or called off are nobody's any more.
+  const running = theirs.agreements.filter(
+    (one) =>
+      one.venture.state !== "settled" && one.venture.state !== "cancelled"
   );
-  const running = standing.filter(
-    (one) => one.venture.state !== "settled"
-  ).length;
-  const units = standing.reduce((sum, one) => sum + one.units, 0);
+  const units = running.reduce((sum, one) => sum + one.units, 0);
   return (
     <section
       aria-labelledby="capital-account-title"
@@ -156,7 +155,7 @@ export const CapitalAccount = ({ theirs }: { theirs: TheirAgreements }) => {
         <Line
           hint={t("portal.sums.settledCount", { count: sums.settled })}
           label={t("portal.sums.running")}
-          value={formatNumber(running, language)}
+          value={formatNumber(running.length, language)}
         />
       </dl>
     </section>

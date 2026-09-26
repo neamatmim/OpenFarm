@@ -1,4 +1,5 @@
-import { formatNumber } from "@OpenFarm/i18n";
+import { startOfFarmDay } from "@OpenFarm/domain";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -9,10 +10,12 @@ import {
   FileText,
   Landmark,
   PieChart,
+  TrendingUp,
   Wallet,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
+import type { TheirAgreements } from "@/components/investors/investor-agreements";
 import { Nothing, SaidDate } from "@/components/list-cells";
 import { Loaded, Page, PageHeader, Section } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
@@ -41,11 +44,23 @@ const saidKg = (kg: number | null, said: ReturnType<typeof useLanguage>) =>
     ? null
     : said.t("portal.kg", { kg: formatNumber(kg, said.language) });
 
-/** The four figures their part of the Venture is read by. */
-const useFigures = (today: Today): Figure[] => {
+/** What an approved Settlement came to on their paper, as their portfolio answers it. */
+type HisSettlement = NonNullable<
+  TheirAgreements["agreements"][number]["settlement"]
+>;
+
+/**
+ * The four figures their part of the Venture is read by: their capital and the split always, then the herd and the
+ * days to the sale window while it runs — and, once it is settled, what they were owed and whether it was paid, since
+ * a count of animals and days that have both run out says nothing any more.
+ */
+const useFigures = (
+  today: Today,
+  settlement: HisSettlement | null
+): Figure[] => {
   const { t, language } = useLanguage();
   const taka = useTaka();
-  return [
+  const terms: Figure[] = [
     {
       label: t("portal.capital"),
       value: taka(today.his.capitalBdt),
@@ -66,6 +81,30 @@ const useFigures = (today: Today): Figure[] => {
       }),
       icon: PieChart,
     },
+  ];
+  if (settlement) {
+    return [
+      ...terms,
+      {
+        label: t("portal.profit"),
+        value: taka(settlement.shareBdt),
+        icon: TrendingUp,
+        tone: settlement.shareBdt < 0 ? "warning" : "neutral",
+      },
+      {
+        label: t("portal.paidOut"),
+        value: taka(settlement.payoutBdt),
+        hint: settlement.paidOn
+          ? t("portal.paidOnDay", {
+              day: formatDate(startOfFarmDay(settlement.paidOn), language),
+            })
+          : t("investors.page.notPaidYet"),
+        icon: Wallet,
+      },
+    ];
+  }
+  return [
+    ...terms,
     {
       label: t("portal.animals"),
       value: formatNumber(today.herd.standing, language),
@@ -350,7 +389,11 @@ const VentureToday = ({ today, tab }: { today: Today; tab: Tab }) => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const places = usePortalPlaces();
-  const figures = useFigures(today);
+  const theirs = useTheirPortfolio();
+  const mine = theirs.data?.agreements.find(
+    (one) => one.id === today.agreementId
+  );
+  const figures = useFigures(today, mine?.settlement ?? null);
   return (
     <>
       <Link

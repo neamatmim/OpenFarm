@@ -116,7 +116,7 @@ const Portfolio = ({ theirs }: { theirs: TheirAgreements }) => {
     <>
       <CapitalAccount theirs={theirs} />
       <Allocation theirs={theirs} />
-      <Section title={t("portal.yourVentures")}>
+      <Section plain title={t("portal.yourVentures")}>
         <ul
           className={cn(
             "grid gap-3",

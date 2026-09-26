@@ -221,6 +221,7 @@ export const bn: Record<MessageKey, string> = {
   "portal.nav.money": "টাকা",
   "portal.nav.papers": "কাগজ",
   "portal.moneyTitle": "আপনার টাকা",
+  "portal.money.paidIn": "আপনার জমা দেওয়া মূলধন",
   "portal.noPapers": "এখনো কোনো কাগজ নেই",
   "portal.closed":
     "বিনিয়োগকারী পোর্টাল আপনার জন্য খোলা নেই। খামারের মালিকের সঙ্গে কথা বলুন।",
@@ -310,6 +311,14 @@ export const bn: Record<MessageKey, string> = {
   "portal.paper.joining": "যোগদানপত্র",
   "portal.paper.progress": "অগ্রগতি",
   "portal.paper.settlement": "হিসাব নিকাশ",
+  "portal.paper.joiningHint": "আপনার মূলধনের স্বীকৃতি, আর যে শর্তে আপনি রাজি হয়েছেন।",
+  "portal.paper.progressHint": "ভেঞ্চার চলার সময়: পশুর ওজন কত, আর টাকা কোথায় গেছে।",
+  "portal.paper.settlementHint":
+    "শেষে: বিক্রির টাকা, প্রতিটি খরচ, ভাগ আর আপনার প্রাপ্য।",
+  "portal.paper.open": "খুলুন",
+  "portal.paper.afterCapital": "আপনার মূলধন এলে পাওয়া যাবে",
+  "portal.paper.afterSettlement": "ভেঞ্চারের হিসাব শেষ হলে পাওয়া যাবে",
+  "portal.paidOnDay": "{day} তারিখে পরিশোধ",
   "portal.isOpen": "খোলা",
   "portal.isShut": "বন্ধ",
   "portal.openIt": "পোর্টাল খুলুন",

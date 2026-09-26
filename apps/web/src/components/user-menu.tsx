@@ -15,6 +15,7 @@ import { ChevronDown, Lock, LogOut, Settings } from "lucide-react";
 import { useT } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
 import { useInTheBrowser } from "@/lib/in-the-browser";
+import { initialsOf } from "@/lib/initials";
 import {
   lockAndPutAway,
   lockOnTheFarm,
@@ -22,16 +23,6 @@ import {
   useIsShedPhone,
 } from "@/lib/shed-phone";
 import { orpc } from "@/utils/orpc";
-
-/** The first letters of a person's first two names, which is how a shared phone tells whose session it is at a glance. */
-export const initialsOf = (name: string) =>
-  name
-    .split(/\s+/u)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => [...part][0])
-    .join("")
-    .toUpperCase();
 
 export const Initials = ({
   name,
