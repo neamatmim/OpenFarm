@@ -1,9 +1,5 @@
 import type { Kept } from "./animal-price";
-import {
-  KEEP_NEEDS_DAYS,
-  KEEP_READ_DAYS,
-  inTheKeepWindow,
-} from "./animal-price";
+import { KEEP_NEEDS_DAYS, inTheKeepWindow } from "./animal-price";
 import { roundLitres } from "./milk";
 import { roundTaka } from "./money";
 
@@ -24,11 +20,12 @@ const CALF_MILK_DAYS = 7;
 
 /**
  * The fewest days into her Lactation the farm may set before her milk is weighed against her keep: her calf's week and
- * the four weeks after it that are read. Any sooner and the four weeks would take in the calf's milk, and every cow
- * fresh from calving would look short. A Farm Parameter says how many (the Owner's, 35 by default); this is its floor.
+ * then the days her keep is read over. Any sooner and those days would take in the calf's milk, and every cow fresh
+ * from calving would look short. A Farm Parameter says how many (the Owner's, 35 by default); this is its floor, and it
+ * moves with the other Farm Parameter, the days her keep is read over.
  */
-export const LEAST_DAYS_BEFORE_MILK_IS_WEIGHED =
-  CALF_MILK_DAYS + KEEP_READ_DAYS;
+export const leastDaysBeforeMilkIsWeighed = (keepReadDays: number): number =>
+  CALF_MILK_DAYS + keepReadDays;
 
 /**
  * What a litre fetched across some of the farm's Dispatches: everything they fetched over every litre they took, so a
@@ -48,14 +45,15 @@ export const milkPriceOf = (
   return { bdtPerLitre: roundTaka(bdt / litres), litres: roundLitres(litres) };
 };
 
-/** The litres she sent to Bulk inside her last four weeks, read over the same days as her keep. */
+/** The litres she sent to Bulk inside the days her keep is read over, so the two are the same days. */
 export const litresOver = (
   milked: readonly { at: Date; litres: number }[],
-  now: Date
+  now: Date,
+  readDays: number
 ): number =>
   roundLitres(
     milked
-      .filter((one) => inTheKeepWindow(one.at, now))
+      .filter((one) => inTheKeepWindow(one.at, now, readDays))
       .reduce((sum, one) => sum + one.litres, 0)
   );
 
@@ -66,7 +64,7 @@ export type MilkAgainstKeep =
   | { known: false; because: MilkUnknown }
   | {
       known: true;
-      /** The days of her last four weeks she was here, which both sums are over. */
+      /** The days of the farm's keep days she was here, which both sums are over. */
       days: number;
       litres: number;
       litresPerDay: number;
@@ -85,12 +83,12 @@ export type MilkAgainstKeep =
     };
 
 /**
- * Her milk against her keep over her last four weeks: what the litres she sent to Bulk fetch at what the farm's own
+ * Her milk against her keep over the days her keep is read back over: what the litres she sent to Bulk fetch at what the farm's own
  * Dispatches got a litre, set beside what keeping her cost. Milk to her calf or poured away under Withdrawal fetched
  * nothing, so it counts for nothing — a treatment costs the milk it spoils as well as the dose.
  *
  * Not weighed, and said why, until she is as many days into her Lactation as the farm says, while no Feeding was
- * charged to her in the four weeks, or while the farm sold no milk in its price window to put a price on a litre.
+ * charged to her in those days, or while the farm sold no milk in its price window to put a price on a litre.
  */
 export const milkAgainstKeep = ({
   kept,
@@ -103,7 +101,7 @@ export const milkAgainstKeep = ({
   litres: number;
   daysInMilk: number | null;
   /** The Farm Parameter: how many days into her Lactation before her milk is weighed. Never fewer than
-   *  `LEAST_DAYS_BEFORE_MILK_IS_WEIGHED`, which the Parameter itself refuses. */
+   *  `leastDaysBeforeMilkIsWeighed`, which the Parameter itself refuses. */
   weighedAfterDays: number;
   price: { bdtPerLitre: number } | null;
 }): MilkAgainstKeep => {

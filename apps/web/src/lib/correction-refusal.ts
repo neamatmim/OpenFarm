@@ -195,6 +195,7 @@ const WORDED_REFUSALS = {
   harvest_has_no_price: "refusal.harvestHasNoPrice",
   lot_number_missing: "refusal.lotNumberMissing",
   manager_only: "refusal.managerOnly",
+  milk_weighed_too_soon: "refusal.milkWeighedTooSoon",
   month_is_for_wages: "refusal.monthIsForWages",
   no_calving_expected: "refusal.noCalvingExpected",
   no_such_bull: "refusal.noSuchBull",

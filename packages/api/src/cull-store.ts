@@ -24,7 +24,7 @@ const BREEDING_STATES = [
 
 /**
  * Every dairy cow in milk or dry, and every Repeat Breeder, with the reasons the farm has to name her to the Owner — her
- * milk against her keep over her last four weeks, how long since she calved and whether she is in calf, and how many
+ * milk against her keep over the farm's keep days, how long since she calved and whether she is in calf, and how many
  * heats she has been served on that did not take — whether or not any of them names her, so the Owner can read a cow
  * that pays beside one that does not.
  *
@@ -36,6 +36,7 @@ export const cullList = async (
   farm: {
     id: string;
     repeatBreederThreshold: number;
+    keepReadDays: number;
     cullOpenDays: number;
     cullMilkAfterDays: number;
     cullMilkPriceDays: number;
@@ -87,6 +88,8 @@ export const cullList = async (
     milkPrice: price ? { ...price, since, days: farm.cullMilkPriceDays } : null,
     /** The Farm Parameter the Dispatches were read back over, in days, priced or not. */
     milkPriceDays: farm.cullMilkPriceDays,
+    /** The Farm Parameter a cow's milk and keep are read back over, in days. */
+    keepReadDays: farm.keepReadDays,
     /** The Farm Parameter a cow still empty after calving is named at, for the page to say. */
     openDays: farm.cullOpenDays,
     /** The Farm Parameter a cow's milk is weighed from, in days of her Lactation. */
@@ -105,10 +108,12 @@ export const cullList = async (
                   charges: keepChargesOf(costs, cow.id),
                   stood: stoodBy.get(cow.id) ?? [],
                   now,
+                  readDays: farm.keepReadDays,
                 }),
                 litres: litresOver(
                   costs.ofAnimal.litres.get(cow.id) ?? [],
-                  now
+                  now,
+                  farm.keepReadDays
                 ),
                 daysInMilk: daysSinceCalving,
                 weighedAfterDays: farm.cullMilkAfterDays,

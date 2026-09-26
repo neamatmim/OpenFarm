@@ -83,7 +83,7 @@ export const ReasonBadges = ({
 };
 
 /**
- * Her milk against her keep over her last four weeks: what the two came to, what that leaves over her keep, and what a
+ * Her milk against her keep over the farm's keep days: what the two came to, what that leaves over her keep, and what a
  * litre of hers costs to make — or why it is not weighed yet, or that she is dry.
  */
 const MilkLines = ({
@@ -131,7 +131,7 @@ const MilkLines = ({
           short ? "text-danger" : "text-success"
         )}
       >
-        {t("cull.over", { over: taka(milk.overKeepBdt) })}
+        {t("cull.over", { over: taka(milk.overKeepBdt), days: milk.days })}
       </span>
       <span className="text-muted-foreground text-xs whitespace-nowrap tabular-nums">
         {milk.costPerLitreBdt === null

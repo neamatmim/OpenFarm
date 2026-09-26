@@ -282,6 +282,8 @@ export const HerPrice = ({ tagNumber }: { tagNumber: string }) => {
   const { t } = useLanguage();
   const owner = useIsOwner();
   const one = useHerPrice(tagNumber);
+  // The farm's keep days, for the hint to say; missing from an answer this phone kept from before it was a setting.
+  const keepReadDays = usePrices().data?.keepReadDays;
   if (!owner || !one) {
     return null;
   }
@@ -294,7 +296,11 @@ export const HerPrice = ({ tagNumber }: { tagNumber: string }) => {
       <div className="flex flex-col items-start gap-1">
         <KeepLine full one={one} />
       </div>
-      <p className="text-muted-foreground text-xs">{t("keep.hint")}</p>
+      <p className="text-muted-foreground text-xs">
+        {keepReadDays === undefined
+          ? t("keep.hintUnset")
+          : t("keep.hint", { days: keepReadDays })}
+      </p>
     </div>
   );
 };

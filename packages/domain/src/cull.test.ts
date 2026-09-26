@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   cullReasonsOf,
+  leastDaysBeforeMilkIsWeighed,
   litresOver,
   milkAgainstKeep,
   milkPriceOf,
@@ -40,9 +41,18 @@ describe("the litres she sent to Bulk in her last four weeks", () => {
           { at: new Date("2040-02-10T00:00:00.000Z"), litres: 12.5 },
           { at: new Date("2040-02-20T00:00:00.000Z"), litres: 7.25 },
         ],
-        now
+        now,
+        28
       )
     ).toBe(19.75);
+  });
+});
+
+describe("the soonest a cow's milk may be weighed", () => {
+  it("is her calf's week and then the days her keep is read over, however many the farm reads", () => {
+    // Four weeks of keep: 35 days. Six weeks: 49 — any sooner and the six weeks would take in the calf's milk.
+    expect(leastDaysBeforeMilkIsWeighed(28)).toBe(35);
+    expect(leastDaysBeforeMilkIsWeighed(42)).toBe(49);
   });
 });
 

@@ -356,6 +356,15 @@ beforeAll(async () => {
   });
 });
 
+/** The farm's four weeks of keep and five weeks before milk is weighed, put back together as a new farm has them. */
+const backToFourWeeks = async () => {
+  const owner = await as("owner", "2041-03-01T06:00:00.000Z");
+  await owner.client.farm.setParameters({
+    keepReadDays: 28,
+    cullMilkAfterDays: 35,
+  });
+};
+
 const theList = async () => {
   const owner = await as("owner", "2041-03-01T04:00:00.000Z");
   const list = await owner.client.culling.list();
@@ -516,5 +525,72 @@ describe("why the farm names a dairy cow to the Owner", () => {
       reasons: [],
     });
     await owner.client.farm.setParameters({ cullMilkPriceDays: 60 });
+  });
+
+  it("weighs a cow's milk and her keep over the same days, as many as the Owner says", async () => {
+    const owner = await as("owner", "2041-03-01T04:00:00.000Z");
+    await owner.client.farm.setParameters({
+      keepReadDays: 14,
+      cullMilkAfterDays: 21,
+    });
+    try {
+      // A fortnight back from the 1st of March is the 15th of February: the 20th's feeding and milking are inside it,
+      // the 10th's are not. ৳8,400 split four ways is ৳2,100 of keep; 20 litres at ৳55 fetch ৳1,100, ৳1,000 short, and
+      // a litre costs her ৳105 to make.
+      const { list, of } = await theList();
+      expect(list.keepReadDays).toBe(14);
+      expect(of(cow.short)?.milk).toEqual({
+        known: true,
+        days: 14,
+        litres: 20,
+        litresPerDay: 1.43,
+        bdtPerLitre: 55,
+        worthBdt: 1100,
+        keepBdt: 2100,
+        overKeepBdt: -1000,
+        costPerLitreBdt: 105,
+        whole: true,
+      });
+    } finally {
+      // Put back together, whatever went wrong above, so no later test reads this farm's fortnight.
+      await backToFourWeeks();
+    }
+  });
+
+  it("reads a keep over as many days as the Owner says, a fortnight to three months, and holds the milk wait a week past them", async () => {
+    const owner = await as("owner", "2041-03-01T04:00:00.000Z");
+    const manager = await as("manager", "2041-03-01T04:00:00.000Z");
+    await expect(
+      manager.client.farm.setParameters({ keepReadDays: 42 })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    for (const keepReadDays of [13, 91]) {
+      // oxlint-disable-next-line no-await-in-loop -- one refusal at a time
+      await expect(
+        owner.client.farm.setParameters({ keepReadDays })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    }
+    // Six weeks of keep while milk is still weighed at 35 days would take in the calf's week: the wait must be 49, and
+    // the refusal says so by its own word, for the screen to say in the reader's language.
+    await expect(
+      owner.client.farm.setParameters({ keepReadDays: 42 })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "milk_weighed_too_soon", soonestDays: 49 },
+    });
+    // And the wait cannot come down under a week past the four weeks read now.
+    await expect(
+      owner.client.farm.setParameters({ cullMilkAfterDays: 34 })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    // A fortnight's keep, and milk weighed from three weeks: set together, the two agree.
+    await owner.client.farm.setParameters({
+      keepReadDays: 14,
+      cullMilkAfterDays: 21,
+    });
+    try {
+      const { list } = await theList();
+      expect(list.milkAfterDays).toBe(21);
+    } finally {
+      await backToFourWeeks();
+    }
   });
 });

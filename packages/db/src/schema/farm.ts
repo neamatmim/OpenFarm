@@ -95,9 +95,13 @@ export const farm = pgTable("farm", {
     .default(3),
   /** How many days after her last Calving a cow still not in calf is named to the Owner as one to think about
    *  culling. The Owner's, as the list it shapes is: five months unless the Owner says otherwise. */
+  /** How many days back an animal's keep is read — her feed, her doses, the Vet's visits and her share of the Herd
+   *  Costs — when it is set beside what she puts on or gives in milk: four weeks, two fortnightly Weigh-ins, unless the
+   *  Owner says otherwise. */
+  keepReadDays: integer("keep_read_days").notNull().default(28),
   cullOpenDays: integer("cull_open_days").notNull().default(150),
   /** How many days into her Lactation before a cow's milk is weighed against her keep for the Owner's culling list:
-   *  her calf's week and the four weeks read after it, unless the Owner would rather wait for her peak. */
+   *  her calf's week and the keep days read after it, unless the Owner would rather wait for her peak. */
   cullMilkAfterDays: integer("cull_milk_after_days").notNull().default(35),
   /** How many days back the farm's own Dispatches are read for what a litre of its milk fetches, when a cow's milk is
    *  set against her keep: two months of a milk buyer unless the Owner says otherwise. */

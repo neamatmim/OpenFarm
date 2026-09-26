@@ -374,7 +374,9 @@ export const en = {
   "price.noPrice": "No price a kg set",
   "keep.title": "Keep or sell",
   "keep.hint":
-    "Whether another fortnight pays: the last four weeks' feed, medicine, vet visits and share of the herd costs, over the kilos being put on now, against the price a kg. What the animal has cost already is spent either way, so it has no say here. It does not know the price will change at Eid.",
+    "Whether another fortnight pays: feed, medicine, vet visits and share of the herd costs over the last {days, plural, one {# day} other {# days}}, over the kilos being put on now, against the price a kg. What the animal has cost already is spent either way, so it has no say here. It does not know the price will change at Eid.",
+  "keep.hintUnset":
+    "Whether another fortnight pays: recent feed, medicine, vet visits and share of the herd costs, over the kilos being put on now, against the price a kg. What the animal has cost already is spent either way, so it has no say here. It does not know the price will change at Eid.",
   "keep.pays": "Keeping pays",
   "keep.close": "Depends on the price",
   "keep.costsMore": "Costs more to keep",
@@ -386,7 +388,7 @@ export const en = {
     "Not gaining: {keep} for {days, plural, one {# day} other {# days}} of keep",
   "keep.short": "some feed or medicine has no price yet",
   "keep.tooNew": "Keep or sell: too soon to tell",
-  "keep.notFed": "Keep or sell: no feeding recorded in four weeks",
+  "keep.notFed": "Keep or sell: no feeding recorded lately",
   "keep.noRate": "Keep or sell: weigh again to tell",
   "keep.all": "Keep or sell: all",
   "cull.subtitle":
@@ -396,7 +398,9 @@ export const en = {
   "cull.reason.repeat_breeder": "Will not settle",
   "cull.named": "Might be culled",
   "cull.namedHint": "Cows with at least one reason",
-  "cull.milkHint": "Four weeks' milk fetched less than her keep",
+  "cull.milkHint":
+    "Milk over the last {days, plural, one {# day} other {# days}} fetched less than her keep",
+  "cull.milkHintUnset": "Recent milk fetched less than her keep",
   "cull.openHint":
     "Not in calf {days, plural, one {# day} other {# days}} after calving, or dry and not in calf",
   "cull.repeatHint": "Served heat after heat without settling",
@@ -407,12 +411,12 @@ export const en = {
   "cull.col.milk": "Milk against keep",
   "cull.col.calving": "Calving",
   "cull.milk": "Milk {worth} · keep {keep}",
-  "cull.over": "{over} over keep in four weeks",
+  "cull.over": "{over} over keep in {days, plural, one {# day} other {# days}}",
   "cull.rate": "{litres} L a day · a litre costs {cost}",
   "cull.noneToBulk": "no milk to bulk",
   "cull.dry": "Dry: no milk",
   "cull.tooSoon": "Too soon after calving to weigh",
-  "cull.notFed": "No feeding recorded in four weeks",
+  "cull.notFed": "No feeding recorded lately",
   "cull.noPrice": "No milk sold lately to price it",
   "cull.inCalf": "In calf, due {day}",
   "cull.sinceCalving":
@@ -429,7 +433,7 @@ export const en = {
     "Every cow in milk pays for her keep, every one that should be is in calf, and none is failing to settle.",
   "cull.noneInFilter": "No cow in this list",
   "cull.hint":
-    "For you alone, and never a decision: her milk and her keep over her last four weeks, whether she is in calf, and whether she has settled.",
+    "For you alone, and never a decision: her recent milk and keep, whether she is in calf, and whether she has settled.",
   "market.title": "Market price",
   "market.hint":
     "What a kilo of live weight is fetching, as you judge it. The farm's own animals are priced at it; a Venture's animals at their Venture's own prices. Yours to read: the Manager and Investors do not see prices.",
@@ -829,9 +833,10 @@ export const en = {
   "params.feedTolerance": "Feed stock tolerance",
   "params.staffCorrection": "Staff may correct for",
   "params.managerCorrection": "Manager may correct for",
-  "params.culling": "Culling",
-  "params.cullingHint":
-    "What puts a dairy cow on your culling list. Yours alone to set, as the list is yours alone to read.",
+  "params.keepAndCull": "Keep, sell or cull",
+  "params.keepAndCullHint":
+    "How far back an animal's keep is read for keep-or-sell and the culling list, and what puts a dairy cow on that list. Yours alone to set, as the two are yours alone to read.",
+  "params.keepReadDays": "Read an animal's keep over the last",
   "params.cullOpenDays": "Empty too long after calving",
   "params.cullMilkAfterDays": "Weigh milk against keep from, after calving",
   "params.cullMilkPriceDays": "Price milk from dispatches of the last",
@@ -1241,6 +1246,8 @@ export const en = {
   "ventures.herdMargin": "The herd's margin",
   "ventures.herdCostOfGain": "Each kilogram they put on",
   "ventures.noAnimalsYet": "No animals on this venture yet",
+  "refusal.milkWeighedTooSoon":
+    "A cow's milk is weighed at least a week past the days her keep is read over. Change the two together.",
   "refusal.capitalOverUnits":
     "That is more than this Agreement's Units are worth",
   "refusal.refundNotItsMoney":
