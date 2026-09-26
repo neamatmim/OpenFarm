@@ -13,7 +13,7 @@
 
 **Wording:** [`05-nominee-wording-draft.md`](../openfarm-several-nominees/assets/05-nominee-wording-draft.md). The printed layout is variant D of the prototype on branch `prototype/several-nominees` (`/prototype/nominees?variant=D&case=none|one|three`).
 
-**Status:** ready for an agent. The ticket breakdown is still to be written.
+**Status:** ready for an agent. Tickets are in [README.md](./README.md).
 
 ---
 
