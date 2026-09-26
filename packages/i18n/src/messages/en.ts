@@ -400,6 +400,8 @@ export const en = {
   "cull.openHint":
     "Not in calf {days, plural, one {# day} other {# days}} after calving, or dry and not in calf",
   "cull.repeatHint": "Served heat after heat without settling",
+  "cull.openHintUnset":
+    "Not in calf long after calving, or dry and not in calf",
   "cull.all": "All cows",
   "cull.col.reasons": "Reasons",
   "cull.col.milk": "Milk against keep",
@@ -825,6 +827,10 @@ export const en = {
   "params.feedTolerance": "Feed stock tolerance",
   "params.staffCorrection": "Staff may correct for",
   "params.managerCorrection": "Manager may correct for",
+  "params.culling": "Culling",
+  "params.cullingHint":
+    "What puts a dairy cow on your culling list. Yours alone to set, as the list is yours alone to read.",
+  "params.cullOpenDays": "Empty too long after calving",
   "params.ventures": "Ventures",
   "params.venturesHint":
     "What a Venture is planned by when you open one: the least it is worth starting on, how much of its capital keeps the animals rather than buys them, and how long it keeps selling after its window closes.",

@@ -89,6 +89,8 @@ export interface Context {
     calvingPrepLeadDays: number;
     /** How many attempts that did not take raise a Repeat Breeder. */
     repeatBreederThreshold: number;
+    /** How many days after calving a cow still not in calf is named to the Owner for culling. */
+    cullOpenDays: number;
     /** The taka above which a Money Event waits for the Owner. */
     approvalThresholdBdt: number;
     /** What part of a Venture's target capital is the least worth starting on. */

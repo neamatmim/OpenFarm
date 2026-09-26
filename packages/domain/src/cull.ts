@@ -15,10 +15,6 @@ export const CULL_REASONS = [
 ] as const;
 export type CullReason = (typeof CULL_REASONS)[number];
 
-/** Days after her last Calving that a cow still not in calf is named: five months, well past the second or third heat
- *  a cow that is going to settle has settled on, and every month more is a month with no next Lactation coming. */
-export const OPEN_DAYS_TO_NAME = 150;
-
 /** Days into her Lactation before her milk is weighed against her keep: her first week's milk is her calf's, and the
  *  four weeks after it are what is read. */
 export const MILK_NEEDS_DAYS_IN_MILK = 35;
@@ -138,12 +134,16 @@ export const cullReasonsOf = ({
   state,
   inCalf,
   daysSinceCalving,
+  openDays,
   milk,
   repeatBreeder,
 }: {
   state: string;
   inCalf: boolean;
   daysSinceCalving: number | null;
+  /** The Farm Parameter: how many days after calving a cow still empty is named — 150 unless the Owner says
+   *  otherwise, well past the second or third heat a cow that is going to settle has settled on. */
+  openDays: number;
   milk: MilkAgainstKeep | null;
   repeatBreeder: boolean;
 }): CullReason[] => {
@@ -158,7 +158,7 @@ export const cullReasonsOf = ({
   const emptyTooLong =
     state === "milking" &&
     daysSinceCalving !== null &&
-    OPEN_DAYS_TO_NAME <= daysSinceCalving;
+    openDays <= daysSinceCalving;
   if (!inCalf && (state === "dry" || emptyTooLong)) {
     reasons.push("open_long");
   }

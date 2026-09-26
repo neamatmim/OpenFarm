@@ -113,6 +113,7 @@ describe("why the farm names a cow to the Owner", () => {
     state: "milking",
     inCalf: false,
     daysSinceCalving: 90,
+    openDays: 150,
     milk: paying as MilkAgainstKeep | null,
     repeatBreeder: false,
   };
@@ -148,12 +149,23 @@ describe("why the farm names a cow to the Owner", () => {
     ).toEqual([]);
   });
 
+  it("counts empty days against the farm's own setting, not a number of its own", () => {
+    // A farm that names a cow at 120 days names one at 121 that a farm at 150 would leave be.
+    expect(
+      cullReasonsOf({ ...cow, daysSinceCalving: 121, openDays: 120 })
+    ).toEqual(["open_long"]);
+    expect(
+      cullReasonsOf({ ...cow, daysSinceCalving: 121, openDays: 150 })
+    ).toEqual([]);
+  });
+
   it("names a Repeat Breeder, a heifer among them, and says every reason a cow has in one order", () => {
     expect(
       cullReasonsOf({
         state: "heifer",
         inCalf: false,
         daysSinceCalving: null,
+        openDays: 150,
         milk: null,
         repeatBreeder: true,
       })
