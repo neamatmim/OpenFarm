@@ -297,6 +297,20 @@ afterAll(async () => {
     );
 });
 
+/**
+ * The first Venture's plan, written after buying began and so its own baseline: six bulls of 180 to 220 kg at ৳320 a
+ * kilo and two of 260 to 300 kg at ৳300, each putting on a kilo a day, sold at ৳500 to ৳600.
+ */
+const THE_PLAN = {
+  lines: [
+    { animals: 6, fromKg: 180, toKg: 220, buyBdtPerKg: 320, dailyGainKg: 1 },
+    { animals: 2, fromKg: 260, toKg: 300, buyBdtPerKg: 300, dailyGainKg: 1 },
+  ],
+  saleLowBdtPerKg: 500,
+  saleHighBdtPerKg: 600,
+  reason: "পরিকল্পনা পরে লেখা হলো",
+};
+
 describe("what a Venture's animals are doing", () => {
   it("counts who stands, who died and who was sold away", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
@@ -427,10 +441,9 @@ describe("what a Venture's animals are doing", () => {
 
   it("is projected from the animals it stands on, what it sold, and what it has been charged (ADR 0010)", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
-    await owner.client.ventures.setProjection({
+    await owner.client.ventures.setPlan({
       ventureId: firstVenture,
-      saleLowBdtPerKg: 500,
-      saleHighBdtPerKg: 600,
+      ...THE_PLAN,
     });
     const { projection } = await owner.client.ventures.projection({
       ventureId: firstVenture,
@@ -440,18 +453,19 @@ describe("what a Venture's animals are doing", () => {
     });
     // The three standing, grown to 1 April at their own whole-stay rates: 228 kg at a kilo a day for the 59 days from
     // 1 February is 287; 221 kg at half a kilo for the 45 days from 15 February is 243.5; and the bull nobody weighed
-    // has no rate, so he is counted at the 200 kg he came at. 730.5 kg. The dead bull and the two sold are not in it.
-    expect(projection?.kgAtSale).toBeCloseTo(730.5, 6);
+    // has no rate of his own, so he grows at his band's planned kilo a day for the 88 days from his arrival: 288.
+    // 818.5 kg. The dead bull and the two sold are not in it.
+    expect(projection?.kgAtSale).toBeCloseTo(818.5, 6);
     // What the one sold to a buyer fetched is a fact at both ends — the figure the Settlement counts.
     expect(projection?.realisedBdt).toBe(settlement.proceedsBdt);
     expect(projection?.chargedBdt).toBeGreaterThanOrEqual(
       settlement.chargedBdt
     );
     expect(projection?.low.proceedsBdt).toBe(
-      Math.round(settlement.proceedsBdt + 730.5 * 500)
+      Math.round(settlement.proceedsBdt + 818.5 * 500)
     );
     expect(projection?.high.proceedsBdt).toBe(
-      Math.round(settlement.proceedsBdt + 730.5 * 600)
+      Math.round(settlement.proceedsBdt + 818.5 * 600)
     );
     // Its Agreements' own split: sixty per cent over the ten Units signed.
     expect(projection).toMatchObject({ investorsPercent: 60, units: 10 });
@@ -459,10 +473,9 @@ describe("what a Venture's animals are doing", () => {
 
   it("prices each bull for the Owner at his Venture's prices against what he cost, and for nobody else", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
-    await owner.client.ventures.setProjection({
+    await owner.client.ventures.setPlan({
       ventureId: firstVenture,
-      saleLowBdtPerKg: 500,
-      saleHighBdtPerKg: 600,
+      ...THE_PLAN,
     });
     const { animals } = await owner.client.fattening.prices();
     const first = animals.find((one) => one.tagNumber === tags[0]);
@@ -552,28 +565,10 @@ describe("what a Venture's animals are doing", () => {
 
   it("measures what it bought, how it grows and what it makes against its plan", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
-    // Its first plan, made after buying began: its own baseline, and it says why.
+    // Its plan, made after buying began: its own baseline, and it says why.
     await owner.client.ventures.setPlan({
       ventureId: firstVenture,
-      lines: [
-        {
-          animals: 6,
-          fromKg: 180,
-          toKg: 220,
-          buyBdtPerKg: 320,
-          dailyGainKg: 1,
-        },
-        {
-          animals: 2,
-          fromKg: 260,
-          toKg: 300,
-          buyBdtPerKg: 300,
-          dailyGainKg: 1,
-        },
-      ],
-      saleLowBdtPerKg: 500,
-      saleHighBdtPerKg: 600,
-      reason: "পরিকল্পনা পরে লেখা হলো",
+      ...THE_PLAN,
     });
     const measured = await owner.client.ventures.planAgainstActual({
       ventureId: firstVenture,

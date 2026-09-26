@@ -1,6 +1,8 @@
 import type { Database } from "@OpenFarm/db";
-import type { Projected } from "@OpenFarm/domain";
+import type { PlanLine, Projected } from "@OpenFarm/domain";
 import {
+  bandOf,
+  buyingAgainstPlan,
   farmDayOf,
   isExitState,
   payoutOf,
@@ -13,6 +15,7 @@ import type { Tx } from "./audit";
 import { fatteningOf } from "./fattening-store";
 import { theirSpend } from "./investor-statement-store";
 import { settlementOf } from "./settlement-store";
+import { boughtFor } from "./venture-bought";
 import type { VentureRow } from "./venture-store";
 
 /**
@@ -20,22 +23,30 @@ import type { VentureRow } from "./venture-store";
  * expects (ADR 0010). An estimate worked from the Owner's own figures and the farm's readings, never a promise, and
  * never printed on a paper.
  *
- * A Venture still gathering capital has no animals, so it is worked from the Owner's plan: the cattle budget buys as
- * many animals as it pays for at the expected price and weight, each puts on the expected gain until the window, and
- * the whole of its capital is spent. Once it is buying, the animals it stands on are its own — each grown to the
- * window at her own rate over her whole stay — and what the cattle budget has still to buy is worked from the plan.
- * What it has sold fetched what it fetched; what it has been charged is what the Settlement counts, and the rest of
- * its running budget is taken as spent, which errs towards the lower figure.
+ * Worked from its **Venture Plan** (ADR 0011) — the version in force, since a projection is what the Owner expects now,
+ * where plan-against-actual measures against the baseline. A Venture still gathering capital has no animals, so it is
+ * the plan alone: every band bought at its middle once the decide-by day comes, grown to the window at its own gain,
+ * and the whole capital spent. Once it is buying, the animals it stands on are its own — each grown at her own rate
+ * over her whole stay, or her band's planned gain while nobody has weighed her — and, while it is still buying, what
+ * each band has still to buy comes from the plan. What it has sold fetched what it fetched; what it has been charged is
+ * what the Settlement counts, and the rest of its running budget is taken as spent, which errs towards the lower
+ * figure. A Venture whose prices were set before it had a plan is projected from those until it has one.
  */
 
-/** Its figures, as the Owner last set them. */
+/** What a Projection is worked from: the plan in force, or the prices set before the Venture had a plan. */
 export interface ProjectionBasis {
   saleLowBdtPerKg: number;
   saleHighBdtPerKg: number;
+  setAt: Date;
+  /** The plan version it is worked from; nothing for prices set before the Venture had a plan. */
+  planVersion: number | null;
+  /** The plan's buying lines, for animals still to buy; none for prices set before the plan. */
+  lines: PlanLine[];
+  /** The buying figures as one average — the plan's own, weighted by its bands, or those set before it — as an offer
+   *  says them. */
   buyBdtPerKg: number | null;
   buyWeightKg: number | null;
   dailyGainKg: number | null;
-  setAt: Date;
 }
 
 export interface Projection extends Projected {
@@ -57,12 +68,65 @@ const daysFromTo = (from: Date, to: Date) =>
 /** Kilogrammes as a numeric column holds them, or nothing. */
 const kgOf = (value: string | null) => (value === null ? null : Number(value));
 
-/** What the Owner last set for this Venture, or nothing while they have set nothing. */
+const middleOf = (line: PlanLine) => (line.fromKg + line.toKg) / 2;
+
+/** A plan's buying as one average: the price a kilo and the weight each is bought at, and the gain a day, each
+ *  weighted as the plan buys — the kilo price by kilos, the rest by head. */
+const averagesOf = (lines: readonly PlanLine[]) => {
+  const animals = lines.reduce((sum, line) => sum + line.animals, 0);
+  const kg = lines.reduce(
+    (sum, line) => sum + line.animals * middleOf(line),
+    0
+  );
+  if (animals === 0 || kg === 0) {
+    return { buyBdtPerKg: null, buyWeightKg: null, dailyGainKg: null };
+  }
+  const cost = lines.reduce(
+    (sum, line) => sum + line.animals * middleOf(line) * line.buyBdtPerKg,
+    0
+  );
+  const gain = lines.reduce(
+    (sum, line) => sum + line.animals * line.dailyGainKg,
+    0
+  );
+  return {
+    buyBdtPerKg: Math.round((cost / kg) * 100) / 100,
+    buyWeightKg: Math.round((kg / animals) * 10) / 10,
+    dailyGainKg: Math.round((gain / animals) * 100) / 100,
+  };
+};
+
+/**
+ * What a Venture's Projection is worked from: the latest version of its plan, or — for one whose prices were set before
+ * it had a plan — those prices. Nothing while it has neither.
+ */
 export const projectionBasisOf = async (
   db: Pick<Tx, "query">,
   farmId: string,
   ventureId: string
 ): Promise<ProjectionBasis | null> => {
+  const plan = await db.query.venturePlan.findFirst({
+    where: { farmId, ventureId },
+    orderBy: { version: "desc" },
+    with: { lines: { orderBy: { position: "asc" } } },
+  });
+  if (plan) {
+    const lines = plan.lines.map((line): PlanLine => ({
+      animals: line.animals,
+      fromKg: Number(line.fromKg),
+      toKg: Number(line.toKg),
+      buyBdtPerKg: line.buyBdtPerKg,
+      dailyGainKg: Number(line.dailyGainKg),
+    }));
+    return {
+      saleLowBdtPerKg: plan.saleLowBdtPerKg,
+      saleHighBdtPerKg: plan.saleHighBdtPerKg,
+      setAt: plan.madeAt,
+      planVersion: plan.version,
+      lines,
+      ...averagesOf(lines),
+    };
+  }
   const row = await db.query.ventureProjection.findFirst({
     where: { farmId, ventureId },
   });
@@ -72,15 +136,17 @@ export const projectionBasisOf = async (
   return {
     saleLowBdtPerKg: row.saleLowBdtPerKg,
     saleHighBdtPerKg: row.saleHighBdtPerKg,
+    setAt: row.setAt,
+    planVersion: null,
+    lines: [],
     buyBdtPerKg: row.buyBdtPerKg,
     buyWeightKg: kgOf(row.buyWeightKg),
     dailyGainKg: kgOf(row.dailyGainKg),
-    setAt: row.setAt,
   };
 };
 
-/** The plan's figures for buying, when the Owner has given all three. */
-const buyingPlanOf = (basis: ProjectionBasis) =>
+/** The buying figures set before the Venture had a plan, when all three were given. */
+const buyingFiguresOf = (basis: ProjectionBasis) =>
   basis.buyBdtPerKg !== null &&
   basis.buyWeightKg !== null &&
   basis.dailyGainKg !== null
@@ -91,11 +157,19 @@ const buyingPlanOf = (basis: ProjectionBasis) =>
       }
     : null;
 
-/** What the animals standing on the Venture would weigh between them when its window opens. */
+/** Whether a basis says what the Venture will buy: a plan with bands, or the buying figures set before it. */
+const saysWhatItBuys = (basis: ProjectionBasis) =>
+  basis.lines.length > 0 || buyingFiguresOf(basis) !== null;
+
+/**
+ * What the animals standing on the Venture would weigh between them when its window opens: each at her own rate over
+ * her whole stay, or her last fortnight's; one nobody has weighed since she came, at her band's planned gain.
+ */
 const standingKgAtWindow = async (
   db: Pick<Tx, "query">,
   farmId: string,
   ventureId: string,
+  lines: readonly PlanLine[],
   opensAt: Date,
   now: Date
 ): Promise<number> => {
@@ -117,8 +191,12 @@ const standingKgAtWindow = async (
   let kg = 0;
   for (const one of rows.filter((each) => !isExitState(each.state))) {
     const view = fatteningOf(one.intake, one.weighIns, now);
+    // Her band's gain where she has no rate of her own: the plan said what an animal of her weight would put on.
+    const band = one.intake ? bandOf(lines, Number(one.intake.weightKg)) : null;
+    const planned = band === null ? 0 : (lines[band]?.dailyGainKg ?? 0);
     // Her whole stay's rate before her last fortnight's: an estimate months out should lean on the steadier one.
-    const rate = view.sinceIntake?.dailyGainKg ?? view.recent?.dailyGainKg ?? 0;
+    const rate =
+      view.sinceIntake?.dailyGainKg ?? view.recent?.dailyGainKg ?? planned;
     const from = view.latestAt ?? now;
     kg += (view.latestKg ?? 0) + rate * daysFromTo(from, opensAt);
   }
@@ -137,32 +215,51 @@ interface Run {
   units: number;
 }
 
-/** The animals a cattle budget has still to buy, worked from the plan: bought once the Venture stops gathering
- *  capital and not before today, and grown until the window opens. Nothing without the whole plan. */
-const unboughtKg = (
+/**
+ * What the Venture has still to buy would weigh between them when its window opens: bought once it stops gathering
+ * capital and not before today, and grown until the window opens. From the plan, each band's animals less those
+ * already bought in it; from prices set before the plan, as many as the cattle budget left pays for. Nothing once it
+ * has stopped buying.
+ */
+const unboughtKg = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
   run: Run,
   basis: ProjectionBasis,
   cattleBudgetLeftBdt: number,
   now: Date
 ) => {
-  const plan = buyingPlanOf(basis);
-  if (!plan) {
+  if (run.state !== "open" && run.state !== "buying") {
     return 0;
   }
   const buyingFrom = new Date(
     Math.max(now.getTime(), startOfFarmDay(run.decideBy).getTime())
   );
-  return unboughtKgAtWindow({
-    cattleBudgetLeftBdt,
-    ...plan,
-    daysToWindow: daysFromTo(buyingFrom, startOfFarmDay(run.targetWindowStart)),
-  });
+  const days = daysFromTo(buyingFrom, startOfFarmDay(run.targetWindowStart));
+  if (basis.lines.length > 0) {
+    const bought =
+      run.state === "open" ? [] : await boughtFor(db, farmId, run.id);
+    const { bands } = buyingAgainstPlan(basis.lines, bought);
+    let kg = 0;
+    for (const [at, line] of basis.lines.entries()) {
+      const left = Math.max(0, line.animals - (bands[at]?.bought.animals ?? 0));
+      kg += left * (middleOf(line) + line.dailyGainKg * days);
+    }
+    return kg;
+  }
+  const figures = buyingFiguresOf(basis);
+  return figures
+    ? unboughtKgAtWindow({
+        cattleBudgetLeftBdt,
+        ...figures,
+        daysToWindow: days,
+      })
+    : 0;
 };
 
 /**
- * The Projection of a Venture still gathering capital, from the Owner's plan alone: its whole cattle budget spent at
- * the expected price and weight, its whole capital charged, and every Unit it offers taken. Nothing while the Owner
- * has set no sale prices or not the whole plan.
+ * The Projection of a Venture still gathering capital, from its plan alone: every band bought, its whole capital
+ * charged, and every Unit it offers taken. Nothing while it has no plan, or only prices set before one with no buying.
  */
 export const offerProjectionOf = async (
   db: Pick<Tx, "query">,
@@ -173,7 +270,7 @@ export const offerProjectionOf = async (
   now: Date
 ): Promise<Projection | null> => {
   const basis = await projectionBasisOf(db, farmId, run.id);
-  if (!basis || !buyingPlanOf(basis)) {
+  if (!basis || !saysWhatItBuys(basis)) {
     return null;
   }
   const figures = {
@@ -186,7 +283,14 @@ export const offerProjectionOf = async (
     basis,
     ...figures,
     ...projectedSettlement({
-      kgAtSale: unboughtKg(run, basis, run.cattleBudgetBdt, now),
+      kgAtSale: await unboughtKg(
+        db,
+        farmId,
+        { ...run, state: "open" },
+        basis,
+        run.cattleBudgetBdt,
+        now
+      ),
       ...figures,
       saleLowBdtPerKg: basis.saleLowBdtPerKg,
       saleHighBdtPerKg: basis.saleHighBdtPerKg,
@@ -195,8 +299,8 @@ export const offerProjectionOf = async (
 };
 
 /**
- * The Projection of one Venture today, or nothing: while the Owner has set no sale prices, once it is settled or
- * called off, and for one still gathering capital whose buying plan is not given.
+ * The Projection of one Venture today, or nothing: while it has no plan and no prices, once it is settled or called
+ * off, and for one still gathering capital whose plan says nothing of buying.
  */
 export const projectionOf = async (
   db: Database,
@@ -223,6 +327,7 @@ export const projectionOf = async (
       db,
       farmId,
       run.id,
+      basis.lines,
       startOfFarmDay(run.targetWindowStart),
       now
     ),
@@ -235,12 +340,19 @@ export const projectionOf = async (
     investorsPercent: settled.investorsPercent,
     units: settled.units,
   };
+  const stillToBuy = await unboughtKg(
+    db,
+    farmId,
+    run,
+    basis,
+    spend.cattleBudgetLeftBdt,
+    now
+  );
   return {
     basis,
     ...figures,
     ...projectedSettlement({
-      kgAtSale:
-        standingKg + unboughtKg(run, basis, spend.cattleBudgetLeftBdt, now),
+      kgAtSale: standingKg + stillToBuy,
       ...figures,
       saleLowBdtPerKg: basis.saleLowBdtPerKg,
       saleHighBdtPerKg: basis.saleHighBdtPerKg,

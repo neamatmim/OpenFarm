@@ -15,8 +15,8 @@ import { ORPCError } from "@orpc/server";
 import type { Tx } from "./audit";
 import { theirSpend } from "./investor-statement-store";
 import { projectionOf } from "./projection-store";
+import { boughtFor } from "./venture-bought";
 import { theirProgress } from "./venture-herd-store";
-import { ownedThenByOf } from "./venture-store";
 import type { VentureRow } from "./venture-store";
 
 /**
@@ -186,23 +186,7 @@ export const planAgainstActual = async (
   if (!baseline) {
     return null;
   }
-  // Bought for it: the animals that were its own on the day they came, wherever they are now.
-  const ownedThenBy = await ownedThenByOf(db, farmId);
-  const intakes = await db.query.intake.findMany({
-    where: { farmId },
-    columns: {
-      animalId: true,
-      weightKg: true,
-      purchasePriceBdt: true,
-      arrivedAt: true,
-    },
-  });
-  const bought = intakes
-    .filter((one) => ownedThenBy(one.animalId, one.arrivedAt) === run.id)
-    .map((one) => ({
-      weightKg: Number(one.weightKg),
-      priceBdt: one.purchasePriceBdt,
-    }));
+  const bought = await boughtFor(db, farmId, run.id);
   const buying = buyingAgainstPlan(baseline.lines, bought);
   const [progress, spend, projected] = await Promise.all([
     theirProgress(db, farmId, run, now),
@@ -239,7 +223,7 @@ export const planAgainstActual = async (
         saleLowBdtPerKg: baseline.saleLowBdtPerKg,
         saleHighBdtPerKg: baseline.saleHighBdtPerKg,
       }),
-      /** What it is projected to make now, at the prices set for its projection; nothing while none are. */
+      /** What it is projected to make now, worked from its plan in force; nothing once it has ended. */
       projected: projected
         ? {
             lowBdt: projected.low.profitBdt,

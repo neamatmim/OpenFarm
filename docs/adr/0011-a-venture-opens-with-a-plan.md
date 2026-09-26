@@ -17,4 +17,6 @@ On 2026-09-26 the Owner asked for a Venture to open with its whole plan, so the 
 
 - CONTEXT.md gains **Venture Plan**.
 - `venture_plan` and `venture_plan_line` hold the versions; `ventures.plan` and `ventures.setPlan` read and write them.
-- The next steps measure a Venture against its baseline (buying per band, growth, money), and move the Projection's buying figures onto the plan, so no figure is typed twice.
+- `ventures.planAgainstActual` measures a Venture against its baseline: buying per band, growth, money.
+- The Projection (ADR 0010) is worked from the latest version of the plan, not the baseline: a projection is what the Owner expects now. Its sale prices are the plan's. A Venture still buying takes what each band has still to buy from the plan, less the animals already bought at a weight inside that band. An animal nobody has weighed since she came grows at her band's planned gain. `ventures.setProjection` is gone, so no figure is typed twice. A Venture whose prices were set before it had a plan keeps its projection from them until it has one; `venture_projection` stays for those rows.
+- An animal a Venture takes from another by an Internal Sale is not counted as bought against its plan's bands, since she was not bought at her band's weight. While that Venture is still buying, its projection counts her as standing and still counts her band as unbought.

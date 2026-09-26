@@ -78,12 +78,14 @@ const TERMS = {
   cattleBudgetBdt: 800_000,
 };
 
+/** Six animals of 240 to 260 kg — 250 kg at the middle — at ৳500 a kilo, putting on 0.8 kg a day, sold at ৳600 to
+ *  ৳700: the Venture Plan both Ventures are projected from. */
 const PLAN = {
+  lines: [
+    { animals: 6, fromKg: 240, toKg: 260, buyBdtPerKg: 500, dailyGainKg: 0.8 },
+  ],
   saleLowBdtPerKg: 600,
   saleHighBdtPerKg: 700,
-  buyBdtPerKg: 500,
-  buyWeightKg: 250,
-  dailyGainKg: 0.8,
 };
 
 /** The Venture Rahim is in, whose window opens 17 March: 57 days of gain, 295.6 kg each, 1,773.6 kg. */
@@ -168,29 +170,8 @@ beforeAll(async () => {
 /** Rahim, signed in afresh: a request reads the farm's switches as they stand when it is made. */
 const rahimNow = () => signedInAs(rahimsLogin);
 
-describe("setting what a Venture is projected from", () => {
-  it("is the Owner's alone", async () => {
-    const { client: manager } = await createTestClient(appRouter, {
-      as: "manager",
-      clock: new FakeClock(JANUARY),
-    });
-    await expect(
-      manager.ventures.setProjection({ ventureId: hisVenture, ...PLAN })
-    ).rejects.toMatchObject({ code: "FORBIDDEN" });
-  });
-
-  it("refuses a low price above the high one", async () => {
-    const owner = await asOwner();
-    await expect(
-      owner.ventures.setProjection({
-        ventureId: hisVenture,
-        ...PLAN,
-        saleLowBdtPerKg: 800,
-      })
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-  });
-
-  it("gives nothing to project from until it is set", async () => {
+describe("what a Venture is projected from", () => {
+  it("is nothing until it has a plan", async () => {
     const owner = await asOwner();
     const read = await owner.ventures.projection({ ventureId: hisVenture });
     expect(read).toEqual({ basis: null, projection: null });
@@ -200,7 +181,7 @@ describe("setting what a Venture is projected from", () => {
 describe("a Venture still gathering capital", () => {
   it("is projected from the plan: six animals grown to the window, the whole capital charged, every Unit taken", async () => {
     const owner = await asOwner();
-    await owner.ventures.setProjection({ ventureId: hisVenture, ...PLAN });
+    await owner.ventures.setPlan({ ventureId: hisVenture, ...PLAN });
     const { projection } = await owner.ventures.projection({
       ventureId: hisVenture,
     });
@@ -215,6 +196,82 @@ describe("a Venture still gathering capital", () => {
       low: { proceedsBdt: 1_064_160, profitBdt: 64_160, perUnitBdt: 1924 },
       // At ৳700 it is ৳12,41,520, a profit of ৳2,41,520: ৳1,44,912 to the Investors, ৳7,245 a Unit.
       high: { proceedsBdt: 1_241_520, profitBdt: 241_520, perUnitBdt: 7245 },
+    });
+  });
+});
+
+describe("a Venture still buying", () => {
+  it("stands on the animals it has bought and takes what each band has still to buy from the plan", async () => {
+    const owner = await asOwner();
+    const buying = await owner.ventures.open({
+      name: `কেনার ভেঞ্চার ${suffix}`,
+      ...TERMS,
+      targetWindowStart: "2052-03-17",
+      targetWindowEnd: "2052-03-19",
+    });
+    // Three of 240 to 260 kg at ৳500 putting on 0.8 kg a day, and two of 300 to 340 kg at ৳480 putting on 0.6.
+    await owner.ventures.setPlan({
+      ventureId: buying.id,
+      ...PLAN,
+      lines: [
+        {
+          animals: 3,
+          fromKg: 240,
+          toKg: 260,
+          buyBdtPerKg: 500,
+          dailyGainKg: 0.8,
+        },
+        {
+          animals: 2,
+          fromKg: 300,
+          toKg: 340,
+          buyBdtPerKg: 480,
+          dailyGainKg: 0.6,
+        },
+      ],
+    });
+    await owner.ventures.startBuying({ id: buying.id });
+    const shed = await owner.herd.createShed({ name: `কেনা ${suffix}` });
+    const pen = await owner.herd.createPen({
+      shedId: shed.id,
+      name: `কেনা ${suffix}`,
+    });
+    const { client: manager } = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock(JANUARY),
+    });
+    // One of 250 kg, inside the first band, and one of 400 kg that no band planned.
+    for (const weightKg of [250, 400]) {
+      // oxlint-disable-next-line no-await-in-loop -- one beast off the lorry at a time
+      await manager.intake.record({
+        penId: pen.id,
+        sex: "male",
+        seller: { name: `ব্যাপারী ${suffix}` },
+        purchasePriceBdt: weightKg * 500,
+        weightKg,
+        estimatedAgeMonths: 20,
+        ventureId: buying.id,
+        arrivedAt: new Date(JANUARY),
+        targetWindowStart: "2052-03-17",
+        targetWindowEnd: "2052-03-19",
+      });
+    }
+
+    const { basis, projection } = await owner.ventures.projection({
+      ventureId: buying.id,
+    });
+    // Standing: neither weighed since he came, so the 250 kg bull grows at his band's 0.8 kg a day for the 76 days
+    // from 1 January to the window, 310.8 kg; the 400 kg bull has no band and no gain, 400 kg. Still to buy, on
+    // 20 January and fed the 57 days to the window: two more of the first band at 250 + 45.6 = 295.6 kg, and both of
+    // the second at 320 + 34.2 = 354.2 kg. 310.8 + 400 + 591.2 + 708.4 = 2,010.4 kg.
+    expect(projection?.kgAtSale).toBeCloseTo(2010.4, 6);
+    // The plan's buying as one average, as an offer says it: ৳6,82,200 for 1,390 kg is ৳490.79 a kilo; 278 kg a head;
+    // 3.6 kg a day over five head is 0.72.
+    expect(basis).toMatchObject({
+      planVersion: 1,
+      buyBdtPerKg: 490.79,
+      buyWeightKg: 278,
+      dailyGainKg: 0.72,
     });
   });
 });
@@ -260,7 +317,7 @@ describe("an Investor's own Venture in the portal", () => {
 describe("a Venture offered in the portal", () => {
   it("carries its projection a Unit once it is on, and none while it is off", async () => {
     const owner = await asOwner();
-    await owner.ventures.setProjection({ ventureId: offered, ...PLAN });
+    await owner.ventures.setPlan({ ventureId: offered, ...PLAN });
 
     const before = await rahimNow();
     const off = await before.portal.openVentures();
