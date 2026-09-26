@@ -12,6 +12,7 @@ import {
   PARAMETER_SECTIONS,
   SettingsSection,
 } from "@/components/farm-parameters";
+import { useIsOwner } from "@/components/money";
 import { Notice, Page, PageHeader } from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -226,14 +227,17 @@ const RegistrationNotices = ({ farm }: { farm: Identity }) => {
 /** The parts of the page, listed beside it where there is room, each a jump to its place. */
 const OnThisPage = () => {
   const { t } = useLanguage();
+  const isOwner = useIsOwner();
   const parts = [
     { id: "farm-contact", title: t("identity.contact") },
     { id: "farm-registration", title: t("identity.registration") },
     { id: "farm-certificate", title: t("certificate.title") },
-    ...PARAMETER_SECTIONS.map((part) => ({
-      id: part.id,
-      title: t(part.title),
-    })),
+    ...PARAMETER_SECTIONS.filter((part) => !part.owner || isOwner).map(
+      (part) => ({
+        id: part.id,
+        title: t(part.title),
+      })
+    ),
   ];
   return (
     <nav

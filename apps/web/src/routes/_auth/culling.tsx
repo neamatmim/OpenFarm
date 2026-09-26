@@ -1,5 +1,5 @@
 import type { CullReason } from "@OpenFarm/domain";
-import { MILK_PRICE_DAYS, OPEN_DAYS_TO_NAME } from "@OpenFarm/domain";
+import { MILK_PRICE_DAYS } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { createFileRoute } from "@tanstack/react-router";
@@ -14,7 +14,14 @@ import { onlyFor } from "@/lib/guard";
 import { useTakaToThePaisa } from "@/lib/taka";
 
 /** How many cows are named, and for each reason how many it names: a cow named twice counts under both. */
-const CullFigures = ({ cows }: { cows: CullList["cows"] }) => {
+const CullFigures = ({
+  cows,
+  openDays,
+}: {
+  cows: CullList["cows"];
+  /** The farm's days empty after calving; missing from an answer this phone kept from before it was a setting. */
+  openDays: number | undefined;
+}) => {
   const { t, language } = useLanguage();
   const named = cows.filter((cow) => cow.reasons.length > 0).length;
   const count = (reason: CullReason) =>
@@ -42,7 +49,10 @@ const CullFigures = ({ cows }: { cows: CullList["cows"] }) => {
         {
           label: t("cull.reason.open_long"),
           value: formatNumber(openLong, language),
-          hint: t("cull.openHint", { days: OPEN_DAYS_TO_NAME }),
+          hint:
+            openDays === undefined
+              ? t("cull.openHintUnset")
+              : t("cull.openHint", { days: openDays }),
           icon: CalendarX,
           tone: openLong > 0 ? "warning" : "neutral",
         },
@@ -113,7 +123,7 @@ const CullingPage = () => {
   return (
     <Page>
       {header}
-      <CullFigures cows={list.data.cows} />
+      <CullFigures cows={list.data.cows} openDays={list.data.openDays} />
       <MilkPriceLine price={list.data.milkPrice} />
       <CullBoard cows={list.data.cows} />
     </Page>

@@ -367,6 +367,8 @@ const theList = async () => {
 describe("why the farm names a dairy cow to the Owner", () => {
   it("weighs her milk against her keep over her last four weeks, at what a litre fetched lately", async () => {
     const { list, of } = await theList();
+    // The farm's own days, as a new farm starts with them.
+    expect(list.openDays).toBe(150);
     expect(list.milkPrice).toMatchObject({
       bdtPerLitre: 55,
       litres: 240,
@@ -436,5 +438,20 @@ describe("why the farm names a dairy cow to the Owner", () => {
     await expect(manager.client.culling.list()).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
+  });
+
+  it("counts empty days against the farm's own setting, which only the Owner may change", async () => {
+    const owner = await as("owner", "2041-03-01T04:00:00.000Z");
+    const manager = await as("manager", "2041-03-01T04:00:00.000Z");
+    await expect(
+      manager.client.farm.setParameters({ cullOpenDays: 120 })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await owner.client.farm.setParameters({ cullOpenDays: 120 });
+    // 121 days since she calved: past 120, so the cow whose milk is short is empty too long as well.
+    const { list, of } = await theList();
+    expect(list.openDays).toBe(120);
+    expect(of(cow.short)?.reasons).toEqual(["milk_short", "open_long"]);
+    // Put back as the farm had it, for whatever reads this farm after.
+    await owner.client.farm.setParameters({ cullOpenDays: 150 });
   });
 });

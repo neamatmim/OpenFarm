@@ -77,6 +77,9 @@ const parameters = z
     calvingPrepLeadDays: z.number().int().min(1).max(30).optional(),
     /** How many attempts that did not take raise a Repeat Breeder. */
     repeatBreederThreshold: z.number().int().min(2).max(10).optional(),
+    /** How many days after calving a cow still not in calf is named for culling: not before a cow that is going to
+     *  settle has had her chances, and not past a year, when the question has long been answered. */
+    cullOpenDays: z.number().int().min(60).max(365).optional(),
     /** The taka above which a Money Event waits for the Owner. */
     approvalThresholdBdt: z.number().int().min(0).max(100_000_000).optional(),
     /** What part of a Venture's target capital is the least worth starting on. */
@@ -138,6 +141,12 @@ const A_VENTURES_OWN = [
 
 const aVenturesOwn = (input: z.infer<typeof parameters>): boolean =>
   A_VENTURES_OWN.some((key) => input[key] !== undefined);
+
+/** What shapes the Owner's list of cows to think about culling: the Owner's to set, as the list is theirs to read. */
+const THE_CULL_LISTS = ["cullOpenDays"] as const;
+
+const theCullLists = (input: z.infer<typeof parameters>): boolean =>
+  THE_CULL_LISTS.some((key) => input[key] !== undefined);
 
 /** One advisory lock key for "creating the farm", so concurrent first-run submissions serialise. */
 const BOOTSTRAP_LOCK = 7001;
@@ -473,6 +482,15 @@ export const farmRouter = {
           reason: "owner_only",
         });
       }
+      if (
+        theCullLists(input) &&
+        !context.roles.some((role) => role === "owner")
+      ) {
+        throw forbidden({
+          message: "What names a cow for culling is the Owner's to set",
+          reason: "owner_only",
+        });
+      }
       for (const time of [
         ...(input.digestTimes ?? []),
         input.quietFrom,
@@ -549,6 +567,7 @@ export const farmRouter = {
                 dryOffLeadDays: true,
                 calvingPrepLeadDays: true,
                 repeatBreederThreshold: true,
+                cullOpenDays: true,
                 approvalThresholdBdt: true,
                 ventureFloorPercent: true,
                 ventureRunningPercent: true,

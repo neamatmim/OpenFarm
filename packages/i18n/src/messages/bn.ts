@@ -374,6 +374,7 @@ export const bn: Record<MessageKey, string> = {
   "cull.milkHint": "চার সপ্তাহের দুধের দাম রাখার খরচের চেয়ে কম",
   "cull.openHint": "বাছুর দেওয়ার {days} দিন পরও গর্ভ নেই, বা দুধ বন্ধ আর গর্ভও নেই",
   "cull.repeatHint": "গরমে বারবার পাল দিয়েও গর্ভ ধরেনি",
+  "cull.openHintUnset": "বাছুর দেওয়ার অনেক দিন পরও গর্ভ নেই, বা দুধ বন্ধ আর গর্ভও নেই",
   "cull.all": "সব গাভী",
   "cull.col.reasons": "কারণ",
   "cull.col.milk": "দুধ বনাম রাখার খরচ",
@@ -788,6 +789,10 @@ export const bn: Record<MessageKey, string> = {
   "params.feedTolerance": "খাদ্য মজুদের সহনসীমা",
   "params.staffCorrection": "কর্মী সংশোধন করতে পারবেন",
   "params.managerCorrection": "ম্যানেজার সংশোধন করতে পারবেন",
+  "params.culling": "ছাঁটাই",
+  "params.cullingHint":
+    "কোন গাভী আপনার ছাঁটাই তালিকায় উঠবে। তালিকা যেমন শুধু আপনার, এটিও ঠিক করবেন শুধু আপনি।",
+  "params.cullOpenDays": "বাছুর হওয়ার পর গর্ভ না এলে তালিকায়",
   "params.ventures": "ভেঞ্চার",
   "params.venturesHint":
     "নতুন ভেঞ্চার খুললে যে নিয়মে পরিকল্পনা হয়: কত টাকায় শুরু করা অন্তত অর্থবহ, মূলধনের কত ভাগ গরু কেনার বদলে খাওয়ানোয় যায়, আর সময় শেষ হওয়ার পর কত দিন বিক্রি চলে।",

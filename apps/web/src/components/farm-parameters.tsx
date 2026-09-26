@@ -31,6 +31,7 @@ type NumberKey =
   | "dryOffLeadDays"
   | "calvingPrepLeadDays"
   | "repeatBreederThreshold"
+  | "cullOpenDays"
   | "approvalThresholdBdt"
   | "ventureFloorPercent"
   | "ventureRunningPercent"
@@ -125,6 +126,21 @@ const GROUPS: {
         unit: "params.taka",
         min: 0,
         max: 100_000_000,
+      },
+    ],
+  },
+  {
+    id: "params-culling",
+    title: "params.culling",
+    hint: "params.cullingHint",
+    owner: true,
+    fields: [
+      {
+        key: "cullOpenDays",
+        label: "params.cullOpenDays",
+        unit: "params.days",
+        min: 60,
+        max: 365,
       },
     ],
   },
@@ -373,10 +389,12 @@ export const SettingsSection = ({
   );
 };
 
-/** The parts of the Parameters, for a page that lists what is on it. */
-export const PARAMETER_SECTIONS = GROUPS.map(({ id, title }) => ({
+/** The parts of the Parameters, for a page that lists what is on it — and which are the Owner's, so the list does not
+ *  offer the Manager a jump to a part that is not drawn for them. */
+export const PARAMETER_SECTIONS = GROUPS.map(({ id, title, owner }) => ({
   id,
   title,
+  owner: owner ?? false,
 }));
 
 /** One group of Parameters, saved on its own: only what was changed in it goes to the farm. */

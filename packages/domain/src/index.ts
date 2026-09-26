@@ -439,7 +439,6 @@ export {
   CULL_REASONS,
   MILK_NEEDS_DAYS_IN_MILK,
   MILK_PRICE_DAYS,
-  OPEN_DAYS_TO_NAME,
   cullReasonsOf,
   litresOver,
   milkAgainstKeep,

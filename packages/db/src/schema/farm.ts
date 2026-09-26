@@ -93,6 +93,9 @@ export const farm = pgTable("farm", {
   repeatBreederThreshold: integer("repeat_breeder_threshold")
     .notNull()
     .default(3),
+  /** How many days after her last Calving a cow still not in calf is named to the Owner as one to think about
+   *  culling. The Owner's, as the list it shapes is: five months unless the Owner says otherwise. */
+  cullOpenDays: integer("cull_open_days").notNull().default(150),
   /** What part of a Venture's target capital is the least worth starting on, as a percentage. A plan that
    *  raises less than this buys too few animals to be the run anybody signed for. */
   ventureFloorPercent: integer("venture_floor_percent").notNull().default(70),
