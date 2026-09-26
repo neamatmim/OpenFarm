@@ -115,7 +115,7 @@ export const en = {
     "This portal is not a public offer. Joining a Venture is only by an Agreement signed in person with the farm, and no money moves through this portal.",
   "portal.nav.raising": "Raising",
   "portal.open.new": "New",
-  "portal.open.newLine": "{name} is now raising capital. Decide by {day}.",
+  "portal.open.newLine": "{name} is now raising capital. Decided by {day}.",
   "portal.open.countLine":
     "{count, plural, one {# Venture is} other {# Ventures are}} raising capital.",
   "portal.open.see": "See",
@@ -160,6 +160,24 @@ export const en = {
   "portal.request.withdrawn": "Your request is withdrawn",
   "portal.request.yours":
     "You asked for {units, plural, one {# Unit} other {# Units}} ({taka}) on {day}.",
+  "portal.requests.all": "All your requests",
+  "portal.requests.live": "Still open",
+  "portal.requests.past": "Earlier",
+  "portal.requests.none": "You have not asked to join a Venture",
+  "portal.requests.noneHint":
+    "Ask from a Venture the farm is raising capital for. A request binds nobody.",
+  "portal.requests.failed": "Your requests could not be read",
+  "portal.requests.comeAndSign": "The farm will sign with you for {venture}",
+  "portal.owed.line": "{taka} still to pay on {venture}.",
+  "portal.owed.how": "How to pay",
+  "portal.noVenturesHint":
+    "A Venture shows here once you have signed its Agreement with the farm, in person.",
+  "portal.noPapersHint":
+    "Your papers show here once you are in a Venture: the joining letter first, then the progress statement and the settlement.",
+  "portal.open.noneHint":
+    "When the farm raises capital for a new Venture and shows it to you, it appears here.",
+  "portal.money.noneHint":
+    "Money shows here once your capital comes in to a Venture's account.",
   "portal.requests.title": "Your requests to join",
   "portal.requests.hint":
     "What you have asked the farm for, and where each stands. A request binds nobody.",

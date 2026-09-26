@@ -5,17 +5,28 @@ import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Send, Undo2 } from "lucide-react";
+import { ChevronRight, PenLine, RotateCw, Send, Undo2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { MORE_LINK } from "@/components/home/queue";
 import { SaidDate } from "@/components/list-cells";
 import type { Tone } from "@/components/page";
-import { Section, StatusBadge } from "@/components/page";
+import {
+  EmptyState,
+  Loaded,
+  Notice,
+  Page,
+  PageHeader,
+  Section,
+  StatusBadge,
+} from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import type { OpenVenture } from "@/components/portal/open-ventures";
+import { ListSkeleton } from "@/components/portal/portal-skeletons";
 import {
   WhyNot,
   useCanAct,
@@ -273,6 +284,23 @@ const RequestForm = ({
   );
 };
 
+/** Their Requests could not be read: said, with a way to ask again, rather than read as none. */
+const RequestsFailed = ({ retry }: { retry: () => unknown }) => {
+  const { t } = useLanguage();
+  return (
+    <Notice
+      action={
+        <Button onClick={() => retry()} size="sm" variant="outline">
+          <RotateCw aria-hidden data-icon="inline-start" />
+          {t("outbox.retry")}
+        </Button>
+      }
+      title={t("portal.requests.failed")}
+      tone="warning"
+    />
+  );
+};
+
 /**
  * Their Request on one offered Venture: the form to ask while it takes requests, and what they asked while one is
  * live. Drawn afresh for each Request, so what the form starts from is the Request as the farm holds it.
@@ -282,6 +310,10 @@ export const AskToJoin = ({ one }: { one: OpenVenture }) => {
   const mine = useTheirRequests();
   if (mine.isPending) {
     return null;
+  }
+  // Unread, a blank form would ask again over a Request already made.
+  if (mine.isError && mine.data === undefined) {
+    return <RequestsFailed retry={mine.refetch} />;
   }
   // An answer this phone kept from before Requests existed has none: read as nothing asked yet.
   const onThis = (mine.data ?? []).filter((each) => each.ventureId === one.id);
@@ -370,62 +402,178 @@ const RequestVentureName = ({
   return <span className="font-medium break-words">{one.ventureName}</span>;
 };
 
+/** Their Requests the latest-changed first: a Request moves up when the farm answers it or they change it. */
+const byLatestChange = (requests: readonly TheirRequest[]) =>
+  requests.toSorted(
+    (a, b) =>
+      new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime() ||
+      a.id.localeCompare(b.id)
+  );
+
 /**
- * Their Requests to Join on their home page, the latest first, and where each stands — only when there are any. One on
- * a Venture still offered leads to it, where it can be changed, and one signed leads to the Agreement that answered it;
- * any still live can be withdrawn from here.
+ * Some of their Requests to Join as a list, and where each stands. One on a Venture still offered leads to it, where it
+ * can be changed, and one signed leads to the Agreement that answered it; any still live can be withdrawn from here.
  */
-export const TheirRequestsOnHome = () => {
+const RequestList = ({ requests }: { requests: readonly TheirRequest[] }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
-  const mine = useTheirRequests();
   const offered = useTheirOpenVentures();
-  const requests = mine.data ?? [];
-  if (requests.length === 0) {
-    return null;
-  }
   const stillOffered = new Set((offered.data ?? []).map((one) => one.id));
   return (
+    <ul className="divide-border -my-3 flex flex-col divide-y">
+      {byLatestChange(requests).map((one) => (
+        <li
+          className="flex flex-col gap-1.5 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
+          key={one.id}
+        >
+          <div className="flex min-w-0 flex-col gap-1">
+            <RequestVentureName
+              one={one}
+              stillOffered={stillOffered.has(one.ventureId)}
+            />
+            <span className="text-sm tabular-nums">
+              {t("portal.requests.line", {
+                units: formatNumber(one.units, language),
+                taka: taka(one.bdt),
+              })}
+            </span>
+            {one.note ? (
+              <span className="text-muted-foreground text-sm break-words">
+                {one.note}
+              </span>
+            ) : null}
+            <TheAnswer one={one} />
+            {isLiveRequest(one.state) ? (
+              <WithdrawFromTheList requestId={one.id} />
+            ) : null}
+          </div>
+          <div className="flex shrink-0 flex-col gap-1 sm:items-end">
+            <RequestStanding state={one.state} />
+            <span className="text-muted-foreground text-xs">
+              <SaidDate at={one.changedAt} />
+            </span>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+};
+
+/**
+ * The farm's yes, at the top of their home: the one answer they have to act on — call the farm and come and sign —
+ * rather than below their figures. One Notice a Venture; nothing while there is none.
+ */
+export const ComeAndSign = () => {
+  const { t } = useLanguage();
+  const mine = useTheirRequests();
+  const yeses = (mine.data ?? []).filter(
+    (one) => one.state === "come_and_sign"
+  );
+  if (yeses.length === 0) {
+    return null;
+  }
+  return (
+    <>
+      {yeses.map((one) => (
+        <Notice
+          icon={PenLine}
+          key={one.id}
+          title={t("portal.requests.comeAndSign", { venture: one.ventureName })}
+          tone="success"
+        >
+          <TheAnswer one={one} />
+        </Notice>
+      ))}
+    </>
+  );
+};
+
+/**
+ * Their live Requests on their home page — waiting for the farm, or told to come and sign — with the way to every
+ * Request they have made. Nothing while none is live; answered and closed ones are read on their own page.
+ */
+export const TheirRequestsOnHome = () => {
+  const { t } = useLanguage();
+  const mine = useTheirRequests();
+  const { requests } = usePortalPlaces();
+  if (mine.isError && mine.data === undefined) {
+    return <RequestsFailed retry={mine.refetch} />;
+  }
+  const all = mine.data ?? [];
+  const live = all.filter((one) => isLiveRequest(one.state));
+  if (live.length === 0) {
+    return null;
+  }
+  return (
     <Section
+      action={
+        <Link
+          className={cn(MORE_LINK, "text-sm")}
+          params={requests.link.params}
+          to={requests.link.to}
+        >
+          {t("portal.requests.all")}
+          <ChevronRight aria-hidden className="size-4" />
+        </Link>
+      }
       description={t("portal.requests.hint")}
       title={t("portal.requests.title")}
     >
-      <ul className="divide-border -my-3 flex flex-col divide-y">
-        {requests.map((one) => (
-          <li
-            className="flex flex-col gap-1.5 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
-            key={one.id}
-          >
-            <div className="flex min-w-0 flex-col gap-1">
-              <RequestVentureName
-                one={one}
-                stillOffered={stillOffered.has(one.ventureId)}
-              />
-              <span className="text-sm tabular-nums">
-                {t("portal.requests.line", {
-                  units: formatNumber(one.units, language),
-                  taka: taka(one.bdt),
-                })}
-              </span>
-              {one.note ? (
-                <span className="text-muted-foreground text-sm break-words">
-                  {one.note}
-                </span>
-              ) : null}
-              <TheAnswer one={one} />
-              {isLiveRequest(one.state) ? (
-                <WithdrawFromTheList requestId={one.id} />
-              ) : null}
-            </div>
-            <div className="flex shrink-0 flex-col gap-1 sm:items-end">
-              <RequestStanding state={one.state} />
-              <span className="text-muted-foreground text-xs">
-                <SaidDate at={one.changedAt} />
-              </span>
-            </div>
-          </li>
-        ))}
-      </ul>
+      <RequestList requests={live} />
     </Section>
+  );
+};
+
+/**
+ * «যোগ দেওয়ার অনুরোধ»: every Request to Join they have made, those still live first — waiting for the farm, or told
+ * to come and sign — and then those answered, withdrawn, signed or closed, kept so "I only asked for four" has an
+ * answer. A place of its own, because a home page listing every Request ever made would bury the live one.
+ */
+export const PortalRequestsPage = () => {
+  const { t } = useLanguage();
+  const mine = useTheirRequests();
+  const { openVentures } = usePortalPlaces();
+  const all = mine.data ?? [];
+  const live = all.filter((one) => isLiveRequest(one.state));
+  const past = all.filter((one) => !isLiveRequest(one.state));
+  return (
+    <Page>
+      <PageHeader
+        description={t("portal.requests.hint")}
+        title={t("portal.requests.title")}
+      />
+      <Loaded query={mine} skeleton={<ListSkeleton lines={3} />}>
+        {all.length === 0 ? (
+          <EmptyState
+            action={
+              <Link
+                className={cn(MORE_LINK, "text-sm")}
+                params={openVentures.link.params}
+                to={openVentures.link.to}
+              >
+                {t("portal.open.title")}
+                <ChevronRight aria-hidden className="size-4" />
+              </Link>
+            }
+            description={t("portal.requests.noneHint")}
+            icon={Send}
+            title={t("portal.requests.none")}
+          />
+        ) : (
+          <>
+            {live.length > 0 ? (
+              <Section title={t("portal.requests.live")}>
+                <RequestList requests={live} />
+              </Section>
+            ) : null}
+            {past.length > 0 ? (
+              <Section title={t("portal.requests.past")}>
+                <RequestList requests={past} />
+              </Section>
+            ) : null}
+          </>
+        )}
+      </Loaded>
+    </Page>
   );
 };

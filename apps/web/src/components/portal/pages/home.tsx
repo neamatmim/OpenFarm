@@ -27,8 +27,12 @@ import {
   usePortalPlaces,
   useTheirPortfolio,
 } from "@/components/portal/portal-source";
-import { TheirRequestsOnHome } from "@/components/portal/requests-to-join";
+import {
+  ComeAndSign,
+  TheirRequestsOnHome,
+} from "@/components/portal/requests-to-join";
 import { StageMeter } from "@/components/portal/stage-meter";
+import { StillToPay } from "@/components/portal/still-to-pay";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
 
@@ -120,13 +124,22 @@ const Portfolio = ({ theirs }: { theirs: TheirAgreements }) => {
   const { t } = useLanguage();
   const { ventures } = usePortalPlaces();
   if (theirs.agreements.length === 0) {
-    return <EmptyState icon={Handshake} title={t("portal.noVentures")} />;
+    return (
+      <EmptyState
+        description={t("portal.noVenturesHint")}
+        icon={Handshake}
+        title={t("portal.noVentures")}
+      />
+    );
   }
   const running = theirs.agreements.filter(
     (one) => !hasEnded(one.venture.state)
   );
+  // With nothing running, the list opens on what has finished rather than on "none running" again.
+  const allSearch = running.length === 0 ? { tab: "finished" as const } : {};
   return (
     <>
+      <StillToPay theirs={theirs} />
       <CapitalAccount theirs={theirs} />
       <Allocation theirs={theirs} />
       <Section
@@ -134,6 +147,7 @@ const Portfolio = ({ theirs }: { theirs: TheirAgreements }) => {
           <Link
             className={cn(MORE_LINK, "text-sm")}
             params={ventures.link.params}
+            search={allSearch}
             to={ventures.link.to}
           >
             {t("portal.ventures.all")}
@@ -182,14 +196,27 @@ export const PortalHome = () => {
         }
         title={t("portal.homeTitle")}
       />
-      {/* Somebody in no Venture yet reads what the farm is raising capital for first; everybody else is told in one
-          line, with their own money straight after it. */}
-      {notInAnyYet ? <OpenVenturesOnHome /> : <RaisingLine />}
+      {/* The one answer they have to act on comes first: the farm will sign with them. */}
+      <ComeAndSign />
+      {/* Somebody in no Venture yet reads what the farm is raising capital for, and what they have asked, before being
+          told they are in none; everybody else is told of offers in one line, with their own money straight after. */}
+      {notInAnyYet ? (
+        <>
+          <OpenVenturesOnHome />
+          <TheirRequestsOnHome />
+        </>
+      ) : (
+        <RaisingLine />
+      )}
       <Loaded query={theirs} skeleton={<HomeSkeleton />}>
         {theirs.data ? <Portfolio theirs={theirs.data} /> : null}
       </Loaded>
-      <TheirRequestsOnHome />
-      {notInAnyYet ? null : <OpenVenturesOnHome />}
+      {notInAnyYet ? null : (
+        <>
+          <TheirRequestsOnHome />
+          <OpenVenturesOnHome />
+        </>
+      )}
     </Page>
   );
 };

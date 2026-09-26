@@ -1,4 +1,4 @@
-import { hasEnded } from "@OpenFarm/domain";
+import { hasEnded, isLiveRequest } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import {
@@ -38,6 +38,7 @@ import {
   LayoutDashboard,
   LogOut,
   ScrollText,
+  Send,
   Sprout,
   UserRound,
   WifiOff,
@@ -53,6 +54,7 @@ import {
   useTheirOpenVentures,
   useTheirPortfolio,
   useTheirRecord,
+  useTheirRequests,
 } from "@/components/portal/portal-source";
 import { BottomBar } from "@/components/shell/bottom-bar";
 import type { NavItem } from "@/components/shell/navigation";
@@ -195,6 +197,9 @@ const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
       (one) => hasEnded(one.venture.state) && here(places.venture(one.id).path)
     );
   const offered = useTheirOpenVentures().data ?? [];
+  // Every Request they have made gives the page its place; the count is of those still live, and a yes lights it.
+  const requests = useTheirRequests().data ?? [];
+  const live = requests.filter((one) => isLiveRequest(one.state));
   return (
     <Sidebar collapsible="icon" data-app-chrome mobileTitle={t("nav.menu")}>
       <SidebarHeader className="px-3 pt-4 pb-2 group-data-[collapsible=icon]:px-2.5">
@@ -242,7 +247,6 @@ const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
                 onGo={close}
                 to={places.papers.path}
               />
-              {/* Only while the farm is raising capital for a Venture it shows them. */}
               {all.length > 0 ? (
                 <PortalNavLink
                   here={onTheList}
@@ -252,6 +256,22 @@ const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
                   to={places.ventures.path}
                 />
               ) : null}
+              {requests.length > 0 ? (
+                <PortalNavLink
+                  count={
+                    live.length > 0
+                      ? formatNumber(live.length, language)
+                      : undefined
+                  }
+                  fresh={live.some((one) => one.state === "come_and_sign")}
+                  here={here(places.requests.path)}
+                  icon={Send}
+                  label={t("portal.requests.title")}
+                  onGo={close}
+                  to={places.requests.path}
+                />
+              ) : null}
+              {/* Only while the farm is raising capital for a Venture it shows them. */}
               {offered.length > 0 ? (
                 <PortalNavLink
                   count={formatNumber(offered.length, language)}
