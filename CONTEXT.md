@@ -302,7 +302,7 @@ Every screen says which it is. An announced day can be corrected, or taken back 
 
 **Projection**: What a **Venture**'s **Settlement** might come to at the low and the high of the sale prices a kilo of live weight the Owner expects — a range, said as "an estimate, not a promise", never one figure (ADR 0010). Worked, never typed. A running Venture's comes from:
 
-- what each standing animal should weigh when the **Target Window** opens, at her own rate over her whole stay, or her band's planned gain while nobody has weighed her;
+- what each standing animal should weigh when the **Target Window** in force opens — as the latest **Amendment** set it — at her own rate over her whole stay, or her band's planned gain while nobody has weighed her;
 - while it is still buying, what each band of its plan has still to buy, bought at the middle of the band at the band's price and grown at the band's gain — an animal taken across by an Internal Sale is bought too;
 - what its sold animals fetched;
 - what it has been charged, with the rest of its running budget taken as spent.

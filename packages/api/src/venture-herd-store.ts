@@ -2,6 +2,7 @@ import { farmDayOf, isExitState, startOfFarmDay } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
 import { fatteningOf } from "./fattening-store";
+import { windowInForceOn } from "./venture-store";
 
 /**
  * A Venture's whole run, standing and gone, in one read.
@@ -169,7 +170,8 @@ const meanOf = (values: number[]): number | null =>
 export const theirProgress = async (
   tx: Pick<Tx, "query">,
   farmId: string,
-  venture: { id: string; targetWindowStart: string },
+  /** The Venture as its row holds it; the window counted to is the one in force today. */
+  venture: { id: string; targetWindowStart: string; targetWindowEnd: string },
   now: Date
 ): Promise<TheirProgress> => {
   const rows = await tx.query.animal.findMany({
@@ -282,7 +284,8 @@ export const theirProgress = async (
           columns: { animalId: true, weightKg: true, weighedAt: true },
         });
 
-  const opensAt = startOfFarmDay(venture.targetWindowStart);
+  const window = await windowInForceOn(tx, farmId, venture, farmDayOf(now));
+  const opensAt = startOfFarmDay(window.targetWindowStart);
   return {
     standingCount,
     soldCount,
