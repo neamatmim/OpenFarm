@@ -38,6 +38,11 @@ const Figures = ({ read }: { read: Read }) => {
   const range = (low: string, high: string) =>
     t("projection.range", { low, high });
   const day = formatDate(new Date(basis.setAt), language, "date");
+  const kg = (value: number) =>
+    t("portal.kg", { kg: formatNumber(value, language) });
+  // Fewer at the low end by the deaths the plan expects. An answer this phone kept from before has one weight only.
+  const highKg = Math.round(projection.kgAtSale);
+  const lowKg = Math.round(projection.low.kgAtSale ?? projection.kgAtSale);
   return (
     <>
       <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
@@ -57,9 +62,7 @@ const Figures = ({ read }: { read: Read }) => {
           {range(taka(basis.saleLowBdtPerKg), taka(basis.saleHighBdtPerKg))}
         </Fact>
         <Fact label={t("projection.kgAtSale")}>
-          {t("portal.kg", {
-            kg: formatNumber(Math.round(projection.kgAtSale), language),
-          })}
+          {lowKg === highKg ? kg(highKg) : range(kg(lowKg), kg(highKg))}
         </Fact>
         <Fact label={t("projection.charged")}>
           {taka(projection.chargedBdt)}

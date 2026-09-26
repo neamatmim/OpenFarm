@@ -882,6 +882,8 @@ export const venturesRouter = {
             .max(20),
           saleLowBdtPerKg: z.number().positive().max(100_000),
           saleHighBdtPerKg: z.number().positive().max(100_000),
+          /** The share of its animals the Owner expects not to live to be sold. Half the herd is past planning. */
+          deathsPercent: z.number().min(0).max(50).default(0),
           reason: z.string().trim().max(300).nullable().default(null),
         })
         .refine((one) => one.saleLowBdtPerKg <= one.saleHighBdtPerKg, {

@@ -53,6 +53,7 @@ const versionsOf = async (
     reason: one.reason,
     saleLowBdtPerKg: one.saleLowBdtPerKg,
     saleHighBdtPerKg: one.saleHighBdtPerKg,
+    deathsPercent: Number(one.deathsPercent),
     lines: one.lines.map((line): PlanLine => ({
       animals: line.animals,
       fromKg: Number(line.fromKg),
@@ -104,6 +105,8 @@ export interface PlanSaid {
   lines: PlanLine[];
   saleLowBdtPerKg: number;
   saleHighBdtPerKg: number;
+  /** The share of its animals it expects not to live to be sold, in per cent. */
+  deathsPercent: number;
   reason: string | null;
 }
 
@@ -146,6 +149,7 @@ export const savePlan = async (
     madeWhile: run.state,
     saleLowBdtPerKg: said.saleLowBdtPerKg,
     saleHighBdtPerKg: said.saleHighBdtPerKg,
+    deathsPercent: said.deathsPercent.toFixed(2),
     reason: run.state === "open" ? null : said.reason,
     madeAt: by.at,
     madeBy: by.userId,
@@ -222,6 +226,7 @@ export const planAgainstActual = async (
         runningBudgetBdt: plannedRunningBdt,
         saleLowBdtPerKg: baseline.saleLowBdtPerKg,
         saleHighBdtPerKg: baseline.saleHighBdtPerKg,
+        deathsPercent: baseline.deathsPercent,
       }),
       /** What it is projected to make now, worked from its plan in force; nothing once it has ended. */
       projected: projected

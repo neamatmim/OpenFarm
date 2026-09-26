@@ -131,6 +131,11 @@ export const venturePlan = pgTable(
     madeWhile: text("made_while", { enum: VENTURE_STATES }).notNull(),
     saleLowBdtPerKg: taka("sale_low_bdt_per_kg").notNull(),
     saleHighBdtPerKg: taka("sale_high_bdt_per_kg").notNull(),
+    /** The share of its animals the Owner expects not to live to be sold, in per cent: taken off the low end of its
+     *  projection, never the high. Nothing for a plan made before it could be said. */
+    deathsPercent: numeric("deaths_percent", { precision: 5, scale: 2 })
+      .notNull()
+      .default("0"),
     /** Why the plan was revised after buying began; nothing for one made before. */
     reason: text("reason"),
     madeAt: timestamp("made_at").notNull(),

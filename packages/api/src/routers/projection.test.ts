@@ -230,6 +230,44 @@ describe("a plan that spends past its cattle budget", () => {
   });
 });
 
+describe("a plan that expects some animals to die", () => {
+  it("sells fewer at the low end, keeps the high end every animal living, and says so in the plan it measures", async () => {
+    const owner = await asOwner();
+    const run = await owner.ventures.open({
+      name: `মৃত্যু ধরা ${suffix}`,
+      ...TERMS,
+      targetWindowStart: "2052-03-17",
+      targetWindowEnd: "2052-03-19",
+    });
+    await owner.ventures.setPlan({
+      ventureId: run.id,
+      ...PLAN,
+      deathsPercent: 10,
+    });
+    const plan = await owner.ventures.plan({ ventureId: run.id });
+    expect(plan.latest?.deathsPercent).toBe(10);
+
+    const { projection } = await owner.ventures.projection({
+      ventureId: run.id,
+    });
+    // One in ten of the 1,773.6 kg does not live to be sold: 1,596.24 kg at ৳600 is ৳9,57,744, against the same
+    // ৳9,50,000 charged — a profit of ৳7,744. At ৳700 every animal lives: ৳2,91,520, as without deaths.
+    expect(projection?.low.kgAtSale).toBeCloseTo(1596.24, 6);
+    expect(projection?.low.profitBdt).toBe(7744);
+    expect(projection?.high).toMatchObject({ profitBdt: 291_520 });
+
+    // Measured once buying begins, the plan says the same low end.
+    await owner.ventures.startBuying({ id: run.id });
+    const measured = await owner.ventures.planAgainstActual({
+      ventureId: run.id,
+    });
+    expect(measured?.money.planned).toEqual({
+      lowBdt: 7744,
+      highBdt: 291_520,
+    });
+  });
+});
+
 describe("a Venture still buying", () => {
   it("stands on the animals it has bought and takes what each band has still to buy from the plan", async () => {
     const owner = await asOwner();

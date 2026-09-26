@@ -41,13 +41,18 @@ const Range = ({
 const Said = ({
   hint,
   loss,
+  deathsPercent,
   children,
 }: {
   hint: string;
   loss: boolean;
+  /** Missing from an answer this phone kept from before a plan could expect deaths: read as none. */
+  deathsPercent: number | undefined;
   children: ReactNode;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const deaths = deathsPercent ?? 0;
+  const allowsForDeaths = deaths > 0;
   const previewing = usePreviewing() !== null;
   return (
     <Section
@@ -62,6 +67,15 @@ const Said = ({
       }
     >
       <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">{children}</dl>
+      {allowsForDeaths ? (
+        <p className="text-muted-foreground text-sm">
+          {t("portal.projection.deaths", {
+            percent: t("portal.percent", {
+              percent: formatNumber(deaths, language),
+            }),
+          })}
+        </p>
+      ) : null}
       {loss ? (
         <p className="text-warning text-sm">{t("portal.projection.loss")}</p>
       ) : null}
@@ -96,6 +110,7 @@ export const HisProjectionSection = ({
         high: taka(projection.saleHighBdtPerKg),
         day: formatDate(new Date(projection.setAt), language, "date"),
       })}
+      deathsPercent={projection.deathsPercent}
       loss={projection.low.profitBdt < 0}
     >
       <Range
@@ -138,6 +153,7 @@ export const OfferProjectionSection = ({
         high: taka(projection.saleHighBdtPerKg),
         day: formatDate(new Date(projection.setAt), language, "date"),
       })}
+      deathsPercent={projection.deathsPercent}
       loss={projection.low.profitBdt < 0}
     >
       <Range

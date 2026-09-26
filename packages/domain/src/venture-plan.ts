@@ -1,4 +1,5 @@
 import { roundTaka } from "./money";
+import { livingKg } from "./projection";
 
 /**
  * The arithmetic of a **Venture Plan**: what the Owner means to buy — lines by weight band, each so many animals at so
@@ -156,23 +157,28 @@ export const plannedHeadKg = (
 };
 
 /** What the plan says the Venture makes at the low and the high sale price: the herd's weight at sale, sold, less the
- *  cattle it buys and the whole of its running budget. Before the Investors' split. */
+ *  cattle it buys and the whole of its running budget — at the low end with the share it expects to die not sold, and
+ *  still paid for. Before the Investors' split. */
 export const plannedResult = ({
   saleKg,
   cattleBdt,
   runningBudgetBdt,
   saleLowBdtPerKg,
   saleHighBdtPerKg,
+  deathsPercent = 0,
 }: {
   saleKg: number;
   cattleBdt: number;
   runningBudgetBdt: number;
   saleLowBdtPerKg: number;
   saleHighBdtPerKg: number;
+  deathsPercent?: number;
 }) => {
   const spent = cattleBdt + runningBudgetBdt;
   return {
-    lowBdt: roundTaka(saleKg * saleLowBdtPerKg - spent),
+    lowBdt: roundTaka(
+      livingKg(saleKg, deathsPercent) * saleLowBdtPerKg - spent
+    ),
     highBdt: roundTaka(saleKg * saleHighBdtPerKg - spent),
   };
 };
