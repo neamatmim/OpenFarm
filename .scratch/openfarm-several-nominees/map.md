@@ -39,6 +39,8 @@ A **ready-for-agent spec**, like [Joining a Venture](../openfarm-joining-a-ventu
 <!-- one line per closed ticket: gist + link -->
 
 - [Which Nominees a signed Agreement names](./issues/04-which-nominees-a-signed-agreement-names.md) — the Investor's latest **Nomination** governs every Agreement they hold. A Nomination is a short, unstamped paper signed in front of the Owner naming every Nominee in full, and the only way the list changes. An Agreement is one too, and reprints with the Nominees it was signed with; the screen, not the paper, says when a later Nomination replaced them. What exists moves over from the Audit Event trail, with any list not yet signed for marked as such.
+- [What a nominee is in Bangladeshi law and in Shariah](./issues/01-what-a-nominee-is-in-bangladeshi-law-and-in-shariah.md) — a collector for the heirs, not an owner, in statute, the one reasoned judgment, and Shariah alike. A private contract can't make them more without it becoming a bequest. The market allows several concurrent nominees, each with a share, with no order, capped at 2–3 by the forms. A minor nominee needs someone named to receive for them.
+- [What a Nominee is in OpenFarm](./issues/02-what-a-nominee-is-in-openfarm.md) — a Nominee collects the capital and share for the lawful heirs and keeps nothing: naming them decides whom the Farm pays, never who inherits. The glossary now agrees with the Agreement. The farm owes a Nominee nothing directly while the Investor lives. A line saying payment to the Nominees discharges the Farm goes to the prototype and the lawyer.
 
 ## Not yet specified
 

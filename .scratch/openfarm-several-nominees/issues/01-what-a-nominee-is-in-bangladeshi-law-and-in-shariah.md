@@ -1,6 +1,6 @@
 # What a nominee is in Bangladeshi law and in Shariah
 
-Status: open
+Status: done
 
 Type: research
 
@@ -20,3 +20,17 @@ An Investor in a **Venture** (a mudarabah, the Owner as mudarib; see `docs/resea
 Primary sources first: the Acts, Bangladesh Bank circulars, BSEC/CDBL rules, reported judgments, and AAOIFI standards.
 
 ## Resolution
+
+Researched 2026-09-26 by a background agent. Findings: [`docs/research/nominees-in-bangladeshi-law-and-shariah.md`](../../../docs/research/nominees-in-bangladeshi-law-and-shariah.md), merged to main (68ef81c). Its "Answer for the ticket" section is what the grillings act on. In short:
+
+- **A nominee is a collector, not an owner.** Statutes tell the payer whom to pay and discharge them once paid. The only reasoned judgment (HCD, Civil Revision 1682 of 2015, 3 April 2016) holds the nominee a trustee for the heirs. A reported Appellate Division stay is unverified.
+- **Nothing governs a nominee in a private mudarabah but the contract.** A term making the nominee an owner would be a bequest: void past one third, and against the heirs without their consent.
+- **Shariah agrees**: fixed shares, the one-third cap, no bequest to an heir. AAOIFI SS 26 6/2/1/4 sends investment balances to the heirs. The nominee is an *amin*.
+- **The Agreement already takes the collector side** ("paid through their nominee to their lawful heirs"). CONTEXT.md does not.
+- **The market allows several nominees, concurrently, each with a percentage or taka amount.**
+  - Forms cap them at 2 or 3.
+  - There is never an order or a substitute.
+  - A nominee who dies first drops out.
+- **A minor nominee needs someone named to receive for them.** Every statute has this, and today's guardian line doesn't.
+- **For the lawyer**: whether the farm has a good discharge against disputing heirs, and whether a succession certificate is needed above a threshold. **For the Shariah scholar**: the *amin* reading.
+- **Not verified from primary sources**: the Bangladesh Bank 2017 circulars, the Appellate Division stay, and the current CDBL Bye-Laws.

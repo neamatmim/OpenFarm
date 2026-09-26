@@ -20,4 +20,6 @@ Once [What a Nominee is in OpenFarm](./02-what-a-nominee-is-in-openfarm.md) is s
 - ~~Still per Investor?~~ Settled by 04: one list per Investor, governing every Agreement they hold.
 - **Today's single nominee** becomes the first of that Investor's Nominees; if Nominees take shares, it takes the whole until a Nomination says otherwise. Confirm that.
 
+From the research and ticket 02 (2026-09-26): a Nominee only collects, so a share decides **who collects which part, never who inherits**. The market uses concurrent Nominees, each with a percentage (CDBL, banks, insurers) or a taka amount (savings certificates), capped at 2–3 by the forms, with no order or substitute. A Nominee who dies first drops out. Every statute lets the holder name **who receives for a minor Nominee**, a field today's guardian line lacks. See [the research](../../../docs/research/nominees-in-bangladeshi-law-and-shariah.md), sections 5–7 of its answer.
+
 ## Resolution
