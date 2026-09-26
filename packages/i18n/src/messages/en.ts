@@ -1571,7 +1571,8 @@ export const en = {
   "investors.page.onPapers":
     "{count, plural, one {On # Agreement} other {On # Agreements}}",
   "investors.page.inRunning": "In the Ventures still running",
-  "investors.page.paidOut": "Paid out to them",
+  "investors.page.refundedApart":
+    "Apart from these, {bdt} of capital refunded when a Venture was cancelled",
   "investors.page.profit": "Their share of the profit",
   "investors.page.fromSettled":
     "{count, plural, one {From # settled Venture} other {From # settled Ventures}}",
