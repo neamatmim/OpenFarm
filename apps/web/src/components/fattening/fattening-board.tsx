@@ -1,3 +1,5 @@
+import type { Keeping } from "@OpenFarm/domain";
+import { KEEPING } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { buttonVariants } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -16,6 +18,7 @@ import {
   PriceCell,
   PriceLine,
   useIsOwner,
+  useKeepings,
 } from "@/components/fattening/animal-prices";
 import { GainFigures, WeightAgainstTarget } from "@/components/gain";
 import { Nothing } from "@/components/list-cells";
@@ -328,22 +331,84 @@ const PenSelect = ({
   );
 };
 
+/** Whether keeping them pays, as the Owner filters the board by it. */
+export type KeepingFilter = "all" | Keeping;
+
+export const KEEPING_FILTERS: readonly KeepingFilter[] = ["all", ...KEEPING];
+
+const KEEPING_WORD = {
+  all: "keep.all",
+  pays: "keep.pays",
+  close: "keep.close",
+  costs_more: "keep.costsMore",
+} as const;
+
+/** The Owner's filter by whether keeping an animal another fortnight pays, with how many are in each answer. */
+const KeepingSelect = ({
+  rows,
+  keepings,
+  value,
+  onChange,
+}: {
+  rows: BoardRow[];
+  keepings: Map<string, Keeping | "unknown">;
+  value: KeepingFilter;
+  onChange: (value: KeepingFilter) => void;
+}) => {
+  const { t, language } = useLanguage();
+  const count = (keeping: KeepingFilter) =>
+    keeping === "all"
+      ? rows.length
+      : rows.filter((row) => keepings.get(row.tagNumber) === keeping).length;
+  return (
+    <NativeSelect
+      aria-label={t("keep.title")}
+      className="sm:w-56"
+      onChange={(event) =>
+        onChange(
+          KEEPING_FILTERS.find((one) => one === event.target.value) ?? "all"
+        )
+      }
+      value={value}
+    >
+      {KEEPING_FILTERS.map((keeping) => (
+        <option key={keeping} value={keeping}>
+          {`${t(KEEPING_WORD[keeping])} · ${formatNumber(count(keeping), language)}`}
+        </option>
+      ))}
+    </NativeSelect>
+  );
+};
+
 /**
  * The fattening side as one list: short of the target first, filtered by where an animal stands, by Pen, or found by
- * her tag, a page at a time. A table where there is room, so a slow one stands out down a column; a card each on a
- * phone.
+ * her tag, a page at a time — and, for the Owner, by whether keeping her pays, which the page keeps in its address so
+ * the farm's home can send the Owner straight to the ones that cost more to keep. A table where there is room, so a
+ * slow one stands out down a column; a card each on a phone.
  */
-export const FatteningBoard = ({ rows }: { rows: BoardRow[] }) => {
+export const FatteningBoard = ({
+  rows,
+  keeping,
+  onKeeping,
+}: {
+  rows: BoardRow[];
+  keeping: KeepingFilter;
+  onKeeping: (value: KeepingFilter) => void;
+}) => {
   const { t } = useLanguage();
   const [standing, setStanding] = useState<StandingFilter>("all");
   const [penId, setPenId] = useState("");
   const [search, setSearch] = useState("");
+  const keepings = useKeepings();
   const wanted = search.trim().toUpperCase();
+  // Only once the Owner's prices are read: a filter nobody else can see, or not yet, filters nothing.
+  const keepingShown = keepings === null ? "all" : keeping;
   const shown = rows.filter(
     (row) =>
       (standing === "all" || standingOf(row.onTrack) === standing) &&
       (penId === "" || row.penId === penId) &&
-      (wanted === "" || row.tagNumber.toUpperCase().includes(wanted))
+      (wanted === "" || row.tagNumber.toUpperCase().includes(wanted)) &&
+      (keepingShown === "all" || keepings?.get(row.tagNumber) === keepingShown)
   );
   const owner = useIsOwner();
   const table = useListTable({
@@ -367,6 +432,14 @@ export const FatteningBoard = ({ rows }: { rows: BoardRow[] }) => {
         <div className="grid grid-cols-2 gap-3 sm:contents">
           <StandingSelect onChange={setStanding} rows={rows} value={standing} />
           <PenSelect onChange={setPenId} rows={rows} value={penId} />
+          {keepings === null ? null : (
+            <KeepingSelect
+              keepings={keepings}
+              onChange={onKeeping}
+              rows={rows}
+              value={keepingShown}
+            />
+          )}
         </div>
       </FilterBar>
       {shown.length === 0 ? (
@@ -374,7 +447,7 @@ export const FatteningBoard = ({ rows }: { rows: BoardRow[] }) => {
       ) : (
         <DataTable
           card={boardCard}
-          key={`${standing}:${penId}:${wanted}`}
+          key={`${standing}:${penId}:${wanted}:${keepingShown}`}
           minWidth="60rem"
           pageSize={BOARD_PAGE}
           table={table}

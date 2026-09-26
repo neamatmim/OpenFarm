@@ -1,19 +1,23 @@
+import type { Keeping } from "@OpenFarm/domain";
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Tags } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Scale, Tags, TrendingDown, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { Nothing } from "@/components/list-cells";
-import { Section } from "@/components/page";
+import type { Tone } from "@/components/page";
+import { Section, StatusBadge } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useKg } from "@/lib/kg";
 import { useRange } from "@/lib/range";
 import { useRefused } from "@/lib/refused";
-import { useTaka } from "@/lib/taka";
+import { useTaka, useTakaToThePaisa } from "@/lib/taka";
 import { aFigure, figureOf } from "@/lib/typed-figure";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
@@ -109,6 +113,115 @@ const EstimateLine = ({ one }: { one: AnimalPriced }) => {
   );
 };
 
+/** Each answer to keep or sell as it is drawn: its colour, its mark and its words. */
+const KEEPING_LOOK: Record<
+  Keeping,
+  {
+    tone: Tone;
+    text: string;
+    icon: LucideIcon;
+    word: "keep.pays" | "keep.close" | "keep.costsMore";
+  }
+> = {
+  pays: {
+    tone: "success",
+    text: "text-success",
+    icon: TrendingUp,
+    word: "keep.pays",
+  },
+  close: {
+    tone: "warning",
+    text: "text-warning",
+    icon: Scale,
+    word: "keep.close",
+  },
+  costs_more: {
+    tone: "danger",
+    text: "text-danger",
+    icon: TrendingDown,
+    word: "keep.costsMore",
+  },
+};
+
+/** Why the farm cannot say yet, in words. */
+const UNKNOWN_WORD = {
+  too_new: "keep.tooNew",
+  not_fed: "keep.notFed",
+  no_rate: "keep.noRate",
+} as const;
+
+/**
+ * Keep her or sell her: whether another fortnight pays, and what it leaves over its keep at each end of her price —
+ * or, while she is putting nothing on, what the fortnight costs for nothing. `full` adds the kilos, their keep and
+ * what a kilo costs to put on, for her own page; a list keeps to the verdict and the sum.
+ */
+const KeepLine = ({ one, full }: { one: AnimalPriced; full: boolean }) => {
+  const { t } = useLanguage();
+  const taka = useTaka();
+  const perKg = useTakaToThePaisa();
+  const range = useRange();
+  const kg = useKg();
+  // An answer this phone kept from before the farm weighed keeping has none.
+  const keep = one.keep ?? null;
+  if (keep === null) {
+    return null;
+  }
+  if (!keep.known) {
+    return (
+      <span className="text-muted-foreground text-xs">
+        {t(UNKNOWN_WORD[keep.because])}
+      </span>
+    );
+  }
+  const { ahead } = keep;
+  const look = keep.keeping ? KEEPING_LOOK[keep.keeping] : null;
+  const gaining = keep.costOfGainNowBdt !== null;
+  const gain = `${ahead.gainKg < 0 ? "−" : "+"}${kg(Math.abs(ahead.gainKg))}`;
+  const details = [
+    full || !look ? t("keep.ahead", { gain, keep: taka(ahead.keepBdt) }) : null,
+    (full || !look) && keep.costOfGainNowBdt !== null
+      ? t("keep.perKg", { perKg: perKg(keep.costOfGainNowBdt) })
+      : null,
+    keep.whole ? null : t("keep.short"),
+  ].filter((part): part is string => part !== null);
+  return (
+    <>
+      {look ? (
+        <StatusBadge icon={look.icon} tone={look.tone}>
+          {t(look.word)}
+        </StatusBadge>
+      ) : null}
+      {gaining && ahead.low && ahead.high ? (
+        <span className={cn("text-xs tabular-nums", look?.text)}>
+          {t("keep.over", {
+            days: ahead.days,
+            over: range(
+              taka(ahead.low.overKeepBdt),
+              taka(ahead.high.overKeepBdt)
+            ),
+          })}
+        </span>
+      ) : null}
+      {gaining ? null : (
+        <span className="text-danger text-xs tabular-nums">
+          {t("keep.notGaining", {
+            days: ahead.days,
+            keep: taka(ahead.keepBdt),
+          })}
+        </span>
+      )}
+      {details.map((part) => (
+        <span
+          className="text-muted-foreground text-xs whitespace-nowrap tabular-nums"
+          key={part}
+        >
+          {part}
+        </span>
+      ))}
+    </>
+  );
+};
+
 /** Her price and cost in a list's column: nothing for anybody but the Owner, and a dash while it is read. */
 export const PriceCell = ({ tagNumber }: { tagNumber: string }) => {
   const one = useHerPrice(tagNumber);
@@ -119,6 +232,9 @@ export const PriceCell = ({ tagNumber }: { tagNumber: string }) => {
     <span className="flex flex-col items-end gap-0.5 text-end whitespace-nowrap">
       <EstimateLine one={one} />
       <CostLine one={one} />
+      <span className="flex flex-col items-end gap-0.5 pt-1">
+        <KeepLine full={false} one={one} />
+      </span>
     </span>
   );
 };
@@ -134,7 +250,29 @@ export const PriceLine = ({ tagNumber }: { tagNumber: string }) => {
     <span className="flex flex-col gap-0.5 text-sm">
       <EstimateLine one={one} />
       <CostLine one={one} />
+      <span className="flex flex-col items-start gap-0.5 pt-1">
+        <KeepLine full={false} one={one} />
+      </span>
     </span>
+  );
+};
+
+/**
+ * Whether keeping each animal another fortnight pays, by Tag Number — or why the farm cannot say — for the Owner's
+ * filters and counts. Nothing while it is read, and nothing for anybody else.
+ */
+export const useKeepings = (): Map<string, Keeping | "unknown"> | null => {
+  const prices = usePrices();
+  if (!prices.data) {
+    return null;
+  }
+  return new Map(
+    prices.data.animals.map((one) => {
+      // An answer this phone kept from before the farm weighed keeping has none.
+      const keep = one.keep ?? null;
+      const said = keep?.known ? keep.keeping : null;
+      return [one.tagNumber, said ?? "unknown"] as const;
+    })
   );
 };
 
@@ -152,6 +290,11 @@ export const HerPrice = ({ tagNumber }: { tagNumber: string }) => {
       <h3 className="font-semibold">{t("price.col")}</h3>
       <EstimateLine one={one} />
       <CostLine one={one} />
+      <h3 className="pt-3 font-semibold">{t("keep.title")}</h3>
+      <div className="flex flex-col items-start gap-1">
+        <KeepLine full one={one} />
+      </div>
+      <p className="text-muted-foreground text-xs">{t("keep.hint")}</p>
     </div>
   );
 };

@@ -421,7 +421,19 @@ export {
   splitOfProfit,
 } from "./venture";
 export type { Split, ToSplit } from "./venture";
-export { perKgOfSales, priceOfAnimal, priceRangeFor } from "./animal-price";
+export {
+  KEEP_AHEAD_DAYS,
+  KEEP_NEEDS_DAYS,
+  KEEP_RATE_NEEDS_DAYS,
+  KEEP_READ_DAYS,
+  KEEPING,
+  keepOrSell,
+  keepRateOf,
+  keptOver,
+  perKgOfSales,
+  priceOfAnimal,
+  priceRangeFor,
+} from "./animal-price";
 export {
   bandOf,
   baselineOf,
@@ -434,7 +446,17 @@ export {
   stillToBuyOf,
 } from "./venture-plan";
 export type { PlanLine } from "./venture-plan";
-export type { AnimalPrice, PriceEnd, PriceRange } from "./animal-price";
+export type {
+  AheadEnd,
+  AnimalPrice,
+  KeepCharge,
+  KeepOrSell,
+  KeepUnknown,
+  Keeping,
+  Kept,
+  PriceEnd,
+  PriceRange,
+} from "./animal-price";
 export { projectedSettlement } from "./projection";
 export type { Projected, ProjectedEnd, ToProject } from "./projection";
 export type { RequestCloseReason, RequestToJoinState } from "./request-to-join";
