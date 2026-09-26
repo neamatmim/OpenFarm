@@ -64,10 +64,12 @@ describe("the litres she sent to Bulk in the days her keep is read over", () => 
 });
 
 describe("the soonest a cow's milk may be weighed", () => {
-  it("is her calf's week and then the days her keep is read over, however many the farm reads", () => {
-    // Four weeks of keep: 35 days. Six weeks: 49 — any sooner and the six weeks would take in the calf's milk.
-    expect(fewestDaysBeforeMilkIsWeighed(28)).toBe(35);
-    expect(fewestDaysBeforeMilkIsWeighed(42)).toBe(49);
+  it("is her calf's days and then the days her keep is read over, however many the farm says of each", () => {
+    // A week's calf milk and four weeks of keep: 35 days. Six weeks of keep: 49. A calf fed from the cow for four days
+    // only, and four weeks of keep: 32 — any sooner and the four weeks would take in the calf's milk.
+    expect(fewestDaysBeforeMilkIsWeighed(28, 7)).toBe(35);
+    expect(fewestDaysBeforeMilkIsWeighed(42, 7)).toBe(49);
+    expect(fewestDaysBeforeMilkIsWeighed(28, 4)).toBe(32);
   });
 });
 

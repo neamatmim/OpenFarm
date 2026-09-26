@@ -1,0 +1,1 @@
+ALTER TABLE "farm" ADD COLUMN "cull_calf_milk_days" integer DEFAULT 7 NOT NULL;

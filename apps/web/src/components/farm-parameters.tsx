@@ -1,4 +1,5 @@
 import {
+  FEWEST_CALF_MILK_DAYS,
   FEWEST_KEEP_READ_DAYS,
   fewestDaysBeforeMilkIsWeighed,
 } from "@OpenFarm/domain";
@@ -41,6 +42,7 @@ type NumberKey =
   | "keepRateGapDays"
   | "cullOpenDays"
   | "cullMilkAfterDays"
+  | "cullCalfMilkDays"
   | "cullMilkPriceDays"
   | "approvalThresholdBdt"
   | "ventureFloorPercent"
@@ -186,8 +188,18 @@ const GROUPS: {
         unit: "params.days",
         // The server holds it a week past the days this farm reads a keep over; this is only the soonest any farm may
         // have.
-        min: fewestDaysBeforeMilkIsWeighed(FEWEST_KEEP_READ_DAYS),
+        min: fewestDaysBeforeMilkIsWeighed(
+          FEWEST_KEEP_READ_DAYS,
+          FEWEST_CALF_MILK_DAYS
+        ),
         max: 180,
+      },
+      {
+        key: "cullCalfMilkDays",
+        label: "params.cullCalfMilkDays",
+        unit: "params.days",
+        min: FEWEST_CALF_MILK_DAYS,
+        max: 30,
       },
       {
         key: "cullMilkPriceDays",

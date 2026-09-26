@@ -15,17 +15,20 @@ export const CULL_REASONS = [
 ] as const;
 export type CullReason = (typeof CULL_REASONS)[number];
 
-/** The days after calving whose milk is her calf's, and never goes to Bulk. */
-const CALF_MILK_DAYS = 7;
+/** The fewest days after calving the farm may say a cow's milk is her calf's: her first milk is always the calf's. How
+ *  many is a Farm Parameter (the Owner's, a week unless the Owner says otherwise); this is its floor. */
+export const FEWEST_CALF_MILK_DAYS = 1;
 
 /**
- * The fewest days into her Lactation the farm may set before her milk is weighed against her keep: her calf's week and
+ * The fewest days into her Lactation the farm may set before her milk is weighed against her keep: her calf's days and
  * then the days her keep is read over. Any sooner and those days would take in the calf's milk, and every cow fresh
  * from calving would look short. A Farm Parameter says how many (the Owner's, 35 by default); this is its floor, and it
- * moves with the other Farm Parameter, the days her keep is read over.
+ * moves with the two Farm Parameters it is made of.
  */
-export const fewestDaysBeforeMilkIsWeighed = (keepReadDays: number): number =>
-  CALF_MILK_DAYS + keepReadDays;
+export const fewestDaysBeforeMilkIsWeighed = (
+  keepReadDays: number,
+  calfMilkDays: number
+): number => calfMilkDays + keepReadDays;
 
 /**
  * What a litre fetched across some of the farm's Dispatches: everything they fetched over every litre they took, so a
