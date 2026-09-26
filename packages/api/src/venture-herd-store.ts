@@ -83,6 +83,9 @@ export interface TheirProgress {
    * this; the farm would rather he can reconcile the two than be quietly handed the easier sum.
    */
   gainKgPerDay: number | null;
+  /** The latest reading off the scale among the animals the two averages are over, so a reader knows how old
+   *  "now" is. Null while none of them has been weighed. */
+  lastWeighedAt: Date | null;
   /** Whole days until the Target Window opens, and 0 once it has. A count of days, never a prediction. */
   daysToWindow: number;
   animals: HerProgress[];
@@ -97,6 +100,10 @@ const RATE_SCALE = 100;
 const roundedKg = (value: number) => Math.round(value * KG_SCALE) / KG_SCALE;
 const roundedRate = (value: number) =>
   Math.round(value * RATE_SCALE) / RATE_SCALE;
+
+/** The later of two moments, either of which may be missing. */
+const laterOf = (one: Date | null, other: Date | null): Date | null =>
+  one && other && one > other ? one : (other ?? one);
 
 const meanOf = (values: number[]): number | null =>
   values.length === 0
@@ -151,6 +158,7 @@ export const theirProgress = async (
   const standingLatest: number[] = [];
   let gainKg = 0;
   let gainDays = 0;
+  let lastWeighedAt: Date | null = null;
   let standingCount = 0;
   let soldCount = 0;
   let diedCount = 0;
@@ -167,6 +175,7 @@ export const theirProgress = async (
       if (since && intakeKg !== null && view.latestKg !== null) {
         standingIntake.push(intakeKg);
         standingLatest.push(view.latestKg);
+        lastWeighedAt = laterOf(lastWeighedAt, view.latestAt);
       }
       // The herd's own rate: kilogrammes on over days on feed. A beast nobody has weighed contributes
       // neither, rather than a zero that would drag the figure down for a fact the farm does not have.
@@ -213,6 +222,7 @@ export const theirProgress = async (
     averageIntakeKg: meanOf(standingIntake),
     averageLatestKg: meanOf(standingLatest),
     gainKgPerDay: gainDays > 0 ? roundedRate(gainKg / gainDays) : null,
+    lastWeighedAt,
     // Whole days, and never negative: once the window has opened there are none left to count.
     daysToWindow: Math.max(
       0,

@@ -392,6 +392,18 @@ describe("what a Venture's animals are doing", () => {
     expect(theirs.gainKgPerDay).toBe(0.7);
   });
 
+  it("says the day the averages were last read off the scale, from the animals they are over", async () => {
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    const theirs = await owner.client.ventures.herd({
+      ventureId: firstVenture,
+    });
+    // The fifth bull's round on the 15th, the latest of the two the averages are over. This herd holds no later
+    // reading outside them, so it does not prove the others are left out.
+    expect(theirs.lastWeighedAt).toEqual(new Date("2052-02-15T07:30:00.000Z"));
+    const weighed = theirs.animals.find((one) => one.tagNumber === tags[0]);
+    expect(weighed?.latestAt).toEqual(new Date("2052-02-01T07:30:00.000Z"));
+  });
+
   it("counts the days to the window and never projects past it", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
     const theirs = await owner.client.ventures.herd({

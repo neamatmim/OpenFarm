@@ -291,6 +291,8 @@ export const bn: Record<MessageKey, string> = {
   "portal.windowHint": "দিনের হিসাব, কোনো প্রতিশ্রুতি নয়",
   "portal.herd": "পশুগুলো",
   "portal.herdHint": "আসার পর থেকে ওজন নেওয়া {weighed}টি পশুর গড়।",
+  "portal.lastWeighed": "শেষ ওজন নেওয়া হয়েছে {day}।",
+  "portal.figuresAsAt": "হিসাব {time} পর্যন্ত",
   "portal.herdGone": "এখন কোনো পশু দাঁড়িয়ে নেই",
   "portal.herdNoneYet": "এখনো কোনো পশু কেনা হয়নি",
   "portal.averageIntake": "আসার সময় গড় ওজন",

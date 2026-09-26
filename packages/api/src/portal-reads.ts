@@ -169,12 +169,14 @@ export const theirVentureToday = async (
       averageIntakeKg: theirs.averageIntakeKg,
       averageLatestKg: theirs.averageLatestKg,
       gainKgPerDay: theirs.gainKgPerDay,
+      lastWeighedAt: theirs.lastWeighedAt,
       animals: theirs.animals
         .filter((one) => one.standing)
         .map((one) => ({
           tagNumber: one.tagNumber,
           intakeKg: one.intakeKg,
           latestKg: one.latestKg,
+          latestAt: one.latestAt,
           dailyGainKg: one.dailyGainKg,
         })),
     },

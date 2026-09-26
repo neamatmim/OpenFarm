@@ -26,6 +26,7 @@ import {
 } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
+import { FiguresAsAt } from "@/components/portal/figures-as-at";
 import { HowToPay } from "@/components/portal/how-to-pay";
 import { PortalPapers } from "@/components/portal/portal-papers";
 import {
@@ -160,9 +161,23 @@ const Herd = ({ today }: { today: Today }) => {
       </Section>
     );
   }
+  // An answer this phone kept from before the portal said when the animals were weighed has no day to say.
+  const lastWeighedAt = today.herd.lastWeighedAt ?? null;
   return (
     <Section
-      description={t("portal.herdHint", { weighed: today.herd.weighed })}
+      description={
+        <>
+          {t("portal.herdHint", { weighed: today.herd.weighed })}
+          {lastWeighedAt ? (
+            <>
+              {" "}
+              {t("portal.lastWeighed", {
+                day: formatDate(new Date(lastWeighedAt), language),
+              })}
+            </>
+          ) : null}
+        </>
+      }
       title={t("portal.herd")}
     >
       <dl className="grid gap-3 text-sm sm:grid-cols-3">
@@ -225,6 +240,12 @@ const Herd = ({ today }: { today: Today }) => {
                   </td>
                   <td className="px-4 py-2 text-end tabular-nums">
                     {kg(one.latestKg) ?? <Nothing />}
+                    {/* The day of that weight, so one animal's "now" can be told from a month-old one. */}
+                    {one.latestAt ? (
+                      <span className="text-muted-foreground block text-xs">
+                        <SaidDate at={one.latestAt} />
+                      </span>
+                    ) : null}
                   </td>
                   <td className="px-4 py-2 text-end tabular-nums md:px-5">
                     {one.dailyGainKg === null ? (
@@ -413,7 +434,16 @@ const WithKeyDates = ({
 );
 
 /** The page itself, once the Venture is read. */
-const VentureToday = ({ today, tab }: { today: Today; tab: Tab }) => {
+const VentureToday = ({
+  today,
+  tab,
+  readAt,
+}: {
+  today: Today;
+  tab: Tab;
+  /** When this answer came back from the farm. */
+  readAt: number;
+}) => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const places = usePortalPlaces();
@@ -435,16 +465,19 @@ const VentureToday = ({ today, tab }: { today: Today; tab: Tab }) => {
       <PageHeader
         description={t("portal.ventureHint")}
         meta={
-          today.his.amendedOn ? (
-            <span>
-              {t("portal.amendedOn")} <SaidDate at={today.his.amendedOn} />
-            </span>
-          ) : undefined
+          <>
+            <FiguresAsAt readAt={readAt} />
+            {today.his.amendedOn ? (
+              <span>
+                {t("portal.amendedOn")} <SaidDate at={today.his.amendedOn} />
+              </span>
+            ) : null}
+          </>
         }
         title={today.venture.name}
       />
       <StageTrack state={today.venture.state} />
-      <SummaryFigures figures={figures} />
+      <SummaryFigures figures={figures} hintsOnPhone />
       {/* While their capital is owed. An answer this phone kept from before the farm said where to pay has none. */}
       <HowToPay paying={today.howToPay ?? null} />
       <PageTabs
@@ -506,7 +539,13 @@ export const PortalVenture = ({
   return (
     <Page>
       <Loaded query={today} skeleton={<Skeleton className="h-96 rounded-xl" />}>
-        {today.data ? <VentureToday tab={tab} today={today.data} /> : null}
+        {today.data ? (
+          <VentureToday
+            readAt={today.dataUpdatedAt}
+            tab={tab}
+            today={today.data}
+          />
+        ) : null}
       </Loaded>
     </Page>
   );
