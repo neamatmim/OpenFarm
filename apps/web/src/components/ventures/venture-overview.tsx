@@ -5,6 +5,7 @@ import { Section } from "@/components/page";
 import { InThePortal } from "@/components/ventures/in-the-portal";
 import { VentureAccountPanel } from "@/components/ventures/venture-account";
 import { Line, moneyOf } from "@/components/ventures/venture-card";
+import { VenturePlanPanel } from "@/components/ventures/venture-plan";
 import { VentureProjectionPanel } from "@/components/ventures/venture-projection";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
@@ -187,6 +188,7 @@ export const VentureOverview = ({ venture }: { venture: Venture }) => (
     ) : null}
     {/* Whatever it is doing: the same account carries its buying, its refunds and its payouts. */}
     <VentureAccountPanel venture={venture} />
+    <VenturePlanPanel venture={venture} />
     <VentureProjectionPanel venture={venture} />
     <div className="grid gap-4 lg:grid-cols-2">
       <TheMoney venture={venture} />
