@@ -437,7 +437,7 @@ export {
 } from "./animal-price";
 export {
   CULL_REASONS,
-  leastDaysBeforeMilkIsWeighed,
+  fewestDaysBeforeMilkIsWeighed,
   cullReasonsOf,
   litresOver,
   milkAgainstKeep,

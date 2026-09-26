@@ -6,7 +6,7 @@ import {
   MAX_GRACE_MINUTES,
   STANDARD_KINDS,
   identityView,
-  leastDaysBeforeMilkIsWeighed,
+  fewestDaysBeforeMilkIsWeighed,
   startOfFarmDay,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -21,6 +21,7 @@ import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { photoInput } from "../photo-input";
 import { certificatesOf, keepCertificate } from "../registration-store";
+import type { RoleName } from "../roles";
 import {
   OWNER_ONLY,
   forbidden,
@@ -79,8 +80,6 @@ const parameters = z
     calvingPrepLeadDays: z.number().int().min(1).max(30).optional(),
     /** How many attempts that did not take raise a Repeat Breeder. */
     repeatBreederThreshold: z.number().int().min(2).max(10).optional(),
-    /** How many days after calving a cow still not in calf is named for culling: not before a cow that is going to
-     *  settle has had her chances, and not past a year, when the question has long been answered. */
     /** How many days back an animal's keep is read, for keep-or-sell and the culling list: at least a fortnight, and no
      *  more than three months, past which it is last season's Ration that is being read. */
     keepReadDays: z
@@ -89,14 +88,16 @@ const parameters = z
       .min(FEWEST_KEEP_READ_DAYS)
       .max(90)
       .optional(),
+    /** How many days after calving a cow still not in calf is named for culling: not before a cow that is going to
+     *  settle has had her chances, and not past a year, when the question has long been answered. */
     cullOpenDays: z.number().int().min(60).max(365).optional(),
     /** How many days into her Lactation before a cow's milk is weighed against her keep: never before her calf's week
-     *  and the days her keep is read over after it — which the handler holds against the farm's own days — and not past
-     *  half a year, when the question has long been answered. */
+     *  and the days her keep is read over after it — which the handler holds against the farm's own days — and not
+     *  past half a year, when the question has long been answered. */
     cullMilkAfterDays: z
       .number()
       .int()
-      .min(leastDaysBeforeMilkIsWeighed(FEWEST_KEEP_READ_DAYS))
+      .min(fewestDaysBeforeMilkIsWeighed(FEWEST_KEEP_READ_DAYS))
       .max(180)
       .optional(),
     /** How many days back the Dispatches are read for what a litre fetches: at least a week of a milk buyer, and no
@@ -161,37 +162,39 @@ const A_VENTURES_OWN = [
   "runningBudgetWarnBdt",
 ] as const;
 
-const aVenturesOwn = (input: z.infer<typeof parameters>): boolean =>
-  A_VENTURES_OWN.some((key) => input[key] !== undefined);
-
-/** What shapes the Owner's keep-or-sell figures and list of cows to think about culling: the Owner's to set, as the two
+/** What the Owner's keep-or-sell figures and list of cows to think about culling read: the Owner's to set, as the two
  *  are theirs to read. */
-const THE_OWNERS_LISTS = [
+const WHAT_KEEP_AND_CULL_READ = [
   "keepReadDays",
   "cullOpenDays",
   "cullMilkAfterDays",
   "cullMilkPriceDays",
 ] as const;
 
-const theOwnersLists = (input: z.infer<typeof parameters>): boolean =>
-  THE_OWNERS_LISTS.some((key) => input[key] !== undefined);
+type ParametersInput = z.infer<typeof parameters>;
 
-/** Refuses a Manager who names what is the Owner's alone to set: a Venture's own figures, or what the Owner's keep-or-sell
- *  figures and culling list read. */
+/** Whether a request names any of these Parameters. */
+const namesAny = (
+  input: ParametersInput,
+  keys: readonly (keyof ParametersInput)[]
+): boolean => keys.some((key) => input[key] !== undefined);
+
+/** Refuses a Manager who names what is the Owner's alone to set: a Venture's own figures, or what the Owner's
+ *  keep-or-sell figures and culling list read. */
 const refuseWhatIsTheOwners = (
-  input: z.infer<typeof parameters>,
-  roles: readonly string[]
+  input: ParametersInput,
+  roles: readonly RoleName[]
 ) => {
   if (roles.some((role) => role === "owner")) {
     return;
   }
-  if (aVenturesOwn(input)) {
+  if (namesAny(input, A_VENTURES_OWN)) {
     throw forbidden({
       message: "A Venture's own figures are the Owner's to set",
       reason: "owner_only",
     });
   }
-  if (theOwnersLists(input)) {
+  if (namesAny(input, WHAT_KEEP_AND_CULL_READ)) {
     throw forbidden({
       message:
         "What the keep-or-sell figures and the culling list read is the Owner's to set",
@@ -206,12 +209,12 @@ const refuseWhatIsTheOwners = (
  * from calving would look short of her keep. Said, not moved for the Owner: the two are set together or not at all.
  */
 const refuseMilkWeighedTooSoon = (
-  input: z.infer<typeof parameters>,
+  input: ParametersInput,
   standing: { keepReadDays: number; cullMilkAfterDays: number }
 ) => {
   const keepReadDays = input.keepReadDays ?? standing.keepReadDays;
   const milkAfterDays = input.cullMilkAfterDays ?? standing.cullMilkAfterDays;
-  const soonest = leastDaysBeforeMilkIsWeighed(keepReadDays);
+  const soonest = fewestDaysBeforeMilkIsWeighed(keepReadDays);
   if (milkAfterDays < soonest) {
     throw new ORPCError("BAD_REQUEST", {
       message: `A cow's milk is weighed a week past the days her keep is read over: ${soonest} days at the soonest`,

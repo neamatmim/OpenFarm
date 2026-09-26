@@ -23,10 +23,10 @@ const BREEDING_STATES = [
 ] as const;
 
 /**
- * Every dairy cow in milk or dry, and every Repeat Breeder, with the reasons the farm has to name her to the Owner — her
- * milk against her keep over the farm's keep days, how long since she calved and whether she is in calf, and how many
- * heats she has been served on that did not take — whether or not any of them names her, so the Owner can read a cow
- * that pays beside one that does not.
+ * Every dairy cow in milk or dry, and every Repeat Breeder, with the reasons the farm has to name her to the Owner —
+ * her milk against her keep over the days the farm reads a keep over, how long since she calved and whether she is in
+ * calf, and how many heats she has been served on that did not take — whether or not any of them names her, so the
+ * Owner can read a cow that pays beside one that does not.
  *
  * The same keep a fattening Animal's Cost of Gain now reads, and the same Repeat Breeder the Manager's queue asks
  * about, so no cow is named on a sum or a flag the farm says differently anywhere else.

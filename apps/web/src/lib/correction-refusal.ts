@@ -222,14 +222,31 @@ const WORDED_REFUSALS = {
   work_in_no_pen: "refusal.workInNoPen",
 } as const satisfies Record<string, MessageKey>;
 
-/** A worded refusal in the reader's language, or nothing when the error was about something else. */
+/** The figures a refusal carries beside its word — how soon, how many — for words that have a place for them. */
+const figuresOf = (data: Record<string, unknown>): MessageParams => {
+  const figures: MessageParams = {};
+  for (const [key, value] of Object.entries(data)) {
+    const aFigure = typeof value === "number" || typeof value === "string";
+    if (key !== "refusal" && aFigure) {
+      figures[key] = value;
+    }
+  }
+  return figures;
+};
+
+/** A worded refusal in the reader's language, with any figure it carries, or nothing when the error was about
+ *  something else. */
 export const wordedRefusal = (
   error: unknown,
   t: (key: MessageKey, params?: MessageParams) => string
 ): string | null => {
-  const word = (error as { data?: { refusal?: unknown } })?.data?.refusal;
+  const data = (error as { data?: Record<string, unknown> })?.data;
+  const word = data?.refusal;
   return typeof word === "string" && word in WORDED_REFUSALS
-    ? t(WORDED_REFUSALS[word as keyof typeof WORDED_REFUSALS])
+    ? t(
+        WORDED_REFUSALS[word as keyof typeof WORDED_REFUSALS],
+        figuresOf(data ?? {})
+      )
     : null;
 };
 

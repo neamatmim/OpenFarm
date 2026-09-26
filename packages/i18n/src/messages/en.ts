@@ -1247,7 +1247,7 @@ export const en = {
   "ventures.herdCostOfGain": "Each kilogram they put on",
   "ventures.noAnimalsYet": "No animals on this venture yet",
   "refusal.milkWeighedTooSoon":
-    "A cow's milk is weighed at least a week past the days her keep is read over. Change the two together.",
+    "A cow's milk is weighed at least a week past the days her keep is read over: {soonestDays, plural, one {# day} other {# days}} at the soonest. Change the two together.",
   "refusal.capitalOverUnits":
     "That is more than this Agreement's Units are worth",
   "refusal.refundNotItsMoney":

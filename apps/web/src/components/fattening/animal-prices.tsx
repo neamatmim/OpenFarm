@@ -282,7 +282,8 @@ export const HerPrice = ({ tagNumber }: { tagNumber: string }) => {
   const { t } = useLanguage();
   const owner = useIsOwner();
   const one = useHerPrice(tagNumber);
-  // The farm's keep days, for the hint to say; missing from an answer this phone kept from before it was a setting.
+  // How many days back the farm reads a keep, for the hint to say; missing from an answer this phone kept from before
+  // it was a setting.
   const keepReadDays = usePrices().data?.keepReadDays;
   if (!owner || !one) {
     return null;

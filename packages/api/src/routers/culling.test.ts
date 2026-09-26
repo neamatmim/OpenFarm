@@ -466,13 +466,13 @@ describe("why the farm names a dairy cow to the Owner", () => {
     await owner.client.farm.setParameters({ cullOpenDays: 150 });
   });
 
-  it("weighs a cow's milk only as many days into her Lactation as the Owner says, and never before five weeks", async () => {
+  it("weighs a cow's milk only as many days into her Lactation as the Owner says, and never before her calf's week and the days her keep is read over", async () => {
     const owner = await as("owner", "2041-03-01T04:00:00.000Z");
     const manager = await as("manager", "2041-03-01T04:00:00.000Z");
     await expect(
       manager.client.farm.setParameters({ cullMilkAfterDays: 125 })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
-    // Her calf's week and the four weeks read after it: any sooner and the four weeks take in the calf's milk.
+    // Her calf's week and the four weeks this farm reads a keep over: any sooner and those weeks take in the calf's milk.
     await expect(
       owner.client.farm.setParameters({ cullMilkAfterDays: 34 })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
@@ -580,7 +580,10 @@ describe("why the farm names a dairy cow to the Owner", () => {
     // And the wait cannot come down under a week past the four weeks read now.
     await expect(
       owner.client.farm.setParameters({ cullMilkAfterDays: 34 })
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "milk_weighed_too_soon", soonestDays: 35 },
+    });
     // A fortnight's keep, and milk weighed from three weeks: set together, the two agree.
     await owner.client.farm.setParameters({
       keepReadDays: 14,

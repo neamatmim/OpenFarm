@@ -101,7 +101,7 @@ const feeding = (day: string, bdt: number, priced = true) => ({
   priced,
 });
 
-describe("what her keep has cost over her last four weeks", () => {
+describe("what her keep has cost over the days the farm reads it over", () => {
   // Four weeks back from the 1st of March is the 2nd of February, at the same hour.
   const now = new Date("2040-03-01T04:00:00.000Z");
   const here = [{ from: new Date("2040-01-02T04:00:00.000Z"), until: null }];
@@ -127,7 +127,7 @@ describe("what her keep has cost over her last four weeks", () => {
     expect(kept).toEqual({ bdt: 8540, days: 28, fed: true, whole: true });
   });
 
-  it("reads as many days back as the farm says, not four weeks of its own", () => {
+  it("reads as many days back as the farm says", () => {
     // A fortnight back from the 1st of March is the 16th of February: the 10th's feeding and the 15th's Herd Cost are
     // before it, the 24th's feeding inside it.
     expect(

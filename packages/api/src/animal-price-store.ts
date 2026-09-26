@@ -32,8 +32,8 @@ const ON_THE_SIDE = ["quarantine", "fattening", "ready_for_sale"] as const;
  * at her Venture's plan's sale prices, the farm's own at its market price; either may not be set yet.
  *
  * The same costing the Venture's economics reads, so an animal's cost here and on its Venture's page are one sum. And
- * whether keeping her another fortnight pays: her keep over the farm's keep days, over the rate she is gaining at now,
- * set beside those same prices.
+ * whether keeping her another fortnight pays: her keep over the days the farm reads a keep over, over the rate she is
+ * gaining at now, set beside those same prices.
  */
 export const pricesOnTheSide = async (
   db: Database,

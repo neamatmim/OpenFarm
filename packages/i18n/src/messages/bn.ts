@@ -1165,7 +1165,7 @@ export const bn: Record<MessageKey, string> = {
   "ventures.herdCostOfGain": "প্রতি কেজি বাড়াতে খরচ",
   "ventures.noAnimalsYet": "এই ভেঞ্চারে এখনো কোনো গরু নেই",
   "refusal.milkWeighedTooSoon":
-    "রাখার খরচ যত দিন ধরা হয়, তার অন্তত এক সপ্তাহ পর থেকে গাভীর দুধ মাপা হয়। দুটো একসঙ্গে বদলান।",
+    "রাখার খরচ যত দিন ধরা হয়, তার অন্তত এক সপ্তাহ পর থেকে গাভীর দুধ মাপা হয়: সবচেয়ে আগে {soonestDays} দিনে। দুটো একসঙ্গে বদলান।",
   "refusal.capitalOverUnits": "এই চুক্তির ইউনিটের দামের চেয়ে বেশি টাকা",
   "refusal.refundNotItsMoney": "এই ভেঞ্চার এই টাকা কখনো নেয়নি",
   "refusal.wageIsTheFarms": "মজুরি খামারের নিজের — লোক খামারই দেয়",

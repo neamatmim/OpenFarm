@@ -19,9 +19,9 @@ const CullFigures = ({
   keepReadDays,
 }: {
   cows: CullList["cows"];
-  /** The farm's days empty after calving and days of keep read, each missing from an answer this phone kept from
-   *  before it was a setting. */
+  /** The farm's days empty after calving; missing from an answer this phone kept from before it was a setting. */
   openDays: number | undefined;
+  /** How many days back the farm reads a keep; missing from an answer this phone kept from before it was a setting. */
   keepReadDays: number | undefined;
 }) => {
   const { t, language } = useLanguage();

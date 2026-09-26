@@ -24,7 +24,7 @@ const CALF_MILK_DAYS = 7;
  * from calving would look short. A Farm Parameter says how many (the Owner's, 35 by default); this is its floor, and it
  * moves with the other Farm Parameter, the days her keep is read over.
  */
-export const leastDaysBeforeMilkIsWeighed = (keepReadDays: number): number =>
+export const fewestDaysBeforeMilkIsWeighed = (keepReadDays: number): number =>
   CALF_MILK_DAYS + keepReadDays;
 
 /**
@@ -64,7 +64,7 @@ export type MilkAgainstKeep =
   | { known: false; because: MilkUnknown }
   | {
       known: true;
-      /** The days of the farm's keep days she was here, which both sums are over. */
+      /** How many of the days her keep is read over she was here: what both sums are over. */
       days: number;
       litres: number;
       litresPerDay: number;
@@ -83,9 +83,9 @@ export type MilkAgainstKeep =
     };
 
 /**
- * Her milk against her keep over the days her keep is read back over: what the litres she sent to Bulk fetch at what the farm's own
- * Dispatches got a litre, set beside what keeping her cost. Milk to her calf or poured away under Withdrawal fetched
- * nothing, so it counts for nothing — a treatment costs the milk it spoils as well as the dose.
+ * Her milk against her keep over the days her keep is read back over: what the litres she sent to Bulk fetch at what
+ * the farm's own Dispatches got a litre, set beside what keeping her cost. Milk to her calf or poured away under
+ * Withdrawal fetched nothing, so it counts for nothing — a treatment costs the milk it spoils as well as the dose.
  *
  * Not weighed, and said why, until she is as many days into her Lactation as the farm says, while no Feeding was
  * charged to her in those days, or while the farm sold no milk in its price window to put a price on a litre.
@@ -101,7 +101,7 @@ export const milkAgainstKeep = ({
   litres: number;
   daysInMilk: number | null;
   /** The Farm Parameter: how many days into her Lactation before her milk is weighed. Never fewer than
-   *  `leastDaysBeforeMilkIsWeighed`, which the Parameter itself refuses. */
+   *  `fewestDaysBeforeMilkIsWeighed`, which the Parameter itself refuses. */
   weighedAfterDays: number;
   price: { bdtPerLitre: number } | null;
 }): MilkAgainstKeep => {

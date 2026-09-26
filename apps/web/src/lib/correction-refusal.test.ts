@@ -60,6 +60,21 @@ describe("a refused Correction", () => {
     );
   });
 
+  it("says the figure a refusal carries, where its words have a place for it", () => {
+    // Six weeks of keep read while milk is weighed at 35 days: the farm says how soon it may be weighed at the soonest.
+    expect(
+      correctionRefusalMessage(
+        {
+          message: "server's English",
+          data: { refusal: "milk_weighed_too_soon", soonestDays: 49 },
+        },
+        t
+      )
+    ).toBe(
+      "A cow's milk is weighed at least a week past the days her keep is read over: 49 days at the soonest. Change the two together."
+    );
+  });
+
   it("leaves an error that is not a refusal to the caller", () => {
     expect(correctionRefusalMessage(new Error("offline"), t)).toBeNull();
   });

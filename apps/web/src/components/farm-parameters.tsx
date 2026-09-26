@@ -1,6 +1,6 @@
 import {
   FEWEST_KEEP_READ_DAYS,
-  leastDaysBeforeMilkIsWeighed,
+  fewestDaysBeforeMilkIsWeighed,
 } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -160,8 +160,9 @@ const GROUPS: {
         key: "cullMilkAfterDays",
         label: "params.cullMilkAfterDays",
         unit: "params.days",
-        // The server holds it a week past the farm's own keep days; this is only the soonest any farm may have.
-        min: leastDaysBeforeMilkIsWeighed(FEWEST_KEEP_READ_DAYS),
+        // The server holds it a week past the days this farm reads a keep over; this is only the soonest any farm may
+        // have.
+        min: fewestDaysBeforeMilkIsWeighed(FEWEST_KEEP_READ_DAYS),
         max: 180,
       },
       {
