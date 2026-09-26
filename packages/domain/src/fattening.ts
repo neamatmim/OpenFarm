@@ -108,9 +108,13 @@ export interface FatteningView {
 const daysBetween = (from: Date, to: Date): number =>
   (to.getTime() - from.getTime()) / DAY_MS;
 
+/** The whole days from one instant to a later one, and none backwards. */
+export const wholeDaysFrom = (from: Date, to: Date): number =>
+  Math.max(0, Math.round(daysBetween(from, to)));
+
 /** How long a bought-in Animal has been on the Farm being fed, counted from her Intake in whole days. */
 export const daysOnFeedOf = (arrivedAt: Date, now: Date): number =>
-  Math.max(0, Math.round(daysBetween(arrivedAt, now)));
+  wholeDaysFrom(arrivedAt, now);
 
 /** Rates carry a decimal more than kilogrammes do: a fattening bull's whole day's work is the
  *  second decimal place. */

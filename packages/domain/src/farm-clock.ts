@@ -29,6 +29,12 @@ export const farmTimeOf = (at: Date): string =>
 
 const DAY_MS = 24 * 60 * MINUTE_MS;
 
+/** How many farm days `to` is after `from`: whole days, fewer than none when it is before. */
+export const farmDaysApart = (from: string, to: string): number =>
+  Math.round(
+    (startOfFarmDay(to).getTime() - startOfFarmDay(from).getTime()) / DAY_MS
+  );
+
 /** The farm days from `from` to `to`, both included, as the instants that bound them. */
 export const farmDaysBetween = (
   from: string,

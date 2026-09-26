@@ -1,4 +1,4 @@
-import { formatDate, numberAsTyped } from "@OpenFarm/i18n";
+import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { cn } from "@OpenFarm/ui/lib/utils";
@@ -11,8 +11,10 @@ import { Nothing } from "@/components/list-cells";
 import { Section } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useRange } from "@/lib/range";
 import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
+import { aFigure, figureOf } from "@/lib/typed-figure";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
@@ -78,6 +80,7 @@ const CostLine = ({ one }: { one: AnimalPriced }) => {
 const EstimateLine = ({ one }: { one: AnimalPriced }) => {
   const { t } = useLanguage();
   const taka = useTaka();
+  const range = useRange();
   if (!one.low || !one.high) {
     return (
       <span className="text-muted-foreground text-xs">
@@ -89,10 +92,7 @@ const EstimateLine = ({ one }: { one: AnimalPriced }) => {
   return (
     <>
       <span className="font-medium tabular-nums">
-        {t("projection.range", {
-          low: taka(one.low.priceBdt),
-          high: taka(one.high.priceBdt),
-        })}
+        {range(taka(one.low.priceBdt), taka(one.high.priceBdt))}
       </span>
       <span
         className={cn(
@@ -162,16 +162,6 @@ interface Typed {
   high: string;
 }
 
-/** A typed figure as a number, Bangla digits and all; nothing for a blank. */
-const figureOf = (typed: string): number | null => {
-  const plain = numberAsTyped(typed);
-  return plain === "" ? null : Number(plain);
-};
-
-/** A price a kilo the Owner may set: a real number above nothing. */
-const aPrice = (value: number | null): value is number =>
-  value !== null && Number.isFinite(value) && value > 0;
-
 /** Setting the market price a kilo, low and high. */
 const MarketSheet = ({
   market,
@@ -199,7 +189,7 @@ const MarketSheet = ({
   const high = figureOf(typed.high);
   // Named, not written into the sheet: the check for untranslated words reads a less-than beside JSX as a tag.
   const lowAboveHigh = low !== null && high !== null && low > high;
-  const ready = aPrice(low) && aPrice(high) && !lowAboveHigh;
+  const ready = aFigure(low) && aFigure(high) && !lowAboveHigh;
   const label = t(market ? "market.change" : "market.set");
   return (
     <FormSheet

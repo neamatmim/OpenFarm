@@ -1,3 +1,4 @@
+import { hasEnded } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import type { MessageKey } from "@OpenFarm/i18n";
 import {
@@ -46,11 +47,17 @@ export const portfolioOf = (theirs: TheirAgreements) => {
     theirs.movements
       .filter((one) => one.kind === kind)
       .reduce((sum, one) => sum + one.amountBdt, 0);
+  // Counted as the Owner's page counts them: a Venture settled or called off is nobody's to pay into any more.
+  const running = theirs.agreements.filter(
+    (one) => !hasEnded(one.venture.state)
+  );
   return {
-    /** What their Units promised, on every paper not called off: what they signed to bring. */
-    promisedBdt: theirs.agreements
-      .filter((one) => one.venture.state !== "cancelled")
-      .reduce((sum, one) => sum + one.promisedBdt, 0),
+    /** Of the Ventures still running: how many, the Units held in them, what those Units promised and how much of it
+     *  has been paid in. One that has finished has nothing left to pay in. */
+    running: running.length,
+    runningUnits: running.reduce((sum, one) => sum + one.units, 0),
+    runningPromisedBdt: running.reduce((sum, one) => sum + one.promisedBdt, 0),
+    runningPaidInBdt: running.reduce((sum, one) => sum + one.capitalHeldBdt, 0),
     /** Capital that came in, and capital sent back when a Venture was called off. */
     paidInBdt: moved("capital_in"),
     returnedBdt: moved("refund"),
@@ -67,9 +74,9 @@ export const portfolioOf = (theirs: TheirAgreements) => {
 
 /** What each line of their money was, in words. */
 const MOVEMENT_WORD = {
-  capital_in: "investors.page.move.capitalIn",
-  refund: "investors.page.move.refund",
-  payout: "investors.page.move.payout",
+  capital_in: "money.capitalIn",
+  refund: "money.refund",
+  payout: "money.payout",
 } as const satisfies Record<Movement["kind"], MessageKey>;
 
 /** Which way each kind of line moved their money: into the Farm's keeping, or back to them. */
@@ -333,15 +340,10 @@ export const InvestorMoney = ({
   const ventureOf = new Map(
     agreements.map((one) => [one.id, one.venture] as const)
   );
-  let inBdt = 0;
-  let outBdt = 0;
-  for (const one of movements) {
-    if (INTO_THE_FARM[one.kind]) {
-      inBdt += one.amountBdt;
-    } else {
-      outBdt += one.amountBdt;
-    }
-  }
+  // The same sums the totals above the ledger are read from: in is capital received, out is payouts and refunds.
+  const sums = portfolioOf({ agreements, movements });
+  const inBdt = sums.paidInBdt;
+  const outBdt = sums.paidOutBdt + sums.returnedBdt;
   return (
     // In the portal the page it stands on says what it is; on the Owner's page of an Investor it is one tab of several.
     <Section

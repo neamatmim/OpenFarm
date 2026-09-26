@@ -7,8 +7,9 @@ import {
   buyingAgainstPlan,
   planTotals,
   plannedHeadKg,
+  farmDayOf,
+  farmDaysApart,
   plannedResult,
-  startOfFarmDay,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
@@ -17,7 +18,9 @@ import { theirSpend } from "./investor-statement-store";
 import { projectionOf } from "./projection-store";
 import { boughtFor } from "./venture-bought";
 import { theirProgress } from "./venture-herd-store";
+import { plansOf } from "./venture-plan-read";
 import type { VentureRow } from "./venture-store";
+import { windowInForceOn } from "./venture-store";
 
 /**
  * A Venture's **Venture Plan**, read and written: every version the Owner saved, oldest first, the one in force (the
@@ -25,44 +28,10 @@ import type { VentureRow } from "./venture-store";
  * Agreement, and nobody's but the Owner's.
  */
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** The days a plan's animals are fed: from buying, once it stops gathering capital, to the window's first day. */
+/** The days a plan's animals are fed: from buying, once it stops gathering capital, to the first day of the window in
+ *  force — as its latest Amendment left it, since that is the window the herd is sold in. */
 const daysOnFeedOf = (run: { decideBy: string; targetWindowStart: string }) =>
-  Math.round(
-    (startOfFarmDay(run.targetWindowStart).getTime() -
-      startOfFarmDay(run.decideBy).getTime()) /
-      DAY_MS
-  );
-
-/** Every version of a Venture's plan, oldest first, with its lines in the order the Owner wrote them. */
-const versionsOf = async (
-  db: Pick<Tx, "query">,
-  farmId: string,
-  ventureId: string
-) => {
-  const rows = await db.query.venturePlan.findMany({
-    where: { farmId, ventureId },
-    orderBy: { version: "asc" },
-    with: { lines: { orderBy: { position: "asc" } } },
-  });
-  return rows.map((one) => ({
-    version: one.version,
-    madeWhile: one.madeWhile,
-    madeAt: one.madeAt,
-    reason: one.reason,
-    saleLowBdtPerKg: one.saleLowBdtPerKg,
-    saleHighBdtPerKg: one.saleHighBdtPerKg,
-    deathsPercent: Number(one.deathsPercent),
-    lines: one.lines.map((line): PlanLine => ({
-      animals: line.animals,
-      fromKg: Number(line.fromKg),
-      toKg: Number(line.toKg),
-      buyBdtPerKg: line.buyBdtPerKg,
-      dailyGainKg: Number(line.dailyGainKg),
-    })),
-  }));
-};
+  farmDaysApart(run.decideBy, run.targetWindowStart);
 
 /** A Venture's plan as the Owner reads it: every version, the latest in force, and the baseline, with their totals. */
 export const planOf = async (
@@ -70,11 +39,20 @@ export const planOf = async (
   farmId: string,
   run: Pick<
     VentureRow,
-    "id" | "decideBy" | "targetWindowStart" | "cattleBudgetBdt"
-  >
+    | "id"
+    | "decideBy"
+    | "targetWindowStart"
+    | "targetWindowEnd"
+    | "cattleBudgetBdt"
+  >,
+  /** The day it is read on, which decides the window in force. */
+  on: string
 ) => {
-  const versions = await versionsOf(db, farmId, run.id);
-  const daysOnFeed = daysOnFeedOf(run);
+  const [versions, window] = await Promise.all([
+    plansOf(db, farmId, run.id),
+    windowInForceOn(db, farmId, run, on),
+  ]);
+  const daysOnFeed = daysOnFeedOf({ ...run, ...window });
   const withTotals = (one: (typeof versions)[number] | undefined) =>
     one
       ? {
@@ -185,7 +163,7 @@ export const planAgainstActual = async (
   offeredPercent: number,
   now: Date
 ) => {
-  const plan = await planOf(db, farmId, run);
+  const plan = await planOf(db, farmId, run, farmDayOf(now));
   const { baseline } = plan;
   if (!baseline) {
     return null;
@@ -199,9 +177,7 @@ export const planAgainstActual = async (
   ]);
   const daysSinceBuying = Math.min(
     plan.daysOnFeed,
-    Math.floor(
-      (now.getTime() - startOfFarmDay(run.decideBy).getTime()) / DAY_MS
-    )
+    farmDaysApart(run.decideBy, farmDayOf(now))
   );
   const plannedRunningBdt = run.targetCapitalBdt - run.cattleBudgetBdt;
   return {

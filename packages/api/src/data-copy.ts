@@ -110,9 +110,9 @@ const isTheirPaper = (paper: unknown): paper is keyof typeof PAPER_NAMES =>
 
 /** How each movement of their money is named. */
 const MOVEMENT_NAMES = {
-  capital_in: both("investors.page.move.capitalIn"),
-  refund: both("investors.page.move.refund"),
-  payout: both("investors.page.move.payout"),
+  capital_in: both("money.capitalIn"),
+  refund: both("money.refund"),
+  payout: both("money.payout"),
 } as const;
 
 /** Why their access was taken away, said to them — the Owner's screen says it of them, in the third person. */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { projectedSettlement, unboughtKgAtWindow } from "./projection";
+import { projectedSettlement } from "./projection";
 import { splitOfProfit } from "./venture";
 
 describe("a Projection", () => {
@@ -121,43 +121,5 @@ describe("a Projection that allows for deaths", () => {
       deathsPercent: 10,
     });
     expect(projected.low.proceedsBdt).toBe(410_000);
-  });
-});
-
-describe("the animals a budget has still to buy", () => {
-  it("buys as many whole animals as the budget left will pay for, and grows each to the window", () => {
-    // Ten lakh at ৳500 a kilo for 250 kg animals is ৳1,25,000 each: eight of them. A hundred days at 0.8 kg a day
-    // puts 80 kg on each, so 330 kg apiece and 2,640 kg between them.
-    expect(
-      unboughtKgAtWindow({
-        cattleBudgetLeftBdt: 1_000_000,
-        buyBdtPerKg: 500,
-        buyWeightKg: 250,
-        dailyGainKg: 0.8,
-        daysToWindow: 100,
-      })
-    ).toBe(2640);
-  });
-
-  it("buys none with a budget that will not pay for one, and grows nothing past the window", () => {
-    expect(
-      unboughtKgAtWindow({
-        cattleBudgetLeftBdt: 100_000,
-        buyBdtPerKg: 500,
-        buyWeightKg: 250,
-        dailyGainKg: 0.8,
-        daysToWindow: 100,
-      })
-    ).toBe(0);
-    // Bought on the window's first day: they are sold at what they were bought at.
-    expect(
-      unboughtKgAtWindow({
-        cattleBudgetLeftBdt: 250_000,
-        buyBdtPerKg: 500,
-        buyWeightKg: 250,
-        dailyGainKg: 0.8,
-        daysToWindow: -3,
-      })
-    ).toBe(500);
   });
 });

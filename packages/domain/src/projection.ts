@@ -76,30 +76,3 @@ export const projectedSettlement = ({
     high: at(saleHighBdtPerKg, kgAtSale),
   };
 };
-
-/** What the Owner expects of animals the Venture has still to buy. */
-export interface ToBuy {
-  cattleBudgetLeftBdt: number;
-  buyBdtPerKg: number;
-  /** What each is expected to weigh when bought. */
-  buyWeightKg: number;
-  dailyGainKg: number;
-  /** From the day they are bought to the day the window opens; none past it. */
-  daysToWindow: number;
-}
-
-/**
- * What the animals the cattle budget has still to buy would weigh between them when the window opens: as many
- * whole animals as the budget left pays for, each put on the expected gain for the days until then.
- */
-export const unboughtKgAtWindow = ({
-  cattleBudgetLeftBdt,
-  buyBdtPerKg,
-  buyWeightKg,
-  dailyGainKg,
-  daysToWindow,
-}: ToBuy): number => {
-  const eachBdt = buyBdtPerKg * buyWeightKg;
-  const animals = eachBdt > 0 ? Math.floor(cattleBudgetLeftBdt / eachBdt) : 0;
-  return animals * (buyWeightKg + dailyGainKg * Math.max(0, daysToWindow));
-};

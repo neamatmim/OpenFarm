@@ -2,6 +2,7 @@ import { startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 
 import { useLanguage } from "@/i18n/language-provider";
+import { useKg } from "@/lib/kg";
 
 /** The herd's average weight as the farm knew it on one day, as the server says it. */
 export interface HerdWeight {
@@ -27,14 +28,13 @@ const VIEW_BOX = "-2 -6 104 112";
  */
 export const WeightLine = ({ weights }: { weights: HerdWeight[] }) => {
   const { t, language } = useLanguage();
+  const kg = useKg();
   const first = weights.at(0);
   const last = weights.at(-1);
   // One day is a point, not a line; the averages above already say it.
   if (!first || !last || weights.length < 2) {
     return null;
   }
-  const kg = (value: number) =>
-    t("portal.kg", { kg: formatNumber(value, language) });
   const day = (value: string) => formatDate(startOfFarmDay(value), language);
 
   const heaviest = Math.max(...weights.map((one) => one.averageKg));

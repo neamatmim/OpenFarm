@@ -4,7 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 
 import { Nothing } from "@/components/list-cells";
 import { Loaded, Section } from "@/components/page";
+import { FigureTerm } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useKg } from "@/lib/kg";
 import { useTaka } from "@/lib/taka";
 import type { Venture } from "@/lib/ventures";
 import type { client } from "@/utils/orpc";
@@ -129,37 +131,10 @@ const Buying = ({ measured }: { measured: Measured }) => {
   );
 };
 
-/** One figure under its name. */
-const Fact = ({
-  label,
-  children,
-  under,
-  tone,
-}: {
-  label: string;
-  children: string;
-  under?: string;
-  tone?: "warning";
-}) => (
-  <div className="flex flex-col gap-0.5">
-    <dt className="text-muted-foreground text-xs">{label}</dt>
-    <dd
-      className={cn(
-        "font-medium tabular-nums",
-        tone === "warning" && "text-warning"
-      )}
-    >
-      {children}
-    </dd>
-    {under ? <dd className="text-muted-foreground text-xs">{under}</dd> : null}
-  </div>
-);
-
 /** What a head weighs today beside what the plan said it would by now, and what the plan says at the window. */
 const Growth = ({ measured }: { measured: Measured }) => {
-  const { t, language } = useLanguage();
-  const kg = (value: number) =>
-    t("portal.kg", { kg: formatNumber(value, language) });
+  const { t } = useLanguage();
+  const kg = useKg();
   const { growth } = measured;
   const actual = growth.actualKgToday;
   // Named, not written into the list: the check for untranslated words reads a less-than beside JSX as a tag.
@@ -168,23 +143,23 @@ const Growth = ({ measured }: { measured: Measured }) => {
     <div className="flex flex-col gap-2">
       <h3 className="text-sm font-semibold">{t("plan.vs.growth")}</h3>
       <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
-        <Fact label={t("plan.vs.plannedToday")}>
+        <FigureTerm label={t("plan.vs.plannedToday")}>
           {kg(growth.plannedKgToday)}
-        </Fact>
-        <Fact
+        </FigureTerm>
+        <FigureTerm
           label={t("plan.vs.actualToday")}
           tone={behind ? "warning" : undefined}
-          under={
+          hint={
             actual === null
               ? undefined
               : t("plan.vs.weighedOf", { count: growth.weighed })
           }
         >
           {actual === null ? t("plan.vs.noneWeighed") : kg(actual)}
-        </Fact>
-        <Fact label={t("plan.vs.atWindow")}>
+        </FigureTerm>
+        <FigureTerm label={t("plan.vs.atWindow")}>
           {kg(growth.plannedKgAtWindow)}
-        </Fact>
+        </FigureTerm>
       </dl>
     </div>
   );

@@ -21,7 +21,7 @@ export interface PlanLine {
 const roundKg = (value: number) => Math.round(value * 10) / 10;
 
 /** A line bought at the middle of its band: the weight it is planned at when nothing more exact is said. */
-const middleOf = (line: PlanLine) => (line.fromKg + line.toKg) / 2;
+export const middleOf = (line: PlanLine) => (line.fromKg + line.toKg) / 2;
 
 /**
  * What each line and the whole plan come to: the kilos bought and what they cost, what each head weighs by the window
@@ -181,4 +181,57 @@ export const plannedResult = ({
     ),
     highBdt: roundTaka(saleKg * saleHighBdtPerKg - spent),
   };
+};
+
+/** A plan's buying as one average, as an offer says it: the price a kilo weighted by kilos, and the weight each is
+ *  bought at and the gain a day weighted by head. Nothing for a plan that buys nothing. */
+export const planAverages = (lines: readonly PlanLine[]) => {
+  const animals = lines.reduce((sum, line) => sum + line.animals, 0);
+  const kg = lines.reduce(
+    (sum, line) => sum + line.animals * middleOf(line),
+    0
+  );
+  if (animals === 0 || kg === 0) {
+    return { buyBdtPerKg: null, buyWeightKg: null, dailyGainKg: null };
+  }
+  const cost = lines.reduce(
+    (sum, line) => sum + line.animals * middleOf(line) * line.buyBdtPerKg,
+    0
+  );
+  const gain = lines.reduce(
+    (sum, line) => sum + line.animals * line.dailyGainKg,
+    0
+  );
+  return {
+    buyBdtPerKg: roundTaka(cost / kg),
+    buyWeightKg: roundKg(kg / animals),
+    dailyGainKg: Math.round((gain / animals) * 100) / 100,
+  };
+};
+
+/**
+ * What a plan has still to buy: each band's animals less those bought at a weight inside it — never fewer than none —
+ * grown from the middle of the band at its own gain for the days until the window, and what they cost at the band's
+ * price. Every animal counted is paid for, and nothing is paid for that is not counted.
+ */
+export const stillToBuyOf = ({
+  lines,
+  bought,
+  days,
+}: {
+  lines: readonly PlanLine[];
+  bought: readonly { weightKg: number; priceBdt: number }[];
+  /** From the day they are bought to the window's first day; none past it. */
+  days: number;
+}): { kg: number; costBdt: number } => {
+  const { bands } = buyingAgainstPlan(lines, bought);
+  const fed = Math.max(0, days);
+  let kg = 0;
+  let costBdt = 0;
+  for (const [at, line] of lines.entries()) {
+    const left = Math.max(0, line.animals - (bands[at]?.bought.animals ?? 0));
+    kg += left * (middleOf(line) + line.dailyGainKg * fed);
+    costBdt += left * middleOf(line) * line.buyBdtPerKg;
+  }
+  return { kg, costBdt: Math.round(costBdt) };
 };

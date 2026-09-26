@@ -23,9 +23,9 @@ const useTotals = (theirs: TheirAgreements): Figure[] => {
   const taka = useTaka();
   const sums = portfolioOf(theirs);
   const refunded: Figure = {
-    label: t("portal.money.refunded"),
+    label: t("money.refund"),
     value: taka(sums.returnedBdt),
-    hint: t("portal.money.refundedHint"),
+    hint: t("money.refundedHint"),
     icon: Undo2,
   };
   return [
@@ -35,7 +35,7 @@ const useTotals = (theirs: TheirAgreements): Figure[] => {
       icon: Landmark,
     },
     {
-      label: t("portal.money.payouts"),
+      label: t("money.payouts"),
       value: taka(sums.paidOutBdt),
       icon: Wallet,
     },

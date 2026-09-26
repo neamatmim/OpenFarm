@@ -16,6 +16,7 @@ import { Beef } from "lucide-react";
 import { EmptyState, Section } from "@/components/page";
 import { Line } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
+import { useKg } from "@/lib/kg";
 import { useTaka, useTakaToThePaisa } from "@/lib/taka";
 import type { Venture } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
@@ -43,6 +44,7 @@ const whereSheIs = (
 export const VentureAnimals = ({ venture }: { venture: Venture }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
+  const weight = useKg();
   const rate = useTakaToThePaisa();
   const input = { input: { ventureId: venture.id } };
   const herd = useQuery(orpc.ventures.herd.queryOptions(input));
@@ -63,9 +65,7 @@ export const VentureAnimals = ({ venture }: { venture: Venture }) => {
   }
   const orDash = (bdt: number | null) => (bdt === null ? "—" : taka(bdt));
   const kg = (value: number | null | undefined) =>
-    value === null || value === undefined
-      ? "—"
-      : t("ventures.page.kg", { kg: formatNumber(value, language) });
+    value === null || value === undefined ? "—" : weight(value);
   return (
     <div className="flex flex-col gap-4">
       <Section>
@@ -143,7 +143,7 @@ export const VentureAnimals = ({ venture }: { venture: Venture }) => {
                       {weighed?.dailyGainKg === null ||
                       weighed?.dailyGainKg === undefined
                         ? "—"
-                        : t("ventures.page.kgADay", {
+                        : t("units.kgADay", {
                             kg: formatNumber(weighed.dailyGainKg, language),
                           })}
                     </TableCell>

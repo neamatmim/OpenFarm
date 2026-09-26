@@ -269,9 +269,6 @@ export const bn: Record<MessageKey, string> = {
   "portal.nav.papers": "কাগজ",
   "portal.moneyTitle": "আপনার টাকা",
   "portal.money.paidIn": "আপনার জমা দেওয়া মূলধন",
-  "portal.money.payouts": "হিসাব নিকাশের পরিশোধ",
-  "portal.money.refunded": "ফেরত দেওয়া মূলধন",
-  "portal.money.refundedHint": "ভেঞ্চার বাতিল হওয়ায়",
   "portal.noPapers": "এখনো কোনো কাগজ নেই",
   "portal.closed":
     "বিনিয়োগকারী পোর্টাল আপনার জন্য খোলা নেই। খামারের মালিকের সঙ্গে কথা বলুন।",
@@ -435,8 +432,6 @@ export const bn: Record<MessageKey, string> = {
     "আপনার নিজের অনুমান, ভেঞ্চারের পরিকল্পনা থেকে: এর বিক্রয়মূল্য, আর যা এখনো কেনা বাকি। বিনিয়োগকারীদের পাতায় আনুমানিক হিসাব দেখানো চালু করলে তবেই বিনিয়োগকারীরা এটি দেখেন, আর কোনো কাগজে এটি কখনো ছাপা হয় না।",
   "projection.none":
     "এখনো কোনো পরিকল্পনা নেই। ওপরে একটি লিখুন, হিসাব সেটি থেকেই হবে।",
-  "projection.needsPlan":
-    "এই দাম ভেঞ্চারের পরিকল্পনার আগে ঠিক করা। হিসাবের জন্য ওপরে একটি পরিকল্পনা লিখুন।",
   "projection.saleLow": "কম বিক্রয়মূল্য (জীবন্ত ওজনের কেজি প্রতি ৳)",
   "projection.saleHigh": "বেশি বিক্রয়মূল্য (জীবন্ত ওজনের কেজি প্রতি ৳)",
   "projection.lowAboveHigh": "কম দামটি বেশি দামের চেয়ে বড়",
@@ -448,7 +443,6 @@ export const bn: Record<MessageKey, string> = {
   "projection.charged": "যে খরচ ধরা হয়েছে",
   "projection.realised": "ইতিমধ্যে বিক্রি হয়েছে",
   "projection.fromPlan": "পরিকল্পনার সংস্করণ {version} থেকে, সংরক্ষণ {day}",
-  "projection.setOn": "পরিকল্পনার আগে {day} তারিখে ঠিক করা দাম থেকে",
   "projection.lossAtLow":
     "কম দামে এটি লোকসান, আর লোকসান বিনিয়োগকারীদের মূলধন থেকে কাটা যায়।",
   "projection.switch.title": "বিনিয়োগকারীদের জন্য আনুমানিক হিসাব",
@@ -495,8 +489,6 @@ export const bn: Record<MessageKey, string> = {
   "portal.averageIntake": "আসার সময় গড় ওজন",
   "portal.averageNow": "এখন গড় ওজন",
   "portal.dailyGain": "দৈনিক বৃদ্ধি",
-  "portal.kg": "{kg} কেজি",
-  "portal.kgADay": "দিনে {kg} কেজি",
   "portal.tag": "ট্যাগ",
   "portal.intake": "আসার সময় (কেজি)",
   "portal.now": "এখন (কেজি)",
@@ -1293,8 +1285,6 @@ export const bn: Record<MessageKey, string> = {
   "ventures.page.standing": "আছে",
   "ventures.page.sold": "বিক্রি হয়েছে",
   "ventures.page.gone": "মারা গেছে বা বাদ",
-  "ventures.page.kg": "{kg} কেজি",
-  "ventures.page.kgADay": "দিনে {kg} কেজি",
   "ventures.page.tag": "ট্যাগ",
   "ventures.page.whereSheIs": "অবস্থা",
   "ventures.page.weight": "ওজন, শুরুতে → এখন",
@@ -1467,8 +1457,6 @@ export const bn: Record<MessageKey, string> = {
   "investors.page.heldNow": "এখন খামারের কাছে মূলধন",
   "investors.page.onPapers": "{count}টি চুক্তিতে",
   "investors.page.inRunning": "চলমান ভেঞ্চারগুলোতে",
-  "investors.page.refundedApart":
-    "এর বাইরে, ভেঞ্চার বাতিল হওয়ায় {bdt} মূলধন ফেরত দেওয়া হয়েছে",
   "investors.page.profit": "মুনাফায় তাঁর অংশ",
   "investors.page.fromSettled": "{count}টি হিসাব নিকাশ হওয়া ভেঞ্চার থেকে",
   "investors.page.noneSettled": "এখনো কোনো ভেঞ্চারের হিসাব নিকাশ হয়নি",
@@ -1486,9 +1474,6 @@ export const bn: Record<MessageKey, string> = {
   "investors.page.noMoney": "তাঁর কোনো টাকা এখনো নড়েনি",
   "investors.page.toTheFarm": "এসেছে",
   "investors.page.toThem": "তাঁকে ফেরত",
-  "investors.page.move.capitalIn": "মূলধন পাওয়া গেছে",
-  "investors.page.move.refund": "মূলধন ফেরত",
-  "investors.page.move.payout": "হিসাব নিকাশের পরিশোধ",
   "portal.recordHint": "নিজের ভেঞ্চার আর কাগজ পড়তে তাঁর প্রবেশপথ।",
   "investors.notGiven": "দেওয়া হয়নি",
   "nav.investors": "বিনিয়োগকারী",
@@ -3776,4 +3761,13 @@ export const bn: Record<MessageKey, string> = {
   "templates.problem.partMissing": "কাগজে {part} লাগবে।",
   "templates.problem.partNotHere": "{where}: এই ধরনের কাগজে {part} থাকে না।",
   "templates.problem.witnesses": "{where}: সাক্ষী শূন্য থেকে চারজন।",
+  // Money and weights, said the same way to the Owner and to an Investor.
+  "money.capitalIn": "মূলধন পাওয়া গেছে",
+  "money.payout": "হিসাব নিকাশের পরিশোধ",
+  "money.payouts": "হিসাব নিকাশের পরিশোধ",
+  "money.refund": "ফেরত দেওয়া মূলধন",
+  "money.refundedApart": "এর বাইরে, ভেঞ্চার বাতিল হওয়ায় {bdt} মূলধন ফেরত দেওয়া হয়েছে",
+  "money.refundedHint": "ভেঞ্চার বাতিল হওয়ায়",
+  "units.kg": "{kg} কেজি",
+  "units.kgADay": "দিনে {kg} কেজি",
 };
