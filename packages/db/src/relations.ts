@@ -188,6 +188,13 @@ export const relations = defineRelations(schema, (r) => ({
       optional: false,
     }),
   },
+  venturePlan: {
+    /** Its buying lines, in the order the Owner wrote them. */
+    lines: r.many.venturePlanLine({
+      from: r.venturePlan.id,
+      to: r.venturePlanLine.planId,
+    }),
+  },
   sale: {
     animal: r.one.animal({
       from: r.sale.animalId,

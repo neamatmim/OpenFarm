@@ -111,6 +111,59 @@ export const ventureProjection = pgTable("venture_projection", {
 });
 
 /**
+ * One version of a Venture's **Venture Plan**: what the Owner means to buy, and what a kilo will sell at. Every save is
+ * a version of its own, never an edit, so what was planned when stays readable; the one saved last while the Venture
+ * was still Open is its baseline (`madeWhile`), and one saved after buying began is a revision, with its reason.
+ */
+export const venturePlan = pgTable(
+  "venture_plan",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    ventureId: text("venture_id")
+      .notNull()
+      .references(() => venture.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    /** Where the Venture was when this was saved: "open" for a plan made before buying, a later state for a
+     *  revision. */
+    madeWhile: text("made_while", { enum: VENTURE_STATES }).notNull(),
+    saleLowBdtPerKg: taka("sale_low_bdt_per_kg").notNull(),
+    saleHighBdtPerKg: taka("sale_high_bdt_per_kg").notNull(),
+    /** Why the plan was revised after buying began; nothing for one made before. */
+    reason: text("reason"),
+    madeAt: timestamp("made_at").notNull(),
+    madeBy: text("made_by").references(() => user.id),
+  },
+  (table) => [
+    uniqueIndex("venture_plan_version_uidx").on(table.ventureId, table.version),
+  ]
+);
+
+/** One buying line of a plan version: so many animals bought between two weights, at a price a kilo, gaining so much
+ *  a day. */
+export const venturePlanLine = pgTable(
+  "venture_plan_line",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    planId: text("plan_id")
+      .notNull()
+      .references(() => venturePlan.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(),
+    animals: integer("animals").notNull(),
+    fromKg: numeric("from_kg", { precision: 7, scale: 2 }).notNull(),
+    toKg: numeric("to_kg", { precision: 7, scale: 2 }).notNull(),
+    buyBdtPerKg: taka("buy_bdt_per_kg").notNull(),
+    dailyGainKg: numeric("daily_gain_kg", { precision: 5, scale: 2 }).notNull(),
+  },
+  (table) => [index("venture_plan_line_plan_idx").on(table.planId)]
+);
+
+/**
  * Somebody whose money is in a Venture: known to the Owner personally or personally introduced, resident
  * here, and one of at most twenty at a time, the Owner among them.
  *

@@ -420,6 +420,8 @@ export {
 } from "./venture";
 export type { Split, ToSplit } from "./venture";
 export { perKgOfSales, priceOfAnimal, priceRangeFor } from "./animal-price";
+export { bandOf, baselineOf, planTotals } from "./venture-plan";
+export type { PlanLine } from "./venture-plan";
 export type { AnimalPrice, PriceEnd, PriceRange } from "./animal-price";
 export { projectedSettlement, unboughtKgAtWindow } from "./projection";
 export type { Projected, ProjectedEnd, ToBuy, ToProject } from "./projection";

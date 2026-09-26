@@ -93,6 +93,7 @@ import {
 import { currentWording, giveStandardTemplates } from "../template-store";
 import { actOnVenture } from "../venture-act";
 import { theirProgress } from "../venture-herd-store";
+import { planOf, savePlan } from "../venture-plan-store";
 import {
   changePortalWords,
   portalWords,
@@ -825,6 +826,81 @@ export const venturesRouter = {
             )
       );
       return { id: row.id };
+    }),
+
+  /**
+   * A Venture's **Venture Plan**: every version the Owner saved, the one in force, and the baseline it is measured
+   * against, each with what it comes to (`planOf`). The Owner's alone, as a Venture's money is.
+   */
+  plan: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .input(z.object({ ventureId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const row = await ours(context, input.ventureId);
+      return await planOf(context.db, context.farm.id, row);
+    }),
+
+  /**
+   * A new version of a Venture's plan: its buying lines by weight band and what a kilo will sell at. While it is Open
+   * the Owner may change it as often as she likes; after buying begins each change is a revision with its reason, and
+   * the plan made before stays what the Venture is measured against. An Audit Event each time.
+   */
+  setPlan: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z
+        .object({
+          ventureId: z.string(),
+          lines: z
+            .array(
+              z
+                .object({
+                  animals: z.number().int().positive().max(500),
+                  fromKg: z.number().positive().max(2000),
+                  toKg: z.number().positive().max(2000),
+                  buyBdtPerKg: z.number().positive().max(100_000),
+                  dailyGainKg: z.number().min(0).max(5),
+                })
+                .refine((line) => line.fromKg < line.toKg, {
+                  message: "A band's lower weight is below its upper",
+                  path: ["fromKg"],
+                })
+            )
+            .min(1)
+            .max(20),
+          saleLowBdtPerKg: z.number().positive().max(100_000),
+          saleHighBdtPerKg: z.number().positive().max(100_000),
+          reason: z.string().trim().max(300).nullable().default(null),
+        })
+        .refine((one) => one.saleLowBdtPerKg <= one.saleHighBdtPerKg, {
+          message: "The low price is above the high one",
+          path: ["saleLowBdtPerKg"],
+        })
+    )
+    .handler(async ({ context, input }) => {
+      const row = await ours(context, input.ventureId);
+      const { ventureId: _venture, ...said } = input;
+      const saved = await audited(context).write(
+        {
+          entity: "venture_plan",
+          entityId: row.id,
+          action: "create",
+          after: { ...said, lines: said.lines.map((line) => ({ ...line })) },
+        },
+        (tx) =>
+          savePlan(
+            tx,
+            context.farm.id,
+            row,
+            { ...said, reason: said.reason === "" ? null : said.reason },
+            {
+              userId: context.session?.user.id ?? null,
+              at: context.clock.now(),
+            }
+          )
+      );
+      return { ventureId: row.id, ...saved };
     }),
 
   /**
