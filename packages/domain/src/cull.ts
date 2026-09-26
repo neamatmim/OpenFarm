@@ -30,9 +30,6 @@ const CALF_MILK_DAYS = 7;
 export const LEAST_DAYS_BEFORE_MILK_IS_WEIGHED =
   CALF_MILK_DAYS + KEEP_READ_DAYS;
 
-/** How far back the farm's own Dispatches are read for what a litre fetches: two months of a milk buyer. */
-export const MILK_PRICE_DAYS = 60;
-
 /**
  * What a litre fetched across some of the farm's Dispatches: everything they fetched over every litre they took, so a
  * big tanker counts for its litres, not as one vote beside a can at the gate. Nothing where no milk left.
@@ -73,7 +70,8 @@ export type MilkAgainstKeep =
       days: number;
       litres: number;
       litresPerDay: number;
-      /** What a litre fetched in the farm's Dispatches of the last two months. */
+      /** What a litre fetched in the farm's Dispatches over its milk price window (a Farm Parameter, 60 days unless the
+       *  Owner says otherwise). */
       bdtPerLitre: number;
       /** What her litres fetch at that. */
       worthBdt: number;
@@ -92,7 +90,7 @@ export type MilkAgainstKeep =
  * nothing, so it counts for nothing — a treatment costs the milk it spoils as well as the dose.
  *
  * Not weighed, and said why, until she is as many days into her Lactation as the farm says, while no Feeding was
- * charged to her in the four weeks, or while the farm sold no milk in two months to put a price on a litre.
+ * charged to her in the four weeks, or while the farm sold no milk in its price window to put a price on a litre.
  */
 export const milkAgainstKeep = ({
   kept,

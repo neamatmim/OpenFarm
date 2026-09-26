@@ -89,6 +89,9 @@ const parameters = z
       .min(LEAST_DAYS_BEFORE_MILK_IS_WEIGHED)
       .max(180)
       .optional(),
+    /** How many days back the Dispatches are read for what a litre fetches: at least a week of a milk buyer, and no
+     *  more than a year, past which the price is last year's. */
+    cullMilkPriceDays: z.number().int().min(7).max(365).optional(),
     /** The taka above which a Money Event waits for the Owner. */
     approvalThresholdBdt: z.number().int().min(0).max(100_000_000).optional(),
     /** What part of a Venture's target capital is the least worth starting on. */
@@ -152,7 +155,11 @@ const aVenturesOwn = (input: z.infer<typeof parameters>): boolean =>
   A_VENTURES_OWN.some((key) => input[key] !== undefined);
 
 /** What shapes the Owner's list of cows to think about culling: the Owner's to set, as the list is theirs to read. */
-const THE_CULL_LISTS = ["cullOpenDays", "cullMilkAfterDays"] as const;
+const THE_CULL_LISTS = [
+  "cullOpenDays",
+  "cullMilkAfterDays",
+  "cullMilkPriceDays",
+] as const;
 
 const theCullLists = (input: z.infer<typeof parameters>): boolean =>
   THE_CULL_LISTS.some((key) => input[key] !== undefined);
@@ -578,6 +585,7 @@ export const farmRouter = {
                 repeatBreederThreshold: true,
                 cullOpenDays: true,
                 cullMilkAfterDays: true,
+                cullMilkPriceDays: true,
                 approvalThresholdBdt: true,
                 ventureFloorPercent: true,
                 ventureRunningPercent: true,

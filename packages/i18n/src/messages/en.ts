@@ -413,7 +413,7 @@ export const en = {
   "cull.dry": "Dry: no milk",
   "cull.tooSoon": "Too soon after calving to weigh",
   "cull.notFed": "No feeding recorded in four weeks",
-  "cull.noPrice": "No milk sold in two months to price it",
+  "cull.noPrice": "No milk sold lately to price it",
   "cull.inCalf": "In calf, due {day}",
   "cull.sinceCalving":
     "{days, plural, one {# day} other {# days}} since calving",
@@ -422,6 +422,8 @@ export const en = {
     "Milk is priced at {price} a litre: what the farm's dispatches fetched over the last {days, plural, one {# day} other {# days}}.",
   "cull.unpriced":
     "No milk sold in the last {days, plural, one {# day} other {# days}}, so no cow's milk can be set against her keep.",
+  "cull.unpricedUnset":
+    "No milk sold lately, so no cow's milk can be set against her keep.",
   "cull.none": "No cow gives a reason to cull",
   "cull.noneHint":
     "Every cow in milk pays for her keep, every one that should be is in calf, and none is failing to settle.",
@@ -832,6 +834,7 @@ export const en = {
     "What puts a dairy cow on your culling list. Yours alone to set, as the list is yours alone to read.",
   "params.cullOpenDays": "Empty too long after calving",
   "params.cullMilkAfterDays": "Weigh milk against keep from, after calving",
+  "params.cullMilkPriceDays": "Price milk from dispatches of the last",
   "params.ventures": "Ventures",
   "params.venturesHint":
     "What a Venture is planned by when you open one: the least it is worth starting on, how much of its capital keeps the animals rather than buys them, and how long it keeps selling after its window closes.",

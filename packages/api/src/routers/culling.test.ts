@@ -370,6 +370,7 @@ describe("why the farm names a dairy cow to the Owner", () => {
     // The farm's own days, as a new farm starts with them.
     expect(list.openDays).toBe(150);
     expect(list.milkAfterDays).toBe(35);
+    expect(list.milkPriceDays).toBe(60);
     expect(list.milkPrice).toMatchObject({
       bdtPerLitre: 55,
       litres: 240,
@@ -477,5 +478,43 @@ describe("why the farm names a dairy cow to the Owner", () => {
     // The one 181 days in is weighed as before.
     expect(of(cow.emptyLong)?.milk).toMatchObject({ overKeepBdt: 200 });
     await owner.client.farm.setParameters({ cullMilkAfterDays: 35 });
+  });
+
+  it("prices a litre over as many days of Dispatches as the Owner says", async () => {
+    const owner = await as("owner", "2041-03-01T04:00:00.000Z");
+    const manager = await as("manager", "2041-03-01T04:00:00.000Z");
+    await expect(
+      manager.client.farm.setParameters({ cullMilkPriceDays: 90 })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(
+      owner.client.farm.setParameters({ cullMilkPriceDays: 6 })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+    // Ninety days back from the 1st of March takes in December's 100 litres at ৳100 beside February's 240 at ৳55:
+    // ৳23,200 over 340 litres is ৳68.24. The first cow's 40 litres then fetch ৳2,729.60, ৳1,470.40 short of ৳4,200.
+    await owner.client.farm.setParameters({ cullMilkPriceDays: 90 });
+    const wide = await theList();
+    expect(wide.list.milkPriceDays).toBe(90);
+    expect(wide.list.milkPrice).toMatchObject({
+      bdtPerLitre: 68.24,
+      litres: 340,
+      days: 90,
+    });
+    expect(wide.of(cow.short)?.milk).toMatchObject({
+      bdtPerLitre: 68.24,
+      worthBdt: 2729.6,
+      overKeepBdt: -1470.4,
+    });
+
+    // A week back from the 1st of March holds no Dispatch at all: no litre has a price, and no cow's milk is weighed.
+    await owner.client.farm.setParameters({ cullMilkPriceDays: 7 });
+    const narrow = await theList();
+    expect(narrow.list.milkPrice).toBeNull();
+    expect(narrow.list.milkPriceDays).toBe(7);
+    expect(narrow.of(cow.short)).toMatchObject({
+      milk: { known: false, because: "no_price" },
+      reasons: [],
+    });
+    await owner.client.farm.setParameters({ cullMilkPriceDays: 60 });
   });
 });
