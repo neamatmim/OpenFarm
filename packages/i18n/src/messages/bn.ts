@@ -100,6 +100,15 @@ export const bn: Record<MessageKey, string> = {
   "portal.heldNow": "এখন আপনার মূলধন",
   "portal.paidOut": "আপনাকে পরিশোধ করা হয়েছে",
   "portal.profit": "মুনাফায় আপনার অংশ",
+  "portal.ventures.hint":
+    "আপনি যে সব ভেঞ্চারে আছেন বা ছিলেন। কোনোটি খুলে দেখুন সেটি কেমন চলছে, আর তার কাগজ।",
+  "portal.ventures.finished": "শেষ হয়েছে",
+  "portal.ventures.venture": "ভেঞ্চার",
+  "portal.ventures.stage": "ধাপ",
+  "portal.ventures.paidOn": "পরিশোধের তারিখ",
+  "portal.ventures.noneRunning": "এখন আপনার কোনো ভেঞ্চার চলছে না",
+  "portal.ventures.noneFinished": "আপনার কোনো ভেঞ্চার এখনো শেষ হয়নি",
+  "portal.ventures.all": "আপনার সব ভেঞ্চার",
   "portal.yourVentures": "আপনার ভেঞ্চার",
   "portal.notice":
     "এই পোর্টাল কোনো প্রকাশ্য প্রস্তাব নয়। ভেঞ্চারে যোগ দেওয়া যায় শুধু খামারের সঙ্গে সামনাসামনি সই করা চুক্তিতে, আর এই পোর্টালের মাধ্যমে কোনো টাকা লেনদেন হয় না।",

@@ -1,3 +1,4 @@
+import { hasEnded } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import {
@@ -166,7 +167,7 @@ const PortalNavLink = ({
 
 /**
  * The portal's side of the screen, the farm's sidebar in every way but what is on it: their portfolio, their money and
- * their papers, each Venture they are in, and their account at its foot — collapsing to icons on a desk and sliding
+ * their papers, all their Ventures and each one still running, and their account at its foot — collapsing to icons on a desk and sliding
  * over on a phone.
  */
 const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
@@ -183,7 +184,16 @@ const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
       setOpenMobile(false);
     }
   };
-  const ventures = theirs.data?.agreements ?? [];
+  const all = theirs.data?.agreements ?? [];
+  // Only the running ones by name: those that have finished are read from the list, which a sidebar with every
+  // Venture of every year would bury.
+  const ventures = all.filter((one) => !hasEnded(one.venture.state));
+  const onTheList =
+    pathname === places.ventures.path ||
+    pathname === `${places.ventures.path}/` ||
+    all.some(
+      (one) => hasEnded(one.venture.state) && here(places.venture(one.id).path)
+    );
   const offered = useTheirOpenVentures().data ?? [];
   return (
     <Sidebar collapsible="icon" data-app-chrome mobileTitle={t("nav.menu")}>
@@ -233,6 +243,15 @@ const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
                 to={places.papers.path}
               />
               {/* Only while the farm is raising capital for a Venture it shows them. */}
+              {all.length > 0 ? (
+                <PortalNavLink
+                  here={onTheList}
+                  icon={Handshake}
+                  label={t("portal.yourVentures")}
+                  onGo={close}
+                  to={places.ventures.path}
+                />
+              ) : null}
               {offered.length > 0 ? (
                 <PortalNavLink
                   count={formatNumber(offered.length, language)}
@@ -250,7 +269,7 @@ const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
         {ventures.length > 0 ? (
           <SidebarGroup className="py-1.5 group-data-[collapsible=icon]:px-2.5">
             <SidebarGroupLabel className="text-sidebar-foreground/70 px-3 text-xs font-semibold">
-              {t("portal.yourVentures")}
+              {t("ventures.tab.running")}
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu className="gap-0.5">

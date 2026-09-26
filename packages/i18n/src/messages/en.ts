@@ -101,6 +101,15 @@ export const en = {
   "portal.heldNow": "Your capital held now",
   "portal.paidOut": "Paid out to you",
   "portal.profit": "Your share of the profit",
+  "portal.ventures.hint":
+    "Every Venture you are in or have been in. Open one to read how it stands, and its papers.",
+  "portal.ventures.finished": "Finished",
+  "portal.ventures.venture": "Venture",
+  "portal.ventures.stage": "Stage",
+  "portal.ventures.paidOn": "Paid on",
+  "portal.ventures.noneRunning": "None of your Ventures is running now",
+  "portal.ventures.noneFinished": "None of your Ventures has finished yet",
+  "portal.ventures.all": "All your Ventures",
   "portal.yourVentures": "Your Ventures",
   "portal.notice":
     "This portal is not a public offer. Joining a Venture is only by an Agreement signed in person with the farm, and no money moves through this portal.",
