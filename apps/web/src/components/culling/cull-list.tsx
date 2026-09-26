@@ -26,9 +26,9 @@ import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
 /**
- * The cows the farm names for the Owner to think about letting go, and why — her milk against her keep, empty long after
- * calving or dry and empty, or not settling — beside every other cow in milk or dry, so one that pays reads next to one
- * that does not. The Owner's alone; nothing here is answered or decided.
+ * The cows the farm names for the Owner to think about letting go, and why — her milk against her keep, empty long
+ * after calving or dry and empty, or not settling — beside every other cow in milk or dry, so one that pays reads next
+ * to one that does not. The Owner's alone; nothing here is answered or decided.
  */
 
 export type CullList = Awaited<ReturnType<typeof client.culling.list>>;
@@ -83,8 +83,8 @@ export const ReasonBadges = ({
 };
 
 /**
- * Her milk against her keep over her last four weeks: what the two came to, what that leaves over her keep, and what a
- * litre of hers costs to make — or why it is not weighed yet, or that she is dry.
+ * Her milk against her keep over the days the farm reads a keep over: what the two came to, what that leaves over her
+ * keep, and what a litre of hers costs to make — or why it is not weighed yet, or that she is dry.
  */
 const MilkLines = ({
   milk,
@@ -131,7 +131,7 @@ const MilkLines = ({
           short ? "text-danger" : "text-success"
         )}
       >
-        {t("cull.over", { over: taka(milk.overKeepBdt) })}
+        {t("cull.over", { over: taka(milk.overKeepBdt), days: milk.days })}
       </span>
       <span className="text-muted-foreground text-xs whitespace-nowrap tabular-nums">
         {milk.costPerLitreBdt === null

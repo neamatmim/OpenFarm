@@ -101,7 +101,7 @@ const feeding = (day: string, bdt: number, priced = true) => ({
   priced,
 });
 
-describe("what her keep has cost over her last four weeks", () => {
+describe("what her keep has cost over the days the farm reads it over", () => {
   // Four weeks back from the 1st of March is the 2nd of February, at the same hour.
   const now = new Date("2040-03-01T04:00:00.000Z");
   const here = [{ from: new Date("2040-01-02T04:00:00.000Z"), until: null }];
@@ -122,8 +122,31 @@ describe("what her keep has cost over her last four weeks", () => {
       ],
       stood: here,
       now,
+      readDays: 28,
     });
     expect(kept).toEqual({ bdt: 8540, days: 28, fed: true, whole: true });
+  });
+
+  it("reads as many days back as the farm says", () => {
+    // A fortnight back from the 1st of March is the 16th of February: the 10th's feeding and the 15th's Herd Cost are
+    // before it, the 24th's feeding inside it.
+    expect(
+      keptOver({
+        charges: [
+          feeding("2040-02-10", 4200),
+          feeding("2040-02-24", 4200),
+          {
+            at: new Date("2040-02-15T00:00:00.000Z"),
+            bdt: 140,
+            fed: false,
+            priced: true,
+          },
+        ],
+        stood: here,
+        now,
+        readDays: 14,
+      })
+    ).toEqual({ bdt: 4200, days: 14, fed: true, whole: true });
   });
 
   it("counts only the days she was here, and a move between Pens is no gap", () => {
@@ -133,6 +156,7 @@ describe("what her keep has cost over her last four weeks", () => {
         charges: [feeding("2040-02-25", 1000)],
         stood: [{ from: new Date("2040-02-20T04:00:00.000Z"), until: null }],
         now,
+        readDays: 28,
       }).days
     ).toBe(10);
     // Moved on the 20th of February from one Pen to the next: still four weeks of her.
@@ -147,6 +171,7 @@ describe("what her keep has cost over her last four weeks", () => {
           { from: new Date("2040-02-20T04:00:00.000Z"), until: null },
         ],
         now,
+        readDays: 28,
       }).days
     ).toBe(28);
   });
@@ -163,12 +188,14 @@ describe("what her keep has cost over her last four weeks", () => {
       ],
       stood: here,
       now,
+      readDays: 28,
     });
     expect(herdOnly.fed).toBe(false);
     const grass = keptOver({
       charges: [feeding("2040-02-10", 4200), feeding("2040-02-11", 0, false)],
       stood: here,
       now,
+      readDays: 28,
     });
     expect(grass).toMatchObject({ fed: true, whole: false });
   });

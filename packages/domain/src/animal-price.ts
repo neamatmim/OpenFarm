@@ -88,9 +88,10 @@ export const perKgOfSales = (
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** How far back what she costs to keep is read: four weeks, two fortnightly Weigh-ins — long enough that one Feeding
- *  missed does not set it, short enough to follow her onto a heavier Ration. */
-export const KEEP_READ_DAYS = 28;
+/** The fewest days back the farm may read an animal's keep over: a fortnight, the time between two Weigh-ins. Fewer,
+ *  and one Feeding missed or one dose given would set what a day of her costs. How many is a Farm Parameter (the
+ *  Owner's, four weeks unless the Owner says otherwise); this is its floor. */
+export const FEWEST_KEEP_READ_DAYS = 14;
 
 /** Fewer days on the farm than this say nothing about a day of her keep: a beast a few days off the lorry has been
  *  fed, but not for long enough to be a rate. */
@@ -133,7 +134,7 @@ export interface KeepCharge {
   priced: boolean;
 }
 
-/** What keeping her has cost over her last four weeks here. */
+/** What keeping her has cost over the days her keep is read back over. */
 export interface Kept {
   bdt: number;
   /** How many of those days she stood on the farm. */
@@ -144,25 +145,35 @@ export interface Kept {
   whole: boolean;
 }
 
-/** Whether something happened inside her last four weeks, as her keep reads them: the one window anything set beside
- *  her keep — a dairy cow's milk, say — has to be read over too, or the two are not the same weeks. */
-export const inTheKeepWindow = (at: Date, now: Date): boolean =>
-  now.getTime() - KEEP_READ_DAYS * DAY_MS <= at.getTime() &&
+/** Whether something happened inside the days her keep is read over: the one window anything set beside her keep — a
+ *  dairy cow's milk, say — has to be read over too, or the two are not the same days. */
+export const inTheKeepWindow = (
+  at: Date,
+  now: Date,
+  readDays: number
+): boolean =>
+  now.getTime() - readDays * DAY_MS <= at.getTime() &&
   at.getTime() <= now.getTime();
 
-/** What she was charged for her keep over the last four weeks, and how many of those days she was here to be kept. */
+/** What she was charged for her keep over the days it is read back over, and how many of those days she was here to be
+ *  kept. */
 export const keptOver = ({
   charges,
   stood,
   now,
+  readDays,
 }: {
   charges: readonly KeepCharge[];
   /** Where she stood and when, on any Side: a spell before she came, or after she left, is none of her keep. */
   stood: readonly { from: Date; until: Date | null }[];
   now: Date;
+  /** The Farm Parameter: how many days back her keep is read. */
+  readDays: number;
 }): Kept => {
-  const from = now.getTime() - KEEP_READ_DAYS * DAY_MS;
-  const inside = charges.filter((one) => inTheKeepWindow(one.at, now));
+  const from = now.getTime() - readDays * DAY_MS;
+  const inside = charges.filter((one) =>
+    inTheKeepWindow(one.at, now, readDays)
+  );
   let ms = 0;
   for (const spell of stood) {
     const start = Math.max(spell.from.getTime(), from);
@@ -233,7 +244,7 @@ const keepingAt = (
  * costs, and the next fortnight at that rate is what keeping her would add at each end of her price. What she has cost
  * already is spent whichever the Owner chooses, so it has no say here — that is her Margin's question, not this one.
  *
- * Unknown, and said why, while she has been here under a week, has had no Feeding charged to her in four weeks, or has
+ * Unknown, and said why, while she has been here under a week, has had no Feeding charged to her in the days read, or has
  * no rate of gain to work from. A figure for the Owner, never a decision.
  */
 export const keepOrSell = ({

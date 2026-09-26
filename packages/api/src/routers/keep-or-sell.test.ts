@@ -324,6 +324,35 @@ describe("keep her or sell her", () => {
     });
   });
 
+  it("reads her keep over as many days as the Owner says", async () => {
+    const owner = await as("owner", "2040-03-01T04:00:00.000Z");
+    await owner.client.farm.setParameters({ keepReadDays: 14 });
+    try {
+      const later = await as("owner", "2040-03-01T04:30:00.000Z");
+      const { animals, keepReadDays } = await later.client.fattening.prices();
+      expect(keepReadDays).toBe(14);
+      // A fortnight back from the 1st of March is the 16th of February: the 24th's ৳4,200 of feed, the 20th's ৳280 dose
+      // and the 22nd's ৳280 of the Vet's visit are inside it, the 10th's feeding is not. ৳4,760 over 14 days is ৳340 a
+      // day, over the market's high price of ৳320: at a kilo a day she costs more to keep than she puts on.
+      expect(animals.find((one) => one.tagNumber === kept)?.keep).toMatchObject(
+        {
+          known: true,
+          keepBdtPerDay: 340,
+          costOfGainNowBdt: 340,
+          ahead: {
+            keepBdt: 4760,
+            low: { overKeepBdt: -840 },
+            high: { overKeepBdt: -280 },
+          },
+          keeping: "costs_more",
+        }
+      );
+    } finally {
+      // Put back whatever went wrong above, so no later test reads this farm's fortnight.
+      await owner.client.farm.setParameters({ keepReadDays: 28 });
+    }
+  });
+
   it("says why it cannot tell for one never fed in four weeks, and one a few days off the lorry", async () => {
     const owner = await as("owner", "2040-03-01T07:00:00.000Z");
     const { animals } = await owner.client.fattening.prices();

@@ -1,4 +1,7 @@
-import { LEAST_DAYS_BEFORE_MILK_IS_WEIGHED } from "@OpenFarm/domain";
+import {
+  FEWEST_KEEP_READ_DAYS,
+  fewestDaysBeforeMilkIsWeighed,
+} from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -32,6 +35,7 @@ type NumberKey =
   | "dryOffLeadDays"
   | "calvingPrepLeadDays"
   | "repeatBreederThreshold"
+  | "keepReadDays"
   | "cullOpenDays"
   | "cullMilkAfterDays"
   | "cullMilkPriceDays"
@@ -133,11 +137,18 @@ const GROUPS: {
     ],
   },
   {
-    id: "params-culling",
-    title: "params.culling",
-    hint: "params.cullingHint",
+    id: "params-keep-and-cull",
+    title: "params.keepAndCull",
+    hint: "params.keepAndCullHint",
     owner: true,
     fields: [
+      {
+        key: "keepReadDays",
+        label: "params.keepReadDays",
+        unit: "params.days",
+        min: FEWEST_KEEP_READ_DAYS,
+        max: 90,
+      },
       {
         key: "cullOpenDays",
         label: "params.cullOpenDays",
@@ -149,7 +160,9 @@ const GROUPS: {
         key: "cullMilkAfterDays",
         label: "params.cullMilkAfterDays",
         unit: "params.days",
-        min: LEAST_DAYS_BEFORE_MILK_IS_WEIGHED,
+        // The server holds it a week past the days this farm reads a keep over; this is only the soonest any farm may
+        // have.
+        min: fewestDaysBeforeMilkIsWeighed(FEWEST_KEEP_READ_DAYS),
         max: 180,
       },
       {

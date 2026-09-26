@@ -584,7 +584,9 @@ export const animalsRouter = {
             // What people have seen of her lately, withdrawn ones included: an Observation
             // that was corrected is still something somebody said on the round.
             observations: {
-              orderBy: { seenAt: "desc" },
+              // A Correction's Observation keeps the time the first was seen: the id, time-ordered, puts the one
+              // that stands before the one it replaced rather than leaving the two to chance.
+              orderBy: { seenAt: "desc", id: "desc" },
               limit: 20,
               with: {
                 completion: { columns: { instanceId: true } },

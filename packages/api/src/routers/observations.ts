@@ -24,7 +24,8 @@ export const observationsRouter = {
           days: input.days,
           now: context.clock.now(),
         }),
-        orderBy: { seenAt: "desc" },
+        // Two seen at one moment — a Correction's and the one it replaced — in the order they were written.
+        orderBy: { seenAt: "desc", id: "desc" },
         limit: MAX_SEEN_ROWS,
         with: {
           animal: { columns: { tagNumber: true, penId: true } },

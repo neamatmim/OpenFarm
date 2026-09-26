@@ -16,10 +16,13 @@ import { useTakaToThePaisa } from "@/lib/taka";
 const CullFigures = ({
   cows,
   openDays,
+  keepReadDays,
 }: {
   cows: CullList["cows"];
   /** The farm's days empty after calving; missing from an answer this phone kept from before it was a setting. */
   openDays: number | undefined;
+  /** How many days back the farm reads a keep; missing from an answer this phone kept from before it was a setting. */
+  keepReadDays: number | undefined;
 }) => {
   const { t, language } = useLanguage();
   const named = cows.filter((cow) => cow.reasons.length > 0).length;
@@ -41,7 +44,10 @@ const CullFigures = ({
         {
           label: t("cull.reason.milk_short"),
           value: formatNumber(milkShort, language),
-          hint: t("cull.milkHint"),
+          hint:
+            keepReadDays === undefined
+              ? t("cull.milkHintUnset")
+              : t("cull.milkHint", { days: keepReadDays }),
           icon: Milk,
           tone: milkShort > 0 ? "danger" : "neutral",
         },
@@ -133,7 +139,11 @@ const CullingPage = () => {
   return (
     <Page>
       {header}
-      <CullFigures cows={list.data.cows} openDays={list.data.openDays} />
+      <CullFigures
+        cows={list.data.cows}
+        keepReadDays={list.data.keepReadDays}
+        openDays={list.data.openDays}
+      />
       <MilkPriceLine
         days={list.data.milkPriceDays}
         price={list.data.milkPrice}

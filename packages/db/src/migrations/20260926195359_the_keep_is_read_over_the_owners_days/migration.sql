@@ -1,0 +1,1 @@
+ALTER TABLE "farm" ADD COLUMN "keep_read_days" integer DEFAULT 28 NOT NULL;

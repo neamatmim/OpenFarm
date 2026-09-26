@@ -89,6 +89,8 @@ export interface Context {
     calvingPrepLeadDays: number;
     /** How many attempts that did not take raise a Repeat Breeder. */
     repeatBreederThreshold: number;
+    /** How many days back an animal's keep is read, for keep-or-sell and the culling list. */
+    keepReadDays: number;
     /** How many days after calving a cow still not in calf is named to the Owner for culling. */
     cullOpenDays: number;
     /** How many days into her Lactation before a cow's milk is weighed against her keep for culling. */
