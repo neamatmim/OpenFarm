@@ -5,15 +5,15 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
-// Keep her or sell her, as money: what her keep has cost a day over her last four weeks, over the rate she is gaining
-// at now, set beside the price a kilo she is priced at.
+// Keep her or sell her, as money: what her keep — feed, doses and Herd Costs — has cost a day over her last four weeks,
+// over the rate she is gaining at now, set beside the price a kilo she is priced at.
 //
 // Every expected figure is worked by hand from the feedings and the readings, never re-derived the way the code derives
 // them — a test that recomputes the answer can never disagree with it.
 
 const suffix = `${Date.now()}`;
 
-const as = (role: "owner" | "manager", instant: string) =>
+const as = (role: "owner" | "manager" | "vet", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 /** The Pen's feeding, given by hand at whatever the test says was given. */
@@ -32,6 +32,27 @@ const feedingSop = (): SopContent => ({
       evidence: [{ type: "tick", required: true }],
       skipReasons: [],
       effect: { kind: "feeding" },
+    },
+  ],
+});
+
+/** A dose of one product, given by hand to whichever animal the test names. */
+const dosingSop = (productId: string, name: string): SopContent => ({
+  name: { bn: `${name} ${suffix}` },
+  purpose: { bn: "পশুকে ওষুধ" },
+  triggers: [],
+  appliesTo: { side: "fattening" },
+  assignedRole: "manager",
+  checkerRole: null,
+  graceMinutes: 240,
+  steps: [
+    {
+      id: "dose",
+      text: { bn: "ওষুধ দিন" },
+      repeatPerAnimal: true,
+      evidence: [{ type: "tick", required: true }],
+      skipReasons: [{ bn: "অসুস্থ" }],
+      effect: { kind: "treatment", productId },
     },
   ],
 });
@@ -70,6 +91,8 @@ let hungryPen = "";
 let concentrate = "";
 let feedingId = "";
 let weighingId = "";
+let wormingId = "";
+let tonicId = "";
 /** Fed and weighed; weighed and never fed in four weeks; and a week-old arrival. */
 let kept = "";
 let unfed = "";
@@ -113,6 +136,25 @@ const weigh = async (
       evidence: [kg],
     });
   }
+};
+
+/** One dose, raised in the fed Pen and given to one animal. */
+const dose = async (
+  definitionId: string,
+  tagNumber: string,
+  instant: string
+) => {
+  const manager = await as("manager", instant);
+  await manager.client.instances.raiseNow({ definitionId, penId: fedPen });
+  const today = await manager.client.instances.today({ penId: fedPen });
+  const raised = today.find((row) => row.definitionId === definitionId);
+  await manager.client.instances.claim({ id: raised?.id ?? "" });
+  await manager.client.instances.completeStep({
+    instanceId: raised?.id ?? "",
+    stepId: "dose",
+    animalTag: tagNumber,
+    evidence: [true],
+  });
 };
 
 const bullInto = async (penId: string, instant: string) => {
@@ -172,6 +214,35 @@ beforeAll(async () => {
   feedingId = feeding.definitionId;
   weighingId = weighing.definitionId;
 
+  // A wormer at ৳2,800 for ten doses, ৳280 a dose; a tonic the farm has never bought.
+  const vet = await as("vet", "2040-01-01T03:00:00.000Z");
+  const wormer = await vet.client.drugs.add({
+    name: { bn: `কৃমিনাশক ${suffix}` },
+    milkWithdrawalDays: 0,
+    meatWithdrawalDays: 0,
+  });
+  const tonic = await vet.client.drugs.add({
+    name: { bn: `টনিক ${suffix}` },
+    milkWithdrawalDays: 0,
+    meatWithdrawalDays: 0,
+  });
+  await manager.client.drugs.purchase({
+    drugProductId: wormer.id,
+    quantity: "১০ ডোজ",
+    doses: 10,
+    priceBdt: 2800,
+    seller: { name: `ফার্মেসি ${suffix}` },
+    purchasedOn: "2040-01-01",
+  });
+  const worming = await owner.client.sops.create({
+    content: dosingSop(wormer.id, "কৃমি"),
+  });
+  const tonicking = await owner.client.sops.create({
+    content: dosingSop(tonic.id, "টনিক"),
+  });
+  wormingId = worming.definitionId;
+  tonicId = tonicking.definitionId;
+
   kept = await bullInto(fedPen, "2040-01-02T04:00:00.000Z");
   unfed = await bullInto(hungryPen, "2040-01-02T04:00:00.000Z");
 
@@ -180,6 +251,10 @@ beforeAll(async () => {
   // 140 kg on the 10th and again on the 24th of February: ৳4,200 each, ৳8,400 in the four weeks.
   await feed("2040-02-10T02:00:00.000Z", 140);
   await feed("2040-02-24T02:00:00.000Z", 140);
+
+  // Wormed on the 20th of February, ৳280 inside the four weeks; and a dose of the tonic nobody paid for on the 21st.
+  await dose(wormingId, kept, "2040-02-20T04:00:00.000Z");
+  await dose(tonicId, kept, "2040-02-21T04:00:00.000Z");
 
   // 300 kg on the 1st of February and 314 kg a fortnight later: a kilo a day, lately.
   await weigh(fedPen, "2040-02-01T02:00:00.000Z", [[kept, 300]]);
@@ -203,30 +278,31 @@ describe("keep her or sell her", () => {
     const owner = await as("owner", "2040-03-01T04:00:00.000Z");
     const { animals } = await owner.client.fattening.prices();
     const hers = animals.find((one) => one.tagNumber === kept);
-    // ৳8,400 over the 28 days since the 2nd of February is ৳300 a day; January's feeding is not in it. A kilo a day on
-    // that is ৳300 a kilo, between the market's ৳280 and ৳320, so what she fetches decides. The next fortnight: 14 kg
-    // for ৳4,200 of keep, fetching ৳3,920 at ৳280 (৳280 short) and ৳4,480 at ৳320 (৳280 over).
+    // ৳8,400 of feed and a ৳280 dose over the 28 days since the 2nd of February is ৳310 a day; January's feeding is not
+    // in it. A kilo a day on that is ৳310 a kilo, between the market's ৳280 and ৳320, so what she fetches decides. The
+    // next fortnight: 14 kg for ৳4,340 of keep, fetching ৳3,920 at ৳280 (৳420 short) and ৳4,480 at ৳320 (৳140 over).
+    // The tonic nobody bought is in it at nothing, and said: her keep is short by it.
     expect(hers?.keep).toEqual({
       known: true,
-      keepBdtPerDay: 300,
+      keepBdtPerDay: 310,
       dailyGainKg: 1,
-      costOfGainNowBdt: 300,
+      costOfGainNowBdt: 310,
       ahead: {
         days: 14,
         gainKg: 14,
-        keepBdt: 4200,
-        low: { worthBdt: 3920, overKeepBdt: -280 },
-        high: { worthBdt: 4480, overKeepBdt: 280 },
+        keepBdt: 4340,
+        low: { worthBdt: 3920, overKeepBdt: -420 },
+        high: { worthBdt: 4480, overKeepBdt: 140 },
       },
       keeping: "close",
-      whole: true,
+      whole: false,
     });
   });
 
   it("says keeping pays once a kilo fetches more than it costs to put on", async () => {
     const owner = await as("owner", "2040-03-01T05:00:00.000Z");
     await owner.client.fattening.setMarketPrice({
-      lowBdtPerKg: 300,
+      lowBdtPerKg: 310,
       highBdtPerKg: 360,
     });
     const later = await as("owner", "2040-03-01T06:00:00.000Z");

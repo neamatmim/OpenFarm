@@ -119,15 +119,16 @@ export const keepRateOf = (
 };
 
 /**
- * One thing charged to her keep: her share of a Feeding, or of a Herd Cost. Not a dose or the Vet, which she is given
- * when she needs them rather than day by day, and not the Hasil or a Trip, which were paid to move her, not to keep her.
+ * One thing charged to her keep: her share of a Feeding, a dose she was given, or her share of a Herd Cost (the Owner's
+ * choice, 2026-09-27: what she is dosed with is part of what keeping her costs). Not the Vet's fee for a visit, and not
+ * the Hasil or a Trip, which were paid to move her, not to keep her.
  */
 export interface KeepCharge {
   at: Date;
   bdt: number;
   /** A Feeding: what says she was fed at all. */
   fed: boolean;
-  /** False for feed with no price: her keep is short by it. */
+  /** False for feed with no price, or a dose of something the farm never bought: her keep is short by it. */
   priced: boolean;
 }
 
@@ -138,7 +139,7 @@ export interface Kept {
   days: number;
   /** Whether any Feeding was charged to her in them: without one her keep is not known, which is not the same as free. */
   fed: boolean;
-  /** False when some feed in it had no price. */
+  /** False when some feed or a dose in it had no price. */
   whole: boolean;
 }
 
@@ -207,7 +208,7 @@ export type KeepOrSell =
       };
       /** Nothing while no price a kilo is set for her. */
       keeping: Keeping | null;
-      /** False when some feed in her keep had no price: it is short by that, and so kinder to keeping her. */
+      /** False when some feed or a dose in her keep had no price: it is short by that, and so kinder to keeping her. */
       whole: boolean;
     };
 

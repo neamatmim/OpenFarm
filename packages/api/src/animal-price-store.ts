@@ -22,13 +22,19 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 /** The fattening side as the board and the Ready list read it. */
 const ON_THE_SIDE = ["quarantine", "fattening", "ready_for_sale"] as const;
 
-/** What was charged to her keep, as the costing shares it out: her feed and her part of the Herd Costs. */
+/** What was charged to her keep, as the costing shares it out: her feed, her doses and her part of the Herd Costs. */
 const keepChargesOf = (costs: FarmCosts, animalId: string): KeepCharge[] => [
   ...(costs.ofAnimal.feed.get(animalId) ?? []).map((one) => ({
     at: one.at,
     bdt: one.feedBdt,
     fed: true,
     priced: one.unpricedKg === 0,
+  })),
+  ...(costs.ofAnimal.doses.get(animalId) ?? []).map((one) => ({
+    at: one.at,
+    bdt: one.medicineBdt ?? 0,
+    fed: false,
+    priced: one.medicineBdt !== null,
   })),
   ...(costs.ofAnimal.herd.get(animalId) ?? []).map((one) => ({
     at: one.at,
