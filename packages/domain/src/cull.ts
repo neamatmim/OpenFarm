@@ -32,11 +32,12 @@ export const fewestDaysBeforeMilkIsWeighed = (
 
 /**
  * What a litre fetched across some of the farm's Dispatches: everything they fetched over every litre they took, so a
- * big tanker counts for its litres, not as one vote beside a can at the gate. Nothing where no milk left.
+ * big tanker counts for its litres, not as one vote beside a can at the gate — and what all of it came to. Nothing
+ * where no milk left.
  */
 export const milkPriceOf = (
   dispatches: readonly { litres: number; pricePerLitreBdt: number }[]
-): { bdtPerLitre: number; litres: number } | null => {
+): { bdtPerLitre: number; litres: number; bdt: number } | null => {
   const litres = dispatches.reduce((sum, one) => sum + one.litres, 0);
   if (litres <= 0) {
     return null;
@@ -45,7 +46,11 @@ export const milkPriceOf = (
     (sum, one) => sum + one.litres * one.pricePerLitreBdt,
     0
   );
-  return { bdtPerLitre: roundTaka(bdt / litres), litres: roundLitres(litres) };
+  return {
+    bdtPerLitre: roundTaka(bdt / litres),
+    litres: roundLitres(litres),
+    bdt: roundTaka(bdt),
+  };
 };
 
 /** The litres she sent to Bulk inside the days her keep is read over, so the two are the same days. */

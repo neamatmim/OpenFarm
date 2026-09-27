@@ -60,6 +60,8 @@ describe("dates", () => {
 
   it("shows month and year", () => {
     expect(formatDate(eleventh, "bn", "monthYear")).toBe("সেপ্টেম্বর ২০২৬");
+    expect(formatDate(eleventh, "bn", "monthShort")).toBe("সেপ্ট");
+    expect(formatDate(eleventh, "en", "monthShort")).toBe("Sept");
   });
 });
 

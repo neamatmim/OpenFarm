@@ -22,7 +22,7 @@ describe("what a litre of the farm's milk fetched", () => {
         { litres: 1000, pricePerLitreBdt: 50 },
         { litres: 500, pricePerLitreBdt: 56 },
       ])
-    ).toEqual({ bdtPerLitre: 52, litres: 1500 });
+    ).toEqual({ bdtPerLitre: 52, litres: 1500, bdt: 78_000 });
   });
 
   it("is nothing where no milk left the farm", () => {

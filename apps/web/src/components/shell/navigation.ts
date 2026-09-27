@@ -6,6 +6,7 @@ import {
   BookOpenCheck,
   BriefcaseBusiness,
   Building2,
+  ChartColumn,
   ClipboardCheck,
   ClipboardList,
   Dna,
@@ -196,6 +197,12 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "nav.money",
         icon: HandCoins,
         audience: "runsTheFarm",
+      },
+      {
+        to: "/months",
+        label: "nav.months",
+        icon: ChartColumn,
+        audience: "owner",
       },
       {
         to: "/ventures",

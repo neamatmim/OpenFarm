@@ -46,7 +46,12 @@ export const numberAsTyped = (text: string): string => {
  *  has no daylight saving; a farm parameter later. */
 const FARM_TIME_ZONE = "Asia/Dhaka";
 
-export type DateStyle = "date" | "dateTime" | "monthYear" | "time";
+export type DateStyle =
+  | "date"
+  | "dateTime"
+  | "monthYear"
+  | "monthShort"
+  | "time";
 
 const DATE_OPTIONS: Record<DateStyle, Intl.DateTimeFormatOptions> = {
   /** The time alone, for a moment today: on the farm's 24-hour clock, as the date-and-time is. */
@@ -63,6 +68,8 @@ const DATE_OPTIONS: Record<DateStyle, Intl.DateTimeFormatOptions> = {
     hourCycle: "h23",
   },
   monthYear: { month: "long", year: "numeric" },
+  /** A month named short, under a chart's bar where a year of them stand side by side. */
+  monthShort: { month: "short" },
 };
 
 /** Gregorian dates; Bangla month names and numerals in Bangla. */
