@@ -71,7 +71,7 @@ const useMoneyFigures = (list: MoneyList | undefined): Figure[] => {
     },
     {
       label: t("money.net"),
-      value: list ? `${net < 0 ? "−" : ""}${taka(Math.abs(net))}` : loading,
+      value: list ? taka(net) : loading,
       hint: partial,
       icon: Scale,
       tone: net < 0 ? "danger" : "neutral",

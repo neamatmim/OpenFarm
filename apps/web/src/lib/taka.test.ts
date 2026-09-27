@@ -26,6 +26,20 @@ describe("a sum of money", () => {
   });
 });
 
+describe("a figure that rounds to nothing", () => {
+  it("is never a minus nought: the sign is the rounded figure's, not the paisa it lost", () => {
+    // A Venture Account closed to the paisa can sit a fraction of a taka below nought once its lines are added.
+    expect(saidInTaka(-0.3, "bn")).toBe("৳০");
+    expect(saidInTaka(-0.3, "en")).toBe("৳0");
+    expect(saidToThePaisa(-0.001, "en")).toBe("৳0");
+  });
+
+  it("keeps the minus on anything that is still below nought when rounded", () => {
+    expect(saidInTaka(-0.6, "en")).toBe("−৳1");
+    expect(saidToThePaisa(-0.01, "en")).toBe("−৳0.01");
+  });
+});
+
 describe("a rate", () => {
   it("keeps its paisa, which is the whole point of a rate", () => {
     // A cost per litre rounded to the taka makes two different rates print the same.
