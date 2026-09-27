@@ -21,6 +21,7 @@ import {
 import { ORPCError } from "@orpc/server";
 
 import { pricesOnTheSide } from "./animal-price-store";
+import { hasBand } from "./band-store";
 import type { FarmCosts } from "./cost-store";
 import { farmCosts } from "./cost-store";
 import { bandOf } from "./feed-store";
@@ -834,6 +835,8 @@ export type BreakdownLine =
       kind: "animal";
       tagNumber: string;
       came: "intake" | JoiningHow;
+      /** The farm day she came to the Season: an Animal sold to a Venture and bought back is two lines. */
+      since: string;
       left: Gone;
     };
 
@@ -849,20 +852,39 @@ export interface BreakdownRow {
   per100: number | null;
 }
 
-/** The Farm's Weight Bands, each once however many Rations are written for it, lightest first. */
+/** A band's From, an open one below every weight: what bands are ordered by. */
+const fromOf = (band: WeightBand) => band.fromKg ?? -Infinity;
+
+/** A band's To, an open one above every weight. */
+const toOf = (band: WeightBand) => band.toKg ?? Infinity;
+
+/** The narrower band first: the higher From, then the lower To. */
+const narrowerFirst = (a: WeightBand, b: WeightBand) =>
+  fromOf(b) - fromOf(a) || toOf(a) - toOf(b);
+
+/**
+ * Every Weight Band the Farm's Rations have been written for, retired ones too — a finished Season's buying weights do
+ * not move because a Ration was put away since — each once however many Rations share it.
+ */
 const farmsBands = (
   rations: readonly { weightFromKg: string | null; weightToKg: string | null }[]
 ): WeightBand[] => {
   const seen = new Map<string, WeightBand>();
-  for (const band of rations.map(bandOf)) {
-    if (band.fromKg !== null || band.toKg !== null) {
-      seen.set(`${band.fromKg}|${band.toKg}`, band);
-    }
+  for (const band of rations.map(bandOf).filter(hasBand)) {
+    seen.set(`${band.fromKg}|${band.toKg}`, band);
   }
-  return [...seen.values()].toSorted(
-    (a, b) => (a.fromKg ?? -Infinity) - (b.fromKg ?? -Infinity)
-  );
+  return [...seen.values()];
 };
+
+/** The band a weight fell in: of those it fits, the narrowest, so a Ration for "up to 400 kg" does not swallow one
+ *  written for 150 to 250. None where it fits none. */
+const bandOfWeight = (
+  bands: readonly WeightBand[],
+  kg: number
+): WeightBand | undefined =>
+  bands
+    .filter((one) => bandStanding(kg, one) === "fits")
+    .toSorted(narrowerFirst)[0];
 
 /** What the breakdowns need to know of each Animal in a Season beyond her money: where, from whom, what, how heavy. */
 const buyingFactsOf = async (
@@ -895,7 +917,7 @@ const buyingFactsOf = async (
     with: { breed: { columns: { id: true, nameBn: true, nameEn: true } } },
   });
   const rations = await db.query.ration.findMany({
-    where: { farmId, retiredAt: { isNull: true } },
+    where: { farmId },
     columns: { weightFromKg: true, weightToKg: true },
   });
   return {
@@ -930,7 +952,7 @@ const bandLineOf = (
   if (kg === null || kg === undefined || Number.isNaN(kg)) {
     return NONE;
   }
-  const band = facts.bands.find((one) => bandStanding(kg, one) === "fits");
+  const band = bandOfWeight(facts.bands, kg);
   return band ? { kind: "band", ...band } : NONE;
 };
 
@@ -970,6 +992,7 @@ const lineOf = (
       kind: "animal",
       tagNumber: her?.tagNumber ?? "",
       came: came.how,
+      since: farmDayOf(holding.takenOn),
       left: holding.left?.how ?? "sold",
     };
   }
@@ -1005,14 +1028,17 @@ const byLine = (a: BreakdownLine, b: BreakdownLine): number => {
   if (rank !== 0) {
     return rank;
   }
+  // Each with a tie-break, so two traders of one name, or two bands from one weight, keep one order.
   if (a.kind === "named" && b.kind === "named") {
-    return a.name.localeCompare(b.name, "bn");
+    return a.name.localeCompare(b.name, "bn") || a.id.localeCompare(b.id);
   }
   if (a.kind === "band" && b.kind === "band") {
-    return (a.fromKg ?? -Infinity) - (b.fromKg ?? -Infinity);
+    return fromOf(a) - fromOf(b) || toOf(a) - toOf(b);
   }
   if (a.kind === "animal" && b.kind === "animal") {
-    return a.tagNumber.localeCompare(b.tagNumber);
+    return (
+      a.tagNumber.localeCompare(b.tagNumber) || a.since.localeCompare(b.since)
+    );
   }
   return 0;
 };
@@ -1020,8 +1046,9 @@ const byLine = (a: BreakdownLine, b: BreakdownLine): number => {
 /**
  * A finished Season opened out by haat, trader, breed, the Weight Band her buying weight fell in, or each Animal: every
  * line the Season's own sum narrowed to its Animals — what they cost, what came back, the dead in — so the lines add up
- * to the Season. A share only: never put a year, because a year on a handful of animals leads the eye astray. Refused
- * for a Season still going, which is no result to judge the buying by.
+ * to the Season, each rounded to the taka as the Season is, so a line's paisa may put their sum a taka off it. A share
+ * only: never put a year, because a year on a handful of animals leads the eye astray. Refused for a Season still
+ * going, which is no result to judge the buying by.
  */
 export const seasonBreakdown = async (
   db: Database,

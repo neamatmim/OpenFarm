@@ -1,4 +1,11 @@
-import { FakeClock } from "@OpenFarm/test-harness";
+import { penAssignment } from "@OpenFarm/db/schema/herd";
+import type { SopContent } from "@OpenFarm/domain";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -8,17 +15,25 @@ import { appRouter } from "./index";
 // buying weight fell in, and each animal. Every line is the Season's own sum narrowed to its animals, the dead in, and
 // only ever a share — never a rate a year.
 //
-// Worked by hand. Eid-ul-Adha 2028 (6 May). The Farm's Rations are written for 150 to 250 kg and from 250. All bought on
-// 1 January:
+// Worked by hand. Eid-ul-Adha 2028 (6 May). The Farm's Rations are written for 150 to 250 kg and from 250, and one for
+// anything up to 400 kg — a bull of 200 kg fell in the narrower. The first and the last are retired since. All bought
+// on 1 January:
 // - A, at the Gabtoli haat from Karim, no breed written, 200 kg, ৳1,00,000 and ৳1,000 of Hasil; sold at Eid for
 //   ৳1,30,000.
 // - B, at the Gabtoli haat from Rahim, a Sahiwal, 280 kg, ৳1,20,000; sold at Eid for ৳1,50,000.
 // - C, at the farm gate from Karim, a Sahiwal, 260 kg, ৳60,000; dead on 15 February.
-// The Season cost ৳2,81,000 and brought back ৳2,80,000: ৳1,000 lost, 0.4 below nothing on the hundred.
-// - By haat: Gabtoli (A, B) ৳2,21,000 → ৳2,80,000, +৳59,000, 26.7; the farm gate (C) ৳60,000 → nothing, −100.
-// - By trader: Karim (A, C) ৳1,61,000 → ৳1,30,000, −৳31,000, −19.3; Rahim (B) ৳1,20,000 → ৳1,50,000, 25.
-// - By breed: Sahiwal (B, C) ৳1,80,000 → ৳1,50,000, −৳30,000, −16.7; none written (A) ৳1,01,000 → ৳1,30,000, 28.7.
-// - By band: 150–250 (A) 28.7; from 250 (B, C) −16.7.
+// A Venture bought V and W on its own Float the same day, for the same Eid. V stays the Venture's and sells at Eid for
+// ৳1,50,000: in no line of the Farm's. W, weighed at 300 kg on 1 March, the Farm buys from the Venture on 2 March at
+// ৳400 a kilo — ৳1,20,000 — into this Season, and sells at Eid for ৳1,40,000: +৳20,000, 16.7.
+// The Season cost ৳4,01,000 and brought back ৳4,20,000: ৳19,000, 4.7 on the hundred.
+// - By haat: Gabtoli (A, B) ৳2,21,000 → ৳2,80,000, +৳59,000, 26.7; the farm gate (C) ৳60,000 → nothing, −100; bought
+//   from a Venture (W) 16.7.
+// - By trader: Karim (A, C) ৳1,61,000 → ৳1,30,000, −৳31,000, −19.3; Rahim (B) ৳1,20,000 → ৳1,50,000, 25; bought from a
+//   Venture (W) 16.7.
+// - By breed: Sahiwal (B, C) ৳1,80,000 → ৳1,50,000, −৳30,000, −16.7; none written (A, W) ৳2,21,000 → ৳2,70,000,
+//   +৳49,000, 22.2.
+// - By band, W at the 300 kg she joined at: 150–250 (A) 28.7; from 250 (B, C, W) ৳3,00,000 → ৳2,90,000, −৳10,000,
+//   −3.3.
 
 const suffix = `${Date.now()}`.slice(-7);
 const EID_2028 = { start: "2028-05-06", end: "2028-05-08" };
@@ -28,10 +43,15 @@ const KARIM = `করিম ${suffix}`;
 const RAHIM = `রহিম ${suffix}`;
 const SAHIWAL = `শাহীওয়াল ${suffix}`;
 
-const as = (role: "owner" | "manager", instant: string) =>
+const as = (role: "owner" | "manager" | "staff", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
-const tags: Record<"a" | "b" | "c", string> = { a: "", b: "", c: "" };
+const tags: Record<"a" | "b" | "c" | "w", string> = {
+  a: "",
+  b: "",
+  c: "",
+  w: "",
+};
 let breedId = "";
 
 const sell = async (tagNumber: string, priceBdt: number) => {
@@ -45,6 +65,118 @@ const sell = async (tagNumber: string, priceBdt: number) => {
     priceBdt,
     weightKg: 300,
   });
+};
+
+/** A morning's weigh-in off the crush: what an Internal Sale is priced from. */
+const weighInSop = (): SopContent => ({
+  name: { bn: `ওজন ${suffix}`, en: "Weigh-in" },
+  purpose: { bn: "প্রতিটি পশুর ওজন নেওয়া" },
+  triggers: [{ kind: "schedule", times: ["07:00"] }],
+  appliesTo: { side: "fattening", states: ["quarantine", "fattening"] },
+  assignedRole: "staff",
+  checkerRole: "manager",
+  graceMinutes: 240,
+  steps: [
+    {
+      id: "weigh",
+      text: { bn: "ক্রাশে তুলে ওজন নিন" },
+      repeatPerAnimal: true,
+      evidence: [
+        {
+          type: "number",
+          required: true,
+          unit: { bn: "কেজি" },
+          min: 20,
+          max: 1200,
+        },
+      ],
+      skipReasons: [{ bn: "ক্রাশে ওঠেনি" }],
+      effect: { kind: "weigh_in" },
+    },
+  ],
+});
+
+/** A Venture with capital, buying on its own Float: two bulls, V and W, aimed at the same Eid as the Farm's. */
+const venturesTwo = async (penId: string) => {
+  const { client: owner } = await as("owner", "2027-12-31T04:00:00.000Z");
+  const venture = await owner.ventures.open({
+    name: `ভেঞ্চার ${suffix}`,
+    targetCapitalBdt: 1_000_000,
+    floorBdt: 0,
+    decideBy: "2028-01-10",
+    targetWindowStart: EID_2028.start,
+    targetWindowEnd: EID_2028.end,
+    unitPriceBdt: 50_000,
+    units: 20,
+    cattleBudgetBdt: 800_000,
+  });
+  const person = await owner.investors.record({
+    name: `রফিক ${suffix}`,
+    phone: "01999000077",
+  });
+  const agreement = await owner.ventures.sign({
+    ventureId: venture.id,
+    investorId: person.id,
+    units: 20,
+    investorsPercent: 60,
+    arbitrator: `মাওলানা ${suffix}`,
+    stampValueBdt: 300,
+    stampedOn: "2027-12-30",
+    stampSerial: `AA 1 ${suffix}`,
+  });
+  await owner.ventures.keepAgreementPaper({
+    agreementId: agreement.id,
+    contentType: "image/jpeg",
+    data: "aGVsbG8=",
+  });
+  await owner.ventures.takeCapital({
+    agreementId: agreement.id,
+    amountBdt: 1_000_000,
+    movedOn: "2027-12-31",
+    paymentMethod: "bank",
+    reference: `TRF-${suffix}`,
+  });
+  await owner.ventures.startBuying({ id: venture.id });
+  const { client: buying } = await as("owner", "2028-01-01T00:00:00.000Z");
+  const trip = await buying.trips.record({
+    wentTo: `ভেঞ্চারের হাট ${suffix}`,
+    wentOn: "2028-01-01",
+    brokerBdt: 0,
+    transportBdt: 0,
+    keepBdt: 0,
+  });
+  await buying.ventures.drawFloat({
+    ventureId: venture.id,
+    buyingTripId: trip.id,
+    amountBdt: 200_000,
+    movedOn: "2028-01-01",
+    paymentMethod: "bank",
+    reference: `FLT-${suffix}`,
+  });
+  const { client: manager } = await as("manager", "2028-01-01T00:00:00.000Z");
+  const bull = async () =>
+    await manager.intake.record({
+      penId,
+      sex: "male",
+      seller: { name: `ভেঞ্চারের ব্যাপারী ${suffix}` },
+      purchasePriceBdt: 100_000,
+      weightKg: 240,
+      estimatedAgeMonths: 20,
+      buyingTripId: trip.id,
+      ventureId: venture.id,
+      arrivedAt: new Date("2028-01-01T00:00:00Z"),
+      targetWindowStart: EID_2028.start,
+      targetWindowEnd: EID_2028.end,
+    });
+  const v = await bull();
+  const w = await bull();
+  await buying.ventures.reconcileFloat({
+    buyingTripId: trip.id,
+    cashBackBdt: 0,
+    movedOn: "2028-01-01",
+    reference: `DEP-${suffix}`,
+  });
+  return { v: v.tagNumber, w: w.tagNumber };
 };
 
 beforeAll(async () => {
@@ -64,8 +196,24 @@ beforeAll(async () => {
       items: [{ feedItemId: straw.id, kgPer100KgPerDay: 1 }],
       band,
     });
-  await ration("গ্রোয়ার", { fromKg: 150, toKg: 250 });
+  const grower = await ration("গ্রোয়ার", { fromKg: 150, toKg: 250 });
   await ration("ফিনিশার", { fromKg: 250, toKg: null });
+  const old = await ration("পুরনো", { fromKg: null, toKg: 400 });
+  await owner.feed.retireRation({ id: old.rationId });
+  // Put away since, as a farm's Rations are: the weight A was bought at still fell in its band.
+  await owner.feed.retireRation({ id: grower.rationId });
+  // The crush is in this Pen, so the person reading the scale has to be assigned to it.
+  await as("staff", "2027-12-31T04:00:00.000Z");
+  await scratchDb()
+    .insert(penAssignment)
+    .values({
+      id: `pa-${suffix}`,
+      farmId: theFarm().id,
+      userId: thePerson("staff").id,
+      penId: pen.id,
+    })
+    .onConflictDoNothing();
+  const { definitionId } = await owner.sops.create({ content: weighInSop() });
   const breed = await owner.breeds.add({ nameBn: SAHIWAL });
   breedId = breed.id;
   const { client: onTheDay } = await as("owner", "2028-01-01T00:00:00.000Z");
@@ -144,8 +292,41 @@ beforeAll(async () => {
     disposal: "buried",
     happenedAt: new Date("2028-02-15T00:00:00Z"),
   });
+
+  // The Venture's two, and W bought by the Farm off the morning's scale.
+  const theirs = await venturesTwo(pen.id);
+  tags.w = theirs.w;
+  const { client: scheduler } = await as("owner", "2028-03-01T07:30:00.000Z");
+  await scheduler.instances.ensureDue();
+  const today = await scheduler.instances.today({ penId: pen.id });
+  const round = today.find((one) => one.definitionId === definitionId);
+  if (!round) {
+    throw new Error("expected a weigh-in instance");
+  }
+  const { client: staff } = await as("staff", "2028-03-01T07:30:00.000Z");
+  await staff.instances.claim({ id: round.id });
+  await staff.instances.completeStep({
+    instanceId: round.id,
+    stepId: "weigh",
+    animalTag: tags.w,
+    evidence: [300],
+  });
+  const { client: takingOn } = await as("owner", "2028-03-02T04:00:00.000Z");
+  await takingOn.ventures.sellInternally({
+    tagNumber: tags.w,
+    rateBdtPerKg: 400,
+    note: `হাটের দর ${suffix}`,
+    soldOn: "2028-03-02",
+    paymentMethod: "bank",
+    reference: `INT-${suffix}`,
+    priceBdt: 120_000,
+    targetWindow: EID_2028,
+  });
+
   await sell(tags.a, 130_000);
   await sell(tags.b, 150_000);
+  await sell(theirs.v, 150_000);
+  await sell(tags.w, 140_000);
 });
 
 type By = "haat" | "trader" | "breed" | "band" | "animal";
@@ -154,6 +335,22 @@ const breakdown = async (by: By, seasonKey = "eid:2028-05-06") => {
   const { client: owner } = await as("owner", "2028-06-01T04:00:00.000Z");
   return await owner.returns.breakdown({ seasonKey, by });
 };
+
+/** One Animal's line as the breakdown reads it: how she came and left, her cost, what came back, her share. */
+const animalRow = (
+  tagNumber: string,
+  came: "intake" | "bought_from_venture",
+  since: string,
+  left: "sold" | "died",
+  costBdt: number,
+  backBdt: number,
+  per100: number
+) => ({
+  line: { kind: "animal", tagNumber, came, since, left },
+  costBdt,
+  backBdt,
+  per100,
+});
 
 describe("a finished Season opened out", () => {
   it("by haat: her Buying Trip's haat, and the farm gate for one bought on none", async () => {
@@ -176,6 +373,15 @@ describe("a finished Season opened out", () => {
         resultBdt: -60_000,
         per100: -100,
       },
+      {
+        line: { kind: "bought_from_venture" },
+        head: 1,
+        died: 0,
+        costBdt: 120_000,
+        backBdt: 140_000,
+        resultBdt: 20_000,
+        per100: 16.7,
+      },
     ]);
   });
 
@@ -190,6 +396,7 @@ describe("a finished Season opened out", () => {
     ).toEqual([
       { name: KARIM, died: 1, per100: -19.3 },
       { name: RAHIM, died: 0, per100: 25 },
+      { name: "bought_from_venture", died: 0, per100: 16.7 },
     ]);
   });
 
@@ -206,10 +413,10 @@ describe("a finished Season opened out", () => {
       },
       {
         line: { kind: "none" },
-        head: 1,
-        costBdt: 101_000,
-        resultBdt: 29_000,
-        per100: 28.7,
+        head: 2,
+        costBdt: 221_000,
+        resultBdt: 49_000,
+        per100: 22.2,
       },
     ]);
   });
@@ -232,14 +439,14 @@ describe("a finished Season opened out", () => {
       },
       {
         line: { kind: "band", fromKg: 250, toKg: null },
-        head: 2,
+        head: 3,
         died: 1,
-        per100: -16.7,
+        per100: -3.3,
       },
     ]);
   });
 
-  it("into each animal: her cost, what came back, and her share", async () => {
+  it("into each animal: how she came, her cost, what came back, and her share", async () => {
     const lines = await breakdown("animal");
     expect(
       lines.map(({ line, costBdt, backBdt, per100 }) => ({
@@ -248,50 +455,42 @@ describe("a finished Season opened out", () => {
         backBdt,
         per100,
       }))
-    ).toEqual([
-      {
-        line: {
-          kind: "animal",
-          tagNumber: tags.a,
-          came: "intake",
-          left: "sold",
-        },
-        costBdt: 101_000,
-        backBdt: 130_000,
-        per100: 28.7,
-      },
-      {
-        line: {
-          kind: "animal",
-          tagNumber: tags.b,
-          came: "intake",
-          left: "sold",
-        },
-        costBdt: 120_000,
-        backBdt: 150_000,
-        per100: 25,
-      },
-      {
-        line: {
-          kind: "animal",
-          tagNumber: tags.c,
-          came: "intake",
-          left: "died",
-        },
-        costBdt: 60_000,
-        backBdt: 0,
-        per100: -100,
-      },
-    ]);
+    ).toEqual(
+      [
+        animalRow(
+          tags.a,
+          "intake",
+          "2028-01-01",
+          "sold",
+          101_000,
+          130_000,
+          28.7
+        ),
+        animalRow(tags.b, "intake", "2028-01-01", "sold", 120_000, 150_000, 25),
+        animalRow(tags.c, "intake", "2028-01-01", "died", 60_000, 0, -100),
+        // W, from the day the Farm took her on: her months as the Venture's are the Venture's.
+        animalRow(
+          tags.w,
+          "bought_from_venture",
+          "2028-03-02",
+          "sold",
+          120_000,
+          140_000,
+          16.7
+        ),
+      ].toSorted((x, y) => x.line.tagNumber.localeCompare(y.line.tagNumber))
+    );
   });
 
   it("adds up, every way it is opened, to the Season's own cost and result", async () => {
     const { client: owner } = await as("owner", "2028-06-01T04:00:00.000Z");
     const { seasons } = await owner.returns.page();
     const season = seasons.find((one) => one.key === "eid:2028-05-06");
+    // Four head: the Venture's own V, sold in the same window, is in no line of the Farm's.
+    expect(season?.head).toBe(4);
     expect(season?.returnOnCost).toMatchObject({
-      costBdt: 281_000,
-      resultBdt: -1000,
+      costBdt: 401_000,
+      resultBdt: 19_000,
     });
     for (const by of ["haat", "trader", "breed", "band", "animal"] as const) {
       // oxlint-disable-next-line no-await-in-loop -- five ways, read one after the other
@@ -300,7 +499,7 @@ describe("a finished Season opened out", () => {
         by,
         costBdt: lines.reduce((sum, one) => sum + one.costBdt, 0),
         resultBdt: lines.reduce((sum, one) => sum + one.resultBdt, 0),
-      }).toEqual({ by, costBdt: 281_000, resultBdt: -1000 });
+      }).toEqual({ by, costBdt: 401_000, resultBdt: 19_000 });
     }
   });
 

@@ -23,6 +23,7 @@ import { EmptyState, StatusBadge } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { Chip } from "@/components/saw-filter";
 import { useLanguage } from "@/i18n/language-provider";
+import { wordedRefusal } from "@/lib/correction-refusal";
 import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
 import { aFigure, figureOf } from "@/lib/typed-figure";
@@ -79,6 +80,30 @@ const useSeasonName = () => {
         });
 };
 
+/** What every hundred taka made, said as made or lost, a loss in the loss's colour: a return line's first words. */
+const ShareSaid = ({
+  per100,
+  on,
+  className,
+}: {
+  per100: number;
+  on: "onCost" | "onCapital";
+  className?: string;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <p
+      className={cn(
+        "tabular-nums",
+        per100 < 0 && "text-destructive",
+        className
+      )}
+    >
+      {t(wordFor(SAID[on], per100), { amount: Math.abs(per100) })}
+    </p>
+  );
+};
+
 /** The share first, then the days its money was out, then that share scaled to a year — never the year alone. */
 const ReturnLines = ({
   shares,
@@ -93,7 +118,6 @@ const ReturnLines = ({
   bank: BankRateSaid | null;
 }) => {
   const { t } = useLanguage();
-  const lost = shares.per100 < 0;
   // A finished Season or Venture with no rate a year was out fewer days than the floor: nothing else leaves it without.
   const year =
     shares.perYear === null
@@ -103,11 +127,7 @@ const ReturnLines = ({
         });
   return (
     <div className="flex flex-col gap-0.5">
-      <p className={cn("font-medium tabular-nums", lost && "text-destructive")}>
-        {t(wordFor(SAID[on], shares.per100), {
-          amount: Math.abs(shares.per100),
-        })}
-      </p>
+      <ShareSaid className="font-medium" on={on} per100={shares.per100} />
       <p className="text-muted-foreground text-sm tabular-nums">
         {t("returns.days", { days: shares.averageDays })} · {year}
       </p>
@@ -218,15 +238,7 @@ type BreakdownRow = Awaited<
 >[number];
 type BreakdownLine = BreakdownRow["line"];
 
-/** The ways a finished Season opens out, in the order the chips offer them. */
-const OPEN_BY = [
-  "haat",
-  "trader",
-  "breed",
-  "band",
-  "animal",
-] as const satisfies readonly BreakdownBy[];
-
+/** Every way a finished Season opens out, and its chip's word: a way the server adds is a type error here until named. */
 const BY_WORD = {
   haat: "returns.by.haat",
   trader: "returns.by.trader",
@@ -235,14 +247,16 @@ const BY_WORD = {
   animal: "returns.by.animal",
 } as const satisfies Record<BreakdownBy, MessageKey>;
 
-/** A line with none of it written: what "none" means depends on what it was opened by. */
+/** The ways, in the order the chips offer them. */
+const OPEN_BY = Object.keys(BY_WORD) as (keyof typeof BY_WORD)[];
+
+/** A line with none of it written: what "none" means depends on what it was opened by. An Animal is always herself. */
 const NONE_WORD = {
   haat: "returns.none.haat",
   trader: "returns.none.trader",
   breed: "returns.none.breed",
   band: "returns.none.band",
-  animal: "returns.none.band",
-} as const satisfies Record<BreakdownBy, MessageKey>;
+} as const satisfies Record<Exclude<BreakdownBy, "animal">, MessageKey>;
 
 const LEFT_WORD = {
   sold: "returns.left.sold",
@@ -253,6 +267,12 @@ const LEFT_WORD = {
 const JOINED_WORD = {
   crossed: "returns.joined.crossed",
   bought_from_venture: "returns.joined.bought_from_venture",
+} as const satisfies Record<string, MessageKey>;
+
+const CAME_WORD = {
+  intake: "returns.came.intake",
+  crossed: "returns.came.crossed",
+  bought_from_venture: "returns.came.bought_from_venture",
 } as const satisfies Record<string, MessageKey>;
 
 /** What a breakdown line is called in the reader's words. */
@@ -268,29 +288,16 @@ const useLineSaid = () => {
         return bandSaid(line, words) ?? t(NONE_WORD.band);
       }
       case "none": {
-        return t(NONE_WORD[by]);
+        return by === "animal" ? "" : t(NONE_WORD[by]);
       }
       case "animal": {
-        return `${line.tagNumber} · ${t(LEFT_WORD[line.left])}`;
+        return line.tagNumber;
       }
       default: {
         return t(JOINED_WORD[line.kind]);
       }
     }
   };
-};
-
-/** One line's share, said as made or lost on every hundred; nothing for a line that cost nothing. */
-const LineShare = ({ per100 }: { per100: number | null }) => {
-  const { t } = useLanguage();
-  if (per100 === null) {
-    return null;
-  }
-  return (
-    <span className={cn("tabular-nums", per100 < 0 && "text-destructive")}>
-      {t(wordFor(SAID.onCost, per100), { amount: Math.abs(per100) })}
-    </span>
-  );
 };
 
 /** The lines of one breakdown: each the Season's own sum for its animals — head, the dead, cost to back, share. */
@@ -321,14 +328,18 @@ const BreakdownTable = ({
               ) : (
                 said(row.line, by)
               )}
-              {by === "animal" ? null : (
-                <span className="text-muted-foreground block text-xs font-normal">
-                  {t("returns.head", { count: row.head })}
-                  {row.died > 0
-                    ? ` · ${t("returns.died", { count: row.died })}`
-                    : ""}
-                </span>
-              )}
+              <span className="text-muted-foreground block text-xs font-normal">
+                {row.line.kind === "animal"
+                  ? t("returns.cameLeft", {
+                      came: t(CAME_WORD[row.line.came]),
+                      left: t(LEFT_WORD[row.line.left]),
+                    })
+                  : `${t("returns.head", { count: row.head })}${
+                      row.died > 0
+                        ? ` · ${t("returns.died", { count: row.died })}`
+                        : ""
+                    }`}
+              </span>
             </TableCell>
             <TableCell className="text-muted-foreground whitespace-normal tabular-nums">
               {t("returns.costBack", {
@@ -337,7 +348,9 @@ const BreakdownTable = ({
               })}
             </TableCell>
             <TableCell className="whitespace-normal">
-              <LineShare per100={row.per100} />
+              {row.per100 === null ? null : (
+                <ShareSaid on="onCost" per100={row.per100} />
+              )}
             </TableCell>
           </TableRow>
         ))}
@@ -372,6 +385,11 @@ const SeasonBreakdown = ({ seasonKey }: { seasonKey: string }) => {
           />
         ))}
       </div>
+      {by !== null && opened.error ? (
+        <p className="text-destructive text-sm">
+          {wordedRefusal(opened.error, t) ?? t("returns.breakdownFailed")}
+        </p>
+      ) : null}
       {by !== null && opened.data ? (
         <>
           {opened.data.length === 0 ? (
