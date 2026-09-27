@@ -17,6 +17,7 @@ import {
   runningRangeOf,
   seasonOf,
   startOfFarmDay,
+  wholeDaysFrom,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
@@ -1137,8 +1138,9 @@ export const dairyAnimalReturns = async (
 
 /**
  * What one Investor's capital made on one Agreement in a settled Venture (ADR 0012): their own share of the profit over
- * all their capital, each taka from the day it arrived to the day their payout went — a share and its days, and never
- * a rate a year, which is the Owner's alone. Nothing before the Venture is settled and their payout has gone.
+ * all their capital, and the days from their first taka arriving to their payout — a span they can find on their own
+ * papers, not the money-weighted average the Owner's rate a year is worked over. A share and its days, never a rate a
+ * year. Nothing before the Venture is settled and their payout has gone.
  */
 export const agreementReturnOnCapital = async (
   db: Pick<Database, "query">,
@@ -1173,13 +1175,16 @@ export const agreementReturnOnCapital = async (
       movedOn: true,
     },
   });
+  const capital = capitalOf([share], movements);
   const returned = returnOnCapitalOf({
-    capital: capitalOf([share], movements),
+    capital,
     shareBdt: share.shareBdt,
     // No floor: nothing here is put a year.
     floorDays: 0,
   });
-  return returned
-    ? { per100: returned.per100, days: returned.averageDays }
+  const first = earliest(capital.map((one) => one.arrived));
+  const paidBack = capital[0]?.paidBack;
+  return returned && first && paidBack
+    ? { per100: returned.per100, days: wholeDaysFrom(first, paidBack) }
     : null;
 };

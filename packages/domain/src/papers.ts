@@ -1127,8 +1127,8 @@ export const settlementStatement = (sheet: SettlementStatement): string =>
             "  মূলধনে",
             "On your capital",
             sheet.onCapital.rose
-              ? `প্রতি ১০০ টাকা মূলধনে ${sheet.onCapital.per100} টাকা লাভ, ${sheet.onCapital.days} দিনে / ${sheet.onCapital.per100} made on every 100 taka of capital, over ${sheet.onCapital.days} days`
-              : `প্রতি ১০০ টাকা মূলধনে ${sheet.onCapital.per100} টাকা ক্ষতি, ${sheet.onCapital.days} দিনে / ${sheet.onCapital.per100} lost on every 100 taka of capital, over ${sheet.onCapital.days} days`
+              ? `প্রতি ১০০ টাকা মূলধনে ${sheet.onCapital.per100} টাকা লাভ, ${sheet.onCapital.days} দিনে / ${sheet.onCapital.per100} made on every ৳100 of your capital, over ${sheet.onCapital.days} days`
+              : `প্রতি ১০০ টাকা মূলধনে ${sheet.onCapital.per100} টাকা ক্ষতি, ${sheet.onCapital.days} দিনে / ${sheet.onCapital.per100} lost on every ৳100 of your capital, over ${sheet.onCapital.days} days`
           )
         : null,
       "",

@@ -1,6 +1,5 @@
 import type { PaperDocument } from "@OpenFarm/domain";
 import { farmDayOf, mobileNumberOf } from "@OpenFarm/domain";
-import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatDigits } from "@OpenFarm/i18n";
 import { Button, buttonVariants } from "@OpenFarm/ui/components/button";
 import {
@@ -238,9 +237,11 @@ export const PortalSwitch = ({ open }: { open: boolean }) => {
   );
 };
 
-/** The words of one thing the Owner shows invited Investors or keeps from them, each behind the advisers. */
-const SHOWN_WORDS = {
+/** One thing the Owner shows invited Investors or keeps from them, each behind the advisers: its words, and the act
+ *  that switches it. */
+const SHOWN = {
   projections: {
+    set: orpc.investors.setProjectionsShown,
     title: "projection.switch.title",
     show: "projection.switch.show",
     hide: "projection.switch.hide",
@@ -252,6 +253,7 @@ const SHOWN_WORDS = {
     hiddenDone: "projection.switch.hiddenDone",
   },
   returns: {
+    set: orpc.investors.setReturnsShown,
     title: "returns.switch.title",
     show: "returns.switch.show",
     hide: "returns.switch.hide",
@@ -262,9 +264,9 @@ const SHOWN_WORDS = {
     shownDone: "returns.switch.shownDone",
     hiddenDone: "returns.switch.hiddenDone",
   },
-} as const satisfies Record<string, Record<string, MessageKey>>;
+} as const;
 
-type Shown = keyof typeof SHOWN_WORDS;
+type Shown = keyof typeof SHOWN;
 
 /**
  * Whether invited Investors are shown each Venture's **Projection** (ADR 0010), or a settled Venture's **Return on
@@ -280,14 +282,10 @@ export const ShownToInvestorsSwitch = ({
 }) => {
   const { t } = useLanguage();
   const refused = useRefused();
-  const words = SHOWN_WORDS[what];
+  const words = SHOWN[what];
   const [asking, setAsking] = useState(false);
-  const setShown =
-    what === "projections"
-      ? orpc.investors.setProjectionsShown
-      : orpc.investors.setReturnsShown;
   const turning = useMutation(
-    setShown.mutationOptions({
+    words.set.mutationOptions({
       onError: refused,
       onSuccess: (done) => {
         setAsking(false);

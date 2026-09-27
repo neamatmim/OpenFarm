@@ -1,5 +1,6 @@
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
+import { translate } from "@OpenFarm/i18n";
 import {
   FakeClock,
   scratchDb,
@@ -322,8 +323,9 @@ describe("what the Investor reads of it (ADR 0012)", () => {
   // 89 days, as the Owner reads the whole Venture's, since his is the whole of it.
   const HIS = { per100: 1.6, days: 89 };
   /** Nothing of a rate a year, however it might be spelt: a field, the Owner's 6.6 standing as a number of its own — not
-   *  inside ৯৬,৬৬৬.৬৭ — or the word. */
-  const A_YEAR = /perYear|(?<![\d০-৯.,])(?:6\.6|৬\.৬)(?![\d০-৯])|বছরে|a year/u;
+   *  inside ৯৬,৬৬৬.৬৭ — or the words for one. */
+  const A_YEAR =
+    /perYear|(?<![\d০-৯.,])(?:6\.6|৬\.৬)(?![\d০-৯])|বছরে|বার্ষিক|a year|annual|p\.a\./iu;
 
   const his = async () => {
     const investor = await theyJoin(investorId, "01999000041", READ_AT);
@@ -354,6 +356,13 @@ describe("what the Investor reads of it (ADR 0012)", () => {
       previewed.agreements.find((one) => one.id === agreementId)
         ?.returnOnCapital
     ).toEqual(HIS);
+    // The paper too: its wording is what the advisers read before the switch goes on.
+    const previewPaper = await owner.portalPreview.paper({
+      investorId,
+      agreementId,
+      kind: "settlement",
+    });
+    expect(previewPaper.text).toContain("মূলধনে");
   });
 
   it("shows them their own share and its days once it is on — in the portal and on their হিসাব নিকাশ, under the payout", async () => {
@@ -365,13 +374,30 @@ describe("what the Investor reads of it (ADR 0012)", () => {
     const payout = lines.findIndex((line) => line.includes("মোট প্রাপ্য"));
     const share = lines.findIndex((line) => line.includes("মূলধনে"));
     expect(share).toBeGreaterThan(payout);
-    expect(lines[share]).toContain("৮৯");
+    // The portal's sentence and the paper's, one wording: the Bangla half is the portal's word for word.
+    expect(lines[share]).toContain(
+      translate("bn", "portal.onCapitalGain", { amount: 1.6, days: 89 })
+    );
   });
 
-  it("never shows a rate a year, anywhere in their answer or on their paper", async () => {
+  it("never shows a rate a year, anywhere in their answer, on their paper or in the Owner's Preview of either", async () => {
+    const { client: owner } = await as("owner", READ_AT);
+    await owner.investors.setReturnsShown({ shown: true });
     const { portfolio, paper } = await his();
-    expect(JSON.stringify(portfolio)).not.toMatch(A_YEAR);
-    expect(paper).not.toMatch(A_YEAR);
+    const previewed = await owner.portalPreview.portfolio({ investorId });
+    const previewPaper = await owner.portalPreview.paper({
+      investorId,
+      agreementId,
+      kind: "settlement",
+    });
+    for (const said of [
+      JSON.stringify(portfolio),
+      paper,
+      JSON.stringify(previewed),
+      previewPaper.text,
+    ]) {
+      expect(said).not.toMatch(A_YEAR);
+    }
   });
 
   it("is the Owner's to switch, and nobody else's to read", async () => {

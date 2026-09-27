@@ -246,8 +246,9 @@ export const settlementStatementFor = async (
   const [settled, story, onCapital] = await Promise.all([
     hisSettlement(context.db, context.farm.id, standing),
     theirHerdStory(context.db, context.farm.id, standing.venture.id),
-    // Printed only once the Owner shows it to Investors (ADR 0012): a paper is theirs to keep.
-    context.farm.investorReturns
+    // Printed once the Owner shows it to Investors, a paper being theirs to keep — and in the Owner's Portal Preview
+    // either way, so its wording is read before anybody else reads it (ADR 0012).
+    context.farm.investorReturns || context.inPreviewOf !== undefined
       ? agreementReturnOnCapital(context.db, context.farm.id, agreementId)
       : null,
   ]);

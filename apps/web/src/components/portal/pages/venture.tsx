@@ -55,6 +55,13 @@ const saidKg = (kg: number | null, said: ReturnType<typeof useLanguage>) =>
     ? null
     : said.t("units.kg", { kg: formatNumber(kg, said.language) });
 
+/** What their capital made in a settled Venture, as their portfolio answers it once the Owner shows it. */
+type HisSettlementShare = NonNullable<
+  Awaited<
+    ReturnType<typeof client.portal.portfolio>
+  >["agreements"][number]["returnOnCapital"]
+>;
+
 /** What an approved Settlement came to on their paper, as their portfolio answers it. */
 type HisSettlement = NonNullable<
   TheirAgreements["agreements"][number]["settlement"]
@@ -143,7 +150,7 @@ const useFigures = (
 const OnTheirCapital = ({
   returned,
 }: {
-  returned: { per100: number; days: number } | null;
+  returned: HisSettlementShare | null;
 }) => {
   const { t } = useLanguage();
   if (!returned) {
