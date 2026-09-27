@@ -48,6 +48,7 @@ A **ready-for-agent spec**, like [Joining a Venture](../openfarm-joining-a-ventu
 <!-- one line per closed ticket: gist + link -->
 
 - [How a cattle return is measured](./issues/01-how-a-cattle-return-is-measured.md) — Bangladeshi studies give net return, gross margin and BCR per head per batch, never a rate a year. The comparable figure is net return ÷ total cost. A dead animal stays in the run, and a home-bred calf enters at market. A Margin charges no wages, sheds or interest, so it reads higher than a study's. GIPS forbids annualising under a year. [Research](../../docs/research/measuring-a-cattle-return.md).
+- [How a mudarabah return is stated to investors](./issues/02-how-a-mudarabah-return-is-stated.md) — Islamic banks state a yearly rate, provisional then final; Shariah allows a past or expected return to be stated but never fixed as a share of capital. A settled return as a share of capital is a fact. A rate a year on a short run is a simulated figure and reads like a bank account, and the Projection should never be one. Every collapsed scheme promised a fixed figure before any result. [Research](../../docs/research/stating-a-mudarabah-return.md).
 
 ## Not yet specified
 

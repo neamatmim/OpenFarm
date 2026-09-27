@@ -21,4 +21,6 @@ Decide what an Investor is shown of the return on their own money, and where:
 
 From [the research](../../../docs/research/measuring-a-cattle-return.md) (2026-09-27): GIPS has a fixed-life pool report a money-weighted return since inception, never annualised before a year has passed. Show the advisers any Investor-facing rate a year alongside that rule.
 
+From [the second research](../../../docs/research/stating-a-mudarabah-return.md) (2026-09-27): a settled return is a fact. Show it after the Settlement is approved, in taka first, then as a share of capital over the Venture's own days, and a loss the same way. A rate a year never alone and never the most prominent figure. The Projection never as a rate a year; at most a low–high share of capital over the run, never printed. No past result on an offer, and never a top-up to any stated figure. On paper the choices are the share only, both, or neither. The research lists the questions for the lawyer and the Shariah scholar, and recommends they see the wording before any switch turns on.
+
 ## Resolution
