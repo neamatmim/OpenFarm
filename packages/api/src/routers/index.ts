@@ -36,6 +36,7 @@ import { prescriptionsRouter } from "./prescriptions";
 import { pushRouter } from "./push";
 import { readyRouter } from "./ready";
 import { reportsRouter } from "./reports";
+import { returnsRouter } from "./returns";
 import { reviewRouter } from "./review";
 import { saleRouter } from "./sale";
 import { sellingTripsRouter } from "./selling-trips";
@@ -66,6 +67,7 @@ export const appRouter = {
   feed: feedRouter,
   herd: herdRouter,
   home: homeRouter,
+  returns: returnsRouter,
   instances: instancesRouter,
   intake: intakeRouter,
   language: languageRouter,

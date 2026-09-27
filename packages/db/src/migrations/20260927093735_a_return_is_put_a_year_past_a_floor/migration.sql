@@ -1,0 +1,1 @@
+ALTER TABLE "farm" ADD COLUMN "return_year_floor_days" integer DEFAULT 60 NOT NULL;

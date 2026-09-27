@@ -119,6 +119,10 @@ export const farm = pgTable("farm", {
   /** How many days back the farm's own Dispatches are read for what a litre of its milk fetches, when a cow's milk is
    *  set against her keep: two months of a milk buyer unless the Owner says otherwise. */
   cullMilkPriceDays: integer("cull_milk_price_days").notNull().default(60),
+  /** The fewest days money must have been tied up in a Season, a Venture or a dairy Animal, on average, before what
+   *  it made is put a year: two months unless the Owner says otherwise, because a few weeks scaled to a year is a
+   *  wild figure nobody earned. The share and its days are shown either way. */
+  returnYearFloorDays: integer("return_year_floor_days").notNull().default(60),
   /** What part of a Venture's target capital is the least worth starting on, as a percentage. A plan that
    *  raises less than this buys too few animals to be the run anybody signed for. */
   ventureFloorPercent: integer("venture_floor_percent").notNull().default(70),

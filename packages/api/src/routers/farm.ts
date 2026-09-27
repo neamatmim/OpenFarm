@@ -126,6 +126,9 @@ const parameters = z
     /** How many days back the Dispatches are read for what a litre fetches: at least a week of a milk buyer, and no
      *  more than a year, past which the price is last year's. */
     cullMilkPriceDays: z.number().int().min(7).max(365).optional(),
+    /** The fewest days money must have been tied up, on average, before a return is put a year: at least one, and no
+     *  more than a year, past which nothing a Season does would ever be scaled. */
+    returnYearFloorDays: z.number().int().min(1).max(365).optional(),
     /** The taka above which a Money Event waits for the Owner. */
     approvalThresholdBdt: z.number().int().min(0).max(100_000_000).optional(),
     /** What part of a Venture's target capital is the least worth starting on. */
@@ -198,6 +201,9 @@ const WHAT_KEEP_AND_CULL_READ = [
   "cullMilkPriceDays",
 ] as const;
 
+/** What the Owner's Returns page reads: the Owner's to set, as the page is theirs alone to read. */
+const WHAT_RETURNS_READ = ["returnYearFloorDays"] as const;
+
 type ParametersInput = z.infer<typeof parameters>;
 
 /** Whether a request names any of these Parameters. */
@@ -225,6 +231,12 @@ const refuseWhatIsTheOwners = (
     throw forbidden({
       message:
         "What the keep-or-sell figures and the culling list read is the Owner's to set",
+      reason: "owner_only",
+    });
+  }
+  if (namesAny(input, WHAT_RETURNS_READ)) {
+    throw forbidden({
+      message: "What the Returns page reads is the Owner's to set",
       reason: "owner_only",
     });
   }
@@ -687,6 +699,7 @@ export const farmRouter = {
                 cullMilkAfterDays: true,
                 cullCalfMilkDays: true,
                 cullMilkPriceDays: true,
+                returnYearFloorDays: true,
                 approvalThresholdBdt: true,
                 ventureFloorPercent: true,
                 ventureRunningPercent: true,

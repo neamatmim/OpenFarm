@@ -840,6 +840,10 @@ export const en = {
   "params.keepAndCull": "Keep, sell or cull",
   "params.keepAndCullHint":
     "How far back an animal's keep is read for keep-or-sell and the culling list, how far ahead keeping her is weighed, and what puts a dairy cow on that list. Yours alone to set, as the two are yours alone to read.",
+  "params.returns": "Returns",
+  "params.returnsHint":
+    "What the Returns page puts a year. Money tied up fewer days than this, on average, shows its share and its days but no rate a year, because a few weeks scaled to a year is a figure nobody earned. Yours alone to set, as the page is yours alone to read.",
+  "params.returnYearFloorDays": "Put a return a year once money was tied up at least",
   "params.keepReadDays": "Read an animal's keep over the last",
   "params.keepAheadDays": "Weigh keeping an animal over the next",
   "params.keepNeedsDays": "Judge an animal's keep once she has been here",

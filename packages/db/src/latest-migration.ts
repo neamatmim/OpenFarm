@@ -4,4 +4,4 @@
  * however well the database answers. A test fails when a new migration is generated and this is not moved on.
  */
 export const LATEST_MIGRATION =
-  "20260927071007_a_floats_outing_is_the_ventures";
+  "20260927093735_a_return_is_put_a_year_past_a_floor";

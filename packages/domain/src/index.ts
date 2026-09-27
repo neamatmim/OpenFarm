@@ -95,7 +95,7 @@ export {
   fatteningView,
   implausibleChange,
 } from "./fattening";
-export type { EidBasis, EidWindow, ListedEid } from "./eid";
+export type { EidBasis, EidWindow, ListedEid, Season } from "./eid";
 export {
   EID_BASES,
   EID_UL_ADHA,
@@ -106,7 +106,15 @@ export {
   isSameEid,
   nextEidWindow,
   qurbaniFrom,
+  seasonOf,
 } from "./eid";
+export type { CapitalIn, Returned, Spent } from "./returns";
+export {
+  averageDaysOf,
+  returnOf,
+  returnOfTotals,
+  returnOnCapitalOf,
+} from "./returns";
 export type { ReadyReason } from "./ready";
 export {
   READY_REASONS,
