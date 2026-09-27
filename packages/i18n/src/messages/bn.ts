@@ -9,11 +9,7 @@ export const bn: Record<MessageKey, string> = {
   "language.bn": "বাংলা",
   "language.en": "English",
   "language.switch": "ভাষা বদলান",
-  "home.apiStatus": "সার্ভারের অবস্থা",
   "home.shedPhone": "শেড ফোনে খুলুন",
-  "home.checking": "দেখা হচ্ছে…",
-  "home.connected": "সংযুক্ত",
-  "home.disconnected": "সংযোগ নেই",
   "auth.signIn": "সাইন ইন",
   "auth.promise.title":
     "খামারের প্রতিটি কাজ, খামারের ঠিক করা নিয়মে — আর কাজের সাথে সাথেই লেখা।",
