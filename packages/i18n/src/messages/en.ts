@@ -298,6 +298,25 @@ export const en = {
   "portal.signInRefused": "Could not sign in",
   "portal.phone": "Phone number",
   "portal.phoneNotMobile": "That is not a Bangladeshi mobile number.",
+  "portal.phonePlaceholder": "01XXXXXXXXX",
+  "portal.forgotLink": "Forgot password?",
+  "portal.sessionNote": "You stay signed in for a working day.",
+  "portal.firstTimeHint":
+    "First time here, or forgotten your password: set it with the Owner's code.",
+  "portal.resetTitle": "Set a new password",
+  "portal.whoYouAre": "Who you are",
+  "portal.passwordSection": "Choose a password",
+  "portal.passwordLongEnough":
+    "At least {min, plural, one {# character} other {# characters}}",
+  "portal.passwordsMatch": "The two passwords match",
+  "portal.promise.title":
+    "Your Ventures, your papers and your money, in one place.",
+  "portal.promise.progress":
+    "How each Venture is going: its animals, their weights, its stage.",
+  "portal.promise.papers":
+    "Your Agreements and statements, to read whenever you like.",
+  "portal.promise.money": "Every taka you paid in, and every taka paid to you.",
+  "portal.promise.foot": "For Investors the farm has invited.",
   "portal.haveCode": "Have a code from the farm? Set your password",
   "portal.haveAccount": "Already have a password? Sign in",
   "portal.joinTitle": "Set up your access",

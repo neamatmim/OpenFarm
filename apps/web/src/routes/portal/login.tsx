@@ -8,6 +8,7 @@ import {
   redirect,
   useNavigate,
 } from "@tanstack/react-router";
+import { ChevronRight, KeyRound, Lock } from "lucide-react";
 import { useState } from "react";
 
 import { PasswordInput } from "@/components/auth/password-input";
@@ -84,18 +85,37 @@ const PortalLogin = () => {
             id="portal-phone"
             inputMode="tel"
             onChange={(event) => setPhone(event.target.value)}
+            placeholder={t("portal.phonePlaceholder")}
             type="tel"
             value={phone}
           />
         </FormField>
-        <FormField id="portal-password" label={t("auth.password")}>
+        {/* The password with its way back beside it, where every sign-in keeps it: a forgotten one is set again with
+            a new code from the Owner, on the same page a first one is. */}
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-baseline justify-between gap-3">
+            <label
+              className="text-sm font-medium"
+              data-slot="form-label"
+              htmlFor="portal-password"
+            >
+              {t("auth.password")}
+            </label>
+            <Link
+              className="text-primary text-sm hover:underline"
+              search={{ forgot: true }}
+              to="/portal/join"
+            >
+              {t("portal.forgotLink")}
+            </Link>
+          </div>
           <PasswordInput
             autoComplete="current-password"
             id="portal-password"
             onChange={(event) => setPassword(event.target.value)}
             value={password}
           />
-        </FormField>
+        </div>
         <Button
           className="h-12 w-full text-base md:h-10"
           disabled={pending || phone.trim() === "" || password === ""}
@@ -104,16 +124,31 @@ const PortalLogin = () => {
           {pending ? <Spinner /> : null}
           {t("auth.signIn")}
         </Button>
-        <div className="flex flex-col items-center gap-1 text-center">
-          <Link
-            className="text-primary text-sm hover:underline"
-            to="/portal/join"
-          >
-            {t("portal.haveCode")}
-          </Link>
-          <p className="text-muted-foreground text-xs">{t("portal.forgot")}</p>
-        </div>
+        <p className="text-muted-foreground flex items-center justify-center gap-1.5 text-xs">
+          <Lock aria-hidden className="size-3.5" />
+          {t("portal.sessionNote")}
+        </p>
       </form>
+      {/* The first way in, on a card of its own under the form. Its title is the words the Welcome Letter tells an
+          Investor to press, so it stays word for word what the letter prints. */}
+      <Link
+        className="surface hover:bg-muted/50 focus-visible:ring-ring flex items-center gap-3 p-4 transition-colors duration-150 outline-none focus-visible:ring-2"
+        to="/portal/join"
+      >
+        <span className="bg-secondary text-secondary-foreground grid size-10 shrink-0 place-items-center rounded-lg">
+          <KeyRound aria-hidden className="size-5" />
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="font-medium">{t("portal.haveCode")}</span>
+          <span className="text-muted-foreground text-sm">
+            {t("portal.firstTimeHint")}
+          </span>
+        </span>
+        <ChevronRight
+          aria-hidden
+          className="text-muted-foreground size-4 shrink-0"
+        />
+      </Link>
     </PortalDoor>
   );
 };
