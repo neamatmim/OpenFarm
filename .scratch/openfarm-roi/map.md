@@ -29,7 +29,7 @@ A **ready-for-agent spec**, like [Joining a Venture](../openfarm-joining-a-ventu
   - **What for**: judging runs after the fact, side by side. The Owner also ticked in cattle still standing, a bank rate beside the figure, and the Projection as a rate.
   - **Who reads it**: the Owner, then Investors. The Manager does not (see Out of scope).
   - **The destination is a spec only.** The build is handed off when the map closes.
-- **Domain vocabulary** is in [`CONTEXT.md`](../../CONTEXT.md). Grep it before naming anything. **Season**, **Return on Cost**, **Return on Capital**, **Bank Rate**, **Margin**, **Settlement**, **Projection**, **Venture Plan**, **Cost of Gain**, **Cost per Litre**, **Herd Cost**, **Purse**, **Advance**, **Internal Sale**, **Target Window** and **Investor Statement** are the entries this touches. _Return_ stays on Margin's avoid list; the ratios are **Return on Cost** and **Return on Capital**, never ROI or মুনাফার হার.
+- **Domain vocabulary** is in [`CONTEXT.md`](../../CONTEXT.md). Grep it before naming anything. **Season**, **Return on Cost**, **Return on Capital**, **Bank Rate**, **Head Price**, **Margin**, **Settlement**, **Projection**, **Venture Plan**, **Cost of Gain**, **Cost per Litre**, **Herd Cost**, **Purse**, **Advance**, **Internal Sale**, **Target Window** and **Investor Statement** are the entries this touches. _Return_ stays on Margin's avoid list; the ratios are **Return on Cost** and **Return on Capital**, never ROI or মুনাফার হার.
 - **Existing research** that bears on this: [`cattle-investment-schemes.md`](../../docs/research/cattle-investment-schemes.md) (how Bangladeshi and foreign cattle schemes state ROI, and which collapsed) and [`bangladesh-pooled-investment.md`](../../docs/research/bangladesh-pooled-investment.md) (no promise of principal or a fixed return, anywhere).
 - **Skills**:
   - `/grilling` + `/domain-modeling` for grilling tickets.
@@ -54,11 +54,11 @@ A **ready-for-agent spec**, like [Joining a Venture](../openfarm-joining-a-ventu
 - [How a return is put per year](./issues/05-how-a-return-is-put-per-year.md) — simple, never compounded, over money × days: for Return on Cost, each taka from when spent to when its animal sold; for Return on Capital, from arrival to payout, idle days in. No rate under 60 days of average holding (Owner's Farm Parameter). A loss is scaled the same. Shown after the share and days, labelled, with its working.
 - [What cattle still standing return](./issues/06-what-cattle-still-standing-return.md) — a standing animal counts at today's weight × the price a kilo, as a low–high range, labelled «আজকের দামে», «অনুমান, ফল নয়», with sold and standing apart. No rate a year and no Return on Capital until finished. The Projection stays the look forward. An animal who can't be valued is left out whole and named.
 - [The bank rate beside it](./issues/07-the-bank-rate-beside-it.md) — a **Bank Rate**: one rate a year the Owner types with a note, before tax, dated, read as locked on the day a Season's or Venture's first taka went in. It sits as a plain line beside every finished rate a year, and is the Owner's alone, never an Investor's.
+- [What the dairy herd returns](./issues/08-what-the-dairy-herd-returns.md) — each dairy animal is her own run: bred here from birth at nothing, bought or opening herd at a price the Owner enters. Every calf is her own, shown beside her dam. Milk to Bulk counts at each month's Dispatch price, plus her cull or crossing price. Still here, she counts at her kind's **Head Price** range. Same per-year rule. Her return shows on the Cull list, never as a reason.
 
 ## Not yet specified
 
-- **Where the Owner reads it.** A page of its own, Month by month, the Venture page or the Fattening board. Probably a prototype, once what a return counts, how it is put per year, and the standing and dairy figures are settled.
-- **Whether a Season breaks down further** by haat, trader, breed or weight band, to judge the buying inside it.
+Nothing now. Where the Owner reads returns, and whether a Season breaks down further, graduated to [Prototype where the Owner reads returns](./issues/10-prototype-where-the-owner-reads-returns.md) (2026-09-27).
 
 ## Out of scope
 
