@@ -8,7 +8,7 @@ Charted: 2026-09-27
 
 ## Destination
 
-A **ready-for-agent spec**, like [Joining a Venture](../openfarm-joining-a-venture/spec.md), under which the Owner reads what the money in the farm's cattle **returns**: each run of the Farm's own fattening cattle, each **Venture**, and the dairy herd, once sold and while still standing, as a share of the money put in and as a rate per year, set beside a bank rate the Owner types in. Investors then read the return on their settled Ventures, and the **Projection** as a rate once the advisers allow it. The map is done when nothing about return is left to decide before the spec is written.
+A **ready-for-agent spec**, like [Joining a Venture](../openfarm-joining-a-venture/spec.md), under which the Owner reads what the money in the farm's cattle **returns**: each **Season** of the Farm's own fattening cattle, each **Venture**, and the dairy herd, once sold and while still standing, as a share of the money put in and as a rate per year, set beside a bank rate the Owner types in. Investors then read the return on their settled Ventures, and the **Projection** as a rate once the advisers allow it. The map is done when nothing about return is left to decide before the spec is written.
 
 ## Notes
 
@@ -29,7 +29,7 @@ A **ready-for-agent spec**, like [Joining a Venture](../openfarm-joining-a-ventu
   - **What for**: judging runs after the fact, side by side. The Owner also ticked in cattle still standing, a bank rate beside the figure, and the Projection as a rate.
   - **Who reads it**: the Owner, then Investors. The Manager does not (see Out of scope).
   - **The destination is a spec only.** The build is handed off when the map closes.
-- **Domain vocabulary** is in [`CONTEXT.md`](../../CONTEXT.md). Grep it before naming anything. **Margin**, **Settlement**, **Projection**, **Venture Plan**, **Cost of Gain**, **Cost per Litre**, **Herd Cost**, **Purse**, **Advance**, **Internal Sale**, **Target Window** and **Investor Statement** are the entries this touches. _Return_ is on Margin's avoid list, so the new word must be chosen, not assumed (ticket 04).
+- **Domain vocabulary** is in [`CONTEXT.md`](../../CONTEXT.md). Grep it before naming anything. **Season**, **Margin**, **Settlement**, **Projection**, **Venture Plan**, **Cost of Gain**, **Cost per Litre**, **Herd Cost**, **Purse**, **Advance**, **Internal Sale**, **Target Window** and **Investor Statement** are the entries this touches. _Return_ is on Margin's avoid list, so the new word must be chosen, not assumed (ticket 04).
 - **Existing research** that bears on this: [`cattle-investment-schemes.md`](../../docs/research/cattle-investment-schemes.md) (how Bangladeshi and foreign cattle schemes state ROI, and which collapsed) and [`bangladesh-pooled-investment.md`](../../docs/research/bangladesh-pooled-investment.md) (no promise of principal or a fixed return, anywhere).
 - **Skills**:
   - `/grilling` + `/domain-modeling` for grilling tickets.
@@ -49,11 +49,12 @@ A **ready-for-agent spec**, like [Joining a Venture](../openfarm-joining-a-ventu
 
 - [How a cattle return is measured](./issues/01-how-a-cattle-return-is-measured.md) — Bangladeshi studies give net return, gross margin and BCR per head per batch, never a rate a year. The comparable figure is net return ÷ total cost. A dead animal stays in the run, and a home-bred calf enters at market. A Margin charges no wages, sheds or interest, so it reads higher than a study's. GIPS forbids annualising under a year. [Research](../../docs/research/measuring-a-cattle-return.md).
 - [How a mudarabah return is stated to investors](./issues/02-how-a-mudarabah-return-is-stated.md) — Islamic banks state a yearly rate, provisional then final; Shariah allows a past or expected return to be stated but never fixed as a share of capital. A settled return as a share of capital is a fact. A rate a year on a short run is a simulated figure and reads like a bank account, and the Projection should never be one. Every collapsed scheme promised a fixed figure before any result. [Research](../../docs/research/stating-a-mudarabah-return.md).
+- [What a run of the Farm's own cattle is](./issues/03-what-a-run-of-the-farms-own-cattle-is.md) — a **Season**: the Farm's own fattening cattle aimed at one Target Window, one per Eid, a non-Eid window alone. An animal stays in it however she goes, and it is finished when the last has gone. Crossing from Dairy and buying from a Venture join one and ask for a Target Window; selling to a Venture leaves at its price. Venture animals are in none.
 
 ## Not yet specified
 
 - **Where the Owner reads it.** A page of its own, Month by month, the Venture page or the Fattening board. Probably a prototype, once what a return counts, how it is put per year, and the standing and dairy figures are settled.
-- **Whether a run breaks down further** by haat, trader, breed or weight band, to judge the buying inside a run. Depends on what a run is.
+- **Whether a Season breaks down further** by haat, trader, breed or weight band, to judge the buying inside it.
 
 ## Out of scope
 

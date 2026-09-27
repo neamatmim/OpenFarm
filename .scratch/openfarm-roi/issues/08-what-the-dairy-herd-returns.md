@@ -10,7 +10,7 @@ Map: [OpenFarm: what the money in cattle returns](../map.md)
 
 ## Question
 
-A dairy cow is not bought and sold in a run. She is bought or bred, milked over several **Lactations**, calves, and leaves by a **Sale** to a butcher or a **Mortality**. Decide what her return is and the herd's:
+A dairy cow is not bought and sold in a **Season**. She is bought or bred, milked over several **Lactations**, calves, and leaves by a **Sale** to a butcher or a **Mortality**. Decide what her return is and the herd's:
 
 - **The money in.** Her purchase price, or for one bred here, her rearing cost as a calf and heifer? Plus her keep, as **Cost per Litre** counts it.
 - **The money back.** Her milk sent to Bulk at what the **Dispatches** fetched. Her calves: at what value, and when? A bull calf crossed to Fattening, or a heifer kept to milk? Plus her cull sale at the end.
