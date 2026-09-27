@@ -29,9 +29,9 @@ const ROOM_FOR_THE_SIDEBAR = "(min-width: 1024px)";
  * Whether the sidebar stands open: open on a laptop, down to its icons on a tablet, where the whole sidebar would
  * leave a table half the screen. Whoever opens or closes it has it their way until the screen itself changes width
  * across the line — a tablet turned on its side — and then it follows the screen again. A phone has its own drawer
- * and is not this.
+ * and is not this. The Investor portal's sidebar follows the same rule.
  */
-const useSidebarOpen = () => {
+export const useSidebarOpen = () => {
   const [open, setOpen] = useState(true);
   useEffect(() => {
     const room = window.matchMedia(ROOM_FOR_THE_SIDEBAR);

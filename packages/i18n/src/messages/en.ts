@@ -7,6 +7,20 @@ export const en = {
   "language.switch": "Change language",
   "auth.openAccountHint":
     "With the address the Owner or a Manager invited, and the code they gave you.",
+  "auth.formIncomplete": "Fill in every field first.",
+  "auth.firstFarmTitle": "Set up the farm",
+  "auth.firstFarmHint":
+    "Open the first account. Whoever opens it becomes the farm's Owner, and invites everybody else from inside.",
+  "auth.firstFarmRow": "Setting up the farm? Open the first account",
+  "auth.firstFarmRowHint":
+    "Whoever opens the first account becomes the farm's Owner.",
+  "auth.signOutHint": "Leave this account on this browser.",
+  "common.goToStart": "Go to the start",
+  "common.notFoundHint":
+    "The page may have moved, or the address was mistyped.",
+  "common.errorHint":
+    "Try again. If it keeps happening, tell the farm's Owner.",
+  "setup.standard.chooseOne": "Choose at least one list, or skip.",
   "auth.shedPhone": "Shed Phone",
   "auth.shedPhoneHint":
     "Staff sign in with their PIN. A new phone is set up with the Manager's code.",
@@ -35,14 +49,14 @@ export const en = {
   "auth.signUp": "Sign up",
   "auth.needAccount": "Invited? Open your account",
   "auth.haveAccount": "Already have an account? Sign in",
-  "auth.forgotPassword": "Forgotten your password?",
+  "auth.forgotPassword": "Forgot password?",
   "auth.forgotTitle": "Set a new password",
   "auth.forgotHint":
     "Ask the Owner or the Manager for a code, then choose a password of your own.",
   "auth.code": "Code",
   "auth.newPassword": "New password",
   "auth.passwordSet": "Password set — sign in with it",
-  "auth.backToSignIn": "Back to signing in",
+  "auth.backToSignIn": "Back to sign in",
   "auth.signInSuccess": "Signed in",
   "auth.goToYourAddress": "Go to your address",
   "auth.wrongAddress":
@@ -301,7 +315,6 @@ export const en = {
   "portal.phone": "Phone number",
   "portal.phoneNotMobile": "That is not a Bangladeshi mobile number.",
   "portal.phonePlaceholder": "01XXXXXXXXX",
-  "portal.forgotLink": "Forgot password?",
   "portal.sessionNote": "You stay signed in for a working day.",
   "portal.firstTimeHint":
     "First time here, or forgotten your password: set it with the Owner's code.",
@@ -2211,7 +2224,6 @@ export const en = {
   "device.revokeTitle": "Revoke {name}?",
   "device.revokeWhy":
     "It stops working at once and is told nothing more. To use it again, add it afresh.",
-  "device.backToSignIn": "Back to sign in",
   "device.promise.title":
     "The shed's work, written in the shed — one phone for everyone.",
   "device.promise.pin":

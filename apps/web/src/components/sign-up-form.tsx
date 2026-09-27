@@ -11,10 +11,11 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { PasswordInput } from "@/components/auth/password-input";
+import { BackToSignIn } from "@/components/door-screen";
 import { Notice } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
-
+import { useNoFarmYet } from "@/lib/farm-name";
 
 const NAME_MIN = 2;
 
@@ -23,6 +24,8 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
     from: "/",
   });
   const { t, language } = useLanguage();
+  // The first run: nobody invited whoever opens this account, and they become the farm's Owner.
+  const firstFarm = useNoFarmYet();
   // What the farm said when it refused, kept on the card as well as in the toast: a toast is gone before somebody
   // who reads slowly has read it.
   const [refused, setRefused] = useState<string | null>(null);
@@ -58,7 +61,10 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
       onSubmit: z.object({
         name: z
           .string()
-          .min(NAME_MIN, t("auth.nameTooShort", { min: NAME_MIN })),
+          .min(
+            NAME_MIN,
+            t("auth.nameTooShort", { min: formatNumber(NAME_MIN, language) })
+          ),
         email: z.email(t("auth.invalidEmail")),
         password: z.string().min(
           PASSWORD_MIN_LENGTH,
@@ -74,9 +80,11 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
     <div className="surface flex flex-col gap-6 p-6 sm:p-8">
       <div className="flex flex-col gap-1.5">
         <h1 className="text-2xl font-semibold tracking-tight">
-          {t("auth.createAccount")}
+          {t(firstFarm ? "auth.firstFarmTitle" : "auth.createAccount")}
         </h1>
-        <p className="text-muted-foreground text-sm">{t("auth.signUpHint")}</p>
+        <p className="text-muted-foreground text-sm">
+          {t(firstFarm ? "auth.firstFarmHint" : "auth.signUpHint")}
+        </p>
       </div>
 
       <form
@@ -200,15 +208,14 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
 
         <form.Subscribe
           selector={(state) => ({
-            canSubmit: state.canSubmit,
             isSubmitting: state.isSubmitting,
           })}
         >
-          {({ canSubmit, isSubmitting }) => (
+          {({ isSubmitting }) => (
             <Button
               type="submit"
               className="mt-1 h-12 w-full text-base md:h-10"
-              disabled={!canSubmit || isSubmitting}
+              disabled={isSubmitting}
             >
               {isSubmitting ? <Spinner /> : null}
               {isSubmitting ? t("auth.submitting") : t("auth.signUp")}
@@ -217,11 +224,9 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
         </form.Subscribe>
       </form>
 
-      <div className="text-center">
-        <Button variant="link" onClick={onSwitchToSignIn}>
-          {t("auth.haveAccount")}
-        </Button>
-      </div>
+      <BackToSignIn onClick={onSwitchToSignIn}>
+        {t("auth.haveAccount")}
+      </BackToSignIn>
     </div>
   );
 };

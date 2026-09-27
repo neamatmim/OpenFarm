@@ -6,12 +6,13 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation } from "@tanstack/react-query";
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Circle, CircleCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { PasswordInput } from "@/components/auth/password-input";
+import { BackToSignIn, CODE_FIELD } from "@/components/door-screen";
 import { Notice } from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import { PortalDoor } from "@/components/portal/portal-door";
@@ -140,7 +141,7 @@ const PortalJoin = () => {
           <Input
             autoCapitalize="characters"
             autoComplete="one-time-code"
-            className="font-mono tracking-widest uppercase"
+            className={CODE_FIELD}
             id="join-code"
             onChange={(event) => setCode(event.target.value)}
             value={code}
@@ -180,12 +181,9 @@ const PortalJoin = () => {
           {join.isPending ? <Spinner /> : null}
           {t("portal.join")}
         </Button>
-        <Link
-          className="text-primary self-center text-sm hover:underline"
-          to="/portal/login"
-        >
+        <BackToSignIn to="/portal/login">
           {t("portal.haveAccount")}
-        </Link>
+        </BackToSignIn>
       </form>
     </PortalDoor>
   );

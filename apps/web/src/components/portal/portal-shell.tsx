@@ -56,6 +56,7 @@ import {
   useTheirRecord,
   useTheirRequests,
 } from "@/components/portal/portal-source";
+import { useSidebarOpen } from "@/components/shell/app-shell";
 import { BottomBar } from "@/components/shell/bottom-bar";
 import type { NavItem } from "@/components/shell/navigation";
 import { ThemeMenu } from "@/components/theme-menu";
@@ -492,6 +493,8 @@ export const PortalShell = ({
   const { language } = useLanguage();
   const shownToThem = useTheirOpenVentures().data ?? [];
   // Counted, and marked new, only while taking requests — as the sidebar counts them.
+  // Down to its icons on a tablet, as the farm's own sidebar is, so a table keeps its room.
+  const [sidebarOpen, setSidebarOpen] = useSidebarOpen();
   const joinableNow = shownToThem.filter((one) => one.takingRequests);
   const raising = {
     shown: shownToThem.length > 0,
@@ -502,7 +505,7 @@ export const PortalShell = ({
     fresh: joinableNow.some((one) => one.isNew === true),
   };
   return (
-    <SidebarProvider>
+    <SidebarProvider onOpenChange={setSidebarOpen} open={sidebarOpen}>
       <PortalSidebar farmName={me.data?.farm.name ?? null} />
       <SidebarInset className="min-w-0">
         {/* The band and the bar are pinned together, so the Preview's band never covers the reader's settings. */}

@@ -189,9 +189,15 @@ const NewPassword = () => {
         noValidate
         onSubmit={(event) => {
           event.preventDefault();
-          if (ready && acting.can) {
-            void change();
+          if (!acting.can) {
+            return;
           }
+          // Always pressable, as every other form in the portal: what is still missing is said, not greyed out.
+          if (!ready) {
+            setRefused(t("auth.formIncomplete"));
+            return;
+          }
+          void change();
         }}
       >
         <fieldset className="contents" disabled={!acting.can}>
@@ -234,11 +240,7 @@ const NewPassword = () => {
               value={again}
             />
           </FormField>
-          <Button
-            className="self-start"
-            disabled={!ready || pending}
-            type="submit"
-          >
+          <Button className="self-start" disabled={pending} type="submit">
             {pending ? <Spinner /> : null}
             {t("portal.account.change")}
           </Button>

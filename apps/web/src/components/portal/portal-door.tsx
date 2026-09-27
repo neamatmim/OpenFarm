@@ -1,6 +1,6 @@
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { Activity, FileText, Sprout, Wallet } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -34,12 +34,17 @@ export const YourDataLink = () => {
  */
 export const PortalNotice = ({ children }: { children?: ReactNode }) => {
   const { t } = useLanguage();
+  // On «আপনার তথ্য» itself, a link to it would lead to the page it is on.
+  const { pathname } = useLocation();
+  const onYourData = pathname.endsWith("/your-data");
   return (
     <footer className="text-muted-foreground mx-auto flex w-full max-w-xl flex-col gap-1 px-4 py-6 text-center text-xs text-balance">
       <p>{t("portal.notice")}</p>
-      <p>
-        <YourDataLink />
-      </p>
+      {onYourData ? null : (
+        <p>
+          <YourDataLink />
+        </p>
+      )}
       {children}
     </footer>
   );
@@ -74,7 +79,7 @@ const PortalHeader = ({
           <Sprout aria-hidden className="size-5" />
         </span>
         <span className="flex min-w-0 flex-col">
-          <Wordmark className="truncate" />
+          <Wordmark className="truncate" size="lg" />
           <span className="text-muted-foreground truncate text-xs">
             {door.data?.farmName ?? t("portal.title")}
           </span>

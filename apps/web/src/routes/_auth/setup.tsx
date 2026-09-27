@@ -14,12 +14,13 @@ import { Label } from "@OpenFarm/ui/components/label";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { BookOpen, ChevronRight, CircleCheck, Sprout } from "lucide-react";
+import { BookOpen, ChevronRight, CircleCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { SignedInDoor } from "@/components/auth-screen";
 import Loader from "@/components/loader";
-import { Page } from "@/components/page";
+import { Notice } from "@/components/page";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
@@ -81,6 +82,7 @@ const StandardStep = () => {
   const t = useT();
   const navigate = useNavigate();
   const [kinds, setKinds] = useState<StandardKind[]>([...STANDARD_KINDS]);
+  const [noneChosen, setNoneChosen] = useState(false);
   const refused = useRefused(RATIONS_REFUSED);
   const goOn = () => navigate({ to: "/dashboard" });
   const start = useMutation(
@@ -98,17 +100,20 @@ const StandardStep = () => {
     );
 
   return (
-    <Page width="narrow">
+    <SignedInDoor>
       <form
-        className="surface mx-auto mt-8 flex w-full max-w-md flex-col gap-5 p-6 sm:p-8"
+        className="surface flex flex-col gap-5 p-6 sm:p-8"
         onSubmit={(event) => {
           event.preventDefault();
+          // Always pressable: nothing chosen is said, and skipping is the button beside it.
+          if (kinds.length === 0) {
+            setNoneChosen(true);
+            return;
+          }
+          setNoneChosen(false);
           start.mutate({ kinds });
         }}
       >
-        <span className="bg-success-surface text-success grid size-12 place-items-center rounded-xl">
-          <CircleCheck aria-hidden className="size-6" />
-        </span>
         <div className="flex flex-col gap-1.5">
           <p className="text-success text-sm font-medium">{t("setup.done")}</p>
           <h1 className="text-2xl font-semibold tracking-tight">
@@ -118,6 +123,9 @@ const StandardStep = () => {
             {t("setup.standard.intro")}
           </p>
         </div>
+        {noneChosen ? (
+          <Notice title={t("setup.standard.chooseOne")} tone="danger" />
+        ) : null}
         <div className="flex flex-col gap-2">
           {STANDARD_KINDS.map((kind) => (
             <StandardChoice
@@ -136,7 +144,7 @@ const StandardStep = () => {
         <div className="flex flex-col gap-2 sm:flex-row-reverse">
           <Button
             className="h-12 text-base sm:flex-1 md:h-10"
-            disabled={start.isPending || kinds.length === 0}
+            disabled={start.isPending}
             type="submit"
           >
             {start.isPending ? <Spinner /> : null}
@@ -153,7 +161,7 @@ const StandardStep = () => {
           </Button>
         </div>
       </form>
-    </Page>
+    </SignedInDoor>
   );
 };
 
@@ -190,8 +198,8 @@ const SetupPage = () => {
 
   if (current.data) {
     return (
-      <Page width="narrow">
-        <div className="surface mx-auto mt-8 flex w-full max-w-md flex-col items-center gap-4 p-8 text-center">
+      <SignedInDoor>
+        <div className="surface flex flex-col items-center gap-4 p-8 text-center">
           <span className="bg-success-surface text-success grid size-14 place-items-center rounded-xl">
             <CircleCheck aria-hidden className="size-7" />
           </span>
@@ -204,22 +212,19 @@ const SetupPage = () => {
             <ChevronRight data-icon="inline-end" />
           </Button>
         </div>
-      </Page>
+      </SignedInDoor>
     );
   }
 
   return (
-    <Page width="narrow">
+    <SignedInDoor>
       <form
-        className="surface mx-auto mt-8 flex w-full max-w-md flex-col gap-5 p-6 sm:p-8"
+        className="surface flex flex-col gap-5 p-6 sm:p-8"
         onSubmit={(event) => {
           event.preventDefault();
           bootstrap.mutate({ name });
         }}
       >
-        <span className="bg-primary text-primary-foreground grid size-12 place-items-center rounded-xl">
-          <Sprout aria-hidden className="size-6" />
-        </span>
         <div className="flex flex-col gap-1.5">
           <h1 className="text-2xl font-semibold tracking-tight">
             {t("setup.title")}
@@ -230,7 +235,6 @@ const SetupPage = () => {
           <Label htmlFor="farm-name">{t("setup.farmName")}</Label>
           <Input
             autoComplete="organization"
-            className="h-12 text-base md:h-10"
             id="farm-name"
             onChange={(e) => setName(e.target.value)}
             required
@@ -246,7 +250,7 @@ const SetupPage = () => {
           {t("setup.create")}
         </Button>
       </form>
-    </Page>
+    </SignedInDoor>
   );
 };
 

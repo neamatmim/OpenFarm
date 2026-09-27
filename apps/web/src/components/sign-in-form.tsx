@@ -13,14 +13,11 @@ import { z } from "zod";
 import { PasswordInput } from "@/components/auth/password-input";
 import type { SignInRefusal } from "@/components/auth/refused-notice";
 import { RefusedNotice, refusalOf } from "@/components/auth/refused-notice";
+import { DOOR_LINK } from "@/components/door-screen";
 import { useLanguage } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
 
-const SignInForm = ({
-  onForgotPassword,
-}: {
-  onForgotPassword: () => void;
-}) => {
+const SignInForm = ({ onForgotPassword }: { onForgotPassword: () => void }) => {
   const navigate = useNavigate({
     from: "/",
   });
@@ -132,7 +129,7 @@ const SignInForm = ({
                 <div className="flex items-baseline justify-between gap-3">
                   <Label htmlFor={field.name}>{t("auth.password")}</Label>
                   <button
-                    className="text-primary text-sm hover:underline"
+                    className={DOOR_LINK}
                     onClick={onForgotPassword}
                     type="button"
                   >
@@ -170,15 +167,14 @@ const SignInForm = ({
 
         <form.Subscribe
           selector={(state) => ({
-            canSubmit: state.canSubmit,
             isSubmitting: state.isSubmitting,
           })}
         >
-          {({ canSubmit, isSubmitting }) => (
+          {({ isSubmitting }) => (
             <Button
               type="submit"
               className="mt-1 h-12 w-full text-base md:h-10"
-              disabled={!canSubmit || isSubmitting}
+              disabled={isSubmitting}
             >
               {isSubmitting ? <Spinner /> : null}
               {isSubmitting ? t("auth.submitting") : t("auth.signIn")}
