@@ -4,7 +4,7 @@
 
 **Blocked by:** —
 
-**Status:** open
+**Status:** done
 
 - [ ] **Shed rent** is a standard Category: key `rent`, «শেড ভাড়া» / "Shed rent", out, in `NEVER_THE_ANIMALS`, retirable.
 - [ ] **`money_category.paid_monthly_since`** (timestamp, null). Migration applied to both dev databases; LATEST_MIGRATION moved.
