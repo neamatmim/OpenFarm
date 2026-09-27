@@ -510,7 +510,10 @@ const keepTheBooks = ({ farm, on }: Script) => {
     for (const key of ["rent", "utilities"]) {
       const categoryId = categories.find((one) => one.key === key)?.id;
       if (categoryId) {
-        await f.as.owner.money.setPaidMonthly({ categoryId, paidMonthly: true });
+        await f.as.owner.money.setPaidMonthly({
+          categoryId,
+          paidMonthly: true,
+        });
       }
     }
   });

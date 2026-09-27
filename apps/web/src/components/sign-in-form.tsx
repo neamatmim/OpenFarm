@@ -16,11 +16,7 @@ import { RefusedNotice, refusalOf } from "@/components/auth/refused-notice";
 import { useLanguage } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
 
-const SignInForm = ({
-  onForgotPassword,
-}: {
-  onForgotPassword: () => void;
-}) => {
+const SignInForm = ({ onForgotPassword }: { onForgotPassword: () => void }) => {
   const navigate = useNavigate({
     from: "/",
   });

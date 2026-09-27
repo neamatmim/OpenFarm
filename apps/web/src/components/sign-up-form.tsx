@@ -15,7 +15,6 @@ import { Notice } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
 
-
 const NAME_MIN = 2;
 
 const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
