@@ -29,6 +29,7 @@ import {
 } from "./investor-statement-words";
 import { paperValues } from "./paper-values";
 import { languageOf } from "./reader-language";
+import { agreementReturnOnCapital } from "./returns-store";
 import { wordingSignedIn } from "./template-store";
 import { theirProgress } from "./venture-herd-store";
 
@@ -242,9 +243,13 @@ export const settlementStatementFor = async (
     agreementId,
     farmDayOf(now)
   );
-  const [settled, story] = await Promise.all([
+  const [settled, story, onCapital] = await Promise.all([
     hisSettlement(context.db, context.farm.id, standing),
     theirHerdStory(context.db, context.farm.id, standing.venture.id),
+    // Printed only once the Owner shows it to Investors (ADR 0012): a paper is theirs to keep.
+    context.farm.investorReturns
+      ? agreementReturnOnCapital(context.db, context.farm.id, agreementId)
+      : null,
   ]);
   if (!settled) {
     throw new ORPCError("BAD_REQUEST", {
@@ -294,6 +299,13 @@ export const settlementStatementFor = async (
       reference: settled.his.reference,
       paidOn: settled.his.paidOn ? day(settled.his.paidOn) : null,
     },
+    onCapital: onCapital
+      ? {
+          per100: unsigned(onCapital.per100),
+          days: said(onCapital.days),
+          rose: onCapital.per100 >= 0,
+        }
+      : null,
     herd: herdStoryWords(story, said),
     adjustments: settled.adjustments.map((one) => ({
       reason: one.reason,

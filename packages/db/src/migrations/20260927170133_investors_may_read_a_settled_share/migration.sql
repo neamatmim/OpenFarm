@@ -1,0 +1,1 @@
+ALTER TABLE "farm" ADD COLUMN "investor_returns" boolean DEFAULT false NOT NULL;

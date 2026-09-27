@@ -1,5 +1,6 @@
 import type { PaperDocument } from "@OpenFarm/domain";
 import { farmDayOf, mobileNumberOf } from "@OpenFarm/domain";
+import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatDigits } from "@OpenFarm/i18n";
 import { Button, buttonVariants } from "@OpenFarm/ui/components/button";
 import {
@@ -237,26 +238,60 @@ export const PortalSwitch = ({ open }: { open: boolean }) => {
   );
 };
 
+/** The words of one thing the Owner shows invited Investors or keeps from them, each behind the advisers. */
+const SHOWN_WORDS = {
+  projections: {
+    title: "projection.switch.title",
+    show: "projection.switch.show",
+    hide: "projection.switch.hide",
+    shownHint: "projection.switch.shownHint",
+    hiddenHint: "projection.switch.hiddenHint",
+    confirmTitle: "projection.switch.confirmTitle",
+    confirmWhy: "projection.switch.confirmWhy",
+    shownDone: "projection.switch.shownDone",
+    hiddenDone: "projection.switch.hiddenDone",
+  },
+  returns: {
+    title: "returns.switch.title",
+    show: "returns.switch.show",
+    hide: "returns.switch.hide",
+    shownHint: "returns.switch.shownHint",
+    hiddenHint: "returns.switch.hiddenHint",
+    confirmTitle: "returns.switch.confirmTitle",
+    confirmWhy: "returns.switch.confirmWhy",
+    shownDone: "returns.switch.shownDone",
+    hiddenDone: "returns.switch.hiddenDone",
+  },
+} as const satisfies Record<string, Record<string, MessageKey>>;
+
+type Shown = keyof typeof SHOWN_WORDS;
+
 /**
- * Whether invited Investors are shown each Venture's Projection (ADR 0010). Showing them is asked about first, since
- * the lawyer and the Shariah scholar approved the portal without projections; hiding them again takes nothing away.
+ * Whether invited Investors are shown each Venture's **Projection** (ADR 0010), or a settled Venture's **Return on
+ * Capital** (ADR 0012). Showing either is asked about first, since the lawyer and the Shariah scholar approved the
+ * portal without them; hiding it again takes nothing away. The Owner reads both in the Portal Preview meanwhile.
  */
-export const ProjectionsSwitch = ({ shown }: { shown: boolean }) => {
+export const ShownToInvestorsSwitch = ({
+  what,
+  shown,
+}: {
+  what: Shown;
+  shown: boolean;
+}) => {
   const { t } = useLanguage();
   const refused = useRefused();
+  const words = SHOWN_WORDS[what];
   const [asking, setAsking] = useState(false);
+  const setShown =
+    what === "projections"
+      ? orpc.investors.setProjectionsShown
+      : orpc.investors.setReturnsShown;
   const turning = useMutation(
-    orpc.investors.setProjectionsShown.mutationOptions({
+    setShown.mutationOptions({
       onError: refused,
       onSuccess: (done) => {
         setAsking(false);
-        toast.success(
-          t(
-            done.shown
-              ? "projection.switch.shownDone"
-              : "projection.switch.hiddenDone"
-          )
-        );
+        toast.success(t(done.shown ? words.shownDone : words.hiddenDone));
       },
     })
   );
@@ -271,7 +306,7 @@ export const ProjectionsSwitch = ({ shown }: { shown: boolean }) => {
             variant="outline"
           >
             <EyeOff aria-hidden data-icon="inline-start" />
-            {t("projection.switch.hide")}
+            {t(words.hide)}
           </Button>
         ) : (
           <Button
@@ -280,16 +315,14 @@ export const ProjectionsSwitch = ({ shown }: { shown: boolean }) => {
             variant="outline"
           >
             <TrendingUp aria-hidden data-icon="inline-start" />
-            {t("projection.switch.show")}
+            {t(words.show)}
           </Button>
         )
       }
-      description={t(
-        shown ? "projection.switch.shownHint" : "projection.switch.hiddenHint"
-      )}
+      description={t(shown ? words.shownHint : words.hiddenHint)}
       title={
         <span className="flex flex-wrap items-center gap-2">
-          {t("projection.switch.title")}
+          {t(words.title)}
           <StatusBadge tone={shown ? "warning" : "neutral"}>
             {t(shown ? "projection.switch.shown" : "projection.switch.hidden")}
           </StatusBadge>
@@ -297,13 +330,13 @@ export const ProjectionsSwitch = ({ shown }: { shown: boolean }) => {
       }
     >
       <ConfirmDialog
-        confirmLabel={t("projection.switch.show")}
-        description={t("projection.switch.confirmWhy")}
+        confirmLabel={t(words.show)}
+        description={t(words.confirmWhy)}
         onConfirm={() => turning.mutate({ shown: true })}
         onOpenChange={setAsking}
         open={asking}
         pending={turning.isPending}
-        title={t("projection.switch.confirmTitle")}
+        title={t(words.confirmTitle)}
       />
     </Section>
   );

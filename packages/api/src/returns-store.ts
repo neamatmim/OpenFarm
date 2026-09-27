@@ -545,6 +545,49 @@ export interface VentureReturn {
   capitalBankRate: BankRateSaid | null;
 }
 
+/** One Venture Movement as a Return on Capital reads it. */
+interface CapitalMovement {
+  id: string;
+  kind: string;
+  agreementId: string | null;
+  amountBdt: number;
+  movedOn: string;
+}
+
+/**
+ * The Investors' capital as a Return on Capital counts it: each sum that reached the Venture Account on an Agreement,
+ * from the day it arrived to the day that Agreement's payout went — for every Agreement a Settlement's shares name
+ * that has been paid. The Owner's reading of a whole Venture and an Investor's of their own Agreement, one rule.
+ */
+const capitalOf = (
+  shares: readonly { agreementId: string; paidMovementId: string | null }[],
+  movements: readonly CapitalMovement[]
+) => {
+  const paidBackOn = new Map(
+    movements
+      .filter((one) => one.kind === "payout")
+      .map((one) => [one.id, startOfFarmDay(one.movedOn)])
+  );
+  return shares.flatMap((share) => {
+    const paidBack = share.paidMovementId
+      ? paidBackOn.get(share.paidMovementId)
+      : undefined;
+    if (!paidBack) {
+      return [];
+    }
+    return movements
+      .filter(
+        (one) =>
+          one.kind === "capital_in" && one.agreementId === share.agreementId
+      )
+      .map((one) => ({
+        bdt: one.amountBdt,
+        arrived: startOfFarmDay(one.movedOn),
+        paidBack,
+      }));
+  });
+};
+
 /** The states a Venture has cattle in, or had: the running ones, or settled. */
 const WITH_CATTLE = [...RUNNING_STATES, "settled"] as const;
 
@@ -649,30 +692,10 @@ const venturesOf = async (
     if (!approved) {
       continue;
     }
-    const theirs = movements.filter((one) => one.ventureId === venture.id);
-    const paidBackOn = new Map(
-      theirs
-        .filter((one) => one.kind === "payout")
-        .map((one) => [one.id, startOfFarmDay(one.movedOn)])
+    const capital = capitalOf(
+      approved.shares,
+      movements.filter((one) => one.ventureId === venture.id)
     );
-    const capital = approved.shares.flatMap((share) => {
-      const paidBack = share.paidMovementId
-        ? paidBackOn.get(share.paidMovementId)
-        : undefined;
-      if (!paidBack) {
-        return [];
-      }
-      return theirs
-        .filter(
-          (one) =>
-            one.kind === "capital_in" && one.agreementId === share.agreementId
-        )
-        .map((one) => ({
-          bdt: one.amountBdt,
-          arrived: startOfFarmDay(one.movedOn),
-          paidBack,
-        }));
-    });
     const returnOnCapital = returnOnCapitalOf({
       capital,
       shareBdt: approved.shares.reduce((sum, one) => sum + one.shareBdt, 0),
@@ -1110,4 +1133,53 @@ export const dairyAnimalReturns = async (
     now
   );
   return hers ? { ...hers, floorDays: farm.returnYearFloorDays } : null;
+};
+
+/**
+ * What one Investor's capital made on one Agreement in a settled Venture (ADR 0012): their own share of the profit over
+ * all their capital, each taka from the day it arrived to the day their payout went — a share and its days, and never
+ * a rate a year, which is the Owner's alone. Nothing before the Venture is settled and their payout has gone.
+ */
+export const agreementReturnOnCapital = async (
+  db: Pick<Database, "query">,
+  farmId: string,
+  agreementId: string
+): Promise<{ per100: number; days: number } | null> => {
+  const agreement = await db.query.investmentAgreement.findFirst({
+    where: { id: agreementId, farmId },
+    columns: { ventureId: true },
+  });
+  const venture = agreement
+    ? await db.query.venture.findFirst({
+        where: { id: agreement.ventureId, farmId },
+        columns: { state: true },
+      })
+    : undefined;
+  if (!(agreement && venture?.state === "settled")) {
+    return null;
+  }
+  const approved = await approvedSettlementOf(db, farmId, agreement.ventureId);
+  const share = approved?.shares.find((one) => one.agreementId === agreementId);
+  if (!share) {
+    return null;
+  }
+  const movements = await db.query.ventureMovement.findMany({
+    where: { farmId, ventureId: agreement.ventureId },
+    columns: {
+      id: true,
+      kind: true,
+      agreementId: true,
+      amountBdt: true,
+      movedOn: true,
+    },
+  });
+  const returned = returnOnCapitalOf({
+    capital: capitalOf([share], movements),
+    shareBdt: share.shareBdt,
+    // No floor: nothing here is put a year.
+    floorDays: 0,
+  });
+  return returned
+    ? { per100: returned.per100, days: returned.averageDays }
+    : null;
 };

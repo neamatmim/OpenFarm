@@ -128,6 +128,8 @@ export interface Context {
     investorPortal: boolean;
     /** Whether invited Investors are shown each Venture's Projection (ADR 0010). */
     investorProjections: boolean;
+    /** Whether invited Investors are shown a settled Venture's Return on Capital (ADR 0012). */
+    investorReturns: boolean;
     /** The market price a kilo of live weight, low and high, as the Owner last judged it; nothing until set. */
     marketLowBdtPerKg: number | null;
     marketHighBdtPerKg: number | null;

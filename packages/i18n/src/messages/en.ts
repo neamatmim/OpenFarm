@@ -4131,6 +4131,22 @@ export const en = {
   "audit.entity.fattening_joining": "Joining a Season",
   "audit.entity.dairy_entry_price": "Dairy animal's price",
   "audit.entity.head_price": "Head Price",
+  "returns.switch.title": "Settled returns for Investors",
+  "returns.switch.show": "Show settled returns",
+  "returns.switch.hide": "Hide settled returns",
+  "returns.switch.shownHint":
+    "Investors in a settled Venture see what every ৳100 of their capital made, over its days, under their payout — in the portal and on their settlement statement. Never a rate a year.",
+  "returns.switch.hiddenHint":
+    "Hidden until the lawyer and the Shariah scholar have seen how it is worded. You can read it in the Portal Preview meanwhile.",
+  "returns.switch.confirmTitle": "Show settled returns to Investors?",
+  "returns.switch.confirmWhy":
+    "Only once the lawyer and the Shariah scholar have seen the wording: what every ৳100 of their capital made over the Venture's days, under their payout. Never a rate a year, never across Ventures, never beside an offer.",
+  "returns.switch.shownDone": "Investors now see their settled returns",
+  "returns.switch.hiddenDone": "Settled returns are hidden from Investors",
+  "portal.onCapitalGain":
+    "{amount} made on every ৳100 of your capital, over {days, plural, one {# day} other {# days}}",
+  "portal.onCapitalLoss":
+    "{amount} lost on every ৳100 of your capital, over {days, plural, one {# day} other {# days}}",
   "returns.leftOut":
     "Wages, sheds, equipment, dung and what the money would have earned elsewhere are not in these figures, so they read higher than a published study's on the same animals.",
   "sale.title": "Sell an animal",

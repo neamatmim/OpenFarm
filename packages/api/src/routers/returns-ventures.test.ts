@@ -9,6 +9,7 @@ import {
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { anInvitedInvestor, theyJoin } from "../test/portal-client";
 import { appRouter } from "./index";
 
 // What a settled Venture returned, for the Owner — on its cattle, as a Season is worked, and on the Investors' capital —
@@ -44,6 +45,8 @@ const TERMS = {
 };
 
 let ventureId = "";
+let investorId = "";
+let agreementId = "";
 
 /** A morning's weigh-in off the crush: what an Internal Sale is priced from. */
 const weighInSop = (): SopContent => ({
@@ -147,6 +150,7 @@ beforeAll(async () => {
     name: `রফিক ${suffix}`,
     phone: "01999000041",
   });
+  investorId = person.id;
   const agreement = await owner.ventures.sign({
     ventureId,
     investorId: person.id,
@@ -157,6 +161,7 @@ beforeAll(async () => {
     stampedOn: "2053-01-02",
     stampSerial: `AA 1 ${suffix}`,
   });
+  agreementId = agreement.id;
   await owner.ventures.keepAgreementPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
@@ -308,6 +313,88 @@ describe("what a settled Venture returned", () => {
     const read = ventures.find((one) => one.id === ventureId)?.returnOnCost;
     expect(read?.costBdt).toBe(approved?.chargedBdt);
     expect(read?.backBdt).toBe(approved?.proceedsBdt);
+  });
+});
+
+describe("what the Investor reads of it (ADR 0012)", () => {
+  const READ_AT = "2053-04-10T04:00:00.000Z";
+  // Rafiq's own: his ৳16,200 on his ৳10,00,000 from 3 January to his payout on 2 April — 1.6 on every hundred over
+  // 89 days, as the Owner reads the whole Venture's, since his is the whole of it.
+  const HIS = { per100: 1.6, days: 89 };
+  /** Nothing of a rate a year, however it might be spelt: a field, the Owner's 6.6 standing as a number of its own — not
+   *  inside ৯৬,৬৬৬.৬৭ — or the word. */
+  const A_YEAR = /perYear|(?<![\d০-৯.,])(?:6\.6|৬\.৬)(?![\d০-৯])|বছরে|a year/u;
+
+  const his = async () => {
+    const investor = await theyJoin(investorId, "01999000041", READ_AT);
+    const portfolio = await investor.portal.portfolio();
+    const paper = await investor.portal.paper({
+      agreementId,
+      kind: "settlement",
+    });
+    return {
+      portfolio,
+      theirs: portfolio.agreements.find((one) => one.id === agreementId),
+      paper: paper.text,
+    };
+  };
+
+  beforeAll(async () => {
+    const { client: owner } = await as("owner", READ_AT);
+    await owner.investors.setPortalOpen({ open: true });
+  });
+
+  it("shows them nothing of it while the Owner's switch is off, and the Owner in the Preview either way", async () => {
+    const { theirs, paper } = await his();
+    expect(theirs?.returnOnCapital).toBeNull();
+    expect(paper).not.toContain("মূলধনে");
+    const { client: owner } = await as("owner", READ_AT);
+    const previewed = await owner.portalPreview.portfolio({ investorId });
+    expect(
+      previewed.agreements.find((one) => one.id === agreementId)
+        ?.returnOnCapital
+    ).toEqual(HIS);
+  });
+
+  it("shows them their own share and its days once it is on — in the portal and on their হিসাব নিকাশ, under the payout", async () => {
+    const { client: owner } = await as("owner", READ_AT);
+    await owner.investors.setReturnsShown({ shown: true });
+    const { theirs, paper } = await his();
+    expect(theirs?.returnOnCapital).toEqual(HIS);
+    const lines = paper.split("\n");
+    const payout = lines.findIndex((line) => line.includes("মোট প্রাপ্য"));
+    const share = lines.findIndex((line) => line.includes("মূলধনে"));
+    expect(share).toBeGreaterThan(payout);
+    expect(lines[share]).toContain("৮৯");
+  });
+
+  it("never shows a rate a year, anywhere in their answer or on their paper", async () => {
+    const { portfolio, paper } = await his();
+    expect(JSON.stringify(portfolio)).not.toMatch(A_YEAR);
+    expect(paper).not.toMatch(A_YEAR);
+  });
+
+  it("is the Owner's to switch, and nobody else's to read", async () => {
+    const { client: manager } = await as("manager", READ_AT);
+    await expect(
+      manager.investors.setReturnsShown({ shown: false })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(
+      manager.portalPreview.portfolio({ investorId })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    // Another Investor has no part in it: nothing of Rafiq's in their answer, and his paper refused.
+    const other = await anInvitedInvestor(
+      { name: `অন্য ${suffix}`, phone: "01999000042" },
+      READ_AT
+    );
+    const theirs = await other.client.portal.portfolio();
+    expect(theirs.agreements.map((one) => one.id)).not.toContain(agreementId);
+    await expect(
+      other.client.portal.paper({ agreementId, kind: "settlement" })
+    ).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      data: { refusal: "no_such_agreement" },
+    });
   });
 });
 

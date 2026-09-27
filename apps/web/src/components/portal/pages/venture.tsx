@@ -136,6 +136,35 @@ const useFigures = (
   ];
 };
 
+/**
+ * What their own capital made in a settled Venture, under their payout, once the Owner shows it: a share over its days,
+ * a loss said as one — never a rate a year, never beside another Venture's (ADR 0012).
+ */
+const OnTheirCapital = ({
+  returned,
+}: {
+  returned: { per100: number; days: number } | null;
+}) => {
+  const { t } = useLanguage();
+  if (!returned) {
+    return null;
+  }
+  const lost = returned.per100 < 0;
+  return (
+    <p
+      className={cn(
+        "text-sm font-medium tabular-nums",
+        lost && "text-destructive"
+      )}
+    >
+      {t(lost ? "portal.onCapitalLoss" : "portal.onCapitalGain", {
+        amount: Math.abs(returned.per100),
+        days: returned.days,
+      })}
+    </p>
+  );
+};
+
 /** One figure set in its own shaded box, as the Spending tab sets its two budgets. */
 const AVERAGE_BOX = "bg-muted/50 flex flex-col gap-0.5 rounded-lg p-3";
 
@@ -626,6 +655,8 @@ const VentureToday = ({
       />
       <StageTrack state={today.venture.state} />
       <SummaryFigures figures={figures} hintsOnPhone />
+      {/* An answer this phone kept from before the portal could say it has none. */}
+      <OnTheirCapital returned={mine?.returnOnCapital ?? null} />
       {/* While their capital is owed. An answer this phone kept from before the farm said where to pay has none. */}
       <HowToPay paying={today.howToPay ?? null} />
       {/* An answer this phone kept from before the portal could show one has none. */}

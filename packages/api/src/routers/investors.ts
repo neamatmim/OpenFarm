@@ -235,6 +235,8 @@ export const investorsRouter = {
         portalOpen: context.farm.investorPortal,
         /** Whether invited Investors are shown each Venture's Projection (ADR 0010). */
         projectionsShown: context.farm.investorProjections,
+        /** Whether invited Investors are shown a settled Venture's Return on Capital (ADR 0012). */
+        returnsShown: context.farm.investorReturns,
         people: rows.map((one) => ({
           id: one.id,
           name: one.name,
@@ -545,6 +547,34 @@ export const investorsRouter = {
           tx
             .update(farm)
             .set({ investorProjections: input.shown })
+            .where(eq(farm.id, context.farm.id))
+      );
+      return { shown: input.shown };
+    }),
+
+  /**
+   * Shows invited Investors a settled Venture's Return on Capital — a share over its days, in the portal and on their
+   * হিসাব নিকাশ, never a rate a year — or stops showing it (ADR 0012). Off until the Owner turns it on, once the
+   * lawyer and the Shariah scholar have seen its wording; the Portal Preview shows it to the Owner either way. The
+   * Owner's alone.
+   */
+  setReturnsShown: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ shown: z.boolean() }))
+    .handler(async ({ context, input }) => {
+      await audited(context).write(
+        {
+          entity: "farm",
+          entityId: context.farm.id,
+          action: "update",
+          before: { investorReturns: context.farm.investorReturns },
+          after: { investorReturns: input.shown },
+        },
+        (tx) =>
+          tx
+            .update(farm)
+            .set({ investorReturns: input.shown })
             .where(eq(farm.id, context.farm.id))
       );
       return { shown: input.shown };

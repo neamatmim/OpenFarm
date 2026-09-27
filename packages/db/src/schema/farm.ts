@@ -166,16 +166,20 @@ export const farm = pgTable("farm", {
   /** Whether Investors the Owner has invited may sign in to read their Ventures and papers (ADR 0007). Off until
    *  the Owner turns it on, and off again is how the farm answers a lawyer who says the portal is a platform. */
   investorPortal: boolean("investor_portal").notNull().default(false),
-  /** Whether Investors are shown each Venture's **Projection** in the portal (ADR 0010). Off until the Owner turns it
-   *  on — once the lawyer and the Shariah scholar have seen its wording — and the Owner's Portal Preview shows it
-   *  either way, so it can be read before anybody else does. */
   /** What a kilo of live weight is fetching, low and high, as the Owner last judged the market: what the farm's own
    *  animals are priced at on the Ready, Sale and Fattening screens, beside what each has cost. The Owner's guess, for
    *  the Owner's eyes; a Venture's animals are priced at their Venture's own figures instead. Nothing until it is set. */
   marketLowBdtPerKg: taka("market_low_bdt_per_kg"),
   marketHighBdtPerKg: taka("market_high_bdt_per_kg"),
   marketPriceSetAt: timestamp("market_price_set_at"),
+  /** Whether Investors are shown each Venture's **Projection** in the portal (ADR 0010). Off until the Owner turns it
+   *  on — once the lawyer and the Shariah scholar have seen its wording — and the Owner's Portal Preview shows it
+   *  either way, so it can be read before anybody else does. */
   investorProjections: boolean("investor_projections").notNull().default(false),
+  /** Whether Investors are shown a settled Venture's **Return on Capital** in the portal and on their হিসাব নিকাশ — a
+   *  share over its days, never a rate a year (ADR 0012). Off until the Owner turns it on, once the lawyer and the
+   *  Shariah scholar have seen its wording; the Owner's Portal Preview shows it either way. */
+  investorReturns: boolean("investor_returns").notNull().default(false),
   /** Who runs the server the farm's records are kept on, and who keeps the nightly encrypted copy and in which
    *  country: what the privacy notice tells an Investor. The Owner's to fill in once they are chosen; until then the
    *  notice says what is missing rather than printing a blank. */
