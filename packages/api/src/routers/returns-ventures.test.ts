@@ -359,3 +359,121 @@ describe("the Bank Rate beside a Venture", () => {
     expect(bankRates[0]?.perYear).toBe(7.5);
   });
 });
+
+describe("a Venture still going, at today's price", () => {
+  let goingId = "";
+
+  beforeAll(async () => {
+    // A second Venture, still fattening: its plan sells at ৳600–700 a kilo, and one bull of 250 kg bought for
+    // ৳1,00,000 on 4 January stands. At its plan's prices he is worth ৳1,50,000 to ৳1,75,000: 50 to 75 on every
+    // hundred, his money out since 4 January — 96 days on 10 April.
+    const { client: owner } = await as("owner", "2053-01-02T04:00:00.000Z");
+    const shed = await owner.herd.createShed({ name: `চলতি ${suffix}` });
+    const pen = await owner.herd.createPen({
+      shedId: shed.id,
+      name: `চলতি পেন ${suffix}`,
+    });
+    const going = await owner.ventures.open({
+      name: `চলতি ভেঞ্চার ${suffix}`,
+      ...TERMS,
+    });
+    goingId = going.id;
+    await owner.ventures.setPlan({
+      ventureId: goingId,
+      lines: [
+        {
+          animals: 6,
+          fromKg: 240,
+          toKg: 260,
+          buyBdtPerKg: 400,
+          dailyGainKg: 0.8,
+        },
+      ],
+      saleLowBdtPerKg: 600,
+      saleHighBdtPerKg: 700,
+    });
+    const person = await owner.investors.record({
+      name: `জসিম ${suffix}`,
+      phone: "01999000051",
+    });
+    const agreement = await owner.ventures.sign({
+      ventureId: goingId,
+      investorId: person.id,
+      units: 20,
+      investorsPercent: 60,
+      arbitrator: `মাওলানা ${suffix}`,
+      stampValueBdt: 300,
+      stampedOn: "2053-01-02",
+      stampSerial: `AA 2 ${suffix}`,
+    });
+    await owner.ventures.keepAgreementPaper({
+      agreementId: agreement.id,
+      contentType: "image/jpeg",
+      data: "aGVsbG8=",
+    });
+    await owner.ventures.takeCapital({
+      agreementId: agreement.id,
+      amountBdt: 1_000_000,
+      movedOn: "2053-01-03",
+      paymentMethod: "bank",
+      reference: `TRF-2-${suffix}`,
+    });
+    await owner.ventures.startBuying({ id: goingId });
+    const { client: buying } = await as("owner", "2053-01-04T04:00:00.000Z");
+    const trip = await buying.trips.record({
+      wentTo: `হাট ২ ${suffix}`,
+      wentOn: "2053-01-04",
+      brokerBdt: 0,
+      transportBdt: 0,
+      keepBdt: 0,
+    });
+    await buying.ventures.drawFloat({
+      ventureId: goingId,
+      buyingTripId: trip.id,
+      amountBdt: 100_000,
+      movedOn: "2053-01-04",
+      paymentMethod: "bank",
+      reference: `FLT-2-${suffix}`,
+    });
+    const { client: manager } = await as("manager", "2053-01-04T05:00:00.000Z");
+    await manager.intake.record({
+      penId: pen.id,
+      sex: "male",
+      seller: { name: `ব্যাপারী ${suffix}` },
+      purchasePriceBdt: 100_000,
+      weightKg: 250,
+      estimatedAgeMonths: 20,
+      buyingTripId: trip.id,
+      ventureId: goingId,
+      arrivedAt: new Date("2053-01-04T05:00:00.000Z"),
+      targetWindowStart: WINDOW.start,
+      targetWindowEnd: WINDOW.end,
+    });
+  });
+
+  it("values its standing bull at its plan's prices, low and high, with no year and no Return on Capital", async () => {
+    const { client: owner } = await as("owner", "2053-04-10T04:00:00.000Z");
+    const venture = await owner.returns.venture({ ventureId: goingId });
+    expect(venture).toMatchObject({
+      settled: false,
+      head: 1,
+      returnOnCost: null,
+      returnOnCapital: null,
+      farmsShareBdt: null,
+      gaps: [],
+      running: {
+        soldResultBdt: 0,
+        standingCostBdt: 100_000,
+        low: { per100: 50, averageDays: 96, perYear: null },
+        high: { per100: 75, averageDays: 96, perYear: null },
+      },
+    });
+  });
+
+  it("is the Owner's alone", async () => {
+    const { client: manager } = await as("manager", "2053-04-10T04:00:00.000Z");
+    await expect(
+      manager.returns.venture({ ventureId: goingId })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});

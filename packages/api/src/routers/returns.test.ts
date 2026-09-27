@@ -139,8 +139,12 @@ describe("which Seasons there are", () => {
     const { seasons } = await owner.returns.page();
     const eid2029 = seasons.filter((one) => one.eid === "2029-04-25");
     expect(eid2029).toHaveLength(1);
-    expect(eid2029[0]).toMatchObject({ head: 2, finished: false });
-    expect(eid2029[0]?.returnOnCost?.perYear).toBeNull();
+    expect(eid2029[0]).toMatchObject({
+      head: 2,
+      finished: false,
+      // Not a result while a bull stands: what it is making now is its running range.
+      returnOnCost: null,
+    });
   });
 
   it("makes a window that is no Eid a Season of its own, named by its dates", async () => {
@@ -278,5 +282,63 @@ describe("the Bank Rate beside a rate a year", () => {
         fromDay: "2029-01-01",
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});
+
+describe("a Season still going, at today's price", () => {
+  it("leaves out whole, and names, every bull it cannot value — here all of them, with no price a kilo set", async () => {
+    const { client: owner } = await as("owner", "2029-01-10T04:00:00.000Z");
+    const { seasons } = await owner.returns.page();
+    const going = seasons.find((one) => one.eid === "2029-04-25");
+    expect(going?.running).toBeNull();
+    expect(going?.gaps).toHaveLength(2);
+    expect(going?.gaps.every((one) => one.why === "no_price")).toBe(true);
+  });
+
+  it("values each standing bull as the animal prices do, low and high, and puts no year on it", async () => {
+    // Two bulls of 200 kg bought for ৳70,000 each on 1 October 2028; the market at ৳500–600 a kilo makes each ৳1,00,000
+    // to ৳1,20,000 today. ৳1,40,000 spent against ৳2,00,000 is 42.9 on every hundred; against ৳2,40,000, 71.4. The
+    // money has been out since 1 October: 101 days on 10 January.
+    const { client: owner } = await as("owner", "2029-01-10T04:00:00.000Z");
+    await owner.fattening.setMarketPrice({ lowBdtPerKg: 500, highBdtPerKg: 600 });
+    const { client: reading } = await as("owner", "2029-01-10T04:00:00.000Z");
+    const { seasons } = await reading.returns.page();
+    const going = seasons.find((one) => one.eid === "2029-04-25");
+    expect(going?.gaps).toEqual([]);
+    expect(going?.running).toEqual({
+      soldResultBdt: 0,
+      standingCostBdt: 140_000,
+      standingLowBdt: 200_000,
+      standingHighBdt: 240_000,
+      low: {
+        costBdt: 140_000,
+        backBdt: 200_000,
+        resultBdt: 60_000,
+        per100: 42.9,
+        averageDays: 101,
+        perYear: null,
+      },
+      high: {
+        costBdt: 140_000,
+        backBdt: 240_000,
+        resultBdt: 100_000,
+        per100: 71.4,
+        averageDays: 101,
+        perYear: null,
+      },
+    });
+  });
+
+  it("gives the Fattening board the Seasons still going, and none finished", async () => {
+    const { client: owner } = await as("owner", "2029-01-10T04:00:00.000Z");
+    const going = await owner.returns.runningSeasons();
+    expect(going.map((one) => one.eid)).toEqual(["2029-04-25"]);
+  });
+
+  it("is the Owner's alone on the board too", async () => {
+    const { client: manager } = await as("manager", "2029-01-10T04:00:00.000Z");
+    await expect(manager.returns.runningSeasons()).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
   });
 });

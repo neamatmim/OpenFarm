@@ -121,3 +121,55 @@ export const returnOnCapitalOf = ({
     perYear: returned.perYear,
   };
 };
+
+/** What a Season or a Venture still going has in it: what it sold, and what stands at today's price, low and high. */
+export interface RunningRange {
+  /** What the animals already gone made: a fact. */
+  soldResultBdt: number;
+  /** What the animals still standing have cost so far. */
+  standingCostBdt: number;
+  /** What they would fetch today, at the low and the high price a kilo. */
+  standingLowBdt: number;
+  standingHighBdt: number;
+  /** The whole, with the standing ones at the low and at the high price a kilo: an estimate, never put a year. */
+  low: Returned;
+  high: Returned;
+}
+
+/**
+ * A Season or a Venture still going, at today's price: what its animals already gone brought back, and what those
+ * still standing would fetch today at the low and the high price a kilo, against everything spent so far. A range,
+ * because the standing part is an estimate; never put a year, because an estimate is never scaled. Null where nothing
+ * could be counted — every animal left out for want of a price or a weight.
+ */
+export const runningRangeOf = ({
+  sold,
+  standing,
+}: {
+  sold: { spent: readonly Spent[]; backBdt: number };
+  standing: { spent: readonly Spent[]; lowBdt: number; highBdt: number };
+}): RunningRange | null => {
+  const spent = [...sold.spent, ...standing.spent];
+  const at = (standingBdt: number) =>
+    returnOf({
+      spent,
+      backBdt: sold.backBdt + standingBdt,
+      floorDays: 0,
+      finished: false,
+    });
+  const low = at(standing.lowBdt);
+  const high = at(standing.highBdt);
+  if (!(low && high)) {
+    return null;
+  }
+  const costOf = (lines: readonly Spent[]) =>
+    lines.reduce((sum, one) => sum + one.bdt, 0);
+  return {
+    soldResultBdt: roundTaka(sold.backBdt - costOf(sold.spent)),
+    standingCostBdt: roundTaka(costOf(standing.spent)),
+    standingLowBdt: roundTaka(standing.lowBdt),
+    standingHighBdt: roundTaka(standing.highBdt),
+    low,
+    high,
+  };
+};

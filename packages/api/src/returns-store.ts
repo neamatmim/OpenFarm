@@ -1,13 +1,20 @@
 import type { Database } from "@OpenFarm/db";
-import type { Returned, Spent, TargetWindow } from "@OpenFarm/domain";
+import type {
+  Returned,
+  RunningRange,
+  Spent,
+  TargetWindow,
+} from "@OpenFarm/domain";
 import {
   farmDayOf,
   returnOf,
   returnOnCapitalOf,
+  runningRangeOf,
   seasonOf,
   startOfFarmDay,
 } from "@OpenFarm/domain";
 
+import { pricesOnTheSide } from "./animal-price-store";
 import type { FarmCosts } from "./cost-store";
 import { farmCosts } from "./cost-store";
 import { approvedSettlementOf } from "./settlement-store";
@@ -92,6 +99,11 @@ const earliest = (days: readonly Date[]): Date | null =>
  *  Animal came to an owner and left one. */
 interface Books {
   costs: FarmCosts;
+  /** What each standing fattening Animal is worth today, low and high, as the animal prices value her — or why not. */
+  values: Map<
+    string,
+    { lowBdt: number; highBdt: number } | { tagNumber: string; why: NotValued }
+  >;
   /** Every Bank Rate typed, the one that would be in force first: the latest day, then the latest typed. */
   bankRates: BankRateRows;
   ownedThenBy: OwnedThenBy;
@@ -112,7 +124,12 @@ interface Books {
   }[];
 }
 
-const booksOf = async (db: Database, farmId: string): Promise<Books> => {
+const booksOf = async (
+  db: Database,
+  farm: Parameters<typeof pricesOnTheSide>[1],
+  now: Date
+): Promise<Books> => {
+  const farmId = farm.id;
   // One client may be a transaction's, so these reads stay one after another.
   const costs = await farmCosts(db, farmId);
   const ownedThenBy = await ownedThenByOf(db, farmId);
@@ -142,8 +159,27 @@ const booksOf = async (db: Database, farmId: string): Promise<Books> => {
     },
     orderBy: { createdAt: "asc", id: "asc" },
   });
+  // What each standing Animal is worth today, exactly as the animal prices say it: never a third valuation.
+  const priced = await pricesOnTheSide(db, farm, now);
+  const idOfTag = new Map(costs.animals.map((one) => [one.tagNumber, one.id]));
+  const values: Books["values"] = new Map();
+  for (const one of priced.animals) {
+    const id = idOfTag.get(one.tagNumber);
+    if (!id) {
+      continue;
+    }
+    if (one.low && one.high) {
+      values.set(id, { lowBdt: one.low.priceBdt, highBdt: one.high.priceBdt });
+    } else {
+      values.set(id, {
+        tagNumber: one.tagNumber,
+        why: one.latestKg === null ? "no_weight" : "no_price",
+      });
+    }
+  }
   return {
     costs,
+    values,
     bankRates,
     ownedThenBy,
     intakes,
@@ -235,7 +271,21 @@ const spentOn = (
   ];
 };
 
-/** What an owner's holdings together put in and brought back, and so what every hundred taka made. */
+/** Why a standing Animal cannot be valued today: no weight to price, or no price a kilo to price her at. */
+export type NotValued = "no_weight" | "no_price";
+
+/** A standing Animal left out of a figure, whole, and what puts her right. */
+export interface Gap {
+  tagNumber: string;
+  why: NotValued;
+}
+
+/**
+ * What a group of holdings returned: once every Animal has gone, a result — Return on Cost, put a year past the floor;
+ * while any stands, a range at today's price — what those gone brought back, and those standing valued as the animal
+ * prices value them, low and high — never put a year. A standing Animal who cannot be valued is left out whole, her
+ * cost and her value both, and named, so the want of a price never reads as a loss.
+ */
 const returnOfHoldings = (
   books: Books,
   owner: string | null,
@@ -244,14 +294,51 @@ const returnOfHoldings = (
   floorDays: number
 ) => {
   const finished = holdings.every((one) => one.left !== null);
+  const spentOf = (one: Holding) => spentOn(books, owner, one, today);
+  if (finished) {
+    return {
+      finished,
+      returnOnCost: returnOf({
+        spent: holdings.flatMap(spentOf),
+        backBdt: holdings.reduce(
+          (sum, one) => sum + (one.left?.backBdt ?? 0),
+          0
+        ),
+        floorDays,
+        finished,
+      }),
+      running: null,
+      gaps: [] as Gap[],
+    };
+  }
+  const gone = holdings.filter((one) => one.left !== null);
+  const standing = holdings.flatMap((one) => {
+    if (one.left !== null) {
+      return [];
+    }
+    const value = books.values.get(one.animalId);
+    return value ? [{ holding: one, value }] : [];
+  });
+  const valued = standing.flatMap(({ holding, value }) =>
+    "why" in value ? [] : [{ holding, value }]
+  );
   return {
     finished,
-    returnOnCost: returnOf({
-      spent: holdings.flatMap((one) => spentOn(books, owner, one, today)),
-      backBdt: holdings.reduce((sum, one) => sum + (one.left?.backBdt ?? 0), 0),
-      floorDays,
-      finished,
+    returnOnCost: null,
+    running: runningRangeOf({
+      sold: {
+        spent: gone.flatMap(spentOf),
+        backBdt: gone.reduce((sum, one) => sum + (one.left?.backBdt ?? 0), 0),
+      },
+      standing: {
+        spent: valued.flatMap(({ holding }) => spentOf(holding)),
+        lowBdt: valued.reduce((sum, { value }) => sum + value.lowBdt, 0),
+        highBdt: valued.reduce((sum, { value }) => sum + value.highBdt, 0),
+      },
     }),
+    gaps: standing.flatMap(({ value }) =>
+      "why" in value ? [{ tagNumber: value.tagNumber, why: value.why }] : []
+    ),
   };
 };
 
@@ -264,7 +351,12 @@ export interface SeasonReturn {
   finished: boolean;
   head: number;
   died: number;
+  /** Once finished: what every hundred taka made. Null while an Animal stands. */
   returnOnCost: Returned | null;
+  /** While going: the same at today's price, low and high. Null once finished, or with nothing it could value. */
+  running: RunningRange | null;
+  /** Standing Animals left out of `running`, and why. */
+  gaps: Gap[];
   /** The Bank Rate in force on its first taka, beside its rate a year; none without one. */
   bankRate: BankRateSaid | null;
 }
@@ -325,19 +417,24 @@ const seasonsOf = (
     );
 };
 
-/** A settled **Venture** as the Owner reads it on the Returns page. */
+/** A **Venture** as the Owner reads it on the Returns page: settled, or still buying, fattening or selling. */
 export interface VentureReturn {
   id: string;
   name: string;
   window: TargetWindow;
+  settled: boolean;
   head: number;
   died: number;
-  /** On its cattle, worked from the same lines its Settlement adds up, and put a year over the days its money was out. */
+  /** Once settled: on its cattle, worked from the same lines its Settlement adds up, put a year over its days. */
   returnOnCost: Returned | null;
-  /** On the Investors' capital, after the Farm's share: every taka from the day it arrived to the day it went back. */
+  /** While going: the same at today's price, its standing animals at its plan's prices, low and high. */
+  running: RunningRange | null;
+  /** Standing animals left out of `running`, and why. */
+  gaps: Gap[];
+  /** Once settled: on the Investors' capital, after the Farm's share, each taka from arrival to payout. Never before. */
   returnOnCapital: ReturnType<typeof returnOnCapitalOf>;
-  /** The Farm's share, for its work: taka, never a ratio, because the Farm put in no money. */
-  farmsShareBdt: number;
+  /** Once settled: the Farm's share, for its work — taka, never a ratio, because the Farm put in no money. */
+  farmsShareBdt: number | null;
   /** The Bank Rate in force on the day its first taka went on cattle, beside its Return on Cost a year. */
   bankRate: BankRateSaid | null;
   /** The Bank Rate in force on the day the Investors' first capital reached the Venture Account — earlier than the
@@ -345,10 +442,13 @@ export interface VentureReturn {
   capitalBankRate: BankRateSaid | null;
 }
 
+/** The states a Venture has cattle in, or had: buying them, fattening them, selling them, or settled. */
+const WITH_CATTLE = ["buying", "fattening", "selling", "settled"] as const;
+
 /**
- * Each settled Venture: its cattle read exactly as a Season is — what they fetched, less what they cost to take on and
- * everything charged to them while they were its own — and the Investors' capital from the day it arrived to the day
- * it was paid back.
+ * Each Venture with cattle: its cattle read exactly as a Season is — what they fetched, less what they cost to take on
+ * and everything charged to them while they were its own — and, once settled, the Investors' capital from the day it
+ * arrived to the day it was paid back. One still going reads at today's price.
  */
 const venturesOf = async (
   db: Database,
@@ -357,24 +457,25 @@ const venturesOf = async (
   floorDays: number,
   today: Date
 ): Promise<VentureReturn[]> => {
-  const settled = await db.query.venture.findMany({
-    where: { farmId, state: "settled" },
+  const ventures = await db.query.venture.findMany({
+    where: { farmId, state: { in: [...WITH_CATTLE] } },
     columns: {
       id: true,
       name: true,
+      state: true,
       targetWindowStart: true,
       targetWindowEnd: true,
     },
     orderBy: { targetWindowStart: "desc", id: "asc" },
   });
+  const settledIds = ventures
+    .filter((one) => one.state === "settled")
+    .map((one) => one.id);
   const movements =
-    settled.length === 0
+    settledIds.length === 0
       ? []
       : await db.query.ventureMovement.findMany({
-          where: {
-            farmId,
-            ventureId: { in: settled.map((one) => one.id) },
-          },
+          where: { farmId, ventureId: { in: settledIds } },
           columns: {
             id: true,
             ventureId: true,
@@ -385,12 +486,7 @@ const venturesOf = async (
           },
         });
   const out: VentureReturn[] = [];
-  for (const venture of settled) {
-    // oxlint-disable-next-line no-await-in-loop -- one Venture's Settlement at a time, on one client
-    const approved = await approvedSettlementOf(db, farmId, venture.id);
-    if (!approved) {
-      continue;
-    }
+  for (const venture of ventures) {
     const holdings: Holding[] = [
       ...books.intakes
         .filter(
@@ -412,6 +508,42 @@ const venturesOf = async (
       ...one,
       left: leftOf(books, venture.id, one.animalId, one.takenOn),
     }));
+    const worked = returnOfHoldings(
+      books,
+      venture.id,
+      holdings,
+      today,
+      floorDays
+    );
+    const common = {
+      id: venture.id,
+      name: venture.name,
+      window: {
+        start: venture.targetWindowStart,
+        end: venture.targetWindowEnd,
+      },
+      head: holdings.length,
+      died: holdings.filter((one) => one.left?.how === "died").length,
+      running: worked.running,
+      gaps: worked.gaps,
+    };
+    if (venture.state !== "settled") {
+      out.push({
+        ...common,
+        settled: false,
+        returnOnCost: null,
+        returnOnCapital: null,
+        farmsShareBdt: null,
+        bankRate: null,
+        capitalBankRate: null,
+      });
+      continue;
+    }
+    // oxlint-disable-next-line no-await-in-loop -- one Venture's Settlement at a time, on one client
+    const approved = await approvedSettlementOf(db, farmId, venture.id);
+    if (!approved) {
+      continue;
+    }
     const theirs = movements.filter((one) => one.ventureId === venture.id);
     const paidBackOn = new Map(
       theirs
@@ -436,34 +568,21 @@ const venturesOf = async (
           paidBack,
         }));
     });
-    const { returnOnCost } = returnOfHoldings(
-      books,
-      venture.id,
-      holdings,
-      today,
-      floorDays
-    );
     const returnOnCapital = returnOnCapitalOf({
       capital,
       shareBdt: approved.shares.reduce((sum, one) => sum + one.shareBdt, 0),
       floorDays,
     });
     out.push({
-      id: venture.id,
-      name: venture.name,
-      window: {
-        start: venture.targetWindowStart,
-        end: venture.targetWindowEnd,
-      },
-      head: holdings.length,
-      died: holdings.filter((one) => one.left?.how === "died").length,
-      returnOnCost,
+      ...common,
+      settled: true,
+      returnOnCost: worked.returnOnCost,
       returnOnCapital,
       farmsShareBdt: approved.row.farmBdt,
       bankRate: bankRateFor(
         books.bankRates,
         earliest(holdings.map((one) => one.takenOn)),
-        returnOnCost
+        worked.returnOnCost
       ),
       capitalBankRate: bankRateFor(
         books.bankRates,
@@ -475,13 +594,18 @@ const venturesOf = async (
   return out;
 };
 
+/** What the Returns page needs to know of the farm: its floor, and what the animal prices read. */
+type ReturnsFarm = Parameters<typeof pricesOnTheSide>[1] & {
+  returnYearFloorDays: number;
+};
+
 /** Everything the Owner's Returns page reads, worked once. */
 export const returnsPage = async (
   db: Database,
-  farm: { id: string; returnYearFloorDays: number },
+  farm: ReturnsFarm,
   now: Date
 ) => {
-  const books = await booksOf(db, farm.id);
+  const books = await booksOf(db, farm, now);
   const floorDays = farm.returnYearFloorDays;
   const ventures = await venturesOf(db, farm.id, books, floorDays, now);
   return {
@@ -493,4 +617,34 @@ export const returnsPage = async (
     bankRateInForceId:
       rateInForceOn(books.bankRates, farmDayOf(now))?.id ?? null,
   };
+};
+
+/** The Seasons still going, for the strip above the Fattening board: the same sums as the page, no second one. */
+export const runningSeasons = async (
+  db: Database,
+  farm: ReturnsFarm,
+  now: Date
+) => {
+  const books = await booksOf(db, farm, now);
+  return seasonsOf(books, farm.returnYearFloorDays, now).filter(
+    (one) => !one.finished
+  );
+};
+
+/** One Venture's returns, for the panel on its own page; nothing for one with no cattle yet. */
+export const ventureReturns = async (
+  db: Database,
+  farm: ReturnsFarm,
+  ventureId: string,
+  now: Date
+) => {
+  const books = await booksOf(db, farm, now);
+  const ventures = await venturesOf(
+    db,
+    farm.id,
+    books,
+    farm.returnYearFloorDays,
+    now
+  );
+  return ventures.find((one) => one.id === ventureId) ?? null;
 };

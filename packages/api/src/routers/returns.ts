@@ -7,7 +7,11 @@ import { z } from "zod";
 import { audited } from "../audit";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
-import { returnsPage } from "../returns-store";
+import {
+  returnsPage,
+  runningSeasons,
+  ventureReturns,
+} from "../returns-store";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
 
 /**
@@ -19,6 +23,26 @@ export const returnsRouter = {
     .use(requireOnly("owner", OWNER_ONLY))
     .handler(({ context }) =>
       returnsPage(context.db, context.farm, context.clock.now())
+    ),
+
+  /** The Seasons still going, for the strip above the Fattening board: the Owner's alone, as the animal prices are. */
+  runningSeasons: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .handler(({ context }) =>
+      runningSeasons(context.db, context.farm, context.clock.now())
+    ),
+
+  /** One Venture's returns, for the panel on its page: settled or still going; nothing before it has cattle. */
+  venture: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .input(z.object({ ventureId: z.string() }))
+    .handler(({ context, input }) =>
+      ventureReturns(
+        context.db,
+        context.farm,
+        input.ventureId,
+        context.clock.now()
+      )
     ),
 
   /**
