@@ -161,6 +161,8 @@ const WORDED_REFUSALS = {
   bank_rate_from_the_future: "refusal.bankRateFromTheFuture",
   crossing_unweighed: "refusal.crossingUnweighed",
   joining_needs_a_window: "refusal.joiningNeedsAWindow",
+  season_not_finished: "refusal.seasonNotFinished",
+  no_such_season: "refusal.noSuchSeason",
   nothing_left_to_buy: "refusal.nothingLeftToBuy",
   an_animal_still_stands: "refusal.anAnimalStillStands",
   a_price_is_missing: "refusal.aPriceIsMissing",

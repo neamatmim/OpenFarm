@@ -8,7 +8,13 @@ import { audited } from "../audit";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { priceTheJoining, weighedForTheCrossing } from "../joining-store";
-import { returnsPage, runningSeasons, ventureReturns } from "../returns-store";
+import {
+  BREAKDOWNS,
+  returnsPage,
+  runningSeasons,
+  seasonBreakdown,
+  ventureReturns,
+} from "../returns-store";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
 import { priceAtWeight } from "../venture-store";
 
@@ -28,6 +34,17 @@ export const returnsRouter = {
     .use(requireOnly("owner", OWNER_ONLY))
     .handler(({ context }) =>
       runningSeasons(context.db, context.farm, context.clock.now())
+    ),
+
+  /**
+   * A finished Season opened out by haat, trader, breed, buying weight or each Animal: the Season's own sum, line by
+   * line, a share only. The Owner's alone.
+   */
+  breakdown: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .input(z.object({ seasonKey: z.string(), by: z.enum(BREAKDOWNS) }))
+    .handler(({ context, input }) =>
+      seasonBreakdown(context.db, context.farm, input, context.clock.now())
     ),
 
   /** One Venture's returns, for the panel on its page: settled or still going; nothing before it has cattle. */
