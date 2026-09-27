@@ -4,6 +4,7 @@ import { eq } from "@OpenFarm/db/operators";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { ration, rationVersion } from "@OpenFarm/db/schema/feed";
 import type {
+  FeedUnit,
   RationLine,
   SopContent,
   WeighedAnimal,
@@ -12,9 +13,12 @@ import type {
 import {
   feedUnitOf,
   herdWeightOf,
+  isByWeight,
+  mayGoByWeight,
   sessionKgOf,
   sessionsPerDayOf,
 } from "@OpenFarm/domain";
+import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "./audit";
@@ -47,6 +51,53 @@ export const bandColumns = ({ fromKg, toKg }: WeightBand) => ({
   weightFromKg: fromKg === null ? null : String(fromKg),
   weightToKg: toKg === null ? null : String(toKg),
 });
+
+/** A feed a Ration's line names, as the farm keeps it. */
+interface FeedAsKept {
+  id: string;
+  nameBn: string;
+  unit: FeedUnit;
+  retiredAt: Date | null;
+}
+
+/**
+ * Refuses a Ration that names a feed the farm would not feed as it is written: one it has retired, which it no longer
+ * keeps, or one counted in bundles given by body weight, since bundles are counted by the head. The same two whether
+ * the Ration is saved by hand or started from the standard lists, and each names the feed, for a screen that asked for
+ * several Rations at once and has not shown which.
+ */
+export const refuseFeedsNotFed = (
+  feeds: readonly FeedAsKept[],
+  lines: readonly RationLine[]
+): void => {
+  const feedOf = new Map(feeds.map((one) => [one.id, one]));
+  const named = lines.map((line) => ({
+    line,
+    feed: feedOf.get(line.feedItemId),
+  }));
+  // A Ration is what the Pen is fed from now on, and a retired feed is one the farm no longer keeps.
+  const retired = named.find(({ feed }) => feed?.retiredAt);
+  if (retired?.feed) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A retired feed is not fed; bring it back first",
+      data: { refusal: "feed_retired", feed: retired.feed.nameBn },
+    });
+  }
+  // "Three for every hundred kilos of body weight" is a quantity; bundles are counted, by the head.
+  const countedByWeight = named.find(
+    ({ line, feed }) =>
+      feed !== undefined && isByWeight(line) && !mayGoByWeight(feed.unit)
+  );
+  if (countedByWeight?.feed) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A feed counted in bundles is given by the head, not by weight",
+      data: {
+        refusal: "bundles_by_the_head",
+        feed: countedByWeight.feed.nameBn,
+      },
+    });
+  }
+};
 
 /**
  * Publishes a Ration's next Version and makes it the one in force: number one for a Ration just made. Never an edit —

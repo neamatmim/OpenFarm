@@ -809,6 +809,10 @@ export const en = {
   "setup.standard.start": "Start with these",
   "setup.standard.skip": "Start empty",
   "setup.standard.done": "The farm has its standard lists",
+  "setup.standard.feedRetired":
+    "The standard Rations feed {feed}, which this farm has retired: bring it back on the Feed Items tab first",
+  "setup.standard.bundlesByTheHead":
+    "The standard Rations give {feed} by body weight, and this farm counts it in bundles: start without the Rations and write them by hand",
   "common.error": "Something went wrong",
   "common.loadFailed": "Could not load this — check the connection",
   "params.title": "Farm parameters",

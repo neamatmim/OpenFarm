@@ -14,7 +14,11 @@ import {
 } from "@OpenFarm/domain";
 
 import type { Trail, Tx } from "./audit";
-import { bandColumns, publishRationVersion } from "./feed-store";
+import {
+  bandColumns,
+  publishRationVersion,
+  refuseFeedsNotFed,
+} from "./feed-store";
 import { nameTaken } from "./names";
 
 /** Who is starting the farm with the standard lists, and when. */
@@ -107,12 +111,21 @@ const addRations = async (
 ): Promise<string[]> => {
   const items = await tx.query.feedItem.findMany({
     where: { farmId: starter.farmId },
-    columns: { id: true, nameBn: true },
+    columns: {
+      id: true,
+      nameBn: true,
+      nameEn: true,
+      unit: true,
+      retiredAt: true,
+    },
   });
   const idOf = (key: StandardFeedKey): string => {
-    const found = items.find(
-      (item) => item.nameBn === STANDARD_FEED_ITEMS[key].bn
-    );
+    const names = STANDARD_FEED_ITEMS[key];
+    // The feed as the farm has it: under the standard's Bangla, or — given a Bangla of the farm's own — by either
+    // name, as `feedsNotHad` found the farm already had it and added none.
+    const found =
+      items.find((item) => item.nameBn === names.bn) ??
+      items.find((item) => nameTaken([item], names));
     if (!found) {
       throw new Error(
         `The standard feed ${key} was not added before its Ration`
@@ -140,6 +153,8 @@ const addRations = async (
       continue;
     }
     const lines = one.items.map((line) => rationLineOf(line, idOf));
+    // Held as a Ration saved by hand is: the farm's own feed may be one it has retired, or one it counts in bundles.
+    refuseFeedsNotFed(items, lines);
     const number = await publishRationVersion(tx, {
       farmId: starter.farmId,
       rationId: made.id,

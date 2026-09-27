@@ -770,6 +770,10 @@ export const bn: Record<MessageKey, string> = {
   "setup.standard.start": "এগুলো দিয়ে শুরু করুন",
   "setup.standard.skip": "খালি শুরু করুন",
   "setup.standard.done": "খামারে প্রচলিত তালিকা যোগ হয়েছে",
+  "setup.standard.feedRetired":
+    "প্রচলিত রেশনে {feed} লাগে, যা এই খামারে বাতিল করা আছে — আগে খাদ্য উপাদান ট্যাবে সেটি ফিরিয়ে আনুন",
+  "setup.standard.bundlesByTheHead":
+    "প্রচলিত রেশনে {feed} দৈহিক ওজন ধরে দেওয়া হয়, কিন্তু এই খামারে তা আঁটিতে গোনা হয় — রেশন ছাড়া শুরু করে রেশন হাতে লিখুন",
   "common.error": "কিছু একটা ভুল হয়েছে",
   "common.loadFailed": "এটি আনা যায়নি — সংযোগ দেখুন",
   "params.title": "খামারের প্যারামিটার",

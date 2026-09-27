@@ -3,6 +3,7 @@ import type { MessageKey, MessageParams } from "@OpenFarm/i18n";
 import {
   correctionRefusalMessage,
   entryRefusalMessage,
+  figuresOf,
 } from "./correction-refusal";
 
 // Why the farm would not take something, in the reader's own language. The person reading it is standing at an animal
@@ -12,6 +13,10 @@ import {
 /** What the farm said it refused this for, whatever shape it said it in. */
 const refusalIn = (error: unknown): unknown =>
   (error as { data?: { refusal?: unknown } } | null)?.data?.refusal;
+
+/** Everything the farm said beside its refusal — the word, and whatever the refusal names. */
+const dataOf = (error: unknown): Record<string, unknown> =>
+  (error as { data?: Record<string, unknown> } | null)?.data ?? {};
 
 /** What the refusal was, by its own word, when the farm gave one. */
 export const wordOf = (error: unknown): string | null => {
@@ -34,7 +39,7 @@ const heldEntryRefusal = (
 /**
  * The refusals a screen's own procedure gives, which the farm's shared list does not know: a Playbook with no
  * treatment procedure to prescribe against, a PIN that is not this person's to set. Given by the screen that can
- * meet them.
+ * meet them, and filled with whatever the refusal names — the feed a standard Ration could not be given.
  */
 export type OwnWords = Readonly<Record<string, MessageKey>>;
 
@@ -49,7 +54,7 @@ export const sayWhy = (
 ): string => {
   const own = ownWords[wordOf(error) ?? ""];
   if (own) {
-    return t(own);
+    return t(own, figuresOf(dataOf(error)));
   }
   return (
     correctionRefusalMessage(error, t) ??
