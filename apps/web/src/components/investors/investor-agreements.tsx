@@ -1,19 +1,17 @@
 import { hasEnded } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import type { MessageKey } from "@OpenFarm/i18n";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@OpenFarm/ui/components/table";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
 import { Handshake, ScrollText } from "lucide-react";
 
+import {
+  ActionsHeader,
+  DataTable,
+  createListColumns,
+  listHeader,
+  useListTable,
+} from "@/components/data-table";
 import { Nothing, SaidDate } from "@/components/list-cells";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
 import { usePortalPlaces } from "@/components/portal/portal-source";
@@ -21,8 +19,9 @@ import {
   useInvestorPapers,
   ProducedPaper,
 } from "@/components/ventures/investor-papers";
-import { StateBadge } from "@/components/ventures/venture-card";
+import { Line, StateBadge } from "@/components/ventures/venture-card";
 import { PapersMenu } from "@/components/ventures/venture-investors";
+import { MoneyTotals } from "@/components/ventures/venture-money";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
 import type { orpc } from "@/utils/orpc";
@@ -121,6 +120,212 @@ const SettlementCell = ({ agreement }: { agreement: Agreement }) => {
   );
 };
 
+/** One paper as the table reads it: the paper, and who signed it and their papers, for its menu. */
+interface AgreementRow extends Agreement {
+  investorName: string;
+  papers: ReturnType<typeof useInvestorPapers>;
+}
+
+interface AgreementCell {
+  row: { original: AgreementRow };
+}
+
+/** The Venture it is for, leading to its Investors, and where that stands. */
+const VentureCell = ({ row }: AgreementCell) => {
+  const { venture } = row.original;
+  return (
+    <span className="flex flex-col items-start gap-1">
+      <Link
+        className="font-medium underline-offset-4 hover:underline focus-visible:underline"
+        params={{ ventureId: venture.id }}
+        search={{ tab: "investors" }}
+        to="/ventures/$ventureId"
+      >
+        {venture.name}
+      </Link>
+      <StateBadge state={venture.state} />
+    </span>
+  );
+};
+
+const UnitsCell = ({ row }: AgreementCell) => {
+  const { language } = useLanguage();
+  return <>{formatNumber(row.original.units, language)}</>;
+};
+
+/** The split in force today, and the day it was amended where it was. */
+const SplitCell = ({ row }: AgreementCell) => {
+  const { t, language } = useLanguage();
+  const { investorsPercent, farmPercent, amendedOn } = row.original;
+  return (
+    <span className="flex flex-col items-end">
+      {t("ventures.page.splitIs", {
+        investors: formatNumber(investorsPercent, language),
+        farm: formatNumber(farmPercent, language),
+      })}
+      {amendedOn ? (
+        <span className="text-muted-foreground text-xs">
+          {t("investors.page.amendedOn", {
+            day: formatDate(new Date(amendedOn), language),
+          })}
+        </span>
+      ) : null}
+    </span>
+  );
+};
+
+/** Whether the Farm keeps the stamped paper's photo. */
+const PaperBadge = ({ agreement }: { agreement: Agreement }) => {
+  const { t } = useLanguage();
+  return agreement.hasPaper ? (
+    <StatusBadge tone="success">{t("ventures.page.paperKept")}</StatusBadge>
+  ) : (
+    <StatusBadge tone="warning">{t("ventures.page.paperMissing")}</StatusBadge>
+  );
+};
+
+/** The day it was signed, its stamp, and whether the Farm keeps its photo. */
+const SignedCell = ({ row }: AgreementCell) => (
+  <span className="flex flex-col items-start gap-1">
+    <SaidDate at={row.original.signedAt} />
+    <span className="text-muted-foreground font-mono text-xs">
+      {row.original.stamp.serial}
+    </span>
+    <PaperBadge agreement={row.original} />
+  </span>
+);
+
+/** The capital held on it against what its Units promised, the held part in the warning's colour while an open
+ *  Venture still waits on some of it. */
+const HeldCell = ({ row }: AgreementCell) => {
+  const taka = useTaka();
+  const { venture, capitalHeldBdt, promisedBdt } = row.original;
+  const short = venture.state === "open" && capitalHeldBdt < promisedBdt;
+  return (
+    <>
+      <span className={cn(short && "text-warning")}>
+        {taka(capitalHeldBdt)}
+      </span>
+      <span className="text-muted-foreground">{` / ${taka(promisedBdt)}`}</span>
+    </>
+  );
+};
+
+const PayoutCell = ({ row }: AgreementCell) => (
+  <SettlementCell agreement={row.original} />
+);
+
+/** Its three Investor Statements, for any paper but one on a called-off Venture. */
+const PapersCell = ({ row }: AgreementCell) =>
+  row.original.venture.state === "cancelled" ? null : (
+    <PapersMenu
+      agreementId={row.original.id}
+      hasPaid={row.original.capitalHeldBdt > 0}
+      name={row.original.investorName}
+      papers={row.original.papers}
+      settled={row.original.settlement !== null}
+    />
+  );
+
+const MenuCell = ({ row }: AgreementCell) => (
+  <div className="flex justify-end">
+    <PapersCell row={row} />
+  </div>
+);
+
+const agreementColumn = createListColumns<AgreementRow>();
+const agreementColumns = agreementColumn.columns([
+  agreementColumn.accessor((row) => row.venture.name, {
+    id: "venture",
+    header: listHeader("investors.page.venture"),
+    cell: VentureCell,
+  }),
+  agreementColumn.accessor("units", {
+    header: listHeader("ventures.units"),
+    cell: UnitsCell,
+    meta: { align: "end" },
+  }),
+  agreementColumn.accessor("investorsPercent", {
+    id: "split",
+    header: listHeader("ventures.page.split"),
+    cell: SplitCell,
+    meta: { align: "end" },
+  }),
+  agreementColumn.accessor((row) => new Date(row.signedAt).getTime(), {
+    id: "signed",
+    header: listHeader("investors.page.signed"),
+    cell: SignedCell,
+  }),
+  agreementColumn.accessor("capitalHeldBdt", {
+    id: "held",
+    header: listHeader("investors.page.capitalHeld"),
+    cell: HeldCell,
+    meta: { align: "end" },
+  }),
+  agreementColumn.accessor((row) => row.settlement?.payoutBdt, {
+    id: "payout",
+    header: listHeader("ventures.page.payout"),
+    cell: PayoutCell,
+    meta: { align: "end" },
+  }),
+  agreementColumn.display({
+    id: "menu",
+    header: ActionsHeader,
+    cell: MenuCell,
+    meta: { align: "end" },
+  }),
+]);
+
+/** One paper on a phone: the Venture and where it stands, with its menu at the right, and its figures under them. */
+const AgreementCard = ({ row }: { row: AgreementRow }) => {
+  const { t } = useLanguage();
+  const cell = { row: { original: row } };
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-start justify-between gap-3">
+        <VentureCell {...cell} />
+        <PapersCell {...cell} />
+      </div>
+      <div className="text-sm">
+        <Line label={t("ventures.units")}>
+          <UnitsCell {...cell} />
+        </Line>
+        <Line label={t("ventures.page.split")}>
+          <SplitCell {...cell} />
+        </Line>
+        <Line label={t("investors.page.signed")}>
+          <span className="flex flex-col items-end">
+            <SaidDate at={row.signedAt} />
+            <span className="text-muted-foreground font-mono text-xs">
+              {row.stamp.serial}
+            </span>
+          </span>
+        </Line>
+        <Line label={t("ventures.page.paper")}>
+          <PaperBadge agreement={row} />
+        </Line>
+        <Line label={t("investors.page.capitalHeld")}>
+          <HeldCell {...cell} />
+        </Line>
+        <Line label={t("ventures.page.payout")}>
+          <SettlementCell agreement={row} />
+        </Line>
+      </div>
+    </div>
+  );
+};
+
+const agreementCard = (row: AgreementRow) => <AgreementCard row={row} />;
+
+const AgreementsTable = ({ rows }: { rows: AgreementRow[] }) => {
+  const table = useListTable({
+    columns: agreementColumns,
+    data: rows,
+    getRowId: (row) => row.id,
+  });
+  return <DataTable card={agreementCard} minWidth="52rem" table={table} />;
+};
+
 /**
  * Every paper one Investor signed, the latest first: the Venture it is for and where that stands, the Units and
  * the split in force today, the day it was signed with its stamp and whether the Farm keeps its photo, the capital
@@ -137,8 +342,7 @@ export const InvestorAgreements = ({
   investor: { name: string };
   agreements: Agreement[];
 }) => {
-  const { t, language } = useLanguage();
-  const taka = useTaka();
+  const { t } = useLanguage();
   const papers = useInvestorPapers();
   return (
     <Section
@@ -148,128 +352,18 @@ export const InvestorAgreements = ({
       {agreements.length === 0 ? (
         <EmptyState bare icon={Handshake} title={t("investors.noVentures")} />
       ) : (
-        <div className="-mx-4 overflow-x-auto md:-mx-5">
-          <Table className="min-w-[52rem]">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="ps-4 md:ps-5">
-                  {t("investors.page.venture")}
-                </TableHead>
-                <TableHead className="text-end">
-                  {t("ventures.units")}
-                </TableHead>
-                <TableHead className="text-end">
-                  {t("ventures.page.split")}
-                </TableHead>
-                <TableHead>{t("investors.page.signed")}</TableHead>
-                <TableHead className="text-end">
-                  {t("investors.page.capitalHeld")}
-                </TableHead>
-                <TableHead className="text-end">
-                  {t("ventures.page.payout")}
-                </TableHead>
-                <TableHead className="pe-4 md:pe-5">
-                  <span className="sr-only">{t("common.col.actions")}</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {agreements.map((one) => {
-                const short =
-                  one.venture.state === "open" &&
-                  one.capitalHeldBdt < one.promisedBdt;
-                return (
-                  <TableRow key={one.id}>
-                    <TableCell className="ps-4 md:ps-5">
-                      <span className="flex flex-col items-start gap-1">
-                        <Link
-                          className="font-medium underline-offset-4 hover:underline focus-visible:underline"
-                          params={{ ventureId: one.venture.id }}
-                          search={{ tab: "investors" }}
-                          to="/ventures/$ventureId"
-                        >
-                          {one.venture.name}
-                        </Link>
-                        <StateBadge state={one.venture.state} />
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-end tabular-nums">
-                      {formatNumber(one.units, language)}
-                    </TableCell>
-                    <TableCell className="text-end tabular-nums">
-                      <span className="flex flex-col items-end">
-                        {t("ventures.page.splitIs", {
-                          investors: formatNumber(
-                            one.investorsPercent,
-                            language
-                          ),
-                          farm: formatNumber(one.farmPercent, language),
-                        })}
-                        {one.amendedOn ? (
-                          <span className="text-muted-foreground text-xs">
-                            {t("investors.page.amendedOn", {
-                              day: formatDate(
-                                new Date(one.amendedOn),
-                                language
-                              ),
-                            })}
-                          </span>
-                        ) : null}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="flex flex-col items-start gap-1">
-                        <SaidDate at={one.signedAt} />
-                        <span className="text-muted-foreground font-mono text-xs">
-                          {one.stamp.serial}
-                        </span>
-                        {one.hasPaper ? (
-                          <StatusBadge tone="success">
-                            {t("ventures.page.paperKept")}
-                          </StatusBadge>
-                        ) : (
-                          <StatusBadge tone="warning">
-                            {t("ventures.page.paperMissing")}
-                          </StatusBadge>
-                        )}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-end tabular-nums">
-                      <span className={cn(short && "text-warning")}>
-                        {taka(one.capitalHeldBdt)}
-                      </span>
-                      <span className="text-muted-foreground">
-                        {` / ${taka(one.promisedBdt)}`}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-end">
-                      <SettlementCell agreement={one} />
-                    </TableCell>
-                    <TableCell className="pe-4 md:pe-5">
-                      <div className="flex justify-end">
-                        {one.venture.state === "cancelled" ? null : (
-                          <PapersMenu
-                            agreementId={one.id}
-                            hasPaid={one.capitalHeldBdt > 0}
-                            name={investor.name}
-                            papers={papers}
-                            settled={one.settlement !== null}
-                          />
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+        <AgreementsTable
+          rows={agreements.map((one) => ({
+            ...one,
+            investorName: investor.name,
+            papers,
+          }))}
+        />
       )}
       {papers.produced ? <ProducedPaper produced={papers.produced} /> : null}
     </Section>
   );
 };
-
 /** The money table's words, as its reader is spoken to: the Owner reading about "them", or the Investor about "you". */
 const MONEY_WORDS = {
   owner: {
@@ -319,6 +413,155 @@ const VentureLink = ({
   );
 };
 
+/** One line of their money as the table reads it: what it was called, the Venture it moved in, and whose page of that
+ *  Venture it leads to. */
+interface MovementRow extends Movement {
+  word: string;
+  venture: Agreement["venture"] | undefined;
+  inThePortal: boolean;
+}
+
+interface MovementCell {
+  row: { original: MovementRow };
+}
+
+const OnCell = ({ row }: MovementCell) => (
+  <span className="whitespace-nowrap">
+    <SaidDate at={row.original.movedOn} />
+  </span>
+);
+
+const MovedInCell = ({ row }: MovementCell) => (
+  <VentureLink
+    agreementId={row.original.agreementId}
+    inThePortal={row.original.inThePortal}
+    venture={row.original.venture}
+  />
+);
+
+const WhatCell = ({ row }: MovementCell) => row.original.word;
+
+const ReferenceCell = ({ row }: MovementCell) => (
+  <span className="font-mono text-xs">
+    {row.original.reference ?? <Nothing />}
+  </span>
+);
+
+const IntoCell = ({ row }: MovementCell) => {
+  const taka = useTaka();
+  return INTO_THE_FARM[row.original.kind] ? (
+    <>{taka(row.original.amountBdt)}</>
+  ) : (
+    <Nothing />
+  );
+};
+
+const BackCell = ({ row }: MovementCell) => {
+  const taka = useTaka();
+  return INTO_THE_FARM[row.original.kind] ? (
+    <Nothing />
+  ) : (
+    <>{taka(row.original.amountBdt)}</>
+  );
+};
+
+const moneyColumn = createListColumns<MovementRow>();
+/** The columns, the last headed as its reader is spoken to. */
+const moneyColumnsFor = (back: MessageKey) =>
+  moneyColumn.columns([
+    moneyColumn.accessor((row) => new Date(row.movedOn).getTime(), {
+      id: "on",
+      header: listHeader("ventures.page.on"),
+      cell: OnCell,
+    }),
+    moneyColumn.accessor((row) => row.venture?.name, {
+      id: "venture",
+      header: listHeader("investors.page.venture"),
+      cell: MovedInCell,
+    }),
+    moneyColumn.accessor("word", {
+      header: listHeader("ventures.page.what"),
+      cell: WhatCell,
+    }),
+    moneyColumn.accessor("reference", {
+      header: listHeader("ventures.page.reference"),
+      cell: ReferenceCell,
+      enableSorting: false,
+    }),
+    moneyColumn.accessor(
+      (row) => (INTO_THE_FARM[row.kind] ? row.amountBdt : undefined),
+      {
+        id: "in",
+        header: listHeader("investors.page.toTheFarm"),
+        cell: IntoCell,
+        meta: { align: "end" },
+      }
+    ),
+    moneyColumn.accessor(
+      (row) => (INTO_THE_FARM[row.kind] ? undefined : row.amountBdt),
+      {
+        id: "back",
+        header: listHeader(back),
+        cell: BackCell,
+        meta: { align: "end" },
+      }
+    ),
+  ]);
+const MONEY_COLUMNS = {
+  owner: moneyColumnsFor(MONEY_WORDS.owner.back),
+  portal: moneyColumnsFor(MONEY_WORDS.portal.back),
+};
+
+/** On a phone each line is a row of its own rather than six columns scrolled sideways: what it was and the amount
+ *  first, then the day, the Venture and the reference under them. */
+const MovementCard = ({ row }: { row: MovementRow }) => {
+  const { t } = useLanguage();
+  const taka = useTaka();
+  const words = MONEY_WORDS[row.inThePortal ? "portal" : "owner"];
+  const into = INTO_THE_FARM[row.kind];
+  return (
+    <div className="flex items-start justify-between gap-3 text-sm">
+      <div className="flex min-w-0 flex-col gap-1">
+        <span className="font-medium">{row.word}</span>
+        <span className="text-muted-foreground flex flex-wrap gap-x-2 gap-y-0.5 text-xs">
+          <SaidDate at={row.movedOn} />
+          <VentureLink
+            agreementId={row.agreementId}
+            inThePortal={row.inThePortal}
+            venture={row.venture}
+          />
+          {row.reference ? (
+            <span className="font-mono">{row.reference}</span>
+          ) : null}
+        </span>
+      </div>
+      <div className="flex shrink-0 flex-col items-end gap-0.5">
+        <span className="font-medium tabular-nums">{taka(row.amountBdt)}</span>
+        <span className="text-muted-foreground text-xs">
+          {into ? t("investors.page.toTheFarm") : t(words.back)}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+const movementCard = (row: MovementRow) => <MovementCard row={row} />;
+
+const MoneyTable = ({
+  rows,
+  inThePortal,
+}: {
+  rows: MovementRow[];
+  inThePortal: boolean;
+}) => {
+  const table = useListTable({
+    columns: MONEY_COLUMNS[inThePortal ? "portal" : "owner"],
+    data: rows,
+    getRowId: (row) => `${row.kind}-${row.id}`,
+  });
+  return <DataTable card={movementCard} minWidth="44rem" table={table} />;
+};
+
 /**
  * Every taka of one Investor's that moved, the latest first: capital that came in on a paper, capital sent back
  * when a Venture was called off, and each payout a Settlement made — with the day, the Venture, the reference it
@@ -358,122 +601,23 @@ export const InvestorMoney = ({
           title={t(words.none)}
         />
       ) : (
-        <>
-          {/* On a phone each line is a row of its own rather than six columns scrolled sideways: what it was and the
-              amount first, then the day, the Venture and the reference under them. */}
-          <ul className="divide-border flex flex-col divide-y md:hidden">
-            {movements.map((one) => {
-              const into = INTO_THE_FARM[one.kind];
-              return (
-                <li
-                  className="flex items-start justify-between gap-3 py-3 text-sm"
-                  key={`${one.kind}-${one.id}`}
-                >
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <span className="font-medium">
-                      {t(MOVEMENT_WORD[one.kind])}
-                    </span>
-                    <span className="text-muted-foreground flex flex-wrap gap-x-2 gap-y-0.5 text-xs">
-                      <SaidDate at={one.movedOn} />
-                      <VentureLink
-                        agreementId={one.agreementId}
-                        inThePortal={inThePortal}
-                        venture={ventureOf.get(one.agreementId)}
-                      />
-                      {one.reference ? (
-                        <span className="font-mono">{one.reference}</span>
-                      ) : null}
-                    </span>
-                  </div>
-                  <div className="flex shrink-0 flex-col items-end gap-0.5">
-                    <span className="font-medium tabular-nums">
-                      {taka(one.amountBdt)}
-                    </span>
-                    <span className="text-muted-foreground text-xs">
-                      {into ? t("investors.page.toTheFarm") : t(words.back)}
-                    </span>
-                  </div>
-                </li>
-              );
-            })}
-            <li className="flex items-start justify-between gap-3 py-3 text-sm font-medium">
-              <span>{t("ventures.page.total")}</span>
-              <dl className="grid grid-cols-[auto_auto] gap-x-3 gap-y-0.5 text-end">
-                <dt className="text-muted-foreground text-xs font-normal">
-                  {t("investors.page.toTheFarm")}
-                </dt>
-                <dd className="tabular-nums">{taka(inBdt)}</dd>
-                <dt className="text-muted-foreground text-xs font-normal">
-                  {t(words.back)}
-                </dt>
-                <dd className="tabular-nums">{taka(outBdt)}</dd>
-              </dl>
-            </li>
-          </ul>
-          <div className="-mx-4 hidden overflow-x-auto md:-mx-5 md:block">
-            <Table className="min-w-[44rem]">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="ps-4 md:ps-5">
-                    {t("ventures.page.on")}
-                  </TableHead>
-                  <TableHead>{t("investors.page.venture")}</TableHead>
-                  <TableHead>{t("ventures.page.what")}</TableHead>
-                  <TableHead>{t("ventures.page.reference")}</TableHead>
-                  <TableHead className="text-end">
-                    {t("investors.page.toTheFarm")}
-                  </TableHead>
-                  <TableHead className="pe-4 text-end md:pe-5">
-                    {t(words.back)}
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {movements.map((one) => {
-                  const venture = ventureOf.get(one.agreementId);
-                  const into = INTO_THE_FARM[one.kind];
-                  return (
-                    <TableRow key={`${one.kind}-${one.id}`}>
-                      <TableCell className="ps-4 whitespace-nowrap md:ps-5">
-                        <SaidDate at={one.movedOn} />
-                      </TableCell>
-                      <TableCell>
-                        <VentureLink
-                          agreementId={one.agreementId}
-                          inThePortal={inThePortal}
-                          venture={venture}
-                        />
-                      </TableCell>
-                      <TableCell>{t(MOVEMENT_WORD[one.kind])}</TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {one.reference ?? <Nothing />}
-                      </TableCell>
-                      <TableCell className="text-end tabular-nums">
-                        {into ? taka(one.amountBdt) : <Nothing />}
-                      </TableCell>
-                      <TableCell className="pe-4 text-end tabular-nums md:pe-5">
-                        {into ? <Nothing /> : taka(one.amountBdt)}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-              <TableFooter>
-                <TableRow>
-                  <TableCell className="ps-4 font-medium md:ps-5" colSpan={4}>
-                    {t("ventures.page.total")}
-                  </TableCell>
-                  <TableCell className="text-end font-medium tabular-nums">
-                    {taka(inBdt)}
-                  </TableCell>
-                  <TableCell className="pe-4 text-end font-medium tabular-nums md:pe-5">
-                    {taka(outBdt)}
-                  </TableCell>
-                </TableRow>
-              </TableFooter>
-            </Table>
-          </div>
-        </>
+        <div className="flex flex-col gap-3">
+          <MoneyTable
+            inThePortal={inThePortal}
+            rows={movements.map((one) => ({
+              ...one,
+              word: t(MOVEMENT_WORD[one.kind]),
+              venture: ventureOf.get(one.agreementId),
+              inThePortal,
+            }))}
+          />
+          <MoneyTotals
+            figures={[
+              { label: t("investors.page.toTheFarm"), value: taka(inBdt) },
+              { label: t(words.back), value: taka(outBdt) },
+            ]}
+          />
+        </div>
       )}
     </Section>
   );

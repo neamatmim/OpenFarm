@@ -3970,6 +3970,8 @@ export const en = {
   "months.col.litre": "A litre fetched · cost",
   "months.col.sold": "Fattening sold · Margin",
   "months.col.fatteningCost": "Fattening cost",
+  "returns.col.costBack": "Cost → back",
+  "returns.col.share": "On every ৳100",
   "months.col.overheads": "Running the farm · a head a day",
   "months.cardOverheads": "Running the farm {bdt}, {perHead} a head a day",
   "months.yearOverheads":
