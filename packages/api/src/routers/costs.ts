@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { costsBySide, economicsOfAnimal, farmCosts } from "../cost-store";
 import { protectedProcedure } from "../index";
+import { overheadMoneyIn, overheadsOf } from "../overhead-store";
 import { periodInput, periodOf } from "../period";
 import { requireRole } from "../roles";
 
@@ -29,13 +30,31 @@ export const costsRouter = {
       return { side: animal.side, ...economicsOfAnimal(costs, animal) };
     }),
 
-  /** A period added up by Side: which side of the farm makes money. The Owner's and the Manager's. */
+  /**
+   * A period added up by Side: which side of the farm makes money. The Owner's and the Manager's.
+   *
+   * Beside it, apart from it, what running the place cost in the period — the Overhead — and what that came to a head
+   * a day. No Side's figure carries it.
+   */
   bySide: protectedProcedure
     .use(requireRole("owner", "manager"))
     .input(z.object(periodInput))
     .handler(async ({ context, input }) => {
       const range = periodOf(input);
       const costs = await farmCosts(context.db, context.farm.id);
-      return costsBySide(costs, range);
+      const overheadMoney = await overheadMoneyIn(
+        context.db,
+        context.farm.id,
+        range
+      );
+      return {
+        ...costsBySide(costs, range),
+        overheads: overheadsOf(
+          overheadMoney,
+          costs.history,
+          range,
+          context.clock.now()
+        ),
+      };
     }),
 };

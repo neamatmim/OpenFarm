@@ -394,6 +394,8 @@ export type {
   WagePaid,
 } from "./monthly-costs";
 export { monthlyCostsNotEntered } from "./monthly-costs";
+export type { OverheadMoney } from "./overheads";
+export { headDaysIn, overheadsOver } from "./overheads";
 export type { ObservationWord } from "./observation-words";
 export {
   OBSERVATION_WORDS,

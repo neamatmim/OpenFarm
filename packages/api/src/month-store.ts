@@ -1,4 +1,5 @@
 import type { Database } from "@OpenFarm/db";
+import type { PenHistoryLine } from "@OpenFarm/domain";
 import {
   farmDayOf,
   milkPriceOf,
@@ -11,6 +12,8 @@ import {
 
 import { chargedOf, costsBySide, farmCosts, theFarmsOwn } from "./cost-store";
 import { moneyForTheAccountant } from "./money-export-store";
+import type { OverheadMoneyOn } from "./overhead-store";
+import { overheadMoneyIn, overheadsOf } from "./overhead-store";
 import { approvedSettlementOf } from "./settlement-store";
 import { planAgainstActual } from "./venture-plan-store";
 import { ownedThenByOf } from "./venture-store";
@@ -65,6 +68,11 @@ interface Read {
     litres: string;
     pricePerLitreBdt: string;
   }[];
+  overheadMoney: OverheadMoneyOn[];
+  /** Where every Animal stood, the Ventures' too: the place and the people keep them all, so an Overhead a head a day
+   *  is over all of them, where the Sides' figures are over the Farm's own. */
+  everyAnimal: PenHistoryLine[];
+  now: Date;
 }
 
 /**
@@ -75,7 +83,7 @@ interface Read {
  */
 const figuresOver = (
   { from, until }: { from: Date; until: Date },
-  { costs, money, dispatched }: Read
+  { costs, money, dispatched, overheadMoney, everyAnimal, now }: Read
 ) => {
   const within = (at: Date) => at >= from && at < until;
   const sides = costsBySide(costs, { from, until });
@@ -89,6 +97,12 @@ const figuresOver = (
       }))
   );
   const sold = sides.soldFattening.animals;
+  const overheads = overheadsOf(
+    overheadMoney,
+    everyAnimal,
+    { from, until },
+    now
+  );
   return {
     money: {
       inBdt: cash.incomeBdt,
@@ -118,6 +132,11 @@ const figuresOver = (
       unpricedKg: sides.fattening.unpricedKg,
       uncostedDoses: sides.fattening.uncostedDoses,
     },
+    /** What running the place cost in it, and a head a day — charged to no Side above. */
+    overheads: {
+      bdt: overheads.totalBdt,
+      perHeadPerDayBdt: overheads.perHeadPerDayBdt,
+    },
   };
 };
 
@@ -142,24 +161,29 @@ export const monthByMonth = async (
     from: rangeOf(months[0] ?? "").from,
     until: rangeOf(months.at(-1) ?? "").until,
   };
-  const [costs, ownedThenBy, money, dispatched, ventures] = await Promise.all([
-    farmCosts(db, farm.id),
-    ownedThenByOf(db, farm.id),
-    moneyForTheAccountant(db, farm.id, span),
-    db.query.dispatch.findMany({
-      where: {
-        farmId: farm.id,
-        dispatchedAt: { gte: span.from, lt: span.until },
-      },
-      columns: { dispatchedAt: true, litres: true, pricePerLitreBdt: true },
-    }),
-    venturesAgainstPlan(db, farm, now),
-  ]);
+  const [costs, ownedThenBy, money, dispatched, ventures, overheadMoney] =
+    await Promise.all([
+      farmCosts(db, farm.id),
+      ownedThenByOf(db, farm.id),
+      moneyForTheAccountant(db, farm.id, span),
+      db.query.dispatch.findMany({
+        where: {
+          farmId: farm.id,
+          dispatchedAt: { gte: span.from, lt: span.until },
+        },
+        columns: { dispatchedAt: true, litres: true, pricePerLitreBdt: true },
+      }),
+      venturesAgainstPlan(db, farm, now),
+      overheadMoneyIn(db, farm.id, span),
+    ]);
   // The Farm's own animals alone, as its purse is the Farm's own money: a Venture's are on its own line below.
   const read: Read = {
     costs: theFarmsOwn(costs, ownedThenBy),
     money,
     dispatched,
+    overheadMoney,
+    everyAnimal: costs.history,
+    now,
   };
   return {
     months: months.map((month) => {

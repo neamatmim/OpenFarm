@@ -4,7 +4,7 @@
 
 **Blocked by:** —
 
-**Status:** open
+**Status:** done
 
 - [ ] **Domain `headDaysIn(history, range)`**: every Pen History line's days inside the range, added up. **`overheadsOver`**: the total, the lines by Category (largest first, ties by name), head-days, and per head per day (none when no animal stood). Tests: an animal who arrived mid-period, one who left, a period nobody stood in.
 - [ ] **What counts:** a Money Event in the Farm's purse, entered by hand, money going out, that is not a Herd Cost. A Venture's purse never counts, and neither does a record's money (feed, medicine, cattle) or money coming in (dung).
