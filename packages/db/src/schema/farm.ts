@@ -166,7 +166,7 @@ export const farm = pgTable("farm", {
   /** The day of the month from which a Monthly Cost with nothing entered under it that month is named to the Manager
    *  and the Owner — and a wage for the month before from the person paid the month before that. The 10th unless the
    *  Owner says otherwise: rent and wages are paid in the first days, and a list on the 1st would only nag. */
-  monthlyCostsDueDay: integer("monthly_costs_due_day").notNull().default(10),
+  monthlyCostsFromDay: integer("monthly_costs_from_day").notNull().default(10),
   /** Whether Investors the Owner has invited may sign in to read their Ventures and papers (ADR 0007). Off until
    *  the Owner turns it on, and off again is how the farm answers a lawyer who says the portal is a platform. */
   investorPortal: boolean("investor_portal").notNull().default(false),

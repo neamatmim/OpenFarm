@@ -107,9 +107,10 @@ export const moneyEntryProcedures = {
         // they do at all.
         chargedToAnimals: row.chargedToAnimals,
         chargeable: mayBeChargedToAnimals(row),
-        // Whether it is a Monthly Cost, and whether the Owner may make it one at all.
+        // Whether it is a Monthly Cost, and whether the Owner may make it one now: never a retired one, which takes
+        // nothing new.
         paidMonthly: row.paidMonthlySince !== null,
-        monthlyable: mayBePaidMonthly(row),
+        monthlyMarkable: mayBePaidMonthly(row) && row.retiredAt === null,
       }));
     }),
 
@@ -218,7 +219,7 @@ export const moneyEntryProcedures = {
 
   /**
    * Marks a Category as paid every month — shed rent, electricity — or takes the mark off (CONTEXT.md: **Monthly
-   * Cost**). From the farm's due day, a month with nothing entered under it is named to the Manager and the Owner,
+   * Cost**). From the farm's day of the month, a month with nothing entered under it is named to the Manager and the Owner,
    * from the month the mark goes on and never before it. Taken off and put back, it starts again from that day.
    *
    * The Owner's alone, and from their own phone: it decides what the Manager is chased for.
@@ -242,12 +243,16 @@ export const moneyEntryProcedures = {
       if (!existing) {
         throw new ORPCError("NOT_FOUND", { message: "No such Category" });
       }
+      if (input.paidMonthly && existing.key === "wages") {
+        throw refusedByHand(
+          "A wage is looked for by the person, not the Category",
+          "wages_watched_by_person"
+        );
+      }
       if (input.paidMonthly && !mayBePaidMonthly(existing)) {
         throw refusedByHand(
-          existing.key === "wages"
-            ? "A wage is looked for by the person, not the Category"
-            : "Only money going out that is entered by hand may be marked as paid every month",
-          existing.key === "wages" ? "wages_watched_by_person" : "never_monthly"
+          "Only money going out that no record books may be marked as paid every month",
+          "never_monthly"
         );
       }
       if (input.paidMonthly && existing.retiredAt !== null) {

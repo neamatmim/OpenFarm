@@ -1,11 +1,13 @@
-import { FakeClock } from "@OpenFarm/test-harness";
+import { uuidv7 } from "@OpenFarm/db/ids";
+import { moneyEvent } from "@OpenFarm/db/schema/money";
+import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
 /**
- * Overheads: what running the place cost — wages, shed rent, the bills — beside the animals' own costs and never part
+ * Overheads: what running the place cost — wages, shed rent, electricity — beside the animals' own costs and never part
  * of them, and what it comes to a head a day over every animal that stood here, the Ventures' too.
  */
 const as = (role: "owner" | "manager", instant: string) =>
@@ -103,6 +105,26 @@ beforeAll(async () => {
   await spend({ categoryId: sprayId, amountBdt: 1000 });
   // Money coming in is not a cost at all.
   await spend({ categoryId: category.manure_sales ?? "", amountBdt: 2500 });
+  // The Venture's own money, entered by hand under the rent: never the Farm's, so never what the place cost it.
+  // Nothing the app offers writes one yet, so it is written here as its writer would.
+  const id = uuidv7(new Date());
+  await scratchDb()
+    .insert(moneyEvent)
+    .values({
+      id,
+      farmId: theFarm().id,
+      direction: "out",
+      amountBdt: 40_000,
+      occurredAt: new Date("2045-03-20T04:00:00.000Z"),
+      categoryId: category.rent ?? "",
+      paymentMethod: "bank",
+      source: "by_hand",
+      sourceId: id,
+      purseVentureId: venture.id,
+      approval: "approved",
+      recordedByRole: "owner",
+      recordedAt: new Date("2045-03-20T04:00:00.000Z"),
+    });
 });
 
 describe("the Overhead", () => {

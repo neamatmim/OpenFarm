@@ -1,14 +1,8 @@
+import { monthAt, monthIndexOf } from "./costs";
 import { farmDayOf } from "./farm-clock";
 
-/** A "YYYY-MM" month as a count of months, so that a January reaches back into the December before it. */
-const monthIndexOf = (month: string): number =>
-  Number(month.slice(0, 4)) * 12 + Number(month.slice(5, 7)) - 1;
-
-const monthAt = (index: number): string =>
-  `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, "0")}`;
-
-/** A Category the Owner has marked as paid every month, and since when. */
-export interface MonthlyCategory {
+/** A **Monthly Cost**: a Category the Owner has marked as paid every month, and since when. */
+export interface MonthlyCost {
   id: string;
   paidMonthlySince: Date;
   retired: boolean;
@@ -46,9 +40,9 @@ export interface WageNotEntered {
 /**
  * What of the farm's month has not been entered yet (CONTEXT.md: **Monthly Cost**).
  *
- * Each Monthly Cost with nothing under it this month, once today has reached the farm's due day, and last month
+ * Each Monthly Cost with nothing under it this month, once today has reached the farm's day of the month, and last month
  * whatever the day — never a month before the Owner marked it, and never one retired. And each person paid a wage for
- * one month and none for the next, once that next month is over and the month after it has reached the due day: a
+ * one month and none for the next, once that next month is over and the month after it has reached the farm's day: a
  * wage pays for a month gone, so September's is looked for in October. Only the one month is asked about, so somebody
  * who has left is named for a month and then drops off on their own.
  *
@@ -56,21 +50,21 @@ export interface WageNotEntered {
  */
 export const monthlyCostsNotEntered = ({
   today,
-  dueDay,
+  fromDay,
   categories,
   entered,
   wages,
 }: {
   /** The farm's own day, "YYYY-MM-DD". */
   today: string;
-  dueDay: number;
-  categories: readonly MonthlyCategory[];
+  fromDay: number;
+  categories: readonly MonthlyCost[];
   entered: readonly EnteredUnder[];
   wages: readonly WagePaid[];
 }): { costs: MonthlyCostNotEntered[]; wages: WageNotEntered[] } => {
   const thisMonth = monthIndexOf(today);
-  const reachedDueDay = Number(today.slice(8, 10)) >= dueDay;
-  const monthsAsked = reachedDueDay
+  const lookedForYet = Number(today.slice(8, 10)) >= fromDay;
+  const monthsAsked = lookedForYet
     ? [thisMonth - 1, thisMonth]
     : [thisMonth - 1];
 
@@ -92,7 +86,7 @@ export const monthlyCostsNotEntered = ({
         .map((month) => ({ categoryId: category.id, month: monthAt(month) }));
     });
 
-  const wageMonth = reachedDueDay ? thisMonth - 1 : thisMonth - 2;
+  const wageMonth = lookedForYet ? thisMonth - 1 : thisMonth - 2;
   const paidFor = (month: number) =>
     new Map(
       wages

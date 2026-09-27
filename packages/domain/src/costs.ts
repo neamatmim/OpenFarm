@@ -135,16 +135,24 @@ export const monthOf = (at: Date): { from: Date; until: Date } => {
   };
 };
 
+/** A month — "YYYY-MM", or any farm day in it — as a count of months, so that a January reaches back into the December
+ *  before it by subtracting one. */
+export const monthIndexOf = (monthOrDay: string): number =>
+  Number(monthOrDay.slice(0, 4)) * 12 + Number(monthOrDay.slice(5, 7)) - 1;
+
+/** A count of months back as the "YYYY-MM" it stands for. */
+export const monthAt = (index: number): string =>
+  `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, "0")}`;
+
 /**
  * The `count` months that end with the one a farm day falls in, oldest first, as "YYYY-MM": this month and the ones
  * before it. Counted in years and months, as `monthOf` is, so a January reaches back into the December before it.
  */
 export const monthsEndingIn = (day: string, count: number): string[] => {
-  const last = Number(day.slice(0, 4)) * 12 + Number(day.slice(5, 7)) - 1;
-  return Array.from({ length: count }, (_, index) => {
-    const at = last - (count - 1) + index;
-    return `${Math.floor(at / 12)}-${String((at % 12) + 1).padStart(2, "0")}`;
-  });
+  const last = monthIndexOf(day);
+  return Array.from({ length: count }, (_, index) =>
+    monthAt(last - (count - 1) + index)
+  );
 };
 
 /** How long one Animal stood on one Side inside a month, and from when: the time she carries a share of

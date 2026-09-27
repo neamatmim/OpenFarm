@@ -388,7 +388,7 @@ export type {
 export { summariseMoney } from "./money-summary";
 export type {
   EnteredUnder,
-  MonthlyCategory,
+  MonthlyCost,
   MonthlyCostNotEntered,
   WageNotEntered,
   WagePaid,

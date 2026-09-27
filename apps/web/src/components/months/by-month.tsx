@@ -17,7 +17,7 @@ import { SummaryFigures } from "@/components/page-kit";
 import { StateBadge } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
 import { saidMonth } from "@/lib/months";
-import { useTaka, useTakaToThePaisa } from "@/lib/taka";
+import { usePerHeadPerDay, useTaka, useTakaToThePaisa } from "@/lib/taka";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
@@ -286,7 +286,7 @@ const FatteningCostCell = ({ row }: MonthCell) => (
 const OverheadsCell = ({ row }: MonthCell) => {
   const { t } = useLanguage();
   const taka = useTaka();
-  const perHead = useTakaToThePaisa();
+  const perHead = usePerHeadPerDay();
   const { overheads } = row.original;
   if (!overheads) {
     return <Nothing />;
@@ -295,10 +295,7 @@ const OverheadsCell = ({ row }: MonthCell) => {
     <span className="tabular-nums">
       {t("months.pair", {
         first: taka(overheads.bdt),
-        second:
-          overheads.perHeadPerDayBdt === null
-            ? "—"
-            : perHead(overheads.perHeadPerDayBdt),
+        second: perHead(overheads.perHeadPerDayBdt),
       })}
     </span>
   );
@@ -371,6 +368,7 @@ const MonthCard = ({ month }: { month: Month }) => {
   const { t } = useLanguage();
   const taka = useTaka();
   const perLitre = useTakaToThePaisa();
+  const perHead = usePerHeadPerDay();
   const { money, dairy, fattening } = month;
   return (
     <div className="flex flex-col gap-1.5">
@@ -418,10 +416,7 @@ const MonthCard = ({ month }: { month: Month }) => {
         <p className="text-muted-foreground text-sm">
           {t("months.cardOverheads", {
             bdt: taka(month.overheads.bdt),
-            perHead:
-              month.overheads.perHeadPerDayBdt === null
-                ? "—"
-                : perLitre(month.overheads.perHeadPerDayBdt),
+            perHead: perHead(month.overheads.perHeadPerDayBdt),
           })}
         </p>
       ) : null}
@@ -445,7 +440,7 @@ export const MonthTable = ({
 }) => {
   const { t } = useLanguage();
   const taka = useTaka();
-  const perHead = useTakaToThePaisa();
+  const perHead = usePerHeadPerDay();
   const newestFirst = months.toReversed();
   const table = useListTable({
     columns: monthColumns,
@@ -461,10 +456,7 @@ export const MonthTable = ({
         <p className="text-muted-foreground text-sm">
           {t("months.yearOverheads", {
             bdt: taka(year.overheads.bdt),
-            perHead:
-              year.overheads.perHeadPerDayBdt === null
-                ? "—"
-                : perHead(year.overheads.perHeadPerDayBdt),
+            perHead: perHead(year.overheads.perHeadPerDayBdt),
           })}
         </p>
       ) : null}

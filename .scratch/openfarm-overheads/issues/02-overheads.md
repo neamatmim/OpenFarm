@@ -12,3 +12,5 @@
 - [ ] **Month by month:** each month and the year gain the overhead and its per head per day. The year is worked over the whole year, not averaged from its months.
 - [ ] **Test** that a Herd Cost, a Venture's money, and money a record booked are left out, and that a Venture's animals count in the head-days.
 - [ ] **Somebody opens it:** the Costs tab and Month by month, in both languages.
+
+**Review (2026-09-28):** what counts as a Herd Cost is now asked of `herdCostOf` itself rather than spelled a second time. A Venture's own hand-entered money has a test.

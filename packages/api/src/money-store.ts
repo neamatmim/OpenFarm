@@ -148,15 +148,16 @@ export const mayBeChargedToAnimals = (category: {
 
 /**
  * Whether the Owner may mark this Category as paid every month — a **Monthly Cost** — so a month with nothing under it
- * is named. Money going out that is entered by hand: money coming in is nobody's to chase, and a record's money arrives
- * with the record. Not Wages, which is one Category over many people and is watched by the person instead.
+ * is named. Money going out that no record books: money coming in is nobody's to chase, and a record's money arrives
+ * with the record — a Vet's fee among them, though a visiting vet's may be entered by hand, since it comes with a
+ * visit and not with the month. Not Wages, which is one Category over many people and is watched by the person instead.
  */
 export const mayBePaidMonthly = (category: {
   key: CategoryKey | null;
   direction: MoneyDirection;
 }): boolean =>
   category.direction === "out" &&
-  mayBeEnteredByHand(category.key) &&
+  (category.key === null || !KEPT_BY_RECORDS.has(category.key)) &&
   category.key !== "wages";
 
 /** Whether one of the standard Categories goes by either of these names — which the farm's own may not take, in

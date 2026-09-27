@@ -7,7 +7,7 @@ import { HerCull } from "@/components/culling/cull-list";
 import { HerPrice } from "@/components/fattening/animal-prices";
 import { categoryName, useReadsMoney } from "@/components/money";
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka, useTakaToThePaisa } from "@/lib/taka";
+import { usePerHeadPerDay, useTaka, useTakaToThePaisa } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 const Line = ({ label, children }: { label: string; children: ReactNode }) => (
@@ -158,14 +158,14 @@ type Overheads = Awaited<
 >["overheads"];
 
 /**
- * What running the place cost in the period — wages, rent, the bills — by Category, and what that comes to a head a
+ * What running the place cost in the period — wages, rent, electricity — by Category, and what that comes to a head a
  * day over every day an animal stood here (CONTEXT.md: **Overhead**). On its own card, under the Sides, because no
  * Side carries it: said so on the card, so nobody adds it to a Side's figure or reads it into a Margin.
  */
 const OverheadsCard = ({ overheads }: { overheads: Overheads }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
-  const rate = useTakaToThePaisa();
+  const perHead = usePerHeadPerDay();
   return (
     <CostCard title={t("costs.overheads")}>
       <p className="text-muted-foreground pb-1 text-xs">
@@ -180,9 +180,7 @@ const OverheadsCard = ({ overheads }: { overheads: Overheads }) => {
         <span className="font-semibold">{taka(overheads.totalBdt)}</span>
       </Line>
       <Line label={t("costs.perHeadPerDay")}>
-        {overheads.perHeadPerDayBdt === null
-          ? "—"
-          : rate(overheads.perHeadPerDayBdt)}
+        {perHead(overheads.perHeadPerDayBdt)}
       </Line>
       <p className="text-muted-foreground pt-2 text-xs">
         {t("costs.headDays", {

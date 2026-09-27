@@ -1,0 +1,1 @@
+ALTER TABLE "farm" RENAME COLUMN "monthly_costs_due_day" TO "monthly_costs_from_day";

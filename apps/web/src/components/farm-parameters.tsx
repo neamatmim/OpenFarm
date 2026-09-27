@@ -46,7 +46,7 @@ type NumberKey =
   | "cullMilkPriceDays"
   | "returnYearFloorDays"
   | "approvalThresholdBdt"
-  | "monthlyCostsDueDay"
+  | "monthlyCostsFromDay"
   | "ventureFloorPercent"
   | "ventureRunningPercent"
   | "ventureInvestorsPercent"
@@ -219,8 +219,8 @@ const GROUPS: {
     owner: true,
     fields: [
       {
-        key: "monthlyCostsDueDay",
-        label: "params.monthlyCostsDueDay",
+        key: "monthlyCostsFromDay",
+        label: "params.monthlyCostsFromDay",
         // The 28th is the last day every month has.
         min: 1,
         max: 28,

@@ -16,7 +16,7 @@ const ask = (
 ) =>
   monthlyCostsNotEntered({
     today,
-    dueDay: 10,
+    fromDay: 10,
     categories: [rent],
     entered: [],
     wages: [],
@@ -35,7 +35,7 @@ const rahim = (month: string) => ({
 });
 
 describe("a Monthly Cost with nothing entered", () => {
-  it("is named for this month from the due day, and not the day before", () => {
+  it("is named for this month from the day of the month, and not the day before", () => {
     const entered = [{ categoryId: "rent", occurredAt: on("2026-08-05") }];
     expect(ask("2026-09-09", { entered }).costs).toEqual([]);
     expect(ask("2026-09-10", { entered }).costs).toEqual([
@@ -92,14 +92,14 @@ describe("a Monthly Cost with nothing entered", () => {
 });
 
 describe("a wage not entered", () => {
-  it("names somebody paid for August and not September, from October's due day", () => {
+  it("names somebody paid for August and not September, from October's day", () => {
     const wages = [karim("2026-08"), rahim("2026-08"), rahim("2026-09")];
     expect(ask("2026-10-10", { wages }).wages).toEqual([
       { personId: "karim", name: "Karim", month: "2026-09" },
     ]);
   });
 
-  it("before the due day still asks about the month before, not a month that may not be paid yet", () => {
+  it("before the day of the month still asks about the month before, not a month that may not be paid yet", () => {
     const wages = [karim("2026-08"), karim("2026-09")];
     expect(ask("2026-10-09", { wages }).wages).toEqual([]);
     // On the 9th, a wage for September is not looked for yet: it is August's that is asked about, and was paid.
