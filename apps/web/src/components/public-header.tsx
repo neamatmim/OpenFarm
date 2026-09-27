@@ -23,16 +23,16 @@ export const PublicHeader = ({
     >
       <Link
         className={cn(
-          "focus-visible:ring-ring flex items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2",
+          "focus-visible:ring-ring flex min-w-0 items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2",
           brandOnPhoneOnly && "lg:hidden"
         )}
         to="/"
       >
-        <span className="bg-primary text-primary-foreground grid size-9 place-items-center rounded-lg">
+        <span className="bg-primary text-primary-foreground grid size-9 shrink-0 place-items-center rounded-lg">
           <Sprout aria-hidden className="size-5" />
         </span>
         <span className="flex min-w-0 flex-col">
-          <Wordmark size="lg" />
+          <Wordmark className="truncate" size="lg" />
           {farmName ? (
             <span className="text-muted-foreground truncate text-xs">
               {farmName}

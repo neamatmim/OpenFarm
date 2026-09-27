@@ -11,6 +11,17 @@ export const bn: Record<MessageKey, string> = {
   "language.switch": "ভাষা বদলান",
   "auth.openAccountHint":
     "মালিক বা ম্যানেজার যে ঠিকানায় আমন্ত্রণ পাঠিয়েছেন আর যে কোড দিয়েছেন, তা দিয়ে।",
+  "auth.formIncomplete": "আগে সব ঘর পূরণ করুন।",
+  "auth.firstFarmTitle": "খামার চালু করুন",
+  "auth.firstFarmHint":
+    "প্রথম অ্যাকাউন্টটি খুলুন। যিনি খোলেন তিনিই খামারের মালিক হন, আর ভেতর থেকে বাকি সবাইকে যোগ করেন।",
+  "auth.firstFarmRow": "খামার চালু করছেন? প্রথম অ্যাকাউন্ট খুলুন",
+  "auth.firstFarmRowHint": "যিনি প্রথম অ্যাকাউন্ট খোলেন, তিনিই খামারের মালিক।",
+  "auth.signOutHint": "এই ব্রাউজারে এই অ্যাকাউন্ট থেকে বের হন।",
+  "common.goToStart": "শুরুর পাতায় যান",
+  "common.notFoundHint": "পাতাটি হয়তো সরানো হয়েছে, বা ঠিকানায় ভুল আছে।",
+  "common.errorHint": "আবার চেষ্টা করুন। বারবার হলে খামারের মালিককে জানান।",
+  "setup.standard.chooseOne": "অন্তত একটি তালিকা বেছে নিন, বা বাদ দিন।",
   "auth.shedPhone": "শেডের ফোন",
   "auth.shedPhoneHint":
     "কর্মীরা পিন দিয়ে ঢোকেন। নতুন ফোন ম্যানেজারের দেওয়া কোড দিয়ে চালু হয়।",
@@ -44,7 +55,7 @@ export const bn: Record<MessageKey, string> = {
   "auth.code": "কোড",
   "auth.newPassword": "নতুন পাসওয়ার্ড",
   "auth.passwordSet": "পাসওয়ার্ড হয়ে গেছে — এটি দিয়ে সাইন ইন করুন",
-  "auth.backToSignIn": "সাইন ইনে ফিরে যান",
+  "auth.backToSignIn": "সাইন ইনে ফিরুন",
   "auth.signInSuccess": "সাইন ইন হয়েছে",
   "auth.goToYourAddress": "আপনার ঠিকানায় যান",
   "auth.wrongAddress":
@@ -280,7 +291,6 @@ export const bn: Record<MessageKey, string> = {
   "portal.phone": "মোবাইল নম্বর",
   "portal.phoneNotMobile": "এটি বাংলাদেশি মোবাইল নম্বর নয়।",
   "portal.phonePlaceholder": "০১XXXXXXXXX",
-  "portal.forgotLink": "পাসওয়ার্ড ভুলে গেছেন?",
   "portal.sessionNote": "সাইন ইন এক কর্মদিবস থাকে।",
   "portal.firstTimeHint":
     "প্রথমবার ঢুকছেন, বা পাসওয়ার্ড ভুলে গেছেন: মালিকের দেওয়া কোড দিয়ে ঠিক করুন।",
@@ -2075,7 +2085,6 @@ export const bn: Record<MessageKey, string> = {
   "device.revokeTitle": "{name} বাতিল করবেন?",
   "device.revokeWhy":
     "ফোনটি সঙ্গে সঙ্গে কাজ করা বন্ধ করবে, আর কোনো খবর পাবে না। আবার ব্যবহার করতে নতুন করে যুক্ত করুন।",
-  "device.backToSignIn": "সাইন ইনে ফিরুন",
   "device.promise.title": "শেডের কাজ, শেডেই লেখা — এক ফোনে সবার।",
   "device.promise.pin": "প্রত্যেকে নিজের পিন দিয়ে ঢোকেন, কাজ লেখা হয় তাঁর নামে।",
   "device.promise.offline": "নেটওয়ার্ক না থাকলেও কাজ চলে; নেটওয়ার্ক এলে সব পাঠিয়ে দেয়।",

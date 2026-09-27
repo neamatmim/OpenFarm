@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
-import { ChevronRight, Sprout } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sprout } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Wordmark } from "@/components/wordmark";
@@ -147,3 +147,39 @@ export const DoorRow = ({
 export const DoorLinks = ({ children }: { children: ReactNode }) => (
   <div className="surface divide-y overflow-hidden">{children}</div>
 );
+
+/** A link inside a door's card — "Forgot password?" beside the password — the same on every door. */
+export const DOOR_LINK =
+  "text-primary focus-visible:ring-ring rounded-sm text-sm outline-none hover:underline focus-visible:ring-2";
+
+/** A one-time code typed from a paper or a screen: letters and digits, spaced so each can be checked. The same field on
+ *  every door that asks for one, and as tall at every width. */
+export const CODE_FIELD =
+  "h-14 text-center font-mono text-2xl tracking-[0.2em] uppercase md:h-14 md:text-2xl";
+
+/**
+ * The way back to signing in, at the foot of a door's card, the same on every door: a muted link with its chevron, big
+ * enough for a thumb. To another page, or back to the sign-in card of the same page.
+ */
+export const BackToSignIn = ({
+  children,
+  ...goes
+}: { children: ReactNode } & (
+  | { to: "/login" | "/portal/login"; onClick?: never }
+  | { onClick: () => void; to?: never }
+)) => {
+  const className =
+    "text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex min-h-11 items-center justify-center gap-1 self-center rounded-md px-2 text-sm font-medium outline-none focus-visible:ring-2";
+  const handleClick = goes.onClick;
+  return goes.to ? (
+    <Link className={className} to={goes.to}>
+      <ChevronLeft aria-hidden className="size-4" />
+      {children}
+    </Link>
+  ) : (
+    <button className={className} onClick={handleClick} type="button">
+      <ChevronLeft aria-hidden className="size-4" />
+      {children}
+    </button>
+  );
+};

@@ -1,4 +1,9 @@
-import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
+import {
+  Outlet,
+  createFileRoute,
+  redirect,
+  useLocation,
+} from "@tanstack/react-router";
 import { useEffect } from "react";
 
 import { AppShell } from "@/components/shell/app-shell";
@@ -33,6 +38,12 @@ const AuthLayout = () => {
     prepare();
   }, []);
 
+  // Somebody with an invite still to take up, or a farm still to set up, has nothing on the farm's menus yet: those two
+  // pages are doors of their own, drawn as the sign-in is.
+  const { pathname } = useLocation();
+  if (pathname === "/join" || pathname === "/setup") {
+    return <Outlet />;
+  }
   return (
     <AppShell>
       <Outlet />

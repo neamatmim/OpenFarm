@@ -14,7 +14,7 @@ import { useState } from "react";
 import { PasswordInput } from "@/components/auth/password-input";
 import type { SignInRefusal } from "@/components/auth/refused-notice";
 import { RefusedNotice, refusalOf } from "@/components/auth/refused-notice";
-import { DoorLinks, DoorRow } from "@/components/door-screen";
+import { DOOR_LINK, DoorLinks, DoorRow } from "@/components/door-screen";
 import { Notice } from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import { PortalDoor } from "@/components/portal/portal-door";
@@ -108,11 +108,11 @@ const PortalLogin = () => {
               {t("auth.password")}
             </label>
             <Link
-              className="text-primary text-sm hover:underline"
+              className={DOOR_LINK}
               search={{ forgot: true }}
               to="/portal/join"
             >
-              {t("portal.forgotLink")}
+              {t("auth.forgotPassword")}
             </Link>
           </div>
           <PasswordInput

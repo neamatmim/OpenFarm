@@ -2,7 +2,7 @@ import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
 
 import Loader from "./components/loader";
-import NotFound from "./components/not-found";
+import NotFound, { PageFailed } from "./components/not-found";
 import { pageHost, pageNonce } from "./lib/page-context";
 import { keepQueriesOnDevice } from "./lib/query-cache";
 import { routeTree } from "./routeTree.gen";
@@ -21,6 +21,7 @@ export const getRouter = () => {
     context: { orpc, queryClient },
     defaultPendingComponent: () => <Loader />,
     defaultNotFoundComponent: NotFound,
+    defaultErrorComponent: PageFailed,
     // The scripts the server writes into the page carry the nonce the Investor address's policy lets run.
     ssr: { nonce: pageNonce() },
   });

@@ -5,11 +5,12 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation } from "@tanstack/react-query";
-import { ChevronLeft } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { PasswordInput } from "@/components/auth/password-input";
+import { BackToSignIn, CODE_FIELD } from "@/components/door-screen";
+import { Notice } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
@@ -32,6 +33,7 @@ export const ForgotPasswordForm = ({ onDone }: { onDone: () => void }) => {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [missing, setMissing] = useState(false);
   const set = useMutation(
     orpc.people.setPasswordWithCode.mutationOptions({
       onSuccess: () => {
@@ -59,9 +61,18 @@ export const ForgotPasswordForm = ({ onDone }: { onDone: () => void }) => {
         className="flex flex-col gap-4"
         onSubmit={(event) => {
           event.preventDefault();
+          // Always pressable, as every door's button is: what is still missing is said rather than greyed out.
+          if (!ready) {
+            setMissing(true);
+            return;
+          }
+          setMissing(false);
           set.mutate({ email, code, newPassword });
         }}
       >
+        {missing ? (
+          <Notice title={t("auth.formIncomplete")} tone="danger" />
+        ) : null}
         <div className="flex flex-col gap-2">
           <Label htmlFor="forgot-email">{t("auth.email")}</Label>
           <Input
@@ -80,7 +91,7 @@ export const ForgotPasswordForm = ({ onDone }: { onDone: () => void }) => {
             // Read out across a shed and typed in: the farm's codes have no letters anybody misreads.
             autoCapitalize="characters"
             autoComplete="one-time-code"
-            className="font-mono tracking-[0.2em] uppercase"
+            className={CODE_FIELD}
             id="forgot-code"
             onChange={(event) => setCode(event.target.value.toUpperCase())}
             required
@@ -109,7 +120,7 @@ export const ForgotPasswordForm = ({ onDone }: { onDone: () => void }) => {
         </div>
         <Button
           className="mt-1 h-12 w-full text-base md:h-10"
-          disabled={!ready || set.isPending}
+          disabled={set.isPending}
           type="submit"
         >
           {set.isPending ? <Spinner /> : null}
@@ -117,12 +128,7 @@ export const ForgotPasswordForm = ({ onDone }: { onDone: () => void }) => {
         </Button>
       </form>
 
-      <div className="text-center">
-        <Button onClick={onDone} variant="link">
-          <ChevronLeft data-icon="inline-start" />
-          {t("auth.backToSignIn")}
-        </Button>
-      </div>
+      <BackToSignIn onClick={onDone}>{t("auth.backToSignIn")}</BackToSignIn>
     </div>
   );
 };

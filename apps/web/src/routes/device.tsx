@@ -6,7 +6,7 @@ import { Label } from "@OpenFarm/ui/components/label";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ChevronLeft,
   ChevronRight,
@@ -21,7 +21,7 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
-import { DoorScreen } from "@/components/door-screen";
+import { BackToSignIn, CODE_FIELD, DoorScreen } from "@/components/door-screen";
 import { EmptyState, Notice } from "@/components/page";
 import { PublicHeader } from "@/components/public-header";
 import { useLanguage, useT } from "@/i18n/language-provider";
@@ -311,7 +311,7 @@ const DevicePage = () => {
             autoCapitalize="characters"
             autoComplete="off"
             autoCorrect="off"
-            className="h-16 text-center font-mono text-2xl tracking-[0.2em] uppercase md:h-16 md:text-2xl"
+            className={CODE_FIELD}
             id="code"
             inputMode="text"
             maxLength={CODE_MAX_LENGTH}
@@ -332,13 +332,7 @@ const DevicePage = () => {
           {t("device.enrol")}
         </Button>
         {/* Somebody who came here by mistake, or a Manager on their own phone, has a way back. */}
-        <Link
-          className="text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex min-h-11 items-center justify-center gap-1 self-center rounded-md px-2 text-sm font-medium outline-none focus-visible:ring-2"
-          to="/login"
-        >
-          <ChevronLeft aria-hidden className="size-4" />
-          {t("device.backToSignIn")}
-        </Link>
+        <BackToSignIn to="/login">{t("auth.backToSignIn")}</BackToSignIn>
       </form>
     );
   }
