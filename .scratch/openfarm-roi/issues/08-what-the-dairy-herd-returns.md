@@ -20,4 +20,6 @@ A dairy cow is not bought and sold in a run. She is bought or bred, milked over 
 
 [Ticket 01](./01-how-a-cattle-return-is-measured.md)'s research says how dairy returns are measured.
 
+From [the research](../../../docs/research/measuring-a-cattle-return.md) (2026-09-27): dairy is measured per cow per year (IFCN), per lactation (BLRI) or per 100 kg of milk. Its returns are milk, calves at market, cull sales, manure and the change in herd value. A lifetime figure can rank cows differently from a yearly one. IFCN's cost of milk takes calves, culls and dung off the keep before dividing by milk; OpenFarm's Cost per Litre does not.
+
 ## Resolution

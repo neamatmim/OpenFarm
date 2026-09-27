@@ -19,4 +19,6 @@ Decide what an Investor is shown of the return on their own money, and where:
 - **The papers.** The Investor Statement rule says no projection is ever printed. Is a settled return a fact that may be printed?
 - **The advisers.** Whether this wording goes to the lawyer and the Shariah scholar before the spec, or ships behind a switch as Projections did.
 
+From [the research](../../../docs/research/measuring-a-cattle-return.md) (2026-09-27): GIPS has a fixed-life pool report a money-weighted return since inception, never annualised before a year has passed. Show the advisers any Investor-facing rate a year alongside that rule.
+
 ## Resolution

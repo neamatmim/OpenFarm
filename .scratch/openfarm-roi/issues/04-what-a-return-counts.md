@@ -21,4 +21,6 @@ Decide the sum: what money went in and what came back, for a run of the Farm's o
 
 [Ticket 01](./01-how-a-cattle-return-is-measured.md)'s research says which of these the published measures include, and how.
 
+From [the research](../../../docs/research/measuring-a-cattle-return.md) (2026-09-27): the comparable figure is **net return ÷ total cost**, not a BCR. A dead animal's cost stays in the run. A home-bred calf enters at market value when she leaves the dairy herd, as an **Internal Sale** is priced, not at 0. Bangladeshi studies also count dung and sacks as income, and charge labour and interest, so decide whether to show a study-like figure beside ours. For a Venture, a money-weighted return on the Investors' dated money catches capital idle in the Venture Account; a return on the animals' cost does not. See its "Choices for the grilling".
+
 ## Resolution
