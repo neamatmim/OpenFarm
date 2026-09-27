@@ -1,5 +1,5 @@
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 
 import {
   MonthTable,
@@ -50,6 +50,12 @@ const MonthsPage = () => {
     <Page>
       {header}
       <YearFigures year={year} />
+      <Link
+        className="text-sm underline-offset-4 hover:underline"
+        to="/returns"
+      >
+        {t("months.returnsLink")} →
+      </Link>
       <Section
         description={t("months.chartHint")}
         title={t("months.chartTitle")}

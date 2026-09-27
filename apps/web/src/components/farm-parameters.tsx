@@ -44,6 +44,7 @@ type NumberKey =
   | "cullMilkAfterDays"
   | "cullCalfMilkDays"
   | "cullMilkPriceDays"
+  | "returnYearFloorDays"
   | "approvalThresholdBdt"
   | "ventureFloorPercent"
   | "ventureRunningPercent"
@@ -206,6 +207,21 @@ const GROUPS: {
         label: "params.cullMilkPriceDays",
         unit: "params.days",
         min: 7,
+        max: 365,
+      },
+    ],
+  },
+  {
+    id: "params-returns",
+    title: "params.returns",
+    hint: "params.returnsHint",
+    owner: true,
+    fields: [
+      {
+        key: "returnYearFloorDays",
+        label: "params.returnYearFloorDays",
+        unit: "params.days",
+        min: 1,
         max: 365,
       },
     ],

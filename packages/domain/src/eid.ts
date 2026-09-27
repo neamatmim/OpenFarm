@@ -157,6 +157,37 @@ export const expectedEidNear = (day: string): string | null => {
   return guess && isSameEid(guess, day) ? guess : null;
 };
 
+/** A **Season**: the Farm's own fattening Animals fed towards one Target Window, known by its key. */
+export interface Season {
+  /** `eid:<the day expected>` for an Eid's, or `window:<start>|<end>` for a window that is no Eid. */
+  key: string;
+  /** The day the table expected the Eid on; null for a window that is no Eid. */
+  eid: string | null;
+  /** The Eid's three days as expected, or the window itself. */
+  window: TargetWindow;
+}
+
+/**
+ * Which Season a Target Window is. One Eid is one Season, whichever of its days a window carries — the expected three,
+ * or the announced three a Manager brought the animal along to — because both start and last day fall on that Eid's
+ * Qurbani. Any other window, a winter market's or one that starts at Eid and runs on, is a Season of its own, named by
+ * its dates.
+ */
+export const seasonOf = (window: TargetWindow): Season => {
+  const eid = expectedEidNear(window.start);
+  const lastDayOfItsQurbani =
+    eid !== null &&
+    isSameEid(addDays(window.end, -(QURBANI_DAYS - 1)), eid);
+  if (eid !== null && lastDayOfItsQurbani) {
+    return { key: `eid:${eid}`, eid, window: qurbaniFrom(eid) };
+  }
+  return {
+    key: `window:${window.start}|${window.end}`,
+    eid: null,
+    window: { start: window.start, end: window.end },
+  };
+};
+
 /**
  * The Eid the farm is feeding towards from `today`: the next one, or the one it is standing in.
  *

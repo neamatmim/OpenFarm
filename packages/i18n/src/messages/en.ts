@@ -840,6 +840,11 @@ export const en = {
   "params.keepAndCull": "Keep, sell or cull",
   "params.keepAndCullHint":
     "How far back an animal's keep is read for keep-or-sell and the culling list, how far ahead keeping her is weighed, and what puts a dairy cow on that list. Yours alone to set, as the two are yours alone to read.",
+  "params.returns": "Returns",
+  "params.returnsHint":
+    "What the Returns page puts a year. Money tied up fewer days than this, on average, shows its share and its days but no rate a year, because a few weeks scaled to a year is a figure nobody earned. Yours alone to set, as the page is yours alone to read.",
+  "params.returnYearFloorDays":
+    "Put a return a year once money was tied up at least",
   "params.keepReadDays": "Read an animal's keep over the last",
   "params.keepAheadDays": "Weigh keeping an animal over the next",
   "params.keepNeedsDays": "Judge an animal's keep once she has been here",
@@ -3912,6 +3917,47 @@ export const en = {
   "months.noPlan": "No plan yet",
   "months.nothingProjected": "Nothing projected",
   "months.noVentures": "No Ventures yet",
+  "months.returnsLink": "What each Season and Venture returned",
+  "nav.returns": "Returns",
+  "returns.subtitle":
+    "What the money in the farm's cattle made, against what went in and how long it was out. Yours alone.",
+  "returns.chartTitle": "A year's rate, finished Seasons and Ventures",
+  "returns.chartHint":
+    "What every ৳100 made, scaled simply to a year, for each Season and Venture whose last animal has gone and whose money was out long enough.",
+  "returns.finishedTitle": "Finished",
+  "returns.finishedHint":
+    "Each Season of the Farm's own cattle and each settled Venture, worked as a Settlement is: what the animals fetched, less what they cost to take on and everything charged to them, the ones that died among them.",
+  "returns.nothingFinished":
+    "Nothing has finished yet. A Season is finished when its last animal has gone.",
+  "returns.season": "Season",
+  "returns.venture": "Venture",
+  "returns.eidSeason": "Eid-ul-Adha {year}",
+  "returns.windowSeason": "{start} – {end}",
+  "returns.head": "{count, plural, one {# head} other {# head}}",
+  "returns.died": "{count, plural, one {# died} other {# died}}",
+  "returns.made": "made {bdt}",
+  "returns.lost": "lost {bdt}",
+  "returns.onCostGain": "{amount} made on every ৳100 spent",
+  "returns.onCostLoss": "{amount} lost on every ৳100 spent",
+  "returns.onCapitalGain": "{amount} made on every ৳100 of capital",
+  "returns.onCapitalLoss": "{amount} lost on every ৳100 of capital",
+  "returns.days": "each taka out {days} days on average",
+  "returns.perYearGain": "{rate} a year on every ৳100, as the share scaled",
+  "returns.perYearLoss":
+    "{rate} lost a year on every ৳100, as the share scaled",
+  "returns.underFloor": "fewer than {floor} days — no rate a year",
+  "returns.working": "How it was worked",
+  "returns.workingText":
+    "Cost {cost}, back {back}. Each taka is counted from the day it was spent to the day its animal left: {days} days on average.",
+  "returns.workingYear":
+    "{share} × 365 ÷ {days} = {rate}, simple, never compounded.",
+  "returns.capitalTitle": "On the Investors' capital",
+  "returns.capitalHint":
+    "Their share of the profit over all their capital, from the day it reached the Venture Account to the day it went back, the days it waited among them.",
+  "returns.farmsShare": "The Farm's share, for its work: {bdt}",
+  "returns.openVenture": "Open the Venture",
+  "returns.leftOut":
+    "Wages, sheds, equipment, dung and what the money would have earned elsewhere are not in these figures, so they read higher than a published study's on the same animals.",
   "sale.title": "Sell an animal",
   "papers.passport": "Passport",
   "papers.withdrawalSummary": "Withdrawal summary",

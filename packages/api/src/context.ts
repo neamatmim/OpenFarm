@@ -105,6 +105,8 @@ export interface Context {
     cullCalfMilkDays: number;
     /** How many days back the Dispatches are read for what a litre of the farm's milk fetches. */
     cullMilkPriceDays: number;
+    /** The fewest days money must have been tied up, on average, before a return is put a year. */
+    returnYearFloorDays: number;
     /** The taka above which a Money Event waits for the Owner. */
     approvalThresholdBdt: number;
     /** What part of a Venture's target capital is the least worth starting on. */

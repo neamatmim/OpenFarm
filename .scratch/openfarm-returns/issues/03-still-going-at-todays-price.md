@@ -6,6 +6,8 @@
 
 **Status:** ready
 
+**Note from 01 (2026-09-27):** the page has no tab bar yet; if 02 has not built it, this ticket does, with 01's content as the Fattening tab.
+
 **Spec:** user stories 14–18. See "The arithmetic" (`runningRangeOf`) and "Reading it" (the strips).
 
 - [ ] **`runningRangeOf`** in the domain, tested: perYear is always null, low ≤ high.

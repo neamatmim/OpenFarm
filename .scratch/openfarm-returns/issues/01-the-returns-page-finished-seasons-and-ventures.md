@@ -4,7 +4,7 @@
 
 **Blocked by:** —
 
-**Status:** ready
+**Status:** done
 
 **Spec:** [the spec](../spec.md), user stories 1–13, 34 (without the Bank Rate), 35 (Fattening tab, finished), 36 and 37. See also "The arithmetic, in the domain package", "What a Season and a Venture are worked from", "The Bank Rate and the floor" (the floor only) and "Reading it".
 

@@ -128,7 +128,7 @@ The sums that exist also mislead when added up:
     - It returns `{ costBdt, resultBdt, per100, averageDays, perYear }`:
       - `per100 = result ÷ cost × 100`, one decimal;
       - `averageDays = Σ bdt × days(from, until) ÷ cost`;
-      - `perYear = per100 × 365 ÷ averageDays`, simple, only when `finished` and `averageDays ≥ floorDays`, else null.
+      - `perYear = per100 × 365 ÷ averageDays`, simple, only when `finished` and the average days, rounded to whole days as shown, `≥ floorDays`, else null (so money said to be out 60 days is never refused a year by a floor of 60).
   - **`returnOnCapitalOf(capital, shareBdt, floorDays)`**, with `capital` as `{ bdt, arrived, paidBack }[]`: the same sum over each taka from its arrival to its payout.
   - **`runningRangeOf(sold, standing, prices)`**: the low and the high `returnOf` for a run still going; `perYear` is always null.
   - **Unit tests** cover the example the grilling used:
@@ -147,7 +147,7 @@ The sums that exist also mislead when added up:
     - Back: her Sale's price if the Farm sold her, an Internal Sale's price if the Farm sold her to a Venture, or nothing if she died.
     - `until` is that day, or today while she stands.
   - **Her Season** is `seasonOf` her latest joining's window, else her Intake's.
-  - **A Venture's Return on Cost** is worked from the lines `whatItWasCharged` already gives a Settlement, and its proceeds, each dated by its share.
+  - **A Venture's Return on Cost** is worked exactly as a Season's is — its holdings (Intakes on its money, Internal Sales to it), each share while it was hers, what each fetched — which is the costing `whatItWasCharged` adds up for its Settlement; a test holds the two totals equal.
   - **A Venture's Return on Capital** is worked from its `capital_in` and `payout` Venture Movements per Agreement, and the Investors' share from the approved Settlement's payouts. It is only for a Settled Venture.
   - **Order:** Seasons and Ventures newest window first, ties by key then id.
 
@@ -202,7 +202,7 @@ The sums that exist also mislead when added up:
 
 ### Reading it
 
-- **Router `returns`**, Owner-only (`requireOnly("owner", OWNER_ONLY)`, a personal session), a Manager FORBIDDEN:
+- **Router `returns`**, Owner-only (`requireOnly("owner", OWNER_ONLY)`; its writes also `requirePersonalSession()`, as `fattening.setMarketPrice` does, while its reads do not, as `home.byMonth` does not), a Manager FORBIDDEN:
   - `returns.page`: everything the page shows (finished, running, dairy, prices, gaps).
   - `returns.venture({ ventureId })`, `returns.runningSeasons()` and `returns.animal({ animalId })`: the same sums, for the strips.
   - `returns.breakdown({ seasonKey, by })`, with `by` one of `haat` (her Buying Trip's `went_to`, or «খামারের গেট» with none), `trader` (the Intake's Counterparty), `breed`, `band` (the Weight Band her Intake weight fell in) or `animal`. Share only.
