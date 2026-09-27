@@ -26,4 +26,6 @@ Since [What a return counts](./04-what-a-return-counts.md) (2026-09-27): a calf 
 
 Since [How a return is put per year](./05-how-a-return-is-put-per-year.md) (2026-09-27): fattening's rate a year is simple over money × days, with a 60-day floor. Decide whether dairy's is put the same way, or read per cow per year as the studies do.
 
+Since [What cattle still standing return](./06-what-cattle-still-standing-return.md) (2026-09-27): a standing fattening animal counts at today's weight × the price a kilo, as a low–high range, and gets no rate a year until her Season is finished. Decide what a cow still milking counts at: there is no price a kilo for a milking cow.
+
 ## Resolution

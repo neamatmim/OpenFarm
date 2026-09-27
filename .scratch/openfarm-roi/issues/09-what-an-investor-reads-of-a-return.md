@@ -27,4 +27,6 @@ Since [What a return counts](./04-what-a-return-counts.md) (2026-09-27): an Inve
 
 Since [How a return is put per year](./05-how-a-return-is-put-per-year.md) (2026-09-27): Return on Capital is put a year simply over each taka's days from arrival to payout, with a 60-day floor. It shows as the share, its days, then the rate labelled as the share scaled to a year, with its working. Decide whether an Investor sees that rate at all.
 
+Since [What cattle still standing return](./06-what-cattle-still-standing-return.md) (2026-09-27): the Owner's running Return on Cost values standing animals at today's price, and Return on Capital waits for the Settlement. Decide whether an Investor sees anything running beyond the Projection they already may.
+
 ## Resolution
