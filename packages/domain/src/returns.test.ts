@@ -181,6 +181,7 @@ describe("what money still out in cattle is making, at today's price", () => {
       },
     });
     expect(range).toEqual({
+      soldCostBdt: 100_000,
       soldResultBdt: 30_000,
       standingCostBdt: 80_000,
       standingLowBdt: 90_000,

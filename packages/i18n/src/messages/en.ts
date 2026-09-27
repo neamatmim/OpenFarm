@@ -3983,7 +3983,12 @@ export const en = {
   "returns.stillGoingTitle": "Still going",
   "returns.stillGoingHint":
     "At today's price: what the animals gone brought back, and those standing valued as their prices a kilo value them — an estimate, never a result, and never put a year.",
-  "returns.todayRange": "At today's price, {low} to {high} on every ৳100 spent",
+  "returns.todayRangeGain":
+    "At today's price, {low} to {high} made on every ৳100 spent",
+  "returns.todayRangeLoss":
+    "At today's price, {least} to {most} lost on every ৳100 spent",
+  "returns.todayRangeMixed":
+    "At today's price, from {loss} lost to {gain} made on every ৳100 spent",
   "returns.estimate": "An estimate, not a result",
   "returns.goneMade": "Gone: made {bdt}",
   "returns.goneLost": "Gone: lost {bdt}",

@@ -462,6 +462,7 @@ describe("a Venture still going, at today's price", () => {
       farmsShareBdt: null,
       gaps: [],
       running: {
+        soldCostBdt: 0,
         soldResultBdt: 0,
         standingCostBdt: 100_000,
         low: { per100: 50, averageDays: 96, perYear: null },

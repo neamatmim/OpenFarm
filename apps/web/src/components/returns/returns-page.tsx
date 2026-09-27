@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { useIsOwner } from "@/components/fattening/animal-prices";
 import { EmptyState, StatusBadge } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -39,6 +40,15 @@ const SAID = {
   perYear: ["returns.perYearGain", "returns.perYearLoss"],
   result: ["returns.made", "returns.lost"],
 } as const satisfies Record<string, readonly [MessageKey, MessageKey]>;
+
+/** Newest window first, then by key, so two with one window keep one order. */
+const newestFirst = (
+  a: { start: string; key: string },
+  b: { start: string; key: string }
+) => b.start.localeCompare(a.start) || a.key.localeCompare(b.key);
+
+/** Before Ventures still going were on the page, every Venture on it was settled. */
+const isSettled = (one: { settled?: boolean }): boolean => one.settled ?? true;
 
 /** Which of a pair of words a figure takes: the gain's at nought or above, the loss's below. */
 const wordFor = (pair: readonly [MessageKey, MessageKey], figure: number) =>
@@ -374,22 +384,18 @@ export const FinishedReturns = ({ page }: { page: ReturnsPage }) => {
           />
         ),
       })),
-    ...page.ventures
-      .filter((venture) => venture.settled)
-      .map((venture) => ({
-        key: venture.id,
-        start: venture.window.start,
-        row: (
-          <VentureRow
-            floorDays={page.floorDays}
-            key={venture.id}
-            venture={venture}
-          />
-        ),
-      })),
-  ].toSorted(
-    (a, b) => b.start.localeCompare(a.start) || a.key.localeCompare(b.key)
-  );
+    ...page.ventures.filter(isSettled).map((venture) => ({
+      key: venture.id,
+      start: venture.window.start,
+      row: (
+        <VentureRow
+          floorDays={page.floorDays}
+          key={venture.id}
+          venture={venture}
+        />
+      ),
+    })),
+  ].toSorted(newestFirst);
   if (rows.length === 0) {
     return (
       <EmptyState bare icon={Sprout} title={t("returns.nothingFinished")} />
@@ -549,6 +555,29 @@ const gapsOf = (one: { gaps?: Gap[] }): Gap[] => one.gaps ?? [];
 const runningOf = (one: { running?: Running | null }): Running | null =>
   one.running ?? null;
 
+/** The range at today's price, said as made, lost, or from lost to made — never a bare minus sign. */
+const TodayRange = ({ running }: { running: Running }) => {
+  const { t } = useLanguage();
+  const low = running.low.per100;
+  const high = running.high.per100;
+  if (low >= 0) {
+    return <>{t("returns.todayRangeGain", { low, high })}</>;
+  }
+  if (high < 0) {
+    return (
+      <>
+        {t("returns.todayRangeLoss", {
+          least: Math.abs(high),
+          most: Math.abs(low),
+        })}
+      </>
+    );
+  }
+  return (
+    <>{t("returns.todayRangeMixed", { loss: Math.abs(low), gain: high })}</>
+  );
+};
+
 /**
  * A Season or a Venture still going, at today's price: the range, labelled an estimate, then the part gone and the part
  * standing apart, and the days so far — never a year.
@@ -559,13 +588,10 @@ const RunningLines = ({ running }: { running: Running }) => {
   return (
     <div className="flex flex-col gap-0.5">
       <p className="flex flex-wrap items-center gap-2 font-medium tabular-nums">
-        {t("returns.todayRange", {
-          low: running.low.per100,
-          high: running.high.per100,
-        })}
+        <TodayRange running={running} />
         <StatusBadge tone="warning">{t("returns.estimate")}</StatusBadge>
       </p>
-      {running.soldResultBdt === 0 ? null : (
+      {running.soldCostBdt === 0 ? null : (
         <p className="text-muted-foreground text-sm tabular-nums">
           {t(
             running.soldResultBdt < 0 ? "returns.goneLost" : "returns.goneMade",
@@ -589,10 +615,11 @@ const RunningLines = ({ running }: { running: Running }) => {
   );
 };
 
-/** Where what puts a gap right is done: a Venture's price on its plan, the farm's on the board, a weight on her page. */
+/** Where what puts a gap right is done: a weight on her page, a Venture's price on its plan, the farm's on the board. */
 const GapFix = ({ gap, ventureId }: { gap: Gap; ventureId: string | null }) => {
   const { t } = useLanguage();
   const className = "text-sm underline-offset-4 hover:underline";
+  const label = t(`returns.fix.${gap.why}`);
   if (gap.why === "no_weight") {
     return (
       <Link
@@ -600,7 +627,7 @@ const GapFix = ({ gap, ventureId }: { gap: Gap; ventureId: string | null }) => {
         params={{ tagNumber: gap.tagNumber }}
         to="/animals/$tagNumber"
       >
-        {t("returns.fix.no_weight")}
+        {label}
       </Link>
     );
   }
@@ -610,11 +637,11 @@ const GapFix = ({ gap, ventureId }: { gap: Gap; ventureId: string | null }) => {
       params={{ ventureId }}
       to="/ventures/$ventureId"
     >
-      {t("returns.fix.no_price")}
+      {label}
     </Link>
   ) : (
     <Link className={className} to="/fattening">
-      {t("returns.fix.no_price")}
+      {label}
     </Link>
   );
 };
@@ -739,7 +766,7 @@ export const StillGoing = ({ page }: { page: ReturnsPage }) => {
         gaps: gapsOf(one),
       })),
     ...page.ventures
-      .filter((one) => !one.settled)
+      .filter((one) => !isSettled(one))
       .map((one) => ({
         key: one.id,
         start: one.window.start,
@@ -749,9 +776,7 @@ export const StillGoing = ({ page }: { page: ReturnsPage }) => {
         running: runningOf(one),
         gaps: gapsOf(one),
       })),
-  ].toSorted(
-    (a, b) => b.start.localeCompare(a.start) || a.key.localeCompare(b.key)
-  );
+  ].toSorted(newestFirst);
   return <StillGoingList rows={rows} />;
 };
 
@@ -762,7 +787,12 @@ export const StillGoing = ({ page }: { page: ReturnsPage }) => {
 export const RunningSeasonsStrip = () => {
   const { t } = useLanguage();
   const named = useSeasonName();
-  const going = useQuery(orpc.returns.runningSeasons.queryOptions());
+  // Asked only for the Owner: a Manager's board never sends a request the server would refuse.
+  const owner = useIsOwner();
+  const going = useQuery({
+    ...orpc.returns.runningSeasons.queryOptions(),
+    enabled: owner,
+  });
   if (!going.data || going.data.length === 0) {
     return null;
   }

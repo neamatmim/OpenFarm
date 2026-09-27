@@ -129,6 +129,7 @@ export const pricesOnTheSide = async (
       });
       return [
         {
+          id: row.id,
           tagNumber: row.tagNumber,
           costBdt,
           /** False while feed she ate has no price or a dose has no cost: her cost is short by those. */

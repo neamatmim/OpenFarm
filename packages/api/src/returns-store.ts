@@ -6,6 +6,7 @@ import type {
   TargetWindow,
 } from "@OpenFarm/domain";
 import {
+  RUNNING_STATES,
   farmDayOf,
   returnOf,
   returnOnCapitalOf,
@@ -95,15 +96,21 @@ const earliest = (days: readonly Date[]): Date | null =>
     ? null
     : new Date(Math.min(...days.map((one) => one.getTime())));
 
+/** Why a standing Animal cannot be valued today: no weight to price, or no price a kilo to price her at. */
+export type NotValued = "no_weight" | "no_price";
+
+/** A standing Animal left out of a figure, whole, and what puts her right. */
+export interface Gap {
+  tagNumber: string;
+  why: NotValued;
+}
+
 /** What every sum on the page is read from, read once: the costing, whose each Animal was on a day, and every way an
  *  Animal came to an owner and left one. */
 interface Books {
   costs: FarmCosts;
   /** What each standing fattening Animal is worth today, low and high, as the animal prices value her — or why not. */
-  values: Map<
-    string,
-    { lowBdt: number; highBdt: number } | { tagNumber: string; why: NotValued }
-  >;
+  values: Map<string, { lowBdt: number; highBdt: number } | Gap>;
   /** Every Bank Rate typed, the one that would be in force first: the latest day, then the latest typed. */
   bankRates: BankRateRows;
   ownedThenBy: OwnedThenBy;
@@ -124,9 +131,14 @@ interface Books {
   }[];
 }
 
+/** What the Returns page needs to know of the farm: its floor, and what the animal prices read. */
+type ReturnsFarm = Parameters<typeof pricesOnTheSide>[1] & {
+  returnYearFloorDays: number;
+};
+
 const booksOf = async (
   db: Database,
-  farm: Parameters<typeof pricesOnTheSide>[1],
+  farm: ReturnsFarm,
   now: Date
 ): Promise<Books> => {
   const farmId = farm.id;
@@ -161,17 +173,15 @@ const booksOf = async (
   });
   // What each standing Animal is worth today, exactly as the animal prices say it: never a third valuation.
   const priced = await pricesOnTheSide(db, farm, now);
-  const idOfTag = new Map(costs.animals.map((one) => [one.tagNumber, one.id]));
   const values: Books["values"] = new Map();
   for (const one of priced.animals) {
-    const id = idOfTag.get(one.tagNumber);
-    if (!id) {
-      continue;
-    }
     if (one.low && one.high) {
-      values.set(id, { lowBdt: one.low.priceBdt, highBdt: one.high.priceBdt });
+      values.set(one.id, {
+        lowBdt: one.low.priceBdt,
+        highBdt: one.high.priceBdt,
+      });
     } else {
-      values.set(id, {
+      values.set(one.id, {
         tagNumber: one.tagNumber,
         why: one.latestKg === null ? "no_weight" : "no_price",
       });
@@ -271,14 +281,9 @@ const spentOn = (
   ];
 };
 
-/** Why a standing Animal cannot be valued today: no weight to price, or no price a kilo to price her at. */
-export type NotValued = "no_weight" | "no_price";
-
-/** A standing Animal left out of a figure, whole, and what puts her right. */
-export interface Gap {
-  tagNumber: string;
-  why: NotValued;
-}
+/** What some holdings brought back: each one's Sale or Internal Sale out, nothing for the dead, nothing standing. */
+const backOf = (holdings: readonly Holding[]) =>
+  holdings.reduce((sum, one) => sum + (one.left?.backBdt ?? 0), 0);
 
 /**
  * What a group of holdings returned: once every Animal has gone, a result — Return on Cost, put a year past the floor;
@@ -300,10 +305,7 @@ const returnOfHoldings = (
       finished,
       returnOnCost: returnOf({
         spent: holdings.flatMap(spentOf),
-        backBdt: holdings.reduce(
-          (sum, one) => sum + (one.left?.backBdt ?? 0),
-          0
-        ),
+        backBdt: backOf(holdings),
         floorDays,
         finished,
       }),
@@ -328,7 +330,7 @@ const returnOfHoldings = (
     running: runningRangeOf({
       sold: {
         spent: gone.flatMap(spentOf),
-        backBdt: gone.reduce((sum, one) => sum + (one.left?.backBdt ?? 0), 0),
+        backBdt: backOf(gone),
       },
       standing: {
         spent: valued.flatMap(({ holding }) => spentOf(holding)),
@@ -442,8 +444,8 @@ export interface VentureReturn {
   capitalBankRate: BankRateSaid | null;
 }
 
-/** The states a Venture has cattle in, or had: buying them, fattening them, selling them, or settled. */
-const WITH_CATTLE = ["buying", "fattening", "selling", "settled"] as const;
+/** The states a Venture has cattle in, or had: the running ones, or settled. */
+const WITH_CATTLE = [...RUNNING_STATES, "settled"] as const;
 
 /**
  * Each Venture with cattle: its cattle read exactly as a Season is — what they fetched, less what they cost to take on
@@ -592,11 +594,6 @@ const venturesOf = async (
     });
   }
   return out;
-};
-
-/** What the Returns page needs to know of the farm: its floor, and what the animal prices read. */
-type ReturnsFarm = Parameters<typeof pricesOnTheSide>[1] & {
-  returnYearFloorDays: number;
 };
 
 /** Everything the Owner's Returns page reads, worked once. */

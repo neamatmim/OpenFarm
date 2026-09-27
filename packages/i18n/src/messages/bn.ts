@@ -3726,7 +3726,12 @@ export const bn: Record<MessageKey, string> = {
   "returns.stillGoingTitle": "চলছে",
   "returns.stillGoingHint":
     "আজকের দামে: চলে যাওয়া পশুগুলো যা এনেছে, আর দাঁড়িয়ে থাকাগুলো প্রতি কেজির দামে যা আনবে — অনুমান, ফল নয়, আর কখনো বছরে টানা হয় না।",
-  "returns.todayRange": "আজকের দামে প্রতি ১০০ টাকা খরচে {low} থেকে {high} টাকা",
+  "returns.todayRangeGain":
+    "আজকের দামে প্রতি ১০০ টাকা খরচে {low} থেকে {high} টাকা লাভ",
+  "returns.todayRangeLoss":
+    "আজকের দামে প্রতি ১০০ টাকা খরচে {least} থেকে {most} টাকা ক্ষতি",
+  "returns.todayRangeMixed":
+    "আজকের দামে প্রতি ১০০ টাকা খরচে {loss} টাকা ক্ষতি থেকে {gain} টাকা লাভ",
   "returns.estimate": "অনুমান, ফল নয়",
   "returns.goneMade": "চলে গেছে: লাভ {bdt}",
   "returns.goneLost": "চলে গেছে: ক্ষতি {bdt}",
