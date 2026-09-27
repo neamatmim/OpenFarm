@@ -11,7 +11,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 
-import { MarketPrice } from "@/components/fattening/animal-prices";
+import { MarketPrice, useIsOwner } from "@/components/fattening/animal-prices";
 import type { KeepingFilter } from "@/components/fattening/fattening-board";
 import {
   FatteningBoard,
@@ -23,6 +23,7 @@ import { NextEid } from "@/components/fattening/next-eid";
 import { OutOfBand } from "@/components/fattening/out-of-band";
 import { EmptyState, Notice, Page, PageHeader } from "@/components/page";
 import { SummaryFigures } from "@/components/page-kit";
+import { RunningSeasonsStrip } from "@/components/returns/returns-page";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
@@ -89,6 +90,8 @@ const IntakeButton = () => {
  */
 const FatteningPage = () => {
   const { t } = useLanguage();
+  // What the Farm's money in the Seasons still going is making is the Owner's alone, as the animal prices are.
+  const owner = useIsOwner();
   const board = useQuery(orpc.fattening.board.queryOptions({ input: {} }));
   const { keeping = "all" } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
@@ -145,6 +148,7 @@ const FatteningPage = () => {
       {header}
       <BoardFigures rows={rows} />
       <MarketPrice />
+      {owner ? <RunningSeasonsStrip /> : null}
       <NextEid />
       <OutOfBand />
       <FatteningBoard

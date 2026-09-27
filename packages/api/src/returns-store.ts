@@ -646,5 +646,6 @@ export const ventureReturns = async (
     farm.returnYearFloorDays,
     now
   );
-  return ventures.find((one) => one.id === ventureId) ?? null;
+  const venture = ventures.find((one) => one.id === ventureId);
+  return venture ? { ...venture, floorDays: farm.returnYearFloorDays } : null;
 };

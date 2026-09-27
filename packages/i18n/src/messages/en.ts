@@ -3980,6 +3980,31 @@ export const en = {
   "returns.bankFromDayHint":
     "Today, or an earlier day to set last year's rate beside last year's Season. A rate put right is typed again from the same day.",
   "returns.bankSaved": "Rate saved",
+  "returns.stillGoingTitle": "Still going",
+  "returns.stillGoingHint":
+    "At today's price: what the animals gone brought back, and those standing valued as their prices a kilo value them — an estimate, never a result, and never put a year.",
+  "returns.todayRange": "At today's price, {low} to {high} on every ৳100 spent",
+  "returns.estimate": "An estimate, not a result",
+  "returns.goneMade": "Gone: made {bdt}",
+  "returns.goneLost": "Gone: lost {bdt}",
+  "returns.standingWorth":
+    "Standing: {cost} spent on them, worth {low} to {high} today",
+  "returns.daysSoFar":
+    "{days} days so far · a year's rate once the last has gone",
+  "returns.gapsTitle":
+    "{count, plural, one {# animal left out} other {# animals left out}}, not valued today",
+  "returns.gap.no_price": "{tag}: no price a kilo set",
+  "returns.gap.no_weight": "{tag}: never weighed",
+  "returns.fix.no_price": "Set the price",
+  "returns.fix.no_weight": "Open her page",
+  "returns.missingTitle":
+    "{count, plural, one {# animal is} other {# animals are}} left out of the figures below, with nothing to value them at today",
+  "returns.missingHint":
+    "Each is left out whole, what she cost and what she is worth, so the want of a price never reads as a loss.",
+  "returns.panelTitle": "What it returns",
+  "returns.panelHint":
+    "Worked as its Settlement is: what its cattle fetched against what they cost to take on and everything charged to them.",
+  "returns.seeAll": "All Seasons and Ventures",
   "returns.leftOut":
     "Wages, sheds, equipment, dung and what the money would have earned elsewhere are not in these figures, so they read higher than a published study's on the same animals.",
   "sale.title": "Sell an animal",

@@ -3,6 +3,7 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 
 import { Section } from "@/components/page";
 import { FigureTerm } from "@/components/page-kit";
+import { VentureReturnsPanel } from "@/components/returns/returns-page";
 import { InThePortal } from "@/components/ventures/in-the-portal";
 import { PlanAgainstActual } from "@/components/ventures/plan-against-actual";
 import { VentureAccountPanel } from "@/components/ventures/venture-account";
@@ -189,6 +190,7 @@ export const VentureOverview = ({ venture }: { venture: Venture }) => (
     <VenturePlanPanel venture={venture} />
     <PlanAgainstActual venture={venture} />
     <VentureProjectionPanel venture={venture} />
+    <VentureReturnsPanel ventureId={venture.id} />
     <div className="grid gap-4 lg:grid-cols-2">
       <TheMoney venture={venture} />
       <TheTerms venture={venture} />

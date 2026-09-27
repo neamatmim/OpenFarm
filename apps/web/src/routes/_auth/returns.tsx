@@ -7,7 +7,9 @@ import { PageTabs } from "@/components/page-kit";
 import {
   BankRateList,
   FinishedReturns,
+  MissingPrices,
   ReturnsChart,
+  StillGoing,
   useReturns,
 } from "@/components/returns/returns-page";
 import { useLanguage } from "@/i18n/language-provider";
@@ -46,6 +48,7 @@ const ReturnsPage = () => {
   return (
     <Page>
       {header}
+      <MissingPrices page={page} />
       <PageTabs
         onChange={(value) =>
           navigate({
@@ -71,6 +74,12 @@ const ReturnsPage = () => {
                   title={t("returns.finishedTitle")}
                 >
                   <FinishedReturns page={page} />
+                </Section>
+                <Section
+                  description={t("returns.stillGoingHint")}
+                  title={t("returns.stillGoingTitle")}
+                >
+                  <StillGoing page={page} />
                 </Section>
                 <p className="text-muted-foreground text-sm italic">
                   {t("returns.leftOut")}

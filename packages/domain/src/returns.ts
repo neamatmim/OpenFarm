@@ -122,6 +122,10 @@ export const returnOnCapitalOf = ({
   };
 };
 
+/** What some sums came to, together. */
+const costOf = (lines: readonly Spent[]) =>
+  lines.reduce((sum, one) => sum + one.bdt, 0);
+
 /** What a Season or a Venture still going has in it: what it sold, and what stands at today's price, low and high. */
 export interface RunningRange {
   /** What the animals already gone made: a fact. */
@@ -162,8 +166,6 @@ export const runningRangeOf = ({
   if (!(low && high)) {
     return null;
   }
-  const costOf = (lines: readonly Spent[]) =>
-    lines.reduce((sum, one) => sum + one.bdt, 0);
   return {
     soldResultBdt: roundTaka(sold.backBdt - costOf(sold.spent)),
     standingCostBdt: roundTaka(costOf(standing.spent)),
