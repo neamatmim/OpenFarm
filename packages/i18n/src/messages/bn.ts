@@ -1705,6 +1705,8 @@ export const bn: Record<MessageKey, string> = {
   "auditField.approvedBy": "কে অনুমোদন করেছেন",
   "auditField.approvedAt": "কখন অনুমোদন হয়েছে",
   "auditField.note": "মন্তব্য",
+  "auditField.perYear": "বছরে হার",
+  "auditField.fromDay": "যেদিন থেকে",
   "auditField.counterpartyId": "কার সাথে",
   "auditField.priceBdt": "দাম (৳)",
   "auditField.kind": "ধরন",
@@ -1835,6 +1837,7 @@ export const bn: Record<MessageKey, string> = {
   "audit.entity.ready_set_aside": "বিক্রয় থেকে সরানো",
   "audit.entity.investor": "বিনিয়োগকারী",
   "audit.entity.nomination": "মনোনয়ন",
+  "audit.entity.bank_rate": "ব্যাংকের হার",
   "audit.entity.invite": "আমন্ত্রণ",
   "audit.entity.farm": "খামার",
   "audit.system": "সিস্টেম",
@@ -3700,6 +3703,26 @@ export const bn: Record<MessageKey, string> = {
     "তাঁদের পুরো মূলধনের ওপর মুনাফার ভাগ — টাকা ভেঞ্চার হিসাবে পৌঁছানোর দিন থেকে ফেরত যাওয়ার দিন পর্যন্ত, অলস পড়ে থাকা দিনগুলোও ধরে।",
   "returns.farmsShare": "খামারের ভাগ, কাজের জন্য: {bdt}",
   "returns.openVenture": "ভেঞ্চারটি খুলুন",
+  "returns.tab.fattening": "মোটাতাজা",
+  "returns.tab.prices": "দাম",
+  "returns.bankLine": "ব্যাংকের হার, বছরে: {rate} — {note}",
+  "returns.bankMark": "দাগ: সেই টাকা প্রথম খাটানোর দিনে চালু ব্যাংকের হার",
+  "returns.bankTitle": "ব্যাংকের হার",
+  "returns.bankHint":
+    "ব্যাংক যেমন বলে, করের আগে, বছরে ব্যাংকের হার: প্রতিটি শেষ হওয়া বছরের হিসাবের পাশে বসে, সেই টাকা প্রথম খাটানোর দিনে যেমন ছিল। শুধু আপনার জন্য — কোনো বিনিয়োগকারীকে কখনো দেখানো হয় না।",
+  "returns.bankNone":
+    "এখনো কোনো হার লেখা হয়নি। না লেখা পর্যন্ত ফলের পাশে কিছু বসানো হবে না।",
+  "returns.bankFrom": "{day} থেকে",
+  "returns.bankInForce": "চালু",
+  "returns.bankSet": "হার লিখুন",
+  "returns.bankPerYear": "বছরে প্রতি ১০০ টাকায় হার",
+  "returns.bankNote": "কীসের হার",
+  "returns.bankNoteHint":
+    "কোন ব্যাংক, কোন হিসাব, সাময়িক না চূড়ান্ত — যেমন IBBL ১২ মাসের মুদারাবা, চূড়ান্ত ২০২৫",
+  "returns.bankFromDay": "যেদিন থেকে",
+  "returns.bankFromDayHint":
+    "আজ, অথবা আগের কোনো দিন — গত বছরের মৌসুমের পাশে গত বছরের হার বসাতে। ভুল হলে একই দিন থেকে আবার লিখুন।",
+  "returns.bankSaved": "হার রাখা হলো",
   "returns.leftOut":
     "মজুরি, শেড, যন্ত্রপাতি, গোবর আর টাকার নিজের খরচ এতে ধরা নেই — তাই একই পশুর ওপর প্রকাশিত গবেষণার হিসাবের চেয়ে বেশি দেখায়।",
   "sale.title": "পশু বিক্রয়",

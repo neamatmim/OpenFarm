@@ -53,6 +53,7 @@ export const ENTITIES = [
   "ready_set_aside",
   "investor",
   "nomination",
+  "bank_rate",
   "eid_announcement",
   "paper_template",
   "paper_template_version",
@@ -211,6 +212,8 @@ export const fieldChanges = (
 
 /** The fields of a record the trail has a word for: what a change touched, named as the screens name it. */
 const NAMED_FIELDS = new Set<string>([
+  "perYear",
+  "fromDay",
   "phone",
   "address",
   "nid",

@@ -1,6 +1,7 @@
 import type { Database } from "@OpenFarm/db";
 import type { Returned, Spent, TargetWindow } from "@OpenFarm/domain";
 import {
+  farmDayOf,
   returnOf,
   returnOnCapitalOf,
   seasonOf,
@@ -34,6 +35,55 @@ interface Holding {
   priceBdt: number;
   left: { how: Gone; on: Date; backBdt: number } | null;
 }
+
+/** A **Bank Rate** as the page says it beside a rate a year. */
+export interface BankRateSaid {
+  perYear: number;
+  note: string;
+  fromDay: string;
+}
+
+/** Every Bank Rate the Owner has typed, the one that would be in force first: the latest day, then the latest typed. */
+const bankRatesOf = async (db: Database, farmId: string) => {
+  const rows = await db.query.bankRate.findMany({
+    where: { farmId },
+    orderBy: { fromDay: "desc", recordedAt: "desc", id: "desc" },
+  });
+  return rows.map((one) => ({
+    id: one.id,
+    perYear: Number(one.perYear),
+    note: one.note,
+    fromDay: one.fromDay,
+    recordedAt: one.recordedAt,
+  }));
+};
+
+type BankRates = Awaited<ReturnType<typeof bankRatesOf>>;
+
+/**
+ * The Bank Rate a Season or a Venture reads: the one in force on the day its first taka went in, as a deposit made
+ * that day would have locked it — and none for one with no rate a year to set it beside.
+ */
+const bankRateFor = (
+  rates: BankRates,
+  holdings: readonly Holding[],
+  returned: Returned | null
+): BankRateSaid | null => {
+  if (
+    returned?.perYear === null ||
+    returned === null ||
+    holdings.length === 0
+  ) {
+    return null;
+  }
+  const firstTaka = farmDayOf(
+    new Date(Math.min(...holdings.map((one) => one.takenOn.getTime())))
+  );
+  const inForce = rates.find((one) => one.fromDay <= firstTaka);
+  return inForce
+    ? { perYear: inForce.perYear, note: inForce.note, fromDay: inForce.fromDay }
+    : null;
+};
 
 /** What every sum on the page is read from, read once: the costing, whose each Animal was on a day, and every way an
  *  Animal came to an owner and left one. */
@@ -208,6 +258,8 @@ export interface SeasonReturn {
   head: number;
   died: number;
   returnOnCost: Returned | null;
+  /** The Bank Rate in force on its first taka, beside its rate a year; none without one. */
+  bankRate: BankRateSaid | null;
 }
 
 /**
@@ -217,6 +269,7 @@ export interface SeasonReturn {
  */
 const seasonsOf = (
   books: Books,
+  rates: BankRates,
   floorDays: number,
   today: Date
 ): SeasonReturn[] => {
@@ -243,14 +296,18 @@ const seasonsOf = (
     bySeason.set(season.key, group);
   }
   return [...bySeason.values()]
-    .map(({ season, holdings }) => ({
-      key: season.key,
-      eid: season.eid,
-      window: season.window,
-      head: holdings.length,
-      died: holdings.filter((one) => one.left?.how === "died").length,
-      ...returnOfHoldings(books, null, holdings, today, floorDays),
-    }))
+    .map(({ season, holdings }) => {
+      const worked = returnOfHoldings(books, null, holdings, today, floorDays);
+      return {
+        key: season.key,
+        eid: season.eid,
+        window: season.window,
+        head: holdings.length,
+        died: holdings.filter((one) => one.left?.how === "died").length,
+        ...worked,
+        bankRate: bankRateFor(rates, holdings, worked.returnOnCost),
+      };
+    })
     .toSorted(
       (a, b) =>
         b.window.start.localeCompare(a.window.start) ||
@@ -271,6 +328,8 @@ export interface VentureReturn {
   returnOnCapital: ReturnType<typeof returnOnCapitalOf>;
   /** The Farm's share, for its work: taka, never a ratio, because the Farm put in no money. */
   farmsShareBdt: number;
+  /** The Bank Rate in force on its first taka, beside its rate a year; none without one. */
+  bankRate: BankRateSaid | null;
 }
 
 /**
@@ -282,6 +341,7 @@ const venturesOf = async (
   db: Database,
   farmId: string,
   books: Books,
+  rates: BankRates,
   floorDays: number,
   today: Date
 ): Promise<VentureReturn[]> => {
@@ -364,6 +424,13 @@ const venturesOf = async (
           paidBack,
         }));
     });
+    const { returnOnCost } = returnOfHoldings(
+      books,
+      venture.id,
+      holdings,
+      today,
+      floorDays
+    );
     out.push({
       id: venture.id,
       name: venture.name,
@@ -373,19 +440,14 @@ const venturesOf = async (
       },
       head: holdings.length,
       died: holdings.filter((one) => one.left?.how === "died").length,
-      returnOnCost: returnOfHoldings(
-        books,
-        venture.id,
-        holdings,
-        today,
-        floorDays
-      ).returnOnCost,
+      returnOnCost,
       returnOnCapital: returnOnCapitalOf({
         capital,
         shareBdt: approved.shares.reduce((sum, one) => sum + one.shareBdt, 0),
         floorDays,
       }),
       farmsShareBdt: approved.row.farmBdt,
+      bankRate: bankRateFor(rates, holdings, returnOnCost),
     });
   }
   return out;
@@ -398,11 +460,20 @@ export const returnsPage = async (
   now: Date
 ) => {
   const books = await booksOf(db, farm.id);
+  const bankRates = await bankRatesOf(db, farm.id);
   const floorDays = farm.returnYearFloorDays;
-  const ventures = await venturesOf(db, farm.id, books, floorDays, now);
+  const ventures = await venturesOf(
+    db,
+    farm.id,
+    books,
+    bankRates,
+    floorDays,
+    now
+  );
   return {
     floorDays,
-    seasons: seasonsOf(books, floorDays, now),
+    seasons: seasonsOf(books, bankRates, floorDays, now),
     ventures,
+    bankRates,
   };
 };

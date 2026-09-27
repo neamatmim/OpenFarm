@@ -1831,6 +1831,8 @@ export const en = {
   "auditField.approvedBy": "Approved by",
   "auditField.approvedAt": "Approved at",
   "auditField.note": "Note",
+  "auditField.perYear": "Rate a year",
+  "auditField.fromDay": "Holds from",
   "auditField.counterpartyId": "With",
   "auditField.priceBdt": "Price (Tk)",
   "auditField.kind": "Kind",
@@ -1961,6 +1963,7 @@ export const en = {
   "audit.entity.ready_set_aside": "Set aside from sale",
   "audit.entity.investor": "Investor",
   "audit.entity.nomination": "Nomination",
+  "audit.entity.bank_rate": "Bank Rate",
   "audit.entity.invite": "Invite",
   "audit.entity.farm": "Farm",
   "audit.system": "System",
@@ -3956,6 +3959,27 @@ export const en = {
     "Their share of the profit over all their capital, from the day it reached the Venture Account to the day it went back, the days it waited among them.",
   "returns.farmsShare": "The Farm's share, for its work: {bdt}",
   "returns.openVenture": "Open the Venture",
+  "returns.tab.fattening": "Fattening",
+  "returns.tab.prices": "Prices",
+  "returns.bankLine": "The bank's rate a year: {rate} — {note}",
+  "returns.bankMark":
+    "Marked: the bank's rate on the day that money first went in",
+  "returns.bankTitle": "The Bank Rate",
+  "returns.bankHint":
+    "A bank's rate a year, before its tax, as the bank quotes it: set beside each finished rate a year, as it stood on the day that money first went in. Yours alone, and never shown to an Investor.",
+  "returns.bankNone":
+    "No rate typed yet. Until you type one, nothing is set beside the returns.",
+  "returns.bankFrom": "From {day}",
+  "returns.bankInForce": "In force",
+  "returns.bankSet": "Type a rate",
+  "returns.bankPerYear": "Rate a year, on every ৳100",
+  "returns.bankNote": "What it is",
+  "returns.bankNoteHint":
+    "The bank, the account, and provisional or final — e.g. IBBL 12-month mudaraba, final 2025",
+  "returns.bankFromDay": "Holds from",
+  "returns.bankFromDayHint":
+    "Today, or an earlier day to set last year's rate beside last year's Season. A rate put right is typed again from the same day.",
+  "returns.bankSaved": "Rate saved",
   "returns.leftOut":
     "Wages, sheds, equipment, dung and what the money would have earned elsewhere are not in these figures, so they read higher than a published study's on the same animals.",
   "sale.title": "Sell an animal",
