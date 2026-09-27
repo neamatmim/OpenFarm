@@ -23,7 +23,8 @@ export interface OutOfBand {
   fitsIn: { penId: string; penName: string; rationName: string }[];
 }
 
-const hasBand = ({ fromKg, toKg }: WeightBand) =>
+/** Whether a Ration's band says anything: one open at both ends is written for any weight. */
+export const hasBand = ({ fromKg, toKg }: WeightBand) =>
   fromKg !== null || toKg !== null;
 
 /** Grown out of it first — he is eating a small bull's share of the trough — then too light, then by tag. */

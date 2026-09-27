@@ -3,7 +3,7 @@ import { cn } from "@OpenFarm/ui/lib/utils";
 import { useT } from "@/i18n/language-provider";
 
 /** One word to narrow by: a toggle that says whether it is the one chosen. */
-const Chip = ({
+export const Chip = ({
   chosen,
   label,
   onChoose,

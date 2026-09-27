@@ -5,10 +5,12 @@ import type {
   RunningRange,
   Spent,
   TargetWindow,
+  WeightBand,
 } from "@OpenFarm/domain";
 import {
   EXIT_STATES,
   RUNNING_STATES,
+  bandStanding,
   farmDayOf,
   returnOf,
   returnOnCapitalOf,
@@ -16,10 +18,13 @@ import {
   seasonOf,
   startOfFarmDay,
 } from "@OpenFarm/domain";
+import { ORPCError } from "@orpc/server";
 
 import { pricesOnTheSide } from "./animal-price-store";
+import { hasBand } from "./band-store";
 import type { FarmCosts } from "./cost-store";
 import { farmCosts } from "./cost-store";
+import { bandOf } from "./feed-store";
 import { weighedForTheCrossing } from "./joining-store";
 import { approvedSettlementOf } from "./settlement-store";
 import { ownedThenByOf } from "./venture-store";
@@ -131,6 +136,7 @@ interface Books {
   bankRates: BankRateRows;
   ownedThenBy: OwnedThenBy;
   intakes: {
+    id: string;
     animalId: string;
     purchasePriceBdt: number;
     arrivedAt: Date;
@@ -165,6 +171,7 @@ const booksOf = async (
   const intakes = await db.query.intake.findMany({
     where: { farmId },
     columns: {
+      id: true,
       animalId: true,
       purchasePriceBdt: true,
       arrivedAt: true,
@@ -431,40 +438,47 @@ export interface SeasonReturn {
   bankRate: BankRateSaid | null;
 }
 
+/** How an Animal came to the Farm's Fattening side for a Season: bought in on an Intake, or joined it since. */
+type Came =
+  | { how: "intake"; intakeId: string }
+  | { how: JoiningHow; joiningId: string };
+
+/** One Animal's holding in a Season, and how she came to it: what the Season's breakdowns sort her by. */
+type SeasonHolding = Holding & { came: Came };
+
 /**
- * The Farm's own fattening Animals grouped by the Target Window they were fed for: each Season with what it cost, what
- * came back, and so what every hundred taka made. An Animal stays in her Season however she went — sold before her
- * Eid, kept on after it, dead, or sold to a Venture — so a bad buy shows in the Season that made it.
+ * The Farm's own fattening Animals grouped into Seasons by the Target Window they were fed for — bought in, walked
+ * across from Dairy, or bought from a Venture — each from the day she came, at the price she came at, or named until
+ * a crossing is priced. An Animal stays in her Season however she went: sold before her Eid, kept on after it, dead,
+ * or sold to a Venture. Read by the page and by a Season's breakdowns, so the two are one sum.
  */
-const seasonsOf = (
-  books: Books,
-  floorDays: number,
-  today: Date
-): SeasonReturn[] => {
+const seasonGroupsOf = (books: Books) => {
   const bySeason = new Map<
     string,
-    { season: ReturnType<typeof seasonOf>; holdings: Holding[] }
+    { season: ReturnType<typeof seasonOf>; holdings: SeasonHolding[] }
   >();
+  const add = (window: TargetWindow, holding: SeasonHolding) => {
+    const season = seasonOf(window);
+    const group = bySeason.get(season.key) ?? { season, holdings: [] };
+    group.holdings.push(holding);
+    bySeason.set(season.key, group);
+  };
   for (const intake of books.intakes) {
     // The Farm's own only: a beast a Venture's money bought is that Venture's, and its Settlement's.
     if (books.ownedThenBy(intake.animalId, intake.arrivedAt) !== null) {
       continue;
     }
-    const season = seasonOf({
-      start: intake.targetWindowStart,
-      end: intake.targetWindowEnd,
-    });
-    const group = bySeason.get(season.key) ?? { season, holdings: [] };
-    group.holdings.push({
-      animalId: intake.animalId,
-      takenOn: intake.arrivedAt,
-      priceBdt: intake.purchasePriceBdt,
-      left: leftOf(books, null, intake.animalId, intake.arrivedAt),
-    });
-    bySeason.set(season.key, group);
+    add(
+      { start: intake.targetWindowStart, end: intake.targetWindowEnd },
+      {
+        animalId: intake.animalId,
+        takenOn: intake.arrivedAt,
+        priceBdt: intake.purchasePriceBdt,
+        left: leftOf(books, null, intake.animalId, intake.arrivedAt),
+        came: { how: "intake", intakeId: intake.id },
+      }
+    );
   }
-  // And every one who joined the Farm's Fattening side other than by Intake: walked across from Dairy, or bought
-  // from a Venture — from the day she joined, at the price she joined at, or named until a crossing is priced.
   const tagOf = new Map(
     books.costs.animals.map((one) => [one.id, one.tagNumber])
   );
@@ -472,29 +486,36 @@ const seasonsOf = (
     if (books.ownedThenBy(joining.animalId, joining.joinedAt) !== null) {
       continue;
     }
-    const season = seasonOf({
-      start: joining.targetWindowStart,
-      end: joining.targetWindowEnd,
-    });
-    const group = bySeason.get(season.key) ?? { season, holdings: [] };
-    group.holdings.push({
-      animalId: joining.animalId,
-      takenOn: joining.joinedAt,
-      priceBdt: joining.priceBdt ?? 0,
-      left: leftOf(
-        books,
-        null,
-        joining.animalId,
-        joining.joinedAt,
-        joining.internalSaleId
-      ),
-      ...(joining.priceBdt === null
-        ? { unpriced: { tagNumber: tagOf.get(joining.animalId) ?? "" } }
-        : {}),
-    });
-    bySeason.set(season.key, group);
+    add(
+      { start: joining.targetWindowStart, end: joining.targetWindowEnd },
+      {
+        animalId: joining.animalId,
+        takenOn: joining.joinedAt,
+        priceBdt: joining.priceBdt ?? 0,
+        left: leftOf(
+          books,
+          null,
+          joining.animalId,
+          joining.joinedAt,
+          joining.internalSaleId
+        ),
+        ...(joining.priceBdt === null
+          ? { unpriced: { tagNumber: tagOf.get(joining.animalId) ?? "" } }
+          : {}),
+        came: { how: joining.how, joiningId: joining.id },
+      }
+    );
   }
-  return [...bySeason.values()]
+  return bySeason;
+};
+
+/** The Farm's own fattening Animals, Season by Season: what each cost, what came back, and so every hundred taka. */
+const seasonsOf = (
+  books: Books,
+  floorDays: number,
+  today: Date
+): SeasonReturn[] =>
+  [...seasonGroupsOf(books).values()]
     .map(({ season, holdings }) => {
       const worked = returnOfHoldings(books, null, holdings, today, floorDays);
       return {
@@ -516,7 +537,6 @@ const seasonsOf = (
         b.window.start.localeCompare(a.window.start) ||
         a.key.localeCompare(b.key)
     );
-};
 
 /** A **Venture** as the Owner reads it on the Returns page: settled, or still buying, fattening or selling. */
 export interface VentureReturn {
@@ -789,4 +809,303 @@ export const ventureReturns = async (
   );
   const venture = ventures.find((one) => one.id === ventureId);
   return venture ? { ...venture, floorDays: farm.returnYearFloorDays } : null;
+};
+
+/** The ways a finished Season opens out. */
+export const BREAKDOWNS = [
+  "haat",
+  "trader",
+  "breed",
+  "band",
+  "animal",
+] as const;
+export type BreakdownBy = (typeof BREAKDOWNS)[number];
+
+/**
+ * What one line of a breakdown is: a haat, a trader or a breed by its name; a Weight Band by its weights; one with none
+ * of it written — the farm gate, no seller, no breed, no band her weight fell in; one who joined the Season other than
+ * by Intake, who had no haat or trader; or one Animal, how she came and how she left.
+ */
+export type BreakdownLine =
+  | { kind: "named"; id: string; name: string; nameEn: string | null }
+  | { kind: "band"; fromKg: number | null; toKg: number | null }
+  | { kind: "none" }
+  | { kind: JoiningHow }
+  | {
+      kind: "animal";
+      tagNumber: string;
+      came: "intake" | JoiningHow;
+      /** The farm day she came to the Season: an Animal sold to a Venture and bought back is two lines. */
+      since: string;
+      left: Gone;
+    };
+
+/** One line of a breakdown: its Animals' own share of the Season's sum. A share only, never put a year. */
+export interface BreakdownRow {
+  line: BreakdownLine;
+  head: number;
+  died: number;
+  costBdt: number;
+  backBdt: number;
+  resultBdt: number;
+  /** What every hundred taka made, to one place; null for a line that cost nothing. */
+  per100: number | null;
+}
+
+/** A band's From, an open one below every weight: what bands are ordered by. */
+const fromOf = (band: WeightBand) => band.fromKg ?? -Infinity;
+
+/** A band's To, an open one above every weight. */
+const toOf = (band: WeightBand) => band.toKg ?? Infinity;
+
+/** The narrower band first: the higher From, then the lower To. */
+const narrowerFirst = (a: WeightBand, b: WeightBand) =>
+  fromOf(b) - fromOf(a) || toOf(a) - toOf(b);
+
+/**
+ * Every Weight Band the Farm's Rations have been written for, retired ones too — a finished Season's buying weights do
+ * not move because a Ration was put away since — each once however many Rations share it.
+ */
+const farmsBands = (
+  rations: readonly { weightFromKg: string | null; weightToKg: string | null }[]
+): WeightBand[] => {
+  const seen = new Map<string, WeightBand>();
+  for (const band of rations.map(bandOf).filter(hasBand)) {
+    seen.set(`${band.fromKg}|${band.toKg}`, band);
+  }
+  return [...seen.values()];
+};
+
+/** The band a weight fell in: of those it fits, the narrowest, so a Ration for "up to 400 kg" does not swallow one
+ *  written for 150 to 250. None where it fits none. */
+const bandOfWeight = (
+  bands: readonly WeightBand[],
+  kg: number
+): WeightBand | undefined =>
+  bands
+    .filter((one) => bandStanding(kg, one) === "fits")
+    .toSorted(narrowerFirst)[0];
+
+/** What the breakdowns need to know of each Animal in a Season beyond her money: where, from whom, what, how heavy. */
+const buyingFactsOf = async (
+  db: Database,
+  farmId: string,
+  holdings: readonly SeasonHolding[]
+) => {
+  const intakeIds = holdings.flatMap(({ came }) =>
+    came.how === "intake" ? [came.intakeId] : []
+  );
+  const joiningIds = holdings.flatMap(({ came }) =>
+    "joiningId" in came ? [came.joiningId] : []
+  );
+  // One client may be a transaction's, so these reads stay one after another.
+  const intakes = await db.query.intake.findMany({
+    where: { farmId, id: { in: intakeIds } },
+    columns: { id: true, weightKg: true },
+    with: {
+      seller: { columns: { id: true, name: true } },
+      buyingTrip: { columns: { wentTo: true } },
+    },
+  });
+  const joinings = await db.query.fatteningJoining.findMany({
+    where: { farmId, id: { in: joiningIds } },
+    columns: { id: true, weightKg: true },
+  });
+  const animals = await db.query.animal.findMany({
+    where: { farmId, id: { in: holdings.map((one) => one.animalId) } },
+    columns: { id: true, tagNumber: true },
+    with: { breed: { columns: { id: true, nameBn: true, nameEn: true } } },
+  });
+  const rations = await db.query.ration.findMany({
+    where: { farmId },
+    columns: { weightFromKg: true, weightToKg: true },
+  });
+  return {
+    intakes: new Map(intakes.map((one) => [one.id, one])),
+    joinedKg: new Map(
+      joinings.map((one) => [
+        one.id,
+        one.weightKg === null ? null : Number(one.weightKg),
+      ])
+    ),
+    animals: new Map(animals.map((one) => [one.id, one])),
+    bands: farmsBands(rations),
+  };
+};
+
+type BuyingFacts = Awaited<ReturnType<typeof buyingFactsOf>>;
+
+const NONE: BreakdownLine = { kind: "none" };
+
+type BoughtOn = BuyingFacts["intakes"] extends Map<string, infer I> ? I : never;
+
+/** The Weight Band her weight fell in when she came — the Intake's weight, or the joining's — or none. */
+const bandLineOf = (
+  came: Came,
+  intake: BoughtOn | undefined,
+  facts: BuyingFacts
+): BreakdownLine => {
+  const kg =
+    "joiningId" in came
+      ? facts.joinedKg.get(came.joiningId)
+      : Number(intake?.weightKg);
+  if (kg === null || kg === undefined || Number.isNaN(kg)) {
+    return NONE;
+  }
+  const band = bandOfWeight(facts.bands, kg);
+  return band ? { kind: "band", ...band } : NONE;
+};
+
+/** Where she was bought, or from whom: an Intake's haat, from her Buying Trip, or her seller. */
+const boughtLineOf = (
+  by: "haat" | "trader",
+  intake: BoughtOn | undefined
+): BreakdownLine => {
+  if (by === "haat") {
+    const wentTo = intake?.buyingTrip?.wentTo.trim();
+    return wentTo
+      ? { kind: "named", id: wentTo, name: wentTo, nameEn: null }
+      : NONE;
+  }
+  return intake?.seller
+    ? {
+        kind: "named",
+        id: intake.seller.id,
+        name: intake.seller.name,
+        nameEn: null,
+      }
+    : NONE;
+};
+
+/** Which line of a breakdown one holding falls in. */
+const lineOf = (
+  by: BreakdownBy,
+  holding: SeasonHolding,
+  facts: BuyingFacts
+): BreakdownLine => {
+  const { came } = holding;
+  const her = facts.animals.get(holding.animalId);
+  const intake =
+    came.how === "intake" ? facts.intakes.get(came.intakeId) : undefined;
+  if (by === "animal") {
+    return {
+      kind: "animal",
+      tagNumber: her?.tagNumber ?? "",
+      came: came.how,
+      since: farmDayOf(holding.takenOn),
+      left: holding.left?.how ?? "sold",
+    };
+  }
+  if (by === "breed") {
+    return her?.breed
+      ? {
+          kind: "named",
+          id: her.breed.id,
+          name: her.breed.nameBn,
+          nameEn: her.breed.nameEn,
+        }
+      : NONE;
+  }
+  if (by === "band") {
+    return bandLineOf(came, intake, facts);
+  }
+  // A haat and a trader are an Intake's: one who joined had neither, and says how she came instead.
+  return came.how === "intake" ? boughtLineOf(by, intake) : { kind: came.how };
+};
+
+/** Named lines, bands and Animals first, in their own order; then none written; then those who joined. */
+const LINE_RANK: Record<BreakdownLine["kind"], number> = {
+  named: 0,
+  band: 0,
+  animal: 0,
+  none: 1,
+  crossed: 2,
+  bought_from_venture: 3,
+};
+
+const byLine = (a: BreakdownLine, b: BreakdownLine): number => {
+  const rank = LINE_RANK[a.kind] - LINE_RANK[b.kind];
+  if (rank !== 0) {
+    return rank;
+  }
+  // Each with a tie-break, so two traders of one name, or two bands from one weight, keep one order.
+  if (a.kind === "named" && b.kind === "named") {
+    return a.name.localeCompare(b.name, "bn") || a.id.localeCompare(b.id);
+  }
+  if (a.kind === "band" && b.kind === "band") {
+    return fromOf(a) - fromOf(b) || toOf(a) - toOf(b);
+  }
+  if (a.kind === "animal" && b.kind === "animal") {
+    return (
+      a.tagNumber.localeCompare(b.tagNumber) || a.since.localeCompare(b.since)
+    );
+  }
+  return 0;
+};
+
+/**
+ * A finished Season opened out by haat, trader, breed, the Weight Band her buying weight fell in, or each Animal: every
+ * line the Season's own sum narrowed to its Animals — what they cost, what came back, the dead in — so the lines add up
+ * to the Season, each rounded to the taka as the Season is, so a line's paisa may put their sum a taka off it. A share
+ * only: never put a year, because a year on a handful of animals leads the eye astray. Refused for a Season still
+ * going, which is no result to judge the buying by.
+ */
+export const seasonBreakdown = async (
+  db: Database,
+  farm: ReturnsFarm,
+  input: { seasonKey: string; by: BreakdownBy },
+  now: Date
+): Promise<BreakdownRow[]> => {
+  const books = await booksOf(db, farm, now);
+  const group = seasonGroupsOf(books).get(input.seasonKey);
+  if (!group) {
+    throw new ORPCError("NOT_FOUND", {
+      message: "There is no such Season",
+      data: { refusal: "no_such_season" },
+    });
+  }
+  const worked = returnOfHoldings(
+    books,
+    null,
+    group.holdings,
+    now,
+    farm.returnYearFloorDays
+  );
+  if (!worked.finished) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A Season still going is no result to open out",
+      data: { refusal: "season_not_finished" },
+    });
+  }
+  const facts = await buyingFactsOf(db, farm.id, group.holdings);
+  const lines = new Map<
+    string,
+    { line: BreakdownLine; holdings: SeasonHolding[] }
+  >();
+  for (const holding of group.holdings) {
+    const line = lineOf(input.by, holding, facts);
+    const key = JSON.stringify(line);
+    const one = lines.get(key) ?? { line, holdings: [] };
+    one.holdings.push(holding);
+    lines.set(key, one);
+  }
+  return [...lines.values()]
+    .toSorted((a, b) => byLine(a.line, b.line))
+    .map(({ line, holdings }) => {
+      const returned = returnOf({
+        spent: holdings.flatMap((one) => spentOn(books, null, one, now)),
+        backBdt: backOf(holdings),
+        floorDays: farm.returnYearFloorDays,
+        finished: true,
+      });
+      return {
+        line,
+        head: holdings.length,
+        died: holdings.filter((one) => one.left?.how === "died").length,
+        costBdt: returned?.costBdt ?? 0,
+        backBdt: returned?.backBdt ?? backOf(holdings),
+        resultBdt: returned?.resultBdt ?? backOf(holdings),
+        per100: returned?.per100 ?? null,
+      };
+    });
 };
