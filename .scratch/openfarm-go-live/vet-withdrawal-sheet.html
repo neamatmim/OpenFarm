@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="bn">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ওষুধের প্রত্যাহার সময়</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      @page {
+        size: A4;
+        margin: 14mm;
+      }
+      :root {
+        --ink: #1b1f1d;
+        --muted: #5b625e;
+        --line: #b9c0bc;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #fff;
+        color: var(--ink);
+        font:
+          14px/1.5 "Noto Sans Bengali",
+          system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 182mm;
+        margin: 0 auto;
+        padding: 16px;
+      }
+      h1 {
+        font-size: 20px;
+        margin: 0 0 4px;
+      }
+      .sub {
+        color: var(--muted);
+        margin: 0 0 14px;
+      }
+      .fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 24px;
+        margin-bottom: 14px;
+      }
+      .fields div {
+        border-bottom: 1px solid var(--line);
+        padding-top: 14px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      ol.how {
+        margin: 0 0 14px;
+        padding-left: 20px;
+        list-style-type: bengali;
+      }
+      ol.how li {
+        margin-bottom: 2px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        border: 1px solid var(--line);
+        padding: 6px 8px;
+        vertical-align: top;
+      }
+      th {
+        font-size: 12px;
+        font-weight: 600;
+        text-align: left;
+        background: #f1f3f2;
+      }
+      td.n {
+        width: 28px;
+        text-align: center;
+        color: var(--muted);
+      }
+      td.days {
+        width: 22mm;
+      }
+      td.note {
+        width: 34mm;
+      }
+      .en {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .blank td {
+        height: 30px;
+      }
+      .sign {
+        margin-top: 22px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+      .sign div {
+        border-top: 1px solid var(--ink);
+        padding-top: 4px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      @media print {
+        main {
+          padding: 0;
+        }
+        th {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>ওষুধের প্রত্যাহার সময় — ভেটেরিনারি সার্জনের জন্য</h1>
+      <p class="sub">
+        খামারের ওষুধের তালিকা। প্রতিটি ওষুধের পাশে দিন লিখে দিন, যাতে অ্যাপ বলতে
+        পারে কোন গাভীর দুধ ট্যাংকে যাবে না আর কোন পশু এখনো বিক্রি বা জবাই করা
+        যাবে না।
+      </p>
+
+      <div class="fields">
+        <div>খামার</div>
+        <div>তারিখ</div>
+        <div>ভেটেরিনারি সার্জনের নাম</div>
+        <div>রেজিস্ট্রেশন নম্বর ও ফোন</div>
+      </div>
+
+      <ol class="how">
+        <li>
+          <b>দুধ (দিন):</b> শেষ ডোজের পর কত দিন দুধ বিক্রি বা ট্যাংকে দেওয়া
+          যাবে না।
+        </li>
+        <li>
+          <b>মাংস (দিন):</b> শেষ ডোজের পর কত দিন পশু বিক্রি বা জবাই করা যাবে না।
+        </li>
+        <li>
+          কোনো অপেক্ষা না লাগলে <b>০</b> লিখুন। ঘর খালি রাখবেন না — খালি থাকলে
+          অ্যাপ ওষুধটি দিতে দেবে না।
+        </li>
+        <li>
+          খামারে এই ওষুধ ব্যবহার করা উচিত না হলে মন্তব্যে <b>বাদ</b> লিখুন। অন্য
+          ওষুধ যোগ করতে নিচের খালি সারি ব্যবহার করুন।
+        </li>
+      </ol>
+
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>ওষুধ</th>
+            <th>দুধ (দিন)</th>
+            <th>মাংস (দিন)</th>
+            <th>মন্তব্য</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="n">১</td>
+            <td>
+              অক্সিটেট্রাসাইক্লিন ২০% ইনজেকশন<span class="en"
+                >Oxytetracycline 20% LA injection</span
+              >
+            </td>
+            <td class="days"></td>
+            <td class="days"></td>
+            <td class="note"></td>
+          </tr>
+          <tr>
+            <td class="n">২</td>
+            <td>
+              পেনিসিলিন-স্ট্রেপটোমাইসিন<span class="en"
+                >Penicillin-Streptomycin</span
+              >
+            </td>
+            <td class="days"></td>
+            <td class="days"></td>
+            <td class="note"></td>
+          </tr>
+          <tr>
+            <td class="n">৩</td>
+            <td>
+              সেফটিওফার ইনজেকশন<span class="en">Ceftiofur injection</span>
+            </td>
+            <td class="days"></td>
+            <td class="days"></td>
+            <td class="note"></td>
+          </tr>
+          <tr>
+            <td class="n">৪</td>
+            <td>
+              মেলোক্সিক্যাম ইনজেকশন<span class="en">Meloxicam injection</span>
+            </td>
+            <td class="days"></td>
+            <td class="days"></td>
+            <td class="note"></td>
+          </tr>
+          <tr>
+            <td class="n">৫</td>
+            <td>
+              ওলানের টিউব (ক্লক্সাসিলিন)<span class="en"
+                >Intramammary tube (Cloxacillin)</span
+              >
+            </td>
+            <td class="days"></td>
+            <td class="days"></td>
+            <td class="note"></td>
+          </tr>
+          <tr>
+            <td class="n">৬</td>
+            <td>
+              ক্যালসিয়াম বোরোগ্লুকোনেট<span class="en"
+                >Calcium borogluconate</span
+              >
+            </td>
+            <td class="days"></td>
+            <td class="days"></td>
+            <td class="note"></td>
+          </tr>
+          <tr>
+            <td class="n">৭</td>
+            <td>
+              এফএমডি টিকা (ট্রাইভ্যালেন্ট)<span class="en"
+                >FMD vaccine (trivalent)</span
+              >
+            </td>
+            <td class="days"></td>
+            <td class="days"></td>
+            <td class="note"></td>
+          </tr>
+          <tr>
+            <td class="n">৮</td>
+            <td>
+              লাম্পি স্কিন টিকা<span class="en"
+                >Lumpy skin disease vaccine</span
+              >
+            </td>
+            <td class="days"></td>
+            <td class="days"></td>
+            <td class="note"></td>
+          </tr>
+          <tr>
+            <td class="n">৯</td>
+            <td>
+              অ্যালবেনডাজল কৃমিনাশক<span class="en">Albendazole drench</span>
+            </td>
+            <td class="days"></td>
+            <td class="days"></td>
+            <td class="note"></td>
+          </tr>
+          <tr>
+            <td class="n">১০</td>
+            <td>
+              অক্সিক্লোজানাইড (কলিজা কৃমির ওষুধ)<span class="en"
+                >Oxyclozanide (liver fluke drench)</span
+              >
+            </td>
+            <td class="days"></td>
+            <td class="days"></td>
+            <td class="note"></td>
+          </tr>
+          <tr>
+            <td class="n">১১</td>
+            <td>
+              গলাফোলা রোগের টিকা<span class="en"
+                >Haemorrhagic septicaemia (HS) vaccine</span
+              >
+            </td>
+            <td class="days"></td>
+            <td class="days"></td>
+            <td class="note"></td>
+          </tr>
+          <tr>
+            <td class="n">১২</td>
+            <td>
+              বাদলা রোগের টিকা<span class="en">Black quarter (BQ) vaccine</span>
+            </td>
+            <td class="days"></td>
+            <td class="days"></td>
+            <td class="note"></td>
+          </tr>
+          <tr>
+            <td class="n">১৩</td>
+            <td>তড়কা রোগের টিকা<span class="en">Anthrax vaccine</span></td>
+            <td class="days"></td>
+            <td class="days"></td>
+            <td class="note"></td>
+          </tr>
+          <tr>
+            <td class="n">১৪</td>
+            <td>
+              সাইপারমেথ্রিন স্প্রে (আঁটুলি ও মাছি)<span class="en"
+                >Cypermethrin spray (ticks and flies)</span
+              >
+            </td>
+            <td class="days"></td>
+            <td class="days"></td>
+            <td class="note"></td>
+          </tr>
+          <tr class="blank">
+            <td class="n">১৫</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr class="blank">
+            <td class="n">১৬</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr class="blank">
+            <td class="n">১৭</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="sign">
+        <div>ভেটেরিনারি সার্জনের স্বাক্ষর</div>
+        <div>মালিকের স্বাক্ষর</div>
+      </div>
+    </main>
+  </body>
+</html>
