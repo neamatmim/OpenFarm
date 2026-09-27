@@ -274,7 +274,6 @@ describe("what a settled Venture returned", () => {
     const { client: owner } = await as("owner", "2053-04-10T04:00:00.000Z");
     const { ventures } = await owner.returns.page();
     expect(ventures.find((one) => one.id === ventureId)).toMatchObject({
-      settled: true,
       head: 3,
       returnOnCost: {
         costBdt: 290_000,
@@ -302,7 +301,7 @@ describe("what a settled Venture returned", () => {
     });
   });
 
-  it("agrees with its Settlement on what it cost and what came back", async () => {
+  it("works its cattle from the costing to the same totals its Settlement froze", async () => {
     const { client: owner } = await as("owner", "2053-04-10T04:00:00.000Z");
     const approved = await owner.ventures.approvedSettlement({ ventureId });
     const { ventures } = await owner.returns.page();

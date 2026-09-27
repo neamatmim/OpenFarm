@@ -1,9 +1,11 @@
 import { startOfFarmDay } from "@OpenFarm/domain";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import type { MessageKey } from "@OpenFarm/i18n";
+import { formatDate, formatDigits } from "@OpenFarm/i18n";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ChevronDown, Sprout } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { EmptyState, StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
@@ -16,15 +18,23 @@ type Season = ReturnsPage["seasons"][number];
 type Venture = ReturnsPage["ventures"][number];
 type Returned = NonNullable<Season["returnOnCost"]>;
 
+/** What every hundred taka made, the days it was out, and that scaled to a year: all a return line says. */
+type Shares = Pick<Returned, "per100" | "averageDays" | "perYear">;
+
 /** What the money in the farm's cattle returned: the Owner's alone. */
 export const useReturns = () => useQuery(orpc.returns.page.queryOptions());
 
-/** A share to one place, in the reader's digits, never signed: the words say gain or loss. */
-const useShare = () => {
-  const { language } = useLanguage();
-  return (n: number) =>
-    formatNumber(Math.abs(n), language, { maximumFractionDigits: 1 });
-};
+/** The words for a figure that may be a gain or a loss: the figure itself is always said unsigned. */
+const SAID = {
+  onCost: ["returns.onCostGain", "returns.onCostLoss"],
+  onCapital: ["returns.onCapitalGain", "returns.onCapitalLoss"],
+  perYear: ["returns.perYearGain", "returns.perYearLoss"],
+  result: ["returns.made", "returns.lost"],
+} as const satisfies Record<string, readonly [MessageKey, MessageKey]>;
+
+/** Which of a pair of words a figure takes: the gain's at nought or above, the loss's below. */
+const wordFor = (pair: readonly [MessageKey, MessageKey], figure: number) =>
+  figure < 0 ? pair[1] : pair[0];
 
 /** What a Season is called: its Eid's year, or its window's dates. */
 const useSeasonName = () => {
@@ -36,67 +46,50 @@ const useSeasonName = () => {
           end: formatDate(startOfFarmDay(season.window.end), language),
         })
       : t("returns.eidSeason", {
-          year: formatNumber(Number(season.eid.slice(0, 4)), language, {
-            useGrouping: false,
-          }),
+          year: formatDigits(
+            startOfFarmDay(season.eid).getUTCFullYear(),
+            language
+          ),
         });
 };
 
 /** The share first, then the days its money was out, then that share scaled to a year — never the year alone. */
 const ReturnLines = ({
-  returned,
+  shares,
   floorDays,
   on,
 }: {
-  returned: Returned;
+  shares: Shares;
   floorDays: number;
-  on: "cost" | "capital";
+  on: "onCost" | "onCapital";
 }) => {
-  const { t, language } = useLanguage();
-  const share = useShare();
-  const days = formatNumber(returned.averageDays, language);
-  const gain = returned.per100 >= 0;
-  const said =
-    on === "cost"
-      ? t(gain ? "returns.onCostGain" : "returns.onCostLoss", {
-          amount: share(returned.per100),
-        })
-      : t(gain ? "returns.onCapitalGain" : "returns.onCapitalLoss", {
-          amount: share(returned.per100),
+  const { t } = useLanguage();
+  const lost = shares.per100 < 0;
+  // A finished Season or Venture with no rate a year was out fewer days than the floor: nothing else leaves it without.
+  const year =
+    shares.perYear === null
+      ? t("returns.underFloor", { floor: floorDays })
+      : t(wordFor(SAID.perYear, shares.perYear), {
+          rate: Math.abs(shares.perYear),
         });
-  const year = (() => {
-    // A finished run with no rate a year was out fewer days than the floor: nothing else leaves it without one.
-    if (returned.perYear === null) {
-      return t("returns.underFloor", {
-        floor: formatNumber(floorDays, language),
-      });
-    }
-    return t(
-      returned.perYear >= 0 ? "returns.perYearGain" : "returns.perYearLoss",
-      { rate: share(returned.perYear) }
-    );
-  })();
   return (
     <div className="flex flex-col gap-0.5">
-      <p
-        className={cn("font-medium tabular-nums", !gain && "text-destructive")}
-      >
-        {said}
+      <p className={cn("font-medium tabular-nums", lost && "text-destructive")}>
+        {t(wordFor(SAID[on], shares.per100), {
+          amount: Math.abs(shares.per100),
+        })}
       </p>
       <p className="text-muted-foreground text-sm tabular-nums">
-        {t("returns.days", { days })}
-        {year ? ` · ${year}` : ""}
+        {t("returns.days", { days: shares.averageDays })} · {year}
       </p>
     </div>
   );
 };
 
-/** How a rate a year was reached, opened under it. */
+/** How a rate a year was reached, opened under it, signed as it was worked: a loss is a share below nothing. */
 const Working = ({ returned }: { returned: Returned }) => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const taka = useTaka();
-  const share = useShare();
-  const days = formatNumber(returned.averageDays, language);
   return (
     <details className="text-muted-foreground text-sm">
       <summary className="cursor-pointer underline-offset-4 select-none hover:underline">
@@ -106,14 +99,14 @@ const Working = ({ returned }: { returned: Returned }) => {
         {t("returns.workingText", {
           cost: taka(returned.costBdt),
           back: taka(returned.backBdt),
-          days,
+          days: returned.averageDays,
         })}{" "}
         {returned.perYear === null
           ? null
           : t("returns.workingYear", {
-              share: share(returned.per100),
-              days,
-              rate: share(returned.perYear),
+              share: returned.per100,
+              days: returned.averageDays,
+              rate: returned.perYear,
             })}
       </p>
     </details>
@@ -126,14 +119,12 @@ const Result = ({ bdt }: { bdt: number }) => {
   const taka = useTaka();
   return (
     <span className={cn("tabular-nums", bdt < 0 && "text-destructive")}>
-      {t(bdt < 0 ? "returns.lost" : "returns.made", {
-        bdt: taka(Math.abs(bdt)),
-      })}
+      {t(wordFor(SAID.result, bdt), { bdt: taka(Math.abs(bdt)) })}
     </span>
   );
 };
 
-/** One finished run, closed to its name and result, opening into how it was worked. */
+/** One finished Season or Venture, closed to its name and result, opening into how it was worked. */
 const Row = ({
   kind,
   name,
@@ -143,13 +134,13 @@ const Row = ({
   floorDays,
   children,
 }: {
-  kind: string;
-  name: React.ReactNode;
+  kind: "returns.season" | "returns.venture";
+  name: string;
   head: number;
   died: number;
   returned: Returned;
   floorDays: number;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }) => {
   const { t } = useLanguage();
   return (
@@ -162,7 +153,7 @@ const Row = ({
               className="text-muted-foreground size-4 shrink-0 transition-transform group-open:rotate-180"
             />
             <span className="font-medium">{name}</span>
-            <StatusBadge tone="neutral">{kind}</StatusBadge>
+            <StatusBadge tone="neutral">{t(kind)}</StatusBadge>
             <span className="text-muted-foreground text-sm">
               {t("returns.head", { count: head })}
               {died > 0 ? ` · ${t("returns.died", { count: died })}` : ""}
@@ -171,7 +162,7 @@ const Row = ({
           <Result bdt={returned.resultBdt} />
         </summary>
         <div className="flex flex-col gap-3 border-t p-4">
-          <ReturnLines floorDays={floorDays} on="cost" returned={returned} />
+          <ReturnLines floorDays={floorDays} on="onCost" shares={returned} />
           <Working returned={returned} />
           {children}
         </div>
@@ -187,7 +178,6 @@ const SeasonRow = ({
   season: Season;
   floorDays: number;
 }) => {
-  const { t } = useLanguage();
   const named = useSeasonName();
   if (!season.returnOnCost) {
     return null;
@@ -197,7 +187,7 @@ const SeasonRow = ({
       died={season.died}
       floorDays={floorDays}
       head={season.head}
-      kind={t("returns.season")}
+      kind="returns.season"
       name={named(season)}
       returned={season.returnOnCost}
     />
@@ -221,7 +211,7 @@ const VentureRow = ({
       died={venture.died}
       floorDays={floorDays}
       head={venture.head}
-      kind={t("returns.venture")}
+      kind="returns.venture"
       name={venture.name}
       returned={venture.returnOnCost}
     >
@@ -230,17 +220,8 @@ const VentureRow = ({
           <p className="text-sm font-medium">{t("returns.capitalTitle")}</p>
           <ReturnLines
             floorDays={floorDays}
-            on="capital"
-            returned={{
-              costBdt: venture.returnOnCapital.capitalBdt,
-              backBdt:
-                venture.returnOnCapital.capitalBdt +
-                venture.returnOnCapital.shareBdt,
-              resultBdt: venture.returnOnCapital.shareBdt,
-              per100: venture.returnOnCapital.per100,
-              averageDays: venture.returnOnCapital.averageDays,
-              perYear: venture.returnOnCapital.perYear,
-            }}
+            on="onCapital"
+            shares={venture.returnOnCapital}
           />
           <p className="text-muted-foreground text-xs">
             {t("returns.capitalHint")}
@@ -261,7 +242,7 @@ const VentureRow = ({
   );
 };
 
-/** One finished run's rate a year, as a bar: a Season or a Venture's cattle. */
+/** One finished Season's or Venture's rate a year, as a bar. */
 interface Bar {
   key: string;
   name: string;
@@ -269,17 +250,17 @@ interface Bar {
 }
 
 /**
- * Each finished run's rate a year as a bar, longest first: one hue for a gain and the danger hue for a loss, the figure
- * beside it, so the sign is said in words as well as colour. Runs without a rate a year are not drawn.
+ * Each finished Season's and settled Venture's rate a year as a bar, longest first: one hue for a gain and the danger
+ * hue for a loss, the figure beside it, so the sign is said in words as well as colour. One with no rate a year — out
+ * fewer days than the floor, or not finished — is not drawn.
  */
 export const ReturnsChart = ({ page }: { page: ReturnsPage }) => {
   const { t } = useLanguage();
   const named = useSeasonName();
-  const share = useShare();
   const bars: Bar[] = [
     ...page.seasons.flatMap((one) => {
       const perYear = one.returnOnCost?.perYear;
-      return one.finished && typeof perYear === "number"
+      return typeof perYear === "number"
         ? [{ key: one.key, name: named(one), perYear }]
         : [];
     }),
@@ -317,10 +298,9 @@ export const ReturnsChart = ({ page }: { page: ReturnsPage }) => {
               bar.perYear < 0 && "text-destructive"
             )}
           >
-            {t(
-              bar.perYear < 0 ? "returns.perYearLoss" : "returns.perYearGain",
-              { rate: share(bar.perYear) }
-            )}
+            {t(wordFor(SAID.perYear, bar.perYear), {
+              rate: Math.abs(bar.perYear),
+            })}
           </span>
         </li>
       ))}
@@ -328,31 +308,41 @@ export const ReturnsChart = ({ page }: { page: ReturnsPage }) => {
   );
 };
 
-/** Every Season and settled Venture whose last animal has gone, newest first. */
-export const FinishedRuns = ({ page }: { page: ReturnsPage }) => {
+/** Every Season and settled Venture whose last animal has gone, together, the newest window first. */
+export const FinishedReturns = ({ page }: { page: ReturnsPage }) => {
   const { t } = useLanguage();
-  const seasons = page.seasons.filter((one) => one.finished);
-  if (seasons.length === 0 && page.ventures.length === 0) {
-    return (
-      <EmptyState bare icon={Sprout} title={t("returns.nothingFinished")} />
-    );
-  }
-  return (
-    <ul className="flex flex-col gap-2">
-      {page.ventures.map((venture) => (
+  const rows = [
+    ...page.seasons
+      .filter((one) => one.finished)
+      .map((season) => ({
+        key: season.key,
+        start: season.window.start,
+        row: (
+          <SeasonRow
+            floorDays={page.floorDays}
+            key={season.key}
+            season={season}
+          />
+        ),
+      })),
+    ...page.ventures.map((venture) => ({
+      key: venture.id,
+      start: venture.window.start,
+      row: (
         <VentureRow
           floorDays={page.floorDays}
           key={venture.id}
           venture={venture}
         />
-      ))}
-      {seasons.map((season) => (
-        <SeasonRow
-          floorDays={page.floorDays}
-          key={season.key}
-          season={season}
-        />
-      ))}
-    </ul>
+      ),
+    })),
+  ].toSorted(
+    (a, b) => b.start.localeCompare(a.start) || a.key.localeCompare(b.key)
   );
+  if (rows.length === 0) {
+    return (
+      <EmptyState bare icon={Sprout} title={t("returns.nothingFinished")} />
+    );
+  }
+  return <ul className="flex flex-col gap-2">{rows.map((one) => one.row)}</ul>;
 };

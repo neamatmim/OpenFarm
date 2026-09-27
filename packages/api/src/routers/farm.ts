@@ -212,8 +212,8 @@ const namesAny = (
   keys: readonly (keyof ParametersInput)[]
 ): boolean => keys.some((key) => input[key] !== undefined);
 
-/** Refuses a Manager who names what is the Owner's alone to set: a Venture's own figures, or what the Owner's
- *  keep-or-sell figures and culling list read. */
+/** Refuses a Manager who names what is the Owner's alone to set: a Venture's own figures, what the Owner's
+ *  keep-or-sell figures and culling list read, or what the Returns page reads. */
 const refuseWhatIsTheOwners = (
   input: ParametersInput,
   roles: readonly RoleName[]

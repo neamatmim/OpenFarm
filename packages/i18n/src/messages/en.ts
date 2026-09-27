@@ -3921,7 +3921,7 @@ export const en = {
   "nav.returns": "Returns",
   "returns.subtitle":
     "What the money in the farm's cattle made, against what went in and how long it was out. Yours alone.",
-  "returns.chartTitle": "A year's rate, finished runs",
+  "returns.chartTitle": "A year's rate, finished Seasons and Ventures",
   "returns.chartHint":
     "What every ৳100 made, scaled simply to a year, for each Season and Venture whose last animal has gone and whose money was out long enough.",
   "returns.finishedTitle": "Finished",

@@ -109,12 +109,7 @@ export {
   seasonOf,
 } from "./eid";
 export type { CapitalIn, Returned, Spent } from "./returns";
-export {
-  averageDaysOf,
-  returnOf,
-  returnOfTotals,
-  returnOnCapitalOf,
-} from "./returns";
+export { returnOf, returnOnCapitalOf } from "./returns";
 export type { ReadyReason } from "./ready";
 export {
   READY_REASONS,

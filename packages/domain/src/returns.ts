@@ -29,7 +29,7 @@ export interface Returned {
   /** The days each taka was tied up, on average, weighted by the taka. */
   averageDays: number;
   /**
-   * That share scaled simply to a year. Null for a run not finished — an estimate is never scaled — and for money
+   * That share scaled simply to a year. Null for a Season, a Venture or an Animal not finished — an estimate is never scaled — and for money
    * tied up fewer days than the Owner's floor, which a few weeks scaled to a year makes a wild figure of.
    */
   perYear: number | null;
@@ -39,80 +39,6 @@ const oneDecimal = (n: number): number => Math.round(n * 10) / 10;
 
 const daysBetween = (from: Date, until: Date): number =>
   Math.max(0, (until.getTime() - from.getTime()) / DAY_MS);
-
-/**
- * The days each taka was tied up, on average, weighted by the taka: every sum from the day it went out to the day it
- * came back. Unrounded, so a return worked from totals frozen elsewhere reads the same year as one worked from its
- * lines. Null where nothing was spent.
- */
-export const averageDaysOf = (spent: readonly Spent[]): number | null => {
-  const costBdt = spent.reduce((sum, one) => sum + one.bdt, 0);
-  if (costBdt <= 0) {
-    return null;
-  }
-  const takaDays = spent.reduce(
-    (sum, one) => sum + one.bdt * daysBetween(one.from, one.until),
-    0
-  );
-  return takaDays / costBdt;
-};
-
-/**
- * The share, the days and the year, from what went in, what came back and how long it was out on average — for a
- * return whose totals are worked out elsewhere, as a Settlement's are frozen when it is approved. Null where nothing
- * was spent.
- */
-export const returnOfTotals = ({
-  costBdt,
-  backBdt,
-  averageDays,
-  floorDays,
-  finished,
-}: {
-  costBdt: number;
-  backBdt: number;
-  averageDays: number;
-  floorDays: number;
-  finished: boolean;
-}): Returned | null => {
-  if (costBdt <= 0) {
-    return null;
-  }
-  const resultBdt = backBdt - costBdt;
-  const share = (resultBdt / costBdt) * 100;
-  // The floor is held against the days as they are shown, whole, so a run said to have been out 60 days is never
-  // refused a year by a floor of 60 for having been out 59.6.
-  const scaled =
-    finished && averageDays > 0 && Math.round(averageDays) >= floorDays;
-  return {
-    costBdt: roundTaka(costBdt),
-    backBdt: roundTaka(backBdt),
-    resultBdt: roundTaka(resultBdt),
-    per100: oneDecimal(share),
-    averageDays: Math.round(averageDays),
-    perYear: scaled ? oneDecimal((share * DAYS_A_YEAR) / averageDays) : null,
-  };
-};
-
-/** The share, the average days and the year, from what went in, what it was out for and what came back. */
-const worked = (
-  spent: readonly Spent[],
-  backBdt: number,
-  floorDays: number,
-  finished: boolean
-): Returned | null => {
-  const averageDays = averageDaysOf(spent);
-  if (averageDays === null) {
-    return null;
-  }
-  return returnOfTotals({
-    costBdt: spent.reduce((sum, one) => sum + one.bdt, 0),
-    backBdt,
-    averageDays,
-    floorDays,
-    finished,
-  });
-};
 
 /**
  * A Season's or a Venture's cattle, or one dairy Animal: everything it cost, each sum from the day it was spent to the
@@ -128,7 +54,31 @@ export const returnOf = ({
   backBdt: number;
   floorDays: number;
   finished: boolean;
-}): Returned | null => worked(spent, backBdt, floorDays, finished);
+}): Returned | null => {
+  const costBdt = spent.reduce((sum, one) => sum + one.bdt, 0);
+  if (costBdt <= 0) {
+    return null;
+  }
+  const takaDays = spent.reduce(
+    (sum, one) => sum + one.bdt * daysBetween(one.from, one.until),
+    0
+  );
+  const averageDays = takaDays / costBdt;
+  const resultBdt = backBdt - costBdt;
+  const share = (resultBdt / costBdt) * 100;
+  // The floor is held against the days as they are shown, whole, so money said to have been out 60 days is never
+  // refused a year by a floor of 60 for having been out 59.6.
+  const scaled =
+    finished && averageDays > 0 && Math.round(averageDays) >= floorDays;
+  return {
+    costBdt: roundTaka(costBdt),
+    backBdt: roundTaka(backBdt),
+    resultBdt: roundTaka(resultBdt),
+    per100: oneDecimal(share),
+    averageDays: Math.round(averageDays),
+    perYear: scaled ? oneDecimal((share * DAYS_A_YEAR) / averageDays) : null,
+  };
+};
 
 /** One Agreement's capital: when it reached the Venture Account and when it was paid back. */
 export interface CapitalIn {
@@ -150,16 +100,16 @@ export const returnOnCapitalOf = ({
   shareBdt: number;
   floorDays: number;
 }) => {
-  const returned = worked(
-    capital.map((one) => ({
+  const returned = returnOf({
+    spent: capital.map((one) => ({
       bdt: one.bdt,
       from: one.arrived,
       until: one.paidBack,
     })),
-    capital.reduce((sum, one) => sum + one.bdt, 0) + shareBdt,
+    backBdt: capital.reduce((sum, one) => sum + one.bdt, 0) + shareBdt,
     floorDays,
-    true
-  );
+    finished: true,
+  });
   if (!returned) {
     return null;
   }

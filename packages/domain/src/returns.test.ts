@@ -87,7 +87,7 @@ describe("what money in cattle returned", () => {
     expect(nearly?.perYear).toBe(61.2);
   });
 
-  it("puts nothing a year on a run not finished, however long", () => {
+  it("puts nothing a year on cattle not all gone, however long", () => {
     expect(
       returnOf({
         spent: BULL,
@@ -102,6 +102,41 @@ describe("what money in cattle returned", () => {
     expect(
       returnOf({ spent: [], backBdt: 10_000, floorDays: 60, finished: true })
     ).toBeNull();
+  });
+});
+
+describe("the example the Owner decided it on", () => {
+  it("reads ৳10 lakh of bulls and ৳4 lakh of feed, ৳17 lakh back, as 21 on every hundred and about 50 a year", () => {
+    // Ten bulls at ৳1,00,000, one bought each four days from day 0 to day 36 (six weeks), all sold on day 180. Their
+    // feed, ৳4,00,000, bought ৳20,000 a week for twenty weeks from day 30 to day 163. Each bull was out 180, 176, ...,
+    // 144 days: ৳1,00,000 × 1,620 = 16,20,00,000 taka-days. Each week's feed was out 150, 143, ..., 17 days: ৳20,000 ×
+    // 1,670 = 3,34,00,000. Together 19,54,00,000 over ৳14,00,000 is 139.6 days. ৳3,00,000 on ৳14,00,000 is 21.4 on
+    // every hundred, and 21.43 × 365 ÷ 139.57 is 56.0 a year: about fifty.
+    const bulls = Array.from({ length: 10 }, (_, i) => ({
+      bdt: 100_000,
+      from: day(i * 4),
+      until: day(180),
+    }));
+    const feed = Array.from({ length: 20 }, (_, i) => ({
+      bdt: 20_000,
+      from: day(30 + i * 7),
+      until: day(180),
+    }));
+    expect(
+      returnOf({
+        spent: [...bulls, ...feed],
+        backBdt: 1_700_000,
+        floorDays: 60,
+        finished: true,
+      })
+    ).toEqual({
+      costBdt: 1_400_000,
+      backBdt: 1_700_000,
+      resultBdt: 300_000,
+      per100: 21.4,
+      averageDays: 140,
+      perYear: 56,
+    });
   });
 });
 

@@ -331,6 +331,11 @@ export const dailyYield = (cow: Cow, day: string): number => {
  * a result, the dead among it, beside the settled Venture. Taken off the herd once gone, so the days that follow never
  * feed or sell them again.
  */
+/** Days from the lorry in January to Eid-ul-Adha 2026: what each bull grew over. */
+const DAYS_TO_EID_2026 = 123;
+/** How many of them go on the first day of Qurbani; the rest the next. */
+const SOLD_ON_THE_FIRST_DAY = 3;
+
 export const lastEidsSeason = async (farm: Farm, herd: Herd) => {
   const lorry = await takeInBulls(farm, herd, {
     on: "2026-01-25",
@@ -351,9 +356,11 @@ export const lastEidsSeason = async (farm: Farm, herd: Herd) => {
     });
   }
   for (const [index, bull] of sold.entries()) {
-    const day = index < 3 ? "2026-05-28" : "2026-05-29";
+    const day = index < SOLD_ON_THE_FIRST_DAY ? "2026-05-28" : "2026-05-29";
     farm.clock.set(onFarm(day, `${10 + index}:15`));
-    const weightKg = Math.round(bull.weightKg + bull.dailyGainKg * 123);
+    const weightKg = Math.round(
+      bull.weightKg + bull.dailyGainKg * DAYS_TO_EID_2026
+    );
     const buyer = farm.random.pick(CATTLE_BUYERS);
     await farm.as.manager.sale.record({
       tagNumber: bull.tag,

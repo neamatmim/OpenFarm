@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { Notice, Page, PageHeader, Section } from "@/components/page";
 import {
-  FinishedRuns,
+  FinishedReturns,
   ReturnsChart,
   useReturns,
 } from "@/components/returns/returns-page";
@@ -46,7 +46,7 @@ const ReturnsPage = () => {
         description={t("returns.finishedHint")}
         title={t("returns.finishedTitle")}
       >
-        <FinishedRuns page={returns.data} />
+        <FinishedReturns page={returns.data} />
       </Section>
       <p className="text-muted-foreground text-sm italic">
         {t("returns.leftOut")}
