@@ -20,4 +20,6 @@ The Owner wants the return while a **Season** or a Venture is still going, not o
 
 Since [What a return counts](./04-what-a-return-counts.md) (2026-09-27): the figure is **Return on Cost**, worked as a Settlement is. A standing animal's value takes the place of a price she has not fetched. A crossed animal the Owner has not priced leaves her Season "not yet a result"; say how that reads while the Season is still going.
 
+Since [How a return is put per year](./05-how-a-return-is-put-per-year.md) (2026-09-27): a rate a year counts each taka until its animal is sold. For one still standing, decide the day it counts to (today, or the day she is expected to go), and whether a Season still going gets a rate a year at all.
+
 ## Resolution

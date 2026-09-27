@@ -21,4 +21,6 @@ From [the second research](../../../docs/research/stating-a-mudarabah-return.md)
 
 Since [What a return counts](./04-what-a-return-counts.md) (2026-09-27): there are two ratios, **Return on Cost** and **Return on Capital**. A bank rate is a return on money deposited, so it reads most like Return on Capital. Decide which of the two it sits beside.
 
+Since [How a return is put per year](./05-how-a-return-is-put-per-year.md) (2026-09-27): the rate a year is simple, per year, over money × days, as a bank's is. It is not shown under 60 days (the Owner's Farm Parameter), and then there is nothing to set a bank rate beside.
+
 ## Resolution

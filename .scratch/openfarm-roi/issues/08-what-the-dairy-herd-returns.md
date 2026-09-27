@@ -24,4 +24,6 @@ From [the research](../../../docs/research/measuring-a-cattle-return.md) (2026-0
 
 Since [What a return counts](./04-what-a-return-counts.md) (2026-09-27): a calf bred here or a cow crossed to Fattening goes at a price the Owner enters, her weight × a rate a kilo. **That taka is the dairy herd's return for her.** Decide what a heifer calf kept to milk, or one sold as a calf, counts at.
 
+Since [How a return is put per year](./05-how-a-return-is-put-per-year.md) (2026-09-27): fattening's rate a year is simple over money × days, with a 60-day floor. Decide whether dairy's is put the same way, or read per cow per year as the studies do.
+
 ## Resolution

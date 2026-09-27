@@ -25,4 +25,6 @@ From [the second research](../../../docs/research/stating-a-mudarabah-return.md)
 
 Since [What a return counts](./04-what-a-return-counts.md) (2026-09-27): an Investor's figure is **Return on Capital**, their profit share over their capital after the Farm's share, said «প্রতি ১০০ টাকা মূলধনে … টাকা লাভ». A gift from the Farm's share is shown as a gift, not as their return.
 
+Since [How a return is put per year](./05-how-a-return-is-put-per-year.md) (2026-09-27): Return on Capital is put a year simply over each taka's days from arrival to payout, with a 60-day floor. It shows as the share, its days, then the rate labelled as the share scaled to a year, with its working. Decide whether an Investor sees that rate at all.
+
 ## Resolution
