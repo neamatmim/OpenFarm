@@ -4,7 +4,9 @@
 
 **Blocked by:** 01
 
-**Status:** ready
+**Status:** done
+
+**Note (2026-09-27):** the "leaving her out does not lower the figure" test needs a Season holding a valued and an unvalued animal. Every Farm animal on the Fattening side shares the market price and has an Intake weight, and none can cross to Dairy, so that only becomes possible with an unpriced crossing — moved to ticket 04. The test with every bull unvalued (no market price) is here.
 
 **Note from 01 (2026-09-27):** the page has no tab bar yet; if 02 has not built it, this ticket does, with 01's content as the Fattening tab.
 

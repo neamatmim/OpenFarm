@@ -108,8 +108,8 @@ export {
   qurbaniFrom,
   seasonOf,
 } from "./eid";
-export type { CapitalIn, Returned, Spent } from "./returns";
-export { returnOf, returnOnCapitalOf } from "./returns";
+export type { CapitalIn, Returned, RunningRange, Spent } from "./returns";
+export { returnOf, returnOnCapitalOf, runningRangeOf } from "./returns";
 export type { ReadyReason } from "./ready";
 export {
   READY_REASONS,

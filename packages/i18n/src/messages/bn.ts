@@ -3723,6 +3723,33 @@ export const bn: Record<MessageKey, string> = {
   "returns.bankFromDayHint":
     "আজ, অথবা আগের কোনো দিন — গত বছরের মৌসুমের পাশে গত বছরের হার বসাতে। ভুল হলে একই দিন থেকে আবার লিখুন।",
   "returns.bankSaved": "হার রাখা হলো",
+  "returns.stillGoingTitle": "চলছে",
+  "returns.stillGoingHint":
+    "আজকের দামে: চলে যাওয়া পশুগুলো যা এনেছে, আর দাঁড়িয়ে থাকাগুলো প্রতি কেজির দামে যা আনবে — অনুমান, ফল নয়, আর কখনো বছরে টানা হয় না।",
+  "returns.todayRangeGain":
+    "আজকের দামে প্রতি ১০০ টাকা খরচে {low} থেকে {high} টাকা লাভ",
+  "returns.todayRangeLoss":
+    "আজকের দামে প্রতি ১০০ টাকা খরচে {least} থেকে {most} টাকা ক্ষতি",
+  "returns.todayRangeMixed":
+    "আজকের দামে প্রতি ১০০ টাকা খরচে {loss} টাকা ক্ষতি থেকে {gain} টাকা লাভ",
+  "returns.estimate": "অনুমান, ফল নয়",
+  "returns.goneMade": "চলে গেছে: লাভ {bdt}",
+  "returns.goneLost": "চলে গেছে: ক্ষতি {bdt}",
+  "returns.standingWorth": "দাঁড়িয়ে: খরচ {cost}, আজকের দামে {low} থেকে {high}",
+  "returns.daysSoFar": "এ পর্যন্ত {days} দিন · শেষটি চলে গেলে বছরের হিসাব",
+  "returns.gapsTitle": "{count}টি পশু বাদ, আজ দাম ধরা যায়নি",
+  "returns.gap.no_price": "{tag}: প্রতি কেজির দাম ঠিক করা নেই",
+  "returns.gap.no_weight": "{tag}: কখনো ওজন নেওয়া হয়নি",
+  "returns.fix.no_price": "দাম ঠিক করুন",
+  "returns.fix.no_weight": "তার পাতা খুলুন",
+  "returns.missingTitle":
+    "{count}টি পশু নিচের হিসাবের বাইরে — আজ তাদের দাম ধরার কিছু নেই",
+  "returns.missingHint":
+    "প্রতিটি পুরোপুরি বাদ, খরচ আর দাম দুটোই — যাতে দাম না থাকাকে ক্ষতি বলে না পড়া হয়।",
+  "returns.panelTitle": "খাটানো টাকার ফল",
+  "returns.panelHint":
+    "হিসাব নিকাশের মতো করেই: গরুগুলো যা এনেছে, তা থেকে কেনার দাম আর তাদের ওপর ধরা সব খরচ বাদ।",
+  "returns.seeAll": "সব মৌসুম আর ভেঞ্চার",
   "returns.leftOut":
     "মজুরি, শেড, যন্ত্রপাতি, গোবর আর টাকার নিজের খরচ এতে ধরা নেই — তাই একই পশুর ওপর প্রকাশিত গবেষণার হিসাবের চেয়ে বেশি দেখায়।",
   "sale.title": "পশু বিক্রয়",

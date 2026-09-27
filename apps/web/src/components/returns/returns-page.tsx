@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { useIsOwner } from "@/components/fattening/animal-prices";
 import { EmptyState, StatusBadge } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -39,6 +40,15 @@ const SAID = {
   perYear: ["returns.perYearGain", "returns.perYearLoss"],
   result: ["returns.made", "returns.lost"],
 } as const satisfies Record<string, readonly [MessageKey, MessageKey]>;
+
+/** Newest window first, then by key, so two with one window keep one order. */
+const newestFirst = (
+  a: { start: string; key: string },
+  b: { start: string; key: string }
+) => b.start.localeCompare(a.start) || a.key.localeCompare(b.key);
+
+/** Before Ventures still going were on the page, every Venture on it was settled. */
+const isSettled = (one: { settled?: boolean }): boolean => one.settled ?? true;
 
 /** Which of a pair of words a figure takes: the gain's at nought or above, the loss's below. */
 const wordFor = (pair: readonly [MessageKey, MessageKey], figure: number) =>
@@ -227,7 +237,7 @@ const VentureRow = ({
 }) => {
   const { t } = useLanguage();
   const taka = useTaka();
-  if (!venture.returnOnCost) {
+  if (!(venture.returnOnCost && venture.farmsShareBdt !== null)) {
     return null;
   }
   return (
@@ -374,7 +384,7 @@ export const FinishedReturns = ({ page }: { page: ReturnsPage }) => {
           />
         ),
       })),
-    ...page.ventures.map((venture) => ({
+    ...page.ventures.filter(isSettled).map((venture) => ({
       key: venture.id,
       start: venture.window.start,
       row: (
@@ -385,9 +395,7 @@ export const FinishedReturns = ({ page }: { page: ReturnsPage }) => {
         />
       ),
     })),
-  ].toSorted(
-    (a, b) => b.start.localeCompare(a.start) || a.key.localeCompare(b.key)
-  );
+  ].toSorted(newestFirst);
   if (rows.length === 0) {
     return (
       <EmptyState bare icon={Sprout} title={t("returns.nothingFinished")} />
@@ -536,5 +544,329 @@ export const BankRateList = ({ page }: { page: ReturnsPage }) => {
       </Button>
       {setting ? <BankRateSheet onOpenChange={setSetting} /> : null}
     </div>
+  );
+};
+
+type Running = NonNullable<Season["running"]>;
+type Gap = Season["gaps"][number];
+
+/** An answer the phone kept from before a Season carried its running range has neither: read as none. */
+const gapsOf = (one: { gaps?: Gap[] }): Gap[] => one.gaps ?? [];
+const runningOf = (one: { running?: Running | null }): Running | null =>
+  one.running ?? null;
+
+/** The range at today's price, said as made, lost, or from lost to made — never a bare minus sign. */
+const TodayRange = ({ running }: { running: Running }) => {
+  const { t } = useLanguage();
+  const low = running.low.per100;
+  const high = running.high.per100;
+  if (low >= 0) {
+    return <>{t("returns.todayRangeGain", { low, high })}</>;
+  }
+  if (high < 0) {
+    return (
+      <>
+        {t("returns.todayRangeLoss", {
+          least: Math.abs(high),
+          most: Math.abs(low),
+        })}
+      </>
+    );
+  }
+  return (
+    <>{t("returns.todayRangeMixed", { loss: Math.abs(low), gain: high })}</>
+  );
+};
+
+/**
+ * A Season or a Venture still going, at today's price: the range, labelled an estimate, then the part gone and the part
+ * standing apart, and the days so far — never a year.
+ */
+const RunningLines = ({ running }: { running: Running }) => {
+  const { t } = useLanguage();
+  const taka = useTaka();
+  return (
+    <div className="flex flex-col gap-0.5">
+      <p className="flex flex-wrap items-center gap-2 font-medium tabular-nums">
+        <TodayRange running={running} />
+        <StatusBadge tone="warning">{t("returns.estimate")}</StatusBadge>
+      </p>
+      {running.soldCostBdt === 0 ? null : (
+        <p className="text-muted-foreground text-sm tabular-nums">
+          {t(
+            running.soldResultBdt < 0 ? "returns.goneLost" : "returns.goneMade",
+            {
+              bdt: taka(Math.abs(running.soldResultBdt)),
+            }
+          )}
+        </p>
+      )}
+      <p className="text-muted-foreground text-sm tabular-nums">
+        {t("returns.standingWorth", {
+          cost: taka(running.standingCostBdt),
+          low: taka(running.standingLowBdt),
+          high: taka(running.standingHighBdt),
+        })}
+      </p>
+      <p className="text-muted-foreground text-xs tabular-nums">
+        {t("returns.daysSoFar", { days: running.low.averageDays })}
+      </p>
+    </div>
+  );
+};
+
+/** Where what puts a gap right is done: a weight on her page, a Venture's price on its plan, the farm's on the board. */
+const GapFix = ({ gap, ventureId }: { gap: Gap; ventureId: string | null }) => {
+  const { t } = useLanguage();
+  const className = "text-sm underline-offset-4 hover:underline";
+  const label = t(`returns.fix.${gap.why}`);
+  if (gap.why === "no_weight") {
+    return (
+      <Link
+        className={className}
+        params={{ tagNumber: gap.tagNumber }}
+        to="/animals/$tagNumber"
+      >
+        {label}
+      </Link>
+    );
+  }
+  return ventureId ? (
+    <Link
+      className={className}
+      params={{ ventureId }}
+      to="/ventures/$ventureId"
+    >
+      {label}
+    </Link>
+  ) : (
+    <Link className={className} to="/fattening">
+      {label}
+    </Link>
+  );
+};
+
+/** The standing animals left out of a figure, whole, each with what puts her right. */
+const Gaps = ({
+  gaps,
+  ventureId,
+}: {
+  gaps: Gap[];
+  ventureId: string | null;
+}) => {
+  const { t } = useLanguage();
+  if (gaps.length === 0) {
+    return null;
+  }
+  return (
+    <div className="border-warning/40 flex flex-col gap-1 rounded-md border border-dashed p-3">
+      <p className="text-sm font-medium">
+        {t("returns.gapsTitle", { count: gaps.length })}
+      </p>
+      <ul className="flex flex-col gap-1">
+        {gaps.map((gap) => (
+          <li
+            className="flex flex-wrap items-center justify-between gap-2 text-sm"
+            key={gap.tagNumber}
+          >
+            <span>{t(`returns.gap.${gap.why}`, { tag: gap.tagNumber })}</span>
+            <GapFix gap={gap} ventureId={ventureId} />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+/** The running figure and its gaps, or only the gaps where nothing could be valued. */
+const StillGoingBody = ({
+  running,
+  gaps,
+  ventureId,
+}: {
+  running: Running | null;
+  gaps: Gap[];
+  ventureId: string | null;
+}) => (
+  <div className="flex flex-col gap-3">
+    {running ? <RunningLines running={running} /> : null}
+    <Gaps gaps={gaps} ventureId={ventureId} />
+  </div>
+);
+
+/** Every standing animal the page could not value, gathered at its top so the Owner sees what to put right first. */
+export const MissingPrices = ({ page }: { page: ReturnsPage }) => {
+  const { t } = useLanguage();
+  const count = [
+    ...page.seasons.flatMap(gapsOf),
+    ...page.ventures.flatMap(gapsOf),
+  ].length;
+  if (count === 0) {
+    return null;
+  }
+  return (
+    <div className="border-warning/40 bg-warning/5 flex flex-col gap-1 rounded-lg border p-4">
+      <p className="font-medium">{t("returns.missingTitle", { count })}</p>
+      <p className="text-muted-foreground text-sm">
+        {t("returns.missingHint")}
+      </p>
+    </div>
+  );
+};
+
+interface StillGoingRow {
+  key: string;
+  name: string;
+  kind: "returns.season" | "returns.venture";
+  ventureId: string | null;
+  running: Running | null;
+  gaps: Gap[];
+}
+
+const StillGoingList = ({ rows }: { rows: StillGoingRow[] }) => {
+  const { t } = useLanguage();
+  if (rows.length === 0) {
+    return null;
+  }
+  return (
+    <ul className="flex flex-col gap-2">
+      {rows.map((row) => (
+        <li
+          className="bg-card flex flex-col gap-3 rounded-lg border border-dashed p-4"
+          key={row.key}
+        >
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="font-medium">{row.name}</span>
+            <StatusBadge tone="neutral">{t(row.kind)}</StatusBadge>
+          </span>
+          <StillGoingBody
+            gaps={row.gaps}
+            running={row.running}
+            ventureId={row.ventureId}
+          />
+        </li>
+      ))}
+    </ul>
+  );
+};
+
+/** Every Season and Venture still going, the newest window first, each at today's price. */
+export const StillGoing = ({ page }: { page: ReturnsPage }) => {
+  const named = useSeasonName();
+  const rows = [
+    ...page.seasons
+      .filter((one) => !one.finished)
+      .map((one) => ({
+        key: one.key,
+        start: one.window.start,
+        name: named(one),
+        kind: "returns.season" as const,
+        ventureId: null,
+        running: runningOf(one),
+        gaps: gapsOf(one),
+      })),
+    ...page.ventures
+      .filter((one) => !isSettled(one))
+      .map((one) => ({
+        key: one.id,
+        start: one.window.start,
+        name: one.name,
+        kind: "returns.venture" as const,
+        ventureId: one.id,
+        running: runningOf(one),
+        gaps: gapsOf(one),
+      })),
+  ].toSorted(newestFirst);
+  return <StillGoingList rows={rows} />;
+};
+
+/**
+ * The Seasons still going, above the Fattening board: each at today's price, with what it could not value, and the way
+ * to the Returns page. The Owner's alone, as the animal prices are.
+ */
+export const RunningSeasonsStrip = () => {
+  const { t } = useLanguage();
+  const named = useSeasonName();
+  // Asked only for the Owner: a Manager's board never sends a request the server would refuse.
+  const owner = useIsOwner();
+  const going = useQuery({
+    ...orpc.returns.runningSeasons.queryOptions(),
+    enabled: owner,
+  });
+  if (!going.data || going.data.length === 0) {
+    return null;
+  }
+  return (
+    <div className="bg-card flex flex-col gap-3 rounded-lg border p-4">
+      {going.data.map((season) => (
+        <div className="flex flex-col gap-2" key={season.key}>
+          <p className="font-medium">{named(season)}</p>
+          <StillGoingBody
+            gaps={gapsOf(season)}
+            running={runningOf(season)}
+            ventureId={null}
+          />
+        </div>
+      ))}
+      <Link
+        className="self-start text-sm underline-offset-4 hover:underline"
+        to="/returns"
+      >
+        {t("returns.seeAll")} →
+      </Link>
+    </div>
+  );
+};
+
+/**
+ * What one Venture returns, on its own page: settled, its Return on Cost and the Investors' Return on Capital; still
+ * going, its range at today's price. Nothing before it has cattle.
+ */
+export const VentureReturnsPanel = ({ ventureId }: { ventureId: string }) => {
+  const { t } = useLanguage();
+  const read = useQuery(
+    orpc.returns.venture.queryOptions({ input: { ventureId } })
+  );
+  const venture = read.data;
+  if (!venture || venture.head === 0) {
+    return null;
+  }
+  return (
+    <section className="bg-card flex flex-col gap-3 rounded-xl border p-5">
+      <div className="flex flex-col gap-1">
+        <h2 className="font-semibold">{t("returns.panelTitle")}</h2>
+        <p className="text-muted-foreground text-sm">
+          {t("returns.panelHint")}
+        </p>
+      </div>
+      {venture.returnOnCost ? (
+        <ReturnLines
+          bank={venture.bankRate}
+          floorDays={venture.floorDays}
+          on="onCost"
+          shares={venture.returnOnCost}
+        />
+      ) : (
+        <StillGoingBody
+          gaps={gapsOf(venture)}
+          running={runningOf(venture)}
+          ventureId={venture.id}
+        />
+      )}
+      {venture.returnOnCapital ? (
+        <ReturnLines
+          bank={venture.capitalBankRate}
+          floorDays={venture.floorDays}
+          on="onCapital"
+          shares={venture.returnOnCapital}
+        />
+      ) : null}
+      <Link
+        className="self-start text-sm underline-offset-4 hover:underline"
+        to="/returns"
+      >
+        {t("returns.seeAll")} →
+      </Link>
+    </section>
   );
 };

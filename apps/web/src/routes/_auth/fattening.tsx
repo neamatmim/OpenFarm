@@ -23,6 +23,7 @@ import { NextEid } from "@/components/fattening/next-eid";
 import { OutOfBand } from "@/components/fattening/out-of-band";
 import { EmptyState, Notice, Page, PageHeader } from "@/components/page";
 import { SummaryFigures } from "@/components/page-kit";
+import { RunningSeasonsStrip } from "@/components/returns/returns-page";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
@@ -145,6 +146,7 @@ const FatteningPage = () => {
       {header}
       <BoardFigures rows={rows} />
       <MarketPrice />
+      <RunningSeasonsStrip />
       <NextEid />
       <OutOfBand />
       <FatteningBoard

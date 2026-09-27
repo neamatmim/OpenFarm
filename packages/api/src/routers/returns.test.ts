@@ -139,8 +139,12 @@ describe("which Seasons there are", () => {
     const { seasons } = await owner.returns.page();
     const eid2029 = seasons.filter((one) => one.eid === "2029-04-25");
     expect(eid2029).toHaveLength(1);
-    expect(eid2029[0]).toMatchObject({ head: 2, finished: false });
-    expect(eid2029[0]?.returnOnCost?.perYear).toBeNull();
+    expect(eid2029[0]).toMatchObject({
+      head: 2,
+      finished: false,
+      // Not a result while a bull stands: what it is making now is its running range.
+      returnOnCost: null,
+    });
   });
 
   it("makes a window that is no Eid a Season of its own, named by its dates", async () => {
@@ -278,5 +282,134 @@ describe("the Bank Rate beside a rate a year", () => {
         fromDay: "2029-01-01",
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});
+
+describe("a Season still going, at today's price", () => {
+  it("leaves out whole, and names, every bull it cannot value — here all of them, with no price a kilo set", async () => {
+    const { client: owner } = await as("owner", "2029-01-10T04:00:00.000Z");
+    const { seasons } = await owner.returns.page();
+    const going = seasons.find((one) => one.eid === "2029-04-25");
+    expect(going?.running).toBeNull();
+    expect(going?.gaps).toHaveLength(2);
+    expect(going?.gaps.every((one) => one.why === "no_price")).toBe(true);
+  });
+
+  it("values each standing bull as the animal prices do, low and high, and puts no year on it", async () => {
+    // Two bulls of 200 kg bought for ৳70,000 each on 1 October 2028; the market at ৳500–600 a kilo makes each ৳1,00,000
+    // to ৳1,20,000 today. ৳1,40,000 spent against ৳2,00,000 is 42.9 on every hundred; against ৳2,40,000, 71.4. The
+    // money has been out since 1 October: 101 days on 10 January.
+    const { client: owner } = await as("owner", "2029-01-10T04:00:00.000Z");
+    await owner.fattening.setMarketPrice({
+      lowBdtPerKg: 500,
+      highBdtPerKg: 600,
+    });
+    const { client: reading } = await as("owner", "2029-01-10T04:00:00.000Z");
+    const { seasons } = await reading.returns.page();
+    const going = seasons.find((one) => one.eid === "2029-04-25");
+    expect(going?.gaps).toEqual([]);
+    expect(going?.running).toEqual({
+      soldCostBdt: 0,
+      soldResultBdt: 0,
+      standingCostBdt: 140_000,
+      standingLowBdt: 200_000,
+      standingHighBdt: 240_000,
+      low: {
+        costBdt: 140_000,
+        backBdt: 200_000,
+        resultBdt: 60_000,
+        per100: 42.9,
+        averageDays: 101,
+        perYear: null,
+      },
+      high: {
+        costBdt: 140_000,
+        backBdt: 240_000,
+        resultBdt: 100_000,
+        per100: 71.4,
+        averageDays: 101,
+        perYear: null,
+      },
+    });
+  });
+
+  it("gives the Fattening board the Seasons still going, and none finished", async () => {
+    const { client: owner } = await as("owner", "2029-01-10T04:00:00.000Z");
+    const going = await owner.returns.runningSeasons();
+    expect(going.map((one) => one.eid)).toEqual(["2029-04-25"]);
+  });
+
+  it("is the Owner's alone on the board too", async () => {
+    const { client: manager } = await as("manager", "2029-01-10T04:00:00.000Z");
+    await expect(manager.returns.runningSeasons()).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+  });
+});
+
+describe("a Season still going with one bull sold and one standing", () => {
+  const EID_2030 = { start: "2030-04-14", end: "2030-04-16" };
+
+  beforeAll(async () => {
+    // Two bulls of 200 kg bought for ৳70,000 each on 1 January 2029, fed for Eid 2030. One sold on the 5th for
+    // ৳90,000; one standing, worth ৳1,00,000 to ৳1,20,000 at the market's ৳500–600 a kilo.
+    const { client: owner } = await as("owner", "2029-01-01T00:00:00.000Z");
+    await owner.fattening.setMarketPrice({
+      lowBdtPerKg: 500,
+      highBdtPerKg: 600,
+    });
+    const shed = await owner.herd.createShed({ name: `২০৩০ ${suffix}` });
+    const pen = await owner.herd.createPen({
+      shedId: shed.id,
+      name: `মোটাতাজা ২০৩০ ${suffix}`,
+    });
+    const { client: manager } = await as("manager", "2029-01-01T00:00:00.000Z");
+    const bull = async () =>
+      await manager.intake.record({
+        penId: pen.id,
+        sex: "male",
+        seller: { name: `ব্যাপারী ${suffix}` },
+        purchasePriceBdt: 70_000,
+        weightKg: 200,
+        estimatedAgeMonths: 18,
+        arrivedAt: new Date("2029-01-01T00:00:00Z"),
+        targetWindowStart: EID_2030.start,
+        targetWindowEnd: EID_2030.end,
+      });
+    await bull();
+    const sold = await bull();
+    await sell(sold.tagNumber, "2029-01-05", 90_000);
+  });
+
+  it("puts the part sold, a fact, beside the part standing at today's price", async () => {
+    // ৳1,40,000 spent, ৳90,000 back from the one sold and ৳1,00,000 to ৳1,20,000 standing: 35.7 to 50.0 on every
+    // hundred. The money: ৳70,000 out 4 days and ৳70,000 out 9.17 days by 10 January, 6.6 days on average.
+    const { client: owner } = await as("owner", "2029-01-10T04:00:00.000Z");
+    const { seasons } = await owner.returns.page();
+    const going = seasons.find((one) => one.eid === "2030-04-14");
+    expect(going?.gaps).toEqual([]);
+    expect(going?.running).toEqual({
+      soldCostBdt: 70_000,
+      soldResultBdt: 20_000,
+      standingCostBdt: 70_000,
+      standingLowBdt: 100_000,
+      standingHighBdt: 120_000,
+      low: {
+        costBdt: 140_000,
+        backBdt: 190_000,
+        resultBdt: 50_000,
+        per100: 35.7,
+        averageDays: 7,
+        perYear: null,
+      },
+      high: {
+        costBdt: 140_000,
+        backBdt: 210_000,
+        resultBdt: 70_000,
+        per100: 50,
+        averageDays: 7,
+        perYear: null,
+      },
+    });
   });
 });
