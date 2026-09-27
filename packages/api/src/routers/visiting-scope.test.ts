@@ -70,6 +70,10 @@ const ROLE_FREE = new Map<string, string>([
     "is how somebody who has forgotten their password sets one, which is done signed out",
   ],
   [
+    "portal.door",
+    "says whose portal it is, to anybody before they sign in, and nothing while it is shut",
+  ],
+  [
     "portal.join",
     "is how an Investor takes up the Owner's invitation to the portal, which is done signed out",
   ],

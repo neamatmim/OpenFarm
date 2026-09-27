@@ -85,6 +85,18 @@ export const portalRouter = {
     .handler(({ context, input }) => takeUpInvitation(context, input)),
 
   /**
+   * The portal's door, for anybody before they sign in: whether it is open, and whose it is — the farm an Investor
+   * deals with, named at the top of the sign-in as it is on every page after it. Nothing is named while the Owner has
+   * the portal shut, as nothing else of it answers then.
+   */
+  door: publicProcedure.handler(({ context }) => {
+    const theFarm = context.farm;
+    return theFarm?.investorPortal
+      ? { open: true, farmName: theFarm.name }
+      : { open: false, farmName: null };
+  }),
+
+  /**
    * «আপনার তথ্য», the privacy notice, for anybody reading the portal, signed in or not: what the farm keeps about an
    * Investor and how to ask about it (`theNoticeToRead`). Closed with the portal.
    */

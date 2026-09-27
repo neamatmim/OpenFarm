@@ -4,8 +4,11 @@ import { formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Circle, CircleCheck } from "lucide-react";
+import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { PasswordInput } from "@/components/auth/password-input";
@@ -25,12 +28,48 @@ const REFUSALS: Record<string, MessageKey> = {
   password_too_common: "auth.passwordTooCommon",
 };
 
+/** A part of the form, named above its fields: who the Investor is, then the password they choose. */
+const SectionLabel = ({
+  children,
+  first = false,
+}: {
+  children: ReactNode;
+  first?: boolean;
+}) => (
+  <p
+    className={cn(
+      "text-muted-foreground text-xs font-medium",
+      !first && "border-t pt-4"
+    )}
+  >
+    {children}
+  </p>
+);
+
+/** One thing the password needs, and whether it has it yet. */
+const Check = ({ met, children }: { met: boolean; children: ReactNode }) => (
+  <li
+    className={cn(
+      "flex items-center gap-2",
+      met ? "text-success" : "text-muted-foreground"
+    )}
+  >
+    {met ? (
+      <CircleCheck aria-hidden className="size-4 shrink-0" />
+    ) : (
+      <Circle aria-hidden className="size-4 shrink-0" />
+    )}
+    {children}
+  </li>
+);
+
 /**
  * An Investor taking up the Owner's invitation: the phone they were written down with, the code the Owner handed
  * them, and a password of their own, twice. Taken up, they are signed in and sent to their Ventures.
  */
 const PortalJoin = () => {
   const { t, language } = useLanguage();
+  const { forgot } = Route.useSearch();
   const navigate = useNavigate();
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
@@ -71,10 +110,10 @@ const PortalJoin = () => {
       >
         <div className="flex flex-col gap-1.5">
           <h1 className="text-2xl font-semibold tracking-tight">
-            {t("portal.joinTitle")}
+            {t(forgot ? "portal.resetTitle" : "portal.joinTitle")}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {t("portal.joinHint")}
+            {t(forgot ? "portal.forgot" : "portal.joinHint")}
           </p>
         </div>
         {refused ? (
@@ -82,12 +121,14 @@ const PortalJoin = () => {
             {refused}
           </Notice>
         ) : null}
+        <SectionLabel first>{t("portal.whoYouAre")}</SectionLabel>
         <FormField id="join-phone" label={t("portal.phone")}>
           <Input
             autoComplete="tel"
             id="join-phone"
             inputMode="tel"
             onChange={(event) => setPhone(event.target.value)}
+            placeholder={t("portal.phonePlaceholder")}
             type="tel"
             value={phone}
           />
@@ -102,13 +143,8 @@ const PortalJoin = () => {
             value={code}
           />
         </FormField>
-        <FormField
-          hint={t("auth.passwordTooShort", {
-            min: formatDigits(PASSWORD_MIN_LENGTH, language),
-          })}
-          id="join-password"
-          label={t("portal.newPassword")}
-        >
+        <SectionLabel>{t("portal.passwordSection")}</SectionLabel>
+        <FormField id="join-password" label={t("portal.newPassword")}>
           <PasswordInput
             autoComplete="new-password"
             id="join-password"
@@ -116,11 +152,7 @@ const PortalJoin = () => {
             value={password}
           />
         </FormField>
-        <FormField
-          hint={again !== "" && !same ? t("portal.notTheSame") : undefined}
-          id="join-again"
-          label={t("portal.passwordAgain")}
-        >
+        <FormField id="join-again" label={t("portal.passwordAgain")}>
           <PasswordInput
             autoComplete="new-password"
             id="join-again"
@@ -128,6 +160,15 @@ const PortalJoin = () => {
             value={again}
           />
         </FormField>
+        {/* What the password still needs, ticked off as it is typed, rather than a refusal after the button. */}
+        <ul aria-live="polite" className="flex flex-col gap-1 text-sm">
+          <Check met={long}>
+            {t("portal.passwordLongEnough", {
+              min: formatDigits(PASSWORD_MIN_LENGTH, language),
+            })}
+          </Check>
+          <Check met={again !== "" && same}>{t("portal.passwordsMatch")}</Check>
+        </ul>
         <Button
           className="h-12 w-full text-base md:h-10"
           disabled={!ready || join.isPending}
@@ -147,6 +188,13 @@ const PortalJoin = () => {
   );
 };
 
+/** What the address may say: that the Investor came for a forgotten password, which is set again the same way. */
+interface JoinSearch {
+  forgot?: true;
+}
+
 export const Route = createFileRoute("/portal/join")({
+  validateSearch: (search: Record<string, unknown>): JoinSearch =>
+    search.forgot === true || search.forgot === "true" ? { forgot: true } : {},
   component: PortalJoin,
 });
