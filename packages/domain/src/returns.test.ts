@@ -69,6 +69,24 @@ describe("what money in cattle returned", () => {
     ).toBe(64.9);
   });
 
+  it("holds the floor against the days as they are shown, whole", () => {
+    // Out 59.6 days, which is said as 60: at a floor of 60 it is put a year, 10 × 365 ÷ 59.6.
+    const nearly = returnOf({
+      spent: [
+        {
+          bdt: 100_000,
+          from: day(0),
+          until: new Date(day(59).getTime() + 0.6 * 86_400_000),
+        },
+      ],
+      backBdt: 110_000,
+      floorDays: 60,
+      finished: true,
+    });
+    expect(nearly?.averageDays).toBe(60);
+    expect(nearly?.perYear).toBe(61.2);
+  });
+
   it("puts nothing a year on a run not finished, however long", () => {
     expect(
       returnOf({

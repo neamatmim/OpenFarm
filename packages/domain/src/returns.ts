@@ -80,7 +80,10 @@ export const returnOfTotals = ({
   }
   const resultBdt = backBdt - costBdt;
   const share = (resultBdt / costBdt) * 100;
-  const scaled = finished && averageDays > 0 && averageDays >= floorDays;
+  // The floor is held against the days as they are shown, whole, so a run said to have been out 60 days is never
+  // refused a year by a floor of 60 for having been out 59.6.
+  const scaled =
+    finished && averageDays > 0 && Math.round(averageDays) >= floorDays;
   return {
     costBdt: roundTaka(costBdt),
     backBdt: roundTaka(backBdt),

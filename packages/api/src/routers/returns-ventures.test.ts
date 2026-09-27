@@ -306,9 +306,9 @@ describe("what a settled Venture returned", () => {
     const { client: owner } = await as("owner", "2053-04-10T04:00:00.000Z");
     const approved = await owner.ventures.approvedSettlement({ ventureId });
     const { ventures } = await owner.returns.page();
-    const it = ventures.find((one) => one.id === ventureId)?.returnOnCost;
-    expect(it?.costBdt).toBe(approved?.chargedBdt);
-    expect(it?.backBdt).toBe(approved?.proceedsBdt);
+    const read = ventures.find((one) => one.id === ventureId)?.returnOnCost;
+    expect(read?.costBdt).toBe(approved?.chargedBdt);
+    expect(read?.backBdt).toBe(approved?.proceedsBdt);
   });
 });
 

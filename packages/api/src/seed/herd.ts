@@ -1,5 +1,5 @@
 import { DAY, addDays, onFarm } from "./runtime";
-import { breedIdNamed } from "./shared";
+import { CATTLE_BUYERS, breedIdNamed } from "./shared";
 /* oxlint-disable no-await-in-loop */
 import type { Farm, PenKey } from "./standing";
 import { SHEDS } from "./standing";
@@ -323,4 +323,54 @@ export const dailyYield = (cow: Cow, day: string): number => {
   const falling =
     daysInMilk > 60 ? Math.max(0.35, 1 - (daysInMilk - 60) * 0.0022) : 1;
   return cow.peak * rising * falling;
+};
+
+/**
+ * Last Eid's Season, finished before the farm's history begins: a lorry of the Farm's own bulls bought in January for
+ * Eid-ul-Adha 2026, one of them dead in April, the rest sold over Eid — so the Owner's Returns page has a Season that is
+ * a result, the dead among it, beside the settled Venture. Taken off the herd once gone, so the days that follow never
+ * feed or sell them again.
+ */
+export const lastEidsSeason = async (farm: Farm, herd: Herd) => {
+  const lorry = await takeInBulls(farm, herd, {
+    on: "2026-01-25",
+    count: 6,
+    pen: "quarantine",
+    heavier: 20,
+  });
+  const [dead, ...sold] = lorry;
+  if (dead) {
+    farm.clock.set(onFarm("2026-04-10", "08:00"));
+    await farm.as.manager.animals.recordMortality({
+      tagNumber: dead.tag,
+      kind: "died",
+      cause: "পেট ফুলে গিয়েছিল, সকালে মরে পড়ে ছিল",
+      disposal: "buried",
+      disposalNote: "খামারের পিছনে, ছয় ফুট গভীরে",
+      happenedAt: onFarm("2026-04-10", "06:00"),
+    });
+  }
+  for (const [index, bull] of sold.entries()) {
+    const day = index < 3 ? "2026-05-28" : "2026-05-29";
+    farm.clock.set(onFarm(day, `${10 + index}:15`));
+    const weightKg = Math.round(bull.weightKg + bull.dailyGainKg * 123);
+    const buyer = farm.random.pick(CATTLE_BUYERS);
+    await farm.as.manager.sale.record({
+      tagNumber: bull.tag,
+      buyer,
+      priceBdt:
+        // Lower than a finished bull fetches in the days that follow: these bulls were bought before the farm's
+        // history begins, so nothing they ate is charged to them, and at a full price their Season would read as a
+        // return no fattening makes.
+        Math.round((weightKg * farm.random.between(410, 440)) / 1000) * 1000,
+      weightKg,
+      destination: buyer.address,
+      vehicle: `ঢাকা মেট্রো-ন ${farm.random.int(11, 19)}-${farm.random.int(1000, 9999)}`,
+      driver: farm.random.pick(["মোঃ হাবিব", "সোহেল রানা", "আব্দুর রহিম"]),
+      paymentMethod: "bank",
+    });
+  }
+  for (const bull of lorry) {
+    herd.bulls.delete(bull.tag);
+  }
 };

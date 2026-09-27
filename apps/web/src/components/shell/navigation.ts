@@ -205,6 +205,12 @@ export const NAV_GROUPS: NavGroup[] = [
         audience: "owner",
       },
       {
+        to: "/returns",
+        label: "nav.returns",
+        icon: TrendingUp,
+        audience: "owner",
+      },
+      {
         to: "/ventures",
         label: "nav.ventures",
         icon: Handshake,

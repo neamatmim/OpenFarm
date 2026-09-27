@@ -158,9 +158,9 @@ describe("the floor under a rate a year", () => {
     // Asked afresh each time, as each request reads the farm's Parameters as they then stand.
     const winter = async () => {
       const { client: asking } = await as("owner", "2029-01-10T04:00:00.000Z");
-      return (await asking.returns.page()).seasons.find(
-        (one) => one.key === "window:2028-12-15|2029-01-15"
-      )?.returnOnCost;
+      const { seasons } = await asking.returns.page();
+      return seasons.find((one) => one.key === "window:2028-12-15|2029-01-15")
+        ?.returnOnCost;
     };
     expect(await winter()).toMatchObject({
       per100: 8,
@@ -170,7 +170,8 @@ describe("the floor under a rate a year", () => {
     try {
       await owner.farm.setParameters({ returnYearFloorDays: 45 });
       // 8 × 365 ÷ 45.
-      expect((await winter())?.perYear).toBe(64.9);
+      const lowered = await winter();
+      expect(lowered?.perYear).toBe(64.9);
     } finally {
       await owner.farm.setParameters({ returnYearFloorDays: 60 });
     }

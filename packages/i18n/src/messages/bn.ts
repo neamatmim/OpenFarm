@@ -3662,6 +3662,46 @@ export const bn: Record<MessageKey, string> = {
   "months.noPlan": "এখনো কোনো পরিকল্পনা নেই",
   "months.nothingProjected": "কোনো হিসাব নেই",
   "months.noVentures": "এখনো কোনো ভেঞ্চার নেই",
+  "months.returnsLink": "প্রতিটি মৌসুম আর ভেঞ্চার কী ফিরিয়েছে",
+  "nav.returns": "খাটানো টাকার ফল",
+  "returns.subtitle":
+    "খামারের গরুতে খাটানো টাকা কী ফিরিয়েছে — কত টাকা খাটল আর কত দিন। শুধু আপনার জন্য।",
+  "returns.chartTitle": "বছরের হিসাবে, শেষ হওয়াগুলো",
+  "returns.chartHint":
+    "প্রতি ১০০ টাকার লাভ, সরলভাবে বছরে টেনে — যে মৌসুম আর ভেঞ্চারের শেষ পশুটিও চলে গেছে আর টাকা যথেষ্ট দিন খেটেছে।",
+  "returns.finishedTitle": "শেষ হয়েছে",
+  "returns.finishedHint":
+    "খামারের নিজের গরুর প্রতিটি মৌসুম আর প্রতিটি নিষ্পন্ন ভেঞ্চার, হিসাব নিকাশের মতো করেই: পশুগুলো যা এনেছে, তা থেকে কেনার দাম আর তাদের ওপর ধরা সব খরচ বাদ — মারা যাওয়াগুলোও তার মধ্যে।",
+  "returns.nothingFinished":
+    "এখনো কিছু শেষ হয়নি। মৌসুমের শেষ পশুটি চলে গেলে তবেই মৌসুম শেষ।",
+  "returns.season": "মৌসুম",
+  "returns.venture": "ভেঞ্চার",
+  "returns.eidSeason": "ঈদুল আযহা {year}",
+  "returns.windowSeason": "{start} – {end}",
+  "returns.head": "{count}টি",
+  "returns.died": "{count}টি মারা গেছে",
+  "returns.made": "লাভ {bdt}",
+  "returns.lost": "ক্ষতি {bdt}",
+  "returns.onCostGain": "প্রতি ১০০ টাকা খরচে {amount} টাকা লাভ",
+  "returns.onCostLoss": "প্রতি ১০০ টাকা খরচে {amount} টাকা ক্ষতি",
+  "returns.onCapitalGain": "প্রতি ১০০ টাকা মূলধনে {amount} টাকা লাভ",
+  "returns.onCapitalLoss": "প্রতি ১০০ টাকা মূলধনে {amount} টাকা ক্ষতি",
+  "returns.days": "প্রতিটি টাকা গড়ে {days} দিন খেটেছে",
+  "returns.perYearGain": "বছরের হিসাবে প্রতি ১০০ টাকায় {rate}",
+  "returns.perYearLoss": "বছরের হিসাবে প্রতি ১০০ টাকায় {rate} ক্ষতি",
+  "returns.underFloor": "{floor} দিনের কম — বছরের হিসাব নেই",
+  "returns.working": "হিসাবটা দেখুন",
+  "returns.workingText":
+    "খরচ {cost}, ফেরত {back}। প্রতিটি টাকা খরচের দিন থেকে তার পশু চলে যাওয়ার দিন পর্যন্ত গোনা হয়েছে: গড়ে {days} দিন।",
+  "returns.workingYear":
+    "{share} × ৩৬৫ ÷ {days} = {rate}, সরল হিসাব, চক্রবৃদ্ধি নয়।",
+  "returns.capitalTitle": "বিনিয়োগকারীদের মূলধনে",
+  "returns.capitalHint":
+    "তাঁদের পুরো মূলধনের ওপর মুনাফার ভাগ — টাকা ভেঞ্চার হিসাবে পৌঁছানোর দিন থেকে ফেরত যাওয়ার দিন পর্যন্ত, অলস পড়ে থাকা দিনগুলোও ধরে।",
+  "returns.farmsShare": "খামারের ভাগ, কাজের জন্য: {bdt}",
+  "returns.openVenture": "ভেঞ্চারটি খুলুন",
+  "returns.leftOut":
+    "মজুরি, শেড, যন্ত্রপাতি, গোবর আর টাকার নিজের খরচ এতে ধরা নেই — তাই একই পশুর ওপর প্রকাশিত গবেষণার হিসাবের চেয়ে বেশি দেখায়।",
   "sale.title": "পশু বিক্রয়",
   "papers.passport": "পরিচয়পত্র",
   "papers.withdrawalSummary": "অপেক্ষমাণ সময়ের সারসংক্ষেপ",

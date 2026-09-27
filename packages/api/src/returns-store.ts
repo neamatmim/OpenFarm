@@ -39,13 +39,14 @@ interface Stay {
 
 /** Every share charged to one Animal, whatever it was for, with the day it was charged and the side she stood on. A
  *  dose of a product the farm had not bought by then is counted as the costing counts it: shown, never charged. */
+const charged = (at: Date, side: string, bdt: number | null) => ({
+  at,
+  side,
+  bdt: bdt ?? 0,
+});
+
 const sharesOf = (costs: FarmCosts, animalId: string) => {
   const hers = costs.ofAnimal;
-  const charged = (at: Date, side: string, bdt: number | null) => ({
-    at,
-    side,
-    bdt: bdt ?? 0,
-  });
   return [
     ...(hers.feed.get(animalId) ?? []).map((one) =>
       charged(one.at, one.side, one.feedBdt)
@@ -388,7 +389,10 @@ const venturesOf = async (
     out.push({
       id: venture.id,
       name: venture.name,
-      window: { start: venture.targetWindowStart, end: venture.targetWindowEnd },
+      window: {
+        start: venture.targetWindowStart,
+        end: venture.targetWindowEnd,
+      },
       settled: true,
       head: cameIn.length,
       died: cameIn.filter((one) => one.left?.how === "died").length,
@@ -421,13 +425,6 @@ export const returnsPage = async (
   const ownedThenBy = await ownedThenByOf(db, farm.id);
   const known = await comingsAndGoingsOf(db, farm.id);
   const seasons = seasonsOf(farm, costs, ownedThenBy, known, now);
-  const ventures = await venturesOf(
-    db,
-    farm,
-    costs,
-    ownedThenBy,
-    known,
-    now
-  );
+  const ventures = await venturesOf(db, farm, costs, ownedThenBy, known, now);
   return { floorDays: farm.returnYearFloorDays, seasons, ventures };
 };
