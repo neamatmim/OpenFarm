@@ -23,4 +23,6 @@ Decide the sum: what money went in and what came back, for a run of the Farm's o
 
 From [the research](../../../docs/research/measuring-a-cattle-return.md) (2026-09-27): the comparable figure is **net return ÷ total cost**, not a BCR. A dead animal's cost stays in the run. A home-bred calf enters at market value when she leaves the dairy herd, as an **Internal Sale** is priced, not at 0. Bangladeshi studies also count dung and sacks as income, and charge labour and interest, so decide whether to show a study-like figure beside ours. For a Venture, a money-weighted return on the Investors' dated money catches capital idle in the Venture Account; a return on the animals' cost does not. See its "Choices for the grilling".
 
+From [the second research](../../../docs/research/stating-a-mudarabah-return.md) (2026-09-27): the word must not read as a deposit rate. Avoid মুনাফার হার and "বার্ষিক রিটার্ন" standing alone, and never সুদ, নিশ্চিত, নির্ধারিত, ফিক্সড or secure. If the Owner gives up part of the Farm's share after a Settlement, it is a gift from that share, not the Venture's return (SS 40 5/6).
+
 ## Resolution

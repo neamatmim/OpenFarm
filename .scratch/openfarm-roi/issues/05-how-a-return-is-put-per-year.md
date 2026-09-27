@@ -22,4 +22,6 @@ A run of four months and a run of ten don't compare on their share of the money 
 
 From [the research](../../../docs/research/measuring-a-cattle-return.md) (2026-09-27): Bangladeshi studies don't annualise, and GIPS 2.A.12 forbids annualising a return for less than a year. Where others scale, it is simple × 365 ÷ days (lenders, bank rates, feedlot closeouts over capital-days), never compounded: 52% in four months reads 155% simple and 248% compounded. The options are no rate a year, simple over total cost, capital-days, or a money-weighted IRR from dated money.
 
+From [the second research](../../../docs/research/stating-a-mudarabah-return.md) (2026-09-27): capital × days is what Shariah practice already uses to weight money by time (SS 40 5/1, Bangladesh Bank's "Total Yearly Product"), and Islamic banks scale by simple days, never compounded. The floors in use for showing no rate a year: under a year (GIPS), under six months (Pakistan's SECP), under 60 days (FINRA). A rate a year never stands alone: it sits after the share for the run, labelled as that share scaled, with its working shown.
+
 ## Resolution
