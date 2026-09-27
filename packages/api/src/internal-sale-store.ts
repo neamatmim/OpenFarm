@@ -4,9 +4,11 @@ import { internalSale } from "@OpenFarm/db/schema/fattening";
 import { animal } from "@OpenFarm/db/schema/herd";
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
 import { ventureMovement } from "@OpenFarm/db/schema/venture";
+import type { TargetWindow } from "@OpenFarm/domain";
 import { startOfFarmDay } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
+import { joinTheFattening } from "./joining-store";
 import type { Booking } from "./money-store";
 import { bookMoney } from "./money-store";
 import { priceAtWeight } from "./venture-store";
@@ -27,6 +29,8 @@ export interface Handover {
   to: string | null;
   weighed: Weighed;
   rateBdtPerKg: number;
+  /** Where the Farm takes her on: the Target Window of the Season she joins — the next Eid where none is said. */
+  targetWindow?: TargetWindow;
   /** Where the rate came from. An Investor asking years later why his bull was worth that is owed a
    *  figure and a reason. */
   note: string;
@@ -111,5 +115,28 @@ export const recordInternalSale = async (
     .update(animal)
     .set({ ownerVentureId: hand.to, updatedAt: now })
     .where(eq(animal.id, hand.animalId));
+  // Taken on by the Farm, she joins one of its Seasons at the price it paid: the discretionary sale and the buy-back
+  // at wind-up alike.
+  if (hand.to === null) {
+    await joinTheFattening(tx, {
+      farmId,
+      animalId: hand.animalId,
+      joinedAt: now,
+      how: "bought_from_venture",
+      internalSaleId: hand.id,
+      targetWindow: hand.targetWindow,
+      price: {
+        priceBdt,
+        weighInId: hand.weighed.id,
+        weightKg: hand.weighed.weightKg,
+        rateBdtPerKg: hand.rateBdtPerKg,
+        note: hand.note,
+        pricedBy: actorId,
+        pricedAt: now,
+      },
+      recordedBy: actorId,
+      now,
+    });
+  }
   return { id: hand.id, weightKg: hand.weighed.weightKg, priceBdt };
 };

@@ -280,6 +280,65 @@ describe("the Internal Sale", () => {
     });
   });
 
+  it("puts one the Farm buys back into the Season of the window it gives her, at the price it paid", async () => {
+    // In March, clear of February's money read below. Bought by the Farm for Eid 2047 and weighed at 210 kg; sold to
+    // the Venture at ৳300 a kilo — ৳63,000, which ends her first Season — and bought back the same moment at the same
+    // price for a winter market, which starts her second at ৳63,000.
+    const hers = await bull("2047-03-10T05:00:00.000Z");
+    await weigh("2047-03-11", [[hers.tagNumber, 210]]);
+    const owner = await as("owner", "2047-03-11T09:00:00.000Z");
+    const sale = {
+      tagNumber: hers.tagNumber,
+      rateBdtPerKg: 300,
+      note: `দর ${suffix}`,
+      soldOn: "2047-03-11",
+      paymentMethod: "bank" as const,
+      reference: `INT-W-${suffix}`,
+      priceBdt: 63_000,
+    };
+    await owner.client.ventures.sellInternally({
+      ...sale,
+      toVentureId: ventureId,
+    });
+    await owner.client.ventures.sellInternally({
+      ...sale,
+      targetWindow: { start: "2047-12-01", end: "2047-12-31" },
+    });
+    const winterOf = async (instant: string) => {
+      const { client: reading } = await as("owner", instant);
+      const { seasons } = await reading.returns.page();
+      return seasons.find((one) => one.key === "window:2047-12-01|2047-12-31");
+    };
+    // She stands, and this farm has set no market price a kilo: in her Season, named, as any bull with no price is.
+    expect(await winterOf("2047-03-11T10:00:00.000Z")).toMatchObject({
+      head: 1,
+      finished: false,
+      gaps: [{ tagNumber: hers.tagNumber, why: "no_price" }],
+    });
+
+    // Sold to the Venture again next day at ৳320 a kilo — 210 × 320 = ৳67,200 — which ends the Season she was bought
+    // back into: ৳4,200 on the ৳63,000 she came in at, 6.7 on the hundred.
+    const later = await as("owner", "2047-03-12T09:00:00.000Z");
+    await later.client.ventures.sellInternally({
+      ...sale,
+      rateBdtPerKg: 320,
+      soldOn: "2047-03-12",
+      reference: `INT-W2-${suffix}`,
+      priceBdt: 67_200,
+      toVentureId: ventureId,
+    });
+    expect(await winterOf("2047-03-12T10:00:00.000Z")).toMatchObject({
+      head: 1,
+      finished: true,
+      returnOnCost: {
+        costBdt: 63_000,
+        backBdt: 67_200,
+        resultBdt: 4200,
+        per100: 6.7,
+      },
+    });
+  });
+
   it("refuses an animal nobody has weighed", async () => {
     const unweighed = await bull("2047-02-09T05:00:00.000Z");
     const owner = await as("owner", "2047-02-09T09:00:00.000Z");

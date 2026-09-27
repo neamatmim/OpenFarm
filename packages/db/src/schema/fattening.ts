@@ -12,7 +12,7 @@ import {
 
 import { user } from "./auth";
 import { farm } from "./farm";
-import { animal } from "./herd";
+import { animal, animalMove } from "./herd";
 import { stepCompletion } from "./instance";
 import { taka } from "./taka";
 import { buyingTrip, sellingTrip } from "./trip";
@@ -302,4 +302,64 @@ export const internalSale = pgTable(
     createdAt: timestamp("created_at").notNull(),
   },
   (table) => [index("internal_sale_idx").on(table.farmId, table.animalId)]
+);
+
+/** How an Animal came to the Farm's Fattening side other than by Intake. */
+export const JOINING_HOWS = ["crossed", "bought_from_venture"] as const;
+export type JoiningHow = (typeof JOINING_HOWS)[number];
+
+/**
+ * An Animal coming to the Farm's own Fattening side other than by **Intake**: a calf bred here or a cow walked across
+ * from Dairy, or a beast the Farm bought from a Venture by **Internal Sale** — the buy-back at wind-up among them. It
+ * puts her in the **Season** of its Target Window from the day she joined, at its price.
+ *
+ * A crossing's price is the Owner's to set — her weight that day times a rate a kilo, with where the rate came from —
+ * and null until then, which leaves her Season not yet a result. One bought from a Venture joins at the Internal
+ * Sale's price. Priced again, the price is replaced; the trail keeps each.
+ */
+export const fatteningJoining = pgTable(
+  "fattening_joining",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    animalId: text("animal_id")
+      .notNull()
+      .references(() => animal.id, { onDelete: "cascade" }),
+    /** The farm day she joined. */
+    joinedOn: text("joined_on").notNull(),
+    /** When, on the farm's clock: what her Season counts her money out from. */
+    joinedAt: timestamp("joined_at").notNull(),
+    how: text("how", { enum: JOINING_HOWS }).notNull(),
+    /** The Move that walked her across; a Move taken back takes its joining with it. */
+    moveId: text("move_id").references(() => animalMove.id, {
+      onDelete: "cascade",
+    }),
+    internalSaleId: text("internal_sale_id").references(() => internalSale.id),
+    targetWindowStart: text("target_window_start").notNull(),
+    targetWindowEnd: text("target_window_end").notNull(),
+    /** What she is being fed towards: the Farm Parameter's default, as an Intake's is. */
+    targetWeightKg: numeric("target_weight_kg", {
+      precision: 7,
+      scale: 2,
+    }).notNull(),
+    /** Taka she joined at: null for a crossing the Owner has not priced yet. */
+    priceBdt: taka("price_bdt"),
+    /** The reading the price was struck from, and what it said: where her gain here is measured from. */
+    weighInId: text("weigh_in_id").references(() => weighIn.id),
+    weightKg: numeric("weight_kg", { precision: 7, scale: 2 }),
+    rateBdtPerKg: numeric("rate_bdt_per_kg", { precision: 10, scale: 2 }),
+    /** Where the rate came from. */
+    note: text("note"),
+    pricedBy: text("priced_by").references(() => user.id),
+    pricedAt: timestamp("priced_at"),
+    recordedBy: text("recorded_by").references(() => user.id),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    index("fattening_joining_animal_idx").on(table.animalId, table.joinedAt),
+    uniqueIndex("fattening_joining_move_uidx").on(table.moveId),
+    uniqueIndex("fattening_joining_sale_uidx").on(table.internalSaleId),
+  ]
 );

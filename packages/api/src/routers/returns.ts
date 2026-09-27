@@ -7,12 +7,10 @@ import { z } from "zod";
 import { audited } from "../audit";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
-import {
-  returnsPage,
-  runningSeasons,
-  ventureReturns,
-} from "../returns-store";
+import { priceTheJoining, weighedForTheCrossing } from "../joining-store";
+import { returnsPage, runningSeasons, ventureReturns } from "../returns-store";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
+import { priceAtWeight } from "../venture-store";
 
 /**
  * What the money in the farm's cattle returned: the Owner's Returns page. Each Season of the Farm's own fattening
@@ -90,5 +88,74 @@ export const returnsRouter = {
         (tx) => tx.insert(bankRate).values(row)
       );
       return { id, fromDay };
+    }),
+
+  /**
+   * Prices a crossing: her weight on the day she was walked across from Dairy — her latest Weigh-in by that day's end —
+   * times a rate a kilo, with where the rate came from. It puts her in her Season at that price; until then she is
+   * named and counted nowhere. Priced again, the price is replaced and the trail keeps each. The Owner's alone.
+   */
+  priceCrossing: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        joiningId: z.string(),
+        rateBdtPerKg: z.number().positive().max(100_000),
+        note: z.string().trim().min(1).max(300),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const joining = await context.db.query.fatteningJoining.findFirst({
+        where: { id: input.joiningId, farmId: context.farm.id, how: "crossed" },
+      });
+      if (!joining) {
+        throw new ORPCError("NOT_FOUND", { message: "No such crossing" });
+      }
+      const weighed = await weighedForTheCrossing(
+        context.db,
+        joining.animalId,
+        joining.joinedOn
+      );
+      if (!weighed) {
+        throw new ORPCError("BAD_REQUEST", {
+          message:
+            "Nobody has weighed her by the day she crossed: weigh her first",
+          data: { refusal: "crossing_unweighed" },
+        });
+      }
+      const price = {
+        priceBdt: priceAtWeight(weighed.weightKg, input.rateBdtPerKg),
+        weighInId: weighed.id,
+        weightKg: weighed.weightKg,
+        rateBdtPerKg: input.rateBdtPerKg,
+        note: input.note,
+        pricedBy: context.actor.id,
+        pricedAt: now,
+      };
+      await audited(context).write(
+        {
+          entity: "fattening_joining",
+          entityId: joining.id,
+          action: "update",
+          before: {
+            priceBdt: joining.priceBdt,
+            rateBdtPerKg:
+              joining.rateBdtPerKg === null
+                ? null
+                : Number(joining.rateBdtPerKg),
+            note: joining.note,
+          },
+          after: {
+            priceBdt: price.priceBdt,
+            rateBdtPerKg: price.rateBdtPerKg,
+            weightKg: price.weightKg,
+            note: price.note,
+          },
+        },
+        (tx) => priceTheJoining(tx, joining.id, price)
+      );
+      return { weightKg: price.weightKg, priceBdt: price.priceBdt };
     }),
 };

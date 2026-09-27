@@ -18,6 +18,9 @@ import { appRouter } from "./index";
  */
 const suffix = `windup-${Date.now()}`;
 
+/** The market the Farm takes the wind-up's animals on for: a Season of its own. */
+const WINTER = { start: "2047-12-01", end: "2047-12-31" };
+
 const as = (role: "owner" | "manager" | "staff", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
@@ -281,6 +284,7 @@ describe("the buy-back at wind-up", () => {
       ventureId,
       boughtOn: "2047-05-20",
       ...buying,
+      targetWindow: WINTER,
     });
     // Three hundred kilos and three hundred and twenty, at four hundred taka the kilo.
     expect(bought.animals).toHaveLength(2);
@@ -308,6 +312,12 @@ describe("the buy-back at wind-up", () => {
       (one) => one.source === "internal_sale_out"
     );
     expect(purchases).toHaveLength(2);
+
+    // All it takes join the one Season of the window it gives them.
+    const { seasons } = await owner.client.returns.page();
+    expect(
+      seasons.find((one) => one.key === `window:${WINTER.start}|${WINTER.end}`)
+    ).toMatchObject({ head: 2 });
 
     // Each animal has her own Internal Sale in the trail, because what the Owner is asked years later
     // is why this bull was worth that — not what the day came to.

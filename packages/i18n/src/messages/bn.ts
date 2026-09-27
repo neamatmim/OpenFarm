@@ -1205,6 +1205,12 @@ export const bn: Record<MessageKey, string> = {
   "refusal.neverWeighed": "গরুটির কোনো ওজন নেওয়া হয়নি, তাই দাম ঠিক করার ভিত্তি নেই",
   "refusal.windUpNotOver": "গুটিয়ে আনার সময় এখনও শেষ হয়নি, বিক্রির দিন আছে",
   "refusal.nothingLeftToBuy": "এই ভেঞ্চারের আর কোনো গরু কেনার নেই",
+  "refusal.bankRateFromTheFuture":
+    "ব্যাংকের হার আসা দিন থেকে ধরা হয়, সামনের দিন থেকে নয়",
+  "refusal.crossingUnweighed":
+    "পার হওয়ার দিন শেষ হওয়া পর্যন্ত কেউ তার ওজন নেয়নি; আগে ওজন নিন, তারপর দাম লিখুন",
+  "refusal.joiningNeedsAWindow":
+    "কোন বিক্রির সময়ের জন্য তাকে খাওয়ানো হচ্ছে তা বলুন; পরের ঈদ বের করা যায়নি",
   "refusal.anAnimalStillStands": "এই ভেঞ্চারের একটি গরু এখনও আছে",
   "refusal.aPriceIsMissing": "যে খাবার বা ওষুধ দেওয়া হয়েছে তার দাম জানা নেই",
   "refusal.aFloatIsOpen": "হাটের টাকার হিসাব এখনও মেলানো হয়নি",
@@ -3750,6 +3756,29 @@ export const bn: Record<MessageKey, string> = {
   "returns.panelHint":
     "হিসাব নিকাশের মতো করেই: গরুগুলো যা এনেছে, তা থেকে কেনার দাম আর তাদের ওপর ধরা সব খরচ বাদ।",
   "returns.seeAll": "সব মৌসুম আর ভেঞ্চার",
+  "window.title": "যে মৌসুমে যোগ দেবে",
+  "window.nextEid": "পরের ঈদুল আযহা",
+  "window.nextEidHint": "ঘোষিত বা প্রত্যাশিত দিন খামার নিজেই বসাবে।",
+  "window.other": "অন্য সময়",
+  "window.from": "থেকে",
+  "window.to": "পর্যন্ত",
+  "returns.gap.not_priced": "{tag}: দুগ্ধ থেকে এসেছে, দাম লেখা হয়নি",
+  "returns.fix.not_priced": "দাম লিখুন",
+  "returns.crossingsTitle": "দুগ্ধ থেকে আসা পশু",
+  "returns.crossingsHint":
+    "দুগ্ধ থেকে মোটাতাজায় আসা পশু তার মৌসুমে যোগ দেয় সেদিনের ওজন গুণ আপনার ঠিক করা প্রতি কেজির দরে। দাম না লেখা পর্যন্ত তার নাম দেখানো হয়, কোনো হিসাবে ধরা হয় না, আর তার মৌসুমের ফল হয় না। খামারে থাকা পর্যন্ত আবার দাম লিখে তা ঠিক করা যায়।",
+  "returns.crossingsNone": "কোনো পারাপারের দাম বাকি নেই।",
+  "returns.crossingLine": "{tag}, পার হয়েছে {day}",
+  "returns.crossingWeighed": "সেদিনের মধ্যে ওজন {kg} কেজি",
+  "returns.crossingUnweighed": "সেদিনের মধ্যে ওজন নেওয়া হয়নি — আগে ওজন নিন",
+  "returns.priceIt": "দাম লিখুন",
+  "returns.priceAgain": "আবার দাম লিখুন",
+  "returns.crossingPriced": "দাম {price}, প্রতি কেজি {rate}",
+  "returns.priceTitle": "পারাপারের দাম",
+  "returns.rate": "প্রতি কেজি দর",
+  "returns.rateNote": "দর কোথা থেকে",
+  "returns.priceWorks": "{kg} কেজি × {rate} = {price}",
+  "returns.priceSaved": "দাম রাখা হলো",
   "returns.leftOut":
     "মজুরি, শেড, যন্ত্রপাতি, গোবর আর টাকার নিজের খরচ এতে ধরা নেই — তাই একই পশুর ওপর প্রকাশিত গবেষণার হিসাবের চেয়ে বেশি দেখায়।",
   "sale.title": "পশু বিক্রয়",

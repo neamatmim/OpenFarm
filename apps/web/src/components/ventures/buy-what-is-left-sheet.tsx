@@ -6,8 +6,16 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { TagLink } from "@/components/fattening/fattening-words";
+import {
+  NEXT_EID,
+  WindowChoice,
+  windowOf,
+  windowReady,
+} from "@/components/fattening/window-choice";
+import type { WindowPick } from "@/components/fattening/window-choice";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { allTyped } from "@/lib/all-typed";
 import { useFreshFor } from "@/lib/fresh-for";
 import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
@@ -55,6 +63,10 @@ const WhatIsLeft = ({
   );
 };
 
+/** A rate typed, and a number other than nought. */
+const aRate = (typed: string, rate: number): boolean =>
+  typed !== "" && !Number.isNaN(rate) && rate !== 0;
+
 /**
  * The buy-back at wind-up: the Farm takes every Animal the Venture still holds, at one rate, on one day.
  *
@@ -83,6 +95,8 @@ export const BuyWhatIsLeftSheet = ({
   const [note, setNote] = useState("");
   const [boughtOn, setBoughtOn] = useState("");
   const [reference, setReference] = useState("");
+  // The one Season every animal the Farm takes joins: the next Eid unless another window is said.
+  const [windowPick, setWindowPick] = useState<WindowPick>(NEXT_EID);
   useFreshFor(venture?.id, () => {
     setRate("");
     setNote("");
@@ -117,12 +131,9 @@ export const BuyWhatIsLeftSheet = ({
   const ready =
     venture !== null &&
     unweighed.length === 0 &&
-    rate !== "" &&
-    !Number.isNaN(rateBdtPerKg) &&
-    rateBdtPerKg !== 0 &&
-    note.trim() !== "" &&
-    boughtOn !== "" &&
-    reference.trim() !== "";
+    aRate(rate, rateBdtPerKg) &&
+    allTyped(note, boughtOn, reference) &&
+    windowReady(windowPick);
   return (
     <FormSheet
       description={t("ventures.buyWhatIsLeftHint", {
@@ -138,6 +149,7 @@ export const BuyWhatIsLeftSheet = ({
           boughtOn,
           paymentMethod: "bank",
           reference,
+          targetWindow: windowOf(windowPick),
         })
       }
       open={open}
@@ -197,6 +209,11 @@ export const BuyWhatIsLeftSheet = ({
           />
         </FormField>
       </div>
+      <WindowChoice
+        id="wind-up-season"
+        onPick={setWindowPick}
+        pick={windowPick}
+      />
     </FormSheet>
   );
 };

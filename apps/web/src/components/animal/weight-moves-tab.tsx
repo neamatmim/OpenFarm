@@ -7,6 +7,13 @@ import { toast } from "sonner";
 
 import { MoveTable, WeighInTable } from "@/components/animal-histories";
 import { CorrectionDialog } from "@/components/correction-dialog";
+import {
+  NEXT_EID,
+  WindowChoice,
+  windowOf,
+  windowReady,
+} from "@/components/fattening/window-choice";
+import type { WindowPick } from "@/components/fattening/window-choice";
 import { EmptyState, RecordList, RecordRow, Section } from "@/components/page";
 import { NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -27,13 +34,25 @@ const ChangeSide = ({
   const { t } = useLanguage();
   const toSide = "fattening" as const;
   const [toPenId, setToPenId] = useState("");
+  // The Season she joins on the Fattening side: the next Eid, worked out by the farm even for a phone out of signal,
+  // unless another window is said.
+  const [windowPick, setWindowPick] = useState<WindowPick>(NEXT_EID);
   const move = useMutation(orpc.animals.move.mutationOptions({}));
   return (
     <CorrectionDialog
       description={t("correct.sideHint")}
-      onOpen={() => setToPenId("")}
+      onOpen={() => {
+        setToPenId("");
+        setWindowPick(NEXT_EID);
+      }}
       onSave={async (reason) => {
-        const across = { tagNumber, toSide, toPenId, reason };
+        const across = {
+          tagNumber,
+          toSide,
+          toPenId,
+          reason,
+          targetWindow: windowOf(windowPick),
+        };
         // With signal the farm answers now; without it the Move waits on the phone rather than being lost.
         if (navigator.onLine) {
           await move.mutateAsync(across);
@@ -43,7 +62,7 @@ const ChangeSide = ({
           toast.info(t("animals.moveQueued"));
         }
       }}
-      ready={Boolean(toPenId)}
+      ready={Boolean(toPenId) && windowReady(windowPick)}
       title={t("correct.side")}
       trigger={`${t("correct.toSide")}: ${t(`animals.side.${toSide}`)}`}
     >
@@ -63,6 +82,11 @@ const ChangeSide = ({
           ))}
         </NativeSelect>
       </div>
+      <WindowChoice
+        id={`side-season-${tagNumber}`}
+        onPick={setWindowPick}
+        pick={windowPick}
+      />
     </CorrectionDialog>
   );
 };

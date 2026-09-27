@@ -16,6 +16,7 @@ import type {
   CalvingLead,
   ExitState,
   Side,
+  TargetWindow,
 } from "@OpenFarm/domain";
 import {
   EXIT_STATES,
@@ -35,6 +36,7 @@ import type { Tx, Trail } from "./audit";
 import { requireBreed } from "./breed-store";
 import type { CalvingWorkFollowed } from "./calving-work";
 import { followExpectedCalving } from "./calving-work";
+import { joinTheFattening } from "./joining-store";
 import { lateEntry } from "./late";
 import { callOffWork } from "./work-transitions";
 
@@ -455,6 +457,8 @@ export const walkTo = async (
     toPenId: string;
     /** The Side she lands on; her own, unless she is crossing. */
     toSide?: Side;
+    /** The Target Window a crossing to Fattening puts her on: the next Eid where none is said. */
+    targetWindow?: TargetWindow;
     reason?: string | null;
     /** The Step that walked her, when the Playbook was what moved her. */
     completionId?: string | null;
@@ -517,10 +521,11 @@ export const walkTo = async (
       updatedAt: entry.now,
     })
     .where(and(eq(animal.farmId, entry.farmId), eq(animal.id, beast.id)));
+  const moveId = entry.id ?? uuidv7(entry.movedAt);
   await tx
     .insert(animalMove)
     .values({
-      id: entry.id ?? uuidv7(entry.movedAt),
+      id: moveId,
       farmId: entry.farmId,
       animalId: beast.id,
       fromPenId: beast.penId,
@@ -536,6 +541,25 @@ export const walkTo = async (
   await moveOpenWorkWith(tx, entry.farmId, beast.id, entry.toPenId);
   if (forecastGoes) {
     await forgetExpectedCalving(tx, entry.farmId, beast, entry);
+  }
+  // Walked across to Fattening, she joins a Season: the Move's own, so a replay of it joins her once.
+  if (crossing && toSide === "fattening") {
+    const already = await tx.query.fatteningJoining.findFirst({
+      where: { moveId },
+      columns: { id: true },
+    });
+    if (!already) {
+      await joinTheFattening(tx, {
+        farmId: entry.farmId,
+        animalId: beast.id,
+        joinedAt: entry.movedAt,
+        how: "crossed",
+        moveId,
+        targetWindow: entry.targetWindow,
+        recordedBy: entry.movedBy,
+        now: entry.now,
+      });
+    }
   }
 };
 

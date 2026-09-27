@@ -1,7 +1,11 @@
 import type { Database } from "@OpenFarm/db";
 import { startOfFarmDay } from "@OpenFarm/domain";
 
-import { fatteningOf } from "./fattening-store";
+import {
+  fatteningOf,
+  LATEST_JOINING,
+  startOfFattening,
+} from "./fattening-store";
 
 /** A whole fattening side fits in one read on a farm of this size; the herd is the bound. */
 const HERD_LIMIT = 1000;
@@ -57,6 +61,8 @@ export const fatteningRows = async (
           targetWindowEnd: true,
         },
       },
+      /** The latest time she joined the Fattening side other than by Intake: her window, when it is newer. */
+      joinings: LATEST_JOINING,
       /** Newest first: a limit on an ascending order takes her *first* readings. Sorted back
        *  into order inside `fatteningOf`, which is where the gain is worked out. */
       weighIns: {
@@ -67,20 +73,25 @@ export const fatteningRows = async (
       readySetAside: { columns: { grounds: true, setAsideAt: true } },
     },
   });
-  return rows.map(({ intake, weighIns, pen, readySetAside, ...beast }) => ({
-    ...beast,
-    penName: pen.name,
-    setAside: readySetAside ?? null,
-    targetWindow: intake
-      ? { start: intake.targetWindowStart, end: intake.targetWindowEnd }
-      : null,
-    /** The days as instants, for the rules that compare them with now. */
-    window: intake
-      ? {
-          opensAt: startOfFarmDay(intake.targetWindowStart),
-          closesAt: startOfFarmDay(intake.targetWindowEnd),
-        }
-      : null,
-    view: fatteningOf(intake, weighIns, now),
-  }));
+  return rows.map(
+    ({ intake: bought, joinings, weighIns, pen, readySetAside, ...beast }) => {
+      const intake = startOfFattening(bought, joinings);
+      return {
+        ...beast,
+        penName: pen.name,
+        setAside: readySetAside ?? null,
+        targetWindow: intake
+          ? { start: intake.targetWindowStart, end: intake.targetWindowEnd }
+          : null,
+        /** The days as instants, for the rules that compare them with now. */
+        window: intake
+          ? {
+              opensAt: startOfFarmDay(intake.targetWindowStart),
+              closesAt: startOfFarmDay(intake.targetWindowEnd),
+            }
+          : null,
+        view: fatteningOf(intake, weighIns, now),
+      };
+    }
+  );
 };

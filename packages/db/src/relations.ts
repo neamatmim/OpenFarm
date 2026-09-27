@@ -42,6 +42,11 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     /** How she arrived, for an animal the farm bought in. */
     intake: r.one.intake({ from: r.animal.id, to: r.intake.animalId }),
+    /** Every time she came to the Farm's Fattening side other than by Intake: the latest holds her window. */
+    joinings: r.many.fatteningJoining({
+      from: r.animal.id,
+      to: r.fatteningJoining.animalId,
+    }),
     /** Every time she has been on the scale. Fattening is the difference between them. */
     weighIns: r.many.weighIn({ from: r.animal.id, to: r.weighIn.animalId }),
     /** Every time she has been served, the ones that did not take included. */
@@ -224,6 +229,12 @@ export const relations = defineRelations(schema, (r) => ({
       optional: false,
     }),
     weigher: r.one.user({ from: r.weighIn.recordedBy, to: r.user.id }),
+  },
+  fatteningJoining: {
+    animal: r.one.animal({
+      from: r.fatteningJoining.animalId,
+      to: r.animal.id,
+    }),
   },
   intake: {
     animal: r.one.animal({
