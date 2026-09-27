@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import {
   BookOpenCheck,
+  ChevronRight,
   ShieldCheck,
   Smartphone,
   Sprout,
@@ -75,18 +76,29 @@ export const AuthScreen = ({ children }: { children: ReactNode }) => {
           id="main"
           tabIndex={-1}
         >
-          <div className="flex w-full max-w-md flex-col gap-6">
+          <div className="flex w-full max-w-md flex-col gap-4">
             {children}
-            {/* The other way in, now the farm's address has no front page of its own: a phone set up for a shed. */}
-            <div className="flex text-sm">
-              <Link
-                className="text-primary inline-flex min-h-11 items-center gap-2 font-medium underline-offset-4 hover:underline md:min-h-9"
-                to="/device"
-              >
-                <Smartphone aria-hidden className="size-4" />
-                {t("home.shedPhone")}
-              </Link>
-            </div>
+            {/* The other way in, now the farm's address has no front page of its own: a phone set up for a shed. A card
+                of its own under the form, the whole of it the link, saying what the phone is for — a milker's PIN, or
+                the Manager's code for a new one. */}
+            <Link
+              className="surface hover:bg-muted/50 focus-visible:ring-ring flex items-center gap-3 p-4 transition-colors duration-150 outline-none focus-visible:ring-2"
+              to="/device"
+            >
+              <span className="bg-secondary text-secondary-foreground grid size-10 shrink-0 place-items-center rounded-lg">
+                <Smartphone aria-hidden className="size-5" />
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="font-medium">{t("auth.shedPhone")}</span>
+                <span className="text-muted-foreground text-sm">
+                  {t("auth.shedPhoneHint")}
+                </span>
+              </span>
+              <ChevronRight
+                aria-hidden
+                className="text-muted-foreground size-4 shrink-0"
+              />
+            </Link>
           </div>
         </main>
       </div>

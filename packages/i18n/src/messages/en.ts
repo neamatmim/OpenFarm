@@ -5,7 +5,9 @@ export const en = {
   "language.bn": "বাংলা",
   "language.en": "English",
   "language.switch": "Change language",
-  "home.shedPhone": "Open on a Shed Phone",
+  "auth.shedPhone": "Shed Phone",
+  "auth.shedPhoneHint":
+    "Staff sign in with their PIN. A new phone is set up with the Manager's code.",
   "auth.signIn": "Sign in",
   "auth.promise.title":
     "Every job on the farm, done the way the farm decided — and written down as it happens.",
