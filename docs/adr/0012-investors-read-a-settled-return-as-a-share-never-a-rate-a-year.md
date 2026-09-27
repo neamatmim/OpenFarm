@@ -20,5 +20,6 @@ So an Investor reads:
 
 - The **Investor Statement** rule widens: a settled share is a fact and may be printed, but a rate a year may not.
 - The advisers' approval of 2026-09-26 covered the portal without any percentage. The research's questions for them go with the spec.
+- **2026-09-27: the lawyer and the Shariah scholar approved the wording as built, with no changes** — the share over the Investor's days, under their payout, on the portal's Venture page and on the হিসাব নিকাশ. The switch may be turned on; turning it on stays the Owner's own act.
 
 **Revisit** if either adviser objects to the share, or if Ventures ever run longer than a year. A rate a year for a run of a year or more is not a simulated figure.

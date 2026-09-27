@@ -36,3 +36,8 @@
 - **Checked on the seed:** the switch beside Projections, the Preview with it off, the portal as আবুল হাশেম মিয়া, and
   his হিসাব নিকাশ drawn in an overlay: «প্রতি ১০০ টাকা মূলধনে ১৪.৫ টাকা লাভ, ৭৭ দিনে» under his payout. The seed's
   switch is left off.
+
+## The advisers
+
+- **2026-09-27:** the Owner reports the lawyer and the Shariah scholar approved the wording as built, with no changes.
+  Nothing in the code waits any more; the switch under Investors is the Owner's to turn on.
