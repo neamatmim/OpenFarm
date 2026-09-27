@@ -131,6 +131,9 @@ const parameters = z
     returnYearFloorDays: z.number().int().min(1).max(365).optional(),
     /** The taka above which a Money Event waits for the Owner. */
     approvalThresholdBdt: z.number().int().min(0).max(100_000_000).optional(),
+    /** The day of the month from which a Monthly Cost with nothing entered that month is named: no later than the 28th,
+     *  which every month has. */
+    monthlyCostsDueDay: z.number().int().min(1).max(28).optional(),
     /** What part of a Venture's target capital is the least worth starting on. */
     ventureFloorPercent: z.number().int().min(0).max(100).optional(),
     /** What part of a Venture's capital keeps the animals rather than buying them. */
@@ -204,6 +207,9 @@ const WHAT_KEEP_AND_CULL_READ = [
 /** What the Owner's Returns page reads: the Owner's to set, as the page is theirs alone to read. */
 const WHAT_RETURNS_READ = ["returnYearFloorDays"] as const;
 
+/** When a month's Monthly Costs and wages are looked for: the Owner's to set, as the mark that makes a Monthly Cost is. */
+const WHEN_MONTHLY_COSTS_ARE_LOOKED_FOR = ["monthlyCostsDueDay"] as const;
+
 type ParametersInput = z.infer<typeof parameters>;
 
 /** Whether a request names any of these Parameters. */
@@ -213,7 +219,7 @@ const namesAny = (
 ): boolean => keys.some((key) => input[key] !== undefined);
 
 /** Refuses a Manager who names what is the Owner's alone to set: a Venture's own figures, what the Owner's
- *  keep-or-sell figures and culling list read, or what the Returns page reads. */
+ *  keep-or-sell figures and culling list read, what the Returns page reads, or when a month's costs are looked for. */
 const refuseWhatIsTheOwners = (
   input: ParametersInput,
   roles: readonly RoleName[]
@@ -237,6 +243,12 @@ const refuseWhatIsTheOwners = (
   if (namesAny(input, WHAT_RETURNS_READ)) {
     throw forbidden({
       message: "What the Returns page reads is the Owner's to set",
+      reason: "owner_only",
+    });
+  }
+  if (namesAny(input, WHEN_MONTHLY_COSTS_ARE_LOOKED_FOR)) {
+    throw forbidden({
+      message: "When a month's costs are looked for is the Owner's to set",
       reason: "owner_only",
     });
   }
@@ -701,6 +713,7 @@ export const farmRouter = {
                 cullMilkPriceDays: true,
                 returnYearFloorDays: true,
                 approvalThresholdBdt: true,
+                monthlyCostsDueDay: true,
                 ventureFloorPercent: true,
                 ventureRunningPercent: true,
                 ventureInvestorsPercent: true,

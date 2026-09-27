@@ -8,6 +8,7 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   Beef as Herd,
+  CalendarClock,
   Plus,
   Tags,
 } from "lucide-react";
@@ -43,9 +44,14 @@ interface CategoryRow extends Category {
   retiring: boolean;
   /** Only the Owner marks a Category as one the animals carry. */
   mayMark: boolean;
+  /** Only the Owner marks a Category as paid every month. */
+  mayMarkMonthly: boolean;
+  /** Whether it is a Monthly Cost, defaulted for an answer a phone kept from before there were any. */
+  monthly: boolean;
   handleRetire: () => void;
   handleBringBack: () => void;
   handleMark: () => void;
+  handleMarkMonthly: () => void;
 }
 
 /** A Category whose money the animals of its Side carry, split by the days each stood here that month. */
@@ -54,6 +60,16 @@ const CarriedBadge = ({ row }: { row: CategoryRow }) => {
   return row.chargedToAnimals ? (
     <StatusBadge icon={Herd} tone="neutral">
       {t("byHand.chargedToAnimals")}
+    </StatusBadge>
+  ) : null;
+};
+
+/** A Monthly Cost: a month with nothing entered under it is named to the Manager and the Owner. */
+const MonthlyBadge = ({ row }: { row: CategoryRow }) => {
+  const { t } = useLanguage();
+  return row.monthly ? (
+    <StatusBadge icon={CalendarClock} tone="neutral">
+      {t("byHand.paidMonthly")}
     </StatusBadge>
   ) : null;
 };
@@ -80,7 +96,8 @@ const Retired = ({ row }: { row: CategoryRow }) =>
  *  back. */
 const CategoryMenu = ({ row }: { row: CategoryRow }) => {
   const { t } = useLanguage();
-  const { handleRetire, handleBringBack, handleMark } = row;
+  const { handleRetire, handleBringBack, handleMark, handleMarkMonthly } =
+    row;
   if (row.retiredAt) {
     return (
       <RowMenu
@@ -95,7 +112,7 @@ const CategoryMenu = ({ row }: { row: CategoryRow }) => {
       />
     );
   }
-  if (!(row.retirable || row.mayMark)) {
+  if (!(row.retirable || row.mayMark || row.mayMarkMonthly)) {
     return null;
   }
   return (
@@ -111,6 +128,17 @@ const CategoryMenu = ({ row }: { row: CategoryRow }) => {
                 ),
                 icon: Herd,
                 handleSelect: handleMark,
+              },
+            ]
+          : []),
+        ...(row.mayMarkMonthly
+          ? [
+              {
+                label: t(
+                  row.monthly ? "byHand.stopMonthly" : "byHand.markMonthly"
+                ),
+                icon: CalendarClock,
+                handleSelect: handleMarkMonthly,
               },
             ]
           : []),
@@ -143,6 +171,7 @@ const StatusCell = ({ row }: { row: { original: CategoryRow } }) => (
   <div className="flex flex-wrap gap-2">
     <Retired row={row.original} />
     <CarriedBadge row={row.original} />
+    <MonthlyBadge row={row.original} />
   </div>
 );
 
@@ -184,6 +213,7 @@ const CategoryCard = ({ row }: { row: CategoryRow }) => (
         <DirectionBadge direction={row.direction === "in" ? "in" : "out"} />
         <Retired row={row} />
         <CarriedBadge row={row} />
+        <MonthlyBadge row={row} />
       </div>
     </div>
     <CategoryMenu row={row} />
@@ -275,6 +305,9 @@ export const CategoriesTab = () => {
       onError,
     })
   );
+  const markMonthly = useMutation(
+    orpc.money.setPaidMonthly.mutationOptions({ onError })
+  );
   const isOwner = useIsOwner();
   const table = useListTable({
     columns: categoryColumns,
@@ -286,6 +319,13 @@ export const CategoriesTab = () => {
       ),
       retiring: retire.isPending,
       mayMark: isOwner && one.enterable && one.chargeable,
+      monthly: one.paidMonthly ?? false,
+      mayMarkMonthly: isOwner && (one.monthlyable ?? false),
+      handleMarkMonthly: () =>
+        markMonthly.mutate({
+          categoryId: one.id,
+          paidMonthly: !(one.paidMonthly ?? false),
+        }),
       handleMark: () =>
         mark.mutate({
           categoryId: one.id,

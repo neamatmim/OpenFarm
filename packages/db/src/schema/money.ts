@@ -71,6 +71,7 @@ export type MoneySource = (typeof MONEY_SOURCES)[number];
 export const CATEGORY_KEYS = [
   ...RECORD_SOURCES,
   "wages",
+  "rent",
   "utilities",
   "repairs",
   "hygiene",
@@ -106,9 +107,12 @@ export const moneyCategory = pgTable(
     direction: text("direction", { enum: MONEY_DIRECTIONS }).notNull(),
     /** Whether money entered by hand under this Category is charged to the animals of its Side, split by
      *  the days each stood on the farm that month: a Vet visit that named nobody, lab tests, fly spray.
-     *  The Owner's mark. Wages, utilities, repairs and shed hygiene are never marked — they are the place
+     *  The Owner's mark. Wages, shed rent, utilities, repairs and shed hygiene are never marked — they are the place
      *  and the people, and they stay the Farm's. */
     chargedToAnimals: boolean("charged_to_animals").notNull().default(false),
+    /** Since when the Owner has marked it as paid every month — a **Monthly Cost** — so that a month with nothing
+     *  entered under it is named. Null while it is not; a month before this one is never named. */
+    paidMonthlySince: timestamp("paid_monthly_since"),
     /** Retired, never removed: a Money Event entered under it last year still names it. */
     retiredAt: timestamp("retired_at"),
     createdAt: timestamp("created_at").notNull(),

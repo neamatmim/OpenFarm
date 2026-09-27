@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { MonthlyCostsGroup } from "@/components/home/monthly-costs";
 import {
   MORE_LINK,
   Opens,
@@ -53,12 +54,20 @@ type Tiles = Awaited<ReturnType<typeof orpc.home.owner.call>>["tiles"];
 /** How many money rows show before the rest wait behind "show all": a pile of approvals is read by its total first. */
 const MONEY_FIRST_SHOWN = 3;
 
-/** What waits on the Owner's own word: work to sign off, proposals, money, entries to decide, the Registration. */
+/** How many rows of the month's rent, bills and wages are not entered yet — none in an answer a phone kept from before
+ *  there were Monthly Costs. */
+const monthlyCostsMissing = (needsYou: NeedsYou): number =>
+  (needsYou.monthlyCosts?.costs.length ?? 0) +
+  (needsYou.monthlyCosts?.wages.length ?? 0);
+
+/** What waits on the Owner: work to sign off, proposals, money, entries to decide, the Registration, and the month's
+ *  costs not entered yet. */
 export const decisionsWaiting = (needsYou: NeedsYou): number =>
   needsYou.approvals.length +
   needsYou.proposals.length +
   needsYou.needsReview.length +
   needsYou.moneyAwaiting.length +
+  monthlyCostsMissing(needsYou) +
   (needsYou.registrationRenewal ? 1 : 0);
 
 /** The taka the money awaiting approval comes to, whichever way it goes. */
@@ -371,7 +380,14 @@ const KindList = ({
       return <ProposalGroup headless={headless} needsYou={needsYou} />;
     }
     case "money": {
-      return <MoneyGroup headless={headless} needsYou={needsYou} />;
+      // The rent and wages not entered yet keep their own heading, even under the Money tab: they are not money
+      // waiting for her, and a headless list of them would read as if they were.
+      return (
+        <div className="flex flex-col gap-6">
+          <MoneyGroup headless={headless} needsYou={needsYou} />
+          <MonthlyCostsGroup monthlyCosts={needsYou.monthlyCosts} />
+        </div>
+      );
     }
     case "review": {
       return <ReviewGroup headless={headless} needsYou={needsYou} />;
@@ -433,7 +449,7 @@ export const NeedsYouTabs = ({
       value: "money",
       label: t("nav.money"),
       icon: HandCoins,
-      count: needsYou.moneyAwaiting.length,
+      count: needsYou.moneyAwaiting.length + monthlyCostsMissing(needsYou),
     },
     {
       value: "review",
