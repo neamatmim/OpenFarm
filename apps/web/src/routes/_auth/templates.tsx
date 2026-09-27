@@ -31,6 +31,7 @@ import {
   Page,
   PageHeader,
   StatusBadge,
+  SECTION_TITLE,
 } from "@/components/page";
 import { FormDialog, FormField } from "@/components/page-kit";
 import { DataKeepers } from "@/components/templates/data-keepers";
@@ -151,9 +152,7 @@ const TemplateCard = ({
   return (
     <article className="surface flex flex-col gap-4 p-4 md:p-5">
       <div className="flex flex-col gap-1">
-        <h2 className="text-base font-semibold">
-          {t(`templates.kind.${kind}`)}
-        </h2>
+        <h2 className={SECTION_TITLE}>{t(`templates.kind.${kind}`)}</h2>
         <p className="text-muted-foreground text-sm">
           {t(`templates.kindHint.${kind}`)}
         </p>

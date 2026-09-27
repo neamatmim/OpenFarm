@@ -11,7 +11,7 @@ import { toast } from "sonner";
 
 import { Nothing } from "@/components/list-cells";
 import type { Tone } from "@/components/page";
-import { Section, StatusBadge } from "@/components/page";
+import { SUBHEADING, Section, StatusBadge } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useKg } from "@/lib/kg";
@@ -292,10 +292,10 @@ export const HerPrice = ({ tagNumber }: { tagNumber: string }) => {
   }
   return (
     <div className="flex flex-col gap-1 pt-4">
-      <h3 className="font-semibold">{t("price.col")}</h3>
+      <h3 className={SUBHEADING}>{t("price.col")}</h3>
       <EstimateLine one={one} />
       <CostLine one={one} />
-      <h3 className="pt-3 font-semibold">{t("keep.title")}</h3>
+      <h3 className={cn(SUBHEADING, "pt-3")}>{t("keep.title")}</h3>
       <div className="flex flex-col items-start gap-1">
         <KeepLine full one={one} />
       </div>
