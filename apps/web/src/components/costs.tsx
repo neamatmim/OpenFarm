@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 
 import { HerCull } from "@/components/culling/cull-list";
 import { HerPrice } from "@/components/fattening/animal-prices";
-import { useReadsMoney } from "@/components/money";
+import { categoryName, useReadsMoney } from "@/components/money";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka, useTakaToThePaisa } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
@@ -153,6 +153,46 @@ const CostCard = ({
   </section>
 );
 
+type Overheads = Awaited<
+  ReturnType<typeof orpc.costs.bySide.call>
+>["overheads"];
+
+/**
+ * What running the place cost in the period — wages, rent, the bills — by Category, and what that comes to a head a
+ * day over every day an animal stood here (CONTEXT.md: **Overhead**). On its own card, under the Sides, because no
+ * Side carries it: said so on the card, so nobody adds it to a Side's figure or reads it into a Margin.
+ */
+const OverheadsCard = ({ overheads }: { overheads: Overheads }) => {
+  const { t, language } = useLanguage();
+  const taka = useTaka();
+  const rate = useTakaToThePaisa();
+  return (
+    <CostCard title={t("costs.overheads")}>
+      <p className="text-muted-foreground pb-1 text-xs">
+        {t("costs.overheadsHint")}
+      </p>
+      {overheads.lines.map((line) => (
+        <Line key={line.categoryId} label={categoryName(line, language)}>
+          {taka(line.bdt)}
+        </Line>
+      ))}
+      <Line label={t("costs.overheadsTotal")}>
+        <span className="font-semibold">{taka(overheads.totalBdt)}</span>
+      </Line>
+      <Line label={t("costs.perHeadPerDay")}>
+        {overheads.perHeadPerDayBdt === null
+          ? "—"
+          : rate(overheads.perHeadPerDayBdt)}
+      </Line>
+      <p className="text-muted-foreground pt-2 text-xs">
+        {t("costs.headDays", {
+          days: formatNumber(overheads.headDays, language),
+        })}
+      </p>
+    </CostCard>
+  );
+};
+
 /**
  * A period by Side: what each Side's animals were fed, dosed and visited for in it, what a litre of the
  * Dairy side's milk cost — and, apart, the fattening animals sold in it with each one's whole-life Margin.
@@ -197,6 +237,13 @@ export const CostsBySide = ({ from, to }: { from: string; to: string }) => {
           </Line>
         </CostCard>
       </div>
+      {/* Missing from an answer a phone kept from before there were Overheads. */}
+      {report.data.overheads ? (
+        // In the Sides' grid, so its lines read at a card's width and not across the whole page.
+        <div className="grid items-start gap-4 lg:grid-cols-3">
+          <OverheadsCard overheads={report.data.overheads} />
+        </div>
+      ) : null}
       <Note amount={unallocated.feedBdt} word="costs.unallocatedNote" />
       <Note amount={unallocated.tripBdt ?? 0} word="costs.strayTripNote" />
       <Note amount={unallocated.herdBdt ?? 0} word="costs.strayHerdNote" />

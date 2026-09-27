@@ -281,6 +281,29 @@ const FatteningCostCell = ({ row }: MonthCell) => (
   <Sum bdt={row.original.fattening.chargedBdt} />
 );
 
+/** What running the place cost in the month beside what that came to a head a day — missing from an answer a phone
+ *  kept from before there were Overheads. */
+const OverheadsCell = ({ row }: MonthCell) => {
+  const { t } = useLanguage();
+  const taka = useTaka();
+  const perHead = useTakaToThePaisa();
+  const { overheads } = row.original;
+  if (!overheads) {
+    return <Nothing />;
+  }
+  return (
+    <span className="tabular-nums">
+      {t("months.pair", {
+        first: taka(overheads.bdt),
+        second:
+          overheads.perHeadPerDayBdt === null
+            ? "—"
+            : perHead(overheads.perHeadPerDayBdt),
+      })}
+    </span>
+  );
+};
+
 const column = createListColumns<Month>();
 const monthColumns = column.columns([
   column.accessor("month", {
@@ -335,6 +358,12 @@ const monthColumns = column.columns([
     cell: FatteningCostCell,
     meta: { align: "end" },
   }),
+  column.accessor((row) => row.overheads?.bdt, {
+    id: "overheads",
+    header: listHeader("months.col.overheads"),
+    cell: OverheadsCell,
+    meta: { align: "end" },
+  }),
 ]);
 
 /** A month on a phone: its name and net on top, then its money, its milk and its fattening, each a line of words. */
@@ -385,6 +414,17 @@ const MonthCard = ({ month }: { month: Month }) => {
               cost: taka(fattening.chargedBdt),
             })}
       </p>
+      {month.overheads ? (
+        <p className="text-muted-foreground text-sm">
+          {t("months.cardOverheads", {
+            bdt: taka(month.overheads.bdt),
+            perHead:
+              month.overheads.perHeadPerDayBdt === null
+                ? "—"
+                : perLitre(month.overheads.perHeadPerDayBdt),
+          })}
+        </p>
+      ) : null}
     </div>
   );
 };
@@ -404,6 +444,8 @@ export const MonthTable = ({
   year: Stretch;
 }) => {
   const { t } = useLanguage();
+  const taka = useTaka();
+  const perHead = useTakaToThePaisa();
   const newestFirst = months.toReversed();
   const table = useListTable({
     columns: monthColumns,
@@ -414,7 +456,18 @@ export const MonthTable = ({
   const uncostedDoses = year.dairy.uncostedDoses + year.fattening.uncostedDoses;
   return (
     <div className="flex flex-col gap-3">
-      <DataTable card={monthCard} minWidth="64rem" table={table} />
+      <DataTable card={monthCard} minWidth="72rem" table={table} />
+      {year.overheads ? (
+        <p className="text-muted-foreground text-sm">
+          {t("months.yearOverheads", {
+            bdt: taka(year.overheads.bdt),
+            perHead:
+              year.overheads.perHeadPerDayBdt === null
+                ? "—"
+                : perHead(year.overheads.perHeadPerDayBdt),
+          })}
+        </p>
+      ) : null}
       {year.money.awaitingCount > 0 ? (
         <Notice title={t("months.awaiting")} tone="info" />
       ) : null}
