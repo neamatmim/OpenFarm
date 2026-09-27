@@ -19,4 +19,6 @@ A **Venture** is a run: its money comes in, buys cattle, and is settled. The Far
 - **An Internal Sale.** An animal the Farm sold to a Venture, or bought back from one, including at the **Wind-up Period**'s buy-back. Which run is she in, and at which price does she enter or leave it?
 - **The word.** "Run" is a placeholder. Grep `CONTEXT.md` before naming it.
 
+From [the research](../../../docs/research/measuring-a-cattle-return.md) (2026-09-27): US standard practice has a calf bred on the farm leave the herd that bred her at market value, at weaning. On that reading she joins a fattening run when she crosses to it, and her price then is ticket 04's to settle. A dead animal stays in her run.
+
 ## Resolution

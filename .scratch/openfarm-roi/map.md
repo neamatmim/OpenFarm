@@ -47,6 +47,8 @@ A **ready-for-agent spec**, like [Joining a Venture](../openfarm-joining-a-ventu
 
 <!-- one line per closed ticket: gist + link -->
 
+- [How a cattle return is measured](./issues/01-how-a-cattle-return-is-measured.md) — Bangladeshi studies give net return, gross margin and BCR per head per batch, never a rate a year. The comparable figure is net return ÷ total cost. A dead animal stays in the run, and a home-bred calf enters at market. A Margin charges no wages, sheds or interest, so it reads higher than a study's. GIPS forbids annualising under a year. [Research](../../docs/research/measuring-a-cattle-return.md).
+
 ## Not yet specified
 
 - **Where the Owner reads it.** A page of its own, Month by month, the Venture page or the Fattening board. Probably a prototype, once what a return counts, how it is put per year, and the standing and dairy figures are settled.

@@ -20,4 +20,6 @@ A run of four months and a run of ten don't compare on their share of the money 
 
 [Ticket 01](./01-how-a-cattle-return-is-measured.md)'s research names the methods and their known pitfalls.
 
+From [the research](../../../docs/research/measuring-a-cattle-return.md) (2026-09-27): Bangladeshi studies don't annualise, and GIPS 2.A.12 forbids annualising a return for less than a year. Where others scale, it is simple × 365 ÷ days (lenders, bank rates, feedlot closeouts over capital-days), never compounded: 52% in four months reads 155% simple and 248% compounded. The options are no rate a year, simple over total cost, capital-days, or a money-weighted IRR from dated money.
+
 ## Resolution
