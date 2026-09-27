@@ -30,11 +30,8 @@ const LoginPage = () => {
     );
   }
   return (
-    <AuthScreen>
-      <SignInForm
-        onForgotPassword={() => setShowing("forgot")}
-        onSwitchToSignUp={() => setShowing("signUp")}
-      />
+    <AuthScreen onOpenAccount={() => setShowing("signUp")}>
+      <SignInForm onForgotPassword={() => setShowing("forgot")} />
     </AuthScreen>
   );
 };

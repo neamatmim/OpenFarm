@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
-import { Sprout } from "lucide-react";
+import { ChevronRight, Sprout } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Wordmark } from "@/components/wordmark";
@@ -96,4 +96,54 @@ export const DoorScreen = ({
       {footer}
     </div>
   </div>
+);
+
+/** What a row under a door's form leads to: another page, or another card of the same door. */
+type DoorRowGoesTo =
+  | { to: "/device" | "/portal/join"; onClick?: never }
+  | { onClick: () => void; to?: never };
+
+const ROW =
+  "hover:bg-muted/50 focus-visible:ring-ring flex w-full items-center gap-3 p-4 text-start transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-inset";
+
+/**
+ * One other way in, under a door's form: what it is, one line of who it is for, and where it goes. The whole row is
+ * the way in.
+ */
+export const DoorRow = ({
+  icon: Icon,
+  title,
+  hint,
+  ...goes
+}: { icon: LucideIcon; title: string; hint: string } & DoorRowGoesTo) => {
+  const inside = (
+    <>
+      <span className="bg-secondary text-secondary-foreground grid size-10 shrink-0 place-items-center rounded-lg">
+        <Icon aria-hidden className="size-5" />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="font-medium">{title}</span>
+        <span className="text-muted-foreground text-sm">{hint}</span>
+      </span>
+      <ChevronRight
+        aria-hidden
+        className="text-muted-foreground size-4 shrink-0"
+      />
+    </>
+  );
+  const handleClick = goes.onClick;
+  return goes.to ? (
+    <Link className={ROW} to={goes.to}>
+      {inside}
+    </Link>
+  ) : (
+    <button className={ROW} onClick={handleClick} type="button">
+      {inside}
+    </button>
+  );
+};
+
+/** The other ways in, on one card under the form, a hairline between them. */
+export const DoorLinks = ({ children }: { children: ReactNode }) => (
+  <div className="surface divide-y overflow-hidden">{children}</div>
 );

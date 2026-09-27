@@ -16,19 +16,14 @@ import { RefusedNotice, refusalOf } from "@/components/auth/refused-notice";
 import { useLanguage } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
 
-import Loader from "./loader";
-
 const SignInForm = ({
-  onSwitchToSignUp,
   onForgotPassword,
 }: {
-  onSwitchToSignUp: () => void;
   onForgotPassword: () => void;
 }) => {
   const navigate = useNavigate({
     from: "/",
   });
-  const { isPending } = authClient.useSession();
   const { t, language } = useLanguage();
   // What the farm said when it refused, kept on the card as well as in the toast: a toast is gone before somebody
   // who reads slowly has read it.
@@ -72,10 +67,6 @@ const SignInForm = ({
       }),
     },
   });
-
-  if (isPending) {
-    return <Loader />;
-  }
 
   return (
     <div className="surface flex flex-col gap-6 p-6 sm:p-8">
@@ -137,7 +128,17 @@ const SignInForm = ({
           <form.Field name="password">
             {(field) => (
               <div className="flex flex-col gap-2">
-                <Label htmlFor={field.name}>{t("auth.password")}</Label>
+                {/* The way back beside the password, where every sign-in keeps it. */}
+                <div className="flex items-baseline justify-between gap-3">
+                  <Label htmlFor={field.name}>{t("auth.password")}</Label>
+                  <button
+                    className="text-primary text-sm hover:underline"
+                    onClick={onForgotPassword}
+                    type="button"
+                  >
+                    {t("auth.forgotPassword")}
+                  </button>
+                </div>
                 <PasswordInput
                   aria-describedby={
                     field.state.meta.errors.length
@@ -185,15 +186,6 @@ const SignInForm = ({
           )}
         </form.Subscribe>
       </form>
-
-      <div className="flex flex-col items-center gap-1">
-        <Button onClick={onForgotPassword} variant="link">
-          {t("auth.forgotPassword")}
-        </Button>
-        <Button variant="link" onClick={onSwitchToSignUp}>
-          {t("auth.needAccount")}
-        </Button>
-      </div>
     </div>
   );
 };
