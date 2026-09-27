@@ -19,7 +19,7 @@ import { pregnancyTimesOf, retimeEveryCalving } from "../breeding-store";
 import type { CalvingWorkFollowed } from "../calving-work";
 import { dataKeepersInput, readKeepers } from "../data-keepers";
 import { farmDay } from "../farm-clock";
-import { protectedProcedure } from "../index";
+import { protectedProcedure, publicProcedure } from "../index";
 import { photoInput } from "../photo-input";
 import { certificatesOf, keepCertificate } from "../registration-store";
 import type { RoleName } from "../roles";
@@ -415,6 +415,15 @@ export const farmRouter = {
         input.kinds
       )
     ),
+  /**
+   * The farm's own doors — its sign-in and a Shed Phone's — name the farm to anybody before they sign in, as every paper
+   * it prints does and its address already says. The name and nothing else; nothing before the farm is set up. The
+   * Investor portal's door asks `portal.door`, which names nobody while the portal is shut.
+   */
+  door: publicProcedure.handler(({ context }) => ({
+    farmName: context.farm?.name ?? null,
+  })),
+
   current: protectedProcedure.handler(({ context }) => {
     if (!context.farm) {
       return null;

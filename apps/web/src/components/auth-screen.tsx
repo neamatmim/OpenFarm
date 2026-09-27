@@ -10,6 +10,7 @@ import type { ReactNode } from "react";
 import { DoorLinks, DoorRow, DoorScreen } from "@/components/door-screen";
 import { PublicHeader } from "@/components/public-header";
 import { useT } from "@/i18n/language-provider";
+import { useFarmName } from "@/lib/farm-name";
 
 /**
  * The door into the farm: its promise on one side — the Playbook, the record, working without signal — and the
@@ -25,10 +26,12 @@ export const AuthScreen = ({
   onOpenAccount?: () => void;
 }) => {
   const t = useT();
+  const farmName = useFarmName();
   return (
     <DoorScreen
       header={<PublicHeader brandOnPhoneOnly />}
       home="/"
+      subtitle={farmName ?? undefined}
       promise={{
         title: t("auth.promise.title"),
         points: [
