@@ -58,37 +58,42 @@ const bankRatesOf = async (db: Database, farmId: string) => {
   }));
 };
 
-type BankRates = Awaited<ReturnType<typeof bankRatesOf>>;
+type BankRateRows = Awaited<ReturnType<typeof bankRatesOf>>;
+
+/** The Bank Rate in force on a farm day: the latest day on or before it, then the latest typed. None before the first. */
+const rateInForceOn = (rates: BankRateRows, day: string) =>
+  rates.find((one) => one.fromDay <= day) ?? null;
 
 /**
- * The Bank Rate a Season or a Venture reads: the one in force on the day its first taka went in, as a deposit made
- * that day would have locked it — and none for one with no rate a year to set it beside.
+ * The Bank Rate beside a rate a year: the one in force on the day that money first went in, as a deposit made that day
+ * would have locked it — and none for money with no rate a year to set it beside.
  */
 const bankRateFor = (
-  rates: BankRates,
-  holdings: readonly Holding[],
-  returned: Returned | null
+  rates: BankRateRows,
+  firstTaka: Date | null,
+  returned: { perYear: number | null } | null
 ): BankRateSaid | null => {
-  if (
-    returned?.perYear === null ||
-    returned === null ||
-    holdings.length === 0
-  ) {
+  if (returned === null || returned.perYear === null || firstTaka === null) {
     return null;
   }
-  const firstTaka = farmDayOf(
-    new Date(Math.min(...holdings.map((one) => one.takenOn.getTime())))
-  );
-  const inForce = rates.find((one) => one.fromDay <= firstTaka);
+  const inForce = rateInForceOn(rates, farmDayOf(firstTaka));
   return inForce
     ? { perYear: inForce.perYear, note: inForce.note, fromDay: inForce.fromDay }
     : null;
 };
 
+/** The day the first of some money went in: the earliest of the days. None for none. */
+const earliest = (days: readonly Date[]): Date | null =>
+  days.length === 0
+    ? null
+    : new Date(Math.min(...days.map((one) => one.getTime())));
+
 /** What every sum on the page is read from, read once: the costing, whose each Animal was on a day, and every way an
  *  Animal came to an owner and left one. */
 interface Books {
   costs: FarmCosts;
+  /** Every Bank Rate typed, the one that would be in force first: the latest day, then the latest typed. */
+  bankRates: BankRateRows;
   ownedThenBy: OwnedThenBy;
   intakes: {
     animalId: string;
@@ -125,6 +130,7 @@ const booksOf = async (db: Database, farmId: string): Promise<Books> => {
     where: { farmId },
     columns: { animalId: true, happenedAt: true },
   });
+  const bankRates = await bankRatesOf(db, farmId);
   const internal = await db.query.internalSale.findMany({
     where: { farmId },
     columns: {
@@ -138,6 +144,7 @@ const booksOf = async (db: Database, farmId: string): Promise<Books> => {
   });
   return {
     costs,
+    bankRates,
     ownedThenBy,
     intakes,
     died: new Map(deaths.map((one) => [one.animalId, one.happenedAt])),
@@ -269,7 +276,6 @@ export interface SeasonReturn {
  */
 const seasonsOf = (
   books: Books,
-  rates: BankRates,
   floorDays: number,
   today: Date
 ): SeasonReturn[] => {
@@ -305,7 +311,11 @@ const seasonsOf = (
         head: holdings.length,
         died: holdings.filter((one) => one.left?.how === "died").length,
         ...worked,
-        bankRate: bankRateFor(rates, holdings, worked.returnOnCost),
+        bankRate: bankRateFor(
+          books.bankRates,
+          earliest(holdings.map((one) => one.takenOn)),
+          worked.returnOnCost
+        ),
       };
     })
     .toSorted(
@@ -328,8 +338,11 @@ export interface VentureReturn {
   returnOnCapital: ReturnType<typeof returnOnCapitalOf>;
   /** The Farm's share, for its work: taka, never a ratio, because the Farm put in no money. */
   farmsShareBdt: number;
-  /** The Bank Rate in force on its first taka, beside its rate a year; none without one. */
+  /** The Bank Rate in force on the day its first taka went on cattle, beside its Return on Cost a year. */
   bankRate: BankRateSaid | null;
+  /** The Bank Rate in force on the day the Investors' first capital reached the Venture Account — earlier than the
+   *  first beast, as a deposit made with that money would have been — beside their Return on Capital a year. */
+  capitalBankRate: BankRateSaid | null;
 }
 
 /**
@@ -341,7 +354,6 @@ const venturesOf = async (
   db: Database,
   farmId: string,
   books: Books,
-  rates: BankRates,
   floorDays: number,
   today: Date
 ): Promise<VentureReturn[]> => {
@@ -431,6 +443,11 @@ const venturesOf = async (
       today,
       floorDays
     );
+    const returnOnCapital = returnOnCapitalOf({
+      capital,
+      shareBdt: approved.shares.reduce((sum, one) => sum + one.shareBdt, 0),
+      floorDays,
+    });
     out.push({
       id: venture.id,
       name: venture.name,
@@ -441,13 +458,18 @@ const venturesOf = async (
       head: holdings.length,
       died: holdings.filter((one) => one.left?.how === "died").length,
       returnOnCost,
-      returnOnCapital: returnOnCapitalOf({
-        capital,
-        shareBdt: approved.shares.reduce((sum, one) => sum + one.shareBdt, 0),
-        floorDays,
-      }),
+      returnOnCapital,
       farmsShareBdt: approved.row.farmBdt,
-      bankRate: bankRateFor(rates, holdings, returnOnCost),
+      bankRate: bankRateFor(
+        books.bankRates,
+        earliest(holdings.map((one) => one.takenOn)),
+        returnOnCost
+      ),
+      capitalBankRate: bankRateFor(
+        books.bankRates,
+        earliest(capital.map((one) => one.arrived)),
+        returnOnCapital
+      ),
     });
   }
   return out;
@@ -460,20 +482,15 @@ export const returnsPage = async (
   now: Date
 ) => {
   const books = await booksOf(db, farm.id);
-  const bankRates = await bankRatesOf(db, farm.id);
   const floorDays = farm.returnYearFloorDays;
-  const ventures = await venturesOf(
-    db,
-    farm.id,
-    books,
-    bankRates,
-    floorDays,
-    now
-  );
+  const ventures = await venturesOf(db, farm.id, books, floorDays, now);
   return {
     floorDays,
-    seasons: seasonsOf(books, bankRates, floorDays, now),
+    seasons: seasonsOf(books, floorDays, now),
     ventures,
-    bankRates,
+    bankRates: books.bankRates,
+    /** The one in force today, which the page marks: found by the rule every other reading uses, not a second one. */
+    bankRateInForceId:
+      rateInForceOn(books.bankRates, farmDayOf(now))?.id ?? null,
   };
 };

@@ -36,3 +36,5 @@ Grilled with the Owner, 2026-09-27. CONTEXT.md gains **Bank Rate**. No ADR.
 - **Beside every finished rate a year**: a Season's Return on Cost, and a Venture's Return on Cost and Return on Capital. Never beside a share, a running figure, or anything under the 60-day floor.
 - **A plain line with its note**, such as «ব্যাংকের হার, বছরে: ৯.২ — IBBL 12-month mudaraba». Never worded as the cattle beating it. With no rate typed, there is no line.
 - **For the spec:** the Owner's to set, audited, dated rows rather than one Farm Parameter; where it is typed goes with where the Owner reads returns (the fog on the map).
+
+**Amended 2026-09-27, at the review of build ticket 02:** a rate may hold from an earlier day the Owner names (never a day to come), because otherwise the first rate typed reaches no Season already finished. And a Venture's **Return on Capital** reads the rate in force on the day its capital first arrived, which is earlier than its first beast; its **Return on Cost** reads the rate on its first beast.

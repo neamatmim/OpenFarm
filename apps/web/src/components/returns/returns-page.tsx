@@ -24,7 +24,7 @@ export type ReturnsPage = Awaited<ReturnType<typeof client.returns.page>>;
 type Season = ReturnsPage["seasons"][number];
 type Venture = ReturnsPage["ventures"][number];
 type Returned = NonNullable<Season["returnOnCost"]>;
-type BankRate = NonNullable<Season["bankRate"]>;
+type BankRateSaid = NonNullable<Season["bankRate"]>;
 
 /** What every hundred taka made, the days it was out, and that scaled to a year: all a return line says. */
 type Shares = Pick<Returned, "per100" | "averageDays" | "perYear">;
@@ -72,7 +72,7 @@ const ReturnLines = ({
   floorDays: number;
   on: "onCost" | "onCapital";
   /** The Bank Rate beside it, as a plain line: only beside a rate a year, and only once one is typed. */
-  bank: BankRate | null;
+  bank: BankRateSaid | null;
 }) => {
   const { t } = useLanguage();
   const lost = shares.per100 < 0;
@@ -156,7 +156,7 @@ const Row = ({
   head: number;
   died: number;
   returned: Returned;
-  bank: BankRate | null;
+  bank: BankRateSaid | null;
   floorDays: number;
   children?: ReactNode;
 }) => {
@@ -244,7 +244,7 @@ const VentureRow = ({
         <div className="bg-muted/50 flex flex-col gap-1 rounded-md p-3">
           <p className="text-sm font-medium">{t("returns.capitalTitle")}</p>
           <ReturnLines
-            bank={venture.bankRate}
+            bank={venture.capitalBankRate}
             floorDays={floorDays}
             on="onCapital"
             shares={venture.returnOnCapital}
@@ -277,6 +277,17 @@ interface Bar {
   bank: number | null;
 }
 
+/** A Season or a Venture's cattle as a bar: drawn only with a rate a year. */
+const barOf = (
+  key: string,
+  name: string,
+  returned: Returned | null,
+  bank: BankRateSaid | null
+): Bar[] =>
+  typeof returned?.perYear === "number"
+    ? [{ key, name, perYear: returned.perYear, bank: bank?.perYear ?? null }]
+    : [];
+
 /**
  * Each finished Season's and settled Venture's rate a year as a bar, longest first: one hue for a gain and the danger
  * hue for a loss, the figure beside it, so the sign is said in words as well as colour. One with no rate a year — out
@@ -286,32 +297,12 @@ export const ReturnsChart = ({ page }: { page: ReturnsPage }) => {
   const { t } = useLanguage();
   const named = useSeasonName();
   const bars: Bar[] = [
-    ...page.seasons.flatMap((one) => {
-      const perYear = one.returnOnCost?.perYear;
-      return typeof perYear === "number"
-        ? [
-            {
-              key: one.key,
-              name: named(one),
-              perYear,
-              bank: one.bankRate?.perYear ?? null,
-            },
-          ]
-        : [];
-    }),
-    ...page.ventures.flatMap((one) => {
-      const perYear = one.returnOnCost?.perYear;
-      return typeof perYear === "number"
-        ? [
-            {
-              key: one.id,
-              name: one.name,
-              perYear,
-              bank: one.bankRate?.perYear ?? null,
-            },
-          ]
-        : [];
-    }),
+    ...page.seasons.flatMap((one) =>
+      barOf(one.key, named(one), one.returnOnCost, one.bankRate)
+    ),
+    ...page.ventures.flatMap((one) =>
+      barOf(one.id, one.name, one.returnOnCost, one.bankRate)
+    ),
   ].toSorted((a, b) => b.perYear - a.perYear);
   if (bars.length === 0) {
     return null;
@@ -502,11 +493,9 @@ const BankRateSheet = ({
  * Every Bank Rate the Owner has typed, the one in force today first, and the act that types another. Kept, never
  * edited: a rate put right is typed again from the same day.
  */
-export const BankRates = ({ page }: { page: ReturnsPage }) => {
+export const BankRateList = ({ page }: { page: ReturnsPage }) => {
   const { t, language } = useLanguage();
   const [setting, setSetting] = useState(false);
-  const today = farmDayOf(new Date());
-  const inForce = page.bankRates.find((one) => one.fromDay <= today);
   return (
     <div className="flex flex-col gap-3">
       {page.bankRates.length === 0 ? (
@@ -522,7 +511,7 @@ export const BankRates = ({ page }: { page: ReturnsPage }) => {
                 <span className="font-medium tabular-nums">
                   {t("returns.bankLine", { rate: one.perYear, note: one.note })}
                 </span>
-                {one.id === inForce?.id ? (
+                {one.id === page.bankRateInForceId ? (
                   <StatusBadge tone="success">
                     {t("returns.bankInForce")}
                   </StatusBadge>

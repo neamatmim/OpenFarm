@@ -5,7 +5,7 @@ import { Beef, Landmark } from "lucide-react";
 import { Notice, Page, PageHeader, Section } from "@/components/page";
 import { PageTabs } from "@/components/page-kit";
 import {
-  BankRates,
+  BankRateList,
   FinishedReturns,
   ReturnsChart,
   useReturns,
@@ -87,7 +87,7 @@ const ReturnsPage = () => {
                 description={t("returns.bankHint")}
                 title={t("returns.bankTitle")}
               >
-                <BankRates page={page} />
+                <BankRateList page={page} />
               </Section>
             ),
           },

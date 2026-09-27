@@ -90,7 +90,7 @@ The sums that exist also mislead when added up:
 
 ### The Bank Rate
 
-24. As the Owner, I want to type a bank's rate a year with a note of what it is (before tax, as the bank quotes it), dated from the day I type it, with the old ones kept.
+24. As the Owner, I want to type a bank's rate a year with a note of what it is (before tax, as the bank quotes it), dated from the day I type it or an earlier day I name (never one to come), with the old ones kept. (Decided 2026-09-27 at the review of 02: without an earlier day, the first rate typed reaches no Season already finished.)
 25. As the Owner, I want every finished rate a year to show, as a plain line, the Bank Rate in force on the day its first taka went in, and the chart to mark it.
 26. As the Owner, I want no Bank Rate line at all while I have typed none, and never beside a share, a running figure or anything under the floor.
 
