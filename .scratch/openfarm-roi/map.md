@@ -56,10 +56,11 @@ A **ready-for-agent spec**, like [Joining a Venture](../openfarm-joining-a-ventu
 - [The bank rate beside it](./issues/07-the-bank-rate-beside-it.md) — a **Bank Rate**: one rate a year the Owner types with a note, before tax, dated, read as locked on the day a Season's or Venture's first taka went in. It sits as a plain line beside every finished rate a year, and is the Owner's alone, never an Investor's.
 - [What the dairy herd returns](./issues/08-what-the-dairy-herd-returns.md) — each dairy animal is her own run: bred here from birth at nothing, bought or opening herd at a price the Owner enters. Every calf is her own, shown beside her dam. Milk to Bulk counts at each month's Dispatch price, plus her cull or crossing price. Still here, she counts at her kind's **Head Price** range. Same per-year rule. Her return shows on the Cull list, never as a reason.
 - [What an Investor reads of a return](./issues/09-what-an-investor-reads-of-a-return.md) — a settled Venture's Return on Capital as a share over its days, on the portal and the হিসাব নিকাশ, a loss alike. Never a rate a year, never blended across Ventures. The Projection stays taka. Behind a switch until the advisers see it ([ADR 0012](../../docs/adr/0012-investors-read-a-settled-return-as-a-share-never-a-rate-a-year.md)).
+- [Prototype where the Owner reads returns](./issues/10-prototype-where-the-owner-reads-returns.md) — a Returns page of its own under Money: missing prices first, a chart against the Bank Rate, fattening/dairy/prices tabs, Seasons breaking down by haat, trader, breed, buying weight and animal. Figures also on the Venture page, a Fattening board strip, the cow's page, and a link from Month by month. Prototype on `prototype/owner-reads-returns`.
 
 ## Not yet specified
 
-Nothing now. Where the Owner reads returns, and whether a Season breaks down further, graduated to [Prototype where the Owner reads returns](./issues/10-prototype-where-the-owner-reads-returns.md) (2026-09-27).
+Nothing. Every ticket is closed (2026-09-27). **The way to the destination is clear:** nothing about return is left to decide before the spec is written from the tickets above.
 
 ## Out of scope
 
