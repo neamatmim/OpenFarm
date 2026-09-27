@@ -197,22 +197,34 @@ const WageMonth = ({
   );
 };
 
+/** What the sheet may open with already filled: the Category, who, and a wage's month. */
+export type EnterMoneyStart = Partial<
+  Pick<typeof NOTHING_TYPED, "categoryId" | "counterparty" | "wageMonth">
+>;
+
 /**
  * Money no record catches, entered by hand by the Manager in a sheet beside the register: how much, the day, the
  * Category, who with, how it was paid, a note, and a photo of the receipt. A wage names the month it pays for. What is
  * typed stays when the sheet is closed without entering it; a receipt photo is taken again.
+ *
+ * Opened from something that says what is missing — a Monthly Cost not entered, a wage — it starts with that filled.
  */
 export const EnterMoneySheet = ({
   open,
   onOpenChange,
+  startWith,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  startWith?: EnterMoneyStart;
 }) => {
   const { t, language } = useLanguage();
   const onError = useRefused();
   const categories = useQuery(orpc.money.categories.queryOptions());
-  const [typed, setTyped] = useState(NOTHING_TYPED);
+  const [typed, setTyped] = useState(() => ({
+    ...NOTHING_TYPED,
+    ...startWith,
+  }));
   const [occurredOn, setOccurredOn] = useState(() => farmDayOf(new Date()));
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [receipt, setReceipt] = useState<Photo | null>(null);

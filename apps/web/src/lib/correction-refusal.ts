@@ -104,6 +104,8 @@ const WORDED_REFUSALS = {
   eid_not_announced: "refusal.eidNotAnnounced",
   no_eid_ahead: "refusal.noEidAhead",
   never_the_animals: "refusal.neverTheAnimals",
+  never_monthly: "refusal.neverMonthly",
+  wages_watched_by_person: "refusal.wagesWatchedByPerson",
   venture_wrong_state: "refusal.ventureWrongState",
   venture_past_decide_by: "refusal.venturePastDecideBy",
   venture_not_shown: "refusal.ventureNotShown",

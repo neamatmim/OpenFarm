@@ -840,6 +840,9 @@ export const en = {
   "params.keepAndCull": "Keep, sell or cull",
   "params.keepAndCullHint":
     "How far back an animal's keep is read for keep-or-sell and the culling list, how far ahead keeping her is weighed, and what puts a dairy cow on that list. Yours alone to set, as the two are yours alone to read.",
+  "params.monthlyCosts": "Monthly costs",
+  "params.monthlyCostsHint":
+    "From this day of the month, each Category marked as paid every month with nothing entered that month is shown to the Manager and to you, and so is anybody paid a wage last month and not this month.",
   "params.returns": "Returns",
   "params.returnsHint":
     "What the Returns page puts a year. Money tied up fewer days than this, on average, shows its share and its days but no rate a year, because a few weeks scaled to a year is a figure nobody earned. Yours alone to set, as the page is yours alone to read.",
@@ -850,6 +853,7 @@ export const en = {
   "params.keepNeedsDays": "Judge an animal's keep once she has been here",
   "params.keepRateGapDays": "Trust a gain between weigh-ins at least",
   "params.cullOpenDays": "Empty too long after calving",
+  "params.monthlyCostsDueDay": "Day of the month the month's costs are looked for",
   "params.cullMilkAfterDays": "Weigh milk against keep from, after calving",
   "params.cullCalfMilkDays": "A cow's milk is her calf's for the first",
   "params.cullMilkPriceDays": "Price milk from dispatches of the last",
@@ -2656,7 +2660,9 @@ export const en = {
   "refusal.capitalNotSentBack":
     "Every taka the Venture took needs a refund with its own reference",
   "refusal.neverTheAnimals":
-    "Wages, utilities, repairs, shed hygiene, equipment and money coming in are never charged to the animals",
+    "Wages, shed rent, utilities, repairs, shed hygiene, equipment and money coming in are never charged to the animals",
+  "refusal.neverMonthly": "Only money going out that is entered by hand may be marked as paid every month",
+  "refusal.wagesWatchedByPerson": "A wage is looked for by the person paid, not by the Category",
   "refusal.feedRetired": "That feed is retired",
   "refusal.bagSizeUnknown":
     "Say what one of its bags weighs first, on the Feed Items tab",
@@ -2845,6 +2851,9 @@ export const en = {
   "byHand.chargedToAnimals": "The animals carry it",
   "byHand.chargeToAnimals": "Charge it to the animals",
   "byHand.stopCharging": "Stop charging it to the animals",
+  "byHand.paidMonthly": "Paid every month",
+  "byHand.markMonthly": "Mark as paid every month",
+  "byHand.stopMonthly": "No longer paid every month",
   "byHand.retire": "Retire",
   "byHand.newCategory": "New Category",
   "byHand.direction": "In or out",
@@ -3030,6 +3039,8 @@ export const en = {
   "home.overdue": "Late",
   "home.signOff": "Waiting for sign-off",
   "home.needsReview": "Needing a decision",
+  "home.monthlyCosts": "Not entered yet",
+  "home.wageNotEntered": "Wage: {name}",
   "home.withdrawal": "Under withdrawal",
   "home.pens": "Pen by pen",
   "home.progress": "{done} of {raised} done",

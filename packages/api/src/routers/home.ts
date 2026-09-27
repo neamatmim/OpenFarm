@@ -24,6 +24,7 @@ import {
   workAwaitingSignOff,
 } from "../instances-store";
 import { monthByMonth } from "../month-store";
+import { monthlyCostsNow } from "../monthly-costs-store";
 import { renewalDue } from "../registration-store";
 import { withTheirWork } from "../review-store";
 import { OWNER_ONLY, requireOnly, requireRole } from "../roles";
@@ -73,6 +74,7 @@ export const homeRouter = {
         today,
         repeatBreeders,
         lowStock,
+        monthlyCosts,
       ] = await Promise.all([
         findLate(
           context.db,
@@ -101,6 +103,8 @@ export const homeRouter = {
         // Feed running low: on the Manager's queue as well as in their digest, because a queue is
         // where somebody deciding what to buy looks.
         runningLow(context.db, farmId),
+        // The rent, the bills and the wages the month has nothing entered for yet: the Manager enters the money.
+        monthlyCostsNow(context.db, context.farm, now),
       ]);
 
       const underWithdrawal = animals;
@@ -156,6 +160,7 @@ export const homeRouter = {
         queue: {
           repeatBreeders: repeatBreeders.slice(0, QUEUE_LIMIT),
           lowStock,
+          monthlyCosts,
           // Latest first and bounded, the way the Overdue screen itself reads: a Manager
           // opening this in a shed is handed the work that has waited longest, not a year
           // of it in whatever order the database found it.
@@ -258,6 +263,7 @@ export const homeRouter = {
         week,
         lowStock,
         moneyAwaiting,
+        monthlyCosts,
       ] = await Promise.all([
         findLate(
           context.db,
@@ -327,6 +333,9 @@ export const homeRouter = {
           orderBy: { recordedAt: "asc", id: "asc" },
           limit: QUEUE_LIMIT,
         }),
+        // The rent, the bills and the wages the month has nothing entered for yet: a month missing is otherwise read as
+        // a cheaper month.
+        monthlyCostsNow(context.db, context.farm, now),
       ]);
 
       // A day of the farm's milk is every Pen's Sessions on that day added together, which
@@ -404,6 +413,7 @@ export const homeRouter = {
             /** Whose money is waiting, where it is not the Farm's. */
             purseName: row.purse?.name ?? null,
           })),
+          monthlyCosts,
           /** The Registration coming up for renewal, or run out, and the work raised for it. */
           registrationRenewal: await renewalDue(context.db, context.farm, now),
         },

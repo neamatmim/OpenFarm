@@ -45,6 +45,7 @@ import {
   isStandardName,
   mayBeChargedToAnimals,
   mayBeEnteredByHand,
+  mayBePaidMonthly,
   mayBeRetired,
   missingStandardCategories,
 } from "../money-store";
@@ -106,6 +107,9 @@ export const moneyEntryProcedures = {
         // they do at all.
         chargedToAnimals: row.chargedToAnimals,
         chargeable: mayBeChargedToAnimals(row),
+        // Whether it is a Monthly Cost, and whether the Owner may make it one at all.
+        paidMonthly: row.paidMonthlySince !== null,
+        monthlyable: mayBePaidMonthly(row),
       }));
     }),
 
@@ -185,7 +189,7 @@ export const moneyEntryProcedures = {
         !(mayBeEnteredByHand(existing.key) && mayBeChargedToAnimals(existing))
       ) {
         throw refusedByHand(
-          "Wages, utilities, repairs, shed hygiene, equipment, money coming in and money a record books are never the animals' to carry",
+          "Wages, shed rent, utilities, repairs, shed hygiene, equipment, money coming in and money a record books are never the animals' to carry",
           "never_the_animals"
         );
       }
@@ -210,6 +214,71 @@ export const moneyEntryProcedures = {
             .where(eq(moneyCategory.id, existing.id))
       );
       return { chargedToAnimals: input.chargedToAnimals };
+    }),
+
+  /**
+   * Marks a Category as paid every month — shed rent, electricity — or takes the mark off (CONTEXT.md: **Monthly
+   * Cost**). From the farm's due day, a month with nothing entered under it is named to the Manager and the Owner,
+   * from the month the mark goes on and never before it. Taken off and put back, it starts again from that day.
+   *
+   * The Owner's alone, and from their own phone: it decides what the Manager is chased for.
+   */
+  setPaidMonthly: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ categoryId: z.string(), paidMonthly: z.boolean() }))
+    .handler(async ({ context, input }) => {
+      const existing = await context.db.query.moneyCategory.findFirst({
+        where: { id: input.categoryId, farmId: context.farm.id },
+        columns: {
+          id: true,
+          key: true,
+          nameBn: true,
+          direction: true,
+          retiredAt: true,
+          paidMonthlySince: true,
+        },
+      });
+      if (!existing) {
+        throw new ORPCError("NOT_FOUND", { message: "No such Category" });
+      }
+      if (input.paidMonthly && !mayBePaidMonthly(existing)) {
+        throw refusedByHand(
+          existing.key === "wages"
+            ? "A wage is looked for by the person, not the Category"
+            : "Only money going out that is entered by hand may be marked as paid every month",
+          existing.key === "wages" ? "wages_watched_by_person" : "never_monthly"
+        );
+      }
+      if (input.paidMonthly && existing.retiredAt !== null) {
+        throw refusedByHand(
+          "A retired Category takes nothing new",
+          "category_retired"
+        );
+      }
+      // Marked again while it is marked keeps the day it was first marked: the months since are still owed.
+      if (input.paidMonthly === (existing.paidMonthlySince !== null)) {
+        return { paidMonthly: input.paidMonthly };
+      }
+      const paidMonthlySince = input.paidMonthly ? context.clock.now() : null;
+      await audited(context).write(
+        {
+          entity: "money_category",
+          entityId: existing.id,
+          action: "update",
+          before: {
+            nameBn: existing.nameBn,
+            paidMonthlySince: existing.paidMonthlySince,
+          },
+          after: { nameBn: existing.nameBn, paidMonthlySince },
+        },
+        (tx) =>
+          tx
+            .update(moneyCategory)
+            .set({ paidMonthlySince })
+            .where(eq(moneyCategory.id, existing.id))
+      );
+      return { paidMonthly: input.paidMonthly };
     }),
 
   /**

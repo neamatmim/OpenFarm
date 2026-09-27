@@ -79,6 +79,7 @@ const CATEGORIES: Record<
   },
   vet_fee: { nameBn: "ভেটের ফি", nameEn: "Vet fees", direction: "out" },
   wages: { nameBn: "মজুরি", nameEn: "Wages", direction: "out" },
+  rent: { nameBn: "শেড ভাড়া", nameEn: "Shed rent", direction: "out" },
   utilities: { nameBn: "বিদ্যুৎ ও পানি", nameEn: "Utilities", direction: "out" },
   repairs: { nameBn: "মেরামত", nameEn: "Repairs", direction: "out" },
   hygiene: {
@@ -119,13 +120,14 @@ export const mayBeEnteredByHand = (key: CategoryKey | null): boolean =>
  * The standard Categories the animals never carry: the place, the people and the kit, which are the
  * Farm's and are how it earns its share.
  *
- * All five have a key for this reason. Shed hygiene and equipment are as much the Farm's as wages are —
+ * All six have a key for this reason. Shed hygiene and equipment are as much the Farm's as wages are —
  * spec story 45 and CONTEXT.md's **Herd Cost** both say so — but until they were standard Categories a
  * farm had to invent its own to record them, and a farm's own Category may be marked. The key is what
  * lets this list reach them, and `isStandardName` is what stops the same name being added around it.
  */
 const NEVER_THE_ANIMALS: ReadonlySet<CategoryKey> = new Set<CategoryKey>([
   "wages",
+  "rent",
   "utilities",
   "repairs",
   "hygiene",
@@ -143,6 +145,19 @@ export const mayBeChargedToAnimals = (category: {
 }): boolean =>
   category.direction === "out" &&
   !(category.key !== null && NEVER_THE_ANIMALS.has(category.key));
+
+/**
+ * Whether the Owner may mark this Category as paid every month — a **Monthly Cost** — so a month with nothing under it
+ * is named. Money going out that is entered by hand: money coming in is nobody's to chase, and a record's money arrives
+ * with the record. Not Wages, which is one Category over many people and is watched by the person instead.
+ */
+export const mayBePaidMonthly = (category: {
+  key: CategoryKey | null;
+  direction: MoneyDirection;
+}): boolean =>
+  category.direction === "out" &&
+  mayBeEnteredByHand(category.key) &&
+  category.key !== "wages";
 
 /** Whether one of the standard Categories goes by either of these names — which the farm's own may not take, in
  *  either language, whatever the capitals. */

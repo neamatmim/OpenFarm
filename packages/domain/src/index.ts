@@ -386,6 +386,14 @@ export type {
   SideShare,
 } from "./money-summary";
 export { summariseMoney } from "./money-summary";
+export type {
+  EnteredUnder,
+  MonthlyCategory,
+  MonthlyCostNotEntered,
+  WageNotEntered,
+  WagePaid,
+} from "./monthly-costs";
+export { monthlyCostsNotEntered } from "./monthly-costs";
 export type { ObservationWord } from "./observation-words";
 export {
   OBSERVATION_WORDS,

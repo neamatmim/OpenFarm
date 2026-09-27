@@ -379,7 +379,11 @@ const runTheCampaigns = ({ farm, on }: Script) => {
   }
 };
 
-const payTheMonth = async (f: Farm, payday: string, withRepair: boolean) => {
+const payTheMonth = async (
+  f: Farm,
+  payday: string,
+  { withRepair, last }: { withRepair: boolean; last: boolean }
+) => {
   const { random } = f;
   const categories = await f.as.manager.money.categories();
   const id = (key: string) =>
@@ -391,7 +395,9 @@ const payTheMonth = async (f: Farm, payday: string, withRepair: boolean) => {
     ["শফিকুল ইসলাম", 13_000],
     ["নাইট গার্ড — আব্দুল মালেক", 9000],
   ];
-  for (const [name, amount] of wages) {
+  // The night guard left before the last month, so their wage for it is never entered and the Manager's home names them
+  // once — and the last month's rent is not entered yet either, so a Monthly Cost is named too.
+  for (const [name, amount] of last ? wages.slice(0, -1) : wages) {
     await f.as.manager.money.enter({
       categoryId: id("wages"),
       amountBdt: amount,
@@ -417,6 +423,17 @@ const payTheMonth = async (f: Farm, payday: string, withRepair: boolean) => {
     });
   }
   const bills: [string, number, string, "bank" | "cash", string][] = [
+    ...(last
+      ? []
+      : [
+          [
+            "rent",
+            18_000,
+            "জমির মালিক — হাজী নুরুল আমিন",
+            "cash",
+            "শেড ও জমির মাসিক ভাড়া",
+          ] as [string, number, string, "bank" | "cash", string],
+        ]),
     [
       "utilities",
       random.int(17_500, 22_800),
@@ -486,10 +503,21 @@ const countTheStore = async (f: Farm) => {
 /** Every month: wages and bills, the store counted, the Vet's visit billed; the Owner approves as she goes. */
 const keepTheBooks = ({ farm, on }: Script) => {
   const { start, today } = farm;
+  // The rent and the electricity are paid every month: the Owner marks them so a month with nothing under either is
+  // named.
+  on(start, "09:00", "monthly costs marked", async (f) => {
+    const categories = await f.as.owner.money.categories();
+    for (const key of ["rent", "utilities"]) {
+      const categoryId = categories.find((one) => one.key === key)?.id;
+      if (categoryId) {
+        await f.as.owner.money.setPaidMonthly({ categoryId, paidMonthly: true });
+      }
+    }
+  });
   for (let month = 0; month < 3; month += 1) {
     const payday = addDays(start, 14 + month * 30);
     on(payday, "17:00", "wages and bills", (f) =>
-      payTheMonth(f, payday, month === 1)
+      payTheMonth(f, payday, { withRepair: month === 1, last: month === 2 })
     );
     on(addDays(start, 29 + month * 30), "16:00", "stock count", countTheStore);
     const visit = addDays(start, 12 + month * 30);

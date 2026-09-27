@@ -801,6 +801,9 @@ export const bn: Record<MessageKey, string> = {
   "params.keepAndCull": "রাখা, বেচা না ছাঁটাই",
   "params.keepAndCullHint":
     "রাখা না বেচা আর ছাঁটাই তালিকার জন্য পশুর রাখার খরচ কত দিন পেছন থেকে ধরা হবে, আরও কত দিন রাখার হিসাব হবে, আর কোন গাভী ছাঁটাই তালিকায় উঠবে। তালিকা দুটো যেমন শুধু আপনার, এগুলোও ঠিক করবেন শুধু আপনি।",
+  "params.monthlyCosts": "প্রতি মাসের খরচ",
+  "params.monthlyCostsHint":
+    "মাসের এই তারিখ থেকে, প্রতি মাসের খরচ বলে চিহ্নিত যে খাতে সে মাসে কিছু লেখা হয়নি, তা ম্যানেজার আর আপনাকে দেখানো হবে; আগের মাসে মজুরি পেয়েছেন কিন্তু এ মাসে পাননি এমন কেউ থাকলে তাঁর নামও।",
   "params.returns": "খাটানো টাকার ফল",
   "params.returnsHint":
     "খাটানো টাকার ফলের পাতায় কখন বছরের হিসাব দেখানো হবে। টাকা গড়ে এর চেয়ে কম দিন খাটলে লাভের ভাগ আর দিন দেখানো হবে, বছরের হিসাব নয় — কয়েক সপ্তাহকে বছরে টানলে এমন সংখ্যা হয় যা কেউ আয় করেনি। পাতাটি যেমন শুধু আপনার, এটিও ঠিক করবেন শুধু আপনি।",
@@ -810,6 +813,7 @@ export const bn: Record<MessageKey, string> = {
   "params.keepNeedsDays": "খামারে এত দিন থাকার পর রাখার খরচের বিচার",
   "params.keepRateGapDays": "দুই ওজনের মাঝে অন্তত এত দিন হলে বাড়ার হার ধরা",
   "params.cullOpenDays": "বাছুর হওয়ার পর গর্ভ না এলে তালিকায়",
+  "params.monthlyCostsDueDay": "মাসের কোন তারিখ থেকে সে মাসের খরচ খোঁজা হবে",
   "params.cullMilkAfterDays": "বাছুর হওয়ার পর দুধ ও খরচ মাপা শুরু",
   "params.cullCalfMilkDays": "বাছুর হওয়ার পর প্রথম এত দিনের দুধ বাছুরের",
   "params.cullMilkPriceDays": "দুধের দাম ধরা হবে গত এত দিনের বিক্রি থেকে",
@@ -2488,7 +2492,9 @@ export const bn: Record<MessageKey, string> = {
   "refusal.capitalNotSentBack":
     "ভেঞ্চার যত টাকা নিয়েছে, প্রতিটির আলাদা রেফারেন্সসহ ফেরত দিতে হবে",
   "refusal.neverTheAnimals":
-    "মজুরি, বিদ্যুৎ-পানি, মেরামত, শেড পরিষ্কার, যন্ত্রপাতি আর আয়ের টাকা কখনো গরুর হিসাবে যায় না",
+    "মজুরি, শেড ভাড়া, বিদ্যুৎ-পানি, মেরামত, শেড পরিষ্কার, যন্ত্রপাতি আর আয়ের টাকা কখনো গরুর হিসাবে যায় না",
+  "refusal.neverMonthly": "শুধু হাতে লেখা খরচকেই প্রতি মাসের খরচ বলা যায়",
+  "refusal.wagesWatchedByPerson": "মজুরি খোঁজা হয় মানুষ ধরে, খাত ধরে নয়",
   "refusal.feedRetired": "এই খাদ্য বাতিল করা হয়েছে",
   "refusal.bagSizeUnknown": "আগে খাদ্য উপাদান ট্যাবে এর বস্তার ওজন লিখুন",
   "refusal.bundlesByTheHead": "আঁটিতে গোনা খাদ্য মাথাপিছু যায়, দৈহিক ওজন ধরে নয়",
@@ -2665,6 +2671,9 @@ export const bn: Record<MessageKey, string> = {
   "byHand.chargedToAnimals": "গরুর হিসাবে যায়",
   "byHand.chargeToAnimals": "গরুর হিসাবে দিন",
   "byHand.stopCharging": "গরুর হিসাব থেকে সরান",
+  "byHand.paidMonthly": "প্রতি মাসের খরচ",
+  "byHand.markMonthly": "প্রতি মাসের খরচ বলে চিহ্নিত করুন",
+  "byHand.stopMonthly": "প্রতি মাসের খরচ থেকে সরান",
   "byHand.retire": "বাদ দিন",
   "byHand.newCategory": "নতুন খাত",
   "byHand.direction": "আয় না ব্যয়",
@@ -2838,6 +2847,8 @@ export const bn: Record<MessageKey, string> = {
   "home.overdue": "দেরি হয়ে গেছে",
   "home.signOff": "যাচাই করার অপেক্ষায়",
   "home.needsReview": "সিদ্ধান্ত দরকার",
+  "home.monthlyCosts": "এখনো লেখা হয়নি",
+  "home.wageNotEntered": "{name}-এর মজুরি",
   "home.withdrawal": "উইথড্রয়ালে আছে",
   "home.pens": "পেন অনুযায়ী অগ্রগতি",
   "home.progress": "{done} / {raised} শেষ",
