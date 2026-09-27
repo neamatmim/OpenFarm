@@ -1,4 +1,4 @@
-import { FakeClock } from "@OpenFarm/test-harness";
+import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -312,6 +312,136 @@ describe("the Buying Float", () => {
       ventureId: longRun,
       amountBdt: 100_000,
       reconciledAt: null,
+    });
+  });
+});
+
+// What an outing cost beyond the animals comes out of the Float drawn for it: the Float is "the Animals bought, plus
+// the trip's costs, plus the cash brought back". So that money was the Venture's, and its Money Event is in the
+// Venture's purse — never the Farm's income or its cost — as the Animals' prices on the same outing already are.
+describe("an outing a Float paid for", () => {
+  const JANUARY = { from: "2047-01-01", to: "2047-01-31" };
+  let paying = "";
+  let paidFor = "";
+
+  it("books what it cost to the Venture whose Float paid, though it was written up before the Float went", async () => {
+    const owner = await as("owner", "2047-01-10T04:00:00.000Z");
+    paying = await funded(owner, 60, 400_000);
+    const manager = await as("manager", "2047-01-10T04:00:00.000Z");
+    const trip = await manager.client.trips.record({
+      wentTo: `ভাড়ার হাট ${suffix}`,
+      wentOn: "2047-01-10",
+      brokerBdt: 1500,
+      transportBdt: 4000,
+      keepBdt: 800,
+    });
+    paidFor = trip.id;
+    await owner.client.ventures.drawFloat({
+      ventureId: paying,
+      buyingTripId: paidFor,
+      amountBdt: 50_000,
+      movedOn: "2047-01-10",
+      paymentMethod: "bank",
+      reference: `FLT-${suffix}-paid`,
+    });
+
+    const farms = await owner.client.money.list(JANUARY);
+    expect(farms.events.map((one) => one.sourceId)).not.toContain(paidFor);
+    const its = await owner.client.money.list({
+      ...JANUARY,
+      ventureId: paying,
+    });
+    const booked = its.events.find((one) => one.sourceId === paidFor);
+    expect(booked).toMatchObject({
+      source: "buying_trip",
+      amountBdt: 6300,
+      purse: { id: paying },
+    });
+    // And the trail says where it was, and where the Float put it.
+    const moved = await scratchDb().query.auditEvent.findMany({
+      where: { entity: "money_event", entityId: booked?.id ?? "" },
+      columns: { before: true, after: true },
+    });
+    expect(moved).toContainEqual({
+      before: { purseVentureId: null },
+      after: { purseVentureId: paying },
+    });
+  });
+
+  it("keeps it the Venture's when what it cost is put right", async () => {
+    const manager = await as("manager", "2047-01-11T04:00:00.000Z");
+    await manager.client.trips.correct({
+      id: paidFor,
+      reason: "লরির ভাড়া বেশি ছিল",
+      changes: { transportBdt: { from: 4000, to: 4500 } },
+    });
+
+    const owner = await as("owner", "2047-01-11T04:00:00.000Z");
+    const farms = await owner.client.money.list(JANUARY);
+    expect(farms.events.map((one) => one.sourceId)).not.toContain(paidFor);
+    const its = await owner.client.money.list({
+      ...JANUARY,
+      ventureId: paying,
+    });
+    expect(its.events.find((one) => one.sourceId === paidFor)).toMatchObject({
+      amountBdt: 6800,
+      purse: { id: paying },
+    });
+  });
+
+  it("is booked to the Venture from the start when it cost nothing until after the Float went", async () => {
+    const owner = await as("owner", "2047-01-12T04:00:00.000Z");
+    const written = await owner.client.trips.record({
+      wentTo: `শেষে লেখা হাট ${suffix}`,
+      wentOn: "2047-01-12",
+      brokerBdt: 0,
+      transportBdt: 0,
+      keepBdt: 0,
+    });
+    const trip = written.id;
+    await owner.client.ventures.drawFloat({
+      ventureId: paying,
+      buyingTripId: trip,
+      amountBdt: 40_000,
+      movedOn: "2047-01-12",
+      paymentMethod: "bank",
+      reference: `FLT-${suffix}-late`,
+    });
+    const manager = await as("manager", "2047-01-12T06:00:00.000Z");
+    await manager.client.trips.correct({
+      id: trip,
+      reason: "লরির ভাড়া লেখা হয়নি",
+      changes: { transportBdt: { from: 0, to: 3000 } },
+    });
+
+    const farms = await owner.client.money.list(JANUARY);
+    expect(farms.events.map((one) => one.sourceId)).not.toContain(trip);
+    const its = await owner.client.money.list({
+      ...JANUARY,
+      ventureId: paying,
+    });
+    expect(its.events.find((one) => one.sourceId === trip)).toMatchObject({
+      amountBdt: 3000,
+      purse: { id: paying },
+    });
+  });
+
+  it("stays the Farm's when no Float paid for it", async () => {
+    const manager = await as("manager", "2047-01-13T04:00:00.000Z");
+    const trip = await manager.client.trips.record({
+      wentTo: `খামারের হাট ${suffix}`,
+      wentOn: "2047-01-13",
+      brokerBdt: 0,
+      transportBdt: 2500,
+      keepBdt: 0,
+    });
+
+    const owner = await as("owner", "2047-01-13T04:00:00.000Z");
+    const farms = await owner.client.money.list(JANUARY);
+    expect(farms.events.find((one) => one.sourceId === trip.id)).toMatchObject({
+      source: "buying_trip",
+      amountBdt: 2500,
+      purse: null,
     });
   });
 });

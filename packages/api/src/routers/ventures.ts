@@ -90,6 +90,7 @@ import {
   settlementOf,
 } from "../settlement-store";
 import { currentWording, giveStandardTemplates } from "../template-store";
+import { paidFromTheFloat } from "../trip-store";
 import { actOnVenture } from "../venture-act";
 import { theirProgress } from "../venture-herd-store";
 import { planAgainstActual, planOf, savePlan } from "../venture-plan-store";
@@ -1684,6 +1685,12 @@ export const venturesRouter = {
             reference: input.reference,
             recordedBy: context.actor.id,
             createdAt: now,
+          });
+          // What the outing had cost when it was written up was booked as the Farm's; this Float paid it.
+          await paidFromTheFloat(tx, audited(context).recordEvent, {
+            farmId: context.farm.id,
+            tripId: input.buyingTripId,
+            ventureId: row.id,
           });
         },
       });

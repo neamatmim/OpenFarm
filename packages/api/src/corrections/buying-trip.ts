@@ -5,7 +5,12 @@ import { z } from "zod";
 import type { Tx } from "../audit";
 import { paymentMethodChange } from "../money-inputs";
 import { bookingOf, paymentMethodOf } from "../money-store";
-import { bookTripMoney, readTrip, tripCostInput } from "../trip-store";
+import {
+  bookTripMoney,
+  fundedBy,
+  readTrip,
+  tripCostInput,
+} from "../trip-store";
 import { assertTripIsOpen } from "../venture-store";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput, somethingChanged } from "./correction";
@@ -48,11 +53,8 @@ export const buyingTripCorrection: CorrectionKind<
   // An outing's own costs are split across the Animals it brought in, so they are charges against
   // whichever Venture's Float paid for it.
   venturesOf: async (tx, row) => {
-    const float = await tx.query.ventureMovement.findFirst({
-      where: { farmId: row.farmId, buyingTripId: row.id, kind: "float_out" },
-      columns: { ventureId: true },
-    });
-    return float ? [float.ventureId] : [];
+    const paying = await fundedBy(tx, row.farmId, row.id);
+    return paying ? [paying] : [];
   },
   missing: "No such outing",
   load: loadTrip,
