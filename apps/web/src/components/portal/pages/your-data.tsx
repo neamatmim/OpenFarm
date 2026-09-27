@@ -2,7 +2,7 @@ import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 
-import { EmptyState } from "@/components/page";
+import { EmptyState, SECTION_TITLE } from "@/components/page";
 import {
   usePortalPlaces,
   useTheNotice,
@@ -25,7 +25,7 @@ const TheNotice = ({ notice }: { notice: Notice }) => (
     </header>
     {notice.parts.map((part) => (
       <section className="flex flex-col gap-2" key={part.heading}>
-        <h2 className="text-base font-semibold">{part.heading}</h2>
+        <h2 className={SECTION_TITLE}>{part.heading}</h2>
         <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm">
           {part.lines.map((line) => (
             <li key={line}>{line}</li>

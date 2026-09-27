@@ -18,6 +18,7 @@ import type { ReactNode } from "react";
 import type { TheirAgreements } from "@/components/investors/investor-agreements";
 import { Nothing, SaidDate } from "@/components/list-cells";
 import {
+  SUBHEADING,
   EmptyState,
   Loaded,
   Page,
@@ -233,7 +234,7 @@ const HerdPhotos = ({ today }: { today: Today }) => {
   }
   return (
     <div className="flex flex-col gap-2">
-      <h3 className="text-sm font-medium">{t("portal.photos")}</h3>
+      <h3 className={SUBHEADING}>{t("portal.photos")}</h3>
       <ul className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 md:-mx-5 md:px-5">
         {photographed.map(({ one, photoAt }) => (
           <li key={one.tagNumber}>

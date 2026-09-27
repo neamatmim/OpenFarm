@@ -1,6 +1,7 @@
 import { startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 
+import { SUBHEADING } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { useKg } from "@/lib/kg";
 
@@ -55,7 +56,7 @@ export const WeightLine = ({ weights }: { weights: HerdWeight[] }) => {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-0.5">
-        <h3 className="text-sm font-medium">{t("portal.weightLine.title")}</h3>
+        <h3 className={SUBHEADING}>{t("portal.weightLine.title")}</h3>
         <p className="text-muted-foreground text-sm">
           {t("portal.weightLine.summary", {
             from: kg(first.averageKg),

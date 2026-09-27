@@ -25,7 +25,12 @@ import {
 } from "@/components/data-table";
 import { useIsOwner } from "@/components/fattening/animal-prices";
 import { bandSaid } from "@/components/feed/band-words";
-import { EmptyState, Notice, StatusBadge } from "@/components/page";
+import {
+  EmptyState,
+  Notice,
+  StatusBadge,
+  SECTION_TITLE,
+} from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { Chip } from "@/components/saw-filter";
 import { useLanguage } from "@/i18n/language-provider";
@@ -1120,7 +1125,7 @@ export const VentureReturnsPanel = ({ ventureId }: { ventureId: string }) => {
   return (
     <section className="surface flex flex-col gap-3 p-5">
       <div className="flex flex-col gap-1">
-        <h2 className="font-semibold">{t("returns.panelTitle")}</h2>
+        <h2 className={SECTION_TITLE}>{t("returns.panelTitle")}</h2>
         <p className="text-muted-foreground text-sm">
           {t("returns.panelHint")}
         </p>

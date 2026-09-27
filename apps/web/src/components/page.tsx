@@ -47,6 +47,12 @@ const WIDTH = {
   default: "",
 } as const;
 
+/** The title of a part of a page — a Section, a card of its own — at one size and weight everywhere. */
+export const SECTION_TITLE = "text-base font-semibold tracking-tight";
+
+/** A heading inside a part of a page, under its title: smaller, and as heavy. */
+export const SUBHEADING = "text-sm font-semibold";
+
 /** A page's frame: its width — the full width, or narrow for a single card of a flow — and its rhythm. */
 export const Page = ({
   children,
@@ -187,7 +193,7 @@ export const Section = ({
         <div className="flex min-w-0 flex-col gap-0.5">
           {title ? (
             <h2
-              className="text-base font-semibold tracking-tight"
+              className={SECTION_TITLE}
               data-slot="section-title"
               id={id ? `${id}-title` : undefined}
             >

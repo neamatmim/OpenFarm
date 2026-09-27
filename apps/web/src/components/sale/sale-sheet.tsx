@@ -11,7 +11,7 @@ import { useId, useState } from "react";
 import { toast } from "sonner";
 
 import { fitOnFrom } from "@/components/fattening/fattening-types";
-import { Notice } from "@/components/page";
+import { Notice, SECTION_TITLE } from "@/components/page";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
 import { SearchablePicker } from "@/components/searchable-picker";
@@ -65,7 +65,7 @@ const SheetPart = ({
       className="flex flex-col gap-4 border-t pt-5 first:border-t-0 first:pt-0"
     >
       <div className="flex min-h-8 flex-wrap items-center justify-between gap-2">
-        <h3 className="text-base font-semibold" id={id}>
+        <h3 className={SECTION_TITLE} id={id}>
           {title}
         </h3>
         {action}

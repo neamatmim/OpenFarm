@@ -7,6 +7,7 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { SECTION_TITLE, SUBHEADING } from "@/components/page";
 import { FormField, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import type { DraftSection, Keyed } from "@/lib/template-draft";
@@ -164,7 +165,7 @@ const PartiesBody = ({
       </p>
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-0.5">
-          <h3 className="text-sm font-medium">{t("templates.nomineeLines")}</h3>
+          <h3 className={SUBHEADING}>{t("templates.nomineeLines")}</h3>
           <p className="text-muted-foreground text-xs">
             {t("templates.nomineeLinesHint")}
           </p>
@@ -178,7 +179,7 @@ const PartiesBody = ({
       </div>
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-0.5">
-          <h3 className="text-sm font-medium">{t("templates.receiverLine")}</h3>
+          <h3 className={SUBHEADING}>{t("templates.receiverLine")}</h3>
           <p className="text-muted-foreground text-xs">
             {t("templates.receiverLineHint", {
               fields: Object.keys(RECEIVER_FIELDS)
@@ -441,7 +442,7 @@ export const SectionEditor = ({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-0.5">
-          <h2 className="text-base font-semibold" id={`${section.key}-title`}>
+          <h2 className={SECTION_TITLE} id={`${section.key}-title`}>
             {t("templates.partNumber", {
               number: formatDigits(number, language),
               part: name,

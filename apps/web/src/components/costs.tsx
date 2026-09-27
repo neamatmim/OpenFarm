@@ -1,11 +1,13 @@
 import { formatNumber } from "@OpenFarm/i18n";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
 import { HerCull } from "@/components/culling/cull-list";
 import { HerPrice } from "@/components/fattening/animal-prices";
 import { categoryName, useReadsMoney } from "@/components/money";
+import { SUBHEADING } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { usePerHeadPerDay, useTaka, useTakaToThePaisa } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
@@ -121,7 +123,7 @@ export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
       ) : null}
       {her.lactation ? (
         <>
-          <h3 className="pt-4 pb-1 font-semibold">
+          <h3 className={cn(SUBHEADING, "pt-4 pb-1")}>
             {t("costs.thisLactation")}
           </h3>
           <WhatWasSpent costs={her.lactation} />
