@@ -29,4 +29,6 @@ Since [How a return is put per year](./05-how-a-return-is-put-per-year.md) (2026
 
 Since [What cattle still standing return](./06-what-cattle-still-standing-return.md) (2026-09-27): the Owner's running Return on Cost values standing animals at today's price, and Return on Capital waits for the Settlement. Decide whether an Investor sees anything running beyond the Projection they already may.
 
+Since [The bank rate beside it](./07-the-bank-rate-beside-it.md) (2026-09-27): the Bank Rate is the Owner's alone. An Investor is never shown a Venture beside a bank rate.
+
 ## Resolution
