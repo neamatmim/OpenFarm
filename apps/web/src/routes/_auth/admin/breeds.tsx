@@ -30,6 +30,7 @@ import {
 } from "@/components/list-cells";
 import {
   EmptyState,
+  Loaded,
   Page,
   PageHeader,
   Section,
@@ -302,15 +303,17 @@ const BreedsPage = () => {
       />
 
       <Section>
-        {breeds.data === undefined ? (
-          <Skeleton className="h-40 rounded-lg" />
-        ) : null}
-        {breeds.data?.length === 0 ? (
-          <EmptyState bare icon={Dna} title={t("breeds.none")} />
-        ) : null}
-        {breeds.data?.length ? (
-          <DataTable card={breedCard} minWidth="40rem" table={table} />
-        ) : null}
+        <Loaded
+          query={breeds}
+          skeleton={<Skeleton className="h-40 rounded-lg" />}
+        >
+          {breeds.data?.length === 0 ? (
+            <EmptyState bare icon={Dna} title={t("breeds.none")} />
+          ) : null}
+          {breeds.data?.length ? (
+            <DataTable card={breedCard} minWidth="40rem" table={table} />
+          ) : null}
+        </Loaded>
       </Section>
 
       {/* Keyed by what is being named, so the boxes start from that breed's names and never another's. */}

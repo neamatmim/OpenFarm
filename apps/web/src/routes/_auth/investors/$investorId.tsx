@@ -1,9 +1,9 @@
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { buttonVariants } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
-  ArrowLeft,
   Banknote,
   Handshake,
   IdCard,
@@ -35,6 +35,7 @@ import {
   standingOf,
 } from "@/components/investors/portal-access";
 import {
+  BackLink,
   EmptyState,
   Loaded,
   Page,
@@ -122,13 +123,7 @@ const TheInvestor = ({
   const signed = theirs.data?.agreements ?? [];
   return (
     <Page>
-      <Link
-        className="text-muted-foreground hover:text-foreground -mb-2 flex w-fit items-center gap-1 text-sm"
-        to="/investors"
-      >
-        <ArrowLeft aria-hidden className="size-4" />
-        {t("investors.page.back")}
-      </Link>
+      <BackLink to="/investors">{t("nav.investors")}</BackLink>
       <PageHeader
         actions={
           <InvestorActs investor={investor} onEdit={() => setEditing(true)} />
@@ -250,10 +245,18 @@ const InvestorPage = () => {
   if (!investor) {
     return (
       <Page>
-        <EmptyState icon={Users} title={t("investors.page.notFound")} />
-        <Link className="text-primary w-fit text-sm underline" to="/investors">
-          {t("investors.page.back")}
-        </Link>
+        <EmptyState
+          action={
+            <Link
+              className={buttonVariants({ variant: "outline" })}
+              to="/investors"
+            >
+              {t("investors.page.back")}
+            </Link>
+          }
+          icon={Users}
+          title={t("investors.page.notFound")}
+        />
       </Page>
     );
   }

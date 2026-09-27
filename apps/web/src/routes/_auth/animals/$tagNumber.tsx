@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   Baby,
-  ChevronLeft,
   FileText,
   LayoutList,
   Scale,
@@ -25,7 +24,7 @@ import {
 } from "@/components/animal/money-papers-tab";
 import { OverviewTab } from "@/components/animal/overview-tab";
 import { WeightMovesTab } from "@/components/animal/weight-moves-tab";
-import { EmptyState, Page } from "@/components/page";
+import { BackLink, EmptyState, Page } from "@/components/page";
 import type { PageTab } from "@/components/page-kit";
 import { PageTabs } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -125,13 +124,7 @@ const AnimalPage = () => {
 
   return (
     <Page>
-      <Link
-        className="text-muted-foreground hover:text-foreground -mb-2 inline-flex min-h-11 w-fit items-center gap-1 text-sm md:min-h-0"
-        to="/animals"
-      >
-        <ChevronLeft aria-hidden className="size-4" />
-        {t("nav.animals")}
-      </Link>
+      <BackLink to="/animals">{t("nav.animals")}</BackLink>
 
       <AnimalProfile detail={detail} onAct={setAct} powers={powers} />
 

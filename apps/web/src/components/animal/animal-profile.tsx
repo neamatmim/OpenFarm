@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner";
 
 import { AnimalPhoto } from "@/components/animal-photo";
+import { PageHeader } from "@/components/page";
 import type { RowAction } from "@/components/page-kit";
 import { ReportSighting } from "@/components/report-sighting";
 import { useLanguage } from "@/i18n/language-provider";
@@ -275,9 +276,38 @@ export const AnimalProfile = ({
     })),
   ];
 
+  const hasActs = powers.mayReport || powers.mayMove || actions.length > 0;
+
   return (
-    <header className="surface flex flex-col gap-4 p-4 md:flex-row md:items-start md:justify-between md:p-6">
-      <div className="flex min-w-0 items-start gap-4">
+    <PageHeader
+      actions={
+        hasActs ? (
+          // Two to a row on a phone, the sighting across both, so every act is a thumb's width in the barn.
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:justify-end">
+            {powers.mayReport ? (
+              <ReportSighting
+                className="col-span-2 w-full sm:w-fit"
+                tagNumber={detail.tagNumber}
+              />
+            ) : null}
+            {powers.mayMove ? (
+              <Button
+                onClick={() => onAct("move")}
+                type="button"
+                variant="outline"
+              >
+                <ArrowRightLeft aria-hidden data-icon="inline-start" />
+                {t("animals.move")}
+              </Button>
+            ) : null}
+            <MoreActs
+              actions={actions}
+              label={t("animals.moreFor", { tag: detail.tagNumber })}
+            />
+          </div>
+        ) : null
+      }
+      leading={
         <div className="relative shrink-0">
           <AnimalPhoto
             photoUpdatedAt={detail.photoUpdatedAt}
@@ -289,74 +319,54 @@ export const AnimalProfile = ({
               <Spinner />
             </span>
           ) : null}
-        </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-            <h1 className="font-mono text-2xl font-semibold tabular-nums md:text-3xl">
-              {detail.tagNumber}
-            </h1>
-            <StateBadge state={detail.state} />
-            <HeldBadges
-              meatHeld={detail.underMeatWithdrawal}
-              milkHeld={detail.underMilkWithdrawal}
-            />
-          </div>
-          <WhatSheIs detail={detail} />
-        </div>
-      </div>
-
-      {powers.mayReport || powers.mayMove || actions.length > 0 ? (
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end md:shrink-0">
-          {powers.mayReport ? (
-            <ReportSighting
-              className="col-span-2 w-full sm:w-fit"
-              tagNumber={detail.tagNumber}
+          {powers.mayHandle ? (
+            // The phone's own file picker speaks the phone's language, not the farm's: the words are in the menu, and
+            // the picker behind them only opens the camera.
+            <input
+              accept="image/*"
+              aria-label={t("animals.photoTake")}
+              capture="environment"
+              className="sr-only"
+              id={PHOTO_INPUT}
+              onChange={async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) {
+                  return;
+                }
+                if (file.size > PHOTO_MAX_BYTES) {
+                  toast.error(t("common.error"));
+                  return;
+                }
+                const data = await readAsBase64(file);
+                const contentType =
+                  file.type === "image/png" ? "image/png" : "image/jpeg";
+                setPhoto.mutate({
+                  tagNumber: detail.tagNumber,
+                  contentType,
+                  data,
+                });
+              }}
+              tabIndex={-1}
+              type="file"
             />
           ) : null}
-          {powers.mayMove ? (
-            <Button
-              onClick={() => onAct("move")}
-              type="button"
-              variant="outline"
-            >
-              <ArrowRightLeft aria-hidden data-icon="inline-start" />
-              {t("animals.move")}
-            </Button>
-          ) : null}
-          <MoreActs
-            actions={actions}
-            label={t("animals.moreFor", { tag: detail.tagNumber })}
+        </div>
+      }
+      meta={
+        <>
+          <StateBadge state={detail.state} />
+          <HeldBadges
+            meatHeld={detail.underMeatWithdrawal}
+            milkHeld={detail.underMilkWithdrawal}
           />
-        </div>
-      ) : null}
-
-      {powers.mayHandle ? (
-        // The phone's own file picker speaks the phone's language, not the farm's: the words are in the menu, and
-        // the picker behind them only opens the camera.
-        <input
-          accept="image/*"
-          aria-label={t("animals.photoTake")}
-          capture="environment"
-          className="sr-only"
-          id={PHOTO_INPUT}
-          onChange={async (event) => {
-            const file = event.target.files?.[0];
-            if (!file) {
-              return;
-            }
-            if (file.size > PHOTO_MAX_BYTES) {
-              toast.error(t("common.error"));
-              return;
-            }
-            const data = await readAsBase64(file);
-            const contentType =
-              file.type === "image/png" ? "image/png" : "image/jpeg";
-            setPhoto.mutate({ tagNumber: detail.tagNumber, contentType, data });
-          }}
-          tabIndex={-1}
-          type="file"
-        />
-      ) : null}
-    </header>
+          {/* What she is starts a line of its own under her badges, as it stood under her number. */}
+          <div className="flex basis-full flex-col gap-1">
+            <WhatSheIs detail={detail} />
+          </div>
+        </>
+      }
+      // Her number as it is on her ear: in the monospace every Tag Number is set in.
+      title={<span className="font-mono tabular-nums">{detail.tagNumber}</span>}
+    />
   );
 };

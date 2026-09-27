@@ -10,8 +10,11 @@ import {
 } from "@OpenFarm/ui/components/empty";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { cn } from "@OpenFarm/ui/lib/utils";
+import { createLink } from "@tanstack/react-router";
+import type { LinkComponent } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import {
+  ChevronLeft,
   CircleAlert,
   CircleCheck,
   CircleDot,
@@ -20,7 +23,7 @@ import {
   RotateCw,
   TriangleAlert,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import type { AnchorHTMLAttributes, ReactNode, Ref } from "react";
 import { useId } from "react";
 
 import { useT } from "@/i18n/language-provider";
@@ -63,6 +66,38 @@ export const Page = ({
   >
     {children}
   </div>
+);
+
+const BackAnchor = ({
+  children,
+  className,
+  ref,
+  ...rest
+}: AnchorHTMLAttributes<HTMLAnchorElement> & {
+  ref?: Ref<HTMLAnchorElement>;
+}) => (
+  <a
+    className={cn(
+      "text-muted-foreground hover:text-foreground focus-visible:ring-ring -ms-2 -mb-4 inline-flex min-h-11 w-fit items-center gap-1 self-start rounded-md px-2 text-sm font-medium outline-none focus-visible:ring-2 md:-mb-6",
+      className
+    )}
+    ref={ref}
+    {...rest}
+  >
+    <ChevronLeft aria-hidden className="size-4" />
+    {children}
+  </a>
+);
+
+const BackAnchorLink = createLink(BackAnchor);
+
+/**
+ * The way back from one record or one editor to the list it was opened from, named for that list ("Animals",
+ * "Playbook"), drawn above the page's header. Quiet beside the header, but a thumb's height to press; its spacing is
+ * for that place above a PageHeader, and `className` sets it anywhere else.
+ */
+export const BackLink: LinkComponent<typeof BackAnchor> = (props) => (
+  <BackAnchorLink {...props} />
 );
 
 /** What the page is, in one line, what it is for, and what can be done from it — and, on the page of one person or

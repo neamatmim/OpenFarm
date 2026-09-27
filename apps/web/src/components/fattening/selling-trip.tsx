@@ -8,7 +8,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { Section } from "@/components/page";
+import { Loaded, Section } from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
@@ -102,34 +102,36 @@ export const SellingTripForm = () => {
           <legend className="mb-1 text-sm font-medium">
             {t("selling.whoWent")}
           </legend>
-          {board.data === undefined ? (
-            <Skeleton className="h-16 rounded-lg" />
-          ) : null}
-          {board.data?.length === 0 ? (
-            <p className="text-muted-foreground text-sm">
-              {t("selling.nobodyToTake")}
-            </p>
-          ) : null}
-          {(board.data ?? []).map((one) => (
-            <label
-              className="flex items-center gap-2 text-sm"
-              htmlFor={`took-${one.tagNumber}`}
-              key={one.tagNumber}
-            >
-              <Checkbox
-                checked={taken.includes(one.tagNumber)}
-                id={`took-${one.tagNumber}`}
-                onCheckedChange={(checked) =>
-                  setTaken(
-                    checked
-                      ? [...taken, one.tagNumber]
-                      : taken.filter((each) => each !== one.tagNumber)
-                  )
-                }
-              />
-              {one.tagNumber}
-            </label>
-          ))}
+          <Loaded
+            query={board}
+            skeleton={<Skeleton className="h-16 rounded-lg" />}
+          >
+            {board.data?.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                {t("selling.nobodyToTake")}
+              </p>
+            ) : null}
+            {(board.data ?? []).map((one) => (
+              <label
+                className="flex items-center gap-2 text-sm"
+                htmlFor={`took-${one.tagNumber}`}
+                key={one.tagNumber}
+              >
+                <Checkbox
+                  checked={taken.includes(one.tagNumber)}
+                  id={`took-${one.tagNumber}`}
+                  onCheckedChange={(checked) =>
+                    setTaken(
+                      checked
+                        ? [...taken, one.tagNumber]
+                        : taken.filter((each) => each !== one.tagNumber)
+                    )
+                  }
+                />
+                {one.tagNumber}
+              </label>
+            ))}
+          </Loaded>
         </fieldset>
 
         <Button

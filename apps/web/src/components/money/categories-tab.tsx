@@ -23,7 +23,12 @@ import {
 } from "@/components/data-table";
 import { RetiredBadge, nameTone, retiredLast } from "@/components/list-cells";
 import { useIsOwner, categoryName } from "@/components/money";
-import { EmptyState, SegmentedControl, StatusBadge } from "@/components/page";
+import {
+  EmptyState,
+  Loaded,
+  SegmentedControl,
+  StatusBadge,
+} from "@/components/page";
 import {
   ConfirmDialog,
   FormDialog,
@@ -358,15 +363,17 @@ export const CategoriesTab = () => {
           {t("byHand.newCategory")}
         </Button>
       </div>
-      {categories.data === undefined ? (
-        <Skeleton className="h-40 rounded-lg" />
-      ) : null}
-      {categories.data?.length === 0 ? (
-        <EmptyState bare icon={Tags} title={t("byHand.noCategories")} />
-      ) : null}
-      {categories.data?.length ? (
-        <DataTable card={categoryCard} minWidth="36rem" table={table} />
-      ) : null}
+      <Loaded
+        query={categories}
+        skeleton={<Skeleton className="h-40 rounded-lg" />}
+      >
+        {categories.data?.length === 0 ? (
+          <EmptyState bare icon={Tags} title={t("byHand.noCategories")} />
+        ) : null}
+        {categories.data?.length ? (
+          <DataTable card={categoryCard} minWidth="36rem" table={table} />
+        ) : null}
+      </Loaded>
       <AddCategoryDialog onOpenChange={setAdding} open={adding} />
       <ConfirmDialog
         confirmLabel={t("byHand.retire")}

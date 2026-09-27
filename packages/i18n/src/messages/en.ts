@@ -750,7 +750,6 @@ export const en = {
   "people.passwordCodeWhy":
     "Hand them this code. They enter it on the sign-in screen and choose their own password — the farm never sets one for them.",
   "people.newPasswordCode": "New password code",
-  "people.backToPeople": "Everybody",
   "people.title": "People & access",
   "people.name": "Name",
   "people.correctName": "Correct the name",
@@ -2388,7 +2387,6 @@ export const en = {
   "sop.withTheOwner": "With the Owner",
   "sop.readProposal": "Read the proposed change",
   "sop.inForce": "Version {number} in force now",
-  "sop.backToPlaybook": "Back to the Playbook",
   "sop.stepNumber": "Step {number}",
   "sop.moveUp": "Move this step up",
   "sop.moveDown": "Move this step down",
@@ -4367,7 +4365,6 @@ export const en = {
   "templates.previewHint":
     "The farm's own details are filled in; every other fact is named in square brackets where it will go.",
   "templates.published": "Published version {number}",
-  "templates.back": "Back to the templates",
   "templates.editorHint":
     "Publishing makes this the wording papers are printed and signed in from now. Papers already signed keep theirs.",
   "templates.startFromStandard": "Start from the standard wording",

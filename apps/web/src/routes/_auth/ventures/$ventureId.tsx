@@ -1,10 +1,10 @@
 import { startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { buttonVariants } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
-  ArrowLeft,
   ArrowRightLeft,
   Banknote,
   Beef,
@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-import { EmptyState, Page, PageHeader } from "@/components/page";
+import { BackLink, EmptyState, Page, PageHeader } from "@/components/page";
 import type { Figure, RowAction } from "@/components/page-kit";
 import { PageTabs, RowMenu, SummaryFigures } from "@/components/page-kit";
 import { InternalSaleSheet } from "@/components/ventures/internal-sale-sheet";
@@ -164,13 +164,7 @@ const TheVenture = ({ venture, tab }: { venture: Venture; tab: Tab }) => {
   ];
   return (
     <Page>
-      <Link
-        className="text-muted-foreground hover:text-foreground -mb-2 flex w-fit items-center gap-1 text-sm"
-        to="/ventures"
-      >
-        <ArrowLeft aria-hidden className="size-4" />
-        {t("ventures.page.back")}
-      </Link>
+      <BackLink to="/ventures">{t("nav.ventures")}</BackLink>
       <PageHeader
         actions={
           <>
@@ -266,10 +260,18 @@ const VenturePage = () => {
   if (!venture) {
     return (
       <Page>
-        <EmptyState icon={Handshake} title={t("ventures.page.notFound")} />
-        <Link className="text-primary w-fit text-sm underline" to="/ventures">
-          {t("ventures.page.back")}
-        </Link>
+        <EmptyState
+          action={
+            <Link
+              className={buttonVariants({ variant: "outline" })}
+              to="/ventures"
+            >
+              {t("ventures.page.back")}
+            </Link>
+          }
+          icon={Handshake}
+          title={t("ventures.page.notFound")}
+        />
       </Page>
     );
   }

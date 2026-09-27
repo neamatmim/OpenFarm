@@ -3,9 +3,10 @@ import { ROLES } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
-import { ArrowLeft, GitPullRequestArrow, Send } from "lucide-react";
+import { GitPullRequestArrow, Send } from "lucide-react";
 
 import {
+  BackLink,
   Notice,
   Page,
   PageHeader,
@@ -226,13 +227,11 @@ export const SopEditor = ({
   const title = isNew ? t("sop.new") : content.name.bn || t("sop.edit");
   return (
     <Page>
+      {/* The editor is drawn in the Playbook's own place, so the way back is to the same address with the draft let go. */}
+      <BackLink onClick={onCancel} search to="/admin/sops">
+        {t("nav.sops")}
+      </BackLink>
       <PageHeader
-        actions={
-          <Button onClick={onCancel} type="button" variant="ghost">
-            <ArrowLeft aria-hidden data-icon="inline-start" />
-            {t("sop.backToPlaybook")}
-          </Button>
-        }
         description={
           canPublish ? t("sop.editor.publishHint") : t("sop.editor.proposeHint")
         }

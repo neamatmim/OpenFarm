@@ -1,8 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   BookOpenCheck,
-  ChevronLeft,
   MonitorSmartphone,
   ShieldCheck,
   UserX,
@@ -13,7 +12,13 @@ import {
   CorrectionDialog,
   useCorrecting,
 } from "@/components/correction-dialog";
-import { Loaded, Page, PageHeader, StatusBadge } from "@/components/page";
+import {
+  BackLink,
+  Loaded,
+  Page,
+  PageHeader,
+  StatusBadge,
+} from "@/components/page";
 import { PageTabs } from "@/components/page-kit";
 import { RoleBadges } from "@/components/people/people-table";
 import { AccessTab } from "@/components/people/person-access";
@@ -75,13 +80,7 @@ const PersonPage = () => {
 
   return (
     <Page>
-      <Link
-        className="text-muted-foreground hover:text-foreground -mb-4 flex min-h-11 w-fit items-center gap-1 text-sm md:-mb-6"
-        to="/admin/people"
-      >
-        <ChevronLeft aria-hidden className="size-4" />
-        {t("people.backToPeople")}
-      </Link>
+      <BackLink to="/admin/people">{t("nav.people")}</BackLink>
       <Loaded query={person}>
         {them ? (
           <>

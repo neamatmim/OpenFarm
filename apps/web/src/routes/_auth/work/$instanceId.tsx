@@ -55,6 +55,7 @@ import { toast } from "sonner";
 import { AnimalPhoto } from "@/components/animal-photo";
 import { AssignWork } from "@/components/assign-work";
 import {
+  BackLink,
   Notice,
   Page,
   StatusBadge,
@@ -214,18 +215,14 @@ const WorkNotShown = ({ error }: { error: Error | null }) => {
   );
 };
 
-/** The way back to the day's list, big enough for a thumb in a glove. */
+/** The way back to the day's list, big enough for a thumb in a glove. It stands in a column with spacing of its own
+ *  rather than above a page's header, so it keeps no margin below. */
 const BackToToday = () => {
   const { t } = useLanguage();
   return (
-    <Link
-      className="text-muted-foreground hover:text-foreground focus-visible:ring-ring -ms-2 inline-flex min-h-11 w-fit items-center gap-1 rounded-md px-2 text-sm font-medium outline-none focus-visible:ring-2"
-      search={{}}
-      to="/today"
-    >
-      <ChevronLeft aria-hidden className="size-4" />
+    <BackLink className="mb-0 md:mb-0" search={{}} to="/today">
       {t("nav.today")}
-    </Link>
+    </BackLink>
   );
 };
 
@@ -742,7 +739,7 @@ const TILE_LOOK = {
     icon: Check,
     label: "work.tileDone",
     tile: "border-success/35 bg-success-surface/50",
-    text: "bg-success text-background",
+    text: "bg-success text-success-foreground",
   },
   skipped: {
     icon: SkipForward,
@@ -892,7 +889,7 @@ const StepRow = ({
         className={cn(
           "grid size-10 shrink-0 place-items-center rounded-full",
           done
-            ? "bg-success text-background"
+            ? "bg-success text-success-foreground"
             : "bg-secondary text-secondary-foreground"
         )}
       >
