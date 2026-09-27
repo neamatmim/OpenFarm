@@ -31,6 +31,7 @@ import { nominationInForce, paperNominees } from "./nomination-store";
 import { ownerNameOf, requireTheirs } from "./portal-store";
 import { hisProjection, projectionOf } from "./projection-store";
 import { theirRequests } from "./requests-to-join";
+import { agreementReturnOnCapital } from "./returns-store";
 import { wordingInForce } from "./template-store";
 import { theirAgreements } from "./their-agreements";
 import { theirProgress } from "./venture-herd-store";
@@ -54,6 +55,11 @@ export interface PortalReader {
  *  Preview either way (ADR 0010). */
 const showsProjections = (reader: PortalReader) =>
   reader.previewing === true || reader.farm.investorProjections;
+
+/** Whether this reader is shown a settled Venture's Return on Capital: every Investor once the Owner turns it on,
+ *  and the Owner in the Preview either way (ADR 0012). */
+const showsReturns = (reader: PortalReader) =>
+  reader.previewing === true || reader.farm.investorReturns;
 
 /** Whom an Investor calls about any of it: the farm, by name, phone and address. What the portal's account page shows
  *  and the Welcome Letter prints, from here alone, so the two cannot give different numbers. */
@@ -100,10 +106,31 @@ export const theirRecord = async ({
 /**
  * Their whole part in the farm's Ventures: each Agreement with the capital held on it and what a Settlement paid, and
  * every taka of theirs that moved — capital in, capital back, payouts — the latest first. Read from their side and
- * narrowed to them before anything is assembled, as the Owner's page of them is.
+ * narrowed to them before anything is assembled, as the Owner's page of them is. On a settled Venture, once the Owner
+ * shows it, what their own capital made: a share over its days, never a rate a year (ADR 0012).
  */
-export const theirPortfolio = ({ db, clock, farm, investor }: PortalReader) =>
-  theirAgreements(db, farm.id, investor.id, farmDayOf(clock.now()));
+export const theirPortfolio = async (reader: PortalReader) => {
+  const { db, clock, farm, investor } = reader;
+  const theirs = await theirAgreements(
+    db,
+    farm.id,
+    investor.id,
+    farmDayOf(clock.now())
+  );
+  const shown = showsReturns(reader);
+  const agreements = [];
+  for (const one of theirs.agreements) {
+    const settled = shown && one.settlement !== null;
+    agreements.push({
+      ...one,
+      returnOnCapital: settled
+        ? // oxlint-disable-next-line no-await-in-loop -- one client, one Agreement at a time
+          await agreementReturnOnCapital(db, farm.id, one.id)
+        : null,
+    });
+  }
+  return { ...theirs, agreements };
+};
 
 /**
  * The Ventures still gathering capital that the Owner has shown in the portal (ADR 0008): their terms, the split the

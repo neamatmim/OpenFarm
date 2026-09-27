@@ -55,6 +55,13 @@ const saidKg = (kg: number | null, said: ReturnType<typeof useLanguage>) =>
     ? null
     : said.t("units.kg", { kg: formatNumber(kg, said.language) });
 
+/** What their capital made in a settled Venture, as their portfolio answers it once the Owner shows it. */
+type HisSettlementShare = NonNullable<
+  Awaited<
+    ReturnType<typeof client.portal.portfolio>
+  >["agreements"][number]["returnOnCapital"]
+>;
+
 /** What an approved Settlement came to on their paper, as their portfolio answers it. */
 type HisSettlement = NonNullable<
   TheirAgreements["agreements"][number]["settlement"]
@@ -134,6 +141,35 @@ const useFigures = (
       icon: CalendarClock,
     },
   ];
+};
+
+/**
+ * What their own capital made in a settled Venture, under their payout, once the Owner shows it: a share over its days,
+ * a loss said as one — never a rate a year, never beside another Venture's (ADR 0012).
+ */
+const OnTheirCapital = ({
+  returned,
+}: {
+  returned: HisSettlementShare | null;
+}) => {
+  const { t } = useLanguage();
+  if (!returned) {
+    return null;
+  }
+  const lost = returned.per100 < 0;
+  return (
+    <p
+      className={cn(
+        "text-sm font-medium tabular-nums",
+        lost && "text-destructive"
+      )}
+    >
+      {t(lost ? "portal.onCapitalLoss" : "portal.onCapitalGain", {
+        amount: Math.abs(returned.per100),
+        days: returned.days,
+      })}
+    </p>
+  );
 };
 
 /** One figure set in its own shaded box, as the Spending tab sets its two budgets. */
@@ -626,6 +662,8 @@ const VentureToday = ({
       />
       <StageTrack state={today.venture.state} />
       <SummaryFigures figures={figures} hintsOnPhone />
+      {/* An answer this phone kept from before the portal could say it has none. */}
+      <OnTheirCapital returned={mine?.returnOnCapital ?? null} />
       {/* While their capital is owed. An answer this phone kept from before the farm said where to pay has none. */}
       <HowToPay paying={today.howToPay ?? null} />
       {/* An answer this phone kept from before the portal could show one has none. */}

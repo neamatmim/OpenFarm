@@ -82,6 +82,30 @@ export const invitedWithConsent = async (owner: Client, id: string) => {
   return owner.investors.inviteToPortal({ id });
 };
 
+/** An Investor already written down, invited now and joined with their phone: the account the invitation opened. */
+const joined = async (investorId: string, phone: string, at: string) => {
+  const { client: owner } = await createTestClient(appRouter, {
+    as: "owner",
+    clock: new FakeClock(at),
+  });
+  const { code } = await invitedWithConsent(owner, investorId);
+  const { client: nobody } = await createTestClient(appRouter, {
+    as: null,
+    clock: new FakeClock(at),
+  });
+  const { loginEmail } = await nobody.portal.join({
+    phone,
+    code,
+    password: PASSWORD,
+  });
+  return loginEmail;
+};
+
+/** An Investor the Owner wrote down already — signed on a Venture, say — invited and joined, and the API as they
+ *  reach it at the moment given. */
+export const theyJoin = async (investorId: string, phone: string, at: string) =>
+  await signedInAs(await joined(investorId, phone, at), at);
+
 /**
  * An Investor the Owner wrote down and invited, who took the invitation up with their phone: their id, the account
  * they sign in as, and the API as they reach it at the moment given.
@@ -101,16 +125,7 @@ export const anInvitedInvestor = async (
     nid: "1234567890",
     bankAccount: `01234${phone.slice(-5)}`,
   });
-  const { code } = await invitedWithConsent(owner, them.id);
-  const { client: nobody } = await createTestClient(appRouter, {
-    as: null,
-    clock: new FakeClock(at),
-  });
-  const { loginEmail } = await nobody.portal.join({
-    phone,
-    code,
-    password: PASSWORD,
-  });
+  const loginEmail = await joined(them.id, phone, at);
   const account = await scratchDb().query.user.findFirst({
     where: { email: loginEmail },
     columns: { id: true },

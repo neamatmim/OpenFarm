@@ -1027,6 +1027,11 @@ export interface SettlementStatement {
     reference: string | null;
     paidOn: string | null;
   };
+  /**
+   * What their own capital made, once the Owner shows it (ADR 0012): the share over its days, already worded, and
+   * whether it was a gain. Never a rate a year. Nothing while the Owner's switch is off.
+   */
+  onCapital: { per100: string; days: string; rose: boolean } | null;
   /** What became of the cattle, already worded. */
   herd: string[];
   adjustments: StatementAdjustment[];
@@ -1116,6 +1121,16 @@ export const settlementStatement = (sheet: SettlementStatement): string =>
             `${sheet.his.paidOn} · ${sheet.his.reference}`
           )
         : field("  পাঠানো হয়েছে", "Sent", "এখনো যায়নি / not yet sent"),
+      // Under the payout, and only a share over its days: a rate a year is the Owner's, never theirs (ADR 0012).
+      sheet.onCapital
+        ? field(
+            "  মূলধনে",
+            "On your capital",
+            sheet.onCapital.rose
+              ? `প্রতি ১০০ টাকা মূলধনে ${sheet.onCapital.per100} টাকা লাভ, ${sheet.onCapital.days} দিনে / ${sheet.onCapital.per100} made on every ৳100 of your capital, over ${sheet.onCapital.days} days`
+              : `প্রতি ১০০ টাকা মূলধনে ${sheet.onCapital.per100} টাকা ক্ষতি, ${sheet.onCapital.days} দিনে / ${sheet.onCapital.per100} lost on every ৳100 of your capital, over ${sheet.onCapital.days} days`
+          )
+        : null,
       "",
       // Read from the records rather than frozen with the account: a **Sale** is the one Correction a
       // settled Venture still allows, being the late news itself, and putting a price right would move
