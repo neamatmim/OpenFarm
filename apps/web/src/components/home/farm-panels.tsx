@@ -200,6 +200,11 @@ export const MoneyMonth = () => {
           {rows.length === 0 ? (
             <p className="text-muted-foreground text-sm">{t("money.none")}</p>
           ) : null}
+          {/* This month is one of twelve: how it stands beside the months before it is a page of its own. */}
+          <Link className={cn(MORE_LINK, "self-start text-sm")} to="/months">
+            {t("nav.months")}
+            <ChevronRight aria-hidden className="size-4" />
+          </Link>
         </>
       ) : (
         <Waiting />

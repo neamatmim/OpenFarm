@@ -777,6 +777,35 @@ const hersThen = (
 };
 
 /**
+ * The costing narrowed to what was the Farm's own at the time: each share of an Animal the Farm owned that day, and
+ * each Animal the Farm owned when she was sold. A Venture's Animals, their charges and their Margins are its own and
+ * its Settlement's; read as the Farm's as well, the same bull would be counted twice. Never a second sum — the same
+ * shares, filtered, as `hersThen` filters them for a Venture.
+ */
+export const theFarmsOwn = (
+  costs: FarmCosts,
+  ownedThenBy: OwnedThenBy
+): FarmCosts => {
+  const theFarmsThen = (share: { animalId: string; at: Date }) =>
+    ownedThenBy(share.animalId, share.at) === null;
+  return {
+    ...costs,
+    animals: costs.animals.filter(
+      (one) => !one.sale || ownedThenBy(one.id, one.sale.soldAt) === null
+    ),
+    all: {
+      feed: costs.all.feed.filter(theFarmsThen),
+      doses: costs.all.doses.filter(theFarmsThen),
+      vet: costs.all.vet.filter(theFarmsThen),
+      litres: costs.all.litres.filter(theFarmsThen),
+      hasil: costs.all.hasil.filter(theFarmsThen),
+      trips: costs.all.trips.filter(theFarmsThen),
+      herd: costs.all.herd.filter(theFarmsThen),
+    },
+  };
+};
+
+/**
  * Everything a Venture's Animals were charged over the whole run, whoever paid it.
  *
  * The same costing narrowed to the Animals that were this Venture's at the time — its Hasil and its

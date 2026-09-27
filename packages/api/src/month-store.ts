@@ -1,0 +1,178 @@
+import type { Database } from "@OpenFarm/db";
+import {
+  farmDayOf,
+  milkPriceOf,
+  monthOf,
+  monthsEndingIn,
+  roundTaka,
+  startOfFarmDay,
+  summariseMoney,
+} from "@OpenFarm/domain";
+
+import { chargedOf, costsBySide, farmCosts, theFarmsOwn } from "./cost-store";
+import { moneyForTheAccountant } from "./money-export-store";
+import { approvedSettlementOf } from "./settlement-store";
+import { planAgainstActual } from "./venture-plan-store";
+import { ownedThenByOf } from "./venture-store";
+
+/** How far back the Owner reads the farm month by month: a year, this month among them. */
+export const MONTHS_READ = 12;
+
+/** A "YYYY-MM" month as the farm's own days begin and end it. */
+const rangeOf = (month: string) => monthOf(startOfFarmDay(`${month}-01`));
+
+/** Each Venture that has not been called off, against the plan it opened on: what the plan said it would make, what it
+ *  is projected to make now while it runs, and what it made once it settled. */
+const venturesAgainstPlan = async (
+  db: Database,
+  farm: { id: string; ventureInvestorsPercent: number },
+  now: Date
+) => {
+  const rows = await db.query.venture.findMany({
+    where: { farmId: farm.id, state: { ne: "cancelled" } },
+    orderBy: { ordinal: "asc" },
+  });
+  return await Promise.all(
+    rows.map(async (row) => {
+      const [measured, settled] = await Promise.all([
+        planAgainstActual(db, farm.id, row, farm.ventureInvestorsPercent, now),
+        row.state === "settled"
+          ? approvedSettlementOf(db, farm.id, row.id)
+          : null,
+      ]);
+      return {
+        id: row.id,
+        ordinal: row.ordinal,
+        name: row.name,
+        state: row.state,
+        /** What its plan said it would make, low and high; nothing where it has no plan. */
+        planned: measured?.money.planned ?? null,
+        /** What it is projected to make now, low and high; nothing once it has ended. */
+        projected: measured?.money.projected ?? null,
+        /** What its approved Settlement says it made; nothing until then. */
+        settledProfitBdt: settled?.row.profitBdt ?? null,
+      };
+    })
+  );
+};
+
+/** What `monthByMonth` reads once and every range is cut from. */
+interface Read {
+  costs: Awaited<ReturnType<typeof farmCosts>>;
+  money: Awaited<ReturnType<typeof moneyForTheAccountant>>;
+  dispatched: {
+    dispatchedAt: Date;
+    litres: string;
+    pricePerLitreBdt: string;
+  }[];
+}
+
+/**
+ * One stretch of the farm — a month, or the whole year — as the pages these come from say it: the accountant's income
+ * and expense of the Farm's purse, the milk its Dispatches sold with what a litre fetched, and Costs by Side over the
+ * same days, narrowed to the Farm's own animals. Worked over the stretch itself rather than added up from its months, so a year's cost a litre is its
+ * costs over its litres, not a mean of twelve.
+ */
+const figuresOver = (
+  { from, until }: { from: Date; until: Date },
+  { costs, money, dispatched }: Read
+) => {
+  const within = (at: Date) => at >= from && at < until;
+  const sides = costsBySide(costs, { from, until });
+  const cash = summariseMoney(money.filter((one) => within(one.occurredAt)));
+  const milk = milkPriceOf(
+    dispatched
+      .filter((one) => within(one.dispatchedAt))
+      .map((one) => ({
+        litres: Number(one.litres),
+        pricePerLitreBdt: Number(one.pricePerLitreBdt),
+      }))
+  );
+  const sold = sides.soldFattening.animals;
+  return {
+    money: {
+      inBdt: cash.incomeBdt,
+      outBdt: cash.expenseBdt,
+      netBdt: cash.netBdt,
+      /** Money Events in it still waiting for the Owner, counted in the figures above as the accountant's are. */
+      awaitingCount: cash.awaiting.count,
+    },
+    dairy: {
+      milkSoldBdt: milk?.bdt ?? 0,
+      litresSold: milk?.litres ?? 0,
+      /** What a litre fetched; nothing where no milk left. */
+      fetchedPerLitreBdt: milk?.bdtPerLitre ?? null,
+      /** Everything charged to the dairy side's animals in it. */
+      chargedBdt: roundTaka(chargedOf(sides.dairy)),
+      litresToBulk: sides.dairy.litresToBulk,
+      costPerLitreBdt: sides.dairy.costPerLitreBdt,
+      unpricedKg: sides.dairy.unpricedKg,
+      uncostedDoses: sides.dairy.uncostedDoses,
+    },
+    fattening: {
+      /** Everything charged to the fattening side's animals in it, sold or standing. */
+      chargedBdt: roundTaka(chargedOf(sides.fattening)),
+      sold: sold.length,
+      /** The whole-life Margins of the fattening animals sold in it; nothing where none was. */
+      marginBdt: sold.length === 0 ? null : sides.soldFattening.marginBdt,
+      unpricedKg: sides.fattening.unpricedKg,
+      uncostedDoses: sides.fattening.uncostedDoses,
+    },
+  };
+};
+
+/**
+ * The farm month by month, for the Owner: the last `MONTHS_READ` months, oldest first, this one so far, and the year
+ * they make together.
+ *
+ * Nothing here is a sum of its own. Each is the accountant's income and expense of the Farm's purse, the milk its
+ * Dispatches sold with what a litre fetched, and Costs by Side — what the dairy cows and the fattening animals were
+ * charged, what a litre cost, and the Margins of the fattening animals sold — so a month here reads the same as the
+ * same month on the pages those come from, but for one thing: as the purse is the Farm's own money, the animals are
+ * the Farm's own, and a Venture's are left to its own line rather than counted twice. Money and costs stay apart: the
+ * purse is what moved, and a Side's charges are what its animals ate and were dosed with, bought whenever.
+ */
+export const monthByMonth = async (
+  db: Database,
+  farm: { id: string; ventureInvestorsPercent: number },
+  now: Date
+) => {
+  const months = monthsEndingIn(farmDayOf(now), MONTHS_READ);
+  const span = {
+    from: rangeOf(months[0] ?? "").from,
+    until: rangeOf(months.at(-1) ?? "").until,
+  };
+  const [costs, ownedThenBy, money, dispatched, ventures] = await Promise.all([
+    farmCosts(db, farm.id),
+    ownedThenByOf(db, farm.id),
+    moneyForTheAccountant(db, farm.id, span),
+    db.query.dispatch.findMany({
+      where: {
+        farmId: farm.id,
+        dispatchedAt: { gte: span.from, lt: span.until },
+      },
+      columns: { dispatchedAt: true, litres: true, pricePerLitreBdt: true },
+    }),
+    venturesAgainstPlan(db, farm, now),
+  ]);
+  // The Farm's own animals alone, as its purse is the Farm's own money: a Venture's are on its own line below.
+  const read: Read = {
+    costs: theFarmsOwn(costs, ownedThenBy),
+    money,
+    dispatched,
+  };
+  return {
+    months: months.map((month) => {
+      const range = rangeOf(month);
+      return {
+        month,
+        /** This month, still going: its figures are what it has come to so far. */
+        soFar: range.until > now,
+        ...figuresOver(range, read),
+      };
+    }),
+    /** The months together, worked over the whole of them. */
+    year: figuresOver(span, read),
+    ventures,
+  };
+};

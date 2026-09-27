@@ -8,6 +8,7 @@ import {
   herdShares,
   marginOf,
   monthOf,
+  monthsEndingIn,
   roundedCosts,
   tripShares,
 } from "./costs";
@@ -217,6 +218,21 @@ describe("the month money belongs to", () => {
       from: startOfFarmDay("2027-02-01"),
       until: startOfFarmDay("2027-03-01"),
     });
+  });
+});
+
+describe("the months that end with this one", () => {
+  it("counts back from this month, oldest first, across the turn of the year", () => {
+    expect(monthsEndingIn("2027-02-14", 4)).toEqual([
+      "2026-11",
+      "2026-12",
+      "2027-01",
+      "2027-02",
+    ]);
+  });
+
+  it("is this month alone when asked for one", () => {
+    expect(monthsEndingIn("2026-12-31", 1)).toEqual(["2026-12"]);
   });
 });
 

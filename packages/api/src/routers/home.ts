@@ -23,9 +23,10 @@ import {
   penLabel,
   workAwaitingSignOff,
 } from "../instances-store";
+import { monthByMonth } from "../month-store";
 import { renewalDue } from "../registration-store";
 import { withTheirWork } from "../review-store";
-import { requireRole } from "../roles";
+import { OWNER_ONLY, requireOnly, requireRole } from "../roles";
 import { runningLow } from "../stock-store";
 
 /** Enough of each queue to work from. A Manager with more than this waiting has a problem
@@ -425,4 +426,15 @@ export const homeRouter = {
         },
       };
     }),
+
+  /**
+   * How the farm has done month by month over the last year (`monthByMonth`): the Farm's money in and out, the milk
+   * sold against what the dairy cows cost, the fattening animals sold and their Margins, and each Venture against its
+   * plan. The Owner's alone, as the Margins and the Ventures are.
+   */
+  byMonth: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .handler(({ context }) =>
+      monthByMonth(context.db, context.farm, context.clock.now())
+    ),
 };

@@ -353,6 +353,7 @@ export {
   herdShares,
   marginOf,
   monthOf,
+  monthsEndingIn,
   roundedCosts,
   tripShares,
 } from "./costs";
