@@ -8,10 +8,11 @@ import { useLanguage } from "@/i18n/language-provider";
  * The taka mark with the minus in front of it, never after.
  *
  * `৳-১২,৩৪৫` is how an Owner learns her run lost money by squinting, and a figure that has gone the
- * wrong way should say so before it is read rather than after.
+ * wrong way should say so before it is read rather than after. The minus is the rounded figure's, not the raw
+ * amount's: a balance a fraction of a taka below nought is said as nought, never "−৳০".
  */
 const said = (amount: number, language: Language, figure: number): string =>
-  `${amount < 0 ? "−" : ""}৳${formatNumber(figure, language)}`;
+  `${amount < 0 && figure > 0 ? "−" : ""}৳${formatNumber(figure, language)}`;
 
 /**
  * A sum of money as the reader reads it, to the whole taka.
