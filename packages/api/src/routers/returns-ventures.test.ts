@@ -323,3 +323,39 @@ describe("a Season beside a Venture in the same window", () => {
     });
   });
 });
+
+describe("the Bank Rate beside a Venture", () => {
+  it("sets its cattle beside the rate on the day its first bull came, and its capital beside the rate on the day the capital did", async () => {
+    // The Investor's money reached the Venture Account on 3 January; its first bulls came off the lorry on the 4th.
+    // A rate from the 1st and another from the 4th: a deposit made with the capital would have locked the first, and
+    // money spent on cattle the second.
+    const { client: owner } = await as("owner", "2053-04-10T04:00:00.000Z");
+    await owner.returns.setBankRate({
+      perYear: 7,
+      note: `সাময়িক হার ${suffix}`,
+      fromDay: "2053-01-01",
+    });
+    await owner.returns.setBankRate({
+      perYear: 7.5,
+      note: `নতুন হার ${suffix}`,
+      fromDay: "2053-01-04",
+    });
+    const { client: reading } = await as("owner", "2053-04-10T04:00:00.000Z");
+    const { ventures, bankRates, bankRateInForceId } =
+      await reading.returns.page();
+    const venture = ventures.find((one) => one.id === ventureId);
+    expect(venture?.bankRate).toEqual({
+      perYear: 7.5,
+      note: `নতুন হার ${suffix}`,
+      fromDay: "2053-01-04",
+    });
+    expect(venture?.capitalBankRate).toEqual({
+      perYear: 7,
+      note: `সাময়িক হার ${suffix}`,
+      fromDay: "2053-01-01",
+    });
+    // The one in force today is the later, and the page is told which.
+    expect(bankRateInForceId).toBe(bankRates[0]?.id);
+    expect(bankRates[0]?.perYear).toBe(7.5);
+  });
+});

@@ -380,4 +380,12 @@ export const lastEidsSeason = async (farm: Farm, herd: Herd) => {
   for (const bull of lorry) {
     herd.bulls.delete(bull.tag);
   }
+  // The rate the Owner reads the Season against: what the bank declared for 2024, typed the day after Eid, holding
+  // from the first of the year — so the Season's first taka in January reads it.
+  farm.clock.set(onFarm("2026-05-30", "20:00"));
+  await farm.as.owner.returns.setBankRate({
+    perYear: 9.19,
+    note: "IBBL ১২ মাসের মুদারাবা, চূড়ান্ত ২০২৪",
+    fromDay: "2025-01-01",
+  });
 };

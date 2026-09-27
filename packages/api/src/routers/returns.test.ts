@@ -193,3 +193,90 @@ describe("whose the Returns page is", () => {
     });
   });
 });
+
+describe("the Bank Rate beside a rate a year", () => {
+  it("shows none while the Owner has typed none", async () => {
+    const { client: owner } = await as("owner", "2029-01-10T04:00:00.000Z");
+    const { seasons, bankRates } = await owner.returns.page();
+    expect(bankRates).toEqual([]);
+    expect(
+      seasons.find((one) => one.key === "eid:2028-05-06")?.bankRate
+    ).toBeNull();
+  });
+
+  it("reads the rate in force on the day a Season's first taka went in, the later of two typed for one day", async () => {
+    const { client: owner } = await as("owner", "2029-01-10T04:00:00.000Z");
+    // Two for 1 July 2027 typed in the same moment — the second puts the first right — and one from 1 March 2028,
+    // after the Eid 2028 Season's first bull came on 1 January.
+    await owner.returns.setBankRate({
+      perYear: 8.5,
+      note: `IBBL ১২ মাসের মুদারাবা ${suffix}`,
+      fromDay: "2027-07-01",
+    });
+    await owner.returns.setBankRate({
+      perYear: 8.75,
+      note: `IBBL ১২ মাসের মুদারাবা, চূড়ান্ত ${suffix}`,
+      fromDay: "2027-07-01",
+    });
+    await owner.returns.setBankRate({
+      perYear: 9.2,
+      note: `IBBL ১২ মাসের মুদারাবা, ২০২৮ ${suffix}`,
+      fromDay: "2028-03-01",
+    });
+    const { client: reading } = await as("owner", "2029-01-10T04:00:00.000Z");
+    const { seasons, bankRates } = await reading.returns.page();
+    expect(
+      seasons.find((one) => one.key === "eid:2028-05-06")?.bankRate
+    ).toEqual({
+      perYear: 8.75,
+      note: `IBBL ১২ মাসের মুদারাবা, চূড়ান্ত ${suffix}`,
+      fromDay: "2027-07-01",
+    });
+    // Nothing beside a Season that has no rate a year: the winter one was out fewer days than the floor.
+    expect(
+      seasons.find((one) => one.key === "window:2028-12-15|2029-01-15")
+        ?.bankRate
+    ).toBeNull();
+    // Every rate kept, the newest first.
+    expect(bankRates.map((one) => one.perYear)).toEqual([9.2, 8.75, 8.5]);
+  });
+
+  it("refuses a rate outside nought to a hundred, or from a day still to come", async () => {
+    const { client: owner } = await as("owner", "2029-01-10T04:00:00.000Z");
+    await expect(
+      owner.returns.setBankRate({
+        perYear: 101,
+        note: "ভুল",
+        fromDay: "2029-01-01",
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      owner.returns.setBankRate({
+        perYear: -1,
+        note: "ভুল",
+        fromDay: "2029-01-01",
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      owner.returns.setBankRate({
+        perYear: 9,
+        note: "আগামী",
+        fromDay: "2029-02-01",
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "bank_rate_from_the_future" },
+    });
+  });
+
+  it("is the Owner's alone to type", async () => {
+    const { client: manager } = await as("manager", "2029-01-10T04:00:00.000Z");
+    await expect(
+      manager.returns.setBankRate({
+        perYear: 9,
+        note: "ম্যানেজার",
+        fromDay: "2029-01-01",
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});

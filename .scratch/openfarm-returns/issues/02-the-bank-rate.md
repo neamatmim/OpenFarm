@@ -4,7 +4,7 @@
 
 **Blocked by:** 01
 
-**Status:** ready
+**Status:** done
 
 **Note from 01 (2026-09-27):** 01 built the page without tabs (a chart, then the finished Seasons and Ventures), leaving out empty Dairy and Prices tabs rather than showing dead ends. Whichever of 02 and 03 lands first builds the tab bar: Fattening (01's content), and Prices here.
 

@@ -1,8 +1,11 @@
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Beef, Landmark } from "lucide-react";
 
 import { Notice, Page, PageHeader, Section } from "@/components/page";
+import { PageTabs } from "@/components/page-kit";
 import {
+  BankRateList,
   FinishedReturns,
   ReturnsChart,
   useReturns,
@@ -10,14 +13,20 @@ import {
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 
+const TABS = ["fattening", "prices"] as const;
+type Tab = (typeof TABS)[number];
+
 /**
  * What the money in the farm's cattle returned, for the Owner: each Season of the Farm's own fattening cattle and each
  * settled Venture, worked as a Settlement is, with what every hundred taka made, the days its money was out and that
- * scaled to a year — and the sentence saying what none of it charges.
+ * scaled to a year beside the bank's rate — and, under Prices, the rates the Owner types. The tab is kept in the
+ * address, so the page comes back as it was left.
  */
 const ReturnsPage = () => {
   const { t } = useLanguage();
   const returns = useReturns();
+  const navigate = useNavigate({ from: Route.fullPath });
+  const { tab = "fattening" } = Route.useSearch();
   const header = (
     <PageHeader description={t("returns.subtitle")} title={t("nav.returns")} />
   );
@@ -33,29 +42,68 @@ const ReturnsPage = () => {
       </Page>
     );
   }
+  const page = returns.data;
   return (
     <Page>
       {header}
-      <Section
-        description={t("returns.chartHint")}
-        title={t("returns.chartTitle")}
-      >
-        <ReturnsChart page={returns.data} />
-      </Section>
-      <Section
-        description={t("returns.finishedHint")}
-        title={t("returns.finishedTitle")}
-      >
-        <FinishedReturns page={returns.data} />
-      </Section>
-      <p className="text-muted-foreground text-sm italic">
-        {t("returns.leftOut")}
-      </p>
+      <PageTabs
+        onChange={(value) =>
+          navigate({
+            replace: true,
+            search: value === "fattening" ? {} : { tab: value },
+          })
+        }
+        tabs={[
+          {
+            value: "fattening",
+            label: t("returns.tab.fattening"),
+            icon: Beef,
+            content: (
+              <div className="flex flex-col gap-6">
+                <Section
+                  description={t("returns.chartHint")}
+                  title={t("returns.chartTitle")}
+                >
+                  <ReturnsChart page={page} />
+                </Section>
+                <Section
+                  description={t("returns.finishedHint")}
+                  title={t("returns.finishedTitle")}
+                >
+                  <FinishedReturns page={page} />
+                </Section>
+                <p className="text-muted-foreground text-sm italic">
+                  {t("returns.leftOut")}
+                </p>
+              </div>
+            ),
+          },
+          {
+            value: "prices",
+            label: t("returns.tab.prices"),
+            icon: Landmark,
+            content: (
+              <Section
+                description={t("returns.bankHint")}
+                title={t("returns.bankTitle")}
+              >
+                <BankRateList page={page} />
+              </Section>
+            ),
+          },
+        ]}
+        value={tab}
+      />
     </Page>
   );
 };
 
 export const Route = createFileRoute("/_auth/returns")({
   beforeLoad: onlyFor("owner"),
+  /** Which tab, kept in the address so the page comes back as it was left. */
+  validateSearch: (search: Record<string, unknown>): { tab?: Tab } =>
+    TABS.includes(search.tab as Tab) && search.tab !== "fattening"
+      ? { tab: search.tab as Tab }
+      : {},
   component: ReturnsPage,
 });

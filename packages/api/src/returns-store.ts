@@ -1,6 +1,7 @@
 import type { Database } from "@OpenFarm/db";
 import type { Returned, Spent, TargetWindow } from "@OpenFarm/domain";
 import {
+  farmDayOf,
   returnOf,
   returnOnCapitalOf,
   seasonOf,
@@ -35,10 +36,64 @@ interface Holding {
   left: { how: Gone; on: Date; backBdt: number } | null;
 }
 
+/** A **Bank Rate** as the page says it beside a rate a year. */
+export interface BankRateSaid {
+  perYear: number;
+  note: string;
+  fromDay: string;
+}
+
+/** Every Bank Rate the Owner has typed, the one that would be in force first: the latest day, then the latest typed. */
+const bankRatesOf = async (db: Database, farmId: string) => {
+  const rows = await db.query.bankRate.findMany({
+    where: { farmId },
+    orderBy: { fromDay: "desc", recordedAt: "desc", id: "desc" },
+  });
+  return rows.map((one) => ({
+    id: one.id,
+    perYear: Number(one.perYear),
+    note: one.note,
+    fromDay: one.fromDay,
+    recordedAt: one.recordedAt,
+  }));
+};
+
+type BankRateRows = Awaited<ReturnType<typeof bankRatesOf>>;
+
+/** The Bank Rate in force on a farm day: the latest day on or before it, then the latest typed. None before the first. */
+const rateInForceOn = (rates: BankRateRows, day: string) =>
+  rates.find((one) => one.fromDay <= day) ?? null;
+
+/**
+ * The Bank Rate beside a rate a year: the one in force on the day that money first went in, as a deposit made that day
+ * would have locked it — and none for money with no rate a year to set it beside.
+ */
+const bankRateFor = (
+  rates: BankRateRows,
+  firstTaka: Date | null,
+  returned: { perYear: number | null } | null
+): BankRateSaid | null => {
+  if (returned === null || returned.perYear === null || firstTaka === null) {
+    return null;
+  }
+  const inForce = rateInForceOn(rates, farmDayOf(firstTaka));
+  return inForce
+    ? { perYear: inForce.perYear, note: inForce.note, fromDay: inForce.fromDay }
+    : null;
+};
+
+/** The day the first of some money went in: the earliest of the days. None for none. */
+const earliest = (days: readonly Date[]): Date | null =>
+  days.length === 0
+    ? null
+    : new Date(Math.min(...days.map((one) => one.getTime())));
+
 /** What every sum on the page is read from, read once: the costing, whose each Animal was on a day, and every way an
  *  Animal came to an owner and left one. */
 interface Books {
   costs: FarmCosts;
+  /** Every Bank Rate typed, the one that would be in force first: the latest day, then the latest typed. */
+  bankRates: BankRateRows;
   ownedThenBy: OwnedThenBy;
   intakes: {
     animalId: string;
@@ -75,6 +130,7 @@ const booksOf = async (db: Database, farmId: string): Promise<Books> => {
     where: { farmId },
     columns: { animalId: true, happenedAt: true },
   });
+  const bankRates = await bankRatesOf(db, farmId);
   const internal = await db.query.internalSale.findMany({
     where: { farmId },
     columns: {
@@ -88,6 +144,7 @@ const booksOf = async (db: Database, farmId: string): Promise<Books> => {
   });
   return {
     costs,
+    bankRates,
     ownedThenBy,
     intakes,
     died: new Map(deaths.map((one) => [one.animalId, one.happenedAt])),
@@ -208,6 +265,8 @@ export interface SeasonReturn {
   head: number;
   died: number;
   returnOnCost: Returned | null;
+  /** The Bank Rate in force on its first taka, beside its rate a year; none without one. */
+  bankRate: BankRateSaid | null;
 }
 
 /**
@@ -243,14 +302,22 @@ const seasonsOf = (
     bySeason.set(season.key, group);
   }
   return [...bySeason.values()]
-    .map(({ season, holdings }) => ({
-      key: season.key,
-      eid: season.eid,
-      window: season.window,
-      head: holdings.length,
-      died: holdings.filter((one) => one.left?.how === "died").length,
-      ...returnOfHoldings(books, null, holdings, today, floorDays),
-    }))
+    .map(({ season, holdings }) => {
+      const worked = returnOfHoldings(books, null, holdings, today, floorDays);
+      return {
+        key: season.key,
+        eid: season.eid,
+        window: season.window,
+        head: holdings.length,
+        died: holdings.filter((one) => one.left?.how === "died").length,
+        ...worked,
+        bankRate: bankRateFor(
+          books.bankRates,
+          earliest(holdings.map((one) => one.takenOn)),
+          worked.returnOnCost
+        ),
+      };
+    })
     .toSorted(
       (a, b) =>
         b.window.start.localeCompare(a.window.start) ||
@@ -271,6 +338,11 @@ export interface VentureReturn {
   returnOnCapital: ReturnType<typeof returnOnCapitalOf>;
   /** The Farm's share, for its work: taka, never a ratio, because the Farm put in no money. */
   farmsShareBdt: number;
+  /** The Bank Rate in force on the day its first taka went on cattle, beside its Return on Cost a year. */
+  bankRate: BankRateSaid | null;
+  /** The Bank Rate in force on the day the Investors' first capital reached the Venture Account — earlier than the
+   *  first beast, as a deposit made with that money would have been — beside their Return on Capital a year. */
+  capitalBankRate: BankRateSaid | null;
 }
 
 /**
@@ -364,6 +436,18 @@ const venturesOf = async (
           paidBack,
         }));
     });
+    const { returnOnCost } = returnOfHoldings(
+      books,
+      venture.id,
+      holdings,
+      today,
+      floorDays
+    );
+    const returnOnCapital = returnOnCapitalOf({
+      capital,
+      shareBdt: approved.shares.reduce((sum, one) => sum + one.shareBdt, 0),
+      floorDays,
+    });
     out.push({
       id: venture.id,
       name: venture.name,
@@ -373,19 +457,19 @@ const venturesOf = async (
       },
       head: holdings.length,
       died: holdings.filter((one) => one.left?.how === "died").length,
-      returnOnCost: returnOfHoldings(
-        books,
-        venture.id,
-        holdings,
-        today,
-        floorDays
-      ).returnOnCost,
-      returnOnCapital: returnOnCapitalOf({
-        capital,
-        shareBdt: approved.shares.reduce((sum, one) => sum + one.shareBdt, 0),
-        floorDays,
-      }),
+      returnOnCost,
+      returnOnCapital,
       farmsShareBdt: approved.row.farmBdt,
+      bankRate: bankRateFor(
+        books.bankRates,
+        earliest(holdings.map((one) => one.takenOn)),
+        returnOnCost
+      ),
+      capitalBankRate: bankRateFor(
+        books.bankRates,
+        earliest(capital.map((one) => one.arrived)),
+        returnOnCapital
+      ),
     });
   }
   return out;
@@ -404,5 +488,9 @@ export const returnsPage = async (
     floorDays,
     seasons: seasonsOf(books, floorDays, now),
     ventures,
+    bankRates: books.bankRates,
+    /** The one in force today, which the page marks: found by the rule every other reading uses, not a second one. */
+    bankRateInForceId:
+      rateInForceOn(books.bankRates, farmDayOf(now))?.id ?? null,
   };
 };

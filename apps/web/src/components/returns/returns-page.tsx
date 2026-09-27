@@ -1,15 +1,22 @@
-import { startOfFarmDay } from "@OpenFarm/domain";
+import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatDigits } from "@OpenFarm/i18n";
+import { Button } from "@OpenFarm/ui/components/button";
+import { Input } from "@OpenFarm/ui/components/input";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, Sprout } from "lucide-react";
+import { ChevronDown, Landmark, Sprout } from "lucide-react";
 import type { ReactNode } from "react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 import { EmptyState, StatusBadge } from "@/components/page";
+import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
+import { aFigure, figureOf } from "@/lib/typed-figure";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
@@ -17,6 +24,7 @@ export type ReturnsPage = Awaited<ReturnType<typeof client.returns.page>>;
 type Season = ReturnsPage["seasons"][number];
 type Venture = ReturnsPage["ventures"][number];
 type Returned = NonNullable<Season["returnOnCost"]>;
+type BankRateSaid = NonNullable<Season["bankRate"]>;
 
 /** What every hundred taka made, the days it was out, and that scaled to a year: all a return line says. */
 type Shares = Pick<Returned, "per100" | "averageDays" | "perYear">;
@@ -58,10 +66,13 @@ const ReturnLines = ({
   shares,
   floorDays,
   on,
+  bank,
 }: {
   shares: Shares;
   floorDays: number;
   on: "onCost" | "onCapital";
+  /** The Bank Rate beside it, as a plain line: only beside a rate a year, and only once one is typed. */
+  bank: BankRateSaid | null;
 }) => {
   const { t } = useLanguage();
   const lost = shares.per100 < 0;
@@ -82,6 +93,11 @@ const ReturnLines = ({
       <p className="text-muted-foreground text-sm tabular-nums">
         {t("returns.days", { days: shares.averageDays })} · {year}
       </p>
+      {bank && shares.perYear !== null ? (
+        <p className="text-muted-foreground text-xs tabular-nums">
+          {t("returns.bankLine", { rate: bank.perYear, note: bank.note })}
+        </p>
+      ) : null}
     </div>
   );
 };
@@ -131,6 +147,7 @@ const Row = ({
   head,
   died,
   returned,
+  bank,
   floorDays,
   children,
 }: {
@@ -139,6 +156,7 @@ const Row = ({
   head: number;
   died: number;
   returned: Returned;
+  bank: BankRateSaid | null;
   floorDays: number;
   children?: ReactNode;
 }) => {
@@ -162,7 +180,12 @@ const Row = ({
           <Result bdt={returned.resultBdt} />
         </summary>
         <div className="flex flex-col gap-3 border-t p-4">
-          <ReturnLines floorDays={floorDays} on="onCost" shares={returned} />
+          <ReturnLines
+            bank={bank}
+            floorDays={floorDays}
+            on="onCost"
+            shares={returned}
+          />
           <Working returned={returned} />
           {children}
         </div>
@@ -184,6 +207,7 @@ const SeasonRow = ({
   }
   return (
     <Row
+      bank={season.bankRate}
       died={season.died}
       floorDays={floorDays}
       head={season.head}
@@ -208,6 +232,7 @@ const VentureRow = ({
   }
   return (
     <Row
+      bank={venture.bankRate}
       died={venture.died}
       floorDays={floorDays}
       head={venture.head}
@@ -219,6 +244,7 @@ const VentureRow = ({
         <div className="bg-muted/50 flex flex-col gap-1 rounded-md p-3">
           <p className="text-sm font-medium">{t("returns.capitalTitle")}</p>
           <ReturnLines
+            bank={venture.capitalBankRate}
             floorDays={floorDays}
             on="onCapital"
             shares={venture.returnOnCapital}
@@ -247,7 +273,20 @@ interface Bar {
   key: string;
   name: string;
   perYear: number;
+  /** The Bank Rate it is set beside, marked on its bar. */
+  bank: number | null;
 }
+
+/** A Season or a Venture's cattle as a bar: drawn only with a rate a year. */
+const barOf = (
+  key: string,
+  name: string,
+  returned: Returned | null,
+  bank: BankRateSaid | null
+): Bar[] =>
+  typeof returned?.perYear === "number"
+    ? [{ key, name, perYear: returned.perYear, bank: bank?.perYear ?? null }]
+    : [];
 
 /**
  * Each finished Season's and settled Venture's rate a year as a bar, longest first: one hue for a gain and the danger
@@ -258,53 +297,63 @@ export const ReturnsChart = ({ page }: { page: ReturnsPage }) => {
   const { t } = useLanguage();
   const named = useSeasonName();
   const bars: Bar[] = [
-    ...page.seasons.flatMap((one) => {
-      const perYear = one.returnOnCost?.perYear;
-      return typeof perYear === "number"
-        ? [{ key: one.key, name: named(one), perYear }]
-        : [];
-    }),
-    ...page.ventures.flatMap((one) => {
-      const perYear = one.returnOnCost?.perYear;
-      return typeof perYear === "number"
-        ? [{ key: one.id, name: one.name, perYear }]
-        : [];
-    }),
+    ...page.seasons.flatMap((one) =>
+      barOf(one.key, named(one), one.returnOnCost, one.bankRate)
+    ),
+    ...page.ventures.flatMap((one) =>
+      barOf(one.id, one.name, one.returnOnCost, one.bankRate)
+    ),
   ].toSorted((a, b) => b.perYear - a.perYear);
   if (bars.length === 0) {
     return null;
   }
-  const most = Math.max(...bars.map((one) => Math.abs(one.perYear)), 1);
+  const most = Math.max(
+    ...bars.map((one) => Math.max(Math.abs(one.perYear), one.bank ?? 0)),
+    1
+  );
+  const anyBank = bars.some((one) => one.bank !== null);
   return (
-    <ul className="flex flex-col gap-2">
-      {bars.map((bar) => (
-        <li
-          className="grid grid-cols-[minmax(0,10rem)_1fr_auto] items-center gap-3"
-          key={bar.key}
-        >
-          <span className="truncate text-sm">{bar.name}</span>
-          <span className="bg-muted h-5 rounded">
+    <div className="flex flex-col gap-2">
+      <ul className="flex flex-col gap-2">
+        {bars.map((bar) => (
+          <li
+            className="grid grid-cols-[minmax(0,10rem)_1fr_auto] items-center gap-3"
+            key={bar.key}
+          >
+            <span className="truncate text-sm">{bar.name}</span>
+            <span className="bg-muted relative h-5 rounded">
+              <span
+                className={cn(
+                  "block h-5 rounded",
+                  bar.perYear < 0 ? "bg-destructive" : "bg-primary"
+                )}
+                style={{ width: `${(Math.abs(bar.perYear) / most) * 100}%` }}
+              />
+              {bar.bank === null ? null : (
+                <span
+                  aria-hidden
+                  className="border-foreground/60 absolute -top-1 -bottom-1 border-l-2 border-dashed"
+                  style={{ left: `${(bar.bank / most) * 100}%` }}
+                />
+              )}
+            </span>
             <span
               className={cn(
-                "block h-5 rounded",
-                bar.perYear < 0 ? "bg-destructive" : "bg-primary"
+                "text-right text-sm tabular-nums",
+                bar.perYear < 0 && "text-destructive"
               )}
-              style={{ width: `${(Math.abs(bar.perYear) / most) * 100}%` }}
-            />
-          </span>
-          <span
-            className={cn(
-              "text-right text-sm tabular-nums",
-              bar.perYear < 0 && "text-destructive"
-            )}
-          >
-            {t(wordFor(SAID.perYear, bar.perYear), {
-              rate: Math.abs(bar.perYear),
-            })}
-          </span>
-        </li>
-      ))}
-    </ul>
+            >
+              {t(wordFor(SAID.perYear, bar.perYear), {
+                rate: Math.abs(bar.perYear),
+              })}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {anyBank ? (
+        <p className="text-muted-foreground text-xs">{t("returns.bankMark")}</p>
+      ) : null}
+    </div>
   );
 };
 
@@ -345,4 +394,147 @@ export const FinishedReturns = ({ page }: { page: ReturnsPage }) => {
     );
   }
   return <ul className="flex flex-col gap-2">{rows.map((one) => one.row)}</ul>;
+};
+
+/** What the Owner types a Bank Rate as, before it is a figure. */
+interface TypedRate {
+  perYear: string;
+  note: string;
+  fromDay: string;
+}
+
+const BankRateSheet = ({
+  onOpenChange,
+}: {
+  onOpenChange: (open: boolean) => void;
+}) => {
+  const { t } = useLanguage();
+  const refused = useRefused();
+  const today = farmDayOf(new Date());
+  const [typed, setTyped] = useState<TypedRate>({
+    perYear: "",
+    note: "",
+    fromDay: today,
+  });
+  const saving = useMutation(
+    orpc.returns.setBankRate.mutationOptions({
+      onError: refused,
+      onSuccess: () => {
+        onOpenChange(false);
+        toast.success(t("returns.bankSaved"));
+      },
+    })
+  );
+  const perYear = figureOf(typed.perYear);
+  const ready =
+    aFigure(perYear) &&
+    typed.note.trim().length > 0 &&
+    typed.fromDay.length > 0;
+  return (
+    <FormSheet
+      description={t("returns.bankHint")}
+      onOpenChange={onOpenChange}
+      onSubmit={() =>
+        saving.mutate({
+          perYear: perYear ?? 0,
+          note: typed.note.trim(),
+          fromDay: typed.fromDay,
+        })
+      }
+      open
+      pending={saving.isPending}
+      ready={ready}
+      submitLabel={t("returns.bankSet")}
+      title={t("returns.bankSet")}
+    >
+      <FormField id="bank-per-year" label={t("returns.bankPerYear")}>
+        <Input
+          autoComplete="off"
+          id="bank-per-year"
+          inputMode="decimal"
+          onChange={(event) =>
+            setTyped({ ...typed, perYear: event.target.value })
+          }
+          value={typed.perYear}
+        />
+      </FormField>
+      <FormField
+        hint={t("returns.bankNoteHint")}
+        id="bank-note"
+        label={t("returns.bankNote")}
+      >
+        <Input
+          autoComplete="off"
+          id="bank-note"
+          onChange={(event) => setTyped({ ...typed, note: event.target.value })}
+          value={typed.note}
+        />
+      </FormField>
+      <FormField
+        hint={t("returns.bankFromDayHint")}
+        id="bank-from"
+        label={t("returns.bankFromDay")}
+      >
+        <Input
+          id="bank-from"
+          max={today}
+          onChange={(event) =>
+            setTyped({ ...typed, fromDay: event.target.value })
+          }
+          type="date"
+          value={typed.fromDay}
+        />
+      </FormField>
+    </FormSheet>
+  );
+};
+
+/**
+ * Every Bank Rate the Owner has typed, the one in force today first, and the act that types another. Kept, never
+ * edited: a rate put right is typed again from the same day.
+ */
+export const BankRateList = ({ page }: { page: ReturnsPage }) => {
+  const { t, language } = useLanguage();
+  const [setting, setSetting] = useState(false);
+  return (
+    <div className="flex flex-col gap-3">
+      {page.bankRates.length === 0 ? (
+        <EmptyState bare icon={Landmark} title={t("returns.bankNone")} />
+      ) : (
+        <ul className="divide-border flex flex-col divide-y">
+          {page.bankRates.map((one) => (
+            <li
+              className="flex flex-col gap-0.5 py-2 sm:flex-row sm:items-center sm:justify-between"
+              key={one.id}
+            >
+              <span className="flex flex-wrap items-center gap-2">
+                <span className="font-medium tabular-nums">
+                  {t("returns.bankLine", { rate: one.perYear, note: one.note })}
+                </span>
+                {one.id === page.bankRateInForceId ? (
+                  <StatusBadge tone="success">
+                    {t("returns.bankInForce")}
+                  </StatusBadge>
+                ) : null}
+              </span>
+              <span className="text-muted-foreground text-sm">
+                {t("returns.bankFrom", {
+                  day: formatDate(startOfFarmDay(one.fromDay), language),
+                })}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <Button
+        className="self-start"
+        onClick={() => setSetting(true)}
+        size="sm"
+        variant="outline"
+      >
+        {t("returns.bankSet")}
+      </Button>
+      {setting ? <BankRateSheet onOpenChange={setSetting} /> : null}
+    </div>
+  );
 };
