@@ -2212,6 +2212,13 @@ export const en = {
   "device.revokeWhy":
     "It stops working at once and is told nothing more. To use it again, add it afresh.",
   "device.backToSignIn": "Back to sign in",
+  "device.promise.title":
+    "The shed's work, written in the shed — one phone for everyone.",
+  "device.promise.pin":
+    "Everyone signs in with their own PIN, and their work is recorded as theirs.",
+  "device.promise.offline":
+    "It keeps working without signal, and sends everything when signal comes back.",
+  "device.promise.lock": "It locks itself when nobody is using it.",
   "device.setup": "Set up this phone",
   "device.setupHelp":
     "Type the code on the Manager's screen — ten letters and numbers.",

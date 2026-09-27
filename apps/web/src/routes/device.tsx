@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Delete,
+  KeyRound,
   Lock,
   Smartphone,
   UserRound,
@@ -20,6 +21,7 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
+import { DoorScreen } from "@/components/door-screen";
 import { EmptyState, Notice } from "@/components/page";
 import { PublicHeader } from "@/components/public-header";
 import { useLanguage, useT } from "@/i18n/language-provider";
@@ -289,7 +291,7 @@ const DevicePage = () => {
   if (!token) {
     return (
       <form
-        className={CARD}
+        className={cn(CARD, "max-w-none")}
         onSubmit={(event) => {
           event.preventDefault();
           claim.mutate({ code });
@@ -485,19 +487,49 @@ const DevicePage = () => {
   );
 };
 
-/** The Shed Phone's own door: the farm's name at the top, and the one card that asks who is working. */
-const DeviceScreen = () => (
-  <div className="flex min-h-svh flex-col">
-    <PublicHeader />
-    <main
-      className="flex flex-1 items-start justify-center px-4 pt-6 pb-12 outline-none sm:items-center sm:pt-0"
-      id="main"
-      tabIndex={-1}
-    >
-      <DevicePage />
-    </main>
-  </div>
-);
+/** The Shed Phone's own door: the farm's name at the top, and the one card that asks what is needed next. */
+const DeviceScreen = () => {
+  const t = useT();
+  const token = useSyncExternalStore(
+    subscribeDevice,
+    getDeviceToken,
+    () => null
+  );
+  // Setting a phone up is reached from the sign-in, so it is drawn as the sign-in is: what a Shed Phone is for on the
+  // dark side, the code on the other. Once it is set up, the names and the PIN pad have the whole screen: on a phone
+  // the dark side is hidden anyway, and on a tablet in the shed it would take half the room from the pad.
+  if (!token) {
+    return (
+      <DoorScreen
+        header={<PublicHeader brandOnPhoneOnly />}
+        home="/"
+        promise={{
+          title: t("device.promise.title"),
+          points: [
+            { icon: KeyRound, text: t("device.promise.pin") },
+            { icon: WifiOff, text: t("device.promise.offline") },
+            { icon: Lock, text: t("device.promise.lock") },
+          ],
+          foot: t("app.tagline"),
+        }}
+      >
+        <DevicePage />
+      </DoorScreen>
+    );
+  }
+  return (
+    <div className="flex min-h-svh flex-col">
+      <PublicHeader />
+      <main
+        className="flex flex-1 items-start justify-center px-4 pt-6 pb-12 outline-none sm:items-center sm:pt-0"
+        id="main"
+        tabIndex={-1}
+      >
+        <DevicePage />
+      </main>
+    </div>
+  );
+};
 
 export const Route = createFileRoute("/device")({
   component: DeviceScreen,
