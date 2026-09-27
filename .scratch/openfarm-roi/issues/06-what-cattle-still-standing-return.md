@@ -1,6 +1,8 @@
 # What cattle still standing return
 
-Status: open
+Status: done
+
+Assignee: Neamat Khan Mim
 
 Type: grilling
 
@@ -23,3 +25,14 @@ Since [What a return counts](./04-what-a-return-counts.md) (2026-09-27): the fig
 Since [How a return is put per year](./05-how-a-return-is-put-per-year.md) (2026-09-27): a rate a year counts each taka until its animal is sold. For one still standing, decide the day it counts to (today, or the day she is expected to go), and whether a Season still going gets a rate a year at all.
 
 ## Resolution
+
+Grilled with the Owner, 2026-09-27. The **Return on Cost** entry in CONTEXT.md gains how a Season or Venture still going reads. No ADR.
+
+- **A standing animal counts at what she is worth today.** That is her latest weight (her Intake weight if nobody has weighed her) × the price a kilo, against what she has cost so far. The price is the farm's market price for the Farm's own and the Venture Plan's prices for a Venture's. This is exactly how `fattening.prices` values her. Chosen over what she should fetch at her Target Window (a second Projection resting on gains not yet made) and over showing both.
+- **Always a low–high range.** The part already sold is the same fact in both; only the standing part spreads. Chosen over the low end alone or a middle figure.
+- **No rate a year until the last animal has gone.** While going, only the share over its days so far. Scaling an estimate to a year is the research's riskiest form.
+- **A running Venture reads the same way.** Its Return on Cost values its standing animals today. Its **Projection** keeps estimating the end. The two answer different questions and are not meant to agree.
+- **Return on Capital waits for the Settlement.** While running, the Owner reads the Venture's Return on Cost today and its Projection, which already shows the Investors' share at the end.
+- **An animal who can't be valued is left out whole**, her cost and her value both, and named beside the figure with what puts her right: no price a kilo set, a crossed calf the Owner hasn't priced, or a crossed animal with no weight. The figure is worked over the rest, as a Settlement shows its figures with what still makes them a guess. Chosen over no figure until all are valued.
+- **Words** (agreed as proposed): a running figure says «আজকের দামে» and «অনুমান, ফল নয়», with the part already sold and the part still standing as two lines. A finished Season or Venture drops both.
+- **For the spec:** the running figure reuses the animal prices' valuation and the Settlement's narrowing, never a third sum. It is the Owner's alone, like the animal prices.
