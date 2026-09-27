@@ -1,8 +1,13 @@
 import type { FatteningView } from "@OpenFarm/domain";
-import { fatteningView, startOfFarmDay } from "@OpenFarm/domain";
+import {
+  addDays,
+  farmDayOf,
+  fatteningView,
+  startOfFarmDay,
+} from "@OpenFarm/domain";
 
 /** How the Intake row comes back from the database: money and weights as numeric strings. A joining's may have no
- *  weight — a crossing not priced yet — and then there is no arrival weight to measure gain from, only her window. */
+ *  weight — a crossing not priced yet — and then her gain is measured from what the scale said when she crossed. */
 interface IntakeRow {
   weightKg: string | null;
   arrivedAt: Date;
@@ -19,10 +24,39 @@ interface JoiningRow {
   targetWindowEnd: string;
 }
 
+/** The one joining `startOfFattening` needs of hers, as a relational query reads it: the latest. */
+export const LATEST_JOINING = {
+  orderBy: { joinedAt: "desc", id: "desc" },
+  limit: 1,
+  columns: {
+    weightKg: true,
+    joinedAt: true,
+    targetWeightKg: true,
+    targetWindowStart: true,
+    targetWindowEnd: true,
+  },
+} as const;
+
+/**
+ * Which arrival an animal's time on the Fattening side is read from: her latest joining — walked across from Dairy, or
+ * bought back from a Venture — when it is newer than her Intake, else none and the Intake stands. One rule for every
+ * reader of her window: the board, her page, the Ready suggestion and the Eid list.
+ */
+export const joiningInForce = <J extends { joinedAt: Date }>(
+  intake: { arrivedAt: Date } | null | undefined,
+  joinings: readonly J[] | undefined
+): J | null => {
+  const [joined] = (joinings ?? []).toSorted(
+    (a, b) => b.joinedAt.getTime() - a.joinedAt.getTime()
+  );
+  return joined && (!intake || joined.joinedAt > intake.arrivedAt)
+    ? joined
+    : null;
+};
+
 /**
  * Where an animal's time on the Fattening side is read from: the latest of her Intake and the times she joined it other
- * than by Intake — walked across from Dairy, or bought back from a Venture — so her window, what she is fed towards and
- * where her gain starts are the latest arrival's. The same for the board, her page and the Ready suggestion.
+ * than by Intake, so her window, what she is fed towards and where her gain starts are the latest arrival's.
  */
 export const startOfFattening = <
   T extends IntakeRow & { targetWindowEnd: string },
@@ -30,10 +64,8 @@ export const startOfFattening = <
   intake: T | null | undefined,
   joinings: readonly JoiningRow[] | undefined
 ): (IntakeRow & { targetWindowEnd: string }) | null => {
-  const [joined] = (joinings ?? []).toSorted(
-    (a, b) => b.joinedAt.getTime() - a.joinedAt.getTime()
-  );
-  if (joined && (!intake || joined.joinedAt > intake.arrivedAt)) {
+  const joined = joiningInForce(intake, joinings);
+  if (joined) {
     return {
       weightKg: joined.weightKg,
       arrivedAt: joined.joinedAt,
@@ -43,6 +75,40 @@ export const startOfFattening = <
     };
   }
   return intake ?? null;
+};
+
+/**
+ * The moment a joining's weight is read by: the end of the day she joined, so the morning's round after she was walked
+ * over counts. One rule for the price a crossing is set at and for where her gain starts before it is.
+ */
+export const joiningWeighedBy = (joinedOn: string): Date =>
+  startOfFarmDay(addDays(joinedOn, 1));
+
+/** Her readings, oldest first, as kilogrammes rather than the strings the database keeps them as. */
+const readingsOf = (weighIns: { weightKg: string; weighedAt: Date }[]) =>
+  weighIns
+    .map((reading) => ({
+      weightKg: Number(reading.weightKg),
+      weighedAt: reading.weighedAt,
+    }))
+    .toSorted((a, b) => a.weighedAt.getTime() - b.weighedAt.getTime());
+
+/**
+ * What she weighed when she came: the arrival's own weight, or — a crossing nobody has priced — her latest reading by
+ * the end of the day she crossed, else her first after. None until the scale has seen her.
+ */
+const arrivalKg = (
+  intake: IntakeRow,
+  readings: { weightKg: number; weighedAt: Date }[]
+): number | null => {
+  if (intake.weightKg !== null) {
+    return Number(intake.weightKg);
+  }
+  const by = joiningWeighedBy(farmDayOf(intake.arrivedAt));
+  const that = readings.findLast((one) => one.weighedAt < by);
+  return (
+    (that ?? readings.find((one) => one.weighedAt >= by))?.weightKg ?? null
+  );
 };
 
 /**
@@ -58,21 +124,19 @@ export const fatteningOf = (
   /** Her readings in any order; sorted here, because gain is read oldest to newest. */
   weighIns: { weightKg: string; weighedAt: Date }[],
   now: Date
-): FatteningView =>
-  fatteningView(
-    intake && intake.weightKg !== null
+): FatteningView => {
+  const readings = readingsOf(weighIns);
+  const weightKg = intake ? arrivalKg(intake, readings) : null;
+  return fatteningView(
+    intake && weightKg !== null
       ? {
-          weightKg: Number(intake.weightKg),
+          weightKg,
           arrivedAt: intake.arrivedAt,
           targetWeightKg: Number(intake.targetWeightKg),
         }
       : null,
-    weighIns
-      .map((reading) => ({
-        weightKg: Number(reading.weightKg),
-        weighedAt: reading.weighedAt,
-      }))
-      .toSorted((a, b) => a.weighedAt.getTime() - b.weighedAt.getTime()),
+    readings,
     intake ? startOfFarmDay(intake.targetWindowStart) : null,
     now
   );
+};

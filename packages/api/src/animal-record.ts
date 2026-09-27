@@ -9,6 +9,7 @@ import {
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
+import { LATEST_JOINING } from "./fattening-store";
 import { animalSummaryColumns } from "./herd-store";
 
 /**
@@ -115,18 +116,8 @@ export const herRecord = async (
         },
       },
       sale: { with: { buyer: { columns: { name: true } } } },
-      /** The times she joined the Fattening side other than by Intake: her window, when the latest is newer. */
-      joinings: {
-        orderBy: { joinedAt: "desc", id: "desc" },
-        limit: 1,
-        columns: {
-          weightKg: true,
-          joinedAt: true,
-          targetWeightKg: true,
-          targetWindowStart: true,
-          targetWindowEnd: true,
-        },
-      },
+      /** The latest time she joined the Fattening side other than by Intake: her window, when it is newer. */
+      joinings: LATEST_JOINING,
       mortality: {
         columns: {
           kind: true,

@@ -2,8 +2,8 @@ import { SIDES } from "@OpenFarm/domain";
 import { z } from "zod";
 
 import { audited } from "../audit";
-import { farmDay } from "../farm-clock";
 import { pregnancyTimesOf } from "../breeding-store";
+import { targetWindowInput } from "../farm-clock";
 import { readAnimal, requireAnimal, requirePen, walkTo } from "../herd-store";
 import { requirePenInScope } from "../scope";
 import type { EntryKind } from "./entry";
@@ -17,7 +17,7 @@ export const moveInput = z.object({
   toSide: z.enum(SIDES).optional(),
   /** The Target Window a crossing to Fattening puts her on. Absent from a phone that queued the Move before it was
    *  asked, and on any other Move: then the next Eid stands in. */
-  targetWindow: z.object({ start: farmDay, end: farmDay }).optional(),
+  targetWindow: targetWindowInput.optional(),
   /** Blank is no reason: a phone that queued a space has said nothing, and a Batch is not refused whole for it. */
   reason: z.string().trim().max(200).optional(),
 });
@@ -64,7 +64,8 @@ export const moveEntry: EntryKind<MoveInput, { animalId: string }> = {
       beast,
       toPenId: input.toPenId,
       toSide: input.toSide,
-      targetWindow: input.toSide === "fattening" ? input.targetWindow : undefined,
+      targetWindow:
+        input.toSide === "fattening" ? input.targetWindow : undefined,
       calvingLeadDays: pregnancyTimesOf(context.farm).calvingLeadDays,
       reason: input.reason || null,
       movedBy: context.actor.id,

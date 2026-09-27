@@ -1,6 +1,10 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
-import { eidAnnouncement, intake } from "@OpenFarm/db/schema/fattening";
+import {
+  eidAnnouncement,
+  fatteningJoining,
+  intake,
+} from "@OpenFarm/db/schema/fattening";
 import type { EidBasis } from "@OpenFarm/domain";
 import {
   eidsListed,
@@ -17,7 +21,7 @@ import {
   announcementsOf,
   farmsNextEid,
   formerWindowsOf,
-  intakesAimedAt,
+  animalsAimedAt,
 } from "../eid-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
@@ -54,7 +58,7 @@ export const eidRouter = {
       if (!expectedDay) {
         return nothingBehind;
       }
-      const aimed = await intakesAimedAt(
+      const aimed = await animalsAimedAt(
         context.db,
         context.farm.id,
         formerWindowsOf(expectedDay, announced.get(expectedDay)?.days ?? [])
@@ -141,17 +145,19 @@ export const eidRouter = {
           after: { day: inForce, expectedDay: input.expectedDay },
         },
         async (tx) => {
-          const { own } = await intakesAimedAt(
+          const { own } = await animalsAimedAt(
             tx,
             context.farm.id,
             formerWindowsOf(input.expectedDay, days)
           );
           for (const row of own) {
+            // Moved where it is kept: on her Intake, or on the joining that brought her since.
+            const kept = row.keptOn === "joining" ? fatteningJoining : intake;
             // oxlint-disable-next-line no-await-in-loop -- one transaction, one animal after another
             await tx
-              .update(intake)
+              .update(kept)
               .set({ targetWindowStart: to.start, targetWindowEnd: to.end })
-              .where(eq(intake.id, row.id));
+              .where(eq(kept.id, row.id));
             // oxlint-disable-next-line no-await-in-loop -- each animal's move on her own line
             await trail.recordEvent(tx, {
               entity: "animal",

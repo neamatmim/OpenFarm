@@ -8,8 +8,8 @@ import type { TargetWindow } from "@OpenFarm/domain";
 import { startOfFarmDay } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
-import type { Booking } from "./money-store";
 import { joinTheFattening } from "./joining-store";
+import type { Booking } from "./money-store";
 import { bookMoney } from "./money-store";
 import { priceAtWeight } from "./venture-store";
 

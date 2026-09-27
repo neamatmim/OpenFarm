@@ -1,4 +1,5 @@
 import type { Database } from "@OpenFarm/db";
+import type { JoiningHow } from "@OpenFarm/db/schema/fattening";
 import type {
   Returned,
   RunningRange,
@@ -6,6 +7,7 @@ import type {
   TargetWindow,
 } from "@OpenFarm/domain";
 import {
+  EXIT_STATES,
   RUNNING_STATES,
   farmDayOf,
   returnOf,
@@ -117,7 +119,7 @@ interface Books {
     id: string;
     animalId: string;
     joinedAt: Date;
-    how: "crossed" | "bought_from_venture";
+    how: JoiningHow;
     targetWindowStart: string;
     targetWindowEnd: string;
     priceBdt: number | null;
@@ -696,13 +698,28 @@ const venturesOf = async (
 };
 
 /**
- * Every crossing still waiting on the Owner's price, oldest first, with what she weighed on the day she crossed — the
- * reading a price is struck from — or nothing, which the price refuses until somebody weighs her.
+ * The crossings the Owner prices: every one still waiting on a price, and those priced whose animal is still on the
+ * Farm, so a price may be put right by pricing her again — oldest first, each with what she weighed by the day she
+ * crossed (the reading a price is struck from, or nothing, which the price refuses until somebody weighs her) and
+ * the price she came in at, if any.
  */
-const crossingsToPriceOf = async (db: Database, farmId: string) => {
+const crossingsOf = async (db: Database, farmId: string) => {
   const rows = await db.query.fatteningJoining.findMany({
-    where: { farmId, how: "crossed", priceBdt: { isNull: true } },
-    columns: { id: true, animalId: true, joinedOn: true },
+    where: {
+      farmId,
+      how: "crossed",
+      OR: [
+        { priceBdt: { isNull: true } },
+        { animal: { state: { notIn: [...EXIT_STATES] } } },
+      ],
+    },
+    columns: {
+      id: true,
+      animalId: true,
+      joinedOn: true,
+      priceBdt: true,
+      rateBdtPerKg: true,
+    },
     with: { animal: { columns: { tagNumber: true } } },
     orderBy: { joinedAt: "asc", id: "asc" },
   });
@@ -715,6 +732,8 @@ const crossingsToPriceOf = async (db: Database, farmId: string) => {
       tagNumber: row.animal?.tagNumber ?? "",
       joinedOn: row.joinedOn,
       weightKg: weighed?.weightKg ?? null,
+      priceBdt: row.priceBdt,
+      rateBdtPerKg: row.rateBdtPerKg === null ? null : Number(row.rateBdtPerKg),
     });
   }
   return out;
@@ -734,7 +753,7 @@ export const returnsPage = async (
     seasons: seasonsOf(books, floorDays, now),
     ventures,
     bankRates: books.bankRates,
-    crossingsToPrice: await crossingsToPriceOf(db, farm.id),
+    crossings: await crossingsOf(db, farm.id),
     /** The one in force today, which the page marks: found by the rule every other reading uses, not a second one. */
     bankRateInForceId:
       rateInForceOn(books.bankRates, farmDayOf(now))?.id ?? null,

@@ -1296,6 +1296,12 @@ export const en = {
   "refusal.windUpNotOver":
     "The Wind-up Period has not ended; there are still days to sell in",
   "refusal.nothingLeftToBuy": "This Venture has no animals left to buy",
+  "refusal.bankRateFromTheFuture":
+    "A bank's rate holds from a day that has come, not one still ahead",
+  "refusal.crossingUnweighed":
+    "Nobody weighed her by the end of the day she crossed; weigh her first, then price her",
+  "refusal.joiningNeedsAWindow":
+    "Say which Target Window she is being fed towards; the next Eid could not be worked out",
   "refusal.anAnimalStillStands": "An Animal of this Venture is still standing",
   "refusal.aPriceIsMissing":
     "Feed was given or a dose used that nothing can put a price on",
@@ -3944,14 +3950,16 @@ export const en = {
   "returns.onCostLoss": "{amount} lost on every ৳100 spent",
   "returns.onCapitalGain": "{amount} made on every ৳100 of capital",
   "returns.onCapitalLoss": "{amount} lost on every ৳100 of capital",
-  "returns.days": "each taka out {days} days on average",
+  "returns.days":
+    "each taka out {days, plural, one {# day} other {# days}} on average",
   "returns.perYearGain": "{rate} a year on every ৳100, as the share scaled",
   "returns.perYearLoss":
     "{rate} lost a year on every ৳100, as the share scaled",
-  "returns.underFloor": "fewer than {floor} days — no rate a year",
+  "returns.underFloor":
+    "fewer than {floor, plural, one {# day} other {# days}} — no rate a year",
   "returns.working": "How it was worked",
   "returns.workingText":
-    "Cost {cost}, back {back}. Each taka is counted from the day it was spent to the day its animal left: {days} days on average.",
+    "Cost {cost}, back {back}. Each taka is counted from the day it was spent to the day its animal left: {days, plural, one {# day} other {# days}} on average.",
   "returns.workingYear":
     "{share} × 365 ÷ {days} = {rate}, simple, never compounded.",
   "returns.capitalTitle": "On the Investors' capital",
@@ -3995,7 +4003,7 @@ export const en = {
   "returns.standingWorth":
     "Standing: {cost} spent on them, worth {low} to {high} today",
   "returns.daysSoFar":
-    "{days} days so far · a year's rate once the last has gone",
+    "{days, plural, one {# day} other {# days}} so far · a year's rate once the last has gone",
   "returns.gapsTitle":
     "{count, plural, one {# animal left out} other {# animals left out}}, not valued today",
   "returns.gap.no_price": "{tag}: no price a kilo set",
@@ -4018,14 +4026,16 @@ export const en = {
   "window.to": "To",
   "returns.gap.not_priced": "{tag}: crossed from Dairy, not priced yet",
   "returns.fix.not_priced": "Price her",
-  "returns.crossingsTitle": "Crossings to price",
+  "returns.crossingsTitle": "Crossings from Dairy",
   "returns.crossingsHint":
-    "An animal walked across from Dairy joins her Season at her weight that day times a rate a kilo you set. Until you do, she is named and counted nowhere, and her Season is not a result.",
+    "An animal walked across from Dairy joins her Season at her weight that day times a rate a kilo you set. Until you do, she is named and counted nowhere, and her Season is not a result. A price may be put right by pricing her again while she is on the Farm.",
   "returns.crossingsNone": "No crossing waits on a price.",
   "returns.crossingLine": "{tag}, crossed {day}",
   "returns.crossingWeighed": "weighed {kg} kg by that day",
   "returns.crossingUnweighed": "not weighed by that day — weigh her first",
   "returns.priceIt": "Price her",
+  "returns.priceAgain": "Price again",
+  "returns.crossingPriced": "priced {price}, {rate} a kilo",
   "returns.priceTitle": "Price the crossing",
   "returns.rate": "Rate a kilo",
   "returns.rateNote": "Where the rate came from",

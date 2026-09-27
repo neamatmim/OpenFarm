@@ -878,7 +878,7 @@ export const VentureReturnsPanel = ({ ventureId }: { ventureId: string }) => {
   );
 };
 
-type Crossing = ReturnsPage["crossingsToPrice"][number];
+type Crossing = ReturnsPage["crossings"][number];
 
 const PriceCrossingSheet = ({
   crossing,
@@ -954,14 +954,34 @@ const PriceCrossingSheet = ({
   );
 };
 
+/** What the Owner reads under a crossing: the price she came in at, else what she weighed, else that nobody has. */
+const crossingSaid = (
+  one: Crossing,
+  t: ReturnType<typeof useLanguage>["t"],
+  taka: (bdt: number) => string
+): string => {
+  if (one.priceBdt !== null && one.priceBdt !== undefined) {
+    return t("returns.crossingPriced", {
+      price: taka(one.priceBdt),
+      rate: taka(one.rateBdtPerKg ?? 0),
+    });
+  }
+  return one.weightKg === null
+    ? t("returns.crossingUnweighed")
+    : t("returns.crossingWeighed", { kg: one.weightKg });
+};
+
 /**
- * Every animal walked across from Dairy still waiting on the Owner's price, oldest first: what she weighed by the day
- * she crossed, and the act that prices her — or, where nobody weighed her, the word to weigh her first.
+ * Every animal walked across from Dairy the Owner prices, oldest first: those still waiting on a price, with what she
+ * weighed by the day she crossed and the act that prices her — or, where nobody weighed her, the word to weigh her
+ * first — and those priced while she is still on the Farm, with the price and the act that puts it right.
  */
 export const CrossingsToPrice = ({ page }: { page: ReturnsPage }) => {
   const { t, language } = useLanguage();
+  const taka = useTaka();
   const [pricing, setPricing] = useState<Crossing | null>(null);
-  const crossings = page.crossingsToPrice ?? [];
+  // An answer kept from before the list carried priced crossings has none, and prices nothing again.
+  const crossings = page.crossings ?? [];
   if (crossings.length === 0) {
     return <EmptyState bare icon={Scale} title={t("returns.crossingsNone")} />;
   }
@@ -981,9 +1001,7 @@ export const CrossingsToPrice = ({ page }: { page: ReturnsPage }) => {
                 })}
               </span>
               <span className="text-muted-foreground text-sm">
-                {one.weightKg === null
-                  ? t("returns.crossingUnweighed")
-                  : t("returns.crossingWeighed", { kg: one.weightKg })}
+                {crossingSaid(one, t, taka)}
               </span>
             </span>
             {one.weightKg === null ? (
@@ -1001,7 +1019,9 @@ export const CrossingsToPrice = ({ page }: { page: ReturnsPage }) => {
                 size="sm"
                 variant="outline"
               >
-                {t("returns.priceIt")}
+                {one.priceBdt === null
+                  ? t("returns.priceIt")
+                  : t("returns.priceAgain")}
               </Button>
             )}
           </li>

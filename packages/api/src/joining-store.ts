@@ -3,11 +3,12 @@ import { eq } from "@OpenFarm/db/operators";
 import type { JoiningHow } from "@OpenFarm/db/schema/fattening";
 import { fatteningJoining } from "@OpenFarm/db/schema/fattening";
 import type { TargetWindow } from "@OpenFarm/domain";
-import { addDays, farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
+import { farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import { farmsNextEid } from "./eid-store";
+import { joiningWeighedBy } from "./fattening-store";
 
 /** The price an Animal joined at: her weight that day, from a Weigh-in, times a rate a kilo. */
 export interface JoiningPrice {
@@ -116,7 +117,7 @@ export const weighedForTheCrossing = async (
   const reading = await tx.query.weighIn.findFirst({
     where: {
       animalId,
-      weighedAt: { lt: startOfFarmDay(addDays(joinedOn, 1)) },
+      weighedAt: { lt: joiningWeighedBy(joinedOn) },
     },
     columns: { id: true, weightKg: true },
     orderBy: { weighedAt: "desc", id: "desc" },

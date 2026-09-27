@@ -3,6 +3,7 @@ import type { EidWindow, TargetWindow } from "@OpenFarm/domain";
 import { EXIT_STATES, nextEidWindow, qurbaniFrom } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
+import { joiningInForce } from "./fattening-store";
 
 type Reader = Pick<Database | Tx, "query">;
 
@@ -69,12 +70,66 @@ export const formerWindowsOf = (
     .map(qurbaniFrom);
 };
 
+/** Where an animal's Target Window is kept: on her Intake, or on the joining that brought her to the side since. */
+export interface AimedRow {
+  keptOn: "intake" | "joining";
+  id: string;
+  animalId: string;
+  targetWindowStart: string;
+  targetWindowEnd: string;
+  ownerVentureId: string | null;
+}
+
 /**
- * The Intakes of animals still on the Farm whose Target Window is one of `windows`, split by whose they are: the
- * Farm's own, which the Farm may move, and a Venture's, whose window is the Venture's and moves only by an Amendment.
- * A window somebody typed for another market is none of these, and is left where it is.
+ * Every animal still on the Farm that is aimed at a Target Window, at the window she is on now — her latest arrival's,
+ * an Intake's or a joining's — and the row that keeps it, so a move of the window moves that row.
  */
-export const intakesAimedAt = async (
+const aimedRows = async (db: Reader, farmId: string): Promise<AimedRow[]> => {
+  const window = {
+    targetWindowStart: true,
+    targetWindowEnd: true,
+  } as const;
+  const rows = await db.query.animal.findMany({
+    where: { farmId, state: { notIn: [...EXIT_STATES] } },
+    columns: { id: true, ownerVentureId: true },
+    with: {
+      intake: { columns: { id: true, arrivedAt: true, ...window } },
+      joinings: {
+        orderBy: { joinedAt: "desc", id: "desc" },
+        limit: 1,
+        columns: { id: true, joinedAt: true, ...window },
+      },
+    },
+    orderBy: { id: "asc" },
+  });
+  return rows.flatMap(({ id: animalId, ownerVentureId, intake, joinings }) => {
+    const joined = joiningInForce(intake, joinings);
+    const kept = joined ?? intake;
+    if (!kept) {
+      return [];
+    }
+    return [
+      {
+        keptOn: joined ? "joining" : "intake",
+        id: kept.id,
+        animalId,
+        targetWindowStart: kept.targetWindowStart,
+        targetWindowEnd: kept.targetWindowEnd,
+        ownerVentureId,
+      },
+    ];
+  });
+};
+
+/** A Target Window as a key, the same for the same three days. */
+const windowKey = (window: TargetWindow) => `${window.start}|${window.end}`;
+
+/**
+ * The animals still on the Farm whose Target Window is one of `windows`, split by whose they are: the Farm's own, which
+ * the Farm may move, and a Venture's, whose window is the Venture's and moves only by an Amendment. A window somebody
+ * typed for another market is none of these, and is left where it is.
+ */
+export const animalsAimedAt = async (
   db: Reader,
   farmId: string,
   windows: readonly TargetWindow[]
@@ -82,43 +137,25 @@ export const intakesAimedAt = async (
   if (windows.length === 0) {
     return { own: [], inVentures: 0 };
   }
-  const rows = await db.query.intake.findMany({
-    where: {
-      farmId,
-      OR: windows.map((one) => ({
-        targetWindowStart: one.start,
-        targetWindowEnd: one.end,
-      })),
-      animal: { state: { notIn: [...EXIT_STATES] } },
-    },
-    columns: {
-      id: true,
-      animalId: true,
-      targetWindowStart: true,
-      targetWindowEnd: true,
-    },
-    with: { animal: { columns: { ownerVentureId: true } } },
-    orderBy: { id: "asc" },
-  });
+  const keys = new Set(windows.map(windowKey));
+  const standing = await aimedRows(db, farmId);
+  const rows = standing.filter((row) =>
+    keys.has(
+      windowKey({ start: row.targetWindowStart, end: row.targetWindowEnd })
+    )
+  );
   return {
-    own: rows.filter((row) => row.animal.ownerVentureId === null),
-    inVentures: rows.filter((row) => row.animal.ownerVentureId !== null).length,
+    own: rows.filter((row) => row.ownerVentureId === null),
+    inVentures: rows.filter((row) => row.ownerVentureId !== null).length,
   };
 };
-
-/** A Target Window as a key, the same for the same three days. */
-const windowKey = (window: TargetWindow) => `${window.start}|${window.end}`;
 
 /**
  * How many animals still on the Farm are aimed at each Target Window, the Farm's own apart from a Venture's: read once
  * for a whole list of Eids, rather than asked Eid by Eid.
  */
 export const aimedByWindow = async (db: Reader, farmId: string) => {
-  const rows = await db.query.intake.findMany({
-    where: { farmId, animal: { state: { notIn: [...EXIT_STATES] } } },
-    columns: { targetWindowStart: true, targetWindowEnd: true },
-    with: { animal: { columns: { ownerVentureId: true } } },
-  });
+  const rows = await aimedRows(db, farmId);
   const counted = new Map<string, { own: number; inVentures: number }>();
   for (const row of rows) {
     const key = windowKey({
@@ -128,7 +165,7 @@ export const aimedByWindow = async (db: Reader, farmId: string) => {
     const now = counted.get(key) ?? { own: 0, inVentures: 0 };
     counted.set(
       key,
-      row.animal.ownerVentureId === null
+      row.ownerVentureId === null
         ? { ...now, own: now.own + 1 }
         : { ...now, inVentures: now.inVentures + 1 }
     );

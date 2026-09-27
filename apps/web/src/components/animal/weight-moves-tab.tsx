@@ -7,15 +7,15 @@ import { toast } from "sonner";
 
 import { MoveTable, WeighInTable } from "@/components/animal-histories";
 import { CorrectionDialog } from "@/components/correction-dialog";
-import { EmptyState, RecordList, RecordRow, Section } from "@/components/page";
-import { NativeSelect } from "@/components/page-kit";
 import {
   NEXT_EID,
   WindowChoice,
   windowOf,
   windowReady,
-} from "@/components/returns/window-choice";
-import type { WindowPick } from "@/components/returns/window-choice";
+} from "@/components/fattening/window-choice";
+import type { WindowPick } from "@/components/fattening/window-choice";
+import { EmptyState, RecordList, RecordRow, Section } from "@/components/page";
+import { NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { queueMove } from "@/lib/record-offline";
 import { orpc } from "@/utils/orpc";
@@ -36,14 +36,14 @@ const ChangeSide = ({
   const [toPenId, setToPenId] = useState("");
   // The Season she joins on the Fattening side: the next Eid, worked out by the farm even for a phone out of signal,
   // unless another window is said.
-  const [season, setSeason] = useState<WindowPick>(NEXT_EID);
+  const [windowPick, setWindowPick] = useState<WindowPick>(NEXT_EID);
   const move = useMutation(orpc.animals.move.mutationOptions({}));
   return (
     <CorrectionDialog
       description={t("correct.sideHint")}
       onOpen={() => {
         setToPenId("");
-        setSeason(NEXT_EID);
+        setWindowPick(NEXT_EID);
       }}
       onSave={async (reason) => {
         const across = {
@@ -51,7 +51,7 @@ const ChangeSide = ({
           toSide,
           toPenId,
           reason,
-          targetWindow: windowOf(season),
+          targetWindow: windowOf(windowPick),
         };
         // With signal the farm answers now; without it the Move waits on the phone rather than being lost.
         if (navigator.onLine) {
@@ -62,7 +62,7 @@ const ChangeSide = ({
           toast.info(t("animals.moveQueued"));
         }
       }}
-      ready={Boolean(toPenId) && windowReady(season)}
+      ready={Boolean(toPenId) && windowReady(windowPick)}
       title={t("correct.side")}
       trigger={`${t("correct.toSide")}: ${t(`animals.side.${toSide}`)}`}
     >
@@ -82,7 +82,11 @@ const ChangeSide = ({
           ))}
         </NativeSelect>
       </div>
-      <WindowChoice id={`side-season-${tagNumber}`} onPick={setSeason} pick={season} />
+      <WindowChoice
+        id={`side-season-${tagNumber}`}
+        onPick={setWindowPick}
+        pick={windowPick}
+      />
     </CorrectionDialog>
   );
 };

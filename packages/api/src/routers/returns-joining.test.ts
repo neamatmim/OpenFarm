@@ -62,6 +62,7 @@ let calfA = "";
 let calfB = "";
 let joiningA = "";
 let joiningB = "";
+let fatteningPenId = "";
 
 beforeAll(async () => {
   const { client: owner } = await as("owner", "2030-09-01T04:00:00.000Z");
@@ -71,6 +72,7 @@ beforeAll(async () => {
     shedId: shed.id,
     name: `মোটাতাজা ${suffix}`,
   });
+  fatteningPenId = fattening.id;
   const calves = await owner.herd.createPen({
     shedId: shed.id,
     name: `বাছুর ${suffix}`,
@@ -146,24 +148,50 @@ beforeAll(async () => {
   });
 
   const { client: reading } = await as("owner", "2030-10-02T04:00:00.000Z");
-  const { crossingsToPrice } = await reading.returns.page();
-  joiningA = crossingsToPrice.find((one) => one.tagNumber === calfA)?.id ?? "";
-  joiningB = crossingsToPrice.find((one) => one.tagNumber === calfB)?.id ?? "";
+  const { crossings } = await reading.returns.page();
+  joiningA = crossings.find((one) => one.tagNumber === calfA)?.id ?? "";
+  joiningB = crossings.find((one) => one.tagNumber === calfB)?.id ?? "";
 });
 
 describe("a calf walked across from Dairy joins a Season", () => {
   it("joins the next Eid's Season when no window was said, and is named, not counted, until priced", async () => {
     const { client: owner } = await as("owner", "2030-10-02T04:00:00.000Z");
-    const { seasons, crossingsToPrice } = await owner.returns.page();
+    const { seasons, crossings } = await owner.returns.page();
     const eid = seasons.find((one) => one.key === "eid:2031-04-03");
     expect(eid?.head).toBe(2);
     expect(eid?.gaps).toEqual([{ tagNumber: calfA, why: "not_priced" }]);
     // Left out whole: the Season reads C alone, not lowered by her cost.
     expect(eid?.running?.low.per100).toBe(42.9);
     expect(eid?.running?.high.per100).toBe(71.4);
-    expect(crossingsToPrice.map((one) => one.tagNumber).toSorted()).toEqual(
-      [calfA, calfB].toSorted()
-    );
+    expect(
+      crossings
+        .filter((one) => one.priceBdt === null)
+        .map((one) => one.tagNumber)
+        .toSorted()
+    ).toEqual([calfA, calfB].toSorted());
+  });
+
+  it("is on the board, fed towards the Farm's target from the day she crossed, before anybody prices her", async () => {
+    const { client: manager } = await as("manager", "2030-10-02T04:00:00.000Z");
+    const board = await manager.fattening.board();
+    // Crossed at 01:00 the day before: a day on feed, towards the Farm's 350 kg, from the morning's 150.
+    expect(board.find((row) => row.tagNumber === calfA)).toMatchObject({
+      daysOnFeed: 1,
+      targetWeightKg: 350,
+      latestKg: 150,
+    });
+  });
+
+  it("refuses a window whose days are the wrong way round", async () => {
+    const { client: manager } = await as("manager", "2030-10-02T04:00:00.000Z");
+    await expect(
+      manager.animals.move({
+        tagNumber: calfB,
+        toPenId: fatteningPenId,
+        toSide: "fattening",
+        targetWindow: { start: WINTER.end, end: WINTER.start },
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
   it("joins the Season of a window said when she crossed", async () => {
@@ -207,7 +235,7 @@ describe("the Owner prices a crossing", () => {
       note: `বাছুরের দর ${suffix}`,
     });
     const { client: reading } = await as("owner", "2030-10-02T04:00:00.000Z");
-    const { seasons, crossingsToPrice } = await reading.returns.page();
+    const { seasons, crossings } = await reading.returns.page();
     const eid = seasons.find((one) => one.key === "eid:2031-04-03");
     expect(eid?.gaps).toEqual([]);
     expect(eid?.running).toMatchObject({
@@ -217,7 +245,28 @@ describe("the Owner prices a crossing", () => {
       low: { per100: 34.6 },
       high: { per100: 61.5 },
     });
-    expect(crossingsToPrice.map((one) => one.tagNumber)).toEqual([calfB]);
+    // Priced, she stays on the list while she is on the Farm, so the price can be put right again.
+    // The two crossed in the same instant, so they are read by tag, not by the order they came.
+    const byTag = new Map(crossings.map((one) => [one.tagNumber, one]));
+    expect(byTag.size).toBe(2);
+    expect(byTag.get(calfA)).toMatchObject({
+      priceBdt: 60_000,
+      rateBdtPerKg: 400,
+    });
+    expect(byTag.get(calfB)).toMatchObject({
+      priceBdt: null,
+      rateBdtPerKg: null,
+    });
+    // Both prices stay in the trail, the second over the first.
+    const trail = await scratchDb().query.auditEvent.findMany({
+      where: { entity: "fattening_joining", entityId: joiningA },
+      columns: { before: true, after: true },
+      orderBy: { receivedAt: "asc", id: "asc" },
+    });
+    expect(trail).toMatchObject([
+      { before: { priceBdt: null }, after: { priceBdt: 57_000 } },
+      { before: { priceBdt: 57_000 }, after: { priceBdt: 60_000 } },
+    ]);
   });
 
   it("is the Owner's alone", async () => {
@@ -238,6 +287,25 @@ describe("a crossed animal's window is read as a bought one's is", () => {
     const suggested = await manager.ready.suggestions();
     expect(suggested.find((row) => row.tagNumber === calfB)?.grounds).toContain(
       "window"
+    );
+  });
+});
+
+describe("an Eid announced moves a crossed animal's window with the bought ones'", () => {
+  it("brings her along from the day expected to the day announced, where her joining keeps it", async () => {
+    const { client: manager } = await as("manager", "2031-03-30T04:00:00.000Z");
+    await manager.eid.announce({ day: "2031-04-04" });
+    // Bull C by his Intake, calf A by her crossing; B is aimed at winter, and stays.
+    expect(
+      await manager.eid.bringAlong({ expectedDay: EID_2031.start })
+    ).toMatchObject({ moved: 2 });
+    const board = await manager.fattening.board();
+    expect(board.find((row) => row.tagNumber === calfA)?.targetWindow).toEqual({
+      start: "2031-04-04",
+      end: "2031-04-06",
+    });
+    expect(board.find((row) => row.tagNumber === calfB)?.targetWindow).toEqual(
+      WINTER
     );
   });
 });

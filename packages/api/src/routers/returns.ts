@@ -5,14 +5,10 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
-import { priceTheJoining, weighedForTheCrossing } from "../joining-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
-import {
-  returnsPage,
-  runningSeasons,
-  ventureReturns,
-} from "../returns-store";
+import { priceTheJoining, weighedForTheCrossing } from "../joining-store";
+import { returnsPage, runningSeasons, ventureReturns } from "../returns-store";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
 import { priceAtWeight } from "../venture-store";
 
@@ -124,7 +120,8 @@ export const returnsRouter = {
       );
       if (!weighed) {
         throw new ORPCError("BAD_REQUEST", {
-          message: "Nobody has weighed her by the day she crossed: weigh her first",
+          message:
+            "Nobody has weighed her by the day she crossed: weigh her first",
           data: { refusal: "crossing_unweighed" },
         });
       }
