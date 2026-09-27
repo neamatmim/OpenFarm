@@ -115,6 +115,18 @@ export const herRecord = async (
         },
       },
       sale: { with: { buyer: { columns: { name: true } } } },
+      /** The times she joined the Fattening side other than by Intake: her window, when the latest is newer. */
+      joinings: {
+        orderBy: { joinedAt: "desc", id: "desc" },
+        limit: 1,
+        columns: {
+          weightKg: true,
+          joinedAt: true,
+          targetWeightKg: true,
+          targetWindowStart: true,
+          targetWindowEnd: true,
+        },
+      },
       mortality: {
         columns: {
           kind: true,

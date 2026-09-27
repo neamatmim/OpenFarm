@@ -1867,6 +1867,8 @@ export const venturesRouter = {
         /** The price the Owner read before she committed. Refused when it is not the price the farm
          *  works out, because she may be looking at a weight taken before this morning's round. */
         priceBdt: z.number().positive().max(100_000_000),
+        /** Where the Farm takes her on: the Season she joins. The next Eid where none is said. */
+        targetWindow: z.object({ start: farmDay, end: farmDay }).optional(),
       })
     )
     .handler(async ({ context, input }) => {
@@ -1984,6 +1986,7 @@ export const venturesRouter = {
               to,
               weighed,
               rateBdtPerKg: input.rateBdtPerKg,
+              targetWindow: input.targetWindow,
               note: input.note,
               soldOn: input.soldOn,
               paymentMethod: input.paymentMethod,
@@ -2692,6 +2695,8 @@ export const venturesRouter = {
         paymentMethod: z.enum(PAYMENT_METHODS),
         /** The transfer, cheque or deposit slip the money moved on. */
         reference: z.string().trim().min(1).max(120),
+        /** The one Season every animal it takes joins: the next Eid where none is said. */
+        targetWindow: z.object({ start: farmDay, end: farmDay }).optional(),
       })
     )
     .handler(async ({ context, input }) => {
@@ -2797,6 +2802,7 @@ export const venturesRouter = {
                 to: null,
                 weighed,
                 rateBdtPerKg: input.rateBdtPerKg,
+                targetWindow: input.targetWindow,
                 note: input.note,
                 soldOn: input.boughtOn,
                 paymentMethod: input.paymentMethod,

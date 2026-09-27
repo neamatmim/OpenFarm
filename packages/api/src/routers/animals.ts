@@ -47,7 +47,7 @@ import { parseCsvRecords } from "../csv";
 import { recordNow } from "../entries/entry";
 import { moveEntry, moveInput } from "../entries/move";
 import { farmDay } from "../farm-clock";
-import { fatteningOf } from "../fattening-store";
+import { fatteningOf, startOfFattening } from "../fattening-store";
 import {
   theConclusionAndWhatFollowed,
   withPrescriptions,
@@ -728,7 +728,9 @@ export const animalsRouter = {
          *  who is not on the Fattening side: "days on feed" about a milking cow is a number
          *  about nothing. */
         fattening:
-          her.side === "fattening" ? fatteningOf(intake, weighIns, now) : null,
+          her.side === "fattening"
+            ? fatteningOf(startOfFattening(intake, her.joinings), weighIns, now)
+            : null,
         /** Kilogrammes live in a numeric column and come back as strings; converted here at
          *  the edge, like the litres, rather than left to drift as floats. */
         weighIns: weighIns.map(({ weigher, ...reading }) => ({

@@ -19,6 +19,7 @@ import { pricesOnTheSide } from "./animal-price-store";
 import type { FarmCosts } from "./cost-store";
 import { farmCosts } from "./cost-store";
 import { approvedSettlementOf } from "./settlement-store";
+import { weighedForTheCrossing } from "./joining-store";
 import { ownedThenByOf } from "./venture-store";
 
 /**
@@ -42,6 +43,8 @@ interface Holding {
   takenOn: Date;
   priceBdt: number;
   left: { how: Gone; on: Date; backBdt: number } | null;
+  /** A crossing the Owner has not priced yet: left out of every figure, whole, and named, until she is. */
+  unpriced?: { tagNumber: string };
 }
 
 /** A **Bank Rate** as the page says it beside a rate a year. */
@@ -97,7 +100,7 @@ const earliest = (days: readonly Date[]): Date | null =>
     : new Date(Math.min(...days.map((one) => one.getTime())));
 
 /** Why a standing Animal cannot be valued today: no weight to price, or no price a kilo to price her at. */
-export type NotValued = "no_weight" | "no_price";
+export type NotValued = "no_weight" | "no_price" | "not_priced";
 
 /** A standing Animal left out of a figure, whole, and what puts her right. */
 export interface Gap {
@@ -109,6 +112,17 @@ export interface Gap {
  *  Animal came to an owner and left one. */
 interface Books {
   costs: FarmCosts;
+  /** Every time an Animal came to the Farm's Fattening side other than by Intake. */
+  joinings: {
+    id: string;
+    animalId: string;
+    joinedAt: Date;
+    how: "crossed" | "bought_from_venture";
+    targetWindowStart: string;
+    targetWindowEnd: string;
+    priceBdt: number | null;
+    internalSaleId: string | null;
+  }[];
   /** What each standing fattening Animal is worth today, low and high, as the animal prices value her — or why not. */
   values: Map<string, { lowBdt: number; highBdt: number } | Gap>;
   /** Every Bank Rate typed, the one that would be in force first: the latest day, then the latest typed. */
@@ -123,6 +137,7 @@ interface Books {
   }[];
   died: Map<string, Date>;
   internal: {
+    id: string;
     animalId: string;
     fromVentureId: string | null;
     toVentureId: string | null;
@@ -155,6 +170,20 @@ const booksOf = async (
       targetWindowEnd: true,
     },
   });
+  const joinings = await db.query.fatteningJoining.findMany({
+    where: { farmId },
+    columns: {
+      id: true,
+      animalId: true,
+      joinedAt: true,
+      how: true,
+      targetWindowStart: true,
+      targetWindowEnd: true,
+      priceBdt: true,
+      internalSaleId: true,
+    },
+    orderBy: { joinedAt: "asc", id: "asc" },
+  });
   const deaths = await db.query.mortality.findMany({
     where: { farmId },
     columns: { animalId: true, happenedAt: true },
@@ -163,6 +192,7 @@ const booksOf = async (
   const internal = await db.query.internalSale.findMany({
     where: { farmId },
     columns: {
+      id: true,
       animalId: true,
       fromVentureId: true,
       toVentureId: true,
@@ -189,6 +219,7 @@ const booksOf = async (
   }
   return {
     costs,
+    joinings,
     values,
     bankRates,
     ownedThenBy,
@@ -235,13 +266,19 @@ const leftOf = (
   books: Books,
   owner: string | null,
   animalId: string,
-  takenOn: Date
+  takenOn: Date,
+  /** The Internal Sale that brought her to this owner, if one did: only a later one takes her away again, however
+   *  close in time — the Farm selling her to a Venture and buying her back in one sitting is two holdings, not one. */
+  cameBy?: string | null
 ): Holding["left"] => {
+  const cameAt = cameBy
+    ? books.internal.findIndex((one) => one.id === cameBy)
+    : -1;
   const soldOn = books.internal.find(
-    (one) =>
+    (one, index) =>
       one.animalId === animalId &&
       one.fromVentureId === owner &&
-      one.createdAt >= takenOn
+      (cameBy ? index > cameAt : one.createdAt >= takenOn)
   );
   if (soldOn) {
     return {
@@ -298,7 +335,36 @@ const returnOfHoldings = (
   today: Date,
   floorDays: number
 ) => {
-  const finished = holdings.every((one) => one.left !== null);
+  // A crossing not priced yet is no part of any figure: counted with no price, she would read as bought for nothing.
+  const unpriced = holdings.filter((one) => one.unpriced);
+  const unpricedGaps: Gap[] = unpriced.map((one) => ({
+    tagNumber: one.unpriced?.tagNumber ?? "",
+    why: "not_priced",
+  }));
+  const priced = holdings.filter((one) => !one.unpriced);
+  return withGaps(
+    returnOfPriced(books, owner, priced, today, floorDays, unpriced.length > 0),
+    unpricedGaps
+  );
+};
+
+/** The gaps the prices could not fill, added to the ones a valuation could not. */
+const withGaps = <T extends { gaps: Gap[] }>(worked: T, more: Gap[]): T => ({
+  ...worked,
+  gaps: [...more, ...worked.gaps],
+});
+
+/** What some priced holdings returned: a result once all have gone and none waits on a price, a range until then. */
+const returnOfPriced = (
+  books: Books,
+  owner: string | null,
+  holdings: readonly Holding[],
+  today: Date,
+  floorDays: number,
+  waitingOnAPrice: boolean
+) => {
+  const finished =
+    !waitingOnAPrice && holdings.every((one) => one.left !== null);
   const spentOf = (one: Holding) => spentOn(books, owner, one, today);
   if (finished) {
     return {
@@ -392,6 +458,35 @@ const seasonsOf = (
       takenOn: intake.arrivedAt,
       priceBdt: intake.purchasePriceBdt,
       left: leftOf(books, null, intake.animalId, intake.arrivedAt),
+    });
+    bySeason.set(season.key, group);
+  }
+  // And every one who joined the Farm's Fattening side other than by Intake: walked across from Dairy, or bought
+  // from a Venture — from the day she joined, at the price she joined at, or named until a crossing is priced.
+  const tagOf = new Map(books.costs.animals.map((one) => [one.id, one.tagNumber]));
+  for (const joining of books.joinings) {
+    if (books.ownedThenBy(joining.animalId, joining.joinedAt) !== null) {
+      continue;
+    }
+    const season = seasonOf({
+      start: joining.targetWindowStart,
+      end: joining.targetWindowEnd,
+    });
+    const group = bySeason.get(season.key) ?? { season, holdings: [] };
+    group.holdings.push({
+      animalId: joining.animalId,
+      takenOn: joining.joinedAt,
+      priceBdt: joining.priceBdt ?? 0,
+      left: leftOf(
+        books,
+        null,
+        joining.animalId,
+        joining.joinedAt,
+        joining.internalSaleId
+      ),
+      ...(joining.priceBdt === null
+        ? { unpriced: { tagNumber: tagOf.get(joining.animalId) ?? "" } }
+        : {}),
     });
     bySeason.set(season.key, group);
   }
@@ -498,6 +593,7 @@ const venturesOf = async (
           animalId: one.animalId,
           takenOn: one.arrivedAt,
           priceBdt: one.purchasePriceBdt,
+          cameBy: null,
         })),
       ...books.internal
         .filter((one) => one.toVentureId === venture.id)
@@ -505,10 +601,11 @@ const venturesOf = async (
           animalId: one.animalId,
           takenOn: one.createdAt,
           priceBdt: one.priceBdt,
+          cameBy: one.id,
         })),
-    ].map((one) => ({
+    ].map(({ cameBy, ...one }) => ({
       ...one,
-      left: leftOf(books, venture.id, one.animalId, one.takenOn),
+      left: leftOf(books, venture.id, one.animalId, one.takenOn, cameBy),
     }));
     const worked = returnOfHoldings(
       books,
@@ -596,6 +693,31 @@ const venturesOf = async (
   return out;
 };
 
+/**
+ * Every crossing still waiting on the Owner's price, oldest first, with what she weighed on the day she crossed — the
+ * reading a price is struck from — or nothing, which the price refuses until somebody weighs her.
+ */
+const crossingsToPriceOf = async (db: Database, farmId: string) => {
+  const rows = await db.query.fatteningJoining.findMany({
+    where: { farmId, how: "crossed", priceBdt: { isNull: true } },
+    columns: { id: true, animalId: true, joinedOn: true },
+    with: { animal: { columns: { tagNumber: true } } },
+    orderBy: { joinedAt: "asc", id: "asc" },
+  });
+  const out = [];
+  for (const row of rows) {
+    // oxlint-disable-next-line no-await-in-loop -- one client, one crossing at a time
+    const weighed = await weighedForTheCrossing(db, row.animalId, row.joinedOn);
+    out.push({
+      id: row.id,
+      tagNumber: row.animal?.tagNumber ?? "",
+      joinedOn: row.joinedOn,
+      weightKg: weighed?.weightKg ?? null,
+    });
+  }
+  return out;
+};
+
 /** Everything the Owner's Returns page reads, worked once. */
 export const returnsPage = async (
   db: Database,
@@ -610,6 +732,7 @@ export const returnsPage = async (
     seasons: seasonsOf(books, floorDays, now),
     ventures,
     bankRates: books.bankRates,
+    crossingsToPrice: await crossingsToPriceOf(db, farm.id),
     /** The one in force today, which the page marks: found by the rule every other reading uses, not a second one. */
     bankRateInForceId:
       rateInForceOn(books.bankRates, farmDayOf(now))?.id ?? null,

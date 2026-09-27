@@ -280,6 +280,39 @@ describe("the Internal Sale", () => {
     });
   });
 
+  it("puts one the Farm buys back into the Season of the window it gives her, at the price it paid", async () => {
+    // In March, clear of February's money read below. Bought by the Farm for Eid 2047, weighed at 210 kg, sold to the Venture at ৳300 a kilo — ৳63,000, which ends her
+    // first Season — and bought back the same day at the same price for a winter market, which starts her second.
+    const hers = await bull("2047-03-10T05:00:00.000Z");
+    await weigh("2047-03-11", [[hers.tagNumber, 210]]);
+    const owner = await as("owner", "2047-03-11T09:00:00.000Z");
+    const sale = {
+      tagNumber: hers.tagNumber,
+      rateBdtPerKg: 300,
+      note: `দর ${suffix}`,
+      soldOn: "2047-03-11",
+      paymentMethod: "bank" as const,
+      reference: `INT-W-${suffix}`,
+      priceBdt: 63_000,
+    };
+    await owner.client.ventures.sellInternally({ ...sale, toVentureId: ventureId });
+    await owner.client.ventures.sellInternally({
+      ...sale,
+      targetWindow: { start: "2047-12-01", end: "2047-12-31" },
+    });
+    const { client: reading } = await as("owner", "2047-03-11T10:00:00.000Z");
+    const { seasons } = await reading.returns.page();
+    const winter = seasons.find(
+      (one) => one.key === "window:2047-12-01|2047-12-31"
+    );
+    // She stands, and this farm has set no market price a kilo: in her Season, named, as any bull with no price is.
+    expect(winter).toMatchObject({
+      head: 1,
+      finished: false,
+      gaps: [{ tagNumber: hers.tagNumber, why: "no_price" }],
+    });
+  });
+
   it("refuses an animal nobody has weighed", async () => {
     const unweighed = await bull("2047-02-09T05:00:00.000Z");
     const owner = await as("owner", "2047-02-09T09:00:00.000Z");

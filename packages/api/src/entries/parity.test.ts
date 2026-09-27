@@ -210,6 +210,22 @@ const lastEventAbout = async (entity: string, entityId: string) => {
     : null;
 };
 
+/** The Season a crossing put her in, as twins can be compared. */
+const joiningOf = async (animalId: string) => {
+  const row = await scratchDb().query.fatteningJoining.findFirst({
+    where: { animalId },
+  });
+  return row
+    ? {
+        how: row.how,
+        joinedAt: row.joinedAt.toISOString(),
+        targetWindowStart: row.targetWindowStart,
+        targetWindowEnd: row.targetWindowEnd,
+        priceBdt: row.priceBdt,
+      }
+    : null;
+};
+
 /** The Move that took her to a Pen, as twins can be compared. */
 const moveOf = async (animalId: string, toPenId: string) => {
   const row = await scratchDb().query.animalMove.findFirst({
@@ -370,6 +386,8 @@ const setup = async () => {
     moved: await pair(penA.id),
     seen: await pair(penA.id),
     movedByStaffVet: await pair(penA.id),
+    crossed: await pair(penA.id),
+    crossedAsked: await pair(penA.id),
     notTheirs: await heifer(penC.id),
     gone,
     work: [await workIn(penA.id), await workIn(penB.id)] as const,
@@ -431,6 +449,52 @@ describe("a Move", () => {
     expect(await lastEventAbout("animal", offline.id)).toEqual(
       await lastEventAbout("animal", online.id)
     );
+  });
+
+  it("puts a heifer walked across to Fattening into the same Season either way — the next Eid, from a phone that did not ask", async () => {
+    const [online, offline] = world.crossed;
+    const now = await calling(world.staff, DONE);
+    await now.animals.move({
+      tagNumber: online.tagNumber,
+      toPenId: world.pens.b,
+      toSide: "fattening",
+    });
+    // What a phone that queued the Move before the window was asked for sends: no window at all.
+    const later = await sendLater(world.staff, {
+      kind: "animal_move",
+      tagNumber: offline.tagNumber,
+      toPenId: world.pens.b,
+      toSide: "fattening",
+    });
+    expect(later?.outcome).toBe("applied");
+    const joined = await joiningOf(offline.id);
+    expect(joined).toMatchObject({ how: "crossed", priceBdt: null });
+    expect(joined).toEqual(await joiningOf(online.id));
+  });
+
+  it("puts her in the window the walker said, either way", async () => {
+    const [online, offline] = world.crossedAsked;
+    const window = { start: "2031-12-15", end: "2032-01-15" };
+    const now = await calling(world.staff, DONE);
+    await now.animals.move({
+      tagNumber: online.tagNumber,
+      toPenId: world.pens.b,
+      toSide: "fattening",
+      targetWindow: window,
+    });
+    const later = await sendLater(world.staff, {
+      kind: "animal_move",
+      tagNumber: offline.tagNumber,
+      toPenId: world.pens.b,
+      toSide: "fattening",
+      targetWindow: window,
+    });
+    expect(later?.outcome).toBe("applied");
+    expect(await joiningOf(offline.id)).toMatchObject({
+      targetWindowStart: window.start,
+      targetWindowEnd: window.end,
+    });
+    expect(await joiningOf(offline.id)).toEqual(await joiningOf(online.id));
   });
 
   it("is recorded under the same Role either way, for somebody who is Staff and a Vet", async () => {

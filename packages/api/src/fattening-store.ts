@@ -1,13 +1,49 @@
 import type { FatteningView } from "@OpenFarm/domain";
 import { fatteningView, startOfFarmDay } from "@OpenFarm/domain";
 
-/** How the Intake row comes back from the database: money and weights as numeric strings. */
+/** How the Intake row comes back from the database: money and weights as numeric strings. A joining's may have no
+ *  weight — a crossing not priced yet — and then there is no arrival weight to measure gain from, only her window. */
 interface IntakeRow {
-  weightKg: string;
+  weightKg: string | null;
   arrivedAt: Date;
   targetWeightKg: string;
   targetWindowStart: string;
 }
+
+/** Her start on the Fattening side as a joining keeps it. */
+interface JoiningRow {
+  weightKg: string | null;
+  joinedAt: Date;
+  targetWeightKg: string;
+  targetWindowStart: string;
+  targetWindowEnd: string;
+}
+
+/**
+ * Where an animal's time on the Fattening side is read from: the latest of her Intake and the times she joined it other
+ * than by Intake — walked across from Dairy, or bought back from a Venture — so her window, what she is fed towards and
+ * where her gain starts are the latest arrival's. The same for the board, her page and the Ready suggestion.
+ */
+export const startOfFattening = <
+  T extends IntakeRow & { targetWindowEnd: string },
+>(
+  intake: T | null | undefined,
+  joinings: readonly JoiningRow[] | undefined
+): (IntakeRow & { targetWindowEnd: string }) | null => {
+  const joined = (joinings ?? []).toSorted(
+    (a, b) => b.joinedAt.getTime() - a.joinedAt.getTime()
+  )[0];
+  if (joined && (!intake || joined.joinedAt > intake.arrivedAt)) {
+    return {
+      weightKg: joined.weightKg,
+      arrivedAt: joined.joinedAt,
+      targetWeightKg: joined.targetWeightKg,
+      targetWindowStart: joined.targetWindowStart,
+      targetWindowEnd: joined.targetWindowEnd,
+    };
+  }
+  return intake ?? null;
+};
 
 /**
  * What the scale means for one animal, from the rows the database hands back.
@@ -24,7 +60,7 @@ export const fatteningOf = (
   now: Date
 ): FatteningView =>
   fatteningView(
-    intake
+    intake && intake.weightKg !== null
       ? {
           weightKg: Number(intake.weightKg),
           arrivedAt: intake.arrivedAt,
