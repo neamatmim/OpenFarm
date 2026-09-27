@@ -3,12 +3,6 @@ import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
-} from "@OpenFarm/ui/components/table";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -23,6 +17,12 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import {
+  DataTable,
+  createListColumns,
+  listHeader,
+  useListTable,
+} from "@/components/data-table";
 import { useIsOwner } from "@/components/fattening/animal-prices";
 import { bandSaid } from "@/components/feed/band-words";
 import { EmptyState, Notice, StatusBadge } from "@/components/page";
@@ -301,6 +301,106 @@ const useLineSaid = () => {
   };
 };
 
+/** A breakdown line as the table reads it, with what it is called in the reader's words. */
+interface BreakdownListRow extends BreakdownRow {
+  said: string;
+}
+
+interface BreakdownCell {
+  row: { original: BreakdownListRow };
+}
+
+/** What the line is — an animal leading to her page — and under it her coming and going, or the head and the dead. */
+const LineCell = ({ row }: BreakdownCell) => {
+  const { t } = useLanguage();
+  const { line, said, head, died } = row.original;
+  return (
+    <span className="flex flex-col font-medium">
+      {line.kind === "animal" ? (
+        <Link
+          className="underline-offset-4 hover:underline"
+          params={{ tagNumber: line.tagNumber }}
+          to="/animals/$tagNumber"
+        >
+          {said}
+        </Link>
+      ) : (
+        said
+      )}
+      <span className="text-muted-foreground text-xs font-normal">
+        {line.kind === "animal"
+          ? t("returns.cameLeft", {
+              came: t(CAME_WORD[line.came]),
+              left: t(LEFT_WORD[line.left]),
+            })
+          : `${t("returns.head", { count: head })}${
+              died > 0 ? ` · ${t("returns.died", { count: died })}` : ""
+            }`}
+      </span>
+    </span>
+  );
+};
+
+const CostBackCell = ({ row }: BreakdownCell) => {
+  const { t } = useLanguage();
+  const taka = useTaka();
+  return (
+    <span className="text-muted-foreground tabular-nums">
+      {t("returns.costBack", {
+        cost: taka(row.original.costBdt),
+        back: taka(row.original.backBdt),
+      })}
+    </span>
+  );
+};
+
+const ShareCell = ({ row }: BreakdownCell) =>
+  row.original.per100 === null ? null : (
+    <ShareSaid on="onCost" per100={row.original.per100} />
+  );
+
+const breakdownColumn = createListColumns<BreakdownListRow>();
+/** The columns, the first headed by the way the Season was opened out. */
+const breakdownColumnsFor = (by: BreakdownBy) =>
+  breakdownColumn.columns([
+    breakdownColumn.accessor("said", {
+      id: "line",
+      header: listHeader(BY_WORD[by]),
+      cell: LineCell,
+    }),
+    breakdownColumn.accessor("costBdt", {
+      id: "costBack",
+      header: listHeader("returns.col.costBack"),
+      cell: CostBackCell,
+    }),
+    breakdownColumn.accessor((row) => row.per100 ?? undefined, {
+      id: "share",
+      header: listHeader("returns.col.share"),
+      cell: ShareCell,
+    }),
+  ]);
+const BREAKDOWN_COLUMNS = {
+  haat: breakdownColumnsFor("haat"),
+  trader: breakdownColumnsFor("trader"),
+  breed: breakdownColumnsFor("breed"),
+  band: breakdownColumnsFor("band"),
+  animal: breakdownColumnsFor("animal"),
+} as const satisfies Record<
+  BreakdownBy,
+  ReturnType<typeof breakdownColumnsFor>
+>;
+
+/** A breakdown line on a phone: what it is, then its cost to back and its share. */
+const BreakdownCard = ({ row }: { row: BreakdownListRow }) => (
+  <div className="flex flex-col gap-1 text-sm">
+    <LineCell row={{ original: row }} />
+    <CostBackCell row={{ original: row }} />
+    <ShareCell row={{ original: row }} />
+  </div>
+);
+
+const breakdownCard = (row: BreakdownListRow) => <BreakdownCard row={row} />;
+
 /** The lines of one breakdown: each the Season's own sum for its animals — head, the dead, cost to back, share. */
 const BreakdownTable = ({
   rows,
@@ -309,55 +409,13 @@ const BreakdownTable = ({
   rows: BreakdownRow[];
   by: BreakdownBy;
 }) => {
-  const { t } = useLanguage();
-  const taka = useTaka();
   const said = useLineSaid();
-  return (
-    <Table>
-      <TableBody>
-        {rows.map((row) => (
-          <TableRow key={JSON.stringify(row.line)}>
-            <TableCell className="font-medium whitespace-normal">
-              {row.line.kind === "animal" ? (
-                <Link
-                  className="underline-offset-4 hover:underline"
-                  params={{ tagNumber: row.line.tagNumber }}
-                  to="/animals/$tagNumber"
-                >
-                  {said(row.line, by)}
-                </Link>
-              ) : (
-                said(row.line, by)
-              )}
-              <span className="text-muted-foreground block text-xs font-normal">
-                {row.line.kind === "animal"
-                  ? t("returns.cameLeft", {
-                      came: t(CAME_WORD[row.line.came]),
-                      left: t(LEFT_WORD[row.line.left]),
-                    })
-                  : `${t("returns.head", { count: row.head })}${
-                      row.died > 0
-                        ? ` · ${t("returns.died", { count: row.died })}`
-                        : ""
-                    }`}
-              </span>
-            </TableCell>
-            <TableCell className="text-muted-foreground whitespace-normal tabular-nums">
-              {t("returns.costBack", {
-                cost: taka(row.costBdt),
-                back: taka(row.backBdt),
-              })}
-            </TableCell>
-            <TableCell className="whitespace-normal">
-              {row.per100 === null ? null : (
-                <ShareSaid on="onCost" per100={row.per100} />
-              )}
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
+  const table = useListTable({
+    columns: BREAKDOWN_COLUMNS[by],
+    data: rows.map((row) => ({ ...row, said: said(row.line, by) })),
+    getRowId: (row) => JSON.stringify(row.line),
+  });
+  return <DataTable bare card={breakdownCard} minWidth="32rem" table={table} />;
 };
 
 /**

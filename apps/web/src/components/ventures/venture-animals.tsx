@@ -1,25 +1,41 @@
 import { formatNumber } from "@OpenFarm/i18n";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@OpenFarm/ui/components/table";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Beef } from "lucide-react";
 
+import {
+  DataTable,
+  createListColumns,
+  listHeader,
+  useListTable,
+} from "@/components/data-table";
+import { Nothing } from "@/components/list-cells";
 import { EmptyState, Section } from "@/components/page";
 import { Line } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
 import { useKg } from "@/lib/kg";
 import { useTaka, useTakaToThePaisa } from "@/lib/taka";
 import type { Venture } from "@/lib/ventures";
+import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
+
+type Costed = Awaited<
+  ReturnType<typeof client.ventures.economics>
+>["animals"][number];
+type Weighed = Awaited<
+  ReturnType<typeof client.ventures.herd>
+>["animals"][number];
+
+/** One of the Venture's animals as the table reads her: her costing, and her weighings where the herd has any. */
+interface AnimalRow extends Costed {
+  weighed: Weighed | undefined;
+}
+
+interface AnimalCell {
+  row: { original: AnimalRow };
+}
 
 /** Where one of its animals is now: still hers, sold, or gone some other way — died or culled. */
 const whereSheIs = (
@@ -34,6 +50,195 @@ const whereSheIs = (
     : ("ventures.page.sold" as const);
 };
 
+/** Where she is, in the order the column sorts by: those still here, then the sold, then the dead and culled. */
+const WHERE_ORDER = [
+  "ventures.page.standing",
+  "ventures.page.sold",
+  "ventures.page.gone",
+] as const;
+
+const TagCell = ({ row }: AnimalCell) => (
+  <Link
+    className="font-mono font-semibold tabular-nums underline-offset-4 hover:underline focus-visible:underline"
+    params={{ tagNumber: row.original.tagNumber }}
+    to="/animals/$tagNumber"
+  >
+    {row.original.tagNumber}
+  </Link>
+);
+
+const WhereCell = ({ row }: AnimalCell) => {
+  const { t } = useLanguage();
+  return (
+    <>{t(whereSheIs(row.original.weighed?.standing, row.original.saleBdt))}</>
+  );
+};
+
+/** What she weighed when she came, and now. */
+const WeightSaid = ({ weighed }: { weighed: Weighed | undefined }) => {
+  const weight = useKg();
+  const kg = (value: number | null | undefined) =>
+    value === null || value === undefined ? "—" : weight(value);
+  return `${kg(weighed?.intakeKg)} → ${kg(weighed?.latestKg)}`;
+};
+
+const WeightCell = ({ row }: AnimalCell) => (
+  <WeightSaid weighed={row.original.weighed} />
+);
+
+/** How fast she is gaining, or nothing until she has been weighed twice. */
+const GainSaid = ({ weighed }: { weighed: Weighed | undefined }) => {
+  const { t, language } = useLanguage();
+  const gain = weighed?.dailyGainKg;
+  if (gain === null || gain === undefined) {
+    return <Nothing />;
+  }
+  return <>{t("units.kgADay", { kg: formatNumber(gain, language) })}</>;
+};
+
+const GainCell = ({ row }: AnimalCell) => (
+  <GainSaid weighed={row.original.weighed} />
+);
+
+/** A sum in taka, or nothing where there is none yet. */
+const Sum = ({ bdt }: { bdt: number | null }) => {
+  const taka = useTaka();
+  return bdt === null ? <Nothing /> : <>{taka(bdt)}</>;
+};
+
+const BoughtCell = ({ row }: AnimalCell) => (
+  <Sum bdt={row.original.purchaseBdt} />
+);
+
+const FetchedCell = ({ row }: AnimalCell) => <Sum bdt={row.original.saleBdt} />;
+
+/** What each kilogram she put on cost: the figure the run is judged by, per animal. */
+const CostOfGainSaid = ({ bdt }: { bdt: number | null }) => {
+  const rate = useTakaToThePaisa();
+  return bdt === null ? <Nothing /> : <>{rate(bdt)}</>;
+};
+
+const CostOfGainCell = ({ row }: AnimalCell) => (
+  <CostOfGainSaid bdt={row.original.costOfGainBdt} />
+);
+
+/** What she made, in the loss's colour where she lost money. */
+const MarginSaid = ({ bdt }: { bdt: number | null }) => {
+  // Named, because the guard against untranslated JSX text reads an angle bracket in a comparison as a tag.
+  const lostMoney = bdt !== null && bdt < 0;
+  return (
+    <span
+      className={cn("font-medium tabular-nums", lostMoney && "text-danger")}
+    >
+      <Sum bdt={bdt} />
+    </span>
+  );
+};
+
+const MarginCell = ({ row }: AnimalCell) => (
+  <MarginSaid bdt={row.original.marginBdt} />
+);
+
+const column = createListColumns<AnimalRow>();
+const animalColumns = column.columns([
+  column.accessor("tagNumber", {
+    header: listHeader("ventures.page.tag"),
+    cell: TagCell,
+  }),
+  column.accessor(
+    (row) =>
+      WHERE_ORDER.indexOf(whereSheIs(row.weighed?.standing, row.saleBdt)),
+    {
+      id: "where",
+      header: listHeader("ventures.page.whereSheIs"),
+      cell: WhereCell,
+    }
+  ),
+  column.accessor((row) => row.weighed?.latestKg ?? undefined, {
+    id: "weight",
+    header: listHeader("ventures.page.weight"),
+    cell: WeightCell,
+    meta: { align: "end" },
+  }),
+  column.accessor((row) => row.weighed?.dailyGainKg ?? undefined, {
+    id: "gain",
+    header: listHeader("ventures.page.dailyGain"),
+    cell: GainCell,
+    meta: { align: "end" },
+  }),
+  column.accessor((row) => row.purchaseBdt ?? undefined, {
+    id: "bought",
+    header: listHeader("ventures.page.bought"),
+    cell: BoughtCell,
+    meta: { align: "end" },
+  }),
+  column.accessor((row) => row.saleBdt ?? undefined, {
+    id: "fetched",
+    header: listHeader("ventures.page.fetched"),
+    cell: FetchedCell,
+    meta: { align: "end" },
+  }),
+  column.accessor((row) => row.costOfGainBdt ?? undefined, {
+    id: "costOfGain",
+    header: listHeader("ventures.herdCostOfGain"),
+    cell: CostOfGainCell,
+    meta: { align: "end" },
+  }),
+  column.accessor((row) => row.marginBdt ?? undefined, {
+    id: "margin",
+    header: listHeader("ventures.page.margin"),
+    cell: MarginCell,
+    meta: { align: "end" },
+  }),
+]);
+
+/** One animal on a phone: her tag and where she is, what she made at the right, and her figures under them. */
+const AnimalCard = ({ row }: { row: AnimalRow }) => {
+  const { t } = useLanguage();
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex flex-wrap items-center gap-2">
+          <TagCell row={{ original: row }} />
+          <span className="text-muted-foreground text-sm">
+            <WhereCell row={{ original: row }} />
+          </span>
+        </span>
+        <MarginSaid bdt={row.marginBdt} />
+      </div>
+      <div className="text-sm">
+        <Line label={t("ventures.page.weight")}>
+          <WeightSaid weighed={row.weighed} />
+        </Line>
+        <Line label={t("ventures.page.dailyGain")}>
+          <GainSaid weighed={row.weighed} />
+        </Line>
+        <Line label={t("ventures.page.bought")}>
+          <Sum bdt={row.purchaseBdt} />
+        </Line>
+        <Line label={t("ventures.page.fetched")}>
+          <Sum bdt={row.saleBdt} />
+        </Line>
+        <Line label={t("ventures.herdCostOfGain")}>
+          <CostOfGainSaid bdt={row.costOfGainBdt} />
+        </Line>
+      </div>
+    </div>
+  );
+};
+
+const animalCard = (row: AnimalRow) => <AnimalCard row={row} />;
+
+/** The animals as rows, in the order the costing sends them until a column is sorted. */
+const AnimalsTable = ({ animals }: { animals: AnimalRow[] }) => {
+  const table = useListTable({
+    columns: animalColumns,
+    data: animals,
+    getRowId: (row) => row.tagNumber,
+  });
+  return <DataTable card={animalCard} minWidth="48rem" table={table} />;
+};
+
 /**
  * The animals this Venture's money bought: each one's weight when she came and now, how fast she is gaining,
  * what she cost, what she fetched and what she made — worst first once any are sold, because the question a
@@ -44,7 +249,6 @@ const whereSheIs = (
 export const VentureAnimals = ({ venture }: { venture: Venture }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
-  const weight = useKg();
   const rate = useTakaToThePaisa();
   const input = { input: { ventureId: venture.id } };
   const herd = useQuery(orpc.ventures.herd.queryOptions(input));
@@ -64,8 +268,6 @@ export const VentureAnimals = ({ venture }: { venture: Venture }) => {
     );
   }
   const orDash = (bdt: number | null) => (bdt === null ? "—" : taka(bdt));
-  const kg = (value: number | null | undefined) =>
-    value === null || value === undefined ? "—" : weight(value);
   return (
     <div className="flex flex-col gap-4">
       <Section>
@@ -88,91 +290,12 @@ export const VentureAnimals = ({ venture }: { venture: Venture }) => {
         </div>
       </Section>
       <Section>
-        <div className="-mx-4 overflow-x-auto md:-mx-5">
-          <Table className="min-w-[48rem]">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="ps-4 md:ps-5">
-                  {t("ventures.page.tag")}
-                </TableHead>
-                <TableHead>{t("ventures.page.whereSheIs")}</TableHead>
-                <TableHead className="text-end">
-                  {t("ventures.page.weight")}
-                </TableHead>
-                <TableHead className="text-end">
-                  {t("ventures.page.dailyGain")}
-                </TableHead>
-                <TableHead className="text-end">
-                  {t("ventures.page.bought")}
-                </TableHead>
-                <TableHead className="text-end">
-                  {t("ventures.page.fetched")}
-                </TableHead>
-                <TableHead className="text-end">
-                  {t("ventures.herdCostOfGain")}
-                </TableHead>
-                <TableHead className="pe-4 text-end md:pe-5">
-                  {t("ventures.page.margin")}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {animals.map((one) => {
-                const weighed = weights.get(one.tagNumber);
-                // Named, because the guard against untranslated JSX text reads an angle bracket in a
-                // comparison as a tag.
-                const lostMoney = one.marginBdt !== null && one.marginBdt < 0;
-                return (
-                  <TableRow key={one.tagNumber}>
-                    <TableCell className="ps-4 md:ps-5">
-                      <Link
-                        className="font-mono font-semibold tabular-nums underline-offset-4 hover:underline focus-visible:underline"
-                        params={{ tagNumber: one.tagNumber }}
-                        to="/animals/$tagNumber"
-                      >
-                        {one.tagNumber}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      {t(whereSheIs(weighed?.standing, one.saleBdt))}
-                    </TableCell>
-                    <TableCell className="text-end tabular-nums">
-                      {`${kg(weighed?.intakeKg)} → ${kg(weighed?.latestKg)}`}
-                    </TableCell>
-                    <TableCell className="text-end tabular-nums">
-                      {weighed?.dailyGainKg === null ||
-                      weighed?.dailyGainKg === undefined
-                        ? "—"
-                        : t("units.kgADay", {
-                            kg: formatNumber(weighed.dailyGainKg, language),
-                          })}
-                    </TableCell>
-                    <TableCell className="text-end tabular-nums">
-                      {orDash(one.purchaseBdt)}
-                    </TableCell>
-                    <TableCell className="text-end tabular-nums">
-                      {orDash(one.saleBdt)}
-                    </TableCell>
-                    {/* What each kilogram she put on cost: the figure the run is judged by, per animal. */}
-                    <TableCell className="text-end tabular-nums">
-                      {one.costOfGainBdt === null
-                        ? "—"
-                        : rate(one.costOfGainBdt)}
-                    </TableCell>
-                    <TableCell
-                      className={cn(
-                        "pe-4 text-end font-medium tabular-nums md:pe-5",
-                        lostMoney && "text-danger"
-                      )}
-                    >
-                      {orDash(one.marginBdt)}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+        <AnimalsTable
+          animals={animals.map((one) => ({
+            ...one,
+            weighed: weights.get(one.tagNumber),
+          }))}
+        />
       </Section>
     </div>
   );

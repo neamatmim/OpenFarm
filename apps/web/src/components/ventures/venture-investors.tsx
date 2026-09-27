@@ -2,19 +2,19 @@ import { formatNumber } from "@OpenFarm/i18n";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@OpenFarm/ui/components/table";
 import { useQuery } from "@tanstack/react-query";
 import { Banknote, FileText, PenLine, Users } from "lucide-react";
 import { useState } from "react";
 
+import {
+  ActionsHeader,
+  DataTable,
+  createListColumns,
+  listHeader,
+  useListTable,
+} from "@/components/data-table";
 import { useInvestorNames } from "@/components/investors/investor-names";
+import { Nothing } from "@/components/list-cells";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
 import { RowMenu } from "@/components/page-kit";
 import { AgreementPaperButton } from "@/components/ventures/agreement-paper";
@@ -30,11 +30,15 @@ import {
   SharePaid,
 } from "@/components/ventures/settling-up";
 import type { VentureActs } from "@/components/ventures/venture-card";
-import { moneyOf } from "@/components/ventures/venture-card";
+import { Line, moneyOf } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
 import type { Venture } from "@/lib/ventures";
+import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
+
+type Agreement = Awaited<ReturnType<typeof client.ventures.agreements>>[number];
+type Share = Parameters<typeof SharePaid>[0]["share"];
 
 /** How each kind of movement on an Agreement counts towards what it has paid: capital in, and capital sent back. */
 const CAPITAL_SIGN: Readonly<Record<string, number>> = {
@@ -108,6 +112,257 @@ export const PapersMenu = ({
   );
 };
 
+/** One signed paper as the table reads it: the man's name, what he owes and has paid, his share of an approved
+ *  Settlement, and what may be done from his row. */
+interface InvestorRow extends Agreement {
+  name: string;
+  owedBdt: number;
+  paidBdt: number;
+  share: Share | undefined;
+  /** Whether the Settlement is approved, and so each row says what it pays. */
+  approved: boolean;
+  /** The Settlement is approved: the settlement statement may be made. */
+  settled: boolean;
+  /** The Venture's own Advance is still out, and holds every payout until it is back. */
+  advanceFirst: boolean;
+  /** Capital is taken against the stamped paper, while the run is still gathering it. */
+  mayTakeCapital: boolean;
+  /** Nothing is done to the papers of a called-off Venture. */
+  cancelled: boolean;
+  papers: ReturnType<typeof useInvestorPapers>;
+  handleTakeCapital: () => void;
+  handlePay: () => void;
+  handleAcknowledge: () => void;
+}
+
+interface InvestorCell {
+  row: { original: InvestorRow };
+}
+
+/** His name, and what he writes on the transfer; an answer cached before the codes has none to show. */
+const NameCell = ({ row }: InvestorCell) => {
+  const { t } = useLanguage();
+  return (
+    <span className="flex flex-col">
+      <span className="font-medium">{row.original.name}</span>
+      {row.original.payInCode ? (
+        <span className="text-muted-foreground font-mono text-xs">
+          {t("ventures.payInCodeIs", { code: row.original.payInCode })}
+        </span>
+      ) : null}
+    </span>
+  );
+};
+
+const UnitsCell = ({ row }: InvestorCell) => {
+  const { language } = useLanguage();
+  return <>{formatNumber(row.original.units, language)}</>;
+};
+
+const SplitCell = ({ row }: InvestorCell) => {
+  const { t, language } = useLanguage();
+  return (
+    <>
+      {t("ventures.page.splitIs", {
+        investors: formatNumber(row.original.investorsPercent, language),
+        farm: formatNumber(row.original.farmPercent, language),
+      })}
+    </>
+  );
+};
+
+/** What he has paid against what his Units are worth, the paid part in the warning's colour until they agree. */
+const PaidCell = ({ row }: InvestorCell) => {
+  const taka = useTaka();
+  const { paidBdt, owedBdt } = row.original;
+  return (
+    <>
+      <span className={paidBdt === owedBdt ? undefined : "text-warning"}>
+        {taka(paidBdt)}
+      </span>
+      <span className="text-muted-foreground">{` / ${taka(owedBdt)}`}</span>
+    </>
+  );
+};
+
+/** Whether the farm holds the stamped paper's photo — the thing capital may not be taken without. */
+const PaperCell = ({ row }: InvestorCell) => {
+  const { t } = useLanguage();
+  return row.original.hasPaper ? (
+    <StatusBadge tone="success">{t("ventures.page.paperKept")}</StatusBadge>
+  ) : (
+    <StatusBadge tone="warning">{t("ventures.page.paperMissing")}</StatusBadge>
+  );
+};
+
+const PayoutCell = ({ row }: InvestorCell) => {
+  const taka = useTaka();
+  const { share } = row.original;
+  return share ? <>{taka(share.payoutBdt)}</> : <Nothing />;
+};
+
+/** What is done about one man's Agreement: his payout sent and his word on it written down, his capital taken, his
+ *  stamped paper photographed, his papers made. */
+const RowActions = ({
+  row,
+  idPrefix,
+}: {
+  row: InvestorRow;
+  /** Where the row is drawn, so the table's and the phone card's photo buttons do not share an id. */
+  idPrefix: string;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <>
+      {row.share ? (
+        <SharePaid
+          advanceFirst={row.advanceFirst}
+          onAcknowledge={row.handleAcknowledge}
+          onPay={row.handlePay}
+          share={row.share}
+        />
+      ) : null}
+      {row.mayTakeCapital ? (
+        <Button
+          onClick={row.handleTakeCapital}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          <Banknote aria-hidden data-icon="inline-start" />
+          {t("ventures.takeCapital")}
+        </Button>
+      ) : null}
+      {row.hasPaper || row.cancelled ? null : (
+        <AgreementPaperButton agreementId={row.id} idPrefix={idPrefix} />
+      )}
+      {row.cancelled ? null : (
+        <PapersMenu
+          agreementId={row.id}
+          hasPaid={row.paidBdt > 0}
+          name={row.name}
+          papers={row.papers}
+          settled={row.settled}
+        />
+      )}
+    </>
+  );
+};
+
+const ActionsCell = ({ row }: InvestorCell) => (
+  <div className="flex flex-wrap items-center justify-end gap-2">
+    <RowActions idPrefix="row" row={row.original} />
+  </div>
+);
+
+const column = createListColumns<InvestorRow>();
+const investorColumn = column.accessor("name", {
+  header: listHeader("ventures.investor"),
+  cell: NameCell,
+});
+const unitsColumn = column.accessor("units", {
+  header: listHeader("ventures.units"),
+  cell: UnitsCell,
+  meta: { align: "end" },
+});
+const splitColumn = column.accessor("investorsPercent", {
+  id: "split",
+  header: listHeader("ventures.page.split"),
+  cell: SplitCell,
+  meta: { align: "end" },
+});
+const paidColumn = column.accessor("paidBdt", {
+  id: "paid",
+  header: listHeader("ventures.page.paidOfOwed"),
+  cell: PaidCell,
+  meta: { align: "end" },
+});
+const paperColumn = column.accessor((row) => (row.hasPaper ? 1 : 0), {
+  id: "paper",
+  header: listHeader("ventures.page.paper"),
+  cell: PaperCell,
+});
+const payoutColumn = column.accessor((row) => row.share?.payoutBdt, {
+  id: "payout",
+  header: listHeader("ventures.page.payout"),
+  cell: PayoutCell,
+  meta: { align: "end" },
+});
+const actionsColumn = column.display({
+  id: "actions",
+  header: ActionsHeader,
+  cell: ActionsCell,
+  meta: { align: "end" },
+});
+const investorColumns = column.columns([
+  investorColumn,
+  unitsColumn,
+  splitColumn,
+  paidColumn,
+  paperColumn,
+  actionsColumn,
+]);
+const withPayoutColumns = column.columns([
+  investorColumn,
+  unitsColumn,
+  splitColumn,
+  paidColumn,
+  paperColumn,
+  payoutColumn,
+  actionsColumn,
+]);
+
+/** One man's paper on a phone: who he is and whether the paper is kept, his figures under them, and what may be done
+ *  about it at the foot. */
+const InvestorCard = ({ row }: { row: InvestorRow }) => {
+  const { t } = useLanguage();
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-start justify-between gap-3">
+        <NameCell row={{ original: row }} />
+        <PaperCell row={{ original: row }} />
+      </div>
+      <div className="text-sm">
+        <Line label={t("ventures.units")}>
+          <UnitsCell row={{ original: row }} />
+        </Line>
+        <Line label={t("ventures.page.split")}>
+          <SplitCell row={{ original: row }} />
+        </Line>
+        <Line label={t("ventures.page.paidOfOwed")}>
+          <PaidCell row={{ original: row }} />
+        </Line>
+        {row.approved ? (
+          <Line label={t("ventures.page.payout")}>
+            <PayoutCell row={{ original: row }} />
+          </Line>
+        ) : null}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <RowActions idPrefix="card" row={row} />
+      </div>
+    </div>
+  );
+};
+
+const investorCard = (row: InvestorRow) => <InvestorCard row={row} />;
+
+/** The signed papers as rows, with a payout column once the Settlement is approved. */
+const InvestorsTable = ({
+  rows,
+  approved,
+}: {
+  rows: InvestorRow[];
+  approved: boolean;
+}) => {
+  const table = useListTable({
+    columns: approved ? withPayoutColumns : investorColumns,
+    data: rows,
+    getRowId: (row) => row.id,
+  });
+  return <DataTable card={investorCard} table={table} />;
+};
+
 /**
  * Who has signed this Venture and on what: their Units, the split those Units earn, the capital they have
  * paid against what the Units are worth, and whether the farm holds the stamped paper's photo — the thing
@@ -125,7 +380,6 @@ export const VentureInvestors = ({
   acts: VentureActs;
 }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
   const nameOf = useInvestorNames();
   const input = { input: { ventureId: venture.id } };
   const agreements = useQuery(orpc.ventures.agreements.queryOptions(input));
@@ -153,16 +407,53 @@ export const VentureInvestors = ({
   if (agreements.isPending) {
     return <Skeleton className="h-40 rounded-xl" />;
   }
-  const rows = agreements.data ?? [];
+  const agreed = agreements.data ?? [];
   /** Whether a paper may take capital now: its stamped photo is on file and its Units are not all paid for. An answer
    *  cached before `capitalLeftBdt` was sent works it out from what has come in against it. */
-  const mayPayIn = (one: (typeof rows)[number]) =>
+  const mayPayIn = (one: Agreement) =>
     one.hasPaper &&
     (one.capitalLeftBdt ??
       one.units * venture.unitPriceBdt - (paid.get(one.id) ?? 0)) > 0;
   // Money that lands with only the bank's reference to go on is taken from over the table, where the reference's
   // Pay-in Code chooses whose it is; money already known to be one man's is taken from his row.
-  const someoneMayPayIn = rows.some(mayPayIn);
+  const someoneMayPayIn = agreed.some(mayPayIn);
+  const rows = agreed.map((one): InvestorRow => {
+    const share = shareOf.get(one.id);
+    return {
+      ...one,
+      name: nameOf(one.investorId),
+      owedBdt: one.units * venture.unitPriceBdt,
+      paidBdt: paid.get(one.id) ?? 0,
+      share,
+      approved: approved !== null,
+      settled,
+      advanceFirst,
+      mayTakeCapital: open && mayPayIn(one),
+      cancelled,
+      papers,
+      handleTakeCapital: () => acts.takeCapital(venture, one.id),
+      handlePay: () => {
+        if (share) {
+          setPaying({
+            ventureId: venture.id,
+            kind: "share",
+            title: share.name,
+            amountBdt: share.payoutBdt,
+            agreementId: one.id,
+          });
+        }
+      },
+      handleAcknowledge: () => {
+        if (share) {
+          setSaying({
+            ventureId: venture.id,
+            agreementId: one.id,
+            title: share.name,
+          });
+        }
+      },
+    };
+  });
   const actions = open ? (
     <>
       {someoneMayPayIn ? (
@@ -197,147 +488,7 @@ export const VentureInvestors = ({
       {rows.length === 0 ? (
         <EmptyState bare icon={Users} title={t("ventures.page.nobodySigned")} />
       ) : (
-        <div className="-mx-4 overflow-x-auto md:-mx-5">
-          <Table className="min-w-[40rem]">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="ps-4 md:ps-5">
-                  {t("ventures.investor")}
-                </TableHead>
-                <TableHead className="text-end">
-                  {t("ventures.units")}
-                </TableHead>
-                <TableHead className="text-end">
-                  {t("ventures.page.split")}
-                </TableHead>
-                <TableHead className="text-end">
-                  {t("ventures.page.paidOfOwed")}
-                </TableHead>
-                <TableHead>{t("ventures.page.paper")}</TableHead>
-                {approved ? (
-                  <TableHead className="text-end">
-                    {t("ventures.page.payout")}
-                  </TableHead>
-                ) : null}
-                <TableHead className="pe-4 md:pe-5">
-                  <span className="sr-only">{t("common.col.actions")}</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((one) => {
-                const owed = one.units * venture.unitPriceBdt;
-                const share = shareOf.get(one.id);
-                const hasPaid = paid.get(one.id) ?? 0;
-                return (
-                  <TableRow key={one.id}>
-                    <TableCell className="ps-4 md:ps-5">
-                      <span className="font-medium">
-                        {nameOf(one.investorId)}
-                      </span>
-                      {/* What he writes on the transfer; an answer cached before the codes has none to show. */}
-                      {one.payInCode ? (
-                        <span className="text-muted-foreground block font-mono text-xs">
-                          {t("ventures.payInCodeIs", { code: one.payInCode })}
-                        </span>
-                      ) : null}
-                    </TableCell>
-                    <TableCell className="text-end tabular-nums">
-                      {formatNumber(one.units, language)}
-                    </TableCell>
-                    <TableCell className="text-end tabular-nums">
-                      {t("ventures.page.splitIs", {
-                        investors: formatNumber(one.investorsPercent, language),
-                        farm: formatNumber(one.farmPercent, language),
-                      })}
-                    </TableCell>
-                    <TableCell className="text-end tabular-nums">
-                      <span
-                        className={
-                          hasPaid === owed ? undefined : "text-warning"
-                        }
-                      >
-                        {taka(hasPaid)}
-                      </span>
-                      <span className="text-muted-foreground">
-                        {` / ${taka(owed)}`}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {one.hasPaper ? (
-                        <StatusBadge tone="success">
-                          {t("ventures.page.paperKept")}
-                        </StatusBadge>
-                      ) : (
-                        <StatusBadge tone="warning">
-                          {t("ventures.page.paperMissing")}
-                        </StatusBadge>
-                      )}
-                    </TableCell>
-                    {approved ? (
-                      <TableCell className="text-end tabular-nums">
-                        {share ? taka(share.payoutBdt) : "—"}
-                      </TableCell>
-                    ) : null}
-                    <TableCell className="pe-4 md:pe-5">
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        {share ? (
-                          <SharePaid
-                            advanceFirst={advanceFirst}
-                            onAcknowledge={() =>
-                              setSaying({
-                                ventureId: venture.id,
-                                agreementId: one.id,
-                                title: share.name,
-                              })
-                            }
-                            onPay={() =>
-                              setPaying({
-                                ventureId: venture.id,
-                                kind: "share",
-                                title: share.name,
-                                amountBdt: share.payoutBdt,
-                                agreementId: one.id,
-                              })
-                            }
-                            share={share}
-                          />
-                        ) : null}
-                        {/* Capital is taken against the stamped paper, while the run is still gathering it. */}
-                        {open && mayPayIn(one) ? (
-                          <Button
-                            onClick={() => acts.takeCapital(venture, one.id)}
-                            size="sm"
-                            type="button"
-                            variant="outline"
-                          >
-                            <Banknote aria-hidden data-icon="inline-start" />
-                            {t("ventures.takeCapital")}
-                          </Button>
-                        ) : null}
-                        {one.hasPaper || cancelled ? null : (
-                          <AgreementPaperButton
-                            agreementId={one.id}
-                            idPrefix="row"
-                          />
-                        )}
-                        {cancelled ? null : (
-                          <PapersMenu
-                            agreementId={one.id}
-                            hasPaid={hasPaid > 0}
-                            name={nameOf(one.investorId)}
-                            papers={papers}
-                            settled={settled}
-                          />
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+        <InvestorsTable approved={approved !== null} rows={rows} />
       )}
       <PayOutSheet
         onOpenChange={(wanted) => {
