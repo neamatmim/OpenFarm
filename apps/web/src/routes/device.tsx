@@ -41,6 +41,7 @@ import {
   subscribeDevice,
   touchActiveUser,
 } from "@/lib/device";
+import { useFarmName } from "@/lib/farm-name";
 import { initialsOf } from "@/lib/initials";
 import { phoneOutbox } from "@/lib/outbox-client";
 import { currentListener } from "@/lib/push";
@@ -490,6 +491,7 @@ const DevicePage = () => {
 /** The Shed Phone's own door: the farm's name at the top, and the one card that asks what is needed next. */
 const DeviceScreen = () => {
   const t = useT();
+  const farmName = useFarmName();
   const token = useSyncExternalStore(
     subscribeDevice,
     getDeviceToken,
@@ -503,6 +505,7 @@ const DeviceScreen = () => {
       <DoorScreen
         header={<PublicHeader brandOnPhoneOnly />}
         home="/"
+        subtitle={farmName ?? undefined}
         promise={{
           title: t("device.promise.title"),
           points: [
