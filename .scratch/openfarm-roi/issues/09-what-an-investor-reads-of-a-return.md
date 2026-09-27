@@ -1,6 +1,8 @@
 # What an Investor reads of a return
 
-Status: open
+Status: done
+
+Assignee: Neamat Khan Mim
 
 Type: grilling
 
@@ -32,3 +34,14 @@ Since [What cattle still standing return](./06-what-cattle-still-standing-return
 Since [The bank rate beside it](./07-the-bank-rate-beside-it.md) (2026-09-27): the Bank Rate is the Owner's alone. An Investor is never shown a Venture beside a bank rate.
 
 ## Resolution
+
+Grilled with the Owner, 2026-09-27. Recorded as [ADR 0012](../../../docs/adr/0012-investors-read-a-settled-return-as-a-share-never-a-rate-a-year.md). CONTEXT.md's **Investor Statement** and **Return on Capital** entries widen to match.
+
+- **A settled Venture shows the Investor's Return on Capital as a share**, once the Settlement is approved. It appears on the portal's Venture page and on the হিসাব নিকাশ: the payout in taka first, then «প্রতি ১০০ টাকা মূলধনে … টাকা লাভ» over the Venture's own days, a loss the same way, under the standing footer. Chosen over the portal only and over taka only.
+- **Never a rate a year for Investors**, even labelled with its working. The Owner's stays the Owner's. Chosen over a portal rate behind a switch and over printing it.
+- **Each Venture on its own.** No blended figure across Ventures, which would be a track record in all but name. The money page keeps its taka totals.
+- **The Projection stays a taka range**, never a share or a rate, and nothing else running is shown. The "Projection as a %" ticked in while charting is settled here as not for Investors. The Owner's own running Return on Cost ([What cattle still standing return](./06-what-cattle-still-standing-return.md)) covers what it was for.
+- **No past result on an offer, never a top-up to any stated figure, no Bank Rate.** A gift from the Farm's share is shown as a gift.
+- **Words:** avoid মুনাফার হার, a bare «বার্ষিক রিটার্ন», নিশ্চিত, নির্ধারিত, ফিক্সড and secure, per the research.
+- **Behind the Owner's switch**, off until the lawyer and the Shariah scholar have seen the wording, as the Projections are. It shows in the Portal Preview meanwhile. The spec doesn't wait. The research's "Take to the lawyer and the Shariah scholar" questions go with it.
+- **For the spec:** a switch of its own beside `farm.investorProjections`, and an Audit Event when it is turned on. The হিসাব নিকাশ prints the share only while the switch is on, and a paper printed before then stays as it was.
