@@ -18,4 +18,6 @@ The Owner wants the return while a **Season** or a Venture is still going, not o
 - **A Venture.** Its **Projection** already estimates the Settlement. Does a running Venture's return come from the Projection, or from the same standing-value sum as a Season, and do the two agree?
 - **The words.** How the figure says it is an estimate, never a result, so the Owner never takes it for one.
 
+Since [What a return counts](./04-what-a-return-counts.md) (2026-09-27): the figure is **Return on Cost**, worked as a Settlement is. A standing animal's value takes the place of a price she has not fetched. A crossed animal the Owner has not priced leaves her Season "not yet a result"; say how that reads while the Season is still going.
+
 ## Resolution

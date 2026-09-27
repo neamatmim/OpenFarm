@@ -22,4 +22,6 @@ A dairy cow is not bought and sold in a **Season**. She is bought or bred, milke
 
 From [the research](../../../docs/research/measuring-a-cattle-return.md) (2026-09-27): dairy is measured per cow per year (IFCN), per lactation (BLRI) or per 100 kg of milk. Its returns are milk, calves at market, cull sales, manure and the change in herd value. A lifetime figure can rank cows differently from a yearly one. IFCN's cost of milk takes calves, culls and dung off the keep before dividing by milk; OpenFarm's Cost per Litre does not.
 
+Since [What a return counts](./04-what-a-return-counts.md) (2026-09-27): a calf bred here or a cow crossed to Fattening goes at a price the Owner enters, her weight × a rate a kilo. **That taka is the dairy herd's return for her.** Decide what a heifer calf kept to milk, or one sold as a calf, counts at.
+
 ## Resolution
