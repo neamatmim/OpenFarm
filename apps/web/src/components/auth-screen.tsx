@@ -1,5 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { BookOpenCheck, ShieldCheck, Sprout, WifiOff } from "lucide-react";
+import {
+  BookOpenCheck,
+  ShieldCheck,
+  Smartphone,
+  Sprout,
+  WifiOff,
+} from "lucide-react";
 import type { ReactNode } from "react";
 
 import { PublicHeader } from "@/components/public-header";
@@ -8,7 +14,8 @@ import { useT } from "@/i18n/language-provider";
 
 /**
  * The door into the farm: its promise on one side — the Playbook, the record, working without signal — and the
- * form on the other. On a phone the promise folds away and the form comes first.
+ * form on the other, with the way in for a Shed Phone under it. On a phone the promise folds away and the form comes
+ * first.
  */
 export const AuthScreen = ({ children }: { children: ReactNode }) => {
   const t = useT();
@@ -68,7 +75,19 @@ export const AuthScreen = ({ children }: { children: ReactNode }) => {
           id="main"
           tabIndex={-1}
         >
-          <div className="w-full max-w-md">{children}</div>
+          <div className="flex w-full max-w-md flex-col gap-6">
+            {children}
+            {/* The other way in, now the farm's address has no front page of its own: a phone set up for a shed. */}
+            <div className="flex text-sm">
+              <Link
+                className="text-primary inline-flex min-h-11 items-center gap-2 font-medium underline-offset-4 hover:underline md:min-h-9"
+                to="/device"
+              >
+                <Smartphone aria-hidden className="size-4" />
+                {t("home.shedPhone")}
+              </Link>
+            </div>
+          </div>
         </main>
       </div>
     </div>

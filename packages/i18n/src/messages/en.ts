@@ -5,11 +5,7 @@ export const en = {
   "language.bn": "বাংলা",
   "language.en": "English",
   "language.switch": "Change language",
-  "home.apiStatus": "API status",
   "home.shedPhone": "Open on a Shed Phone",
-  "home.checking": "Checking…",
-  "home.connected": "Connected",
-  "home.disconnected": "Disconnected",
   "auth.signIn": "Sign in",
   "auth.promise.title":
     "Every job on the farm, done the way the farm decided — and written down as it happens.",
