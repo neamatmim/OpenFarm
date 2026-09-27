@@ -163,7 +163,7 @@ const WORDED_REFUSALS = {
   joining_needs_a_window: "refusal.joiningNeedsAWindow",
   season_not_finished: "refusal.seasonNotFinished",
   no_such_season: "refusal.noSuchSeason",
-  cow_needs_no_price: "refusal.cowNeedsNoPrice",
+  bred_here_needs_no_price: "refusal.bredHereNeedsNoPrice",
   head_price_backwards: "refusal.headPriceBackwards",
   nothing_left_to_buy: "refusal.nothingLeftToBuy",
   an_animal_still_stands: "refusal.anAnimalStillStands",

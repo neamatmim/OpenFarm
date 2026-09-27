@@ -376,9 +376,8 @@ export const MoneyPapersTab = ({
       />
     ) : null}
     <WhatSheCost tagNumber={detail.tagNumber} />
-    {detail.side === "dairy" ? (
-      <DairyReturnsPanel animalId={detail.id} />
-    ) : null}
+    {/* Her dairy run, if she ever stood on the Dairy side — a bull calf walked across included; nothing otherwise. */}
+    <DairyReturnsPanel animalId={detail.id} />
     {powers.seesPapers ? (
       <HerPapers
         saleId={powers.runsTheFarm ? (detail.sale?.id ?? null) : null}

@@ -31,19 +31,20 @@ import { orpc } from "@/utils/orpc";
 type Dairy = ReturnsPage["dairy"];
 type DairyRun = Dairy["standing"][number];
 type HeadPrice = Dairy["headPrices"][number];
-type CowToPrice = Dairy["cowsToPrice"][number];
+type ToPrice = Dairy["toPrice"][number];
 type HeadPriceKind = Parameters<typeof client.returns.setHeadPrice>[0]["kind"];
 
 /** An answer the phone kept from before the dairy herd was on the page has none of it: read as an empty herd. */
 const NO_DAIRY: Dairy = {
-  herdNow: { head: 0, running: null, gaps: [] },
+  herdNow: { head: 0, milkBdt: 0, running: null, gaps: [] },
   standing: [],
   gone: [],
   headPrices: [],
-  cowsToPrice: [],
+  toPrice: [],
 };
 
-export const dairyOf = (page: ReturnsPage): Dairy => page.dairy ?? NO_DAIRY;
+/** The dairy part of the Returns page's answer, or an empty herd for one kept from before it had one. */
+const dairyPart = (page: ReturnsPage): Dairy => page.dairy ?? NO_DAIRY;
 
 /** The word for a kind of dairy Animal, as her State is called everywhere else. */
 const KIND_WORD = {
@@ -54,8 +55,11 @@ const KIND_WORD = {
   dry: "state.dry",
 } as const satisfies Record<HeadPriceKind, MessageKey>;
 
+const isHeadPriceKind = (state: string): state is HeadPriceKind =>
+  state in KIND_WORD;
+
 const stateSaid = (state: string, t: (key: MessageKey) => string): string =>
-  state in KIND_WORD ? t(KIND_WORD[state as HeadPriceKind]) : state;
+  isHeadPriceKind(state) ? t(KIND_WORD[state]) : state;
 
 /** How her run began: bred here from her birth, from the Owner's price and its day, or not priced yet. */
 const useCameSaid = () => {
@@ -134,18 +138,31 @@ const DairyRunFigure = ({
 /** One line for a run in a list: her result, her range today, or that she has no figure yet. */
 const DairyRunShort = ({ run }: { run: DairyRun }) => {
   const { t } = useLanguage();
+  const taka = useTaka();
   if (run.returnOnCost) {
     return <Result bdt={run.returnOnCost.resultBdt} />;
   }
   // Gone and counted, but no share to say: a calf who cost nothing and fetched nothing is a result of nothing.
-  const goneAtNoCost = run.left !== null && run.gaps.length === 0;
-  if (goneAtNoCost) {
-    return <Result bdt={run.milkBdt + (run.endBdt ?? 0) - run.costBdt} />;
+  const result = run.resultBdt ?? null;
+  if (result !== null) {
+    return <Result bdt={result} />;
   }
   if (run.running) {
     return (
       <span className="tabular-nums">
         <TodayRange running={run.running} />
+      </span>
+    );
+  }
+  // Here and counted, but nothing spent on her yet: no share, only what a head of her kind would fetch.
+  const worth = run.worthToday ?? null;
+  if (worth) {
+    return (
+      <span className="text-muted-foreground tabular-nums">
+        {t("returns.worthToday", {
+          low: taka(worth.lowBdt),
+          high: taka(worth.highBdt),
+        })}
       </span>
     );
   }
@@ -200,10 +217,12 @@ const Calves = ({ calves }: { calves: DairyRun[] }) => {
   );
 };
 
-/** The herd still here, together, at its Head Prices: a range, and whoever could not be counted, named. */
+/** The herd still here, together: a range at its Head Prices, its milk already back, and whoever could not be counted,
+ *  named. */
 export const DairyHerdNow = ({ page }: { page: ReturnsPage }) => {
   const { t } = useLanguage();
-  const { herdNow } = dairyOf(page);
+  const taka = useTaka();
+  const { herdNow } = dairyPart(page);
   if (herdNow.head === 0) {
     return <EmptyState bare icon={Milk} title={t("returns.dairyNone")} />;
   }
@@ -213,6 +232,11 @@ export const DairyHerdNow = ({ page }: { page: ReturnsPage }) => {
         {t("returns.herdNowHead", { count: herdNow.head })}
       </p>
       {herdNow.running ? <RunningLines running={herdNow.running} /> : null}
+      {herdNow.milkBdt > 0 ? (
+        <p className="text-muted-foreground text-sm tabular-nums">
+          {t("returns.herdMilk", { bdt: taka(herdNow.milkBdt) })}
+        </p>
+      ) : null}
       <Gaps gaps={herdNow.gaps} ventureId={null} />
     </div>
   );
@@ -222,7 +246,7 @@ export const DairyHerdNow = ({ page }: { page: ReturnsPage }) => {
 export const DairyGone = ({ page }: { page: ReturnsPage }) => {
   const words = useLanguage();
   const { t } = words;
-  const { gone } = dairyOf(page);
+  const { gone } = dairyPart(page);
   if (gone.length === 0) {
     return <EmptyState bare icon={Milk} title={t("returns.dairyNone")} />;
   }
@@ -329,7 +353,7 @@ export const HeadPriceList = ({ page }: { page: ReturnsPage }) => {
   return (
     <>
       <ul className="divide-border flex flex-col divide-y">
-        {dairyOf(page).headPrices.map((one) => (
+        {dairyPart(page).headPrices.map((one) => (
           <li
             className="flex flex-wrap items-center justify-between gap-2 py-2"
             key={one.kind}
@@ -365,8 +389,9 @@ export const HeadPriceList = ({ page }: { page: ReturnsPage }) => {
   );
 };
 
-/** The price a cow was taken on at, from a day — her registration's unless the Owner says — and where it came from. */
-const CowPriceSheet = ({
+/** The price a dairy Animal was taken on at, from a day — the day she went on the books unless the Owner says — and
+ *  where it came from. */
+const EntryPriceSheet = ({
   cow,
   onOpenChange,
 }: {
@@ -383,7 +408,7 @@ const CowPriceSheet = ({
       onError: refused,
       onSuccess: () => {
         onOpenChange(false);
-        toast.success(t("returns.cowSaved"));
+        toast.success(t("returns.entryPriceSaved"));
       },
     })
   );
@@ -391,7 +416,7 @@ const CowPriceSheet = ({
   const today = farmDayOf(new Date());
   return (
     <FormSheet
-      description={t("returns.cowsHint")}
+      description={t("returns.toPriceHint")}
       onOpenChange={onOpenChange}
       onSubmit={() =>
         saving.mutate({
@@ -405,9 +430,9 @@ const CowPriceSheet = ({
       pending={saving.isPending}
       ready={aFigure(priceBdt) && note.trim().length > 0 && asOf.length > 0}
       submitLabel={t("returns.priceIt")}
-      title={t("returns.cowPriceTitle", { tag: cow.tagNumber })}
+      title={t("returns.entryPriceTitle", { tag: cow.tagNumber })}
     >
-      <FormField id="cow-price" label={t("returns.cowPrice")}>
+      <FormField id="cow-price" label={t("returns.entryPrice")}>
         <Input
           autoComplete="off"
           id="cow-price"
@@ -425,7 +450,7 @@ const CowPriceSheet = ({
           value={asOf}
         />
       </FormField>
-      <FormField id="cow-note" label={t("returns.cowNote")}>
+      <FormField id="cow-note" label={t("returns.entryPriceNote")}>
         <Input
           autoComplete="off"
           id="cow-note"
@@ -437,13 +462,13 @@ const CowPriceSheet = ({
   );
 };
 
-/** Every cow still waiting on the Owner's price, each with the act that prices her. */
-export const CowsToPrice = ({ page }: { page: ReturnsPage }) => {
+/** Every dairy Animal still waiting on the Owner's price, each with the act that prices her. */
+export const AnimalsToPrice = ({ page }: { page: ReturnsPage }) => {
   const { t, language } = useLanguage();
-  const [pricing, setPricing] = useState<CowToPrice | null>(null);
-  const cows = dairyOf(page).cowsToPrice;
+  const [pricing, setPricing] = useState<ToPrice | null>(null);
+  const cows = dairyPart(page).toPrice;
   if (cows.length === 0) {
-    return <EmptyState bare icon={Tag} title={t("returns.cowsNone")} />;
+    return <EmptyState bare icon={Tag} title={t("returns.toPriceNone")} />;
   }
   return (
     <>
@@ -454,10 +479,10 @@ export const CowsToPrice = ({ page }: { page: ReturnsPage }) => {
             key={cow.animalId}
           >
             <span className="text-sm">
-              {t("returns.cowLine", {
+              {t("returns.toPriceLine", {
                 tag: cow.tagNumber,
                 state: stateSaid(cow.state, t),
-                day: formatDate(startOfFarmDay(cow.registeredOn), language),
+                day: formatDate(startOfFarmDay(cow.onTheBooksFrom), language),
               })}
             </span>
             <Button onClick={() => setPricing(cow)} size="sm" variant="outline">
@@ -467,11 +492,11 @@ export const CowsToPrice = ({ page }: { page: ReturnsPage }) => {
         ))}
       </ul>
       {pricing ? (
-        <CowPriceSheet
+        <EntryPriceSheet
           cow={{
             animalId: pricing.animalId,
             tagNumber: pricing.tagNumber,
-            asOf: pricing.registeredOn,
+            asOf: pricing.onTheBooksFrom,
           }}
           onOpenChange={(open) => {
             if (!open) {
@@ -516,13 +541,13 @@ export const DairyReturnsPanel = ({ animalId }: { animalId: string }) => {
             variant="outline"
           >
             {run.came === "priced"
-              ? t("returns.priceAgainCow")
+              ? t("returns.entryPriceAgain")
               : t("returns.priceIt")}
           </Button>
         ) : null}
         <Calves calves={calves} />
         {pricing ? (
-          <CowPriceSheet
+          <EntryPriceSheet
             cow={{
               animalId: run.animalId,
               tagNumber: run.tagNumber,
@@ -557,7 +582,7 @@ export const CullListReturn = ({
     enabled: owner,
   });
   const run = page.data
-    ? dairyOf(page.data).standing.find((one) => one.tagNumber === tagNumber)
+    ? dairyPart(page.data).standing.find((one) => one.tagNumber === tagNumber)
     : undefined;
   if (!run) {
     return null;

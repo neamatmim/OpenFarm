@@ -5,7 +5,7 @@ import { Beef, Landmark, Milk } from "lucide-react";
 import { Notice, Page, PageHeader, Section } from "@/components/page";
 import { PageTabs } from "@/components/page-kit";
 import {
-  CowsToPrice,
+  AnimalsToPrice,
   DairyGone,
   DairyHerdNow,
   HeadPriceList,
@@ -126,10 +126,10 @@ const ReturnsPage = () => {
             content: (
               <div className="flex flex-col gap-6">
                 <Section
-                  description={t("returns.cowsHint")}
-                  title={t("returns.cowsTitle")}
+                  description={t("returns.toPriceHint")}
+                  title={t("returns.toPriceTitle")}
                 >
-                  <CowsToPrice page={page} />
+                  <AnimalsToPrice page={page} />
                 </Section>
                 <Section
                   description={t("returns.headPricesHint")}

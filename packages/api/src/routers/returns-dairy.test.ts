@@ -30,7 +30,9 @@ import { appRouter } from "./index";
 // average: 13.374 × 365 ÷ 73.08 is 66.8 a year. Neither calf's money is hers.
 // B: ৳300 cost, ৳30,000 back, ৳29,700 — out 50 days, under the floor, so no year.
 // H: ৳300 so far, standing, at the Head Price for a calf once the Owner sets one: ৳15,000 to ৳20,000.
-// U: never priced, and named until she is.
+// C: U's heifer calf, born 20 March, fed nothing yet — nothing spent, and still worth a calf's Head Price.
+// U: not priced, and named until she is; then priced at ৳60,000 from 1 January — ৳61,500 with her feed — her 40
+// litres ৳2,400 already back, and at a cow in milk's Head Price of ৳70,000 to ৳90,000.
 
 const suffix = `${Date.now()}`.slice(-7);
 
@@ -133,8 +135,8 @@ const weighInSop = (): SopContent => ({
 
 const pens = { cows: "", calves: "", fattening: "" };
 const sops = { feeding: "", milking: "", weighing: "" };
-const tags = { m: "", u: "", h: "", b: "" };
-const ids = { m: "", u: "", h: "", b: "" };
+const tags = { m: "", u: "", h: "", b: "", c: "" };
+const ids = { m: "", u: "", h: "", b: "", c: "" };
 let concentrate = "";
 
 /** The Pen's work of one SOP, due at this instant, claimed by whoever does it. */
@@ -327,6 +329,24 @@ beforeAll(async () => {
     note: `বাছুরের দর ${suffix}`,
   });
 
+  const { client: calving } = await as("manager", "2045-03-20T04:00:00.000Z");
+  const c = await calving.animals.register({
+    sex: "female",
+    side: "dairy",
+    state: "calf",
+    penId: pens.calves,
+    source: "born",
+    birthDate: new Date("2045-03-20T00:00:00.000Z"),
+    aliases: [],
+  });
+  tags.c = c.tagNumber;
+  const hers = await calving.animals.byTag({ tagNumber: tags.c });
+  ids.c = hers.id;
+  await scratchDb()
+    .update(animal)
+    .set({ damId: ids.u })
+    .where(eq(animal.id, ids.c));
+
   const { client: selling } = await as("manager", "2045-03-15T00:00:00.000Z");
   await selling.sale.record({
     tagNumber: tags.m,
@@ -356,7 +376,7 @@ describe("a cow bought, or here before the books", () => {
       returnOnCost: null,
       gaps: [{ tagNumber: tags.m, why: "no_entry_price" }],
     });
-    expect(dairy.cowsToPrice.map((one) => one.tagNumber).toSorted()).toEqual(
+    expect(dairy.toPrice.map((one) => one.tagNumber).toSorted()).toEqual(
       [tags.m, tags.u].toSorted()
     );
   });
@@ -388,7 +408,7 @@ describe("a cow bought, or here before the books", () => {
         perYear: 66.8,
       },
     });
-    expect(dairy.cowsToPrice.map((one) => one.tagNumber)).toEqual([tags.u]);
+    expect(dairy.toPrice.map((one) => one.tagNumber)).toEqual([tags.u]);
   });
 
   it("is never priced for one bred here, who is counted from her birth", async () => {
@@ -401,7 +421,7 @@ describe("a cow bought, or here before the books", () => {
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
-      data: { refusal: "cow_needs_no_price" },
+      data: { refusal: "bred_here_needs_no_price" },
     });
   });
 });
@@ -438,13 +458,14 @@ describe("every calf her own", () => {
 });
 
 describe("a dairy Animal still here", () => {
-  it("is named, not counted, while her kind has no Head Price, and counts at it once set", async () => {
+  it("is named, not counted, while her kind has no Head Price, and counts at it once set — one who has cost nothing too", async () => {
     const before = await dairyPage();
     expect(before.dairy.herdNow).toMatchObject({
-      head: 2,
+      head: 3,
       running: null,
       gaps: expect.arrayContaining([
         { tagNumber: tags.h, why: "no_head_price" },
+        { tagNumber: tags.c, why: "no_head_price" },
         { tagNumber: tags.u, why: "no_entry_price" },
       ]),
     });
@@ -456,22 +477,71 @@ describe("a dairy Animal still here", () => {
       highBdt: 20_000,
     });
     const { dairy } = await dairyPage();
-    // H alone: U is left out whole — not priced, and no Head Price set for a cow in milk.
+    // H and C at a calf's price, C though she has cost nothing; U left out whole — not priced, and no Head Price set
+    // for a cow in milk.
     expect(dairy.herdNow).toMatchObject({
-      head: 2,
+      head: 3,
       gaps: [
         { tagNumber: tags.u, why: "no_entry_price" },
         { tagNumber: tags.u, why: "no_head_price" },
       ],
       running: {
         standingCostBdt: 300,
-        standingLowBdt: 15_000,
-        standingHighBdt: 20_000,
+        standingLowBdt: 30_000,
+        standingHighBdt: 40_000,
       },
+    });
+    expect(
+      dairy.standing.find((one) => one.tagNumber === tags.c)
+    ).toMatchObject({
+      costBdt: 0,
+      worthToday: { lowBdt: 15_000, highBdt: 20_000 },
+      gaps: [],
     });
     expect(dairy.headPrices.find((one) => one.kind === "calf")).toMatchObject({
       lowBdt: 15_000,
       highBdt: 20_000,
+    });
+  });
+
+  it("says her milk as what she has already brought back, apart from what she would fetch today", async () => {
+    const { client: owner } = await as("owner", READ_AT);
+    await owner.returns.setHeadPrice({
+      kind: "milking",
+      lowBdt: 70_000,
+      highBdt: 90_000,
+    });
+    await owner.returns.priceCow({
+      animalId: ids.u,
+      priceBdt: 60_000,
+      note: `খোলার দিনের দাম ${suffix}`,
+    });
+    const { dairy } = await dairyPage();
+    expect(
+      dairy.standing.find((one) => one.tagNumber === tags.u)
+    ).toMatchObject({
+      costBdt: 61_500,
+      milkBdt: 2400,
+      worthToday: { lowBdt: 70_000, highBdt: 90_000 },
+      running: {
+        soldResultBdt: 2400,
+        standingCostBdt: 61_500,
+        standingLowBdt: 70_000,
+        standingHighBdt: 90_000,
+      },
+    });
+    // The herd: H, C and U, nobody left out. ৳2,400 of milk already back; ৳61,800 spent on them, worth ৳1,00,000 to
+    // ৳1,30,000 today.
+    expect(dairy.herdNow).toMatchObject({
+      head: 3,
+      gaps: [],
+      milkBdt: 2400,
+      running: {
+        soldResultBdt: 2400,
+        standingCostBdt: 61_800,
+        standingLowBdt: 100_000,
+        standingHighBdt: 130_000,
+      },
     });
   });
 

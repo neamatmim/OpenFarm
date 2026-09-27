@@ -10,6 +10,7 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
+import { EVER_ON_THE_DAIRY_SIDE, bredHere } from "../dairy-returns";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { priceTheJoining, weighedForTheCrossing } from "../joining-store";
@@ -85,28 +86,21 @@ export const returnsRouter = {
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const her = await context.db.query.animal.findFirst({
-        where: { id: input.animalId, farmId: context.farm.id },
-        columns: {
-          id: true,
-          side: true,
-          source: true,
-          damId: true,
-          createdAt: true,
+        where: {
+          id: input.animalId,
+          farmId: context.farm.id,
+          ...EVER_ON_THE_DAIRY_SIDE,
         },
-        with: {
-          entryPrice: true,
-          joinings: { where: { how: "crossed" }, columns: { id: true } },
-        },
+        columns: { id: true, source: true, damId: true, createdAt: true },
+        with: { entryPrice: true },
       });
-      const everDairy =
-        her && (her.side === "dairy" || her.joinings.length > 0);
-      if (!everDairy) {
+      if (!her) {
         throw new ORPCError("NOT_FOUND", { message: "No such dairy animal" });
       }
-      if (her.source === "born" && her.damId !== null) {
+      if (bredHere(her)) {
         throw new ORPCError("BAD_REQUEST", {
           message: "One bred here is counted from her birth, at nothing",
-          data: { refusal: "cow_needs_no_price" },
+          data: { refusal: "bred_here_needs_no_price" },
         });
       }
       const asOf = input.asOf ?? farmDayOf(her.createdAt);
@@ -183,10 +177,11 @@ export const returnsRouter = {
         setBy: context.actor.id,
         setAt: now,
       };
+      const id = set?.id ?? uuidv7(now);
       await audited(context).write(
         {
           entity: "head_price",
-          entityId: input.kind,
+          entityId: id,
           action: set ? "update" : "create",
           before: set
             ? { lowBdt: set.lowBdt, highBdt: set.highBdt }
@@ -197,7 +192,7 @@ export const returnsRouter = {
           tx
             .insert(headPrice)
             .values({
-              id: uuidv7(now),
+              id,
               farmId: context.farm.id,
               kind: input.kind,
               ...price,

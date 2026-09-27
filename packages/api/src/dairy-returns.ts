@@ -49,16 +49,39 @@ export interface DairyRun {
   endBdt: number | null;
   /** The months her milk went at an earlier month's price, for want of a Dispatch in them. */
   milkPricedEarlier: string[];
+  /** Once gone and counted: what came back less what she cost, in taka — said even where there is no share to say,
+   *  for a calf who cost nothing and fetched nothing. */
+  resultBdt: number | null;
   /** Once gone: her result, put a year past the floor. */
   returnOnCost: Returned | null;
-  /** While here: at her kind's Head Price, low and high, her milk so far in. */
+  /** While here and counted: her kind's Head Price, what she would fetch today, low and high. */
+  worthToday: HeadRange | null;
+  /** While here: her milk so far as what she has already brought back, and her Head Price as what she would fetch. */
   running: RunningRange | null;
   /** Why she is in no figure, if she is not. */
   gaps: Gap[];
 }
 
+/** What a head of one kind would fetch today, low and high. */
+export interface HeadRange {
+  lowBdt: number;
+  highBdt: number;
+}
+
 /** The Head Prices, one for each kind of dairy Animal. */
-type HeadPrices = Map<string, { lowBdt: number; highBdt: number }>;
+type HeadPrices = Map<string, HeadRange>;
+
+/**
+ * Bred here: born to a dam the farm wrote down, so counted from her birth at nothing and never priced. One registered
+ * as born with no dam was here before the books began, and is priced as one bought is.
+ */
+export const bredHere = (her: { source: string; damId: string | null }) =>
+  her.source === "born" && her.damId !== null;
+
+/** Every Animal who has stood on the Dairy side: there now, or walked across from it to Fattening. */
+export const EVER_ON_THE_DAIRY_SIDE = {
+  OR: [{ side: "dairy" as const }, { joinings: { how: "crossed" as const } }],
+};
 
 /** A month of the farm's, as its first day says it. */
 const monthKey = (at: Date) => farmDayOf(at).slice(0, 7);
@@ -159,16 +182,9 @@ export interface DairyBooks {
 }
 
 /** Every dairy Animal the farm has had, with what her run needs to know of her. */
-const dairyAnimalsOf = async (
-  db: Database,
-  farmId: string,
-  crossed: string[]
-) =>
+const dairyAnimalsOf = async (db: Database, farmId: string) =>
   await db.query.animal.findMany({
-    where: {
-      farmId,
-      OR: [{ side: "dairy" }, { id: { in: crossed } }],
-    },
+    where: { farmId, ...EVER_ON_THE_DAIRY_SIDE },
     columns: {
       id: true,
       tagNumber: true,
@@ -197,7 +213,7 @@ const cameOf = (
       priceBdt: her.entryPrice.priceBdt,
     };
   }
-  if (her.source === "born" && her.damId !== null) {
+  if (bredHere(her)) {
     return { came: "born", from: her.birthDate ?? her.createdAt, priceBdt: 0 };
   }
   return { came: "unpriced", from: null, priceBdt: 0 };
@@ -230,7 +246,7 @@ const whyUncounted = (
   came: Came,
   milk: Milked,
   went: Ended,
-  head: { lowBdt: number; highBdt: number } | undefined
+  head: HeadRange | undefined
 ): Gap["why"][] => [
   ...(came === "unpriced" ? (["no_entry_price"] as const) : []),
   ...(milk ? [] : (["no_milk_price"] as const)),
@@ -252,14 +268,24 @@ const whatSheCost = (
     .map((one) => ({ bdt: one.bdt, from: one.at, until })),
 ];
 
-/** Her figure: a result once she has gone, a range at her Head Price while she is here — none where she is uncounted. */
+/**
+ * Her figure: a result once she has gone; while she is here, a range — her milk so far as what she has already
+ * brought back, apart from her Head Price as what she would fetch today. None where she is uncounted.
+ */
 const figuresOf = (
   spent: Spent[],
   milkBdt: number,
   finished: { bdt: number | null } | null,
-  standing: { lowBdt: number; highBdt: number } | null,
+  standing: HeadRange | null,
   floorDays: number
 ) => ({
+  resultBdt: finished
+    ? roundTaka(
+        milkBdt +
+          (finished.bdt ?? 0) -
+          spent.reduce((sum, one) => sum + one.bdt, 0)
+      )
+    : null,
   returnOnCost: finished
     ? returnOf({
         spent,
@@ -268,14 +294,11 @@ const figuresOf = (
         finished: true,
       })
     : null,
+  worthToday: standing,
   running: standing
     ? runningRangeOf({
-        sold: { spent: [], backBdt: 0 },
-        standing: {
-          spent,
-          lowBdt: standing.lowBdt + milkBdt,
-          highBdt: standing.highBdt + milkBdt,
-        },
+        sold: { spent: [], backBdt: milkBdt },
+        standing: { spent, lowBdt: standing.lowBdt, highBdt: standing.highBdt },
       })
     : null,
 });
@@ -336,10 +359,7 @@ const dairyRunsOf = async (
   floorDays: number,
   now: Date
 ) => {
-  const crossed = books.joinings
-    .filter((one) => one.how === "crossed")
-    .map((one) => one.animalId);
-  const animals = await dairyAnimalsOf(db, farmId, crossed);
+  const animals = await dairyAnimalsOf(db, farmId);
   const milkPrices = await monthlyMilkPrices(db, farmId);
   const heads = await db.query.headPrice.findMany({
     where: { farmId },
@@ -360,30 +380,29 @@ const dairyRunsOf = async (
 };
 
 /**
- * The herd still here, together: every dairy Animal standing at her kind's Head Price, low and high, her milk so far
- * in — an estimate, never put a year — with those who cannot be counted left out whole and named.
+ * The herd still here, together: what its milk has brought back so far, and every dairy Animal standing at her kind's
+ * Head Price, low and high, as what it would fetch today — an estimate, never put a year — with those who cannot be
+ * counted left out whole and named. One who has cost nothing yet is still counted at her Head Price.
  */
 const herdNowOf = (
   standing: readonly DairyRun[],
   spentOf: ReadonlyMap<string, Spent[]>
 ) => {
-  const counted = standing.filter((one) => one.running !== null);
-  const sum = (of: (run: RunningRange) => number) =>
-    counted.reduce(
-      (total, one) => total + (one.running ? of(one.running) : 0),
-      0
-    );
+  const counted = standing.filter((one) => one.worthToday !== null);
+  const sum = (of: (run: DairyRun) => number) =>
+    counted.reduce((total, one) => total + of(one), 0);
   return {
     head: standing.length,
+    milkBdt: roundTaka(sum((run) => run.milkBdt)),
     running:
       counted.length === 0
         ? null
         : runningRangeOf({
-            sold: { spent: [], backBdt: 0 },
+            sold: { spent: [], backBdt: sum((run) => run.milkBdt) },
             standing: {
               spent: counted.flatMap((one) => spentOf.get(one.animalId) ?? []),
-              lowBdt: sum((run) => run.standingLowBdt),
-              highBdt: sum((run) => run.standingHighBdt),
+              lowBdt: sum((run) => run.worthToday?.lowBdt ?? 0),
+              highBdt: sum((run) => run.worthToday?.highBdt ?? 0),
             },
           }),
     gaps: standing.flatMap((one) => one.gaps),
@@ -408,7 +427,7 @@ export const dairyOf = async (
   const calvesOf = (animalId: string) =>
     runs.filter((one) => one.damId === animalId);
   const standing = runs.filter((one) => one.left === null);
-  const registered = new Map(animals.map((one) => [one.id, one.createdAt]));
+  const written = new Map(animals.map((one) => [one.id, one.createdAt]));
   return {
     herdNow: herdNowOf(standing, spentOf),
     /** Each dairy Animal still here, for the Cull list to set her return so far beside her reasons. */
@@ -429,14 +448,15 @@ export const dairyOf = async (
         highBdt: set?.highBdt ?? null,
       };
     }),
-    /** Every dairy Animal the Owner has yet to price: bought, or here before the books. */
-    cowsToPrice: runs
+    /** Every dairy Animal the Owner has yet to price: bought, or here before the books, with the day she was written
+     *  down on the farm's books, which her price counts from unless the Owner says. */
+    toPrice: runs
       .filter((one) => one.came === "unpriced")
       .map((one) => ({
         animalId: one.animalId,
         tagNumber: one.tagNumber,
         state: one.state,
-        registeredOn: farmDayOf(registered.get(one.animalId) ?? now),
+        onTheBooksFrom: farmDayOf(written.get(one.animalId) ?? now),
       })),
   };
 };

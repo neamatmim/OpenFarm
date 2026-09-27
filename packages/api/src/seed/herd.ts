@@ -434,12 +434,14 @@ export const priceTheDairyHerd = async (farm: Farm, herd: Herd) => {
         : "খাতা খোলার দিন পাড়ার বেপারীর মুখের দাম",
     });
   }
-  for (const [kind, lowBdt, highBdt] of [
-    ["calf", 12_000, 18_000],
-    ["heifer", 40_000, 55_000],
-    ["pregnant_heifer", 65_000, 85_000],
-    ["milking", 85_000, 120_000],
+  // The Owner's opening prices stand as the Head Prices too — all but a dry cow's, which waits.
+  for (const kind of [
+    "calf",
+    "heifer",
+    "pregnant_heifer",
+    "milking",
   ] as const) {
+    const [lowBdt, highBdt] = OPENING_PRICE[kind];
     // oxlint-disable-next-line no-await-in-loop -- one kind at a time
     await farm.as.owner.returns.setHeadPrice({ kind, lowBdt, highBdt });
   }
