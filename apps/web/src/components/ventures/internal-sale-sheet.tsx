@@ -8,6 +8,13 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
+import {
+  NEXT_EID,
+  WindowChoice,
+  windowOf,
+  windowReady,
+} from "@/components/returns/window-choice";
+import type { WindowPick } from "@/components/returns/window-choice";
 import type { PickerOption } from "@/components/searchable-picker";
 import { SearchablePicker } from "@/components/searchable-picker";
 import { useLanguage } from "@/i18n/language-provider";
@@ -56,6 +63,18 @@ const asOption = (
  *
  * Opened from a bull's own page with him chosen, or from a Venture's page with it as the one taking him on.
  */
+/** Whether every one of these was typed. */
+const allTyped = (...typed: string[]): boolean =>
+  typed.every((one) => one.trim() !== "");
+
+/** Where the Farm takes her on, the Season she joins must be said; nowhere else is it asked. */
+const seasonSaid = (to: string, season: WindowPick): boolean =>
+  to !== THE_FARM || windowReady(season);
+
+/** The window sent: only where the Farm takes her on, and nothing for the next Eid. */
+const seasonFor = (to: string, season: WindowPick) =>
+  to === THE_FARM ? windowOf(season) : undefined;
+
 export const InternalSaleSheet = ({
   open,
   onOpenChange,
@@ -73,6 +92,8 @@ export const InternalSaleSheet = ({
   const [note, setNote] = useState("");
   const [soldOn, setSoldOn] = useState("");
   const [reference, setReference] = useState("");
+  // Where the Farm takes her on, the Season she joins: the next Eid unless another window is said.
+  const [season, setSeason] = useState<WindowPick>(NEXT_EID);
   // Read only once it is open: it sits closed on every animal's page, where most people may read neither.
   const ventures = useQuery({
     ...orpc.ventures.takingAnimals.queryOptions(),
@@ -92,6 +113,7 @@ export const InternalSaleSheet = ({
         setNote("");
         setSoldOn("");
         setReference("");
+        setSeason(NEXT_EID);
         onOpenChange(false);
         toast.success(
           t("ventures.soldInternally", {
@@ -114,9 +136,8 @@ export const InternalSaleSheet = ({
     her !== undefined &&
     toChosen &&
     rateBdtPerKg > 0 &&
-    note.trim() !== "" &&
-    reference.trim() !== "" &&
-    soldOn !== "";
+    allTyped(note, reference, soldOn) &&
+    seasonSaid(to, season);
   const options = animals.map((one) => asOption(one, t, language));
   return (
     <FormSheet
@@ -126,6 +147,7 @@ export const InternalSaleSheet = ({
         selling.mutate({
           tagNumber,
           toVentureId: to === THE_FARM ? undefined : to,
+          targetWindow: seasonFor(to, season),
           rateBdtPerKg,
           note,
           soldOn,
@@ -231,6 +253,9 @@ export const InternalSaleSheet = ({
           value={note}
         />
       </FormField>
+      {to === THE_FARM ? (
+        <WindowChoice id="internal-season" onPick={setSeason} pick={season} />
+      ) : null}
     </FormSheet>
   );
 };

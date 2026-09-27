@@ -7,6 +7,13 @@ import { toast } from "sonner";
 
 import { TagLink } from "@/components/fattening/fattening-words";
 import { FormField, FormSheet } from "@/components/page-kit";
+import {
+  NEXT_EID,
+  WindowChoice,
+  windowOf,
+  windowReady,
+} from "@/components/returns/window-choice";
+import type { WindowPick } from "@/components/returns/window-choice";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
 import { useRefused } from "@/lib/refused";
@@ -62,6 +69,14 @@ const WhatIsLeft = ({
  * her price her own, and the note says where the rate came from, since an Investor asking years later
  * why his bull was worth that is owed a figure and a reason.
  */
+/** Whether every one of these was typed. */
+const allTyped = (...typed: string[]): boolean =>
+  typed.every((one) => one.trim() !== "");
+
+/** A rate typed, and a number other than nought. */
+const aRate = (typed: string, rate: number): boolean =>
+  typed !== "" && !Number.isNaN(rate) && rate !== 0;
+
 export const BuyWhatIsLeftSheet = ({
   venture,
   open,
@@ -83,6 +98,8 @@ export const BuyWhatIsLeftSheet = ({
   const [note, setNote] = useState("");
   const [boughtOn, setBoughtOn] = useState("");
   const [reference, setReference] = useState("");
+  // The one Season every animal the Farm takes joins: the next Eid unless another window is said.
+  const [season, setSeason] = useState<WindowPick>(NEXT_EID);
   useFreshFor(venture?.id, () => {
     setRate("");
     setNote("");
@@ -117,12 +134,9 @@ export const BuyWhatIsLeftSheet = ({
   const ready =
     venture !== null &&
     unweighed.length === 0 &&
-    rate !== "" &&
-    !Number.isNaN(rateBdtPerKg) &&
-    rateBdtPerKg !== 0 &&
-    note.trim() !== "" &&
-    boughtOn !== "" &&
-    reference.trim() !== "";
+    aRate(rate, rateBdtPerKg) &&
+    allTyped(note, boughtOn, reference) &&
+    windowReady(season);
   return (
     <FormSheet
       description={t("ventures.buyWhatIsLeftHint", {
@@ -138,6 +152,7 @@ export const BuyWhatIsLeftSheet = ({
           boughtOn,
           paymentMethod: "bank",
           reference,
+          targetWindow: windowOf(season),
         })
       }
       open={open}
@@ -197,6 +212,7 @@ export const BuyWhatIsLeftSheet = ({
           />
         </FormField>
       </div>
+      <WindowChoice id="wind-up-season" onPick={setSeason} pick={season} />
     </FormSheet>
   );
 };

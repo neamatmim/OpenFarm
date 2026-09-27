@@ -1,4 +1,4 @@
-import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
+import { farmDayOf, priceAtWeight, startOfFarmDay } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -6,7 +6,7 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, Landmark, Sprout } from "lucide-react";
+import { ChevronDown, Landmark, Scale, Sprout } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -620,6 +620,13 @@ const GapFix = ({ gap, ventureId }: { gap: Gap; ventureId: string | null }) => {
   const { t } = useLanguage();
   const className = "text-sm underline-offset-4 hover:underline";
   const label = t(`returns.fix.${gap.why}`);
+  if (gap.why === "not_priced") {
+    return (
+      <Link className={className} search={{ tab: "prices" }} to="/returns">
+        {label}
+      </Link>
+    );
+  }
   if (gap.why === "no_weight") {
     return (
       <Link
@@ -868,5 +875,148 @@ export const VentureReturnsPanel = ({ ventureId }: { ventureId: string }) => {
         {t("returns.seeAll")} →
       </Link>
     </section>
+  );
+};
+
+type Crossing = ReturnsPage["crossingsToPrice"][number];
+
+const PriceCrossingSheet = ({
+  crossing,
+  onOpenChange,
+}: {
+  crossing: Crossing;
+  onOpenChange: (open: boolean) => void;
+}) => {
+  const { t } = useLanguage();
+  const taka = useTaka();
+  const refused = useRefused();
+  const [rate, setRate] = useState("");
+  const [note, setNote] = useState("");
+  const saving = useMutation(
+    orpc.returns.priceCrossing.mutationOptions({
+      onError: refused,
+      onSuccess: () => {
+        onOpenChange(false);
+        toast.success(t("returns.priceSaved"));
+      },
+    })
+  );
+  const rateBdtPerKg = figureOf(rate);
+  const weightKg = crossing.weightKg ?? 0;
+  const ready = aFigure(rateBdtPerKg) && note.trim().length > 0;
+  return (
+    <FormSheet
+      description={t("returns.crossingsHint")}
+      onOpenChange={onOpenChange}
+      onSubmit={() =>
+        saving.mutate({
+          joiningId: crossing.id,
+          rateBdtPerKg: rateBdtPerKg ?? 0,
+          note: note.trim(),
+        })
+      }
+      open
+      pending={saving.isPending}
+      ready={ready}
+      submitLabel={t("returns.priceIt")}
+      title={`${t("returns.priceTitle")} · ${crossing.tagNumber}`}
+    >
+      <FormField
+        hint={
+          aFigure(rateBdtPerKg)
+            ? t("returns.priceWorks", {
+                kg: weightKg,
+                rate: taka(rateBdtPerKg ?? 0),
+                price: taka(priceAtWeight(weightKg, rateBdtPerKg ?? 0)),
+              })
+            : undefined
+        }
+        id="crossing-rate"
+        label={t("returns.rate")}
+      >
+        <Input
+          autoComplete="off"
+          id="crossing-rate"
+          inputMode="decimal"
+          onChange={(event) => setRate(event.target.value)}
+          value={rate}
+        />
+      </FormField>
+      <FormField id="crossing-note" label={t("returns.rateNote")}>
+        <Input
+          autoComplete="off"
+          id="crossing-note"
+          onChange={(event) => setNote(event.target.value)}
+          value={note}
+        />
+      </FormField>
+    </FormSheet>
+  );
+};
+
+/**
+ * Every animal walked across from Dairy still waiting on the Owner's price, oldest first: what she weighed by the day
+ * she crossed, and the act that prices her — or, where nobody weighed her, the word to weigh her first.
+ */
+export const CrossingsToPrice = ({ page }: { page: ReturnsPage }) => {
+  const { t, language } = useLanguage();
+  const [pricing, setPricing] = useState<Crossing | null>(null);
+  const crossings = page.crossingsToPrice ?? [];
+  if (crossings.length === 0) {
+    return <EmptyState bare icon={Scale} title={t("returns.crossingsNone")} />;
+  }
+  return (
+    <>
+      <ul className="divide-border flex flex-col divide-y">
+        {crossings.map((one) => (
+          <li
+            className="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between"
+            key={one.id}
+          >
+            <span className="flex flex-col">
+              <span className="font-medium">
+                {t("returns.crossingLine", {
+                  tag: one.tagNumber,
+                  day: formatDate(startOfFarmDay(one.joinedOn), language),
+                })}
+              </span>
+              <span className="text-muted-foreground text-sm">
+                {one.weightKg === null
+                  ? t("returns.crossingUnweighed")
+                  : t("returns.crossingWeighed", { kg: one.weightKg })}
+              </span>
+            </span>
+            {one.weightKg === null ? (
+              <Link
+                className="text-sm underline-offset-4 hover:underline"
+                params={{ tagNumber: one.tagNumber }}
+                to="/animals/$tagNumber"
+              >
+                {t("returns.fix.no_weight")}
+              </Link>
+            ) : (
+              <Button
+                className="self-start"
+                onClick={() => setPricing(one)}
+                size="sm"
+                variant="outline"
+              >
+                {t("returns.priceIt")}
+              </Button>
+            )}
+          </li>
+        ))}
+      </ul>
+      {pricing ? (
+        <PriceCrossingSheet
+          crossing={pricing}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPricing(null);
+            }
+          }}
+        />
+      ) : null}
+    </>
   );
 };

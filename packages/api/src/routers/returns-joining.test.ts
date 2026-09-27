@@ -98,8 +98,10 @@ beforeAll(async () => {
       source: "born",
       aliases: [],
     });
-  calfA = (await calf()).tagNumber;
-  calfB = (await calf()).tagNumber;
+  const first = await calf();
+  const second = await calf();
+  calfA = first.tagNumber;
+  calfB = second.tagNumber;
 
   const { client: buying } = await as("manager", "2030-10-01T00:00:00.000Z");
   await buying.intake.record({

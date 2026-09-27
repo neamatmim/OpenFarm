@@ -18,8 +18,8 @@ import {
 import { pricesOnTheSide } from "./animal-price-store";
 import type { FarmCosts } from "./cost-store";
 import { farmCosts } from "./cost-store";
-import { approvedSettlementOf } from "./settlement-store";
 import { weighedForTheCrossing } from "./joining-store";
+import { approvedSettlementOf } from "./settlement-store";
 import { ownedThenByOf } from "./venture-store";
 
 /**
@@ -322,32 +322,6 @@ const spentOn = (
 const backOf = (holdings: readonly Holding[]) =>
   holdings.reduce((sum, one) => sum + (one.left?.backBdt ?? 0), 0);
 
-/**
- * What a group of holdings returned: once every Animal has gone, a result — Return on Cost, put a year past the floor;
- * while any stands, a range at today's price — what those gone brought back, and those standing valued as the animal
- * prices value them, low and high — never put a year. A standing Animal who cannot be valued is left out whole, her
- * cost and her value both, and named, so the want of a price never reads as a loss.
- */
-const returnOfHoldings = (
-  books: Books,
-  owner: string | null,
-  holdings: readonly Holding[],
-  today: Date,
-  floorDays: number
-) => {
-  // A crossing not priced yet is no part of any figure: counted with no price, she would read as bought for nothing.
-  const unpriced = holdings.filter((one) => one.unpriced);
-  const unpricedGaps: Gap[] = unpriced.map((one) => ({
-    tagNumber: one.unpriced?.tagNumber ?? "",
-    why: "not_priced",
-  }));
-  const priced = holdings.filter((one) => !one.unpriced);
-  return withGaps(
-    returnOfPriced(books, owner, priced, today, floorDays, unpriced.length > 0),
-    unpricedGaps
-  );
-};
-
 /** The gaps the prices could not fill, added to the ones a valuation could not. */
 const withGaps = <T extends { gaps: Gap[] }>(worked: T, more: Gap[]): T => ({
   ...worked,
@@ -410,6 +384,32 @@ const returnOfPriced = (
   };
 };
 
+/**
+ * What a group of holdings returned: once every Animal has gone, a result — Return on Cost, put a year past the floor;
+ * while any stands, a range at today's price — what those gone brought back, and those standing valued as the animal
+ * prices value them, low and high — never put a year. A standing Animal who cannot be valued is left out whole, her
+ * cost and her value both, and named, so the want of a price never reads as a loss.
+ */
+const returnOfHoldings = (
+  books: Books,
+  owner: string | null,
+  holdings: readonly Holding[],
+  today: Date,
+  floorDays: number
+) => {
+  // A crossing not priced yet is no part of any figure: counted with no price, she would read as bought for nothing.
+  const unpriced = holdings.filter((one) => one.unpriced);
+  const unpricedGaps: Gap[] = unpriced.map((one) => ({
+    tagNumber: one.unpriced?.tagNumber ?? "",
+    why: "not_priced",
+  }));
+  const priced = holdings.filter((one) => !one.unpriced);
+  return withGaps(
+    returnOfPriced(books, owner, priced, today, floorDays, unpriced.length > 0),
+    unpricedGaps
+  );
+};
+
 /** A **Season** as the Owner reads it on the Returns page. */
 export interface SeasonReturn {
   key: string;
@@ -463,7 +463,9 @@ const seasonsOf = (
   }
   // And every one who joined the Farm's Fattening side other than by Intake: walked across from Dairy, or bought
   // from a Venture — from the day she joined, at the price she joined at, or named until a crossing is priced.
-  const tagOf = new Map(books.costs.animals.map((one) => [one.id, one.tagNumber]));
+  const tagOf = new Map(
+    books.costs.animals.map((one) => [one.id, one.tagNumber])
+  );
   for (const joining of books.joinings) {
     if (books.ownedThenBy(joining.animalId, joining.joinedAt) !== null) {
       continue;

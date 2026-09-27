@@ -20,6 +20,17 @@ export interface JoiningPrice {
   pricedAt: Date;
 }
 
+/** A price as its columns keep it. */
+const priceColumns = (price: JoiningPrice) => ({
+  priceBdt: price.priceBdt,
+  weighInId: price.weighInId,
+  weightKg: price.weightKg.toFixed(2),
+  rateBdtPerKg: price.rateBdtPerKg.toFixed(2),
+  note: price.note,
+  pricedBy: price.pricedBy,
+  pricedAt: price.pricedAt,
+});
+
 /**
  * Puts an Animal who has come to the Farm's own Fattening side other than by Intake — walked across from Dairy, or bought
  * from a Venture — into the **Season** of her Target Window, from the moment she came. The window is the one said, or
@@ -80,17 +91,6 @@ export const joinTheFattening = async (
     targetWindow: { start: targetWindow.start, end: targetWindow.end },
   };
 };
-
-/** A price as its columns keep it. */
-const priceColumns = (price: JoiningPrice) => ({
-  priceBdt: price.priceBdt,
-  weighInId: price.weighInId,
-  weightKg: price.weightKg.toFixed(2),
-  rateBdtPerKg: price.rateBdtPerKg.toFixed(2),
-  note: price.note,
-  pricedBy: price.pricedBy,
-  pricedAt: price.pricedAt,
-});
 
 /** Sets, or puts right, the price a joining came in at. */
 export const priceTheJoining = async (

@@ -293,6 +293,66 @@ const fattenTheBulls = ({ farm, on }: Script) => {
 };
 
 /**
+ * Two heifer calves walked across to Fattening on a weigh-in morning, before the crush: they join the next Eid's
+ * Season, the morning's round weighs them, and the Owner prices one at noon — ৳380 a kilo, what a calf of hers would
+ * fetch — leaving the other waiting on a price, so the Returns page has a crossing priced and one to price.
+ */
+const crossTwoCalves = ({ farm, on }: Script) => {
+  const day = addDays(farm.start, 2 + 14 * 4);
+  // Chosen on the morning, from the herd as it stands then: a calf the script loses before this day is not walked.
+  const crossed: string[] = [];
+  on(day, "06:40", "two calves walked across to Fattening", async (f, h) => {
+    const calves = [];
+    for (const one of h.cows.values()) {
+      if (one.state !== "calf" || one.pen !== "calves" || calves.length === 2) {
+        continue;
+      }
+      // The farm's own word on whether she is still here: a calf the script lost earlier is gone from the pens.
+      // oxlint-disable-next-line no-await-in-loop -- one calf at a time
+      const her = await f.as.manager.animals.byTag({ tagNumber: one.tag });
+      if (her.state === "calf") {
+        calves.push(one);
+      }
+    }
+    for (const calf of calves) {
+      // oxlint-disable-next-line no-await-in-loop -- one calf at a time through the gate
+      await f.as.manager.animals.move({
+        tagNumber: calf.tag,
+        toPenId: f.pens.bullsA,
+        toSide: "fattening",
+        reason: "বকনা বাছুর মোটাতাজা করা হবে",
+      });
+      h.cows.delete(calf.tag);
+      crossed.push(calf.tag);
+      h.bulls.set(calf.tag, {
+        tag: calf.tag,
+        pen: "bullsA",
+        breed: calf.breed,
+        weightKg: 110,
+        dailyGainKg: 0.55,
+        arrivedOn: day,
+        state: "fattening",
+      });
+    }
+  });
+  on(day, "12:00", "the Owner prices the first crossing", async (f) => {
+    const [first] = crossed;
+    if (!first) {
+      return;
+    }
+    const { crossingsToPrice } = await f.as.owner.returns.page();
+    const hers = crossingsToPrice.find((one) => one.tagNumber === first);
+    if (hers?.weightKg) {
+      await f.as.owner.returns.priceCrossing({
+        joiningId: hers.id,
+        rateBdtPerKg: 380,
+        note: "বাছুরের এ সপ্তাহের হাটের দর",
+      });
+    }
+  });
+};
+
+/**
  * The dairy side's campaigns: FMD before the rains, deworming, and lumpy skin. A bought bull's vaccines and drenches are
  * his own, counted from the day he came, so no campaign here reaches the fattening pens — and none can clash with the
  * day a Venture's bulls are made ready for sale.
@@ -901,6 +961,7 @@ export const scriptTheDays = (farm: Farm, herd: Herd): Happening[] => {
     sendTheMilk,
     calveTheCows,
     fattenTheBulls,
+    crossTwoCalves,
     runTheCampaigns,
     keepTheBooks,
     organiseThePeople,

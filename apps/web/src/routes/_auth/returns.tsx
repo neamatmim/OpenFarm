@@ -6,6 +6,7 @@ import { Notice, Page, PageHeader, Section } from "@/components/page";
 import { PageTabs } from "@/components/page-kit";
 import {
   BankRateList,
+  CrossingsToPrice,
   FinishedReturns,
   MissingPrices,
   ReturnsChart,
@@ -92,12 +93,20 @@ const ReturnsPage = () => {
             label: t("returns.tab.prices"),
             icon: Landmark,
             content: (
-              <Section
-                description={t("returns.bankHint")}
-                title={t("returns.bankTitle")}
-              >
-                <BankRateList page={page} />
-              </Section>
+              <div className="flex flex-col gap-6">
+                <Section
+                  description={t("returns.crossingsHint")}
+                  title={t("returns.crossingsTitle")}
+                >
+                  <CrossingsToPrice page={page} />
+                </Section>
+                <Section
+                  description={t("returns.bankHint")}
+                  title={t("returns.bankTitle")}
+                >
+                  <BankRateList page={page} />
+                </Section>
+              </div>
             ),
           },
         ]}

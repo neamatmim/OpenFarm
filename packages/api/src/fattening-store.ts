@@ -30,9 +30,9 @@ export const startOfFattening = <
   intake: T | null | undefined,
   joinings: readonly JoiningRow[] | undefined
 ): (IntakeRow & { targetWindowEnd: string }) | null => {
-  const joined = (joinings ?? []).toSorted(
+  const [joined] = (joinings ?? []).toSorted(
     (a, b) => b.joinedAt.getTime() - a.joinedAt.getTime()
-  )[0];
+  );
   if (joined && (!intake || joined.joinedAt > intake.arrivedAt)) {
     return {
       weightKg: joined.weightKg,
