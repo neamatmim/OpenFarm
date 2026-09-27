@@ -27,15 +27,20 @@ const NOT_OF_A_NUMBER = /[^\d.-]/gu;
 export const timeInDigits = (time: string, language: Language): string =>
   time.replaceAll(/\d/gu, (digit) => formatDigits(Number(digit), language));
 
+/** Text as a Bangla keyboard typed it, with its digits read as 0–9 and everything else left as it was: a code of
+ *  letters and digits, say, where a number would drop the letters. */
+export const latinDigitsOf = (text: string): string =>
+  text.replaceAll(BANGLA_DIGIT, (digit) =>
+    String(BANGLA_DIGITS.indexOf(digit))
+  );
+
 /**
  * A figure as somebody is typing it, in the digits it is stored in: Bangla numerals become English ones, and what
  * cannot be part of a number — grouping commas, a unit, a second decimal point, a minus anywhere but the front — is
  * dropped. A milker whose phone types ১২.৫ has typed 12.5, not nothing.
  */
 export const numberAsTyped = (text: string): string => {
-  const digits = text
-    .replaceAll(BANGLA_DIGIT, (digit) => String(BANGLA_DIGITS.indexOf(digit)))
-    .replaceAll(NOT_OF_A_NUMBER, "");
+  const digits = latinDigitsOf(text).replaceAll(NOT_OF_A_NUMBER, "");
   const negative = digits.startsWith("-");
   const [whole = "", ...fraction] = digits.replaceAll("-", "").split(".");
   const figure = fraction.length > 0 ? `${whole}.${fraction.join("")}` : whole;

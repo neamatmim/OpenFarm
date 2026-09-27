@@ -32,6 +32,18 @@ describe("enrolling a Shed Phone", () => {
     });
   });
 
+  it("takes the code however it was typed off the Manager's screen — small letters, spaces, a dash", async () => {
+    const manager = await createTestClient(appRouter, { as: "manager" });
+    const enrolled = await manager.client.devices.enrol({
+      name: `phone-typed-${Date.now()}`,
+    });
+    // Read out in two halves, typed on a phone that does not capitalise.
+    const typed =
+      `${enrolled.code.slice(0, 5)} - ${enrolled.code.slice(5)}`.toLowerCase();
+    const claimed = await manager.client.devices.claim({ code: typed });
+    expect(claimed.device.id).toBe(enrolled.id);
+  });
+
   it("a stranger's wrong codes lock out the stranger, not the farm's next phone", async () => {
     const WRONG_CODES_ALLOWED = 10;
     const stranger = await createTestClient(appRouter, {

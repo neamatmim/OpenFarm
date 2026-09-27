@@ -1,12 +1,12 @@
 import { verifyPin } from "@OpenFarm/domain";
-import { formatDigits, numberAsTyped } from "@OpenFarm/i18n";
+import { formatDigits, latinDigitsOf, numberAsTyped } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ChevronLeft,
   ChevronRight,
@@ -39,6 +39,7 @@ import {
   subscribeDevice,
   touchActiveUser,
 } from "@/lib/device";
+import { initialsOf } from "@/lib/initials";
 import { phoneOutbox } from "@/lib/outbox-client";
 import { currentListener } from "@/lib/push";
 import { handOverThisPhone } from "@/lib/query-cache";
@@ -50,6 +51,13 @@ const PIN_LENGTH = 4;
 const DEFAULT_AUTO_LOCK_MINUTES = 5;
 const LOCK_TICK_MS = 15_000;
 const PAD_DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
+
+/** The longest code the farm takes, as the server does: ten characters, room for a stray one. */
+const CODE_MAX_LENGTH = 16;
+
+/** The one act of a step, big enough for a thumb at every width: the button's own `md:` height would shrink it on a
+ *  tablet in the office, so the height is said at `md` too. */
+const BIG_BUTTON = "h-14 w-full text-lg md:h-14 md:text-lg";
 
 /** Every step of the Shed Phone's door is the same card: one thing asked of whoever is holding the phone. */
 const CARD = "surface mx-auto flex w-full max-w-sm flex-col gap-5 p-6 sm:p-8";
@@ -75,7 +83,8 @@ const StepHead = ({
   </div>
 );
 
-/** A person's first letter in a circle, so a milker finds their own name by its shape before reading it. */
+/** A person's initials in a circle — মোঃ and the like left out — so a milker finds their own name by its shape before
+ *  reading it. */
 const Initial = ({
   name,
   size = "md",
@@ -87,10 +96,10 @@ const Initial = ({
     aria-hidden
     className={cn(
       "bg-primary text-primary-foreground grid shrink-0 place-items-center rounded-full font-semibold",
-      size === "lg" ? "size-16 text-2xl" : "size-10 text-base"
+      size === "lg" ? "size-16 text-2xl" : "size-10 text-sm"
     )}
   >
-    {name.slice(0, 1)}
+    {initialsOf(name)}
   </span>
 );
 
@@ -293,24 +302,40 @@ const DevicePage = () => {
         />
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="code">{t("device.code")}</Label>
+          {/* Letters and digits, so the letter keyboard, in capitals: a phone's number pad cannot type the code. Spaces
+              and dashes where the Manager paused are dropped, and a Bangla keyboard's digits read as the code's. */}
           <Input
+            autoCapitalize="characters"
             autoComplete="off"
+            autoCorrect="off"
+            className="h-16 text-center font-mono text-2xl tracking-[0.2em] uppercase md:h-16 md:text-2xl"
             id="code"
-            inputMode="numeric"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            className="h-16 text-center font-mono text-3xl tracking-widest md:h-16 md:text-3xl"
+            inputMode="text"
+            maxLength={CODE_MAX_LENGTH}
+            onChange={(e) =>
+              setCode(
+                latinDigitsOf(e.target.value)
+                  .replaceAll(/[\s-]/gu, "")
+                  .toUpperCase()
+              )
+            }
             required
+            spellCheck={false}
+            value={code}
           />
         </div>
-        <Button
-          type="submit"
-          className="h-14 w-full text-lg"
-          disabled={claim.isPending}
-        >
+        <Button type="submit" className={BIG_BUTTON} disabled={claim.isPending}>
           {claim.isPending ? <Spinner /> : null}
           {t("device.enrol")}
         </Button>
+        {/* Somebody who came here by mistake, or a Manager on their own phone, has a way back. */}
+        <Link
+          className="text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex min-h-11 items-center justify-center gap-1 self-center rounded-md px-2 text-sm font-medium outline-none focus-visible:ring-2"
+          to="/login"
+        >
+          <ChevronLeft aria-hidden className="size-4" />
+          {t("device.backToSignIn")}
+        </Link>
       </form>
     );
   }
@@ -333,7 +358,7 @@ const DevicePage = () => {
           ) : null}
         </div>
         <Button
-          className="h-14 w-full text-lg"
+          className={BIG_BUTTON}
           onClick={() => navigate({ to: "/today" })}
         >
           {t("device.startWork")}
@@ -341,7 +366,7 @@ const DevicePage = () => {
         </Button>
         <Button
           variant="outline"
-          className="h-12 w-full text-base"
+          className="h-12 w-full text-base md:h-12 md:text-base"
           onClick={() => {
             void lockAndPutAway(queryClient);
             void lockOnTheFarm();
@@ -388,18 +413,34 @@ const DevicePage = () => {
         </div>
         <div className="flex flex-col items-center gap-3">
           <Label htmlFor="pin">{t("device.enterPin")}</Label>
-          <Input
-            id="pin"
-            type="password"
-            // The pad below is the keyboard: the phone's own would cover it. A keyboard plugged in still types.
-            inputMode="none"
-            autoComplete="off"
-            autoFocus
-            maxLength={PIN_LENGTH}
-            value={pin}
-            onChange={(e) => typePin(e.target.value)}
-            className="h-16 w-56 text-center font-mono text-4xl tracking-[0.6em] md:h-16 md:text-4xl"
-          />
+          {/* Four dots that fill as the digits go in: how many there are, and how many are in, at a glance. The field
+              under them is what a plugged-in keyboard types into and a screen reader reads. */}
+          <div className="relative flex h-12 items-center gap-4">
+            {Array.from({ length: PIN_LENGTH }, (_, index) => (
+              <span
+                aria-hidden
+                className={cn(
+                  "size-4 rounded-full border-2 transition-colors duration-150",
+                  index < pin.length
+                    ? "border-primary bg-primary"
+                    : "border-muted-foreground/40"
+                )}
+                key={index}
+              />
+            ))}
+            <Input
+              id="pin"
+              type="password"
+              // The pad below is the keyboard: the phone's own would cover it. A keyboard plugged in still types.
+              inputMode="none"
+              autoComplete="off"
+              autoFocus
+              maxLength={PIN_LENGTH}
+              value={pin}
+              onChange={(e) => typePin(e.target.value)}
+              className="absolute inset-0 h-full w-full cursor-default opacity-0 md:h-full"
+            />
+          </div>
         </div>
         <PinPad
           onDelete={() => setPin((current) => current.slice(0, -1))}

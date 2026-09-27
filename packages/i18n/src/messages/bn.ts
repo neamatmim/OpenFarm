@@ -2054,8 +2054,10 @@ export const bn: Record<MessageKey, string> = {
   "device.revokeTitle": "{name} বাতিল করবেন?",
   "device.revokeWhy":
     "ফোনটি সঙ্গে সঙ্গে কাজ করা বন্ধ করবে, আর কোনো খবর পাবে না। আবার ব্যবহার করতে নতুন করে যুক্ত করুন।",
+  "device.backToSignIn": "সাইন ইনে ফিরুন",
   "device.setup": "এই ফোনটি সেট করুন",
-  "device.setupHelp": "ম্যানেজারের কাছ থেকে সংযুক্তি কোড নিন।",
+  "device.setupHelp":
+    "ম্যানেজারের স্ক্রিনে দেখানো কোডটি লিখুন — অক্ষর আর সংখ্যা মিলিয়ে ১০টি।",
   "device.enrol": "সেট করুন",
   "device.enrolled": "এই ফোন প্রস্তুত",
   "device.whoAreYou": "কে কাজ করছেন?",
