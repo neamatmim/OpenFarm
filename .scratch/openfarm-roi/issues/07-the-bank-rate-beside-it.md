@@ -19,4 +19,6 @@ The Owner wants each return set beside a rate the money could have earned in a b
 
 From [the second research](../../../docs/research/stating-a-mudarabah-return.md) (2026-09-27): candidates are an Islamic bank's final mudaraba rate, a yearly published Shariah-side figure, or Bangladesh Bank's deposit-rate chart. Bank tables show profit before and after the 10% tax. For the Owner's own judgement a bank rate beside the return is ordinary. For Investors it points the other way: BSEC says a past return is no basis for comparing investments, and the collapsed schemes sold themselves as beating bank savings. Whether a Venture may be set beside an interest rate at all is a question for the Shariah scholar.
 
+Since [What a return counts](./04-what-a-return-counts.md) (2026-09-27): there are two ratios, **Return on Cost** and **Return on Capital**. A bank rate is a return on money deposited, so it reads most like Return on Capital. Decide which of the two it sits beside.
+
 ## Resolution

@@ -23,4 +23,6 @@ From [the research](../../../docs/research/measuring-a-cattle-return.md) (2026-0
 
 From [the second research](../../../docs/research/stating-a-mudarabah-return.md) (2026-09-27): a settled return is a fact. Show it after the Settlement is approved, in taka first, then as a share of capital over the Venture's own days, and a loss the same way. A rate a year never alone and never the most prominent figure. The Projection never as a rate a year; at most a low–high share of capital over the run, never printed. No past result on an offer, and never a top-up to any stated figure. On paper the choices are the share only, both, or neither. The research lists the questions for the lawyer and the Shariah scholar, and recommends they see the wording before any switch turns on.
 
+Since [What a return counts](./04-what-a-return-counts.md) (2026-09-27): an Investor's figure is **Return on Capital**, their profit share over their capital after the Farm's share, said «প্রতি ১০০ টাকা মূলধনে … টাকা লাভ». A gift from the Farm's share is shown as a gift, not as their return.
+
 ## Resolution
