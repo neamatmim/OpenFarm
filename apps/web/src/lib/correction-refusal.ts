@@ -224,7 +224,7 @@ const WORDED_REFUSALS = {
 } as const satisfies Record<string, MessageKey>;
 
 /** The figures a refusal carries beside its word — how soon, how many — for words that have a place for them. */
-const figuresOf = (data: Record<string, unknown>): MessageParams => {
+export const figuresOf = (data: Record<string, unknown>): MessageParams => {
   const figures: MessageParams = {};
   for (const [key, value] of Object.entries(data)) {
     const aFigure = typeof value === "number" || typeof value === "string";

@@ -10,8 +10,6 @@ import {
   STANDARD_FEED_ITEMS,
   findBandProblems,
   findRationProblems,
-  isByWeight,
-  mayGoByWeight,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -26,6 +24,7 @@ import {
   feedingTargetForPen,
   linesOf,
   publishRationVersion,
+  refuseFeedsNotFed,
 } from "../feed-store";
 import { requirePen } from "../herd-store";
 import { protectedProcedure } from "../index";
@@ -552,34 +551,14 @@ export const feedRouter = {
               farmId: context.farm.id,
               id: { in: input.items.map((line) => line.feedItemId) },
             },
-            columns: { id: true, unit: true, retiredAt: true },
+            columns: { id: true, nameBn: true, unit: true, retiredAt: true },
           });
           if (known.length !== input.items.length) {
             throw new ORPCError("NOT_FOUND", {
               message: "That is not one of this farm's feeds",
             });
           }
-          // A Ration is what the Pen is fed from now on, and a retired feed is one the farm no longer keeps.
-          if (known.some((one) => one.retiredAt !== null)) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: "A retired feed is not fed; bring it back first",
-              data: { refusal: "feed_retired" },
-            });
-          }
-          // "Three for every hundred kilos of body weight" is a quantity; bundles are counted, by the head.
-          const unitOf = new Map(known.map((one) => [one.id, one.unit]));
-          const countedByWeight = input.items.some(
-            (line) =>
-              isByWeight(line) &&
-              !mayGoByWeight(unitOf.get(line.feedItemId) ?? "kg")
-          );
-          if (countedByWeight) {
-            throw new ORPCError("BAD_REQUEST", {
-              message:
-                "A feed counted in bundles is given by the head, not by weight",
-              data: { refusal: "bundles_by_the_head" },
-            });
-          }
+          refuseFeedsNotFed(known, input.items);
           if (rationId) {
             const existing = await tx.query.ration.findFirst({
               where: { id: rationId, farmId: context.farm.id },

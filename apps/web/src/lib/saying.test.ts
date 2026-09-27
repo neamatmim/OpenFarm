@@ -25,6 +25,15 @@ describe("saying why the farm refused", () => {
     );
   });
 
+  it("fills the screen's own words with what the refusal names", () => {
+    // Setup asks for every standard Ration at once, so "that feed is retired" would leave the Owner asking which.
+    const words = { feed_retired: "setup.standard.feedRetired" } as const;
+    const retired = Object.assign(new Error("server's English"), {
+      data: { refusal: "feed_retired", feed: "Rice straw" },
+    });
+    expect(sayWhy(retired, t, words)).toContain("Rice straw");
+  });
+
   it("names the window when a Correction is out of time", () => {
     const outOfTime = refused({
       role: "staff",

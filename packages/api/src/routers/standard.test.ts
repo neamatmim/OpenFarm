@@ -45,7 +45,7 @@ describe("a farm started with the standard lists", () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
     const own = await owner.client.feed.addItem({
       name: { bn: STANDARD_FEED_ITEMS.napier.bn, en: "Our own Napier" },
-      unit: "bundle",
+      unit: "kg",
     });
 
     const added = await owner.client.farm.startWithStandard({
@@ -63,7 +63,7 @@ describe("a farm started with the standard lists", () => {
       standardFeeds.toSorted()
     );
     const napier = items.find((item) => item.id === own.id);
-    expect(napier).toMatchObject({ nameEn: "Our own Napier", unit: "bundle" });
+    expect(napier).toMatchObject({ nameEn: "Our own Napier", unit: "kg" });
 
     // Every Ration is in force at its first Version, fed from this farm's own Feed Items — the Napier its own.
     const rations = await owner.client.feed.rations();

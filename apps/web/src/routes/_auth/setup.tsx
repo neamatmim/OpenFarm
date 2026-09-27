@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import Loader from "@/components/loader";
 import { Page } from "@/components/page";
 import { useLanguage, useT } from "@/i18n/language-provider";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 /** One standard list to start with or not, with what it would bring. */
@@ -65,6 +66,13 @@ const StandardChoice = ({
   );
 };
 
+/** The standard Rations are held as a Ration saved by hand is, and all of them are asked for at once: which feed stood
+ *  in the way, and what the Owner can do about it. */
+const RATIONS_REFUSED = {
+  feed_retired: "setup.standard.feedRetired",
+  bundles_by_the_head: "setup.standard.bundlesByTheHead",
+} as const;
+
 /**
  * The Owner's second step: the farm starts with the standard lists, or empty. Offered again whenever the Owner comes
  * back here — asking twice adds nothing, so there is nothing to guard.
@@ -73,6 +81,7 @@ const StandardStep = () => {
   const t = useT();
   const navigate = useNavigate();
   const [kinds, setKinds] = useState<StandardKind[]>([...STANDARD_KINDS]);
+  const refused = useRefused(RATIONS_REFUSED);
   const goOn = () => navigate({ to: "/dashboard" });
   const start = useMutation(
     orpc.farm.startWithStandard.mutationOptions({
@@ -80,7 +89,7 @@ const StandardStep = () => {
         toast.success(t("setup.standard.done"));
         await goOn();
       },
-      onError: () => toast.error(t("common.error")),
+      onError: refused,
     })
   );
   const toggle = (kind: StandardKind) =>
