@@ -464,7 +464,7 @@ const DevicePage = () => {
             <li key={person.userId}>
               <Button
                 variant="outline"
-                className="h-auto min-h-16 w-full justify-start gap-3 py-2 text-start text-lg whitespace-normal"
+                className="h-auto min-h-16 w-full justify-start gap-3 py-2 text-start text-lg whitespace-normal md:h-auto"
                 onClick={() => setChosen(person)}
               >
                 <Initial name={person.name} />
