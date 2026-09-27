@@ -81,7 +81,7 @@ const useSeasonName = () => {
 };
 
 /** What every hundred taka made, said as made or lost, a loss in the loss's colour: a return line's first words. */
-const ShareSaid = ({
+export const ShareSaid = ({
   per100,
   on,
   className,
@@ -105,7 +105,7 @@ const ShareSaid = ({
 };
 
 /** The share first, then the days its money was out, then that share scaled to a year — never the year alone. */
-const ReturnLines = ({
+export const ReturnLines = ({
   shares,
   floorDays,
   on,
@@ -168,7 +168,7 @@ const Working = ({ returned }: { returned: Returned }) => {
 };
 
 /** The result in taka, said as made or lost. */
-const Result = ({ bdt }: { bdt: number }) => {
+export const Result = ({ bdt }: { bdt: number }) => {
   const { t } = useLanguage();
   const taka = useTaka();
   return (
@@ -258,10 +258,11 @@ const NONE_WORD = {
   band: "returns.none.band",
 } as const satisfies Record<Exclude<BreakdownBy, "animal">, MessageKey>;
 
-const LEFT_WORD = {
+export const LEFT_WORD = {
   sold: "returns.left.sold",
   died: "returns.left.died",
   sold_to_venture: "returns.left.sold_to_venture",
+  crossed: "returns.left.crossed",
 } as const satisfies Record<string, MessageKey>;
 
 const JOINED_WORD = {
@@ -753,8 +754,8 @@ export const BankRateList = ({ page }: { page: ReturnsPage }) => {
   );
 };
 
-type Running = NonNullable<Season["running"]>;
-type Gap = Season["gaps"][number];
+export type Running = NonNullable<Season["running"]>;
+export type Gap = Season["gaps"][number];
 
 /** An answer the phone kept from before a Season carried its running range has neither: read as none. */
 const gapsOf = (one: { gaps?: Gap[] }): Gap[] => one.gaps ?? [];
@@ -762,7 +763,7 @@ const runningOf = (one: { running?: Running | null }): Running | null =>
   one.running ?? null;
 
 /** The range at today's price, said as made, lost, or from lost to made — never a bare minus sign. */
-const TodayRange = ({ running }: { running: Running }) => {
+export const TodayRange = ({ running }: { running: Running }) => {
   const { t } = useLanguage();
   const low = running.low.per100;
   const high = running.high.per100;
@@ -788,7 +789,7 @@ const TodayRange = ({ running }: { running: Running }) => {
  * A Season or a Venture still going, at today's price: the range, labelled an estimate, then the part gone and the part
  * standing apart, and the days so far — never a year.
  */
-const RunningLines = ({ running }: { running: Running }) => {
+export const RunningLines = ({ running }: { running: Running }) => {
   const { t } = useLanguage();
   const taka = useTaka();
   return (
@@ -826,7 +827,18 @@ const GapFix = ({ gap, ventureId }: { gap: Gap; ventureId: string | null }) => {
   const { t } = useLanguage();
   const className = "text-sm underline-offset-4 hover:underline";
   const label = t(`returns.fix.${gap.why}`);
-  if (gap.why === "not_priced") {
+  if (gap.why === "no_milk_price") {
+    return (
+      <Link className={className} to="/milk">
+        {label}
+      </Link>
+    );
+  }
+  const onThePricesTab =
+    gap.why === "not_priced" ||
+    gap.why === "no_entry_price" ||
+    gap.why === "no_head_price";
+  if (onThePricesTab) {
     return (
       <Link className={className} search={{ tab: "prices" }} to="/returns">
         {label}
@@ -860,7 +872,7 @@ const GapFix = ({ gap, ventureId }: { gap: Gap; ventureId: string | null }) => {
 };
 
 /** The standing animals left out of a figure, whole, each with what puts her right. */
-const Gaps = ({
+export const Gaps = ({
   gaps,
   ventureId,
 }: {
@@ -880,7 +892,7 @@ const Gaps = ({
         {gaps.map((gap) => (
           <li
             className="flex flex-wrap items-center justify-between gap-2 text-sm"
-            key={gap.tagNumber}
+            key={`${gap.tagNumber}-${gap.why}`}
           >
             <span>{t(`returns.gap.${gap.why}`, { tag: gap.tagNumber })}</span>
             <GapFix gap={gap} ventureId={ventureId} />
@@ -910,9 +922,13 @@ const StillGoingBody = ({
 /** Every standing animal the page could not value, gathered at its top so the Owner sees what to put right first. */
 export const MissingPrices = ({ page }: { page: ReturnsPage }) => {
   const { t } = useLanguage();
+  // An answer kept from before the dairy herd was on the page has none of it.
+  const dairy = page.dairy ?? null;
   const count = [
     ...page.seasons.flatMap(gapsOf),
     ...page.ventures.flatMap(gapsOf),
+    ...(dairy?.herdNow.gaps ?? []),
+    ...(dairy?.gone.flatMap(gapsOf) ?? []),
   ].length;
   if (count === 0) {
     return null;

@@ -4068,6 +4068,67 @@ export const en = {
   "refusal.seasonNotFinished":
     "This Season is still going; it opens out once the last animal has gone",
   "refusal.noSuchSeason": "There is no such Season",
+  "returns.tab.dairy": "Dairy",
+  "returns.gap.no_entry_price":
+    "{tag}: bought, or here before the books — not priced yet",
+  "returns.gap.no_head_price": "{tag}: no Head Price set for her kind",
+  "returns.gap.no_milk_price":
+    "{tag}: milk in a month before any Dispatch had a price",
+  "returns.fix.no_entry_price": "Price her",
+  "returns.fix.no_head_price": "Set the Head Price",
+  "returns.fix.no_milk_price": "Record a Dispatch",
+  "returns.herdNowTitle": "The herd now",
+  "returns.herdNowHint":
+    "Every dairy animal still here at her kind's Head Price, low and high, with her milk so far — an estimate, never put a year.",
+  "returns.herdNowHead":
+    "{count, plural, one {# dairy animal here} other {# dairy animals here}}",
+  "returns.goneTitle": "Gone from the herd",
+  "returns.goneHint":
+    "Each dairy animal's whole stay: from her birth here at nothing or from the price you entered, her milk at each month's Dispatch price, and what she went for. Her calves are their own, shown beneath her.",
+  "returns.dairyNone": "No dairy animal has gone yet.",
+  "returns.left.crossed": "crossed to Fattening",
+  "returns.leftOn": "{how} on {day}",
+  "returns.cameBorn": "Bred here, counted from her birth at nothing",
+  "returns.camePriced": "Counted from your price, from {day}",
+  "returns.cameUnpriced": "Not priced yet",
+  "returns.dairyCost": "Cost {bdt}",
+  "returns.dairyMilk":
+    "Milk to Bulk: {litres, plural, one {# litre} other {# litres}}, {bdt}",
+  "returns.dairyEnd": "Went for {bdt}",
+  "returns.milkEarlier":
+    "{months}: no Dispatch that month, so her milk went at the latest earlier month's price",
+  "returns.calvesTitle": "Her calves",
+  "returns.headPricesTitle": "Head Prices",
+  "returns.headPricesHint":
+    "What a dairy animal still here counts at, low and high, by what she is: a cow is sold by the head, not the kilo.",
+  "returns.headPriceNone": "Not set",
+  "returns.headPriceRange": "{low} to {high}",
+  "returns.setHeadPrice": "Set",
+  "returns.headPriceTitle": "Head Price: {kind}",
+  "returns.low": "Low",
+  "returns.high": "High",
+  "returns.headPriceSaved": "Head Price saved",
+  "returns.cowsTitle": "Cows to price",
+  "returns.cowsHint":
+    "A cow bought, or here before the farm kept its books, is counted from a price you enter, with where it came from. One bred here needs none.",
+  "returns.cowsNone": "Every cow that needs a price has one.",
+  "returns.cowLine": "{tag} · {state} · registered {day}",
+  "returns.cowPriceTitle": "Price {tag}",
+  "returns.cowPrice": "Her price",
+  "returns.asOf": "Counted from",
+  "returns.cowNote": "Where the price came from",
+  "returns.cowSaved": "Price saved",
+  "returns.priceAgainCow": "Put her price right",
+  "returns.dairyPanelTitle": "What she has returned",
+  "returns.soFar": "Return so far",
+  "returns.noFigure": "No figure yet",
+  "refusal.cowNeedsNoPrice":
+    "One bred here is counted from her birth, at nothing; she needs no price",
+  "refusal.headPriceBackwards":
+    "A Head Price needs a low above nothing and no higher than its high",
+  "audit.entity.fattening_joining": "Joining a Season",
+  "audit.entity.dairy_entry_price": "Dairy cow's price",
+  "audit.entity.head_price": "Head Price",
   "returns.leftOut":
     "Wages, sheds, equipment, dung and what the money would have earned elsewhere are not in these figures, so they read higher than a published study's on the same animals.",
   "sale.title": "Sell an animal",

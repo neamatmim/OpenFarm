@@ -1,9 +1,15 @@
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Beef, Landmark } from "lucide-react";
+import { Beef, Landmark, Milk } from "lucide-react";
 
 import { Notice, Page, PageHeader, Section } from "@/components/page";
 import { PageTabs } from "@/components/page-kit";
+import {
+  CowsToPrice,
+  DairyGone,
+  DairyHerdNow,
+  HeadPriceList,
+} from "@/components/returns/dairy-returns";
 import {
   BankRateList,
   CrossingsToPrice,
@@ -16,13 +22,14 @@ import {
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 
-const TABS = ["fattening", "prices"] as const;
+const TABS = ["fattening", "dairy", "prices"] as const;
 type Tab = (typeof TABS)[number];
 
 /**
  * What the money in the farm's cattle returned, for the Owner: each Season of the Farm's own fattening cattle and each
  * settled Venture, worked as a Settlement is, with what every hundred taka made, the days its money was out and that
- * scaled to a year beside the bank's rate — and, under Prices, the rates the Owner types. The tab is kept in the
+ * scaled to a year beside the bank's rate; under Dairy, the herd now and each dairy animal gone with her calves; and,
+ * under Prices, the prices the Owner types. The tab is kept in the
  * address, so the page comes back as it was left.
  */
 const ReturnsPage = () => {
@@ -89,11 +96,47 @@ const ReturnsPage = () => {
             ),
           },
           {
+            value: "dairy",
+            label: t("returns.tab.dairy"),
+            icon: Milk,
+            content: (
+              <div className="flex flex-col gap-6">
+                <Section
+                  description={t("returns.herdNowHint")}
+                  title={t("returns.herdNowTitle")}
+                >
+                  <DairyHerdNow page={page} />
+                </Section>
+                <Section
+                  description={t("returns.goneHint")}
+                  title={t("returns.goneTitle")}
+                >
+                  <DairyGone page={page} />
+                </Section>
+                <p className="text-muted-foreground text-sm italic">
+                  {t("returns.leftOut")}
+                </p>
+              </div>
+            ),
+          },
+          {
             value: "prices",
             label: t("returns.tab.prices"),
             icon: Landmark,
             content: (
               <div className="flex flex-col gap-6">
+                <Section
+                  description={t("returns.cowsHint")}
+                  title={t("returns.cowsTitle")}
+                >
+                  <CowsToPrice page={page} />
+                </Section>
+                <Section
+                  description={t("returns.headPricesHint")}
+                  title={t("returns.headPricesTitle")}
+                >
+                  <HeadPriceList page={page} />
+                </Section>
                 <Section
                   description={t("returns.crossingsHint")}
                   title={t("returns.crossingsTitle")}

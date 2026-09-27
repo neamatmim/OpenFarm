@@ -389,3 +389,58 @@ export const lastEidsSeason = async (farm: Farm, herd: Herd) => {
     fromDay: "2025-01-01",
   });
 };
+
+/** What the Owner reckons a head of each kind was worth the day the books opened, low to high. */
+const OPENING_PRICE = {
+  calf: [12_000, 18_000],
+  heifer: [40_000, 55_000],
+  pregnant_heifer: [65_000, 85_000],
+  milking: [85_000, 120_000],
+  dry: [60_000, 80_000],
+} as const;
+
+/**
+ * The Owner's prices for the dairy herd: every cow on the opening register was here before the farm kept its books, or
+ * was bought, so each is counted from a price the Owner enters — all but the last cow bought, left to price so the
+ * Returns page has one waiting. And the Head Prices a cow still here counts at, for four kinds of five: a dry cow has
+ * none yet, so the herd's figure names the dry pen until the Owner sets one.
+ */
+export const priceTheDairyHerd = async (farm: Farm, herd: Herd) => {
+  const opened = addDays(farm.start, -10);
+  farm.clock.set(onFarm(opened, "20:00"));
+  const cows = [...herd.cows.values()];
+  const bought = new Set<string>();
+  for (const cow of cows) {
+    // oxlint-disable-next-line no-await-in-loop -- one cow at a time, as the Owner reads the register
+    const her = await farm.as.owner.animals.byTag({ tagNumber: cow.tag });
+    if (her.source === "bought") {
+      bought.add(cow.tag);
+    }
+  }
+  const leftToPrice = [...bought].at(-1);
+  for (const cow of cows) {
+    if (cow.tag === leftToPrice) {
+      continue;
+    }
+    // oxlint-disable-next-line no-await-in-loop -- one cow at a time
+    const her = await farm.as.owner.animals.byTag({ tagNumber: cow.tag });
+    const [low, high] = OPENING_PRICE[cow.state];
+    // oxlint-disable-next-line no-await-in-loop -- one price at a time, each its own line in the trail
+    await farm.as.owner.returns.priceCow({
+      animalId: her.id,
+      priceBdt: Math.round(farm.random.between(low, high) / 500) * 500,
+      note: bought.has(cow.tag)
+        ? "কেনার রসিদ অনুযায়ী"
+        : "খাতা খোলার দিন পাড়ার বেপারীর মুখের দাম",
+    });
+  }
+  for (const [kind, lowBdt, highBdt] of [
+    ["calf", 12_000, 18_000],
+    ["heifer", 40_000, 55_000],
+    ["pregnant_heifer", 65_000, 85_000],
+    ["milking", 85_000, 120_000],
+  ] as const) {
+    // oxlint-disable-next-line no-await-in-loop -- one kind at a time
+    await farm.as.owner.returns.setHeadPrice({ kind, lowBdt, highBdt });
+  }
+};

@@ -23,7 +23,8 @@ import { ORPCError } from "@orpc/server";
 import { pricesOnTheSide } from "./animal-price-store";
 import { hasBand } from "./band-store";
 import type { FarmCosts } from "./cost-store";
-import { farmCosts } from "./cost-store";
+import { farmCosts, sharesChargedTo } from "./cost-store";
+import { dairyAnimalOf, dairyOf } from "./dairy-returns";
 import { bandOf } from "./feed-store";
 import { weighedForTheCrossing } from "./joining-store";
 import { approvedSettlementOf } from "./settlement-store";
@@ -106,8 +107,18 @@ const earliest = (days: readonly Date[]): Date | null =>
     ? null
     : new Date(Math.min(...days.map((one) => one.getTime())));
 
-/** Why a standing Animal cannot be valued today: no weight to price, or no price a kilo to price her at. */
-export type NotValued = "no_weight" | "no_price" | "not_priced";
+/**
+ * Why an Animal is in no figure: a fattening one with no weight to price or no price a kilo to price her at; a
+ * crossing not priced; a dairy one the Owner has not priced, whose kind has no Head Price, or whose milk went in a
+ * month before any Dispatch had a price.
+ */
+export type NotValued =
+  | "no_weight"
+  | "no_price"
+  | "not_priced"
+  | "no_entry_price"
+  | "no_head_price"
+  | "no_milk_price";
 
 /** A standing Animal left out of a figure, whole, and what puts her right. */
 export interface Gap {
@@ -238,35 +249,6 @@ const booksOf = async (
   };
 };
 
-/** One share, whatever it was for. A dose of a product the farm had not bought by then is counted as the costing
- *  counts it: shown, never charged. */
-const charged = (at: Date, side: string, bdt: number | null) => ({
-  at,
-  side,
-  bdt: bdt ?? 0,
-});
-
-/** Every share charged to one Animal, with the day it was charged and the side she stood on. */
-const sharesOf = (costs: FarmCosts, animalId: string) => {
-  const hers = costs.ofAnimal;
-  return [
-    ...(hers.feed.get(animalId) ?? []).map((one) =>
-      charged(one.at, one.side, one.feedBdt)
-    ),
-    ...(hers.doses.get(animalId) ?? []).map((one) =>
-      charged(one.at, one.side, one.medicineBdt)
-    ),
-    ...(hers.vet.get(animalId) ?? []).map((one) =>
-      charged(one.at, one.side, one.vetBdt)
-    ),
-    ...[
-      ...(hers.hasil.get(animalId) ?? []),
-      ...(hers.trips.get(animalId) ?? []),
-      ...(hers.herd.get(animalId) ?? []),
-    ].map((one) => charged(one.at, one.side, one.bdt)),
-  ];
-};
-
 /**
  * How and when an Animal taken on by `owner` on `takenOn` left it: the first Internal Sale out of it after she came,
  * her Sale if she was still this owner's when she went, or her death. Null while she stands.
@@ -321,7 +303,7 @@ const spentOn = (
     books.ownedThenBy(holding.animalId, at) === owner;
   return [
     { bdt: holding.priceBdt, from: holding.takenOn, until },
-    ...sharesOf(books.costs, holding.animalId)
+    ...sharesChargedTo(books.costs, holding.animalId)
       .filter((one) => one.side === "fattening" && ours(one.at))
       .map((one) => ({ bdt: one.bdt, from: one.at, until })),
   ];
@@ -772,6 +754,7 @@ export const returnsPage = async (
     floorDays,
     seasons: seasonsOf(books, floorDays, now),
     ventures,
+    dairy: await dairyOf(db, farm.id, books, floorDays, now),
     bankRates: books.bankRates,
     crossings: await crossingsOf(db, farm.id),
     /** The one in force today, which the page marks: found by the rule every other reading uses, not a second one. */
@@ -1108,4 +1091,23 @@ export const seasonBreakdown = async (
         per100: returned?.per100 ?? null,
       };
     });
+};
+
+/** One dairy Animal's run and her calves', for her own page; nothing for one never on the Dairy side. */
+export const dairyAnimalReturns = async (
+  db: Database,
+  farm: ReturnsFarm,
+  animalId: string,
+  now: Date
+) => {
+  const books = await booksOf(db, farm, now);
+  const hers = await dairyAnimalOf(
+    db,
+    farm.id,
+    books,
+    animalId,
+    farm.returnYearFloorDays,
+    now
+  );
+  return hers ? { ...hers, floorDays: farm.returnYearFloorDays } : null;
 };

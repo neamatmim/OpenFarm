@@ -47,6 +47,11 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.animal.id,
       to: r.fatteningJoining.animalId,
     }),
+    /** What the Owner says a dairy cow bought, or here before the books, was taken on at. */
+    entryPrice: r.one.dairyEntryPrice({
+      from: r.animal.id,
+      to: r.dairyEntryPrice.animalId,
+    }),
     /** Every time she has been on the scale. Fattening is the difference between them. */
     weighIns: r.many.weighIn({ from: r.animal.id, to: r.weighIn.animalId }),
     /** Every time she has been served, the ones that did not take included. */
@@ -229,6 +234,13 @@ export const relations = defineRelations(schema, (r) => ({
       optional: false,
     }),
     weigher: r.one.user({ from: r.weighIn.recordedBy, to: r.user.id }),
+  },
+  dairyEntryPrice: {
+    animal: r.one.animal({
+      from: r.dairyEntryPrice.animalId,
+      to: r.animal.id,
+      optional: false,
+    }),
   },
   fatteningJoining: {
     animal: r.one.animal({

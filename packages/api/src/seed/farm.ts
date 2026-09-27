@@ -1,7 +1,12 @@
 import type { Database } from "@OpenFarm/db";
 import { farmDayOf } from "@OpenFarm/domain";
 
-import { lastEidsSeason, registerTheHerd, takeInBulls } from "./herd";
+import {
+  lastEidsSeason,
+  priceTheDairyHerd,
+  registerTheHerd,
+  takeInBulls,
+} from "./herd";
 import { liveTheDays } from "./history";
 import {
   SEED_PASSWORD,
@@ -41,6 +46,8 @@ export const seedFarm = async (db: Database) => {
   await writeThePlaybook(farm);
   step("the opening herd register");
   const herd = await registerTheHerd(farm);
+  step("the Owner's prices for the dairy herd, and four Head Prices");
+  await priceTheDairyHerd(farm, herd);
   step("last Eid's Season, bought in January and gone by Eid");
   await lastEidsSeason(farm, herd);
   step("the first lorry of bulls");
