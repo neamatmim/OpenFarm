@@ -442,6 +442,36 @@ export const farmCosts = async (db: Db, farmId: string) => {
 
 export type FarmCosts = Awaited<ReturnType<typeof farmCosts>>;
 
+/** One share, whatever it was for. A dose of a product the farm had not bought by then is counted as the costing
+ *  counts it: shown, never charged. */
+const charged = (at: Date, side: string, bdt: number | null) => ({
+  at,
+  side,
+  bdt: bdt ?? 0,
+});
+
+/** Every share charged to one Animal, with the day it was charged and the side she stood on: what a return is
+ *  charged, narrowed to the side and the days it is about. */
+export const sharesChargedTo = (costs: FarmCosts, animalId: string) => {
+  const hers = costs.ofAnimal;
+  return [
+    ...(hers.feed.get(animalId) ?? []).map((one) =>
+      charged(one.at, one.side, one.feedBdt)
+    ),
+    ...(hers.doses.get(animalId) ?? []).map((one) =>
+      charged(one.at, one.side, one.medicineBdt)
+    ),
+    ...(hers.vet.get(animalId) ?? []).map((one) =>
+      charged(one.at, one.side, one.vetBdt)
+    ),
+    ...[
+      ...(hers.hasil.get(animalId) ?? []),
+      ...(hers.trips.get(animalId) ?? []),
+      ...(hers.herd.get(animalId) ?? []),
+    ].map((one) => charged(one.at, one.side, one.bdt)),
+  ];
+};
+
 /**
  * What was charged to one animal's keep, as the costing shares it out: her feed, her doses, her part of the Vet's fees
  * for visits that named her, and her part of the Herd Costs — a fattening Animal's Cost of Gain now and a dairy cow's

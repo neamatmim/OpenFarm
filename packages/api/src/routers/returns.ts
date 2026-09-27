@@ -1,15 +1,22 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { bankRate } from "@OpenFarm/db/schema/returns";
+import {
+  HEAD_PRICE_KINDS,
+  bankRate,
+  dairyEntryPrice,
+  headPrice,
+} from "@OpenFarm/db/schema/returns";
 import { farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
+import { EVER_ON_THE_DAIRY_SIDE, bredHere } from "../dairy-returns";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { priceTheJoining, weighedForTheCrossing } from "../joining-store";
 import {
   BREAKDOWNS,
+  dairyAnimalReturns,
   returnsPage,
   runningSeasons,
   seasonBreakdown,
@@ -46,6 +53,157 @@ export const returnsRouter = {
     .handler(({ context, input }) =>
       seasonBreakdown(context.db, context.farm, input, context.clock.now())
     ),
+
+  /** One dairy Animal's return and her calves', for her own page: the Owner's alone. */
+  animal: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .input(z.object({ animalId: z.string() }))
+    .handler(({ context, input }) =>
+      dairyAnimalReturns(
+        context.db,
+        context.farm,
+        input.animalId,
+        context.clock.now()
+      )
+    ),
+
+  /**
+   * What a dairy cow bought, or here before the farm kept its books, was taken on at: a price and a note of where it came
+   * from, from a day — the day she was registered unless the Owner says. Written again to put it right. One bred here
+   * is counted from her birth and needs none. The Owner's alone, each an Audit Event.
+   */
+  priceCow: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        animalId: z.string(),
+        priceBdt: z.number().int().min(0).max(10_000_000),
+        asOf: farmDay.optional(),
+        note: z.string().trim().min(1).max(300),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const her = await context.db.query.animal.findFirst({
+        where: {
+          id: input.animalId,
+          farmId: context.farm.id,
+          ...EVER_ON_THE_DAIRY_SIDE,
+        },
+        columns: { id: true, source: true, damId: true, createdAt: true },
+        with: { entryPrice: true },
+      });
+      if (!her) {
+        throw new ORPCError("NOT_FOUND", { message: "No such dairy animal" });
+      }
+      if (bredHere(her)) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "One bred here is counted from her birth, at nothing",
+          data: { refusal: "bred_here_needs_no_price" },
+        });
+      }
+      const asOf = input.asOf ?? farmDayOf(her.createdAt);
+      const price = {
+        priceBdt: input.priceBdt,
+        asOf,
+        note: input.note,
+        setBy: context.actor.id,
+        setAt: now,
+      };
+      await audited(context).write(
+        {
+          entity: "dairy_entry_price",
+          entityId: her.id,
+          action: her.entryPrice ? "update" : "create",
+          before: her.entryPrice
+            ? {
+                priceBdt: her.entryPrice.priceBdt,
+                asOf: her.entryPrice.asOf,
+                note: her.entryPrice.note,
+              }
+            : undefined,
+          after: { priceBdt: input.priceBdt, asOf, note: input.note },
+        },
+        (tx) =>
+          tx
+            .insert(dairyEntryPrice)
+            .values({
+              id: uuidv7(now),
+              farmId: context.farm.id,
+              animalId: her.id,
+              ...price,
+            })
+            .onConflictDoUpdate({
+              target: dairyEntryPrice.animalId,
+              set: price,
+            })
+      );
+      return { asOf };
+    }),
+
+  /**
+   * A **Head Price**: the low and the high price a head for one kind of dairy Animal, which one still here counts at.
+   * Both above nothing and the low no higher than the high. Written again to put it right. The Owner's alone, each an
+   * Audit Event.
+   */
+  setHeadPrice: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        kind: z.enum(HEAD_PRICE_KINDS),
+        lowBdt: z.number().int().max(10_000_000),
+        highBdt: z.number().int().max(10_000_000),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const inOrder =
+        input.lowBdt > 0 && input.highBdt > 0 && input.lowBdt <= input.highBdt;
+      if (!inOrder) {
+        throw new ORPCError("BAD_REQUEST", {
+          message:
+            "A Head Price needs a low above nothing and no higher than its high",
+          data: { refusal: "head_price_backwards" },
+        });
+      }
+      const now = context.clock.now();
+      const set = await context.db.query.headPrice.findFirst({
+        where: { farmId: context.farm.id, kind: input.kind },
+      });
+      const price = {
+        lowBdt: input.lowBdt,
+        highBdt: input.highBdt,
+        setBy: context.actor.id,
+        setAt: now,
+      };
+      const id = set?.id ?? uuidv7(now);
+      await audited(context).write(
+        {
+          entity: "head_price",
+          entityId: id,
+          action: set ? "update" : "create",
+          before: set
+            ? { lowBdt: set.lowBdt, highBdt: set.highBdt }
+            : undefined,
+          after: { lowBdt: input.lowBdt, highBdt: input.highBdt },
+        },
+        (tx) =>
+          tx
+            .insert(headPrice)
+            .values({
+              id,
+              farmId: context.farm.id,
+              kind: input.kind,
+              ...price,
+            })
+            .onConflictDoUpdate({
+              target: [headPrice.farmId, headPrice.kind],
+              set: price,
+            })
+      );
+      return { kind: input.kind };
+    }),
 
   /** One Venture's returns, for the panel on its page: settled or still going; nothing before it has cattle. */
   venture: protectedProcedure

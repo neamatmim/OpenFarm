@@ -16,6 +16,7 @@ import { WhatSheCost } from "@/components/costs";
 import { Section } from "@/components/page";
 import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
+import { DairyReturnsPanel } from "@/components/returns/dairy-returns";
 import { SaleCorrection } from "@/components/sale-correction";
 import { useSalePapers } from "@/components/sale/sale-papers";
 import { useLanguage } from "@/i18n/language-provider";
@@ -375,6 +376,8 @@ export const MoneyPapersTab = ({
       />
     ) : null}
     <WhatSheCost tagNumber={detail.tagNumber} />
+    {/* Her dairy run, if she ever stood on the Dairy side — a bull calf walked across included; nothing otherwise. */}
+    <DairyReturnsPanel animalId={detail.id} />
     {powers.seesPapers ? (
       <HerPapers
         saleId={powers.runsTheFarm ? (detail.sale?.id ?? null) : null}

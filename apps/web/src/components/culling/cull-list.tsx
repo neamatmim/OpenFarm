@@ -20,6 +20,7 @@ import { Nothing } from "@/components/list-cells";
 import type { Tone } from "@/components/page";
 import { EmptyState, StatusBadge } from "@/components/page";
 import { FilterBar, NativeSelect } from "@/components/page-kit";
+import { CullListReturn } from "@/components/returns/dairy-returns";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka, useTakaToThePaisa } from "@/lib/taka";
 import type { client } from "@/utils/orpc";
@@ -201,6 +202,10 @@ const MilkCell = ({ row }: CullCell) => (
 
 const CalvingCell = ({ row }: CullCell) => <CalvingLines cow={row.original} />;
 
+const ReturnCell = ({ row }: CullCell) => (
+  <CullListReturn labelled={false} tagNumber={row.original.tagNumber} />
+);
+
 const column = createListColumns<CullCow>();
 const cullColumns = column.columns([
   column.accessor("tagNumber", {
@@ -215,6 +220,12 @@ const cullColumns = column.columns([
     id: "reasons",
     header: listHeader("cull.col.reasons"),
     cell: ReasonsCell,
+  }),
+  // Beside her reasons, never one of them: what she has returned so far.
+  column.display({
+    id: "return",
+    header: listHeader("returns.soFar"),
+    cell: ReturnCell,
   }),
   column.accessor(
     (row) => (row.milk?.known ? row.milk.overKeepBdt : undefined),
@@ -243,6 +254,7 @@ const CullCard = ({ cow }: { cow: CullCow }) => (
       <span className="text-muted-foreground text-xs">{cow.penName}</span>
     </div>
     <ReasonBadges reasons={cow.reasons} />
+    <CullListReturn labelled tagNumber={cow.tagNumber} />
     <MilkLines align="start" milk={cow.milk} state={cow.state} />
     <CalvingLines cow={cow} />
   </div>
