@@ -213,7 +213,7 @@ const WhatSheIs = ({ detail }: { detail: AnimalDetail }) => {
             <span>
               {t("calving.dam")}:{" "}
               <Link
-                className="text-foreground underline underline-offset-4"
+                className="text-foreground font-medium underline-offset-4 hover:underline"
                 params={{ tagNumber: detail.dam.tagNumber }}
                 to="/animals/$tagNumber"
               >

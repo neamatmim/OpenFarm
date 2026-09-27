@@ -209,9 +209,7 @@ const OneAdjustment = ({
       </p>
       <p
         className={
-          down && adjustment.outcome === "outstanding"
-            ? "text-amber-700 dark:text-amber-500"
-            : ""
+          down && adjustment.outcome === "outstanding" ? "text-warning" : ""
         }
       >
         {t(down ? "ventures.aUnitLost" : "ventures.aUnitGained", {

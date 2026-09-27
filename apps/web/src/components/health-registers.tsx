@@ -22,6 +22,7 @@ import {
   useListTable,
 } from "@/components/data-table";
 import { TagLink } from "@/components/fattening/fattening-words";
+import { SaidDate } from "@/components/list-cells";
 import { EmptyState, Notice, PeriodFilter, Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
@@ -130,13 +131,19 @@ const TagCell = ({ row }: { row: { original: { tagNumber: string } } }) => (
 /** A dash for what a register has no word for. */
 const orDash = (value: string | null): string => value ?? "—";
 
+/** The day a dose was given, in the reader's calendar; the column still sorts, and the CSV still reads, by the farm
+ *  day it keeps. */
+const GivenOnCell = ({ row }: { row: { original: { givenOn: string } } }) => (
+  <SaidDate at={row.original.givenOn} />
+);
+
 // Vaccinations (R3)
 
 const VaccinationLine = ({ row }: { row: VaccinationRow }) => {
   const { t } = useLanguage();
   return (
     <div className="text-sm">
-      {row.givenOn} · {row.tagNumber} · {row.vaccine}
+      <SaidDate at={row.givenOn} /> · {row.tagNumber} · {row.vaccine}
       <span className="text-muted-foreground block text-xs">
         {t("inspector.lotNumber", { lotNumber: row.lotNumber ?? "—" })} ·{" "}
         {t("inspector.vaccinatedBy", { giver: row.givenBy ?? "—" })}
@@ -151,6 +158,7 @@ const vaccination = createListColumns<VaccinationRow>();
 const vaccinationColumns = vaccination.columns([
   vaccination.accessor("givenOn", {
     header: listHeader("money.col.date"),
+    cell: GivenOnCell,
     meta: ONE_LINE,
   }),
   vaccination.accessor("tagNumber", {
@@ -195,10 +203,12 @@ const VaccinationRegister = ({
 // Treatments (R4)
 
 const TreatmentLine = ({ row }: { row: TreatmentRow }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const clearOn = (farmDay: string | null) =>
+    farmDay ? formatDate(startOfFarmDay(farmDay), language, "date") : "—";
   return (
     <div className="text-sm">
-      {row.givenOn} · {row.tagNumber}
+      <SaidDate at={row.givenOn} /> · {row.tagNumber}
       {row.diagnosis ? ` · ${row.diagnosis}` : ""} · {row.drug}
       {row.dose ? ` · ${row.dose}` : ""}
       {row.route ? ` · ${t(`route.${row.route}`)}` : ""}
@@ -211,8 +221,8 @@ const TreatmentLine = ({ row }: { row: TreatmentRow }) => {
       </span>
       <span className="text-muted-foreground block text-xs">
         {t("inspector.clear", {
-          milk: row.milkClearOn ?? "—",
-          meat: row.meatClearOn ?? "—",
+          milk: clearOn(row.milkClearOn),
+          meat: clearOn(row.meatClearOn),
         })}
       </span>
     </div>
@@ -220,6 +230,14 @@ const TreatmentLine = ({ row }: { row: TreatmentRow }) => {
 };
 
 const treatmentCard = (row: TreatmentRow) => <TreatmentLine row={row} />;
+
+const MilkClearCell = ({ row }: { row: { original: TreatmentRow } }) => (
+  <SaidDate at={row.original.milkClearOn} />
+);
+
+const MeatClearCell = ({ row }: { row: { original: TreatmentRow } }) => (
+  <SaidDate at={row.original.meatClearOn} />
+);
 
 /** The drug, and under it how it was given: the dose, the route and the course, as far as they were written. */
 const DrugCell = ({ row }: { row: { original: TreatmentRow } }) => {
@@ -242,6 +260,7 @@ const treatment = createListColumns<TreatmentRow>();
 const treatmentColumns = treatment.columns([
   treatment.accessor("givenOn", {
     header: listHeader("money.col.date"),
+    cell: GivenOnCell,
     meta: ONE_LINE,
   }),
   treatment.accessor("tagNumber", {
@@ -267,11 +286,13 @@ const treatmentColumns = treatment.columns([
   treatment.accessor((row) => orDash(row.milkClearOn), {
     id: "milkClearOn",
     header: listHeader("inspector.col.milkClear"),
+    cell: MilkClearCell,
     meta: ONE_LINE,
   }),
   treatment.accessor((row) => orDash(row.meatClearOn), {
     id: "meatClearOn",
     header: listHeader("inspector.col.meatClear"),
+    cell: MeatClearCell,
     meta: ONE_LINE,
   }),
 ]);
@@ -324,7 +345,12 @@ const OutcomeWord = ({ outcome }: { outcome: DiagnosisRow["outcome"] }) => {
   return (
     <>
       {t(OUTCOME_WORD[outcome.kind])}
-      {outcome.on ? ` ${outcome.on}` : ""}
+      {outcome.on ? (
+        <>
+          {" "}
+          <SaidDate at={outcome.on} />
+        </>
+      ) : null}
     </>
   );
 };
@@ -337,7 +363,7 @@ const DiagnosisLine = ({ row }: { row: DiagnosisRow }) => {
   const { t } = useLanguage();
   return (
     <div className="text-sm">
-      {row.diagnosedOn} · {row.tagNumber} · {row.disease}
+      <SaidDate at={row.diagnosedOn} /> · {row.tagNumber} · {row.disease}
       {row.notifiable ? (
         <span className="text-warning ml-1">
           {t("inspector.notifiable", {
@@ -354,10 +380,15 @@ const DiagnosisLine = ({ row }: { row: DiagnosisRow }) => {
 
 const diagnosisCard = (row: DiagnosisRow) => <DiagnosisLine row={row} />;
 
+const DiagnosedOnCell = ({ row }: { row: { original: DiagnosisRow } }) => (
+  <SaidDate at={row.original.diagnosedOn} />
+);
+
 const diagnosis = createListColumns<DiagnosisRow>();
 const diagnosisColumns = diagnosis.columns([
   diagnosis.accessor("diagnosedOn", {
     header: listHeader("money.col.date"),
+    cell: DiagnosedOnCell,
     meta: ONE_LINE,
   }),
   diagnosis.accessor("tagNumber", {
@@ -429,8 +460,8 @@ const DeathLine = ({ row }: { row: DeathRow }) => {
   const { t } = useLanguage();
   return (
     <div className="text-sm">
-      {row.diedOn} · {row.tagNumber} · {t(`mortality.${row.kind}`)} ·{" "}
-      {causeWord(row.cause, t)}
+      <SaidDate at={row.diedOn} /> · {row.tagNumber} ·{" "}
+      {t(`mortality.${row.kind}`)} · {causeWord(row.cause, t)}
       <span
         className={`block text-xs ${row.disposal ? "text-muted-foreground" : "text-warning"}`}
       >
@@ -446,10 +477,15 @@ const DeathLine = ({ row }: { row: DeathRow }) => {
 
 const deathCard = (row: DeathRow) => <DeathLine row={row} />;
 
+const DiedOnCell = ({ row }: { row: { original: DeathRow } }) => (
+  <SaidDate at={row.original.diedOn} />
+);
+
 const death = createListColumns<DeathRow>();
 const deathColumns = death.columns([
   death.accessor("diedOn", {
     header: listHeader("money.col.date"),
+    cell: DiedOnCell,
     meta: ONE_LINE,
   }),
   death.accessor("tagNumber", {

@@ -437,7 +437,7 @@ export const SectionEditor = ({
   return (
     <section
       aria-labelledby={`${section.key}-title`}
-      className="bg-card flex flex-col gap-4 rounded-xl border p-4 md:p-5"
+      className="surface flex flex-col gap-4 p-4 md:p-5"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-0.5">

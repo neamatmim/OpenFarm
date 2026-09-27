@@ -234,7 +234,7 @@ const StepEditor = ({
 }) => {
   const { t, language } = useLanguage();
   return (
-    <li className="bg-card flex flex-col gap-4 rounded-xl border p-4">
+    <li className="surface flex flex-col gap-4 p-4">
       <div className="flex items-center gap-3">
         <span
           aria-hidden
@@ -413,7 +413,7 @@ export const StepsSection = ({
         </ol>
       )}
       <Button
-        className="h-12 w-full border-dashed"
+        className="h-12 w-full border-dashed md:h-12"
         onClick={add}
         type="button"
         variant="outline"

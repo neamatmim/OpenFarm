@@ -41,7 +41,6 @@ import {
   CircleDashed,
   ChevronRight,
   ClipboardList,
-  Info,
   Lock,
   MapPin,
   Milk,
@@ -570,7 +569,7 @@ const WorkPage = () => {
         <WorkNotices runningOn={runningOn} shortFed={shortFed} state={state} />
         <Link
           className={buttonVariants({
-            className: "h-12 w-full sm:w-fit",
+            className: "h-12 w-full sm:w-fit md:h-12",
             variant: "outline",
           })}
           search={{}}
@@ -743,7 +742,7 @@ const TILE_LOOK = {
     icon: Check,
     label: "work.tileDone",
     tile: "border-success/35 bg-success-surface/50",
-    text: "bg-success text-white",
+    text: "bg-success text-background",
   },
   skipped: {
     icon: SkipForward,
@@ -825,7 +824,7 @@ const WorkHeader = ({
         <PlaceLine pen={pen} />
       </div>
       {tally && total > 0 ? (
-        <div className="bg-card flex flex-col gap-3 rounded-xl border p-3.5 md:p-4">
+        <div className="surface flex flex-col gap-3 p-3.5 md:p-4">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <p className="flex items-baseline gap-2">
               <span className="text-muted-foreground text-sm">
@@ -883,7 +882,7 @@ const StepRow = ({
   return (
     <button
       className={cn(
-        "bg-card hover:border-primary/40 focus-visible:ring-ring flex min-h-14 w-full items-center gap-3 rounded-xl border p-3 text-left transition-[border-color,box-shadow] duration-150 outline-none focus-visible:ring-2",
+        "surface hover:border-primary/40 focus-visible:ring-ring flex min-h-14 w-full items-center gap-3 p-3 text-left transition-[border-color,box-shadow] duration-150 outline-none focus-visible:ring-2",
         done && "border-success/30 bg-success-surface/60"
       )}
       onClick={onOpen}
@@ -893,7 +892,7 @@ const StepRow = ({
         className={cn(
           "grid size-10 shrink-0 place-items-center rounded-full",
           done
-            ? "bg-success text-white"
+            ? "bg-success text-background"
             : "bg-secondary text-secondary-foreground"
         )}
       >
@@ -934,7 +933,7 @@ const AnimalTile = ({
     <button
       aria-label={`${animal.tagNumber} — ${t(label)}`}
       className={cn(
-        "bg-card hover:border-primary/40 focus-visible:ring-ring relative flex min-h-32 w-full flex-col items-center justify-center gap-2 rounded-xl border p-3 pt-4 text-center transition-colors duration-150 outline-none focus-visible:ring-2 active:translate-y-px",
+        "surface hover:border-primary/40 focus-visible:ring-ring relative flex min-h-32 w-full flex-col items-center justify-center gap-2 p-3 pt-4 text-center transition-colors duration-150 outline-none focus-visible:ring-2 active:translate-y-px",
         tile,
         held && "border-warning/50",
         next && "border-primary ring-primary/25 ring-2"
@@ -1040,27 +1039,16 @@ const WhatChanged = ({ changed }: { changed: Changed }) => {
     };
   };
   return (
-    <section
-      aria-labelledby="what-changed-title"
-      className="border-info/25 bg-info-surface text-info flex items-start gap-3 rounded-xl border px-4 py-3"
-    >
-      <Info aria-hidden className="mt-0.5 size-5 shrink-0" />
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <h2 className="font-semibold" id="what-changed-title">
-          {t("changed.title")}
-        </h2>
-        <p className="text-sm">
-          {t("changed.versions", { from: changed.from, to: changed.to })}
-        </p>
-        <ul className="text-foreground/85 mt-1 list-disc space-y-1 ps-5 text-sm">
-          {changed.changes.map((change, index) => (
-            <li key={`${change.kind}-${index}`}>
-              {t(CHANGE_MESSAGE[change.kind], said(change))}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </section>
+    <Notice title={t("changed.title")} tone="info">
+      <p>{t("changed.versions", { from: changed.from, to: changed.to })}</p>
+      <ul className="mt-1 list-disc space-y-1 ps-5">
+        {changed.changes.map((change, index) => (
+          <li key={`${change.kind}-${index}`}>
+            {t(CHANGE_MESSAGE[change.kind], said(change))}
+          </li>
+        ))}
+      </ul>
+    </Notice>
   );
 };
 
@@ -1127,7 +1115,7 @@ const ClosingAction = ({
   }
   return (
     <Button
-      className="h-auto min-h-14 w-full py-2 text-lg whitespace-normal"
+      className="h-auto min-h-14 w-full py-2 text-lg whitespace-normal md:h-auto"
       variant="outline"
       onClick={() => onOpen(closingStep)}
     >
@@ -1323,10 +1311,7 @@ const StockCountFields = ({
   return (
     <>
       {items.map((item) => (
-        <div
-          className="bg-card flex flex-col gap-2 rounded-xl border p-3"
-          key={item.feedItemId}
-        >
+        <div className="surface flex flex-col gap-2 p-3" key={item.feedItemId}>
           <p className="text-sm font-medium">
             {item.nameBn}{" "}
             <span className="text-muted-foreground font-normal">
@@ -1336,7 +1321,7 @@ const StockCountFields = ({
           <div className="grid grid-cols-2 gap-2">
             <Input
               aria-label={`${item.nameBn} ${t("work.counted")}`}
-              className="h-14 text-lg"
+              className="h-14 text-lg md:h-12 md:text-lg"
               inputMode="decimal"
               onChange={(event) =>
                 onCounted((current) => ({
@@ -1350,7 +1335,7 @@ const StockCountFields = ({
             />
             <Input
               aria-label={`${item.nameBn} ${t("work.countReason")}`}
-              className="h-14"
+              className="h-14 md:h-12"
               onChange={(event) =>
                 onReason((current) => ({
                   ...current,
@@ -1398,10 +1383,7 @@ const FeedingFields = ({
   return (
     <>
       {rows.map((line) => (
-        <div
-          className="bg-card flex flex-col gap-2 rounded-xl border p-3"
-          key={line.feedItemId}
-        >
+        <div className="surface flex flex-col gap-2 p-3" key={line.feedItemId}>
           <p className="text-sm font-medium">
             {line.nameBn}{" "}
             {line.quantity === null ? null : (
@@ -1417,7 +1399,7 @@ const FeedingFields = ({
           <div className="grid grid-cols-2 gap-2">
             <Input
               aria-label={`${line.nameBn} ${t("work.given")}`}
-              className="h-14 text-lg"
+              className="h-14 text-lg md:h-12 md:text-lg"
               inputMode="decimal"
               onChange={(event) =>
                 onGiven((current) => ({
@@ -1434,7 +1416,7 @@ const FeedingFields = ({
             />
             <Input
               aria-label={`${line.nameBn} ${t("work.leftover")}`}
-              className="h-14 text-lg"
+              className="h-14 text-lg md:h-12 md:text-lg"
               inputMode="decimal"
               onChange={(event) =>
                 onLeftover((current) => ({
@@ -1518,7 +1500,7 @@ const SkipSheet = ({
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="skip-correction-reason">{t("correct.why")}</Label>
           <Input
-            className="h-12 text-base"
+            className="h-12 text-base md:h-12 md:text-base"
             id="skip-correction-reason"
             onChange={(event) => onReason(event.target.value)}
             value={reason}
@@ -1528,7 +1510,7 @@ const SkipSheet = ({
       <div className="flex flex-col gap-2">
         {reasons.map((skip) => (
           <Button
-            className="h-auto min-h-14 w-full justify-start py-2 text-start text-lg whitespace-normal"
+            className="h-auto min-h-14 w-full justify-start py-2 text-start text-lg whitespace-normal md:h-auto"
             disabled={correcting && !reason.trim()}
             key={skip.bn}
             onClick={() =>
@@ -1547,7 +1529,7 @@ const SkipSheet = ({
         ))}
       </div>
       <Button
-        className="h-12 w-full text-base"
+        className="h-12 w-full text-base md:h-12"
         onClick={onBack}
         variant="ghost"
       >
@@ -1652,7 +1634,7 @@ const SheetHead = ({
 }) => {
   const { t } = useLanguage();
   return (
-    <header className="bg-card flex items-center gap-4 rounded-xl border p-4">
+    <header className="surface flex items-center gap-4 p-4">
       {animal ? (
         <AnimalPhoto
           photoUpdatedAt={animal.photoUpdatedAt}
@@ -1877,7 +1859,7 @@ const EvidenceSheet = ({
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="correction-reason">{t("correct.why")}</Label>
           <Input
-            className="h-12 text-base"
+            className="h-12 text-base md:h-12 md:text-base"
             id="correction-reason"
             onChange={(event) => setReason(event.target.value)}
             value={reason}
@@ -1899,13 +1881,17 @@ const EvidenceSheet = ({
 
       <StickyAction>
         <div className="grid grid-cols-3 gap-2">
-          <Button variant="ghost" className="h-14 text-base" onClick={onCancel}>
+          <Button
+            variant="ghost"
+            className="h-14 text-base md:h-12"
+            onClick={onCancel}
+          >
             {t("work.back")}
           </Button>
           {skippable ? (
             <Button
               variant="outline"
-              className="h-14 text-base"
+              className="h-14 text-base md:h-12"
               onClick={() => setSkipping(true)}
             >
               <SkipForward data-icon="inline-start" />
@@ -1913,7 +1899,7 @@ const EvidenceSheet = ({
             </Button>
           ) : null}
           <Button
-            className={`h-14 text-lg ${skippable ? "" : "col-span-2"}`}
+            className={`h-14 text-lg md:h-12 ${skippable ? "" : "col-span-2"}`}
             disabled={
               cannotFeed ||
               untypedFeed(feedingRows, given) ||
@@ -1971,7 +1957,7 @@ const DestinationChoice = ({
               aria-pressed={chosen}
               key={option}
               variant={chosen ? "default" : "outline"}
-              className="h-auto min-h-16 flex-col gap-1 px-2 py-2 text-sm whitespace-normal"
+              className="h-auto min-h-16 flex-col gap-1 px-2 py-2 text-sm whitespace-normal md:h-auto"
               onClick={() => onChange(option)}
             >
               <Icon aria-hidden className="size-5" />
@@ -2043,7 +2029,7 @@ const EvidenceControl = ({
   if (evidence.type === "number") {
     const typed = String(value ?? "");
     return (
-      <div className="bg-card flex flex-col gap-3 rounded-xl border p-4">
+      <div className="surface flex flex-col gap-3 p-4">
         <p
           aria-hidden
           className={cn(
@@ -2081,7 +2067,7 @@ const EvidenceControl = ({
             aria-pressed={value === choice.value}
             key={choice.value}
             variant={value === choice.value ? "default" : "outline"}
-            className="h-auto min-h-14 py-2 text-base whitespace-normal"
+            className="h-auto min-h-14 py-2 text-base whitespace-normal md:h-auto"
             onClick={() => onValue(choice.value)}
           >
             {choice.label.bn}
@@ -2095,7 +2081,7 @@ const EvidenceControl = ({
     return (
       <FieldWithLabel htmlFor={id} label={t("work.when")}>
         <Input
-          className="h-12 text-base"
+          className="h-12 text-base md:h-12 md:text-base"
           id={id}
           // The field speaks the phone's own clock, which on this farm is the farm's; what is kept
           // is the instant, so a phone set a zone away still records the right moment.
@@ -2117,7 +2103,7 @@ const EvidenceControl = ({
     return (
       <FieldWithLabel htmlFor={id} label={t("work.note")}>
         <Input
-          className="h-12 text-base"
+          className="h-12 text-base md:h-12 md:text-base"
           id={id}
           value={String(value ?? "")}
           onChange={(event) => onValue(event.target.value)}

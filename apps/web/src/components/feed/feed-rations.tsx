@@ -346,11 +346,7 @@ const FeedingTarget = ({ penId }: { penId: string }) => {
     enabled: penId !== "",
   });
   if (!target.data?.ration) {
-    return (
-      <p className="text-muted-foreground rounded-lg border border-dashed p-4 text-sm">
-        {t("feed.noRation")}
-      </p>
-    );
+    return <EmptyState bare icon={Utensils} title={t("feed.noRation")} />;
   }
   const { ration, herd, items } = target.data;
   const byWeight = items.some((line) => isByWeight(line));
@@ -494,10 +490,7 @@ const RationCard = ({
   const onChosenPen = ration.penIds.includes(chosenPenId);
   return (
     <article
-      className={cn(
-        "bg-card flex flex-col gap-3 rounded-xl border p-4",
-        retired && "opacity-75"
-      )}
+      className={cn("surface flex flex-col gap-3 p-4", retired && "opacity-75")}
     >
       <header className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col">

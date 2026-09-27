@@ -83,7 +83,7 @@ const HerHeats = ({ heats }: { heats: AnimalDetail["heats"] }) => {
             trailing={
               heat.workId ? (
                 <Link
-                  className="text-sm underline underline-offset-4"
+                  className="text-sm font-medium underline-offset-4 hover:underline"
                   params={{ instanceId: heat.workId }}
                   to="/work/$instanceId"
                 >

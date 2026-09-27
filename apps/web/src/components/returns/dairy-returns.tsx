@@ -254,7 +254,7 @@ export const DairyGone = ({ page }: { page: ReturnsPage }) => {
     <ul className="flex flex-col gap-3">
       {gone.map((run) => (
         <li key={run.animalId}>
-          <details className="group bg-card rounded-lg border">
+          <details className="group surface">
             <summary className="flex cursor-pointer list-none flex-col gap-1 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
               <span className="flex flex-wrap items-center gap-2">
                 <ChevronDown
