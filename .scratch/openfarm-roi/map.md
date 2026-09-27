@@ -60,7 +60,7 @@ A **ready-for-agent spec**, like [Joining a Venture](../openfarm-joining-a-ventu
 
 ## Not yet specified
 
-Nothing. Every ticket is closed (2026-09-27). **The way to the destination is clear:** nothing about return is left to decide before the spec is written from the tickets above.
+Nothing. Every ticket is closed (2026-09-27). **The destination is reached: [the spec](../openfarm-returns/spec.md)**, ready for an agent, with seven build tickets in [its README](../openfarm-returns/README.md).
 
 ## Out of scope
 
