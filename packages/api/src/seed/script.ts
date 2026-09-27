@@ -820,6 +820,14 @@ const sellTheReady = ({ farm, on }: Script) => {
       paymentMethod: "cash",
     });
   });
+  // Home from the haat, the Owner writes down what a kilo went for there: what the farm's own bulls are priced at, and
+  // what keeping each one another fortnight is weighed against.
+  on(addDays(today, -9), "20:00", "the Owner prices the market", async (f) => {
+    await f.as.owner.fattening.setMarketPrice({
+      lowBdtPerKg: 560,
+      highBdtPerKg: 620,
+    });
+  });
   for (const [index, offset] of [-9, -9, -6, -4].entries()) {
     const day = addDays(today, offset);
     on(day, `${10 + index}:30`, "a bull sold", async (f, h) => {
