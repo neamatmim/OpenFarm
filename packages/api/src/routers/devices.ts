@@ -101,7 +101,17 @@ export const devicesRouter = {
 
   /** The phone exchanges the Manager's code for its own token. No session yet, by design. */
   claim: publicProcedure
-    .input(z.object({ code: z.string().trim().min(4).max(16) }))
+    .input(
+      z.object({
+        // As it was read off the Manager's screen and typed: a phone that does not capitalise, a space or a dash where
+        // the Manager paused. The code itself is capitals and digits, run together.
+        code: z
+          .string()
+          .max(32)
+          .transform((typed) => typed.replaceAll(/[\s-]/gu, "").toUpperCase())
+          .pipe(z.string().min(4).max(16)),
+      })
+    )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       // Enrolment codes are long and short-lived; this stops a script walking through them anyway. Counted per

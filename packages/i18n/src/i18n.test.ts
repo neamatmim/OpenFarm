@@ -4,6 +4,7 @@ import {
   formatDate,
   formatDigits,
   formatNumber,
+  latinDigitsOf,
   numberAsTyped,
 } from "./format";
 import { resolveLanguage } from "./languages";
@@ -135,6 +136,12 @@ describe("messages", () => {
     });
 
     expect(differ).toEqual([]);
+  });
+});
+
+describe("a code as it is typed", () => {
+  it("reads a Bangla keyboard's digits as the code's, and keeps its letters where they are", () => {
+    expect(latinDigitsOf("৫XWQR-KR৭৭Z")).toBe("5XWQR-KR77Z");
   });
 });
 

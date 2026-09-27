@@ -2187,8 +2187,10 @@ export const en = {
   "device.revokeTitle": "Revoke {name}?",
   "device.revokeWhy":
     "It stops working at once and is told nothing more. To use it again, add it afresh.",
+  "device.backToSignIn": "Back to sign in",
   "device.setup": "Set up this phone",
-  "device.setupHelp": "Ask the manager for the enrolment code.",
+  "device.setupHelp":
+    "Type the code on the Manager's screen — ten letters and numbers.",
   "device.enrol": "Set up",
   "device.enrolled": "This phone is ready",
   "device.whoAreYou": "Who is working?",

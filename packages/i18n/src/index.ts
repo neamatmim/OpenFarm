@@ -4,6 +4,7 @@ export {
   formatDayField,
   formatDigits,
   formatNumber,
+  latinDigitsOf,
   numberAsTyped,
   timeInDigits,
 } from "./format";
