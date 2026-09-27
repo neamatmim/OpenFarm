@@ -813,7 +813,7 @@ export const bn: Record<MessageKey, string> = {
   "params.keepNeedsDays": "খামারে এত দিন থাকার পর রাখার খরচের বিচার",
   "params.keepRateGapDays": "দুই ওজনের মাঝে অন্তত এত দিন হলে বাড়ার হার ধরা",
   "params.cullOpenDays": "বাছুর হওয়ার পর গর্ভ না এলে তালিকায়",
-  "params.monthlyCostsDueDay": "মাসের কোন তারিখ থেকে সে মাসের খরচ খোঁজা হবে",
+  "params.monthlyCostsDueDay": "মাসের এই তারিখ থেকে",
   "params.cullMilkAfterDays": "বাছুর হওয়ার পর দুধ ও খরচ মাপা শুরু",
   "params.cullCalfMilkDays": "বাছুর হওয়ার পর প্রথম এত দিনের দুধ বাছুরের",
   "params.cullMilkPriceDays": "দুধের দাম ধরা হবে গত এত দিনের বিক্রি থেকে",

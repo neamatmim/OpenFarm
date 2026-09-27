@@ -853,7 +853,7 @@ export const en = {
   "params.keepNeedsDays": "Judge an animal's keep once she has been here",
   "params.keepRateGapDays": "Trust a gain between weigh-ins at least",
   "params.cullOpenDays": "Empty too long after calving",
-  "params.monthlyCostsDueDay": "Day of the month the month's costs are looked for",
+  "params.monthlyCostsDueDay": "From this day of the month",
   "params.cullMilkAfterDays": "Weigh milk against keep from, after calving",
   "params.cullCalfMilkDays": "A cow's milk is her calf's for the first",
   "params.cullMilkPriceDays": "Price milk from dispatches of the last",
