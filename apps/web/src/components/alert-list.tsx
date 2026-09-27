@@ -214,7 +214,7 @@ export const AlertList = () => {
     <section
       aria-label={t("alerts.title")}
       className={cn(
-        "bg-card overflow-hidden rounded-xl border",
+        "surface overflow-hidden",
         urgent ? "border-danger/35" : "border-warning/35"
       )}
     >

@@ -91,7 +91,7 @@ export const ReportSighting = ({
             {OBSERVATION_WORDS.map((sighting) => (
               <Button
                 aria-pressed={saw === sighting.value}
-                className="h-auto min-h-11 justify-start py-2 text-start whitespace-normal"
+                className="h-auto min-h-11 justify-start py-2 text-start whitespace-normal md:h-auto"
                 key={sighting.value}
                 onClick={() => setSaw(sighting.value)}
                 type="button"

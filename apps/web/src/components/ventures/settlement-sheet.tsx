@@ -93,7 +93,7 @@ const Outcome = ({
   const taka = useTaka();
   const down = bdt < 0;
   return (
-    <div className={down ? "text-amber-700 dark:text-amber-500" : ""}>
+    <div className={down ? "text-warning" : ""}>
       <Line label={t(down ? lost : made)} strong>
         {taka(Math.abs(bdt))}
       </Line>

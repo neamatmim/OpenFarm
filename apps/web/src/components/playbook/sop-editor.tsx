@@ -167,7 +167,7 @@ const EditorFoot = ({
   const { t } = useLanguage();
   const ready = blockers.length === 0;
   return (
-    <div className="bg-card/95 supports-[backdrop-filter]:bg-card/85 flex flex-col gap-3 rounded-xl border p-3 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between md:sticky md:bottom-4 md:z-20">
+    <div className="surface bg-card/95 supports-[backdrop-filter]:bg-card/85 flex flex-col gap-3 p-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between md:sticky md:bottom-4 md:z-20">
       {ready ? (
         <StatusBadge tone="success">{t("sop.editor.ready")}</StatusBadge>
       ) : (

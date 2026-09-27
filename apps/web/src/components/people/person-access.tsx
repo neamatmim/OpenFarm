@@ -512,7 +512,7 @@ const PinDialog = ({
       >
         <Input
           autoComplete="off"
-          className="w-40 font-mono text-lg tracking-[0.4em]"
+          className="w-40 font-mono text-lg tracking-[0.4em] md:text-lg"
           id="their-pin"
           inputMode="numeric"
           maxLength={4}

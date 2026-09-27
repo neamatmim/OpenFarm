@@ -13,6 +13,7 @@ import {
   windowReady,
 } from "@/components/fattening/window-choice";
 import type { WindowPick } from "@/components/fattening/window-choice";
+import { Notice } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { allTyped } from "@/lib/all-typed";
@@ -160,11 +161,12 @@ export const BuyWhatIsLeftSheet = ({
     >
       <WhatIsLeft animals={left.data?.animals ?? []} rate={rateBdtPerKg} />
       {unweighed.length === 0 ? null : (
-        <p className="border-warning/35 bg-warning-surface/40 rounded-md border p-3 text-sm">
-          {t("ventures.weighThemFirst", {
+        <Notice
+          title={t("ventures.weighThemFirst", {
             tags: unweighed.map((one) => one.tagNumber).join(", "),
           })}
-        </p>
+          tone="warning"
+        />
       )}
       <FormField
         hint={t("ventures.rateHint")}

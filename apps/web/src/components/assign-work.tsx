@@ -64,7 +64,7 @@ export const AssignWork = ({
   return (
     <div
       className={cn(
-        "bg-card flex flex-col gap-2 rounded-xl border p-3 md:flex-row md:items-center md:gap-3",
+        "surface flex flex-col gap-2 p-3 md:flex-row md:items-center md:gap-3",
         className
       )}
     >

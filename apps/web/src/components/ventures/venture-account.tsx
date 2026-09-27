@@ -5,7 +5,7 @@ import { Landmark } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { Section } from "@/components/page";
+import { EmptyState, Section } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import type { VentureAccount } from "@/components/ventures/venture-account-details";
 import {
@@ -116,9 +116,7 @@ export const VentureAccountPanel = ({ venture }: { venture: Venture }) => {
       {account ? (
         <VentureAccountDetails account={account} />
       ) : (
-        <p className="text-muted-foreground text-sm">
-          {t("ventures.account.none")}
-        </p>
+        <EmptyState bare icon={Landmark} title={t("ventures.account.none")} />
       )}
       {/* Drawn afresh each time it opens, so it starts from what is written now. */}
       {writing ? (

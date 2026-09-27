@@ -7,10 +7,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@OpenFarm/ui/components/dialog";
-import { Check, Copy, KeyRound, TriangleAlert } from "lucide-react";
+import { Check, Copy, KeyRound } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { Notice } from "@/components/page";
 import { useT } from "@/i18n/language-provider";
 
 /** How long "copied" stays on the button before it offers to copy again. */
@@ -97,10 +98,7 @@ export const OneTimeCode = ({
           ) : null}
         </DialogHeader>
         {code ? <CodeBox code={code} /> : null}
-        <p className="bg-warning-surface text-warning border-warning/30 flex items-start gap-2 rounded-lg border px-3 py-2 text-sm">
-          <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
-          {note ?? t("people.codeOnce")}
-        </p>
+        <Notice title={note ?? t("people.codeOnce")} tone="warning" />
         <DialogFooter>
           <Button onClick={onDone} type="button">
             {t("people.codeDone")}

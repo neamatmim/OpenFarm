@@ -48,7 +48,7 @@ const HeldCard = ({
   const recordedAt = new Date(entry.recordedAt);
   const Icon = tone === "danger" ? Undo2 : Eye;
   return (
-    <li className="bg-card flex flex-col gap-3 rounded-xl border p-4">
+    <li className="surface flex flex-col gap-3 p-4">
       <div className="flex items-start gap-3">
         <span
           className={cn(

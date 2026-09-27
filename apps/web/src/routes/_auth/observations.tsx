@@ -36,7 +36,7 @@ const SeenFrom = ({ row }: { row: Seen }) => {
   }
   return (
     <Link
-      className="underline underline-offset-4"
+      className="font-medium underline-offset-4 hover:underline"
       params={{ instanceId: row.instanceId }}
       to="/work/$instanceId"
     >

@@ -12,14 +12,20 @@ import {
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, Landmark, Scale, Sprout } from "lucide-react";
+import {
+  ChartColumn,
+  ChevronDown,
+  Landmark,
+  Scale,
+  Sprout,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { useIsOwner } from "@/components/fattening/animal-prices";
 import { bandSaid } from "@/components/feed/band-words";
-import { EmptyState, StatusBadge } from "@/components/page";
+import { EmptyState, Notice, StatusBadge } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { Chip } from "@/components/saw-filter";
 import { useLanguage } from "@/i18n/language-provider";
@@ -92,13 +98,7 @@ export const ShareSaid = ({
 }) => {
   const { t } = useLanguage();
   return (
-    <p
-      className={cn(
-        "tabular-nums",
-        per100 < 0 && "text-destructive",
-        className
-      )}
-    >
+    <p className={cn("tabular-nums", per100 < 0 && "text-danger", className)}>
       {t(wordFor(SAID[on], per100), { amount: Math.abs(per100) })}
     </p>
   );
@@ -172,7 +172,7 @@ export const Result = ({ bdt }: { bdt: number }) => {
   const { t } = useLanguage();
   const taka = useTaka();
   return (
-    <span className={cn("tabular-nums", bdt < 0 && "text-destructive")}>
+    <span className={cn("tabular-nums", bdt < 0 && "text-danger")}>
       {t(wordFor(SAID.result, bdt), { bdt: taka(Math.abs(bdt)) })}
     </span>
   );
@@ -201,7 +201,7 @@ const Row = ({
   const { t } = useLanguage();
   return (
     <li>
-      <details className="group bg-card rounded-lg border">
+      <details className="group surface">
         <summary className="flex cursor-pointer list-none flex-col gap-1 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <span className="flex flex-wrap items-center gap-2">
             <ChevronDown
@@ -387,16 +387,18 @@ const SeasonBreakdown = ({ seasonKey }: { seasonKey: string }) => {
         ))}
       </div>
       {by !== null && opened.error ? (
-        <p className="text-destructive text-sm">
+        <p className="text-danger text-sm">
           {wordedRefusal(opened.error, t) ?? t("returns.breakdownFailed")}
         </p>
       ) : null}
       {by !== null && opened.data ? (
         <>
           {opened.data.length === 0 ? (
-            <p className="text-muted-foreground text-sm">
-              {t("returns.breakdownNone")}
-            </p>
+            <EmptyState
+              bare
+              icon={ChartColumn}
+              title={t("returns.breakdownNone")}
+            />
           ) : (
             <BreakdownTable by={by} rows={opened.data} />
           )}
@@ -542,7 +544,7 @@ export const ReturnsChart = ({ page }: { page: ReturnsPage }) => {
               <span
                 className={cn(
                   "block h-5 rounded",
-                  bar.perYear < 0 ? "bg-destructive" : "bg-primary"
+                  bar.perYear < 0 ? "bg-danger" : "bg-primary"
                 )}
                 style={{ width: `${(Math.abs(bar.perYear) / most) * 100}%` }}
               />
@@ -557,7 +559,7 @@ export const ReturnsChart = ({ page }: { page: ReturnsPage }) => {
             <span
               className={cn(
                 "text-right text-sm tabular-nums",
-                bar.perYear < 0 && "text-destructive"
+                bar.perYear < 0 && "text-danger"
               )}
             >
               {t(wordFor(SAID.perYear, bar.perYear), {
@@ -934,12 +936,9 @@ export const MissingPrices = ({ page }: { page: ReturnsPage }) => {
     return null;
   }
   return (
-    <div className="border-warning/40 bg-warning/5 flex flex-col gap-1 rounded-lg border p-4">
-      <p className="font-medium">{t("returns.missingTitle", { count })}</p>
-      <p className="text-muted-foreground text-sm">
-        {t("returns.missingHint")}
-      </p>
-    </div>
+    <Notice title={t("returns.missingTitle", { count })} tone="warning">
+      {t("returns.missingHint")}
+    </Notice>
   );
 };
 
@@ -961,7 +960,7 @@ const StillGoingList = ({ rows }: { rows: StillGoingRow[] }) => {
     <ul className="flex flex-col gap-2">
       {rows.map((row) => (
         <li
-          className="bg-card flex flex-col gap-3 rounded-lg border border-dashed p-4"
+          className="surface flex flex-col gap-3 border-dashed p-4"
           key={row.key}
         >
           <span className="flex flex-wrap items-center gap-2">
@@ -1026,7 +1025,7 @@ export const RunningSeasonsStrip = () => {
     return null;
   }
   return (
-    <div className="bg-card flex flex-col gap-3 rounded-lg border p-4">
+    <div className="surface flex flex-col gap-3 p-4">
       {going.data.map((season) => (
         <div className="flex flex-col gap-2" key={season.key}>
           <p className="font-medium">{named(season)}</p>
@@ -1061,7 +1060,7 @@ export const VentureReturnsPanel = ({ ventureId }: { ventureId: string }) => {
     return null;
   }
   return (
-    <section className="bg-card flex flex-col gap-3 rounded-xl border p-5">
+    <section className="surface flex flex-col gap-3 p-5">
       <div className="flex flex-col gap-1">
         <h2 className="font-semibold">{t("returns.panelTitle")}</h2>
         <p className="text-muted-foreground text-sm">

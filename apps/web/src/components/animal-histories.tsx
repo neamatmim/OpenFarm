@@ -326,7 +326,11 @@ const MoveWorkCell = ({ row }: { row: { original: MoveRow } }) => {
     return null;
   }
   return (
-    <Link className="underline" params={{ instanceId }} to="/work/$instanceId">
+    <Link
+      className="font-medium underline-offset-4 hover:underline"
+      params={{ instanceId }}
+      to="/work/$instanceId"
+    >
       {t("animals.moveFromWork")}
     </Link>
   );
@@ -375,7 +379,7 @@ const MoveCard = ({ row }: { row: MoveRow }) => {
       trailing={
         row.instanceId ? (
           <Link
-            className="text-sm underline"
+            className="text-sm font-medium underline-offset-4 hover:underline"
             params={{ instanceId: row.instanceId }}
             to="/work/$instanceId"
           >
@@ -630,7 +634,7 @@ const Calves = ({ calves }: { calves: Calf[] }) => {
       {calves.map((calf) => (
         <li key={calf.tagNumber}>
           <Link
-            className="font-mono underline"
+            className="font-mono font-medium underline-offset-4 hover:underline"
             params={{ tagNumber: calf.tagNumber }}
             to="/animals/$tagNumber"
           >

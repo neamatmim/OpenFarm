@@ -28,7 +28,7 @@ const SeenWhere = ({
     <>
       {instanceId ? (
         <Link
-          className="underline underline-offset-4"
+          className="font-medium underline-offset-4 hover:underline"
           params={{ instanceId }}
           to="/work/$instanceId"
         >

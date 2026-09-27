@@ -1,7 +1,8 @@
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { useQuery } from "@tanstack/react-query";
+import { ClipboardList } from "lucide-react";
 
-import { Loaded, Section } from "@/components/page";
+import { EmptyState, Loaded, Section } from "@/components/page";
 import { FigureTerm } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useKg } from "@/lib/kg";
@@ -22,7 +23,7 @@ const Figures = ({ read }: { read: Read }) => {
   const { basis, projection } = read;
   if (!(basis && projection)) {
     return (
-      <p className="text-muted-foreground text-sm">{t("projection.none")}</p>
+      <EmptyState bare icon={ClipboardList} title={t("projection.none")} />
     );
   }
   const day = formatDate(new Date(basis.setAt), language, "date");

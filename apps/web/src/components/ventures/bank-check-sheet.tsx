@@ -25,7 +25,7 @@ const WhatItWasReadAgainst = ({
 }) => {
   const { t, language } = useLanguage();
   return checked?.stale ? (
-    <p className="text-sm text-amber-700 dark:text-amber-500">
+    <p className="text-warning text-sm">
       {t("ventures.checkedAgainst", {
         expected: formatNumber(checked.expectedBdt, language),
       })}

@@ -8,7 +8,7 @@ import { ClipboardList, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { Loaded, Section, StatusBadge } from "@/components/page";
+import { EmptyState, Loaded, Section, StatusBadge } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useKg } from "@/lib/kg";
@@ -385,7 +385,7 @@ const PlanRead = ({ plan, venture }: { plan: Plan; venture: Venture }) => {
   const taka = useTaka();
   const { latest, baseline } = plan;
   if (!latest) {
-    return <p className="text-muted-foreground text-sm">{t("plan.none")}</p>;
+    return <EmptyState bare icon={ClipboardList} title={t("plan.none")} />;
   }
   const isBaseline = baseline?.version === latest.version;
   // Missing from an answer this phone kept from before a plan could expect deaths: read as none.
