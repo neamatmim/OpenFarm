@@ -8,12 +8,13 @@ import {
   redirect,
   useNavigate,
 } from "@tanstack/react-router";
-import { ChevronRight, KeyRound, Lock } from "lucide-react";
+import { KeyRound, Lock } from "lucide-react";
 import { useState } from "react";
 
 import { PasswordInput } from "@/components/auth/password-input";
 import type { SignInRefusal } from "@/components/auth/refused-notice";
 import { RefusedNotice, refusalOf } from "@/components/auth/refused-notice";
+import { DoorLinks, DoorRow } from "@/components/door-screen";
 import { Notice } from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import { PortalDoor } from "@/components/portal/portal-door";
@@ -35,6 +36,11 @@ const PortalLogin = () => {
   const [refused, setRefused] = useState<SignInRefusal | null>(null);
   const [pending, setPending] = useState(false);
   const signIn = async () => {
+    // Always pressable, as the farm's own sign-in is: a grey button says nothing about what it is waiting for.
+    if (phone.trim() === "" || password === "") {
+      setRefused({ message: t("portal.fillBoth"), home: null });
+      return;
+    }
     const email = investorLoginOf(phone);
     if (!email) {
       setRefused({ message: t("portal.phoneNotMobile"), home: null });
@@ -118,7 +124,7 @@ const PortalLogin = () => {
         </div>
         <Button
           className="h-12 w-full text-base md:h-10"
-          disabled={pending || phone.trim() === "" || password === ""}
+          disabled={pending}
           type="submit"
         >
           {pending ? <Spinner /> : null}
@@ -129,26 +135,16 @@ const PortalLogin = () => {
           {t("portal.sessionNote")}
         </p>
       </form>
-      {/* The first way in, on a card of its own under the form. Its title is the words the Welcome Letter tells an
-          Investor to press, so it stays word for word what the letter prints. */}
-      <Link
-        className="surface hover:bg-muted/50 focus-visible:ring-ring flex items-center gap-3 p-4 transition-colors duration-150 outline-none focus-visible:ring-2"
-        to="/portal/join"
-      >
-        <span className="bg-secondary text-secondary-foreground grid size-10 shrink-0 place-items-center rounded-lg">
-          <KeyRound aria-hidden className="size-5" />
-        </span>
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="font-medium">{t("portal.haveCode")}</span>
-          <span className="text-muted-foreground text-sm">
-            {t("portal.firstTimeHint")}
-          </span>
-        </span>
-        <ChevronRight
-          aria-hidden
-          className="text-muted-foreground size-4 shrink-0"
+      {/* The first way in, on a card under the form. Its title is the words the Welcome Letter tells an Investor to
+          press, so it stays word for word what the letter prints. */}
+      <DoorLinks>
+        <DoorRow
+          hint={t("portal.firstTimeHint")}
+          icon={KeyRound}
+          title={t("portal.haveCode")}
+          to="/portal/join"
         />
-      </Link>
+      </DoorLinks>
     </PortalDoor>
   );
 };

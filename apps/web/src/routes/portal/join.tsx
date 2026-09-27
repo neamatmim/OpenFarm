@@ -102,10 +102,13 @@ const PortalJoin = () => {
         noValidate
         onSubmit={(event) => {
           event.preventDefault();
-          if (ready) {
-            setRefused(null);
-            join.mutate({ phone, code, password });
+          // Always pressable: what is still missing is said, as the two needs of the password are ticked off.
+          if (!ready) {
+            setRefused(t("portal.fillAll"));
+            return;
           }
+          setRefused(null);
+          join.mutate({ phone, code, password });
         }}
       >
         <div className="flex flex-col gap-1.5">
@@ -171,7 +174,7 @@ const PortalJoin = () => {
         </ul>
         <Button
           className="h-12 w-full text-base md:h-10"
-          disabled={!ready || join.isPending}
+          disabled={join.isPending}
           type="submit"
         >
           {join.isPending ? <Spinner /> : null}

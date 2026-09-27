@@ -9,6 +9,8 @@ export const bn: Record<MessageKey, string> = {
   "language.bn": "বাংলা",
   "language.en": "English",
   "language.switch": "ভাষা বদলান",
+  "auth.openAccountHint":
+    "মালিক বা ম্যানেজার যে ঠিকানায় আমন্ত্রণ পাঠিয়েছেন আর যে কোড দিয়েছেন, তা দিয়ে।",
   "auth.shedPhone": "শেডের ফোন",
   "auth.shedPhoneHint":
     "কর্মীরা পিন দিয়ে ঢোকেন। নতুন ফোন ম্যানেজারের দেওয়া কোড দিয়ে চালু হয়।",
@@ -293,6 +295,9 @@ export const bn: Record<MessageKey, string> = {
   "portal.promise.papers": "আপনার চুক্তি আর বিবৃতি, যখন খুশি পড়ুন।",
   "portal.promise.money": "আপনার জমা দেওয়া আর আপনাকে দেওয়া প্রতিটি টাকা।",
   "portal.promise.foot": "খামারের আমন্ত্রিত বিনিয়োগকারীদের জন্য।",
+  "portal.fillBoth": "মোবাইল নম্বর আর পাসওয়ার্ড দুটোই দিন।",
+  "portal.fillAll":
+    "মোবাইল নম্বর আর খামারের কোড দিন, আর তালিকার দুটি শর্ত মেনে পাসওয়ার্ড বেছে নিন।",
   "portal.haveCode": "খামার থেকে কোড পেয়েছেন? পাসওয়ার্ড ঠিক করুন",
   "portal.haveAccount": "পাসওয়ার্ড আগেই আছে? সাইন ইন করুন",
   "portal.joinTitle": "আপনার প্রবেশাধিকার ঠিক করুন",

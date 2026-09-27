@@ -15,7 +15,6 @@ import { Notice } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
 
-import Loader from "./loader";
 
 const NAME_MIN = 2;
 
@@ -23,7 +22,6 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
   const navigate = useNavigate({
     from: "/",
   });
-  const { isPending } = authClient.useSession();
   const { t, language } = useLanguage();
   // What the farm said when it refused, kept on the card as well as in the toast: a toast is gone before somebody
   // who reads slowly has read it.
@@ -71,10 +69,6 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
       }),
     },
   });
-
-  if (isPending) {
-    return <Loader />;
-  }
 
   return (
     <div className="surface flex flex-col gap-6 p-6 sm:p-8">

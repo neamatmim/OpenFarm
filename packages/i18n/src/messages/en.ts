@@ -5,6 +5,8 @@ export const en = {
   "language.bn": "বাংলা",
   "language.en": "English",
   "language.switch": "Change language",
+  "auth.openAccountHint":
+    "With the address the Owner or a Manager invited, and the code they gave you.",
   "auth.shedPhone": "Shed Phone",
   "auth.shedPhoneHint":
     "Staff sign in with their PIN. A new phone is set up with the Manager's code.",
@@ -317,6 +319,9 @@ export const en = {
     "Your Agreements and statements, to read whenever you like.",
   "portal.promise.money": "Every taka you paid in, and every taka paid to you.",
   "portal.promise.foot": "For Investors the farm has invited.",
+  "portal.fillBoth": "Enter your phone number and your password.",
+  "portal.fillAll":
+    "Enter your phone number and the farm's code, and choose a password that meets both needs listed.",
   "portal.haveCode": "Have a code from the farm? Set your password",
   "portal.haveAccount": "Already have a password? Sign in",
   "portal.joinTitle": "Set up your access",
