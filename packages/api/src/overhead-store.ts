@@ -2,6 +2,7 @@ import type { Database } from "@OpenFarm/db";
 import type { OverheadMoney, PenHistoryLine } from "@OpenFarm/domain";
 import { headDaysIn, overheadsOver } from "@OpenFarm/domain";
 
+import { herdCostOf } from "./cost-store";
 import { THE_FARMS_PURSE } from "./money-store";
 
 type Db = Pick<Database, "query">;
@@ -28,7 +29,12 @@ export const overheadMoneyIn = async (
       direction: "out",
       occurredAt: { gte: from, lt: until },
     },
-    columns: { amountBdt: true, occurredAt: true, side: true },
+    columns: {
+      amountBdt: true,
+      occurredAt: true,
+      side: true,
+      categoryId: true,
+    },
     with: {
       category: {
         columns: {
@@ -40,8 +46,18 @@ export const overheadMoneyIn = async (
       },
     },
   });
+  // Asked of the one rule that says what a Herd Cost is, so the costing and this can never disagree about a taka.
   return rows
-    .filter((one) => !(one.category.chargedToAnimals && one.side !== null))
+    .filter(
+      (one) =>
+        herdCostOf({
+          at: one.occurredAt,
+          side: one.side,
+          categoryId: one.categoryId,
+          chargedToAnimals: one.category.chargedToAnimals,
+          bdt: one.amountBdt,
+        }) === null
+    )
     .map((one) => ({
       categoryId: one.category.id,
       categoryBn: one.category.nameBn,

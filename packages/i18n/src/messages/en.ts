@@ -853,7 +853,7 @@ export const en = {
   "params.keepNeedsDays": "Judge an animal's keep once she has been here",
   "params.keepRateGapDays": "Trust a gain between weigh-ins at least",
   "params.cullOpenDays": "Empty too long after calving",
-  "params.monthlyCostsDueDay": "From this day of the month",
+  "params.monthlyCostsFromDay": "From this day of the month",
   "params.cullMilkAfterDays": "Weigh milk against keep from, after calving",
   "params.cullCalfMilkDays": "A cow's milk is her calf's for the first",
   "params.cullMilkPriceDays": "Price milk from dispatches of the last",
@@ -2661,8 +2661,10 @@ export const en = {
     "Every taka the Venture took needs a refund with its own reference",
   "refusal.neverTheAnimals":
     "Wages, shed rent, utilities, repairs, shed hygiene, equipment and money coming in are never charged to the animals",
-  "refusal.neverMonthly": "Only money going out that is entered by hand may be marked as paid every month",
-  "refusal.wagesWatchedByPerson": "A wage is looked for by the person paid, not by the Category",
+  "refusal.neverMonthly":
+    "Only money going out that no record books may be marked as paid every month",
+  "refusal.wagesWatchedByPerson":
+    "A wage is looked for by the person paid, not by the Category",
   "refusal.feedRetired": "That feed is retired",
   "refusal.bagSizeUnknown":
     "Say what one of its bags weighs first, on the Feed Items tab",
@@ -2908,10 +2910,12 @@ export const en = {
   "costs.trips": "Buying and selling trips",
   "costs.herd": "Herd costs",
   "costs.overheads": "Running the farm",
-  "costs.overheadsHint": "Wages, rent, bills and the like. Not charged to any animal, Season or Venture.",
+  "costs.overheadsHint":
+    "Wages, rent, electricity and the like. Not charged to any animal, Season or Venture.",
   "costs.overheadsTotal": "All of it",
   "costs.perHeadPerDay": "A head a day",
-  "costs.headDays": "Worked over every animal's days on the farm, the Ventures' among them: {days}.",
+  "costs.headDays":
+    "Worked over every animal's days on the farm, the Ventures' among them: {days}.",
   "costs.costOfGain": "Cost per kg gained",
   "costs.thisLactation": "This lactation",
   "costs.soldInPeriod":
@@ -3925,7 +3929,8 @@ export const en = {
   "months.col.fatteningCost": "Fattening cost",
   "months.col.overheads": "Running the farm · a head a day",
   "months.cardOverheads": "Running the farm {bdt}, {perHead} a head a day",
-  "months.yearOverheads": "Running the farm over the year: {bdt}, {perHead} a head a day over every animal here, the Ventures' among them. Wages, rent and bills: no Side, Season or Venture above carries it.",
+  "months.yearOverheads":
+    "Running the farm over the year: {bdt}, {perHead} a head a day over every animal here, the Ventures' among them. Wages, rent and electricity: no Side, Season or Venture above carries it.",
   "months.soFar": "so far",
   "months.pair": "{first} · {second}",
   "months.cardMilk": "Milk sold {sold} · the dairy cows cost {cost}",

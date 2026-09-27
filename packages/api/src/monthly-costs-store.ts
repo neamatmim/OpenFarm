@@ -3,6 +3,7 @@ import {
   farmDayOf,
   monthOf,
   monthlyCostsNotEntered,
+  monthsEndingIn,
   startOfFarmDay,
 } from "@OpenFarm/domain";
 
@@ -10,28 +11,23 @@ import { THE_FARMS_PURSE } from "./money-store";
 
 type Db = Pick<Database, "query">;
 
-/** The first day of the month `count` months before the one `day` falls in, on the farm's own clock. */
-const monthsBefore = (day: string, count: number): Date => {
-  const index =
-    Number(day.slice(0, 4)) * 12 + Number(day.slice(5, 7)) - 1 - count;
-  const month = String((index % 12) + 1).padStart(2, "0");
-  return startOfFarmDay(`${Math.floor(index / 12)}-${month}-01`);
-};
-
 /**
  * What of the farm's month has not been entered yet, for the Manager's home and the Owner's (CONTEXT.md: **Monthly
  * Cost**): each Monthly Cost with nothing under it, and each person paid a wage one month and not the next — worded
  * for the row, with what the money entry needs to be opened already filled.
  *
- * The Farm's purse alone. A Venture's money is never rent or a wage, and a Venture's entry under a Category the farm
- * pays every month would otherwise stand in for the Farm's.
+ * The Farm's purse alone. A Venture's entry under a Category the farm pays every month would otherwise stand in for
+ * the Farm's; a wage is the Farm's whatever else is true, and the purse is asked of it all the same.
  */
 export const monthlyCostsNow = async (
   db: Db,
-  farm: { id: string; monthlyCostsDueDay: number },
+  farm: { id: string; monthlyCostsFromDay: number },
   now: Date
 ) => {
   const today = farmDayOf(now);
+  // A Monthly Cost is asked about for last month and this one; a wage for as far back as the month before the one
+  // looked for, which is three months before this.
+  const [wagesFrom = "", , lastMonth = ""] = monthsEndingIn(today, 4);
   const categories = await db.query.moneyCategory.findMany({
     where: { farmId: farm.id, paidMonthlySince: { isNotNull: true } },
     columns: {
@@ -42,36 +38,40 @@ export const monthlyCostsNow = async (
       retiredAt: true,
     },
   });
-  // Last month and this one are all a Monthly Cost is asked about; wages reach back one more, to the month before
-  // the one looked for.
-  const entered =
+  const [entered, wages, wagesCategory] = await Promise.all([
     categories.length === 0
       ? []
-      : await db.query.moneyEvent.findMany({
+      : db.query.moneyEvent.findMany({
           where: {
             farmId: farm.id,
             purseVentureId: THE_FARMS_PURSE,
             categoryId: { in: categories.map((one) => one.id) },
             occurredAt: {
-              gte: monthsBefore(today, 1),
+              gte: startOfFarmDay(`${lastMonth}-01`),
               lt: monthOf(now).until,
             },
           },
           columns: { categoryId: true, occurredAt: true },
-        });
-  const wages = await db.query.moneyEvent.findMany({
-    where: {
-      farmId: farm.id,
-      wageMonth: { gte: farmDayOf(monthsBefore(today, 3)).slice(0, 7) },
-      counterpartyId: { isNotNull: true },
-    },
-    columns: { counterpartyId: true, wageMonth: true },
-    with: { counterparty: { columns: { name: true } } },
-  });
+        }),
+    db.query.moneyEvent.findMany({
+      where: {
+        farmId: farm.id,
+        purseVentureId: THE_FARMS_PURSE,
+        wageMonth: { gte: wagesFrom },
+        counterpartyId: { isNotNull: true },
+      },
+      columns: { counterpartyId: true, wageMonth: true },
+      with: { counterparty: { columns: { name: true } } },
+    }),
+    db.query.moneyCategory.findFirst({
+      where: { farmId: farm.id, key: "wages" },
+      columns: { id: true },
+    }),
+  ]);
 
   const owed = monthlyCostsNotEntered({
     today,
-    dueDay: farm.monthlyCostsDueDay,
+    fromDay: farm.monthlyCostsFromDay,
     categories: categories.flatMap((one) =>
       one.paidMonthlySince
         ? [
@@ -96,10 +96,6 @@ export const monthlyCostsNow = async (
         : []
     ),
   });
-  const wagesCategory = await db.query.moneyCategory.findFirst({
-    where: { farmId: farm.id, key: "wages" },
-    columns: { id: true },
-  });
   const byId = new Map(categories.map((one) => [one.id, one]));
   return {
     costs: owed.costs.flatMap((one) => {
@@ -116,6 +112,8 @@ export const monthlyCostsNow = async (
         : [];
     }),
     wages: owed.wages.map((one) => ({
+      /** The person's own record, which is what tells two rows apart. */
+      personId: one.personId,
       personName: one.name,
       month: one.month,
       /** Where the wage is entered, so the row opens the money entry on it. */

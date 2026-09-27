@@ -42,3 +42,9 @@ export const useTakaToThePaisa = () => {
   const { language } = useLanguage();
   return (amount: number) => saidToThePaisa(amount, language);
 };
+
+/** What the farm's Overhead came to a head a day, or a dash where no animal stood to divide it by. */
+export const usePerHeadPerDay = () => {
+  const rate = useTakaToThePaisa();
+  return (amount: number | null) => (amount === null ? "—" : rate(amount));
+};

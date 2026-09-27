@@ -96,7 +96,7 @@ const ReviewRow = ({
 
 /**
  * What needs the Manager, loudest first: work gone late, work to check, entries needing a decision, cows whose milk or
- * carcass is held back, feed running low, the month's rent, bills and wages not entered yet, and cows somebody has to
+ * carcass is held back, feed running low, the month's rent, electricity and wages not entered yet, and cows somebody has to
  * decide about. Each kind shows its first few, with
  * the way to the page that holds all of it.
  */

@@ -103,7 +103,7 @@ export const homeRouter = {
         // Feed running low: on the Manager's queue as well as in their digest, because a queue is
         // where somebody deciding what to buy looks.
         runningLow(context.db, farmId),
-        // The rent, the bills and the wages the month has nothing entered for yet: the Manager enters the money.
+        // The rent, the electricity and the wages the month has nothing entered for yet: the Manager enters the money.
         monthlyCostsNow(context.db, context.farm, now),
       ]);
 
@@ -333,7 +333,7 @@ export const homeRouter = {
           orderBy: { recordedAt: "asc", id: "asc" },
           limit: QUEUE_LIMIT,
         }),
-        // The rent, the bills and the wages the month has nothing entered for yet: a month missing is otherwise read as
+        // The rent, the electricity and the wages the month has nothing entered for yet: a month missing is otherwise read as
         // a cheaper month.
         monthlyCostsNow(context.db, context.farm, now),
       ]);

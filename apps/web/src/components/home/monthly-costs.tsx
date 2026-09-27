@@ -49,7 +49,7 @@ const Missing = ({
 };
 
 /**
- * The rent, the bills and the wages the month has nothing entered for yet (CONTEXT.md: **Monthly Cost**): a month
+ * The rent, the electricity and the wages the month has nothing entered for yet (CONTEXT.md: **Monthly Cost**): a month
  * missing is otherwise read as a cheaper month. Each opens the money entry with the Category — and for a wage the
  * person and the month — already filled, and says the month it is for. A thing to enter, never money owed.
  */
@@ -82,7 +82,8 @@ export const MonthlyCostsGroup = ({
       );
     }),
     ...(monthlyCosts?.wages ?? []).map((row) => {
-      const key = `wage ${row.personName} ${row.month}`;
+      // By the person's record, not the name — defaulted for an answer a phone kept from before it carried one.
+      const key = `wage ${row.personId ?? row.personName} ${row.month}`;
       return (
         <Missing
           key={key}

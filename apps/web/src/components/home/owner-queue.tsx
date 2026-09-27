@@ -54,20 +54,19 @@ type Tiles = Awaited<ReturnType<typeof orpc.home.owner.call>>["tiles"];
 /** How many money rows show before the rest wait behind "show all": a pile of approvals is read by its total first. */
 const MONEY_FIRST_SHOWN = 3;
 
-/** How many rows of the month's rent, bills and wages are not entered yet — none in an answer a phone kept from before
+/** How many rows of the month's rent, electricity and wages are not entered yet — none in an answer a phone kept from before
  *  there were Monthly Costs. */
 const monthlyCostsMissing = (needsYou: NeedsYou): number =>
   (needsYou.monthlyCosts?.costs.length ?? 0) +
   (needsYou.monthlyCosts?.wages.length ?? 0);
 
-/** What waits on the Owner: work to sign off, proposals, money, entries to decide, the Registration, and the month's
- *  costs not entered yet. */
+/** What waits on the Owner's own word: work to sign off, proposals, money, entries to decide, the Registration. Not the
+ *  month's costs not entered yet — the Manager enters those, and the Owner is shown them under Money all the same. */
 export const decisionsWaiting = (needsYou: NeedsYou): number =>
   needsYou.approvals.length +
   needsYou.proposals.length +
   needsYou.needsReview.length +
   needsYou.moneyAwaiting.length +
-  monthlyCostsMissing(needsYou) +
   (needsYou.registrationRenewal ? 1 : 0);
 
 /** The taka the money awaiting approval comes to, whichever way it goes. */

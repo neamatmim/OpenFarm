@@ -813,7 +813,7 @@ export const bn: Record<MessageKey, string> = {
   "params.keepNeedsDays": "খামারে এত দিন থাকার পর রাখার খরচের বিচার",
   "params.keepRateGapDays": "দুই ওজনের মাঝে অন্তত এত দিন হলে বাড়ার হার ধরা",
   "params.cullOpenDays": "বাছুর হওয়ার পর গর্ভ না এলে তালিকায়",
-  "params.monthlyCostsDueDay": "মাসের এই তারিখ থেকে",
+  "params.monthlyCostsFromDay": "মাসের এই তারিখ থেকে",
   "params.cullMilkAfterDays": "বাছুর হওয়ার পর দুধ ও খরচ মাপা শুরু",
   "params.cullCalfMilkDays": "বাছুর হওয়ার পর প্রথম এত দিনের দুধ বাছুরের",
   "params.cullMilkPriceDays": "দুধের দাম ধরা হবে গত এত দিনের বিক্রি থেকে",
@@ -2493,7 +2493,8 @@ export const bn: Record<MessageKey, string> = {
     "ভেঞ্চার যত টাকা নিয়েছে, প্রতিটির আলাদা রেফারেন্সসহ ফেরত দিতে হবে",
   "refusal.neverTheAnimals":
     "মজুরি, শেড ভাড়া, বিদ্যুৎ-পানি, মেরামত, শেড পরিষ্কার, যন্ত্রপাতি আর আয়ের টাকা কখনো গরুর হিসাবে যায় না",
-  "refusal.neverMonthly": "শুধু হাতে লেখা খরচকেই প্রতি মাসের খরচ বলা যায়",
+  "refusal.neverMonthly":
+    "যে খরচ কোনো রেকর্ড থেকে আসে না, শুধু সেটাকেই প্রতি মাসের খরচ বলা যায়",
   "refusal.wagesWatchedByPerson": "মজুরি খোঁজা হয় মানুষ ধরে, খাত ধরে নয়",
   "refusal.feedRetired": "এই খাদ্য বাতিল করা হয়েছে",
   "refusal.bagSizeUnknown": "আগে খাদ্য উপাদান ট্যাবে এর বস্তার ওজন লিখুন",
@@ -2723,7 +2724,8 @@ export const bn: Record<MessageKey, string> = {
   "costs.trips": "কেনা-বেচার যাত্রা",
   "costs.herd": "পশুপালের খরচ",
   "costs.overheads": "খামার চালানোর খরচ",
-  "costs.overheadsHint": "মজুরি, ভাড়া, বিল আর এমন খরচ। কোনো পশু, মৌসুম বা ভেঞ্চারের হিসাবে যায় না।",
+  "costs.overheadsHint":
+    "মজুরি, ভাড়া, বিদ্যুৎ আর এমন খরচ। কোনো পশু, মৌসুম বা ভেঞ্চারের হিসাবে যায় না।",
   "costs.overheadsTotal": "মোট",
   "costs.perHeadPerDay": "প্রতি পশু প্রতিদিন",
   "costs.headDays": "ভেঞ্চারের পশুসহ খামারের সব পশুর মোট দিনের ওপর হিসাব: {days}।",
@@ -3671,7 +3673,8 @@ export const bn: Record<MessageKey, string> = {
   "months.col.fatteningCost": "মোটাতাজাকরণের খরচ",
   "months.col.overheads": "খামার চালানোর খরচ · প্রতি পশু প্রতিদিন",
   "months.cardOverheads": "খামার চালানোর খরচ {bdt}, প্রতি পশু প্রতিদিন {perHead}",
-  "months.yearOverheads": "বছরে খামার চালানোর খরচ: {bdt}, ভেঞ্চারের পশুসহ খামারের সব পশুর হিসাবে প্রতি পশু প্রতিদিন {perHead}। মজুরি, ভাড়া আর বিল: ওপরের কোনো দিক, মৌসুম বা ভেঞ্চারের হিসাবে এটা ধরা নেই।",
+  "months.yearOverheads":
+    "বছরে খামার চালানোর খরচ: {bdt}, ভেঞ্চারের পশুসহ খামারের সব পশুর হিসাবে প্রতি পশু প্রতিদিন {perHead}। মজুরি, ভাড়া আর বিদ্যুৎ: ওপরের কোনো দিক, মৌসুম বা ভেঞ্চারের হিসাবে এটা ধরা নেই।",
   "months.soFar": "এখন পর্যন্ত",
   "months.pair": "{first} · {second}",
   "months.cardMilk": "দুধ বিক্রি {sold} · দুগ্ধ গাভীর খরচ {cost}",

@@ -1,4 +1,6 @@
-import { FakeClock } from "@OpenFarm/test-harness";
+import { uuidv7 } from "@OpenFarm/db/ids";
+import { moneyEvent } from "@OpenFarm/db/schema/money";
+import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -76,12 +78,12 @@ describe("a Monthly Cost", () => {
       nameBn: "শেড ভাড়া",
       direction: "out",
       paidMonthly: true,
-      monthlyable: true,
+      monthlyMarkable: true,
       chargeable: false,
     });
   });
 
-  it("is named for this month from the farm's due day, and not before the Owner marked it", async () => {
+  it("is named for this month from the farm's day of the month, and not before the Owner marked it", async () => {
     // The 9th: April is before the mark, and May is not due yet.
     expect(await costsOn("2044-05-09T04:00:00.000Z")).toEqual([]);
     expect(await costsOn("2044-05-10T04:00:00.000Z")).toEqual([
@@ -106,7 +108,7 @@ describe("a Monthly Cost", () => {
   });
 
   it("is named for last month whatever the day, to the Owner as well as the Manager", async () => {
-    // June had nothing entered, and on 1 July it is named although July's due day is ten days off.
+    // June had nothing entered, and on 1 July it is named although July's day is ten days off.
     const owner = await as("owner", "2044-07-01T04:00:00.000Z");
     const home = await owner.client.home.owner();
     const { monthlyCosts } = home.needsYou;
@@ -118,7 +120,7 @@ describe("a Monthly Cost", () => {
     );
   });
 
-  it("is the Owner's alone to mark, and never Wages, money coming in, or a record's money", async () => {
+  it("is the Owner's alone to mark, and never Wages, money coming in, or a record's money — a Vet's fee among them", async () => {
     const manager = await as("manager", "2044-05-03T04:00:00.000Z");
     await expect(
       manager.client.money.setPaidMonthly({
@@ -135,7 +137,7 @@ describe("a Monthly Cost", () => {
       })
     ).rejects.toMatchObject({ data: { refusal: "wages_watched_by_person" } });
     await Promise.all(
-      ["manure_sales", "feed_in"].map((key) =>
+      ["manure_sales", "feed_in", "vet_fee"].map((key) =>
         expect(
           owner.client.money.setPaidMonthly({
             categoryId: category[key] ?? "",
@@ -148,7 +150,7 @@ describe("a Monthly Cost", () => {
 });
 
 describe("a wage not entered", () => {
-  it("names somebody paid for one month and not the next, once the month after has reached the due day, and only the once", async () => {
+  it("names somebody paid for one month and not the next, once the month after has reached the farm's day, and only the once", async () => {
     const wage = (name: string, wageMonth: string, occurredOn: string) =>
       enter(`${occurredOn}T06:00:00.000Z`, {
         categoryId: category.wages ?? "",
@@ -164,31 +166,133 @@ describe("a wage not entered", () => {
     // On the 9th of July, June's wages are not looked for yet.
     expect(await wagesOn("2044-07-09T04:00:00.000Z")).toEqual([]);
     expect(await wagesOn("2044-07-10T04:00:00.000Z")).toEqual([
-      { personName: "করিম", month: "2044-06", categoryId: category.wages },
+      {
+        personId: expect.any(String),
+        personName: "করিম",
+        month: "2044-06",
+        categoryId: category.wages,
+      },
     ]);
     // A month on, Karim — who has had nothing since May — is not named again; Rahim, paid for June and not July, is.
     expect(await wagesOn("2044-08-10T04:00:00.000Z")).toEqual([
-      { personName: "রহিম", month: "2044-07", categoryId: category.wages },
+      {
+        personId: expect.any(String),
+        personName: "রহিম",
+        month: "2044-07",
+        categoryId: category.wages,
+      },
     ]);
   });
 });
 
-describe("the due day", () => {
+describe("the day of the month", () => {
   it("is the Owner's to set, and moves the day a month's Monthly Costs are named from", async () => {
     const manager = await as("manager", "2044-08-01T04:00:00.000Z");
     await expect(
-      manager.client.farm.setParameters({ monthlyCostsDueDay: 3 })
+      manager.client.farm.setParameters({ monthlyCostsFromDay: 3 })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
 
     const months = async () => {
       const costs = await costsOn("2044-08-03T04:00:00.000Z");
       return costs.map((one) => one.month);
     };
-    // On the 3rd, with the 10th the due day, July alone is named.
+    // On the 3rd, with the 10th the farm's day, July alone is named.
     expect(await months()).toEqual(["2044-07"]);
     const owner = await as("owner", "2044-08-01T04:00:00.000Z");
-    await owner.client.farm.setParameters({ monthlyCostsDueDay: 3 });
+    await owner.client.farm.setParameters({ monthlyCostsFromDay: 3 });
     expect(await months()).toEqual(["2044-07", "2044-08"]);
-    await owner.client.farm.setParameters({ monthlyCostsDueDay: 10 });
+    await owner.client.farm.setParameters({ monthlyCostsFromDay: 10 });
+  });
+});
+
+describe("the mark", () => {
+  it("is never put on a retired Category, and a retired one is not offered it", async () => {
+    const owner = await as("owner", "2044-09-02T04:00:00.000Z");
+    const gone = await owner.client.money.addCategory({
+      nameBn: "পুরোনো জেনারেটর",
+      direction: "out",
+    });
+    await owner.client.money.retireCategory({ id: gone.id });
+    const categories = await owner.client.money.categories();
+    expect(categories.find((one) => one.id === gone.id)).toMatchObject({
+      monthlyMarkable: false,
+    });
+    await expect(
+      owner.client.money.setPaidMonthly({
+        categoryId: gone.id,
+        paidMonthly: true,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "category_retired" } });
+  });
+
+  it("taken off and put back, starts again from the day it went back on", async () => {
+    const owner = await as("owner", "2044-10-02T04:00:00.000Z");
+    const internet = await owner.client.money.addCategory({
+      nameBn: "ইন্টারনেট",
+      direction: "out",
+    });
+    await owner.client.money.setPaidMonthly({
+      categoryId: internet.id,
+      paidMonthly: true,
+    });
+    const off = await as("owner", "2044-10-03T04:00:00.000Z");
+    await off.client.money.setPaidMonthly({
+      categoryId: internet.id,
+      paidMonthly: false,
+    });
+    const back = await as("owner", "2044-11-20T04:00:00.000Z");
+    await back.client.money.setPaidMonthly({
+      categoryId: internet.id,
+      paidMonthly: true,
+    });
+    // October was before it went back on, so only November is asked about — had the first mark been kept, October
+    // would be named as well.
+    const costs = await costsOn("2044-11-25T04:00:00.000Z");
+    expect(
+      costs
+        .filter((one) => one.categoryId === internet.id)
+        .map((one) => one.month)
+    ).toEqual(["2044-11"]);
+  });
+});
+
+describe("a Venture's money", () => {
+  it("never stands in for the Farm's rent", async () => {
+    const owner = await as("owner", "2044-12-01T04:00:00.000Z");
+    const venture = await owner.client.ventures.open({
+      name: "শীতের ভেঞ্চার",
+      targetCapitalBdt: 500_000,
+      floorBdt: 0,
+      decideBy: "2044-12-20",
+      targetWindowStart: "2045-06-01",
+      targetWindowEnd: "2045-06-05",
+      unitPriceBdt: 50_000,
+      units: 10,
+    });
+    // Nothing the app offers writes a Venture's money under the rent, so it is written here, as its writer would.
+    const id = uuidv7(new Date());
+    await scratchDb()
+      .insert(moneyEvent)
+      .values({
+        id,
+        farmId: theFarm().id,
+        direction: "out",
+        amountBdt: 18_000,
+        occurredAt: new Date("2044-12-05T04:00:00.000Z"),
+        categoryId: category.rent ?? "",
+        paymentMethod: "bank",
+        source: "by_hand",
+        sourceId: id,
+        purseVentureId: venture.id,
+        approval: "approved",
+        recordedByRole: "owner",
+        recordedAt: new Date("2044-12-05T04:00:00.000Z"),
+      });
+    const costs = await costsOn("2044-12-15T04:00:00.000Z");
+    expect(
+      costs
+        .filter((one) => one.categoryId === category.rent)
+        .map((one) => one.month)
+    ).toContain("2044-12");
   });
 });

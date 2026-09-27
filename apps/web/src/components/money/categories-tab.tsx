@@ -96,8 +96,7 @@ const Retired = ({ row }: { row: CategoryRow }) =>
  *  back. */
 const CategoryMenu = ({ row }: { row: CategoryRow }) => {
   const { t } = useLanguage();
-  const { handleRetire, handleBringBack, handleMark, handleMarkMonthly } =
-    row;
+  const { handleRetire, handleBringBack, handleMark, handleMarkMonthly } = row;
   if (row.retiredAt) {
     return (
       <RowMenu
@@ -320,7 +319,7 @@ export const CategoriesTab = () => {
       retiring: retire.isPending,
       mayMark: isOwner && one.enterable && one.chargeable,
       monthly: one.paidMonthly ?? false,
-      mayMarkMonthly: isOwner && (one.monthlyable ?? false),
+      mayMarkMonthly: isOwner && (one.monthlyMarkable ?? false),
       handleMarkMonthly: () =>
         markMonthly.mutate({
           categoryId: one.id,
