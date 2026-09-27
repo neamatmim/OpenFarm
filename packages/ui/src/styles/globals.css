@@ -97,6 +97,8 @@
   --ring: oklch(0.55 0.09 160);
 
   --success: oklch(0.4 0.1 150);
+  /* Words and marks drawn on the success colour itself — a Step's done tick — as the primary's are: 8.6:1. */
+  --success-foreground: oklch(0.99 0.004 150);
   --success-surface: oklch(0.95 0.025 150);
   --warning: oklch(0.43 0.095 75);
   --warning-surface: oklch(0.96 0.045 85);
@@ -148,6 +150,8 @@
   --ring: oklch(0.65 0.1 155);
 
   --success: oklch(0.78 0.12 150);
+  /* 9.8:1 on the night's lighter success colour, as the primary's foreground is dark on the night's primary. */
+  --success-foreground: oklch(0.18 0.03 160);
   --success-surface: oklch(0.29 0.05 150);
   --warning: oklch(0.82 0.12 80);
   --warning-surface: oklch(0.31 0.05 75);
@@ -180,6 +184,7 @@
     "Noto Sans Bengali Variable", "Inter Variable", ui-sans-serif, system-ui,
     sans-serif;
   --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-success-surface: var(--success-surface);
   --color-warning: var(--warning);
   --color-warning-surface: var(--warning-surface);

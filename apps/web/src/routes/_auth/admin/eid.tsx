@@ -27,6 +27,7 @@ import {
 } from "@/components/fattening/next-eid";
 import {
   EmptyState,
+  Loaded,
   Page,
   PageHeader,
   Section,
@@ -282,15 +283,17 @@ const EidPage = () => {
       <PageHeader description={t("eid.listSubtitle")} title={t("nav.eid")} />
 
       <Section>
-        {eids.data === undefined ? (
-          <Skeleton className="h-40 rounded-lg" />
-        ) : null}
-        {eids.data?.length === 0 ? (
-          <EmptyState bare icon={MoonStar} title={t("eid.none")} />
-        ) : null}
-        {eids.data?.length ? (
-          <DataTable card={eidCard} minWidth="52rem" table={table} />
-        ) : null}
+        <Loaded
+          query={eids}
+          skeleton={<Skeleton className="h-40 rounded-lg" />}
+        >
+          {eids.data?.length === 0 ? (
+            <EmptyState bare icon={MoonStar} title={t("eid.none")} />
+          ) : null}
+          {eids.data?.length ? (
+            <DataTable card={eidCard} minWidth="52rem" table={table} />
+          ) : null}
+        </Loaded>
       </Section>
 
       {announcing ? (

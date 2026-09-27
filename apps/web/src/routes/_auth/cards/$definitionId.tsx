@@ -5,17 +5,12 @@ import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import {
-  Archive,
-  ArrowLeft,
-  GraduationCap,
-  Printer,
-  UserCheck,
-} from "lucide-react";
+import { Archive, GraduationCap, Printer, UserCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
 import {
+  BackLink,
   EmptyState,
   Loaded,
   Page,
@@ -204,13 +199,9 @@ const CardPage = () => {
   return (
     <Page>
       {keepsPlaybook ? (
-        <Link
-          className="text-muted-foreground hover:text-foreground no-print -mb-2 inline-flex min-h-11 items-center gap-1 self-start text-sm md:min-h-0"
-          to="/admin/sops"
-        >
-          <ArrowLeft aria-hidden className="size-4" />
-          {t("sop.backToPlaybook")}
-        </Link>
+        <BackLink className="no-print" to="/admin/sops">
+          {t("nav.sops")}
+        </BackLink>
       ) : null}
       {/* The page is about the card; the card says which procedure and which Version, as the wall will see it. */}
       <PageHeader

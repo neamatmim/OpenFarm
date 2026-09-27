@@ -15,11 +15,11 @@ import { formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
-import { ArrowLeft, Copy, Eye, Plus, RotateCcw, Send } from "lucide-react";
+import { Copy, Eye, Plus, RotateCcw, Send } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { Notice, Page, PageHeader, Section } from "@/components/page";
+import { BackLink, Notice, Page, PageHeader, Section } from "@/components/page";
 import { FormField, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import type { TemplateDraft } from "@/lib/template-draft";
@@ -209,22 +209,20 @@ export const TemplateEditor = ({
     setDraft({ ...draft, sections });
   return (
     <Page>
+      {/* The editor is drawn in the templates' own place, so the way back is to the same address with the draft let go. */}
+      <BackLink onClick={onCancel} to="/templates">
+        {t("nav.templates")}
+      </BackLink>
       <PageHeader
         actions={
-          <>
-            <Button
-              onClick={() => setDraft(toDraft(STANDARD_TEMPLATES[kind]))}
-              type="button"
-              variant="outline"
-            >
-              <RotateCcw aria-hidden data-icon="inline-start" />
-              {t("templates.startFromStandard")}
-            </Button>
-            <Button onClick={onCancel} type="button" variant="ghost">
-              <ArrowLeft aria-hidden data-icon="inline-start" />
-              {t("templates.back")}
-            </Button>
-          </>
+          <Button
+            onClick={() => setDraft(toDraft(STANDARD_TEMPLATES[kind]))}
+            type="button"
+            variant="outline"
+          >
+            <RotateCcw aria-hidden data-icon="inline-start" />
+            {t("templates.startFromStandard")}
+          </Button>
         }
         description={t("templates.editorHint")}
         eyebrow={t("templates.pageTitle")}

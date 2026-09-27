@@ -706,7 +706,6 @@ export const bn: Record<MessageKey, string> = {
   "people.passwordCodeWhy":
     "এই কোডটি তাঁকে দিন। সাইন ইন পাতায় কোডটি দিয়ে তিনি নিজের পাসওয়ার্ড বেছে নেবেন — খামার কারও পাসওয়ার্ড ঠিক করে দেয় না।",
   "people.newPasswordCode": "নতুন পাসওয়ার্ড কোড",
-  "people.backToPeople": "সবাই",
   "people.title": "মানুষ ও অ্যাক্সেস",
   "people.correctName": "নাম সংশোধন",
   "people.name": "নাম",
@@ -2242,7 +2241,6 @@ export const bn: Record<MessageKey, string> = {
   "sop.withTheOwner": "মালিকের কাছে",
   "sop.readProposal": "প্রস্তাবিত পরিবর্তন পড়ুন",
   "sop.inForce": "এখন চালু সংস্করণ {number}",
-  "sop.backToPlaybook": "প্লেবুকে ফিরুন",
   "sop.stepNumber": "ধাপ {number}",
   "sop.moveUp": "ধাপটি উপরে নিন",
   "sop.moveDown": "ধাপটি নিচে নিন",
@@ -4086,7 +4084,6 @@ export const bn: Record<MessageKey, string> = {
   "templates.previewHint":
     "খামারের নিজের তথ্য বসানো আছে; বাকি প্রতিটি তথ্য যেখানে বসবে সেখানে বন্ধনীর মধ্যে তার নাম লেখা।",
   "templates.published": "সংস্করণ {number} প্রকাশিত",
-  "templates.back": "নমুনায় ফিরুন",
   "templates.editorHint":
     "প্রকাশ করলে এখন থেকে কাগজ এই ভাষায় ছাপা ও সই হবে। আগে সই হওয়া কাগজ তাদের ভাষাই রাখবে।",
   "templates.startFromStandard": "মানক ভাষা থেকে শুরু করুন",
