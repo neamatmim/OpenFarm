@@ -2,6 +2,7 @@ import type { Database } from "@OpenFarm/db";
 import type { HeadPriceKind } from "@OpenFarm/db/schema/returns";
 import { HEAD_PRICE_KINDS } from "@OpenFarm/db/schema/returns";
 import type {
+  Gap,
   OwnedThenBy,
   Returned,
   RunningRange,
@@ -19,7 +20,6 @@ import {
 } from "@OpenFarm/domain";
 
 import type { FarmCosts } from "./cost-store";
-import type { Gap } from "./returns-store";
 
 /**
  * What the dairy herd returns: each dairy Animal her own run over her whole stay, as `CONTEXT.md`'s **Return on Cost**

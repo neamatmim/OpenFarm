@@ -362,7 +362,14 @@ export {
   tripShares,
 } from "./costs";
 export { groupedBy } from "./grouped-by";
-export type { Charge, ChargeKind, Holding, OwnedThenBy } from "./holding";
+export type {
+  Charge,
+  ChargeKind,
+  Holding,
+  Left,
+  OwnedThenBy,
+  WhatHappened,
+} from "./holding";
 export {
   CHARGE_KINDS,
   EVERY_CHARGE,
@@ -371,7 +378,36 @@ export {
   chargesInHolding,
   chargesOfOwner,
   costsOf,
+  howSheLeft,
 } from "./holding";
+export type {
+  ApprovedSettlement,
+  BankRate,
+  BankRateSaid,
+  CapitalMovement,
+  Came,
+  Gap,
+  HoldingRead,
+  JoinedHow,
+  NotValued,
+  ReturnBooks,
+  SeasonHolding,
+  SeasonReturn,
+  VentureReturn,
+} from "./cattle-returns";
+export {
+  backOf,
+  bankRateFor,
+  capitalOf,
+  earliest,
+  rateInForceOn,
+  returnOfHoldings,
+  spentOn,
+  seasonGroupsOf,
+  seasonsOf,
+  ventureReturnOf,
+  whatHappenedTo,
+} from "./cattle-returns";
 export type {
   Arrival,
   ArrivalKind,

@@ -127,3 +127,80 @@ export const costsOf = (charges: readonly Charge[]): Costs => {
     herdBdt: bdtOf("herd"),
   };
 };
+
+/** What happened to one Animal that could end a Holding: her Sale, every Internal Sale of her, her crossing from the
+ *  Dairy side, her death. */
+export interface WhatHappened {
+  sale: { soldAt: Date; priceBdt: number } | null;
+  /** Every Internal Sale of her, in the order they were saved. */
+  internalSales: readonly {
+    id: string;
+    fromVentureId: string | null;
+    priceBdt: number;
+    /** When it was saved: which of two came first. */
+    createdAt: Date;
+    /** When she changed hands: the start of the day written on the sale. */
+    on: Date;
+  }[];
+  /** Her crossing to the Fattening side, and the price the Owner put on it — or none yet. */
+  crossing: { on: Date; priceBdt: number | null } | null;
+  died: Date | null;
+}
+
+/** How a Holding ended: when, and what came back — nothing for a death, and not yet known for a crossing not priced. */
+export interface Left {
+  how: "sold" | "sold_to_venture" | "crossed" | "died";
+  on: Date;
+  backBdt: number | null;
+}
+
+/**
+ * How one Holding ended, or `null` while she is still its owner's (CONTEXT.md, Holding): her crossing off the Dairy
+ * side, an Internal Sale away from this owner after she came to it, her Sale while she was theirs, or her death. One
+ * rule for the Farm's Seasons, a Venture's cattle and a dairy Animal's whole stay.
+ */
+export const howSheLeft = (
+  holding: {
+    animalId: string;
+    owner: string | null;
+    side: Side;
+    from: Date;
+    /** The Internal Sale that brought her to this owner, if one did: only a later one takes her away again, however
+     *  close in time — sold to a Venture and bought back in one sitting is two Holdings, not one. */
+    cameBy?: string | null;
+  },
+  her: WhatHappened,
+  ownedThenBy: OwnedThenBy
+): Left | null => {
+  if (holding.side === "dairy" && her.crossing) {
+    return {
+      how: "crossed",
+      on: her.crossing.on,
+      backBdt: her.crossing.priceBdt,
+    };
+  }
+  const cameAt = holding.cameBy
+    ? her.internalSales.findIndex((one) => one.id === holding.cameBy)
+    : -1;
+  const soldOn = her.internalSales.find(
+    (one, index) =>
+      one.fromVentureId === holding.owner &&
+      (holding.cameBy ? index > cameAt : one.createdAt >= holding.from)
+  );
+  if (soldOn) {
+    return {
+      how: "sold_to_venture",
+      // The start of the day she was sold on, though never before this owner took her on, for one bought and sold
+      // on in the same day.
+      on: soldOn.on > holding.from ? soldOn.on : holding.from,
+      backBdt: soldOn.priceBdt,
+    };
+  }
+  if (
+    her.sale &&
+    ownedThenBy(holding.animalId, her.sale.soldAt) === holding.owner
+  ) {
+    return { how: "sold", on: her.sale.soldAt, backBdt: her.sale.priceBdt };
+  }
+  return her.died ? { how: "died", on: her.died, backBdt: 0 } : null;
+};

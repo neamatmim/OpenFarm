@@ -31,6 +31,7 @@ let penId = "";
 let weighInId = "";
 let ventureA = "";
 let ventureB = "";
+let ventureC = "";
 
 /** A morning's weigh-in off the crush: what an Internal Sale is priced from. */
 const weighInSop = (): SopContent => ({
@@ -355,10 +356,16 @@ beforeAll(async () => {
     paymentMethod: "cash",
   });
 
-  // Every other bull gone the same day, so nothing is left standing on either Venture.
+  // Venture C: one bull, whose Vet visit of 10 February is only entered after the Settlement was paid out.
+  const c = await aVentureWithBulls("গ", "01999000053", [100_000]);
+  ventureC = c.ventureId;
+  const [c1] = c.tags;
+
+  // Every other bull gone the same day, so nothing is left standing on any Venture.
   await sell(a2 ?? "", "2054-02-15T05:00:00.000Z", 112_000);
   await sell(b.tags[0] ?? "", "2054-02-15T05:00:00.000Z", 110_000);
   await sell(x, "2054-02-15T05:00:00.000Z", 97_000);
+  await sell(c1 ?? "", "2054-02-15T05:00:00.000Z", 108_000);
 
   // The Returns page the morning after the last of them went, before either Settlement.
   const { client: reading } = await as("owner", "2054-02-16T04:00:00.000Z");
@@ -366,6 +373,36 @@ beforeAll(async () => {
 
   await settle(ventureA, "ক");
   await settle(ventureB, "খ");
+  await settle(ventureC, "গ");
+  // The late news: C's bull was seen by the Vet on 10 February, and the fee is entered on 5 March.
+  const { client: lateVet } = await as("vet", "2054-03-05T08:00:00.000Z");
+  await lateVet.money.vetFee({
+    amountBdt: 1200,
+    visitedOn: "2054-02-10",
+    animalTags: [c1 ?? ""],
+    paymentMethod: "cash",
+  });
+});
+
+describe("a settled Venture when a cost comes in after its Settlement", () => {
+  it("reads its cattle as they cost now, and says how far that is from its Settlement", async () => {
+    const { client: owner } = await as("owner", "2054-03-06T04:00:00.000Z");
+    const page = await owner.returns.page();
+    const itsReturn = page.ventures.find((one) => one.id === ventureC);
+    const settled = settledProfit.get(ventureC) ?? Number.NaN;
+    expect(itsReturn?.returnOnCost?.resultBdt).toBeCloseTo(settled - 1200, 0);
+    expect(itsReturn?.sinceSettlementBdt).toBeCloseTo(-1200, 0);
+    // The Investors were paid on the Settlement: their return does not move with the late news.
+    expect(itsReturn?.returnOnCapital).not.toBeNull();
+  });
+
+  it("says nothing of a Settlement a Venture's figure still agrees with", async () => {
+    const { client: owner } = await as("owner", "2054-03-06T04:00:00.000Z");
+    const page = await owner.returns.page();
+    expect(
+      page.ventures.find((one) => one.id === ventureA)?.sinceSettlementBdt
+    ).toBeNull();
+  });
 });
 
 describe("a Venture whose last animal has gone, before its Settlement", () => {
