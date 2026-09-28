@@ -308,6 +308,7 @@ export const en = {
   "portal.closed":
     "The investor portal is not open to you. Ask the farm's Owner.",
   "portal.title": "Investor portal",
+  "investors.whatTheySee": "What invited Investors see",
   "portal.signInTitle": "Investor sign-in",
   "portal.signInHint":
     "Sign in with the phone number the farm has for you and the password you chose.",

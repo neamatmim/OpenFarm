@@ -145,21 +145,6 @@ const InvestorsPage = () => {
         title={t("investors.title")}
       />
       <SummaryFigures figures={figures} />
-      {counted ? <PortalSwitch open={counted.portalOpen} /> : null}
-      {/* An answer this phone kept from before projections, or settled returns, could be shown says nothing of them:
-          hidden. */}
-      {counted ? (
-        <ShownToInvestorsSwitch
-          shown={counted.projectionsShown ?? false}
-          what="projections"
-        />
-      ) : null}
-      {counted ? (
-        <ShownToInvestorsSwitch
-          shown={counted.returnsShown ?? false}
-          what="returns"
-        />
-      ) : null}
       {counted?.nearingTheCap ? (
         <Notice
           title={t("investors.nearingTheCap", {
@@ -210,6 +195,24 @@ const InvestorsPage = () => {
           </Section>
         )}
       </Loaded>
+      {/* The three switches for what invited Investors see, together and after the people: set once, read rarely. */}
+      {counted ? (
+        <Section id="what-they-see" title={t("investors.whatTheySee")}>
+          <div className="divide-border flex flex-col divide-y">
+            <PortalSwitch open={counted.portalOpen} />
+            {/* An answer this phone kept from before projections, or settled returns, could be shown says nothing
+                of them: hidden. */}
+            <ShownToInvestorsSwitch
+              shown={counted.projectionsShown ?? false}
+              what="projections"
+            />
+            <ShownToInvestorsSwitch
+              shown={counted.returnsShown ?? false}
+              what="returns"
+            />
+          </div>
+        </Section>
+      ) : null}
       <InvestorSheet onOpenChange={setRecording} open={recording} />
     </Page>
   );

@@ -118,7 +118,8 @@ const UnitsCell = ({ row }: Cell) => {
   );
 };
 
-/** Where they stand with the portal, and what goes with it: the code's last day, or when they were last in. */
+/** Where they stand with the portal, and what goes with it: the code's last day, or when they were last in — their
+ *  consent is read on their own page. */
 const PortalCell = ({ row }: Cell) => {
   const { investor } = row.original;
   if (standingOf(investor) === "none") {
@@ -127,7 +128,7 @@ const PortalCell = ({ row }: Cell) => {
   return (
     <span className="flex flex-col items-start gap-1">
       <PortalStandingBadge investor={investor} />
-      <PortalStandingLine investor={investor} />
+      <PortalStandingLine brief investor={investor} />
     </span>
   );
 };

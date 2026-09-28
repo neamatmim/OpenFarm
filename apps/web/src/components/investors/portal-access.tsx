@@ -24,12 +24,13 @@ import {
   Printer,
   UserX,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { flushSync } from "react-dom";
 import { toast } from "sonner";
 
 import type { Tone } from "@/components/page";
-import { Section, StatusBadge } from "@/components/page";
+import { StatusBadge } from "@/components/page";
 import {
   ConfirmDialog,
   FormDialog,
@@ -113,7 +114,14 @@ const takenAwayLine = (
  * What goes with where they stand: until when their code can be taken up, that it ran out and wants another, or when
  * they were last in. Nothing for somebody never invited or whose access was taken away.
  */
-export const PortalStandingLine = ({ investor }: { investor: Investor }) => {
+export const PortalStandingLine = ({
+  investor,
+  brief = false,
+}: {
+  investor: Investor;
+  /** A list's row: leave the consent to their own page, where it is read. */
+  brief?: boolean;
+}) => {
   const { t, language } = useLanguage();
   const standing = standingOf(investor);
   // Cached before these were answered, they are missing rather than null.
@@ -125,7 +133,7 @@ export const PortalStandingLine = ({ investor }: { investor: Investor }) => {
   if (takenAway && standing === "taken_away") {
     said.push(takenAwayLine(takenAway, { t, language }));
   }
-  if (consent) {
+  if (consent && !brief) {
     said.push(
       t("portal.consent.signed", {
         when: formatDate(new Date(`${consent.signedOn}T00:00:00Z`), language),
@@ -172,6 +180,34 @@ const whyNoInvite = (investor: Investor) => {
   return null;
 };
 
+/** One thing the Owner switches for invited Investors, as a row of the card that holds them all: what it is and where
+ *  it stands, what that means, and the act that switches it. */
+const SwitchRow = ({
+  title,
+  badge,
+  hint,
+  action,
+  children,
+}: {
+  title: string;
+  badge: ReactNode;
+  hint: string;
+  action: ReactNode;
+  children: ReactNode;
+}) => (
+  <div className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+    <div className="flex min-w-0 flex-col gap-1">
+      <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
+        {title}
+        {badge}
+      </p>
+      <p className="text-muted-foreground max-w-prose text-sm">{hint}</p>
+    </div>
+    <div className="shrink-0">{action}</div>
+    {children}
+  </div>
+);
+
 /**
  * The portal, open or shut for the whole farm (ADR 0007). Opening it is asked about first, because it is the Owner's
  * decision taken before the lawyer answered whether the portal makes the farm a platform — and shutting it is how the
@@ -191,12 +227,13 @@ export const PortalSwitch = ({ open }: { open: boolean }) => {
     })
   );
   return (
-    <Section
+    <SwitchRow
       action={
         open ? (
           <Button
             disabled={turning.isPending}
             onClick={() => turning.mutate({ open: false })}
+            size="sm"
             type="button"
             variant="outline"
           >
@@ -206,6 +243,7 @@ export const PortalSwitch = ({ open }: { open: boolean }) => {
         ) : (
           <Button
             onClick={() => setAsking(true)}
+            size="sm"
             type="button"
             variant="outline"
           >
@@ -214,15 +252,13 @@ export const PortalSwitch = ({ open }: { open: boolean }) => {
           </Button>
         )
       }
-      description={t(open ? "portal.openHint" : "portal.shutHint")}
-      title={
-        <span className="flex flex-wrap items-center gap-2">
-          {t("portal.title")}
-          <StatusBadge tone={open ? "success" : "neutral"}>
-            {t(open ? "portal.isOpen" : "portal.isShut")}
-          </StatusBadge>
-        </span>
+      badge={
+        <StatusBadge tone={open ? "success" : "neutral"}>
+          {t(open ? "portal.isOpen" : "portal.isShut")}
+        </StatusBadge>
       }
+      hint={t(open ? "portal.openHint" : "portal.shutHint")}
+      title={t("portal.title")}
     >
       <ConfirmDialog
         confirmLabel={t("portal.openIt")}
@@ -233,7 +269,7 @@ export const PortalSwitch = ({ open }: { open: boolean }) => {
         pending={turning.isPending}
         title={t("portal.openTitle")}
       />
-    </Section>
+    </SwitchRow>
   );
 };
 
@@ -294,12 +330,13 @@ export const ShownToInvestorsSwitch = ({
     })
   );
   return (
-    <Section
+    <SwitchRow
       action={
         shown ? (
           <Button
             disabled={turning.isPending}
             onClick={() => turning.mutate({ shown: false })}
+            size="sm"
             type="button"
             variant="outline"
           >
@@ -309,6 +346,7 @@ export const ShownToInvestorsSwitch = ({
         ) : (
           <Button
             onClick={() => setAsking(true)}
+            size="sm"
             type="button"
             variant="outline"
           >
@@ -317,15 +355,13 @@ export const ShownToInvestorsSwitch = ({
           </Button>
         )
       }
-      description={t(shown ? words.shownHint : words.hiddenHint)}
-      title={
-        <span className="flex flex-wrap items-center gap-2">
-          {t(words.title)}
-          <StatusBadge tone={shown ? "warning" : "neutral"}>
-            {t(shown ? "projection.switch.shown" : "projection.switch.hidden")}
-          </StatusBadge>
-        </span>
+      badge={
+        <StatusBadge tone={shown ? "warning" : "neutral"}>
+          {t(shown ? "projection.switch.shown" : "projection.switch.hidden")}
+        </StatusBadge>
       }
+      hint={t(shown ? words.shownHint : words.hiddenHint)}
+      title={t(words.title)}
     >
       <ConfirmDialog
         confirmLabel={t(words.show)}
@@ -336,7 +372,7 @@ export const ShownToInvestorsSwitch = ({
         pending={turning.isPending}
         title={t(words.confirmTitle)}
       />
-    </Section>
+    </SwitchRow>
   );
 };
 
