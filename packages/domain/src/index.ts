@@ -381,6 +381,21 @@ export {
   howSheLeft,
 } from "./holding";
 export type {
+  DairyAnimalRead,
+  DairyBooks,
+  DairyCame,
+  DairyRun,
+  DairyWent,
+  HeadRange,
+  LitresSent,
+} from "./dairy-returns";
+export {
+  bredHere,
+  dairyRunOf,
+  herdNowOf,
+  milkPricesByMonth,
+} from "./dairy-returns";
+export type {
   ApprovedSettlement,
   BankRate,
   BankRateSaid,
