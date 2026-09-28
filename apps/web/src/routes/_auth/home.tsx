@@ -167,32 +167,38 @@ const ManagerHome = () => {
       <SummaryFigures figures={figures} />
 
       {/* One column that shrinks to the phone: a grid's own column grows to its widest unbroken line, and a Tag Number
-          beside a long date pushed both cards off the screen. */}
+          beside a long date pushed both cards off the screen. On a wide screen what waits and the Ventures share the
+          wide column and the pens stand beside them, so the Ventures never drop into a third of a row under the pens
+          and leave a blank beside the queue. */}
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
-        <Section
-          className="min-w-0 lg:col-span-2"
-          description={waiting === 0 ? undefined : t("home.queueHint")}
-          id="queue"
-          title={t("home.queue")}
-        >
-          {waiting === 0 ? (
-            <EmptyState
-              bare
-              description={t("home.allClearHint")}
-              icon={CircleCheck}
-              title={t("home.allClear")}
-            />
-          ) : (
-            <ManagerQueue
-              chosen={queueTab}
-              mayAnswer={mayAnswer}
-              onChoose={(kind) =>
-                navigate({ replace: true, search: { queue: kind } })
-              }
-              queue={queue}
-            />
-          )}
-        </Section>
+        <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
+          <Section
+            className="min-w-0"
+            description={waiting === 0 ? undefined : t("home.queueHint")}
+            id="queue"
+            title={t("home.queue")}
+          >
+            {waiting === 0 ? (
+              <EmptyState
+                bare
+                description={t("home.allClearHint")}
+                icon={CircleCheck}
+                title={t("home.allClear")}
+              />
+            ) : (
+              <ManagerQueue
+                chosen={queueTab}
+                mayAnswer={mayAnswer}
+                onChoose={(kind) =>
+                  navigate({ replace: true, search: { queue: kind } })
+                }
+                queue={queue}
+              />
+            )}
+          </Section>
+
+          <VenturesAtWork />
+        </div>
 
         <Section
           className="min-w-0 lg:sticky lg:top-20"
@@ -214,8 +220,6 @@ const ManagerHome = () => {
             </RecordList>
           )}
         </Section>
-
-        <VenturesAtWork />
       </div>
     </Page>
   );
