@@ -378,6 +378,8 @@ export const bn: Record<MessageKey, string> = {
   "price.costShort": "কিছু খরচের দাম এখনো নেই",
   "price.born": "খামারে জন্ম: খরচে কেনার দাম নেই",
   "price.noPrice": "কেজি-দর ঠিক করা নেই",
+  "price.col.estimate": "সম্ভাব্য দাম",
+  "price.col.cost": "এ পর্যন্ত খরচ",
   "keep.title": "রাখা না বেচা",
   "keep.hint":
     "আরও {ahead} দিন রাখলে লাভ কি না: গত {days} দিনের খাবার, ওষুধ, ভেট ভিজিট আর পশুপালের খরচের ভাগ, এখন যত কেজি বাড়ছে তার ওপর, কেজি-দরের পাশে। যা খরচ হয়ে গেছে তা রাখলেও গেছে, বেচলেও গেছে, তাই এখানে তার কোনো ভূমিকা নেই। ঈদে দাম বদলাবে, সেটা এটি জানে না।",
@@ -2620,6 +2622,9 @@ export const bn: Record<MessageKey, string> = {
   "selling.tripRecorded": "হাটের দিনটা লেখা হলো",
   "selling.pastTrips": "সাম্প্রতিক হাট",
   "selling.tookAnimals": "{count}টি গেছে",
+  "selling.chosen": "{count}টি পশু বাছা হয়েছে",
+  "selling.takePen": "পুরো পেন নিন",
+  "selling.leavePen": "পেন বাদ দিন",
   "money.from.sale": "বিক্রি",
   "money.from.feedIn": "খাদ্য কেনা",
   "money.from.medicinePurchase": "ওষুধ কেনা",

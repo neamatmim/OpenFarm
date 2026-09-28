@@ -53,16 +53,12 @@ const useHerPrice = (tagNumber: string): AnimalPriced | null => {
   );
 };
 
-/**
- * Her cost and what it leaves unsaid — feed or a dose with no price yet, or no purchase in it for one born here — and
- * her break-even, each a line of its own that never breaks inside itself, so a narrow column stacks them rather than
- * leaving half a phrase alone.
- */
-const CostLine = ({ one }: { one: AnimalPriced }) => {
+/** What her cost leaves unsaid and her break-even, after whatever `parts` open it, a line each. */
+const CostNotes = ({ one, parts }: { one: AnimalPriced; parts: string[] }) => {
   const { t } = useLanguage();
   const taka = useTaka();
-  const parts = [
-    t("price.cost", { cost: taka(one.costBdt) }),
+  const lines = [
+    ...parts,
     one.breakEvenBdtPerKg === null
       ? null
       : t("price.breakEven", { perKg: taka(one.breakEvenBdtPerKg) }),
@@ -71,12 +67,28 @@ const CostLine = ({ one }: { one: AnimalPriced }) => {
   ].filter((part): part is string => part !== null);
   return (
     <span className="text-muted-foreground flex flex-col text-xs">
-      {parts.map((part) => (
+      {lines.map((part) => (
         <span className="whitespace-nowrap" key={part}>
           {part}
         </span>
       ))}
     </span>
+  );
+};
+
+/**
+ * Her cost and what it leaves unsaid — feed or a dose with no price yet, or no purchase in it for one born here — and
+ * her break-even, each a line of its own that never breaks inside itself, so a narrow column stacks them rather than
+ * leaving half a phrase alone.
+ */
+const CostLine = ({ one }: { one: AnimalPriced }) => {
+  const { t } = useLanguage();
+  const taka = useTaka();
+  return (
+    <CostNotes
+      one={one}
+      parts={[t("price.cost", { cost: taka(one.costBdt) })]}
+    />
   );
 };
 
@@ -235,6 +247,52 @@ export const PriceCell = ({ tagNumber }: { tagNumber: string }) => {
       <span className="flex flex-col items-end gap-0.5 pt-1">
         <KeepLine full={false} one={one} />
       </span>
+    </span>
+  );
+};
+
+/**
+ * The same three answers as three columns, for a list with the room: what she might fetch, what she has cost, and keep
+ * or sell. Each a line or two, so a row stays one animal tall rather than six lines of money.
+ */
+export const EstimateCell = ({ tagNumber }: { tagNumber: string }) => {
+  const one = useHerPrice(tagNumber);
+  if (!one) {
+    return <Nothing />;
+  }
+  return (
+    <span className="flex flex-col items-end gap-0.5 text-end whitespace-nowrap">
+      <EstimateLine one={one} />
+    </span>
+  );
+};
+
+/** What she has cost so far as the figure, with her break-even and what the cost leaves out beneath. */
+export const CostCell = ({ tagNumber }: { tagNumber: string }) => {
+  const taka = useTaka();
+  const one = useHerPrice(tagNumber);
+  if (!one) {
+    return <Nothing />;
+  }
+  return (
+    <span className="flex flex-col items-end gap-0.5 text-end">
+      <span className="font-medium whitespace-nowrap tabular-nums">
+        {taka(one.costBdt)}
+      </span>
+      <CostNotes one={one} parts={[]} />
+    </span>
+  );
+};
+
+/** Keep or sell as the verdict and what the next days leave over their keep, or why the farm cannot say. */
+export const KeepCell = ({ tagNumber }: { tagNumber: string }) => {
+  const one = useHerPrice(tagNumber);
+  if (!one?.keep) {
+    return <Nothing />;
+  }
+  return (
+    <span className="flex flex-col items-start gap-0.5 whitespace-nowrap">
+      <KeepLine full={false} one={one} />
     </span>
   );
 };
