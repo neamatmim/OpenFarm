@@ -20,8 +20,9 @@ import { appRouter } from "./index";
 // ৳1,00,000 each on its Float on 4 January, and on 20 January buys bull X from the Farm by Internal Sale, 250 kg at
 // ৳360, for ৳90,000. All three sell on 15 March for ৳1,10,000, ৳1,12,000 and ৳95,000.
 // - On its cattle: ৳2,90,000 cost, ৳3,17,000 back, ৳27,000 — 9.3 on every hundred. The two bulls' money was out 70
-//   days and X's 54.04, so 2,00,000 × 70 + 90,000 × 54.04 = 1,88,63,750 taka-days, 65.0 days on average, and
-//   9.310 × 365 ÷ 65.05 is 52.2 a year.
+//   days and X's 54.46 — from the start of 20 January, the day he was sold on, not the hour it was saved — so
+//   2,00,000 × 70 + 90,000 × 54.46 = 1,89,01,250 taka-days, 65.2 days on average, and 9.310 × 365 ÷ 65.18 is 52.1 a
+//   year.
 // - On capital: sixty per cent of ৳27,000 is ৳16,200, 1.6 on every hundred of ৳10,00,000 held from 3 January to its
 //   payout on 2 April, 89 days: 1.62 × 365 ÷ 89 is 6.6 a year. The Farm's share is ৳10,800.
 // - The Farm's own: a bull bought on 4 January for ৳90,000 and sold on 18 February for ৳1,00,000, and X, bought on
@@ -287,7 +288,7 @@ describe("what a settled Venture returned", () => {
         resultBdt: 27_000,
         per100: 9.3,
         averageDays: 65,
-        perYear: 52.2,
+        perYear: 52.1,
       },
       farmsShareBdt: 10_800,
     });

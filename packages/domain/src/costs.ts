@@ -155,27 +155,60 @@ export const monthsEndingIn = (day: string, count: number): string[] => {
   );
 };
 
-/** How long one Animal stood on one Side inside a month, and from when: the time she carries a share of
- *  that month for, and the first moment she was here to carry it. */
+/** Whose an Animal was from when: each owner from the moment they took her on, oldest first — a Venture's id, or
+ *  `null` for the Farm's own. An Animal nobody sold between owners has none. */
+export type OwnersOverTime = ReadonlyMap<
+  string,
+  readonly { from: Date; ventureId: string | null }[]
+>;
+
+/** One stretch of one owner's time with an Animal on one Side inside a month: how long, and its first and last
+ *  moments — the span a share of that month may be dated in. */
+interface Stretch {
+  ms: number;
+  since: number;
+  until: number;
+}
+
+/**
+ * How long one Animal stood on one Side inside a month, cut where she changed owner: one stretch for each owner she
+ * had that month, in the order she had them. Her owners' days are cut at the moment each took her on, which is the
+ * start of the day an Internal Sale was made on.
+ */
 const standingIn = (
   lines: readonly PenHistoryLine[],
   side: Side,
-  { from, until }: { from: Date; until: Date }
-): { ms: number; since: Date } => {
-  let ms = 0;
-  let since = until.getTime();
-  for (const line of lines) {
-    if (line.side !== side) {
-      continue;
+  { from, until }: { from: Date; until: Date },
+  owners: readonly { from: Date }[]
+): Stretch[] => {
+  // The moments inside the month at which she became somebody else's.
+  const cuts = owners
+    .map((one) => one.from.getTime())
+    .filter((at) => at > from.getTime() && at < until.getTime());
+  const edges = [from.getTime(), ...cuts, until.getTime()];
+  const stretches: Stretch[] = [];
+  for (const [index, start] of edges.slice(0, -1).entries()) {
+    const end = edges[index + 1] ?? until.getTime();
+    let ms = 0;
+    let since = end;
+    let last = start;
+    for (const line of lines) {
+      if (line.side !== side) {
+        continue;
+      }
+      const lineStart = Math.max(line.from.getTime(), start);
+      const lineEnd = Math.min((line.until ?? until).getTime(), end);
+      if (lineEnd > lineStart) {
+        ms += lineEnd - lineStart;
+        since = Math.min(since, lineStart);
+        last = Math.max(last, lineEnd);
+      }
     }
-    const start = Math.max(line.from.getTime(), from.getTime());
-    const end = Math.min((line.until ?? until).getTime(), until.getTime());
-    if (end > start) {
-      ms += end - start;
-      since = Math.min(since, start);
+    if (ms > 0) {
+      stretches.push({ ms, since, until: last });
     }
   }
-  return { ms, since: new Date(since) };
+  return stretches;
 };
 
 /**
@@ -183,40 +216,49 @@ const standingIn = (
  * the days each stood here in the month the money belongs to. An Animal who arrived mid-month carries her
  * days and no more; one who left before it carries none; and a month with nobody standing is charged to
  * nobody and said, the way a Feeding nobody stood for is.
+ *
+ * Each part is dated inside the days it is for — never before she came and never after she left — so a sum that asks
+ * what was charged while she was here finds it whenever in the month the money was entered. And where she changed
+ * owner in the month, her part is cut between them by the days each held her, each piece dated inside its owner's
+ * days (CONTEXT.md, Herd Cost; Holding).
  */
 export const herdShares = ({
   costs,
   history,
+  owners = new Map(),
 }: {
   costs: readonly HerdCostToSplit[];
   history: readonly PenHistoryLine[];
+  owners?: OwnersOverTime;
 }): { shares: CostShare[]; unallocated: UnallocatedHerdCost[] } => {
   const byAnimal = groupedBy(history, (line) => line.animalId);
   const shares: CostShare[] = [];
   const unallocated: UnallocatedHerdCost[] = [];
   for (const cost of costs) {
     const month = monthOf(cost.at);
-    const stood = [...byAnimal.entries()].map(([animalId, lines]) => ({
-      animalId,
-      ...standingIn(lines, cost.side, month),
-    }));
+    const stood = [...byAnimal.entries()].flatMap(([animalId, lines]) =>
+      standingIn(lines, cost.side, month, owners.get(animalId) ?? []).map(
+        (stretch) => ({ animalId, ...stretch })
+      )
+    );
     const total = stood.reduce((sum, one) => sum + one.ms, 0);
     if (total === 0) {
       unallocated.push({ at: cost.at, bdt: cost.bdt });
       continue;
     }
     shares.push(
-      ...stood
-        .filter((one) => one.ms > 0)
-        .map((one) => ({
-          animalId: one.animalId,
-          side: cost.side,
-          // Not before she was here: a share dated the 3rd for a beast who came on the 20th would be
-          // read into periods she had nothing to do with.
-          at: one.since > cost.at ? one.since : cost.at,
-          bdt: (cost.bdt * one.ms) / total,
-          fromId: cost.categoryId,
-        }))
+      ...stood.map((one) => ({
+        animalId: one.animalId,
+        side: cost.side,
+        // Inside the days it is for: a share dated the 3rd for a beast who came on the 20th would be read into
+        // periods she had nothing to do with, and one dated the 31st for a bull sold on the 10th into days
+        // after he had gone. The last moment is short of her leaving by a millisecond, which is still hers.
+        at: new Date(
+          Math.min(Math.max(cost.at.getTime(), one.since), one.until - 1)
+        ),
+        bdt: (cost.bdt * one.ms) / total,
+        fromId: cost.categoryId,
+      }))
     );
   }
   return { shares, unallocated };
