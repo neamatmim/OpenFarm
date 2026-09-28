@@ -118,7 +118,10 @@ export const QueueGroup = ({
             </span>
           ) : null}
         </div>
-        {more ? <div className="hidden text-sm sm:block">{more}</div> : null}
+        {/* At the right-hand end, whether a heading stands beside it or — under a tab — nothing does. */}
+        {more ? (
+          <div className="ms-auto hidden text-sm sm:block">{more}</div>
+        ) : null}
       </div>
       <RecordList>{shown}</RecordList>
       {long || more ? (
