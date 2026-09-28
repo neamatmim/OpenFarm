@@ -1430,6 +1430,12 @@ export const bn: Record<MessageKey, string> = {
   "ventures.noneRunning": "এখন কোনো ভেঞ্চার চলছে না",
   "ventures.noneSettled": "এখনো কোনো ভেঞ্চারের হিসাব শেষ হয়নি",
   "ventures.noneCalledOff": "কোনো ভেঞ্চার বাতিল হয়নি",
+  "ventures.noneRunningHint":
+    "“নতুন ভেঞ্চার” দিয়ে খুলুন: টাকা তোলা, কেনা, মোটাতাজা আর বিক্রির পুরো সময় এটি এখানে থাকে।",
+  "ventures.noneSettledHint":
+    "হিসাব নিকাশ অনুমোদনের পর শেষ টাকা পরিশোধ হলে ভেঞ্চার এখানে আসে।",
+  "ventures.noneCalledOffHint":
+    "সর্বনিম্ন সীমায় না পৌঁছানো, বা কেনার আগে বাতিল হওয়া ভেঞ্চার এখানে থাকে — সব টাকা ফেরত দিয়ে।",
   "ventures.moreFor": "{venture}-এর আরও কাজ",
   "ventures.callOff": "বাতিল করুন",
   "ventures.callOffHint":

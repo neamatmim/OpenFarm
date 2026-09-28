@@ -5,6 +5,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import type { LucideIcon } from "lucide-react";
 import {
   ArrowRightLeft,
   Banknote,
@@ -94,19 +95,36 @@ const useVentureFigures = (ventures: Venture[] | undefined): Figure[] => {
   ];
 };
 
-/** The Ventures on one tab, as a table where there is room and as cards on a phone. */
+/** What an empty tab says: that there are none, and what would put one there — under the tab's own mark. */
+interface Empty {
+  icon: LucideIcon;
+  title: MessageKey;
+  hint: MessageKey;
+}
+
+/** The Ventures on one tab, as a table where there is room and as cards on a phone; an empty tab in the same card
+ *  a full one draws, so the page does not change shape between tabs. */
 const VentureList = ({
   ventures,
   acts,
-  emptyWord,
+  empty,
 }: {
   ventures: Venture[];
   acts: VentureActs;
-  emptyWord: MessageKey;
+  empty: Empty;
 }) => {
   const { t } = useLanguage();
   if (ventures.length === 0) {
-    return <EmptyState bare icon={Handshake} title={t(emptyWord)} />;
+    return (
+      <Section>
+        <EmptyState
+          bare
+          description={t(empty.hint)}
+          icon={empty.icon}
+          title={t(empty.title)}
+        />
+      </Section>
+    );
   }
   return (
     <Section>
@@ -184,7 +202,11 @@ const VenturesPage = () => {
                 content: (
                   <VentureList
                     acts={acts}
-                    emptyWord="ventures.noneRunning"
+                    empty={{
+                      icon: Handshake,
+                      title: "ventures.noneRunning",
+                      hint: "ventures.noneRunningHint",
+                    }}
                     ventures={on("running")}
                   />
                 ),
@@ -196,7 +218,11 @@ const VenturesPage = () => {
                 content: (
                   <VentureList
                     acts={acts}
-                    emptyWord="ventures.noneSettled"
+                    empty={{
+                      icon: Scale,
+                      title: "ventures.noneSettled",
+                      hint: "ventures.noneSettledHint",
+                    }}
                     ventures={on("settled")}
                   />
                 ),
@@ -208,7 +234,11 @@ const VenturesPage = () => {
                 content: (
                   <VentureList
                     acts={acts}
-                    emptyWord="ventures.noneCalledOff"
+                    empty={{
+                      icon: XCircle,
+                      title: "ventures.noneCalledOff",
+                      hint: "ventures.noneCalledOffHint",
+                    }}
                     ventures={on("cancelled")}
                   />
                 ),
