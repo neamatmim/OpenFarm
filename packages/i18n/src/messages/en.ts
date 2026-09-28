@@ -1548,6 +1548,12 @@ export const en = {
   "ventures.noneRunning": "No Venture is running",
   "ventures.noneSettled": "No Venture has settled yet",
   "ventures.noneCalledOff": "No Venture has been called off",
+  "ventures.noneRunningHint":
+    "Open one with “New Venture”: it stays here while it raises money, buys, fattens and sells.",
+  "ventures.noneSettledHint":
+    "A Venture comes here once its Settlement is approved and the last payout has gone.",
+  "ventures.noneCalledOffHint":
+    "A Venture that missed its Floor, or was called off before buying, ends here with every taka refunded.",
   "ventures.moreFor": "More for {venture}",
   "ventures.callOff": "Call it off",
   "ventures.callOffHint":
