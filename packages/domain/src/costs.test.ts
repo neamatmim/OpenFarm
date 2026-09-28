@@ -102,6 +102,44 @@ describe("a month's marked money, charged by the days each beast stood here", ()
     ]);
   });
 
+  it("dates a share no later than the day she left", () => {
+    // Sold on the 8th, and the month's money entered on the 20th: her part is for days before she went, so a sum
+    // that asks what was charged while she was here finds it.
+    const sold = startOfFarmDay("2027-03-08");
+    const { shares } = herdShares({
+      costs: [{ ...cost, at: on("03-20") }],
+      history: [standing("১০৪", "p1", "fattening", on("02-01"), sold)],
+    });
+    expect(shares).toHaveLength(1);
+    expect(shares[0]?.at.getTime()).toBeLessThan(sold.getTime());
+    expect(shares[0]?.at.getTime()).toBeGreaterThanOrEqual(
+      startOfFarmDay("2027-03-01").getTime()
+    );
+  });
+
+  it("cuts her part between her owners by the days each held her", () => {
+    // Standing all March, and sold by the Farm to a Venture from the start of the 16th: fifteen days the Farm's and
+    // sixteen the Venture's, each piece dated inside its own owner's days.
+    const sixteenth = startOfFarmDay("2027-03-16");
+    const { shares } = herdShares({
+      costs: [cost],
+      history: [standing("১০১", "p1", "fattening", on("02-01"))],
+      owners: new Map([
+        [
+          "১০১",
+          [
+            { from: new Date(0), ventureId: null },
+            { from: sixteenth, ventureId: "v1" },
+          ],
+        ],
+      ]),
+    });
+    expect(shares.map((one) => [one.bdt, one.at] as const)).toEqual([
+      [(4600 * 15) / 31, cost.at],
+      [(4600 * 16) / 31, sixteenth],
+    ]);
+  });
+
   it("names the Category the Owner marked it against", () => {
     const { shares } = herdShares({ costs: [cost], history });
     expect(shares.every((one) => one.fromId === "ওষুধ")).toBe(true);

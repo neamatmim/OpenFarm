@@ -30,6 +30,7 @@ import {
 import { THE_FARMS_PURSE } from "./money-store";
 import { movementsByItem } from "./stock-store";
 import { tripCostOf } from "./trip-store";
+import { ownersOverTime } from "./venture-store";
 
 type Db = Pick<Database, "query" | "execute">;
 type Side = PenHistoryLine["side"];
@@ -365,8 +366,11 @@ export const farmCosts = async (db: Db, farmId: string) => {
     ],
   });
 
-  // What the farm spent on the animals without naming any of them, by the days each stood here.
+  // What the farm spent on the animals without naming any of them, by the days each stood here — cut between her
+  // owners where an Internal Sale fell in the month, so each owner carries the days it held her.
+  const owners = await ownersOverTime(db, farmId);
   const herdCosts = herdShares({
+    owners,
     costs: enteredByHand.flatMap((one) => {
       const cost = herdCostOf({
         at: one.occurredAt,

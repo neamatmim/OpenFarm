@@ -162,7 +162,10 @@ interface Books {
     fromVentureId: string | null;
     toVentureId: string | null;
     priceBdt: number;
+    /** When it was saved: which of two sales came first, never when she changed hands. */
     createdAt: Date;
+    /** When she changed hands: the start of the day written on the sale, for every sum that asks whose she was. */
+    on: Date;
   }[];
 }
 
@@ -219,6 +222,7 @@ const booksOf = async (
       toVentureId: true,
       priceBdt: true,
       createdAt: true,
+      soldOn: true,
     },
     orderBy: { createdAt: "asc", id: "asc" },
   });
@@ -246,7 +250,10 @@ const booksOf = async (
     ownedThenBy,
     intakes,
     died: new Map(deaths.map((one) => [one.animalId, one.happenedAt])),
-    internal,
+    internal: internal.map(({ soldOn, ...one }) => ({
+      ...one,
+      on: startOfFarmDay(soldOn),
+    })),
   };
 };
 
@@ -275,7 +282,9 @@ const leftOf = (
   if (soldOn) {
     return {
       how: "sold_to_venture",
-      on: soldOn.createdAt,
+      // The start of the day she was sold on, when she became the buyer's — though never before this owner took
+      // her on, for one bought and sold on in the same day.
+      on: soldOn.on > takenOn ? soldOn.on : takenOn,
       backBdt: soldOn.priceBdt,
     };
   }
@@ -465,21 +474,26 @@ const seasonGroupsOf = (books: Books) => {
   const tagOf = new Map(
     books.costs.animals.map((one) => [one.id, one.tagNumber])
   );
+  // A Joining by Internal Sale is stamped when the sale was saved; she was the Farm's from the start of its day.
+  const saleDay = new Map(books.internal.map((one) => [one.id, one.on]));
   for (const joining of books.joinings) {
     if (books.ownedThenBy(joining.animalId, joining.joinedAt) !== null) {
       continue;
     }
+    const takenOn =
+      (joining.internalSaleId && saleDay.get(joining.internalSaleId)) ||
+      joining.joinedAt;
     add(
       { start: joining.targetWindowStart, end: joining.targetWindowEnd },
       {
         animalId: joining.animalId,
-        takenOn: joining.joinedAt,
+        takenOn,
         priceBdt: joining.priceBdt ?? 0,
         left: leftOf(
           books,
           null,
           joining.animalId,
-          joining.joinedAt,
+          takenOn,
           joining.internalSaleId
         ),
         ...(joining.priceBdt === null
@@ -649,7 +663,7 @@ const venturesOf = async (
         .filter((one) => one.toVentureId === venture.id)
         .map((one) => ({
           animalId: one.animalId,
-          takenOn: one.createdAt,
+          takenOn: one.on,
           priceBdt: one.priceBdt,
           cameBy: one.id,
         })),
