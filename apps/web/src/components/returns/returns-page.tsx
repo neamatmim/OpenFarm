@@ -200,6 +200,29 @@ export const ShareUnder = ({ per100 }: { per100: number }) => {
   );
 };
 
+/**
+ * How far a settled Venture's cattle now stand from the profit its Settlement was approved on, where a cost or a
+ * Correction came after it — said as less or more, never with a bare sign. Nothing where the two still agree, or on an
+ * answer this phone kept from before it was said.
+ */
+const SinceSettlement = ({ bdt }: { bdt: number | null | undefined }) => {
+  const { t } = useLanguage();
+  const taka = useTaka();
+  if (bdt === null || bdt === undefined) {
+    return null;
+  }
+  return (
+    <p className="text-warning text-sm tabular-nums">
+      {t(
+        bdt < 0 ? "returns.sinceSettlementLess" : "returns.sinceSettlementMore",
+        {
+          bdt: taka(Math.abs(bdt)),
+        }
+      )}
+    </p>
+  );
+};
+
 /** One finished Season or Venture, closed to its name and result, opening into how it was worked. */
 const Row = ({
   kind,
@@ -559,6 +582,7 @@ const VentureRow = ({
           {t("returns.settlementToComeHint")}
         </p>
       ) : null}
+      <SinceSettlement bdt={venture.sinceSettlementBdt} />
       {venture.returnOnCapital ? (
         <div className="bg-muted/50 flex flex-col gap-1 rounded-md p-3">
           <p className="text-sm font-medium">{t("returns.capitalTitle")}</p>
@@ -1224,6 +1248,7 @@ export const VentureReturnsPanel = ({ ventureId }: { ventureId: string }) => {
             on="onCost"
             shares={venture.returnOnCost}
           />
+          <SinceSettlement bdt={venture.sinceSettlementBdt} />
           {venture.settled ? null : (
             <p className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
               <StatusBadge tone="warning">

@@ -4049,6 +4049,10 @@ export const en = {
   "returns.settlementToCome": "Settlement to come",
   "returns.settlementToComeHint":
     "Its last animal has gone, so this is its result, worked as its Settlement will be. The Investors' return on their capital, and the Farm's share, come once the Settlement is paid out.",
+  "returns.sinceSettlementLess":
+    "Less than at its Settlement by {bdt} — a cost or a Correction that came after it. See its Settlement Adjustments.",
+  "returns.sinceSettlementMore":
+    "More than at its Settlement by {bdt} — a Correction that came after it. See its Settlement Adjustments.",
   "returns.openVenture": "Open the Venture",
   "returns.tab.fattening": "Fattening",
   "returns.tab.prices": "Prices",
