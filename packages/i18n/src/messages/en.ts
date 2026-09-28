@@ -4079,8 +4079,8 @@ export const en = {
     "{days, plural, one {# day} other {# days}} so far · a year's rate once the last has gone",
   "returns.gapsTitle":
     "{count, plural, one {# animal left out} other {# animals left out}}, not valued today",
-  "returns.gap.no_price": "{tag}: no price a kilo set",
-  "returns.gap.no_weight": "{tag}: never weighed",
+  "returns.gap.no_price": "No price a kilo set",
+  "returns.gap.no_weight": "Never weighed",
   "returns.fix.no_price": "Set the price",
   "returns.fix.no_weight": "Open her page",
   "returns.missingTitle":
@@ -4097,8 +4097,8 @@ export const en = {
   "window.other": "Another window",
   "window.from": "From",
   "window.to": "To",
-  "returns.gap.not_priced": "{tag}: crossed from Dairy, not priced yet",
-  "returns.fix.not_priced": "Price her",
+  "returns.gap.not_priced": "Crossed from Dairy, not priced yet",
+  "returns.fix.not_priced": "Enter the price",
   "returns.crossingsTitle": "Crossings from Dairy",
   "returns.crossingsHint":
     "An animal walked across from Dairy joins her Season at her weight that day times a rate a kilo you set. Until you do, she is named and counted nowhere, and her Season is not a result. A price may be put right by pricing her again while she is on the Farm.",
@@ -4143,11 +4143,11 @@ export const en = {
   "refusal.noSuchSeason": "There is no such Season",
   "returns.tab.dairy": "Dairy",
   "returns.gap.no_entry_price":
-    "{tag}: bought, or here before the books — not priced yet",
-  "returns.gap.no_head_price": "{tag}: no Head Price set for her kind",
+    "Bought, or here before the books — not priced yet",
+  "returns.gap.no_head_price": "No Head Price set for their kind",
   "returns.gap.no_milk_price":
-    "{tag}: milk in a month before any Dispatch had a price",
-  "returns.fix.no_entry_price": "Price her",
+    "Milk in a month before any Dispatch had a price",
+  "returns.fix.no_entry_price": "Enter the price",
   "returns.fix.no_head_price": "Set the Head Price",
   "returns.fix.no_milk_price": "Record a Dispatch",
   "returns.herdNowTitle": "The herd now",

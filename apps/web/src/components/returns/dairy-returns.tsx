@@ -15,6 +15,7 @@ import { FormField, FormSheet } from "@/components/page-kit";
 import type { ReturnsPage } from "@/components/returns/returns-page";
 import {
   Gaps,
+  ShareUnder,
   LEFT_WORD,
   Result,
   ReturnLines,
@@ -266,7 +267,14 @@ export const DairyGone = ({ page }: { page: ReturnsPage }) => {
                   {leftSaid(run, words)}
                 </span>
               </span>
-              <DairyRunShort run={run} />
+              <span className="flex flex-col gap-0.5 ps-6 sm:items-end sm:ps-0">
+                <span className="font-medium">
+                  <DairyRunShort run={run} />
+                </span>
+                {run.returnOnCost ? (
+                  <ShareUnder per100={run.returnOnCost.per100} />
+                ) : null}
+              </span>
             </summary>
             <div className="flex flex-col gap-3 border-t p-4">
               <DairyRunFacts run={run} />

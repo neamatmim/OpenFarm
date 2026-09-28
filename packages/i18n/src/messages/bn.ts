@@ -3805,8 +3805,8 @@ export const bn: Record<MessageKey, string> = {
   "returns.standingWorth": "দাঁড়িয়ে: খরচ {cost}, আজকের দামে {low} থেকে {high}",
   "returns.daysSoFar": "এ পর্যন্ত {days} দিন · শেষটি চলে গেলে বছরের হিসাব",
   "returns.gapsTitle": "{count}টি পশু বাদ, আজ দাম ধরা যায়নি",
-  "returns.gap.no_price": "{tag}: প্রতি কেজির দাম ঠিক করা নেই",
-  "returns.gap.no_weight": "{tag}: কখনো ওজন নেওয়া হয়নি",
+  "returns.gap.no_price": "প্রতি কেজির দাম ঠিক করা নেই",
+  "returns.gap.no_weight": "কখনো ওজন নেওয়া হয়নি",
   "returns.fix.no_price": "দাম ঠিক করুন",
   "returns.fix.no_weight": "তার পাতা খুলুন",
   "returns.missingTitle":
@@ -3823,7 +3823,7 @@ export const bn: Record<MessageKey, string> = {
   "window.other": "অন্য সময়",
   "window.from": "থেকে",
   "window.to": "পর্যন্ত",
-  "returns.gap.not_priced": "{tag}: দুগ্ধ থেকে এসেছে, দাম লেখা হয়নি",
+  "returns.gap.not_priced": "দুগ্ধ থেকে এসেছে, দাম লেখা হয়নি",
   "returns.fix.not_priced": "দাম লিখুন",
   "returns.crossingsTitle": "দুগ্ধ থেকে আসা পশু",
   "returns.crossingsHint":
@@ -3869,9 +3869,9 @@ export const bn: Record<MessageKey, string> = {
   "refusal.noSuchSeason": "এমন কোনো মৌসুম নেই",
   "returns.tab.dairy": "দুগ্ধ",
   "returns.gap.no_entry_price":
-    "{tag}: কেনা, বা হিসাব শুরুর আগে থেকে আছে — দাম দেওয়া হয়নি",
-  "returns.gap.no_head_price": "{tag}: তার ধরনের মাথাপিছু দাম দেওয়া হয়নি",
-  "returns.gap.no_milk_price": "{tag}: এমন মাসের দুধ, যার আগে কোনো বিক্রির দাম নেই",
+    "কেনা, বা হিসাব শুরুর আগে থেকে আছে — দাম দেওয়া হয়নি",
+  "returns.gap.no_head_price": "ধরনের মাথাপিছু দাম দেওয়া হয়নি",
+  "returns.gap.no_milk_price": "এমন মাসের দুধ, যার আগে কোনো বিক্রির দাম নেই",
   "returns.fix.no_entry_price": "দাম দিন",
   "returns.fix.no_head_price": "মাথাপিছু দাম দিন",
   "returns.fix.no_milk_price": "দুধ বিক্রি লিখুন",

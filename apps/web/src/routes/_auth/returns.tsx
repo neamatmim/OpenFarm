@@ -11,6 +11,7 @@ import {
   HeadPriceList,
 } from "@/components/returns/dairy-returns";
 import {
+  BankRateAction,
   BankRateList,
   CrossingsToPrice,
   FinishedReturns,
@@ -144,6 +145,7 @@ const ReturnsPage = () => {
                   <CrossingsToPrice page={page} />
                 </Section>
                 <Section
+                  action={<BankRateAction />}
                   description={t("returns.bankHint")}
                   title={t("returns.bankTitle")}
                 >
