@@ -151,12 +151,6 @@ const SalePage = () => {
             ),
           },
           {
-            value: "trip",
-            label: t("selling.trip"),
-            icon: Truck,
-            content: <SellingTripForm />,
-          },
-          {
             value: "sold",
             label: t("sale.today"),
             icon: ReceiptText,
@@ -168,6 +162,12 @@ const SalePage = () => {
                 <TodaysSales mayCorrect={mayCorrect} sold={sold.data ?? []} />
               </Loaded>
             ),
+          },
+          {
+            value: "trip",
+            label: t("selling.trip"),
+            icon: Truck,
+            content: <SellingTripForm />,
           },
         ]}
         value={tab}

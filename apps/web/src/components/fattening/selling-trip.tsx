@@ -4,7 +4,9 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { CircleCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -13,6 +15,7 @@ import { FormField } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 interface Day {
@@ -30,6 +33,119 @@ const NOTHING_YET: Day = {
 const orNothing = (value: string) =>
   value.trim() === "" ? undefined : Number(value);
 
+type Beast = Awaited<ReturnType<typeof orpc.fattening.board.call>>[number];
+
+/** The fattening side pen by pen, each pen's animals in the board's order, since a lorry is loaded a pen at a time. */
+const penByPen = (board: Beast[]): [string, Beast[]][] => {
+  const pens = new Map<string, Beast[]>();
+  for (const one of board) {
+    pens.set(one.penName, [...(pens.get(one.penName) ?? []), one]);
+  }
+  return [...pens];
+};
+
+/** One animal to tick, as a tile: her tag, and a mark when the Manager has already confirmed her Ready. */
+const BeastTile = ({
+  one,
+  taken,
+  onTaken,
+}: {
+  one: Beast;
+  taken: boolean;
+  onTaken: (taken: boolean) => void;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <label
+      className="has-data-checked:border-primary/40 has-data-checked:bg-primary/5 hover:bg-muted/50 flex h-11 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm md:h-9"
+      htmlFor={`took-${one.tagNumber}`}
+    >
+      <Checkbox
+        checked={taken}
+        id={`took-${one.tagNumber}`}
+        onCheckedChange={onTaken}
+      />
+      <span className="font-mono text-xs font-medium">{one.tagNumber}</span>
+      {one.state === "ready_for_sale" ? (
+        <span className="text-success ms-auto flex">
+          <CircleCheck aria-hidden className="size-3.5" />
+          <span className="sr-only">{t("state.ready_for_sale")}</span>
+        </span>
+      ) : null}
+    </label>
+  );
+};
+
+/** Who went, pen by pen as tiles, with a button to take — or leave — a whole pen at once. */
+const WhoWent = ({
+  board,
+  taken,
+  onTaken,
+}: {
+  board: Beast[];
+  taken: string[];
+  onTaken: (taken: string[]) => void;
+}) => {
+  const { t } = useLanguage();
+  if (board.length === 0) {
+    return (
+      <p className="text-muted-foreground text-sm">
+        {t("selling.nobodyToTake")}
+      </p>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-4">
+      {penByPen(board).map(([pen, beasts]) => {
+        const tags = beasts.map((one) => one.tagNumber);
+        const whole = tags.every((tag) => taken.includes(tag));
+        return (
+          <div className="flex flex-col gap-2" key={pen}>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted-foreground text-xs font-medium">
+                {pen}
+              </span>
+              <Button
+                onClick={() =>
+                  onTaken(
+                    whole
+                      ? taken.filter((tag) => !tags.includes(tag))
+                      : [
+                          ...taken,
+                          ...tags.filter((tag) => !taken.includes(tag)),
+                        ]
+                  )
+                }
+                size="xs"
+                type="button"
+                variant="ghost"
+              >
+                {t(whole ? "selling.leavePen" : "selling.takePen")}
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-6">
+              {beasts.map((one) => (
+                <BeastTile
+                  key={one.tagNumber}
+                  onTaken={(checked) =>
+                    onTaken(
+                      checked
+                        ? [...taken, one.tagNumber]
+                        : taken.filter((each) => each !== one.tagNumber)
+                    )
+                  }
+                  one={one}
+                  taken={taken.includes(one.tagNumber)}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 /**
  * The day at the haat written up: where the lorry went, what the day cost, and every Animal that stood on
  * it. Who was taken is ticked here rather than read back from who sold — the ones that came home again paid
@@ -38,6 +154,7 @@ const orNothing = (value: string) =>
 export const SellingTripForm = () => {
   const { t, language } = useLanguage();
   const refused = useRefused();
+  const taka = useTaka();
   const [day, setDay] = useState<Day>(NOTHING_YET);
   const [taken, setTaken] = useState<string[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
@@ -56,22 +173,35 @@ export const SellingTripForm = () => {
     })
   );
   const ready = day.wentTo.trim() !== "" && taken.length > 0;
+  const past = trips.data ?? [];
   return (
-    <div className="flex flex-col gap-4">
+    <div
+      className={cn(
+        "grid items-start gap-4",
+        past.length > 0 && "xl:grid-cols-[minmax(0,1fr)_22rem]"
+      )}
+    >
       <Section
         description={t("selling.tripHint")}
         id="selling-trip"
         title={t("selling.trip")}
       >
-        <FormField id="selling-went-to" label={t("selling.wentTo")}>
-          <Input
-            autoComplete="off"
-            id="selling-went-to"
-            onChange={(event) => setDay({ ...day, wentTo: event.target.value })}
-            value={day.wentTo}
-          />
-        </FormField>
         <div className="grid gap-4 sm:grid-cols-2">
+          <FormField id="selling-went-to" label={t("selling.wentTo")}>
+            <Input
+              autoComplete="off"
+              id="selling-went-to"
+              onChange={(event) =>
+                setDay({ ...day, wentTo: event.target.value })
+              }
+              value={day.wentTo}
+            />
+          </FormField>
+          <PaymentMethodField
+            id="selling-payment"
+            onChange={setPaymentMethod}
+            value={paymentMethod}
+          />
           {(
             [
               ["selling-transport", "selling.transport", "transportBdt"],
@@ -92,83 +222,72 @@ export const SellingTripForm = () => {
             </FormField>
           ))}
         </div>
-        <PaymentMethodField
-          id="selling-payment"
-          onChange={setPaymentMethod}
-          value={paymentMethod}
-        />
 
-        <fieldset className="flex flex-col gap-2">
-          <legend className="mb-1 text-sm font-medium">
+        <fieldset className="flex flex-col gap-3 border-t pt-4">
+          <legend className="float-left mb-3 flex w-full items-baseline justify-between gap-2 text-sm font-medium">
             {t("selling.whoWent")}
+            <span className="text-muted-foreground font-normal tabular-nums">
+              {t("selling.chosen", {
+                count: formatNumber(taken.length, language),
+              })}
+            </span>
           </legend>
           <Loaded
             query={board}
             skeleton={<Skeleton className="h-16 rounded-lg" />}
           >
-            {board.data?.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                {t("selling.nobodyToTake")}
-              </p>
-            ) : null}
-            {(board.data ?? []).map((one) => (
-              <label
-                className="flex items-center gap-2 text-sm"
-                htmlFor={`took-${one.tagNumber}`}
-                key={one.tagNumber}
-              >
-                <Checkbox
-                  checked={taken.includes(one.tagNumber)}
-                  id={`took-${one.tagNumber}`}
-                  onCheckedChange={(checked) =>
-                    setTaken(
-                      checked
-                        ? [...taken, one.tagNumber]
-                        : taken.filter((each) => each !== one.tagNumber)
-                    )
-                  }
-                />
-                {one.tagNumber}
-              </label>
-            ))}
+            <WhoWent
+              board={board.data ?? []}
+              onTaken={setTaken}
+              taken={taken}
+            />
           </Loaded>
         </fieldset>
 
-        <Button
-          disabled={!ready || record.isPending}
-          onClick={() =>
-            record.mutate({
-              wentTo: day.wentTo,
-              transportBdt: orNothing(day.transportBdt),
-              keepBdt: orNothing(day.keepBdt),
-              animals: taken,
-              paymentMethod,
-            })
-          }
-          type="button"
-        >
-          {t("selling.recordTrip")}
-        </Button>
+        <div className="flex justify-end border-t pt-4">
+          <Button
+            disabled={!ready || record.isPending}
+            onClick={() =>
+              record.mutate({
+                wentTo: day.wentTo,
+                transportBdt: orNothing(day.transportBdt),
+                keepBdt: orNothing(day.keepBdt),
+                animals: taken,
+                paymentMethod,
+              })
+            }
+            type="button"
+          >
+            {t("selling.recordTrip")}
+          </Button>
+        </div>
       </Section>
 
-      {(trips.data ?? []).length > 0 ? (
+      {past.length > 0 ? (
         <Section id="selling-trips-past" title={t("selling.pastTrips")}>
-          {(trips.data ?? []).map((one) => (
-            <div
-              className="border-border/60 flex justify-between gap-2 border-b py-2 text-sm last:border-b-0"
-              key={one.id}
-            >
-              <span>
-                {one.wentTo} · {formatDate(one.wentOn, language, "date")}
-              </span>
-              <span className="tabular-nums">
-                {t("selling.tookAnimals", {
-                  count: formatNumber(one.animals, language),
-                })}{" "}
-                · ৳{formatNumber(one.costBdt, language)}
-              </span>
-            </div>
-          ))}
+          <ul className="flex flex-col">
+            {past.map((one) => (
+              <li
+                className="border-border/60 flex items-start justify-between gap-3 border-b py-2.5 text-sm first:pt-0 last:border-b-0 last:pb-0"
+                key={one.id}
+              >
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="font-medium">{one.wentTo}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {formatDate(one.wentOn, language, "date")}
+                  </span>
+                </span>
+                <span className="flex flex-col items-end gap-0.5 whitespace-nowrap tabular-nums">
+                  <span className="font-medium">{taka(one.costBdt)}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {t("selling.tookAnimals", {
+                      count: formatNumber(one.animals, language),
+                    })}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
         </Section>
       ) : null}
     </div>

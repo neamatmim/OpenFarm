@@ -407,6 +407,8 @@ export const en = {
   "price.costShort": "some costs have no price yet",
   "price.born": "born here: no purchase in the cost",
   "price.noPrice": "No price a kg set",
+  "price.col.estimate": "Might fetch",
+  "price.col.cost": "Cost so far",
   "keep.title": "Keep or sell",
   "keep.hint":
     "Whether keeping an animal {ahead, plural, one {# more day} other {# more days}} pays: feed, medicine, vet visits and share of the herd costs over the last {days, plural, one {# day} other {# days}}, over the kilos being put on now, against the price a kg. What the animal has cost already is spent either way, so it has no say here. It does not know the price will change at Eid.",
@@ -2804,6 +2806,10 @@ export const en = {
   "selling.tripRecorded": "The outing is written up",
   "selling.pastTrips": "Outings lately",
   "selling.tookAnimals": "{count} taken",
+  "selling.chosen":
+    "{count, plural, one {# animal chosen} other {# animals chosen}}",
+  "selling.takePen": "Take the pen",
+  "selling.leavePen": "Leave the pen",
   "money.from.sale": "Sale",
   "money.from.feedIn": "Feed purchase",
   "money.from.medicinePurchase": "Medicine purchase",

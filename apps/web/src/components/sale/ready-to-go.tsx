@@ -11,7 +11,9 @@ import {
   useListTable,
 } from "@/components/data-table";
 import {
-  PriceCell,
+  CostCell,
+  EstimateCell,
+  KeepCell,
   PriceLine,
   useIsOwner,
 } from "@/components/fattening/animal-prices";
@@ -94,18 +96,38 @@ const sellableColumns = column.columns([
   }),
 ]);
 
-const PriceOfCell = ({ row }: { row: { original: SellableRow } }) => (
-  <PriceCell tagNumber={row.original.tagNumber} />
+const EstimateOfCell = ({ row }: SellableCell) => (
+  <EstimateCell tagNumber={row.original.tagNumber} />
 );
 
-/** The same, with each animal's price against her cost before the last column: the Owner's list. */
+const CostOfCell = ({ row }: SellableCell) => (
+  <CostCell tagNumber={row.original.tagNumber} />
+);
+
+const KeepOfCell = ({ row }: SellableCell) => (
+  <KeepCell tagNumber={row.original.tagNumber} />
+);
+
+/** The same, with what each animal might fetch, what she has cost and keep or sell before the last column — a column
+ *  each, since a list of a few animals has the room: the Owner's list. */
 const sellableColumnsPriced = column.columns([
   ...sellableColumns.slice(0, -1),
   column.display({
-    id: "price",
-    header: listHeader("price.col"),
-    cell: PriceOfCell,
+    id: "estimate",
+    header: listHeader("price.col.estimate"),
+    cell: EstimateOfCell,
     meta: { align: "end" },
+  }),
+  column.display({
+    id: "cost",
+    header: listHeader("price.col.cost"),
+    cell: CostOfCell,
+    meta: { align: "end" },
+  }),
+  column.display({
+    id: "keep",
+    header: listHeader("keep.title"),
+    cell: KeepOfCell,
   }),
   ...sellableColumns.slice(-1),
 ]);
@@ -165,7 +187,7 @@ export const ReadyToGo = ({
     <div className="surface flex flex-col gap-4 p-4 md:p-5">
       <DataTable
         card={sellableCard}
-        minWidth="36rem"
+        minWidth={owner ? "64rem" : "36rem"}
         pageSize={20}
         table={table}
       />
