@@ -5,12 +5,12 @@ import {
   dairyEntryPrice,
   headPrice,
 } from "@OpenFarm/db/schema/returns";
-import { farmDayOf } from "@OpenFarm/domain";
+import { bredHere, farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
-import { EVER_ON_THE_DAIRY_SIDE, bredHere } from "../dairy-returns";
+import { EVER_ON_THE_DAIRY_SIDE } from "../dairy-returns";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { priceTheJoining, weighedForTheCrossing } from "../joining-store";

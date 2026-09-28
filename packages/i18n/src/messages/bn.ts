@@ -3779,6 +3779,10 @@ export const bn: Record<MessageKey, string> = {
   "returns.settlementToCome": "হিসাব নিকাশ বাকি",
   "returns.settlementToComeHint":
     "শেষ পশুটিও চলে গেছে, তাই এটিই এর ফল — হিসাব নিকাশ যেভাবে হবে সেভাবেই হিসাব করা। বিনিয়োগকারীদের মূলধনে লাভ আর খামারের ভাগ আসবে হিসাব নিকাশের টাকা দেওয়া হলে।",
+  "returns.sinceSettlementLess":
+    "হিসাব নিকাশের সময়ের চেয়ে {bdt} কম — পরে আসা কোনো খরচ বা সংশোধনের কারণে। এর হিসাব সমন্বয় দেখুন।",
+  "returns.sinceSettlementMore":
+    "হিসাব নিকাশের সময়ের চেয়ে {bdt} বেশি — পরে আসা কোনো সংশোধনের কারণে। এর হিসাব সমন্বয় দেখুন।",
   "returns.openVenture": "ভেঞ্চারটি খুলুন",
   "returns.tab.fattening": "মোটাতাজা",
   "returns.tab.prices": "দাম",

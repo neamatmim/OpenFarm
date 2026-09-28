@@ -1,23 +1,31 @@
 import type { Database } from "@OpenFarm/db";
 import type { JoiningHow } from "@OpenFarm/db/schema/fattening";
 import type {
-  Returned,
-  RunningRange,
-  Spent,
-  TargetWindow,
+  Came,
+  DairyBooks,
+  Left,
+  ReturnBooks,
+  SeasonHolding,
+  VentureReturn,
   WeightBand,
 } from "@OpenFarm/domain";
 import {
   EXIT_STATES,
   RUNNING_STATES,
+  backOf,
   bandStanding,
-  chargesInHolding,
+  capitalOf,
+  earliest,
   farmDayOf,
+  rateInForceOn,
   returnOf,
+  returnOfHoldings,
   returnOnCapitalOf,
-  runningRangeOf,
-  seasonOf,
+  seasonGroupsOf,
+  seasonsOf,
+  spentOn,
   startOfFarmDay,
+  ventureReturnOf,
   wholeDaysFrom,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -33,36 +41,11 @@ import { approvedSettlementOf } from "./settlement-store";
 import { ownedThenByOf } from "./venture-store";
 
 /**
- * What the money in the farm's cattle returned, for the Owner's Returns page: each **Season** of the Farm's own
- * fattening Animals and each **Venture**, worked as a Settlement is — what the Animals fetched, less what they cost to
- * take on and everything charged to them while they were its own, the dead in.
- *
- * Never a second sum: the same costing every other reader uses, narrowed to whose each Animal was on the day and to
- * the side she stood on.
+ * What the money in the farm's cattle returned, for the Owner's Returns page: the Books read once — the costing, whose
+ * each Animal was on a day, every way an Animal came to an owner and left one, today's values and the Bank Rates — and
+ * handed to the domain's `cattle-returns`, which works every Season and Venture from them. What is read here is only
+ * read: every rule a figure follows is there, and tested there.
  */
-
-/** Whose an Animal was on a day: a Venture's id, or null for the Farm's own. */
-type OwnedThenBy = (animalId: string, at: Date) => string | null;
-
-/** How an Animal left an owner, or that she has not. */
-type Gone = "sold" | "sold_to_venture" | "died";
-
-/** One owner's holding of one Animal: what she was taken on at and when, and how and when she left it. */
-interface Holding {
-  animalId: string;
-  takenOn: Date;
-  priceBdt: number;
-  left: { how: Gone; on: Date; backBdt: number } | null;
-  /** A crossing the Owner has not priced yet: left out of every figure, whole, and named, until she is. */
-  unpriced?: { tagNumber: string };
-}
-
-/** A **Bank Rate** as the page says it beside a rate a year. */
-export interface BankRateSaid {
-  perYear: number;
-  note: string;
-  fromDay: string;
-}
 
 /** Every Bank Rate the Owner has typed, the one that would be in force first: the latest day, then the latest typed. */
 const bankRatesOf = async (db: Database, farmId: string) => {
@@ -79,96 +62,14 @@ const bankRatesOf = async (db: Database, farmId: string) => {
   }));
 };
 
-type BankRateRows = Awaited<ReturnType<typeof bankRatesOf>>;
-
-/** The Bank Rate in force on a farm day: the latest day on or before it, then the latest typed. None before the first. */
-const rateInForceOn = (rates: BankRateRows, day: string) =>
-  rates.find((one) => one.fromDay <= day) ?? null;
-
-/**
- * The Bank Rate beside a rate a year: the one in force on the day that money first went in, as a deposit made that day
- * would have locked it — and none for money with no rate a year to set it beside.
- */
-const bankRateFor = (
-  rates: BankRateRows,
-  firstTaka: Date | null,
-  returned: { perYear: number | null } | null
-): BankRateSaid | null => {
-  if (returned === null || returned.perYear === null || firstTaka === null) {
-    return null;
-  }
-  const inForce = rateInForceOn(rates, farmDayOf(firstTaka));
-  return inForce
-    ? { perYear: inForce.perYear, note: inForce.note, fromDay: inForce.fromDay }
-    : null;
-};
-
-/** The day the first of some money went in: the earliest of the days. None for none. */
-const earliest = (days: readonly Date[]): Date | null =>
-  days.length === 0
-    ? null
-    : new Date(Math.min(...days.map((one) => one.getTime())));
-
-/**
- * Why an Animal is in no figure: a fattening one with no weight to price or no price a kilo to price her at; a
- * crossing not priced; a dairy one the Owner has not priced, whose kind has no Head Price, or whose milk went in a
- * month before any Dispatch had a price.
- */
-export type NotValued =
-  | "no_weight"
-  | "no_price"
-  | "not_priced"
-  | "no_entry_price"
-  | "no_head_price"
-  | "no_milk_price";
-
-/** A standing Animal left out of a figure, whole, and what puts her right. */
-export interface Gap {
-  tagNumber: string;
-  why: NotValued;
-}
-
-/** What every sum on the page is read from, read once: the costing, whose each Animal was on a day, and every way an
- *  Animal came to an owner and left one. */
-interface Books {
+/** The Books as the api reads them: what the domain works the Seasons and Ventures from, with the costing whole for
+ *  the Dairy side, and the Bank Rates with their ids for the page to mark the one in force. */
+type Books = Omit<ReturnBooks, "bankRates"> & {
   costs: FarmCosts;
-  /** Every time an Animal came to the Farm's Fattening side other than by Intake. */
-  joinings: {
-    id: string;
-    animalId: string;
-    joinedAt: Date;
-    how: JoiningHow;
-    targetWindowStart: string;
-    targetWindowEnd: string;
-    priceBdt: number | null;
-    internalSaleId: string | null;
-  }[];
-  /** What each standing fattening Animal is worth today, low and high, as the animal prices value her — or why not. */
-  values: Map<string, { lowBdt: number; highBdt: number } | Gap>;
-  /** Every Bank Rate typed, the one that would be in force first: the latest day, then the latest typed. */
-  bankRates: BankRateRows;
-  ownedThenBy: OwnedThenBy;
-  intakes: {
-    id: string;
-    animalId: string;
-    purchasePriceBdt: number;
-    arrivedAt: Date;
-    targetWindowStart: string;
-    targetWindowEnd: string;
-  }[];
-  died: Map<string, Date>;
-  internal: {
-    id: string;
-    animalId: string;
-    fromVentureId: string | null;
-    toVentureId: string | null;
-    priceBdt: number;
-    /** When it was saved: which of two sales came first, never when she changed hands. */
-    createdAt: Date;
-    /** When she changed hands: the start of the day written on the sale, for every sum that asks whose she was. */
-    on: Date;
-  }[];
-}
+  /** Every cow's litres to Bulk, for the Dairy side's runs. */
+  litres: DairyBooks["litres"];
+  bankRates: Awaited<ReturnType<typeof bankRatesOf>>;
+};
 
 /** What the Returns page needs to know of the farm: its floor, and what the animal prices read. */
 type ReturnsFarm = Parameters<typeof pricesOnTheSide>[1] & {
@@ -229,22 +130,22 @@ const booksOf = async (
   });
   // What each standing Animal is worth today, exactly as the animal prices say it: never a third valuation.
   const priced = await pricesOnTheSide(db, farm, now);
-  const values: Books["values"] = new Map();
-  for (const one of priced.animals) {
-    if (one.low && one.high) {
-      values.set(one.id, {
-        lowBdt: one.low.priceBdt,
-        highBdt: one.high.priceBdt,
-      });
-    } else {
-      values.set(one.id, {
-        tagNumber: one.tagNumber,
-        why: one.latestKg === null ? "no_weight" : "no_price",
-      });
-    }
-  }
+  const values: Books["values"] = new Map(
+    priced.animals.map((one) => [
+      one.id,
+      one.low && one.high
+        ? { lowBdt: one.low.priceBdt, highBdt: one.high.priceBdt }
+        : {
+            tagNumber: one.tagNumber,
+            why: one.latestKg === null ? "no_weight" : "no_price",
+          },
+    ])
+  );
   return {
     costs,
+    charges: costs.ofAnimal.charges,
+    litres: costs.ofAnimal.litres,
+    animals: costs.animals,
     joinings,
     values,
     bankRates,
@@ -258,364 +159,12 @@ const booksOf = async (
   };
 };
 
-/**
- * How and when an Animal taken on by `owner` on `takenOn` left it: the first Internal Sale out of it after she came,
- * her Sale if she was still this owner's when she went, or her death. Null while she stands.
- */
-const leftOf = (
-  books: Books,
-  owner: string | null,
-  animalId: string,
-  takenOn: Date,
-  /** The Internal Sale that brought her to this owner, if one did: only a later one takes her away again, however
-   *  close in time — the Farm selling her to a Venture and buying her back in one sitting is two holdings, not one. */
-  cameBy?: string | null
-): Holding["left"] => {
-  const cameAt = cameBy
-    ? books.internal.findIndex((one) => one.id === cameBy)
-    : -1;
-  const soldOn = books.internal.find(
-    (one, index) =>
-      one.animalId === animalId &&
-      one.fromVentureId === owner &&
-      (cameBy ? index > cameAt : one.createdAt >= takenOn)
-  );
-  if (soldOn) {
-    return {
-      how: "sold_to_venture",
-      // The start of the day she was sold on, when she became the buyer's — though never before this owner took
-      // her on, for one bought and sold on in the same day.
-      on: soldOn.on > takenOn ? soldOn.on : takenOn,
-      backBdt: soldOn.priceBdt,
-    };
-  }
-  const sale = books.costs.animals.find((one) => one.id === animalId)?.sale;
-  if (sale && books.ownedThenBy(animalId, sale.soldAt) === owner) {
-    return { how: "sold", on: sale.soldAt, backBdt: sale.priceBdt };
-  }
-  const diedAt = books.died.get(animalId);
-  return diedAt ? { how: "died", on: diedAt, backBdt: 0 } : null;
-};
-
-/**
- * What one holding put in, each sum out from the day it was spent until she left — or until `today`, for one standing:
- * her price, and every charge inside her Fattening Holding with this owner, counted as a Settlement counts it.
- */
-const spentOn = (
-  books: Books,
-  owner: string | null,
-  holding: Holding,
-  today: Date
-): Spent[] => {
-  const until = holding.left?.on ?? today;
-  return [
-    { bdt: holding.priceBdt, from: holding.takenOn, until },
-    ...chargesInHolding(
-      books.costs.ofAnimal.charges.get(holding.animalId) ?? [],
-      {
-        animalId: holding.animalId,
-        owner,
-        side: "fattening",
-        from: holding.takenOn,
-        until,
-      },
-      books.ownedThenBy
-    ).map((one) => ({ bdt: one.bdt, from: one.at, until })),
-  ];
-};
-
-/** What some holdings brought back: each one's Sale or Internal Sale out, nothing for the dead, nothing standing. */
-const backOf = (holdings: readonly Holding[]) =>
-  holdings.reduce((sum, one) => sum + (one.left?.backBdt ?? 0), 0);
-
-/** The gaps the prices could not fill, added to the ones a valuation could not. */
-const withGaps = <T extends { gaps: Gap[] }>(worked: T, more: Gap[]): T => ({
-  ...worked,
-  gaps: [...more, ...worked.gaps],
-});
-
-/** What some priced holdings returned: a result once all have gone and none waits on a price, a range until then. */
-const returnOfPriced = (
-  books: Books,
-  owner: string | null,
-  holdings: readonly Holding[],
-  today: Date,
-  floorDays: number,
-  waitingOnAPrice: boolean
-) => {
-  const finished =
-    !waitingOnAPrice && holdings.every((one) => one.left !== null);
-  const spentOf = (one: Holding) => spentOn(books, owner, one, today);
-  if (finished) {
-    return {
-      finished,
-      returnOnCost: returnOf({
-        spent: holdings.flatMap(spentOf),
-        backBdt: backOf(holdings),
-        floorDays,
-        finished,
-      }),
-      running: null,
-      gaps: [] as Gap[],
-    };
-  }
-  const gone = holdings.filter((one) => one.left !== null);
-  const standing = holdings.flatMap((one) => {
-    if (one.left !== null) {
-      return [];
-    }
-    const value = books.values.get(one.animalId);
-    return value ? [{ holding: one, value }] : [];
-  });
-  const valued = standing.flatMap(({ holding, value }) =>
-    "why" in value ? [] : [{ holding, value }]
-  );
-  return {
-    finished,
-    returnOnCost: null,
-    running: runningRangeOf({
-      sold: {
-        spent: gone.flatMap(spentOf),
-        backBdt: backOf(gone),
-      },
-      standing: {
-        spent: valued.flatMap(({ holding }) => spentOf(holding)),
-        lowBdt: valued.reduce((sum, { value }) => sum + value.lowBdt, 0),
-        highBdt: valued.reduce((sum, { value }) => sum + value.highBdt, 0),
-      },
-    }),
-    gaps: standing.flatMap(({ value }) =>
-      "why" in value ? [{ tagNumber: value.tagNumber, why: value.why }] : []
-    ),
-  };
-};
-
-/**
- * What a group of holdings returned: once every Animal has gone, a result — Return on Cost, put a year past the floor;
- * while any stands, a range at today's price — what those gone brought back, and those standing valued as the animal
- * prices value them, low and high — never put a year. A standing Animal who cannot be valued is left out whole, her
- * cost and her value both, and named, so the want of a price never reads as a loss.
- */
-const returnOfHoldings = (
-  books: Books,
-  owner: string | null,
-  holdings: readonly Holding[],
-  today: Date,
-  floorDays: number
-) => {
-  // A crossing not priced yet is no part of any figure: counted with no price, she would read as bought for nothing.
-  const unpriced = holdings.filter((one) => one.unpriced);
-  const unpricedGaps: Gap[] = unpriced.map((one) => ({
-    tagNumber: one.unpriced?.tagNumber ?? "",
-    why: "not_priced",
-  }));
-  const priced = holdings.filter((one) => !one.unpriced);
-  return withGaps(
-    returnOfPriced(books, owner, priced, today, floorDays, unpriced.length > 0),
-    unpricedGaps
-  );
-};
-
-/** A **Season** as the Owner reads it on the Returns page. */
-export interface SeasonReturn {
-  key: string;
-  eid: string | null;
-  window: TargetWindow;
-  /** Whether every Animal in it has gone. Only then is it a result, and only then put a year. */
-  finished: boolean;
-  head: number;
-  died: number;
-  /** Once finished: what every hundred taka made. Null while an Animal stands. */
-  returnOnCost: Returned | null;
-  /** While going: the same at today's price, low and high. Null once finished, or with nothing it could value. */
-  running: RunningRange | null;
-  /** Standing Animals left out of `running`, and why. */
-  gaps: Gap[];
-  /** The Bank Rate in force on its first taka, beside its rate a year; none without one. */
-  bankRate: BankRateSaid | null;
-}
-
-/** How an Animal came to the Farm's Fattening side for a Season: bought in on an Intake, or joined it since. */
-type Came =
-  | { how: "intake"; intakeId: string }
-  | { how: JoiningHow; joiningId: string };
-
-/** One Animal's holding in a Season, and how she came to it: what the Season's breakdowns sort her by. */
-type SeasonHolding = Holding & { came: Came };
-
-/**
- * The Farm's own fattening Animals grouped into Seasons by the Target Window they were fed for — bought in, walked
- * across from Dairy, or bought from a Venture — each from the day she came, at the price she came at, or named until
- * a crossing is priced. An Animal stays in her Season however she went: sold before her Eid, kept on after it, dead,
- * or sold to a Venture. Read by the page and by a Season's breakdowns, so the two are one sum.
- */
-const seasonGroupsOf = (books: Books) => {
-  const bySeason = new Map<
-    string,
-    { season: ReturnType<typeof seasonOf>; holdings: SeasonHolding[] }
-  >();
-  const add = (window: TargetWindow, holding: SeasonHolding) => {
-    const season = seasonOf(window);
-    const group = bySeason.get(season.key) ?? { season, holdings: [] };
-    group.holdings.push(holding);
-    bySeason.set(season.key, group);
-  };
-  for (const intake of books.intakes) {
-    // The Farm's own only: a beast a Venture's money bought is that Venture's, and its Settlement's.
-    if (books.ownedThenBy(intake.animalId, intake.arrivedAt) !== null) {
-      continue;
-    }
-    add(
-      { start: intake.targetWindowStart, end: intake.targetWindowEnd },
-      {
-        animalId: intake.animalId,
-        takenOn: intake.arrivedAt,
-        priceBdt: intake.purchasePriceBdt,
-        left: leftOf(books, null, intake.animalId, intake.arrivedAt),
-        came: { how: "intake", intakeId: intake.id },
-      }
-    );
-  }
-  const tagOf = new Map(
-    books.costs.animals.map((one) => [one.id, one.tagNumber])
-  );
-  // A Joining by Internal Sale is stamped when the sale was saved; she was the Farm's from the start of its day.
-  const saleDay = new Map(books.internal.map((one) => [one.id, one.on]));
-  for (const joining of books.joinings) {
-    if (books.ownedThenBy(joining.animalId, joining.joinedAt) !== null) {
-      continue;
-    }
-    const takenOn =
-      (joining.internalSaleId && saleDay.get(joining.internalSaleId)) ||
-      joining.joinedAt;
-    add(
-      { start: joining.targetWindowStart, end: joining.targetWindowEnd },
-      {
-        animalId: joining.animalId,
-        takenOn,
-        priceBdt: joining.priceBdt ?? 0,
-        left: leftOf(
-          books,
-          null,
-          joining.animalId,
-          takenOn,
-          joining.internalSaleId
-        ),
-        ...(joining.priceBdt === null
-          ? { unpriced: { tagNumber: tagOf.get(joining.animalId) ?? "" } }
-          : {}),
-        came: { how: joining.how, joiningId: joining.id },
-      }
-    );
-  }
-  return bySeason;
-};
-
-/** The Farm's own fattening Animals, Season by Season: what each cost, what came back, and so every hundred taka. */
-const seasonsOf = (
-  books: Books,
-  floorDays: number,
-  today: Date
-): SeasonReturn[] =>
-  [...seasonGroupsOf(books).values()]
-    .map(({ season, holdings }) => {
-      const worked = returnOfHoldings(books, null, holdings, today, floorDays);
-      return {
-        key: season.key,
-        eid: season.eid,
-        window: season.window,
-        head: holdings.length,
-        died: holdings.filter((one) => one.left?.how === "died").length,
-        ...worked,
-        bankRate: bankRateFor(
-          books.bankRates,
-          earliest(holdings.map((one) => one.takenOn)),
-          worked.returnOnCost
-        ),
-      };
-    })
-    .toSorted(
-      (a, b) =>
-        b.window.start.localeCompare(a.window.start) ||
-        a.key.localeCompare(b.key)
-    );
-
-/** A **Venture** as the Owner reads it on the Returns page: settled, or still buying, fattening or selling. */
-export interface VentureReturn {
-  id: string;
-  name: string;
-  window: TargetWindow;
-  settled: boolean;
-  head: number;
-  died: number;
-  /** Once its last animal has gone — settled or its Settlement still to come: on its cattle, worked from the same
-   *  lines its Settlement adds up, put a year over its days. */
-  returnOnCost: Returned | null;
-  /** While going: the same at today's price, its standing animals at its plan's prices, low and high. */
-  running: RunningRange | null;
-  /** Standing animals left out of `running`, and why. */
-  gaps: Gap[];
-  /** Once settled: on the Investors' capital, after the Farm's share, each taka from arrival to payout. Never before. */
-  returnOnCapital: ReturnType<typeof returnOnCapitalOf>;
-  /** Once settled: the Farm's share, for its work — taka, never a ratio, because the Farm put in no money. */
-  farmsShareBdt: number | null;
-  /** The Bank Rate in force on the day its first taka went on cattle, beside its Return on Cost a year. */
-  bankRate: BankRateSaid | null;
-  /** The Bank Rate in force on the day the Investors' first capital reached the Venture Account — earlier than the
-   *  first beast, as a deposit made with that money would have been — beside their Return on Capital a year. */
-  capitalBankRate: BankRateSaid | null;
-}
-
-/** One Venture Movement as a Return on Capital reads it. */
-interface CapitalMovement {
-  id: string;
-  kind: string;
-  agreementId: string | null;
-  amountBdt: number;
-  movedOn: string;
-}
-
-/**
- * The Investors' capital as a Return on Capital counts it: each sum that reached the Venture Account on an Agreement,
- * from the day it arrived to the day that Agreement's payout went — for every Agreement a Settlement's shares name
- * that has been paid. The Owner's reading of a whole Venture and an Investor's of their own Agreement, one rule.
- */
-const capitalOf = (
-  shares: readonly { agreementId: string; paidMovementId: string | null }[],
-  movements: readonly CapitalMovement[]
-) => {
-  const paidBackOn = new Map(
-    movements
-      .filter((one) => one.kind === "payout")
-      .map((one) => [one.id, startOfFarmDay(one.movedOn)])
-  );
-  return shares.flatMap((share) => {
-    const paidBack = share.paidMovementId
-      ? paidBackOn.get(share.paidMovementId)
-      : undefined;
-    if (!paidBack) {
-      return [];
-    }
-    return movements
-      .filter(
-        (one) =>
-          one.kind === "capital_in" && one.agreementId === share.agreementId
-      )
-      .map((one) => ({
-        bdt: one.amountBdt,
-        arrived: startOfFarmDay(one.movedOn),
-        paidBack,
-      }));
-  });
-};
-
 /** The states a Venture has cattle in, or had: the running ones, or settled. */
 const WITH_CATTLE = [...RUNNING_STATES, "settled"] as const;
 
 /**
- * Each Venture with cattle: its cattle read exactly as a Season is — what they fetched, less what they cost to take on
- * and everything charged to them while they were its own — and, once settled, the Investors' capital from the day it
- * arrived to the day it was paid back. One still going reads at today's price.
+ * Each Venture with cattle, worked from the Books as a Season is, with its approved Settlement once it is settled: what
+ * it made then, the Farm's share, and the payouts its Investors' capital is counted to.
  */
 const venturesOf = async (
   db: Database,
@@ -654,64 +203,16 @@ const venturesOf = async (
         });
   const out: VentureReturn[] = [];
   for (const venture of ventures) {
-    const holdings: Holding[] = [
-      ...books.intakes
-        .filter(
-          (one) => books.ownedThenBy(one.animalId, one.arrivedAt) === venture.id
-        )
-        .map((one) => ({
-          animalId: one.animalId,
-          takenOn: one.arrivedAt,
-          priceBdt: one.purchasePriceBdt,
-          cameBy: null,
-        })),
-      ...books.internal
-        .filter((one) => one.toVentureId === venture.id)
-        .map((one) => ({
-          animalId: one.animalId,
-          takenOn: one.on,
-          priceBdt: one.priceBdt,
-          cameBy: one.id,
-        })),
-    ].map(({ cameBy, ...one }) => ({
-      ...one,
-      left: leftOf(books, venture.id, one.animalId, one.takenOn, cameBy),
-    }));
-    const worked = returnOfHoldings(
-      books,
-      venture.id,
-      holdings,
-      today,
-      floorDays
-    );
-    const common = {
+    const read = {
       id: venture.id,
       name: venture.name,
       window: {
         start: venture.targetWindowStart,
         end: venture.targetWindowEnd,
       },
-      head: holdings.length,
-      died: holdings.filter((one) => one.left?.how === "died").length,
-      running: worked.running,
-      gaps: worked.gaps,
     };
     if (venture.state !== "settled") {
-      // Its last animal gone and none waiting on a price, its cattle have a result before its Settlement is paid
-      // out: the same figure the Settlement will make. Only the Investors' capital waits for the payouts.
-      out.push({
-        ...common,
-        settled: false,
-        returnOnCost: worked.returnOnCost,
-        returnOnCapital: null,
-        farmsShareBdt: null,
-        bankRate: bankRateFor(
-          books.bankRates,
-          earliest(holdings.map((one) => one.takenOn)),
-          worked.returnOnCost
-        ),
-        capitalBankRate: null,
-      });
+      out.push(ventureReturnOf(books, read, null, floorDays, today));
       continue;
     }
     // oxlint-disable-next-line no-await-in-loop -- one Venture's Settlement at a time, on one client
@@ -719,32 +220,20 @@ const venturesOf = async (
     if (!approved) {
       continue;
     }
-    const capital = capitalOf(
-      approved.shares,
-      movements.filter((one) => one.ventureId === venture.id)
+    out.push(
+      ventureReturnOf(
+        books,
+        read,
+        {
+          profitBdt: approved.row.profitBdt,
+          farmBdt: approved.row.farmBdt,
+          shares: approved.shares,
+          movements: movements.filter((one) => one.ventureId === venture.id),
+        },
+        floorDays,
+        today
+      )
     );
-    const returnOnCapital = returnOnCapitalOf({
-      capital,
-      shareBdt: approved.shares.reduce((sum, one) => sum + one.shareBdt, 0),
-      floorDays,
-    });
-    out.push({
-      ...common,
-      settled: true,
-      returnOnCost: worked.returnOnCost,
-      returnOnCapital,
-      farmsShareBdt: approved.row.farmBdt,
-      bankRate: bankRateFor(
-        books.bankRates,
-        earliest(holdings.map((one) => one.takenOn)),
-        worked.returnOnCost
-      ),
-      capitalBankRate: bankRateFor(
-        books.bankRates,
-        earliest(capital.map((one) => one.arrived)),
-        returnOnCapital
-      ),
-    });
   }
   return out;
 };
@@ -870,7 +359,8 @@ export type BreakdownLine =
       came: "intake" | JoiningHow;
       /** The farm day she came to the Season: an Animal sold to a Venture and bought back is two lines. */
       since: string;
-      left: Gone;
+      /** Never "crossed": that ends a Dairy Holding, and a Season's are Fattening ones. */
+      left: Exclude<Left["how"], "crossed">;
     };
 
 /** One line of a breakdown: its Animals' own share of the Season's sum. A share only, never put a year. */
@@ -1021,12 +511,14 @@ const lineOf = (
   const intake =
     came.how === "intake" ? facts.intakes.get(came.intakeId) : undefined;
   if (by === "animal") {
+    const how = holding.left?.how;
     return {
       kind: "animal",
       tagNumber: her?.tagNumber ?? "",
       came: came.how,
       since: farmDayOf(holding.takenOn),
-      left: holding.left?.how ?? "sold",
+      // A breakdown is of a finished Season, every one of whose Animals has left it, and never by crossing.
+      left: how === undefined || how === "crossed" ? "sold" : how,
     };
   }
   if (by === "breed") {
