@@ -17,12 +17,16 @@ import {
 import { MilkWeek } from "@/components/home/milk-week";
 import {
   DECISION_KINDS,
+  FARM_TODAY_KINDS,
   FarmToday,
   NeedsYouTabs,
   decisionsWaiting,
   moneyAwaitingTotal,
 } from "@/components/home/owner-queue";
-import type { DecisionKind } from "@/components/home/owner-queue";
+import type {
+  DecisionKind,
+  FarmTodayKind,
+} from "@/components/home/owner-queue";
 import { MORE_LINK } from "@/components/home/queue";
 import {
   EmptyState,
@@ -222,7 +226,7 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
   const { t, language } = useLanguage();
   const { needsYou, tiles } = data;
   const figures = useFarmFigures(data);
-  const { needs } = Route.useSearch();
+  const { needs, onFarm } = Route.useSearch();
   const navigate = Route.useNavigate();
   // Asked here rather than folded into `home.owner`, because whether a Wind-up Period has run out is
   // worked out where it is read — a cached `true` would tell her a run is over on the strength of a
@@ -274,7 +278,10 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
                 chosen={needs}
                 needsYou={needsYou}
                 onChoose={(kind) =>
-                  navigate({ replace: true, search: { needs: kind } })
+                  navigate({
+                    replace: true,
+                    search: (was) => ({ ...was, needs: kind }),
+                  })
                 }
                 ventures={troubled}
               />
@@ -284,7 +291,17 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
             description={t("owner.onTheFarmHint")}
             title={t("owner.onTheFarm")}
           >
-            <FarmToday needsYou={needsYou} tiles={tiles} />
+            <FarmToday
+              chosen={onFarm}
+              needsYou={needsYou}
+              onChoose={(kind) =>
+                navigate({
+                  replace: true,
+                  search: (was) => ({ ...was, onFarm: kind }),
+                })
+              }
+              tiles={tiles}
+            />
           </Section>
           <MoneyMonth />
         </div>
@@ -303,11 +320,16 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
 export const Route = createFileRoute("/_auth/farm")({
   beforeLoad: onlyFor("owner"),
   component: OwnerHome,
-  // Which kind of decision the Owner was reading, so the page comes back as it was left.
+  // Which kind of decision the Owner was reading, and which part of the farm's day, so the page comes back as it was
+  // left — the two tabs each keep their own.
   validateSearch: (
     search: Record<string, unknown>
-  ): { needs?: DecisionKind } =>
-    DECISION_KINDS.includes(search.needs as DecisionKind)
+  ): { needs?: DecisionKind; onFarm?: FarmTodayKind } => ({
+    ...(DECISION_KINDS.includes(search.needs as DecisionKind)
       ? { needs: search.needs as DecisionKind }
-      : {},
+      : {}),
+    ...(FARM_TODAY_KINDS.includes(search.onFarm as FarmTodayKind)
+      ? { onFarm: search.onFarm as FarmTodayKind }
+      : {}),
+  }),
 });

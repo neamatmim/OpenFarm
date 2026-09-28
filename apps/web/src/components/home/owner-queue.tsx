@@ -18,6 +18,7 @@ import {
   Wheat,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { MonthlyCostsGroup } from "@/components/home/monthly-costs";
 import {
@@ -524,123 +525,199 @@ const DayProgress = ({ tiles }: { tiles: Tiles }) => {
   );
 };
 
+/** What the farm's day has for the Owner to know about, loudest first: the order its tabs read in. */
+export const FARM_TODAY_KINDS = [
+  "overdue",
+  "lowStock",
+  "endingWithdrawal",
+] as const;
+export type FarmTodayKind = (typeof FARM_TODAY_KINDS)[number];
+
+/** One kind of the farm's day, under its own heading or under a tab that already gives it one. */
+const FarmTodayList = ({
+  kind,
+  needsYou,
+  headless,
+}: {
+  kind: FarmTodayKind;
+  needsYou: NeedsYou;
+  headless: boolean;
+}) => {
+  const { t, language } = useLanguage();
+  switch (kind) {
+    case "overdue": {
+      return (
+        <QueueGroup
+          headless={headless}
+          icon={AlarmClock}
+          label={t("home.overdue")}
+          more={
+            <Link
+              className={MORE_LINK}
+              search={{ tab: "late" }}
+              to="/admin/sign-off"
+            >
+              {t("home.openList")}
+            </Link>
+          }
+          rows={needsYou.overdue.map((row) => (
+            <QueueRow
+              key={row.id}
+              meta={row.pen ?? t("work.wholeFarm")}
+              title={
+                <Link
+                  className={ROW_LINK}
+                  params={{ instanceId: row.id }}
+                  to="/work/$instanceId"
+                >
+                  {row.sopBn}
+                </Link>
+              }
+              trailing={
+                row.escalated ? (
+                  <StatusBadge tone="danger">
+                    {t("owner.escalated")}
+                  </StatusBadge>
+                ) : (
+                  <Opens />
+                )
+              }
+            />
+          ))}
+          tone="danger"
+        />
+      );
+    }
+    case "lowStock": {
+      return (
+        <QueueGroup
+          headless={headless}
+          icon={Wheat}
+          label={t("home.lowStock")}
+          more={
+            <Link className={MORE_LINK} to="/admin/feed">
+              {t("home.openList")}
+            </Link>
+          }
+          rows={needsYou.lowStock.map((line) => (
+            <QueueRow
+              key={line.feedItemId}
+              title={
+                <Link className={ROW_LINK} to="/admin/feed">
+                  {t("home.lowStockLine", {
+                    feed: line.nameBn,
+                    onHand: formatNumber(line.onHand, language),
+                    unit: feedUnitWord(line.unit, language),
+                    threshold: formatNumber(line.threshold, language),
+                  })}
+                </Link>
+              }
+              trailing={<Opens />}
+            />
+          ))}
+          tone="warning"
+        />
+      );
+    }
+    case "endingWithdrawal": {
+      return (
+        <QueueGroup
+          headless={headless}
+          icon={Milk}
+          label={t("owner.endingWithdrawal")}
+          rows={needsYou.endingWithdrawal.map((row) => (
+            <QueueRow
+              key={row.id}
+              leading={
+                <Link
+                  params={{ tagNumber: row.tagNumber }}
+                  to="/animals/$tagNumber"
+                >
+                  <TagChip>{row.tagNumber}</TagChip>
+                </Link>
+              }
+              title={
+                row.until
+                  ? t("home.until", {
+                      date: formatDate(new Date(row.until), language, "date"),
+                    })
+                  : t("owner.endingWithdrawal")
+              }
+            />
+          ))}
+          tone="info"
+        />
+      );
+    }
+    default: {
+      return null;
+    }
+  }
+};
+
 /**
  * The farm going about its day, which the Manager is minding: how much of the work is done, what is late, feed running
  * low, and Withdrawals ending. The Owner reads it to know, not to act — it sits below what only they can settle.
+ *
+ * The day's progress over it all; below, one tab to a kind with something in it, as the lists above it are — late
+ * work first, its count red. A single kind is drawn under its own heading, without tabs.
  */
 export const FarmToday = ({
   needsYou,
   tiles,
+  chosen,
+  onChoose,
 }: {
   needsYou: NeedsYou;
   tiles: Tiles;
+  /** The tab the address asks for, which may name a kind that has since emptied. */
+  chosen: FarmTodayKind | undefined;
+  onChoose: (kind: FarmTodayKind) => void;
 }) => {
-  const { t, language } = useLanguage();
-  const quiet =
-    needsYou.overdue.length +
-      needsYou.lowStock.length +
-      needsYou.endingWithdrawal.length ===
-    0;
+  const { t } = useLanguage();
+  const counts: Record<FarmTodayKind, number> = {
+    overdue: needsYou.overdue.length,
+    lowStock: needsYou.lowStock.length,
+    endingWithdrawal: needsYou.endingWithdrawal.length,
+  };
+  const LABEL: Record<FarmTodayKind, { label: string; icon: LucideIcon }> = {
+    overdue: { label: t("home.overdue"), icon: AlarmClock },
+    lowStock: { label: t("home.lowStock"), icon: Wheat },
+    endingWithdrawal: { label: t("owner.endingWithdrawal"), icon: Milk },
+  };
+  const waiting = FARM_TODAY_KINDS.filter((kind) => counts[kind] > 0);
+  const [only] = waiting;
+  // The kind asked for while it still has something in it; once it empties, the loudest that does.
+  const shown = waiting.find((kind) => kind === chosen) ?? only;
+  let lists: ReactNode = null;
+  if (only && waiting.length === 1) {
+    lists = <FarmTodayList headless={false} kind={only} needsYou={needsYou} />;
+  } else if (shown) {
+    lists = (
+      <PageTabs
+        onChange={onChoose}
+        tabs={waiting.map((kind) => ({
+          value: kind,
+          label: LABEL[kind].label,
+          icon: LABEL[kind].icon,
+          count: counts[kind],
+          countTone: kind === "overdue" ? "danger" : undefined,
+          content: <FarmTodayList headless kind={kind} needsYou={needsYou} />,
+        }))}
+        value={shown}
+      />
+    );
+  }
   return (
     <div className="flex flex-col gap-6">
       <DayProgress tiles={tiles} />
-
-      {quiet ? (
+      {counts.overdue + counts.lowStock + counts.endingWithdrawal === 0 ? (
         <p className="text-success flex items-center gap-2 text-sm">
           <CircleCheck aria-hidden className="size-4" />
           {t("owner.nothingLate")}
         </p>
       ) : null}
-
-      <QueueGroup
-        icon={AlarmClock}
-        label={t("home.overdue")}
-        more={
-          <Link
-            className={MORE_LINK}
-            search={{ tab: "late" }}
-            to="/admin/sign-off"
-          >
-            {t("home.openList")}
-          </Link>
-        }
-        rows={needsYou.overdue.map((row) => (
-          <QueueRow
-            key={row.id}
-            meta={row.pen ?? t("work.wholeFarm")}
-            title={
-              <Link
-                className={ROW_LINK}
-                params={{ instanceId: row.id }}
-                to="/work/$instanceId"
-              >
-                {row.sopBn}
-              </Link>
-            }
-            trailing={
-              row.escalated ? (
-                <StatusBadge tone="danger">{t("owner.escalated")}</StatusBadge>
-              ) : (
-                <Opens />
-              )
-            }
-          />
-        ))}
-        tone="danger"
-      />
-
-      <QueueGroup
-        icon={Wheat}
-        label={t("home.lowStock")}
-        more={
-          <Link className={MORE_LINK} to="/admin/feed">
-            {t("home.openList")}
-          </Link>
-        }
-        rows={needsYou.lowStock.map((line) => (
-          <QueueRow
-            key={line.feedItemId}
-            title={
-              <Link className={ROW_LINK} to="/admin/feed">
-                {t("home.lowStockLine", {
-                  feed: line.nameBn,
-                  onHand: formatNumber(line.onHand, language),
-                  unit: feedUnitWord(line.unit, language),
-                  threshold: formatNumber(line.threshold, language),
-                })}
-              </Link>
-            }
-            trailing={<Opens />}
-          />
-        ))}
-        tone="warning"
-      />
-
-      <QueueGroup
-        icon={Milk}
-        label={t("owner.endingWithdrawal")}
-        rows={needsYou.endingWithdrawal.map((row) => (
-          <QueueRow
-            key={row.id}
-            leading={
-              <Link
-                params={{ tagNumber: row.tagNumber }}
-                to="/animals/$tagNumber"
-              >
-                <TagChip>{row.tagNumber}</TagChip>
-              </Link>
-            }
-            title={
-              row.until
-                ? t("home.until", {
-                    date: formatDate(new Date(row.until), language, "date"),
-                  })
-                : t("owner.endingWithdrawal")
-            }
-          />
-        ))}
-        tone="info"
-      />
+      {lists}
     </div>
   );
 };
