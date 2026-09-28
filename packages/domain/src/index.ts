@@ -342,6 +342,7 @@ export type {
   Carried,
   FeedingToCost,
   HerdCostToSplit,
+  OwnersOverTime,
   TripToSplit,
   UnallocatedFeeding,
   UnallocatedHerdCost,
@@ -361,6 +362,16 @@ export {
   tripShares,
 } from "./costs";
 export { groupedBy } from "./grouped-by";
+export type { Charge, ChargeKind, Holding, OwnedThenBy } from "./holding";
+export {
+  CHARGE_KINDS,
+  EVERY_CHARGE,
+  HER_KEEP,
+  WHAT_THE_FARM_IS_OWED,
+  chargesInHolding,
+  chargesOfOwner,
+  costsOf,
+} from "./holding";
 export type {
   Arrival,
   ArrivalKind,

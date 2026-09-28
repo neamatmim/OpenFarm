@@ -11,6 +11,7 @@ import {
   EXIT_STATES,
   RUNNING_STATES,
   bandStanding,
+  chargesInHolding,
   farmDayOf,
   returnOf,
   returnOnCapitalOf,
@@ -24,7 +25,7 @@ import { ORPCError } from "@orpc/server";
 import { pricesOnTheSide } from "./animal-price-store";
 import { hasBand } from "./band-store";
 import type { FarmCosts } from "./cost-store";
-import { farmCosts, sharesChargedTo } from "./cost-store";
+import { farmCosts } from "./cost-store";
 import { dairyAnimalOf, dairyOf } from "./dairy-returns";
 import { bandOf } from "./feed-store";
 import { weighedForTheCrossing } from "./joining-store";
@@ -298,7 +299,7 @@ const leftOf = (
 
 /**
  * What one holding put in, each sum out from the day it was spent until she left — or until `today`, for one standing:
- * her price, and every share charged while she was this owner's and on the Fattening side.
+ * her price, and every charge inside her Fattening Holding with this owner, counted as a Settlement counts it.
  */
 const spentOn = (
   books: Books,
@@ -307,15 +308,19 @@ const spentOn = (
   today: Date
 ): Spent[] => {
   const until = holding.left?.on ?? today;
-  const ours = (at: Date) =>
-    at >= holding.takenOn &&
-    at <= until &&
-    books.ownedThenBy(holding.animalId, at) === owner;
   return [
     { bdt: holding.priceBdt, from: holding.takenOn, until },
-    ...sharesChargedTo(books.costs, holding.animalId)
-      .filter((one) => one.side === "fattening" && ours(one.at))
-      .map((one) => ({ bdt: one.bdt, from: one.at, until })),
+    ...chargesInHolding(
+      books.costs.ofAnimal.charges.get(holding.animalId) ?? [],
+      {
+        animalId: holding.animalId,
+        owner,
+        side: "fattening",
+        from: holding.takenOn,
+        until,
+      },
+      books.ownedThenBy
+    ).map((one) => ({ bdt: one.bdt, from: one.at, until })),
   ];
 };
 

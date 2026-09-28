@@ -1,5 +1,7 @@
 import type { Database } from "@OpenFarm/db";
 import type {
+  Charge,
+  OwnedThenBy,
   CostShare,
   Costs,
   FeedShare,
@@ -9,6 +11,10 @@ import type {
   PenHistoryLine,
 } from "@OpenFarm/domain";
 import {
+  HER_KEEP,
+  WHAT_THE_FARM_IS_OWED,
+  chargesOfOwner,
+  costsOf,
   exitOf,
   costOfGainOf,
   costPerLitreOf,
@@ -50,6 +56,8 @@ interface VetShare {
   animalId: string;
   side: Side;
   at: Date;
+  /** The fee it is a share of. */
+  feeId: string;
   vetBdt: number;
 }
 
@@ -64,6 +72,74 @@ interface LitresShare {
 /** Shares gathered under the animal each is charged to. */
 const byAnimal = <T extends { animalId: string }>(shares: readonly T[]) =>
   groupedBy(shares, (one) => one.animalId);
+
+/** A charge the costing gave out by the head — the Hasil, an outing, a Herd Cost — as a Charge of its kind. */
+const byTheHead = (kind: Charge["kind"], one: CostShare): Charge => ({
+  kind,
+  animalId: one.animalId,
+  side: one.side,
+  at: one.at,
+  bdt: one.bdt,
+  fromId: one.fromId,
+  unpricedKg: 0,
+  priced: true,
+});
+
+/**
+ * Every share the costing gave out, as one list of Charges — the one place its kinds are walked, so a new kind is added
+ * once and every sum that names it counts it (CONTEXT.md, Holding). A Selling Trip is told from a Buying Trip here,
+ * since the Farm is owed one back and not the other.
+ */
+const chargesFrom = (
+  shares: {
+    feed: readonly FeedShare[];
+    doses: readonly DoseShare[];
+    vet: readonly VetShare[];
+    hasil: readonly CostShare[];
+    trips: readonly CostShare[];
+    herd: readonly CostShare[];
+  },
+  sellingTrips: ReadonlyMap<string, string>
+): Charge[] => [
+  ...shares.feed.map((one): Charge => ({
+    kind: "feed",
+    animalId: one.animalId,
+    side: one.side,
+    at: one.at,
+    bdt: one.feedBdt,
+    fromId: one.feedItemId,
+    unpricedKg: one.unpricedKg,
+    priced: one.unpricedKg === 0,
+  })),
+  ...shares.doses.map((one): Charge => ({
+    kind: "dose",
+    animalId: one.animalId,
+    side: one.side,
+    at: one.at,
+    bdt: one.medicineBdt ?? 0,
+    fromId: one.drugProductId,
+    unpricedKg: 0,
+    priced: one.medicineBdt !== null,
+  })),
+  ...shares.vet.map((one): Charge => ({
+    kind: "vet",
+    animalId: one.animalId,
+    side: one.side,
+    at: one.at,
+    bdt: one.vetBdt,
+    fromId: one.feeId,
+    unpricedKg: 0,
+    priced: true,
+  })),
+  ...shares.hasil.map((one) => byTheHead("hasil", one)),
+  ...shares.trips.map((one) =>
+    byTheHead(
+      sellingTrips.has(one.fromId) ? "selling_trip" : "buying_trip",
+      one
+    )
+  ),
+  ...shares.herd.map((one) => byTheHead("herd", one)),
+];
 
 /**
  * Money entered by hand as a Herd Cost, or nothing where it is charged to no animal at all: a Side left
@@ -175,7 +251,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
   });
   const fees = await db.query.vetFee.findMany({
     where: { farmId },
-    columns: { amountBdt: true, visitedOn: true },
+    columns: { id: true, amountBdt: true, visitedOn: true },
     with: { animals: { columns: { animalId: true } } },
   });
   const sessions = await db.query.milkingSession.findMany({
@@ -299,6 +375,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
               animalId,
               side: sideOf(animal, fee.visitedOn),
               at: fee.visitedOn,
+              feeId: fee.id,
               vetBdt: fee.amountBdt / fee.animals.length,
             },
           ]
@@ -401,6 +478,21 @@ export const farmCosts = async (db: Db, farmId: string) => {
     })
   );
 
+  const sellingTripNames = new Map(
+    sellingTrips.map((one) => [one.id, one.wentTo] as const)
+  );
+  const charges = chargesFrom(
+    {
+      feed: fed.shares,
+      doses: dosed,
+      vet: visited,
+      hasil,
+      trips: outings.shares,
+      herd,
+    },
+    sellingTripNames
+  );
+
   return {
     animals,
     sideOf,
@@ -412,15 +504,10 @@ export const farmCosts = async (db: Db, farmId: string) => {
     unallocated: fed.unallocated,
     unallocatedTrips: outings.unallocated,
     unallocatedHerd: herdCosts.unallocated,
-    all: {
-      feed: fed.shares,
-      doses: dosed,
-      vet: visited,
-      litres: milked,
-      hasil,
-      trips: outings.shares,
-      herd,
-    },
+    /** Every charge to every Animal: what every sum of what an Animal cost is picked from. */
+    charges,
+    /** Litres each cow sent to Bulk: not a charge, but read beside them for what a litre cost. */
+    litres: milked,
     /**
      * Which outings were Selling Trips, and what each was called.
      *
@@ -429,52 +516,15 @@ export const farmCosts = async (db: Db, farmId: string) => {
      * counted against it the same evening, while a Selling Trip happens long after that Float is shut.
      * So the monthly Reimbursement has to be able to tell them apart, and this is what tells it.
      */
-    sellingTrips: new Map(
-      sellingTrips.map((one) => [one.id, one.wentTo] as const)
-    ),
+    sellingTrips: sellingTripNames,
     ofAnimal: {
-      feed: byAnimal(fed.shares),
-      doses: byAnimal(dosed),
-      vet: byAnimal(visited),
+      charges: byAnimal(charges),
       litres: byAnimal(milked),
-      hasil: byAnimal(hasil),
-      trips: byAnimal(outings.shares),
-      herd: byAnimal(herd),
     },
   };
 };
 
 export type FarmCosts = Awaited<ReturnType<typeof farmCosts>>;
-
-/** One share, whatever it was for. A dose of a product the farm had not bought by then is counted as the costing
- *  counts it: shown, never charged. */
-const charged = (at: Date, side: string, bdt: number | null) => ({
-  at,
-  side,
-  bdt: bdt ?? 0,
-});
-
-/** Every share charged to one Animal, with the day it was charged and the side she stood on: what a return is
- *  charged, narrowed to the side and the days it is about. */
-export const sharesChargedTo = (costs: FarmCosts, animalId: string) => {
-  const hers = costs.ofAnimal;
-  return [
-    ...(hers.feed.get(animalId) ?? []).map((one) =>
-      charged(one.at, one.side, one.feedBdt)
-    ),
-    ...(hers.doses.get(animalId) ?? []).map((one) =>
-      charged(one.at, one.side, one.medicineBdt)
-    ),
-    ...(hers.vet.get(animalId) ?? []).map((one) =>
-      charged(one.at, one.side, one.vetBdt)
-    ),
-    ...[
-      ...(hers.hasil.get(animalId) ?? []),
-      ...(hers.trips.get(animalId) ?? []),
-      ...(hers.herd.get(animalId) ?? []),
-    ].map((one) => charged(one.at, one.side, one.bdt)),
-  ];
-};
 
 /**
  * What was charged to one animal's keep, as the costing shares it out: her feed, her doses, her part of the Vet's fees
@@ -484,81 +534,19 @@ export const sharesChargedTo = (costs: FarmCosts, animalId: string) => {
 export const keepChargesOf = (
   costs: FarmCosts,
   animalId: string
-): KeepCharge[] => [
-  ...(costs.ofAnimal.feed.get(animalId) ?? []).map((one) => ({
-    at: one.at,
-    bdt: one.feedBdt,
-    fed: true,
-    priced: one.unpricedKg === 0,
-  })),
-  ...(costs.ofAnimal.doses.get(animalId) ?? []).map((one) => ({
-    at: one.at,
-    bdt: one.medicineBdt ?? 0,
-    fed: false,
-    priced: one.medicineBdt !== null,
-  })),
-  ...(costs.ofAnimal.vet.get(animalId) ?? []).map((one) => ({
-    at: one.at,
-    bdt: one.vetBdt,
-    fed: false,
-    priced: true,
-  })),
-  ...(costs.ofAnimal.herd.get(animalId) ?? []).map((one) => ({
-    at: one.at,
-    bdt: one.bdt,
-    fed: false,
-    priced: true,
-  })),
-];
+): KeepCharge[] =>
+  (costs.ofAnimal.charges.get(animalId) ?? [])
+    .filter((one) => HER_KEEP.has(one.kind))
+    .map((one) => ({
+      at: one.at,
+      bdt: one.bdt,
+      fed: one.kind === "feed",
+      priced: one.priced,
+    }));
 
-/** The shares a report adds up: what she ate, what she was dosed and visited for, what her arrival and the
- *  outings cost, and her part of the month's Herd Costs. */
-interface Shares {
-  feed: readonly FeedShare[];
-  doses: readonly DoseShare[];
-  vet: readonly VetShare[];
-  litres: readonly LitresShare[];
-  hasil: readonly CostShare[];
-  trips: readonly CostShare[];
-  herd: readonly CostShare[];
-}
-
-/** Shares narrowed to those that pass. */
-const narrowed = (
-  shares: Shares,
-  keep: (share: { at: Date; side: Side }) => boolean
-): Shares => ({
-  feed: shares.feed.filter(keep),
-  doses: shares.doses.filter(keep),
-  vet: shares.vet.filter(keep),
-  litres: shares.litres.filter(keep),
-  hasil: shares.hasil.filter(keep),
-  trips: shares.trips.filter(keep),
-  herd: shares.herd.filter(keep),
-});
-
-/** What one kind of by-the-head share came to. */
-const bdtOf = (shares: readonly CostShare[]): number =>
-  shares.reduce((sum, one) => sum + one.bdt, 0);
-
-/** What a set of shares cost, and the litres it sent to Bulk. */
-const addedUp = (shares: Shares): { costs: Costs; litresToBulk: number } => ({
-  costs: {
-    feedBdt: shares.feed.reduce((sum, one) => sum + one.feedBdt, 0),
-    unpricedKg: shares.feed.reduce((sum, one) => sum + one.unpricedKg, 0),
-    medicineBdt: shares.doses.reduce(
-      (sum, one) => sum + (one.medicineBdt ?? 0),
-      0
-    ),
-    uncostedDoses: shares.doses.filter((one) => one.medicineBdt === null)
-      .length,
-    vetBdt: shares.vet.reduce((sum, one) => sum + one.vetBdt, 0),
-    hasilBdt: bdtOf(shares.hasil),
-    tripBdt: bdtOf(shares.trips),
-    herdBdt: bdtOf(shares.herd),
-  },
-  litresToBulk: shares.litres.reduce((sum, one) => sum + one.litres, 0),
-});
+/** The litres some cows sent to Bulk. */
+const litresOf = (litres: readonly LitresShare[]): number =>
+  litres.reduce((sum, one) => sum + one.litres, 0);
 
 type FarmAnimal = FarmCosts["animals"][number];
 
@@ -583,14 +571,16 @@ const gainOf = (animal: FarmAnimal): number | null => {
 
 /** A cow in milk's current Lactation: what it has cost, what she has sent to Bulk in it, and so her Cost
  *  per Litre. Null for an animal not in a Lactation. */
-const lactationOf = (animal: FarmAnimal, hers: Shares) => {
+const lactationOf = (
+  animal: FarmAnimal,
+  hers: { charges: readonly Charge[]; litres: readonly LitresShare[] }
+) => {
   const since = animal.lactationStartedAt;
   if (animal.side !== "dairy" || since === null) {
     return null;
   }
-  const { costs, litresToBulk } = addedUp(
-    narrowed(hers, (share) => share.at >= since)
-  );
+  const costs = costsOf(hers.charges.filter((one) => one.at >= since));
+  const litresToBulk = litresOf(hers.litres.filter((one) => one.at >= since));
   return {
     since,
     ...roundedCosts(costs),
@@ -606,16 +596,11 @@ const lactationOf = (animal: FarmAnimal, hers: Shares) => {
  * calf and heifer years are not what her milk costs.
  */
 export const economicsOfAnimal = (costs: FarmCosts, animal: FarmAnimal) => {
-  const hers: Shares = {
-    feed: costs.ofAnimal.feed.get(animal.id) ?? [],
-    doses: costs.ofAnimal.doses.get(animal.id) ?? [],
-    vet: costs.ofAnimal.vet.get(animal.id) ?? [],
+  const hers = {
+    charges: costs.ofAnimal.charges.get(animal.id) ?? [],
     litres: costs.ofAnimal.litres.get(animal.id) ?? [],
-    hasil: costs.ofAnimal.hasil.get(animal.id) ?? [],
-    trips: costs.ofAnimal.trips.get(animal.id) ?? [],
-    herd: costs.ofAnimal.herd.get(animal.id) ?? [],
   };
-  const whole = addedUp(hers).costs;
+  const whole = costsOf(hers.charges);
   const purchaseBdt = animal.intake ? animal.intake.purchasePriceBdt : null;
   const saleBdt = animal.sale ? animal.sale.priceBdt : null;
   const gainKg = gainOf(animal);
@@ -629,6 +614,15 @@ export const economicsOfAnimal = (costs: FarmCosts, animal: FarmAnimal) => {
     lactation: lactationOf(animal, hers),
   };
 };
+
+/** Everything charged to one animal, as her own line shows it. */
+export const chargedOf = (one: Costs) =>
+  one.feedBdt +
+  one.medicineBdt +
+  one.vetBdt +
+  one.hasilBdt +
+  one.tripBdt +
+  one.herdBdt;
 
 /**
  * What a Venture's cattle earned: each of them, and the herd together.
@@ -645,15 +639,6 @@ export const economicsOfAnimal = (costs: FarmCosts, animal: FarmAnimal) => {
  * Added from the figures as each line shows them, so the total is what the column comes to rather than
  * something a paisa away from it.
  */
-/** Everything charged to one animal, as her own line shows it. */
-export const chargedOf = (one: Costs) =>
-  one.feedBdt +
-  one.medicineBdt +
-  one.vetBdt +
-  one.hasilBdt +
-  one.tripBdt +
-  one.herdBdt;
-
 export const economicsOfHerd = (
   costs: FarmCosts,
   animalIds: ReadonlySet<string>
@@ -702,13 +687,14 @@ export const costsBySide = (
   { from, until }: { from: Date; until: Date }
 ) => {
   const inThePeriod = (at: Date) => at >= from && at < until;
-  const onSide = (side: Side) =>
-    addedUp(
-      narrowed(
-        costs.all,
-        (share) => share.side === side && inThePeriod(share.at)
-      )
-    );
+  const onSide = (side: Side) => {
+    const here = (share: { side: Side; at: Date }) =>
+      share.side === side && inThePeriod(share.at);
+    return {
+      costs: costsOf(costs.charges.filter(here)),
+      litresToBulk: litresOf(costs.litres.filter(here)),
+    };
+  };
   const dairy = onSide("dairy");
   const fattening = onSide("fattening");
   const sold = costs.animals
@@ -757,84 +743,40 @@ export const costsBySide = (
 };
 
 /** What each thing charged came to, added up by the thing it was. */
-const groupedLines = <Share>(
-  shares: readonly Share[],
-  idOf: (share: Share) => string,
-  takaOf: (share: Share) => number
-): ConsumedLine[] => {
+const groupedLines = (charges: readonly Charge[]): ConsumedLine[] => {
   const byId = new Map<string, number>();
-  for (const share of shares) {
-    byId.set(idOf(share), (byId.get(idOf(share)) ?? 0) + takaOf(share));
+  for (const one of charges) {
+    byId.set(one.fromId, (byId.get(one.fromId) ?? 0) + one.bdt);
   }
   return [...byId]
     .map(([id, bdt]) => ({ id, bdt: roundTaka(bdt) }))
     .filter((line) => line.bdt > 0);
 };
 
-/** Whose an Animal was on a given day: her owner then, not her owner now. */
-type OwnedThenBy = (animalId: string, at: Date) => string | null;
-
-/**
- * The shares of one Venture's Animals, as they were its Animals at the time.
- *
- * `withItsOwn` keeps what the Venture paid for itself out of its own Buying Float — the Hasil the haat
- * took, and the Buying Trip that brought them home. A Settlement asks what the run cost whichever purse
- * the taka came from; a Reimbursement asks only what the Farm paid for and is owed back.
- *
- * A **Selling Trip** is on both sides of that line and is kept either way. It happens long after the
- * Float is shut, so the Farm pays the lorry and the men who went, and it is owed that back like the
- * feed.
- */
-const hersThen = (
-  costs: FarmCosts,
-  ownedThenBy: OwnedThenBy,
-  ventureId: string,
-  withItsOwn: boolean
-): Shares => {
-  const theirsThen = (share: { animalId: string; at: Date }) =>
-    ownedThenBy(share.animalId, share.at) === ventureId;
-  // A Settlement asks for every outing whoever paid; a Reimbursement asks only for the ones the Farm
-  // is out of pocket for, which is the Selling Trips.
-  const theFarmPaidForIt = (share: { fromId: string }) =>
-    withItsOwn || costs.sellingTrips.has(share.fromId);
-  return {
-    feed: costs.all.feed.filter(theirsThen),
-    doses: costs.all.doses.filter(theirsThen),
-    vet: costs.all.vet.filter(theirsThen),
-    litres: [],
-    hasil: withItsOwn ? costs.all.hasil.filter(theirsThen) : [],
-    trips: costs.all.trips.filter(
-      (share) => theirsThen(share) && theFarmPaidForIt(share)
-    ),
-    herd: costs.all.herd.filter(theirsThen),
-  };
-};
-
 /**
  * The costing narrowed to what was the Farm's own at the time: each share of an Animal the Farm owned that day, and
  * each Animal the Farm owned when she was sold. A Venture's Animals, their charges and their Margins are its own and
  * its Settlement's; read as the Farm's as well, the same bull would be counted twice. Never a second sum — the same
- * shares, filtered, as `hersThen` filters them for a Venture.
+ * charges, picked by whose she was that day, as a Venture's are for its Settlement.
  */
 export const theFarmsOwn = (
   costs: FarmCosts,
   ownedThenBy: OwnedThenBy
 ): FarmCosts => {
-  const theFarmsThen = (share: { animalId: string; at: Date }) =>
-    ownedThenBy(share.animalId, share.at) === null;
+  const charges = chargesOfOwner(costs.charges, null, ownedThenBy);
+  const litres = costs.litres.filter(
+    (one) => ownedThenBy(one.animalId, one.at) === null
+  );
   return {
     ...costs,
     animals: costs.animals.filter(
       (one) => !one.sale || ownedThenBy(one.id, one.sale.soldAt) === null
     ),
-    all: {
-      feed: costs.all.feed.filter(theFarmsThen),
-      doses: costs.all.doses.filter(theFarmsThen),
-      vet: costs.all.vet.filter(theFarmsThen),
-      litres: costs.all.litres.filter(theFarmsThen),
-      hasil: costs.all.hasil.filter(theFarmsThen),
-      trips: costs.all.trips.filter(theFarmsThen),
-      herd: costs.all.herd.filter(theFarmsThen),
+    charges,
+    litres,
+    ofAnimal: {
+      charges: byAnimal(charges),
+      litres: byAnimal(litres),
     },
   };
 };
@@ -851,7 +793,8 @@ export const chargedTo = (
   costs: FarmCosts,
   ownedThenBy: OwnedThenBy,
   ventureId: string
-) => roundedCosts(addedUp(hersThen(costs, ownedThenBy, ventureId, true)).costs);
+) =>
+  roundedCosts(costsOf(chargesOfOwner(costs.charges, ventureId, ownedThenBy)));
 
 /** One line of what a month's consumption was made of: what it was, and what it came to. */
 export interface ConsumedLine {
@@ -881,16 +824,21 @@ export const consumedBy = (
   ventureId: string,
   { from, until }: { from: Date; until: Date }
 ) => {
-  const hers = hersThen(costs, ownedThenBy, ventureId, false);
-  const inThePeriod = (at: Date) => at >= from && at < until;
-  const theirs = narrowed(hers, (share) => inThePeriod(share.at));
-  const { costs: summed } = addedUp(theirs);
+  const theirs = chargesOfOwner(
+    costs.charges,
+    ventureId,
+    ownedThenBy,
+    WHAT_THE_FARM_IS_OWED
+  ).filter((one) => one.at >= from && one.at < until);
+  const summed = costsOf(theirs);
   const feedBdt = roundTaka(summed.feedBdt);
   const medicineBdt = roundTaka(summed.medicineBdt);
   const vetBdt = roundTaka(summed.vetBdt);
   const herdBdt = roundTaka(summed.herdBdt);
-  // Already only the outings the Farm paid for: `hersThen` left the Buying Trips behind.
-  const tripsBdt = roundTaka(bdtOf(theirs.trips));
+  // Only the outings the Farm paid for: what the Farm is owed leaves the Buying Trips behind.
+  const tripsBdt = roundTaka(summed.tripBdt);
+  const ofKind = (kind: Charge["kind"]) =>
+    theirs.filter((one) => one.kind === kind);
   return {
     feedBdt,
     medicineBdt,
@@ -904,27 +852,11 @@ export const consumedBy = (
     /** What it was made of, so the Owner can read it to an Investor: which Feed Items, which
      *  medicines, which Categories of Herd Cost, and what each came to. */
     madeOf: {
-      feed: groupedLines(
-        theirs.feed,
-        (one) => one.feedItemId,
-        (one) => one.feedBdt
-      ),
-      medicine: groupedLines(
-        theirs.doses,
-        (one) => one.drugProductId,
-        (one) => one.medicineBdt ?? 0
-      ),
-      herd: groupedLines(
-        theirs.herd,
-        (one) => one.fromId,
-        (one) => one.bdt
-      ),
+      feed: groupedLines(ofKind("feed")),
+      medicine: groupedLines(ofKind("dose")),
+      herd: groupedLines(ofKind("herd")),
       /** Which outings, so the line reads "the haat at Gabtoli" rather than an id. */
-      trips: groupedLines(
-        theirs.trips,
-        (one) => one.fromId,
-        (one) => one.bdt
-      ),
+      trips: groupedLines(ofKind("selling_trip")),
     },
   };
 };

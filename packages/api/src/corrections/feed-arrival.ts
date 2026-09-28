@@ -76,8 +76,9 @@ export const feedArrivalCorrection: CorrectionKind<
     const moved = changes.receivedOn && startOfFarmDay(changes.receivedOn.to);
     const from = moved && moved < row.receivedOn ? moved : row.receivedOn;
     return venturesCharged(tx, row.farmId, (costs) =>
-      costs.all.feed.filter(
-        (share) => share.feedItemId === row.feedItemId && share.at >= from
+      costs.charges.filter(
+        (one) =>
+          one.kind === "feed" && one.fromId === row.feedItemId && one.at >= from
       )
     );
   },

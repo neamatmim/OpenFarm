@@ -169,14 +169,14 @@ export const stepCorrection: CorrectionKind<
     const charged = await venturesCharged(
       tx,
       row.farmId,
-      ({ all, history }) => [
+      ({ charges, history }) => [
         ...(hers
           ? []
           : history
               .filter((line) => line.penId === penId && covers(line, at))
               .map((line) => ({ animalId: line.animalId, at }))),
-        ...all.feed.filter(
-          (share) => items.has(share.feedItemId) && share.at >= at
+        ...charges.filter(
+          (one) => one.kind === "feed" && items.has(one.fromId) && one.at >= at
         ),
       ]
     );

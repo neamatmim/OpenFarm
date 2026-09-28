@@ -1,8 +1,14 @@
 import type { Database } from "@OpenFarm/db";
 import type { HeadPriceKind } from "@OpenFarm/db/schema/returns";
 import { HEAD_PRICE_KINDS } from "@OpenFarm/db/schema/returns";
-import type { Returned, RunningRange, Spent } from "@OpenFarm/domain";
+import type {
+  OwnedThenBy,
+  Returned,
+  RunningRange,
+  Spent,
+} from "@OpenFarm/domain";
 import {
+  chargesInHolding,
   farmDayOf,
   milkPriceOf,
   returnOf,
@@ -13,7 +19,6 @@ import {
 } from "@OpenFarm/domain";
 
 import type { FarmCosts } from "./cost-store";
-import { sharesChargedTo } from "./cost-store";
 import type { Gap } from "./returns-store";
 
 /**
@@ -172,6 +177,8 @@ const milkOf = (
 /** What the dairy runs are read from, beyond the costing: the crossings, the dead, and what the Owner has priced. */
 export interface DairyBooks {
   costs: FarmCosts;
+  /** Whose an Animal was at a moment. A dairy Animal is always the Farm's own, and her Holding asks it all the same. */
+  ownedThenBy: OwnedThenBy;
   joinings: readonly {
     animalId: string;
     joinedAt: Date;
@@ -254,7 +261,7 @@ const whyUncounted = (
   ...(went || head ? [] : (["no_head_price"] as const)),
 ];
 
-/** What she cost: her price from the day her run began, and every share charged while she stood on the Dairy side. */
+/** What she cost: her price from the day her run began, and every charge inside her Dairy Holding. */
 const whatSheCost = (
   books: DairyBooks,
   her: DairyAnimal,
@@ -263,9 +270,11 @@ const whatSheCost = (
   until: Date
 ): Spent[] => [
   ...(priceBdt > 0 ? [{ bdt: priceBdt, from: begun, until }] : []),
-  ...sharesChargedTo(books.costs, her.id)
-    .filter((one) => one.side === "dairy" && one.at >= begun && one.at <= until)
-    .map((one) => ({ bdt: one.bdt, from: one.at, until })),
+  ...chargesInHolding(
+    books.costs.ofAnimal.charges.get(her.id) ?? [],
+    { animalId: her.id, owner: null, side: "dairy", from: begun, until },
+    books.ownedThenBy
+  ).map((one) => ({ bdt: one.bdt, from: one.at, until })),
 ];
 
 /**
