@@ -548,7 +548,8 @@ export interface VentureReturn {
   settled: boolean;
   head: number;
   died: number;
-  /** Once settled: on its cattle, worked from the same lines its Settlement adds up, put a year over its days. */
+  /** Once its last animal has gone — settled or its Settlement still to come: on its cattle, worked from the same
+   *  lines its Settlement adds up, put a year over its days. */
   returnOnCost: Returned | null;
   /** While going: the same at today's price, its standing animals at its plan's prices, low and high. */
   running: RunningRange | null;
@@ -696,13 +697,19 @@ const venturesOf = async (
       gaps: worked.gaps,
     };
     if (venture.state !== "settled") {
+      // Its last animal gone and none waiting on a price, its cattle have a result before its Settlement is paid
+      // out: the same figure the Settlement will make. Only the Investors' capital waits for the payouts.
       out.push({
         ...common,
         settled: false,
-        returnOnCost: null,
+        returnOnCost: worked.returnOnCost,
         returnOnCapital: null,
         farmsShareBdt: null,
-        bankRate: null,
+        bankRate: bankRateFor(
+          books.bankRates,
+          earliest(holdings.map((one) => one.takenOn)),
+          worked.returnOnCost
+        ),
         capitalBankRate: null,
       });
       continue;

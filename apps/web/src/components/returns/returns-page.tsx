@@ -68,8 +68,9 @@ const newestFirst = (
   b: { start: string; key: string }
 ) => b.start.localeCompare(a.start) || a.key.localeCompare(b.key);
 
-/** Before Ventures still going were on the page, every Venture on it was settled. */
-const isSettled = (one: { settled?: boolean }): boolean => one.settled ?? true;
+/** Whether a Venture's last animal has gone: then it has a result, settled or not — until then a range. */
+const isFinished = (one: { returnOnCost: Returned | null }): boolean =>
+  one.returnOnCost !== null;
 
 /** Which of a pair of words a figure takes: the gain's at nought or above, the loss's below. */
 const wordFor = (pair: readonly [MessageKey, MessageKey], figure: number) =>
@@ -208,6 +209,7 @@ const Row = ({
   returned,
   bank,
   floorDays,
+  settlementToCome = false,
   children,
 }: {
   kind: "returns.season" | "returns.venture";
@@ -217,6 +219,8 @@ const Row = ({
   returned: Returned;
   bank: BankRateSaid | null;
   floorDays: number;
+  /** A Venture whose last animal has gone, its Settlement not yet paid out. */
+  settlementToCome?: boolean;
   children?: ReactNode;
 }) => {
   const { t } = useLanguage();
@@ -231,6 +235,11 @@ const Row = ({
             />
             <span className="font-medium">{name}</span>
             <StatusBadge tone="neutral">{t(kind)}</StatusBadge>
+            {settlementToCome ? (
+              <StatusBadge tone="warning">
+                {t("returns.settlementToCome")}
+              </StatusBadge>
+            ) : null}
             <span className="text-muted-foreground text-sm">
               {t("returns.head", { count: head })}
               {died > 0 ? ` · ${t("returns.died", { count: died })}` : ""}
@@ -530,9 +539,10 @@ const VentureRow = ({
 }) => {
   const { t } = useLanguage();
   const taka = useTaka();
-  if (!(venture.returnOnCost && venture.farmsShareBdt !== null)) {
+  if (!venture.returnOnCost) {
     return null;
   }
+  const settlementToCome = !venture.settled;
   return (
     <Row
       bank={venture.bankRate}
@@ -542,7 +552,13 @@ const VentureRow = ({
       kind="returns.venture"
       name={venture.name}
       returned={venture.returnOnCost}
+      settlementToCome={settlementToCome}
     >
+      {settlementToCome ? (
+        <p className="text-muted-foreground text-sm">
+          {t("returns.settlementToComeHint")}
+        </p>
+      ) : null}
       {venture.returnOnCapital ? (
         <div className="bg-muted/50 flex flex-col gap-1 rounded-md p-3">
           <p className="text-sm font-medium">{t("returns.capitalTitle")}</p>
@@ -557,9 +573,11 @@ const VentureRow = ({
           </p>
         </div>
       ) : null}
-      <p className="text-muted-foreground text-sm tabular-nums">
-        {t("returns.farmsShare", { bdt: taka(venture.farmsShareBdt) })}
-      </p>
+      {venture.farmsShareBdt === null ? null : (
+        <p className="text-muted-foreground text-sm tabular-nums">
+          {t("returns.farmsShare", { bdt: taka(venture.farmsShareBdt) })}
+        </p>
+      )}
       <Link
         className="self-start text-sm underline-offset-4 hover:underline"
         params={{ ventureId: venture.id }}
@@ -671,7 +689,8 @@ export const ReturnsChart = ({ page }: { page: ReturnsPage }) => {
   );
 };
 
-/** Every Season and settled Venture whose last animal has gone, together, the newest window first. */
+/** Every Season and Venture whose last animal has gone, together, the newest window first — a Venture whose
+ *  Settlement is still to come among them, and said so. */
 export const FinishedReturns = ({ page }: { page: ReturnsPage }) => {
   const { t } = useLanguage();
   const rows = [
@@ -688,7 +707,7 @@ export const FinishedReturns = ({ page }: { page: ReturnsPage }) => {
           />
         ),
       })),
-    ...page.ventures.filter(isSettled).map((venture) => ({
+    ...page.ventures.filter(isFinished).map((venture) => ({
       key: venture.id,
       start: venture.window.start,
       row: (
@@ -1124,7 +1143,7 @@ export const StillGoing = ({ page }: { page: ReturnsPage }) => {
         gaps: gapsOf(one),
       })),
     ...page.ventures
-      .filter((one) => !isSettled(one))
+      .filter((one) => !isFinished(one))
       .map((one) => ({
         key: one.id,
         start: one.window.start,
@@ -1198,12 +1217,22 @@ export const VentureReturnsPanel = ({ ventureId }: { ventureId: string }) => {
         </p>
       </div>
       {venture.returnOnCost ? (
-        <ReturnLines
-          bank={venture.bankRate}
-          floorDays={venture.floorDays}
-          on="onCost"
-          shares={venture.returnOnCost}
-        />
+        <>
+          <ReturnLines
+            bank={venture.bankRate}
+            floorDays={venture.floorDays}
+            on="onCost"
+            shares={venture.returnOnCost}
+          />
+          {venture.settled ? null : (
+            <p className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
+              <StatusBadge tone="warning">
+                {t("returns.settlementToCome")}
+              </StatusBadge>
+              {t("returns.settlementToComeHint")}
+            </p>
+          )}
+        </>
       ) : (
         <StillGoingBody
           gaps={gapsOf(venture)}
