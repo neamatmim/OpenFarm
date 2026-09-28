@@ -205,7 +205,8 @@ export const spentOn = (
 export const backOf = (holdings: readonly HoldingRead[]) =>
   holdings.reduce((sum, one) => sum + (one.left?.backBdt ?? 0), 0);
 
-/** What some priced holdings returned: a result once all have gone and none waits on a price, a range until then. */
+/** What some priced holdings returned: a result once all have gone and none waits on a price, a range until then.
+ *  With none at all nothing has finished: there was nothing to go. */
 const returnOfPriced = (
   books: ReturnBooks,
   owner: string | null,
@@ -215,7 +216,9 @@ const returnOfPriced = (
   waitingOnAPrice: boolean
 ) => {
   const finished =
-    !waitingOnAPrice && holdings.every((one) => one.left !== null);
+    !waitingOnAPrice &&
+    holdings.length > 0 &&
+    holdings.every((one) => one.left !== null);
   const spentOf = (one: HoldingRead) => spentOn(books, owner, one, today);
   if (finished) {
     return {
@@ -466,6 +469,8 @@ export interface VentureReturn {
   name: string;
   window: TargetWindow;
   settled: boolean;
+  /** Whether its last animal has gone and none waits on a price: then a result, settled or not — until then a range. */
+  finished: boolean;
   head: number;
   died: number;
   /** Once its last animal has gone — settled or its Settlement still to come: on its cattle, worked from the same
@@ -555,6 +560,7 @@ export const ventureReturnOf = (
     window: venture.window,
     head: holdings.length,
     died: holdings.filter((one) => one.left?.how === "died").length,
+    finished: worked.finished,
     returnOnCost: worked.returnOnCost,
     running: worked.running,
     gaps: worked.gaps,

@@ -235,7 +235,8 @@ const venturesOf = async (
       )
     );
   }
-  return out;
+  // One buying with no cattle yet has nothing to say — no cost, nothing back, nothing standing — so it is not listed.
+  return out.filter((one) => one.head > 0);
 };
 
 /**

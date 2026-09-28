@@ -45,9 +45,11 @@ const newestFirst = (
   b: { start: string; key: string }
 ) => b.start.localeCompare(a.start) || a.key.localeCompare(b.key);
 
-/** Whether a Venture's last animal has gone: then it has a result, settled or not — until then a range. */
-const isFinished = (one: { returnOnCost: Returned | null }): boolean =>
-  one.returnOnCost !== null;
+/** Whether a Venture's last animal has gone, as the server says: then it has a result, settled or not — until then a
+ *  range. An answer this phone kept from before the server said so has only its result to go by. */
+const isFinished = (
+  one: Pick<Venture, "returnOnCost"> & { finished?: boolean }
+): boolean => one.finished ?? one.returnOnCost !== null;
 
 /** One finished Season or Venture, closed to its name and result, opening into how it was worked. */
 const Row = ({
