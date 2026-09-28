@@ -23,7 +23,7 @@ const Figures = ({ read }: { read: Read }) => {
   const { basis, projection } = read;
   if (!(basis && projection)) {
     return (
-      <EmptyState bare icon={ClipboardList} title={t("projection.none")} />
+      <EmptyState compact icon={ClipboardList} title={t("projection.none")} />
     );
   }
   const day = formatDate(new Date(basis.setAt), language, "date");

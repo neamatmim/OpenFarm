@@ -385,7 +385,7 @@ const PlanRead = ({ plan, venture }: { plan: Plan; venture: Venture }) => {
   const taka = useTaka();
   const { latest, baseline } = plan;
   if (!latest) {
-    return <EmptyState bare icon={ClipboardList} title={t("plan.none")} />;
+    return <EmptyState compact icon={ClipboardList} title={t("plan.none")} />;
   }
   const isBaseline = baseline?.version === latest.version;
   // Missing from an answer this phone kept from before a plan could expect deaths: read as none.

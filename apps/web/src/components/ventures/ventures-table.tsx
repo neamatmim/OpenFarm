@@ -11,6 +11,7 @@ import {
   useListTable,
 } from "@/components/data-table";
 import { Nothing } from "@/components/list-cells";
+import { RaisingBar } from "@/components/ventures/raising-bar";
 import type { VentureActs } from "@/components/ventures/venture-card";
 import {
   CardBadges,
@@ -141,7 +142,8 @@ const WindowCell = ({ row }: Cell) => {
 };
 
 /** What the Investors have put in — the way to every movement of it, as it is on the card — and, while the
- *  run is Open, the Floor it is being measured against, since that is the figure buying waits on. */
+ *  run is Open, how far that is towards its target and the Floor it is measured against, since that is the figure
+ *  buying waits on. */
 const HeldCell = ({ row }: Cell) => {
   const { t } = useLanguage();
   const taka = useTaka();
@@ -158,9 +160,17 @@ const HeldCell = ({ row }: Cell) => {
         {taka(venture.capitalInBdt)}
       </Link>
       {venture.state === "open" ? (
-        <span className="text-muted-foreground text-xs whitespace-nowrap tabular-nums">
-          {t("ventures.ofTheFloor", { floor: taka(venture.floorBdt) })}
-        </span>
+        <>
+          <RaisingBar
+            className="h-1.5 w-28"
+            floorBdt={venture.floorBdt}
+            inBdt={venture.capitalInBdt}
+            targetBdt={venture.targetCapitalBdt}
+          />
+          <span className="text-muted-foreground text-xs whitespace-nowrap tabular-nums">
+            {t("ventures.ofTheFloor", { floor: taka(venture.floorBdt) })}
+          </span>
+        </>
       ) : null}
     </span>
   );

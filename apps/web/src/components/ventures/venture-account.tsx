@@ -116,7 +116,11 @@ export const VentureAccountPanel = ({ venture }: { venture: Venture }) => {
       {account ? (
         <VentureAccountDetails account={account} />
       ) : (
-        <EmptyState bare icon={Landmark} title={t("ventures.account.none")} />
+        <EmptyState
+          compact
+          icon={Landmark}
+          title={t("ventures.account.none")}
+        />
       )}
       {/* Drawn afresh each time it opens, so it starts from what is written now. */}
       {writing ? (

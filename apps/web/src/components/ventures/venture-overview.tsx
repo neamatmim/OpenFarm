@@ -6,6 +6,7 @@ import { FigureTerm } from "@/components/page-kit";
 import { VentureReturnsPanel } from "@/components/returns/returns-page";
 import { InThePortal } from "@/components/ventures/in-the-portal";
 import { PlanAgainstActual } from "@/components/ventures/plan-against-actual";
+import { RaisingBar } from "@/components/ventures/raising-bar";
 import { VentureAccountPanel } from "@/components/ventures/venture-account";
 import { Line, moneyOf } from "@/components/ventures/venture-card";
 import { VenturePlanPanel } from "@/components/ventures/venture-plan";
@@ -13,12 +14,6 @@ import { VentureProjectionPanel } from "@/components/ventures/venture-projection
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
 import type { Venture } from "@/lib/ventures";
-
-const PERCENT = 100;
-
-/** A share of a whole as a width, never past the end of the bar however far past it the money went. */
-const widthOf = (part: number, whole: number) =>
-  `${Math.min(PERCENT, Math.max(0, whole > 0 ? (part / whole) * PERCENT : 0))}%`;
 
 /**
  * How far an Open Venture has got towards the money it is waiting on: what has come in, against the Floor it
@@ -32,24 +27,11 @@ const TowardsTheFloor = ({ venture }: { venture: Venture }) => {
     <Section title={t("ventures.page.raising")}>
       <div className="flex flex-col gap-2">
         {/* Drawn for the eye; the line under it says the same in words, Floor and all, for everyone. */}
-        <div
-          aria-hidden
-          className="bg-muted relative h-3 overflow-hidden rounded-full"
-        >
-          <div
-            className="bg-primary h-full rounded-full"
-            style={{
-              width: widthOf(venture.capitalInBdt, venture.targetCapitalBdt),
-            }}
-          />
-          <div
-            aria-hidden
-            className="bg-foreground/70 absolute inset-y-0 w-0.5"
-            style={{
-              left: widthOf(venture.floorBdt, venture.targetCapitalBdt),
-            }}
-          />
-        </div>
+        <RaisingBar
+          floorBdt={venture.floorBdt}
+          inBdt={venture.capitalInBdt}
+          targetBdt={venture.targetCapitalBdt}
+        />
         <div className="text-muted-foreground flex flex-wrap justify-between gap-2 text-sm tabular-nums">
           <span className="text-foreground font-medium">
             {t("ventures.page.raised", { held: taka(venture.capitalInBdt) })}
@@ -175,25 +157,32 @@ const TheTerms = ({ venture }: { venture: Venture }) => {
   );
 };
 
-/** A Venture read whole: how near it is to starting and whether Investors are shown it, while it is Open; its Venture
- *  Account; where its money is; and its terms. */
+/**
+ * A Venture read whole: how near it is to starting and whether Investors are shown it, while it is Open; where its
+ * money is and its terms, the two read most; what it returned; its plan and what it is projected to make; and its
+ * Venture Account — before all the rest while it is Open, since that is where Investors pay.
+ */
 export const VentureOverview = ({ venture }: { venture: Venture }) => (
   <div className="flex flex-col gap-4">
     {venture.state === "open" ? (
       <>
         <TowardsTheFloor venture={venture} />
         <InThePortal venture={venture} />
+        {/* While it is raising, the account is where Investors are told to pay: it comes before the rest. */}
+        <VentureAccountPanel venture={venture} />
       </>
     ) : null}
-    {/* Whatever it is doing: the same account carries its buying, its refunds and its payouts. */}
-    <VentureAccountPanel venture={venture} />
-    <VenturePlanPanel venture={venture} />
-    <PlanAgainstActual venture={venture} />
-    <VentureProjectionPanel venture={venture} />
-    <VentureReturnsPanel ventureId={venture.id} />
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className="grid items-start gap-4 lg:grid-cols-2">
       <TheMoney venture={venture} />
       <TheTerms venture={venture} />
     </div>
+    <VentureReturnsPanel ventureId={venture.id} />
+    <VenturePlanPanel venture={venture} />
+    <PlanAgainstActual venture={venture} />
+    <VentureProjectionPanel venture={venture} />
+    {/* Whatever else it is doing: the same account carries its buying, its refunds and its payouts. */}
+    {venture.state === "open" ? null : (
+      <VentureAccountPanel venture={venture} />
+    )}
   </div>
 );

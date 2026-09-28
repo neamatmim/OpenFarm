@@ -301,6 +301,7 @@ export const EmptyState = ({
   description,
   action,
   bare = false,
+  compact = false,
   className,
 }: {
   icon?: LucideIcon;
@@ -308,26 +309,41 @@ export const EmptyState = ({
   description?: ReactNode;
   action?: ReactNode;
   bare?: boolean;
+  /** One muted line under a section's heading, for a section whose button already says what to do. */
+  compact?: boolean;
   className?: string;
-}) => (
-  <Empty
-    className={cn(
-      bare
-        ? "p-0 py-4 md:p-0 md:py-5"
-        : "rounded-xl border border-dashed py-10",
-      className
-    )}
-  >
-    <EmptyHeader>
-      <EmptyMedia variant="icon">
-        <Icon aria-hidden />
-      </EmptyMedia>
-      <EmptyTitle>{title}</EmptyTitle>
-      {description ? <EmptyDescription>{description}</EmptyDescription> : null}
-    </EmptyHeader>
-    {action ? <EmptyContent>{action}</EmptyContent> : null}
-  </Empty>
-);
+}) =>
+  compact ? (
+    <p
+      className={cn(
+        "text-muted-foreground flex items-start gap-2 text-sm",
+        className
+      )}
+    >
+      <Icon aria-hidden className="mt-0.5 size-4 shrink-0" />
+      {title}
+    </p>
+  ) : (
+    <Empty
+      className={cn(
+        bare
+          ? "p-0 py-4 md:p-0 md:py-5"
+          : "rounded-xl border border-dashed py-10",
+        className
+      )}
+    >
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <Icon aria-hidden />
+        </EmptyMedia>
+        <EmptyTitle>{title}</EmptyTitle>
+        {description ? (
+          <EmptyDescription>{description}</EmptyDescription>
+        ) : null}
+      </EmptyHeader>
+      {action ? <EmptyContent>{action}</EmptyContent> : null}
+    </Empty>
+  );
 
 /** An animal's Tag Number as the farm writes it on her ear: set apart, never translated, never broken. */
 export const TagChip = ({ children }: { children: ReactNode }) => (
