@@ -1,7 +1,7 @@
 import { farmDayOf, priceAtWeight, startOfFarmDay } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatDigits } from "@OpenFarm/i18n";
-import { Button } from "@OpenFarm/ui/components/button";
+import { Button, buttonVariants } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -24,6 +24,7 @@ import {
   useListTable,
 } from "@/components/data-table";
 import { useIsOwner } from "@/components/fattening/animal-prices";
+import { TagLink } from "@/components/fattening/fattening-words";
 import { bandSaid } from "@/components/feed/band-words";
 import {
   EmptyState,
@@ -183,6 +184,21 @@ export const Result = ({ bdt }: { bdt: number }) => {
   );
 };
 
+/** What every hundred taka of cost made, small under a closed row's result: the loss's colour for a loss. */
+export const ShareUnder = ({ per100 }: { per100: number }) => {
+  const { t } = useLanguage();
+  return (
+    <span
+      className={cn(
+        "text-xs tabular-nums",
+        per100 < 0 ? "text-danger" : "text-muted-foreground"
+      )}
+    >
+      {t(wordFor(SAID.onCost, per100), { amount: Math.abs(per100) })}
+    </span>
+  );
+};
+
 /** One finished Season or Venture, closed to its name and result, opening into how it was worked. */
 const Row = ({
   kind,
@@ -220,7 +236,12 @@ const Row = ({
               {died > 0 ? ` · ${t("returns.died", { count: died })}` : ""}
             </span>
           </span>
-          <Result bdt={returned.resultBdt} />
+          <span className="flex flex-col gap-0.5 ps-6 sm:items-end sm:ps-0">
+            <span className="font-medium">
+              <Result bdt={returned.resultBdt} />
+            </span>
+            <ShareUnder per100={returned.per100} />
+          </span>
         </summary>
         <div className="flex flex-col gap-3 border-t p-4">
           <ReturnLines
@@ -559,6 +580,9 @@ interface Bar {
   bank: number | null;
 }
 
+/** How much longer the scale runs than the longest bar or bank mark. */
+const CHART_HEADROOM = 1.25;
+
 /** A Season or a Venture's cattle as a bar: drawn only with a rate a year. */
 const barOf = (
   key: string,
@@ -589,24 +613,26 @@ export const ReturnsChart = ({ page }: { page: ReturnsPage }) => {
   if (bars.length === 0) {
     return null;
   }
-  const most = Math.max(
-    ...bars.map((one) => Math.max(Math.abs(one.perYear), one.bank ?? 0)),
-    1
-  );
+  // A little room past the longest, so one Season alone is not a bar the width of the page.
+  const most =
+    Math.max(
+      ...bars.map((one) => Math.max(Math.abs(one.perYear), one.bank ?? 0)),
+      1
+    ) * CHART_HEADROOM;
   const anyBank = bars.some((one) => one.bank !== null);
   return (
     <div className="flex flex-col gap-2">
-      <ul className="flex flex-col gap-2">
+      <ul className="flex flex-col gap-3">
         {bars.map((bar) => (
           <li
-            className="grid grid-cols-[minmax(0,10rem)_1fr_auto] items-center gap-3"
+            className="grid grid-cols-[minmax(0,12rem)_1fr_auto] items-center gap-4"
             key={bar.key}
           >
-            <span className="truncate text-sm">{bar.name}</span>
-            <span className="bg-muted relative h-5 rounded">
+            <span className="truncate text-sm font-medium">{bar.name}</span>
+            <span className="bg-muted relative h-2.5 rounded-full">
               <span
                 className={cn(
-                  "block h-5 rounded",
+                  "block h-2.5 rounded-full",
                   bar.perYear < 0 ? "bg-danger" : "bg-primary"
                 )}
                 style={{ width: `${(Math.abs(bar.perYear) / most) * 100}%` }}
@@ -614,14 +640,14 @@ export const ReturnsChart = ({ page }: { page: ReturnsPage }) => {
               {bar.bank === null ? null : (
                 <span
                   aria-hidden
-                  className="border-foreground/60 absolute -top-1 -bottom-1 border-l-2 border-dashed"
+                  className="bg-foreground/70 absolute -top-1.5 -bottom-1.5 w-0.5 rounded-full"
                   style={{ left: `${(bar.bank / most) * 100}%` }}
                 />
               )}
             </span>
             <span
               className={cn(
-                "text-right text-sm tabular-nums",
+                "text-end text-sm tabular-nums",
                 bar.perYear < 0 && "text-danger"
               )}
             >
@@ -633,7 +659,13 @@ export const ReturnsChart = ({ page }: { page: ReturnsPage }) => {
         ))}
       </ul>
       {anyBank ? (
-        <p className="text-muted-foreground text-xs">{t("returns.bankMark")}</p>
+        <p className="text-muted-foreground flex items-center gap-2 text-xs">
+          <span
+            aria-hidden
+            className="bg-foreground/70 h-3 w-0.5 rounded-full"
+          />
+          {t("returns.bankMark")}
+        </p>
       ) : null}
     </div>
   );
@@ -770,12 +802,11 @@ const BankRateSheet = ({
 };
 
 /**
- * Every Bank Rate the Owner has typed, the one in force today first, and the act that types another. Kept, never
+ * Every Bank Rate the Owner has typed, the one in force today first; `BankRateAction` types another. Kept, never
  * edited: a rate put right is typed again from the same day.
  */
 export const BankRateList = ({ page }: { page: ReturnsPage }) => {
   const { t, language } = useLanguage();
-  const [setting, setSetting] = useState(false);
   return (
     <div className="flex flex-col gap-3">
       {page.bankRates.length === 0 ? (
@@ -806,16 +837,21 @@ export const BankRateList = ({ page }: { page: ReturnsPage }) => {
           ))}
         </ul>
       )}
-      <Button
-        className="self-start"
-        onClick={() => setSetting(true)}
-        size="sm"
-        variant="outline"
-      >
+    </div>
+  );
+};
+
+/** The act that types another Bank Rate, for the head of its list. */
+export const BankRateAction = () => {
+  const { t } = useLanguage();
+  const [setting, setSetting] = useState(false);
+  return (
+    <>
+      <Button onClick={() => setSetting(true)} size="sm" variant="outline">
         {t("returns.bankSet")}
       </Button>
       {setting ? <BankRateSheet onOpenChange={setSetting} /> : null}
-    </div>
+    </>
   );
 };
 
@@ -890,7 +926,10 @@ export const RunningLines = ({ running }: { running: Running }) => {
 /** Where what puts a gap right is done: a weight on her page, a Venture's price on its plan, the farm's on the board. */
 const GapFix = ({ gap, ventureId }: { gap: Gap; ventureId: string | null }) => {
   const { t } = useLanguage();
-  const className = "text-sm underline-offset-4 hover:underline";
+  const className = cn(
+    buttonVariants({ size: "sm", variant: "outline" }),
+    "shrink-0 self-start sm:self-center"
+  );
   const label = t(`returns.fix.${gap.why}`);
   if (gap.why === "no_milk_price") {
     return (
@@ -936,7 +975,23 @@ const GapFix = ({ gap, ventureId }: { gap: Gap; ventureId: string | null }) => {
   );
 };
 
-/** The standing animals left out of a figure, whole, each with what puts her right. */
+/** Gaps by what is missing, in the order each was first met: one reason, one way to put it right, many animals. */
+const byWhy = (gaps: Gap[]): { first: Gap; list: Gap[] }[] => {
+  const groups = new Map<Gap["why"], { first: Gap; list: Gap[] }>();
+  for (const gap of gaps) {
+    const group = groups.get(gap.why);
+    groups.set(gap.why, {
+      first: group?.first ?? gap,
+      list: [...(group?.list ?? []), gap],
+    });
+  }
+  return [...groups.values()];
+};
+
+/**
+ * The standing animals left out of a figure, whole: a line for each thing missing, its animals' tags beneath, and what
+ * puts it right. Never weighed is put right on each animal's own page, so several of those have only their tags.
+ */
 export const Gaps = ({
   gaps,
   ventureId,
@@ -949,20 +1004,35 @@ export const Gaps = ({
     return null;
   }
   return (
-    <div className="border-warning/40 flex flex-col gap-1 rounded-md border border-dashed p-3">
+    <div className="border-warning/30 bg-warning/5 flex flex-col gap-2 rounded-md border p-3">
       <p className="text-sm font-medium">
         {t("returns.gapsTitle", { count: gaps.length })}
       </p>
-      <ul className="flex flex-col gap-1">
-        {gaps.map((gap) => (
-          <li
-            className="flex flex-wrap items-center justify-between gap-2 text-sm"
-            key={`${gap.tagNumber}-${gap.why}`}
-          >
-            <span>{t(`returns.gap.${gap.why}`, { tag: gap.tagNumber })}</span>
-            <GapFix gap={gap} ventureId={ventureId} />
-          </li>
-        ))}
+      <ul className="divide-warning/20 flex flex-col divide-y">
+        {byWhy(gaps).map(({ first, list }) => {
+          // Never weighed is put right on her own page: with several, each tag is the way there.
+          const eachOnHerPage = first.why === "no_weight" && list.length !== 1;
+          return (
+            <li
+              className="flex flex-col gap-2 py-2 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+              key={first.why}
+            >
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <span className="text-muted-foreground text-sm">
+                  {t(`returns.gap.${first.why}`)}
+                </span>
+                <span className="flex flex-wrap gap-1.5">
+                  {list.map((gap) => (
+                    <TagLink key={gap.tagNumber} tagNumber={gap.tagNumber} />
+                  ))}
+                </span>
+              </div>
+              {eachOnHerPage ? null : (
+                <GapFix gap={first} ventureId={ventureId} />
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -1022,10 +1092,7 @@ const StillGoingList = ({ rows }: { rows: StillGoingRow[] }) => {
   return (
     <ul className="flex flex-col gap-2">
       {rows.map((row) => (
-        <li
-          className="surface flex flex-col gap-3 border-dashed p-4"
-          key={row.key}
-        >
+        <li className="surface flex flex-col gap-3 p-4" key={row.key}>
           <span className="flex flex-wrap items-center gap-2">
             <span className="font-medium">{row.name}</span>
             <StatusBadge tone="neutral">{t(row.kind)}</StatusBadge>
