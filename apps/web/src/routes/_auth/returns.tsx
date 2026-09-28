@@ -4,6 +4,8 @@ import { Beef, Landmark, Milk } from "lucide-react";
 
 import { Notice, Page, PageHeader, Section } from "@/components/page";
 import { PageTabs } from "@/components/page-kit";
+import { BankRateAction, BankRateList } from "@/components/returns/bank-rate";
+import { CrossingsToPrice } from "@/components/returns/crossings";
 import {
   AnimalsToPrice,
   DairyGone,
@@ -11,9 +13,6 @@ import {
   HeadPriceList,
 } from "@/components/returns/dairy-returns";
 import {
-  BankRateAction,
-  BankRateList,
-  CrossingsToPrice,
   FinishedReturns,
   MissingPrices,
   ReturnsChart,

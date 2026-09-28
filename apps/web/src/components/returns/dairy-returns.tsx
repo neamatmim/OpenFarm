@@ -12,16 +12,22 @@ import { toast } from "sonner";
 import { useIsOwner } from "@/components/fattening/animal-prices";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
-import type { ReturnsPage } from "@/components/returns/returns-page";
+import { Gaps } from "@/components/returns/gaps";
+import type {
+  Dairy,
+  DairyRun,
+  HeadRange,
+  ReturnsPage,
+} from "@/components/returns/return-figure";
+import { dairyFigureOf } from "@/components/returns/return-figure";
 import {
-  Gaps,
-  ShareUnder,
   LEFT_WORD,
   Result,
   ReturnLines,
   RunningLines,
+  ShareUnder,
   TodayRange,
-} from "@/components/returns/returns-page";
+} from "@/components/returns/return-words";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
@@ -29,8 +35,6 @@ import { aFigure, figureOf } from "@/lib/typed-figure";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
-type Dairy = ReturnsPage["dairy"];
-type DairyRun = Dairy["standing"][number];
 type HeadPrice = Dairy["headPrices"][number];
 type ToPrice = Dairy["toPrice"][number];
 type HeadPriceKind = Parameters<typeof client.returns.setHeadPrice>[0]["kind"];
@@ -112,7 +116,21 @@ const DairyRunFacts = ({ run }: { run: DairyRun }) => {
   );
 };
 
-/** Her figure: a result once she has gone, a range while she is here, or why there is none yet. */
+/** What a head of her kind would fetch today, low and high: hers while nothing has been spent on her yet. */
+const WorthToday = ({ worth }: { worth: HeadRange }) => {
+  const { t } = useLanguage();
+  const taka = useTaka();
+  return (
+    <span className="text-muted-foreground tabular-nums">
+      {t("returns.worthToday", {
+        low: taka(worth.lowBdt),
+        high: taka(worth.highBdt),
+      })}
+    </span>
+  );
+};
+
+/** Her figure on her own page, in full: her return lines, her result, her range, her worth, or why there is none. */
 const DairyRunFigure = ({
   run,
   floorDays,
@@ -120,54 +138,68 @@ const DairyRunFigure = ({
   run: DairyRun;
   floorDays: number;
 }) => {
-  if (run.returnOnCost) {
-    return (
-      <ReturnLines
-        bank={null}
-        floorDays={floorDays}
-        on="onCost"
-        shares={run.returnOnCost}
-      />
-    );
+  const figure = dairyFigureOf(run);
+  switch (figure.kind) {
+    case "returned": {
+      return (
+        <ReturnLines
+          bank={null}
+          floorDays={floorDays}
+          on="onCost"
+          shares={figure.returned}
+        />
+      );
+    }
+    case "result": {
+      return (
+        <p className="font-medium">
+          <Result bdt={figure.bdt} />
+        </p>
+      );
+    }
+    case "running": {
+      return <RunningLines running={figure.running} />;
+    }
+    case "worth": {
+      return (
+        <p>
+          <WorthToday worth={figure.worth} />
+        </p>
+      );
+    }
+    default: {
+      return <Gaps gaps={figure.gaps} ventureId={null} />;
+    }
   }
-  if (run.running) {
-    return <RunningLines running={run.running} />;
-  }
-  return <Gaps gaps={run.gaps} ventureId={null} />;
 };
 
-/** One line for a run in a list: her result, her range today, or that she has no figure yet. */
+/** One line for a run in a list: the same figure as her page, said short. */
 const DairyRunShort = ({ run }: { run: DairyRun }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
-  if (run.returnOnCost) {
-    return <Result bdt={run.returnOnCost.resultBdt} />;
+  const figure = dairyFigureOf(run);
+  switch (figure.kind) {
+    case "returned": {
+      return <Result bdt={figure.returned.resultBdt} />;
+    }
+    case "result": {
+      return <Result bdt={figure.bdt} />;
+    }
+    case "running": {
+      return (
+        <span className="tabular-nums">
+          <TodayRange running={figure.running} />
+        </span>
+      );
+    }
+    case "worth": {
+      return <WorthToday worth={figure.worth} />;
+    }
+    default: {
+      return (
+        <span className="text-muted-foreground">{t("returns.noFigure")}</span>
+      );
+    }
   }
-  // Gone and counted, but no share to say: a calf who cost nothing and fetched nothing is a result of nothing.
-  const result = run.resultBdt ?? null;
-  if (result !== null) {
-    return <Result bdt={result} />;
-  }
-  if (run.running) {
-    return (
-      <span className="tabular-nums">
-        <TodayRange running={run.running} />
-      </span>
-    );
-  }
-  // Here and counted, but nothing spent on her yet: no share, only what a head of her kind would fetch.
-  const worth = run.worthToday ?? null;
-  if (worth) {
-    return (
-      <span className="text-muted-foreground tabular-nums">
-        {t("returns.worthToday", {
-          low: taka(worth.lowBdt),
-          high: taka(worth.highBdt),
-        })}
-      </span>
-    );
-  }
-  return <span className="text-muted-foreground">{t("returns.noFigure")}</span>;
 };
 
 type Words = Pick<ReturnType<typeof useLanguage>, "t" | "language">;
