@@ -370,4 +370,30 @@ describe("a Venture's Return and its Settlement", () => {
     expect(returned).toBeDefined();
     expect(returned).toBeCloseTo(settled, 0);
   });
+
+  it("read what came back from the Sales, which the Venture's account took in to the taka", async () => {
+    // The Return reads what each bull fetched off his Sale; the Settlement off the money the account took in for
+    // him. The account's movement is written with the Sale and put right with it, so the two are one figure — and
+    // this says so, rather than leaving the Return and the Settlement free to drift apart on it.
+    const { client: owner } = await as("owner", "2054-03-03T04:00:00.000Z");
+    const page = await owner.returns.page();
+    const came = await Promise.all(
+      [ventureA, ventureB].map(async (ventureId) => {
+        const movements = await owner.ventures.movements({ ventureId });
+        return {
+          back: page.ventures.find((one) => one.id === ventureId)?.returnOnCost
+            ?.backBdt,
+          inTheAccount: movements
+            .filter(
+              (one) => one.kind === "sale_in" || one.kind === "internal_sell"
+            )
+            .reduce((sum, one) => sum + one.amountBdt, 0),
+        };
+      })
+    );
+    expect(came).toEqual([
+      { back: 115_000 + 112_000, inTheAccount: 115_000 + 112_000 },
+      { back: 110_000 + 97_000, inTheAccount: 110_000 + 97_000 },
+    ]);
+  });
 });
