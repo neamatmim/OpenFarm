@@ -182,6 +182,8 @@ export interface PageTab<T extends string> {
   icon?: LucideIcon;
   /** A number that wants attention on the tab itself — work waiting, stock running low. Nothing is shown for none. */
   count?: number;
+  /** Red where what the count counts has already gone wrong — work gone late; amber otherwise. */
+  countTone?: "danger";
   content: ReactNode;
 }
 
@@ -239,7 +241,14 @@ export const PageTabs = <T extends string>({
                 {Icon ? <Icon aria-hidden /> : null}
                 {tab.label}
                 {tab.count ? (
-                  <span className="bg-warning/15 text-warning rounded-full px-1.5 text-xs font-semibold tabular-nums">
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 text-xs font-semibold tabular-nums",
+                      tab.countTone === "danger"
+                        ? "bg-danger/15 text-danger"
+                        : "bg-warning/15 text-warning"
+                    )}
+                  >
                     {formatNumber(tab.count, language)}
                   </span>
                 ) : null}

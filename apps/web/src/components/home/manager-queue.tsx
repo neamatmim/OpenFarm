@@ -4,6 +4,7 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Link } from "@tanstack/react-router";
 import {
   AlarmClock,
+  CalendarClock,
   ClipboardCheck,
   Gavel,
   HeartPulse,
@@ -11,6 +12,7 @@ import {
   ShieldAlert,
   Wheat,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import { MonthlyCostsGroup } from "@/components/home/monthly-costs";
 import {
@@ -20,6 +22,7 @@ import {
   QueueRow,
 } from "@/components/home/queue";
 import { StatusBadge, TagChip } from "@/components/page";
+import { PageTabs } from "@/components/page-kit";
 import { RepeatBreeder } from "@/components/repeat-breeder";
 import { useLanguage } from "@/i18n/language-provider";
 import type { orpc } from "@/utils/orpc";
@@ -94,161 +97,302 @@ const ReviewRow = ({
   );
 };
 
+/** The kinds of thing waiting for the Manager, loudest first: the order the tabs read in, and the first one that has
+ *  anything is the one the page opens on. */
+export const QUEUE_KINDS = [
+  "overdue",
+  "signOff",
+  "review",
+  "withdrawal",
+  "meatWithdrawal",
+  "lowStock",
+  "monthlyCosts",
+  "repeatBreeders",
+] as const;
+export type QueueKind = (typeof QUEUE_KINDS)[number];
+
+/** How many of each kind wait — none for a kind an answer the phone kept from before does not carry. */
+const countsOf = (queue: ManagerQueueData): Record<QueueKind, number> => ({
+  overdue: queue.overdue.length,
+  signOff: queue.signOff.length,
+  review: queue.needsReview.length,
+  withdrawal: queue.withdrawal.length,
+  meatWithdrawal: queue.meatWithdrawal.length,
+  lowStock: queue.lowStock.length,
+  monthlyCosts:
+    (queue.monthlyCosts?.costs.length ?? 0) +
+    (queue.monthlyCosts?.wages.length ?? 0),
+  repeatBreeders: queue.repeatBreeders.length,
+});
+
+/** Everything waiting for the Manager, every kind counted: what decides whether the day is all clear. */
+export const queueWaiting = (queue: ManagerQueueData): number =>
+  Object.values(countsOf(queue)).reduce((sum, count) => sum + count, 0);
+
 /**
  * What needs the Manager, loudest first: work gone late, work to check, entries needing a decision, cows whose milk or
- * carcass is held back, feed running low, the month's rent, electricity and wages not entered yet, and cows somebody has to
- * decide about. Each kind shows its first few, with
- * the way to the page that holds all of it.
+ * carcass is held back, feed running low, the month's rent, electricity and wages not entered yet, and cows somebody
+ * has to decide about. Each kind shows its first few, with the way to the page that holds all of it.
+ *
+ * One tab to a kind, and only for a kind with something in it, as the Owner's own list is: the row of tabs, each with
+ * its count, is the whole of what waits read at a glance, and one kind at a time below it keeps thirty cows under
+ * withdrawal from pushing the late work off a phone. Late work's count is red on its tab, as its heading was. A single
+ * kind needs no tabs — a row of one is furniture — and is drawn under its own heading as before.
  */
+/** One kind's list, under its own heading or under a tab that already gives it one. */
+const QueueKindList = ({
+  kind,
+  queue,
+  mayAnswer,
+  headless,
+}: {
+  kind: QueueKind;
+  queue: ManagerQueueData;
+  mayAnswer: boolean;
+  headless: boolean;
+}) => {
+  const { t, language } = useLanguage();
+  switch (kind) {
+    case "overdue": {
+      return (
+        <QueueGroup
+          headless={headless}
+          icon={AlarmClock}
+          label={t("home.overdue")}
+          more={
+            <Link
+              className={MORE_LINK}
+              search={{ tab: "late" }}
+              to="/admin/sign-off"
+            >
+              {t("home.openList")}
+            </Link>
+          }
+          rows={queue.overdue.map((row) => (
+            <WorkRow key={row.id} row={row} />
+          ))}
+          tone="danger"
+        />
+      );
+    }
+    case "signOff": {
+      return (
+        <QueueGroup
+          headless={headless}
+          icon={ClipboardCheck}
+          label={t("home.signOff")}
+          more={
+            <Link className={MORE_LINK} to="/admin/sign-off">
+              {t("home.openList")}
+            </Link>
+          }
+          rows={queue.signOff.map((row) => (
+            <WorkRow key={row.id} row={row} />
+          ))}
+          tone="info"
+        />
+      );
+    }
+    case "review": {
+      return (
+        <QueueGroup
+          headless={headless}
+          icon={Gavel}
+          label={t("home.needsReview")}
+          more={
+            <Link
+              className={MORE_LINK}
+              search={{ tab: "review" }}
+              to="/admin/sign-off"
+            >
+              {t("home.openList")}
+            </Link>
+          }
+          rows={queue.needsReview.map((row) => (
+            <ReviewRow key={row.id} row={row} />
+          ))}
+          tone="warning"
+        />
+      );
+    }
+    case "withdrawal": {
+      return (
+        <QueueGroup
+          headless={headless}
+          icon={Milk}
+          label={t("home.withdrawal")}
+          rows={queue.withdrawal.map((row) => (
+            <QueueRow
+              key={row.id}
+              leading={<CowTag tagNumber={row.tagNumber} />}
+              title={
+                row.until
+                  ? t("home.until", {
+                      date: formatDate(new Date(row.until), language, "date"),
+                    })
+                  : t("home.withdrawal")
+              }
+              trailing={
+                row.endingSoon ? (
+                  <StatusBadge tone="info">{t("home.endingSoon")}</StatusBadge>
+                ) : null
+              }
+            />
+          ))}
+          tone="warning"
+        />
+      );
+    }
+    case "meatWithdrawal": {
+      return (
+        <QueueGroup
+          headless={headless}
+          icon={ShieldAlert}
+          label={t("home.meatWithdrawal")}
+          rows={queue.meatWithdrawal.map((row) => (
+            <QueueRow
+              key={row.id}
+              leading={<CowTag tagNumber={row.tagNumber} />}
+              title={
+                row.fitForSaleAt
+                  ? t("animals.meatHeldUntil", {
+                      date: formatDate(
+                        new Date(row.fitForSaleAt),
+                        language,
+                        "date"
+                      ),
+                    })
+                  : t("home.meatWithdrawal")
+              }
+            />
+          ))}
+          tone="warning"
+        />
+      );
+    }
+    case "lowStock": {
+      return (
+        <QueueGroup
+          headless={headless}
+          icon={Wheat}
+          label={t("home.lowStock")}
+          more={
+            <Link className={MORE_LINK} to="/admin/feed">
+              {t("home.openList")}
+            </Link>
+          }
+          rows={queue.lowStock.map((line) => (
+            <QueueRow
+              key={line.feedItemId}
+              title={
+                <Link
+                  className="after:absolute after:inset-0 hover:underline"
+                  to="/admin/feed"
+                >
+                  {t("home.lowStockLine", {
+                    feed: line.nameBn,
+                    onHand: formatNumber(line.onHand, language),
+                    unit: feedUnitWord(line.unit, language),
+                    threshold: formatNumber(line.threshold, language),
+                  })}
+                </Link>
+              }
+              trailing={<Opens />}
+            />
+          ))}
+          tone="warning"
+        />
+      );
+    }
+    case "monthlyCosts": {
+      return (
+        <MonthlyCostsGroup
+          headless={headless}
+          monthlyCosts={queue.monthlyCosts}
+        />
+      );
+    }
+    case "repeatBreeders": {
+      return (
+        <QueueGroup
+          headless={headless}
+          icon={HeartPulse}
+          label={t("repeatBreeder.title")}
+          rows={queue.repeatBreeders.map((row) => (
+            <div className="py-3" key={row.animalId}>
+              <RepeatBreeder mayAnswer={mayAnswer} row={row} />
+            </div>
+          ))}
+          tone="info"
+        />
+      );
+    }
+    default: {
+      return null;
+    }
+  }
+};
+
 export const ManagerQueue = ({
   queue,
   mayAnswer,
+  chosen,
+  onChoose,
 }: {
   queue: ManagerQueueData;
   mayAnswer: boolean;
+  /** The tab the address asks for, which may name a kind that has since emptied. */
+  chosen: QueueKind | undefined;
+  onChoose: (kind: QueueKind) => void;
 }) => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
+  const counts = countsOf(queue);
+  const LABEL: Record<QueueKind, { label: string; icon: LucideIcon }> = {
+    overdue: { label: t("home.overdue"), icon: AlarmClock },
+    signOff: { label: t("home.signOff"), icon: ClipboardCheck },
+    review: { label: t("home.needsReview"), icon: Gavel },
+    withdrawal: { label: t("home.withdrawal"), icon: Milk },
+    meatWithdrawal: { label: t("home.meatWithdrawal"), icon: ShieldAlert },
+    lowStock: { label: t("home.lowStock"), icon: Wheat },
+    monthlyCosts: { label: t("home.monthlyCosts"), icon: CalendarClock },
+    repeatBreeders: { label: t("repeatBreeder.title"), icon: HeartPulse },
+  };
+  const waiting = QUEUE_KINDS.filter((kind) => counts[kind] > 0);
+  const [only] = waiting;
+  if (!only) {
+    return null;
+  }
+  if (waiting.length === 1) {
+    return (
+      <QueueKindList
+        headless={false}
+        kind={only}
+        mayAnswer={mayAnswer}
+        queue={queue}
+      />
+    );
+  }
+  // The kind asked for while it still has something in it; once it empties, the loudest that does.
+  const shown = waiting.find((kind) => kind === chosen) ?? only;
   return (
-    <div className="flex flex-col gap-6">
-      <QueueGroup
-        icon={AlarmClock}
-        label={t("home.overdue")}
-        more={
-          <Link
-            className={MORE_LINK}
-            search={{ tab: "late" }}
-            to="/admin/sign-off"
-          >
-            {t("home.openList")}
-          </Link>
-        }
-        rows={queue.overdue.map((row) => (
-          <WorkRow key={row.id} row={row} />
-        ))}
-        tone="danger"
-      />
-
-      <QueueGroup
-        icon={ClipboardCheck}
-        label={t("home.signOff")}
-        more={
-          <Link className={MORE_LINK} to="/admin/sign-off">
-            {t("home.openList")}
-          </Link>
-        }
-        rows={queue.signOff.map((row) => (
-          <WorkRow key={row.id} row={row} />
-        ))}
-        tone="info"
-      />
-
-      <QueueGroup
-        icon={Gavel}
-        label={t("home.needsReview")}
-        more={
-          <Link
-            className={MORE_LINK}
-            search={{ tab: "review" }}
-            to="/admin/sign-off"
-          >
-            {t("home.openList")}
-          </Link>
-        }
-        rows={queue.needsReview.map((row) => (
-          <ReviewRow key={row.id} row={row} />
-        ))}
-        tone="warning"
-      />
-
-      <QueueGroup
-        icon={Milk}
-        label={t("home.withdrawal")}
-        rows={queue.withdrawal.map((row) => (
-          <QueueRow
-            key={row.id}
-            leading={<CowTag tagNumber={row.tagNumber} />}
-            title={
-              row.until
-                ? t("home.until", {
-                    date: formatDate(new Date(row.until), language, "date"),
-                  })
-                : t("home.withdrawal")
-            }
-            trailing={
-              row.endingSoon ? (
-                <StatusBadge tone="info">{t("home.endingSoon")}</StatusBadge>
-              ) : null
-            }
+    <PageTabs
+      onChange={onChoose}
+      tabs={waiting.map((kind) => ({
+        value: kind,
+        label: LABEL[kind].label,
+        icon: LABEL[kind].icon,
+        count: counts[kind],
+        countTone: kind === "overdue" ? "danger" : undefined,
+        content: (
+          <QueueKindList
+            headless
+            kind={kind}
+            mayAnswer={mayAnswer}
+            queue={queue}
           />
-        ))}
-        tone="warning"
-      />
-
-      <QueueGroup
-        icon={ShieldAlert}
-        label={t("home.meatWithdrawal")}
-        rows={queue.meatWithdrawal.map((row) => (
-          <QueueRow
-            key={row.id}
-            leading={<CowTag tagNumber={row.tagNumber} />}
-            title={
-              row.fitForSaleAt
-                ? t("animals.meatHeldUntil", {
-                    date: formatDate(
-                      new Date(row.fitForSaleAt),
-                      language,
-                      "date"
-                    ),
-                  })
-                : t("home.meatWithdrawal")
-            }
-          />
-        ))}
-        tone="warning"
-      />
-
-      <QueueGroup
-        icon={Wheat}
-        label={t("home.lowStock")}
-        more={
-          <Link className={MORE_LINK} to="/admin/feed">
-            {t("home.openList")}
-          </Link>
-        }
-        rows={queue.lowStock.map((line) => (
-          <QueueRow
-            key={line.feedItemId}
-            title={
-              <Link
-                className="after:absolute after:inset-0 hover:underline"
-                to="/admin/feed"
-              >
-                {t("home.lowStockLine", {
-                  feed: line.nameBn,
-                  onHand: formatNumber(line.onHand, language),
-                  unit: feedUnitWord(line.unit, language),
-                  threshold: formatNumber(line.threshold, language),
-                })}
-              </Link>
-            }
-            trailing={<Opens />}
-          />
-        ))}
-        tone="warning"
-      />
-
-      <MonthlyCostsGroup monthlyCosts={queue.monthlyCosts} />
-
-      <QueueGroup
-        icon={HeartPulse}
-        label={t("repeatBreeder.title")}
-        rows={queue.repeatBreeders.map((row) => (
-          <div className="py-3" key={row.animalId}>
-            <RepeatBreeder mayAnswer={mayAnswer} row={row} />
-          </div>
-        ))}
-        tone="info"
-      />
-    </div>
+        ),
+      }))}
+      value={shown}
+    />
   );
 };

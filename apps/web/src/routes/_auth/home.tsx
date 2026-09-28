@@ -11,7 +11,12 @@ import {
 } from "lucide-react";
 import { useEffect } from "react";
 
-import { ManagerQueue } from "@/components/home/manager-queue";
+import type { QueueKind } from "@/components/home/manager-queue";
+import {
+  ManagerQueue,
+  QUEUE_KINDS,
+  queueWaiting,
+} from "@/components/home/manager-queue";
 import { PenProgress } from "@/components/home/pen-progress";
 import { VenturesAtWork } from "@/components/home/ventures-at-work";
 import {
@@ -40,6 +45,8 @@ import { orpc } from "@/utils/orpc";
 const ManagerHome = () => {
   const t = useT();
   const { language } = useLanguage();
+  const navigate = Route.useNavigate();
+  const { queue: queueTab } = Route.useSearch();
   const queryClient = useQueryClient();
   const ensureDue = useMutation(orpc.instances.ensureDue.mutationOptions({}));
   const sweep = useMutation(orpc.alerts.sweep.mutationOptions({}));
@@ -99,14 +106,9 @@ const ManagerHome = () => {
     );
   }
   const { queue, pens, tiles } = home.data;
-  const waiting =
-    queue.overdue.length +
-    queue.signOff.length +
-    queue.needsReview.length +
-    queue.withdrawal.length +
-    queue.meatWithdrawal.length +
-    queue.repeatBreeders.length +
-    queue.lowStock.length;
+  // Every kind counted, the month's costs not entered yet among them: left out, a day with only the rent to enter
+  // read as all clear and hid it.
+  const waiting = queueWaiting(queue);
   const count = (n: number) => formatNumber(n, language);
   const donePercent =
     tiles.workRaised === 0
@@ -181,7 +183,14 @@ const ManagerHome = () => {
               title={t("home.allClear")}
             />
           ) : (
-            <ManagerQueue mayAnswer={mayAnswer} queue={queue} />
+            <ManagerQueue
+              chosen={queueTab}
+              mayAnswer={mayAnswer}
+              onChoose={(kind) =>
+                navigate({ replace: true, search: { queue: kind } })
+              }
+              queue={queue}
+            />
           )}
         </Section>
 
@@ -219,4 +228,9 @@ const FIGURE_LINK =
 export const Route = createFileRoute("/_auth/home")({
   beforeLoad: onlyFor("runsTheFarm"),
   component: ManagerHome,
+  // Which kind the Manager was reading, so coming back to the page opens on it.
+  validateSearch: (search: Record<string, unknown>): { queue?: QueueKind } =>
+    QUEUE_KINDS.includes(search.queue as QueueKind)
+      ? { queue: search.queue as QueueKind }
+      : {},
 });
