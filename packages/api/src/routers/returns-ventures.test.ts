@@ -592,3 +592,62 @@ describe("a Venture still going, at today's price", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });
+
+describe("a Venture buying, with no cattle yet", () => {
+  let emptyId = "";
+
+  beforeAll(async () => {
+    // Its capital is in and it has started buying, but no bull has come off a lorry: nothing it cost, nothing back,
+    // nothing standing — no figure of any kind to say.
+    const { client: owner } = await as("owner", "2053-01-02T04:00:00.000Z");
+    const empty = await owner.ventures.open({
+      name: `খালি ভেঞ্চার ${suffix}`,
+      ...TERMS,
+    });
+    emptyId = empty.id;
+    const person = await owner.investors.record({
+      name: `করিম ${suffix}`,
+      phone: "01999000061",
+    });
+    const agreement = await owner.ventures.sign({
+      ventureId: emptyId,
+      investorId: person.id,
+      units: 20,
+      investorsPercent: 60,
+      arbitrator: `মাওলানা ${suffix}`,
+      stampValueBdt: 300,
+      stampedOn: "2053-01-02",
+      stampSerial: `AA 3 ${suffix}`,
+    });
+    await owner.ventures.keepAgreementPaper({
+      agreementId: agreement.id,
+      contentType: "image/jpeg",
+      data: "aGVsbG8=",
+    });
+    await owner.ventures.takeCapital({
+      agreementId: agreement.id,
+      amountBdt: 1_000_000,
+      movedOn: "2053-01-03",
+      paymentMethod: "bank",
+      reference: `TRF-3-${suffix}`,
+    });
+    await owner.ventures.startBuying({ id: emptyId });
+  });
+
+  it("is not on the Returns page, where it would stand as a name with nothing under it", async () => {
+    const { client: owner } = await as("owner", "2053-04-10T04:00:00.000Z");
+    const page = await owner.returns.page();
+    expect(page.ventures.map((one) => one.id)).not.toContain(emptyId);
+    expect(await owner.returns.venture({ ventureId: emptyId })).toBeNull();
+  });
+
+  it("leaves every Venture with cattle said finished or going by the server, not guessed", async () => {
+    const { client: owner } = await as("owner", "2053-04-10T04:00:00.000Z");
+    const page = await owner.returns.page();
+    const finished = new Map(
+      page.ventures.map((one) => [one.id, one.finished])
+    );
+    expect(finished.get(ventureId)).toBe(true);
+    expect([...finished.values()]).toContain(false);
+  });
+});
