@@ -55,7 +55,10 @@ const Missing = ({
  */
 export const MonthlyCostsGroup = ({
   monthlyCosts,
+  headless = false,
 }: {
+  /** Under a tab that already says its name, icon and count. */
+  headless?: boolean;
   /** Missing from an answer a phone kept from before there were Monthly Costs. */
   monthlyCosts: MonthlyCostsData | undefined;
 }) => {
@@ -103,6 +106,7 @@ export const MonthlyCostsGroup = ({
   return (
     <>
       <QueueGroup
+        headless={headless}
         icon={CalendarClock}
         label={t("home.monthlyCosts")}
         more={
