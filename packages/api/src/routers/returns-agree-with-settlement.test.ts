@@ -202,6 +202,12 @@ const aVentureWithBulls = async (
 /** What each Venture's Settlement made, read the moment before it was approved. */
 const settledProfit = new Map<string, number>();
 
+/** The Returns page after the last bull went and before either Venture settled. */
+type ReturnsPage = Awaited<
+  ReturnType<Awaited<ReturnType<typeof as>>["client"]["returns"]["page"]>
+>;
+let beforeSettling: ReturnsPage | undefined;
+
 /**
  * A Venture settled as the Owner would: January's Reimbursement taken on 20 February for whatever its animals
  * consumed, each month read against the bank, the Settlement approved on 2 March and paid out the same day — what it
@@ -354,8 +360,27 @@ beforeAll(async () => {
   await sell(b.tags[0] ?? "", "2054-02-15T05:00:00.000Z", 110_000);
   await sell(x, "2054-02-15T05:00:00.000Z", 97_000);
 
+  // The Returns page the morning after the last of them went, before either Settlement.
+  const { client: reading } = await as("owner", "2054-02-16T04:00:00.000Z");
+  beforeSettling = await reading.returns.page();
+
   await settle(ventureA, "ক");
   await settle(ventureB, "খ");
+});
+
+describe("a Venture whose last animal has gone, before its Settlement", () => {
+  it("reads its result, not yet settled, the figure its Settlement then makes", () => {
+    const itsReturn = beforeSettling?.ventures.find(
+      (one) => one.id === ventureA
+    );
+    expect(itsReturn).toMatchObject({ settled: false, running: null });
+    expect(itsReturn?.returnOnCost?.resultBdt).toBeCloseTo(
+      settledProfit.get(ventureA) ?? Number.NaN,
+      0
+    );
+    // Nothing of the Investors' capital before it is paid back.
+    expect(itsReturn?.returnOnCapital).toBeNull();
+  });
 });
 
 describe("a Venture's Return and its Settlement", () => {

@@ -4015,7 +4015,7 @@ export const en = {
     "What every ৳100 made, scaled simply to a year, for each Season and Venture whose last animal has gone and whose money was out long enough.",
   "returns.finishedTitle": "Finished",
   "returns.finishedHint":
-    "Each Season of the Farm's own cattle and each settled Venture, worked as a Settlement is: what the animals fetched, less what they cost to take on and everything charged to them, the ones that died among them.",
+    "Each Season of the Farm's own cattle and each Venture whose last animal has gone — settled, or its Settlement still to come — worked as a Settlement is: what the animals fetched, less what they cost to take on and everything charged to them, the ones that died among them.",
   "returns.nothingFinished":
     "Nothing has finished yet. A Season is finished when its last animal has gone.",
   "returns.season": "Season",
@@ -4046,6 +4046,9 @@ export const en = {
   "returns.capitalHint":
     "Their share of the profit over all their capital, from the day it reached the Venture Account to the day it went back, the days it waited among them.",
   "returns.farmsShare": "The Farm's share, for its work: {bdt}",
+  "returns.settlementToCome": "Settlement to come",
+  "returns.settlementToComeHint":
+    "Its last animal has gone, so this is its result, worked as its Settlement will be. The Investors' return on their capital, and the Farm's share, come once the Settlement is paid out.",
   "returns.openVenture": "Open the Venture",
   "returns.tab.fattening": "Fattening",
   "returns.tab.prices": "Prices",
