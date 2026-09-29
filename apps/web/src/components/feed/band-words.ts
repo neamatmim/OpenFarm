@@ -1,4 +1,4 @@
-import type { WeightBand } from "@OpenFarm/domain";
+import type { ExpectedGain, WeightBand } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 
 import type { useLanguage } from "@/i18n/language-provider";
@@ -25,3 +25,15 @@ export const bandSaid = (
   }
   return null;
 };
+
+/** A Ration's Expected Gain in the reader's words — "0.6–0.9 kg/day" — or nothing for a Ration that says none. */
+export const expectedGainSaid = (
+  gain: ExpectedGain | null | undefined,
+  { t, language }: Words
+): string | null =>
+  gain
+    ? t("feed.expectedGainRange", {
+        low: formatNumber(gain.lowKg, language),
+        high: formatNumber(gain.highKg, language),
+      })
+    : null;

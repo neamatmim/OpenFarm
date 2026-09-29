@@ -1,4 +1,4 @@
-import type { RationLine, WeightBand } from "@OpenFarm/domain";
+import type { ExpectedGain, RationLine, WeightBand } from "@OpenFarm/domain";
 import { isByWeight } from "@OpenFarm/domain";
 
 import type { orpc } from "@/utils/orpc";
@@ -23,6 +23,9 @@ export interface RationRow {
   items: RationLine[];
   /** The weights it is written for; both ends open for a Ration that suits any weight. */
   band: WeightBand;
+  /** The kilos a day it is written to put on the animals that eat it, or none. Missing from a list cached before
+   *  Rations had one — which says nothing about the Ration, so an edit then leaves the figure where it is. */
+  expectedGain?: ExpectedGain | null;
   penIds: string[];
   /** When it was taken off the list a Pen may be put on; null while it is on it. */
   retiredAt: Date | null;

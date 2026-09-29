@@ -4,6 +4,7 @@ import { eq } from "@OpenFarm/db/operators";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { ration, rationVersion } from "@OpenFarm/db/schema/feed";
 import type {
+  ExpectedGain,
   FeedUnit,
   RationLine,
   SopContent,
@@ -50,6 +51,25 @@ export const bandOf = (row: {
 export const bandColumns = ({ fromKg, toKg }: WeightBand) => ({
   weightFromKg: fromKg === null ? null : String(fromKg),
   weightToKg: toKg === null ? null : String(toKg),
+});
+
+/** A Ration's Expected Gain as its numeric columns keep it, or none where it has none. Both ends or neither: a range
+ *  with one end is not one anybody set. */
+export const expectedGainOf = (row: {
+  expectedGainLowKg: string | null;
+  expectedGainHighKg: string | null;
+}): ExpectedGain | null =>
+  row.expectedGainLowKg === null || row.expectedGainHighKg === null
+    ? null
+    : {
+        lowKg: Number(row.expectedGainLowKg),
+        highKg: Number(row.expectedGainHighKg),
+      };
+
+/** An Expected Gain as the numeric columns take it; none clears both. */
+export const expectedGainColumns = (gain: ExpectedGain | null) => ({
+  expectedGainLowKg: gain === null ? null : String(gain.lowKg),
+  expectedGainHighKg: gain === null ? null : String(gain.highKg),
 });
 
 /** A feed a Ration's line names, as the farm keeps it. */

@@ -34,6 +34,7 @@ import {
   StateBadge,
   TagLink,
 } from "./fattening-words";
+import { OnRationFigures, OnRationLine } from "./on-ration";
 
 /** How many animals the board shows before the next page. */
 const BOARD_PAGE = 20;
@@ -111,6 +112,10 @@ const RecentCell = ({ row }: BoardCell) => (
   <GainFigures basis={row.original.recent} />
 );
 
+const OnRationCell = ({ row }: BoardCell) => (
+  <OnRationFigures row={row.original} />
+);
+
 const SellCell = ({ row }: BoardCell) => (
   <div className="flex justify-end">
     <SellHer row={row.original} />
@@ -157,6 +162,13 @@ const boardColumns = column.columns([
     id: "recent",
     header: listHeader("gain.recent"),
     cell: RecentCell,
+    sortUndefined: "last",
+    meta: { align: "end" },
+  }),
+  column.accessor((row) => row.onRation?.gain?.dailyGainKg, {
+    id: "onRation",
+    header: listHeader("gainOnRation.col"),
+    cell: OnRationCell,
     sortUndefined: "last",
     meta: { align: "end" },
   }),
@@ -237,6 +249,7 @@ const BoardCard = ({ row }: { row: BoardRow }) => {
           {details.join(" · ")}
         </span>
         <RatesLine recent={row.recent} sinceIntake={row.sinceIntake} />
+        <OnRationLine row={row} />
         <PriceLine tagNumber={row.tagNumber} />
       </div>
       <SellHer row={row} />

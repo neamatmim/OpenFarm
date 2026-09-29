@@ -16,6 +16,7 @@ import {
 import type { Trail, Tx } from "./audit";
 import {
   bandColumns,
+  expectedGainColumns,
   publishRationVersion,
   refuseFeedsNotFed,
 } from "./feed-store";
@@ -137,6 +138,8 @@ const addRations = async (
   for (const one of Object.values(STANDARD_RATIONS)) {
     // Written for any weight, unless the standard says which.
     const band = "band" in one ? one.band : { fromKg: null, toKg: null };
+    // What the published trials say it should put on the animals that eat it, where the standard gives a figure.
+    const expectedGain = "gain" in one ? one.gain : null;
     const [made] = await tx
       .insert(ration)
       .values({
@@ -145,6 +148,7 @@ const addRations = async (
         nameBn: one.name.bn,
         nameEn: one.name.en,
         ...bandColumns(band),
+        ...expectedGainColumns(expectedGain),
         createdAt: starter.now,
       })
       .onConflictDoNothing()
@@ -169,7 +173,7 @@ const addRations = async (
       entity: "ration",
       entityId: made.id,
       action: "create",
-      after: { name: one.name.bn, number, items: lines, band },
+      after: { name: one.name.bn, number, items: lines, band, expectedGain },
     });
     added.push(one.name.bn);
   }

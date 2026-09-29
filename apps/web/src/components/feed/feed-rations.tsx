@@ -1,8 +1,9 @@
-import type { RationLine, WeightBand } from "@OpenFarm/domain";
+import type { ExpectedGain, RationLine, WeightBand } from "@OpenFarm/domain";
 import {
   feedUnitOf,
   feedUnitWord,
   findBandProblems,
+  findExpectedGainProblems,
   isByWeight,
   mayGoByWeight,
 } from "@OpenFarm/domain";
@@ -35,7 +36,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
-import { bandSaid } from "./band-words";
+import { bandSaid, expectedGainSaid } from "./band-words";
 import type { FeedItemRow, RationRow } from "./feed-types";
 import { amountOf } from "./feed-types";
 
@@ -46,6 +47,108 @@ const bandOfRow = (ration: RationRow | null): WeightBand =>
 /** A weight typed into a band's box, or an open end where nothing was. */
 const kgOrNone = (typed: string): number | null =>
   typed.trim() === "" ? null : Number(typed);
+
+/** A figure as it was typed, for a box that may be left empty. */
+const typedOf = (value: number | null | undefined): string =>
+  value === null || value === undefined ? "" : String(value);
+
+/**
+ * What the Expected Gain boxes send: none when both are empty, the range when both are filled, and nothing at all —
+ * leave it as it is — when the Ration came from a list cached before Rations had one and nobody typed a figure.
+ * Undefined while only one box is filled, which is not a range anybody meant.
+ */
+const expectedGainToSend = (
+  ration: RationRow | null,
+  low: string,
+  high: string
+): ExpectedGain | null | "keep" | undefined => {
+  const lowEmpty = low.trim() === "";
+  const highEmpty = high.trim() === "";
+  if (lowEmpty && highEmpty) {
+    return ration && ration.expectedGain === undefined ? "keep" : null;
+  }
+  if (lowEmpty || highEmpty) {
+    return undefined;
+  }
+  return { lowKg: Number(low), highKg: Number(high) };
+};
+
+/** Whether what the Expected Gain boxes hold may be saved: a whole range that is one, or no range. */
+const expectedGainReady = (
+  sending: ReturnType<typeof expectedGainToSend>
+): boolean => {
+  if (sending === undefined) {
+    return false;
+  }
+  return (
+    sending === null ||
+    sending === "keep" ||
+    findExpectedGainProblems(sending).length === 0
+  );
+};
+
+/** The two boxes of a Ration's Expected Gain, low and high, with what they are for beneath. */
+const ExpectedGainFields = ({
+  idFor,
+  low,
+  high,
+  onLow,
+  onHigh,
+  half,
+}: {
+  idFor: (part: string) => string;
+  low: string;
+  high: string;
+  onLow: (value: string) => void;
+  onHigh: (value: string) => void;
+  /** Only one of the two filled in. */
+  half: boolean;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <fieldset className="space-y-2">
+      <legend className="mb-2 text-sm font-medium">
+        {t("feed.expectedGain")}
+      </legend>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label htmlFor={idFor("gain-low")}>{t("feed.expectedGainLow")}</Label>
+          <Input
+            id={idFor("gain-low")}
+            inputMode="decimal"
+            min={0}
+            onChange={(event) => onLow(event.target.value)}
+            step="any"
+            type="number"
+            value={low}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={idFor("gain-high")}>
+            {t("feed.expectedGainHigh")}
+          </Label>
+          <Input
+            id={idFor("gain-high")}
+            inputMode="decimal"
+            min={0}
+            onChange={(event) => onHigh(event.target.value)}
+            step="any"
+            type="number"
+            value={high}
+          />
+        </div>
+      </div>
+      <p
+        className={cn(
+          "text-xs",
+          half ? "text-warning" : "text-muted-foreground"
+        )}
+      >
+        {half ? t("feed.expectedGainBoth") : t("feed.expectedGainHint")}
+      </p>
+    </fieldset>
+  );
+};
 
 /** How a line counts: by the head, or by every hundred kilos of body weight. */
 type Basis = "head" | "weight";
@@ -104,6 +207,11 @@ const RationDialog = ({
     written.toKg === null ? "" : String(written.toKg)
   );
   const band = { fromKg: kgOrNone(fromKg), toKg: kgOrNone(toKg) };
+  const [gainLow, setGainLow] = useState(typedOf(ration?.expectedGain?.lowKg));
+  const [gainHigh, setGainHigh] = useState(
+    typedOf(ration?.expectedGain?.highKg)
+  );
+  const gain = expectedGainToSend(ration, gainLow, gainHigh);
   const [basis, setBasis] = useState<Record<string, Basis>>(() =>
     Object.fromEntries(
       (ration?.items ?? []).map((line) => [
@@ -142,6 +250,9 @@ const RationDialog = ({
           },
           items: lines,
           band,
+          ...(gain === "keep" || gain === undefined
+            ? {}
+            : { expectedGain: gain }),
         })
       }
       open={open}
@@ -149,7 +260,8 @@ const RationDialog = ({
       ready={
         lines.length > 0 &&
         name.trim() !== "" &&
-        findBandProblems(band).length === 0
+        findBandProblems(band).length === 0 &&
+        expectedGainReady(gain)
       }
       submitLabel={t("feed.setRation")}
       title={ration ? t("feed.editRation") : t("feed.newRation")}
@@ -268,6 +380,14 @@ const RationDialog = ({
               {t("feed.bandHint")}
             </p>
           </fieldset>
+          <ExpectedGainFields
+            half={gain === undefined}
+            high={gainHigh}
+            idFor={idFor}
+            low={gainLow}
+            onHigh={setGainHigh}
+            onLow={setGainLow}
+          />
         </>
       )}
     </FormDialog>
@@ -486,6 +606,7 @@ const RationCard = ({
   // A list cached before retiring existed has no such field: a Ration on it is simply in use.
   const retired = Boolean(ration.retiredAt);
   const band = bandSaid(bandOfRow(ration), { t, language });
+  const gain = expectedGainSaid(ration.expectedGain, { t, language });
   const names = new Map(items.map((item) => [item.id, item]));
   const onChosenPen = ration.penIds.includes(chosenPenId);
   return (
@@ -502,6 +623,7 @@ const RationCard = ({
               count: formatNumber(ration.penIds.length, language),
             })}
             {band ? ` · ${band}` : ""}
+            {gain ? ` · ${gain}` : ""}
           </span>
         </div>
         {mayEdit ? (

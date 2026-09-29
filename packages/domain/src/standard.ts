@@ -4,6 +4,7 @@
  * DLS must be told of. Names only — a price, a stock level, a Pen a Ration is fed to and a product's withdrawal days
  * are the farm's own facts, and the days the Vet's alone.
  */
+import type { ExpectedGain } from "./expected-gain";
 import type { RationLine, WeightBand } from "./feed";
 import type { StandardSopNeed } from "./standard-playbook";
 
@@ -31,11 +32,13 @@ export type StandardLine =
   | readonly [StandardFeedKey, number]
   | readonly [StandardFeedKey, number, "per100kg"];
 
-/** A Ration as the standard gives it: its lines, the weights it is written for, and what it was worked out from. */
+/** A Ration as the standard gives it: its lines, the weights it is written for, what it should put on them, and what
+ *  it was worked out from. */
 export interface StandardRation {
   name: Named;
   items: readonly StandardLine[];
   band?: WeightBand;
+  gain?: ExpectedGain;
   /** Said with its first Version, so a farm reading it later knows where the figures came from. */
   note?: string;
 }
@@ -68,6 +71,13 @@ export const rationLineOf = (
  * the arrival Ration first, at 30% concentrate: cattle are stepped up to grain over three weeks at least (Merck).
  * Starting points, to be checked against the farm's own feed and the Vet — the Leftovers and the Average Daily Gain
  * say whether they suit.
+ *
+ * Each carries the gain it should put on a settled, dewormed crossbred bull eating it in full (docs/research/
+ * expected-daily-gain.md): the low end at or under what the NRC (1996) energy equations give for the middle of the
+ * band, the high end what crossbreds reached on like concentrate in Bangladeshi trials (Siddque 2015; Rashid 2015),
+ * held near a kilo a day because the one higher figure is one trial of five bulls. Past 500 kg less, as intake falls
+ * to 2% of weight and the gain is fatter. No BLRI, DLS or FAO source states a gain for a fattening ration; these are
+ * the farm's to replace with its own.
  */
 const BY_WEIGHT_NOTE =
   "প্রকাশিত খাদ্যমান (ICAR, NASEM, BLRI/BAU গবেষণা, NDDB) থেকে হিসাব করা; খাবার প্রতি ১০০ কেজি ওজনে, মিনারেল ও লবণ প্রতি পশু। নিজের খাবার আর ভেটের সাথে মিলিয়ে নিন।";
@@ -112,6 +122,8 @@ export const STANDARD_RATIONS = {
     ],
     // Milk and calf starter, by the head. A fattening calf past 100 kg is pointed out for the bull starter.
     band: { fromKg: null, toKg: 100 },
+    // Holstein-cross calves 0.35–0.42 to six months on farms (Rahman 2015); L×HF calves of 78 kg 0.36–0.53 (Joya 2026).
+    gain: { lowKg: 0.35, highKg: 0.55 },
   },
   // Bought in: mostly grass and straw for the first two or three weeks, while the rumen learns grain.
   arrival: {
@@ -141,6 +153,7 @@ export const STANDARD_RATIONS = {
       ["salt", 0.025],
     ],
     band: { fromKg: 100, toKg: 150 },
+    gain: { lowKg: 0.5, highKg: 0.8 },
     note: BY_WEIGHT_NOTE,
   },
   bullGrower: {
@@ -156,6 +169,7 @@ export const STANDARD_RATIONS = {
       ["salt", 0.035],
     ],
     band: { fromKg: 150, toKg: 250 },
+    gain: { lowKg: 0.6, highKg: 0.9 },
     note: BY_WEIGHT_NOTE,
   },
   bullFinisher: {
@@ -171,6 +185,7 @@ export const STANDARD_RATIONS = {
       ["salt", 0.04],
     ],
     band: { fromKg: 250, toKg: 350 },
+    gain: { lowKg: 0.65, highKg: 1 },
     note: BY_WEIGHT_NOTE,
   },
   bullLateFinisher: {
@@ -186,6 +201,7 @@ export const STANDARD_RATIONS = {
       ["salt", 0.05],
     ],
     band: { fromKg: 350, toKg: 500 },
+    gain: { lowKg: 0.7, highKg: 1 },
     note: BY_WEIGHT_NOTE,
   },
   heavyBull: {
@@ -201,6 +217,7 @@ export const STANDARD_RATIONS = {
       ["salt", 0.06],
     ],
     band: { fromKg: 500, toKg: null },
+    gain: { lowKg: 0.55, highKg: 0.85 },
     note: BY_WEIGHT_NOTE,
   },
   sick: {

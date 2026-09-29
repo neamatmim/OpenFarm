@@ -74,6 +74,16 @@ export const ration = pgTable(
      *  fed, and moving it rewrites no Feeding. Null at either end for an end left open. */
     weightFromKg: numeric("weight_from_kg", { precision: 7, scale: 1 }),
     weightToKg: numeric("weight_to_kg", { precision: 7, scale: 1 }),
+    /** Its Expected Gain: the kilos a day, low to high, it is written to put on the animals that eat it — so a bull
+     *  gaining under it is pointed out. On the Ration beside its band, for the same reason; both or neither. */
+    expectedGainLowKg: numeric("expected_gain_low_kg", {
+      precision: 4,
+      scale: 2,
+    }),
+    expectedGainHighKg: numeric("expected_gain_high_kg", {
+      precision: 4,
+      scale: 2,
+    }),
     retiredAt: timestamp("retired_at"),
     createdAt: timestamp("created_at").notNull(),
   },

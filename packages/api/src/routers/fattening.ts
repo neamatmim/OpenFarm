@@ -5,6 +5,10 @@ import { z } from "zod";
 import { pricesOnTheSide } from "../animal-price-store";
 import { audited } from "../audit";
 import { outOfTheirBand } from "../band-store";
+import {
+  againstExpectedGains,
+  underExpectedGains,
+} from "../expected-gain-store";
 import { protectedProcedure } from "../index";
 import { fatteningRows } from "../ready-store";
 import {
@@ -27,23 +31,40 @@ export const fatteningRouter = {
     .use(requireRole("owner", "manager"))
     .input(z.object({ penId: z.string().optional() }).optional())
     .handler(async ({ context, input }) => {
-      const rows = await fatteningRows(
-        context.db,
-        context.farm.id,
-        {
-          penId: input?.penId,
-          states: ["quarantine", "fattening", "ready_for_sale"],
-        },
-        context.clock.now()
-      );
+      const [rows, onRations] = await Promise.all([
+        fatteningRows(
+          context.db,
+          context.farm.id,
+          {
+            penId: input?.penId,
+            states: ["quarantine", "fattening", "ready_for_sale"],
+          },
+          context.clock.now()
+        ),
+        againstExpectedGains(context.db, context.farm),
+      ]);
+      const onRationOf = new Map(onRations.map((one) => [one.animalId, one]));
       // A male calf weaned onto this side was never bought, so it has no Intake and no gain
       // since one — but it is standing in the pen being fed, and a board that left it out would
       // be hiding a whole cohort from the Owner. It appears with what is knowable about it.
       return rows.map(
-        ({ window: _window, setAside: _aside, view, ...rest }) => ({
-          ...rest,
-          ...view,
-        })
+        ({ window: _window, setAside: _aside, view, ...rest }) => {
+          const onRation = onRationOf.get(rest.id);
+          return {
+            ...rest,
+            ...view,
+            // What her Pen's Ration is written to put on her, and what she has put on since she has been eating it:
+            // nothing where the Ration says no Expected Gain.
+            onRation: onRation
+              ? {
+                  expectedGain: onRation.pen.expectedGain,
+                  gain: onRation.gain,
+                  standing: onRation.standing,
+                  outsideBand: onRation.outsideBand,
+                }
+              : null,
+          };
+        }
       );
     }),
 
@@ -116,5 +137,16 @@ export const fatteningRouter = {
     .use(requireRole("owner", "manager"))
     .handler(
       async ({ context }) => await outOfTheirBand(context.db, context.farm.id)
+    ),
+
+  /**
+   * The bulls gaining under what their Pen's Ration is written to put on them — its Expected Gain — or losing weight,
+   * each with his gain over the readings it was read between. The Owner's and the Manager's: it is about feed and
+   * health, not money, and the Manager is the one who goes and looks at him.
+   */
+  underExpectedGain: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(
+      async ({ context }) => await underExpectedGains(context.db, context.farm)
     ),
 };

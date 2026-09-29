@@ -14,6 +14,7 @@ import {
   standingOf,
   stateLookOf,
 } from "./fattening-types";
+import { ShortOfRationBadge } from "./on-ration";
 
 /**
  * How a fattening animal is said on every list of that side — the board, the suggestions for sale, the day's sales:
@@ -43,7 +44,8 @@ export const StateBadge = ({ state }: { state: string }) => {
   );
 };
 
-/** Whether she makes her target, and — when her last two weighings are slower than her whole stay — that too. */
+/** Whether she makes her target, and — when her last two weighings are slower than her whole stay, or she is gaining
+ *  under what her Ration should give her — those too. */
 export const StandingBadges = ({ row }: { row: BoardRow }) => {
   const { t } = useLanguage();
   const look = STANDING_LOOK[standingOf(row.onTrack)];
@@ -57,6 +59,7 @@ export const StandingBadges = ({ row }: { row: BoardRow }) => {
           {t("gain.slowing")}
         </StatusBadge>
       ) : null}
+      <ShortOfRationBadge row={row} />
     </span>
   );
 };
