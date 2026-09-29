@@ -628,6 +628,12 @@ export {
   STANDARD_RATIONS,
   rationLineOf,
 } from "./standard";
+export type { ReferenceGroup, StandardReference } from "./standard-references";
+export {
+  REFERENCES_CHECKED_ON,
+  REFERENCE_GROUPS,
+  STANDARD_REFERENCES,
+} from "./standard-references";
 export type { FeedPack, FeedUnit, PackRefusal } from "./feed-units";
 export {
   FEED_PACKS,

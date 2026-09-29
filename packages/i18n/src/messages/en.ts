@@ -2602,6 +2602,31 @@ export const en = {
     "What a bull eating this ration should put on a day, low to high. One gaining under the low figure is listed on the Fattening page. Leave both empty for none.",
   "feed.expectedGainBoth": "Fill in both figures, or neither.",
   "feed.expectedGainRange": "{low}–{high} kg/day",
+  "standards.subtitle":
+    "What the app's standard figures are worked from, and the published guides to open when one is questioned.",
+  "standards.usesTitle": "What the app works from",
+  "standards.usesHint":
+    "No Bangladeshi, BLRI, DLS or FAO guide says what a fattening ration should put on a bull. These figures are worked from the trials and feeding standards below, for a settled crossbred bull, and are yours to replace with your own in the ration editor.",
+  "standards.col.ration": "Standard ration",
+  "standards.col.band": "For animals weighing",
+  "standards.col.gain": "Expected gain",
+  "standards.settling": "Settling in",
+  "standards.settlingDays":
+    "{days, plural, one {# day} other {# days}} after a bull arrives, before his gain is judged",
+  "standards.readOver": "Gain read over",
+  "standards.readOverDays":
+    "at least {days, plural, one {# day} other {# days}} of weigh-ins — your setting",
+  "standards.deshi": "Deshi animals",
+  "standards.female": "Cows and heifers",
+  "standards.shareSet": "{percent}% of a ration's expected gain — your setting",
+  "standards.ownFigures": "Your own figures",
+  "standards.ownFiguresFrom":
+    "shown once {count, plural, one {# animal} other {# animals}} of a kind have a gain",
+  "standards.group.bangladesh": "From Bangladesh",
+  "standards.group.feeding": "Feeding standards",
+  "standards.group.weighing": "Weighing and settling in",
+  "standards.checked": "Every link was opened and working on {date}.",
+  "standards.link": "Where these figures come from",
   "farmGains.yourFarm": "Your farm",
   "farmGains.group.cross": "crossbred bulls",
   "farmGains.group.deshi": "deshi bulls",
@@ -2772,6 +2797,7 @@ export const en = {
     "A feed counted in bundles goes by the head, not by body weight",
   "refusal.packNeedsKg": "Only feed weighed in kilos comes in bags or maunds",
   "nav.feed": "Feed",
+  "nav.standards": "Standards and sources",
   "nav.milk": "Milk",
   "dispatch.title": "Milk leaving the farm",
   "dispatch.subtitle":

@@ -1,0 +1,202 @@
+/**
+ * The published guides and trials the farm's standard figures are worked from, for the Owner to open when a figure is
+ * questioned — chosen for being free to read, and every link opened on 29 September 2026
+ * (docs/research/expected-daily-gain.md §10). A title is as its publisher gives it; what each is good for is said in
+ * both languages.
+ */
+
+interface Named {
+  bn: string;
+  en: string;
+}
+
+/** Where a guide belongs: the country's own, the feeding standards, or how cattle are weighed and settled. */
+export const REFERENCE_GROUPS = ["bangladesh", "feeding", "weighing"] as const;
+export type ReferenceGroup = (typeof REFERENCE_GROUPS)[number];
+
+/** One guide or trial: what it is called, who published it and when, where to read it, and what it is good for. */
+export interface StandardReference {
+  group: ReferenceGroup;
+  title: string;
+  publisher: string;
+  year: string | null;
+  links: readonly string[];
+  goodFor: Named;
+}
+
+/** The date the links were last opened and found to work. */
+export const REFERENCES_CHECKED_ON = "2026-09-29";
+
+export const STANDARD_REFERENCES = [
+  {
+    group: "bangladesh",
+    title: "প্রাণিসম্পদ ও পোল্ট্রি উৎপাদন প্রযুক্তি নির্দেশিকা — গরু হৃষ্টপুষ্টকরণ (পৃ. ৯–১৩)",
+    publisher: "BLRI",
+    year: "2023",
+    links: [
+      "https://objectstorage.ap-dcc-gazipur-1.oraclecloud15.com/n/axvjbnqprylg/b/V2Ministry/o/office-blri/2026/7/be22d154-5229-4c4e-a80e-daa1b8a296d2.pdf",
+    ],
+    goodFor: {
+      bn: "দেশের সরকারি মোটাতাজাকরণ পদ্ধতি: গরু বাছাই, কৃমিনাশ, খাওয়ানো আর বিক্রি; ৯০–১২০ দিন।",
+      en: "The official Bangladeshi fattening method: choosing, deworming, feeding and selling; 90–120 days.",
+    },
+  },
+  {
+    group: "bangladesh",
+    title: "DLS publications",
+    publisher: "Department of Livestock Services",
+    year: null,
+    links: ["https://dls.gov.bd/pages/publications"],
+    goodFor: {
+      bn: "কৃমিনাশক নির্দেশিকা (২০২৩), বড় পশুর চিকিৎসা নির্দেশিকা, ঘাস চাষের নির্দেশিকা।",
+      en: "The deworming guide (2023), treatment guidelines for large animals, and the fodder guide.",
+    },
+  },
+  {
+    group: "bangladesh",
+    title:
+      "Siddque et al., Growth performance of native and crossbred (Local × Holstein Friesian) bulls for fattening",
+    publisher: "J. Agric. Sci. Technol. A 5",
+    year: "2015",
+    links: [
+      "https://www.davidpublisher.com/Public/uploads/Contribute/57a2b8611751b.pdf",
+    ],
+    goodFor: {
+      bn: "একই রেশনে দেশি আর হলস্টেইন-সংকর ষাঁড় পাশাপাশি: কে কতটা বাড়ে।",
+      en: "Deshi and Holstein-cross bulls side by side on the same rations: what each gained.",
+    },
+  },
+  {
+    group: "bangladesh",
+    title:
+      "Rashid et al., Effect of concentrate feeding on the cost effective growth performance of F1 Local × Brahman bulls in Bangladesh",
+    publisher: "Livestock Research for Rural Development 27(5)",
+    year: "2015",
+    links: ["https://www.lrrd.org/lrrd27/5/rash27100.htm"],
+    goodFor: {
+      bn: "৩৪৩ কেজির ব্রাহমা-সংকর ষাঁড় দানাদার, অর্ধেক দানাদার আর শুধু ইউএমএস-এ কতটা বেড়েছে।",
+      en: "What Brahman-cross bulls of 343 kg gained on concentrate, half concentrate and urea-molasses-straw alone.",
+    },
+  },
+  {
+    group: "bangladesh",
+    title:
+      "Sultana et al., Effect of age on feed efficiency and carcass yield characteristics of indigenous bull",
+    publisher: "Bangladesh Journal of Animal Science 46(1)",
+    year: "2017",
+    links: ["https://www.banglajol.info/index.php/BJAS/article/view/32171"],
+    goodFor: {
+      bn: "বয়স আর ওজনের সাথে পাবনা ষাঁড়ের বৃদ্ধি কীভাবে বদলায় (BLRI)।",
+      en: "How gain changes with age and weight in Pabna bulls (BLRI).",
+    },
+  },
+  {
+    group: "bangladesh",
+    title:
+      "Livestock Research for Rural Development; Bangladesh Journal of Animal Science",
+    publisher: "CIPAV; Bangladesh Animal Husbandry Association",
+    year: null,
+    links: [
+      "https://www.lrrd.org/",
+      "https://www.banglajol.info/index.php/BJAS",
+    ],
+    goodFor: {
+      bn: "দেশের নতুন মোটাতাজাকরণ গবেষণা যেখানে বিনামূল্যে প্রকাশ হয়।",
+      en: "Where new Bangladeshi fattening trials are published, free to read.",
+    },
+  },
+  {
+    group: "feeding",
+    title: "Feeding and Nutritional Management of Beef Cattle",
+    publisher: "Merck Veterinary Manual",
+    year: "2026",
+    links: [
+      "https://www.merckvetmanual.com/management-and-nutrition/nutrition-beef-cattle/feeding-and-nutritional-management-of-beef-cattle",
+    ],
+    goodFor: {
+      bn: "নতুন আসা গরুর যত্ন, তিন সপ্তাহে ধীরে ধীরে দানাদারে তোলা, সাধারণ বৃদ্ধি।",
+      en: "Receiving new cattle, stepping them up to grain over three weeks, and typical gains.",
+    },
+  },
+  {
+    group: "feeding",
+    title: "Nutrient Requirements of Beef Cattle, 8th revised edition",
+    publisher: "National Academies of Sciences, Engineering, and Medicine",
+    year: "2016",
+    links: ["https://nap.nationalacademies.org/read/19014"],
+    goodFor: {
+      bn: "শক্তি, আমিষ আর খাদ্যগ্রহণের আন্তর্জাতিক মানদণ্ড; ব্রাউজারে বিনামূল্যে পড়া যায়।",
+      en: "The standard for energy, protein and intake; free to read in a browser.",
+    },
+  },
+  {
+    group: "feeding",
+    title:
+      "Beef Cattle Nutrition Series Part 3: Nutrient Requirement Tables (MP391)",
+    publisher: "University of Arkansas",
+    year: "2018",
+    links: ["https://www.uaex.uada.edu/publications/pdf/MP391.pdf"],
+    goodFor: {
+      bn: "ওজন আর বৃদ্ধি অনুযায়ী খাদ্যগ্রহণ, শক্তি ও আমিষের তালিকা, ষাঁড়সহ।",
+      en: "Look-up tables of intake, energy and protein by weight and gain, bulls included.",
+    },
+  },
+  {
+    group: "feeding",
+    title: "Feedipedia",
+    publisher: "INRAE, CIRAD, AFZ and FAO",
+    year: null,
+    links: ["https://www.feedipedia.org/"],
+    goodFor: {
+      bn: "প্রতিটি খাবারে কী আছে: নেপিয়ার, খড়, ভুট্টা, ভুসি, খৈল।",
+      en: "What each feed contains: napier, straw, maize, bran and oil cakes.",
+    },
+  },
+  {
+    group: "feeding",
+    title:
+      "Balanced Feeding for Improving Livestock Productivity (Animal Production and Health Paper 173)",
+    publisher: "FAO",
+    year: "2012",
+    links: ["https://www.fao.org/4/i3014e/i3014e.pdf"],
+    goodFor: {
+      bn: "দক্ষিণ এশিয়ার খাবার দিয়ে সুষম রেশন বানানো, ভারতের NDDB থেকে।",
+      en: "Balancing rations with South Asian feeds, from India's NDDB.",
+    },
+  },
+  {
+    group: "feeding",
+    title: "Tropical Animal Feeding (Animal Production and Health Paper 126)",
+    publisher: "FAO",
+    year: "1995",
+    links: ["https://www.fao.org/4/V9327E/V9327E00.htm"],
+    goodFor: {
+      bn: "গ্রীষ্মমণ্ডলের খাবার আর উপজাত দিয়ে গরু খাওয়ানো।",
+      en: "Feeding cattle on tropical feeds and by-products.",
+    },
+  },
+  {
+    group: "weighing",
+    title: "Understanding and Managing Cattle Shrink (P2577)",
+    publisher: "Mississippi State University Extension",
+    year: null,
+    links: [
+      "https://extension.msstate.edu/sites/default/files/publications/P2577_web.pdf",
+    ],
+    goodFor: {
+      bn: "পথে একটি ষাঁড় কতটা ওজন হারায়, আর কত দিনে তা ফিরে পায়।",
+      en: "How much weight a bull loses on the road, and how fast he gets it back.",
+    },
+  },
+  {
+    group: "weighing",
+    title: "BIF Guidelines: Gain",
+    publisher: "Beef Improvement Federation",
+    year: "2026",
+    links: ["https://guidelines.beefimprovement.org/index.php/Gain"],
+    goodFor: {
+      bn: "বৃদ্ধি মাপার আগে গরুকে কত দিন থিতু হতে দিতে হয়, আর কত দিন ধরে ওজন নিতে হয়।",
+      en: "How long to let cattle settle, and how long to weigh them, before a gain means anything.",
+    },
+  },
+] as const satisfies readonly StandardReference[];
