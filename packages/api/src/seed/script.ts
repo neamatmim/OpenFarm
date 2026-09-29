@@ -576,6 +576,8 @@ const organiseThePeople = ({ farm, on }: Script) => {
           "eveningMilking",
           "healthRound",
           "calvingRecord",
+          "newbornCalfCare",
+          "newbornSecondFeed",
           "dryOff",
         ],
       ],

@@ -4102,6 +4102,10 @@ export const bn: Record<MessageKey, string> = {
   "sale.sheetDescription":
     "কে নিল, কত দামে, আর কোন গাড়িতে গেল। দামটি টাকার হিসাবে যোগ হবে।",
   "sale.lastWeighed": "শেষ ওজন {kg} কেজি",
+  "calf.firstDay": "প্রথম দিন",
+  "calf.firstDayHint":
+    "জন্মের পরের কয়েক ঘণ্টায় বাছুরের জন্য যা করা হয়েছে: শাল দুধ, নাভি, ওজন।",
+  "calf.done": "করা হয়েছে",
   "baki.someOwed": "কিছু টাকা বাকি আছে",
   "baki.paidNow": "এখন দিয়েছে (৳)",
   "baki.stillOwes": "বাকি ৳{taka}",

@@ -360,6 +360,73 @@ const AboutHer = ({ detail }: { detail: AnimalDetail }) => {
   );
 };
 
+/** Words the farm keeps in both languages, in the reader's: the English where there is one and they read English. */
+const inTheirs = (said: { bn: string; en?: string }, language: Language) =>
+  language === "en" && said.en ? said.en : said.bn;
+
+type FirstDayLine = NonNullable<AnimalDetail["firstDay"]>[number];
+
+/** What one Step recorded of her, said as the procedure said it: litres, kilos, a choice, or done. */
+const answerWords = (
+  line: FirstDayLine,
+  language: Language,
+  t: ReturnType<typeof useLanguage>["t"]
+): string => {
+  // A skip here is as often "well — nothing to note" as "not done": its own words say which.
+  if (line.skipReason) {
+    return line.skipReason;
+  }
+  const said = line.answers.map((answer) => {
+    if (answer.kind === "number") {
+      const unit = answer.unit ? ` ${inTheirs(answer.unit, language)}` : "";
+      return `${formatNumber(answer.value, language)}${unit}`;
+    }
+    if (answer.kind === "choice") {
+      return inTheirs(answer.label, language);
+    }
+    return t("calf.done");
+  });
+  return said.join(" · ") || t("calf.done");
+};
+
+/**
+ * Her first day, for a calf born here: when she had her first colostrum and how much, her navel, her weight — every
+ * Step done for her in the hours after birth, read from the work itself. Nothing for an animal the farm did not see
+ * born, or one whose first day nobody recorded.
+ */
+const HerFirstDay = ({ detail }: { detail: AnimalDetail }) => {
+  const { t, language } = useLanguage();
+  // Missing from an answer a phone kept from before the first day was read.
+  const lines = detail.firstDay ?? [];
+  if (lines.length === 0) {
+    return null;
+  }
+  return (
+    <Section description={t("calf.firstDayHint")} title={t("calf.firstDay")}>
+      <ul className="divide-border flex flex-col divide-y text-sm">
+        {lines.map((line) => (
+          <li
+            className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 py-2"
+            key={`${new Date(line.at).getTime()}-${line.step.bn}`}
+          >
+            <span className="flex flex-col">
+              <span className="font-medium">
+                {inTheirs(line.step, language)}
+              </span>
+              <span className="text-muted-foreground text-xs">
+                {formatDate(new Date(line.at), language, "dateTime")}
+              </span>
+            </span>
+            <span className="tabular-nums">
+              {answerWords(line, language, t)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </Section>
+  );
+};
+
 /** Her page at a glance: how she left, if she has; what holds her back; how a fattening animal is gaining; and who she
  *  is. */
 export const OverviewTab = ({
@@ -379,6 +446,7 @@ export const OverviewTab = ({
       onAct={onAct}
     />
     {detail.fattening ? <TwoProjections view={detail.fattening} /> : null}
+    <HerFirstDay detail={detail} />
     <AboutHer detail={detail} />
   </div>
 );

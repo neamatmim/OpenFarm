@@ -134,6 +134,10 @@ export const ROUND_WORDS = {
   diarrhoea: "diarrhoea",
   breathing: "breathing",
   sores: "mouth_foot_sores",
+  // A calf's own: not sucking, and a navel gone bad — the two the first weeks turn on (docs/research/newborn-calf-care.md
+  // §2, §4).
+  notSuckling: "not_suckling",
+  navel: "navel_swollen",
 } as const;
 
 const healthRound = (): SopContent => ({
@@ -164,6 +168,8 @@ const healthRound = (): SopContent => ({
           [ROUND_WORDS.diarrhoea, "পাতলা পায়খানা", "Scours"],
           [ROUND_WORDS.breathing, "শ্বাসকষ্ট", "Laboured breathing"],
           [ROUND_WORDS.sores, "মুখে বা ক্ষুরে ঘা", "Sores on mouth or feet"],
+          [ROUND_WORDS.notSuckling, "বাছুর দুধ টানছে না", "Calf not suckling"],
+          [ROUND_WORDS.navel, "নাভি ফোলা বা পুঁজ", "Navel swollen or discharging"],
         ]),
       ],
       // A well animal is passed with nothing written against her: the round's record is what was worth seeing,
@@ -979,6 +985,158 @@ const preSale = (): SopContent => ({
   ],
 });
 
+// ── The newborn calf ──────────────────────────────────────────────────────────────────────────────────────────────────
+//
+// Worked from the DLS National Guidelines on Good Livestock Production Practices (June 2023) chapter XI and Godden,
+// Lombard & Woolums (2019) — docs/research/newborn-calf-care.md, "Recommended figures". Raised for each calf the moment
+// her Calving is recorded: a live calf is an arrival on the Dairy side, and a bought bull's arrival, on the Fattening
+// side, never raises it. Two jobs and not one, because they run to two clocks: the first colostrum is late at two hours
+// (the Owner, 2026-09-29), the second at twelve — one job would read as late at two hours with its second feed not due.
+
+/** A calf's first colostrum is late two hours after she is born (the Owner's choice; Godden 2019, Teagasc). */
+const FIRST_COLOSTRUM_GRACE_MINUTES = 2 * 60;
+/** Her second feed within twelve hours, and the navel dipped again then (NG-GLPP §11.2(c), §11.1(h)). */
+const SECOND_FEED_GRACE_MINUTES = 12 * 60;
+/** A birth weight worth a second look: below 12 kg or above 45 (crossbred calves 15–40 kg, Hridoy 2025; Red Chittagong
+ *  13.9–16.2 kg on average, Nahar 2016). Not the fattening weigh-in's 20 kg, which a deshi calf is under. */
+const BIRTH_WEIGHT_KG = { min: 12, max: 45 } as const;
+
+/** The newborn is the calf's own; a calf registered long after her birth is not newborn, and says so. */
+const NOT_NEWBORN = {
+  bn: "নবজাতক নয় — পরে খাতায় তোলা",
+  en: "Not newborn — registered later",
+};
+
+/** She sucked her dam: fed, and nobody measured how much. */
+const SUCKLED_HER_DAM = {
+  bn: "মায়ের বাঁট থেকে নিজে খেয়েছে — পরিমাণ জানা নেই",
+  en: "Sucked her dam — amount not known",
+};
+
+const newbornCalfCare = (): SopContent => ({
+  name: { bn: "নবজাতক বাছুরের যত্ন", en: "Newborn calf care" },
+  purpose: {
+    bn: "জন্মের পরপরই: বাছুর সুস্থ কিনা দেখুন, নাভি আয়োডিনে ডোবান, ওজন নিন, ২ ঘণ্টার মধ্যে শাল দুধ খাওয়ান, কানে ট্যাগ দিন",
+    en: "Straight after birth: check she is well, dip the navel in iodine, weigh her, give colostrum within 2 hours, tag her ear",
+  },
+  triggers: [{ kind: "event", event: "arrival" }],
+  appliesTo: { side: "dairy", states: ["calf"] },
+  assignedRole: "staff",
+  checkerRole: "manager",
+  graceMinutes: FIRST_COLOSTRUM_GRACE_MINUTES,
+  steps: [
+    hisStep(
+      "well",
+      "বাছুর শ্বাস নিচ্ছে, ৫ মিনিটে উঠে বসেছে, দেড় ঘণ্টার মধ্যে দাঁড়িয়ে দুধ টানছে? পায়ুপথ খোলা, হাত-পা-চোখ ঠিক আছে?",
+      "Breathing, sitting up by 5 minutes, standing and sucking by 90? Anus open, legs and eyes sound?",
+      {
+        evidence: [
+          choice(true, [
+            ["weak", "দুর্বল — উঠে দাঁড়াতে পারছে না", "Weak — cannot stand"],
+            [ROUND_WORDS.notSuckling, "দুধ টানছে না", "Not sucking"],
+            [ROUND_WORDS.breathing, "শ্বাসকষ্ট", "Laboured breathing"],
+            [
+              "defect",
+              "পায়ুপথ বন্ধ, বা হাত-পা-চোখে সমস্যা",
+              "Anus closed, or legs or eyes wrong",
+            ],
+          ]),
+        ],
+        // A sound calf is one tap: nothing written against her, as a well animal on the round.
+        skipReasons: [
+          {
+            bn: "সুস্থ — শ্বাস নিচ্ছে, দাঁড়িয়েছে, দুধ টানছে",
+            en: "Well — breathing, standing and sucking",
+          },
+          NOT_NEWBORN,
+        ],
+        effect: { kind: "observation" },
+      }
+    ),
+    hisStep(
+      "navel",
+      "নাভি ৭% আয়োডিনে পুরোটা ডুবিয়ে দিন — স্প্রে নয়",
+      "Dip the whole navel in 7% iodine — dip, not spray",
+      { skipReasons: [NOT_NEWBORN] }
+    ),
+    hisStep("weigh", "ওজন নিন (দাঁড়িপাল্লা বা ফিতা)", "Weigh her (scale or tape)", {
+      evidence: [
+        {
+          type: "number",
+          required: true,
+          unit: { bn: "কেজি", en: "kg" },
+          min: BIRTH_WEIGHT_KG.min,
+          max: BIRTH_WEIGHT_KG.max,
+        },
+      ],
+      skipReasons: [
+        { bn: "দাঁড়িপাল্লা বা ফিতা নেই", en: "No scale or tape to hand" },
+        NOT_NEWBORN,
+      ],
+      effect: { kind: "weigh_in" },
+    }),
+    hisStep(
+      "colostrum",
+      "প্রথম শাল দুধ: ওজনের দশ ভাগের এক ভাগ — ৩০ কেজির বাছুরে ৩ লিটার; ২ ঘণ্টার মধ্যে, কখনো ৬ ঘণ্টার পরে নয়",
+      "First colostrum: a tenth of her weight — 3 L for a 30 kg calf; within 2 hours, never after 6",
+      {
+        evidence: [litres(6)],
+        skipReasons: [SUCKLED_HER_DAM, NOT_NEWBORN],
+      }
+    ),
+    hisStep("tag", "কানে ট্যাগ লাগান", "Put her ear tag in", {
+      skipReasons: [
+        { bn: "ট্যাগ হাতে নেই — পরে লাগানো হবে", en: "No tag to hand — later" },
+        NOT_NEWBORN,
+      ],
+    }),
+  ],
+});
+
+const newbornSecondFeed = (): SopContent => ({
+  name: { bn: "বাছুরের দ্বিতীয় শাল দুধ", en: "Calf's second colostrum" },
+  purpose: {
+    bn: "জন্মের ১২ ঘণ্টার মধ্যে দ্বিতীয়বার শাল দুধ, আর নাভি আবার আয়োডিনে ডোবানো ও দেখা",
+    en: "A second colostrum feed within 12 hours of birth, and the navel dipped again and looked at",
+  },
+  triggers: [{ kind: "event", event: "arrival" }],
+  appliesTo: { side: "dairy", states: ["calf"] },
+  assignedRole: "staff",
+  checkerRole: "manager",
+  graceMinutes: SECOND_FEED_GRACE_MINUTES,
+  steps: [
+    hisStep(
+      "colostrum",
+      "দ্বিতীয় শাল দুধ: প্রথমবারের অর্ধেকের মতো",
+      "Second colostrum: about half the first",
+      {
+        evidence: [litres(4)],
+        skipReasons: [SUCKLED_HER_DAM, NOT_NEWBORN],
+      }
+    ),
+    hisStep(
+      "navel",
+      "নাভি আবার আয়োডিনে ডোবান; ফোলা, গরম বা পুঁজ দেখলে লিখুন",
+      "Dip the navel again; note it if it is swollen, hot or discharging",
+      {
+        evidence: [
+          choice(true, [
+            [ROUND_WORDS.navel, "নাভি ফোলা বা পুঁজ", "Navel swollen or discharging"],
+          ]),
+        ],
+        skipReasons: [
+          {
+            bn: "ডোবানো হয়েছে — নাভি ঠিক আছে",
+            en: "Dipped — the navel is sound",
+          },
+          NOT_NEWBORN,
+        ],
+        effect: { kind: "observation" },
+      }
+    ),
+  ],
+});
+
 export type PlaybookKey =
   | "morningMilking"
   | "eveningMilking"
@@ -989,6 +1147,8 @@ export type PlaybookKey =
   | "dryOff"
   | "calvingPrep"
   | "calvingRecord"
+  | "newbornCalfCare"
+  | "newbornSecondFeed"
   | "weighIn"
   | "fmdVaccination"
   | "lsdVaccination"
@@ -1058,6 +1218,8 @@ export const standardPlaybook = (
   dryOff: dryOff(),
   calvingPrep: calvingPrep(chosen.calvingPen),
   calvingRecord: calvingRecord(),
+  newbornCalfCare: newbornCalfCare(),
+  newbornSecondFeed: newbornSecondFeed(),
   weighIn: weighIn(),
   fmdVaccination: vaccination(
     chosen.fmdVaccine,

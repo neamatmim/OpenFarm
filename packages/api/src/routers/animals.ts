@@ -49,6 +49,7 @@ import { recordNow } from "../entries/entry";
 import { moveEntry, moveInput } from "../entries/move";
 import { farmDay } from "../farm-clock";
 import { fatteningOf, startOfFattening } from "../fattening-store";
+import { herFirstDay } from "../first-day";
 import {
   theConclusionAndWhatFollowed,
   withPrescriptions,
@@ -743,6 +744,8 @@ export const animalsRouter = {
           : null,
         /** What she fetched is the money row too: the Owner's and the Manager's. */
         sale: herSale,
+        /** For a calf born here: her first colostrum, her navel, her weight — every Step done to her in her first day. */
+        firstDay: await herFirstDay(context.db, context.farm.id, her),
         heats,
         services,
         ...checks,
