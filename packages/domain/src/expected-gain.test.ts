@@ -6,8 +6,12 @@ import {
   expectedGainFor,
   farmGainFigureOf,
   findExpectedGainProblems,
+  PEN_NEEDS_GAINS,
   gainGroupOf,
   gainOverStayOf,
+  gainShareOf,
+  isUnderPenmates,
+  penShareOf,
   grownWeightFor,
   gainCountsFrom,
   gainOnRationOf,
@@ -362,5 +366,28 @@ describe("a figure of the farm's own", () => {
   it("is not said from fewer than five", () => {
     expect(FEWEST_FOR_A_FIGURE).toBe(5);
     expect(farmGainFigureOf([0.4, 0.5, 0.6, 0.7])).toBe(null);
+  });
+});
+
+describe("a bull against his penmates", () => {
+  it("sets each gain against what his own Ration should give him", () => {
+    // A cross at 0.75 on a 0.6–0.9 Ration and a deshi bull at 0.525 on his 0.42–0.63 are both at the middle.
+    expect(gainShareOf(0.75, { lowKg: 0.6, highKg: 0.9 })).toBeCloseTo(1);
+    expect(gainShareOf(0.525, { lowKg: 0.42, highKg: 0.63 })).toBeCloseTo(1);
+  });
+
+  it("takes the middle of the Pen once it is a group, and nothing before", () => {
+    expect(PEN_NEEDS_GAINS).toBe(4);
+    expect(penShareOf([1, 0.9, 1.1])).toBe(null);
+    expect(penShareOf([1.2, 0.6, 1, 1.1])).toBeCloseTo(1.05);
+  });
+
+  it("names the one under the farm's share of the Pen's middle", () => {
+    // The Pen's middle is 1.05 of what its Rations should give; four fifths of that is 0.84.
+    expect(isUnderPenmates(0.8, 1.05, 80)).toBe(true);
+    expect(isUnderPenmates(0.85, 1.05, 80)).toBe(false);
+    // A Pen too small to be a group says nothing, nor one that is going backwards.
+    expect(isUnderPenmates(0.1, null, 80)).toBe(false);
+    expect(isUnderPenmates(-0.5, -0.2, 80)).toBe(false);
   });
 });

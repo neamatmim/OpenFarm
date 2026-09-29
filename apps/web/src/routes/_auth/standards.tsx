@@ -1,6 +1,7 @@
 import type { ReferenceGroup, StandardReference } from "@OpenFarm/domain";
 import {
   FEWEST_FOR_A_FIGURE,
+  PEN_NEEDS_GAINS,
   REFERENCE_GROUPS,
   REFERENCES_CHECKED_ON,
   SETTLING_IN_DAYS,
@@ -79,6 +80,7 @@ const UNTOLD = {
   gainReadDays: 28,
   deshiGainPercent: 70,
   femaleGainPercent: 80,
+  penGainPercent: 80,
 } as const;
 
 /** A figure the farm has set, or its default. */
@@ -114,6 +116,12 @@ const Rules = () => {
       <Rule label={t("standards.female")}>
         {t("standards.shareSet", {
           percent: number(settingOf(figures, "femaleGainPercent")),
+        })}
+      </Rule>
+      <Rule label={t("standards.penmates")}>
+        {t("standards.penmatesRule", {
+          percent: number(settingOf(figures, "penGainPercent")),
+          count: number(PEN_NEEDS_GAINS),
         })}
       </Rule>
       <Rule label={t("standards.ownFigures")}>

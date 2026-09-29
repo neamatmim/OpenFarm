@@ -1,0 +1,1 @@
+ALTER TABLE "farm" ADD COLUMN "pen_gain_percent" integer DEFAULT 80 NOT NULL;

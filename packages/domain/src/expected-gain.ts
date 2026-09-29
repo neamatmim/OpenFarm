@@ -354,3 +354,36 @@ export const farmGainFigureOf = (
     highKg: rate(atShare(sorted, THREE_QUARTERS)),
   };
 };
+
+/** The fewest animals in a Pen with a gain on its Ration before their middle is a group to measure one of them
+ *  against: the bull tests' smallest group (docs/research/expected-gain.md §6.2). */
+export const PEN_NEEDS_GAINS = 4;
+
+/** A gain as a share of what her own Ration should give her — the middle of her own range — so animals of different
+ *  breeds and sexes in one Pen can be set beside each other. */
+export const gainShareOf = (
+  dailyGainKg: number,
+  expectedGain: ExpectedGain
+): number => dailyGainKg / ((expectedGain.lowKg + expectedGain.highKg) / 2);
+
+/** The middle of a Pen's shares, or nothing while fewer than `PEN_NEEDS_GAINS` animals have one. */
+export const penShareOf = (shares: readonly number[]): number | null =>
+  shares.length < PEN_NEEDS_GAINS
+    ? null
+    : atShare(
+        shares.toSorted((a, b) => a - b),
+        HALF
+      );
+
+/**
+ * Whether she is gaining under the farm's share of what her penmates gain, each set against what their Ration should
+ * give them: how the bull tests judge a bull, against his group. It catches the slow one in a Pen that is all slow —
+ * a hot month, a poor load of feed — which her Ration's figures alone cannot, and it says nothing of a Pen too small to
+ * be a group.
+ */
+export const isUnderPenmates = (
+  share: number,
+  penShare: number | null,
+  percent: number
+): boolean =>
+  penShare !== null && penShare > 0 && share < (penShare * percent) / PERCENT;

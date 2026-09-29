@@ -1745,6 +1745,8 @@ export const en = {
   "params.deshiGainPercent":
     "Judge a deshi animal at this share of its ration's expected gain",
   "params.femaleGainPercent": "Judge a cow or heifer at this share of it",
+  "params.penGainPercent":
+    "Point out one gaining under this share of his penmates",
   "params.renewalLead": "Warn before DLS registration expires",
   "params.minutes": "minutes",
   "params.hours": "hours",
@@ -2619,6 +2621,9 @@ export const en = {
   "standards.deshi": "Deshi animals",
   "standards.female": "Cows and heifers",
   "standards.shareSet": "{percent}% of a ration's expected gain — your setting",
+  "standards.penmates": "Behind his penmates",
+  "standards.penmatesRule":
+    "under {percent}% of his pen's middle gain, once {count, plural, one {# animal} other {# animals}} in it are weighed — your setting",
   "standards.ownFigures": "Your own figures",
   "standards.ownFiguresFrom":
     "shown once {count, plural, one {# animal} other {# animals}} of a kind have a gain",
@@ -2640,10 +2645,14 @@ export const en = {
     "On {ration}, your deshi bulls put on {percent}% of what your crossbred bulls did.",
   "farmGains.femaleShare":
     "On {ration}, your cows and heifers put on {percent}% of what your crossbred bulls did.",
-  "gainOnRation.title": "Gaining less than their ration should give",
+  "gainOnRation.title": "Gaining less than they should",
   "gainOnRation.hint":
-    "Over at least the last {days, plural, one {# day} other {# days}} of weigh-ins, these put on less a day than their pen's ration is written for, or lost weight. Look at each one: worms or liver fluke, teeth, feet, or whether he gets his share at the trough.",
+    "Over at least the last {days, plural, one {# day} other {# days}} of weigh-ins, these put on less a day than their pen's ration is written for, lost weight, or fell well behind their penmates. Look at each one: worms or liver fluke, teeth, feet, or whether he gets his share at the trough.",
   "gainOnRation.losing": "Losing weight",
+  "gainOnRation.underPenmates": "Behind his penmates",
+  "gainOnRation.penmates":
+    "His penmates' middle, for an animal like him: {gain} ({count})",
+  "gainOnRation.penmatesShort": "penmates {gain}",
   "gainOnRation.under": "Under the ration",
   "gainOnRation.within": "As the ration should",
   "gainOnRation.over": "Above the ration",

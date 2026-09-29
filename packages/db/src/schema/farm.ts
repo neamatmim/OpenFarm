@@ -85,6 +85,10 @@ export const farm = pgTable("farm", {
   /** What share a cow or heifer on the Fattening side is judged against, as a percentage: about eight tenths of what a
    *  bull gains (§5). The Manager's, as the other is. */
   femaleGainPercent: integer("female_gain_percent").notNull().default(80),
+  /** Under what share of his penmates' middle gain a fattening animal is pointed out as slow, as a percentage — each
+   *  gain first set against what its own Ration should give it, so a deshi bull is not measured against crosses. The
+   *  bull tests' rule: under four fifths of the group (docs/research/expected-gain.md §6.2). The Manager's. */
+  penGainPercent: integer("pen_gain_percent").notNull().default(80),
   /** The hours after a Heat is seen within which a service takes: the AI work falls due at the
    *  first and is late after the second. How soon a technician reaches this farm is this farm's
    *  fact, so both are the Manager's to set. */

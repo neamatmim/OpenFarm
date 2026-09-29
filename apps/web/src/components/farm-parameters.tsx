@@ -33,6 +33,7 @@ type NumberKey =
   | "gainReadDays"
   | "deshiGainPercent"
   | "femaleGainPercent"
+  | "penGainPercent"
   | "aiWindowStartHours"
   | "aiWindowEndHours"
   | "pregnancyCheckAfterDays"
@@ -402,6 +403,13 @@ const GROUPS: {
         min: 30,
         max: 100,
         farmsOwn: "female",
+      },
+      {
+        key: "penGainPercent",
+        label: "params.penGainPercent",
+        unit: "params.percent",
+        min: 50,
+        max: 95,
       },
       {
         key: "registrationRenewalLeadDays",

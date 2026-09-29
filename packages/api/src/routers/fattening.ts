@@ -62,6 +62,8 @@ export const fatteningRouter = {
                   gain: onRation.gain,
                   standing: onRation.standing,
                   outsideBand: onRation.outsideBand,
+                  penmates: onRation.penmates,
+                  underPenmates: onRation.underPenmates,
                 }
               : null,
           };

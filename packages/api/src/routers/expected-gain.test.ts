@@ -92,6 +92,7 @@ const setup = async () => {
     await manager.client.herd.createPen({ shedId: shed.id, name });
   const growers = await pen("গ্রোয়ার পেন");
   const newcomers = await pen("নতুন পেন");
+  const strong = await pen("ভালো পেন");
   const plain = await pen("সাধারণ পেন");
   const straw = await manager.client.feed.addItem({
     name: { bn: `খড় ${suffix}` },
@@ -109,9 +110,10 @@ const setup = async () => {
   for (const [penId, rationId] of [
     [growers.id, grower.rationId],
     [newcomers.id, grower.rationId],
+    [strong.id, grower.rationId],
     [plain.id, plainRation.rationId],
   ] as const) {
-    // oxlint-disable-next-line no-await-in-loop -- three Pens, one after another
+    // oxlint-disable-next-line no-await-in-loop -- four Pens, one after another
     await manager.client.feed.assignRation({ penId, rationId });
   }
   const weighing = await owner.client.sops.create({ content: weighInSop() });
@@ -159,8 +161,17 @@ const setup = async () => {
     deshiSlow: await bull(growers.id, 190, { breedId: deshi }),
     // A heifer bought to fatten, at half a kilo a day, and nobody wrote down her breed.
     heifer: await bull(growers.id, 190, { sex: "female" }),
+    // Three crosses far above their Ration, and one within it — and far behind them.
+    strong1: await bull(strong.id, 190),
+    strong2: await bull(strong.id, 190),
+    strong3: await bull(strong.id, 190),
+    lagger: await bull(strong.id, 190),
   };
-  return { pens: { growers, newcomers, plain }, rations: { grower }, tags };
+  return {
+    pens: { growers, newcomers, plain, strong },
+    rations: { grower },
+    tags,
+  };
 };
 
 let world: Awaited<ReturnType<typeof setup>>;
@@ -203,6 +214,20 @@ beforeAll(async () => {
     toPenId: pens.growers.id,
   });
   await weigh(pens.newcomers.id, DAY_35, [[tags.newcomer, 205]]);
+  const strongPen = [tags.strong1, tags.strong2, tags.strong3, tags.lagger];
+  await weigh(
+    pens.strong.id,
+    DAY_21,
+    strongPen.map((tag) => [tag, 200] as [string, number])
+  );
+  await weigh(pens.strong.id, DAY_49, [
+    // 33.6 kg in 28 days: 1.2 a day, 1.6 times the middle of their 0.6–0.9.
+    [tags.strong1, 233.6],
+    [tags.strong2, 233.6],
+    [tags.strong3, 233.6],
+    // 19.6 kg: 0.7 a day, within the Ration's range — and under four fifths of his penmates' 1.6.
+    [tags.lagger, 219.6],
+  ]);
   await weigh(pens.growers.id, DAY_49, [
     // 12 kg in 28 days: 0.43 a day, under 0.6.
     [tags.slow, 212],
@@ -231,11 +256,13 @@ describe("the bulls gaining under their Ration's Expected Gain", () => {
   it("names the losing first, then the slow, each with the readings his gain runs between", async () => {
     const manager = await as("manager");
     const rows = await manager.client.fattening.underExpectedGain();
-    // The slow cross is at 0.43 of his 0.6, seven tenths of it; the slow deshi bull at 0.36 of his 0.42, more.
+    // The slow cross is at 0.43 of his 0.6, seven tenths of it; the slow deshi bull at 0.36 of his 0.42, more; the
+    // one behind his penmates is within his Ration's range, and comes last.
     expect(rows.map((one) => one.tagNumber)).toEqual([
       world.tags.losing,
       world.tags.slow,
       world.tags.deshiSlow,
+      world.tags.lagger,
     ]);
     expect(rows[1]).toEqual({
       animalId: expect.any(String),
@@ -261,6 +288,10 @@ describe("the bulls gaining under their Ration's Expected Gain", () => {
       },
       standing: "under",
       outsideBand: false,
+      // Six in his Pen are judged on their Ration; set against what each should gain, their middle is 0.76 of it —
+      // for a cross like him, 0.57 a day — and he is under four fifths of that.
+      penmates: { middleKg: 0.57, animals: 6 },
+      underPenmates: true,
     });
     expect(rows[0]).toMatchObject({
       standing: "losing",
@@ -291,6 +322,9 @@ describe("the bulls gaining under their Ration's Expected Gain", () => {
       gain: null,
       standing: null,
       outsideBand: false,
+      // Alone in his Pen: no group to set him beside.
+      penmates: null,
+      underPenmates: false,
     });
     expect(onRationOf(world.tags.moved)).toMatchObject({
       gain: null,
@@ -344,6 +378,28 @@ describe("the bulls gaining under their Ration's Expected Gain", () => {
       gain: { dailyGainKg: 0.5 },
       standing: "within",
     });
+  });
+
+  it("names a bull within his Ration's range who is well behind his penmates, and none of them", async () => {
+    const manager = await as("manager");
+    const rows = await manager.client.fattening.underExpectedGain();
+    expect(
+      rows.find((one) => one.tagNumber === world.tags.lagger)
+    ).toMatchObject({
+      standing: "within",
+      gain: { dailyGainKg: 0.7 },
+      // Their middle is 1.6 times what the Ration should give: 1.2 a day for a cross.
+      penmates: { middleKg: 1.2, animals: 4 },
+      underPenmates: true,
+    });
+    const tags = rows.map((one) => one.tagNumber);
+    for (const tag of [
+      world.tags.strong1,
+      world.tags.strong2,
+      world.tags.strong3,
+    ]) {
+      expect(tags).not.toContain(tag);
+    }
   });
 
   it("puts each bull's standing on the board, and nothing for one whose Ration says no gain", async () => {
@@ -415,6 +471,27 @@ describe("the shares a deshi animal and a female are judged at", () => {
         deshiGainPercent: 70,
         femaleGainPercent: 80,
       });
+    }
+  });
+});
+
+describe("the share of his penmates a bull is measured at", () => {
+  it("is the Manager's to set, from a half to nineteen twentieths, and moves the judgement", async () => {
+    const manager = await as("manager");
+    try {
+      for (const penGainPercent of [49, 96]) {
+        // oxlint-disable-next-line no-await-in-loop -- one refusal at a time
+        await expect(
+          manager.client.farm.setParameters({ penGainPercent })
+        ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      }
+      // At half his penmates' 1.6, the one at 0.93 of his Ration's middle is no longer behind them.
+      await manager.client.farm.setParameters({ penGainPercent: 50 });
+      const later = await as("manager");
+      const rows = await later.client.fattening.underExpectedGain();
+      expect(rows.map((one) => one.tagNumber)).not.toContain(world.tags.lagger);
+    } finally {
+      await manager.client.farm.setParameters({ penGainPercent: 80 });
     }
   });
 });

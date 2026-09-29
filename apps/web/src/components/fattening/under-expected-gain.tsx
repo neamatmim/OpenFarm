@@ -9,7 +9,11 @@ import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
 import { TagLink } from "./fattening-words";
-import { GainStandingBadge, adjustmentSaid } from "./on-ration";
+import {
+  BehindPenmatesBadge,
+  GainStandingBadge,
+  adjustmentSaid,
+} from "./on-ration";
 
 /** The days a gain is read over on a farm that has not said — the column's own default — for a farm answer cached
  *  before it had the figure. */
@@ -37,7 +41,12 @@ const UnderLine = ({ row }: { row: UnderRow }) => {
     <li className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0">
       <div className="flex flex-wrap items-center gap-2">
         <TagLink tagNumber={row.tagNumber} />
-        {row.standing ? <GainStandingBadge standing={row.standing} /> : null}
+        {row.standing &&
+        row.standing !== "within" &&
+        row.standing !== "over" ? (
+          <GainStandingBadge standing={row.standing} />
+        ) : null}
+        {row.underPenmates ? <BehindPenmatesBadge /> : null}
         {row.gain ? (
           <span className="text-sm tabular-nums">
             {t("gainOnRation.gained", {
@@ -59,6 +68,16 @@ const UnderLine = ({ row }: { row: UnderRow }) => {
         })}
         {why ? ` (${why})` : ""}
       </span>
+      {row.penmates ? (
+        <span className="text-muted-foreground text-xs">
+          {t("gainOnRation.penmates", {
+            gain: t("gain.perDay", {
+              kg: formatNumber(row.penmates.middleKg, language),
+            }),
+            count: formatNumber(row.penmates.animals, language),
+          })}
+        </span>
+      ) : null}
     </li>
   );
 };

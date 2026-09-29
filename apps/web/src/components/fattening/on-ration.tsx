@@ -7,6 +7,7 @@ import {
   ArrowUpRight,
   Check,
   TrendingDown,
+  Users,
 } from "lucide-react";
 
 import { expectedGainSaid } from "@/components/feed/band-words";
@@ -99,12 +100,26 @@ export const GainStandingBadge = ({ standing }: { standing: GainStanding }) => {
   );
 };
 
-/** The badge beside her target's, only when she is gaining under her Ration or losing: the board's warnings. */
+/** Gaining well under his penmates, as a badge. */
+export const BehindPenmatesBadge = () => {
+  const { t } = useLanguage();
+  return (
+    <StatusBadge icon={Users} tone="warning">
+      {t("gainOnRation.underPenmates")}
+    </StatusBadge>
+  );
+};
+
+/** The badge beside her target's, when she is gaining under her Ration or losing — or, within it, behind her
+ *  penmates: the board's warnings. */
 export const ShortOfRationBadge = ({ row }: { row: BoardRow }) => {
-  const standing = onRationOf(row)?.standing ?? null;
-  return standing !== null && isShortOfExpected(standing) ? (
-    <GainStandingBadge standing={standing} />
-  ) : null;
+  const onRation = onRationOf(row);
+  const standing = onRation?.standing ?? null;
+  if (standing !== null && isShortOfExpected(standing)) {
+    return <GainStandingBadge standing={standing} />;
+  }
+  // Within his Ration's range, and behind the Pen he stands in. False on a board cached before it said.
+  return onRation?.underPenmates ? <BehindPenmatesBadge /> : null;
 };
 
 /** Her gain on her Ration as a cell of the board: the rate over its days, and what the Ration should give beneath —
@@ -138,6 +153,15 @@ export const OnRationFigures = ({ row }: { row: BoardRow }) => {
       <span className="text-muted-foreground text-xs">
         {againstSaid(onRation, { t, language })}
       </span>
+      {onRation.penmates ? (
+        <span className="text-muted-foreground text-xs">
+          {t("gainOnRation.penmatesShort", {
+            gain: t("gain.perDay", {
+              kg: formatNumber(onRation.penmates.middleKg, language),
+            }),
+          })}
+        </span>
+      ) : null}
     </div>
   );
 };
