@@ -1,7 +1,7 @@
 /**
  * The published guides and trials the farm's standard figures are worked from, for the Owner to open when a figure is
  * questioned — chosen for being free to read, and every link opened on 29 September 2026
- * (docs/research/expected-daily-gain.md §10). A title is as its publisher gives it; what each is good for is said in
+ * (docs/research/expected-daily-gain.md §10; the calf guides from docs/research/newborn-calf-care.md). A title is as its publisher gives it; what each is good for is said in
  * both languages.
  */
 
@@ -39,6 +39,33 @@ export const STANDARD_REFERENCES = [
     goodFor: {
       bn: "দেশের সরকারি মোটাতাজাকরণ পদ্ধতি: গরু বাছাই, কৃমিনাশ, খাওয়ানো আর বিক্রি; ৯০–১২০ দিন।",
       en: "The official Bangladeshi fattening method: choosing, deworming, feeding and selling; 90–120 days.",
+    },
+  },
+  {
+    group: "bangladesh",
+    title:
+      "National Guidelines on Good Livestock Production Practices (NG-GLPP)",
+    publisher: "Department of Livestock Services",
+    year: "2023",
+    // The DLS portal's own copy stopped answering in September 2026; this is the Internet Archive's copy of it.
+    links: [
+      "https://web.archive.org/web/2025id_/https://dls.portal.gov.bd/sites/default/files/files/dls.portal.gov.bd/page/61d70f88_045d_4205_b5ed_2bfe65623e3f/2025-03-06-16-08-6165641f39ac4af51b27a3149f41366e.pdf",
+    ],
+    goodFor: {
+      bn: "নবজাতক বাছুরের যত্ন (অধ্যায় ১১: শাল দুধ, নাভি, দুধ ছাড়ানো), বাছুরের টিকা (পরিশিষ্ট ৩১) আর কৃমিনাশ (পরিশিষ্ট ৩৫)।",
+      en: "Newborn calf care (chapter XI: colostrum, the navel, weaning), calf vaccines (Appendix 31) and worming (Appendix 35).",
+    },
+  },
+  {
+    group: "bangladesh",
+    title:
+      "Hridoy et al., Genetic evaluation of different graded Holstein Friesian × Local crossbred breeding bulls of Bangladesh",
+    publisher: "J. Adv. Vet. Anim. Res. 12(2)",
+    year: "2025",
+    links: ["https://pmc.ncbi.nlm.nih.gov/articles/PMC12506709/"],
+    goodFor: {
+      bn: "৪,৩৭০টি সংকর বাছুরের জন্মের ওজন: গড় ২৫–২৭ কেজি, ১৫ থেকে ৪০ কেজি।",
+      en: "Birth weights of 4,370 crossbred calves: 25–27 kg on average, 15 to 40 kg.",
     },
   },
   {
@@ -103,6 +130,31 @@ export const STANDARD_REFERENCES = [
     goodFor: {
       bn: "দেশের নতুন মোটাতাজাকরণ গবেষণা যেখানে বিনামূল্যে প্রকাশ হয়।",
       en: "Where new Bangladeshi fattening trials are published, free to read.",
+    },
+  },
+  {
+    group: "feeding",
+    title: "Colostrum Management for Dairy Calves",
+    publisher:
+      "Vet. Clin. North Am. Food Anim. Pract. 35(3) (Godden, Lombard & Woolums)",
+    year: "2019",
+    links: ["https://pmc.ncbi.nlm.nih.gov/articles/PMC7125574/"],
+    goodFor: {
+      bn: "শাল দুধ কত তাড়াতাড়ি আর কতটা: ২ ঘণ্টার মধ্যে, ওজনের ১০–১২%, আর দেরির দাম।",
+      en: "How soon and how much colostrum: within 2 hours, 10–12% of birth weight, and what delay costs.",
+    },
+  },
+  {
+    group: "feeding",
+    title: "Feeding Young Dairy Calves",
+    publisher: "Merck Veterinary Manual",
+    year: "2025",
+    links: [
+      "https://www.merckvetmanual.com/management-and-nutrition/nutrition-dairy-cattle/feeding-young-dairy-calves",
+    ],
+    goodFor: {
+      bn: "জন্ম থেকে দুধ ছাড়ানো পর্যন্ত বাছুরকে খাওয়ানো: শাল দুধ, দুধের পরিমাণ, স্টার্টার।",
+      en: "Feeding a calf from birth to weaning: colostrum, milk allowance, starter.",
     },
   },
   {

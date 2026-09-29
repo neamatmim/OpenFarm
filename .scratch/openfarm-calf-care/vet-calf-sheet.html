@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="bn">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>বাছুরের যত্ন ও ওষুধ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      @page {
+        size: A4;
+        margin: 14mm;
+      }
+      :root {
+        --ink: #1b1f1d;
+        --muted: #5b625e;
+        --line: #b9c0bc;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #fff;
+        color: var(--ink);
+        font:
+          14px/1.5 "Noto Sans Bengali",
+          system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 182mm;
+        margin: 0 auto;
+        padding: 16px;
+      }
+      h1 {
+        font-size: 20px;
+        margin: 0 0 4px;
+      }
+      .sub {
+        color: var(--muted);
+        margin: 0 0 14px;
+      }
+      .fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 24px;
+        margin-bottom: 14px;
+      }
+      .fields div {
+        border-bottom: 1px solid var(--line);
+        padding-top: 14px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      ol.how {
+        margin: 0 0 14px;
+        padding-left: 20px;
+        list-style-type: bengali;
+      }
+      ol.how li {
+        margin-bottom: 2px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        border: 1px solid var(--line);
+        padding: 6px 8px;
+        vertical-align: top;
+      }
+      th {
+        font-size: 12px;
+        font-weight: 600;
+        text-align: left;
+        background: #f1f3f2;
+      }
+      td.n {
+        width: 28px;
+        text-align: center;
+        color: var(--muted);
+      }
+      td.days {
+        width: 22mm;
+      }
+      td.note {
+        width: 34mm;
+      }
+      td.ok {
+        width: 20mm;
+        text-align: center;
+        color: var(--muted);
+      }
+      h2 {
+        font-size: 15px;
+        margin: 18px 0 6px;
+      }
+      p.why {
+        color: var(--muted);
+        font-size: 12px;
+        margin: 0 0 8px;
+      }
+      .en {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .blank td {
+        height: 30px;
+      }
+      .sign {
+        margin-top: 22px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+      .sign div {
+        border-top: 1px solid var(--ink);
+        padding-top: 4px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      @media print {
+        main {
+          padding: 0;
+        }
+        th {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>বাছুরের যত্ন ও ওষুধ — ভেটেরিনারি সার্জনের জন্য</h1>
+      <p class="sub">
+        অ্যাপ প্রতিটি নবজাতক বাছুরের জন্য কাজ তুলবে: শাল দুধ, নাভির যত্ন, ওজন,
+        কৃমিনাশক আর টিকা। নিচের প্রস্তাবগুলো দেখে একমত কিনা লিখুন, না হলে কী হবে
+        লিখে দিন। প্রস্তাবগুলো সরকারি নির্দেশিকা (DLS NG-GLPP ২০২৩) আর গবেষণা
+        থেকে নেওয়া।
+      </p>
+
+      <div class="fields">
+        <div>খামার</div>
+        <div>তারিখ</div>
+        <div>ভেটেরিনারি সার্জনের নাম</div>
+        <div>রেজিস্ট্রেশন নম্বর ও ফোন</div>
+      </div>
+
+      <h2>১. প্রথম দিনের যত্ন</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>আমাদের প্রস্তাব</th>
+            <th>একমত?</th>
+            <th>পরিবর্তন</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="n">১</td>
+            <td>
+              প্রথম শাল দুধ জন্মের ২ ঘণ্টার মধ্যে; কোনোভাবেই ৬ ঘণ্টার পরে
+              নয়<span class="en"
+                >First colostrum within 2 hours; never later than 6</span
+              >
+            </td>
+            <td class="ok">হ্যাঁ / না</td>
+            <td class="note"></td>
+          </tr>
+          <tr>
+            <td class="n">২</td>
+            <td>
+              পরিমাণ বাছুরের ওজনের ১০% (৩০ কেজি হলে ৩ লিটার)<span class="en"
+                >Amount: 10% of birth weight (3 L for a 30 kg calf)</span
+              >
+            </td>
+            <td class="ok">হ্যাঁ / না</td>
+            <td class="note"></td>
+          </tr>
+          <tr>
+            <td class="n">৩</td>
+            <td>
+              দ্বিতীয় বার ১২ ঘণ্টার মধ্যে, প্রথমবারের অর্ধেক; প্রথম ৩ দিন শাল
+              দুধ<span class="en"
+                >Second feed within 12 hours, about half; colostrum for 3
+                days</span
+              >
+            </td>
+            <td class="ok">হ্যাঁ / না</td>
+            <td class="note"></td>
+          </tr>
+          <tr>
+            <td class="n">৪</td>
+            <td>
+              জন্মের পরপরই নাভি ৭% আয়োডিনে ডুবিয়ে দেওয়া, ১২–২৪ ঘণ্টায়
+              আবার<span class="en"
+                >Navel dipped in 7% iodine at birth, again at 12–24 hours</span
+              >
+            </td>
+            <td class="ok">হ্যাঁ / না</td>
+            <td class="note"></td>
+          </tr>
+          <tr>
+            <td class="n">৫</td>
+            <td>
+              জন্মের ওজন নেওয়া; ১২ কেজির কম বা ৪৫ কেজির বেশি হলে আবার দেখা<span
+                class="en"
+                >Weigh at birth; check again below 12 kg or above 45 kg</span
+              >
+            </td>
+            <td class="ok">হ্যাঁ / না</td>
+            <td class="note"></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>২. বাছুরের কৃমিনাশক</h2>
+      <p class="why">
+        গোল কৃমি (Toxocara vitulorum) মায়ের দুধ দিয়ে প্রথম ৯ দিনের মতো বাছুরে
+        আসে। DLS নির্দেশিকা ৫–৬ দিনে পাইপেরাজিন বলে; গবেষণায় পাইপেরাজিন ৪২–৫৭%
+        কাজ করেছে, পাইরান্টেল বা লেভামিসোল ৯৭%। আমাদের প্রস্তাব ১৪ দিনে — আপনি
+        ওষুধ আর দিন ঠিক করে দিন।
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>ওষুধ ও মাত্রা</th>
+            <th>কত দিন বয়সে</th>
+            <th>মাংস (দিন)</th>
+            <th>মন্তব্য</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="blank">
+            <td class="n">৬</td>
+            <td></td>
+            <td class="days"></td>
+            <td class="days"></td>
+            <td class="note"></td>
+          </tr>
+          <tr class="blank">
+            <td class="n">৭</td>
+            <td></td>
+            <td class="days"></td>
+            <td class="days"></td>
+            <td class="note"></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>৩. বাছুরের টিকার বয়স</h2>
+      <p class="why">
+        DLS নির্দেশিকার (পরিশিষ্ট ৩১) বয়স। টিকার প্রত্যাহার সময় খামারের ওষুধের
+        তালিকার আলাদা কাগজে লেখা হচ্ছে।
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>আমাদের প্রস্তাব</th>
+            <th>একমত?</th>
+            <th>পরিবর্তন</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="n">৮</td>
+            <td>
+              ক্ষুরা রোগ (FMD): ১২০ দিনে, বুস্টার ১৫০ দিনে, পরে প্রতি ৬
+              মাসে<span class="en"
+                >FMD: day 120, booster day 150, then every 6 months</span
+              >
+            </td>
+            <td class="ok">হ্যাঁ / না</td>
+            <td class="note"></td>
+          </tr>
+          <tr>
+            <td class="n">৯</td>
+            <td>
+              তড়কা: ১২০ দিনে, পরে প্রতি বছর<span class="en"
+                >Anthrax: day 120, then yearly</span
+              >
+            </td>
+            <td class="ok">হ্যাঁ / না</td>
+            <td class="note"></td>
+          </tr>
+          <tr>
+            <td class="n">১০</td>
+            <td>
+              গলাফোলা (HS): ১৮০ দিনে, পরে প্রতি বছর<span class="en"
+                >HS: day 180, then yearly</span
+              >
+            </td>
+            <td class="ok">হ্যাঁ / না</td>
+            <td class="note"></td>
+          </tr>
+          <tr>
+            <td class="n">১১</td>
+            <td>
+              বাদলা (BQ): ১৮০ দিনে, পরে প্রতি বছর<span class="en"
+                >BQ: day 180, then yearly</span
+              >
+            </td>
+            <td class="ok">হ্যাঁ / না</td>
+            <td class="note"></td>
+          </tr>
+          <tr class="blank">
+            <td class="n">১২</td>
+            <td></td>
+            <td class="ok"></td>
+            <td class="note"></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="sign">
+        <div>ভেটেরিনারি সার্জনের স্বাক্ষর</div>
+        <div>মালিকের স্বাক্ষর</div>
+      </div>
+    </main>
+  </body>
+</html>
