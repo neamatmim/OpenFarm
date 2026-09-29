@@ -11,6 +11,7 @@ import {
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { z } from "zod";
 
+import { bakiOfBuyers } from "../baki-store";
 import type { Context } from "../context";
 import { toCsv } from "../csv";
 import { dispatchesBetween, litresDispatched } from "../dispatch-store";
@@ -32,12 +33,22 @@ const accountantPaper = async (
   summary: MoneySummary
 ) => {
   const language = await languageOf(context.db, context.actor.id);
+  // Who still owed what on the period's last day, as the buyers' payments up to then had left it.
+  const book = await bakiOfBuyers(context.db, context.farm.id, {
+    asOf: period.to,
+  });
   return accountantSummary({
     farm: context.farm,
     from: formatDate(startOfFarmDay(period.from), language),
     to: formatDate(startOfFarmDay(period.to), language),
     summary,
     taka: (amount) => `৳${formatNumber(amount, language)}`,
+    bakiAtTheEnd: book
+      .filter((buyer) => buyer.owingBdt > 0)
+      .map((buyer) => ({ name: buyer.name, owingBdt: buyer.owingBdt }))
+      .toSorted(
+        (a, b) => b.owingBdt - a.owingBdt || a.name.localeCompare(b.name)
+      ),
     producedBy: context.actor.name,
     producedAt: formatDate(context.clock.now(), language, "dateTime"),
   });

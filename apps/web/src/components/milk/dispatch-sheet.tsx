@@ -5,7 +5,7 @@ import type { ComponentProps } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { BakiFields } from "@/components/baki-fields";
+import { BakiFields, BuyerOwes } from "@/components/baki-fields";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
@@ -196,6 +196,7 @@ export const DispatchSheet = ({
         label={t("dispatch.buyerAddress")}
         name="buyerAddress"
       />
+      <BuyerOwes name={form.buyerName} />
 
       <BakiFields
         idPrefix="dispatch-baki"

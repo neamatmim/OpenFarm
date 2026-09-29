@@ -11,7 +11,12 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
-import { bakiOrRefuse, paidNowInput, promisedByInput } from "../baki-store";
+import {
+  bakiOrRefuse,
+  owingNowOf,
+  paidNowInput,
+  promisedByInput,
+} from "../baki-store";
 import { correct } from "../corrections/correction";
 import {
   dispatchCorrection,
@@ -181,11 +186,20 @@ export const milkRouter = {
         litresToBulkBetween(context.db, context.farm.id, range),
         dispatchesBetween(context.db, context.farm.id, range),
       ]);
+      // What each buyer still owes on it today, as his payments have left it.
+      const owing = await owingNowOf(
+        context.db,
+        context.farm.id,
+        dispatches.filter((one) => one.bakiBdt > 0).map((one) => one.id)
+      );
       return {
         day: input.day,
         toBulkLitres,
         dispatchedLitres: litresDispatched(dispatches),
-        dispatches,
+        dispatches: dispatches.map((one) => ({
+          ...one,
+          owingBdt: owing.get(one.id) ?? 0,
+        })),
       };
     }),
 

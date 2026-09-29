@@ -9,6 +9,7 @@ import type {
 } from "@OpenFarm/domain";
 import { penHistoryOf, sidesOverTime } from "@OpenFarm/domain";
 
+import { bakiOfBuyers } from "./baki-store";
 import { THE_FARMS_PURSE } from "./money-store";
 
 type Db = Pick<Database, "query">;
@@ -45,6 +46,77 @@ const splitAcross = (sides: readonly Side[]): RecordFacts["sides"] =>
     ? WHOLE_FARM
     : sides.map((side) => ({ side, part: 1 / sides.length }));
 
+/** The Baki Payments among a period's money: each one's kind and what it cleared, and every Sale it cleared, so the
+ *  export can say which animals a cattle payment was for and which Side she stood on. */
+const bakiPaymentsOf = async (
+  db: Db,
+  farmId: string,
+  ids: readonly string[]
+) => {
+  if (ids.length === 0) {
+    return { payments: [], clearedSaleIds: [] };
+  }
+  const wanted = new Set(ids);
+  const book = await bakiOfBuyers(db, farmId, { settledToo: true });
+  const payments = book.flatMap((buyer) =>
+    buyer.kinds.flatMap((kind) =>
+      kind.payments
+        .filter((one) => wanted.has(one.id))
+        .map((one) => ({
+          id: one.id,
+          kind: kind.kind,
+          amountBdt: one.amountBdt,
+          cleared: one.cleared,
+        }))
+    )
+  );
+  return {
+    payments,
+    clearedSaleIds: payments
+      .filter((one) => one.kind === "cattle")
+      .flatMap((one) => one.cleared.map((part) => part.itemId)),
+  };
+};
+
+/**
+ * What a Baki Payment is known by and whose Side its money is. Milk is the Dairy side's, as a Dispatch's is. Cattle
+ * money is split across the Sides of the animals it paid for, by what it paid of each, their tags its reference; what
+ * it paid beyond anything owed — credit held for next time — is the whole farm's until it pays for something.
+ */
+const bakiPaymentFacts = (
+  payment: {
+    kind: "cattle" | "milk";
+    amountBdt: number;
+    cleared: readonly { itemId: string; amountBdt: number }[];
+  },
+  saleFacts: ReadonlyMap<string, { tagNumber: string; side: Side }>
+): RecordFacts => {
+  if (payment.kind === "milk") {
+    return { reference: null, sides: [{ side: "dairy", part: 1 }] };
+  }
+  const parts = payment.cleared.flatMap((part) => {
+    const sold = saleFacts.get(part.itemId);
+    return sold ? [{ ...sold, amountBdt: part.amountBdt }] : [];
+  });
+  const clearedBdt = parts.reduce((sum, one) => sum + one.amountBdt, 0);
+  const ahead = payment.amountBdt - clearedBdt;
+  const sides = [
+    ...parts.map((one) => ({
+      side: one.side,
+      part: one.amountBdt / payment.amountBdt,
+    })),
+    ...(ahead > 0 ? [{ side: null, part: ahead / payment.amountBdt }] : []),
+  ];
+  return {
+    reference:
+      parts
+        .map((one) => one.tagNumber)
+        .toSorted()
+        .join(" ") || null,
+    sides: sides.length === 0 ? WHOLE_FARM : sides,
+  };
+};
+
 /**
  * What each record behind these Money Events is known by and which Side its money belongs to, on the day
  * the money moved. Milk is the Dairy side's, and a bought animal the Fattening side's, as an Intake always
@@ -57,6 +129,7 @@ const recordFactsOf = async (
   farmId: string,
   events: readonly { source: MoneySource; sourceId: string }[]
 ): Promise<Map<string, RecordFacts>> => {
+  const baki = await bakiPaymentsOf(db, farmId, idsOf(events, "baki_payment"));
   const [dispatches, intakes, sales, feedIns, medicines, fees] =
     await Promise.all([
       db.query.dispatch.findMany({
@@ -69,7 +142,10 @@ const recordFactsOf = async (
         with: { animal: { columns: { tagNumber: true } } },
       }),
       db.query.sale.findMany({
-        where: { farmId, id: { in: idsOf(events, "sale") } },
+        where: {
+          farmId,
+          id: { in: [...idsOf(events, "sale"), ...baki.clearedSaleIds] },
+        },
         columns: { id: true, soldAt: true },
         with: {
           animal: { columns: { id: true, tagNumber: true, side: true } },
@@ -112,7 +188,19 @@ const recordFactsOf = async (
     },
   });
   const sideOf = sidesOverTime(penHistoryOf(moves, new Map()));
+  const saleFacts = new Map(
+    sales.map((one) => [
+      one.id,
+      {
+        tagNumber: one.animal.tagNumber,
+        side: sideOf(one.animal, one.soldAt),
+      },
+    ])
+  );
   return new Map<string, RecordFacts>([
+    ...baki.payments.map(
+      (one) => [one.id, bakiPaymentFacts(one, saleFacts)] as const
+    ),
     ...dispatches.map(
       (one) =>
         [

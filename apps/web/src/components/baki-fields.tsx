@@ -2,11 +2,15 @@ import { startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
+import { useQuery } from "@tanstack/react-query";
+import { useDeferredValue } from "react";
 
+import { Notice } from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import type { BakiTyped } from "@/lib/baki";
 import { stillOwes } from "@/lib/baki";
+import { orpc } from "@/utils/orpc";
 
 /**
  * Some of it still owed: a tick, and behind it what the buyer paid now and the day he promised. What he still owes is
@@ -91,16 +95,20 @@ export const BakiFields = ({
  */
 export const BakiOwed = ({
   bakiBdt = 0,
+  owingBdt,
   promisedBy = null,
 }: {
   bakiBdt?: number;
+  /** What is still owed today, as his payments have left it; left out of an older answer, what was owed as it left. */
+  owingBdt?: number;
   promisedBy?: string | null;
 }) => {
   const { t, language } = useLanguage();
-  if (bakiBdt <= 0) {
+  const owed = owingBdt ?? bakiBdt;
+  if (owed <= 0) {
     return null;
   }
-  const taka = formatNumber(bakiBdt, language);
+  const taka = formatNumber(owed, language);
   return (
     <span className="text-warning text-xs font-medium">
       {promisedBy === null
@@ -110,5 +118,34 @@ export const BakiOwed = ({
             day: formatDate(startOfFarmDay(promisedBy), language, "date"),
           })}
     </span>
+  );
+};
+
+/**
+ * What the buyer being typed still owes the farm, said before anything more is sold to him on Baki. Never a refusal:
+ * the Manager at the haat decides, but decides knowing. Nothing for a buyer who owes nothing, or a name the farm does
+ * not know.
+ */
+export const BuyerOwes = ({ name }: { name: string }) => {
+  const { t, language } = useLanguage();
+  // Asked once the typing settles, not at every letter of his name.
+  const settled = useDeferredValue(name.trim());
+  const his = useQuery({
+    ...orpc.baki.ofBuyer.queryOptions({ input: { name: settled } }),
+    enabled: settled.length > 1,
+  });
+  const owes = his.data;
+  if (!owes || owes.owingBdt <= 0 || owes.oldestOn === null) {
+    return null;
+  }
+  return (
+    <Notice
+      title={t("baki.buyerOwes", {
+        name: owes.name,
+        taka: formatNumber(owes.owingBdt, language),
+        day: formatDate(startOfFarmDay(owes.oldestOn), language, "date"),
+      })}
+      tone="warning"
+    />
   );
 };

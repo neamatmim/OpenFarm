@@ -359,10 +359,22 @@ export {
   findPublishBlockers,
   findStructuralProblems,
 } from "./sop";
-export type { BakiAtTheGate, BakiOutcome, BakiRefusal } from "./baki";
+export type {
+  BakiAtTheGate,
+  BakiItem,
+  BakiItemStanding,
+  BakiKind,
+  BakiOutcome,
+  BakiPart,
+  BakiPaymentIn,
+  BakiRefusal,
+  BakiStanding,
+} from "./baki";
 export {
+  BAKI_KINDS,
   BAKI_REFUSALS,
   bakiAtTheGate,
+  bakiStanding,
   bakiPutRight,
   isBakiRefusal,
   paidAtTheGate,

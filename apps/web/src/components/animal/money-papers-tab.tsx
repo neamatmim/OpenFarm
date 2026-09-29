@@ -221,7 +221,11 @@ const HowSheLeft = ({
         <Fact label={t("sale.price")}>
           <span className="flex flex-col">
             {t("intake.taka", { taka: formatNumber(sale.priceBdt, language) })}
-            <BakiOwed bakiBdt={sale.bakiBdt} promisedBy={sale.promisedBy} />
+            <BakiOwed
+              bakiBdt={sale.bakiBdt}
+              owingBdt={sale.owingBdt}
+              promisedBy={sale.promisedBy}
+            />
           </span>
         </Fact>
         <Fact label={t("sale.weight")}>

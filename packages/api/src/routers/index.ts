@@ -5,6 +5,7 @@ import { alertsRouter } from "./alerts";
 import { animalsRouter } from "./animals";
 import { auditRouter } from "./audit";
 import { backupsRouter } from "./backups";
+import { bakiRouter } from "./baki";
 import { breedingRouter } from "./breeding";
 import { breedsRouter } from "./breeds";
 import { costsRouter } from "./costs";
@@ -83,6 +84,7 @@ export const appRouter = {
   culling: cullingRouter,
   inspector: inspectorRouter,
   money: moneyRouter,
+  baki: bakiRouter,
   reports: reportsRouter,
   breeding: breedingRouter,
   stock: stockRouter,
