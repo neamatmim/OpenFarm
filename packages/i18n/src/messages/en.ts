@@ -2612,6 +2612,10 @@ export const en = {
   "standards.col.ration": "Standard ration",
   "standards.col.band": "For animals weighing",
   "standards.col.gain": "Expected gain",
+  "standards.col.firmness": "How firm",
+  "standards.firmness.medium": "Medium",
+  "standards.firmness.mediumLow": "Medium-low",
+  "standards.firmness.low": "Low",
   "standards.settling": "Settling in",
   "standards.settlingDays":
     "{days, plural, one {# day} other {# days}} after a bull arrives, before his gain is judged",

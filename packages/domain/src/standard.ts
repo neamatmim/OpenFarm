@@ -231,6 +231,63 @@ export const STANDARD_RATIONS = {
 } as const satisfies Record<string, StandardRation>;
 export type StandardRationKey = keyof typeof STANDARD_RATIONS;
 
+/** How firmly a standard Expected Gain stands on what was published: a figure trials of cattle like ours measured at
+ *  that weight, one the trials only nearly reach, or one worked out where no trial went. */
+export const GAIN_FIRMNESS = ["medium", "mediumLow", "low"] as const;
+export type GainFirmness = (typeof GAIN_FIRMNESS)[number];
+
+/**
+ * How firm each standard Ration's Expected Gain is, and why, as docs/research/expected-daily-gain.md rates it — said
+ * beside the figure on the Standards and sources page, so a weak one is known to be weak before the farm leans on it.
+ * None is firmer than middling: the Bangladeshi trials are few, small and short.
+ */
+export const STANDARD_GAIN_FIRMNESS = {
+  calf: {
+    firmness: "mediumLow",
+    why: {
+      bn: "খামারের হলস্টেইন-সংকর বাছুর, আর সংকর ও রেড চিটাগাং বাছুরের গবেষণা।",
+      en: "Holstein-cross calves on farms, and trials of crossbred and Red Chittagong calves.",
+    },
+  },
+  bullStarter: {
+    firmness: "low",
+    why: {
+      bn: "এত হালকা সংকর ষাঁড়ের কোনো গবেষণা নেই: রোগা ষাঁড়ে দানাদার, রেড চিটাগাং ষাঁড় আর খাদ্যশক্তির হিসাব থেকে।",
+      en: "No trial of crossbred bulls this light: worked from thin bulls on concentrate, Red Chittagong bulls and feed-energy arithmetic.",
+    },
+  },
+  bullGrower: {
+    firmness: "mediumLow",
+    why: {
+      bn: "বেশি দানাদারে ব্রাহমা-সংকর ষাঁড় আর খাদ্যশক্তির হিসাব; হলস্টেইন-সংকরের দুটি গবেষণায় তিন গুণ অমিল।",
+      en: "Brahman-cross bulls on richer rations and feed-energy arithmetic; two Holstein-cross trials disagree threefold.",
+    },
+  },
+  bullFinisher: {
+    firmness: "medium",
+    why: {
+      bn: "একই রকম দানাদারে দেশের হলস্টেইন-সংকর ও ব্রাহমা-সংকর গবেষণা, আর ৩০০ কেজিতে BLRI-এর নিজের সংখ্যা।",
+      en: "Holstein-cross and Brahman-cross trials in Bangladesh on like concentrate, and BLRI's own figure at 300 kg.",
+    },
+  },
+  bullLateFinisher: {
+    firmness: "mediumLow",
+    why: {
+      bn: "প্রায় ৪৩০ কেজি পর্যন্ত ব্রাহমা-সংকর ষাঁড়; দেশে এর চেয়ে ভারী কোনো গবেষণা নেই।",
+      en: "Brahman-cross bulls to about 430 kg; no Bangladeshi trial went heavier.",
+    },
+  },
+  heavyBull: {
+    firmness: "low",
+    why: {
+      bn: "দেশে কোনো গবেষণা নেই: শুধু খাদ্যশক্তির হিসাব।",
+      en: "No Bangladeshi trial: feed-energy arithmetic only.",
+    },
+  },
+} as const satisfies Partial<
+  Record<StandardRationKey, { firmness: GainFirmness; why: Named }>
+>;
+
 /** Put on the Drug List for the Vet to fill in: without withdrawal days nothing may prescribe them yet. */
 export const STANDARD_DRUGS = {
   oxytet: {

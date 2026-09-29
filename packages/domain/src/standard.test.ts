@@ -8,6 +8,7 @@ import {
   STANDARD_DRUGS,
   STANDARD_FEED_ITEMS,
   STANDARD_NOTIFIABLE_DISEASES,
+  STANDARD_GAIN_FIRMNESS,
   STANDARD_RATIONS,
   rationLineOf,
 } from "./standard";
@@ -122,6 +123,20 @@ describe("the standard lists", () => {
       }).toEqual({ key, problems: [] });
     }
     expect("gain" in STANDARD_RATIONS.arrival).toBe(false);
+  });
+
+  // The Standards and sources page says beside each standard figure how firm it is: none may go without.
+  it("says how firm each Ration's gain is, and why, in both languages", () => {
+    for (const key of FATTENING_BY_WEIGHT) {
+      const said = STANDARD_GAIN_FIRMNESS[key];
+      expect({
+        key,
+        why: said.why.bn.trim() !== "" && said.why.en.trim() !== "",
+      }).toEqual({ key, why: true });
+    }
+    expect(Object.keys(STANDARD_GAIN_FIRMNESS).toSorted()).toEqual(
+      [...FATTENING_BY_WEIGHT].toSorted()
+    );
   });
 
   // NDDB 2012: an adult takes 1–1.5 kg of mustard cake a day, and no more.
