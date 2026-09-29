@@ -13,6 +13,7 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import {
   Archive,
   ArchiveRestore,
@@ -149,7 +150,13 @@ const ExpectedGainFields = ({
           half ? "text-warning" : "text-muted-foreground"
         )}
       >
-        {half ? t("feed.expectedGainBoth") : t("feed.expectedGainHint")}
+        {half ? t("feed.expectedGainBoth") : t("feed.expectedGainHint")}{" "}
+        <Link
+          className="text-primary underline-offset-4 hover:underline"
+          to="/standards"
+        >
+          {t("standards.link")}
+        </Link>
       </p>
       {farmsOwn}
     </fieldset>
