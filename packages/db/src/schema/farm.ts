@@ -186,6 +186,11 @@ export const farm = pgTable("farm", {
   /** How many days a Baki with no promised day may run before it is overdue — a milk buyer who pays on a round. A
    *  month unless the Owner says otherwise: the Owner's, as whom the farm lends to is. */
   bakiDays: integer("baki_days").notNull().default(30),
+  /** The taka a Stock Count may come up short by before the Owner and the Manager are told of that count: ৳2,000 unless
+   *  the Owner says otherwise. The Owner's, because the count is the one check on the feed the Manager takes in. */
+  storeShortfallTellBdt: integer("store_shortfall_tell_bdt")
+    .notNull()
+    .default(2000),
   /** Whether Investors the Owner has invited may sign in to read their Ventures and papers (ADR 0007). Off until
    *  the Owner turns it on, and off again is how the farm answers a lawyer who says the portal is a platform. */
   investorPortal: boolean("investor_portal").notNull().default(false),

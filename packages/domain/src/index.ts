@@ -300,6 +300,7 @@ export {
   roundKg,
   shortfallPercent,
   priceHistory,
+  shortfallOf,
   stockLedger,
 } from "./feed";
 export type {

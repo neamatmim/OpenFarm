@@ -446,6 +446,31 @@ export const stockLedger = (
 };
 
 /**
+ * What a Stock Count's differences come to in taka: each at the store's average price when it was counted, which is
+ * the price the animals are charged at, so the figure and the costs agree. What was short and what was over are kept
+ * apart and never netted: a sack found over in one feed does not pay for a sack gone from another. A feed never bought
+ * has no price — the farm's own napier — and adds nothing either way.
+ */
+export const shortfallOf = (
+  lines: readonly { difference: number; priceBdt: number | null }[]
+): { shortBdt: number; overBdt: number } => {
+  let short = 0;
+  let over = 0;
+  for (const line of lines) {
+    if (line.priceBdt === null) {
+      continue;
+    }
+    const value = line.difference * line.priceBdt;
+    if (value < 0) {
+      short -= value;
+    } else {
+      over += value;
+    }
+  }
+  return { shortBdt: roundTaka(short), overBdt: roundTaka(over) };
+};
+
+/**
  * What a unit of a Feed Item cost at any moment, from one replay of its store: what a Feeding at that
  * moment is charged at. The same price `stockLedger` reads as of that moment, without replaying the store
  * once for every Feeding in a year — and not yet rounded, so that it is rounded once, where it is added up.

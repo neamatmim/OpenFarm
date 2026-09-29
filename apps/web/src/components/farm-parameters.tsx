@@ -53,6 +53,7 @@ type NumberKey =
   | "approvalThresholdBdt"
   | "monthlyCostsFromDay"
   | "bakiDays"
+  | "storeShortfallTellBdt"
   | "ventureFloorPercent"
   | "ventureRunningPercent"
   | "ventureInvestorsPercent"
@@ -247,6 +248,21 @@ const GROUPS: {
         unit: "params.days",
         min: 7,
         max: 120,
+      },
+    ],
+  },
+  {
+    id: "params-store-shortfall",
+    title: "params.storeShortfall",
+    hint: "params.storeShortfallHint",
+    owner: true,
+    fields: [
+      {
+        key: "storeShortfallTellBdt",
+        label: "params.storeShortfallTellBdt",
+        unit: "params.taka",
+        min: 0,
+        max: 1_000_000,
       },
     ],
   },

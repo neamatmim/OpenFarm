@@ -6,6 +6,7 @@ import { protectedProcedure } from "../index";
 import { overheadMoneyIn, overheadsOf } from "../overhead-store";
 import { periodInput, periodOf } from "../period";
 import { requireRole } from "../roles";
+import { shortfallIn } from "../stock-store";
 
 export const costsRouter = {
   /**
@@ -42,11 +43,14 @@ export const costsRouter = {
     .handler(async ({ context, input }) => {
       const range = periodOf(input);
       const costs = await farmCosts(context.db, context.farm.id);
-      const overheadMoney = await overheadMoneyIn(
-        context.db,
-        context.farm.id,
-        range
-      );
+      const [overheadMoney, storeShortfall] = await Promise.all([
+        overheadMoneyIn(context.db, context.farm.id, range),
+        // What the counts found missing: feed bought and never eaten, so in no Side's costs and in no Overhead.
+        shortfallIn(context.db, context.farm.id, {
+          from: range.from,
+          to: range.until,
+        }),
+      ]);
       return {
         ...costsBySide(costs, range),
         overheads: overheadsOf(
@@ -55,6 +59,7 @@ export const costsRouter = {
           range,
           context.clock.now()
         ),
+        storeShortfall,
       };
     }),
 };

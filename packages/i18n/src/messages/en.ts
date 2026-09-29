@@ -4678,6 +4678,21 @@ export const en = {
   "owner.storeNotCounted": "The store has not been counted",
   "owner.storeLastCounted": "Last counted {day}",
   "owner.storeNeverCounted": "Never counted",
+  "alerts.storeShortfall": "The store count on {day} came up ৳{amount} short",
+  "alerts.openTheCounts": "Open the counts",
+  "digest.storeShortfall":
+    "{count, plural, one {# store count} other {# store counts}} came up short",
+  "params.storeShortfall": "A short store",
+  "params.storeShortfallHint":
+    "A weekly count that finds this much feed missing, at what the feed cost, is told to you and the Manager.",
+  "params.storeShortfallTellBdt": "Tell when a count is short by more than",
+  "costs.storeShortfall": "Feed missing at the counts",
+  "costs.storeShortfallHint":
+    "What the Stock Counts found missing, at the store's price when counted. It is in no Side's costs: nothing ate it.",
+  "costs.storeShort": "Missing",
+  "costs.storeOver": "Found over",
+  "costs.storeCounts":
+    "{count, plural, one {# count} other {# counts}} in the period",
   "refusal.notMissing": "This animal is not missing: nobody is looking for it",
 } as const;
 

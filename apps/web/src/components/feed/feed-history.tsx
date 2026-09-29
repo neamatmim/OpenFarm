@@ -403,6 +403,26 @@ const DifferenceCell = ({ row }: { row: { original: Adjustment } }) => {
   );
 };
 
+/** What a difference is worth at the store's price when counted: missing in the danger colour; nothing for feed never
+ *  bought, which has no price. Missing from an answer a phone kept from before counts were priced. */
+const ValueCell = ({ row }: { row: { original: Adjustment } }) => {
+  const taka = useTaka();
+  const value = row.original.valueBdt;
+  if (value === null || value === undefined) {
+    return <Nothing />;
+  }
+  return (
+    <span
+      className={cn(
+        "whitespace-nowrap tabular-nums",
+        value < 0 && "text-danger font-medium"
+      )}
+    >
+      {taka(value)}
+    </span>
+  );
+};
+
 const countColumn = createListColumns<Adjustment>();
 const countColumns = countColumn.columns([
   countColumn.accessor((one) => new Date(one.countedAt).getTime(), {
@@ -430,6 +450,12 @@ const countColumns = countColumn.columns([
     cell: DifferenceCell,
     meta: { align: "end" },
   }),
+  countColumn.accessor((one) => one.valueBdt ?? 0, {
+    id: "value",
+    header: listHeader("stock.col.value"),
+    cell: ValueCell,
+    meta: { align: "end" },
+  }),
   countColumn.accessor("reason", {
     header: listHeader("audit.reason"),
   }),
@@ -446,7 +472,10 @@ const CountCard = ({ row }: { row: Adjustment }) => {
     <div className="flex flex-col gap-1">
       <div className="flex items-center justify-between gap-2">
         <span className="font-medium">{row.nameBn}</span>
-        <DifferenceCell row={{ original: row }} />
+        <span className="flex items-center gap-2">
+          <DifferenceCell row={{ original: row }} />
+          <ValueCell row={{ original: row }} />
+        </span>
       </div>
       <span className="text-muted-foreground text-xs">
         {formatDate(row.countedAt, language)} ·{" "}

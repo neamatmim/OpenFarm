@@ -1,7 +1,9 @@
-import { roundKg } from "@OpenFarm/domain";
+import { farmDayOf, roundKg, shortfallOf } from "@OpenFarm/domain";
 
 import type { Tx } from "../audit";
+import { tell } from "../notice";
 import { recordStockCount } from "../stock-store";
+import type { StockAdjustment } from "../stock-store";
 import type { EffectInput, EffectResult, EffectKind } from "./effect";
 
 type StockCountFacts = Pick<
@@ -14,6 +16,40 @@ type StockCountFacts = Pick<
   | "recordedAt"
   | "now"
 >;
+
+/**
+ * Tells the Owner and the Manager of a count that found more feed missing than the Owner's line, in taka at what the
+ * feed cost — told once for the count, in the evening's post. A count put right later is not told again: the Notice is
+ * about the count, and the feed page shows what it says now.
+ */
+const tellIfTheStoreCameUpShort = async (
+  tx: Tx,
+  input: StockCountFacts,
+  adjustments: readonly StockAdjustment[]
+) => {
+  const { shortBdt } = shortfallOf(adjustments);
+  const farm = await tx.query.farm.findFirst({
+    where: { id: input.instance.farmId },
+    columns: { storeShortfallTellBdt: true },
+  });
+  if (!farm || shortBdt <= farm.storeShortfallTellBdt) {
+    return;
+  }
+  await tell(
+    tx,
+    input.instance.farmId,
+    {
+      kind: "store_shortfall",
+      about: { id: input.completionId },
+      // To the taka: a notice read on a phone, not a ledger.
+      facts: {
+        shortBdt: Math.round(shortBdt),
+        countedOn: farmDayOf(input.recordedAt),
+      },
+    },
+    input.now
+  );
+};
 
 /**
  * Counts the store: what is really there of each Feed Item, and why it differs. The Manager's alone
@@ -33,6 +69,7 @@ const countTheStore = async (
     countedBy: input.recordedBy,
     now: input.now,
   });
+  await tellIfTheStoreCameUpShort(tx, input, adjustments);
   return { kind: "stock_count", adjustments };
 };
 

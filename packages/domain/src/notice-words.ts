@@ -91,6 +91,10 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
   withdrawal_ending: (facts) => ({ tag: facts.tag }),
   withdrawal_changed: (facts) => ({ tag: facts.tag }),
   notifiable_diagnosis: (facts) => ({ tag: facts.tag, disease: facts.disease }),
+  store_shortfall: (facts, language) => ({
+    amount: Number(facts.shortBdt),
+    day: saidDate(facts.countedOn, language),
+  }),
   animal_missing: (facts, language) => ({
     tag: facts.tag,
     pen: facts.pen,

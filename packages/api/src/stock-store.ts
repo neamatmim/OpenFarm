@@ -9,6 +9,7 @@ import {
   lastFellBelow,
   roundKg,
   roundTaka,
+  shortfallOf,
   startOfFarmDay,
   stockLedger,
 } from "@OpenFarm/domain";
@@ -370,6 +371,8 @@ export interface StockCountLine {
 export interface StockAdjustment {
   feedItemId: string;
   difference: number;
+  /** The store's average price when it was counted: what the difference is worth a unit. Null for feed never bought. */
+  priceBdt: number | null;
 }
 
 /**
@@ -431,14 +434,15 @@ export const recordStockCount = async (
   });
   const lines = entry.counts.map((line) => {
     const counted = roundKg(line.counted);
-    const expected = stockLedger(
+    const { onHand: expected, averagePriceBdt } = stockLedger(
       movements.get(line.feedItemId) ?? [],
       entry.countedAt
-    ).onHand;
+    );
     return {
       ...line,
       counted,
       expected,
+      priceBdt: averagePriceBdt,
       difference: roundKg(counted - expected),
       reason: line.reason?.trim() || null,
     };
@@ -494,36 +498,46 @@ export const recordStockCount = async (
     .map((line) => ({
       feedItemId: line.feedItemId,
       difference: line.difference,
+      priceBdt: line.priceBdt,
     }));
 };
 
-/**
- * The differences the Stock Counts booked, newest first, as they read now: what the store was thought
- * to hold at the moment of each count — worked out again, so a Feeding or a delivery written up late but
- * dated before the count shows in it rather than standing in the adjustment as a loss — what the count
- * found, and the reason, with what was expected when the count was made kept beside it.
- */
-export const adjustmentsOf = async (
-  db: Pick<Database, "query" | "execute">,
+/** The Stock Count lines a reading of the store's differences starts from. */
+type CountRow = Awaited<ReturnType<typeof countRowsOf>>[number];
+
+const countRowsOf = (
+  db: Pick<Database, "query">,
   farmId: string,
-  feedItemId?: string
-) => {
-  const rows = await db.query.stockCount.findMany({
+  which: { feedItemId?: string; from?: Date; to?: Date; limit?: number }
+) =>
+  db.query.stockCount.findMany({
     where: {
       farmId,
       reason: { isNotNull: true },
-      ...(feedItemId ? { feedItemId } : {}),
+      ...(which.feedItemId ? { feedItemId: which.feedItemId } : {}),
+      ...(which.from && which.to
+        ? { countedAt: { gte: which.from, lt: which.to } }
+        : {}),
     },
     with: {
       feedItem: { columns: { nameBn: true, unit: true } },
       counter: { columns: { name: true } },
     },
     orderBy: { countedAt: "desc", id: "desc" },
-    limit: 200,
+    ...(which.limit ? { limit: which.limit } : {}),
   });
-  if (rows.length === 0) {
-    return [];
-  }
+
+/**
+ * The differences these counts booked, as they read now: what the store was thought to hold at the moment of each count
+ * — worked out again, so a Feeding or a delivery written up late but dated before the count shows in it rather than
+ * standing in the adjustment as a loss — what the count found, the reason, and what the difference is worth at the
+ * store's average price then.
+ */
+const readTheCounts = async (
+  db: Pick<Database, "query" | "execute">,
+  farmId: string,
+  rows: readonly CountRow[]
+) => {
   const readAgain = new Map<string, Map<string, StockMovement[]>>();
   const movementsWithout = async (completionId: string) => {
     const known = readAgain.get(completionId);
@@ -541,11 +555,12 @@ export const adjustmentsOf = async (
   for (const row of rows) {
     // oxlint-disable-next-line no-await-in-loop
     const movements = await movementsWithout(row.completionId);
-    const expected = stockLedger(
+    const { onHand: expected, averagePriceBdt } = stockLedger(
       movements.get(row.feedItemId) ?? [],
       row.countedAt
-    ).onHand;
+    );
     const counted = Number(row.counted);
+    const difference = roundKg(counted - expected);
     out.push({
       id: row.id,
       feedItemId: row.feedItemId,
@@ -557,11 +572,54 @@ export const adjustmentsOf = async (
       expected,
       expectedWhenCounted: Number(row.expected),
       counted,
-      difference: roundKg(counted - expected),
+      difference,
       reason: row.reason,
+      /** The store's average price when counted; null for feed never bought. */
+      priceBdt: averagePriceBdt,
+      /** What the difference is worth at that price — below nothing for feed missing. */
+      valueBdt:
+        averagePriceBdt === null
+          ? null
+          : roundTaka(difference * averagePriceBdt),
     });
   }
   return out;
+};
+
+/**
+ * The differences the Stock Counts booked, newest first, as they read now, with what each is worth. The latest two
+ * hundred: the feed page's list, not a total — a period's total is `shortfallIn`.
+ */
+export const adjustmentsOf = async (
+  db: Pick<Database, "query" | "execute">,
+  farmId: string,
+  feedItemId?: string
+) => {
+  const rows = await countRowsOf(db, farmId, { feedItemId, limit: 200 });
+  return rows.length === 0 ? [] : readTheCounts(db, farmId, rows);
+};
+
+/**
+ * What the Stock Counts of a period found missing and found over, in taka at the store's price when each was counted,
+ * and how many counts were made in it. Every count in the period, not the feed page's latest two hundred lines.
+ */
+export const shortfallIn = async (
+  db: Pick<Database, "query" | "execute">,
+  farmId: string,
+  range: { from: Date; to: Date }
+): Promise<{ shortBdt: number; overBdt: number; counts: number }> => {
+  const [rows, made] = await Promise.all([
+    countRowsOf(db, farmId, range),
+    db.query.stockCount.findMany({
+      where: { farmId, countedAt: { gte: range.from, lt: range.to } },
+      columns: { completionId: true },
+    }),
+  ]);
+  const lines = rows.length === 0 ? [] : await readTheCounts(db, farmId, rows);
+  return {
+    ...shortfallOf(lines),
+    counts: new Set(made.map((row) => row.completionId)).size,
+  };
 };
 
 export const sellerInput = z.object({
