@@ -7,6 +7,7 @@ import {
   CalendarClock,
   ClipboardCheck,
   Gavel,
+  HandCoins,
   HeartPulse,
   Milk,
   ShieldAlert,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { BakiOverdueGroup } from "@/components/home/baki-overdue";
 import { MonthlyCostsGroup } from "@/components/home/monthly-costs";
 import {
   MORE_LINK,
@@ -107,6 +109,7 @@ export const QUEUE_KINDS = [
   "meatWithdrawal",
   "lowStock",
   "monthlyCosts",
+  "bakiOverdue",
   "repeatBreeders",
 ] as const;
 export type QueueKind = (typeof QUEUE_KINDS)[number];
@@ -122,6 +125,8 @@ const countsOf = (queue: ManagerQueueData): Record<QueueKind, number> => ({
   monthlyCosts:
     (queue.monthlyCosts?.costs.length ?? 0) +
     (queue.monthlyCosts?.wages.length ?? 0),
+  // Missing from an answer a phone kept from before Baki was written down.
+  bakiOverdue: queue.bakiOverdue?.length ?? 0,
   repeatBreeders: queue.repeatBreeders.length,
 });
 
@@ -312,6 +317,11 @@ const QueueKindList = ({
         />
       );
     }
+    case "bakiOverdue": {
+      return (
+        <BakiOverdueGroup buyers={queue.bakiOverdue} headless={headless} />
+      );
+    }
     case "repeatBreeders": {
       return (
         <QueueGroup
@@ -355,6 +365,7 @@ export const ManagerQueue = ({
     meatWithdrawal: { label: t("home.meatWithdrawal"), icon: ShieldAlert },
     lowStock: { label: t("home.lowStock"), icon: Wheat },
     monthlyCosts: { label: t("home.monthlyCosts"), icon: CalendarClock },
+    bakiOverdue: { label: t("home.bakiOverdue"), icon: HandCoins },
     repeatBreeders: { label: t("repeatBreeder.title"), icon: HeartPulse },
   };
   const waiting = QUEUE_KINDS.filter((kind) => counts[kind] > 0);

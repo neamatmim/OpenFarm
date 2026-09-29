@@ -118,6 +118,8 @@ export interface Context {
     approvalThresholdBdt: number;
     /** The day of the month from which a Monthly Cost with nothing entered that month is named. */
     monthlyCostsFromDay: number;
+    /** How many days a Baki with no promised day may run before it is overdue. */
+    bakiDays: number;
     /** What part of a Venture's target capital is the least worth starting on. */
     ventureFloorPercent: number;
     /** What part of a Venture's capital keeps the animals rather than buying them. */

@@ -52,6 +52,7 @@ type NumberKey =
   | "returnYearFloorDays"
   | "approvalThresholdBdt"
   | "monthlyCostsFromDay"
+  | "bakiDays"
   | "ventureFloorPercent"
   | "ventureRunningPercent"
   | "ventureInvestorsPercent"
@@ -231,6 +232,21 @@ const GROUPS: {
         // The 28th is the last day every month has.
         min: 1,
         max: 28,
+      },
+    ],
+  },
+  {
+    id: "params-baki",
+    title: "params.baki",
+    hint: "params.bakiHint",
+    owner: true,
+    fields: [
+      {
+        key: "bakiDays",
+        label: "params.bakiDays",
+        unit: "params.days",
+        min: 7,
+        max: 120,
       },
     ],
   },

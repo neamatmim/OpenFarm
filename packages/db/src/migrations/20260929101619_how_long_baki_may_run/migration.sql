@@ -1,0 +1,1 @@
+ALTER TABLE "farm" ADD COLUMN "baki_days" integer DEFAULT 30 NOT NULL;

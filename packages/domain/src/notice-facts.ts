@@ -34,6 +34,14 @@ export interface NoticeFacts {
   withdrawal_ending: { tag: string; animalId: string; until: string };
   withdrawal_changed: { tag: string; until: string };
   notifiable_diagnosis: { tag: string; disease: string };
+  /** One Baki gone past its day: who owes it, what is still owing on it, and the first day it was late. */
+  baki_overdue: {
+    counterpartyId: string;
+    buyer: string;
+    owingBdt: number;
+    /** The farm day ("YYYY-MM-DD") it first went overdue. */
+    overdueFrom: string;
+  };
   low_stock: {
     feedItemId: string;
     nameBn: string;

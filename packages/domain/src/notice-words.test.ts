@@ -119,6 +119,12 @@ const EXAMPLE: NoticeFacts = {
     investor: "আবুল হাশেম মিয়া",
     units: 4,
   },
+  baki_overdue: {
+    counterpartyId: "buyer-1",
+    buyer: "করিম ব্যাপারী",
+    owingBdt: 20_000,
+    overdueFrom: "2038-03-09",
+  },
 };
 
 const LANGUAGES: readonly Language[] = ["bn", "en"];
@@ -225,5 +231,18 @@ describe("how late something is, in hours", () => {
     expect(hoursLate(89)).toBe(1);
     expect(hoursLate(90)).toBe(2);
     expect(hoursLate(200)).toBe(3);
+  });
+});
+
+describe("an overdue Baki's words", () => {
+  it("names the buyer, what he owes and the day it went late, in the reader's digits", () => {
+    const params = (language: "bn" | "en") =>
+      noticeFilling("baki_overdue", EXAMPLE.baki_overdue, language);
+    expect(translate("bn", "alerts.bakiOverdue", params("bn"))).toBe(
+      "করিম ব্যাপারী-এর কাছে ৳২০,০০০ বাকি, ৯ মার্চ, ২০৩৮ থেকে মেয়াদোত্তীর্ণ"
+    );
+    expect(translate("en", "alerts.bakiOverdue", params("en"))).toBe(
+      "Baki overdue since 9 March 2038: ৳20,000 from করিম ব্যাপারী"
+    );
   });
 });

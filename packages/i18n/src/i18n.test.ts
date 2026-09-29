@@ -97,6 +97,7 @@ describe("messages", () => {
       "says",
       "this",
       "ends",
+      "owes",
     ]);
     const countThenPlural =
       /\{(?<name>\w+)\} (?:more |new |expired |common |[A-Z]\w+ )?(?<word>[A-Za-z]+s)\b/gu;

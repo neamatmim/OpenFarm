@@ -2,6 +2,7 @@ import type { Database } from "@OpenFarm/db";
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { sql } from "@OpenFarm/db/operators";
 import { BAKI_KINDS as KINDS, bakiPayment } from "@OpenFarm/db/schema/money";
+import { farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -10,6 +11,7 @@ import {
   CATEGORY_OF_BAKI,
   assertPaidNoMoreThanOwed,
   bakiOfBuyers,
+  overdueOfBuyer,
   owingOf,
   readBakiPayment,
 } from "../baki-store";
@@ -58,7 +60,16 @@ export const bakiRouter = {
       const [his] = await bakiOfBuyers(context.db, context.farm.id, {
         counterpartyId: known.id,
       });
-      return his ?? null;
+      if (!his) {
+        return null;
+      }
+      // And whether any of it is past its day, which the sheets say more loudly.
+      const overdue = overdueOfBuyer(
+        his,
+        farmDayOf(context.clock.now()),
+        context.farm.bakiDays
+      );
+      return { ...his, overdueSince: overdue?.overdueSince ?? null };
     }),
 
   /**

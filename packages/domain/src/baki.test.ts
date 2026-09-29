@@ -4,7 +4,10 @@ import {
   bakiAtTheGate,
   bakiPutRight,
   bakiStanding,
+  isBakiOverdue,
+  overdueFrom,
   paidAtTheGate,
+  soldOnBakiWhileOverdue,
 } from "./baki";
 
 const LEFT_ON = "2026-06-16";
@@ -267,5 +270,62 @@ describe("a buyer's Baki, cleared oldest first", () => {
       [paid("p1", "2026-06-02", 1000)]
     );
     expect(standing.soonestPromise).toBe("2026-06-20");
+  });
+});
+
+const standingItem = (
+  id: string,
+  leftOn: string,
+  owingBdt: number,
+  promisedBy: string | null = null
+) => ({ id, leftOn, promisedBy, owingBdt });
+
+describe("overdue Baki", () => {
+  it("is not late on the day he promised, and is the day after", () => {
+    const bull = standingItem("a", "2026-06-01", 20_000, "2026-06-08");
+    expect(overdueFrom(bull, 30)).toBe("2026-06-09");
+    expect(isBakiOverdue(bull, "2026-06-08", 30)).toBe(false);
+    expect(isBakiOverdue(bull, "2026-06-09", 30)).toBe(true);
+  });
+
+  it("gives milk with no promise the farm's days, and is late the day after they run out", () => {
+    const milk = standingItem("d", "2026-06-01", 1750);
+    // Thirty days from the first of June is the first of July: still within them.
+    expect(isBakiOverdue(milk, "2026-07-01", 30)).toBe(false);
+    expect(isBakiOverdue(milk, "2026-07-02", 30)).toBe(true);
+  });
+
+  it("is still overdue when part is paid, and not when all is", () => {
+    expect(
+      isBakiOverdue(
+        standingItem("a", "2026-06-01", 5000, "2026-06-08"),
+        "2026-06-20",
+        30
+      )
+    ).toBe(true);
+    expect(
+      isBakiOverdue(
+        standingItem("a", "2026-06-01", 0, "2026-06-08"),
+        "2026-06-20",
+        30
+      )
+    ).toBe(false);
+  });
+
+  it("counts a promise across the turn of a month", () => {
+    const bull = standingItem("a", "2026-01-25", 20_000, "2026-01-31");
+    expect(overdueFrom(bull, 30)).toBe("2026-02-01");
+  });
+
+  it("says when he was sold to on Baki again while already late", () => {
+    const late = standingItem("a", "2026-06-01", 20_000, "2026-06-08");
+    const before = standingItem("b", "2026-06-05", 10_000, "2026-06-20");
+    const after = standingItem("c", "2026-06-10", 10_000, "2026-06-25");
+    expect(soldOnBakiWhileOverdue([late, before], 30)).toBe(false);
+    expect(soldOnBakiWhileOverdue([late, after], 30)).toBe(true);
+    // Paid off, the late one no longer makes the next a loan to a man who has not paid.
+    expect(soldOnBakiWhileOverdue([{ ...late, owingBdt: 0 }, after], 30)).toBe(
+      false
+    );
   });
 });
