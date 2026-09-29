@@ -322,7 +322,7 @@ export type StandardDrugKey = keyof typeof STANDARD_DRUGS;
 
 /** The standard product each campaign in the Standard Playbook would give, offered first when the Owner adopts it. */
 export const STANDARD_DRUG_FOR: Record<
-  Exclude<StandardSopNeed, "calvingPen">,
+  Exclude<StandardSopNeed, "calvingPen" | "weanedBullPen">,
   StandardDrugKey
 > = {
   fmdVaccine: "fmd",

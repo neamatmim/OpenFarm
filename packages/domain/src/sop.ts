@@ -87,6 +87,8 @@ export type StepEffect =
   | { kind: "dry_off" }
   /** He is out of Quarantine: Fattening from this Step, and walked to the Pen whose Ration's Weight Band suits him. */
   | { kind: "release" }
+  /** A calf weaned: a Heifer from this Step, or walked across to the Fattening Pen the Step names (**Weaning**). */
+  | { kind: "wean" }
   /** She calved: when, how it went, and each calf — her next Lactation, and a new animal per calf. */
   | { kind: "calving" }
   /** The store counted: what is really there of each Feed Item, and why it differs. */
@@ -109,6 +111,7 @@ export const STEP_EFFECT_KINDS = [
   "pregnancy_check",
   "dry_off",
   "release",
+  "wean",
   "calving",
   "stock_count",
   "registration_renewal",
@@ -385,6 +388,27 @@ const releaseStepProblems = (step: Step, path: string): string[] =>
         `${path}: an animal is released from quarantine one at a time, so the step is walked animal by animal`,
       ];
 
+/** The choice on a wean Step that keeps a heifer calf on the Dairy side, a Heifer; every other choice is a Pen. */
+export const STAYS_A_HEIFER = "stays_a_heifer";
+
+/** A calf is weaned one at a time, and where she goes is a choice: a Heifer here, or a Fattening Pen. */
+const weanStepProblems = (step: Step, path: string): string[] => [
+  ...(step.repeatPerAnimal
+    ? []
+    : [
+        `${path}: a calf is weaned one at a time, so the step is walked animal by animal`,
+      ]),
+  ...(step.evidence.some(
+    (item) =>
+      item.type === "choice" &&
+      (item.choices ?? []).some((one) => one.value !== STAYS_A_HEIFER)
+  )
+    ? []
+    : [
+        `${path}.evidence: a weaning step names the fattening pen a weaned bull calf goes to`,
+      ]),
+];
+
 /**
  * The store is counted once, whole: what is counted is every Feed Item the farm keeps, which come from
  * the farm and not from the Version, so this Step asks nothing of its own.
@@ -418,6 +442,7 @@ const SHAPED_STEPS: Partial<
   pregnancy_check: pregnancyCheckStepProblems,
   dry_off: dryOffStepProblems,
   release: releaseStepProblems,
+  wean: weanStepProblems,
   calving: calvingStepProblems,
   stock_count: stockCountStepProblems,
   registration_renewal: renewalStepProblems,

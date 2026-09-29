@@ -1,6 +1,7 @@
 import {
   index,
   integer,
+  numeric,
   pgTable,
   text,
   timestamp,
@@ -201,5 +202,39 @@ export const repeatBreederAnswer = pgTable(
       table.animalId,
       table.answeredAt
     ),
+  ]
+);
+
+/** Where a weaned calf went: a Heifer on the Dairy side, or across to Fattening. */
+export const WEANED_TO = ["dairy", "fattening"] as const;
+
+/**
+ * A calf weaned (**Weaning**): when, what she weighed, and where she went — a Heifer on the Dairy side, or a bull calf
+ * walked across to Fattening, whose Days on Feed count from here. One per animal, because a calf is weaned once, and
+ * keyed on the Step that did it, so a replay replaces rather than adds.
+ */
+export const weaning = pgTable(
+  "weaning",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    animalId: text("animal_id")
+      .notNull()
+      .references(() => animal.id, { onDelete: "cascade" }),
+    weanedAt: timestamp("weaned_at").notNull(),
+    /** Her latest Weigh-in when she was weaned, or nothing where nobody had weighed her. */
+    weightKg: numeric("weight_kg", { precision: 7, scale: 2 }),
+    to: text("to", { enum: WEANED_TO }).notNull(),
+    completionId: text("completion_id").references(() => stepCompletion.id, {
+      onDelete: "set null",
+    }),
+    recordedBy: text("recorded_by").references(() => user.id),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("weaning_animal_uidx").on(table.animalId),
+    uniqueIndex("weaning_completion_uidx").on(table.completionId),
   ]
 );

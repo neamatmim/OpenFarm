@@ -657,6 +657,8 @@ export const animalsForInstance = async (
     columns: {
       id: true,
       tagNumber: true,
+      // Heifer calf or bull calf: a weaning says where each goes by it.
+      sex: true,
       side: true,
       state: true,
       photoUpdatedAt: true,

@@ -1232,6 +1232,8 @@ export const bn: Record<MessageKey, string> = {
     "যেদিন গেছে, তার আগের তারিখে বাকি দেওয়ার কথা হতে পারে না",
   "refusal.paidMoreThanOwed": "বাকি ৳{owingBdt}; বেশি দিলে কেন, মন্তব্যে লিখুন",
   "refusal.noSuchBuyer": "এই নামে কারো কাছে খামার কখনো বিক্রি করেনি",
+  "refusal.aBullCalfIsNoHeifer":
+    "এঁড়ে বাছুর বকনা হিসেবে থাকে না — তার মোটাতাজাকরণ পেন বাছুন",
   "refusal.writtenOffMoreThanOwed": "এর ওপর এখন বাকি মাত্র ৳{owingBdt}",
   "refusal.nothingOwedOnIt": "এর ওপর কখনো কিছু বাকি ছিল না",
   "refusal.ventureOwnsHer":
@@ -2154,6 +2156,7 @@ export const bn: Record<MessageKey, string> = {
   "sop.standard.hint":
     "OpenFarm-এর দেওয়া কার্যপ্রণালী, শুরু করার জন্য। আপনি পড়ে প্রকাশ না করা পর্যন্ত কোনোটিই কাজ তোলে না।",
   "sop.standard.adopt": "পড়ে প্রকাশ করুন",
+  "sop.standard.need.weanedBullPen": "দুধ ছাড়ানো এঁড়ে বাছুর যে মোটাতাজাকরণ পেনে যাবে",
   "sop.standard.need.calvingPen": "প্রসব পেন",
   "sop.standard.need.fmdVaccine": "এফএমডি টিকা",
   "sop.standard.need.lsdVaccine": "লাম্পি স্কিন টিকা",
@@ -3553,6 +3556,9 @@ export const bn: Record<MessageKey, string> = {
   "sop.effect.pregnancy_check": "গর্ভ পরীক্ষা",
   "sop.effect.dry_off": "গাভীর দুধ বন্ধ করা",
   "sop.effect.release": "কোয়ারেন্টিন থেকে ছেড়ে ওজন অনুযায়ী মানানসই পেনে নেয়",
+  "sop.effect.wean":
+    "বাছুরের দুধ ছাড়ানো: বকনা দুগ্ধ অংশে থাকে, এঁড়ে বাছুর বাছাই করা মোটাতাজাকরণ পেনে যায়",
+  "sop.effect.stays": "বকনা হিসেবে থাকবে",
   "sop.effect.calving": "বাচ্চা দেওয়া",
   "sop.effect.stock_count": "গুদাম গণনা",
   "sop.effect.lot_number": "ভায়ালের লট নম্বর, পুরো ক্যাম্পেইনে একবার",
@@ -4195,6 +4201,7 @@ export const bn: Record<MessageKey, string> = {
   "identity.onThisPage": "এই পাতায়",
   "standsAside.movedSince": "এটি করার পরে তাকে আবার স্থানান্তর করা হয়েছে",
   "standsAside.cannotReturnToMilk": "এখান থেকে তাকে আবার দুধে ফেরানো যায় না",
+  "standsAside.cannotUnwean": "দুধ ছাড়ানো বাছুরকে এখান থেকে আবার বাছুর বানানো যায় না",
   "standsAside.cannotReturnToQuarantine":
     "এখান থেকে তাকে আবার কোয়ারেন্টিনে ফেরানো যায় না",
   "standsAside.calvingActedOn": "এই বাচ্চা দেওয়ার পরে খামার এর ওপর কাজ করে ফেলেছে",

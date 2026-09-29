@@ -2,7 +2,7 @@
  * How the farm's people answer each piece of the Playbook, from what the seed knows of the herd: the Owner's
  * Playbook says what to record, and these say what was there to record.
  */
-import { HEAT } from "@OpenFarm/domain";
+import { HEAT, STAYS_A_HEIFER } from "@OpenFarm/domain";
 
 import type { Responder } from "./history";
 import { RESPONDERS } from "./history";
@@ -322,4 +322,20 @@ RESPONDERS.newbornSecondFeed = (step, beast, { farm, day }) => {
   return {
     evidence: [toHalfLitre((birthWeights.get(beast.tagNumber) ?? 28) / 20)],
   };
+};
+
+/** Weaned at three months: weighed, and a heifer calf stays a heifer while a bull calf goes to the lightest bulls. */
+RESPONDERS.weaning = (step, beast, { farm }) => {
+  if (!beast) {
+    return null;
+  }
+  if (step.id === "weigh") {
+    return { evidence: [Math.round(farm.random.between(55, 75))] };
+  }
+  if (step.id === "wean") {
+    return {
+      evidence: [beast.sex === "female" ? STAYS_A_HEIFER : farm.pens.bullsA],
+    };
+  }
+  return { evidence: [true] };
 };

@@ -17,6 +17,7 @@ import { STANDARD_SOP_NEEDS, standardPlaybook } from "./standard-playbook";
 
 const NAMED = {
   calvingPen: "pen-calving",
+  weanedBullPen: "pen-weaned-bulls",
   fmdVaccine: "product-fmd",
   lsdVaccine: "product-lsd",
   dewormer: "product-dewormer",

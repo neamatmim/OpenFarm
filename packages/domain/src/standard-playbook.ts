@@ -5,6 +5,7 @@
  */
 import { HEAT } from "./breeding";
 import type { Evidence, SopContent, Step } from "./sop";
+import { STAYS_A_HEIFER } from "./sop";
 
 const choice = (
   required: boolean,
@@ -1137,6 +1138,80 @@ const newbornSecondFeed = (): SopContent => ({
   ],
 });
 
+// ── Weaning ─────────────────────────────────────────────────────────────────────────────────────────────────────────
+//
+// At three months (the Owner, 2026-09-29), with a weigh-in. DLS weans when a calf eats 1 kg of starter a day for three
+// days and names 100–120 kg, which a crossbred calf does not reach by 90 days (about 64 kg at three months), so the
+// weight is written down and never stops the weaning (NG-GLPP §12.1.1.1.1(b); docs/research/newborn-calf-care.md §7).
+
+/** Weaned at three months, from the day she became a calf — her birth, for one born here. */
+const WEANING_AFTER_DAYS = 90;
+
+/** A weaning weight worth a second look: below 30 kg or above 200 (a crossbred calf is about 64 kg at 90 days). */
+const WEANING_WEIGHT_KG = { min: 30, max: 200 } as const;
+
+const NOT_READY_TO_WEAN = {
+  bn: "এখনো নয় — দিনে ১ কেজি দানাদার খাচ্ছে না",
+  en: "Not yet — not eating 1 kg of starter a day",
+};
+
+const weaning = (weanedBullPenId: string | undefined): SopContent => ({
+  name: { bn: "বাছুরের দুধ ছাড়ানো", en: "Weaning" },
+  purpose: {
+    bn: "তিন মাসে: ওজন নিন, তারপর বকনা বকনা হিসেবে থাকে আর এঁড়ে বাছুর মোটাতাজাকরণ পেনে যায়",
+    en: "At three months: weigh her, then a heifer calf stays a heifer and a bull calf goes to the fattening pen",
+  },
+  triggers: [{ kind: "state", state: "calf", offsetDays: WEANING_AFTER_DAYS }],
+  appliesTo: { side: "dairy", states: ["calf"] },
+  assignedRole: "staff",
+  checkerRole: "manager",
+  graceMinutes: 24 * 60,
+  steps: [
+    hisStep(
+      "starter",
+      "তিন দিন ধরে দিনে ১ কেজি দানাদার (স্টার্টার) খাচ্ছে?",
+      "Eating 1 kg of starter a day for three days?",
+      { skipReasons: [NOT_READY_TO_WEAN] }
+    ),
+    hisStep("weigh", "ওজন নিন", "Weigh her", {
+      evidence: [
+        {
+          type: "number",
+          required: true,
+          unit: { bn: "কেজি", en: "kg" },
+          min: WEANING_WEIGHT_KG.min,
+          max: WEANING_WEIGHT_KG.max,
+        },
+      ],
+      skipReasons: [{ bn: "দাঁড়িপাল্লা বা ফিতা নেই", en: "No scale or tape to hand" }],
+      effect: { kind: "weigh_in" },
+    }),
+    hisStep(
+      "wean",
+      "দুধ ছাড়ান: বকনা এখানেই থাকবে, এঁড়ে বাছুর মোটাতাজাকরণ পেনে যাবে",
+      "Wean her: a heifer calf stays here, a bull calf goes to the fattening pen",
+      {
+        evidence: [
+          choice(true, [
+            [STAYS_A_HEIFER, "বকনা হিসেবে থাকবে", "Stays as a heifer"],
+            ...(weanedBullPenId
+              ? [
+                  [weanedBullPenId, "মোটাতাজাকরণ পেন", "The fattening pen"] as [
+                    string,
+                    string,
+                    string,
+                  ],
+                ]
+              : []),
+          ]),
+        ],
+        skipReasons: [NOT_READY_TO_WEAN, { bn: "পাওয়া যায়নি", en: "Not found" }],
+        effect: { kind: "wean" },
+      }
+    ),
+  ],
+});
+
 export type PlaybookKey =
   | "morningMilking"
   | "eveningMilking"
@@ -1149,6 +1224,7 @@ export type PlaybookKey =
   | "calvingRecord"
   | "newbornCalfCare"
   | "newbornSecondFeed"
+  | "weaning"
   | "weighIn"
   | "fmdVaccination"
   | "lsdVaccination"
@@ -1176,6 +1252,7 @@ export type PlaybookKey =
  *  its Drug List a campaign gives. Left blank, the SOP is refused publishing and says why. */
 export type StandardSopNeed =
   | "calvingPen"
+  | "weanedBullPen"
   | "fmdVaccine"
   | "lsdVaccine"
   | "dewormer"
@@ -1188,6 +1265,7 @@ export type StandardSopNeed =
 export const STANDARD_SOP_NEEDS: Partial<Record<PlaybookKey, StandardSopNeed>> =
   {
     calvingPrep: "calvingPen",
+    weaning: "weanedBullPen",
     fmdVaccination: "fmdVaccine",
     lsdVaccination: "lsdVaccine",
     deworming: "dewormer",
@@ -1201,6 +1279,18 @@ export const STANDARD_SOP_NEEDS: Partial<Record<PlaybookKey, StandardSopNeed>> =
     fmdBooster: "fmdVaccine",
     dewormBooster: "dewormer",
   };
+
+/** The needs that are one of the farm's Pens rather than a product on its Drug List. */
+export const PEN_NEEDS = [
+  "calvingPen",
+  "weanedBullPen",
+] as const satisfies readonly StandardSopNeed[];
+
+/** Whether a need is one of the farm's Pens. */
+export const isPenNeed = (
+  need: StandardSopNeed
+): need is (typeof PEN_NEEDS)[number] =>
+  (PEN_NEEDS as readonly string[]).includes(need);
 
 /** The farm's own Pen or product for each need, where it has named one. */
 export type StandardSopChoices = Partial<Record<StandardSopNeed, string>>;
@@ -1220,6 +1310,7 @@ export const standardPlaybook = (
   calvingRecord: calvingRecord(),
   newbornCalfCare: newbornCalfCare(),
   newbornSecondFeed: newbornSecondFeed(),
+  weaning: weaning(chosen.weanedBullPen),
   weighIn: weighIn(),
   fmdVaccination: vaccination(
     chosen.fmdVaccine,
