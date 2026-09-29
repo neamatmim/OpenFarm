@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   SETTLING_IN_DAYS,
+  expectedGainFor,
   findExpectedGainProblems,
   gainCountsFrom,
   gainOnRationOf,
@@ -173,5 +174,68 @@ describe("a gain against the Ration's Expected Gain", () => {
     expect(isShortOfExpected("under")).toBe(true);
     expect(isShortOfExpected("within")).toBe(false);
     expect(isShortOfExpected("over")).toBe(false);
+  });
+});
+
+describe("the Expected Gain one animal is judged against", () => {
+  const grower = { lowKg: 0.6, highKg: 0.9 };
+  const shares = { deshiPercent: 70, femalePercent: 80 };
+
+  it("is her Ration's for a crossbred bull", () => {
+    expect(
+      expectedGainFor(grower, { deshi: false, sex: "male" }, shares)
+    ).toEqual({
+      expectedGain: grower,
+      adjustedFor: {
+        deshiPercent: null,
+        femalePercent: null,
+        breedRecorded: true,
+      },
+    });
+  });
+
+  it("is cut to the deshi share for a deshi bull, both ends alike", () => {
+    // 0.6 × 0.7 and 0.9 × 0.7.
+    expect(
+      expectedGainFor(grower, { deshi: true, sex: "male" }, shares)
+    ).toMatchObject({
+      expectedGain: { lowKg: 0.42, highKg: 0.63 },
+      adjustedFor: { deshiPercent: 70, femalePercent: null },
+    });
+  });
+
+  it("is cut to the female share for a cow, and to both for a deshi cow", () => {
+    expect(
+      expectedGainFor(grower, { deshi: false, sex: "female" }, shares)
+        .expectedGain
+    ).toEqual({ lowKg: 0.48, highKg: 0.72 });
+    // 0.6 × 0.7 × 0.8 = 0.336, and 0.9 × 0.56 = 0.504.
+    expect(
+      expectedGainFor(grower, { deshi: true, sex: "female" }, shares)
+        .expectedGain
+    ).toEqual({ lowKg: 0.34, highKg: 0.5 });
+  });
+
+  it("judges an animal nobody wrote a breed for as a cross, and says so", () => {
+    expect(
+      expectedGainFor(grower, { deshi: null, sex: "male" }, shares)
+    ).toEqual({
+      expectedGain: grower,
+      adjustedFor: {
+        deshiPercent: null,
+        femalePercent: null,
+        breedRecorded: false,
+      },
+    });
+  });
+
+  it("follows the farm's own shares", () => {
+    expect(
+      expectedGainFor(
+        grower,
+        { deshi: true, sex: "male" },
+        { deshiPercent: 60, femalePercent: 80 }
+      ).expectedGain
+    ).toEqual({ lowKg: 0.36, highKg: 0.54 });
   });
 });

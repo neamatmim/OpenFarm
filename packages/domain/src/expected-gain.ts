@@ -79,6 +79,9 @@ export interface GainOnRation {
 /** Rates carry a decimal more than kilogrammes do, as the board's do. */
 const RATE_SCALE = 100;
 
+/** A share said as a percentage is out of this. */
+const PERCENT = 100;
+
 /**
  * Her gain on the Ration she is eating: from her latest reading back to the latest one at least `readDays` farm days
  * before it, and no earlier than `countsFrom`. A full gut moves a bull by five kilos from one morning to the next, which
@@ -137,6 +140,55 @@ export const gainStandingOf = (
     return "under";
   }
   return dailyGainKg > highKg ? "over" : "within";
+};
+
+/** The shares of a Ration's Expected Gain the farm judges a deshi animal and a female against, as percentages: Farm
+ *  Parameters, seven tenths and eight tenths unless the Manager says otherwise. */
+export interface GainShares {
+  deshiPercent: number;
+  femalePercent: number;
+}
+
+/** What her own range was worked from: the share it was cut to for being deshi or female, and whether anybody wrote
+ *  down her breed — one nobody did is judged as a cross, as the Ration's figures are written for. */
+export interface GainAdjustment {
+  /** The deshi share, when she is deshi; null when she is not, or nobody knows. */
+  deshiPercent: number | null;
+  /** The female share, when she is a cow or heifer; null for a bull. */
+  femalePercent: number | null;
+  breedRecorded: boolean;
+}
+
+/**
+ * The Expected Gain one animal is judged against: her Ration's, which is written for a crossbred bull, cut to the
+ * farm's deshi share when she is deshi and to its female share when she is a cow or heifer — both, when she is both.
+ * Each end is cut alike and kept to the hundredth, as the Ration's are.
+ */
+export const expectedGainFor = (
+  asWritten: ExpectedGain,
+  animal: {
+    /** Whether her breed is deshi; null when nobody wrote down her breed. */
+    deshi: boolean | null;
+    sex: "male" | "female";
+  },
+  shares: GainShares
+): { expectedGain: ExpectedGain; adjustedFor: GainAdjustment } => {
+  const adjustedFor: GainAdjustment = {
+    deshiPercent: animal.deshi === true ? shares.deshiPercent : null,
+    femalePercent: animal.sex === "female" ? shares.femalePercent : null,
+    breedRecorded: animal.deshi !== null,
+  };
+  const share =
+    ((adjustedFor.deshiPercent ?? PERCENT) / PERCENT) *
+    ((adjustedFor.femalePercent ?? PERCENT) / PERCENT);
+  const cut = (kg: number) => Math.round(kg * share * RATE_SCALE) / RATE_SCALE;
+  return {
+    expectedGain: {
+      lowKg: cut(asWritten.lowKg),
+      highKg: cut(asWritten.highKg),
+    },
+    adjustedFor,
+  };
 };
 
 /** Whether a standing is one the farm is told of: a bull gaining under what his Ration should give him, or losing. */

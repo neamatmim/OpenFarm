@@ -71,6 +71,10 @@ const parameters = z
     /** How many days back a fattening animal's gain is read against her Ration's Expected Gain: at least two
      *  fortnightly Weigh-ins, and no more than three months, past which it is last season's Ration being judged. */
     gainReadDays: z.number().int().min(14).max(90).optional(),
+    /** The shares of a Ration's Expected Gain a deshi animal and a cow or heifer are judged against: never above what
+     *  the Ration is written for, and not so far under it that a bull gaining nothing still looks fine. */
+    deshiGainPercent: z.number().int().min(30).max(100).optional(),
+    femaleGainPercent: z.number().int().min(30).max(100).optional(),
     /** The AI window after a Heat, in hours. */
     aiWindowStartHours: z.number().int().min(0).max(72).optional(),
     aiWindowEndHours: z.number().int().min(1).max(96).optional(),
@@ -709,6 +713,8 @@ export const farmRouter = {
                 expiryWarnDays: true,
                 fatteningTargetWeightKg: true,
                 gainReadDays: true,
+                deshiGainPercent: true,
+                femaleGainPercent: true,
                 aiWindowStartHours: true,
                 aiWindowEndHours: true,
                 pregnancyCheckAfterDays: true,

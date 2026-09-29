@@ -1,6 +1,8 @@
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
+import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
+import { Label } from "@OpenFarm/ui/components/label";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
@@ -9,6 +11,7 @@ import {
   ArchiveRestore,
   BadgeCheck,
   Dna,
+  Home,
   Pencil,
   Plus,
 } from "lucide-react";
@@ -53,15 +56,22 @@ type Breed = Awaited<ReturnType<typeof orpc.breeds.list.call>>[number];
 interface BreedRow extends Breed {
   name: string;
   handleRename: () => void;
+  handleDeshi: () => void;
   handleRetire: () => void;
   handleRestore: () => void;
 }
 
-/** Whether a breed came with the farm, and whether it is retired. */
+/** Whether a breed is deshi, whether it came with the farm, and whether it is retired. A list cached before breeds were
+ *  deshi or not says nothing of it. */
 const Badges = ({ row }: { row: BreedRow }) => {
   const { t } = useLanguage();
   return (
     <div className="flex flex-wrap gap-2">
+      {row.deshi ? (
+        <StatusBadge icon={Home} tone="info">
+          {t("breeds.deshi")}
+        </StatusBadge>
+      ) : null}
       {row.key ? (
         <StatusBadge icon={BadgeCheck} tone="neutral">
           {t("breeds.standard")}
@@ -72,7 +82,7 @@ const Badges = ({ row }: { row: BreedRow }) => {
   );
 };
 
-/** The menu at the end of a breed's row: rename it, and retire it or bring it back. */
+/** The menu at the end of a breed's row: rename it, say whether it is deshi, and retire it or bring it back. */
 const BreedMenu = ({ row }: { row: BreedRow }) => {
   const { t } = useLanguage();
   return (
@@ -82,6 +92,11 @@ const BreedMenu = ({ row }: { row: BreedRow }) => {
           label: t("herd.rename"),
           icon: Pencil,
           handleSelect: row.handleRename,
+        },
+        {
+          label: t(row.deshi ? "breeds.markCross" : "breeds.markDeshi"),
+          icon: Home,
+          handleSelect: row.handleDeshi,
         },
         row.retiredAt
           ? {
@@ -194,6 +209,7 @@ const BreedDialog = ({
   const current = naming?.kind === "rename" ? naming.breed : null;
   const [nameBn, setNameBn] = useState(current?.nameBn ?? "");
   const [nameEn, setNameEn] = useState(current?.nameEn ?? "");
+  const [deshi, setDeshi] = useState(false);
   const add = useMutation(
     orpc.breeds.add.mutationOptions({ onSuccess: onClose, onError })
   );
@@ -216,7 +232,7 @@ const BreedDialog = ({
               nameBn: nameBn.trim(),
               nameEn: english ?? null,
             })
-          : add.mutate({ nameBn: nameBn.trim(), nameEn: english })
+          : add.mutate({ nameBn: nameBn.trim(), nameEn: english, deshi })
       }
       open={naming !== null}
       pending={add.isPending || rename.isPending}
@@ -251,6 +267,18 @@ const BreedDialog = ({
           value={nameEn}
         />
       </FormField>
+      {/* A new breed only: an existing one is marked deshi or not from its row's menu. */}
+      {current ? null : (
+        <div className="space-y-1.5">
+          <Label className="flex items-center gap-2 font-normal">
+            <Checkbox checked={deshi} onCheckedChange={setDeshi} />
+            {t("breeds.deshiChoice")}
+          </Label>
+          <p className="text-muted-foreground text-xs">
+            {t("breeds.deshiHint")}
+          </p>
+        </div>
+      )}
     </FormDialog>
   );
 };
@@ -274,6 +302,9 @@ const BreedsPage = () => {
     })
   );
   const restore = useMutation(orpc.breeds.restore.mutationOptions({ onError }));
+  const setDeshi = useMutation(
+    orpc.breeds.setDeshi.mutationOptions({ onError })
+  );
   const table = useListTable({
     columns: breedColumns,
     data: (breeds.data ?? []).map((one) => {
@@ -282,6 +313,7 @@ const BreedsPage = () => {
         ...one,
         name,
         handleRename: () => setNaming({ kind: "rename", breed: one, name }),
+        handleDeshi: () => setDeshi.mutate({ id: one.id, deshi: !one.deshi }),
         handleRetire: () => setRetiring({ id: one.id, name }),
         handleRestore: () => restore.mutate({ id: one.id }),
       };

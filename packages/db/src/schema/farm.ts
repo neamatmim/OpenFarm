@@ -78,6 +78,13 @@ export const farm = pgTable("farm", {
    *  morning than what she grew — a full gut moves a bull by five kilos, which over a fortnight reads as a third of a
    *  kilo a day. Four weeks unless the Manager says otherwise. */
   gainReadDays: integer("gain_read_days").notNull().default(28),
+  /** What share of a Ration's Expected Gain a deshi animal is judged against, as a percentage: the country's own cattle
+   *  gain about seven tenths of what a cross does on the same Ration (docs/research/expected-daily-gain.md §4), and the
+   *  Manager moves it when the farm's own Weigh-ins say otherwise. */
+  deshiGainPercent: integer("deshi_gain_percent").notNull().default(70),
+  /** What share a cow or heifer on the Fattening side is judged against, as a percentage: about eight tenths of what a
+   *  bull gains (§5). The Manager's, as the other is. */
+  femaleGainPercent: integer("female_gain_percent").notNull().default(80),
   /** The hours after a Heat is seen within which a service takes: the AI work falls due at the
    *  first and is late after the second. How soon a technician reaches this farm is this farm's
    *  fact, so both are the Manager's to set. */

@@ -1,6 +1,7 @@
 import type { Database } from "@OpenFarm/db";
 import type {
   ExpectedGain,
+  GainAdjustment,
   GainOnRation,
   GainStanding,
   WeightBand,
@@ -8,6 +9,7 @@ import type {
 import {
   EXIT_STATES,
   bandStanding,
+  expectedGainFor,
   gainCountsFrom,
   gainOnRationOf,
   gainStandingOf,
@@ -32,7 +34,11 @@ interface PenOnGainingRation {
 export interface AgainstExpectedGain {
   animalId: string;
   tagNumber: string;
+  /** Her Pen, its Ration, and the Ration's Expected Gain as it is written — for a crossbred bull. */
   pen: Omit<PenOnGainingRation, "assignedAt" | "band">;
+  /** The Expected Gain she is judged against: the Ration's, cut for her being deshi or female. */
+  expectedGain: ExpectedGain;
+  adjustedFor: GainAdjustment;
   /** Her gain on the Ration, or nothing while she has not been on it long enough to say. */
   gain: GainOnRation | null;
   /** Where that stands against the Expected Gain; nothing while there is no gain, or while she weighs outside the
@@ -95,16 +101,26 @@ const pensOnGainingRations = async (
   return pens;
 };
 
+/** What the farm reads a gain by: over how many days, and the shares a deshi animal and a female are judged at. */
+interface GainReadingFarm {
+  id: string;
+  gainReadDays: number;
+  deshiGainPercent: number;
+  femaleGainPercent: number;
+}
+
 /**
  * Every fattening animal standing in a Pen whose Ration has an Expected Gain, with her gain on that Ration and where it
  * stands against it. Her gain is read off the Weigh-ins the farm did not doubt, over the Farm Parameter's days, and
  * never from before she settled in after she came or before she was standing on this Ration — moved into the Pen, or
  * the Pen put on it — because the Ration she ate before is not this one's to answer for. One weighed outside the
  * Ration's band is not judged by it at all: what it should put on a bull its size is not what it should put on her.
+ * The Ration's figures are a crossbred bull's; a deshi animal, or a cow or heifer, is judged against the farm's share
+ * of them, and one nobody wrote a breed for as a cross.
  */
 export const againstExpectedGains = async (
   db: Pick<Database, "query">,
-  farm: { id: string; gainReadDays: number }
+  farm: GainReadingFarm
 ): Promise<AgainstExpectedGain[]> => {
   const pens = await pensOnGainingRations(db, farm.id);
   if (pens.size === 0) {
@@ -118,8 +134,9 @@ export const againstExpectedGains = async (
       penId: { in: [...pens.keys()] },
     },
     orderBy: { tagNumber: "asc" },
-    columns: { id: true, tagNumber: true, penId: true },
+    columns: { id: true, tagNumber: true, penId: true, sex: true },
     with: {
+      breed: { columns: { deshi: true } },
       intake: { columns: { weightKg: true, arrivedAt: true } },
       // The Move that put her in the Pen she stands in: the latest.
       moves: {
@@ -157,15 +174,25 @@ export const againstExpectedGains = async (
     const { weightKg } = weighedAs(one);
     const outsideBand =
       weightKg !== null && bandStanding(weightKg, band) !== "fits";
+    const { expectedGain, adjustedFor } = expectedGainFor(
+      pen.expectedGain,
+      { deshi: one.breed?.deshi ?? null, sex: one.sex },
+      {
+        deshiPercent: farm.deshiGainPercent,
+        femalePercent: farm.femaleGainPercent,
+      }
+    );
     return [
       {
         animalId: one.id,
         tagNumber: one.tagNumber,
         pen,
+        expectedGain,
+        adjustedFor,
         gain,
         standing:
           gain && !outsideBand
-            ? gainStandingOf(gain.dailyGainKg, pen.expectedGain)
+            ? gainStandingOf(gain.dailyGainKg, expectedGain)
             : null,
         outsideBand,
       },
@@ -173,9 +200,9 @@ export const againstExpectedGains = async (
   });
 };
 
-/** How far under the low end a bull is, as a share of it: the furthest behind first. */
-const shortfallOf = ({ gain, pen }: AgainstExpectedGain): number =>
-  (gain?.dailyGainKg ?? 0) / pen.expectedGain.lowKg;
+/** How far under the low end of his own range a bull is, as a share of it: the furthest behind first. */
+const shortfallOf = ({ gain, expectedGain }: AgainstExpectedGain): number =>
+  (gain?.dailyGainKg ?? 0) / expectedGain.lowKg;
 
 /**
  * The fattening animals gaining under what their Pen's Ration is written to put on them, or losing weight: the losing
@@ -183,7 +210,7 @@ const shortfallOf = ({ gain, pen }: AgainstExpectedGain): number =>
  */
 export const underExpectedGains = async (
   db: Pick<Database, "query">,
-  farm: { id: string; gainReadDays: number }
+  farm: GainReadingFarm
 ): Promise<AgainstExpectedGain[]> => {
   const all = await againstExpectedGains(db, farm);
   return all

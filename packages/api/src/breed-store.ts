@@ -2,7 +2,11 @@ import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { and, eq, isNull } from "@OpenFarm/db/operators";
 import { breed } from "@OpenFarm/db/schema/herd";
 import type { StandardBreedKey } from "@OpenFarm/domain";
-import { STANDARD_BREED_KEYS, STANDARD_BREEDS } from "@OpenFarm/domain";
+import {
+  DESHI_BREEDS,
+  STANDARD_BREED_KEYS,
+  STANDARD_BREEDS,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
@@ -29,7 +33,7 @@ export const missingStandardBreeds = async (
  * Gives the farm these standard breeds, and says which it gave: another request may have given them first. A breed the
  * farm already wrote under one of a standard breed's names — "Sahiwal", typed before there was a list — is taken as
  * that standard breed, keeping the farm's spelling and gaining the name it lacked, rather than finding a second beside
- * it.
+ * it. Either way it is deshi as the standard says.
  */
 export const addStandardBreeds = async (
   tx: Tx,
@@ -63,7 +67,11 @@ export const addStandardBreeds = async (
     // oxlint-disable-next-line no-await-in-loop -- a handful of rows, on the farm's first opening of its list
     const [adopted] = await tx
       .update(breed)
-      .set({ key, nameEn: theirs.nameEn ?? en })
+      .set({
+        key,
+        nameEn: theirs.nameEn ?? en,
+        deshi: DESHI_BREEDS.includes(key),
+      })
       .where(and(eq(breed.id, theirs.id), isNull(breed.key)))
       .returning({ key: breed.key });
     if (adopted) {
@@ -80,6 +88,7 @@ export const addStandardBreeds = async (
           key,
           nameBn: STANDARD_BREEDS[key].bn,
           nameEn: STANDARD_BREEDS[key].en,
+          deshi: DESHI_BREEDS.includes(key),
           createdAt: now,
         }))
       )

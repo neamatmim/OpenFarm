@@ -53,11 +53,12 @@ export const fatteningRouter = {
           return {
             ...rest,
             ...view,
-            // What her Pen's Ration is written to put on her, and what she has put on since she has been eating it:
-            // nothing where the Ration says no Expected Gain.
+            // What her Pen's Ration should put on her — cut for her being deshi or female — and what she has put on
+            // since she has been eating it: nothing where the Ration says no Expected Gain.
             onRation: onRation
               ? {
-                  expectedGain: onRation.pen.expectedGain,
+                  expectedGain: onRation.expectedGain,
+                  adjustedFor: onRation.adjustedFor,
                   gain: onRation.gain,
                   standing: onRation.standing,
                   outsideBand: onRation.outsideBand,

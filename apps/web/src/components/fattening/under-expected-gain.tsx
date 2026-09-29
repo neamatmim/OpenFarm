@@ -9,7 +9,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
 import { TagLink } from "./fattening-words";
-import { GainStandingBadge } from "./on-ration";
+import { GainStandingBadge, adjustmentSaid } from "./on-ration";
 
 /** The days a gain is read over on a farm that has not said — the column's own default — for a farm answer cached
  *  before it had the figure. */
@@ -25,7 +25,13 @@ type UnderRow = Awaited<
 /** One bull falling short: how he stands, his gain and the readings it runs between, and what his Ration should give. */
 const UnderLine = ({ row }: { row: UnderRow }) => {
   const { t, language } = useLanguage();
-  const range = expectedGainSaid(row.pen.expectedGain, { t, language }) ?? "";
+  // His own range — the Ration's, cut for his being deshi or female — and why, from a list cached before either.
+  const range =
+    expectedGainSaid(row.expectedGain ?? row.pen.expectedGain, {
+      t,
+      language,
+    }) ?? "";
+  const why = adjustmentSaid(row.adjustedFor, { t, language });
   const day = (at: Date) => formatDate(new Date(at), language, "date");
   return (
     <li className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0">
@@ -51,6 +57,7 @@ const UnderLine = ({ row }: { row: UnderRow }) => {
           ration: row.pen.rationName,
           range,
         })}
+        {why ? ` (${why})` : ""}
       </span>
     </li>
   );
