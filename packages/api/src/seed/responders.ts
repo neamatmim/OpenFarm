@@ -271,3 +271,55 @@ RESPONDERS.stockCount = (_step, _beast, { board }) => ({
     reason: shelfReason.get(item.feedItemId),
   })),
 });
+
+/** Half a litre at a time, as a bottle is filled. */
+const toHalfLitre = (litres: number) => Math.round(litres * 2) / 2;
+
+/** What each calf weighed at birth, so her colostrum can be a tenth of it. */
+const birthWeights = new Map<string, number>();
+
+/**
+ * The newborn calf's first hours: well, dipped, weighed, fed a tenth of her weight, tagged. A calf born on the seed's
+ * last day is left for the morning — her first colostrum is the late work on the Manager's list.
+ */
+RESPONDERS.newbornCalfCare = (step, beast, { farm, day }) => {
+  if (!beast || day === farm.today) {
+    return null;
+  }
+  switch (step.id) {
+    case "well": {
+      return { skipReason: "সুস্থ — শ্বাস নিচ্ছে, দাঁড়িয়েছে, দুধ টানছে" };
+    }
+    case "weigh": {
+      const kg = toHalfLitre(farm.random.between(22, 34));
+      birthWeights.set(beast.tagNumber, kg);
+      return { evidence: [kg] };
+    }
+    case "colostrum": {
+      // Now and then she is found already sucking her dam, and nobody knows how much she had.
+      if (farm.random.chance(0.15)) {
+        return {
+          skipReason: "মায়ের বাঁট থেকে নিজে খেয়েছে — পরিমাণ জানা নেই",
+        };
+      }
+      return {
+        evidence: [toHalfLitre((birthWeights.get(beast.tagNumber) ?? 28) / 10)],
+      };
+    }
+    default: {
+      return { evidence: [true] };
+    }
+  }
+};
+
+RESPONDERS.newbornSecondFeed = (step, beast, { farm, day }) => {
+  if (!beast || day === farm.today) {
+    return null;
+  }
+  if (step.id === "navel") {
+    return { skipReason: "ডোবানো হয়েছে — নাভি ঠিক আছে" };
+  }
+  return {
+    evidence: [toHalfLitre((birthWeights.get(beast.tagNumber) ?? 28) / 20)],
+  };
+};

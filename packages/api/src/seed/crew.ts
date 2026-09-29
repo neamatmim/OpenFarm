@@ -16,6 +16,9 @@ export const CREW = {
   dryOff: { worker: "stockman", checker: "manager" },
   calvingPrep: { worker: "stockman" },
   calvingRecord: { worker: "milker", checker: "manager" },
+  // The newborn calf's first hours, done by whoever finds her.
+  newbornCalfCare: { worker: "milker", checker: "manager" },
+  newbornSecondFeed: { worker: "milker", checker: "manager" },
   weighIn: { worker: "stockman", checker: "manager" },
   fmdVaccination: { worker: "stockman", checker: "vet" },
   lsdVaccination: { worker: "stockman", checker: "vet" },

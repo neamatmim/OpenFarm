@@ -4392,6 +4392,10 @@ export const en = {
     "Who took her, for how much, and the lorry she went on. The price goes to the money register.",
   "sale.lastWeighed": "Last weighed {kg} kg",
   /** Baki at the gate: a buyer who paid part of it, or none, now. */
+  "calf.firstDay": "Her first day",
+  "calf.firstDayHint":
+    "What was done for her in the hours after she was born: colostrum, navel, weight.",
+  "calf.done": "Done",
   "baki.someOwed": "Some of it is still owed (baki)",
   "baki.paidNow": "Paid now (৳)",
   "baki.stillOwes": "Still owes ৳{taka}",
