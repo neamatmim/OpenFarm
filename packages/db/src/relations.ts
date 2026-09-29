@@ -123,6 +123,13 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.venture.id,
     }),
   },
+  weaning: {
+    animal: r.one.animal({
+      from: r.weaning.animalId,
+      to: r.animal.id,
+      optional: false,
+    }),
+  },
   bakiPayment: {
     buyer: r.one.counterparty({
       from: r.bakiPayment.counterpartyId,

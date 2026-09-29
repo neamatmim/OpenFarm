@@ -31,6 +31,7 @@ import { releaseEffect } from "./release";
 import { serviceEffect } from "./service";
 import { stockCountEffect } from "./stock-count";
 import { treatmentEffect } from "./treatment";
+import { weanEffect } from "./wean";
 import { weighInEffect } from "./weigh-in";
 
 /**
@@ -145,6 +146,17 @@ export type EffectResult =
       /** Corrected to a skip, but he cannot be put back in Quarantine from here. */
       standsAside: StandingAside | null;
     }
+  | {
+      kind: "wean";
+      /** False when she was weaned already, or is no calf now: the same Step again weans nobody twice. */
+      weaned: boolean;
+      /** Where she went: a Heifer on the Dairy side, or across to Fattening; nothing where nothing was weaned. */
+      to: "dairy" | "fattening" | null;
+      /** The Fattening Pen a calf was walked to; nothing for a Heifer. */
+      toPenId: string | null;
+      /** Corrected to a skip, but she cannot be un-weaned from here. */
+      standsAside: StandingAside | null;
+    }
   | null;
 
 /** Everything a Step's Effect may be told about the Step; each kind names the facts it needs from it. */
@@ -205,6 +217,8 @@ export type StandingAsideBecause =
   | "cannot_return_to_milk"
   /** Corrected to a skip, but he cannot be put back in Quarantine from here. */
   | "cannot_return_to_quarantine"
+  /** Corrected to a skip, but a weaned calf cannot be made a calf again from here. */
+  | "cannot_unwean"
   /** Corrected in a way the farm has already acted on: a calf added, taken away, or since gone. */
   | "calving_acted_on"
   /** A service taken back that the Vet has already checked: the check is corrected first. */
@@ -273,6 +287,7 @@ const EFFECTS: Record<
   move: moveEffect,
   dry_off: dryOffEffect,
   release: releaseEffect,
+  wean: weanEffect,
   calving: calvingEffect,
   service: serviceEffect,
   pregnancy_check: pregnancyCheckEffect,
@@ -329,6 +344,7 @@ export const STANDING_ASIDE_SAID: Record<StandingAsideBecause, string> = {
   moved_since: "She has been moved since this was done",
   cannot_return_to_milk: "She cannot be put back in milk from here",
   cannot_return_to_quarantine: "He cannot be put back in quarantine from here",
+  cannot_unwean: "A weaned calf cannot be made a calf again from here",
   calving_acted_on: "The farm has acted on this calving since",
   service_checked:
     "The Vet has checked this service; the check is put right first",

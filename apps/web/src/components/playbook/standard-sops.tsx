@@ -8,6 +8,7 @@ import {
   STANDARD_DRUGS,
   STANDARD_DRUG_FOR,
   STANDARD_SOP_NEEDS,
+  isPenNeed,
   standardPlaybook,
 } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -62,11 +63,10 @@ const NeedField = ({
   onChange: (value: string) => void;
 }) => {
   const { t } = useLanguage();
-  const options = need === "calvingPen" ? pens : products;
-  const none =
-    need === "calvingPen"
-      ? t("sop.standard.noPens")
-      : t("sop.standard.noProducts");
+  const options = isPenNeed(need) ? pens : products;
+  const none = isPenNeed(need)
+    ? t("sop.standard.noPens")
+    : t("sop.standard.noProducts");
   return (
     <FormField
       hint={options.length === 0 ? none : undefined}

@@ -1325,6 +1325,8 @@ export const en = {
   "refusal.paidMoreThanOwed":
     "He owes ৳{owingBdt}; say in a note why he paid more",
   "refusal.noSuchBuyer": "The farm has never sold to anybody by that name",
+  "refusal.aBullCalfIsNoHeifer":
+    "A bull calf does not stay as a heifer — choose his fattening pen",
   "refusal.writtenOffMoreThanOwed": "Only ৳{owingBdt} is still owed on it",
   "refusal.nothingOwedOnIt": "Nothing was ever owed on that",
   "refusal.ventureOwnsHer":
@@ -2301,6 +2303,8 @@ export const en = {
     "Procedures OpenFarm offers to start from. None raises work until you have read it and published it.",
   "sop.standard.adopt": "Read and publish",
   "sop.standard.need.calvingPen": "The calving Pen",
+  "sop.standard.need.weanedBullPen":
+    "The fattening Pen weaned bull calves go to",
   "sop.standard.need.fmdVaccine": "The FMD vaccine",
   "sop.standard.need.lsdVaccine": "The lumpy skin vaccine",
   "sop.standard.need.dewormer": "The dewormer",
@@ -3808,6 +3812,9 @@ export const en = {
   "sop.effect.dry_off": "Dries the cow off",
   "sop.effect.release":
     "Lets the animal out of quarantine, to the pen that suits his weight",
+  "sop.effect.wean":
+    "Weans the calf: a heifer stays on the dairy side, a bull calf goes to the fattening pen chosen",
+  "sop.effect.stays": "Stays as a heifer",
   "sop.effect.calving": "Calving",
   "sop.effect.stock_count": "Counts the store",
   "sop.effect.lot_number": "The vial's Lot Number, once for the Campaign",
@@ -4486,6 +4493,8 @@ export const en = {
   "identity.onThisPage": "On this page",
   "standsAside.movedSince": "She has been moved since this was done",
   "standsAside.cannotReturnToMilk": "She cannot be put back in milk from here",
+  "standsAside.cannotUnwean":
+    "A weaned calf cannot be made a calf again from here",
   "standsAside.cannotReturnToQuarantine":
     "He cannot be put back in quarantine from here",
   "standsAside.calvingActedOn": "The farm has acted on this calving since",

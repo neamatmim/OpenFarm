@@ -342,6 +342,7 @@ export {
   FARM_EVENTS,
   MAX_TRIGGER_OFFSET_DAYS,
   PHOTO_MAX_BYTES,
+  STAYS_A_HEIFER,
   STEP_EFFECT_KINDS,
   TRIGGER_KINDS,
   appliesToAnimal,
@@ -631,7 +632,9 @@ export type {
 } from "./standard-playbook";
 export {
   ROUND_WORDS,
+  PEN_NEEDS,
   STANDARD_SOP_NEEDS,
+  isPenNeed,
   standardPlaybook,
 } from "./standard-playbook";
 export type {

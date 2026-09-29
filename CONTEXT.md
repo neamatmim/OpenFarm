@@ -100,7 +100,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Pen Spell**: Where an Animal stood and for how long: from the Move that put her there until the Move that took her away, or until her Exit. Derived from her Moves, never entered — her Pen history is her Pen Spells end to end, and her page, her Animal Passport and what her feed cost all read the same ones. _Avoid_: Stay, placement, pen history line
 
-**Weaning**: The point at which a Calf stops being fed milk; on this Farm the trigger for a male Calf's Move to Fattening. _Avoid_: Separation
+**Weaning**: The point at which a Calf stops being fed milk; on this Farm the trigger for a male Calf's Move to Fattening. Recorded by a Step, once per Animal, with what she weighed: a heifer calf becomes a Heifer on the Dairy side, and a bull calf is walked across to the Fattening Pen the farm named, his Days on Feed counting from it. A Correction cannot undo it — a Heifer made a Calf again, or a bull walked back from Fattening, would unpick a Season — so a Step corrected to a skip stands aside for the Manager. _Avoid_: Separation
 
 ## Health
 

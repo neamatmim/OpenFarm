@@ -381,6 +381,8 @@ export const stockTheFarm = async (farm: Farm): Promise<void> => {
 export const writeThePlaybook = async (farm: Farm): Promise<void> => {
   const contents = standardPlaybook({
     calvingPen: farm.pens.calving,
+    // A weaned bull calf goes where the lightest bulls are fattened.
+    weanedBullPen: farm.pens.bullsA,
     fmdVaccine: farm.drugs.fmd,
     lsdVaccine: farm.drugs.lsd,
     dewormer: farm.drugs.albendazole,

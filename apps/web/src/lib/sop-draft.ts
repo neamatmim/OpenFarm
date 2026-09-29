@@ -9,6 +9,7 @@ import type {
   Trigger,
 } from "@OpenFarm/domain";
 import {
+  STAYS_A_HEIFER,
   CALVING_STEP,
   DLS_REPORT_STEP,
   LOT_NUMBER_STEP,
@@ -191,7 +192,7 @@ const OWN_LOT_NUMBER: Evidence = { type: "note", required: false };
 
 /** What Evidence an effect needs before it can write anything. */
 const wantedEvidence = (kind: StepEffect["kind"]): EvidenceType => {
-  if (kind === "move" || kind === "observation") {
+  if (kind === "move" || kind === "observation" || kind === "wean") {
     return "choice";
   }
   if (ONCE_WITH_A_NOTE.has(kind)) {
@@ -214,6 +215,20 @@ const fittedEvidence = (
       type: "choice",
       required: true,
       choices: pens.map((pen) => ({ value: pen.id, label: { bn: pen.name } })),
+    };
+  }
+  if (kind === "wean") {
+    // Where a weaned calf goes: a Heifer here, or one of the farm's Pens — the Fattening Pen the Owner picks.
+    return {
+      type: "choice",
+      required: true,
+      choices: [
+        {
+          value: STAYS_A_HEIFER,
+          label: { bn: "বকনা হিসেবে থাকবে", en: "Stays as a heifer" },
+        },
+        ...pens.map((pen) => ({ value: pen.id, label: { bn: pen.name } })),
+      ],
     };
   }
   if (kind === "observation") {
