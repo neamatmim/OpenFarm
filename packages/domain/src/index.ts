@@ -97,17 +97,24 @@ export {
 } from "./fattening";
 export type {
   ExpectedGain,
+  FarmGainFigure,
   GainAdjustment,
+  GainGroup,
   GainOnRation,
   GainingBand,
   GainShares,
   GainStanding,
 } from "./expected-gain";
 export {
+  FEWEST_FOR_A_FIGURE,
+  GAIN_GROUPS,
   GAIN_STANDINGS,
   SETTLING_IN_DAYS,
   expectedGainFor,
+  farmGainFigureOf,
   findExpectedGainProblems,
+  gainGroupOf,
+  gainOverStayOf,
   gainingBandFor,
   grownWeightFor,
   gainCountsFrom,

@@ -251,3 +251,106 @@ export const grownWeightFor = (
   };
   return { lowKg: grownAt("lowKg"), highKg: grownAt("highKg") };
 };
+
+/**
+ * Her gain over the whole of one stay on a Ration: from the first reading the farm did not doubt on or after `from` to
+ * the last before `until`, when they are at least `readDays` farm days apart — the longest span, and so the least
+ * thrown by a full gut, that her stay gives. Nothing when her stay gave no two readings that far apart.
+ */
+export const gainOverStayOf = (
+  readings: readonly WeighIn[],
+  { from, until, readDays }: { from: Date; until: Date; readDays: number }
+): GainOnRation | null => {
+  const within = readings
+    .filter((one) => one.weighedAt >= from && one.weighedAt < until)
+    .toSorted((a, b) => a.weighedAt.getTime() - b.weighedAt.getTime());
+  const first = within.at(0);
+  const last = within.at(-1);
+  if (!(first && last)) {
+    return null;
+  }
+  const overDays = farmDaysApart(
+    farmDayOf(first.weighedAt),
+    farmDayOf(last.weighedAt)
+  );
+  if (overDays < Math.max(readDays, 1)) {
+    return null;
+  }
+  return {
+    dailyGainKg:
+      Math.round(((last.weightKg - first.weightKg) / overDays) * RATE_SCALE) /
+      RATE_SCALE,
+    overDays,
+    from: first,
+    to: last,
+  };
+};
+
+/**
+ * The kinds of animal the farm's own gains are said by, as her range is cut: crossbred bulls — whom a Ration's figures
+ * are written for — deshi bulls, bulls nobody wrote a Breed for, and cows and heifers.
+ */
+export const GAIN_GROUPS = ["cross", "deshi", "unrecorded", "female"] as const;
+export type GainGroup = (typeof GAIN_GROUPS)[number];
+
+/** Which of them she is. */
+export const gainGroupOf = ({
+  sex,
+  deshi,
+}: {
+  sex: "male" | "female";
+  /** Whether her Breed is deshi; null when nobody wrote one down. */
+  deshi: boolean | null;
+}): GainGroup => {
+  if (sex === "female") {
+    return "female";
+  }
+  if (deshi === null) {
+    return "unrecorded";
+  }
+  return deshi ? "deshi" : "cross";
+};
+
+/** The fewest animals a figure of the farm's own is said from: fewer, and it says more about those animals than about
+ *  the Ration (the Owner's choice, 2026-09-29). */
+export const FEWEST_FOR_A_FIGURE = 5;
+
+/** What a group of the farm's animals put on eating a Ration: how many, the middle one, and the middle half of them. */
+export interface FarmGainFigure {
+  animals: number;
+  medianKg: number;
+  /** The quarter of the way up, and three quarters: the middle half of the farm's animals lie between. */
+  lowKg: number;
+  highKg: number;
+}
+
+/** The figure at a share of the way up sorted gains, between two where it falls between them. */
+const atShare = (sorted: readonly number[], share: number): number => {
+  const at = (sorted.length - 1) * share;
+  const below = Math.floor(at);
+  const above = Math.ceil(at);
+  const lower = sorted[below] ?? 0;
+  const upper = sorted[above] ?? lower;
+  return lower + (upper - lower) * (at - below);
+};
+
+const QUARTER = 0.25;
+const HALF = 0.5;
+const THREE_QUARTERS = 0.75;
+
+/** What these gains come to as a figure of the farm's own, or nothing from fewer than `FEWEST_FOR_A_FIGURE`. */
+export const farmGainFigureOf = (
+  gains: readonly number[]
+): FarmGainFigure | null => {
+  if (gains.length < FEWEST_FOR_A_FIGURE) {
+    return null;
+  }
+  const sorted = gains.toSorted((a, b) => a - b);
+  const rate = (value: number) => Math.round(value * RATE_SCALE) / RATE_SCALE;
+  return {
+    animals: gains.length,
+    medianKg: rate(atShare(sorted, HALF)),
+    lowKg: rate(atShare(sorted, QUARTER)),
+    highKg: rate(atShare(sorted, THREE_QUARTERS)),
+  };
+};

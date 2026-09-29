@@ -2,8 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import {
   SETTLING_IN_DAYS,
+  FEWEST_FOR_A_FIGURE,
   expectedGainFor,
+  farmGainFigureOf,
   findExpectedGainProblems,
+  gainGroupOf,
+  gainOverStayOf,
   grownWeightFor,
   gainCountsFrom,
   gainOnRationOf,
@@ -287,5 +291,76 @@ describe("what a bull should weigh when his Target Window opens", () => {
   it("says nothing when no Ration's band holds him as he comes", () => {
     expect(grownWeightFor(120, 120, rungs, cross, shares)).toBe(null);
     expect(grownWeightFor(200, 120, [], cross, shares)).toBe(null);
+  });
+});
+
+describe("an animal's gain over her whole stay on a Ration", () => {
+  const readings = [
+    reading("2027-03-01", 200),
+    reading("2027-03-15", 206),
+    reading("2027-04-12", 230),
+    reading("2027-05-10", 250),
+  ];
+
+  it("runs from her first reading in the stay to her last", () => {
+    expect(
+      gainOverStayOf(readings, {
+        from: startOfFarmDay("2027-03-10"),
+        until: startOfFarmDay("2027-05-01"),
+        readDays: 28,
+      })
+    ).toEqual({
+      // 15 March to 12 April: 24 kg in 28 days.
+      dailyGainKg: 0.86,
+      overDays: 28,
+      from: reading("2027-03-15", 206),
+      to: reading("2027-04-12", 230),
+    });
+  });
+
+  it("says nothing of a stay too short to measure", () => {
+    expect(
+      gainOverStayOf(readings, {
+        from: startOfFarmDay("2027-04-01"),
+        until: startOfFarmDay("2027-05-01"),
+        readDays: 28,
+      })
+    ).toBe(null);
+  });
+});
+
+describe("the kind of animal a gain of the farm's own is said by", () => {
+  it("is her sex first, then her breed", () => {
+    expect(gainGroupOf({ sex: "female", deshi: true })).toBe("female");
+    expect(gainGroupOf({ sex: "male", deshi: true })).toBe("deshi");
+    expect(gainGroupOf({ sex: "male", deshi: false })).toBe("cross");
+    expect(gainGroupOf({ sex: "male", deshi: null })).toBe("unrecorded");
+  });
+});
+
+describe("a figure of the farm's own", () => {
+  it("is the middle animal and the middle half of them", () => {
+    // Sorted: 0.4, 0.5, 0.6, 0.7, 0.8 — the quarter falls on 0.5, the half on 0.6, three quarters on 0.7.
+    expect(farmGainFigureOf([0.7, 0.4, 0.8, 0.5, 0.6])).toEqual({
+      animals: 5,
+      medianKg: 0.6,
+      lowKg: 0.5,
+      highKg: 0.7,
+    });
+  });
+
+  it("falls between two animals where the share does", () => {
+    // Six: the half falls between 0.6 and 0.7, the quarter a quarter of the way from 0.5 to 0.6.
+    expect(farmGainFigureOf([0.4, 0.5, 0.6, 0.7, 0.8, 0.9])).toEqual({
+      animals: 6,
+      medianKg: 0.65,
+      lowKg: 0.53,
+      highKg: 0.78,
+    });
+  });
+
+  it("is not said from fewer than five", () => {
+    expect(FEWEST_FOR_A_FIGURE).toBe(5);
+    expect(farmGainFigureOf([0.4, 0.5, 0.6, 0.7])).toBe(null);
   });
 });
