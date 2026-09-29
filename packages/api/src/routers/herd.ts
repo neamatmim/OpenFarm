@@ -5,6 +5,7 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
+import { calfLossesOf } from "../calf-losses-store";
 import { protectedProcedure } from "../index";
 import { requireRole } from "../roles";
 
@@ -12,6 +13,16 @@ const name = z.string().trim().min(1).max(80);
 
 /** Sheds contain Pens; every Animal is in exactly one Pen. */
 export const herdRouter = {
+  /**
+   * What the farm lost in calves over the last year: born alive, born dead, and lost before weaning, with what they
+   * died of — the figure that says whether its calf care works. The Owner's and the Manager's: it is care, not money.
+   */
+  calfLosses: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(({ context }) =>
+      calfLossesOf(context.db, context.farm.id, context.clock.now())
+    ),
+
   list: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet"))
     .handler(({ context }) =>

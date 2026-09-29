@@ -319,6 +319,7 @@ describe("the mortality register", () => {
         disposal: "burned",
         disposalNote: "খামারের পেছনে, পশু হাসপাতালের লোক",
         reportReference: "ULO/2046/০১২",
+        ageDays: null,
       },
       {
         id: expect.any(String),
@@ -329,6 +330,7 @@ describe("the mortality register", () => {
         disposal: "buried",
         disposalNote: null,
         reportReference: null,
+        ageDays: null,
       },
       {
         id: expect.any(String),
@@ -339,6 +341,8 @@ describe("the mortality register", () => {
         disposal: null,
         disposalNote: null,
         reportReference: null,
+        // Born and dead the same day: a calf's age is how her death is read.
+        ageDays: 0,
       },
     ]);
     // A year to today unless asked, today counted.
@@ -355,7 +359,7 @@ describe("the mortality register", () => {
       ...FEBRUARY,
     });
     expect(awaiting.csv).toContain(
-      `${tags.stillborn},2046-02-10,died,stillbirth,awaiting,,\r\n`
+      `${tags.stillborn},2046-02-10,died,stillbirth,awaiting,,,0\r\n`
     );
 
     await manager.client.language.set({ language: "bn" });
@@ -426,10 +430,10 @@ describe("the mortality register", () => {
     });
     const [header, ...rows] = (sheet.csv ?? "").slice(1).trim().split("\r\n");
     expect(header).toBe(
-      "tag,date,kind,cause,disposal,disposal_note,dls_reference"
+      "tag,date,kind,cause,disposal,disposal_note,dls_reference,age_days"
     );
     expect(rows.filter((row) => row.startsWith(`${tags.heifer},`))).toEqual([
-      `${tags.heifer},2046-02-07,died,তড়কা,burned,"খামারের পেছনে, পশু হাসপাতালের লোক",ULO/2046/০১২`,
+      `${tags.heifer},2046-02-07,died,তড়কা,burned,"খামারের পেছনে, পশু হাসপাতালের লোক",ULO/2046/০১২,`,
     ]);
 
     const exports = await scratchDb().query.auditEvent.findMany({

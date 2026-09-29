@@ -4400,6 +4400,14 @@ export const en = {
     "Who took her, for how much, and the lorry she went on. The price goes to the money register.",
   "sale.lastWeighed": "Last weighed {kg} kg",
   /** Baki at the gate: a buyer who paid part of it, or none, now. */
+  "calves.title": "Calves in the last 12 months",
+  "calves.hint":
+    "DLS counts more than one in ten lost before weaning as too many.",
+  "calves.bornAlive": "Born alive",
+  "calves.stillborn": "Born dead",
+  "calves.lost": "Lost before weaning",
+  "calves.lostShare": "{share}% of those born alive were lost before weaning",
+  "calves.causes": "What they died of: {causes}",
   "calf.firstDay": "Her first day",
   "calf.firstDayHint":
     "What was done for her in the hours after she was born: colostrum, navel, weight.",

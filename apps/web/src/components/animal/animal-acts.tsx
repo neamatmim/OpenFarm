@@ -1,5 +1,11 @@
 import type { Disposal, MortalityKind } from "@OpenFarm/domain";
-import { DISPOSALS, MORTALITY_KINDS, statesSetByHand } from "@OpenFarm/domain";
+import {
+  CALF_DEATH_CAUSES,
+  DISPOSALS,
+  MORTALITY_KINDS,
+  statesSetByHand,
+} from "@OpenFarm/domain";
+import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
@@ -134,7 +140,7 @@ const RetagDialog = ({ detail, open, onOpenChange }: ActProps) => {
  * an inspector may ask which it was, so the farm records it beside the cause rather than leaving it in memory.
  */
 const MortalitySheet = ({ detail, open, onOpenChange }: ActProps) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const onError = useRefused();
   const [kind, setKind] = useState<MortalityKind>("died");
   const [cause, setCause] = useState("");
@@ -204,6 +210,22 @@ const MortalitySheet = ({ detail, open, onOpenChange }: ActProps) => {
           value={cause}
         />
       </FormField>
+      {detail.state === "calf" ? (
+        // What calves most often die of, one tap away — kept in Bangla so the calf-loss figure counts each once.
+        <div className="flex flex-wrap gap-2">
+          {CALF_DEATH_CAUSES.map((one) => (
+            <Button
+              key={one.bn}
+              onClick={() => setCause(one.bn)}
+              size="sm"
+              type="button"
+              variant={cause === one.bn ? "secondary" : "outline"}
+            >
+              {language === "en" ? one.en : one.bn}
+            </Button>
+          ))}
+        </div>
+      ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField id="mortality-disposal" label={t("mortality.disposal")}>
           <NativeSelect

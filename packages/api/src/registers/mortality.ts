@@ -1,5 +1,5 @@
 import type { Disposal, MortalityKind } from "@OpenFarm/domain";
-import { STILLBIRTH, farmDayOf } from "@OpenFarm/domain";
+import { STILLBIRTH, farmDayOf, farmDaysApart } from "@OpenFarm/domain";
 
 import type { Db, Register, Saying } from "./register";
 import { A_YEAR_BACK } from "./register";
@@ -14,6 +14,8 @@ export interface DeathRow {
   disposal: Disposal | null;
   disposalNote: string | null;
   reportReference: string | null;
+  /** How old she was, in days, where the farm knows when she was born: a calf's death is read by it. */
+  ageDays: number | null;
 }
 
 /**
@@ -29,7 +31,7 @@ const deathsBetween = async (
   const rows = await db.query.mortality.findMany({
     where: { farmId, happenedAt: { gte: from, lt: until } },
     with: {
-      animal: { columns: { tagNumber: true } },
+      animal: { columns: { tagNumber: true, birthDate: true } },
       diagnosis: {
         columns: {},
         with: { report: { columns: { reference: true, withdrawnAt: true } } },
@@ -48,6 +50,12 @@ const deathsBetween = async (
       disposal: row.disposal,
       disposalNote: row.disposalNote,
       reportReference: report?.withdrawnAt ? null : (report?.reference ?? null),
+      ageDays: row.animal.birthDate
+        ? farmDaysApart(
+            farmDayOf(row.animal.birthDate),
+            farmDayOf(row.happenedAt)
+          )
+        : null,
     };
   });
 };
@@ -116,6 +124,16 @@ export const MORTALITY_REGISTER: Register<DeathRow> = {
         said: (row) => row.reportReference || null,
       },
       csv: { header: "dls_reference", value: (row) => row.reportReference },
+    },
+    // Her age when she died, last: after the DLS template's own columns, so a sheet read by them reads as it did.
+    {
+      paper: {
+        bn: "বয়স (দিন)",
+        en: "Age (days)",
+        said: (row, say) =>
+          row.ageDays === null ? null : say.figure(row.ageDays),
+      },
+      csv: { header: "age_days", value: (row) => row.ageDays },
     },
   ],
   kept: (rows) => ({

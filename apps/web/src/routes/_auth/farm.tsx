@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { CircleCheck, Hourglass, Milk, Scale, Tractor } from "lucide-react";
 
+import { CalfLossesSection } from "@/components/home/calf-losses";
 import {
   FatteningPanel,
   FeedPanel,
@@ -309,6 +310,7 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
         <div className="grid min-w-0 items-start gap-6 md:grid-cols-2 xl:grid-cols-1">
           <MilkPanel tiles={tiles} />
           <HerdPanel culled={tiles.culled} died={tiles.died} />
+          <CalfLossesSection />
           <FatteningPanel />
           <FeedPanel />
         </div>

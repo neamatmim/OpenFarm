@@ -34,6 +34,7 @@ const aDeath = (death: Partial<DeathRow> = {}): DeathRow => ({
   disposal: "burned",
   disposalNote: "খামারের পেছনে",
   reportReference: "ULO/2046/০১২",
+  ageDays: null,
   ...death,
 });
 
@@ -190,8 +191,8 @@ describe("a register as a CSV", () => {
     const sheet = csvOf(MORTALITY_REGISTER, [aDeath()]);
 
     expect(sheet.slice(1).trim().split("\r\n")).toEqual([
-      "tag,date,kind,cause,disposal,disposal_note,dls_reference",
-      "BD-0001,2046-02-07,died,তড়কা,burned,খামারের পেছনে,ULO/2046/০১২",
+      "tag,date,kind,cause,disposal,disposal_note,dls_reference,age_days",
+      "BD-0001,2046-02-07,died,তড়কা,burned,খামারের পেছনে,ULO/2046/০১২,",
     ]);
   });
 
