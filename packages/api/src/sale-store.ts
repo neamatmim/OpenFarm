@@ -1,4 +1,6 @@
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
+import { paidAtTheGate } from "@OpenFarm/domain";
+import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "./audit";
@@ -14,6 +16,8 @@ export const readSale = async (tx: Tx, id: string) => {
     columns: {
       farmId: true,
       priceBdt: true,
+      bakiBdt: true,
+      promisedBy: true,
       weightKg: true,
       destination: true,
       vehicle: true,
@@ -40,8 +44,13 @@ export const buyerInput = z.object({
 export const salePriceInput = z.number().min(0).max(100_000_000);
 
 /**
- * Books what an animal fetched as the Sale now says it. A beast given away fetches nothing and books
- * nothing — unless she was booked at a price before, which a Correction then puts right.
+ * Books what the buyer paid for her as the Sale now says it: her price, less whatever he still owed as she left. A
+ * beast given away fetches nothing and books nothing, and nor does one taken all on Baki — unless she was booked at a
+ * price before, which a Correction then puts right.
+ *
+ * A Venture's animal leaves paid in full, so one with anything owing is refused here, where every way a Sale is
+ * written or put right comes through: Investors' money is never lent to a trader, and a Venture Account holds what
+ * a buyer paid, not what he promised.
  */
 export const bookSaleMoney = async (
   tx: Tx,
@@ -56,11 +65,18 @@ export const bookSaleMoney = async (
   }
   const { priceBdt } = row;
   const ventureId = await ownerOf(tx, row.animalId);
-  if (priceBdt > 0 || (await moneySnapshotOf(tx, row.farmId, "sale", row.id))) {
+  if (ventureId && row.bakiBdt > 0) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A Venture's animal leaves paid in full",
+      data: { refusal: "venture_paid_in_full" },
+    });
+  }
+  const paidBdt = paidAtTheGate(priceBdt, row.bakiBdt);
+  if (paidBdt > 0 || (await moneySnapshotOf(tx, row.farmId, "sale", row.id))) {
     await bookMoney(tx, booking, {
       source: "sale",
       sourceId: row.id,
-      amountBdt: priceBdt,
+      amountBdt: paidBdt,
       occurredAt: row.soldAt,
       counterpartyId: row.counterpartyId,
       paymentMethod,

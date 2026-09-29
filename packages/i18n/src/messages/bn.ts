@@ -1220,6 +1220,12 @@ export const bn: Record<MessageKey, string> = {
   "refusal.capitalOverUnits": "এই চুক্তির ইউনিটের দামের চেয়ে বেশি টাকা",
   "refusal.refundNotItsMoney": "এই ভেঞ্চার এই টাকা কখনো নেয়নি",
   "refusal.wageIsTheFarms": "মজুরি খামারের নিজের — লোক খামারই দেয়",
+  "refusal.venturePaidInFull":
+    "ভেঞ্চারের পশু পুরো দাম পেয়েই যায় — বিনিয়োগকারীদের টাকা কাউকে বাকিতে দেওয়া হয় না",
+  "refusal.paidMoreThanPrice": "যা দাম হয়েছে, তার চেয়ে বেশি দেওয়া লেখা হয়েছে",
+  "refusal.bakiNeedsAPromise": "বাকি টাকা কবে দেবে, সেই তারিখ লিখুন",
+  "refusal.promiseBeforeItLeft":
+    "যেদিন গেছে, তার আগের তারিখে বাকি দেওয়ার কথা হতে পারে না",
   "refusal.ventureOwnsHer":
     "এই গরু একটি ভেঞ্চারের, আর ভেঞ্চারের গরু দুধের দিকে যেতে পারে না",
   "refusal.notAVenturesAnimal": "ভেঞ্চার কেবল কিনে আনা মোটাতাজাকরণের গরুরই মালিক হয়",
@@ -4085,6 +4091,13 @@ export const bn: Record<MessageKey, string> = {
   "sale.sheetDescription":
     "কে নিল, কত দামে, আর কোন গাড়িতে গেল। দামটি টাকার হিসাবে যোগ হবে।",
   "sale.lastWeighed": "শেষ ওজন {kg} কেজি",
+  "baki.someOwed": "কিছু টাকা বাকি আছে",
+  "baki.paidNow": "এখন দিয়েছে (৳)",
+  "baki.stillOwes": "বাকি ৳{taka}",
+  "baki.promisedBy": "বাকি দেওয়ার তারিখ",
+  "baki.promisedByOptional": "বাকি দেওয়ার তারিখ, যদি বলে থাকে",
+  "baki.owedBy": "৳{taka} বাকি, {day}-এর মধ্যে দেওয়ার কথা",
+  "baki.owed": "৳{taka} বাকি",
   "sale.tab.ready": "যাওয়ার জন্য প্রস্তুত",
   "sale.sellThis": "বিক্রয় করুন",
   "sale.noneReadyHint":

@@ -4,11 +4,13 @@ import {
   WITHDRAWAL_LOOK_BACK_DAYS,
   animalPassport,
   farmDayOf,
+  roundTaka,
   saleReceipt,
   startOfFarmDay,
   transportCard,
   withdrawalSummary,
 } from "@OpenFarm/domain";
+import type { Language } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -48,6 +50,42 @@ const LOAD_LIMIT = 200;
  * above one lorry's registration would assert a load that was never on that lorry, which is the
  * thing Meat Rules r.18 exists to prevent.
  */
+/**
+ * What the buyer paid that day and still owed, for the paper he signs, or nothing when he paid in full. One promised
+ * day is said as it is; several are said beside the tags they were promised for, since a paper that gave one day for
+ * two promises would hold him to the wrong one.
+ */
+const bakiOnTheReceipt = (
+  rows: readonly {
+    priceBdt: number;
+    bakiBdt: number;
+    promisedBy: string | null;
+    animal: { tagNumber: string };
+  }[],
+  totalBdt: number,
+  language: Language
+) => {
+  const owing = rows.filter((row) => row.bakiBdt > 0);
+  if (owing.length === 0) {
+    return null;
+  }
+  const owedBdt = roundTaka(owing.reduce((sum, row) => sum + row.bakiBdt, 0));
+  const dayOf = (day: string | null) =>
+    day === null ? "—" : formatDate(startOfFarmDay(day), language, "date");
+  const days = new Set(owing.map((row) => row.promisedBy));
+  const [onlyDay] = days;
+  return {
+    paid: formatNumber(roundTaka(totalBdt - owedBdt), language),
+    owed: formatNumber(owedBdt, language),
+    toBePaidBy:
+      days.size === 1
+        ? dayOf(onlyDay ?? null)
+        : owing
+            .map((row) => `${row.animal.tagNumber} ${dayOf(row.promisedBy)}`)
+            .join("; "),
+  };
+};
+
 const salesWith = async (
   db: Database,
   farmId: string,
@@ -87,6 +125,8 @@ const salesWith = async (
     columns: {
       id: true,
       priceBdt: true,
+      bakiBdt: true,
+      promisedBy: true,
       weightKg: true,
       destination: true,
       vehicle: true,
@@ -266,6 +306,8 @@ export const papersRouter = {
         columns: {
           id: true,
           priceBdt: true,
+          bakiBdt: true,
+          promisedBy: true,
           weightKg: true,
           soldAt: true,
           destination: true,
@@ -312,6 +354,7 @@ export const papersRouter = {
       }));
       const totalBdt = rows.reduce((sum, row) => sum + row.priceBdt, 0);
       const text = saleReceipt({
+        baki: bakiOnTheReceipt(rows, totalBdt, language),
         farm: context.farm,
         buyerName: first.buyer.name,
         buyerAddress: first.buyer.address,

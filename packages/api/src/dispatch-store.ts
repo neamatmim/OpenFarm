@@ -1,6 +1,6 @@
 import type { Database } from "@OpenFarm/db";
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
-import { roundLitres } from "@OpenFarm/domain";
+import { paidAtTheGate, roundLitres, roundTaka } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -20,6 +20,9 @@ export interface DispatchRow {
   pricePerLitreBdt: number;
   fatPercent: number | null;
   snfPercent: number | null;
+  /** What the buyer still owed for it as it left, and the farm day he promised to pay by, when he named one. */
+  bakiBdt: number;
+  promisedBy: string | null;
   note: string | null;
 }
 
@@ -43,6 +46,8 @@ export const dispatchesBetween = async (
     pricePerLitreBdt: Number(row.pricePerLitreBdt),
     fatPercent: row.fatPercent === null ? null : Number(row.fatPercent),
     snfPercent: row.snfPercent === null ? null : Number(row.snfPercent),
+    bakiBdt: row.bakiBdt,
+    promisedBy: row.promisedBy,
     note: row.note,
   }));
 };
@@ -104,7 +109,17 @@ export const readDispatch = async (tx: Tx, id: string) => {
     : null;
 };
 
-/** Books a Dispatch's milk sale as it now stands: its litres at its price, to its buyer. */
+/** What a Dispatch's milk came to: its litres at its price, to the poisha. */
+export const worthOfDispatch = (row: {
+  litres: string | number;
+  pricePerLitreBdt: string | number;
+}): number => roundTaka(Number(row.litres) * Number(row.pricePerLitreBdt));
+
+/**
+ * Books a Dispatch's milk sale as it now stands: what the buyer paid for it as it left — its litres at its price,
+ * less whatever he still owed — to its buyer. Milk taken all on Baki books nothing, unless it was booked before and a
+ * Correction now puts it right.
+ */
 export const bookDispatchMoney = async (
   tx: Tx,
   booking: Booking,
@@ -112,11 +127,18 @@ export const bookDispatchMoney = async (
   paymentMethod: PaymentMethod | undefined
 ) => {
   const row = await tx.query.dispatch.findFirst({ where: { id } });
-  if (row) {
+  if (!row) {
+    return;
+  }
+  const paidBdt = paidAtTheGate(worthOfDispatch(row), row.bakiBdt);
+  if (
+    paidBdt > 0 ||
+    (await moneySnapshotOf(tx, row.farmId, "dispatch", row.id))
+  ) {
     await bookMoney(tx, booking, {
       source: "dispatch",
       sourceId: row.id,
-      amountBdt: Number(row.litres) * Number(row.pricePerLitreBdt),
+      amountBdt: paidBdt,
       occurredAt: row.dispatchedAt,
       counterpartyId: row.buyerId,
       paymentMethod,

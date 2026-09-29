@@ -359,6 +359,14 @@ export {
   findPublishBlockers,
   findStructuralProblems,
 } from "./sop";
+export type { BakiAtTheGate, BakiOutcome, BakiRefusal } from "./baki";
+export {
+  BAKI_REFUSALS,
+  bakiAtTheGate,
+  bakiPutRight,
+  isBakiRefusal,
+  paidAtTheGate,
+} from "./baki";
 export type { ApprovedTerms, MoneyApproval, PaymentMethod } from "./money";
 export {
   PAYMENT_METHODS,

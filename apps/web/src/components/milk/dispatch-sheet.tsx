@@ -5,9 +5,12 @@ import type { ComponentProps } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { BakiFields } from "@/components/baki-fields";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
+import type { BakiTyped } from "@/lib/baki";
+import { NO_BAKI, bakiComplete, bakiSent, somethingPaid } from "@/lib/baki";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
@@ -100,10 +103,12 @@ export const DispatchSheet = ({
   const refused = useRefused();
   const [form, setForm] = useState(NOTHING_TYPED);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const [baki, setBaki] = useState<BakiTyped>(NO_BAKI);
   const record = useMutation(
     orpc.milk.dispatch.mutationOptions({
       onSuccess: () => {
         setForm(NOTHING_TYPED);
+        setBaki(NO_BAKI);
         toast.success(t("dispatch.recorded"));
         onOpenChange(false);
       },
@@ -112,10 +117,12 @@ export const DispatchSheet = ({
   );
   const handleType = (name: keyof Typed, value: string) =>
     setForm((current) => ({ ...current, [name]: value }));
+  const worthBdt = worthOf(Number(form.litres), Number(form.price));
   const complete =
     Number(form.litres) > 0 &&
     Number(form.price) > 0 &&
-    form.buyerName.trim() !== "";
+    form.buyerName.trim() !== "" &&
+    bakiComplete(baki, worthBdt, false);
   const box = { draft: form, onType: handleType };
 
   return (
@@ -140,6 +147,7 @@ export const DispatchSheet = ({
           snfPercent: typed(form.snf),
           note: written(form.note),
           paymentMethod,
+          ...bakiSent(baki),
         })
       }
       open={open}
@@ -189,13 +197,22 @@ export const DispatchSheet = ({
         name="buyerAddress"
       />
 
+      <BakiFields
+        idPrefix="dispatch-baki"
+        onType={(patch) => setBaki((current) => ({ ...current, ...patch }))}
+        promiseRequired={false}
+        typed={baki}
+        worthBdt={worthBdt}
+      />
       <div className="grid gap-4 sm:grid-cols-2">
         <DispatchInput {...box} label={t("dispatch.challan")} name="challan" />
-        <PaymentMethodField
-          id="dispatch-paid-by"
-          onChange={setPaymentMethod}
-          value={paymentMethod}
-        />
+        {somethingPaid(baki) ? (
+          <PaymentMethodField
+            id="dispatch-paid-by"
+            onChange={setPaymentMethod}
+            value={paymentMethod}
+          />
+        ) : null}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

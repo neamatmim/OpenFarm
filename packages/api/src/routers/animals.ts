@@ -138,6 +138,8 @@ const saleView = (
     | {
         id: string;
         priceBdt: number;
+        bakiBdt: number;
+        promisedBy: string | null;
         weightKg: string;
         destination: string;
         vehicle: string;
@@ -153,6 +155,9 @@ const saleView = (
     ? {
         id: row.id,
         priceBdt: row.priceBdt,
+        // What her buyer still owed as she left, and the day he promised to pay it by: her Baki at the gate.
+        bakiBdt: row.bakiBdt,
+        promisedBy: row.promisedBy,
         weightKg: Number(row.weightKg),
         destination: row.destination,
         vehicle: row.vehicle,

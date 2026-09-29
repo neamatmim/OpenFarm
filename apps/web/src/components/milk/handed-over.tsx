@@ -1,10 +1,11 @@
-import { farmDayOf } from "@OpenFarm/domain";
+import { farmDayOf, paidAtTheGate } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Truck } from "lucide-react";
 
+import { BakiOwed } from "@/components/baki-fields";
 import {
   CorrectionAnswer,
   CorrectionDialog,
@@ -21,13 +22,20 @@ import { Nothing, SaidDate } from "@/components/list-cells";
 import { EmptyState, Loaded } from "@/components/page";
 import { FilterBar } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { amount, counterparty, note } from "@/lib/correcting";
+import {
+  amount,
+  counterparty,
+  day as promisedDay,
+  figure,
+  note,
+} from "@/lib/correcting";
 import { orpc } from "@/utils/orpc";
 
 import type { Dispatch, MilkDay } from "./milk-types";
-import { shiftDay } from "./milk-types";
+import { shiftDay, worthOf } from "./milk-types";
 
-/** The Manager puts a Dispatch right — litres, price, buyer or challan — with the reason. */
+/** The Manager puts a Dispatch right — litres, price, buyer, challan, what was paid then or the day promised — with the
+ *  reason. */
 const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
   const { t } = useLanguage();
   const correcting = useCorrecting({
@@ -35,6 +43,14 @@ const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
     pricePerLitreBdt: amount(dispatch.pricePerLitreBdt),
     buyer: counterparty(dispatch.buyerName),
     challan: note(dispatch.challan),
+    // Left out of a day cached before Baki was written down: paid in full, as every such Dispatch was.
+    paidNowBdt: figure(
+      paidAtTheGate(
+        worthOf(dispatch.litres, dispatch.pricePerLitreBdt),
+        dispatch.bakiBdt ?? 0
+      )
+    ),
+    promisedBy: promisedDay(dispatch.promisedBy ?? null),
   });
   const correct = useMutation(orpc.milk.correctDispatch.mutationOptions({}));
   return (
@@ -76,6 +92,21 @@ const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
         onChange={(value) => correcting.set("challan", value)}
         value={correcting.typed.challan ?? ""}
       />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <CorrectionAnswer
+          inputMode="decimal"
+          label={t("baki.paidNow")}
+          onChange={(value) => correcting.set("paidNowBdt", value)}
+          type="number"
+          value={correcting.typed.paidNowBdt ?? ""}
+        />
+        <CorrectionAnswer
+          label={t("baki.promisedByOptional")}
+          onChange={(value) => correcting.set("promisedBy", value)}
+          type="date"
+          value={correcting.typed.promisedBy ?? ""}
+        />
+      </div>
     </CorrectionDialog>
   );
 };
@@ -97,7 +128,13 @@ const WhenCell = ({ row }: { row: { original: DispatchRow } }) => (
 );
 
 const BuyerCell = ({ row }: { row: { original: DispatchRow } }) => (
-  <span className="font-medium">{row.original.buyerName}</span>
+  <span className="flex flex-col">
+    <span className="font-medium">{row.original.buyerName}</span>
+    <BakiOwed
+      bakiBdt={row.original.bakiBdt}
+      promisedBy={row.original.promisedBy}
+    />
+  </span>
 );
 
 const ChallanCell = ({ row }: { row: { original: DispatchRow } }) =>
@@ -191,6 +228,7 @@ const DispatchCard = ({ row }: { row: DispatchRow }) => {
     <div className="flex items-start justify-between gap-3">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="font-medium">{row.buyerName}</span>
+        <BakiOwed bakiBdt={row.bakiBdt} promisedBy={row.promisedBy} />
         <span className="font-semibold tabular-nums">
           {formatNumber(row.litres, language)} {t("dispatch.litres")}
           <span className="text-muted-foreground text-xs font-normal">

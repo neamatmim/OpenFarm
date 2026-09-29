@@ -1312,6 +1312,12 @@ export const en = {
     "That refund names money this Venture never took",
   "refusal.wageIsTheFarms":
     "A wage is the farm's own — the farm provides the people",
+  "refusal.venturePaidInFull":
+    "A Venture's animal leaves paid in full — its Investors' money is never lent to a buyer",
+  "refusal.paidMoreThanPrice": "That is more than it came to",
+  "refusal.bakiNeedsAPromise": "Write the day he promised to pay the rest by",
+  "refusal.promiseBeforeItLeft":
+    "He cannot have promised to pay by a day before it left",
   "refusal.ventureOwnsHer":
     "She belongs to a Venture, and a Venture's animal cannot cross to the dairy side",
   "refusal.notAVenturesAnimal":
@@ -4372,6 +4378,14 @@ export const en = {
   "sale.sheetDescription":
     "Who took her, for how much, and the lorry she went on. The price goes to the money register.",
   "sale.lastWeighed": "Last weighed {kg} kg",
+  /** Baki at the gate: a buyer who paid part of it, or none, now. */
+  "baki.someOwed": "Some of it is still owed (baki)",
+  "baki.paidNow": "Paid now (৳)",
+  "baki.stillOwes": "Still owes ৳{taka}",
+  "baki.promisedBy": "Promised to pay by",
+  "baki.promisedByOptional": "Promised to pay by, if he named a day",
+  "baki.owedBy": "৳{taka} still owed, promised by {day}",
+  "baki.owed": "৳{taka} still owed",
   "sale.tab.ready": "Ready to go",
   "sale.sellThis": "Sell",
   "sale.noneReadyHint":

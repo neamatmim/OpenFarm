@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { SettlementStatement } from "./papers";
-import { settlementStatement } from "./papers";
+import type { SaleReceipt, SettlementStatement } from "./papers";
+import { saleReceipt, settlementStatement } from "./papers";
 
 // The হিসাব নিকাশ's line on an Investor's capital (ADR 0012): under their payout, a share over its days, a loss said as
 // a loss — never a minus sign after the figure, and never a rate a year.
@@ -75,5 +75,45 @@ describe("the হিসাব নিকাশ's line on their capital", () => {
 
   it("prints nothing of it while the Owner has not shown it", () => {
     expect(capitalLine(settlementStatement(sheet(null)))).toBeUndefined();
+  });
+});
+
+const receipt = (baki: SaleReceipt["baki"]): SaleReceipt => ({
+  farm: {
+    name: "সবুজ খামার",
+    address: "সাভার",
+    phone: "01711-000000",
+    registrationNumber: "DLS/SAV/1",
+    registrationOffice: null,
+    registrationIssuedOn: null,
+    registrationExpiresOn: null,
+  },
+  buyerName: "করিম ব্যাপারী",
+  buyerAddress: null,
+  buyerPhone: null,
+  day: "১৬ জুন",
+  animals: [{ tagNumber: "F-0012", weight: "৩৩০", price: "১,২০,০০০" }],
+  total: "১,২০,০০০",
+  baki,
+  producedBy: "ম্যানেজার",
+  producedAt: "১৬ জুন",
+});
+
+// A trader who took a bull and still owes on it signs for what he owes: the paper is what the farm can hold him to.
+describe("the receipt of a buyer who still owes", () => {
+  it("says what he paid, what he owes and the day he promised, above his signature", () => {
+    const text = saleReceipt(
+      receipt({ paid: "১,০০,০০০", owed: "২০,০০০", toBePaidBy: "২৩ জুন" })
+    );
+    expect(text).toContain("পরিশোধ / Paid: ১,০০,০০০ টাকা");
+    expect(text).toContain("বাকি / Still owed: ২০,০০০ টাকা");
+    expect(text).toContain("পরিশোধের তারিখ / To be paid by: ২৩ জুন");
+    expect(text.indexOf("Still owed")).toBeLessThan(text.indexOf("Buyer: _"));
+  });
+
+  it("says nothing of it for a buyer who paid in full", () => {
+    const text = saleReceipt(receipt(null));
+    expect(text).not.toContain("Still owed");
+    expect(text).not.toContain("To be paid by");
   });
 });

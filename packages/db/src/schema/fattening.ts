@@ -244,6 +244,12 @@ export const sale = pgTable(
       .notNull()
       .references(() => counterparty.id),
     priceBdt: taka("price_bdt").notNull(),
+    /** What the buyer still owed when she left — her **Baki** at the gate. Nothing, for a buyer who paid in full, as
+     *  every Sale before Baki was written down did. Her Money Event is the price less this: only what was paid. */
+    bakiBdt: taka("baki_bdt").notNull().default(0),
+    /** The farm day ("YYYY-MM-DD") the buyer promised to pay what he still owed by. Always set when he owed
+     *  something, never when he did not. */
+    promisedBy: text("promised_by"),
     /** What she weighed on the day. Not her last Weigh-in: a beast loses weight on a lorry and
      *  the price was struck on this figure. */
     weightKg: numeric("weight_kg", { precision: 7, scale: 2 }).notNull(),

@@ -2,6 +2,7 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { ReceiptText, Truck } from "lucide-react";
 import { useState } from "react";
 
+import { BakiOwed } from "@/components/baki-fields";
 import {
   ActionsHeader,
   DataTable,
@@ -94,7 +95,13 @@ const TagCell = ({ row }: SoldCell) => (
 );
 
 const BuyerCell = ({ row }: SoldCell) => (
-  <span className="font-medium">{row.original.buyerName}</span>
+  <span className="flex flex-col">
+    <span className="font-medium">{row.original.buyerName}</span>
+    <BakiOwed
+      bakiBdt={row.original.bakiBdt}
+      promisedBy={row.original.promisedBy}
+    />
+  </span>
 );
 
 const WeightCell = ({ row }: SoldCell) => {
@@ -193,6 +200,7 @@ const SoldCard = ({ row }: { row: SoldRow }) => {
         <span className="text-lg font-semibold tabular-nums">
           <Taka value={row.priceBdt} />
         </span>
+        <BakiOwed bakiBdt={row.bakiBdt} promisedBy={row.promisedBy} />
         <span className="text-muted-foreground text-xs">
           {[
             row.buyerName,
