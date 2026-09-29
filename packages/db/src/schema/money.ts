@@ -321,3 +321,40 @@ export const bakiPayment = pgTable(
     ),
   ]
 );
+
+/** What a **Write-off** closes: a Sale's Baki or a Dispatch's. */
+export const BAKI_SOURCES = ["sale", "dispatch"] as const;
+
+/**
+ * The Owner closing a **Baki** that will not be paid, with a reason: so much of one Sale's or one Dispatch's. What the
+ * animal fetched — or the milk — is then its price less it, wherever a figure asks. A buyer who pays after all puts it
+ * back: a payment beyond everything open goes to what was written off, oldest first. The Owner's alone.
+ */
+export const bakiWriteOff = pgTable(
+  "baki_write_off",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    source: text("source", { enum: BAKI_SOURCES }).notNull(),
+    /** The Sale or the Dispatch it closes. */
+    sourceId: text("source_id").notNull(),
+    counterpartyId: text("counterparty_id")
+      .notNull()
+      .references(() => counterparty.id),
+    amountBdt: taka("amount_bdt").notNull(),
+    reason: text("reason").notNull(),
+    /** The farm day ("YYYY-MM-DD") the Owner wrote it off. */
+    writtenOn: text("written_on").notNull(),
+    recordedBy: text("recorded_by").references(() => user.id),
+    recordedAt: timestamp("recorded_at").notNull(),
+  },
+  (table) => [
+    index("baki_write_off_source_idx").on(
+      table.farmId,
+      table.source,
+      table.sourceId
+    ),
+  ]
+);

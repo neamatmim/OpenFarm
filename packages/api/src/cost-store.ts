@@ -33,6 +33,7 @@ import {
   tripShares,
 } from "@OpenFarm/domain";
 
+import { writtenOffByItem } from "./baki-store";
 import { THE_FARMS_PURSE } from "./money-store";
 import { movementsByItem } from "./stock-store";
 import { tripCostOf } from "./trip-store";
@@ -191,7 +192,7 @@ const linesOf = (lines: unknown): FeedingToCost["lines"] =>
 export const farmCosts = async (db: Db, farmId: string) => {
   // Callers may hand this function a transaction. PostgreSQL gives that transaction one client, so these reads
   // must stay sequential even though a pool-backed call could run them concurrently.
-  const animals = await db.query.animal.findMany({
+  const loaded = await db.query.animal.findMany({
     where: { farmId },
     columns: {
       id: true,
@@ -212,7 +213,9 @@ export const farmCosts = async (db: Db, farmId: string) => {
           arrivedAt: true,
         },
       },
-      sale: { columns: { priceBdt: true, soldAt: true, weightKg: true } },
+      sale: {
+        columns: { id: true, priceBdt: true, soldAt: true, weightKg: true },
+      },
       weighIns: {
         columns: { weightKg: true },
         orderBy: { weighedAt: "desc", id: "desc" },
@@ -220,6 +223,23 @@ export const farmCosts = async (db: Db, farmId: string) => {
       },
     },
   });
+  // What she fetched is her price less whatever of her buyer's Baki stays written off — read here, once, so every sum
+  // of what an animal fetched (her Margin, Return on Cost, a Season, the dairy herd's own) reads the same figure. A
+  // Venture's animal never leaves owing, so nothing here can move a Venture's figures.
+  const writtenOff = await writtenOffByItem(db, farmId);
+  const animals = loaded.map((one) =>
+    one.sale && writtenOff.has(one.sale.id)
+      ? {
+          ...one,
+          sale: {
+            ...one.sale,
+            priceBdt: roundTaka(
+              one.sale.priceBdt - (writtenOff.get(one.sale.id) ?? 0)
+            ),
+          },
+        }
+      : one
+  );
   const moves = await db.query.animalMove.findMany({
     where: { farmId },
     columns: {

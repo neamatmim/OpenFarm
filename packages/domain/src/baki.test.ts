@@ -329,3 +329,59 @@ describe("overdue Baki", () => {
     );
   });
 });
+
+const writtenOff = (
+  id: string,
+  leftOn: string,
+  bakiBdt: number,
+  writtenOffBdt: number
+) => ({ id, leftOn, bakiBdt, promisedBy: null, writtenOffBdt });
+
+describe("Baki written off", () => {
+  it("is no longer owed, and says what stays written off", () => {
+    const standing = bakiStanding(
+      [writtenOff("a", "2026-06-01", 20_000, 20_000)],
+      []
+    );
+    expect(standing).toMatchObject({
+      owingBdt: 0,
+      writtenOffBdt: 20_000,
+      creditBdt: 0,
+    });
+  });
+
+  it("is paid last: money clears what is open before it puts a write-off back", () => {
+    const standing = bakiStanding(
+      [
+        writtenOff("a", "2026-06-01", 20_000, 20_000),
+        item("b", "2026-06-10", 5000),
+      ],
+      [paid("p1", "2026-06-12", 8000)]
+    );
+    expect(standing.items).toMatchObject([
+      { id: "a", owingBdt: 0, writtenOffBdt: 17_000, paidBdt: 3000 },
+      { id: "b", owingBdt: 0, writtenOffBdt: 0, paidBdt: 5000 },
+    ]);
+    expect(standing.writtenOffBdt).toBe(17_000);
+  });
+
+  it("is put back whole by a buyer who pays it all after all, and the rest is credit", () => {
+    const standing = bakiStanding(
+      [writtenOff("a", "2026-06-01", 20_000, 20_000)],
+      [paid("p1", "2026-07-01", 21_000)]
+    );
+    expect(standing).toMatchObject({ writtenOffBdt: 0, creditBdt: 1000 });
+  });
+
+  it("leaves the rest owing when only part was written off", () => {
+    const standing = bakiStanding(
+      [writtenOff("a", "2026-06-01", 20_000, 5000)],
+      [paid("p1", "2026-06-05", 10_000)]
+    );
+    expect(standing.items[0]).toMatchObject({
+      owingBdt: 5000,
+      writtenOffBdt: 5000,
+      paidBdt: 10_000,
+    });
+  });
+});

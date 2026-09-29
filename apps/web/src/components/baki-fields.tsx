@@ -135,30 +135,37 @@ export const BuyerOwes = ({ name }: { name: string }) => {
     enabled: settled.length > 1,
   });
   const owes = his.data;
-  if (!owes || owes.owingBdt <= 0 || owes.oldestOn === null) {
+  if (!owes) {
     return null;
   }
+  const day = (value: string) =>
+    formatDate(startOfFarmDay(value), language, "date");
+  const taka = formatNumber(owes.owingBdt, language);
+  const lines = [
+    owes.owingBdt > 0 && owes.overdueSince
+      ? t("baki.buyerOverdue", {
+          name: owes.name,
+          taka,
+          day: day(owes.overdueSince),
+        })
+      : null,
+    owes.owingBdt > 0 && !owes.overdueSince && owes.oldestOn
+      ? t("baki.buyerOwes", { name: owes.name, taka, day: day(owes.oldestOn) })
+      : null,
+    // His mark: the farm has lost money to him before. Missing from an answer kept from before write-offs.
+    (owes.writtenOffBdt ?? 0) > 0 && owes.lastWrittenOffOn
+      ? t("baki.buyerWrittenOff", {
+          name: owes.name,
+          taka: formatNumber(owes.writtenOffBdt, language),
+          day: day(owes.lastWrittenOffOn),
+        })
+      : null,
+  ].filter((line) => line !== null);
+  if (lines.length === 0) {
+    return null;
+  }
+  const loud = Boolean(owes.overdueSince) || (owes.writtenOffBdt ?? 0) > 0;
   return (
-    <Notice
-      title={
-        // Overdue says it louder: the farm is about to lend more to somebody who has not paid what is late.
-        owes.overdueSince
-          ? t("baki.buyerOverdue", {
-              name: owes.name,
-              taka: formatNumber(owes.owingBdt, language),
-              day: formatDate(
-                startOfFarmDay(owes.overdueSince),
-                language,
-                "date"
-              ),
-            })
-          : t("baki.buyerOwes", {
-              name: owes.name,
-              taka: formatNumber(owes.owingBdt, language),
-              day: formatDate(startOfFarmDay(owes.oldestOn), language, "date"),
-            })
-      }
-      tone={owes.overdueSince ? "danger" : "warning"}
-    />
+    <Notice title={lines.join(" · ")} tone={loud ? "danger" : "warning"} />
   );
 };

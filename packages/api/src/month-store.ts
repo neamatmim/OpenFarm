@@ -10,6 +10,7 @@ import {
   summariseMoney,
 } from "@OpenFarm/domain";
 
+import { fetchedPerLitre, writtenOffByItem } from "./baki-store";
 import { chargedOf, costsBySide, farmCosts, theFarmsOwn } from "./cost-store";
 import { moneyForTheAccountant } from "./money-export-store";
 import type { OverheadMoneyOn } from "./overhead-store";
@@ -64,10 +65,13 @@ interface Read {
   costs: Awaited<ReturnType<typeof farmCosts>>;
   money: Awaited<ReturnType<typeof moneyForTheAccountant>>;
   dispatched: {
+    id: string;
     dispatchedAt: Date;
     litres: string;
     pricePerLitreBdt: string;
   }[];
+  /** What stays written off of each Dispatch: milk a buyer never paid for did not fetch its price. */
+  writtenOff: ReadonlyMap<string, number>;
   overheadMoney: OverheadMoneyOn[];
   /** Where every Animal stood, the Ventures' too: the place and the people keep them all, so an Overhead a head a day
    *  is over all of them, where the Sides' figures are over the Farm's own. */
@@ -83,7 +87,15 @@ interface Read {
  */
 const figuresOver = (
   { from, until }: { from: Date; until: Date },
-  { costs, money, dispatched, overheadMoney, everyAnimal, now }: Read
+  {
+    costs,
+    money,
+    dispatched,
+    writtenOff,
+    overheadMoney,
+    everyAnimal,
+    now,
+  }: Read
 ) => {
   const within = (at: Date) => at >= from && at < until;
   const sides = costsBySide(costs, { from, until });
@@ -93,7 +105,7 @@ const figuresOver = (
       .filter((one) => within(one.dispatchedAt))
       .map((one) => ({
         litres: Number(one.litres),
-        pricePerLitreBdt: Number(one.pricePerLitreBdt),
+        pricePerLitreBdt: fetchedPerLitre(one, writtenOff),
       }))
   );
   const sold = sides.soldFattening.animals;
@@ -171,7 +183,12 @@ export const monthByMonth = async (
           farmId: farm.id,
           dispatchedAt: { gte: span.from, lt: span.until },
         },
-        columns: { dispatchedAt: true, litres: true, pricePerLitreBdt: true },
+        columns: {
+          id: true,
+          dispatchedAt: true,
+          litres: true,
+          pricePerLitreBdt: true,
+        },
       }),
       venturesAgainstPlan(db, farm, now),
       overheadMoneyIn(db, farm.id, span),
@@ -181,6 +198,7 @@ export const monthByMonth = async (
     costs: theFarmsOwn(costs, ownedThenBy),
     money,
     dispatched,
+    writtenOff: await writtenOffByItem(db, farm.id),
     overheadMoney,
     everyAnimal: costs.history,
     now,

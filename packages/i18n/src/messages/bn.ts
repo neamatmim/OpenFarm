@@ -1232,6 +1232,8 @@ export const bn: Record<MessageKey, string> = {
     "যেদিন গেছে, তার আগের তারিখে বাকি দেওয়ার কথা হতে পারে না",
   "refusal.paidMoreThanOwed": "বাকি ৳{owingBdt}; বেশি দিলে কেন, মন্তব্যে লিখুন",
   "refusal.noSuchBuyer": "এই নামে কারো কাছে খামার কখনো বিক্রি করেনি",
+  "refusal.writtenOffMoreThanOwed": "এর ওপর এখন বাকি মাত্র ৳{owingBdt}",
+  "refusal.nothingOwedOnIt": "এর ওপর কখনো কিছু বাকি ছিল না",
   "refusal.ventureOwnsHer":
     "এই গরু একটি ভেঞ্চারের, আর ভেঞ্চারের গরু দুধের দিকে যেতে পারে না",
   "refusal.notAVenturesAnimal": "ভেঞ্চার কেবল কিনে আনা মোটাতাজাকরণের গরুরই মালিক হয়",
@@ -4137,6 +4139,14 @@ export const bn: Record<MessageKey, string> = {
   "baki.buyerOverdue":
     "{name}-এর কাছে ৳{taka} বাকি, {day} থেকে মেয়াদোত্তীর্ণ — বাকিতে বিক্রির আগে ভাবুন",
   "home.bakiOverdue": "মেয়াদোত্তীর্ণ বাকি",
+  "baki.writeOff": "বাদ দিন",
+  "baki.writeOffTitle": "এই বাকি বাদ দিন",
+  "baki.writeOffDescription":
+    "শুধু যখন আর পাওয়া যাবে না। পশু বা দুধ যা দাম পেয়েছে তা এতটা কমবে, আর ক্রেতার নামে দাগ থাকবে। পরে টাকা দিলে আবার ফেরত আসবে।",
+  "baki.writeOffWhy": "কেন আর পাওয়া যাবে না",
+  "baki.writtenOff": "৳{taka} বাদ দেওয়া হয়েছে",
+  "baki.writtenOffDone": "বাদ দেওয়া হলো",
+  "baki.buyerWrittenOff": "{name}-এর ৳{taka} {day}-এ বাদ দেওয়া হয়েছিল",
   "home.bakiOverdueSince": "{day} থেকে ৳{taka} মেয়াদোত্তীর্ণ",
   "home.bakiSoldAgain": "মেয়াদোত্তীর্ণ অবস্থায় আবার বাকিতে বিক্রি",
   "money.from.bakiPayment": "বাকি পরিশোধ",
