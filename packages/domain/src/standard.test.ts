@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { findExpectedGainProblems } from "./expected-gain";
 import type { WeightBand } from "./feed";
 import { findBandProblems, findRationProblems } from "./feed";
 import { findPublishBlockers } from "./sop";
@@ -108,6 +109,19 @@ describe("the standard lists", () => {
     for (const [index, band] of bands.slice(1).entries()) {
       expect(band.fromKg).toBe(bands[index]?.toKg);
     }
+  });
+
+  // docs/research/expected-daily-gain.md: every Ration a bull is fed by his weight says what it should put on him, as a
+  // range the Ration editor would take; the arrival Ration says nothing, because nobody judges a bull settling in.
+  it("says what each Ration by weight should put on a bull, and nothing for the arrival Ration", () => {
+    for (const key of FATTENING_BY_WEIGHT) {
+      const { gain } = STANDARD_RATIONS[key];
+      expect({
+        key,
+        problems: findExpectedGainProblems(gain),
+      }).toEqual({ key, problems: [] });
+    }
+    expect("gain" in STANDARD_RATIONS.arrival).toBe(false);
   });
 
   // NDDB 2012: an adult takes 1–1.5 kg of mustard cake a day, and no more.

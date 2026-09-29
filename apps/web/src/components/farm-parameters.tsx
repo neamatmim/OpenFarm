@@ -29,6 +29,7 @@ type NumberKey =
   | "registrationRenewalLeadDays"
   | "expiryWarnDays"
   | "fatteningTargetWeightKg"
+  | "gainReadDays"
   | "aiWindowStartHours"
   | "aiWindowEndHours"
   | "pregnancyCheckAfterDays"
@@ -373,6 +374,13 @@ const GROUPS: {
         unit: "params.kg",
         min: 1,
         max: 2000,
+      },
+      {
+        key: "gainReadDays",
+        label: "params.gainReadDays",
+        unit: "params.days",
+        min: 14,
+        max: 90,
       },
       {
         key: "registrationRenewalLeadDays",

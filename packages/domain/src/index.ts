@@ -95,6 +95,16 @@ export {
   fatteningView,
   implausibleChange,
 } from "./fattening";
+export type { ExpectedGain, GainOnRation, GainStanding } from "./expected-gain";
+export {
+  GAIN_STANDINGS,
+  SETTLING_IN_DAYS,
+  findExpectedGainProblems,
+  gainCountsFrom,
+  gainOnRationOf,
+  gainStandingOf,
+  isShortOfExpected,
+} from "./expected-gain";
 export type { EidBasis, EidWindow, ListedEid, Season } from "./eid";
 export {
   EID_BASES,

@@ -68,6 +68,9 @@ const parameters = z
     /** What a bought-in fattening animal is fed towards unless the Manager says otherwise
      *  for that animal. */
     fatteningTargetWeightKg: z.number().int().min(1).max(2000).optional(),
+    /** How many days back a fattening animal's gain is read against her Ration's Expected Gain: at least two
+     *  fortnightly Weigh-ins, and no more than three months, past which it is last season's Ration being judged. */
+    gainReadDays: z.number().int().min(14).max(90).optional(),
     /** The AI window after a Heat, in hours. */
     aiWindowStartHours: z.number().int().min(0).max(72).optional(),
     aiWindowEndHours: z.number().int().min(1).max(96).optional(),
@@ -705,6 +708,7 @@ export const farmRouter = {
                 registrationRenewalLeadDays: true,
                 expiryWarnDays: true,
                 fatteningTargetWeightKg: true,
+                gainReadDays: true,
                 aiWindowStartHours: true,
                 aiWindowEndHours: true,
                 pregnancyCheckAfterDays: true,

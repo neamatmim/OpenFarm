@@ -21,6 +21,7 @@ import type { BoardRow } from "@/components/fattening/fattening-types";
 import { ORDER, standingOf } from "@/components/fattening/fattening-types";
 import { NextEid } from "@/components/fattening/next-eid";
 import { OutOfBand } from "@/components/fattening/out-of-band";
+import { UnderExpectedGain } from "@/components/fattening/under-expected-gain";
 import { EmptyState, Notice, Page, PageHeader } from "@/components/page";
 import { SummaryFigures } from "@/components/page-kit";
 import { RunningSeasonsStrip } from "@/components/returns/returns-page";
@@ -149,6 +150,7 @@ const FatteningPage = () => {
       <RunningSeasonsStrip />
       <NextEid />
       <OutOfBand />
+      <UnderExpectedGain />
       <FatteningBoard
         keeping={keeping}
         onKeeping={(value) =>

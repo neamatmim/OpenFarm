@@ -78,6 +78,8 @@ export interface Context {
     expiryWarnDays: number;
     /** What a bought-in fattening animal is fed towards unless the Manager says otherwise. */
     fatteningTargetWeightKg: number;
+    /** How many days back a fattening animal's gain is read against her Ration's Expected Gain. */
+    gainReadDays: number;
     /** The hours after a Heat within which the AI work is due, and after which it is late. */
     aiWindowStartHours: number;
     aiWindowEndHours: number;

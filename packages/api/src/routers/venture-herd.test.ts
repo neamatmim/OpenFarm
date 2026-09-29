@@ -5,7 +5,7 @@ import { animal } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import { sopDefinition } from "@OpenFarm/db/schema/sop";
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
+import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -509,8 +509,9 @@ describe("what a Venture's animals are doing", () => {
   it("says what a kilo fetched in the farm's own sales lately, as a reference beside the market price", async () => {
     // An old cow culled to a butcher on the 19th, 400 kg for ৳1,52,000 — ৳380 a kilo, a Sale like any other.
     const db = scratchDb();
+    // This file's own bull: a Tag Number is only unique on one farm, and every test file's farm numbers its own.
     const bull = await db.query.animal.findFirst({
-      where: { tagNumber: tags[5] ?? "" },
+      where: { farmId: theFarm().id, tagNumber: tags[5] ?? "" },
       columns: { farmId: true },
       with: { sale: { columns: { counterpartyId: true } } },
     });

@@ -9,6 +9,7 @@ import {
 import {
   STANDARD_FEED_ITEMS,
   findBandProblems,
+  findExpectedGainProblems,
   findRationProblems,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -21,6 +22,8 @@ import { assertNameFree, bringBackToList, retireFromList } from "../farm-list";
 import {
   bandColumns,
   bandOf,
+  expectedGainColumns,
+  expectedGainOf,
   feedingTargetForPen,
   linesOf,
   publishRationVersion,
@@ -79,6 +82,12 @@ const rationInput = z.object({
   band: z
     .object({ fromKg: z.number().nullable(), toKg: z.number().nullable() })
     .optional(),
+  /** The kilos a day, low to high, it is written to put on the animals that eat it; null for none. Left out, a Ration
+   *  keeps the Expected Gain it had — and a new one has none. */
+  expectedGain: z
+    .object({ lowKg: z.number(), highKg: z.number() })
+    .nullable()
+    .optional(),
 });
 
 /** What a Ration says right now, for the trail to record as the before and the after. */
@@ -93,6 +102,7 @@ const readRation = async (tx: Tx, rationId: string) => {
         number: row.currentVersion.number,
         items: linesOf(row.currentVersion.items),
         band: bandOf(row),
+        expectedGain: expectedGainOf(row),
       }
     : null;
 };
@@ -510,6 +520,7 @@ export const feedRouter = {
         number: row.currentVersion?.number ?? null,
         items: linesOf(row.currentVersion?.items),
         band: bandOf(row),
+        expectedGain: expectedGainOf(row),
         penIds: row.pens.map((assignment) => assignment.penId),
       }));
     }),
@@ -525,6 +536,9 @@ export const feedRouter = {
       const problems = [
         ...findRationProblems(input),
         ...(input.band ? findBandProblems(input.band) : []),
+        ...(input.expectedGain
+          ? findExpectedGainProblems(input.expectedGain)
+          : []),
       ];
       if (problems.length > 0) {
         throw new ORPCError("BAD_REQUEST", {
@@ -573,6 +587,9 @@ export const feedRouter = {
                 nameBn: input.name.bn,
                 nameEn: input.name.en ?? null,
                 ...(input.band ? bandColumns(input.band) : {}),
+                ...(input.expectedGain === undefined
+                  ? {}
+                  : expectedGainColumns(input.expectedGain)),
               })
               .where(eq(ration.id, rationId));
           } else {
@@ -583,6 +600,7 @@ export const feedRouter = {
               nameBn: input.name.bn,
               nameEn: input.name.en ?? null,
               ...(input.band ? bandColumns(input.band) : {}),
+              ...expectedGainColumns(input.expectedGain ?? null),
               createdAt: now,
             });
           }
