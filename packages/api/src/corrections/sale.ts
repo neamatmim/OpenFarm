@@ -1,8 +1,10 @@
 import { eq } from "@OpenFarm/db/operators";
 import { sale } from "@OpenFarm/db/schema/fattening";
+import { bakiPutRight, farmDayOf, paidAtTheGate } from "@OpenFarm/domain";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
+import { bakiOrRefuse, paidNowInput, promisedByInput } from "../baki-store";
 import { counterpartyNamed } from "../counterparty-store";
 import { paymentMethodChange } from "../money-inputs";
 import { bookingOf, paymentMethodOf } from "../money-store";
@@ -23,17 +25,23 @@ const loadSale = (tx: Tx, farmId: string, id: string) =>
       id: true,
       farmId: true,
       priceBdt: true,
+      bakiBdt: true,
+      promisedBy: true,
+      soldAt: true,
       recordedBy: true,
       createdAt: true,
     },
     with: { buyer: { columns: { name: true } } },
   });
 
-/** What a Sale's Correction may change: what she fetched, who bought her, and how he paid. */
+/** What a Sale's Correction may change: what she fetched, who bought her, how he paid, what he paid there and then,
+ *  and the day he promised to pay the rest by. */
 export const saleCorrectionInput = correctionInput({
   priceBdt: changeOf(salePriceInput, z.number()),
   buyer: changeOf(buyerInput, z.string()),
   paymentMethod: paymentMethodChange,
+  paidNowBdt: changeOf(paidNowInput, z.number()),
+  promisedBy: changeOf(promisedByInput.nullable(), z.string().nullable()),
 });
 
 /**
@@ -60,12 +68,32 @@ export const saleCorrection: CorrectionKind<
     priceBdt: row.priceBdt,
     buyer: row.buyer.name,
     paymentMethod: await paymentMethodOf(tx, row.farmId, "sale", row.id),
+    paidNowBdt: paidAtTheGate(row.priceBdt, row.bakiBdt),
+    promisedBy: row.promisedBy,
   }),
   shownAs: { buyer: (to) => to.name },
   trail: (tx, row) => readSale(tx, row.id),
   apply: async (tx, row, to, { context, now }) => {
+    // What he paid stands unless the Correction says otherwise: a price mistyped is not cash handed back.
+    const baki = bakiOrRefuse(
+      bakiPutRight({
+        before: {
+          worthBdt: row.priceBdt,
+          bakiBdt: row.bakiBdt,
+          promisedBy: row.promisedBy,
+        },
+        worthBdt: to.priceBdt ?? row.priceBdt,
+        paidNowBdt: to.paidNowBdt,
+        promisedBy: to.promisedBy,
+        leftOn: farmDayOf(row.soldAt),
+        promiseRequired: true,
+      })
+    );
+    const bakiMoved =
+      baki.bakiBdt !== row.bakiBdt || baki.promisedBy !== row.promisedBy;
     const putRight = {
       ...(to.priceBdt === undefined ? {} : { priceBdt: to.priceBdt }),
+      ...(bakiMoved ? baki : {}),
       ...(to.buyer === undefined
         ? {}
         : {

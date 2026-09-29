@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { FileText, ReceiptText, ShieldCheck, Truck } from "lucide-react";
 import { useState } from "react";
 
+import { BakiOwed } from "@/components/baki-fields";
 import {
   CorrectionAnswer,
   CorrectionDialog,
@@ -218,7 +219,10 @@ const HowSheLeft = ({
       <FactGrid>
         <Fact label={t("sale.soldTo")}>{sale.buyerName}</Fact>
         <Fact label={t("sale.price")}>
-          {t("intake.taka", { taka: formatNumber(sale.priceBdt, language) })}
+          <span className="flex flex-col">
+            {t("intake.taka", { taka: formatNumber(sale.priceBdt, language) })}
+            <BakiOwed bakiBdt={sale.bakiBdt} promisedBy={sale.promisedBy} />
+          </span>
         </Fact>
         <Fact label={t("sale.weight")}>
           {t("intake.kg", { kg: formatNumber(sale.weightKg, language) })}

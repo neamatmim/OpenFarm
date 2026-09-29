@@ -10,13 +10,17 @@ import type { ReactNode } from "react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 
+import { BakiFields } from "@/components/baki-fields";
 import { fitOnFrom } from "@/components/fattening/fattening-types";
 import { Notice, SECTION_TITLE } from "@/components/page";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
 import { SearchablePicker } from "@/components/searchable-picker";
 import { useLanguage } from "@/i18n/language-provider";
+import type { BakiTyped } from "@/lib/baki";
+import { NO_BAKI, bakiComplete, bakiSent, somethingPaid } from "@/lib/baki";
 import { usePenNames } from "@/lib/pen-names";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 /** What is typed into the sheet, before it is a Sale. */
@@ -32,6 +36,8 @@ export interface SaleAnswers {
   driver: string;
   note: string;
   paymentMethod: PaymentMethod;
+  /** Whether the buyer still owes some of it, what he paid now, and the day he promised. */
+  baki: BakiTyped;
 }
 
 export const NOTHING_TYPED: SaleAnswers = {
@@ -46,6 +52,7 @@ export const NOTHING_TYPED: SaleAnswers = {
   driver: "",
   note: "",
   paymentMethod: "cash",
+  baki: NO_BAKI,
 };
 
 /** A part of the sheet with a name, and — for the buyer — the button that fills it in from the last sale. */
@@ -270,7 +277,8 @@ const isReady = (answers: SaleAnswers) =>
   Number(answers.weightKg) > 0 &&
   answers.destination.trim() !== "" &&
   answers.vehicle.trim() !== "" &&
-  answers.driver.trim() !== "";
+  answers.driver.trim() !== "" &&
+  bakiComplete(answers.baki, Number(answers.priceBdt), true);
 
 /**
  * Selling an animal, on Eid morning, on a phone, in a sheet beside the day's sales.
@@ -292,6 +300,7 @@ export const SaleSheet = ({
   onAnswers: (answers: SaleAnswers) => void;
 }) => {
   const { t, language } = useLanguage();
+  const refused = useRefused();
   const sellable = useQuery(orpc.sale.sellable.queryOptions());
   const edit = (patch: Partial<SaleAnswers>) =>
     onAnswers({ ...answers, ...patch });
@@ -309,18 +318,28 @@ export const SaleSheet = ({
     orpc.sale.record.mutationOptions({
       onSuccess: ({ tagNumber }) => {
         toast.success(t("sale.done", { tag: tagNumber }));
-        // The buyer and the lorry stay typed: the next beast is usually his too.
-        onAnswers({ ...answers, tagNumber: "", weightKg: "", priceBdt: "" });
+        // The buyer and the lorry stay typed: the next beast is usually his too. What he owed on this one does not:
+        // whether he pays for the next is the next handshake.
+        onAnswers({
+          ...answers,
+          tagNumber: "",
+          weightKg: "",
+          priceBdt: "",
+          baki: NO_BAKI,
+        });
         onOpenChange(false);
       },
       onError: (error) => {
         const fitOn = fitOnFrom(error);
+        if (!fitOn) {
+          // In the reader's own words: a Venture's bull refused on Baki, a promise before she left.
+          refused(error);
+          return;
+        }
         toast.error(
-          fitOn
-            ? t("ready.underWithdrawal", {
-                when: formatDate(new Date(fitOn), language, "date"),
-              })
-            : (error.message ?? t("common.error"))
+          t("ready.underWithdrawal", {
+            when: formatDate(new Date(fitOn), language, "date"),
+          })
         );
       },
     })
@@ -345,6 +364,7 @@ export const SaleSheet = ({
           driver: answers.driver,
           note: answers.note || undefined,
           paymentMethod: answers.paymentMethod,
+          ...bakiSent(answers.baki),
         })
       }
       open={open}
@@ -410,11 +430,20 @@ export const SaleSheet = ({
           />
         </div>
         <PerKg answers={answers} />
-        <PaymentMethodField
-          id="sale-paid-by"
-          onChange={(paymentMethod) => edit({ paymentMethod })}
-          value={answers.paymentMethod}
+        <BakiFields
+          idPrefix="sale-baki"
+          onType={(patch) => edit({ baki: { ...answers.baki, ...patch } })}
+          promiseRequired
+          typed={answers.baki}
+          worthBdt={Number(answers.priceBdt)}
         />
+        {somethingPaid(answers.baki) ? (
+          <PaymentMethodField
+            id="sale-paid-by"
+            onChange={(paymentMethod) => edit({ paymentMethod })}
+            value={answers.paymentMethod}
+          />
+        ) : null}
       </SheetPart>
 
       <SheetPart title={t("sale.groupTransport")}>

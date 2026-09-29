@@ -1,6 +1,7 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { sale } from "@OpenFarm/db/schema/fattening";
 import {
+  bakiAtTheGate,
   farmDayOf,
   startOfFarmDay,
   underMeatWithdrawal,
@@ -9,6 +10,7 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
+import { bakiOrRefuse, paidNowInput, promisedByInput } from "../baki-store";
 import { correct } from "../corrections/correction";
 import { saleCorrection, saleCorrectionInput } from "../corrections/sale";
 import { counterpartyNamed } from "../counterparty-store";
@@ -100,8 +102,12 @@ export const saleRouter = {
         note: z.string().trim().max(300).optional(),
         /** When she left, for a sale written up that evening. */
         soldAt: z.coerce.date().optional(),
-        /** How the buyer paid. */
+        /** How the buyer paid what he paid. */
         paymentMethod: paymentMethodInput,
+        /** What he paid there and then; left out, all of it. Less than the price, and the rest is his Baki. */
+        paidNowBdt: paidNowInput.optional(),
+        /** The day he promised to pay the rest by. Asked whenever anything is left owing: a trader promises a day. */
+        promisedBy: promisedByInput.optional(),
       })
     )
     .handler(async ({ context, input }) => {
@@ -113,6 +119,16 @@ export const saleRouter = {
           message: "An animal cannot have been sold tomorrow",
         });
       }
+      // Asked before anything is written: what he owes is a fact about the handshake, not about the farm.
+      const baki = bakiOrRefuse(
+        bakiAtTheGate({
+          worthBdt: input.priceBdt,
+          paidNowBdt: input.paidNowBdt,
+          promisedBy: input.promisedBy,
+          leftOn: farmDayOf(soldAt),
+          promiseRequired: true,
+        })
+      );
       const id = newId(now);
       let closed = 0;
       await audited(context).write(
@@ -165,6 +181,7 @@ export const saleRouter = {
             animalId: her.id,
             counterpartyId: buyerId,
             priceBdt: input.priceBdt,
+            ...baki,
             weightKg: input.weightKg.toFixed(2),
             destination: input.destination,
             vehicle: input.vehicle,

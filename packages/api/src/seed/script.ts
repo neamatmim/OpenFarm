@@ -145,9 +145,10 @@ const keepTheStore = ({ farm, days, on }: Script) => {
   }
 };
 
-/** Milk leaves every morning: the tank to the chilling centre, a can to the sweet shop. */
+/** Milk leaves every morning: the tank to the chilling centre, a can to the sweet shop — which, these last ten days,
+ *  has taken its can on Baki and not said when it will pay. */
 const sendTheMilk = ({ farm, days, on }: Script) => {
-  const { random } = farm;
+  const { random, today } = farm;
   for (const day of days) {
     on(day, "08:45", "milk dispatch", async (f) => {
       const since = new Date(onFarm(day, "08:45").getTime() - DAY);
@@ -183,6 +184,7 @@ const sendTheMilk = ({ farm, days, on }: Script) => {
         challan: `${challan}-মি`,
         pricePerLitreBdt: 70,
         paymentMethod: "cash",
+        ...(day > addDays(today, -10) ? { paidNowBdt: 0 } : {}),
       });
     });
   }
@@ -921,6 +923,9 @@ const sellTheReady = ({ farm, on }: Script) => {
   });
   for (const [index, offset] of [-9, -9, -6, -4].entries()) {
     const day = addDays(today, offset);
+    // Two of the four go to traders who pay the last twenty thousand later, as Eid buyers do: one promised a day
+    // already gone, one a day still ahead.
+    const onBaki = index === 1 || index === 3;
     on(day, `${10 + index}:30`, "a bull sold", async (f, h) => {
       const bull = [...h.bulls.values()].find(
         (one) => one.state === "ready_for_sale"
@@ -932,11 +937,15 @@ const sellTheReady = ({ farm, on }: Script) => {
         bull.weightKg + bull.dailyGainKg * daysBetween(bull.arrivedOn, day)
       );
       const buyer = random.pick(CATTLE_BUYERS);
+      const priceBdt =
+        Math.round((weightKg * random.between(560, 620)) / 1000) * 1000;
       await f.as.manager.sale.record({
         tagNumber: bull.tag,
         buyer,
-        priceBdt:
-          Math.round((weightKg * random.between(560, 620)) / 1000) * 1000,
+        priceBdt,
+        ...(onBaki
+          ? { paidNowBdt: priceBdt - 20_000, promisedBy: addDays(day, 7) }
+          : {}),
         weightKg,
         destination: buyer.address,
         vehicle: `ঢাকা মেট্রো-ন ${random.int(11, 19)}-${random.int(1000, 9999)}`,

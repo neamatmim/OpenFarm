@@ -33,8 +33,9 @@ type Tab = (typeof TABS)[number];
 /** The address for a tab: the first tab is the page itself, and says nothing. */
 const tabSearch = (value: Tab) => (value === "ready" ? {} : { tab: value });
 
-/** The four figures a morning of selling is judged by: how many went, what they fetched, what that came to a kilo,
- *  and how many more can still go. A dash for what the farm has not answered yet. */
+/** The four figures a morning of selling is judged by: how many went, what their buyers paid, what they fetched a
+ *  kilo, and how many more can still go. A dash for what the farm has not answered yet. What was taken is what was
+ *  paid: a buyer who left owing is said beneath it, not counted in it. */
 const SaleFigures = ({
   sold,
   sellable,
@@ -43,7 +44,10 @@ const SaleFigures = ({
   sellable: Sellable[] | undefined;
 }) => {
   const { t, language } = useLanguage();
-  const taken = sold?.reduce((sum, one) => sum + one.priceBdt, 0);
+  const fetched = sold?.reduce((sum, one) => sum + one.priceBdt, 0);
+  // Left out of an answer cached before Baki was written down: paid in full, as every such Sale was.
+  const owed = sold?.reduce((sum, one) => sum + (one.bakiBdt ?? 0), 0) ?? 0;
+  const taken = fetched === undefined ? undefined : fetched - owed;
   const weighed = sold?.reduce((sum, one) => sum + one.weightKg, 0) ?? 0;
   const buyers = new Set(sold?.map((one) => one.buyerName)).size;
   const said = useTaka();
@@ -63,13 +67,16 @@ const SaleFigures = ({
         {
           label: t("sale.kpi.takings"),
           value: taka(taken),
-          hint: t("sale.kpi.takingsHint"),
+          hint:
+            owed > 0
+              ? t("baki.owed", { taka: formatNumber(owed, language) })
+              : t("sale.kpi.takingsHint"),
           icon: Banknote,
           tone: (taken ?? 0) > 0 ? "success" : "neutral",
         },
         {
           label: t("sale.kpi.perKg"),
-          value: taken && weighed > 0 ? taka(taken / weighed) : "—",
+          value: fetched && weighed > 0 ? taka(fetched / weighed) : "—",
           hint: t("sale.kpi.perKgHint"),
           icon: Scale,
         },

@@ -1,0 +1,60 @@
+import { roundTaka } from "@OpenFarm/domain";
+
+// What is typed about Baki on the Sale and Dispatch sheets, and what the farm is sent of it. Here rather than beside the
+// fields, because these are sums, and a sum is easier read — and checked — away from the markup.
+
+/**
+ * What is typed about **Baki** as an animal or the milk leaves: whether anything is still owed, what the buyer paid
+ * there and then, and the day he promised to pay the rest by.
+ */
+export interface BakiTyped {
+  owed: boolean;
+  paidNow: string;
+  promisedBy: string;
+}
+
+/** Paid in full, as nearly every buyer at the gate is. */
+export const NO_BAKI: BakiTyped = { owed: false, paidNow: "", promisedBy: "" };
+
+/** What the farm is sent of it: nothing at all for a buyer who paid in full, which the farm reads as paid in full. */
+export const bakiSent = (
+  typed: BakiTyped
+): { paidNowBdt?: number; promisedBy?: string } =>
+  typed.owed
+    ? {
+        paidNowBdt: Number(typed.paidNow),
+        promisedBy: typed.promisedBy || undefined,
+      }
+    : {};
+
+/** Whether enough is typed of it to save: what was paid, no more than it came to, and a day where one is asked for. */
+export const bakiComplete = (
+  typed: BakiTyped,
+  worthBdt: number,
+  promiseRequired: boolean
+): boolean => {
+  if (!typed.owed) {
+    return true;
+  }
+  const paid = Number(typed.paidNow);
+  const paidIsAFigure =
+    typed.paidNow.trim() !== "" && !Number.isNaN(paid) && paid >= 0;
+  const promised = !promiseRequired || typed.promisedBy !== "";
+  return paidIsAFigure && paid <= worthBdt && promised;
+};
+
+/** Whether anything was paid at the gate, so how it was paid is worth asking. */
+export const somethingPaid = (typed: BakiTyped): boolean =>
+  !typed.owed || Number(typed.paidNow) > 0;
+
+/** What the buyer still owes as it is typed: what it came to less what he paid, or nothing while what he paid is not
+ *  yet a figure the farm would take. */
+export const stillOwes = (
+  typed: BakiTyped,
+  worthBdt: number
+): number | null => {
+  const paid = Number(typed.paidNow);
+  const paidIsAFigure =
+    typed.paidNow.trim() !== "" && !Number.isNaN(paid) && paid >= 0;
+  return paidIsAFigure && paid <= worthBdt ? roundTaka(worthBdt - paid) : null;
+};

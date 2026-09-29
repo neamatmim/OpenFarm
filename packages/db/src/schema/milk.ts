@@ -15,6 +15,7 @@ import { counterparty } from "./fattening";
 import { animal, pen } from "./herd";
 import { sopInstance, stepCompletion } from "./instance";
 import { MILK_DESTINATIONS } from "./milk-destinations";
+import { taka } from "./taka";
 
 /** One Milking Session for one Pen — the milking SOP Instance, seen from the dairy's side.
  *  Holds the bulk total and how far it sits from the sum of the per-cow records. */
@@ -124,6 +125,12 @@ export const dispatch = pgTable(
     }).notNull(),
     fatPercent: numeric("fat_percent", { precision: 4, scale: 2 }),
     snfPercent: numeric("snf_percent", { precision: 4, scale: 2 }),
+    /** What the buyer still owed for this milk when it left — its **Baki**. Nothing for milk paid for at the gate, as
+     *  every Dispatch before Baki was written down was. Its Money Event is what the milk came to, less this. */
+    bakiBdt: taka("baki_bdt").notNull().default(0),
+    /** The farm day ("YYYY-MM-DD") the buyer promised to pay by, when he promised one. A milk buyer who pays on a
+     *  round often names none. */
+    promisedBy: text("promised_by"),
     note: text("note"),
     recordedBy: text("recorded_by").references(() => user.id),
     recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),

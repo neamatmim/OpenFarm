@@ -1,8 +1,10 @@
 import { eq } from "@OpenFarm/db/operators";
 import { dispatch } from "@OpenFarm/db/schema/milk";
+import { bakiPutRight, farmDayOf, paidAtTheGate } from "@OpenFarm/domain";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
+import { bakiOrRefuse, paidNowInput, promisedByInput } from "../baki-store";
 import {
   assertNotLater,
   bookDispatchMoney,
@@ -11,6 +13,7 @@ import {
   dispatchFields,
   readDispatch,
   twoPlaces,
+  worthOfDispatch,
 } from "../dispatch-store";
 import { paymentMethodChange } from "../money-inputs";
 import { bookingOf, paymentMethodOf } from "../money-store";
@@ -26,8 +29,9 @@ const figureOf = (value: string | null) =>
 
 /**
  * What a Dispatch's Correction may change: the litres, the time, the buyer, the challan, the price, the fat or SNF, the
- * note, and how it was paid. A challan, a note, a fat or an SNF set to nothing is cleared: a figure written against the
- * wrong lorry is put right by taking it away.
+ * note, how it was paid, what the buyer paid there and then, and the day he promised to pay the rest by. A challan, a
+ * note, a fat, an SNF or a promise set to nothing is cleared: a figure written against the wrong lorry is put right by
+ * taking it away.
  */
 export const dispatchCorrectionInput = correctionInput({
   dispatchedAt: changeOf(dispatchFields.dispatchedAt, z.coerce.date()),
@@ -45,6 +49,8 @@ export const dispatchCorrectionInput = correctionInput({
   ),
   note: changeOf(dispatchFields.note.nullable(), z.string().nullable()),
   paymentMethod: paymentMethodChange,
+  paidNowBdt: changeOf(paidNowInput, z.number()),
+  promisedBy: changeOf(promisedByInput.nullable(), z.string().nullable()),
 });
 
 /** A Dispatch put right — and with it the Money Event, rather than a second one. */
@@ -68,6 +74,8 @@ export const dispatchCorrection: CorrectionKind<
     snfPercent: figureOf(row.snfPercent),
     note: row.note,
     paymentMethod: await paymentMethodOf(tx, row.farmId, "dispatch", row.id),
+    paidNowBdt: paidAtTheGate(worthOfDispatch(row), row.bakiBdt),
+    promisedBy: row.promisedBy,
   }),
   shownAs: { buyer: (to) => to.name },
   trail: (tx, row) => readDispatch(tx, row.id),
@@ -75,7 +83,28 @@ export const dispatchCorrection: CorrectionKind<
     if (to.dispatchedAt !== undefined) {
       assertNotLater(to.dispatchedAt, now);
     }
+    // What he paid stands unless the Correction says otherwise: litres or a price mistyped is not cash handed back.
+    const baki = bakiOrRefuse(
+      bakiPutRight({
+        before: {
+          worthBdt: worthOfDispatch(row),
+          bakiBdt: row.bakiBdt,
+          promisedBy: row.promisedBy,
+        },
+        worthBdt: worthOfDispatch({
+          litres: to.litres ?? row.litres,
+          pricePerLitreBdt: to.pricePerLitreBdt ?? row.pricePerLitreBdt,
+        }),
+        paidNowBdt: to.paidNowBdt,
+        promisedBy: to.promisedBy,
+        leftOn: farmDayOf(to.dispatchedAt ?? row.dispatchedAt),
+        promiseRequired: false,
+      })
+    );
+    const bakiMoved =
+      baki.bakiBdt !== row.bakiBdt || baki.promisedBy !== row.promisedBy;
     const putRight = {
+      ...(bakiMoved ? baki : {}),
       ...(to.dispatchedAt === undefined
         ? {}
         : { dispatchedAt: to.dispatchedAt }),

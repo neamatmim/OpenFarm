@@ -1,10 +1,17 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { dispatch } from "@OpenFarm/db/schema/milk";
-import { farmDaysBetween, lactationView, roundLitres } from "@OpenFarm/domain";
+import {
+  bakiAtTheGate,
+  farmDayOf,
+  farmDaysBetween,
+  lactationView,
+  roundLitres,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
+import { bakiOrRefuse, paidNowInput, promisedByInput } from "../baki-store";
 import { correct } from "../corrections/correction";
 import {
   dispatchCorrection,
@@ -21,6 +28,7 @@ import {
   litresToBulkBetween,
   readDispatch,
   twoPlaces,
+  worthOfDispatch,
 } from "../dispatch-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
@@ -74,6 +82,12 @@ export const milkRouter = {
         note: dispatchFields.note.optional(),
         buyer: buyerInput,
         paymentMethod: paymentMethodInput,
+        /** What the buyer paid there and then; left out, all of it. Less than the milk came to, and the rest is his
+         *  Baki. */
+        paidNowBdt: paidNowInput.optional(),
+        /** The day he promised to pay the rest by, when he named one. A milk buyer who pays on a round often does
+         *  not, so it is never asked for. */
+        promisedBy: promisedByInput.optional(),
       })
     )
     .handler(async ({ context, input }) => {
@@ -83,6 +97,15 @@ export const milkRouter = {
         throw new ORPCError("FORBIDDEN");
       }
       assertNotLater(input.dispatchedAt, now);
+      const baki = bakiOrRefuse(
+        bakiAtTheGate({
+          worthBdt: worthOfDispatch(input),
+          paidNowBdt: input.paidNowBdt,
+          promisedBy: input.promisedBy,
+          leftOn: farmDayOf(input.dispatchedAt),
+          promiseRequired: false,
+        })
+      );
       const id = newId(now);
       await audited(context).write(
         {
@@ -108,6 +131,7 @@ export const milkRouter = {
             pricePerLitreBdt: input.pricePerLitreBdt.toFixed(2),
             fatPercent: twoPlaces(input.fatPercent),
             snfPercent: twoPlaces(input.snfPercent),
+            ...baki,
             note: input.note ?? null,
             recordedBy: context.actor.id,
             recordedByRole,

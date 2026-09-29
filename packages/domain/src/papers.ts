@@ -48,6 +48,10 @@ export interface SaleReceipt {
   animals: SoldAnimal[];
   /** Taka, formatted. Worked out from the animals; never typed. */
   total: string;
+  /** What the buyer paid that day and what he still owed, formatted, and the day or days he promised to pay it by —
+   *  or nothing, for a buyer who paid in full. On the paper he signs, because a trader's promise is worth what the
+   *  farm can show of it. */
+  baki: { paid: string; owed: string; toBePaidBy: string } | null;
   /** Who produced this copy and when — the report set asks it of every paper, so that two
    *  copies of one receipt can be told apart and the later one accounted for. */
   producedBy: string;
@@ -84,6 +88,13 @@ export const saleReceipt = (receipt: SaleReceipt): string => {
     ),
     "",
     field("মোট", "Total", `${receipt.total} টাকা`),
+    ...(receipt.baki
+      ? [
+          field("পরিশোধ", "Paid", `${receipt.baki.paid} টাকা`),
+          field("বাকি", "Still owed", `${receipt.baki.owed} টাকা`),
+          field("পরিশোধের তারিখ", "To be paid by", receipt.baki.toBePaidBy),
+        ]
+      : []),
     "",
     "ক্রেতার স্বাক্ষর / Buyer: ____________________",
     "বিক্রেতার স্বাক্ষর / Seller: ____________________",
