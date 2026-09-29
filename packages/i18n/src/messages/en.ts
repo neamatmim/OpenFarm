@@ -2313,6 +2313,7 @@ export const en = {
   "sop.standard.need.bqVaccine": "The BQ vaccine",
   "sop.standard.need.anthraxVaccine": "The anthrax vaccine",
   "sop.standard.need.tickSpray": "The tick and fly spray",
+  "sop.standard.need.calfDewormer": "The calf dewormer",
   "sop.standard.choose": "Choose…",
   "sop.standard.noPens": "The farm has no Pens yet",
   "sop.standard.noProducts":
