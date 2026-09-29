@@ -140,12 +140,25 @@ export const BuyerOwes = ({ name }: { name: string }) => {
   }
   return (
     <Notice
-      title={t("baki.buyerOwes", {
-        name: owes.name,
-        taka: formatNumber(owes.owingBdt, language),
-        day: formatDate(startOfFarmDay(owes.oldestOn), language, "date"),
-      })}
-      tone="warning"
+      title={
+        // Overdue says it louder: the farm is about to lend more to somebody who has not paid what is late.
+        owes.overdueSince
+          ? t("baki.buyerOverdue", {
+              name: owes.name,
+              taka: formatNumber(owes.owingBdt, language),
+              day: formatDate(
+                startOfFarmDay(owes.overdueSince),
+                language,
+                "date"
+              ),
+            })
+          : t("baki.buyerOwes", {
+              name: owes.name,
+              taka: formatNumber(owes.owingBdt, language),
+              day: formatDate(startOfFarmDay(owes.oldestOn), language, "date"),
+            })
+      }
+      tone={owes.overdueSince ? "danger" : "warning"}
     />
   );
 };

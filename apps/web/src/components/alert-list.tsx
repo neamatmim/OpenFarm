@@ -126,6 +126,13 @@ const WhereItLeads = ({
       </Link>
     );
   }
+  if (notice.kind === "baki_overdue") {
+    return (
+      <Link className={LEADS_CLASS} search={{ tab: "baki" }} to="/money">
+        {t("alerts.seeWhoOwes")}
+      </Link>
+    );
+  }
   if (notice.kind === "join_requested") {
     const ventureId = ventureOf(notice.params);
     return ventureId === null ? null : (

@@ -10,6 +10,7 @@ import {
   farmDayOf,
 } from "@OpenFarm/domain";
 
+import { overdueBaki } from "../baki-store";
 import { repeatBreedersOn } from "../breeding-store";
 import { protectedProcedure } from "../index";
 import {
@@ -75,6 +76,7 @@ export const homeRouter = {
         repeatBreeders,
         lowStock,
         monthlyCosts,
+        bakiOverdue,
       ] = await Promise.all([
         findLate(
           context.db,
@@ -105,6 +107,8 @@ export const homeRouter = {
         runningLow(context.db, farmId),
         // The rent, the electricity and the wages the month has nothing entered for yet: the Manager enters the money.
         monthlyCostsNow(context.db, context.farm, now),
+        // Buyers whose Baki has gone past its day: the Manager rings them.
+        overdueBaki(context.db, context.farm, farmDayOf(now)),
       ]);
 
       const underWithdrawal = animals;
@@ -161,6 +165,7 @@ export const homeRouter = {
           repeatBreeders: repeatBreeders.slice(0, QUEUE_LIMIT),
           lowStock,
           monthlyCosts,
+          bakiOverdue: bakiOverdue.slice(0, QUEUE_LIMIT),
           // Latest first and bounded, the way the Overdue screen itself reads: a Manager
           // opening this in a shed is handed the work that has waited longest, not a year
           // of it in whatever order the database found it.
@@ -264,6 +269,7 @@ export const homeRouter = {
         lowStock,
         moneyAwaiting,
         monthlyCosts,
+        bakiOverdue,
       ] = await Promise.all([
         findLate(
           context.db,
@@ -336,6 +342,8 @@ export const homeRouter = {
         // The rent, the electricity and the wages the month has nothing entered for yet: a month missing is otherwise read as
         // a cheaper month.
         monthlyCostsNow(context.db, context.farm, now),
+        // Buyers whose Baki has gone past its day, and whether any was sold to on Baki again while late.
+        overdueBaki(context.db, context.farm, farmDayOf(now)),
       ]);
 
       // A day of the farm's milk is every Pen's Sessions on that day added together, which
@@ -414,6 +422,7 @@ export const homeRouter = {
             purseName: row.purse?.name ?? null,
           })),
           monthlyCosts,
+          bakiOverdue: bakiOverdue.slice(0, QUEUE_LIMIT),
           /** The Registration coming up for renewal, or run out, and the work raised for it. */
           registrationRenewal: await renewalDue(context.db, context.farm, now),
         },

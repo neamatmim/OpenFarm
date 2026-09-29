@@ -123,6 +123,12 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
   // Who has asked to put money in is the Owner's business alone, as every Investor is: the Manager reads no Request
   // (ADR 0008). Work waiting for her, not a Needs Review, which is the system unable to settle something.
   join_requested: { audience: [theOwner], entity: "request_to_join" },
+  // The Manager rings the buyer; the Owner answers for whom the farm lends to. About the one Sale or Dispatch gone past
+  // its day, so each is told once however many mornings it stays late.
+  baki_overdue: {
+    audience: [{ roles: ["owner", "manager"] }],
+    entity: "baki",
+  },
 };
 
 /** A Notice as it was raised, for whoever carries it out of the transaction to a pocket. */

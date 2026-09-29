@@ -183,6 +183,9 @@ export const farm = pgTable("farm", {
    *  and the Owner — and a wage for the month before from the person paid the month before that. The 10th unless the
    *  Owner says otherwise: rent and wages are paid in the first days, and a list on the 1st would only nag. */
   monthlyCostsFromDay: integer("monthly_costs_from_day").notNull().default(10),
+  /** How many days a Baki with no promised day may run before it is overdue — a milk buyer who pays on a round. A
+   *  month unless the Owner says otherwise: the Owner's, as whom the farm lends to is. */
+  bakiDays: integer("baki_days").notNull().default(30),
   /** Whether Investors the Owner has invited may sign in to read their Ventures and papers (ADR 0007). Off until
    *  the Owner turns it on, and off again is how the farm answers a lawyer who says the portal is a platform. */
   investorPortal: boolean("investor_portal").notNull().default(false),

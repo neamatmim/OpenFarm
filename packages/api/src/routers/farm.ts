@@ -144,6 +144,9 @@ const parameters = z
     /** The day of the month from which a Monthly Cost with nothing entered that month is named: no later than the 28th,
      *  which every month has. */
     monthlyCostsFromDay: z.number().int().min(1).max(28).optional(),
+    /** How many days a Baki with no promised day may run before it is overdue: a week at the least, four months at
+     *  the most. */
+    bakiDays: z.number().int().min(7).max(120).optional(),
     /** What part of a Venture's target capital is the least worth starting on. */
     ventureFloorPercent: z.number().int().min(0).max(100).optional(),
     /** What part of a Venture's capital keeps the animals rather than buying them. */
@@ -220,6 +223,9 @@ const WHAT_RETURNS_READ = ["returnYearFloorDays"] as const;
 /** When a month's Monthly Costs and wages are looked for: the Owner's to set, as the mark that makes a Monthly Cost is. */
 const WHEN_MONTHLY_COSTS_ARE_LOOKED_FOR = ["monthlyCostsFromDay"] as const;
 
+/** How long a buyer may owe with no promised day: the Owner's to set, as whom the farm lends to is. */
+const HOW_LONG_BAKI_MAY_RUN = ["bakiDays"] as const;
+
 type ParametersInput = z.infer<typeof parameters>;
 
 /** Whether a request names any of these Parameters. */
@@ -259,6 +265,12 @@ const refuseWhatIsTheOwners = (
   if (namesAny(input, WHEN_MONTHLY_COSTS_ARE_LOOKED_FOR)) {
     throw forbidden({
       message: "When a month's costs are looked for is the Owner's to set",
+      reason: "owner_only",
+    });
+  }
+  if (namesAny(input, HOW_LONG_BAKI_MAY_RUN)) {
+    throw forbidden({
+      message: "How long a buyer may owe is the Owner's to set",
       reason: "owner_only",
     });
   }
@@ -737,6 +749,7 @@ export const farmRouter = {
                 returnYearFloorDays: true,
                 approvalThresholdBdt: true,
                 monthlyCostsFromDay: true,
+                bakiDays: true,
                 ventureFloorPercent: true,
                 ventureRunningPercent: true,
                 ventureInvestorsPercent: true,

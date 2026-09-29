@@ -20,6 +20,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { BakiOverdueGroup } from "@/components/home/baki-overdue";
 import { MonthlyCostsGroup } from "@/components/home/monthly-costs";
 import {
   MORE_LINK,
@@ -386,6 +387,7 @@ const KindList = ({
         <div className="flex flex-col gap-6">
           <MoneyGroup headless={headless} needsYou={needsYou} />
           <MonthlyCostsGroup monthlyCosts={needsYou.monthlyCosts} />
+          <BakiOverdueGroup buyers={needsYou.bakiOverdue} forTheOwner />
         </div>
       );
     }
@@ -449,7 +451,11 @@ export const NeedsYouTabs = ({
       value: "money",
       label: t("nav.money"),
       icon: HandCoins,
-      count: needsYou.moneyAwaiting.length + monthlyCostsMissing(needsYou),
+      count:
+        needsYou.moneyAwaiting.length +
+        monthlyCostsMissing(needsYou) +
+        // Missing from an answer a phone kept from before Baki was written down.
+        (needsYou.bakiOverdue?.length ?? 0),
     },
     {
       value: "review",

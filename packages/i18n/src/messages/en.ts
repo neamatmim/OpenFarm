@@ -893,6 +893,10 @@ export const en = {
   "params.keepRateGapDays": "Trust a gain between weigh-ins at least",
   "params.cullOpenDays": "Empty too long after calving",
   "params.monthlyCostsFromDay": "From this day of the month",
+  "params.baki": "Baki",
+  "params.bakiHint":
+    "Money a buyer still owes with no day promised — a milk buyer who pays on a round — is overdue after this many days.",
+  "params.bakiDays": "Overdue with no promised day after",
   "params.cullMilkAfterDays": "Weigh milk against keep from, after calving",
   "params.cullCalfMilkDays": "A cow's milk is her calf's for the first",
   "params.cullMilkPriceDays": "Price milk from dispatches of the last",
@@ -3322,6 +3326,8 @@ export const en = {
   "alerts.withdrawalChanged": "{tag} — her withdrawal has changed",
   "digest.withdrawalChanged":
     "{count, plural, one {# withdrawal} other {# withdrawals}} changed",
+  "digest.bakiOverdue":
+    "{count, plural, one {# baki} other {# bakis}} gone past the day",
   "digest.lowStock":
     "{count, plural, one {# feed} other {# feeds}} running low",
   "digest.investorStatementDue":
@@ -3330,6 +3336,8 @@ export const en = {
     "{count, plural, one {# Money Event} other {# Money Events}} awaiting your approval",
   "alerts.moneyAwaiting": "৳{amount} for {category} is awaiting your approval",
   "alerts.lowStock": "{feed} is running low — {onHand} {unit} left",
+  "alerts.bakiOverdue": "Baki overdue since {since}: ৳{amount} from {buyer}",
+  "alerts.seeWhoOwes": "See who owes what",
   "alerts.lotExpiring":
     "{item}, Lot {lot}: expires on {date}, with {left} left",
   "alerts.lotExpired":
@@ -4416,6 +4424,11 @@ export const en = {
   "baki.noteHint": "Needed if he paid more than he owes",
   "baki.recorded": "Payment recorded",
   "baki.buyerOwes": "{name} still owes ৳{taka}, since {day}",
+  "baki.buyerOverdue":
+    "{name} owes ৳{taka} and is overdue since {day} — think before selling on baki",
+  "home.bakiOverdue": "Baki overdue",
+  "home.bakiOverdueSince": "৳{taka} overdue since {day}",
+  "home.bakiSoldAgain": "Sold on baki again while overdue",
   "money.from.bakiPayment": "Baki paid",
   "sale.tab.ready": "Ready to go",
   "sale.sellThis": "Sell",

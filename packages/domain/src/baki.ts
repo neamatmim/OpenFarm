@@ -1,3 +1,4 @@
+import { farmDayOf, startOfFarmDay } from "./farm-clock";
 import { roundTaka } from "./money";
 
 /**
@@ -248,4 +249,51 @@ export const bakiStanding = (
     oldestOn: stillOwing[0]?.leftOn ?? null,
     soonestPromise: promises[0] ?? null,
   };
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** The farm day so many days after another. */
+const daysAfter = (day: string, days: number): string =>
+  farmDayOf(new Date(startOfFarmDay(day).getTime() + days * DAY_MS));
+
+/**
+ * The first farm day a Baki is overdue: the day after the one he promised, since the promised day itself is still his —
+ * or, where he promised none, the day after the farm's days for it have run from the day it left (`farm.baki_days`,
+ * thirty by default: a milk buyer who pays on a round is not late the morning after).
+ */
+export const overdueFrom = (
+  item: Pick<BakiItem, "leftOn" | "promisedBy">,
+  bakiDays: number
+): string =>
+  item.promisedBy === null
+    ? daysAfter(item.leftOn, bakiDays + 1)
+    : daysAfter(item.promisedBy, 1);
+
+/** Whether something still owing is overdue today. Paid off, it is not overdue however late it was paid. */
+export const isBakiOverdue = (
+  item: Pick<BakiItemStanding, "leftOn" | "promisedBy" | "owingBdt">,
+  today: string,
+  bakiDays: number
+): boolean => item.owingBdt > 0 && today >= overdueFrom(item, bakiDays);
+
+/**
+ * Whether a buyer was sold to on Baki again while something he owed was already overdue: the Owner hears of it, since
+ * it is the farm lending more to somebody who has not paid what is late. Read from what is still owing — payments
+ * clear the oldest first, so a Baki still owing today was owing on every day after it left.
+ */
+export const soldOnBakiWhileOverdue = (
+  items: readonly Pick<
+    BakiItemStanding,
+    "id" | "leftOn" | "promisedBy" | "owingBdt"
+  >[],
+  bakiDays: number
+): boolean => {
+  const owing = items.filter((one) => one.owingBdt > 0);
+  return owing.some((late) =>
+    owing.some(
+      (again) =>
+        again.id !== late.id && again.leftOn >= overdueFrom(late, bakiDays)
+    )
+  );
 };

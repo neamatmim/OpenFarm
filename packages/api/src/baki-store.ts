@@ -10,15 +10,21 @@ import {
   BAKI_KINDS,
   bakiStanding,
   farmDayOf,
+  isBakiOverdue,
   isBakiRefusal,
+  overdueFrom,
   roundLitres,
   roundTaka,
+  soldOnBakiWhileOverdue,
   startOfFarmDay,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import { holdersOf } from "./alerts-store";
 import type { Tx } from "./audit";
+import type { Raised } from "./notice";
+import { rememberingPeople, tell } from "./notice";
 
 /** The farm day a buyer promised to pay what he still owed by. */
 export { farmDay as promisedByInput } from "./farm-clock";
@@ -360,4 +366,159 @@ export const owingOnHerSale = async (
   }
   const owing = await owingNowOf(db, farmId, [sale.id]);
   return owing.get(sale.id) ?? 0;
+};
+
+/** One Baki gone past its day, as the homes and the Digest name it. */
+export interface OverdueItem {
+  id: string;
+  kind: BakiKind;
+  leftOn: string;
+  promisedBy: string | null;
+  owingBdt: number;
+  /** The first day it was overdue. */
+  overdueFrom: string;
+}
+
+/** A buyer with Baki gone past its day. */
+export interface OverdueBuyer {
+  counterpartyId: string;
+  name: string;
+  phone: string | null;
+  /** What of it is overdue, and what he owes in all. */
+  overdueBdt: number;
+  owingBdt: number;
+  /** The first day any of it was overdue. */
+  overdueSince: string;
+  /** Sold to on Baki again after something he owed was already overdue: the Owner hears of it. */
+  soldAgainWhileOverdue: boolean;
+  items: OverdueItem[];
+}
+
+/** What of one buyer's Baki is overdue today, or nothing when none is. */
+export const overdueOfBuyer = (
+  buyer: BuyerBaki,
+  today: string,
+  bakiDays: number
+): OverdueBuyer | null => {
+  const items = buyer.kinds.flatMap((standing) =>
+    standing.items
+      .filter((item) => isBakiOverdue(item, today, bakiDays))
+      .map((item) => ({
+        id: item.id,
+        kind: standing.kind,
+        leftOn: item.leftOn,
+        promisedBy: item.promisedBy,
+        owingBdt: item.owingBdt,
+        overdueFrom: overdueFrom(item, bakiDays),
+      }))
+  );
+  const [first] = items.map((one) => one.overdueFrom).toSorted();
+  if (first === undefined) {
+    return null;
+  }
+  return {
+    counterpartyId: buyer.counterpartyId,
+    name: buyer.name,
+    phone: buyer.phone,
+    overdueBdt: roundTaka(items.reduce((sum, one) => sum + one.owingBdt, 0)),
+    owingBdt: buyer.owingBdt,
+    overdueSince: first,
+    soldAgainWhileOverdue: buyer.kinds.some((standing) =>
+      soldOnBakiWhileOverdue(standing.items, bakiDays)
+    ),
+    items,
+  };
+};
+
+/**
+ * Every buyer with Baki gone past its day, the longest overdue first — the Manager's calls to make and the Owner's to
+ * know of. Past the day he promised, or, with no promise, past the farm's days for it.
+ */
+export const overdueBaki = async (
+  db: Db,
+  farm: { id: string; bakiDays: number },
+  today: string
+): Promise<OverdueBuyer[]> => {
+  const book = await bakiOfBuyers(db, farm.id);
+  return book
+    .flatMap((buyer) => {
+      const overdue = overdueOfBuyer(buyer, today, farm.bakiDays);
+      return overdue ? [overdue] : [];
+    })
+    .toSorted(
+      (a, b) =>
+        a.overdueSince.localeCompare(b.overdueSince) ||
+        a.name.localeCompare(b.name)
+    );
+};
+
+/** One overdue Baki not yet told to everybody who hears of it. */
+export interface OverdueToTell {
+  item: OverdueItem;
+  buyer: Pick<OverdueBuyer, "counterpartyId" | "name">;
+}
+
+/**
+ * The overdue Baki somebody who hears of it has not been told about yet — each Sale or Dispatch told once, the day it
+ * first goes past its day, however many mornings it stays late. Nothing at all asked of the transaction when there is
+ * nothing to tell, which is most mornings.
+ */
+export const overdueToTell = async (
+  db: Db,
+  farm: { id: string; bakiDays: number },
+  today: string
+): Promise<OverdueToTell[]> => {
+  const overdue = await overdueBaki(db, farm, today);
+  const all = overdue.flatMap((buyer) =>
+    buyer.items.map((item) => ({ item, buyer }))
+  );
+  if (all.length === 0) {
+    return [];
+  }
+  const people = await holdersOf(db as Tx, farm.id, ["owner", "manager"]);
+  const told = await db.query.alert.findMany({
+    where: {
+      farmId: farm.id,
+      kind: "baki_overdue",
+      entityId: { in: all.map((one) => one.item.id) },
+    },
+    columns: { entityId: true, userId: true },
+  });
+  const said = new Set(told.map((row) => `${row.userId}|${row.entityId}`));
+  return all.filter(({ item }) =>
+    people.some((userId) => !said.has(`${userId}|${item.id}`))
+  );
+};
+
+/** Raises the notices for these overdue Baki. Who hears them is the Notice's to say. */
+export const raiseOverdueBaki = async (
+  tx: Tx,
+  farmId: string,
+  untold: readonly OverdueToTell[],
+  now: Date
+): Promise<Raised[]> => {
+  const raised: Raised[] = [];
+  const remembering = rememberingPeople();
+  for (const { item, buyer } of untold) {
+    // Sequential against one unique index, as the other notices are.
+    // oxlint-disable-next-line no-await-in-loop
+    const rows = await tell(
+      tx,
+      farmId,
+      {
+        kind: "baki_overdue",
+        about: { id: item.id },
+        facts: {
+          counterpartyId: buyer.counterpartyId,
+          buyer: buyer.name,
+          owingBdt: item.owingBdt,
+          overdueFrom: item.overdueFrom,
+        },
+      },
+      now,
+      remembering
+    );
+    raised.push(...rows);
+  }
+  return raised;
 };

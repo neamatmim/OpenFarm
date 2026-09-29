@@ -847,6 +847,10 @@ export const bn: Record<MessageKey, string> = {
   "params.keepRateGapDays": "দুই ওজনের মাঝে অন্তত এত দিন হলে বাড়ার হার ধরা",
   "params.cullOpenDays": "বাছুর হওয়ার পর গর্ভ না এলে তালিকায়",
   "params.monthlyCostsFromDay": "মাসের এই তারিখ থেকে",
+  "params.baki": "বাকি",
+  "params.bakiHint":
+    "কবে দেবে বলা নেই এমন বাকি — যেমন নিয়মিত হিসাবে টাকা দেওয়া দুধের ক্রেতার — এত দিন পরে মেয়াদোত্তীর্ণ ধরা হয়।",
+  "params.bakiDays": "তারিখ বলা না থাকলে মেয়াদোত্তীর্ণ",
   "params.cullMilkAfterDays": "বাছুর হওয়ার পর দুধ ও খরচ মাপা শুরু",
   "params.cullCalfMilkDays": "বাছুর হওয়ার পর প্রথম এত দিনের দুধ বাছুরের",
   "params.cullMilkPriceDays": "দুধের দাম ধরা হবে গত এত দিনের বিক্রি থেকে",
@@ -3104,11 +3108,14 @@ export const bn: Record<MessageKey, string> = {
   "alerts.withdrawalChanged": "{tag} — দুধ আটকে রাখার সময় বদলেছে",
   "digest.withdrawalChanged": "{count}টি পশুর আটকে রাখার সময় বদলেছে",
   "digest.lowStock": "{count}টি খাদ্য কমে আসছে",
+  "digest.bakiOverdue": "{count}টি বাকির তারিখ পেরিয়ে গেছে",
   "digest.investorStatementDue":
     "{count}টি ভেঞ্চারের বিনিয়োগকারীদের অগ্রগতিপত্র পাওনা",
   "digest.moneyAwaiting": "{count}টি টাকার হিসাব আপনার অনুমোদনের অপেক্ষায়",
   "alerts.moneyAwaiting": "{category}: ৳{amount} আপনার অনুমোদনের অপেক্ষায়",
   "alerts.lowStock": "{feed} কমে আসছে — {onHand} {unit} বাকি",
+  "alerts.bakiOverdue": "{buyer}-এর কাছে ৳{amount} বাকি, {since} থেকে মেয়াদোত্তীর্ণ",
+  "alerts.seeWhoOwes": "কার কাছে কত বাকি দেখুন",
   "alerts.lotExpiring":
     "{item}, লট {lot}: {date}-এ মেয়াদ শেষ হবে, এখনো {left} বাকি",
   "alerts.lotExpired":
@@ -4127,6 +4134,11 @@ export const bn: Record<MessageKey, string> = {
   "baki.noteHint": "যা বাকি তার বেশি দিলে লিখতে হবে",
   "baki.recorded": "টাকা পাওয়া লেখা হলো",
   "baki.buyerOwes": "{name}-এর কাছে {day} থেকে ৳{taka} বাকি",
+  "baki.buyerOverdue":
+    "{name}-এর কাছে ৳{taka} বাকি, {day} থেকে মেয়াদোত্তীর্ণ — বাকিতে বিক্রির আগে ভাবুন",
+  "home.bakiOverdue": "মেয়াদোত্তীর্ণ বাকি",
+  "home.bakiOverdueSince": "{day} থেকে ৳{taka} মেয়াদোত্তীর্ণ",
+  "home.bakiSoldAgain": "মেয়াদোত্তীর্ণ অবস্থায় আবার বাকিতে বিক্রি",
   "money.from.bakiPayment": "বাকি পরিশোধ",
   "sale.tab.ready": "যাওয়ার জন্য প্রস্তুত",
   "sale.sellThis": "বিক্রয় করুন",

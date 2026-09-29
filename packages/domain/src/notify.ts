@@ -83,6 +83,9 @@ export const DELIVERY = {
   // Somebody asking to join is work waiting for the Owner, like money waiting for approval: the evening's reading. A
   // request made at eleven at night wakes nobody.
   join_requested: { when: "digest" },
+  // A buyer gone past the day he promised is a call to make today, not a buzz: the farm is told once, in the evening's
+  // post, and never the buyer (the Owner, 2026-09-29).
+  baki_overdue: { when: "digest" },
 } as const satisfies Record<AlertKind, Delivery>;
 
 /**
@@ -196,6 +199,7 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
     app: "alerts.joinRequested",
     digest: "digest.joinRequested",
   },
+  baki_overdue: { app: "alerts.bakiOverdue", digest: "digest.bakiOverdue" },
 };
 
 export const goesNow = (kind: AlertKind): boolean =>

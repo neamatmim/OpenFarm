@@ -1,9 +1,10 @@
 import { eq } from "@OpenFarm/db/operators";
 import { farm } from "@OpenFarm/db/schema/farm";
-import { isQuiet } from "@OpenFarm/domain";
+import { farmDayOf, isQuiet } from "@OpenFarm/domain";
 
 import { audited } from "./audit";
 import type { Tx } from "./audit";
+import { overdueToTell, raiseOverdueBaki } from "./baki-store";
 import { pregnancyTimesOf } from "./breeding-store";
 import type { Context } from "./context";
 import {
@@ -319,6 +320,29 @@ const tellAboutLowStock = async (context: Turning, now: Date) => {
 };
 
 /**
+ * Baki gone past its day: each Sale or Dispatch told once to the Owner and the Manager, in the evening's post, the day
+ * it first goes late. Keyed on the first one it tells about, with the rest named in the event, as the store's notices
+ * are — the money owed, not any work, is what these are about.
+ */
+const tellAboutOverdueBaki = async (context: Turning, now: Date) => {
+  const untold = await overdueToTell(context.db, context.farm, farmDayOf(now));
+  const [firstOne] = untold;
+  if (!firstOne) {
+    return;
+  }
+  await audited(context).write(
+    {
+      entity: "baki",
+      entityId: firstOne.item.id,
+      action: "update",
+      after: () =>
+        Promise.resolve({ toldOverdue: untold.map((one) => one.item.id) }),
+    },
+    (tx) => raiseOverdueBaki(tx, context.farm.id, untold, now)
+  );
+};
+
+/**
  * What else the store has to say: a Lot of medicine or feed near its last day or past it with some still left, and
  * medicine running under its level. Keyed on the first thing it tells about, with the rest named in the event, as
  * the feed running low is — the store, not any work, is what these are about.
@@ -396,6 +420,7 @@ export const theSweep = async (context: Turning) => {
   await tellAboutWithdrawals(context, now);
   await tellAboutLowStock(context, now);
   await tellAboutTheStore(context, now);
+  await tellAboutOverdueBaki(context, now);
   await tellAboutPapers(context, now);
   const pending = await findPendingNotices(context.db, context.farm, now);
   // A sweep with nothing to say is not an event, and opens no transaction: everyone
