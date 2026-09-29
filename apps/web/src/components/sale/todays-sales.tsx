@@ -99,6 +99,7 @@ const BuyerCell = ({ row }: SoldCell) => (
     <span className="font-medium">{row.original.buyerName}</span>
     <BakiOwed
       bakiBdt={row.original.bakiBdt}
+      owingBdt={row.original.owingBdt}
       promisedBy={row.original.promisedBy}
     />
   </span>
@@ -200,7 +201,11 @@ const SoldCard = ({ row }: { row: SoldRow }) => {
         <span className="text-lg font-semibold tabular-nums">
           <Taka value={row.priceBdt} />
         </span>
-        <BakiOwed bakiBdt={row.bakiBdt} promisedBy={row.promisedBy} />
+        <BakiOwed
+          bakiBdt={row.bakiBdt}
+          owingBdt={row.owingBdt}
+          promisedBy={row.promisedBy}
+        />
         <span className="text-muted-foreground text-xs">
           {[
             row.buyerName,

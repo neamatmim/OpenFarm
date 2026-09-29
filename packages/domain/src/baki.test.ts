@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { bakiAtTheGate, bakiPutRight, paidAtTheGate } from "./baki";
+import {
+  bakiAtTheGate,
+  bakiPutRight,
+  bakiStanding,
+  paidAtTheGate,
+} from "./baki";
 
 const LEFT_ON = "2026-06-16";
 
@@ -156,5 +161,111 @@ describe("Baki put right", () => {
 describe("What was paid at the gate", () => {
   it("is what it came to less what was owed", () => {
     expect(paidAtTheGate(3107.65, 107.65)).toBe(3000);
+  });
+});
+
+const item = (
+  id: string,
+  leftOn: string,
+  bakiBdt: number,
+  promisedBy: string | null = null
+) => ({ id, leftOn, bakiBdt, promisedBy });
+const paid = (id: string, paidOn: string, amountBdt: number) => ({
+  id,
+  paidOn,
+  amountBdt,
+});
+
+describe("a buyer's Baki, cleared oldest first", () => {
+  it("owes all of it before he pays anything", () => {
+    const standing = bakiStanding(
+      [
+        item("b", "2026-06-10", 5000),
+        item("a", "2026-06-01", 20_000, "2026-06-08"),
+      ],
+      []
+    );
+    expect(standing.owingBdt).toBe(25_000);
+    expect(standing.oldestOn).toBe("2026-06-01");
+    expect(standing.soonestPromise).toBe("2026-06-08");
+    expect(standing.items.map((one) => one.id)).toEqual(["a", "b"]);
+  });
+
+  it("clears the oldest first when he pays part", () => {
+    const standing = bakiStanding(
+      [item("a", "2026-06-01", 20_000), item("b", "2026-06-10", 5000)],
+      [paid("p1", "2026-06-12", 12_000)]
+    );
+    expect(standing.items).toMatchObject([
+      { id: "a", paidBdt: 12_000, owingBdt: 8000 },
+      { id: "b", paidBdt: 0, owingBdt: 5000 },
+    ]);
+    expect(standing.owingBdt).toBe(13_000);
+    expect(standing.parts).toEqual([
+      { paymentId: "p1", itemId: "a", amountBdt: 12_000 },
+    ]);
+  });
+
+  it("lets one round sum clear several, and says what it cleared", () => {
+    const standing = bakiStanding(
+      [
+        item("d1", "2026-06-01", 1750),
+        item("d2", "2026-06-02", 1750),
+        item("d3", "2026-06-03", 1750),
+      ],
+      [paid("p1", "2026-06-05", 4000)]
+    );
+    expect(standing.parts).toEqual([
+      { paymentId: "p1", itemId: "d1", amountBdt: 1750 },
+      { paymentId: "p1", itemId: "d2", amountBdt: 1750 },
+      { paymentId: "p1", itemId: "d3", amountBdt: 500 },
+    ]);
+    expect(standing.owingBdt).toBe(1250);
+    expect(standing.oldestOn).toBe("2026-06-03");
+  });
+
+  it("orders two things left the same day by id, every time", () => {
+    const standing = bakiStanding(
+      [item("z", "2026-06-01", 1000), item("m", "2026-06-01", 1000)],
+      [paid("p1", "2026-06-02", 1000)]
+    );
+    expect(standing.items.find((one) => one.owingBdt === 0)?.id).toBe("m");
+  });
+
+  it("holds what he paid beyond it as credit, and spends it on what he takes next", () => {
+    const ahead = bakiStanding(
+      [item("a", "2026-06-01", 1000)],
+      [paid("p1", "2026-06-02", 1500)]
+    );
+    expect(ahead).toMatchObject({
+      owingBdt: 0,
+      creditBdt: 500,
+      oldestOn: null,
+    });
+
+    const later = bakiStanding(
+      [item("a", "2026-06-01", 1000), item("b", "2026-06-05", 800)],
+      [paid("p1", "2026-06-02", 1500)]
+    );
+    expect(later).toMatchObject({ owingBdt: 300, creditBdt: 0 });
+  });
+
+  it("reads a Correction that shrank an old Baki below what was paid on it as credit", () => {
+    const standing = bakiStanding(
+      [item("a", "2026-06-01", 500)],
+      [paid("p1", "2026-06-02", 1000)]
+    );
+    expect(standing).toMatchObject({ owingBdt: 0, creditBdt: 500 });
+  });
+
+  it("names no promise for what is already paid", () => {
+    const standing = bakiStanding(
+      [
+        item("a", "2026-06-01", 1000, "2026-06-03"),
+        item("b", "2026-06-02", 1000, "2026-06-20"),
+      ],
+      [paid("p1", "2026-06-02", 1000)]
+    );
+    expect(standing.soonestPromise).toBe("2026-06-20");
   });
 });

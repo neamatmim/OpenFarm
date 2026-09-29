@@ -58,9 +58,17 @@ export const RECORD_SOURCES = [
 ] as const;
 export type RecordSource = (typeof RECORD_SOURCES)[number];
 
-/** Where a Money Event came from: one of the records, or entered by hand by the Manager — wages, and
- *  everything no record catches, where the Money Event is the whole of it. */
-export const MONEY_SOURCES = [...RECORD_SOURCES, "by_hand"] as const;
+/** Where a Money Event came from: one of the records, a buyer paying his Baki, or entered by hand by the Manager —
+ *  wages, and everything no record catches, where the Money Event is the whole of it.
+ *
+ *  A Baki Payment is a record that makes money, but not one of `RECORD_SOURCES`: those each carry a Category of their
+ *  own, and a Baki Payment books under the Category of what it paid for — milk sales or cattle sales — so a report's
+ *  totals by Category stay what they were. */
+export const MONEY_SOURCES = [
+  ...RECORD_SOURCES,
+  "baki_payment",
+  "by_hand",
+] as const;
 export type MoneySource = (typeof MONEY_SOURCES)[number];
 
 /**
@@ -275,4 +283,41 @@ export const vetFeeAnimal = pgTable(
       .references(() => animal.id),
   },
   (table) => [primaryKey({ columns: [table.vetFeeId, table.animalId] })]
+);
+
+/** What a buyer's **Baki** is for, and so which Category his payment books under. */
+export const BAKI_KINDS = ["cattle", "milk"] as const;
+
+/**
+ * One handover of money from a buyer towards his **Baki**, for his cattle or for his milk: its own Money Event on the
+ * day it came. Which Sales or Dispatches it cleared is worked out when it is read — oldest first — and never stored,
+ * so a Correction to an old Sale re-flows without rewriting what a payment was for.
+ */
+export const bakiPayment = pgTable(
+  "baki_payment",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    counterpartyId: text("counterparty_id")
+      .notNull()
+      .references(() => counterparty.id),
+    kind: text("kind", { enum: BAKI_KINDS }).notNull(),
+    amountBdt: taka("amount_bdt").notNull(),
+    /** The farm day ("YYYY-MM-DD") the money came. */
+    paidOn: text("paid_on").notNull(),
+    /** What the Manager wrote beside it: always, when he paid more than he owed. */
+    note: text("note"),
+    recordedBy: text("recorded_by").references(() => user.id),
+    recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
+    recordedAt: timestamp("recorded_at").notNull(),
+  },
+  (table) => [
+    index("baki_payment_buyer_idx").on(
+      table.farmId,
+      table.counterpartyId,
+      table.kind
+    ),
+  ]
 );

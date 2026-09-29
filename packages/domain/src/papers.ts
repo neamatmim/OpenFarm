@@ -422,6 +422,9 @@ export interface AccountantSummary {
   summary: MoneySummary;
   /** Taka as the reader reads it. */
   taka: (amount: number) => string;
+  /** Who still owed the farm what on the period's last day — its **Baki** — biggest first. The money list is cash as
+   *  it came; this is what had not come yet. */
+  bakiAtTheEnd: readonly { name: string; owingBdt: number }[];
   producedBy: string;
   producedAt: string;
 }
@@ -448,7 +451,7 @@ export const accountantSummary = (paper: AccountantSummary): string => {
     "",
     field("মোট আয়", "Income", taka(summary.incomeBdt)),
     field("মোট ব্যয়", "Expense", taka(summary.expenseBdt)),
-    field("বাকি", "Net", taka(summary.netBdt)),
+    field("নিট", "Net", taka(summary.netBdt)),
     summary.awaiting.count > 0
       ? field(
           "মালিকের অনুমোদনের অপেক্ষায়",
@@ -476,6 +479,22 @@ export const accountantSummary = (paper: AccountantSummary): string => {
       return `  ${bn} / ${en}: ${inAndOut(line)}`;
     }),
     "",
+    ...(paper.bakiAtTheEnd.length > 0
+      ? [
+          "সময়কালের শেষে বাকি / Owed to the farm at the period's end",
+          ...paper.bakiAtTheEnd.map(
+            (line) => `  ${line.name}: ${taka(line.owingBdt)}`
+          ),
+          field(
+            "মোট বাকি",
+            "Total owed",
+            taka(
+              paper.bakiAtTheEnd.reduce((sum, line) => sum + line.owingBdt, 0)
+            )
+          ),
+          "",
+        ]
+      : []),
     `${paper.producedAt} · ${paper.producedBy}`,
   ]
     .filter((line) => line !== null)

@@ -177,6 +177,16 @@ const sendTheMilk = ({ farm, days, on }: Script) => {
         paymentMethod: "bank",
       });
       f.clock.set(onFarm(day, "09:10"));
+      if (day === addDays(today, -3)) {
+        // A round five thousand from the sweet shop, which clears its oldest few days and leaves the rest owing.
+        await f.as.manager.baki.pay({
+          buyer: MILK_BUYERS.sweets.name,
+          kind: "milk",
+          amountBdt: 5000,
+          paidOn: day,
+          paymentMethod: "cash",
+        });
+      }
       await f.as.manager.milk.dispatch({
         dispatchedAt: onFarm(day, "09:10"),
         litres: sweets,
@@ -955,6 +965,23 @@ const sellTheReady = ({ farm, on }: Script) => {
       bull.state = "sold";
     });
   }
+  // The trader who promised a day now gone pays half of what he owes, late; the other has not paid yet.
+  on(addDays(today, -1), "16:00", "a trader pays half his baki", async (f) => {
+    const owing = await f.as.manager.baki.list();
+    const late = owing.find((one) =>
+      one.kinds.some((kind) => kind.kind === "cattle" && kind.owingBdt > 0)
+    );
+    if (!late) {
+      return;
+    }
+    await f.as.manager.baki.pay({
+      buyer: late.name,
+      kind: "cattle",
+      amountBdt: 10_000,
+      paidOn: addDays(today, -1),
+      paymentMethod: "bkash",
+    });
+  });
   on(addDays(start, 70), "11:00", "a cull", async (f, h) => {
     const old = [...h.cows.values()].find(
       (cow) => cow.state === "milking" && !cow.expectedCalving && cow.peak < 8

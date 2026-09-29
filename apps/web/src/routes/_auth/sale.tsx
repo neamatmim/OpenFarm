@@ -48,6 +48,10 @@ const SaleFigures = ({
   // Left out of an answer cached before Baki was written down: paid in full, as every such Sale was.
   const owed = sold?.reduce((sum, one) => sum + (one.bakiBdt ?? 0), 0) ?? 0;
   const taken = fetched === undefined ? undefined : fetched - owed;
+  // And what of it is still owed now, as the buyers' payments since have left it.
+  const owingNow =
+    sold?.reduce((sum, one) => sum + (one.owingBdt ?? one.bakiBdt ?? 0), 0) ??
+    0;
   const weighed = sold?.reduce((sum, one) => sum + one.weightKg, 0) ?? 0;
   const buyers = new Set(sold?.map((one) => one.buyerName)).size;
   const said = useTaka();
@@ -68,8 +72,8 @@ const SaleFigures = ({
           label: t("sale.kpi.takings"),
           value: taka(taken),
           hint:
-            owed > 0
-              ? t("baki.owed", { taka: formatNumber(owed, language) })
+            owingNow > 0
+              ? t("baki.owed", { taka: formatNumber(owingNow, language) })
               : t("sale.kpi.takingsHint"),
           icon: Banknote,
           tone: (taken ?? 0) > 0 ? "success" : "neutral",

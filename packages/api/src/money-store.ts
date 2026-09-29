@@ -218,9 +218,20 @@ export const addStandardCategories = async (
 };
 
 /** The standard Category a record's money is booked under. An entry made by hand chooses its own. */
-const recordCategoryOf = (source: MoneySource): CategoryKey => {
+const recordCategoryOf = (
+  source: MoneySource,
+  categoryKey: CategoryKey | undefined
+): CategoryKey => {
+  if (categoryKey) {
+    return categoryKey;
+  }
   if (source === "by_hand") {
     throw new Error("An entry made by hand names its own Category");
+  }
+  if (source === "baki_payment") {
+    throw new Error(
+      "A Baki Payment names the Category of what it paid for: milk sales or cattle sales"
+    );
   }
   return source;
 };
@@ -273,7 +284,7 @@ const categoryFor = async (
 const placedUnder = async (
   tx: Tx,
   farmId: string,
-  source: MoneySource,
+  money: Pick<MoneyOfARecord, "source" | "categoryKey">,
   byHand: EnteredByHand | undefined,
   now: Date
 ): Promise<{ categoryId: string; direction: MoneyDirection }> => {
@@ -283,7 +294,7 @@ const placedUnder = async (
       direction: byHand.category.direction,
     };
   }
-  const key = recordCategoryOf(source);
+  const key = recordCategoryOf(money.source, money.categoryKey);
   return {
     categoryId: await categoryFor(tx, farmId, key, now),
     direction: CATEGORIES[key].direction,
@@ -310,6 +321,9 @@ export interface MoneyOfARecord {
    *  record that knows — an Intake of a Venture's Animal, a Sale of one. The Farm's reports read the
    *  Farm's purse alone, so this is what keeps the two from mixing. */
   purseVentureId?: string | null;
+  /** The Category it books under, for a record whose own source does not say: a Baki Payment books under what it paid
+   *  for — the Dispatch's milk sales or the Sale's cattle sales. Every other record leaves it out. */
+  categoryKey?: CategoryKey;
 }
 
 /** What an entry made by hand carries beyond a record's money: its own id as the Money Event's, the
@@ -542,7 +556,7 @@ export const bookMoney = async (
         categoryId: byHand?.category.id ?? existing.categoryId,
         direction: byHand?.category.direction ?? existing.direction,
       }
-    : await placedUnder(tx, farm.id, money.source, byHand, now);
+    : await placedUnder(tx, farm.id, money, byHand, now);
   const terms = {
     amountBdt,
     counterpartyId: money.counterpartyId,

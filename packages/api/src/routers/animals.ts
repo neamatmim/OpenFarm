@@ -28,6 +28,7 @@ import { z } from "zod";
 
 import { herRecord } from "../animal-record";
 import { audited } from "../audit";
+import { owingOnHerSale } from "../baki-store";
 import { breedNamed } from "../breed-store";
 import {
   expectedCalvingWithinReach,
@@ -167,6 +168,18 @@ const saleView = (
         buyerName: row.buyer.name,
       }
     : null;
+
+/** Her Sale as her page shows it, with what her buyer still owes on her today, as his payments have left it. */
+const saleShown = async (
+  db: Database,
+  farmId: string,
+  row: Parameters<typeof saleView>[0]
+) => {
+  const shown = saleView(row);
+  return shown
+    ? { ...shown, owingBdt: await owingOnHerSale(db, farmId, row) }
+    : null;
+};
 
 /** More calvings than any cow has in her working life. */
 const CALVINGS_SHOWN = 20;
@@ -648,6 +661,10 @@ export const animalsRouter = {
         stateChangedAt: _stateChangedAt,
         ...whatSheIs
       } = her;
+      // What she fetched is the money row: the Owner's and the Manager's, and asked of the farm only for them.
+      const herSale = theCost
+        ? await saleShown(context.db, context.farm.id, sale)
+        : null;
       const [heats, services, checks] = await Promise.all([
         heatsOf(context.db, her.id),
         servicesOf(context.db, her.id),
@@ -725,7 +742,7 @@ export const animalsRouter = {
             }
           : null,
         /** What she fetched is the money row too: the Owner's and the Manager's. */
-        sale: theCost ? saleView(sale) : null,
+        sale: herSale,
         heats,
         services,
         ...checks,

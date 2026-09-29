@@ -10,7 +10,7 @@ import type { ReactNode } from "react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 
-import { BakiFields } from "@/components/baki-fields";
+import { BakiFields, BuyerOwes } from "@/components/baki-fields";
 import { fitOnFrom } from "@/components/fattening/fattening-types";
 import { Notice, SECTION_TITLE } from "@/components/page";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
@@ -387,6 +387,7 @@ export const SaleSheet = ({
           required
           value={answers.buyerName}
         />
+        <BuyerOwes name={answers.buyerName} />
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField
             id="sale-address"

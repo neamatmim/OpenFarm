@@ -17,6 +17,7 @@ import { z } from "zod";
 
 import { herRecord } from "../animal-record";
 import { audited } from "../audit";
+import { owingNowOf } from "../baki-store";
 import type { ExportedPaper } from "../export-store";
 import { exportedPaper } from "../export-store";
 import { farmDay } from "../farm-clock";
@@ -318,8 +319,15 @@ export const papersRouter = {
           buyer: { columns: { name: true } },
         },
       });
+      // What each buyer still owes on her today, as his payments have left it.
+      const owing = await owingNowOf(
+        context.db,
+        context.farm.id,
+        rows.filter((one) => one.bakiBdt > 0).map((one) => one.id)
+      );
       return rows.map(({ animal: beast, buyer, ...row }) => ({
         ...row,
+        owingBdt: owing.get(row.id) ?? 0,
         priceBdt: row.priceBdt,
         weightKg: Number(row.weightKg),
         tagNumber: beast.tagNumber,

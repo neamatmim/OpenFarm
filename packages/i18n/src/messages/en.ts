@@ -1318,6 +1318,9 @@ export const en = {
   "refusal.bakiNeedsAPromise": "Write the day he promised to pay the rest by",
   "refusal.promiseBeforeItLeft":
     "He cannot have promised to pay by a day before it left",
+  "refusal.paidMoreThanOwed":
+    "He owes ৳{owingBdt}; say in a note why he paid more",
+  "refusal.noSuchBuyer": "The farm has never sold to anybody by that name",
   "refusal.ventureOwnsHer":
     "She belongs to a Venture, and a Venture's animal cannot cross to the dairy side",
   "refusal.notAVenturesAnimal":
@@ -4386,6 +4389,34 @@ export const en = {
   "baki.promisedByOptional": "Promised to pay by, if he named a day",
   "baki.owedBy": "৳{taka} still owed, promised by {day}",
   "baki.owed": "৳{taka} still owed",
+  "baki.tab": "Baki",
+  "baki.nobody": "Nobody owes the farm anything",
+  "baki.nobodyHint":
+    "A sale or milk left partly paid shows here until the buyer pays.",
+  "baki.owingTotal": "Owed to the farm",
+  "baki.owingTotalHint": "{count, plural, one {# buyer} other {# buyers}}",
+  "baki.since": "since {day}",
+  "baki.promised": "promised by {day}",
+  "baki.credit": "৳{taka} paid ahead",
+  "baki.kind.cattle": "Cattle",
+  "baki.kind.milk": "Milk",
+  "baki.itemOwes": "৳{owing} of ৳{baki} still owed",
+  "baki.itemPaidOff": "Paid off",
+  "baki.litres": "{litres, plural, one {# litre} other {# litres}} of milk",
+  "baki.paymentLine": "৳{taka} paid on {day}",
+  "baki.record": "Record a payment",
+  "baki.paymentTitle": "Money received towards baki",
+  "baki.paymentDescription":
+    "What he paid, for what, and when. It clears his oldest baki first.",
+  "baki.buyer": "Buyer",
+  "baki.kind": "For",
+  "baki.amount": "Amount (৳)",
+  "baki.paidOn": "Paid on",
+  "baki.note": "Note",
+  "baki.noteHint": "Needed if he paid more than he owes",
+  "baki.recorded": "Payment recorded",
+  "baki.buyerOwes": "{name} still owes ৳{taka}, since {day}",
+  "money.from.bakiPayment": "Baki paid",
   "sale.tab.ready": "Ready to go",
   "sale.sellThis": "Sell",
   "sale.noneReadyHint":

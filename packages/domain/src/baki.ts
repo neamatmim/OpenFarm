@@ -131,3 +131,121 @@ export const bakiPutRight = ({
     promiseRequired,
   });
 };
+
+/** What a buyer's Baki is for: the cattle he took, or the milk. A payment is for one or the other, and is booked
+ *  under that one's Category, so the reports' milk sales and cattle sales stay what they are. */
+export const BAKI_KINDS = ["cattle", "milk"] as const;
+export type BakiKind = (typeof BAKI_KINDS)[number];
+
+/** One Sale or Dispatch a buyer left owing on. */
+export interface BakiItem {
+  id: string;
+  /** The farm day it left. */
+  leftOn: string;
+  /** What he still owed as it left. */
+  bakiBdt: number;
+  promisedBy: string | null;
+}
+
+/** One handover of money from him towards it. */
+export interface BakiPaymentIn {
+  id: string;
+  /** The farm day it came. */
+  paidOn: string;
+  amountBdt: number;
+}
+
+/** One item as his payments leave it: what of it they cleared, and what is still owing. */
+export interface BakiItemStanding extends BakiItem {
+  paidBdt: number;
+  owingBdt: number;
+}
+
+/** What one payment cleared of one item. */
+export interface BakiPart {
+  paymentId: string;
+  itemId: string;
+  amountBdt: number;
+}
+
+/** A buyer's Baki of one kind, as his payments leave it. */
+export interface BakiStanding {
+  items: BakiItemStanding[];
+  /** Which payment cleared what, so a payment can say what it was for. */
+  parts: BakiPart[];
+  owingBdt: number;
+  /** What he paid beyond everything he owed, held for his next Baki. */
+  creditBdt: number;
+  /** The day the oldest thing still owing left, or nothing when nothing is. */
+  oldestOn: string | null;
+  /** The soonest day he promised for what is still owing, or nothing when he promised none. */
+  soonestPromise: string | null;
+}
+
+/** Oldest first; the same day by id, so two things written in one minute always come in one order. */
+const byDayThenId =
+  <Row extends { id: string }>(dayOf: (row: Row) => string) =>
+  (a: Row, b: Row): number =>
+    dayOf(a).localeCompare(dayOf(b)) || a.id.localeCompare(b.id);
+
+/**
+ * A buyer's Baki of one kind, cleared oldest first — as a trader's khata is. Each payment, in the order it came, pays
+ * off the oldest thing still owing; what is left of it is his credit, which the next thing he takes on Baki uses up
+ * first. Worked on read and never stored, so a Correction to an old Sale or payment re-flows without rewriting what a
+ * payment was for.
+ */
+export const bakiStanding = (
+  items: readonly BakiItem[],
+  payments: readonly BakiPaymentIn[]
+): BakiStanding => {
+  const owed = items
+    .filter((one) => one.bakiBdt > 0)
+    .toSorted(byDayThenId((one) => one.leftOn));
+  const left = new Map(owed.map((one) => [one.id, one.bakiBdt]));
+  const parts: BakiPart[] = [];
+  for (const payment of payments.toSorted(byDayThenId((one) => one.paidOn))) {
+    let toSpend = payment.amountBdt;
+    for (const item of owed) {
+      const still = left.get(item.id) ?? 0;
+      if (toSpend <= 0) {
+        break;
+      }
+      if (still > 0) {
+        const cleared = roundTaka(Math.min(still, toSpend));
+        left.set(item.id, roundTaka(still - cleared));
+        toSpend = roundTaka(toSpend - cleared);
+        parts.push({
+          paymentId: payment.id,
+          itemId: item.id,
+          amountBdt: cleared,
+        });
+      }
+    }
+  }
+  const standing = owed.map((item) => {
+    const owingBdt = left.get(item.id) ?? 0;
+    return { ...item, paidBdt: roundTaka(item.bakiBdt - owingBdt), owingBdt };
+  });
+  const owingBdt = roundTaka(
+    standing.reduce((sum, one) => sum + one.owingBdt, 0)
+  );
+  const paidIn = roundTaka(
+    payments.reduce((sum, one) => sum + one.amountBdt, 0)
+  );
+  const clearedBdt = roundTaka(
+    parts.reduce((sum, one) => sum + one.amountBdt, 0)
+  );
+  const stillOwing = standing.filter((one) => one.owingBdt > 0);
+  const promises = stillOwing
+    .map((one) => one.promisedBy)
+    .filter((one) => one !== null)
+    .toSorted();
+  return {
+    items: standing,
+    parts,
+    owingBdt,
+    creditBdt: roundTaka(paidIn - clearedBdt),
+    oldestOn: stillOwing[0]?.leftOn ?? null,
+    soonestPromise: promises[0] ?? null,
+  };
+};

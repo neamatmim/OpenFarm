@@ -132,6 +132,7 @@ const BuyerCell = ({ row }: { row: { original: DispatchRow } }) => (
     <span className="font-medium">{row.original.buyerName}</span>
     <BakiOwed
       bakiBdt={row.original.bakiBdt}
+      owingBdt={row.original.owingBdt}
       promisedBy={row.original.promisedBy}
     />
   </span>
@@ -228,7 +229,11 @@ const DispatchCard = ({ row }: { row: DispatchRow }) => {
     <div className="flex items-start justify-between gap-3">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="font-medium">{row.buyerName}</span>
-        <BakiOwed bakiBdt={row.bakiBdt} promisedBy={row.promisedBy} />
+        <BakiOwed
+          bakiBdt={row.bakiBdt}
+          owingBdt={row.owingBdt}
+          promisedBy={row.promisedBy}
+        />
         <span className="font-semibold tabular-nums">
           {formatNumber(row.litres, language)} {t("dispatch.litres")}
           <span className="text-muted-foreground text-xs font-normal">

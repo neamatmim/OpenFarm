@@ -9,6 +9,7 @@ import {
   ArrowUpRight,
   BookOpen,
   Calculator,
+  HandCoins,
   Hourglass,
   PieChart,
   Plus,
@@ -20,6 +21,7 @@ import { useState } from "react";
 import { AccountantExport } from "@/components/accountant-export";
 import { CostsBySide } from "@/components/costs";
 import { EnterMoneySheet } from "@/components/money-entry";
+import { BakiTab } from "@/components/money/baki-tab";
 import { CategoriesTab } from "@/components/money/categories-tab";
 import { PeriodBar } from "@/components/money/period-bar";
 import type { MoneyList } from "@/components/money/register";
@@ -32,7 +34,7 @@ import { wordedRefusal } from "@/lib/correction-refusal";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
-const TABS = ["register", "costs", "accountant", "categories"] as const;
+const TABS = ["register", "baki", "costs", "accountant", "categories"] as const;
 type Tab = (typeof TABS)[number];
 
 /** The first of this month on the farm's clock, which is where an Owner starts reading money. */
@@ -165,6 +167,12 @@ const MoneyPage = () => {
                 money={money}
               />
             ),
+          },
+          {
+            value: "baki",
+            label: t("baki.tab"),
+            icon: HandCoins,
+            content: <BakiTab />,
           },
           {
             value: "costs",
