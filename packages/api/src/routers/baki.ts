@@ -1,7 +1,12 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { sql } from "@OpenFarm/db/operators";
-import { BAKI_KINDS as KINDS, bakiPayment } from "@OpenFarm/db/schema/money";
+import {
+  BAKI_KINDS as KINDS,
+  BAKI_SOURCES,
+  bakiPayment,
+  bakiWriteOff,
+} from "@OpenFarm/db/schema/money";
 import { farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -11,21 +16,33 @@ import {
   CATEGORY_OF_BAKI,
   assertPaidNoMoreThanOwed,
   bakiOfBuyers,
+  assertWrittenOffNoMoreThanOwed,
   overdueOfBuyer,
   owingOf,
+  owingOnItem,
   readBakiPayment,
+  readWriteOff,
 } from "../baki-store";
 import {
   bakiPaymentCorrection,
   bakiPaymentCorrectionInput,
 } from "../corrections/baki-payment";
+import {
+  writeOffCorrection,
+  writeOffCorrectionInput,
+} from "../corrections/baki-write-off";
 import { correct } from "../corrections/correction";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { enteredOn } from "../money-by-hand-store";
 import { amountInput, noteInput, paymentMethodInput } from "../money-inputs";
 import { bookMoney, bookingOf } from "../money-store";
-import { requirePersonalSession, requireRole } from "../roles";
+import {
+  OWNER_ONLY,
+  requireOnly,
+  requirePersonalSession,
+  requireRole,
+} from "../roles";
 
 const buyerNameInput = z.string().trim().min(1).max(120);
 
@@ -147,6 +164,74 @@ export const bakiRouter = {
    * A Baki Payment put right: how much, the day, how it was paid, the note. A Correction like any other — a reason,
    * the Role's Correction Window, the trail holding what it said — and its Money Event with it.
    */
+  /**
+   * The Owner writing off Baki that will not be paid: so much of one Sale's or Dispatch's, with a reason. What the
+   * animal or the milk fetched is then its price less it, and the buyer carries the mark. The Owner's alone.
+   */
+  writeOff: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        source: z.enum(BAKI_SOURCES),
+        id: z.string(),
+        amountBdt: amountInput,
+        why: noteInput,
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const id = newId(now);
+      await audited(context).write(
+        {
+          entity: "baki_write_off",
+          entityId: id,
+          action: "create",
+          after: (tx) => readWriteOff(tx, id),
+        },
+        async (tx) => {
+          const standing = await owingOnItem(
+            tx,
+            context.farm.id,
+            input.source,
+            input.id
+          );
+          if (!standing) {
+            throw new ORPCError("NOT_FOUND", {
+              message: "Nothing was ever owed on that",
+              data: { refusal: "nothing_owed_on_it" },
+            });
+          }
+          // Held while what is owing is read, as a payment is.
+          await tx.execute(
+            sql`select 1 from counterparty where id = ${standing.counterpartyId} for update`
+          );
+          assertWrittenOffNoMoreThanOwed(input.amountBdt, standing.owingBdt);
+          await tx.insert(bakiWriteOff).values({
+            id,
+            farmId: context.farm.id,
+            source: input.source,
+            sourceId: input.id,
+            counterpartyId: standing.counterpartyId,
+            amountBdt: input.amountBdt,
+            reason: input.why,
+            writtenOn: farmDayOf(now),
+            recordedBy: context.actor.id,
+            recordedAt: now,
+          });
+        }
+      );
+      return { id };
+    }),
+
+  /** A Write-off put right, or taken back by setting it to nothing. The Owner's alone. */
+  correctWriteOff: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .input(writeOffCorrectionInput)
+    .handler(({ context, input }) =>
+      correct(context, writeOffCorrection, input)
+    ),
+
   correctPayment: protectedProcedure
     .use(requireRole(...bakiPaymentCorrection.roles))
     .input(bakiPaymentCorrectionInput)

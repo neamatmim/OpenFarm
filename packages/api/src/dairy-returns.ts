@@ -9,6 +9,8 @@ import {
   milkPricesByMonth,
 } from "@OpenFarm/domain";
 
+import { fetchedPerLitre, writtenOffByItem } from "./baki-store";
+
 /**
  * What the dairy herd returns, read for the domain's `dairy-returns` to work: every Animal who has stood on the Dairy
  * side, the months' milk prices off the Dispatches, and the Head Prices. Every rule a dairy run follows is there, and
@@ -24,13 +26,20 @@ export const EVER_ON_THE_DAIRY_SIDE = {
 const monthlyMilkPrices = async (db: Database, farmId: string) => {
   const rows = await db.query.dispatch.findMany({
     where: { farmId },
-    columns: { dispatchedAt: true, litres: true, pricePerLitreBdt: true },
+    columns: {
+      id: true,
+      dispatchedAt: true,
+      litres: true,
+      pricePerLitreBdt: true,
+    },
   });
+  // Milk a buyer never paid for, and the Owner wrote off, did not fetch its price.
+  const writtenOff = await writtenOffByItem(db, farmId);
   return milkPricesByMonth(
     rows.map((one) => ({
       dispatchedAt: one.dispatchedAt,
       litres: Number(one.litres),
-      pricePerLitreBdt: Number(one.pricePerLitreBdt),
+      pricePerLitreBdt: fetchedPerLitre(one, writtenOff),
     }))
   );
 };

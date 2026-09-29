@@ -6,8 +6,10 @@ import { HandCoins, Plus } from "lucide-react";
 import { useState } from "react";
 
 import { phoneLink } from "@/components/investors/phone-link";
+import { useIsOwner } from "@/components/money";
 import type { PaymentFor } from "@/components/money/baki-payment-sheet";
 import { BakiPaymentSheet } from "@/components/money/baki-payment-sheet";
+import { WriteOffButton } from "@/components/money/baki-write-off";
 import {
   EmptyState,
   Loaded,
@@ -29,8 +31,17 @@ const useDay = () => {
   return (day: string) => formatDate(startOfFarmDay(day), language, "date");
 };
 
-/** One Sale or Dispatch he left owing on: the bull by her tag or the milk by its litres, and what of it is still owed. */
-const OwedRow = ({ item }: { item: KindStanding["items"][number] }) => {
+/** One Sale or Dispatch he left owing on: the bull by her tag or the milk by its litres, what of it is still owed and
+ *  what stays written off — and, for the Owner, the way to write off what will not be paid. */
+const OwedRow = ({
+  item,
+  kind,
+  mayWriteOff,
+}: {
+  item: KindStanding["items"][number];
+  kind: KindStanding["kind"];
+  mayWriteOff: boolean;
+}) => {
   const { t } = useLanguage();
   const day = useDay();
   const what =
@@ -51,16 +62,31 @@ const OwedRow = ({ item }: { item: KindStanding["items"][number] }) => {
       }
       title={what}
       trailing={
-        <span
-          className={
-            item.owingBdt > 0
-              ? "text-warning text-sm font-medium tabular-nums"
-              : "text-muted-foreground text-sm"
-          }
-        >
-          {item.owingBdt > 0
-            ? t("baki.itemOwes", { owing: item.owingBdt, baki: item.bakiBdt })
-            : t("baki.itemPaidOff")}
+        <span className="flex flex-col items-end gap-0.5">
+          <span
+            className={
+              item.owingBdt > 0
+                ? "text-warning text-sm font-medium tabular-nums"
+                : "text-muted-foreground text-sm"
+            }
+          >
+            {item.owingBdt > 0
+              ? t("baki.itemOwes", { owing: item.owingBdt, baki: item.bakiBdt })
+              : t("baki.itemPaidOff")}
+          </span>
+          {/* Missing from an answer a phone kept from before anything was written off. */}
+          {(item.writtenOffBdt ?? 0) > 0 ? (
+            <span className="text-danger text-xs tabular-nums">
+              {t("baki.writtenOff", { taka: item.writtenOffBdt })}
+            </span>
+          ) : null}
+          {mayWriteOff && item.owingBdt > 0 ? (
+            <WriteOffButton
+              id={item.id}
+              owingBdt={item.owingBdt}
+              source={kind === "milk" ? "dispatch" : "sale"}
+            />
+          ) : null}
         </span>
       }
     />
@@ -71,9 +97,11 @@ const OwedRow = ({ item }: { item: KindStanding["items"][number] }) => {
 const KindPart = ({
   standing,
   onPay,
+  mayWriteOff,
 }: {
   standing: KindStanding;
   onPay: () => void;
+  mayWriteOff: boolean;
 }) => {
   const { t } = useLanguage();
   const day = useDay();
@@ -113,7 +141,12 @@ const KindPart = ({
       </div>
       <RecordList>
         {standing.items.map((item) => (
-          <OwedRow item={item} key={item.id} />
+          <OwedRow
+            item={item}
+            key={item.id}
+            kind={standing.kind}
+            mayWriteOff={mayWriteOff}
+          />
         ))}
       </RecordList>
       {standing.payments.length > 0 ? (
@@ -137,9 +170,11 @@ const KindPart = ({
 const BuyerCard = ({
   buyer,
   onPay,
+  mayWriteOff,
 }: {
   buyer: Buyer;
   onPay: (paying: PaymentFor) => void;
+  mayWriteOff: boolean;
 }) => {
   const { t } = useLanguage();
   return (
@@ -153,12 +188,18 @@ const BuyerCard = ({
               {t("baki.owed", { taka: buyer.owingBdt })}
             </span>
           ) : null}
+          {(buyer.writtenOffBdt ?? 0) > 0 ? (
+            <span className="text-danger text-sm font-medium tabular-nums">
+              {t("baki.writtenOff", { taka: buyer.writtenOffBdt })}
+            </span>
+          ) : null}
         </span>
       }
     >
       {buyer.kinds.map((standing) => (
         <KindPart
           key={standing.kind}
+          mayWriteOff={mayWriteOff}
           onPay={() => onPay({ buyer: buyer.name, kind: standing.kind })}
           standing={standing}
         />
@@ -174,6 +215,8 @@ const BuyerCard = ({
 export const BakiTab = () => {
   const { t, language } = useLanguage();
   const list = useQuery(orpc.baki.list.queryOptions());
+  // Writing Baki off is the Owner's alone.
+  const mayWriteOff = useIsOwner();
   const [paying, setPaying] = useState<PaymentFor | null>(null);
   const buyers = list.data ?? [];
   const owing = buyers.reduce((sum, one) => sum + one.owingBdt, 0);
@@ -199,6 +242,7 @@ export const BakiTab = () => {
             <BuyerCard
               buyer={buyer}
               key={buyer.counterpartyId}
+              mayWriteOff={mayWriteOff}
               onPay={setPaying}
             />
           ))}

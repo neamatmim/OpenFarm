@@ -146,6 +146,8 @@ export interface BakiItem {
   /** What he still owed as it left. */
   bakiBdt: number;
   promisedBy: string | null;
+  /** What the Owner has written off of it, in all; nothing where nothing was. */
+  writtenOffBdt?: number;
 }
 
 /** One handover of money from him towards it. */
@@ -160,6 +162,8 @@ export interface BakiPaymentIn {
 export interface BakiItemStanding extends BakiItem {
   paidBdt: number;
   owingBdt: number;
+  /** What stays written off once his payments are counted: a buyer who pays after all puts a write-off back. */
+  writtenOffBdt: number;
 }
 
 /** What one payment cleared of one item. */
@@ -177,6 +181,8 @@ export interface BakiStanding {
   owingBdt: number;
   /** What he paid beyond everything he owed, held for his next Baki. */
   creditBdt: number;
+  /** What stays written off of it, in all. */
+  writtenOffBdt: number;
   /** The day the oldest thing still owing left, or nothing when nothing is. */
   oldestOn: string | null;
   /** The soonest day he promised for what is still owing, or nothing when he promised none. */
@@ -202,34 +208,53 @@ export const bakiStanding = (
   const owed = items
     .filter((one) => one.bakiBdt > 0)
     .toSorted(byDayThenId((one) => one.leftOn));
-  const left = new Map(owed.map((one) => [one.id, one.bakiBdt]));
+  // Two purses per item: what is still open, and what the Owner wrote off. Money pays the open first, everything
+  // open before anything written off, and only then puts a write-off back.
+  const open = new Map(
+    owed.map((one) => [
+      one.id,
+      roundTaka(Math.max(one.bakiBdt - (one.writtenOffBdt ?? 0), 0)),
+    ])
+  );
+  const writtenOff = new Map(
+    owed.map((one) => [one.id, one.writtenOffBdt ?? 0])
+  );
   const parts: BakiPart[] = [];
-  for (const payment of payments.toSorted(byDayThenId((one) => one.paidOn))) {
-    let toSpend = payment.amountBdt;
+  const spend = (
+    paymentId: string,
+    purse: Map<string, number>,
+    toSpend: number
+  ): number => {
+    let left = toSpend;
     for (const item of owed) {
-      const still = left.get(item.id) ?? 0;
-      if (toSpend <= 0) {
+      const still = purse.get(item.id) ?? 0;
+      if (left <= 0) {
         break;
       }
       if (still > 0) {
-        const cleared = roundTaka(Math.min(still, toSpend));
-        left.set(item.id, roundTaka(still - cleared));
-        toSpend = roundTaka(toSpend - cleared);
-        parts.push({
-          paymentId: payment.id,
-          itemId: item.id,
-          amountBdt: cleared,
-        });
+        const cleared = roundTaka(Math.min(still, left));
+        purse.set(item.id, roundTaka(still - cleared));
+        left = roundTaka(left - cleared);
+        parts.push({ paymentId, itemId: item.id, amountBdt: cleared });
       }
     }
+    return left;
+  };
+  for (const payment of payments.toSorted(byDayThenId((one) => one.paidOn))) {
+    spend(payment.id, writtenOff, spend(payment.id, open, payment.amountBdt));
   }
   const standing = owed.map((item) => {
-    const owingBdt = left.get(item.id) ?? 0;
-    return { ...item, paidBdt: roundTaka(item.bakiBdt - owingBdt), owingBdt };
+    const owingBdt = open.get(item.id) ?? 0;
+    const stillWrittenOff = writtenOff.get(item.id) ?? 0;
+    return {
+      ...item,
+      paidBdt: roundTaka(item.bakiBdt - owingBdt - stillWrittenOff),
+      owingBdt,
+      writtenOffBdt: stillWrittenOff,
+    };
   });
-  const owingBdt = roundTaka(
-    standing.reduce((sum, one) => sum + one.owingBdt, 0)
-  );
+  const total = (pick: (one: BakiItemStanding) => number) =>
+    roundTaka(standing.reduce((sum, one) => sum + pick(one), 0));
   const paidIn = roundTaka(
     payments.reduce((sum, one) => sum + one.amountBdt, 0)
   );
@@ -237,17 +262,18 @@ export const bakiStanding = (
     parts.reduce((sum, one) => sum + one.amountBdt, 0)
   );
   const stillOwing = standing.filter((one) => one.owingBdt > 0);
-  const promises = stillOwing
+  const [soonestPromise] = stillOwing
     .map((one) => one.promisedBy)
     .filter((one) => one !== null)
     .toSorted();
   return {
     items: standing,
     parts,
-    owingBdt,
+    owingBdt: total((one) => one.owingBdt),
     creditBdt: roundTaka(paidIn - clearedBdt),
+    writtenOffBdt: total((one) => one.writtenOffBdt),
     oldestOn: stillOwing[0]?.leftOn ?? null,
-    soonestPromise: promises[0] ?? null,
+    soonestPromise: soonestPromise ?? null,
   };
 };
 

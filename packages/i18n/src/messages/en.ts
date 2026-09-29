@@ -1325,6 +1325,8 @@ export const en = {
   "refusal.paidMoreThanOwed":
     "He owes ৳{owingBdt}; say in a note why he paid more",
   "refusal.noSuchBuyer": "The farm has never sold to anybody by that name",
+  "refusal.writtenOffMoreThanOwed": "Only ৳{owingBdt} is still owed on it",
+  "refusal.nothingOwedOnIt": "Nothing was ever owed on that",
   "refusal.ventureOwnsHer":
     "She belongs to a Venture, and a Venture's animal cannot cross to the dairy side",
   "refusal.notAVenturesAnimal":
@@ -4427,6 +4429,14 @@ export const en = {
   "baki.buyerOverdue":
     "{name} owes ৳{taka} and is overdue since {day} — think before selling on baki",
   "home.bakiOverdue": "Baki overdue",
+  "baki.writeOff": "Write off",
+  "baki.writeOffTitle": "Write this baki off",
+  "baki.writeOffDescription":
+    "Only when it will not be paid. What the animal or the milk fetched drops by it, and the buyer carries the mark. If he pays after all, it is put back.",
+  "baki.writeOffWhy": "Why it will not be paid",
+  "baki.writtenOff": "৳{taka} written off",
+  "baki.writtenOffDone": "Written off",
+  "baki.buyerWrittenOff": "৳{taka} of {name}'s written off on {day}",
   "home.bakiOverdueSince": "৳{taka} overdue since {day}",
   "home.bakiSoldAgain": "Sold on baki again while overdue",
   "money.from.bakiPayment": "Baki paid",

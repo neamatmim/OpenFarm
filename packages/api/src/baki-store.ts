@@ -61,6 +61,8 @@ export interface OwedItem {
   bakiBdt: number;
   paidBdt: number;
   owingBdt: number;
+  /** What stays written off of it once his payments are counted. */
+  writtenOffBdt: number;
   promisedBy: string | null;
 }
 
@@ -87,6 +89,9 @@ export interface BuyerBaki {
   name: string;
   phone: string | null;
   owingBdt: number;
+  /** What stays written off of all he took, and the last day the Owner wrote any off: the sheets carry his mark. */
+  writtenOffBdt: number;
+  lastWrittenOffOn: string | null;
   /** The day the oldest thing he still owes for left, whichever kind. */
   oldestOn: string | null;
   kinds: KindStanding[];
@@ -96,7 +101,9 @@ export interface BuyerBaki {
 const owedItem = (
   one: { id: string; bakiBdt: number; promisedBy: string | null },
   leftAt: Date,
-  label: Pick<OwedItem, "tagNumber" | "litres">
+  label: Pick<OwedItem, "tagNumber" | "litres">,
+  /** What the Owner wrote off of it, before any payment puts some back. */
+  writtenOffBdt: number
 ): OwedItem => ({
   id: one.id,
   leftOn: farmDayOf(leftAt),
@@ -104,26 +111,26 @@ const owedItem = (
   bakiBdt: one.bakiBdt,
   paidBdt: 0,
   owingBdt: one.bakiBdt,
+  writtenOffBdt,
   promisedBy: one.promisedBy,
 });
 
 type Db = Pick<Database, "query"> | Tx;
 
-/**
- * Every buyer's Baki on the farm — or one buyer's, when asked — as his payments leave it, oldest first. Only the
- * Farm's own: a Venture's animal never leaves owing. A buyer who owes nothing and holds no credit is left off, unless
- * the whole book is asked for — the accountant's export reads what an old payment cleared of a debt long since paid.
- */
-export const bakiOfBuyers = async (
+/** Which part of the book is asked for: one buyer's, the settled too, as at a day's end. */
+interface BookAsked {
+  counterpartyId?: string;
+  settledToo?: boolean;
+  /** The farm day to read it as at the end of, for the accountant; left out, today. */
+  asOf?: string;
+}
+
+/** The four things a Baki book is read from: what was left owing on, what was paid, and what was written off. */
+const readBook = async (
   db: Db,
   farmId: string,
-  only?: {
-    counterpartyId?: string;
-    settledToo?: boolean;
-    /** The farm day to read it as at the end of, for the accountant; left out, today. */
-    asOf?: string;
-  }
-): Promise<BuyerBaki[]> => {
+  only: BookAsked | undefined
+) => {
   const until = only?.asOf
     ? new Date(startOfFarmDay(only.asOf).getTime() + DAY_MS)
     : undefined;
@@ -131,8 +138,9 @@ export const bakiOfBuyers = async (
   const whose = only?.counterpartyId
     ? { counterpartyId: only.counterpartyId }
     : {};
-  const settledToo = only?.settledToo ?? false;
-  const [sales, dispatches, payments] = await Promise.all([
+  const byThe = (column: "paidOn" | "writtenOn") =>
+    only?.asOf ? { [column]: { lte: only.asOf } } : {};
+  const [sales, dispatches, payments, writeOffs] = await Promise.all([
     db.query.sale.findMany({
       where: {
         farmId,
@@ -170,11 +178,7 @@ export const bakiOfBuyers = async (
       with: { buyer: { columns: { name: true, phone: true } } },
     }),
     db.query.bakiPayment.findMany({
-      where: {
-        farmId,
-        ...whose,
-        ...(only?.asOf ? { paidOn: { lte: only.asOf } } : {}),
-      },
+      where: { farmId, ...whose, ...byThe("paidOn") },
       columns: {
         id: true,
         counterpartyId: true,
@@ -185,78 +189,170 @@ export const bakiOfBuyers = async (
       },
       with: { buyer: { columns: { name: true, phone: true } } },
     }),
+    db.query.bakiWriteOff.findMany({
+      where: { farmId, ...whose, ...byThe("writtenOn") },
+      columns: {
+        sourceId: true,
+        counterpartyId: true,
+        amountBdt: true,
+        writtenOn: true,
+      },
+    }),
   ]);
-  const buyers = new Map<
-    string,
-    { name: string; phone: string | null; items: Map<BakiKind, OwedItem[]> }
-  >();
-  const buyer = (id: string, who: { name: string; phone: string | null }) => {
+  return { sales, dispatches, payments, writeOffs };
+};
+
+type Book = Awaited<ReturnType<typeof readBook>>;
+
+/** What was written off of each Sale or Dispatch, and the last day each buyer had any written off. */
+const writeOffsOf = (writeOffs: Book["writeOffs"]) => {
+  const writtenOff = new Map<string, number>();
+  const lastWrittenOff = new Map<string, string>();
+  for (const one of writeOffs) {
+    writtenOff.set(
+      one.sourceId,
+      roundTaka((writtenOff.get(one.sourceId) ?? 0) + one.amountBdt)
+    );
+    const last = lastWrittenOff.get(one.counterpartyId);
+    if (one.amountBdt > 0 && (!last || one.writtenOn > last)) {
+      lastWrittenOff.set(one.counterpartyId, one.writtenOn);
+    }
+  }
+  return { writtenOff, lastWrittenOff };
+};
+
+interface BuyerItems {
+  name: string;
+  phone: string | null;
+  items: Map<BakiKind, OwedItem[]>;
+}
+
+/** Everything each buyer was left owing on, by kind, with what was written off of each. */
+const itemsByBuyer = (
+  { sales, dispatches, payments }: Book,
+  writtenOff: ReadonlyMap<string, number>
+) => {
+  const buyers = new Map<string, BuyerItems>();
+  const add = (
+    id: string,
+    who: { name: string; phone: string | null },
+    kind?: BakiKind,
+    item?: OwedItem
+  ) => {
     const known = buyers.get(id) ?? { ...who, items: new Map() };
+    if (kind && item) {
+      known.items.set(kind, [...(known.items.get(kind) ?? []), item]);
+    }
     buyers.set(id, known);
-    return known;
   };
   for (const one of sales) {
-    const who = buyer(one.counterpartyId, one.buyer);
-    who.items.set("cattle", [
-      ...(who.items.get("cattle") ?? []),
-      owedItem(one, one.soldAt, {
-        tagNumber: one.animal.tagNumber,
-        litres: null,
-      }),
-    ]);
+    add(
+      one.counterpartyId,
+      one.buyer,
+      "cattle",
+      owedItem(
+        one,
+        one.soldAt,
+        { tagNumber: one.animal.tagNumber, litres: null },
+        writtenOff.get(one.id) ?? 0
+      )
+    );
   }
   for (const one of dispatches) {
-    const who = buyer(one.buyerId, one.buyer);
-    who.items.set("milk", [
-      ...(who.items.get("milk") ?? []),
-      owedItem(one, one.dispatchedAt, {
-        tagNumber: null,
-        litres: roundLitres(Number(one.litres)),
-      }),
-    ]);
+    add(
+      one.buyerId,
+      one.buyer,
+      "milk",
+      owedItem(
+        one,
+        one.dispatchedAt,
+        { tagNumber: null, litres: roundLitres(Number(one.litres)) },
+        writtenOff.get(one.id) ?? 0
+      )
+    );
   }
   for (const one of payments) {
-    buyer(one.counterpartyId, one.buyer);
+    add(one.counterpartyId, one.buyer);
   }
+  return buyers;
+};
+
+/** One buyer's Baki of one kind as his payments leave it, or nothing when there is nothing to say of it. */
+const kindStandingOf = (
+  kind: BakiKind,
+  items: readonly OwedItem[],
+  paid: Book["payments"],
+  settledToo: boolean
+): KindStanding | null => {
+  const standing = bakiStanding(items, paid);
+  const settled =
+    standing.owingBdt === 0 &&
+    standing.creditBdt === 0 &&
+    standing.writtenOffBdt === 0;
+  if (settled && !(settledToo && paid.length > 0)) {
+    return null;
+  }
+  const byId = new Map(items.map((one) => [one.id, one]));
+  const { parts, items: stood, ...totals } = standing;
+  return {
+    ...totals,
+    kind,
+    items: stood.flatMap((one) => {
+      const shown = byId.get(one.id);
+      return shown
+        ? [
+            {
+              ...shown,
+              paidBdt: one.paidBdt,
+              owingBdt: one.owingBdt,
+              writtenOffBdt: one.writtenOffBdt,
+            },
+          ]
+        : [];
+    }),
+    payments: paid
+      .toSorted(
+        (a, b) => a.paidOn.localeCompare(b.paidOn) || a.id.localeCompare(b.id)
+      )
+      .map((one) => ({
+        id: one.id,
+        paidOn: one.paidOn,
+        amountBdt: one.amountBdt,
+        note: one.note,
+        cleared: parts
+          .filter((part) => part.paymentId === one.id)
+          .map(({ itemId, amountBdt }) => ({ itemId, amountBdt })),
+      })),
+  };
+};
+
+/**
+ * Every buyer's Baki on the farm — or one buyer's, when asked — as his payments leave it, oldest first. Only the
+ * Farm's own: a Venture's animal never leaves owing. A buyer who owes nothing, holds no credit and has nothing written
+ * off is left off, unless the whole book is asked for — the accountant's export reads what an old payment cleared of
+ * a debt long since paid.
+ */
+export const bakiOfBuyers = async (
+  db: Db,
+  farmId: string,
+  only?: BookAsked
+): Promise<BuyerBaki[]> => {
+  const book = await readBook(db, farmId, only);
+  const { payments, writeOffs } = book;
+  const { writtenOff, lastWrittenOff } = writeOffsOf(writeOffs);
+  const buyers = itemsByBuyer(book, writtenOff);
   const listed = [...buyers.entries()].flatMap(([counterpartyId, who]) => {
     const kinds = BAKI_KINDS.flatMap((kind) => {
-      const items = who.items.get(kind) ?? [];
       const paid = payments.filter(
         (one) => one.counterpartyId === counterpartyId && one.kind === kind
       );
-      const standing = bakiStanding(items, paid);
-      const settled = standing.owingBdt === 0 && standing.creditBdt === 0;
-      if (settled && !(settledToo && paid.length > 0)) {
-        return [];
-      }
-      const byId = new Map(items.map((one) => [one.id, one]));
-      const { parts, items: stood, ...totals } = standing;
-      return [
-        {
-          ...totals,
-          kind,
-          items: stood.flatMap((one) => {
-            const shown = byId.get(one.id);
-            return shown
-              ? [{ ...shown, paidBdt: one.paidBdt, owingBdt: one.owingBdt }]
-              : [];
-          }),
-          payments: paid
-            .toSorted(
-              (a, b) =>
-                a.paidOn.localeCompare(b.paidOn) || a.id.localeCompare(b.id)
-            )
-            .map((one) => ({
-              id: one.id,
-              paidOn: one.paidOn,
-              amountBdt: one.amountBdt,
-              note: one.note,
-              cleared: parts
-                .filter((part) => part.paymentId === one.id)
-                .map(({ itemId, amountBdt }) => ({ itemId, amountBdt })),
-            })),
-        },
-      ];
+      const standing = kindStandingOf(
+        kind,
+        who.items.get(kind) ?? [],
+        paid,
+        only?.settledToo ?? false
+      );
+      return standing ? [standing] : [];
     });
     if (kinds.length === 0) {
       return [];
@@ -271,12 +367,17 @@ export const bakiOfBuyers = async (
         name: who.name,
         phone: who.phone,
         owingBdt: roundTaka(kinds.reduce((sum, one) => sum + one.owingBdt, 0)),
+        writtenOffBdt: roundTaka(
+          kinds.reduce((sum, one) => sum + one.writtenOffBdt, 0)
+        ),
+        lastWrittenOffOn: lastWrittenOff.get(counterpartyId) ?? null,
         oldestOn: oldest ?? null,
         kinds,
       },
     ];
   });
-  // Oldest owing first — the buyer to ring today — and a buyer only holding credit last; the same day by name.
+  // Oldest owing first — the buyer to ring today — and a buyer only holding credit or written off last; the same day
+  // by name.
   return listed.toSorted(
     (a, b) =>
       (a.oldestOn ?? "9999").localeCompare(b.oldestOn ?? "9999") ||
@@ -521,4 +622,94 @@ export const raiseOverdueBaki = async (
     raised.push(...rows);
   }
   return raised;
+};
+
+/**
+ * What stays written off of each Sale and Dispatch, as the buyers' payments have left it: what the animal or the milk
+ * did not fetch after all. Read by every sum of what she fetched, from one place, so Margin and Return on Cost — and
+ * what a litre fetched — cannot disagree about a written-off buyer.
+ */
+export const writtenOffByItem = async (
+  db: Db,
+  farmId: string
+): Promise<Map<string, number>> => {
+  const any = await db.query.bakiWriteOff.findFirst({
+    where: { farmId },
+    columns: { id: true },
+  });
+  // Most farms have written nothing off, and every costing asks.
+  if (!any) {
+    return new Map();
+  }
+  const book = await bakiOfBuyers(db, farmId, { settledToo: true });
+  return new Map(
+    book.flatMap((buyer) =>
+      buyer.kinds.flatMap((kind) =>
+        kind.items
+          .filter((item) => item.writtenOffBdt > 0)
+          .map((item) => [item.id, item.writtenOffBdt] as const)
+      )
+    )
+  );
+};
+
+/**
+ * What a litre of a Dispatch fetched after all: what the milk came to, less whatever of its Baki stays written off,
+ * over its litres. The price itself where nothing was written off — nearly always.
+ */
+export const fetchedPerLitre = (
+  row: {
+    id: string;
+    litres: string | number;
+    pricePerLitreBdt: string | number;
+  },
+  writtenOff: ReadonlyMap<string, number>
+): number => {
+  const litres = Number(row.litres);
+  const price = Number(row.pricePerLitreBdt);
+  const lost = writtenOff.get(row.id) ?? 0;
+  return litres > 0 && lost > 0 ? (litres * price - lost) / litres : price;
+};
+
+/** A Write-off as the trail records it. */
+export const readWriteOff = async (tx: Tx, id: string) =>
+  (await tx.query.bakiWriteOff.findFirst({ where: { id } })) ?? null;
+
+/** What is still owing on one Sale or Dispatch now, and whose it is, or nothing where it was never left owing. */
+export const owingOnItem = async (
+  db: Db,
+  farmId: string,
+  source: "sale" | "dispatch",
+  id: string
+): Promise<{ counterpartyId: string; owingBdt: number } | null> => {
+  const row =
+    source === "sale"
+      ? await db.query.sale.findFirst({
+          where: { farmId, id },
+          columns: { counterpartyId: true, bakiBdt: true },
+        })
+      : await db.query.dispatch.findFirst({
+          where: { farmId, id },
+          columns: { buyerId: true, bakiBdt: true },
+        });
+  if (!row || row.bakiBdt <= 0) {
+    return null;
+  }
+  const counterpartyId =
+    "counterpartyId" in row ? row.counterpartyId : row.buyerId;
+  const owing = await owingNowOf(db, farmId, [id]);
+  return { counterpartyId, owingBdt: owing.get(id) ?? 0 };
+};
+
+/** More written off than is still owing is not a write-off: it is money the farm would be saying it lost twice. */
+export const assertWrittenOffNoMoreThanOwed = (
+  amountBdt: number,
+  owingBdt: number
+) => {
+  if (amountBdt > owingBdt) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "That is more than is still owed on it",
+      data: { refusal: "written_off_more_than_owed", owingBdt },
+    });
+  }
 };

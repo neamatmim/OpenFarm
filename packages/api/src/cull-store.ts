@@ -9,6 +9,7 @@ import {
   milkPriceOf,
 } from "@OpenFarm/domain";
 
+import { fetchedPerLitre, writtenOffByItem } from "./baki-store";
 import { repeatBreedersOn } from "./breeding-store";
 import { farmCosts, keepChargesOf } from "./cost-store";
 
@@ -75,12 +76,14 @@ export const cullList = async (
   const since = new Date(now.getTime() - farm.cullMilkPriceDays * DAY_MS);
   const dispatched = await db.query.dispatch.findMany({
     where: { farmId: farm.id, dispatchedAt: { gte: since, lte: now } },
-    columns: { litres: true, pricePerLitreBdt: true },
+    columns: { id: true, litres: true, pricePerLitreBdt: true },
   });
+  // Milk a buyer never paid for, and the Owner wrote off, did not fetch its price.
+  const writtenOff = await writtenOffByItem(db, farm.id);
   const price = milkPriceOf(
     dispatched.map((one) => ({
       litres: Number(one.litres),
-      pricePerLitreBdt: Number(one.pricePerLitreBdt),
+      pricePerLitreBdt: fetchedPerLitre(one, writtenOff),
     }))
   );
   const stoodBy = groupedBy(costs.history, (line) => line.animalId);
