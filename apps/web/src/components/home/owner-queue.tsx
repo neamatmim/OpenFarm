@@ -13,6 +13,7 @@ import {
   FileBadge,
   Gavel,
   HandCoins,
+  MapPinOff,
   Handshake,
   Milk,
   Wheat,
@@ -21,6 +22,7 @@ import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { BakiOverdueGroup } from "@/components/home/baki-overdue";
+import { MissingAnimalsGroup } from "@/components/home/missing-animals";
 import { MonthlyCostsGroup } from "@/components/home/monthly-costs";
 import {
   MORE_LINK,
@@ -338,6 +340,7 @@ const ApprovalGroup = ({ needsYou, headless }: GroupProps) => {
 
 /** The kinds of thing only the Owner can settle, in the order they are read. */
 export const DECISION_KINDS = [
+  "missing",
   "ventures",
   "registration",
   "approvals",
@@ -368,6 +371,11 @@ const KindList = ({
   headless: boolean;
 }) => {
   switch (kind) {
+    case "missing": {
+      return (
+        <MissingAnimalsGroup animals={needsYou.missing} headless={headless} />
+      );
+    }
     case "ventures": {
       return <VentureTroubles headless={headless} ventures={ventures} />;
     }
@@ -423,6 +431,13 @@ export const NeedsYouTabs = ({
 }) => {
   const { t } = useLanguage();
   const kinds: Kind[] = [
+    {
+      value: "missing",
+      label: t("home.missing"),
+      icon: MapPinOff,
+      // Missing from an answer a phone kept from before a Missing was written down.
+      count: needsYou.missing?.length ?? 0,
+    },
     {
       value: "ventures",
       label: t("nav.ventures"),

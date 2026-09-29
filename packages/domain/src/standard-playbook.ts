@@ -177,7 +177,8 @@ const healthRound = (): SopContent => ({
       // and what the Vet reads is only that.
       skipReasons: [
         { bn: "সুস্থ — চোখে পড়ার মতো কিছু নেই", en: "Well — nothing to note" },
-        { bn: "পশু পাওয়া যায়নি", en: "Animal not found" },
+        // Means she may be gone: the farm opens a Missing and tells the Owner and the Manager.
+        { bn: "পশু পাওয়া যায়নি", en: "Animal not found", means: "not_found" },
       ],
       effect: { kind: "observation" },
     },

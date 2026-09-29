@@ -128,6 +128,15 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.venture.id,
     }),
   },
+  missing: {
+    animal: r.one.animal({
+      from: r.missing.animalId,
+      to: r.animal.id,
+      optional: false,
+    }),
+    pen: r.one.pen({ from: r.missing.penId, to: r.pen.id, optional: false }),
+    finder: r.one.user({ from: r.missing.foundBy, to: r.user.id }),
+  },
   weaning: {
     animal: r.one.animal({
       from: r.weaning.animalId,

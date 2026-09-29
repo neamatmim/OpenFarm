@@ -26,5 +26,6 @@ export const ALERT_KINDS = [
   "expired_dose_given",
   "join_requested",
   "baki_overdue",
+  "animal_missing",
 ] as const;
 export type AlertKind = (typeof ALERT_KINDS)[number];

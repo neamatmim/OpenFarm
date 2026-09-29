@@ -325,7 +325,10 @@ const StepEditor = ({
               onChange={(e) =>
                 onChange({
                   ...step,
-                  skipReasons: toBilingualList(e.target.value),
+                  skipReasons: toBilingualList(
+                    e.target.value,
+                    step.skipReasons
+                  ),
                 })
               }
               placeholder={t("sop.skipHelp")}

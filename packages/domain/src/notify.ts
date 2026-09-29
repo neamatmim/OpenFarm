@@ -86,6 +86,9 @@ export const DELIVERY = {
   // A buyer gone past the day he promised is a call to make today, not a buzz: the farm is told once, in the evening's
   // post, and never the buyer (the Owner, 2026-09-29).
   baki_overdue: { when: "digest" },
+  // An animal the round could not find may be on a lorry to a haat: the Owner and the Manager hear at once, by push
+  // and not by text (the Owner, 2026-09-29). Not at night — the round is walked in the morning.
+  animal_missing: { when: "immediate" },
 } as const satisfies Record<AlertKind, Delivery>;
 
 /**
@@ -200,6 +203,11 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
     digest: "digest.joinRequested",
   },
   baki_overdue: { app: "alerts.bakiOverdue", digest: "digest.bakiOverdue" },
+  animal_missing: {
+    app: "alerts.animalMissing",
+    push: { title: "push.animalMissingTitle", body: "push.animalMissingBody" },
+    digest: "digest.animalMissing",
+  },
 };
 
 export const goesNow = (kind: AlertKind): boolean =>

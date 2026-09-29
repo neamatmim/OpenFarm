@@ -64,6 +64,7 @@ import {
   requireAnimal,
 } from "../herd-store";
 import { protectedProcedure } from "../index";
+import { markFound, missingOf, readMissing } from "../missing-store";
 import {
   mortalityOf,
   readMortality,
@@ -496,6 +497,12 @@ const readRegisterRow = (
   return { data: parsed.data };
 };
 
+/** The Missing open for her, as her page says it: where the round looked, and since when. */
+const missingShown = async (db: Database, animalId: string) => {
+  const open = await missingOf(db, animalId);
+  return open ? { since: open.since, penName: open.pen.name } : null;
+};
+
 export const animalsRouter = {
   /** Staff see their assigned Pens; everyone who runs the farm sees the whole herd. */
   list: protectedProcedure
@@ -746,6 +753,8 @@ export const animalsRouter = {
         sale: herSale,
         /** For a calf born here: her first colostrum, her navel, her weight — every Step done to her in her first day. */
         firstDay: await herFirstDay(context.db, context.farm.id, her),
+        /** The round could not find her, and nobody has marked her Found: where it looked, and since when. */
+        missing: await missingShown(context.db, her.id),
         heats,
         services,
         ...checks,
@@ -1082,6 +1091,37 @@ export const animalsRouter = {
               .where(eq(animal.id, current.id));
           }
         }
+      );
+      return { tagNumber };
+    }),
+
+  /** The Manager's Found: an animal the round could not find is where she should be after all. */
+  found: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ tagNumber: tagInput }))
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const tagNumber = input.tagNumber.toUpperCase();
+      const target = await requireAnimal(
+        context.db,
+        context.farm.id,
+        tagNumber
+      );
+      await audited(context).write(
+        {
+          entity: "missing",
+          entityId: target.id,
+          action: "update",
+          before: (tx) => readMissing(tx, target.id),
+          after: (tx) => readMissing(tx, target.id),
+        },
+        (tx) =>
+          markFound(tx, {
+            farmId: context.farm.id,
+            animalId: target.id,
+            by: context.actor.id,
+            now,
+          })
       );
       return { tagNumber };
     }),

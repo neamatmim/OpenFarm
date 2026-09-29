@@ -30,6 +30,7 @@ import {
   storeNoticesUntold,
   whatTheStoreHasToSay,
 } from "./lot-notices";
+import { missingToTell, tellOfMissing } from "./missing-store";
 import { tell } from "./notice";
 import { carryThePost, pushRaised } from "./push-send";
 import { tellOfRenewals } from "./registration-store";
@@ -320,6 +321,29 @@ const tellAboutLowStock = async (context: Turning, now: Date) => {
 };
 
 /**
+ * Animals the round could not find: each told once to the Owner and the Manager, and pushed at once — an animal gone
+ * in the night may be on a lorry to a haat by noon. Keyed on the first one told about, with the rest named in the event.
+ */
+const tellAboutMissing = async (context: Turning, now: Date) => {
+  const untold = await missingToTell(context.db, context.farm.id);
+  const [firstOne] = untold;
+  if (!firstOne) {
+    return;
+  }
+  const raised = await audited(context).write(
+    {
+      entity: "missing",
+      entityId: firstOne.id,
+      action: "update",
+      after: () =>
+        Promise.resolve({ toldMissing: untold.map((one) => one.tag) }),
+    },
+    (tx) => tellOfMissing(tx, context.farm.id, untold, now)
+  );
+  await pushRaised(context, raised, now);
+};
+
+/**
  * Baki gone past its day: each Sale or Dispatch told once to the Owner and the Manager, in the evening's post, the day
  * it first goes late. Keyed on the first one it tells about, with the rest named in the event, as the store's notices
  * are — the money owed, not any work, is what these are about.
@@ -418,6 +442,7 @@ export const theSweep = async (context: Turning) => {
   // Withdrawal, and feed running low. The other two are told about first, because late work
   // having nothing to say is the steady state and must not silence them.
   await tellAboutWithdrawals(context, now);
+  await tellAboutMissing(context, now);
   await tellAboutLowStock(context, now);
   await tellAboutTheStore(context, now);
   await tellAboutOverdueBaki(context, now);

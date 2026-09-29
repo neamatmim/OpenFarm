@@ -5,6 +5,7 @@ import type {
   PregnancyCheckResult,
   STEP_EFFECT_KINDS,
   ServiceMethod,
+  SkipMeaning,
   Step,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -181,6 +182,9 @@ export interface EffectInput {
   evidence: unknown[];
   destination: MilkDestination | undefined;
   skipped: boolean;
+  /** What the reason it was skipped with means to the farm, where the farm acts on it: the round's "Animal not found"
+   *  opens a Missing. Nothing for a Step done, or skipped for a reason that is only words. */
+  skippedAs: SkipMeaning | null;
   tolerancePercent: number;
   /** How far under its Feeding Target a Pen may come before the farm says so. */
   feedTolerancePercent: number;

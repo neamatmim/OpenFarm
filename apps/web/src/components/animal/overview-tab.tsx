@@ -4,8 +4,9 @@ import type { Language } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { useMutation } from "@tanstack/react-query";
 import type { LucideIcon } from "lucide-react";
-import { Beef, Milk, Shovel, TimerOff } from "lucide-react";
+import { Beef, MapPinOff, Milk, Shovel, TimerOff } from "lucide-react";
 import type { ReactNode } from "react";
+import { toast } from "sonner";
 
 import {
   CorrectionAnswer,
@@ -429,6 +430,50 @@ const HerFirstDay = ({ detail }: { detail: AnimalDetail }) => {
 
 /** Her page at a glance: how she left, if she has; what holds her back; how a fattening animal is gaining; and who she
  *  is. */
+/** The round could not find her: where it looked, since when, and — for those who run the farm — the Found that closes
+ *  it. First on her page, because nothing else about her matters until the farm knows where she is. */
+const NotFound = ({
+  detail,
+  mayFind,
+}: {
+  detail: AnimalDetail;
+  mayFind: boolean;
+}) => {
+  const { t, language } = useLanguage();
+  const found = useMutation(orpc.animals.found.mutationOptions({}));
+  if (!detail.missing) {
+    return null;
+  }
+  return (
+    <Notice
+      action={
+        mayFind ? (
+          <Button
+            disabled={found.isPending}
+            onClick={async () => {
+              await found.mutateAsync({ tagNumber: detail.tagNumber });
+              toast.success(t("animals.foundDone", { tag: detail.tagNumber }));
+            }}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            {t("animals.found")}
+          </Button>
+        ) : null
+      }
+      icon={MapPinOff}
+      title={t("animals.missing", {
+        pen: detail.missing.penName,
+        day: formatDate(new Date(detail.missing.since), language, "date"),
+      })}
+      tone="danger"
+    >
+      {t("animals.missingHint")}
+    </Notice>
+  );
+};
+
 export const OverviewTab = ({
   detail,
   powers,
@@ -439,6 +484,7 @@ export const OverviewTab = ({
   onAct: (act: AnimalAct) => void;
 }) => (
   <div className="flex flex-col gap-6">
+    <NotFound detail={detail} mayFind={powers.runsTheFarm} />
     <HowSheWent detail={detail} mayRecord={powers.runsTheFarm} onAct={onAct} />
     <Withdrawals
       detail={detail}

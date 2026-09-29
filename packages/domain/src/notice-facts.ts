@@ -35,6 +35,13 @@ export interface NoticeFacts {
   withdrawal_changed: { tag: string; until: string };
   notifiable_diagnosis: { tag: string; disease: string };
   /** One Baki gone past its day: who owes it, what is still owing on it, and the first day it was late. */
+  animal_missing: {
+    tag: string;
+    /** The Pen the round looked for her in. */
+    pen: string;
+    /** The farm day ("YYYY-MM-DD") the round could not find her. */
+    since: string;
+  };
   baki_overdue: {
     counterpartyId: string;
     buyer: string;

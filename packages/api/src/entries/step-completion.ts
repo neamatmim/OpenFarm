@@ -4,6 +4,7 @@ import type { SopContent, Step } from "@OpenFarm/domain";
 import {
   MILK_DESTINATIONS,
   mayTransition,
+  meaningOfSkip,
   sessionsPerDayOf,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -180,6 +181,7 @@ const effectOfStep = (
     renewal: answer.renewal,
     destination: answer.destination,
     skipped: Boolean(answer.skipReason),
+    skippedAs: meaningOfSkip(step, answer.skipReason),
     feedTolerancePercent: context.farm.feedTolerancePercent,
     tolerancePercent: context.farm.milkTolerancePercent,
     pregnancyTimes: pregnancyTimesOf(context.farm),
