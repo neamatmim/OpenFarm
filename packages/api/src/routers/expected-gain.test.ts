@@ -1,4 +1,5 @@
 import type { SopContent } from "@OpenFarm/domain";
+import { DESHI_BREEDS } from "@OpenFarm/domain";
 import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -115,10 +116,20 @@ const setup = async () => {
   }
   const weighing = await owner.client.sops.create({ content: weighInSop() });
   weighingId = weighing.definitionId;
-  const bull = async (penId: string, weightKg: number) => {
+  const breeds = await manager.client.breeds.list();
+  const deshi = breeds.find((one) => one.key === "local")?.id ?? "";
+  const bull = async (
+    penId: string,
+    weightKg: number,
+    {
+      sex = "male",
+      breedId,
+    }: { sex?: "male" | "female"; breedId?: string } = {}
+  ) => {
     const arrived = await manager.client.intake.record({
       penId,
-      sex: "male",
+      sex,
+      ...(breedId ? { breedId } : {}),
       seller: { name: `ব্যাপারী ${suffix}` },
       purchasePriceBdt: 60_000,
       weightKg,
@@ -142,6 +153,12 @@ const setup = async () => {
     // Slow on a Ration that says nothing of gain; then walked to the growers on day 30.
     moved: await bull(plain.id, 200),
     plain: await bull(plain.id, 200),
+    // Deshi, at half a kilo a day: under what the Ration gives a cross, within what it gives a deshi bull.
+    deshiFine: await bull(growers.id, 190, { breedId: deshi }),
+    // Deshi, and slow even for deshi.
+    deshiSlow: await bull(growers.id, 190, { breedId: deshi }),
+    // A heifer bought to fatten, at half a kilo a day, and nobody wrote down her breed.
+    heifer: await bull(growers.id, 190, { sex: "female" }),
   };
   return { pens: { growers, newcomers, plain }, rations: { grower }, tags };
 };
@@ -157,6 +174,9 @@ beforeAll(async () => {
     [tags.losing, 250],
     [tags.doubted, 240],
     [tags.outgrown, 250],
+    [tags.deshiFine, 195],
+    [tags.deshiSlow, 195],
+    [tags.heifer, 195],
   ]);
   await weigh(pens.newcomers.id, DAY_7, [[tags.newcomer, 200]]);
   await weigh(pens.plain.id, DAY_7, [
@@ -169,6 +189,9 @@ beforeAll(async () => {
     [tags.losing, 250],
     [tags.doubted, 240],
     [tags.outgrown, 255],
+    [tags.deshiFine, 200],
+    [tags.deshiSlow, 200],
+    [tags.heifer, 200],
   ]);
   await weigh(pens.plain.id, DAY_21, [
     [tags.moved, 205],
@@ -194,6 +217,12 @@ beforeAll(async () => {
     [tags.outgrown, 262],
     // Moved in on day 30; his rate on this Ration has no reading four weeks back to run from.
     [tags.moved, 208],
+    // 14 kg in 28 days: 0.5, within a deshi bull's 0.42–0.63.
+    [tags.deshiFine, 214],
+    // 10 kg in 28 days: 0.36, under even a deshi bull's 0.42.
+    [tags.deshiSlow, 210],
+    // 0.5 again, within a heifer's 0.48–0.72.
+    [tags.heifer, 214],
   ]);
   await weigh(pens.plain.id, DAY_49, [[tags.plain, 207]]);
 });
@@ -202,9 +231,11 @@ describe("the bulls gaining under their Ration's Expected Gain", () => {
   it("names the losing first, then the slow, each with the readings his gain runs between", async () => {
     const manager = await as("manager");
     const rows = await manager.client.fattening.underExpectedGain();
+    // The slow cross is at 0.43 of his 0.6, seven tenths of it; the slow deshi bull at 0.36 of his 0.42, more.
     expect(rows.map((one) => one.tagNumber)).toEqual([
       world.tags.losing,
       world.tags.slow,
+      world.tags.deshiSlow,
     ]);
     expect(rows[1]).toEqual({
       animalId: expect.any(String),
@@ -214,6 +245,13 @@ describe("the bulls gaining under their Ration's Expected Gain", () => {
         penName: `${suffix} / গ্রোয়ার পেন`,
         rationName: `গ্রোয়ার ${suffix}`,
         expectedGain: GROWER_GAIN,
+      },
+      // Nobody wrote down his breed: judged as a cross, which the Ration's figures are written for.
+      expectedGain: GROWER_GAIN,
+      adjustedFor: {
+        deshiPercent: null,
+        femalePercent: null,
+        breedRecorded: false,
       },
       gain: {
         dailyGainKg: 0.43,
@@ -245,6 +283,11 @@ describe("the bulls gaining under their Ration's Expected Gain", () => {
       board.find((row) => row.tagNumber === tag)?.onRation;
     expect(onRationOf(world.tags.newcomer)).toEqual({
       expectedGain: GROWER_GAIN,
+      adjustedFor: {
+        deshiPercent: null,
+        femalePercent: null,
+        breedRecorded: false,
+      },
       gain: null,
       standing: null,
       outsideBand: false,
@@ -266,6 +309,40 @@ describe("the bulls gaining under their Ration's Expected Gain", () => {
       gain: { dailyGainKg: 0.25, overDays: 28 },
       standing: null,
       outsideBand: true,
+    });
+  });
+
+  it("judges a deshi bull and a heifer against the farm's shares of what the Ration gives a crossbred bull", async () => {
+    const manager = await as("manager");
+    const rows = await manager.client.fattening.underExpectedGain();
+    const tags = rows.map((one) => one.tagNumber);
+    expect(tags).not.toContain(world.tags.deshiFine);
+    expect(tags).not.toContain(world.tags.heifer);
+    expect(
+      rows.find((one) => one.tagNumber === world.tags.deshiSlow)
+    ).toMatchObject({
+      pen: { expectedGain: GROWER_GAIN },
+      expectedGain: { lowKg: 0.42, highKg: 0.63 },
+      adjustedFor: {
+        deshiPercent: 70,
+        femalePercent: null,
+        breedRecorded: true,
+      },
+      gain: { dailyGainKg: 0.36 },
+      standing: "under",
+    });
+    const board = await manager.client.fattening.board();
+    expect(
+      board.find((row) => row.tagNumber === world.tags.heifer)?.onRation
+    ).toMatchObject({
+      expectedGain: { lowKg: 0.48, highKg: 0.72 },
+      adjustedFor: {
+        deshiPercent: null,
+        femalePercent: 80,
+        breedRecorded: false,
+      },
+      gain: { dailyGainKg: 0.5 },
+      standing: "within",
     });
   });
 
@@ -312,6 +389,66 @@ describe("how far back a gain is read", () => {
     } finally {
       await manager.client.farm.setParameters({ gainReadDays: 28 });
     }
+  });
+});
+
+describe("the shares a deshi animal and a female are judged at", () => {
+  it("are the Manager's to set, from three tenths to the whole, and move the judgement", async () => {
+    const manager = await as("manager");
+    try {
+      for (const deshiGainPercent of [29, 101]) {
+        // oxlint-disable-next-line no-await-in-loop -- one refusal at a time
+        await expect(
+          manager.client.farm.setParameters({ deshiGainPercent })
+        ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      }
+      await expect(
+        manager.client.farm.setParameters({ femaleGainPercent: 101 })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      // Judged as a cross, the deshi bull at half a kilo a day is under the Ration's 0.6.
+      await manager.client.farm.setParameters({ deshiGainPercent: 100 });
+      const later = await as("manager");
+      const rows = await later.client.fattening.underExpectedGain();
+      expect(rows.map((one) => one.tagNumber)).toContain(world.tags.deshiFine);
+    } finally {
+      await manager.client.farm.setParameters({
+        deshiGainPercent: 70,
+        femaleGainPercent: 80,
+      });
+    }
+  });
+});
+
+describe("which breeds are deshi", () => {
+  it("are the standard local breeds, as the farm is given them", async () => {
+    const manager = await as("manager");
+    const breeds = await manager.client.breeds.list();
+    expect(
+      breeds
+        .filter((one) => one.deshi)
+        .map((one) => one.key)
+        .toSorted()
+    ).toEqual([...DESHI_BREEDS].toSorted());
+  });
+
+  it("is the farm's to say, for its own breeds and the standard ones, and not Staff's", async () => {
+    const manager = await as("manager");
+    const added = await manager.client.breeds.add({
+      nameBn: `শাহীওয়াল-দেশি ${suffix}`,
+      deshi: true,
+    });
+    const deshiOf = async (id: string) => {
+      const breeds = await manager.client.breeds.list();
+      return breeds.find((one) => one.id === id)?.deshi;
+    };
+    expect(await deshiOf(added.id)).toBe(true);
+    await manager.client.breeds.setDeshi({ id: added.id, deshi: false });
+    expect(await deshiOf(added.id)).toBe(false);
+    const staff = await as("staff");
+    await expect(
+      staff.client.breeds.setDeshi({ id: added.id, deshi: true })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(await deshiOf(added.id)).toBe(false);
   });
 });
 

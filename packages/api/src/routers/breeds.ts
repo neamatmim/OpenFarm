@@ -99,17 +99,24 @@ export const breedsRouter = {
         key: row.key,
         nameBn: row.nameBn,
         nameEn: row.nameEn,
+        deshi: row.deshi,
         retiredAt: row.retiredAt,
         /** How many animals on the farm now are of it. */
         animals: counted.get(row.id) ?? 0,
       }));
     }),
 
-  /** A breed of the farm's own. */
+  /** A breed of the farm's own, deshi or not as the farm says — not, unless it says. */
   add: protectedProcedure
     .use(requireRole("owner", "manager"))
     .use(requirePersonalSession())
-    .input(z.object({ nameBn: nameInput, nameEn: nameInput.optional() }))
+    .input(
+      z.object({
+        nameBn: nameInput,
+        nameEn: nameInput.optional(),
+        deshi: z.boolean().optional(),
+      })
+    )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const id = newId(now);
@@ -131,6 +138,7 @@ export const breedsRouter = {
             key: null,
             nameBn: input.nameBn,
             nameEn: input.nameEn ?? null,
+            deshi: input.deshi ?? false,
             createdAt: now,
           });
         }
@@ -174,6 +182,33 @@ export const breedsRouter = {
         }
       );
       return { id: existing.id };
+    }),
+
+  /**
+   * Says whether a breed is deshi: an animal of it is then judged against the farm's deshi share of her Ration's
+   * Expected Gain. A standard breed may be put right too — the farm knows its own cattle.
+   */
+  setDeshi: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string(), deshi: z.boolean() }))
+    .handler(async ({ context, input }) => {
+      const existing = await requireOurs(context.db, context.farm.id, input.id);
+      await audited(context).write(
+        {
+          entity: "breed",
+          entityId: existing.id,
+          action: "update",
+          before: (tx) => readBreed(tx, context.farm.id, existing.id),
+          after: (tx) => readBreed(tx, context.farm.id, existing.id),
+        },
+        (tx) =>
+          tx
+            .update(breed)
+            .set({ deshi: input.deshi })
+            .where(eq(breed.id, existing.id))
+      );
+      return { id: existing.id, deshi: input.deshi };
     }),
 
   /** Retires a breed: nothing new is written down under it, and every animal already of it keeps it. */

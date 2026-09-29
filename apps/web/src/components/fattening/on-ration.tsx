@@ -1,4 +1,4 @@
-import type { GainStanding } from "@OpenFarm/domain";
+import type { GainAdjustment, GainStanding } from "@OpenFarm/domain";
 import { isShortOfExpected } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import type { LucideIcon } from "lucide-react";
@@ -31,6 +31,44 @@ const onRationOf = (row: BoardRow): OnRation | null => row.onRation ?? null;
  *  on a board cached before it said. */
 const outsideBandOf = (onRation: OnRation): boolean =>
   onRation.outsideBand ?? false;
+
+type Words = Pick<ReturnType<typeof useLanguage>, "t" | "language">;
+
+/** Why her range is not the Ration's as written — deshi, female, or nobody wrote her breed — in the reader's words, or
+ *  nothing for a crossbred bull. Nothing too on a board cached before ranges were cut. */
+export const adjustmentSaid = (
+  adjustedFor: GainAdjustment | undefined,
+  { t, language }: Words
+): string | null => {
+  if (!adjustedFor) {
+    return null;
+  }
+  const said = [
+    adjustedFor.deshiPercent === null
+      ? null
+      : t("gainOnRation.forDeshi", {
+          percent: formatNumber(adjustedFor.deshiPercent, language),
+        }),
+    adjustedFor.femalePercent === null
+      ? null
+      : t("gainOnRation.forFemale", {
+          percent: formatNumber(adjustedFor.femalePercent, language),
+        }),
+    adjustedFor.breedRecorded ? null : t("gainOnRation.breedUnknown"),
+  ].filter((part) => part !== null);
+  return said.length === 0 ? null : said.join(", ");
+};
+
+/** What she is judged against, said: her range and why it is hers, or that her weight is outside the Ration's. */
+const againstSaid = (onRation: OnRation, words: Words): string => {
+  if (outsideBandOf(onRation)) {
+    return words.t("gainOnRation.outsideBand");
+  }
+  const range = expectedGainSaid(onRation.expectedGain, words) ?? "";
+  const why = adjustmentSaid(onRation.adjustedFor, words);
+  const should = words.t("gainOnRation.expectsShort", { range });
+  return why ? `${should} (${why})` : should;
+};
 
 const STANDING_LOOK: Record<
   GainStanding,
@@ -77,7 +115,6 @@ export const OnRationFigures = ({ row }: { row: BoardRow }) => {
   if (!onRation) {
     return <Nothing />;
   }
-  const range = expectedGainSaid(onRation.expectedGain, { t, language }) ?? "";
   return (
     <div className="flex flex-col items-end gap-0.5 whitespace-nowrap">
       {onRation.gain ? (
@@ -99,12 +136,7 @@ export const OnRationFigures = ({ row }: { row: BoardRow }) => {
         </span>
       )}
       <span className="text-muted-foreground text-xs">
-        {t(
-          outsideBandOf(onRation)
-            ? "gainOnRation.outsideBand"
-            : "gainOnRation.expectsShort",
-          { range }
-        )}
+        {againstSaid(onRation, { t, language })}
       </span>
     </div>
   );
@@ -117,15 +149,12 @@ export const OnRationLine = ({ row }: { row: BoardRow }) => {
   if (!onRation) {
     return null;
   }
-  const range = expectedGainSaid(onRation.expectedGain, { t, language }) ?? "";
   const gain = onRation.gain
     ? t("gain.perDay", {
         kg: formatNumber(onRation.gain.dailyGainKg, language),
       })
     : t("gainOnRation.tooSoon");
-  const against = outsideBandOf(onRation)
-    ? t("gainOnRation.outsideBand")
-    : t("gainOnRation.expectsShort", { range });
+  const against = againstSaid(onRation, { t, language });
   return (
     <span className="text-muted-foreground text-xs">
       {`${t("gainOnRation.onRation")} ${gain} · ${against}`}

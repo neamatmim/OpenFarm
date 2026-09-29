@@ -316,6 +316,17 @@ export const STANDARD_BREED_KEYS = Object.keys(
   STANDARD_BREEDS
 ) as StandardBreedKey[];
 
+/** The standard breeds that are deshi, the country's own cattle: local cattle and the local breeds BLRI recognises. The
+ *  crosses and the pure imported breeds are not — no trial found them gaining less than a cross on the same Ration
+ *  (docs/research/expected-daily-gain.md §4). */
+export const DESHI_BREEDS: readonly StandardBreedKey[] = [
+  "local",
+  "redChittagong",
+  "pabna",
+  "munshiganj",
+  "northBengalGrey",
+];
+
 /** What the Owner may start the farm with, a tick each. Rations bring the Feed Items they name. */
 export const STANDARD_KINDS = ["feed", "rations", "health"] as const;
 export type StandardKind = (typeof STANDARD_KINDS)[number];

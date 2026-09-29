@@ -30,6 +30,8 @@ type NumberKey =
   | "expiryWarnDays"
   | "fatteningTargetWeightKg"
   | "gainReadDays"
+  | "deshiGainPercent"
+  | "femaleGainPercent"
   | "aiWindowStartHours"
   | "aiWindowEndHours"
   | "pregnancyCheckAfterDays"
@@ -381,6 +383,20 @@ const GROUPS: {
         unit: "params.days",
         min: 14,
         max: 90,
+      },
+      {
+        key: "deshiGainPercent",
+        label: "params.deshiGainPercent",
+        unit: "params.percent",
+        min: 30,
+        max: 100,
+      },
+      {
+        key: "femaleGainPercent",
+        label: "params.femaleGainPercent",
+        unit: "params.percent",
+        min: 30,
+        max: 100,
       },
       {
         key: "registrationRenewalLeadDays",

@@ -80,6 +80,9 @@ export interface Context {
     fatteningTargetWeightKg: number;
     /** How many days back a fattening animal's gain is read against her Ration's Expected Gain. */
     gainReadDays: number;
+    /** The shares of a Ration's Expected Gain a deshi animal and a cow or heifer are judged against, as percentages. */
+    deshiGainPercent: number;
+    femaleGainPercent: number;
     /** The hours after a Heat within which the AI work is due, and after which it is late. */
     aiWindowStartHours: number;
     aiWindowEndHours: number;

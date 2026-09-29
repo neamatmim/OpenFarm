@@ -865,7 +865,7 @@ export const en = {
   "params.breedingHint":
     "The days the Playbook times breeding work from, the same for every cow.",
   "params.fatteningAndPapersHint":
-    "The weight a fattening animal is aimed at, how many days of weigh-ins her gain is judged over against her ration, and how early the farm is warned before its registration runs out.",
+    "The weight a fattening animal is aimed at; how many days of weigh-ins her gain is judged over against her ration, and at what share for a deshi animal or a female; and how early the farm is warned before its registration runs out.",
   "params.digestTimes": "Digest times (comma separated)",
   "params.quietFrom": "Quiet from",
   "params.quietUntil": "Quiet until",
@@ -1740,6 +1740,9 @@ export const en = {
   "params.repeatBreeder": "Repeat breeder after",
   "params.fatteningTarget": "Default fattening target",
   "params.gainReadDays": "Judge a bull's gain against his ration over at least",
+  "params.deshiGainPercent":
+    "Judge a deshi animal at this share of its ration's expected gain",
+  "params.femaleGainPercent": "Judge a cow or heifer at this share of it",
   "params.renewalLead": "Warn before DLS registration expires",
   "params.minutes": "minutes",
   "params.hours": "hours",
@@ -2036,6 +2039,12 @@ export const en = {
   "breeds.nameEn": "Name in English",
   "breeds.nameEnHint": "Optional",
   "breeds.standard": "Standard",
+  "breeds.deshi": "Deshi",
+  "breeds.markDeshi": "Mark as deshi",
+  "breeds.markCross": "Mark as not deshi",
+  "breeds.deshiChoice": "Deshi — the country's own cattle",
+  "breeds.deshiHint":
+    "Deshi cattle put on less than a cross on the same feed, so an animal of this breed is judged against the farm's deshi share of its ration's expected gain.",
   "breeds.retired": "Retired",
   "breeds.retire": "Retire",
   "breeds.retireTitle": "Retire {name}?",
@@ -2605,6 +2614,9 @@ export const en = {
   "gainOnRation.col": "On the ration",
   "gainOnRation.onRation": "On the ration",
   "gainOnRation.tooSoon": "Too soon to judge",
+  "gainOnRation.forDeshi": "deshi, {percent}%",
+  "gainOnRation.forFemale": "female, {percent}%",
+  "gainOnRation.breedUnknown": "breed not recorded",
   "gainOnRation.outsideBand": "Not judged: outside this ration's weights",
   "feed.basis.weight": "per 100 kg body weight",
   "feed.basisOf": "How {item} is counted",

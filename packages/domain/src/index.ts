@@ -95,10 +95,17 @@ export {
   fatteningView,
   implausibleChange,
 } from "./fattening";
-export type { ExpectedGain, GainOnRation, GainStanding } from "./expected-gain";
+export type {
+  ExpectedGain,
+  GainAdjustment,
+  GainOnRation,
+  GainShares,
+  GainStanding,
+} from "./expected-gain";
 export {
   GAIN_STANDINGS,
   SETTLING_IN_DAYS,
+  expectedGainFor,
   findExpectedGainProblems,
   gainCountsFrom,
   gainOnRationOf,
@@ -601,6 +608,7 @@ export type {
 } from "./standard";
 export {
   STANDARD_DRUGS,
+  DESHI_BREEDS,
   STANDARD_BREED_KEYS,
   STANDARD_BREEDS,
   STANDARD_DRUG_FOR,

@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   index,
   integer,
   pgTable,
@@ -90,6 +91,10 @@ export const breed = pgTable(
     key: text("key"),
     nameBn: text("name_bn").notNull(),
     nameEn: text("name_en"),
+    /** Whether it is deshi — the country's own cattle — which gain less on a Ration than a cross does, so an animal of
+     *  it is judged against the farm's deshi share of the Ration's Expected Gain. The standard local breeds come set;
+     *  the farm says for its own. */
+    deshi: boolean("deshi").notNull().default(false),
     retiredAt: timestamp("retired_at"),
     createdAt: timestamp("created_at").notNull(),
   },
