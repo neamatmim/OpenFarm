@@ -4674,6 +4674,10 @@ export const en = {
     "Walk the farm, and mark this animal found here when you find it.",
   "animals.found": "Mark found",
   "animals.foundDone": "{tag} marked found",
+  "owner.storeCount": "Store count",
+  "owner.storeNotCounted": "The store has not been counted",
+  "owner.storeLastCounted": "Last counted {day}",
+  "owner.storeNeverCounted": "Never counted",
   "refusal.notMissing": "This animal is not missing: nobody is looking for it",
 } as const;
 

@@ -482,8 +482,9 @@ const payTheMonth = async (
   }
 };
 
-/** Counts the store against the book: perishables lose weight and rot, sacks come up a little short. */
-const countTheStore = async (f: Farm) => {
+/** What the store's shelves really hold before the Friday count: perishables lose weight and rot, sacks come up a
+ *  little short. The count itself is raised by the clock and walked with the rest of the day's work. */
+const weighTheShelves = async (f: Farm) => {
   const { random } = f;
   const onHand = await f.as.manager.stock.onHand();
   for (const line of onHand) {
@@ -509,11 +510,13 @@ const countTheStore = async (f: Farm) => {
     }
     shelfReason.set(line.feedItemId, reason);
   }
-  await raise(f, "stockCount", "milking1");
 };
 
-/** Every month: wages and bills, the store counted, the Vet's visit billed; the Owner approves as she goes. */
-const keepTheBooks = ({ farm, on }: Script) => {
+/** Friday, as JavaScript counts the days of the week: the store's count day. */
+const FRIDAY = 5;
+
+/** Every month: wages and bills, the Vet's visit billed; every Friday, the store's shelves; the Owner approves as she goes. */
+const keepTheBooks = ({ farm, days, on }: Script) => {
   const { start, today } = farm;
   // The rent and the electricity are paid every month: the Owner marks them so a month with nothing under either is
   // named.
@@ -529,12 +532,17 @@ const keepTheBooks = ({ farm, on }: Script) => {
       }
     }
   });
+  // The store is counted every Friday morning (Standard Playbook): its shelves are weighed just before.
+  for (const day of days) {
+    if (new Date(`${day}T00:00:00.000Z`).getUTCDay() === FRIDAY) {
+      on(day, "08:30", "shelves weighed", weighTheShelves);
+    }
+  }
   for (let month = 0; month < 3; month += 1) {
     const payday = addDays(start, 14 + month * 30);
     on(payday, "17:00", "wages and bills", (f) =>
       payTheMonth(f, payday, { withRepair: month === 1, last: month === 2 })
     );
-    on(addDays(start, 29 + month * 30), "16:00", "stock count", countTheStore);
     const visit = addDays(start, 12 + month * 30);
     on(visit, "18:00", "vet visit fee", async (f) => {
       await f.as.vet.money.vetFee({

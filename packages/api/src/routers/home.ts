@@ -30,7 +30,7 @@ import { monthlyCostsNow } from "../monthly-costs-store";
 import { renewalDue } from "../registration-store";
 import { withTheirWork } from "../review-store";
 import { OWNER_ONLY, requireOnly, requireRole } from "../roles";
-import { runningLow } from "../stock-store";
+import { runningLow, storeCountLate } from "../stock-store";
 
 /** Enough of each queue to work from. A Manager with more than this waiting has a problem
  *  the list is not going to solve. */
@@ -276,6 +276,7 @@ export const homeRouter = {
         monthlyCosts,
         bakiOverdue,
         missing,
+        storeCount,
       ] = await Promise.all([
         findLate(
           context.db,
@@ -352,6 +353,8 @@ export const homeRouter = {
         overdueBaki(context.db, context.farm, farmDayOf(now)),
         // Animals the round could not find: the Owner hears of each at once, and sees them here until found.
         missingNow(context.db, farmId),
+        // The store not counted for more than a week: the count is the one check on the Manager's feed.
+        storeCountLate(context.db, farmId, now),
       ]);
 
       // A day of the farm's milk is every Pen's Sessions on that day added together, which
@@ -433,6 +436,8 @@ export const homeRouter = {
           bakiOverdue: bakiOverdue.slice(0, QUEUE_LIMIT),
           /** Animals the round could not find, until the Manager marks them Found. */
           missing: missing.slice(0, QUEUE_LIMIT),
+          /** The store not counted for more than a week and a day; nothing while the counts are being made. */
+          storeCount,
           /** The Registration coming up for renewal, or run out, and the work raised for it. */
           registrationRenewal: await renewalDue(context.db, context.farm, now),
         },
