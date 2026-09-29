@@ -35,6 +35,12 @@ export interface NoticeFacts {
   withdrawal_changed: { tag: string; until: string };
   notifiable_diagnosis: { tag: string; disease: string };
   /** One Baki gone past its day: who owes it, what is still owing on it, and the first day it was late. */
+  store_shortfall: {
+    /** What the count found missing, in taka at the store's average price when it was counted. */
+    shortBdt: number;
+    /** The farm day ("YYYY-MM-DD") the store was counted. */
+    countedOn: string;
+  };
   animal_missing: {
     tag: string;
     /** The Pen the round looked for her in. */

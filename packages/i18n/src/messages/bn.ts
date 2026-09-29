@@ -4372,5 +4372,18 @@ export const bn: Record<MessageKey, string> = {
   "owner.storeNotCounted": "গুদাম গোনা হয়নি",
   "owner.storeLastCounted": "শেষ গোনা হয়েছে {day}",
   "owner.storeNeverCounted": "কখনো গোনা হয়নি",
+  "alerts.storeShortfall": "{day}-এর গুদাম গণনায় ৳{amount}-এর খাদ্য কম পাওয়া গেছে",
+  "alerts.openTheCounts": "গণনা খুলুন",
+  "digest.storeShortfall": "{count}টি গুদাম গণনায় খাদ্য কম পাওয়া গেছে",
+  "params.storeShortfall": "গুদামে খাদ্য কম",
+  "params.storeShortfallHint":
+    "সাপ্তাহিক গণনায় কেনা দামে এর বেশি খাদ্য কম পাওয়া গেলে আপনাকে আর ম্যানেজারকে জানানো হবে।",
+  "params.storeShortfallTellBdt": "গণনায় এর বেশি কম হলে জানান",
+  "costs.storeShortfall": "গণনায় কম পাওয়া খাদ্য",
+  "costs.storeShortfallHint":
+    "গুদাম গণনায় যা কম পাওয়া গেছে, গণনার দিনের গুদামের দামে। কোনো দিকের খরচে নেই: কোনো পশু এটা খায়নি।",
+  "costs.storeShort": "কম",
+  "costs.storeOver": "বেশি পাওয়া গেছে",
+  "costs.storeCounts": "এই সময়ে {count}টি গণনা",
   "refusal.notMissing": "পশুটি হারায়নি — কেউ তাকে খুঁজছে না",
 };

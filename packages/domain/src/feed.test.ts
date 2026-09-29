@@ -12,6 +12,7 @@ import {
   leftoverStanding,
   roundFeedKg,
   sessionKgOf,
+  shortfallOf,
 } from "./feed";
 
 // A Pen's Leftovers of one Feed Item over a week, read the way a farmer reads the trough: a lot left behind is feed
@@ -221,5 +222,24 @@ describe("a quantity of feed", () => {
         2
       )
     ).toBe(0.03);
+  });
+});
+
+describe("what a Stock Count's differences are worth", () => {
+  it("prices each at its own price, keeping what was short apart from what was over", () => {
+    expect(
+      shortfallOf([
+        { difference: -100, priceBdt: 40 },
+        { difference: -2.5, priceBdt: 30 },
+        { difference: 50, priceBdt: 40 },
+      ])
+    ).toEqual({ shortBdt: 4075, overBdt: 2000 });
+  });
+
+  it("adds nothing for feed never bought, which has no price", () => {
+    expect(shortfallOf([{ difference: -300, priceBdt: null }])).toEqual({
+      shortBdt: 0,
+      overBdt: 0,
+    });
   });
 });

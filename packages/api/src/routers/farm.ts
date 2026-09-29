@@ -147,6 +147,8 @@ const parameters = z
     /** How many days a Baki with no promised day may run before it is overdue: a week at the least, four months at
      *  the most. */
     bakiDays: z.number().int().min(7).max(120).optional(),
+    /** The taka a Stock Count may come up short by before the Owner and the Manager are told of it. */
+    storeShortfallTellBdt: z.number().int().min(0).max(1_000_000).optional(),
     /** What part of a Venture's target capital is the least worth starting on. */
     ventureFloorPercent: z.number().int().min(0).max(100).optional(),
     /** What part of a Venture's capital keeps the animals rather than buying them. */
@@ -226,6 +228,9 @@ const WHEN_MONTHLY_COSTS_ARE_LOOKED_FOR = ["monthlyCostsFromDay"] as const;
 /** How long a buyer may owe with no promised day: the Owner's to set, as whom the farm lends to is. */
 const HOW_LONG_BAKI_MAY_RUN = ["bakiDays"] as const;
 
+/** When a count's shortfall is told: the Owner's to set, as the count is the one check on the Manager's feed. */
+const WHEN_A_SHORT_STORE_IS_TOLD = ["storeShortfallTellBdt"] as const;
+
 type ParametersInput = z.infer<typeof parameters>;
 
 /** Whether a request names any of these Parameters. */
@@ -271,6 +276,12 @@ const refuseWhatIsTheOwners = (
   if (namesAny(input, HOW_LONG_BAKI_MAY_RUN)) {
     throw forbidden({
       message: "How long a buyer may owe is the Owner's to set",
+      reason: "owner_only",
+    });
+  }
+  if (namesAny(input, WHEN_A_SHORT_STORE_IS_TOLD)) {
+    throw forbidden({
+      message: "When a short store is told is the Owner's to set",
       reason: "owner_only",
     });
   }
@@ -750,6 +761,7 @@ export const farmRouter = {
                 approvalThresholdBdt: true,
                 monthlyCostsFromDay: true,
                 bakiDays: true,
+                storeShortfallTellBdt: true,
                 ventureFloorPercent: true,
                 ventureRunningPercent: true,
                 ventureInvestorsPercent: true,

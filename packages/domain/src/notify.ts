@@ -89,6 +89,8 @@ export const DELIVERY = {
   // An animal the round could not find may be on a lorry to a haat: the Owner and the Manager hear at once, by push
   // and not by text (the Owner, 2026-09-29). Not at night — the round is walked in the morning.
   animal_missing: { when: "immediate" },
+  // A count come up short has happened: the evening's reading, with the figure to ask the Manager about tomorrow.
+  store_shortfall: { when: "digest" },
 } as const satisfies Record<AlertKind, Delivery>;
 
 /**
@@ -207,6 +209,10 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
     app: "alerts.animalMissing",
     push: { title: "push.animalMissingTitle", body: "push.animalMissingBody" },
     digest: "digest.animalMissing",
+  },
+  store_shortfall: {
+    app: "alerts.storeShortfall",
+    digest: "digest.storeShortfall",
   },
 };
 

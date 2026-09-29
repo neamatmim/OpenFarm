@@ -134,6 +134,13 @@ const WhereItLeads = ({
       </Link>
     );
   }
+  if (notice.kind === "store_shortfall") {
+    return (
+      <Link className={LEADS_CLASS} search={{ tab: "counts" }} to="/admin/feed">
+        {t("alerts.openTheCounts")}
+      </Link>
+    );
+  }
   if (notice.kind === "join_requested") {
     const ventureId = ventureOf(notice.params);
     return ventureId === null ? null : (

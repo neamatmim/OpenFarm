@@ -193,6 +193,40 @@ const OverheadsCard = ({ overheads }: { overheads: Overheads }) => {
   );
 };
 
+type StoreShortfall = Awaited<
+  ReturnType<typeof orpc.costs.bySide.call>
+>["storeShortfall"];
+
+/**
+ * What the period's Stock Counts found missing, and found over, at the store's price when counted. Its own card beside
+ * the Overheads, because it is in neither: feed bought and never eaten is in no Side's costs, and it was not the place
+ * or the people.
+ */
+const StoreShortfallCard = ({ shortfall }: { shortfall: StoreShortfall }) => {
+  const { t } = useLanguage();
+  const taka = useTaka();
+  return (
+    <CostCard title={t("costs.storeShortfall")}>
+      <p className="text-muted-foreground pb-1 text-xs">
+        {t("costs.storeShortfallHint")}
+      </p>
+      <Line label={t("costs.storeShort")}>
+        <span
+          className={
+            shortfall.shortBdt > 0 ? "text-danger font-semibold" : undefined
+          }
+        >
+          {taka(shortfall.shortBdt)}
+        </span>
+      </Line>
+      <Line label={t("costs.storeOver")}>{taka(shortfall.overBdt)}</Line>
+      <p className="text-muted-foreground pt-2 text-xs">
+        {t("costs.storeCounts", { count: shortfall.counts })}
+      </p>
+    </CostCard>
+  );
+};
+
 /**
  * A period by Side: what each Side's animals were fed, dosed and visited for in it, what a litre of the
  * Dairy side's milk cost — and, apart, the fattening animals sold in it with each one's whole-life Margin.
@@ -242,6 +276,10 @@ export const CostsBySide = ({ from, to }: { from: string; to: string }) => {
         // In the Sides' grid, so its lines read at a card's width and not across the whole page.
         <div className="grid items-start gap-4 lg:grid-cols-3">
           <OverheadsCard overheads={report.data.overheads} />
+          {/* Missing from an answer a phone kept from before the counts were priced. */}
+          {report.data.storeShortfall ? (
+            <StoreShortfallCard shortfall={report.data.storeShortfall} />
+          ) : null}
         </div>
       ) : null}
       <Note amount={unallocated.feedBdt} word="costs.unallocatedNote" />

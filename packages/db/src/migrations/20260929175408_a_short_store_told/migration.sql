@@ -1,0 +1,1 @@
+ALTER TABLE "farm" ADD COLUMN "store_shortfall_tell_bdt" integer DEFAULT 2000 NOT NULL;

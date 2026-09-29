@@ -135,6 +135,12 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
     audience: [{ roles: ["owner", "manager"] }],
     entity: "missing",
   },
+  // The Owner signs the count off and asks where the feed went; the Manager answers for the store. About the one
+  // count, so a count put right is not told again.
+  store_shortfall: {
+    audience: [{ roles: ["owner", "manager"] }],
+    entity: "step_completion",
+  },
 };
 
 /** A Notice as it was raised, for whoever carries it out of the transaction to a pocket. */
