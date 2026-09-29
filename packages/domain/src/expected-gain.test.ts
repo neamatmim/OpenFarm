@@ -4,6 +4,7 @@ import {
   SETTLING_IN_DAYS,
   expectedGainFor,
   findExpectedGainProblems,
+  grownWeightFor,
   gainCountsFrom,
   gainOnRationOf,
   gainStandingOf,
@@ -237,5 +238,54 @@ describe("the Expected Gain one animal is judged against", () => {
         { deshiPercent: 60, femalePercent: 80 }
       ).expectedGain
     ).toEqual({ lowKg: 0.36, highKg: 0.54 });
+  });
+});
+
+describe("what a bull should weigh when his Target Window opens", () => {
+  const rungs = [
+    {
+      band: { fromKg: 150, toKg: 250 },
+      expectedGain: { lowKg: 0.6, highKg: 0.9 },
+    },
+    {
+      band: { fromKg: 250, toKg: 350 },
+      expectedGain: { lowKg: 0.65, highKg: 1 },
+    },
+  ];
+  const shares = { deshiPercent: 70, femalePercent: 80 };
+  const cross = { deshi: false, sex: "male" } as const;
+
+  it("grows him after he has settled in, stepping up a band as he crosses it", () => {
+    // The research's worked example: 180 kg, 120 days to his window, 99 of them after settling in. Low: 0.6 a day
+    // throughout, 180 + 59.4. High: 0.9 a day to 250 kg after 78 days, then 21 days at 1.0.
+    expect(grownWeightFor(180, 120, rungs, cross, shares)).toEqual({
+      lowKg: 239.4,
+      highKg: 271.2,
+    });
+  });
+
+  it("grows a deshi bull at the farm's deshi share", () => {
+    expect(
+      grownWeightFor(180, 120, rungs, { deshi: true, sex: "male" }, shares)
+    ).toEqual({ lowKg: 221.6, highKg: 242.4 });
+  });
+
+  it("grows him not at all within the settling-in weeks", () => {
+    expect(grownWeightFor(180, SETTLING_IN_DAYS, rungs, cross, shares)).toEqual(
+      { lowKg: 180, highKg: 180 }
+    );
+  });
+
+  it("goes on at the heaviest band's gain once he is past every band", () => {
+    // 340 kg at 0.65–1.0: 10 days to 350 at the high end, then on at 1.0.
+    expect(grownWeightFor(340, 21 + 30, rungs, cross, shares)).toEqual({
+      lowKg: 359.5,
+      highKg: 370,
+    });
+  });
+
+  it("says nothing when no Ration's band holds him as he comes", () => {
+    expect(grownWeightFor(120, 120, rungs, cross, shares)).toBe(null);
+    expect(grownWeightFor(200, 120, [], cross, shares)).toBe(null);
   });
 });

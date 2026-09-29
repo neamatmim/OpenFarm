@@ -15,6 +15,7 @@ import { orpc } from "@/utils/orpc";
 
 import type { IntakeFields } from "./intake-fields";
 import { missingFrom, windowIsWhole } from "./intake-fields";
+import { useSuggestedTarget } from "./suggested-target";
 
 /** One line of what will be written: what it is, and what was typed — or a dash for what has not been. */
 const Line = ({
@@ -36,12 +37,20 @@ const Line = ({
 const dayWords = (day: string, language: "bn" | "en") =>
   formatDate(new Date(`${day}T06:00:00.000Z`), language, "date");
 
-/** The target weight the animal will be fed towards: the one typed, or the farm's own. */
-const TargetWeight = ({ typed }: { typed: string }) => {
+/** The target weight the animal will be fed towards: the one typed, else the low end of what the farm's Rations say,
+ *  else the farm's own. */
+const TargetWeight = ({ fields }: { fields: IntakeFields }) => {
   const { t, language } = useLanguage();
   const farm = useQuery(orpc.farm.current.queryOptions());
-  if (Number(typed) > 0) {
-    return t("intake.kg", { kg: formatNumber(Number(typed), language) });
+  const suggested = useSuggestedTarget(fields);
+  const typed = Number(fields.targetWeightKg);
+  if (typed > 0) {
+    return t("intake.kg", { kg: formatNumber(typed, language) });
+  }
+  if (suggested) {
+    return t("intake.suggestedTarget", {
+      kg: formatNumber(suggested.lowKg, language),
+    });
   }
   const farmsOwn =
     farm.data && "fatteningTargetWeightKg" in farm.data
@@ -186,7 +195,7 @@ export const IntakeSummary = ({
               })}
         </Line>
         <Line label={t("intake.targetWeight")}>
-          <TargetWeight typed={fields.targetWeightKg} />
+          <TargetWeight fields={fields} />
         </Line>
         <Line label={t("intake.targetWindow")}>
           <TargetWindow fields={fields} />

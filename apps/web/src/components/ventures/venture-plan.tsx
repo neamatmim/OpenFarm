@@ -1,13 +1,16 @@
+import type { GainingBand } from "@OpenFarm/domain";
+import { gainingBandFor } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ClipboardList, Plus, Trash2 } from "lucide-react";
+import { ClipboardList, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { expectedGainSaid } from "@/components/feed/band-words";
 import { EmptyState, Loaded, Section, StatusBadge } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -101,6 +104,57 @@ const lineOf = (typed: TypedLine) => {
   return backwards ? null : { animals, fromKg, toKg, buyBdtPerKg, dailyGainKg };
 };
 
+/** A gain a day halfway between two, kept to the hundredth as a plan's gains are. */
+const middleGainOf = ({ lowKg, highKg }: { lowKg: number; highKg: number }) =>
+  Math.round(((lowKg + highKg) / 2) * 100) / 100;
+
+/**
+ * What the farm's own Rations say a crossbred bull bought in the middle of a band should gain, under the band's gain
+ * box, with a button to write in the middle of that range. The Owner's plan still says what the Owner types: this only
+ * offers. Nothing while the band's weights are not both typed, or no Ration by weight holds a bull that size.
+ */
+const RationsSay = ({
+  line,
+  rungs,
+  onUse,
+}: {
+  line: TypedLine;
+  rungs: readonly GainingBand[];
+  onUse: (dailyGainKg: string) => void;
+}) => {
+  const { t, language } = useLanguage();
+  const fromKg = figureOf(line.fromKg);
+  const toKg = figureOf(line.toKg);
+  if (!(aFigure(fromKg) && aFigure(toKg))) {
+    return null;
+  }
+  const middleKg = Math.round((fromKg + toKg) / 2);
+  const rung = gainingBandFor(middleKg, rungs);
+  if (!rung) {
+    return null;
+  }
+  const middle = middleGainOf(rung.expectedGain);
+  return (
+    <div className="col-span-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+      <p className="text-muted-foreground text-xs">
+        {t("plan.rationsSay", {
+          kg: formatNumber(middleKg, language),
+          range: expectedGainSaid(rung.expectedGain, { t, language }) ?? "",
+        })}
+      </p>
+      <Button
+        onClick={() => onUse(String(middle))}
+        size="sm"
+        type="button"
+        variant="ghost"
+      >
+        <Sparkles aria-hidden data-icon="inline-start" />
+        {t("plan.useGain", { kg: formatNumber(middle, language) })}
+      </Button>
+    </div>
+  );
+};
+
 /** Writing or changing a Venture's plan: its bands, what a kilo will sell at, and — once buying has begun — why. */
 const PlanSheet = ({
   venture,
@@ -114,6 +168,8 @@ const PlanSheet = ({
   const { t } = useLanguage();
   const refused = useRefused(PLAN_REFUSALS);
   const [lines, setLines] = useState<TypedLine[]>(() => typedFrom(latest));
+  // What the farm's Rations say each band should gain; none on a phone that has never been told.
+  const rungs = useQuery(orpc.feed.gainingBands.queryOptions()).data ?? [];
   const [sale, setSale] = useState({
     low: latest ? String(latest.saleLowBdtPerKg) : "",
     high: latest ? String(latest.saleHighBdtPerKg) : "",
@@ -215,6 +271,13 @@ const PlanSheet = ({
                 />
               </FormField>
             ))}
+            <RationsSay
+              line={line}
+              onUse={(dailyGainKg) =>
+                edit(line.key, "dailyGainKg", dailyGainKg)
+              }
+              rungs={rungs}
+            />
           </div>
         </fieldset>
       ))}
