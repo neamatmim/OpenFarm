@@ -21,6 +21,7 @@ import {
   Plus,
   Utensils,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -37,6 +38,7 @@ import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 import { bandSaid, expectedGainSaid } from "./band-words";
+import { FarmGainsLine, FarmGainsOffer, useFarmGains } from "./farm-gains";
 import type { FeedItemRow, RationRow } from "./feed-types";
 import { amountOf } from "./feed-types";
 
@@ -95,6 +97,7 @@ const ExpectedGainFields = ({
   onLow,
   onHigh,
   half,
+  farmsOwn,
 }: {
   idFor: (part: string) => string;
   low: string;
@@ -103,6 +106,8 @@ const ExpectedGainFields = ({
   onHigh: (value: string) => void;
   /** Only one of the two filled in. */
   half: boolean;
+  /** What the farm's own crossbred bulls put on eating this Ration, offered as its range; nothing for a new one. */
+  farmsOwn?: ReactNode;
 }) => {
   const { t } = useLanguage();
   return (
@@ -146,6 +151,7 @@ const ExpectedGainFields = ({
       >
         {half ? t("feed.expectedGainBoth") : t("feed.expectedGainHint")}
       </p>
+      {farmsOwn}
     </fieldset>
   );
 };
@@ -212,6 +218,8 @@ const RationDialog = ({
     typedOf(ration?.expectedGain?.highKg)
   );
   const gain = expectedGainToSend(ration, gainLow, gainHigh);
+  // Only the Owner and the Manager write Rations, and only they may read what the farm's own animals put on.
+  const farmGains = useFarmGains(ration !== null);
   const [basis, setBasis] = useState<Record<string, Basis>>(() =>
     Object.fromEntries(
       (ration?.items ?? []).map((line) => [
@@ -381,6 +389,17 @@ const RationDialog = ({
             </p>
           </fieldset>
           <ExpectedGainFields
+            farmsOwn={
+              ration ? (
+                <FarmGainsOffer
+                  gains={farmGains.get(ration.id)}
+                  onUse={(figure) => {
+                    setGainLow(String(figure.lowKg));
+                    setGainHigh(String(figure.highKg));
+                  }}
+                />
+              ) : null
+            }
             half={gain === undefined}
             high={gainHigh}
             idFor={idFor}
@@ -609,6 +628,8 @@ const RationCard = ({
   const gain = expectedGainSaid(ration.expectedGain, { t, language });
   const names = new Map(items.map((item) => [item.id, item]));
   const onChosenPen = ration.penIds.includes(chosenPenId);
+  // What the farm's own animals put on eating it: the Owner's and the Manager's to read, as the Ration is theirs to write.
+  const farmGains = useFarmGains(mayEdit);
   return (
     <article
       className={cn("surface flex flex-col gap-3 p-4", retired && "opacity-75")}
@@ -625,6 +646,7 @@ const RationCard = ({
             {band ? ` · ${band}` : ""}
             {gain ? ` · ${gain}` : ""}
           </span>
+          <FarmGainsLine gains={farmGains.get(ration.id)} />
         </div>
         {mayEdit ? (
           <RowMenu

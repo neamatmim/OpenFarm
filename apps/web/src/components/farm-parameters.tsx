@@ -14,6 +14,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { FarmShareNote } from "@/components/feed/farm-gains";
 import { useIsOwner } from "@/components/money";
 import { Section } from "@/components/page";
 import { useT } from "@/i18n/language-provider";
@@ -68,6 +69,8 @@ interface FieldSpec {
   min?: number;
   max?: number;
   time?: boolean;
+  /** What the farm's own animals say of this share, beneath it. */
+  farmsOwn?: "deshi" | "female";
 }
 
 /** The Parameters in the groups a Manager thinks of them in, each with what it is for and the bounds the farm will
@@ -390,6 +393,7 @@ const GROUPS: {
         unit: "params.percent",
         min: 30,
         max: 100,
+        farmsOwn: "deshi",
       },
       {
         key: "femaleGainPercent",
@@ -397,6 +401,7 @@ const GROUPS: {
         unit: "params.percent",
         min: 30,
         max: 100,
+        farmsOwn: "female",
       },
       {
         key: "registrationRenewalLeadDays",
@@ -581,6 +586,7 @@ const ParameterGroup = ({
                 type={inputTypeOf(field)}
                 value={values[field.key] ?? saved[field.key]}
               />
+              {field.farmsOwn ? <FarmShareNote kind={field.farmsOwn} /> : null}
             </div>
           );
         })}

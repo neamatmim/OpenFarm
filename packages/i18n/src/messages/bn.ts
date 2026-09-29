@@ -2438,6 +2438,18 @@ export const bn: Record<MessageKey, string> = {
     "এই রেশন খেয়ে একটি ষাঁড়ের দিনে কতটা বাড়ার কথা, কম থেকে বেশি। সর্বনিম্নের চেয়ে কম বাড়লে মোটাতাজাকরণ পাতায় দেখানো হবে। না থাকলে দুটোই ফাঁকা রাখুন।",
   "feed.expectedGainBoth": "দুটোই লিখুন, নয়তো কোনোটিই নয়।",
   "feed.expectedGainRange": "{low}–{high} কেজি/দিন",
+  "farmGains.yourFarm": "আপনার খামার",
+  "farmGains.group.cross": "সংকর ষাঁড়",
+  "farmGains.group.deshi": "দেশি ষাঁড়",
+  "farmGains.group.unrecorded": "জাত লেখা নেই এমন ষাঁড়",
+  "farmGains.group.female": "গাভী ও বকনা",
+  "farmGains.figure": "{group} {gain} ({count}টি)",
+  "farmGains.offer": "এই রেশনে আপনার সংকর ষাঁড়দের মাঝের অর্ধেক: {range} ({count}টি)",
+  "farmGains.use": "এটি নিন",
+  "farmGains.deshiShare":
+    "{ration}-এ আপনার দেশি ষাঁড় সংকর ষাঁড়ের {percent}% বেড়েছে।",
+  "farmGains.femaleShare":
+    "{ration}-এ আপনার গাভী ও বকনা সংকর ষাঁড়ের {percent}% বেড়েছে।",
   "gainOnRation.title": "রেশনে যতটা বাড়ার কথা তার চেয়ে কম বাড়ছে",
   "gainOnRation.hint":
     "অন্তত গত {days} দিনের ওজনে এরা পেনের রেশনে যতটা বাড়ার কথা তার চেয়ে কম বেড়েছে, বা ওজন কমেছে। প্রত্যেককে দেখুন: কৃমি বা কলিজা কৃমি, দাঁত, পা, অথবা চাড়িতে সে তার ভাগের খাবার পাচ্ছে কি না।",

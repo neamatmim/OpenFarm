@@ -1,7 +1,9 @@
 import type { Database } from "@OpenFarm/db";
 import type {
   ExpectedGain,
+  FarmGainFigure,
   GainAdjustment,
+  GainGroup,
   GainOnRation,
   GainStanding,
   GainingBand,
@@ -9,11 +11,17 @@ import type {
 } from "@OpenFarm/domain";
 import {
   EXIT_STATES,
+  GAIN_GROUPS,
   bandStanding,
+  exitOf,
   expectedGainFor,
   farmDayOf,
   farmDaysApart,
+  farmGainFigureOf,
+  gainGroupOf,
+  gainOverStayOf,
   grownWeightFor,
+  penSpellsOf,
   gainCountsFrom,
   gainOnRationOf,
   gainStandingOf,
@@ -298,4 +306,114 @@ export const suggestedTargetOf = async (
     }
   );
   return grown ? { ...grown, days } : null;
+};
+
+/** What one of the farm's Rations has put on its animals, by the kind of animal: a figure for each kind with enough. */
+export interface FarmGainsOnRation {
+  rationId: string;
+  rationName: string;
+  figures: Partial<Record<GainGroup, FarmGainFigure>>;
+}
+
+/**
+ * What the farm's own fattening animals have put on eating each of its Rations in use — the ones gone as well as the
+ * ones standing — by kind: crossbred bulls, deshi bulls, bulls with no Breed written, cows and heifers. Each animal
+ * counts once for a Ration, by her longest stay on it: from her first reading the farm did not doubt after she had
+ * settled in and was on it, to her last before she moved on or left, when those are at least the Farm Parameter's days
+ * apart. A stay counts only from when her Pen was put on the Ration it is on now: which Ration a Pen was on before that
+ * is kept in the trail, not in the Pen, so time before it is left out rather than guessed at. A kind is said once
+ * `FEWEST_FOR_A_FIGURE` animals have a gain.
+ */
+export const farmGainsByRation = async (
+  db: Pick<Database, "query">,
+  farm: { id: string; gainReadDays: number },
+  now: Date
+): Promise<FarmGainsOnRation[]> => {
+  const rations = await db.query.ration.findMany({
+    where: { farmId: farm.id, retiredAt: { isNull: true } },
+    orderBy: { weightFromKg: "asc", nameBn: "asc", id: "asc" },
+    columns: { id: true, nameBn: true },
+    with: { pens: { columns: { penId: true, assignedAt: true } } },
+  });
+  const onRation = new Map(
+    rations.flatMap((one) =>
+      one.pens.map(
+        (assigned) =>
+          [
+            assigned.penId,
+            { rationId: one.id, assignedAt: assigned.assignedAt },
+          ] as const
+      )
+    )
+  );
+  if (onRation.size === 0) {
+    return [];
+  }
+  const animals = await db.query.animal.findMany({
+    where: { farmId: farm.id, side: "fattening" },
+    columns: { id: true, sex: true, state: true, stateChangedAt: true },
+    with: {
+      breed: { columns: { deshi: true } },
+      intake: { columns: { arrivedAt: true } },
+      moves: { columns: { id: true, movedAt: true, toPenId: true } },
+      weighIns: {
+        where: { flaggedNote: { isNull: true } },
+        columns: { weightKg: true, weighedAt: true },
+      },
+    },
+  });
+  const gains = new Map<string, Map<GainGroup, number[]>>();
+  for (const one of animals) {
+    const readings = one.weighIns.map((reading) => ({
+      weightKg: Number(reading.weightKg),
+      weighedAt: reading.weighedAt,
+    }));
+    const group = gainGroupOf({
+      sex: one.sex,
+      deshi: one.breed?.deshi ?? null,
+    });
+    const spells = penSpellsOf(
+      one.moves.map((move) => ({ ...move, toPen: move.toPenId })),
+      exitOf(one)?.at ?? null
+    );
+    // Her longest measured stay on each Ration.
+    const best = new Map<string, { dailyGainKg: number; overDays: number }>();
+    for (const spell of spells) {
+      const placed = onRation.get(spell.pen);
+      if (!placed) {
+        continue;
+      }
+      const gain = gainOverStayOf(readings, {
+        from: gainCountsFrom({
+          arrivedAt: one.intake?.arrivedAt ?? null,
+          onRationSince:
+            spell.from > placed.assignedAt ? spell.from : placed.assignedAt,
+        }),
+        until: spell.until ?? now,
+        readDays: farm.gainReadDays,
+      });
+      const had = best.get(placed.rationId);
+      if (gain && (!had || gain.overDays > had.overDays)) {
+        best.set(placed.rationId, gain);
+      }
+    }
+    for (const [rationId, gain] of best) {
+      const byGroup = gains.get(rationId) ?? new Map<GainGroup, number[]>();
+      const inGroup = byGroup.get(group) ?? [];
+      inGroup.push(gain.dailyGainKg);
+      byGroup.set(group, inGroup);
+      gains.set(rationId, byGroup);
+    }
+  }
+  return rations.map((one) => {
+    const byGroup = gains.get(one.id);
+    const figures: Partial<Record<GainGroup, FarmGainFigure>> = {};
+    for (const group of GAIN_GROUPS) {
+      const figure = farmGainFigureOf(byGroup?.get(group) ?? []);
+      if (figure) {
+        figures[group] = figure;
+      }
+    }
+    return { rationId: one.id, rationName: one.nameBn, figures };
+  });
 };

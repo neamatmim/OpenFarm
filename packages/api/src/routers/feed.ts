@@ -17,7 +17,7 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
-import { gainingBandsOf } from "../expected-gain-store";
+import { farmGainsByRation, gainingBandsOf } from "../expected-gain-store";
 import type { FarmList } from "../farm-list";
 import { assertNameFree, bringBackToList, retireFromList } from "../farm-list";
 import {
@@ -513,6 +513,19 @@ export const feedRouter = {
     .use(requireRole("owner", "manager"))
     .handler(
       async ({ context }) => await gainingBandsOf(context.db, context.farm.id)
+    ),
+
+  /**
+   * What the farm's own fattening animals have put on eating each Ration in use, by kind — crossbred bulls, deshi
+   * bulls, bulls with no Breed written, cows and heifers — once five of a kind have a gain: set beside what the Ration
+   * is written to give, so the farm's own weigh-ins can put the published figures right. The Owner's and the
+   * Manager's, who write the Rations.
+   */
+  farmGains: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(
+      async ({ context }) =>
+        await farmGainsByRation(context.db, context.farm, context.clock.now())
     ),
 
   /** Every Ration the farm has, with the Pens on it. */

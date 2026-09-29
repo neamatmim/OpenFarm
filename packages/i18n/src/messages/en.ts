@@ -2602,6 +2602,19 @@ export const en = {
     "What a bull eating this ration should put on a day, low to high. One gaining under the low figure is listed on the Fattening page. Leave both empty for none.",
   "feed.expectedGainBoth": "Fill in both figures, or neither.",
   "feed.expectedGainRange": "{low}–{high} kg/day",
+  "farmGains.yourFarm": "Your farm",
+  "farmGains.group.cross": "crossbred bulls",
+  "farmGains.group.deshi": "deshi bulls",
+  "farmGains.group.unrecorded": "bulls, breed not recorded",
+  "farmGains.group.female": "cows and heifers",
+  "farmGains.figure": "{group} {gain} ({count})",
+  "farmGains.offer":
+    "Your crossbred bulls on this ration, middle half: {range} ({count})",
+  "farmGains.use": "Use it",
+  "farmGains.deshiShare":
+    "On {ration}, your deshi bulls put on {percent}% of what your crossbred bulls did.",
+  "farmGains.femaleShare":
+    "On {ration}, your cows and heifers put on {percent}% of what your crossbred bulls did.",
   "gainOnRation.title": "Gaining less than their ration should give",
   "gainOnRation.hint":
     "Over at least the last {days, plural, one {# day} other {# days}} of weigh-ins, these put on less a day than their pen's ration is written for, or lost weight. Look at each one: worms or liver fluke, teeth, feet, or whether he gets his share at the trough.",
