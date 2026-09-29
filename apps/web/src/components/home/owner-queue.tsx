@@ -14,6 +14,7 @@ import {
   Gavel,
   HandCoins,
   MapPinOff,
+  Warehouse,
   Handshake,
   Milk,
   Wheat,
@@ -304,6 +305,54 @@ const RenewalGroup = ({ needsYou, headless }: GroupProps) => {
   );
 };
 
+/** The store not counted for more than a week: when it last was, opening the counts. The count is the one check on
+ *  the feed the Manager takes in, so a week without one is the Owner's to know. */
+const StoreCountGroup = ({ needsYou, headless }: GroupProps) => {
+  const { t, language } = useLanguage();
+  // Missing from an answer a phone kept from before the store's count was watched.
+  const late = needsYou.storeCount;
+  return (
+    <QueueGroup
+      headless={headless}
+      icon={Warehouse}
+      label={t("owner.storeCount")}
+      rows={
+        late
+          ? [
+              <QueueRow
+                key="store"
+                meta={
+                  <span className="text-danger">
+                    {late.lastCountedAt
+                      ? t("owner.storeLastCounted", {
+                          day: formatDate(
+                            new Date(late.lastCountedAt),
+                            language,
+                            "date"
+                          ),
+                        })
+                      : t("owner.storeNeverCounted")}
+                  </span>
+                }
+                title={
+                  <Link
+                    className={ROW_LINK}
+                    search={{ tab: "counts" }}
+                    to="/admin/feed"
+                  >
+                    {t("owner.storeNotCounted")}
+                  </Link>
+                }
+                trailing={<Opens />}
+              />,
+            ]
+          : []
+      }
+      tone="danger"
+    />
+  );
+};
+
 /** Work waiting on the Owner's own Sign-off, each opening the work. */
 const ApprovalGroup = ({ needsYou, headless }: GroupProps) => {
   const { t } = useLanguage();
@@ -341,6 +390,7 @@ const ApprovalGroup = ({ needsYou, headless }: GroupProps) => {
 /** The kinds of thing only the Owner can settle, in the order they are read. */
 export const DECISION_KINDS = [
   "missing",
+  "storeCount",
   "ventures",
   "registration",
   "approvals",
@@ -375,6 +425,9 @@ const KindList = ({
       return (
         <MissingAnimalsGroup animals={needsYou.missing} headless={headless} />
       );
+    }
+    case "storeCount": {
+      return <StoreCountGroup headless={headless} needsYou={needsYou} />;
     }
     case "ventures": {
       return <VentureTroubles headless={headless} ventures={ventures} />;
@@ -437,6 +490,12 @@ export const NeedsYouTabs = ({
       icon: MapPinOff,
       // Missing from an answer a phone kept from before a Missing was written down.
       count: needsYou.missing?.length ?? 0,
+    },
+    {
+      value: "storeCount",
+      label: t("owner.storeCount"),
+      icon: Warehouse,
+      count: needsYou.storeCount ? 1 : 0,
     },
     {
       value: "ventures",

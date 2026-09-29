@@ -820,10 +820,11 @@ const WHOSE_STEPS: readonly {
   },
 ];
 
-/** The Step effects work about the whole farm may carry: nothing that needs a Pen or an animal. */
+/** The Step effects work about the whole farm may carry: nothing that needs a Pen or an animal — the Registration, and
+ *  the store, which is one however many Pens stand full. */
 const FARM_WORK_EFFECTS: ReadonlySet<StepEffect["kind"]> = new Set<
   StepEffect["kind"]
->(["registration_renewal"]);
+>(["registration_renewal", "stock_count"]);
 
 /** Whether an SOP's work is about the whole farm rather than about a Pen: the Registration's renewal, or work
  *  marked so — the footbath, the visitor book. */

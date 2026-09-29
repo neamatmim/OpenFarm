@@ -27,7 +27,8 @@ export const CREW = {
   treatmentDose: { worker: "stockman", checker: "manager" },
   burial: { worker: "stockman", checker: "manager" },
   dlsReport: { worker: "manager" },
-  stockCount: { worker: "manager" },
+  // The Manager takes the feed in and counts it; the Owner signs the count off.
+  stockCount: { worker: "manager", checker: "owner" },
   biosecurity: { worker: "manager" },
   // The bought-in bull's chain, from his arrival to his sale.
   arrivalCheck: { worker: "stockman", checker: "manager" },

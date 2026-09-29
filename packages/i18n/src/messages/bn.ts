@@ -4368,5 +4368,9 @@ export const bn: Record<MessageKey, string> = {
   "animals.missingHint": "খামার ঘুরে খুঁজুন। পাওয়া গেলে এখানে জানান।",
   "animals.found": "পাওয়া গেছে",
   "animals.foundDone": "{tag} পাওয়া গেছে বলে লেখা হলো",
+  "owner.storeCount": "গুদাম গণনা",
+  "owner.storeNotCounted": "গুদাম গোনা হয়নি",
+  "owner.storeLastCounted": "শেষ গোনা হয়েছে {day}",
+  "owner.storeNeverCounted": "কখনো গোনা হয়নি",
   "refusal.notMissing": "পশুটি হারায়নি — কেউ তাকে খুঁজছে না",
 };

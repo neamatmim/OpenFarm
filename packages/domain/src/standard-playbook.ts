@@ -540,10 +540,13 @@ const stockCount = (): SopContent => ({
     bn: "গুদামে প্রতিটি খাদ্য আসলে কত আছে মেপে লিখুন, হিসাবের সাথে না মিললে কারণ লিখুন",
     en: "Weigh what is really in the store and give a reason where it differs from the book",
   },
-  // Raised by the Manager each Friday for the store's Pen: a schedule raises work per Pen, and the store is one.
-  triggers: [],
+  // Raised by the clock each Friday morning, once for the whole farm: there is one store, however many Pens stand full.
+  // A count nobody makes goes late, to the Manager and then the Owner, rather than simply never happening.
+  triggers: [{ kind: "schedule", times: ["09:00"], weekdays: [5] }],
+  wholeFarm: true,
   assignedRole: "manager",
-  checkerRole: null,
+  // The Manager both takes the feed in and counts it; the Owner signs the count off (the Owner, 2026-09-29).
+  checkerRole: "owner",
   graceMinutes: 24 * 60,
   steps: [
     {

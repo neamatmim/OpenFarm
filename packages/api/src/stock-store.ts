@@ -654,3 +654,37 @@ export const receivedDay = (day: string, now: Date): Date => {
   }
   return receivedOn;
 };
+
+/** A week and a day: a Friday count missed, and the Saturday gone by without it. */
+export const STORE_COUNT_LATE_DAYS = 8;
+
+/**
+ * When the store was last counted, for the Owner's home when it has not been for longer than a week and a day — a
+ * count retired, never adopted, or simply not made. Nothing when it was counted lately, or when the farm keeps no feed
+ * to count.
+ */
+export const storeCountLate = async (
+  db: Pick<Database, "query"> | Tx,
+  farmId: string,
+  now: Date
+): Promise<{ lastCountedAt: Date | null } | null> => {
+  const [kept, last] = await Promise.all([
+    db.query.feedItem.findFirst({
+      where: { farmId, retiredAt: { isNull: true } },
+      columns: { id: true },
+    }),
+    db.query.stockCount.findFirst({
+      where: { farmId },
+      columns: { countedAt: true },
+      orderBy: { countedAt: "desc" },
+    }),
+  ]);
+  if (!kept) {
+    return null;
+  }
+  const lateFrom = now.getTime() - STORE_COUNT_LATE_DAYS * 24 * 60 * 60 * 1000;
+  if (last && last.countedAt.getTime() > lateFrom) {
+    return null;
+  }
+  return { lastCountedAt: last?.countedAt ?? null };
+};
