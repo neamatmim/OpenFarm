@@ -313,6 +313,12 @@ export const STANDARD_DRUGS = {
   hs: { bn: "গলাফোলা রোগের টিকা", en: "Haemorrhagic septicaemia (HS) vaccine" },
   bq: { bn: "বাদলা রোগের টিকা", en: "Black quarter (BQ) vaccine" },
   anthrax: { bn: "তড়কা রোগের টিকা", en: "Anthrax vaccine" },
+  // For the calf's roundworm, Toxocara vitulorum: 97% in trials, where piperazine cleared 42–57%
+  // (docs/research/newborn-calf-care.md §5). The Vet may name another.
+  pyrantel: {
+    bn: "পাইরান্টেল (বাছুরের গোল কৃমি)",
+    en: "Pyrantel (calf roundworm)",
+  },
   cypermethrin: {
     bn: "সাইপারমেথ্রিন স্প্রে (আঁটুলি ও মাছি)",
     en: "Cypermethrin spray (ticks and flies)",
@@ -333,6 +339,7 @@ export const STANDARD_DRUG_FOR: Record<
   bqVaccine: "bq",
   anthraxVaccine: "anthrax",
   tickSpray: "cypermethrin",
+  calfDewormer: "pyrantel",
 };
 
 /** The diseases a farm must report to the Upazila Livestock Office. */

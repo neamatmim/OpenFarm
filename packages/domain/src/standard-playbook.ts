@@ -1212,6 +1212,116 @@ const weaning = (weanedBullPenId: string | undefined): SopContent => ({
   ],
 });
 
+// ── The calf's doses ────────────────────────────────────────────────────────────────────────────────────────────────
+//
+// Counted from her arrival, which for a calf born here is her birth. Ages from the DLS National Guidelines on Good
+// Livestock Production Practices (June 2023) Appendix 31, and the worming from Roberts (1989, 1992) on _Toxocara
+// vitulorum_, which reaches a calf in her dam's milk for about nine days — docs/research/newborn-calf-care.md §5–6.
+// Each waits for the product the Vet names, with its withdrawal days, before it can be adopted. Brucellosis (heifer
+// calves, four to eight months) is left out: a procedure cannot yet be told "heifers only".
+
+/** Wormed at two weeks, once the worm has stopped coming in the milk (Roberts: 10–16 days). DLS Appendix 35 gives
+ *  piperazine at 5–6 days, which is earlier than the infection ends and the weakest drug in trials; the Vet chooses. */
+const CALF_DEWORM_AFTER_DAYS = 14;
+/** FMD and anthrax from four months (NG-GLPP Appendix 31). */
+const CALF_FIRST_VACCINES_AFTER_DAYS = 120;
+/** The FMD booster a month after the first dose (NG-GLPP Appendix 31); six-monthly after that is the herd's campaign. */
+const CALF_FMD_BOOSTER_AFTER_DAYS = 150;
+/** HS and BQ from six months (NG-GLPP Appendix 31). */
+const CALF_HS_BQ_AFTER_DAYS = 180;
+
+/** Every calf and young heifer, however far along she is, and never a bought bull. */
+const CALVES_AND_HEIFERS = {
+  side: "dairy",
+  states: ["calf", "heifer"],
+} as const satisfies SopContent["appliesTo"];
+
+/** A dose given to each calf on her own day. */
+const herDose = (
+  productId: string | undefined,
+  bn: string,
+  en: string,
+  purpose: { bn: string; en: string },
+  afterDays: number
+): SopContent => ({
+  ...hisDose(productId, bn, en, purpose, afterDays),
+  appliesTo: CALVES_AND_HEIFERS,
+});
+
+const calfDeworming = (productId: string | undefined): SopContent => ({
+  ...hisDrench(
+    productId,
+    "বাছুরের কৃমিনাশক",
+    "Calf deworming",
+    {
+      bn: "দুই সপ্তাহ বয়সে বাছুরকে ওজন অনুযায়ী গোল কৃমির ওষুধ খাওয়ান — মায়ের দুধ দিয়ে কৃমি আসে প্রায় নয় দিন পর্যন্ত",
+      en: "At two weeks, drench the calf by weight for roundworm — it reaches her in her dam's milk for about nine days",
+    },
+    CALF_DEWORM_AFTER_DAYS
+  ),
+  appliesTo: CALVES_AND_HEIFERS,
+});
+
+const calfFmd = (productId: string | undefined): SopContent =>
+  herDose(
+    productId,
+    "বাছুরের ক্ষুরা রোগের টিকা",
+    "Calf FMD vaccination",
+    {
+      bn: "চার মাস বয়সে প্রথম ক্ষুরা রোগের টিকা; এক মাস পরে বুস্টার",
+      en: "The first FMD dose at four months; a booster a month later",
+    },
+    CALF_FIRST_VACCINES_AFTER_DAYS
+  );
+
+const calfFmdBooster = (productId: string | undefined): SopContent =>
+  herDose(
+    productId,
+    "বাছুরের ক্ষুরা রোগের বুস্টার",
+    "Calf FMD booster",
+    {
+      bn: "প্রথম ডোজের এক মাস পরে ক্ষুরা রোগের বুস্টার; তারপর খামারের ছয় মাস অন্তর টিকায়",
+      en: "The FMD booster a month after the first dose; after that, the herd's six-monthly round",
+    },
+    CALF_FMD_BOOSTER_AFTER_DAYS
+  );
+
+const calfAnthrax = (productId: string | undefined): SopContent =>
+  herDose(
+    productId,
+    "বাছুরের তড়কা রোগের টিকা",
+    "Calf anthrax vaccination",
+    {
+      bn: "চার মাস বয়সে তড়কার টিকা, যেখানে তড়কা হয় — টিকার পর এক সপ্তাহ কোনো অ্যান্টিবায়োটিক নয়",
+      en: "Anthrax at four months, where it occurs — no antibiotic for a week after it",
+    },
+    CALF_FIRST_VACCINES_AFTER_DAYS
+  );
+
+const calfHs = (productId: string | undefined): SopContent =>
+  herDose(
+    productId,
+    "বাছুরের গলাফোলা রোগের টিকা",
+    "Calf HS vaccination",
+    {
+      bn: "ছয় মাস বয়সে গলাফোলার টিকা; তারপর প্রতি বছর",
+      en: "Haemorrhagic septicaemia at six months; then every year",
+    },
+    CALF_HS_BQ_AFTER_DAYS
+  );
+
+const calfBq = (productId: string | undefined): SopContent =>
+  herDose(
+    productId,
+    "বাছুরের বাদলা রোগের টিকা",
+    "Calf BQ vaccination",
+    {
+      bn: "ছয় মাস বয়সে বাদলার টিকা; তারপর প্রতি বছর",
+      en: "Black quarter at six months; then every year",
+    },
+    CALF_HS_BQ_AFTER_DAYS
+  );
+
 export type PlaybookKey =
   | "morningMilking"
   | "eveningMilking"
@@ -1225,6 +1335,12 @@ export type PlaybookKey =
   | "newbornCalfCare"
   | "newbornSecondFeed"
   | "weaning"
+  | "calfDeworming"
+  | "calfFmd"
+  | "calfFmdBooster"
+  | "calfAnthrax"
+  | "calfHs"
+  | "calfBq"
   | "weighIn"
   | "fmdVaccination"
   | "lsdVaccination"
@@ -1253,6 +1369,7 @@ export type PlaybookKey =
 export type StandardSopNeed =
   | "calvingPen"
   | "weanedBullPen"
+  | "calfDewormer"
   | "fmdVaccine"
   | "lsdVaccine"
   | "dewormer"
@@ -1266,6 +1383,12 @@ export const STANDARD_SOP_NEEDS: Partial<Record<PlaybookKey, StandardSopNeed>> =
   {
     calvingPrep: "calvingPen",
     weaning: "weanedBullPen",
+    calfDeworming: "calfDewormer",
+    calfFmd: "fmdVaccine",
+    calfFmdBooster: "fmdVaccine",
+    calfAnthrax: "anthraxVaccine",
+    calfHs: "hsVaccine",
+    calfBq: "bqVaccine",
     fmdVaccination: "fmdVaccine",
     lsdVaccination: "lsdVaccine",
     deworming: "dewormer",
@@ -1311,6 +1434,12 @@ export const standardPlaybook = (
   newbornCalfCare: newbornCalfCare(),
   newbornSecondFeed: newbornSecondFeed(),
   weaning: weaning(chosen.weanedBullPen),
+  calfDeworming: calfDeworming(chosen.calfDewormer),
+  calfFmd: calfFmd(chosen.fmdVaccine),
+  calfFmdBooster: calfFmdBooster(chosen.fmdVaccine),
+  calfAnthrax: calfAnthrax(chosen.anthraxVaccine),
+  calfHs: calfHs(chosen.hsVaccine),
+  calfBq: calfBq(chosen.bqVaccine),
   weighIn: weighIn(),
   fmdVaccination: vaccination(
     chosen.fmdVaccine,

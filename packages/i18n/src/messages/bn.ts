@@ -2157,6 +2157,7 @@ export const bn: Record<MessageKey, string> = {
     "OpenFarm-এর দেওয়া কার্যপ্রণালী, শুরু করার জন্য। আপনি পড়ে প্রকাশ না করা পর্যন্ত কোনোটিই কাজ তোলে না।",
   "sop.standard.adopt": "পড়ে প্রকাশ করুন",
   "sop.standard.need.weanedBullPen": "দুধ ছাড়ানো এঁড়ে বাছুর যে মোটাতাজাকরণ পেনে যাবে",
+  "sop.standard.need.calfDewormer": "বাছুরের কৃমিনাশক",
   "sop.standard.need.calvingPen": "প্রসব পেন",
   "sop.standard.need.fmdVaccine": "এফএমডি টিকা",
   "sop.standard.need.lsdVaccine": "লাম্পি স্কিন টিকা",

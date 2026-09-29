@@ -26,6 +26,7 @@ const NAMED = {
   bqVaccine: "product-bq",
   anthraxVaccine: "product-anthrax",
   tickSpray: "product-spray",
+  calfDewormer: "product-pyrantel",
 } as const;
 
 describe("the Standard Playbook", () => {
