@@ -363,8 +363,18 @@ export const splitList = (value: string): string[] =>
     .map((part) => part.trim())
     .filter(Boolean);
 
-export const toBilingualList = (value: string): Bilingual[] =>
-  splitList(value).map((bn) => ({ bn }));
+/**
+ * Skip reasons, as the Owner types them: a comma-separated list in Bangla. A reason still in the list keeps what it
+ * had — its English, and what it means to the farm — so rewording the others does not quietly stop "Animal not found"
+ * opening a Missing.
+ */
+export const toBilingualList = <Reason extends Bilingual>(
+  value: string,
+  existing: readonly Reason[] = []
+): (Reason | Bilingual)[] =>
+  splitList(value).map(
+    (bn) => existing.find((before) => before.bn === bn) ?? { bn }
+  );
 
 export const fromBilingualList = (values: Bilingual[]): string =>
   values.map((value) => value.bn).join(", ");

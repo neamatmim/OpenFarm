@@ -5,6 +5,7 @@ import { HEAT } from "@OpenFarm/domain";
 
 import type { Trail, Tx } from "../audit";
 import { callOffWorkRaisedBy } from "../herd-store";
+import { openMissing, takeBackMissingOpenedBy } from "../missing-store";
 import { heatKeyOf } from "../work-cause";
 import type { EffectInput, EffectKind, EffectResult } from "./effect";
 import { asPublished, choiceIn } from "./evidence";
@@ -16,6 +17,7 @@ type ObservationFacts = Pick<
   | "animalId"
   | "evidence"
   | "skipped"
+  | "skippedAs"
   | "completionId"
   | "recordedBy"
   | "recordedAt"
@@ -59,6 +61,18 @@ const recordWhatWasSeen = async (
     where: { completionId: input.completionId, withdrawnAt: { isNull: true } },
     columns: { id: true, saw: true },
   });
+
+  // Not found opens a Missing; anything else this Step now says — she was seen, or passed as well — means the round
+  // found her after all, and a Missing it opened is taken back.
+  await (input.skippedAs === "not_found"
+    ? openMissing(tx, {
+        farmId: input.instance.farmId,
+        animalId: asPublished(input.animalId, "the animal that was looked for"),
+        completionId: input.completionId,
+        since: input.recordedAt,
+        now: input.now,
+      })
+    : takeBackMissingOpenedBy(tx, input.completionId));
 
   if (input.skipped) {
     if (standing) {

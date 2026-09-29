@@ -154,6 +154,7 @@ const WORDED_REFUSALS = {
   paid_more_than_owed: "refusal.paidMoreThanOwed",
   no_such_buyer: "refusal.noSuchBuyer",
   a_bull_calf_is_no_heifer: "refusal.aBullCalfIsNoHeifer",
+  not_missing: "refusal.notMissing",
   written_off_more_than_owed: "refusal.writtenOffMoreThanOwed",
   nothing_owed_on_it: "refusal.nothingOwedOnIt",
   venture_owns_her: "refusal.ventureOwnsHer",

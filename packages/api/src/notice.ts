@@ -129,6 +129,12 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
     audience: [{ roles: ["owner", "manager"] }],
     entity: "baki",
   },
+  // The Manager walks the farm for her; the Owner answers for an animal gone, and a Venture's is Investors' money. Each
+  // Missing told once, however many mornings the round cannot find her.
+  animal_missing: {
+    audience: [{ roles: ["owner", "manager"] }],
+    entity: "missing",
+  },
 };
 
 /** A Notice as it was raised, for whoever carries it out of the transaction to a pocket. */

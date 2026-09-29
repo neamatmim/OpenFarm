@@ -125,6 +125,7 @@ const EXAMPLE: NoticeFacts = {
     owingBdt: 20_000,
     overdueFrom: "2038-03-09",
   },
+  animal_missing: { tag: "F-0012", pen: "ষাঁড় পেন ক", since: "2038-03-09" },
 };
 
 const LANGUAGES: readonly Language[] = ["bn", "en"];

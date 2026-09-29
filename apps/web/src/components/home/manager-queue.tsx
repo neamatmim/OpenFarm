@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   Gavel,
   HandCoins,
+  MapPinOff,
   HeartPulse,
   Milk,
   ShieldAlert,
@@ -16,6 +17,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 import { BakiOverdueGroup } from "@/components/home/baki-overdue";
+import { MissingAnimalsGroup } from "@/components/home/missing-animals";
 import { MonthlyCostsGroup } from "@/components/home/monthly-costs";
 import {
   MORE_LINK,
@@ -102,6 +104,7 @@ const ReviewRow = ({
 /** The kinds of thing waiting for the Manager, loudest first: the order the tabs read in, and the first one that has
  *  anything is the one the page opens on. */
 export const QUEUE_KINDS = [
+  "missing",
   "overdue",
   "signOff",
   "review",
@@ -116,6 +119,8 @@ export type QueueKind = (typeof QUEUE_KINDS)[number];
 
 /** How many of each kind wait — none for a kind an answer the phone kept from before does not carry. */
 const countsOf = (queue: ManagerQueueData): Record<QueueKind, number> => ({
+  // Missing from an answer a phone kept from before a Missing was written down.
+  missing: queue.missing?.length ?? 0,
   overdue: queue.overdue.length,
   signOff: queue.signOff.length,
   review: queue.needsReview.length,
@@ -322,6 +327,11 @@ const QueueKindList = ({
         <BakiOverdueGroup buyers={queue.bakiOverdue} headless={headless} />
       );
     }
+    case "missing": {
+      return (
+        <MissingAnimalsGroup animals={queue.missing} headless={headless} />
+      );
+    }
     case "repeatBreeders": {
       return (
         <QueueGroup
@@ -358,6 +368,7 @@ export const ManagerQueue = ({
   const { t } = useLanguage();
   const counts = countsOf(queue);
   const LABEL: Record<QueueKind, { label: string; icon: LucideIcon }> = {
+    missing: { label: t("home.missing"), icon: MapPinOff },
     overdue: { label: t("home.overdue"), icon: AlarmClock },
     signOff: { label: t("home.signOff"), icon: ClipboardCheck },
     review: { label: t("home.needsReview"), icon: Gavel },

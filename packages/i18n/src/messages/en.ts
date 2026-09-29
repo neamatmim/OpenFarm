@@ -4661,6 +4661,20 @@ export const en = {
   "money.refundedHint": "When a Venture was cancelled",
   "units.kg": "{kg} kg",
   "units.kgADay": "{kg} kg a day",
+  "alerts.animalMissing": "{tag} was not found on the round in {pen}, {since}",
+  "push.animalMissingTitle": "Animal not found",
+  "push.animalMissingBody":
+    "{tag} was not found in {pen}. Walk the farm, and mark {tag} found when you find it.",
+  "digest.animalMissing":
+    "{count, plural, one {# animal} other {# animals}} not found on the round",
+  "home.missing": "Not found",
+  "home.missingWhere": "{pen}, since {day}",
+  "animals.missing": "Not found on the round in {pen} since {day}",
+  "animals.missingHint":
+    "Walk the farm, and mark this animal found here when you find it.",
+  "animals.found": "Mark found",
+  "animals.foundDone": "{tag} marked found",
+  "refusal.notMissing": "This animal is not missing: nobody is looking for it",
 } as const;
 
 export type MessageKey = keyof typeof en;

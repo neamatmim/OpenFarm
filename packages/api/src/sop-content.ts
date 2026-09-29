@@ -4,6 +4,7 @@ import {
   MAX_GRACE_MINUTES,
   ROLES,
   SIDES,
+  SKIP_MEANINGS,
   STEP_EFFECT_KINDS,
 } from "@OpenFarm/domain";
 import type { SopContent } from "@OpenFarm/domain";
@@ -52,7 +53,9 @@ const step = z.object({
   text: bilingual,
   repeatPerAnimal: z.boolean().default(false),
   evidence: z.array(evidence),
-  skipReasons: z.array(bilingual).default([]),
+  skipReasons: z
+    .array(bilingual.extend({ means: z.enum(SKIP_MEANINGS).optional() }))
+    .default([]),
   /** What completing the Step writes into the farm's records beyond the Evidence itself. */
   effect: z
     .object({

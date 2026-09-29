@@ -24,6 +24,7 @@ import {
   penLabel,
   workAwaitingSignOff,
 } from "../instances-store";
+import { missingNow } from "../missing-store";
 import { monthByMonth } from "../month-store";
 import { monthlyCostsNow } from "../monthly-costs-store";
 import { renewalDue } from "../registration-store";
@@ -77,6 +78,7 @@ export const homeRouter = {
         lowStock,
         monthlyCosts,
         bakiOverdue,
+        missing,
       ] = await Promise.all([
         findLate(
           context.db,
@@ -109,6 +111,8 @@ export const homeRouter = {
         monthlyCostsNow(context.db, context.farm, now),
         // Buyers whose Baki has gone past its day: the Manager rings them.
         overdueBaki(context.db, context.farm, farmDayOf(now)),
+        // Animals the round could not find: the Manager walks the farm for them, and marks them Found.
+        missingNow(context.db, farmId),
       ]);
 
       const underWithdrawal = animals;
@@ -166,6 +170,7 @@ export const homeRouter = {
           lowStock,
           monthlyCosts,
           bakiOverdue: bakiOverdue.slice(0, QUEUE_LIMIT),
+          missing: missing.slice(0, QUEUE_LIMIT),
           // Latest first and bounded, the way the Overdue screen itself reads: a Manager
           // opening this in a shed is handed the work that has waited longest, not a year
           // of it in whatever order the database found it.
@@ -270,6 +275,7 @@ export const homeRouter = {
         moneyAwaiting,
         monthlyCosts,
         bakiOverdue,
+        missing,
       ] = await Promise.all([
         findLate(
           context.db,
@@ -344,6 +350,8 @@ export const homeRouter = {
         monthlyCostsNow(context.db, context.farm, now),
         // Buyers whose Baki has gone past its day, and whether any was sold to on Baki again while late.
         overdueBaki(context.db, context.farm, farmDayOf(now)),
+        // Animals the round could not find: the Owner hears of each at once, and sees them here until found.
+        missingNow(context.db, farmId),
       ]);
 
       // A day of the farm's milk is every Pen's Sessions on that day added together, which
@@ -423,6 +431,8 @@ export const homeRouter = {
           })),
           monthlyCosts,
           bakiOverdue: bakiOverdue.slice(0, QUEUE_LIMIT),
+          /** Animals the round could not find, until the Manager marks them Found. */
+          missing: missing.slice(0, QUEUE_LIMIT),
           /** The Registration coming up for renewal, or run out, and the work raised for it. */
           registrationRenewal: await renewalDue(context.db, context.farm, now),
         },
