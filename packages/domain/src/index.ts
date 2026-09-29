@@ -108,6 +108,7 @@ export type {
 export {
   FEWEST_FOR_A_FIGURE,
   GAIN_GROUPS,
+  PEN_NEEDS_GAINS,
   GAIN_STANDINGS,
   SETTLING_IN_DAYS,
   expectedGainFor,
@@ -115,6 +116,9 @@ export {
   findExpectedGainProblems,
   gainGroupOf,
   gainOverStayOf,
+  gainShareOf,
+  isUnderPenmates,
+  penShareOf,
   gainingBandFor,
   grownWeightFor,
   gainCountsFrom,

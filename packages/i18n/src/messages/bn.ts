@@ -1618,6 +1618,7 @@ export const bn: Record<MessageKey, string> = {
   "params.gainReadDays": "রেশনের সাথে ষাঁড়ের বৃদ্ধি মেলানো হবে অন্তত এত দিনের ওজনে",
   "params.deshiGainPercent": "দেশি পশু মাপা হবে রেশনের প্রত্যাশিত বৃদ্ধির এত ভাগে",
   "params.femaleGainPercent": "গাভী বা বকনা মাপা হবে তার এত ভাগে",
+  "params.penGainPercent": "পেনের সঙ্গীদের এত ভাগের কম বাড়লে দেখানো হবে",
   "params.renewalLead": "DLS নিবন্ধন শেষ হওয়ার আগে জানান",
   "params.minutes": "মিনিট",
   "params.hours": "ঘণ্টা",
@@ -2453,6 +2454,9 @@ export const bn: Record<MessageKey, string> = {
   "standards.deshi": "দেশি পশু",
   "standards.female": "গাভী ও বকনা",
   "standards.shareSet": "রেশনের প্রত্যাশিত বৃদ্ধির {percent}% — আপনার ঠিক করা",
+  "standards.penmates": "পেনের সঙ্গীদের চেয়ে পিছিয়ে",
+  "standards.penmatesRule":
+    "পেনের মাঝামাঝি বৃদ্ধির {percent}%-এর কম, পেনে {count}টি পশুর ওজন মাপা হলে — আপনার ঠিক করা",
   "standards.ownFigures": "আপনার নিজের সংখ্যা",
   "standards.ownFiguresFrom": "একই ধরনের {count}টি পশুর বৃদ্ধি মাপা হলে দেখানো হয়",
   "standards.group.bangladesh": "বাংলাদেশের",
@@ -2472,10 +2476,14 @@ export const bn: Record<MessageKey, string> = {
     "{ration}-এ আপনার দেশি ষাঁড় সংকর ষাঁড়ের {percent}% বেড়েছে।",
   "farmGains.femaleShare":
     "{ration}-এ আপনার গাভী ও বকনা সংকর ষাঁড়ের {percent}% বেড়েছে।",
-  "gainOnRation.title": "রেশনে যতটা বাড়ার কথা তার চেয়ে কম বাড়ছে",
+  "gainOnRation.title": "যতটা বাড়ার কথা তার চেয়ে কম বাড়ছে",
   "gainOnRation.hint":
-    "অন্তত গত {days} দিনের ওজনে এরা পেনের রেশনে যতটা বাড়ার কথা তার চেয়ে কম বেড়েছে, বা ওজন কমেছে। প্রত্যেককে দেখুন: কৃমি বা কলিজা কৃমি, দাঁত, পা, অথবা চাড়িতে সে তার ভাগের খাবার পাচ্ছে কি না।",
+    "অন্তত গত {days} দিনের ওজনে এরা পেনের রেশনে যতটা বাড়ার কথা তার চেয়ে কম বেড়েছে, ওজন কমেছে, বা পেনের সঙ্গীদের চেয়ে অনেক পিছিয়ে পড়েছে। প্রত্যেককে দেখুন: কৃমি বা কলিজা কৃমি, দাঁত, পা, অথবা চাড়িতে সে তার ভাগের খাবার পাচ্ছে কি না।",
   "gainOnRation.losing": "ওজন কমছে",
+  "gainOnRation.underPenmates": "পেনের সঙ্গীদের চেয়ে পিছিয়ে",
+  "gainOnRation.penmates":
+    "পেনের সঙ্গীদের মাঝামাঝি, তার মতো পশুর জন্য: {gain} ({count}টি)",
+  "gainOnRation.penmatesShort": "সঙ্গীরা {gain}",
   "gainOnRation.under": "রেশনের চেয়ে কম",
   "gainOnRation.within": "রেশন অনুযায়ী",
   "gainOnRation.over": "রেশনের চেয়ে বেশি",

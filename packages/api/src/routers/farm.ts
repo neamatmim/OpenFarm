@@ -75,6 +75,9 @@ const parameters = z
      *  the Ration is written for, and not so far under it that a bull gaining nothing still looks fine. */
     deshiGainPercent: z.number().int().min(30).max(100).optional(),
     femaleGainPercent: z.number().int().min(30).max(100).optional(),
+    /** Under what share of her penmates' middle gain a fattening animal is pointed out: under half would miss nearly
+     *  every slow one, and at the whole half of every Pen would be. */
+    penGainPercent: z.number().int().min(50).max(95).optional(),
     /** The AI window after a Heat, in hours. */
     aiWindowStartHours: z.number().int().min(0).max(72).optional(),
     aiWindowEndHours: z.number().int().min(1).max(96).optional(),
@@ -715,6 +718,7 @@ export const farmRouter = {
                 gainReadDays: true,
                 deshiGainPercent: true,
                 femaleGainPercent: true,
+                penGainPercent: true,
                 aiWindowStartHours: true,
                 aiWindowEndHours: true,
                 pregnancyCheckAfterDays: true,

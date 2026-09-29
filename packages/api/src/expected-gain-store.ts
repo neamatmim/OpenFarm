@@ -18,14 +18,18 @@ import {
   farmDayOf,
   farmDaysApart,
   farmGainFigureOf,
-  gainGroupOf,
-  gainOverStayOf,
-  grownWeightFor,
-  penSpellsOf,
   gainCountsFrom,
+  gainGroupOf,
   gainOnRationOf,
+  gainOverStayOf,
+  gainShareOf,
   gainStandingOf,
+  groupedBy,
+  grownWeightFor,
   isShortOfExpected,
+  isUnderPenmates,
+  penShareOf,
+  penSpellsOf,
 } from "@OpenFarm/domain";
 
 import { hasBand } from "./band-store";
@@ -61,6 +65,11 @@ export interface AgainstExpectedGain {
    *  band weigh her. Its Expected Gain is not hers to be judged by: moving her is the answer, and the Pens that suit
    *  her are on the list of the animals in the wrong Pen. */
   outsideBand: boolean;
+  /** What her penmates gain, as the middle of the Pen said for an animal like her, and how many it is the middle of;
+   *  nothing while the Pen has too few animals with a gain to be a group. */
+  penmates: { middleKg: number; animals: number } | null;
+  /** Gaining under the farm's share of that. */
+  underPenmates: boolean;
 }
 
 /** Every Pen on a Ration in use that has an Expected Gain, by Pen. */
@@ -114,12 +123,64 @@ const pensOnGainingRations = async (
   return pens;
 };
 
+/** One animal judged against her Ration, before she is set beside her penmates. */
+type Judged = Omit<AgainstExpectedGain, "penmates" | "underPenmates">;
+
+/** Rates carry a decimal more than kilogrammes do, as the board's do. */
+const RATE_SCALE = 100;
+
+/** A rate kept to the hundredth, as the board shows one. */
+const toRate = (kg: number) => Math.round(kg * RATE_SCALE) / RATE_SCALE;
+
+/** Her gain as a share of what her own Ration should give her; nothing when she is not judged on it. */
+const shareOf = (one: Judged): number | null =>
+  one.gain && one.standing !== null
+    ? gainShareOf(one.gain.dailyGainKg, one.expectedGain)
+    : null;
+
+/**
+ * Each animal set beside her penmates: the middle of her Pen's gains — each as a share of what its own Ration should
+ * give it, among the animals judged on their Ration at all — and whether she is under the farm's share of it.
+ */
+const againstPenmates = (
+  judged: readonly Judged[],
+  percent: number
+): AgainstExpectedGain[] => {
+  const byPen = groupedBy(judged, (one) => one.pen.penId);
+  return judged.map((one) => {
+    const shares = (byPen.get(one.pen.penId) ?? []).flatMap((other) => {
+      const share = shareOf(other);
+      return share === null ? [] : [share];
+    });
+    const penShare = penShareOf(shares);
+    const share = shareOf(one);
+    return {
+      ...one,
+      penmates:
+        penShare === null
+          ? null
+          : {
+              middleKg: toRate(
+                (penShare *
+                  (one.expectedGain.lowKg + one.expectedGain.highKg)) /
+                  2
+              ),
+              animals: shares.length,
+            },
+      underPenmates:
+        share !== null && isUnderPenmates(share, penShare, percent),
+    };
+  });
+};
+
 /** What the farm reads a gain by: over how many days, and the shares a deshi animal and a female are judged at. */
 export interface GainReadingFarm {
   id: string;
   gainReadDays: number;
   deshiGainPercent: number;
   femaleGainPercent: number;
+  /** Under what share of her penmates' middle she is pointed out. */
+  penGainPercent: number;
 }
 
 /**
@@ -129,7 +190,7 @@ export interface GainReadingFarm {
  * the Pen put on it — because the Ration she ate before is not this one's to answer for. One weighed outside the
  * Ration's band is not judged by it at all: what it should put on a bull its size is not what it should put on her.
  * The Ration's figures are a crossbred bull's; a deshi animal, or a cow or heifer, is judged against the farm's share
- * of them, and one nobody wrote a breed for as a cross.
+ * of them, and one nobody wrote a breed for as a cross. Each is then set beside her penmates (`againstPenmates`).
  */
 export const againstExpectedGains = async (
   db: Pick<Database, "query">,
@@ -165,7 +226,7 @@ export const againstExpectedGains = async (
       },
     },
   });
-  return animals.flatMap((one): AgainstExpectedGain[] => {
+  const judged = animals.flatMap((one): Judged[] => {
     const placed = pens.get(one.penId);
     if (!placed) {
       return [];
@@ -211,6 +272,7 @@ export const againstExpectedGains = async (
       },
     ];
   });
+  return againstPenmates(judged, farm.penGainPercent);
 };
 
 /** How far under the low end of his own range a bull is, as a share of it: the furthest behind first. */
@@ -218,8 +280,9 @@ const shortfallOf = ({ gain, expectedGain }: AgainstExpectedGain): number =>
   (gain?.dailyGainKg ?? 0) / expectedGain.lowKg;
 
 /**
- * The fattening animals gaining under what their Pen's Ration is written to put on them, or losing weight: the losing
- * first, because a bull going backwards is ill or not eating, then the furthest under, then by tag.
+ * The fattening animals gaining under what their Pen's Ration is written to put on them, or losing weight, or gaining
+ * under the farm's share of their penmates: the losing first, because a bull going backwards is ill or not eating,
+ * then the furthest under, then by tag.
  */
 export const underExpectedGains = async (
   db: Pick<Database, "query">,
@@ -227,7 +290,11 @@ export const underExpectedGains = async (
 ): Promise<AgainstExpectedGain[]> => {
   const all = await againstExpectedGains(db, farm);
   return all
-    .filter((one) => one.standing !== null && isShortOfExpected(one.standing))
+    .filter(
+      (one) =>
+        (one.standing !== null && isShortOfExpected(one.standing)) ||
+        one.underPenmates
+    )
     .toSorted(
       (a, b) =>
         Number(b.standing === "losing") - Number(a.standing === "losing") ||
