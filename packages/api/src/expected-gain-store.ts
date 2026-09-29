@@ -4,18 +4,23 @@ import type {
   GainAdjustment,
   GainOnRation,
   GainStanding,
+  GainingBand,
   WeightBand,
 } from "@OpenFarm/domain";
 import {
   EXIT_STATES,
   bandStanding,
   expectedGainFor,
+  farmDayOf,
+  farmDaysApart,
+  grownWeightFor,
   gainCountsFrom,
   gainOnRationOf,
   gainStandingOf,
   isShortOfExpected,
 } from "@OpenFarm/domain";
 
+import { hasBand } from "./band-store";
 import { bandOf, expectedGainOf, weighedAs } from "./feed-store";
 
 /** A Pen, the Ration it is on, and what that Ration is written to put on the animals that eat it. */
@@ -102,7 +107,7 @@ const pensOnGainingRations = async (
 };
 
 /** What the farm reads a gain by: over how many days, and the shares a deshi animal and a female are judged at. */
-interface GainReadingFarm {
+export interface GainReadingFarm {
   id: string;
   gainReadDays: number;
   deshiGainPercent: number;
@@ -221,4 +226,76 @@ export const underExpectedGains = async (
         shortfallOf(a) - shortfallOf(b) ||
         a.tagNumber.localeCompare(b.tagNumber)
     );
+};
+
+/**
+ * The farm's Rations in use that say both who they are for and what they should put on them, lightest band first: the
+ * ladder a bull climbs as he grows. A Ration with no band, or no Expected Gain, is no rung of it.
+ */
+export const gainingBandsOf = async (
+  db: Pick<Database, "query">,
+  farmId: string
+): Promise<GainingBand[]> => {
+  const rations = await db.query.ration.findMany({
+    where: {
+      farmId,
+      retiredAt: { isNull: true },
+      expectedGainLowKg: { isNotNull: true },
+      expectedGainHighKg: { isNotNull: true },
+    },
+    orderBy: { weightFromKg: "asc", nameBn: "asc", id: "asc" },
+    columns: {
+      weightFromKg: true,
+      weightToKg: true,
+      expectedGainLowKg: true,
+      expectedGainHighKg: true,
+    },
+  });
+  return rations.flatMap((one): GainingBand[] => {
+    const band = bandOf(one);
+    const expectedGain = expectedGainOf(one);
+    return expectedGain && hasBand(band) ? [{ band, expectedGain }] : [];
+  });
+};
+
+/**
+ * What a bull taken in today should weigh when his Target Window opens, low and high: what he weighed when he came,
+ * grown at the farm's Rations' Expected Gains for his breed and sex (`grownWeightFor`). The low end is the target he is
+ * fed towards unless somebody says otherwise (the Owner's choice, 2026-09-29): a bull gaining what his Rations should
+ * give him just makes it, the same line the list of the ones gaining under their Ration draws. Nothing when no Ration
+ * on the farm says what a bull his weight should gain.
+ */
+export const suggestedTargetOf = async (
+  db: Pick<Database, "query">,
+  farm: GainReadingFarm,
+  bull: {
+    weightKg: number;
+    arrivedAt: Date;
+    sex: "male" | "female";
+    breedId?: string;
+    /** The first day of his Target Window. */
+    windowStart: string;
+  }
+): Promise<{ lowKg: number; highKg: number; days: number } | null> => {
+  const [rungs, breed] = await Promise.all([
+    gainingBandsOf(db, farm.id),
+    bull.breedId
+      ? db.query.breed.findFirst({
+          where: { id: bull.breedId, farmId: farm.id },
+          columns: { deshi: true },
+        })
+      : null,
+  ]);
+  const days = farmDaysApart(farmDayOf(bull.arrivedAt), bull.windowStart);
+  const grown = grownWeightFor(
+    bull.weightKg,
+    days,
+    rungs,
+    { deshi: breed?.deshi ?? null, sex: bull.sex },
+    {
+      deshiPercent: farm.deshiGainPercent,
+      femalePercent: farm.femaleGainPercent,
+    }
+  );
+  return grown ? { ...grown, days } : null;
 };

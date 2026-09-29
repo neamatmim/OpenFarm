@@ -99,6 +99,7 @@ export type {
   ExpectedGain,
   GainAdjustment,
   GainOnRation,
+  GainingBand,
   GainShares,
   GainStanding,
 } from "./expected-gain";
@@ -107,6 +108,8 @@ export {
   SETTLING_IN_DAYS,
   expectedGainFor,
   findExpectedGainProblems,
+  gainingBandFor,
+  grownWeightFor,
   gainCountsFrom,
   gainOnRationOf,
   gainStandingOf,

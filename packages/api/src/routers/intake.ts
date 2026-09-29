@@ -10,6 +10,7 @@ import { correct } from "../corrections/correction";
 import { intakeCorrection, intakeCorrectionInput } from "../corrections/intake";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmsNextEid } from "../eid-store";
+import { suggestedTargetOf } from "../expected-gain-store";
 import { farmDay } from "../farm-clock";
 import { insertAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
@@ -96,6 +97,42 @@ export const intakeRouter = {
     ),
 
   /**
+   * What a bull being taken in should weigh when his Target Window opens, low and high, from the farm's Rations'
+   * Expected Gains for his weight, breed and sex — for the intake form to show before it is sent, and what is saved
+   * when nobody types a target of their own. The window is the one intake would give him: the next Eid-ul-Adha unless
+   * one is named. Nothing when no Ration says what a bull his weight should gain, or the farm has no Eid that far ahead.
+   */
+  suggestTarget: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(
+      z.object({
+        weightKg: weight,
+        sex: z.enum(SEXES),
+        breedId: z.string().optional(),
+        targetWindowStart: farmDay.optional(),
+        arrivedAt: z.coerce.date().optional(),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const nextEid = input.targetWindowStart
+        ? null
+        : await farmsNextEid(context.db, context.farm.id, farmDayOf(now));
+      const windowStart = input.targetWindowStart ?? nextEid?.start;
+      if (!windowStart) {
+        return null;
+      }
+      const suggested = await suggestedTargetOf(context.db, context.farm, {
+        weightKg: input.weightKg,
+        arrivedAt: input.arrivedAt ?? now,
+        sex: input.sex,
+        breedId: input.breedId,
+        windowStart,
+      });
+      return suggested ? { ...suggested, windowStart } : null;
+    }),
+
+  /**
    * Takes a bought-in animal in on the Fattening side.
    *
    * The Manager's or the Owner's: the Owner may do anything the Manager does (the Owner,
@@ -128,6 +165,22 @@ export const intakeRouter = {
           data: { refusal: "no_eid_ahead" },
         });
       }
+      // What she is fed towards: the Manager's own figure, else what the farm's Rations say she should weigh when her
+      // window opens — the low end — else, where no Ration says what a bull her weight should gain, the farm's own.
+      const suggested =
+        input.targetWeightKg === undefined
+          ? await suggestedTargetOf(context.db, context.farm, {
+              weightKg: input.weightKg,
+              arrivedAt,
+              sex: input.sex,
+              breedId: input.breedId,
+              windowStart: window.start,
+            })
+          : null;
+      const targetWeightKg =
+        input.targetWeightKg ??
+        suggested?.lowKg ??
+        context.farm.fatteningTargetWeightKg;
       const id = newId(now);
       const intakeId = newId(now);
       let tagNumber = "";
@@ -183,9 +236,7 @@ export const intakeRouter = {
             estimatedAgeMonths: input.estimatedAgeMonths,
             targetWindowStart: window.start,
             targetWindowEnd: window.end,
-            targetWeightKg: (
-              input.targetWeightKg ?? context.farm.fatteningTargetWeightKg
-            ).toFixed(2),
+            targetWeightKg: targetWeightKg.toFixed(2),
             arrivedAt,
             recordedBy: context.actor.id,
             createdAt: now,

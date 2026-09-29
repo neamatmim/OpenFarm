@@ -517,6 +517,8 @@ export const en = {
   "plan.buy": "৳ a kg",
   "plan.gain": "Gain a day (kg)",
   "plan.addLine": "Add a band",
+  "plan.rationsSay": "Your rations: {range} for a bull of {kg} kg",
+  "plan.useGain": "Use {kg}",
   "plan.removeLine": "Remove this band",
   "plan.lineOf": "Band {number}",
   "plan.deaths": "Animals that may die before sale (%)",
@@ -3852,7 +3854,12 @@ export const en = {
   "intake.windowNote":
     "Left blank, the next Eid-ul-Adha is used; change it once the date is announced.",
   "intake.targetWeightNote":
-    "Left blank, the farm's own target weight is used.",
+    "Left blank, the farm's own target weight is used: no ration says what an animal this weight should gain.",
+  "intake.suggested":
+    "Your rations say {low}–{high} kg when the Target Window opens.",
+  "intake.suggestedUsed": "Left blank, {kg} kg is used.",
+  "intake.useSuggested": "Use {kg} kg",
+  "intake.suggestedTarget": "{kg} kg — from your rations",
   "intake.photoLater":
     "The photo did not go up — take it again from the animal's page.",
   "intake.record": "Take it in",

@@ -1,6 +1,8 @@
 import { farmDayOf, farmDaysApart, startOfFarmDay } from "./farm-clock";
 import type { WeighIn } from "./fattening";
 import { PLAUSIBLE_DAILY_GAIN_KG, addDays } from "./fattening";
+import type { WeightBand } from "./feed";
+import { bandStanding, roundKg } from "./feed";
 
 /**
  * A Ration's Expected Gain: the kilos a day, low to high, it is written to put on the animals that eat it. A range and
@@ -194,3 +196,58 @@ export const expectedGainFor = (
 /** Whether a standing is one the farm is told of: a bull gaining under what his Ration should give him, or losing. */
 export const isShortOfExpected = (standing: GainStanding): boolean =>
   standing === "losing" || standing === "under";
+
+/** A Ration the farm feeds by weight and what it should put on a crossbred bull: one rung of the ladder a bull climbs. */
+export interface GainingBand {
+  band: WeightBand;
+  expectedGain: ExpectedGain;
+}
+
+/** The rung a bull of this weight stands on: the first whose band his weight fits, in the order given. */
+export const gainingBandFor = (
+  weightKg: number,
+  rungs: readonly GainingBand[]
+): GainingBand | null =>
+  rungs.find((rung) => bandStanding(weightKg, rung.band) === "fits") ?? null;
+
+/** The most days ahead a weight is grown: past a year and a half, no Ration and no Target Window mean anything. */
+const MOST_DAYS_GROWN = 540;
+
+/**
+ * What a bull should weigh `days` after he came, low and high: his weight then, grown after he has settled in — the
+ * first three weeks count for nothing — a day at a time at the Expected Gain of whichever of the farm's Rations his
+ * weight is in that day, cut for his being deshi or female, stepping up to the next as he crosses its band
+ * (docs/research/expected-daily-gain.md, "Settling-in and the suggested target weight"). Grown past every band the
+ * farm has a figure for, he goes on at the heaviest one's. Nothing when no Ration's band holds him as he comes: there
+ * is nothing on the farm to say what he should gain.
+ */
+export const grownWeightFor = (
+  arrivalKg: number,
+  days: number,
+  rungs: readonly GainingBand[],
+  animal: { deshi: boolean | null; sex: "male" | "female" },
+  shares: GainShares
+): { lowKg: number; highKg: number } | null => {
+  if (!gainingBandFor(arrivalKg, rungs)) {
+    return null;
+  }
+  const growingDays = Math.min(
+    Math.max(0, Math.round(days) - SETTLING_IN_DAYS),
+    MOST_DAYS_GROWN
+  );
+  const grownAt = (end: keyof ExpectedGain): number => {
+    let kg = arrivalKg;
+    let rung = gainingBandFor(kg, rungs);
+    for (let day = 0; day < growingDays; day += 1) {
+      rung = gainingBandFor(kg, rungs) ?? rung;
+      if (!rung) {
+        break;
+      }
+      kg += expectedGainFor(rung.expectedGain, animal, shares).expectedGain[
+        end
+      ];
+    }
+    return roundKg(kg);
+  };
+  return { lowKg: grownAt("lowKg"), highKg: grownAt("highKg") };
+};

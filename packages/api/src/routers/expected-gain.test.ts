@@ -452,6 +452,72 @@ describe("which breeds are deshi", () => {
   });
 });
 
+describe("the target weight a bull is taken in towards", () => {
+  // The farm's one Ration by weight with a gain is the growers' 150–250 kg at 0.6–0.9. Bought on 1 June for a window
+  // opening on 1 October: 122 days, 101 of them after he has settled in. Grown past 250 kg he goes on at the growers'.
+  const bought = {
+    sex: "male" as const,
+    arrivedAt: new Date(ARRIVED),
+    targetWindowStart: "2037-10-01",
+  };
+
+  it("is suggested from the farm's Rations, low and high, for his breed", async () => {
+    const manager = await as("manager");
+    await expect(
+      manager.client.intake.suggestTarget({ ...bought, weightKg: 200 })
+    ).resolves.toEqual({
+      // 200 + 0.6 × 101, and 200 + 0.9 × 101.
+      lowKg: 260.6,
+      highKg: 290.9,
+      days: 122,
+      windowStart: "2037-10-01",
+    });
+    const breeds = await manager.client.breeds.list();
+    const deshi = breeds.find((one) => one.key === "local")?.id ?? "";
+    await expect(
+      manager.client.intake.suggestTarget({
+        ...bought,
+        weightKg: 200,
+        breedId: deshi,
+      })
+    ).resolves.toMatchObject({ lowKg: 242.4, highKg: 263.6 });
+    // No Ration says what a 120 kg bull should gain.
+    await expect(
+      manager.client.intake.suggestTarget({ ...bought, weightKg: 120 })
+    ).resolves.toBe(null);
+  });
+
+  it("is the suggestion's low end when nobody types one, the typed one when somebody does, and the farm's own where no Ration says", async () => {
+    const manager = await as("manager");
+    const takeIn = async (weightKg: number, targetWeightKg?: number) => {
+      const arrived = await manager.client.intake.record({
+        penId: world.pens.plain.id,
+        seller: { name: `ব্যাপারী ${suffix}` },
+        purchasePriceBdt: 60_000,
+        weightKg,
+        estimatedAgeMonths: 20,
+        targetWindowEnd: "2037-10-05",
+        paymentMethod: "cash",
+        ...bought,
+        ...(targetWeightKg === undefined ? {} : { targetWeightKg }),
+      });
+      return arrived.tagNumber;
+    };
+    const suggested = await takeIn(200);
+    const typed = await takeIn(200, 300);
+    const unknown = await takeIn(120);
+    const board = await manager.client.fattening.board();
+    const targetOf = (tag: string) =>
+      board.find((row) => row.tagNumber === tag)?.targetWeightKg;
+    expect(targetOf(suggested)).toBe(260.6);
+    expect(targetOf(typed)).toBe(300);
+    // The farm's own target weight, as it stands.
+    expect(targetOf(unknown)).toBe(
+      manager.context.farm?.fatteningTargetWeightKg
+    );
+  });
+});
+
 describe("a Ration's Expected Gain", () => {
   it("is kept when a Ration is saved without it, and cleared by saying none", async () => {
     const manager = await as("manager");

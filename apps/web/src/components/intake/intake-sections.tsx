@@ -13,6 +13,7 @@ import { useTaka } from "@/lib/taka";
 
 import type { IntakeFields } from "./intake-fields";
 import { PricePerKg } from "./intake-summary";
+import { SuggestedTarget } from "./suggested-target";
 
 /** What a photograph may weigh before the farm refuses it, as `animals.setPhoto` counts it. */
 const PHOTO_MAX_BYTES = 1_500_000;
@@ -381,14 +382,19 @@ export const TargetSection = ({ fields, onEdit }: PartProps) => {
       id="intake-target-part"
       title={t("intake.groupTarget")}
     >
-      <NumberField
-        decimal
-        hint={t("intake.targetWeightNote")}
-        id="intake-target"
-        label={t("intake.targetWeight")}
-        onChange={(targetWeightKg) => onEdit({ targetWeightKg })}
-        value={fields.targetWeightKg}
-      />
+      <div className="space-y-1.5">
+        <NumberField
+          decimal
+          id="intake-target"
+          label={t("intake.targetWeight")}
+          onChange={(targetWeightKg) => onEdit({ targetWeightKg })}
+          value={fields.targetWeightKg}
+        />
+        <SuggestedTarget
+          fields={fields}
+          onUse={(targetWeightKg) => onEdit({ targetWeightKg })}
+        />
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField id="intake-from" label={t("intake.windowStart")}>
           <Input

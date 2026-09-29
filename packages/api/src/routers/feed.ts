@@ -17,6 +17,7 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { gainingBandsOf } from "../expected-gain-store";
 import type { FarmList } from "../farm-list";
 import { assertNameFree, bringBackToList, retireFromList } from "../farm-list";
 import {
@@ -503,6 +504,16 @@ export const feedRouter = {
       );
       return { id: input.id };
     }),
+
+  /**
+   * The farm's Rations in use that say both who they are for and what they should put on a crossbred bull, lightest
+   * first: the ladder a bull climbs as he grows, which a Venture's plan is offered its gains from.
+   */
+  gainingBands: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(
+      async ({ context }) => await gainingBandsOf(context.db, context.farm.id)
+    ),
 
   /** Every Ration the farm has, with the Pens on it. */
   rations: protectedProcedure
