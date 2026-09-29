@@ -32,7 +32,8 @@ overdue. Nothing goes to the buyer, and nothing is a push or an SMS.
 - Notice kind `baki_overdue`: digest, Owner and Manager, about the Sale or Dispatch, leading to Money → Baki.
 - Proved by switching off: the promised-day-is-not-late rule (three tests red). Told-once is held by the alert
   table's own unique index (one per person per thing per kind): switching off `overdueToTell`'s filter left the test
-  green, so that filter only saves an empty transaction on a quiet morning.
+  green, so that filter only saves an empty transaction on a quiet morning. (The first switch-off was itself a no-op —
+  `|| NaN < 1` is false. Re-done on 2026-09-29 with a switch that is really true: still green, as said.)
 - The i18n bare-count check learned that "owes" follows a name.
 - Opened on the seed farm: the Manager's queue tab, the Owner's list, the Parameters group and the notice in the
   Today list, in Bangla.

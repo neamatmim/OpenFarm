@@ -746,3 +746,9 @@ export type {
   PaperNominee,
   Receiver,
 } from "./nominees";
+export type { CalfCause, CalfLosses, CalfRecord } from "./calf-losses";
+export {
+  CALF_DEATH_CAUSES,
+  calfLosses,
+  lostBeforeWeaning,
+} from "./calf-losses";

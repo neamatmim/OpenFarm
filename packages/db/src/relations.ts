@@ -36,6 +36,11 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.treatment.animalId,
     }),
     /** How she went, for an animal who has left. */
+    /** Her Weaning, once she is weaned. */
+    weaning: r.one.weaning({
+      from: r.animal.id,
+      to: r.weaning.animalId,
+    }),
     mortality: r.one.mortality({
       from: r.animal.id,
       to: r.mortality.animalId,

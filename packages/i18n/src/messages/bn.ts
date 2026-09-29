@@ -4109,6 +4109,13 @@ export const bn: Record<MessageKey, string> = {
   "sale.sheetDescription":
     "কে নিল, কত দামে, আর কোন গাড়িতে গেল। দামটি টাকার হিসাবে যোগ হবে।",
   "sale.lastWeighed": "শেষ ওজন {kg} কেজি",
+  "calves.title": "গত ১২ মাসের বাছুর",
+  "calves.hint": "দুধ ছাড়ানোর আগে দশটিতে একটির বেশি মারা গেলে DLS তা বেশি বলে।",
+  "calves.bornAlive": "জীবিত জন্ম",
+  "calves.stillborn": "মৃত জন্ম",
+  "calves.lost": "দুধ ছাড়ানোর আগে মারা গেছে",
+  "calves.lostShare": "জীবিত জন্মানো বাছুরের {share}% দুধ ছাড়ানোর আগে মারা গেছে",
+  "calves.causes": "কী কারণে: {causes}",
   "calf.firstDay": "প্রথম দিন",
   "calf.firstDayHint":
     "জন্মের পরের কয়েক ঘণ্টায় বাছুরের জন্য যা করা হয়েছে: শাল দুধ, নাভি, ওজন।",

@@ -255,3 +255,25 @@ describe("newborn calf care", () => {
     expect(late).not.toContain(second?.id);
   });
 });
+
+describe("what the farm loses in calves", () => {
+  it("counts the calf born dead apart, and the one lost before weaning with what she died of", async () => {
+    const tag = await theCalf();
+    const manager = await as("manager", "2052-03-20T04:00:00.000Z");
+    await manager.client.animals.recordMortality({
+      tagNumber: tag,
+      kind: "died",
+      cause: "পাতলা পায়খানা",
+      disposal: "buried",
+    });
+    const owner = await as("owner", "2052-04-01T04:00:00.000Z");
+    const losses = await owner.client.herd.calfLosses();
+    expect(losses).toMatchObject({
+      bornAlive: 1,
+      stillborn: 1,
+      diedBeforeWeaning: 1,
+      lostShare: 1,
+      causes: [{ cause: "পাতলা পায়খানা", count: 1 }],
+    });
+  });
+});

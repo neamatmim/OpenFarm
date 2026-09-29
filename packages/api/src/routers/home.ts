@@ -293,7 +293,7 @@ export const homeRouter = {
           where: {
             farmId,
             happenedAt: {
-              gte: new Date(now.getTime() - LATE_SINCE_DAYS * DAY_MS),
+              gte: new Date(now.getTime() - MORTALITY_DAYS * DAY_MS),
             },
           },
           columns: { id: true, kind: true },

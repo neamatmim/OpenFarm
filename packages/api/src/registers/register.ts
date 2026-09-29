@@ -2,7 +2,7 @@ import type { Database } from "@OpenFarm/db";
 import type { FarmIdentity, HealthRegister } from "@OpenFarm/domain";
 import { farmDayOf, registerPaper, startOfFarmDay } from "@OpenFarm/domain";
 import type { Language, MessageKey } from "@OpenFarm/i18n";
-import { formatDate, translate } from "@OpenFarm/i18n";
+import { formatDate, formatNumber, translate } from "@OpenFarm/i18n";
 
 import { toCsv } from "../csv";
 import { periodOf } from "../period";
@@ -33,6 +33,8 @@ export interface Saying {
   day: (farmDay: string) => string;
   /** A label or a word in both of the farm's languages, as every paper the farm hands over writes one. */
   both: (key: MessageKey) => string;
+  /** A figure in the reader's digits. */
+  figure: (value: number) => string;
 }
 
 /**
@@ -143,6 +145,7 @@ export const readRegister = async <Row>(
 export const sayingIn = (language: Language): Saying => ({
   day: (farmDay) => formatDate(startOfFarmDay(farmDay), language, "date"),
   both: (key) => `${translate("bn", key)} / ${translate("en", key)}`,
+  figure: (value) => formatNumber(value, language),
 });
 
 /** Who produced a paper, on what farm, and when — the stamp the report set asks of every paper the farm
