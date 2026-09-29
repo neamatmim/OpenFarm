@@ -1,10 +1,15 @@
-import type { ReferenceGroup, StandardReference } from "@OpenFarm/domain";
+import type {
+  GainFirmness,
+  ReferenceGroup,
+  StandardReference,
+} from "@OpenFarm/domain";
 import {
   FEWEST_FOR_A_FIGURE,
   PEN_NEEDS_GAINS,
   REFERENCE_GROUPS,
   REFERENCES_CHECKED_ON,
   SETTLING_IN_DAYS,
+  STANDARD_GAIN_FIRMNESS,
   STANDARD_RATIONS,
   STANDARD_REFERENCES,
 } from "@OpenFarm/domain";
@@ -24,19 +29,40 @@ import { ExternalLink } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { bandSaid, expectedGainSaid } from "@/components/feed/band-words";
-import { Page, PageHeader, Section } from "@/components/page";
+import type { Tone } from "@/components/page";
+import { Page, PageHeader, Section, StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
 
-/** The standard Rations that say what they should put on a bull, in the order a bull grows through them. */
-const GAINING_RATIONS = Object.values(STANDARD_RATIONS)
-  .flatMap((one) =>
-    "gain" in one && "band" in one
-      ? [{ name: one.name, band: one.band, gain: one.gain }]
-      : []
-  )
+/** The standard Rations that say what they should put on a bull, with how firm that is, in the order a bull grows
+ *  through them. */
+const GAINING_RATIONS = Object.entries(STANDARD_RATIONS)
+  .flatMap(([key, one]) => {
+    const firm =
+      key in STANDARD_GAIN_FIRMNESS
+        ? STANDARD_GAIN_FIRMNESS[key as keyof typeof STANDARD_GAIN_FIRMNESS]
+        : null;
+    return "gain" in one && "band" in one && firm
+      ? [{ name: one.name, band: one.band, gain: one.gain, firm }]
+      : [];
+  })
   .toSorted((a, b) => (a.band.fromKg ?? 0) - (b.band.fromKg ?? 0));
+
+const FIRMNESS_LOOK: Record<
+  GainFirmness,
+  {
+    tone: Tone;
+    word:
+      | "standards.firmness.medium"
+      | "standards.firmness.mediumLow"
+      | "standards.firmness.low";
+  }
+> = {
+  medium: { tone: "info", word: "standards.firmness.medium" },
+  mediumLow: { tone: "neutral", word: "standards.firmness.mediumLow" },
+  low: { tone: "warning", word: "standards.firmness.low" },
+};
 
 /** The standard Rations by weight and what each should put on a crossbred bull. */
 const RationsTable = () => {
@@ -50,15 +76,28 @@ const RationsTable = () => {
           <TableHead className="text-right">
             {t("standards.col.gain")}
           </TableHead>
+          <TableHead>{t("standards.col.firmness")}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {GAINING_RATIONS.map((one) => (
           <TableRow key={one.name.en}>
-            <TableCell>{one.name[language]}</TableCell>
+            <TableCell className="whitespace-normal">
+              <span className="flex flex-col gap-0.5">
+                <span>{one.name[language]}</span>
+                <span className="text-muted-foreground text-xs">
+                  {one.firm.why[language]}
+                </span>
+              </span>
+            </TableCell>
             <TableCell>{bandSaid(one.band, { t, language })}</TableCell>
             <TableCell className="text-right tabular-nums">
               {expectedGainSaid(one.gain, { t, language })}
+            </TableCell>
+            <TableCell>
+              <StatusBadge tone={FIRMNESS_LOOK[one.firm.firmness].tone}>
+                {t(FIRMNESS_LOOK[one.firm.firmness].word)}
+              </StatusBadge>
             </TableCell>
           </TableRow>
         ))}

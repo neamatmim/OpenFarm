@@ -612,6 +612,7 @@ export {
   standardPlaybook,
 } from "./standard-playbook";
 export type {
+  GainFirmness,
   StandardDrugKey,
   StandardFeedKey,
   StandardBreedKey,
@@ -623,12 +624,14 @@ export type {
 export {
   STANDARD_DRUGS,
   DESHI_BREEDS,
+  GAIN_FIRMNESS,
   STANDARD_BREED_KEYS,
   STANDARD_BREEDS,
   STANDARD_DRUG_FOR,
   STANDARD_FEED_ITEMS,
   STANDARD_KINDS,
   STANDARD_NOTIFIABLE_DISEASES,
+  STANDARD_GAIN_FIRMNESS,
   STANDARD_RATIONS,
   rationLineOf,
 } from "./standard";
