@@ -156,6 +156,7 @@ const WORDED_REFUSALS = {
   a_bull_calf_is_no_heifer: "refusal.aBullCalfIsNoHeifer",
   not_missing: "refusal.notMissing",
   gd_number_needed: "refusal.gdNumberNeeded",
+  weighed_needs_a_kilo_slip: "refusal.weighedNeedsAKiloSlip",
   outcome_said: "refusal.outcomeSaid",
   written_off_more_than_owed: "refusal.writtenOffMoreThanOwed",
   nothing_owed_on_it: "refusal.nothingOwedOnIt",

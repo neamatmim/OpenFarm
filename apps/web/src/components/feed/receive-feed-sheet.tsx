@@ -42,6 +42,8 @@ interface Draft {
   /** The bag's Lot Number and last day, where it prints them: concentrate and premix do, hay does not. */
   lotNumber: string;
   expiresOn: string;
+  /** What the farm's scale showed, in kilos, where the lot was weighed as it came; empty where it was not. */
+  weighed: string;
 }
 
 const freshDraft = (feedItemId: string): Draft => ({
@@ -55,7 +57,31 @@ const freshDraft = (feedItemId: string): Draft => ({
   receivedOn: farmDayOf(new Date()),
   lotNumber: "",
   expiresOn: "",
+  weighed: "",
 });
+
+/** What the scale showed, where a Purchase of feed bought by the kilo was weighed; nothing where it was not. */
+const weighedOf = (draft: Draft, item: FeedItemRow): number | null => {
+  const typed = Number(draft.weighed);
+  return draft.kind === "purchase" &&
+    feedUnitOf(item.unit) === "kg" &&
+    draft.weighed.trim() !== "" &&
+    typed > 0
+    ? typed
+    : null;
+};
+
+/** Whether the scale box holds something that is not a weight: empty is fine, it is optional. */
+const weighedIsWrong = (draft: Draft) =>
+  draft.weighed.trim() !== "" && !(Number(draft.weighed) > 0);
+
+/** Whether the sheet says what its kind needs: a Purchase its price and seller, and the scale only a weight or nothing;
+ *  a Harvest nothing more. */
+const saysWhatAPurchaseNeeds = (draft: Draft) =>
+  draft.kind === "harvest" ||
+  (Number(draft.price) > 0 &&
+    draft.seller.trim() !== "" &&
+    !weighedIsWrong(draft));
 
 /** The ways a Feed Item may be counted as it comes in: its own unit, and — for feed weighed in kilos — maunds, and
  *  bags once the farm has said what its bags weigh. */
@@ -136,6 +162,90 @@ const LastPurchase = ({
   );
 };
 
+/** The scale against the slip, as both are typed: short, over, or agreeing. */
+const ScaleAgainstSlip = ({
+  slip,
+  weighed,
+}: {
+  slip: number;
+  weighed: number;
+}) => {
+  const { t, language } = useLanguage();
+  const short = Math.round((slip - weighed) * 10) / 10;
+  const said = {
+    slip: formatNumber(Math.round(slip * 10) / 10, language),
+    weighed: formatNumber(weighed, language),
+  };
+  if (short > 0) {
+    return (
+      <p className="text-warning text-sm font-medium tabular-nums">
+        {t("stock.scaleShort", {
+          ...said,
+          short: formatNumber(short, language),
+          percent: formatNumber(
+            Math.round((short / slip) * 1000) / 10,
+            language
+          ),
+        })}
+      </p>
+    );
+  }
+  return (
+    <p className="text-muted-foreground text-sm tabular-nums">
+      {short < 0
+        ? t("stock.scaleOver", {
+            ...said,
+            over: formatNumber(-short, language),
+          })
+        : t("stock.scaleSame")}
+    </p>
+  );
+};
+
+/** The farm's scale, for a Purchase of feed bought by the kilo: optional (the Owner, 2026-09-29), and set against the
+ *  slip as it is typed. */
+const ScaleField = ({
+  draft,
+  item,
+  slip,
+  onChange,
+}: {
+  draft: Draft;
+  item: FeedItemRow;
+  /** What the slip says, in kilos, once it is typed. */
+  slip: number | null;
+  onChange: (value: string) => void;
+}) => {
+  const { t } = useLanguage();
+  if (draft.kind !== "purchase" || feedUnitOf(item.unit) !== "kg") {
+    return null;
+  }
+  const weighed = weighedOf(draft, item);
+  return (
+    <>
+      <FormField
+        hint={t("stock.weighedHint")}
+        id="receive-weighed"
+        label={t("stock.weighed")}
+      >
+        <Input
+          aria-invalid={weighedIsWrong(draft)}
+          id="receive-weighed"
+          inputMode="decimal"
+          min={0}
+          onChange={(event) => onChange(event.target.value)}
+          step="0.1"
+          type="number"
+          value={draft.weighed}
+        />
+      </FormField>
+      {slip !== null && weighed !== null ? (
+        <ScaleAgainstSlip slip={slip} weighed={weighed} />
+      ) : null}
+    </>
+  );
+};
+
 /** What a trader's slip would say, worked out as it is typed: what bags or maunds come to, the maunds kilos come
  *  to, and what a unit cost. */
 const LotSummary = ({
@@ -149,6 +259,8 @@ const LotSummary = ({
 }) => {
   const { t, language } = useLanguage();
   const amount = amountOf(draft, countedIn, item);
+  // A lot's price per unit is on what came — the scale's kilos where it was weighed.
+  const stored = weighedOf(draft, item) ?? amount;
   const price = Number(draft.price);
   if (amount === null) {
     return null;
@@ -169,7 +281,10 @@ const LotSummary = ({
   if (draft.kind === "purchase" && price > 0) {
     parts.push(
       t("stock.averagePrice", {
-        taka: formatNumber(Math.round((price / amount) * 100) / 100, language),
+        taka: formatNumber(
+          Math.round((price / (stored ?? amount)) * 100) / 100,
+          language
+        ),
         unit: feedUnitEach(item.unit, language),
       })
     );
@@ -236,8 +351,7 @@ export const ReceiveFeedSheet = ({
     chosen !== null &&
     amount !== null &&
     !expiredWhenBought &&
-    (draft.kind === "harvest" ||
-      (Number(draft.price) > 0 && draft.seller.trim() !== ""));
+    saysWhatAPurchaseNeeds(draft);
 
   return (
     <FormSheet
@@ -264,6 +378,7 @@ export const ReceiveFeedSheet = ({
                 paymentMethod: draft.paymentMethod,
                 lotNumber: draft.lotNumber.trim() || undefined,
                 expiresOn: draft.expiresOn || undefined,
+                weighed: weighedOf(draft, chosen) ?? undefined,
               }
             : {}),
         });
@@ -425,8 +540,18 @@ export const ReceiveFeedSheet = ({
             </>
           ) : null}
 
+          <ScaleField
+            draft={draft}
+            item={chosen}
+            onChange={(value) => set("weighed", value)}
+            slip={amount}
+          />
           <LotSummary countedIn={countedIn} draft={draft} item={chosen} />
-          <LastPurchase amount={amount} draft={draft} item={chosen} />
+          <LastPurchase
+            amount={weighedOf(draft, chosen) ?? amount}
+            draft={draft}
+            item={chosen}
+          />
         </>
       ) : (
         <p className="text-muted-foreground text-sm">{t("feed.noItems")}</p>

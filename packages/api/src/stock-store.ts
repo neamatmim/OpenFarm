@@ -4,11 +4,17 @@ import { and, eq, notInArray, sql } from "@OpenFarm/db/operators";
 import type { FEED_IN_KINDS } from "@OpenFarm/db/schema/feed";
 import { feeding, stockCount } from "@OpenFarm/db/schema/feed";
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
-import type { PurchasePrice, StockMovement } from "@OpenFarm/domain";
+import type {
+  PurchasePrice,
+  SellerOnTheScale,
+  StockMovement,
+} from "@OpenFarm/domain";
 import {
   lastFellBelow,
+  farmDayOf,
   priceJumped,
   purchasePricesOf,
+  sellersOnTheScale,
   roundKg,
   roundTaka,
   shortfallOf,
@@ -846,5 +852,46 @@ export const tellIfTheFeedCameDearer = async (
       },
     },
     now
+  );
+};
+
+/** How far back the sellers' figures on the farm's scale are read. */
+export const SCALE_DAYS = 90;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** How short each seller has run on the farm's scale over the last `SCALE_DAYS` farm days, from the lots weighed. */
+export const scaleBySeller = async (
+  db: Db,
+  farmId: string,
+  now: Date
+): Promise<SellerOnTheScale[]> => {
+  const from = startOfFarmDay(
+    farmDayOf(new Date(now.getTime() - (SCALE_DAYS - 1) * DAY_MS))
+  );
+  const weighed = await db.query.feedIn.findMany({
+    where: {
+      farmId,
+      kind: "purchase",
+      slipQuantity: { isNotNull: true },
+      receivedOn: { gte: from },
+    },
+    columns: { quantity: true, slipQuantity: true, priceBdt: true },
+    with: { seller: { columns: { id: true, name: true } } },
+  });
+  return sellersOnTheScale(
+    weighed.flatMap((lot) =>
+      lot.seller && lot.priceBdt !== null && lot.slipQuantity !== null
+        ? [
+            {
+              sellerId: lot.seller.id,
+              sellerName: lot.seller.name,
+              slipQuantity: Number(lot.slipQuantity),
+              quantity: Number(lot.quantity),
+              priceBdt: lot.priceBdt,
+            },
+          ]
+        : []
+    )
   );
 };

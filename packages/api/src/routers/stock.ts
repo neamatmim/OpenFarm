@@ -32,6 +32,7 @@ import {
   fodderValueOf,
   lastPurchaseOf,
   purchasePricesIn,
+  scaleBySeller,
   tellIfTheFeedCameDearer,
 } from "../stock-store";
 
@@ -66,6 +67,27 @@ const quantityReceived = (
     });
   }
   return packed.quantity;
+};
+
+/**
+ * What the farm's scale showed, where the lot was weighed: only a Purchase, which has a slip to weigh against, and only
+ * feed counted in kilos, which is what a scale says. Nothing where it was not weighed.
+ */
+const weighedOnArrival = (
+  input: { kind: string; weighed?: number },
+  item: { unit: FeedUnit }
+): number | null => {
+  if (input.weighed === undefined) {
+    return null;
+  }
+  if (input.kind !== "purchase" || item.unit !== "kg") {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "Only feed bought by the kilo is weighed against the seller's slip",
+      data: { refusal: "weighed_needs_a_kilo_slip" },
+    });
+  }
+  return input.weighed;
 };
 
 export const stockRouter = {
@@ -130,6 +152,10 @@ export const stockRouter = {
           kind: row.kind,
           quantity,
           maunds: feedItem.unit === "kg" ? maundsOf(quantity) : null,
+          /** What the seller's slip said, where the lot was weighed on the farm's scale: `quantity` is then what the
+           *  scale showed. Nothing for a lot never weighed. */
+          slipQuantity:
+            row.slipQuantity === null ? null : Number(row.slipQuantity),
           /** The bags or maunds it was typed as, where it was; nothing for feed bought by its own unit. */
           pack: row.packKind
             ? { kind: row.packKind, count: Number(row.packCount) }
@@ -153,6 +179,16 @@ export const stockRouter = {
         };
       });
     }),
+
+  /**
+   * How short each seller has run on the farm's scale over the last 90 days, from the lots weighed as they came: kilos,
+   * percent of the slips, and taka at what each slip kilo was charged. A lot never weighed claims nothing.
+   */
+  onTheScale: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(({ context }) =>
+      scaleBySeller(context.db, context.farm.id, context.clock.now())
+    ),
 
   /**
    * The last Feed Purchase of a feed — what a unit cost, and when — for the receiving sheet to set the lorry at the gate
@@ -201,6 +237,9 @@ export const stockRouter = {
           .optional(),
         priceBdt: feedPriceInput.optional(),
         seller: sellerInput.optional(),
+        /** What the farm's scale showed, in kilos, where the lot was weighed as it came: then what the store holds,
+         *  and the slip's figure is kept beside it. */
+        weighed: quantityInput.optional(),
         receivedOn: farmDay,
         /** How the seller was paid, for a purchase. */
         paymentMethod: paymentMethodInput,
@@ -247,7 +286,9 @@ export const stockRouter = {
           data: { refusal: "feed_retired" },
         });
       }
-      const quantity = quantityReceived(input, item);
+      const slip = quantityReceived(input, item);
+      const weighed = weighedOnArrival(input, item);
+      const quantity = weighed ?? slip;
       await audited(context).write(
         {
           entity: "feed_in",
@@ -265,6 +306,7 @@ export const stockRouter = {
             feedItemId: item.id,
             kind: input.kind,
             quantity: quantity.toFixed(1),
+            slipQuantity: weighed === null ? null : slip.toFixed(1),
             packKind: input.pack?.kind ?? null,
             packCount: input.pack ? String(input.pack.count) : null,
             // A purchase is worth what the farm paid; a Harvest is worth what the farm says its own

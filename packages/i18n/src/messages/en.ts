@@ -2753,6 +2753,24 @@ export const en = {
   "stock.noStock": "Nothing in the store — add a Feed Item first",
   "stock.adjustment": "expected {expected}, counted {counted}",
   "stock.averagePrice": "৳{taka} per {unit}",
+  "stock.weighed": "Weighed on the farm's scale (kg)",
+  "stock.weighedHint":
+    "Optional. Weigh the lot as it comes: the scale is what goes into the store, and the slip is kept beside it.",
+  "stock.scaleShort":
+    "The slip says {slip} kg, the scale {weighed} kg — {short} kg short ({percent}%)",
+  "stock.scaleOver":
+    "The slip says {slip} kg, the scale {weighed} kg — {over} kg over",
+  "stock.scaleSame": "The scale agrees with the slip",
+  "stock.slipSaid": "slip said {slip} kg",
+  "stock.shortOnScale": "{kg} kg short",
+  "stock.overOnScale": "{kg} kg over",
+  "scale.title": "Short on the scale, last 90 days",
+  "scale.hint":
+    "From the lots weighed as they came: each seller's slips against the farm's scale. A lot nobody weighed claims nothing.",
+  "scale.none":
+    "No lot has been weighed in the last 90 days. Weigh one as it comes to see how short each seller runs.",
+  "scale.lots": "{count, plural, one {# lot weighed} other {# lots weighed}}",
+  "scale.slipAndScale": "slips {slip} kg · scale {weighed} kg",
   "stock.lastBought": "Last bought at ৳{taka} per {unit}, {day}",
   "stock.dearer": "{percent}% dearer than last time",
   "stock.cheaper": "{percent}% cheaper than last time",
@@ -4793,6 +4811,8 @@ export const en = {
   "heatWatch.heiferAgeUnknown": "Heifer, age not known, not yet served · {pen}",
   "refusal.notMissing": "This animal is not missing: nobody is looking for it",
   "refusal.gdNumberNeeded": "A theft needs the thana's GD number",
+  "refusal.weighedNeedsAKiloSlip":
+    "Only feed bought by the kilo is weighed against the seller's slip",
   "alerts.feedPriceJump":
     "{feed} bought at ৳{price} per {unit}, {percent}% over the last lot at ৳{previous}",
   "digest.feedPriceJump":

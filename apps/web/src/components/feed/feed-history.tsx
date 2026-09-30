@@ -28,6 +28,7 @@ import { orpc } from "@/utils/orpc";
 
 import type { Adjustment, Arrival, FeedItemRow } from "./feed-types";
 import { PriceChange } from "./price-change";
+import { ScaleBySeller } from "./scale-by-seller";
 
 /** How many rows of a history a page shows before the next. */
 const HISTORY_PAGE = 20;
@@ -132,6 +133,35 @@ const AsTheSlipSays = ({ arrival }: { arrival: Arrival }) => {
     : t("stock.maunds", { maunds: formatNumber(arrival.maunds, language) });
 };
 
+/** What the seller's slip said of a lot weighed on the farm's scale, and how far the scale came under or over it.
+ *  Nothing for a lot nobody weighed — or on an answer a phone kept from before lots were weighed. */
+const SlipLine = ({ arrival }: { arrival: Arrival }) => {
+  const { t, language } = useLanguage();
+  const slip = arrival.slipQuantity ?? null;
+  if (slip === null) {
+    return null;
+  }
+  const short = Math.round((slip - arrival.quantity) * 10) / 10;
+  const said = t("stock.slipSaid", { slip: formatNumber(slip, language) });
+  if (short === 0) {
+    return <span className="text-muted-foreground text-xs">{said}</span>;
+  }
+  return (
+    <span className="text-xs whitespace-nowrap">
+      <span className="text-muted-foreground">{said} · </span>
+      {short > 0 ? (
+        <span className="text-warning font-medium">
+          {t("stock.shortOnScale", { kg: formatNumber(short, language) })}
+        </span>
+      ) : (
+        <span className="text-muted-foreground">
+          {t("stock.overOnScale", { kg: formatNumber(-short, language) })}
+        </span>
+      )}
+    </span>
+  );
+};
+
 /** How much came in, and what the trader's slip said beneath it. */
 const QuantityCell = ({ row }: { row: { original: ArrivalRow } }) => {
   const { language } = useLanguage();
@@ -145,6 +175,7 @@ const QuantityCell = ({ row }: { row: { original: ArrivalRow } }) => {
       <span className="text-muted-foreground text-xs whitespace-nowrap">
         <AsTheSlipSays arrival={one} />
       </span>
+      <SlipLine arrival={one} />
     </div>
   );
 };
@@ -291,6 +322,7 @@ const ArrivalCard = ({ row }: { row: ArrivalRow }) => {
             ? ""
             : ` · ${taka(row.priceBdt)} · ${row.sellerName ?? ""}`}
         </span>
+        <SlipLine arrival={row} />
         <UnitPriceLine arrival={row} />
         <LotAndExpiry
           expiresOn={row.expiresOn}
@@ -362,32 +394,35 @@ export const ArrivalsTab = ({
     return <EmptyState icon={Truck} title={t("stock.noArrivals")} />;
   }
   return (
-    <div className="surface flex flex-col gap-4 p-4 md:p-5">
-      <FilterBar className="border-b pb-4 sm:justify-between">
-        <ItemFilter items={items} onChange={setItemId} value={itemId} />
-        <SegmentedControl
-          label={t("stock.kind")}
-          name="arrival-kind"
-          onChange={setKind}
-          options={[
-            { value: "", label: t("audit.all") },
-            { value: "purchase", label: t("stock.purchase") },
-            { value: "harvest", label: t("stock.harvest") },
-          ]}
-          value={kind}
-        />
-      </FilterBar>
-      {shown.length === 0 ? (
-        <EmptyState bare icon={Truck} title={t("audit.empty")} />
-      ) : (
-        <DataTable
-          card={arrivalCard}
-          key={`${itemId}:${kind}`}
-          minWidth="52rem"
-          pageSize={HISTORY_PAGE}
-          table={table}
-        />
-      )}
+    <div className="flex flex-col gap-6">
+      <ScaleBySeller />
+      <div className="surface flex flex-col gap-4 p-4 md:p-5">
+        <FilterBar className="border-b pb-4 sm:justify-between">
+          <ItemFilter items={items} onChange={setItemId} value={itemId} />
+          <SegmentedControl
+            label={t("stock.kind")}
+            name="arrival-kind"
+            onChange={setKind}
+            options={[
+              { value: "", label: t("audit.all") },
+              { value: "purchase", label: t("stock.purchase") },
+              { value: "harvest", label: t("stock.harvest") },
+            ]}
+            value={kind}
+          />
+        </FilterBar>
+        {shown.length === 0 ? (
+          <EmptyState bare icon={Truck} title={t("audit.empty")} />
+        ) : (
+          <DataTable
+            card={arrivalCard}
+            key={`${itemId}:${kind}`}
+            minWidth="52rem"
+            pageSize={HISTORY_PAGE}
+            table={table}
+          />
+        )}
+      </div>
     </div>
   );
 };

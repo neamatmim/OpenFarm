@@ -207,8 +207,12 @@ export const feedIn = pgTable(
       .notNull()
       .references(() => feedItem.id),
     kind: text("kind", { enum: FEED_IN_KINDS }).notNull(),
-    /** In the Feed Item's own unit. */
+    /** In the Feed Item's own unit: what the farm's scale showed where it was weighed, else what the slip said. What
+     *  the store holds, and what its price per unit is read on. */
     quantity: numeric("quantity", { precision: 12, scale: 1 }).notNull(),
+    /** What the seller's slip said — typed, or its bags at the feed's bag weight, or its maunds — where the lot was
+     *  also weighed on the farm's scale; nothing where it was not, and no difference is claimed. */
+    slipQuantity: numeric("slip_quantity", { precision: 12, scale: 1 }),
     /** What it was bought as, where not in the feed's own unit: so many bags or maunds, which `quantity` holds in
      *  kilos. Kept so the arrival reads as the trader's slip did; cleared when a Correction puts the quantity right. */
     packKind: text("pack_kind", { enum: FEED_PACKS }),

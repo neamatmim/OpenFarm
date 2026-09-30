@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   priceJumped,
   purchasePricesOf,
+  scaleShortOf,
+  sellersOnTheScale,
   MAX_KG_PER_100KG_PER_DAY,
   bandStanding,
   findBandProblems,
@@ -306,5 +308,39 @@ describe("a Feed Purchase's price per unit", () => {
     expect(priceJumped({ changePercent: 10.1 }, 10)).toBe(true);
     expect(priceJumped({ changePercent: -30 }, 10)).toBe(false);
     expect(priceJumped({ changePercent: null }, 10)).toBe(false);
+  });
+});
+
+/** A lot a seller sent, weighed on the farm's scale. */
+const weighed = (
+  sellerName: string,
+  slipQuantity: number,
+  quantity: number,
+  priceBdt: number
+) => ({ sellerId: sellerName, sellerName, slipQuantity, quantity, priceBdt });
+
+describe("how short a seller runs on the farm's scale", () => {
+  it("claims nothing of a lot never weighed", () => {
+    expect(scaleShortOf({ quantity: 500, slipQuantity: null })).toBeNull();
+    expect(scaleShortOf({ quantity: 488, slipQuantity: 500 })).toBe(12);
+  });
+
+  it("adds a seller's lots up in kilos, percent and taka at what each slip kilo was charged", () => {
+    // 500 on the slip at ৳40, 488 on the scale: 12 short, ৳480. 300 at ৳50, 297: 3 short, ৳150.
+    const [rashid, other] = sellersOnTheScale([
+      weighed("রশিদ", 500, 488, 20_000),
+      weighed("রশিদ", 300, 297, 15_000),
+      weighed("কামাল", 200, 201, 8000),
+    ]);
+    expect(rashid).toMatchObject({
+      lots: 2,
+      slipKg: 800,
+      weighedKg: 785,
+      shortKg: 15,
+      shortPercent: 1.9,
+      shortBdt: 630,
+    });
+    // Over on the scale is below nothing, never netted into another seller.
+    expect(other).toMatchObject({ shortKg: -1, shortBdt: -40 });
   });
 });
