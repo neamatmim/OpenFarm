@@ -107,6 +107,8 @@ export const DELIVERY = {
   cash_short: { when: "digest" },
   // Money entered twice on purpose is the evening's question for the Owner, not a buzz: it may well be two bills.
   entered_twice: { when: "digest" },
+  // A sale gone cheap is the evening's question for the Owner to ask about, never a buzz at the haat.
+  sold_under_cost: { when: "digest" },
 } as const satisfies Record<AlertKind, Delivery>;
 
 /**
@@ -266,6 +268,10 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
   entered_twice: {
     app: "alerts.enteredTwice",
     digest: "digest.enteredTwice",
+  },
+  sold_under_cost: {
+    app: "alerts.soldUnderCost",
+    digest: "digest.soldUnderCost",
   },
 };
 

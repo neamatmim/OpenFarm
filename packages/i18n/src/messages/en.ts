@@ -4749,6 +4749,10 @@ export const en = {
   "owner.storeNeverCounted": "Never counted",
   "alerts.storeShortfall": "The store count on {day} came up ৳{amount} short",
   "alerts.openTheCounts": "Open the counts",
+  "alerts.soldUnderCost":
+    "{tag} was sold for ৳{price}; she had cost ৳{cost}, and her weight at the low price was {low}",
+  "digest.soldUnderCost":
+    "{count, plural, one {# animal was} other {# animals were}} sold under her cost or the market",
   "alerts.enteredTwice":
     "{by} entered ৳{amount} to {name} on {day} a second time, knowing an entry the same was already there",
   "digest.enteredTwice":

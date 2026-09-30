@@ -43,6 +43,15 @@ export interface NoticeFacts {
     /** The farm day ("YYYY-MM-DD") the week began. */
     since: string;
   };
+  sold_under_cost: {
+    tag: string;
+    /** What she fetched. */
+    priceBdt: number;
+    /** What she had cost the farm, bought for and every charge on her, to the taka. */
+    costBdt: number;
+    /** Her weight on the day at the low price a kilo — her Venture's or the farm's market price; null while unset. */
+    lowBdt: number | null;
+  };
   entered_twice: {
     /** Who the money went to or came from. */
     name: string;

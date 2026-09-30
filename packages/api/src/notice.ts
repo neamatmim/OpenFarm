@@ -177,6 +177,11 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
     entity: "step_completion",
   },
   // The Owner asks the Manager tomorrow whether it was two bills; about the second entry, told once.
+  // Her cost is the Owner's alone to read; about the Sale, so a Correction does not tell it twice.
+  sold_under_cost: {
+    audience: [theOwner],
+    entity: "sale",
+  },
   entered_twice: {
     audience: [theOwner],
     entity: "money_event",

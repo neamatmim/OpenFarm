@@ -96,6 +96,15 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     percent: Number(facts.percent),
     since: saidDate(facts.since, language),
   }),
+  sold_under_cost: (facts, language) => ({
+    tag: facts.tag,
+    price: Number(facts.priceBdt),
+    cost: Number(facts.costBdt),
+    low:
+      typeof facts.lowBdt === "number"
+        ? `৳${formatNumber(facts.lowBdt, language)}`
+        : "—",
+  }),
   entered_twice: (facts, language) => ({
     name: facts.name,
     amount: Number(facts.amountBdt),
