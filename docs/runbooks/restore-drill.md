@@ -69,10 +69,17 @@ scripts/restore.sh openfarm-nightly-20260911T000000Z.sql.age \
 The script refuses any target that does not say `scratch` in its name. A restore that could
 touch the live farm is not a drill.
 
-It fetches, decrypts, rebuilds the schema and then checks that what came back holds a farm —
-its own record of itself, its herd, its Playbook and the trail. **A restore that produces an
-empty database succeeds quietly**, which is the worst way for a backup to be wrong: the drill
-passes, the runbook is ticked, and the farm finds out on the day it matters.
+It fetches, decrypts, rebuilds the schema and then checks that what came back is what the copy
+held. The backup job counts the farm's key tables — its own record of itself, its people, its
+herd, its Playbook and the work done on it, the milk, the trail — and writes the counts into
+the copy before it takes it; the check wants every one of them back, and names any table
+that came back short. **A restore that produces an empty database succeeds quietly**, which
+is the worst way for a backup to be wrong: the drill passes, the runbook is ticked, and the
+farm finds out on the day it matters.
+
+So the first drill can be run the day the server is up, before a single animal is written
+down: a farm with no milk yet held no milk, and gives none back. A copy taken before the job
+counted is held instead to what a working farm cannot be without, herd and milk included.
 
 ## The quarterly drill
 

@@ -37,7 +37,7 @@ const listening = async (clock: FakeClock, transport: PushTransport) => {
     clock,
     push: transport,
   });
-  const endpoint = `https://push.example.com/digest-${Date.now()}-${Math.random()}`;
+  const endpoint = `https://fcm.googleapis.com/fcm/send/digest-${Date.now()}-${Math.random()}`;
   await manager.client.push.listen({
     endpoint,
     p256dh: "test-p256dh-key",

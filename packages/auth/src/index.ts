@@ -12,6 +12,7 @@ import { deleteSessionCookie } from "better-auth/cookies";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 
 import { isCommonPassword } from "./common-passwords";
+import { whoMayOpenTheFarm } from "./first-account";
 import type { Host, Hosts } from "./hosts";
 import { HOSTS, originOf, portalOrigin, signInPageOf } from "./hosts";
 import { PASSWORD_MIN_LENGTH, PASSWORD_TOO_COMMON } from "./password";
@@ -25,8 +26,8 @@ import { WRONG_ADDRESS } from "./wrong-address";
  * accepts investment and lets the public sign up is describable as a platform, and that is a question nobody
  * wants asked. So the account is made only where the farm has already said whose it will be.
  *
- * Two ways in, and no third. Before any Farm exists, whoever is setting the farm up opens the first account —
- * there is nobody yet to invite them. Afterwards, an account is opened only against an invite the Owner or a
+ * Two ways in, and no third. Before any Farm exists, the Owner opens the first account — there is nobody yet to
+ * invite them, so the server names their address (OPENFARM_OWNER_EMAIL) and nobody else's opens. Afterwards, an account is opened only against an invite the Owner or a
  * Manager wrote for that address, and only while it is still open; the code they were handed separately is
  * what then takes it up, so this is a narrower door than the invite, not a way around it.
  */
@@ -52,8 +53,22 @@ const turnAwayWhoWasNotAsked = (db: Database) =>
     }
     const theFarm = await db.query.farm.findFirst({ columns: { id: true } });
     if (!theFarm) {
-      // Nobody has set the farm up yet, so there is nobody who could have invited them.
-      return;
+      // Nobody has set the farm up yet, so there is nobody who could have invited them: the server names who may.
+      const first = whoMayOpenTheFarm(email, {
+        ownerEmail: env.OPENFARM_OWNER_EMAIL,
+        production: env.NODE_ENV === "production",
+      });
+      if (first === "open") {
+        return;
+      }
+      throw new APIError("FORBIDDEN", {
+        message: translate(
+          DEFAULT_LANGUAGE,
+          first === "not_the_owner"
+            ? "auth.onlyTheOwnerFirst"
+            : "auth.ownerNotNamed"
+        ),
+      });
     }
     // By the address alone, not by which Farm the invite is on: one database holds one farm, and the address
     // is what the invite was written against.

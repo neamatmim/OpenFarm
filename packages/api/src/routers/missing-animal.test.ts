@@ -223,7 +223,7 @@ describe("who is told", () => {
     const { penId, tag } = await aPenWithHer("খোঁজা পেন ছ");
     const post = listeningPost();
     const owner = await as("owner", "2054-02-08T02:00:00.000Z", post.transport);
-    const endpoint = `https://push.example.com/${suffix}`;
+    const endpoint = `https://fcm.googleapis.com/fcm/send/${suffix}`;
     await owner.client.push.listen({
       endpoint,
       p256dh: "test-p256dh-key",

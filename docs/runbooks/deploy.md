@@ -48,9 +48,11 @@ is the part that is easy to believe was done and was not:
       The app tells the farm's address from the Investor Portal's by it; a proxy that sends
       `127.0.0.1` makes every request the farm's.
 - [ ] `/api/health` returns 200 and `/api/ready` returns 200 through the public hostname.
-- [ ] **The Owner signs up the moment the app is up.** Until a Farm exists the door is open,
-      and whoever opens the app first and creates the Farm becomes its Owner. Once it exists,
-      an account opens only for somebody the farm invited.
+- [ ] `OPENFARM_OWNER_EMAIL` is the Owner's own address. Until a Farm exists, whoever opens
+      the first account and creates the Farm becomes its Owner, so only this address may; left
+      unset, the app lets nobody in at all. Once the Farm exists, an account opens only for
+      somebody the farm invited.
+- [ ] **The Owner signs up with that address and sets the farm up** as soon as the app is up.
 
 ```sh
 # The push keys, generated once and kept for ever.

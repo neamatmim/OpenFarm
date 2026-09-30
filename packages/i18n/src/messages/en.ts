@@ -65,6 +65,10 @@ export const en = {
     "You no longer work on this farm. Ask the Owner if this is wrong.",
   "auth.notInvited":
     "The farm has not invited this address. Ask the owner to invite you, then open the account with the code you are given.",
+  "auth.onlyTheOwnerFirst":
+    "The farm is not set up yet, and only its Owner's address may open the first account.",
+  "auth.ownerNotNamed":
+    "The farm is not open yet. Whoever runs the server must first name the Owner's address (OPENFARM_OWNER_EMAIL).",
   "portal.account.title": "Your account",
   "portal.account.hint":
     "Your record as the farm holds it, who to ask about it, your password, and where you are signed in.",

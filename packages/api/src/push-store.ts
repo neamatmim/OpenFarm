@@ -17,6 +17,10 @@ import { DIGESTIBLE, digestWording, messageFor, travelsByPush } from "./push";
  * row says: the phone is gone, and a handset lost in a yard should not keep being told the
  * farm's business (ADR 0003). Revoking the phone revokes them too; this is the second lock
  * on the same door.
+ *
+ * Nor is a browser of somebody whose Membership has ended: they cannot sign in to read the
+ * farm's business, and their own phone should not go on being told it. Kept rather than
+ * revoked, so their browsers are told again the day they are back at work.
  */
 export const listenersFor = async (
   tx: Tx,
@@ -40,11 +44,13 @@ export const listenersFor = async (
       auth: true,
     },
     with: {
-      owner: { columns: { language: true } },
+      owner: { columns: { language: true, disabledAt: true } },
       device: { columns: { revokedAt: true } },
     },
   });
-  return listening.filter((row) => !row.device?.revokedAt);
+  return listening.filter(
+    (row) => !(row.device?.revokedAt || row.owner.disabledAt)
+  );
 };
 
 /** A browser the push service says is gone stops being told. Kept rather than deleted: who

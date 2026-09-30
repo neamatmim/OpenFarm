@@ -3,9 +3,11 @@
  *
  * A restore that produces an empty database succeeds quietly, which is the worst way for a
  * backup to be wrong: the drill passes, the runbook is ticked, and the farm finds out on the
- * day it matters. So this asks for the things a farm cannot be without — its own record of
- * itself, its herd, its Playbook, the work that was done and the trail of it — and fails
- * loudly, by name, when any of them is missing.
+ * day it matters. So this asks for what the copy held as it was taken — the backup job writes
+ * the counts of the farm's key tables into the copy's own backup_run row before the dump —
+ * and fails loudly, by name, when any of them came back short. A farm set up yesterday held
+ * no milk, and its first drill passes; a farm with a year of it must get every row back.
+ * A copy taken before the job counted is held to what a working farm cannot be without.
  *
  * It is deliberately a check of *contents*, not of rules. The rules are tested by the suite
  * in packages/api, which builds its own database from nothing; pointing that at a restored
@@ -28,7 +30,7 @@ if (!name.includes("scratch")) {
   );
 }
 
-/** What a farm cannot be without, and the least of it that means the restore worked. */
+/** What a farm cannot be without: what a copy that did not say what it held is held to. */
 const MUST_HOLD: { table: string; why: string }[] = [
   { table: "farm", why: "the farm's own record of itself" },
   { table: "animal", why: "the herd register" },
@@ -99,20 +101,63 @@ const countOf = async (table: string): Promise<number> => {
   }
 };
 
+/** A table's name as the backup job writes it, and nothing that could be anything else in a query. */
+const TABLE_NAME = /^[a-z_]+$/u;
+
+/** What the copy said it held: the newest backup_run row, which is the copy's own — the job writes it before it
+ *  takes the dump. Null for a copy taken before the job counted, or one with no backup_run at all. */
+const heldByTheCopy = async (): Promise<Record<string, number> | null> => {
+  if ((await countOf("backup_run")) === 0) {
+    return null;
+  }
+  const rows = await db.execute<{ held: Record<string, number> | null }>(
+    sql.raw(
+      "select held from backup_run order by started_at desc, id desc limit 1"
+    )
+  );
+  const first = (
+    rows as unknown as { rows?: { held: Record<string, number> | null }[] }
+  ).rows?.[0];
+  return first?.held ?? null;
+};
+
 const missing: string[] = [];
-for (const want of MUST_HOLD) {
-  // Deliberately sequential: a dozen counts, and a clear message beats a fast one.
-  // oxlint-disable-next-line no-await-in-loop
-  const held = await countOf(want.table);
-  if (held === 0) {
-    missing.push(`${want.table}: 0 — expected ${want.why}`);
-  } else {
-    process.stdout.write(`  ${want.table}: ${held}\n`);
+const held = await heldByTheCopy();
+if (held) {
+  process.stdout.write("  the copy says what it held; each must come back:\n");
+  for (const [table, had] of Object.entries(held)) {
+    if (!TABLE_NAME.test(table)) {
+      missing.push(`${table}: not a table name the backup job writes`);
+      continue;
+    }
+    // Deliberately sequential: a dozen counts, and a clear message beats a fast one.
+    // oxlint-disable-next-line no-await-in-loop
+    const has = await countOf(table);
+    if (has < had) {
+      missing.push(`${table}: ${has} — the copy held ${had}`);
+    } else {
+      process.stdout.write(`  ${table}: ${has} of ${had}\n`);
+    }
+  }
+} else {
+  process.stdout.write(
+    "  the copy does not say what it held; holding it to what a farm cannot be without:\n"
+  );
+  for (const want of MUST_HOLD) {
+    // oxlint-disable-next-line no-await-in-loop
+    const has = await countOf(want.table);
+    if (has === 0) {
+      missing.push(`${want.table}: 0 — expected ${want.why}`);
+    } else {
+      process.stdout.write(`  ${want.table}: ${has}\n`);
+    }
   }
 }
 
 const broken: string[] = [];
-for (const check of MUST_HANG_TOGETHER) {
+// Asked only of a restore whose counts came back: one missing its tables has already failed, and asking how its
+// rows join would only crash on the tables that are not there, burying the reason under a stack trace.
+for (const check of missing.length === 0 ? MUST_HANG_TOGETHER : []) {
   // oxlint-disable-next-line no-await-in-loop
   const orphans = await totalFrom(check.query);
   if (orphans > 0) {
