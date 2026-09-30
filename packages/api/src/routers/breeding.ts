@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { audited } from "../audit";
 import {
+  heatWatchOn,
   assertLostWhenItCouldBe,
   pregnancyTimesOf,
   readAbortion,
@@ -131,6 +132,13 @@ export const breedingRouter = {
    * which the Vet decides on as well and the Owner reads (roles matrix: Repeat Breeder flag — Vet R,
    * decide). Listed, never pushed.
    */
+  /** The heat watch: open cows the farm expects in heat and nobody has seen, for the Manager and the Vet. */
+  heatWatch: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .handler(({ context }) =>
+      heatWatchOn(context.db, context.farm, context.clock.now())
+    ),
+
   repeatBreeders: protectedProcedure
     .use(requireRole("owner", "manager", "vet"))
     .handler(({ context }) =>

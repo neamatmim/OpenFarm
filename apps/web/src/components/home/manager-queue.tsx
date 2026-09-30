@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   Gavel,
   HandCoins,
+  Flame,
   MapPinOff,
   Repeat,
   HeartPulse,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { HeatWatchGroup } from "@/components/heat-watch";
 import { BakiOverdueGroup } from "@/components/home/baki-overdue";
 import { IllAgainGroup } from "@/components/home/ill-again";
 import { MissingAnimalsGroup } from "@/components/home/missing-animals";
@@ -117,6 +119,7 @@ export const QUEUE_KINDS = [
   "bakiOverdue",
   "repeatBreeders",
   "illAgain",
+  "heatWatch",
 ] as const;
 export type QueueKind = (typeof QUEUE_KINDS)[number];
 
@@ -138,6 +141,8 @@ const countsOf = (queue: ManagerQueueData): Record<QueueKind, number> => ({
   repeatBreeders: queue.repeatBreeders.length,
   // Missing from an answer a phone kept from before illness was counted.
   illAgain: queue.illAgain?.length ?? 0,
+  // Missing from an answer a phone kept from before the heat watch.
+  heatWatch: queue.heatWatch?.length ?? 0,
 });
 
 /** Everything waiting for the Manager, every kind counted: what decides whether the day is all clear. */
@@ -337,6 +342,9 @@ const QueueKindList = ({
         <MissingAnimalsGroup animals={queue.missing} headless={headless} />
       );
     }
+    case "heatWatch": {
+      return <HeatWatchGroup headless={headless} rows={queue.heatWatch} />;
+    }
     case "illAgain": {
       return <IllAgainGroup animals={queue.illAgain} headless={headless} />;
     }
@@ -387,6 +395,7 @@ export const ManagerQueue = ({
     bakiOverdue: { label: t("home.bakiOverdue"), icon: HandCoins },
     repeatBreeders: { label: t("repeatBreeder.title"), icon: HeartPulse },
     illAgain: { label: t("home.illAgain"), icon: Repeat },
+    heatWatch: { label: t("heatWatch.title"), icon: Flame },
   };
   const waiting = QUEUE_KINDS.filter((kind) => counts[kind] > 0);
   const [only] = waiting;

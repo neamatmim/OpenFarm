@@ -4729,6 +4729,17 @@ export const en = {
   "params.diagnoses": "diagnoses",
   "refusal.outcomeSaid":
     "Its outcome is said already; put the Diagnosis right to change it",
+  "heatWatch.title": "Heat watch",
+  "heatWatch.none": "No cow the farm is waiting to see in heat",
+  "heatWatch.neverSeen":
+    "{days, plural, one {# day} other {# days}} since calving, no heat seen · {pen}",
+  "heatWatch.quietSince":
+    "{days, plural, one {# day} other {# days}} since calving, no heat since {day} · {pen}",
+  "heatWatch.returnDue": "Due back in heat — served {day} · {pen}",
+  "params.heatWatch": "Heat watch",
+  "params.heatWatchHint":
+    "An open cow with no heat seen this many days after calving is put on the heat watch, for closer watching and the Vet. DLS re-examines a cow not in heat by 50–60 days.",
+  "params.heatWatchAfterCalvingDays": "From this day after calving",
   "refusal.notMissing": "This animal is not missing: nobody is looking for it",
 } as const;
 

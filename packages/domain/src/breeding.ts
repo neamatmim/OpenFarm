@@ -324,3 +324,107 @@ export const expectedCalvingFrom = (
   servedAt: Date,
   gestationDays: number
 ): Date => new Date(servedAt.getTime() + gestationDays * DAY_MS);
+
+/** The days after a service in which she comes back into heat if it did not take: 21 ± 3 (DLS NG-GLPP; Merck 18–24).
+ *  A fact about cattle, not the farm's to set. */
+export const RETURN_HEAT_FROM_DAYS = 18;
+export const RETURN_HEAT_UNTIL_DAYS = 24;
+
+/** Why a cow is on the heat watch: open with no heat seen lately, or due back in heat after a service. */
+export type HeatWatchBecause = "no_heat" | "return_due";
+
+/** One cow on the heat watch, as the list names her. */
+export interface HeatWatched {
+  animalId: string;
+  because: HeatWatchBecause;
+  /** Whole days since she last calved. */
+  daysSinceCalving: number;
+  /** The last sign of heat since she calved — a Heat seen, or a service — or nothing. */
+  lastSignAt: Date | null;
+  /** The service she is due back from, for `return_due`. */
+  servedAt: Date | null;
+}
+
+const DAY_MS_WATCH = 24 * 60 * 60 * 1000;
+
+const wholeDays = (from: Date, to: Date): number =>
+  Math.floor((to.getTime() - from.getTime()) / DAY_MS_WATCH);
+
+/** The latest of some moments, or nothing when there are none. */
+const latestOf = (moments: readonly Date[]): Date | null => {
+  let latest: Date | null = null;
+  for (const at of moments) {
+    if (!latest || at > latest) {
+      latest = at;
+    }
+  }
+  return latest;
+};
+
+/**
+ * Whether the farm expects a cow in heat that nobody has seen (the heat watch), and why. Only an open cow — in milk or
+ * dry, not carrying — who has calved on the farm's record:
+ * - **return due:** her latest attempt since calving is 18–24 days old, with no heat since and no Pregnancy Check yet;
+ * - **no heat:** past the farm's days after calving (60: DLS re-examines a cow not in heat by 50–60 days), with no sign
+ *   of heat in the last 24 days — a cycle and its slack — and no attempt waiting on its check.
+ * A service counts as a sign of heat: a bull running with the herd serves cows nobody saw. Most cows on it will be heats
+ * nobody saw, not cows that cannot breed (docs/research/cow-watch.md). Pure — the caller reads her history.
+ */
+export const heatWatchOf = (
+  her: {
+    id: string;
+    state: string;
+    expectedCalvingAt: Date | null;
+    lastCalvedAt: Date | null;
+    heats: readonly Date[];
+    services: readonly { id: string; servedAt: Date }[];
+    checks: readonly { serviceId: string | null; checkedAt: Date }[];
+  },
+  now: Date,
+  afterCalvingDays: number
+): HeatWatched | null => {
+  const open =
+    (her.state === "milking" || her.state === "dry") &&
+    her.expectedCalvingAt === null &&
+    her.lastCalvedAt !== null;
+  if (!(open && her.lastCalvedAt)) {
+    return null;
+  }
+  const calved = her.lastCalvedAt;
+  const since = (at: Date) => at > calved && at <= now;
+  const heats = her.heats.filter(since);
+  const served = attemptsThatBegin(
+    her.services
+      .filter((one) => since(one.servedAt))
+      .map((one) => ({ ...one, animalId: her.id }))
+  );
+  const lastAttempt = served.at(-1) ?? null;
+  const lastSignAt = latestOf([
+    ...heats,
+    ...(lastAttempt ? [lastAttempt.servedAt] : []),
+  ]);
+  const daysSinceCalving = wholeDays(calved, now);
+  const row = { animalId: her.id, daysSinceCalving, lastSignAt };
+
+  if (lastAttempt) {
+    const checked = her.checks.some((one) => one.serviceId === lastAttempt.id);
+    const cameBack = heats.some((at) => at > lastAttempt.servedAt);
+    if (!(checked || cameBack)) {
+      const days = wholeDays(lastAttempt.servedAt, now);
+      if (days >= RETURN_HEAT_FROM_DAYS && days <= RETURN_HEAT_UNTIL_DAYS) {
+        return {
+          ...row,
+          because: "return_due",
+          servedAt: lastAttempt.servedAt,
+        };
+      }
+      // Before the window she may yet come back; after it she is waiting on her check, which is its own work.
+      return null;
+    }
+  }
+  const quiet =
+    lastSignAt === null || wholeDays(lastSignAt, now) > RETURN_HEAT_UNTIL_DAYS;
+  return daysSinceCalving >= afterCalvingDays && quiet
+    ? { ...row, because: "no_heat", servedAt: null }
+    : null;
+};

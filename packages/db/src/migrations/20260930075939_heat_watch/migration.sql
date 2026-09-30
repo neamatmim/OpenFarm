@@ -1,0 +1,1 @@
+ALTER TABLE "farm" ADD COLUMN "heat_watch_after_calving_days" integer DEFAULT 60 NOT NULL;

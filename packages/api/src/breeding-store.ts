@@ -9,6 +9,7 @@ import type {
   ServiceMethod,
 } from "@OpenFarm/domain";
 import {
+  HEAT,
   OPEN_INSTANCE_STATES,
   attemptOf,
   attemptsThatFailed,
@@ -17,6 +18,7 @@ import {
   attemptsThatBegin,
   expectedCalvingFrom,
   farmDayOf,
+  heatWatchOf,
   isExitState,
   startOfFarmDay,
 } from "@OpenFarm/domain";
@@ -523,4 +525,64 @@ export const expectedCalvingWithinReach = (
     });
   }
   return due;
+};
+
+/**
+ * The heat watch: every open cow the farm expects in heat and nobody has seen — no heat since the farm's days after
+ * calving, or due back in heat after a service — for the Manager's queue and the Vet's page. Longest waiting first.
+ */
+export const heatWatchOn = async (
+  db: Pick<Database, "query">,
+  farm: { id: string; heatWatchAfterCalvingDays: number },
+  now: Date
+) => {
+  const cows = await db.query.animal.findMany({
+    where: {
+      farmId: farm.id,
+      sex: "female",
+      side: "dairy",
+      state: { in: ["milking", "dry"] },
+      expectedCalvingAt: { isNull: true },
+      lactationStartedAt: { isNotNull: true },
+    },
+    columns: {
+      id: true,
+      tagNumber: true,
+      state: true,
+      expectedCalvingAt: true,
+      lactationStartedAt: true,
+    },
+    with: {
+      pen: { columns: { name: true } },
+      services: { columns: { id: true, servedAt: true } },
+      pregnancyChecks: { columns: { serviceId: true, checkedAt: true } },
+      observations: {
+        where: { saw: HEAT, withdrawnAt: { isNull: true } },
+        columns: { seenAt: true },
+      },
+    },
+  });
+  return cows
+    .flatMap((her) => {
+      const watched = heatWatchOf(
+        {
+          id: her.id,
+          state: her.state,
+          expectedCalvingAt: her.expectedCalvingAt,
+          lastCalvedAt: her.lactationStartedAt,
+          heats: her.observations.map((one) => one.seenAt),
+          services: her.services,
+          checks: her.pregnancyChecks,
+        },
+        now,
+        farm.heatWatchAfterCalvingDays
+      );
+      return watched
+        ? [{ ...watched, tag: her.tagNumber, penName: her.pen.name }]
+        : [];
+    })
+    .toSorted(
+      (a, b) =>
+        b.daysSinceCalving - a.daysSinceCalving || a.tag.localeCompare(b.tag)
+    );
 };

@@ -1,5 +1,7 @@
 import { ClipboardCheck, FolderOpen } from "lucide-react";
 
+import type { HeatWatchRows } from "@/components/heat-watch";
+import { HeatWatchGroup } from "@/components/heat-watch";
 import { EmptyState, Loaded, Section } from "@/components/page";
 import type { RepeatBreederRow } from "@/components/repeat-breeder";
 import { RepeatBreeder } from "@/components/repeat-breeder";
@@ -80,6 +82,26 @@ export const RepeatTab = ({
             icon={ClipboardCheck}
             title={t("vet.noRepeatBreeders")}
           />
+        )}
+      </Loaded>
+    </Section>
+  );
+};
+
+/** The heat watch on the Vet's page: open cows nobody has seen in heat, for the Vet to look at on the next visit. */
+export const HeatWatchTab = ({
+  query,
+}: {
+  query: Answerable & { data?: HeatWatchRows };
+}) => {
+  const { t } = useLanguage();
+  return (
+    <Section title={t("heatWatch.title")}>
+      <Loaded query={query}>
+        {query.data?.length ? (
+          <HeatWatchGroup headless rows={query.data} />
+        ) : (
+          <EmptyState bare icon={ClipboardCheck} title={t("heatWatch.none")} />
         )}
       </Loaded>
     </Section>

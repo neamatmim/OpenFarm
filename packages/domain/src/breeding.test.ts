@@ -4,6 +4,7 @@ import {
   aiWindow,
   attemptOf,
   attemptsThatBegin,
+  heatWatchOf,
   attemptsThatFailed,
   calvingWorkDue,
   expectedCalvingFrom,
@@ -258,5 +259,95 @@ describe("the work a heat and a calving pull with them", () => {
     expect(calvingWorkDue(at("10-01", "17:30"), 60)).toEqual(
       startOfFarmDay("2027-08-02")
     );
+  });
+});
+
+describe("the heat watch", () => {
+  const CALVED = new Date("2031-01-01T00:00:00.000Z");
+  const day = (n: number) => new Date(CALVED.getTime() + n * 24 * 3_600_000);
+  const cow = (over: Partial<Parameters<typeof heatWatchOf>[0]> = {}) => ({
+    id: "cow",
+    state: "milking",
+    expectedCalvingAt: null,
+    lastCalvedAt: CALVED,
+    heats: [],
+    services: [],
+    checks: [],
+    ...over,
+  });
+
+  it("names an open cow with no heat seen by the farm's day after calving", () => {
+    expect(heatWatchOf(cow(), day(59), 60)).toBeNull();
+    expect(heatWatchOf(cow(), day(60), 60)).toMatchObject({
+      because: "no_heat",
+      daysSinceCalving: 60,
+      lastSignAt: null,
+    });
+  });
+
+  it("leaves off a cow seen in heat within a cycle, and names her again when she goes quiet", () => {
+    const seenOnce = cow({ heats: [day(59)] });
+    expect(heatWatchOf(seenOnce, day(60), 60)).toBeNull();
+    expect(heatWatchOf(seenOnce, day(83), 60)).toBeNull();
+    expect(heatWatchOf(seenOnce, day(84), 60)).toMatchObject({
+      because: "no_heat",
+      lastSignAt: day(59),
+    });
+  });
+
+  it("counts a service with no heat seen as a sign of one — a bull serves cows nobody saw", () => {
+    const servedOnce = cow({ services: [{ id: "s", servedAt: day(70) }] });
+    expect(heatWatchOf(servedOnce, day(75), 60)).toBeNull();
+  });
+
+  it("names her due back in heat 18 to 24 days after a service, and not before or after", () => {
+    const servedOnce = cow({ services: [{ id: "s", servedAt: day(70) }] });
+    expect(heatWatchOf(servedOnce, day(87), 60)).toBeNull();
+    expect(heatWatchOf(servedOnce, day(88), 60)).toMatchObject({
+      because: "return_due",
+      servedAt: day(70),
+    });
+    expect(heatWatchOf(servedOnce, day(94), 60)).toMatchObject({
+      because: "return_due",
+    });
+    // Past the window she is waiting on her Pregnancy Check, which is its own work.
+    expect(heatWatchOf(servedOnce, day(95), 60)).toBeNull();
+  });
+
+  it("takes her off once she came back into heat or was checked, and watches her again as open", () => {
+    const back = cow({
+      services: [{ id: "s", servedAt: day(70) }],
+      heats: [day(90)],
+    });
+    expect(heatWatchOf(back, day(92), 60)).toBeNull();
+    const empty = cow({
+      services: [{ id: "s", servedAt: day(70) }],
+      checks: [{ serviceId: "s", checkedAt: day(115) }],
+    });
+    expect(heatWatchOf(empty, day(116), 60)).toMatchObject({
+      because: "no_heat",
+      lastSignAt: day(70),
+    });
+  });
+
+  it("leaves off a cow found carrying, and a heifer, and puts a cow who lost her calf back", () => {
+    expect(
+      heatWatchOf(cow({ expectedCalvingAt: day(300) }), day(100), 60)
+    ).toBeNull();
+    expect(
+      heatWatchOf(cow({ state: "heifer", lastCalvedAt: null }), day(100), 60)
+    ).toBeNull();
+    // An Abortion clears her Expected Calving: she is open, and quiet since her service.
+    const lost = cow({
+      services: [{ id: "s", servedAt: day(70) }],
+      checks: [{ serviceId: "s", checkedAt: day(115) }],
+    });
+    expect(heatWatchOf(lost, day(160), 60)).toMatchObject({
+      because: "no_heat",
+    });
+  });
+
+  it("leaves off a cow the farm has no calving day for", () => {
+    expect(heatWatchOf(cow({ lastCalvedAt: null }), day(200), 60)).toBeNull();
   });
 });
