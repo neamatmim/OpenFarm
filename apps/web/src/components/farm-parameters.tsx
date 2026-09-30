@@ -61,6 +61,7 @@ type NumberKey =
   | "heatWatchAfterCalvingDays"
   | "milkDropPercent"
   | "milkDropDays"
+  | "milkUnaccountedPercent"
   | "ventureFloorPercent"
   | "ventureRunningPercent"
   | "ventureInvestorsPercent"
@@ -311,6 +312,21 @@ const GROUPS: {
         unit: "params.days",
         min: 1,
         max: 5,
+      },
+    ],
+  },
+  {
+    id: "params-milk-unaccounted",
+    title: "params.milkUnaccounted",
+    hint: "params.milkUnaccountedHint",
+    owner: true,
+    fields: [
+      {
+        key: "milkUnaccountedPercent",
+        label: "params.milkUnaccountedPercent",
+        unit: "params.percent",
+        min: 1,
+        max: 50,
       },
     ],
   },

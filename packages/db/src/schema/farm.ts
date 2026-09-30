@@ -208,6 +208,12 @@ export const farm = pgTable("farm", {
    *  2 days — a convention, not a measured line (docs/research/cow-watch.md). The Manager's. */
   milkDropPercent: integer("milk_drop_percent").notNull().default(20),
   milkDropDays: integer("milk_drop_days").notNull().default(2),
+  /** How much of a week's milk into the tank may go unaccounted for — neither out of the gate nor still in the tank —
+   *  before the Owner and the Manager are told: 3%. The Owner's alone, because the person checked should not set the
+   *  line that checks them (the Owner, 2026-09-29). */
+  milkUnaccountedPercent: integer("milk_unaccounted_percent")
+    .notNull()
+    .default(3),
   /** Whether Investors the Owner has invited may sign in to read their Ventures and papers (ADR 0007). Off until
    *  the Owner turns it on, and off again is how the farm answers a lawyer who says the portal is a platform. */
   investorPortal: boolean("investor_portal").notNull().default(false),

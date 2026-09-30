@@ -35,6 +35,14 @@ export interface NoticeFacts {
   withdrawal_changed: { tag: string; until: string };
   notifiable_diagnosis: { tag: string; disease: string };
   /** One Baki gone past its day: who owes it, what is still owing on it, and the first day it was late. */
+  milk_unaccounted: {
+    /** Litres gone in the week that nobody can account for. */
+    litres: number;
+    /** As a whole percent of what went into the tank. */
+    percent: number;
+    /** The farm day ("YYYY-MM-DD") the week began. */
+    since: string;
+  };
   pen_sores_seen: {
     pen: string;
     /** How many animals in it were seen with sores in the window. */

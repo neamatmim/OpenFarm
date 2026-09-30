@@ -133,6 +133,8 @@ export interface Context {
     /** How far under her own week a cow's milk must fall, over how many days, before she is named as giving less. */
     milkDropPercent: number;
     milkDropDays: number;
+    /** How much of a week's milk may go unaccounted for before the Owner and the Manager are told. */
+    milkUnaccountedPercent: number;
     /** What part of a Venture's target capital is the least worth starting on. */
     ventureFloorPercent: number;
     /** What part of a Venture's capital keeps the animals rather than buying them. */

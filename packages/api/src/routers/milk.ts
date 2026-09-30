@@ -31,6 +31,7 @@ import {
   dispatchesBetween,
   litresDispatched,
   litresToBulkBetween,
+  milkAccountOn,
   readDispatch,
   twoPlaces,
   worthOfDispatch,
@@ -230,6 +231,19 @@ export const milkRouter = {
       }
       return session;
     }),
+
+  /** The week's milk: into the tank, out of the gate, still in the tank, and what nobody can account for. */
+  account: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(async ({ context }) => ({
+      ...(await milkAccountOn(
+        context.db,
+        context.farm.id,
+        context.clock.now()
+      )),
+      /** The Owner's line, past which the week is told about. */
+      linePercent: context.farm.milkUnaccountedPercent,
+    })),
 
   /** Cows in milk giving well under their own week: the Manager's to look at, and the Vet's. */
   givingLess: protectedProcedure

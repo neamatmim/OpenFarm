@@ -211,3 +211,85 @@ export const milkDropOf = (
       }
     : null;
 };
+
+/** The days the milk into the tank is set against the milk out of the gate. A week. */
+export const MILK_ACCOUNT_DAYS = 7;
+
+/** The week's milk, as the farm can account for it: in, out, still in the tank, and what is left over. */
+export interface MilkAccount {
+  /** What was in the tank when the week began: milked since the last Dispatch before it. */
+  carriedIn: number;
+  /** What the cows sent to Bulk in the week. */
+  toBulk: number;
+  /** What left the gate in the week. */
+  dispatched: number;
+  /** What is in the tank now: milked since the last Dispatch. */
+  stillInTank: number;
+  /** In, less out, less still in the tank: milk nobody can say what became of. Below nothing when more left than the
+   *  records put in, which is shown but never the farm's worry. */
+  notAccounted: number;
+  /** `notAccounted` as a part of everything that went in, as a whole percent. */
+  notAccountedPercent: number;
+}
+
+/**
+ * The week's milk: what the cows sent to Bulk, against what Dispatches took out of the gate, allowing for what was in
+ * the tank when the week began and is in it now — an evening's milk collected the next morning is in the tank one day
+ * and out of the gate the next. Whatever is left is milk nobody can account for. Pure: the caller hands it the Sessions'
+ * to-Bulk litres and the Dispatches from a little before the week, so the tank at its start can be read.
+ */
+export const milkAccountOf = (
+  sessions: readonly { at: Date; toBulk: number }[],
+  dispatches: readonly { at: Date; litres: number }[],
+  weekFrom: Date,
+  now: Date
+): MilkAccount => {
+  const lastDispatchBefore = (moment: Date): Date | null => {
+    let latest: Date | null = null;
+    for (const one of dispatches) {
+      if (one.at < moment && (!latest || one.at > latest)) {
+        latest = one.at;
+      }
+    }
+    return latest;
+  };
+  const toBulkBetween = (from: Date | null, until: Date) => {
+    let sum = 0;
+    for (const one of sessions) {
+      if ((!from || one.at > from) && one.at < until) {
+        sum += one.toBulk;
+      }
+    }
+    return sum;
+  };
+  const openedAt = lastDispatchBefore(weekFrom);
+  const carriedIn = openedAt ? toBulkBetween(openedAt, weekFrom) : 0;
+  let toBulk = 0;
+  for (const one of sessions) {
+    if (one.at >= weekFrom && one.at < now) {
+      toBulk += one.toBulk;
+    }
+  }
+  let dispatched = 0;
+  for (const one of dispatches) {
+    if (one.at >= weekFrom && one.at < now) {
+      dispatched += one.litres;
+    }
+  }
+  const lastOut = lastDispatchBefore(now);
+  const stillInTank =
+    lastOut && lastOut >= weekFrom
+      ? toBulkBetween(lastOut, now)
+      : carriedIn + toBulk;
+  const notAccounted = carriedIn + toBulk - dispatched - stillInTank;
+  const wentIn = carriedIn + toBulk;
+  return {
+    carriedIn: roundLitres(carriedIn),
+    toBulk: roundLitres(toBulk),
+    dispatched: roundLitres(dispatched),
+    stillInTank: roundLitres(stillInTank),
+    notAccounted: roundLitres(notAccounted),
+    notAccountedPercent:
+      wentIn > 0 ? Math.round((notAccounted / wentIn) * 100) : 0,
+  };
+};

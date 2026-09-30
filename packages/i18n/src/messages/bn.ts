@@ -4363,6 +4363,7 @@ export const bn: Record<MessageKey, string> = {
   "money.refundedHint": "ভেঞ্চার বাতিল হওয়ায়",
   "units.kg": "{kg} কেজি",
   "units.kgADay": "দিনে {kg} কেজি",
+  "units.litres": "{litres} লিটার",
   "alerts.animalMissing": "{since}: রাউন্ডে {pen}-এ {tag} পাওয়া যায়নি",
   "push.animalMissingTitle": "পশু পাওয়া যায়নি",
   "push.animalMissingBody": "{pen}-এ {tag} পাওয়া যায়নি। খুঁজে দেখুন, পাওয়া গেলে জানান।",
@@ -4436,5 +4437,22 @@ export const bn: Record<MessageKey, string> = {
     "যে গাভীর প্রতি দোহনের দুধ তার নিজের সপ্তাহের চেয়ে এত দিন ধরে এতটা কমে, তাকে ম্যানেজারকে জানানো হবে। এটি একটি প্রথা, মাপা সীমা নয়: হঠাৎ অসুখ ধরা পড়ে, আর গরম হলেও দুধ কমে।",
   "params.milkDropPercent": "সপ্তাহের চেয়ে কম",
   "params.milkDropDays": "শেষ এত দিনে",
+  "alerts.milkUnaccounted":
+    "{since} থেকে {litres} লিটার দুধ গেটের বাইরেও যায়নি, ট্যাংকেও নেই ({percent}%)",
+  "digest.milkUnaccounted": "এই সপ্তাহে দুধের হিসাব মেলেনি",
+  "params.milkUnaccounted": "দুধের হিসাব না মেলা",
+  "params.milkUnaccountedHint":
+    "সপ্তাহে ট্যাংকে যাওয়া দুধের এতটা যদি গেটের বাইরেও না যায়, ট্যাংকেও না থাকে, তবে সন্ধ্যার খবরে আপনাকে আর ম্যানেজারকে জানানো হবে।",
+  "params.milkUnaccountedPercent": "এর বেশি হলে",
+  "milkAccount.title": "সপ্তাহের দুধের হিসাব",
+  "milkAccount.hint":
+    "{since} থেকে ট্যাংকে যা গেছে, গেট দিয়ে যা বেরিয়েছে তার পাশে — ট্যাংকে যা আছে তা ধরে।",
+  "milkAccount.carriedIn": "সপ্তাহের শুরুতে ট্যাংকে ছিল",
+  "milkAccount.toBulk": "ট্যাংকে গেছে",
+  "milkAccount.dispatched": "গেট দিয়ে বেরিয়েছে",
+  "milkAccount.stillInTank": "এখনো ট্যাংকে",
+  "milkAccount.notAccounted": "হিসাব মেলেনি",
+  "milkAccount.calves":
+    "বাছুরকে: দিনে {litres} লিটার, {calves}টি বাছুর — প্রতিটি {perCalf} লিটার",
   "refusal.notMissing": "পশুটি হারায়নি — কেউ তাকে খুঁজছে না",
 };

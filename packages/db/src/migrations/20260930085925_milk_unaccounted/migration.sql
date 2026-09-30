@@ -1,0 +1,1 @@
+ALTER TABLE "farm" ADD COLUMN "milk_unaccounted_percent" integer DEFAULT 3 NOT NULL;

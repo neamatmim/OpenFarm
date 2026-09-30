@@ -7,6 +7,7 @@ import type { Tx } from "./audit";
 import { overdueToTell, raiseOverdueBaki } from "./baki-store";
 import { pregnancyTimesOf } from "./breeding-store";
 import type { Context } from "./context";
+import { milkAccountOn, tellOfUnaccountedMilk } from "./dispatch-store";
 import {
   anyUntold,
   raiseWithdrawalAlerts,
@@ -322,6 +323,45 @@ const tellAboutLowStock = async (context: Turning, now: Date) => {
 };
 
 /**
+ * The week's milk nobody can account for, past the Owner's line: told to the Owner and the Manager in the evening's post,
+ * once a farm day. Nothing written on a day already told, or a week that balances.
+ */
+const tellAboutUnaccountedMilk = async (context: Turning, now: Date) => {
+  const today = farmDayOf(now);
+  const told = await context.db.query.alert.findFirst({
+    where: {
+      farmId: context.farm.id,
+      kind: "milk_unaccounted",
+      entityId: today,
+    },
+    columns: { id: true },
+  });
+  if (told) {
+    return;
+  }
+  const account = await milkAccountOn(context.db, context.farm.id, now);
+  if (
+    account.notAccounted <= 0 ||
+    account.notAccountedPercent <= context.farm.milkUnaccountedPercent
+  ) {
+    return;
+  }
+  await audited(context).write(
+    {
+      entity: "farm_day",
+      entityId: today,
+      action: "update",
+      after: () =>
+        Promise.resolve({
+          toldMilkUnaccounted: account.notAccounted,
+          percent: account.notAccountedPercent,
+        }),
+    },
+    (tx) => tellOfUnaccountedMilk(tx, context.farm, now)
+  );
+};
+
+/**
  * Several animals in one Pen seen with sores on the mouth or feet: told once to the Owner and the Manager, and pushed at
  * once — FMD spreads through a Pen in days. Keyed on the first Pen told about, with the rest named in the event.
  */
@@ -468,6 +508,7 @@ export const theSweep = async (context: Turning) => {
   await tellAboutWithdrawals(context, now);
   await tellAboutMissing(context, now);
   await tellAboutSores(context, now);
+  await tellAboutUnaccountedMilk(context, now);
   await tellAboutLowStock(context, now);
   await tellAboutTheStore(context, now);
   await tellAboutOverdueBaki(context, now);

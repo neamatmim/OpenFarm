@@ -1,6 +1,14 @@
 import type { Database } from "@OpenFarm/db";
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
-import { paidAtTheGate, roundLitres, roundTaka } from "@OpenFarm/domain";
+import {
+  MILK_ACCOUNT_DAYS,
+  farmDayOf,
+  milkAccountOf,
+  paidAtTheGate,
+  roundLitres,
+  roundTaka,
+  startOfFarmDay,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -8,6 +16,8 @@ import type { Tx } from "./audit";
 import { counterpartyNamed } from "./counterparty-store";
 import type { Booking } from "./money-store";
 import { bookMoney, moneySnapshotOf } from "./money-store";
+import type { Raised } from "./notice";
+import { tell } from "./notice";
 
 /** One Dispatch as the day, the record and the reports read it. */
 export interface DispatchRow {
@@ -178,4 +188,96 @@ export const buyerOnTheDay = async (
     buyerName: buyer?.name ?? said.name,
     buyerAddress: buyer?.address ?? null,
   };
+};
+
+/** How far before the week its Sessions and Dispatches are read, so the tank at its start can be read: long enough for
+ *  a Dispatch to have come and gone. */
+const TANK_LOOK_BACK_DAYS = 3;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * The week's milk as the farm can account for it — into the tank, out of the gate, still in the tank, and what is left
+ * — and beside it what the calves drank, a day and a calf. By the same to-Bulk figure the day view reads.
+ */
+export const milkAccountOn = async (
+  db: Pick<Database, "query">,
+  farmId: string,
+  now: Date
+) => {
+  const startOfToday = startOfFarmDay(farmDayOf(now)).getTime();
+  const weekFrom = new Date(startOfToday - (MILK_ACCOUNT_DAYS - 1) * DAY_MS);
+  const readFrom = new Date(weekFrom.getTime() - TANK_LOOK_BACK_DAYS * DAY_MS);
+  const [sessions, dispatches, calves] = await Promise.all([
+    db.query.milkingSession.findMany({
+      where: { farmId, dueAt: { gte: readFrom, lt: now } },
+      columns: { dueAt: true },
+      with: { records: { columns: { litres: true, destination: true } } },
+    }),
+    dispatchesBetween(db, farmId, { from: readFrom, until: now }),
+    db.query.animal.findMany({
+      where: { farmId, state: "calf", side: "dairy" },
+      columns: { id: true },
+    }),
+  ]);
+  let toCalves = 0;
+  const intoTheTank = sessions.map((one) => {
+    let toBulk = 0;
+    for (const record of one.records) {
+      if (record.destination === "bulk") {
+        toBulk += Number(record.litres);
+      } else if (record.destination === "calves" && one.dueAt >= weekFrom) {
+        toCalves += Number(record.litres);
+      }
+    }
+    return { at: one.dueAt, toBulk };
+  });
+  const account = milkAccountOf(
+    intoTheTank,
+    dispatches.map((one) => ({ at: one.dispatchedAt, litres: one.litres })),
+    weekFrom,
+    now
+  );
+  const perDay = toCalves / MILK_ACCOUNT_DAYS;
+  return {
+    ...account,
+    since: farmDayOf(weekFrom),
+    calves: {
+      litresADay: roundLitres(perDay),
+      calves: calves.length,
+      perCalf: calves.length > 0 ? roundLitres(perDay / calves.length) : null,
+    },
+  };
+};
+
+/**
+ * Tells the Owner and the Manager of the week's milk nobody can account for, once a farm day, while it is past the
+ * Owner's line. Nothing when the week balances, or when more left the gate than the records put in the tank.
+ */
+export const tellOfUnaccountedMilk = async (
+  tx: Tx,
+  farm: { id: string; milkUnaccountedPercent: number },
+  now: Date
+): Promise<Raised[]> => {
+  const account = await milkAccountOn(tx, farm.id, now);
+  if (
+    account.notAccounted <= 0 ||
+    account.notAccountedPercent <= farm.milkUnaccountedPercent
+  ) {
+    return [];
+  }
+  return tell(
+    tx,
+    farm.id,
+    {
+      kind: "milk_unaccounted",
+      about: { id: farmDayOf(now) },
+      facts: {
+        litres: account.notAccounted,
+        percent: account.notAccountedPercent,
+        since: account.since,
+      },
+    },
+    now
+  );
 };

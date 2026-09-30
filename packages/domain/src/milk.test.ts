@@ -5,6 +5,7 @@ import {
   destinationFor,
   lactationView,
   litresTo,
+  milkAccountOf,
   milkDropOf,
   reconcile,
 } from "./milk";
@@ -219,5 +220,69 @@ describe("a cow giving less", () => {
         farm
       )
     ).toBeNull();
+  });
+});
+
+/** An hour of a day in July 2032, by the clock. */
+const inJuly = (day: number, hour: number) =>
+  new Date(Date.UTC(2032, 6, day, hour));
+
+describe("the week's milk, accounted for", () => {
+  const WEEK_FROM = inJuly(1, 0);
+  const NOW = inJuly(8, 0);
+  /** Milked at six and at five, a hundred litres each, from the last day of June to the 7th. */
+  const sessions = [0, 1, 2, 3, 4, 5, 6, 7].flatMap((day) => [
+    { at: inJuly(day, 6), toBulk: 100 },
+    { at: inJuly(day, 17), toBulk: 100 },
+  ]);
+  /** Collected each morning at eight: last evening's and this morning's. */
+  const collected = (litres: (day: number) => number) =>
+    [0, 1, 2, 3, 4, 5, 6, 7].map((day) => ({
+      at: inJuly(day, 8),
+      litres: litres(day),
+    }));
+
+  it("nets an evening's milk collected the next morning to nothing", () => {
+    const account = milkAccountOf(
+      sessions,
+      collected(() => 200),
+      WEEK_FROM,
+      NOW
+    );
+    expect(account).toMatchObject({
+      carriedIn: 100,
+      stillInTank: 100,
+      notAccounted: 0,
+      notAccountedPercent: 0,
+    });
+  });
+
+  it("names what went in and never left, nor is in the tank", () => {
+    const account = milkAccountOf(
+      sessions,
+      collected((day) => (day >= 1 ? 180 : 200)),
+      WEEK_FROM,
+      NOW
+    );
+    // Twenty litres short on each of the seven mornings in the week.
+    expect(account.notAccounted).toBe(140);
+    expect(account.notAccountedPercent).toBe(9);
+  });
+
+  it("counts a day nobody collected as still in the tank", () => {
+    const skipped = collected(() => 200).filter((one) => one.at < inJuly(6, 0));
+    const account = milkAccountOf(sessions, skipped, WEEK_FROM, NOW);
+    expect(account.notAccounted).toBe(0);
+    expect(account.stillInTank).toBe(500);
+  });
+
+  it("shows more out than the records put in, as below nothing", () => {
+    const account = milkAccountOf(
+      sessions,
+      collected(() => 210),
+      WEEK_FROM,
+      NOW
+    );
+    expect(account.notAccounted).toBeLessThan(0);
   });
 });
