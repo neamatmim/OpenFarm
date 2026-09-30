@@ -41,6 +41,7 @@ const SOURCE_WORD = {
   medicine_purchase: "money.from.medicinePurchase",
   vet_fee: "money.from.vetFee",
   sale_broker: "money.from.saleBroker",
+  wage_draw: "money.from.wageDraw",
   internal_sale_in: "money.from.internalSaleIn",
   internal_sale_out: "money.from.internalSaleOut",
   reimbursement: "money.from.reimbursement",

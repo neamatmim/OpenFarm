@@ -41,6 +41,11 @@ const CATEGORIES: Record<
     nameEn: "Selling trips",
     direction: "out",
   },
+  wage_draw: {
+    nameBn: "বেতনের অগ্রিম",
+    nameEn: "Wage draws",
+    direction: "out",
+  },
   sale_broker: {
     nameBn: "বিক্রির দালালি",
     nameEn: "Sale brokers",

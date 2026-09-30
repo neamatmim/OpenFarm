@@ -2945,6 +2945,7 @@ export const en = {
   "money.from.buyingTrip": "Buying trip",
   "money.from.sellingTrip": "Selling trip",
   "money.from.saleBroker": "Broker at a sale",
+  "money.from.wageDraw": "Wage draw",
   "selling.trip": "The outing",
   "selling.tripHint":
     "What the day at the haat cost beyond the animals. Tick every beast that stood on the lorry — the ones that came home again paid for their place too.",
@@ -4837,6 +4838,20 @@ export const en = {
   "refusal.notMissing": "This animal is not missing: nobody is looking for it",
   "refusal.gdNumberNeeded": "A theft needs the thana's GD number",
   "refusal.noFloatOnTheTrip": "No float was handed out for this trip",
+  "refusal.wageTookDraws":
+    "This wage took the person's draws, so its amount, person and month stay as they were",
+  "wageDraw.tab": "Wage draws",
+  "wageDraw.record": "Record a draw",
+  "wageDraw.hint":
+    "Money a person takes ahead of payday. It counts as wages the day it goes, and comes off their next wage.",
+  "wageDraw.day": "Day drawn",
+  "wageDraw.recorded": "Draw recorded",
+  "wageDraw.none": "Nobody owes a draw",
+  "wageDraw.listHint":
+    "What each person has drawn ahead and still owes. Their next wage takes it off, the oldest first.",
+  "wageDraw.atPayday":
+    "Owes {owed} in draws: this wage takes off {taken}, and {paid} is paid now.",
+  "wageDraw.carried": "The next wage takes off the other {bdt}.",
   "refusal.bankNeedsASlip":
     "Cash into or out of the bank needs its slip or cheque",
   "refusal.holdsNoCash": "Only the Owner or a Manager holds the farm's cash",

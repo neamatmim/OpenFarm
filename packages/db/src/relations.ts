@@ -130,6 +130,17 @@ export const relations = defineRelations(schema, (r) => ({
     /** Whose Cash in Hand it went into or came out of. */
     holder: r.one.user({ from: r.moneyEvent.heldBy, to: r.user.id }),
   },
+  wageDraw: {
+    person: r.one.counterparty({
+      from: r.wageDraw.counterpartyId,
+      to: r.counterparty.id,
+      optional: false,
+    }),
+    taken: r.many.wageDrawTaken({
+      from: r.wageDraw.id,
+      to: r.wageDrawTaken.drawId,
+    }),
+  },
   handover: {
     giver: r.one.user({ from: r.handover.fromUserId, to: r.user.id }),
     taker: r.one.user({ from: r.handover.toUserId, to: r.user.id }),

@@ -1,6 +1,7 @@
 import { moneyEvent } from "@OpenFarm/db/schema/money";
 import type { Side } from "@OpenFarm/domain";
 import { farmDayOf, herdShares, startOfFarmDay } from "@OpenFarm/domain";
+import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
@@ -26,6 +27,7 @@ import {
   sideInput,
 } from "../money-inputs";
 import { bookMoney, bookingOf } from "../money-store";
+import { drawsTakenBy } from "../wage-draw-store";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput, venturesCharged } from "./correction";
 
@@ -170,6 +172,19 @@ export const moneyByHandCorrection: CorrectionKind<
   changesBeyondValues: ({ receipt }) => receipt !== undefined,
   trail: (tx, row) => readEntered(tx, row.farmId, row.id),
   apply: async (tx, row, to, { context, now, extra }) => {
+    // A wage that took Wage Draws booked only what was paid on the day: its amount, the person or the month put right
+    // alone would leave the draws taken against the wrong figure.
+    const touchesTheWage =
+      to.amountBdt !== undefined ||
+      to.counterparty !== undefined ||
+      to.wageMonth !== undefined;
+    if (touchesTheWage && (await drawsTakenBy(tx, row.id)) > 0) {
+      throw new ORPCError("BAD_REQUEST", {
+        message:
+          "This wage took the person's draws; its amount, person and month stand as they were",
+        data: { refusal: "wage_took_draws" },
+      });
+    }
     const wageMonth = to.wageMonth === undefined ? row.wageMonth : to.wageMonth;
     const categoryId = to.categoryId ?? row.categoryId;
     const category = await categoryForEntered(tx, row.farmId, categoryId, {

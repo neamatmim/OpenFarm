@@ -38,6 +38,8 @@ export const RECORD_SOURCES = [
   "sale",
   // What a broker took for one Sale: money of its own, out, beside the Sale's money in.
   "sale_broker",
+  // A Wage Draw: a person's money ahead of payday, booked under Wages so the month's wage cost stays whole.
+  "wage_draw",
   "feed_in",
   "medicine_purchase",
   "vet_fee",
@@ -231,6 +233,58 @@ export const handover = pgTable(
     recordedAt: timestamp("recorded_at").notNull(),
   },
   (table) => [index("handover_farm_idx").on(table.farmId, table.handedAt)]
+);
+
+/**
+ * A **Wage Draw**: money a person takes ahead of payday, owed back out of their wage. Its money went out the day it was
+ * drawn, as a Money Event under Wages; payday takes the draws still open off the month's wage, the oldest first, and pays
+ * the rest. A draw bigger than the wage stays open for what was not taken.
+ */
+export const wageDraw = pgTable(
+  "wage_draw",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    /** Whose wage it comes off: the person, as their wage names them. */
+    counterpartyId: text("counterparty_id")
+      .notNull()
+      .references(() => counterparty.id),
+    amountBdt: taka("amount_bdt").notNull(),
+    drawnAt: timestamp("drawn_at").notNull(),
+    note: text("note"),
+    recordedBy: text("recorded_by")
+      .notNull()
+      .references(() => user.id),
+    recordedAt: timestamp("recorded_at").notNull(),
+  },
+  (table) => [
+    index("wage_draw_person_idx").on(table.farmId, table.counterpartyId),
+  ]
+);
+
+/** What one wage took off one Wage Draw at payday. A wage may take several draws; a draw may be taken by two wages. */
+export const wageDrawTaken = pgTable(
+  "wage_draw_taken",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    drawId: text("draw_id")
+      .notNull()
+      .references(() => wageDraw.id, { onDelete: "cascade" }),
+    /** The wage's Money Event that took it. */
+    wageEventId: text("wage_event_id")
+      .notNull()
+      .references(() => moneyEvent.id, { onDelete: "cascade" }),
+    bdt: taka("bdt").notNull(),
+  },
+  (table) => [
+    index("wage_draw_taken_draw_idx").on(table.drawId),
+    index("wage_draw_taken_wage_idx").on(table.wageEventId),
+  ]
 );
 
 /** The photo of a Money Event's receipt, when somebody took one. One per Money Event. */
