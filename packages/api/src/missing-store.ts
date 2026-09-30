@@ -18,15 +18,17 @@ import { rememberingPeople, tell } from "./notice";
 type Db = Pick<Database, "query"> | Tx;
 
 /**
- * Opens a Missing for her, from the round's Step that could not find her — or leaves the one already open alone, so a
- * second morning that cannot find her either is the same Missing, told once.
+ * Opens a Missing for her, from the round's Step that could not find her, or by hand once the Manager has walked a Pen
+ * that did not count right — or leaves the one already open alone, so a second morning that cannot find her either is
+ * the same Missing, told once.
  */
 export const openMissing = async (
   tx: Tx,
   input: {
     farmId: string;
     animalId: string;
-    completionId: string;
+    /** The round's Step that could not find her; nothing when the Manager marks her by hand. */
+    completionId: string | null;
     since: Date;
     now: Date;
   }

@@ -153,6 +153,12 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
     audience: [{ roles: ["owner", "manager"] }],
     entity: "farm_day",
   },
+  // The Manager walks the Pen and counts again; an animal gone is told to the Owner once the Manager marks her Missing
+  // (the Owner, 2026-09-29). About the evening's work for the Pen, which the Manager opens to count again.
+  head_count_differs: {
+    audience: [theManagers],
+    entity: "sop_instance",
+  },
 };
 
 /** A Notice as it was raised, for whoever carries it out of the transaction to a pocket. */

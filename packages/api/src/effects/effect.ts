@@ -22,6 +22,7 @@ import { calvingEffect } from "./calving";
 import { dlsReportEffect } from "./dls-report";
 import { dryOffEffect } from "./dry-off";
 import { feedingEffect } from "./feeding";
+import { headCountEffect } from "./head-count";
 import { lotNumberEffect } from "./lot-number";
 import { bulkTotalEffect, milkRecordEffect } from "./milk";
 import { moveEffect } from "./move";
@@ -129,6 +130,11 @@ export type EffectResult =
       kind: "stock_count";
       /** The Feed Items whose count differed from what the store was thought to hold. */
       adjustments: StockAdjustment[];
+    }
+  | {
+      kind: "head_count";
+      /** Whether the count differs from the register: nothing of how many were expected, the count being blind. */
+      differs: boolean;
     }
   | {
       kind: "dry_off";
@@ -297,6 +303,7 @@ const EFFECTS: Record<
   pregnancy_check: pregnancyCheckEffect,
   feeding: feedingEffect,
   stock_count: stockCountEffect,
+  head_count: headCountEffect,
   registration_renewal: renewalEffect,
 };
 

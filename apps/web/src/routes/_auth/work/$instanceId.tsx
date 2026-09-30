@@ -299,16 +299,24 @@ const PlaceLine = ({
 
 /** Who else holds this work — pinned to them, or claimed by them — or nobody. Somebody else's work is read here, not
  *  done: the farm takes an entry on it only from them, so a Claim or a tile that opens would be a refusal waiting to
- *  happen. Not known until the phone knows who it is, and then only said of someone else. */
+ *  happen. Not known until the phone knows who it is, and then only said of someone else.
+ *
+ *  Once it is finished, nobody holds it from those who run the farm: the Owner and the Manager put a finished Step
+ *  right by a Correction, whoever did it — a Pen that did not count right is counted again by the Manager. */
 const useHeldByOther = (
-  work: { heldBy: { id: string; name: string } | null } | undefined
+  work:
+    | { heldBy: { id: string; name: string } | null; state: string }
+    | undefined
 ): { id: string; name: string } | null => {
   const me = useQuery(orpc.people.me.queryOptions());
   const heldBy = work?.heldBy;
   if (!(heldBy && me.data)) {
     return null;
   }
-  return heldBy.id === me.data.id ? null : heldBy;
+  const putsItRight =
+    isFinished(work.state) &&
+    me.data.roles.some((role) => role === "owner" || role === "manager");
+  return heldBy.id === me.data.id || putsItRight ? null : heldBy;
 };
 
 /** Work not yet begun: the button to begin it — or, where it is pinned to somebody else, whose it is. */
@@ -684,7 +692,8 @@ const WorkPage = () => {
 
       {outcome ? <BulkOutcomeBanner outcome={outcome} /> : null}
 
-      <BoardFoot hidden={someoneElse !== null}>
+      {/* Finished work has nothing left to finish: a Step on it is put right, not done. */}
+      <BoardFoot hidden={someoneElse !== null || isFinished(state)}>
         {nextAnimal ? (
           <NextAnimal
             animal={nextAnimal}

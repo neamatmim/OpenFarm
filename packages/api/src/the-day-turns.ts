@@ -8,6 +8,7 @@ import { overdueToTell, raiseOverdueBaki } from "./baki-store";
 import { pregnancyTimesOf } from "./breeding-store";
 import type { Context } from "./context";
 import { milkAccountOn, tellOfUnaccountedMilk } from "./dispatch-store";
+import { countsToTell, tellOfCounts } from "./head-count-store";
 import {
   anyUntold,
   raiseWithdrawalAlerts,
@@ -385,6 +386,29 @@ const tellAboutSores = async (context: Turning, now: Date) => {
 };
 
 /**
+ * Pens that did not count right at lock-up: each told once to the Manager, and pushed at once — the Pen is walked
+ * tonight, while an animal gone is still near. Keyed on the first Pen's evening work, with the rest named in the event.
+ */
+const tellAboutHeadCounts = async (context: Turning, now: Date) => {
+  const untold = await countsToTell(context.db, context.farm.id, now);
+  const [firstOne] = untold;
+  if (!firstOne) {
+    return;
+  }
+  const raised = await audited(context).write(
+    {
+      entity: "sop_instance",
+      entityId: firstOne.instanceId,
+      action: "update",
+      after: () =>
+        Promise.resolve({ toldCounts: untold.map((one) => one.penName) }),
+    },
+    (tx) => tellOfCounts(tx, context.farm.id, untold, now)
+  );
+  await pushRaised(context, raised, now);
+};
+
+/**
  * Animals the round could not find: each told once to the Owner and the Manager, and pushed at once — an animal gone
  * in the night may be on a lorry to a haat by noon. Keyed on the first one told about, with the rest named in the event.
  */
@@ -507,6 +531,7 @@ export const theSweep = async (context: Turning) => {
   // having nothing to say is the steady state and must not silence them.
   await tellAboutWithdrawals(context, now);
   await tellAboutMissing(context, now);
+  await tellAboutHeadCounts(context, now);
   await tellAboutSores(context, now);
   await tellAboutUnaccountedMilk(context, now);
   await tellAboutLowStock(context, now);

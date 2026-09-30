@@ -96,6 +96,11 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     percent: Number(facts.percent),
     since: saidDate(facts.since, language),
   }),
+  head_count_differs: (facts) => ({
+    pen: facts.pen,
+    counted: Number(facts.counted),
+    expected: Number(facts.expected),
+  }),
   pen_sores_seen: (facts, language) => ({
     pen: facts.pen,
     animals: Number(facts.animals),

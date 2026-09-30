@@ -17,6 +17,7 @@ import {
   EllipsisVertical,
   Handshake,
   MapPin,
+  MapPinOff,
   RefreshCw,
   Skull,
   Tag,
@@ -160,6 +161,14 @@ const useMenuActs = (detail: AnimalDetail, powers: AnimalPowers) => {
       label: t("ventures.sellInternally"),
       icon: Handshake,
       offered: powers.mayMovePurse,
+    },
+    {
+      act: "notFound",
+      label: t("animals.markNotFound"),
+      icon: MapPinOff,
+      // Once a Pen has not counted right and the Manager has walked it: the round's "Animal not found" by hand.
+      offered:
+        powers.runsTheFarm && powers.stillHere && detail.missing === null,
     },
     {
       act: "mortality",

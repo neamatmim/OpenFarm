@@ -70,6 +70,7 @@ export type AnimalAct =
   | "abortion"
   | "shorten"
   | "purse"
+  | "notFound"
   | "writeOff";
 
 /** What one person may do to her, worked out once for the page: every button and menu item reads from here, so a

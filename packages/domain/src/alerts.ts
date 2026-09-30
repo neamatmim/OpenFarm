@@ -30,6 +30,7 @@ export const ALERT_KINDS = [
   "store_shortfall",
   "pen_sores_seen",
   "milk_unaccounted",
+  "head_count_differs",
 ] as const;
 export type AlertKind = (typeof ALERT_KINDS)[number];
 

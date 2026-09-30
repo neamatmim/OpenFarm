@@ -451,6 +451,39 @@ const ShortenDialog = ({ detail, open, onOpenChange }: ActProps) => {
 };
 
 /** Whichever act is open, drawn once for the page — only the ones this person may do are ever asked for. */
+/** Not found: the Manager has walked a Pen that did not count right and knows which animal is not in it. She stays in
+ *  the herd while the farm looks for her, and the Owner and the Manager are told at once, as by the round. */
+const NotFoundDialog = ({ detail, open, onOpenChange }: ActProps) => {
+  const { t } = useLanguage();
+  const onError = useRefused();
+  const mark = useMutation(
+    orpc.animals.notFound.mutationOptions({
+      onSuccess: () => {
+        toast.success(t("animals.markedNotFound", { tag: detail.tagNumber }));
+        onOpenChange(false);
+      },
+      onError,
+    })
+  );
+  return (
+    <FormDialog
+      description={t("animals.markNotFoundHint")}
+      onOpenChange={onOpenChange}
+      onSubmit={() => mark.mutate({ tagNumber: detail.tagNumber })}
+      open={open}
+      pending={mark.isPending}
+      ready
+      submitLabel={t("animals.markNotFound")}
+      title={`${t("animals.markNotFound")} · ${detail.tagNumber}`}
+    >
+      {/* Where the farm thinks she is: the Pen the Manager has just walked. */}
+      <p className="text-sm">
+        {detail.pen.shed.name} / {detail.pen.name}
+      </p>
+    </FormDialog>
+  );
+};
+
 /**
  * The Owner writes her off as Lost: the round could not find her and nobody has since. What became of her in the
  * Owner's words, and — stolen — the thana's GD number, which the farm asks for.
@@ -560,6 +593,7 @@ export const AnimalActs = ({
       <DisposalDialog {...shared} open={act === "disposal"} />
       <AbortionDialog {...shared} open={act === "abortion"} />
       <ShortenDialog {...shared} open={act === "shorten"} />
+      <NotFoundDialog {...shared} open={act === "notFound"} />
       <WriteOffDialog {...shared} open={act === "writeOff"} />
       <InternalSaleSheet
         key={detail.tagNumber}

@@ -3568,6 +3568,7 @@ export const bn: Record<MessageKey, string> = {
   "sop.effect.stays": "বকনা হিসেবে থাকবে",
   "sop.effect.calving": "বাচ্চা দেওয়া",
   "sop.effect.stock_count": "গুদাম গণনা",
+  "sop.effect.head_count": "পেনের পশু গুনে খাতার সাথে মেলানো",
   "sop.effect.lot_number": "ভায়ালের লট নম্বর, পুরো ক্যাম্পেইনে একবার",
   "abortion.title": "গর্ভপাতের রেকর্ড",
   "abortion.stage": "{months} মাসের গর্ভ",
@@ -4471,6 +4472,16 @@ export const bn: Record<MessageKey, string> = {
   "heatWatch.heiferAgeUnknown": "বকনা, বয়স জানা নেই, এখনো পাল দেওয়া হয়নি · {pen}",
   "refusal.notMissing": "পশুটি হারায়নি — কেউ তাকে খুঁজছে না",
   "refusal.gdNumberNeeded": "চুরি হলে থানার জিডি নম্বর লাগবে",
+  "alerts.headCountDiffers":
+    "সন্ধ্যার গণনায় {pen}-এ {counted}টি পশু পাওয়া গেছে, খাতায় আছে {expected}টি",
+  "push.headCountDiffersTitle": "মাথা গণনা মেলেনি",
+  "push.headCountDiffersBody":
+    "{pen}: গুনে {counted}টি, খাতায় {expected}টি। পেন ঘুরে আবার গুনুন।",
+  "digest.headCountDiffers": "{count}টি পেনের গণনা খাতার সাথে মেলেনি",
+  "animals.markNotFound": "পাওয়া যাচ্ছে না বলে জানান",
+  "animals.markNotFoundHint":
+    "পশুটি তার পেনে নেই। খোঁজা চলাকালীন সে পালেই থাকবে, আর আপনাকে ও মালিককে সাথে সাথে জানানো হবে।",
+  "animals.markedNotFound": "{tag} পাওয়া যাচ্ছে না বলে লেখা হলো",
   "animals.writeOff": "হারিয়ে গেছে বলে বাদ দিন",
   "animals.writeOffHint":
     "রাউন্ডে শেষ যেদিন খোঁজা হয়েছিল সেদিন থেকে পশুটি হারিয়ে গেছে বলে পাল থেকে বাদ যাবে: পেনের বোর্ড, রাউন্ড আর গণনা থেকে। তার সব রেকর্ড থাকবে, আর পাওয়া গেলে ফিরে আসবে।",

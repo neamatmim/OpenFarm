@@ -3824,6 +3824,7 @@ export const en = {
   "sop.effect.stays": "Stays as a heifer",
   "sop.effect.calving": "Calving",
   "sop.effect.stock_count": "Counts the store",
+  "sop.effect.head_count": "Counts the pen against the register",
   "sop.effect.lot_number": "The vial's Lot Number, once for the Campaign",
   "abortion.title": "Abortions",
   "abortion.stage": "{months, plural, one {# month} other {# months}} along",
@@ -4784,6 +4785,17 @@ export const en = {
   "heatWatch.heiferAgeUnknown": "Heifer, age not known, not yet served · {pen}",
   "refusal.notMissing": "This animal is not missing: nobody is looking for it",
   "refusal.gdNumberNeeded": "A theft needs the thana's GD number",
+  "alerts.headCountDiffers":
+    "The evening count in {pen} found {counted, plural, one {# animal} other {# animals}}; the register has {expected}",
+  "push.headCountDiffersTitle": "Head count does not match",
+  "push.headCountDiffersBody":
+    "{pen}: {counted} counted, {expected} on the register. Walk the pen and count again.",
+  "digest.headCountDiffers":
+    "{count, plural, one {# pen's count} other {# pens' counts}} did not match the register",
+  "animals.markNotFound": "Mark not found",
+  "animals.markNotFoundHint":
+    "It is not in its pen. It stays in the herd while the farm looks for it, and you and the Owner are told at once.",
+  "animals.markedNotFound": "{tag} marked not found",
   "animals.writeOff": "Write off as lost",
   "animals.writeOffHint":
     "It leaves the herd as lost from the morning the round last looked for it: off the pen boards, the rounds and the head counts. Everything recorded about it stays, and it comes back if it is found.",
