@@ -5,7 +5,7 @@
  */
 import { HEAT } from "./breeding";
 import type { Evidence, SopContent, Step } from "./sop";
-import { STAYS_A_HEIFER, UNWELL, UNWELL_URGENT } from "./sop";
+import { CALVED, STAYS_A_HEIFER, UNWELL, UNWELL_URGENT } from "./sop";
 
 const choice = (
   required: boolean,
@@ -142,12 +142,19 @@ export const ROUND_WORDS = {
   navel: "navel_swollen",
   // Not offered on the round: what a milker says of a cow skipped as unwell, not knowing why.
   unwell: "unwell",
+  // A cow's first days after calving: down and unable to rise is milk fever until the Vet says otherwise, and an
+  // afterbirth not passed twelve hours on needs the Vet (Merck).
+  downCow: "down_cow",
+  afterbirth: "afterbirth_retained",
 } as const;
 
-/** What the round may see that cannot wait for tomorrow: bloat and laboured breathing kill within hours (Merck). */
+/** What the round may see that cannot wait for tomorrow: bloat and laboured breathing kill within hours, a cow down
+ *  after calving is milk fever until the Vet says otherwise, and a retained afterbirth needs the Vet (Merck). */
 export const URGENT_ROUND_WORDS: readonly string[] = [
   ROUND_WORDS.bloat,
   ROUND_WORDS.breathing,
+  ROUND_WORDS.downCow,
+  ROUND_WORDS.afterbirth,
 ];
 
 /**
@@ -1161,6 +1168,56 @@ const newbornCalfCare = (): SopContent => ({
   ],
 });
 
+/** The days a cow is looked at after calving: milk fever and a retained afterbirth show in the first three, and
+ *  ketosis within the first week (the Owner, 2026-09-29: five days). */
+const DAYS_LOOKED_AT_AFTER_CALVING = 5;
+
+/**
+ * The cow herself in her first days after calving, once a day: down and unable to rise, the afterbirth not passed, off
+ * her feed, a hard udder. What is seen is an Observation, so the Manager's work to see to her follows — within the hour
+ * for a cow down or an afterbirth held. Hung on her Calving, not on her reaching Milking: a cow put in Milking on the
+ * opening register, or by hand, has not just calved. Ketosis is read through her feed and her milk falling.
+ */
+const afterCalvingCheck = (): SopContent => ({
+  name: { bn: "বিয়ানোর পর গাভী দেখা", en: "The cow after calving" },
+  purpose: {
+    bn: "বিয়ানোর পর প্রথম পাঁচ দিন প্রতিদিন গাভী দেখুন — উঠতে পারছে কিনা, ফুল পড়েছে কিনা, খাচ্ছে কিনা, ওলান ঠিক আছে কিনা",
+    en: "Look at the cow each day for five days after calving — can she rise, has the afterbirth passed, is she eating, is her udder soft",
+  },
+  triggers: Array.from({ length: DAYS_LOOKED_AT_AFTER_CALVING }, (_, day) => ({
+    kind: "event" as const,
+    event: CALVED,
+    offsetDays: day,
+  })),
+  appliesTo: { side: "dairy" },
+  assignedRole: "staff",
+  checkerRole: "manager",
+  graceMinutes: 24 * 60,
+  steps: [
+    {
+      id: "look",
+      text: { bn: "গাভীটিকে ভালো করে দেখুন", en: "Look the cow over" },
+      repeatPerAnimal: true,
+      evidence: [
+        choice(true, [
+          [ROUND_WORDS.downCow, "বসে আছে, উঠতে পারছে না", "Down, cannot rise"],
+          [
+            ROUND_WORDS.afterbirth,
+            "ফুল পড়েনি (১২ ঘণ্টা পেরিয়ে)",
+            "Afterbirth not passed after 12 hours",
+          ],
+          [ROUND_WORDS.offFeed, "খাবারে অরুচি", "Off feed"],
+          [ROUND_WORDS.mastitis, "ওলান ফোলা/শক্ত", "Swollen or hard udder"],
+        ]),
+      ],
+      skipReasons: [
+        { bn: "সুস্থ — চোখে পড়ার মতো কিছু নেই", en: "Well — nothing to note" },
+      ],
+      effect: { kind: "observation" },
+    },
+  ],
+});
+
 const newbornSecondFeed = (): SopContent => ({
   name: { bn: "বাছুরের দ্বিতীয় শাল দুধ", en: "Calf's second colostrum" },
   purpose: {
@@ -1403,6 +1460,7 @@ export type PlaybookKey =
   | "calvingRecord"
   | "newbornCalfCare"
   | "newbornSecondFeed"
+  | "afterCalvingCheck"
   | "weaning"
   | "calfDeworming"
   | "calfFmd"
@@ -1504,6 +1562,7 @@ export const standardPlaybook = (
   calvingRecord: calvingRecord(),
   newbornCalfCare: newbornCalfCare(),
   newbornSecondFeed: newbornSecondFeed(),
+  afterCalvingCheck: afterCalvingCheck(),
   weaning: weaning(chosen.weanedBullPen),
   calfDeworming: calfDeworming(chosen.calfDewormer),
   calfFmd: calfFmd(chosen.fmdVaccine),

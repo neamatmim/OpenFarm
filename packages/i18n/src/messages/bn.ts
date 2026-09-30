@@ -4390,6 +4390,7 @@ export const bn: Record<MessageKey, string> = {
   "costs.storeOver": "বেশি পাওয়া গেছে",
   "costs.storeCounts": "এই সময়ে {count}টি গণনা",
   "event.unwell": "রাউন্ডে পশুকে অসুস্থ দেখা গেলে",
+  "event.calved": "গাভী বাচ্চা দিলে",
   "event.unwell_urgent": "রাউন্ডে পেট ফাঁপা বা শ্বাসকষ্ট দেখা গেলে",
   "unwell.seen": "যা দেখা গেছে",
   "refusal.notMissing": "পশুটি হারায়নি — কেউ তাকে খুঁজছে না",
