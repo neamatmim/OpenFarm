@@ -671,6 +671,47 @@ const headCount = (): SopContent => ({
   ],
 });
 
+/**
+ * The weekly **Cash Count**: the Manager counts the farm's cash in their own hand, blind — the phone does not say what
+ * the farm thinks they hold — and the Owner signs it off (the Owner, 2026-09-30). The count wins: the hand holds what
+ * was counted from then on, and a shortfall past the Owner's line is told to the Owner. Friday evening, after the
+ * week's market days.
+ */
+const cashCount = (): SopContent => ({
+  name: { bn: "সাপ্তাহিক নগদ গণনা", en: "Weekly cash count" },
+  purpose: {
+    bn: "হাতে থাকা খামারের নগদ গুনে লিখুন, না মিললে কারণ লিখুন",
+    en: "Count the farm's cash in your hand, and say why where it may differ",
+  },
+  triggers: [{ kind: "schedule", times: ["18:00"], weekdays: [5] }],
+  wholeFarm: true,
+  assignedRole: "manager",
+  checkerRole: "owner",
+  graceMinutes: 24 * 60,
+  steps: [
+    {
+      id: "count",
+      text: {
+        bn: "হাতে থাকা খামারের নগদ গুনুন",
+        en: "Count the farm's cash in your hand",
+      },
+      repeatPerAnimal: false,
+      evidence: [
+        {
+          type: "number",
+          required: true,
+          unit: { bn: "টাকা", en: "taka" },
+          min: 0,
+          max: 10_000_000,
+        },
+        { type: "note", required: false },
+      ],
+      skipReasons: [],
+      effect: { kind: "cash_count" },
+    },
+  ],
+});
+
 const biosecurity = (): SopContent => ({
   name: { bn: "খামার জীবাণু নিরাপত্তা", en: "Biosecurity check" },
   purpose: {
@@ -1518,6 +1559,7 @@ export type PlaybookKey =
   | "dlsReport"
   | "stockCount"
   | "headCount"
+  | "cashCount"
   | "biosecurity"
   | "arrivalCheck"
   | "arrivalDeworming"
@@ -1629,6 +1671,7 @@ export const standardPlaybook = (
   dlsReport: dlsReport(),
   stockCount: stockCount(),
   headCount: headCount(),
+  cashCount: cashCount(),
   biosecurity: biosecurity(),
   arrivalCheck: arrivalCheck(),
   arrivalDeworming: arrivalDeworming(chosen.flukeDrench),

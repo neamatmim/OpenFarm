@@ -101,6 +101,8 @@ export const DELIVERY = {
   head_count_differs: { when: "immediate" },
   // Feed bought dearer than last time is a question for the Owner to ask the Manager tomorrow, not a buzz.
   feed_price_jump: { when: "digest" },
+  // A count short is the evening's question for the Owner to ask the Manager, as a short store is.
+  cash_short: { when: "digest" },
 } as const satisfies Record<AlertKind, Delivery>;
 
 /**
@@ -244,6 +246,10 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
   feed_price_jump: {
     app: "alerts.feedPriceJump",
     digest: "digest.feedPriceJump",
+  },
+  cash_short: {
+    app: "alerts.cashShort",
+    digest: "digest.cashShort",
   },
 };
 

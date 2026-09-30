@@ -3597,6 +3597,7 @@ export const bn: Record<MessageKey, string> = {
   "sop.effect.calving": "বাচ্চা দেওয়া",
   "sop.effect.stock_count": "গুদাম গণনা",
   "sop.effect.head_count": "পেনের পশু গুনে খাতার সাথে মেলানো",
+  "sop.effect.cash_count": "হাতের নগদ গণনা",
   "sop.effect.lot_number": "ভায়ালের লট নম্বর, পুরো ক্যাম্পেইনে একবার",
   "abortion.title": "গর্ভপাতের রেকর্ড",
   "abortion.stage": "{months} মাসের গর্ভ",
@@ -4416,6 +4417,9 @@ export const bn: Record<MessageKey, string> = {
   "owner.storeNeverCounted": "কখনো গোনা হয়নি",
   "alerts.storeShortfall": "{day}-এর গুদাম গণনায় ৳{amount}-এর খাদ্য কম পাওয়া গেছে",
   "alerts.openTheCounts": "গণনা খুলুন",
+  "alerts.cashShort": "{day}-এর নগদ গণনায় {name}-এর হাতে ৳{amount} কম পাওয়া গেছে",
+  "digest.cashShort": "{count}টি নগদ গণনায় টাকা কম পাওয়া গেছে",
+  "alerts.openTheCash": "হাতে নগদ খুলুন",
   "digest.storeShortfall": "{count}টি গুদাম গণনায় খাদ্য কম পাওয়া গেছে",
   "params.storeShortfall": "গুদামে খাদ্য কম",
   "params.storeShortfallHint":
@@ -4480,6 +4484,10 @@ export const bn: Record<MessageKey, string> = {
   "params.milkUnaccountedHint":
     "সপ্তাহে ট্যাংকে যাওয়া দুধের এতটা যদি গেটের বাইরেও না যায়, ট্যাংকেও না থাকে, তবে সন্ধ্যার খবরে আপনাকে আর ম্যানেজারকে জানানো হবে।",
   "params.milkUnaccountedPercent": "এর বেশি হলে",
+  "params.cashShort": "নগদ গণনায় কম",
+  "params.cashShortHint":
+    "সাপ্তাহিক নগদ গণনায় খামারের হিসাবের চেয়ে এর বেশি কম পাওয়া গেলে সন্ধ্যার খবরে আপনাকে জানানো হবে।",
+  "params.cashShortTellBdt": "এর বেশি কম হলে জানান",
   "params.feedDays": "খাদ্য আর কত দিনের",
   "params.feedDaysHint":
     "গত দুই সপ্তাহ যে হারে খাওয়ানো হয়েছে, সেই হারে কোনো খাদ্য এর কম দিন চললে সেটি কমে আসছে ধরা হবে, আর সন্ধ্যার খবরে ম্যানেজারকে জানানো হবে।",
@@ -4521,6 +4529,10 @@ export const bn: Record<MessageKey, string> = {
   "cash.nobody": "খামারের নগদ এখনো কারও হাতে নেই",
   "cash.none": "এই হাতে এখনো কোনো নগদ আসা-যাওয়া হয়নি।",
   "cash.heldBy": "{name}-এর হাতে",
+  "cash.neverCounted": "এখনো গোনা হয়নি",
+  "cash.lastCount": "{day} গোনা: পাওয়া গেছে {counted}, থাকার কথা {expected}",
+  "cash.countShort": "{bdt} কম",
+  "cash.countOver": "{bdt} বেশি",
   "cash.handOver": "হাতবদল",
   "cash.handOverTitle": "নগদ হাতবদল · {name}",
   "cash.handOverHint":

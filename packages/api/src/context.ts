@@ -144,6 +144,8 @@ export interface Context {
     feedPriceJumpPercent: number;
     /** How many days of a feed left, at the rate it is fed, before it is Running Low. */
     feedDaysLow: number;
+    /** How far a Cash Count may come up short before the Owner is told. */
+    cashShortTellBdt: number;
     /** What part of a Venture's target capital is the least worth starting on. */
     ventureFloorPercent: number;
     /** What part of a Venture's capital keeps the animals rather than buying them. */

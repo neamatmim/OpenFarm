@@ -315,6 +315,7 @@ export const withEffect = (
   const perAnimal =
     kind !== "bulk_total" &&
     kind !== "head_count" &&
+    kind !== "cash_count" &&
     kind !== "treatment" &&
     !ONCE_WITH_A_NOTE.has(kind);
   if (first?.type === wants) {

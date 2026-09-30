@@ -244,6 +244,8 @@ Every screen says which it is. An announced day can be corrected, or taken back 
 
 **Handover**: Cash passed from one hand to another — the Manager's takings to the Owner — or into the bank as the Farm's deposit, or out of it into a hand, with the slip or cheque where the bank is one end. Not a Money Event: nothing is earned or spent, only moved. A Manager hands over from their own hand; the Owner may write any. _Avoid_: Transfer (the bank's word), deposit alone, remittance
 
+**Cash Count**: The weekly count of the notes in one's own hand — the Manager's, or the Owner's where they count — made blind, without the step saying what the farm thinks the hand holds, and set against that at the moment it was counted. The count wins: the hand holds what was counted from then on, and the difference is kept with the counter's reason, never quietly absorbed. Raised by the clock every Friday evening, once for the whole farm, made by the Manager and signed off by the Owner; a count short by more than the Owner's line is told to the Owner in the evening's post. _Avoid_: Cash audit, till count, reconciliation (a Buying Float's)
+
 **Medicine Purchase**: Medicine bought for a product on the Drug List: how much, as the box or the shop says it; roughly how many doses that holds; what it cost; who sold it; and the Lot it came in, with its **Expiry**. What a dose given is costed from, and what the product's Stock on Hand counts in. _Avoid_: Drug order, pharmacy bill
 
 **Vet Fee**: What the Vet charges the Farm for a visit, entered by the Vet: the amount, the day, and the Animals seen when the Vet names them. The only money the Vet enters or sees. _Avoid_: Consultation charge, visit bill

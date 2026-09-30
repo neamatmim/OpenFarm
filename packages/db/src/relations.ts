@@ -134,6 +134,9 @@ export const relations = defineRelations(schema, (r) => ({
     giver: r.one.user({ from: r.handover.fromUserId, to: r.user.id }),
     taker: r.one.user({ from: r.handover.toUserId, to: r.user.id }),
   },
+  cashCount: {
+    counter: r.one.user({ from: r.cashCount.userId, to: r.user.id }),
+  },
   headCount: {
     pen: r.one.pen({ from: r.headCount.penId, to: r.pen.id, optional: false }),
     counter: r.one.user({ from: r.headCount.countedBy, to: r.user.id }),

@@ -185,6 +185,45 @@ const Movements = ({ hand }: { hand: Hand }) => {
   );
 };
 
+/** When the hand was last counted, what was found, and how far that was from what the farm said it held. Nothing for a
+ *  hand never counted — or on an answer kept from before counts were made. */
+const LastCount = ({ hand }: { hand: Hand }) => {
+  const { t, language } = useLanguage();
+  const taka = useTaka();
+  const last = hand.lastCount ?? null;
+  if (!last) {
+    return (
+      <span className="text-muted-foreground text-xs">
+        {t("cash.neverCounted")}
+      </span>
+    );
+  }
+  const short = last.expected - last.counted;
+  const cameShort = short > 0;
+  const said = t("cash.lastCount", {
+    day: formatDate(new Date(last.at), language, "date"),
+    counted: taka(last.counted),
+    expected: taka(last.expected),
+  });
+  if (short === 0) {
+    return <span className="text-muted-foreground text-xs">{said}</span>;
+  }
+  return (
+    <span className="text-xs">
+      <span className="text-muted-foreground">{said} · </span>
+      <span
+        className={
+          cameShort ? "text-warning font-medium" : "text-muted-foreground"
+        }
+      >
+        {cameShort
+          ? t("cash.countShort", { bdt: taka(short) })
+          : t("cash.countOver", { bdt: taka(-short) })}
+      </span>
+    </span>
+  );
+};
+
 /** One hand: what it holds, its Handover, and what moved through it once opened. */
 const HandLine = ({
   hand,
@@ -216,6 +255,7 @@ const HandLine = ({
           >
             {overdrawn ? `− ${taka(-hand.bdt)}` : taka(hand.bdt)}
           </span>
+          <LastCount hand={hand} />
         </button>
         {mayHandOver ? (
           <Button

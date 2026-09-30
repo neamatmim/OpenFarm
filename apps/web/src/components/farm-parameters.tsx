@@ -67,6 +67,7 @@ type NumberKey =
   | "missingWriteOffDays"
   | "feedPriceJumpPercent"
   | "feedDaysLow"
+  | "cashShortTellBdt"
   | "ventureFloorPercent"
   | "ventureRunningPercent"
   | "ventureInvestorsPercent"
@@ -346,6 +347,21 @@ const GROUPS: {
         unit: "params.percent",
         min: 1,
         max: 50,
+      },
+    ],
+  },
+  {
+    id: "params-cash-short",
+    title: "params.cashShort",
+    hint: "params.cashShortHint",
+    owner: true,
+    fields: [
+      {
+        key: "cashShortTellBdt",
+        label: "params.cashShortTellBdt",
+        unit: "params.taka",
+        min: 0,
+        max: 1_000_000,
       },
     ],
   },
