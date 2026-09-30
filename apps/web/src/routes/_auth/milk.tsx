@@ -4,23 +4,24 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { FileText, Milk, Scale, Truck } from "lucide-react";
+import { FileText, Milk, Scale, TrendingDown, Truck } from "lucide-react";
 import { useState } from "react";
 
+import { GivingLessGroup } from "@/components/giving-less";
 import { MilkMismatches } from "@/components/milk-mismatches";
 import { DispatchSheet } from "@/components/milk/dispatch-sheet";
 import { HandedOverTab } from "@/components/milk/handed-over";
 import { MilkRecordsTab } from "@/components/milk/milk-records";
 import type { MilkDay } from "@/components/milk/milk-types";
 import { worthOf } from "@/components/milk/milk-types";
-import { Page, PageHeader } from "@/components/page";
+import { EmptyState, Page, PageHeader } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
 
-const TABS = ["handedOver", "mismatches", "records"] as const;
+const TABS = ["handedOver", "mismatches", "givingLess", "records"] as const;
 type Tab = (typeof TABS)[number];
 
 /**
@@ -91,6 +92,7 @@ const MilkPage = () => {
   const [recording, setRecording] = useState(false);
   const milkDay = useQuery(orpc.milk.day.queryOptions({ input: { day } }));
   const flagged = useQuery(orpc.milk.flagged.queryOptions());
+  const givingLess = useQuery(orpc.milk.givingLess.queryOptions());
   // The Manager's to record and put right, and the Owner's, who may do anything the Manager does.
   const mayRecord =
     me.data?.roles.some((role) => role === "owner" || role === "manager") ??
@@ -147,6 +149,17 @@ const MilkPage = () => {
             icon: Scale,
             count: flagged.data?.length,
             content: <MilkMismatches />,
+          },
+          {
+            value: "givingLess",
+            label: t("givingLess.title"),
+            icon: TrendingDown,
+            count: givingLess.data?.length,
+            content: givingLess.data?.length ? (
+              <GivingLessGroup headless rows={givingLess.data} />
+            ) : (
+              <EmptyState icon={TrendingDown} title={t("givingLess.none")} />
+            ),
           },
           {
             value: "records",

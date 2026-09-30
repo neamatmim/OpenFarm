@@ -204,6 +204,10 @@ export const farm = pgTable("farm", {
   heatWatchAfterCalvingDays: integer("heat_watch_after_calving_days")
     .notNull()
     .default(60),
+  /** How far under her own week a cow's milk must fall, over how many days, before she is named as giving less: 20% over
+   *  2 days — a convention, not a measured line (docs/research/cow-watch.md). The Manager's. */
+  milkDropPercent: integer("milk_drop_percent").notNull().default(20),
+  milkDropDays: integer("milk_drop_days").notNull().default(2),
   /** Whether Investors the Owner has invited may sign in to read their Ventures and papers (ADR 0007). Off until
    *  the Owner turns it on, and off again is how the farm answers a lawyer who says the portal is a platform. */
   investorPortal: boolean("investor_portal").notNull().default(false),

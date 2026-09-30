@@ -1,3 +1,4 @@
+import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, sql } from "@OpenFarm/db/operators";
 import { milkRecord, milkingSession } from "@OpenFarm/db/schema/milk";
@@ -8,6 +9,8 @@ import {
   reconcile,
   roundLitres,
   underMilkWithdrawal,
+  MILK_USUAL_DAYS,
+  milkDropOf,
 } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
@@ -189,4 +192,80 @@ export const reReconcile = async (
     tolerancePercent,
     now
   );
+};
+
+const DAY_MS_DROP = 24 * 60 * 60 * 1000;
+
+/**
+ * Cows in milk giving well under their own week, the furthest under first: for the Manager's queue and the Milk page.
+ * Read only once a cow is past her calf's days and has a week of her own behind that, so the first days of a lactation
+ * are never measured against nothing.
+ */
+export const milkDropsOn = async (
+  db: Pick<Database, "query">,
+  farm: {
+    id: string;
+    milkDropPercent: number;
+    milkDropDays: number;
+    cullCalfMilkDays: number;
+  },
+  now: Date
+) => {
+  const readFrom = new Date(
+    now.getTime() - (farm.milkDropDays + MILK_USUAL_DAYS) * DAY_MS_DROP
+  );
+  const sessions = await db.query.milkingSession.findMany({
+    where: { farmId: farm.id, dueAt: { gte: readFrom, lt: now } },
+    columns: { dueAt: true },
+    with: { records: { columns: { animalId: true, litres: true } } },
+  });
+  const byCow = new Map<string, { at: Date; litres: number }[]>();
+  for (const session of sessions) {
+    for (const one of session.records) {
+      const hers = byCow.get(one.animalId) ?? [];
+      hers.push({ at: session.dueAt, litres: Number(one.litres) });
+      byCow.set(one.animalId, hers);
+    }
+  }
+  if (byCow.size === 0) {
+    return [];
+  }
+  const readable = new Date(
+    now.getTime() -
+      (farm.cullCalfMilkDays + MILK_USUAL_DAYS + farm.milkDropDays) *
+        DAY_MS_DROP
+  );
+  const cows = await db.query.animal.findMany({
+    where: {
+      farmId: farm.id,
+      id: { in: [...byCow.keys()] },
+      state: "milking",
+      lactationStartedAt: { lte: readable },
+    },
+    columns: { id: true, tagNumber: true, lactationStartedAt: true },
+    with: { pen: { columns: { name: true } } },
+  });
+  return cows
+    .flatMap((her) => {
+      const drop = milkDropOf(byCow.get(her.id) ?? [], now, farm);
+      return drop
+        ? [
+            {
+              animalId: her.id,
+              tag: her.tagNumber,
+              penName: her.pen.name,
+              daysInMilk: her.lactationStartedAt
+                ? Math.floor(
+                    (now.getTime() - her.lactationStartedAt.getTime()) /
+                      DAY_MS_DROP
+                  )
+                : null,
+              ...drop,
+            },
+          ]
+        : [];
+    })
+    .toSorted(
+      (a, b) => b.dropPercent - a.dropPercent || a.tag.localeCompare(b.tag)
+    );
 };

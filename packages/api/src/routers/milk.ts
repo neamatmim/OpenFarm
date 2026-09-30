@@ -37,7 +37,7 @@ import {
 } from "../dispatch-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
-import { litresOf } from "../milk-store";
+import { litresOf, milkDropsOn } from "../milk-store";
 import { paymentMethodInput } from "../money-inputs";
 import { bookingOf } from "../money-store";
 import { requireRole } from "../roles";
@@ -230,6 +230,13 @@ export const milkRouter = {
       }
       return session;
     }),
+
+  /** Cows in milk giving well under their own week: the Manager's to look at, and the Vet's. */
+  givingLess: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .handler(({ context }) =>
+      milkDropsOn(context.db, context.farm, context.clock.now())
+    ),
 
   /** The Manager's queue: Sessions whose tank reading did not match the cows. */
   flagged: protectedProcedure

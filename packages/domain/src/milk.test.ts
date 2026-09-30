@@ -5,6 +5,7 @@ import {
   destinationFor,
   lactationView,
   litresTo,
+  milkDropOf,
   reconcile,
 } from "./milk";
 
@@ -150,5 +151,73 @@ describe("what a set of records sent somewhere", () => {
 
   it("is nought where nothing went", () => {
     expect(litresTo("bulk", [])).toBe(0);
+  });
+});
+
+/** A morning milking at 05:30 farm time, which is 23:30 the day before by the clock. */
+const morning = (day: string, litres: number) => ({
+  at: new Date(`2032-06-${day}T23:30:00.000Z`),
+  litres,
+});
+
+describe("a cow giving less", () => {
+  const NOW = new Date("2032-06-10T00:00:00.000Z");
+  const farm = { milkDropPercent: 20, milkDropDays: 2 };
+  /** Her milkings twice a day for `days` days before now, each giving what `litres` says for that day back. */
+  const milkings = (days: number, litres: (daysBack: number) => number) =>
+    Array.from({ length: days * 2 }, (_, index) => {
+      const daysBack = Math.floor(index / 2) + 1;
+      return {
+        at: new Date(
+          NOW.getTime() - daysBack * 86_400_000 + (index % 2) * 43_200_000
+        ),
+        litres: litres(daysBack),
+      };
+    });
+
+  it("names a cow whose last two days fall a fifth under the week before", () => {
+    const records = milkings(9, (daysBack) => (daysBack <= 2 ? 3.8 : 5));
+    expect(milkDropOf(records, NOW, farm)).toEqual({
+      lately: 3.8,
+      usually: 5,
+      dropPercent: 24,
+    });
+  });
+
+  it("does not name a cow slowly drying off as her lactation goes on", () => {
+    // A tenth of a litre less each day: late lactation, not illness.
+    const records = milkings(9, (daysBack) => 4 + daysBack * 0.1);
+    expect(milkDropOf(records, NOW, farm)).toBeNull();
+  });
+
+  it("does not read a milking nobody recorded as a milking of nothing", () => {
+    const records = milkings(9, () => 5).filter(
+      (_, index) => index !== 0 && index !== 2
+    );
+    expect(milkDropOf(records, NOW, farm)).toBeNull();
+  });
+
+  it("reads a milking by the farm day it was milked on, not the clock's", () => {
+    // 05:30 farm time is 23:30 the day before by the clock: a milking stamped the 7th is the 8th's, one of the last two
+    // farm days before the 10th.
+    const records = [
+      ...["01", "02", "03", "04", "05", "06"].map((day) => morning(day, 10)),
+      morning("07", 6),
+      morning("08", 6),
+    ];
+    expect(milkDropOf(records, NOW, farm)).toMatchObject({
+      lately: 6,
+      usually: 10,
+    });
+  });
+
+  it("says nothing without milkings in both parts", () => {
+    expect(
+      milkDropOf(
+        milkings(2, () => 1),
+        NOW,
+        farm
+      )
+    ).toBeNull();
   });
 });
