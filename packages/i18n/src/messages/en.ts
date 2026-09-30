@@ -4033,6 +4033,11 @@ export const en = {
     "What was paid, what the scale read off the lorry, and the age the seller gave.",
   "intake.groupTargetHint":
     "What it is being fed towards, and when the farm means to sell it.",
+  "intake.lastBuys":
+    "the farm's {animals, plural, one {# buy} other {# buys}} near this weight in the last {days, plural, one {# day} other {# days}} averaged ৳{taka} per kg",
+  "intake.lastBuysOver": "this one is {percent}% dearer",
+  "intake.lastBuysUnder": "this one is {percent}% cheaper",
+  "intake.lastBuysSame": "this one is about the same",
   "intake.perKg": "৳{taka} per kg",
   "intake.summary": "What will be recorded",
   "intake.summaryHint":

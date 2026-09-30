@@ -3760,6 +3760,11 @@ export const bn: Record<MessageKey, string> = {
   "intake.groupPriceHint":
     "কত দাম দেওয়া হলো, গাড়ি থেকে নামার পর পাল্লায় কত ওজন, আর বিক্রেতা কত বয়স বললেন।",
   "intake.groupTargetHint": "কত ওজন পর্যন্ত খাওয়ানো হবে, আর খামার কবে বিক্রি করতে চায়।",
+  "intake.lastBuys":
+    "গত {days} দিনে কাছাকাছি ওজনের {animals}টি কেনা গড়ে কেজিপ্রতি ৳{taka}",
+  "intake.lastBuysOver": "এটা {percent}% বেশি দামে",
+  "intake.lastBuysUnder": "এটা {percent}% কম দামে",
+  "intake.lastBuysSame": "এটা প্রায় একই দামে",
   "intake.perKg": "কেজিপ্রতি ৳{taka}",
   "intake.summary": "যা লেখা হবে",
   "intake.summaryHint": "তোলার আগে বিক্রেতার রসিদের সাথে মিলিয়ে নিন।",
