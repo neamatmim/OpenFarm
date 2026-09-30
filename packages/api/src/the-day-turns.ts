@@ -9,6 +9,7 @@ import { pregnancyTimesOf } from "./breeding-store";
 import type { Context } from "./context";
 import { milkAccountOn, tellOfUnaccountedMilk } from "./dispatch-store";
 import { dosesToTell, tellOfDoses } from "./dose-not-prescribed-store";
+import { stillHereAfterEid } from "./eid-store";
 import { countsToTell, tellOfCounts } from "./head-count-store";
 import {
   anyUntold,
@@ -364,6 +365,58 @@ const tellAboutUnaccountedMilk = async (context: Turning, now: Date) => {
 };
 
 /**
+ * Animals aimed at an Eid still on the Farm once its Qurbani is over: told to the Owner and the Manager in the evening's
+ * post, once for that Eid — the next market is theirs to choose. Nothing before Qurbani is over, or with none left.
+ */
+const tellAboutEidLeftovers = async (context: Turning, now: Date) => {
+  const left = await stillHereAfterEid(
+    context.db,
+    context.farm.id,
+    farmDayOf(now)
+  );
+  if (!left) {
+    return;
+  }
+  const told = await context.db.query.alert.findFirst({
+    where: {
+      farmId: context.farm.id,
+      kind: "still_here_after_eid",
+      entityId: left.expectedDay,
+    },
+    columns: { id: true },
+  });
+  if (told) {
+    return;
+  }
+  await audited(context).write(
+    {
+      entity: "eid",
+      entityId: left.expectedDay,
+      action: "update",
+      after: () =>
+        Promise.resolve({
+          toldStillHere: left.own + left.inVentures,
+        }),
+    },
+    (tx) =>
+      tell(
+        tx,
+        context.farm.id,
+        {
+          kind: "still_here_after_eid",
+          about: { id: left.expectedDay },
+          facts: {
+            day: left.day,
+            animals: left.own + left.inVentures,
+            inVentures: left.inVentures,
+          },
+        },
+        now
+      )
+  );
+};
+
+/**
  * Several animals in one Pen seen with sores on the mouth or feet: told once to the Owner and the Manager, and pushed at
  * once — FMD spreads through a Pen in days. Keyed on the first Pen told about, with the rest named in the event.
  */
@@ -559,6 +612,7 @@ export const theSweep = async (context: Turning) => {
   await tellAboutDosesNotPrescribed(context, now);
   await tellAboutSores(context, now);
   await tellAboutUnaccountedMilk(context, now);
+  await tellAboutEidLeftovers(context, now);
   await tellAboutLowStock(context, now);
   await tellAboutTheStore(context, now);
   await tellAboutOverdueBaki(context, now);

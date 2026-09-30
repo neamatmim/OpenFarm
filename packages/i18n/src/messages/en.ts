@@ -4755,6 +4755,10 @@ export const en = {
   "owner.storeNeverCounted": "Never counted",
   "alerts.storeShortfall": "The store count on {day} came up ৳{amount} short",
   "alerts.openTheCounts": "Open the counts",
+  "alerts.stillHereAfterEid":
+    "Qurbani from {day} is over, and {animals, plural, one {# animal} other {# animals}} aimed at it {animals, plural, one {is} other {are}} still on the farm ({inVentures} of them a Venture's)",
+  "digest.stillHereAfterEid":
+    "{count, plural, one {# Eid has} other {# Eids have}} animals still here after Qurbani",
   "alerts.soldUnderCost":
     "{tag} was sold for ৳{price}; she had cost ৳{cost}, and her weight at the low price was {low}",
   "digest.soldUnderCost":
@@ -4766,6 +4770,7 @@ export const en = {
   "alerts.cashShort": "{name}'s cash count on {day} came up ৳{amount} short",
   "digest.cashShort":
     "{count, plural, one {# cash count} other {# cash counts}} came up short",
+  "alerts.openTheEids": "Open the Eid list",
   "alerts.openTheMoney": "Open income and expenses",
   "alerts.openTheCash": "Open the cash in hand",
   "digest.storeShortfall":

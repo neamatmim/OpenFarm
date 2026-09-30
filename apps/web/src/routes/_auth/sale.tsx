@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import { NextEid } from "@/components/fattening/next-eid";
 import { SellingTripForm } from "@/components/fattening/selling-trip";
 import { Loaded, Page, PageHeader } from "@/components/page";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
@@ -141,6 +142,8 @@ const SalePage = () => {
       />
 
       <SaleFigures sellable={sellable.data} sold={sold.data} />
+      {/* How long to the Eid the farm sells into, and the day it is on, where the selling is done. */}
+      <NextEid />
 
       <PageTabs
         onChange={(value) =>

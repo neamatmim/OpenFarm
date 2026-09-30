@@ -143,6 +143,13 @@ const WhereItLeads = ({
       </Link>
     );
   }
+  if (notice.kind === "still_here_after_eid") {
+    return (
+      <Link className={LEADS_CLASS} to="/admin/eid">
+        {t("alerts.openTheEids")}
+      </Link>
+    );
+  }
   if (notice.kind === "entered_twice") {
     return (
       <Link className={LEADS_CLASS} to="/money">

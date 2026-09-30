@@ -109,6 +109,9 @@ export const DELIVERY = {
   entered_twice: { when: "digest" },
   // A sale gone cheap is the evening's question for the Owner to ask about, never a buzz at the haat.
   sold_under_cost: { when: "digest" },
+  // Animals still here after their Eid are the evening's news for the Owner and the Manager: the next market is a
+  // decision, not a buzz.
+  still_here_after_eid: { when: "digest" },
 } as const satisfies Record<AlertKind, Delivery>;
 
 /**
@@ -272,6 +275,10 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
   sold_under_cost: {
     app: "alerts.soldUnderCost",
     digest: "digest.soldUnderCost",
+  },
+  still_here_after_eid: {
+    app: "alerts.stillHereAfterEid",
+    digest: "digest.stillHereAfterEid",
   },
 };
 

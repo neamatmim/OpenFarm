@@ -1,6 +1,12 @@
 import type { Database } from "@OpenFarm/db";
 import type { EidWindow, TargetWindow } from "@OpenFarm/domain";
-import { EXIT_STATES, nextEidWindow, qurbaniFrom } from "@OpenFarm/domain";
+import {
+  EXIT_STATES,
+  addDays,
+  eidsListed,
+  nextEidWindow,
+  qurbaniFrom,
+} from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
 import { joiningInForce } from "./fattening-store";
@@ -178,5 +184,59 @@ export const aimedByWindow = async (db: Reader, farmId: string) => {
       sum.inVentures += one?.inVentures ?? 0;
     }
     return sum;
+  };
+};
+
+/** How long after Qurbani the Farm is told of animals still here for it: a fortnight, news and not history. */
+const STILL_HERE_TOLD_WITHIN_DAYS = 14;
+
+/**
+ * The Eid whose Qurbani ended lately — at most a fortnight ago — and the animals still on the Farm that were aimed at
+ * it, by the day it is on now or any it was on before: the Farm's own and a Venture's. Nothing while no such Eid has
+ * any left, or before its Qurbani is over.
+ */
+export const stillHereAfterEid = async (
+  db: Reader,
+  farmId: string,
+  today: string
+): Promise<{
+  expectedDay: string;
+  day: string;
+  own: number;
+  inVentures: number;
+} | null> => {
+  const announced = await announcementsOf(db, farmId);
+  const over = eidsListed(today)
+    .map(({ expectedDay }) => {
+      const written = announced.get(expectedDay);
+      const inForce =
+        written && !written.withdrawn
+          ? (written.days.at(-1) ?? expectedDay)
+          : expectedDay;
+      return { expectedDay, written, window: qurbaniFrom(inForce) };
+    })
+    .findLast(
+      ({ window }) =>
+        window.end < today &&
+        addDays(window.end, STILL_HERE_TOLD_WITHIN_DAYS) >= today
+    );
+  if (!over) {
+    return null;
+  }
+  const aimedAt = await aimedByWindow(db, farmId);
+  const left = aimedAt([
+    over.window,
+    ...(over.written
+      ? formerWindowsOf(over.expectedDay, over.written.days)
+      : []),
+  ]);
+  if (left.own + left.inVentures === 0) {
+    return null;
+  }
+  return {
+    expectedDay: over.expectedDay,
+    day: over.window.start,
+    own: left.own,
+    inVentures: left.inVentures,
   };
 };

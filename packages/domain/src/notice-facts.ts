@@ -43,6 +43,14 @@ export interface NoticeFacts {
     /** The farm day ("YYYY-MM-DD") the week began. */
     since: string;
   };
+  still_here_after_eid: {
+    /** The first day of that Eid's Qurbani ("YYYY-MM-DD"), as the Farm kept it. */
+    day: string;
+    /** How many animals aimed at it are still on the Farm, the Farm's own and a Venture's together. */
+    animals: number;
+    /** How many of them are a Venture's, whose window moves only by an Amendment. */
+    inVentures: number;
+  };
   sold_under_cost: {
     tag: string;
     /** What she fetched. */

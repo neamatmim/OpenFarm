@@ -34,6 +34,7 @@ export const ALERT_KINDS = [
   "dose_not_prescribed",
   "entered_twice",
   "sold_under_cost",
+  "still_here_after_eid",
   "feed_price_jump",
   "cash_short",
 ] as const;

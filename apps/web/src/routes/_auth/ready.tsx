@@ -16,6 +16,7 @@ import type {
 } from "@/components/fattening/fattening-types";
 import { fitOnFrom } from "@/components/fattening/fattening-types";
 import { KeepLongerDialog } from "@/components/fattening/keep-longer-dialog";
+import { NextEid } from "@/components/fattening/next-eid";
 import { ReadySuggestions } from "@/components/fattening/ready-suggestions";
 import { EmptyState, Notice, Page, PageHeader } from "@/components/page";
 import { SummaryFigures } from "@/components/page-kit";
@@ -175,6 +176,8 @@ const ReadyPage = () => {
       />
 
       <ReadyFigures board={board.data} suggestions={suggestions.data} />
+      {/* How long to the Eid the animals below are being made ready for. */}
+      <NextEid />
       {/* The Owner's own: what a kilo is fetching, which the farm's own animals below are priced at. */}
       <MarketPrice />
 
