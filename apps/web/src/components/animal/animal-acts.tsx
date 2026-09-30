@@ -2,13 +2,14 @@ import type { Disposal, MortalityKind } from "@OpenFarm/domain";
 import {
   CALF_DEATH_CAUSES,
   DISPOSALS,
+  daysOfADoseNotPrescribed,
   MORTALITY_KINDS,
   statesSetByHand,
 } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -450,6 +451,129 @@ const ShortenDialog = ({ detail, open, onOpenChange }: ActProps) => {
   );
 };
 
+/** What the chosen medicine will hold her for: its own days, the Vet's default, or nothing yet — ask the Vet. */
+const DoseDays = ({
+  product,
+  byDefault,
+}: {
+  product: {
+    milkWithdrawalDays: number | null;
+    meatWithdrawalDays: number | null;
+  };
+  byDefault: { milkDays: number | null; meatDays: number | null } | undefined;
+}) => {
+  const { t } = useLanguage();
+  const days = daysOfADoseNotPrescribed(product, {
+    milkDays: byDefault?.milkDays ?? null,
+    meatDays: byDefault?.meatDays ?? null,
+  });
+  if (!days) {
+    return <p className="text-danger text-sm">{t("dose.askTheVet")}</p>;
+  }
+  const milk = product.milkWithdrawalDays ?? days.milkWithdrawalDays ?? 0;
+  const meat = product.meatWithdrawalDays ?? days.meatWithdrawalDays ?? 0;
+  const tookTheDefault =
+    days.milkWithdrawalDays !== null || days.meatWithdrawalDays !== null;
+  return (
+    <p className="bg-muted rounded-md px-3 py-2 text-sm">
+      {t(tookTheDefault ? "dose.holdsDefault" : "dose.holdsOwn", {
+        milk,
+        meat,
+      })}
+    </p>
+  );
+};
+
+/**
+ * A dose not prescribed: medicine the pharmacy or anybody advised, given before the Vet saw her. Written by the Owner
+ * or the Manager so her milk and meat are held as any dose holds them; the Vet is told at once.
+ */
+const DoseDialog = ({ detail, open, onOpenChange }: ActProps) => {
+  const { t, language } = useLanguage();
+  const onError = useRefused();
+  const drugs = useQuery({ ...orpc.drugs.list.queryOptions(), enabled: open });
+  const byDefault = useQuery({
+    ...orpc.drugs.defaultDays.queryOptions(),
+    enabled: open,
+  });
+  const [productId, setProductId] = useState("");
+  const [givenAt, setGivenAt] = useState("");
+  const [advice, setAdvice] = useState("");
+  const give = useMutation(
+    orpc.treatments.giveNotPrescribed.mutationOptions({
+      onSuccess: () => {
+        setProductId("");
+        setGivenAt("");
+        setAdvice("");
+        toast.success(t("dose.recorded"));
+        onOpenChange(false);
+      },
+      onError,
+    })
+  );
+  const products = (drugs.data ?? []).filter((one) => one.retiredAt === null);
+  const chosen = products.find((one) => one.id === productId);
+  const mayBeGiven =
+    chosen !== undefined &&
+    daysOfADoseNotPrescribed(chosen, {
+      milkDays: byDefault.data?.milkDays ?? null,
+      meatDays: byDefault.data?.meatDays ?? null,
+    }) !== null;
+  return (
+    <FormDialog
+      description={t("dose.hint")}
+      onOpenChange={onOpenChange}
+      onSubmit={() =>
+        give.mutate({
+          animalTag: detail.tagNumber,
+          productId,
+          advice: advice.trim(),
+          ...(givenAt ? { givenAt: new Date(givenAt) } : {}),
+        })
+      }
+      open={open}
+      pending={give.isPending}
+      ready={mayBeGiven && advice.trim() !== ""}
+      submitLabel={t("dose.give")}
+      title={`${t("dose.give")} · ${detail.tagNumber}`}
+    >
+      <FormField id="dose-product" label={t("dose.product")}>
+        <NativeSelect
+          id="dose-product"
+          onChange={(event) => setProductId(event.target.value)}
+          required
+          value={productId}
+        >
+          <option value="">{t("dose.pick")}</option>
+          {products.map((one) => (
+            <option key={one.id} value={one.id}>
+              {language === "en" ? (one.nameEn ?? one.nameBn) : one.nameBn}
+            </option>
+          ))}
+        </NativeSelect>
+      </FormField>
+      {chosen ? <DoseDays byDefault={byDefault.data} product={chosen} /> : null}
+      <FormField id="dose-when" label={t("dose.givenAt")}>
+        <Input
+          id="dose-when"
+          onChange={(event) => setGivenAt(event.target.value)}
+          type="datetime-local"
+          value={givenAt}
+        />
+      </FormField>
+      <FormField id="dose-advice" label={t("dose.advice")}>
+        <Input
+          id="dose-advice"
+          maxLength={300}
+          onChange={(event) => setAdvice(event.target.value)}
+          required
+          value={advice}
+        />
+      </FormField>
+    </FormDialog>
+  );
+};
+
 /** Whichever act is open, drawn once for the page — only the ones this person may do are ever asked for. */
 /** Not found: the Manager has walked a Pen that did not count right and knows which animal is not in it. She stays in
  *  the herd while the farm looks for her, and the Owner and the Manager are told at once, as by the round. */
@@ -595,6 +719,7 @@ export const AnimalActs = ({
       <ShortenDialog {...shared} open={act === "shorten"} />
       <NotFoundDialog {...shared} open={act === "notFound"} />
       <WriteOffDialog {...shared} open={act === "writeOff"} />
+      <DoseDialog {...shared} open={act === "dose"} />
       <InternalSaleSheet
         key={detail.tagNumber}
         onOpenChange={handleOpenChange}

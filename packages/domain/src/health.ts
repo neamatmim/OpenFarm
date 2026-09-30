@@ -46,6 +46,33 @@ export const whyNotPrescribable = (
 export const mayBePrescribed = (product: WithdrawalDays): boolean =>
   whyNotPrescribable(product) === null;
 
+/**
+ * The days a dose not prescribed keeps on itself: the Vet's Default Withdrawal Days for each Withdrawal its product has
+ * no days for, and nothing for one it has — the product's own are read from the Drug List, as a prescribed dose's are.
+ * Null when neither is written for one of the two: that dose waits for the Vet, who answers for every withdrawal day.
+ */
+export const daysOfADoseNotPrescribed = (
+  product: Pick<WithdrawalDays, "milkWithdrawalDays" | "meatWithdrawalDays">,
+  byDefault: { milkDays: number | null; meatDays: number | null }
+): {
+  milkWithdrawalDays: number | null;
+  meatWithdrawalDays: number | null;
+} | null => {
+  const milkUnwritten =
+    product.milkWithdrawalDays === null && byDefault.milkDays === null;
+  const meatUnwritten =
+    product.meatWithdrawalDays === null && byDefault.meatDays === null;
+  if (milkUnwritten || meatUnwritten) {
+    return null;
+  }
+  return {
+    milkWithdrawalDays:
+      product.milkWithdrawalDays === null ? byDefault.milkDays : null,
+    meatWithdrawalDays:
+      product.meatWithdrawalDays === null ? byDefault.meatDays : null,
+  };
+};
+
 /** What is wrong with the days somebody has entered. */
 export const findWithdrawalProblems = (days: {
   milkWithdrawalDays: number;

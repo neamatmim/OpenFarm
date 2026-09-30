@@ -182,14 +182,16 @@ export const prescription = pgTable(
  * **The last one given starts the Withdrawal**, so this is the row the farm's milk and meat
  * gates are answerable to.
  *
- * Two ways a dose reaches an animal, and one table, because a slaughter vet asking what she
+ * Three ways a dose reaches an animal, and one table, because a slaughter vet asking what she
  * has been given does not care which:
  *
  * - **a dose of a Prescription**: the row exists from the moment the Vet writes the course,
  *   because a dose the farm has not given yet is still a dose it owes — that is what makes a
  *   missed one visible as work nobody did;
  * - **a dose of a campaign**: a vaccination or a deworming over a Pen, where the row is
- *   written by the Step that gave it, animal by animal, and nothing was owed beforehand.
+ *   written by the Step that gave it, animal by animal, and nothing was owed beforehand;
+ * - **a dose not prescribed**: one the pharmacy or anybody else advised, written by the Owner
+ *   or the Manager once it was given, with no work behind it — so her Withdrawal still stands.
  *
  * `givenAt` separates owed from given. A Correction that turns "gave it" back into "skipped"
  * clears it again — nothing is deleted, and the Instance is still there to say what was asked
@@ -215,10 +217,10 @@ export const treatment = pgTable(
     animalId: text("animal_id")
       .notNull()
       .references(() => animal.id, { onDelete: "cascade" }),
-    /** The work this dose was given under. */
-    instanceId: text("instance_id")
-      .notNull()
-      .references(() => sopInstance.id, { onDelete: "cascade" }),
+    /** The work this dose was given under. Null for a dose not prescribed, which no work asked for. */
+    instanceId: text("instance_id").references(() => sopInstance.id, {
+      onDelete: "cascade",
+    }),
     /** Which dose of the course this is — 1 of 6 — so the farm can say where it got to. One
      *  for a campaign, which gives each animal a single dose. */
     number: integer("number").notNull(),
@@ -233,6 +235,14 @@ export const treatment = pgTable(
      *  dose from the Campaign's Lot Number, which is read from the Campaign so a Correction to it reaches every
      *  dose. */
     lotNumber: text("lot_number"),
+    /** For a dose not prescribed: who advised it and why, in the words of whoever recorded it. Null for the others,
+     *  whose Prescription or Campaign says why. */
+    advice: text("advice"),
+    /** The Default Withdrawal Days this dose took because its product had none on the Drug List that day. Kept on the
+     *  dose, so a new default the Vet writes afterwards does not change what this dose held her for; days the Vet
+     *  writes for the product itself are the Drug List's word, and win. */
+    milkWithdrawalDays: integer("milk_withdrawal_days"),
+    meatWithdrawalDays: integer("meat_withdrawal_days"),
     createdAt: timestamp("created_at").notNull(),
   },
   (table) => [

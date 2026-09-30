@@ -111,7 +111,8 @@ interface DoseRow {
   dueAt: Date;
   givenAt: Date | null;
   giver: { name: string } | null;
-  instance: { id: string; state: string };
+  /** Always there for a course's dose: the work its Prescription raised. Only a dose not prescribed has none. */
+  instance: { id: string; state: string } | null;
 }
 
 /** A Prescription and its doses, as the database hands them over. */
@@ -148,15 +149,21 @@ export const prescriptionView = (row: PrescriptionRow) => ({
   prescribedByName: row.vet.name,
   doses: row.treatments
     .toSorted((a, b) => a.number - b.number)
-    .map((dose) => ({
-      id: dose.id,
-      number: dose.number,
-      dueAt: dose.dueAt,
-      givenAt: dose.givenAt,
-      instanceId: dose.instance.id,
-      state: dose.instance.state,
-      givenByName: dose.giver?.name ?? null,
-    })),
+    .flatMap(({ instance, ...dose }) =>
+      instance
+        ? [
+            {
+              id: dose.id,
+              number: dose.number,
+              dueAt: dose.dueAt,
+              givenAt: dose.givenAt,
+              instanceId: instance.id,
+              state: instance.state,
+              givenByName: dose.giver?.name ?? null,
+            },
+          ]
+        : []
+    ),
 });
 
 export const thePrescription = {
@@ -211,7 +218,11 @@ const sameInstant = (a: Date | null, b: Date | null): boolean =>
 const fromHerDoses = async (tx: Tx, farmId: string, animalId: string) => {
   const given = await tx.query.treatment.findMany({
     where: { farmId, animalId, givenAt: { isNotNull: true } },
-    columns: { givenAt: true },
+    columns: {
+      givenAt: true,
+      milkWithdrawalDays: true,
+      meatWithdrawalDays: true,
+    },
     // The product is the Treatment's own, so a campaign's dose is read the same way as a
     // course's — a Withdrawal does not care which put it there.
     with: {
@@ -229,8 +240,13 @@ const fromHerDoses = async (tx: Tx, farmId: string, animalId: string) => {
     }
     // A product may not be prescribed without its days, so a dose given under one had them.
     // Days cleared from the Drug List afterwards therefore cannot free a cow retrospectively
-    // — but they also cannot hold her, and nothing on the farm clears them.
-    const { milkWithdrawalDays, meatWithdrawalDays } = dose.product;
+    // — but they also cannot hold her, and nothing on the farm clears them. A dose not
+    // prescribed of a product with no days took the Vet's Default Withdrawal Days, kept on
+    // the dose itself; the product's own, once written, are the Drug List's word and win.
+    const milkWithdrawalDays =
+      dose.product.milkWithdrawalDays ?? dose.milkWithdrawalDays;
+    const meatWithdrawalDays =
+      dose.product.meatWithdrawalDays ?? dose.meatWithdrawalDays;
     milk = later(
       milk,
       milkWithdrawalDays === null

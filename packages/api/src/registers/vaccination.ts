@@ -53,7 +53,7 @@ const vaccinationsBetween = async (
             givenOn: farmDayOf(one.givenAt),
             lotNumber:
               one.lotNumber ??
-              one.instance.campaignLotNumber?.lotNumber ??
+              one.instance?.campaignLotNumber?.lotNumber ??
               null,
             givenBy: one.giver?.name ?? null,
           },

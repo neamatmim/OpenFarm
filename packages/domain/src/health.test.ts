@@ -4,6 +4,7 @@ import {
   findWithdrawalProblems,
   illAgainOf,
   MAX_WITHDRAWAL_DAYS,
+  daysOfADoseNotPrescribed,
   mayBePrescribed,
   underMeatWithdrawal,
   whyNotPrescribable,
@@ -233,5 +234,36 @@ describe("ill again and again", () => {
       farm
     );
     expect(list.map((one) => one.animalId)).toEqual(["more", "fewer"]);
+  });
+});
+
+describe("the days a dose not prescribed keeps", () => {
+  const byDefault = { milkDays: 7, meatDays: 28 };
+
+  it("keeps nothing of its own for a product with both days: the Drug List says them", () => {
+    expect(
+      daysOfADoseNotPrescribed(
+        { milkWithdrawalDays: 4, meatWithdrawalDays: 21 },
+        byDefault
+      )
+    ).toEqual({ milkWithdrawalDays: null, meatWithdrawalDays: null });
+  });
+
+  it("keeps the Vet's default for each day the product lacks", () => {
+    expect(
+      daysOfADoseNotPrescribed(
+        { milkWithdrawalDays: 4, meatWithdrawalDays: null },
+        byDefault
+      )
+    ).toEqual({ milkWithdrawalDays: null, meatWithdrawalDays: 28 });
+  });
+
+  it("is nothing where neither the product nor the Vet's default says a day", () => {
+    expect(
+      daysOfADoseNotPrescribed(
+        { milkWithdrawalDays: null, meatWithdrawalDays: 21 },
+        { milkDays: null, meatDays: 28 }
+      )
+    ).toBeNull();
   });
 });

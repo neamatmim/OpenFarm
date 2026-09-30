@@ -8,6 +8,7 @@ import { overdueToTell, raiseOverdueBaki } from "./baki-store";
 import { pregnancyTimesOf } from "./breeding-store";
 import type { Context } from "./context";
 import { milkAccountOn, tellOfUnaccountedMilk } from "./dispatch-store";
+import { dosesToTell, tellOfDoses } from "./dose-not-prescribed-store";
 import { countsToTell, tellOfCounts } from "./head-count-store";
 import {
   anyUntold,
@@ -409,6 +410,29 @@ const tellAboutHeadCounts = async (context: Turning, now: Date) => {
 };
 
 /**
+ * Doses given without a Prescription: each told once to the Vet, and pushed at once — the Vet answers for every
+ * withdrawal day, and a hold that is wrong is milk in the tank. Keyed on the first dose, with the rest named in the event.
+ */
+const tellAboutDosesNotPrescribed = async (context: Turning, now: Date) => {
+  const untold = await dosesToTell(context.db, context.farm.id, now);
+  const [firstOne] = untold;
+  if (!firstOne) {
+    return;
+  }
+  const raised = await audited(context).write(
+    {
+      entity: "treatment",
+      entityId: firstOne.id,
+      action: "update",
+      after: () =>
+        Promise.resolve({ toldDoses: untold.map((one) => one.tagNumber) }),
+    },
+    (tx) => tellOfDoses(tx, context.farm.id, untold, now)
+  );
+  await pushRaised(context, raised, now);
+};
+
+/**
  * Animals the round could not find: each told once to the Owner and the Manager, and pushed at once — an animal gone
  * in the night may be on a lorry to a haat by noon. Keyed on the first one told about, with the rest named in the event.
  */
@@ -532,6 +556,7 @@ export const theSweep = async (context: Turning) => {
   await tellAboutWithdrawals(context, now);
   await tellAboutMissing(context, now);
   await tellAboutHeadCounts(context, now);
+  await tellAboutDosesNotPrescribed(context, now);
   await tellAboutSores(context, now);
   await tellAboutUnaccountedMilk(context, now);
   await tellAboutLowStock(context, now);

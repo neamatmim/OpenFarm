@@ -1,5 +1,6 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
+import { farm } from "@OpenFarm/db/schema/farm";
 import { drugProduct } from "@OpenFarm/db/schema/health";
 import { medicinePurchase } from "@OpenFarm/db/schema/money";
 import {
@@ -37,6 +38,16 @@ const name = z.object({
 });
 
 const days = z.number().int().min(0).max(MAX_WITHDRAWAL_DAYS);
+
+/** The farm's Default Withdrawal Days, for the trail either side of the Vet writing them. */
+const readDefaultDays = async (db: Pick<Tx, "query">, farmId: string) =>
+  (await db.query.farm.findFirst({
+    where: { id: farmId },
+    columns: {
+      defaultMilkWithdrawalDays: true,
+      defaultMeatWithdrawalDays: true,
+    },
+  })) ?? null;
 
 /** The product as it stands, for the trail to record either side of a change. */
 const readProduct = async (tx: Tx, id: string) => {
@@ -432,6 +443,48 @@ export const drugsRouter = {
    * giving it asks which lot it came from. The Vet's, from their own phone, as the withdrawal days are — it is
    * the prescriber's statement of what the product is.
    */
+  /** The farm's Default Withdrawal Days: what a dose not prescribed holds her for when its product has none. */
+  defaultDays: protectedProcedure
+    .use(requireRole("owner", "manager", "vet", { visitingVet: true }))
+    .handler(async ({ context }) => {
+      const row = await readDefaultDays(context.db, context.farm.id);
+      return {
+        milkDays: row?.defaultMilkWithdrawalDays ?? null,
+        meatDays: row?.defaultMeatWithdrawalDays ?? null,
+      };
+    }),
+
+  /**
+   * The Vet writes the farm's Default Withdrawal Days, from their own account, as every withdrawal day is theirs: the
+   * cautious days a dose not prescribed takes when its product has none on the Drug List yet. A dose recorded earlier
+   * keeps the days it took.
+   */
+  setDefaultDays: protectedProcedure
+    .use(requireOnly("vet", VET_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ milkDays: days, meatDays: days }))
+    .handler(async ({ context, input }) => {
+      await audited(context).write(
+        {
+          entity: "farm",
+          entityId: context.farm.id,
+          action: "update",
+          before: (tx) => readDefaultDays(tx, context.farm.id),
+          after: (tx) => readDefaultDays(tx, context.farm.id),
+        },
+        async (tx) => {
+          await tx
+            .update(farm)
+            .set({
+              defaultMilkWithdrawalDays: input.milkDays,
+              defaultMeatWithdrawalDays: input.meatDays,
+            })
+            .where(eq(farm.id, context.farm.id));
+        }
+      );
+      return { milkDays: input.milkDays, meatDays: input.meatDays };
+    }),
+
   markVaccine: protectedProcedure
     .use(requireOnly("vet", VET_ONLY))
     .use(requirePersonalSession())

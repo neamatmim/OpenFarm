@@ -4586,6 +4586,34 @@ export const bn: Record<MessageKey, string> = {
   "alerts.feedPriceJump":
     "{feed} কেনা হয়েছে প্রতি {unit} ৳{price}-এ, আগের বারের ৳{previous}-এর চেয়ে {percent}% বেশি",
   "digest.feedPriceJump": "{count}টি খাদ্য আগের বারের চেয়ে বেশি দামে কেনা হয়েছে",
+  "dose.give": "প্রেসক্রিপশন ছাড়া ওষুধ",
+  "dose.hint":
+    "ভেট দেখার আগে ফার্মেসি বা অন্য কারও পরামর্শে দেওয়া ওষুধ। অন্য যেকোনো ডোজের মতোই এটা দুধ আর মাংস আটকে রাখে, আর ভেটকে সাথে সাথে জানানো হয়। এখনই কিনেছেন? ওষুধের পাতায় কেনাটাও লিখুন, যাতে মজুদ মেলে।",
+  "dose.product": "ওষুধ",
+  "dose.pick": "ওষুধ বাছুন",
+  "dose.givenAt": "কখন দেওয়া হলো (খালি রাখলে এখন)",
+  "dose.advice": "কেন, আর কে পরামর্শ দিলেন",
+  "dose.holdsOwn": "দুধ {milk} দিন আর মাংস {meat} দিন আটকে থাকবে।",
+  "dose.holdsDefault":
+    "ভেট এই ওষুধের দিন লেখেননি, তাই ভেটের সাধারণ দিন ধরা হবে: দুধ {milk} দিন, মাংস {meat} দিন।",
+  "dose.askTheVet":
+    "ভেট এই ওষুধের দিন লেখেননি, সাধারণ দিনও না। আগে ভেটকে জিজ্ঞেস করুন।",
+  "dose.recorded": "ওষুধ লেখা হলো; ভেটকে জানানো হবে",
+  "drugs.defaultDays": "সাধারণ উইথড্রয়াল-এর দিন",
+  "drugs.defaultDaysHint":
+    "প্রেসক্রিপশন ছাড়া দেওয়া এমন ওষুধের জন্য, যার দিন এখনো লেখা হয়নি। আগে দেওয়া ডোজ যে দিন ধরেছিল তা-ই থাকে।",
+  "drugs.defaultNone": "এখনো লেখা হয়নি: লিখে না দেওয়া পর্যন্ত এমন ডোজ নেওয়া হবে না।",
+  "drugs.defaultSaved": "সাধারণ দিন রাখা হলো",
+  "refusal.askTheVetForDays":
+    "ভেট এই ওষুধের উইথড্রয়াল-এর দিন লেখেননি, খামারের সাধারণ দিনও না; ভেটকে জিজ্ঞেস করুন",
+  "refusal.givenInTheFuture": "যে সময় এখনো আসেনি, সে সময়ে ডোজ দেওয়া যায় না",
+  "refusal.productRetired": "এই ওষুধ তালিকা থেকে সরানো হয়েছে",
+  "alerts.doseNotPrescribed":
+    "{tag}-কে প্রেসক্রিপশন ছাড়া {product} দেওয়া হয়েছে: {advice}। উইথড্রয়াল-এর দিন দেখে নিন",
+  "push.doseNotPrescribedTitle": "প্রেসক্রিপশন ছাড়া ওষুধ",
+  "push.doseNotPrescribedBody":
+    "{tag}: {product}, {advice}। উইথড্রয়াল-এর দিন দেখে নিন।",
+  "digest.doseNotPrescribed": "প্রেসক্রিপশন ছাড়া {count}টি ডোজ দেওয়া হয়েছে",
   "alerts.headCountDiffers":
     "সন্ধ্যার গণনায় {pen}-এ {counted}টি পশু পাওয়া গেছে, খাতায় আছে {expected}টি",
   "push.headCountDiffersTitle": "মাথা গণনা মেলেনি",

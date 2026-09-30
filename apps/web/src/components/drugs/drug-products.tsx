@@ -541,6 +541,98 @@ const DaysDialog = ({
   );
 };
 
+/**
+ * The farm's Default Withdrawal Days: what a dose given without a prescription holds her for when its medicine has no
+ * days yet. Shown to everybody who reads the list; written by the in-house Vet alone.
+ */
+const DefaultDays = ({ isVet }: { isVet: boolean }) => {
+  const { t } = useLanguage();
+  const refused = useRefused();
+  const byDefault = useQuery(orpc.drugs.defaultDays.queryOptions());
+  const [open, setOpen] = useState(false);
+  const [milk, setMilk] = useState("");
+  const [meat, setMeat] = useState("");
+  const save = useMutation(
+    orpc.drugs.setDefaultDays.mutationOptions({
+      onSuccess: () => {
+        toast.success(t("drugs.defaultSaved"));
+        setOpen(false);
+      },
+      onError: refused,
+    })
+  );
+  const milkDays = byDefault.data?.milkDays ?? null;
+  const meatDays = byDefault.data?.meatDays ?? null;
+  const written = milkDays !== null && meatDays !== null;
+  return (
+    <div className="bg-muted/50 mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md px-3 py-2 text-sm">
+      <div className="flex flex-col gap-0.5">
+        <span className="font-medium">{t("drugs.defaultDays")}</span>
+        <span className="text-muted-foreground text-xs">
+          {written
+            ? `${t("drugs.milkDays")}: ${daysTyped(milkDays)} · ${t("drugs.meatDays")}: ${daysTyped(meatDays)}`
+            : t("drugs.defaultNone")}
+        </span>
+      </div>
+      {isVet ? (
+        <Button
+          onClick={() => {
+            setMilk(daysTyped(milkDays));
+            setMeat(daysTyped(meatDays));
+            setOpen(true);
+          }}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          {t("drugs.save")}
+        </Button>
+      ) : null}
+      {isVet ? (
+        <FormDialog
+          description={t("drugs.defaultDaysHint")}
+          onOpenChange={setOpen}
+          onSubmit={() =>
+            save.mutate({ milkDays: Number(milk), meatDays: Number(meat) })
+          }
+          open={open}
+          pending={save.isPending}
+          ready={milk !== "" && meat !== ""}
+          submitLabel={t("drugs.save")}
+          title={t("drugs.defaultDays")}
+        >
+          <div className="grid grid-cols-2 gap-4">
+            <FormField id="default-milk" label={t("drugs.milkDays")}>
+              <Input
+                id="default-milk"
+                inputMode="numeric"
+                max={365}
+                min={0}
+                onChange={(event) => setMilk(event.target.value)}
+                step="1"
+                type="number"
+                value={milk}
+              />
+            </FormField>
+            <FormField id="default-meat" label={t("drugs.meatDays")}>
+              <Input
+                id="default-meat"
+                inputMode="numeric"
+                max={365}
+                min={0}
+                onChange={(event) => setMeat(event.target.value)}
+                step="1"
+                type="number"
+                value={meat}
+              />
+            </FormField>
+          </div>
+        </FormDialog>
+      ) : null}
+    </div>
+  );
+};
+
 /** A new product on the Drug List, by its name on the label. Its days wait for the Vet. */
 const AddProductDialog = ({
   open,
@@ -841,6 +933,7 @@ export const ProductsTab = ({
       }
       description={isVet ? t("drugs.vetOnly") : t("drugs.managerAdds")}
     >
+      <DefaultDays isVet={isVet} />
       {products.length === 0 ? (
         <EmptyState bare icon={Pill} title={t("drugs.none")} />
       ) : (

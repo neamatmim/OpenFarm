@@ -32,7 +32,14 @@ const treatmentsBetween = async (
 ): Promise<TreatmentRow[]> => {
   const doses = await db.query.treatment.findMany({
     where: { farmId, givenAt: { gte: from, lt: until } },
-    columns: { id: true, givenAt: true, number: true },
+    columns: {
+      id: true,
+      givenAt: true,
+      number: true,
+      advice: true,
+      milkWithdrawalDays: true,
+      meatWithdrawalDays: true,
+    },
     with: {
       animal: { columns: { tagNumber: true } },
       product: {
@@ -65,7 +72,8 @@ const treatmentsBetween = async (
         id: one.id,
         givenOn: farmDayOf(givenAt),
         tagNumber: one.animal.tagNumber,
-        diagnosis: prescription?.diagnosis?.disease ?? null,
+        // A dose not prescribed answers no Diagnosis; what the register says was wrong is why it was given.
+        diagnosis: prescription?.diagnosis?.disease ?? one.advice ?? null,
         drug: product.nameBn,
         dose: prescription?.dose ?? null,
         route: prescription?.route ?? null,
@@ -74,8 +82,13 @@ const treatmentsBetween = async (
           : null,
         givenBy: one.giver?.name ?? null,
         prescribedBy: prescription?.vet?.name ?? null,
-        milkClearOn: clearOn(product.milkWithdrawalDays),
-        meatClearOn: clearOn(product.meatWithdrawalDays),
+        // The dose's own Default Withdrawal Days where its product had none, as her Withdrawal was worked out.
+        milkClearOn: clearOn(
+          product.milkWithdrawalDays ?? one.milkWithdrawalDays
+        ),
+        meatClearOn: clearOn(
+          product.meatWithdrawalDays ?? one.meatWithdrawalDays
+        ),
       },
     ];
   });

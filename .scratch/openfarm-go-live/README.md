@@ -10,7 +10,7 @@ Decided with the Owner, 2026-09-28:
 
 ## 1. Now, side by side
 
-- [ ] **Vet: withdrawal days.** Print `vet-withdrawal-sheet.html` (open it in a browser, then Print) and hand it to the Vet. It lists the 14 drugs a new farm starts with. When it comes back, the Vet types the days in on **Drugs**, signed in as themselves, because the days are theirs to answer for. Until then no dose procedure can be adopted. — _Owner, Vet_
+- [ ] **Vet: withdrawal days.** Print `vet-withdrawal-sheet.html` (open it in a browser, then Print) and hand it to the Vet. It lists the 14 drugs a new farm starts with, and asks for the **Default Withdrawal Days** for a dose from the pharmacy of a medicine not on the list (the Vet types these on **Drugs** too). When it comes back, the Vet types the days in on **Drugs**, signed in as themselves, because the days are theirs to answer for. Until then no dose procedure can be adopted. — _Owner, Vet_
 - [ ] **Tags.** Buy blank ear tags and a tag marker, not pre-numbered stock ([opening register runbook](../../docs/runbooks/opening-register.md), "Before the walk"). — _Manager_
 - [ ] **Server accounts.** Provision the server, the database with point-in-time recovery, the off-site copy on a different provider, and the domain. Put every value from `.env.example` into the password manager. — _Owner_
 
