@@ -35,6 +35,7 @@ export type {
   ServiceMethod,
   HeatWatchBecause,
   HeatWatched,
+  HeiferWatchBecause,
 } from "./breeding";
 export {
   CALF_OUTCOMES,
@@ -53,6 +54,7 @@ export {
   attemptOf,
   attemptsThatBegin,
   heatWatchOf,
+  heiferWatchOf,
   RETURN_HEAT_FROM_DAYS,
   RETURN_HEAT_UNTIL_DAYS,
   attemptsThatFailed,

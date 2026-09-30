@@ -4767,6 +4767,14 @@ export const en = {
   "milkAccount.notAccounted": "Not accounted for",
   "milkAccount.calves":
     "To calves: {litres} L a day for {calves, plural, one {# calf} other {# calves}} — {perCalf} L each",
+  "params.firstServiceMonths": "A crossbred heifer served by",
+  "params.deshiFirstServiceMonths": "A deshi heifer served by",
+  "params.months": "months",
+  "heatWatch.heiferNotServed":
+    "Heifer, {age, plural, one {# month} other {# months}} old, not yet served — due by {due, plural, one {# month} other {# months}} · {pen}",
+  "heatWatch.heiferNotServedAbout":
+    "Heifer, about {age, plural, one {# month} other {# months}} old, not yet served — due by {due, plural, one {# month} other {# months}} · {pen}",
+  "heatWatch.heiferAgeUnknown": "Heifer, age not known, not yet served · {pen}",
   "refusal.notMissing": "This animal is not missing: nobody is looking for it",
 } as const;
 

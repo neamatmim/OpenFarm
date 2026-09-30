@@ -5,6 +5,7 @@ import {
   attemptOf,
   attemptsThatBegin,
   heatWatchOf,
+  heiferWatchOf,
   attemptsThatFailed,
   calvingWorkDue,
   expectedCalvingFrom,
@@ -349,5 +350,52 @@ describe("the heat watch", () => {
 
   it("leaves off a cow the farm has no calving day for", () => {
     expect(heatWatchOf(cow({ lastCalvedAt: null }), day(200), 60)).toBeNull();
+  });
+});
+
+/** A crossbred heifer of 18 months never served, unless `over` says otherwise. */
+const heifer = (over: Partial<Parameters<typeof heiferWatchOf>[0]> = {}) => ({
+  state: "heifer",
+  served: false,
+  deshi: false,
+  age: { months: 18, estimated: false },
+  ...over,
+});
+
+describe("the heifer not yet served", () => {
+  const farm = { firstServiceMonths: 18, deshiFirstServiceMonths: 30 };
+
+  it("names a crossbred heifer at 18 months never served, and not at 17", () => {
+    expect(heiferWatchOf(heifer(), farm)).toEqual({
+      because: "not_served",
+      dueAtMonths: 18,
+    });
+    expect(
+      heiferWatchOf(heifer({ age: { months: 17, estimated: false } }), farm)
+    ).toBeNull();
+  });
+
+  it("waits until 30 months for a deshi heifer", () => {
+    expect(heiferWatchOf(heifer({ deshi: true }), farm)).toBeNull();
+    expect(
+      heiferWatchOf(
+        heifer({ deshi: true, age: { months: 30, estimated: true } }),
+        farm
+      )
+    ).toMatchObject({ because: "not_served", dueAtMonths: 30 });
+  });
+
+  it("leaves off a heifer served once, a calf, and one in calf", () => {
+    expect(heiferWatchOf(heifer({ served: true }), farm)).toBeNull();
+    expect(heiferWatchOf(heifer({ state: "calf" }), farm)).toBeNull();
+    expect(
+      heiferWatchOf(heifer({ state: "pregnant_heifer" }), farm)
+    ).toBeNull();
+  });
+
+  it("names apart one whose age nobody knows", () => {
+    expect(heiferWatchOf(heifer({ age: null }), farm)).toMatchObject({
+      because: "age_unknown",
+    });
   });
 });

@@ -428,3 +428,35 @@ export const heatWatchOf = (
     ? { ...row, because: "no_heat", servedAt: null }
     : null;
 };
+
+/** Why a heifer is on the heat watch: past her first-service age and never served, or of an age nobody knows. */
+export type HeiferWatchBecause = "not_served" | "age_unknown";
+
+/**
+ * Whether a heifer is past the age to be served first and never has been: a year's keep and nothing coming back for
+ * every one missed. Crossbred heifers at 18 months and deshi at 30 unless the farm says otherwise (DLS NG-GLPP:
+ * "crossbred at 18-20 months", indigenous "at 30 months" — docs/research/cow-watch.md). One whose age nobody knows is
+ * named apart, so she is not lost. An estimated age is used as it is and marked so. Pure.
+ */
+export const heiferWatchOf = (
+  her: {
+    state: string;
+    served: boolean;
+    deshi: boolean;
+    age: { months: number; estimated: boolean } | null;
+  },
+  farm: { firstServiceMonths: number; deshiFirstServiceMonths: number }
+): { because: HeiferWatchBecause; dueAtMonths: number } | null => {
+  if (her.state !== "heifer" || her.served) {
+    return null;
+  }
+  const dueAtMonths = her.deshi
+    ? farm.deshiFirstServiceMonths
+    : farm.firstServiceMonths;
+  if (!her.age) {
+    return { because: "age_unknown", dueAtMonths };
+  }
+  return her.age.months >= dueAtMonths
+    ? { because: "not_served", dueAtMonths }
+    : null;
+};

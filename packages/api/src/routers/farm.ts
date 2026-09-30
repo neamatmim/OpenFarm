@@ -157,6 +157,9 @@ const parameters = z
     illAgainDays: z.number().int().min(30).max(730).optional(),
     /** The day after calving from which an open cow with no heat seen is on the heat watch. */
     heatWatchAfterCalvingDays: z.number().int().min(30).max(150).optional(),
+    /** The age a heifer should have been served by, crossbred and deshi. */
+    firstServiceMonths: z.number().int().min(10).max(36).optional(),
+    deshiFirstServiceMonths: z.number().int().min(12).max(48).optional(),
     /** How far under her own week a cow's milk must fall, over how many days, before she is named as giving less. */
     milkDropPercent: z.number().int().min(5).max(80).optional(),
     milkDropDays: z.number().int().min(1).max(5).optional(),
@@ -785,6 +788,8 @@ export const farmRouter = {
                 illAgainDiagnoses: true,
                 illAgainDays: true,
                 heatWatchAfterCalvingDays: true,
+                firstServiceMonths: true,
+                deshiFirstServiceMonths: true,
                 milkDropPercent: true,
                 milkDropDays: true,
                 milkUnaccountedPercent: true,

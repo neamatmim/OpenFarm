@@ -66,3 +66,42 @@ describe("the heat watch", () => {
     ).rejects.toThrow();
   });
 });
+
+describe("a heifer not yet served", () => {
+  /** A heifer born on a day, of a breed deshi or not, in a Pen of her own. */
+  const aHeifer = async (name: string, bornOn: string, deshi: boolean) => {
+    const owner = await as("owner", "2063-06-01T00:00:00.000Z");
+    const shed = await owner.client.herd.createShed({
+      name: `${suffix}-${name}`,
+    });
+    const pen = await owner.client.herd.createPen({ shedId: shed.id, name });
+    const breed = await owner.client.breeds.add({
+      nameBn: `${deshi ? "দেশি" : "সংকর"} ${name}`,
+      deshi,
+    });
+    const heifer = await owner.client.animals.register({
+      sex: "female",
+      side: "dairy",
+      state: "heifer",
+      penId: pen.id,
+      source: "born",
+      aliases: [],
+      breedId: breed.id,
+      birthDate: new Date(`${bornOn}T00:00:00.000Z`),
+    });
+    return heifer.tagNumber;
+  };
+
+  it("names a crossbred heifer at 18 months, and a deshi one only at 30", async () => {
+    const cross = await aHeifer(`সংকর পেন ${suffix}`, "2061-11-01", false);
+    const deshi = await aHeifer(`দেশি পেন ${suffix}`, "2061-11-01", true);
+    const listed = await watchedOn("2063-06-10T04:00:00.000Z");
+    expect(listed.find((one) => one.tag === cross)).toMatchObject({
+      because: "not_served",
+      ageMonths: 19,
+      ageEstimated: false,
+      dueAtMonths: 18,
+    });
+    expect(listed.map((one) => one.tag)).not.toContain(deshi);
+  });
+});

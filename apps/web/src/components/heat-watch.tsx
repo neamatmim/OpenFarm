@@ -11,9 +11,26 @@ export type HeatWatchRows = Awaited<
   ReturnType<typeof orpc.breeding.heatWatch.call>
 >;
 
-/** Why she is on it, in words: due back from a service, or no heat seen lately since calving. */
+/** A heifer on it, in words: how old, and the age she should have been served by — or that nobody knows her age. */
+const HeiferLine = ({ row }: { row: HeatWatchRows[number] }) => {
+  const { t } = useLanguage();
+  if (row.because === "age_unknown" || row.ageMonths === null) {
+    return t("heatWatch.heiferAgeUnknown", { pen: row.penName });
+  }
+  return t(
+    row.ageEstimated
+      ? "heatWatch.heiferNotServedAbout"
+      : "heatWatch.heiferNotServed",
+    { age: row.ageMonths, due: row.dueAtMonths ?? 0, pen: row.penName }
+  );
+};
+
+/** Why she is on it, in words: due back from a service, no heat seen lately since calving, or a heifer not served. */
 const HeatWatchLine = ({ row }: { row: HeatWatchRows[number] }) => {
   const { t, language } = useLanguage();
+  if (row.daysSinceCalving === null) {
+    return <HeiferLine row={row} />;
+  }
   const days = row.daysSinceCalving;
   if (row.because === "return_due" && row.servedAt) {
     return t("heatWatch.returnDue", {

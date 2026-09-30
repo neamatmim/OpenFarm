@@ -59,6 +59,8 @@ type NumberKey =
   | "illAgainDiagnoses"
   | "illAgainDays"
   | "heatWatchAfterCalvingDays"
+  | "firstServiceMonths"
+  | "deshiFirstServiceMonths"
   | "milkDropPercent"
   | "milkDropDays"
   | "milkUnaccountedPercent"
@@ -291,6 +293,20 @@ const GROUPS: {
         unit: "params.days",
         min: 30,
         max: 150,
+      },
+      {
+        key: "firstServiceMonths",
+        label: "params.firstServiceMonths",
+        unit: "params.months",
+        min: 10,
+        max: 36,
+      },
+      {
+        key: "deshiFirstServiceMonths",
+        label: "params.deshiFirstServiceMonths",
+        unit: "params.months",
+        min: 12,
+        max: 48,
       },
     ],
   },

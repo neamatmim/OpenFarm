@@ -204,6 +204,12 @@ export const farm = pgTable("farm", {
   heatWatchAfterCalvingDays: integer("heat_watch_after_calving_days")
     .notNull()
     .default(60),
+  /** The age a heifer should have been served by, crossbred and deshi: 18 and 30 months, as DLS gives them
+   *  (docs/research/cow-watch.md). By breed (the Owner, 2026-09-30); the Manager's, as the list is. */
+  firstServiceMonths: integer("first_service_months").notNull().default(18),
+  deshiFirstServiceMonths: integer("deshi_first_service_months")
+    .notNull()
+    .default(30),
   /** How far under her own week a cow's milk must fall, over how many days, before she is named as giving less: 20% over
    *  2 days — a convention, not a measured line (docs/research/cow-watch.md). The Manager's. */
   milkDropPercent: integer("milk_drop_percent").notNull().default(20),
