@@ -4,6 +4,7 @@ import { eq } from "@OpenFarm/db/operators";
 import { cashCount } from "@OpenFarm/db/schema/cash";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { handover } from "@OpenFarm/db/schema/money";
+import { buyingTrip } from "@OpenFarm/db/schema/trip";
 import { farmDayOf, roundTaka } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
@@ -11,6 +12,7 @@ import { holdersOf } from "./alerts-store";
 import type { Tx } from "./audit";
 import { THE_FARMS_PURSE } from "./money-store";
 import { tell } from "./notice";
+import { whatTheFloatBought } from "./venture-store";
 
 // Who holds the farm's cash: each person's **Cash in Hand** — the cash Money Events that named their hand, in less out,
 // and the Handovers that moved it on to another hand or to the bank.
@@ -289,6 +291,191 @@ export const cashMovementsOf = async (
     .slice(0, MOVEMENTS_SHOWN);
 };
 
+/** A Buying Float the Farm handed out for one of its own outings, as it stands. */
+export interface FarmTripFloat {
+  tripId: string;
+  wentTo: string;
+  wentOn: Date;
+  /** Who carried it: whose hand the float went into. */
+  carrierId: string | null;
+  carrierName: string | null;
+  handedBdt: number;
+  /** What the outing bought of the Farm's own: the animals and their Hasil, and the outing's costs. */
+  boughtBdt: number;
+  /** What was brought back, where it was counted home. */
+  backBdt: number;
+  reconciledAt: Date | null;
+}
+
+/** What some Handovers came to, to the paisa. */
+const sumOf = (rows: readonly { amountBdt: number }[]): number => {
+  let total = 0;
+  for (const one of rows) {
+    total += one.amountBdt;
+  }
+  return roundTaka(total);
+};
+
+/** One outing's Farm float, or nothing where no Farm float went on it. */
+export const farmTripFloat = async (
+  db: Db,
+  farmId: string,
+  tripId: string
+): Promise<FarmTripFloat | null> => {
+  const trip = await db.query.buyingTrip.findFirst({
+    where: { id: tripId, farmId },
+    columns: { id: true, wentTo: true, wentOn: true, floatReconciledAt: true },
+  });
+  const handed = await db.query.handover.findMany({
+    where: { farmId, buyingTripId: tripId },
+    columns: { float: true, amountBdt: true, toUserId: true },
+    with: { taker: { columns: { name: true } } },
+    orderBy: { handedAt: "asc", id: "asc" },
+  });
+  const outs = handed.filter((one) => one.float === "out");
+  if (!(trip && outs.length > 0)) {
+    return null;
+  }
+  const bought = await whatTheFloatBought(db, farmId, {
+    buyingTripId: tripId,
+    ventureId: null,
+  });
+  const [first] = outs;
+  return {
+    tripId,
+    wentTo: trip.wentTo,
+    wentOn: trip.wentOn,
+    carrierId: first?.toUserId ?? null,
+    carrierName: first?.taker?.name ?? null,
+    handedBdt: sumOf(outs),
+    boughtBdt: roundTaka(bought.animalsBdt + bought.tripBdt),
+    backBdt: sumOf(handed.filter((one) => one.float === "back")),
+    reconciledAt: trip.floatReconciledAt,
+  };
+};
+
+/** Every Farm float still out, the oldest outing first. */
+export const openFarmFloats = async (
+  db: Db,
+  farmId: string
+): Promise<FarmTripFloat[]> => {
+  const tagged = await db.query.handover.findMany({
+    where: { farmId, float: "out" },
+    columns: { buyingTripId: true },
+  });
+  const tripIds = [
+    ...new Set(
+      tagged.flatMap((one) => (one.buyingTripId ? [one.buyingTripId] : []))
+    ),
+  ];
+  const floats: FarmTripFloat[] = [];
+  for (const tripId of tripIds) {
+    // One outing at a time: a handful are ever out.
+    // oxlint-disable-next-line no-await-in-loop
+    const float = await farmTripFloat(db, farmId, tripId);
+    if (float && !float.reconciledAt) {
+      floats.push(float);
+    }
+  }
+  return floats.toSorted((a, b) => a.wentOn.getTime() - b.wentOn.getTime());
+};
+
+/**
+ * The outing a Farm float is handed for: the Farm's own, still open. Refused where a Venture's Buying Float went on it —
+ * one outing is paid for by one purse — or where the Farm's float was already counted home.
+ */
+export const requireOpenFarmTrip = async (
+  tx: Tx,
+  farmId: string,
+  tripId: string
+): Promise<void> => {
+  const trip = await tx.query.buyingTrip.findFirst({
+    where: { id: tripId, farmId },
+    columns: { id: true, floatReconciledAt: true },
+  });
+  if (!trip) {
+    throw new ORPCError("NOT_FOUND", { message: "No such outing" });
+  }
+  if (trip.floatReconciledAt) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This outing's float was already counted home",
+      data: { refusal: "float_already_reconciled" },
+    });
+  }
+  const venturesFloat = await tx.query.ventureMovement.findFirst({
+    where: { farmId, kind: "float_out", buyingTripId: tripId },
+    columns: { id: true },
+  });
+  if (venturesFloat) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A Venture's Buying Float went on this outing",
+      data: { refusal: "trip_is_another_ventures" },
+    });
+  }
+};
+
+/**
+ * Counts a Farm float home: the cash handed out must be what the outing bought of the Farm's own — its animals, their
+ * Hasil and its costs — and the cash brought back, to the taka, as a Venture's is; refused over or short with the gap.
+ * What was brought back goes from the hand that carried it to the Owner's, and the outing's float is closed.
+ */
+export const reconcileFarmFloat = async (
+  tx: Tx,
+  input: {
+    farmId: string;
+    tripId: string;
+    cashBackBdt: number;
+    ownerId: string;
+    role: RoleName;
+    now: Date;
+  }
+): Promise<void> => {
+  await requireOpenFarmTrip(tx, input.farmId, input.tripId);
+  const float = await farmTripFloat(tx, input.farmId, input.tripId);
+  if (!float) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "No float was handed out for this outing",
+      data: { refusal: "no_float_on_the_trip" },
+    });
+  }
+  const gapBdt = roundTaka(
+    float.handedBdt - float.boughtBdt - float.backBdt - input.cashBackBdt
+  );
+  if (gapBdt !== 0) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        gapBdt > 0
+          ? "More went out than the outing bought and brought back"
+          : "The outing bought and brought back more than went out",
+      data: {
+        refusal: gapBdt > 0 ? "float_short" : "float_over",
+        gapBdt: Math.abs(gapBdt),
+      },
+    });
+  }
+  if (input.cashBackBdt > 0 && float.carrierId !== input.ownerId) {
+    await tx.insert(handover).values({
+      id: uuidv7(input.now),
+      farmId: input.farmId,
+      fromUserId: float.carrierId,
+      toUserId: input.ownerId,
+      amountBdt: input.cashBackBdt,
+      handedAt: input.now,
+      reference: null,
+      note: null,
+      buyingTripId: input.tripId,
+      float: "back",
+      recordedBy: input.ownerId,
+      recordedByRole: input.role,
+      recordedAt: input.now,
+    });
+  }
+  await tx
+    .update(buyingTrip)
+    .set({ floatReconciledAt: input.now, floatReconciledBy: input.ownerId })
+    .where(eq(buyingTrip.id, input.tripId));
+};
+
 /** One end of a Handover: a person's hand, or the bank. */
 export type HandEnd = { userId: string } | { bank: true };
 
@@ -309,11 +496,16 @@ export const recordHandover = async (
     handedAt: Date;
     reference: string | null;
     note: string | null;
+    /** The Farm's own outing this cash is the Buying Float for, where it is one. */
+    buyingTripId?: string;
     recordedBy: string;
     recordedByRole: RoleName;
     now: Date;
   }
 ): Promise<{ id: string }> => {
+  if (input.buyingTripId) {
+    await requireOpenFarmTrip(tx, input.farmId, input.buyingTripId);
+  }
   const fromUserId = userOf(input.from);
   const toUserId = userOf(input.to);
   if (fromUserId === toUserId) {
@@ -349,6 +541,8 @@ export const recordHandover = async (
     handedAt: input.handedAt,
     reference: input.reference,
     note: input.note,
+    buyingTripId: input.buyingTripId ?? null,
+    float: input.buyingTripId ? "out" : null,
     recordedBy: input.recordedBy,
     recordedByRole: input.recordedByRole,
     recordedAt: input.now,
