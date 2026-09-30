@@ -3044,6 +3044,16 @@ export const en = {
   "byHand.note": "Note",
   "byHand.receipt": "Receipt photo",
   "byHand.save": "Enter it",
+  "byHand.looksEntered": "This looks entered already",
+  "byHand.looksEnteredSaid":
+    "{by} already entered {amount} to {name} on {day}, under {category}.",
+  "byHand.looksEnteredTold":
+    "Save it again only if it really is a second one; the Owner will hear of it.",
+  "byHand.looksEnteredAsk": "Save it again only if it really is a second one.",
+  "byHand.saveAgain": "Save it again",
+  "byHand.somebody": "Somebody",
+  "refusal.looksEnteredAlready":
+    "This looks like money already entered: the same person, the same taka, the same day",
   "byHand.entered": "Entered",
   "byHand.categories": "Categories",
   "byHand.retireTitle": "Retire the “{name}” category?",
@@ -4736,9 +4746,14 @@ export const en = {
   "owner.storeNeverCounted": "Never counted",
   "alerts.storeShortfall": "The store count on {day} came up ৳{amount} short",
   "alerts.openTheCounts": "Open the counts",
+  "alerts.enteredTwice":
+    "{by} entered ৳{amount} to {name} on {day} a second time, knowing an entry the same was already there",
+  "digest.enteredTwice":
+    "{count, plural, one {# entry was} other {# entries were}} entered a second time on purpose",
   "alerts.cashShort": "{name}'s cash count on {day} came up ৳{amount} short",
   "digest.cashShort":
     "{count, plural, one {# cash count} other {# cash counts}} came up short",
+  "alerts.openTheMoney": "Open income and expenses",
   "alerts.openTheCash": "Open the cash in hand",
   "digest.storeShortfall":
     "{count, plural, one {# store count} other {# store counts}} came up short",

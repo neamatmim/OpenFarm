@@ -385,6 +385,8 @@ One still gathering capital comes from its plan alone: every band bought at its 
 
 **Approval Threshold**: The BDT amount above which a Money Event the Owner did not enter waits, unapproved, for the Owner's approval. Only the money waits: the record that made it — the milk gone, the bull bought — is never held back. An approval is of what the Owner read — the amount, who it went to or came from, and its Category — so a Correction that changes any of those asks again. _Avoid_: Limit, sign-off amount
 
+**Entered Twice**: Money entered by hand that looks like money already entered — the same person, whatever the capitals, the same taka, the same farm day. It is not kept until whoever entered it has seen the earlier one and said it really is a second; kept so, by anybody but the Owner, it is told to the Owner in the evening's post. A wage is never asked: one wage a person a month is its own rule. _Avoid_: Duplicate (it may be two real bills), double entry
+
 ## Access
 
 **Role**: One of Owner, Manager, Staff, Vet. A person may hold several; every recorded action names the Role it was done under. _Avoid_: Permission level, user type, group

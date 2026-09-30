@@ -213,7 +213,8 @@ const KINDS: Kind[] = [
         categoryId: repairs?.id ?? "",
         amountBdt: 1500,
         occurredOn: "2039-03-01",
-        counterparty: { name: `মিস্ত্রি ${suffix}` },
+        // A mistri of their own each time: the same man, the same taka and the same day twice looks entered already.
+        counterparty: { name: `মিস্ত্রি ${suffix} ${crypto.randomUUID()}` },
       });
       return {
         id: made.id,

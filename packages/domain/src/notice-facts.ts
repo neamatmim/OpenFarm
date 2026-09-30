@@ -43,6 +43,15 @@ export interface NoticeFacts {
     /** The farm day ("YYYY-MM-DD") the week began. */
     since: string;
   };
+  entered_twice: {
+    /** Who the money went to or came from. */
+    name: string;
+    amountBdt: number;
+    /** The farm day ("YYYY-MM-DD") it was for. */
+    day: string;
+    /** Who entered it the second time, knowing. */
+    by: string;
+  };
   cash_short: {
     /** Whose hand was counted. */
     name: string;

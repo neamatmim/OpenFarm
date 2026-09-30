@@ -105,6 +105,8 @@ export const DELIVERY = {
   feed_price_jump: { when: "digest" },
   // A count short is the evening's question for the Owner to ask the Manager, as a short store is.
   cash_short: { when: "digest" },
+  // Money entered twice on purpose is the evening's question for the Owner, not a buzz: it may well be two bills.
+  entered_twice: { when: "digest" },
 } as const satisfies Record<AlertKind, Delivery>;
 
 /**
@@ -260,6 +262,10 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
   cash_short: {
     app: "alerts.cashShort",
     digest: "digest.cashShort",
+  },
+  entered_twice: {
+    app: "alerts.enteredTwice",
+    digest: "digest.enteredTwice",
   },
 };
 

@@ -96,6 +96,12 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     percent: Number(facts.percent),
     since: saidDate(facts.since, language),
   }),
+  entered_twice: (facts, language) => ({
+    name: facts.name,
+    amount: Number(facts.amountBdt),
+    day: saidDate(facts.day, language),
+    by: facts.by,
+  }),
   cash_short: (facts, language) => ({
     name: facts.name,
     amount: Number(facts.shortBdt),

@@ -1,7 +1,7 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { MONEY_DIRECTIONS, moneyCategory } from "@OpenFarm/db/schema/money";
-import { roundTaka } from "@OpenFarm/domain";
+import { farmDayOf, looksEnteredAlready, roundTaka } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -54,6 +54,7 @@ import {
   mayBeRetired,
   missingStandardCategories,
 } from "../money-store";
+import { tell } from "../notice";
 import {
   OWNER_ONLY,
   requireOnly,
@@ -66,6 +67,91 @@ import {
   recordWageDraw,
   takeDraws,
 } from "../wage-draw-store";
+
+/**
+ * Whether this looks like money already entered: the same person, the same taka, the same farm day, entered by hand.
+ * Refused with the earlier one, so the Manager can see it, unless sent again knowing — and then the Owner is told, in the
+ * evening's post, that it was entered twice on purpose. The Owner entering it twice knowingly tells nobody.
+ */
+const askIfEnteredAlready = async (
+  tx: Tx,
+  context: {
+    farm: { id: string };
+    roles: readonly string[];
+    actor: { name: string };
+  },
+  entry: {
+    id: string;
+    name: string;
+    amountBdt: number;
+    occurredAt: Date;
+    sameAgain: boolean;
+    now: Date;
+  }
+): Promise<string | null> => {
+  const sameDay = await tx.query.moneyEvent.findMany({
+    where: {
+      farmId: context.farm.id,
+      source: "by_hand",
+      occurredAt: { eq: entry.occurredAt },
+    },
+    columns: { id: true, amountBdt: true, occurredAt: true },
+    with: {
+      counterparty: { columns: { name: true } },
+      recorder: { columns: { name: true } },
+      category: { columns: { nameBn: true, nameEn: true } },
+    },
+    orderBy: { recordedAt: "asc", id: "asc" },
+  });
+  const day = farmDayOf(entry.occurredAt);
+  const match = looksEnteredAlready(
+    { name: entry.name, amountBdt: entry.amountBdt, day },
+    sameDay.map((one) => ({
+      ...one,
+      name: one.counterparty?.name ?? null,
+      day: farmDayOf(one.occurredAt),
+    }))
+  );
+  if (!match) {
+    return null;
+  }
+  if (!entry.sameAgain) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "This looks like money already entered: the same person, the same taka, the same day",
+      data: {
+        refusal: "looks_entered_already",
+        match: {
+          id: match.id,
+          name: match.name,
+          amountBdt: match.amountBdt,
+          day,
+          categoryBn: match.category?.nameBn ?? null,
+          categoryEn: match.category?.nameEn ?? null,
+          recordedByName: match.recorder?.name ?? null,
+        },
+      },
+    });
+  }
+  if (!context.roles.includes("owner")) {
+    await tell(
+      tx,
+      context.farm.id,
+      {
+        kind: "entered_twice",
+        about: { id: entry.id },
+        facts: {
+          name: entry.name,
+          amountBdt: entry.amountBdt,
+          day,
+          by: context.actor.name,
+        },
+      },
+      entry.now
+    );
+  }
+  return match.id;
+};
 
 /** The Category as the trail records it either side of a change. */
 const readCategory = async (tx: Tx, farmId: string, id: string) =>
@@ -362,11 +448,15 @@ export const moneyEntryProcedures = {
         wageMonth: monthInput.optional(),
         side: sideInput.optional(),
         receipt: receiptInput.optional(),
+        /** Entered again knowing it looks like one already entered — two loads of bamboo from the same man, the same
+         *  day, at the same price. */
+        sameAgain: z.boolean().optional(),
       })
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const occurredAt = enteredOn(input.occurredOn, now);
+      let enteredKnowing: string | null = null;
       const wageMonth = input.wageMonth ?? null;
       const category = await categoryForEntered(
         context.db,
@@ -381,7 +471,13 @@ export const moneyEntryProcedures = {
           entity: "money_event",
           entityId: id,
           action: "create",
-          after: (tx) => readEntered(tx, context.farm.id, id),
+          after: async (tx) => {
+            const entered = await readEntered(tx, context.farm.id, id);
+            // The trail keeps that it was entered knowing, and against which.
+            return entered && enteredKnowing
+              ? { ...entered, enteredKnowing }
+              : entered;
+          },
         },
         async (tx) => {
           const counterpartyId = await counterpartyNamed(
@@ -390,6 +486,17 @@ export const moneyEntryProcedures = {
             input.counterparty,
             now
           );
+          // A wage is one a person a month already; anything else entered twice is asked about before it is kept.
+          if (!wageMonth) {
+            enteredKnowing = await askIfEnteredAlready(tx, context, {
+              id,
+              name: input.counterparty.name,
+              amountBdt: input.amountBdt,
+              occurredAt,
+              sameAgain: input.sameAgain ?? false,
+              now,
+            });
+          }
           await assertWageNotYetEntered(tx, context.farm.id, {
             counterpartyId,
             wageMonth,

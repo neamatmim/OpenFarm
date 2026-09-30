@@ -2841,6 +2841,16 @@ export const bn: Record<MessageKey, string> = {
   "byHand.note": "মন্তব্য",
   "byHand.receipt": "রসিদের ছবি",
   "byHand.save": "লিখুন",
+  "byHand.looksEntered": "এটা আগেই লেখা হয়েছে মনে হচ্ছে",
+  "byHand.looksEnteredSaid":
+    "{by} {day} তারিখে {name}-কে {amount} আগেই লিখেছেন, {category} খাতে।",
+  "byHand.looksEnteredTold":
+    "সত্যিই দ্বিতীয়বার দেওয়া হলে তবেই আবার রাখুন; মালিক জানতে পারবেন।",
+  "byHand.looksEnteredAsk": "সত্যিই দ্বিতীয়বার দেওয়া হলে তবেই আবার রাখুন।",
+  "byHand.saveAgain": "আবার রাখুন",
+  "byHand.somebody": "কেউ একজন",
+  "refusal.looksEnteredAlready":
+    "এটা আগেই লেখা টাকার মতো: একই মানুষ, একই টাকা, একই দিন",
   "byHand.entered": "লেখা হয়েছে",
   "byHand.categories": "খাতসমূহ",
   "byHand.retireTitle": "“{name}” খাত বাদ দেবেন?",
@@ -4427,8 +4437,12 @@ export const bn: Record<MessageKey, string> = {
   "owner.storeNeverCounted": "কখনো গোনা হয়নি",
   "alerts.storeShortfall": "{day}-এর গুদাম গণনায় ৳{amount}-এর খাদ্য কম পাওয়া গেছে",
   "alerts.openTheCounts": "গণনা খুলুন",
+  "alerts.enteredTwice":
+    "{by} {day} তারিখে {name}-কে ৳{amount} দ্বিতীয়বার লিখেছেন, একই রকম একটি লেখা আছে জেনেও",
+  "digest.enteredTwice": "{count}টি টাকার হিসাব জেনেশুনে দ্বিতীয়বার লেখা হয়েছে",
   "alerts.cashShort": "{day}-এর নগদ গণনায় {name}-এর হাতে ৳{amount} কম পাওয়া গেছে",
   "digest.cashShort": "{count}টি নগদ গণনায় টাকা কম পাওয়া গেছে",
+  "alerts.openTheMoney": "টাকার হিসাব খুলুন",
   "alerts.openTheCash": "হাতে নগদ খুলুন",
   "digest.storeShortfall": "{count}টি গুদাম গণনায় খাদ্য কম পাওয়া গেছে",
   "params.storeShortfall": "গুদামে খাদ্য কম",

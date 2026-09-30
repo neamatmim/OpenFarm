@@ -1,7 +1,7 @@
 import type { PaymentMethod } from "@OpenFarm/domain";
 import { farmDayOf } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
-import { formatDigits, formatNumber } from "@OpenFarm/i18n";
+import { formatDate, formatDigits, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import {
   Dialog,
@@ -23,13 +23,19 @@ import {
 } from "@/components/correction-dialog";
 import { categoryName } from "@/components/money";
 import { WageDrawsNote } from "@/components/money/wage-draws";
-import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
+import {
+  ConfirmDialog,
+  FormField,
+  FormSheet,
+  NativeSelect,
+} from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
 import { PhotoField } from "@/components/photo-field";
 import { useLanguage } from "@/i18n/language-provider";
 import { amount, note } from "@/lib/correcting";
 import type { Photo } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
+import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 const SIDE_WORD = {
@@ -210,6 +216,77 @@ export type EnterMoneyStart = Partial<
  *
  * Opened from something that says what is missing — a Monthly Cost not entered, a wage — it starts with that filled.
  */
+/** The entry the farm says this one looks like a second of, as it said it. */
+interface LooksLike {
+  name: string | null;
+  amountBdt: number;
+  day: string;
+  categoryBn: string | null;
+  categoryEn: string | null;
+  recordedByName: string | null;
+}
+
+/** What the farm refused with, when it was that this looks entered already; nothing for any other refusal. */
+const looksLike = (error: unknown): LooksLike | null => {
+  const data = (
+    error as { data?: { refusal?: unknown; match?: LooksLike } } | null
+  )?.data;
+  return data?.refusal === "looks_entered_already" && data.match
+    ? data.match
+    : null;
+};
+
+/**
+ * Money that looks entered already, asked about before it is kept: the earlier entry, who wrote it, and whether this
+ * really is a second — which the Owner hears of, when anybody else saves it again.
+ */
+const LooksEnteredDialog = ({
+  twin,
+  pending,
+  onOpenChange,
+  onSaveAgain,
+}: {
+  twin: LooksLike | null;
+  pending: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSaveAgain: () => void;
+}) => {
+  const { t, language } = useLanguage();
+  const taka = useTaka();
+  const me = useQuery(orpc.people.me.queryOptions());
+  const theOwnerIsTold = !(me.data?.roles.includes("owner") ?? false);
+  const category =
+    language === "en"
+      ? (twin?.categoryEn ?? twin?.categoryBn)
+      : twin?.categoryBn;
+  return (
+    <ConfirmDialog
+      confirmLabel={t("byHand.saveAgain")}
+      description={
+        twin ? (
+          <>
+            {t("byHand.looksEnteredSaid", {
+              by: twin.recordedByName ?? t("byHand.somebody"),
+              amount: taka(twin.amountBdt),
+              name: twin.name ?? "",
+              day: formatDate(new Date(twin.day), language, "date"),
+              category: category ?? "",
+            })}{" "}
+            {theOwnerIsTold
+              ? t("byHand.looksEnteredTold")
+              : t("byHand.looksEnteredAsk")}
+          </>
+        ) : null
+      }
+      onConfirm={onSaveAgain}
+      onOpenChange={onOpenChange}
+      open={twin !== null}
+      pending={pending}
+      title={t("byHand.looksEntered")}
+    />
+  );
+};
+
 export const EnterMoneySheet = ({
   open,
   onOpenChange,
@@ -244,16 +321,40 @@ export const EnterMoneySheet = ({
     }
     onOpenChange(opening);
   };
+  const [twin, setTwin] = useState<LooksLike | null>(null);
   const enter = useMutation(
     orpc.money.enter.mutationOptions({
       onSuccess: () => {
         setTyped({ ...NOTHING_TYPED, categoryId: typed.categoryId });
+        setTwin(null);
         toast.success(t("byHand.entered"));
         handleOpenChange(false);
       },
-      onError,
+      onError: (error) => {
+        const earlier = looksLike(error);
+        if (earlier) {
+          setTwin(earlier);
+          return;
+        }
+        onError(error);
+      },
     })
   );
+  const entry = (sameAgain: boolean) =>
+    chosen
+      ? {
+          categoryId: chosen.id,
+          amountBdt: Number(typed.amount),
+          occurredOn,
+          counterparty: { name: typed.counterparty.trim() },
+          paymentMethod,
+          note: typed.note.trim() || undefined,
+          wageMonth: isWage ? typed.wageMonth : undefined,
+          side: side || undefined,
+          receipt: receipt ?? undefined,
+          ...(sameAgain ? { sameAgain } : {}),
+        }
+      : null;
   const set = (key: keyof typeof NOTHING_TYPED) => (value: string) =>
     setTyped((current) => ({ ...current, [key]: value }));
   const complete =
@@ -267,20 +368,10 @@ export const EnterMoneySheet = ({
       description={t("byHand.hint")}
       onOpenChange={handleOpenChange}
       onSubmit={() => {
-        if (!chosen) {
-          return;
+        const sending = entry(false);
+        if (sending) {
+          enter.mutate(sending);
         }
-        enter.mutate({
-          categoryId: chosen.id,
-          amountBdt: Number(typed.amount),
-          occurredOn,
-          counterparty: { name: typed.counterparty.trim() },
-          paymentMethod,
-          note: typed.note.trim() || undefined,
-          wageMonth: isWage ? typed.wageMonth : undefined,
-          side: side || undefined,
-          receipt: receipt ?? undefined,
-        });
       }}
       open={open}
       pending={enter.isPending}
@@ -381,6 +472,21 @@ export const EnterMoneySheet = ({
         </>
       ) : null}
       {categories.data ? null : <Skeleton className="h-64 rounded-lg" />}
+      <LooksEnteredDialog
+        onOpenChange={(opening) => {
+          if (!opening) {
+            setTwin(null);
+          }
+        }}
+        onSaveAgain={() => {
+          const sending = entry(true);
+          if (sending) {
+            enter.mutate(sending);
+          }
+        }}
+        pending={enter.isPending}
+        twin={twin}
+      />
     </FormSheet>
   );
 };
