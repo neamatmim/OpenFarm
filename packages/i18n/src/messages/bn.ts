@@ -2579,6 +2579,24 @@ export const bn: Record<MessageKey, string> = {
   "stock.noStock": "গুদামে কিছু নেই — আগে খাদ্য উপাদান যোগ করুন",
   "stock.adjustment": "থাকার কথা {expected}, গোনা হয়েছে {counted}",
   "stock.averagePrice": "প্রতি {unit} ৳{taka}",
+  "stock.weighed": "খামারের পাল্লায় ওজন (কেজি)",
+  "stock.weighedHint":
+    "ইচ্ছা হলে দিন। মাল আসার সময় ওজন দিলে পাল্লার ওজন গুদামে যাবে, রশিদের ওজন পাশে থাকবে।",
+  "stock.scaleShort":
+    "রশিদে {slip} কেজি, পাল্লায় {weighed} কেজি — {short} কেজি কম ({percent}%)",
+  "stock.scaleOver":
+    "রশিদে {slip} কেজি, পাল্লায় {weighed} কেজি — {over} কেজি বেশি",
+  "stock.scaleSame": "পাল্লা আর রশিদ মিলেছে",
+  "stock.slipSaid": "রশিদে {slip} কেজি",
+  "stock.shortOnScale": "{kg} কেজি কম",
+  "stock.overOnScale": "{kg} কেজি বেশি",
+  "scale.title": "পাল্লায় কম, গত ৯০ দিন",
+  "scale.hint":
+    "যে মাল আসার সময় ওজন দেওয়া হয়েছে তাতে প্রত্যেক বিক্রেতার রশিদ আর খামারের পাল্লা। ওজন না দেওয়া মালে কোনো দাবি নেই।",
+  "scale.none":
+    "গত ৯০ দিনে কোনো মাল ওজন দেওয়া হয়নি। মাল আসার সময় ওজন দিলে দেখা যাবে কোন বিক্রেতা কত কম দেয়।",
+  "scale.lots": "{count}টি চালান ওজন দেওয়া",
+  "scale.slipAndScale": "রশিদে {slip} কেজি · পাল্লায় {weighed} কেজি",
   "stock.lastBought": "শেষ কেনা {day}, প্রতি {unit} ৳{taka}",
   "stock.dearer": "আগের বারের চেয়ে {percent}% বেশি",
   "stock.cheaper": "আগের বারের চেয়ে {percent}% কম",
@@ -4480,6 +4498,7 @@ export const bn: Record<MessageKey, string> = {
   "heatWatch.heiferAgeUnknown": "বকনা, বয়স জানা নেই, এখনো পাল দেওয়া হয়নি · {pen}",
   "refusal.notMissing": "পশুটি হারায়নি — কেউ তাকে খুঁজছে না",
   "refusal.gdNumberNeeded": "চুরি হলে থানার জিডি নম্বর লাগবে",
+  "refusal.weighedNeedsAKiloSlip": "শুধু কেজিতে কেনা খাদ্যই রশিদের সাথে পাল্লায় মেলানো যায়",
   "alerts.feedPriceJump":
     "{feed} কেনা হয়েছে প্রতি {unit} ৳{price}-এ, আগের বারের ৳{previous}-এর চেয়ে {percent}% বেশি",
   "digest.feedPriceJump": "{count}টি খাদ্য আগের বারের চেয়ে বেশি দামে কেনা হয়েছে",

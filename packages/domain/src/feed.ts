@@ -537,6 +537,87 @@ export const purchasePricesOf = (
   return prices;
 };
 
+/** How far the farm's scale came under a lot's slip, in the feed's unit — below nothing where it came over. Nothing for a
+ *  lot never weighed: no difference is claimed for it. */
+export const scaleShortOf = (arrival: {
+  quantity: number;
+  slipQuantity: number | null;
+}): number | null =>
+  arrival.slipQuantity === null
+    ? null
+    : roundKg(arrival.slipQuantity - arrival.quantity);
+
+/** One lot weighed on arrival, as its seller's figures are read. */
+export interface WeighedLot {
+  sellerId: string;
+  sellerName: string;
+  /** What the slip said the lot weighed. */
+  slipQuantity: number;
+  /** What the farm's scale showed. */
+  quantity: number;
+  /** What the lot cost, which the slip's kilos were charged at. */
+  priceBdt: number;
+}
+
+/** One seller's lots on the farm's scale: what the slips said, what the scale showed, and what was short — in kilos, as
+ *  a percent of the slips, and in taka at what each lot was charged a slip kilo. */
+export interface SellerOnTheScale {
+  sellerId: string;
+  sellerName: string;
+  lots: number;
+  slipKg: number;
+  weighedKg: number;
+  /** Below nothing where the scale came over. */
+  shortKg: number;
+  shortPercent: number;
+  shortBdt: number;
+}
+
+/**
+ * How short each seller runs on the farm's scale, from the lots that were weighed — the most taka short first. A lot
+ * never weighed adds nothing: the farm claims no difference it did not see (the Owner, 2026-09-29: weighing optional).
+ */
+export const sellersOnTheScale = (
+  lots: readonly WeighedLot[]
+): SellerOnTheScale[] => {
+  const bySeller = new Map<string, SellerOnTheScale>();
+  for (const lot of lots) {
+    if (lot.slipQuantity <= 0) {
+      continue;
+    }
+    const seller = bySeller.get(lot.sellerId) ?? {
+      sellerId: lot.sellerId,
+      sellerName: lot.sellerName,
+      lots: 0,
+      slipKg: 0,
+      weighedKg: 0,
+      shortKg: 0,
+      shortPercent: 0,
+      shortBdt: 0,
+    };
+    const short = lot.slipQuantity - lot.quantity;
+    seller.lots += 1;
+    seller.slipKg += lot.slipQuantity;
+    seller.weighedKg += lot.quantity;
+    seller.shortKg += short;
+    seller.shortBdt += (short * lot.priceBdt) / lot.slipQuantity;
+    bySeller.set(lot.sellerId, seller);
+  }
+  return [...bySeller.values()]
+    .map((seller) => ({
+      ...seller,
+      slipKg: roundKg(seller.slipKg),
+      weighedKg: roundKg(seller.weighedKg),
+      shortKg: roundKg(seller.shortKg),
+      shortPercent: Math.round((seller.shortKg / seller.slipKg) * 1000) / 10,
+      shortBdt: Math.round(seller.shortBdt),
+    }))
+    .toSorted(
+      (a, b) =>
+        b.shortBdt - a.shortBdt || a.sellerName.localeCompare(b.sellerName)
+    );
+};
+
 /** Whether a Purchase's price rose on the last one by more than the Owner's line: a rise, not a fall. */
 export const priceJumped = (
   price: Pick<PurchasePrice, "changePercent">,

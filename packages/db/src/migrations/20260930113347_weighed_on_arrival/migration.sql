@@ -1,0 +1,1 @@
+ALTER TABLE "feed_in" ADD COLUMN "slip_quantity" numeric(12,1);

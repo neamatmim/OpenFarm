@@ -111,9 +111,11 @@ export const feedArrivalCorrection: CorrectionKind<
         ? {}
         : {
             quantity: to.quantity.toFixed(1),
-            // The bags or maunds it was typed as no longer say what came: the corrected kilos do.
-            packKind: null,
-            packCount: null,
+            // The bags or maunds it was typed as no longer say what came: the corrected kilos do — unless it was weighed,
+            // when the quantity is the scale's and the bags still say what the slip did.
+            ...(row.slipQuantity === null
+              ? { packKind: null, packCount: null }
+              : {}),
             // A cut lot is worth its kilos at the price it came in at: fewer kilos, less fodder, and
             // the price a kilo of it was worth that day is untouched.
             ...(row.kind === "harvest"
