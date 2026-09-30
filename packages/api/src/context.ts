@@ -130,6 +130,9 @@ export interface Context {
     illAgainDays: number;
     /** The day after calving from which an open cow with no heat seen is on the heat watch. */
     heatWatchAfterCalvingDays: number;
+    /** The age a heifer should have been served by, crossbred and deshi. */
+    firstServiceMonths: number;
+    deshiFirstServiceMonths: number;
     /** How far under her own week a cow's milk must fall, over how many days, before she is named as giving less. */
     milkDropPercent: number;
     milkDropDays: number;

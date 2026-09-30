@@ -4454,5 +4454,13 @@ export const bn: Record<MessageKey, string> = {
   "milkAccount.notAccounted": "হিসাব মেলেনি",
   "milkAccount.calves":
     "বাছুরকে: দিনে {litres} লিটার, {calves}টি বাছুর — প্রতিটি {perCalf} লিটার",
+  "params.firstServiceMonths": "সংকর বকনাকে পাল দিতে হবে",
+  "params.deshiFirstServiceMonths": "দেশি বকনাকে পাল দিতে হবে",
+  "params.months": "মাসের মধ্যে",
+  "heatWatch.heiferNotServed":
+    "বকনা, {age} মাস, এখনো পাল দেওয়া হয়নি — {due} মাসে দেওয়ার কথা · {pen}",
+  "heatWatch.heiferNotServedAbout":
+    "বকনা, আনুমানিক {age} মাস, এখনো পাল দেওয়া হয়নি — {due} মাসে দেওয়ার কথা · {pen}",
+  "heatWatch.heiferAgeUnknown": "বকনা, বয়স জানা নেই, এখনো পাল দেওয়া হয়নি · {pen}",
   "refusal.notMissing": "পশুটি হারায়নি — কেউ তাকে খুঁজছে না",
 };

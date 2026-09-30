@@ -4,6 +4,8 @@ import { animal } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type {
   CalvingLead,
+  HeatWatchBecause,
+  HeiferWatchBecause,
   PregnancyCheckResult,
   RepeatBreederDecision,
   ServiceMethod,
@@ -17,8 +19,10 @@ import {
   sinceSheLastCalved,
   attemptsThatBegin,
   expectedCalvingFrom,
+  ageOf,
   farmDayOf,
   heatWatchOf,
+  heiferWatchOf,
   isExitState,
   startOfFarmDay,
 } from "@OpenFarm/domain";
@@ -527,43 +531,78 @@ export const expectedCalvingWithinReach = (
   return due;
 };
 
+/** One row of the heat watch, cow or heifer: why she is on it, and what the farm knows of her. */
+export interface HeatWatchRow {
+  animalId: string;
+  tag: string;
+  penName: string;
+  because: HeatWatchBecause | HeiferWatchBecause;
+  /** For a cow: whole days since she calved. Nothing for a heifer. */
+  daysSinceCalving: number | null;
+  lastSignAt: Date | null;
+  servedAt: Date | null;
+  /** For a heifer: how old, whether only estimated, and the age she should have been served by. */
+  ageMonths: number | null;
+  ageEstimated: boolean;
+  dueAtMonths: number | null;
+}
+
 /**
  * The heat watch: every open cow the farm expects in heat and nobody has seen — no heat since the farm's days after
- * calving, or due back in heat after a service — for the Manager's queue and the Vet's page. Longest waiting first.
+ * calving, or due back in heat after a service — longest since calving first; then every heifer past the age to be
+ * served first and never served, crossbred and deshi each at her own age, oldest first, and those whose age nobody
+ * knows. For the Manager's queue and the Vet's page.
  */
 export const heatWatchOn = async (
   db: Pick<Database, "query">,
-  farm: { id: string; heatWatchAfterCalvingDays: number },
+  farm: {
+    id: string;
+    heatWatchAfterCalvingDays: number;
+    firstServiceMonths: number;
+    deshiFirstServiceMonths: number;
+  },
   now: Date
-) => {
-  const cows = await db.query.animal.findMany({
-    where: {
-      farmId: farm.id,
-      sex: "female",
-      side: "dairy",
-      state: { in: ["milking", "dry"] },
-      expectedCalvingAt: { isNull: true },
-      lactationStartedAt: { isNotNull: true },
-    },
-    columns: {
-      id: true,
-      tagNumber: true,
-      state: true,
-      expectedCalvingAt: true,
-      lactationStartedAt: true,
-    },
-    with: {
-      pen: { columns: { name: true } },
-      services: { columns: { id: true, servedAt: true } },
-      pregnancyChecks: { columns: { serviceId: true, checkedAt: true } },
-      observations: {
-        where: { saw: HEAT, withdrawnAt: { isNull: true } },
-        columns: { seenAt: true },
+): Promise<HeatWatchRow[]> => {
+  const [cows, heifers] = await Promise.all([
+    db.query.animal.findMany({
+      where: {
+        farmId: farm.id,
+        sex: "female",
+        side: "dairy",
+        state: { in: ["milking", "dry"] },
+        expectedCalvingAt: { isNull: true },
+        lactationStartedAt: { isNotNull: true },
       },
-    },
-  });
-  return cows
-    .flatMap((her) => {
+      columns: {
+        id: true,
+        tagNumber: true,
+        state: true,
+        expectedCalvingAt: true,
+        lactationStartedAt: true,
+      },
+      with: {
+        pen: { columns: { name: true } },
+        services: { columns: { id: true, servedAt: true } },
+        pregnancyChecks: { columns: { serviceId: true, checkedAt: true } },
+        observations: {
+          where: { saw: HEAT, withdrawnAt: { isNull: true } },
+          columns: { seenAt: true },
+        },
+      },
+    }),
+    db.query.animal.findMany({
+      where: { farmId: farm.id, sex: "female", side: "dairy", state: "heifer" },
+      columns: { id: true, tagNumber: true, state: true, birthDate: true },
+      with: {
+        pen: { columns: { name: true } },
+        breed: { columns: { deshi: true } },
+        intake: { columns: { estimatedAgeMonths: true, arrivedAt: true } },
+        services: { columns: { id: true }, limit: 1 },
+      },
+    }),
+  ]);
+  const cowRows = cows
+    .flatMap((her): HeatWatchRow[] => {
       const watched = heatWatchOf(
         {
           id: her.id,
@@ -578,11 +617,58 @@ export const heatWatchOn = async (
         farm.heatWatchAfterCalvingDays
       );
       return watched
-        ? [{ ...watched, tag: her.tagNumber, penName: her.pen.name }]
+        ? [
+            {
+              ...watched,
+              tag: her.tagNumber,
+              penName: her.pen.name,
+              ageMonths: null,
+              ageEstimated: false,
+              dueAtMonths: null,
+            },
+          ]
         : [];
     })
     .toSorted(
       (a, b) =>
-        b.daysSinceCalving - a.daysSinceCalving || a.tag.localeCompare(b.tag)
+        (b.daysSinceCalving ?? 0) - (a.daysSinceCalving ?? 0) ||
+        a.tag.localeCompare(b.tag)
     );
+  const heiferRows = heifers
+    .flatMap((her): HeatWatchRow[] => {
+      const age = ageOf(
+        { birthDate: her.birthDate, ageAtIntake: her.intake ?? null },
+        now
+      );
+      const watched = heiferWatchOf(
+        {
+          state: her.state,
+          served: her.services.length > 0,
+          deshi: her.breed?.deshi ?? false,
+          age,
+        },
+        farm
+      );
+      return watched
+        ? [
+            {
+              animalId: her.id,
+              tag: her.tagNumber,
+              penName: her.pen.name,
+              because: watched.because,
+              daysSinceCalving: null,
+              lastSignAt: null,
+              servedAt: null,
+              ageMonths: age?.months ?? null,
+              ageEstimated: age?.estimated ?? false,
+              dueAtMonths: watched.dueAtMonths,
+            },
+          ]
+        : [];
+    })
+    .toSorted(
+      (a, b) =>
+        (b.ageMonths ?? -1) - (a.ageMonths ?? -1) || a.tag.localeCompare(b.tag)
+    );
+  return [...cowRows, ...heiferRows];
 };
