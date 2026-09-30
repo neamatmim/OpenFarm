@@ -174,6 +174,7 @@ const GROUP_WORD: Record<ReferenceGroup, MessageKey> = {
   bangladesh: "standards.group.bangladesh",
   feeding: "standards.group.feeding",
   weighing: "standards.group.weighing",
+  breeding: "standards.group.breeding",
 };
 
 /** A link out of the app, opened beside it rather than in its place. */

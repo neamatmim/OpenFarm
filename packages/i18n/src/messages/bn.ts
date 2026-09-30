@@ -2487,6 +2487,7 @@ export const bn: Record<MessageKey, string> = {
   "standards.group.bangladesh": "বাংলাদেশের",
   "standards.group.feeding": "খাদ্যের মানদণ্ড",
   "standards.group.weighing": "ওজন নেওয়া ও থিতু হওয়া",
+  "standards.group.breeding": "প্রজনন ও দুধ",
   "standards.checked": "প্রতিটি লিংক {date} তারিখে খুলে দেখা হয়েছে, কাজ করছিল।",
   "standards.link": "এই সংখ্যাগুলো কোথা থেকে",
   "farmGains.yourFarm": "আপনার খামার",

@@ -1,7 +1,8 @@
 /**
  * The published guides and trials the farm's standard figures are worked from, for the Owner to open when a figure is
  * questioned — chosen for being free to read, and every link opened on 29 September 2026
- * (docs/research/expected-daily-gain.md §10; the calf guides from docs/research/newborn-calf-care.md). A title is as its publisher gives it; what each is good for is said in
+ * (docs/research/expected-daily-gain.md §10; the calf guides from docs/research/newborn-calf-care.md), the breeding and
+ * milk ones on 30 September (docs/research/cow-watch.md). A title is as its publisher gives it; what each is good for is said in
  * both languages.
  */
 
@@ -10,8 +11,14 @@ interface Named {
   en: string;
 }
 
-/** Where a guide belongs: the country's own, the feeding standards, or how cattle are weighed and settled. */
-export const REFERENCE_GROUPS = ["bangladesh", "feeding", "weighing"] as const;
+/** Where a guide belongs: the country's own, the feeding standards, how cattle are weighed and settled, or when a cow
+ *  should come into heat and what her milk says. */
+export const REFERENCE_GROUPS = [
+  "bangladesh",
+  "feeding",
+  "weighing",
+  "breeding",
+] as const;
 export type ReferenceGroup = (typeof REFERENCE_GROUPS)[number];
 
 /** One guide or trial: what it is called, who published it and when, where to read it, and what it is good for. */
@@ -52,8 +59,8 @@ export const STANDARD_REFERENCES = [
       "https://web.archive.org/web/2025id_/https://dls.portal.gov.bd/sites/default/files/files/dls.portal.gov.bd/page/61d70f88_045d_4205_b5ed_2bfe65623e3f/2025-03-06-16-08-6165641f39ac4af51b27a3149f41366e.pdf",
     ],
     goodFor: {
-      bn: "নবজাতক বাছুরের যত্ন (অধ্যায় ১১: শাল দুধ, নাভি, দুধ ছাড়ানো), বাছুরের টিকা (পরিশিষ্ট ৩১) আর কৃমিনাশ (পরিশিষ্ট ৩৫)।",
-      en: "Newborn calf care (chapter XI: colostrum, the navel, weaning), calf vaccines (Appendix 31) and worming (Appendix 35).",
+      bn: "নবজাতক বাছুরের যত্ন (অধ্যায় ১১: শাল দুধ, নাভি, দুধ ছাড়ানো), বাছুরের টিকা (পরিশিষ্ট ৩১), কৃমিনাশ (পরিশিষ্ট ৩৫), আর প্রজননের লক্ষ্য — বিয়ানোর ৫০–৬০ দিনে গরম না হলে পরীক্ষা, সংকর বকনার প্রথম পাল ১৮–২০ মাসে (§১০, §১২.১.১.১, পরিশিষ্ট ২৬)।",
+      en: "Newborn calf care (chapter XI: colostrum, the navel, weaning), calf vaccines (Appendix 31), worming (Appendix 35), and the breeding targets — a cow not in heat by 50–60 days examined, crossbred heifers first served at 18–20 months (§10, §12.1.1.1, Appendix 26).",
     },
   },
   {
@@ -249,6 +256,82 @@ export const STANDARD_REFERENCES = [
     goodFor: {
       bn: "বৃদ্ধি মাপার আগে গরুকে কত দিন থিতু হতে দিতে হয়, আর কত দিন ধরে ওজন নিতে হয়।",
       en: "How long to let cattle settle, and how long to weigh them, before a gain means anything.",
+    },
+  },
+  {
+    group: "breeding",
+    title: "Breeding Programs for Heifer Replacements and Cows",
+    publisher: "Merck Veterinary Manual",
+    year: "2024",
+    links: [
+      "https://www.merckvetmanual.com/management-and-nutrition/management-of-reproduction-cattle/breeding-programs-for-heifer-replacements-and-cows",
+    ],
+    goodFor: {
+      bn: "বিয়ানোর পর কত দিন অপেক্ষা করে পাল দিতে হয়, গরমের চক্র ১৮–২৪ দিন, আর বকনাকে কখন প্রথম পাল দিতে হয়।",
+      en: "How long to wait after calving before serving, the 18–24-day heat cycle, and when to serve a heifer first.",
+    },
+  },
+  {
+    group: "breeding",
+    title: "Health and Production Management Programs for Dairy Cattle",
+    publisher: "Merck Veterinary Manual",
+    year: "2026",
+    links: [
+      "https://www.merckvetmanual.com/management-and-nutrition/preventive-health-care-and-husbandry-of-dairy-cattle/health-and-production-management-programs-for-dairy-cattle",
+    ],
+    goodFor: {
+      bn: "বিয়ানোর পর গাভী কবে পরীক্ষা করাতে হয়, আর খামারের প্রজনন কতটা ভালো চলছে তা কোন হিসাবে বোঝা যায়।",
+      en: "When a cow should be examined after calving, and which figures show how well the herd is breeding.",
+    },
+  },
+  {
+    group: "breeding",
+    title:
+      "Effects of breed, management system, milk yield and body weight on onset of postpartum ovarian cyclicity in cows",
+    publisher: "Bangladesh Veterinarian (Saha et al.)",
+    year: "2015",
+    links: ["https://www.banglajol.info/index.php/BVET/article/view/29254"],
+    goodFor: {
+      bn: "দেশের গাভী বিয়ানোর পর কত দেরিতে আবার গরম হয়: ১২০ দিনের মধ্যে মাত্র ৩০% — তাই গরম না দেখা গাভীর তালিকা লম্বা হবে।",
+      en: "How late Bangladeshi cows cycle again after calving: only 30% within 120 days — why the no-heat list will be long.",
+    },
+  },
+  {
+    group: "breeding",
+    title:
+      "Genetic evaluation of different graded HF × Local crossbred breeding bulls of Bangladesh",
+    publisher:
+      "Journal of Advanced Veterinary and Animal Research (Hridoy et al.)",
+    year: "2025",
+    links: ["https://pmc.ncbi.nlm.nih.gov/articles/PMC12506709/"],
+    goodFor: {
+      bn: "সংকর বকনা আসলে কত বয়সে গর্ভধারণ করে, আর দেশের সংকর গাভীর বাচ্চা দেওয়ার মাঝের সময়।",
+      en: "The age crossbred heifers actually conceive at, and the calving interval of Bangladeshi crossbred cows.",
+    },
+  },
+  {
+    group: "breeding",
+    title:
+      "Performance and nutritional status of Holstein crossbred cows in a selected area of Bangladesh",
+    publisher:
+      "Journal of Advanced Veterinary and Animal Research (Rahman et al.)",
+    year: "2024",
+    links: ["https://pmc.ncbi.nlm.nih.gov/articles/PMC11590593/"],
+    goodFor: {
+      bn: "দেশের সংকর গাভীর পূর্ণ ওজন — বকনা প্রথম পাল দেওয়ার ওজন (পূর্ণ ওজনের ৫৫–৬০%) এখান থেকে হিসাব হয়।",
+      en: "The grown weight of Bangladeshi crossbred cows — what a heifer's first-service weight (55–60% of it) is worked from.",
+    },
+  },
+  {
+    group: "breeding",
+    title:
+      "Milk losses and dynamics during perturbations in dairy cows differ with parity and lactation stage",
+    publisher: "Journal of Dairy Science (Adriaens et al.)",
+    year: "2021",
+    links: ["https://doi.org/10.3168/jds.2020-19195"],
+    goodFor: {
+      bn: "গাভীর দুধ কতটা আর কত দিন কমলে তা অসুখের লক্ষণ ধরা হয় — ২ দিনে ২০% কমার নিয়মটি একটি প্রথা, মাপা সীমা নয়।",
+      en: "How far and how long a cow's milk must fall to mean illness — the 20%-in-2-days rule is a convention, not a measured line.",
     },
   },
 ] as const satisfies readonly StandardReference[];

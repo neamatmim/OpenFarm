@@ -2657,6 +2657,7 @@ export const en = {
   "standards.group.bangladesh": "From Bangladesh",
   "standards.group.feeding": "Feeding standards",
   "standards.group.weighing": "Weighing and settling in",
+  "standards.group.breeding": "Breeding and milk",
   "standards.checked": "Every link was opened and working on {date}.",
   "standards.link": "Where these figures come from",
   "farmGains.yourFarm": "Your farm",
