@@ -122,6 +122,9 @@ export interface Context {
     bakiDays: number;
     /** The taka a Stock Count may come up short by before the Owner and the Manager are told of it. */
     storeShortfallTellBdt: number;
+    /** How many animals in one Pen seen with sores, within how many hours, before the farm is told at once. */
+    soresTellAnimals: number;
+    soresTellHours: number;
     /** What part of a Venture's target capital is the least worth starting on. */
     ventureFloorPercent: number;
     /** What part of a Venture's capital keeps the animals rather than buying them. */

@@ -141,6 +141,12 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
     audience: [{ roles: ["owner", "manager"] }],
     entity: "step_completion",
   },
+  // The Manager rings the Vet and keeps the Pen shut; the Owner answers for the herd. About one Pen and the first
+  // sighting in the window, so a Pen is told once however many more are seen in it.
+  pen_sores_seen: {
+    audience: [{ roles: ["owner", "manager"] }],
+    entity: "pen",
+  },
 };
 
 /** A Notice as it was raised, for whoever carries it out of the transaction to a pocket. */

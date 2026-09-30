@@ -36,6 +36,7 @@ import { carryThePost, pushRaised } from "./push-send";
 import { tellOfRenewals } from "./registration-store";
 import { textTheSafetyAlerts } from "./sms-send";
 import { contentOf } from "./sop-content";
+import { soresToTell, tellOfSores } from "./sores-store";
 import { lowStockToTell, raiseLowStockAlerts, runningLow } from "./stock-store";
 import { endExpiredVisits } from "./visits-store";
 import { heatThatRaised } from "./work-cause";
@@ -321,6 +322,29 @@ const tellAboutLowStock = async (context: Turning, now: Date) => {
 };
 
 /**
+ * Several animals in one Pen seen with sores on the mouth or feet: told once to the Owner and the Manager, and pushed at
+ * once — FMD spreads through a Pen in days. Keyed on the first Pen told about, with the rest named in the event.
+ */
+const tellAboutSores = async (context: Turning, now: Date) => {
+  const untold = await soresToTell(context.db, context.farm, now);
+  const [firstOne] = untold;
+  if (!firstOne) {
+    return;
+  }
+  const raised = await audited(context).write(
+    {
+      entity: "pen",
+      entityId: firstOne.key,
+      action: "update",
+      after: () =>
+        Promise.resolve({ toldSores: untold.map((pen) => pen.penName) }),
+    },
+    (tx) => tellOfSores(tx, context.farm.id, untold, now)
+  );
+  await pushRaised(context, raised, now);
+};
+
+/**
  * Animals the round could not find: each told once to the Owner and the Manager, and pushed at once — an animal gone
  * in the night may be on a lorry to a haat by noon. Keyed on the first one told about, with the rest named in the event.
  */
@@ -443,6 +467,7 @@ export const theSweep = async (context: Turning) => {
   // having nothing to say is the steady state and must not silence them.
   await tellAboutWithdrawals(context, now);
   await tellAboutMissing(context, now);
+  await tellAboutSores(context, now);
   await tellAboutLowStock(context, now);
   await tellAboutTheStore(context, now);
   await tellAboutOverdueBaki(context, now);

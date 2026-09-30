@@ -149,6 +149,9 @@ const parameters = z
     bakiDays: z.number().int().min(7).max(120).optional(),
     /** The taka a Stock Count may come up short by before the Owner and the Manager are told of it. */
     storeShortfallTellBdt: z.number().int().min(0).max(1_000_000).optional(),
+    /** How many animals in one Pen with sores on the mouth or feet, within how many hours, before the farm is told. */
+    soresTellAnimals: z.number().int().min(2).max(20).optional(),
+    soresTellHours: z.number().int().min(12).max(168).optional(),
     /** What part of a Venture's target capital is the least worth starting on. */
     ventureFloorPercent: z.number().int().min(0).max(100).optional(),
     /** What part of a Venture's capital keeps the animals rather than buying them. */
@@ -762,6 +765,8 @@ export const farmRouter = {
                 monthlyCostsFromDay: true,
                 bakiDays: true,
                 storeShortfallTellBdt: true,
+                soresTellAnimals: true,
+                soresTellHours: true,
                 ventureFloorPercent: true,
                 ventureRunningPercent: true,
                 ventureInvestorsPercent: true,

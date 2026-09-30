@@ -11,6 +11,11 @@ export const OBSERVATION_WORDS = [
   { value: "off_feed", bn: "খাবারে অরুচি", en: "Off feed" },
   { value: "mastitis", bn: "ওলান ফোলা/শক্ত", en: "Swollen or hard udder" },
   { value: "cough", bn: "কাশি", en: "Coughing" },
+  {
+    value: "mouth_foot_sores",
+    bn: "মুখে বা ক্ষুরে ঘা",
+    en: "Sores on mouth or feet",
+  },
   { value: "not_suckling", bn: "বাছুর দুধ টানছে না", en: "Calf not suckling" },
   {
     value: "navel_swollen",

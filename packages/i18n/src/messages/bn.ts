@@ -4393,5 +4393,18 @@ export const bn: Record<MessageKey, string> = {
   "event.calved": "গাভী বাচ্চা দিলে",
   "event.unwell_urgent": "রাউন্ডে পেট ফাঁপা বা শ্বাসকষ্ট দেখা গেলে",
   "unwell.seen": "যা দেখা গেছে",
+  "alerts.penSoresSeen":
+    "{since} থেকে {pen}-এ {animals}টি পশুর মুখে বা ক্ষুরে ঘা দেখা গেছে",
+  "alerts.openObservations": "যা দেখা গেছে খুলুন",
+  "push.penSoresSeenTitle": "এক পেনে কয়েকটি পশুর ঘা",
+  "push.penSoresSeenBody":
+    "{pen}-এ {animals}টি পশুর মুখে বা ক্ষুরে ঘা। ডাক্তারকে ফোন করুন, পেনটি আলাদা রাখুন।",
+  "digest.penSoresSeen": "{count}টি পেনে কয়েকটি পশুর ঘা দেখা গেছে",
+  "params.sores": "এক পেনে কয়েকটি পশুর ঘা",
+  "params.soresHint":
+    "এক পেনে এত ঘণ্টার মধ্যে এতগুলো পশুর মুখে বা ক্ষুরে ঘা দেখা গেলে আপনাকে আর ম্যানেজারকে সঙ্গে সঙ্গে জানানো হবে।",
+  "params.soresTellAnimals": "এক পেনে পশু",
+  "params.soresTellHours": "সময়ের মধ্যে",
+  "params.animals": "টি পশু",
   "refusal.notMissing": "পশুটি হারায়নি — কেউ তাকে খুঁজছে না",
 };

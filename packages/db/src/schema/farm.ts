@@ -191,6 +191,10 @@ export const farm = pgTable("farm", {
   storeShortfallTellBdt: integer("store_shortfall_tell_bdt")
     .notNull()
     .default(2000),
+  /** How many animals in one Pen seen with sores on the mouth or feet, within how many hours, before the Owner and the
+   *  Manager are told at once: FMD spreads through a Pen in days, and the Vet visits weekly (the Owner, 2026-09-29). */
+  soresTellAnimals: integer("sores_tell_animals").notNull().default(3),
+  soresTellHours: integer("sores_tell_hours").notNull().default(48),
   /** Whether Investors the Owner has invited may sign in to read their Ventures and papers (ADR 0007). Off until
    *  the Owner turns it on, and off again is how the farm answers a lawyer who says the portal is a platform. */
   investorPortal: boolean("investor_portal").notNull().default(false),
