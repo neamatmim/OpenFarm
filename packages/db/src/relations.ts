@@ -222,6 +222,15 @@ export const relations = defineRelations(schema, (r) => ({
     /** Who counted. */
     counter: r.one.user({ from: r.stockCount.countedBy, to: r.user.id }),
   },
+  medicineCount: {
+    product: r.one.drugProduct({
+      from: r.medicineCount.drugProductId,
+      to: r.drugProduct.id,
+      optional: false,
+    }),
+    /** Who counted. */
+    counter: r.one.user({ from: r.medicineCount.countedBy, to: r.user.id }),
+  },
   feedIn: {
     feedItem: r.one.feedItem({
       from: r.feedIn.feedItemId,

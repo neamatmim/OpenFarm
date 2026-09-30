@@ -146,6 +146,8 @@ export interface Context {
     feedDaysLow: number;
     /** How far a Cash Count may come up short before the Owner is told. */
     cashShortTellBdt: number;
+    /** How far a monthly medicine count may come up short, in taka, before the Owner is told. */
+    medicineShortTellBdt: number;
     /** What part of a Venture's target capital is the least worth starting on. */
     ventureFloorPercent: number;
     /** What part of a Venture's capital keeps the animals rather than buying them. */

@@ -6,6 +6,7 @@ import type { useLanguage } from "@/i18n/language-provider";
 import {
   happeningTriggers,
   scheduleEveryOtherWeek,
+  scheduleFirstOfTheMonth,
   scheduleTimes,
   scheduleWeekdays,
 } from "@/lib/sop-draft";
@@ -70,9 +71,12 @@ export const whenWords = (
     const days = scheduleWeekdays(content)
       .map((day) => t(`sop.weekday.${day}` as "sop.weekday.0"))
       .join(", ");
-    const fortnightly = scheduleEveryOtherWeek(content)
+    let fortnightly = scheduleEveryOtherWeek(content)
       ? ` · ${t("sop.everyOtherWeek")}`
       : "";
+    if (scheduleFirstOfTheMonth(content)) {
+      fortnightly = ` · ${t("sop.firstOfTheMonth")}`;
+    }
     words.push(
       days ? `${times.join(", ")} · ${days}${fortnightly}` : times.join(", ")
     );

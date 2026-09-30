@@ -18,6 +18,7 @@ export type StepAnswer = Pick<
   | "destination"
   | "feeding"
   | "counts"
+  | "medicineCounts"
   | "photos"
 > & {
   /** The new expiry, issue date and certificate, for the Step that renews the Registration. */

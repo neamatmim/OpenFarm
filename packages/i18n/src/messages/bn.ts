@@ -2187,6 +2187,7 @@ export const bn: Record<MessageKey, string> = {
   "sop.days": "সপ্তাহের দিন",
   "sop.everyDay": "কোনো দিন বাছাই নেই: প্রতিদিন",
   "sop.onTheseDays": "শুধু বাছাই করা দিনগুলোতে",
+  "sop.firstOfTheMonth": "শুধু মাসের প্রথমটিতে",
   "sop.everyOtherWeek": "এক সপ্তাহ পর পর (পাক্ষিক)",
   "sop.wholeFarm": "প্রতিটি পেনের জন্য নয়, পুরো খামারের জন্য একবার",
   "sop.wholeFarmHint":
@@ -2798,6 +2799,7 @@ export const bn: Record<MessageKey, string> = {
   "drugs.col.lastBought": "শেষ কেনা",
   "stock.expiredLeft": "{quantity} {unit}-এর মেয়াদ শেষ",
   "stock.col.lastIn": "শেষ এসেছে",
+  "drugs.countedDifference": "গণনায় হিসাবের চেয়ে {doses} ডোজ",
   "drugs.dosesOnHand": "{doses} ডোজ",
   "drugs.runningLow": "কমে আসছে",
   "drugs.setLowStock": "মজুদের সীমা ঠিক করুন",
@@ -3641,6 +3643,7 @@ export const bn: Record<MessageKey, string> = {
   "sop.effect.stays": "বকনা হিসেবে থাকবে",
   "sop.effect.calving": "বাচ্চা দেওয়া",
   "sop.effect.stock_count": "গুদাম গণনা",
+  "sop.effect.medicine_count": "ওষুধ গণনা",
   "sop.effect.head_count": "পেনের পশু গুনে খাতার সাথে মেলানো",
   "sop.effect.cash_count": "হাতের নগদ গণনা",
   "sop.effect.lot_number": "ভায়ালের লট নম্বর, পুরো ক্যাম্পেইনে একবার",
@@ -4470,6 +4473,9 @@ export const bn: Record<MessageKey, string> = {
   "owner.storeNeverCounted": "কখনো গোনা হয়নি",
   "alerts.storeShortfall": "{day}-এর গুদাম গণনায় ৳{amount}-এর খাদ্য কম পাওয়া গেছে",
   "alerts.openTheCounts": "গণনা খুলুন",
+  "alerts.medicineShort":
+    "{day} তারিখের ওষুধ গণনায় ৳{amount}-এর ডোজ কম পাওয়া গেছে, যা কোনো চিকিৎসায় দেওয়া লেখা নেই",
+  "digest.medicineShort": "{count}টি ওষুধ গণনায় কম পাওয়া গেছে",
   "alerts.stillHereAfterEid":
     "{day} থেকে কোরবানি শেষ, তবু সেই ঈদের জন্য রাখা {animals}টি পশু এখনো খামারে (তার {inVentures}টি ভেঞ্চারের)",
   "digest.stillHereAfterEid": "{count}টি ঈদের পরেও পশু খামারে রয়ে গেছে",
@@ -4552,6 +4558,10 @@ export const bn: Record<MessageKey, string> = {
   "params.cashShortHint":
     "সাপ্তাহিক নগদ গণনায় খামারের হিসাবের চেয়ে এর বেশি কম পাওয়া গেলে সন্ধ্যার খবরে আপনাকে জানানো হবে।",
   "params.cashShortTellBdt": "এর বেশি কম হলে জানান",
+  "params.medicineShort": "ওষুধ গণনা",
+  "params.medicineShortHint":
+    "মাসিক ওষুধ গণনা, ডোজে: ডোজের দামে এর বেশি কম পাওয়া গেলে আপনাকে জানানো হবে। এটা আপনার ঠিক করার: ম্যানেজার কেনেন আর গোনেন।",
+  "params.medicineShortTellBdt": "এর বেশি কম হলে জানান",
   "params.feedDays": "খাদ্য আর কত দিনের",
   "params.feedDaysHint":
     "গত দুই সপ্তাহ যে হারে খাওয়ানো হয়েছে, সেই হারে কোনো খাদ্য এর কম দিন চললে সেটি কমে আসছে ধরা হবে, আর সন্ধ্যার খবরে ম্যানেজারকে জানানো হবে।",
@@ -4670,6 +4680,7 @@ export const bn: Record<MessageKey, string> = {
   "refusal.askTheVetForDays":
     "ভেট এই ওষুধের উইথড্রয়াল-এর দিন লেখেননি, খামারের সাধারণ দিনও না; ভেটকে জিজ্ঞেস করুন",
   "refusal.diagnosisNotHers": "ওই রোগ নির্ণয় অন্য পশুর",
+  "refusal.medicineCountIncomplete": "ওষুধ গণনায় তালিকার সব ওষুধ গুনতে হয়",
   "refusal.givenInTheFuture": "যে সময় এখনো আসেনি, সে সময়ে ডোজ দেওয়া যায় না",
   "refusal.productRetired": "এই ওষুধ তালিকা থেকে সরানো হয়েছে",
   "alerts.doseNotPrescribed":

@@ -173,6 +173,7 @@ const parameters = z
     feedDaysLow: z.number().int().min(1).max(60).optional(),
     /** How far a Cash Count may come up short before the Owner is told. */
     cashShortTellBdt: z.number().int().min(0).max(1_000_000).optional(),
+    medicineShortTellBdt: z.number().int().min(0).max(1_000_000).optional(),
     /** What part of a Venture's target capital is the least worth starting on. */
     ventureFloorPercent: z.number().int().min(0).max(100).optional(),
     /** What part of a Venture's capital keeps the animals rather than buying them. */
@@ -264,6 +265,8 @@ const WHEN_A_SHORT_STORE_IS_TOLD = [
   "feedPriceJumpPercent",
   // And the cash in the Manager's hand.
   "cashShortTellBdt",
+  // And the medicine the Manager buys and counts.
+  "medicineShortTellBdt",
 ] as const;
 
 type ParametersInput = z.infer<typeof parameters>;
@@ -818,6 +821,7 @@ export const farmRouter = {
                 feedPriceJumpPercent: true,
                 feedDaysLow: true,
                 cashShortTellBdt: true,
+                medicineShortTellBdt: true,
                 ventureFloorPercent: true,
                 ventureRunningPercent: true,
                 ventureInvestorsPercent: true,

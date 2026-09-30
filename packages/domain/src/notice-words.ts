@@ -96,6 +96,10 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     percent: Number(facts.percent),
     since: saidDate(facts.since, language),
   }),
+  medicine_short: (facts, language) => ({
+    amount: Number(facts.shortBdt),
+    day: saidDate(facts.countedOn, language),
+  }),
   still_here_after_eid: (facts, language) => ({
     day: saidDate(facts.day, language),
     animals: Number(facts.animals),

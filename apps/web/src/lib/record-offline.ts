@@ -14,7 +14,7 @@ interface OptimisticCompletion {
   destination: string | null;
   outOfRange: string | null;
   /** What was fed or counted with it, as it was typed: a Correction made from this says it was shown them. */
-  facts: Pick<StepRecord, "feeding" | "counts">;
+  facts: Pick<StepRecord, "feeding" | "counts" | "medicineCounts">;
 }
 
 /** A Step as the pen board records it: what the farm takes for a Step, which animal's tile it belongs on, and the
@@ -27,6 +27,11 @@ export type StepRecord = Omit<EntryBody<"step_completion">, "photoSlots"> & {
 /** One Feed Item as a count found it. */
 export type StockCountEntry = NonNullable<
   EntryBody<"step_completion">["counts"]
+>[number];
+
+/** One medicine as the monthly count found it, in doses. */
+export type MedicineCountEntry = NonNullable<
+  EntryBody<"step_completion">["medicineCounts"]
 >[number];
 
 /** The queue, or a refusal. A device with no storage at all cannot be trusted with a
@@ -103,6 +108,9 @@ export const recordStep = async (
     facts: {
       ...(record.feeding ? { feeding: record.feeding } : {}),
       ...(record.counts ? { counts: record.counts } : {}),
+      ...(record.medicineCounts
+        ? { medicineCounts: record.medicineCounts }
+        : {}),
     },
   };
   queryClient.setQueryData(

@@ -93,6 +93,8 @@ export type StepEffect =
   | { kind: "calving" }
   /** The store counted: what is really there of each Feed Item, and why it differs. */
   | { kind: "stock_count" }
+  /** The medicine counted: how many doses of each product are really there, and why it differs. */
+  | { kind: "medicine_count" }
   /** A Pen counted by the number standing in it, blind, and set against the animals the register puts there. */
   | { kind: "head_count" }
   /** The cash in the counter's own hand counted, blind, and set against what the farm says they hold. */
@@ -118,6 +120,7 @@ export const STEP_EFFECT_KINDS = [
   "wean",
   "calving",
   "stock_count",
+  "medicine_count",
   "head_count",
   "cash_count",
   "registration_renewal",
@@ -219,12 +222,14 @@ export const MAX_TRIGGER_OFFSET_DAYS = 365;
 
 export type Trigger =
   /** Fixed times of day, as "HH:MM" on the farm's clock — every day, or only on some days of the week (0 is
-   *  Sunday), and on those only every other week for work done fortnightly. */
+   *  Sunday), and on those only every other week for work done fortnightly, or only the first of them in the month
+   *  for work done monthly — the first Friday. */
   | {
       kind: "schedule";
       times: string[];
       weekdays?: number[];
       everyOtherWeek?: boolean;
+      firstOfTheMonth?: boolean;
     }
   /** Something happened to an animal, optionally some days before the work is due. */
   | { kind: "event"; event: FarmEvent; offsetDays?: number }
@@ -463,6 +468,12 @@ const stockCountStepProblems = (step: Step, path: string): string[] =>
     ? [`${path}.effect: the store is counted once, not once per animal`]
     : [];
 
+/** The medicine store is counted once for the farm, as the feed store is: no animal is counted. */
+const medicineCountStepProblems = (step: Step, path: string): string[] =>
+  step.repeatPerAnimal
+    ? [`${path}.effect: the medicine is counted once, not once per animal`]
+    : [];
+
 /** The Registration is renewed once, for the farm: no animal is renewed. */
 const renewalStepProblems = (step: Step, path: string): string[] =>
   step.repeatPerAnimal
@@ -490,6 +501,7 @@ const SHAPED_STEPS: Partial<
   wean: weanStepProblems,
   calving: calvingStepProblems,
   stock_count: stockCountStepProblems,
+  medicine_count: medicineCountStepProblems,
   registration_renewal: renewalStepProblems,
   lot_number: lotNumberStepProblems,
 };
@@ -588,7 +600,11 @@ const isTimedByItself = (
 
 /** What is wrong with the days a schedule names. */
 const scheduleDayProblems = (
-  trigger: { weekdays?: number[]; everyOtherWeek?: boolean },
+  trigger: {
+    weekdays?: number[];
+    everyOtherWeek?: boolean;
+    firstOfTheMonth?: boolean;
+  },
   at: string
 ): string[] => {
   const problems: string[] = [];
@@ -601,6 +617,17 @@ const scheduleDayProblems = (
     // Every other week of every day is not a rhythm anybody works to; it needs the day it falls on.
     problems.push(
       `${at}.everyOtherWeek: say which day of the week it falls on`
+    );
+  }
+  if (trigger.firstOfTheMonth && !trigger.weekdays?.length) {
+    // The first of what in the month: it needs the day of the week it falls on.
+    problems.push(
+      `${at}.firstOfTheMonth: say which day of the week it falls on`
+    );
+  }
+  if (trigger.firstOfTheMonth && trigger.everyOtherWeek) {
+    problems.push(
+      `${at}.firstOfTheMonth: a monthly schedule is not also fortnightly`
     );
   }
   return problems;
@@ -820,7 +847,8 @@ const reportRoleProblems = (content: SopContent): string[] => {
  * - a Service is the Manager's to record (roles matrix: Breeding — Service `C R U` to the Manager and to
  *   nobody else who records), or parentage goes to the wrong person the day the Version is published;
  * - a Stock Count is the Manager's (Feed stock, Purchases, Stock Count — Manager `C R U`, Barn Staff
- *   nothing), because the count moves what the farm's feed is worth;
+ *   nothing), because the count moves what the farm's feed is worth; the medicine count likewise, as the Manager
+ *   buys the medicine;
  * - a Cash Count is the hand's own that is counted — a Manager's, or the Owner's — and Barn Staff hold no cash;
  * - the Registration's renewal is the Owner's (the registration decision: SOP 26, assigned to the Owner);
  * - a Calving is recorded by Barn Staff as a Step, or by the Manager (Breeding — Calving `C R U` to the
@@ -840,6 +868,11 @@ const WHOSE_STEPS: readonly {
     effect: "stock_count",
     roles: ["manager"],
     problem: "a procedure that counts the store is the Manager's",
+  },
+  {
+    effect: "medicine_count",
+    roles: ["manager"],
+    problem: "a procedure that counts the medicine is the Manager's",
   },
   {
     effect: "cash_count",
@@ -863,7 +896,7 @@ const WHOSE_STEPS: readonly {
  *  the store, which is one however many Pens stand full. */
 const FARM_WORK_EFFECTS: ReadonlySet<StepEffect["kind"]> = new Set<
   StepEffect["kind"]
->(["registration_renewal", "stock_count", "cash_count"]);
+>(["registration_renewal", "stock_count", "medicine_count", "cash_count"]);
 
 /** Whether an SOP's work is about the whole farm rather than about a Pen: the Registration's renewal, or work
  *  marked so — the footbath, the visitor book. */
@@ -990,14 +1023,20 @@ export const sessionsPerDayOf = (content: SopContent): number => {
 };
 
 const DAY_MS_FOR_WEEKS = 24 * 60 * 60 * 1000;
+const DAYS_A_WEEK = 7;
 
 /**
- * Whether a schedule falls on the farm day an instant is in. Every day unless it names days of the week; and a schedule
+ * Whether a schedule falls on the farm day an instant is in. Every day unless it names days of the week; a schedule
  * kept every other week counts its weeks from a fixed Sunday, so a fortnight is the same fortnight whenever the
- * work was published.
+ * work was published; and one kept monthly falls on the first of its days in the month — the first seven days hold
+ * exactly one of each.
  */
 export const scheduleFallsOn = (
-  trigger: { weekdays?: number[]; everyOtherWeek?: boolean },
+  trigger: {
+    weekdays?: number[];
+    everyOtherWeek?: boolean;
+    firstOfTheMonth?: boolean;
+  },
   at: Date
 ): boolean => {
   if (!trigger.weekdays?.length) {
@@ -1007,6 +1046,9 @@ export const scheduleFallsOn = (
   const weekday = new Date(midnight).getUTCDay();
   if (!trigger.weekdays.includes(weekday)) {
     return false;
+  }
+  if (trigger.firstOfTheMonth) {
+    return new Date(midnight).getUTCDate() <= DAYS_A_WEEK;
   }
   if (!trigger.everyOtherWeek) {
     return true;

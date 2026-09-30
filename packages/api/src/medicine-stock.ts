@@ -18,6 +18,9 @@ export interface LotLeft {
 export interface MedicineStock {
   dosesIn: number;
   dosesGiven: number;
+  /** Doses the monthly counts found over what the store was thought to hold — less than nothing where they found
+   *  fewer: doses gone that no Treatment says went into an animal. */
+  countedDifference: number;
   onHand: number;
   /** In the order the store is used in: first to expire first. */
   lots: LotLeft[];
@@ -36,6 +39,7 @@ export interface MedicineStock {
 const NOTHING: MedicineStock = {
   dosesIn: 0,
   dosesGiven: 0,
+  countedDifference: 0,
   onHand: 0,
   lots: [],
   nextExpiresOn: null,
@@ -46,8 +50,9 @@ const NOTHING: MedicineStock = {
 };
 
 /**
- * Every product's medicine in the store, worked out rather than counted, as a Feed Item's Stock on Hand is: the
- * doses of every Medicine Purchase in, less every dose given, each taken from the Lot that expires first.
+ * Every product's medicine in the store, worked out as a Feed Item's Stock on Hand is: the doses of every Medicine
+ * Purchase in, less every dose given, each taken from the Lot that expires first — and the monthly counts' differences
+ * besides, so the count wins: doses the count did not find are gone from the Lot that expires first too.
  *
  * On hand is never below nothing. A farm that gave more doses than it wrote down buying had a purchase nobody
  * recorded, and says it holds none rather than a debt of doses.
@@ -79,6 +84,18 @@ export const medicineStockOf = async (
   for (const one of given) {
     givenOf.set(one.productId, (givenOf.get(one.productId) ?? 0) + 1);
   }
+  // Read after the others, one client to a transaction: what each count found over, or under, the book.
+  const counted = await tx.query.medicineCount.findMany({
+    where: { farmId },
+    columns: { drugProductId: true, expected: true, counted: true },
+  });
+  const foundOf = new Map<string, number>();
+  for (const one of counted) {
+    foundOf.set(
+      one.drugProductId,
+      (foundOf.get(one.drugProductId) ?? 0) + one.counted - one.expected
+    );
+  }
   const boughtOf = new Map<string, typeof purchases>();
   for (const one of purchases) {
     const already = boughtOf.get(one.drugProductId);
@@ -89,9 +106,16 @@ export const medicineStockOf = async (
     }
   }
   const stock = new Map<string, MedicineStock>();
-  for (const productId of new Set([...boughtOf.keys(), ...givenOf.keys()])) {
+  for (const productId of new Set([
+    ...boughtOf.keys(),
+    ...givenOf.keys(),
+    ...foundOf.keys(),
+  ])) {
     const bought = boughtOf.get(productId) ?? [];
     const dosesGiven = givenOf.get(productId) ?? 0;
+    const countedDifference = foundOf.get(productId) ?? 0;
+    // Doses gone from the shelf: given, and — where the count found fewer — gone without a Treatment.
+    const dosesGone = Math.max(0, dosesGiven - countedDifference);
     const dosesIn = bought.reduce((sum, one) => sum + one.doses, 0);
     const store = storeOfLots(
       bought.map((one) => ({
@@ -101,13 +125,14 @@ export const medicineStockOf = async (
         cameInOn: one.purchasedOn.toISOString(),
         lotNumber: one.lotNumber,
       })),
-      dosesGiven,
+      dosesGone,
       window
     );
     stock.set(productId, {
       dosesIn,
       dosesGiven,
-      onHand: Math.max(0, dosesIn - dosesGiven),
+      countedDifference,
+      onHand: Math.max(0, dosesIn - dosesGone),
       lots: store.lots.map((one) => ({
         purchaseId: one.id,
         lotNumber: one.lotNumber,

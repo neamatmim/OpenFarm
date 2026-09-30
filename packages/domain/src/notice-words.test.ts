@@ -136,6 +136,7 @@ const EXAMPLE: NoticeFacts = {
     advice: "জ্বর, ফার্মেসির পরামর্শে",
   },
   cash_short: { name: "রফিকুল ইসলাম", shortBdt: 1500, countedOn: "2038-03-09" },
+  medicine_short: { shortBdt: 2400, countedOn: "2038-03-05" },
   still_here_after_eid: { day: "2038-03-12", animals: 7, inVentures: 2 },
   sold_under_cost: {
     tag: "F-0012",

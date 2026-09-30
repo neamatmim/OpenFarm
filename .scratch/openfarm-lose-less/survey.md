@@ -51,4 +51,4 @@ Vet), dairy quarantine, milk rejected/sold under market, semen cost and concepti
 
 **Build order:** G-01 (food safety), G-02, H-01, H-02, I-01, J-01, I-02, I-03, J-02, J-03, G-03.
 
-**Done 2026-10-01:** G-01, G-02, H-01, H-02, I-01, I-02, I-03, J-01, J-02, J-03. Left: G-03 (the monthly medicine count).
+**Done 2026-10-01:** all eleven — G-01, G-02, G-03, H-01, H-02, I-01, I-02, I-03, J-01, J-02, J-03.

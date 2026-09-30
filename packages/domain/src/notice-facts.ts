@@ -43,6 +43,12 @@ export interface NoticeFacts {
     /** The farm day ("YYYY-MM-DD") the week began. */
     since: string;
   };
+  medicine_short: {
+    /** What the doses the count did not find had cost, to the taka. */
+    shortBdt: number;
+    /** The farm day ("YYYY-MM-DD") it was counted. */
+    countedOn: string;
+  };
   still_here_after_eid: {
     /** The first day of that Eid's Qurbani ("YYYY-MM-DD"), as the Farm kept it. */
     day: string;

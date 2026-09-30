@@ -2334,6 +2334,7 @@ export const en = {
   "sop.days": "Days of the week",
   "sop.everyDay": "No day ticked: every day",
   "sop.onTheseDays": "Only on the ticked days",
+  "sop.firstOfTheMonth": "The first in the month only",
   "sop.everyOtherWeek": "Every other week (fortnightly)",
   "sop.wholeFarm": "Once for the whole farm, not for each Pen",
   "sop.wholeFarmHint":
@@ -2998,6 +2999,7 @@ export const en = {
   "drugs.col.lastBought": "Last bought",
   "stock.expiredLeft": "{quantity} {unit} past its day",
   "stock.col.lastIn": "Last came in",
+  "drugs.countedDifference": "Doses the counts found against the book: {doses}",
   "drugs.dosesOnHand": "{doses, plural, one {# dose} other {# doses}}",
   "drugs.runningLow": "Running low",
   "drugs.setLowStock": "Set the low-stock level",
@@ -3901,6 +3903,7 @@ export const en = {
   "sop.effect.stays": "Stays as a heifer",
   "sop.effect.calving": "Calving",
   "sop.effect.stock_count": "Counts the store",
+  "sop.effect.medicine_count": "Counts the medicine",
   "sop.effect.head_count": "Counts the pen against the register",
   "sop.effect.cash_count": "Counts the cash in hand",
   "sop.effect.lot_number": "The vial's Lot Number, once for the Campaign",
@@ -4782,6 +4785,10 @@ export const en = {
   "owner.storeNeverCounted": "Never counted",
   "alerts.storeShortfall": "The store count on {day} came up ৳{amount} short",
   "alerts.openTheCounts": "Open the counts",
+  "alerts.medicineShort":
+    "The medicine count on {day} came up ৳{amount} short: doses gone that no treatment says were given",
+  "digest.medicineShort":
+    "{count, plural, one {# medicine count} other {# medicine counts}} came up short",
   "alerts.stillHereAfterEid":
     "Qurbani from {day} is over, and {animals, plural, one {# animal} other {# animals}} aimed at it {animals, plural, one {is} other {are}} still on the farm ({inVentures} of them a Venture's)",
   "digest.stillHereAfterEid":
@@ -4875,6 +4882,10 @@ export const en = {
   "params.cashShortHint":
     "When the weekly cash count finds this much less than the farm says the hand holds, you are told in the evening's post.",
   "params.cashShortTellBdt": "Tell when short by more than",
+  "params.medicineShort": "Medicine count",
+  "params.medicineShortHint":
+    "The monthly count of the medicine, in doses: you are told when it comes up short, at what the doses cost, by more than this. Yours to set: the Manager buys and counts it.",
+  "params.medicineShortTellBdt": "Tell when short by more than",
   "params.feedDays": "Days of feed left",
   "params.feedDaysHint":
     "A feed with fewer days left than this, at the rate it has been fed over the last fortnight, is running low, and the Manager is told in the evening's post.",
@@ -4998,6 +5009,8 @@ export const en = {
   "refusal.askTheVetForDays":
     "The Vet has written no withdrawal days for this medicine, nor the farm's default; ask the Vet",
   "refusal.diagnosisNotHers": "That diagnosis is another animal's",
+  "refusal.medicineCountIncomplete":
+    "A medicine count counts every medicine on the list",
   "refusal.givenInTheFuture":
     "A dose cannot be given at a time that has not come yet",
   "refusal.productRetired": "That medicine is retired from the Drug List",

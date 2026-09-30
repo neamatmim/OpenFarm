@@ -20,10 +20,12 @@ import {
   emptyHappening,
   happeningTriggers,
   scheduleEveryOtherWeek,
+  scheduleFirstOfTheMonth,
   scheduleTimes,
   scheduleWeekdays,
   splitList,
   withEveryOtherWeek,
+  withFirstOfTheMonth,
   withHappeningTriggers,
   withScheduleTimes,
   withScheduleWeekdays,
@@ -319,6 +321,19 @@ const ScheduleDays = ({
             type="checkbox"
           />
           {t("sop.everyOtherWeek")}
+        </label>
+      ) : null}
+      {days.length > 0 ? (
+        <label className="inline-flex min-h-11 items-center gap-2 text-sm md:min-h-0">
+          <input
+            checked={scheduleFirstOfTheMonth(content)}
+            className="size-4"
+            onChange={(event) =>
+              onChange(withFirstOfTheMonth(content, event.target.checked))
+            }
+            type="checkbox"
+          />
+          {t("sop.firstOfTheMonth")}
         </label>
       ) : null}
     </fieldset>
