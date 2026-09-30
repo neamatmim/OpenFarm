@@ -1,5 +1,5 @@
 import type { PaymentMethod } from "@OpenFarm/domain";
-import { farmDayOf } from "@OpenFarm/domain";
+import { PAYMENT_METHODS, farmDayOf } from "@OpenFarm/domain";
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -8,10 +8,27 @@ import { HandCoins, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import {
+  CorrectionAnswer,
+  CorrectionChoice,
+  CorrectionDialog,
+  useCorrecting,
+} from "@/components/correction-dialog";
 import { EmptyState } from "@/components/page";
 import { FormDialog, FormField } from "@/components/page-kit";
-import { PaymentMethodField } from "@/components/payment-method";
+import {
+  PAYMENT_METHOD_WORD,
+  PaymentMethodField,
+} from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
+import type { Answers } from "@/lib/correcting";
+import {
+  choice,
+  counterparty,
+  day as farmDayAnswer,
+  figure,
+  note as noteAnswer,
+} from "@/lib/correcting";
 import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
@@ -112,6 +129,87 @@ const DrawDialog = ({
 };
 
 /**
+ * A Wage Draw put right: how much, who drew it, the day, how it was paid — and the note, where the screen knows it. Put
+ * to nothing, a draw that never happened is taken back; what a payday has taken off it stays taken.
+ */
+export const DrawCorrection = ({
+  draw,
+}: {
+  draw: {
+    id: string;
+    amountBdt: number;
+    name: string;
+    drawnAt: Date | string;
+    paymentMethod: PaymentMethod;
+    /** Left out where the screen does not hold the draw's own note: the money register does not. */
+    note?: string | null;
+  };
+}) => {
+  const { t } = useLanguage();
+  const answers: Answers = {
+    // Nothing is a real answer: it takes the draw back.
+    amountBdt: figure(draw.amountBdt),
+    counterparty: counterparty(draw.name),
+    drawnOn: farmDayAnswer(draw.drawnAt),
+    paymentMethod: choice(draw.paymentMethod),
+    ...(draw.note === undefined ? {} : { note: noteAnswer(draw.note) }),
+  };
+  const correcting = useCorrecting(answers);
+  const correct = useMutation(orpc.money.correctDraw.mutationOptions({}));
+  return (
+    <CorrectionDialog
+      description={t("wageDraw.correctHint")}
+      onOpen={correcting.handleOpen}
+      onSave={async (reason) => {
+        await correct.mutateAsync({
+          id: draw.id,
+          changes: correcting.changes(),
+          reason,
+        });
+      }}
+      ready={correcting.changed}
+      title={t("wageDraw.correct")}
+      trigger={t("wageDraw.correct")}
+    >
+      <CorrectionAnswer
+        inputMode="numeric"
+        label={t("cash.amount")}
+        onChange={(value) => correcting.set("amountBdt", value)}
+        type="number"
+        value={correcting.typed.amountBdt ?? ""}
+      />
+      <CorrectionAnswer
+        label={t("byHand.wagePerson")}
+        onChange={(value) => correcting.set("counterparty", value)}
+        value={correcting.typed.counterparty ?? ""}
+      />
+      <CorrectionAnswer
+        label={t("wageDraw.day")}
+        onChange={(value) => correcting.set("drawnOn", value)}
+        type="date"
+        value={correcting.typed.drawnOn ?? ""}
+      />
+      <CorrectionChoice
+        label={t("money.paidBy")}
+        onChange={(value) => correcting.set("paymentMethod", value)}
+        options={PAYMENT_METHODS.map((method) => ({
+          value: method,
+          label: t(PAYMENT_METHOD_WORD[method]),
+        }))}
+        value={correcting.typed.paymentMethod ?? draw.paymentMethod}
+      />
+      {draw.note === undefined ? null : (
+        <CorrectionAnswer
+          label={t("cash.note")}
+          onChange={(value) => correcting.set("note", value)}
+          value={correcting.typed.note ?? ""}
+        />
+      )}
+    </CorrectionDialog>
+  );
+};
+
+/**
  * Each person's Wage Draws still owed, the most owed first, and the button to write another down. Payday takes them off
  * the month's wage; this is where the Manager sees who has drawn ahead.
  */
@@ -148,14 +246,20 @@ export const WageDrawsTab = () => {
                     {taka(person.openBdt)}
                   </span>
                 </span>
-                <span className="text-muted-foreground text-xs">
-                  {person.draws
-                    .map(
-                      (one) =>
-                        `${formatDate(new Date(one.drawnAt), language, "date")} · ${taka(one.openBdt)}`
-                    )
-                    .join(" · ")}
-                </span>
+                <ul className="flex flex-col gap-1">
+                  {person.draws.map((one) => (
+                    <li
+                      className="text-muted-foreground flex items-center justify-between gap-3 text-xs"
+                      key={one.id}
+                    >
+                      <span>
+                        {`${formatDate(new Date(one.drawnAt), language, "date")} · ${taka(one.openBdt)}`}
+                        {one.note ? ` · ${one.note}` : ""}
+                      </span>
+                      <DrawCorrection draw={{ ...one, name: person.name }} />
+                    </li>
+                  ))}
+                </ul>
               </li>
             ))}
           </ul>

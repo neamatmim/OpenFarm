@@ -112,4 +112,80 @@ describe("a Wage Draw", () => {
       })
     ).rejects.toMatchObject({ data: { refusal: "wage_took_draws" } });
   });
+
+  it("is put right with its money, and taken back whole by putting it to nothing", async () => {
+    const name = `সেলিম ${suffix}`;
+    const first = await draw(name, 2000, "2073-06-10");
+    const manager = await as("manager", "2073-06-10T08:00:00.000Z");
+    await manager.client.money.correctDraw({
+      id: first.id,
+      changes: {
+        amountBdt: { from: 2000, to: 2500 },
+        paymentMethod: { from: "cash", to: "bkash" },
+      },
+      reason: `আড়াই হাজার, বিকাশে ${suffix}`,
+    });
+    const money = await scratchDb().query.moneyEvent.findMany({
+      where: { source: "wage_draw", sourceId: first.id },
+      columns: { amountBdt: true, paymentMethod: true, heldBy: true },
+    });
+    expect(money).toEqual([
+      { amountBdt: 2500, paymentMethod: "bkash", heldBy: null },
+    ]);
+    expect(await openOf(name)).toBe(2500);
+    await manager.client.money.correctDraw({
+      id: first.id,
+      changes: { amountBdt: { from: 2500, to: 0 } },
+      reason: `অগ্রিম নেওয়াই হয়নি ${suffix}`,
+    });
+    expect(await openOf(name)).toBe(0);
+  });
+
+  it("moves to the person who drew it, while no payday has taken it", async () => {
+    const wrong = `জামাল ${suffix}`;
+    const right = `কামাল ${suffix}`;
+    const one = await draw(wrong, 1500, "2073-06-12");
+    const manager = await as("manager", "2073-06-12T08:00:00.000Z");
+    await manager.client.money.correctDraw({
+      id: one.id,
+      changes: { counterparty: { from: wrong, to: { name: right } } },
+      reason: `ভুল নামে লেখা ${suffix}`,
+    });
+    expect(await openOf(wrong)).toBe(0);
+    expect(await openOf(right)).toBe(1500);
+    const wage = await payWage(right, 6000, "2073-06", "2073-07-01");
+    expect(wage.drawsTakenBdt).toBe(1500);
+  });
+
+  it("keeps what a payday took: never below it, and never moved to somebody else", async () => {
+    const name = `নাসির ${suffix}`;
+    const one = await draw(name, 4000, "2073-06-14");
+    await payWage(name, 3000, "2073-06", "2073-07-01");
+    const manager = await as("manager", "2073-07-01T08:00:00.000Z");
+    await expect(
+      manager.client.money.correctDraw({
+        id: one.id,
+        changes: { amountBdt: { from: 4000, to: 2000 } },
+        reason: `কম লেখা ${suffix}`,
+      })
+    ).rejects.toMatchObject({
+      data: { refusal: "draw_already_taken", takenBdt: 3000 },
+    });
+    await expect(
+      manager.client.money.correctDraw({
+        id: one.id,
+        changes: {
+          counterparty: { from: name, to: { name: `অন্য কেউ ${suffix}` } },
+        },
+        reason: `অন্যের অগ্রিম ${suffix}`,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "draw_already_taken" } });
+    // Down to what was taken is the draw closed, and nothing is left to take.
+    await manager.client.money.correctDraw({
+      id: one.id,
+      changes: { amountBdt: { from: 4000, to: 3000 } },
+      reason: `তিন হাজারই নিয়েছিল ${suffix}`,
+    });
+    expect(await openOf(name)).toBe(0);
+  });
 });

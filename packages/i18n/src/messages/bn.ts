@@ -4524,6 +4524,8 @@ export const bn: Record<MessageKey, string> = {
   "refusal.noFloatOnTheTrip": "এই যাত্রার জন্য কোনো টাকা দেওয়া হয়নি",
   "refusal.wageTookDraws":
     "এই বেতন থেকে অগ্রিম কাটা হয়েছে, তাই এর টাকা, মানুষ আর মাস যেমন ছিল তেমনই থাকবে",
+  "refusal.drawAlreadyTaken":
+    "এই অগ্রিমের এতটা বেতন থেকে কাটা হয়ে গেছে; এর চেয়ে কমানো বা অন্যের নামে নেওয়া যায় না",
   "wageDraw.tab": "বেতনের অগ্রিম",
   "wageDraw.record": "অগ্রিম লিখুন",
   "wageDraw.hint":
@@ -4536,6 +4538,9 @@ export const bn: Record<MessageKey, string> = {
   "wageDraw.atPayday":
     "অগ্রিম বাকি {owed}: এই বেতন থেকে কাটা {taken}, এখন দেওয়া {paid}।",
   "wageDraw.carried": "{bdt} পরের বেতনে যাবে।",
+  "wageDraw.correct": "এই অগ্রিম ঠিক করুন",
+  "wageDraw.correctHint":
+    "যা ভুল তা ঠিক করুন। যে অগ্রিম আসলে নেওয়া হয়নি, টাকা শূন্য করে দিলে তা ফিরে যায়। বেতন থেকে যা কাটা হয়ে গেছে, তা কাটাই থাকে। আগের তথ্য অডিট লগে পড়া যাবে।",
   "refusal.bankNeedsASlip": "ব্যাংকে জমা বা ব্যাংক থেকে তোলায় স্লিপ বা চেক লাগবে",
   "refusal.holdsNoCash": "খামারের নগদ শুধু মালিক বা ম্যানেজারের হাতে থাকে",
   "refusal.handoverGoesNowhere": "নগদ এক হাত থেকে আরেক হাতে, বা ব্যাংকে জমা বা তোলা হয়",

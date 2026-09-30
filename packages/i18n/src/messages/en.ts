@@ -4840,6 +4840,8 @@ export const en = {
   "refusal.noFloatOnTheTrip": "No float was handed out for this trip",
   "refusal.wageTookDraws":
     "This wage took the person's draws, so its amount, person and month stay as they were",
+  "refusal.drawAlreadyTaken":
+    "A payday has already taken this much of the draw; it cannot go below that, or move to another person",
   "wageDraw.tab": "Wage draws",
   "wageDraw.record": "Record a draw",
   "wageDraw.hint":
@@ -4852,6 +4854,9 @@ export const en = {
   "wageDraw.atPayday":
     "Owes {owed} in draws: this wage takes off {taken}, and {paid} is paid now.",
   "wageDraw.carried": "The next wage takes off the other {bdt}.",
+  "wageDraw.correct": "Correct this draw",
+  "wageDraw.correctHint":
+    "Change what is wrong. A draw that never happened is taken back by putting it to 0. What a payday has already taken off it stays taken. The original stays readable in the audit trail.",
   "refusal.bankNeedsASlip":
     "Cash into or out of the bank needs its slip or cheque",
   "refusal.holdsNoCash": "Only the Owner or a Manager holds the farm's cash",
