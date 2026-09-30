@@ -27,6 +27,16 @@ export const causeOf = (happeningKey: string, offsetDays: number): string =>
 export const heatKeyOf = (observationId: string): string =>
   `heat:${observationId}`;
 
+/** The key anything else the round saw writes — lame, off feed, bloat — and so the cause of the work it raises. */
+export const unwellKeyOf = (observationId: string): string =>
+  `unwell:${observationId}`;
+
+const UNWELL_CAUSE = /^unwell:(?<id>[^:]+):\+\d+$/u;
+
+/** Which Observation raised a piece of the Manager's work on an unwell animal, or null when none did. */
+export const unwellThatRaised = (cause: string | null): string | null =>
+  (cause ? UNWELL_CAUSE.exec(cause)?.groups?.id : undefined) ?? null;
+
 const HEAT_CAUSE = /^heat:(?<id>[^:]+):\+\d+$/u;
 
 /** Which Heat's sighting raised a piece of work, or null when a Heat did not raise it. */

@@ -11,6 +11,9 @@ export const CREW = {
   eveningMilking: { worker: "milker", checker: "manager" },
   feeding: { worker: "feeder", checker: "manager" },
   healthRound: { worker: "stockman", checker: "manager" },
+  // What the round saw, answered by the Manager: the Vet rung for the urgent, the rest looked at again.
+  seeToUnwell: { worker: "manager" },
+  seeToUnwellUrgent: { worker: "manager" },
   insemination: { worker: "manager" },
   pregnancyCheck: { worker: "vet" },
   dryOff: { worker: "stockman", checker: "manager" },

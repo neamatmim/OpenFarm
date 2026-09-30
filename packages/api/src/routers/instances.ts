@@ -50,6 +50,7 @@ import { requireRole } from "../roles";
 import { isWorkInScope, requireWorkInScope, workInScopeWhere } from "../scope";
 import { contentOf } from "../sop-content";
 import { theDaysWork } from "../the-day-turns";
+import { unwellThatRaised } from "../work-cause";
 import {
   readWork,
   requireMayTransition,
@@ -333,6 +334,15 @@ export const instancesRouter = {
             }),
           }
         : null;
+      // What the round saw, for the Manager's work on an unwell animal: the job is to answer it, so it says what it is.
+      const unwellId = unwellThatRaised(instance.cause);
+      const seen = unwellId
+        ? await context.db.query.observation.findFirst({
+            where: { id: unwellId, farmId: context.farm.id },
+            columns: { sawLabel: true, seenAt: true, note: true },
+            with: { observer: { columns: { name: true } } },
+          })
+        : undefined;
       const supersededBy =
         instance.definition.currentVersionId === instance.versionId
           ? null
@@ -349,6 +359,15 @@ export const instancesRouter = {
       return {
         ...instance,
         heldBy: holder ?? null,
+        /** What the round saw, when this is the Manager's work on it. */
+        seen: seen
+          ? {
+              label: seen.sawLabel,
+              seenAt: seen.seenAt,
+              note: seen.note,
+              seenByName: seen.observer?.name ?? null,
+            }
+          : null,
         // Each with what its Effect recorded beside the Evidence — the feed given, the store counted — which a Correction
         // says it was shown.
         completions: await Promise.all(

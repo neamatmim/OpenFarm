@@ -38,6 +38,7 @@ import type { CalvingWorkFollowed } from "./calving-work";
 import { followExpectedCalving } from "./calving-work";
 import { joinTheFattening } from "./joining-store";
 import { lateEntry } from "./late";
+import type { CalledOffBy } from "./work-transitions";
 import { callOffWork } from "./work-transitions";
 
 /** What every way of arriving has to say about the Animal it makes. */
@@ -573,14 +574,15 @@ export const callOffWorkRaisedBy = (
   tx: Tx,
   farmId: string,
   happeningKey: string,
-  trail: Trail
+  trail: Trail,
+  by: CalledOffBy = "heat_withdrawn"
 ) =>
   callOffWork(
     tx,
     farmId,
     // The cause is `<happening key>:+<days>`; the key alone is the happening.
     like(sopInstance.cause, `${happeningKey}:%`),
-    { trail, by: "heat_withdrawn" }
+    { trail, by }
   );
 
 /** Only from the State this was decided on: she has not left, and nothing has moved her on meanwhile. */

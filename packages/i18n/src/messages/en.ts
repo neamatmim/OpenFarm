@@ -1824,6 +1824,9 @@ export const en = {
   "audit.action": "Action",
   "audit.reason": "Reason",
   "audit.calledOffBy.animal_left": "Called off: the animal left the farm",
+  "audit.calledOffBy.observation_withdrawn":
+    "Called off: what the round saw was taken back",
+  "audit.calledOffBy.diagnosed": "Called off: the Vet has made a diagnosis",
   "audit.calledOffBy.heat_withdrawn": "Called off: the heat was taken back",
   "audit.calledOffBy.attempt_no_longer_standing":
     "Called off: the service it followed no longer stands",
@@ -3568,6 +3571,7 @@ export const en = {
   "work.keepAnyway": "Yes, keep it",
   "work.finish": "Finish",
   "work.finished": "Finished — waiting for sign-off",
+  "work.finishedNoCheck": "Finished",
   "work.notFinished": "Still to do",
   "work.photo": "Photo",
   "work.when": "When",
@@ -4693,6 +4697,9 @@ export const en = {
   "costs.storeOver": "Found over",
   "costs.storeCounts":
     "{count, plural, one {# count} other {# counts}} in the period",
+  "event.unwell": "The round sees an animal unwell",
+  "event.unwell_urgent": "The round sees bloat or laboured breathing",
+  "unwell.seen": "What the round saw",
   "refusal.notMissing": "This animal is not missing: nobody is looking for it",
 } as const;
 

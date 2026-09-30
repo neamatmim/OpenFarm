@@ -349,6 +349,8 @@ export {
   STAYS_A_HEIFER,
   STEP_EFFECT_KINDS,
   TRIGGER_KINDS,
+  UNWELL,
+  UNWELL_URGENT,
   appliesToAnimal,
   isWholeFarmWork,
   scheduleFallsOn,
@@ -637,6 +639,8 @@ export type {
 } from "./standard-playbook";
 export {
   ROUND_WORDS,
+  URGENT_ROUND_WORDS,
+  eventOfObservation,
   PEN_NEEDS,
   STANDARD_SOP_NEEDS,
   isPenNeed,

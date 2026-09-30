@@ -6,7 +6,7 @@ import { HEAT } from "@OpenFarm/domain";
 import type { Trail, Tx } from "../audit";
 import { callOffWorkRaisedBy } from "../herd-store";
 import { openMissing, takeBackMissingOpenedBy } from "../missing-store";
-import { heatKeyOf } from "../work-cause";
+import { heatKeyOf, unwellKeyOf } from "../work-cause";
 import type { EffectInput, EffectKind, EffectResult } from "./effect";
 import { asPublished, choiceIn } from "./evidence";
 
@@ -26,22 +26,29 @@ type ObservationFacts = Pick<
 >;
 
 /**
- * A Heat the farm no longer believes in takes its AI work back with it.
+ * An Observation the farm no longer believes in takes the work it raised back with it.
  *
- * Withdrawing the Observation stops new work being raised on it — `recentHappenings` reads only
- * sightings that stand — but not work already raised, which would still send somebody to serve a
- * cow who was not in heat. If this sighting had begun her heat, its job closes; a later sighting
- * of the same heat that still stands will begin it instead, and raise afresh on the next pass.
+ * Withdrawing it stops new work being raised on it — `recentHappenings` reads only sightings that
+ * stand — but not work already raised, which would still send somebody to serve a cow who was not in
+ * heat, or to see to one who was never unwell. If this sighting had begun her heat, its job closes; a
+ * later sighting of the same heat that still stands will begin it instead, and raise afresh on the
+ * next pass. Anything else it saw closes the Manager's work on it.
  */
-const unraiseIfHeat = async (
+const unraiseWhatItRaised = async (
   tx: Tx,
   farmId: string,
   withdrawn: { id: string; saw: string },
   trail: Trail
 ) => {
-  if (withdrawn.saw === HEAT) {
-    await callOffWorkRaisedBy(tx, farmId, heatKeyOf(withdrawn.id), trail);
-  }
+  await (withdrawn.saw === HEAT
+    ? callOffWorkRaisedBy(tx, farmId, heatKeyOf(withdrawn.id), trail)
+    : callOffWorkRaisedBy(
+        tx,
+        farmId,
+        unwellKeyOf(withdrawn.id),
+        trail,
+        "observation_withdrawn"
+      ));
 };
 
 /**
@@ -80,7 +87,12 @@ const recordWhatWasSeen = async (
         .update(observation)
         .set({ withdrawnAt: input.now })
         .where(eq(observation.id, standing.id));
-      await unraiseIfHeat(tx, input.instance.farmId, standing, input.trail);
+      await unraiseWhatItRaised(
+        tx,
+        input.instance.farmId,
+        standing,
+        input.trail
+      );
     }
     return null;
   }
@@ -101,7 +113,7 @@ const recordWhatWasSeen = async (
       .update(observation)
       .set({ withdrawnAt: input.now, supersededById: id })
       .where(eq(observation.id, standing.id));
-    await unraiseIfHeat(tx, input.instance.farmId, standing, input.trail);
+    await unraiseWhatItRaised(tx, input.instance.farmId, standing, input.trail);
   }
   await tx.insert(observation).values({
     id,

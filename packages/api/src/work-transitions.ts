@@ -86,6 +86,8 @@ export const requireTransition = async (
 export type CalledOffBy =
   | "animal_left"
   | "heat_withdrawn"
+  | "observation_withdrawn"
+  | "diagnosed"
   | "attempt_no_longer_standing"
   | "calving_no_longer_expected"
   | "report_withdrawn"

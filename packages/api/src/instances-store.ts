@@ -16,6 +16,7 @@ import {
   FARM_UTC_OFFSET_MINUTES,
   HEAT,
   SAME_HEAT_WITHIN_HOURS,
+  eventOfObservation,
   SERVICE,
   aiWindow,
   attemptsThatBegin,
@@ -46,6 +47,7 @@ import {
   calvingKeyOf,
   causeOf,
   heatKeyOf,
+  unwellKeyOf,
   wholeFarmCauseOf,
 } from "./work-cause";
 
@@ -469,6 +471,29 @@ export const recentHappenings = async (
     (heat) => heat.seenAt >= earliest
   );
 
+  // Everything else the round saw that still stands and the Vet has not yet answered: work for the Manager. One the
+  // Vet has concluded about is answered already, and raises nothing.
+  const unwell = await db.query.observation.findMany({
+    where: {
+      farmId,
+      saw: { ne: HEAT },
+      seenAt: { gte: earliest },
+      withdrawnAt: { isNull: true },
+    },
+    columns: { id: true, animalId: true, seenAt: true, saw: true },
+  });
+  const diagnosed =
+    unwell.length === 0
+      ? []
+      : await db.query.diagnosis.findMany({
+          where: {
+            farmId,
+            observationId: { in: unwell.map((one) => one.id) },
+          },
+          columns: { observationId: true },
+        });
+  const answered = new Set(diagnosed.map((one) => one.observationId));
+
   // Attempts: the first service of the latest heat she was served in. Read far enough back that one
   // whose check falls due today is still found, and a heat further, so its first service can be told
   // from a second. Only her latest: a cow served again has come back into heat, and the attempt before
@@ -513,6 +538,21 @@ export const recentHappenings = async (
         kind: HEAT,
         key: heatKeyOf(heat.id),
         at: heat.seenAt,
+        animalId: beast.id,
+        penId: beast.penId,
+        side: beast.side,
+        state: beast.state,
+      });
+    }
+  }
+  for (const seen of unwell) {
+    const beast = animalsById.get(seen.animalId);
+    const kind = eventOfObservation(seen.saw);
+    if (beast && kind && !answered.has(seen.id)) {
+      happenings.push({
+        kind,
+        key: unwellKeyOf(seen.id),
+        at: seen.seenAt,
         animalId: beast.id,
         penId: beast.penId,
         side: beast.side,
