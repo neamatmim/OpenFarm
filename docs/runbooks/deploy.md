@@ -5,13 +5,14 @@ this at six in the morning after a disk died should not have to think.
 
 ## What runs where
 
-| Piece           | Where                                                     | Who holds the credentials           |
-| --------------- | --------------------------------------------------------- | ----------------------------------- |
-| The app         | Managed Node host, Singapore region                       | Owner (root), Manager (operational) |
-| The database    | Managed PostgreSQL with point-in-time recovery, Singapore | Owner only                          |
-| Off-site copies | A different provider and region                           | Owner only                          |
-| Push keys       | Password manager                                          | Owner only                          |
-| DNS and TLS     | Registrar and host                                        | Owner only                          |
+| Piece           | Where                                                                        | Who holds the credentials           |
+| --------------- | ---------------------------------------------------------------------------- | ----------------------------------- |
+| The app         | The farm's own Linux server, Singapore, as `openfarm.service`                | Owner (root), Manager (operational) |
+| Taking copies   | The same server, `openfarm-backup.timer` and `openfarm-backup-monthly.timer` | Owner only                          |
+| The database    | Managed PostgreSQL with point-in-time recovery, Singapore                    | Owner only                          |
+| Off-site copies | A different provider and region                                              | Owner only                          |
+| Push keys       | Password manager                                                             | Owner only                          |
+| DNS and TLS     | Registrar, and nginx with certbot on the server                              | Owner only                          |
 
 Singapore because that is the nearest region with a managed PostgreSQL that does
 point-in-time recovery; a phone in a shed in Bangladesh is a long way from anywhere, and
@@ -200,5 +201,8 @@ Open the app and look at four things:
    the home-grown Feed Items first, or the farm's own grass still costs the animals nothing
    and every Margin reads high.
 
-If the first is empty and it should not be, the scheduler has not been triggered: opening
-the app does that, so open it again.
+If the first is empty and it should not be, the schedule has not run. It runs inside the app
+every five minutes, whether or not anybody has it open; opening the app does not start it.
+Wait five minutes, then look under **Admin → Backups** for when it last ran. If it has not,
+check that `OPENFARM_SCHEDULER` is not `off` in `/etc/openfarm/app.env`, and read
+`journalctl -u openfarm --since today` for the error it failed with.
