@@ -52,7 +52,8 @@ const milkingSession = (time: string, bn: string, en: string): SopContent => ({
       repeatPerAnimal: true,
       evidence: [litres(40)],
       skipReasons: [
-        { bn: "অসুস্থ", en: "Unwell" },
+        // Means she is unwell: an Observation of her, and so the Manager's work to see to her.
+        { bn: "অসুস্থ", en: "Unwell", means: "unwell" },
         { bn: "লাথি মারছে, দোহন করা যায়নি", en: "Kicking, could not be milked" },
       ],
       effect: { kind: "milk_record" },
@@ -139,6 +140,8 @@ export const ROUND_WORDS = {
   // §2, §4).
   notSuckling: "not_suckling",
   navel: "navel_swollen",
+  // Not offered on the round: what a milker says of a cow skipped as unwell, not knowing why.
+  unwell: "unwell",
 } as const;
 
 /** What the round may see that cannot wait for tomorrow: bloat and laboured breathing kill within hours (Merck). */

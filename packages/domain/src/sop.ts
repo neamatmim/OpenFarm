@@ -119,8 +119,9 @@ export const STEP_EFFECT_KINDS = [
 ] as const;
 
 /** What a skip reason means to the farm beyond its words, for the few the records have to act on. Stable where the
- *  words are not: the Owner may reword "Animal not found" next season, and the round must still open a Missing. */
-export const SKIP_MEANINGS = ["not_found"] as const;
+ *  words are not: the Owner may reword "Animal not found" next season, and the round must still open a Missing; a cow
+ *  skipped at milking as unwell must still be seen to. */
+export const SKIP_MEANINGS = ["not_found", "unwell"] as const;
 export type SkipMeaning = (typeof SKIP_MEANINGS)[number];
 
 /** Why an animal may be skipped, in the Owner's words, and what it means where the farm acts on it. */

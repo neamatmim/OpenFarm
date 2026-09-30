@@ -110,6 +110,8 @@ const WhatWasSeen = ({
   seen,
 }: {
   seen: {
+    /** Missing from an answer a phone kept from before the work named her. */
+    tag?: string;
     label: string;
     seenAt: Date;
     note: string | null;
@@ -122,7 +124,10 @@ const WhatWasSeen = ({
       <h2 className="text-muted-foreground text-xs font-medium">
         {t("unwell.seen")}
       </h2>
-      <p className="font-medium">{seen.label}</p>
+      <p className="font-medium">
+        {seen.tag ? `${seen.tag} — ` : ""}
+        {seen.label}
+      </p>
       <p className="text-muted-foreground text-xs">
         {formatDate(seen.seenAt, language, "dateTime")}
         {seen.seenByName ? ` · ${seen.seenByName}` : ""}
@@ -533,6 +538,8 @@ const WorkPage = () => {
               someoneElse={someoneElse}
             />
           </div>
+          {/* What the Manager is taking on, before they take it. */}
+          <WhatRaisedIt report={null} seen={instance.data.seen} />
         </div>
         <AssignWork
           className="mx-auto w-full max-w-md"
