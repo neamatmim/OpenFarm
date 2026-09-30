@@ -247,6 +247,9 @@ export const sale = pgTable(
     /** What the buyer still owed when she left — her **Baki** at the gate. Nothing, for a buyer who paid in full, as
      *  every Sale before Baki was written down did. Her Money Event is the price less this: only what was paid. */
     bakiBdt: taka("baki_bdt").notNull().default(0),
+    /** What the broker at the haat took for this one sale, paid by the Farm: her own selling cost, beside the Selling
+     *  Trip's share she carries. Nought where no broker was used. */
+    brokerBdt: taka("broker_bdt").notNull().default(0),
     /** The farm day ("YYYY-MM-DD") the buyer promised to pay what he still owed by. Always set when he owed
      *  something, never when he did not. */
     promisedBy: text("promised_by"),

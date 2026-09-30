@@ -35,6 +35,8 @@ export const RECORD_SOURCES = [
   "buying_trip",
   "selling_trip",
   "sale",
+  // What a broker took for one Sale: money of its own, out, beside the Sale's money in.
+  "sale_broker",
   "feed_in",
   "medicine_purchase",
   "vet_fee",

@@ -10,6 +10,7 @@ import { paymentMethodChange } from "../money-inputs";
 import { bookingOf, paymentMethodOf } from "../money-store";
 import {
   bookSaleMoney,
+  brokerInput,
   buyerInput,
   salePriceInput,
   readSale,
@@ -26,6 +27,7 @@ const loadSale = (tx: Tx, farmId: string, id: string) =>
       farmId: true,
       priceBdt: true,
       bakiBdt: true,
+      brokerBdt: true,
       promisedBy: true,
       soldAt: true,
       recordedBy: true,
@@ -35,13 +37,14 @@ const loadSale = (tx: Tx, farmId: string, id: string) =>
   });
 
 /** What a Sale's Correction may change: what she fetched, who bought her, how he paid, what he paid there and then,
- *  and the day he promised to pay the rest by. */
+ *  the day he promised to pay the rest by, and what the broker took. */
 export const saleCorrectionInput = correctionInput({
   priceBdt: changeOf(salePriceInput, z.number()),
   buyer: changeOf(buyerInput, z.string()),
   paymentMethod: paymentMethodChange,
   paidNowBdt: changeOf(paidNowInput, z.number()),
   promisedBy: changeOf(promisedByInput.nullable(), z.string().nullable()),
+  brokerBdt: changeOf(brokerInput, z.number()),
 });
 
 /**
@@ -70,6 +73,7 @@ export const saleCorrection: CorrectionKind<
     paymentMethod: await paymentMethodOf(tx, row.farmId, "sale", row.id),
     paidNowBdt: paidAtTheGate(row.priceBdt, row.bakiBdt),
     promisedBy: row.promisedBy,
+    brokerBdt: row.brokerBdt,
   }),
   shownAs: { buyer: (to) => to.name },
   trail: (tx, row) => readSale(tx, row.id),
@@ -93,6 +97,7 @@ export const saleCorrection: CorrectionKind<
       baki.bakiBdt !== row.bakiBdt || baki.promisedBy !== row.promisedBy;
     const putRight = {
       ...(to.priceBdt === undefined ? {} : { priceBdt: to.priceBdt }),
+      ...(to.brokerBdt === undefined ? {} : { brokerBdt: to.brokerBdt }),
       ...(bakiMoved ? baki : {}),
       ...(to.buyer === undefined
         ? {}

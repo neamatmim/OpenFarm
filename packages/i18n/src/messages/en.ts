@@ -2558,7 +2558,8 @@ export const en = {
   "feed.kpi.items": "Feed Items in store",
   "feed.kpi.itemsHint": "Being fed now",
   "feed.kpi.low": "Running low",
-  "feed.kpi.lowHint": "Below their level, short of days, or out of a feed a Pen is on",
+  "feed.kpi.lowHint":
+    "Below their level, short of days, or out of a feed a Pen is on",
   "feed.kpi.value": "Store value",
   "feed.kpi.valueHint": "At average price",
   "feed.kpi.bought": "Bought this month",
@@ -2943,6 +2944,7 @@ export const en = {
   "money.from.intake": "Intake",
   "money.from.buyingTrip": "Buying trip",
   "money.from.sellingTrip": "Selling trip",
+  "money.from.saleBroker": "Broker at a sale",
   "selling.trip": "The outing",
   "selling.tripHint":
     "What the day at the haat cost beyond the animals. Tick every beast that stood on the lorry — the ones that came home again paid for their place too.",
@@ -4411,6 +4413,10 @@ export const en = {
   "sale.buyerName": "Buyer's name",
   "sale.buyerAddress": "Buyer's address",
   "sale.buyerPhone": "Buyer's phone",
+  "sale.brokerPaid": "Broker's fee",
+  "sale.broker": "Broker's fee (৳)",
+  "sale.brokerHint":
+    "What the broker at the haat took for this sale, if one was used. The farm pays it; it is this animal's cost.",
   "sale.price": "Sale price",
   "sale.weight": "Weight on the day",
   "sale.destination": "Where she is going",

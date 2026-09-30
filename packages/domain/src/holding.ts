@@ -4,7 +4,7 @@ import type { Side } from "./lifecycle";
 /**
  * Every kind of charge an Animal carries, as the costing shares them out: what she ate, the doses she was given, her
  * part of the Vet's fees for visits that named her, the Hasil the haat took on her, her part of the Buying Trip that
- * brought her and the Selling Trips that took her, and her part of the Herd Costs. The one list of them: a sum names
+ * brought her and the Selling Trips that took her, the broker's fee on her own Sale, and her part of the Herd Costs. The one list of them: a sum names
  * which of these it counts, and a new kind is added here once.
  */
 export const CHARGE_KINDS = [
@@ -14,6 +14,7 @@ export const CHARGE_KINDS = [
   "hasil",
   "buying_trip",
   "selling_trip",
+  "sale_broker",
   "herd",
 ] as const;
 export type ChargeKind = (typeof CHARGE_KINDS)[number];
@@ -40,7 +41,8 @@ export interface Charge {
  *
  * - Everything: a **Settlement**, **Return on Cost** and **Margin** ask what an Animal cost whichever purse paid.
  * - What the Farm is owed: a **Reimbursement** is only what the Farm paid for the whole herd — not the Hasil or a
- *   Buying Trip, which came out of the Venture's own Buying Float, but the Selling Trips the Farm paid for later.
+ *   Buying Trip, which came out of the Venture's own Buying Float, but the Selling Trips and the brokers at its Sales
+ *   the Farm paid for later.
  * - Her keep: **Cost of Gain** now, and a dairy cow's milk against her keep, ask what keeping her costs, not what
  *   moving her did.
  */
@@ -51,6 +53,7 @@ export const WHAT_THE_FARM_IS_OWED: ReadonlySet<ChargeKind> = new Set([
   "vet",
   "herd",
   "selling_trip",
+  "sale_broker",
 ]);
 export const HER_KEEP: ReadonlySet<ChargeKind> = new Set([
   "feed",
@@ -123,7 +126,8 @@ export const costsOf = (charges: readonly Charge[]): Costs => {
       .length,
     vetBdt: bdtOf("vet"),
     hasilBdt: bdtOf("hasil"),
-    tripBdt: bdtOf("buying_trip", "selling_trip"),
+    // A broker is a cost of the outing, bought or sold: the Buying Trip's broker is in it already.
+    tripBdt: bdtOf("buying_trip", "selling_trip", "sale_broker"),
     herdBdt: bdtOf("herd"),
   };
 };

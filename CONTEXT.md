@@ -182,7 +182,7 @@ Every screen says which it is. An announced day can be corrected, or taken back 
 
 **Set Aside**: The Manager's recorded answer to a Suggestion — this Animal is staying, and why. Not a **Needs Review**, which is the system asking a person to settle something it could not; this is a person settling something the system only offered. The farm stops suggesting her until a ground appears that was not there when the Manager looked. _Avoid_: Dismiss, snooze, ignore
 
-**Sale**: The recorded hand-over of an Animal to a buyer: buyer, price, weight at sale, destination, transport. Hard-gated by meat Withdrawal; the Animal exits as Sold, and by no other route — every way out of the herd is the record of how she went. A cull that ends at a butcher is a Sale and not a **Mortality**: one exit, one record, and the reason she was culled in the Sale's own note. _Avoid_: Dispatch (milk's word), disposal, exit, offtake
+**Sale**: The recorded hand-over of an Animal to a buyer: buyer, price, weight at sale, destination, transport. Hard-gated by meat Withdrawal; the Animal exits as Sold, and by no other route — every way out of the herd is the record of how she went. A cull that ends at a butcher is a Sale and not a **Mortality**: one exit, one record, and the reason she was culled in the Sale's own note. A broker at the haat is typed on the Sale: the Farm pays it as money of its own, and it is her cost, dated the day she went — counted with her trips in her Margin, Return on Cost and Settlement, and repaid by a Venture in its Reimbursement as a Selling Trip is. _Avoid_: Dispatch (milk's word), disposal, exit, offtake
 
 ## Reproduction
 

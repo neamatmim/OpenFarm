@@ -23,6 +23,13 @@ import { usePenNames } from "@/lib/pen-names";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
+/** The broker's fee as the Sale takes it: whole taka, and nothing sent where none was typed — or on answers a phone
+ *  kept from before the fee was asked. */
+const brokerSent = (answers: SaleAnswers): { brokerBdt?: number } => {
+  const typed = Number(answers.brokerBdt ?? "");
+  return typed > 0 ? { brokerBdt: Math.round(typed) } : {};
+};
+
 /** What is typed into the sheet, before it is a Sale. */
 export interface SaleAnswers {
   tagNumber: string;
@@ -38,6 +45,8 @@ export interface SaleAnswers {
   paymentMethod: PaymentMethod;
   /** Whether the buyer still owes some of it, what he paid now, and the day he promised. */
   baki: BakiTyped;
+  /** What the broker at the haat took for this sale, where one was used; empty where none was. */
+  brokerBdt: string;
 }
 
 export const NOTHING_TYPED: SaleAnswers = {
@@ -53,6 +62,7 @@ export const NOTHING_TYPED: SaleAnswers = {
   note: "",
   paymentMethod: "cash",
   baki: NO_BAKI,
+  brokerBdt: "",
 };
 
 /** A part of the sheet with a name, and — for the buyer — the button that fills it in from the last sale. */
@@ -326,6 +336,7 @@ export const SaleSheet = ({
           weightKg: "",
           priceBdt: "",
           baki: NO_BAKI,
+          brokerBdt: "",
         });
         onOpenChange(false);
       },
@@ -365,6 +376,7 @@ export const SaleSheet = ({
           note: answers.note || undefined,
           paymentMethod: answers.paymentMethod,
           ...bakiSent(answers.baki),
+          ...brokerSent(answers),
         })
       }
       open={open}
@@ -445,6 +457,15 @@ export const SaleSheet = ({
             value={answers.paymentMethod}
           />
         ) : null}
+        <TextField
+          hint={t("sale.brokerHint")}
+          id="sale-broker"
+          inputMode="numeric"
+          label={t("sale.broker")}
+          onChange={(brokerBdt) => edit({ brokerBdt })}
+          type="number"
+          value={answers.brokerBdt ?? ""}
+        />
       </SheetPart>
 
       <SheetPart title={t("sale.groupTransport")}>

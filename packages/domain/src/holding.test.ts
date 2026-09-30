@@ -148,7 +148,13 @@ describe("an owner's charges", () => {
 
 describe("the kinds each sum counts", () => {
   it("counts every kind for a Settlement, a Return and a Margin", () => {
-    expect([...EVERY_CHARGE]).toHaveLength(7);
+    expect([...EVERY_CHARGE]).toHaveLength(8);
+  });
+
+  it("counts a broker at a Sale among what the Farm is owed, as a Selling Trip", () => {
+    expect(WHAT_THE_FARM_IS_OWED.has("sale_broker")).toBe(true);
+    expect(WHAT_THE_FARM_IS_OWED.has("selling_trip")).toBe(true);
+    expect(HER_KEEP.has("sale_broker")).toBe(false);
   });
 
   it("counts her keep without what moved her", () => {
@@ -166,6 +172,9 @@ describe("what some charges came to", () => {
         priced: false,
       }),
     ]);
+    expect(
+      costsOf([charge("sale_broker", "2030-02-01T02:00:00.000Z", 1200)]).tripBdt
+    ).toBe(1200);
     expect(costs).toEqual({
       feedBdt: 7000,
       unpricedKg: 40,

@@ -1,0 +1,1 @@
+ALTER TABLE "sale" ADD COLUMN "broker_bdt" numeric(12,2) DEFAULT '0' NOT NULL;
