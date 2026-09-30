@@ -29,6 +29,8 @@ export const SaleCorrection = ({
     promisedBy?: string | null;
     // Left out of an answer cached before a broker was written on a Sale: none was.
     brokerBdt?: number;
+    /** What she weighed on the day, which her Shrink and her price a kilo are read from. */
+    weightKg: number;
   };
 }) => {
   const t = useT();
@@ -38,6 +40,7 @@ export const SaleCorrection = ({
     paidNowBdt: figure(paidAtTheGate(sale.priceBdt, sale.bakiBdt ?? 0)),
     promisedBy: day(sale.promisedBy ?? null),
     brokerBdt: figure(sale.brokerBdt ?? 0),
+    weightKg: amount(Number(sale.weightKg)),
   });
   const correct = useMutation(orpc.sale.correct.mutationOptions({}));
   return (
@@ -59,6 +62,13 @@ export const SaleCorrection = ({
         onChange={(value) => correcting.set("priceBdt", value)}
         type="number"
         value={correcting.typed.priceBdt ?? ""}
+      />
+      <CorrectionAnswer
+        inputMode="decimal"
+        label={t("sale.weight")}
+        onChange={(value) => correcting.set("weightKg", value)}
+        type="number"
+        value={correcting.typed.weightKg ?? ""}
       />
       <CorrectionAnswer
         label={t("correct.buyer")}

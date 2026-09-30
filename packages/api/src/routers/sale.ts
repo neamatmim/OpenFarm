@@ -29,6 +29,7 @@ import {
   readSale,
   salePriceInput,
 } from "../sale-store";
+import { lastWeighingsBefore } from "../shrink-store";
 import { lockTheFarm, reachesSellingOnASale } from "../venture-store";
 
 const tagInput = z.string().trim().min(1).max(32);
@@ -44,6 +45,30 @@ export const saleRouter = {
    * — and a beast confirmed Ready last week and treated on Thursday would sit in the list
    * looking sellable and refuse whoever pressed the button.
    */
+  /**
+   * What she last weighed on the farm, and when: her last Weigh-in, or else what she came in at. Beside the box for what
+   * she weighs today, so the Manager sees her Shrink before saving — whichever animal it is, a cull by her tag too.
+   */
+  lastWeighed: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ tagNumber: tagInput }))
+    .handler(async ({ context, input }) => {
+      const her = await context.db.query.animal.findFirst({
+        where: {
+          farmId: context.farm.id,
+          tagNumber: input.tagNumber.toUpperCase(),
+        },
+        columns: { id: true },
+      });
+      if (!her) {
+        return null;
+      }
+      const last = await lastWeighingsBefore(context.db, context.farm.id, [
+        { animalId: her.id, at: context.clock.now() },
+      ]);
+      return last.get(her.id) ?? null;
+    }),
+
   sellable: protectedProcedure
     .use(requireRole("owner", "manager"))
     .handler(async ({ context }) => {

@@ -284,6 +284,15 @@ export const SellingTripForm = () => {
                       count: formatNumber(one.animals, language),
                     })}
                   </span>
+                  {/* What those sold off it lost on the way, together; an answer kept from before has none. */}
+                  {one.shrink ? (
+                    <span className="text-muted-foreground text-xs">
+                      {t("selling.shrink", {
+                        percent: formatNumber(one.shrink.percent, language),
+                        kg: formatNumber(one.shrink.lostKg, language),
+                      })}
+                    </span>
+                  ) : null}
                 </span>
               </li>
             ))}
