@@ -84,7 +84,13 @@ export interface LitresSent {
 /** What the dairy runs are read from: the Books every return is, and every cow's litres to Bulk. */
 export type DairyBooks = Pick<
   ReturnBooks,
-  "charges" | "animals" | "ownedThenBy" | "joinings" | "internal" | "died"
+  | "charges"
+  | "animals"
+  | "ownedThenBy"
+  | "joinings"
+  | "internal"
+  | "died"
+  | "lost"
 > & { litres: ReadonlyMap<string, readonly LitresSent[]> };
 
 /**

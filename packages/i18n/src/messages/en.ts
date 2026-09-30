@@ -2240,6 +2240,7 @@ export const en = {
   "state.sold": "Sold",
   "state.died": "Died",
   "state.culled": "Culled",
+  "state.lost": "Lost",
   "nav.devices": "Shed phones",
   "device.title": "Shed phones",
   "device.add": "Enrol a phone",
@@ -4150,6 +4151,7 @@ export const en = {
   "returns.windowSeason": "{start} – {end}",
   "returns.head": "{count, plural, one {# head} other {# head}}",
   "returns.died": "{count, plural, one {# died} other {# died}}",
+  "returns.lostHead": "{count, plural, one {# lost} other {# lost}}",
   "returns.made": "made {bdt}",
   "returns.lost": "lost {bdt}",
   "returns.onCostGain": "{amount} made on every ৳100 spent",
@@ -4273,6 +4275,7 @@ export const en = {
   "returns.cameLeft": "{came}, {left}",
   "returns.breakdownFailed": "This could not be opened out just now.",
   "returns.left.died": "died",
+  "returns.left.lost": "written off as lost",
   "returns.left.sold_to_venture": "sold to a Venture",
   "returns.costBack": "{cost} → {back}",
   "returns.breakdownNone": "Nothing to show this way.",
@@ -4757,6 +4760,10 @@ export const en = {
   "params.milkUnaccountedHint":
     "When this much of a week's milk into the tank has neither left the gate nor is still in the tank, you and the Manager are told in the evening's post.",
   "params.milkUnaccountedPercent": "More than",
+  "params.missing": "Missing animals",
+  "params.missingHint":
+    "How long an animal the round cannot find stays missing before you are asked whether to write it off as lost. You can write it off sooner from its page.",
+  "params.missingWriteOffDays": "Ask after",
   "milkAccount.title": "The week's milk",
   "milkAccount.hint":
     "Into the tank since {since}, against what left the gate, allowing for what is in the tank.",
@@ -4776,6 +4783,23 @@ export const en = {
     "Heifer, about {age, plural, one {# month} other {# months}} old, not yet served — due by {due, plural, one {# month} other {# months}} · {pen}",
   "heatWatch.heiferAgeUnknown": "Heifer, age not known, not yet served · {pen}",
   "refusal.notMissing": "This animal is not missing: nobody is looking for it",
+  "refusal.gdNumberNeeded": "A theft needs the thana's GD number",
+  "animals.writeOff": "Write off as lost",
+  "animals.writeOffHint":
+    "It leaves the herd as lost from the morning the round last looked for it: off the pen boards, the rounds and the head counts. Everything recorded about it stays, and it comes back if it is found.",
+  "animals.writeOffCause": "What became of it",
+  "animals.writeOffStolen": "Stolen",
+  "animals.writeOffGd": "Thana GD number",
+  "animals.writeOffDone": "{tag} written off as lost",
+  "animals.writeOffVenture":
+    "A Venture's animal cannot be written off yet: its Investors' agreement does not say what a loss is to them",
+  "animals.writeOffAsk":
+    "Missing {days, plural, one {# day} other {# days}} — write it off as lost?",
+  "animals.writtenOff": "Written off as lost on {day}",
+  "animals.writtenOffStolen": "Stolen · GD {gd}",
+  "animals.foundAfterAll": "Found after all",
+  "owner.lostYear":
+    "Lost in 12 months: {count, plural, one {# animal} other {# animals}} · {bdt} of what they cost",
 } as const;
 
 export type MessageKey = keyof typeof en;

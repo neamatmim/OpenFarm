@@ -125,6 +125,8 @@ export interface ReturnBooks {
     on: Date;
   }[];
   died: ReadonlyMap<string, Date>;
+  /** Every Animal written off as Lost, and when she went missing for good. */
+  lost: ReadonlyMap<string, Date>;
   /** What each standing fattening Animal is worth today, low and high — or why not. */
   values: ReadonlyMap<string, { lowBdt: number; highBdt: number } | Gap>;
   /** Every Bank Rate typed, the one that would be in force first: the latest day, then the latest typed. */
@@ -133,7 +135,10 @@ export interface ReturnBooks {
 
 /** What happened to one Animal, as the Books say it. */
 export const whatHappenedTo = (
-  books: Pick<ReturnBooks, "animals" | "internal" | "died" | "joinings">,
+  books: Pick<
+    ReturnBooks,
+    "animals" | "internal" | "died" | "lost" | "joinings"
+  >,
   animalId: string
 ): WhatHappened => {
   const crossing = books.joinings.find(
@@ -146,6 +151,7 @@ export const whatHappenedTo = (
       ? { on: crossing.joinedAt, priceBdt: crossing.priceBdt }
       : null,
     died: books.died.get(animalId) ?? null,
+    lost: books.lost.get(animalId) ?? null,
   };
 };
 
@@ -380,6 +386,8 @@ export interface SeasonReturn {
   finished: boolean;
   head: number;
   died: number;
+  /** Written off as Lost: the Farm's own only, as a Venture's animal cannot be yet. */
+  lost: number;
   /** Once finished: what every hundred taka made. Null while an Animal stands. */
   returnOnCost: Returned | null;
   /** While going: the same at today's price, low and high. Null once finished, or with nothing it could value. */
@@ -405,6 +413,7 @@ export const seasonsOf = (
         window: season.window,
         head: holdings.length,
         died: holdings.filter((one) => one.left?.how === "died").length,
+        lost: holdings.filter((one) => one.left?.how === "lost").length,
         ...worked,
         bankRate: bankRateFor(
           books.bankRates,

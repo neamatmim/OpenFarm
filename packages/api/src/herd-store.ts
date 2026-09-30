@@ -957,3 +957,32 @@ export const correctHowSheLeft = async (
     });
   }
 };
+
+/**
+ * Brings an animal written off as Lost back into the herd, found after all: the State she was in when she was written
+ * off, from when she was in it. Only an animal who left as Lost — a death or a Sale is never undone by a Found. The work
+ * her leaving called off stays called off; what she is owed from here the day raises again.
+ */
+export const comesBack = async (
+  tx: Tx,
+  farmId: string,
+  her: { id: string },
+  { state, since, now }: { state: AnimalState; since: Date; now: Date }
+): Promise<void> => {
+  const [back] = await tx
+    .update(animal)
+    .set({ state, stateChangedAt: since, updatedAt: now })
+    .where(
+      and(
+        eq(animal.id, her.id),
+        eq(animal.farmId, farmId),
+        eq(animal.state, "lost")
+      )
+    )
+    .returning({ id: animal.id });
+  if (!back) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Only an animal written off as Lost can come back",
+    });
+  }
+};

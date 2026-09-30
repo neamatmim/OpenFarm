@@ -8,6 +8,7 @@ import {
   underMeatWithdrawal,
   underMilkWithdrawal,
   farmDayOf,
+  farmDaysApart,
 } from "@OpenFarm/domain";
 
 import { overdueBaki } from "../baki-store";
@@ -26,7 +27,7 @@ import {
   workAwaitingSignOff,
 } from "../instances-store";
 import { milkDropsOn } from "../milk-store";
-import { missingNow } from "../missing-store";
+import { lostInAYear, missingNow } from "../missing-store";
 import { monthByMonth } from "../month-store";
 import { monthlyCostsNow } from "../monthly-costs-store";
 import { renewalDue } from "../registration-store";
@@ -292,6 +293,7 @@ export const homeRouter = {
         bakiOverdue,
         missing,
         storeCount,
+        lostYear,
       ] = await Promise.all([
         findLate(
           context.db,
@@ -370,6 +372,8 @@ export const homeRouter = {
         missingNow(context.db, farmId),
         // The store not counted for more than a week: the count is the one check on the Manager's feed.
         storeCountLate(context.db, farmId, now),
+        // Animals written off as Lost in the year, and what they had cost: beside the deaths, as the farm's losses.
+        lostInAYear(context.db, farmId, now),
       ]);
 
       // A day of the farm's milk is every Pen's Sessions on that day added together, which
@@ -449,8 +453,19 @@ export const homeRouter = {
           })),
           monthlyCosts,
           bakiOverdue: bakiOverdue.slice(0, QUEUE_LIMIT),
-          /** Animals the round could not find, until the Manager marks them Found. */
-          missing: missing.slice(0, QUEUE_LIMIT),
+          /** Animals the round could not find, until the Manager marks them Found — each asked about once she has been
+           *  missing as long as the Owner said: whether to write her off as Lost. */
+          missing: missing.slice(0, QUEUE_LIMIT).map((one) => {
+            const missingFor = farmDaysApart(
+              farmDayOf(one.since),
+              farmDayOf(now)
+            );
+            return {
+              ...one,
+              days: missingFor,
+              askWriteOff: missingFor >= context.farm.missingWriteOffDays,
+            };
+          }),
           /** The store not counted for more than a week and a day; nothing while the counts are being made. */
           storeCount,
           /** The Registration coming up for renewal, or run out, and the work raised for it. */
@@ -472,6 +487,8 @@ export const homeRouter = {
           /** What the farm has lost in the last thirty days, and how. */
           died: mortalities.filter((row) => row.kind === "died").length,
           culled: mortalities.filter((row) => row.kind === "culled").length,
+          /** Written off as Lost in the last year, and what they had cost the farm. */
+          lostYear,
         },
       };
     }),

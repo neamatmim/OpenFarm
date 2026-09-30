@@ -26,6 +26,7 @@ export const ANIMAL_STATES = [
   "sold",
   "died",
   "culled",
+  "lost",
 ] as const;
 export const ANIMAL_SOURCES = ["born", "bought"] as const;
 export const SEXES = ["female", "male"] as const;

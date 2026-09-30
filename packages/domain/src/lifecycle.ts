@@ -18,11 +18,13 @@ export const STATES = [
   "sold",
   "died",
   "culled",
+  "lost",
 ] as const;
 export type AnimalState = (typeof STATES)[number];
 
-/** An Animal that has left the farm. Its history stays; nothing may change it further. */
-export const EXIT_STATES = ["sold", "died", "culled"] as const;
+/** An Animal that has left the farm. Its history stays; nothing may change it further. Lost is the Owner's write-off
+ *  of an animal the farm could not find: no carcass, no buyer, just gone. */
+export const EXIT_STATES = ["sold", "died", "culled", "lost"] as const;
 export type ExitState = (typeof EXIT_STATES)[number];
 
 const DAIRY_STATES = [
@@ -82,6 +84,7 @@ const TRANSITIONS: Record<AnimalState, readonly AnimalState[]> = {
   sold: [],
   died: [],
   culled: [],
+  lost: [],
 };
 
 /** Every non-exit State may end in an exit. */

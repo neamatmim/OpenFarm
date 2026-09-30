@@ -2,10 +2,12 @@ import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, isNull } from "@OpenFarm/db/operators";
 import { missing } from "@OpenFarm/db/schema/missing";
+import type { AnimalState } from "@OpenFarm/domain";
 import { farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
+import { chargedOf, economicsOfAnimal, farmCosts } from "./cost-store";
 import { isOnTheFarm } from "./instances-store";
 import type { Raised } from "./notice";
 import { rememberingPeople, tell } from "./notice";
@@ -30,7 +32,11 @@ export const openMissing = async (
   }
 ): Promise<{ id: string; opened: boolean }> => {
   const open = await tx.query.missing.findFirst({
-    where: { animalId: input.animalId, foundAt: { isNull: true } },
+    where: {
+      animalId: input.animalId,
+      foundAt: { isNull: true },
+      writtenOffAt: { isNull: true },
+    },
     columns: { id: true },
   });
   if (open) {
@@ -90,7 +96,11 @@ export const missingNow = async (
   farmId: string
 ): Promise<MissingAnimal[]> => {
   const open = await db.query.missing.findMany({
-    where: { farmId, foundAt: { isNull: true } },
+    where: {
+      farmId,
+      foundAt: { isNull: true },
+      writtenOffAt: { isNull: true },
+    },
     columns: { id: true, animalId: true, since: true },
     with: {
       animal: { columns: { tagNumber: true, state: true } },
@@ -158,15 +168,30 @@ export const tellOfMissing = async (
   return raised;
 };
 
-/** The Missing open for her, as her page shows it; nothing when the farm knows where she is. */
+/** The Missing not yet found, as her page shows it — open, or written off as Lost; nothing when the farm knows where
+ *  she is. */
 export const missingOf = async (db: Db, animalId: string) =>
   (await db.query.missing.findFirst({
     where: { animalId, foundAt: { isNull: true } },
-    columns: { id: true, since: true },
+    columns: {
+      id: true,
+      since: true,
+      writtenOffAt: true,
+      lostCause: true,
+      stolen: true,
+      gdNumber: true,
+      stateBefore: true,
+      stateChangedBefore: true,
+    },
     with: { pen: { columns: { name: true } } },
+    orderBy: { since: "desc" },
   })) ?? null;
 
-/** The Manager's Found: she is where she should be after all. Refused when nothing is open for her. */
+/**
+ * Found: she is where she should be after all. The Manager's while she is only missing; once written off as Lost,
+ * the Owner's, who wrote her off — and she comes back into the herd in the State she left it from. Refused when nothing
+ * is open for her.
+ */
 export const markFound = async (
   tx: Tx,
   input: { farmId: string; animalId: string; by: string; now: Date }
@@ -191,10 +216,127 @@ export const markFound = async (
   return found;
 };
 
-/** The Missing as the trail records it, before and after a Found. */
+/** Why an animal is written off as Lost, in the Owner's words. */
+export interface WriteOff {
+  cause: string;
+  stolen: boolean;
+  /** The thana's General Diary number: asked for a theft (the Owner, 2026-09-29). */
+  gdNumber: string | null;
+}
+
+/**
+ * The Owner's write-off: a Missing closed as Lost, with why, and the State she was in, so that one found after all can
+ * come back as she was. Only on a Missing still open — one written off already, or found, is refused.
+ */
+export const markWrittenOff = async (
+  tx: Tx,
+  input: {
+    farmId: string;
+    animalId: string;
+    by: string;
+    now: Date;
+    was: { state: AnimalState; stateChangedAt: Date };
+    why: WriteOff;
+  }
+): Promise<{ id: string; since: Date }> => {
+  const [written] = await tx
+    .update(missing)
+    .set({
+      writtenOffAt: input.now,
+      writtenOffBy: input.by,
+      lostCause: input.why.cause,
+      stolen: input.why.stolen,
+      gdNumber: input.why.gdNumber,
+      stateBefore: input.was.state,
+      stateChangedBefore: input.was.stateChangedAt,
+    })
+    .where(
+      and(
+        eq(missing.farmId, input.farmId),
+        eq(missing.animalId, input.animalId),
+        isNull(missing.foundAt),
+        isNull(missing.writtenOffAt)
+      )
+    )
+    .returning({ id: missing.id, since: missing.since });
+  if (!written) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Only an animal the farm cannot find can be written off",
+      data: { refusal: "not_missing" },
+    });
+  }
+  return written;
+};
+
+/** Every animal written off as Lost and never found, and when she went: what the returns count as gone with nothing
+ *  back. */
+export const lostSince = async (
+  db: Db,
+  farmId: string
+): Promise<Map<string, Date>> => {
+  const rows = await db.query.missing.findMany({
+    where: {
+      farmId,
+      writtenOffAt: { isNotNull: true },
+      foundAt: { isNull: true },
+    },
+    columns: { animalId: true, since: true },
+  });
+  return new Map(rows.map((row) => [row.animalId, row.since]));
+};
+
+/** The Missing as the trail records it, before and after a Found or a write-off. */
 export const readMissing = async (tx: Tx, animalId: string) =>
   (await tx.query.missing.findFirst({
     where: { animalId },
-    columns: { id: true, since: true, foundAt: true, foundBy: true },
+    columns: {
+      id: true,
+      since: true,
+      foundAt: true,
+      foundBy: true,
+      writtenOffAt: true,
+      writtenOffBy: true,
+      lostCause: true,
+      stolen: true,
+      gdNumber: true,
+      stateBefore: true,
+    },
     orderBy: { since: "desc" },
   })) ?? null;
+
+/** A year back from now, as the Owner's home reads the farm's losses over it. */
+const A_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+
+/**
+ * The animals written off as Lost that went missing in the last year and were never found, and what they had cost
+ * the farm — bought, fed, dosed and kept — as her price against her cost counts it. Worked from the farm's whole
+ * costing only when there is one to cost.
+ */
+export const lostInAYear = async (
+  db: Database,
+  farmId: string,
+  now: Date
+): Promise<{ count: number; costBdt: number }> => {
+  const rows = await db.query.missing.findMany({
+    where: {
+      farmId,
+      writtenOffAt: { isNotNull: true },
+      foundAt: { isNull: true },
+      since: { gte: new Date(now.getTime() - A_YEAR_MS) },
+    },
+    columns: { animalId: true },
+  });
+  if (rows.length === 0) {
+    return { count: 0, costBdt: 0 };
+  }
+  const costs = await farmCosts(db, farmId);
+  const gone = new Set(rows.map((row) => row.animalId));
+  let costBdt = 0;
+  for (const her of costs.animals) {
+    if (gone.has(her.id)) {
+      const economics = economicsOfAnimal(costs, her);
+      costBdt += (economics.purchaseBdt ?? 0) + chargedOf(economics);
+    }
+  }
+  return { count: rows.length, costBdt: Math.round(costBdt) };
+};

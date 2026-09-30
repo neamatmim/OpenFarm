@@ -46,7 +46,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Arrival**: How an Animal came to be on the Farm — born here at a Calving, bought in at an Intake, or already standing when the Farm opened its register. Derived from the Move that put her in her first Pen, never entered. _Avoid_: Entry (an Entry is what a phone sends the Farm), admission, onboarding
 
-**Exit**: How an Animal left and when — Sold, Died or Culled — with what belongs to that way of going: who bought her and where she went, or what she died of and what was done with her. Derived from her State and the records of it, never entered; null while she is still here. Every paper and page says it the same way, because it is worked out once. _Avoid_: Departure, removal, disposal (that is what was done with a carcass)
+**Exit**: How an Animal left and when — Sold, Died, Culled or Lost — with what belongs to that way of going: who bought her and where she went, what she died of and what was done with her, or why the Owner wrote her off. Derived from her State and the records of it, never entered; null while she is still here. Every paper and page says it the same way, because it is worked out once. _Avoid_: Departure, removal, disposal (that is what was done with a carcass)
 
 ## Work
 
@@ -90,7 +90,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Side**: Which half of the farm an Animal currently belongs to: Dairy or Fattening. Exactly one at a time; changing Side is a recorded move. _Avoid_: Department, unit, type
 
-**State**: Where an Animal is in its lifecycle. Dairy: Calf, Heifer, Pregnant Heifer, Milking, Dry. Fattening: Quarantine, Fattening, Ready for Sale. Exits: Sold, Died, Culled. Exactly one at a time. _Avoid_: Status, stage, category
+**State**: Where an Animal is in its lifecycle. Dairy: Calf, Heifer, Pregnant Heifer, Milking, Dry. Fattening: Quarantine, Fattening, Ready for Sale. Exits: Sold, Died, Culled, Lost. Exactly one at a time. _Avoid_: Status, stage, category
 
 **Shed**: A building on the Farm containing Pens. _Avoid_: Barn, house, unit
 
@@ -124,7 +124,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Expiry**: The last day a Lot says it may be used, as the farm's own day. Refused when it has already passed on the day the Lot comes in. The Manager hears of a Lot with some left in it a farm-set number of days before its Expiry (30 by default), and again once it has passed; a dose given from a Lot past its Expiry is recorded, because an animal that needed treating was treated, and the Vet and the Manager hear of it at once. _Avoid_: Best-before, use-by, shelf life
 
-**Missing**: An Animal the round looked for in her Pen and could not find, opened by the round's "Animal not found" — a skip reason the farm acts on whatever the Owner rewords it to. She stays in the herd, on her Pen's board and on the round, until the Manager marks her Found: nobody has said she is gone, only that she was not where the farm thought. One open at a time, so a second morning that cannot find her is the same Missing, told once to the Owner and the Manager at once, by push. A Correction that finds her on the round after all takes it back. _Avoid_: Lost (which is written off, not looked for), stolen, strayed
+**Missing**: An Animal the round looked for in her Pen and could not find, opened by the round's "Animal not found" — a skip reason the farm acts on whatever the Owner rewords it to. She stays in the herd, on her Pen's board and on the round, until the Manager marks her Found: nobody has said she is gone, only that she was not where the farm thought. One open at a time, so a second morning that cannot find her is the same Missing, told once to the Owner and the Manager at once, by push. A Correction that finds her on the round after all takes it back. The Owner may write her off, and is asked to once she has been missing as many days as the Owner set (a week): she leaves as **Lost** from the morning she was last looked for — stolen or strayed in the Owner's words, with the thana's GD number for a theft — and counts as gone with nothing back, as a death does. Found after that is the Owner's, and she comes back in the State she left from. A Venture's animal is not written off until its agreement says what a loss is. _Avoid_: Lost (which is written off, not looked for), stolen, strayed
 
 **Mortality**: The record that an Animal died or was culled: when, the cause as far as the farm knows it, and how the carcass was disposed of. The Owner's or the Manager's to record, and nobody else's — except a stillborn calf's, which her Calving records with the cause stillbirth, leaving the disposal awaiting until the Manager writes it. She leaves the herd — off the pen boards, out of the day's work, out of the headcounts — and everything else recorded about her stays exactly where it is. _Avoid_: Death record, loss, wastage
 

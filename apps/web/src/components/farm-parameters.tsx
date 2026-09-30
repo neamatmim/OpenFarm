@@ -64,6 +64,7 @@ type NumberKey =
   | "milkDropPercent"
   | "milkDropDays"
   | "milkUnaccountedPercent"
+  | "missingWriteOffDays"
   | "ventureFloorPercent"
   | "ventureRunningPercent"
   | "ventureInvestorsPercent"
@@ -343,6 +344,21 @@ const GROUPS: {
         unit: "params.percent",
         min: 1,
         max: 50,
+      },
+    ],
+  },
+  {
+    id: "params-missing",
+    title: "params.missing",
+    hint: "params.missingHint",
+    owner: true,
+    fields: [
+      {
+        key: "missingWriteOffDays",
+        label: "params.missingWriteOffDays",
+        unit: "params.days",
+        min: 1,
+        max: 90,
       },
     ],
   },

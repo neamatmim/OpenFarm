@@ -6,14 +6,16 @@ import { Opens, QueueGroup, QueueRow } from "@/components/home/queue";
 import { useLanguage } from "@/i18n/language-provider";
 import type { orpc } from "@/utils/orpc";
 
-/** An animal the round could not find, as the home screens are told it. */
-export type MissingAnimals = Awaited<
+/** An animal the round could not find, as the home screens are told it — and, on the Owner's, whether she has been
+ *  missing long enough for the Owner to be asked about writing her off. */
+export type MissingAnimals = (Awaited<
   ReturnType<typeof orpc.home.manager.call>
->["queue"]["missing"];
+>["queue"]["missing"][number] & { days?: number; askWriteOff?: boolean })[];
 
 /**
  * Animals the round could not find, the longest missing first: where it looked and since when, each opening her page,
  * where the Manager marks her Found. First on the list of what waits, because an animal gone is gone further every hour.
+ * One missing past the Owner's days asks the Owner whether to write her off as Lost.
  */
 export const MissingAnimalsGroup = ({
   animals,
@@ -33,6 +35,9 @@ export const MissingAnimalsGroup = ({
             pen: one.penName,
             day: formatDate(new Date(one.since), language, "date"),
           })}
+          {one.askWriteOff
+            ? ` · ${t("animals.writeOffAsk", { days: one.days ?? 0 })}`
+            : ""}
         </span>
       }
       title={

@@ -2099,6 +2099,7 @@ export const bn: Record<MessageKey, string> = {
   "state.sold": "বিক্রি হয়েছে",
   "state.died": "মৃত",
   "state.culled": "বাতিল",
+  "state.lost": "হারিয়ে গেছে",
   "nav.devices": "শেড ফোন",
   "device.title": "শেড ফোন",
   "device.add": "নতুন ফোন যুক্ত করুন",
@@ -3873,6 +3874,7 @@ export const bn: Record<MessageKey, string> = {
   "returns.windowSeason": "{start} – {end}",
   "returns.head": "{count}টি",
   "returns.died": "{count}টি মারা গেছে",
+  "returns.lostHead": "{count}টি হারিয়ে গেছে",
   "returns.made": "লাভ {bdt}",
   "returns.lost": "ক্ষতি {bdt}",
   "returns.onCostGain": "প্রতি ১০০ টাকা খরচে {amount} টাকা লাভ",
@@ -3989,6 +3991,7 @@ export const bn: Record<MessageKey, string> = {
   "returns.cameLeft": "{came}, {left}",
   "returns.breakdownFailed": "এখন ভাগ করে দেখানো গেল না।",
   "returns.left.died": "মারা গেছে",
+  "returns.left.lost": "হারিয়ে গেছে বলে বাদ",
   "returns.left.sold_to_venture": "ভেঞ্চারে বিক্রি",
   "returns.costBack": "{cost} → {back}",
   "returns.breakdownNone": "এভাবে দেখানোর কিছু নেই।",
@@ -4444,6 +4447,10 @@ export const bn: Record<MessageKey, string> = {
   "params.milkUnaccountedHint":
     "সপ্তাহে ট্যাংকে যাওয়া দুধের এতটা যদি গেটের বাইরেও না যায়, ট্যাংকেও না থাকে, তবে সন্ধ্যার খবরে আপনাকে আর ম্যানেজারকে জানানো হবে।",
   "params.milkUnaccountedPercent": "এর বেশি হলে",
+  "params.missing": "পাওয়া যাচ্ছে না এমন পশু",
+  "params.missingHint":
+    "রাউন্ডে খুঁজে না পাওয়া পশু কত দিন পাওয়া না গেলে আপনাকে জিজ্ঞেস করা হবে তাকে হারিয়ে গেছে বলে বাদ দেবেন কিনা। তার পাতা থেকে আগেও বাদ দিতে পারেন।",
+  "params.missingWriteOffDays": "এত দিন পরে জিজ্ঞেস করুন",
   "milkAccount.title": "সপ্তাহের দুধের হিসাব",
   "milkAccount.hint":
     "{since} থেকে ট্যাংকে যা গেছে, গেট দিয়ে যা বেরিয়েছে তার পাশে — ট্যাংকে যা আছে তা ধরে।",
@@ -4463,4 +4470,19 @@ export const bn: Record<MessageKey, string> = {
     "বকনা, আনুমানিক {age} মাস, এখনো পাল দেওয়া হয়নি — {due} মাসে দেওয়ার কথা · {pen}",
   "heatWatch.heiferAgeUnknown": "বকনা, বয়স জানা নেই, এখনো পাল দেওয়া হয়নি · {pen}",
   "refusal.notMissing": "পশুটি হারায়নি — কেউ তাকে খুঁজছে না",
+  "refusal.gdNumberNeeded": "চুরি হলে থানার জিডি নম্বর লাগবে",
+  "animals.writeOff": "হারিয়ে গেছে বলে বাদ দিন",
+  "animals.writeOffHint":
+    "রাউন্ডে শেষ যেদিন খোঁজা হয়েছিল সেদিন থেকে পশুটি হারিয়ে গেছে বলে পাল থেকে বাদ যাবে: পেনের বোর্ড, রাউন্ড আর গণনা থেকে। তার সব রেকর্ড থাকবে, আর পাওয়া গেলে ফিরে আসবে।",
+  "animals.writeOffCause": "তার কী হয়েছে",
+  "animals.writeOffStolen": "চুরি হয়েছে",
+  "animals.writeOffGd": "থানার জিডি নম্বর",
+  "animals.writeOffDone": "{tag} হারিয়ে গেছে বলে বাদ দেওয়া হলো",
+  "animals.writeOffVenture":
+    "ভেঞ্চারের পশু এখনো বাদ দেওয়া যাবে না: বিনিয়োগকারীদের চুক্তিতে হারানো পশুর কথা বলা নেই",
+  "animals.writeOffAsk": "{days} দিন পাওয়া যাচ্ছে না — হারিয়ে গেছে বলে বাদ দেবেন?",
+  "animals.writtenOff": "{day} তারিখে হারিয়ে গেছে বলে বাদ দেওয়া হয়েছে",
+  "animals.writtenOffStolen": "চুরি · জিডি {gd}",
+  "animals.foundAfterAll": "পাওয়া গেছে",
+  "owner.lostYear": "১২ মাসে হারিয়ে গেছে: {count}টি · খরচ হয়েছিল {bdt}",
 };

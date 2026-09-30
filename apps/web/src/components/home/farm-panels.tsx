@@ -261,11 +261,15 @@ const SideOfHerd = ({
 export const HerdPanel = ({
   died,
   culled,
+  lostYear,
 }: {
   died: number;
   culled: number;
+  /** Written off as Lost in the last year, and what they had cost; missing from a cached answer from before. */
+  lostYear?: { count: number; costBdt: number };
 }) => {
   const { t, language } = useLanguage();
+  const taka = useTaka();
   const animals = useQuery(
     orpc.animals.list.queryOptions({ input: { includeExited: false } })
   );
@@ -316,6 +320,14 @@ export const HerdPanel = ({
               {t("owner.noLosses")}
             </p>
           )}
+          {lostYear && lostYear.count > 0 ? (
+            <p className="text-danger text-sm">
+              {t("owner.lostYear", {
+                count: lostYear.count,
+                bdt: taka(lostYear.costBdt),
+              })}
+            </p>
+          ) : null}
           {mightCull > 0 ? (
             <Link
               className="bg-warning-surface text-warning hover:bg-warning-surface/80 focus-visible:ring-ring flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium outline-none focus-visible:ring-2"

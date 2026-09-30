@@ -42,6 +42,7 @@ const OUTCOME_WORD = {
   sold: "state.sold",
   died: "state.died",
   culled: "state.culled",
+  lost: "state.lost",
 } as const satisfies Record<string, MessageKey>;
 
 /** One register on the screen: its name and the period it covers, Print — and CSV when it is given as one — and

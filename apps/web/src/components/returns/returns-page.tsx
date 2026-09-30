@@ -57,6 +57,7 @@ const Row = ({
   name,
   head,
   died,
+  lost = 0,
   returned,
   bank,
   floorDays,
@@ -67,6 +68,8 @@ const Row = ({
   name: string;
   head: number;
   died: number;
+  /** Written off as Lost: the Farm's own Seasons only. */
+  lost?: number;
   returned: Returned;
   bank: BankRateSaid | null;
   floorDays: number;
@@ -94,6 +97,7 @@ const Row = ({
             <span className="text-muted-foreground text-sm">
               {t("returns.head", { count: head })}
               {died > 0 ? ` · ${t("returns.died", { count: died })}` : ""}
+              {lost > 0 ? ` · ${t("returns.lostHead", { count: lost })}` : ""}
             </span>
           </span>
           <span className="flex flex-col gap-0.5 ps-6 sm:items-end sm:ps-0">
@@ -133,6 +137,7 @@ const SeasonRow = ({
     <Row
       bank={season.bankRate}
       died={season.died}
+      lost={season.lost}
       floorDays={floorDays}
       head={season.head}
       kind="returns.season"

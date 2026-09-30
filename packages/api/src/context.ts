@@ -138,6 +138,8 @@ export interface Context {
     milkDropDays: number;
     /** How much of a week's milk may go unaccounted for before the Owner and the Manager are told. */
     milkUnaccountedPercent: number;
+    /** How many days an animal may be Missing before the Owner is asked whether to write her off as Lost. */
+    missingWriteOffDays: number;
     /** What part of a Venture's target capital is the least worth starting on. */
     ventureFloorPercent: number;
     /** What part of a Venture's capital keeps the animals rather than buying them. */

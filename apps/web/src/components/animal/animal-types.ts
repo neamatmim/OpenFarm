@@ -69,7 +69,8 @@ export type AnimalAct =
   | "disposal"
   | "abortion"
   | "shorten"
-  | "purse";
+  | "purse"
+  | "writeOff";
 
 /** What one person may do to her, worked out once for the page: every button and menu item reads from here, so a
  *  control the farm would refuse is never offered — a dead end in the barn. */
@@ -92,6 +93,8 @@ export interface AnimalPowers {
   /** Sell her between the Farm's herd and a Venture: the Owner's, for a bought Fattening animal still being fattened
    *  and weighed at least once — the one an Internal Sale would take. */
   mayMovePurse: boolean;
+  /** Write her off as Lost while the round cannot find her, and find her again once written off: the Owner's. */
+  mayWriteOff: boolean;
 }
 
 /** Whether there is a State she may simply be set to: a Fattening bull's next steps are each a record of their own —
@@ -133,6 +136,7 @@ export const useAnimalPowers = (detail: AnimalDetail | undefined) => {
     fullVet,
     seesPapers,
     mayMovePurse: isOwner && movesBetweenPurses(detail),
+    mayWriteOff: isOwner,
   };
   return powers;
 };
