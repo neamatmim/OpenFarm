@@ -4406,5 +4406,16 @@ export const bn: Record<MessageKey, string> = {
   "params.soresTellAnimals": "এক পেনে পশু",
   "params.soresTellHours": "সময়ের মধ্যে",
   "params.animals": "টি পশু",
+  "animals.outcome.recovered": "সেরে উঠেছে",
+  "animals.outcome.not_recovered": "সারেনি",
+  "home.illAgain": "বারবার অসুস্থ",
+  "home.illAgainLine": "{count} বার রোগ নির্ণয়; সর্বশেষ {disease}, {day}",
+  "params.illAgain": "বারবার অসুস্থ",
+  "params.illAgainHint":
+    "এত দিনের মধ্যে ডাক্তার এতবার রোগ নির্ণয় করলে পশুটি ম্যানেজারের তালিকায় উঠবে, যাতে মালিক বিবেচনা করতে পারেন চিকিৎসা চালিয়ে যাবেন কিনা।",
+  "params.illAgainDiagnoses": "রোগ নির্ণয়",
+  "params.illAgainDays": "সময়ের মধ্যে",
+  "params.diagnoses": "বার",
+  "refusal.outcomeSaid": "ফলাফল আগেই লেখা হয়েছে; বদলাতে রোগ নির্ণয়টি সংশোধন করুন",
   "refusal.notMissing": "পশুটি হারায়নি — কেউ তাকে খুঁজছে না",
 };

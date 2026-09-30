@@ -152,6 +152,9 @@ const parameters = z
     /** How many animals in one Pen with sores on the mouth or feet, within how many hours, before the farm is told. */
     soresTellAnimals: z.number().int().min(2).max(20).optional(),
     soresTellHours: z.number().int().min(12).max(168).optional(),
+    /** How many Diagnoses within how many days put an animal on the Manager's list as ill again and again. */
+    illAgainDiagnoses: z.number().int().min(2).max(20).optional(),
+    illAgainDays: z.number().int().min(30).max(730).optional(),
     /** What part of a Venture's target capital is the least worth starting on. */
     ventureFloorPercent: z.number().int().min(0).max(100).optional(),
     /** What part of a Venture's capital keeps the animals rather than buying them. */
@@ -767,6 +770,8 @@ export const farmRouter = {
                 storeShortfallTellBdt: true,
                 soresTellAnimals: true,
                 soresTellHours: true,
+                illAgainDiagnoses: true,
+                illAgainDays: true,
                 ventureFloorPercent: true,
                 ventureRunningPercent: true,
                 ventureInvestorsPercent: true,

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   findWithdrawalProblems,
+  illAgainOf,
   MAX_WITHDRAWAL_DAYS,
   mayBePrescribed,
   underMeatWithdrawal,
@@ -175,5 +176,62 @@ describe("both of a cow's Withdrawals, as every screen shows them", () => {
     // Shortened, so her milk is already clear while her meat is not.
     expect(view.underMilkWithdrawal).toBe(false);
     expect(view.underMeatWithdrawal).toBe(true);
+  });
+});
+
+/** A Diagnosis of one animal on a day. */
+const diagnosedOn = (animalId: string, day: string, disease = "কাশি") => ({
+  animalId,
+  disease,
+  diagnosedAt: new Date(`${day}T00:00:00.000Z`),
+});
+
+describe("ill again and again", () => {
+  const farm = { illAgainDiagnoses: 3, illAgainDays: 365 };
+  const now = new Date("2030-06-01T00:00:00.000Z");
+  const on = diagnosedOn;
+
+  it("names an animal diagnosed the farm's number of times within its days, with the latest", () => {
+    expect(
+      illAgainOf(
+        [
+          on("a", "2030-01-01"),
+          on("a", "2030-05-01", "নিউমোনিয়া"),
+          on("a", "2030-03-01"),
+        ],
+        now,
+        farm
+      )
+    ).toEqual([
+      {
+        animalId: "a",
+        diagnoses: 3,
+        lastDisease: "নিউমোনিয়া",
+        lastAt: new Date("2030-05-01T00:00:00.000Z"),
+      },
+    ]);
+  });
+
+  it("counts nothing older than the farm's days", () => {
+    expect(
+      illAgainOf(
+        [on("a", "2029-05-01"), on("a", "2030-01-01"), on("a", "2030-03-01")],
+        now,
+        farm
+      )
+    ).toEqual([]);
+  });
+
+  it("puts the most diagnosed first", () => {
+    const months = ["2030-01-01", "2030-02-01", "2030-03-01", "2030-04-01"];
+    const list = illAgainOf(
+      [
+        ...months.slice(0, 3).map((day) => on("fewer", day)),
+        ...months.map((day) => on("more", day)),
+      ],
+      now,
+      farm
+    );
+    expect(list.map((one) => one.animalId)).toEqual(["more", "fewer"]);
   });
 });

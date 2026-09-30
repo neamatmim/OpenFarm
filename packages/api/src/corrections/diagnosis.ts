@@ -1,5 +1,5 @@
 import { eq } from "@OpenFarm/db/operators";
-import { diagnosis } from "@OpenFarm/db/schema/health";
+import { DIAGNOSIS_OUTCOMES, diagnosis } from "@OpenFarm/db/schema/health";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -23,12 +23,16 @@ const loadDiagnosis = (tx: Tx, farmId: string, id: string) =>
   tx.query.diagnosis.findFirst({ where: { id, farmId } });
 
 /**
- * What putting a Diagnosis right may change: what she has, shown by the name the farm reads, and the Vet's note — a
- * note set to nothing is cleared.
+ * What putting a Diagnosis right may change: what she has, shown by the name the farm reads, the Vet's note — a note
+ * set to nothing is cleared — and how it ended, set to nothing when she is being seen to after all.
  */
 export const diagnosisCorrectionInput = correctionInput({
   disease: changeOf(diseaseInput, z.string()),
   note: changeOf(diagnosisNoteInput.nullable(), z.string().nullable()),
+  outcome: changeOf(
+    z.enum(DIAGNOSIS_OUTCOMES).nullable(),
+    z.string().nullable()
+  ),
 });
 
 /** Whether the farm must report what she now has, the work to deliver the report, and who to tell. */
@@ -69,6 +73,7 @@ export const diagnosisCorrection: CorrectionKind<
     Promise.resolve({
       disease: row.disease,
       note: row.note,
+      outcome: row.outcome,
     }),
   apply: async (tx, row, to, { context, now }) => {
     const disease = to.disease ?? {
@@ -82,6 +87,13 @@ export const diagnosisCorrection: CorrectionKind<
           ? { disease: to.disease.bn, diseaseEn: to.disease.en ?? null }
           : {}),
         ...(to.note === undefined ? {} : { note: to.note || null }),
+        ...(to.outcome === undefined
+          ? {}
+          : {
+              outcome: to.outcome,
+              closedAt: to.outcome ? now : null,
+              closedBy: to.outcome ? context.actor.id : null,
+            }),
       })
       .where(eq(diagnosis.id, row.id));
     // A Correction can start the duty or end it. Named a disease on the list where it did not before, the letter is owed
