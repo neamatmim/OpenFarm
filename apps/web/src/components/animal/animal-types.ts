@@ -142,3 +142,31 @@ export const useAnimalPowers = (detail: AnimalDetail | undefined) => {
   };
   return powers;
 };
+
+/** How far back a death is offered her Diagnoses to be linked to: two months, the course of most illnesses that kill. */
+const DIAGNOSES_OFFERED_DAYS = 60;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Her Diagnoses the Vet made lately — on their own, or answering what a round saw — the latest first, once each: what a
+ * death may be linked to, so the register names the disease and the office's reference.
+ */
+export const herRecentDiagnoses = (
+  detail: Pick<AnimalDetail, "diagnoses" | "observations">,
+  now: Date
+): { id: string; disease: string; diagnosedAt: Date }[] => {
+  const since = now.getTime() - DIAGNOSES_OFFERED_DAYS * DAY_MS;
+  const all = [
+    ...detail.diagnoses,
+    ...detail.observations.flatMap((seen) => seen.diagnoses),
+  ];
+  const once = new Map(all.map((one) => [one.id, one]));
+  return [...once.values()]
+    .map((one) => ({
+      id: one.id,
+      disease: one.disease,
+      diagnosedAt: new Date(one.diagnosedAt),
+    }))
+    .filter((one) => one.diagnosedAt.getTime() >= since)
+    .toSorted((a, b) => b.diagnosedAt.getTime() - a.diagnosedAt.getTime());
+};

@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { audited } from "../audit";
 import { calfLossesOf } from "../calf-losses-store";
+import { adultDeathsOf } from "../deaths-store";
 import { protectedProcedure } from "../index";
 import { requireRole } from "../roles";
 
@@ -17,6 +18,16 @@ export const herdRouter = {
    * What the farm lost in calves over the last year: born alive, born dead, and lost before weaning, with what they
    * died of — the figure that says whether its calf care works. The Owner's and the Manager's: it is care, not money.
    */
+  /**
+   * What the farm lost in grown animals over the last year: deaths and culls by Side, what the dead died of, and deaths
+   * for every hundred head kept a year. The Owner's and the Manager's, as the calf losses are.
+   */
+  deaths: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(({ context }) =>
+      adultDeathsOf(context.db, context.farm.id, context.clock.now())
+    ),
+
   calfLosses: protectedProcedure
     .use(requireRole("owner", "manager"))
     .handler(({ context }) =>

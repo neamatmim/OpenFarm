@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useEffect } from "react";
 
+import { AdultDeathsSection } from "@/components/home/adult-deaths";
 import { CalfLossesSection } from "@/components/home/calf-losses";
 import type { QueueKind } from "@/components/home/manager-queue";
 import {
@@ -200,6 +201,7 @@ const ManagerHome = () => {
 
           <VenturesAtWork />
           <CalfLossesSection />
+          <AdultDeathsSection />
         </div>
 
         <Section

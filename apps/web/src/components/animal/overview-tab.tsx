@@ -24,21 +24,28 @@ import { orpc } from "@/utils/orpc";
 
 import { Fact, FactGrid } from "./animal-facts";
 import type { AnimalAct, AnimalDetail, AnimalPowers } from "./animal-types";
+import { herRecentDiagnoses } from "./animal-types";
 import { SideWord, StateBadge, ageWords, herAge } from "./animal-words";
 
 /** Putting a mortality right: what the farm learned afterwards, or a hurried entry corrected. */
 const PutItRight = ({
   detail,
 }: {
-  detail: {
-    tagNumber: string;
+  detail: Pick<AnimalDetail, "tagNumber" | "diagnoses" | "observations"> & {
     mortality: NonNullable<AnimalDetail["mortality"]>;
   };
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  // Her Vet's recent conclusions: the one she died of may be linked afterwards, when it came after the death was written.
+  const diagnoses = herRecentDiagnoses(
+    detail,
+    new Date(detail.mortality.happenedAt)
+  );
   const correcting = useCorrecting({
     kind: choice(detail.mortality.kind),
     cause: words(detail.mortality.cause),
+    // An answer kept from before the link was shown has none: nothing is linked.
+    diagnosisId: choice(detail.mortality.diagnosisId ?? null),
     // Left as it is unless somebody chooses: a Correction to a stillborn calf's cause writes no disposal nobody said.
     disposal: choice(detail.mortality.disposal),
   });
@@ -73,6 +80,22 @@ const PutItRight = ({
         onChange={(value) => correcting.set("cause", value)}
         value={correcting.typed.cause ?? ""}
       />
+      {diagnoses.length > 0 ? (
+        <CorrectionChoice
+          label={t("mortality.diagnosis")}
+          onChange={(value) => correcting.set("diagnosisId", value)}
+          options={diagnoses.map((one) => ({
+            value: one.id,
+            label: `${one.disease} · ${formatDate(one.diagnosedAt, language, "date")}`,
+          }))}
+          unchosen={
+            detail.mortality.diagnosisId
+              ? undefined
+              : t("mortality.noDiagnosis")
+          }
+          value={correcting.typed.diagnosisId ?? ""}
+        />
+      ) : null}
       <CorrectionChoice
         label={t("mortality.disposal")}
         onChange={(value) => correcting.set("disposal", value)}
@@ -127,7 +150,12 @@ const HowSheWent = ({
               </Button>
             )}
             <PutItRight
-              detail={{ tagNumber: detail.tagNumber, mortality: gone }}
+              detail={{
+                tagNumber: detail.tagNumber,
+                diagnoses: detail.diagnoses,
+                observations: detail.observations,
+                mortality: gone,
+              }}
             />
           </>
         ) : null

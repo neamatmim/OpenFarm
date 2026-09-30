@@ -8,7 +8,7 @@ import {
   animalPhoto,
   retag,
 } from "@OpenFarm/db/schema/herd";
-import type { AnimalState } from "@OpenFarm/domain";
+import type { AnimalState, Disposal, MortalityKind } from "@OpenFarm/domain";
 import {
   DISPOSALS,
   HEAT,
@@ -529,6 +529,42 @@ const missingShown = async (db: Database, animalId: string) => {
   };
 };
 
+/**
+ * Her death as her page shows it. What she died of by the Vet's Diagnosis, the office's reference for it and which of
+ * her Diagnoses it is linked to are the clinical record's: read by whoever reads the rest of it — the cause the farm
+ * wrote down is not.
+ */
+const deathShown = (
+  mortality: {
+    kind: MortalityKind;
+    happenedAt: Date;
+    cause: string;
+    disposal: Disposal | null;
+    disposalNote: string | null;
+    recorder: { name: string } | null;
+    diagnosis: {
+      id: string;
+      disease: string;
+      report: { reference: string | null } | null;
+    } | null;
+  },
+  clinical: boolean
+) => {
+  const diagnosis = clinical ? mortality.diagnosis : null;
+  return {
+    kind: mortality.kind,
+    happenedAt: mortality.happenedAt,
+    cause: mortality.cause,
+    disposal: mortality.disposal,
+    disposalNote: mortality.disposalNote,
+    recordedByName: mortality.recorder?.name ?? null,
+    disease: diagnosis?.disease ?? null,
+    /** Which of her Diagnoses it is linked to, for the Correction that links another. */
+    diagnosisId: diagnosis?.id ?? null,
+    reportReference: diagnosis?.report?.reference ?? null,
+  };
+};
+
 export const animalsRouter = {
   /** Staff see their assigned Pens; everyone who runs the farm sees the whole herd. */
   list: protectedProcedure
@@ -735,23 +771,7 @@ export const animalsRouter = {
         diagnoses: clinical
           ? herPage.diagnoses.map(theConclusionAndWhatFollowed)
           : [],
-        mortality: mortality
-          ? {
-              kind: mortality.kind,
-              happenedAt: mortality.happenedAt,
-              cause: mortality.cause,
-              disposal: mortality.disposal,
-              disposalNote: mortality.disposalNote,
-              recordedByName: mortality.recorder?.name ?? null,
-              /** For the mortality register: what she died of, and the office's reference for it when the
-               *  farm had to report it. A Diagnosis is the Vet's conclusion, so it is read by whoever reads
-               *  the rest of the clinical record — the cause the farm wrote down is not. */
-              disease: clinical ? (mortality.diagnosis?.disease ?? null) : null,
-              reportReference: clinical
-                ? (mortality.diagnosis?.report?.reference ?? null)
-                : null,
-            }
-          : null,
+        mortality: mortality ? deathShown(mortality, clinical) : null,
         /** Barn Staff give the doses, so they may read what has been given (roles matrix:
          *  treatment instances). What the Vet concluded stays the clinical record's own. */
         treatments: doses.map(({ product, giver, ...dose }) => ({

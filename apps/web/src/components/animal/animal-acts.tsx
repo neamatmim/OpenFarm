@@ -1,11 +1,13 @@
 import type { Disposal, MortalityKind } from "@OpenFarm/domain";
 import {
+  ADULT_DEATH_CAUSES,
   CALF_DEATH_CAUSES,
   DISPOSALS,
   daysOfADoseNotPrescribed,
   MORTALITY_KINDS,
   statesSetByHand,
 } from "@OpenFarm/domain";
+import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -26,6 +28,7 @@ import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 import type { AnimalAct, AnimalDetail, PenChoice } from "./animal-types";
+import { herRecentDiagnoses } from "./animal-types";
 
 /**
  * The record-keeping acts on her page, each in its own dialog — or, for how she left the herd, a sheet — opened from
@@ -149,6 +152,12 @@ const MortalitySheet = ({ detail, open, onOpenChange }: ActProps) => {
   const [disposal, setDisposal] = useState<Disposal>("buried");
   const [note, setNote] = useState("");
   const [happenedAt, setHappenedAt] = useState("");
+  const [diagnosisId, setDiagnosisId] = useState("");
+  // Her Vet's recent conclusions, one of which she may have died of: linked, the register names the disease and the
+  // office's reference. Only those who read her clinical record are sent any.
+  const diagnoses = herRecentDiagnoses(detail, new Date());
+  const causes =
+    detail.state === "calf" ? CALF_DEATH_CAUSES : ADULT_DEATH_CAUSES;
   const record = useMutation(
     orpc.animals.recordMortality.mutationOptions({
       onSuccess: () => {
@@ -173,6 +182,7 @@ const MortalitySheet = ({ detail, open, onOpenChange }: ActProps) => {
           // The round finds her at dawn and the record is written at noon; which was which is the farm's business,
           // so it can be said.
           ...(happenedAt ? { happenedAt: new Date(happenedAt) } : {}),
+          ...(diagnosisId ? { diagnosisId } : {}),
         })
       }
       open={open}
@@ -212,21 +222,40 @@ const MortalitySheet = ({ detail, open, onOpenChange }: ActProps) => {
           value={cause}
         />
       </FormField>
-      {detail.state === "calf" ? (
-        // What calves most often die of, one tap away — kept in Bangla so the calf-loss figure counts each once.
-        <div className="flex flex-wrap gap-2">
-          {CALF_DEATH_CAUSES.map((one) => (
-            <Button
-              key={one.bn}
-              onClick={() => setCause(one.bn)}
-              size="sm"
-              type="button"
-              variant={cause === one.bn ? "secondary" : "outline"}
-            >
-              {language === "en" ? one.en : one.bn}
-            </Button>
-          ))}
-        </div>
+      {/* What calves, or grown cattle, most often die of, one tap away — kept in Bangla so the loss figures count each
+          once. Another cause is still typed. */}
+      <div className="flex flex-wrap gap-2">
+        {causes.map((one) => (
+          <Button
+            key={one.bn}
+            onClick={() => setCause(one.bn)}
+            size="sm"
+            type="button"
+            variant={cause === one.bn ? "secondary" : "outline"}
+          >
+            {language === "en" ? one.en : one.bn}
+          </Button>
+        ))}
+      </div>
+      {diagnoses.length > 0 ? (
+        <FormField
+          hint={t("mortality.diagnosisHint")}
+          id="mortality-diagnosis"
+          label={t("mortality.diagnosis")}
+        >
+          <NativeSelect
+            id="mortality-diagnosis"
+            onChange={(event) => setDiagnosisId(event.target.value)}
+            value={diagnosisId}
+          >
+            <option value="">{t("mortality.noDiagnosis")}</option>
+            {diagnoses.map((one) => (
+              <option key={one.id} value={one.id}>
+                {`${one.disease} · ${formatDate(one.diagnosedAt, language, "date")}`}
+              </option>
+            ))}
+          </NativeSelect>
+        </FormField>
       ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField id="mortality-disposal" label={t("mortality.disposal")}>
