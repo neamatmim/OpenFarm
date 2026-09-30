@@ -7,6 +7,7 @@ import { CircleCheck, Hourglass, Milk, Scale, Tractor } from "lucide-react";
 
 import { AdultDeathsSection } from "@/components/home/adult-deaths";
 import { CalfLossesSection } from "@/components/home/calf-losses";
+import { EarlyLossesSection } from "@/components/home/early-losses";
 import {
   FatteningPanel,
   FeedPanel,
@@ -317,6 +318,7 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
           />
           <CalfLossesSection />
           <AdultDeathsSection />
+          <EarlyLossesSection />
           <FatteningPanel />
           <FeedPanel />
         </div>

@@ -3329,6 +3329,15 @@ export const en = {
   "mortality.diagnosisHint":
     "Where she died of what the Vet diagnosed, link it: the register then names the disease and the office's reference.",
   "mortality.noDiagnosis": "None of these",
+  "early.title": "Lost soon after buying",
+  "early.hint":
+    "The last year: animals that died, were culled or fell ill within 30 days of arriving, by who sold them and where.",
+  "early.bySeller": "By seller",
+  "early.byHaat": "By haat",
+  "early.line":
+    "bought {bought} · died {died} · culled {culled} · ill {diagnosed}",
+  "early.none":
+    "Nothing bought in the last year died, was culled or fell ill in its first 30 days.",
   "deaths.title": "Deaths among grown animals",
   "deaths.hint":
     "The last year, past weaning: deaths for every hundred head kept a year, culls counted apart.",
