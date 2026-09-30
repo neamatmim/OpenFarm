@@ -142,6 +142,8 @@ export interface Context {
     missingWriteOffDays: number;
     /** How far a Feed Purchase's price per unit may rise on the last one before the Owner is told. */
     feedPriceJumpPercent: number;
+    /** How many days of a feed left, at the rate it is fed, before it is Running Low. */
+    feedDaysLow: number;
     /** What part of a Venture's target capital is the least worth starting on. */
     ventureFloorPercent: number;
     /** What part of a Venture's capital keeps the animals rather than buying them. */

@@ -57,7 +57,9 @@ export const standingOf = (line: StockLine): StockStanding => {
   if (line.runningLow) {
     return "low";
   }
-  return line.lowStockAt === null ? "unwatched" : "ok";
+  // A feed that is fed is watched by its days, level or no level; an answer kept from before days were said has none.
+  const watchedByDays = (line.daysLeft ?? null) !== null;
+  return line.lowStockAt === null && !watchedByDays ? "unwatched" : "ok";
 };
 
 /** What a line of the store is worth at the average price it was bought at; nothing for feed with no price. */

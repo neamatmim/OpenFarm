@@ -2395,7 +2395,7 @@ export const bn: Record<MessageKey, string> = {
   "feed.kpi.items": "গুদামে উপাদান",
   "feed.kpi.itemsHint": "যা এখন খাওয়ানো হয়",
   "feed.kpi.low": "কমে আসছে",
-  "feed.kpi.lowHint": "সীমার নিচে, বা কোনো পেনে চলা খাবার শেষ",
+  "feed.kpi.lowHint": "সীমার নিচে, দিন কম, বা কোনো পেনে চলা খাবার শেষ",
   "feed.kpi.value": "গুদামের দাম",
   "feed.kpi.valueHint": "গড় দাম ধরে",
   "feed.kpi.bought": "এই মাসে কেনা",
@@ -2617,6 +2617,11 @@ export const bn: Record<MessageKey, string> = {
   "stock.received": "রেকর্ড হয়েছে",
   "stock.col.item": "খাদ্য উপাদান",
   "stock.col.onHand": "গুদামে আছে",
+  "stock.col.daysLeft": "আর কত দিন",
+  "stock.daysLeft": "{days} দিন",
+  "stock.daysLeftLine": "দিনে {perDay} {unit} হারে আর {days} দিন",
+  "home.lowStockDays":
+    "{feed}: {onHand} {unit} আছে — যে হারে খাওয়ানো হচ্ছে তাতে আর {days} দিন",
   "stock.col.averagePrice": "গড় দাম",
   "stock.col.expected": "থাকার কথা",
   "stock.col.counted": "গোনা হয়েছে",
@@ -4470,6 +4475,10 @@ export const bn: Record<MessageKey, string> = {
   "params.milkUnaccountedHint":
     "সপ্তাহে ট্যাংকে যাওয়া দুধের এতটা যদি গেটের বাইরেও না যায়, ট্যাংকেও না থাকে, তবে সন্ধ্যার খবরে আপনাকে আর ম্যানেজারকে জানানো হবে।",
   "params.milkUnaccountedPercent": "এর বেশি হলে",
+  "params.feedDays": "খাদ্য আর কত দিনের",
+  "params.feedDaysHint":
+    "গত দুই সপ্তাহ যে হারে খাওয়ানো হয়েছে, সেই হারে কোনো খাদ্য এর কম দিন চললে সেটি কমে আসছে ধরা হবে, আর সন্ধ্যার খবরে ম্যানেজারকে জানানো হবে।",
+  "params.feedDaysLow": "এর কম দিন হলে",
   "params.feedPrice": "বেশি দামে কেনা খাদ্য",
   "params.feedPriceHint":
     "কোনো খাদ্য আগের বারের চেয়ে প্রতি একক এতটা বেশি দামে কেনা হলে সন্ধ্যার খবরে আপনাকে জানানো হবে।",
@@ -4498,7 +4507,8 @@ export const bn: Record<MessageKey, string> = {
   "heatWatch.heiferAgeUnknown": "বকনা, বয়স জানা নেই, এখনো পাল দেওয়া হয়নি · {pen}",
   "refusal.notMissing": "পশুটি হারায়নি — কেউ তাকে খুঁজছে না",
   "refusal.gdNumberNeeded": "চুরি হলে থানার জিডি নম্বর লাগবে",
-  "refusal.weighedNeedsAKiloSlip": "শুধু কেজিতে কেনা খাদ্যই রশিদের সাথে পাল্লায় মেলানো যায়",
+  "refusal.weighedNeedsAKiloSlip":
+    "শুধু কেজিতে কেনা খাদ্যই রশিদের সাথে পাল্লায় মেলানো যায়",
   "alerts.feedPriceJump":
     "{feed} কেনা হয়েছে প্রতি {unit} ৳{price}-এ, আগের বারের ৳{previous}-এর চেয়ে {percent}% বেশি",
   "digest.feedPriceJump": "{count}টি খাদ্য আগের বারের চেয়ে বেশি দামে কেনা হয়েছে",

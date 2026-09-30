@@ -1,3 +1,4 @@
+import { farmDayOf, farmDaysApart } from "./farm-clock";
 import type { FeedUnit } from "./feed-units";
 import { MAUND_KG } from "./feed-units";
 
@@ -535,6 +536,50 @@ export const purchasePricesOf = (
     lastOf.set(arrival.feedItemId, unitPriceBdt);
   }
   return prices;
+};
+
+/** The farm days a Feed Item's rate of feeding is read over: a fortnight, long enough to take in a week's changes of
+ *  Ration and short enough to follow the herd as it grows. */
+export const FEED_RATE_DAYS = 14;
+
+/**
+ * What a Feed Item has been fed a day lately: everything the Feedings gave over the last `FEED_RATE_DAYS` farm days,
+ * today among them, over those days — or over the farm days since it was first fed, for a feed newer than that, so a
+ * feed begun on Monday is not read as lasting twice as long as it will. Nothing, for one not fed in that time.
+ */
+export const fedPerDayOf = (
+  movements: readonly StockMovement[],
+  now: Date
+): number => {
+  const today = farmDayOf(now);
+  const outs = movements.filter((one) => one.kind === "out" && one.at <= now);
+  const recent = outs.filter(
+    (one) => farmDaysApart(farmDayOf(one.at), today) < FEED_RATE_DAYS
+  );
+  if (recent.length === 0) {
+    return 0;
+  }
+  const firstFed = farmDayOf(
+    new Date(Math.min(...outs.map((one) => one.at.getTime())))
+  );
+  const days = Math.min(FEED_RATE_DAYS, farmDaysApart(firstFed, today) + 1);
+  let fed = 0;
+  for (const one of recent) {
+    fed += one.kind === "out" ? one.quantity : 0;
+  }
+  return fed / days;
+};
+
+/** How many whole days the store lasts at the rate it is fed: none left for a store at or below nothing, and nothing
+ *  said of a feed nobody is fed. */
+export const daysLeftOf = (
+  onHand: number,
+  fedPerDay: number
+): number | null => {
+  if (fedPerDay <= 0) {
+    return null;
+  }
+  return onHand <= 0 ? 0 : Math.floor(onHand / fedPerDay);
 };
 
 /** How far the farm's scale came under a lot's slip, in the feed's unit — below nothing where it came over. Nothing for a

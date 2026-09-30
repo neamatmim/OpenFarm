@@ -1,0 +1,1 @@
+ALTER TABLE "farm" ADD COLUMN "feed_days_low" integer DEFAULT 7 NOT NULL;

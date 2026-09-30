@@ -169,6 +169,8 @@ const parameters = z
     missingWriteOffDays: z.number().int().min(1).max(90).optional(),
     /** How far a Feed Purchase's price per unit may rise on the last one before the Owner is told. */
     feedPriceJumpPercent: z.number().int().min(1).max(100).optional(),
+    /** How many days of a feed left, at the rate it is fed, before it is Running Low. */
+    feedDaysLow: z.number().int().min(1).max(60).optional(),
     /** What part of a Venture's target capital is the least worth starting on. */
     ventureFloorPercent: z.number().int().min(0).max(100).optional(),
     /** What part of a Venture's capital keeps the animals rather than buying them. */
@@ -810,6 +812,7 @@ export const farmRouter = {
                 milkUnaccountedPercent: true,
                 missingWriteOffDays: true,
                 feedPriceJumpPercent: true,
+                feedDaysLow: true,
                 ventureFloorPercent: true,
                 ventureRunningPercent: true,
                 ventureInvestorsPercent: true,

@@ -228,6 +228,9 @@ export const farm = pgTable("farm", {
   feedPriceJumpPercent: integer("feed_price_jump_percent")
     .notNull()
     .default(10),
+  /** How many days of a feed, at the rate it has been fed lately, before it is Running Low and the Manager is told in
+   *  the evening's post: a week, time to order (the Owner, 2026-09-29). The Manager's to set, who keeps the store. */
+  feedDaysLow: integer("feed_days_low").notNull().default(7),
   /** Whether Investors the Owner has invited may sign in to read their Ventures and papers (ADR 0007). Off until
    *  the Owner turns it on, and off again is how the farm answers a lawyer who says the portal is a platform. */
   investorPortal: boolean("investor_portal").notNull().default(false),

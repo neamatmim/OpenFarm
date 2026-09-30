@@ -66,6 +66,7 @@ type NumberKey =
   | "milkUnaccountedPercent"
   | "missingWriteOffDays"
   | "feedPriceJumpPercent"
+  | "feedDaysLow"
   | "ventureFloorPercent"
   | "ventureRunningPercent"
   | "ventureInvestorsPercent"
@@ -345,6 +346,20 @@ const GROUPS: {
         unit: "params.percent",
         min: 1,
         max: 50,
+      },
+    ],
+  },
+  {
+    id: "params-feed-days",
+    title: "params.feedDays",
+    hint: "params.feedDaysHint",
+    fields: [
+      {
+        key: "feedDaysLow",
+        label: "params.feedDaysLow",
+        unit: "params.days",
+        min: 1,
+        max: 60,
       },
     ],
   },
