@@ -145,6 +145,8 @@ const Detail = ({ event }: { event: MoneyEvent }) => {
     // Whose money, where it was not the Farm's. Said on the entry itself, because a register that
     // mixed two purses without saying so would add up to a figure that is nobody's.
     event.purse ? t("money.purseWas", { venture: event.purse.name }) : "",
+    // Whose hand the cash is in — left out of an answer kept from before hands were named.
+    event.holderName ? t("cash.heldBy", { name: event.holderName }) : "",
     event.note ?? "",
   ].filter(Boolean);
   return <>{parts.join(" · ")}</>;

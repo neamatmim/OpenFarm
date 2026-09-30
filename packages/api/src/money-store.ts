@@ -322,6 +322,8 @@ export interface MoneyOfARecord {
   /** How it was paid. Left out of a Correction, it stays as it was booked; left out of a first
    *  booking, cash. */
   paymentMethod?: PaymentMethod;
+  /** Whose hand the cash went into or came out of, where the record says; left out, the person writing it. */
+  heldBy?: string | null;
   /** Whose money moved: left out or null, the Farm's own; a Venture's id, that Venture's. Set by the
    *  record that knows — an Intake of a Venture's Animal, a Sale of one. The Farm's reports read the
    *  Farm's purse alone, so this is what keeps the two from mixing. */
@@ -352,6 +354,34 @@ export interface Booking {
   byTheOwner: boolean;
   now: Date;
 }
+
+/** The Roles whose hands the farm's cash passes through: a Vet writing their own fee, or Barn Staff, hold none of it. */
+const HOLDS_CASH: ReadonlySet<RoleName> = new Set(["owner", "manager"]);
+
+/**
+ * Whose **Cash in Hand** a Money Event names: nobody for bKash or the bank; the hand the record names, where it names
+ * one; else the hand it already named. A new cash one is the person writing it — who took the buyer's notes or paid the
+ * lorry — where they hold the farm's cash; and so is one put right to cash. One booked before hands were named, and
+ * still cash, stays nobody's: the first Cash Count says what each hand really holds.
+ */
+const handOf = (
+  booking: Booking,
+  money: Pick<MoneyOfARecord, "paymentMethod" | "heldBy">,
+  existing: { paymentMethod: string; heldBy: string | null } | undefined
+): string | null => {
+  const method = money.paymentMethod ?? existing?.paymentMethod ?? "cash";
+  if (method !== "cash") {
+    return null;
+  }
+  if (money.heldBy !== undefined) {
+    return money.heldBy;
+  }
+  const alreadyCash = existing?.paymentMethod === "cash";
+  if (existing && alreadyCash) {
+    return existing.heldBy;
+  }
+  return HOLDS_CASH.has(booking.role) ? booking.actorId : null;
+};
 
 /** The booking for a record this request is writing, now. */
 export const bookingOf = (
@@ -553,6 +583,8 @@ export const bookMoney = async (
       categoryId: true,
       direction: true,
       purseVentureId: true,
+      paymentMethod: true,
+      heldBy: true,
     },
   });
   const id = existing?.id ?? byHand?.id ?? newId(now);
@@ -589,7 +621,10 @@ export const bookMoney = async (
     enteredByTheOwner: booking.byTheOwner,
     before,
   });
-  const fields = moneyFieldsOf({ amountBdt, money, approval, byHand });
+  const fields = {
+    ...moneyFieldsOf({ amountBdt, money, approval, byHand }),
+    heldBy: handOf(booking, money, existing),
+  };
   await (existing
     ? tx.update(moneyEvent).set(fields).where(eq(moneyEvent.id, id))
     : tx.insert(moneyEvent).values({

@@ -109,6 +109,7 @@ export const moneyRouter = {
           approver: { columns: { name: true } },
           receipt: { columns: { moneyEventId: true } },
           purse: { columns: { name: true } },
+          holder: { columns: { name: true } },
         },
         orderBy: { occurredAt: "desc", id: "desc" },
         limit: LISTED + 1,
@@ -150,6 +151,9 @@ export const moneyRouter = {
           ? { id: row.purseVentureId, name: row.purse.name }
           : null,
         hasReceipt: row.receipt !== null,
+        /** Whose hand its cash went into or came out of; nothing for bKash, the bank, or one booked before hands
+         *  were named. */
+        holderName: row.holder?.name ?? null,
       }));
       return { events, more: rows.length > LISTED };
     }),

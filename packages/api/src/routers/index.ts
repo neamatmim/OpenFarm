@@ -8,6 +8,7 @@ import { backupsRouter } from "./backups";
 import { bakiRouter } from "./baki";
 import { breedingRouter } from "./breeding";
 import { breedsRouter } from "./breeds";
+import { cashRouter } from "./cash";
 import { costsRouter } from "./costs";
 import { cullingRouter } from "./culling";
 import { devicesRouter } from "./devices";
@@ -84,6 +85,7 @@ export const appRouter = {
   culling: cullingRouter,
   inspector: inspectorRouter,
   money: moneyRouter,
+  cash: cashRouter,
   baki: bakiRouter,
   reports: reportsRouter,
   breeding: breedingRouter,
