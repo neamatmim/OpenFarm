@@ -108,6 +108,11 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     previous: Number(facts.previousUnitPriceBdt),
     percent: Number(facts.percent),
   }),
+  dose_not_prescribed: (facts) => ({
+    tag: facts.tag,
+    product: facts.product,
+    advice: facts.advice,
+  }),
   head_count_differs: (facts) => ({
     pen: facts.pen,
     counted: Number(facts.counted),

@@ -46,6 +46,7 @@ import { sopsRouter } from "./sops";
 import { stockRouter } from "./stock";
 import { syncRouter } from "./sync";
 import { templatesRouter } from "./templates";
+import { treatmentsRouter } from "./treatments";
 import { tripsRouter } from "./trips";
 import { venturesRouter } from "./ventures";
 import { vetCasesRouter } from "./vet-cases";
@@ -103,6 +104,7 @@ export const appRouter = {
   templates: templatesRouter,
   sync: syncRouter,
   vetCases: vetCasesRouter,
+  treatments: treatmentsRouter,
   withdrawals: withdrawalsRouter,
   privateData: protectedProcedure.handler(({ context }) => ({
     message: "This is private",

@@ -45,6 +45,7 @@ export type Audience = readonly AudiencePart[];
 
 const theManagers = { roles: ["manager"] } as const;
 const theOwner = { roles: ["owner"] } as const;
+const theVet = { roles: ["vet"] } as const;
 
 /**
  * Every kind of Notice the farm has, with the facts it carries and who hears it.
@@ -155,6 +156,11 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
   },
   // The Manager walks the Pen and counts again; an animal gone is told to the Owner once the Manager marks her Missing
   // (the Owner, 2026-09-29). About the evening's work for the Pen, which the Manager opens to count again.
+  // The Vet answers for every Withdrawal: a dose nobody prescribed is theirs to see, and to shorten or lengthen.
+  dose_not_prescribed: {
+    audience: [theVet],
+    entity: "treatment",
+  },
   head_count_differs: {
     audience: [theManagers],
     entity: "sop_instance",

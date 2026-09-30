@@ -130,6 +130,11 @@ const EXAMPLE: NoticeFacts = {
   pen_sores_seen: { pen: "ষাঁড় পেন ক", animals: 3, since: "2038-03-09" },
   milk_unaccounted: { litres: 42.5, percent: 4, since: "2038-03-09" },
   head_count_differs: { pen: "ষাঁড় পেন ক", counted: 22, expected: 23 },
+  dose_not_prescribed: {
+    tag: "D-0007",
+    product: "অক্সিটেট্রাসাইক্লিন",
+    advice: "জ্বর, ফার্মেসির পরামর্শে",
+  },
   cash_short: { name: "রফিকুল ইসলাম", shortBdt: 1500, countedOn: "2038-03-09" },
   feed_price_jump: {
     feed: "গমের ভুসি",

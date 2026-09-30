@@ -32,6 +32,8 @@ const OPEN_TO_A_VISIT = new Set<string>([
   "diagnoses.waiting",
   "diagnoses.mine",
   "drugs.list",
+  // The Default Withdrawal Days, read beside the Drug List they belong to.
+  "drugs.defaultDays",
   "instances.today",
   "instances.get",
   "instances.attachPhoto",

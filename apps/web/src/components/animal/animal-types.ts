@@ -71,7 +71,8 @@ export type AnimalAct =
   | "shorten"
   | "purse"
   | "notFound"
-  | "writeOff";
+  | "writeOff"
+  | "dose";
 
 /** What one person may do to her, worked out once for the page: every button and menu item reads from here, so a
  *  control the farm would refuse is never offered — a dead end in the barn. */

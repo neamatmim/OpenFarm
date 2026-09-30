@@ -63,6 +63,13 @@ export interface NoticeFacts {
     /** How far it rose, to a tenth of a percent. */
     percent: number;
   };
+  dose_not_prescribed: {
+    tag: string;
+    /** The product, as the Drug List names it in Bangla. */
+    product: string;
+    /** Who advised it and why, in the words of whoever recorded it. */
+    advice: string;
+  };
   head_count_differs: {
     pen: string;
     /** How many the person counting found standing in it. */

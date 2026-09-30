@@ -4905,6 +4905,38 @@ export const en = {
     "{feed} bought at ৳{price} per {unit}, {percent}% over the last lot at ৳{previous}",
   "digest.feedPriceJump":
     "{count, plural, one {# feed} other {# feeds}} bought dearer than last time",
+  "dose.give": "Dose not prescribed",
+  "dose.hint":
+    "Medicine given on the pharmacy's advice, or anybody's, before the Vet saw her. It holds her milk and meat as any dose does, and the Vet is told at once. Bought it just now? Write the purchase on the Drugs page too, so the store adds up.",
+  "dose.product": "Medicine",
+  "dose.pick": "Choose the medicine",
+  "dose.givenAt": "When it was given (empty is now)",
+  "dose.advice": "Why, and who advised it",
+  "dose.holdsOwn":
+    "Holds her milk {milk, plural, one {# day} other {# days}} and her meat {meat, plural, one {# day} other {# days}}.",
+  "dose.holdsDefault":
+    "The Vet has not written this medicine's days, so it takes the Vet's default: milk {milk, plural, one {# day} other {# days}}, meat {meat, plural, one {# day} other {# days}}.",
+  "dose.askTheVet":
+    "The Vet has written no days for this medicine, and no default. Ask the Vet first.",
+  "dose.recorded": "Dose written; the Vet will be told",
+  "drugs.defaultDays": "Default withdrawal days",
+  "drugs.defaultDaysHint":
+    "For a dose given without a prescription, of a medicine with no days written yet. A dose already given keeps the days it took.",
+  "drugs.defaultNone":
+    "Not written yet: such a dose is refused until you write them.",
+  "drugs.defaultSaved": "Default days saved",
+  "refusal.askTheVetForDays":
+    "The Vet has written no withdrawal days for this medicine, nor the farm's default; ask the Vet",
+  "refusal.givenInTheFuture":
+    "A dose cannot be given at a time that has not come yet",
+  "refusal.productRetired": "That medicine is retired from the Drug List",
+  "alerts.doseNotPrescribed":
+    "{tag} was given {product} without a prescription: {advice}. Check her withdrawal",
+  "push.doseNotPrescribedTitle": "A dose without a prescription",
+  "push.doseNotPrescribedBody":
+    "{tag}: {product}, {advice}. Check her withdrawal days.",
+  "digest.doseNotPrescribed":
+    "{count, plural, one {# dose was} other {# doses were}} given without a prescription",
   "alerts.headCountDiffers":
     "The evening count in {pen} found {counted, plural, one {# animal} other {# animals}}; the register has {expected}",
   "push.headCountDiffersTitle": "Head count does not match",

@@ -18,6 +18,7 @@ import {
   Handshake,
   MapPin,
   MapPinOff,
+  Pill,
   RefreshCw,
   Skull,
   Tag,
@@ -169,6 +170,13 @@ const useMenuActs = (detail: AnimalDetail, powers: AnimalPowers) => {
       // Once a Pen has not counted right and the Manager has walked it: the round's "Animal not found" by hand.
       offered:
         powers.runsTheFarm && powers.stillHere && detail.missing === null,
+    },
+    {
+      act: "dose",
+      label: t("dose.give"),
+      icon: Pill,
+      // Written after it was given, by whoever runs the farm; the Vet prescribes instead.
+      offered: powers.runsTheFarm && powers.stillHere,
     },
     {
       act: "mortality",

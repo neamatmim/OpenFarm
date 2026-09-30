@@ -41,3 +41,12 @@ Owner's decisions. E (cash) and F (sale broker fee) are still open.
 4. **D-01** research, then D-02, D-04, D-05, D-03.
 5. **A-02**, **A-03**; C-03, C-04, C-05; B-05.
 6. **A-04** only once the advisers have approved the lost/stolen clause.
+
+## Chosen, 2026-09-30 (the smaller items)
+
+The Owner chose all four groups of the "smaller or waiting" list. Plans: `g-medicine/` (pharmacy dose, disease picker,
+medicine count), `h-money-slips/` (duplicates, split bills), `i-selling/` (under cost, shrink, after Eid),
+`j-buying-deaths/` (deaths by cause, last buys, early losses by seller). Left on the list: adult campaigns (wait on the
+Vet), dairy quarantine, milk rejected/sold under market, semen cost and conception rate, dairy ration ৳ per litre.
+
+**Build order:** G-01 (food safety), G-02, H-01, H-02, I-01, J-01, I-02, I-03, J-02, J-03, G-03.

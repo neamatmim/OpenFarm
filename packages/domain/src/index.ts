@@ -344,6 +344,7 @@ export {
   ROUTES,
   findWithdrawalProblems,
   illAgainOf,
+  daysOfADoseNotPrescribed,
   mayBePrescribed,
   underMeatWithdrawal,
   whyNotPrescribable,

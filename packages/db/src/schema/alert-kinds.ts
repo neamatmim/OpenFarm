@@ -31,6 +31,7 @@ export const ALERT_KINDS = [
   "pen_sores_seen",
   "milk_unaccounted",
   "head_count_differs",
+  "dose_not_prescribed",
   "feed_price_jump",
   "cash_short",
 ] as const;

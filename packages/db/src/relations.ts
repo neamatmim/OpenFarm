@@ -440,10 +440,10 @@ export const relations = defineRelations(schema, (r) => ({
       optional: false,
     }),
     /** The work raised for this dose, which says whether it is due, late or done. */
+    // None for a dose not prescribed, which no work asked for.
     instance: r.one.sopInstance({
       from: r.treatment.instanceId,
       to: r.sopInstance.id,
-      optional: false,
     }),
     giver: r.one.user({ from: r.treatment.givenBy, to: r.user.id }),
   },
