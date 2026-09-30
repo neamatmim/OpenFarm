@@ -1,6 +1,8 @@
-import { formatDate } from "@OpenFarm/i18n";
+import { againstLastBuys } from "@OpenFarm/domain";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
+import { useQuery } from "@tanstack/react-query";
 import { Camera, CircleCheck, Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -10,6 +12,7 @@ import { FormField, NativeSelect } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
+import { orpc } from "@/utils/orpc";
 
 import type { IntakeFields } from "./intake-fields";
 import { PricePerKg } from "./intake-summary";
@@ -218,7 +221,41 @@ export const SellerSection = ({ fields, onEdit }: PartProps) => {
   );
 };
 
-/** Taka a kilo, in a quiet box under the price and the weight, once both are typed. */
+/** Asked of the farm at the nearest five kilos, so the scale's last figure being typed does not ask it every time. */
+const ASKED_TO_KG = 5;
+
+/**
+ * What the farm's own buys near this weight cost a kilo lately, and how this price stands against them — said once the
+ * price and the weight are typed. Nothing where the farm bought none near her weight.
+ */
+const LastBuys = ({ price, weight }: { price: number; weight: number }) => {
+  const { t, language } = useLanguage();
+  const askedKg = Math.max(
+    ASKED_TO_KG,
+    Math.round(weight / ASKED_TO_KG) * ASKED_TO_KG
+  );
+  const last = useQuery(
+    orpc.intake.lastBuys.queryOptions({ input: { weightKg: askedKg } })
+  );
+  if (!last.data) {
+    return null;
+  }
+  const percent = againstLastBuys(price / weight, last.data.bdtPerKg);
+  const said = t("intake.lastBuys", {
+    animals: last.data.animals,
+    days: last.data.days,
+    taka: formatNumber(last.data.bdtPerKg, language),
+  });
+  let against = t("intake.lastBuysSame");
+  if (percent > 0) {
+    against = t("intake.lastBuysOver", { percent });
+  } else if (percent < 0) {
+    against = t("intake.lastBuysUnder", { percent: -percent });
+  }
+  return <span className="block">{`${said} · ${against}`}</span>;
+};
+
+/** Taka a kilo, in a quiet box under the price and the weight, once both are typed — and the farm's last buys beside. */
 const PerKgLine = ({ fields }: { fields: IntakeFields }) => {
   const price = Number(fields.purchasePriceBdt);
   const weight = Number(fields.weightKg);
@@ -228,6 +265,7 @@ const PerKgLine = ({ fields }: { fields: IntakeFields }) => {
   return (
     <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm tabular-nums">
       <PricePerKg fields={fields} />
+      <LastBuys price={price} weight={weight} />
     </p>
   );
 };

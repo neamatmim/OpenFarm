@@ -1,7 +1,7 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { intake } from "@OpenFarm/db/schema/fattening";
 import { SEXES } from "@OpenFarm/db/schema/herd";
-import { farmDayOf } from "@OpenFarm/domain";
+import { LAST_BUYS_DAYS, farmDayOf, lastBuysPerKg } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -78,6 +78,8 @@ const recordInput = z
     { message: "A Target Window cannot end before it begins" }
   );
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 export const intakeRouter = {
   /**
    * The traders the farm deals with, most recent first.
@@ -85,6 +87,31 @@ export const intakeRouter = {
    * Read by the Owner as well as the Manager: the roles matrix gives the Owner `R` on Intake,
    * and who the farm buys from is exactly the sort of thing an Owner reads without doing.
    */
+  /**
+   * What the farm's own buys of the last two months near this weight cost a kilo, beside the price being typed — the
+   * Manager's check against paying over the odds at the haat. The Owner's and the Manager's: they buy, and know the
+   * prices already. Nothing where the farm bought none near her weight.
+   */
+  lastBuys: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ weightKg: z.number().positive().max(2000) }))
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const since = new Date(now.getTime() - LAST_BUYS_DAYS * DAY_MS);
+      const buys = await context.db.query.intake.findMany({
+        where: { farmId: context.farm.id, arrivedAt: { gte: since } },
+        columns: { purchasePriceBdt: true, weightKg: true, arrivedAt: true },
+      });
+      return lastBuysPerKg(
+        buys.map((one) => ({
+          priceBdt: one.purchasePriceBdt,
+          weightKg: Number(one.weightKg),
+          arrivedAt: one.arrivedAt,
+        })),
+        { weightKg: input.weightKg, now }
+      );
+    }),
+
   sellers: protectedProcedure
     .use(requireRole("owner", "manager"))
     .handler(({ context }) =>
