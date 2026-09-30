@@ -4701,6 +4701,20 @@ export const en = {
   "event.calved": "A cow calves",
   "event.unwell_urgent": "The round sees bloat or laboured breathing",
   "unwell.seen": "What was seen",
+  "alerts.penSoresSeen":
+    "{animals, plural, one {# animal} other {# animals}} in {pen} seen with sores on the mouth or feet since {since}",
+  "alerts.openObservations": "Open what was seen",
+  "push.penSoresSeenTitle": "Sores in one Pen",
+  "push.penSoresSeenBody":
+    "{animals, plural, one {# animal} other {# animals}} in {pen} with sores on the mouth or feet. Ring the Vet, and keep the Pen apart.",
+  "digest.penSoresSeen":
+    "{count, plural, one {# Pen} other {# Pens}} with several animals seen with sores",
+  "params.sores": "Sores in one Pen",
+  "params.soresHint":
+    "When this many animals in one Pen are seen with sores on the mouth or feet within these hours, you and the Manager are told at once.",
+  "params.soresTellAnimals": "Animals in one Pen",
+  "params.soresTellHours": "Within",
+  "params.animals": "animals",
   "refusal.notMissing": "This animal is not missing: nobody is looking for it",
 } as const;
 

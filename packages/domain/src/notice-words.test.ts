@@ -127,6 +127,7 @@ const EXAMPLE: NoticeFacts = {
   },
   animal_missing: { tag: "F-0012", pen: "ষাঁড় পেন ক", since: "2038-03-09" },
   store_shortfall: { shortBdt: 3450, countedOn: "2038-03-09" },
+  pen_sores_seen: { pen: "ষাঁড় পেন ক", animals: 3, since: "2038-03-09" },
 };
 
 const LANGUAGES: readonly Language[] = ["bn", "en"];

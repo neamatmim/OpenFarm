@@ -54,6 +54,8 @@ type NumberKey =
   | "monthlyCostsFromDay"
   | "bakiDays"
   | "storeShortfallTellBdt"
+  | "soresTellAnimals"
+  | "soresTellHours"
   | "ventureFloorPercent"
   | "ventureRunningPercent"
   | "ventureInvestorsPercent"
@@ -248,6 +250,27 @@ const GROUPS: {
         unit: "params.days",
         min: 7,
         max: 120,
+      },
+    ],
+  },
+  {
+    id: "params-sores",
+    title: "params.sores",
+    hint: "params.soresHint",
+    fields: [
+      {
+        key: "soresTellAnimals",
+        label: "params.soresTellAnimals",
+        unit: "params.animals",
+        min: 2,
+        max: 20,
+      },
+      {
+        key: "soresTellHours",
+        label: "params.soresTellHours",
+        unit: "params.hours",
+        min: 12,
+        max: 168,
       },
     ],
   },

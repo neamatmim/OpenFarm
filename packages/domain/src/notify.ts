@@ -91,6 +91,10 @@ export const DELIVERY = {
   animal_missing: { when: "immediate" },
   // A count come up short has happened: the evening's reading, with the figure to ask the Manager about tomorrow.
   store_shortfall: { when: "digest" },
+  // Several animals in one Pen with sores on the mouth or feet: what FMD looks like before the Vet has seen it. Told at
+  // once, because it spreads through a Pen in days and the Vet visits weekly (the Owner, 2026-09-29) — but not at night:
+  // the round that saw it is walked in the morning.
+  pen_sores_seen: { when: "immediate" },
 } as const satisfies Record<AlertKind, Delivery>;
 
 /**
@@ -213,6 +217,11 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
   store_shortfall: {
     app: "alerts.storeShortfall",
     digest: "digest.storeShortfall",
+  },
+  pen_sores_seen: {
+    app: "alerts.penSoresSeen",
+    push: { title: "push.penSoresSeenTitle", body: "push.penSoresSeenBody" },
+    digest: "digest.penSoresSeen",
   },
 };
 
