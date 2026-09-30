@@ -3855,6 +3855,7 @@ export const en = {
   "sop.effect.calving": "Calving",
   "sop.effect.stock_count": "Counts the store",
   "sop.effect.head_count": "Counts the pen against the register",
+  "sop.effect.cash_count": "Counts the cash in hand",
   "sop.effect.lot_number": "The vial's Lot Number, once for the Campaign",
   "abortion.title": "Abortions",
   "abortion.stage": "{months, plural, one {# month} other {# months}} along",
@@ -4724,6 +4725,10 @@ export const en = {
   "owner.storeNeverCounted": "Never counted",
   "alerts.storeShortfall": "The store count on {day} came up ৳{amount} short",
   "alerts.openTheCounts": "Open the counts",
+  "alerts.cashShort": "{name}'s cash count on {day} came up ৳{amount} short",
+  "digest.cashShort":
+    "{count, plural, one {# cash count} other {# cash counts}} came up short",
+  "alerts.openTheCash": "Open the cash in hand",
   "digest.storeShortfall":
     "{count, plural, one {# store count} other {# store counts}} came up short",
   "params.storeShortfall": "A short store",
@@ -4795,6 +4800,10 @@ export const en = {
   "params.milkUnaccountedHint":
     "When this much of a week's milk into the tank has neither left the gate nor is still in the tank, you and the Manager are told in the evening's post.",
   "params.milkUnaccountedPercent": "More than",
+  "params.cashShort": "Cash count short",
+  "params.cashShortHint":
+    "When the weekly cash count finds this much less than the farm says the hand holds, you are told in the evening's post.",
+  "params.cashShortTellBdt": "Tell when short by more than",
   "params.feedDays": "Days of feed left",
   "params.feedDaysHint":
     "A feed with fewer days left than this, at the rate it has been fed over the last fortnight, is running low, and the Manager is told in the evening's post.",
@@ -4838,6 +4847,10 @@ export const en = {
   "cash.nobody": "Nobody holds the farm's cash yet",
   "cash.none": "No cash has moved through this hand yet.",
   "cash.heldBy": "in {name}'s hand",
+  "cash.neverCounted": "Not counted yet",
+  "cash.lastCount": "Counted {day}: {counted} found, {expected} expected",
+  "cash.countShort": "{bdt} short",
+  "cash.countOver": "{bdt} over",
   "cash.handOver": "Hand over",
   "cash.handOverTitle": "Hand over cash · {name}",
   "cash.handOverHint":

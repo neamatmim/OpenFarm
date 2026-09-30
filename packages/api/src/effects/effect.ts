@@ -19,6 +19,7 @@ import type { Refusal } from "../roles";
 import { forbidden } from "../roles";
 import type { StockAdjustment, StockCountLine } from "../stock-store";
 import { calvingEffect } from "./calving";
+import { cashCountEffect } from "./cash-count";
 import { dlsReportEffect } from "./dls-report";
 import { dryOffEffect } from "./dry-off";
 import { feedingEffect } from "./feeding";
@@ -130,6 +131,11 @@ export type EffectResult =
       kind: "stock_count";
       /** The Feed Items whose count differed from what the store was thought to hold. */
       adjustments: StockAdjustment[];
+    }
+  | {
+      kind: "cash_count";
+      /** Whether the count differs from what the hand was said to hold: nothing of how much, the count being blind. */
+      differs: boolean;
     }
   | {
       kind: "head_count";
@@ -304,6 +310,7 @@ const EFFECTS: Record<
   feeding: feedingEffect,
   stock_count: stockCountEffect,
   head_count: headCountEffect,
+  cash_count: cashCountEffect,
   registration_renewal: renewalEffect,
 };
 

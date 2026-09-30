@@ -96,6 +96,11 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     percent: Number(facts.percent),
     since: saidDate(facts.since, language),
   }),
+  cash_short: (facts, language) => ({
+    name: facts.name,
+    amount: Number(facts.shortBdt),
+    day: saidDate(facts.countedOn, language),
+  }),
   feed_price_jump: (facts, language) => ({
     feed: facts.feed,
     unit: feedUnitEach(facts.unit, language),

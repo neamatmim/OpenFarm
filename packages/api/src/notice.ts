@@ -164,6 +164,12 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
     audience: [theOwner],
     entity: "feed_in",
   },
+  // The Owner signs the count off and asks where the cash went; the Manager counted it. About the one count, so a count
+  // put right is not told again.
+  cash_short: {
+    audience: [theOwner],
+    entity: "step_completion",
+  },
 };
 
 /** A Notice as it was raised, for whoever carries it out of the transaction to a pocket. */

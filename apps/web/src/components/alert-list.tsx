@@ -143,6 +143,13 @@ const WhereItLeads = ({
       </Link>
     );
   }
+  if (notice.kind === "cash_short") {
+    return (
+      <Link className={LEADS_CLASS} search={{ tab: "cash" }} to="/money">
+        {t("alerts.openTheCash")}
+      </Link>
+    );
+  }
   if (notice.kind === "store_shortfall") {
     return (
       <Link className={LEADS_CLASS} search={{ tab: "counts" }} to="/admin/feed">

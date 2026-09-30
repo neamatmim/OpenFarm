@@ -95,6 +95,8 @@ export type StepEffect =
   | { kind: "stock_count" }
   /** A Pen counted by the number standing in it, blind, and set against the animals the register puts there. */
   | { kind: "head_count" }
+  /** The cash in the counter's own hand counted, blind, and set against what the farm says they hold. */
+  | { kind: "cash_count" }
   /** The farm's DLS Registration renewed: the new expiry, and the renewed certificate's photo. */
   | { kind: "registration_renewal" }
   /** The Lot Number a vaccination Campaign was given from, asked once for the Pen. */
@@ -117,6 +119,7 @@ export const STEP_EFFECT_KINDS = [
   "calving",
   "stock_count",
   "head_count",
+  "cash_count",
   "registration_renewal",
   "lot_number",
 ] as const;
@@ -501,6 +504,7 @@ const PER_ANIMAL_FIGURES: Partial<Record<StepEffect["kind"], string>> = {
 const ONCE_FOR_THE_PEN_FIGURES: Partial<Record<StepEffect["kind"], string>> = {
   bulk_total: "the bulk total is recorded once for the session",
   head_count: "a Pen is counted once, not once per animal",
+  cash_count: "the cash is counted once, not once per animal",
 };
 
 /** A Step that writes a farm record must be able to: it needs the figure it writes, and it
@@ -817,6 +821,7 @@ const reportRoleProblems = (content: SopContent): string[] => {
  *   nobody else who records), or parentage goes to the wrong person the day the Version is published;
  * - a Stock Count is the Manager's (Feed stock, Purchases, Stock Count — Manager `C R U`, Barn Staff
  *   nothing), because the count moves what the farm's feed is worth;
+ * - a Cash Count is the hand's own that is counted — a Manager's, or the Owner's — and Barn Staff hold no cash;
  * - the Registration's renewal is the Owner's (the registration decision: SOP 26, assigned to the Owner);
  * - a Calving is recorded by Barn Staff as a Step, or by the Manager (Breeding — Calving `C R U` to the
  *   Manager and `C` to Staff as a Step); the Owner reads it, and the Vet records the check, not the birth.
@@ -837,6 +842,11 @@ const WHOSE_STEPS: readonly {
     problem: "a procedure that counts the store is the Manager's",
   },
   {
+    effect: "cash_count",
+    roles: ["manager", "owner"],
+    problem: "a procedure that counts the cash is a Manager's or the Owner's",
+  },
+  {
     effect: "registration_renewal",
     roles: ["owner"],
     problem: "a procedure that renews the Registration is the Owner's",
@@ -853,7 +863,7 @@ const WHOSE_STEPS: readonly {
  *  the store, which is one however many Pens stand full. */
 const FARM_WORK_EFFECTS: ReadonlySet<StepEffect["kind"]> = new Set<
   StepEffect["kind"]
->(["registration_renewal", "stock_count"]);
+>(["registration_renewal", "stock_count", "cash_count"]);
 
 /** Whether an SOP's work is about the whole farm rather than about a Pen: the Registration's renewal, or work
  *  marked so — the footbath, the visitor book. */

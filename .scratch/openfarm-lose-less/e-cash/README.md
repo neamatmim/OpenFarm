@@ -22,7 +22,7 @@ app records that money moved; it never says whose hand it is in now.
 | #   | Ticket                          | Blocked by |
 | --- | ------------------------------- | ---------- |
 | 01  | Cash in Hand, and a Handover (done) | —      |
-| 02  | The weekly Cash Count           | 01         |
+| 02  | The weekly Cash Count (done)    | 01         |
 | 03  | A Float for the Farm's own trip | 01         |
 | 04  | A Wage Draw, taken off at payday | —         |
 

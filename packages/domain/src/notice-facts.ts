@@ -43,6 +43,14 @@ export interface NoticeFacts {
     /** The farm day ("YYYY-MM-DD") the week began. */
     since: string;
   };
+  cash_short: {
+    /** Whose hand was counted. */
+    name: string;
+    /** How far the count came under what the farm said the hand held, to the taka. */
+    shortBdt: number;
+    /** The farm day ("YYYY-MM-DD") it was counted. */
+    countedOn: string;
+  };
   feed_price_jump: {
     /** The Feed Item's Bangla name, as the store names it. */
     feed: string;
