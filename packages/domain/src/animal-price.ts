@@ -71,6 +71,31 @@ export const priceRangeFor = ({
 };
 
 /**
+ * Whether a Sale fetched less than she cost the farm, or less than the low price a kilo her weight on the day was worth
+ * — what the Owner is told of, never what the Manager is refused: a bull with a bad leg goes cheap, and the haat is the
+ * Manager's call. The low price is her Venture's, or the farm's market price; nothing while neither is set.
+ */
+export const soldUnder = ({
+  priceBdt,
+  costBdt,
+  weightKg,
+  range,
+}: {
+  priceBdt: number;
+  costBdt: number;
+  weightKg: number;
+  range: PriceRange | null;
+}): { underCost: boolean; underMarket: boolean; lowBdt: number | null } => {
+  const lowBdt =
+    range && weightKg > 0 ? roundTaka(weightKg * range.lowBdtPerKg) : null;
+  return {
+    underCost: priceBdt < costBdt,
+    underMarket: lowBdt !== null && priceBdt < lowBdt,
+    lowBdt,
+  };
+};
+
+/**
  * What a kilo fetched across some of the farm's sales: everything they fetched over everything they weighed — so a
  * heavy bull counts for his weight, not as one vote beside a light one. Nothing where nothing with a weight was sold.
  */

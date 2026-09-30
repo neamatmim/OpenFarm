@@ -4439,6 +4439,9 @@ export const bn: Record<MessageKey, string> = {
   "owner.storeNeverCounted": "কখনো গোনা হয়নি",
   "alerts.storeShortfall": "{day}-এর গুদাম গণনায় ৳{amount}-এর খাদ্য কম পাওয়া গেছে",
   "alerts.openTheCounts": "গণনা খুলুন",
+  "alerts.soldUnderCost":
+    "{tag} বিক্রি হলো ৳{price}-তে; তার খরচ পড়েছিল ৳{cost}, আর কম দরে তার ওজনের দাম {low}",
+  "digest.soldUnderCost": "{count}টি পশু খরচ বা বাজারের চেয়ে কম দামে বিক্রি হয়েছে",
   "alerts.enteredTwice":
     "{by} {day} তারিখে {name}-কে ৳{amount} দ্বিতীয়বার লিখেছেন, একই রকম একটি লেখা আছে জেনেও",
   "digest.enteredTwice": "{count}টি টাকার হিসাব জেনেশুনে দ্বিতীয়বার লেখা হয়েছে",

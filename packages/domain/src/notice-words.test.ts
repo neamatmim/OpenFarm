@@ -136,6 +136,12 @@ const EXAMPLE: NoticeFacts = {
     advice: "জ্বর, ফার্মেসির পরামর্শে",
   },
   cash_short: { name: "রফিকুল ইসলাম", shortBdt: 1500, countedOn: "2038-03-09" },
+  sold_under_cost: {
+    tag: "F-0012",
+    priceBdt: 150_000,
+    costBdt: 162_400,
+    lowBdt: 176_800,
+  },
   entered_twice: {
     name: "রহিম মিস্ত্রি",
     amountBdt: 1500,

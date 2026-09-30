@@ -608,6 +608,7 @@ export {
   perKgOfSales,
   priceOfAnimal,
   priceRangeFor,
+  soldUnder,
 } from "./animal-price";
 export {
   CULL_REASONS,

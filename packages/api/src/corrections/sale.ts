@@ -3,6 +3,7 @@ import { sale } from "@OpenFarm/db/schema/fattening";
 import { bakiPutRight, farmDayOf, paidAtTheGate } from "@OpenFarm/domain";
 import { z } from "zod";
 
+import { tellIfSoldUnderCost } from "../animal-price-store";
 import type { Tx } from "../audit";
 import { bakiOrRefuse, paidNowInput, promisedByInput } from "../baki-store";
 import { counterpartyNamed } from "../counterparty-store";
@@ -121,5 +122,9 @@ export const saleCorrection: CorrectionKind<
       row.id,
       to.paymentMethod
     );
+    // A price put right, or a broker's fee, may take her under her cost; told once about the Sale, as when it was made.
+    if (to.priceBdt !== undefined || to.brokerBdt !== undefined) {
+      await tellIfSoldUnderCost(tx, row.farmId, row.id, now);
+    }
   },
 };
