@@ -160,6 +160,7 @@ const WORDED_REFUSALS = {
   bank_needs_a_slip: "refusal.bankNeedsASlip",
   holds_no_cash: "refusal.holdsNoCash",
   handover_goes_nowhere: "refusal.handoverGoesNowhere",
+  no_float_on_the_trip: "refusal.noFloatOnTheTrip",
   outcome_said: "refusal.outcomeSaid",
   written_off_more_than_owed: "refusal.writtenOffMoreThanOwed",
   nothing_owed_on_it: "refusal.nothingOwedOnIt",

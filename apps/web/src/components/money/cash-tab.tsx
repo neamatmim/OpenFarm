@@ -42,7 +42,11 @@ const HandOverDialog = ({
   const [amount, setAmount] = useState("");
   const [reference, setReference] = useState("");
   const [note, setNote] = useState("");
+  const [tripId, setTripId] = useState("");
   const toTheBank = to === BANK;
+  // The Farm's own outings a float may go on: none a Venture's Buying Float paid for.
+  const trips = useQuery(orpc.trips.list.queryOptions());
+  const farmsTrips = (trips.data ?? []).filter((one) => one.float === null);
   const handOver = useMutation(
     orpc.cash.handOver.mutationOptions({
       onSuccess: () => {
@@ -50,6 +54,7 @@ const HandOverDialog = ({
         setAmount("");
         setReference("");
         setNote("");
+        setTripId("");
         onOpenChange(false);
       },
       onError,
@@ -67,6 +72,7 @@ const HandOverDialog = ({
           amountBdt: Number(amount),
           ...(slipSaid ? { reference: reference.trim() } : {}),
           ...(note.trim() ? { note: note.trim() } : {}),
+          ...(tripId && !toTheBank ? { buyingTripId: tripId } : {}),
         })
       }
       open={open}
@@ -111,6 +117,26 @@ const HandOverDialog = ({
           />
         </FormField>
       ) : null}
+      {toTheBank || farmsTrips.length === 0 ? null : (
+        <FormField
+          hint={t("cash.forTripHint")}
+          id="hand-trip"
+          label={t("cash.forTrip")}
+        >
+          <NativeSelect
+            id="hand-trip"
+            onChange={(event) => setTripId(event.target.value)}
+            value={tripId}
+          >
+            <option value="">{t("cash.noTrip")}</option>
+            {farmsTrips.map((one) => (
+              <option key={one.id} value={one.id}>
+                {one.wentTo}
+              </option>
+            ))}
+          </NativeSelect>
+        </FormField>
+      )}
       <FormField id="hand-note" label={t("cash.note")}>
         <Input
           id="hand-note"
@@ -277,6 +303,124 @@ const HandLine = ({
   );
 };
 
+type Float = Awaited<ReturnType<typeof orpc.cash.tripFloats.call>>[number];
+
+/** The Owner counts a float home: the cash brought back, which must make the float balance to the taka. */
+const CountHomeDialog = ({
+  float,
+  open,
+  onOpenChange,
+}: {
+  float: Float;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) => {
+  const { t } = useLanguage();
+  const onError = useRefused();
+  const due = float.handedBdt - float.boughtBdt - float.backBdt;
+  const [back, setBack] = useState(String(Math.max(0, due)));
+  const countHome = useMutation(
+    orpc.cash.countFloatHome.mutationOptions({
+      onSuccess: () => {
+        toast.success(t("cash.countedHome"));
+        onOpenChange(false);
+      },
+      onError,
+    })
+  );
+  const typed = Number(back);
+  const saysAnAmount = back.trim() !== "" && !(typed < 0);
+  return (
+    <FormDialog
+      description={t("cash.countHomeHint", { name: float.carrierName ?? "" })}
+      onOpenChange={onOpenChange}
+      onSubmit={() =>
+        countHome.mutate({ tripId: float.tripId, cashBackBdt: typed })
+      }
+      open={open}
+      pending={countHome.isPending}
+      ready={saysAnAmount}
+      submitLabel={t("cash.countHome")}
+      title={t("cash.countHomeTitle", { trip: float.wentTo })}
+    >
+      <FormField id="float-back" label={t("cash.cashBack")}>
+        <Input
+          id="float-back"
+          inputMode="numeric"
+          min={0}
+          onChange={(event) => setBack(event.target.value)}
+          type="number"
+          value={back}
+        />
+      </FormField>
+    </FormDialog>
+  );
+};
+
+/** One float still out: where it went, who carried it, what went out, what it bought, and what is to come back. */
+const FloatLine = ({ float, isOwner }: { float: Float; isOwner: boolean }) => {
+  const { t, language } = useLanguage();
+  const taka = useTaka();
+  const [counting, setCounting] = useState(false);
+  const due = float.handedBdt - float.boughtBdt - float.backBdt;
+  return (
+    <li className="flex items-center justify-between gap-3 py-3">
+      <span className="flex min-w-0 flex-col">
+        <span className="font-medium">
+          {float.wentTo} ·{" "}
+          {formatDate(new Date(float.wentOn), language, "date")}
+        </span>
+        <span className="text-muted-foreground text-xs tabular-nums">
+          {t("cash.floatLine", {
+            name: float.carrierName ?? "",
+            handed: taka(float.handedBdt),
+            bought: taka(float.boughtBdt),
+            due: taka(due),
+          })}
+        </span>
+      </span>
+      {isOwner ? (
+        <>
+          <Button
+            onClick={() => setCounting(true)}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            {t("cash.countHome")}
+          </Button>
+          <CountHomeDialog
+            float={float}
+            onOpenChange={setCounting}
+            open={counting}
+          />
+        </>
+      ) : null}
+    </li>
+  );
+};
+
+/** The Buying Floats the Farm handed out for its own outings and has not yet counted home. Nothing while none is out. */
+const FloatsOut = ({ isOwner }: { isOwner: boolean }) => {
+  const { t } = useLanguage();
+  const floats = useQuery(orpc.cash.tripFloats.queryOptions());
+  if (!floats.data?.length) {
+    return null;
+  }
+  return (
+    <section className="surface flex flex-col p-4 md:p-5">
+      <h3 className="text-base font-semibold tracking-tight">
+        {t("cash.floatsOut")}
+      </h3>
+      <ul className="divide-y">
+        {floats.data.map((float) => (
+          <FloatLine float={float} isOwner={isOwner} key={float.tripId} />
+        ))}
+      </ul>
+    </section>
+  );
+};
+
 /**
  * Who holds the farm's cash: each Owner and Manager and what is in their hand, from the cash money that named it and
  * the Handovers that moved it on. The Owner sees and moves every hand; a Manager sees and hands over their own.
@@ -297,17 +441,20 @@ export const CashTab = ({
     return <EmptyState icon={Banknote} title={t("cash.nobody")} />;
   }
   return (
-    <section className="surface flex flex-col p-4 md:p-5">
-      <p className="text-muted-foreground pb-2 text-xs">{t("cash.hint")}</p>
-      <ul className="divide-y">
-        {hands.data.map((hand) => (
-          <HandLine
-            hand={hand}
-            key={hand.userId}
-            mayHandOver={isOwner || hand.userId === myId}
-          />
-        ))}
-      </ul>
-    </section>
+    <div className="flex flex-col gap-6">
+      <section className="surface flex flex-col p-4 md:p-5">
+        <p className="text-muted-foreground pb-2 text-xs">{t("cash.hint")}</p>
+        <ul className="divide-y">
+          {hands.data.map((hand) => (
+            <HandLine
+              hand={hand}
+              key={hand.userId}
+              mayHandOver={isOwner || hand.userId === myId}
+            />
+          ))}
+        </ul>
+      </section>
+      <FloatsOut isOwner={isOwner} />
+    </div>
   );
 };

@@ -15,6 +15,7 @@ import { counterparty } from "./fattening";
 import { drugProduct } from "./health";
 import { SIDES, animal } from "./herd";
 import { taka } from "./taka";
+import { buyingTrip } from "./trip";
 import { venture } from "./venture";
 
 /** Which way money went: into the farm, or out of it. */
@@ -219,6 +220,10 @@ export const handover = pgTable(
     /** The deposit slip or the cheque, where the bank is one end. */
     reference: text("reference"),
     note: text("note"),
+    /** The Farm's own Buying Trip this cash was for: its **Buying Float** handed out before the haat, or the cash
+     *  brought back when it was counted home. Nothing for cash passed for any other reason. */
+    buyingTripId: text("buying_trip_id").references(() => buyingTrip.id),
+    float: text("float", { enum: ["out", "back"] }),
     recordedBy: text("recorded_by")
       .notNull()
       .references(() => user.id),

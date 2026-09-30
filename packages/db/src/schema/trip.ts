@@ -33,6 +33,10 @@ export const buyingTrip = pgTable(
     recordedBy: text("recorded_by").references(() => user.id),
     recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
     createdAt: timestamp("created_at").notNull(),
+    /** When the Farm's own Buying Float for this outing was counted home, and by whom; nothing while it is out, or
+     *  for an outing no Farm float went on. */
+    floatReconciledAt: timestamp("float_reconciled_at"),
+    floatReconciledBy: text("float_reconciled_by").references(() => user.id),
   },
   (table) => [index("buying_trip_day_idx").on(table.farmId, table.wentOn)]
 );

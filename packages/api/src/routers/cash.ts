@@ -5,13 +5,22 @@ import { audited } from "../audit";
 import {
   cashInHand,
   cashMovementsOf,
+  farmTripFloat,
+  openFarmFloats,
   readHandover,
+  reconcileFarmFloat,
   recordHandover,
 } from "../cash-store";
 import type { HandEnd } from "../cash-store";
 import { protectedProcedure } from "../index";
 import { amountInput } from "../money-inputs";
-import { forbidden, requireRole, requirePersonalSession } from "../roles";
+import {
+  OWNER_ONLY,
+  forbidden,
+  requireOnly,
+  requirePersonalSession,
+  requireRole,
+} from "../roles";
 
 // Who holds the farm's cash. The Owner reads every hand; a Manager reads their own and hands over from it.
 
@@ -81,6 +90,8 @@ export const cashRouter = {
         /** The deposit slip or the cheque, where the bank is one end. */
         reference: z.string().trim().min(1).max(80).optional(),
         note: z.string().trim().max(300).optional(),
+        /** The Farm's own outing this is the Buying Float for, where it is one. */
+        buyingTripId: z.string().optional(),
       })
     )
     .handler(async ({ context, input }) => {
@@ -117,6 +128,7 @@ export const cashRouter = {
             handedAt,
             reference: input.reference ?? null,
             note: input.note ?? null,
+            buyingTripId: input.buyingTripId,
             recordedBy: context.actor.id,
             recordedByRole: role,
             now,
@@ -124,5 +136,59 @@ export const cashRouter = {
         }
       );
       return { id };
+    }),
+
+  /** Every Buying Float the Farm handed out for its own outings and has not yet counted home. */
+  tripFloats: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .handler(({ context }) => openFarmFloats(context.db, context.farm.id)),
+
+  /**
+   * The Owner counts a Farm float home: what was handed out must be what the outing bought of the Farm's own and the
+   * cash brought back, to the taka; the cash back goes from the hand that carried it to the Owner's, and the float
+   * closes. Refused over or short, with the gap.
+   */
+  countFloatHome: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        tripId: z.string(),
+        /** The cash brought back, in taka; nothing where all of it was spent. */
+        cashBackBdt: z.number().min(0).max(100_000_000),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const role = context.roleUsed;
+      if (!role) {
+        throw new ORPCError("FORBIDDEN");
+      }
+      await audited(context).write(
+        {
+          entity: "buying_trip",
+          entityId: input.tripId,
+          action: "update",
+          after: async (tx) => {
+            const float = await farmTripFloat(
+              tx,
+              context.farm.id,
+              input.tripId
+            );
+            return float ? { ...float } : null;
+          },
+        },
+        (tx) =>
+          reconcileFarmFloat(tx, {
+            farmId: context.farm.id,
+            tripId: input.tripId,
+            cashBackBdt: input.cashBackBdt,
+            ownerId: context.actor.id,
+            role,
+            now,
+          })
+      );
+      return { tripId: input.tripId };
     }),
 };

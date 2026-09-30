@@ -23,7 +23,7 @@ app records that money moved; it never says whose hand it is in now.
 | --- | ------------------------------- | ---------- |
 | 01  | Cash in Hand, and a Handover (done) | —      |
 | 02  | The weekly Cash Count (done)    | 01         |
-| 03  | A Float for the Farm's own trip | 01         |
+| 03  | A Float for the Farm's own trip (done) | 01  |
 | 04  | A Wage Draw, taken off at payday | —         |
 
 **Settled with the Owner, 2026-09-30, and not to be re-asked:**

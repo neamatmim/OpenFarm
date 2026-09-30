@@ -496,7 +496,14 @@ export const assertTripIsOpen = async (
 export const whatTheFloatBought = async (
   tx: Pick<Tx, "query">,
   farmId: string,
-  { buyingTripId, ventureId }: { buyingTripId: string; ventureId: string }
+  {
+    buyingTripId,
+    ventureId,
+  }: {
+    buyingTripId: string;
+    /** Whose animals it bought: a Venture's, or nothing for the Farm's own float. */
+    ventureId: string | null;
+  }
 ) => {
   const trip = await tx.query.buyingTrip.findFirst({
     where: { id: buyingTripId, farmId },

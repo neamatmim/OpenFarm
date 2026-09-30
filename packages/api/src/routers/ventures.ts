@@ -1681,7 +1681,16 @@ export const venturesRouter = {
             },
             columns: { id: true },
           });
-          if (already) {
+          // The Farm's own float counts too: one outing is paid for by one purse.
+          const farmsFloat = await tx.query.handover.findFirst({
+            where: {
+              farmId: context.farm.id,
+              buyingTripId: input.buyingTripId,
+              float: "out",
+            },
+            columns: { id: true },
+          });
+          if (already || farmsFloat) {
             throw new ORPCError("BAD_REQUEST", {
               message: "That outing has been given a Float already",
               data: { refusal: "float_already_drawn" },

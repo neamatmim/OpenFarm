@@ -4836,6 +4836,7 @@ export const en = {
   "heatWatch.heiferAgeUnknown": "Heifer, age not known, not yet served · {pen}",
   "refusal.notMissing": "This animal is not missing: nobody is looking for it",
   "refusal.gdNumberNeeded": "A theft needs the thana's GD number",
+  "refusal.noFloatOnTheTrip": "No float was handed out for this trip",
   "refusal.bankNeedsASlip":
     "Cash into or out of the bank needs its slip or cheque",
   "refusal.holdsNoCash": "Only the Owner or a Manager holds the farm's cash",
@@ -4848,6 +4849,19 @@ export const en = {
   "cash.none": "No cash has moved through this hand yet.",
   "cash.heldBy": "in {name}'s hand",
   "cash.neverCounted": "Not counted yet",
+  "cash.forTrip": "A buying trip's float",
+  "cash.forTripHint":
+    "Cash for one of the farm's own buying trips, counted home against what it buys when the lorry is back.",
+  "cash.noTrip": "Not for a trip",
+  "cash.floatsOut": "Buying trip floats out",
+  "cash.floatLine":
+    "Carried by {name}: {handed} out, {bought} bought, {due} to come back",
+  "cash.countHome": "Count home",
+  "cash.countHomeTitle": "Count the float home · {trip}",
+  "cash.countHomeHint":
+    "The cash {name} brought back. It must make the float balance to the taka against what the trip bought.",
+  "cash.cashBack": "Cash brought back (৳)",
+  "cash.countedHome": "The float is counted home",
   "cash.lastCount": "Counted {day}: {counted} found, {expected} expected",
   "cash.countShort": "{bdt} short",
   "cash.countOver": "{bdt} over",

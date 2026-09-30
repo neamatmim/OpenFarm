@@ -4520,6 +4520,7 @@ export const bn: Record<MessageKey, string> = {
   "heatWatch.heiferAgeUnknown": "বকনা, বয়স জানা নেই, এখনো পাল দেওয়া হয়নি · {pen}",
   "refusal.notMissing": "পশুটি হারায়নি — কেউ তাকে খুঁজছে না",
   "refusal.gdNumberNeeded": "চুরি হলে থানার জিডি নম্বর লাগবে",
+  "refusal.noFloatOnTheTrip": "এই যাত্রার জন্য কোনো টাকা দেওয়া হয়নি",
   "refusal.bankNeedsASlip": "ব্যাংকে জমা বা ব্যাংক থেকে তোলায় স্লিপ বা চেক লাগবে",
   "refusal.holdsNoCash": "খামারের নগদ শুধু মালিক বা ম্যানেজারের হাতে থাকে",
   "refusal.handoverGoesNowhere": "নগদ এক হাত থেকে আরেক হাতে, বা ব্যাংকে জমা বা তোলা হয়",
@@ -4530,6 +4531,19 @@ export const bn: Record<MessageKey, string> = {
   "cash.none": "এই হাতে এখনো কোনো নগদ আসা-যাওয়া হয়নি।",
   "cash.heldBy": "{name}-এর হাতে",
   "cash.neverCounted": "এখনো গোনা হয়নি",
+  "cash.forTrip": "হাটে কেনার যাত্রার টাকা",
+  "cash.forTripHint":
+    "খামারের নিজের কোনো কেনার যাত্রার জন্য নগদ; গাড়ি ফিরলে যা কেনা হয়েছে তার সাথে মিলিয়ে দেখা হবে।",
+  "cash.noTrip": "কোনো যাত্রার জন্য নয়",
+  "cash.floatsOut": "হাটে যাওয়া টাকা, এখনো মেলানো হয়নি",
+  "cash.floatLine":
+    "{name}-এর কাছে: দেওয়া {handed}, কেনা {bought}, ফেরত আসার কথা {due}",
+  "cash.countHome": "মিলিয়ে নিন",
+  "cash.countHomeTitle": "যাত্রার টাকা মেলানো · {trip}",
+  "cash.countHomeHint":
+    "{name} যে নগদ ফেরত এনেছেন। যাত্রায় যা কেনা হয়েছে তার সাথে টাকায় টাকায় মিলতে হবে।",
+  "cash.cashBack": "ফেরত আনা নগদ (৳)",
+  "cash.countedHome": "যাত্রার টাকা মেলানো হলো",
   "cash.lastCount": "{day} গোনা: পাওয়া গেছে {counted}, থাকার কথা {expected}",
   "cash.countShort": "{bdt} কম",
   "cash.countOver": "{bdt} বেশি",
