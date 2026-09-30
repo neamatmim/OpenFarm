@@ -4698,6 +4698,7 @@ export const en = {
   "costs.storeCounts":
     "{count, plural, one {# count} other {# counts}} in the period",
   "event.unwell": "The round sees an animal unwell",
+  "event.calved": "A cow calves",
   "event.unwell_urgent": "The round sees bloat or laboured breathing",
   "unwell.seen": "What was seen",
   "refusal.notMissing": "This animal is not missing: nobody is looking for it",

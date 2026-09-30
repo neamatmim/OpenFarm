@@ -17,6 +17,12 @@ export const OBSERVATION_WORDS = [
     bn: "নাভি ফোলা বা পুঁজ",
     en: "Navel swollen or discharging",
   },
+  { value: "down_cow", bn: "বসে আছে, উঠতে পারছে না", en: "Down, cannot rise" },
+  {
+    value: "afterbirth_retained",
+    bn: "ফুল পড়েনি (১২ ঘণ্টা পেরিয়ে)",
+    en: "Afterbirth not passed after 12 hours",
+  },
   { value: "other", bn: "অন্য কিছু", en: "Something else" },
 ] as const;
 

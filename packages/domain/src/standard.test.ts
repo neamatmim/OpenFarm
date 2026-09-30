@@ -183,6 +183,8 @@ describe("what the round saw, and the work it raises", () => {
     expect(eventOfObservation(ROUND_WORDS.heat)).toBeNull();
     expect(eventOfObservation(ROUND_WORDS.bloat)).toBe(UNWELL_URGENT);
     expect(eventOfObservation(ROUND_WORDS.breathing)).toBe(UNWELL_URGENT);
+    expect(eventOfObservation(ROUND_WORDS.downCow)).toBe(UNWELL_URGENT);
+    expect(eventOfObservation(ROUND_WORDS.afterbirth)).toBe(UNWELL_URGENT);
     expect(eventOfObservation(ROUND_WORDS.lame)).toBe(UNWELL);
     expect(eventOfObservation("something_else")).toBe(UNWELL);
   });

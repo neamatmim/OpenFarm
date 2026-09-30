@@ -22,6 +22,8 @@ export const CREW = {
   // The newborn calf's first hours, done by whoever finds her.
   newbornCalfCare: { worker: "milker", checker: "manager" },
   newbornSecondFeed: { worker: "milker", checker: "manager" },
+  // The cow herself for five days after calving, looked at by whoever milks her.
+  afterCalvingCheck: { worker: "milker", checker: "manager" },
   weaning: { worker: "stockman", checker: "manager" },
   weighIn: { worker: "stockman", checker: "manager" },
   fmdVaccination: { worker: "stockman", checker: "vet" },

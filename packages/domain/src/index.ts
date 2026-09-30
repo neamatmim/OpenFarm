@@ -349,6 +349,7 @@ export {
   STAYS_A_HEIFER,
   STEP_EFFECT_KINDS,
   TRIGGER_KINDS,
+  CALVED,
   UNWELL,
   UNWELL_URGENT,
   appliesToAnimal,

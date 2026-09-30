@@ -257,6 +257,10 @@ RESPONDERS.burial = (step) =>
     ? { evidence: [true, "খামারের পূর্ব কোণে ছয় ফুট গর্তে চুন দিয়ে পুঁতে দেওয়া হয়েছে"] }
     : null;
 
+RESPONDERS.afterCalvingCheck = () => ({
+  skipReason: "সুস্থ — চোখে পড়ার মতো কিছু নেই",
+});
+
 RESPONDERS.seeToUnwell = () => ({
   evidence: ["watching", "সন্ধ্যায় আবার দেখা হবে; না সারলে ডাক্তারকে ফোন"],
 });

@@ -14,6 +14,7 @@ import type {
 import {
   EXIT_STATES,
   FARM_UTC_OFFSET_MINUTES,
+  CALVED,
   HEAT,
   SAME_HEAT_WITHIN_HOURS,
   eventOfObservation,
@@ -406,6 +407,93 @@ export const happeningSlotsFor = (
   return slots;
 };
 
+/** An animal as a happening about her carries her. */
+interface Beast {
+  id: string;
+  penId: string;
+  side: Side;
+  state: AnimalState;
+}
+
+const happeningAbout = (beast: Beast) => ({
+  animalId: beast.id,
+  penId: beast.penId,
+  side: beast.side,
+  state: beast.state,
+});
+
+/**
+ * Everything else the round saw that still stands and the Vet has not yet answered: work for the Manager — an hour's
+ * for the urgent words, a day's for the rest. One the Vet has concluded about is answered already, and raises nothing.
+ */
+const unwellHappenings = async (
+  db: Pick<Database, "query">,
+  farmId: string,
+  earliest: Date,
+  animalsById: ReadonlyMap<string, Beast>
+): Promise<Happening[]> => {
+  const unwell = await db.query.observation.findMany({
+    where: {
+      farmId,
+      saw: { ne: HEAT },
+      seenAt: { gte: earliest },
+      withdrawnAt: { isNull: true },
+    },
+    columns: { id: true, animalId: true, seenAt: true, saw: true },
+  });
+  const diagnosed =
+    unwell.length === 0
+      ? []
+      : await db.query.diagnosis.findMany({
+          where: {
+            farmId,
+            observationId: { in: unwell.map((one) => one.id) },
+          },
+          columns: { observationId: true },
+        });
+  const answered = new Set(diagnosed.map((one) => one.observationId));
+  return unwell.flatMap((seen) => {
+    const beast = animalsById.get(seen.animalId);
+    const kind = eventOfObservation(seen.saw);
+    return beast && kind && !answered.has(seen.id)
+      ? [
+          {
+            kind,
+            key: unwellKeyOf(seen.id),
+            at: seen.seenAt,
+            ...happeningAbout(beast),
+          },
+        ]
+      : [];
+  });
+};
+
+/** Calvings: the cow herself calved, and the days after it are hers to be looked at. */
+const calvingHappenings = async (
+  db: Pick<Database, "query">,
+  farmId: string,
+  reach: Date,
+  animalsById: ReadonlyMap<string, Beast>
+): Promise<Happening[]> => {
+  const calved = await db.query.calving.findMany({
+    where: { farmId, calvedAt: { gte: reach } },
+    columns: { id: true, damId: true, calvedAt: true },
+  });
+  return calved.flatMap((one) => {
+    const dam = animalsById.get(one.damId);
+    return dam
+      ? [
+          {
+            kind: CALVED,
+            key: `calved:${one.id}`,
+            at: one.calvedAt,
+            ...happeningAbout(dam),
+          },
+        ]
+      : [];
+  });
+};
+
 /**
  * Everything that has happened lately and might call for work: Moves, arrivals, and the
  * State each animal is in with the moment she reached it. Read in one go, because the sweep
@@ -471,29 +559,6 @@ export const recentHappenings = async (
     (heat) => heat.seenAt >= earliest
   );
 
-  // Everything else the round saw that still stands and the Vet has not yet answered: work for the Manager. One the
-  // Vet has concluded about is answered already, and raises nothing.
-  const unwell = await db.query.observation.findMany({
-    where: {
-      farmId,
-      saw: { ne: HEAT },
-      seenAt: { gte: earliest },
-      withdrawnAt: { isNull: true },
-    },
-    columns: { id: true, animalId: true, seenAt: true, saw: true },
-  });
-  const diagnosed =
-    unwell.length === 0
-      ? []
-      : await db.query.diagnosis.findMany({
-          where: {
-            farmId,
-            observationId: { in: unwell.map((one) => one.id) },
-          },
-          columns: { observationId: true },
-        });
-  const answered = new Set(diagnosed.map((one) => one.observationId));
-
   // Attempts: the first service of the latest heat she was served in. Read far enough back that one
   // whose check falls due today is still found, and a heat further, so its first service can be told
   // from a second. Only her latest: a cow served again has come back into heat, and the attempt before
@@ -545,21 +610,10 @@ export const recentHappenings = async (
       });
     }
   }
-  for (const seen of unwell) {
-    const beast = animalsById.get(seen.animalId);
-    const kind = eventOfObservation(seen.saw);
-    if (beast && kind && !answered.has(seen.id)) {
-      happenings.push({
-        kind,
-        key: unwellKeyOf(seen.id),
-        at: seen.seenAt,
-        animalId: beast.id,
-        penId: beast.penId,
-        side: beast.side,
-        state: beast.state,
-      });
-    }
-  }
+  happenings.push(
+    ...(await unwellHappenings(db, farmId, earliest, animalsById)),
+    ...(await calvingHappenings(db, farmId, reach, animalsById))
+  );
   for (const move of moves) {
     const beast = animalsById.get(move.animalId);
     if (beast) {
