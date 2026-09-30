@@ -377,15 +377,28 @@ const whatItsAnimalsConsumed = async (
           categories.map((one) => [one.id, { bn: one.nameBn, en: one.nameEn }])
         )
       ),
-      /** Where each outing went. One name, not two: a haat is called what it is called. */
+      /** Where each outing went. One name, not two: a haat is called what it is called. A broker at a Sale is named by
+       *  the animal sold. */
       trips: named(
         consumed.madeOf.trips,
-        new Map(
-          [...costs.sellingTrips].map(([id, wentTo]) => [
-            id,
-            { bn: wentTo, en: null },
-          ])
-        )
+        new Map<string, { bn: string; en: string | null }>([
+          ...[...costs.sellingTrips].map(
+            ([id, wentTo]) => [id, { bn: wentTo, en: null }] as const
+          ),
+          ...costs.animals.flatMap((one) =>
+            one.sale
+              ? [
+                  [
+                    one.sale.id,
+                    {
+                      bn: `দালালি · ${one.tagNumber}`,
+                      en: `Broker · ${one.tagNumber}`,
+                    },
+                  ] as const,
+                ]
+              : []
+          ),
+        ])
       ),
     },
   };

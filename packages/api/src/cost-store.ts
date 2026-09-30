@@ -98,6 +98,7 @@ const chargesFrom = (
     vet: readonly VetShare[];
     hasil: readonly CostShare[];
     trips: readonly CostShare[];
+    brokers: readonly CostShare[];
     herd: readonly CostShare[];
   },
   sellingTrips: ReadonlyMap<string, string>
@@ -139,6 +140,7 @@ const chargesFrom = (
       one
     )
   ),
+  ...shares.brokers.map((one) => byTheHead("sale_broker", one)),
   ...shares.herd.map((one) => byTheHead("herd", one)),
 ];
 
@@ -214,7 +216,13 @@ export const farmCosts = async (db: Db, farmId: string) => {
         },
       },
       sale: {
-        columns: { id: true, priceBdt: true, soldAt: true, weightKg: true },
+        columns: {
+          id: true,
+          priceBdt: true,
+          soldAt: true,
+          weightKg: true,
+          brokerBdt: true,
+        },
       },
       weighIns: {
         columns: { weightKg: true },
@@ -417,6 +425,20 @@ export const farmCosts = async (db: Db, farmId: string) => {
         ]
       : []
   );
+  // The broker's fee on one Sale, charged to her alone on the day she was sold: hers as the Hasil is.
+  const brokers: CostShare[] = animals.flatMap((one) =>
+    one.sale && one.sale.brokerBdt > 0
+      ? [
+          {
+            animalId: one.id,
+            side: sideOf(one, one.sale.soldAt),
+            at: one.sale.soldAt,
+            fromId: one.sale.id,
+            bdt: one.sale.brokerBdt,
+          },
+        ]
+      : []
+  );
   // Who stood on which lorry, by outing.
   const takenOn = groupedBy(
     takenOnSellingTrips.filter((one) => byId.has(one.animalId)),
@@ -508,6 +530,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
       vet: visited,
       hasil,
       trips: outings.shares,
+      brokers,
       herd,
     },
     sellingTripNames
@@ -826,7 +849,7 @@ export interface ConsumedLine {
  * What one owner's Animals consumed in a period, and what it was made of.
  *
  * Only what the Farm bought for the whole herd and is owed back: feed, medicine and the vet, and the
- * Animals' share of the month's Herd Costs, and the Selling Trips that carried them.
+ * Animals' share of the month's Herd Costs, and the Selling Trips that carried them and the brokers at their Sales.
  *
  * Not the Hasil and not a Buying Trip: those came out of the Venture's own Buying Float, drawn before
  * the lorry went and counted against it the same evening, so they were never the Farm's to be repaid
@@ -875,8 +898,12 @@ export const consumedBy = (
       feed: groupedLines(ofKind("feed")),
       medicine: groupedLines(ofKind("dose")),
       herd: groupedLines(ofKind("herd")),
-      /** Which outings, so the line reads "the haat at Gabtoli" rather than an id. */
-      trips: groupedLines(ofKind("selling_trip")),
+      /** Which outings, so the line reads "the haat at Gabtoli" rather than an id — and the broker at each Sale, by
+       *  the Sale, so the lines add up to the trips' figure. */
+      trips: groupedLines([
+        ...ofKind("selling_trip"),
+        ...ofKind("sale_broker"),
+      ]),
     },
   };
 };

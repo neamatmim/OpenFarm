@@ -228,6 +228,12 @@ const HowSheLeft = ({
             />
           </span>
         </Fact>
+        {/* Only where a broker was used — or left out of an answer kept from before one was written. */}
+        {sale.brokerBdt ? (
+          <Fact label={t("sale.brokerPaid")}>
+            {t("intake.taka", { taka: formatNumber(sale.brokerBdt, language) })}
+          </Fact>
+        ) : null}
         <Fact label={t("sale.weight")}>
           {t("intake.kg", { kg: formatNumber(sale.weightKg, language) })}
         </Fact>

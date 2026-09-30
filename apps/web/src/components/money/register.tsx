@@ -40,6 +40,7 @@ const SOURCE_WORD = {
   feed_in: "money.from.feedIn",
   medicine_purchase: "money.from.medicinePurchase",
   vet_fee: "money.from.vetFee",
+  sale_broker: "money.from.saleBroker",
   internal_sale_in: "money.from.internalSaleIn",
   internal_sale_out: "money.from.internalSaleOut",
   reimbursement: "money.from.reimbursement",

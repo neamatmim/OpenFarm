@@ -308,6 +308,7 @@ export const papersRouter = {
           id: true,
           priceBdt: true,
           bakiBdt: true,
+          brokerBdt: true,
           promisedBy: true,
           weightKg: true,
           soldAt: true,

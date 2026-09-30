@@ -2748,6 +2748,7 @@ export const bn: Record<MessageKey, string> = {
   "money.from.intake": "গরু আনা",
   "money.from.buyingTrip": "হাটে যাওয়ার খরচ",
   "money.from.sellingTrip": "হাটে বিক্রির খরচ",
+  "money.from.saleBroker": "বিক্রির দালালি",
   "selling.trip": "হাটের দিন",
   "selling.tripHint":
     "গরুর দাম ছাড়া হাটের দিনটার খরচ। গাড়িতে ওঠা প্রতিটি গরুতে টিক দিন — যেগুলো ফিরে এসেছে, তারাও গাড়িতে জায়গা নিয়েছিল।",
@@ -4120,6 +4121,10 @@ export const bn: Record<MessageKey, string> = {
   "sale.buyerName": "ক্রেতার নাম",
   "sale.buyerAddress": "ক্রেতার ঠিকানা",
   "sale.buyerPhone": "ক্রেতার মোবাইল",
+  "sale.brokerPaid": "দালালের খরচ",
+  "sale.broker": "দালালের খরচ (৳)",
+  "sale.brokerHint":
+    "হাটে দালাল থাকলে এই বিক্রিতে সে কত নিয়েছে। খামার দেয়; এটি এই পশুর খরচ।",
   "sale.price": "বিক্রয়মূল্য",
   "sale.weight": "বিক্রয়ের দিনের ওজন",
   "sale.destination": "কোথায় যাচ্ছে",

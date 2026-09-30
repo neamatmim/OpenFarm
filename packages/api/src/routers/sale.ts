@@ -23,9 +23,10 @@ import { fatteningRows } from "../ready-store";
 import { requireRole } from "../roles";
 import {
   bookSaleMoney,
+  brokerInput,
   buyerInput,
-  salePriceInput,
   readSale,
+  salePriceInput,
 } from "../sale-store";
 import { lockTheFarm, reachesSellingOnASale } from "../venture-store";
 
@@ -108,6 +109,8 @@ export const saleRouter = {
         paidNowBdt: paidNowInput.optional(),
         /** The day he promised to pay the rest by. Asked whenever anything is left owing: a trader promises a day. */
         promisedBy: promisedByInput.optional(),
+        /** What the broker at the haat took for this sale, where one was used: paid by the Farm, charged to her. */
+        brokerBdt: brokerInput.optional(),
       })
     )
     .handler(async ({ context, input }) => {
@@ -182,6 +185,7 @@ export const saleRouter = {
             counterpartyId: buyerId,
             priceBdt: input.priceBdt,
             ...baki,
+            brokerBdt: input.brokerBdt ?? 0,
             weightKg: input.weightKg.toFixed(2),
             destination: input.destination,
             vehicle: input.vehicle,

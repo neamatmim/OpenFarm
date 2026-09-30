@@ -41,6 +41,11 @@ const CATEGORIES: Record<
     nameEn: "Selling trips",
     direction: "out",
   },
+  sale_broker: {
+    nameBn: "বিক্রির দালালি",
+    nameEn: "Sale brokers",
+    direction: "out",
+  },
   internal_sale_in: {
     nameBn: "ভেঞ্চারের কাছে গরু বিক্রি",
     nameEn: "Cattle sold to a Venture",

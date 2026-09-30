@@ -150,6 +150,7 @@ const saleView = (
         id: string;
         priceBdt: number;
         bakiBdt: number;
+        brokerBdt: number;
         promisedBy: string | null;
         weightKg: string;
         destination: string;
@@ -169,6 +170,8 @@ const saleView = (
         // What her buyer still owed as she left, and the day he promised to pay it by: her Baki at the gate.
         bakiBdt: row.bakiBdt,
         promisedBy: row.promisedBy,
+        /** What the broker at the haat took for this sale; nothing where none was used. */
+        brokerBdt: row.brokerBdt,
         weightKg: Number(row.weightKg),
         destination: row.destination,
         vehicle: row.vehicle,

@@ -11,8 +11,8 @@ import { amount, counterparty, day, figure } from "@/lib/correcting";
 import { orpc } from "@/utils/orpc";
 
 /**
- * A Sale put right: what she fetched, who took her, what he paid there and then, and the day he promised to pay the
- * rest by.
+ * A Sale put right: what she fetched, who took her, what he paid there and then, the day he promised to pay the
+ * rest by, and what the broker took.
  *
  * One component, used from the sale screen and from her own page — the same Sale, and a person correcting it from
  * either place is correcting the one record, and whichever screen it is on is read again once the farm takes it.
@@ -27,6 +27,8 @@ export const SaleCorrection = ({
     // Left out of an answer cached before Baki was written down: paid in full, as every such Sale was.
     bakiBdt?: number;
     promisedBy?: string | null;
+    // Left out of an answer cached before a broker was written on a Sale: none was.
+    brokerBdt?: number;
   };
 }) => {
   const t = useT();
@@ -35,6 +37,7 @@ export const SaleCorrection = ({
     buyer: counterparty(sale.buyerName),
     paidNowBdt: figure(paidAtTheGate(sale.priceBdt, sale.bakiBdt ?? 0)),
     promisedBy: day(sale.promisedBy ?? null),
+    brokerBdt: figure(sale.brokerBdt ?? 0),
   });
   const correct = useMutation(orpc.sale.correct.mutationOptions({}));
   return (
@@ -77,6 +80,13 @@ export const SaleCorrection = ({
           value={correcting.typed.promisedBy ?? ""}
         />
       </div>
+      <CorrectionAnswer
+        inputMode="numeric"
+        label={t("sale.broker")}
+        onChange={(value) => correcting.set("brokerBdt", value)}
+        type="number"
+        value={correcting.typed.brokerBdt ?? ""}
+      />
     </CorrectionDialog>
   );
 };

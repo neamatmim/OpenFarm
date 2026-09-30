@@ -17,6 +17,7 @@ export const readSale = async (tx: Tx, id: string) => {
       farmId: true,
       priceBdt: true,
       bakiBdt: true,
+      brokerBdt: true,
       promisedBy: true,
       weightKg: true,
       destination: true,
@@ -31,7 +32,11 @@ export const readSale = async (tx: Tx, id: string) => {
     return null;
   }
   const { farmId, ...sold } = row;
-  return { ...sold, money: await moneySnapshotOf(tx, farmId, "sale", id) };
+  return {
+    ...sold,
+    money: await moneySnapshotOf(tx, farmId, "sale", id),
+    brokerMoney: await moneySnapshotOf(tx, farmId, "sale_broker", id),
+  };
 };
 
 /** The buyer as a Sale names them. */
@@ -42,6 +47,33 @@ export const buyerInput = z.object({
 });
 
 export const salePriceInput = z.number().min(0).max(100_000_000);
+
+/** What a broker at the haat took for one Sale, in taka. */
+export const brokerInput = z.number().int().min(0).max(1_000_000);
+
+/**
+ * Books what the broker at the haat took for this Sale as the Sale now says it: out of the Farm's own purse, as a
+ * Selling Trip is, and repaid by a Venture in its Reimbursement where she was its animal. Nothing where there was no
+ * broker — unless one was booked before, which a Correction then puts right.
+ */
+const bookBrokerMoney = async (
+  tx: Tx,
+  booking: Booking,
+  row: { id: string; farmId: string; brokerBdt: number; soldAt: Date }
+) => {
+  if (
+    row.brokerBdt > 0 ||
+    (await moneySnapshotOf(tx, row.farmId, "sale_broker", row.id))
+  ) {
+    await bookMoney(tx, booking, {
+      source: "sale_broker",
+      sourceId: row.id,
+      amountBdt: row.brokerBdt,
+      occurredAt: row.soldAt,
+      counterpartyId: null,
+    });
+  }
+};
 
 /**
  * Books what the buyer paid for her as the Sale now says it: her price, less whatever he still owed as she left. A
@@ -84,6 +116,7 @@ export const bookSaleMoney = async (
       purseVentureId: ventureId,
     });
   }
+  await bookBrokerMoney(tx, booking, row);
   const her = await tx.query.animal.findFirst({
     where: { id: row.animalId, farmId: row.farmId },
     columns: { tagNumber: true },
