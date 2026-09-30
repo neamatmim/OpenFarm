@@ -2749,6 +2749,7 @@ export const bn: Record<MessageKey, string> = {
   "money.from.buyingTrip": "হাটে যাওয়ার খরচ",
   "money.from.sellingTrip": "হাটে বিক্রির খরচ",
   "money.from.saleBroker": "বিক্রির দালালি",
+  "money.from.wageDraw": "বেতনের অগ্রিম",
   "selling.trip": "হাটের দিন",
   "selling.tripHint":
     "গরুর দাম ছাড়া হাটের দিনটার খরচ। গাড়িতে ওঠা প্রতিটি গরুতে টিক দিন — যেগুলো ফিরে এসেছে, তারাও গাড়িতে জায়গা নিয়েছিল।",
@@ -4521,6 +4522,20 @@ export const bn: Record<MessageKey, string> = {
   "refusal.notMissing": "পশুটি হারায়নি — কেউ তাকে খুঁজছে না",
   "refusal.gdNumberNeeded": "চুরি হলে থানার জিডি নম্বর লাগবে",
   "refusal.noFloatOnTheTrip": "এই যাত্রার জন্য কোনো টাকা দেওয়া হয়নি",
+  "refusal.wageTookDraws":
+    "এই বেতন থেকে অগ্রিম কাটা হয়েছে, তাই এর টাকা, মানুষ আর মাস যেমন ছিল তেমনই থাকবে",
+  "wageDraw.tab": "বেতনের অগ্রিম",
+  "wageDraw.record": "অগ্রিম লিখুন",
+  "wageDraw.hint":
+    "বেতনের আগে কেউ যে টাকা নেন। যেদিন নেন সেদিনই বেতনের খরচ, আর পরের বেতন থেকে কাটা যায়।",
+  "wageDraw.day": "যেদিন নিয়েছেন",
+  "wageDraw.recorded": "অগ্রিম লেখা হলো",
+  "wageDraw.none": "কারও কোনো অগ্রিম বাকি নেই",
+  "wageDraw.listHint":
+    "কে বেতনের আগে কত নিয়েছেন আর এখনো বাকি। পরের বেতন থেকে কাটা যায়, আগেরটা আগে।",
+  "wageDraw.atPayday":
+    "অগ্রিম বাকি {owed}: এই বেতন থেকে কাটা {taken}, এখন দেওয়া {paid}।",
+  "wageDraw.carried": "{bdt} পরের বেতনে যাবে।",
   "refusal.bankNeedsASlip": "ব্যাংকে জমা বা ব্যাংক থেকে তোলায় স্লিপ বা চেক লাগবে",
   "refusal.holdsNoCash": "খামারের নগদ শুধু মালিক বা ম্যানেজারের হাতে থাকে",
   "refusal.handoverGoesNowhere": "নগদ এক হাত থেকে আরেক হাতে, বা ব্যাংকে জমা বা তোলা হয়",

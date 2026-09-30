@@ -10,6 +10,7 @@ import {
   Banknote,
   BookOpen,
   Calculator,
+  Coins,
   HandCoins,
   Hourglass,
   PieChart,
@@ -28,6 +29,7 @@ import { CategoriesTab } from "@/components/money/categories-tab";
 import { PeriodBar } from "@/components/money/period-bar";
 import type { MoneyList } from "@/components/money/register";
 import { RegisterTab } from "@/components/money/register";
+import { WageDrawsTab } from "@/components/money/wage-draws";
 import { Notice, Page, PageHeader } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
@@ -39,6 +41,7 @@ import { orpc } from "@/utils/orpc";
 const TABS = [
   "register",
   "cash",
+  "draws",
   "baki",
   "costs",
   "accountant",
@@ -182,6 +185,12 @@ const MoneyPage = () => {
             label: t("cash.tab"),
             icon: Banknote,
             content: <CashTab isOwner={isOwner} myId={me.data?.id} />,
+          },
+          {
+            value: "draws",
+            label: t("wageDraw.tab"),
+            icon: Coins,
+            content: <WageDrawsTab />,
           },
           {
             value: "baki",

@@ -22,6 +22,7 @@ import {
   useCorrecting,
 } from "@/components/correction-dialog";
 import { categoryName } from "@/components/money";
+import { WageDrawsNote } from "@/components/money/wage-draws";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
 import { PhotoField } from "@/components/photo-field";
@@ -352,6 +353,12 @@ export const EnterMoneySheet = ({
               <WageMonth onChange={set("wageMonth")} value={typed.wageMonth} />
             ) : null}
           </div>
+          {isWage ? (
+            <WageDrawsNote
+              name={typed.counterparty}
+              wageBdt={Number(typed.amount)}
+            />
+          ) : null}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <PaymentMethodField

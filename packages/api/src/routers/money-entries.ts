@@ -1,6 +1,7 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { MONEY_DIRECTIONS, moneyCategory } from "@OpenFarm/db/schema/money";
+import { roundTaka } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -55,6 +56,12 @@ import {
   requirePersonalSession,
   requireRole,
 } from "../roles";
+import {
+  drawsByPerson,
+  drawsToTake,
+  recordWageDraw,
+  takeDraws,
+} from "../wage-draw-store";
 
 /** The Category as the trail records it either side of a change. */
 const readCategory = async (tx: Tx, farmId: string, id: string) =>
@@ -364,6 +371,7 @@ export const moneyEntryProcedures = {
         { wageMonth, alreadyUnderIt: false }
       );
       const id = newId(now);
+      let takenBdt = 0;
       await audited(context).write(
         {
           entity: "money_event",
@@ -383,13 +391,24 @@ export const moneyEntryProcedures = {
             wageMonth,
             id,
           });
+          // A wage takes the person's draws still open off the month's wage, the oldest first, and books what is paid
+          // now: the draws went out as money of their own the day they were drawn.
+          const draws = wageMonth
+            ? await drawsToTake(
+                tx,
+                context.farm.id,
+                counterpartyId,
+                input.amountBdt
+              )
+            : { parts: [], takenBdt: 0 };
+          ({ takenBdt } = draws);
           await bookMoney(
             tx,
             bookingOf(context, context.roleUsed, now),
             {
               source: "by_hand",
               sourceId: id,
-              amountBdt: input.amountBdt,
+              amountBdt: roundTaka(input.amountBdt - draws.takenBdt),
               occurredAt,
               counterpartyId,
               paymentMethod: input.paymentMethod,
@@ -402,13 +421,71 @@ export const moneyEntryProcedures = {
               side: input.side ?? null,
             }
           );
+          await takeDraws(tx, context.farm.id, id, draws.parts, now);
           if (input.receipt) {
             await keepReceipt(tx, context.farm.id, id, input.receipt, now);
           }
         }
       );
+      return { id, drawsTakenBdt: takenBdt };
+    }),
+
+  /**
+   * A **Wage Draw**: money a person takes ahead of payday, out of the hand that paid it, under Wages, and taken off
+   * their next wage. The Manager's or the Owner's, from their own phone, as a wage is.
+   */
+  drawWage: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        counterparty: counterpartyInput,
+        amountBdt: amountInput,
+        drawnOn: farmDay,
+        paymentMethod: paymentMethodInput,
+        note: noteInput.optional(),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const drawnAt = enteredOn(input.drawnOn, now);
+      let id = "";
+      await audited(context).write(
+        {
+          entity: "wage_draw",
+          entityId: () => id,
+          action: "create",
+          after: async (tx) =>
+            (await tx.query.wageDraw.findFirst({ where: { id } })) ?? null,
+        },
+        async (tx) => {
+          const counterpartyId = await counterpartyNamed(
+            tx,
+            context.farm.id,
+            input.counterparty,
+            now
+          );
+          ({ id } = await recordWageDraw(
+            tx,
+            bookingOf(context, context.roleUsed, now),
+            {
+              counterpartyId,
+              amountBdt: input.amountBdt,
+              drawnAt,
+              note: input.note ?? null,
+              paymentMethod: input.paymentMethod,
+            }
+          ));
+        }
+      );
       return { id };
     }),
+
+  /** Each person with Wage Draws still owed, and each draw, the most owed first. */
+  openDraws: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .handler(({ context }) => drawsByPerson(context.db, context.farm.id)),
 
   /**
    * Puts right money entered by hand — a Correction like any other: a reason, the Role's Correction
