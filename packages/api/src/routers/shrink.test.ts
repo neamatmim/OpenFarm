@@ -46,6 +46,7 @@ const weighInSop = (): SopContent => ({
   ],
 });
 
+let penId = "";
 let weighed = "";
 let unweighed = "";
 
@@ -63,8 +64,6 @@ const aBull = async (weightKg: number) => {
   });
   return bull.tagNumber;
 };
-
-let penId = "";
 
 beforeAll(async () => {
   const owner = await as("owner", "2079-03-01T04:00:00.000Z");
