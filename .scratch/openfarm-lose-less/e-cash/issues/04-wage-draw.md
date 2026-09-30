@@ -24,6 +24,13 @@ takes the balance off, so nobody is paid twice.
       at ৳8,000 read "অগ্রিম বাকি ৳৩,০০০: এই বেতন থেকে কাটা ৳৩,০০০, এখন দেওয়া ৳৫,০০০।", at ৳2,000 it added "৳১,০০০ পরের
       বেতনে যাবে।"; saved for September, the wage booked ৳5,000 and the tab emptied.
 
-**Not built:** putting a draw right. Its Money Event comes from a record, so the money page refuses to correct it
-(`correct_the_record`), and there is no correction for the draw itself yet — a mistaken draw stays until one is built.
-And a wage entered without its month takes no draws.
+**Draw correction** (added 2026-09-30, at the Owner's asking): `money.correctDraw` (Owner or Manager, the Correction
+Window as any record) puts right the amount, the person, the day, how it was paid and the note — its Money Event rebooked
+with it, never a second one. Put to ৳0, a draw that never happened is taken back. What a payday has taken stays taken:
+refused below it, and refused a new person once any is taken (`draw_already_taken`, with `takenBdt`). Behind the Farm
+lock, which a payday's `drawsToTake` now takes too. On each draw in the tab, and on a draw's line in the register (there
+without the note, which the Money Event does not hold). Tests: 3 more in `wage-draw.test.ts`; **proved by switching
+off** the below-taken refusal, the person refusal and the money rebooking — each red. The lock is not tested (two
+requests at once).
+
+**Not built:** a wage entered without its month takes no draws.

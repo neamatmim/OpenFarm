@@ -12,6 +12,10 @@ import {
   moneyByHandCorrection,
   moneyByHandCorrectionInput,
 } from "../corrections/money-by-hand";
+import {
+  wageDrawCorrection,
+  wageDrawCorrectionInput,
+} from "../corrections/wage-draw";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import type { FarmList } from "../farm-list";
@@ -486,6 +490,18 @@ export const moneyEntryProcedures = {
     .use(requireRole("owner", "manager"))
     .use(requirePersonalSession())
     .handler(({ context }) => drawsByPerson(context.db, context.farm.id)),
+
+  /**
+   * Puts a Wage Draw right — its money with it. Taken back whole by putting it to nothing; never below what a payday
+   * has already taken off it.
+   */
+  correctDraw: protectedProcedure
+    .use(requireRole(...wageDrawCorrection.roles))
+    .use(requirePersonalSession())
+    .input(wageDrawCorrectionInput)
+    .handler(({ context, input }) =>
+      correct(context, wageDrawCorrection, input)
+    ),
 
   /**
    * Puts right money entered by hand — a Correction like any other: a reason, the Role's Correction

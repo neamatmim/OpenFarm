@@ -17,6 +17,7 @@ import { TagLink } from "@/components/fattening/fattening-words";
 import { Nothing, SaidDate } from "@/components/list-cells";
 import { categoryName, useApproveMoney } from "@/components/money";
 import { CorrectEntered, ReceiptLink } from "@/components/money-entry";
+import { DrawCorrection } from "@/components/money/wage-draws";
 import {
   EmptyState,
   Loaded,
@@ -153,17 +154,34 @@ const Detail = ({ event }: { event: MoneyEvent }) => {
   return <>{parts.join(" · ")}</>;
 };
 
+/** Whether this entry is put right from the register: money entered by hand, and a Wage Draw's. */
+const correctableHere = ({ event, entersMoney }: MoneyRow) =>
+  entersMoney && (event.source === "by_hand" || event.source === "wage_draw");
+
 /** The receipt and the Correction, where the entry has them. */
 const EntryActions = ({ row }: { row: MoneyRow }) => {
-  const { event, entersMoney } = row;
-  const correctable = entersMoney && event.source === "by_hand";
+  const { event } = row;
+  const correctable = correctableHere(row);
   if (!(correctable || event.hasReceipt)) {
     return null;
   }
   return (
     <div className="flex flex-wrap items-center justify-end gap-1">
       {event.hasReceipt ? <ReceiptLink id={event.id} /> : null}
-      {correctable ? <CorrectEntered entered={event} /> : null}
+      {correctable && event.source === "by_hand" ? (
+        <CorrectEntered entered={event} />
+      ) : null}
+      {correctable && event.source === "wage_draw" ? (
+        <DrawCorrection
+          draw={{
+            id: event.sourceId,
+            amountBdt: event.amountBdt,
+            name: event.counterpartyName ?? "",
+            drawnAt: event.occurredAt,
+            paymentMethod: event.paymentMethod,
+          }}
+        />
+      ) : null}
     </div>
   );
 };
@@ -174,9 +192,7 @@ const MoneyCard = ({ row }: { row: MoneyRow }) => {
   const { language } = useLanguage();
   const { event } = row;
   const hasFoot =
-    event.approval !== "not_needed" ||
-    event.hasReceipt ||
-    (row.entersMoney && event.source === "by_hand");
+    event.approval !== "not_needed" || event.hasReceipt || correctableHere(row);
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-start justify-between gap-3">

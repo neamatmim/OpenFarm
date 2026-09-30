@@ -162,6 +162,7 @@ const WORDED_REFUSALS = {
   handover_goes_nowhere: "refusal.handoverGoesNowhere",
   no_float_on_the_trip: "refusal.noFloatOnTheTrip",
   wage_took_draws: "refusal.wageTookDraws",
+  draw_already_taken: "refusal.drawAlreadyTaken",
   outcome_said: "refusal.outcomeSaid",
   written_off_more_than_owed: "refusal.writtenOffMoreThanOwed",
   nothing_owed_on_it: "refusal.nothingOwedOnIt",
