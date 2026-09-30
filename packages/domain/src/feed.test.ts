@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  daysLeftOf,
+  fedPerDayOf,
   priceJumped,
   purchasePricesOf,
   scaleShortOf,
@@ -342,5 +344,41 @@ describe("how short a seller runs on the farm's scale", () => {
     });
     // Over on the scale is below nothing, never netted into another seller.
     expect(other).toMatchObject({ shortKg: -1, shortBdt: -40 });
+  });
+});
+
+/** A feeding of so much, some days before the moment asked about. */
+const fedDaysAgo = (daysAgo: number, quantity: number, now: Date) => ({
+  kind: "out" as const,
+  at: new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000),
+  quantity,
+});
+
+describe("how many days of a feed are left", () => {
+  const now = new Date("2040-03-15T12:00:00.000Z");
+
+  it("reads the rate over the last fortnight", () => {
+    const fortnight = Array.from({ length: 14 }, (_, day) =>
+      fedDaysAgo(day + 0.5, 20, now)
+    );
+    // A month ago it was fed far more; that is not the rate now.
+    const perDay = fedPerDayOf([...fortnight, fedDaysAgo(30, 900, now)], now);
+    expect(perDay).toBe(20);
+    expect(daysLeftOf(150, perDay)).toBe(7);
+  });
+
+  it("reads a new feed over the days it has been fed, not the whole fortnight", () => {
+    // Fed yesterday and this morning: two farm days, not fourteen.
+    const perDay = fedPerDayOf(
+      [fedDaysAgo(1, 30, now), fedDaysAgo(0.25, 30, now)],
+      now
+    );
+    expect(perDay).toBe(30);
+  });
+
+  it("says nothing of a feed not fed lately, and none left of a store below nothing", () => {
+    expect(fedPerDayOf([fedDaysAgo(20, 50, now)], now)).toBe(0);
+    expect(daysLeftOf(500, 0)).toBeNull();
+    expect(daysLeftOf(-12, 20)).toBe(0);
   });
 });

@@ -1,4 +1,3 @@
-import { feedUnitWord } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -23,6 +22,7 @@ import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { BakiOverdueGroup } from "@/components/home/baki-overdue";
+import { LowStockWords } from "@/components/home/low-stock-line";
 import { MissingAnimalsGroup } from "@/components/home/missing-animals";
 import { MonthlyCostsGroup } from "@/components/home/monthly-costs";
 import {
@@ -684,12 +684,7 @@ const FarmTodayList = ({
               key={line.feedItemId}
               title={
                 <Link className={ROW_LINK} to="/admin/feed">
-                  {t("home.lowStockLine", {
-                    feed: line.nameBn,
-                    onHand: formatNumber(line.onHand, language),
-                    unit: feedUnitWord(line.unit, language),
-                    threshold: formatNumber(line.threshold, language),
-                  })}
+                  <LowStockWords line={line} />
                 </Link>
               }
               trailing={<Opens />}

@@ -1,6 +1,5 @@
-import { feedUnitWord } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { formatDate } from "@OpenFarm/i18n";
 import { Link } from "@tanstack/react-router";
 import {
   AlarmClock,
@@ -23,6 +22,7 @@ import { GivingLessGroup } from "@/components/giving-less";
 import { HeatWatchGroup } from "@/components/heat-watch";
 import { BakiOverdueGroup } from "@/components/home/baki-overdue";
 import { IllAgainGroup } from "@/components/home/ill-again";
+import { LowStockWords } from "@/components/home/low-stock-line";
 import { MissingAnimalsGroup } from "@/components/home/missing-animals";
 import { MonthlyCostsGroup } from "@/components/home/monthly-costs";
 import {
@@ -314,12 +314,7 @@ const QueueKindList = ({
                   className="after:absolute after:inset-0 hover:underline"
                   to="/admin/feed"
                 >
-                  {t("home.lowStockLine", {
-                    feed: line.nameBn,
-                    onHand: formatNumber(line.onHand, language),
-                    unit: feedUnitWord(line.unit, language),
-                    threshold: formatNumber(line.threshold, language),
-                  })}
+                  <LowStockWords line={line} />
                 </Link>
               }
               trailing={<Opens />}

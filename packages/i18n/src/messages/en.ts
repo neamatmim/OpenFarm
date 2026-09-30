@@ -2558,7 +2558,7 @@ export const en = {
   "feed.kpi.items": "Feed Items in store",
   "feed.kpi.itemsHint": "Being fed now",
   "feed.kpi.low": "Running low",
-  "feed.kpi.lowHint": "Below their level, or out of a feed a Pen is on",
+  "feed.kpi.lowHint": "Below their level, short of days, or out of a feed a Pen is on",
   "feed.kpi.value": "Store value",
   "feed.kpi.valueHint": "At average price",
   "feed.kpi.bought": "Bought this month",
@@ -2791,6 +2791,12 @@ export const en = {
   "stock.received": "Recorded",
   "stock.col.item": "Feed Item",
   "stock.col.onHand": "On hand",
+  "stock.col.daysLeft": "Days left",
+  "stock.daysLeft": "{days, plural, one {# day} other {# days}}",
+  "stock.daysLeftLine":
+    "{days, plural, one {# day} other {# days}} left at {perDay} {unit} a day",
+  "home.lowStockDays":
+    "{feed}: {onHand} {unit} left — {days, plural, one {# day} other {# days}} at the rate it is fed",
   "stock.col.averagePrice": "Average price",
   "stock.col.expected": "Expected",
   "stock.col.counted": "Counted",
@@ -4783,6 +4789,10 @@ export const en = {
   "params.milkUnaccountedHint":
     "When this much of a week's milk into the tank has neither left the gate nor is still in the tank, you and the Manager are told in the evening's post.",
   "params.milkUnaccountedPercent": "More than",
+  "params.feedDays": "Days of feed left",
+  "params.feedDaysHint":
+    "A feed with fewer days left than this, at the rate it has been fed over the last fortnight, is running low, and the Manager is told in the evening's post.",
+  "params.feedDaysLow": "Running low under",
   "params.feedPrice": "Feed bought dearer",
   "params.feedPriceHint":
     "When a feed is bought at this much more per unit than the last time it was bought, you are told in the evening's post.",

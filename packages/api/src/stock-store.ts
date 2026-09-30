@@ -12,6 +12,8 @@ import type {
 import {
   lastFellBelow,
   farmDayOf,
+  daysLeftOf,
+  fedPerDayOf,
   priceJumped,
   purchasePricesOf,
   sellersOnTheScale,
@@ -52,8 +54,13 @@ export interface StockLine {
   /** Taka per unit, a moving weighted average over what is in the store; null for feed never bought. */
   averagePriceBdt: number | null;
   lastInOn: Date | null;
-  /** Holding less than the level the Manager set: what puts it on the queue and in the digest. */
+  /** Holding less than the level the Manager set, or fewer days of it than the farm's line at the rate it is fed: what
+   *  puts it on the queue and in the digest. */
   runningLow: boolean;
+  /** What it has been fed a day lately, in its own unit; nothing for one not fed in the last fortnight. */
+  fedPerDay: number | null;
+  /** How many whole days the store lasts at that rate; nothing for one not fed lately, or retired. */
+  daysLeft: number | null;
   /** What is left of every delivery, the first to expire fed first — nothing, of one all fed out — and where
    *  each stands against its day. */
   lots: {
@@ -151,6 +158,72 @@ export const movementsByItem = async (
   return byItem;
 };
 
+/** The moment a store's days of feed are read at, and the farm's line under which it is Running Low. */
+export interface DaysReading {
+  now: Date;
+  feedDaysLow: number;
+}
+
+/**
+ * Whether one Feed Item is Running Low, and why: under the level the Manager set for it, or — read at a moment — with
+ * fewer days of it left than the farm's line at the rate it has been fed. Never one retired.
+ */
+const lowOf = (
+  item: { lowStockAt: string | null; retiredAt: Date | null },
+  mine: readonly StockMovement[],
+  onHand: number,
+  reading: DaysReading | undefined
+): {
+  runningLow: boolean;
+  because: "level" | "days" | null;
+  fedPerDay: number | null;
+  daysLeft: number | null;
+} => {
+  const retired = item.retiredAt !== null;
+  const underTheLevel = runsLow({
+    onHand,
+    level: item.lowStockAt === null ? null : Number(item.lowStockAt),
+    retired,
+  });
+  const perDay = reading && !retired ? fedPerDayOf(mine, reading.now) : 0;
+  const daysLeft = daysLeftOf(onHand, perDay);
+  const fewDays =
+    !retired && daysLeft !== null && reading !== undefined
+      ? daysLeft < reading.feedDaysLow
+      : false;
+  let because: "level" | "days" | null = null;
+  if (underTheLevel) {
+    because = "level";
+  } else if (fewDays) {
+    because = "days";
+  }
+  return {
+    runningLow: because !== null,
+    because,
+    fedPerDay: perDay > 0 ? roundKg(perDay) : null,
+    daysLeft,
+  };
+};
+
+/** The last time a store was brought back up — a delivery or a count — before a moment: what a Feed Item running low
+ *  by its days is told about once, until the next. */
+const lastBroughtUp = (
+  mine: readonly StockMovement[],
+  now: Date
+): Date | null => {
+  let last: Date | null = null;
+  for (const one of mine) {
+    if (
+      one.kind !== "out" &&
+      one.at <= now &&
+      (last === null || one.at > last)
+    ) {
+      last = one.at;
+    }
+  }
+  return last;
+};
+
 /**
  * Stock on Hand for every Feed Item the farm keeps, and what a unit of each cost, worked out from what
  * came in and what the Feedings gave — never stored, so a corrected Feeding or a Purchase written up
@@ -160,7 +233,9 @@ export const stockOnHand = async (
   db: Pick<Database, "query" | "execute">,
   farmId: string,
   /** The farm's day and warning its deliveries are read against: the request's own clock, never the machine's. */
-  window: ExpiryWindow
+  window: ExpiryWindow,
+  /** The moment and the farm's line its days of feed are read against; without it, no days are said. */
+  reading?: DaysReading
 ): Promise<StockLine[]> => {
   const [items, movements, arrivals] = await Promise.all([
     db.query.feedItem.findMany({
@@ -224,11 +299,7 @@ export const stockOnHand = async (
       lowStockAt: item.lowStockAt === null ? null : Number(item.lowStockAt),
       fodderPriceBdt: item.fodderPriceBdt === null ? null : item.fodderPriceBdt,
       ...ledger,
-      runningLow: runsLow({
-        onHand: ledger.onHand,
-        level: item.lowStockAt === null ? null : Number(item.lowStockAt),
-        retired: item.retiredAt !== null,
-      }),
+      ...lowOf(item, mine, ledger.onHand, reading),
       lastInOn: lastIn ?? null,
       lots: store.lots.map((one) => ({
         arrivalId: one.id,
@@ -246,47 +317,61 @@ export const stockOnHand = async (
 };
 
 /**
- * The Feed Items running low: watched, and holding less than the level the farm said it wants to hear
- * about — and since when, which is what a notice about it is keyed on. Worked out each time, so a lorry
- * that came in takes an item off the list without anybody clearing it.
+ * The Feed Items running low: holding less than the level the farm said it wants to hear about, or fewer days of it
+ * than the farm's line at the rate it has been fed lately (the Owner, 2026-09-29) — and since when, which is what a
+ * notice about it is keyed on: when it fell under its level, or, for its days, when the store was last brought up.
+ * Worked out each time, so a lorry that came in takes an item off the list without anybody clearing it.
  *
- * Asks first whether anything is watched at all. Every home screen and every sweep calls this, and on
- * a farm that watches nothing it should cost one small query, not the whole store's history.
+ * Every feed the farm still keeps is read, since any feed that is fed can run short of days.
  */
 export const runningLow = async (
   db: Pick<Database, "query" | "execute">,
-  farmId: string
+  farm: { id: string; feedDaysLow: number },
+  now: Date
 ) => {
-  const watched = await db.query.feedItem.findMany({
-    where: {
-      farmId,
-      lowStockAt: { isNotNull: true },
-      retiredAt: { isNull: true },
+  const kept = await db.query.feedItem.findMany({
+    where: { farmId: farm.id, retiredAt: { isNull: true } },
+    columns: {
+      id: true,
+      nameBn: true,
+      unit: true,
+      lowStockAt: true,
+      retiredAt: true,
     },
-    columns: { id: true, nameBn: true, unit: true, lowStockAt: true },
     orderBy: { nameBn: "asc", id: "asc" },
   });
-  if (watched.length === 0) {
+  if (kept.length === 0) {
     return [];
   }
-  const movements = await movementsByItem(db, farmId);
-  return watched.flatMap((item) => {
+  const movements = await movementsByItem(db, farm.id);
+  const reading = { now, feedDaysLow: farm.feedDaysLow };
+  return kept.flatMap((item) => {
     const mine = movements.get(item.id) ?? [];
-    const level = Number(item.lowStockAt);
     const { onHand } = stockLedger(mine);
-    // Asked of watched Feed Items still kept, so only the level is left to ask about.
-    return runsLow({ onHand, level, retired: false })
-      ? [
-          {
-            feedItemId: item.id,
-            nameBn: item.nameBn,
-            unit: item.unit,
-            onHand,
-            threshold: level,
-            fellBelowAt: lastFellBelow(mine, level),
-          },
-        ]
-      : [];
+    const low = lowOf(item, mine, onHand, reading);
+    if (!low.because) {
+      return [];
+    }
+    const level = item.lowStockAt === null ? null : Number(item.lowStockAt);
+    return [
+      {
+        feedItemId: item.id,
+        nameBn: item.nameBn,
+        unit: item.unit,
+        onHand,
+        because: low.because,
+        daysLeft: low.daysLeft,
+        // What it is under: the Manager's level, or the days' worth of it at the rate it is fed.
+        threshold:
+          low.because === "level"
+            ? (level ?? 0)
+            : roundKg((low.fedPerDay ?? 0) * farm.feedDaysLow),
+        fellBelowAt:
+          low.because === "level" && level !== null
+            ? lastFellBelow(mine, level)
+            : lastBroughtUp(mine, now),
+      },
+    ];
   });
 };
 
@@ -298,7 +383,9 @@ type RunningLow = Awaited<ReturnType<typeof runningLow>>[number];
  * again, is a new thing to be told about; still low since the last notice is not.
  */
 const lowStockNoticeId = (low: RunningLow): string =>
-  `${low.feedItemId}:${low.fellBelowAt?.toISOString() ?? "start"}`;
+  low.because === "days"
+    ? `${low.feedItemId}:days:${low.fellBelowAt?.toISOString() ?? "start"}`
+    : `${low.feedItemId}:${low.fellBelowAt?.toISOString() ?? "start"}`;
 
 /**
  * Tells the Manager a Feed Item is running low — in the digest, never by a buzz (notification

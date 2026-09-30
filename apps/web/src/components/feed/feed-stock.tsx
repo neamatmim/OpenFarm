@@ -84,6 +84,27 @@ const OnHandCell = ({ row }: { row: { original: StockRow } }) => {
   );
 };
 
+/** How many days the store lasts at the rate it has been fed lately; a dash for a feed nobody feeds, or an answer kept
+ *  from before days were said. */
+const DaysLeftCell = ({ row }: { row: { original: StockRow } }) => {
+  const { t } = useLanguage();
+  const line = row.original;
+  const days = line.daysLeft ?? null;
+  if (days === null) {
+    return <Nothing />;
+  }
+  return (
+    <span
+      className={cn(
+        "whitespace-nowrap tabular-nums",
+        line.runningLow && "text-warning font-medium"
+      )}
+    >
+      {t("stock.daysLeft", { days })}
+    </span>
+  );
+};
+
 const AveragePriceCell = ({ row }: { row: { original: StockRow } }) => {
   const { t, language } = useLanguage();
   const line = row.original;
@@ -235,6 +256,12 @@ const stockColumns = column.columns([
     cell: OnHandCell,
     meta: { align: "end" },
   }),
+  column.accessor((line) => line.daysLeft ?? undefined, {
+    id: "daysLeft",
+    header: listHeader("stock.col.daysLeft"),
+    cell: DaysLeftCell,
+    meta: { align: "end" },
+  }),
   column.accessor((line) => line.nextExpiresOn ?? undefined, {
     id: "nextExpiry",
     header: listHeader("stock.col.nextExpiry"),
@@ -290,6 +317,22 @@ const StockCard = ({ row }: { row: StockRow }) => {
           {formatNumber(row.onHand, language)}{" "}
           {feedUnitWord(row.unit, language)}
         </span>
+        {(row.daysLeft ?? null) === null || row.fedPerDay === null ? null : (
+          <span
+            className={cn(
+              "text-sm tabular-nums",
+              row.runningLow
+                ? "text-warning font-medium"
+                : "text-muted-foreground"
+            )}
+          >
+            {t("stock.daysLeftLine", {
+              days: row.daysLeft ?? 0,
+              perDay: formatNumber(row.fedPerDay, language),
+              unit: feedUnitWord(row.unit, language),
+            })}
+          </span>
+        )}
         <span className="text-muted-foreground text-xs tabular-nums">
           {row.averagePriceBdt === null
             ? t("stock.harvest")

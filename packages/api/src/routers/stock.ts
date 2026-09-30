@@ -103,7 +103,8 @@ export const stockRouter = {
       stockOnHand(
         context.db,
         context.farm.id,
-        expiryWindow(context.clock.now(), context.farm.expiryWarnDays)
+        expiryWindow(context.clock.now(), context.farm.expiryWarnDays),
+        { now: context.clock.now(), feedDaysLow: context.farm.feedDaysLow }
       )
     ),
 

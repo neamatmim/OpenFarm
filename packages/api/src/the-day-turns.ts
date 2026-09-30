@@ -303,7 +303,7 @@ const tellAboutWithdrawals = async (context: Turning, now: Date) => {
  * is what the notice is about.
  */
 const tellAboutLowStock = async (context: Turning, now: Date) => {
-  const low = await runningLow(context.db, context.farm.id);
+  const low = await runningLow(context.db, context.farm, now);
   const toTell = await lowStockToTell(context.db, context.farm.id, low);
   const [lowest] = toTell.untold;
   if (!lowest) {

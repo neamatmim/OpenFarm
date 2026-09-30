@@ -112,7 +112,7 @@ export const homeRouter = {
         ),
         // Feed running low: on the Manager's queue as well as in their digest, because a queue is
         // where somebody deciding what to buy looks.
-        runningLow(context.db, farmId),
+        runningLow(context.db, context.farm, now),
         // The rent, the electricity and the wages the month has nothing entered for yet: the Manager enters the money.
         monthlyCostsNow(context.db, context.farm, now),
         // Buyers whose Baki has gone past its day: the Manager rings them.
@@ -346,7 +346,7 @@ export const homeRouter = {
           },
         }),
         // Feed running low, which the Owner's exception list names too (spec: "low stock").
-        runningLow(context.db, farmId),
+        runningLow(context.db, context.farm, now),
         // Money the Owner has to approve, oldest first: the longer it has waited, the longer somebody
         // has been paid, or not, without the Owner's say.
         context.db.query.moneyEvent.findMany({
