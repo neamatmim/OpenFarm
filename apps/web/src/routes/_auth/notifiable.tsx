@@ -3,7 +3,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { Plus, ShieldAlert, ShieldOff } from "lucide-react";
+import { Plus, ShieldAlert, ShieldOff, Tags } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -39,7 +39,27 @@ interface DiseaseRow extends Disease {
   keeps: boolean;
   handleTakeOff: (disease: Disease) => void;
   handlePutBack: (disease: Disease) => void;
+  handleOtherNames: (disease: Disease) => void;
 }
+
+/** Other names as somebody types them: separated by commas, Bangla or English. */
+const COMMAS = /[,،]/u;
+
+const namesTyped = (typed: string): string[] =>
+  typed
+    .split(COMMAS)
+    .map((one) => one.trim())
+    .filter(Boolean);
+
+/** The other names a disease goes by, in a line beneath it, where it has any. */
+const OtherNames = ({ disease }: { disease: Disease }) => {
+  const { t } = useLanguage();
+  return disease.otherNames.length > 0 ? (
+    <span className="text-muted-foreground text-xs">
+      {t("notifiable.otherNamesAre", { names: disease.otherNames.join(", ") })}
+    </span>
+  ) : null;
+};
 
 /** The disease in the reader's language, as the farm wrote it. */
 const nameOf = (disease: Disease, language: string) =>
@@ -67,6 +87,7 @@ const DiseaseNameCell = ({ row }: { row: { original: DiseaseRow } }) => {
       {other && other !== nameOf(disease, language) ? (
         <span className="text-muted-foreground text-xs">{other}</span>
       ) : null}
+      <OtherNames disease={disease} />
     </div>
   );
 };
@@ -100,13 +121,18 @@ const AddedByCell = ({ row }: { row: { original: DiseaseRow } }) => {
 /** The menu at the end of a disease's row: taking it off the list, or putting it back — each asks why. */
 const DiseaseMenu = ({ row }: { row: DiseaseRow }) => {
   const { t, language } = useLanguage();
-  const { handleTakeOff, handlePutBack } = row;
+  const { handleTakeOff, handlePutBack, handleOtherNames } = row;
   if (!row.keeps) {
     return null;
   }
   return (
     <RowMenu
       actions={[
+        {
+          label: t("notifiable.otherNames"),
+          icon: Tags,
+          handleSelect: () => handleOtherNames(row),
+        },
         row.retiredAt
           ? {
               label: t("notifiable.putBack"),
@@ -170,6 +196,7 @@ const DiseaseCard = ({ row }: { row: DiseaseRow }) => {
           <span className={nameTone(row)}>{nameOf(row, language)}</span>
           <Standing disease={row} />
         </div>
+        <OtherNames disease={row} />
         {row.note ? <p className="text-sm">{row.note}</p> : null}
         {row.addedByName ? (
           <p className="text-muted-foreground text-xs">
@@ -198,6 +225,7 @@ const AddDiseaseDialog = ({
   const [name, setName] = useState("");
   const [nameEn, setNameEn] = useState("");
   const [note, setNote] = useState("");
+  const [otherNames, setOtherNames] = useState("");
   const add = useMutation(
     orpc.notifiable.add.mutationOptions({
       onSuccess: () => {
@@ -223,6 +251,9 @@ const AddDiseaseDialog = ({
             ...(nameEn.trim() ? { en: nameEn.trim() } : {}),
           },
           ...(note.trim() ? { note: note.trim() } : {}),
+          ...(namesTyped(otherNames).length > 0
+            ? { otherNames: namesTyped(otherNames) }
+            : {}),
         })
       }
       open={open}
@@ -249,6 +280,17 @@ const AddDiseaseDialog = ({
           />
         </FormField>
       </div>
+      <FormField
+        hint={t("notifiable.otherNamesHint")}
+        id="disease-other-names"
+        label={t("notifiable.otherNames")}
+      >
+        <Input
+          id="disease-other-names"
+          onChange={(event) => setOtherNames(event.target.value)}
+          value={otherNames}
+        />
+      </FormField>
       <FormField id="disease-note" label={t("notifiable.note")}>
         <Input
           id="disease-note"
@@ -321,6 +363,56 @@ const ChangeDialog = ({
   );
 };
 
+/** The other names a disease goes by, put right in a dialog: all of them, separated by commas. */
+const OtherNamesDialog = ({
+  disease,
+  onOpenChange,
+}: {
+  disease: Disease | null;
+  onOpenChange: (open: boolean) => void;
+}) => {
+  const { t, language } = useLanguage();
+  const refused = useRefused();
+  const [typed, setTyped] = useState(disease?.otherNames.join(", ") ?? "");
+  const save = useMutation(
+    orpc.notifiable.setOtherNames.mutationOptions({
+      onSuccess: () => {
+        toast.success(t("notifiable.otherNamesSaved"));
+        onOpenChange(false);
+      },
+      onError: refused,
+    })
+  );
+  return (
+    <FormDialog
+      description={t("notifiable.otherNamesHint")}
+      onOpenChange={onOpenChange}
+      onSubmit={() => {
+        if (disease) {
+          save.mutate({ id: disease.id, otherNames: namesTyped(typed) });
+        }
+      }}
+      open={disease !== null}
+      pending={save.isPending}
+      ready={disease !== null}
+      submitLabel={t("notifiable.otherNamesSave")}
+      title={
+        disease
+          ? `${t("notifiable.otherNames")} — ${nameOf(disease, language)}`
+          : ""
+      }
+    >
+      <FormField id="other-names" label={t("notifiable.otherNames")}>
+        <Input
+          id="other-names"
+          onChange={(event) => setTyped(event.target.value)}
+          value={typed}
+        />
+      </FormField>
+    </FormDialog>
+  );
+};
+
 /** The list as a table where there is room, and as cards on a phone. */
 const DiseaseList = ({ rows }: { rows: DiseaseRow[] }) => {
   const table = useListTable({
@@ -349,6 +441,7 @@ const NotifiablePage = () => {
   // A vet called in for a visit reads the list; keeping it is the farm's own people's.
   const keeps = me.data !== undefined && me.data.scopes.vet?.kind !== "cases";
   const [adding, setAdding] = useState(false);
+  const [naming, setNaming] = useState<Disease | null>(null);
   /** Which disease is being taken off the list or put back on it: its dialog asks why. */
   const [changing, setChanging] = useState<{
     disease: Disease;
@@ -379,6 +472,7 @@ const NotifiablePage = () => {
               handleTakeOff: (one) =>
                 setChanging({ disease: one, back: false }),
               handlePutBack: (one) => setChanging({ disease: one, back: true }),
+              handleOtherNames: setNaming,
             }))}
           />
         ) : (
@@ -389,6 +483,15 @@ const NotifiablePage = () => {
       {keeps ? (
         <>
           <AddDiseaseDialog onOpenChange={setAdding} open={adding} />
+          <OtherNamesDialog
+            disease={naming}
+            key={naming?.id ?? "none"}
+            onOpenChange={(open) => {
+              if (!open) {
+                setNaming(null);
+              }
+            }}
+          />
           <ChangeDialog
             back={changing?.back ?? false}
             disease={changing?.disease ?? null}

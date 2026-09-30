@@ -3327,6 +3327,12 @@ export const en = {
   "notifiable.add": "Add a disease",
   "notifiable.name": "Disease name",
   "notifiable.nameEn": "English name (if any)",
+  "notifiable.otherNames": "Other names",
+  "notifiable.otherNamesAre": "Also written: {names}",
+  "notifiable.otherNamesHint":
+    "Separated by commas: the letters and other spellings a Vet may write it by, such as FMD or খুরা রোগ. A diagnosis in any of them raises the report.",
+  "notifiable.otherNamesSave": "Save the names",
+  "notifiable.otherNamesSaved": "Other names saved",
   "notifiable.note": "What the ULO said",
   "notifiable.retire": "Take off the list",
   "notifiable.retired": "Off the list",
@@ -3486,6 +3492,10 @@ export const en = {
     "No animal on the farm is yours to diagnose just now",
   "vet.noneMine": "You have not recorded anything yet",
   "vet.disease": "Disease",
+  "vet.diseaseHint":
+    "Choose from the list, or write another disease in your own words.",
+  "vet.notifiableNamed":
+    "{disease} must be reported to DLS: saving this raises the letter to the office at once.",
   "vet.note": "What you found",
   "vet.record": "Record the diagnosis",
   "vet.recorded": "Diagnosis recorded",

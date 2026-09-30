@@ -243,6 +243,7 @@ const addDiseases = async (
         farmId: starter.farmId,
         nameBn: name.bn,
         nameEn: name.en,
+        otherNames: [...name.otherNames],
         addedBy: starter.actorId,
         addedByRole: starter.roleUsed,
         createdAt: starter.now,

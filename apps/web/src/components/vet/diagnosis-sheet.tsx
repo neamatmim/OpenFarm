@@ -1,3 +1,4 @@
+import { namesTheDisease } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -97,6 +98,16 @@ export const DiagnosisSheet = ({
       .join(" · "),
   }));
 
+  // The farm's notifiable diseases, offered as the Vet types and named back when the words are one of them: the letter
+  // to the office is owed the moment it is saved, and the Vet should know it is.
+  const listed = useQuery({
+    ...orpc.notifiable.list.queryOptions(),
+    enabled: open,
+  });
+  const onTheList = (listed.data ?? []).filter((one) => one.retiredAt === null);
+  const named = conclusion.disease.trim()
+    ? onTheList.find((one) => namesTheDisease(one, { bn: conclusion.disease }))
+    : undefined;
   const record = useMutation(
     orpc.diagnoses.record.mutationOptions({
       onSuccess: () => {
@@ -153,16 +164,33 @@ export const DiagnosisSheet = ({
           />
         </FormField>
       ) : null}
-      <FormField id={`disease-${idPrefix}`} label={t("vet.disease")}>
+      <FormField
+        hint={t("vet.diseaseHint")}
+        id={`disease-${idPrefix}`}
+        label={t("vet.disease")}
+      >
         <Input
           autoComplete="off"
           id={`disease-${idPrefix}`}
+          list={`diseases-${idPrefix}`}
           onChange={(event) =>
             setConclusion({ ...conclusion, disease: event.target.value })
           }
           value={conclusion.disease}
         />
+        <datalist id={`diseases-${idPrefix}`}>
+          {onTheList.map((one) => (
+            <option key={one.id} value={one.nameBn}>
+              {one.nameEn ?? one.nameBn}
+            </option>
+          ))}
+        </datalist>
       </FormField>
+      {named ? (
+        <p className="text-danger text-sm font-medium">
+          {t("vet.notifiableNamed", { disease: named.nameBn })}
+        </p>
+      ) : null}
       <FormField id={`note-${idPrefix}`} label={t("vet.note")}>
         <Input
           id={`note-${idPrefix}`}

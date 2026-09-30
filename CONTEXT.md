@@ -132,7 +132,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Disposal**: What was done with a carcass: buried (the rule is six feet) or burned. Evidence, because an inspector may ask. Never a word for a Sale — an Animal sold is Sold, and "disposal" is what happened to a body. _Avoid_: Removal, destruction
 
-**Notifiable Disease**: A disease on the farm's own list of those that must be reported to DLS in writing without delay (Animal Disease Act 2005, s.3). The list is what the Upazila Livestock Officer confirms to this farm, with the confirmation noted beside each entry, because the national schedule could not be sourced. A Vet Diagnosis naming one raises the DLS report work immediately and tells the Owner and the Manager. _Avoid_: Reportable disease, outbreak
+**Notifiable Disease**: A disease on the farm's own list of those that must be reported to DLS in writing without delay (Animal Disease Act 2005, s.3). The list is what the Upazila Livestock Officer confirms to this farm, with the confirmation noted beside each entry, because the national schedule could not be sourced. Each one keeps the other names a Vet writes it by — "FMD", "খুরা রোগ" — and a Diagnosis naming it by any of them, in either spelling of Bangla, whatever the capitals, spaces or dashes, names it. A Vet Diagnosis naming one raises the DLS report work immediately and tells the Owner and the Manager; the Vet is offered the list as they write, and told before saving that a report will be raised. _Avoid_: Reportable disease, outbreak
 
 ## Milk
 

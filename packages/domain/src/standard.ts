@@ -342,15 +342,48 @@ export const STANDARD_DRUG_FOR: Record<
   calfDewormer: "pyrantel",
 };
 
-/** The diseases a farm must report to the Upazila Livestock Office. */
+/**
+ * The diseases a farm must report to the Upazila Livestock Office, with the other names a Vet or a farm writes them by —
+ * the letters, the old spellings, the name without "রোগ" — so a report is never missed for a spelling.
+ */
 export const STANDARD_NOTIFIABLE_DISEASES = [
-  { bn: "ক্ষুরা রোগ", en: "Foot-and-mouth disease" },
-  { bn: "তড়কা", en: "Anthrax" },
-  { bn: "লাম্পি স্কিন ডিজিজ", en: "Lumpy skin disease" },
-  { bn: "গলাফোলা", en: "Haemorrhagic septicaemia" },
-  { bn: "বাদলা", en: "Black quarter" },
-  { bn: "ব্রুসেলোসিস", en: "Brucellosis" },
-] as const satisfies readonly Named[];
+  {
+    bn: "ক্ষুরা রোগ",
+    en: "Foot-and-mouth disease",
+    otherNames: ["ক্ষুরা", "খুরা রোগ", "খুরা", "এফএমডি", "FMD"],
+  },
+  {
+    bn: "তড়কা",
+    en: "Anthrax",
+    otherNames: ["তড়কা রোগ", "অ্যানথ্রাক্স", "এনথ্রাক্স"],
+  },
+  {
+    bn: "লাম্পি স্কিন ডিজিজ",
+    en: "Lumpy skin disease",
+    otherNames: ["লাম্পি", "লাম্পি স্কিন", "এলএসডি", "LSD"],
+  },
+  {
+    bn: "গলাফোলা",
+    en: "Haemorrhagic septicaemia",
+    otherNames: [
+      "গলা ফোলা",
+      "গলাফোলা রোগ",
+      "হেমোরেজিক সেপ্টিসেমিয়া",
+      "Hemorrhagic septicemia",
+      "HS",
+    ],
+  },
+  {
+    bn: "বাদলা",
+    en: "Black quarter",
+    otherNames: ["বাদলা রোগ", "ব্ল্যাক কোয়ার্টার", "Blackleg", "BQ"],
+  },
+  {
+    bn: "ব্রুসেলোসিস",
+    en: "Brucellosis",
+    otherNames: ["ব্রুসেলা", "Brucella"],
+  },
+] as const satisfies readonly (Named & { otherNames: readonly string[] })[];
 
 /**
  * The breeds a Bangladeshi dairy and fattening farm meets: the local cattle and the four local breeds BLRI

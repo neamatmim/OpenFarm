@@ -7,7 +7,11 @@ import { dlsReport } from "@OpenFarm/db/schema/health";
 import { animal } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type { DoseRoute } from "@OpenFarm/domain";
-import { illAgainOf, withdrawalEndsAt } from "@OpenFarm/domain";
+import {
+  illAgainOf,
+  namesTheDisease,
+  withdrawalEndsAt,
+} from "@OpenFarm/domain";
 import { z } from "zod";
 
 import type { Tx, Trail } from "./audit";
@@ -492,8 +496,9 @@ export const theReportSop = async (tx: Tx, farmId: string) => {
  * Is this what the Vet called it one of the diseases the farm must report?
  *
  * Matched on the Vet's own words, because that is what both the list and the Diagnosis are
- * written in. Trimmed and case-folded so "তড়কা " and "Anthrax" versus "anthrax" are not the
- * farm's problem; anything subtler than that is the Manager's to keep tidy in the list.
+ * written in — against each disease's name, its English and the other names it goes by
+ * ("FMD", "খুরা রোগ"), spelt either Unicode way, whatever the capitals, spaces or dashes. A
+ * name the list does not know yet is the Owner's, the Manager's or the Vet's to add to it.
  */
 export const isNotifiable = async (
   tx: Tx,
@@ -502,18 +507,9 @@ export const isNotifiable = async (
 ): Promise<{ id: string; nameBn: string } | null> => {
   const list = await tx.query.notifiableDisease.findMany({
     where: { farmId, retiredAt: { isNull: true } },
-    columns: { id: true, nameBn: true, nameEn: true },
+    columns: { id: true, nameBn: true, nameEn: true, otherNames: true },
   });
-  const said = new Set(
-    [disease.bn, disease.en]
-      .filter(Boolean)
-      .map((word) => word?.trim().toLowerCase())
-  );
-  const found = list.find((one) =>
-    [one.nameBn, one.nameEn]
-      .filter(Boolean)
-      .some((listed) => said.has(listed?.trim().toLowerCase()))
-  );
+  const found = list.find((one) => namesTheDisease(one, disease));
   return found ? { id: found.id, nameBn: found.nameBn } : null;
 };
 
