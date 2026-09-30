@@ -289,6 +289,7 @@ export type {
   BandStanding,
   LeftoverStanding,
   LeftoverTally,
+  PurchasePrice,
   RationLine,
   StockMovement,
   WeighedAnimal,
@@ -317,8 +318,11 @@ export {
   roundKg,
   shortfallPercent,
   priceHistory,
+  priceJumped,
+  purchasePricesOf,
   shortfallOf,
   stockLedger,
+  unitPriceOf,
 } from "./feed";
 export type { IllAgain } from "./health";
 export type {

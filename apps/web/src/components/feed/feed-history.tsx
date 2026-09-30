@@ -1,4 +1,4 @@
-import { FEED_PACK_WORDS, feedUnitWord } from "@OpenFarm/domain";
+import { FEED_PACK_WORDS, feedUnitEach, feedUnitWord } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation } from "@tanstack/react-query";
@@ -27,6 +27,7 @@ import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 import type { Adjustment, Arrival, FeedItemRow } from "./feed-types";
+import { PriceChange } from "./price-change";
 
 /** How many rows of a history a page shows before the next. */
 const HISTORY_PAGE = 20;
@@ -62,7 +63,7 @@ const ArrivalCorrection = ({ arrival }: { arrival: Arrival }) => {
         type="number"
         value={correcting.typed.quantity ?? ""}
       />
-      {arrival.priceBdt === null ? null : (
+      {arrival.kind === "harvest" ? null : (
         <CorrectionAnswer
           inputMode="numeric"
           label={t("stock.price")}
@@ -111,7 +112,7 @@ const KindBadge = ({ harvest }: { harvest: boolean }) => {
 };
 
 const KindCell = ({ row }: { row: { original: ArrivalRow } }) => (
-  <KindBadge harvest={row.original.priceBdt === null} />
+  <KindBadge harvest={row.original.kind === "harvest"} />
 );
 
 /** What a trader's slip would say of a delivery: the bags or maunds it was typed as, or — for feed weighed in kg
@@ -148,14 +149,42 @@ const QuantityCell = ({ row }: { row: { original: ArrivalRow } }) => {
   );
 };
 
+/** What a unit of a purchase cost, and how that moved on the last purchase of the same feed. Nothing for a Harvest —
+ *  or on an answer a phone kept from before prices per unit were said. */
+const UnitPriceLine = ({ arrival }: { arrival: Arrival }) => {
+  const { t, language } = useLanguage();
+  const unitPrice = arrival.unitPriceBdt ?? null;
+  if (unitPrice === null) {
+    return null;
+  }
+  const change = arrival.priceChangePercent ?? null;
+  return (
+    <span className="text-muted-foreground text-xs whitespace-nowrap">
+      {t("stock.averagePrice", {
+        taka: formatNumber(Math.round(unitPrice * 100) / 100, language),
+        unit: feedUnitEach(arrival.unit, language),
+      })}
+      {change === null ? null : (
+        <>
+          {" · "}
+          <PriceChange percent={change} />
+        </>
+      )}
+    </span>
+  );
+};
+
 const PriceCell = ({ row }: { row: { original: ArrivalRow } }) => {
   const { language } = useLanguage();
   return row.original.priceBdt === null ? (
     <Nothing />
   ) : (
-    <span className="whitespace-nowrap">
-      ৳{formatNumber(row.original.priceBdt, language)}
-    </span>
+    <div className="flex flex-col items-end">
+      <span className="whitespace-nowrap">
+        ৳{formatNumber(row.original.priceBdt, language)}
+      </span>
+      <UnitPriceLine arrival={row.original} />
+    </div>
   );
 };
 
@@ -195,7 +224,7 @@ const arrivalColumns = arrivalColumn.columns([
     header: listHeader("stock.col.item"),
     cell: ArrivalItemCell,
   }),
-  arrivalColumn.accessor((one) => (one.priceBdt === null ? 1 : 0), {
+  arrivalColumn.accessor((one) => (one.kind === "harvest" ? 1 : 0), {
     id: "kind",
     header: listHeader("stock.kind"),
     cell: KindCell,
@@ -244,7 +273,7 @@ const ArrivalCard = ({ row }: { row: ArrivalRow }) => {
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-medium">{row.nameBn}</span>
-          <KindBadge harvest={row.priceBdt === null} />
+          <KindBadge harvest={row.kind === "harvest"} />
         </div>
         <span className="font-semibold tabular-nums">
           {formatNumber(row.quantity, language)}{" "}
@@ -258,10 +287,11 @@ const ArrivalCard = ({ row }: { row: ArrivalRow }) => {
         </span>
         <span className="text-muted-foreground text-xs">
           {formatDate(row.receivedOn, language)}
-          {row.priceBdt === null
+          {row.kind === "harvest" || row.priceBdt === null
             ? ""
             : ` · ${taka(row.priceBdt)} · ${row.sellerName ?? ""}`}
         </span>
+        <UnitPriceLine arrival={row} />
         <LotAndExpiry
           expiresOn={row.expiresOn}
           lotNumber={row.lotNumber}
@@ -321,7 +351,7 @@ export const ArrivalsTab = ({
   const shown = arrivals.filter(
     (one) =>
       (itemId === "" || one.feedItemId === itemId) &&
-      (kind === "" || (kind === "harvest") === (one.priceBdt === null))
+      (kind === "" || kind === one.kind)
   );
   const table = useListTable({
     columns: arrivalColumns,

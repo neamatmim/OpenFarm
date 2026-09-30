@@ -2579,6 +2579,10 @@ export const bn: Record<MessageKey, string> = {
   "stock.noStock": "গুদামে কিছু নেই — আগে খাদ্য উপাদান যোগ করুন",
   "stock.adjustment": "থাকার কথা {expected}, গোনা হয়েছে {counted}",
   "stock.averagePrice": "প্রতি {unit} ৳{taka}",
+  "stock.lastBought": "শেষ কেনা {day}, প্রতি {unit} ৳{taka}",
+  "stock.dearer": "আগের বারের চেয়ে {percent}% বেশি",
+  "stock.cheaper": "আগের বারের চেয়ে {percent}% কম",
+  "stock.sameAsLast": "আগের বারের সমান দাম",
   "stock.kind": "কেনা নাকি নিজের জমির",
   "stock.purchase": "কেনা",
   "stock.harvest": "নিজের জমির",
@@ -4448,6 +4452,10 @@ export const bn: Record<MessageKey, string> = {
   "params.milkUnaccountedHint":
     "সপ্তাহে ট্যাংকে যাওয়া দুধের এতটা যদি গেটের বাইরেও না যায়, ট্যাংকেও না থাকে, তবে সন্ধ্যার খবরে আপনাকে আর ম্যানেজারকে জানানো হবে।",
   "params.milkUnaccountedPercent": "এর বেশি হলে",
+  "params.feedPrice": "বেশি দামে কেনা খাদ্য",
+  "params.feedPriceHint":
+    "কোনো খাদ্য আগের বারের চেয়ে প্রতি একক এতটা বেশি দামে কেনা হলে সন্ধ্যার খবরে আপনাকে জানানো হবে।",
+  "params.feedPriceJumpPercent": "এর বেশি হলে",
   "params.missing": "পাওয়া যাচ্ছে না এমন পশু",
   "params.missingHint":
     "রাউন্ডে খুঁজে না পাওয়া পশু কত দিন পাওয়া না গেলে আপনাকে জিজ্ঞেস করা হবে তাকে হারিয়ে গেছে বলে বাদ দেবেন কিনা। তার পাতা থেকে আগেও বাদ দিতে পারেন।",
@@ -4472,6 +4480,9 @@ export const bn: Record<MessageKey, string> = {
   "heatWatch.heiferAgeUnknown": "বকনা, বয়স জানা নেই, এখনো পাল দেওয়া হয়নি · {pen}",
   "refusal.notMissing": "পশুটি হারায়নি — কেউ তাকে খুঁজছে না",
   "refusal.gdNumberNeeded": "চুরি হলে থানার জিডি নম্বর লাগবে",
+  "alerts.feedPriceJump":
+    "{feed} কেনা হয়েছে প্রতি {unit} ৳{price}-এ, আগের বারের ৳{previous}-এর চেয়ে {percent}% বেশি",
+  "digest.feedPriceJump": "{count}টি খাদ্য আগের বারের চেয়ে বেশি দামে কেনা হয়েছে",
   "alerts.headCountDiffers":
     "সন্ধ্যার গণনায় {pen}-এ {counted}টি পশু পাওয়া গেছে, খাতায় আছে {expected}টি",
   "push.headCountDiffersTitle": "মাথা গণনা মেলেনি",

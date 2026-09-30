@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  priceJumped,
+  purchasePricesOf,
   MAX_KG_PER_100KG_PER_DAY,
   bandStanding,
   findBandProblems,
@@ -241,5 +243,68 @@ describe("what a Stock Count's differences are worth", () => {
       shortBdt: 0,
       overBdt: 0,
     });
+  });
+});
+
+/** A lot of bran that came in on a farm day. */
+const bought = (
+  id: string,
+  day: string,
+  quantity: number,
+  priceBdt: number | null,
+  kind: "purchase" | "harvest" = "purchase"
+) => ({
+  id,
+  feedItemId: "ভুসি",
+  kind,
+  quantity,
+  priceBdt,
+  receivedOn: new Date(`${day}T04:00:00.000Z`),
+});
+
+describe("a Feed Purchase's price per unit", () => {
+  it("is set against the last purchase of the same feed, per kilo whatever it was bought as", () => {
+    // Twenty 37-kilo bags at ৳1,480 each is ৳40 a kilo; the next lot is ৳44.
+    const prices = purchasePricesOf([
+      bought("a", "2040-01-01", 740, 29_600),
+      bought("b", "2040-01-08", 500, 22_000),
+    ]);
+    expect(prices.get("a")).toEqual({
+      unitPriceBdt: 40,
+      previousUnitPriceBdt: null,
+      changePercent: null,
+    });
+    expect(prices.get("b")).toEqual({
+      unitPriceBdt: 44,
+      previousUnitPriceBdt: 40,
+      changePercent: 10,
+    });
+  });
+
+  it("never compares a harvest, nor against one", () => {
+    const prices = purchasePricesOf([
+      bought("a", "2040-01-01", 100, 4000),
+      bought("h", "2040-01-03", 1000, 3000, "harvest"),
+      bought("b", "2040-01-08", 100, 4100),
+    ]);
+    expect(prices.has("h")).toBe(false);
+    expect(prices.get("b")?.previousUnitPriceBdt).toBe(40);
+  });
+
+  it("puts one written up late where its day falls", () => {
+    const prices = purchasePricesOf([
+      bought("late", "2040-01-05", 100, 5000),
+      bought("a", "2040-01-01", 100, 4000),
+      bought("b", "2040-01-08", 100, 5000),
+    ]);
+    expect(prices.get("late")?.previousUnitPriceBdt).toBe(40);
+    expect(prices.get("b")?.changePercent).toBe(0);
+  });
+
+  it("has jumped only past the line, and only upward", () => {
+    expect(priceJumped({ changePercent: 10 }, 10)).toBe(false);
+    expect(priceJumped({ changePercent: 10.1 }, 10)).toBe(true);
+    expect(priceJumped({ changePercent: -30 }, 10)).toBe(false);
+    expect(priceJumped({ changePercent: null }, 10)).toBe(false);
   });
 });

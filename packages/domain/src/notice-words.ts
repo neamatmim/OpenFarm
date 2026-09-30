@@ -3,7 +3,7 @@ import { formatDate, formatNumber, translate } from "@OpenFarm/i18n";
 
 import type { AlertKind } from "./alerts";
 import { ALERT_KINDS } from "./alerts";
-import { feedUnitWord } from "./feed-units";
+import { feedUnitEach, feedUnitWord } from "./feed-units";
 import type { LotFacts, NoticeFacts, WorkFacts } from "./notice-facts";
 
 const MINUTES_PER_HOUR = 60;
@@ -95,6 +95,13 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     litres: Number(facts.litres),
     percent: Number(facts.percent),
     since: saidDate(facts.since, language),
+  }),
+  feed_price_jump: (facts, language) => ({
+    feed: facts.feed,
+    unit: feedUnitEach(facts.unit, language),
+    price: Number(facts.unitPriceBdt),
+    previous: Number(facts.previousUnitPriceBdt),
+    percent: Number(facts.percent),
   }),
   head_count_differs: (facts) => ({
     pen: facts.pen,

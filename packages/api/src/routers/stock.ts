@@ -30,6 +30,9 @@ import {
   adjustmentsOf,
   stockOnHand,
   fodderValueOf,
+  lastPurchaseOf,
+  purchasePricesIn,
+  tellIfTheFeedCameDearer,
 } from "../stock-store";
 
 /**
@@ -107,6 +110,11 @@ export const stockRouter = {
         context.farm.expiryWarnDays
       );
       const lines = await stockOnHand(context.db, context.farm.id, window);
+      const prices = await purchasePricesIn(
+        context.db,
+        context.farm.id,
+        input.feedItemId
+      );
       const lotOf = new Map(
         lines.flatMap((line) =>
           line.lots.map((one) => [one.arrivalId, one] as const)
@@ -127,6 +135,10 @@ export const stockRouter = {
             ? { kind: row.packKind, count: Number(row.packCount) }
             : null,
           priceBdt: row.priceBdt,
+          /** What a unit of it cost, and how far that moved on the last purchase of the same feed; nothing for a
+           *  Harvest. */
+          unitPriceBdt: prices.get(row.id)?.unitPriceBdt ?? null,
+          priceChangePercent: prices.get(row.id)?.changePercent ?? null,
           sellerName: seller?.name ?? null,
           receivedOn: row.receivedOn,
           lotNumber: row.lotNumber,
@@ -141,6 +153,17 @@ export const stockRouter = {
         };
       });
     }),
+
+  /**
+   * The last Feed Purchase of a feed — what a unit cost, and when — for the receiving sheet to set the lorry at the gate
+   * beside before it is saved. Nothing for a feed never bought.
+   */
+  lastPurchase: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ feedItemId: z.string() }))
+    .handler(({ context, input }) =>
+      lastPurchaseOf(context.db, context.farm.id, input.feedItemId)
+    ),
 
   /**
    * The differences the Stock Counts booked, newest first, as they read now — so a late entry dated
@@ -264,6 +287,7 @@ export const stockRouter = {
             id,
             input.paymentMethod
           );
+          await tellIfTheFeedCameDearer(tx, context.farm, id, now);
         }
       );
       return { id };

@@ -8,9 +8,9 @@ import {
   maundsOf,
   quantityOfPacks,
 } from "@OpenFarm/domain";
-import { formatNumber } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -22,6 +22,7 @@ import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 import type { FeedItemRow } from "./feed-types";
+import { PriceChange } from "./price-change";
 
 type Kind = "purchase" | "harvest";
 
@@ -84,6 +85,55 @@ const amountOf = (
     { unit: feedUnitOf(item.unit), bagSizeKg: item.bagSizeKg }
   );
   return "quantity" in packed ? packed.quantity : null;
+};
+
+/** How far the price typed moves on the last purchase, to a tenth of a percent. */
+const changeOn = (last: number, now: number) =>
+  Math.round(((now - last) / last) * 1000) / 10;
+
+/** The last purchase of this feed, for the lorry at the gate to be set beside before it is saved: what a unit cost then,
+ *  and — once a price is typed — how far this one moves on it. */
+const LastPurchase = ({
+  item,
+  draft,
+  amount,
+}: {
+  item: FeedItemRow;
+  draft: Draft;
+  /** What was typed, in the feed's own unit; nothing until it is. */
+  amount: number | null;
+}) => {
+  const { t, language } = useLanguage();
+  const last = useQuery(
+    orpc.stock.lastPurchase.queryOptions({ input: { feedItemId: item.id } })
+  );
+  // A Harvest has no price to set beside anything.
+  if (!last.data || draft.kind !== "purchase") {
+    return null;
+  }
+  const typedPrice = Number(draft.price);
+  const unitPriceNow =
+    amount !== null && typedPrice > 0 ? typedPrice / amount : null;
+  const { unitPriceBdt, receivedOn } = last.data;
+  const change =
+    unitPriceNow === null || unitPriceBdt === 0
+      ? null
+      : changeOn(unitPriceBdt, unitPriceNow);
+  return (
+    <p className="text-muted-foreground text-sm tabular-nums">
+      {t("stock.lastBought", {
+        taka: formatNumber(Math.round(unitPriceBdt * 100) / 100, language),
+        unit: feedUnitEach(item.unit, language),
+        day: formatDate(new Date(receivedOn), language, "date"),
+      })}
+      {change === null ? null : (
+        <>
+          {" · "}
+          <PriceChange percent={change} />
+        </>
+      )}
+    </p>
+  );
 };
 
 /** What a trader's slip would say, worked out as it is typed: what bags or maunds come to, the maunds kilos come
@@ -376,6 +426,7 @@ export const ReceiveFeedSheet = ({
           ) : null}
 
           <LotSummary countedIn={countedIn} draft={draft} item={chosen} />
+          <LastPurchase amount={amount} draft={draft} item={chosen} />
         </>
       ) : (
         <p className="text-muted-foreground text-sm">{t("feed.noItems")}</p>

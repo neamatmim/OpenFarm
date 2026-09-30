@@ -4,14 +4,17 @@ import { and, eq, notInArray, sql } from "@OpenFarm/db/operators";
 import type { FEED_IN_KINDS } from "@OpenFarm/db/schema/feed";
 import { feeding, stockCount } from "@OpenFarm/db/schema/feed";
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
-import type { StockMovement } from "@OpenFarm/domain";
+import type { PurchasePrice, StockMovement } from "@OpenFarm/domain";
 import {
   lastFellBelow,
+  priceJumped,
+  purchasePricesOf,
   roundKg,
   roundTaka,
   shortfallOf,
   startOfFarmDay,
   stockLedger,
+  unitPriceOf,
 } from "@OpenFarm/domain";
 import type { ExpiryStanding, ExpiryWindow } from "@OpenFarm/domain/lots";
 import { runsLow, storeOfLots } from "@OpenFarm/domain/lots";
@@ -745,4 +748,103 @@ export const storeCountLate = async (
     return null;
   }
   return { lastCountedAt: last?.countedAt ?? null };
+};
+
+type Db = Pick<Database, "query"> | Tx;
+
+/** Every Feed Purchase's price per unit beside the one before it, read afresh from the arrivals as they stand — of one
+ *  feed, or of all. */
+export const purchasePricesIn = async (
+  db: Db,
+  farmId: string,
+  feedItemId?: string
+): Promise<Map<string, PurchasePrice>> => {
+  const arrivals = await db.query.feedIn.findMany({
+    where: { farmId, ...(feedItemId ? { feedItemId } : {}) },
+    columns: {
+      id: true,
+      feedItemId: true,
+      kind: true,
+      quantity: true,
+      priceBdt: true,
+      receivedOn: true,
+    },
+  });
+  return purchasePricesOf(
+    arrivals.map((one) => ({ ...one, quantity: Number(one.quantity) }))
+  );
+};
+
+/** The last Feed Purchase of a feed, as the receiving sheet sets a new one beside it: what a unit cost, and when it came.
+ *  Nothing for a feed never bought. */
+export const lastPurchaseOf = async (
+  db: Db,
+  farmId: string,
+  feedItemId: string
+): Promise<{ unitPriceBdt: number; receivedOn: Date } | null> => {
+  const bought = await db.query.feedIn.findMany({
+    where: { farmId, feedItemId, kind: "purchase" },
+    columns: { quantity: true, priceBdt: true, receivedOn: true },
+    orderBy: { receivedOn: "desc", id: "desc" },
+    limit: 5,
+  });
+  for (const one of bought) {
+    const unitPriceBdt = unitPriceOf({
+      kind: "purchase",
+      quantity: Number(one.quantity),
+      priceBdt: one.priceBdt,
+    });
+    if (unitPriceBdt !== null) {
+      return { unitPriceBdt, receivedOn: one.receivedOn };
+    }
+  }
+  return null;
+};
+
+/**
+ * Tells the Owner of a Feed Purchase bought dearer than the last one of the same feed by more than the Owner's line, in
+ * the evening's post — once for the arrival, however often it is put right: first recorded, or a Correction that now
+ * makes it so.
+ */
+export const tellIfTheFeedCameDearer = async (
+  tx: Tx,
+  farm: { id: string; feedPriceJumpPercent: number },
+  arrivalId: string,
+  now: Date
+): Promise<void> => {
+  const arrival = await tx.query.feedIn.findFirst({
+    where: { id: arrivalId, farmId: farm.id },
+    columns: { feedItemId: true },
+    with: { feedItem: { columns: { nameBn: true, unit: true } } },
+  });
+  if (!arrival) {
+    return;
+  }
+  const prices = await purchasePricesIn(tx, farm.id, arrival.feedItemId);
+  const price = prices.get(arrivalId);
+  if (
+    !(
+      price &&
+      price.previousUnitPriceBdt !== null &&
+      priceJumped(price, farm.feedPriceJumpPercent)
+    )
+  ) {
+    return;
+  }
+  await tell(
+    tx,
+    farm.id,
+    {
+      kind: "feed_price_jump",
+      about: { id: arrivalId },
+      facts: {
+        feed: arrival.feedItem.nameBn,
+        unit: arrival.feedItem.unit,
+        unitPriceBdt: roundTaka(price.unitPriceBdt),
+        previousUnitPriceBdt: roundTaka(price.previousUnitPriceBdt),
+        percent: price.changePercent ?? 0,
+      },
+    },
+    now
+  );
 };
