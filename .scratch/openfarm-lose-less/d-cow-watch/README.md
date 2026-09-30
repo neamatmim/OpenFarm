@@ -41,6 +41,22 @@ but nothing asks after a cow who goes quiet.
 - **No new record.** Reads Heats, Services, Calvings, Milk Records, Dispatches the farm already keeps.
 - **"heat watch" is already a glossary phrase** (CONTEXT.md:201, under Abortion) — widen **Heat**, add no word.
 
+## What the research found (01, 2026-09-30 — `docs/research/cow-watch.md`)
+
+- **Day 60 stands, as DLS's own figure:** NG-GLPP says to "re-examine cows that don't come into heat at 50-60 days
+  postpartum" (checked in the PDF). **Expect the list to be long:** only about 30% of Bangladeshi cows cycle within 120
+  days (Saha 2015, checked), and most listed cows will be missed heats, not barren ones — so the list asks for closer
+  watching and a Vet check, never "barren". A second mark at day 85 (DLS: open days no more than 85) is the research's
+  suggestion, not decided.
+- **The 18–24-day return window stands:** NG-GLPP "21±3 days" (checked), Merck 18–24.
+- **Heifers: 18 months is DLS's crossbred figure** ("crossbred at 18-20 months", "180-275kg", checked) — **but deshi
+  heifers are 30 months.** A single 18-month rule would list every deshi heifer a year early. 03 should key on breed
+  (or side of the cross), and say "age not known" apart. Weight about 250 kg for crossbreds if a weigh-in exists.
+- **The 20% over 2 days milk drop is a convention, not a measured line.** No study or published software gives it;
+  the nearest research definition is at least 5 days below the expected curve with a day under 80% (Adriaens 2021,
+  abstract only). It will catch sudden illness (acute mastitis, milk fever, ketosis) and miss subclinical mastitis. Keep
+  it as the Owner's setting, and say on the list that a heat also drops milk.
+
 ## Decisions for the Owner
 
 1. **When a cow with no heat seen goes on the watch** — 60 days after calving, no heat ever / **60 days after calving,
