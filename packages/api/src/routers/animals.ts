@@ -70,6 +70,7 @@ import {
   markFound,
   markWrittenOff,
   missingOf,
+  openMissing,
   readMissing,
 } from "../missing-store";
 import {
@@ -1166,6 +1167,44 @@ export const animalsRouter = {
         }
       );
       return { tagNumber };
+    }),
+
+  /**
+   * Not found: the Manager has walked a Pen that did not count right, and knows which animal is not in it. Opens a
+   * Missing for her as the round's "Animal not found" does — told to the Owner and the Manager at once — or leaves the one
+   * already open alone.
+   */
+  notFound: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ tagNumber: tagInput }))
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const tagNumber = input.tagNumber.toUpperCase();
+      const target = await requireAnimal(
+        context.db,
+        context.farm.id,
+        tagNumber
+      );
+      let opened = false;
+      await audited(context).write(
+        {
+          entity: "missing",
+          entityId: target.id,
+          action: "create",
+          after: (tx) => readMissing(tx, target.id),
+        },
+        async (tx) => {
+          const her = await loadLiveAnimal(tx, context.farm.id, tagNumber);
+          ({ opened } = await openMissing(tx, {
+            farmId: context.farm.id,
+            animalId: her.id,
+            completionId: null,
+            since: now,
+            now,
+          }));
+        }
+      );
+      return { tagNumber, opened };
     }),
 
   /**

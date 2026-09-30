@@ -630,6 +630,47 @@ const stockCount = (): SopContent => ({
   ],
 });
 
+/**
+ * The evening Head Count: each Pen counted at lock-up by the number standing in it, blind — the phone does not say how
+ * many the register expects — and set against the animals the register puts there at that moment. Theft is at night,
+ * and the count at lock-up and the 08:00 round bracket it (the Owner, 2026-09-29). Barn Staff count; a difference goes
+ * to the Manager, who walks the Pen and counts again.
+ */
+const headCount = (): SopContent => ({
+  name: { bn: "সন্ধ্যার মাথা গণনা", en: "Evening head count" },
+  purpose: {
+    bn: "গোয়াল বন্ধের সময় পেনে কয়টি পশু আছে গুনে লিখুন",
+    en: "At lock-up, count how many animals are standing in the pen",
+  },
+  triggers: [{ kind: "schedule", times: ["19:00"] }],
+  assignedRole: "staff",
+  // The Manager recounts only where the count differs, which the farm tells them of: no checker on every Pen, every
+  // evening (the Owner, 2026-09-29).
+  checkerRole: null,
+  graceMinutes: 120,
+  steps: [
+    {
+      id: "count",
+      text: {
+        bn: "পেনে কয়টি পশু আছে গুনুন",
+        en: "Count the animals in the pen",
+      },
+      repeatPerAnimal: false,
+      evidence: [
+        {
+          type: "number",
+          required: true,
+          unit: { bn: "টি", en: "head" },
+          min: 0,
+          max: 500,
+        },
+      ],
+      skipReasons: [],
+      effect: { kind: "head_count" },
+    },
+  ],
+});
+
 const biosecurity = (): SopContent => ({
   name: { bn: "খামার জীবাণু নিরাপত্তা", en: "Biosecurity check" },
   purpose: {
@@ -1476,6 +1517,7 @@ export type PlaybookKey =
   | "burial"
   | "dlsReport"
   | "stockCount"
+  | "headCount"
   | "biosecurity"
   | "arrivalCheck"
   | "arrivalDeworming"
@@ -1586,6 +1628,7 @@ export const standardPlaybook = (
   burial: burial(),
   dlsReport: dlsReport(),
   stockCount: stockCount(),
+  headCount: headCount(),
   biosecurity: biosecurity(),
   arrivalCheck: arrivalCheck(),
   arrivalDeworming: arrivalDeworming(chosen.flukeDrench),

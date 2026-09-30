@@ -13,6 +13,7 @@ export * from "./herd";
 export * from "./instance";
 export * from "./milk";
 export * from "./milk-destinations";
+export * from "./head-count";
 export * from "./missing";
 export * from "./money";
 export * from "./observation";

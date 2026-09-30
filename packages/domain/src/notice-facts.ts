@@ -43,6 +43,13 @@ export interface NoticeFacts {
     /** The farm day ("YYYY-MM-DD") the week began. */
     since: string;
   };
+  head_count_differs: {
+    pen: string;
+    /** How many the person counting found standing in it. */
+    counted: number;
+    /** How many the register put there when it was counted. */
+    expected: number;
+  };
   pen_sores_seen: {
     pen: string;
     /** How many animals in it were seen with sores in the window. */

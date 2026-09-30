@@ -97,6 +97,8 @@ export const DELIVERY = {
   pen_sores_seen: { when: "immediate" },
   // Milk gone that nobody can account for is the evening's reading: a figure to ask about tomorrow, not a buzz.
   milk_unaccounted: { when: "digest" },
+  // A Pen that does not count right at lock-up is walked tonight, not read about in the morning.
+  head_count_differs: { when: "immediate" },
 } as const satisfies Record<AlertKind, Delivery>;
 
 /**
@@ -228,6 +230,14 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
   milk_unaccounted: {
     app: "alerts.milkUnaccounted",
     digest: "digest.milkUnaccounted",
+  },
+  head_count_differs: {
+    app: "alerts.headCountDiffers",
+    push: {
+      title: "push.headCountDiffersTitle",
+      body: "push.headCountDiffersBody",
+    },
+    digest: "digest.headCountDiffers",
   },
 };
 

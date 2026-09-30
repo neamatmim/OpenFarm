@@ -93,6 +93,8 @@ export type StepEffect =
   | { kind: "calving" }
   /** The store counted: what is really there of each Feed Item, and why it differs. */
   | { kind: "stock_count" }
+  /** A Pen counted by the number standing in it, blind, and set against the animals the register puts there. */
+  | { kind: "head_count" }
   /** The farm's DLS Registration renewed: the new expiry, and the renewed certificate's photo. */
   | { kind: "registration_renewal" }
   /** The Lot Number a vaccination Campaign was given from, asked once for the Pen. */
@@ -114,6 +116,7 @@ export const STEP_EFFECT_KINDS = [
   "wean",
   "calving",
   "stock_count",
+  "head_count",
   "registration_renewal",
   "lot_number",
 ] as const;
@@ -488,6 +491,18 @@ const SHAPED_STEPS: Partial<
   lot_number: lotNumberStepProblems,
 };
 
+/** The figures written animal by animal, and what a Step that asks for one once is told. */
+const PER_ANIMAL_FIGURES: Partial<Record<StepEffect["kind"], string>> = {
+  milk_record: "milk is recorded per animal",
+  weigh_in: "an animal is weighed one at a time",
+};
+
+/** The figures written once for the Pen, and what a Step that asks for one per animal is told. */
+const ONCE_FOR_THE_PEN_FIGURES: Partial<Record<StepEffect["kind"], string>> = {
+  bulk_total: "the bulk total is recorded once for the session",
+  head_count: "a Pen is counted once, not once per animal",
+};
+
 /** A Step that writes a farm record must be able to: it needs the figure it writes, and it
  *  must run at the level the record is kept at — litres are per cow, a tank reading is per
  *  Session. A Version that breaks this would raise work nobody can finish. */
@@ -540,17 +555,13 @@ const effectProblems = (step: Step, stepIndex: number): string[] => {
       `${path}.evidence: this step records a figure and asks for none`
     );
   }
-  if (effect.kind === "milk_record" && !step.repeatPerAnimal) {
-    problems.push(`${path}.effect: milk is recorded per animal`);
+  const perAnimal = PER_ANIMAL_FIGURES[effect.kind];
+  if (perAnimal && !step.repeatPerAnimal) {
+    problems.push(`${path}.effect: ${perAnimal}`);
   }
-  if (effect.kind === "weigh_in" && !step.repeatPerAnimal) {
-    problems.push(`${path}.effect: an animal is weighed one at a time`);
-  }
-
-  if (effect.kind === "bulk_total" && step.repeatPerAnimal) {
-    problems.push(
-      `${path}.effect: the bulk total is recorded once for the session`
-    );
+  const once = ONCE_FOR_THE_PEN_FIGURES[effect.kind];
+  if (once && step.repeatPerAnimal) {
+    problems.push(`${path}.effect: ${once}`);
   }
   return problems;
 };

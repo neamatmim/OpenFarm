@@ -33,6 +33,7 @@ const URGENT: ReadonlySet<string> = new Set([
   "notifiable_diagnosis",
   "animal_missing",
   "pen_sores_seen",
+  "head_count_differs",
 ]);
 
 /** Why an Effect stood aside, for a Needs Review a Correction raised so: what the farm knew that the entry did not. */

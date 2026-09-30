@@ -80,5 +80,6 @@ export const whenWords = (
   for (const happening of happeningTriggers(content)) {
     words.push(happeningWord(happening, t));
   }
-  return words;
+  // Once each: a cow looked at on each of her first five days after calving is five triggers on one happening.
+  return [...new Set(words)];
 };
