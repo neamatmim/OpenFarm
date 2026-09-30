@@ -1,4 +1,4 @@
-import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 /** What a copy was taken for. Nightlies age out; monthlies are kept for as long as the farm
  *  keeps anything, which is for ever (Audit trail and correction rules). */
@@ -29,6 +29,10 @@ export const backupRun = pgTable(
     ok: text("ok", { enum: ["yes", "no"] }).notNull(),
     /** What went wrong, when something did. */
     detail: text("detail"),
+    /** How many rows each of the farm's key tables held as the copy began, written by the job before it takes
+     *  the dump — so the copy carries, in its own row, what a restore of it must give back. Null on a copy
+     *  taken before this was counted. */
+    held: jsonb("held").$type<Record<string, number>>(),
   },
   (table) => [index("backup_run_idx").on(table.startedAt)]
 );

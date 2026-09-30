@@ -10,6 +10,9 @@ export const env = createEnv({
     /** The Investor Portal's own address, `investors.<farm-domain>` (ADR 0009). Unset, the portal is at `/portal` on
      *  the farm's own address, as it was built. */
     PORTAL_URL: z.url().optional(),
+    /** The Owner's address: before any Farm exists, the only one that may open an account and set the farm up. A
+     *  production server without it lets nobody set up, rather than whoever finds the address first. */
+    OPENFARM_OWNER_EMAIL: z.email().optional(),
     /** Vercel sends this as a bearer token when invoking its generated cron route. */
     CRON_SECRET: z.string().min(32).optional(),
     NODE_ENV: z

@@ -87,12 +87,33 @@ sql() {
 
 # The row goes in first, marked failed. A job that dies halfway leaves a row that says so,
 # rather than leaving nothing at all — which reads exactly like a night nobody ran it.
+#
+# It also says how many rows the farm's key tables held, and it goes in before the dump, so
+# the copy carries its own row: a restore of it is checked against what it held, not against
+# what a farm is supposed to have. A farm set up yesterday holds no milk yet, and its first
+# restore drill must pass; a farm with a year of milk must get every litre of it back.
 cat > "$work/statement.sql" <<'SQL'
-insert into backup_run (id, kind, started_at, destination, ok)
-values (:'run_id', :'kind', :'started'::timestamp, :'destination', 'no');
+insert into backup_run (id, kind, started_at, destination, ok, held)
+values (:'run_id', :'kind', :'started'::timestamp, :'destination', 'no',
+        jsonb_build_object(
+          'farm', (select count(*) from farm),
+          'user', (select count(*) from "user"),
+          'animal', (select count(*) from animal),
+          'animal_photo', (select count(*) from animal_photo),
+          'sop_definition', (select count(*) from sop_definition),
+          'sop_version', (select count(*) from sop_version),
+          'sop_instance', (select count(*) from sop_instance),
+          'step_completion', (select count(*) from step_completion),
+          'completion_photo', (select count(*) from completion_photo),
+          'milking_session', (select count(*) from milking_session),
+          'milk_record', (select count(*) from milk_record),
+          'feeding', (select count(*) from feeding),
+          'sale', (select count(*) from sale),
+          'audit_event', (select count(*) from audit_event)
+        ));
 SQL
 if ! sql; then
-  echo "backup failed before it began: the database is not reachable" >&2
+  echo "backup failed before it began: the database is not reachable, or not migrated" >&2
   exit 1
 fi
 

@@ -17,7 +17,8 @@ Decided with the Owner, 2026-09-28:
 ## 2. The server ([deploy runbook](../../docs/runbooks/deploy.md))
 
 - [ ] Every box in "Before the first deploy" is ticked: production mode, point-in-time recovery window written down, Singapore region, off-site on a different provider, TLS with HTTP redirected.
-- [ ] The app is installed as `openfarm.service` and starts.
+- [ ] `OPENFARM_OWNER_EMAIL` in `/etc/openfarm/app.env` is the Owner's own address. Until the farm is set up only that address can open an account; left out, nobody can. — _Owner_
+- [ ] The app is installed as `openfarm.service` and starts, and the Owner signs up with that address and sets the farm up.
 - [ ] The nightly and monthly backup timers are installed and listed.
 - [ ] The first backup is run by hand, and **Admin → Backups** shows it.
 - [ ] **The first restore drill** is done and written down ([restore runbook](../../docs/runbooks/restore-drill.md)). This is also Release 1's "one quarterly restore drill passed". — _Owner_

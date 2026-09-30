@@ -9,10 +9,22 @@ import { rememberPushBrowser } from "../push-store";
 import { requireRole } from "../roles";
 
 /**
+ * The push services browsers hand out endpoints on: Google's (Chrome, Android, Samsung Internet, Opera), Mozilla's
+ * (Firefox), Apple's (Safari) and Microsoft's (Edge). An exact name, or a name under one of these.
+ */
+const PUSH_SERVICES = [
+  "fcm.googleapis.com",
+  "push.services.mozilla.com",
+  "push.apple.com",
+  "notify.windows.com",
+] as const;
+
+/**
  * A push endpoint is a URL this farm's server will be asked to POST to. Left open, that is a
  * staff member pointing the server at anything it can reach from inside — a cloud metadata
- * service, a machine on the farm office network. It has to be a push service on the open
- * web, over TLS, and nothing else.
+ * service, a machine on the farm office network. Refusing addresses that look private is not
+ * enough: a name anybody registers can be pointed at any of them. So it has to be one of the
+ * push services browsers actually use, over TLS, and nothing else.
  */
 const endpointInput = z
   .url()
@@ -24,17 +36,12 @@ const endpointInput = z
     } catch {
       return false;
     }
-    if (url.protocol !== "https:") {
+    if (url.protocol !== "https:" || url.port !== "") {
       return false;
     }
     const host = url.hostname.toLowerCase();
-    return !(
-      host === "localhost" ||
-      host.endsWith(".localhost") ||
-      host.endsWith(".internal") ||
-      // Anything that resolves by address is not a push service.
-      /^\d{1,3}(?:\.\d{1,3}){3}$/u.test(host) ||
-      host.startsWith("[")
+    return PUSH_SERVICES.some(
+      (service) => host === service || host.endsWith(`.${service}`)
     );
   }, "That is not a push service");
 

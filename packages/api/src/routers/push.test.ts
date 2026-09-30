@@ -107,7 +107,7 @@ const after = (day: string, minutes: number) =>
 let endpoints = 0;
 const endpoint = () => {
   endpoints += 1;
-  return `https://push.example.com/${suffix}-${endpoints}`;
+  return `https://fcm.googleapis.com/fcm/send/${suffix}-${endpoints}`;
 };
 
 /**
@@ -221,6 +221,8 @@ describe("review findings", () => {
         "https://169.254.169.254/latest/meta-data",
         "https://localhost/x",
         "https://db.internal/x",
+        // A name anybody can point anywhere, the farm's own network included: resolved, it could be any of the above.
+        "https://push.farm-office.example.com/x",
       ].map(async (address) => {
         try {
           await manager.client.push.listen({
@@ -234,7 +236,29 @@ describe("review findings", () => {
         }
       })
     );
-    expect(refused).toEqual([true, true, true, true]);
+    expect(refused).toEqual([true, true, true, true, true]);
+  });
+
+  it("is told by the push services the farm's browsers use", async () => {
+    const manager = await createTestClient(appRouter, { as: "manager" });
+
+    // Chrome, Android, Samsung and Opera go through Google; Firefox through Mozilla; Safari through Apple; Edge
+    // through Microsoft. A Manager on any of them can agree to be told.
+    for (const address of [
+      "https://fcm.googleapis.com/fcm/send/abc",
+      "https://updates.push.services.mozilla.com/wpush/v2/abc",
+      "https://web.push.apple.com/abc",
+      "https://wns2-sg2p.notify.windows.com/w/?token=abc",
+    ]) {
+      // oxlint-disable-next-line no-await-in-loop
+      await expect(
+        manager.client.push.listen({
+          endpoint: address,
+          p256dh: "key",
+          auth: "secret",
+        })
+      ).resolves.toBeDefined();
+    }
   });
 
   it("stops telling a Shed Phone that has been revoked", async () => {
@@ -283,6 +307,47 @@ describe("review findings", () => {
       .update(shedPhone)
       .set({ revokedAt: null })
       .where(eq(shedPhone.id, theShedPhone().id));
+  });
+
+  it("stops telling somebody whose Membership has ended, on their own phone too", async () => {
+    const post = listeningPost();
+    const clock = new FakeClock("2027-03-20T05:00:00.000Z");
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+      push: post.transport,
+    });
+    const theirOwnPhone = endpoint();
+    await manager.client.push.listen({
+      endpoint: theirOwnPhone,
+      p256dh: "key",
+      auth: "secret",
+    });
+    const owner = await createTestClient(appRouter, {
+      as: "owner",
+      clock,
+      push: post.transport,
+    });
+    await owner.client.people.disable({ userId: thePerson("manager").id });
+    try {
+      // A Manager who has left still holds the Role on paper until the Owner takes it away; their phone should not
+      // go on hearing the farm's business in the meantime.
+      const { clock: late } = await lateWork("2027-03-21");
+      late.set(after("2027-03-21", 45));
+      const sweeper = await createTestClient(appRouter, {
+        as: "owner",
+        clock: late,
+        push: post.transport,
+      });
+      await sweeper.client.alerts.sweep();
+
+      expect(
+        post.sent.some((one) => one.target.endpoint === theirOwnPhone)
+      ).toBe(false);
+    } finally {
+      // The file shares one Manager and the tests below still expect them at work; put them back, pass or fail.
+      await owner.client.people.enable({ userId: thePerson("manager").id });
+    }
   });
 
   it("tells the doer their work was sent back", async () => {
