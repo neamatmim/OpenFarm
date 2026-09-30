@@ -58,6 +58,7 @@ type NumberKey =
   | "soresTellHours"
   | "illAgainDiagnoses"
   | "illAgainDays"
+  | "heatWatchAfterCalvingDays"
   | "ventureFloorPercent"
   | "ventureRunningPercent"
   | "ventureInvestorsPercent"
@@ -273,6 +274,20 @@ const GROUPS: {
         unit: "params.hours",
         min: 12,
         max: 168,
+      },
+    ],
+  },
+  {
+    id: "params-heat-watch",
+    title: "params.heatWatch",
+    hint: "params.heatWatchHint",
+    fields: [
+      {
+        key: "heatWatchAfterCalvingDays",
+        label: "params.heatWatchAfterCalvingDays",
+        unit: "params.days",
+        min: 30,
+        max: 150,
       },
     ],
   },

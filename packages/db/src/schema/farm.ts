@@ -199,6 +199,11 @@ export const farm = pgTable("farm", {
    *  farm keeps paying, for the Owner to weigh (the Owner, 2026-09-29: the list first, not a Cull Reason). */
   illAgainDiagnoses: integer("ill_again_diagnoses").notNull().default(3),
   illAgainDays: integer("ill_again_days").notNull().default(365),
+  /** The day after calving from which an open cow with no heat seen is on the heat watch: 60, as DLS re-examines a cow
+   *  not in heat by 50–60 days (docs/research/cow-watch.md). The Manager's, as the list is. */
+  heatWatchAfterCalvingDays: integer("heat_watch_after_calving_days")
+    .notNull()
+    .default(60),
   /** Whether Investors the Owner has invited may sign in to read their Ventures and papers (ADR 0007). Off until
    *  the Owner turns it on, and off again is how the farm answers a lawyer who says the portal is a platform. */
   investorPortal: boolean("investor_portal").notNull().default(false),

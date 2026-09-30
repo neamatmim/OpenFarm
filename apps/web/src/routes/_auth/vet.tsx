@@ -9,6 +9,7 @@ import {
   Hourglass,
   Pill,
   Receipt,
+  Flame,
   RefreshCcw,
 } from "lucide-react";
 import { useState } from "react";
@@ -20,18 +21,24 @@ import { DiagnosisSheet } from "@/components/vet/diagnosis-sheet";
 import { PrescribeSheet } from "@/components/vet/prescribe-sheet";
 import { ConcludedTab } from "@/components/vet/vet-concluded";
 import { FeeTab } from "@/components/vet/vet-fee";
-import { CasesTab, RepeatTab } from "@/components/vet/vet-lists";
+import { CasesTab, HeatWatchTab, RepeatTab } from "@/components/vet/vet-lists";
 import type { Made, Seen } from "@/components/vet/vet-types";
 import { WaitingTab } from "@/components/vet/vet-waiting";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
-const TABS = ["waiting", "mine", "repeat", "fee", "cases"] as const;
+const TABS = ["waiting", "mine", "repeat", "heat", "fee", "cases"] as const;
 type Tab = (typeof TABS)[number];
 
 /** The tabs a vet called in for a visit has: their Cases, not the farm's breeding list or fees. */
 const VISITING_TABS: readonly Tab[] = ["waiting", "mine", "cases"];
-const IN_HOUSE_TABS: readonly Tab[] = ["waiting", "mine", "repeat", "fee"];
+const IN_HOUSE_TABS: readonly Tab[] = [
+  "waiting",
+  "mine",
+  "repeat",
+  "heat",
+  "fee",
+];
 
 /** Doses ordered that nobody has given yet and that are still to be given. */
 const owedOf = (mine: Made[]) =>
@@ -119,11 +126,15 @@ const useVetQueries = (saw: string) => {
     ...orpc.breeding.repeatBreeders.queryOptions(),
     enabled: inHouse,
   });
+  const heat = useQuery({
+    ...orpc.breeding.heatWatch.queryOptions(),
+    enabled: inHouse,
+  });
   const cases = useQuery({
     ...orpc.vetCases.mine.queryOptions(),
     enabled: visiting,
   });
-  return { visiting, kinds, waiting, allWaiting, mine, repeat, cases };
+  return { visiting, kinds, waiting, allWaiting, mine, repeat, heat, cases };
 };
 
 /** The tabs, by what the Vet came to do, and which of them this Vet has. */
@@ -143,7 +154,8 @@ const VetTabs = ({
   const { t } = useLanguage();
   const navigate = useNavigate({ from: Route.fullPath });
   const search = Route.useSearch();
-  const { visiting, kinds, waiting, allWaiting, mine, repeat, cases } = queries;
+  const { visiting, kinds, waiting, allWaiting, mine, repeat, heat, cases } =
+    queries;
   const repeatRows = repeat.data ?? [];
   const allowed = visiting ? VISITING_TABS : IN_HOUSE_TABS;
   const tab =
@@ -177,6 +189,13 @@ const VetTabs = ({
       icon: RefreshCcw,
       count: repeatRows.length,
       content: <RepeatTab query={repeat} rows={repeatRows} />,
+    },
+    heat: {
+      value: "heat",
+      label: t("heatWatch.title"),
+      icon: Flame,
+      count: heat.data?.length ?? 0,
+      content: <HeatWatchTab query={heat} />,
     },
     fee: {
       value: "fee",

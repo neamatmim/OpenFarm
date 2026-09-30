@@ -4418,5 +4418,14 @@ export const bn: Record<MessageKey, string> = {
   "params.illAgainDays": "সময়ের মধ্যে",
   "params.diagnoses": "বার",
   "refusal.outcomeSaid": "ফলাফল আগেই লেখা হয়েছে; বদলাতে রোগ নির্ণয়টি সংশোধন করুন",
+  "heatWatch.title": "গরমের দিকে নজর",
+  "heatWatch.none": "গরম দেখার অপেক্ষায় থাকা কোনো গাভী নেই",
+  "heatWatch.neverSeen": "বিয়ানোর {days} দিন, গরম দেখা যায়নি · {pen}",
+  "heatWatch.quietSince": "বিয়ানোর {days} দিন, {day} থেকে গরম দেখা যায়নি · {pen}",
+  "heatWatch.returnDue": "আবার গরম হওয়ার সময় — পাল দেওয়া হয়েছে {day} · {pen}",
+  "params.heatWatch": "গরমের দিকে নজর",
+  "params.heatWatchHint":
+    "বিয়ানোর এত দিন পরেও গরম না দেখা খালি গাভীকে গরমের দিকে নজরের তালিকায় তোলা হবে, যাতে ভালো করে দেখা হয় আর ডাক্তার পরীক্ষা করেন। প্রাণিসম্পদ অধিদপ্তর ৫০–৬০ দিনে গরম না হলে পরীক্ষা করতে বলে।",
+  "params.heatWatchAfterCalvingDays": "বিয়ানোর পর এই দিন থেকে",
   "refusal.notMissing": "পশুটি হারায়নি — কেউ তাকে খুঁজছে না",
 };

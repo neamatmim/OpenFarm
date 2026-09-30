@@ -128,6 +128,8 @@ export interface Context {
     /** How many Diagnoses within how many days put an animal on the Manager's list as ill again and again. */
     illAgainDiagnoses: number;
     illAgainDays: number;
+    /** The day after calving from which an open cow with no heat seen is on the heat watch. */
+    heatWatchAfterCalvingDays: number;
     /** What part of a Venture's target capital is the least worth starting on. */
     ventureFloorPercent: number;
     /** What part of a Venture's capital keeps the animals rather than buying them. */

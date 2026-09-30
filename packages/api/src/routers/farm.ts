@@ -155,6 +155,8 @@ const parameters = z
     /** How many Diagnoses within how many days put an animal on the Manager's list as ill again and again. */
     illAgainDiagnoses: z.number().int().min(2).max(20).optional(),
     illAgainDays: z.number().int().min(30).max(730).optional(),
+    /** The day after calving from which an open cow with no heat seen is on the heat watch. */
+    heatWatchAfterCalvingDays: z.number().int().min(30).max(150).optional(),
     /** What part of a Venture's target capital is the least worth starting on. */
     ventureFloorPercent: z.number().int().min(0).max(100).optional(),
     /** What part of a Venture's capital keeps the animals rather than buying them. */
@@ -772,6 +774,7 @@ export const farmRouter = {
                 soresTellHours: true,
                 illAgainDiagnoses: true,
                 illAgainDays: true,
+                heatWatchAfterCalvingDays: true,
                 ventureFloorPercent: true,
                 ventureRunningPercent: true,
                 ventureInvestorsPercent: true,

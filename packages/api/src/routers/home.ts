@@ -11,7 +11,7 @@ import {
 } from "@OpenFarm/domain";
 
 import { overdueBaki } from "../baki-store";
-import { repeatBreedersOn } from "../breeding-store";
+import { heatWatchOn, repeatBreedersOn } from "../breeding-store";
 import { illAgainOn } from "../health-store";
 import { protectedProcedure } from "../index";
 import {
@@ -81,6 +81,7 @@ export const homeRouter = {
         bakiOverdue,
         missing,
         illAgain,
+        heatWatch,
       ] = await Promise.all([
         findLate(
           context.db,
@@ -118,6 +119,8 @@ export const homeRouter = {
         // Animals the Vet has diagnosed again and again: listed, never pushed, as the repeat breeders are — whether to
         // keep treating one is the Owner's to weigh (the Owner, 2026-09-29).
         illAgainOn(context.db, context.farm, now),
+        // Open cows the farm expects in heat and nobody has seen: a missed heat is three weeks of milk and calf gone.
+        heatWatchOn(context.db, context.farm, now),
       ]);
 
       const underWithdrawal = animals;
@@ -177,6 +180,7 @@ export const homeRouter = {
           bakiOverdue: bakiOverdue.slice(0, QUEUE_LIMIT),
           missing: missing.slice(0, QUEUE_LIMIT),
           illAgain: illAgain.slice(0, QUEUE_LIMIT),
+          heatWatch: heatWatch.slice(0, QUEUE_LIMIT),
           // Latest first and bounded, the way the Overdue screen itself reads: a Manager
           // opening this in a shed is handed the work that has waited longest, not a year
           // of it in whatever order the database found it.

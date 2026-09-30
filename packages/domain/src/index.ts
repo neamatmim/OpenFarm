@@ -33,6 +33,8 @@ export type {
   CalvingLead,
   PregnancyCheckResult,
   ServiceMethod,
+  HeatWatchBecause,
+  HeatWatched,
 } from "./breeding";
 export {
   CALF_OUTCOMES,
@@ -50,6 +52,9 @@ export {
   aiWindow,
   attemptOf,
   attemptsThatBegin,
+  heatWatchOf,
+  RETURN_HEAT_FROM_DAYS,
+  RETURN_HEAT_UNTIL_DAYS,
   attemptsThatFailed,
   calvingWorkDue,
   expectedCalvingFrom,
