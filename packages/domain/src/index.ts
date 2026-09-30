@@ -334,6 +334,8 @@ export type { AdultDeaths, HeadRecord, SideDeaths } from "./adult-deaths";
 export { ADULT_DEATH_CAUSES, adultDeaths } from "./adult-deaths";
 export type { Bought } from "./last-buys";
 export { LAST_BUYS_DAYS, againstLastBuys, lastBuysPerKg } from "./last-buys";
+export type { BoughtIn, EarlyLosses } from "./early-losses";
+export { EARLY_DAYS, earlyLosses } from "./early-losses";
 export type { ListedDisease } from "./disease-names";
 export type { Shrink } from "./shrink";
 export { SHRINK_STALE_DAYS, shrinkOf, shrinkOfMany } from "./shrink";

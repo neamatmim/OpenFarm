@@ -9,6 +9,7 @@ import { audited } from "../audit";
 import { correct } from "../corrections/correction";
 import { intakeCorrection, intakeCorrectionInput } from "../corrections/intake";
 import { counterpartyNamed } from "../counterparty-store";
+import { earlyLossesOf } from "../early-losses-store";
 import { farmsNextEid } from "../eid-store";
 import { suggestedTargetOf } from "../expected-gain-store";
 import { farmDay } from "../farm-clock";
@@ -26,7 +27,7 @@ import {
 } from "../intake-store";
 import { paymentMethodInput } from "../money-inputs";
 import { bookingOf } from "../money-store";
-import { requireRole } from "../roles";
+import { OWNER_ONLY, requireOnly, requireRole } from "../roles";
 
 /** Enough that the Manager recognises the man; not so many that a shed phone fetches a ledger. */
 const SELLERS_SHOWN = 100;
@@ -111,6 +112,17 @@ export const intakeRouter = {
         { weightKg: input.weightKg, now }
       );
     }),
+
+  /**
+   * The animals bought over the last year that died, were culled or were diagnosed within their first thirty days, by
+   * seller and by haat, the most lost first. The Owner's alone: a pattern to ask a trader about, never an accusation
+   * written on the animal.
+   */
+  earlyLosses: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .handler(({ context }) =>
+      earlyLossesOf(context.db, context.farm.id, context.clock.now())
+    ),
 
   sellers: protectedProcedure
     .use(requireRole("owner", "manager"))
