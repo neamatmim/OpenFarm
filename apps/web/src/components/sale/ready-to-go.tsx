@@ -1,7 +1,7 @@
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button, buttonVariants } from "@OpenFarm/ui/components/button";
 import { Link } from "@tanstack/react-router";
-import { Store } from "lucide-react";
+import { CalendarX, Store } from "lucide-react";
 
 import {
   ActionsHeader,
@@ -19,7 +19,7 @@ import {
 } from "@/components/fattening/animal-prices";
 import { TagLink } from "@/components/fattening/fattening-words";
 import { Nothing } from "@/components/list-cells";
-import { EmptyState } from "@/components/page";
+import { EmptyState, StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import type { orpc } from "@/utils/orpc";
 
@@ -47,8 +47,22 @@ const SellButton = ({ row }: { row: SellableRow }) => {
   );
 };
 
+/** Her Eid has gone by and she is still here, Ready and unsold — said beside her tag. An answer kept from before has
+ *  no word of it. */
+const PastHerEid = ({ row }: { row: SellableRow }) => {
+  const { t } = useLanguage();
+  return row.windowClosed ? (
+    <StatusBadge icon={CalendarX} tone="warning">
+      {t("ready.windowClosed")}
+    </StatusBadge>
+  ) : null;
+};
+
 const TagCell = ({ row }: SellableCell) => (
-  <TagLink tagNumber={row.original.tagNumber} />
+  <span className="flex flex-wrap items-center gap-2">
+    <TagLink tagNumber={row.original.tagNumber} />
+    <PastHerEid row={row.original} />
+  </span>
 );
 
 /** What she last weighed, or a dash for one never on the scale. */
@@ -139,6 +153,7 @@ const SellableCard = ({ row }: { row: SellableRow }) => (
       <div className="flex flex-wrap items-center gap-2">
         <TagLink tagNumber={row.tagNumber} />
         <span className="text-muted-foreground text-sm">{row.penName}</span>
+        <PastHerEid row={row} />
       </div>
       <span className="font-semibold tabular-nums">
         <LastWeight kg={row.latestKg} />

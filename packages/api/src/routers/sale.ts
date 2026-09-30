@@ -5,6 +5,7 @@ import {
   farmDayOf,
   startOfFarmDay,
   underMeatWithdrawal,
+  windowHasClosed,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -89,6 +90,8 @@ export const saleRouter = {
                 penName: row.penName,
                 /** What she last weighed, as the figure the Manager starts from. */
                 latestKg: row.view.latestKg,
+                /** Her Eid has gone by and she is still here, confirmed Ready and unsold. */
+                windowClosed: windowHasClosed(row.window, now),
               },
             ]
       );

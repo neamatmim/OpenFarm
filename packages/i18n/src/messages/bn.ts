@@ -4443,6 +4443,9 @@ export const bn: Record<MessageKey, string> = {
   "owner.storeNeverCounted": "কখনো গোনা হয়নি",
   "alerts.storeShortfall": "{day}-এর গুদাম গণনায় ৳{amount}-এর খাদ্য কম পাওয়া গেছে",
   "alerts.openTheCounts": "গণনা খুলুন",
+  "alerts.stillHereAfterEid":
+    "{day} থেকে কোরবানি শেষ, তবু সেই ঈদের জন্য রাখা {animals}টি পশু এখনো খামারে (তার {inVentures}টি ভেঞ্চারের)",
+  "digest.stillHereAfterEid": "{count}টি ঈদের পরেও পশু খামারে রয়ে গেছে",
   "alerts.soldUnderCost":
     "{tag} বিক্রি হলো ৳{price}-তে; তার খরচ পড়েছিল ৳{cost}, আর কম দরে তার ওজনের দাম {low}",
   "digest.soldUnderCost": "{count}টি পশু খরচ বা বাজারের চেয়ে কম দামে বিক্রি হয়েছে",
@@ -4451,6 +4454,7 @@ export const bn: Record<MessageKey, string> = {
   "digest.enteredTwice": "{count}টি টাকার হিসাব জেনেশুনে দ্বিতীয়বার লেখা হয়েছে",
   "alerts.cashShort": "{day}-এর নগদ গণনায় {name}-এর হাতে ৳{amount} কম পাওয়া গেছে",
   "digest.cashShort": "{count}টি নগদ গণনায় টাকা কম পাওয়া গেছে",
+  "alerts.openTheEids": "ঈদের তালিকা খুলুন",
   "alerts.openTheMoney": "টাকার হিসাব খুলুন",
   "alerts.openTheCash": "হাতে নগদ খুলুন",
   "digest.storeShortfall": "{count}টি গুদাম গণনায় খাদ্য কম পাওয়া গেছে",

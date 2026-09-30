@@ -96,6 +96,11 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     percent: Number(facts.percent),
     since: saidDate(facts.since, language),
   }),
+  still_here_after_eid: (facts, language) => ({
+    day: saidDate(facts.day, language),
+    animals: Number(facts.animals),
+    inVentures: Number(facts.inVentures),
+  }),
   sold_under_cost: (facts, language) => ({
     tag: facts.tag,
     price: Number(facts.priceBdt),
