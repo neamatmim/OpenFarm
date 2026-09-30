@@ -157,6 +157,9 @@ const parameters = z
     illAgainDays: z.number().int().min(30).max(730).optional(),
     /** The day after calving from which an open cow with no heat seen is on the heat watch. */
     heatWatchAfterCalvingDays: z.number().int().min(30).max(150).optional(),
+    /** How far under her own week a cow's milk must fall, over how many days, before she is named as giving less. */
+    milkDropPercent: z.number().int().min(5).max(80).optional(),
+    milkDropDays: z.number().int().min(1).max(5).optional(),
     /** What part of a Venture's target capital is the least worth starting on. */
     ventureFloorPercent: z.number().int().min(0).max(100).optional(),
     /** What part of a Venture's capital keeps the animals rather than buying them. */
@@ -775,6 +778,8 @@ export const farmRouter = {
                 illAgainDiagnoses: true,
                 illAgainDays: true,
                 heatWatchAfterCalvingDays: true,
+                milkDropPercent: true,
+                milkDropDays: true,
                 ventureFloorPercent: true,
                 ventureRunningPercent: true,
                 ventureInvestorsPercent: true,

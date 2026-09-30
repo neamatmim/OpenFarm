@@ -59,6 +59,8 @@ type NumberKey =
   | "illAgainDiagnoses"
   | "illAgainDays"
   | "heatWatchAfterCalvingDays"
+  | "milkDropPercent"
+  | "milkDropDays"
   | "ventureFloorPercent"
   | "ventureRunningPercent"
   | "ventureInvestorsPercent"
@@ -288,6 +290,27 @@ const GROUPS: {
         unit: "params.days",
         min: 30,
         max: 150,
+      },
+    ],
+  },
+  {
+    id: "params-milk-drop",
+    title: "params.milkDrop",
+    hint: "params.milkDropHint",
+    fields: [
+      {
+        key: "milkDropPercent",
+        label: "params.milkDropPercent",
+        unit: "params.percent",
+        min: 5,
+        max: 80,
+      },
+      {
+        key: "milkDropDays",
+        label: "params.milkDropDays",
+        unit: "params.days",
+        min: 1,
+        max: 5,
       },
     ],
   },

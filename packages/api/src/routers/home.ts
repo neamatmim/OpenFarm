@@ -25,6 +25,7 @@ import {
   penLabel,
   workAwaitingSignOff,
 } from "../instances-store";
+import { milkDropsOn } from "../milk-store";
 import { missingNow } from "../missing-store";
 import { monthByMonth } from "../month-store";
 import { monthlyCostsNow } from "../monthly-costs-store";
@@ -82,6 +83,7 @@ export const homeRouter = {
         missing,
         illAgain,
         heatWatch,
+        givingLess,
       ] = await Promise.all([
         findLate(
           context.db,
@@ -121,6 +123,8 @@ export const homeRouter = {
         illAgainOn(context.db, context.farm, now),
         // Open cows the farm expects in heat and nobody has seen: a missed heat is three weeks of milk and calf gone.
         heatWatchOn(context.db, context.farm, now),
+        // Cows giving well under their own week: sudden illness shows in the pail before anywhere else.
+        milkDropsOn(context.db, context.farm, now),
       ]);
 
       const underWithdrawal = animals;
@@ -181,6 +185,7 @@ export const homeRouter = {
           missing: missing.slice(0, QUEUE_LIMIT),
           illAgain: illAgain.slice(0, QUEUE_LIMIT),
           heatWatch: heatWatch.slice(0, QUEUE_LIMIT),
+          givingLess: givingLess.slice(0, QUEUE_LIMIT),
           // Latest first and bounded, the way the Overdue screen itself reads: a Manager
           // opening this in a shed is handed the work that has waited longest, not a year
           // of it in whatever order the database found it.

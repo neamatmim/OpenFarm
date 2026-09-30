@@ -4740,6 +4740,15 @@ export const en = {
   "params.heatWatchHint":
     "An open cow with no heat seen this many days after calving is put on the heat watch, for closer watching and the Vet. DLS re-examines a cow not in heat by 50–60 days.",
   "params.heatWatchAfterCalvingDays": "From this day after calving",
+  "givingLess.title": "Giving less",
+  "givingLess.none": "No cow is giving well under her own week",
+  "givingLess.line":
+    "{lately} L a milking, usually {usually} L — {drop}% less · {pen}",
+  "params.milkDrop": "A cow giving less",
+  "params.milkDropHint":
+    "A cow whose milk a milking falls this far under her own week, over these days, is named to the Manager. A convention, not a measured line: it catches sudden illness, and a heat drops milk too.",
+  "params.milkDropPercent": "Less than her week by",
+  "params.milkDropDays": "Over the last",
   "refusal.notMissing": "This animal is not missing: nobody is looking for it",
 } as const;
 

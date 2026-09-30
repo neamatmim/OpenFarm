@@ -1,3 +1,5 @@
+import { farmDayOf, farmDaysApart } from "./farm-clock";
+
 /** Where a cow's milk went. Bulk is the tank the processor collects; Calves is what stays
  *  on the farm; Discard is poured away — the only lawful destination under Withdrawal. */
 export const MILK_DESTINATIONS = ["bulk", "calves", "discard"] as const;
@@ -141,3 +143,71 @@ export const litresTo = (
       .filter((record) => record.destination === destination)
       .reduce((total, record) => total + Number(record.litres), 0)
   );
+
+/** The days a cow's usual milk is read over, before the days her drop is read over. A week of her own. */
+export const MILK_USUAL_DAYS = 7;
+
+/** A cow giving less than her own usual, as the list names her: per milking, lately and usually. */
+export interface MilkDrop {
+  /** Litres per recorded milking in the last few days. */
+  lately: number;
+  /** Litres per recorded milking over the week before. */
+  usually: number;
+  /** How far under her usual, as a whole percent. */
+  dropPercent: number;
+}
+
+/** The mean of some litres. */
+const mean = (values: readonly number[]): number => {
+  let sum = 0;
+  for (const value of values) {
+    sum += value;
+  }
+  return sum / values.length;
+};
+
+/**
+ * Whether a cow is giving well under her own recent milk: her litres per recorded milking over the last few farm days
+ * before today, every destination — milk thrown away under a Withdrawal is still what she gave — against the week of
+ * farm days before those. By farm day, so a morning milking is the day it is milked on whatever the clock says. Per
+ * milking, so a milking nobody recorded is not a milking of nothing. A convention, not a measured line
+ * (docs/research/cow-watch.md): it catches sudden illness — acute mastitis, milk fever, ketosis — and misses what builds
+ * slowly; a heat drops milk too. Nothing until she has a milking in each part, or when she is giving what she usually
+ * does. Today is left out: it is not over.
+ */
+export const milkDropOf = (
+  records: readonly { at: Date; litres: number }[],
+  now: Date,
+  farm: { milkDropPercent: number; milkDropDays: number }
+): MilkDrop | null => {
+  const today = farmDayOf(now);
+  const recent: number[] = [];
+  const usual: number[] = [];
+  for (const one of records) {
+    const back = farmDaysApart(farmDayOf(one.at), today);
+    if (back >= 1 && back <= farm.milkDropDays) {
+      recent.push(one.litres);
+    } else if (
+      back > farm.milkDropDays &&
+      back <= farm.milkDropDays + MILK_USUAL_DAYS
+    ) {
+      usual.push(one.litres);
+    }
+  }
+  if (recent.length === 0 || usual.length === 0) {
+    return null;
+  }
+  const lately = mean(recent);
+  const usually = mean(usual);
+  if (usually <= 0) {
+    return null;
+  }
+  const dropPercent = Math.round((1 - lately / usually) * 100);
+  return dropPercent >= farm.milkDropPercent
+    ? {
+        lately: Math.round(lately * 10) / 10,
+        usually: Math.round(usually * 10) / 10,
+        dropPercent,
+      }
+    : null;
+};

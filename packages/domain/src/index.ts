@@ -213,7 +213,12 @@ export {
   parseTagNumber,
   prefixForOrigin,
 } from "./tag-number";
-export type { LactationView, MilkDestination, Reconciliation } from "./milk";
+export type {
+  LactationView,
+  MilkDestination,
+  MilkDrop,
+  Reconciliation,
+} from "./milk";
 export {
   LITRE_DECIMALS,
   MILK_DESTINATIONS,
@@ -224,6 +229,8 @@ export {
   litresTo,
   roundLitres,
   underMilkWithdrawal,
+  MILK_USUAL_DAYS,
+  milkDropOf,
 } from "./milk";
 export { derivePinHash, isPin, randomPinSalt, verifyPin } from "./pin";
 export type { AlertKind, ReviewReason } from "./alerts";

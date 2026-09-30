@@ -130,6 +130,9 @@ export interface Context {
     illAgainDays: number;
     /** The day after calving from which an open cow with no heat seen is on the heat watch. */
     heatWatchAfterCalvingDays: number;
+    /** How far under her own week a cow's milk must fall, over how many days, before she is named as giving less. */
+    milkDropPercent: number;
+    milkDropDays: number;
     /** What part of a Venture's target capital is the least worth starting on. */
     ventureFloorPercent: number;
     /** What part of a Venture's capital keeps the animals rather than buying them. */
