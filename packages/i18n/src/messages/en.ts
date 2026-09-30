@@ -4827,6 +4827,31 @@ export const en = {
   "heatWatch.heiferAgeUnknown": "Heifer, age not known, not yet served · {pen}",
   "refusal.notMissing": "This animal is not missing: nobody is looking for it",
   "refusal.gdNumberNeeded": "A theft needs the thana's GD number",
+  "refusal.bankNeedsASlip":
+    "Cash into or out of the bank needs its slip or cheque",
+  "refusal.holdsNoCash": "Only the Owner or a Manager holds the farm's cash",
+  "refusal.handoverGoesNowhere":
+    "Cash is handed from one hand to another, or to or from the bank",
+  "cash.tab": "Cash in hand",
+  "cash.hint":
+    "What each person holds of the farm's cash: the cash money that named their hand, less what they paid out and handed over. bKash and the bank name nobody. Tap a name to see what moved.",
+  "cash.nobody": "Nobody holds the farm's cash yet",
+  "cash.none": "No cash has moved through this hand yet.",
+  "cash.heldBy": "in {name}'s hand",
+  "cash.handOver": "Hand over",
+  "cash.handOverTitle": "Hand over cash · {name}",
+  "cash.handOverHint":
+    "Cash passed to another person, or into the bank with its slip. Nothing is earned or spent: it only changes hands.",
+  "cash.handedOver": "Handed over",
+  "cash.to": "To",
+  "cash.bank": "The bank",
+  "cash.amount": "Amount (৳)",
+  "cash.slip": "Deposit slip or cheque",
+  "cash.note": "Note",
+  "cash.handedTo": "Handed to {name}",
+  "cash.handedFrom": "From {name}",
+  "cash.toBank": "Into the bank",
+  "cash.fromBank": "Out of the bank",
   "refusal.weighedNeedsAKiloSlip":
     "Only feed bought by the kilo is weighed against the seller's slip",
   "alerts.feedPriceJump":

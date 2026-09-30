@@ -174,9 +174,13 @@ export const moneyEvent = pgTable(
     recordedBy: text("recorded_by").references(() => user.id),
     recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
     recordedAt: timestamp("recorded_at").notNull(),
+    /** Whose **Cash in Hand** the notes went into, or came out of: only for cash, and only for money booked since the
+     *  farm began saying so — an older one, or one by bKash or the bank, names nobody. */
+    heldBy: text("held_by").references(() => user.id),
   },
   (table) => [
     uniqueIndex("money_event_source_uidx").on(table.source, table.sourceId),
+    index("money_event_held_idx").on(table.farmId, table.heldBy),
     index("money_event_day_idx").on(table.farmId, table.occurredAt),
     index("money_event_approval_idx").on(table.farmId, table.approval),
     // One wage per person per month. Entries that are not wages carry no month, and do not collide.
@@ -191,6 +195,37 @@ export const moneyEvent = pgTable(
       table.wageMonth
     ),
   ]
+);
+
+/**
+ * A **Handover**: cash passed from one hand to another — the Manager's takings to the Owner, the Owner's cash to the
+ * Manager for the week — or into the bank as the Farm's deposit, or out of it into a hand. Not a Money Event: the
+ * Farm's money has not come or gone, only moved between the people and the place that hold it. One end is always a
+ * person; nothing moves from the bank to the bank.
+ */
+export const handover = pgTable(
+  "handover",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    /** Whose hand it left; nothing for cash drawn out of the bank. */
+    fromUserId: text("from_user_id").references(() => user.id),
+    /** Whose hand it went into; nothing for cash deposited in the bank. */
+    toUserId: text("to_user_id").references(() => user.id),
+    amountBdt: taka("amount_bdt").notNull(),
+    handedAt: timestamp("handed_at").notNull(),
+    /** The deposit slip or the cheque, where the bank is one end. */
+    reference: text("reference"),
+    note: text("note"),
+    recordedBy: text("recorded_by")
+      .notNull()
+      .references(() => user.id),
+    recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
+    recordedAt: timestamp("recorded_at").notNull(),
+  },
+  (table) => [index("handover_farm_idx").on(table.farmId, table.handedAt)]
 );
 
 /** The photo of a Money Event's receipt, when somebody took one. One per Money Event. */
