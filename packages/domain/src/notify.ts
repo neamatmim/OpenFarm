@@ -99,6 +99,8 @@ export const DELIVERY = {
   milk_unaccounted: { when: "digest" },
   // A Pen that does not count right at lock-up is walked tonight, not read about in the morning.
   head_count_differs: { when: "immediate" },
+  // Feed bought dearer than last time is a question for the Owner to ask the Manager tomorrow, not a buzz.
+  feed_price_jump: { when: "digest" },
 } as const satisfies Record<AlertKind, Delivery>;
 
 /**
@@ -238,6 +240,10 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
       body: "push.headCountDiffersBody",
     },
     digest: "digest.headCountDiffers",
+  },
+  feed_price_jump: {
+    app: "alerts.feedPriceJump",
+    digest: "digest.feedPriceJump",
   },
 };
 

@@ -1,0 +1,1 @@
+ALTER TABLE "farm" ADD COLUMN "feed_price_jump_percent" integer DEFAULT 10 NOT NULL;

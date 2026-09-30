@@ -223,6 +223,11 @@ export const farm = pgTable("farm", {
   /** How many days an animal may be Missing before the Owner is asked whether to write her off as Lost: a week, the
    *  Owner's alone, as the write-off is (the Owner, 2026-09-29). */
   missingWriteOffDays: integer("missing_write_off_days").notNull().default(7),
+  /** How far a Feed Purchase's price per unit may rise on the last purchase of the same feed before the Owner is told,
+   *  in the evening's post: 10%. The Owner's alone, as the Manager buys the feed (the Owner, 2026-09-29). */
+  feedPriceJumpPercent: integer("feed_price_jump_percent")
+    .notNull()
+    .default(10),
   /** Whether Investors the Owner has invited may sign in to read their Ventures and papers (ADR 0007). Off until
    *  the Owner turns it on, and off again is how the farm answers a lawyer who says the portal is a platform. */
   investorPortal: boolean("investor_portal").notNull().default(false),

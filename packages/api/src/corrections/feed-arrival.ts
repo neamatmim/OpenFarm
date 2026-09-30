@@ -16,6 +16,7 @@ import {
   readFeedArrival,
   receivedDay,
   sellerInput,
+  tellIfTheFeedCameDearer,
 } from "../stock-store";
 import type { CorrectionKind } from "./correction";
 import {
@@ -145,5 +146,7 @@ export const feedArrivalCorrection: CorrectionKind<
       row.id,
       to.paymentMethod
     );
+    // A price put right — or a quantity — may now make it dearer than the last lot; told once for the arrival.
+    await tellIfTheFeedCameDearer(tx, context.farm, row.id, now);
   },
 };

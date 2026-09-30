@@ -159,6 +159,11 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
     audience: [theManagers],
     entity: "sop_instance",
   },
+  // The Owner asks why; the Manager bought it. About the one arrival, so it is told once however often it is put right.
+  feed_price_jump: {
+    audience: [theOwner],
+    entity: "feed_in",
+  },
 };
 
 /** A Notice as it was raised, for whoever carries it out of the transaction to a pocket. */

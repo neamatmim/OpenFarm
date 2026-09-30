@@ -1,5 +1,10 @@
 import { standardPlaybook } from "@OpenFarm/domain";
-import { FakeClock, scratchDb, thePerson } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -156,7 +161,7 @@ describe("the evening head count", () => {
     const { workId } = await countIn("2055-01-15", pen.penId, 1);
     const [gone] = pen.tags;
     const her = await scratchDb().query.animal.findFirst({
-      where: { tagNumber: gone ?? "" },
+      where: { farmId: theFarm().id, tagNumber: gone ?? "" },
       columns: { id: true },
     });
     const open = () =>

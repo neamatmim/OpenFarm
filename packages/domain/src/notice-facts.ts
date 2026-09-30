@@ -43,6 +43,18 @@ export interface NoticeFacts {
     /** The farm day ("YYYY-MM-DD") the week began. */
     since: string;
   };
+  feed_price_jump: {
+    /** The Feed Item's Bangla name, as the store names it. */
+    feed: string;
+    /** The Feed Item's unit, said in the reader's language where it is read. */
+    unit: string;
+    /** What a unit of this purchase cost, to the paisa. */
+    unitPriceBdt: number;
+    /** What a unit of the last purchase before it cost. */
+    previousUnitPriceBdt: number;
+    /** How far it rose, to a tenth of a percent. */
+    percent: number;
+  };
   head_count_differs: {
     pen: string;
     /** How many the person counting found standing in it. */

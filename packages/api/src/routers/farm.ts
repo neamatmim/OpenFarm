@@ -167,6 +167,8 @@ const parameters = z
     milkUnaccountedPercent: z.number().int().min(1).max(50).optional(),
     /** How many days an animal may be Missing before the Owner is asked whether to write her off as Lost. */
     missingWriteOffDays: z.number().int().min(1).max(90).optional(),
+    /** How far a Feed Purchase's price per unit may rise on the last one before the Owner is told. */
+    feedPriceJumpPercent: z.number().int().min(1).max(100).optional(),
     /** What part of a Venture's target capital is the least worth starting on. */
     ventureFloorPercent: z.number().int().min(0).max(100).optional(),
     /** What part of a Venture's capital keeps the animals rather than buying them. */
@@ -254,6 +256,8 @@ const WHEN_A_SHORT_STORE_IS_TOLD = [
   "storeShortfallTellBdt",
   // Milk nobody can account for is checked on the Manager, as the store is.
   "milkUnaccountedPercent",
+  // And what the Manager paid for the feed.
+  "feedPriceJumpPercent",
 ] as const;
 
 type ParametersInput = z.infer<typeof parameters>;
@@ -313,7 +317,7 @@ const refuseWhatIsTheOwners = (
   if (namesAny(input, WHEN_A_SHORT_STORE_IS_TOLD)) {
     throw forbidden({
       message:
-        "When a short store or unaccounted milk is told is the Owner's to set",
+        "When a short store, unaccounted milk or dearer feed is told is the Owner's to set",
       reason: "owner_only",
     });
   }
@@ -805,6 +809,7 @@ export const farmRouter = {
                 milkDropDays: true,
                 milkUnaccountedPercent: true,
                 missingWriteOffDays: true,
+                feedPriceJumpPercent: true,
                 ventureFloorPercent: true,
                 ventureRunningPercent: true,
                 ventureInvestorsPercent: true,

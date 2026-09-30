@@ -2753,6 +2753,10 @@ export const en = {
   "stock.noStock": "Nothing in the store — add a Feed Item first",
   "stock.adjustment": "expected {expected}, counted {counted}",
   "stock.averagePrice": "৳{taka} per {unit}",
+  "stock.lastBought": "Last bought at ৳{taka} per {unit}, {day}",
+  "stock.dearer": "{percent}% dearer than last time",
+  "stock.cheaper": "{percent}% cheaper than last time",
+  "stock.sameAsLast": "the same as last time",
   "stock.kind": "Bought or harvested",
   "stock.purchase": "Bought",
   "stock.harvest": "From our own fields",
@@ -4761,6 +4765,10 @@ export const en = {
   "params.milkUnaccountedHint":
     "When this much of a week's milk into the tank has neither left the gate nor is still in the tank, you and the Manager are told in the evening's post.",
   "params.milkUnaccountedPercent": "More than",
+  "params.feedPrice": "Feed bought dearer",
+  "params.feedPriceHint":
+    "When a feed is bought at this much more per unit than the last time it was bought, you are told in the evening's post.",
+  "params.feedPriceJumpPercent": "More than",
   "params.missing": "Missing animals",
   "params.missingHint":
     "How long an animal the round cannot find stays missing before you are asked whether to write it off as lost. You can write it off sooner from its page.",
@@ -4785,6 +4793,10 @@ export const en = {
   "heatWatch.heiferAgeUnknown": "Heifer, age not known, not yet served · {pen}",
   "refusal.notMissing": "This animal is not missing: nobody is looking for it",
   "refusal.gdNumberNeeded": "A theft needs the thana's GD number",
+  "alerts.feedPriceJump":
+    "{feed} bought at ৳{price} per {unit}, {percent}% over the last lot at ৳{previous}",
+  "digest.feedPriceJump":
+    "{count, plural, one {# feed} other {# feeds}} bought dearer than last time",
   "alerts.headCountDiffers":
     "The evening count in {pen} found {counted, plural, one {# animal} other {# animals}}; the register has {expected}",
   "push.headCountDiffersTitle": "Head count does not match",

@@ -130,6 +130,13 @@ const EXAMPLE: NoticeFacts = {
   pen_sores_seen: { pen: "ষাঁড় পেন ক", animals: 3, since: "2038-03-09" },
   milk_unaccounted: { litres: 42.5, percent: 4, since: "2038-03-09" },
   head_count_differs: { pen: "ষাঁড় পেন ক", counted: 22, expected: 23 },
+  feed_price_jump: {
+    feed: "গমের ভুসি",
+    unit: "kg",
+    unitPriceBdt: 44.5,
+    previousUnitPriceBdt: 40,
+    percent: 11.3,
+  },
 };
 
 const LANGUAGES: readonly Language[] = ["bn", "en"];

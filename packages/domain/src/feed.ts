@@ -470,6 +470,79 @@ export const shortfallOf = (
   return { shortBdt: roundTaka(short), overBdt: roundTaka(over) };
 };
 
+/** One arrival of feed, as its price per unit is read: a Purchase has one, a Harvest never — its worth is the farm's
+ *  own word for its fodder, not what anybody charged. */
+export interface ArrivalPriced {
+  id: string;
+  feedItemId: string;
+  kind: "purchase" | "harvest";
+  quantity: number;
+  priceBdt: number | null;
+  receivedOn: Date;
+}
+
+/** What one unit of a Feed Purchase cost — a bag bought by the bag is read per kilo, as it is stored — or nothing for a
+ *  Harvest, or a purchase with no price or nothing in it. */
+export const unitPriceOf = (
+  arrival: Pick<ArrivalPriced, "kind" | "quantity" | "priceBdt">
+): number | null =>
+  arrival.kind === "purchase" &&
+  arrival.priceBdt !== null &&
+  arrival.quantity > 0
+    ? arrival.priceBdt / arrival.quantity
+    : null;
+
+/** A Feed Purchase's price per unit, beside the one before it of the same feed. */
+export interface PurchasePrice {
+  unitPriceBdt: number;
+  /** The last Purchase of the same feed before it, by the day it came and then the order it was written; nothing for
+   *  the first. */
+  previousUnitPriceBdt: number | null;
+  /** How far it moved on that one, to a tenth of a percent; nothing for the first. */
+  changePercent: number | null;
+}
+
+/**
+ * Every Feed Purchase's price per unit, beside the last Purchase of the same feed before it (the Owner, 2026-09-29:
+ * against the last purchase, not an average). Read afresh from the arrivals as they stand, so one put right — or one
+ * written up late and dated before another — is compared where it now falls. A Harvest is neither compared nor
+ * compared against.
+ */
+export const purchasePricesOf = (
+  arrivals: readonly ArrivalPriced[]
+): Map<string, PurchasePrice> => {
+  const inOrder = arrivals.toSorted(
+    (a, b) =>
+      a.receivedOn.getTime() - b.receivedOn.getTime() ||
+      a.id.localeCompare(b.id)
+  );
+  const lastOf = new Map<string, number>();
+  const prices = new Map<string, PurchasePrice>();
+  for (const arrival of inOrder) {
+    const unitPriceBdt = unitPriceOf(arrival);
+    if (unitPriceBdt === null) {
+      continue;
+    }
+    const previous = lastOf.get(arrival.feedItemId) ?? null;
+    prices.set(arrival.id, {
+      unitPriceBdt,
+      previousUnitPriceBdt: previous,
+      changePercent:
+        previous === null || previous === 0
+          ? null
+          : Math.round(((unitPriceBdt - previous) / previous) * 1000) / 10,
+    });
+    lastOf.set(arrival.feedItemId, unitPriceBdt);
+  }
+  return prices;
+};
+
+/** Whether a Purchase's price rose on the last one by more than the Owner's line: a rise, not a fall. */
+export const priceJumped = (
+  price: Pick<PurchasePrice, "changePercent">,
+  linePercent: number
+): boolean => price.changePercent !== null && price.changePercent > linePercent;
+
 /**
  * What a unit of a Feed Item cost at any moment, from one replay of its store: what a Feeding at that
  * moment is charged at. The same price `stockLedger` reads as of that moment, without replaying the store
