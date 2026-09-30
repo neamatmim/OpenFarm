@@ -548,6 +548,55 @@ const tellTheOwner = async (
   );
 };
 
+/** The week a bill's pieces are added up over: the farm day of this one and the six before it. */
+const PIECES_WINDOW_MS = 6 * 24 * 60 * 60 * 1000;
+
+/**
+ * What else the same person was paid by hand in the week up to this entry, by anybody but the Owner, the same way and
+ * from the same purse: a bill's other pieces, which the Approval Threshold counts with it. Nothing for money a record
+ * books, for money the Owner enters, or for money naming nobody.
+ */
+const piecesOf = async (
+  tx: Tx,
+  booking: Booking,
+  money: MoneyOfARecord,
+  entry: {
+    id: string;
+    direction: MoneyDirection;
+    purseVentureId: string | null;
+  }
+): Promise<number> => {
+  if (
+    money.source !== "by_hand" ||
+    booking.byTheOwner ||
+    money.counterpartyId === null
+  ) {
+    return 0;
+  }
+  const pieces = await tx.query.moneyEvent.findMany({
+    where: {
+      farmId: booking.farm.id,
+      source: "by_hand",
+      id: { ne: entry.id },
+      counterpartyId: money.counterpartyId,
+      direction: entry.direction,
+      purseVentureId:
+        entry.purseVentureId === null ? { isNull: true } : entry.purseVentureId,
+      recordedByRole: { ne: "owner" },
+      occurredAt: {
+        gte: new Date(money.occurredAt.getTime() - PIECES_WINDOW_MS),
+        lte: money.occurredAt,
+      },
+    },
+    columns: { amountBdt: true },
+  });
+  let total = 0;
+  for (const one of pieces) {
+    total += one.amountBdt;
+  }
+  return roundTaka(total);
+};
+
 /**
  * Books a record's money as its Money Event, in the record's own transaction: the first time the record
  * is written, a Money Event; every time it is corrected, the same Money Event put right.
@@ -625,6 +674,11 @@ export const bookMoney = async (
     thresholdBdt: farm.approvalThresholdBdt,
     enteredByTheOwner: booking.byTheOwner,
     before,
+    piecesBdt: await piecesOf(tx, booking, money, {
+      id,
+      direction: placed.direction,
+      purseVentureId: terms.purseVentureId,
+    }),
   });
   const fields = {
     ...moneyFieldsOf({ amountBdt, money, approval, byHand }),

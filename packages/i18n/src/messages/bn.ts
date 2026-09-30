@@ -2775,6 +2775,8 @@ export const bn: Record<MessageKey, string> = {
   "money.from.farmShare": "ভেঞ্চার পরিচালনার ভাগ",
   "money.from.farmLoss": "ভেঞ্চারের লোকসানে খামারের ভাগ",
   "money.from.settlementAdjustment": "হিসাব সমন্বয়",
+  "owner.enteredBy": "লিখেছেন {name}",
+  "owner.inPieces": "একা সীমার নিচে, এই সপ্তাহে একই মানুষকে দেওয়া বাকি অংশসহ সীমার বেশি",
   "owner.moneyAwaiting": "আপনার অনুমোদনের অপেক্ষায় টাকা",
   "drugs.buy": "কেনা ওষুধ",
   "drugs.quantity": "কতটুকু (বাক্সে যেমন লেখা)",

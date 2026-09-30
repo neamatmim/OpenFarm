@@ -143,9 +143,18 @@ const MoneyGroup = ({ needsYou, headless }: GroupProps) => {
           key={row.id}
           meta={
             // Whose money is waiting, where it is not the Farm's: she is approving somebody else's
-            // spending, and ought to be told so before she approves it.
-            [row.counterpartyName, row.purseName].filter(Boolean).join(" · ") ||
-            undefined
+            // spending, and ought to be told so before she approves it. Who entered it, whom she asks; and, for a
+            // piece under the line alone, that it waits for the week's other pieces to the same person.
+            [
+              row.counterpartyName,
+              row.purseName,
+              row.recordedByName
+                ? t("owner.enteredBy", { name: row.recordedByName })
+                : null,
+              row.inPieces ? t("owner.inPieces") : null,
+            ]
+              .filter(Boolean)
+              .join(" · ") || undefined
           }
           title={
             <Link className="hover:underline" to="/money">

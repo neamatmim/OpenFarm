@@ -359,6 +359,7 @@ export const homeRouter = {
             category: { columns: { nameBn: true, nameEn: true } },
             counterparty: { columns: { name: true } },
             purse: { columns: { name: true } },
+            recorder: { columns: { name: true } },
           },
           orderBy: { recordedAt: "asc", id: "asc" },
           limit: QUEUE_LIMIT,
@@ -450,6 +451,11 @@ export const homeRouter = {
             occurredAt: row.occurredAt,
             /** Whose money is waiting, where it is not the Farm's. */
             purseName: row.purse?.name ?? null,
+            /** Who entered it: the Owner asks them about it. */
+            recordedByName: row.recorder?.name ?? null,
+            /** Under the line alone, and waiting because the week's other pieces to the same person take it past. */
+            inPieces:
+              Number(row.amountBdt) <= context.farm.approvalThresholdBdt,
           })),
           monthlyCosts,
           bakiOverdue: bakiOverdue.slice(0, QUEUE_LIMIT),

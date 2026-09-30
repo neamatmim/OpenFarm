@@ -28,12 +28,16 @@ const sameTerms = (a: ApprovedTerms, b: ApprovedTerms): boolean =>
  * it went to or came from, and its Category — so a Money Event the Owner approved keeps its approval while
  * those stay as they were, and waits again when a Correction changes any of them — whose money it was
  * included, because approving the farm's eighty thousand taka is not approving an Investor's.
+ *
+ * A bill in pieces is one bill: money entered by hand that is under the line alone waits all the same when, with what
+ * the same person was paid by hand in the week up to it, it comes to more than the line (the Owner, 2026-09-30).
  */
 export const approvalOf = ({
   terms,
   thresholdBdt,
   enteredByTheOwner,
   before,
+  piecesBdt = 0,
 }: {
   terms: ApprovedTerms;
   thresholdBdt: number;
@@ -41,8 +45,11 @@ export const approvalOf = ({
   enteredByTheOwner: boolean;
   /** The Money Event as it stood, for one being corrected. */
   before?: { terms: ApprovedTerms; approval: MoneyApproval };
+  /** What else the same person was paid by hand, by anybody but the Owner, in the week up to this — its other pieces. */
+  piecesBdt?: number;
 }): MoneyApproval => {
-  if (enteredByTheOwner || terms.amountBdt <= thresholdBdt) {
+  const pastTheLine = terms.amountBdt + piecesBdt > thresholdBdt;
+  if (enteredByTheOwner || !pastTheLine) {
     return "not_needed";
   }
   return before?.approval === "approved" && sameTerms(before.terms, terms)
