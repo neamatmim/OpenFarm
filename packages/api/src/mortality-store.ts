@@ -17,10 +17,33 @@ export const readMortality = async (tx: Tx, id: string) =>
       kind: true,
       happenedAt: true,
       cause: true,
+      diagnosisId: true,
       disposal: true,
       disposalNote: true,
     },
   })) ?? null;
+
+/**
+ * Refuses a Diagnosis that is not hers: what she died of, for the register, is only ever her own Vet's conclusion. The
+ * Diagnosis is linked, never copied — a Correction the Vet makes to it reaches the register too.
+ */
+const assertHerDiagnosis = async (
+  tx: Tx,
+  farmId: string,
+  animalId: string,
+  diagnosisId: string
+): Promise<void> => {
+  const hers = await tx.query.diagnosis.findFirst({
+    where: { id: diagnosisId, farmId, animalId },
+    columns: { id: true },
+  });
+  if (!hers) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "That diagnosis is not hers",
+      data: { refusal: "diagnosis_not_hers" },
+    });
+  }
+};
 
 /** An animal and the mortality recorded of her, for putting it right or finishing it; refused when she has none. */
 export const mortalityOf = async (
@@ -79,6 +102,9 @@ export const recordMortality = async (
   }
 ): Promise<{ id: string; recorded: boolean; workClosed: number }> => {
   const id = death.id ?? uuidv7(recorder.now);
+  if (death.diagnosisId) {
+    await assertHerDiagnosis(tx, recorder.farmId, her.id, death.diagnosisId);
+  }
   const [written] = await tx
     .insert(mortality)
     .values({
@@ -152,12 +178,20 @@ export const correctMortality = async (
     disposal?: Disposal;
     disposalNote?: string;
     happenedAt?: Date;
+    /** The Diagnosis she died of, or nothing to unlink one linked by mistake. */
+    diagnosisId?: string | null;
   },
   now: Date
 ): Promise<void> => {
+  if (corrected.diagnosisId) {
+    await assertHerDiagnosis(tx, farmId, her.id, corrected.diagnosisId);
+  }
   await tx
     .update(mortality)
     .set({
+      ...(corrected.diagnosisId === undefined
+        ? {}
+        : { diagnosisId: corrected.diagnosisId }),
       ...(corrected.kind ? { kind: corrected.kind } : {}),
       ...(corrected.cause ? { cause: corrected.cause } : {}),
       ...(corrected.disposal ? { disposal: corrected.disposal } : {}),

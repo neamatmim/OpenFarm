@@ -92,6 +92,7 @@ const WORDED_REFUSALS = {
   disease_exists_retired: "refusal.diseaseExistsRetired",
   dry_off_of_a_cow_not_in_milk: "refusal.dryOffOfACowNotInMilk",
   entered_in_the_future: "refusal.enteredInTheFuture",
+  diagnosis_not_hers: "refusal.diagnosisNotHers",
   given_in_the_future: "refusal.givenInTheFuture",
   looks_entered_already: "refusal.looksEnteredAlready",
   product_retired: "refusal.productRetired",

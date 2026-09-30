@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { CircleCheck, Hourglass, Milk, Scale, Tractor } from "lucide-react";
 
+import { AdultDeathsSection } from "@/components/home/adult-deaths";
 import { CalfLossesSection } from "@/components/home/calf-losses";
 import {
   FatteningPanel,
@@ -315,6 +316,7 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
             lostYear={tiles.lostYear}
           />
           <CalfLossesSection />
+          <AdultDeathsSection />
           <FatteningPanel />
           <FeedPanel />
         </div>

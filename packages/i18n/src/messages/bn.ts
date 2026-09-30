@@ -3106,6 +3106,19 @@ export const bn: Record<MessageKey, string> = {
   "mortality.kind": "কীভাবে গেল",
   "mortality.died": "মারা গেছে",
   "mortality.culled": "বাদ দেওয়া হয়েছে",
+  "mortality.diagnosis": "ভেট যা নির্ণয় করেছেন",
+  "mortality.diagnosisHint":
+    "ভেট যে রোগ নির্ণয় করেছিলেন তাতেই মারা গেলে এটা জুড়ে দিন: তখন রেজিস্টারে রোগ আর অফিসের রেফারেন্স থাকবে।",
+  "mortality.noDiagnosis": "এর কোনোটি নয়",
+  "deaths.title": "বড় পশুর মৃত্যু",
+  "deaths.hint":
+    "গত এক বছর, দুধ ছাড়ানোর পরের পশু: বছরে প্রতি একশো পশুতে কতটি মারা গেছে, বাদ দেওয়াগুলো আলাদা।",
+  "deaths.dairy": "দুগ্ধ",
+  "deaths.fattening": "মোটাতাজাকরণ",
+  "deaths.rate": "বছরে একশোতে {rate}টি",
+  "deaths.counts": "মারা গেছে {died}টি, বাদ {culled}টি",
+  "deaths.noneKept": "কোনো পশু ছিল না",
+  "deaths.causes": "কীসে মারা গেছে: {causes}",
   "mortality.cause": "কারণ, যতটা জানা",
   "mortality.disposal": "মৃতদেহ কী করা হলো",
   "mortality.stillbirth": "মৃত জন্ম",
@@ -4642,6 +4655,7 @@ export const bn: Record<MessageKey, string> = {
   "drugs.defaultSaved": "সাধারণ দিন রাখা হলো",
   "refusal.askTheVetForDays":
     "ভেট এই ওষুধের উইথড্রয়াল-এর দিন লেখেননি, খামারের সাধারণ দিনও না; ভেটকে জিজ্ঞেস করুন",
+  "refusal.diagnosisNotHers": "ওই রোগ নির্ণয় অন্য পশুর",
   "refusal.givenInTheFuture": "যে সময় এখনো আসেনি, সে সময়ে ডোজ দেওয়া যায় না",
   "refusal.productRetired": "এই ওষুধ তালিকা থেকে সরানো হয়েছে",
   "alerts.doseNotPrescribed":

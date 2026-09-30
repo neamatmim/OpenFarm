@@ -330,6 +330,8 @@ export {
   stockLedger,
   unitPriceOf,
 } from "./feed";
+export type { AdultDeaths, HeadRecord, SideDeaths } from "./adult-deaths";
+export { ADULT_DEATH_CAUSES, adultDeaths } from "./adult-deaths";
 export type { ListedDisease } from "./disease-names";
 export type { Shrink } from "./shrink";
 export { SHRINK_STALE_DAYS, shrinkOf, shrinkOfMany } from "./shrink";

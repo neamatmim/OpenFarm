@@ -3325,6 +3325,19 @@ export const en = {
   "mortality.kind": "How she went",
   "mortality.died": "Died",
   "mortality.culled": "Culled",
+  "mortality.diagnosis": "What the Vet found",
+  "mortality.diagnosisHint":
+    "Where she died of what the Vet diagnosed, link it: the register then names the disease and the office's reference.",
+  "mortality.noDiagnosis": "None of these",
+  "deaths.title": "Deaths among grown animals",
+  "deaths.hint":
+    "The last year, past weaning: deaths for every hundred head kept a year, culls counted apart.",
+  "deaths.dairy": "Dairy",
+  "deaths.fattening": "Fattening",
+  "deaths.rate": "{rate} a hundred a year",
+  "deaths.counts": "Died {died}, culled {culled}",
+  "deaths.noneKept": "None kept",
+  "deaths.causes": "What they died of: {causes}",
   "mortality.cause": "Cause, as far as the farm knows",
   "mortality.disposal": "What was done with the carcass",
   "mortality.stillbirth": "Stillbirth",
@@ -4970,6 +4983,7 @@ export const en = {
   "drugs.defaultSaved": "Default days saved",
   "refusal.askTheVetForDays":
     "The Vet has written no withdrawal days for this medicine, nor the farm's default; ask the Vet",
+  "refusal.diagnosisNotHers": "That diagnosis is another animal's",
   "refusal.givenInTheFuture":
     "A dose cannot be given at a time that has not come yet",
   "refusal.productRetired": "That medicine is retired from the Drug List",

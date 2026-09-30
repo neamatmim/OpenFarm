@@ -16,8 +16,8 @@ const disposal = z.enum(DISPOSALS);
 
 /**
  * What putting a mortality right may change: whether she died or was culled, the cause the farm learned afterwards,
- * the disposal written down wrong, and the morning it actually happened. Asked about by her Tag Number, as the screen
- * knows her.
+ * the Vet's Diagnosis of what she died of — set to nothing, unlinked — the disposal written down wrong, and the morning it
+ * actually happened. Asked about by her Tag Number, as the screen knows her.
  */
 export const mortalityCorrectionInput = correctionInput({
   kind: changeOf(kind, kind),
@@ -25,6 +25,7 @@ export const mortalityCorrectionInput = correctionInput({
   disposal: changeOf(disposal, disposal.nullable()),
   disposalNote: changeOf(z.string().trim().max(300), z.string().nullable()),
   happenedAt: changeOf(z.coerce.date(), z.coerce.date()),
+  diagnosisId: changeOf(z.string().nullable(), z.string().nullable()),
 })
   .omit({ id: true })
   .extend({ tagNumber: z.string().trim().min(1).max(32) });
@@ -53,6 +54,7 @@ export const mortalityCorrection: CorrectionKind<
       disposal: row.disposal,
       disposalNote: row.disposalNote,
       happenedAt: row.happenedAt,
+      diagnosisId: row.diagnosisId,
     }),
   trail: (tx, row) => readMortality(tx, row.id),
   apply: async (tx, row, to, { now }) => {

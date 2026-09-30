@@ -130,7 +130,7 @@ export const herRecord = async (
           recorder: { columns: { name: true } },
           // What she is said to have died of, and the reference the office filed the report under.
           diagnosis: {
-            columns: { disease: true },
+            columns: { id: true, disease: true },
             with: { report: { columns: { reference: true } } },
           },
         },
