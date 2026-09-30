@@ -1,6 +1,6 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { sql } from "@OpenFarm/db/operators";
-import { diagnosis } from "@OpenFarm/db/schema/health";
+import { eq, sql } from "@OpenFarm/db/operators";
+import { DIAGNOSIS_OUTCOMES, diagnosis } from "@OpenFarm/db/schema/health";
 import type { observation } from "@OpenFarm/db/schema/observation";
 import { EXIT_STATES, isExitState } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -228,6 +228,50 @@ export const diagnosesRouter = {
       await pushRaised(context, alerts, now);
       await textTheSafetyAlerts(context, alerts);
       return { id, notifiable, reportInstanceId: reporting };
+    }),
+
+  /**
+   * The Vet says how it ended: she recovered, or she did not. The Vet's own act, once — saying something else afterwards
+   * is putting it right, with a reason, as any Diagnosis is.
+   */
+  close: theVetsOwnAct
+    .input(z.object({ id: z.string(), outcome: z.enum(DIAGNOSIS_OUTCOMES) }))
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      await audited(context).write(
+        {
+          entity: "diagnosis",
+          entityId: input.id,
+          action: "update",
+          before: (tx) => readDiagnosis(tx, input.id),
+          after: (tx) => readDiagnosis(tx, input.id),
+        },
+        async (tx) => {
+          const made = await tx.query.diagnosis.findFirst({
+            where: { id: input.id, farmId: context.farm.id },
+            columns: { animalId: true, outcome: true },
+          });
+          if (!made) {
+            throw new ORPCError("NOT_FOUND", { message: "No such diagnosis" });
+          }
+          requireClinicalInScope(context.scope, made.animalId);
+          if (made.outcome) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "Its outcome is said already; put it right instead",
+              data: { refusal: "outcome_said" },
+            });
+          }
+          await tx
+            .update(diagnosis)
+            .set({
+              outcome: input.outcome,
+              closedAt: now,
+              closedBy: context.actor.id,
+            })
+            .where(eq(diagnosis.id, input.id));
+        }
+      );
+      return { id: input.id, outcome: input.outcome };
     }),
 
   /**

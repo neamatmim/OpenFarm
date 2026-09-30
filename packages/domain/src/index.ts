@@ -303,6 +303,7 @@ export {
   shortfallOf,
   stockLedger,
 } from "./feed";
+export type { IllAgain } from "./health";
 export type {
   DoseRoute,
   NotPrescribable,
@@ -315,6 +316,7 @@ export {
   MAX_WITHDRAWAL_DAYS,
   ROUTES,
   findWithdrawalProblems,
+  illAgainOf,
   mayBePrescribed,
   underMeatWithdrawal,
   whyNotPrescribable,

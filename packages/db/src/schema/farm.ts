@@ -195,6 +195,10 @@ export const farm = pgTable("farm", {
    *  Manager are told at once: FMD spreads through a Pen in days, and the Vet visits weekly (the Owner, 2026-09-29). */
   soresTellAnimals: integer("sores_tell_animals").notNull().default(3),
   soresTellHours: integer("sores_tell_hours").notNull().default(48),
+  /** How many Diagnoses within how many days put an animal on the Manager's list as ill again and again: a cost the
+   *  farm keeps paying, for the Owner to weigh (the Owner, 2026-09-29: the list first, not a Cull Reason). */
+  illAgainDiagnoses: integer("ill_again_diagnoses").notNull().default(3),
+  illAgainDays: integer("ill_again_days").notNull().default(365),
   /** Whether Investors the Owner has invited may sign in to read their Ventures and papers (ADR 0007). Off until
    *  the Owner turns it on, and off again is how the farm answers a lawyer who says the portal is a platform. */
   investorPortal: boolean("investor_portal").notNull().default(false),

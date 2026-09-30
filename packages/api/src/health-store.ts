@@ -7,12 +7,12 @@ import { dlsReport } from "@OpenFarm/db/schema/health";
 import { animal } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type { DoseRoute } from "@OpenFarm/domain";
-import { withdrawalEndsAt } from "@OpenFarm/domain";
+import { illAgainOf, withdrawalEndsAt } from "@OpenFarm/domain";
 import { z } from "zod";
 
 import type { Tx, Trail } from "./audit";
 import type { RaisedAlert } from "./instances-store";
-import { dueAtFor, raiseDueInstances } from "./instances-store";
+import { dueAtFor, isOnTheFarm, raiseDueInstances } from "./instances-store";
 import { rememberingPeople, tell } from "./notice";
 import { contentOf, publishedContent } from "./sop-content";
 import { callOffWork } from "./work-transitions";
@@ -709,7 +709,37 @@ export const readDiagnosis = async (tx: Tx, id: string) => {
       disease: true,
       diseaseEn: true,
       note: true,
+      outcome: true,
     },
   });
   return row ?? null;
+};
+
+/**
+ * The animals still on the farm the Vet has diagnosed at least the farm's number of times within its days, for the
+ * Manager's list: her tag, how many, and the latest.
+ */
+export const illAgainOn = async (
+  db: Pick<Database, "query">,
+  farm: { id: string; illAgainDiagnoses: number; illAgainDays: number },
+  now: Date
+) => {
+  const since = new Date(
+    now.getTime() - farm.illAgainDays * 24 * 60 * 60 * 1000
+  );
+  const rows = await db.query.diagnosis.findMany({
+    where: { farmId: farm.id, diagnosedAt: { gte: since } },
+    columns: { animalId: true, disease: true, diagnosedAt: true },
+    with: { animal: { columns: { tagNumber: true, state: true } } },
+  });
+  const tags = new Map(
+    rows
+      .filter((row) => isOnTheFarm(row.animal))
+      .map((row) => [row.animalId, row.animal.tagNumber])
+  );
+  return illAgainOf(
+    rows.filter((row) => tags.has(row.animalId)),
+    now,
+    farm
+  ).map((one) => ({ ...one, tag: tags.get(one.animalId) ?? "" }));
 };

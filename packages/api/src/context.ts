@@ -125,6 +125,9 @@ export interface Context {
     /** How many animals in one Pen seen with sores, within how many hours, before the farm is told at once. */
     soresTellAnimals: number;
     soresTellHours: number;
+    /** How many Diagnoses within how many days put an animal on the Manager's list as ill again and again. */
+    illAgainDiagnoses: number;
+    illAgainDays: number;
     /** What part of a Venture's target capital is the least worth starting on. */
     ventureFloorPercent: number;
     /** What part of a Venture's capital keeps the animals rather than buying them. */

@@ -74,6 +74,10 @@ export const drugProduct = pgTable(
  * reported to DLS without delay; matching these words against the farm's notifiable list is
  * the report's own work, not this table's.
  */
+/** How what the Vet concluded ended, in the Vet's word: she got better, or she did not. A death is read from her
+ *  Mortality, not typed here. */
+export const DIAGNOSIS_OUTCOMES = ["recovered", "not_recovered"] as const;
+
 export const diagnosis = pgTable(
   "diagnosis",
   {
@@ -99,6 +103,10 @@ export const diagnosis = pgTable(
     /** The farm's clock, not the phone's — the clinical record's own order. */
     diagnosedAt: timestamp("diagnosed_at").notNull(),
     recordedAt: timestamp("recorded_at").notNull(),
+    /** How it ended, when the Vet has said: nothing while she is still being seen to. */
+    outcome: text("outcome", { enum: DIAGNOSIS_OUTCOMES }),
+    closedAt: timestamp("closed_at"),
+    closedBy: text("closed_by").references(() => user.id),
   },
   (table) => [
     index("diagnosis_animal_idx").on(table.animalId, table.diagnosedAt),

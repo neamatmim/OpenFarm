@@ -4715,6 +4715,19 @@ export const en = {
   "params.soresTellAnimals": "Animals in one Pen",
   "params.soresTellHours": "Within",
   "params.animals": "animals",
+  "animals.outcome.recovered": "Recovered",
+  "animals.outcome.not_recovered": "Not recovered",
+  "home.illAgain": "Ill again and again",
+  "home.illAgainLine":
+    "{count, plural, one {# diagnosis} other {# diagnoses}}; lately {disease}, {day}",
+  "params.illAgain": "Ill again and again",
+  "params.illAgainHint":
+    "An animal the Vet diagnoses this many times within these days is put on the Manager's list, for the Owner to weigh whether to keep treating it.",
+  "params.illAgainDiagnoses": "Diagnoses",
+  "params.illAgainDays": "Within",
+  "params.diagnoses": "diagnoses",
+  "refusal.outcomeSaid":
+    "Its outcome is said already; put the Diagnosis right to change it",
   "refusal.notMissing": "This animal is not missing: nobody is looking for it",
 } as const;
 

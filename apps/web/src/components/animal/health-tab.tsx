@@ -1,6 +1,7 @@
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { cn } from "@OpenFarm/ui/lib/utils";
+import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ClipboardPlus, Eye, Stethoscope } from "lucide-react";
 import { useState } from "react";
@@ -12,6 +13,7 @@ import { EmptyState, Section, StatusBadge } from "@/components/page";
 import { VetCases } from "@/components/vet-cases";
 import { DiagnosisSheet } from "@/components/vet/diagnosis-sheet";
 import { useLanguage } from "@/i18n/language-provider";
+import { orpc } from "@/utils/orpc";
 
 import type { AnimalDetail, AnimalPowers } from "./animal-types";
 
@@ -42,10 +44,61 @@ const SeenWhere = ({
   );
 };
 
+/** How it ended, when the Vet has said; the two words to say it with, for the Vet, while nobody has. */
+const HowItEnded = ({
+  made,
+  mayClose,
+}: {
+  made: {
+    id: string;
+    /** Missing from an answer a phone kept from before an outcome was kept. */
+    outcome?: "recovered" | "not_recovered" | null;
+    closedAt?: Date | null;
+  };
+  mayClose: boolean;
+}) => {
+  const { t, language } = useLanguage();
+  const close = useMutation(orpc.diagnoses.close.mutationOptions({}));
+  if (made.outcome) {
+    return (
+      <p className="text-sm">
+        <StatusBadge tone={made.outcome === "recovered" ? "success" : "danger"}>
+          {t(`animals.outcome.${made.outcome}`)}
+        </StatusBadge>
+        {made.closedAt ? (
+          <span className="text-muted-foreground ms-2 text-xs">
+            {formatDate(new Date(made.closedAt), language, "date")}
+          </span>
+        ) : null}
+      </p>
+    );
+  }
+  if (!mayClose) {
+    return null;
+  }
+  return (
+    <div className="flex flex-wrap gap-2">
+      {(["recovered", "not_recovered"] as const).map((outcome) => (
+        <Button
+          disabled={close.isPending}
+          key={outcome}
+          onClick={() => close.mutate({ id: made.id, outcome })}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          {t(`animals.outcome.${outcome}`)}
+        </Button>
+      ))}
+    </div>
+  );
+};
+
 /** What the Vet made of it, and what was ordered because of it: the rest of the chain, in their name, because the acts
  *  are theirs. */
 const Conclusion = ({
   made,
+  mayClose,
 }: {
   made: {
     id: string;
@@ -54,7 +107,10 @@ const Conclusion = ({
     diagnosedAt: Date;
     diagnosedByName: string;
     prescriptions: Course[];
+    outcome?: "recovered" | "not_recovered" | null;
+    closedAt?: Date | null;
   };
+  mayClose: boolean;
 }) => {
   const { t, language } = useLanguage();
   return (
@@ -71,6 +127,7 @@ const Conclusion = ({
           date: formatDate(new Date(made.diagnosedAt), language, "dateTime"),
         })}
       </p>
+      <HowItEnded made={made} mayClose={mayClose} />
       {made.prescriptions.length > 0 ? (
         <ul className="flex flex-col gap-1">
           {made.prescriptions.map((course) => (
@@ -91,7 +148,14 @@ const Conclusion = ({
  * One chain, not two lists: what the round saw, and under it what the Vet made of it. A Diagnosis that answers no
  * Observation stands on its own at the end.
  */
-const HealthChain = ({ detail }: { detail: AnimalDetail }) => {
+const HealthChain = ({
+  detail,
+  mayClose,
+}: {
+  detail: AnimalDetail;
+  /** The Vet may say how each ended. */
+  mayClose: boolean;
+}) => {
   const { t, language } = useLanguage();
   if (detail.observations.length === 0 && detail.diagnoses.length === 0) {
     return null;
@@ -137,7 +201,7 @@ const HealthChain = ({ detail }: { detail: AnimalDetail }) => {
             {seen.diagnoses.length > 0 ? (
               <ul className="ml-7 flex flex-col gap-2">
                 {seen.diagnoses.map((made) => (
-                  <Conclusion key={made.id} made={made} />
+                  <Conclusion key={made.id} made={made} mayClose={mayClose} />
                 ))}
               </ul>
             ) : null}
@@ -147,7 +211,7 @@ const HealthChain = ({ detail }: { detail: AnimalDetail }) => {
           <li className="py-3 last:pb-0">
             <ul className="flex flex-col gap-2">
               {detail.diagnoses.map((made) => (
-                <Conclusion key={made.id} made={made} />
+                <Conclusion key={made.id} made={made} mayClose={mayClose} />
               ))}
             </ul>
           </li>
@@ -193,7 +257,7 @@ export const HealthTab = ({
       {nothingYet ? (
         <EmptyState icon={Stethoscope} title={t("animals.healthNone")} />
       ) : null}
-      <HealthChain detail={detail} />
+      <HealthChain detail={detail} mayClose={powers.isVet} />
       {detail.treatments.length > 0 ? (
         <Section title={t("animals.treatments")}>
           <DoseTable doses={detail.treatments} />

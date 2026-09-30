@@ -56,6 +56,8 @@ type NumberKey =
   | "storeShortfallTellBdt"
   | "soresTellAnimals"
   | "soresTellHours"
+  | "illAgainDiagnoses"
+  | "illAgainDays"
   | "ventureFloorPercent"
   | "ventureRunningPercent"
   | "ventureInvestorsPercent"
@@ -271,6 +273,27 @@ const GROUPS: {
         unit: "params.hours",
         min: 12,
         max: 168,
+      },
+    ],
+  },
+  {
+    id: "params-ill-again",
+    title: "params.illAgain",
+    hint: "params.illAgainHint",
+    fields: [
+      {
+        key: "illAgainDiagnoses",
+        label: "params.illAgainDiagnoses",
+        unit: "params.diagnoses",
+        min: 2,
+        max: 20,
+      },
+      {
+        key: "illAgainDays",
+        label: "params.illAgainDays",
+        unit: "params.days",
+        min: 30,
+        max: 730,
       },
     ],
   },

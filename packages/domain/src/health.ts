@@ -155,3 +155,54 @@ export const withdrawalView = (
  * in her last thirty days has nothing to declare at all.
  */
 export const WITHDRAWAL_LOOK_BACK_DAYS = 30;
+
+const DAY_MS_ILL = 24 * 60 * 60 * 1000;
+
+/** An animal the Vet has diagnosed again and again, as the Manager's list names her. */
+export interface IllAgain {
+  animalId: string;
+  /** How many Diagnoses in the farm's days. */
+  diagnoses: number;
+  /** The latest of them: what she had, and when. */
+  lastDisease: string;
+  lastAt: Date;
+}
+
+/**
+ * The animals diagnosed at least the farm's number of times within its days: a cost the farm keeps paying, for the
+ * Manager to put in front of the Owner (the Owner, 2026-09-29: a list first, not a Cull Reason). Most diagnosed first,
+ * then the most lately. Pure — whose Diagnoses they are is the caller's to say.
+ */
+export const illAgainOf = (
+  diagnoses: readonly {
+    animalId: string;
+    disease: string;
+    diagnosedAt: Date;
+  }[],
+  now: Date,
+  farm: { illAgainDiagnoses: number; illAgainDays: number }
+): IllAgain[] => {
+  const since = now.getTime() - farm.illAgainDays * DAY_MS_ILL;
+  const byAnimal = new Map<string, IllAgain>();
+  for (const one of diagnoses) {
+    if (one.diagnosedAt.getTime() < since || one.diagnosedAt > now) {
+      continue;
+    }
+    const known = byAnimal.get(one.animalId);
+    const later = !known || one.diagnosedAt > known.lastAt;
+    byAnimal.set(one.animalId, {
+      animalId: one.animalId,
+      diagnoses: (known?.diagnoses ?? 0) + 1,
+      lastDisease: later ? one.disease : (known?.lastDisease ?? one.disease),
+      lastAt: later ? one.diagnosedAt : (known?.lastAt ?? one.diagnosedAt),
+    });
+  }
+  return [...byAnimal.values()]
+    .filter((one) => one.diagnoses >= farm.illAgainDiagnoses)
+    .toSorted(
+      (a, b) =>
+        b.diagnoses - a.diagnoses ||
+        b.lastAt.getTime() - a.lastAt.getTime() ||
+        a.animalId.localeCompare(b.animalId)
+    );
+};

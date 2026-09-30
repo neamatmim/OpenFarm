@@ -27,6 +27,8 @@ const OPEN_TO_A_VISIT = new Set<string>([
   "breeding.correctAbortion",
   "diagnoses.record",
   "diagnoses.correct",
+  // How it ended, on the cases they were called in on, as a correction is.
+  "diagnoses.close",
   "diagnoses.waiting",
   "diagnoses.mine",
   "drugs.list",
