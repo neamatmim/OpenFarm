@@ -3109,6 +3109,12 @@ export const bn: Record<MessageKey, string> = {
   "notifiable.add": "রোগ যোগ করুন",
   "notifiable.name": "রোগের নাম",
   "notifiable.nameEn": "ইংরেজি নাম (থাকলে)",
+  "notifiable.otherNames": "অন্য নাম",
+  "notifiable.otherNamesAre": "এভাবেও লেখা হয়: {names}",
+  "notifiable.otherNamesHint":
+    "কমা দিয়ে আলাদা করে: ভেট যে সংক্ষেপ বা অন্য বানানে লিখতে পারেন, যেমন FMD বা খুরা রোগ। এর যেকোনোটিতে রোগ লিখলেই চিঠির কাজ উঠবে।",
+  "notifiable.otherNamesSave": "নামগুলো রাখুন",
+  "notifiable.otherNamesSaved": "অন্য নাম রাখা হলো",
   "notifiable.note": "ইউএলও যা বলেছেন",
   "notifiable.retire": "তালিকা থেকে বাদ",
   "notifiable.retired": "বাদ দেওয়া",
@@ -3248,6 +3254,9 @@ export const bn: Record<MessageKey, string> = {
   "vet.noAnimalToDiagnose": "এখন খামারে আপনার দেখার মতো কোনো গরু নেই",
   "vet.noneMine": "আপনি এখনও কিছু লেখেননি",
   "vet.disease": "রোগ",
+  "vet.diseaseHint": "তালিকা থেকে বাছুন, অথবা নিজের ভাষায় অন্য রোগ লিখুন।",
+  "vet.notifiableNamed":
+    "{disease} ডিএলএস-কে জানাতে হয়: সংরক্ষণ করলেই অফিসে চিঠির কাজ সাথে সাথে উঠবে।",
   "vet.note": "যা পেলেন",
   "vet.record": "রোগ লিখুন",
   "vet.recorded": "রোগ লেখা হয়েছে",

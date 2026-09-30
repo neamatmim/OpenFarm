@@ -1,4 +1,5 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
+import { and, eq } from "@OpenFarm/db/operators";
 import { notifiableDisease } from "@OpenFarm/db/schema/health";
 import type { FarmIdentity } from "@OpenFarm/domain";
 import { notifiableLetter } from "@OpenFarm/domain";
@@ -19,11 +20,17 @@ const name = z.object({
   en: z.string().trim().max(120).optional(),
 });
 
+/** The other names a disease goes by: each one a word or a few, none twice. */
+const otherNamesInput = z
+  .array(z.string().trim().min(1).max(120))
+  .max(20)
+  .transform((names) => [...new Set(names)]);
+
 /** The disease as it stands, for the trail to record either side of a change. */
 const readDisease = async (tx: Tx, id: string) => {
   const row = await tx.query.notifiableDisease.findFirst({
     where: { id },
-    columns: { nameBn: true, note: true, retiredAt: true },
+    columns: { nameBn: true, otherNames: true, note: true, retiredAt: true },
   });
   return row ?? null;
 };
@@ -158,7 +165,13 @@ export const notifiableRouter = {
    */
   add: protectedProcedure
     .use(requireRole("owner", "manager", "vet"))
-    .input(z.object({ name, note: z.string().trim().max(300).optional() }))
+    .input(
+      z.object({
+        name,
+        otherNames: otherNamesInput.optional(),
+        note: z.string().trim().max(300).optional(),
+      })
+    )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const id = uuidv7(now);
@@ -168,7 +181,11 @@ export const notifiableRouter = {
           entityId: id,
           action: "create",
           reason: input.note,
-          after: { nameBn: input.name.bn, note: input.note ?? null },
+          after: {
+            nameBn: input.name.bn,
+            otherNames: input.otherNames ?? [],
+            note: input.note ?? null,
+          },
         },
         async (tx) => {
           // Naming it again is how somebody puts back a disease the farm took off the list, so say what is there
@@ -179,6 +196,7 @@ export const notifiableRouter = {
             farmId: context.farm.id,
             nameBn: input.name.bn,
             nameEn: input.name.en ?? null,
+            otherNames: input.otherNames ?? [],
             note: input.note ?? null,
             addedBy: context.actor.id,
             addedByRole: context.roleUsed,
@@ -187,6 +205,41 @@ export const notifiableRouter = {
         }
       );
       return { id };
+    }),
+
+  /**
+   * The other names a disease on the list goes by — "FMD", "খুরা রোগ" — so a Vet who writes one of them is still read as
+   * naming it, and the report is not missed for a spelling. Replaces the ones it had. Kept by whoever keeps the list.
+   */
+  setOtherNames: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .input(z.object({ id: z.string(), otherNames: otherNamesInput }))
+    .handler(async ({ context, input }) => {
+      await audited(context).write(
+        {
+          entity: "notifiable_disease",
+          entityId: input.id,
+          action: "update",
+          before: (tx) => readDisease(tx, input.id),
+          after: (tx) => readDisease(tx, input.id),
+        },
+        async (tx) => {
+          const changed = await tx
+            .update(notifiableDisease)
+            .set({ otherNames: input.otherNames })
+            .where(
+              and(
+                eq(notifiableDisease.id, input.id),
+                eq(notifiableDisease.farmId, context.farm.id)
+              )
+            )
+            .returning({ id: notifiableDisease.id });
+          if (changed.length === 0) {
+            throw new ORPCError("NOT_FOUND", { message: DISEASES.notFound });
+          }
+        }
+      );
+      return { id: input.id };
     }),
 
   /** Takes a disease off the list, never out of it: a report made last year was made against

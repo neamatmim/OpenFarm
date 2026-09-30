@@ -330,6 +330,8 @@ export {
   stockLedger,
   unitPriceOf,
 } from "./feed";
+export type { ListedDisease } from "./disease-names";
+export { diseaseWord, namesTheDisease } from "./disease-names";
 export type { IllAgain } from "./health";
 export type {
   DoseRoute,

@@ -308,6 +308,8 @@ export const notifiableDisease = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     nameBn: text("name_bn").notNull(),
     nameEn: text("name_en"),
+    /** The other names a Vet writes it by — "FMD", "খুরা রোগ" — each of which names it as well as its own. */
+    otherNames: text("other_names").array().notNull().default([]),
     /** What the office said, and when. Evidence for the list itself. */
     note: text("note"),
     addedBy: text("added_by").references(() => user.id),

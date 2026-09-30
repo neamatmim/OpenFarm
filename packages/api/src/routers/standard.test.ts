@@ -115,6 +115,10 @@ describe("a farm started with the standard lists", () => {
     expect(diseases.map((one) => one.nameBn).toSorted()).toEqual(
       STANDARD_NOTIFIABLE_DISEASES.map((one) => one.bn).toSorted()
     );
+    // With the other names a Vet writes them by, so "FMD" is reported as surely as "ক্ষুরা রোগ".
+    expect(
+      diseases.find((one) => one.nameBn === "ক্ষুরা রোগ")?.otherNames
+    ).toContain("FMD");
   });
 
   it("writes each thing it gives into the trail, as if it had been added by hand", async () => {
