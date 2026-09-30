@@ -39,6 +39,7 @@ const books = (more: Partial<ReturnBooks> = {}): ReturnBooks => ({
   joinings: [],
   internal: [],
   died: new Map(),
+  lost: new Map(),
   values: new Map(),
   bankRates: [],
   ...more,
@@ -221,7 +222,13 @@ describe("how a Holding ended", () => {
     side: "fattening" as const,
     from: bought,
   };
-  const nothing = { sale: null, internalSales: [], crossing: null, died: null };
+  const nothing = {
+    sale: null,
+    internalSales: [],
+    crossing: null,
+    died: null,
+    lost: null,
+  };
 
   it("is nothing while she is still the owner's", () => {
     expect(howSheLeft(holding, nothing, () => null)).toBeNull();
@@ -277,6 +284,14 @@ describe("how a Holding ended", () => {
     const dead = { ...nothing, died: new Date("2031-03-01T05:00:00.000Z") };
     expect(howSheLeft(holding, dead, () => null)).toMatchObject({
       how: "died",
+      backBdt: 0,
+    });
+  });
+
+  it("is her being written off as Lost, with nothing back", () => {
+    const gone = { ...nothing, lost: new Date("2031-03-01T05:00:00.000Z") };
+    expect(howSheLeft(holding, gone, () => null)).toMatchObject({
+      how: "lost",
       backBdt: 0,
     });
   });

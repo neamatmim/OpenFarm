@@ -309,7 +309,11 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
 
         <div className="grid min-w-0 items-start gap-6 md:grid-cols-2 xl:grid-cols-1">
           <MilkPanel tiles={tiles} />
-          <HerdPanel culled={tiles.culled} died={tiles.died} />
+          <HerdPanel
+            culled={tiles.culled}
+            died={tiles.died}
+            lostYear={tiles.lostYear}
+          />
           <CalfLossesSection />
           <FatteningPanel />
           <FeedPanel />

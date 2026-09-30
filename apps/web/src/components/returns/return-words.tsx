@@ -173,6 +173,7 @@ export const SinceSettlement = ({
 export const LEFT_WORD = {
   sold: "returns.left.sold",
   died: "returns.left.died",
+  lost: "returns.left.lost",
   sold_to_venture: "returns.left.sold_to_venture",
   crossed: "returns.left.crossed",
 } as const satisfies Record<string, MessageKey>;

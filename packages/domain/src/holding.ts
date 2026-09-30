@@ -129,7 +129,7 @@ export const costsOf = (charges: readonly Charge[]): Costs => {
 };
 
 /** What happened to one Animal that could end a Holding: her Sale, every Internal Sale of her, her crossing from the
- *  Dairy side, her death. */
+ *  Dairy side, her death, her being written off as Lost. */
 export interface WhatHappened {
   sale: { soldAt: Date; priceBdt: number } | null;
   /** Every Internal Sale of her, in the order they were saved. */
@@ -145,18 +145,22 @@ export interface WhatHappened {
   /** Her crossing to the Fattening side, and the price the Owner put on it — or none yet. */
   crossing: { on: Date; priceBdt: number | null } | null;
   died: Date | null;
+  /** When she was written off as Lost: gone, and nothing came back for her, as for a death. */
+  lost: Date | null;
 }
 
-/** How a Holding ended: when, and what came back — nothing for a death, and not yet known for a crossing not priced. */
+/** How a Holding ended: when, and what came back — nothing for a death or a loss, and not yet known for a crossing not
+ *  priced. */
 export interface Left {
-  how: "sold" | "sold_to_venture" | "crossed" | "died";
+  how: "sold" | "sold_to_venture" | "crossed" | "died" | "lost";
   on: Date;
   backBdt: number | null;
 }
 
 /**
  * How one Holding ended, or `null` while she is still its owner's (CONTEXT.md, Holding): her crossing off the Dairy
- * side, an Internal Sale away from this owner after she came to it, her Sale while she was theirs, or her death. One
+ * side, an Internal Sale away from this owner after she came to it, her Sale while she was theirs, her death, or her
+ * being written off as Lost. One
  * rule for the Farm's Seasons, a Venture's cattle and a dairy Animal's whole stay.
  */
 export const howSheLeft = (
@@ -202,5 +206,8 @@ export const howSheLeft = (
   ) {
     return { how: "sold", on: her.sale.soldAt, backBdt: her.sale.priceBdt };
   }
-  return her.died ? { how: "died", on: her.died, backBdt: 0 } : null;
+  if (her.died) {
+    return { how: "died", on: her.died, backBdt: 0 };
+  }
+  return her.lost ? { how: "lost", on: her.lost, backBdt: 0 } : null;
 };

@@ -428,11 +428,8 @@ const HerFirstDay = ({ detail }: { detail: AnimalDetail }) => {
   );
 };
 
-/** Her page at a glance: how she left, if she has; what holds her back; how a fattening animal is gaining; and who she
- *  is. */
-/** The round could not find her: where it looked, since when, and — for those who run the farm — the Found that closes
- *  it. First on her page, because nothing else about her matters until the farm knows where she is. */
-const NotFound = ({
+/** Written off as Lost: when, and why — and, for the Owner who wrote her off, the Found that brings her back. */
+const WrittenOff = ({
   detail,
   mayFind,
 }: {
@@ -441,7 +438,8 @@ const NotFound = ({
 }) => {
   const { t, language } = useLanguage();
   const found = useMutation(orpc.animals.found.mutationOptions({}));
-  if (!detail.missing) {
+  const gone = detail.missing?.writtenOff;
+  if (!gone) {
     return null;
   }
   return (
@@ -458,8 +456,71 @@ const NotFound = ({
             type="button"
             variant="outline"
           >
-            {t("animals.found")}
+            {t("animals.foundAfterAll")}
           </Button>
+        ) : null
+      }
+      icon={MapPinOff}
+      title={t("animals.writtenOff", {
+        day: formatDate(new Date(gone.at), language, "date"),
+      })}
+      tone="warning"
+    >
+      {gone.cause}
+      {gone.stolen && gone.gdNumber
+        ? ` · ${t("animals.writtenOffStolen", { gd: gone.gdNumber })}`
+        : ""}
+    </Notice>
+  );
+};
+
+/** The round could not find her: where it looked, since when, and — for those who run the farm — the Found that closes
+ *  it; for the Owner, writing her off as Lost. First on her page, because nothing else about her matters until the farm
+ *  knows where she is. */
+const NotFound = ({
+  detail,
+  powers,
+  onAct,
+}: {
+  detail: AnimalDetail;
+  powers: AnimalPowers;
+  onAct: (act: AnimalAct) => void;
+}) => {
+  const { t, language } = useLanguage();
+  const found = useMutation(orpc.animals.found.mutationOptions({}));
+  if (!detail.missing || detail.missing.writtenOff) {
+    return null;
+  }
+  return (
+    <Notice
+      action={
+        powers.runsTheFarm ? (
+          <>
+            <Button
+              disabled={found.isPending}
+              onClick={async () => {
+                await found.mutateAsync({ tagNumber: detail.tagNumber });
+                toast.success(
+                  t("animals.foundDone", { tag: detail.tagNumber })
+                );
+              }}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              {t("animals.found")}
+            </Button>
+            {powers.mayWriteOff ? (
+              <Button
+                onClick={() => onAct("writeOff")}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                {t("animals.writeOff")}
+              </Button>
+            ) : null}
+          </>
         ) : null
       }
       icon={MapPinOff}
@@ -474,6 +535,8 @@ const NotFound = ({
   );
 };
 
+/** Her page at a glance: how she left, if she has; what holds her back; how a fattening animal is gaining; and who she
+ *  is. */
 export const OverviewTab = ({
   detail,
   powers,
@@ -484,7 +547,8 @@ export const OverviewTab = ({
   onAct: (act: AnimalAct) => void;
 }) => (
   <div className="flex flex-col gap-6">
-    <NotFound detail={detail} mayFind={powers.runsTheFarm} />
+    <NotFound detail={detail} onAct={onAct} powers={powers} />
+    <WrittenOff detail={detail} mayFind={powers.mayWriteOff} />
     <HowSheWent detail={detail} mayRecord={powers.runsTheFarm} onAct={onAct} />
     <Withdrawals
       detail={detail}

@@ -6,6 +6,7 @@ import {
   statesSetByHand,
 } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
+import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
@@ -450,6 +451,80 @@ const ShortenDialog = ({ detail, open, onOpenChange }: ActProps) => {
 };
 
 /** Whichever act is open, drawn once for the page — only the ones this person may do are ever asked for. */
+/**
+ * The Owner writes her off as Lost: the round could not find her and nobody has since. What became of her in the
+ * Owner's words, and — stolen — the thana's GD number, which the farm asks for.
+ */
+const WriteOffDialog = ({ detail, open, onOpenChange }: ActProps) => {
+  const { t } = useLanguage();
+  const onError = useRefused({ venture_owns_her: "animals.writeOffVenture" });
+  const [cause, setCause] = useState("");
+  const [stolen, setStolen] = useState(false);
+  const [gdNumber, setGdNumber] = useState("");
+  const writeOff = useMutation(
+    orpc.animals.writeOff.mutationOptions({
+      onSuccess: () => {
+        toast.success(t("animals.writeOffDone", { tag: detail.tagNumber }));
+        setCause("");
+        setStolen(false);
+        setGdNumber("");
+        onOpenChange(false);
+      },
+      onError,
+    })
+  );
+  const gdSaid = gdNumber.trim() !== "";
+  return (
+    <FormDialog
+      description={t("animals.writeOffHint")}
+      onOpenChange={onOpenChange}
+      onSubmit={() =>
+        writeOff.mutate({
+          tagNumber: detail.tagNumber,
+          cause: cause.trim(),
+          stolen,
+          ...(stolen && gdSaid ? { gdNumber: gdNumber.trim() } : {}),
+        })
+      }
+      open={open}
+      pending={writeOff.isPending}
+      ready={cause.trim() !== "" && (!stolen || gdSaid)}
+      submitLabel={t("animals.writeOff")}
+      title={`${t("animals.writeOff")} · ${detail.tagNumber}`}
+    >
+      <FormField id="write-off-cause" label={t("animals.writeOffCause")}>
+        <Input
+          id="write-off-cause"
+          onChange={(event) => setCause(event.target.value)}
+          required
+          value={cause}
+        />
+      </FormField>
+      <label
+        className="has-data-checked:border-primary/40 has-data-checked:bg-primary/5 hover:bg-muted/50 flex h-11 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm md:h-9"
+        htmlFor="write-off-stolen"
+      >
+        <Checkbox
+          checked={stolen}
+          id="write-off-stolen"
+          onCheckedChange={setStolen}
+        />
+        {t("animals.writeOffStolen")}
+      </label>
+      {stolen ? (
+        <FormField id="write-off-gd" label={t("animals.writeOffGd")}>
+          <Input
+            id="write-off-gd"
+            onChange={(event) => setGdNumber(event.target.value)}
+            required
+            value={gdNumber}
+          />
+        </FormField>
+      ) : null}
+    </FormDialog>
+  );
+};
+
 export const AnimalActs = ({
   act,
   detail,
@@ -485,6 +560,7 @@ export const AnimalActs = ({
       <DisposalDialog {...shared} open={act === "disposal"} />
       <AbortionDialog {...shared} open={act === "abortion"} />
       <ShortenDialog {...shared} open={act === "shorten"} />
+      <WriteOffDialog {...shared} open={act === "writeOff"} />
       <InternalSaleSheet
         key={detail.tagNumber}
         onOpenChange={handleOpenChange}

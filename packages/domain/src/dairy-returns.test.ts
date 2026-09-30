@@ -54,6 +54,7 @@ const books = (more: Partial<DairyBooks> = {}): DairyBooks => ({
   joinings: [],
   internal: [],
   died: new Map(),
+  lost: new Map(),
   ...more,
 });
 

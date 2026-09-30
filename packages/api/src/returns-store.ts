@@ -37,6 +37,7 @@ import { farmCosts } from "./cost-store";
 import { dairyAnimalOf, dairyOf } from "./dairy-returns";
 import { bandOf } from "./feed-store";
 import { weighedForTheCrossing } from "./joining-store";
+import { lostSince } from "./missing-store";
 import { approvedSettlementOf } from "./settlement-store";
 import { ownedThenByOf } from "./venture-store";
 
@@ -114,6 +115,7 @@ const booksOf = async (
     where: { farmId },
     columns: { animalId: true, happenedAt: true },
   });
+  const lost = await lostSince(db, farmId);
   const bankRates = await bankRatesOf(db, farmId);
   const internal = await db.query.internalSale.findMany({
     where: { farmId },
@@ -152,6 +154,7 @@ const booksOf = async (
     ownedThenBy,
     intakes,
     died: new Map(deaths.map((one) => [one.animalId, one.happenedAt])),
+    lost,
     internal: internal.map(({ soldOn, ...one }) => ({
       ...one,
       on: startOfFarmDay(soldOn),
@@ -369,6 +372,8 @@ export interface BreakdownRow {
   line: BreakdownLine;
   head: number;
   died: number;
+  /** Written off as Lost. */
+  lost: number;
   costBdt: number;
   backBdt: number;
   resultBdt: number;
@@ -628,6 +633,7 @@ export const seasonBreakdown = async (
         line,
         head: holdings.length,
         died: holdings.filter((one) => one.left?.how === "died").length,
+        lost: holdings.filter((one) => one.left?.how === "lost").length,
         costBdt: returned?.costBdt ?? 0,
         backBdt: returned?.backBdt ?? backOf(holdings),
         resultBdt: returned?.resultBdt ?? backOf(holdings),

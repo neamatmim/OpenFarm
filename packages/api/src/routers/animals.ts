@@ -57,21 +57,28 @@ import {
 import {
   animalSummaryColumns,
   calves,
+  comesBack,
   entersState,
   insertAnimal,
+  leaves,
   loadLiveAnimal,
   readAnimal,
   requireAnimal,
 } from "../herd-store";
 import { protectedProcedure } from "../index";
-import { markFound, missingOf, readMissing } from "../missing-store";
+import {
+  markFound,
+  markWrittenOff,
+  missingOf,
+  readMissing,
+} from "../missing-store";
 import {
   mortalityOf,
   readMortality,
   recordMortality,
   writeDisposal,
 } from "../mortality-store";
-import { requireRole } from "../roles";
+import { forbidden, requireRole } from "../roles";
 import {
   animalsInScopeWhere,
   readsTheClinicalRecord,
@@ -497,10 +504,25 @@ const readRegisterRow = (
   return { data: parsed.data };
 };
 
-/** The Missing open for her, as her page says it: where the round looked, and since when. */
+/** The Missing not yet found, as her page says it: where the round looked, and since when — and, once the Owner has
+ *  written her off as Lost, when and why. */
 const missingShown = async (db: Database, animalId: string) => {
   const open = await missingOf(db, animalId);
-  return open ? { since: open.since, penName: open.pen.name } : null;
+  if (!open) {
+    return null;
+  }
+  return {
+    since: open.since,
+    penName: open.pen.name,
+    writtenOff: open.writtenOffAt
+      ? {
+          at: open.writtenOffAt,
+          cause: open.lostCause ?? "",
+          stolen: open.stolen,
+          gdNumber: open.gdNumber,
+        }
+      : null,
+  };
 };
 
 export const animalsRouter = {
@@ -1095,7 +1117,11 @@ export const animalsRouter = {
       return { tagNumber };
     }),
 
-  /** The Manager's Found: an animal the round could not find is where she should be after all. */
+  /**
+   * Found: an animal the round could not find is where she should be after all. The Manager's while she is only
+   * missing; once the Owner has written her off as Lost, the Owner's alone — and she comes back into the herd as she
+   * was when she was written off.
+   */
   found: protectedProcedure
     .use(requireRole("owner", "manager"))
     .input(z.object({ tagNumber: tagInput }))
@@ -1115,15 +1141,103 @@ export const animalsRouter = {
           before: (tx) => readMissing(tx, target.id),
           after: (tx) => readMissing(tx, target.id),
         },
-        (tx) =>
-          markFound(tx, {
+        async (tx) => {
+          const open = await missingOf(tx, target.id);
+          const writtenOff = open?.writtenOffAt ?? null;
+          if (writtenOff && context.roleUsed !== "owner") {
+            throw forbidden({
+              message: "An animal written off as Lost is the Owner's to find",
+              reason: "owner_only",
+            });
+          }
+          await markFound(tx, {
             farmId: context.farm.id,
             animalId: target.id,
             by: context.actor.id,
             now,
-          })
+          });
+          if (writtenOff && open?.stateBefore && open.stateChangedBefore) {
+            await comesBack(tx, context.farm.id, target, {
+              state: open.stateBefore,
+              since: open.stateChangedBefore,
+              now,
+            });
+          }
+        }
       );
       return { tagNumber };
+    }),
+
+  /**
+   * The Owner writes a missing animal off as **Lost**: she leaves the herd from the morning she was last looked for —
+   * off the boards, the rounds and the head counts, her work called off — and everything recorded about her stays.
+   * Stolen asks for the thana's GD number. A Venture's animal is refused until its Investors' agreement says what a
+   * loss is to them.
+   */
+  writeOff: protectedProcedure
+    .use(requireRole("owner"))
+    .input(
+      z.object({
+        tagNumber: tagInput,
+        /** What the farm believes became of her, in the Owner's words. */
+        cause: z.string().trim().min(1).max(300),
+        stolen: z.boolean().default(false),
+        gdNumber: z.string().trim().min(1).max(60).optional(),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      if (input.stolen && !input.gdNumber) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "A theft needs the thana's GD number",
+          data: { refusal: "gd_number_needed" },
+        });
+      }
+      const now = context.clock.now();
+      const tagNumber = input.tagNumber.toUpperCase();
+      const target = await requireAnimal(
+        context.db,
+        context.farm.id,
+        tagNumber
+      );
+      let closed = 0;
+      await audited(context).write(
+        {
+          entity: "missing",
+          entityId: target.id,
+          action: "update",
+          before: (tx) => readMissing(tx, target.id),
+          after: (tx) => readMissing(tx, target.id),
+        },
+        async (tx) => {
+          const her = await loadLiveAnimal(tx, context.farm.id, tagNumber);
+          if (her.ownerVentureId) {
+            throw new ORPCError("BAD_REQUEST", {
+              message:
+                "A Venture's animal cannot be written off until its agreement says what a loss is",
+              data: { refusal: "venture_owns_her" },
+            });
+          }
+          const written = await markWrittenOff(tx, {
+            farmId: context.farm.id,
+            animalId: her.id,
+            by: context.actor.id,
+            now,
+            was: { state: her.state, stateChangedAt: her.stateChangedAt },
+            why: {
+              cause: input.cause,
+              stolen: input.stolen,
+              gdNumber: input.gdNumber ?? null,
+            },
+          });
+          ({ workClosed: closed } = await leaves(tx, context.farm.id, her, {
+            state: "lost",
+            at: written.since,
+            now,
+            trail: audited(context).recordEvent,
+          }));
+        }
+      );
+      return { tagNumber, state: "lost" as const, workClosed: closed };
     }),
 
   setPhoto: protectedProcedure

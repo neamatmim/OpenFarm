@@ -88,7 +88,7 @@ interface BreakdownCell {
 /** What the line is — an animal leading to her page — and under it her coming and going, or the head and the dead. */
 const LineCell = ({ row }: BreakdownCell) => {
   const { t } = useLanguage();
-  const { line, said, head, died } = row.original;
+  const { line, said, head, died, lost } = row.original;
   return (
     <span className="flex flex-col font-medium">
       {line.kind === "animal" ? (
@@ -110,7 +110,7 @@ const LineCell = ({ row }: BreakdownCell) => {
             })
           : `${t("returns.head", { count: head })}${
               died > 0 ? ` · ${t("returns.died", { count: died })}` : ""
-            }`}
+            }${lost > 0 ? ` · ${t("returns.lostHead", { count: lost })}` : ""}`}
       </span>
     </span>
   );

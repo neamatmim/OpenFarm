@@ -657,8 +657,12 @@ export const recentHappenings = async (
     }
     // A death or a cull is its own happening, not a State an animal reached: the Playbook's
     // mortality handling — bury her, report her — is work about a cow who has left, and every
-    // other State trigger is about one who has not.
-    if (!(isOnTheFarm(beast) || beast.stateChangedAt < earliest)) {
+    // other State trigger is about one who has not. Only a death or a cull: a bull sold walked
+    // off the farm, and there is no carcass to bury.
+    if (
+      (beast.state === "died" || beast.state === "culled") &&
+      beast.stateChangedAt >= earliest
+    ) {
       happenings.push({
         kind: "death",
         key: `death:${beast.id}:${beast.stateChangedAt.toISOString()}`,
