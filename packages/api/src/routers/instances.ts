@@ -340,7 +340,10 @@ export const instancesRouter = {
         ? await context.db.query.observation.findFirst({
             where: { id: unwellId, farmId: context.farm.id },
             columns: { sawLabel: true, seenAt: true, note: true },
-            with: { observer: { columns: { name: true } } },
+            with: {
+              observer: { columns: { name: true } },
+              animal: { columns: { tagNumber: true } },
+            },
           })
         : undefined;
       const supersededBy =
@@ -362,6 +365,7 @@ export const instancesRouter = {
         /** What the round saw, when this is the Manager's work on it. */
         seen: seen
           ? {
+              tag: seen.animal.tagNumber,
               label: seen.sawLabel,
               seenAt: seen.seenAt,
               note: seen.note,

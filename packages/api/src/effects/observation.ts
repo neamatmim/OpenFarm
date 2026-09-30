@@ -1,7 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { observation } from "@OpenFarm/db/schema/observation";
-import { HEAT } from "@OpenFarm/domain";
+import { HEAT, ROUND_WORDS } from "@OpenFarm/domain";
 
 import type { Trail, Tx } from "../audit";
 import { callOffWorkRaisedBy } from "../herd-store";
@@ -49,6 +49,63 @@ const unraiseWhatItRaised = async (
         trail,
         "observation_withdrawn"
       ));
+};
+
+/**
+ * Withdraws what this Step said it saw, with the work it raised: a milking put right to litres after the cow was
+ * skipped as unwell. Nothing when it saw nothing.
+ */
+export const takeBackWhatWasSeen = async (
+  tx: Tx,
+  input: { farmId: string; completionId: string; now: Date; trail: Trail }
+) => {
+  const standing = await tx.query.observation.findFirst({
+    where: { completionId: input.completionId, withdrawnAt: { isNull: true } },
+    columns: { id: true, saw: true },
+  });
+  if (!standing) {
+    return;
+  }
+  await tx
+    .update(observation)
+    .set({ withdrawnAt: input.now })
+    .where(eq(observation.id, standing.id));
+  await unraiseWhatItRaised(tx, input.farmId, standing, input.trail);
+};
+
+/**
+ * A cow skipped at milking as unwell, as an Observation of her: the milker does not know why, so it says only that,
+ * and the Manager's work on her follows as it does from the round. The same Step said again sees nothing twice.
+ */
+export const seeHerUnwell = async (
+  tx: Tx,
+  input: {
+    farmId: string;
+    animalId: string;
+    completionId: string;
+    seenBy: string;
+    seenAt: Date;
+    now: Date;
+  }
+) => {
+  const standing = await tx.query.observation.findFirst({
+    where: { completionId: input.completionId, withdrawnAt: { isNull: true } },
+    columns: { id: true },
+  });
+  if (standing) {
+    return;
+  }
+  await tx.insert(observation).values({
+    id: uuidv7(input.now),
+    farmId: input.farmId,
+    animalId: input.animalId,
+    completionId: input.completionId,
+    saw: ROUND_WORDS.unwell,
+    sawLabel: "দোহনের সময় অসুস্থ",
+    seenBy: input.seenBy,
+    seenAt: input.seenAt,
+    recordedAt: input.now,
+  });
 };
 
 /**

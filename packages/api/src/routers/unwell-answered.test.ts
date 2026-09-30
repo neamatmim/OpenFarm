@@ -127,6 +127,7 @@ describe("what the round saw, as the Manager's work", () => {
     const manager = await as("manager", "2058-03-02T03:00:00.000Z");
     const board = await manager.client.instances.get({ id: work[0]?.id ?? "" });
     expect(board.seen).toMatchObject({
+      tag: cow.tag,
       label: "খোঁড়াচ্ছে",
       seenAt: new Date("2058-03-02T02:30:00.000Z"),
     });

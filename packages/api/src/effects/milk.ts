@@ -8,6 +8,7 @@ import {
 } from "../milk-store";
 import type { EffectInput, EffectKind, EffectResult } from "./effect";
 import { numberIn, penOf } from "./evidence";
+import { seeHerUnwell, takeBackWhatWasSeen } from "./observation";
 
 type MilkFacts = Pick<
   EffectInput,
@@ -17,12 +18,34 @@ type MilkFacts = Pick<
   | "evidence"
   | "destination"
   | "skipped"
+  | "skippedAs"
   | "completionId"
   | "tolerancePercent"
   | "recordedBy"
   | "recordedAt"
   | "now"
+  | "trail"
 >;
+
+/**
+ * A cow skipped as unwell is an Observation of her, so the Manager sees to her; anything else this Step now says — her
+ * litres, or another reason — takes that back.
+ */
+const unwellOrNot = async (tx: Tx, input: MilkFacts) => {
+  const where = {
+    farmId: input.instance.farmId,
+    completionId: input.completionId,
+    now: input.now,
+  };
+  await (input.skippedAs === "unwell" && input.animalId
+    ? seeHerUnwell(tx, {
+        ...where,
+        animalId: input.animalId,
+        seenBy: input.recordedBy,
+        seenAt: input.recordedAt,
+      })
+    : takeBackWhatWasSeen(tx, { ...where, trail: input.trail }));
+};
 
 /** The Milking Session a milk Step belongs to. Only the milk Effects may open one: a Step that walks a cow to another Pen
  *  has no business creating a session nobody milked into. */
@@ -35,6 +58,7 @@ const recordTheMilk = async (
   input: MilkFacts
 ): Promise<EffectResult> => {
   const sessionId = await sessionOf(tx, input);
+  await unwellOrNot(tx, input);
   if (input.skipped || !input.animalId) {
     // A cow skipped — or recorded before, then skipped — has no litres to her name.
     await removeMilkRecord(tx, input.completionId);

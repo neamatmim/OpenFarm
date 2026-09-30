@@ -4391,6 +4391,6 @@ export const bn: Record<MessageKey, string> = {
   "costs.storeCounts": "এই সময়ে {count}টি গণনা",
   "event.unwell": "রাউন্ডে পশুকে অসুস্থ দেখা গেলে",
   "event.unwell_urgent": "রাউন্ডে পেট ফাঁপা বা শ্বাসকষ্ট দেখা গেলে",
-  "unwell.seen": "রাউন্ডে যা দেখা গেছে",
+  "unwell.seen": "যা দেখা গেছে",
   "refusal.notMissing": "পশুটি হারায়নি — কেউ তাকে খুঁজছে না",
 };
