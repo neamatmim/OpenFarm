@@ -95,6 +95,8 @@ export const DELIVERY = {
   // once, because it spreads through a Pen in days and the Vet visits weekly (the Owner, 2026-09-29) — but not at night:
   // the round that saw it is walked in the morning.
   pen_sores_seen: { when: "immediate" },
+  // Milk gone that nobody can account for is the evening's reading: a figure to ask about tomorrow, not a buzz.
+  milk_unaccounted: { when: "digest" },
 } as const satisfies Record<AlertKind, Delivery>;
 
 /**
@@ -222,6 +224,10 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
     app: "alerts.penSoresSeen",
     push: { title: "push.penSoresSeenTitle", body: "push.penSoresSeenBody" },
     digest: "digest.penSoresSeen",
+  },
+  milk_unaccounted: {
+    app: "alerts.milkUnaccounted",
+    digest: "digest.milkUnaccounted",
   },
 };
 

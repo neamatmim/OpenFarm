@@ -11,6 +11,7 @@ import { GivingLessGroup } from "@/components/giving-less";
 import { MilkMismatches } from "@/components/milk-mismatches";
 import { DispatchSheet } from "@/components/milk/dispatch-sheet";
 import { HandedOverTab } from "@/components/milk/handed-over";
+import { MilkAccountCard } from "@/components/milk/milk-account";
 import { MilkRecordsTab } from "@/components/milk/milk-records";
 import type { MilkDay } from "@/components/milk/milk-types";
 import { worthOf } from "@/components/milk/milk-types";
@@ -134,13 +135,16 @@ const MilkPage = () => {
             label: t("dispatch.handedOver"),
             icon: Truck,
             content: (
-              <HandedOverTab
-                day={day}
-                mayRecord={mayRecord}
-                milkDay={milkDay}
-                onDayChange={setDay}
-                onRecord={() => setRecording(true)}
-              />
+              <div className="flex flex-col gap-4">
+                <MilkAccountCard />
+                <HandedOverTab
+                  day={day}
+                  mayRecord={mayRecord}
+                  milkDay={milkDay}
+                  onDayChange={setDay}
+                  onRecord={() => setRecording(true)}
+                />
+              </div>
             ),
           },
           {

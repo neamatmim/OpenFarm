@@ -144,7 +144,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Lactation**: One cow's milking period from a calving to the following Dry-off. Numbered per cow; days-in-milk and totals are derived from Milk Records. A cow in milk giving well under her own week — per recorded milking, the last two farm days against the seven before, 20% less unless the farm says otherwise, whatever became of the milk — is named to the Manager as giving less: a convention that catches sudden illness, not a measured line, and a heat drops milk too. _Avoid_: Milking cycle, production period
 
-**Reconciliation**: The comparison of a Milking Session's Bulk total against the sum of its per-cow Milk Records destined for Bulk. A difference beyond the Tolerance is flagged for the Manager. _Avoid_: Balancing, audit, check
+**Reconciliation**: The comparison of a Milking Session's Bulk total against the sum of its per-cow Milk Records destined for Bulk. A difference beyond the Tolerance is flagged for the Manager. Across days, the week's milk into the tank is set against what Dispatches took out of the gate, allowing for what was in the tank when the week began and is in it now; what is left is milk nobody can account for, told to the Owner and the Manager in the evening's post when it passes the Owner's line (3%). _Avoid_: Balancing, audit, check
 
 **Tolerance**: The Farm Parameter, as a percentage, within which a Reconciliation difference passes unremarked. _Avoid_: Margin, threshold, allowance
 

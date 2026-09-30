@@ -147,6 +147,12 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
     audience: [{ roles: ["owner", "manager"] }],
     entity: "pen",
   },
+  // The Owner asks where the milk went; the Manager answers for the tank. About the farm day it was read on, so it is
+  // said once an evening while the week stays over the line.
+  milk_unaccounted: {
+    audience: [{ roles: ["owner", "manager"] }],
+    entity: "farm_day",
+  },
 };
 
 /** A Notice as it was raised, for whoever carries it out of the transaction to a pocket. */

@@ -216,6 +216,7 @@ export {
 export type {
   LactationView,
   MilkDestination,
+  MilkAccount,
   MilkDrop,
   Reconciliation,
 } from "./milk";
@@ -229,7 +230,9 @@ export {
   litresTo,
   roundLitres,
   underMilkWithdrawal,
+  MILK_ACCOUNT_DAYS,
   MILK_USUAL_DAYS,
+  milkAccountOf,
   milkDropOf,
 } from "./milk";
 export { derivePinHash, isPin, randomPinSalt, verifyPin } from "./pin";

@@ -160,6 +160,8 @@ const parameters = z
     /** How far under her own week a cow's milk must fall, over how many days, before she is named as giving less. */
     milkDropPercent: z.number().int().min(5).max(80).optional(),
     milkDropDays: z.number().int().min(1).max(5).optional(),
+    /** How much of a week's milk may go unaccounted for before the Owner and the Manager are told. */
+    milkUnaccountedPercent: z.number().int().min(1).max(50).optional(),
     /** What part of a Venture's target capital is the least worth starting on. */
     ventureFloorPercent: z.number().int().min(0).max(100).optional(),
     /** What part of a Venture's capital keeps the animals rather than buying them. */
@@ -240,7 +242,11 @@ const WHEN_MONTHLY_COSTS_ARE_LOOKED_FOR = ["monthlyCostsFromDay"] as const;
 const HOW_LONG_BAKI_MAY_RUN = ["bakiDays"] as const;
 
 /** When a count's shortfall is told: the Owner's to set, as the count is the one check on the Manager's feed. */
-const WHEN_A_SHORT_STORE_IS_TOLD = ["storeShortfallTellBdt"] as const;
+const WHEN_A_SHORT_STORE_IS_TOLD = [
+  "storeShortfallTellBdt",
+  // Milk nobody can account for is checked on the Manager, as the store is.
+  "milkUnaccountedPercent",
+] as const;
 
 type ParametersInput = z.infer<typeof parameters>;
 
@@ -292,7 +298,8 @@ const refuseWhatIsTheOwners = (
   }
   if (namesAny(input, WHEN_A_SHORT_STORE_IS_TOLD)) {
     throw forbidden({
-      message: "When a short store is told is the Owner's to set",
+      message:
+        "When a short store or unaccounted milk is told is the Owner's to set",
       reason: "owner_only",
     });
   }
@@ -780,6 +787,7 @@ export const farmRouter = {
                 heatWatchAfterCalvingDays: true,
                 milkDropPercent: true,
                 milkDropDays: true,
+                milkUnaccountedPercent: true,
                 ventureFloorPercent: true,
                 ventureRunningPercent: true,
                 ventureInvestorsPercent: true,

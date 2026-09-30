@@ -4666,6 +4666,7 @@ export const en = {
   "money.refundedHint": "When a Venture was cancelled",
   "units.kg": "{kg} kg",
   "units.kgADay": "{kg} kg a day",
+  "units.litres": "{litres} L",
   "alerts.animalMissing": "{tag} was not found on the round in {pen}, {since}",
   "push.animalMissingTitle": "Animal not found",
   "push.animalMissingBody":
@@ -4749,6 +4750,23 @@ export const en = {
     "A cow whose milk a milking falls this far under her own week, over these days, is named to the Manager. A convention, not a measured line: it catches sudden illness, and a heat drops milk too.",
   "params.milkDropPercent": "Less than her week by",
   "params.milkDropDays": "Over the last",
+  "alerts.milkUnaccounted":
+    "{litres} L of milk since {since} is neither out of the gate nor in the tank ({percent}%)",
+  "digest.milkUnaccounted": "Milk not accounted for this week",
+  "params.milkUnaccounted": "Milk not accounted for",
+  "params.milkUnaccountedHint":
+    "When this much of a week's milk into the tank has neither left the gate nor is still in the tank, you and the Manager are told in the evening's post.",
+  "params.milkUnaccountedPercent": "More than",
+  "milkAccount.title": "The week's milk",
+  "milkAccount.hint":
+    "Into the tank since {since}, against what left the gate, allowing for what is in the tank.",
+  "milkAccount.carriedIn": "In the tank when the week began",
+  "milkAccount.toBulk": "Into the tank",
+  "milkAccount.dispatched": "Out of the gate",
+  "milkAccount.stillInTank": "Still in the tank",
+  "milkAccount.notAccounted": "Not accounted for",
+  "milkAccount.calves":
+    "To calves: {litres} L a day for {calves, plural, one {# calf} other {# calves}} — {perCalf} L each",
   "refusal.notMissing": "This animal is not missing: nobody is looking for it",
 } as const;
 
