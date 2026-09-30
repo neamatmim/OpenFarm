@@ -26,13 +26,14 @@ import {
   theConclusionAndWhatFollowed,
   withPrescriptions,
 } from "../health-store";
-import { loadLiveAnimal } from "../herd-store";
+import { callOffWorkRaisedBy, loadLiveAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
 import type { RaisedAlert } from "../instances-store";
 import { pushRaised } from "../push-send";
 import { requireOnly, requirePersonalSession } from "../roles";
 import { clinicalRecordsInScope, requireClinicalInScope } from "../scope";
 import { textTheSafetyAlerts } from "../sms-send";
+import { unwellKeyOf } from "../work-cause";
 
 /** The Vet visits about weekly, so a fortnight is what they need to catch up on. */
 const VET_WINDOW_DAYS = 14;
@@ -198,6 +199,16 @@ export const diagnosesRouter = {
             diagnosedAt: now,
             recordedAt: now,
           });
+          // The Vet has answered what the round saw: the Manager's work on it is done with.
+          if (input.answers) {
+            await callOffWorkRaisedBy(
+              tx,
+              context.farm.id,
+              unwellKeyOf(input.answers),
+              audited(context).recordEvent,
+              "diagnosed"
+            );
+          }
           // If the farm's list says this one must be reported, the letter is owed and the work
           // to deliver it is raised here and now, due now: the Act says without delay, and a
           // farm that waits for somebody to open an app has waited.

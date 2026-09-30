@@ -5,7 +5,7 @@
  */
 import { HEAT } from "./breeding";
 import type { Evidence, SopContent, Step } from "./sop";
-import { STAYS_A_HEIFER } from "./sop";
+import { STAYS_A_HEIFER, UNWELL, UNWELL_URGENT } from "./sop";
 
 const choice = (
   required: boolean,
@@ -140,6 +140,25 @@ export const ROUND_WORDS = {
   notSuckling: "not_suckling",
   navel: "navel_swollen",
 } as const;
+
+/** What the round may see that cannot wait for tomorrow: bloat and laboured breathing kill within hours (Merck). */
+export const URGENT_ROUND_WORDS: readonly string[] = [
+  ROUND_WORDS.bloat,
+  ROUND_WORDS.breathing,
+];
+
+/**
+ * What an Observation raises: a Heat raises the breeding chain's work and nothing here; anything else the round saw is
+ * work for the Manager — the urgent words on an hour's clock, the rest on a day's.
+ */
+export const eventOfObservation = (
+  saw: string
+): typeof UNWELL | typeof UNWELL_URGENT | null => {
+  if (saw === HEAT) {
+    return null;
+  }
+  return URGENT_ROUND_WORDS.includes(saw) ? UNWELL_URGENT : UNWELL;
+};
 
 const healthRound = (): SopContent => ({
   name: { bn: "স্বাস্থ্য ও গরম পর্যবেক্ষণ", en: "Health and heat round" },
@@ -530,6 +549,47 @@ const dlsReport = (): SopContent => ({
       evidence: [{ type: "note", required: true }],
       skipReasons: [],
       effect: { kind: "dls_report" },
+    },
+  ],
+});
+
+/**
+ * What the round saw of an animal, answered by somebody: the Vet rung, or the Manager has looked again. The Vet visits
+ * weekly, and an Observation that only waited on the Vet's list could wait a week and then drop off it. The Manager
+ * answers, because a Diagnosis is the Vet's alone (BVC Act) and the Manager is who rings the Vet; the Vet's Diagnosis
+ * answers it too, and calls the work off. Late in a day — or in an hour for bloat and laboured breathing, which kill
+ * within hours (Merck). Late work goes to the Manager and then to the Owner, as all work does.
+ */
+const seeToUnwell = (urgent: boolean): SopContent => ({
+  name: urgent
+    ? { bn: "জরুরি: অসুস্থ পশু দেখুন", en: "Urgent: see to an unwell animal" }
+    : { bn: "অসুস্থ পশু দেখুন", en: "See to an unwell animal" },
+  purpose: {
+    bn: "রাউন্ডে যে পশুকে অসুস্থ দেখা গেছে তাকে আবার দেখুন, দরকার হলে ডাক্তারকে ডাকুন",
+    en: "Look again at an animal the round saw unwell, and ring the Vet where she needs one",
+  },
+  triggers: [{ kind: "event", event: urgent ? UNWELL_URGENT : UNWELL }],
+  assignedRole: "manager",
+  checkerRole: null,
+  graceMinutes: urgent ? 60 : 24 * 60,
+  steps: [
+    {
+      id: "answer",
+      text: { bn: "কী করা হলো?", en: "What was done?" },
+      repeatPerAnimal: true,
+      evidence: [
+        choice(true, [
+          ["vet_called", "ডাক্তারকে ডাকা হয়েছে", "The Vet has been called"],
+          [
+            "watching",
+            "আবার দেখা হয়েছে — নজরে রাখা হচ্ছে",
+            "Looked again — watching her",
+          ],
+          ["better", "ভালো হয়ে গেছে", "Better now"],
+        ]),
+        { type: "note", required: false },
+      ],
+      skipReasons: [],
     },
   ],
 });
@@ -1331,6 +1391,8 @@ export type PlaybookKey =
   | "eveningMilking"
   | "feeding"
   | "healthRound"
+  | "seeToUnwell"
+  | "seeToUnwellUrgent"
   | "insemination"
   | "pregnancyCheck"
   | "dryOff"
@@ -1430,6 +1492,8 @@ export const standardPlaybook = (
   eveningMilking: milkingSession("16:30", "বিকেলের দোহন", "Evening milking"),
   feeding: feeding(),
   healthRound: healthRound(),
+  seeToUnwell: seeToUnwell(false),
+  seeToUnwellUrgent: seeToUnwell(true),
   insemination: artificialInsemination(),
   pregnancyCheck: pregnancyCheck(),
   dryOff: dryOff(),

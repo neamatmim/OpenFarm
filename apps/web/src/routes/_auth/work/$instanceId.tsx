@@ -101,6 +101,53 @@ interface Animal {
  * it to the office and come back with the reference. Asking for it is recorded, because a letter
  * that went is the farm's evidence.
  */
+/** What finishing says: only work somebody signs off waits for them; the rest is finished when it is finished. */
+const finishedWord = (checkerRole: string | null | undefined) =>
+  checkerRole ? "work.finished" : "work.finishedNoCheck";
+
+/** What the round saw of her, for the Manager's work on an unwell animal: the job is to answer it, so it says what. */
+const WhatWasSeen = ({
+  seen,
+}: {
+  seen: {
+    label: string;
+    seenAt: Date;
+    note: string | null;
+    seenByName: string | null;
+  };
+}) => {
+  const { t, language } = useLanguage();
+  return (
+    <section className="space-y-1 rounded-xl border p-3 text-sm">
+      <h2 className="text-muted-foreground text-xs font-medium">
+        {t("unwell.seen")}
+      </h2>
+      <p className="font-medium">{seen.label}</p>
+      <p className="text-muted-foreground text-xs">
+        {formatDate(seen.seenAt, language, "dateTime")}
+        {seen.seenByName ? ` · ${seen.seenByName}` : ""}
+      </p>
+      {seen.note ? <p>{seen.note}</p> : null}
+    </section>
+  );
+};
+
+/** What this work is about, where something raised it that the person must see: the letter a notifiable Diagnosis owes,
+ *  or what the round saw of an unwell animal. */
+const WhatRaisedIt = ({
+  report,
+  seen,
+}: {
+  report: { diagnosisId: string; reference: string | null } | null;
+  /** Missing from an answer a phone kept from before the work said what was seen. */
+  seen: Parameters<typeof WhatWasSeen>[0]["seen"] | null | undefined;
+}) => (
+  <>
+    {report ? <TheLetter report={report} /> : null}
+    {seen ? <WhatWasSeen seen={seen} /> : null}
+  </>
+);
+
 const TheLetter = ({
   report,
 }: {
@@ -385,7 +432,7 @@ const WorkPage = () => {
   const finish = useMutation({
     mutationFn: () => finishInstance(queryClient, instanceKey, instanceId),
     onSuccess: () => {
-      toast.success(t("work.finished"));
+      toast.success(t(finishedWord(instance.data?.checkerRole)));
       navigate({ to: "/today" });
     },
     onError,
@@ -590,9 +637,7 @@ const WorkPage = () => {
         state={state}
       />
 
-      {instance.data.report ? (
-        <TheLetter report={instance.data.report} />
-      ) : null}
+      <WhatRaisedIt report={instance.data.report} seen={instance.data.seen} />
 
       {changed ? <WhatChanged changed={changed} /> : null}
 

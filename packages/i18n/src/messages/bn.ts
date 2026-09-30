@@ -1693,6 +1693,9 @@ export const bn: Record<MessageKey, string> = {
   "audit.action": "কাজ",
   "audit.reason": "কারণ",
   "audit.calledOffBy.animal_left": "বাতিল: পশুটি খামার ছেড়ে গেছে",
+  "audit.calledOffBy.observation_withdrawn":
+    "বাতিল: রাউন্ডে দেখার এন্ট্রি ফিরিয়ে নেওয়া হয়েছে",
+  "audit.calledOffBy.diagnosed": "বাতিল: ডাক্তার রোগ নির্ণয় করেছেন",
   "audit.calledOffBy.heat_withdrawn": "বাতিল: গরম দেখার এন্ট্রি ফিরিয়ে নেওয়া হয়েছে",
   "audit.calledOffBy.attempt_no_longer_standing":
     "বাতিল: যে পাল দেওয়ার পরে এই কাজ, সেটি আর বহাল নেই",
@@ -3328,6 +3331,7 @@ export const bn: Record<MessageKey, string> = {
   "work.keepAnyway": "হ্যাঁ, রাখুন",
   "work.finish": "শেষ করুন",
   "work.finished": "শেষ — অনুমোদনের অপেক্ষায়",
+  "work.finishedNoCheck": "শেষ হয়েছে",
   "work.notFinished": "এখনো বাকি",
   "work.photo": "ছবি",
   "work.when": "কখন",
@@ -4385,5 +4389,8 @@ export const bn: Record<MessageKey, string> = {
   "costs.storeShort": "কম",
   "costs.storeOver": "বেশি পাওয়া গেছে",
   "costs.storeCounts": "এই সময়ে {count}টি গণনা",
+  "event.unwell": "রাউন্ডে পশুকে অসুস্থ দেখা গেলে",
+  "event.unwell_urgent": "রাউন্ডে পেট ফাঁপা বা শ্বাসকষ্ট দেখা গেলে",
+  "unwell.seen": "রাউন্ডে যা দেখা গেছে",
   "refusal.notMissing": "পশুটি হারায়নি — কেউ তাকে খুঁজছে না",
 };

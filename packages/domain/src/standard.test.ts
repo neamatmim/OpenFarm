@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { findExpectedGainProblems } from "./expected-gain";
 import type { WeightBand } from "./feed";
 import { findBandProblems, findRationProblems } from "./feed";
-import { findPublishBlockers } from "./sop";
+import { UNWELL, UNWELL_URGENT, findPublishBlockers } from "./sop";
 import {
   STANDARD_DRUGS,
   STANDARD_FEED_ITEMS,
@@ -13,7 +13,12 @@ import {
   rationLineOf,
 } from "./standard";
 import type { PlaybookKey } from "./standard-playbook";
-import { STANDARD_SOP_NEEDS, standardPlaybook } from "./standard-playbook";
+import {
+  ROUND_WORDS,
+  STANDARD_SOP_NEEDS,
+  eventOfObservation,
+  standardPlaybook,
+} from "./standard-playbook";
 
 const NAMED = {
   calvingPen: "pen-calving",
@@ -170,5 +175,15 @@ describe("the standard lists", () => {
       const names = list.map((one) => one.bn);
       expect(new Set(names).size).toBe(names.length);
     }
+  });
+});
+
+describe("what the round saw, and the work it raises", () => {
+  it("raises nothing here for a heat, an hour's work for bloat or laboured breathing, and a day's for the rest", () => {
+    expect(eventOfObservation(ROUND_WORDS.heat)).toBeNull();
+    expect(eventOfObservation(ROUND_WORDS.bloat)).toBe(UNWELL_URGENT);
+    expect(eventOfObservation(ROUND_WORDS.breathing)).toBe(UNWELL_URGENT);
+    expect(eventOfObservation(ROUND_WORDS.lame)).toBe(UNWELL);
+    expect(eventOfObservation("something_else")).toBe(UNWELL);
   });
 });

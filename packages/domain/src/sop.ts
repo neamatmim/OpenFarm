@@ -176,7 +176,20 @@ export type TriggerKind = (typeof TRIGGER_KINDS)[number];
  * her to the depth the rule names, and reporting her if what killed her is notifiable. That is
  * work precisely because she has gone.
  */
-export const FARM_EVENTS = ["move", "arrival", "death", HEAT, SERVICE] as const;
+/** Something the round saw of an animal that is not a Heat: work for the Manager, late in a day. */
+export const UNWELL = "unwell";
+/** Something the round saw that kills within hours — bloat, laboured breathing: work for the Manager, late in an hour. */
+export const UNWELL_URGENT = "unwell_urgent";
+
+export const FARM_EVENTS = [
+  "move",
+  "arrival",
+  "death",
+  HEAT,
+  SERVICE,
+  UNWELL,
+  UNWELL_URGENT,
+] as const;
 export type FarmEvent = (typeof FARM_EVENTS)[number];
 
 /**
