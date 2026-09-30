@@ -143,6 +143,13 @@ const WhereItLeads = ({
       </Link>
     );
   }
+  if (notice.kind === "entered_twice") {
+    return (
+      <Link className={LEADS_CLASS} to="/money">
+        {t("alerts.openTheMoney")}
+      </Link>
+    );
+  }
   if (notice.kind === "cash_short") {
     return (
       <Link className={LEADS_CLASS} search={{ tab: "cash" }} to="/money">

@@ -118,6 +118,8 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.counterparty.id,
     }),
     approver: r.one.user({ from: r.moneyEvent.approvedBy, to: r.user.id }),
+    // Who typed it: named beside an entry that looks like a second of it.
+    recorder: r.one.user({ from: r.moneyEvent.recordedBy, to: r.user.id }),
     receipt: r.one.moneyReceipt({
       from: r.moneyEvent.id,
       to: r.moneyReceipt.moneyEventId,

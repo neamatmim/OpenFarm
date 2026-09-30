@@ -176,6 +176,11 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
     audience: [theOwner],
     entity: "step_completion",
   },
+  // The Owner asks the Manager tomorrow whether it was two bills; about the second entry, told once.
+  entered_twice: {
+    audience: [theOwner],
+    entity: "money_event",
+  },
 };
 
 /** A Notice as it was raised, for whoever carries it out of the transaction to a pocket. */

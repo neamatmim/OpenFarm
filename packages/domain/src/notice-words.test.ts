@@ -136,6 +136,12 @@ const EXAMPLE: NoticeFacts = {
     advice: "জ্বর, ফার্মেসির পরামর্শে",
   },
   cash_short: { name: "রফিকুল ইসলাম", shortBdt: 1500, countedOn: "2038-03-09" },
+  entered_twice: {
+    name: "রহিম মিস্ত্রি",
+    amountBdt: 1500,
+    day: "2038-03-09",
+    by: "রফিকুল ইসলাম",
+  },
   feed_price_jump: {
     feed: "গমের ভুসি",
     unit: "kg",

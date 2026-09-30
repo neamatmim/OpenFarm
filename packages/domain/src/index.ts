@@ -423,10 +423,16 @@ export {
   isBakiRefusal,
   paidAtTheGate,
 } from "./baki";
-export type { ApprovedTerms, MoneyApproval, PaymentMethod } from "./money";
+export type {
+  ApprovedTerms,
+  EnteredBefore,
+  MoneyApproval,
+  PaymentMethod,
+} from "./money";
 export {
   PAYMENT_METHODS,
   approvalOf,
+  looksEnteredAlready,
   roundTaka,
   termsUnchanged,
 } from "./money";

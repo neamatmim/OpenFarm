@@ -56,3 +56,34 @@ export const termsUnchanged = sameTerms;
 /** Taka to the poisha, as money is kept. */
 export const roundTaka = (amount: number): number =>
   Math.round(amount * 100) / 100;
+
+/** A name as two entries of the same person are compared: one Unicode form, trimmed, whatever the capitals. */
+const personKey = (name: string): string =>
+  name.normalize("NFC").trim().toLowerCase();
+
+/** Money already entered by hand, as a new entry is compared with it. */
+export interface EnteredBefore {
+  id: string;
+  /** Who it went to or came from. */
+  name: string | null;
+  amountBdt: number;
+  /** The farm day it was for ("YYYY-MM-DD"). */
+  day: string;
+}
+
+/**
+ * The entry this one looks like a second of: the same person — "Rahim" and "rahim " are one man — the same taka, and the
+ * same farm day. Nothing where there is none; the first of them where there are several. A wage is not asked: one wage
+ * a person a month is already the farm's rule.
+ */
+export const looksEnteredAlready = <Earlier extends EnteredBefore>(
+  entry: { name: string; amountBdt: number; day: string },
+  earlier: readonly Earlier[]
+): Earlier | undefined =>
+  earlier.find(
+    (one) =>
+      one.name !== null &&
+      personKey(one.name) === personKey(entry.name) &&
+      roundTaka(one.amountBdt) === roundTaka(entry.amountBdt) &&
+      one.day === entry.day
+  );

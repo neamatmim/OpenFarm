@@ -93,6 +93,7 @@ const WORDED_REFUSALS = {
   dry_off_of_a_cow_not_in_milk: "refusal.dryOffOfACowNotInMilk",
   entered_in_the_future: "refusal.enteredInTheFuture",
   given_in_the_future: "refusal.givenInTheFuture",
+  looks_entered_already: "refusal.looksEnteredAlready",
   product_retired: "refusal.productRetired",
   expected_calving_needed: "refusal.expectedCalvingNeeded",
   expected_calving_passed: "refusal.expectedCalvingPassed",
