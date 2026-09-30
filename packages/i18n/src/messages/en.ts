@@ -2972,6 +2972,9 @@ export const en = {
   "money.from.farmShare": "The farm's share of a Venture",
   "money.from.farmLoss": "The farm's share of a Venture's loss",
   "money.from.settlementAdjustment": "A Settlement Adjustment",
+  "owner.enteredBy": "entered by {name}",
+  "owner.inPieces":
+    "under the line alone, past it with this week's other pieces to the same person",
   "owner.moneyAwaiting": "Money awaiting your approval",
   "drugs.buy": "Medicine bought",
   "drugs.quantity": "How much (as on the box)",
