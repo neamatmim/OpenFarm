@@ -58,7 +58,12 @@ const scheduleOf = (content: Timed) => {
 /** The schedule with some of its parts changed, keeping the rest — changing the times keeps the days. */
 const withSchedule = (
   content: SopContent,
-  change: { times?: string[]; weekdays?: number[]; everyOtherWeek?: boolean }
+  change: {
+    times?: string[];
+    weekdays?: number[];
+    everyOtherWeek?: boolean;
+    firstOfTheMonth?: boolean;
+  }
 ): SopContent => {
   const current = scheduleOf(content);
   const next = {
@@ -69,13 +74,28 @@ const withSchedule = (
       "everyOtherWeek" in change
         ? change.everyOtherWeek
         : current?.everyOtherWeek,
+    firstOfTheMonth:
+      "firstOfTheMonth" in change
+        ? change.firstOfTheMonth
+        : current?.firstOfTheMonth,
   };
+  // Monthly and fortnightly are two rhythms: choosing one sets the other aside.
+  if (change.firstOfTheMonth) {
+    delete next.everyOtherWeek;
+  }
+  if (change.everyOtherWeek) {
+    delete next.firstOfTheMonth;
+  }
   if (!next.weekdays?.length) {
     delete next.weekdays;
     delete next.everyOtherWeek;
+    delete next.firstOfTheMonth;
   }
   if (!next.everyOtherWeek) {
     delete next.everyOtherWeek;
+  }
+  if (!next.firstOfTheMonth) {
+    delete next.firstOfTheMonth;
   }
   return {
     ...content,
@@ -99,6 +119,14 @@ export const withScheduleWeekdays = (
   weekdays: number[]
 ): SopContent =>
   withSchedule(content, { weekdays: [...weekdays].toSorted((a, b) => a - b) });
+
+export const scheduleFirstOfTheMonth = (content: Timed): boolean =>
+  scheduleOf(content)?.firstOfTheMonth ?? false;
+
+export const withFirstOfTheMonth = (
+  content: SopContent,
+  firstOfTheMonth: boolean
+): SopContent => withSchedule(content, { firstOfTheMonth });
 
 export const withEveryOtherWeek = (
   content: SopContent,

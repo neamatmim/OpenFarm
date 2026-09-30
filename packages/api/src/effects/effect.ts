@@ -14,6 +14,10 @@ import type { Trail, Tx } from "../audit";
 import type { PregnancyTimes } from "../breeding-store";
 import type { CalvingRecorded } from "../calving-store";
 import type { CalvingWorkFollowed } from "../calving-work";
+import type {
+  MedicineAdjustment,
+  MedicineCountLine,
+} from "../medicine-count-store";
 import type { RenewalEntry } from "../registration-store";
 import type { Refusal } from "../roles";
 import { forbidden } from "../roles";
@@ -25,6 +29,7 @@ import { dryOffEffect } from "./dry-off";
 import { feedingEffect } from "./feeding";
 import { headCountEffect } from "./head-count";
 import { lotNumberEffect } from "./lot-number";
+import { medicineCountEffect } from "./medicine-count";
 import { bulkTotalEffect, milkRecordEffect } from "./milk";
 import { moveEffect } from "./move";
 import { observationEffect } from "./observation";
@@ -133,6 +138,11 @@ export type EffectResult =
       adjustments: StockAdjustment[];
     }
   | {
+      kind: "medicine_count";
+      /** The products whose count differed from the book. */
+      adjustments: MedicineAdjustment[];
+    }
+  | {
       kind: "cash_count";
       /** Whether the count differs from what the hand was said to hold: nothing of how much, the count being blind. */
       differs: boolean;
@@ -212,6 +222,8 @@ export interface EffectInput {
   feeding: FeedingEntryLine[];
   /** What was counted of each Feed Item, for a Step that counts the store. */
   counts: StockCountLine[];
+  /** What was counted of each medicine, in doses, for a Step that counts the medicine. */
+  medicineCounts: MedicineCountLine[];
   /** The new expiry and the renewed certificate, for the Step that renews the Registration. */
   renewal?: RenewalEntry;
   /** How often this Playbook entry feeds — from the Version doing the feeding, so a farm with
@@ -285,7 +297,9 @@ export interface EffectKind<Facts> {
 
 /** The facts a Step carries beside its Evidence, as its answer does. */
 export type StepFacts = Partial<
-  Pick<EffectInput, "feeding" | "counts"> & { renewal: { expiresOn: string } }
+  Pick<EffectInput, "feeding" | "counts" | "medicineCounts"> & {
+    renewal: { expiresOn: string };
+  }
 >;
 
 /** Every kind of Effect a Step may declare. */
@@ -309,6 +323,7 @@ const EFFECTS: Record<
   pregnancy_check: pregnancyCheckEffect,
   feeding: feedingEffect,
   stock_count: stockCountEffect,
+  medicine_count: medicineCountEffect,
   head_count: headCountEffect,
   cash_count: cashCountEffect,
   registration_renewal: renewalEffect,
@@ -376,6 +391,11 @@ export const STANDING_ASIDE_SAID: Record<StandingAsideBecause, string> = {
 export interface FactsAsShown {
   feeding?: { feedItemId: string; givenKg: number; leftoverKg: number }[];
   counts?: { feedItemId: string; counted: number; reason?: string }[];
+  medicineCounts?: {
+    drugProductId: string;
+    counted: number;
+    reason?: string;
+  }[];
   renewal?: { expiresOn: string };
 }
 

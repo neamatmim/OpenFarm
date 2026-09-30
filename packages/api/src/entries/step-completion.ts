@@ -50,6 +50,13 @@ export const countLine = z.object({
   reason: z.string().trim().max(200).optional(),
 });
 
+/** What one medicine was counted at, in doses, for a Step that counts the medicine, and why it differs. */
+export const medicineCountLine = z.object({
+  drugProductId: z.string(),
+  counted: z.number().int().min(0).max(1_000_000),
+  reason: z.string().trim().max(200).optional(),
+});
+
 /** The new expiry, when the renewed certificate was issued, and its photograph, for the Step that renews the
  *  Registration. */
 export const renewalInput = z.object({
@@ -73,6 +80,8 @@ export const stepCompletionInput = z.object({
   feeding: z.array(feedingLine).optional(),
   /** What was counted, per Feed Item, for a Step that counts the store. */
   counts: z.array(countLine).optional(),
+  /** What was counted, per medicine in doses, for a Step that counts the medicine. */
+  medicineCounts: z.array(medicineCountLine).optional(),
   /** The new expiry and the renewed certificate, for the Step that renews the Registration. */
   renewal: renewalInput.optional(),
   /** Set when the person was warned a number was outside its range and went ahead. */
@@ -92,6 +101,7 @@ export type StepAnswer = Pick<
   | "destination"
   | "feeding"
   | "counts"
+  | "medicineCounts"
   | "renewal"
   | "outOfRange"
   | "skipReason"
@@ -178,6 +188,7 @@ const effectOfStep = (
     evidence: answer.evidence,
     feeding: answer.feeding ?? [],
     counts: answer.counts ?? [],
+    medicineCounts: answer.medicineCounts ?? [],
     renewal: answer.renewal,
     destination: answer.destination,
     skipped: Boolean(answer.skipReason),

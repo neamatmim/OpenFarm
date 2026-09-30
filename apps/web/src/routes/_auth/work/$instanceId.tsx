@@ -72,7 +72,11 @@ import {
 import { cachedWithdrawal, herdCacheQuery } from "@/lib/herd-cache";
 import type { Photo } from "@/lib/photo";
 import { shrink } from "@/lib/photo";
-import type { StepRecord, StockCountEntry } from "@/lib/record-offline";
+import type {
+  MedicineCountEntry,
+  StepRecord,
+  StockCountEntry,
+} from "@/lib/record-offline";
 import {
   claimInstance,
   finishInstance,
@@ -463,6 +467,7 @@ const WorkPage = () => {
     feeding,
     fed,
     stockCount,
+    medicineCount,
     renewal,
     changed,
     runningOn,
@@ -610,6 +615,7 @@ const WorkPage = () => {
         existing={existing}
         feeding={feeding}
         stockCount={stockCount}
+        medicineCount={medicineCount}
         renewal={renewal}
         onCancel={() => setOpenStep(null)}
         onRecord={(payload) => send(openStep, existing, payload)}
@@ -1225,6 +1231,50 @@ const useStockCount = (
   };
 };
 
+/**
+ * What a Step that counts the medicine is being told, as the store's count is: a box for each product, in doses, and
+ * why it differs — blank for a new count, what was counted before for a Correction — and the lines to send.
+ */
+const useMedicineCount = (
+  step: Step,
+  board: MedicineCountBoard | null | undefined
+) => {
+  const counts = step.effect?.kind === "medicine_count";
+  const before = board?.counted ?? [];
+  const [counted, setCounted] = useState<Typed>(() =>
+    Object.fromEntries(
+      before.map((line) => [line.drugProductId, String(line.counted)])
+    )
+  );
+  const [reasons, setReasons] = useState<Typed>(() =>
+    Object.fromEntries(
+      before.map((line) => [line.drugProductId, line.reason ?? ""])
+    )
+  );
+  const items = counts ? (board?.items ?? []) : [];
+  return {
+    items,
+    counted,
+    handleCounted: setCounted,
+    reasons,
+    handleReason: setReasons,
+    lines: (): MedicineCountEntry[] | undefined =>
+      counts
+        ? items.map((item) => ({
+            drugProductId: item.drugProductId,
+            counted: Number(counted[item.drugProductId]),
+            reason: reasons[item.drugProductId]?.trim() || undefined,
+          }))
+        : undefined,
+  };
+};
+
+/** What a Step that counts the medicine is handed: the products on the Drug List, and what it counted before. */
+interface MedicineCountBoard {
+  items: { drugProductId: string; nameBn: string }[];
+  counted: { drugProductId: string; counted: number; reason: string | null }[];
+}
+
 /** What a Step that counts the store is handed: the Feed Items, and what it counted before. */
 interface StockCountBoard {
   items: { feedItemId: string; nameBn: string; unit: string }[];
@@ -1348,65 +1398,85 @@ const RenewalFields = ({
 };
 
 /**
- * One box per Feed Item for what is really in the store, and one for why, if it is not what the farm
- * expects. The expected figure is never shown: a count that can see the answer copies it. The farm
- * refuses a difference without a reason, and says which.
+ * One box per thing counted for what is really there, and one for why, if it is not what the farm expects. The expected
+ * figure is never shown: a count that can see the answer copies it. The farm refuses a difference without a reason,
+ * and says which.
  */
-const StockCountFields = ({
+const CountFields = ({
   items,
   counted,
   reasons,
   onCounted,
   onReason,
 }: {
-  items: StockCountBoard["items"];
+  items: { id: string; name: string; unit: string }[];
   counted: Typed;
   reasons: Typed;
   onCounted: (next: (current: Typed) => Typed) => void;
   onReason: (next: (current: Typed) => Typed) => void;
 }) => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   return (
     <>
       {items.map((item) => (
-        <div className="surface flex flex-col gap-2 p-3" key={item.feedItemId}>
+        <div className="surface flex flex-col gap-2 p-3" key={item.id}>
           <p className="text-sm font-medium">
-            {item.nameBn}{" "}
+            {item.name}{" "}
             <span className="text-muted-foreground font-normal">
-              ({feedUnitWord(item.unit, language)})
+              ({item.unit})
             </span>
           </p>
           <div className="grid grid-cols-2 gap-2">
             <Input
-              aria-label={`${item.nameBn} ${t("work.counted")}`}
+              aria-label={`${item.name} ${t("work.counted")}`}
               className="h-14 text-lg md:h-12 md:text-lg"
               inputMode="decimal"
               onChange={(event) =>
                 onCounted((current) => ({
                   ...current,
-                  [item.feedItemId]: event.target.value,
+                  [item.id]: event.target.value,
                 }))
               }
               placeholder={t("work.counted")}
               type="number"
-              value={counted[item.feedItemId] ?? ""}
+              value={counted[item.id] ?? ""}
             />
             <Input
-              aria-label={`${item.nameBn} ${t("work.countReason")}`}
+              aria-label={`${item.name} ${t("work.countReason")}`}
               className="h-14 md:h-12"
               onChange={(event) =>
                 onReason((current) => ({
                   ...current,
-                  [item.feedItemId]: event.target.value,
+                  [item.id]: event.target.value,
                 }))
               }
               placeholder={t("work.countReason")}
-              value={reasons[item.feedItemId] ?? ""}
+              value={reasons[item.id] ?? ""}
             />
           </div>
         </div>
       ))}
     </>
+  );
+};
+
+/** The store's count: each Feed Item in its own unit. */
+const StockCountFields = ({
+  items,
+  ...boxes
+}: Omit<Parameters<typeof CountFields>[0], "items"> & {
+  items: StockCountBoard["items"];
+}) => {
+  const { language } = useLanguage();
+  return (
+    <CountFields
+      {...boxes}
+      items={items.map((item) => ({
+        id: item.feedItemId,
+        name: item.nameBn,
+        unit: feedUnitWord(item.unit, language),
+      }))}
+    />
   );
 };
 
@@ -1729,6 +1799,7 @@ const EvidenceSheet = ({
   existing,
   feeding,
   stockCount,
+  medicineCount,
   renewal,
   onCancel,
   onRecord,
@@ -1751,6 +1822,8 @@ const EvidenceSheet = ({
   } | null;
   /** What to count, for a Step that counts the store. */
   stockCount?: StockCountBoard | null;
+  /** What to count, in doses, for a Step that counts the medicine. */
+  medicineCount?: MedicineCountBoard | null;
   /** When the Registration runs out now, for the Step that renews it. */
   renewal?: { expiresOn: Date | null } | null;
   onCancel: () => void;
@@ -1792,6 +1865,7 @@ const EvidenceSheet = ({
     typedFrom(recorded.feeding, (line) => line.leftoverKg)
   );
   const count = useStockCount(step, stockCount);
+  const medicine = useMedicineCount(step, medicineCount);
   const renewing = useRenewal(step, renewal, correcting, recorded.renewal);
 
   const { rows: feedingRows, cannotFeed } = feedingState(feedsThePen, feeding);
@@ -1832,6 +1906,7 @@ const EvidenceSheet = ({
         ? whatWentOut(feedingRows, given, leftover)
         : undefined,
       counts: count.lines(),
+      medicineCounts: medicine.lines(),
       renewal: renewing.entry(),
       photos: Object.entries(photos).map(([slot, taken]) => ({
         slot: Number(slot),
@@ -1902,6 +1977,18 @@ const EvidenceSheet = ({
         onCounted={count.handleCounted}
         onReason={count.handleReason}
         reasons={count.reasons}
+      />
+
+      <CountFields
+        counted={medicine.counted}
+        items={medicine.items.map((item) => ({
+          id: item.drugProductId,
+          name: item.nameBn,
+          unit: t("drugs.doseWord"),
+        }))}
+        onCounted={medicine.handleCounted}
+        onReason={medicine.handleReason}
+        reasons={medicine.reasons}
       />
 
       <FeedingFields

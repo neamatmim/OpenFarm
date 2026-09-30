@@ -1,4 +1,6 @@
+import type { Database } from "@OpenFarm/db";
 import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
+import type { SopContent } from "@OpenFarm/domain";
 import {
   OPEN_INSTANCE_STATES,
   awaitsSignOff,
@@ -107,6 +109,64 @@ const loadCheckableInstance = async (
     });
   }
   return instance;
+};
+
+/**
+ * What a Playbook entry's work is handed to count, where it counts: every Feed Item the farm keeps, or every product on
+ * its Drug List — and what this work counted of them before, so a Correction starts from it. Nothing of what the farm
+ * thinks it holds: a count that can see the answer copies it.
+ */
+const countBoardsOf = async (
+  db: Pick<Database, "query">,
+  farmId: string,
+  content: SopContent,
+  completionIds: string[]
+) => {
+  // What to count, for a Playbook entry that counts the store: every Feed Item the farm keeps,
+  // and nothing about what the store is thought to hold — a count that can see the answer is a
+  // count that copies it. What this work already counted comes back, so a Correction starts
+  // from it.
+  const counts = content.steps.some(
+    (step) => step.effect?.kind === "stock_count"
+  );
+  const stockCount = counts
+    ? {
+        items: await db.query.feedItem.findMany({
+          where: { farmId, retiredAt: { isNull: true } },
+          columns: { id: true, nameBn: true, nameEn: true, unit: true },
+          orderBy: { nameBn: "asc", id: "asc" },
+        }),
+        counted: await db.query.stockCount.findMany({
+          where: {
+            farmId,
+            completionId: { in: completionIds },
+          },
+          columns: { feedItemId: true, counted: true, reason: true },
+        }),
+      }
+    : null;
+  // What to count, for a Playbook entry that counts the medicine: every product on the Drug List, in doses, and
+  // nothing about what the store is thought to hold — a blind count, as the feed's is.
+  const countsMedicine = content.steps.some(
+    (step) => step.effect?.kind === "medicine_count"
+  );
+  const medicineCount = countsMedicine
+    ? {
+        items: await db.query.drugProduct.findMany({
+          where: { farmId, retiredAt: { isNull: true } },
+          columns: { id: true, nameBn: true, nameEn: true },
+          orderBy: { nameBn: "asc", id: "asc" },
+        }),
+        counted: await db.query.medicineCount.findMany({
+          where: {
+            farmId,
+            completionId: { in: completionIds },
+          },
+          columns: { drugProductId: true, counted: true, reason: true },
+        }),
+      }
+    : null;
+  return { stockCount, medicineCount };
 };
 
 export const instancesRouter = {
@@ -309,31 +369,12 @@ export const instancesRouter = {
             },
           })
         : null;
-      // What to count, for a Playbook entry that counts the store: every Feed Item the farm keeps,
-      // and nothing about what the store is thought to hold — a count that can see the answer is a
-      // count that copies it. What this work already counted comes back, so a Correction starts
-      // from it.
-      const counts = content.steps.some(
-        (step) => step.effect?.kind === "stock_count"
+      const { stockCount, medicineCount } = await countBoardsOf(
+        context.db,
+        context.farm.id,
+        content,
+        instance.completions.map((completion) => completion.id)
       );
-      const stockCount = counts
-        ? {
-            items: await context.db.query.feedItem.findMany({
-              where: { farmId: context.farm.id, retiredAt: { isNull: true } },
-              columns: { id: true, nameBn: true, nameEn: true, unit: true },
-              orderBy: { nameBn: "asc", id: "asc" },
-            }),
-            counted: await context.db.query.stockCount.findMany({
-              where: {
-                farmId: context.farm.id,
-                completionId: {
-                  in: instance.completions.map((completion) => completion.id),
-                },
-              },
-              columns: { feedItemId: true, counted: true, reason: true },
-            }),
-          }
-        : null;
       // What the round saw, for the Manager's work on an unwell animal: the job is to answer it, so it says what it is.
       const unwellId = unwellThatRaised(instance.cause);
       const seen = unwellId
@@ -415,6 +456,13 @@ export const instancesRouter = {
             ...line,
             counted: Number(line.counted),
           })),
+        },
+        medicineCount: medicineCount && {
+          items: medicineCount.items.map(({ id, ...item }) => ({
+            drugProductId: id,
+            ...item,
+          })),
+          counted: medicineCount.counted,
         },
         // The gate the tile renders: the phone re-checks it offline from this, and the
         // server checks it again when the entry lands.

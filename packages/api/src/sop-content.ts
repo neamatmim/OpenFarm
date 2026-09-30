@@ -72,6 +72,7 @@ const trigger = z.discriminatedUnion("kind", [
     times: z.array(z.string().trim()),
     weekdays: z.array(z.number().int().min(0).max(6)).max(7).optional(),
     everyOtherWeek: z.boolean().optional(),
+    firstOfTheMonth: z.boolean().optional(),
   }),
   z.object({
     kind: z.literal("event"),

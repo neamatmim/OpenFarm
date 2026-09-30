@@ -137,6 +137,21 @@ const InStock = ({ product }: { product: DrugProduct }) => {
           <StatusBadge tone="warning">{t("drugs.runningLow")}</StatusBadge>
         ) : null}
       </span>
+      {/* What the monthly counts found against the book, where they found other than it: doses gone no Treatment says
+          went into an animal, or doses found. An answer kept from before the counts has none. */}
+      {stock.countedDifference ? (
+        <span
+          className={
+            stock.countedDifference < 0
+              ? "text-warning text-xs"
+              : "text-muted-foreground text-xs"
+          }
+        >
+          {t("drugs.countedDifference", {
+            doses: formatNumber(stock.countedDifference, language),
+          })}
+        </span>
+      ) : null}
     </span>
   );
 };

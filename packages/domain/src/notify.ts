@@ -112,6 +112,8 @@ export const DELIVERY = {
   // Animals still here after their Eid are the evening's news for the Owner and the Manager: the next market is a
   // decision, not a buzz.
   still_here_after_eid: { when: "digest" },
+  // Medicine the count did not find is the evening's question for the Owner, as a short store is.
+  medicine_short: { when: "digest" },
 } as const satisfies Record<AlertKind, Delivery>;
 
 /**
@@ -279,6 +281,10 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
   still_here_after_eid: {
     app: "alerts.stillHereAfterEid",
     digest: "digest.stillHereAfterEid",
+  },
+  medicine_short: {
+    app: "alerts.medicineShort",
+    digest: "digest.medicineShort",
   },
 };
 

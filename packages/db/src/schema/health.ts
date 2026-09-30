@@ -412,3 +412,42 @@ export const vetCase = pgTable(
       .where(sql`${table.closedAt} is null`),
   ]
 );
+
+/**
+ * One product of the Drug List as the monthly medicine count found it, in doses: what the store was thought to hold at
+ * that moment, what was really there, and — when they differ — why. The count wins: Stock on Hand reads the difference
+ * as doses gone or found. Written by the Step that counted, keyed on its Completion and the product, so a corrected
+ * count re-books its difference rather than adding another.
+ */
+export const medicineCount = pgTable(
+  "medicine_count",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    drugProductId: text("drug_product_id")
+      .notNull()
+      .references(() => drugProduct.id),
+    completionId: text("completion_id").notNull(),
+    countedAt: timestamp("counted_at").notNull(),
+    /** What the store was thought to hold just before this count, in doses. */
+    expected: integer("expected").notNull(),
+    counted: integer("counted").notNull(),
+    /** Why what was counted is not what was expected. Null when they match. */
+    reason: text("reason"),
+    countedBy: text("counted_by").references(() => user.id),
+    recordedAt: timestamp("recorded_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("medicine_count_line_uidx").on(
+      table.completionId,
+      table.drugProductId
+    ),
+    index("medicine_count_product_idx").on(
+      table.farmId,
+      table.drugProductId,
+      table.countedAt
+    ),
+  ]
+);

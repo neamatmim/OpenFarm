@@ -234,6 +234,11 @@ export const farm = pgTable("farm", {
   /** How far a weekly Cash Count may come up short before the Owner is told, in the evening's post: ৳1,000. The Owner's
    *  alone, as the person counted should not set the line that checks them (the Owner, 2026-09-30). */
   cashShortTellBdt: integer("cash_short_tell_bdt").notNull().default(1000),
+  /** How far the monthly medicine count may come up short, priced at what each dose cost, before the Owner is told in
+   *  the evening's post: ৳1,000. The Owner's alone, as the Manager both buys the medicine and counts it. */
+  medicineShortTellBdt: integer("medicine_short_tell_bdt")
+    .notNull()
+    .default(1000),
   /** The **Default Withdrawal Days**: how long a dose given without a Prescription holds her milk and her meat when its
    *  product has no days on the Drug List yet. The Vet's alone, as every withdrawal day is; nothing until the Vet writes
    *  them, and until then such a dose is refused (the Owner, 2026-09-30). */

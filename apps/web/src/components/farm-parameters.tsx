@@ -68,6 +68,7 @@ type NumberKey =
   | "feedPriceJumpPercent"
   | "feedDaysLow"
   | "cashShortTellBdt"
+  | "medicineShortTellBdt"
   | "ventureFloorPercent"
   | "ventureRunningPercent"
   | "ventureInvestorsPercent"
@@ -359,6 +360,21 @@ const GROUPS: {
       {
         key: "cashShortTellBdt",
         label: "params.cashShortTellBdt",
+        unit: "params.taka",
+        min: 0,
+        max: 1_000_000,
+      },
+    ],
+  },
+  {
+    id: "params-medicine-short",
+    title: "params.medicineShort",
+    hint: "params.medicineShortHint",
+    owner: true,
+    fields: [
+      {
+        key: "medicineShortTellBdt",
+        label: "params.medicineShortTellBdt",
         unit: "params.taka",
         min: 0,
         max: 1_000_000,

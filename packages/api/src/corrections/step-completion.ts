@@ -82,6 +82,15 @@ const answerShown = z
         })
       )
       .optional(),
+    medicineCounts: z
+      .array(
+        z.object({
+          drugProductId: z.string(),
+          counted: z.number(),
+          reason: z.string().optional(),
+        })
+      )
+      .optional(),
     renewal: z.object({ expiresOn: z.string() }).optional(),
   })
   // In the farm's order and rounding, as the facts it holds are shown: a phone that recorded it offline holds the lines
@@ -101,6 +110,7 @@ export const stepCorrectionInput = correctionInput({
       skipReason: true,
       feeding: true,
       counts: true,
+      medicineCounts: true,
       renewal: true,
     }),
     answerShown
@@ -213,6 +223,7 @@ export const stepCorrection: CorrectionKind<
       ...factsAsShown({
         feeding: to.feeding ?? holds.feeding,
         counts: to.counts ?? holds.counts,
+        medicineCounts: to.medicineCounts ?? holds.medicineCounts,
         renewal: to.renewal ?? holds.renewal,
       }),
     }),
@@ -248,6 +259,7 @@ export const stepCorrection: CorrectionKind<
         ...answer,
         feeding: answer.feeding ?? facts.feeding,
         counts: answer.counts ?? facts.counts,
+        medicineCounts: answer.medicineCounts ?? facts.medicineCounts,
         renewal: answer.renewal ?? facts.renewal,
       },
       hasPhotoAt: (slot) => photos.some((photo) => photo.slot === slot),

@@ -177,6 +177,11 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
     entity: "step_completion",
   },
   // The Owner asks the Manager tomorrow whether it was two bills; about the second entry, told once.
+  // The Owner asks the Manager, who both buys the medicine and counts it; about the count, told once.
+  medicine_short: {
+    audience: [theOwner],
+    entity: "step_completion",
+  },
   // The next market is the Owner's and the Manager's to choose; about the Eid, so it is told once.
   still_here_after_eid: {
     audience: [theOwner, theManagers],

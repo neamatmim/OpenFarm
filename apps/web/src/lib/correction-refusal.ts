@@ -82,6 +82,7 @@ const WORDED_REFUSALS = {
   check_without_a_service: "refusal.checkWithoutAService",
   correct_the_record: "refusal.correctTheRecord",
   count_incomplete: "refusal.countIncomplete",
+  medicine_count_incomplete: "refusal.medicineCountIncomplete",
   difference_needs_reason: "refusal.differenceNeedsReason",
   dispatched_in_the_future: "refusal.dispatchedInTheFuture",
   disposal_already_recorded: "refusal.disposalAlreadyRecorded",

@@ -631,6 +631,46 @@ const stockCount = (): SopContent => ({
 });
 
 /**
+ * The monthly medicine count: every product on the Drug List counted in doses, blind — the phone does not say how many
+ * the farm thinks there are — on the first Friday of the month, by the Manager who buys it, signed off by the Owner.
+ * A shortfall is doses gone that no Treatment says went into an animal: a pharmacy dose nobody wrote, a spill, a
+ * theft (the Owner, 2026-09-30).
+ */
+const medicineCount = (): SopContent => ({
+  name: { bn: "মাসিক ওষুধ গণনা", en: "Monthly medicine count" },
+  purpose: {
+    bn: "প্রতিটি ওষুধ কত ডোজ আসলে আছে গুনে লিখুন, হিসাবের সাথে না মিললে কারণ লিখুন",
+    en: "Count how many doses of each medicine are really there, and give a reason where it differs from the book",
+  },
+  // The first Friday of each month, after the feed count: one store of medicine, however many Pens.
+  triggers: [
+    {
+      kind: "schedule",
+      times: ["10:00"],
+      weekdays: [5],
+      firstOfTheMonth: true,
+    },
+  ],
+  wholeFarm: true,
+  assignedRole: "manager",
+  checkerRole: "owner",
+  graceMinutes: 24 * 60,
+  steps: [
+    {
+      id: "count",
+      text: {
+        bn: "প্রতিটি ওষুধের ডোজ গুনুন",
+        en: "Count the doses of every medicine",
+      },
+      repeatPerAnimal: false,
+      evidence: [{ type: "tick", required: true }],
+      skipReasons: [],
+      effect: { kind: "medicine_count" },
+    },
+  ],
+});
+
+/**
  * The evening Head Count: each Pen counted at lock-up by the number standing in it, blind — the phone does not say how
  * many the register expects — and set against the animals the register puts there at that moment. Theft is at night,
  * and the count at lock-up and the 08:00 round bracket it (the Owner, 2026-09-29). Barn Staff count; a difference goes
@@ -1558,6 +1598,7 @@ export type PlaybookKey =
   | "burial"
   | "dlsReport"
   | "stockCount"
+  | "medicineCount"
   | "headCount"
   | "cashCount"
   | "biosecurity"
@@ -1670,6 +1711,7 @@ export const standardPlaybook = (
   burial: burial(),
   dlsReport: dlsReport(),
   stockCount: stockCount(),
+  medicineCount: medicineCount(),
   headCount: headCount(),
   cashCount: cashCount(),
   biosecurity: biosecurity(),
