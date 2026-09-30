@@ -17,6 +17,7 @@ import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
 import { SaleCorrection } from "@/components/sale-correction";
 import { useSalePapers } from "@/components/sale/sale-papers";
+import { useShrinkWords } from "@/components/sale/shrink-words";
 import { useLanguage } from "@/i18n/language-provider";
 import type { orpc } from "@/utils/orpc";
 
@@ -105,12 +106,23 @@ const BuyerCell = ({ row }: SoldCell) => (
   </span>
 );
 
+/** What she weighed at the sale, and what she had lost since her last weighing on the farm beneath. */
 const WeightCell = ({ row }: SoldCell) => {
   const { t, language } = useLanguage();
+  const shrinkWords = useShrinkWords();
+  // An answer kept from before shrink was worked out has none.
+  const shrink = row.original.shrink ?? null;
   return (
-    <span className="whitespace-nowrap">
-      {t("intake.kg", { kg: formatNumber(row.original.weightKg, language) })}
-    </span>
+    <div className="flex flex-col items-end">
+      <span className="whitespace-nowrap">
+        {t("intake.kg", { kg: formatNumber(row.original.weightKg, language) })}
+      </span>
+      {shrink ? (
+        <span className="text-muted-foreground text-xs">
+          {shrinkWords(shrink)}
+        </span>
+      ) : null}
+    </div>
   );
 };
 
@@ -189,6 +201,8 @@ const soldColumns = column.columns([
  *  beneath, and a Correction and the papers at the side. */
 const SoldCard = ({ row }: { row: SoldRow }) => {
   const { t, language } = useLanguage();
+  const shrinkWords = useShrinkWords();
+  const shrink = row.shrink ?? null;
   return (
     <div className="flex items-start justify-between gap-3">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -210,8 +224,11 @@ const SoldCard = ({ row }: { row: SoldRow }) => {
           {[
             row.buyerName,
             t("intake.kg", { kg: formatNumber(row.weightKg, language) }),
+            shrink ? shrinkWords(shrink) : null,
             row.vehicle,
-          ].join(" · ")}
+          ]
+            .filter(Boolean)
+            .join(" · ")}
         </span>
       </div>
       <SaleActions papers={row.papers} sale={row} />

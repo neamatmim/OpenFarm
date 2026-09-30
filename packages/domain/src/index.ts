@@ -331,6 +331,8 @@ export {
   unitPriceOf,
 } from "./feed";
 export type { ListedDisease } from "./disease-names";
+export type { Shrink } from "./shrink";
+export { SHRINK_STALE_DAYS, shrinkOf, shrinkOfMany } from "./shrink";
 export { diseaseWord, namesTheDisease } from "./disease-names";
 export type { IllAgain } from "./health";
 export type {

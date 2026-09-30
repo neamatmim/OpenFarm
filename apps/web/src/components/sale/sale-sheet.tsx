@@ -1,5 +1,5 @@
 import type { PaymentMethod } from "@OpenFarm/domain";
-import { underMeatWithdrawal } from "@OpenFarm/domain";
+import { shrinkOf, underMeatWithdrawal } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -15,6 +15,7 @@ import { fitOnFrom } from "@/components/fattening/fattening-types";
 import { Notice, SECTION_TITLE } from "@/components/page";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
+import { useShrinkWords } from "@/components/sale/shrink-words";
 import { SearchablePicker } from "@/components/searchable-picker";
 import { useLanguage } from "@/i18n/language-provider";
 import type { BakiTyped } from "@/lib/baki";
@@ -290,6 +291,32 @@ const isReady = (answers: SaleAnswers) =>
   answers.driver.trim() !== "" &&
   bakiComplete(answers.baki, Number(answers.priceBdt), true);
 
+/** What she last weighed and when, and — once the day's weight is typed — the Shrink since. */
+const useLastWeighedWords = (
+  last: { kg: number; at: Date | string } | null,
+  todayKg: number
+): string | undefined => {
+  const { t, language } = useLanguage();
+  const shrinkWords = useShrinkWords();
+  if (!last) {
+    return undefined;
+  }
+  const weighed = t("sale.lastWeighedOn", {
+    kg: formatNumber(last.kg, language),
+    day: formatDate(new Date(last.at), language, "date"),
+  });
+  const shrink =
+    todayKg > 0
+      ? shrinkOf({
+          lastKg: last.kg,
+          lastAt: new Date(last.at),
+          saleKg: todayKg,
+          saleAt: new Date(),
+        })
+      : null;
+  return shrink ? `${weighed} · ${shrinkWords(shrink)}` : weighed;
+};
+
 /**
  * Selling an animal, on Eid morning, on a phone, in a sheet beside the day's sales.
  *
@@ -311,18 +338,20 @@ export const SaleSheet = ({
 }) => {
   const { t, language } = useLanguage();
   const refused = useRefused();
-  const sellable = useQuery(orpc.sale.sellable.queryOptions());
   const edit = (patch: Partial<SaleAnswers>) =>
     onAnswers({ ...answers, ...patch });
   // What the chosen animal last weighed, beside the box for what she weighs today: a figure to check the scale
-  // against, never typed in for it — the price is struck on the day's weight.
-  const chosen = sellable.data?.find(
-    (row) => row.tagNumber === answers.tagNumber
+  // against, never typed in for it — the price is struck on the day's weight. Any animal by her tag, a cull too, and
+  // what she has lost since, as soon as the day's weight is typed.
+  const tagTyped = answers.tagNumber.trim();
+  const last = useQuery({
+    ...orpc.sale.lastWeighed.queryOptions({ input: { tagNumber: tagTyped } }),
+    enabled: open && tagTyped !== "",
+  });
+  const lastWeighed = useLastWeighedWords(
+    last.data ?? null,
+    Number(answers.weightKg)
   );
-  const lastWeighed =
-    chosen && chosen.latestKg !== null
-      ? t("sale.lastWeighed", { kg: formatNumber(chosen.latestKg, language) })
-      : undefined;
 
   const record = useMutation(
     orpc.sale.record.mutationOptions({

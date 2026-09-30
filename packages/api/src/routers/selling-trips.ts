@@ -1,6 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { sellingTripAnimal } from "@OpenFarm/db/schema/fattening";
 import { sellingTrip } from "@OpenFarm/db/schema/trip";
+import { shrinkOfMany } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -14,6 +15,7 @@ import { protectedProcedure } from "../index";
 import { paymentMethodInput } from "../money-inputs";
 import { bookingOf } from "../money-store";
 import { requireRole } from "../roles";
+import { shrinkOfSales } from "../shrink-store";
 import {
   bookSellingTripMoney,
   readSellingTrip,
@@ -49,8 +51,25 @@ export const sellingTripsRouter = {
       });
       const taken = await context.db.query.sellingTripAnimal.findMany({
         where: { sellingTripId: { in: rows.map((one) => one.id) } },
-        columns: { sellingTripId: true },
+        columns: { sellingTripId: true, animalId: true },
       });
+      // What those sold off each lorry lost between their last weighing and the sale's scale.
+      const sold = await context.db.query.sale.findMany({
+        where: {
+          farmId: context.farm.id,
+          animalId: { in: taken.map((one) => one.animalId) },
+        },
+        columns: { animalId: true, weightKg: true, soldAt: true },
+      });
+      const shrink = await shrinkOfSales(
+        context.db,
+        context.farm.id,
+        sold.map((one) => ({
+          animalId: one.animalId,
+          weightKg: Number(one.weightKg),
+          soldAt: one.soldAt,
+        }))
+      );
       const carried = new Map<string, number>();
       for (const one of taken) {
         carried.set(
@@ -64,6 +83,12 @@ export const sellingTripsRouter = {
         wentOn: one.wentOn,
         costBdt: tripCostOf(one),
         animals: carried.get(one.id) ?? 0,
+        /** The weight those sold off it lost, together; nothing where none had both weights. */
+        shrink: shrinkOfMany(
+          taken
+            .filter((beast) => beast.sellingTripId === one.id)
+            .map((beast) => shrink.get(beast.animalId) ?? null)
+        ),
       }));
     }),
 

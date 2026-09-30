@@ -32,6 +32,7 @@ import {
 import { languageOf } from "../reader-language";
 import { requireRole } from "../roles";
 import { requireLookUp } from "../scope";
+import { shrinkOfSales } from "../shrink-store";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -306,6 +307,7 @@ export const papersRouter = {
         limit: LOAD_LIMIT,
         columns: {
           id: true,
+          animalId: true,
           priceBdt: true,
           bakiBdt: true,
           brokerBdt: true,
@@ -326,8 +328,19 @@ export const papersRouter = {
         context.farm.id,
         rows.filter((one) => one.bakiBdt > 0).map((one) => one.id)
       );
-      return rows.map(({ animal: beast, buyer, ...row }) => ({
+      // What each lost between her last weighing on the farm and the sale's scale.
+      const shrink = await shrinkOfSales(
+        context.db,
+        context.farm.id,
+        rows.map((one) => ({
+          animalId: one.animalId,
+          weightKg: Number(one.weightKg),
+          soldAt: one.soldAt,
+        }))
+      );
+      return rows.map(({ animal: beast, buyer, animalId, ...row }) => ({
         ...row,
+        shrink: shrink.get(animalId) ?? null,
         owingBdt: owing.get(row.id) ?? 0,
         priceBdt: row.priceBdt,
         weightKg: Number(row.weightKg),

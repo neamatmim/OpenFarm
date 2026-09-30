@@ -30,6 +30,7 @@ const loadSale = (tx: Tx, farmId: string, id: string) =>
       bakiBdt: true,
       brokerBdt: true,
       promisedBy: true,
+      weightKg: true,
       soldAt: true,
       recordedBy: true,
       createdAt: true,
@@ -37,8 +38,8 @@ const loadSale = (tx: Tx, farmId: string, id: string) =>
     with: { buyer: { columns: { name: true } } },
   });
 
-/** What a Sale's Correction may change: what she fetched, who bought her, how he paid, what he paid there and then,
- *  the day he promised to pay the rest by, and what the broker took. */
+/** What a Sale's Correction may change: what she fetched, what she weighed on the day, who bought her, how he paid,
+ *  what he paid there and then, the day he promised to pay the rest by, and what the broker took. */
 export const saleCorrectionInput = correctionInput({
   priceBdt: changeOf(salePriceInput, z.number()),
   buyer: changeOf(buyerInput, z.string()),
@@ -46,6 +47,7 @@ export const saleCorrectionInput = correctionInput({
   paidNowBdt: changeOf(paidNowInput, z.number()),
   promisedBy: changeOf(promisedByInput.nullable(), z.string().nullable()),
   brokerBdt: changeOf(brokerInput, z.number()),
+  weightKg: changeOf(z.number().positive().max(2000), z.number()),
 });
 
 /**
@@ -75,6 +77,7 @@ export const saleCorrection: CorrectionKind<
     paidNowBdt: paidAtTheGate(row.priceBdt, row.bakiBdt),
     promisedBy: row.promisedBy,
     brokerBdt: row.brokerBdt,
+    weightKg: Number(row.weightKg),
   }),
   shownAs: { buyer: (to) => to.name },
   trail: (tx, row) => readSale(tx, row.id),
@@ -99,6 +102,9 @@ export const saleCorrection: CorrectionKind<
     const putRight = {
       ...(to.priceBdt === undefined ? {} : { priceBdt: to.priceBdt }),
       ...(to.brokerBdt === undefined ? {} : { brokerBdt: to.brokerBdt }),
+      ...(to.weightKg === undefined
+        ? {}
+        : { weightKg: to.weightKg.toFixed(2) }),
       ...(bakiMoved ? baki : {}),
       ...(to.buyer === undefined
         ? {}
@@ -122,8 +128,13 @@ export const saleCorrection: CorrectionKind<
       row.id,
       to.paymentMethod
     );
-    // A price put right, or a broker's fee, may take her under her cost; told once about the Sale, as when it was made.
-    if (to.priceBdt !== undefined || to.brokerBdt !== undefined) {
+    // A price, a broker's fee or her weight put right may take her under her cost or the market; told once about the
+    // Sale, as when it was made.
+    const worthMoved =
+      to.priceBdt !== undefined ||
+      to.brokerBdt !== undefined ||
+      to.weightKg !== undefined;
+    if (worthMoved) {
       await tellIfSoldUnderCost(tx, row.farmId, row.id, now);
     }
   },

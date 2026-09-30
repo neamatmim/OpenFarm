@@ -2957,6 +2957,7 @@ export const en = {
   "selling.recordTrip": "Record the outing",
   "selling.tripRecorded": "The outing is written up",
   "selling.pastTrips": "Outings lately",
+  "selling.shrink": "Those sold lost {percent}% on the way ({kg} kg)",
   "selling.tookAnimals": "{count} taken",
   "selling.chosen":
     "{count, plural, one {# animal chosen} other {# animals chosen}}",
@@ -4466,7 +4467,12 @@ export const en = {
   "sale.soldTo": "Buyer",
   "sale.sheetDescription":
     "Who took her, for how much, and the lorry she went on. The price goes to the money register.",
-  "sale.lastWeighed": "Last weighed {kg} kg",
+  "sale.lastWeighedOn": "Last weighed {kg} kg on {day}",
+  "sale.shrinkLost": "{kg} kg lighter today ({percent}%)",
+  "sale.shrinkGained":
+    "{kg} kg heavier than her last weighing: check the scale",
+  "sale.shrinkStale":
+    "(that weighing was {days, plural, one {# day} other {# days}} before)",
   /** Baki at the gate: a buyer who paid part of it, or none, now. */
   "calves.title": "Calves in the last 12 months",
   "calves.hint":
