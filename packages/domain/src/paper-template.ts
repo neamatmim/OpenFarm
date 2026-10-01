@@ -491,7 +491,13 @@ export type PaperSection =
     }
   | { kind: "facts"; heading: Said; rows: DocumentRow[]; note: Said | null }
   | { kind: "clauses"; heading: Said; clauses: Said[] }
-  | { kind: "stamp"; heading: Said; blanks: Said[] }
+  | {
+      kind: "stamp";
+      heading: Said;
+      blanks: Said[];
+      /** What each blank says on a paper already stamped — a copy of a signed Agreement — in the blanks' order. */
+      filled?: string[];
+    }
   | {
       kind: "signatures";
       heading: Said;
@@ -512,6 +518,9 @@ export interface PaperDocument {
   /** What a paper about an Investor's money ends on: no return is promised. Nothing on the others. */
   closing: readonly string[];
   produced: string;
+  /** On a copy of a paper already signed: that it is a copy and not the original, and which signed paper it copies —
+   *  printed on it so a copy can never be mistaken for, or signed again as, a second original. */
+  copyOf?: string;
 }
 
 const row = (bn: string, en: string, value: string | null | undefined) =>

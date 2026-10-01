@@ -1385,6 +1385,29 @@ export const venturesRouter = {
       };
     }),
 
+  /**
+   * The photo of an Agreement's stamped paper as the farm kept it — the signed original, to look at or print again
+   * whenever it is needed. Nothing for one the farm has not photographed yet. The Owner's alone, as keeping it is.
+   */
+  agreementPaper: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ agreementId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const row = await context.db.query.investmentAgreement.findFirst({
+        where: { id: input.agreementId, farmId: context.farm.id },
+        columns: { id: true },
+      });
+      if (!row) {
+        throw new ORPCError("NOT_FOUND", { message: "No such Agreement" });
+      }
+      const paper = await context.db.query.agreementPaper.findFirst({
+        where: { agreementId: row.id, farmId: context.farm.id },
+        columns: { contentType: true, data: true, updatedAt: true },
+      });
+      return paper ?? null;
+    }),
+
   /** The photo of the stamped paper, kept against its Agreement. Replacing it replaces the one photo. */
   keepAgreementPaper: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))

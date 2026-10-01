@@ -3,7 +3,14 @@ import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
-import { Banknote, FileText, PenLine, Users } from "lucide-react";
+import {
+  Banknote,
+  Copy,
+  FileText,
+  ImageIcon,
+  PenLine,
+  Users,
+} from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -20,6 +27,7 @@ import { RowMenu } from "@/components/page-kit";
 import { AgreementPaperButton } from "@/components/ventures/agreement-paper";
 import type { StatementKind } from "@/components/ventures/investor-papers";
 import {
+  AgreementAgain,
   PAPER_KINDS,
   ProducedPaper,
   useInvestorPapers,
@@ -71,20 +79,24 @@ const paidAgainst = (
   return paid;
 };
 
-/** One Investor's three papers, in a menu on his row: each offered only once it can be made, and saying why not
- *  until then — the joining letter and the progress statement once capital has come in, the settlement statement
- *  once the Settlement is approved. */
+/** One Investor's papers, in a menu on his row: his three statements, each offered only once it can be made and saying
+ *  why not until then — the joining letter and the progress statement once capital has come in, the settlement
+ *  statement once the Settlement is approved — and the Agreement itself again: a marked copy to print, and the photo of
+ *  the stamped original once the farm has kept one. */
 export const PapersMenu = ({
   name,
   agreementId,
   hasPaid,
   settled,
+  hasPhoto,
   papers,
 }: {
   name: string;
   agreementId: string;
   hasPaid: boolean;
   settled: boolean;
+  /** Whether the farm holds the photo of the stamped paper. */
+  hasPhoto: boolean;
   papers: ReturnType<typeof useInvestorPapers>;
 }) => {
   const { t } = useLanguage();
@@ -96,16 +108,31 @@ export const PapersMenu = ({
   };
   return (
     <RowMenu
-      actions={PAPER_KINDS.map(({ kind, label, icon }) => {
-        const why = whyNot(kind);
-        return {
-          label: t(label),
-          icon,
-          disabled: papers.busy || why !== null,
-          hint: why ? t(why) : undefined,
-          handleSelect: () => papers.ask(kind, agreementId),
-        };
-      })}
+      actions={[
+        ...PAPER_KINDS.map(({ kind, label, icon }) => {
+          const why = whyNot(kind);
+          return {
+            label: t(label),
+            icon,
+            disabled: papers.busy || why !== null,
+            hint: why ? t(why) : undefined,
+            handleSelect: () => papers.ask(kind, agreementId),
+          };
+        }),
+        {
+          label: t("statements.agreementCopy"),
+          icon: Copy,
+          disabled: papers.busy,
+          handleSelect: () => papers.askCopy(agreementId),
+        },
+        {
+          label: t("statements.signedPaper"),
+          icon: ImageIcon,
+          disabled: papers.busy || !hasPhoto,
+          hint: hasPhoto ? undefined : t("statements.noPaperPhoto"),
+          handleSelect: () => papers.askPhoto(agreementId),
+        },
+      ]}
       label={t("statements.for", { name })}
       named={{ text: t("statements.title"), icon: FileText }}
     />
@@ -240,6 +267,7 @@ const RowActions = ({
         <PapersMenu
           agreementId={row.id}
           hasPaid={row.paidBdt > 0}
+          hasPhoto={row.hasPaper}
           name={row.name}
           papers={row.papers}
           settled={row.settled}
@@ -513,6 +541,7 @@ export const VentureInvestors = ({
           <ProducedPaper produced={papers.produced} />
         </div>
       ) : null}
+      <AgreementAgain papers={papers} />
     </Section>
   );
 };

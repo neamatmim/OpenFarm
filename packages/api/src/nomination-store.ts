@@ -206,3 +206,17 @@ export const paperNominees = (
     ...one,
     minor: one.bornOn ? isMinorOn(one.bornOn, onDay) : false,
   }));
+
+/** The Nomination an Agreement made when it was signed — the Nominees it names, as it named them — or null for one
+ *  signed before Agreements named any. */
+export const nominationSignedWith = async (
+  db: Reader,
+  farmId: string,
+  agreementId: string
+): Promise<NominationOnFile | null> => {
+  const row = await db.query.nomination.findFirst({
+    where: { farmId, agreementId },
+    with: WITH_NOMINEES,
+  });
+  return row ? onFile(row) : null;
+};

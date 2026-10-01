@@ -16,6 +16,7 @@ import { Nothing, SaidDate } from "@/components/list-cells";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
 import { usePortalPlaces } from "@/components/portal/portal-source";
 import {
+  AgreementAgain,
   useInvestorPapers,
   ProducedPaper,
 } from "@/components/ventures/investor-papers";
@@ -221,6 +222,7 @@ const PapersCell = ({ row }: AgreementCell) =>
     <PapersMenu
       agreementId={row.original.id}
       hasPaid={row.original.capitalHeldBdt > 0}
+      hasPhoto={row.original.hasPaper}
       name={row.original.investorName}
       papers={row.original.papers}
       settled={row.original.settlement !== null}
@@ -361,6 +363,7 @@ export const InvestorAgreements = ({
         />
       )}
       {papers.produced ? <ProducedPaper produced={papers.produced} /> : null}
+      <AgreementAgain papers={papers} />
     </Section>
   );
 };

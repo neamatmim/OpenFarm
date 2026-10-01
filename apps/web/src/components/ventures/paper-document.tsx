@@ -10,6 +10,8 @@ import { formatDigits } from "@OpenFarm/i18n";
 import type { ReactNode } from "react";
 import { Fragment } from "react";
 
+import { useLanguage } from "@/i18n/language-provider";
+
 /** The id a paper is found by to print it alone (lib/print-alone). */
 export const PAPER_DOCUMENT_ID = "paper-document";
 
@@ -78,9 +80,12 @@ const Rows = ({ rows }: { rows: DocumentRow[] }) => (
 );
 
 /** A line to write on, with what goes on it beneath. */
-const Blank = ({ said }: { said: Said }) => (
+const Blank = ({ said, value }: { said: Said; value?: string }) => (
   <div className="flex flex-col gap-1">
-    <div className="border-foreground/70 h-7 border-b" />
+    {/* What was written on it, where the paper is a copy of one already filled in. */}
+    <div className="border-foreground/70 flex h-7 items-end border-b pb-0.5 text-sm font-medium">
+      {value}
+    </div>
     <span className="text-muted-foreground text-xs">
       {said.bn}
       {said.en ? ` / ${said.en}` : ""}
@@ -226,8 +231,8 @@ const SectionBody = ({ section }: { section: PaperSection }) => {
     case "stamp": {
       return (
         <div className="grid grid-cols-3 gap-4 rounded-md border border-dashed p-4">
-          {section.blanks.map((blank) => (
-            <Blank key={blank.en} said={blank} />
+          {section.blanks.map((blank, at) => (
+            <Blank key={blank.en} said={blank} value={section.filled?.[at]} />
           ))}
         </div>
       );
@@ -286,6 +291,24 @@ export const Letterhead = ({
 );
 
 /**
+ * "Copy" across the page, faint, behind the words: on screen once across the paper, and on every printed sheet — fixed in
+ * print, which a browser repeats on each page — so no one sheet of a copy reads as an original on its own.
+ */
+const CopyWatermark = () => {
+  const { t } = useLanguage();
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 grid place-items-center overflow-hidden print:fixed"
+    >
+      <span className="text-foreground/10 -rotate-30 text-7xl font-bold tracking-widest whitespace-nowrap select-none">
+        {t("statements.copyMark")}
+      </span>
+    </div>
+  );
+};
+
+/**
  * A paper an Investor signs, set as a document: the farm's letterhead, the title, the opening, each part numbered in
  * the order the wording puts them, and the closing lines. Everything it says comes from the farm's wording and its
  * facts, in both languages; this only lays it out, on screen and on A4.
@@ -296,9 +319,10 @@ export const PaperDocumentView = ({
   document: PaperDocument;
 }) => (
   <article
-    className="bg-card text-card-foreground mx-auto flex w-full max-w-[210mm] flex-col gap-6 rounded-lg border p-6 md:p-10"
+    className="bg-card text-card-foreground relative mx-auto flex w-full max-w-[210mm] flex-col gap-6 rounded-lg border p-6 md:p-10"
     id={PAPER_DOCUMENT_ID}
   >
+    {document.copyOf ? <CopyWatermark /> : null}
     <Letterhead letterhead={document.letterhead} />
 
     <div className="flex flex-col items-center gap-1 text-center">
@@ -311,6 +335,13 @@ export const PaperDocumentView = ({
         </p>
       ) : null}
     </div>
+
+    {/* A copy of a paper already signed says so before anything else, in words a reader cannot miss. */}
+    {document.copyOf ? (
+      <p className="border-foreground rounded-md border-2 border-dashed px-3 py-2 text-center text-sm font-semibold">
+        {document.copyOf}
+      </p>
+    ) : null}
 
     <p className="text-sm">
       <Passage said={document.preamble} />
@@ -327,6 +358,9 @@ export const PaperDocumentView = ({
     ))}
 
     <footer className="text-muted-foreground flex flex-col gap-0.5 border-t pt-3 text-xs">
+      {document.copyOf ? (
+        <p className="text-foreground font-semibold">{document.copyOf}</p>
+      ) : null}
       {document.closing.map((line) => (
         <p key={line}>{line}</p>
       ))}
