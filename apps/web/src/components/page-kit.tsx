@@ -35,7 +35,7 @@ import { cn } from "@OpenFarm/ui/lib/utils";
 import type { LucideIcon } from "lucide-react";
 import { ChevronDown, EllipsisVertical } from "lucide-react";
 import type { ComponentProps, FormEvent, ReactNode } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { Tone } from "@/components/page";
 import { StatTile } from "@/components/page";
@@ -477,6 +477,13 @@ export const RowMenu = ({
   );
 };
 
+/** What a form still needs, said when its act is pressed too soon: the words, and the field they are about. */
+export interface StillMissing {
+  said: string;
+  /** The id of the field to go to. */
+  at?: string;
+}
+
 interface FormPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -487,6 +494,11 @@ interface FormPanelProps {
   onSubmit: () => void;
   /** Whether everything the form needs has been given. */
   ready: boolean;
+  /**
+   * What is still missing, for a form long enough that a grey button leaves its reason out of sight. Given — even as
+   * nothing — the act stays pressable: pressed too soon, it says what is missing at its foot and goes to the field.
+   */
+  missing?: StillMissing | null;
   pending: boolean;
   children: ReactNode;
 }
@@ -515,11 +527,40 @@ export const FormSheet = ({
   submitLabel,
   onSubmit,
   ready,
+  missing,
   pending,
   children,
   wide = false,
 }: FormPanelProps & { wide?: boolean }) => {
   const { t } = useLanguage();
+  // A form that says what it is missing keeps its act pressable; one that does not stands grey until it is ready.
+  const saysWhy = missing !== undefined;
+  // Pressed too soon at least once since it opened: from then on what is missing is said, and changes as it is given.
+  const [asked, setAsked] = useState(false);
+  // Closed, it forgets: opened again, it says nothing until pressed too soon again.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (!open) {
+      setAsked(false);
+    }
+  }
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (ready) {
+      onSubmit();
+      return;
+    }
+    if (!saysWhy) {
+      return;
+    }
+    setAsked(true);
+    const field = missing?.at
+      ? document.querySelector<HTMLElement>(`#${CSS.escape(missing.at)}`)
+      : null;
+    field?.scrollIntoView({ behavior: "smooth", block: "center" });
+    field?.focus({ preventScroll: true });
+  };
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetContent
@@ -537,14 +578,16 @@ export const FormSheet = ({
             <SheetDescription>{description}</SheetDescription>
           ) : null}
         </SheetHeader>
-        <form
-          className="flex min-h-0 flex-1 flex-col"
-          onSubmit={submitted(ready, onSubmit)}
-        >
+        <form className="flex min-h-0 flex-1 flex-col" onSubmit={submit}>
           <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-4">
             {children}
           </div>
-          <SheetFooter className="flex-row justify-end border-t">
+          <SheetFooter className="flex-row flex-wrap items-center justify-end border-t">
+            {asked && missing ? (
+              <p className="text-warning me-auto text-sm" role="alert">
+                {missing.said}
+              </p>
+            ) : null}
             <Button
               onClick={() => onOpenChange(false)}
               type="button"
@@ -552,7 +595,7 @@ export const FormSheet = ({
             >
               {t("common.cancel")}
             </Button>
-            <Button disabled={!ready || pending} type="submit">
+            <Button disabled={pending || (!ready && !saysWhy)} type="submit">
               {pending ? <Spinner /> : null}
               {submitLabel}
             </Button>

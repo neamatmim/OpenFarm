@@ -1,4 +1,4 @@
-import type { PaperDocument } from "@OpenFarm/domain";
+import type { NomineesProblem, PaperDocument } from "@OpenFarm/domain";
 import { farmDayOf, isLiveRequest } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
@@ -17,6 +17,7 @@ import {
 } from "@/components/investors/nominee-draft";
 import { NomineesForm } from "@/components/investors/nominees-form";
 import { SegmentedControl } from "@/components/page";
+import type { StillMissing } from "@/components/page-kit";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { PhotoField } from "@/components/photo-field";
 import type { WordingSaid } from "@/components/ventures/paper-dialog";
@@ -110,6 +111,91 @@ const fitToSign = (
   Number(terms.stampValueBdt) > 0 &&
   terms.stampedOn !== "" &&
   terms.stampSerial.trim() !== "";
+
+/** The field of a Nominee's row each of the farm's objections is about. */
+const NOMINEE_FIELD: Record<NomineesProblem["code"], string> = {
+  too_many: "name",
+  name_missing: "name",
+  born_missing: "born",
+  born_in_future: "born",
+  shares_not_whole: "share",
+  shares_not_hundred: "share",
+  receiver_missing: "receiver-name",
+  receiver_not_needed: "receiver-name",
+};
+
+/**
+ * The first thing the paper still needs before it can be signed, in the order the sheet asks for it, and the field it
+ * is about — said when "Sign" is pressed too soon, rather than the button standing grey with its reason above it.
+ */
+const stillMissing = (
+  terms: Terms,
+  {
+    units,
+    split,
+    percent,
+    left,
+    nominees,
+  }: {
+    units: number;
+    /** The split as the box holds it: empty is no split, though it reads as nothing. */
+    split: string;
+    percent: number;
+    left: number;
+    nominees: NomineesProblem | null;
+  },
+  { t, language }: Pick<ReturnType<typeof useLanguage>, "t" | "language">
+): StillMissing | null => {
+  if (terms.investorId === "") {
+    return { said: t("ventures.missing.investor"), at: "agreement-investor" };
+  }
+  if (!(units > 0)) {
+    return { said: t("ventures.missing.units"), at: "agreement-units" };
+  }
+  if (units > left) {
+    return {
+      said: t("ventures.missing.unitsLeft", {
+        left: formatNumber(left, language),
+      }),
+      at: "agreement-units",
+    };
+  }
+  if (split === "" || !aSplit(percent)) {
+    return { said: t("ventures.missing.split"), at: "agreement-percent" };
+  }
+  if (terms.arbitrator.trim() === "") {
+    return {
+      said: t("ventures.missing.arbitrator"),
+      at: "agreement-arbitrator",
+    };
+  }
+  if (nominees) {
+    const place = nominees.at ?? 1;
+    return {
+      said: `${nominees.at ? `${t("nominees.place", { place: nominees.at })}: ` : ""}${t(`nominees.problem.${nominees.code}`)}`,
+      at: `nominee-${place}-${NOMINEE_FIELD[nominees.code]}`,
+    };
+  }
+  if (!(Number(terms.stampValueBdt) > 0)) {
+    return {
+      said: t("ventures.missing.stampValue"),
+      at: "agreement-stamp-value",
+    };
+  }
+  if (terms.stampedOn === "") {
+    return {
+      said: t("ventures.missing.stampedOn"),
+      at: "agreement-stamped-on",
+    };
+  }
+  if (terms.stampSerial.trim() === "") {
+    return {
+      said: t("ventures.missing.stampSerial"),
+      at: "agreement-stamp-serial",
+    };
+  }
+  return null;
+};
 
 /**
  * Who may still sign one Venture, and how many of its Units are left for them.
@@ -451,11 +537,18 @@ export const SignAgreementSheet = ({
     investorsPercent: percent,
     arbitrator: terms.arbitrator.trim(),
   };
+  const nomineesWrong = draftsProblem(nomineeDrafts, stampDay);
   const ready =
     venture !== null &&
     split !== "" &&
-    draftsProblem(nomineeDrafts, stampDay) === null &&
+    nomineesWrong === null &&
     fitToSign(terms, { units, percent, left });
+  // What "Sign" says it still needs when pressed too soon, and which field it goes to; nothing once it is ready.
+  const missing = stillMissing(
+    terms,
+    { units, split, percent, left, nominees: nomineesWrong },
+    { t, language }
+  );
   return (
     <FormSheet
       description={t("ventures.signHint", { venture: venture?.name ?? "" })}
@@ -477,6 +570,7 @@ export const SignAgreementSheet = ({
       }
       open={open}
       pending={signing.isPending || keeping.isPending}
+      missing={missing}
       ready={ready}
       submitLabel={t("ventures.sign")}
       title={t("ventures.sign")}

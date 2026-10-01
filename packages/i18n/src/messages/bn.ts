@@ -975,6 +975,15 @@ export const bn: Record<MessageKey, string> = {
   "ventures.state.settled": "হিসাব শেষ",
   "ventures.state.cancelled": "বাতিল",
   "ventures.sign": "চুক্তি সই",
+  "ventures.missing.investor": "কে সই করবেন বেছে নিন।",
+  "ventures.missing.units": "কত ইউনিট নিচ্ছেন লিখুন।",
+  "ventures.missing.unitsLeft": "আর মাত্র {left}টি ইউনিট বাকি।",
+  "ventures.missing.split":
+    "বিনিয়োগকারীদের ভাগ ০ থেকে ১০০-এর মধ্যে পূর্ণ শতাংশে লিখুন।",
+  "ventures.missing.arbitrator": "দুই পক্ষ যাঁকে মানেন সেই সালিশের নাম লিখুন।",
+  "ventures.missing.stampValue": "স্ট্যাম্পের মূল্য লিখুন।",
+  "ventures.missing.stampedOn": "স্ট্যাম্পের তারিখ লিখুন।",
+  "ventures.missing.stampSerial": "স্ট্যাম্পের সিরিয়াল লিখুন।",
   "ventures.signHint":
     "{venture}-এ এই বিনিয়োগকারী কত ইউনিট নিচ্ছেন, কত ভাগ পাবেন, আর কোন স্ট্যাম্পে লেখা হলো",
   "ventures.signedFor": "সই হয়েছে",
