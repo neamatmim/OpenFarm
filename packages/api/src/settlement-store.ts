@@ -16,6 +16,7 @@ import {
   roundTaka,
   splitOfProfit,
   startOfFarmDay,
+  unitsPaidFor,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
@@ -368,7 +369,7 @@ export const whatItWasCharged = (
 export const settlementOf = async (
   db: Db,
   farmId: string,
-  venture: { id: string; createdAt: Date },
+  venture: { id: string; createdAt: Date; unitPriceBdt: number },
   today: string
 ) => {
   // Approval works this out inside a transaction. Its PostgreSQL client may only execute one query at a time.
@@ -431,10 +432,6 @@ export const settlementOf = async (
   const profitBdt = roundTaka(proceedsBdt - chargedBdt);
 
   // ---- how it divides ----
-  const units = sumOf(agreements.map((one) => one.units));
-  const [first] = agreements;
-  const investorsPercent = first?.investorsPercent ?? 0;
-  const split = splitOfProfit({ profitBdt, investorsPercent, units });
   const capitalOf = (agreementId: string) =>
     roundTaka(
       sumOf(
@@ -446,18 +443,29 @@ export const settlementOf = async (
           .map((one) => one.amountBdt)
       )
     );
-  const payouts: Payout[] = agreements.map((one) => {
+  // By the Units each Agreement paid for, not the Units it signed for: a Venture may start buying while one is part
+  // paid, and the Units nobody paid for must take no share of what the paid ones made or lost.
+  const paidFor = agreements.map((one) => {
     const capitalBdt = capitalOf(one.id);
     return {
-      agreementId: one.id,
-      investorId: one.investorId,
-      name: named.get(one.investorId) ?? "",
-      units: one.units,
+      ...one,
       capitalBdt,
-      shareBdt: split.perUnitBdt * one.units,
-      payoutBdt: payoutOf(capitalBdt, one.units, split.perUnitBdt),
+      units: unitsPaidFor(capitalBdt, venture.unitPriceBdt),
     };
   });
+  const units = sumOf(paidFor.map((one) => one.units));
+  const [first] = agreements;
+  const investorsPercent = first?.investorsPercent ?? 0;
+  const split = splitOfProfit({ profitBdt, investorsPercent, units });
+  const payouts: Payout[] = paidFor.map((one) => ({
+    agreementId: one.id,
+    investorId: one.investorId,
+    name: named.get(one.investorId) ?? "",
+    units: one.units,
+    capitalBdt: one.capitalBdt,
+    shareBdt: split.perUnitBdt * one.units,
+    payoutBdt: payoutOf(one.capitalBdt, one.units, split.perUnitBdt),
+  }));
 
   // What the account would still be holding once the Owner's own money and every payout had left it. It
   // is the paisa the two roundings differ by, and it goes where the other remainder already goes: to the

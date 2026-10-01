@@ -604,6 +604,7 @@ export {
   payoutOf,
   priceAtWeight,
   splitOfProfit,
+  unitsPaidFor,
 } from "./venture";
 export type { Split, ToSplit } from "./venture";
 export {

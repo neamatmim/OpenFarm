@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { payoutOf, priceAtWeight, splitOfProfit } from "./venture";
+import {
+  payoutOf,
+  priceAtWeight,
+  splitOfProfit,
+  unitsPaidFor,
+} from "./venture";
 
 describe("splitting a Venture's profit", () => {
   it("gives the Investors their percentage and the Farm the rest", () => {
@@ -81,6 +86,19 @@ describe("what one Investor is paid", () => {
 
   it("takes a loss off the capital they get back", () => {
     expect(payoutOf(500_000, 10, -3000)).toBe(470_000);
+  });
+});
+
+describe("the Units an Agreement has paid for", () => {
+  it("counts whole Units of what came in, and no Unit a taka short", () => {
+    expect(unitsPaidFor(800_000, 50_000)).toBe(16);
+    expect(unitsPaidFor(1_000_000, 50_000)).toBe(20);
+    expect(unitsPaidFor(849_999, 50_000)).toBe(16);
+    expect(unitsPaidFor(0, 50_000)).toBe(0);
+  });
+
+  it("is none for a Venture with no Unit price", () => {
+    expect(unitsPaidFor(800_000, 0)).toBe(0);
   });
 });
 
