@@ -4,9 +4,8 @@ import type { PersonKey } from "./standing";
 
 /**
  * Who does each piece of the Playbook the seed's farm keeps, and who signs it off — and so which pieces it keeps: the
- * whole Standard Playbook but the anthrax vaccination, which is for a farm where anthrax occurs, the calf's doses,
- * which wait on the Vet's withdrawal days, and the weekly cash count: the seed pays the Manager's cattle and feed out
- * of their hand without ever drawing it from the bank, so the hand runs lakhs below nothing and no count could match it.
+ * whole Standard Playbook but the anthrax vaccination, which is for a farm where anthrax occurs, and the calf's doses,
+ * which wait on the Vet's withdrawal days.
  */
 export const CREW = {
   morningMilking: { worker: "milker", checker: "manager" },
@@ -40,6 +39,8 @@ export const CREW = {
   medicineCount: { worker: "manager", checker: "owner" },
   // Each Pen counted at lock-up by whoever works it; nobody signs it off — a count that differs is told.
   headCount: { worker: "stockman" },
+  // The Manager counts the farm's cash in their own hand on Friday evening; the Owner signs it off.
+  cashCount: { worker: "manager", checker: "owner" },
   biosecurity: { worker: "manager" },
   // The bought-in bull's chain, from his arrival to his sale.
   arrivalCheck: { worker: "stockman", checker: "manager" },

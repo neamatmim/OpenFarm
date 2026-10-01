@@ -251,7 +251,17 @@ const SELLERS = [
   { name: "বাবুল মিয়া", address: "মানিকগঞ্জ, সিঙ্গাইর হাট", phone: "01917-330245" },
 ];
 
-/** A lorry of bulls from the hat, taken in by the Manager on the day they arrive. */
+/** The dearest a bull off the lorry can come to, with his Hasil: what the Owner's float allows for each. */
+const dearestBullBdt = (heavier: number) => (290 + heavier) * 520 * 1.05;
+
+/** Floats go out in round sums, as the bank counts notes. */
+const FLOAT_ROUNDS_TO_BDT = 50_000;
+
+/**
+ * A lorry of bulls from the hat, taken in by the Manager on the day they arrive — on the Farm's own float: the Owner
+ * draws enough for the dearest lorry from the bank into the Manager's hand that morning, the haat is paid in cash
+ * from it, and the Owner counts it home that night against what the outing bought.
+ */
 export const takeInBulls = async (
   farm: Farm,
   herd: Herd,
@@ -268,13 +278,28 @@ export const takeInBulls = async (
   farm.clock.set(onFarm(on, "06:00"));
   // The day at the haat: a broker to find them, the lorry home, and keeping the men who went. Its cost is
   // split evenly across the beasts that came home on it.
-  const trip = await farm.as.manager.trips.record({
-    wentTo: seller.address ?? "গাবতলী হাট, ঢাকা",
+  const costs = {
     brokerBdt: count * random.int(250, 400),
     transportBdt: random.int(6000, 11_000),
     keepBdt: random.int(900, 1800),
+  };
+  const trip = await farm.as.manager.trips.record({
+    wentTo: seller.address ?? "গাবতলী হাট, ঢাকা",
+    ...costs,
     wentOn: onFarm(on, "06:00"),
     paymentMethod: "cash",
+  });
+  const tripCostBdt = costs.brokerBdt + costs.transportBdt + costs.keepBdt;
+  await farm.as.owner.cash.handOver({
+    from: { bank: true },
+    to: { userId: farm.accounts.manager.session.user.id },
+    amountBdt:
+      Math.ceil(
+        (count * dearestBullBdt(heavier) + tripCostBdt) / FLOAT_ROUNDS_TO_BDT
+      ) * FLOAT_ROUNDS_TO_BDT,
+    reference: `চেক নং ${random.int(100_000, 999_999)}`,
+    note: "হাটে গরু কেনার টাকা",
+    buyingTripId: trip.id,
   });
   for (let index = 0; index < count; index += 1) {
     farm.clock.set(
@@ -294,7 +319,8 @@ export const takeInBulls = async (
       weightKg,
       estimatedAgeMonths: random.int(16, 26),
       breedId: await breedIdNamed(farm.as.manager, breed),
-      paymentMethod: random.chance(0.6) ? "cash" : "bank",
+      // The haat takes cash, and the float is what it is paid from.
+      paymentMethod: "cash",
     });
     const bull: Bull = {
       tag: recorded.tagNumber,
@@ -307,6 +333,16 @@ export const takeInBulls = async (
     };
     herd.bulls.set(bull.tag, bull);
     arrived.push(bull);
+  }
+  // That night the Manager brings back what the haat did not take, and the Owner counts it against the slips.
+  farm.clock.set(onFarm(on, "20:30"));
+  const floats = await farm.as.owner.cash.tripFloats();
+  const float = floats.find((one) => one.tripId === trip.id);
+  if (float) {
+    await farm.as.owner.cash.countFloatHome({
+      tripId: trip.id,
+      cashBackBdt: float.handedBdt - float.boughtBdt,
+    });
   }
   return arrived;
 };
