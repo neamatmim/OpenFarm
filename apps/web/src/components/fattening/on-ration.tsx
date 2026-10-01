@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 
 import { expectedGainSaid } from "@/components/feed/band-words";
-import { Nothing } from "@/components/list-cells";
 import type { Tone } from "@/components/page";
 import { StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
@@ -122,50 +121,6 @@ export const ShortOfRationBadge = ({ row }: { row: BoardRow }) => {
   return onRation?.underPenmates ? <BehindPenmatesBadge /> : null;
 };
 
-/** Her gain on her Ration as a cell of the board: the rate over its days, and what the Ration should give beneath —
- *  or that it is too soon to say. A dash where the Ration says no gain. */
-export const OnRationFigures = ({ row }: { row: BoardRow }) => {
-  const { t, language } = useLanguage();
-  const onRation = onRationOf(row);
-  if (!onRation) {
-    return <Nothing />;
-  }
-  return (
-    <div className="flex flex-col items-end gap-0.5 whitespace-nowrap">
-      {onRation.gain ? (
-        <>
-          <span className="font-medium">
-            {t("gain.perDay", {
-              kg: formatNumber(onRation.gain.dailyGainKg, language),
-            })}
-          </span>
-          <span className="text-muted-foreground text-xs">
-            {t("correct.spanDays", {
-              days: formatNumber(onRation.gain.overDays, language),
-            })}
-          </span>
-        </>
-      ) : (
-        <span className="text-muted-foreground text-xs">
-          {t("gainOnRation.tooSoon")}
-        </span>
-      )}
-      <span className="text-muted-foreground text-xs">
-        {againstSaid(onRation, { t, language })}
-      </span>
-      {onRation.penmates ? (
-        <span className="text-muted-foreground text-xs">
-          {t("gainOnRation.penmatesShort", {
-            gain: t("gain.perDay", {
-              kg: formatNumber(onRation.penmates.middleKg, language),
-            }),
-          })}
-        </span>
-      ) : null}
-    </div>
-  );
-};
-
 /** The same in one muted line for a phone's card; nothing where the Ration says no gain. */
 export const OnRationLine = ({ row }: { row: BoardRow }) => {
   const { t, language } = useLanguage();
@@ -182,6 +137,21 @@ export const OnRationLine = ({ row }: { row: BoardRow }) => {
   return (
     <span className="text-muted-foreground text-xs">
       {`${t("gainOnRation.onRation")} ${gain} · ${against}`}
+    </span>
+  );
+};
+
+/** What she is judged against on her Ration, alone, for a cell that already says her rate; nothing where the Ration
+ *  says no gain. */
+export const OnRationVerdict = ({ row }: { row: BoardRow }) => {
+  const { t, language } = useLanguage();
+  const onRation = onRationOf(row);
+  if (!onRation) {
+    return null;
+  }
+  return (
+    <span className="text-muted-foreground text-xs">
+      {againstSaid(onRation, { t, language })}
     </span>
   );
 };

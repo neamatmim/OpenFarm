@@ -34,7 +34,7 @@ import {
   StateBadge,
   TagLink,
 } from "./fattening-words";
-import { OnRationFigures, OnRationLine } from "./on-ration";
+import { OnRationLine, OnRationVerdict } from "./on-ration";
 
 /** How many animals the board shows before the next page. */
 const BOARD_PAGE = 20;
@@ -104,17 +104,48 @@ const WeightCell = ({ row }: BoardCell) => (
   />
 );
 
-const SinceIntakeCell = ({ row }: BoardCell) => (
-  <GainFigures basis={row.original.sinceIntake} />
-);
-
-const RecentCell = ({ row }: BoardCell) => (
-  <GainFigures basis={row.original.recent} />
-);
-
-const OnRationCell = ({ row }: BoardCell) => (
-  <OnRationFigures row={row.original} />
-);
+/**
+ * Her gain as one cell, where three columns had come to say nearly the same: the rate the board judges her on — lately,
+ * or since she came while no reading is far enough back — with where it lands her; the other rate under it, which says
+ * which the first was; then what she is judged against on her Ration, and what her penmates put on.
+ */
+const GainCell = ({ row }: BoardCell) => {
+  const { t, language } = useLanguage();
+  const { recent, sinceIntake } = row.original;
+  const other = recent ? sinceIntake : null;
+  // Missing from an answer this phone kept from before the board said how a Pen gains.
+  const penmates = row.original.onRation?.penmates;
+  return (
+    <div className="flex flex-col items-end gap-0.5">
+      {/* Said only when no reading is recent enough: otherwise the line beneath, since she came, says which this is. */}
+      {!recent && sinceIntake ? (
+        <span className="text-muted-foreground text-xs whitespace-nowrap">
+          {t("gain.sinceIntake")}
+        </span>
+      ) : null}
+      <GainFigures basis={recent ?? sinceIntake} />
+      {other ? (
+        <span className="text-muted-foreground text-xs whitespace-nowrap">
+          {`${t("gain.sinceIntake")} ${t("gain.perDay", {
+            kg: formatNumber(other.dailyGainKg, language),
+          })}`}
+        </span>
+      ) : null}
+      <span className="max-w-60 text-end">
+        <OnRationVerdict row={row.original} />
+      </span>
+      {penmates ? (
+        <span className="text-muted-foreground text-xs whitespace-nowrap">
+          {t("gainOnRation.penmatesShort", {
+            gain: t("gain.perDay", {
+              kg: formatNumber(penmates.middleKg, language),
+            }),
+          })}
+        </span>
+      ) : null}
+    </div>
+  );
+};
 
 const SellCell = ({ row }: BoardCell) => (
   <div className="flex justify-end">
@@ -151,24 +182,10 @@ const boardColumns = column.columns([
     sortUndefined: "last",
     meta: { align: "end" },
   }),
-  column.accessor((row) => row.sinceIntake?.dailyGainKg, {
-    id: "sinceIntake",
-    header: listHeader("gain.sinceIntake"),
-    cell: SinceIntakeCell,
-    sortUndefined: "last",
-    meta: { align: "end" },
-  }),
-  column.accessor((row) => row.recent?.dailyGainKg, {
-    id: "recent",
-    header: listHeader("gain.recent"),
-    cell: RecentCell,
-    sortUndefined: "last",
-    meta: { align: "end" },
-  }),
-  column.accessor((row) => row.onRation?.gain?.dailyGainKg, {
-    id: "onRation",
-    header: listHeader("gainOnRation.col"),
-    cell: OnRationCell,
+  column.accessor((row) => (row.recent ?? row.sinceIntake)?.dailyGainKg, {
+    id: "gain",
+    header: listHeader("gain.col.gain"),
+    cell: GainCell,
     sortUndefined: "last",
     meta: { align: "end" },
   }),

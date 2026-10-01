@@ -158,31 +158,40 @@ const TheTerms = ({ venture }: { venture: Venture }) => {
 };
 
 /**
- * A Venture read whole: how near it is to starting and whether Investors are shown it, while it is Open; where its
- * money is and its terms, the two read most; what it returned; its plan and what it is projected to make; and its
- * Venture Account — before all the rest while it is Open, since that is where Investors pay.
+ * A Venture read whole. While it is Open: how near it is to starting, whether Investors are shown it, and its Venture
+ * Account first, since that is where Investors pay; then its money, terms, plan and what the plan says it makes. Once
+ * it is buying: how it is doing first — what it is projected to make, what it has returned, and its plan against what
+ * happened — then its money and terms, the plan itself, and the account that carries its buying, refunds and payouts.
  */
-export const VentureOverview = ({ venture }: { venture: Venture }) => (
-  <div className="flex flex-col gap-4">
-    {venture.state === "open" ? (
-      <>
-        <TowardsTheFloor venture={venture} />
-        <InThePortal venture={venture} />
-        {/* While it is raising, the account is where Investors are told to pay: it comes before the rest. */}
-        <VentureAccountPanel venture={venture} />
-      </>
-    ) : null}
+export const VentureOverview = ({ venture }: { venture: Venture }) => {
+  const open = venture.state === "open";
+  const moneyAndTerms = (
     <div className="grid items-start gap-4 lg:grid-cols-2">
       <TheMoney venture={venture} />
       <TheTerms venture={venture} />
     </div>
-    <VentureReturnsPanel ventureId={venture.id} />
-    <VenturePlanPanel venture={venture} />
-    <PlanAgainstActual venture={venture} />
-    <VentureProjectionPanel venture={venture} />
-    {/* Whatever else it is doing: the same account carries its buying, its refunds and its payouts. */}
-    {venture.state === "open" ? null : (
+  );
+  if (open) {
+    return (
+      <div className="flex flex-col gap-4">
+        <TowardsTheFloor venture={venture} />
+        <InThePortal venture={venture} />
+        <VentureAccountPanel venture={venture} />
+        {moneyAndTerms}
+        <VentureReturnsPanel ventureId={venture.id} />
+        <VenturePlanPanel venture={venture} />
+        <VentureProjectionPanel venture={venture} />
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-4">
+      <VentureProjectionPanel venture={venture} />
+      <VentureReturnsPanel ventureId={venture.id} />
+      <PlanAgainstActual venture={venture} />
+      {moneyAndTerms}
+      <VenturePlanPanel venture={venture} />
       <VentureAccountPanel venture={venture} />
-    )}
-  </div>
-);
+    </div>
+  );
+};
