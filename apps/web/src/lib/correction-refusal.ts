@@ -153,6 +153,8 @@ const WORDED_REFUSALS = {
   agreement_has_no_paper: "refusal.agreementHasNoPaper",
   capital_not_sent_back: "refusal.capitalNotSentBack",
   capital_over_units: "refusal.capitalOverUnits",
+  capital_over_cattle_part: "refusal.capitalOverCattlePart",
+  cattle_money_short: "refusal.cattleMoneyShort",
   refund_not_its_money: "refusal.refundNotItsMoney",
   wage_is_the_farms: "refusal.wageIsTheFarms",
   venture_paid_in_full: "refusal.venturePaidInFull",

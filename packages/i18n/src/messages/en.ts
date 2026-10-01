@@ -1141,6 +1141,8 @@ export const en = {
     "Once buying starts the Units are fixed: no new Investor, and no top-up.",
   "ventures.floorNotMetYet":
     "৳{short} more has to come in before buying can start (Floor ৳{floor}).",
+  "ventures.cattleMoneyShort":
+    "৳{short} of the signed Investors' cattle money has still to come before buying can start.",
   "ventures.noUnitsLeft": "Every Unit is signed for.",
   "ventures.decisionDue": "Decide by {day}",
   "ventures.ofTheFloor": "of a {floor} Floor",
@@ -1359,6 +1361,10 @@ export const en = {
     "An animal's keep is judged within the days it is read over: {readDays, plural, one {# day} other {# days}} at the most. Change the two together.",
   "refusal.milkWeighedTooSoon":
     "A cow's milk is weighed only past her calf's days and then the days her keep is read over: {soonestDays, plural, one {# day} other {# days}} at the soonest. Change them together.",
+  "refusal.capitalOverCattlePart":
+    "That is more than this Agreement's cattle money: the rest comes by the month once buying starts",
+  "refusal.cattleMoneyShort":
+    "Some signed Investors' cattle money has still to come: buying waits on all of it",
   "refusal.capitalOverUnits":
     "That is more than this Agreement's Units are worth",
   "refusal.refundNotItsMoney":

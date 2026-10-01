@@ -37,6 +37,15 @@ export const pastWindUp = (venture: Venture) =>
 export const shortOfFloor = (venture: Venture) =>
   venture.floorBdt - venture.capitalInBdt;
 
+/** Paid by the month: the signed Units' Cattle Part still to come, which the buying waits on as well as the Floor. An
+ *  answer cached before Ventures were paid by the month has none, and is a Venture paid before buying. */
+export const cattleMoneyShort = (venture: Venture) =>
+  venture.cattleMoneyShortBdt ?? 0;
+
+/** Whether the buying may start: the Floor met and, paid by the month, every signed Cattle Part in. */
+export const mayStartBuying = (venture: Venture) =>
+  shortOfFloor(venture) <= 0 && cattleMoneyShort(venture) <= 0;
+
 /** How many days before its decision date an Open Venture short of its Floor starts asking for the Owner:
  *  a week, the time it takes to chase the signatures and the money still owed, or to decide to call it off. */
 const DECIDE_BY_WARNING_DAYS = 7;

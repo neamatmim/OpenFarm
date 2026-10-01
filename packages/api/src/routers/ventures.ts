@@ -23,6 +23,7 @@ import {
   RUNNING_STATES,
   monthOf,
   CAPITAL_PAID,
+  capitalItMayHold,
   monthlyTermsOf,
   roundTaka,
   startOfFarmDay,
@@ -104,9 +105,11 @@ import {
   takeOutOfPortal,
 } from "../venture-showing";
 import {
+  NOTHING_HELD,
   balanceAtMonthEnd,
   balanceOf,
   budgetsOf,
+  cattleMoneyShortOf,
   directionOf,
   heldByEach,
   termsAcrossOn,
@@ -491,6 +494,20 @@ const moveTo = async (
         data: { refusal: "venture_under_floor" },
       });
     }
+    // Paid by the month, the buying waits on every signed Unit's Cattle Part as well: the Monthly Sums keep the animals
+    // and buy none, so a lorry sent on part of the cattle money buys a herd short of the one everybody signed for.
+    const signed = await signedForEach(context.db, context.farm.id, [row.id]);
+    const shortBdt = cattleMoneyShortOf(
+      row,
+      standing ?? NOTHING_HELD,
+      signed.get(row.id)?.units ?? 0
+    );
+    if (shortBdt > 0) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: `${shortBdt} taka of the signed Investors' cattle money has still to come`,
+        data: { refusal: "cattle_money_short" },
+      });
+    }
   }
   const auditing = audited(context);
   await auditing.write(
@@ -710,12 +727,17 @@ export const venturesRouter = {
         farmDayOf(context.clock.now())
       );
       const ids = rows.map((one) => one.id);
-      const [held, stillHers] = await Promise.all([
+      const [held, stillHers, signed] = await Promise.all([
         heldByEach(context.db, context.farm.id, ids),
         stillHersByEach(context.db, context.farm.id, ids),
+        signedForEach(context.db, context.farm.id, ids),
       ]);
       return rows.map((row) => {
-        const budgets = budgetsOf(row, held.get(row.id));
+        const budgets = budgetsOf(
+          row,
+          held.get(row.id),
+          signed.get(row.id)?.units ?? 0
+        );
         return {
           id: row.id,
           name: row.name,
@@ -1089,7 +1111,12 @@ export const venturesRouter = {
       // man paid up is not offered to be paid again.
       const run = await context.db.query.venture.findFirst({
         where: { id: input.ventureId, farmId: context.farm.id },
-        columns: { unitPriceBdt: true },
+        columns: {
+          state: true,
+          capitalPaid: true,
+          unitPriceBdt: true,
+          cattlePartBdt: true,
+        },
       });
       const taken = new Map<string, number>();
       for (const one of await context.db.query.ventureMovement.findMany({
@@ -1116,10 +1143,12 @@ export const venturesRouter = {
         payInCode: one.payInCode,
         /** The Request to Join it answers, if the Investor asked through the portal. */
         requestId: one.requestId,
-        /** Capital this paper may still take: its Units' worth, less what it has taken. */
+        /** Capital this paper may still take: its Units' worth — their Cattle Part, while a Venture paid by the month
+         *  gathers its capital — less what it has taken. */
         capitalLeftBdt: Math.max(
           0,
-          one.units * (run?.unitPriceBdt ?? 0) - (taken.get(one.id) ?? 0)
+          (run ? capitalItMayHold(one.units, run) : 0) -
+            (taken.get(one.id) ?? 0)
         ),
         investorsPercent: one.investorsPercent,
         farmPercent: theFarmsShare(one.investorsPercent),
@@ -1601,7 +1630,9 @@ export const venturesRouter = {
           data: { refusal: "venture_wrong_state" },
         });
       }
-      const owed = agreement.units * row.unitPriceBdt;
+      // Its Units' whole price — or, for a Venture paid by the month, its Units' Cattle Part while it gathers its capital.
+      const owed = capitalItMayHold(agreement.units, row);
+      const cattlePartOnly = owed < agreement.units * row.unitPriceBdt;
       const id = uuidv7(now);
       await audited(context).write(
         {
@@ -1623,9 +1654,17 @@ export const venturesRouter = {
             agreement.id
           );
           if (paidAlready + input.amountBdt > owed) {
+            // Paid by the month, the rest comes as Monthly Sums once the buying starts: said as that, not as a paper
+            // that is full, because it is not.
             throw new ORPCError("BAD_REQUEST", {
-              message: `This Agreement is for ${owed - paidAlready} more taka`,
-              data: { refusal: "capital_over_units" },
+              message: cattlePartOnly
+                ? `This Agreement's Cattle Part is for ${owed - paidAlready} more taka; the rest comes by the month`
+                : `This Agreement is for ${owed - paidAlready} more taka`,
+              data: {
+                refusal: cattlePartOnly
+                  ? "capital_over_cattle_part"
+                  : "capital_over_units",
+              },
             });
           }
           // Asked after the count, which is the order these two were refused in before the count moved
