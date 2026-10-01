@@ -1,3 +1,4 @@
+import { farmDayOf, farmDaysApart } from "./farm-clock";
 import { roundKg } from "./feed";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -64,6 +65,26 @@ export interface WeighIn {
 }
 
 /**
+ * The reading a gain up to `to` is read from: the latest at least `readDays` farm days before it. A full gut moves a
+ * bull by five kilos from one morning to the next, which over a fortnight reads as a third of a kilo a day either way,
+ * so nearer readings are passed over. Nothing while none is that far back. Never fewer than a day, whatever the farm
+ * asks: a rate over no days is no rate. One rule for every gain the farm reads off the scale.
+ */
+export const readingFarEnoughBack = (
+  /** Oldest first. */
+  readings: readonly WeighIn[],
+  to: WeighIn,
+  readDays: number
+): WeighIn | undefined => {
+  const fewestDays = Math.max(readDays, 1);
+  return readings.findLast(
+    (one) =>
+      farmDaysApart(farmDayOf(one.weighedAt), farmDayOf(to.weighedAt)) >=
+      fewestDays
+  );
+};
+
+/**
  * A rate of gain, the span it was measured over, and where it lands her.
  *
  * Two of these are worked out for every fattening animal — one over her whole stay and one over
@@ -96,7 +117,8 @@ export interface FatteningView {
   /** Over her whole stay, from what she weighed off the lorry. Null for an animal the farm did
    *  not buy in, and until she has been on the scale at least once. */
   sinceIntake: GainBasis | null;
-  /** Between her last two readings. Null until there are two — one reading is not a trend. */
+  /** From her last reading back to one at least the farm's read days before it. Null until there is one that far
+   *  back — one reading, or two a week apart, is not a trend. */
   recent: GainBasis | null;
   /** Whether she will make her target weight. Null when there is no rate to judge on. */
   onTrack: boolean | null;
@@ -184,13 +206,17 @@ export const fatteningView = (
     arrivedAt: Date;
     targetWeightKg: number;
   } | null,
-  /** Her readings, oldest first. */
+  /** Her readings the farm did not doubt, oldest first. */
   weighIns: WeighIn[],
   windowOpensAt: Date | null,
-  now: Date
+  now: Date,
+  /** How far apart two readings must be for a gain to be read off them: the farm's own setting. */
+  readDays: number
 ): FatteningView => {
   const latest = weighIns.at(-1);
-  const previous = weighIns.at(-2);
+  const previous = latest
+    ? readingFarEnoughBack(weighIns, latest, readDays)
+    : undefined;
   const targetWeightKg = intake?.targetWeightKg ?? null;
   const sinceIntake =
     latest && intake

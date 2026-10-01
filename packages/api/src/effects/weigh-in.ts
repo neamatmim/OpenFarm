@@ -53,12 +53,14 @@ const weighHer = async (tx: Tx, input: WeighInFacts): Promise<EffectResult> => {
   const weightKg = roundKg(numberIn(input.step, input.evidence));
   const weighedAt = input.recordedAt;
   // Her last reading before this one — not simply her latest, because an entry that synced
-  // late belongs where it happened and is judged against what came before it.
+  // late belongs where it happened and is judged against what came before it — and one the farm
+  // did not doubt: set against a misweighing, the right figure after it would read as wrong too.
   const previous = await tx.query.weighIn.findFirst({
     where: {
       animalId,
       weighedAt: { lt: weighedAt },
       completionId: { ne: input.completionId },
+      flaggedNote: { isNull: true },
     },
     orderBy: { weighedAt: "desc" },
     columns: { weightKg: true, weighedAt: true },

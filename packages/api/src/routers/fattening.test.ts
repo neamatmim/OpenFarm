@@ -87,6 +87,8 @@ const setup = async () => {
     .onConflictDoNothing();
 
   const sop = await owner.client.sops.create({ content: weighInSop() });
+  // This farm reads a gain over a fortnight, the shortest it may: the weighings below are a fortnight apart.
+  await manager.client.farm.setParameters({ gainReadDays: 14 });
   return { owner, manager, pen, bulls, sop };
 };
 
@@ -244,5 +246,56 @@ describe("gain, days on feed and the projections to Eid", () => {
     await expect(
       staff.client.fattening.board({ penId: world.pen.id })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});
+
+// After the rest: the third bull, on the scale once at 214 kg on 1 February, is misweighed and then weighed right.
+describe("a reading the farm doubted", () => {
+  const readingsOf = async (index: number) => {
+    const { eq } = await import("@OpenFarm/db/operators");
+    const { animal } = await import("@OpenFarm/db/schema/herd");
+    const { weighIn } = await import("@OpenFarm/db/schema/fattening");
+    return await scratchDb()
+      .select({ weightKg: weighIn.weightKg, note: weighIn.flaggedNote })
+      .from(weighIn)
+      .innerJoin(animal, eq(animal.id, weighIn.animalId))
+      // Tag Numbers repeat across the test files' farms, which share one database.
+      .where(
+        and(
+          eq(animal.farmId, theFarm().id),
+          eq(animal.tagNumber, tagOf(index))
+        )
+      )
+      .orderBy(weighIn.weighedAt);
+  };
+
+  it("does not doubt the right reading that follows a wrong one", async () => {
+    // 120 kg four weeks after 214 is a loss no bull makes; 250 three weeks later is what he really weighs.
+    await weigh("2027-03-01", [[2, 120]]);
+    await weigh("2027-03-22", [[2, 250]]);
+
+    const readings = await readingsOf(2);
+
+    expect(
+      readings.map((one) => [Number(one.weightKg), one.note !== null])
+    ).toEqual([
+      [214, false],
+      [120, true],
+      [250, false],
+    ]);
+  });
+
+  it("is left out of what the board says he gains and weighs", async () => {
+    const owner = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2027-03-22T09:00:00.000Z"),
+    });
+    const board = await owner.client.fattening.board({ penId: world.pen.id });
+    const him = board.find((row) => row.tagNumber === tagOf(2));
+
+    // From 214 on 1 February to 250 on 22 March: 36 kg over 49 days, 0.73 a day. The 120 is three weeks back, far
+    // enough to read a gain from — 6.19 a day, were it believed.
+    expect(him?.latestKg).toBe(250);
+    expect(him?.recent).toMatchObject({ dailyGainKg: 0.73, overDays: 49 });
   });
 });

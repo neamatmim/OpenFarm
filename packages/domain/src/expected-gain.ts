@@ -1,6 +1,10 @@
 import { farmDayOf, farmDaysApart, startOfFarmDay } from "./farm-clock";
 import type { WeighIn } from "./fattening";
-import { PLAUSIBLE_DAILY_GAIN_KG, addDays } from "./fattening";
+import {
+  PLAUSIBLE_DAILY_GAIN_KG,
+  addDays,
+  readingFarEnoughBack,
+} from "./fattening";
 import type { WeightBand } from "./feed";
 import { bandStanding, roundKg } from "./feed";
 
@@ -86,10 +90,8 @@ const PERCENT = 100;
 
 /**
  * Her gain on the Ration she is eating: from her latest reading back to the latest one at least `readDays` farm days
- * before it, and no earlier than `countsFrom`. A full gut moves a bull by five kilos from one morning to the next, which
- * over a fortnight reads as a third of a kilo a day either way, so nearer readings are passed over. Nothing while no
- * reading is both far enough back and late enough — which is the answer, not a gap: she has not been on it long enough
- * to say.
+ * before it (`readingFarEnoughBack`), and no earlier than `countsFrom`. Nothing while no reading is both far enough back
+ * and late enough — which is the answer, not a gap: she has not been on it long enough to say.
  */
 export const gainOnRationOf = (
   /** The readings the farm did not doubt, in any order. */
@@ -103,15 +105,14 @@ export const gainOnRationOf = (
   if (!to) {
     return null;
   }
-  const daysBefore = (one: WeighIn) =>
-    farmDaysApart(farmDayOf(one.weighedAt), farmDayOf(to.weighedAt));
-  // Never fewer than a day, whatever the farm asks: a rate over no days is no rate.
-  const fewestDays = Math.max(readDays, 1);
-  const from = counted.findLast((one) => daysBefore(one) >= fewestDays);
+  const from = readingFarEnoughBack(counted, to, readDays);
   if (!from) {
     return null;
   }
-  const overDays = daysBefore(from);
+  const overDays = farmDaysApart(
+    farmDayOf(from.weighedAt),
+    farmDayOf(to.weighedAt)
+  );
   return {
     dailyGainKg:
       Math.round(((to.weightKg - from.weightKg) / overDays) * RATE_SCALE) /

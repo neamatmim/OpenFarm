@@ -15,7 +15,11 @@ import {
 } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
-import { fatteningOf } from "./fattening-store";
+import {
+  fatteningOf,
+  gainReadDaysOf,
+  WEIGH_IN_COLUMNS,
+} from "./fattening-store";
 import { theirSpend } from "./investor-statement-store";
 import { settlementOf } from "./settlement-store";
 import { boughtFor } from "./venture-bought";
@@ -110,12 +114,13 @@ const standingKgAtWindow = async (
           targetWindowStart: true,
         },
       },
-      weighIns: { columns: { weightKg: true, weighedAt: true } },
+      weighIns: { columns: WEIGH_IN_COLUMNS },
     },
   });
+  const readDays = await gainReadDaysOf(db, farmId);
   let kg = 0;
   for (const one of rows.filter((each) => !isExitState(each.state))) {
-    const view = fatteningOf(one.intake, one.weighIns, now);
+    const view = fatteningOf(one.intake, one.weighIns, now, readDays);
     // Her band's gain where she has no rate of her own: the plan said what an animal of her weight would put on.
     const band = one.intake ? bandOf(lines, Number(one.intake.weightKg)) : null;
     const planned = band === null ? 0 : (lines[band]?.dailyGainKg ?? 0);
