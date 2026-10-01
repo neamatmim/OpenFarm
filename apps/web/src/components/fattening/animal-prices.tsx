@@ -244,7 +244,9 @@ export const PriceCell = ({ tagNumber }: { tagNumber: string }) => {
     <span className="flex flex-col items-end gap-0.5 text-end whitespace-nowrap">
       <EstimateLine one={one} />
       <CostLine one={one} />
-      <span className="flex flex-col items-end gap-0.5 pt-1">
+      {/* The verdict and what the next days leave over their keep wrap, held to a width: on one line they pushed
+          the whole column wider than the board. */}
+      <span className="flex max-w-64 flex-col items-end gap-0.5 pt-1 whitespace-normal">
         <KeepLine full={false} one={one} />
       </span>
     </span>

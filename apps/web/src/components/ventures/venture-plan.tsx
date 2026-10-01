@@ -21,7 +21,12 @@ import {
   Section,
   StatusBadge,
 } from "@/components/page";
-import { FormField, FormSheet, UnitInput } from "@/components/page-kit";
+import {
+  FigureTerm,
+  FormField,
+  FormSheet,
+  UnitInput,
+} from "@/components/page-kit";
 import { useLineBreedName } from "@/components/ventures/line-breed";
 import { useLanguage } from "@/i18n/language-provider";
 import { breedName } from "@/lib/breed";
@@ -764,6 +769,7 @@ const PlanRead = ({ plan, venture }: { plan: Plan; venture: Venture }) => {
   const isBaseline = baseline?.version === latest.version;
   // Missing from an answer this phone kept from before a plan could expect deaths: read as none.
   const expectsDeaths = (latest.deathsPercent ?? 0) > 0;
+  const overBudget = latest.totals.overBudgetBdt > 0;
   return (
     <>
       <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -778,34 +784,40 @@ const PlanRead = ({ plan, venture }: { plan: Plan; venture: Venture }) => {
         ) : null}
       </div>
       <PlanTable version={latest} />
-      <div className="flex flex-col gap-1 text-sm">
-        <span>
-          {t("plan.budget", { budget: taka(venture.cattleBudgetBdt) })}
-          {latest.totals.overBudgetBdt > 0 ? (
-            <span className="text-warning">
-              {" · "}
-              {t("plan.over", { over: taka(latest.totals.overBudgetBdt) })}
-            </span>
-          ) : null}
-        </span>
-        <span>
-          {t("plan.sale", {
+      {/* What the plan rests on besides its bands, as figures under their names — as the Venture's terms are. */}
+      <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
+        <FigureTerm
+          hint={
+            overBudget
+              ? t("plan.over", { over: taka(latest.totals.overBudgetBdt) })
+              : undefined
+          }
+          label={t("ventures.page.cattleBudget")}
+          size="sm"
+          tone={overBudget ? "warning" : "neutral"}
+        >
+          {taka(venture.cattleBudgetBdt)}
+        </FigureTerm>
+        <FigureTerm label={t("plan.fact.sale")} size="sm">
+          {t("projection.range", {
             low: taka(latest.saleLowBdtPerKg),
             high: taka(latest.saleHighBdtPerKg),
           })}
-        </span>
+        </FigureTerm>
+        <FigureTerm label={t("plan.fact.days")} size="sm">
+          {t("correct.spanDays", {
+            days: formatNumber(plan.daysOnFeed, language),
+          })}
+        </FigureTerm>
         {expectsDeaths ? (
-          <span>
-            {t("plan.deathsSaid", {
-              percent: t("portal.percent", {
-                percent: formatNumber(latest.deathsPercent, language),
-              }),
+          <FigureTerm label={t("plan.deathsShort")} size="sm">
+            {t("portal.percent", {
+              percent: formatNumber(latest.deathsPercent, language),
             })}
-          </span>
+          </FigureTerm>
         ) : null}
-        <span className="text-muted-foreground">
-          {t("plan.daysOnFeed", { days: plan.daysOnFeed })}
-        </span>
+      </dl>
+      <div className="flex flex-col gap-1 text-sm">
         {latest.reason ? (
           <span className="text-muted-foreground">
             {t("plan.revision", { reason: latest.reason })}

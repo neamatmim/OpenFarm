@@ -32,30 +32,33 @@ const Figures = ({ read }: { read: Read }) => {
   const lowKg = Math.round(projection.low.kgAtSale ?? projection.kgAtSale);
   return (
     <>
+      {/* What it comes to first and large; what it is worked from beneath, small. */}
       <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
-        <FigureTerm label={t("projection.profit")}>
+        <FigureTerm label={t("projection.profit")} size="xl">
           {range(
             taka(projection.low.profitBdt),
             taka(projection.high.profitBdt)
           )}
         </FigureTerm>
-        <FigureTerm label={t("projection.perUnit")}>
+        <FigureTerm label={t("projection.perUnit")} size="lg">
           {range(
             taka(projection.low.perUnitBdt),
             taka(projection.high.perUnitBdt)
           )}
         </FigureTerm>
-        <FigureTerm label={t("projection.prices")}>
+      </dl>
+      <dl className="grid gap-x-6 gap-y-4 border-t pt-3 sm:grid-cols-2 lg:grid-cols-4">
+        <FigureTerm label={t("projection.prices")} size="sm">
           {range(taka(basis.saleLowBdtPerKg), taka(basis.saleHighBdtPerKg))}
         </FigureTerm>
-        <FigureTerm label={t("projection.kgAtSale")}>
+        <FigureTerm label={t("projection.kgAtSale")} size="sm">
           {range(kg(lowKg), kg(highKg))}
         </FigureTerm>
-        <FigureTerm label={t("projection.charged")}>
+        <FigureTerm label={t("projection.charged")} size="sm">
           {taka(projection.chargedBdt)}
         </FigureTerm>
         {projection.realisedBdt > 0 ? (
-          <FigureTerm label={t("projection.realised")}>
+          <FigureTerm label={t("projection.realised")} size="sm">
             {taka(projection.realisedBdt)}
           </FigureTerm>
         ) : null}

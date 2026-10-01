@@ -504,11 +504,7 @@ export const en = {
   "plan.col.gain": "Gain a day",
   "plan.col.sale": "Each at sale",
   "plan.total": "Altogether",
-  "plan.budget": "Cattle budget {budget}",
   "plan.over": "{over} over the cattle budget",
-  "plan.sale": "Sells at {low} to {high} a kg",
-  "plan.daysOnFeed":
-    "{days, plural, one {# day} other {# days}} on feed, from the decide-by day to the window",
   "plan.version": "Version {version}, {day}",
   "plan.baseline": "Baseline",
   "plan.measuredAgainst": "Measured against its baseline, version {version}.",
@@ -541,14 +537,14 @@ export const en = {
   "plan.saleHighShort": "High price",
   "plan.saleHint": "A kg of live weight, at the price the plan expects to sell for.",
   "plan.deathsShort": "May die before sale",
+  "plan.fact.sale": "Sells at, a kg",
+  "plan.fact.days": "Days on feed",
   "plan.useGain": "Use {kg}",
   "plan.removeLine": "Remove this band",
   "plan.lineOf": "Band {number}",
   "plan.deathsHint":
     "Taken off the low end of the projection only; the high end is every animal living.",
   "plan.deathsOutOfRange": "Between 0 and 50",
-  "plan.deathsSaid":
-    "{percent} of the animals may die before sale: the low end allows for it",
   "plan.reason": "Why the plan changes",
   "plan.reasonHint":
     "Buying has begun: the plan made before stays what the Venture is measured against, and this is kept as a revision.",
@@ -572,12 +568,12 @@ export const en = {
     "{count, plural, one {# animal weighed} other {# animals weighed}}",
   "plan.vs.noneWeighed": "None weighed yet",
   "plan.vs.atWindow": "Planned a head at the window",
-  "plan.vs.cattle": "Cattle: planned {planned}, bought for {actual}",
-  "plan.vs.running": "Running: budget {budget}, spent {spent}",
-  "plan.vs.result":
-    "Result: planned {plannedLow} to {plannedHigh}; projected now {low} to {high}",
-  "plan.vs.resultNoProjection":
-    "Result: planned {plannedLow} to {plannedHigh}; it has ended, so nothing is projected",
+  "plan.vs.row.cattle": "Cattle",
+  "plan.vs.row.running": "Running",
+  "plan.vs.row.result": "Result",
+  "plan.vs.col.plan": "Plan",
+  "plan.vs.col.now": "Now",
+  "plan.vs.endedNoProjection": "Ended: nothing projected",
   "plan.saved": "The plan is saved",
   "projection.title": "Projected profit",
   "projection.hint":
@@ -2711,7 +2707,6 @@ export const en = {
     "{gain} over {days, plural, one {# day} other {# days}} · {from} to {to}",
   "gainOnRation.expects": "In {pen} · {ration} should give {range}",
   "gainOnRation.expectsShort": "Should give {range}",
-  "gainOnRation.col": "On the ration",
   "gainOnRation.onRation": "On the ration",
   "gainOnRation.tooSoon": "Too soon to judge",
   "gainOnRation.forDeshi": "deshi, {percent}%",
@@ -4138,6 +4133,7 @@ export const en = {
   "gain.now": "Weighs now",
   "gain.sinceIntake": "Since intake",
   "gain.recent": "Lately",
+  "gain.col.gain": "Gain",
   "gain.perDay": "{kg} kg/day",
   "gain.projected": "{kg} kg at Eid",
   "gain.onTrack": "Makes the target",
