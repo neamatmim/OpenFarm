@@ -15,7 +15,7 @@ on the share unit." That is the farm's real way of raising a Venture, and the ap
 2. **A missed month: he shares by the taka he actually paid.** The **Advance** feeds the animals meanwhile and is
    repaid first at Settlement, as it is today. — **Built**: the Settlement divides by Units held, capital paid over the
    Unit price to four places (56eecc8f, then f04b6a5f). Units held can be 9.6; the closing paper prints them so.
-   Not yet: the share **%** on the progress paper and the portal still divides by Units signed (ticket 05).
+   The progress paper and the portal say Units held and the share of all held once buying starts (signed while open).
 3. **Plan now, build after the advisers.** Every Agreement so far says the capital comes in whole before the buying;
    this changes what an Investor signs. Questions in `advisers-sheet.html`.
 

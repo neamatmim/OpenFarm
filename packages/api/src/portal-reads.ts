@@ -22,11 +22,11 @@ import {
   settlementStatementFor,
 } from "./investor-papers";
 import {
+  hisHolding,
   hisStanding,
   theVentureOf,
   theirSpend,
 } from "./investor-statement-store";
-import { shareOfUnits } from "./investor-statement-words";
 import { signedInOn } from "./membership";
 import { nominationInForce, paperNominees } from "./nomination-store";
 import { ownerNameOf, requireTheirs } from "./portal-store";
@@ -234,8 +234,11 @@ export const theirVentureToday = async (
     agreementId,
     venture: { name: standing.venture.name, state: run.state },
     his: {
-      units: standing.agreement.units,
-      sharePercent: shareOfUnits(standing.agreement.units, spend.signedUnits),
+      ...hisHolding(
+        { units: standing.agreement.units, capitalBdt: standing.capitalBdt },
+        spend,
+        run
+      ),
       capitalBdt: standing.capitalBdt,
       investorsPercent: standing.agreement.investorsPercent,
       amendedOn: standing.agreement.amendedOn,
