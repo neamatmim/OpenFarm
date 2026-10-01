@@ -207,8 +207,9 @@ export interface CorrectionKind<
   entry: ((row: Row) => EntryFacts) | null;
   /** Refuses a record outside the Scope of the Role the Correction is made under. */
   requireInScope?: (scope: Scope, row: Row) => void;
-  /** The values it holds, as a screen shows them. */
-  shown: (tx: Tx, row: Row) => Promise<ShownValues<C>>;
+  /** The values it holds, as a screen shows them — today, for a value that is read off the day, as a Venture's
+   *  Target Window is. */
+  shown: (tx: Tx, row: Row, at: { now: Date }) => Promise<ShownValues<C>>;
   /** A value it is asked to hold, as a screen would show it, when the two are not the same shape. */
   shownAs?: {
     [K in keyof C]?: (
@@ -430,7 +431,7 @@ export const correct = async <
     const role = working.roleUsed;
     corrector = working;
 
-    const shown = await kind.shown(tx, row);
+    const shown = await kind.shown(tx, row, { now });
     if (changed.some(({ field, from }) => !same(from, shown[field]))) {
       throw new ORPCError("CONFLICT", {
         message: "That was corrected by someone else since you opened it",

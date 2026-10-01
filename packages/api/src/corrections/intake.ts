@@ -1,10 +1,13 @@
 import { eq } from "@OpenFarm/db/operators";
 import { intake } from "@OpenFarm/db/schema/fattening";
 import { animal } from "@OpenFarm/db/schema/herd";
+import { EXIT_STATES, farmDayOf } from "@OpenFarm/domain";
+import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { counterpartyNamed } from "../counterparty-store";
+import { targetWindowInput } from "../farm-clock";
 import {
   assertAVentureMayOwnHer,
   assertSheBelongsWithTheFloat,
@@ -20,7 +23,11 @@ import {
 import { paymentMethodChange } from "../money-inputs";
 import { bookingOf, paymentMethodOf } from "../money-store";
 import { bookSaleMoney } from "../sale-store";
-import { assertTripIsOpen, lockTheFarm } from "../venture-store";
+import {
+  assertTripIsOpen,
+  lockTheFarm,
+  ventureWindowOf,
+} from "../venture-store";
 import type { CorrectionKind } from "./correction";
 import {
   changeOf,
@@ -39,15 +46,39 @@ const loadIntake = (tx: Tx, farmId: string, id: string) =>
       purchasePriceBdt: true,
       hasilBdt: true,
       buyingTripId: true,
+      targetWindowStart: true,
+      targetWindowEnd: true,
       recordedBy: true,
       createdAt: true,
     },
-    with: { seller: { columns: { name: true } } },
+    with: {
+      seller: { columns: { name: true } },
+      animal: { columns: { state: true } },
+    },
   });
 
 /**
+ * The window she is sold in, as her page shows it today: her Venture's where she is one's, else what her Intake keeps.
+ */
+const windowShown = async (
+  tx: Tx,
+  row: { farmId: string; targetWindowStart: string; targetWindowEnd: string },
+  owner: string | null,
+  now: Date
+) =>
+  (await ventureWindowOf(
+    tx,
+    row.farmId,
+    owner ?? undefined,
+    farmDayOf(now)
+  )) ?? {
+    start: row.targetWindowStart,
+    end: row.targetWindowEnd,
+  };
+
+/**
  * What an Intake's Correction may change: what the farm paid, the haat's toll on her, the outing she came
- * home on, who sold the animal, and how he was paid.
+ * home on, who sold the animal, how he was paid, and — for the Farm's own — the window she is sold in.
  */
 export const intakeCorrectionInput = correctionInput({
   purchasePriceBdt: changeOf(purchasePriceInput, z.number()),
@@ -56,9 +87,48 @@ export const intakeCorrectionInput = correctionInput({
   /** Whose animal she is. A slip at the haat is fixable here and nowhere else: once the window has
    *  closed, only an Internal Sale moves her between owners. */
   owner: changeOf(z.string().nullable(), z.string().nullable()),
+  /** The window the Farm sells her in. A Venture's animal is sold in its Venture's, which only an Amendment moves; one
+   *  a Correction makes the Farm's own is asked for one, because the Venture's was never the Farm's choice for her. */
+  targetWindow: changeOf(
+    targetWindowInput,
+    z.object({ start: z.string(), end: z.string() })
+  ),
   seller: changeOf(sellerInput, z.string().nullable()),
   paymentMethod: paymentMethodChange,
 });
+
+/**
+ * That the window a Correction gives her is hers to be given. A Venture's animal is sold in the Venture's, which only an
+ * Amendment moves. One made the Farm's own while she still stands is asked the window the Farm sells her in: the
+ * Venture's was its Investors', and leaving her on it would be a choice nobody made. One already gone is sold in none.
+ */
+const assertTheWindowIsTheOwners = ({
+  wasOwnedBy,
+  willBeOwnedBy,
+  standing,
+  saysAWindow,
+}: {
+  wasOwnedBy: string | null;
+  willBeOwnedBy: string | null;
+  standing: boolean;
+  saysAWindow: boolean;
+}) => {
+  if (saysAWindow && willBeOwnedBy !== null) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "A Venture's animal is sold in the Venture's Target Window; an Amendment moves it, not the Intake",
+      data: { refusal: "window_is_the_ventures" },
+    });
+  }
+  const madeTheFarms = wasOwnedBy !== null && willBeOwnedBy === null;
+  if (madeTheFarms && standing && !saysAWindow) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "She is the Farm's own now: say the window the Farm sells her in",
+      data: { refusal: "window_needed" },
+    });
+  }
+};
 
 /**
  * An Intake put right — and with it the Money Event, rather than a second one. Filed under the Animal it made, as the
@@ -82,14 +152,18 @@ export const intakeCorrection: CorrectionKind<
   entityIdOf: (row) => row.animalId,
   supersedes: false,
   entry: (row) => ({ enteredAt: row.createdAt, enteredBy: row.recordedBy }),
-  shown: async (tx, row) => ({
-    purchasePriceBdt: row.purchasePriceBdt,
-    hasilBdt: row.hasilBdt,
-    buyingTrip: row.buyingTripId,
-    owner: await ownerOf(tx, row.animalId),
-    seller: row.seller?.name ?? null,
-    paymentMethod: await paymentMethodOf(tx, row.farmId, "intake", row.id),
-  }),
+  shown: async (tx, row, { now }) => {
+    const owner = await ownerOf(tx, row.animalId);
+    return {
+      purchasePriceBdt: row.purchasePriceBdt,
+      hasilBdt: row.hasilBdt,
+      buyingTrip: row.buyingTripId,
+      owner,
+      targetWindow: await windowShown(tx, row, owner, now),
+      seller: row.seller?.name ?? null,
+      paymentMethod: await paymentMethodOf(tx, row.farmId, "intake", row.id),
+    };
+  },
   shownAs: { seller: (to) => to.name },
   trail: (tx, row) => readIntake(tx, row.animalId),
   apply: async (tx, row, to, { context, now }) => {
@@ -97,6 +171,13 @@ export const intakeCorrection: CorrectionKind<
     // gain an animal nor lose one, because the sum it was counted against would stop being true.
     await assertTripIsOpen(tx, row.farmId, row.buyingTripId);
     await assertTripIsOurs(tx, row.farmId, to.buyingTrip ?? undefined);
+    const wasOwnedBy = await ownerOf(tx, row.animalId);
+    assertTheWindowIsTheOwners({
+      wasOwnedBy,
+      willBeOwnedBy: to.owner === undefined ? wasOwnedBy : to.owner,
+      standing: !(EXIT_STATES as readonly string[]).includes(row.animal.state),
+      saysAWindow: to.targetWindow !== undefined,
+    });
     if (to.owner !== undefined) {
       await assertVentureIsBuying(tx, row.farmId, to.owner ?? undefined, {
         correcting: true,
@@ -121,6 +202,12 @@ export const intakeCorrection: CorrectionKind<
         : { purchasePriceBdt: to.purchasePriceBdt }),
       ...(to.hasilBdt === undefined ? {} : { hasilBdt: to.hasilBdt }),
       ...(to.buyingTrip === undefined ? {} : { buyingTripId: to.buyingTrip }),
+      ...(to.targetWindow === undefined
+        ? {}
+        : {
+            targetWindowStart: to.targetWindow.start,
+            targetWindowEnd: to.targetWindow.end,
+          }),
       ...(to.seller === undefined
         ? {}
         : {

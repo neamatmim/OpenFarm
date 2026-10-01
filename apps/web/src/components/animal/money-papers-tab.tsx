@@ -22,7 +22,14 @@ import { SaleCorrection } from "@/components/sale-correction";
 import { useSalePapers } from "@/components/sale/sale-papers";
 import { useLanguage } from "@/i18n/language-provider";
 import type { Answer } from "@/lib/correcting";
-import { amount, counterparty, figure } from "@/lib/correcting";
+import {
+  amount,
+  counterparty,
+  figure,
+  isWholeWindow,
+  targetWindow,
+  withWindowDay,
+} from "@/lib/correcting";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
@@ -48,7 +55,11 @@ const whoseSheIs = (
   couldBeSent: () => true,
 });
 
-/** The Manager puts right what a bought-in animal cost, who sold her, or whose she is. */
+/**
+ * The Manager puts right what a bought-in animal cost, who sold her, whose she is, or — for the Farm's own — the window
+ * she is sold in. A Venture's animal made the Farm's is asked that window afresh, because her Venture's was never the
+ * Farm's choice.
+ */
 const IntakeCorrection = ({
   intake,
   owner,
@@ -58,6 +69,8 @@ const IntakeCorrection = ({
     purchasePriceBdt: number;
     hasilBdt: number;
     sellerName: string | null;
+    /** As her page shows it: her Venture's where she is one's. */
+    targetWindow: { start: string; end: string };
   };
   /** The Venture she is on now, where she is not the Farm's own. */
   owner: { id: string; name: string } | null;
@@ -67,6 +80,9 @@ const IntakeCorrection = ({
   // may hand her to — buying, fattening, selling — and is the one Venture reading a Manager may make,
   // which matters because putting a slip at the haat right is his to do.
   const running = useQuery(orpc.ventures.running.queryOptions());
+  const itsWindow = targetWindow(intake.targetWindow, {
+    askedAfresh: owner !== null,
+  });
   const correcting = useCorrecting({
     purchasePriceBdt: amount(intake.purchasePriceBdt),
     // Nothing is a real answer here: an animal bought at the farm gate paid no toll, and one typed by
@@ -74,8 +90,15 @@ const IntakeCorrection = ({
     hasilBdt: figure(intake.hasilBdt),
     seller: counterparty(intake.sellerName),
     owner: whoseSheIs(owner?.id ?? null),
+    targetWindow: itsWindow,
   });
   const correct = useMutation(orpc.intake.correct.mutationOptions({}));
+  // The window is the Farm's to say only for an animal that will be the Farm's own; a Venture's is its Venture's.
+  const willBeTheFarms = (correcting.typed.owner ?? THE_FARMS) === THE_FARMS;
+  const typedWindow = correcting.typed.targetWindow ?? "";
+  const windowStillToSay =
+    owner !== null && willBeTheFarms && !isWholeWindow(typedWindow);
+  const [start = "", end = ""] = typedWindow.split("|");
   return (
     <CorrectionDialog
       onOpen={correcting.handleOpen}
@@ -86,7 +109,7 @@ const IntakeCorrection = ({
           changes: correcting.changes(),
         });
       }}
-      ready={correcting.changed}
+      ready={correcting.changed && !windowStillToSay}
       title={t("correct.intake")}
     >
       <CorrectionAnswer
@@ -113,7 +136,13 @@ const IntakeCorrection = ({
       {(running.data ?? []).length === 0 && owner === null ? null : (
         <CorrectionChoice
           label={t("correct.whoseSheIs")}
-          onChange={(value) => correcting.set("owner", value)}
+          onChange={(value) => {
+            correcting.set("owner", value);
+            // Handed to a Venture, she is sold in its window: whatever was typed for the Farm's is not sent.
+            if (value !== THE_FARMS) {
+              correcting.set("targetWindow", itsWindow.shows);
+            }
+          }}
           options={[
             { value: THE_FARMS, label: t("correct.theFarmsOwn") },
             ...(running.data ?? []).map((one) => ({
@@ -124,6 +153,37 @@ const IntakeCorrection = ({
           value={correcting.typed.owner ?? THE_FARMS}
         />
       )}
+      {willBeTheFarms ? (
+        <>
+          <CorrectionAnswer
+            label={t("intake.windowStart")}
+            onChange={(value) =>
+              correcting.set(
+                "targetWindow",
+                withWindowDay(typedWindow, "start", value)
+              )
+            }
+            type="date"
+            value={start}
+          />
+          <CorrectionAnswer
+            label={t("intake.windowEnd")}
+            onChange={(value) =>
+              correcting.set(
+                "targetWindow",
+                withWindowDay(typedWindow, "end", value)
+              )
+            }
+            type="date"
+            value={end}
+          />
+          {owner === null ? null : (
+            <p className="text-muted-foreground text-xs">
+              {t("correct.windowForTheFarm", { venture: owner.name })}
+            </p>
+          )}
+        </>
+      ) : null}
     </CorrectionDialog>
   );
 };
