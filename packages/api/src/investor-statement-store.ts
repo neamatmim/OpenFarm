@@ -1,11 +1,12 @@
 import type { Database } from "@OpenFarm/db";
 import type { AdjustmentOutcome } from "@OpenFarm/db/schema/venture";
 import type { PaperNominee } from "@OpenFarm/domain";
-import { exitOf, roundTaka, whatUnitsTake } from "@OpenFarm/domain";
+import { exitOf, roundTaka, unitsHeld, whatUnitsTake } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import { farmCosts } from "./cost-store";
+import { shareOfUnits } from "./investor-statement-words";
 import { nominationInForce, paperNominees } from "./nomination-store";
 import type { ChargeWord } from "./settlement-store";
 import { readSettlement, whatItWasCharged } from "./settlement-store";
@@ -217,9 +218,12 @@ export const assertCapitalHeld = (standing: HisStanding) => {
 export interface TheirSpend {
   charges: { word: ChargeWord; bdt: number }[];
   chargedBdt: number;
-  /** The Units actually signed for, which is what a share of this Venture divides by — not the Units
-   *  the plan offered, which an under-subscribed Venture never sold. */
+  /** The Units actually signed for, which is what a share of this Venture divides by while it gathers its capital —
+   *  not the Units the plan offered, which an under-subscribed Venture never sold. */
   signedUnits: number;
+  /** The Units held — the capital in, over the Unit price — which is what a share divides by once buying starts, as
+   *  the Settlement will divide by them: a Unit signed for and never paid takes no share. */
+  heldUnits: number;
   cattleBudgetBdt: number;
   runningBudgetBdt: number;
   /** What of the money that came in for buying animals has not been drawn against. */
@@ -236,6 +240,28 @@ export interface TheirSpend {
    */
   runningSpentBdt: number;
 }
+
+/**
+ * His part of a Venture as a paper and the portal say it: his Units and what share of the Venture they are. While it
+ * gathers its capital, the Units he signed for over all signed for. Once the buying starts, the Units he holds — what
+ * he paid, over the Unit price — over all held, which is what the Settlement will divide by; a part-paid Agreement
+ * then reads as what it paid for, so the share he is shown is the share he will be paid.
+ */
+export const hisHolding = (
+  his: { units: number; capitalBdt: number },
+  spend: Pick<TheirSpend, "signedUnits" | "heldUnits">,
+  venture: { state: VentureRow["state"]; unitPriceBdt: number }
+) => {
+  const gathering = venture.state === "open" || venture.state === "cancelled";
+  if (gathering) {
+    return {
+      units: his.units,
+      sharePercent: shareOfUnits(his.units, spend.signedUnits),
+    };
+  }
+  const units = unitsHeld(his.capitalBdt, venture.unitPriceBdt);
+  return { units, sharePercent: shareOfUnits(units, spend.heldUnits) };
+};
 
 /** An average in taka, or nothing at all where there is nothing to average. */
 const meanTaka = (values: number[]) =>
@@ -265,6 +291,7 @@ export const theirSpend = async (
     id: string;
     targetCapitalBdt: number;
     cattleBudgetBdt: number;
+    unitPriceBdt: number;
     /** Which side of the run it is on: what buying did not spend is feeding money once it closes. */
     state: VentureRow["state"];
   }
@@ -287,6 +314,11 @@ export const theirSpend = async (
     // it, because lines that do not add up to the total beneath them is the farm arguing with itself.
     chargedBdt: roundTaka(charges.reduce((sum, one) => sum + one.bdt, 0)),
     signedUnits: signed.get(venture.id)?.units ?? 0,
+    heldUnits: unitsHeld(
+      (held.get(venture.id)?.capitalInBdt ?? 0) -
+        (held.get(venture.id)?.refundedBdt ?? 0),
+      venture.unitPriceBdt
+    ),
     cattleBudgetBdt: budgets.cattleBudgetBdt,
     runningBudgetBdt: budgets.runningBudgetBdt,
     cattleBudgetLeftBdt: budgets.cattleBudgetDrawnAgainstBdt,

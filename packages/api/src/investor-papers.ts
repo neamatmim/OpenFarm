@@ -13,6 +13,7 @@ import type { Context } from "./context";
 import { assertRegistered, exportedPaper } from "./export-store";
 import {
   assertCapitalHeld,
+  hisHolding,
   hisSettlement,
   hisStanding,
   theVentureOf,
@@ -25,7 +26,6 @@ import {
   chargeWords,
   gainWords,
   herdStoryWords,
-  shareOfUnits,
 } from "./investor-statement-words";
 import { paperValues } from "./paper-values";
 import { languageOf } from "./reader-language";
@@ -161,15 +161,20 @@ export const progressStatementFor = async (
     theirProgress(context.db, context.farm.id, venture, now),
     theirSpend(context.db, context.farm.id, venture),
   ]);
+  const holding = hisHolding(
+    { units: standing.agreement.units, capitalBdt: standing.capitalBdt },
+    spend,
+    venture
+  );
   const said = (value: number) => formatNumber(value, language);
   const text = progressStatement({
     farm: context.farm,
     investorName: standing.him.name,
     ventureName: standing.venture.name,
-    units: said(standing.agreement.units),
-    // His share of the Venture, which is his own Units over all of them — not a list of who holds
-    // the rest, which is nobody's business but theirs.
-    share: said(shareOfUnits(standing.agreement.units, spend.signedUnits)),
+    // His Units and his share of the Venture, which is his own Units over all of them — not a list of who holds the
+    // rest, which is nobody's business but theirs. Held, not signed for, once the buying has started.
+    units: said(holding.units),
+    share: said(holding.sharePercent),
     standing: said(theirs.standingCount),
     sold: said(theirs.soldCount),
     died: said(theirs.diedCount),

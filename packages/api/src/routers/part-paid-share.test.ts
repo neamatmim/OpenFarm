@@ -155,3 +155,42 @@ describe("a Settlement with Agreements only part paid", () => {
     expect(new Set(perTaka).size).toBe(1);
   });
 });
+
+describe("the progress paper of a part-paid Venture", () => {
+  it("says the Units each holds and his share of all held, as the Settlement will divide", async () => {
+    const owner = await as("owner", "2071-02-01T04:00:00.000Z");
+    await owner.farm.setIdentity({
+      address: `সাভার ${suffix}`,
+      phone: "+8801711000094",
+      registrationNumber: `DLS/SAV/2071/${suffix}`,
+      registrationOffice: "উপজেলা প্রাণিসম্পদ দপ্তর, সাভার",
+      registrationExpiresOn: "2073-03-31",
+    });
+    const venture = await owner.ventures.open({
+      name: `অগ্রগতি ${suffix}`,
+      targetCapitalBdt: 1_000_000,
+      floorBdt: 0,
+      decideBy: "2071-02-20",
+      targetWindowStart: "2071-07-01",
+      targetWindowEnd: "2071-07-10",
+      unitPriceBdt: UNIT_PRICE,
+      units: 20,
+      cattleBudgetBdt: 800_000,
+    });
+    ventureId = venture.id;
+    const full = await signedAndPaid(owner, "পূর্ণ", 10, UNIT_PRICE * 10);
+    const part = await signedAndPaid(owner, "ছয়", 10, UNIT_PRICE * 6);
+    await owner.ventures.startBuying({ id: venture.id });
+
+    // Read as the farm stands now, registered, which the client opened before that was not.
+    const reader = await as("owner", "2071-02-02T04:00:00.000Z");
+    const paperOf = async (agreementId: string) => {
+      const paper = await reader.investorStatements.progress({ agreementId });
+      return paper.text;
+    };
+
+    // Ten Units and six held of sixteen: 63% and 38% — not the half each their signatures would say.
+    expect(await paperOf(full)).toContain("১০ (৬৩%)");
+    expect(await paperOf(part)).toContain("৬ (৩৮%)");
+  });
+});
