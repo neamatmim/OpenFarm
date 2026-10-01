@@ -121,26 +121,6 @@ export const ShortOfRationBadge = ({ row }: { row: BoardRow }) => {
   return onRation?.underPenmates ? <BehindPenmatesBadge /> : null;
 };
 
-/** The same in one muted line for a phone's card; nothing where the Ration says no gain. */
-export const OnRationLine = ({ row }: { row: BoardRow }) => {
-  const { t, language } = useLanguage();
-  const onRation = onRationOf(row);
-  if (!onRation) {
-    return null;
-  }
-  const gain = onRation.gain
-    ? t("gain.perDay", {
-        kg: formatNumber(onRation.gain.dailyGainKg, language),
-      })
-    : t("gainOnRation.tooSoon");
-  const against = againstSaid(onRation, { t, language });
-  return (
-    <span className="text-muted-foreground text-xs">
-      {`${t("gainOnRation.onRation")} ${gain} · ${against}`}
-    </span>
-  );
-};
-
 /** What she is judged against on her Ration, alone, for a cell that already says her rate; nothing where the Ration
  *  says no gain. */
 export const OnRationVerdict = ({ row }: { row: BoardRow }) => {

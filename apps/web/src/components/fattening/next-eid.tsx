@@ -117,8 +117,9 @@ export const untilSaid = (
  * The Eid the farm is feeding towards, on the fattening page: its three days, how sure the farm is of them, and how
  * long there is to go. The Owner or the Manager writes the committee's day in once it is announced; the farm's own
  * animals still aimed at the day expected are then offered the move, which is its own act.
+ * `compact` leaves out how sure the day is in words — the badge still says — for a page that shows it in a row.
  */
-export const NextEid = () => {
+export const NextEid = ({ compact = false }: { compact?: boolean }) => {
   const { t, language } = useLanguage();
   const refused = useRefused();
   const next = useQuery(orpc.eid.next.queryOptions());
@@ -155,7 +156,7 @@ export const NextEid = () => {
           {t("eid.announce")}
         </Button>
       }
-      description={t(`eid.basisHint.${window.basis}`)}
+      description={compact ? undefined : t(`eid.basisHint.${window.basis}`)}
       title={t("eid.title")}
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">

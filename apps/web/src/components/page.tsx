@@ -223,6 +223,33 @@ const TILE_TONE: Record<Tone, string> = {
   info: "text-info",
 };
 
+/** A tile's card: only read, or a button that shows the list below as the tile counts it, ringed while it does. */
+const TileFrame = ({
+  onSelect,
+  selected,
+  children,
+}: {
+  onSelect: (() => void) | undefined;
+  selected: boolean;
+  children: ReactNode;
+}) =>
+  onSelect ? (
+    <button
+      aria-pressed={selected}
+      className={cn(
+        "surface flex h-full w-full flex-col gap-3 p-4 text-start transition-colors md:p-5",
+        "hover:bg-muted/40 focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]",
+        selected && "ring-primary ring-2"
+      )}
+      onClick={onSelect}
+      type="button"
+    >
+      {children}
+    </button>
+  ) : (
+    <div className="surface flex h-full flex-col gap-3 p-4 md:p-5">{children}</div>
+  );
+
 /** One figure the farm watches: what it is, the figure large and aligned, and what it means. */
 export const StatTile = ({
   label,
@@ -231,6 +258,8 @@ export const StatTile = ({
   icon: Icon,
   tone = "neutral",
   lead = false,
+  onSelect,
+  selected = false,
 }: {
   label: ReactNode;
   value: ReactNode;
@@ -239,8 +268,12 @@ export const StatTile = ({
   tone?: Tone;
   /** The figure its page is read by, set a size larger than the tiles beside it. */
   lead?: boolean;
+  /** What pressing the tile does — show the list below as the figure counts it. A tile without it is only read. */
+  onSelect?: () => void;
+  /** Whether the list below is showing what this tile counts. */
+  selected?: boolean;
 }) => (
-  <div className="surface flex h-full flex-col gap-3 p-4 md:p-5">
+  <TileFrame onSelect={onSelect} selected={selected}>
     <div className="text-muted-foreground flex items-center justify-between gap-2 text-sm font-medium">
       <span className="truncate" data-slot="figure-label">
         {label}
@@ -263,7 +296,7 @@ export const StatTile = ({
       {value}
     </div>
     {hint ? <div className="text-muted-foreground text-sm">{hint}</div> : null}
-  </div>
+  </TileFrame>
 );
 
 const BADGE_VARIANT = {
