@@ -5,6 +5,8 @@ import {
   cattleMoneyOf,
   monthlySumsOf,
   monthlyTermsOf,
+  sumsStandingOf,
+  takesCapital,
 } from "./monthly-sums";
 
 const VENTURE = {
@@ -132,5 +134,83 @@ describe("how much of a Venture's capital is cattle money", () => {
         10
       )
     ).toBe(240_000);
+  });
+});
+
+// Three Units of fifty thousand: 1,20,000 before buying, then 7,500 on each 10th, February to May.
+const SCHEDULE = {
+  cattlePartBdt: 40_000,
+  sums: [
+    { dueOn: "2074-02-10", bdt: 2500 },
+    { dueOn: "2074-03-10", bdt: 2500 },
+    { dueOn: "2074-04-10", bdt: 2500 },
+    { dueOn: "2074-05-10", bdt: 2500 },
+  ],
+};
+const standing = (paidBdt: number, today: string) =>
+  sumsStandingOf({
+    units: 3,
+    unitPriceBdt: 50_000,
+    monthly: SCHEDULE,
+    paidBdt,
+    today,
+  });
+
+describe("where an Agreement stands against its Monthly Sums", () => {
+  it("owes nothing yet due before the first 10th, and says the next", () => {
+    expect(standing(120_000, "2074-02-01")).toEqual({
+      owedBdt: 30_000,
+      dueBdt: 0,
+      missedBdt: 0,
+      next: { dueOn: "2074-02-10", bdt: 7500 },
+    });
+  });
+
+  it("is due on the 10th, still only late on the 17th, and missed from the 18th", () => {
+    expect(standing(120_000, "2074-02-10")).toMatchObject({
+      dueBdt: 7500,
+      missedBdt: 0,
+    });
+    expect(standing(120_000, "2074-02-17")).toMatchObject({ missedBdt: 0 });
+    expect(standing(120_000, "2074-02-18")).toMatchObject({
+      dueBdt: 7500,
+      missedBdt: 7500,
+    });
+  });
+
+  it("clears the oldest sum first when he pays what he is behind on", () => {
+    // February and March both owed, and one sum paid: it is February's, so only March is late.
+    expect(standing(127_500, "2074-03-20")).toMatchObject({
+      dueBdt: 7500,
+      missedBdt: 7500,
+    });
+    expect(standing(135_000, "2074-03-20")).toMatchObject({
+      dueBdt: 0,
+      missedBdt: 0,
+      next: { dueOn: "2074-04-10", bdt: 7500 },
+    });
+  });
+
+  it("has no next sum once the last is due, and owes nothing once all is paid", () => {
+    expect(standing(150_000, "2074-05-20")).toEqual({
+      owedBdt: 0,
+      dueBdt: 0,
+      missedBdt: 0,
+      next: null,
+    });
+  });
+});
+
+describe("whether a Venture takes capital", () => {
+  it("takes it Open, and paid by the month while buying and fattening, never once selling", () => {
+    const monthly = { capitalPaid: "by_the_month" as const };
+    const before = { capitalPaid: "before_buying" as const };
+
+    expect(takesCapital({ ...monthly, state: "open" })).toBe(true);
+    expect(takesCapital({ ...monthly, state: "buying" })).toBe(true);
+    expect(takesCapital({ ...monthly, state: "fattening" })).toBe(true);
+    expect(takesCapital({ ...monthly, state: "selling" })).toBe(false);
+    expect(takesCapital({ ...before, state: "open" })).toBe(true);
+    expect(takesCapital({ ...before, state: "buying" })).toBe(false);
   });
 });

@@ -25,6 +25,7 @@ import {
   CAPITAL_PAID,
   capitalItMayHold,
   monthlyTermsOf,
+  takesCapital,
   roundTaka,
   startOfFarmDay,
   whatUnitsTake,
@@ -1624,9 +1625,14 @@ export const venturesRouter = {
       }
       const agreement = await theAgreement(context, input.agreementId);
       const row = await ours(context, agreement.ventureId);
-      if (row.state !== "open") {
+      // Open, any Venture; paid by the month, its Monthly Sums too while it buys and fattens. Once it sells, a sum not
+      // yet paid is not paid, and the man shares by what he did pay (the advisers' answers, 2026-10-02).
+      if (!takesCapital(row)) {
         throw new ORPCError("BAD_REQUEST", {
-          message: "A Venture takes capital only while it is open",
+          message:
+            row.capitalPaid === "by_the_month"
+              ? "A Venture paid by the month takes its Monthly Sums only until it starts selling"
+              : "A Venture takes capital only while it is open",
           data: { refusal: "venture_wrong_state" },
         });
       }

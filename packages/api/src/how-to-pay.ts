@@ -1,8 +1,13 @@
-import { capitalItMayHold } from "@OpenFarm/domain";
+import type { MonthlySum } from "@OpenFarm/domain";
+import {
+  capitalItMayHold,
+  sumsStandingOf,
+  takesCapital,
+} from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
 import type { VentureAccount, VentureRow } from "./venture-store";
-import { accountOf, takenAgainst } from "./venture-store";
+import { accountOf, paidForBy, takenAgainst } from "./venture-store";
 
 // How to pay (ADR 0008): what an invited Investor's own signed Agreement tells them while its capital is still owed —
 // where to pay, how much is left, the Pay-in Code to write on the transfer and the day the farm decides by. Never
@@ -14,12 +19,17 @@ export interface HowToPay {
   payInCode: string;
   decideBy: string;
   account: VentureAccount | null;
+  /** Paid by the month, once the buying has started: what has fallen due and is not yet paid, and the next sum — its
+   *  day and what his Units pay on it. Nothing while the Venture gathers its capital, which is paid by the decision
+   *  date like any other. */
+  monthly: { dueBdt: number; next: MonthlySum | null } | null;
 }
 
 /**
- * What one Agreement still owes and where it is paid, or nothing once its capital is all in — or once its Venture has
- * left Open, which takes no more capital. Owed is the Agreement's Units at the Unit price, less the capital recorded
- * against it, counted as the capital form counts it before refusing a payment too many. The caller has already
+ * What one Agreement still owes and where it is paid, or nothing once its capital is all in — or once its Venture takes
+ * no more: one paid before buying once it leaves Open, one paid by the month once it starts selling. Owed is what the
+ * Agreement may hold by now (its Units' price, or their Cattle Part while a monthly Venture gathers), less the capital
+ * recorded against it, counted as the capital form counts it before refusing a payment too many. The caller has already
  * narrowed the Agreement to the Investor asking.
  */
 export const howToPay = async (
@@ -32,15 +42,19 @@ export const howToPay = async (
     | "capitalPaid"
     | "unitPriceBdt"
     | "cattlePartBdt"
+    | "monthlySums"
+    | "firstSumDueOn"
     | "decideBy"
     | "accountBank"
     | "accountBranch"
     | "accountName"
     | "accountNumber"
     | "accountRoutingNumber"
-  >
+  >,
+  /** The farm day, which the Monthly Sums are due by. */
+  today: string
 ): Promise<HowToPay | null> => {
-  if (run.state !== "open") {
+  if (!takesCapital(run)) {
     return null;
   }
   const agreement = await db.query.investmentAgreement.findFirst({
@@ -50,18 +64,29 @@ export const howToPay = async (
   if (!agreement) {
     return null;
   }
+  const paidBdt = await takenAgainst(db, farmId, agreementId);
   // What he may pay now: his Units' whole price, or — for a Venture paid by the month, still gathering — their Cattle
   // Part, since a taka of the Monthly Sums sent early would be refused at the bank's own door.
-  const owedBdt =
-    capitalItMayHold(agreement.units, run) -
-    (await takenAgainst(db, farmId, agreementId));
+  const owedBdt = capitalItMayHold(agreement.units, run) - paidBdt;
   if (owedBdt <= 0) {
     return null;
   }
+  const { monthly } = paidForBy(run);
+  const running = run.state !== "open" && monthly !== null;
+  const standing = running
+    ? sumsStandingOf({
+        units: agreement.units,
+        unitPriceBdt: run.unitPriceBdt,
+        monthly,
+        paidBdt,
+        today,
+      })
+    : null;
   return {
     owedBdt,
     payInCode: agreement.payInCode,
     decideBy: run.decideBy,
     account: accountOf(run),
+    monthly: standing ? { dueBdt: standing.dueBdt, next: standing.next } : null,
   };
 };

@@ -1,3 +1,4 @@
+import { addDays } from "./fattening";
 import { monthsFromTo } from "./venture";
 
 /**
@@ -156,4 +157,67 @@ export const cattleMoneyOf = (
         (capitalBdt * venture.cattleBudgetBdt) / venture.targetCapitalBdt
       )
     : 0;
+};
+
+/** The states a Venture paid by the month takes Monthly Sums in: from the buying until the selling starts, after
+ *  which a sum not yet paid is not paid (the advisers' answers, 2026-10-02). Open, it takes the Cattle Part. */
+export const TAKES_MONTHLY_SUMS = ["buying", "fattening"] as const;
+
+/** Whether a Venture takes capital today: any Venture while Open; one paid by the month while it runs, until it sells. */
+export const takesCapital = (venture: {
+  state: string;
+  capitalPaid: CapitalPaid;
+}) =>
+  venture.state === "open" ||
+  (venture.capitalPaid === "by_the_month" &&
+    TAKES_MONTHLY_SUMS.some((one) => one === venture.state));
+
+/** How one Agreement of a Venture paid by the month stands against its schedule on a day. */
+export interface SumsStanding {
+  /** What it still owes of its Units' whole price. */
+  owedBdt: number;
+  /** Of that, what has fallen due by the day and not been paid. */
+  dueBdt: number;
+  /** Of what is due, what fell due more than SUM_MISSED_AFTER_DAYS before the day: missed. It may still be paid until
+   *  the selling starts. */
+  missedBdt: number;
+  /** The next Monthly Sum not yet due — its day and what his Units pay on it — or nothing once none is left. */
+  next: MonthlySum | null;
+}
+
+/**
+ * Where one Agreement stands against its Monthly Sums on a day. What he paid clears his Cattle Part first and then the
+ * sums in their order, so a sum paid late clears the oldest one owed — the way a man paying what he is behind on means
+ * it.
+ */
+export const sumsStandingOf = ({
+  units,
+  unitPriceBdt,
+  monthly,
+  paidBdt,
+  today,
+}: {
+  units: number;
+  unitPriceBdt: number;
+  monthly: { cattlePartBdt: number; sums: readonly MonthlySum[] };
+  paidBdt: number;
+  /** The farm day, "YYYY-MM-DD". */
+  today: string;
+}): SumsStanding => {
+  const dueBy = (passed: (dueOn: string) => boolean) =>
+    units *
+    (monthly.cattlePartBdt +
+      monthly.sums
+        .filter((one) => passed(one.dueOn))
+        .reduce((sum, one) => sum + one.bdt, 0));
+  const missedBefore = addDays(today, -SUM_MISSED_AFTER_DAYS);
+  const upcoming = monthly.sums.find((one) => one.dueOn > today);
+  return {
+    owedBdt: Math.max(0, units * unitPriceBdt - paidBdt),
+    dueBdt: Math.max(0, dueBy((dueOn) => dueOn <= today) - paidBdt),
+    missedBdt: Math.max(0, dueBy((dueOn) => dueOn < missedBefore) - paidBdt),
+    next: upcoming
+      ? { dueOn: upcoming.dueOn, bdt: units * upcoming.bdt }
+      : null,
+  };
 };

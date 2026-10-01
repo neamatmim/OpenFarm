@@ -816,14 +816,18 @@ export {
   CAPITAL_PAID,
   SUM_DUE_DAY,
   SUM_MISSED_AFTER_DAYS,
+  TAKES_MONTHLY_SUMS,
   capitalItMayHold,
   cattleMoneyOf,
   monthlySumsOf,
   monthlyTermsOf,
+  sumsStandingOf,
+  takesCapital,
 } from "./monthly-sums";
 export type {
   CapitalPaid,
   MonthlySum,
   MonthlyTerms,
   NoMonthlyTerms,
+  SumsStanding,
 } from "./monthly-sums";

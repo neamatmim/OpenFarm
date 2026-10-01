@@ -42,6 +42,7 @@ import { Line, moneyOf } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
 import type { Venture } from "@/lib/ventures";
+import { takesCapitalNow } from "@/lib/ventures";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
@@ -430,6 +431,8 @@ export const VentureInvestors = ({
   const [saying, setSaying] =
     useState<Parameters<typeof AcknowledgeSheet>[0]["what"]>(null);
   const open = venture.state === "open";
+  // Open, or paid by the month and running: the Monthly Sums come in while it buys and fattens.
+  const taking = takesCapitalNow(venture);
   const cancelled = venture.state === "cancelled";
   const settled = venture.settlementApproved ?? false;
   if (agreements.isPending) {
@@ -456,7 +459,7 @@ export const VentureInvestors = ({
       approved: approved !== null,
       settled,
       advanceFirst,
-      mayTakeCapital: open && mayPayIn(one),
+      mayTakeCapital: taking && mayPayIn(one),
       cancelled,
       papers,
       handleTakeCapital: () => acts.takeCapital(venture, one.id),
@@ -482,7 +485,7 @@ export const VentureInvestors = ({
       },
     };
   });
-  const actions = open ? (
+  const actions = taking ? (
     <>
       {someoneMayPayIn ? (
         <Button
@@ -495,7 +498,7 @@ export const VentureInvestors = ({
           {t("ventures.takeCapital")}
         </Button>
       ) : null}
-      {unitsLeft > 0 ? (
+      {open && unitsLeft > 0 ? (
         <Button onClick={() => acts.sign(venture)} size="sm" type="button">
           <PenLine aria-hidden data-icon="inline-start" />
           {t("ventures.sign")}
