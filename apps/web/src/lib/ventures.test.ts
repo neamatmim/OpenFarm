@@ -13,6 +13,9 @@ const open = (fields: Partial<Venture>): Venture =>
     state: "open",
     floorBdt: 700_000,
     capitalInBdt: 100_000,
+    capitalPaid: "before_buying",
+    signedFor: { units: 2, people: 1 },
+    unitPriceBdt: 50_000,
     decideBy: "2026-09-30",
     ...fields,
   }) as Venture;

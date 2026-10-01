@@ -829,6 +829,7 @@ export {
   monthlyTermsOf,
   sumsStandingOf,
   takesCapital,
+  towardsTheFloor,
 } from "./monthly-sums";
 export type {
   CapitalPaid,

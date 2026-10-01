@@ -27,6 +27,7 @@ import {
   monthlyTermsOf,
   sumsStandingOf,
   takesCapital,
+  towardsTheFloor,
   roundTaka,
   startOfFarmDay,
   whatUnitsTake,
@@ -490,9 +491,18 @@ const moveTo = async (
   }
   if (to === "buying") {
     const held = await heldByEach(context.db, context.farm.id, [row.id]);
-    // What it holds, not what once arrived: money sent back is not money to start on.
+    const signed = await signedForEach(context.db, context.farm.id, [row.id]);
+    const signedUnits = signed.get(row.id)?.units ?? 0;
+    // What it holds, not what once arrived: money sent back is not money to start on. Paid by the month, the capital
+    // its signed Units are for, since before buying it holds only their Cattle Parts.
     const standing = held.get(row.id);
-    if ((standing ? balanceOf(standing) : 0) < row.floorBdt) {
+    const counted = towardsTheFloor({
+      capitalPaid: row.capitalPaid,
+      heldBdt: standing ? balanceOf(standing) : 0,
+      signedUnits,
+      unitPriceBdt: row.unitPriceBdt,
+    });
+    if (counted < row.floorBdt) {
       throw new ORPCError("BAD_REQUEST", {
         message: "The Venture holds less than its Floor",
         data: { refusal: "venture_under_floor" },
@@ -500,11 +510,10 @@ const moveTo = async (
     }
     // Paid by the month, the buying waits on every signed Unit's Cattle Part as well: the Monthly Sums keep the animals
     // and buy none, so a lorry sent on part of the cattle money buys a herd short of the one everybody signed for.
-    const signed = await signedForEach(context.db, context.farm.id, [row.id]);
     const shortBdt = cattleMoneyShortOf(
       row,
       standing ?? NOTHING_HELD,
-      signed.get(row.id)?.units ?? 0
+      signedUnits
     );
     if (shortBdt > 0) {
       throw new ORPCError("BAD_REQUEST", {

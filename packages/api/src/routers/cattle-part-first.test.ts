@@ -177,3 +177,39 @@ describe("a Venture paid before buying", () => {
     });
   });
 });
+
+describe("a Venture paid by the month and its Floor", () => {
+  const withTheFarmsFloor = async (owner: Owner, name: string) => {
+    // No Floor of its own: the farm's percentage of the capital, which is more than the Cattle Parts can ever hold.
+    const { floorBdt: _none, ...rest } = TERMS;
+    const { id } = await owner.ventures.open({
+      name: `${name} ${suffix}`,
+      ...rest,
+      capitalPaid: "by_the_month",
+    });
+    return id;
+  };
+
+  it("counts the capital its signed Units are for, so it starts on its Cattle Parts once enough is signed", async () => {
+    const owner = await asOwner();
+    const id = await withTheFarmsFloor(owner, "যথেষ্ট সই");
+    const paper = await signed(owner, id, 16);
+    await pay(owner, paper, 640_000);
+
+    await owner.ventures.startBuying({ id });
+
+    const venture = await listed(owner, id);
+    expect(venture?.state).toBe("buying");
+  });
+
+  it("will not start while the signed Units come to less than the Floor", async () => {
+    const owner = await asOwner();
+    const id = await withTheFarmsFloor(owner, "কম সই");
+    const paper = await signed(owner, id, 10);
+    await pay(owner, paper, 400_000);
+
+    await expect(owner.ventures.startBuying({ id })).rejects.toMatchObject({
+      data: { refusal: "venture_under_floor" },
+    });
+  });
+});

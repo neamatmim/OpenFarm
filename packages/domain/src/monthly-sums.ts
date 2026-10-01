@@ -238,3 +238,19 @@ export const sumsStandingOf = ({
     lastMissedOn: missed.at(-1)?.dueOn ?? null,
   };
 };
+
+/**
+ * What a Venture counts against its Floor before it starts buying. Paid before buying, what it holds. Paid by the
+ * month, the capital its signed Units are for: before the buying it only ever holds their Cattle Parts — the rest comes
+ * by the month — and the buying waits on every one of those already, so a Floor read against the cash would be one a
+ * Venture paid by the month could never reach.
+ */
+export const towardsTheFloor = (venture: {
+  capitalPaid: CapitalPaid;
+  heldBdt: number;
+  signedUnits: number;
+  unitPriceBdt: number;
+}) =>
+  venture.capitalPaid === "by_the_month"
+    ? venture.signedUnits * venture.unitPriceBdt
+    : venture.heldBdt;
