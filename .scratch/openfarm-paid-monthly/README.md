@@ -40,12 +40,12 @@ A Venture is one or the other, chosen when it opens; every Venture so far stays 
 
 ## Tickets
 
-| #   | Ticket                                                   | Blocked by                               |
-| --- | -------------------------------------------------------- | ---------------------------------------- |
-| 01  | [Monthly terms on a Venture](issues/01-monthly-terms.md) | done                                     |
-| 02  | [The cattle part first](issues/02-cattle-part-first.md)  | done                                     |
-| 03  | [Monthly sums while it runs](issues/03-monthly-sums.md)  | done                                     |
-| 04  | [Who is behind](issues/04-who-is-behind.md)              | done                                     |
-| 05  | [The papers say it](issues/05-papers-say-it.md)          | 01; drafted clauses read by the advisers |
+| #   | Ticket                                                   | Blocked by                         |
+| --- | -------------------------------------------------------- | ---------------------------------- |
+| 01  | [Monthly terms on a Venture](issues/01-monthly-terms.md) | done                               |
+| 02  | [The cattle part first](issues/02-cattle-part-first.md)  | done                               |
+| 03  | [Monthly sums while it runs](issues/03-monthly-sums.md)  | done                               |
+| 04  | [Who is behind](issues/04-who-is-behind.md)              | done                               |
+| 05  | [The papers say it](issues/05-papers-say-it.md)          | clauses drafted, with the advisers |
 
 Answered: 01–04 may be built. 05's clauses are drafted here and read by the advisers before they are published.
