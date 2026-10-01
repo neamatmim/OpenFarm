@@ -512,6 +512,48 @@ const weighTheShelves = async (f: Farm) => {
   }
 };
 
+/** Below this the Manager asks for cash: a day's feed and sundries can come to more. */
+const HAND_LOW_BDT = 150_000;
+/** What the Owner draws the Manager's hand back up to, and leaves in it when the takings go over. */
+const HAND_FLOAT_BDT = 300_000;
+/** Above this the Manager hands the takings to the Owner rather than carry them. */
+const HAND_FULL_BDT = 500_000;
+/** Cash moves in round thousands. */
+const HAND_ROUNDS_TO_BDT = 1000;
+
+/**
+ * Each morning the Manager's hand is put right before the day's buying: drawn up from the bank when it runs low, the
+ * milk and cattle takings handed to the Owner when it holds too much. The weekly Cash Count then finds what the book
+ * says, because the hand is never asked to pay what it does not hold.
+ */
+const settleTheHand = async (f: Farm) => {
+  const managerId = f.accounts.manager.session.user.id;
+  const [hand] = await f.as.manager.cash.inHand();
+  const holds = hand?.bdt ?? 0;
+  if (holds < HAND_LOW_BDT) {
+    await f.as.owner.cash.handOver({
+      from: { bank: true },
+      to: { userId: managerId },
+      amountBdt:
+        Math.ceil((HAND_FLOAT_BDT - holds) / HAND_ROUNDS_TO_BDT) *
+        HAND_ROUNDS_TO_BDT,
+      reference: `চেক নং ${f.random.int(100_000, 999_999)}`,
+      note: "ম্যানেজারের হাতখরচ",
+    });
+    return;
+  }
+  if (holds > HAND_FULL_BDT) {
+    await f.as.manager.cash.handOver({
+      from: { userId: managerId },
+      to: { userId: f.accounts.owner.session.user.id },
+      amountBdt:
+        Math.floor((holds - HAND_FLOAT_BDT) / HAND_ROUNDS_TO_BDT) *
+        HAND_ROUNDS_TO_BDT,
+      note: "বিক্রির টাকা মালিকের হাতে",
+    });
+  }
+};
+
 /** Friday, as JavaScript counts the days of the week: the store's count day. */
 const FRIDAY = 5;
 
@@ -532,6 +574,9 @@ const keepTheBooks = ({ farm, days, on }: Script) => {
       }
     }
   });
+  for (const day of days) {
+    on(day, "07:00", "the Manager's hand settled", settleTheHand);
+  }
   // The store is counted every Friday morning (Standard Playbook): its shelves are weighed just before.
   for (const day of days) {
     if (new Date(`${day}T00:00:00.000Z`).getUTCDay() === FRIDAY) {
