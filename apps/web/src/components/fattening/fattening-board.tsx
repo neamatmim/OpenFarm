@@ -29,12 +29,11 @@ import { useLanguage, useT } from "@/i18n/language-provider";
 import type { BoardRow, Standing } from "./fattening-types";
 import { ORDER, standingOf } from "./fattening-types";
 import {
-  RatesLine,
   StandingBadges,
   StateBadge,
   TagLink,
 } from "./fattening-words";
-import { OnRationLine, OnRationVerdict } from "./on-ration";
+import { OnRationVerdict } from "./on-ration";
 
 /** How many animals the board shows before the next page. */
 const BOARD_PAGE = 20;
@@ -242,8 +241,28 @@ const WeightNow = ({ row }: { row: BoardRow }) => {
   );
 };
 
-/** An animal on a phone: her tag and where she stands on top, her weight large, the pen, her days and both rates
- *  beneath, and the menu at the side. */
+/** The rate she is judged on, named, with what her Ration makes of it after — one line where the card said three. */
+const JudgedRateLine = ({ row }: { row: BoardRow }) => {
+  const { t, language } = useLanguage();
+  const judged = row.recent ?? row.sinceIntake;
+  return (
+    <span className="text-muted-foreground flex flex-wrap gap-x-1 text-xs">
+      <span>
+        {judged
+          ? `${t(row.recent ? "gain.recent" : "gain.sinceIntake")} ${t(
+              "gain.perDay",
+              { kg: formatNumber(judged.dailyGainKg, language) }
+            )}`
+          : t("gain.needsTwo")}
+      </span>
+      <OnRationVerdict row={row} />
+    </span>
+  );
+};
+
+/** An animal on a phone: her tag and where she stands on top, her weight large, the pen and her days, the rate she is
+ *  judged on with what her Ration makes of it, what she might fetch and whether to keep her — her cost is on her page —
+ *  and the menu at the side. */
 const BoardCard = ({ row }: { row: BoardRow }) => {
   const { t, language } = useLanguage();
   const details = [row.penName, t(`state.${row.state}`)];
@@ -265,9 +284,8 @@ const BoardCard = ({ row }: { row: BoardRow }) => {
         <span className="text-muted-foreground text-xs">
           {details.join(" · ")}
         </span>
-        <RatesLine recent={row.recent} sinceIntake={row.sinceIntake} />
-        <OnRationLine row={row} />
-        <PriceLine tagNumber={row.tagNumber} />
+        <JudgedRateLine row={row} />
+        <PriceLine compact tagNumber={row.tagNumber} />
       </div>
       <SellHer row={row} />
     </div>
@@ -276,9 +294,9 @@ const BoardCard = ({ row }: { row: BoardRow }) => {
 
 const boardCard = (row: BoardRow) => <BoardCard row={row} />;
 
-type StandingFilter = "all" | Standing;
+export type StandingFilter = "all" | Standing;
 
-const STANDING_FILTERS: readonly StandingFilter[] = [
+export const STANDING_FILTERS: readonly StandingFilter[] = [
   "all",
   "behind",
   "unknown",
@@ -410,6 +428,9 @@ const KeepingSelect = ({
   );
 };
 
+/** Where the board is on its page, for the figures above that show it filtered to scroll to. */
+export const FATTENING_BOARD_ID = "fattening-board";
+
 /**
  * The fattening side as one list: short of the target first, filtered by where an animal stands, by Pen, or found by
  * her tag, a page at a time — and, for the Owner, by whether keeping her pays, which the page keeps in its address so
@@ -418,15 +439,19 @@ const KeepingSelect = ({
  */
 export const FatteningBoard = ({
   rows,
+  standing,
+  onStanding,
   keeping,
   onKeeping,
 }: {
   rows: BoardRow[];
+  /** Kept in the page's address, as keeping is, so the figures above can set it. */
+  standing: StandingFilter;
+  onStanding: (value: StandingFilter) => void;
   keeping: KeepingFilter;
   onKeeping: (value: KeepingFilter) => void;
 }) => {
   const { t } = useLanguage();
-  const [standing, setStanding] = useState<StandingFilter>("all");
   const [penId, setPenId] = useState("");
   const [search, setSearch] = useState("");
   const keepings = useKeepings();
@@ -447,7 +472,10 @@ export const FatteningBoard = ({
     getRowId: (row) => row.id,
   });
   return (
-    <div className="surface flex flex-col gap-4 p-4 md:p-5">
+    <div
+      className="surface flex scroll-mt-20 flex-col gap-4 p-4 md:p-5"
+      id={FATTENING_BOARD_ID}
+    >
       <FilterBar className="border-b pb-4">
         <Input
           aria-label={t("animals.search")}
@@ -460,7 +488,7 @@ export const FatteningBoard = ({
         />
         {/* Side by side on a phone too, so the list starts a row sooner. */}
         <div className="grid grid-cols-2 gap-3 sm:contents">
-          <StandingSelect onChange={setStanding} rows={rows} value={standing} />
+          <StandingSelect onChange={onStanding} rows={rows} value={standing} />
           <PenSelect onChange={setPenId} rows={rows} value={penId} />
           {keepings === null ? null : (
             <KeepingSelect

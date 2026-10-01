@@ -12,10 +12,15 @@ import {
 } from "lucide-react";
 
 import { MarketPrice } from "@/components/fattening/animal-prices";
-import type { KeepingFilter } from "@/components/fattening/fattening-board";
+import type {
+  KeepingFilter,
+  StandingFilter,
+} from "@/components/fattening/fattening-board";
 import {
+  FATTENING_BOARD_ID,
   FatteningBoard,
   KEEPING_FILTERS,
+  STANDING_FILTERS,
 } from "@/components/fattening/fattening-board";
 import type { BoardRow } from "@/components/fattening/fattening-types";
 import { ORDER, standingOf } from "@/components/fattening/fattening-types";
@@ -31,10 +36,19 @@ import { orpc } from "@/utils/orpc";
 
 /** The four figures the fattening side is judged by: how many are on it, how many will miss their target, how many
  *  will make it, and how many have no rate to judge by yet. */
-const BoardFigures = ({ rows }: { rows: BoardRow[] }) => {
+const BoardFigures = ({
+  rows,
+  standing,
+  onPick,
+}: {
+  rows: BoardRow[];
+  standing: StandingFilter;
+  /** Shows the board as a figure counts it: every animal, or those of one standing. */
+  onPick: (value: StandingFilter) => void;
+}) => {
   const { t, language } = useLanguage();
-  const count = (standing: keyof typeof ORDER) =>
-    rows.filter((row) => standingOf(row.onTrack) === standing).length;
+  const count = (which: keyof typeof ORDER) =>
+    rows.filter((row) => standingOf(row.onTrack) === which).length;
   const behind = count("behind");
   const onTrack = count("onTrack");
   return (
@@ -45,6 +59,7 @@ const BoardFigures = ({ rows }: { rows: BoardRow[] }) => {
           value: formatNumber(rows.length, language),
           hint: t("gain.kpi.onSideHint"),
           icon: Beef,
+          onSelect: () => onPick("all"),
         },
         {
           label: t("gain.behind"),
@@ -52,6 +67,8 @@ const BoardFigures = ({ rows }: { rows: BoardRow[] }) => {
           hint: t("gain.kpi.behindHint"),
           icon: TriangleAlert,
           tone: behind > 0 ? "warning" : "neutral",
+          onSelect: () => onPick("behind"),
+          selected: standing === "behind",
         },
         {
           label: t("gain.onTrack"),
@@ -59,12 +76,16 @@ const BoardFigures = ({ rows }: { rows: BoardRow[] }) => {
           hint: t("gain.kpi.onTrackHint"),
           icon: CircleCheck,
           tone: onTrack > 0 ? "success" : "neutral",
+          onSelect: () => onPick("onTrack"),
+          selected: standing === "onTrack",
         },
         {
           label: t("gain.noRate"),
           value: formatNumber(count("unknown"), language),
           hint: t("gain.kpi.noRateHint"),
           icon: CircleHelp,
+          onSelect: () => onPick("unknown"),
+          selected: standing === "unknown",
         },
       ]}
     />
@@ -92,8 +113,29 @@ const IntakeButton = () => {
 const FatteningPage = () => {
   const { t } = useLanguage();
   const board = useQuery(orpc.fattening.board.queryOptions({ input: {} }));
-  const { keeping = "all" } = Route.useSearch();
+  const { keeping = "all", standing = "all" } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
+  // Each filter kept in the address beside the other, and "all" as no filter at all.
+  const onStanding = (value: StandingFilter) =>
+    navigate({
+      replace: true,
+      // A filter changed is the same page read differently: the reader stays where they are.
+      resetScroll: false,
+      search: (before) => ({
+        ...before,
+        standing: value === "all" ? undefined : value,
+      }),
+    });
+  // A figure pressed shows the board as it counts it, and the board itself, wherever the page was.
+  const pick = async (value: StandingFilter) => {
+    await onStanding(value);
+    // After the board has drawn itself filtered, or the page settles back where the router left it.
+    requestAnimationFrame(() =>
+      document
+        .querySelector(`#${FATTENING_BOARD_ID}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" })
+    );
+  };
 
   const header = (
     <PageHeader
@@ -145,10 +187,14 @@ const FatteningPage = () => {
   return (
     <Page>
       {header}
-      <BoardFigures rows={rows} />
-      <MarketPrice />
-      <RunningSeasonsStrip />
-      <NextEid />
+      <BoardFigures onPick={pick} rows={rows} standing={standing} />
+      {/* What the board is read against — the market price, the Season at today's price, the Eid it is aimed at — in one
+          row, so the board itself is near the top. A card the reader may not see (the Owner's) leaves no gap. */}
+      <div className="grid items-start gap-4 lg:grid-cols-[repeat(auto-fit,minmax(18rem,1fr))]">
+        <MarketPrice compact />
+        <NextEid compact />
+        <RunningSeasonsStrip />
+      </div>
       <OutOfBand />
       <UnderExpectedGain />
       <FatteningBoard
@@ -156,10 +202,16 @@ const FatteningPage = () => {
         onKeeping={(value) =>
           navigate({
             replace: true,
-            search: value === "all" ? {} : { keeping: value },
+            resetScroll: false,
+            search: (before) => ({
+              ...before,
+              keeping: value === "all" ? undefined : value,
+            }),
           })
         }
+        onStanding={onStanding}
         rows={rows}
+        standing={standing}
       />
     </Page>
   );
@@ -168,11 +220,19 @@ const FatteningPage = () => {
 export const Route = createFileRoute("/_auth/fattening")({
   beforeLoad: onlyFor("runsTheFarm"),
   component: FatteningPage,
-  // Which of the Owner's answers to keep or sell the board was filtered to, so the farm's home can link to one.
+  // Which of the Owner's answers to keep or sell the board was filtered to, so the farm's home can link to one; and
+  // where the animals stand, so the figures above can show the board as they count it.
   validateSearch: (
     search: Record<string, unknown>
-  ): { keeping?: Exclude<KeepingFilter, "all"> } => {
+  ): {
+    keeping?: Exclude<KeepingFilter, "all">;
+    standing?: Exclude<StandingFilter, "all">;
+  } => {
     const keeping = KEEPING_FILTERS.find((one) => one === search.keeping);
-    return keeping === undefined || keeping === "all" ? {} : { keeping };
+    const standing = STANDING_FILTERS.find((one) => one === search.standing);
+    return {
+      ...(keeping === undefined || keeping === "all" ? {} : { keeping }),
+      ...(standing === undefined || standing === "all" ? {} : { standing }),
+    };
   },
 });

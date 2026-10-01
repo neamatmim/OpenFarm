@@ -300,7 +300,15 @@ export const KeepCell = ({ tagNumber }: { tagNumber: string }) => {
 };
 
 /** Her price and cost under her on a phone's card, for the Owner; nothing for anybody else. */
-export const PriceLine = ({ tagNumber }: { tagNumber: string }) => {
+export const PriceLine = ({
+  tagNumber,
+  compact = false,
+}: {
+  tagNumber: string;
+  /** What she might fetch and whether to keep her, without what she has cost — her own page says that — for a card
+   *  that is one of many down a phone. */
+  compact?: boolean;
+}) => {
   const owner = useIsOwner();
   const one = useHerPrice(tagNumber);
   if (!owner || !one) {
@@ -309,7 +317,7 @@ export const PriceLine = ({ tagNumber }: { tagNumber: string }) => {
   return (
     <span className="flex flex-col gap-0.5 text-sm">
       <EstimateLine one={one} />
-      <CostLine one={one} />
+      {compact ? null : <CostLine one={one} />}
       <span className="flex flex-col items-start gap-0.5 pt-1">
         <KeepLine full={false} one={one} />
       </span>
@@ -445,8 +453,9 @@ const MarketSheet = ({
 /**
  * The market price a kilo the farm's own animals are priced at, and the act that sets it — on the Owner's screens
  * only. A Venture's animals are priced at their Venture's own prices, set on the Venture.
+ * `compact` leaves out what the price is for, for a page that shows it in a row beside others; setting it still says.
  */
-export const MarketPrice = () => {
+export const MarketPrice = ({ compact = false }: { compact?: boolean }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
   const owner = useIsOwner();
@@ -466,7 +475,7 @@ export const MarketPrice = () => {
           {t(market ? "market.change" : "market.set")}
         </Button>
       }
-      description={t("market.hint")}
+      description={compact ? undefined : t("market.hint")}
       title={t("market.title")}
     >
       <p className="text-sm">

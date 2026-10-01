@@ -63,6 +63,9 @@ export interface Figure {
   tone?: Tone;
   /** The figure the page is read by, set larger than the rest — at most one. */
   lead?: boolean;
+  /** What pressing it does — show the list below as it counts it — and whether the list is showing that now. */
+  onSelect?: () => void;
+  selected?: boolean;
 }
 
 /** How loud a figure's value is: a term among many, an ordinary figure, a range set above the facts about it, and the
@@ -121,14 +124,25 @@ export const SummaryFigures = ({
 }) => (
   <>
     <dl className="surface grid grid-cols-2 gap-x-4 gap-y-3 p-4 md:hidden">
-      {figures.map((figure) => (
+      {figures.map(({ onSelect, ...figure }) => (
         <div
           className={cn(
-            "flex min-w-0 flex-col gap-0.5",
-            figure.lead && "col-span-2"
+            "relative flex min-w-0 flex-col gap-0.5",
+            figure.lead && "col-span-2",
+            figure.selected && "ring-primary -m-1.5 rounded-md p-1.5 ring-2"
           )}
           key={figure.label}
         >
+          {/* A figure that shows the list below as it counts it: the whole of it pressable, named by its label. */}
+          {onSelect ? (
+            <button
+              aria-label={figure.label}
+              aria-pressed={figure.selected ?? false}
+              className="absolute inset-0 z-10 rounded-md"
+              onClick={onSelect}
+              type="button"
+            />
+          ) : null}
           <dt
             className={cn(
               "text-muted-foreground text-xs",
@@ -162,13 +176,15 @@ export const SummaryFigures = ({
         figures.length === 3 && "xl:grid-cols-3"
       )}
     >
-      {figures.map((figure) => (
+      {figures.map(({ onSelect, ...figure }) => (
         <StatTile
           hint={figure.hint}
           icon={figure.icon}
           key={figure.label}
           label={figure.label}
           lead={figure.lead}
+          onSelect={onSelect}
+          selected={figure.selected}
           tone={figure.tone}
           value={figure.value}
         />

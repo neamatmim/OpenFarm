@@ -1,4 +1,4 @@
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowDown, ArrowRightLeft, ArrowUp } from "lucide-react";
@@ -6,94 +6,120 @@ import { useState } from "react";
 
 import type { PenChoice } from "@/components/animal/animal-types";
 import { MoveDialog } from "@/components/animal/move-dialog";
-import { TagLink } from "@/components/fattening/fattening-words";
 import { bandSaid } from "@/components/feed/band-words";
 import { Section, StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
-/** How many are listed before the rest are asked for: a band set for the first time can put half the herd here, and the
- *  board beneath is what the page is for. */
-const SHOWN_AT_FIRST = 5;
-
 type OutOfBandRow = Awaited<
   ReturnType<typeof orpc.fattening.outOfBand.call>
 >[number];
 
-/** One bull in the wrong Pen for his size: what he weighed and when, where he is and what that Pen's Ration is written
- *  for, the Pens whose Ration suits him, and the way to move him there. */
-const OutOfBandLine = ({
-  row,
+/** Bulls in the same wrong Pen for the same reason, with the same Pens to go to: said once, each bull a chip. */
+interface OutOfBandGroup {
+  key: string;
+  rows: OutOfBandRow[];
+}
+
+/** The bulls grouped by where they stand, which way they are out, and where they would fit, in the order first met. */
+const groupsOf = (rows: readonly OutOfBandRow[]): OutOfBandGroup[] => {
+  const groups = new Map<string, OutOfBandRow[]>();
+  for (const row of rows) {
+    const key = [
+      row.pen.penId,
+      row.standing,
+      ...row.fitsIn.map((one) => one.penId),
+    ].join("|");
+    const group = groups.get(key) ?? [];
+    group.push(row);
+    groups.set(key, group);
+  }
+  return [...groups].map(([key, grouped]) => ({ key, rows: grouped }));
+};
+
+/**
+ * One wrong Pen and why, said once: which way they are out, how many, the Pen and what its Ration is written for, the
+ * Pens whose Ration suits them — and each bull as a chip with what he weighed, which opens his Move already pointed at
+ * the first of them.
+ */
+const OutOfBandGroupLine = ({
+  group,
   onMove,
 }: {
-  row: OutOfBandRow;
+  group: OutOfBandGroup;
   onMove: (row: OutOfBandRow) => void;
 }) => {
   const { t, language } = useLanguage();
-  const outgrown = row.standing === "outgrown";
-  const band = bandSaid(row.pen.band, { t, language }) ?? "";
+  const [first] = group.rows;
+  if (!first) {
+    return null;
+  }
+  const outgrown = first.standing === "outgrown";
+  const band = bandSaid(first.pen.band, { t, language }) ?? "";
   return (
-    <li className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex min-w-0 flex-col gap-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <TagLink tagNumber={row.tagNumber} />
-          <StatusBadge
-            icon={outgrown ? ArrowUp : ArrowDown}
-            tone={outgrown ? "warning" : "info"}
-          >
-            {outgrown ? t("band.outgrown") : t("band.tooLight")}
-          </StatusBadge>
-          <span className="text-sm tabular-nums">
-            {t("band.weighed", {
-              weight: formatNumber(row.weightKg, language),
-              date: row.weighedAt
-                ? formatDate(new Date(row.weighedAt), language, "date")
-                : "—",
-            })}
-          </span>
-        </div>
-        <span className="text-muted-foreground text-xs">
+    <li className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
+      <div className="flex flex-wrap items-center gap-2">
+        <StatusBadge
+          icon={outgrown ? ArrowUp : ArrowDown}
+          tone={outgrown ? "warning" : "info"}
+        >
+          {outgrown ? t("band.outgrown") : t("band.tooLight")}
+        </StatusBadge>
+        <span className="text-sm font-medium">
+          {t("animals.count", {
+            count: formatNumber(group.rows.length, language),
+          })}
+        </span>
+        <span className="text-muted-foreground text-sm">
           {t("band.inPen", {
-            pen: row.pen.penName,
-            ration: row.pen.rationName,
+            pen: first.pen.penName,
+            ration: first.pen.rationName,
             band,
           })}
         </span>
-        <span className="text-xs">
-          {row.fitsIn.length > 0
-            ? t("band.fitsIn", {
-                pens: row.fitsIn
-                  .map((one) => `${one.penName} (${one.rationName})`)
-                  .join(", "),
-              })
-            : t("band.noPenFits")}
-        </span>
       </div>
-      <Button
-        className="shrink-0 self-start sm:self-center"
-        onClick={() => onMove(row)}
-        size="sm"
-        type="button"
-        variant="outline"
-      >
-        <ArrowRightLeft aria-hidden data-icon="inline-start" />
-        {t("animals.move")}
-      </Button>
+      <span className="text-sm">
+        {first.fitsIn.length > 0
+          ? t("band.fitsIn", {
+              pens: first.fitsIn
+                .map((one) => `${one.penName} (${one.rationName})`)
+                .join(", "),
+            })
+          : t("band.noPenFits")}
+      </span>
+      <ul className="flex flex-wrap gap-2">
+        {group.rows.map((row) => (
+          <li key={row.tagNumber}>
+            <Button
+              aria-label={t("band.moveTag", { tag: row.tagNumber })}
+              onClick={() => onMove(row)}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              <ArrowRightLeft aria-hidden data-icon="inline-start" />
+              <span className="font-mono">{row.tagNumber}</span>
+              <span className="text-muted-foreground tabular-nums">
+                {t("intake.kg", { kg: formatNumber(row.weightKg, language) })}
+              </span>
+            </Button>
+          </li>
+        ))}
+      </ul>
     </li>
   );
 };
 
 /**
  * The bulls the scale says are in the wrong Pen for their size — grown past the weight band of their Pen's Ration, or
- * not yet up to it — each with a Move already pointed at the first Pen whose Ration suits him. Nothing is drawn while
- * every bull fits, or no Ration has a band.
+ * not yet up to it — grouped where they stand, each a chip that opens his Move already pointed at the first Pen whose
+ * Ration suits him. Nothing is drawn while every bull fits, or no Ration has a band.
  */
 export const OutOfBand = () => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const rows = useQuery(orpc.fattening.outOfBand.queryOptions());
   const sheds = useQuery(orpc.herd.list.queryOptions());
   const [moving, setMoving] = useState<OutOfBandRow | null>(null);
-  const [all, setAll] = useState(false);
   const pens: PenChoice[] = (sheds.data ?? []).flatMap((shed) =>
     shed.pens.map((pen) => ({
       id: pen.id,
@@ -104,28 +130,17 @@ export const OutOfBand = () => {
   if (!rows.data?.length) {
     return null;
   }
-  const shown = all ? rows.data : rows.data.slice(0, SHOWN_AT_FIRST);
-  const someHidden = shown.length < rows.data.length;
   return (
     <Section description={t("band.hint")} title={t("band.title")}>
       <ul className="divide-y">
-        {shown.map((row) => (
-          <OutOfBandLine key={row.tagNumber} onMove={setMoving} row={row} />
+        {groupsOf(rows.data).map((group) => (
+          <OutOfBandGroupLine
+            group={group}
+            key={group.key}
+            onMove={setMoving}
+          />
         ))}
       </ul>
-      {someHidden ? (
-        <Button
-          className="self-start"
-          onClick={() => setAll(true)}
-          size="sm"
-          type="button"
-          variant="ghost"
-        >
-          {t("band.showAll", {
-            count: formatNumber(rows.data.length, language),
-          })}
-        </Button>
-      ) : null}
       {moving ? (
         <MoveDialog
           animal={{
