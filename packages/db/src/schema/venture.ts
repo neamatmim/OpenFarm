@@ -124,7 +124,7 @@ export const venturePlan = pgTable(
 );
 
 /** One buying line of a plan version: so many animals bought between two weights, at a price a kilo, gaining so much
- *  a day. */
+ *  a day — of one Breed, or of any. */
 export const venturePlanLine = pgTable(
   "venture_plan_line",
   {
@@ -141,6 +141,10 @@ export const venturePlanLine = pgTable(
     toKg: numeric("to_kg", { precision: 7, scale: 2 }).notNull(),
     buyBdtPerKg: taka("buy_bdt_per_kg").notNull(),
     dailyGainKg: numeric("daily_gain_kg", { precision: 5, scale: 2 }).notNull(),
+    /** The Breed this line buys, or nothing for any Breed the haat offers. An animal bought counts towards the line of
+     *  her Breed that holds her weight before an any-Breed one. No foreign key: the herd schema reads this one, not the
+     *  other way about; the plan's save checks it is one of the farm's Breeds. */
+    breedId: text("breed_id"),
   },
   (table) => [index("venture_plan_line_plan_idx").on(table.planId)]
 );

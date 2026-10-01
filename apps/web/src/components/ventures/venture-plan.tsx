@@ -1,5 +1,5 @@
 import type { GainingBand } from "@OpenFarm/domain";
-import { gainingBandFor } from "@OpenFarm/domain";
+import { expectedGainFor, gainingBandFor } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -10,10 +10,14 @@ import { ClipboardList, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { BreedField, useBreeds } from "@/components/breed-field";
 import { expectedGainSaid } from "@/components/feed/band-words";
 import { EmptyState, Loaded, Section, StatusBadge } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
+import { useLineBreedName } from "@/components/ventures/line-breed";
 import { useLanguage } from "@/i18n/language-provider";
+import { breedName } from "@/lib/breed";
+import { gainSettingOf } from "@/lib/gain-settings";
 import { useKg } from "@/lib/kg";
 import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
@@ -33,6 +37,8 @@ interface TypedLine {
   toKg: string;
   buyBdtPerKg: string;
   dailyGainKg: string;
+  /** The Breed it buys, or "" for any. */
+  breedId: string;
 }
 
 const LINE_FIELDS = [
@@ -62,6 +68,7 @@ const blankLine = (): TypedLine => {
     toKg: "",
     buyBdtPerKg: "",
     dailyGainKg: "",
+    breedId: "",
   };
 };
 
@@ -76,6 +83,8 @@ const typedFrom = (version: Version | null): TypedLine[] =>
           toKg: String(line.toKg),
           buyBdtPerKg: String(line.buyBdtPerKg),
           dailyGainKg: String(line.dailyGainKg),
+          // A plan this phone kept from before a line could name a Breed names none: any.
+          breedId: line.breedId ?? "",
         };
       })
     : [blankLine()];
@@ -101,24 +110,40 @@ const lineOf = (typed: TypedLine) => {
   }
   // Named, not written into the sheet: the check for untranslated words reads a less-than beside JSX as a tag.
   const backwards = fromKg >= toKg;
-  return backwards ? null : { animals, fromKg, toKg, buyBdtPerKg, dailyGainKg };
+  if (backwards) {
+    return null;
+  }
+  const breedId = typed.breedId === "" ? null : typed.breedId;
+  return { animals, fromKg, toKg, buyBdtPerKg, dailyGainKg, breedId };
 };
 
 /** A gain a day halfway between two, kept to the hundredth as a plan's gains are. */
 const middleGainOf = ({ lowKg, highKg }: { lowKg: number; highKg: number }) =>
   Math.round(((lowKg + highKg) / 2) * 100) / 100;
 
+/** The Breed a line buys, as the gain offer needs it: what to call it, and whether it is deshi. */
+interface LineBreed {
+  name: string;
+  deshi: boolean;
+}
+
 /**
- * What the farm's own Rations say a crossbred bull bought in the middle of a band should gain, under the band's gain
- * box, with a button to write in the middle of that range. The Owner's plan still says what the Owner types: this only
- * offers. Nothing while the band's weights are not both typed, or no Ration by weight holds a bull that size.
+ * What the farm's own Rations say a bull of the line's Breed bought in the middle of its band should gain, under the
+ * band's gain box, with a button to write in the middle of that range: a crossbred bull's, as the Rations are written,
+ * unless the line names a deshi Breed, when it is cut to the farm's deshi share — the share he is judged at once he is
+ * bought. The Owner's plan still says what the Owner types: this only offers. Nothing while the band's weights are not
+ * both typed, or no Ration by weight holds a bull that size.
  */
 const RationsSay = ({
   line,
+  breed,
+  deshiPercent,
   rungs,
   onUse,
 }: {
   line: TypedLine;
+  breed: LineBreed | null;
+  deshiPercent: number;
   rungs: readonly GainingBand[];
   onUse: (dailyGainKg: string) => void;
 }) => {
@@ -133,15 +158,29 @@ const RationsSay = ({
   if (!rung) {
     return null;
   }
-  const middle = middleGainOf(rung.expectedGain);
+  const { expectedGain } = expectedGainFor(
+    rung.expectedGain,
+    { deshi: breed?.deshi ?? false, sex: "male" },
+    { deshiPercent, femalePercent: 100 }
+  );
+  const middle = middleGainOf(expectedGain);
+  const said = {
+    kg: formatNumber(middleKg, language),
+    range: expectedGainSaid(expectedGain, { t, language }) ?? "",
+  };
+  let words = t("plan.rationsSay", said);
+  if (breed?.deshi) {
+    words = t("plan.rationsSayDeshi", {
+      ...said,
+      breed: breed.name,
+      percent: formatNumber(deshiPercent, language),
+    });
+  } else if (breed) {
+    words = t("plan.rationsSayBreed", { ...said, breed: breed.name });
+  }
   return (
     <div className="col-span-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-      <p className="text-muted-foreground text-xs">
-        {t("plan.rationsSay", {
-          kg: formatNumber(middleKg, language),
-          range: expectedGainSaid(rung.expectedGain, { t, language }) ?? "",
-        })}
-      </p>
+      <p className="text-muted-foreground text-xs">{words}</p>
       <Button
         onClick={() => onUse(String(middle))}
         size="sm"
@@ -165,11 +204,20 @@ const PlanSheet = ({
   latest: Version | null;
   onOpenChange: (open: boolean) => void;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const refused = useRefused(PLAN_REFUSALS);
   const [lines, setLines] = useState<TypedLine[]>(() => typedFrom(latest));
   // What the farm's Rations say each band should gain; none on a phone that has never been told.
   const rungs = useQuery(orpc.feed.gainingBands.queryOptions()).data ?? [];
+  const breeds = useBreeds().data ?? [];
+  const farm = useQuery(orpc.farm.current.queryOptions());
+  const deshiPercent = gainSettingOf(farm.data, "deshiGainPercent");
+  const breedOf = (breedId: string): LineBreed | null => {
+    const found = breeds.find((one) => one.id === breedId);
+    return found
+      ? { name: breedName(found, language) ?? "", deshi: found.deshi }
+      : null;
+  };
   const [sale, setSale] = useState({
     low: latest ? String(latest.saleLowBdtPerKg) : "",
     high: latest ? String(latest.saleHighBdtPerKg) : "",
@@ -271,7 +319,17 @@ const PlanSheet = ({
                 />
               </FormField>
             ))}
+            <div className="col-span-2">
+              <BreedField
+                emptyLabel={t("plan.anyBreed")}
+                id={`plan-${line.key}-breed`}
+                onChange={(breedId) => edit(line.key, "breedId", breedId)}
+                value={line.breedId}
+              />
+            </div>
             <RationsSay
+              breed={breedOf(line.breedId)}
+              deshiPercent={deshiPercent}
               line={line}
               onUse={(dailyGainKg) =>
                 edit(line.key, "dailyGainKg", dailyGainKg)
@@ -359,6 +417,7 @@ const averageGainOf = (version: Version) => {
 /** One version's bands as a table, with what they come to together. */
 const PlanTable = ({ version }: { version: Version }) => {
   const { t, language } = useLanguage();
+  const breedOfLine = useLineBreedName();
   const taka = useTaka();
   const kg = (value: number) => formatNumber(value, language);
   const weight = useKg();
@@ -393,6 +452,9 @@ const PlanTable = ({ version }: { version: Version }) => {
             <tr key={`${line.fromKg}-${line.toKg}-${at}`}>
               <td className="px-2 py-2 ps-4 md:ps-5">
                 {t("plan.band", { from: kg(line.fromKg), to: kg(line.toKg) })}
+                <span className="text-muted-foreground block text-xs">
+                  {breedOfLine(line.breedId)}
+                </span>
               </td>
               <td className="px-2 py-2 text-end tabular-nums">
                 {formatNumber(line.animals, language)}

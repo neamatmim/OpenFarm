@@ -484,7 +484,11 @@ export const bn: Record<MessageKey, string> = {
   "plan.buy": "কেজি প্রতি ৳",
   "plan.gain": "দিনে বৃদ্ধি (কেজি)",
   "plan.addLine": "আরেকটি সীমা যোগ করুন",
-  "plan.rationsSay": "আপনার রেশন: {kg} কেজির ষাঁড়ের {range}",
+  "plan.rationsSay": "আপনার রেশন: {kg} কেজির ক্রস ষাঁড়ের {range}",
+  "plan.rationsSayBreed": "আপনার রেশন: {kg} কেজির {breed} ষাঁড়ের {range}",
+  "plan.rationsSayDeshi":
+    "আপনার রেশন: {kg} কেজির {breed} ষাঁড়ের {range} — দেশি, খামারের হার {percent}%",
+  "plan.anyBreed": "যেকোনো জাত",
   "plan.useGain": "{kg} নিন",
   "plan.removeLine": "এই সীমা বাদ দিন",
   "plan.lineOf": "সীমা {number}",

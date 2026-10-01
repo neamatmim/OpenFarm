@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { farmDaysApart } from "./farm-clock";
 import {
-  bandOf,
   baselineOf,
   buyingAgainstPlan,
+  lineFor,
   planAverages,
   planTotals,
   plannedHeadKg,
@@ -14,9 +14,23 @@ import {
 
 const LINES = [
   // Eight bulls of 200 to 250 kg at ৳480 a kilo, putting on 0.9 kg a day.
-  { animals: 8, fromKg: 200, toKg: 250, buyBdtPerKg: 480, dailyGainKg: 0.9 },
+  {
+    animals: 8,
+    fromKg: 200,
+    toKg: 250,
+    buyBdtPerKg: 480,
+    dailyGainKg: 0.9,
+    breedId: null,
+  },
   // Four of 250 to 300 kg at ৳470, putting on 0.8 kg a day.
-  { animals: 4, fromKg: 250, toKg: 300, buyBdtPerKg: 470, dailyGainKg: 0.8 },
+  {
+    animals: 4,
+    fromKg: 250,
+    toKg: 300,
+    buyBdtPerKg: 470,
+    dailyGainKg: 0.8,
+    breedId: null,
+  },
 ];
 
 describe("what a Venture Plan comes to", () => {
@@ -53,14 +67,64 @@ describe("what a Venture Plan comes to", () => {
 
 describe("the band an animal was bought in", () => {
   it("is the line whose weights she came in at, the lower weight in and the upper out", () => {
-    expect(bandOf(LINES, 200)).toBe(0);
-    expect(bandOf(LINES, 249.9)).toBe(0);
-    expect(bandOf(LINES, 250)).toBe(1);
+    expect(lineFor(LINES, { weightKg: 200, breedId: null })).toBe(0);
+    expect(lineFor(LINES, { weightKg: 249.9, breedId: null })).toBe(0);
+    expect(lineFor(LINES, { weightKg: 250, breedId: null })).toBe(1);
   });
 
   it("is none for one lighter or heavier than every line", () => {
-    expect(bandOf(LINES, 180)).toBeNull();
-    expect(bandOf(LINES, 300)).toBeNull();
+    expect(lineFor(LINES, { weightKg: 180, breedId: null })).toBeNull();
+    expect(lineFor(LINES, { weightKg: 300, breedId: null })).toBeNull();
+  });
+});
+
+describe("the line a bull of a Breed was bought in", () => {
+  const PABNA = "breed-pabna";
+  const SAHIWAL_CROSS = "breed-sahiwal-cross";
+  const BRAHMAN = "breed-brahman";
+  // One weight band, two Breeds and any other: ten Pabna bulls at 0.55 a day, ten Sahiwal crosses at 0.8, and four of
+  // whatever else the haat has. Then a heavier band of Pabna only.
+  const LIGHT = { fromKg: 200, toKg: 250, buyBdtPerKg: 480 };
+  const HEAVY = { fromKg: 250, toKg: 300, buyBdtPerKg: 470 };
+  const BY_BREED = [
+    { ...LIGHT, animals: 10, dailyGainKg: 0.55, breedId: PABNA },
+    { ...LIGHT, animals: 10, dailyGainKg: 0.8, breedId: SAHIWAL_CROSS },
+    { ...LIGHT, animals: 4, dailyGainKg: 0.7, breedId: null },
+    { ...HEAVY, animals: 6, dailyGainKg: 0.6, breedId: PABNA },
+  ];
+
+  it("is the line of his own Breed that holds his weight, before an any-Breed one", () => {
+    expect(lineFor(BY_BREED, { weightKg: 220, breedId: PABNA })).toBe(0);
+    expect(lineFor(BY_BREED, { weightKg: 220, breedId: SAHIWAL_CROSS })).toBe(
+      1
+    );
+    expect(lineFor(BY_BREED, { weightKg: 260, breedId: PABNA })).toBe(3);
+  });
+
+  it("is an any-Breed line of his weight for a Breed no line names, or one nobody wrote down", () => {
+    expect(lineFor(BY_BREED, { weightKg: 220, breedId: BRAHMAN })).toBe(2);
+    expect(lineFor(BY_BREED, { weightKg: 220, breedId: null })).toBe(2);
+  });
+
+  it("is none where only other Breeds' lines hold his weight", () => {
+    expect(lineFor(BY_BREED, { weightKg: 260, breedId: BRAHMAN })).toBeNull();
+  });
+
+  it("counts what was bought line by line, and what has still to buy at each line's own gain", () => {
+    const bought = [
+      { weightKg: 220, priceBdt: 105_600, breedId: PABNA },
+      { weightKg: 230, priceBdt: 110_400, breedId: SAHIWAL_CROSS },
+      { weightKg: 260, priceBdt: 122_200, breedId: BRAHMAN },
+    ];
+    const against = buyingAgainstPlan(BY_BREED, bought);
+    expect(against.bands.map((one) => one.bought.animals)).toEqual([
+      1, 1, 0, 0,
+    ]);
+    // The Brahman bull at 260 kg: only Pabna is planned that heavy, so he was not planned.
+    expect(against.outside.animals).toBe(1);
+    // Left: 9 Pabna at 225 + 0.55 × 10, 9 Sahiwal crosses at 225 + 0.8 × 10, 4 of any at 225 + 0.7 × 10 and 6 Pabna
+    // at 275 + 0.6 × 10 — 9 × 230.5 + 9 × 233 + 4 × 232 + 6 × 281 = 6,785.5 kg.
+    expect(stillToBuyOf({ lines: BY_BREED, bought, days: 10 }).kg).toBe(6785.5);
   });
 });
 
@@ -91,12 +155,13 @@ describe("what was bought against the plan", () => {
     // Bought: 210 kg for ৳1,00,800 and 240 kg for ৳1,15,200 (৳480 a kilo, both in the first band), 260 kg for ৳1,22,200
     // (the second band), and a 320 kg bull for ৳1,50,000 that no band planned.
     const bought = buyingAgainstPlan(LINES, [
-      { weightKg: 210, priceBdt: 100_800 },
-      { weightKg: 240, priceBdt: 115_200 },
-      { weightKg: 260, priceBdt: 122_200 },
-      { weightKg: 320, priceBdt: 150_000 },
+      { weightKg: 210, priceBdt: 100_800, breedId: null },
+      { weightKg: 240, priceBdt: 115_200, breedId: null },
+      { weightKg: 260, priceBdt: 122_200, breedId: null },
+      { weightKg: 320, priceBdt: 150_000, breedId: null },
     ]);
     expect(bought.bands[0]).toEqual({
+      line: { fromKg: 200, toKg: 250, breedId: null },
       planned: { animals: 8, kg: 1800, costBdt: 864_000, bdtPerKg: 480 },
       bought: { animals: 2, kg: 450, costBdt: 216_000, bdtPerKg: 480 },
     });
@@ -189,9 +254,9 @@ describe("what a plan has still to buy", () => {
       stillToBuyOf({
         lines: LINES,
         bought: [
-          { weightKg: 210, priceBdt: 100_800 },
-          { weightKg: 240, priceBdt: 115_200 },
-          { weightKg: 320, priceBdt: 150_000 },
+          { weightKg: 210, priceBdt: 100_800, breedId: null },
+          { weightKg: 240, priceBdt: 115_200, breedId: null },
+          { weightKg: 320, priceBdt: 150_000, breedId: null },
         ],
         days: 50,
       })
@@ -202,6 +267,7 @@ describe("what a plan has still to buy", () => {
     const over = Array.from({ length: 10 }, () => ({
       weightKg: 230,
       priceBdt: 110_000,
+      breedId: null,
     }));
     expect(
       stillToBuyOf({ lines: LINES.slice(0, 1), bought: over, days: 50 })

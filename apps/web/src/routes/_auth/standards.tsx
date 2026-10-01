@@ -32,6 +32,7 @@ import { bandSaid, expectedGainSaid } from "@/components/feed/band-words";
 import type { Tone } from "@/components/page";
 import { Page, PageHeader, Section, StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
+import { gainSettingOf } from "@/lib/gain-settings";
 import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
 
@@ -114,23 +115,6 @@ const Rule = ({ label, children }: { label: string; children: ReactNode }) => (
   </div>
 );
 
-/** The farm's settings' own defaults, said for a farm answer this phone cached before the farm had them. */
-const UNTOLD = {
-  gainReadDays: 28,
-  deshiGainPercent: 70,
-  femaleGainPercent: 80,
-  penGainPercent: 80,
-} as const;
-
-/** A figure the farm has set, or its default. */
-const settingOf = (
-  farm: Record<string, unknown> | null | undefined,
-  key: keyof typeof UNTOLD
-): number => {
-  const value = farm?.[key];
-  return typeof value === "number" ? value : UNTOLD[key];
-};
-
 /** The days, shares and counts the app judges gains by: fixed ones with their source, and the farm's own settings. */
 const Rules = () => {
   const { t, language } = useLanguage();
@@ -144,22 +128,22 @@ const Rules = () => {
       </Rule>
       <Rule label={t("standards.readOver")}>
         {t("standards.readOverDays", {
-          days: number(settingOf(figures, "gainReadDays")),
+          days: number(gainSettingOf(figures, "gainReadDays")),
         })}
       </Rule>
       <Rule label={t("standards.deshi")}>
         {t("standards.shareSet", {
-          percent: number(settingOf(figures, "deshiGainPercent")),
+          percent: number(gainSettingOf(figures, "deshiGainPercent")),
         })}
       </Rule>
       <Rule label={t("standards.female")}>
         {t("standards.shareSet", {
-          percent: number(settingOf(figures, "femaleGainPercent")),
+          percent: number(gainSettingOf(figures, "femaleGainPercent")),
         })}
       </Rule>
       <Rule label={t("standards.penmates")}>
         {t("standards.penmatesRule", {
-          percent: number(settingOf(figures, "penGainPercent")),
+          percent: number(gainSettingOf(figures, "penGainPercent")),
           count: number(PEN_NEEDS_GAINS),
         })}
       </Rule>

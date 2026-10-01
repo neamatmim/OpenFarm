@@ -629,9 +629,9 @@ export {
 } from "./cull";
 export type { CullReason, MilkAgainstKeep, MilkUnknown } from "./cull";
 export {
-  bandOf,
   baselineOf,
   buyingAgainstPlan,
+  lineFor,
   middleOf,
   planAverages,
   planTotals,
@@ -639,7 +639,7 @@ export {
   plannedResult,
   stillToBuyOf,
 } from "./venture-plan";
-export type { PlanLine } from "./venture-plan";
+export type { PlanBought, PlanLine } from "./venture-plan";
 export type {
   AheadEnd,
   AnimalPrice,

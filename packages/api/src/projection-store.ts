@@ -1,11 +1,11 @@
 import type { Database } from "@OpenFarm/db";
 import type { PlanLine, Projected } from "@OpenFarm/domain";
 import {
-  bandOf,
   farmDayOf,
   hasEnded,
   isExitState,
   isStillBuying,
+  lineFor,
   payoutOf,
   planAverages,
   projectedSettlement,
@@ -104,7 +104,7 @@ const standingKgAtWindow = async (
 ): Promise<number> => {
   const rows = await db.query.animal.findMany({
     where: { farmId, ownerVentureId: ventureId },
-    columns: { id: true, state: true },
+    columns: { id: true, state: true, breedId: true },
     with: {
       intake: {
         columns: {
@@ -121,8 +121,13 @@ const standingKgAtWindow = async (
   let kg = 0;
   for (const one of rows.filter((each) => !isExitState(each.state))) {
     const view = fatteningOf(one.intake, one.weighIns, now, readDays);
-    // Her band's gain where she has no rate of her own: the plan said what an animal of her weight would put on.
-    const band = one.intake ? bandOf(lines, Number(one.intake.weightKg)) : null;
+    // Her line's gain where she has no rate of her own: the plan said what an animal of her weight and Breed would put on.
+    const band = one.intake
+      ? lineFor(lines, {
+          weightKg: Number(one.intake.weightKg),
+          breedId: one.breedId,
+        })
+      : null;
     const planned = band === null ? 0 : (lines[band]?.dailyGainKg ?? 0);
     // Her whole stay's rate before her last fortnight's: an estimate months out should lean on the steadier one.
     const rate =

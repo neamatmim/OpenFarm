@@ -103,8 +103,8 @@ export const addStandardBreeds = async (
   return given;
 };
 
-/** The breed an animal is being written down under: one of this farm's, and not retired. */
-export const requireBreed = async (
+/** A breed on this farm's list, retired or not: one a record already names may go on naming it. */
+export const requireBreedOfTheFarm = async (
   tx: Pick<Tx, "query">,
   farmId: string,
   breedId: string
@@ -116,6 +116,16 @@ export const requireBreed = async (
   if (!row) {
     throw refusedBreed("No such breed on the farm's list", "breed_unknown");
   }
+  return row;
+};
+
+/** The breed an animal is being written down under: one of this farm's, and not retired. */
+export const requireBreed = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  breedId: string
+) => {
+  const row = await requireBreedOfTheFarm(tx, farmId, breedId);
   if (row.retiredAt) {
     throw refusedBreed(
       "That breed is retired: nothing new is written down under it",

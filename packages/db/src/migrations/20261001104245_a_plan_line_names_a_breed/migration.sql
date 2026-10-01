@@ -1,0 +1,1 @@
+ALTER TABLE "venture_plan_line" ADD COLUMN "breed_id" text;
