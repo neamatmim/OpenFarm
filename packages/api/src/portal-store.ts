@@ -366,16 +366,22 @@ export const takeUpInvitation = async (
   if (!who) {
     throw wrong();
   }
+  // An account already there is theirs to set a password on: given back, a forgotten password, or one a crash left
+  // made before its invitation was written down as taken. Nobody else can open an account at an Investor's address.
+  const atTheirAddress = access.userId
+    ? null
+    : await context.db.query.user.findFirst({
+        where: { email: loginEmail },
+        columns: { id: true },
+      });
+  const already = access.userId ?? atTheirAddress?.id;
   const userId =
-    access.userId ??
+    already ??
     (await openInvestorAccount(auth, {
       email: loginEmail,
       name: who.name,
       password: input.password,
     }));
-  if (access.userId) {
-    await setPasswordFor(auth, loginEmail, input.password);
-  }
   // The trail names them: it is their account and their password.
   await audited(
     { ...context, actor: { id: userId, name: who.name } },
@@ -408,6 +414,17 @@ export const takeUpInvitation = async (
         .returning({ id: investorAccess.id });
       if (!taken) {
         throw wrong();
+      }
+      // Only once the code is used, and by the try that used it: the row stays held until this commits, so a second
+      // try with the same code waits above and then finds it gone, having changed nothing. A password that could not
+      // be set undoes the taking, and the code still works.
+      if (
+        already &&
+        !(await setPasswordFor(auth, loginEmail, input.password))
+      ) {
+        throw new ORPCError("INTERNAL_SERVER_ERROR", {
+          message: "The password could not be set",
+        });
       }
       await tx
         .update(user)

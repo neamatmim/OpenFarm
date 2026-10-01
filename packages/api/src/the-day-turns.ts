@@ -38,7 +38,7 @@ import { missingToTell, tellOfMissing } from "./missing-store";
 import { tell } from "./notice";
 import { carryThePost, pushRaised } from "./push-send";
 import { tellOfRenewals } from "./registration-store";
-import { textTheSafetyAlerts } from "./sms-send";
+import { textAgainWhatDidNotGo, textTheSafetyAlerts } from "./sms-send";
 import { contentOf } from "./sop-content";
 import { soresToTell, tellOfSores } from "./sores-store";
 import { lowStockToTell, raiseLowStockAlerts, runningLow } from "./stock-store";
@@ -617,6 +617,8 @@ export const theSweep = async (context: Turning) => {
   await tellAboutTheStore(context, now);
   await tellAboutOverdueBaki(context, now);
   await tellAboutPapers(context, now);
+  // And the safety texts that did not go when their notice was raised, tried again until they do.
+  await textAgainWhatDidNotGo(context);
   const pending = await findPendingNotices(context.db, context.farm, now);
   // A sweep with nothing to say is not an event, and opens no transaction: everyone
   // calls this on opening the app, and in steady state there is nothing new to say.

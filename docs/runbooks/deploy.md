@@ -65,38 +65,95 @@ age-keygen -o backup-key.txt
 
 ## Every deploy
 
+Each deploy is a release of its own under `/srv/openfarm/releases/`, named for when it was
+built and the commit it was built from. The service runs whatever `/srv/openfarm/current`
+points at. A new release is copied in beside the running one, and the switch is one rename, so
+the app is never served half-copied and the last release is still there to go back to.
+
 ```sh
 pnpm install --frozen-lockfile
 pnpm release:check        # types, tests against PostgreSQL, then the production build
 
-# Migrations first: the app expects the schema it was built for.
+# What the farm runs now, and whether anything since then renames or drops what it reads.
+live="$(ssh openfarm@HOST 'basename "$(readlink /srv/openfarm/current)"')"
+git diff --name-only "${live##*-}" HEAD -- packages/db/src/migrations \
+  | grep 'migration.sql$' | xargs grep -liE '\b(drop|rename)\b'
+```
+
+On the very first deploy there is no `current` yet: skip the check and take the first path.
+
+**If that prints nothing**, every migration since is additive: the running app keeps working on
+the new schema for the minute between the two, and there is no need to stop it.
+
+```sh
+release="$(date -u +%Y%m%dT%H%MZ)-$(git rev-parse --short=8 HEAD)"
+
+# Copied in beside the running release, which it does not touch.
+rsync -a apps/web/.output/ "openfarm@HOST:/srv/openfarm/releases/$release/"
+
+# Migrations before the new app starts, never after: it expects the schema it was built for.
 pnpm --filter @OpenFarm/db db:migrate:deploy
 
-# Then the app itself. Nitro's output is self-contained, so this is a copy and a restart.
-rsync -a --delete apps/web/.output/ openfarm@HOST:/srv/openfarm/app/
-ssh openfarm@HOST 'sudo systemctl restart openfarm'
+# The switch: one rename, then a restart.
+ssh openfarm@HOST "ln -sfn releases/$release /srv/openfarm/current.next \
+  && mv -T /srv/openfarm/current.next /srv/openfarm/current \
+  && sudo systemctl restart openfarm"
 
 # Readiness asks the database whether it has applied the newest migration this build expects, so it
 # fails on a database that is unreachable and on one a migration was forgotten for.
 curl --fail --silent --show-error --max-time 10 https://farm.example.com/api/ready
 
+# Keep the last five releases.
+ssh openfarm@HOST 'cd /srv/openfarm/releases && ls -1 | head -n -5 | xargs -r rm -rf --'
 ```
 
-Migrations run before the new app starts, never after. Every migration in this repo is
-additive or backfills what it adds, so the old app keeps working against the new schema for
-the minute between the two.
+**If it prints a migration**, it may rename or drop something the running app still reads, and
+then the app fails the moment it is applied. The check errs towards stopping: it also names a
+migration that only drops a `NOT NULL` or an index, which the old app would have lived with — but
+an index can be the unique one its inserts count on, and a minute stopped costs less than
+finding out which. Tell the Manager first: for a minute or two nobody
+can save, and the phones keep what they record in their outbox and send it when the farm is
+back. Then the same steps, with the app stopped across the migration:
+
+```sh
+rsync -a apps/web/.output/ "openfarm@HOST:/srv/openfarm/releases/$release/"
+ssh openfarm@HOST 'sudo systemctl stop openfarm'
+pnpm --filter @OpenFarm/db db:migrate:deploy
+ssh openfarm@HOST "ln -sfn releases/$release /srv/openfarm/current.next \
+  && mv -T /srv/openfarm/current.next /srv/openfarm/current \
+  && sudo systemctl start openfarm"
+curl --fail --silent --show-error --max-time 10 https://farm.example.com/api/ready
+```
 
 Started against a database a migration was forgotten for, the new app refuses: it prints which
 migration is missing and exits 1, so `systemctl status openfarm` shows it failed rather than running.
 Migrate and restart. A database it cannot reach does not stop it; readiness reports that one.
 
-## Installing the app service once
-
-The release directory contains only `apps/web/.output`, copied to `/srv/openfarm/app` as
-shown above. Install the checked-in unit once, keep its environment root-owned, and let the
-reverse proxy own TLS:
+### Going back to the last release
 
 ```sh
+ssh openfarm@HOST 'ls -1 /srv/openfarm/releases; readlink /srv/openfarm/current'
+ssh openfarm@HOST "ln -sfn releases/<the one before> /srv/openfarm/current.next \
+  && mv -T /srv/openfarm/current.next /srv/openfarm/current \
+  && sudo systemctl restart openfarm"
+```
+
+Never back past a release whose migrations renamed or dropped something: the older app starts —
+it refuses only a database that is _behind_ it — and then fails on every request that reads what
+is gone. Fix forward instead.
+
+## Installing the app service once
+
+A release contains only `apps/web/.output`, copied as shown above. The releases belong to the
+`openfarm` user, who deploys them and may restart, stop and start the service and nothing else.
+Install the checked-in unit once, keep its environment root-owned, and let the reverse proxy own
+TLS:
+
+```sh
+sudo install -d -o openfarm -g openfarm -m 0755 /srv/openfarm /srv/openfarm/releases
+echo 'openfarm ALL=(root) NOPASSWD: /usr/bin/systemctl restart openfarm, /usr/bin/systemctl stop openfarm, /usr/bin/systemctl start openfarm' \
+  | sudo tee /etc/sudoers.d/openfarm && sudo chmod 0440 /etc/sudoers.d/openfarm && sudo visudo -c
+# The first release, by the steps under "Every deploy", before the service is started.
 sudo install -o root -g root -m 0600 /path/to/app.env /etc/openfarm/app.env
 sudo install -o root -g root -m 0644 deploy/openfarm.service /etc/systemd/system/openfarm.service
 sudo systemctl daemon-reload

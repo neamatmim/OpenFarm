@@ -2,6 +2,7 @@ import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
 import {
   DAY,
+  MINUTE,
   FakeClock,
   scratchDb,
   theFarm,
@@ -218,6 +219,44 @@ describe("the two alerts worth a text message", () => {
       "+8801711000007",
       "+8801711000008",
     ]);
+  });
+
+  it("tries again a text the gateway would not take, until it goes, and then says no more", async () => {
+    const clock = new FakeClock("2026-10-26T02:00:00.000Z");
+    const { cow } = await aTreatedCow(clock);
+    const gateway = listeningGateway();
+    const owner = await createTestClient(appRouter, { as: "owner", clock });
+    await owner.client.people.setPhone({ phone: "+8801711000011" });
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    await manager.client.people.setPhone({ phone: "+8801711000012" });
+    const sweep = async () => {
+      const sweeping = await createTestClient(appRouter, {
+        as: "manager",
+        clock,
+        sms: gateway.transport,
+      });
+      await sweeping.client.alerts.sweep();
+    };
+    const triesAbout = () =>
+      gateway.sent.filter((one) => one.message.text.includes(cow.tagNumber))
+        .length;
+
+    // The gateway is down the morning her Withdrawal is nearly over.
+    clock.advance(3 * DAY + DAY / 2);
+    gateway.says({ delivered: false });
+    await sweep();
+    expect(triesAbout()).toBe(2);
+
+    // Back up by the next sweep but one: the two that did not go are sent again, and they go.
+    gateway.says({ delivered: true });
+    clock.advance(20 * MINUTE);
+    await sweep();
+    expect(triesAbout()).toBe(4);
+
+    // Gone is gone: nobody is texted the same thing twice.
+    clock.advance(20 * MINUTE);
+    await sweep();
+    expect(triesAbout()).toBe(4);
   });
 
   it("texts about a notifiable disease, and nothing else ever", async () => {

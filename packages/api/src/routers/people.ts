@@ -649,9 +649,15 @@ export const peopleRouter = {
             countFailure(guesses, now, CODE_ATTEMPTS);
             throw error;
           }
+          // Set while the code is being spent, not after: a password that could not be set undoes the spending, so
+          // the code is still theirs and nobody is told it worked.
+          if (!(await setPasswordFor(auth, input.email, input.newPassword))) {
+            throw new ORPCError("INTERNAL_SERVER_ERROR", {
+              message: "The password could not be set",
+            });
+          }
         }
       );
-      await setPasswordFor(auth, input.email, input.newPassword);
       return { ok: true } as const;
     }),
 

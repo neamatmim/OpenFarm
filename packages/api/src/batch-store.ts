@@ -68,9 +68,10 @@ const applyEntry = (
     }
   );
 
-/** What the phone sent, as the trail and a held entry record it. The photo is left out: it
- *  is a row of its own where the entry was taken, and a megabyte of base64 in an Audit Event
- *  would make the trail unreadable to the people who most need to read it. */
+/** What the phone sent, as the trail records it. The photo is left out: it is a row of its own
+ *  where the entry was taken, or held whole on the entry where it was not (heldWhole), and a
+ *  megabyte of base64 in an Audit Event would make the trail unreadable to the people who most
+ *  need to read it. */
 const entryAfter = (entry: Entry): Record<string, unknown> => {
   // The image itself never goes in the trail: a megabyte of base64 in an Audit Event would
   // make it unreadable to the people who most need to read it. What it was, and which slot
@@ -85,6 +86,15 @@ const entryAfter = (entry: Entry): Record<string, unknown> => {
     recordedAt: entry.recordedAt.toISOString(),
   };
 };
+
+/** What the phone sent, as an entry the farm could not take holds it: the whole of it, the picture
+ *  included — the phone that took it may be wiped tomorrow, and "kept" has to mean the farm has it.
+ *  Never the switch token, for the same reason as the trail. */
+const heldWhole = (entry: Entry): Record<string, unknown> => ({
+  ...entry,
+  switchToken: undefined,
+  recordedAt: entry.recordedAt.toISOString(),
+});
 
 /** Records that the entry was read, holding what the phone sent whenever the farm could not
  *  take it into its records as it stands — so nothing written down is lost. */
@@ -119,7 +129,7 @@ const keep = async (
     kind: entry.kind,
     outcome,
     batchKey: input.key,
-    payload: held ? entryAfter(entry) : null,
+    payload: held ? heldWhole(entry) : null,
     reason,
     refusal,
     recordedAt: entry.recordedAt,
