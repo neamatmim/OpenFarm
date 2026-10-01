@@ -21,6 +21,11 @@ export interface Answer {
   skipReason?: string;
   feeding?: { feedItemId: string; givenKg: number; leftoverKg?: number }[];
   counts?: { feedItemId: string; counted: number; reason?: string }[];
+  medicineCounts?: {
+    drugProductId: string;
+    counted: number;
+    reason?: string;
+  }[];
 }
 
 export interface WorkContext {
@@ -32,11 +37,12 @@ export interface WorkContext {
   tally: { bulkLitres: number };
 }
 
+/** An answer worked out from the Step alone, or one that reads the farm's books at the moment the work is done. */
 export type Responder = (
   step: StepOf,
   beast: AnimalOf | null,
   work: WorkContext
-) => Answer | null;
+) => Answer | null | Promise<Answer | null>;
 
 const round1 = (value: number) => Math.round(value * 10) / 10;
 
@@ -144,12 +150,14 @@ const answerTheStep = async ({
   for (let pass = 0; pass < 3 && subjects.length > 0; pass += 1) {
     for (const beast of subjects) {
       answered.add(beast?.tagNumber ?? "");
-      const answer = respond(step, beast, work);
+      // The moment it is written down, before it is worked out: an answer that reads the farm's books — a count — reads
+      // them as they stand when the Step is recorded, which is what the count is set against.
+      pace.at += farm.random.int(20, 70) * 1000;
+      farm.clock.set(new Date(pace.at));
+      const answer = await respond(step, beast, work);
       if (!answer) {
         continue;
       }
-      pace.at += farm.random.int(20, 70) * 1000;
-      farm.clock.set(new Date(pace.at));
       const recorded = await api.instances.completeStep({
         instanceId,
         stepId: step.id,
@@ -158,6 +166,7 @@ const answerTheStep = async ({
         skipReason: answer.skipReason,
         feeding: answer.feeding,
         counts: answer.counts,
+        medicineCounts: answer.medicineCounts,
       });
       const effect = recorded.effect as {
         kind?: string;

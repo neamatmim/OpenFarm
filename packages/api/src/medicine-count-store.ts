@@ -29,8 +29,8 @@ export interface MedicineAdjustment {
  * every other count's difference before it — and what a dose of it cost. A count is read without itself, so a count
  * put right is compared against the same book.
  */
-const bookAt = async (
-  tx: Tx,
+export const bookAt = async (
+  tx: Pick<Tx, "query">,
   farmId: string,
   at: Date,
   excludingCompletion: string

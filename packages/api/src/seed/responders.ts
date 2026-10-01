@@ -4,6 +4,8 @@
  */
 import { HEAT, STAYS_A_HEIFER } from "@OpenFarm/domain";
 
+import { inThePenAt } from "../head-count-store";
+import { bookAt } from "../medicine-count-store";
 import type { Responder } from "./history";
 import { RESPONDERS } from "./history";
 import { addDays, onFarm } from "./runtime";
@@ -283,6 +285,36 @@ RESPONDERS.stockCount = (_step, _beast, { board }) => ({
     reason: shelfReason.get(item.feedItemId),
   })),
 });
+
+/**
+ * The medicine store holds what its book says at the moment it is counted: every dose bought and not given by then.
+ * Read as the count reads it, not as the Drug List does — the seed's work runs a few minutes apart, so a dose given
+ * later that morning may already be written down.
+ */
+RESPONDERS.medicineCount = async (_step, _beast, { farm, board }) => {
+  const book = await bookAt(farm.db, farm.farmId, farm.clock.now(), "");
+  return {
+    evidence: [true],
+    medicineCounts: (board.medicineCount?.items ?? []).map((item) => ({
+      drugProductId: item.drugProductId,
+      counted: book.get(item.drugProductId)?.expected ?? 0,
+    })),
+  };
+};
+
+/** Every animal the register puts in the Pen at lock-up is standing in it. */
+RESPONDERS.headCount = async (_step, _beast, { farm, board }) => {
+  if (!board.penId) {
+    return null;
+  }
+  const standing = await inThePenAt(
+    farm.db,
+    farm.farmId,
+    board.penId,
+    farm.clock.now()
+  );
+  return { evidence: [standing.length] };
+};
 
 /** Half a litre at a time, as a bottle is filled. */
 const toHalfLitre = (litres: number) => Math.round(litres * 2) / 2;
