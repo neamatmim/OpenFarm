@@ -1,7 +1,7 @@
 import type { Database } from "@OpenFarm/db";
 import type { AdjustmentOutcome } from "@OpenFarm/db/schema/venture";
 import type { PaperNominee } from "@OpenFarm/domain";
-import { exitOf, roundTaka } from "@OpenFarm/domain";
+import { exitOf, roundTaka, whatUnitsTake } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
@@ -460,8 +460,8 @@ export const hisSettlement = async (
       reason: one.reason,
       raisedAt: one.raisedAt,
       outcome: one.outcome,
-      differenceBdt: roundTaka(one.perUnitDifferenceBdt * his.units),
-      paidBdt: roundTaka(one.perUnitPaidBdt * his.units),
+      differenceBdt: whatUnitsTake(one.perUnitDifferenceBdt, his.units),
+      paidBdt: whatUnitsTake(one.perUnitPaidBdt, his.units),
     })),
   };
 };

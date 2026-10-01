@@ -11,6 +11,7 @@ import {
   projectedSettlement,
   startOfFarmDay,
   stillToBuyOf,
+  whatUnitsTake,
   wholeDaysFrom,
 } from "@OpenFarm/domain";
 
@@ -313,7 +314,7 @@ export const hisProjection = (
   const end = (one: Projection["low"]) => ({
     proceedsBdt: one.proceedsBdt,
     profitBdt: one.profitBdt,
-    shareBdt: one.perUnitBdt * his.units,
+    shareBdt: whatUnitsTake(one.perUnitBdt, his.units),
     payoutBdt: payoutOf(his.capitalBdt, his.units, one.perUnitBdt),
   });
   return {

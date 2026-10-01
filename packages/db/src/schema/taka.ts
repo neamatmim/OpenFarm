@@ -20,3 +20,14 @@ export const taka = (name: string) =>
     fromDriver: Number,
     toDriver: (value: number) => value.toFixed(2),
   })(name);
+
+/**
+ * Units held in a Venture, as a figure: what an Agreement paid in, over the Unit price — a fraction of a Unit where it
+ * paid part of one. Four places, which is how the domain rounds them (`unitsHeld`).
+ */
+export const heldUnits = (name: string) =>
+  customType<{ data: number; driverData: string }>({
+    dataType: () => "numeric(12, 4)",
+    fromDriver: Number,
+    toDriver: (value: number) => value.toFixed(4),
+  })(name);

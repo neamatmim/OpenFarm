@@ -16,7 +16,9 @@ import {
   roundTaka,
   splitOfProfit,
   startOfFarmDay,
-  unitsPaidFor,
+  unitsAltogether,
+  unitsHeld,
+  whatUnitsTake,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
@@ -443,27 +445,33 @@ export const settlementOf = async (
           .map((one) => one.amountBdt)
       )
     );
-  // By the Units each Agreement paid for, not the Units it signed for: a Venture may start buying while one is part
-  // paid, and the Units nobody paid for must take no share of what the paid ones made or lost.
-  const paidFor = agreements.map((one) => {
+  // By the Units each Agreement holds — what it paid in, over the Unit price — not the Units it signed for: a Venture
+  // may start buying while one is part paid, and money nobody put in must take no share of what was made or lost.
+  const holdings = agreements.map((one) => {
     const capitalBdt = capitalOf(one.id);
     return {
       ...one,
       capitalBdt,
-      units: unitsPaidFor(capitalBdt, venture.unitPriceBdt),
+      units: unitsHeld(capitalBdt, venture.unitPriceBdt),
     };
   });
-  const units = sumOf(paidFor.map((one) => one.units));
+  const eachHolds = holdings.map((one) => one.units);
+  const units = unitsAltogether(eachHolds);
   const [first] = agreements;
   const investorsPercent = first?.investorsPercent ?? 0;
-  const split = splitOfProfit({ profitBdt, investorsPercent, units });
-  const payouts: Payout[] = paidFor.map((one) => ({
+  const split = splitOfProfit({
+    profitBdt,
+    investorsPercent,
+    units,
+    held: eachHolds,
+  });
+  const payouts: Payout[] = holdings.map((one) => ({
     agreementId: one.id,
     investorId: one.investorId,
     name: named.get(one.investorId) ?? "",
     units: one.units,
     capitalBdt: one.capitalBdt,
-    shareBdt: split.perUnitBdt * one.units,
+    shareBdt: whatUnitsTake(split.perUnitBdt, one.units),
     payoutBdt: payoutOf(one.capitalBdt, one.units, split.perUnitBdt),
   }));
 

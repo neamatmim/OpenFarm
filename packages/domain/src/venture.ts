@@ -50,8 +50,10 @@ export interface ToSplit {
   profitBdt: number;
   /** The share of profit the Investors take, as their Agreements froze it. */
   investorsPercent: number;
-  /** Every Unit signed for across those Agreements. */
+  /** Every Unit held across those Agreements: what each paid in, over the Unit price. */
   units: number;
+  /** Each Agreement's own holding, where they are known, so what each takes is floored on its own. */
+  held?: readonly number[];
 }
 
 /** How a Venture's profit divides: the Investors' share, what one Unit takes of it, and the Farm's. */
@@ -64,6 +66,33 @@ export interface Split {
   farmBdt: number;
 }
 
+/** Units held are kept to four places: enough that no taka of capital goes uncounted, few enough to print. */
+const HELD_PLACES = 10_000;
+
+/**
+ * The Units an Agreement holds: the capital it paid in, over the Unit price — a fraction where it paid part of a Unit.
+ * A Venture may start buying while an Agreement is part paid, and the share of a profit or a loss divides by these,
+ * never by the Units signed for, or he takes a share of the run for money he never put in and every taka that was put
+ * in is diluted by it. Paid in full, they are the Units he signed for.
+ */
+export const unitsHeld = (capitalBdt: number, unitPriceBdt: number) =>
+  unitPriceBdt > 0
+    ? Math.round((capitalBdt / unitPriceBdt) * HELD_PLACES) / HELD_PLACES
+    : 0;
+
+/** Holdings added up, to the same four places: 0.1 + 0.2 Units is 0.3 of them, not a hair over. */
+export const unitsAltogether = (held: readonly number[]) =>
+  Math.round(held.reduce((sum, one) => sum + one, 0) * HELD_PLACES) /
+  HELD_PLACES;
+
+/**
+ * What a holding takes of a figure per Unit, floored to whole taka like the figure per Unit itself: a holding of whole
+ * Units takes exactly so many of it, and a part of a Unit never takes a paisa the account does not hold. Worked to the
+ * four places Units are held to first, so 3,750 × 9.6 is 36,000 and not a taka under it.
+ */
+export const whatUnitsTake = (perUnitBdt: number, units: number) =>
+  Math.floor(Math.round(perUnitBdt * units * HELD_PLACES) / HELD_PLACES);
+
 /**
  * The split by the percentages the Agreements froze, divided by Units held.
  *
@@ -75,10 +104,17 @@ export const splitOfProfit = ({
   profitBdt,
   investorsPercent,
   units,
+  held = [units],
 }: ToSplit): Split => {
   const investorsBdt = Math.round((profitBdt * investorsPercent) / 100);
   const perUnitBdt = units === 0 ? 0 : Math.floor(investorsBdt / units);
-  const roundingBdt = investorsBdt - perUnitBdt * units;
+  // What the holdings take between them, each floored on its own: whole Units take exactly perUnit × Units, and a
+  // holding with part of a Unit leaves its paisa here, on the Farm's line, rather than paid out of nothing.
+  const takenBdt = held.reduce(
+    (sum, one) => sum + whatUnitsTake(perUnitBdt, one),
+    0
+  );
+  const roundingBdt = investorsBdt - takenBdt;
   return {
     investorsBdt,
     perUnitBdt,
@@ -87,19 +123,10 @@ export const splitOfProfit = ({
   };
 };
 
-/**
- * The Units an Agreement has paid for: whole Units only, as an Investor holds them. A Venture may start buying while
- * an Agreement is part paid, and the share of a profit or a loss divides by these, never by the Units signed for — or
- * he takes a share of the run for money he never put in, and every taka that was put in is diluted by it. Taka short
- * of a whole Unit come back with the capital and take no share.
- */
-export const unitsPaidFor = (capitalBdt: number, unitPriceBdt: number) =>
-  unitPriceBdt > 0 ? Math.floor(capitalBdt / unitPriceBdt) : 0;
-
 /** What one Investor is paid: the capital they put in, back whole, and what their Units took of the
  *  profit — or lost of it, which comes off the capital they get back. */
 export const payoutOf = (
   capitalBdt: number,
-  unitsHeld: number,
+  units: number,
   perUnitBdt: number
-) => capitalBdt + perUnitBdt * unitsHeld;
+) => capitalBdt + whatUnitsTake(perUnitBdt, units);
