@@ -75,6 +75,15 @@ export interface NoticeFacts {
     /** Who entered it the second time, knowing. */
     by: string;
   };
+  monthly_sum_missed: {
+    ventureId: string;
+    venture: string;
+    investor: string;
+    /** What he has missed altogether, his Units' sums past their seven days. */
+    missedBdt: number;
+    /** The farm day ("YYYY-MM-DD") the latest missed sum fell due. */
+    dueOn: string;
+  };
   cash_short: {
     /** Whose hand was counted. */
     name: string;

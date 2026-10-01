@@ -136,6 +136,19 @@ const WhereItLeads = ({
       </Link>
     );
   }
+  if (notice.kind === "monthly_sum_missed") {
+    const ventureId = ventureOf(notice.params);
+    return ventureId === null ? null : (
+      <Link
+        className={LEADS_CLASS}
+        params={{ ventureId }}
+        search={{ tab: "investors" }}
+        to="/ventures/$ventureId"
+      >
+        {t("alerts.seeWhoIsBehind")}
+      </Link>
+    );
+  }
   if (notice.kind === "pen_sores_seen") {
     return (
       <Link className={LEADS_CLASS} to="/observations">

@@ -120,6 +120,12 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     day: saidDate(facts.day, language),
     by: facts.by,
   }),
+  monthly_sum_missed: (facts, language) => ({
+    investor: facts.investor,
+    venture: facts.venture,
+    amount: Number(facts.missedBdt),
+    day: saidDate(facts.dueOn, language),
+  }),
   cash_short: (facts, language) => ({
     name: facts.name,
     amount: Number(facts.shortBdt),

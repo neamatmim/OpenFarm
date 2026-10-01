@@ -136,6 +136,13 @@ const EXAMPLE: NoticeFacts = {
     advice: "জ্বর, ফার্মেসির পরামর্শে",
   },
   cash_short: { name: "রফিকুল ইসলাম", shortBdt: 1500, countedOn: "2038-03-09" },
+  monthly_sum_missed: {
+    ventureId: "venture-1",
+    venture: "ঈদ ২০৩৮",
+    investor: "আব্দুর রহিম",
+    missedBdt: 7500,
+    dueOn: "2038-03-10",
+  },
   medicine_short: { shortBdt: 2400, countedOn: "2038-03-05" },
   still_here_after_eid: { day: "2038-03-12", animals: 7, inVentures: 2 },
   sold_under_cost: {
@@ -267,6 +274,17 @@ describe("how late something is, in hours", () => {
 });
 
 describe("an overdue Baki's words", () => {
+  it("names the Investor, the Venture, what he has missed and the latest day, in the reader's digits", () => {
+    const params = (language: "bn" | "en") =>
+      noticeFilling("monthly_sum_missed", EXAMPLE.monthly_sum_missed, language);
+    expect(translate("bn", "alerts.monthlySumMissed", params("bn"))).toBe(
+      "আব্দুর রহিম ঈদ ২০৩৮-এ মাসের টাকা ৳৭,৫০০ দেননি, শেষটি ১০ মার্চ, ২০৩৮ তারিখে দেওয়ার কথা ছিল"
+    );
+    expect(translate("en", "alerts.monthlySumMissed", params("en"))).toBe(
+      "আব্দুর রহিম has missed ৳7,500 of Monthly Sums on ঈদ ২০৩৮, the latest due 10 March 2038"
+    );
+  });
+
   it("names the buyer, what he owes and the day it went late, in the reader's digits", () => {
     const params = (language: "bn" | "en") =>
       noticeFilling("baki_overdue", EXAMPLE.baki_overdue, language);

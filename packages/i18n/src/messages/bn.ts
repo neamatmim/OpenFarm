@@ -1072,6 +1072,12 @@ export const bn: Record<MessageKey, string> = {
     "কেনা শুরু হলে ইউনিট আর বদলায় না: নতুন বিনিয়োগকারীও নেই, বাড়তি টাকাও নেই।",
   "ventures.floorNotMetYet":
     "কেনা শুরুর আগে আরও ৳{short} জমা হতে হবে (সর্বনিম্ন সীমা ৳{floor})।",
+  "ventures.sums.paidOf": "{of} মাসের {paid}টি দেওয়া",
+  "ventures.sums.missed": "{amount} বাকি পড়েছে",
+  "ventures.sums.due": "{amount} দেওয়ার সময় হয়েছে",
+  "ventures.sums.next": "পরেরটি {day}, {amount}",
+  "ventures.sumsMissedAdvance":
+    "খাওয়ানোর টাকা কমে এসেছে, আর মাসের টাকার ৳{missed} বাকি পড়েছে — সে টাকা না আসা পর্যন্ত নিজের টাকা (অগ্রিম) দিয়ে পশুদের খাওয়ানো যায়।",
   "ventures.cattleMoneyShort":
     "কেনা শুরুর আগে সই করা বিনিয়োগকারীদের গরু কেনার টাকার আরও ৳{short} আসতে হবে।",
   "ventures.noUnitsLeft": "সব ইউনিট সই হয়ে গেছে।",
@@ -3256,6 +3262,10 @@ export const bn: Record<MessageKey, string> = {
   "alerts.moneyAwaiting": "{category}: ৳{amount} আপনার অনুমোদনের অপেক্ষায়",
   "alerts.lowStock": "{feed} কমে আসছে — {onHand} {unit} বাকি",
   "alerts.bakiOverdue": "{buyer}-এর কাছে ৳{amount} বাকি, {since} থেকে মেয়াদোত্তীর্ণ",
+  "alerts.monthlySumMissed":
+    "{investor} {venture}-এ মাসের টাকা ৳{amount} দেননি, শেষটি {day} তারিখে দেওয়ার কথা ছিল",
+  "digest.monthlySumMissed": "{count} জন বিনিয়োগকারী মাসের টাকায় পিছিয়ে",
+  "alerts.seeWhoIsBehind": "কে পিছিয়ে দেখুন",
   "alerts.seeWhoOwes": "কার কাছে কত বাকি দেখুন",
   "alerts.lotExpiring":
     "{item}, লট {lot}: {date}-এ মেয়াদ শেষ হবে, এখনো {left} বাকি",

@@ -25,6 +25,7 @@ import {
   CAPITAL_PAID,
   capitalItMayHold,
   monthlyTermsOf,
+  sumsStandingOf,
   takesCapital,
   roundTaka,
   startOfFarmDay,
@@ -58,6 +59,7 @@ import {
 } from "../investor-store";
 import { monthInput } from "../money-inputs";
 import { bookMoney, bookingOf } from "../money-store";
+import { missedByEach } from "../monthly-sums-store";
 import {
   assertNamable,
   nominationBySigning,
@@ -107,6 +109,7 @@ import {
 } from "../venture-showing";
 import {
   NOTHING_HELD,
+  paidForBy,
   balanceAtMonthEnd,
   balanceOf,
   budgetsOf,
@@ -684,6 +687,12 @@ export const venturesRouter = {
       const signed = await signedForEach(context.db, context.farm.id, ids);
       const checked = await bankStandingOf(context.db, context.farm.id, ids);
       const stillHers = await stillHersByEach(context.db, context.farm.id, ids);
+      const missed = await missedByEach(
+        context.db,
+        context.farm.id,
+        rows,
+        farmDayOf(context.clock.now())
+      );
       const settled = await context.db.query.ventureSettlement.findMany({
         where: { farmId: context.farm.id, ventureId: { in: ids } },
         columns: { ventureId: true },
@@ -700,6 +709,9 @@ export const venturesRouter = {
          *  written down, so the acts that would move them — a month reimbursed, the Owner's own money in,
          *  the terms amended — are refused, and the screen should stop offering them. */
         settlementApproved: approved.has(one.id),
+        /** Paid by the month: what its Investors have missed of their Monthly Sums, past their seven days — which the
+         *  Owner's own money may feed the animals through until it comes. Nothing for any other Venture. */
+        sumsMissedBdt: missed.get(one.id) ?? 0,
       }));
     }),
 
@@ -1117,8 +1129,15 @@ export const venturesRouter = {
           capitalPaid: true,
           unitPriceBdt: true,
           cattlePartBdt: true,
+          monthlySums: true,
+          firstSumDueOn: true,
         },
       });
+      // Paid by the month: where each paper stands against its Monthly Sums today, once the buying has started — the
+      // Owner's to read, never another Investor's.
+      const monthly =
+        run && run.state !== "open" ? paidForBy(run).monthly : null;
+      const today = farmDayOf(context.clock.now());
       const taken = new Map<string, number>();
       for (const one of await context.db.query.ventureMovement.findMany({
         where: {
@@ -1151,6 +1170,17 @@ export const venturesRouter = {
           (run ? capitalItMayHold(one.units, run) : 0) -
             (taken.get(one.id) ?? 0)
         ),
+        /** Paid by the month and running: how many Monthly Sums are paid of how many, what is due, what is missed and
+         *  the next — or nothing for a Venture paid before buying, or still gathering. */
+        sums: monthly
+          ? sumsStandingOf({
+              units: one.units,
+              unitPriceBdt: run?.unitPriceBdt ?? 0,
+              monthly,
+              paidBdt: taken.get(one.id) ?? 0,
+              today,
+            })
+          : null,
         investorsPercent: one.investorsPercent,
         farmPercent: theFarmsShare(one.investorsPercent),
         targetWindow: {

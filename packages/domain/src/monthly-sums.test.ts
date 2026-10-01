@@ -163,6 +163,9 @@ describe("where an Agreement stands against its Monthly Sums", () => {
       dueBdt: 0,
       missedBdt: 0,
       next: { dueOn: "2074-02-10", bdt: 7500 },
+      sumsPaid: 0,
+      sums: 4,
+      lastMissedOn: null,
     });
   });
 
@@ -183,6 +186,8 @@ describe("where an Agreement stands against its Monthly Sums", () => {
     expect(standing(127_500, "2074-03-20")).toMatchObject({
       dueBdt: 7500,
       missedBdt: 7500,
+      sumsPaid: 1,
+      lastMissedOn: "2074-03-10",
     });
     expect(standing(135_000, "2074-03-20")).toMatchObject({
       dueBdt: 0,
@@ -197,6 +202,9 @@ describe("where an Agreement stands against its Monthly Sums", () => {
       dueBdt: 0,
       missedBdt: 0,
       next: null,
+      sumsPaid: 4,
+      sums: 4,
+      lastMissedOn: null,
     });
   });
 });
@@ -212,5 +220,20 @@ describe("whether a Venture takes capital", () => {
     expect(takesCapital({ ...monthly, state: "selling" })).toBe(false);
     expect(takesCapital({ ...before, state: "open" })).toBe(true);
     expect(takesCapital({ ...before, state: "buying" })).toBe(false);
+  });
+});
+
+describe("the latest missed sum", () => {
+  it("is the newest one past its seven days, which is what a month's notice is keyed on", () => {
+    // Nothing paid since the Cattle Part: February and March both missed by the 20th of March, April not yet due.
+    expect(standing(120_000, "2074-03-20")).toMatchObject({
+      missedBdt: 15_000,
+      sumsPaid: 0,
+      lastMissedOn: "2074-03-10",
+    });
+    // March is only late on the 17th: February is the latest missed.
+    expect(standing(120_000, "2074-03-17")).toMatchObject({
+      lastMissedOn: "2074-02-10",
+    });
   });
 });

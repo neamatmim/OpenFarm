@@ -242,6 +242,19 @@ export const WhatStopsHer = ({
       </p>
     );
   }
+  // Paid by the month: the keep running short because Monthly Sums are missed, which her own money may cover until they
+  // come. Said beside the acts, the Advance among them. An answer cached before Ventures were paid by the month has
+  // nothing missed.
+  const sumsMissed = venture.sumsMissedBdt ?? 0;
+  if (venture.runningBudgetLow && sumsMissed > 0) {
+    return (
+      <p className={said}>
+        {t("ventures.sumsMissedAdvance", {
+          missed: formatNumber(sumsMissed, language),
+        })}
+      </p>
+    );
+  }
   if (venture.state === "buying" && moneyOf(venture).openFloatBdt !== 0) {
     return <p className={said}>{t("ventures.floatStillOut")}</p>;
   }

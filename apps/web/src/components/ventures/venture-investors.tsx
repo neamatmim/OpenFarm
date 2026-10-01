@@ -1,7 +1,9 @@
-import { formatNumber } from "@OpenFarm/i18n";
+import { startOfFarmDay } from "@OpenFarm/domain";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import {
   Banknote,
@@ -199,16 +201,56 @@ const SplitCell = ({ row }: InvestorCell) => {
   );
 };
 
+/**
+ * Paid by the month and running: how many of his Monthly Sums are paid, and the one thing to know next — what he has
+ * missed, what is due and not yet late, or the next sum and its day. Missed is said in the warning's colour; the
+ * Owner rings him, and nothing is ever charged for it. Nothing for a Venture paid before buying, or an answer cached
+ * before Ventures were paid by the month.
+ */
+const SumsLine = ({ sums }: { sums: Agreement["sums"] | undefined }) => {
+  const { t, language } = useLanguage();
+  const taka = useTaka();
+  if (!sums) {
+    return null;
+  }
+  const paidOf = t("ventures.sums.paidOf", {
+    paid: formatNumber(sums.sumsPaid, language),
+    of: formatNumber(sums.sums, language),
+  });
+  let then: string | null = null;
+  if (sums.missedBdt > 0) {
+    then = t("ventures.sums.missed", { amount: taka(sums.missedBdt) });
+  } else if (sums.dueBdt > 0) {
+    then = t("ventures.sums.due", { amount: taka(sums.dueBdt) });
+  } else if (sums.next) {
+    then = t("ventures.sums.next", {
+      amount: taka(sums.next.bdt),
+      day: formatDate(startOfFarmDay(sums.next.dueOn), language, "date"),
+    });
+  }
+  return (
+    <span
+      className={cn(
+        "block text-xs",
+        sums.missedBdt > 0 ? "text-warning" : "text-muted-foreground"
+      )}
+    >
+      {then ? `${paidOf} · ${then}` : paidOf}
+    </span>
+  );
+};
+
 /** What he has paid against what his Units are worth, the paid part in the warning's colour until they agree. */
 const PaidCell = ({ row }: InvestorCell) => {
   const taka = useTaka();
-  const { paidBdt, owedBdt } = row.original;
+  const { paidBdt, owedBdt, sums } = row.original;
   return (
     <>
       <span className={paidBdt === owedBdt ? undefined : "text-warning"}>
         {taka(paidBdt)}
       </span>
       <span className="text-muted-foreground">{` / ${taka(owedBdt)}`}</span>
+      <SumsLine sums={sums} />
     </>
   );
 };

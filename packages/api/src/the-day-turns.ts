@@ -35,6 +35,7 @@ import {
   whatTheStoreHasToSay,
 } from "./lot-notices";
 import { missingToTell, tellOfMissing } from "./missing-store";
+import { missedToTell, raiseMissedSums } from "./monthly-sums-store";
 import { tell } from "./notice";
 import { carryThePost, pushRaised } from "./push-send";
 import { tellOfRenewals } from "./registration-store";
@@ -532,6 +533,33 @@ const tellAboutOverdueBaki = async (context: Turning, now: Date) => {
 };
 
 /**
+ * Monthly Sums missed: each Agreement's latest missed month told once to the Owner, in the evening's post. Keyed on the
+ * first Agreement it tells about, with the rest named in the event, as the overdue Baki is — the money owed, not any
+ * work, is what these are about.
+ */
+const tellAboutMissedSums = async (context: Turning, now: Date) => {
+  const untold = await missedToTell(
+    context.db,
+    context.farm.id,
+    farmDayOf(now)
+  );
+  const [firstOne] = untold;
+  if (!firstOne) {
+    return;
+  }
+  await audited(context).write(
+    {
+      entity: "investment_agreement",
+      entityId: firstOne.aboutId.split("|")[0] ?? "",
+      action: "update",
+      after: () =>
+        Promise.resolve({ toldMissedSums: untold.map((one) => one.aboutId) }),
+    },
+    (tx) => raiseMissedSums(tx, context.farm.id, untold, now)
+  );
+};
+
+/**
  * What else the store has to say: a Lot of medicine or feed near its last day or past it with some still left, and
  * medicine running under its level. Keyed on the first thing it tells about, with the rest named in the event, as
  * the feed running low is — the store, not any work, is what these are about.
@@ -616,6 +644,7 @@ export const theSweep = async (context: Turning) => {
   await tellAboutLowStock(context, now);
   await tellAboutTheStore(context, now);
   await tellAboutOverdueBaki(context, now);
+  await tellAboutMissedSums(context, now);
   await tellAboutPapers(context, now);
   // And the safety texts that did not go when their notice was raised, tried again until they do.
   await textAgainWhatDidNotGo(context);
