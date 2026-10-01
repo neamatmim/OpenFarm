@@ -216,7 +216,12 @@ const DATA: TemplateSection = {
  * Nominees — what each knows, a minor's Receiver, and none named — the heirs clause and its five rules in the terms,
  * before the Arbitrator, and the data section after them. A farm holding an earlier Version takes this only when the Owner publishes it.
  */
-const investmentAgreement: TemplateContent = {
+/**
+ * The standard Investment Agreement from the several-nominees wording (2026-09-26) until the clauses for capital paid by
+ * the month were added (2026-10-02): kept whole, so a farm still on exactly these words can be caught up to the
+ * standard that followed, and a farm that changed them is left with its own.
+ */
+export const STANDARD_AGREEMENT_BEFORE_MONTHLY: TemplateContent = {
   ...FIRST_PRINTED_AGREEMENT,
   sections: FIRST_PRINTED_AGREEMENT.sections.flatMap(
     (section): TemplateSection[] => {
@@ -247,6 +252,105 @@ const investmentAgreement: TemplateContent = {
       return [terms, DATA];
     }
   ),
+};
+
+/** The two rows "Venture and capital" adds for a Venture paid by the month, after the total capital. */
+const PAID_BY_THE_MONTH_ROWS = [
+  {
+    label: { bn: "গরু কেনার অংশ (প্রতি ইউনিট)", en: "Cattle Part (per Unit)" },
+    value: "{cattlePart} টাকা, কেনা শুরুর আগে",
+    only: "by_the_month" as const,
+  },
+  {
+    label: { bn: "মাসের টাকা (প্রতি ইউনিট)", en: "Monthly Sum (per Unit)" },
+    value:
+      "{monthlySum} টাকা, {firstSumDue} থেকে {lastSumDue} পর্যন্ত প্রতি মাসের ১০ তারিখে ({sums})",
+    only: "by_the_month" as const,
+  },
+];
+
+/**
+ * The clauses for capital paid by the month, M1–M7, as the lawyer and the Shariah scholar approved them on 2026-10-02
+ * (`.scratch/openfarm-paid-monthly/clauses-sheet.html`): after the profit and loss clauses, before the sale window.
+ * Printed only on the Agreement of a Venture paid by the month.
+ */
+const PAID_BY_THE_MONTH_TERMS = [
+  {
+    bn: "বিনিয়োগকারী তাঁর মূলধন দুই ভাগে দেবেন: প্রতি ইউনিটের গরু কেনার অংশ কেনা শুরুর আগে, আর বাকিটা ওপরের তালিকা অনুযায়ী প্রতি মাসের ১০ তারিখে। তাঁর মোট মূলধন ওপরে লেখা পুরো অঙ্ক।",
+    en: "The Investor pays their capital in two parts: each Unit's Cattle Part before buying starts, and the rest in the Monthly Sums above, each on the 10th of its month. Their total capital is the full amount written above.",
+  },
+  {
+    bn: "গরু কেনার অংশ দিয়ে কেবল পশু কেনা হবে; মাসের টাকা দিয়ে পশুর খাবার, ওষুধ ও যত্ন। সব বিনিয়োগকারীর গরু কেনার অংশ না আসা পর্যন্ত কেনা শুরু হবে না।",
+    en: "The Cattle Parts buy the animals only; the Monthly Sums keep them — feed, medicine and care. Buying does not start until every Investor's Cattle Part is in.",
+  },
+  {
+    bn: "কোনো মাসের টাকা সেই মাসের ১০ তারিখের পর সাত দিনের মধ্যে না এলে তা বাকি পড়েছে বলে গণ্য হবে। বাকি পড়া টাকা পশু বিক্রি শুরুর আগ পর্যন্ত দেওয়া যাবে, এবং দেওয়া হলে তা অন্য যেকোনো মূলধনের মতোই গণ্য হবে; বিক্রি শুরুর পর আর নেওয়া হবে না।",
+    en: "A Monthly Sum not received within seven days of its 10th is missed. A missed sum may still be paid until selling begins, and then counts like any other capital; once selling has begun it is not taken.",
+  },
+  {
+    bn: "হিসাব নিকাশে মুনাফা বা ক্ষতির ভাগ হবে প্রত্যেক বিনিয়োগকারী আসলে যত মূলধন দিয়েছেন তার অনুপাতে। সব মাসের টাকা দিলে এই ভাগ তাঁর ইউনিট অনুযায়ী ভাগের সমান।",
+    en: "At Settlement, profit or loss is shared in proportion to the capital each Investor actually paid. Paid in full, that is the same as their share by Units.",
+  },
+  {
+    bn: "দেরিতে দেওয়া বা না দেওয়ার জন্য খামার কোনো জরিমানা, চার্জ বা অতিরিক্ত টাকা নেবে না।",
+    en: "The Farm takes no fine, charge or extra payment of any kind for a sum paid late or not paid.",
+  },
+  {
+    bn: "কোনো মাসের টাকা না এলেও পশুর খাওয়া বন্ধ হবে না: খামারের মালিক নিজের টাকা সুদ ছাড়া অগ্রিম দিতে পারেন। হিসাব নিকাশে মূলধন ফেরতের আগে তিনি কেবল যত দিয়েছেন ততটুকুই ফেরত পাবেন; এ টাকায় তাঁর কোনো মুনাফা বা ক্ষতি নেই।",
+    en: "If a month's money does not come, the animals are still fed: the Owner may advance her own money, interest-free. At Settlement it is repaid before capital, and no more than was advanced; it earns nothing and bears no loss.",
+  },
+  {
+    bn: "কোনো বিনিয়োগকারী মাসের টাকা দেওয়া বন্ধ করলে তাঁর চুক্তি বহাল থাকবে এবং তিনি যত দিয়েছেন তার অনুপাতে ভাগ পাবেন; তাঁর না-দেওয়া অংশ অন্য কাউকে দেওয়া হবে না।",
+    en: "If an Investor stops paying their Monthly Sums, their Agreement stands and they share in proportion to what they paid; the part they did not pay is not offered to anyone else.",
+  },
+].map((clause) => ({ ...clause, only: "by_the_month" as const }));
+
+/** M8, approved with the rest: after the heirs clause, printed only on the Agreement of a Venture paid by the month. */
+const SUMS_AFTER_DEATH = {
+  bn: "মাসের টাকা বাকি থাকা অবস্থায় বিনিয়োগকারীর মৃত্যু হলে তাঁর নমিনি — নমিনি না থাকলে আইনগত উত্তরাধিকারীরা — বাকি মাসগুলোর টাকা দিতে পারবেন; না দিলে যত দেওয়া হয়েছে তার ভিত্তিতে হিসাব হবে।",
+  en: "If the Investor dies with Monthly Sums still to come, their Nominee — or, with none, their lawful heirs — may pay the rest; otherwise they are settled on what was paid.",
+  only: "by_the_month" as const,
+};
+
+/**
+ * The standard Investment Agreement since 2026-10-02: the one before it, with the rows and clauses for capital paid by
+ * the month in the places the advisers approved them — printed only on such a Venture's Agreement, so every other
+ * Agreement reads exactly as it did.
+ */
+const investmentAgreement: TemplateContent = {
+  ...STANDARD_AGREEMENT_BEFORE_MONTHLY,
+  sections: STANDARD_AGREEMENT_BEFORE_MONTHLY.sections.map((section) => {
+    if (section.kind === "facts") {
+      const total = section.rows.findIndex(
+        (row) => row.label.en === "Total capital"
+      );
+      return {
+        ...section,
+        rows: [
+          ...section.rows.slice(0, total + 1),
+          ...PAID_BY_THE_MONTH_ROWS,
+          ...section.rows.slice(total + 1),
+        ],
+      };
+    }
+    if (section.kind !== "clauses" || section.heading.en !== "Terms") {
+      return section;
+    }
+    const window = section.clauses.findIndex((clause) =>
+      clause.en.startsWith("Target sale window")
+    );
+    const heirs = section.clauses.indexOf(HEIRS_CLAUSE);
+    return {
+      ...section,
+      clauses: [
+        ...section.clauses.slice(0, window),
+        ...PAID_BY_THE_MONTH_TERMS,
+        ...section.clauses.slice(window, heirs + 1),
+        SUMS_AFTER_DEATH,
+        ...section.clauses.slice(heirs + 1),
+      ],
+    };
+  }),
 };
 
 const masterAgreement: TemplateContent = {

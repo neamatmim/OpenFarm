@@ -41,14 +41,14 @@ interface Names {
 
 /** Thrown inside a write that turned out to change nothing — an entry already as asked, standard entries already
  *  given — so the write rolls back and leaves no Audit Event. */
-class NothingToDoError extends Error {
+export class NothingToDoError extends Error {
   constructor() {
     super("Nothing to change");
     this.name = "NothingToDoError";
   }
 }
 
-const ignoreNothingToDo = (error: unknown) => {
+export const ignoreNothingToDo = (error: unknown) => {
   if (!(error instanceof NothingToDoError)) {
     throw error;
   }

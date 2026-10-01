@@ -4477,6 +4477,7 @@ export const bn: Record<MessageKey, string> = {
   "templates.partiesHint":
     "ড্যাশের আগের অংশ দিয়ে প্রতিটি পক্ষ সই করে, যেমন প্রথম পক্ষ — মুদারিব।",
   "templates.factLabel": "কী",
+  "templates.onlyByTheMonth": "শুধু মাসে মাসে টাকা দেওয়া ভেঞ্চারের কাগজে ছাপা হয়",
   "templates.factValue": "কী বলে (বাংলায়, তথ্য বন্ধনীতে)",
   "templates.lineNumber": "লাইন {number}",
   "templates.addLine": "লাইন যোগ করুন",

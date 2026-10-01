@@ -13,6 +13,7 @@ import {
   paperFrom,
   templateProblems,
   termsOf,
+  wordingFor,
 } from "./paper-template";
 import {
   FIRST_PRINTED_AGREEMENT,
@@ -38,7 +39,11 @@ const PARTIES: PaperParties = {
   ],
 };
 
-const agreement = STANDARD_TEMPLATES.investment_agreement;
+// The standard Agreement as a Venture paid before buying prints it, which is every paper the farm printed before
+// 2026-10-02: the clauses for capital paid by the month are tested in paid-by-the-month-wording.test.ts.
+const agreement = wordingFor(STANDARD_TEMPLATES.investment_agreement, {
+  paidByTheMonth: false,
+});
 
 const SALMA = {
   name: "সালমা",

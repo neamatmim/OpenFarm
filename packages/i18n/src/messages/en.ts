@@ -4785,6 +4785,7 @@ export const en = {
   "templates.partiesHint":
     "The part before a dash is how each side signs, as in First party — Mudarib.",
   "templates.factLabel": "What it is",
+  "templates.onlyByTheMonth": "printed only on a Venture paid by the month",
   "templates.factValue": "What it says (Bangla, facts in braces)",
   "templates.lineNumber": "Line {number}",
   "templates.addLine": "Add a line",

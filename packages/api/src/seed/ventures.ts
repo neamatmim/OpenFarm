@@ -1,5 +1,5 @@
 /* oxlint-disable no-await-in-loop -- a Venture's acts happen one after another, in the order they happened */
-import { farmDayOf } from "@OpenFarm/domain";
+import { farmDayOf, monthlySumsOf, monthlyTermsOf } from "@OpenFarm/domain";
 
 import { balanceAtMonthEnd } from "../venture-store";
 import type { Bull, Herd } from "./herd";
@@ -99,6 +99,33 @@ const INVESTORS = [
       phone: "01712-330098",
       relation: "স্ত্রী",
       bornOn: "1988-01-15",
+    },
+  },
+  // The two who pay by the month: the cattle money first, the rest on each 10th out of a salary.
+  {
+    name: "মোঃ কামরুল হাসান",
+    phone: "01716-554433",
+    address: "হেমায়েতপুর, সাভার, ঢাকা",
+    nid: "1990 3305 117744",
+    bankAccount: "ব্র্যাক ব্যাংক · 1501 2033 45127",
+    nominee: {
+      name: "শারমিন সুলতানা",
+      phone: "01716-554434",
+      relation: "স্ত্রী",
+      bornOn: "1993-06-21",
+    },
+  },
+  {
+    name: "আলহাজ্ব মোস্তফা কামাল",
+    phone: "01819-772211",
+    address: "নবীনগর, সাভার, ঢাকা",
+    nid: "1978 1209 554411",
+    bankAccount: "সোনালী ব্যাংক · 0112 3400 98712",
+    nominee: {
+      name: "মোঃ তানভীর কামাল",
+      phone: "01819-772212",
+      relation: "ছেলে",
+      bornOn: "2001-02-14",
     },
   },
 ] as const;
@@ -202,7 +229,14 @@ const signOn = async (
     units,
     unitPriceBdt,
     on,
-  }: { units: number; unitPriceBdt: number; on: string }
+    paidBdt = units * unitPriceBdt,
+  }: {
+    units: number;
+    unitPriceBdt: number;
+    on: string;
+    /** What comes in on the day: his Units' whole price, or — paid by the month — their Cattle Part. */
+    paidBdt?: number;
+  }
 ) => {
   farm.clock.set(onFarm(on, "10:30"));
   const person = await farm.as.owner.investors.record({
@@ -234,7 +268,7 @@ const signOn = async (
   farm.clock.set(onFarm(on, "11:15"));
   await farm.as.owner.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: units * unitPriceBdt,
+    amountBdt: paidBdt,
     movedOn: on,
     paymentMethod: "bank",
     // What the bank printed, with the Pay-in Code the Investor wrote on the transfer inside it.
@@ -733,6 +767,75 @@ const anInvestorAsks = async (
 };
 
 /**
+ * A Venture paid by the month (2026-10-02): each Unit's Cattle Part before the buying, then a Monthly Sum on each 10th.
+ * Two of the farm's Investors on it — one who pays every 10th, and one who has missed the latest month past its seven
+ * days — so the schedule on its terms and papers, who is behind on its Investors tab, the Owner's notice of a missed
+ * month and the line beside her own money all have something to show. No cattle yet: the buying has started, and the
+ * money it takes by the month is what is being looked at.
+ */
+const payTheMonthlyVenture = (
+  farm: Farm,
+  on: (day: string, time: string, what: string, run: Happening["run"]) => void
+) => {
+  const { start, today } = farm;
+  const plan = {
+    name: "মাসে মাসে ২০২৭ ভেঞ্চার",
+    targetCapitalBdt: 1_000_000,
+    unitPriceBdt: 50_000,
+    units: 20,
+    cattleBudgetBdt: 800_000,
+    decideBy: addDays(start, 15),
+    targetWindowStart: addDays(today, 120),
+    targetWindowEnd: addDays(today, 130),
+  };
+  const terms = monthlyTermsOf(plan);
+  if (typeof terms === "string") {
+    throw new TypeError(`the monthly Venture cannot open: ${terms}`);
+  }
+  const sums = monthlySumsOf(plan.unitPriceBdt, terms);
+  const onTime = { who: INVESTORS[5], units: 10, id: "" };
+  const behind = { who: INVESTORS[6], units: 6, id: "" };
+  let ventureId = "";
+  on(addDays(start, 5), "09:30", `${plan.name} is opened`, async (f) => {
+    const venture = await f.as.owner.ventures.open({
+      ...plan,
+      capitalPaid: "by_the_month",
+    });
+    ventureId = venture.id;
+    for (const [index, one] of [onTime, behind].entries()) {
+      const signed = await signOn(f, ventureId, one.who, {
+        units: one.units,
+        unitPriceBdt: plan.unitPriceBdt,
+        on: addDays(start, 6 + index),
+        paidBdt: one.units * terms.cattlePartBdt,
+      });
+      one.id = signed.id;
+    }
+  });
+  on(addDays(start, 16), "08:00", `${plan.name} starts buying`, async (f) => {
+    await f.as.owner.ventures.startBuying({ id: ventureId });
+  });
+  // The latest month already past its seven days, which the second of them has not paid.
+  const missed = sums.findLast((one) => one.dueOn < addDays(today, -7));
+  for (const sum of sums.filter((one) => one.dueOn <= today)) {
+    on(sum.dueOn, "11:30", `${plan.name}'s Monthly Sums`, async (f) => {
+      for (const one of [onTime, behind]) {
+        if (one === behind && sum.dueOn === missed?.dueOn) {
+          continue;
+        }
+        await f.as.owner.ventures.takeCapital({
+          agreementId: one.id,
+          amountBdt: one.units * sum.bdt,
+          movedOn: sum.dueOn,
+          paymentMethod: "bank",
+          reference: `BEFTN TRF-${f.random.int(100_000, 999_999)}`,
+        });
+      }
+    });
+  }
+};
+
+/**
  * What happens to the two Ventures as the ninety days go by: quarantine ends, the month's paperwork is
  * kept, one Venture's animals go to the haat and its books are closed, and the Owner puts her own money
  * into the other when its Running Budget gets thin.
@@ -801,6 +904,8 @@ export const runTheVentures = (
       nextId = next.id;
     }
   );
+
+  payTheMonthlyVenture(farm, on);
 
   // Two of the farm's Investors, let into the portal the evening before, ask to join it — so the Venture-to-join page,
   // their own lists and the Owner's Requests have one waiting and one answered. They sign in with their phone and the

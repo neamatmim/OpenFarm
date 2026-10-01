@@ -67,7 +67,13 @@ export interface HimAndHisNominees {
 export interface TheVenture {
   id: string;
   name: string;
+  state: VentureRow["state"];
   unitPriceBdt: number;
+  /** How its Units are paid for, and — paid by the month — the terms it froze, which his papers print. */
+  capitalPaid: VentureRow["capitalPaid"];
+  cattlePartBdt: number | null;
+  monthlySums: number | null;
+  firstSumDueOn: string | null;
 }
 
 /** Everything a paper may print about one man on one Venture, and nothing about anybody else. */
@@ -118,7 +124,16 @@ export const hisStanding = async (
   const [venture, investor] = await Promise.all([
     tx.query.venture.findFirst({
       where: { id: agreement.ventureId, farmId },
-      columns: { id: true, name: true, unitPriceBdt: true },
+      columns: {
+        id: true,
+        name: true,
+        state: true,
+        unitPriceBdt: true,
+        capitalPaid: true,
+        cattlePartBdt: true,
+        monthlySums: true,
+        firstSumDueOn: true,
+      },
     }),
     tx.query.investor.findFirst({
       where: { id: agreement.investorId, farmId },
@@ -154,11 +169,7 @@ export const hisStanding = async (
     reference: one.reference,
   }));
   return {
-    venture: {
-      id: venture.id,
-      name: venture.name,
-      unitPriceBdt: venture.unitPriceBdt,
-    },
+    venture,
     him: {
       id: investor.id,
       name: investor.name,

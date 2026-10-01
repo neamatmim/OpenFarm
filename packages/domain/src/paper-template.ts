@@ -58,6 +58,14 @@ export const TEMPLATE_FIELDS = {
   dataHost: { bn: "সার্ভার চালায় যে প্রতিষ্ঠান", en: "Who runs the server" },
   backupStore: { bn: "ব্যাকআপ রাখে যে প্রতিষ্ঠান", en: "Who keeps the backup" },
   backupCountry: { bn: "ব্যাকআপ যে দেশে", en: "Where the backup is kept" },
+  cattlePart: {
+    bn: "গরু কেনার অংশ (প্রতি ইউনিট)",
+    en: "Cattle Part (per Unit)",
+  },
+  monthlySum: { bn: "মাসের টাকা (প্রতি ইউনিট)", en: "Monthly Sum (per Unit)" },
+  firstSumDue: { bn: "প্রথম মাসের টাকার দিন", en: "First Monthly Sum due" },
+  lastSumDue: { bn: "শেষ মাসের টাকার দিন", en: "Last Monthly Sum due" },
+  sums: { bn: "কত মাস", en: "How many months" },
 } as const satisfies Record<string, Said>;
 export type TemplateField = keyof typeof TEMPLATE_FIELDS;
 
@@ -97,6 +105,15 @@ const THE_KEEPERS: readonly TemplateField[] = [
   "backupStore",
   "backupCountry",
 ];
+/** A Venture paid by the month: each Unit's Cattle Part and its Monthly Sums, filled only on such a Venture's papers. */
+const PAID_BY_THE_MONTH: readonly TemplateField[] = [
+  "cattlePart",
+  "monthlySum",
+  "firstSumDue",
+  "lastSumDue",
+  "sums",
+];
+
 /** An Investor's part in one Venture. */
 const HIS_PART: readonly TemplateField[] = [
   "ventureName",
@@ -163,7 +180,7 @@ const AN_AGREEMENT = {
 const RULES: Record<TemplateKind, PaperRules> = {
   investment_agreement: {
     ...AN_AGREEMENT,
-    fields: [...WHO, ...HIS_PART, "arbitrator"],
+    fields: [...WHO, ...HIS_PART, ...PAID_BY_THE_MONTH, "arbitrator"],
   },
   master_agreement: {
     ...AN_AGREEMENT,
@@ -246,11 +263,23 @@ export const isTemplateField = (name: string): name is TemplateField =>
   Object.hasOwn(TEMPLATE_FIELDS, name);
 
 /** One fact of the paper's own, as the Owner words its line: what it is called, and what it says. */
+/**
+ * When a line of wording is printed at all: on the paper of a Venture paid by the month, and only there. A line with no
+ * condition is printed on every paper of its kind.
+ */
+export type PaperCondition = "by_the_month";
+export const PAPER_CONDITIONS = ["by_the_month"] as const;
+
 export interface FactLine {
   label: Said;
   /** In Bangla, the paper's language; fields in braces. */
   value: string;
+  /** Printed only on the paper of a Venture paid by the month. */
+  only?: PaperCondition;
 }
+
+/** One clause of a clauses part: its words, and — for a clause about capital paid by the month — when it is printed. */
+export type Clause = Said & { only?: PaperCondition };
 
 /**
  * A part of the paper, in the order it is printed. The Owner words each; the farm fills in what is its own. The
@@ -270,11 +299,41 @@ export type TemplateSection =
       noNomineeLine?: Said;
     }
   | { kind: "facts"; heading: Said; rows: FactLine[]; note: Said | null }
-  | { kind: "clauses"; heading: Said; clauses: Said[] }
+  | { kind: "clauses"; heading: Said; clauses: Clause[] }
   | { kind: "stamp"; heading: Said }
   | { kind: "signatures"; heading: Said; witnesses: number };
 
 export type TemplateSectionKind = TemplateSection["kind"];
+
+/** What one paper is about that decides which of its wording's lines it prints. */
+export interface PaperFor {
+  paidByTheMonth: boolean;
+}
+
+/**
+ * A Version's wording as one paper prints it: the lines meant only for a Venture paid by the month kept on that
+ * Venture's paper and left off every other, so a paper never prints — nor asks for the facts of — terms that are not
+ * its own. Everything that fills, checks or repeats a paper's wording reads it through here first.
+ */
+export const wordingFor = (
+  content: TemplateContent,
+  paper: PaperFor
+): TemplateContent => {
+  const prints = (line: { only?: PaperCondition }) =>
+    line.only === undefined || paper.paidByTheMonth;
+  return {
+    ...content,
+    sections: content.sections.map((section) => {
+      if (section.kind === "facts") {
+        return { ...section, rows: section.rows.filter(prints) };
+      }
+      if (section.kind === "clauses") {
+        return { ...section, clauses: section.clauses.filter(prints) };
+      }
+      return section;
+    }),
+  };
+};
 
 /** What one Version of a Template says. */
 export interface TemplateContent {

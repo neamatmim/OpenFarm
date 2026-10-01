@@ -1,4 +1,5 @@
 import type {
+  Clause,
   FactLine,
   Said,
   TemplateContent,
@@ -27,7 +28,7 @@ export type DraftSection =
     >
   | Keyed<
       Omit<Extract<TemplateSection, { kind: "clauses" }>, "clauses"> & {
-        clauses: Keyed<Said>[];
+        clauses: Keyed<Clause>[];
       }
     >;
 

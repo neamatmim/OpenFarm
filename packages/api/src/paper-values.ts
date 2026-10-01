@@ -1,6 +1,7 @@
 import type {
   FarmIdentity,
   FieldValues,
+  MonthlySum,
   PaperInvestor,
   PaperNominee,
   Said,
@@ -44,7 +45,42 @@ export interface PaperFacts {
   arbitrator?: string;
   amendedOn?: string;
   reason?: string;
+  /** Paid by the month: each Unit's Cattle Part and its Monthly Sums, as the Venture froze them. */
+  monthly?: { cattlePartBdt: number; sums: readonly MonthlySum[] } | null;
 }
+
+/**
+ * How many Monthly Sums there are, and — where the division left the last different — what the last is, as the
+ * Agreement's row says it in brackets: "(৪ মাস)", or "(৬ মাস; শেষ মাসে ২,০৮৫ টাকা)".
+ */
+const sumsSaid = (sums: readonly MonthlySum[]): Said | undefined => {
+  const [first] = sums;
+  const last = sums.at(-1);
+  if (!(first && last)) {
+    return undefined;
+  }
+  const lastDiffers = last.bdt !== first.bdt;
+  return {
+    bn: `${formatNumber(sums.length, "bn")} মাস${lastDiffers ? `; শেষ মাসে ${formatNumber(last.bdt, "bn")} টাকা` : ""}`,
+    en: `${formatNumber(sums.length, "en")} months${lastDiffers ? `; the last ৳${formatNumber(last.bdt, "en")}` : ""}`,
+  };
+};
+
+/** The fields of a Venture paid by the month; nothing for any other, whose paper does not ask for them. */
+const monthlyValues = (monthly: PaperFacts["monthly"]): FieldValues => {
+  const first = monthly?.sums[0];
+  const last = monthly?.sums.at(-1);
+  if (!(monthly && first && last)) {
+    return {};
+  }
+  return {
+    cattlePart: figure(monthly.cattlePartBdt),
+    monthlySum: figure(first.bdt),
+    firstSumDue: day(first.dueOn),
+    lastSumDue: day(last.dueOn),
+    sums: sumsSaid(monthly.sums),
+  };
+};
 
 /**
  * Every field a paper can fill, in both languages, from the facts the farm has: a number in each language's own
@@ -88,6 +124,7 @@ export const paperValues = (facts: PaperFacts): FieldValues => {
     arbitrator: same(facts.arbitrator),
     amendedOn: facts.amendedOn ? day(facts.amendedOn) : undefined,
     reason: same(facts.reason),
+    ...monthlyValues(facts.monthly),
   };
   return Object.fromEntries(
     Object.entries(values).filter(([, value]) => value !== undefined)

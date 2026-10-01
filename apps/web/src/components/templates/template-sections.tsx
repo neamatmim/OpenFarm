@@ -1,4 +1,4 @@
-import type { FactLine, Said } from "@OpenFarm/domain";
+import type { Clause, FactLine } from "@OpenFarm/domain";
 import { MOST_WITNESSES, RECEIVER_FIELDS } from "@OpenFarm/domain";
 import { formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -73,18 +73,22 @@ const SaidList = ({
   nameOf,
   addLabel,
 }: {
-  items: Keyed<Said>[];
-  onChange: (items: Keyed<Said>[]) => void;
+  items: Keyed<Clause>[];
+  onChange: (items: Keyed<Clause>[]) => void;
   /** What the passage at a place is called, from its number as the reader writes it. */
   nameOf: (number: string) => string;
   addLabel: string;
 }) => {
-  const { language } = useLanguage();
+  const { t, language } = useLanguage();
   return (
     <>
       <ol className="flex flex-col gap-3">
         {items.map((item, index) => {
-          const name = nameOf(formatDigits(index + 1, language));
+          const numbered = nameOf(formatDigits(index + 1, language));
+          // A clause for capital paid by the month says so, or she would wonder why other papers leave it out.
+          const name = item.only
+            ? `${numbered} · ${t("templates.onlyByTheMonth")}`
+            : numbered;
           return (
             <li
               className="flex items-start gap-2 rounded-md border p-3"
@@ -235,6 +239,11 @@ const FactLineFields = ({
           value={line.value}
         />
       </FormField>
+      {line.only ? (
+        <p className="text-muted-foreground text-xs">
+          {t("templates.onlyByTheMonth")}
+        </p>
+      ) : null}
     </div>
   );
 };

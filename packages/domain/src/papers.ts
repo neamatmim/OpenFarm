@@ -751,6 +751,8 @@ export interface JoiningLetter {
   totalCapital: string;
   /** What he agreed to, numbered, in the words of the Version his Agreement was signed in (termsOf). */
   terms: string[];
+  /** Paid by the month: his Units' Monthly Sums, each its day and what it is, formatted; nothing for any other Venture. */
+  monthlySums?: { on: string; amount: string }[] | null;
   /** The day of the amendment those terms come from, as the reader reads it, or nothing while the paper
    *  still stands as it was signed. */
   amendedOn: string | null;
@@ -806,6 +808,23 @@ const nomineeLineOf = (one: PaperNominee) => {
  * because the whole use of this sheet is that a man can hold it beside his own bank statement and see
  * the same lines. A total nobody can check against anything is not an acknowledgement.
  */
+/**
+ * A Venture paid by the month, on the joining letter: his Units' Monthly Sums, and what the letter acknowledges — in the
+ * words the advisers approved on 2026-10-02. Nothing for any other Venture.
+ */
+const monthlySumLines = (
+  sums: readonly { on: string; amount: string }[] | null
+): string[] =>
+  sums && sums.length > 0
+    ? [
+        "",
+        "মাসের টাকার তালিকা / Monthly Sums",
+        ...sums.map((one) => `  ${one.on} · ${one.amount} টাকা`),
+        "এই পত্র গরু কেনার অংশ প্রাপ্তির স্বীকৃতি; মাসের টাকা এলে তা অগ্রগতি প্রতিবেদনে দেখানো হবে।",
+        "This letter acknowledges the Cattle Part received; Monthly Sums, as they come, are shown on the progress statement.",
+      ]
+    : [];
+
 export const joiningLetter = (letter: JoiningLetter): string => {
   if (letter.capital.length === 0) {
     throw new Error(
@@ -844,6 +863,7 @@ export const joiningLetter = (letter: JoiningLetter): string => {
           `  ${one.on} · ${one.amount} টাকা · ${one.reference}${one.kind === "returned" ? " · ফেরত / returned" : ""}`
       ),
       field("মোট", "Total", `${letter.totalCapital} টাকা`),
+      ...monthlySumLines(letter.monthlySums ?? null),
       "",
       "শর্তাবলি / Terms",
       ...letter.terms.map((one) => `  ${one}`),
@@ -895,6 +915,8 @@ export interface ProgressStatement {
   /** His Units, and what share of the Venture they are — his own, never anybody else's. */
   units: string;
   share: string;
+  /** Paid by the month: where he stands against his Monthly Sums, in Bangla with its own numerals; nothing otherwise. */
+  monthlySums?: string | null;
   /** Standing, sold and lost, formatted for the reader. */
   standing: string;
   sold: string;
@@ -940,6 +962,9 @@ export const progressStatement = (sheet: ProgressStatement): string =>
       field("বিনিয়োগকারী", "Investor", sheet.investorName),
       field("ভেঞ্চার", "Venture", sheet.ventureName),
       field("ইউনিট", "Units held", `${sheet.units} (${sheet.share}%)`),
+      sheet.monthlySums
+        ? field("মাসের টাকা", "Monthly Sums", sheet.monthlySums)
+        : null,
       "",
       "পশুর অবস্থা / The cattle",
       field("  দাঁড়িয়ে আছে", "Standing", sheet.standing),
@@ -1050,6 +1075,10 @@ export interface SettlementStatement {
   /** His: Units, capital in, what his Units took, and what went out to him. */
   his: {
     units: string;
+    /** Paid by the month, where what he held differs from what he signed for: the Units he signed for. */
+    signedUnits?: string | null;
+    /** Paid by the month: what of his Monthly Sums was never paid, where any was. Taka, formatted. */
+    sumsUnpaid?: string | null;
     capital: string;
     share: string;
     shareRose: boolean;
@@ -1130,7 +1159,20 @@ export const settlementStatement = (sheet: SettlementStatement): string =>
         : null,
       "",
       "আপনার হিসাব / Yours",
-      field("  ইউনিট", "Units held", sheet.his.units),
+      sheet.his.signedUnits
+        ? field(
+            "  দেওয়া মূলধন অনুযায়ী ইউনিট",
+            "Units held, by capital paid",
+            `${sheet.his.units} (সই করা ${sheet.his.signedUnits})`
+          )
+        : field("  ইউনিট", "Units held", sheet.his.units),
+      sheet.his.sumsUnpaid
+        ? field(
+            "  বাকি পড়া মাসের টাকা",
+            "Monthly Sums not paid",
+            `${sheet.his.sumsUnpaid} টাকা`
+          )
+        : null,
       field("  মূলধন ফেরত", "Capital returned", `${sheet.his.capital} টাকা`),
       sheet.his.shareRose
         ? field(

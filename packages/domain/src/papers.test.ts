@@ -56,6 +56,34 @@ const sheet = (
 const capitalLine = (text: string) =>
   text.split("\n").find((line) => line.includes("মূলধনে"));
 
+describe("the হিসাব নিকাশ of a man who paid by the month and missed some", () => {
+  it("prints the Units he held by what he paid beside what he signed for, and what never came", () => {
+    const missed = sheet(null);
+    const text = settlementStatement({
+      ...missed,
+      his: {
+        ...missed.his,
+        units: "৯.৬",
+        signedUnits: "১০",
+        sumsUnpaid: "২০,০০০",
+      },
+    });
+
+    expect(text).toContain(
+      "দেওয়া মূলধন অনুযায়ী ইউনিট / Units held, by capital paid: ৯.৬ (সই করা ১০)"
+    );
+    expect(text).toContain("বাকি পড়া মাসের টাকা / Monthly Sums not paid: ২০,০০০ টাকা");
+  });
+
+  it("prints his Units as ever where he paid everything", () => {
+    const text = settlementStatement(sheet(null));
+
+    expect(text).toContain("ইউনিট / Units held: ২০");
+    expect(text).not.toContain("সই করা");
+    expect(text).not.toContain("বাকি পড়া মাসের টাকা");
+  });
+});
+
 describe("the হিসাব নিকাশ's line on their capital", () => {
   it("says a loss as a loss, unsigned, under the payout", () => {
     const text = settlementStatement(

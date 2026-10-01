@@ -8,14 +8,21 @@ import { investmentAgreement } from "@OpenFarm/db/schema/venture";
 import type { TemplateContent, TemplateKind } from "@OpenFarm/domain";
 import {
   FIRST_PRINTED_AGREEMENT,
+  STANDARD_AGREEMENT_BEFORE_MONTHLY,
   STANDARD_TEMPLATES,
   TEMPLATE_KINDS,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
+import { audited } from "./audit";
 import type { Context } from "./context";
-import { giveStandardOnce } from "./farm-list";
+import {
+  NothingToDoError,
+  giveStandardOnce,
+  ignoreNothingToDo,
+} from "./farm-list";
+import { lockTheFarm } from "./venture-store";
 
 /** One Version of a Template, as a paper is printed from it and the screen shows it. */
 export interface Wording {
@@ -138,6 +145,84 @@ const addStandardTemplates = async (
   return given;
 };
 
+/** A wording as the database keeps it: the same words in whatever order its keys come back. */
+const canonical = (value: unknown): string =>
+  JSON.stringify(value, (_key, inner: unknown) =>
+    inner && typeof inner === "object" && !Array.isArray(inner)
+      ? Object.fromEntries(
+          Object.entries(inner).toSorted(([a], [b]) => a.localeCompare(b))
+        )
+      : inner
+  );
+
+/** Why the farm's Investment Agreement moved on without the Owner publishing it, as its Version's note says. */
+const CAUGHT_UP_NOTE =
+  "OpenFarm's standard wording: the clauses for capital paid by the month, approved by the lawyer and the Shariah scholar on 2026-10-02. Printed only on a Venture paid by the month.";
+
+/**
+ * Catches a farm's Investment Agreement up to the standard wording, when the wording in force is still exactly the
+ * standard it was given — the clauses for capital paid by the month added after it (2026-10-02). A wording the Owner
+ * changed is hers, and is left alone: she adds the clauses herself if she wants them. Published by nobody, as the
+ * standard first was, with a note saying why; every Agreement already signed keeps the Version it was signed in.
+ */
+const catchUpTheStandardAgreement = async (
+  context: Context & { farm: { id: string } }
+): Promise<void> => {
+  const farmId = context.farm.id;
+  const template = await context.db.query.paperTemplate.findFirst({
+    where: { farmId, kind: "investment_agreement" },
+    with: { currentVersion: true },
+  });
+  const current = template?.currentVersion;
+  // Given by nobody and never changed: the Owner publishing the same words herself is a choice of hers, and kept.
+  const stillTheOldStandard =
+    current !== null &&
+    current !== undefined &&
+    current.publishedBy === null &&
+    canonical(current.content) === canonical(STANDARD_AGREEMENT_BEFORE_MONTHLY);
+  if (!(template && current && stillTheOldStandard)) {
+    return;
+  }
+  const now = context.clock.now();
+  const versionId = uuidv7(now);
+  await audited(context)
+    .write(
+      {
+        entity: "paper_template",
+        entityId: template.id,
+        action: "update",
+        after: () =>
+          Promise.resolve({ caughtUpTo: "paid_by_the_month", versionId }),
+        reason: CAUGHT_UP_NOTE,
+      },
+      async (tx) => {
+        // Behind the farm's lock and read again inside it: two requests at once catch it up once.
+        await lockTheFarm(tx, farmId);
+        const standing = await tx.query.paperTemplate.findFirst({
+          where: { id: template.id },
+          columns: { currentVersionId: true },
+        });
+        if (standing?.currentVersionId !== current.id) {
+          throw new NothingToDoError();
+        }
+        await tx.insert(paperTemplateVersion).values({
+          id: versionId,
+          farmId,
+          templateId: template.id,
+          number: current.number + 1,
+          content: STANDARD_TEMPLATES.investment_agreement,
+          note: CAUGHT_UP_NOTE,
+          publishedAt: now,
+        });
+        await tx
+          .update(paperTemplate)
+          .set({ currentVersionId: versionId })
+          .where(eq(paperTemplate.id, template.id));
+      }
+    )
+    .catch(ignoreNothingToDo);
+};
+
 /**
  * Gives the farm the standard wording it has not been given — the first time its papers' wording is opened, or the
  * first time a paper is printed or signed. Recorded as what was actually given; a request that finds it all there
@@ -152,6 +237,7 @@ export const giveStandardTemplates = async (
     give: (tx, kinds, now) =>
       addStandardTemplates(tx, context.farm.id, kinds, now),
   });
+  await catchUpTheStandardAgreement(context);
 };
 
 /** The Version a kind of paper is in now on this farm, or nothing for a farm not yet given its wording. */

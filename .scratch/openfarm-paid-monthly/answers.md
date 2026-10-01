@@ -32,3 +32,9 @@ The lawyer and the Shariah scholar answered `advisers-sheet.html` in writing; th
   drafted wording before they are published as a Version (Q1 approved adding clauses, not yet their words).
 - Nominees (Q8): a Nominee of a deceased Investor may pay the remaining sums — whoever pays, it is by bank against his
   Agreement, as any sum.
+
+## The clauses (2026-10-02, later)
+
+The Owner reported the advisers' answer on `clauses-sheet.html`: **"is okay"** — every row and clause, M1–M8, approved
+as written, so M6 (the Advance) stays in the Agreement and M8 keeps "or, with none, the lawful heirs". Built into the
+standard wording the same day, word for word.
