@@ -1,4 +1,4 @@
-import { auth } from "@OpenFarm/auth";
+import { auth, openInvestorAccount } from "@OpenFarm/auth";
 import { session as sessionTable } from "@OpenFarm/db/schema/auth";
 import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { createRouterClient } from "@orpc/server";
@@ -222,5 +222,84 @@ describe("the portal", () => {
       })
     ).rejects.toMatchObject({ statusCode: 403 });
     await owner.investors.setPortalOpen({ open: true });
+  });
+});
+
+/** Whether this password signs this address in now. */
+const signsInWith = async (email: string, password: string) => {
+  try {
+    await auth.api.signInEmail({ body: { email, password } });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+describe("taking up an invitation, when something goes wrong", () => {
+  /** An Investor of this test's own, so what it does to their account touches nobody else's. */
+  const anotherInvestor = async (phone: string) => {
+    const owner = await asOwner();
+    await owner.investors.setPortalOpen({ open: true });
+    const them = await owner.investors.record({
+      name: `করিম ${phone}`,
+      phone,
+      address: "সাভার",
+      nid: "1234567890",
+      bankAccount: "0123456789",
+    });
+    return {
+      owner,
+      id: them.id,
+      loginEmail: `${phone}@investor.openfarm.invalid`,
+    };
+  };
+
+  it("finishes an account a crash left half-made, rather than refusing the next try", async () => {
+    const phone = `0181${suffix}`;
+    const { owner, id, loginEmail } = await anotherInvestor(phone);
+    const { code } = await invitedWithConsent(owner, id);
+    // The server made the account and died before it wrote the invitation down as taken.
+    await openInvestorAccount(auth, {
+      email: loginEmail,
+      name: `করিম ${phone}`,
+      password: "the-first-try-2026",
+    });
+
+    const nobody = await asNobody();
+    await nobody.portal.join({ phone, code, password: PASSWORD });
+
+    expect(await signsInWith(loginEmail, PASSWORD)).toBe(true);
+    const listed = await owner.investors.list();
+    expect(listed.people.find((one) => one.id === id)?.portal).toBe("in");
+  });
+
+  it("lets only the try that used the code set the password, when two arrive at once", async () => {
+    const phone = `0191${suffix}`;
+    const { owner, id, loginEmail } = await anotherInvestor(phone);
+    const first = await invitedWithConsent(owner, id);
+    const nobody = await asNobody();
+    await nobody.portal.join({ phone, code: first.code, password: PASSWORD });
+
+    // Back for a new password, twice at once — a double tap, or somebody else holding the same slip. Whichever used
+    // the code, its password is the one that works; the other changed nothing.
+    for (const round of [1, 2, 3, 4, 5]) {
+      // oxlint-disable-next-line no-await-in-loop
+      const { code } = await invitedWithConsent(owner, id);
+      const mine = `mine-round-${round}-2026`;
+      const theirs = `theirs-round-${round}-2026`;
+      // oxlint-disable-next-line no-await-in-loop
+      const [a, b] = await Promise.allSettled([
+        nobody.portal.join({ phone, code, password: mine }),
+        nobody.portal.join({ phone, code, password: theirs }),
+      ]);
+      const won = [a, b].filter((one) => one.status === "fulfilled");
+      expect(won).toHaveLength(1);
+      const winner = a.status === "fulfilled" ? mine : theirs;
+      const loser = winner === mine ? theirs : mine;
+      // oxlint-disable-next-line no-await-in-loop
+      expect(await signsInWith(loginEmail, winner)).toBe(true);
+      // oxlint-disable-next-line no-await-in-loop
+      expect(await signsInWith(loginEmail, loser)).toBe(false);
+    }
   });
 });

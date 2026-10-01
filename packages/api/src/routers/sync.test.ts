@@ -1,4 +1,5 @@
 import { eq } from "@OpenFarm/db/operators";
+import { auditEvent } from "@OpenFarm/db/schema/audit";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import { syncEntry } from "@OpenFarm/db/schema/sync";
 import type { SopContent } from "@OpenFarm/domain";
@@ -876,11 +877,12 @@ describe("photos", () => {
   it("keeps a picture whose entry never arrived, rather than losing it", async () => {
     const { clock, staff } = await session("2027-01-26");
 
+    const photoId = recordId();
     const sent = await staff.sync.batch({
       key: key(),
       entries: [
         {
-          id: recordId(),
+          id: photoId,
           seq: seq(),
           kind: "completion_photo" as const,
           completionId: "no-such-completion",
@@ -894,6 +896,21 @@ describe("photos", () => {
 
     // Early, or orphaned. Either way it is a picture somebody took in a shed.
     expect(sent.results[0]?.outcome).toBe("kept");
+    // Kept means the picture itself, on the farm: the phone that took it may be wiped tomorrow.
+    const [held] = await scratchDb()
+      .select({ payload: syncEntry.payload })
+      .from(syncEntry)
+      .where(eq(syncEntry.id, photoId));
+    expect(held?.payload).toMatchObject({ data: "AAAA", slot: 0 });
+    // …and never in the trail, where a megabyte of base64 would bury what people read it for.
+    const trail = await scratchDb()
+      .select({ after: auditEvent.after })
+      .from(auditEvent)
+      .where(eq(auditEvent.entityId, photoId));
+    expect(trail.length).toBeGreaterThan(0);
+    for (const row of trail) {
+      expect(row.after).not.toHaveProperty("data");
+    }
   });
 });
 

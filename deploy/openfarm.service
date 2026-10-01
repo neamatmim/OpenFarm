@@ -7,12 +7,14 @@ Wants=network-online.target
 Type=simple
 User=openfarm
 Group=openfarm
-WorkingDirectory=/srv/openfarm/app
+# Whichever release /srv/openfarm/current points at, read when the service starts: a deploy switches the link
+# and restarts (docs/runbooks/deploy.md).
+WorkingDirectory=/srv/openfarm/current
 EnvironmentFile=/etc/openfarm/app.env
 Environment=NODE_ENV=production
 Environment=HOST=127.0.0.1
 Environment=PORT=3001
-ExecStart=/usr/bin/node /srv/openfarm/app/server/index.mjs
+ExecStart=/usr/bin/node /srv/openfarm/current/server/index.mjs
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=30

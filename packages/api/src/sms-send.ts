@@ -1,6 +1,6 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { eq } from "@OpenFarm/db/operators";
-import { textMessage } from "@OpenFarm/db/schema/alert";
+import { and, eq, lt } from "@OpenFarm/db/operators";
+import { ALERT_KINDS, textMessage } from "@OpenFarm/db/schema/alert";
 import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
 import type { AlertKind } from "@OpenFarm/domain";
 import { goesByText } from "@OpenFarm/domain";
@@ -23,7 +23,9 @@ interface Textable {
  * One message about one thing: a notice reaches the app for every person it concerns, but one
  * Withdrawal ending is one thing to be texted about, not one per recipient.
  */
-const worthTexting = (raised: RaisedAlert[]): Textable[] => {
+const worthTexting = (
+  raised: { kind: RaisedAlert["kind"]; entityId: string; params: unknown }[]
+): Textable[] => {
   const byThing = new Map<string, Textable>();
   for (const alert of raised) {
     const kind = alert.kind as AlertKind;
@@ -39,9 +41,47 @@ const worthTexting = (raised: RaisedAlert[]): Textable[] => {
   return [...byThing.values()];
 };
 
+/**
+ * A message claimed before and not delivered — the gateway said no, or the server died before it asked — claimed
+ * again the same way, by its row: its last try moved to now, so two sweeps cannot both send it.
+ */
+const claimAgain = async (
+  context: Context,
+  {
+    userId,
+    phone,
+    notice,
+    triedBefore,
+    now,
+  }: {
+    userId: string;
+    phone: string;
+    notice: Textable;
+    triedBefore: Date;
+    now: Date;
+  }
+): Promise<{ id: string } | undefined> => {
+  const [again] = await context.db
+    .update(textMessage)
+    .set({ sentAt: now, sentTo: phone })
+    .where(
+      and(
+        eq(textMessage.userId, userId),
+        eq(textMessage.kind, notice.kind),
+        eq(textMessage.entityId, notice.entityId),
+        eq(textMessage.delivered, false),
+        lt(textMessage.sentAt, triedBefore)
+      )
+    )
+    .returning({ id: textMessage.id });
+  return again;
+};
+
 const tellThemBySms = async (
   context: Context & { farm: NonNullable<Context["farm"]> },
-  notices: Textable[]
+  notices: Textable[],
+  /** Set when going back over what did not go: a message tried before this and not delivered is tried again. */
+  { againIfTriedBefore }: { againIfTriedBefore?: Date } = {}
 ) => {
   const farmId = context.farm.id;
   // Whoever holds the two Roles the notification table names, and has a number written down.
@@ -86,7 +126,19 @@ const tellThemBySms = async (
         })
         .onConflictDoNothing()
         .returning({ id: textMessage.id });
-      if (!claimed) {
+      const mine =
+        claimed ??
+        (againIfTriedBefore
+          ? // oxlint-disable-next-line no-await-in-loop
+            await claimAgain(context, {
+              userId: person.id,
+              phone: person.phone,
+              notice,
+              triedBefore: againIfTriedBefore,
+              now,
+            })
+          : undefined);
+      if (!mine) {
         already += 1;
         continue;
       }
@@ -101,7 +153,7 @@ const tellThemBySms = async (
       await context.db
         .update(textMessage)
         .set({ delivered: answer.delivered })
-        .where(eq(textMessage.id, claimed.id));
+        .where(eq(textMessage.id, mine.id));
     }
   }
   return { sent, missed, already };
@@ -138,6 +190,50 @@ export const textTheSafetyAlerts = async (
   } catch {
     // The gateway, the roster or the database: none of them is a reason for the work that
     // raised the notice to fail. The Alert is in the app either way.
+    return nothing;
+  }
+};
+
+/** The two kinds the notification table sends by text. */
+const TEXTED_KINDS = ALERT_KINDS.filter((kind) => goesByText(kind));
+
+/** How long a safety notice is still worth a text: a day, after which the Withdrawal is over and the Vet has been. */
+const TEXT_AGAIN_FOR_MS = 24 * 60 * 60 * 1000;
+
+/** How long after a try that did not go before the next: three sweeps, not every one through a gateway's outage. */
+const TRY_AGAIN_AFTER_MS = 15 * 60 * 1000;
+
+/**
+ * Sends again the safety texts that did not go. The notice is raised once, and the text sent once
+ * straight after; a gateway that was down that minute, or a server that died between the two, would
+ * otherwise leave the Owner and the Manager with nothing in their pocket about a Withdrawal ending or
+ * a notifiable disease. So the sweep goes back over the last day's, and texts whoever was not texted
+ * — never twice anybody who was.
+ *
+ * Quiet like the first try: nothing here is a reason for the sweep to fail.
+ */
+export const textAgainWhatDidNotGo = async (
+  context: Context & { farm: NonNullable<Context["farm"]> }
+): Promise<{ sent: number; missed: number; already: number }> => {
+  const nothing = { sent: 0, missed: 0, already: 0 };
+  try {
+    const now = context.clock.now();
+    const recent = await context.db.query.alert.findMany({
+      where: {
+        farmId: context.farm.id,
+        kind: { in: TEXTED_KINDS },
+        createdAt: { gte: new Date(now.getTime() - TEXT_AGAIN_FOR_MS) },
+      },
+      columns: { kind: true, entityId: true, params: true },
+    });
+    const notices = worthTexting(recent);
+    if (notices.length === 0) {
+      return nothing;
+    }
+    return await tellThemBySms(context, notices, {
+      againIfTriedBefore: new Date(now.getTime() - TRY_AGAIN_AFTER_MS),
+    });
+  } catch {
     return nothing;
   }
 };
