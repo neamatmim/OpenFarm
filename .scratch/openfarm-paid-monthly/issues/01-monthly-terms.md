@@ -1,21 +1,24 @@
 # 01 — Monthly terms on a Venture
 
 **What to build:** When the Owner opens a Venture she chooses how it is paid: all before buying (as every Venture so
-far), or the cattle part first and the rest by the month. For the second, the Venture carries the monthly sum per Unit,
-how many months, and the day of the month it is due — worked from its own budgets, so the Unit price still adds up.
+far), or the cattle part first and the rest by the month. For the second, the Venture works out the monthly sum per
+Unit and how many there are from its own budgets and dates, so the Unit price still adds up and an Investor knows the
+whole schedule before he signs.
 
-**Blocked by:** the Owner's open points (README), the advisers' written answers.
+**Blocked by:** — (answered 2026-10-02, see answers.md)
 
 **Status:** not started
 
 - [ ] **Glossary:** a word for the Venture's way of being paid and for one monthly sum (check CONTEXT.md first; not
       "instalment", which Baki Payment avoids). The Unit entry: "paid all before buying, or its cattle part first and
       the rest by the month".
-- [ ] **Schema:** on `venture` — how it is paid (default all before buying for every existing row), months, due day.
-      The monthly sum per Unit is worked, never typed: (Unit price − cattle part) ÷ months, whole taka, the last month
-      taking the remainder. Cattle part per Unit = Cattle Budget ÷ Units.
-- [ ] **Opening and the plan sheet:** the choice, the months and the due day; the sheet shows "৳40,000 before buying,
-      then ৳2,000 a month for 5 months" per Unit. Refused: months under 1; a cattle part that is not whole taka.
+- [ ] **Schema:** on `venture` — how it is paid (default all before buying for every existing row). Nothing else is
+      stored: the due day is the 10th for every Venture (answers.md), and the sums are worked, never typed —
+      months = the 10ths after the month of `decideBy` and before `targetWindowStart`; cattle part per Unit = Cattle
+      Budget ÷ Units; monthly sum = (Unit price − cattle part) ÷ months, whole taka, the last month taking the remainder.
+- [ ] **Opening and the plan sheet:** the choice; the sheet shows "৳40,000 before buying,
+      then ৳2,000 on the 10th of each month, June to October" per Unit. Refused: no 10th between the decision date and
+      the Target Window; a cattle part that is not whole taka.
 - [ ] **Offer and portal:** an invited Investor reading an offer sees the same line before he asks to join.
 - [ ] **Tests:** the worked sums add up to the Unit price for awkward figures; existing Ventures read as all before
       buying.
