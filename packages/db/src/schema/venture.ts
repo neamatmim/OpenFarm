@@ -32,6 +32,10 @@ export const VENTURE_STATES = [
 ] as const;
 export type VentureState = (typeof VENTURE_STATES)[number];
 
+/** How a Venture's Investors pay for their Units: all before the buying, or the Cattle Part first and the rest in
+ *  Monthly Sums. Mirrored in @OpenFarm/domain (`CAPITAL_PAID`). */
+export const CAPITAL_PAID = ["before_buying", "by_the_month"] as const;
+
 /**
  * One investor-funded run of fattening cattle, from the first Investment Agreement to the last payout.
  *
@@ -63,6 +67,17 @@ export const venture = pgTable(
     units: integer("units").notNull(),
     /** The part of the capital meant for buying animals; the rest is the Running Budget. */
     cattleBudgetBdt: taka("cattle_budget_bdt").notNull(),
+    /** How its Investors pay for their Units. Every Venture before 2026-10-02 was paid before buying. */
+    capitalPaid: text("capital_paid", { enum: CAPITAL_PAID })
+      .notNull()
+      .default("before_buying"),
+    /** Paid by the month: the terms it opened on, frozen — what a Unit pays before buying, how many Monthly Sums, and
+     *  the day the first falls due (each after it on the same day of the next month). Worked from its budgets and
+     *  dates when it opens (`monthlyTermsOf`), and never moved: an Amendment that moves its window moves no Investor's
+     *  schedule. Empty for a Venture paid before buying. */
+    cattlePartBdt: taka("cattle_part_bdt"),
+    monthlySums: integer("monthly_sums"),
+    firstSumDueOn: text("first_sum_due_on"),
     /** Why a Venture was called off, in the Owner's words. */
     cancelledReason: text("cancelled_reason"),
     /** When the Owner showed it to invited Investors in the portal; empty while it is not shown (ADR 0008). */

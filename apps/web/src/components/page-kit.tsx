@@ -87,14 +87,17 @@ export const FigureTerm = ({
   hint,
   tone = "neutral",
   size = "md",
+  className,
 }: {
   label: string;
   children: ReactNode;
   hint?: string;
   tone?: "neutral" | "warning";
   size?: keyof typeof FIGURE_SIZE;
+  /** Where it sits in the grid around it — a sentence of a term may want the whole row. */
+  className?: string;
 }) => (
-  <div className="flex min-w-0 flex-col gap-0.5">
+  <div className={cn("flex min-w-0 flex-col gap-0.5", className)}>
     <dt className="text-muted-foreground text-xs" data-slot="figure-label">
       {label}
     </dt>

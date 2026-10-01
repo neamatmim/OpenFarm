@@ -998,6 +998,17 @@ export const en = {
   "ventures.held": "Held so far",
   "ventures.floor": "Floor",
   "ventures.decideBy": "Decide by",
+  "ventures.paidFor.choose": "How Investors pay",
+  "ventures.paidFor.before_buying": "All before buying",
+  "ventures.paidFor.by_the_month": "Cattle money first, the rest monthly",
+  "ventures.paidFor.label": "Each Unit is paid",
+  "ventures.paidFor.allBefore": "{price}, all before buying",
+  "ventures.paidFor.monthly":
+    "{cattle} before buying, then {each} on the 10th of each month from {from} to {to}",
+  "ventures.paidFor.monthlyLast":
+    "{cattle} before buying, then {each} on the 10th of each month from {from} to {to}, the last {last}",
+  "ventures.paidFor.sums":
+    "{count, plural, one {# monthly sum} other {# monthly sums}}",
   "ventures.unitPrice": "One Unit costs",
   "ventures.units": "Units",
   "ventures.unitsAt": "{units} at {price}",
@@ -2861,6 +2872,10 @@ export const en = {
     "The Floor cannot be more than the capital the Venture is after",
   "refusal.ventureFloorOverUnits":
     "The Floor is more than the Units can ever raise: lower it, or add Units",
+  "refusal.ventureNoMonthToPayIn":
+    "No 10th falls between the month after the decision date and the sale window: move a date, or have it paid before buying",
+  "refusal.ventureNothingToPayMonthly":
+    "The cattle budget is all the capital, so nothing is left to pay by the month",
   "refusal.ventureBudgetOverCapital":
     "The Cattle Budget cannot be more than the capital it comes from",
   "refusal.ventureUnitsGone": "The Venture has fewer Units left than that",

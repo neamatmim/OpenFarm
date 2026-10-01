@@ -1,10 +1,13 @@
+import type { CapitalPaid } from "@OpenFarm/domain";
+import { CAPITAL_PAID, monthlySumsOf, monthlyTermsOf } from "@OpenFarm/domain";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { useNextEid } from "@/components/fattening/next-eid";
-import { FormField, FormSheet } from "@/components/page-kit";
+import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
+import { PaidForBy } from "@/components/ventures/paid-for-by";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
@@ -20,6 +23,7 @@ interface Plan {
   decideBy: string;
   targetWindowStart: string;
   targetWindowEnd: string;
+  capitalPaid: CapitalPaid;
 }
 
 /** What the farm would work out, shown greyed in the box the Owner may type over. */
@@ -31,6 +35,12 @@ const wouldKeep = (amount: number, runningPercent: number | undefined) =>
     ? ""
     : String(Math.round((amount * (100 - runningPercent)) / 100));
 
+/** The Cattle Budget the Venture will open with: hers where she typed one, the farm's share of the capital where not. */
+const cattleBudgetOf = (plan: Plan, runningPercent: number | undefined) =>
+  plan.cattleBudgetBdt.trim() === ""
+    ? Number(wouldKeep(Number(plan.targetCapitalBdt), runningPercent) || 0)
+    : Number(plan.cattleBudgetBdt);
+
 const NOTHING_YET: Plan = {
   name: "",
   targetCapitalBdt: "",
@@ -40,6 +50,69 @@ const NOTHING_YET: Plan = {
   decideBy: "",
   targetWindowStart: "",
   targetWindowEnd: "",
+  capitalPaid: "before_buying",
+};
+
+/**
+ * What a Venture paid by the month would open on, as the server will work it, so she sees the schedule before she
+ * opens it — or why there is none. Nothing until the figures it is worked from are in.
+ */
+const MonthlyPreview = ({
+  unitPriceBdt,
+  targetCapitalBdt,
+  cattleBudgetBdt,
+  decideBy,
+  targetWindowStart,
+}: {
+  unitPriceBdt: number;
+  targetCapitalBdt: number;
+  cattleBudgetBdt: number;
+  decideBy: string;
+  targetWindowStart: string;
+}) => {
+  const { t } = useLanguage();
+  const known =
+    unitPriceBdt > 0 &&
+    targetCapitalBdt > 0 &&
+    decideBy !== "" &&
+    targetWindowStart !== "";
+  if (!known) {
+    return null;
+  }
+  const terms = monthlyTermsOf({
+    unitPriceBdt,
+    targetCapitalBdt,
+    cattleBudgetBdt,
+    decideBy,
+    targetWindowStart,
+  });
+  if (terms === "no_month_to_pay_in") {
+    return (
+      <output className="text-warning block text-sm">
+        {t("refusal.ventureNoMonthToPayIn")}
+      </output>
+    );
+  }
+  if (terms === "nothing_to_pay_monthly") {
+    return (
+      <output className="text-warning block text-sm">
+        {t("refusal.ventureNothingToPayMonthly")}
+      </output>
+    );
+  }
+  return (
+    <output className="bg-muted block rounded-md px-3 py-2 text-sm">
+      <PaidForBy
+        paidFor={{
+          unitPriceBdt,
+          monthly: {
+            cattlePartBdt: terms.cattlePartBdt,
+            sums: monthlySumsOf(unitPriceBdt, terms),
+          },
+        }}
+      />
+    </output>
+  );
 };
 
 /**
@@ -113,6 +186,7 @@ export const OpenVentureSheet = ({
             plan.cattleBudgetBdt.trim() === ""
               ? undefined
               : Number(plan.cattleBudgetBdt),
+          capitalPaid: plan.capitalPaid,
         })
       }
       open={open}
@@ -179,6 +253,26 @@ export const OpenVentureSheet = ({
           />
         </FormField>
       </div>
+      <FormField id="venture-paid" label={t("ventures.paidFor.choose")}>
+        <NativeSelect
+          id="venture-paid"
+          onChange={(event) =>
+            setPlan({
+              ...plan,
+              capitalPaid:
+                CAPITAL_PAID.find((one) => one === event.target.value) ??
+                "before_buying",
+            })
+          }
+          value={plan.capitalPaid}
+        >
+          {CAPITAL_PAID.map((one) => (
+            <option key={one} value={one}>
+              {t(`ventures.paidFor.${one}`)}
+            </option>
+          ))}
+        </NativeSelect>
+      </FormField>
       <FormField id="venture-decide" label={t("ventures.decideBy")}>
         <Input
           id="venture-decide"
@@ -211,6 +305,15 @@ export const OpenVentureSheet = ({
           />
         </FormField>
       </div>
+      {plan.capitalPaid === "by_the_month" ? (
+        <MonthlyPreview
+          cattleBudgetBdt={cattleBudgetOf(plan, running)}
+          decideBy={plan.decideBy}
+          targetCapitalBdt={target}
+          targetWindowStart={window.start}
+          unitPriceBdt={unit}
+        />
+      ) : null}
     </FormSheet>
   );
 };

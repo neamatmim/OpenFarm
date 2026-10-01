@@ -5,6 +5,7 @@ import { Section } from "@/components/page";
 import { FigureTerm } from "@/components/page-kit";
 import { VentureReturnsPanel } from "@/components/returns/returns-page";
 import { InThePortal } from "@/components/ventures/in-the-portal";
+import { PaidForBy } from "@/components/ventures/paid-for-by";
 import { PlanAgainstActual } from "@/components/ventures/plan-against-actual";
 import { RaisingBar } from "@/components/ventures/raising-bar";
 import { VentureAccountPanel } from "@/components/ventures/venture-account";
@@ -126,6 +127,19 @@ const TheTerms = ({ venture }: { venture: Venture }) => {
         </FigureTerm>
         <FigureTerm size="sm" label={t("ventures.target")}>
           {taka(venture.targetCapitalBdt)}
+        </FigureTerm>
+        {/* A Venture read before it could be paid by the month is one paid before buying. */}
+        <FigureTerm
+          className="sm:col-span-2"
+          label={t("ventures.paidFor.label")}
+          size="sm"
+        >
+          <PaidForBy
+            paidFor={{
+              unitPriceBdt: venture.unitPriceBdt,
+              monthly: venture.monthly ?? null,
+            }}
+          />
         </FigureTerm>
         <FigureTerm size="sm" label={t("ventures.page.cattleBudget")}>
           {taka(venture.cattleBudgetBdt)}

@@ -138,6 +138,9 @@ describe("a Venture shown in the portal", () => {
         targetWindow: { start: "2052-06-01", end: "2052-06-10" },
         cattleBudgetBdt: 800_000,
         runningBudgetBdt: 200_000,
+        // Paid all before buying, as it opened: no Monthly Sums to tell him of.
+        capitalPaid: "before_buying",
+        monthly: null,
         investorsPercent: 60,
         words: WORDS,
         takingRequests: true,
@@ -151,6 +154,33 @@ describe("a Venture shown in the portal", () => {
 });
 
 describe("what an invited Investor is offered", () => {
+  it("says how a Unit of a Venture paid by the month is paid for, every Monthly Sum and its day, before he asks", async () => {
+    const owner = await asOwner();
+    const monthly = await owner.ventures.open({
+      name: `মাসে মাসে ${suffix}`,
+      ...TERMS,
+      capitalPaid: "by_the_month",
+    });
+    await owner.ventures.showInPortal({ id: monthly.id, words: WORDS });
+
+    const him = await signedInAs(karim.loginEmail);
+    const offered = await him.portal.openVentures();
+
+    expect(offered.find((one) => one.id === monthly.id)).toMatchObject({
+      capitalPaid: "by_the_month",
+      monthly: {
+        cattlePartBdt: 40_000,
+        sums: [
+          { dueOn: "2052-02-10", bdt: 2500 },
+          { dueOn: "2052-03-10", bdt: 2500 },
+          { dueOn: "2052-04-10", bdt: 2500 },
+          { dueOn: "2052-05-10", bdt: 2500 },
+        ],
+      },
+    });
+    await owner.ventures.takeOutOfPortal({ id: monthly.id });
+  });
+
   it("leaves out a Venture the Owner has not shown", async () => {
     const owner = await asOwner();
     const hidden = await owner.ventures.open({

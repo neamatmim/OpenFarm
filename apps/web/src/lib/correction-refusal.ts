@@ -127,6 +127,8 @@ const WORDED_REFUSALS = {
   venture_floor_over_target: "refusal.ventureFloorOverTarget",
   venture_floor_over_units: "refusal.ventureFloorOverUnits",
   venture_budget_over_capital: "refusal.ventureBudgetOverCapital",
+  venture_no_month_to_pay_in: "refusal.ventureNoMonthToPayIn",
+  venture_nothing_to_pay_monthly: "refusal.ventureNothingToPayMonthly",
   venture_units_gone: "refusal.ventureUnitsGone",
   investor_cap_reached: "refusal.investorCapReached",
   investor_exists: "refusal.investorExists",

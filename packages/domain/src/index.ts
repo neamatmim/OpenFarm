@@ -812,3 +812,16 @@ export {
   calfLosses,
   lostBeforeWeaning,
 } from "./calf-losses";
+export {
+  CAPITAL_PAID,
+  SUM_DUE_DAY,
+  SUM_MISSED_AFTER_DAYS,
+  monthlySumsOf,
+  monthlyTermsOf,
+} from "./monthly-sums";
+export type {
+  CapitalPaid,
+  MonthlySum,
+  MonthlyTerms,
+  NoMonthlyTerms,
+} from "./monthly-sums";
