@@ -1313,6 +1313,8 @@ export const bn: Record<MessageKey, string> = {
     "গরু, যাত্রার খরচ আর ফেরত আসা টাকা মিলিয়ে যা তোলা হয়েছিল তার চেয়ে কম হচ্ছে",
   "refusal.notWhoseFloatBoughtHer":
     "এই যাত্রা অন্য পার্সের টাকায় হাটে গিয়েছিল, তাই গরুটি সেই পার্সের",
+  "refusal.windowIsTheVentures":
+    "ভেঞ্চারের পশুর বিক্রির সময় ভেঞ্চারেরই; তা বদলায় সংশোধনী দিয়ে, পশু তোলার সময় নয়",
   "refusal.sheIsGone":
     "গরুটি আর খামারে নেই — বিক্রি হয়েছে, মারা গেছে বা বাদ দেওয়া হয়েছে; তার নামে আর কিছু লেখা যায় না",
   "refusal.sheIsReadyForSale":
@@ -3819,6 +3821,9 @@ export const bn: Record<MessageKey, string> = {
   "intake.windowStart": "বিক্রির সময় শুরু",
   "intake.windowEnd": "বিক্রির সময় শেষ",
   "intake.windowNote": "খালি রাখলে আগামী ঈদুল আজহা ধরা হবে; তারিখ ঘোষণার পর বদলে নিন।",
+  "intake.ventureWindow": "{from} – {to} — {venture}-এর বিক্রির সময়",
+  "intake.ventureWindowNote":
+    "ভেঞ্চারের পশু ভেঞ্চারের বিক্রির সময়েই বিক্রি হয়; এই সময় বদলায় কেবল বিনিয়োগকারীদের সই করা সংশোধনী দিয়ে।",
   "intake.targetWeightNote":
     "খালি রাখলে খামারের নির্ধারিত লক্ষ্য ওজন ধরা হবে: এই ওজনের পশু কতটা বাড়বে তা কোনো রেশনে বলা নেই।",
   "intake.suggested": "রেশন অনুযায়ী বিক্রির সময় শুরু হলে {low}–{high} কেজি হওয়ার কথা।",

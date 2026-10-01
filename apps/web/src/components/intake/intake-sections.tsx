@@ -14,8 +14,8 @@ import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
-import type { IntakeFields } from "./intake-fields";
-import { PricePerKg } from "./intake-summary";
+import type { IntakeFields, OwningVenture } from "./intake-fields";
+import { PricePerKg, VentureWindow } from "./intake-summary";
 import { SuggestedTarget } from "./suggested-target";
 
 /** What a photograph may weigh before the farm refuses it, as `animals.setPhoto` counts it. */
@@ -411,28 +411,11 @@ export const PriceSection = ({
   );
 };
 
-/** What it is being fed towards, and when the farm means to sell it — both blank for the farm's own answers. */
-export const TargetSection = ({ fields, onEdit }: PartProps) => {
+/** The days the farm means to sell its own animal in: blank for the next Eid-ul-Adha. */
+const WindowFields = ({ fields, onEdit }: PartProps) => {
   const { t } = useLanguage();
   return (
-    <Section
-      description={t("intake.groupTargetHint")}
-      id="intake-target-part"
-      title={t("intake.groupTarget")}
-    >
-      <div className="space-y-1.5">
-        <NumberField
-          decimal
-          id="intake-target"
-          label={t("intake.targetWeight")}
-          onChange={(targetWeightKg) => onEdit({ targetWeightKg })}
-          value={fields.targetWeightKg}
-        />
-        <SuggestedTarget
-          fields={fields}
-          onUse={(targetWeightKg) => onEdit({ targetWeightKg })}
-        />
-      </div>
+    <>
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField id="intake-from" label={t("intake.windowStart")}>
           <Input
@@ -457,6 +440,51 @@ export const TargetSection = ({ fields, onEdit }: PartProps) => {
         </FormField>
       </div>
       <p className="text-muted-foreground text-xs">{t("intake.windowNote")}</p>
+    </>
+  );
+};
+
+/**
+ * What it is being fed towards, and when the farm means to sell it — both blank for the farm's own answers. A Venture's
+ * animal is sold in the Venture's Target Window, so for one there are no days to type: the window is said, not asked.
+ */
+export const TargetSection = ({
+  fields,
+  onEdit,
+  venture,
+}: PartProps & { venture: OwningVenture | null }) => {
+  const { t } = useLanguage();
+  return (
+    <Section
+      description={t("intake.groupTargetHint")}
+      id="intake-target-part"
+      title={t("intake.groupTarget")}
+    >
+      <div className="space-y-1.5">
+        <NumberField
+          decimal
+          id="intake-target"
+          label={t("intake.targetWeight")}
+          onChange={(targetWeightKg) => onEdit({ targetWeightKg })}
+          value={fields.targetWeightKg}
+        />
+        <SuggestedTarget
+          fields={fields}
+          onUse={(targetWeightKg) => onEdit({ targetWeightKg })}
+        />
+      </div>
+      {venture ? (
+        <div className="space-y-1.5">
+          <p className="text-sm font-medium">
+            <VentureWindow venture={venture} />
+          </p>
+          <p className="text-muted-foreground text-xs">
+            {t("intake.ventureWindowNote")}
+          </p>
+        </div>
+      ) : (
+        <WindowFields fields={fields} onEdit={onEdit} />
+      )}
     </Section>
   );
 };

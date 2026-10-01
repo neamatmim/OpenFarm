@@ -10,6 +10,7 @@ import {
 
 import type { Tx } from "./audit";
 import { joiningInForce } from "./fattening-store";
+import { aimedAs, theirVenturesWindowsOn } from "./venture-store";
 
 type Reader = Pick<Database | Tx, "query">;
 
@@ -88,9 +89,14 @@ export interface AimedRow {
 
 /**
  * Every animal still on the Farm that is aimed at a Target Window, at the window she is on now — her latest arrival's,
- * an Intake's or a joining's — and the row that keeps it, so a move of the window moves that row.
+ * an Intake's or a joining's, or for a Venture's animal her Venture's as it stands `today` — and the row that keeps
+ * it, so a move of the window moves that row.
  */
-const aimedRows = async (db: Reader, farmId: string): Promise<AimedRow[]> => {
+const aimedRows = async (
+  db: Reader,
+  farmId: string,
+  today: string
+): Promise<AimedRow[]> => {
   const window = {
     targetWindowStart: true,
     targetWindowEnd: true,
@@ -108,19 +114,26 @@ const aimedRows = async (db: Reader, farmId: string): Promise<AimedRow[]> => {
     },
     orderBy: { id: "asc" },
   });
+  const windows = await theirVenturesWindowsOn(
+    db,
+    farmId,
+    rows.map((one) => one.ownerVentureId),
+    today
+  );
   return rows.flatMap(({ id: animalId, ownerVentureId, intake, joinings }) => {
     const joined = joiningInForce(intake, joinings);
     const kept = joined ?? intake;
     if (!kept) {
       return [];
     }
+    const aimed = aimedAs(kept, ownerVentureId, windows);
     return [
       {
         keptOn: joined ? "joining" : "intake",
         id: kept.id,
         animalId,
-        targetWindowStart: kept.targetWindowStart,
-        targetWindowEnd: kept.targetWindowEnd,
+        targetWindowStart: aimed.targetWindowStart,
+        targetWindowEnd: aimed.targetWindowEnd,
         ownerVentureId,
       },
     ];
@@ -138,13 +151,14 @@ const windowKey = (window: TargetWindow) => `${window.start}|${window.end}`;
 export const animalsAimedAt = async (
   db: Reader,
   farmId: string,
-  windows: readonly TargetWindow[]
+  windows: readonly TargetWindow[],
+  today: string
 ) => {
   if (windows.length === 0) {
     return { own: [], inVentures: 0 };
   }
   const keys = new Set(windows.map(windowKey));
-  const standing = await aimedRows(db, farmId);
+  const standing = await aimedRows(db, farmId, today);
   const rows = standing.filter((row) =>
     keys.has(
       windowKey({ start: row.targetWindowStart, end: row.targetWindowEnd })
@@ -160,8 +174,12 @@ export const animalsAimedAt = async (
  * How many animals still on the Farm are aimed at each Target Window, the Farm's own apart from a Venture's: read once
  * for a whole list of Eids, rather than asked Eid by Eid.
  */
-export const aimedByWindow = async (db: Reader, farmId: string) => {
-  const rows = await aimedRows(db, farmId);
+export const aimedByWindow = async (
+  db: Reader,
+  farmId: string,
+  today: string
+) => {
+  const rows = await aimedRows(db, farmId, today);
   const counted = new Map<string, { own: number; inVentures: number }>();
   for (const row of rows) {
     const key = windowKey({
@@ -223,7 +241,7 @@ export const stillHereAfterEid = async (
   if (!over) {
     return null;
   }
-  const aimedAt = await aimedByWindow(db, farmId);
+  const aimedAt = await aimedByWindow(db, farmId, today);
   const left = aimedAt([
     over.window,
     ...(over.written

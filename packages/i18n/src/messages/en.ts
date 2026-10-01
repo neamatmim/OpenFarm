@@ -1412,6 +1412,8 @@ export const en = {
     "The animals, the outing's costs and the cash back come to less than went out",
   "refusal.notWhoseFloatBoughtHer":
     "That outing went to the haat on another purse's money, so she is that purse's",
+  "refusal.windowIsTheVentures":
+    "A Venture's animal is sold in the Venture's Target Window; an Amendment moves it, not the Intake",
   "refusal.sheIsGone":
     "She has left the farm — sold, died or culled — and nothing more can be written of her",
   "refusal.sheIsReadyForSale":
@@ -4092,6 +4094,9 @@ export const en = {
   "intake.windowEnd": "Target Window to",
   "intake.windowNote":
     "Left blank, the next Eid-ul-Adha is used; change it once the date is announced.",
+  "intake.ventureWindow": "{from} – {to} — {venture}'s Target Window",
+  "intake.ventureWindowNote":
+    "A Venture's animal is sold in the Venture's Target Window; it moves only by an Amendment its Investors sign.",
   "intake.targetWeightNote":
     "Left blank, the farm's own target weight is used: no ration says what an animal this weight should gain.",
   "intake.suggested":

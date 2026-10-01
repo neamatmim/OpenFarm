@@ -13,6 +13,7 @@ import {
   EMPTY,
   missingFrom,
   orNothing,
+  owningVenture,
   windowIsWhole,
 } from "@/components/intake/intake-fields";
 import {
@@ -108,7 +109,13 @@ const IntakePage = () => {
 
   const edit = (patch: Partial<IntakeFields>) =>
     setFields({ ...fields, ...patch });
-  const ready = missingFrom(fields).length === 0 && windowIsWhole(fields);
+  const venture = owningVenture(fields, trips.data ?? [], ventures.data ?? []);
+  // A Venture's animal is sold in the Venture's window, so days typed before she was named its are not sent. They are
+  // kept in the form, for the moment somebody names her the Farm's again.
+  const sheet = venture
+    ? { ...fields, targetWindowStart: "", targetWindowEnd: "" }
+    : fields;
+  const ready = missingFrom(sheet).length === 0 && windowIsWhole(sheet);
   // The photograph goes up after the animal exists, so the whole arrival is pending until it has.
   const pending = record.isPending || setItsPhoto.isPending;
 
@@ -137,8 +144,8 @@ const IntakePage = () => {
             estimatedAgeMonths: Number(fields.estimatedAgeMonths),
             breedId: fields.breedId || undefined,
             targetWeightKg: orNothing(fields.targetWeightKg),
-            targetWindowStart: fields.targetWindowStart || undefined,
-            targetWindowEnd: fields.targetWindowEnd || undefined,
+            targetWindowStart: sheet.targetWindowStart || undefined,
+            targetWindowEnd: sheet.targetWindowEnd || undefined,
             buyingTripId: fields.buyingTripId || undefined,
             ventureId: fields.ventureId || undefined,
             paymentMethod: fields.paymentMethod,
@@ -163,15 +170,16 @@ const IntakePage = () => {
               (one) => one.state === "buying"
             )}
           />
-          <TargetSection fields={fields} onEdit={edit} />
+          <TargetSection fields={fields} onEdit={edit} venture={venture} />
         </div>
 
         <aside className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-20 lg:row-span-2">
           <IntakeSummary
-            fields={fields}
+            fields={sheet}
             pending={pending}
             pens={pens}
             photoName={photo?.name ?? null}
+            venture={venture}
           />
         </aside>
 

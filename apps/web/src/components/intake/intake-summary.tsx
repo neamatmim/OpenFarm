@@ -13,7 +13,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { breedName } from "@/lib/breed";
 import { orpc } from "@/utils/orpc";
 
-import type { IntakeFields } from "./intake-fields";
+import type { IntakeFields, OwningVenture } from "./intake-fields";
 import { missingFrom, windowIsWhole } from "./intake-fields";
 import { useSuggestedTarget } from "./suggested-target";
 
@@ -61,10 +61,31 @@ const TargetWeight = ({ fields }: { fields: IntakeFields }) => {
     : t("intake.farmsTarget", { kg: formatNumber(farmsOwn, language) });
 };
 
-/** The Target Window the animal will be fed for: the days typed, or the next Eid-ul-Adha. */
-const TargetWindow = ({ fields }: { fields: IntakeFields }) => {
+/** A Venture's Target Window, which a Venture's animal inherits: its days and whose they are. */
+export const VentureWindow = ({ venture }: { venture: OwningVenture }) => {
+  const { t, language } = useLanguage();
+  return venture.targetWindow
+    ? t("intake.ventureWindow", {
+        from: dayWords(venture.targetWindow.start, language),
+        to: dayWords(venture.targetWindow.end, language),
+        venture: venture.name,
+      })
+    : venture.name;
+};
+
+/** The Target Window the animal will be fed for: her Venture's, else the days typed, or the next Eid-ul-Adha. */
+const TargetWindow = ({
+  fields,
+  venture,
+}: {
+  fields: IntakeFields;
+  venture: OwningVenture | null;
+}) => {
   const { t, language } = useLanguage();
   const eid = useNextEid();
+  if (venture) {
+    return <VentureWindow venture={venture} />;
+  }
   if (fields.targetWindowStart !== "" && fields.targetWindowEnd !== "") {
     return `${dayWords(fields.targetWindowStart, language)} – ${dayWords(
       fields.targetWindowEnd,
@@ -124,8 +145,10 @@ export const IntakeSummary = ({
   pens,
   photoName,
   pending,
+  venture,
 }: {
   fields: IntakeFields;
+  venture: OwningVenture | null;
   pens: { id: string; name: string }[];
   photoName: string | null;
   pending: boolean;
@@ -198,7 +221,7 @@ export const IntakeSummary = ({
           <TargetWeight fields={fields} />
         </Line>
         <Line label={t("intake.targetWindow")}>
-          <TargetWindow fields={fields} />
+          <TargetWindow fields={fields} venture={venture} />
         </Line>
         <Line label={t("animals.photo")}>
           {photoName ?? t("intake.noPhoto")}

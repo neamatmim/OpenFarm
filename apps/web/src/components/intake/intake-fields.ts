@@ -26,6 +26,42 @@ export interface IntakeFields {
   paymentMethod: PaymentMethod;
 }
 
+/** The Venture an animal is being taken in for, when she is one's: her Target Window is its, not the form's. */
+export interface OwningVenture {
+  name: string;
+  /** As its Amendments leave it today. Null from an answer cached before the server said it. */
+  targetWindow: { start: string; end: string } | null;
+}
+
+/**
+ * The Venture she is being taken in for: the one whose Float paid for her outing, else the one named on the form.
+ * Nothing for the Farm's own.
+ */
+export const owningVenture = (
+  fields: IntakeFields,
+  trips: readonly {
+    id: string;
+    float: { ventureId: string; ventureName: string } | null;
+  }[],
+  ventures: readonly {
+    id: string;
+    name: string;
+    targetWindow?: { start: string; end: string };
+  }[]
+): OwningVenture | null => {
+  const float =
+    trips.find((one) => one.id === fields.buyingTripId)?.float ?? null;
+  const id = float?.ventureId ?? fields.ventureId;
+  if (id === "") {
+    return null;
+  }
+  const named = ventures.find((one) => one.id === id);
+  return {
+    name: named?.name ?? float?.ventureName ?? "",
+    targetWindow: named?.targetWindow ?? null,
+  };
+};
+
 export const EMPTY: IntakeFields = {
   penId: "",
   sex: "male",

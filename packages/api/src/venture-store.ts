@@ -854,6 +854,72 @@ export const windowInForceOn = async (
   };
 };
 
+/** A Target Window as the Intake, a joining and a Venture all keep it. */
+interface KeptWindow {
+  targetWindowStart: string;
+  targetWindowEnd: string;
+}
+
+/**
+ * The Target Window in force on a day of every Venture these animals belong to, by its id. A Venture's animals inherit
+ * its window, so what her Intake or a joining kept is not hers to go by: it was the sheet's guess on the day she came,
+ * and an Amendment never touches it. The Farm's own animals (a null) are not asked about.
+ */
+export const theirVenturesWindowsOn = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  owners: readonly (string | null)[],
+  on: string
+): Promise<Map<string, KeptWindow>> => {
+  const ids = [...new Set(owners.filter((one) => one !== null))];
+  if (ids.length === 0) {
+    return new Map();
+  }
+  const rows = await tx.query.venture.findMany({
+    where: { farmId, id: { in: ids } },
+    columns: { id: true, targetWindowStart: true, targetWindowEnd: true },
+  });
+  const inForce = await withWindowsInForce(tx, farmId, rows, on);
+  return new Map(
+    inForce.map((one) => [
+      one.id,
+      {
+        targetWindowStart: one.targetWindowStart,
+        targetWindowEnd: one.targetWindowEnd,
+      },
+    ])
+  );
+};
+
+/** One Venture's Target Window in force on a day, as a window: nothing for the Farm's own, or a Venture not this farm's. */
+export const ventureWindowOf = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  ventureId: string | undefined,
+  on: string
+): Promise<{ start: string; end: string } | null> => {
+  const windows = await theirVenturesWindowsOn(
+    tx,
+    farmId,
+    [ventureId ?? null],
+    on
+  );
+  const theirs = ventureId ? windows.get(ventureId) : undefined;
+  return theirs
+    ? { start: theirs.targetWindowStart, end: theirs.targetWindowEnd }
+    : null;
+};
+
+/** Her Target Window: her Venture's, where she is a Venture's (`theirVenturesWindowsOn`), else the one she kept. */
+export const aimedAs = <Kept extends KeptWindow>(
+  kept: Kept,
+  ownerVentureId: string | null,
+  windows: ReadonlyMap<string, KeptWindow>
+): Kept => {
+  const theirs = ownerVentureId ? windows.get(ownerVentureId) : undefined;
+  return theirs ? { ...kept, ...theirs } : kept;
+};
+
 /** What the farm thinks a Venture Account held at the end of one month. */
 export const balanceAtMonthEnd = async (
   tx: Pick<Tx, "query">,
