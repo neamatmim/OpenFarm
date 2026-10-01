@@ -13,7 +13,7 @@ import {
   venture,
   ventureMovement,
 } from "@OpenFarm/db/schema/venture";
-import type { PaymentMethod } from "@OpenFarm/domain";
+import type { MonthlyTerms, PaymentMethod } from "@OpenFarm/domain";
 import {
   farmDayOf,
   hasEnded,
@@ -22,6 +22,8 @@ import {
   mayMoveTo,
   RUNNING_STATES,
   monthOf,
+  CAPITAL_PAID,
+  monthlyTermsOf,
   roundTaka,
   startOfFarmDay,
   whatUnitsTake,
@@ -155,6 +157,9 @@ const openInput = z
     /** The part of the capital meant for buying animals; the rest keeps them. The farm's own share
      *  unless the Owner says. */
     cattleBudgetBdt: money.optional(),
+    /** How its Investors pay: all before buying (as every Venture before it), or the Cattle Part first and the rest in
+     *  Monthly Sums, worked from its budgets and dates. */
+    capitalPaid: z.enum(CAPITAL_PAID).optional(),
   })
   .refine((one) => one.targetWindowStart <= one.targetWindowEnd, {
     message: "A Target Window needs its days in order",
@@ -177,6 +182,42 @@ const planned = (
       (input.targetCapitalBdt * (100 - settings.ventureRunningPercent)) / 100
     ),
 });
+
+/**
+ * The terms a Venture paid by the month opens on, or nothing for one paid before buying. Refused where its own figures
+ * leave nothing to pay by the month, or no 10th to pay it on before its Target Window — said before it opens rather
+ * than discovered by the first Investor asked to sign.
+ */
+const termsToOpenOn = (
+  input: z.infer<typeof openInput>,
+  plan: ReturnType<typeof planned>
+): MonthlyTerms | null => {
+  if (input.capitalPaid !== "by_the_month") {
+    return null;
+  }
+  const terms = monthlyTermsOf({
+    unitPriceBdt: input.unitPriceBdt,
+    targetCapitalBdt: input.targetCapitalBdt,
+    cattleBudgetBdt: plan.cattleBudgetBdt,
+    decideBy: input.decideBy,
+    targetWindowStart: input.targetWindowStart,
+  });
+  if (terms === "no_month_to_pay_in") {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "No 10th falls after the month it is decided in and before its Target Window",
+      data: { refusal: "venture_no_month_to_pay_in" },
+    });
+  }
+  if (terms === "nothing_to_pay_monthly") {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "Its Cattle Budget is all its capital: nothing is left to pay by the month",
+      data: { refusal: "venture_nothing_to_pay_monthly" },
+    });
+  }
+  return terms;
+};
 
 const signInput = z.object({
   ventureId: z.string(),
@@ -735,6 +776,7 @@ export const venturesRouter = {
           data: { refusal: "venture_budget_over_capital" },
         });
       }
+      const monthly = termsToOpenOn(input, plan);
       const id = uuidv7(now);
       await audited(context).write(
         {
@@ -759,6 +801,10 @@ export const venturesRouter = {
             unitPriceBdt: input.unitPriceBdt,
             units: plan.units,
             cattleBudgetBdt: plan.cattleBudgetBdt,
+            capitalPaid: monthly ? "by_the_month" : "before_buying",
+            cattlePartBdt: monthly?.cattlePartBdt ?? null,
+            monthlySums: monthly?.sums ?? null,
+            firstSumDueOn: monthly?.firstDueOn ?? null,
             openedBy: context.actor.id,
             openedByRole: context.roleUsed,
             createdAt: now,

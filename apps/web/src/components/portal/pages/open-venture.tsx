@@ -22,6 +22,7 @@ import {
 } from "@/components/portal/portal-source";
 import { OfferProjectionSection } from "@/components/portal/projection";
 import { AskToJoin } from "@/components/portal/requests-to-join";
+import { PaidForBy } from "@/components/ventures/paid-for-by";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
 
@@ -68,6 +69,16 @@ const TheOffer = ({ one }: { one: OpenVenture }) => {
           </Fact>
           <Fact label={t("portal.open.runningBudget")}>
             {taka(one.runningBudgetBdt)}
+          </Fact>
+          {/* How a Unit is paid for, across the whole row: a schedule is read as one sentence. An answer cached before
+              Ventures were paid by the month has no schedule, and is one paid before buying. */}
+          <Fact className="col-span-full" label={t("ventures.paidFor.label")}>
+            <PaidForBy
+              paidFor={{
+                unitPriceBdt: one.unitPriceBdt,
+                monthly: one.monthly ?? null,
+              }}
+            />
           </Fact>
         </dl>
       </Section>

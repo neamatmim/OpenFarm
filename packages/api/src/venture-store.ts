@@ -15,9 +15,11 @@ import {
   isStillBuying,
   mayMoveTo,
   monthOf,
+  monthlySumsOf,
   roundTaka,
   startOfFarmDay,
 } from "@OpenFarm/domain";
+import type { CapitalPaid } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { SnapshotValue, Tx } from "./audit";
@@ -68,6 +70,10 @@ export interface VentureRow {
   unitPriceBdt: number;
   units: number;
   cattleBudgetBdt: number;
+  capitalPaid: CapitalPaid;
+  cattlePartBdt: number | null;
+  monthlySums: number | null;
+  firstSumDueOn: string | null;
   cancelledReason: string | null;
   shownInPortalAt: Date | null;
   portalWords: string | null;
@@ -232,6 +238,42 @@ export const budgetsOf = (
   };
 };
 
+/**
+ * How a Venture's Investors pay for one Unit, as it opened: all before buying, or the Cattle Part and then each
+ * Monthly Sum with the day it falls due. From the terms it froze, never re-worked from a window an Amendment moved.
+ */
+export const paidForBy = (
+  row: Pick<
+    VentureRow,
+    | "capitalPaid"
+    | "unitPriceBdt"
+    | "cattlePartBdt"
+    | "monthlySums"
+    | "firstSumDueOn"
+  >
+) => {
+  const { cattlePartBdt, monthlySums, firstSumDueOn } = row;
+  const byTheMonth =
+    row.capitalPaid === "by_the_month" &&
+    cattlePartBdt !== null &&
+    monthlySums !== null &&
+    firstSumDueOn !== null;
+  if (!byTheMonth) {
+    return { capitalPaid: "before_buying" as const, monthly: null };
+  }
+  return {
+    capitalPaid: "by_the_month" as const,
+    monthly: {
+      cattlePartBdt,
+      sums: monthlySumsOf(row.unitPriceBdt, {
+        cattlePartBdt,
+        sums: monthlySums,
+        firstDueOn: firstSumDueOn,
+      }),
+    },
+  };
+};
+
 export const ventureView = (
   row: VentureRow,
   held: Held | undefined,
@@ -264,6 +306,8 @@ export const ventureView = (
     targetWindow: { start: row.targetWindowStart, end: row.targetWindowEnd },
     unitPriceBdt: row.unitPriceBdt,
     units: row.units,
+    /** How a Unit is paid for: all before buying, or its Cattle Part and then its Monthly Sums. */
+    ...paidForBy(row),
     cattleBudgetBdt: budgets.cattleBudgetBdt,
     runningBudgetBdt: budgets.runningBudgetBdt,
     ...what,

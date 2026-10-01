@@ -10,7 +10,7 @@ import { offerProjectionOf, offeredProjection } from "./projection-store";
 import { closeRequests } from "./requests-to-join";
 import type { VentureRow } from "./venture-act";
 import { actOnVenture } from "./venture-act";
-import { readVenture } from "./venture-store";
+import { paidForBy, readVenture } from "./venture-store";
 
 // A Venture still gathering capital, shown to the farm's invited Investors in the portal (ADR 0008). The Owner shows
 // it, words it and takes it out again; an Investor reads its terms, its rules and those words — and never anything
@@ -140,6 +140,9 @@ const offeredAs = (
   // What its capital is planned as, a fact about the Venture that does not move — never what has come in.
   cattleBudgetBdt: row.cattleBudgetBdt,
   runningBudgetBdt: row.targetCapitalBdt - row.cattleBudgetBdt,
+  /** How a Unit is paid for — all before buying, or its Cattle Part and then each Monthly Sum and its day — which he
+   *  must know before he asks to join, as he must know the split. */
+  ...paidForBy(row),
   /** The Investors' part of any profit, as the farm signs Agreements today: a mudarabah partner is owed it
    *  before joining. Each Agreement freezes its own. */
   investorsPercent,

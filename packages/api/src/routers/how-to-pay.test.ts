@@ -304,6 +304,9 @@ describe("a Venture an Investor has not signed for", () => {
       targetWindow: { start: "2058-06-01", end: "2058-06-10" },
       cattleBudgetBdt: 400_000,
       runningBudgetBdt: 100_000,
+      // Paid all before buying: no Monthly Sums, and nothing of anybody's money.
+      capitalPaid: "before_buying",
+      monthly: null,
       investorsPercent: 60,
       words: null,
       takingRequests: true,

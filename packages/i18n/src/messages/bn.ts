@@ -939,6 +939,16 @@ export const bn: Record<MessageKey, string> = {
   "ventures.held": "এ পর্যন্ত উঠেছে",
   "ventures.floor": "সর্বনিম্ন সীমা",
   "ventures.decideBy": "সিদ্ধান্তের দিন",
+  "ventures.paidFor.choose": "বিনিয়োগকারীরা কীভাবে টাকা দেবেন",
+  "ventures.paidFor.before_buying": "কেনা শুরুর আগে পুরোটা",
+  "ventures.paidFor.by_the_month": "আগে গরু কেনার টাকা, বাকিটা মাসে মাসে",
+  "ventures.paidFor.label": "প্রতি ইউনিটের টাকা",
+  "ventures.paidFor.allBefore": "{price}, কেনা শুরুর আগে পুরোটা",
+  "ventures.paidFor.monthly":
+    "কেনার আগে {cattle}, তারপর {from} থেকে {to} পর্যন্ত প্রতি মাসের ১০ তারিখে {each}",
+  "ventures.paidFor.monthlyLast":
+    "কেনার আগে {cattle}, তারপর {from} থেকে {to} পর্যন্ত প্রতি মাসের ১০ তারিখে {each}, শেষ মাসে {last}",
+  "ventures.paidFor.sums": "{count} মাসের টাকা",
   "ventures.unitPrice": "এক ইউনিটের দাম",
   "ventures.units": "ইউনিট",
   "ventures.unitsAt": "{units}টি, প্রতিটি {price}",
@@ -2678,6 +2688,10 @@ export const bn: Record<MessageKey, string> = {
   "refusal.ventureFloorOverTarget": "সর্বনিম্ন সীমা লক্ষ্যের চেয়ে বেশি হতে পারে না",
   "refusal.ventureFloorOverUnits":
     "সর্বনিম্ন সীমা ইউনিটগুলো দিয়ে যত টাকা উঠতে পারে তার চেয়ে বেশি — সীমা কমান, নয়তো ইউনিট বাড়ান",
+  "refusal.ventureNoMonthToPayIn":
+    "সিদ্ধান্তের তারিখের পরের মাস থেকে বিক্রির সময়ের আগে কোনো মাসের ১০ তারিখ পড়ে না — একটি তারিখ সরান, নয়তো কেনার আগে পুরোটা নিন",
+  "refusal.ventureNothingToPayMonthly":
+    "গরু কেনার বাজেটই পুরো মূলধন, মাসে মাসে দেওয়ার কিছু বাকি নেই",
   "refusal.ventureBudgetOverCapital": "গরুর বাজেট মূলধনের চেয়ে বেশি হতে পারে না",
   "refusal.ventureUnitsGone": "ভেঞ্চারে এত ইউনিট বাকি নেই",
   "refusal.investorCapReached":

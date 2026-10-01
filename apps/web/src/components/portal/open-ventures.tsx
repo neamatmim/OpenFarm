@@ -29,11 +29,14 @@ export type OpenVenture = Awaited<
 export const Fact = ({
   label,
   children,
+  className,
 }: {
   label: string;
   children: React.ReactNode;
+  /** Where it sits in the grid around it — a sentence of a fact may want the whole row. */
+  className?: string;
 }) => (
-  <div className="flex min-w-0 flex-col gap-0.5">
+  <div className={cn("flex min-w-0 flex-col gap-0.5", className)}>
     <dt className="text-muted-foreground text-xs">{label}</dt>
     <dd className="font-medium break-words tabular-nums">{children}</dd>
   </div>
