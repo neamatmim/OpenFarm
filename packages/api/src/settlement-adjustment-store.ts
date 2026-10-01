@@ -2,7 +2,7 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
 import type { AdjustmentOutcome } from "@OpenFarm/db/schema/venture";
 import { settlementAdjustment } from "@OpenFarm/db/schema/venture";
-import { roundTaka } from "@OpenFarm/domain";
+import { roundTaka, whatUnitsTake } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
@@ -108,7 +108,7 @@ export const adjustmentAgainst = (
     profitBdt: now.profitBdt,
     perUnitBdt: now.perUnitBdt,
     perUnitDifferenceBdt,
-    investorsDifferenceBdt: roundTaka(perUnitDifferenceBdt * frozen.units),
+    investorsDifferenceBdt: whatUnitsTake(perUnitDifferenceBdt, frozen.units),
   };
 };
 

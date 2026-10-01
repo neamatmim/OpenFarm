@@ -4,7 +4,9 @@ import {
   payoutOf,
   priceAtWeight,
   splitOfProfit,
-  unitsPaidFor,
+  unitsAltogether,
+  unitsHeld,
+  whatUnitsTake,
 } from "./venture";
 
 describe("splitting a Venture's profit", () => {
@@ -89,16 +91,44 @@ describe("what one Investor is paid", () => {
   });
 });
 
-describe("the Units an Agreement has paid for", () => {
-  it("counts whole Units of what came in, and no Unit a taka short", () => {
-    expect(unitsPaidFor(800_000, 50_000)).toBe(16);
-    expect(unitsPaidFor(1_000_000, 50_000)).toBe(20);
-    expect(unitsPaidFor(849_999, 50_000)).toBe(16);
-    expect(unitsPaidFor(0, 50_000)).toBe(0);
+describe("the Units an Agreement holds", () => {
+  it("is what it paid in over the Unit price, a part of a Unit included", () => {
+    expect(unitsHeld(1_000_000, 50_000)).toBe(20);
+    expect(unitsHeld(800_000, 50_000)).toBe(16);
+    // Three Units' cattle money at forty thousand each, the running money still to come.
+    expect(unitsHeld(120_000, 50_000)).toBe(2.4);
+    expect(unitsHeld(0, 50_000)).toBe(0);
+    expect(unitsHeld(800_000, 0)).toBe(0);
   });
 
-  it("is none for a Venture with no Unit price", () => {
-    expect(unitsPaidFor(800_000, 0)).toBe(0);
+  it("adds up to four places", () => {
+    expect(unitsAltogether([0.1, 0.2])).toBe(0.3);
+    expect(unitsAltogether([8, 2.4])).toBe(10.4);
+  });
+
+  it("takes whole Units exactly and a part floored, never a taka under for the arithmetic", () => {
+    expect(whatUnitsTake(3750, 10)).toBe(37_500);
+    expect(whatUnitsTake(3750, 9.6)).toBe(36_000);
+    expect(whatUnitsTake(-3750, 9.6)).toBe(-36_000);
+    expect(whatUnitsTake(100, 0.29)).toBe(29);
+    expect(whatUnitsTake(-3751, 0.5)).toBe(-1876);
+  });
+});
+
+describe("a split among holdings with part of a Unit", () => {
+  it("floors each holding on its own and gives the paisa to the Farm's line", () => {
+    // Ten Units paid for and 2.4: 60% of 10,000 over 12.4 Units is 483 a Unit.
+    const split = splitOfProfit({
+      profitBdt: 10_000,
+      investorsPercent: 60,
+      units: 12.4,
+      held: [10, 2.4],
+    });
+
+    expect(split.perUnitBdt).toBe(483);
+    // 4,830 and 1,159 (1,159.2 floored) taken between them.
+    expect(split.roundingBdt).toBe(6000 - 4830 - 1159);
+    expect(split.investorsBdt - split.roundingBdt + split.farmBdt).toBe(10_000);
   });
 });
 

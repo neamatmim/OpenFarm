@@ -24,6 +24,7 @@ import {
   monthOf,
   roundTaka,
   startOfFarmDay,
+  whatUnitsTake,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -2596,7 +2597,7 @@ export const venturesRouter = {
           const booking = bookingOf(context, context.roleUsed, now);
           let paidBdt = 0;
           for (const his of approved.shares) {
-            const amountBdt = roundTaka(perUnitToPay * his.units);
+            const amountBdt = whatUnitsTake(perUnitToPay, his.units);
             // oxlint-disable-next-line no-await-in-loop -- one transaction, one Investor at a time
             const counterpartyId = await counterpartyNamed(
               tx,

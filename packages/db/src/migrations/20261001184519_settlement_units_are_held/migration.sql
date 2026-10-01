@@ -1,0 +1,2 @@
+ALTER TABLE "venture_settlement" ALTER COLUMN "units" SET DATA TYPE numeric(12,4) USING "units"::numeric(12,4);--> statement-breakpoint
+ALTER TABLE "venture_settlement_share" ALTER COLUMN "units" SET DATA TYPE numeric(12,4) USING "units"::numeric(12,4);

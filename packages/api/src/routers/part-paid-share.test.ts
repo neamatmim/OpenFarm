@@ -4,12 +4,15 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
-// A Venture may start buying while an Agreement is only part paid: the Floor is the only thing it asks. Capital comes
-// back as it was paid; the share of a profit or a loss must divide the same way, or a man takes a share of the run for
-// money he never put in, and everybody who did pay is diluted by it.
+// A Venture may start buying while an Agreement is only part paid: the Floor is the only thing it asks — and a farm may
+// take only the cattle money first, the running money to come by the month. Capital comes back as it was paid; the
+// share of a profit or a loss must divide the same way, to the taka, or a man takes a share of the run for money he
+// never put in, and everybody who did pay is diluted by it.
 
 const suffix = `${Date.now()}`.slice(-7);
 const UNIT_PRICE = 50_000;
+/** The cattle money of one Unit, paid before the buying; the other ten thousand would come by the month. */
+const CATTLE_PART = 40_000;
 
 const as = async (role: "owner" | "manager", at: string) => {
   const { client } = await createTestClient(appRouter, {
@@ -20,23 +23,27 @@ const as = async (role: "owner" | "manager", at: string) => {
 };
 
 let ventureId = "";
-let paidInFull = "";
-let partPaid = "";
+let tenUnits = "";
+let threeUnits = "";
 
-/** Signs for ten Units and pays what it is given, by bank, against the kept stamped paper. */
+let phones = 0;
+
+/** Signs for so many Units and pays what it is given, by bank, against the kept stamped paper. */
 const signedAndPaid = async (
   owner: Awaited<ReturnType<typeof as>>,
   name: string,
+  units: number,
   amountBdt: number
 ) => {
+  phones += 1;
   const him = await owner.investors.record({
     name: `${name} ${suffix}`,
-    phone: `0175${suffix}${amountBdt === UNIT_PRICE * 10 ? 1 : 2}`,
+    phone: `0175${suffix}${phones}`,
   });
   const agreement = await owner.ventures.sign({
     ventureId,
     investorId: him.id,
-    units: 10,
+    units,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
     stampValueBdt: 300,
@@ -77,9 +84,9 @@ beforeAll(async () => {
     cattleBudgetBdt: 800_000,
   });
   ventureId = venture.id;
-  paidInFull = await signedAndPaid(owner, "পুরো", UNIT_PRICE * 10);
-  // Six of his ten Units paid for when the buying starts.
-  partPaid = await signedAndPaid(owner, "আংশিক", UNIT_PRICE * 6);
+  // Each pays the cattle money of his Units and no more when the buying starts.
+  tenUnits = await signedAndPaid(owner, "দশ", 10, CATTLE_PART * 10);
+  threeUnits = await signedAndPaid(owner, "তিন", 3, CATTLE_PART * 3);
   await owner.ventures.startBuying({ id: ventureId });
 
   // One bull for a hundred thousand and nothing sold: a loss of a hundred thousand, sixty of it the Investors'.
@@ -115,33 +122,28 @@ beforeAll(async () => {
   });
 });
 
-describe("a Settlement with an Agreement only part paid", () => {
-  it("shares the loss by the Units paid for, not by the Units signed for", async () => {
+describe("a Settlement with Agreements only part paid", () => {
+  it("divides by the Units each holds — what it paid over the Unit price — not the Units signed for", async () => {
     const owner = await as("owner", "2071-01-10T04:00:00.000Z");
 
     const settlement = await owner.ventures.settlement({ ventureId });
 
-    const full = settlement.payouts.find(
-      (one) => one.agreementId === paidInFull
+    const ten = settlement.payouts.find((one) => one.agreementId === tenUnits);
+    const three = settlement.payouts.find(
+      (one) => one.agreementId === threeUnits
     );
-    const part = settlement.payouts.find((one) => one.agreementId === partPaid);
     expect(settlement.profitBdt).toBe(-100_000);
-    // Ten Units and six paid for: sixteen take the Investors' sixty thousand of it, 3,750 each.
-    expect(settlement.units).toBe(16);
-    expect(full).toMatchObject({
-      units: 10,
-      capitalBdt: 500_000,
-      shareBdt: -37_500,
-    });
-    expect(part).toMatchObject({
-      units: 6,
-      capitalBdt: 300_000,
-      shareBdt: -22_500,
-      payoutBdt: 277_500,
-    });
+    // Four lakh is eight Units' worth and 1,20,000 is 2.4 — not two, and not the three he signed for.
+    expect(ten?.units).toBe(8);
+    expect(three?.units).toBe(2.4);
+    expect(settlement.units).toBe(10.4);
+    // The Investors' sixty thousand of the loss over 10.4 Units: 5,770 a Unit, floored like every figure per Unit.
+    expect(settlement.perUnitBdt).toBe(-5770);
+    expect(ten).toMatchObject({ shareBdt: -46_160, payoutBdt: 353_840 });
+    expect(three).toMatchObject({ shareBdt: -13_848, payoutBdt: 106_152 });
   });
 
-  it("loses nothing for the man who paid in full on account of the one who did not", async () => {
+  it("loses no more per taka for the man with more Units than for the man with fewer", async () => {
     const owner = await as("owner", "2071-01-10T04:00:00.000Z");
 
     const settlement = await owner.ventures.settlement({ ventureId });

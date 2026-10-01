@@ -14,7 +14,7 @@ import {
 import { user } from "./auth";
 import { ROLES, farm } from "./farm";
 import { paperTemplateVersion } from "./paper-template";
-import { taka } from "./taka";
+import { heldUnits, taka } from "./taka";
 import { buyingTrip } from "./trip";
 
 /**
@@ -793,7 +793,8 @@ export const ventureSettlement = pgTable(
     profitBdt: taka("profit_bdt").notNull(),
     /** The split as the Agreements froze it, and what it came to. */
     investorsPercent: integer("investors_percent").notNull(),
-    units: integer("units").notNull(),
+    /** Every Unit held — paid for — across its Agreements, which is what the profit divided by. */
+    units: heldUnits("units").notNull(),
     investorsBdt: taka("investors_bdt").notNull(),
     perUnitBdt: taka("per_unit_bdt").notNull(),
     /** What flooring left over, which is the Farm's. */
@@ -837,7 +838,8 @@ export const ventureSettlementShare = pgTable(
       .notNull()
       .references(() => investmentAgreement.id),
     investorId: text("investor_id").notNull(),
-    units: integer("units").notNull(),
+    /** The Units he held: his capital over the Unit price, a fraction where he paid part of one. */
+    units: heldUnits("units").notNull(),
     /** His capital back, what his Units took of the profit, and the two together. */
     capitalBdt: taka("capital_bdt").notNull(),
     shareBdt: taka("share_bdt").notNull(),
