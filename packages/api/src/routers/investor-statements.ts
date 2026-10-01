@@ -1,4 +1,9 @@
-import { dayInBangla, farmDayOf, paperFrom } from "@OpenFarm/domain";
+import {
+  dayInBangla,
+  farmDayOf,
+  paperFrom,
+  wordingFor,
+} from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -28,6 +33,7 @@ import {
   giveStandardTemplates,
   wordingSignedIn,
 } from "../template-store";
+import { paidForBy } from "../venture-store";
 
 /** What the screen says of the wording a paper was laid out in: its Version, and whether a lawyer approved it. */
 const wordingSaid = (wording: Wording) => ({
@@ -70,6 +76,10 @@ export const investorStatementsRouter = {
             unitPriceBdt: true,
             targetWindowStart: true,
             targetWindowEnd: true,
+            capitalPaid: true,
+            cattlePartBdt: true,
+            monthlySums: true,
+            firstSumDueOn: true,
           },
         }),
         context.db.query.investor.findFirst({
@@ -109,29 +119,35 @@ export const investorStatementsRouter = {
         him,
         paperNominees({ nominees: [...nominees] }, today)
       );
-      const document = paperFrom(wording.content, {
-        kind: "investment_agreement",
-        parties: {
-          farm: context.farm,
-          ownerName: context.actor.name,
-          investors: [investor],
-        },
-        values: paperValues({
-          farm: context.farm,
-          ownerName: context.actor.name,
-          him: investor,
-          ventureName: run.name,
-          units: input.units,
-          unitPriceBdt: run.unitPriceBdt,
-          investorsPercent: input.investorsPercent,
-          windowStart: run.targetWindowStart,
-          windowEnd: run.targetWindowEnd,
-          windUpDays: context.farm.windUpDays,
-          arbitrator: input.arbitrator,
-        }),
-        producedBy: context.actor.name,
-        producedAt: producedAt(now, language),
-      });
+      // Paid by the month, the clauses the advisers approved for it and its schedule; on any other Venture, neither.
+      const { monthly } = paidForBy(run);
+      const document = paperFrom(
+        wordingFor(wording.content, { paidByTheMonth: monthly !== null }),
+        {
+          kind: "investment_agreement",
+          parties: {
+            farm: context.farm,
+            ownerName: context.actor.name,
+            investors: [investor],
+          },
+          values: paperValues({
+            farm: context.farm,
+            ownerName: context.actor.name,
+            him: investor,
+            ventureName: run.name,
+            units: input.units,
+            unitPriceBdt: run.unitPriceBdt,
+            investorsPercent: input.investorsPercent,
+            windowStart: run.targetWindowStart,
+            windowEnd: run.targetWindowEnd,
+            windUpDays: context.farm.windUpDays,
+            arbitrator: input.arbitrator,
+            monthly,
+          }),
+          producedBy: context.actor.name,
+          producedAt: producedAt(now, language),
+        }
+      );
       await audited(context).write(
         {
           // Filed against the Venture: there is no Agreement yet to file it against, and "what did we hand that man
@@ -173,7 +189,15 @@ export const investorStatementsRouter = {
       const [run, him, signer, nomination, wording] = await Promise.all([
         context.db.query.venture.findFirst({
           where: { id: agreement.ventureId, farmId: context.farm.id },
-          columns: { id: true, name: true, unitPriceBdt: true },
+          columns: {
+            id: true,
+            name: true,
+            unitPriceBdt: true,
+            capitalPaid: true,
+            cattlePartBdt: true,
+            monthlySums: true,
+            firstSumDueOn: true,
+          },
         }),
         context.db.query.investor.findFirst({
           where: { id: agreement.investorId, farmId: context.farm.id },
@@ -201,30 +225,36 @@ export const investorStatementsRouter = {
         him,
         paperNominees(nomination, agreement.stampedOn)
       );
-      const document = paperFrom(wording.content, {
-        kind: "investment_agreement",
-        parties: {
-          farm: context.farm,
-          ownerName,
-          investors: [investor],
-        },
-        values: paperValues({
-          farm: context.farm,
-          ownerName,
-          him: investor,
-          ventureName: run.name,
-          units: agreement.units,
-          unitPriceBdt: run.unitPriceBdt,
-          investorsPercent: agreement.investorsPercent,
-          windowStart: agreement.targetWindowStart,
-          windowEnd: agreement.targetWindowEnd,
-          windUpDays: context.farm.windUpDays,
-          arbitrator: agreement.arbitrator,
-        }),
-        producedBy: context.actor.name,
-        producedAt: producedAt(now, language),
-        version: wording.number,
-      });
+      // As it was signed: a Venture paid by the month printed its clauses and schedule; no other did.
+      const { monthly } = paidForBy(run);
+      const document = paperFrom(
+        wordingFor(wording.content, { paidByTheMonth: monthly !== null }),
+        {
+          kind: "investment_agreement",
+          parties: {
+            farm: context.farm,
+            ownerName,
+            investors: [investor],
+          },
+          values: paperValues({
+            farm: context.farm,
+            ownerName,
+            him: investor,
+            ventureName: run.name,
+            units: agreement.units,
+            unitPriceBdt: run.unitPriceBdt,
+            investorsPercent: agreement.investorsPercent,
+            windowStart: agreement.targetWindowStart,
+            windowEnd: agreement.targetWindowEnd,
+            windUpDays: context.farm.windUpDays,
+            arbitrator: agreement.arbitrator,
+            monthly,
+          }),
+          producedBy: context.actor.name,
+          producedAt: producedAt(now, language),
+          version: wording.number,
+        }
+      );
       await audited(context).write(
         {
           entity: "investment_agreement",

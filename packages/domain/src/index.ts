@@ -742,9 +742,12 @@ export {
   quantityOfPacks,
 } from "./feed-units";
 export type {
+  Clause,
   FactLine,
   FieldValues,
+  PaperCondition,
   PaperDocument,
+  PaperFor,
   PaperInvestor,
   PaperParties,
   ReadPart,
@@ -760,6 +763,7 @@ export {
   FARM_FIELDS,
   FIELDS_OF,
   MOST_WITNESSES,
+  PAPER_CONDITIONS,
   RECEIVER_FIELDS,
   TEMPLATE_FIELDS,
   TEMPLATE_KINDS,
@@ -773,9 +777,11 @@ export {
   readingOf,
   templateProblems,
   termsOf,
+  wordingFor,
 } from "./paper-template";
 export {
   FIRST_PRINTED_AGREEMENT,
+  STANDARD_AGREEMENT_BEFORE_MONTHLY,
   STANDARD_TEMPLATES,
 } from "./standard-templates";
 export {
@@ -823,6 +829,7 @@ export {
   monthlyTermsOf,
   sumsStandingOf,
   takesCapital,
+  towardsTheFloor,
 } from "./monthly-sums";
 export type {
   CapitalPaid,

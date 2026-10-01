@@ -1,4 +1,4 @@
-import { farmDayOf, takesCapital } from "@OpenFarm/domain";
+import { farmDayOf, takesCapital, towardsTheFloor } from "@OpenFarm/domain";
 
 import type { orpc } from "@/utils/orpc";
 
@@ -35,7 +35,14 @@ export const pastWindUp = (venture: Venture) =>
  * refusing what this still offers.
  */
 export const shortOfFloor = (venture: Venture) =>
-  venture.floorBdt - venture.capitalInBdt;
+  venture.floorBdt -
+  towardsTheFloor({
+    // An answer cached before Ventures were paid by the month is one paid before buying.
+    capitalPaid: venture.capitalPaid ?? "before_buying",
+    heldBdt: venture.capitalInBdt,
+    signedUnits: venture.signedFor.units,
+    unitPriceBdt: venture.unitPriceBdt,
+  });
 
 /** Paid by the month: the signed Units' Cattle Part still to come, which the buying waits on as well as the Floor. An
  *  answer cached before Ventures were paid by the month has none, and is a Venture paid before buying. */

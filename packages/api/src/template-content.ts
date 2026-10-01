@@ -1,5 +1,9 @@
 import type { TemplateContent } from "@OpenFarm/domain";
-import { MOST_WITNESSES, TEMPLATE_KINDS } from "@OpenFarm/domain";
+import {
+  MOST_WITNESSES,
+  PAPER_CONDITIONS,
+  TEMPLATE_KINDS,
+} from "@OpenFarm/domain";
 import { z } from "zod";
 
 // The wire's check on a Template's wording, before the domain's own rules say whether it may be published. Shape only:
@@ -17,6 +21,9 @@ const said = z.object({
   en: z.string().max(LONGEST),
 });
 
+/** When a line is printed at all, kept through the wire so a Version the Owner publishes keeps its conditions. */
+const only = z.enum(PAPER_CONDITIONS).optional();
+
 const section = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("parties"),
@@ -31,14 +38,14 @@ const section = z.discriminatedUnion("kind", [
     kind: z.literal("facts"),
     heading: said,
     rows: z
-      .array(z.object({ label: said, value: z.string().max(LONGEST) }))
+      .array(z.object({ label: said, value: z.string().max(LONGEST), only }))
       .max(MOST_LINES),
     note: said.nullable(),
   }),
   z.object({
     kind: z.literal("clauses"),
     heading: said,
-    clauses: z.array(said).max(MOST_LINES),
+    clauses: z.array(said.extend({ only })).max(MOST_LINES),
   }),
   z.object({ kind: z.literal("stamp"), heading: said }),
   z.object({

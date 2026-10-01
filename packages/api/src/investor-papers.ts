@@ -2,8 +2,11 @@ import {
   farmDayOf,
   joiningLetter,
   progressStatement,
+  roundTaka,
   settlementStatement,
+  sumsStandingOf,
   termsOf,
+  wordingFor,
 } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
@@ -32,6 +35,7 @@ import { languageOf } from "./reader-language";
 import { agreementReturnOnCapital } from "./returns-store";
 import { wordingSignedIn } from "./template-store";
 import { theirProgress } from "./venture-herd-store";
+import { paidForBy } from "./venture-store";
 
 /** What making one of an Investor's papers needs: the farm it comes from, whoever is asking for it — the Owner
  *  printing it, or the Investor reading it in the portal (ADR 0007) — and the clock. Every paper made is an Export
@@ -52,6 +56,43 @@ const madeIn = (context: PaperMaking) =>
  * the terms of the wording his Agreement was signed in, filled from what is in force today. `ownerName` is who signs
  * for the Farm, which is the Owner's name whoever is asking for the paper.
  */
+/** A figure in Bangla numerals, for a Bangla sentence whoever reads it. */
+const bn = (value: number) => formatNumber(value, "bn");
+
+/**
+ * Where he stands against his Monthly Sums, as the progress statement says it in the words the advisers approved —
+ * a Bangla sentence, so in Bangla numerals whoever reads it: "৪ মাসের ২টি দেওয়া · বাকি পড়েছে ৫,০০০ টাকা · পরেরটি
+ * ১০ এপ্রিল, ২০৭৬, ২,৫০০ টাকা", the last two only where they apply. Nothing for a Venture paid before buying, or one
+ * still gathering its capital.
+ */
+const sumsSaid = (
+  venture: Parameters<typeof paidForBy>[0] & { state: string },
+  his: { units: number; capitalBdt: number },
+  today: string
+): string | null => {
+  const { monthly } = paidForBy(venture);
+  if (!monthly || venture.state === "open") {
+    return null;
+  }
+  const standing = sumsStandingOf({
+    units: his.units,
+    unitPriceBdt: venture.unitPriceBdt,
+    monthly,
+    paidBdt: his.capitalBdt,
+    today,
+  });
+  const parts = [`${bn(standing.sums)} মাসের ${bn(standing.sumsPaid)}টি দেওয়া`];
+  if (standing.missedBdt > 0) {
+    parts.push(`বাকি পড়েছে ${bn(standing.missedBdt)} টাকা`);
+  }
+  if (standing.next) {
+    parts.push(
+      `পরেরটি ${formatDate(new Date(`${standing.next.dueOn}T00:00:00Z`), "bn", "date")}, ${bn(standing.next.bdt)} টাকা`
+    );
+  }
+  return parts.join(" · ");
+};
+
 export const joiningLetterFor = async (
   context: PaperMaking,
   agreementId: string,
@@ -77,6 +118,8 @@ export const joiningLetterFor = async (
   const day = (on: string) =>
     formatDate(new Date(`${on}T00:00:00Z`), language, "date");
   const taka = (bdt: number) => formatNumber(bdt, language);
+  // Paid by the month: the clauses it was signed with, and his Units' schedule under what he has paid.
+  const { monthly } = paidForBy(standing.venture);
   const text = joiningLetter({
     farm: context.farm,
     him: standing.him,
@@ -90,8 +133,14 @@ export const joiningLetterFor = async (
       reference: one.reference,
     })),
     totalCapital: taka(standing.capitalBdt),
+    monthlySums: monthly
+      ? monthly.sums.map((one) => ({
+          on: day(one.dueOn),
+          amount: taka(one.bdt * standing.agreement.units),
+        }))
+      : null,
     terms: termsOf(
-      signedIn.content,
+      wordingFor(signedIn.content, { paidByTheMonth: monthly !== null }),
       paperValues({
         farm: context.farm,
         ownerName,
@@ -104,6 +153,7 @@ export const joiningLetterFor = async (
         windowEnd: standing.agreement.targetWindowEnd,
         windUpDays: context.farm.windUpDays,
         arbitrator: standing.agreement.arbitrator,
+        monthly,
       })
     ),
     amendedOn: standing.agreement.amendedOn
@@ -171,6 +221,11 @@ export const progressStatementFor = async (
     farm: context.farm,
     investorName: standing.him.name,
     ventureName: standing.venture.name,
+    monthlySums: sumsSaid(
+      standing.venture,
+      { units: standing.agreement.units, capitalBdt: standing.capitalBdt },
+      farmDayOf(now)
+    ),
     // His Units and his share of the Venture, which is his own Units over all of them — not a list of who holds the
     // rest, which is nobody's business but theirs. Held, not signed for, once the buying has started.
     units: said(holding.units),
@@ -271,6 +326,11 @@ export const settlementStatementFor = async (
     formatDate(new Date(`${on}T00:00:00Z`), language, "date");
   // Capital returned, by the Units it returns to.
   const perUnitIn = settled.units > 0 ? settled.capitalBdt / settled.units : 0;
+  const monthlyVenture = paidForBy(standing.venture).monthly !== null;
+  const unpaidBdt = roundTaka(
+    standing.agreement.units * standing.venture.unitPriceBdt -
+      settled.his.capitalBdt
+  );
   const text = settlementStatement({
     farm: context.farm,
     investorName: standing.him.name,
@@ -298,6 +358,13 @@ export const settlementStatementFor = async (
     advanceRepaid: settled.advanceRepaid,
     his: {
       units: said(settled.his.units),
+      // Paid by the month: what he signed for beside what he held, and what of his Monthly Sums never came — only where
+      // they differ, which on a Venture paid in full they do not.
+      signedUnits:
+        monthlyVenture && settled.his.units !== standing.agreement.units
+          ? said(standing.agreement.units)
+          : null,
+      sumsUnpaid: monthlyVenture && unpaidBdt > 0 ? said(unpaidBdt) : null,
       capital: said(settled.his.capitalBdt),
       share: unsigned(settled.his.shareBdt),
       shareRose: settled.his.shareBdt >= 0,
