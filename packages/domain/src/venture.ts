@@ -87,6 +87,15 @@ export const splitOfProfit = ({
   };
 };
 
+/**
+ * The Units an Agreement has paid for: whole Units only, as an Investor holds them. A Venture may start buying while
+ * an Agreement is part paid, and the share of a profit or a loss divides by these, never by the Units signed for — or
+ * he takes a share of the run for money he never put in, and every taka that was put in is diluted by it. Taka short
+ * of a whole Unit come back with the capital and take no share.
+ */
+export const unitsPaidFor = (capitalBdt: number, unitPriceBdt: number) =>
+  unitPriceBdt > 0 ? Math.floor(capitalBdt / unitPriceBdt) : 0;
+
 /** What one Investor is paid: the capital they put in, back whole, and what their Units took of the
  *  profit — or lost of it, which comes off the capital they get back. */
 export const payoutOf = (

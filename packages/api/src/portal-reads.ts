@@ -7,6 +7,7 @@ import {
   isExitState,
   maskedDigits,
   readingOf,
+  unitsPaidFor,
 } from "@OpenFarm/domain";
 import type { TemplateContent } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -279,7 +280,8 @@ export const theirVentureToday = async (
      *  and nothing unless the Owner shows Projections, has set the prices, and the Venture is still running. */
     projection: projected
       ? hisProjection(projected, {
-          units: standing.agreement.units,
+          // The Units he paid for, as the Settlement will divide by them.
+          units: unitsPaidFor(standing.capitalBdt, run.unitPriceBdt),
           capitalBdt: standing.capitalBdt,
         })
       : null,
