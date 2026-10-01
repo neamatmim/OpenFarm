@@ -5,22 +5,28 @@ this at six in the morning after a disk died should not have to think.
 
 ## What runs where
 
-| Piece           | Where                                                                        | Who holds the credentials           |
-| --------------- | ---------------------------------------------------------------------------- | ----------------------------------- |
-| The app         | The farm's own Linux server, Singapore, as `openfarm.service`                | Owner (root), Manager (operational) |
-| Taking copies   | The same server, `openfarm-backup.timer` and `openfarm-backup-monthly.timer` | Owner only                          |
-| The database    | Managed PostgreSQL with point-in-time recovery, Singapore                    | Owner only                          |
-| Off-site copies | A different provider and region                                              | Owner only                          |
-| Push keys       | Password manager                                                             | Owner only                          |
-| DNS and TLS     | Registrar, and nginx with certbot on the server                              | Owner only                          |
+| Piece           | Where                                                                        | Who holds the credentials |
+| --------------- | ---------------------------------------------------------------------------- | ------------------------- |
+| The app         | The farm's own Linux server, Singapore, as `openfarm.service`                | Owner only                |
+| Taking copies   | The same server, `openfarm-backup.timer` and `openfarm-backup-monthly.timer` | Owner only                |
+| The database    | Managed PostgreSQL with point-in-time recovery, Singapore                    | Owner only                |
+| Off-site copies | A different provider and region                                              | Owner only                |
+| Push keys       | Password manager                                                             | Owner only                |
+| DNS and TLS     | Registrar, and nginx with certbot on the server                              | Owner only                |
 
 Singapore because that is the nearest region with a managed PostgreSQL that does
 point-in-time recovery; a phone in a shed in Bangladesh is a long way from anywhere, and
 this is the shortest of the long ways.
 
-**The Owner holds every root credential.** The Manager can deploy, read logs and restart the
-app, and cannot reach the database, the backups or the keys. That is not distrust; it is so
-that one person's lost phone is not the farm's lost records.
+**The Owner holds every credential, and only the Owner deploys.** Whoever can put code on the
+server can read everything the app reads — the database, the sign-in secret, the push keys —
+whatever the file permissions say, so there is no such thing as deploy access without them.
+The Manager has no login on the server: they run the farm in the app, and when something on
+the server needs doing, they tell the Owner. That is not distrust; it is so that one person's
+lost phone or laptop is not the farm's lost records.
+
+So the `openfarm` user's SSH key, the root login and the database's own credentials live in
+the Owner's password manager and on the Owner's machine, and nowhere else.
 
 ## Before the first deploy
 
