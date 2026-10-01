@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { monthlySumsOf, monthlyTermsOf } from "./monthly-sums";
+import {
+  capitalItMayHold,
+  cattleMoneyOf,
+  monthlySumsOf,
+  monthlyTermsOf,
+} from "./monthly-sums";
 
 const VENTURE = {
   unitPriceBdt: 50_000,
@@ -79,5 +84,53 @@ describe("a Unit's Monthly Sums", () => {
 
     expect(sums.map((one) => one.bdt)).toEqual([2000, 2000, 2000, 2000, 2000]);
     expect(sums.at(-1)?.dueOn).toBe("2071-06-10");
+  });
+});
+
+const BY_THE_MONTH = {
+  capitalPaid: "by_the_month" as const,
+  unitPriceBdt: 50_000,
+  cattlePartBdt: 40_000,
+  targetCapitalBdt: 1_000_000,
+  cattleBudgetBdt: 800_000,
+};
+
+describe("what an Agreement may have paid in", () => {
+  it("is its Units' Cattle Part while a Venture paid by the month is open, and their whole price after", () => {
+    expect(capitalItMayHold(3, { ...BY_THE_MONTH, state: "open" })).toBe(
+      120_000
+    );
+    expect(capitalItMayHold(3, { ...BY_THE_MONTH, state: "buying" })).toBe(
+      150_000
+    );
+  });
+
+  it("is always their whole price for a Venture paid before buying", () => {
+    expect(
+      capitalItMayHold(3, {
+        ...BY_THE_MONTH,
+        capitalPaid: "before_buying",
+        cattlePartBdt: null,
+        state: "open",
+      })
+    ).toBe(150_000);
+  });
+});
+
+describe("how much of a Venture's capital is cattle money", () => {
+  it("is all of it up to the signed Cattle Parts when paid by the month, and the Monthly Sums past that are not", () => {
+    expect(cattleMoneyOf(300_000, BY_THE_MONTH, 13)).toBe(300_000);
+    expect(cattleMoneyOf(520_000, BY_THE_MONTH, 13)).toBe(520_000);
+    expect(cattleMoneyOf(552_500, BY_THE_MONTH, 13)).toBe(520_000);
+  });
+
+  it("is the plan's proportion when paid before buying", () => {
+    expect(
+      cattleMoneyOf(
+        300_000,
+        { ...BY_THE_MONTH, capitalPaid: "before_buying", cattlePartBdt: null },
+        10
+      )
+    ).toBe(240_000);
   });
 });

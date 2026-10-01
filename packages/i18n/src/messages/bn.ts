@@ -1068,6 +1068,8 @@ export const bn: Record<MessageKey, string> = {
     "কেনা শুরু হলে ইউনিট আর বদলায় না: নতুন বিনিয়োগকারীও নেই, বাড়তি টাকাও নেই।",
   "ventures.floorNotMetYet":
     "কেনা শুরুর আগে আরও ৳{short} জমা হতে হবে (সর্বনিম্ন সীমা ৳{floor})।",
+  "ventures.cattleMoneyShort":
+    "কেনা শুরুর আগে সই করা বিনিয়োগকারীদের গরু কেনার টাকার আরও ৳{short} আসতে হবে।",
   "ventures.noUnitsLeft": "সব ইউনিট সই হয়ে গেছে।",
   "ventures.decisionDue": "সিদ্ধান্ত {day}-এর মধ্যে",
   "ventures.ofTheFloor": "সর্বনিম্ন সীমা {floor}",
@@ -1268,6 +1270,10 @@ export const bn: Record<MessageKey, string> = {
     "রাখার খরচ যত দিন ধরা হয়, তার মধ্যেই পশুর বিচার হয়: সবচেয়ে বেশি {readDays} দিন। দুটো একসঙ্গে বদলান।",
   "refusal.milkWeighedTooSoon":
     "বাছুরের দুধের দিন আর রাখার খরচ যত দিন ধরা হয়, দুটো পেরোলে তবেই গাভীর দুধ মাপা হয়: সবচেয়ে আগে {soonestDays} দিনে। এগুলো একসঙ্গে বদলান।",
+  "refusal.capitalOverCattlePart":
+    "এই চুক্তির গরু কেনার টাকার চেয়ে বেশি — বাকিটা কেনা শুরুর পর মাসে মাসে আসবে",
+  "refusal.cattleMoneyShort":
+    "সই করা কয়েকজনের গরু কেনার টাকা এখনো আসেনি — সবটা না এলে কেনা শুরু হবে না",
   "refusal.capitalOverUnits": "এই চুক্তির ইউনিটের দামের চেয়ে বেশি টাকা",
   "refusal.refundNotItsMoney": "এই ভেঞ্চার এই টাকা কখনো নেয়নি",
   "refusal.wageIsTheFarms": "মজুরি খামারের নিজের — লোক খামারই দেয়",

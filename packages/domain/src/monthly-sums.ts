@@ -109,3 +109,51 @@ export const monthlySumsOf = (
     bdt: at === terms.sums - 1 ? lastBdt : eachBdt,
   }));
 };
+
+/**
+ * What an Agreement may have paid in by now, all told. Its Units' whole price — except while a Venture paid by the
+ * month is still gathering its capital, when it is its Units' Cattle Part and no more: the cattle money comes first,
+ * the Monthly Sums after the buying starts, and a taka of them taken early would be counted as money for cattle.
+ */
+export const capitalItMayHold = (
+  units: number,
+  venture: {
+    state: string;
+    capitalPaid: CapitalPaid;
+    unitPriceBdt: number;
+    cattlePartBdt: number | null;
+  }
+) =>
+  venture.capitalPaid === "by_the_month" &&
+  venture.state === "open" &&
+  venture.cattlePartBdt !== null
+    ? units * venture.cattlePartBdt
+    : units * venture.unitPriceBdt;
+
+/**
+ * Of what a Venture holds, how much is cattle money. Paid before buying, the capital divides between the two budgets in
+ * proportion, as the plan divides it. Paid by the month, the Cattle Part comes first and is all its capital up to
+ * every signed Unit's Cattle Part; past that it is Monthly Sums, which keep the animals.
+ */
+export const cattleMoneyOf = (
+  capitalBdt: number,
+  venture: {
+    capitalPaid: CapitalPaid;
+    cattlePartBdt: number | null;
+    targetCapitalBdt: number;
+    cattleBudgetBdt: number;
+  },
+  signedUnits: number
+) => {
+  if (
+    venture.capitalPaid === "by_the_month" &&
+    venture.cattlePartBdt !== null
+  ) {
+    return Math.min(capitalBdt, signedUnits * venture.cattlePartBdt);
+  }
+  return venture.targetCapitalBdt > 0
+    ? Math.round(
+        (capitalBdt * venture.cattleBudgetBdt) / venture.targetCapitalBdt
+      )
+    : 0;
+};

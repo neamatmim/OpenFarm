@@ -292,6 +292,8 @@ export const theirSpend = async (
     targetCapitalBdt: number;
     cattleBudgetBdt: number;
     unitPriceBdt: number;
+    capitalPaid: VentureRow["capitalPaid"];
+    cattlePartBdt: number | null;
     /** Which side of the run it is on: what buying did not spend is feeding money once it closes. */
     state: VentureRow["state"];
   }
@@ -307,7 +309,11 @@ export const theirSpend = async (
     }),
   ]);
   const { charges } = whatItWasCharged(costs, ownedThenBy, venture.id, paidIn);
-  const budgets = budgetsOf(venture, held.get(venture.id));
+  const budgets = budgetsOf(
+    venture,
+    held.get(venture.id),
+    signed.get(venture.id)?.units ?? 0
+  );
   return {
     charges,
     // The sum of the lines as they are shown, not of the figures behind them — as the Settlement does

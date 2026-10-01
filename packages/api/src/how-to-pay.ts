@@ -1,3 +1,5 @@
+import { capitalItMayHold } from "@OpenFarm/domain";
+
 import type { Tx } from "./audit";
 import type { VentureAccount, VentureRow } from "./venture-store";
 import { accountOf, takenAgainst } from "./venture-store";
@@ -27,7 +29,9 @@ export const howToPay = async (
   run: Pick<
     VentureRow,
     | "state"
+    | "capitalPaid"
     | "unitPriceBdt"
+    | "cattlePartBdt"
     | "decideBy"
     | "accountBank"
     | "accountBranch"
@@ -46,8 +50,10 @@ export const howToPay = async (
   if (!agreement) {
     return null;
   }
+  // What he may pay now: his Units' whole price, or — for a Venture paid by the month, still gathering — their Cattle
+  // Part, since a taka of the Monthly Sums sent early would be refused at the bank's own door.
   const owedBdt =
-    agreement.units * run.unitPriceBdt -
+    capitalItMayHold(agreement.units, run) -
     (await takenAgainst(db, farmId, agreementId));
   if (owedBdt <= 0) {
     return null;

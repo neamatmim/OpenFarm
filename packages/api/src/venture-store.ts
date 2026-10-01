@@ -15,6 +15,7 @@ import {
   isStillBuying,
   mayMoveTo,
   monthOf,
+  cattleMoneyOf,
   monthlySumsOf,
   roundTaka,
   startOfFarmDay,
@@ -201,19 +202,26 @@ export const windUpEndsOn = (targetWindowEnd: string, windUpDays: number) =>
  * how his paper and the Owner's screen would come to disagree about what is left.
  */
 export const budgetsOf = (
-  row: Pick<VentureRow, "targetCapitalBdt" | "cattleBudgetBdt" | "state">,
-  held: Held | undefined
+  row: Pick<
+    VentureRow,
+    | "targetCapitalBdt"
+    | "cattleBudgetBdt"
+    | "state"
+    | "capitalPaid"
+    | "cattlePartBdt"
+  >,
+  held: Held | undefined,
+  /** Every Unit signed for: a Venture paid by the month takes each one's Cattle Part as cattle money, and no more. */
+  signedUnits: number
 ) => {
   const what = held ?? NOTHING_HELD;
   const target = row.targetCapitalBdt;
   // What of the capital arrived for cattle, less what has already been drawn against it.
-  const cameInForCattle =
-    target > 0
-      ? Math.round(
-          ((what.capitalInBdt - what.refundedBdt) * row.cattleBudgetBdt) /
-            target
-        )
-      : 0;
+  const cameInForCattle = cattleMoneyOf(
+    what.capitalInBdt - what.refundedBdt,
+    row,
+    signedUnits
+  );
   // Once buying closes there is nothing left to buy, so what the Cattle Budget did not spend is
   // feeding money — the glossary says so of a Cattle Budget, and a Venture told it is short of keep
   // while most of its capital sits idle on the other side would be told a thing that is not true.
@@ -237,6 +245,27 @@ export const budgetsOf = (
     runningBudgetHeldBdt: balanceOf(what) - cattleBudgetHeldBdt,
   };
 };
+
+/**
+ * What a Venture paid by the month has still to take of its signed Units' Cattle Parts: the buying waits on all of it,
+ * because a lorry that goes to the haat on part of the cattle money buys a herd the plan was not for. Nothing for a
+ * Venture paid before buying. A payment is never let past its Agreement's Cattle Part while the Venture is Open, so
+ * what is short altogether is what the Agreements are short between them.
+ */
+export const cattleMoneyShortOf = (
+  row: Pick<VentureRow, "capitalPaid" | "cattlePartBdt">,
+  held: Held,
+  signedUnits: number
+) =>
+  row.capitalPaid === "by_the_month" && row.cattlePartBdt !== null
+    ? Math.max(
+        0,
+        roundTaka(
+          signedUnits * row.cattlePartBdt -
+            (held.capitalInBdt - held.refundedBdt)
+        )
+      )
+    : 0;
 
 /**
  * How a Venture's Investors pay for one Unit, as it opened: all before buying, or the Cattle Part and then each
@@ -294,7 +323,7 @@ export const ventureView = (
 ) => {
   const what = held ?? NOTHING_HELD;
   const balanceBdt = balanceOf(what);
-  const budgets = budgetsOf(row, held);
+  const budgets = budgetsOf(row, held, signedFor?.units ?? 0);
   const { cattleBudgetHeldBdt, runningBudgetHeldBdt } = budgets;
   return {
     id: row.id,
@@ -308,6 +337,9 @@ export const ventureView = (
     units: row.units,
     /** How a Unit is paid for: all before buying, or its Cattle Part and then its Monthly Sums. */
     ...paidForBy(row),
+    /** Paid by the month: the signed Units' Cattle Part still to come, which the buying waits on. Nothing for a Venture
+     *  paid before buying, which starts on its Floor. */
+    cattleMoneyShortBdt: cattleMoneyShortOf(row, what, signedFor?.units ?? 0),
     cattleBudgetBdt: budgets.cattleBudgetBdt,
     runningBudgetBdt: budgets.runningBudgetBdt,
     ...what,

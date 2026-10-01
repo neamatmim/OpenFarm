@@ -816,6 +816,8 @@ export {
   CAPITAL_PAID,
   SUM_DUE_DAY,
   SUM_MISSED_AFTER_DAYS,
+  capitalItMayHold,
+  cattleMoneyOf,
   monthlySumsOf,
   monthlyTermsOf,
 } from "./monthly-sums";

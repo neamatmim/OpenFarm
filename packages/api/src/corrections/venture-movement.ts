@@ -1,5 +1,6 @@
 import { eq } from "@OpenFarm/db/operators";
 import { ventureMovement } from "@OpenFarm/db/schema/venture";
+import { capitalItMayHold } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -175,7 +176,12 @@ const assertWithinItsUnits = async (
   });
   const plan = await tx.query.venture.findFirst({
     where: { id: row.ventureId, farmId: row.farmId },
-    columns: { unitPriceBdt: true },
+    columns: {
+      state: true,
+      capitalPaid: true,
+      unitPriceBdt: true,
+      cattlePartBdt: true,
+    },
   });
   const paid = await tx.query.ventureMovement.findMany({
     where: {
@@ -186,12 +192,16 @@ const assertWithinItsUnits = async (
     },
     columns: { amountBdt: true },
   });
-  const owed = (agreement?.units ?? 0) * (plan?.unitPriceBdt ?? 0);
+  // Its Units' whole price, or their Cattle Part while a Venture paid by the month gathers its capital — as the payment
+  // itself was held to.
+  const units = agreement?.units ?? 0;
+  const owed = plan ? capitalItMayHold(units, plan) : 0;
+  const cattlePartOnly = plan ? owed < units * plan.unitPriceBdt : false;
   const already = paid.reduce((sum, one) => sum + one.amountBdt, 0);
   if (already + amountBdt > owed) {
     throw refuse(
       `This Agreement is for ${owed - already} more taka`,
-      "capital_over_units"
+      cattlePartOnly ? "capital_over_cattle_part" : "capital_over_units"
     );
   }
 };

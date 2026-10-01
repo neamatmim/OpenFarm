@@ -151,6 +151,8 @@ type Run = Pick<
   | "cattleBudgetBdt"
   | "units"
   | "unitPriceBdt"
+  | "capitalPaid"
+  | "cattlePartBdt"
 > & {
   /** When it was opened, which its Settlement is read from. */
   createdAt: Date;

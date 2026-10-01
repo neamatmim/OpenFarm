@@ -43,7 +43,7 @@ A Venture is one or the other, chosen when it opens; every Venture so far stays 
 | #   | Ticket                                                   | Blocked by                               |
 | --- | -------------------------------------------------------- | ---------------------------------------- |
 | 01  | [Monthly terms on a Venture](issues/01-monthly-terms.md) | done                                     |
-| 02  | [The cattle part first](issues/02-cattle-part-first.md)  | 01                                       |
+| 02  | [The cattle part first](issues/02-cattle-part-first.md)  | done                                     |
 | 03  | [Monthly sums while it runs](issues/03-monthly-sums.md)  | 02                                       |
 | 04  | [Who is behind](issues/04-who-is-behind.md)              | 03                                       |
 | 05  | [The papers say it](issues/05-papers-say-it.md)          | 01; drafted clauses read by the advisers |

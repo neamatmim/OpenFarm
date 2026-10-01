@@ -27,7 +27,9 @@ import { saidMonth } from "@/lib/months";
 import { useTaka } from "@/lib/taka";
 import type { Venture } from "@/lib/ventures";
 import {
+  cattleMoneyShort,
   decisionIsDue,
+  mayStartBuying,
   monthsStillOut,
   pastWindUp,
   shortOfFloor,
@@ -221,14 +223,21 @@ export const WhatStopsHer = ({
   );
   if (venture.state === "open") {
     const short = shortOfFloor(venture);
+    const cattleShort = cattleMoneyShort(venture);
+    let stops = t("ventures.startBuyingHint");
+    if (short > 0) {
+      stops = t("ventures.floorNotMetYet", {
+        short: formatNumber(short, language),
+        floor: formatNumber(venture.floorBdt, language),
+      });
+    } else if (cattleShort > 0) {
+      stops = t("ventures.cattleMoneyShort", {
+        short: formatNumber(cattleShort, language),
+      });
+    }
     return (
       <p className={said}>
-        {short > 0
-          ? t("ventures.floorNotMetYet", {
-              short: formatNumber(short, language),
-              floor: formatNumber(venture.floorBdt, language),
-            })
-          : t("ventures.startBuyingHint")}
+        {stops}
         {unitsLeft(venture) > 0 ? null : ` ${t("ventures.noUnitsLeft")}`}
       </p>
     );
@@ -412,7 +421,7 @@ export const primaryActsOf = (
       {
         label: t("ventures.startBuying"),
         icon: ShoppingCart,
-        disabled: shortOfFloor(venture) > 0,
+        disabled: !mayStartBuying(venture),
         handleSelect: () => acts.startBuying(venture),
       },
     ];
