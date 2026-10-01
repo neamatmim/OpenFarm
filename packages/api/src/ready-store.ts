@@ -3,15 +3,18 @@ import { startOfFarmDay } from "@OpenFarm/domain";
 
 import {
   fatteningOf,
+  gainReadDaysOf,
   LATEST_JOINING,
+  READINGS_FOR_A_RATE,
   startOfFattening,
+  WEIGH_IN_COLUMNS,
 } from "./fattening-store";
 
 /** A whole fattening side fits in one read on a farm of this size; the herd is the bound. */
 const HERD_LIMIT = 1000;
 
 /** As many readings as a rate needs, plus room for a page to show a little history. */
-const READINGS_READ = 12;
+const READINGS_READ = READINGS_FOR_A_RATE;
 
 /**
  * What the Fattening side looks like from the outside: every animal on it with what the scale
@@ -68,11 +71,12 @@ export const fatteningRows = async (
       weighIns: {
         orderBy: { weighedAt: "desc", id: "desc" },
         limit: READINGS_READ,
-        columns: { weightKg: true, weighedAt: true },
+        columns: WEIGH_IN_COLUMNS,
       },
       readySetAside: { columns: { grounds: true, setAsideAt: true } },
     },
   });
+  const readDays = await gainReadDaysOf(db, farmId);
   return rows.map(
     ({ intake: bought, joinings, weighIns, pen, readySetAside, ...beast }) => {
       const intake = startOfFattening(bought, joinings);
@@ -90,7 +94,7 @@ export const fatteningRows = async (
               closesAt: startOfFarmDay(intake.targetWindowEnd),
             }
           : null,
-        view: fatteningOf(intake, weighIns, now),
+        view: fatteningOf(intake, weighIns, now, readDays),
       };
     }
   );

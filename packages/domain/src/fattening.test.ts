@@ -15,6 +15,10 @@ import {
 
 const at = (day: string) => new Date(`${day}T06:00:00+06:00`);
 
+/** How far apart two readings must be for a gain to be read off them: the farm's own setting. */
+const FORTNIGHT = 14;
+const FOUR_WEEKS = 28;
+
 describe("a calendar day plus days", () => {
   it("crosses a month, a year and a leap day", () => {
     expect(addDays("2027-02-28", 1)).toBe("2027-03-01");
@@ -98,7 +102,8 @@ describe("what the scale means", () => {
       null,
       [{ weightKg: 180, weighedAt: at("2027-04-01") }],
       windowOpensAt,
-      at("2027-04-15")
+      at("2027-04-15"),
+      FOUR_WEEKS
     );
     expect(view.daysOnFeed).toBe(null);
     expect(view.sinceIntake).toBe(null);
@@ -109,7 +114,13 @@ describe("what the scale means", () => {
   });
 
   it("falls back to what she weighed off the lorry until she is on the scale", () => {
-    const view = fatteningView(intake, [], windowOpensAt, at("2027-01-20"));
+    const view = fatteningView(
+      intake,
+      [],
+      windowOpensAt,
+      at("2027-01-20"),
+      FOUR_WEEKS
+    );
     expect(view.latestKg).toBe(250);
     expect(view.latestAt).toEqual(intake.arrivedAt);
     expect(view.sinceIntake).toBe(null);
@@ -120,13 +131,14 @@ describe("what the scale means", () => {
       intake,
       [{ weightKg: 371, weighedAt: at("2027-04-15") }],
       windowOpensAt,
-      at("2027-04-15")
+      at("2027-04-15"),
+      FOUR_WEEKS
     );
     expect(view.recent).toBe(null);
     expect(view.onTrackFrom).toBe("sinceIntake");
   });
 
-  it("judges a bull who has stopped by the fortnight, not by the season", () => {
+  it("judges a bull who has stopped by the fortnight, not by the season, on a farm that reads a fortnight", () => {
     // Three good months and a flat fortnight: over her whole stay she makes her target, and over the
     // last two weeks she does not. The farm needs to hear the second.
     const view = fatteningView(
@@ -136,7 +148,8 @@ describe("what the scale means", () => {
         { weightKg: 371, weighedAt: at("2027-04-15") },
       ],
       windowOpensAt,
-      at("2027-04-15")
+      at("2027-04-15"),
+      FORTNIGHT
     );
     expect(view.sinceIntake).toMatchObject({
       overDays: 104,
@@ -152,6 +165,39 @@ describe("what the scale means", () => {
     expect(view.onTrackFrom).toBe("recent");
   });
 
+  it("reads the recent gain over the farm's read days, not off a week's full gut", () => {
+    // Weighed weekly: 340 kg a month back, 368 a week ago, and 376 this morning on a full gut. The last
+    // week alone says more than a kilo a day; the month says what she is really doing.
+    const view = fatteningView(
+      intake,
+      [
+        { weightKg: 340, weighedAt: at("2027-03-11") },
+        { weightKg: 361, weighedAt: at("2027-04-01") },
+        { weightKg: 368, weighedAt: at("2027-04-08") },
+        { weightKg: 376, weighedAt: at("2027-04-15") },
+      ],
+      windowOpensAt,
+      at("2027-04-15"),
+      FOUR_WEEKS
+    );
+    expect(view.recent).toMatchObject({ overDays: 35, dailyGainKg: 1.03 });
+  });
+
+  it("says no recent gain while no reading is far enough back", () => {
+    const view = fatteningView(
+      intake,
+      [
+        { weightKg: 368, weighedAt: at("2027-04-08") },
+        { weightKg: 376, weighedAt: at("2027-04-15") },
+      ],
+      windowOpensAt,
+      at("2027-04-15"),
+      FOUR_WEEKS
+    );
+    expect(view.recent).toBe(null);
+    expect(view.onTrackFrom).toBe("sinceIntake");
+  });
+
   it("projects from the rate it measured, not from the rate it printed", () => {
     // Ten kilos in seven days is 1.4285… a day, shown as 1.43. Rounding first and multiplying by the
     // ninety days to the window turns a hundredth of a kilo into most of one: 438.7 instead of 438.6.
@@ -159,7 +205,8 @@ describe("what the scale means", () => {
       { weightKg: 300, arrivedAt: at("2027-01-01"), targetWeightKg: 400 },
       [{ weightKg: 310, weighedAt: at("2027-01-08") }],
       at("2027-04-08"),
-      at("2027-01-08")
+      at("2027-01-08"),
+      FOUR_WEEKS
     );
     expect(view.sinceIntake?.dailyGainKg).toBe(1.43);
     expect(view.sinceIntake?.projectedKg).toBe(438.6);
@@ -170,7 +217,8 @@ describe("what the scale means", () => {
       intake,
       [{ weightKg: 371, weighedAt: at("2027-05-20") }],
       windowOpensAt,
-      at("2027-05-20")
+      at("2027-05-20"),
+      FOUR_WEEKS
     );
     expect(view.sinceIntake?.projectedKg).toBe(null);
     expect(view.sinceIntake?.reachesTarget).toBe(null);

@@ -809,7 +809,12 @@ export const animalsRouter = {
          *  about nothing. */
         fattening:
           her.side === "fattening"
-            ? fatteningOf(startOfFattening(intake, her.joinings), weighIns, now)
+            ? fatteningOf(
+                startOfFattening(intake, her.joinings),
+                weighIns,
+                now,
+                context.farm.gainReadDays
+              )
             : null,
         /** Kilogrammes live in a numeric column and come back as strings; converted here at
          *  the edge, like the litres, rather than left to drift as floats. */

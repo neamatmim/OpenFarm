@@ -1,7 +1,12 @@
 import { farmDayOf, isExitState, startOfFarmDay } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
-import { fatteningOf } from "./fattening-store";
+import {
+  fatteningOf,
+  gainReadDaysOf,
+  READINGS_FOR_A_RATE,
+  WEIGH_IN_COLUMNS,
+} from "./fattening-store";
 import { windowInForceOn } from "./venture-store";
 
 /**
@@ -12,8 +17,8 @@ import { windowInForceOn } from "./venture-store";
  */
 const VENTURE_LIMIT = 500;
 
-/** As many readings as a rate needs; the same depth the fattening board reads. */
-const READINGS_READ = 12;
+/** As many readings as a rate needs: the same depth the fattening board reads. */
+const READINGS_READ = READINGS_FOR_A_RATE;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -197,10 +202,11 @@ export const theirProgress = async (
       weighIns: {
         orderBy: { weighedAt: "desc", id: "desc" },
         limit: READINGS_READ,
-        columns: { weightKg: true, weighedAt: true },
+        columns: WEIGH_IN_COLUMNS,
       },
     },
   });
+  const readDays = await gainReadDaysOf(tx, farmId);
 
   const animals: HerProgress[] = [];
   const standingIntake: number[] = [];
@@ -215,7 +221,7 @@ export const theirProgress = async (
   let diedCount = 0;
 
   for (const one of rows) {
-    const view = fatteningOf(one.intake, one.weighIns, now);
+    const view = fatteningOf(one.intake, one.weighIns, now, readDays);
     const standing = !isExitState(one.state);
     const intakeKg = one.intake ? Number(one.intake.weightKg) : null;
     const since = view.sinceIntake;

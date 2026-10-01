@@ -103,8 +103,8 @@ const setup = async () => {
   const bulls = [
     // Reaches 300 kg long before his window opens: suggested on weight.
     await bull(300, "2027-05-17"),
-    // Nowhere near 500 kg, but his window opens the day after the round below.
-    await bull(500, "2027-03-16"),
+    // Short of 290 kg, but his window opens the day after the round below.
+    await bull(290, "2027-03-16"),
     // Wormed, and so not fit for meat for a fortnight whatever he weighs.
     await bull(300, "2027-05-17", treatedPen.id),
   ];
@@ -132,6 +132,8 @@ const setup = async () => {
     .onConflictDoNothing();
 
   const sop = await owner.client.sops.create({ content: weighInSop() });
+  // This farm reads a gain over a fortnight, the shortest it may: the weighings below are a fortnight apart.
+  await manager.client.farm.setParameters({ gainReadDays: 14 });
   return { owner, manager, pen, treatedPen, bulls, sop, campaign };
 };
 
@@ -255,7 +257,7 @@ describe("ready for sale", () => {
     const him = suggested.find((row) => row.tagNumber === tagOf(0));
     expect(him?.grounds).toEqual(["weight"]);
 
-    // The one still 230 kg short of his target is not suggested on his weight.
+    // The one still 22 kg short of his target is not suggested on his weight.
     expect(
       suggested.find((row) => row.tagNumber === tagOf(1))?.grounds ?? []
     ).not.toContain("weight");
@@ -269,7 +271,7 @@ describe("ready for sale", () => {
   });
 
   it("suggests when the window opens, whatever she weighs", async () => {
-    // His window opens on 16 March and he is nowhere near 500 kg.
+    // His window opens on 16 March and he is still short of 290 kg.
     const manager = await asManager("2027-03-16");
     const suggested = await manager.client.ready.suggestions();
     expect(
@@ -338,8 +340,8 @@ describe("ready for sale", () => {
     expect(board.find((row) => row.tagNumber === tagOf(1))).toBeDefined();
 
     // And when the farm has something new to say, it says it: he makes his target weight a
-    // fortnight later, which is a ground that was not there when the Manager looked.
-    await weigh("2027-03-29", [[1, 512]]);
+    // fortnight later — 28 kg in fourteen days, which a bull does — a ground that was not there when the Manager looked.
+    await weigh("2027-03-29", [[1, 296]]);
     const later = await asManager("2027-03-29");
     const again = await later.client.ready.suggestions();
     expect(again.find((row) => row.tagNumber === tagOf(1))?.grounds).toEqual([

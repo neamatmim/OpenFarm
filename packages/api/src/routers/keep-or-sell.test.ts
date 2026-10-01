@@ -177,6 +177,8 @@ const bullInto = async (penId: string, instant: string) => {
 beforeAll(async () => {
   const owner = await as("owner", "2040-01-01T03:00:00.000Z");
   const manager = await as("manager", "2040-01-01T03:00:00.000Z");
+  // This farm reads a gain over a fortnight, the shortest it may: her gain now is her last fortnight's.
+  await manager.client.farm.setParameters({ gainReadDays: 14 });
   const shed = await owner.client.herd.createShed({ name: `keep-${suffix}` });
   const fed = await owner.client.herd.createPen({
     shedId: shed.id,
