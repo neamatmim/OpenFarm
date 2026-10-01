@@ -85,8 +85,9 @@ counted is held instead to what a working farm cannot be without, herd and milk 
 
 Once a quarter, and after any change to the database provider.
 
-1. **The Owner** runs the restore above into the scratch environment.
-2. **The Manager** points the app at it and looks at four screens:
+1. **The Owner** runs the restore above into the scratch environment and points a copy of the
+   app at it — the Owner, because only the Owner has a login on the server.
+2. **The Manager** looks at four screens in it:
    - **Animals** — the herd is there, with the right count on each Side;
    - **a milking Instance** — yesterday's litres are the ones they remember, per cow;
    - **an Animal's history** — it reads back, and a Correction still shows what it replaced;
