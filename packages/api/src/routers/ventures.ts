@@ -904,6 +904,8 @@ export const venturesRouter = {
                   toKg: z.number().positive().max(2000),
                   buyBdtPerKg: z.number().positive().max(100_000),
                   dailyGainKg: z.number().min(0).max(5),
+                  /** The Breed the line buys; nothing for any Breed. */
+                  breedId: z.string().min(1).nullable().default(null),
                 })
                 .refine((line) => line.fromKg < line.toKg, {
                   message: "A band's lower weight is below its upper",

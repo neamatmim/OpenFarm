@@ -14,6 +14,7 @@ import {
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
+import { requireBreed, requireBreedOfTheFarm } from "./breed-store";
 import { theirSpend } from "./investor-statement-store";
 import { projectionOf } from "./projection-store";
 import { boughtFor } from "./venture-bought";
@@ -116,7 +117,20 @@ export const savePlan = async (
     where: { farmId, ventureId: run.id },
     orderBy: { version: "desc" },
     columns: { version: true },
+    with: { lines: { columns: { breedId: true } } },
   });
+  // A line's Breed is one of the farm's; a retired one only where the version before already named it, so a revision
+  // keeps the lines it does not change.
+  const kept = new Set(last?.lines.map((line) => line.breedId));
+  const named = new Set(
+    said.lines.flatMap((line) => (line.breedId ? [line.breedId] : []))
+  );
+  for (const breedId of named) {
+    // oxlint-disable-next-line no-await-in-loop -- a handful of Breeds, one plan
+    await (kept.has(breedId)
+      ? requireBreedOfTheFarm(tx, farmId, breedId)
+      : requireBreed(tx, farmId, breedId));
+  }
   const planId = uuidv7();
   const version = (last?.version ?? 0) + 1;
   await tx.insert(venturePlan).values({
@@ -143,6 +157,7 @@ export const savePlan = async (
       toKg: line.toKg.toFixed(2),
       buyBdtPerKg: line.buyBdtPerKg,
       dailyGainKg: line.dailyGainKg.toFixed(2),
+      breedId: line.breedId,
     }))
   );
   return { version };

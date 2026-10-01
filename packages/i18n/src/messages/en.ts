@@ -521,7 +521,11 @@ export const en = {
   "plan.buy": "৳ a kg",
   "plan.gain": "Gain a day (kg)",
   "plan.addLine": "Add a band",
-  "plan.rationsSay": "Your rations: {range} for a bull of {kg} kg",
+  "plan.rationsSay": "Your rations: {range} for a crossbred bull of {kg} kg",
+  "plan.rationsSayBreed": "Your rations: {range} for a {breed} bull of {kg} kg",
+  "plan.rationsSayDeshi":
+    "Your rations: {range} for a {breed} bull of {kg} kg — deshi, at the farm's {percent}%",
+  "plan.anyBreed": "Any breed",
   "plan.useGain": "Use {kg}",
   "plan.removeLine": "Remove this band",
   "plan.lineOf": "Band {number}",

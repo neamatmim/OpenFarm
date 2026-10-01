@@ -7,7 +7,8 @@ import { livingKg } from "./projection";
  * of any Agreement.
  */
 
-/** One line of a plan: so many animals bought between two weights, at a price a kilo, gaining so much a day. */
+/** One line of a plan: so many animals bought between two weights, at a price a kilo, gaining so much a day — of one
+ *  Breed, or of any. */
 export interface PlanLine {
   animals: number;
   /** The band's weights at purchase: the lower one in, the upper one out. */
@@ -15,6 +16,15 @@ export interface PlanLine {
   toKg: number;
   buyBdtPerKg: number;
   dailyGainKg: number;
+  /** The Breed it buys; nothing for whatever Breed the haat offers. */
+  breedId: string | null;
+}
+
+/** An animal the Venture bought, as its plan is measured by: her weight and price at purchase, and her Breed. */
+export interface PlanBought {
+  weightKg: number;
+  priceBdt: number;
+  breedId: string | null;
 }
 
 /** Kilogrammes, as the farm reads a weight. */
@@ -60,14 +70,27 @@ export const planTotals = ({
   };
 };
 
-/** Which line of the plan an animal bought at this weight belongs to, by position; none outside every band. */
-export const bandOf = (
-  lines: readonly Pick<PlanLine, "fromKg" | "toKg">[],
-  weightKg: number
+/**
+ * Which line of the plan an animal bought belongs to, by position: the first whose weights hold her and that names her
+ * Breed; failing that, the first holding her weight that names no Breed; none where only other Breeds' lines hold her,
+ * or none does at all.
+ */
+export const lineFor = (
+  lines: readonly Pick<PlanLine, "fromKg" | "toKg" | "breedId">[],
+  animal: { weightKg: number; breedId: string | null }
 ): number | null => {
-  const at = lines.findIndex(
-    (line) => weightKg >= line.fromKg && weightKg < line.toKg
-  );
+  const holds = (line: Pick<PlanLine, "fromKg" | "toKg">) =>
+    animal.weightKg >= line.fromKg && animal.weightKg < line.toKg;
+  const hers =
+    animal.breedId === null
+      ? -1
+      : lines.findIndex(
+          (line) => holds(line) && line.breedId === animal.breedId
+        );
+  const at =
+    hers === -1
+      ? lines.findIndex((line) => holds(line) && line.breedId === null)
+      : hers;
   return at === -1 ? null : at;
 };
 
@@ -87,7 +110,7 @@ export const baselineOf = (
 };
 
 /** Some animals added up: how many, their kilos, what they cost, and so a kilo; no price a kilo for none. */
-const addUp = (bought: readonly { weightKg: number; priceBdt: number }[]) => {
+const addUp = (bought: readonly PlanBought[]) => {
   const kg = roundKg(bought.reduce((sum, one) => sum + one.weightKg, 0));
   const costBdt = roundTaka(bought.reduce((sum, one) => sum + one.priceBdt, 0));
   return {
@@ -105,14 +128,12 @@ const addUp = (bought: readonly { weightKg: number; priceBdt: number }[]) => {
  */
 export const buyingAgainstPlan = (
   lines: readonly PlanLine[],
-  bought: readonly { weightKg: number; priceBdt: number }[]
+  bought: readonly PlanBought[]
 ) => {
-  const inBand = lines.map(
-    () => [] as { weightKg: number; priceBdt: number }[]
-  );
-  const outside: { weightKg: number; priceBdt: number }[] = [];
+  const inBand = lines.map(() => [] as PlanBought[]);
+  const outside: PlanBought[] = [];
   for (const one of bought) {
-    const at = bandOf(lines, one.weightKg);
+    const at = lineFor(lines, one);
     if (at === null) {
       outside.push(one);
     } else {
@@ -123,6 +144,8 @@ export const buyingAgainstPlan = (
     bands: lines.map((line, at) => {
       const kg = roundKg(line.animals * middleOf(line));
       return {
+        // Which line it is, so two Breeds bought at the same weights can be told apart.
+        line: { fromKg: line.fromKg, toKg: line.toKg, breedId: line.breedId },
         planned: {
           animals: line.animals,
           kg,
@@ -220,7 +243,7 @@ export const stillToBuyOf = ({
   days,
 }: {
   lines: readonly PlanLine[];
-  bought: readonly { weightKg: number; priceBdt: number }[];
+  bought: readonly PlanBought[];
   /** From the day they are bought to the window's first day; none past it. */
   days: number;
 }): { kg: number; costBdt: number } => {

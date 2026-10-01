@@ -38,6 +38,7 @@ interface Row {
     toKg: string;
     buyBdtPerKg: number;
     dailyGainKg: string;
+    breedId: string | null;
   }[];
 }
 
@@ -55,6 +56,7 @@ const versionOf = (row: Row): PlanVersion => ({
     toKg: Number(line.toKg),
     buyBdtPerKg: line.buyBdtPerKg,
     dailyGainKg: Number(line.dailyGainKg),
+    breedId: line.breedId,
   })),
 });
 

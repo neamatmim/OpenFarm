@@ -12,15 +12,18 @@ export const useBreeds = () => useQuery(orpc.breeds.list.queryOptions());
 /**
  * Her breed, chosen from the farm's list: the breeds not retired, in the reader's language, and "not known" — a breed
  * is never a thing anybody must know to write an animal down. The list is kept on the Breeds page, a tap away.
+ * `emptyLabel` says what choosing none means where it is not "not known" — a plan line's "any breed".
  */
 export const BreedField = ({
   id,
   value,
   onChange,
+  emptyLabel,
 }: {
   id: string;
   value: string;
   onChange: (breedId: string) => void;
+  emptyLabel?: string;
 }) => {
   const { t, language } = useLanguage();
   const breeds = useBreeds();
@@ -47,7 +50,7 @@ export const BreedField = ({
         onChange={(event) => onChange(event.target.value)}
         value={value}
       >
-        <option value="">{t("breeds.choose")}</option>
+        <option value="">{emptyLabel ?? t("breeds.choose")}</option>
         {choices.map((one) => (
           <option key={one.id} value={one.id}>
             {one.name}

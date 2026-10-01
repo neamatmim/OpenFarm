@@ -586,6 +586,7 @@ describe("what a Venture's animals are doing", () => {
     // Six bulls of 200 kg at ৳60,000 each, ৳300 a kilo, all in the first band — the one later sold across to the other
     // Venture was this one's when it came. The plan had six there at 200 kg and ৳320: ৳3,84,000.
     expect(measured?.buying.bands[0]).toEqual({
+      line: { fromKg: 180, toKg: 220, breedId: null },
       planned: { animals: 6, kg: 1200, costBdt: 384_000, bdtPerKg: 320 },
       bought: { animals: 6, kg: 1200, costBdt: 360_000, bdtPerKg: 300 },
     });

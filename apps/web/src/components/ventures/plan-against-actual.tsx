@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Nothing } from "@/components/list-cells";
 import { Loaded, Section } from "@/components/page";
 import { FigureTerm } from "@/components/page-kit";
+import { useLineBreedName } from "@/components/ventures/line-breed";
 import { useLanguage } from "@/i18n/language-provider";
 import { useKg } from "@/lib/kg";
 import { useTaka } from "@/lib/taka";
@@ -36,6 +37,7 @@ const HeadsCell = ({ heads }: { heads: Heads }) => {
 const Buying = ({ measured }: { measured: Measured }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
+  const breedOfLine = useLineBreedName();
   const { buying } = measured;
   return (
     <div className="flex flex-col gap-2">
@@ -66,6 +68,18 @@ const Buying = ({ measured }: { measured: Measured }) => {
               <tr key={`band-${band.planned.bdtPerKg}-${at}`}>
                 <td className="px-2 py-2 ps-4 md:ps-5">
                   {t("plan.lineOf", { number: formatNumber(at + 1, language) })}
+                  {/* Its weights and Breed, so two Breeds bought at the same weights are told apart; an answer this
+                      phone kept from before a band said which line it was says only its number. */}
+                  {band.line ? (
+                    <span className="text-muted-foreground block text-xs">
+                      {t("plan.band", {
+                        from: formatNumber(band.line.fromKg, language),
+                        to: formatNumber(band.line.toKg, language),
+                      })}
+                      {" · "}
+                      {breedOfLine(band.line.breedId)}
+                    </span>
+                  ) : null}
                 </td>
                 <td className={CELL}>
                   <HeadsCell heads={band.planned} />
