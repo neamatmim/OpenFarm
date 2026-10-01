@@ -1315,6 +1315,8 @@ export const bn: Record<MessageKey, string> = {
     "এই যাত্রা অন্য পার্সের টাকায় হাটে গিয়েছিল, তাই গরুটি সেই পার্সের",
   "refusal.windowIsTheVentures":
     "ভেঞ্চারের পশুর বিক্রির সময় ভেঞ্চারেরই; তা বদলায় সংশোধনী দিয়ে, পশু তোলার সময় নয়",
+  "refusal.windowNeeded":
+    "পশুটি এখন খামারের নিজের: খামার কবে বিক্রি করবে সেই সময় লিখুন",
   "refusal.sheIsGone":
     "গরুটি আর খামারে নেই — বিক্রি হয়েছে, মারা গেছে বা বাদ দেওয়া হয়েছে; তার নামে আর কিছু লেখা যায় না",
   "refusal.sheIsReadyForSale":
@@ -3570,6 +3572,8 @@ export const bn: Record<MessageKey, string> = {
   "pregnancy.expectedOn": "সম্ভাব্য প্রসবের তারিখ",
   "correct.whoseSheIs": "কার গরু",
   "correct.theFarmsOwn": "খামারের নিজের",
+  "correct.windowForTheFarm":
+    "এতদিন {venture}-এর বিক্রির সময় ধরা ছিল; খামারের নিজের পশু হলে খামার কবে বিক্রি করবে তা লিখুন।",
   "correct.seller": "বিক্রেতার নাম",
   "correct.windowOwn":
     "{role} নিজের এন্ট্রি করার পর {span} পর্যন্ত সংশোধন করতে পারেন",

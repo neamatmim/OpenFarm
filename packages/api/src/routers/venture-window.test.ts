@@ -167,3 +167,67 @@ describe("a Venture's animal and its Target Window", () => {
     }
   });
 });
+
+describe("a Correction and the window she is sold in", () => {
+  const MANAGER_AT = "2047-02-02T09:00:00.000Z";
+
+  it("asks the Farm's window when it makes a Venture's animal the Farm's own", async () => {
+    const hers = await bull("2047-02-02T05:00:00.000Z", { ventureId });
+    const manager = await as("manager", MANAGER_AT);
+    const reason = `খামারের গরু, ভেঞ্চারের নামে লেখা হয়েছিল ${suffix}`;
+    // The Venture's window was never the Farm's choice for her: nobody may leave her on it without saying so.
+    await expect(
+      manager.client.intake.correct({
+        id: hers.intakeId,
+        reason,
+        changes: { owner: { from: ventureId, to: null } },
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "window_needed" },
+    });
+    await manager.client.intake.correct({
+      id: hers.intakeId,
+      reason,
+      changes: {
+        owner: { from: ventureId, to: null },
+        targetWindow: { from: AMENDED, to: FARMS },
+      },
+    });
+    expect(await windowsOf("2047-02-02T10:00:00.000Z", hers.tagNumber)).toEqual(
+      { board: FARMS, page: FARMS }
+    );
+  });
+
+  it("refuses a window for an animal that stays a Venture's", async () => {
+    const hers = await bull("2047-02-03T05:00:00.000Z", { ventureId });
+    const manager = await as("manager", "2047-02-03T09:00:00.000Z");
+    await expect(
+      manager.client.intake.correct({
+        id: hers.intakeId,
+        reason: `ভুল তারিখ ${suffix}`,
+        changes: { targetWindow: { from: AMENDED, to: FARMS } },
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "window_is_the_ventures" },
+    });
+  });
+
+  it("puts a Farm animal's window right, as any other slip at the haat", async () => {
+    const OTHER = { start: "2047-09-10", end: "2047-09-12" };
+    const hers = await bull("2047-02-04T05:00:00.000Z", {
+      targetWindowStart: FARMS.start,
+      targetWindowEnd: FARMS.end,
+    });
+    const manager = await as("manager", "2047-02-04T09:00:00.000Z");
+    await manager.client.intake.correct({
+      id: hers.intakeId,
+      reason: `ভুল তারিখ লেখা হয়েছিল ${suffix}`,
+      changes: { targetWindow: { from: FARMS, to: OTHER } },
+    });
+    expect(await windowsOf("2047-02-04T10:00:00.000Z", hers.tagNumber)).toEqual(
+      { board: OTHER, page: OTHER }
+    );
+  });
+});

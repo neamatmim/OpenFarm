@@ -109,6 +109,48 @@ export const day = (
   };
 };
 
+/** A Target Window as two date boxes type it into one answer: its first day and its last, `start|end`. */
+const daysOf = (typed: string) => {
+  const [start = "", end = ""] = typed.split("|");
+  return { start, end };
+};
+
+/** Both days of a typed window, in order: a window the farm would take. */
+export const isWholeWindow = (typed: string): boolean => {
+  const { start, end } = daysOf(typed);
+  return start !== "" && end !== "" && start <= end;
+};
+
+/** One day of a typed window set, the other kept: what a date box writes into the answer. */
+export const withWindowDay = (
+  typed: string,
+  which: "start" | "end",
+  value: string
+): string => {
+  const days = { ...daysOf(typed), [which]: value };
+  return `${days.start}|${days.end}`;
+};
+
+/**
+ * The Target Window an animal is sold in. Asked afresh — the boxes blank, and whatever is typed sent — where the one
+ * she is on was never the Farm's choice: a Venture's, for an animal a Correction is making the Farm's own.
+ */
+export const targetWindow = (
+  held: { start: string; end: string },
+  { askedAfresh = false } = {}
+): Answer<{ start: string; end: string }, { start: string; end: string }> => {
+  const shows = askedAfresh ? "" : `${held.start}|${held.end}`;
+  return {
+    holds: held,
+    shows,
+    sends: (typed) => (isWholeWindow(typed) ? daysOf(typed) : undefined),
+    same: (typed) => (askedAfresh ? !isWholeWindow(typed) : typed === shows),
+    couldBeSent: (typed) =>
+      isWholeWindow(typed) ||
+      (askedAfresh && daysOf(typed).start === "" && daysOf(typed).end === ""),
+  };
+};
+
 /** One of a fixed few words the farm uses: how she went, how a service was made. Nothing chosen changes nothing. */
 export const choice = <Word extends string>(
   held: Word | null

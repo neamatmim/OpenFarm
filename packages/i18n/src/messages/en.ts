@@ -1414,6 +1414,8 @@ export const en = {
     "That outing went to the haat on another purse's money, so she is that purse's",
   "refusal.windowIsTheVentures":
     "A Venture's animal is sold in the Venture's Target Window; an Amendment moves it, not the Intake",
+  "refusal.windowNeeded":
+    "She is the Farm's own now: say the window the Farm sells her in",
   "refusal.sheIsGone":
     "She has left the farm — sold, died or culled — and nothing more can be written of her",
   "refusal.sheIsReadyForSale":
@@ -3824,6 +3826,8 @@ export const en = {
    *  written to the wrong purse. The Farm owning her is an answer, not the absence of one. */
   "correct.whoseSheIs": "Whose she is",
   "correct.theFarmsOwn": "The farm's own",
+  "correct.windowForTheFarm":
+    "She was on {venture}'s Target Window; as the Farm's own, say when the Farm sells her.",
   "correct.seller": "Seller's name",
   "correct.windowOwn":
     "A {role} may put their own entry right for {span} after making it",
