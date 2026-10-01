@@ -70,8 +70,11 @@ const TagCell = ({ row }: BoardCell) => (
   <TagLink tagNumber={row.original.tagNumber} />
 );
 
+// Held to a width, so an animal with two badges stacks them rather than widening the whole column for one row.
 const StandingCell = ({ row }: BoardCell) => (
-  <StandingBadges row={row.original} />
+  <div className="max-w-44">
+    <StandingBadges row={row.original} />
+  </div>
 );
 
 /** The Pen she stands in, and her State beneath it: one column, so her figures still fit beside her two rates. */

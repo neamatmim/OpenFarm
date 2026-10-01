@@ -188,12 +188,15 @@ const FatteningPage = () => {
     <Page>
       {header}
       <BoardFigures onPick={pick} rows={rows} standing={standing} />
-      {/* What the board is read against — the market price, the Season at today's price, the Eid it is aimed at — in one
-          row, so the board itself is near the top. A card the reader may not see (the Owner's) leaves no gap. */}
-      <div className="grid items-start gap-4 lg:grid-cols-[repeat(auto-fit,minmax(18rem,1fr))]">
-        <MarketPrice compact />
-        <NextEid compact />
-        <RunningSeasonsStrip />
+      {/* What the board is read against, in one band so the board itself is near the top: the market price and the Eid
+          it is aimed at stacked, the Season at today's price beside them — about as tall as the two, so neither side
+          leaves a gap. A card the reader may not see (the Owner's) leaves none either: what is left takes the width. */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+        <div className="flex flex-col gap-4 empty:hidden lg:flex-1">
+          <MarketPrice compact />
+          <NextEid compact />
+        </div>
+        <RunningSeasonsStrip className="lg:flex-1" />
       </div>
       <OutOfBand />
       <UnderExpectedGain />
