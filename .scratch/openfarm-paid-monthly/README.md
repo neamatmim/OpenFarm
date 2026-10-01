@@ -19,14 +19,12 @@ on the share unit." That is the farm's real way of raising a Venture, and the ap
 3. **Plan now, build after the advisers.** Every Agreement so far says the capital comes in whole before the buying;
    this changes what an Investor signs. Questions in `advisers-sheet.html`.
 
-## Still the Owner's to decide (before ticket 01)
+## Answered (2026-10-02)
 
-- **The day of the month** a monthly sum is due (the 10th?), and how many days late before the Venture page says so.
-- **How many months**: from the first buying to the Target Window, or a number she sets?
-- **Selling starts with sums unpaid**: are they still taken during Selling, or does the Venture stop taking capital
-  when selling starts?
-- **An Investor who stops for good**: does the Owner offer the rest of his Units to somebody else, or not at all?
-  (Asked of the advisers too — see Q6.)
+The advisers answered all nine questions and the Owner decided the rest: see [`answers.md`](answers.md). In short —
+allowed with clauses added; share by taka paid; the Advance covers a missed month; no late fee; due on the 10th, missed
+after 7 days, may be paid late until selling; unpaid Units stay empty; stamp on the whole capital with the schedule in
+the Agreement; a Nominee may pay the rest. Months are worked from the decision date to the Target Window.
 
 ## Shape
 
@@ -42,12 +40,12 @@ A Venture is one or the other, chosen when it opens; every Venture so far stays 
 
 ## Tickets
 
-| #   | Ticket                                                   | Blocked by                    |
-| --- | -------------------------------------------------------- | ----------------------------- |
-| 01  | [Monthly terms on a Venture](issues/01-monthly-terms.md) | Owner's open points, advisers |
-| 02  | [The cattle part first](issues/02-cattle-part-first.md)  | 01                            |
-| 03  | [Monthly sums while it runs](issues/03-monthly-sums.md)  | 02                            |
-| 04  | [Who is behind](issues/04-who-is-behind.md)              | 03                            |
-| 05  | [The papers say it](issues/05-papers-say-it.md)          | 01, the advisers' wording     |
+| #   | Ticket                                                   | Blocked by                               |
+| --- | -------------------------------------------------------- | ---------------------------------------- |
+| 01  | [Monthly terms on a Venture](issues/01-monthly-terms.md) | —                                        |
+| 02  | [The cattle part first](issues/02-cattle-part-first.md)  | 01                                       |
+| 03  | [Monthly sums while it runs](issues/03-monthly-sums.md)  | 02                                       |
+| 04  | [Who is behind](issues/04-who-is-behind.md)              | 03                                       |
+| 05  | [The papers say it](issues/05-papers-say-it.md)          | 01; drafted clauses read by the advisers |
 
-Nothing in 01–05 is built before the advisers answer in writing.
+Answered: 01–04 may be built. 05's clauses are drafted here and read by the advisers before they are published.
