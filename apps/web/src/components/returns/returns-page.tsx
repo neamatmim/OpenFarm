@@ -456,7 +456,12 @@ export const StillGoing = ({ page }: { page: ReturnsPage }) => {
  * The Seasons still going, above the Fattening board: each at today's price, with what it could not value, and the way
  * to the Returns page. The Owner's alone, as the animal prices are.
  */
-export const RunningSeasonsStrip = () => {
+export const RunningSeasonsStrip = ({
+  className,
+}: {
+  /** Where it sits in a row of cards: how it grows beside them. */
+  className?: string;
+}) => {
   const { t } = useLanguage();
   const named = useSeasonName();
   // Asked only for the Owner: a Manager's board never sends a request the server would refuse.
@@ -469,7 +474,7 @@ export const RunningSeasonsStrip = () => {
     return null;
   }
   return (
-    <div className="surface flex flex-col gap-3 p-4">
+    <div className={cn("surface flex flex-col gap-3 p-4", className)}>
       {going.data.map((season) => (
         <div className="flex flex-col gap-2" key={season.key}>
           <p className="font-medium">{named(season)}</p>
