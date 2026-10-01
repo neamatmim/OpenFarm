@@ -28,6 +28,7 @@ import {
 import { paymentMethodInput } from "../money-inputs";
 import { bookingOf } from "../money-store";
 import { OWNER_ONLY, requireOnly, requireRole } from "../roles";
+import { ventureWindowOf } from "../venture-store";
 
 /** Enough that the Manager recognises the man; not so many that a shed phone fetches a ledger. */
 const SELLERS_SHOWN = 100;
@@ -138,8 +139,8 @@ export const intakeRouter = {
   /**
    * What a bull being taken in should weigh when his Target Window opens, low and high, from the farm's Rations'
    * Expected Gains for his weight, breed and sex — for the intake form to show before it is sent, and what is saved
-   * when nobody types a target of their own. The window is the one intake would give him: the next Eid-ul-Adha unless
-   * one is named. Nothing when no Ration says what a bull his weight should gain, or the farm has no Eid that far ahead.
+   * when nobody types a target of their own. The window is the one intake would give him: his Venture's, else the next
+   * Eid-ul-Adha unless one is named. Nothing when no Ration says what a bull his weight should gain, or the farm has no Eid that far ahead.
    */
   suggestTarget: protectedProcedure
     .use(requireRole("owner", "manager"))
@@ -149,15 +150,25 @@ export const intakeRouter = {
         sex: z.enum(SEXES),
         breedId: z.string().optional(),
         targetWindowStart: farmDay.optional(),
+        /** The Venture he is bought for, whose window is his whatever the sheet says. */
+        ventureId: z.string().optional(),
         arrivedAt: z.coerce.date().optional(),
       })
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      const nextEid = input.targetWindowStart
-        ? null
-        : await farmsNextEid(context.db, context.farm.id, farmDayOf(now));
-      const windowStart = input.targetWindowStart ?? nextEid?.start;
+      const theVentures = await ventureWindowOf(
+        context.db,
+        context.farm.id,
+        input.ventureId,
+        farmDayOf(now)
+      );
+      const nextEid =
+        theVentures || input.targetWindowStart
+          ? null
+          : await farmsNextEid(context.db, context.farm.id, farmDayOf(now));
+      const windowStart =
+        theVentures?.start ?? input.targetWindowStart ?? nextEid?.start;
       if (!windowStart) {
         return null;
       }
@@ -191,12 +202,35 @@ export const intakeRouter = {
           message: "An animal cannot have arrived tomorrow",
         });
       }
-      // The next Eid-ul-Adha — the day announced, where the farm has written one in — which is what a fattening
-      // animal is bought for unless the Manager is selling into some other market.
-      const window =
+      // A Venture's animal inherits its window, as an Amendment leaves it today: what she is bought for is the
+      // Investors' business, not the sheet's. Otherwise the next Eid-ul-Adha — the day announced, where the farm has
+      // written one in — which is what a fattening animal is bought for unless the Manager is selling into some
+      // other market.
+      const theVentures = await ventureWindowOf(
+        context.db,
+        context.farm.id,
+        input.ventureId,
+        farmDayOf(now)
+      );
+      const typed =
         input.targetWindowStart && input.targetWindowEnd
           ? { start: input.targetWindowStart, end: input.targetWindowEnd }
-          : await farmsNextEid(context.db, context.farm.id, farmDayOf(now));
+          : null;
+      if (
+        theVentures &&
+        typed &&
+        (typed.start !== theVentures.start || typed.end !== theVentures.end)
+      ) {
+        throw new ORPCError("BAD_REQUEST", {
+          message:
+            "A Venture's animal is sold in the Venture's Target Window; an Amendment moves it, not the Intake",
+          data: { refusal: "window_is_the_ventures" },
+        });
+      }
+      const window =
+        theVentures ??
+        typed ??
+        (await farmsNextEid(context.db, context.farm.id, farmDayOf(now)));
       if (!window) {
         throw new ORPCError("BAD_REQUEST", {
           message:

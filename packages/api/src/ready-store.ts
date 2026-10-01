@@ -1,5 +1,5 @@
 import type { Database } from "@OpenFarm/db";
-import { startOfFarmDay } from "@OpenFarm/domain";
+import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
 
 import {
   fatteningOf,
@@ -9,6 +9,7 @@ import {
   startOfFattening,
   WEIGH_IN_COLUMNS,
 } from "./fattening-store";
+import { aimedAs, theirVenturesWindowsOn } from "./venture-store";
 
 /** A whole fattening side fits in one read on a farm of this size; the herd is the bound. */
 const HERD_LIMIT = 1000;
@@ -45,6 +46,8 @@ export const fatteningRows = async (
       state: true,
       penId: true,
       stateChangedAt: true,
+      // Whose she is: a Venture's animal is aimed at her Venture's window, not at what her Intake kept.
+      ownerVentureId: true,
       // Her days, so nothing offers the Manager a button that would refuse them.
       meatWithdrawalUntil: true,
       meatWithdrawalFromDoses: true,
@@ -76,10 +79,27 @@ export const fatteningRows = async (
       readySetAside: { columns: { grounds: true, setAsideAt: true } },
     },
   });
-  const readDays = await gainReadDaysOf(db, farmId);
+  const [readDays, windows] = await Promise.all([
+    gainReadDaysOf(db, farmId),
+    theirVenturesWindowsOn(
+      db,
+      farmId,
+      rows.map((one) => one.ownerVentureId),
+      farmDayOf(now)
+    ),
+  ]);
   return rows.map(
-    ({ intake: bought, joinings, weighIns, pen, readySetAside, ...beast }) => {
-      const intake = startOfFattening(bought, joinings);
+    ({
+      intake: bought,
+      joinings,
+      weighIns,
+      pen,
+      readySetAside,
+      ownerVentureId,
+      ...beast
+    }) => {
+      const kept = startOfFattening(bought, joinings);
+      const intake = kept && aimedAs(kept, ownerVentureId, windows);
       return {
         ...beast,
         penName: pen.name,

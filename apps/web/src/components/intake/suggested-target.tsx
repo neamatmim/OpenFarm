@@ -19,7 +19,9 @@ export const useSuggestedTarget = (fields: IntakeFields) => {
     weightKg,
     sex: fields.sex,
     ...(fields.breedId ? { breedId: fields.breedId } : {}),
-    ...(fields.targetWindowStart
+    // A Venture's animal is aimed at the Venture's window, which the server knows and the form does not ask.
+    ...(fields.ventureId ? { ventureId: fields.ventureId } : {}),
+    ...(fields.targetWindowStart && !fields.ventureId
       ? { targetWindowStart: fields.targetWindowStart }
       : {}),
   };

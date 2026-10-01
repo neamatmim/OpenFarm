@@ -1635,10 +1635,26 @@ export const venturesRouter = {
           farmId: context.farm.id,
           state: { in: ["buying", "fattening"] },
         },
-        columns: { id: true, name: true, state: true },
+        columns: {
+          id: true,
+          name: true,
+          state: true,
+          targetWindowStart: true,
+          targetWindowEnd: true,
+        },
         orderBy: { createdAt: "desc", id: "desc" },
       });
-      return rows;
+      // The window an animal taken in for one is sold in: hers is the Venture's, as its Amendments leave it today.
+      const inForce = await withWindowsInForce(
+        context.db,
+        context.farm.id,
+        rows,
+        farmDayOf(context.clock.now())
+      );
+      return inForce.map(({ targetWindowStart, targetWindowEnd, ...one }) => ({
+        ...one,
+        targetWindow: { start: targetWindowStart, end: targetWindowEnd },
+      }));
     }),
 
   /**

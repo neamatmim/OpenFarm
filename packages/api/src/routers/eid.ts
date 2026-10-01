@@ -61,7 +61,8 @@ export const eidRouter = {
       const aimed = await animalsAimedAt(
         context.db,
         context.farm.id,
-        formerWindowsOf(expectedDay, announced.get(expectedDay)?.days ?? [])
+        formerWindowsOf(expectedDay, announced.get(expectedDay)?.days ?? []),
+        today
       );
       return {
         window,
@@ -148,7 +149,8 @@ export const eidRouter = {
           const { own } = await animalsAimedAt(
             tx,
             context.farm.id,
-            formerWindowsOf(input.expectedDay, days)
+            formerWindowsOf(input.expectedDay, days),
+            farmDayOf(context.clock.now())
           );
           for (const row of own) {
             // Moved where it is kept: on her Intake, or on the joining that brought her since.
@@ -188,7 +190,7 @@ export const eidRouter = {
       const today = farmDayOf(context.clock.now());
       const [announced, aimedAt, next] = await Promise.all([
         announcementsOf(context.db, context.farm.id),
-        aimedByWindow(context.db, context.farm.id),
+        aimedByWindow(context.db, context.farm.id, today),
         farmsNextEid(context.db, context.farm.id, today),
       ]);
       return eidsListed(today).map(({ expectedDay, basis }) => {

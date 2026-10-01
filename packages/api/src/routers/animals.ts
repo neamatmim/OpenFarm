@@ -20,6 +20,7 @@ import {
   SIDES,
   STATES,
   failedAttempts,
+  farmDayOf,
   lactationView,
   sideOfState,
 } from "@OpenFarm/domain";
@@ -87,6 +88,7 @@ import {
   requireAnimalInScope,
   requireLookUp,
 } from "../scope";
+import { aimedAs, theirVenturesWindowsOn } from "../venture-store";
 import { causeOf, heatKeyOf } from "../work-cause";
 import { giveStandardBreeds } from "./breeds";
 
@@ -720,7 +722,7 @@ export const animalsRouter = {
         doses,
         weighIns,
         withdrawal,
-        intake,
+        intake: kept,
         sale,
         mortality,
         arrival: _arrival,
@@ -731,6 +733,16 @@ export const animalsRouter = {
         stateChangedAt: _stateChangedAt,
         ...whatSheIs
       } = her;
+      // A Venture's animal is aimed at her Venture's window as it stands today, not at what her Intake kept.
+      const ownerVentureId = herPage.owner?.id ?? null;
+      const windows = await theirVenturesWindowsOn(
+        context.db,
+        context.farm.id,
+        [ownerVentureId],
+        farmDayOf(now)
+      );
+      const intake = kept && aimedAs(kept, ownerVentureId, windows);
+      const startedOn = startOfFattening(kept, her.joinings);
       // What she fetched is the money row: the Owner's and the Manager's, and asked of the farm only for them.
       const herSale = theCost
         ? await saleShown(context.db, context.farm.id, sale)
@@ -810,7 +822,7 @@ export const animalsRouter = {
         fattening:
           her.side === "fattening"
             ? fatteningOf(
-                startOfFattening(intake, her.joinings),
+                startedOn && aimedAs(startedOn, ownerVentureId, windows),
                 weighIns,
                 now,
                 context.farm.gainReadDays
