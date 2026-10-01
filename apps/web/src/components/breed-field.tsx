@@ -12,18 +12,21 @@ export const useBreeds = () => useQuery(orpc.breeds.list.queryOptions());
 /**
  * Her breed, chosen from the farm's list: the breeds not retired, in the reader's language, and "not known" — a breed
  * is never a thing anybody must know to write an animal down. The list is kept on the Breeds page, a tap away.
- * `emptyLabel` says what choosing none means where it is not "not known" — a plan line's "any breed".
+ * `emptyLabel` says what choosing none means where it is not "not known" — a plan line's "any breed" — and `noManage`
+ * leaves out the link to the Breeds page where the field repeats down a form, as a plan's lines do.
  */
 export const BreedField = ({
   id,
   value,
   onChange,
   emptyLabel,
+  noManage = false,
 }: {
   id: string;
   value: string;
   onChange: (breedId: string) => void;
   emptyLabel?: string;
+  noManage?: boolean;
 }) => {
   const { t, language } = useLanguage();
   const breeds = useBreeds();
@@ -34,12 +37,14 @@ export const BreedField = ({
   return (
     <FormField
       hint={
-        <Link
-          className="text-primary underline-offset-4 hover:underline"
-          to="/admin/breeds"
-        >
-          {t("breeds.manage")}
-        </Link>
+        noManage ? undefined : (
+          <Link
+            className="text-primary underline-offset-4 hover:underline"
+            to="/admin/breeds"
+          >
+            {t("breeds.manage")}
+          </Link>
+        )
       }
       id={id}
       label={t("animals.breed")}
