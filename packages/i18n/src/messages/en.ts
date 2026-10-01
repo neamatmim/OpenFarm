@@ -1145,6 +1145,13 @@ export const en = {
     "Once buying starts the Units are fixed: no new Investor, and no top-up.",
   "ventures.floorNotMetYet":
     "৳{short} more has to come in before buying can start (Floor ৳{floor}).",
+  "ventures.sums.paidOf":
+    "{paid} of {of, plural, one {# month} other {# months}} paid",
+  "ventures.sums.missed": "{amount} missed",
+  "ventures.sums.due": "{amount} due",
+  "ventures.sums.next": "next {amount} on {day}",
+  "ventures.sumsMissedAdvance":
+    "Running money is low and ৳{missed} of Monthly Sums is missed: your own money (Advance) can feed the animals until it comes.",
   "ventures.cattleMoneyShort":
     "৳{short} of the signed Investors' cattle money has still to come before buying can start.",
   "ventures.noUnitsLeft": "Every Unit is signed for.",
@@ -3484,6 +3491,11 @@ export const en = {
   "alerts.moneyAwaiting": "৳{amount} for {category} is awaiting your approval",
   "alerts.lowStock": "{feed} is running low — {onHand} {unit} left",
   "alerts.bakiOverdue": "Baki overdue since {since}: ৳{amount} from {buyer}",
+  "alerts.monthlySumMissed":
+    "{investor} has missed ৳{amount} of Monthly Sums on {venture}, the latest due {day}",
+  "digest.monthlySumMissed":
+    "{count, plural, one {# Investor} other {# Investors}} behind on their Monthly Sums",
+  "alerts.seeWhoIsBehind": "See who is behind",
   "alerts.seeWhoOwes": "See who owes what",
   "alerts.lotExpiring":
     "{item}, Lot {lot}: expires on {date}, with {left} left",

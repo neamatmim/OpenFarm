@@ -105,6 +105,8 @@ export const DELIVERY = {
   feed_price_jump: { when: "digest" },
   // A count short is the evening's question for the Owner to ask the Manager, as a short store is.
   cash_short: { when: "digest" },
+  // A Monthly Sum missed is the evening's for the Owner, who rings the man: the farm reminds him, the app never does.
+  monthly_sum_missed: { when: "digest" },
   // Money entered twice on purpose is the evening's question for the Owner, not a buzz: it may well be two bills.
   entered_twice: { when: "digest" },
   // A sale gone cheap is the evening's question for the Owner to ask about, never a buzz at the haat.
@@ -269,6 +271,10 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
   cash_short: {
     app: "alerts.cashShort",
     digest: "digest.cashShort",
+  },
+  monthly_sum_missed: {
+    app: "alerts.monthlySumMissed",
+    digest: "digest.monthlySumMissed",
   },
   entered_twice: {
     app: "alerts.enteredTwice",

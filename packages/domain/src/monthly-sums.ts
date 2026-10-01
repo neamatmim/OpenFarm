@@ -183,6 +183,11 @@ export interface SumsStanding {
   missedBdt: number;
   /** The next Monthly Sum not yet due — its day and what his Units pay on it — or nothing once none is left. */
   next: MonthlySum | null;
+  /** How many of the Monthly Sums his payments have cleared, whole, oldest first; and how many there are. */
+  sumsPaid: number;
+  sums: number;
+  /** The day the latest missed sum fell due, or nothing while none is missed: what the Owner is told of, once a month. */
+  lastMissedOn: string | null;
 }
 
 /**
@@ -212,6 +217,15 @@ export const sumsStandingOf = ({
         .reduce((sum, one) => sum + one.bdt, 0));
   const missedBefore = addDays(today, -SUM_MISSED_AFTER_DAYS);
   const upcoming = monthly.sums.find((one) => one.dueOn > today);
+  // Each sum is cleared once everything due up to it is paid: the Cattle Part first, then the sums in their order.
+  let reached = units * monthly.cattlePartBdt;
+  const cleared = monthly.sums.map((one) => {
+    reached += units * one.bdt;
+    return { dueOn: one.dueOn, cleared: reached <= paidBdt };
+  });
+  const missed = cleared.filter(
+    (one) => !one.cleared && one.dueOn < missedBefore
+  );
   return {
     owedBdt: Math.max(0, units * unitPriceBdt - paidBdt),
     dueBdt: Math.max(0, dueBy((dueOn) => dueOn <= today) - paidBdt),
@@ -219,5 +233,8 @@ export const sumsStandingOf = ({
     next: upcoming
       ? { dueOn: upcoming.dueOn, bdt: units * upcoming.bdt }
       : null,
+    sumsPaid: cleared.filter((one) => one.cleared).length,
+    sums: monthly.sums.length,
+    lastMissedOn: missed.at(-1)?.dueOn ?? null,
   };
 };
