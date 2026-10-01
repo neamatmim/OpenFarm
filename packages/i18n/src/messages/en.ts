@@ -535,7 +535,8 @@ export const en = {
   "plan.sum.saleKg": "Weight by the window",
   "plan.saleLowShort": "Low price",
   "plan.saleHighShort": "High price",
-  "plan.saleHint": "A kg of live weight, at the price the plan expects to sell for.",
+  "plan.saleHint":
+    "A kg of live weight, at the price the plan expects to sell for.",
   "plan.deathsShort": "May die before sale",
   "plan.fact.sale": "Sells at, a kg",
   "plan.fact.days": "Days on feed",
@@ -1034,6 +1035,16 @@ export const en = {
   "ventures.state.settled": "Settled",
   "ventures.state.cancelled": "Called off",
   "ventures.sign": "Sign an Agreement",
+  "ventures.missing.investor": "Choose who signs.",
+  "ventures.missing.units": "Write how many Units they take.",
+  "ventures.missing.unitsLeft":
+    "Only {left, plural, one {# Unit is} other {# Units are}} left.",
+  "ventures.missing.split":
+    "Write the Investors' share as a whole percentage, 0 to 100.",
+  "ventures.missing.arbitrator": "Name the Arbitrator both sides agree on.",
+  "ventures.missing.stampValue": "Write the stamp's value.",
+  "ventures.missing.stampedOn": "Write the day it was stamped.",
+  "ventures.missing.stampSerial": "Write the stamp's serial.",
   "ventures.signHint":
     "The Units this person takes of {venture}, the split they earn, and the stamped paper it is written on",
   "ventures.signedFor": "Signed for",
