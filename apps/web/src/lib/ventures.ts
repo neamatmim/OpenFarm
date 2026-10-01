@@ -1,4 +1,4 @@
-import { farmDayOf } from "@OpenFarm/domain";
+import { farmDayOf, takesCapital } from "@OpenFarm/domain";
 
 import type { orpc } from "@/utils/orpc";
 
@@ -41,6 +41,14 @@ export const shortOfFloor = (venture: Venture) =>
  *  answer cached before Ventures were paid by the month has none, and is a Venture paid before buying. */
 export const cattleMoneyShort = (venture: Venture) =>
   venture.cattleMoneyShortBdt ?? 0;
+
+/** Whether it takes capital today: any Venture while Open, and one paid by the month while it buys and fattens. An
+ *  answer cached before Ventures were paid by the month is one paid before buying. */
+export const takesCapitalNow = (venture: Venture) =>
+  takesCapital({
+    state: venture.state,
+    capitalPaid: venture.capitalPaid ?? "before_buying",
+  });
 
 /** Whether the buying may start: the Floor met and, paid by the month, every signed Cattle Part in. */
 export const mayStartBuying = (venture: Venture) =>

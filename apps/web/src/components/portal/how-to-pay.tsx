@@ -1,3 +1,4 @@
+import type { MonthlySum } from "@OpenFarm/domain";
 import type { Language } from "@OpenFarm/i18n";
 import { translate } from "@OpenFarm/i18n";
 import { ShieldAlert } from "lucide-react";
@@ -57,6 +58,29 @@ const TheWarning = ({
   );
 };
 
+/** The next Monthly Sum his Units pay and its day, in the place a Venture still gathering says its decision date. */
+const NextSum = ({ next }: { next: MonthlySum | null }) => {
+  const { t } = useLanguage();
+  const taka = useTaka();
+  return (
+    <div className="flex flex-col gap-0.5">
+      <dt className="text-muted-foreground text-sm">{t("portal.pay.next")}</dt>
+      {next ? (
+        <>
+          <dd className="text-lg font-semibold tabular-nums">
+            {taka(next.bdt)}
+          </dd>
+          <dd className="text-muted-foreground text-xs">
+            <SaidDate at={next.dueOn} />
+          </dd>
+        </>
+      ) : (
+        <dd className="text-lg font-semibold">{t("portal.pay.noneLeft")}</dd>
+      )}
+    </div>
+  );
+};
+
 /**
  * How to pay, on an Investor's own signed Agreement while its capital is owed (ADR 0008): the Venture Account, what
  * is still owed, their Pay-in Code to write on the transfer, and the day the farm decides by — or, with no account
@@ -72,18 +96,37 @@ export const HowToPay = ({ paying }: { paying: Paying | null }) => {
   }
   const phone = me.data?.farm?.phone ?? null;
   const { account } = paying;
+  // Paid by the month and running: what is due now leads, with the rest still to come under it. An answer cached before
+  // Ventures were paid by the month has none.
+  const monthly = paying.monthly ?? null;
   return (
     <Section description={t("portal.pay.hint")} title={t("portal.pay.title")}>
       <div className="flex flex-col gap-4">
         <dl className="grid gap-4 sm:grid-cols-3">
-          <div className="flex flex-col gap-0.5">
-            <dt className="text-muted-foreground text-sm">
-              {t("portal.pay.owed")}
-            </dt>
-            <dd className="text-lg font-semibold tabular-nums">
-              {taka(paying.owedBdt)}
-            </dd>
-          </div>
+          {monthly ? (
+            <div className="flex flex-col gap-0.5">
+              <dt className="text-muted-foreground text-sm">
+                {t("portal.pay.dueNow")}
+              </dt>
+              <dd className="text-lg font-semibold tabular-nums">
+                {taka(monthly.dueBdt)}
+              </dd>
+              <dd className="text-muted-foreground text-xs">
+                {t("portal.pay.owedAltogether", {
+                  owed: taka(paying.owedBdt),
+                })}
+              </dd>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-0.5">
+              <dt className="text-muted-foreground text-sm">
+                {t("portal.pay.owed")}
+              </dt>
+              <dd className="text-lg font-semibold tabular-nums">
+                {taka(paying.owedBdt)}
+              </dd>
+            </div>
+          )}
           <div className="flex flex-col gap-0.5">
             <dt className="text-muted-foreground text-sm">
               {t("portal.pay.code")}
@@ -95,14 +138,18 @@ export const HowToPay = ({ paying }: { paying: Paying | null }) => {
               {t("portal.pay.codeHint")}
             </dd>
           </div>
-          <div className="flex flex-col gap-0.5">
-            <dt className="text-muted-foreground text-sm">
-              {t("portal.pay.decideBy")}
-            </dt>
-            <dd className="text-lg font-semibold">
-              <SaidDate at={paying.decideBy} />
-            </dd>
-          </div>
+          {monthly ? (
+            <NextSum next={monthly.next} />
+          ) : (
+            <div className="flex flex-col gap-0.5">
+              <dt className="text-muted-foreground text-sm">
+                {t("portal.pay.decideBy")}
+              </dt>
+              <dd className="text-lg font-semibold">
+                <SaidDate at={paying.decideBy} />
+              </dd>
+            </div>
+          )}
         </dl>
         {account ? (
           <VentureAccountDetails

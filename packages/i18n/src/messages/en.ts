@@ -266,6 +266,10 @@ export const en = {
   "portal.pay.title": "How to pay",
   "portal.pay.hint":
     "By bank transfer, cheque or deposit slip from your own bank — never cash, and never through this portal.",
+  "portal.pay.dueNow": "Due now",
+  "portal.pay.owedAltogether": "{owed} still to pay altogether",
+  "portal.pay.next": "Next monthly sum",
+  "portal.pay.noneLeft": "None left",
   "portal.pay.owed": "Still to pay",
   "portal.pay.code": "Your Pay-in Code",
   "portal.pay.codeHint":

@@ -245,6 +245,10 @@ export const bn: Record<MessageKey, string> = {
   "portal.pay.title": "কীভাবে টাকা দেবেন",
   "portal.pay.hint":
     "নিজের ব্যাংক থেকে ট্রান্সফার, চেক বা জমার স্লিপে — কখনো নগদ নয়, আর এই পোর্টালের মাধ্যমে কখনো নয়।",
+  "portal.pay.dueNow": "এখন দেওয়ার কথা",
+  "portal.pay.owedAltogether": "সব মিলিয়ে আরও {owed} দেওয়া বাকি",
+  "portal.pay.next": "পরের মাসের টাকা",
+  "portal.pay.noneLeft": "আর বাকি নেই",
   "portal.pay.owed": "আরও দিতে হবে",
   "portal.pay.code": "আপনার জমার কোড",
   "portal.pay.codeHint": "ট্রান্সফারে লিখুন, যাতে খামার বোঝে টাকাটা আপনার",

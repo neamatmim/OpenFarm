@@ -218,7 +218,7 @@ export const theirVentureToday = async (
   const [theirs, spend, paying, projected] = await Promise.all([
     theirProgress(db, farm.id, run, now),
     theirSpend(db, farm.id, run),
-    howToPay(db, farm.id, agreementId, run),
+    howToPay(db, farm.id, agreementId, run, farmDayOf(now)),
     showsProjections(reader)
       ? projectionOf(
           db,

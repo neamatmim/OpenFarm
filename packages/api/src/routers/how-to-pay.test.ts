@@ -42,11 +42,15 @@ const TERMS = {
 };
 
 /** A Venture of ten Units at fifty thousand each, shown in the portal. */
-const aShownVenture = async (name: string) => {
+const aShownVenture = async (
+  name: string,
+  capitalPaid: "before_buying" | "by_the_month" = "before_buying"
+) => {
   const owner = await as("owner");
   const venture = await owner.ventures.open({
     name: `${name} ${suffix}`,
     ...TERMS,
+    capitalPaid,
   });
   await owner.ventures.showInPortal({ id: venture.id, words: "" });
   return venture.id;
@@ -193,6 +197,7 @@ describe("how to pay, on the Investor's own Agreement", () => {
       payInCode: karim.payInCode,
       decideBy: "2058-01-20",
       account: ACCOUNT,
+      monthly: null,
     });
   });
 
@@ -237,6 +242,7 @@ describe("how to pay, on the Investor's own Agreement", () => {
       payInCode: nasir.payInCode,
       decideBy: "2058-01-20",
       account: null,
+      monthly: null,
     });
   });
 
@@ -268,6 +274,26 @@ describe("how to pay, on the Investor's own Agreement", () => {
       agreementId: late.agreementId,
     });
     expect(theirs.howToPay).toBeNull();
+  });
+
+  it("paid by the month, stays once the buying starts, with what is due and the next Monthly Sum", async () => {
+    // Forty thousand of each Unit before buying, then 2,500 on each 10th, February to May.
+    const ventureId = await aShownVenture("মাসে মাসের ভেঞ্চার", "by_the_month");
+    const owner = await as("owner");
+    await owner.ventures.setBankAccount({ id: ventureId, ...ACCOUNT });
+    const monir = await signedUp("মনির", ventureId, 8);
+    await paidIn(monir.agreementId, 320_000);
+
+    await owner.ventures.startBuying({ id: ventureId });
+
+    const theirs = await monir.client.portal.venture({
+      agreementId: monir.agreementId,
+    });
+    expect(theirs.howToPay).toMatchObject({
+      // Eight Units' Monthly Sums, none of them due on the first of January.
+      owedBdt: 80_000,
+      monthly: { dueBdt: 0, next: { dueOn: "2058-02-10", bdt: 20_000 } },
+    });
   });
 
   it("is never another Investor's to read: their Agreement is no such agreement", async () => {
