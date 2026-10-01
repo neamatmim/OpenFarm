@@ -963,6 +963,17 @@ export const en = {
   "statements.joining": "Joining letter",
   "statements.progress": "Progress",
   "statements.settlement": "Settlement statement",
+  "statements.agreementCopy": "Print a copy of the Agreement",
+  "statements.signedPaper": "The signed paper's photo",
+  "statements.noPaperPhoto": "No photo of the signed paper kept yet",
+  "statements.copyTitle": "Copy of the Agreement",
+  "statements.copyHint":
+    "The Agreement as it was signed — marked as a copy on every page, so it is never signed again as an original.",
+  "statements.paperTitle": "The signed Agreement paper",
+  "statements.paperHint":
+    "The photo of the stamped, signed original, as the farm kept it.",
+  "statements.download": "Download the photo",
+  "statements.copyMark": "অনুলিপি · COPY",
   "statements.photoOf": "The animal tagged {tag}",
   "statements.noCapitalYet":
     "No capital has arrived against that agreement yet, so there is nothing to acknowledge",

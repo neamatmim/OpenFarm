@@ -49,6 +49,7 @@ export type ExportedPaper =
   | "passport"
   | "withdrawal_summary"
   | "agreement_draft"
+  | "agreement_copy"
   | "amendment_draft"
   | "template_preview"
   | "portal_consent"

@@ -1,4 +1,5 @@
-import { farmDayOf, paperFrom } from "@OpenFarm/domain";
+import { dayInBangla, farmDayOf, paperFrom } from "@OpenFarm/domain";
+import { formatNumber } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -11,14 +12,22 @@ import {
   progressStatementFor,
   settlementStatementFor,
 } from "../investor-papers";
-import { nominationsInForceFor, paperNominees } from "../nomination-store";
+import {
+  nominationSignedWith,
+  nominationsInForceFor,
+  paperNominees,
+} from "../nomination-store";
 import { assertNamable, nomineesInput, nomineesToSign } from "../nominations";
 import { paperInvestor, paperValues, producedAt } from "../paper-values";
 import { noticeFilling } from "../portal-reads";
 import { languageOf } from "../reader-language";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
 import type { Wording } from "../template-store";
-import { currentWording, giveStandardTemplates } from "../template-store";
+import {
+  currentWording,
+  giveStandardTemplates,
+  wordingSignedIn,
+} from "../template-store";
 
 /** What the screen says of the wording a paper was laid out in: its Version, and whether a lawyer approved it. */
 const wordingSaid = (wording: Wording) => ({
@@ -140,6 +149,111 @@ export const investorStatementsRouter = {
         () => Promise.resolve()
       );
       return { document, wording: wordingSaid(wording) };
+    }),
+
+  /**
+   * A copy of an Investment Agreement already signed, to print again whenever it is needed: laid out from what the
+   * Agreement holds — its own Units, split, window and Arbitrator as signed (an Amendment is a paper of its own), in the
+   * wording Version it was signed in, naming the Nominees it named, with the name of whoever signed for the Farm — and
+   * marked on every page as a copy of the stamped paper it copies, so it can never be signed as a second original. The
+   * Owner's alone, as the Agreement is; an Export filed against the Agreement each time.
+   */
+  agreementCopy: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ agreementId: z.string() }))
+    .handler(async ({ context, input }) => {
+      assertRegistered(context.farm, "a copy of an Investment Agreement");
+      const agreement = await context.db.query.investmentAgreement.findFirst({
+        where: { id: input.agreementId, farmId: context.farm.id },
+      });
+      if (!agreement) {
+        throw new ORPCError("NOT_FOUND", { message: "No such Agreement" });
+      }
+      const [run, him, signer, nomination, wording] = await Promise.all([
+        context.db.query.venture.findFirst({
+          where: { id: agreement.ventureId, farmId: context.farm.id },
+          columns: { id: true, name: true, unitPriceBdt: true },
+        }),
+        context.db.query.investor.findFirst({
+          where: { id: agreement.investorId, farmId: context.farm.id },
+        }),
+        agreement.signedBy
+          ? context.db.query.user.findFirst({
+              where: { id: agreement.signedBy },
+              columns: { name: true },
+            })
+          : undefined,
+        nominationSignedWith(context.db, context.farm.id, agreement.id),
+        wordingSignedIn(context.db, context.farm.id, agreement),
+      ]);
+      if (!(run && him)) {
+        throw new ORPCError("NOT_FOUND", {
+          message: "No such Venture or Investor",
+        });
+      }
+      const now = context.clock.now();
+      const language = await languageOf(context.db, context.actor.id);
+      // Whoever signed for the Farm on the day, not whoever asks for the copy.
+      const ownerName = signer?.name ?? context.actor.name;
+      // Its Nominees as it named them, each a minor or not on the day it was stamped, as the original printed them.
+      const investor = paperInvestor(
+        him,
+        paperNominees(nomination, agreement.stampedOn)
+      );
+      const document = paperFrom(wording.content, {
+        kind: "investment_agreement",
+        parties: {
+          farm: context.farm,
+          ownerName,
+          investors: [investor],
+        },
+        values: paperValues({
+          farm: context.farm,
+          ownerName,
+          him: investor,
+          ventureName: run.name,
+          units: agreement.units,
+          unitPriceBdt: run.unitPriceBdt,
+          investorsPercent: agreement.investorsPercent,
+          windowStart: agreement.targetWindowStart,
+          windowEnd: agreement.targetWindowEnd,
+          windUpDays: context.farm.windUpDays,
+          arbitrator: agreement.arbitrator,
+        }),
+        producedBy: context.actor.name,
+        producedAt: producedAt(now, language),
+        version: wording.number,
+      });
+      await audited(context).write(
+        {
+          entity: "investment_agreement",
+          entityId: agreement.id,
+          action: "export",
+          after: exportedPaper(context.farm, "agreement_copy", {
+            ventureId: run.id,
+            investorId: him.id,
+            wording: wording.number,
+          }),
+        },
+        () => Promise.resolve()
+      );
+      // The stamp it was signed on, written into the blanks the paper to sign left empty: serial, value, day.
+      const stamped = [
+        agreement.stampSerial,
+        `${formatNumber(agreement.stampValueBdt, "bn")} টাকা`,
+        dayInBangla(agreement.stampedOn),
+      ];
+      return {
+        document: {
+          ...document,
+          sections: document.sections.map((section) =>
+            section.kind === "stamp" ? { ...section, filled: stamped } : section
+          ),
+          copyOf: `অনুলিপি — মূল নয় / COPY — not the original · স্ট্যাম্প ক্রমিক / Stamp serial ${agreement.stampSerial} · স্ট্যাম্পের তারিখ / Stamped ${dayInBangla(agreement.stampedOn)}`,
+        },
+        wording: wordingSaid(wording),
+      };
     }),
 
   /**

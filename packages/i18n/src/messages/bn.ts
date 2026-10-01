@@ -906,6 +906,16 @@ export const bn: Record<MessageKey, string> = {
   "statements.joining": "যোগদানপত্র",
   "statements.progress": "অগ্রগতি",
   "statements.settlement": "হিসাব নিকাশ",
+  "statements.agreementCopy": "চুক্তির অনুলিপি ছাপুন",
+  "statements.signedPaper": "সই করা কাগজের ছবি",
+  "statements.noPaperPhoto": "সই করা কাগজের ছবি এখনো রাখা হয়নি",
+  "statements.copyTitle": "চুক্তির অনুলিপি",
+  "statements.copyHint":
+    "সই করা চুক্তি যেমন ছিল — প্রতিটি পাতায় অনুলিপি লেখা থাকে, তাই এটি কখনো মূল হিসেবে আবার সই করা যায় না।",
+  "statements.paperTitle": "সই করা চুক্তির কাগজ",
+  "statements.paperHint": "স্ট্যাম্প করা, সই করা মূল কাগজের ছবি, যেমন খামারে রাখা হয়েছে।",
+  "statements.download": "ছবি নামান",
+  "statements.copyMark": "অনুলিপি · COPY",
   "statements.photoOf": "{tag} ট্যাগের পশু",
   "statements.noCapitalYet":
     "এই চুক্তির বিপরীতে এখনো কোনো মূলধন আসেনি, তাই স্বীকার করার কিছু নেই",

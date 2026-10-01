@@ -95,6 +95,7 @@ const PAPER_NAMES = {
   progress_statement: both("portal.paper.progress"),
   settlement_statement: both("portal.paper.settlement"),
   agreement_draft: { bn: "চুক্তির খসড়া", en: "Agreement to sign" },
+  agreement_copy: { bn: "চুক্তির অনুলিপি", en: "Copy of the Agreement" },
   amendment_draft: { bn: "সংশোধনী", en: "Amendment" },
   portal_consent: both("portal.consent.sheetTitle"),
   nomination: { bn: "মনোনয়নপত্র", en: "Nomination" },
