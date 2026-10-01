@@ -1,4 +1,7 @@
+import { breed } from "@OpenFarm/db/schema/herd";
 import { STANDARD_BREED_KEYS } from "@OpenFarm/domain";
+import { scratchDb, theFarm } from "@OpenFarm/test-harness";
+import { and, eq } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -52,6 +55,26 @@ describe("the farm's list of breeds", () => {
       nameEn: "Sahiwal",
     });
     expect(second).toHaveLength(first.length);
+  });
+
+  // After the first: a farm whose list was given before Brahman was on the standard has none under its key.
+  it("gives a farm the pure Brahman beside the Brahman cross when it next opens its list, taking a ব্রাহমা it wrote", async () => {
+    await scratchDb()
+      .delete(breed)
+      .where(and(eq(breed.farmId, theFarm().id), eq(breed.key, "brahman")));
+    const { id: written } = await owner.breeds.add({ nameBn: "ব্রাহমা" });
+
+    const listed = await owner.breeds.list();
+
+    expect(listed.find((one) => one.key === "brahman")).toMatchObject({
+      id: written,
+      nameBn: "ব্রাহমা",
+      nameEn: "Brahman",
+      deshi: false,
+    });
+    expect(listed.find((one) => one.key === "brahmanCross")?.nameBn).toBe(
+      "ব্রাহমা ক্রস"
+    );
   });
 
   it("refuses a second breed by a name the list already has, in either language and any capitals", async () => {

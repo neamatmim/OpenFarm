@@ -406,6 +406,7 @@ export const STANDARD_BREEDS = {
   jersey: { bn: "জার্সি", en: "Jersey" },
   jerseyCross: { bn: "জার্সি ক্রস", en: "Jersey cross" },
   redSindhi: { bn: "রেড সিন্ধি", en: "Red Sindhi" },
+  brahman: { bn: "ব্রাহমা", en: "Brahman" },
   brahmanCross: { bn: "ব্রাহমা ক্রস", en: "Brahman cross" },
 } as const satisfies Record<string, Named>;
 export type StandardBreedKey = keyof typeof STANDARD_BREEDS;
