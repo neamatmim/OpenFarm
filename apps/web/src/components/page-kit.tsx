@@ -15,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@OpenFarm/ui/components/dropdown-menu";
+import { Input } from "@OpenFarm/ui/components/input";
 import {
   Sheet,
   SheetContent,
@@ -690,5 +691,26 @@ export const FormField = ({
     </label>
     {children}
     {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
+  </div>
+);
+
+/**
+ * A figure typed with its unit written inside the box at its end — "কেজি", "৳/কেজি" — so the label says only what the
+ * figure is. The app's own Input, so it stands as tall as every other box beside it.
+ */
+export const UnitInput = ({
+  unit,
+  className,
+  ...props
+}: ComponentProps<typeof Input> & { unit: string }) => (
+  <div className="relative">
+    <Input
+      autoComplete="off"
+      className={cn("pe-16 tabular-nums", className)}
+      {...props}
+    />
+    <span className="text-muted-foreground pointer-events-none absolute inset-y-0 end-3 flex items-center text-sm">
+      {unit}
+    </span>
   </div>
 );

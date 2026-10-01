@@ -1,19 +1,27 @@
-import type { GainingBand } from "@OpenFarm/domain";
-import { expectedGainFor, gainingBandFor } from "@OpenFarm/domain";
+import type { GainingBand, PlanLine } from "@OpenFarm/domain";
+import { expectedGainFor, gainingBandFor, planTotals } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ClipboardList, Plus, Sparkles, Trash2 } from "lucide-react";
+import type { ChangeEvent } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { BreedField, useBreeds } from "@/components/breed-field";
 import { expectedGainSaid } from "@/components/feed/band-words";
-import { EmptyState, Loaded, Section, StatusBadge } from "@/components/page";
-import { FormField, FormSheet } from "@/components/page-kit";
+import {
+  EmptyState,
+  Loaded,
+  SECTION_TITLE,
+  Section,
+  StatusBadge,
+} from "@/components/page";
+import { FormField, FormSheet, UnitInput } from "@/components/page-kit";
 import { useLineBreedName } from "@/components/ventures/line-breed";
 import { useLanguage } from "@/i18n/language-provider";
 import { breedName } from "@/lib/breed";
@@ -40,14 +48,6 @@ interface TypedLine {
   /** The Breed it buys, or "" for any. */
   breedId: string;
 }
-
-const LINE_FIELDS = [
-  ["animals", "plan.animals"],
-  ["fromKg", "plan.from"],
-  ["toKg", "plan.to"],
-  ["buyBdtPerKg", "plan.buy"],
-  ["dailyGainKg", "plan.gain"],
-] as const;
 
 /** Why the farm would not keep a plan, in the Owner's words. */
 /** The most of its animals a plan may expect to die, in per cent: the server's limit too. */
@@ -179,7 +179,7 @@ const RationsSay = ({
     words = t("plan.rationsSayBreed", { ...said, breed: breed.name });
   }
   return (
-    <div className="col-span-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+    <div className="col-span-6 flex flex-wrap items-center gap-x-3 gap-y-1">
       <p className="text-muted-foreground text-xs">{words}</p>
       <Button
         onClick={() => onUse(String(middle))}
@@ -194,14 +194,312 @@ const RationsSay = ({
   );
 };
 
+/** What one line comes to, as the plan's own sums say it: the kilos it buys and their cost, and a head by the window. */
+interface LineSum {
+  boughtKg: number;
+  costBdt: number;
+  saleKgEach: number;
+}
+
+/**
+ * One line of the plan as it is typed, read as the Owner would say it: so many, of which Breed, bought between two
+ * weights, at a price a kilo, putting on so much a day — with what it comes to under it once every figure is in.
+ */
+const PlanLineCard = ({
+  line,
+  at,
+  breed,
+  deshiPercent,
+  rungs,
+  sum,
+  onEdit,
+  onRemove,
+}: {
+  line: TypedLine;
+  at: number;
+  breed: LineBreed | null;
+  deshiPercent: number;
+  rungs: readonly GainingBand[];
+  sum: LineSum | null;
+  onEdit: (field: keyof TypedLine, value: string) => void;
+  /** Nothing for the only line: a plan buys something. */
+  onRemove: (() => void) | undefined;
+}) => {
+  const { t, language } = useLanguage();
+  const taka = useTaka();
+  const id = (field: keyof TypedLine) => `plan-${line.key}-${field}`;
+  const typed =
+    (field: keyof TypedLine) => (event: ChangeEvent<HTMLInputElement>) =>
+      onEdit(field, event.target.value);
+  return (
+    <fieldset className="surface flex flex-col gap-3 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <legend className="text-sm font-medium">
+          {t("plan.lineOf", { number: formatNumber(at + 1, language) })}
+        </legend>
+        {onRemove ? (
+          <Button
+            aria-label={t("plan.removeLine")}
+            onClick={onRemove}
+            size="icon-sm"
+            type="button"
+            variant="ghost"
+          >
+            <Trash2 aria-hidden />
+          </Button>
+        ) : null}
+      </div>
+      <div className="grid grid-cols-6 gap-3">
+        <FormField
+          className="col-span-2"
+          id={id("animals")}
+          label={t("plan.animals")}
+        >
+          <Input
+            autoComplete="off"
+            className="tabular-nums"
+            id={id("animals")}
+            inputMode="numeric"
+            onChange={typed("animals")}
+            value={line.animals}
+          />
+        </FormField>
+        <div className="col-span-4">
+          <BreedField
+            emptyLabel={t("plan.anyBreed")}
+            id={id("breedId")}
+            noManage
+            onChange={(breedId) => onEdit("breedId", breedId)}
+            value={line.breedId}
+          />
+        </div>
+        <FormField
+          className="col-span-6"
+          id={id("fromKg")}
+          label={t("plan.weightBought")}
+        >
+          <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <UnitInput
+                id={id("fromKg")}
+                inputMode="decimal"
+                onChange={typed("fromKg")}
+                unit={t("plan.unit.kg")}
+                value={line.fromKg}
+              />
+            </div>
+            <span aria-hidden className="text-muted-foreground">
+              –
+            </span>
+            <div className="min-w-0 flex-1">
+              <UnitInput
+                aria-label={t("plan.weightTo")}
+                id={id("toKg")}
+                inputMode="decimal"
+                onChange={typed("toKg")}
+                unit={t("plan.unit.kg")}
+                value={line.toKg}
+              />
+            </div>
+          </div>
+        </FormField>
+        <FormField
+          className="col-span-3"
+          id={id("buyBdtPerKg")}
+          label={t("plan.pricePerKg")}
+        >
+          <UnitInput
+            className="pe-20"
+            id={id("buyBdtPerKg")}
+            inputMode="decimal"
+            onChange={typed("buyBdtPerKg")}
+            unit={t("plan.unit.takaPerKg")}
+            value={line.buyBdtPerKg}
+          />
+        </FormField>
+        <FormField
+          className="col-span-3"
+          id={id("dailyGainKg")}
+          label={t("plan.gainPerDay")}
+        >
+          <UnitInput
+            className="pe-20"
+            id={id("dailyGainKg")}
+            inputMode="decimal"
+            onChange={typed("dailyGainKg")}
+            unit={t("plan.unit.kgPerDay")}
+            value={line.dailyGainKg}
+          />
+        </FormField>
+        <RationsSay
+          breed={breed}
+          deshiPercent={deshiPercent}
+          line={line}
+          onUse={(dailyGainKg) => onEdit("dailyGainKg", dailyGainKg)}
+          rungs={rungs}
+        />
+      </div>
+      {sum ? (
+        <p className="text-muted-foreground border-t pt-2 text-xs tabular-nums">
+          {t("plan.lineSum", {
+            kg: formatNumber(sum.boughtKg, language),
+            cost: taka(sum.costBdt),
+            saleKg: formatNumber(sum.saleKgEach, language),
+          })}
+        </p>
+      ) : null}
+    </fieldset>
+  );
+};
+
+/**
+ * What the plan comes to as it is typed, from the lines whose every figure is in: how many it buys, what they cost
+ * against the cattle budget — over it said, never refused — and what the herd weighs when its window opens.
+ */
+const PlanSum = ({
+  lines,
+  cattleBudgetBdt,
+  daysOnFeed,
+}: {
+  lines: PlanLine[];
+  cattleBudgetBdt: number;
+  daysOnFeed: number;
+}) => {
+  const { t, language } = useLanguage();
+  const taka = useTaka();
+  const weight = useKg();
+  const totals = planTotals({ lines, cattleBudgetBdt, daysOnFeed });
+  const over = totals.overBudgetBdt > 0;
+  const figure = "text-base font-semibold tabular-nums";
+  return (
+    <dl className="bg-muted/40 grid grid-cols-[auto_1fr_1fr] gap-x-4 gap-y-3 rounded-lg border p-3">
+      <div className="flex flex-col gap-0.5">
+        <dt className="text-muted-foreground text-xs">
+          {t("plan.sum.animals")}
+        </dt>
+        <dd className={figure}>{formatNumber(totals.animals, language)}</dd>
+      </div>
+      <div className="flex flex-col gap-0.5">
+        <dt className="text-muted-foreground text-xs">{t("plan.sum.cost")}</dt>
+        <dd className={figure}>{taka(totals.costBdt)}</dd>
+        <dd
+          className={cn(
+            "text-xs",
+            over ? "text-warning" : "text-muted-foreground"
+          )}
+        >
+          {over
+            ? t("plan.sum.over", {
+                amount: taka(totals.overBudgetBdt),
+                budget: taka(cattleBudgetBdt),
+              })
+            : t("plan.sum.left", {
+                amount: taka(cattleBudgetBdt - totals.costBdt),
+                budget: taka(cattleBudgetBdt),
+              })}
+        </dd>
+      </div>
+      <div className="flex flex-col gap-0.5">
+        <dt className="text-muted-foreground text-xs">
+          {t("plan.sum.saleKg")}
+        </dt>
+        <dd className={figure}>{weight(totals.saleKg)}</dd>
+      </div>
+    </dl>
+  );
+};
+
+/** What a kilo will sell at, low and high, as the sheet holds them while they are typed. */
+interface TypedSale {
+  low: string;
+  high: string;
+}
+
+/** The plan's selling: what a kilo of live weight will fetch, low and high, and the share it expects not to live. */
+const PlanSelling = ({
+  sale,
+  onSale,
+  deaths,
+  onDeaths,
+  lowAboveHigh,
+  deathsOutOfRange,
+}: {
+  sale: TypedSale;
+  onSale: (sale: TypedSale) => void;
+  deaths: string;
+  onDeaths: (deaths: string) => void;
+  lowAboveHigh: boolean;
+  deathsOutOfRange: boolean;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <>
+      <h3 className={cn(SECTION_TITLE, "border-t pt-4")}>
+        {t("plan.selling")}
+      </h3>
+      <div className="grid grid-cols-2 gap-3">
+        <FormField id="plan-sale-low" label={t("plan.saleLowShort")}>
+          <UnitInput
+            className="pe-20"
+            id="plan-sale-low"
+            inputMode="decimal"
+            onChange={(event) => onSale({ ...sale, low: event.target.value })}
+            unit={t("plan.unit.takaPerKg")}
+            value={sale.low}
+          />
+        </FormField>
+        <FormField id="plan-sale-high" label={t("plan.saleHighShort")}>
+          <UnitInput
+            className="pe-20"
+            id="plan-sale-high"
+            inputMode="decimal"
+            onChange={(event) => onSale({ ...sale, high: event.target.value })}
+            unit={t("plan.unit.takaPerKg")}
+            value={sale.high}
+          />
+        </FormField>
+        <p
+          className={cn(
+            "col-span-2 -mt-1 text-xs",
+            lowAboveHigh ? "text-destructive" : "text-muted-foreground"
+          )}
+        >
+          {t(lowAboveHigh ? "projection.lowAboveHigh" : "plan.saleHint")}
+        </p>
+        <FormField
+          className="col-span-2"
+          hint={t(
+            deathsOutOfRange ? "plan.deathsOutOfRange" : "plan.deathsHint"
+          )}
+          id="plan-deaths"
+          label={t("plan.deathsShort")}
+        >
+          <div className="w-1/2 pe-1.5">
+            <UnitInput
+              id="plan-deaths"
+              inputMode="decimal"
+              onChange={(event) => onDeaths(event.target.value)}
+              unit="%"
+              value={deaths}
+            />
+          </div>
+        </FormField>
+      </div>
+    </>
+  );
+};
+
 /** Writing or changing a Venture's plan: its bands, what a kilo will sell at, and — once buying has begun — why. */
 const PlanSheet = ({
   venture,
   latest,
+  daysOnFeed,
   onOpenChange,
 }: {
   venture: Venture;
   latest: Version | null;
+  /** From buying to the window in force, as the plan's own sums count it. */
+  daysOnFeed: number;
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
@@ -261,6 +559,8 @@ const PlanSheet = ({
       )
     );
   const label = t(latest ? "plan.change" : "plan.write");
+  // The lines every figure of which is typed, for the sums under them: a line half typed adds nothing yet.
+  const complete = said.filter((line) => line !== null);
   return (
     <FormSheet
       description={t("plan.sheetHint")}
@@ -268,7 +568,7 @@ const PlanSheet = ({
       onSubmit={() =>
         saving.mutate({
           ventureId: venture.id,
-          lines: said.filter((line) => line !== null),
+          lines: complete,
           saleLowBdtPerKg: low ?? 0,
           saleHighBdtPerKg: high ?? 0,
           deathsPercent,
@@ -281,64 +581,35 @@ const PlanSheet = ({
       submitLabel={label}
       title={label}
     >
-      {lines.map((line, at) => (
-        <fieldset className="flex flex-col gap-3 border-b pb-4" key={line.key}>
-          <div className="flex items-center justify-between gap-2">
-            <legend className="text-sm font-medium">
-              {t("plan.lineOf", { number: at + 1 })}
-            </legend>
-            {lines.length > 1 ? (
-              <Button
-                aria-label={t("plan.removeLine")}
-                onClick={() =>
-                  setLines(lines.filter((each) => each.key !== line.key))
-                }
-                size="icon-sm"
-                type="button"
-                variant="ghost"
-              >
-                <Trash2 aria-hidden />
-              </Button>
-            ) : null}
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {LINE_FIELDS.map(([field, word]) => (
-              <FormField
-                id={`plan-${line.key}-${field}`}
-                key={field}
-                label={t(word)}
-              >
-                <Input
-                  autoComplete="off"
-                  id={`plan-${line.key}-${field}`}
-                  inputMode={field === "animals" ? "numeric" : "decimal"}
-                  onChange={(event) =>
-                    edit(line.key, field, event.target.value)
-                  }
-                  value={line[field]}
-                />
-              </FormField>
-            ))}
-            <div className="col-span-2">
-              <BreedField
-                emptyLabel={t("plan.anyBreed")}
-                id={`plan-${line.key}-breed`}
-                onChange={(breedId) => edit(line.key, "breedId", breedId)}
-                value={line.breedId}
-              />
-            </div>
-            <RationsSay
-              breed={breedOf(line.breedId)}
-              deshiPercent={deshiPercent}
-              line={line}
-              onUse={(dailyGainKg) =>
-                edit(line.key, "dailyGainKg", dailyGainKg)
-              }
-              rungs={rungs}
-            />
-          </div>
-        </fieldset>
-      ))}
+      <h3 className={SECTION_TITLE}>{t("plan.buying")}</h3>
+      {lines.map((line, at) => {
+        const typed = said[at] ?? null;
+        return (
+          <PlanLineCard
+            at={at}
+            breed={breedOf(line.breedId)}
+            deshiPercent={deshiPercent}
+            key={line.key}
+            line={line}
+            onEdit={(field, value) => edit(line.key, field, value)}
+            onRemove={
+              lines.length > 1
+                ? () => setLines(lines.filter((each) => each.key !== line.key))
+                : undefined
+            }
+            rungs={rungs}
+            sum={
+              typed
+                ? (planTotals({
+                    lines: [typed],
+                    cattleBudgetBdt: venture.cattleBudgetBdt,
+                    daysOnFeed,
+                  }).lines[0] ?? null)
+                : null
+            }
+          />
+        );
+      })}
       <Button
         className="w-fit"
         onClick={() => setLines([...lines, blankLine()])}
@@ -349,43 +620,21 @@ const PlanSheet = ({
         <Plus aria-hidden data-icon="inline-start" />
         {t("plan.addLine")}
       </Button>
-      <div className="grid grid-cols-2 gap-3 border-t pt-4">
-        <FormField
-          hint={lowAboveHigh ? t("projection.lowAboveHigh") : undefined}
-          id="plan-sale-low"
-          label={t("projection.saleLow")}
-        >
-          <Input
-            autoComplete="off"
-            id="plan-sale-low"
-            inputMode="decimal"
-            onChange={(event) => setSale({ ...sale, low: event.target.value })}
-            value={sale.low}
-          />
-        </FormField>
-        <FormField id="plan-sale-high" label={t("projection.saleHigh")}>
-          <Input
-            autoComplete="off"
-            id="plan-sale-high"
-            inputMode="decimal"
-            onChange={(event) => setSale({ ...sale, high: event.target.value })}
-            value={sale.high}
-          />
-        </FormField>
-      </div>
-      <FormField
-        hint={t(deathsOutOfRange ? "plan.deathsOutOfRange" : "plan.deathsHint")}
-        id="plan-deaths"
-        label={t("plan.deaths")}
-      >
-        <Input
-          autoComplete="off"
-          id="plan-deaths"
-          inputMode="decimal"
-          onChange={(event) => setDeaths(event.target.value)}
-          value={deaths}
+      {complete.length > 0 ? (
+        <PlanSum
+          cattleBudgetBdt={venture.cattleBudgetBdt}
+          daysOnFeed={daysOnFeed}
+          lines={complete}
         />
-      </FormField>
+      ) : null}
+      <PlanSelling
+        deaths={deaths}
+        deathsOutOfRange={deathsOutOfRange}
+        lowAboveHigh={lowAboveHigh}
+        onDeaths={setDeaths}
+        onSale={setSale}
+        sale={sale}
+      />
       {revising ? (
         <FormField
           hint={t("plan.reasonHint")}
@@ -610,6 +859,7 @@ export const VenturePlanPanel = ({ venture }: { venture: Venture }) => {
       {/* Drawn afresh each time it opens, so it starts from the plan in force. */}
       {writing ? (
         <PlanSheet
+          daysOnFeed={plan.data?.daysOnFeed ?? 0}
           latest={latest}
           onOpenChange={setWriting}
           venture={venture}
