@@ -670,6 +670,9 @@ export const VENTURE_MOVEMENT_KINDS = [
   "farm_loss_in",
   "reimbursement",
   "advance",
+  // A bull bought with no outing — at the farm gate, from a neighbour — paid straight from the account by bank, and
+  // written from her Intake as a Sale's money is from the Sale.
+  "intake_out",
 ] as const;
 export type VentureMovementKind = (typeof VENTURE_MOVEMENT_KINDS)[number];
 
@@ -709,6 +712,9 @@ export const ventureMovement = pgTable(
     /** The Sale a buyer took her away on, whose price landed in this account. Only a Sale's movement
      *  has one, and by id rather than by foreign key for the same reason an Internal Sale's is. */
     saleId: text("sale_id"),
+    /** The Intake of a bull bought with no outing and paid from this account by bank. Only that movement has one,
+     *  and by id rather than by foreign key for the same reason a Sale's is. */
+    intakeId: text("intake_id"),
     amountBdt: taka("amount_bdt").notNull(),
     /** The day the bank moved it, on the farm's own clock. */
     movedOn: text("moved_on").notNull(),

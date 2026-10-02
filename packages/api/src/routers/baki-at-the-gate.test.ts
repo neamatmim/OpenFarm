@@ -1,6 +1,7 @@
 import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { PAID_FROM_THE_ACCOUNT, putCapitalIn } from "../test/bought-by-bank";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
@@ -28,7 +29,8 @@ const ventureBulls: { tagNumber: string; intakeId: string }[] = [];
 
 /** One bull off the lorry, for the Farm or for a Venture. */
 const buy = async (instant: string, ventureFor?: string) => {
-  const manager = await as("manager", instant);
+  // A Venture's bull at the gate is the Owner's, paid from its account by bank.
+  const manager = await as(ventureFor ? "owner" : "manager", instant);
   return await manager.client.intake.record({
     penId,
     sex: "male",
@@ -38,6 +40,7 @@ const buy = async (instant: string, ventureFor?: string) => {
     estimatedAgeMonths: 20,
     arrivedAt: new Date(instant),
     ventureId: ventureFor,
+    ...(ventureFor ? PAID_FROM_THE_ACCOUNT : {}),
     ...WINDOW,
   });
 };
@@ -80,6 +83,13 @@ beforeAll(async () => {
     units: 20,
     ...WINDOW,
   });
+  // Capital in first: a bull at the gate is paid from what the account holds.
+  await putCapitalIn(
+    owner.client,
+    { id: venture.id, units: 20, unitPriceBdt: 50_000 },
+    `venture ${suffix}`,
+    "2048-03-01"
+  );
   await owner.client.ventures.startBuying({ id: venture.id });
   ventureId = venture.id;
   ventureBulls.push(
@@ -235,11 +245,18 @@ describe("a Venture's bull", () => {
       paidNowBdt: 60_000,
       promisedBy: "2048-03-25",
     });
+    // The Owner's to make her a Venture's, paid from its account by bank: even so, a bull already sold on Baki is not
+    // taken.
+    const owner = await as("owner", "2048-03-11T06:30:00.000Z");
     await expect(
-      manager.client.intake.correct({
+      owner.client.intake.correct({
         id: bull.intakeId,
         reason: "ভেঞ্চারের গরু ছিল",
-        changes: { owner: { from: null, to: ventureId } },
+        changes: {
+          owner: { from: null, to: ventureId },
+          paymentMethod: { from: "cash", to: "bank" },
+          reference: { from: null, to: "TRF ভেঞ্চারের হিসাব থেকে" },
+        },
       })
     ).rejects.toMatchObject({ data: { refusal: "venture_paid_in_full" } });
   });

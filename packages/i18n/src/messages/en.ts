@@ -1260,6 +1260,7 @@ export const en = {
   "ventures.kind.capitalIn": "Capital in",
   "ventures.kind.refund": "Refunded",
   "ventures.kind.floatOut": "Float to the haat",
+  "ventures.kind.intakeOut": "Bought at the gate",
   "ventures.kind.floatBack": "Cash back from the haat",
   "ventures.kind.internalBuy": "Bought an animal",
   "ventures.kind.internalSell": "Sold an animal",
@@ -1406,6 +1407,8 @@ export const en = {
     "That outing is bringing another Venture's animals home",
   "refusal.tripIsTheFarms":
     "That outing is bringing the Farm's own animals home",
+  "refusal.ventureBuysByBank":
+    "A Venture's bull bought with no outing is paid from its account by bank, with the reference",
   "refusal.floatAlreadyReconciled":
     "That outing's Float has been counted; it takes nothing more",
   "refusal.floatOver":
@@ -4086,6 +4089,11 @@ export const en = {
   "intake.ownerFromFarmFloat":
     "This outing went to the haat on the Farm's own money, so she is the Farm's.",
   "intake.farmFloat": "on the Farm's money",
+  "intake.paidFromTheAccount": "Paid from the Venture Account by bank",
+  "intake.reference": "Cheque or transfer number",
+  "intake.paidOn": "Day the bank moved it",
+  "intake.ventureAtTheGate":
+    "A Venture's bull bought with no outing is the Owner's to take in: it is paid from the Venture Account by bank.",
   "intake.theFarms": "The farm's own",
   "intake.weight": "Weight on arrival",
   "intake.age": "Estimated age",

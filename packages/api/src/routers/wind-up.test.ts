@@ -9,6 +9,7 @@ import {
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { papersToTell } from "../investor-statement-notice";
+import { PAID_FROM_THE_ACCOUNT } from "../test/bought-by-bank";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
@@ -115,7 +116,8 @@ const funded = async (owner: Owner, which: number) => {
 };
 
 const broughtIn = async (forVenture: string) => {
-  const manager = await as("manager", "2047-01-04T05:00:00.000Z");
+  // At the gate, so the Owner's, paid from the Venture Account by bank.
+  const manager = await as("owner", "2047-01-04T05:00:00.000Z");
   const her = await manager.client.intake.record({
     penId,
     sex: "male",
@@ -124,6 +126,7 @@ const broughtIn = async (forVenture: string) => {
     weightKg: 200,
     estimatedAgeMonths: 20,
     ventureId: forVenture,
+    ...PAID_FROM_THE_ACCOUNT,
     arrivedAt: new Date("2047-01-04T05:00:00.000Z"),
     targetWindowStart: plan.targetWindowStart,
     targetWindowEnd: plan.targetWindowEnd,

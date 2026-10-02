@@ -1177,6 +1177,7 @@ export const bn: Record<MessageKey, string> = {
   "ventures.kind.capitalIn": "মূলধন জমা",
   "ventures.kind.refund": "ফেরত",
   "ventures.kind.floatOut": "হাটে নেওয়া টাকা",
+  "ventures.kind.intakeOut": "কেনা (খামারের গেট)",
   "ventures.kind.floatBack": "হাট থেকে ফেরত টাকা",
   "ventures.kind.internalBuy": "গরু কেনা",
   "ventures.kind.internalSell": "গরু বিক্রি",
@@ -1306,6 +1307,8 @@ export const bn: Record<MessageKey, string> = {
   "refusal.floatAlreadyDrawn": "এই যাত্রার জন্য টাকা আগেই দেওয়া হয়েছে",
   "refusal.tripIsAnotherVentures": "এই যাত্রা অন্য ভেঞ্চারের গরু আনছে",
   "refusal.tripIsTheFarms": "এই যাত্রা খামারের নিজের গরু আনছে",
+  "refusal.ventureBuysByBank":
+    "যাত্রা ছাড়া কেনা ভেঞ্চারের গরুর দাম ভেঞ্চারের হিসাব থেকে ব্যাংকে দেওয়া হয়, চেক বা ট্রান্সফারের নম্বরসহ",
   "refusal.floatAlreadyReconciled":
     "এই যাত্রার হিসাব মিলিয়ে ফেলা হয়েছে, আর কিছু যোগ করা যাবে না",
   "refusal.floatOver":
@@ -3813,6 +3816,11 @@ export const bn: Record<MessageKey, string> = {
   "intake.ownerFromFarmFloat":
     "এই যাত্রা খামারের নিজের টাকায় হাটে গিয়েছিল, তাই গরুটি খামারের নিজের।",
   "intake.farmFloat": "খামারের টাকায়",
+  "intake.paidFromTheAccount": "ভেঞ্চারের হিসাব থেকে ব্যাংকে দেওয়া",
+  "intake.reference": "চেক বা ট্রান্সফারের নম্বর",
+  "intake.paidOn": "ব্যাংকে যেদিন গেল",
+  "intake.ventureAtTheGate":
+    "যাত্রা ছাড়া ভেঞ্চারের গরু কিনলে মালিক তুলবেন: দাম ভেঞ্চারের হিসাব থেকে ব্যাংকে দেওয়া হয়।",
   "intake.theFarms": "খামারের নিজের",
   "intake.weight": "আসার সময়ের ওজন",
   "intake.age": "আনুমানিক বয়স",

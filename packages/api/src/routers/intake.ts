@@ -19,6 +19,7 @@ import {
   assertSheBelongsWithTheFloat,
   assertTripIsOurs,
   assertVentureIsBuying,
+  bookBoughtByBank,
   bookIntakeMoney,
   hasilInput,
   purchasePriceInput,
@@ -65,6 +66,11 @@ const recordInput = z
     arrivedAt: z.coerce.date().optional(),
     /** How the seller was paid. */
     paymentMethod: paymentMethodInput,
+    /** A Venture's bull with no outing is paid from its account by bank: the transfer or cheque, and what it is
+     *  numbered. */
+    reference: z.string().trim().min(1).max(120).optional(),
+    /** The day the bank moved it; left out, the day she came. */
+    paidOn: farmDay.optional(),
   })
   .refine(
     (value) =>
@@ -196,6 +202,18 @@ export const intakeRouter = {
     .input(recordInput)
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
+      // A Venture's bull with no outing is paid from the Venture Account, and every movement on it is the Owner's.
+      if (
+        input.ventureId &&
+        !input.buyingTripId &&
+        context.roleUsed !== "owner"
+      ) {
+        throw new ORPCError("FORBIDDEN", {
+          message:
+            "A Venture's bull bought with no outing is the Owner's to take in: it is paid from the Venture Account",
+          data: { refusal: "owner_only" },
+        });
+      }
       const arrivedAt = input.arrivedAt ?? now;
       if (arrivedAt.getTime() > now.getTime()) {
         throw new ORPCError("BAD_REQUEST", {
@@ -320,6 +338,14 @@ export const intakeRouter = {
             intakeId,
             input.paymentMethod
           );
+          await bookBoughtByBank(tx, intakeId, {
+            reference: input.reference,
+            movedOn: input.paidOn,
+            mayWrite: context.roleUsed === "owner",
+            withinTheCattleBudget: true,
+            recordedBy: context.actor.id,
+            now,
+          });
         }
       );
       return {

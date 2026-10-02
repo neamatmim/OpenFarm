@@ -7,38 +7,38 @@ cash, and never on an outing no Float of hers paid for.
 
 **Blocked by:** 02
 
-**Status:** open.
+**Status:** done, 2026-10-02.
 
-- [ ] **Glossary:** **Venture Movement** widened — an Animal bought with no outing, paid straight from the account and
+- [x] **Glossary:** **Venture Movement** widened — an Animal bought with no outing, paid straight from the account and
       written from her Intake, moved when the Intake's price is put right and never corrected on its own (as a Sale's
       is). **Intake** — a Venture's is paid by its Float or, with no outing, by bank from its account. **Buying Float**
       — a Venture's animal on an outing goes on that Venture's Float, drawn first. **Venture Account** unchanged: it
       already says "never cash".
-- [ ] **Schema:** `intake_out` added to `VENTURE_MOVEMENT_KINDS` (cattle money on the `spentBdt` line, as a Float is,
+- [x] **Schema:** `intake_out` added to `VENTURE_MOVEMENT_KINDS` (cattle money on the `spentBdt` line, as a Float is,
       in `WHAT_IT_DOES`); `venture_movement.intake_id`, by id and not by foreign key, as `sale_id` is. Migration
       `…_venture_bought_by_bank`, both dev databases, then the seed. **Before migrating,** list the Venture Intakes with
       no outing or on an outing without their Venture's Float on the dev databases (none expected on the seed, which buys
       only off Floats); the live farm's are the Owner's to give references for when she deploys — none is guessed.
-- [ ] **Rule — Intake:** a `ventureId` with no `buyingTripId` needs the Owner (`owner_only`), payment by bank
+- [x] **Rule — Intake:** a `ventureId` with no `buyingTripId` needs the Owner (`owner_only`), payment by bank
       (`venture_buys_by_bank`, new) and a reference; the movement is written in the Intake's own transaction for price +
       Hasil, refused over what the Cattle Budget holds (`cattle_budget_short`, as `drawFloat` is). A `ventureId` on an
       outing with no Float of hers is refused `no_float_on_the_trip` (the word exists, line 173 of
       `correction-refusal.ts`; its English says "trip" — read it again beside a Venture before reusing it), asked after
       `assertSheBelongsWithTheFloat` so that 02's refusals keep their own words. The Money
       Event in the Venture's purse stays, as the costing's record of what she cost, and names no hand.
-- [ ] **Rule — Correction** (`corrections/intake.ts`): one function, as `bookSaleProceeds` is, decides after every
+- [x] **Rule — Correction** (`corrections/intake.ts`): one function, as `bookSaleProceeds` is, decides after every
       Intake Correction whether she is paid from the account and writes, moves or removes the movement — a price or
       Hasil change moves its amount; making a no-outing Intake a Venture's needs the bank and a reference; making it the
       Farm's, or putting her on an outing, removes it; taking a Venture's bull off her outing needs the bank and a
       reference. `whyItStands` (`corrections/venture-movement.ts`) refuses correcting an `intake_out` movement on its own
       (`correct_the_record`, as a Sale's).
-- [ ] **Refusal words:** `venture_buys_by_bank` in `apps/web/src/lib/correction-refusal.ts`, `refusal.ventureBuysByBank`
+- [x] **Refusal words:** `venture_buys_by_bank` in `apps/web/src/lib/correction-refusal.ts`, `refusal.ventureBuysByBank`
       in both message files ("A Venture's bull bought with no outing is paid from its account by bank, with the
       reference").
-- [ ] **Screen:** the Intake sheet, a Venture chosen and no outing: the Owner sees the payment fixed to bank, the
+- [x] **Screen:** the Intake sheet, a Venture chosen and no outing: the Owner sees the payment fixed to bank, the
       reference and the day it moved; the Manager is told the Owner takes this one in and is not offered the Venture
       there. The Venture's money list shows the movement as "কেনা (খামারের গেট) · tag", read from the Intake.
-- [ ] **Tests** (a new `routers/venture-bought-by-bank.test.ts`):
+- [x] **Tests** (a new `routers/venture-bought-by-bank.test.ts`):
   - **First, red before the fix:** a Venture's bull taken in with no outing and in cash — accepted today, the Venture
     Account's balance unmoved by her price; refused `venture_buys_by_bank`.
   - By bank with a reference: the balance and the Cattle Budget fall by price + Hasil, the movement names her Intake,
@@ -48,6 +48,18 @@ cash, and never on an outing no Float of hers paid for.
   - **Proved by switching off** the bank rule, the un-floated outing, the Owner's gate and the Cattle Budget: each red.
   - The existing test files that take a Venture's bull in with no outing in cash are moved to the bank or to a Float,
     through one shared helper rather than file by file — and every file's count read from Test Files, not Tests.
-- [ ] **Somebody opens it** (seed): the Owner takes in a bull for a Venture in Buying (one started in the browser if the seed has none buying) at the gate, by cheque
+- [x] **Somebody opens it** (seed): the Owner takes in a bull for a Venture in Buying (one started in the browser if the seed has none buying) at the gate, by cheque
       "চেক ১২৩৪"; the Venture card's Cattle Budget falls by her price and her line reads in its money list. The Manager
       opening the same sheet is told it is the Owner's.
+- Done: `routers/venture-bought-by-bank.test.ts` (4) — all red before (cash accepted; the account unmoved by her
+  ৳60,000); each of the bank rule, the un-floated outing, the Cattle Budget and the Owner's gate (both copies: the
+  Intake's and the payment rule's) switched off turned its test red. Built as `bookBoughtByBank` in `intake-store.ts`,
+  run after every Intake and every Intake Correction; the Cattle Budget is held only at Intake — a Correction says
+  what was so when she was bought, after buying may have closed. The Correction's new answer is `reference`. Migration
+  `20261002024334_venture_bought_by_bank` (column only; the kind is a text enum), both dev databases (165), none of the
+  seed's 11 Venture Intakes were off a Float. Ten test files moved to the Owner paying by bank through
+  `test/bought-by-bank.ts` (`PAID_FROM_THE_ACCOUNT`, `putCapitalIn` for Ventures that started buying with no capital);
+  their figures now count what the bulls cost the account. The Manager is no longer offered a Venture without a Float
+  on the sheet. **Not opened as the Manager** in the browser: signing in as them would sign the Owner out of the seed.
+  Seed: F-0064 at the gate for "মাসে মাসে ২০২৭ ভেঞ্চার", "চেক ১২৩৪", ৳70,000 — its Cattle Budget 6,40,000 → 5,70,000,
+  and its money list reads "কেনা (খামারের গেট) · F-0064 · চেক ১২৩৪".

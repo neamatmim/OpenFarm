@@ -8,6 +8,7 @@ import {
 } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { PAID_FROM_THE_ACCOUNT } from "../test/bought-by-bank";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
@@ -134,7 +135,9 @@ const theyEat = async (owner: Owner) => {
     penId: pen.id,
     rationId: ration.rationId,
   });
-  await manager.client.intake.record({
+  // At the gate, so the Owner's, paid from the Venture Account by bank.
+  const buyer = await as("owner", "2047-05-04T05:00:00.000Z");
+  await buyer.client.intake.record({
     penId: pen.id,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -142,6 +145,7 @@ const theyEat = async (owner: Owner) => {
     weightKg: 200,
     estimatedAgeMonths: 20,
     ventureId,
+    ...PAID_FROM_THE_ACCOUNT,
     arrivedAt: new Date("2047-05-04T05:00:00.000Z"),
     targetWindowStart: "2047-08-17",
     targetWindowEnd: "2047-08-19",
@@ -193,10 +197,11 @@ describe("the Running Budget", () => {
       transportBdt: 0,
       keepBdt: 0,
     });
+    // The rest of the cattle money: the bull at the gate was paid for from it by bank.
     await owner.client.ventures.drawFloat({
       ventureId,
       buyingTripId: trip.id,
-      amountBdt: 800_000,
+      amountBdt: 740_000,
       movedOn: "2047-05-05",
       paymentMethod: "bank",
       reference: `FLT-${suffix}`,
@@ -271,7 +276,8 @@ describe("the Running Budget", () => {
     expect(money.events.every((one) => one.source === "feed_in")).toBe(true);
     // And it is not among what the Venture has spent, which is its animals' and nothing else: her
     // fifty thousand went in, and neither figure that says where the money went moved for it. The
-    // Float it drew and the month it paid the Farm back are separate questions and separate lines.
+    // bull at the gate, the Float it drew and the month it paid the Farm back are separate questions
+    // and separate lines.
     const venture = await theVenture(owner);
     expect(venture).toMatchObject({
       advancedBdt: 50_000,

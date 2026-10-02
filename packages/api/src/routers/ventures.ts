@@ -3510,8 +3510,10 @@ export const venturesRouter = {
             : []
         )
       );
-      // The animal a sale's money, or an Internal Sale's, was for — so the row names her and reaches her page.
+      // The animal a sale's money, an Internal Sale's, or a bull bought by bank was for — so the row names her and
+      // reaches her page.
       const tagOf = await tagsOfHerRecords(context.db, context.farm.id, {
+        intakeIds: rows.flatMap((one) => (one.intakeId ? [one.intakeId] : [])),
         saleIds: rows.flatMap((one) => (one.saleId ? [one.saleId] : [])),
         internalSaleIds: rows.flatMap((one) =>
           one.internalSaleId ? [one.internalSaleId] : []
@@ -3520,8 +3522,12 @@ export const venturesRouter = {
       return rows.map((one) => ({
         id: one.id,
         kind: one.kind,
-        /** The animal it was for, where it was a Sale's or an Internal Sale's money. */
-        tagNumber: tagOf.get(one.saleId ?? one.internalSaleId ?? "") ?? null,
+        /** The animal it was for, where it was a Sale's, an Internal Sale's or a bull bought by bank's money. */
+        tagNumber:
+          tagOf.get(one.saleId ?? one.internalSaleId ?? one.intakeId ?? "") ??
+          null,
+        /** The Intake of a bull bought by bank with no outing, which it is written from. */
+        intakeId: one.intakeId,
         /** Which way it moved the account, so a list of them can be added up to the balance the farm keeps. */
         direction: directionOf(one.kind),
         agreementId: one.agreementId,

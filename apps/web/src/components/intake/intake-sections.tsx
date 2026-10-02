@@ -15,6 +15,7 @@ import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 import type { IntakeFields, OwningVenture } from "./intake-fields";
+import { boughtFromTheAccount } from "./intake-fields";
 import { PricePerKg, VentureWindow } from "./intake-summary";
 import { SuggestedTarget } from "./suggested-target";
 
@@ -270,6 +271,33 @@ const PerKgLine = ({ fields }: { fields: IntakeFields }) => {
   );
 };
 
+/** A Venture's bull with no outing: paid from its account by bank, so the transfer or cheque and the day it moved. */
+const PaidFromTheAccount = ({ fields, onEdit }: PartProps) => {
+  const { t } = useLanguage();
+  return (
+    <div className="space-y-1.5">
+      <p className="text-sm font-medium">{t("intake.paidFromTheAccount")}</p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField id="intake-reference" label={t("intake.reference")}>
+          <Input
+            id="intake-reference"
+            onChange={(event) => onEdit({ reference: event.target.value })}
+            value={fields.reference}
+          />
+        </FormField>
+        <FormField id="intake-paid-on" label={t("intake.paidOn")}>
+          <Input
+            id="intake-paid-on"
+            onChange={(event) => onEdit({ paidOn: event.target.value })}
+            type="date"
+            value={fields.paidOn}
+          />
+        </FormField>
+      </div>
+    </div>
+  );
+};
+
 /** What was paid and how, what the scale read off the lorry, and the age the seller gave — with what that came to a
  *  kilo, worked out as it is typed. */
 export const PriceSection = ({
@@ -277,6 +305,7 @@ export const PriceSection = ({
   onEdit,
   trips,
   ventures,
+  isOwner,
   onNewTrip,
 }: PartProps & {
   trips: {
@@ -293,6 +322,8 @@ export const PriceSection = ({
   }[];
   /** The Ventures that are buying: the only ones that may take an animal in. */
   ventures: { id: string; name: string }[];
+  /** The Owner alone buys for a Venture with no outing: it is paid from the Venture Account. */
+  isOwner: boolean;
   /** Write up an outing that is not on the list yet: the first of its animals to be taken in. */
   onNewTrip: () => void;
 }) => {
@@ -304,7 +335,10 @@ export const PriceSection = ({
   // Or on the Farm's own Float: then she is the Farm's, and no Venture is offered.
   const farmFloated = trip?.farmFloat === true;
   // Named, because the guard against untranslated JSX text reads a comparison's angle bracket as a tag.
-  const whoseIsAChoice = ventures.length !== 0 || float !== null;
+  // A Venture is offered with no Float only to the Owner, who pays for such a bull from its account by bank.
+  const offersVentures = isOwner && ventures.length !== 0;
+  const whoseIsAChoice = offersVentures || float !== null;
+  const fromTheAccount = float === null && boughtFromTheAccount(fields);
   let ownerHint = t("intake.ownerHint");
   if (float) {
     ownerHint = t("intake.ownerFromFloat", { venture: float.ventureName });
@@ -405,7 +439,7 @@ export const PriceSection = ({
             value={owner}
           >
             <option value="">{t("intake.theFarms")}</option>
-            {ventures.map((one) => (
+            {(offersVentures ? ventures : []).map((one) => (
               <option key={one.id} value={one.id}>
                 {one.name}
               </option>
@@ -419,11 +453,20 @@ export const PriceSection = ({
         </FormField>
       ) : null}
       <PerKgLine fields={fields} />
-      <PaymentMethodField
-        id="intake-paid-by"
-        onChange={(paymentMethod) => onEdit({ paymentMethod })}
-        value={fields.paymentMethod}
-      />
+      {fromTheAccount ? (
+        <PaidFromTheAccount fields={fields} onEdit={onEdit} />
+      ) : (
+        <PaymentMethodField
+          id="intake-paid-by"
+          onChange={(paymentMethod) => onEdit({ paymentMethod })}
+          value={fields.paymentMethod}
+        />
+      )}
+      {!isOwner && ventures.length !== 0 && float === null ? (
+        <p className="text-muted-foreground text-xs">
+          {t("intake.ventureAtTheGate")}
+        </p>
+      ) : null}
     </Section>
   );
 };

@@ -1,6 +1,7 @@
 import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { PAID_FROM_THE_ACCOUNT, putCapitalIn } from "../test/bought-by-bank";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
@@ -30,7 +31,8 @@ const buy = async (
   ventureFor?: string,
   arrivedAt = instant
 ) => {
-  const manager = await as("manager", instant);
+  // A Venture's bull at the gate is the Owner's, paid from its account by bank.
+  const manager = await as(ventureFor ? "owner" : "manager", instant);
   return await manager.client.intake.record({
     penId,
     sex: "male",
@@ -41,9 +43,16 @@ const buy = async (
     estimatedAgeMonths: 20,
     arrivedAt: new Date(arrivedAt),
     ventureId: ventureFor,
+    ...(ventureFor ? PAID_FROM_THE_ACCOUNT : {}),
     ...WINDOW,
   });
 };
+
+/** What making a bull at the gate a Venture's asks besides her owner: the Venture Account paid for her by bank. */
+const PAID_BY_THE_VENTURE = {
+  paymentMethod: { from: "cash", to: "bank" },
+  reference: { from: null, to: "TRF ভেঞ্চারের হিসাব থেকে" },
+} as const;
 
 beforeAll(async () => {
   const owner = await as("owner", "2046-11-01T04:00:00.000Z");
@@ -67,6 +76,13 @@ beforeAll(async () => {
     name: `কিনছে ${suffix}`,
     ...plan,
   });
+  // Capital in first: a bull at the gate is paid from what the account holds.
+  await putCapitalIn(
+    owner.client,
+    { id: buying.id, units: 20, unitPriceBdt: 50_000 },
+    `buying ${suffix}`,
+    "2046-11-01"
+  );
   await owner.client.ventures.startBuying({ id: buying.id });
   ventureId = buying.id;
   const open = await owner.client.ventures.open({
@@ -121,11 +137,12 @@ describe("whose animal she is", () => {
 
   it("is put right inside the Correction Window, and her money with it", async () => {
     const slip = await buy("2046-11-05T05:00:00.000Z", 70_000);
-    const manager = await as("manager", "2046-11-05T09:00:00.000Z");
+    // The Owner's, paid from the Venture Account by bank.
+    const manager = await as("owner", "2046-11-05T09:00:00.000Z");
     await manager.client.intake.correct({
       id: slip.intakeId,
       reason: "ভেঞ্চারের গরু, ভুল করে খামারের নামে লেখা হয়েছিল",
-      changes: { owner: { from: null, to: ventureId } },
+      changes: { owner: { from: null, to: ventureId }, ...PAID_BY_THE_VENTURE },
     });
     const owner = await as("owner", "2046-11-05T10:00:00.000Z");
     const her = await owner.client.animals.byTag({ tagNumber: slip.tagNumber });
@@ -186,16 +203,26 @@ describe("whose animal she is", () => {
       unitPriceBdt: 50_000,
       units: 20,
     });
+    // Capital in first: a bull at the gate is paid from what the account holds.
+    await putCapitalIn(
+      owner.client,
+      { id: movedOn.id, units: 20, unitPriceBdt: 50_000 },
+      `movedOn ${suffix}`,
+      "2046-11-11"
+    );
     await owner.client.ventures.startBuying({ id: movedOn.id });
     const slip = await buy("2046-11-11T05:00:00.000Z", 60_000);
     await owner.client.ventures.startFattening({ id: movedOn.id });
-    const manager = await as("manager", "2046-11-11T07:00:00.000Z");
+    const manager = await as("owner", "2046-11-11T07:00:00.000Z");
     // The Correction Window is thirty days and a Venture does not wait that long: a slip at the haat
     // is still a slip once buying has finished.
     await manager.client.intake.correct({
       id: slip.intakeId,
       reason: "ভেঞ্চারের গরু ছিল",
-      changes: { owner: { from: null, to: movedOn.id } },
+      changes: {
+        owner: { from: null, to: movedOn.id },
+        ...PAID_BY_THE_VENTURE,
+      },
     });
     const her = await owner.client.animals.byTag({ tagNumber: slip.tagNumber });
     expect(her.owner).toMatchObject({ id: movedOn.id });
@@ -214,10 +241,11 @@ describe("whose animal she is", () => {
       driver: `চালক ${suffix}`,
       soldAt: new Date("2046-11-12T06:00:00.000Z"),
     });
-    await manager.client.intake.correct({
+    const buyer = await as("owner", "2046-11-12T06:30:00.000Z");
+    await buyer.client.intake.correct({
       id: slip.intakeId,
       reason: "ভেঞ্চারের গরু ছিল, বিক্রির পরে ধরা পড়েছে",
-      changes: { owner: { from: null, to: ventureId } },
+      changes: { owner: { from: null, to: ventureId }, ...PAID_BY_THE_VENTURE },
     });
     const owner = await as("owner", "2046-11-12T07:00:00.000Z");
     const itsOwn = await owner.client.money.list({ ...PERIOD, ventureId });
@@ -229,31 +257,29 @@ describe("whose animal she is", () => {
   });
 
   it("asks the Owner again when money changes purses", async () => {
-    // Over the Approval Threshold and entered by the Manager, so it waits for the Owner.
-    const big = await buy("2046-11-13T05:00:00.000Z", 150_000);
-    const owner = await as("owner", "2046-11-13T06:00:00.000Z");
-    const waiting = await owner.client.money.list(PERIOD);
-    const asBought = waiting.events.find(
-      (one) => one.sourceId === big.intakeId
-    );
-    expect(asBought?.approval).toBe("awaiting");
-    await owner.client.money.approve({
-      id: asBought?.id ?? "",
-      amountBdt: asBought?.amountBdt ?? 0,
-    });
-
+    // A Venture's bull at the gate, the Owner's to take in and paid from its account by bank.
+    const big = await buy("2046-11-13T05:00:00.000Z", 150_000, ventureId);
+    // Said by the Manager to have been the Farm's all along: the Farm's hundred and fifty-one thousand is a
+    // different question from the Investors', and the farm asks it of the Owner.
     const manager = await as("manager", "2046-11-13T07:00:00.000Z");
     await manager.client.intake.correct({
       id: big.intakeId,
-      reason: "ভেঞ্চারের টাকায় কেনা",
-      changes: { owner: { from: null, to: ventureId } },
+      reason: "খামারের টাকায় কেনা",
+      changes: {
+        owner: { from: ventureId, to: null },
+        targetWindow: {
+          from: {
+            start: WINDOW.targetWindowStart,
+            end: WINDOW.targetWindowEnd,
+          },
+          to: { start: "2047-06-01", end: "2047-06-03" },
+        },
+      },
     });
     const after = await as("owner", "2046-11-13T08:00:00.000Z");
-    const itsOwn = await after.client.money.list({ ...PERIOD, ventureId });
-    // She approved the farm's hundred and fifty-one thousand. An Investor's is a different question,
-    // and the farm asks it again.
+    const theFarms = await after.client.money.list(PERIOD);
     expect(
-      itsOwn.events.find((one) => one.sourceId === big.intakeId)
+      theFarms.events.find((one) => one.sourceId === big.intakeId)
     ).toMatchObject({ approval: "awaiting" });
   });
 

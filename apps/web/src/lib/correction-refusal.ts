@@ -182,6 +182,7 @@ const WORDED_REFUSALS = {
   float_already_drawn: "refusal.floatAlreadyDrawn",
   trip_is_another_ventures: "refusal.tripIsAnotherVentures",
   trip_is_the_farms: "refusal.tripIsTheFarms",
+  venture_buys_by_bank: "refusal.ventureBuysByBank",
   float_already_reconciled: "refusal.floatAlreadyReconciled",
   float_over: "refusal.floatOver",
   float_short: "refusal.floatShort",
