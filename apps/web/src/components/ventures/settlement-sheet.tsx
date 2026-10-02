@@ -182,9 +182,25 @@ const WhatItIsAbout = ({ block }: { block: Block }) => {
       return <span>{taka(block.openFloatBdt)}</span>;
     }
     case "a_reimbursement_is_owed": {
+      // The months never repaid, and what months already repaid have moved by since — the next Reimbursement carries
+      // it. Missing from an answer cached before it was said.
+      const carry = block.carryBdt ?? 0;
       return (
         <span>
-          {block.months.map((month) => saidMonth(month, language)).join(", ")}
+          {[
+            block.months.length === 0
+              ? null
+              : block.months
+                  .map((month) => saidMonth(month, language))
+                  .join(", "),
+            carry === 0
+              ? null
+              : t(carry > 0 ? "ventures.toCarry" : "ventures.toCarryBack", {
+                  taka: taka(Math.abs(carry)),
+                }),
+          ]
+            .filter((one) => one !== null)
+            .join(" · ")}
         </span>
       );
     }

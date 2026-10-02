@@ -1,4 +1,5 @@
-import { FakeClock } from "@OpenFarm/test-harness";
+import { ventureMovement } from "@OpenFarm/db/schema/venture";
+import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { PAID_FROM_THE_ACCOUNT, putCapitalIn } from "../test/bought-by-bank";
@@ -137,13 +138,41 @@ beforeAll(async () => {
 });
 
 describe("a Settlement whose account does not add up", () => {
-  it("waits, and says by how much, while the account holds a cost it never paid the Farm", async () => {
+  it("owes a cost it never paid the Farm, as what the next Reimbursement is to carry", async () => {
     const owner = await as("owner", "2075-03-02T04:00:00.000Z");
     const settlement = await owner.client.ventures.settlement({ ventureId });
-    // The late two thousand is charged to the Investors and still sits in their account: it is the Farm's.
+    // The late two thousand is charged to the Investors and still sits in their account: it is the Farm's, owed,
+    // and so not money nobody can explain.
+    expect(settlement.blocks).toContainEqual({
+      word: "a_reimbursement_is_owed",
+      months: [],
+      carryBdt: 2000,
+    });
+    expect(settlement.blocks.map((one) => one.word)).not.toContain(
+      "the_account_does_not_add_up"
+    );
+  });
+
+  it("waits, and says by how much, while the account is short of what nothing explains", async () => {
+    // A payment out of the account that no record of the farm's accounts for — what a defect, or a hand in the
+    // database, would leave behind.
+    await scratchDb()
+      .insert(ventureMovement)
+      .values({
+        id: `stray-${suffix}`,
+        farmId: theFarm().id,
+        ventureId,
+        kind: "farm_share",
+        amountBdt: 1500,
+        movedOn: "2075-02-20",
+        reference: `অজানা ${suffix}`,
+        createdAt: new Date("2075-02-20T04:00:00.000Z"),
+      });
+    const owner = await as("owner", "2075-03-02T04:00:00.000Z");
+    const settlement = await owner.client.ventures.settlement({ ventureId });
     expect(settlement.blocks).toContainEqual({
       word: "the_account_does_not_add_up",
-      overBdt: 2000,
+      overBdt: -1500,
     });
     await expect(
       owner.client.ventures.approveSettlement({ ventureId })

@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
-import { lastMonth } from "@/lib/months";
+import { lastMonth, saidMonth } from "@/lib/months";
 import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
@@ -66,6 +66,7 @@ const NOTHING_YET = {
   herdBdt: 0,
   tripsBdt: 0,
   totalBdt: 0,
+  ownBdt: 0,
   madeOf: {
     feed: [] as readonly Named[],
     medicine: [] as readonly Named[],
@@ -87,6 +88,10 @@ const WhatItIsMadeOf = ({
         herdBdt: number;
         tripsBdt: number;
         totalBdt: number;
+        /** The month's own figure, and what it carries of earlier months already repaid. Missing from an answer
+         *  cached before they were said. */
+        ownBdt?: number;
+        carried?: readonly { month: string; bdt: number }[];
         madeOf: {
           feed: readonly Named[];
           medicine: readonly Named[];
@@ -102,6 +107,8 @@ const WhatItIsMadeOf = ({
   // Defaulted once rather than at every figure: the month is either answered or it is not, and ten
   // separate fallbacks only made the same statement ten times.
   const said = consumed ?? NOTHING_YET;
+  // Earlier months already repaid that have moved since, more or less: a cost that landed late, or one put right.
+  const carried = consumed?.carried ?? [];
   // One head and the things that made it, five times over. The Vet's fee names nobody — a visit is
   // charged to the animals it named, and the visit is the thing.
   const heads: { label: MessageKey; bdt: number; lines: readonly Named[] }[] = [
@@ -132,8 +139,26 @@ const WhatItIsMadeOf = ({
         </Fragment>
       ))}
       <div className="mt-1 border-t pt-1 font-medium">
-        <Line label={t("ventures.thatMonth")}>{taka(said.totalBdt)}</Line>
+        <Line label={t("ventures.thatMonth")}>
+          {taka(said.ownBdt ?? said.totalBdt)}
+        </Line>
       </div>
+      {carried.length === 0 ? null : (
+        <>
+          <Line label={t("ventures.carriedFromBefore")}>{null}</Line>
+          {carried.map((line) => (
+            <Line
+              key={line.month}
+              label={`· ${saidMonth(line.month, language)}`}
+            >
+              {line.bdt < 0 ? `− ${taka(-line.bdt)}` : taka(line.bdt)}
+            </Line>
+          ))}
+          <div className="mt-1 border-t pt-1 font-medium">
+            <Line label={t("ventures.toBeSent")}>{taka(said.totalBdt)}</Line>
+          </div>
+        </>
+      )}
     </div>
   );
 };

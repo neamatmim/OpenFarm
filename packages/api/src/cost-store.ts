@@ -22,6 +22,7 @@ import {
   feedShares,
   groupedBy,
   marginOf,
+  monthOf,
   penHistoryOf,
   priceHistory,
   roundKg,
@@ -29,6 +30,7 @@ import {
   roundTaka,
   roundedCosts,
   herdShares,
+  startOfFarmDay,
   sidesOverTime,
   tripShares,
 } from "@OpenFarm/domain";
@@ -907,3 +909,56 @@ export const consumedBy = (
     },
   };
 };
+
+/** One earlier month a Reimbursement carried, and by how much — less where it came to less than was paid. */
+export interface CarriedLine {
+  month: string;
+  bdt: number;
+}
+
+/** A month's Reimbursement as its Venture Movement keeps it. */
+export interface Reimbursed {
+  forMonth: string | null;
+  amountBdt: number;
+  carried: readonly CarriedLine[] | null;
+}
+
+/**
+ * What a Venture owes the Farm, month by month: what each month its Animals ran comes to now, what has been paid
+ * for it — its own Reimbursement's figure (its amount less what it carried) and every line carried for it since —
+ * and the difference. A cost landing in a month already repaid, or a Correction moving one, shows here as that
+ * month's difference, which the next Reimbursement carries; a month never repaid owes all of it.
+ */
+export const owedByMonth = (
+  costs: FarmCosts,
+  ownedThenBy: (animalId: string, at: Date) => string | null,
+  ventureId: string,
+  months: readonly string[],
+  paid: readonly Reimbursed[]
+) =>
+  months.map((month) => {
+    const comesToBdt = consumedBy(
+      costs,
+      ownedThenBy,
+      ventureId,
+      monthOf(startOfFarmDay(`${month}-01`))
+    ).totalBdt;
+    const own = paid.find((one) => one.forMonth === month);
+    const ownFigureBdt = own
+      ? own.amountBdt -
+        (own.carried ?? []).reduce((sum, line) => sum + line.bdt, 0)
+      : 0;
+    const carriedForBdt = paid
+      .flatMap((one) => one.carried ?? [])
+      .filter((line) => line.month === month)
+      .reduce((sum, line) => sum + line.bdt, 0);
+    const paidBdt = roundTaka(ownFigureBdt + carriedForBdt);
+    return {
+      month,
+      comesToBdt,
+      /** Whether the month has had a Reimbursement of its own. */
+      repaid: own !== undefined,
+      paidBdt,
+      stillOwedBdt: roundTaka(comesToBdt - paidBdt),
+    };
+  });

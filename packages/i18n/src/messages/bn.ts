@@ -1232,6 +1232,10 @@ export const bn: Record<MessageKey, string> = {
   "ventures.sellingTrips": "হাটে নেওয়ার যাত্রা",
   "ventures.herdCosts": "পালের খরচের ভাগ",
   "ventures.thatMonth": "ওই মাসে",
+  "ventures.carriedFromBefore": "আগের মাস থেকে",
+  "ventures.toBeSent": "মোট পাঠানো হবে",
+  "ventures.toCarry": "আগের মাসগুলোর আরও {taka} পরের ফেরতে যাবে",
+  "ventures.toCarryBack": "আগের মাসগুলোর {taka} পরের ফেরত থেকে কমবে",
   "ventures.sellInternally": "গরু এক পার্স থেকে আরেক পার্সে",
   "ventures.internalSaleHint":
     "খামারের পাল আর ভেঞ্চারের মধ্যে গরু বিক্রি — দাম তার শেষ ওজন গুণ আপনার দেওয়া দর।",

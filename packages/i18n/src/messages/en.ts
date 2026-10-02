@@ -1320,6 +1320,12 @@ export const en = {
   "ventures.sellingTrips": "Selling trips",
   "ventures.herdCosts": "Share of herd costs",
   "ventures.thatMonth": "That month",
+  "ventures.carriedFromBefore": "Carried from months before",
+  "ventures.toBeSent": "To be sent",
+  "ventures.toCarry":
+    "{taka} more of months already repaid, to go with the next Reimbursement",
+  "ventures.toCarryBack":
+    "{taka} less of months already repaid, to come off the next Reimbursement",
   "ventures.sellInternally": "Move an animal between purses",
   "ventures.internalSaleHint":
     "An animal sold between the farm's herd and a Venture, priced at her latest weigh-in times a rate you enter.",
