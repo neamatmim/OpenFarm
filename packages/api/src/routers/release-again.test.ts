@@ -22,7 +22,7 @@ const as = (role: "owner" | "manager", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 let releaseId = "";
-const tags = { kept: "", missed: "", corrected: "", byHand: "" };
+const tags = { kept: "", missed: "", corrected: "", byHand: "", later: "" };
 
 beforeAll(async () => {
   const owner = await as("owner", ARRIVED);
@@ -108,6 +108,30 @@ describe("a Release put off", () => {
     await keepHimIn(day, tags.kept, again?.id ?? "");
     const later = await hisReleases(day, tags.kept);
     expect(openAgain(later.rows)).toHaveLength(2);
+  });
+
+  it("let out on the work raised again, is done — not called off", async () => {
+    const first = await hisReleases(RELEASE_DAY, tags.later);
+    const [work] = first.rows;
+    await keepHimIn(RELEASE_DAY, tags.later, work?.id ?? "");
+    const kept = await hisReleases(RELEASE_DAY, tags.later);
+    const [again] = openAgain(kept.rows);
+    const day = new Date(again?.dueAt ?? 0).toISOString();
+    const manager = await as("manager", day);
+    await manager.client.instances.claim({ id: again?.id ?? "" });
+    for (const stepId of ["healthy", "doses", "release"]) {
+      // oxlint-disable-next-line no-await-in-loop -- the steps are walked in their order
+      await manager.client.instances.completeStep({
+        instanceId: again?.id ?? "",
+        stepId,
+        animalTag: tags.later,
+        evidence: [true],
+      });
+    }
+    const after = await hisReleases(day, tags.later);
+    expect(after.rows.find((one) => one.id === again?.id)?.state).not.toBe(
+      "called_off"
+    );
   });
 
   it("is raised again when it is closed Missed", async () => {

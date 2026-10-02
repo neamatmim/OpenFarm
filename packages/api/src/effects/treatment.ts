@@ -8,6 +8,7 @@ import type { Tx } from "../audit";
 import { recomputeWithdrawal } from "../health-store";
 import { lotOfTheLatestDose } from "../medicine-stock";
 import { tell } from "../notice";
+import { callOffPutOffDose, raiseThePutOff } from "../put-off-store";
 import type { EffectInput, EffectKind, EffectResult } from "./effect";
 import { asPublished, writtenNote } from "./evidence";
 
@@ -22,6 +23,7 @@ type TreatmentFacts = Pick<
   | "recordedBy"
   | "recordedAt"
   | "now"
+  | "trail"
 >;
 
 /** What a Step records when it gives a dose, or takes one back. */
@@ -208,6 +210,30 @@ const tellIfItsLotHadExpired = async (
  * The row is keyed on the work and the animal, so a phone sending the same dose twice records
  * it once, and a Correction back to a skip takes it off her again.
  */
+/**
+ * An arrival dose put off — skipped for any reason — is raised again for him after the farm's days; given, on the work
+ * first raised or on one raised again, whatever else was raised for it is owed no more. Nothing for any other dose:
+ * which work is an arrival dose is the store's to say.
+ */
+const followTheArrivalDose = async (tx: Tx, input: TreatmentFacts) => {
+  if (input.skipped) {
+    await raiseThePutOff(
+      tx,
+      input.instance.farmId,
+      input.instance.id,
+      input.recordedAt,
+      input.now
+    );
+    return;
+  }
+  await callOffPutOffDose(
+    tx,
+    input.instance.farmId,
+    { id: input.instance.id, cause: input.instance.cause },
+    input.trail
+  );
+};
+
 const giveTheDose = async (
   tx: Tx,
   input: TreatmentFacts
@@ -257,6 +283,7 @@ const giveTheDose = async (
   if (dose && !input.skipped) {
     await tellIfItsLotHadExpired(tx, input, dose.id);
   }
+  await followTheArrivalDose(tx, input);
   return {
     kind: "treatment",
     number: dose?.number ?? 1,

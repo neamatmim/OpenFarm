@@ -4,7 +4,7 @@ import type { Tx } from "../audit";
 import { pensThatSuit } from "../band-store";
 import { AS_WEIGHED, weighedAs } from "../feed-store";
 import { entersState, loadLiveAnimal, walkByStep } from "../herd-store";
-import { callOffPutOffReleases, raiseThePutOffRelease } from "../put-off-store";
+import { callOffPutOffReleases, raiseThePutOff } from "../put-off-store";
 import type { EffectInput, EffectResult, EffectKind } from "./effect";
 import { asPublished } from "./evidence";
 
@@ -51,7 +51,7 @@ const letHimOut = async (
   if (input.skipped) {
     // Kept in — unwell, or not today: his Release is raised again after the farm's days, until he is out.
     if (live.state === "quarantine") {
-      await raiseThePutOffRelease(
+      await raiseThePutOff(
         tx,
         farmId,
         input.instance.id,
@@ -86,7 +86,13 @@ const letHimOut = async (
     now: input.now,
   });
   // Out: any Release raised again for him is owed no more.
-  await callOffPutOffReleases(tx, farmId, live.id, input.trail);
+  await callOffPutOffReleases(
+    tx,
+    farmId,
+    live.id,
+    input.trail,
+    input.instance.id
+  );
   const weighed = await tx.query.animal.findFirst({
     where: { id: animalId, farmId },
     columns: { id: true },

@@ -80,7 +80,7 @@ import {
   recordMortality,
   writeDisposal,
 } from "../mortality-store";
-import { callOffPutOffReleases } from "../put-off-store";
+import { arrivalDosesOwed, callOffPutOffReleases } from "../put-off-store";
 import { forbidden, requireRole } from "../roles";
 import {
   animalsInScopeWhere,
@@ -606,6 +606,31 @@ export const animalsRouter = {
         ...her,
         ageAtIntake: intake ?? null,
       }));
+    }),
+
+  /**
+   * The arrival doses she still owes — skipped, or closed Missed, and not given since — with when each was first due and
+   * when it comes round next. Read on her page under her doses.
+   */
+  dosesOwed: protectedProcedure
+    .use(requireRole("owner", "manager", "staff", "vet"))
+    .input(z.object({ tagNumber: tagInput }))
+    .handler(async ({ context, input }) => {
+      const her = await context.db.query.animal.findFirst({
+        where: {
+          farmId: context.farm.id,
+          tagNumber: input.tagNumber.toUpperCase(),
+        },
+        columns: { id: true },
+      });
+      return her
+        ? await arrivalDosesOwed(
+            context.db,
+            context.farm.id,
+            her.id,
+            context.clock.now()
+          )
+        : [];
     }),
 
   /** Any signed-in person may look up any animal by Tag Number, read-only. */
