@@ -3,7 +3,10 @@ import { sale } from "@OpenFarm/db/schema/fattening";
 import { bakiPutRight, farmDayOf, paidAtTheGate } from "@OpenFarm/domain";
 import { z } from "zod";
 
-import { tellIfSoldUnderCost } from "../animal-price-store";
+import {
+  tellIfShrankTooMuch,
+  tellIfSoldUnderCost,
+} from "../animal-price-store";
 import type { Tx } from "../audit";
 import { bakiOrRefuse, paidNowInput, promisedByInput } from "../baki-store";
 import { assertTheHand, handOfTheRecord } from "../cash-store";
@@ -159,6 +162,7 @@ export const saleCorrection: CorrectionKind<
       to.weightKg !== undefined;
     if (worthMoved) {
       await tellIfSoldUnderCost(tx, row.farmId, row.id, now);
+      await tellIfShrankTooMuch(tx, row.farmId, row.id, now);
     }
   },
 };

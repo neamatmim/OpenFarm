@@ -175,6 +175,11 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
     audience: [theOwner],
     entity: "intake",
   },
+  // The Owner asks the Manager what happened on the way; about the Sale, so a Correction does not tell it twice.
+  large_shrink: {
+    audience: [theOwner],
+    entity: "sale",
+  },
   // The Owner signs the count off and asks where the cash went; the Manager counted it. About the one count, so a count
   // put right is not told again.
   cash_short: {

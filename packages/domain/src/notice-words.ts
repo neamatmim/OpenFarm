@@ -19,6 +19,25 @@ const named = (bn: unknown, en: unknown, language: Language) =>
   String((language === "bn" ? bn : en) ?? bn ?? "");
 
 /** A day or an instant the Notice carries, said in the reader's own calendar; nothing when it carries none. */
+/** The kilos a Sale's low price was worked on and whose they were, after the price; nothing for an older notice. */
+const floorBasis = (
+  facts: { floorKg?: number; floorFrom?: "scale" | "day" },
+  language: Language
+): string => {
+  if (typeof facts.floorKg !== "number") {
+    return "";
+  }
+  const kg = formatNumber(facts.floorKg, language);
+  if (language === "bn") {
+    return facts.floorFrom === "scale"
+      ? ` — শেষ ওজন থেকে ধরা ${kg} কেজির হিসাবে`
+      : ` — বিক্রির দিনের ${kg} কেজির হিসাবে`;
+  }
+  return facts.floorFrom === "scale"
+    ? ` — on ${kg} kg from her last weighing`
+    : ` — on the day's ${kg} kg`;
+};
+
 const saidDate = (
   value: unknown,
   language: Language,
@@ -113,6 +132,7 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
       typeof facts.lowBdt === "number"
         ? `৳${formatNumber(facts.lowBdt, language)}`
         : "—",
+    basis: floorBasis(facts, language),
   }),
   entered_twice: (facts, language) => ({
     name: facts.name,
@@ -125,6 +145,13 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     venture: facts.venture,
     amount: Number(facts.missedBdt),
     day: saidDate(facts.dueOn, language),
+  }),
+  large_shrink: (facts, language) => ({
+    tag: facts.tag,
+    last: Number(facts.lastKg),
+    day: saidDate(facts.lastOn, language),
+    sale: Number(facts.saleKg),
+    percent: Number(facts.percent),
   }),
   arrival_weight_short: (facts, language) => ({
     tag: facts.tag,

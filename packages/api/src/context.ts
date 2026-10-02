@@ -144,6 +144,8 @@ export interface Context {
     feedPriceJumpPercent: number;
     /** How far under her arrival weight a bought animal's first Weigh-in may come before the Owner is told. */
     arrivalShortPercent: number;
+    /** What the farm allows Shrink to take off a bull before the Owner is told, and what a Sale's floor allows for. */
+    shrinkTellPercent: number;
     /** How many days of a feed left, at the rate it is fed, before it is Running Low. */
     feedDaysLow: number;
     /** How far a Cash Count may come up short before the Owner is told. */

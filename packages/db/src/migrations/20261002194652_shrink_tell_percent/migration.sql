@@ -1,0 +1,1 @@
+ALTER TABLE "farm" ADD COLUMN "shrink_tell_percent" integer DEFAULT 8 NOT NULL;

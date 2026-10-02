@@ -4631,7 +4631,7 @@ export const bn: Record<MessageKey, string> = {
     "{day} থেকে কোরবানি শেষ, তবু সেই ঈদের জন্য রাখা {animals}টি পশু এখনো খামারে (তার {inVentures}টি ভেঞ্চারের)",
   "digest.stillHereAfterEid": "{count}টি ঈদের পরেও পশু খামারে রয়ে গেছে",
   "alerts.soldUnderCost":
-    "{tag} বিক্রি হলো ৳{price}-তে; তার খরচ পড়েছিল ৳{cost}, আর কম দরে তার ওজনের দাম {low}",
+    "{tag} বিক্রি হলো ৳{price}-তে; তার খরচ পড়েছিল ৳{cost}, আর কম দরে তার ওজনের দাম {low}{basis}",
   "digest.soldUnderCost": "{count}টি পশু খরচ বা বাজারের চেয়ে কম দামে বিক্রি হয়েছে",
   "alerts.enteredTwice":
     "{by} {day} তারিখে {name}-কে ৳{amount} দ্বিতীয়বার লিখেছেন, একই রকম একটি লেখা আছে জেনেও",
@@ -4642,6 +4642,9 @@ export const bn: Record<MessageKey, string> = {
     "{tag} লরি থেকে নেমেছিল {arrival} কেজি; {days} দিন পর প্রথম ওজনে {weighed} কেজি, {percent}% কম — কেনা হয়েছিল {seller}-এর কাছ থেকে",
   "digest.arrivalWeightShort":
     "{count}টি কেনা পশু প্রথম ওজনে কেনার ওজনের চেয়ে কম হয়েছে",
+  "alerts.largeShrink":
+    "{tag}-এর শেষ ওজন ছিল {last} কেজি ({day}); বিক্রির পাল্লায় {sale} কেজি — {percent}% কমেছে",
+  "digest.largeShrink": "{count}টি পশুর বিক্রির সময় ওজন অনেক কমেছে",
   "alerts.openTheEids": "ঈদের তালিকা খুলুন",
   "alerts.openTheMoney": "টাকার হিসাব খুলুন",
   "alerts.openTheCash": "হাতে নগদ খুলুন",
@@ -4729,6 +4732,10 @@ export const bn: Record<MessageKey, string> = {
   "params.arrivalShortHint":
     "কেনা পশুর প্রথম ত্রিশ দিনের মধ্যে প্রথম ওজন নেওয়ার সময় সে লরি থেকে নামার ওজনের চেয়ে এতটা কম হলে সন্ধ্যার খবরে আপনাকে জানানো হবে।",
   "params.arrivalShortPercent": "এর বেশি কম হলে",
+  "params.shrink": "বিক্রির সময় ওজন কমা",
+  "params.shrinkHint":
+    "শেষ ওজন নেওয়া থেকে বিক্রির পাল্লা পর্যন্ত লরি, হাট আর পানি না পাওয়ায় একটি পশুর এতটা ওজন কমতে পারে। এর বেশি কমলে সন্ধ্যার খবরে আপনাকে জানানো হবে, আর বিক্রির কম দামের হিসাব কখনো শেষ ওজন থেকে এর চেয়ে কম ধরা হবে না।",
+  "params.shrinkTellPercent": "এর বেশি কমলে",
   "params.missing": "পাওয়া যাচ্ছে না এমন পশু",
   "params.missingHint":
     "রাউন্ডে খুঁজে না পাওয়া পশু কত দিন পাওয়া না গেলে আপনাকে জিজ্ঞেস করা হবে তাকে হারিয়ে গেছে বলে বাদ দেবেন কিনা। তার পাতা থেকে আগেও বাদ দিতে পারেন।",

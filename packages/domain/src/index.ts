@@ -341,7 +341,13 @@ export type { BoughtAt, ScaleReading } from "./arrival-weight";
 export { weighedShort } from "./arrival-weight";
 export type { ListedDisease } from "./disease-names";
 export type { Shrink } from "./shrink";
-export { SHRINK_STALE_DAYS, shrinkOf, shrinkOfMany } from "./shrink";
+export {
+  SHRINK_STALE_DAYS,
+  floorWeightOf,
+  shrankPast,
+  shrinkOf,
+  shrinkOfMany,
+} from "./shrink";
 export { diseaseWord, namesTheDisease } from "./disease-names";
 export type { IllAgain } from "./health";
 export type {

@@ -232,6 +232,10 @@ export const farm = pgTable("farm", {
    *  may come before the Owner is told, in the evening's post: 5%. A convention, not a measured line: a lorry takes
    *  weight off a bull and a fortnight puts it back. The Owner's alone, as the Manager buys. */
   arrivalShortPercent: integer("arrival_short_percent").notNull().default(5),
+  /** What the farm allows a lorry, a haat and a night without water to take off a bull between his last weighing and
+   *  the sale's scale: 8%. Past it the Owner is told, in the evening's post; and a Sale's low price a kilo is never set
+   *  against less than his last weighing less it. The Owner's alone, as the Manager sells. */
+  shrinkTellPercent: integer("shrink_tell_percent").notNull().default(8),
   /** How many days of a feed, at the rate it has been fed lately, before it is Running Low and the Manager is told in
    *  the evening's post: a week, time to order (the Owner, 2026-09-29). The Manager's to set, who keeps the store. */
   feedDaysLow: integer("feed_days_low").notNull().default(7),
