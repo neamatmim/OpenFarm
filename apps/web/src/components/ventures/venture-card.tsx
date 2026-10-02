@@ -116,6 +116,8 @@ export const moneyOf = (venture: Venture) => ({
   balanceBdt: venture.balanceBdt ?? 0,
   cattleBudgetHeldBdt: venture.cattleBudgetHeldBdt ?? 0,
   runningBudgetHeldBdt: venture.runningBudgetHeldBdt ?? 0,
+  /** What its animals have cost the Farm since the last Reimbursement: in the account, but the Farm's. */
+  owedTheFarmBdt: venture.owedTheFarmBdt ?? 0,
   spentBdt: venture.spentBdt ?? 0,
   reimbursedBdt: venture.reimbursedBdt ?? 0,
   advancedBdt: venture.advancedBdt ?? 0,
@@ -308,6 +310,11 @@ const MoneyLines = ({ venture }: { venture: Venture }) => {
             cattle: taka(money.cattleBudgetHeldBdt),
             running: taka(money.runningBudgetHeldBdt),
           })}
+        </Line>
+      ) : null}
+      {stillRunning(venture) && money.owedTheFarmBdt > 0 ? (
+        <Line label={t("ventures.owedTheFarm")}>
+          {taka(money.owedTheFarmBdt)}
         </Line>
       ) : null}
       {money.openFloatBdt === 0 ? null : (

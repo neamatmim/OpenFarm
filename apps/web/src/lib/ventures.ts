@@ -151,7 +151,10 @@ export const troubleWith = (venture: Venture): VentureTrouble[] => {
   if (venture.runningBudgetLow) {
     troubles.push({
       word: "running_budget_low",
-      leftBdt: venture.runningBudgetHeldBdt ?? 0,
+      // What is really left: what the account holds less what its animals have cost the Farm since the last
+      // Reimbursement. Missing from an answer cached before it was said.
+      leftBdt:
+        (venture.runningBudgetHeldBdt ?? 0) - (venture.owedTheFarmBdt ?? 0),
     });
   }
   if (pastWindUp(venture)) {

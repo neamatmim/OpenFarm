@@ -1234,6 +1234,7 @@ export const bn: Record<MessageKey, string> = {
   "ventures.thatMonth": "ওই মাসে",
   "ventures.carriedFromBefore": "আগের মাস থেকে",
   "ventures.toBeSent": "মোট পাঠানো হবে",
+  "ventures.owedTheFarm": "খামারের পাওনা",
   "ventures.toCarry": "আগের মাসগুলোর আরও {taka} পরের ফেরতে যাবে",
   "ventures.toCarryBack": "আগের মাসগুলোর {taka} পরের ফেরত থেকে কমবে",
   "ventures.sellInternally": "গরু এক পার্স থেকে আরেক পার্সে",
