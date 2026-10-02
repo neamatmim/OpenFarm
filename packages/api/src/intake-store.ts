@@ -183,11 +183,12 @@ export const assertTripIsOurs = async (
 };
 
 /**
- * That an animal bought on a funded outing belongs to the Venture that funded it.
+ * That an animal bought on a funded outing belongs to the purse that funded it: the Venture whose Float went, or the
+ * Farm where the Owner handed the Farm's own.
  *
- * The Manager went to the haat with one Venture's money, so every beast she brought home on that lorry
- * was bought with it. One written down as the Farm's, or as another Venture's, would be an animal one
- * purse paid for and another owns — and the Float could never be made to balance again.
+ * The Manager went to the haat with one purse's money, so every beast she brought home on that lorry
+ * was bought with it. One written down as another purse's would be an animal one purse paid for and
+ * another owns — and the Float could never be made to balance again.
  */
 export const assertSheBelongsWithTheFloat = async (
   tx: Tx,
@@ -201,7 +202,21 @@ export const assertSheBelongsWithTheFloat = async (
     where: { farmId, buyingTripId, kind: "float_out" },
     columns: { ventureId: true },
   });
-  if (float && float.ventureId !== ventureId) {
+  // The Farm's own Float is a Handover of cash naming the outing, not a Venture Movement.
+  const farms = float
+    ? null
+    : await tx.query.handover.findFirst({
+        where: { farmId, buyingTripId, float: "out" },
+        columns: { id: true },
+      });
+  // Whose money the lorry went on: a Venture's, the Farm's (null), or nobody's yet.
+  let paidBy: string | null | undefined;
+  if (float) {
+    paidBy = float.ventureId;
+  } else if (farms) {
+    paidBy = null;
+  }
+  if (paidBy !== undefined && paidBy !== (ventureId ?? null)) {
     throw new ORPCError("BAD_REQUEST", {
       message: "That outing went to the haat on another purse's money",
       data: { refusal: "not_whose_float_bought_her" },

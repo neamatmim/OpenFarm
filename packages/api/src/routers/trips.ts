@@ -112,6 +112,20 @@ export const tripsRouter = {
             : []
         )
       );
+      // The outings the Owner handed the Farm's own Float for: every animal on one is the Farm's.
+      const farmFloats = await context.db.query.handover.findMany({
+        where: {
+          farmId: context.farm.id,
+          float: "out",
+          buyingTripId: { in: rows.map((one) => one.id) },
+        },
+        columns: { buyingTripId: true },
+      });
+      const farmFloated = new Set(
+        farmFloats.flatMap((one) =>
+          one.buyingTripId ? [one.buyingTripId] : []
+        )
+      );
       // What each funded outing has bought, worked out by the one function that also refuses a count
       // that does not balance — so the sheet and the refusal can never disagree.
       const bought = new Map(
@@ -138,6 +152,8 @@ export const tripsRouter = {
           countedHome:
             one.floatReconciledAt !== null ||
             (float?.reconciledAt ?? null) !== null,
+          /** Whether the Owner handed the Farm's own Float for it: every animal it brings home is then the Farm's. */
+          farmFloat: farmFloated.has(one.id),
           /** The Buying Float this outing was given, where one was. */
           float: float
             ? { ...float, boughtBdt: bought.get(one.id) ?? 0 }

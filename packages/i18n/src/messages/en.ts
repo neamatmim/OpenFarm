@@ -1404,6 +1404,8 @@ export const en = {
   "refusal.floatAlreadyDrawn": "That outing has been given money already",
   "refusal.tripIsAnotherVentures":
     "That outing is bringing another Venture's animals home",
+  "refusal.tripIsTheFarms":
+    "That outing is bringing the Farm's own animals home",
   "refusal.floatAlreadyReconciled":
     "That outing's Float has been counted; it takes nothing more",
   "refusal.floatOver":
@@ -4081,6 +4083,9 @@ export const en = {
   "intake.ownerHint":
     "The Venture whose money bought her. Only a Venture that is buying may take one in.",
   "intake.ownerFromFloat": "Bought on {venture}'s Float, so she is {venture}'s",
+  "intake.ownerFromFarmFloat":
+    "This outing went to the haat on the Farm's own money, so she is the Farm's.",
+  "intake.farmFloat": "on the Farm's money",
   "intake.theFarms": "The farm's own",
   "intake.weight": "Weight on arrival",
   "intake.age": "Estimated age",

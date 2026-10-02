@@ -286,6 +286,8 @@ export const PriceSection = ({
     animals: number;
     /** Its Float counted home, so it takes no further animal. Missing from an answer cached before it was said. */
     countedHome?: boolean;
+    /** The Farm's own Float went on it, so she is the Farm's. Missing from an answer cached before it was said. */
+    farmFloat?: boolean;
     /** What the outing was given to buy with, where it was given one. */
     float: { ventureId: string; ventureName: string; amountBdt: number } | null;
   }[];
@@ -297,10 +299,25 @@ export const PriceSection = ({
   const { t, language } = useLanguage();
   const taka = useTaka();
   // The outing she came on, where it went on a Venture's Float: then whose she is is not a choice.
-  const float =
-    trips.find((one) => one.id === fields.buyingTripId)?.float ?? null;
+  const trip = trips.find((one) => one.id === fields.buyingTripId);
+  const float = trip?.float ?? null;
+  // Or on the Farm's own Float: then she is the Farm's, and no Venture is offered.
+  const farmFloated = trip?.farmFloat === true;
   // Named, because the guard against untranslated JSX text reads a comparison's angle bracket as a tag.
   const whoseIsAChoice = ventures.length !== 0 || float !== null;
+  let ownerHint = t("intake.ownerHint");
+  if (float) {
+    ownerHint = t("intake.ownerFromFloat", { venture: float.ventureName });
+  } else if (farmFloated) {
+    ownerHint = t("intake.ownerFromFarmFloat");
+  }
+  // On a funded outing she is the purse's that paid; otherwise whoever the sheet names.
+  let owner = fields.ventureId;
+  if (float) {
+    owner = float.ventureId;
+  } else if (farmFloated) {
+    owner = "";
+  }
   return (
     <Section
       description={t("intake.groupPriceHint")}
@@ -343,11 +360,13 @@ export const PriceSection = ({
             className="min-w-0 flex-1"
             id="intake-trip"
             onChange={(event) => {
-              const trip = trips.find((one) => one.id === event.target.value);
-              // An outing on a Venture's Float bought for that Venture: she is theirs, and nobody else's.
+              const picked = trips.find((one) => one.id === event.target.value);
+              // An outing on a Venture's Float bought for that Venture, one on the Farm's for the Farm: she is the
+              // purse's that paid, and nobody else's.
               onEdit({
                 buyingTripId: event.target.value,
-                ...(trip?.float ? { ventureId: trip.float.ventureId } : {}),
+                ...(picked?.float ? { ventureId: picked.float.ventureId } : {}),
+                ...(picked?.farmFloat ? { ventureId: "" } : {}),
               });
             }}
             value={fields.buyingTripId}
@@ -355,13 +374,14 @@ export const PriceSection = ({
             <option value="">{t("intake.noTrip")}</option>
             {/* An outing counted home takes no further animal, so it is not offered. */}
             {trips
-              .filter((trip) => !trip.countedHome)
-              .map((trip) => (
-                <option key={trip.id} value={trip.id}>
-                  {trip.wentTo} · {formatDate(trip.wentOn, language, "date")}
-                  {trip.float
-                    ? ` · ${trip.float.ventureName} ${taka(trip.float.amountBdt)}`
+              .filter((one) => !one.countedHome)
+              .map((one) => (
+                <option key={one.id} value={one.id}>
+                  {one.wentTo} · {formatDate(one.wentOn, language, "date")}
+                  {one.float
+                    ? ` · ${one.float.ventureName} ${taka(one.float.amountBdt)}`
                     : ""}
+                  {one.farmFloat ? ` · ${t("intake.farmFloat")}` : ""}
                 </option>
               ))}
           </NativeSelect>
@@ -377,20 +397,12 @@ export const PriceSection = ({
         </div>
       </FormField>
       {whoseIsAChoice ? (
-        <FormField
-          hint={
-            float
-              ? t("intake.ownerFromFloat", { venture: float.ventureName })
-              : t("intake.ownerHint")
-          }
-          id="intake-owner"
-          label={t("intake.owner")}
-        >
+        <FormField hint={ownerHint} id="intake-owner" label={t("intake.owner")}>
           <NativeSelect
-            disabled={float !== null}
+            disabled={float !== null || farmFloated}
             id="intake-owner"
             onChange={(event) => onEdit({ ventureId: event.target.value })}
-            value={float ? float.ventureId : fields.ventureId}
+            value={owner}
           >
             <option value="">{t("intake.theFarms")}</option>
             {ventures.map((one) => (

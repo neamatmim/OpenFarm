@@ -181,6 +181,7 @@ const WORDED_REFUSALS = {
   cattle_budget_short: "refusal.cattleBudgetShort",
   float_already_drawn: "refusal.floatAlreadyDrawn",
   trip_is_another_ventures: "refusal.tripIsAnotherVentures",
+  trip_is_the_farms: "refusal.tripIsTheFarms",
   float_already_reconciled: "refusal.floatAlreadyReconciled",
   float_over: "refusal.floatOver",
   float_short: "refusal.floatShort",
