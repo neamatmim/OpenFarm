@@ -22,6 +22,8 @@ const OWNERS_TRAIL = [
   "venture_movement",
   "venture_settlement",
   "venture_bank_check",
+  // What the Farm's own accounts held, against their statements: the Owner's check, as a Venture's is.
+  "farm_account_check",
   "request_to_join",
 ] as const;
 

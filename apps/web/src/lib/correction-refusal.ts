@@ -190,6 +190,7 @@ const WORDED_REFUSALS = {
   needs_its_reference: "refusal.needsItsReference",
   reference_used_already: "refusal.referenceUsedAlready",
   farm_account_listed_already: "refusal.farmAccountListedAlready",
+  before_the_first_reading: "refusal.beforeTheFirstReading",
   already_deposited: "refusal.alreadyDeposited",
   venture_sale_not_by_bkash: "refusal.ventureSaleNotByBkash",
   sale_cash_in_a_hand: "refusal.saleCashInAHand",

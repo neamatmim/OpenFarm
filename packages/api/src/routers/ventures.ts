@@ -37,6 +37,7 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { NEVER_CHECKED } from "../bank-standing";
 import { correct } from "../corrections/correction";
 import {
   ventureMovementCorrection,
@@ -123,7 +124,6 @@ import {
   heldByEach,
   termsAcrossOn,
   termsInForceOn,
-  NEVER_CHECKED,
   bankStandingOf,
   readBankCheck,
   readInternalSale,

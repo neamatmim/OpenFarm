@@ -24,6 +24,8 @@ import type { CapitalPaid } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { SnapshotValue, Tx } from "./audit";
+import type { BankStanding } from "./bank-standing";
+import { NEVER_CHECKED, standingOf } from "./bank-standing";
 import { tripCostOf } from "./trip-store";
 
 /** Struck in the domain, because the screen that shows the Owner the price strikes it too. */
@@ -998,31 +1000,6 @@ const balancesAtMonthEnds = async (
   return answer;
 };
 
-/** Whether a Bank Check still stands: what the farm believes that month ended on now, against what it
- *  believed when she read the statement. Agreeing with a figure nobody holds any more is not agreeing. */
-export const hasGoneStale = (believedNow: number, believedThen: number) =>
-  roundTaka(believedNow - believedThen) !== 0;
-
-/** How a Venture's account stands against the bank. */
-export interface BankStanding {
-  /** The last month anybody read the statement against the books, or nothing if nobody has. */
-  lastCheckedMonth: string | null;
-  /** The months still out, oldest first — every month a Settlement waits on, whether the statement
-   *  disagreed or the farm has since changed its mind about what the month ended on. A month put right
-   *  stops being one; a month nobody has looked at was never one — which is why the last month checked
-   *  is said as well. */
-  monthsOut: string[];
-  /** Those of them the farm has since changed its mind about, oldest first. A different problem from a
-   *  month that disagreed: this one needs the statement read again, that one needs explaining. */
-  monthsStale: string[];
-}
-
-export const NEVER_CHECKED: BankStanding = {
-  lastCheckedMonth: null,
-  monthsOut: [],
-  monthsStale: [],
-};
-
 /**
  * How each Venture's account stands against the bank: every month that is still out, not only the last
  * one read. An August that agreed says nothing about a July that did not, and a Settlement is owed the
@@ -1049,27 +1026,19 @@ export const bankStandingOf = async (
     ids,
     checks.map((one) => one.forMonth)
   );
-  const standing = new Map<string, BankStanding>();
-  for (const one of checks) {
-    const soFar = standing.get(one.ventureId) ?? {
-      ...NEVER_CHECKED,
-      monthsOut: [],
-      monthsStale: [],
-    };
-    const believedThen = one.expectedBdt;
-    const stale = hasGoneStale(
-      believedNow.get(one.forMonth)?.get(one.ventureId) ?? 0,
-      believedThen
-    );
-    if (stale) {
-      soFar.monthsStale.push(one.forMonth);
-    }
-    if (stale || roundTaka(one.readBdt - believedThen) !== 0) {
-      soFar.monthsOut.push(one.forMonth);
-    }
-    standing.set(one.ventureId, { ...soFar, lastCheckedMonth: one.forMonth });
-  }
-  return standing;
+  return new Map(
+    ids.flatMap((id) => {
+      const its = checks.filter((one) => one.ventureId === id);
+      return its.length === 0
+        ? []
+        : [
+            [
+              id,
+              standingOf(its, (month) => believedNow.get(month)?.get(id) ?? 0),
+            ] as const,
+          ];
+    })
+  );
 };
 
 /**

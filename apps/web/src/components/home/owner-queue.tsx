@@ -22,6 +22,7 @@ import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { BakiOverdueGroup } from "@/components/home/baki-overdue";
+import { FarmAccountsOutGroup } from "@/components/home/farm-accounts-out";
 import { LowStockWords } from "@/components/home/low-stock-line";
 import { MissingAnimalsGroup } from "@/components/home/missing-animals";
 import { MonthlyCostsGroup } from "@/components/home/monthly-costs";
@@ -458,6 +459,7 @@ const KindList = ({
           <MoneyGroup headless={headless} needsYou={needsYou} />
           <MonthlyCostsGroup monthlyCosts={needsYou.monthlyCosts} />
           <BakiOverdueGroup buyers={needsYou.bakiOverdue} forTheOwner />
+          <FarmAccountsOutGroup accounts={needsYou.farmAccountsOut} />
         </div>
       );
     }
@@ -537,6 +539,8 @@ export const NeedsYouTabs = ({
       count:
         needsYou.moneyAwaiting.length +
         monthlyCostsMissing(needsYou) +
+        // Missing from an answer a phone kept from before Farm Accounts were checked.
+        (needsYou.farmAccountsOut?.length ?? 0) +
         // Missing from an answer a phone kept from before Baki was written down.
         (needsYou.bakiOverdue?.length ?? 0),
     },

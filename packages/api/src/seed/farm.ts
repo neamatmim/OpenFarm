@@ -22,6 +22,7 @@ import {
   stockTheFarm,
   writeThePlaybook,
 } from "./standing";
+import { readTheStatements } from "./statements";
 import { openTheVentures, runTheVentures } from "./ventures";
 import { VISITING_VET, callInAVisitingVet } from "./visit";
 
@@ -73,6 +74,8 @@ export const seedFarm = async (db: Database) => {
   await liveTheDays(farm, herd, happenings, (line) => step(line));
   step("a visiting vet called in about a lame cow");
   await callInAVisitingVet(farm, db, clock, today);
+  step("the office bKash statements read, the last one short");
+  await readTheStatements(farm);
 
   return {
     password: SEED_PASSWORD,
