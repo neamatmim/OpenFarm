@@ -42,7 +42,7 @@ at Settlement and never paid to the Farm: it stays in the Venture Account, and n
 | 02  | A late cost rides on the next month's Reimbursement (done) | 01         |
 | 03  | A month with a price missing is not reimbursed (done) | 02         |
 | 04  | The Owner is told a month's Reimbursement is due (done) | 02         |
-| 05  | The Running Budget warning counts what is owed      | 02         |
+| 05  | The Running Budget warning counts what is owed (done) | 02         |
 
 **Settled with the Owner, 2026-10-02, and not to be re-asked:**
 

@@ -47,7 +47,11 @@ export const VenturesAtWork = () => {
               <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span>
                   {t("venturesAtWork.feedingLeft", {
-                    left: taka(one.runningBudgetHeldBdt),
+                    // Less what its animals have cost the Farm since the last Reimbursement — missing from an
+                    // answer cached before it was said.
+                    left: taka(
+                      one.runningBudgetHeldBdt - (one.owedTheFarmBdt ?? 0)
+                    ),
                   })}
                 </span>
                 <span>

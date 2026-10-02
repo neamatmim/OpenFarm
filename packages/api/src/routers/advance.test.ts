@@ -173,7 +173,6 @@ beforeAll(async () => {
   // Her own line, and not the farm's default: a test that sets the default proves nothing.
   await owner.client.farm.setParameters({ runningBudgetWarnBdt: 40_000 });
   ventureId = await funded(owner, 1);
-  await theyEat(owner);
 });
 
 describe("the Running Budget", () => {
@@ -189,7 +188,8 @@ describe("the Running Budget", () => {
 
   it("says so once it falls below the level the Owner set", async () => {
     const owner = await as("owner", "2047-05-05T04:00:00.000Z");
-    // The animals eat their way through most of it: a Reimbursement is what draws it down.
+    // The animals eat their way through most of it, on the Farm's feed: owed the Farm until a Reimbursement repays it.
+    await theyEat(owner);
     const trip = await owner.client.trips.record({
       wentTo: `হাট ${suffix}`,
       wentOn: "2047-05-05",
@@ -206,11 +206,13 @@ describe("the Running Budget", () => {
       paymentMethod: "bank",
       reference: `FLT-${suffix}`,
     });
-    // The Float is cattle money, so the Running Budget is untouched by it.
+    // The Float is cattle money, so the Running Budget the account holds is untouched by it — but what the animals
+    // have eaten of the Farm's feed is owed the Farm, and what is really left is under her line already.
     const afterFloat = await theVenture(owner);
     expect(afterFloat).toMatchObject({
       runningBudgetHeldBdt: 200_000,
-      runningBudgetLow: false,
+      owedTheFarmBdt: 164_000,
+      runningBudgetLow: true,
     });
 
     // Then the month's feed is repaid, and what is left to keep them with is under the fifth the

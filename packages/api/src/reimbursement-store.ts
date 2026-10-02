@@ -17,6 +17,10 @@ import { ownedThenByOf } from "./venture-store";
 
 type Reader = Pick<Database | Tx, "query">;
 
+/** The Ventures whose animals the Farm is feeding: not one still Open, which has bought nothing, nor one whose run is
+ *  over. */
+const RUNNING = ["buying", "fattening", "selling"] as const;
+
 /**
  * One month's Reimbursement as the farm works it out: what a Venture's Animals consumed that month of what the Farm
  * bought, and, besides its own, every earlier month already repaid whose figure has moved since, more or less — a cost
@@ -93,9 +97,56 @@ export const aMonthsReimbursement = async (
   };
 };
 
-/** The Ventures whose animals the Farm is feeding: not one still Open, which has bought nothing, nor one whose run is
- *  over. */
-const RUNNING = ["buying", "fattening", "selling"] as const;
+/**
+ * What each of these Ventures owes the Farm today: every month it ran not yet repaid, this month so far, and what
+ * months already repaid have moved by since — money its account still holds that is the Farm's, so not money left to
+ * keep its animals with. The farm's costing is worked out once for the lot, and not at all when none is running.
+ */
+export const owedTheFarmByEach = async (
+  db: Reader,
+  farmId: string,
+  ventures: readonly { id: string; state: string; createdAt: Date }[],
+  today: string
+): Promise<Map<string, number>> => {
+  const owed = new Map<string, number>();
+  const running = ventures.filter((one) =>
+    (RUNNING as readonly string[]).includes(one.state)
+  );
+  if (running.length === 0) {
+    return owed;
+  }
+  const [costs, ownedThenBy, repaid] = await Promise.all([
+    farmCosts(db as Tx, farmId),
+    ownedThenByOf(db as Tx, farmId),
+    db.query.ventureMovement.findMany({
+      where: {
+        farmId,
+        ventureId: { in: running.map((one) => one.id) },
+        kind: "reimbursement",
+      },
+      columns: {
+        ventureId: true,
+        forMonth: true,
+        amountBdt: true,
+        carried: true,
+      },
+    }),
+  ]);
+  for (const venture of running) {
+    const months = owedByMonth(
+      costs,
+      ownedThenBy,
+      venture.id,
+      monthsFromTo(farmDayOf(venture.createdAt).slice(0, 7), today.slice(0, 7)),
+      repaid.filter((one) => one.ventureId === venture.id)
+    );
+    owed.set(
+      venture.id,
+      roundTaka(months.reduce((sum, one) => sum + one.stillOwedBdt, 0))
+    );
+  }
+  return owed;
+};
 
 /** One telling waiting to be made: which Venture owes which month, how much, and the id it is filed under. */
 export interface ReimbursementDue {

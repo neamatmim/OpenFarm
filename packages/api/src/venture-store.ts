@@ -319,6 +319,9 @@ export const ventureView = (
     windUpDays: number;
     /** How many Animals it still has — neither sold, nor dead, nor culled. */
     stillHers: number;
+    /** What its animals have cost the Farm and the Farm has not yet been repaid: money the account holds that is the
+     *  Farm's, so not money left to keep them with (`owedTheFarmByEach`). */
+    owedTheFarmBdt: number;
   }
 ) => {
   const what = held ?? NOTHING_HELD;
@@ -352,8 +355,11 @@ export const ventureView = (
     /** Whether what is left to keep the animals with has fallen below the level the Owner set. Said of
      *  a Venture that is running: one not yet buying has spent nothing, and one whose run is over is
      *  not feeding anybody. */
+    /** What its animals have cost the Farm since the last Reimbursement, and the Farm is still owed. */
+    owedTheFarmBdt: alsoKnown.owedTheFarmBdt,
     runningBudgetLow:
-      isRunning(row.state) && runningBudgetHeldBdt < alsoKnown.warnBelowBdt,
+      isRunning(row.state) &&
+      runningBudgetHeldBdt - alsoKnown.owedTheFarmBdt < alsoKnown.warnBelowBdt,
     signedFor: signedFor ?? NOBODY,
     /** How it stands against the bank: when it was last read, and whether any month is still out. */
     bank: alsoKnown.bank,
@@ -1283,6 +1289,9 @@ export const readVenture = async (tx: Tx, farmId: string, id: string) => {
     bank: bank.get(row.id) ?? NEVER_CHECKED,
     windUpDays: farmRow?.windUpDays ?? 0,
     stillHers: stillHers.get(row.id) ?? 0,
+    // The trail keeps what the account holds. What the Farm is owed is the live costing's, read where it is shown —
+    // and worked out here it would take the whole farm's costing for every act on a Venture.
+    owedTheFarmBdt: 0,
   });
 };
 

@@ -1322,6 +1322,7 @@ export const en = {
   "ventures.thatMonth": "That month",
   "ventures.carriedFromBefore": "Carried from months before",
   "ventures.toBeSent": "To be sent",
+  "ventures.owedTheFarm": "Owed the Farm",
   "ventures.toCarry":
     "{taka} more of months already repaid, to go with the next Reimbursement",
   "ventures.toCarryBack":

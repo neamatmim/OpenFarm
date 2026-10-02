@@ -69,7 +69,10 @@ import {
 } from "../nominations";
 import { photoInput } from "../photo-input";
 import { projectionBasisOf, projectionOf } from "../projection-store";
-import { aMonthsReimbursement } from "../reimbursement-store";
+import {
+  aMonthsReimbursement,
+  owedTheFarmByEach,
+} from "../reimbursement-store";
 import {
   answerBySigning,
   answerRequest,
@@ -721,12 +724,19 @@ export const venturesRouter = {
         columns: { ventureId: true },
       });
       const approved = new Set(settled.map((one) => one.ventureId));
+      const owed = await owedTheFarmByEach(
+        context.db,
+        context.farm.id,
+        rows,
+        farmDayOf(context.clock.now())
+      );
       return rows.map((one) => ({
         ...ventureView(one, held.get(one.id), signed.get(one.id), {
           warnBelowBdt: context.farm.runningBudgetWarnBdt,
           bank: checked.get(one.id) ?? NEVER_CHECKED,
           windUpDays: context.farm.windUpDays,
           stillHers: stillHers.get(one.id) ?? 0,
+          owedTheFarmBdt: owed.get(one.id) ?? 0,
         }),
         /** Whether its Settlement has been approved. From then every Investor is being paid on figures
          *  written down, so the acts that would move them — a month reimbursed, the Owner's own money in,
@@ -763,10 +773,18 @@ export const venturesRouter = {
         farmDayOf(context.clock.now())
       );
       const ids = rows.map((one) => one.id);
-      const [held, stillHers, signed] = await Promise.all([
+      const [held, stillHers, signed, owed] = await Promise.all([
         heldByEach(context.db, context.farm.id, ids),
         stillHersByEach(context.db, context.farm.id, ids),
         signedForEach(context.db, context.farm.id, ids),
+        // The same figure the Owner's list reads, worked out by the same function: two readings of one Venture's
+        // warning must never disagree.
+        owedTheFarmByEach(
+          context.db,
+          context.farm.id,
+          rows,
+          farmDayOf(context.clock.now())
+        ),
       ]);
       return rows.map((row) => {
         const budgets = budgetsOf(
@@ -785,8 +803,11 @@ export const venturesRouter = {
           runningBudgetHeldBdt: budgets.runningBudgetHeldBdt,
           /** What its animals have cost it so far. */
           spentBdt: roundTaka(held.get(row.id)?.spentBdt ?? 0),
+          /** What its animals have cost the Farm since the last Reimbursement, and the Farm is still owed. */
+          owedTheFarmBdt: owed.get(row.id) ?? 0,
           runningBudgetLow:
-            budgets.runningBudgetHeldBdt < context.farm.runningBudgetWarnBdt,
+            budgets.runningBudgetHeldBdt - (owed.get(row.id) ?? 0) <
+            context.farm.runningBudgetWarnBdt,
           targetWindow: {
             start: row.targetWindowStart,
             end: row.targetWindowEnd,
@@ -1865,6 +1886,8 @@ export const venturesRouter = {
               bank: NEVER_CHECKED,
               windUpDays: context.farm.windUpDays,
               stillHers: 0,
+              // Only the Cattle Budget is read here, which owes the Farm nothing.
+              owedTheFarmBdt: 0,
             }
           );
           if (input.amountBdt > view.cattleBudgetHeldBdt) {
@@ -2192,6 +2215,8 @@ export const venturesRouter = {
               bank: NEVER_CHECKED,
               windUpDays: context.farm.windUpDays,
               stillHers: 0,
+              // Only the Cattle Budget is read here, which owes the Farm nothing.
+              owedTheFarmBdt: 0,
             });
             if (priceBdt > view.cattleBudgetHeldBdt) {
               throw new ORPCError("BAD_REQUEST", {

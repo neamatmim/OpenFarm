@@ -75,6 +75,11 @@ const TheMoney = ({ venture }: { venture: Venture }) => {
             <Line className="py-2" label={t("ventures.page.runningLeft")}>
               {taka(money.runningBudgetHeldBdt)}
             </Line>
+            {money.owedTheFarmBdt > 0 ? (
+              <Line className="py-2" label={t("ventures.owedTheFarm")}>
+                {taka(money.owedTheFarmBdt)}
+              </Line>
+            ) : null}
           </>
         ) : null}
         {venture.state === "open" ? null : (
