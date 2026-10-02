@@ -1,6 +1,8 @@
-import { formatNumber } from "@OpenFarm/i18n";
+import { farmDayOf, weighedTooLongAgo } from "@OpenFarm/domain";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -23,18 +25,33 @@ import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
+/** One Animal still held, as the sheet lists her: her last weight, and when, where she has been weighed. */
+interface Left {
+  tagNumber: string;
+  weightKg: number | null;
+  /** Missing from an answer cached before the day was sent: read as weighed lately, and the server judges. */
+  weighedAt?: Date | string | null;
+}
+
+/** Whether her last weighing is too old to price on, on the day being typed. */
+const tooOld = (one: Left, day: string, days: number): boolean =>
+  Boolean(one.weighedAt) &&
+  weighedTooLongAgo(new Date(one.weighedAt ?? 0), day, days) !== null;
+
 /**
- * Every Animal the Venture still holds, with what she last weighed and what that comes to at the rate
+ * Every Animal the Venture still holds, with what she last weighed, when, and what that comes to at the rate
  * being typed — so the Owner sees each price and the total before she commits, rather than reading them
- * off a receipt afterwards. An Animal nobody has weighed is said to be unweighed here, while there is
- * still time to put her on the scale.
+ * off a receipt afterwards. An Animal nobody has weighed is said to be unweighed here, and one weighed too long
+ * ago is marked, while there is still time to put her on the scale.
  */
 const WhatIsLeft = ({
   animals,
   rate,
+  stale,
 }: {
-  animals: readonly { tagNumber: string; weightKg: number | null }[];
+  animals: readonly Left[];
   rate: number;
+  stale: (one: Left) => boolean;
 }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
@@ -48,12 +65,24 @@ const WhatIsLeft = ({
       {animals.map((one) => (
         <div className="flex justify-between gap-2" key={one.tagNumber}>
           <TagLink tagNumber={one.tagNumber} />
-          <span className="tabular-nums">
+          <span className={cn("tabular-nums", stale(one) && "text-warning")}>
             {one.weightKg === null
               ? t("ventures.neverWeighed")
-              : `${formatNumber(one.weightKg, language)} · ${taka(
-                  one.weightKg * priced
-                )}`}
+              : [
+                  formatNumber(one.weightKg, language),
+                  one.weighedAt
+                    ? t("ventures.weighedOnDay", {
+                        day: formatDate(
+                          new Date(one.weighedAt),
+                          language,
+                          "date"
+                        ),
+                      })
+                    : "",
+                  taka(one.weightKg * priced),
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
           </span>
         </div>
       ))}
@@ -62,6 +91,67 @@ const WhatIsLeft = ({
         <span className="tabular-nums">{taka(total)}</span>
       </div>
     </div>
+  );
+};
+
+/** The fortnightly round, for an answer cached before the Owner's days were sent with it. */
+const DEFAULT_PRICE_WEIGH_IN_DAYS = 14;
+
+/**
+ * Which of them must go on the scale before the buy-back: none may be priced on a weighing older than the Owner's
+ * days, judged on the day being typed — today until one is. The server judges again on the day sent.
+ */
+const weighFirstOf = (
+  left: { animals: readonly Left[]; priceWeighInDays?: number } | undefined,
+  boughtOn: string
+) => {
+  const days = left?.priceWeighInDays ?? DEFAULT_PRICE_WEIGH_IN_DAYS;
+  const judgedOn = boughtOn || farmDayOf(new Date());
+  const isStale = (one: Left) => tooOld(one, judgedOn, days);
+  const animals = left?.animals ?? [];
+  const stale = animals.filter(isStale);
+  return {
+    days,
+    isStale,
+    stale,
+    weighFirst: [
+      ...animals.filter((one) => one.weightKg === null),
+      ...stale,
+    ].map((one) => one.tagNumber),
+  };
+};
+
+/** Said while there is still time: those nobody has weighed, and those weighed too long ago to price on. */
+const WeighFirst = ({
+  unweighed,
+  stale,
+  days,
+}: {
+  unweighed: readonly Left[];
+  stale: readonly Left[];
+  days: number;
+}) => {
+  const { t, language } = useLanguage();
+  return (
+    <>
+      {unweighed.length === 0 ? null : (
+        <Notice
+          title={t("ventures.weighThemFirst", {
+            tags: unweighed.map((one) => one.tagNumber).join(", "),
+          })}
+          tone="warning"
+        />
+      )}
+      {stale.length === 0 ? null : (
+        <Notice
+          title={t("ventures.weighThemAgain", {
+            tags: stale.map((one) => one.tagNumber).join(", "),
+            days: formatNumber(days, language),
+          })}
+          tone="warning"
+        />
+      )}
+    </>
   );
 };
 
@@ -132,9 +222,13 @@ export const BuyWhatIsLeftSheet = ({
   const unweighed = (left.data?.animals ?? []).filter(
     (one) => one.weightKg === null
   );
+  const { days, isStale, stale, weighFirst } = weighFirstOf(
+    left.data,
+    boughtOn
+  );
   const ready =
     venture !== null &&
-    unweighed.length === 0 &&
+    weighFirst.length === 0 &&
     aRate(rate, rateBdtPerKg) &&
     allTyped(note, boughtOn, reference) &&
     windowReady(windowPick);
@@ -157,21 +251,28 @@ export const BuyWhatIsLeftSheet = ({
           targetWindow: windowOf(windowPick),
         })
       }
+      missing={
+        weighFirst.length === 0
+          ? undefined
+          : {
+              said: t("ventures.weighThemFirst", {
+                tags: weighFirst.join(", "),
+              }),
+              at: "wind-up-rate",
+            }
+      }
       open={open}
       pending={buying.isPending}
       ready={ready}
       submitLabel={t("ventures.buyWhatIsLeft")}
       title={t("ventures.buyWhatIsLeft")}
     >
-      <WhatIsLeft animals={left.data?.animals ?? []} rate={rateBdtPerKg} />
-      {unweighed.length === 0 ? null : (
-        <Notice
-          title={t("ventures.weighThemFirst", {
-            tags: unweighed.map((one) => one.tagNumber).join(", "),
-          })}
-          tone="warning"
-        />
-      )}
+      <WhatIsLeft
+        animals={left.data?.animals ?? []}
+        rate={rateBdtPerKg}
+        stale={isStale}
+      />
+      <WeighFirst days={days} stale={stale} unweighed={unweighed} />
       <FormField
         hint={t("ventures.rateHint")}
         id="wind-up-rate"

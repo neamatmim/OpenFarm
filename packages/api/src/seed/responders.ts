@@ -137,7 +137,7 @@ RESPONDERS.weighIn = (_step, beast, { farm, herd, day }) => {
     return null;
   }
   const bull = herd.bulls.get(beast.tagNumber);
-  if (!bull) {
+  if (!bull || (bull.crushShyFrom && day >= bull.crushShyFrom)) {
     return { skipReason: "ক্রাশে ওঠেনি" };
   }
   const expected =

@@ -15,21 +15,22 @@ import {
 } from "@OpenFarm/db/schema/venture";
 import type { MonthlyTerms, PaymentMethod } from "@OpenFarm/domain";
 import {
+  CAPITAL_PAID,
+  capitalItMayHold,
   farmDayOf,
   hasEnded,
   isExitState,
   isRunning,
   mayMoveTo,
-  RUNNING_STATES,
-  monthOf,
-  CAPITAL_PAID,
-  capitalItMayHold,
   monthlyTermsOf,
+  monthOf,
+  roundTaka,
+  RUNNING_STATES,
+  startOfFarmDay,
   sumsStandingOf,
   takesCapital,
   towardsTheFloor,
-  roundTaka,
-  startOfFarmDay,
+  weighedTooLongAgo,
   whatUnitsTake,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -478,6 +479,25 @@ const whatItsAnimalsConsumed = async (
  * let two readings race into a row one of them then updates under the other's id, leaving the trail with
  * a create that points at nothing.
  */
+/**
+ * Refuses a price struck on a weighing older than the Owner's days: she has eaten since, and the Owner can put her on
+ * the scale tomorrow. Her tag, the day and how old, as an unweighed one is named.
+ */
+const assertWeighedLately = (
+  tagNumber: string,
+  weighedAt: Date,
+  day: string,
+  days: number
+) => {
+  const old = weighedTooLongAgo(weighedAt, day, days);
+  if (old) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `${tagNumber} was last weighed on ${old.weighedOn}, ${old.days} days before; weigh her again first`,
+      data: { refusal: "weighed_too_long_ago", tagNumber, ...old },
+    });
+  }
+};
+
 const idOfTheMonth = (farmId: string, ventureId: string, month: string) =>
   `${farmId}:${ventureId}:${month}`;
 
@@ -2208,6 +2228,12 @@ export const venturesRouter = {
               data: { refusal: "never_weighed" },
             });
           }
+          assertWeighedLately(
+            input.tagNumber,
+            weighed.weighedAt,
+            input.soldOn,
+            context.farm.priceWeighInDays
+          );
           const priceBdt = priceAtWeight(weighed.weightKg, input.rateBdtPerKg);
           if (roundTaka(input.priceBdt) !== priceBdt) {
             // She was weighed again since the Owner read the figure: the price she is committing to is
@@ -2944,7 +2970,11 @@ export const venturesRouter = {
         animals: hers.map((her, at) => ({
           tagNumber: her.tagNumber,
           weightKg: weights[at]?.weightKg ?? null,
+          /** When, so the sheet can name one weighed too long ago before the buy-back refuses her. */
+          weighedAt: weights[at]?.weighedAt ?? null,
         })),
+        /** How old a weighing may be to be priced on, as the buy-back will judge it. */
+        priceWeighInDays: context.farm.priceWeighInDays,
       };
     }),
 
@@ -3070,6 +3100,12 @@ export const venturesRouter = {
                 data: { refusal: "never_weighed", tagNumber: her.tagNumber },
               });
             }
+            assertWeighedLately(
+              her.tagNumber,
+              weighed.weighedAt,
+              input.boughtOn,
+              context.farm.priceWeighInDays
+            );
             const saleId = uuidv7(now);
             // oxlint-disable-next-line no-await-in-loop -- one transaction, one animal at a time
             const struck = await recordInternalSale(

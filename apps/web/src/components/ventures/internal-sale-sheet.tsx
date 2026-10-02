@@ -1,4 +1,4 @@
-import { priceAtWeight } from "@OpenFarm/domain";
+import { farmDayOf, priceAtWeight, weighedTooLongAgo } from "@OpenFarm/domain";
 import type { Language, MessageKey, MessageParams } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -14,6 +14,7 @@ import {
   windowReady,
 } from "@/components/fattening/window-choice";
 import type { WindowPick } from "@/components/fattening/window-choice";
+import { Notice } from "@/components/page";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { FarmAccountField } from "@/components/payment-method";
 import type { PickerOption } from "@/components/searchable-picker";
@@ -38,21 +39,85 @@ const purseOf = (her: Movable | undefined): string | null => {
   return her.purse?.id ?? THE_FARM;
 };
 
-/** One animal as the picker offers her: her tag, and her Pen, whose she is and what she last weighed beneath. */
+/** The fortnightly round, until the farm's own figure is read. */
+const DEFAULT_PRICE_WEIGH_IN_DAYS = 14;
+
+/**
+ * One animal as the picker offers her: her tag, and her Pen, whose she is and what she last weighed beneath — and,
+ * where that weighing is too old to price on, that she is to be weighed again first.
+ */
 const asOption = (
   one: Movable,
   t: (key: MessageKey, params?: MessageParams) => string,
-  language: Language
+  language: Language,
+  tooOld: boolean
 ): PickerOption => ({
   value: one.tagNumber,
   label: one.tagNumber,
-  detail: t("ventures.movableDetail", {
-    pen: one.penName,
-    purse: one.purse?.name ?? t("intake.theFarms"),
-    weight: formatNumber(one.weightKg, language),
-    date: formatDate(new Date(one.weighedAt), language, "date"),
-  }),
+  detail: [
+    t("ventures.movableDetail", {
+      pen: one.penName,
+      purse: one.purse?.name ?? t("intake.theFarms"),
+      weight: formatNumber(one.weightKg, language),
+      date: formatDate(new Date(one.weighedAt), language, "date"),
+    }),
+    tooOld ? t("ventures.weighAgainFirst") : "",
+  ]
+    .filter(Boolean)
+    .join(" · "),
 });
+
+/** What is said of her weighing being too old: on the sheet, and when the act is pressed. */
+const weighAgain = (
+  tagNumber: string,
+  days: number,
+  t: (key: MessageKey, params?: MessageParams) => string,
+  language: Language
+) => ({
+  said: t("ventures.weighThemAgain", {
+    tags: tagNumber,
+    days: formatNumber(days, language),
+  }),
+  at: "internal-tag",
+});
+
+/**
+ * How old a weighing may be to strike a price on — the Owner's, read with the farm's other Venture figures — and
+ * whether an animal's is older, judged on the day being typed, today until one is. The sale judges again on the day sent.
+ */
+const useTooOld = (open: boolean, soldOn: string, her: Movable | undefined) => {
+  const farm = useQuery({ ...orpc.farm.current.queryOptions(), enabled: open });
+  const days =
+    (farm.data && "priceWeighInDays" in farm.data
+      ? farm.data.priceWeighInDays
+      : undefined) ?? DEFAULT_PRICE_WEIGH_IN_DAYS;
+  const judgedOn = soldOn || farmDayOf(new Date());
+  const { t, language } = useLanguage();
+  const tooOld = (one: Movable) =>
+    weighedTooLongAgo(new Date(one.weighedAt), judgedOn, days) !== null;
+  return {
+    tooOld,
+    /** What is said of her, where her weighing is too old: on the sheet, and when the act is pressed. */
+    weighHerAgain:
+      her && tooOld(her)
+        ? weighAgain(her.tagNumber, days, t, language)
+        : undefined,
+  };
+};
+
+/** Everything the sale needs said: an animal priced on a weighing recent enough, where she goes, a rate, and the rest. */
+const readyToSell = (given: {
+  chosen: boolean;
+  toChosen: boolean;
+  rateBdtPerKg: number;
+  typed: boolean;
+  windowSaid: boolean;
+}): boolean =>
+  given.chosen &&
+  given.toChosen &&
+  given.rateBdtPerKg > 0 &&
+  given.typed &&
+  given.windowSaid;
 
 /** Where the Farm takes her on, the window of the Season she joins must be said; nowhere else is it asked. */
 const windowSaid = (to: string, pick: WindowPick): boolean =>
@@ -103,6 +168,7 @@ export const InternalSaleSheet = ({
     ...orpc.ventures.movableAnimals.queryOptions(),
     enabled: open,
   });
+
   const selling = useMutation(
     orpc.ventures.sellInternally.mutationOptions({
       onError: refused,
@@ -125,6 +191,7 @@ export const InternalSaleSheet = ({
   );
   const animals = movable.data ?? [];
   const her = animals.find((one) => one.tagNumber === tagNumber);
+  const { tooOld, weighHerAgain } = useTooOld(open, soldOn, her);
   const weightKg = her?.weightKg ?? 0;
   const rateBdtPerKg = Number(rate);
   // Struck by the same function the farm strikes it with, so what she reads is what she commits to and
@@ -132,13 +199,14 @@ export const InternalSaleSheet = ({
   const priceBdt = priceAtWeight(weightKg, rateBdtPerKg);
   const herPurse = purseOf(her);
   const toChosen = to !== "" && to !== herPurse;
-  const ready =
-    her !== undefined &&
-    toChosen &&
-    rateBdtPerKg > 0 &&
-    allTyped(note, reference, soldOn) &&
-    windowSaid(to, windowPick);
-  const options = animals.map((one) => asOption(one, t, language));
+  const ready = readyToSell({
+    chosen: her !== undefined && weighHerAgain === undefined,
+    toChosen,
+    rateBdtPerKg,
+    typed: allTyped(note, reference, soldOn),
+    windowSaid: windowSaid(to, windowPick),
+  });
+  const options = animals.map((one) => asOption(one, t, language, tooOld(one)));
   return (
     <FormSheet
       description={t("ventures.internalSaleHint")}
@@ -157,6 +225,7 @@ export const InternalSaleSheet = ({
           priceBdt,
         })
       }
+      missing={weighHerAgain}
       open={open}
       pending={selling.isPending}
       ready={ready}
@@ -174,6 +243,9 @@ export const InternalSaleSheet = ({
           value={tagNumber}
         />
       </FormField>
+      {weighHerAgain ? (
+        <Notice title={weighHerAgain.said} tone="warning" />
+      ) : null}
       <FormField
         hint={t("ventures.toPurseHint")}
         id="internal-to"

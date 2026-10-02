@@ -75,6 +75,7 @@ type NumberKey =
   | "ventureRunningPercent"
   | "ventureInvestorsPercent"
   | "windUpDays"
+  | "priceWeighInDays"
   | "adjustmentThresholdBdt"
   | "investorCap"
   | "investorWarnAt"
@@ -541,6 +542,13 @@ const GROUPS: {
         unit: "params.days",
         min: 0,
         max: 180,
+      },
+      {
+        key: "priceWeighInDays",
+        label: "params.priceWeighIn",
+        unit: "params.days",
+        min: 1,
+        max: 60,
       },
       {
         key: "adjustmentThresholdBdt",

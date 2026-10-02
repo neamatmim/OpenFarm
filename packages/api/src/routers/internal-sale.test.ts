@@ -359,6 +359,38 @@ describe("the Internal Sale", () => {
     });
   });
 
+  it("refuses an animal last weighed longer ago than the Owner's days, and takes one weighed lately", async () => {
+    const stale = await bull("2047-02-14T05:00:00.000Z");
+    const fresh = await bull("2047-02-14T05:00:00.000Z");
+    // Twenty days before the sale, and ten.
+    await weigh("2047-02-14", [[stale.tagNumber, 250]]);
+    await weigh("2047-02-24", [[fresh.tagNumber, 250]]);
+    const owner = await as("owner", "2047-03-06T09:00:00.000Z");
+    const sold = (tagNumber: string) =>
+      owner.client.ventures.sellInternally({
+        tagNumber,
+        toVentureId: ventureId,
+        rateBdtPerKg: 300,
+        note: `দর ${suffix}`,
+        soldOn: "2047-03-06",
+        paymentMethod: "bank",
+        reference: `INT-AGE-${tagNumber}-${suffix}`,
+        priceBdt: 75_000,
+      });
+    await expect(sold(stale.tagNumber)).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: {
+        refusal: "weighed_too_long_ago",
+        tagNumber: stale.tagNumber,
+        weighedOn: "2047-02-14",
+        days: 20,
+      },
+    });
+    await expect(sold(fresh.tagNumber)).resolves.toMatchObject({
+      weightKg: 250,
+    });
+  });
+
   it("refuses her once she is Ready for Sale", async () => {
     const owner = await as("owner", "2047-02-10T04:00:00.000Z");
     const hers = await bull("2047-02-10T05:00:00.000Z");

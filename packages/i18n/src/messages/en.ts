@@ -930,6 +930,8 @@ export const en = {
   "params.ventureInvestors":
     "The Investors’ share of the profit, where a new agreement starts",
   "params.windUp": "Selling after the window closes",
+  "params.priceWeighIn":
+    "How old a weighing may be to price an internal sale or the buy-back on",
   "params.adjustmentThreshold": "Worth adjusting a settlement over",
   "params.investorCap": "Investors at a time, at most",
   "params.investorWarnAt": "Warn from this many Investors",
@@ -1348,6 +1350,10 @@ export const en = {
    *  one animal nobody has weighed stops the whole buy-back. */
   "ventures.weighThemFirst":
     "Put {tags} on the scale first — a price is struck off her weight, and the farm strikes none it cannot defend.",
+  "ventures.weighThemAgain":
+    "{tags} last weighed more than {days} days ago — weigh again before pricing; she has eaten since.",
+  "ventures.weighedOnDay": "weighed {day}",
+  "ventures.weighAgainFirst": "weighing too old — weigh first",
   "ventures.neverWeighed": "Never weighed",
   "ventures.soldOn": "Sold on",
   "ventures.priceFromWeight": "{weight} kg at that rate · ৳{price}",
@@ -1458,6 +1464,8 @@ export const en = {
   "refusal.alreadyThatPurse": "She is already theirs",
   "refusal.neverWeighed":
     "She has never been weighed, so there is no price anybody could defend",
+  "refusal.weighedTooLongAgo":
+    "Her last weighing is too old to price on — weigh her again first",
   "refusal.windUpNotOver":
     "The Wind-up Period has not ended; there are still days to sell in",
   "refusal.nothingLeftToBuy": "This Venture has no animals left to buy",
