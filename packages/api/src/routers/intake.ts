@@ -130,7 +130,7 @@ export const intakeRouter = {
   earlyLosses: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .handler(({ context }) =>
-      earlyLossesOf(context.db, context.farm.id, context.clock.now())
+      earlyLossesOf(context.db, context.farm, context.clock.now())
     ),
 
   sellers: protectedProcedure

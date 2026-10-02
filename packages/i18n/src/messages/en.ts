@@ -3473,11 +3473,11 @@ export const en = {
   "mortality.noDiagnosis": "None of these",
   "early.title": "Lost soon after buying",
   "early.hint":
-    "The last year: animals that died, were culled or fell ill within 30 days of arriving, by who sold them and where.",
+    "The last year: animals that died, were culled, fell ill or weighed under what they were bought at within 30 days of arriving, by who sold them and where.",
   "early.bySeller": "By seller",
   "early.byHaat": "By haat",
   "early.line":
-    "bought {bought} · died {died} · culled {culled} · ill {diagnosed}",
+    "bought {bought} · died {died} · culled {culled} · ill {diagnosed} · weighed short {weighedShort}",
   "early.none":
     "Nothing bought in the last year died, was culled or fell ill in its first 30 days.",
   "deaths.title": "Deaths among grown animals",

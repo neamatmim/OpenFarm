@@ -1,3 +1,4 @@
+import type { SopContent } from "@OpenFarm/domain";
 import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -5,7 +6,7 @@ import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
 // Animals lost soon after they came, by who sold them and where: a death, a cull or a Diagnosis within thirty days of
-// arrival, for the Owner to ask a trader about.
+// arrival, or a first Weigh-in under what the animal was bought at, for the Owner to ask a trader about.
 
 const suffix = `early-losses-${Date.now()}`;
 const CAME = "2083-03-01T04:00:00.000Z";
@@ -15,6 +16,36 @@ const WINDOW = {
 };
 const KARIM = `করিম ব্যাপারী ${suffix}`;
 const RAHIM = `রহিম ব্যাপারী ${suffix}`;
+const SALAM = `সালাম ব্যাপারী ${suffix}`;
+
+/** The round that puts a bull on the scale. */
+const weighInSop = (): SopContent => ({
+  name: { bn: `ওজন ${suffix}` },
+  purpose: { bn: "প্রতিটি পশুর ওজন নেওয়া" },
+  triggers: [{ kind: "schedule", times: ["07:00"] }],
+  appliesTo: { side: "fattening", states: ["quarantine", "fattening"] },
+  assignedRole: "manager",
+  checkerRole: null,
+  graceMinutes: 240,
+  steps: [
+    {
+      id: "weigh",
+      text: { bn: "ক্রাশে তুলে ওজন নিন" },
+      repeatPerAnimal: true,
+      evidence: [
+        {
+          type: "number",
+          required: true,
+          unit: { bn: "কেজি" },
+          min: 20,
+          max: 1200,
+        },
+      ],
+      skipReasons: [{ bn: "ক্রাশে ওঠেনি" }],
+      effect: { kind: "weigh_in" },
+    },
+  ],
+});
 const HAAT = `গাবতলী হাট ${suffix}`;
 
 const as = (role: "owner" | "manager" | "vet", instant: string) =>
@@ -35,7 +66,8 @@ beforeAll(async () => {
     wentOn: new Date(CAME),
   });
   const tags: string[] = [];
-  for (const seller of [KARIM, KARIM, KARIM, RAHIM]) {
+  const weighing = await owner.client.sops.create({ content: weighInSop() });
+  for (const seller of [KARIM, KARIM, KARIM, RAHIM, SALAM]) {
     // oxlint-disable-next-line no-await-in-loop -- one bull off the lorry after the other
     const bull = await manager.client.intake.record({
       penId: pen.id,
@@ -50,7 +82,22 @@ beforeAll(async () => {
     });
     tags.push(bull.tagNumber);
   }
-  const [died = "", ill = "", , late = ""] = tags;
+  const [died = "", ill = "", , late = "", short = ""] = tags;
+  // Salam's bull, bought at 250 kg, weighs 230 at the first round twelve days on: none lost, but weighed short.
+  const scale = await as("manager", "2083-03-13T02:00:00.000Z");
+  await scale.client.instances.ensureDue();
+  const today = await scale.client.instances.today({ penId: pen.id });
+  const round = today.find((row) => row.definitionId === weighing.definitionId);
+  if (!round) {
+    throw new Error("expected the weighing to be due");
+  }
+  await scale.client.instances.claim({ id: round.id });
+  await scale.client.instances.completeStep({
+    instanceId: round.id,
+    stepId: "weigh",
+    animalTag: short,
+    evidence: [230],
+  });
   // Karim's first died on day ten; his second the Vet found ill on day five; Rahim's died on day forty.
   const vet = await as("vet", "2083-03-06T04:00:00.000Z");
   await vet.client.diagnoses.record({
@@ -74,14 +121,36 @@ beforeAll(async () => {
 });
 
 describe("early losses by seller and by haat", () => {
-  it("names the seller and the haat whose animals died or fell ill within thirty days, and nobody else", async () => {
+  it("names the seller and the haat whose animals died, fell ill or weighed short within thirty days, and nobody else", async () => {
     const owner = await as("owner", "2083-05-01T04:00:00.000Z");
     const losses = await owner.client.intake.earlyLosses();
     expect(losses.bySeller).toEqual([
-      { name: KARIM, bought: 3, died: 1, culled: 0, diagnosed: 1 },
+      {
+        name: KARIM,
+        bought: 3,
+        died: 1,
+        culled: 0,
+        diagnosed: 1,
+        weighedShort: 0,
+      },
+      {
+        name: SALAM,
+        bought: 1,
+        died: 0,
+        culled: 0,
+        diagnosed: 0,
+        weighedShort: 1,
+      },
     ]);
     expect(losses.byHaat).toEqual([
-      { name: HAAT, bought: 4, died: 1, culled: 0, diagnosed: 1 },
+      {
+        name: HAAT,
+        bought: 5,
+        died: 1,
+        culled: 0,
+        diagnosed: 1,
+        weighedShort: 1,
+      },
     ]);
   });
 
