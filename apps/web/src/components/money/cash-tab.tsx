@@ -149,6 +149,172 @@ const HandOverDialog = ({
   );
 };
 
+type HeldSale = Hand["ventures"][number];
+
+/** One Venture's sale cash in a hand: its Sales, ticked to go, and what they come to. */
+const ventureShares = (held: readonly HeldSale[]) => {
+  const byVenture = new Map<string, { name: string; sales: HeldSale[] }>();
+  for (const one of held) {
+    const share = byVenture.get(one.ventureId) ?? {
+      name: one.ventureName,
+      sales: [],
+    };
+    share.sales.push(one);
+    byVenture.set(one.ventureId, share);
+  }
+  return [...byVenture].map(([ventureId, share]) => ({ ventureId, ...share }));
+};
+
+/**
+ * A Venture's sale cash banked into its Venture Account from the hand that took it: the Sales it carries, ticked, the
+ * slip and the day. The amount is theirs to the taka, so it is shown, not typed.
+ */
+const DepositDialog = ({
+  from,
+  ventureId,
+  ventureName,
+  sales,
+  open,
+  onOpenChange,
+}: {
+  from: Hand;
+  ventureId: string;
+  ventureName: string;
+  sales: readonly HeldSale[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) => {
+  const { t } = useLanguage();
+  const taka = useTaka();
+  const onError = useRefused();
+  const [ticked, setTicked] = useState<readonly string[]>(() =>
+    sales.map((one) => one.saleId)
+  );
+  const [reference, setReference] = useState("");
+  const [day, setDay] = useState("");
+  const going = sales.filter((one) => ticked.includes(one.saleId));
+  const totalBdt = going.reduce((sum, one) => sum + one.bdt, 0);
+  const deposit = useMutation(
+    orpc.cash.handOver.mutationOptions({
+      onSuccess: () => {
+        toast.success(t("cash.deposited"));
+        setReference("");
+        setDay("");
+        onOpenChange(false);
+      },
+      onError,
+    })
+  );
+  return (
+    <FormDialog
+      description={t("cash.depositHint")}
+      onOpenChange={onOpenChange}
+      onSubmit={() =>
+        deposit.mutate({
+          from: { userId: from.userId },
+          to: { ventureId, saleIds: going.map((one) => one.saleId) },
+          amountBdt: totalBdt,
+          reference: reference.trim(),
+          ...(day ? { handedAt: new Date(`${day}T06:00:00.000Z`) } : {}),
+        })
+      }
+      open={open}
+      pending={deposit.isPending}
+      ready={going.length > 0 && reference.trim() !== ""}
+      submitLabel={t("cash.deposit")}
+      title={t("cash.depositTitle", { venture: ventureName })}
+    >
+      <fieldset className="flex flex-col gap-2">
+        {sales.map((one) => (
+          <label className="flex items-center gap-2 text-sm" key={one.saleId}>
+            <input
+              checked={ticked.includes(one.saleId)}
+              onChange={(event) =>
+                setTicked((was) =>
+                  event.target.checked
+                    ? [...was, one.saleId]
+                    : was.filter((saleId) => saleId !== one.saleId)
+                )
+              }
+              type="checkbox"
+            />
+            <span className="font-mono">{one.tagNumber}</span>
+            <span className="tabular-nums">{taka(one.bdt)}</span>
+          </label>
+        ))}
+      </fieldset>
+      <p className="text-sm font-medium">
+        {t("cash.depositTotal", { bdt: taka(totalBdt) })}
+      </p>
+      <FormField id="deposit-slip" label={t("cash.slip")}>
+        <Input
+          id="deposit-slip"
+          maxLength={80}
+          onChange={(event) => setReference(event.target.value)}
+          required
+          value={reference}
+        />
+      </FormField>
+      <FormField id="deposit-day" label={t("cash.depositDay")}>
+        <Input
+          id="deposit-day"
+          onChange={(event) => setDay(event.target.value)}
+          type="date"
+          value={day}
+        />
+      </FormField>
+    </FormDialog>
+  );
+};
+
+/** One Venture's sale cash in a hand, and its way to the bank. */
+const VentureShare = ({
+  hand,
+  share,
+  mayDeposit,
+}: {
+  hand: Hand;
+  share: ReturnType<typeof ventureShares>[number];
+  mayDeposit: boolean;
+}) => {
+  const { t } = useLanguage();
+  const taka = useTaka();
+  const [depositing, setDepositing] = useState(false);
+  const bdt = share.sales.reduce((sum, one) => sum + one.bdt, 0);
+  return (
+    <div className="bg-muted flex flex-wrap items-center justify-between gap-2 rounded-md px-3 py-2 text-sm">
+      <span>
+        {t("cash.heldForVenture", {
+          bdt: taka(bdt),
+          venture: share.name,
+          tags: share.sales.map((one) => one.tagNumber).join(", "),
+        })}
+      </span>
+      {mayDeposit ? (
+        <>
+          <Button
+            onClick={() => setDepositing(true)}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            <Banknote aria-hidden data-icon="inline-start" />
+            {t("cash.deposit")}
+          </Button>
+          <DepositDialog
+            from={hand}
+            onOpenChange={setDepositing}
+            open={depositing}
+            sales={share.sales}
+            ventureId={share.ventureId}
+            ventureName={share.name}
+          />
+        </>
+      ) : null}
+    </div>
+  );
+};
+
 /** What one movement was, in the reader's words: the money's Category, or where a Handover went or came from. */
 const MovementWhat = ({ one }: { one: Movement }) => {
   const { t, language } = useLanguage();
@@ -295,6 +461,15 @@ const HandLine = ({
           </Button>
         ) : null}
       </div>
+      {/* A Venture's sale cash in this hand, until it is deposited — missing from an answer cached before it was said. */}
+      {ventureShares(hand.ventures ?? []).map((share) => (
+        <VentureShare
+          hand={hand}
+          key={share.ventureId}
+          mayDeposit={mayHandOver}
+          share={share}
+        />
+      ))}
       {open ? <Movements hand={hand} /> : null}
       {mayHandOver ? (
         <HandOverDialog from={hand} onOpenChange={setHanding} open={handing} />

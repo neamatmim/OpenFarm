@@ -21,6 +21,7 @@ import {
 import { ORPCError } from "@orpc/server";
 
 import type { SnapshotValue, Trail, Tx } from "./audit";
+import { heldSalesOf } from "./cash-store";
 import type { CarriedLine, FarmCosts } from "./cost-store";
 import { chargedTo, farmCosts, owedByMonth } from "./cost-store";
 import { adjustmentsOf } from "./settlement-adjustment-store";
@@ -81,6 +82,8 @@ export type Block =
   | { word: "an_animal_still_stands"; tagNumbers: string[] }
   | { word: "a_price_is_missing"; unpricedKg: number; uncostedDoses: number }
   | { word: "a_float_is_open"; openFloatBdt: number }
+  /** A Venture's animals sold for cash whose price is still in the hand that took it, not yet deposited. */
+  | { word: "sale_cash_in_a_hand"; tagNumbers: string[]; hands: string[] }
   | {
       word: "a_reimbursement_is_owed";
       /** The months never repaid. */
@@ -122,6 +125,7 @@ const A_GUESS_BEFORE_THE_SUM: ReadonlySet<Block["word"]> = new Set([
   "an_animal_still_stands",
   "a_price_is_missing",
   "a_float_is_open",
+  "sale_cash_in_a_hand",
 ]);
 
 /**
@@ -530,6 +534,22 @@ export const settlementOf = async (
     venture,
     withTheBank: bank.get(venture.id) ?? NEVER_CHECKED,
   });
+  // A Sale's price taken in cash and still in the hand that took it: the account has not got it, so what the Investors
+  // are paid out of is short of what their animals fetched until it is deposited.
+  const heldSales = await heldSalesOf(db as Tx, farmId, {
+    ventureId: venture.id,
+  });
+  if (heldSales.length > 0) {
+    const holders = await db.query.user.findMany({
+      where: { id: { in: [...new Set(heldSales.map((one) => one.heldBy))] } },
+      columns: { name: true },
+    });
+    blocks.push({
+      word: "sale_cash_in_a_hand",
+      tagNumbers: heldSales.map((one) => one.tagNumber),
+      hands: holders.map((one) => one.name),
+    });
+  }
   // Asked once the figures can be trusted at all: with an Animal standing, a price missing or a Float out, what the
   // account "should" hold is itself a guess, and those blocks already say why.
   const theSumIsAGuess = blocks.some((one) =>

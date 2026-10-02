@@ -1316,6 +1316,12 @@ export const bn: Record<MessageKey, string> = {
   "refusal.tripIsTheFarms": "এই যাত্রা খামারের নিজের গরু আনছে",
   "refusal.ventureBuysByBank":
     "যাত্রা ছাড়া কেনা ভেঞ্চারের গরুর দাম ভেঞ্চারের হিসাব থেকে ব্যাংকে দেওয়া হয়, চেক বা ট্রান্সফারের নম্বরসহ",
+  "refusal.notHeldHere": "এই বিক্রির টাকা এই হাতে এই ভেঞ্চারের জন্য রাখা নেই",
+  "refusal.alreadyDeposited": "এই বিক্রির টাকা আগেই জমা হয়েছে",
+  "refusal.ventureSaleNotByBkash":
+    "ভেঞ্চারের গরুর দাম ব্যাংকে বা নগদে নেওয়া হয়, বিকাশে নয়",
+  "refusal.saleCashInAHand":
+    "বিক্রির নগদ টাকা এখনও কারও হাতে, ভেঞ্চারের হিসাবে জমা হয়নি",
   "refusal.floatAlreadyReconciled":
     "এই যাত্রার হিসাব মিলিয়ে ফেলা হয়েছে, আর কিছু যোগ করা যাবে না",
   "refusal.floatOver":
@@ -4748,6 +4754,14 @@ export const bn: Record<MessageKey, string> = {
   "cash.handOverHint":
     "নগদ আরেকজনের হাতে, বা স্লিপসহ ব্যাংকে। কোনো আয় বা খরচ নয়: শুধু হাত বদলায়।",
   "cash.handedOver": "হাতবদল লেখা হলো",
+  "cash.heldForVenture": "এর মধ্যে {bdt} {venture}-এর — {tags}",
+  "cash.deposit": "ভেঞ্চারের হিসাবে জমা",
+  "cash.depositTitle": "{venture}-এর হিসাবে জমা",
+  "cash.depositHint":
+    "হাটে নগদে বিক্রি হওয়া ভেঞ্চারের গরুর টাকা ব্যাংকে জমা দিন, জমার স্লিপের নম্বরসহ। জমা হলে তবেই টাকা ভেঞ্চারের হিসাবে ওঠে।",
+  "cash.depositTotal": "জমা হবে {bdt}",
+  "cash.depositDay": "যেদিন জমা হলো",
+  "cash.deposited": "ভেঞ্চারের হিসাবে জমা হয়েছে",
   "cash.to": "কার কাছে",
   "cash.bank": "ব্যাংক",
   "cash.amount": "টাকা (৳)",

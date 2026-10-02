@@ -5,6 +5,7 @@ import { cashCount } from "@OpenFarm/db/schema/cash";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { handover } from "@OpenFarm/db/schema/money";
 import { buyingTrip } from "@OpenFarm/db/schema/trip";
+import { ventureMovement } from "@OpenFarm/db/schema/venture";
 import { farmDayOf, roundTaka } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
@@ -12,7 +13,7 @@ import { holdersOf } from "./alerts-store";
 import type { Tx } from "./audit";
 import { THE_FARMS_PURSE } from "./money-store";
 import { tell } from "./notice";
-import { whatTheFloatBought } from "./venture-store";
+import { lockTheFarm, whatTheFloatBought } from "./venture-store";
 
 // Who holds the farm's cash: each person's **Cash in Hand** — the cash Money Events that named their hand, in less out,
 // and the Handovers that moved it on to another hand or to the bank.
@@ -22,11 +23,92 @@ type Db = Pick<Database, "query"> | Tx;
 /** The Roles whose hands the farm's cash passes through. */
 export const CASH_HOLDING_ROLES: readonly RoleName[] = ["owner", "manager"];
 
+/** A Venture's animal sold for cash, its price still in the hand that took it: the Venture's money until deposited. */
+export interface HeldSale {
+  saleId: string;
+  heldBy: string;
+  ventureId: string;
+  ventureName: string;
+  tagNumber: string;
+  bdt: number;
+}
+
+/**
+ * Every Venture's sale cash still in a hand: a cash Sale of a Venture's animal whose price no deposit has carried into
+ * its Venture Account yet — no `sale_in` movement. A Sale written before this was kept, its movement already there, is
+ * not held: there is no start day to go back to.
+ */
+export const heldSalesOf = async (
+  db: Db,
+  farmId: string,
+  { ventureId }: { ventureId?: string } = {}
+): Promise<HeldSale[]> => {
+  const events = await db.query.moneyEvent.findMany({
+    where: {
+      farmId,
+      source: "sale",
+      paymentMethod: "cash",
+      heldBy: { isNotNull: true },
+      purseVentureId: ventureId ?? { isNotNull: true },
+    },
+    columns: {
+      sourceId: true,
+      heldBy: true,
+      purseVentureId: true,
+      amountBdt: true,
+    },
+  });
+  if (events.length === 0) {
+    return [];
+  }
+  const saleIds = events.map((one) => one.sourceId);
+  const [moved, sales, ventures] = await Promise.all([
+    db.query.ventureMovement.findMany({
+      where: { farmId, kind: "sale_in", saleId: { in: saleIds } },
+      columns: { saleId: true },
+    }),
+    db.query.sale.findMany({
+      where: { farmId, id: { in: saleIds } },
+      columns: { id: true },
+      with: { animal: { columns: { tagNumber: true } } },
+    }),
+    db.query.venture.findMany({
+      where: {
+        farmId,
+        id: {
+          in: [...new Set(events.flatMap((one) => one.purseVentureId ?? []))],
+        },
+      },
+      columns: { id: true, name: true },
+    }),
+  ]);
+  const deposited = new Set(moved.map((one) => one.saleId));
+  const tagOf = new Map(sales.map((one) => [one.id, one.animal.tagNumber]));
+  const nameOf = new Map(ventures.map((one) => [one.id, one.name]));
+  return events.flatMap((one) =>
+    one.heldBy && one.purseVentureId && !deposited.has(one.sourceId)
+      ? [
+          {
+            saleId: one.sourceId,
+            heldBy: one.heldBy,
+            ventureId: one.purseVentureId,
+            ventureName: nameOf.get(one.purseVentureId) ?? "",
+            tagNumber: tagOf.get(one.sourceId) ?? "",
+            bdt: one.amountBdt,
+          },
+        ]
+      : []
+  );
+};
+
 /** One person's Cash in Hand, and the last time it was counted. */
 export interface HandHolds {
   userId: string;
   name: string;
+  /** Every note in the hand, the Farm's and any Venture's sale cash together: what a Cash Count finds. */
   bdt: number;
+  /** Of which, a Venture's sale cash not yet deposited, Sale by Sale. */
+  ventures: HeldSale[];
   /** The last Cash Count of this hand: when, what was found, and what the farm said it held; nothing if never. */
   lastCount: { at: Date; counted: number; expected: number } | null;
 }
@@ -50,10 +132,12 @@ const handsOf = async (
     },
     columns: { heldBy: true, direction: true, amountBdt: true },
   });
+  // A deposit of a Venture's sale cash is left out: the Sales it carried stop being held the moment it is written.
   const handed = await db.query.handover.findMany({
-    where: { farmId },
+    where: { farmId, ventureId: { isNull: true } },
     columns: { fromUserId: true, toUserId: true, amountBdt: true },
   });
+  const held = await heldSalesOf(db, farmId);
   const counts = await db.query.cashCount.findMany({
     where: { farmId },
     columns: {
@@ -76,6 +160,10 @@ const handsOf = async (
     add(one.fromUserId, -one.amountBdt);
     add(one.toUserId, one.amountBdt);
   }
+  // A Venture's sale cash is in the hand that took it until it is deposited: the notes are there to be counted.
+  for (const one of held) {
+    add(one.heldBy, one.bdt);
+  }
   for (const one of counts) {
     if (one.completionId !== excludingCount) {
       add(one.userId, one.counted - one.expected);
@@ -86,13 +174,17 @@ const handsOf = async (
 
 /**
  * Every hand that holds the farm's cash, and what is in it: each Owner and Manager, and anybody else a Money Event or
- * a Handover still names. Only the Farm's own purse: a Venture's money moves through its account, not a pocket.
+ * a Handover still names. The Farm's own purse, and a Venture's sale cash held in a hand until it is deposited — named
+ * as that Venture's — since a Cash Count finds every note.
  */
 export const cashInHand = async (
   db: Db,
   farmId: string
 ): Promise<HandHolds[]> => {
-  const holds = await handsOf(db, farmId);
+  const [holds, held] = await Promise.all([
+    handsOf(db, farmId),
+    heldSalesOf(db, farmId),
+  ]);
   for (const userId of await holdersOf(db as Tx, farmId, CASH_HOLDING_ROLES)) {
     holds.set(userId, holds.get(userId) ?? 0);
   }
@@ -121,6 +213,7 @@ export const cashInHand = async (
       userId,
       name: nameOf.get(userId) ?? "",
       bdt: roundTaka(bdt),
+      ventures: held.filter((one) => one.heldBy === userId),
       lastCount: lastOf.get(userId) ?? null,
     }))
     .toSorted((a, b) => b.bdt - a.bdt || a.name.localeCompare(b.name));
@@ -479,8 +572,116 @@ export const reconcileFarmFloat = async (
 /** One end of a Handover: a person's hand, or the bank. */
 export type HandEnd = { userId: string } | { bank: true };
 
+/** A deposit of a Venture's sale cash into its Venture Account, naming the Sales whose notes it carries. */
+export interface IntoAVenture {
+  ventureId: string;
+  saleIds: readonly string[];
+}
+
 const userOf = (end: HandEnd): string | null =>
   "userId" in end ? end.userId : null;
+
+/**
+ * A Venture's sale cash banked: from the hand that took it at the haat into its Venture Account, with the slip. Each Sale
+ * must be that Venture's, held in that hand and not deposited before; the amount is theirs to the taka. Their `sale_in`
+ * movements are written now, dated the day it went in and carrying the slip — the account holds what the bank holds.
+ */
+const depositSaleCash = async (
+  tx: Tx,
+  input: {
+    farmId: string;
+    fromUserId: string | null;
+    into: IntoAVenture;
+    amountBdt: number;
+    handedAt: Date;
+    reference: string | null;
+    note: string | null;
+    recordedBy: string;
+    recordedByRole: RoleName;
+    now: Date;
+  }
+): Promise<{ id: string }> => {
+  if (!input.fromUserId) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A Venture's sale cash is deposited from the hand that took it",
+      data: { refusal: "handover_goes_nowhere" },
+    });
+  }
+  if (!input.reference) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "The bank's end of a Handover needs its slip or cheque",
+      data: { refusal: "bank_needs_a_slip" },
+    });
+  }
+  // Behind the lock every count of a Venture's money takes: a Sale is deposited once.
+  await lockTheFarm(tx, input.farmId);
+  const deposited = await tx.query.ventureMovement.findMany({
+    where: {
+      farmId: input.farmId,
+      kind: "sale_in",
+      saleId: { in: [...input.into.saleIds] },
+    },
+    columns: { saleId: true },
+  });
+  if (deposited.length > 0) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "That Sale's money has been deposited already",
+      data: { refusal: "already_deposited" },
+    });
+  }
+  const held = await heldSalesOf(tx, input.farmId, {
+    ventureId: input.into.ventureId,
+  });
+  const carried = input.into.saleIds.map((saleId) =>
+    held.find((one) => one.saleId === saleId && one.heldBy === input.fromUserId)
+  );
+  if (carried.some((one) => one === undefined)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "That Sale's cash is not held in this hand for this Venture",
+      data: { refusal: "not_held_here" },
+    });
+  }
+  const sales = carried.filter((one) => one !== undefined);
+  const totalBdt = roundTaka(sales.reduce((sum, one) => sum + one.bdt, 0));
+  if (roundTaka(input.amountBdt) !== totalBdt) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `Those Sales come to ${totalBdt}`,
+      data: { refusal: "amount_changed", totalBdt },
+    });
+  }
+  const id = uuidv7(input.now);
+  await tx.insert(handover).values({
+    id,
+    farmId: input.farmId,
+    fromUserId: input.fromUserId,
+    toUserId: null,
+    ventureId: input.into.ventureId,
+    amountBdt: totalBdt,
+    handedAt: input.handedAt,
+    reference: input.reference,
+    note: input.note,
+    recordedBy: input.recordedBy,
+    recordedByRole: input.recordedByRole,
+    recordedAt: input.now,
+  });
+  for (const one of sales) {
+    // oxlint-disable-next-line no-await-in-loop -- one movement per Sale, as the account reads them
+    await tx.insert(ventureMovement).values({
+      id: uuidv7(input.now),
+      farmId: input.farmId,
+      ventureId: one.ventureId,
+      kind: "sale_in",
+      saleId: one.saleId,
+      handoverId: id,
+      amountBdt: one.bdt,
+      movedOn: farmDayOf(input.handedAt),
+      reference: input.reference,
+      recordedBy: input.recordedBy,
+      createdAt: input.now,
+    });
+  }
+  return { id };
+};
 
 /**
  * Cash passed from one hand to another, or to the bank or out of it. Refused from the bank to the bank, from a hand to
@@ -491,7 +692,7 @@ export const recordHandover = async (
   input: {
     farmId: string;
     from: HandEnd;
-    to: HandEnd;
+    to: HandEnd | IntoAVenture;
     amountBdt: number;
     handedAt: Date;
     reference: string | null;
@@ -503,6 +704,13 @@ export const recordHandover = async (
     now: Date;
   }
 ): Promise<{ id: string }> => {
+  if ("ventureId" in input.to) {
+    return await depositSaleCash(tx, {
+      ...input,
+      fromUserId: userOf(input.from),
+      into: input.to,
+    });
+  }
   if (input.buyingTripId) {
     await requireOpenFarmTrip(tx, input.farmId, input.buyingTripId);
   }
