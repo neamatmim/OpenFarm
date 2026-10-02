@@ -97,6 +97,12 @@ export const intakeCorrectionInput = correctionInput({
   paymentMethod: paymentMethodChange,
 });
 
+/** Whose she will be after a Correction: the owner it names, else whose she was. */
+const willBeOwnedByOf = (
+  wasOwnedBy: string | null,
+  named: string | null | undefined
+): string | null => (named === undefined ? wasOwnedBy : named);
+
 /**
  * That the window a Correction gives her is hers to be given. A Venture's animal is sold in the Venture's, which only an
  * Amendment moves. One made the Farm's own while she still stands is asked the window the Farm sells her in: the
@@ -174,10 +180,19 @@ export const intakeCorrection: CorrectionKind<
     const wasOwnedBy = await ownerOf(tx, row.animalId);
     assertTheWindowIsTheOwners({
       wasOwnedBy,
-      willBeOwnedBy: to.owner === undefined ? wasOwnedBy : to.owner,
+      willBeOwnedBy: willBeOwnedByOf(wasOwnedBy, to.owner),
       standing: !(EXIT_STATES as readonly string[]).includes(row.animal.state),
       saysAWindow: to.targetWindow !== undefined,
     });
+    // One purse to an outing, asked of the owner and the outing she will have after it, whichever of the two moves.
+    if (to.owner !== undefined || to.buyingTrip !== undefined) {
+      const willBeOn =
+        to.buyingTrip === undefined ? row.buyingTripId : to.buyingTrip;
+      await assertSheBelongsWithTheFloat(tx, row.farmId, {
+        buyingTripId: willBeOn ?? undefined,
+        ventureId: willBeOwnedByOf(wasOwnedBy, to.owner) ?? undefined,
+      });
+    }
     if (to.owner !== undefined) {
       await assertVentureIsBuying(tx, row.farmId, to.owner ?? undefined, {
         correcting: true,
@@ -185,10 +200,6 @@ export const intakeCorrection: CorrectionKind<
       if (to.owner !== null) {
         await assertAVentureMayOwnHer(tx, row.animalId);
       }
-      await assertSheBelongsWithTheFloat(tx, row.farmId, {
-        buyingTripId: to.buyingTrip ?? row.buyingTripId ?? undefined,
-        ventureId: to.owner ?? undefined,
-      });
       // On the Animal, where an owner lives: her Intake says who bought her, but it is she who belongs
       // to somebody. Written before the money is booked again, so what she cost follows her.
       await tx

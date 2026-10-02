@@ -533,7 +533,7 @@ export const takenAgainst = async (
 };
 
 /**
- * That an outing's Buying Float has not been reconciled yet.
+ * That an outing's Buying Float has not been reconciled yet — a Venture's, or the Farm's own counted home.
  *
  * Reconciling says what went out equals the animals, the outing's costs and the cash brought home. An
  * animal or a cost changed afterwards would make that sum false, and the Owner already signed it.
@@ -555,7 +555,14 @@ export const assertTripIsOpen = async (
     },
     columns: { id: true },
   });
-  if (counted) {
+  // The Farm's own Float is counted home on the outing itself, not as a Venture Movement.
+  const countedHome = counted
+    ? null
+    : await tx.query.buyingTrip.findFirst({
+        where: { farmId, id: tripId, floatReconciledAt: { isNotNull: true } },
+        columns: { id: true },
+      });
+  if (counted || countedHome) {
     throw new ORPCError("BAD_REQUEST", {
       message: "That outing's Float has been reconciled; it takes nothing more",
       data: { refusal: "float_already_reconciled" },

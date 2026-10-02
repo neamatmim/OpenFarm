@@ -1305,6 +1305,7 @@ export const bn: Record<MessageKey, string> = {
   "refusal.cattleBudgetShort": "গরুর বাজেটে এত টাকা নেই — হিসাবের বাকিটা গরু পালার জন্য",
   "refusal.floatAlreadyDrawn": "এই যাত্রার জন্য টাকা আগেই দেওয়া হয়েছে",
   "refusal.tripIsAnotherVentures": "এই যাত্রা অন্য ভেঞ্চারের গরু আনছে",
+  "refusal.tripIsTheFarms": "এই যাত্রা খামারের নিজের গরু আনছে",
   "refusal.floatAlreadyReconciled":
     "এই যাত্রার হিসাব মিলিয়ে ফেলা হয়েছে, আর কিছু যোগ করা যাবে না",
   "refusal.floatOver":
@@ -3809,6 +3810,9 @@ export const bn: Record<MessageKey, string> = {
     "যে ভেঞ্চারের টাকায় কেনা। যে ভেঞ্চার কিনছে, কেবল সেটিই গরু নিতে পারে।",
   "intake.ownerFromFloat":
     "{venture}-এর হাটে নেওয়া টাকায় কেনা, তাই গরুটি {venture}-এর",
+  "intake.ownerFromFarmFloat":
+    "এই যাত্রা খামারের নিজের টাকায় হাটে গিয়েছিল, তাই গরুটি খামারের নিজের।",
+  "intake.farmFloat": "খামারের টাকায়",
   "intake.theFarms": "খামারের নিজের",
   "intake.weight": "আসার সময়ের ওজন",
   "intake.age": "আনুমানিক বয়স",

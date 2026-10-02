@@ -1798,9 +1798,10 @@ export const venturesRouter = {
       if (!trip) {
         throw new ORPCError("NOT_FOUND", { message: "No such outing" });
       }
-      // An outing already bringing another Venture's animals home cannot be funded by this one: the
-      // reconciliation counts the Animals bought on the trip for the Venture that paid, and money and
-      // animals pointing at different Ventures is a sum nobody could ever make balance.
+      // An outing already bringing the Farm's or another Venture's animals home cannot be funded by this one: the
+      // reconciliation counts the Animals bought on the trip for the Venture that paid, and money and animals
+      // pointing at different purses is a sum nobody could ever make balance — and the lorry would move into this
+      // Venture's purse with them.
       const brought = await context.db.query.intake.findMany({
         where: { farmId: context.farm.id, buyingTripId: input.buyingTripId },
         columns: { animalId: true },
@@ -1809,7 +1810,13 @@ export const venturesRouter = {
         context.db,
         brought.map((one) => one.animalId)
       );
-      if (owners.some((owner) => owner !== null && owner !== row.id)) {
+      if (owners.includes(null)) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "That outing is bringing the Farm's own animals home",
+          data: { refusal: "trip_is_the_farms" },
+        });
+      }
+      if (owners.some((owner) => owner !== row.id)) {
         throw new ORPCError("BAD_REQUEST", {
           message: "That outing is bringing another Venture's animals home",
           data: { refusal: "trip_is_another_ventures" },
