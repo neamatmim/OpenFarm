@@ -148,6 +148,8 @@ export interface Context {
     shrinkTellPercent: number;
     /** How many days of a feed left, at the rate it is fed, before it is Running Low. */
     feedDaysLow: number;
+    /** How many days after a Release or an arrival dose is put off it is raised again. */
+    putOffDays: number;
     /** How far a Cash Count may come up short before the Owner is told. */
     cashShortTellBdt: number;
     /** How far a monthly medicine count may come up short, in taka, before the Owner is told. */

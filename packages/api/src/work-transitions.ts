@@ -91,7 +91,8 @@ export type CalledOffBy =
   | "attempt_no_longer_standing"
   | "calving_no_longer_expected"
   | "report_withdrawn"
-  | "sop_retired";
+  | "sop_retired"
+  | "released";
 
 /** What raised called-off work again. */
 export type RaisedAgainBy = "calving_expected_again";

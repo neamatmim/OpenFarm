@@ -1,0 +1,1 @@
+ALTER TABLE "farm" ADD COLUMN "put_off_days" integer DEFAULT 7 NOT NULL;

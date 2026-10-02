@@ -3607,6 +3607,8 @@ export const bn: Record<MessageKey, string> = {
   "alerts.instanceEscalated": "{pen}-এ {sop} {hours} ঘণ্টা ধরে দেরি",
   "alerts.instanceSentBack": "{pen}-এ {sop} ফেরত পাঠানো হয়েছে: {reason}",
   "work.overdue": "দেরি",
+  "work.putOff": "আবার — আগে পিছিয়ে দেওয়া হয়েছিল",
+  "work.putOffSince": "আবার — প্রথমবার পিছিয়েছে {day}",
   "work.overdueTitle": "দেরি হওয়া কাজ",
   "work.overdueNone": "কোনো কাজ দেরি হয়নি",
   "work.lateFor": "{hours} ঘণ্টা দেরি",
@@ -4744,6 +4746,10 @@ export const bn: Record<MessageKey, string> = {
   "params.feedDaysHint":
     "গত দুই সপ্তাহ যে হারে খাওয়ানো হয়েছে, সেই হারে কোনো খাদ্য এর কম দিন চললে সেটি কমে আসছে ধরা হবে, আর সন্ধ্যার খবরে ম্যানেজারকে জানানো হবে।",
   "params.feedDaysLow": "এর কম দিন হলে",
+  "params.putOff": "পরে করা হবে এমন কাজ",
+  "params.putOffHint":
+    'কোয়ারেন্টিন থেকে ছাড়া বা আসার পরের কোনো ডোজ "পরে" বলে বাদ গেলে বা না করা হলে, এত দিন পরে কাজটি আবার আসবে — যতক্ষণ না করা হয়।',
+  "params.putOffDays": "এত দিন পরে",
   "params.feedPrice": "বেশি দামে কেনা খাদ্য",
   "params.feedPriceHint":
     "কোনো খাদ্য আগের বারের চেয়ে প্রতি একক এতটা বেশি দামে কেনা হলে সন্ধ্যার খবরে আপনাকে জানানো হবে।",

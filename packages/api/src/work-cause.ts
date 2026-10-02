@@ -92,3 +92,23 @@ export const calvingCauseParts = (
  */
 export const wholeFarmCauseOf = (dueAt: Date): string =>
   `whole-farm:${dueAt.toISOString()}`;
+
+/**
+ * The cause work raised again carries, when the work it follows was put off — skipped, or closed Missed — and is still
+ * owed: `<original cause>:again:<n>`. Every raising is its own, so the unique cause keeps a replay from raising it twice,
+ * and the original is found from any of them.
+ */
+export const putOffCauseOf = (cause: string, n: number): string =>
+  `${cause}:again:${n}`;
+
+const PUT_OFF = /^(?<original>.+):again:(?<n>\d+)$/u;
+
+/** A put-off cause read back: what first raised the work, and which raising this is — or null for any other. */
+export const putOffOf = (
+  cause: string | null
+): { original: string; n: number } | null => {
+  const found = cause ? PUT_OFF.exec(cause)?.groups : undefined;
+  return found?.original && found.n
+    ? { original: found.original, n: Number(found.n) }
+    : null;
+};

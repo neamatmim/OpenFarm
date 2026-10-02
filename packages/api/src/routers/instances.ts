@@ -48,11 +48,12 @@ import {
 } from "../instances-store";
 import { tell } from "../notice";
 import { pushRaised } from "../push-send";
+import { raiseThePutOffRelease } from "../put-off-store";
 import { requireRole } from "../roles";
 import { isWorkInScope, requireWorkInScope, workInScopeWhere } from "../scope";
 import { contentOf } from "../sop-content";
 import { theDaysWork } from "../the-day-turns";
-import { unwellThatRaised } from "../work-cause";
+import { putOffOf, unwellThatRaised } from "../work-cause";
 import {
   readWork,
   requireMayTransition,
@@ -277,9 +278,31 @@ export const instancesRouter = {
         },
         orderBy: { dueAt: "asc" },
       });
+      // Work raised again after it was put off says so, and the day the work it follows was due.
+      const originals = [
+        ...new Set(rows.flatMap((row) => putOffOf(row.cause)?.original ?? [])),
+      ];
+      const first =
+        originals.length === 0
+          ? []
+          : await context.db.query.sopInstance.findMany({
+              where: { farmId: context.farm.id, cause: { in: originals } },
+              columns: { cause: true, dueAt: true },
+            });
+      const firstDue = new Map(first.map((one) => [one.cause, one.dueAt]));
       // Late is a fact about the clock, not a state, so it is worked out on the way out
       // rather than waiting for something to have run.
-      return rows.map((row) => ({ ...row, overdue: isOverdue(row, now) }));
+      return rows.map((row) => {
+        const again = putOffOf(row.cause);
+        return {
+          ...row,
+          overdue: isOverdue(row, now),
+          /** Raised again after it was put off: which time, and when the work it follows was first due. */
+          putOff: again
+            ? { n: again.n, firstDueAt: firstDue.get(again.original) ?? null }
+            : null,
+        };
+      });
     }),
 
   /** Everything the pen board needs: the Version's Steps, the Pen's animals, and what has
@@ -703,6 +726,14 @@ export const instancesRouter = {
           // No completedAt: nobody completed it. When it was closed, and by whom, is the
           // Audit Event's business.
           await requireTransition(tx, instance, "closeAsMissed");
+          // A Release nobody walked is still owed while he is in Quarantine: raised again after the farm's days.
+          await raiseThePutOffRelease(
+            tx,
+            context.farm.id,
+            instance.id,
+            now,
+            now
+          );
         }
       );
       return { id: input.id, state: "missed" } as const;

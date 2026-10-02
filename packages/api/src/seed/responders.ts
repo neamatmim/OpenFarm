@@ -218,6 +218,10 @@ RESPONDERS.tickSpray = (step, beast, { farm, herd, day }) => {
 
 RESPONDERS.quarantineRelease = (step, beast, { farm, herd }) => {
   const bull = beast ? herd.bulls.get(beast.tagNumber) : undefined;
+  // The bull that will not go up the crush is not well either: kept in at his Release, which comes round again a week on.
+  if (bull?.crushShyFrom && (step.id === "healthy" || step.id === "release")) {
+    return { skipReason: "অসুস্থ — কোয়ারেন্টিনে থাকবে" };
+  }
   if (step.id === "release" && bull) {
     // The farm walks him to the Pen whose Ration suits his weight; the script's herd follows where he went.
     herd.followUps.push(async () => {

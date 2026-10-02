@@ -242,6 +242,9 @@ export const farm = pgTable("farm", {
   /** How many days of a feed, at the rate it has been fed lately, before it is Running Low and the Manager is told in
    *  the evening's post: a week, time to order (the Owner, 2026-09-29). The Manager's to set, who keeps the store. */
   feedDaysLow: integer("feed_days_low").notNull().default(7),
+  /** How many days after a Release or an arrival dose is put off — skipped as "later", or closed Missed — it is raised
+   *  again: a week. The Owner's or the Manager's, who keeps the quarantine. */
+  putOffDays: integer("put_off_days").notNull().default(7),
   /** How far a weekly Cash Count may come up short before the Owner is told, in the evening's post: ৳1,000. The Owner's
    *  alone, as the person counted should not set the line that checks them (the Owner, 2026-09-30). */
   cashShortTellBdt: integer("cash_short_tell_bdt").notNull().default(1000),

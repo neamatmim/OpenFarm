@@ -3868,6 +3868,8 @@ export const en = {
     "{sop} in {pen} has been late for {hours, plural, one {# hour} other {# hours}}",
   "alerts.instanceSentBack": "{sop} in {pen} was sent back: {reason}",
   "work.overdue": "Late",
+  "work.putOff": "Again — put off before",
+  "work.putOffSince": "Again — first put off {day}",
   "work.overdueTitle": "Late work",
   "work.overdueNone": "Nothing is late",
   "work.lateFor": "Late by {hours, plural, one {# hour} other {# hours}}",
@@ -5084,6 +5086,10 @@ export const en = {
   "params.feedDaysHint":
     "A feed with fewer days left than this, at the rate it has been fed over the last fortnight, is running low, and the Manager is told in the evening's post.",
   "params.feedDaysLow": "Running low under",
+  "params.putOff": "Work put off",
+  "params.putOffHint":
+    'When a Release or an arrival dose is skipped as "later", or not done, it comes round again after this many days — until it is done.',
+  "params.putOffDays": "After",
   "params.feedPrice": "Feed bought dearer",
   "params.feedPriceHint":
     "When a feed is bought at this much more per unit than the last time it was bought, you are told in the evening's post.",
