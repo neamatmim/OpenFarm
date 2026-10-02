@@ -1466,6 +1466,11 @@ export const en = {
     "She has never been weighed, so there is no price anybody could defend",
   "refusal.weighedTooLongAgo":
     "Her last weighing is too old to price on — weigh her again first",
+  "refusal.noQuarantinePen": "Mark a pen as a quarantine pen first",
+  "refusal.notAQuarantinePen":
+    "A bought animal comes into Quarantine in a quarantine pen",
+  "refusal.penHoldsQuarantine":
+    "An animal in Quarantine is in this pen — release or walk her first",
   "refusal.windUpNotOver":
     "The Wind-up Period has not ended; there are still days to sell in",
   "refusal.nothingLeftToBuy": "This Venture has no animals left to buy",
@@ -2214,6 +2219,7 @@ export const en = {
   "herd.title": "Sheds & pens",
   "herd.addShed": "Add a shed",
   "herd.addPen": "Add a pen",
+  "herd.quarantinePen": "Quarantine pen",
   "herd.shedName": "Shed name",
   "herd.penName": "Pen name",
   "herd.rename": "Rename",
@@ -4180,7 +4186,10 @@ export const en = {
   "intake.kg": "{kg} kg",
   "intake.months": "{months, plural, one {# month} other {# months}}",
   "intake.pen": "Pen",
-  "intake.penHint": "Whichever pen it goes into, it starts in Quarantine.",
+  "intake.penHint": "It starts in Quarantine, in a quarantine pen.",
+  "intake.noQuarantinePen":
+    "The farm has no quarantine pen marked yet — a bought animal comes in only through one. Mark a pen as a quarantine pen first.",
+  "intake.markAQuarantinePen": "Go to sheds and pens",
   "intake.sellerName": "Seller's name",
   "intake.sellerPlace": "Seller's market or place",
   "intake.sellerPhone": "Seller's phone",

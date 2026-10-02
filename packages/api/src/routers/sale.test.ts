@@ -43,10 +43,12 @@ const setup = async () => {
   const vet = await createTestClient(appRouter, { as: "vet", clock });
   const shed = await owner.client.herd.createShed({ name: `sale-${suffix}` });
   const pen = await owner.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: `বিক্রয় ${suffix}`,
   });
   const treatedPen = await owner.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: `চিকিৎসা ${suffix}`,
   });

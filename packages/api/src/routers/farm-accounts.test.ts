@@ -171,6 +171,7 @@ describe("the Farm Accounts", () => {
     const owner = await as("owner", `${DAY}T07:00:00.000Z`);
     const shed = await owner.client.herd.createShed({ name: suffix });
     const pen = await owner.client.herd.createPen({
+      quarantine: true,
       shedId: shed.id,
       name: `ফ্যাটেনিং ${suffix}`,
     });

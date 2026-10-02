@@ -1,7 +1,7 @@
 import { Button } from "@OpenFarm/ui/components/button";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ClipboardCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -26,7 +26,7 @@ import {
 import { IntakeSummary } from "@/components/intake/intake-summary";
 import { RecentIntakes } from "@/components/intake/recent-intakes";
 import { useIsOwner } from "@/components/money";
-import { Page, PageHeader } from "@/components/page";
+import { Notice, Page, PageHeader } from "@/components/page";
 import { accountSent } from "@/components/payment-method";
 import { useT } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
@@ -76,9 +76,14 @@ const IntakePage = () => {
   // one at the haat writing the arrival down.
   const ventures = useQuery(orpc.ventures.takingAnimals.queryOptions());
   const isOwner = useIsOwner();
+  // A bought animal comes in only through a quarantine pen. An answer kept from before pens were marked offers none,
+  // and says so, until it is read again.
   const pens = (sheds.data ?? []).flatMap((shed) =>
-    shed.pens.map((pen) => ({ id: pen.id, name: `${shed.name} / ${pen.name}` }))
+    shed.pens
+      .filter((pen) => pen.quarantine === true)
+      .map((pen) => ({ id: pen.id, name: `${shed.name} / ${pen.name}` }))
   );
+  const noQuarantinePen = sheds.data !== undefined && pens.length === 0;
 
   const setItsPhoto = useMutation(orpc.animals.setPhoto.mutationOptions({}));
   const record = useMutation(
@@ -172,6 +177,17 @@ const IntakePage = () => {
         }}
       >
         <div className="flex min-w-0 flex-col gap-4">
+          {noQuarantinePen ? (
+            <Notice
+              action={
+                <Link className="underline" to="/admin/herd">
+                  {t("intake.markAQuarantinePen")}
+                </Link>
+              }
+              title={t("intake.noQuarantinePen")}
+              tone="warning"
+            />
+          ) : null}
           <AnimalSection
             fields={fields}
             onEdit={edit}

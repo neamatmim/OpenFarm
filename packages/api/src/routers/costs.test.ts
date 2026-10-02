@@ -113,18 +113,22 @@ const setup = async () => {
   const vet = await as("vet", start);
   const shed = await owner.client.herd.createShed({ name: `costs-${suffix}` });
   const fattening = await owner.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: `খরচ মোটাতাজা ${suffix}`,
   });
   const dairy = await owner.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: `খরচ দুধ ${suffix}`,
   });
   const empty = await owner.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: `খরচ খালি ${suffix}`,
   });
   const away = await owner.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: `খরচ অন্যত্র ${suffix}`,
   });

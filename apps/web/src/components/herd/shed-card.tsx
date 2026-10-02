@@ -1,5 +1,6 @@
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
+import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Fence, PencilLine, Plus, Warehouse } from "lucide-react";
 
 import {
@@ -17,7 +18,8 @@ import { useLanguage } from "@/i18n/language-provider";
 export interface ShedRow {
   id: string;
   name: string;
-  pens: { id: string; name: string }[];
+  /** `quarantine` is missing from an answer kept from before pens were marked: read as unmarked. */
+  pens: { id: string; name: string; quarantine?: boolean }[];
 }
 
 /** What a Shed's card can ask the page for: a new Pen in it, or a new name for it or one of its Pens. */
@@ -25,11 +27,14 @@ export interface ShedActions {
   handleAddPen: (shed: ShedRow) => void;
   handleRenameShed: (shed: ShedRow) => void;
   handleRenamePen: (pen: { id: string; name: string }) => void;
+  /** Marked as a quarantine pen, or not. */
+  handleMarkQuarantine: (pen: { id: string }, quarantine: boolean) => void;
 }
 
 interface PenRow {
   id: string;
   name: string;
+  quarantine: boolean;
   animals: number;
   actions: ShedActions;
 }
@@ -64,16 +69,44 @@ const RenamePen = ({ row }: { row: PenRow }) => {
   );
 };
 
-const NameCell = ({ row }: PenCell) => (
-  <span className="font-medium">{row.original.name}</span>
-);
+/** A Pen's name, and the mark of a quarantine pen beside it. */
+const PenName = ({ row }: { row: PenRow }) => {
+  const { t } = useLanguage();
+  return (
+    <span className="flex min-w-0 flex-wrap items-center gap-2">
+      <span className="truncate font-medium">{row.name}</span>
+      {row.quarantine ? (
+        <StatusBadge tone="warning">{t("herd.quarantinePen")}</StatusBadge>
+      ) : null}
+    </span>
+  );
+};
+
+/** Whether this is a quarantine pen: where bought animals come in and are kept until released. */
+const QuarantineMark = ({ row }: { row: PenRow }) => {
+  const { t } = useLanguage();
+  return (
+    <label className="flex items-center gap-2 text-sm whitespace-nowrap">
+      <Checkbox
+        checked={row.quarantine}
+        onCheckedChange={(checked) =>
+          row.actions.handleMarkQuarantine(row, checked === true)
+        }
+      />
+      {t("herd.quarantinePen")}
+    </label>
+  );
+};
+
+const NameCell = ({ row }: PenCell) => <PenName row={row.original} />;
 
 const AnimalsCell = ({ row }: PenCell) => (
   <HeadCount count={row.original.animals} />
 );
 
 const RenameCell = ({ row }: PenCell) => (
-  <div className="-my-1.5 flex justify-end">
+  <div className="-my-1.5 flex items-center justify-end gap-3">
+    <QuarantineMark row={row.original} />
     <RenamePen row={row.original} />
   </div>
 );
@@ -93,7 +126,7 @@ const penColumns = column.columns([
     id: "rename",
     header: ActionsHeader,
     cell: RenameCell,
-    meta: { align: "end", className: "w-32" },
+    meta: { align: "end", className: "w-64" },
   }),
 ]);
 
@@ -101,10 +134,11 @@ const penColumns = column.columns([
 const PenCard = ({ row }: { row: PenRow }) => (
   <div className="flex items-center justify-between gap-3">
     <div className="flex min-w-0 flex-col gap-0.5">
-      <span className="truncate font-medium">{row.name}</span>
+      <PenName row={row} />
       <span className="text-sm">
         <HeadCount count={row.animals} />
       </span>
+      <QuarantineMark row={row} />
     </div>
     <RenamePen row={row} />
   </div>
@@ -130,6 +164,7 @@ export const ShedCard = ({
   const pens = shed.pens.map((pen) => ({
     id: pen.id,
     name: pen.name,
+    quarantine: pen.quarantine === true,
     animals: inPen.get(pen.id) ?? 0,
     actions,
   }));

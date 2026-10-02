@@ -43,6 +43,7 @@ beforeAll(async () => {
   const { client: owner } = await as("owner", "2027-12-31T04:00:00.000Z");
   const shed = await owner.herd.createShed({ name: `ফল ${suffix}` });
   const pen = await owner.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: `মোটাতাজা ${suffix}`,
   });
@@ -360,6 +361,7 @@ describe("a Season still going with one bull sold and one standing", () => {
     });
     const shed = await owner.herd.createShed({ name: `২০৩০ ${suffix}` });
     const pen = await owner.herd.createPen({
+      quarantine: true,
       shedId: shed.id,
       name: `মোটাতাজা ২০৩০ ${suffix}`,
     });

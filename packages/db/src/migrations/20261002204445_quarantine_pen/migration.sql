@@ -1,0 +1,1 @@
+ALTER TABLE "pen" ADD COLUMN "quarantine" boolean DEFAULT false NOT NULL;

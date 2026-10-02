@@ -56,6 +56,7 @@ const setup = async () => {
   const manager = await createTestClient(appRouter, { as: "manager", clock });
   const shed = await owner.client.herd.createShed({ name: `gain-${suffix}` });
   const pen = await owner.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: `মোটাতাজা ${suffix}`,
   });
@@ -261,10 +262,7 @@ describe("a reading the farm doubted", () => {
       .innerJoin(animal, eq(animal.id, weighIn.animalId))
       // Tag Numbers repeat across the test files' farms, which share one database.
       .where(
-        and(
-          eq(animal.farmId, theFarm().id),
-          eq(animal.tagNumber, tagOf(index))
-        )
+        and(eq(animal.farmId, theFarm().id), eq(animal.tagNumber, tagOf(index)))
       )
       .orderBy(weighIn.weighedAt);
   };

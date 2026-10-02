@@ -19,6 +19,7 @@ const setup = async () => {
   const owner = await as("owner", "2037-01-02T04:00:00.000Z");
   const shed = await owner.client.herd.createShed({ name: `money-${suffix}` });
   const pen = await owner.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: `টাকা ${suffix}`,
   });

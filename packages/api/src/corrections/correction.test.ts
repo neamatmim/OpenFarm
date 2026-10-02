@@ -77,6 +77,7 @@ beforeAll(async () => {
     name: `correction-${suffix}`,
   });
   const pen = await owner.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: `সংশোধন ${suffix}`,
   });

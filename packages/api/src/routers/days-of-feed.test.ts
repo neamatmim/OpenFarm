@@ -100,6 +100,7 @@ beforeAll(async () => {
   hay = hayItem.id;
   const shed = await manager.client.herd.createShed({ name: suffix });
   const pen = await manager.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: `ভুসির পেন ${suffix}`,
   });

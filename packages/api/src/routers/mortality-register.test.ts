@@ -90,7 +90,11 @@ const setup = async () => {
   }
   const shed = await owner.client.herd.createShed({ name: `r6-${suffix}` });
   const pen = (name: string) =>
-    owner.client.herd.createPen({ shedId: shed.id, name: `${name} ${suffix}` });
+    owner.client.herd.createPen({
+      quarantine: true,
+      shedId: shed.id,
+      name: `${name} ${suffix}`,
+    });
   const pens = {
     calving: await pen("বাচ্চার ঘর"),
     dairy: await pen("গাভীর ঘর"),
