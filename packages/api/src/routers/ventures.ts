@@ -1840,12 +1840,19 @@ export const venturesRouter = {
           // Counted inside the write, behind the same lock every other Venture count takes: what the
           // Cattle Budget holds is only true until the next Float commits.
           const held = await heldByEach(tx, context.farm.id, [row.id]);
-          const view = ventureView(standing, held.get(row.id), undefined, {
-            warnBelowBdt: context.farm.runningBudgetWarnBdt,
-            bank: NEVER_CHECKED,
-            windUpDays: context.farm.windUpDays,
-            stillHers: 0,
-          });
+          // Its signed Units too: paid by the month, its cattle money is what their Cattle Parts brought in.
+          const signed = await signedForEach(tx, context.farm.id, [row.id]);
+          const view = ventureView(
+            standing,
+            held.get(row.id),
+            signed.get(row.id),
+            {
+              warnBelowBdt: context.farm.runningBudgetWarnBdt,
+              bank: NEVER_CHECKED,
+              windUpDays: context.farm.windUpDays,
+              stillHers: 0,
+            }
+          );
           if (input.amountBdt > view.cattleBudgetHeldBdt) {
             throw new ORPCError("BAD_REQUEST", {
               message: `The Cattle Budget is holding ${view.cattleBudgetHeldBdt}`,
@@ -2163,8 +2170,10 @@ export const venturesRouter = {
           if (to !== null) {
             // The buyer pays out of what it holds for cattle, exactly as it would at the haat.
             const held = await heldByEach(tx, context.farm.id, [to]);
+            // Its signed Units too: paid by the month, its cattle money is what their Cattle Parts brought in.
+            const signed = await signedForEach(tx, context.farm.id, [to]);
             const buyer = await ours(context, to);
-            const view = ventureView(buyer, held.get(to), undefined, {
+            const view = ventureView(buyer, held.get(to), signed.get(to), {
               warnBelowBdt: context.farm.runningBudgetWarnBdt,
               bank: NEVER_CHECKED,
               windUpDays: context.farm.windUpDays,
