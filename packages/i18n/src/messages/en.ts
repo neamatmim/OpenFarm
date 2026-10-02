@@ -1432,6 +1432,8 @@ export const en = {
   "refusal.referenceUsedAlready":
     "That transaction ID is on this Farm Account already",
   "refusal.farmAccountListedAlready": "That number is listed already",
+  "refusal.beforeTheFirstReading":
+    "That month is before this account's first reading",
   "refusal.alreadyDeposited": "That Sale's money has been deposited already",
   "refusal.ventureSaleNotByBkash":
     "A Venture's animal is paid for by bank or in cash, never by bKash",
@@ -3052,6 +3054,21 @@ export const en = {
   "farmAccounts.retire": "Retire",
   "farmAccounts.retired": "retired",
   "farmAccounts.retiredDone": "Account retired",
+  "farmAccounts.readHint":
+    "The balance the statement shows at the month's last day",
+  "farmAccounts.outOnHome": "Statements that did not agree",
+  "farmAccounts.check": "Check the statement",
+  "farmAccounts.neverRead": "No statement read yet",
+  "farmAccounts.heldNow": "The farm's books say ৳{amount} now",
+  "farmAccounts.lastRead": "last read {month}",
+  "farmAccounts.disagrees":
+    "The statement did not agree for {months} — say what you found out",
+  "farmAccounts.stale":
+    "The statement needs reading again for {months} — the farm changed its mind about those months",
+  "farmAccounts.checkHint":
+    "Hold what {account}'s statement read at the month's end against the farm's books. Where it does not agree, write what you found out.",
+  "farmAccounts.firstReading":
+    "This account's first statement: what it reads is what the account held, and every month after is checked from it.",
   "money.referenceWas": "ref. {reference}",
   "money.paidBy": "Paid by",
   "money.whichAccount": "Which Farm Account",

@@ -138,7 +138,8 @@ const keepTheStore = ({ farm, days, on }: Script) => {
           priceBdt: price * quantity,
           seller,
           receivedOn: day,
-          ...paidBy(f, random.chance(0.5) ? "cash" : "bkash"),
+          // A lorry of feed is paid in cash at the gate or by bank: more than a bKash number moves in a month.
+          ...paidBy(f, random.chance(0.5) ? "cash" : "bank"),
         });
       }
     });
@@ -401,6 +402,15 @@ const payTheMonth = async (
   const id = (key: string) =>
     categories.find((category) => category.key === key)?.id ?? "";
   const wageMonth = addDays(payday, -20).slice(0, 7);
+  // The month's bKash money moved from the bank first, so the office number pays the wages and the Vet without
+  // running dry: a Handover between two Farm Accounts.
+  await f.as.owner.cash.handOver({
+    from: { farmAccountId: f.farmAccounts.bank },
+    to: { farmAccountId: f.farmAccounts.bkash },
+    amountBdt: 55_000,
+    reference: paidBy(f, "bank").reference,
+    note: "ব্যাংক থেকে অফিস বিকাশে মাসের টাকা",
+  });
   const wages: [string, number][] = [
     ["জাহিদ হাসান", 14_000],
     ["মিনারা বেগম", 12_000],

@@ -1325,6 +1325,8 @@ export const bn: Record<MessageKey, string> = {
     "বিকাশ বা ব্যাংকের লেনদেনের ট্রানজ্যাকশন আইডি বা রেফারেন্স লিখুন",
   "refusal.referenceUsedAlready": "এই ট্রানজ্যাকশন আইডি এই হিসাবে আগেই লেখা হয়েছে",
   "refusal.farmAccountListedAlready": "এই নম্বরটি আগেই তালিকায় আছে",
+  "refusal.beforeTheFirstReading":
+    "এই মাসটি এই হিসাবের প্রথম স্টেটমেন্ট মেলানোর আগের",
   "refusal.alreadyDeposited": "এই বিক্রির টাকা আগেই জমা হয়েছে",
   "refusal.ventureSaleNotByBkash":
     "ভেঞ্চারের গরুর দাম ব্যাংকে বা নগদে নেওয়া হয়, বিকাশে নয়",
@@ -2845,6 +2847,20 @@ export const bn: Record<MessageKey, string> = {
   "farmAccounts.retire": "বন্ধ করুন",
   "farmAccounts.retired": "বন্ধ",
   "farmAccounts.retiredDone": "হিসাবটি বন্ধ করা হয়েছে",
+  "farmAccounts.readHint": "মাসের শেষ দিনে স্টেটমেন্টে যে ব্যালান্স ছিল",
+  "farmAccounts.outOnHome": "স্টেটমেন্টের সাথে মেলেনি",
+  "farmAccounts.check": "স্টেটমেন্ট মেলান",
+  "farmAccounts.neverRead": "এখনো কোনো স্টেটমেন্ট মেলানো হয়নি",
+  "farmAccounts.heldNow": "খামারের হিসাবে এখন ৳{amount}",
+  "farmAccounts.lastRead": "শেষ মেলানো {month}",
+  "farmAccounts.disagrees":
+    "{months} মাসে স্টেটমেন্টের সাথে মেলেনি — কী জেনেছেন লিখুন",
+  "farmAccounts.stale":
+    "{months} মাস আবার মিলিয়ে দেখতে হবে — ওই মাসগুলো নিয়ে খামারের হিসাব বদলেছে",
+  "farmAccounts.checkHint":
+    "{account}-এর মাসের শেষে স্টেটমেন্টে যা ছিল, তা খামারের হিসাবের সাথে মিলিয়ে দেখুন। না মিললে যা জানলেন লিখে রাখুন।",
+  "farmAccounts.firstReading":
+    "এই হিসাবের প্রথম স্টেটমেন্ট: এতে যা আছে সেটাই হিসাবের শুরু, পরের মাসগুলো এখান থেকে মেলানো হবে।",
   "money.referenceWas": "ট্রানজ্যাকশন আইডি {reference}",
   "money.paidBy": "কীভাবে দেওয়া হলো",
   "money.whichAccount": "খামারের কোন হিসাবে",

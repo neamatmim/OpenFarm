@@ -13,6 +13,7 @@ import {
 
 import { overdueBaki } from "../baki-store";
 import { heatWatchOn, repeatBreedersOn } from "../breeding-store";
+import { farmAccountsOut } from "../farm-account-store";
 import { illAgainOn } from "../health-store";
 import { protectedProcedure } from "../index";
 import {
@@ -294,6 +295,7 @@ export const homeRouter = {
         missing,
         storeCount,
         lostYear,
+        accountsOut,
       ] = await Promise.all([
         findLate(
           context.db,
@@ -375,6 +377,9 @@ export const homeRouter = {
         storeCountLate(context.db, farmId, now),
         // Animals written off as Lost in the year, and what they had cost: beside the deaths, as the farm's losses.
         lostInAYear(context.db, farmId, now),
+        // The Farm's bKash numbers and bank accounts with a month their statement did not agree with, or one the farm
+        // has since changed its mind about.
+        farmAccountsOut(context.db, farmId, now),
       ]);
 
       // A day of the farm's milk is every Pen's Sessions on that day added together, which
@@ -405,6 +410,7 @@ export const homeRouter = {
 
       return {
         needsYou: {
+          farmAccountsOut: accountsOut,
           overdue: late
             .map((instance) => ({
               id: instance.id,

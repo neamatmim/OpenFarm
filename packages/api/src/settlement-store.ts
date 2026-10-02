@@ -21,16 +21,16 @@ import {
 import { ORPCError } from "@orpc/server";
 
 import type { SnapshotValue, Trail, Tx } from "./audit";
+import type { BankStanding } from "./bank-standing";
+import { NEVER_CHECKED } from "./bank-standing";
 import { heldSalesOf } from "./cash-store";
 import type { CarriedLine, FarmCosts } from "./cost-store";
 import { chargedTo, farmCosts, owedByMonth } from "./cost-store";
 import { adjustmentsOf } from "./settlement-adjustment-store";
-import type { BankStanding } from "./venture-store";
 import {
   balanceOf,
   bankStandingOf,
   heldByEach,
-  NEVER_CHECKED,
   NOTHING_HELD,
   ownedThenByOf,
   stillHersOf,

@@ -1,3 +1,4 @@
+import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
@@ -8,11 +9,59 @@ import { toast } from "sonner";
 import { useIsOwner } from "@/components/money";
 import { Section } from "@/components/page";
 import { FormField } from "@/components/page-kit";
+import { BankCheckSheet } from "@/components/ventures/bank-check-sheet";
 import { useLanguage } from "@/i18n/language-provider";
+import { saidMonth } from "@/lib/months";
 import { useRefused } from "@/lib/refused";
+import { monthsStillOut } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
 
 type Kind = "bkash" | "bank";
+
+type Listed = Awaited<ReturnType<typeof orpc.farmAccounts.list.call>>[number];
+
+/**
+ * How an account stands against its statements, the Owner's to read: what the farm believes it holds, the last month
+ * read, and the months still out — a stale one needs the statement read again, a disagreeing one needs explaining.
+ */
+const StandingLine = ({ standing }: { standing: Listed["standing"] }) => {
+  const { t, language } = useLanguage();
+  // Missing from a list a phone kept from before accounts were read against statements.
+  if (!standing) {
+    return (
+      <p className="text-muted-foreground text-xs">
+        {t("farmAccounts.neverRead")}
+      </p>
+    );
+  }
+  const { stale, disagreed } = monthsStillOut(standing);
+  const months = (list: string[]) =>
+    list.map((one) => saidMonth(one, language)).join(", ");
+  return (
+    <div className="text-xs">
+      <p className="text-muted-foreground tabular-nums">
+        {t("farmAccounts.heldNow", {
+          amount: formatNumber(standing.heldNowBdt, language),
+        })}
+        {standing.lastCheckedMonth
+          ? ` · ${t("farmAccounts.lastRead", {
+              month: saidMonth(standing.lastCheckedMonth, language),
+            })}`
+          : ""}
+      </p>
+      {disagreed.length > 0 ? (
+        <p className="text-danger">
+          {t("farmAccounts.disagrees", { months: months(disagreed) })}
+        </p>
+      ) : null}
+      {stale.length > 0 ? (
+        <p className="text-warning">
+          {t("farmAccounts.stale", { months: months(stale) })}
+        </p>
+      ) : null}
+    </div>
+  );
+};
 
 interface Typed {
   kind: Kind;
@@ -150,6 +199,9 @@ export const FarmAccounts = ({ id }: { id: string }) => {
     })
   );
   const accounts = listed.data ?? [];
+  const [checking, setChecking] = useState<{ id: string; name: string } | null>(
+    null
+  );
   return (
     <Section
       className="scroll-mt-6"
@@ -183,22 +235,41 @@ export const FarmAccounts = ({ id }: { id: string }) => {
                   {one.bank ? ` · ${one.bank}` : ""}
                   {one.branch ? `, ${one.branch}` : ""}
                 </p>
+                {isOwner ? <StandingLine standing={one.standing} /> : null}
               </div>
               {isOwner && !one.retired ? (
-                <Button
-                  disabled={retire.isPending}
-                  onClick={() => retire.mutate({ id: one.id })}
-                  size="sm"
-                  variant="outline"
-                >
-                  {t("farmAccounts.retire")}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => setChecking({ id: one.id, name: one.name })}
+                    size="sm"
+                    variant="outline"
+                  >
+                    {t("farmAccounts.check")}
+                  </Button>
+                  <Button
+                    disabled={retire.isPending}
+                    onClick={() => retire.mutate({ id: one.id })}
+                    size="sm"
+                    variant="outline"
+                  >
+                    {t("farmAccounts.retire")}
+                  </Button>
+                </div>
               ) : null}
             </li>
           ))}
         </ul>
       )}
       {isOwner ? <AddAccount /> : null}
+      <BankCheckSheet
+        farmAccount={checking}
+        onOpenChange={(open) => {
+          if (!open) {
+            setChecking(null);
+          }
+        }}
+        open={checking !== null}
+      />
     </Section>
   );
 };

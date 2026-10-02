@@ -176,6 +176,39 @@ export const farmAccount = pgTable(
 );
 
 /**
+ * One month's reading of a Farm Account's statement — the bank's or bKash's — against what the farm believed it held at
+ * that month's end: the **Bank Check** of the Farm's own money, the pair of `venture_bank_check`. Its first reading is
+ * what the account held from then on; every month after is the farm's books against the statement.
+ */
+export const farmAccountCheck = pgTable(
+  "farm_account_check",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    farmAccountId: text("farm_account_id")
+      .notNull()
+      .references(() => farmAccount.id),
+    /** The month it is of, "YYYY-MM". One reading per account per month. */
+    forMonth: text("for_month").notNull(),
+    /** What the statement said, and what the farm thought at the moment she read it. */
+    readBdt: taka("read_bdt").notNull(),
+    expectedBdt: taka("expected_bdt").notNull(),
+    /** What she found out about a difference, where she has found out anything. */
+    note: text("note"),
+    checkedBy: text("checked_by").references(() => user.id),
+    checkedAt: timestamp("checked_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("farm_account_check_uidx").on(
+      table.farmAccountId,
+      table.forMonth
+    ),
+  ]
+);
+
+/**
  * One flow of money in or out of the Farm: how much, when, which way, under what Category, with whom, how
  * it was paid, and the record that caused it.
  *
