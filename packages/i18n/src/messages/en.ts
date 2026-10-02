@@ -5100,6 +5100,8 @@ export const en = {
   "cash.depositDay": "Day it went in",
   "cash.deposited": "Deposited into the Venture Account",
   "cash.to": "To",
+  "cash.whoseHand": "Whose hand took the cash",
+  "cash.myOwnHand": "My own",
   "cash.bank": "The bank",
   "cash.amount": "Amount (৳)",
   "cash.slip": "Deposit slip or cheque",

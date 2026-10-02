@@ -4763,6 +4763,8 @@ export const bn: Record<MessageKey, string> = {
   "cash.depositDay": "যেদিন জমা হলো",
   "cash.deposited": "ভেঞ্চারের হিসাবে জমা হয়েছে",
   "cash.to": "কার কাছে",
+  "cash.whoseHand": "নগদ টাকা কার হাতে গেল",
+  "cash.myOwnHand": "আমার নিজের হাতে",
   "cash.bank": "ব্যাংক",
   "cash.amount": "টাকা (৳)",
   "cash.slip": "জমার স্লিপ বা চেক",

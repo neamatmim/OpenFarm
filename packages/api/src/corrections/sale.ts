@@ -6,6 +6,7 @@ import { z } from "zod";
 import { tellIfSoldUnderCost } from "../animal-price-store";
 import type { Tx } from "../audit";
 import { bakiOrRefuse, paidNowInput, promisedByInput } from "../baki-store";
+import { assertTheHand, handOfTheRecord } from "../cash-store";
 import { counterpartyNamed } from "../counterparty-store";
 import { paymentMethodChange } from "../money-inputs";
 import { bookingOf, paymentMethodOf } from "../money-store";
@@ -48,6 +49,8 @@ export const saleCorrectionInput = correctionInput({
   promisedBy: changeOf(promisedByInput.nullable(), z.string().nullable()),
   brokerBdt: changeOf(brokerInput, z.number()),
   weightKg: changeOf(z.number().positive().max(2000), z.number()),
+  /** Whose hand took the cash, put right on the rule a Sale is written on (`assertTheHand`). */
+  heldBy: changeOf(z.string(), z.string().nullable()),
 });
 
 /**
@@ -78,6 +81,7 @@ export const saleCorrection: CorrectionKind<
     promisedBy: row.promisedBy,
     brokerBdt: row.brokerBdt,
     weightKg: Number(row.weightKg),
+    heldBy: await handOfTheRecord(tx, row.farmId, "sale", row.id),
   }),
   shownAs: { buyer: (to) => to.name },
   trail: (tx, row) => readSale(tx, row.id),
@@ -126,7 +130,13 @@ export const saleCorrection: CorrectionKind<
       tx,
       bookingOf(context, context.roleUsed, now),
       row.id,
-      to.paymentMethod
+      to.paymentMethod,
+      await assertTheHand(
+        tx,
+        row.farmId,
+        { id: context.actor.id, roles: context.roles },
+        to.heldBy
+      )
     );
     // A price, a broker's fee or her weight put right may take her under her cost or the market; told once about the
     // Sale, as when it was made.

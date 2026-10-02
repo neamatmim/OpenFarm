@@ -89,7 +89,9 @@ export const bookSaleMoney = async (
   booking: Booking,
   id: string,
   /** Left out, the Money Event keeps the method it was booked with. */
-  paymentMethod?: PaymentMethod
+  paymentMethod?: PaymentMethod,
+  /** Whose hand took the notes, where the record names one (`assertTheHand`); left out, as `handOf` decides. */
+  heldBy?: string
 ) => {
   const row = await tx.query.sale.findFirst({ where: { id } });
   if (!row) {
@@ -125,6 +127,7 @@ export const bookSaleMoney = async (
       occurredAt: row.soldAt,
       counterpartyId: row.counterpartyId,
       paymentMethod,
+      ...(heldBy === undefined ? {} : { heldBy }),
       // What she fetched belongs to whoever owned her, exactly as what she cost did.
       purseVentureId: ventureId,
     });

@@ -101,6 +101,50 @@ export const heldSalesOf = async (
   );
 };
 
+/**
+ * Whose hand a cash record names, where the writer names one: the Owner may name any Owner or Manager — writing up the
+ * Manager's haat sale that evening — and a Manager only their own; and only a hand that holds the farm's cash. Left
+ * out, the writer's, as it has always been.
+ */
+export const assertTheHand = async (
+  db: Db,
+  farmId: string,
+  writer: { id: string; roles: readonly string[] },
+  heldBy: string | undefined
+): Promise<string | undefined> => {
+  if (heldBy === undefined) {
+    return undefined;
+  }
+  if (heldBy !== writer.id && !writer.roles.includes("owner")) {
+    throw new ORPCError("FORBIDDEN", {
+      message: "Another person's cash in hand is the Owner's to name",
+      data: { refusal: "owner_only" },
+    });
+  }
+  const holders = await holdersOf(db as Tx, farmId, CASH_HOLDING_ROLES);
+  if (!holders.includes(heldBy)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Only the Owner or a Manager holds the farm's cash",
+      data: { refusal: "holds_no_cash" },
+    });
+  }
+  return heldBy;
+};
+
+/** Whose hand a record's cash is in now, as its Money Event names it: nothing for bKash or the bank, or none named. */
+export const handOfTheRecord = async (
+  db: Db,
+  farmId: string,
+  source: "sale" | "baki_payment",
+  sourceId: string
+): Promise<string | null> => {
+  const money = await db.query.moneyEvent.findFirst({
+    where: { farmId, source, sourceId },
+    columns: { heldBy: true },
+  });
+  return money?.heldBy ?? null;
+};
+
 /** One person's Cash in Hand, and the last time it was counted. */
 export interface HandHolds {
   userId: string;
