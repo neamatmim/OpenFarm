@@ -80,6 +80,7 @@ import {
   recordMortality,
   writeDisposal,
 } from "../mortality-store";
+import { callOffPutOffReleases } from "../put-off-store";
 import { forbidden, requireRole } from "../roles";
 import {
   animalsInScopeWhere,
@@ -1083,6 +1084,15 @@ export const animalsRouter = {
             at: now,
             now,
           });
+          // Let out by hand: any Release raised again for him is owed no more.
+          if (current.state === "quarantine") {
+            await callOffPutOffReleases(
+              tx,
+              context.farm.id,
+              current.id,
+              audited(context).recordEvent
+            );
+          }
         }
       );
       return { tagNumber, state: input.state };

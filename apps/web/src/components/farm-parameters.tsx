@@ -69,6 +69,7 @@ type NumberKey =
   | "arrivalShortPercent"
   | "shrinkTellPercent"
   | "feedDaysLow"
+  | "putOffDays"
   | "cashShortTellBdt"
   | "medicineShortTellBdt"
   | "ventureFloorPercent"
@@ -392,6 +393,20 @@ const GROUPS: {
       {
         key: "feedDaysLow",
         label: "params.feedDaysLow",
+        unit: "params.days",
+        min: 1,
+        max: 60,
+      },
+    ],
+  },
+  {
+    id: "params-put-off",
+    title: "params.putOff",
+    hint: "params.putOffHint",
+    fields: [
+      {
+        key: "putOffDays",
+        label: "params.putOffDays",
         unit: "params.days",
         min: 1,
         max: 60,

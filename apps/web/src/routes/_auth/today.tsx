@@ -95,6 +95,25 @@ const useStanding = () => {
  * One piece of work as a card the whole of which is the tap: what it is, where and when, where it stands, and what the
  * tap does — start it, or open work somebody else holds. Late work is edged in the danger colour and says so first.
  */
+/** Work raised again after it was put off: said, with the day the work it follows was first due. Nothing for the rest,
+ *  or for an answer kept from before work said so. */
+const PutOffLine = ({ work }: { work: Work }) => {
+  const { t, language } = useLanguage();
+  const again = work.putOff;
+  if (!again) {
+    return null;
+  }
+  return (
+    <p className="text-warning text-sm">
+      {again.firstDueAt
+        ? t("work.putOffSince", {
+            day: formatDate(new Date(again.firstDueAt), language, "date"),
+          })
+        : t("work.putOff")}
+    </p>
+  );
+};
+
 const WorkCard = ({
   work,
   standing,
@@ -141,6 +160,7 @@ const WorkCard = ({
             {t("work.due", { time: dueWhen(new Date(work.dueAt), language) })}
           </span>
         </p>
+        <PutOffLine work={work} />
         {/* Work simply due says so with its time; a badge is kept for what the time does not say — late, and whose. */}
         {work.overdue || standing ? (
           <div className="flex flex-wrap gap-1.5">

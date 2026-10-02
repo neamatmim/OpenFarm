@@ -175,6 +175,8 @@ const parameters = z
     shrinkTellPercent: z.number().int().min(1).max(30).optional(),
     /** How many days of a feed left, at the rate it is fed, before it is Running Low. */
     feedDaysLow: z.number().int().min(1).max(60).optional(),
+    /** How many days after a Release or an arrival dose is put off it is raised again. */
+    putOffDays: z.number().int().min(1).max(60).optional(),
     /** How far a Cash Count may come up short before the Owner is told. */
     cashShortTellBdt: z.number().int().min(0).max(1_000_000).optional(),
     medicineShortTellBdt: z.number().int().min(0).max(1_000_000).optional(),
@@ -835,6 +837,7 @@ export const farmRouter = {
                 arrivalShortPercent: true,
                 shrinkTellPercent: true,
                 feedDaysLow: true,
+                putOffDays: true,
                 cashShortTellBdt: true,
                 medicineShortTellBdt: true,
                 ventureFloorPercent: true,
