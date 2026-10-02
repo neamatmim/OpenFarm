@@ -206,6 +206,7 @@ const WORDED_REFUSALS = {
   a_price_is_missing: "refusal.aPriceIsMissing",
   a_float_is_open: "refusal.aFloatIsOpen",
   a_reimbursement_is_owed: "refusal.aReimbursementIsOwed",
+  the_account_does_not_add_up: "refusal.theAccountDoesNotAddUp",
   the_bank_disagrees: "refusal.theBankDisagrees",
   agreements_disagree: "refusal.agreementsDisagree",
   already_approved: "refusal.alreadyApproved",

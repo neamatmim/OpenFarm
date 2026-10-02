@@ -1040,6 +1040,10 @@ export const en = {
   "ventures.theFarms": "The Farm's",
   "ventures.unitsHeld": "{units, plural, one {# Unit} other {# Units}}",
   "ventures.unpricedKg": "{kg} kg at no price",
+  "ventures.accountOver":
+    "{taka} would be left in the account once everybody is paid",
+  "ventures.accountShort":
+    "The account would be {taka} short of paying everybody",
   "ventures.uncostedDoses":
     "{doses, plural, one {# dose} other {# doses}} nothing costs",
   "ventures.neverRead": "never read: {months}",
@@ -1443,6 +1447,7 @@ export const en = {
   "refusal.aFloatIsOpen": "A Buying Float has not been counted home",
   "refusal.aReimbursementIsOwed":
     "A month's Reimbursement has not been transferred",
+  "refusal.theAccountDoesNotAddUp": "The account does not add up",
   "refusal.theBankDisagrees":
     "A month has not been read against the statement, or did not agree",
   "refusal.nobodyHasSigned": "Nobody has signed for this Venture",
