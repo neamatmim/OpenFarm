@@ -226,6 +226,9 @@ export const handover = pgTable(
      *  brought back when it was counted home. Nothing for cash passed for any other reason. */
     buyingTripId: text("buying_trip_id").references(() => buyingTrip.id),
     float: text("float", { enum: ["out", "back"] }),
+    /** The Venture Account a deposit went into: a Venture's sale cash, held in a hand since the haat, banked with its
+     *  slip. Nothing for the Farm's own cash. */
+    ventureId: text("venture_id").references(() => venture.id),
     recordedBy: text("recorded_by")
       .notNull()
       .references(() => user.id),

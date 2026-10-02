@@ -719,6 +719,9 @@ export const ventureMovement = pgTable(
     /** The Intake of a bull bought with no outing and paid from this account by bank. Only that movement has one,
      *  and by id rather than by foreign key for the same reason a Sale's is. */
     intakeId: text("intake_id"),
+    /** The deposit that carried a cash Sale's money here from the hand that took it at the haat. By id, as a Sale's is:
+     *  a Handover is the Farm's cash record and lives with the money ones. */
+    handoverId: text("handover_id"),
     amountBdt: taka("amount_bdt").notNull(),
     /** The day the bank moved it, on the farm's own clock. */
     movedOn: text("moved_on").notNull(),

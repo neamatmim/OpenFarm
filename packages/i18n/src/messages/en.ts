@@ -1420,6 +1420,13 @@ export const en = {
     "That outing is bringing the Farm's own animals home",
   "refusal.ventureBuysByBank":
     "A Venture's bull bought with no outing is paid from its account by bank, with the reference",
+  "refusal.notHeldHere":
+    "That Sale's cash is not held in this hand for this Venture",
+  "refusal.alreadyDeposited": "That Sale's money has been deposited already",
+  "refusal.ventureSaleNotByBkash":
+    "A Venture's animal is paid for by bank or in cash, never by bKash",
+  "refusal.saleCashInAHand":
+    "Sale cash is still in a hand, not yet deposited in the Venture Account",
   "refusal.floatAlreadyReconciled":
     "That outing's Float has been counted; it takes nothing more",
   "refusal.floatOver":
@@ -5084,6 +5091,14 @@ export const en = {
   "cash.handOverHint":
     "Cash passed to another person, or into the bank with its slip. Nothing is earned or spent: it only changes hands.",
   "cash.handedOver": "Handed over",
+  "cash.heldForVenture": "of which {bdt} is {venture}'s — {tags}",
+  "cash.deposit": "Deposit into the Venture Account",
+  "cash.depositTitle": "Deposit into {venture}'s account",
+  "cash.depositHint":
+    "Bank a Venture's sale cash taken at the haat, with the deposit slip. The Venture Account holds it only once it is deposited.",
+  "cash.depositTotal": "To be deposited: {bdt}",
+  "cash.depositDay": "Day it went in",
+  "cash.deposited": "Deposited into the Venture Account",
   "cash.to": "To",
   "cash.bank": "The bank",
   "cash.amount": "Amount (৳)",

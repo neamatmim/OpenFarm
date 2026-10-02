@@ -29,6 +29,15 @@ const handEnd = z.union([
   z.object({ bank: z.literal(true) }),
 ]);
 
+/** Where a Handover may go: a hand, the bank, or a Venture's sale cash into its Venture Account with the Sales it carries. */
+const handTo = z.union([
+  handEnd,
+  z.object({
+    ventureId: z.string(),
+    saleIds: z.array(z.string()).min(1).max(100),
+  }),
+]);
+
 /** Whether this person may read, or move, the cash in someone's hand: the Owner anybody's, a Manager their own. */
 const mayActFor = (
   context: { roles: readonly string[]; actor: { id: string } },
@@ -83,7 +92,7 @@ export const cashRouter = {
     .input(
       z.object({
         from: handEnd,
-        to: handEnd,
+        to: handTo,
         amountBdt: amountInput,
         /** When it changed hands, if not now. */
         handedAt: z.coerce.date().optional(),

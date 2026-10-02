@@ -1091,6 +1091,8 @@ export const bookSaleProceeds = async (
     /** What the movement is looked up by. Her tag, and not a slip number: the money came off a buyer
      *  at the haat, and her tag is what the Owner has to go on. */
     reference: string;
+    /** Taken in cash: held in the hand that took it, and not in the account, until a deposit carries it there. */
+    inCash?: boolean;
   },
   now: Date,
   recordedBy: string | null
@@ -1116,6 +1118,11 @@ export const bookSaleProceeds = async (
     return;
   }
   if (itsOwn === null) {
+    return;
+  }
+  // Not deposited yet: the notes are in the hand that took them, and the Venture Account has nothing of it until a
+  // deposit writes the movement, dated the day it went in. A Correction to its price moves what the hand holds.
+  if (!already && sale.inCash) {
     return;
   }
   if (already) {

@@ -53,6 +53,7 @@ const BLOCK_WORD = {
   an_animal_still_stands: "refusal.anAnimalStillStands",
   a_price_is_missing: "refusal.aPriceIsMissing",
   a_float_is_open: "refusal.aFloatIsOpen",
+  sale_cash_in_a_hand: "refusal.saleCashInAHand",
   a_reimbursement_is_owed: "refusal.aReimbursementIsOwed",
   the_account_does_not_add_up: "refusal.theAccountDoesNotAddUp",
   the_bank_disagrees: "refusal.theBankDisagrees",
@@ -180,6 +181,16 @@ const WhatItIsAbout = ({ block }: { block: Block }) => {
     }
     case "a_float_is_open": {
       return <span>{taka(block.openFloatBdt)}</span>;
+    }
+    case "sale_cash_in_a_hand": {
+      return (
+        <span className="flex flex-wrap items-center gap-1">
+          {block.tagNumbers.map((tag) => (
+            <TagLink key={tag} tagNumber={tag} />
+          ))}
+          <span>· {block.hands.join(", ")}</span>
+        </span>
+      );
     }
     case "a_reimbursement_is_owed": {
       // The months never repaid, and what months already repaid have moved by since — the next Reimbursement carries

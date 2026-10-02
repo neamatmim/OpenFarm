@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { Tx } from "./audit";
 import { ownerOf } from "./intake-store";
 import type { Booking } from "./money-store";
-import { bookMoney, moneySnapshotOf } from "./money-store";
+import { bookMoney, moneySnapshotOf, paymentMethodOf } from "./money-store";
 import { bookSaleProceeds } from "./venture-store";
 
 /** The Sale as the trail records it, so a Correction has the whole entry to supersede. */
@@ -103,6 +103,19 @@ export const bookSaleMoney = async (
       data: { refusal: "venture_paid_in_full" },
     });
   }
+  // A Venture Account takes a buyer's money by bank, or as cash deposited with its slip — never by bKash, whose number
+  // is the Farm's own.
+  const method =
+    paymentMethod ??
+    (await paymentMethodOf(tx, row.farmId, "sale", row.id)) ??
+    undefined;
+  if (ventureId && method === "bkash") {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "A Venture's animal is paid for by bank or in cash, never by bKash",
+      data: { refusal: "venture_sale_not_by_bkash" },
+    });
+  }
   const paidBdt = paidAtTheGate(priceBdt, row.bakiBdt);
   if (paidBdt > 0 || (await moneySnapshotOf(tx, row.farmId, "sale", row.id))) {
     await bookMoney(tx, booking, {
@@ -132,6 +145,9 @@ export const bookSaleMoney = async (
       priceBdt,
       soldAt: row.soldAt,
       reference: her?.tagNumber ?? row.id,
+      // Taken in cash, it is in the hand that took it until it is deposited with its slip.
+      inCash:
+        (await paymentMethodOf(tx, row.farmId, "sale", row.id)) === "cash",
     },
     booking.now,
     booking.actorId
