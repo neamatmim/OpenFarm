@@ -80,7 +80,11 @@ import {
   recordMortality,
   writeDisposal,
 } from "../mortality-store";
-import { arrivalDosesOwed, callOffPutOffReleases } from "../put-off-store";
+import {
+  arrivalDosesOwed,
+  assertNoDoseOwed,
+  callOffPutOffReleases,
+} from "../put-off-store";
 import { forbidden, requireRole } from "../roles";
 import {
   animalsInScopeWhere,
@@ -1103,6 +1107,10 @@ export const animalsRouter = {
               trail: audited(context).recordEvent,
             });
             return;
+          }
+          // Let out of Quarantine by hand: the same gate as the Release's — not while an arrival dose is owed.
+          if (current.state === "quarantine") {
+            await assertNoDoseOwed(tx, context.farm.id, current.id, now);
           }
           await entersState(tx, context.farm.id, current, {
             state: input.state,

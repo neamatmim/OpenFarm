@@ -182,9 +182,23 @@ RESPONDERS.lsdVaccination = campaign;
 RESPONDERS.deworming = campaign;
 
 // The bought bull's chain: his doses on his own days, as the campaigns are given.
-RESPONDERS.arrivalDeworming = campaign;
-RESPONDERS.arrivalFmd = campaign;
-RESPONDERS.arrivalLsd = campaign;
+/** His own doses, as a campaign's are given — except to the bull taken unwell, whose doses are put off and so still owed:
+ *  his Release will not go ahead until the Vet writes why they are not needed, or they are given. */
+const hisDoses: Responder = (step, beast, context) => {
+  const bull = beast ? context.herd.bulls.get(beast.tagNumber) : undefined;
+  if (
+    step.id === "dose" &&
+    bull?.crushShyFrom &&
+    context.day >= bull.crushShyFrom
+  ) {
+    return { skipReason: "অসুস্থ — পরে দেওয়া হবে" };
+  }
+  return campaign(step, beast, context);
+};
+
+RESPONDERS.arrivalDeworming = hisDoses;
+RESPONDERS.arrivalFmd = hisDoses;
+RESPONDERS.arrivalLsd = hisDoses;
 RESPONDERS.hsVaccination = campaign;
 RESPONDERS.bqVaccination = campaign;
 RESPONDERS.fmdBooster = campaign;

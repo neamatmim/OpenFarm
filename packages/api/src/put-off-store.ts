@@ -1,7 +1,10 @@
+import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, like, ne } from "@OpenFarm/db/operators";
+import { excusedDose } from "@OpenFarm/db/schema/health";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type { SopContent } from "@OpenFarm/domain";
 import { OPEN_INSTANCE_STATES, isExitState } from "@OpenFarm/domain";
+import { ORPCError } from "@orpc/server";
 import type { SQL } from "drizzle-orm";
 
 import type { Trail, Tx } from "./audit";
@@ -162,13 +165,16 @@ export const callOffPutOffDose = (
     : Promise.resolve([]);
 };
 
-/** One arrival dose he still owes: the procedure's name, when it was first due, and when it comes round next. */
+/** One arrival dose he still owes — or that the Vet excused: the procedure's name, when it was first due, and when it
+ *  comes round next. */
 export interface DoseOwed {
   definitionId: string;
   name: { bn: string; en?: string };
   firstDueAt: Date;
   /** The open work it is owed on, if any is open: the work first raised, or one raised again. */
   nextDueAt: Date | null;
+  /** The Vet's written reason it is not needed, where they have written one: then it is not owed. */
+  excused: { reason: string } | null;
 }
 
 /**
@@ -216,6 +222,13 @@ export const arrivalDosesOwed = async (
     columns: { instanceId: true },
   });
   const givenOn = new Set(given.map((one) => one.instanceId));
+  const excuses = await tx.query.excusedDose.findMany({
+    where: { farmId, animalId },
+    columns: { definitionId: true, reason: true },
+  });
+  const excusedFor = new Map(
+    excuses.map((one) => [one.definitionId, { reason: one.reason }])
+  );
   const chains = new Map<string, typeof doses>();
   for (const one of doses) {
     const original = putOffOf(one.cause)?.original ?? one.cause ?? "";
@@ -238,8 +251,86 @@ export const arrivalDosesOwed = async (
             name: contentOf(first.version).name,
             firstDueAt: first.dueAt,
             nextDueAt: open.at(-1)?.dueAt ?? null,
+            excused: excusedFor.get(first.definitionId) ?? null,
           },
         ]
       : [];
   });
+};
+
+/**
+ * Refuses to let him out of Quarantine — by the Release Step or by hand, one gate for both doors — while an arrival dose
+ * is still owed him and the Vet has not written why it is not needed. Names the doses. A farm that adopted no dose
+ * procedure owes nothing, and the Release goes ahead as it always has.
+ */
+export const assertNoDoseOwed = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  animalId: string,
+  now: Date
+): Promise<void> => {
+  const doses = await arrivalDosesOwed(tx, farmId, animalId, now);
+  const owed = doses.filter((one) => one.excused === null);
+  if (owed.length > 0) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `Still owed: ${owed.map((one) => one.name.en ?? one.name.bn).join(", ")}`,
+      data: {
+        refusal: "arrival_dose_owed",
+        /** Their names, said as the farm says them. */
+        doses: owed.map((one) => one.name.bn).join(", "),
+      },
+    });
+  }
+};
+
+/**
+ * The Vet's written reason one arrival dose is not needed for him: kept, and what was raised again for it is called off.
+ * Refused for a dose he does not owe — given, not due, or excused already.
+ */
+export const excuseArrivalDose = async (
+  tx: Tx,
+  input: {
+    farmId: string;
+    animalId: string;
+    definitionId: string;
+    reason: string;
+    vetId: string;
+    now: Date;
+    trail: Trail;
+  }
+): Promise<void> => {
+  const owed = await arrivalDosesOwed(
+    tx,
+    input.farmId,
+    input.animalId,
+    input.now
+  );
+  const this_ = owed.find(
+    (one) => one.definitionId === input.definitionId && one.excused === null
+  );
+  if (!this_) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "He does not owe that dose",
+      data: { refusal: "dose_not_owed" },
+    });
+  }
+  await tx.insert(excusedDose).values({
+    id: uuidv7(input.now),
+    farmId: input.farmId,
+    animalId: input.animalId,
+    definitionId: input.definitionId,
+    reason: input.reason,
+    excusedBy: input.vetId,
+    excusedAt: input.now,
+  });
+  await callOffWork(
+    tx,
+    input.farmId,
+    and(
+      eq(sopInstance.animalId, input.animalId),
+      eq(sopInstance.definitionId, input.definitionId),
+      like(sopInstance.cause, `arrival:${input.animalId}:+%:again:%`)
+    ) as SQL,
+    { trail: input.trail, by: "excused" }
+  );
 };

@@ -1,9 +1,18 @@
+import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { recordDoseNotPrescribed } from "../dose-not-prescribed-store";
 import { protectedProcedure } from "../index";
-import { requirePersonalSession, requireRole } from "../roles";
+import { excuseArrivalDose } from "../put-off-store";
+import { requireOnly, requirePersonalSession, requireRole } from "../roles";
+
+/** Whether a dose is needed is the Vet's to say. */
+const EXCUSED_BY_THE_VET = {
+  message: "Only the Vet may say a dose is not needed",
+  reason: "vet_only",
+} as const;
 
 export const treatmentsRouter = {
   /**
@@ -53,5 +62,58 @@ export const treatmentsRouter = {
         }
       );
       return { id: done.id };
+    }),
+
+  /**
+   * The Vet's written reason one of a bull's arrival doses is not needed — the card from the farm he came from, say. It
+   * is no longer owed, what was raised again for it is called off, and his Release may go ahead. The Vet's alone, from
+   * their own account; kept, never removed.
+   */
+  excuseArrivalDose: protectedProcedure
+    .use(requireOnly("vet", EXCUSED_BY_THE_VET))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        tagNumber: z.string().trim().min(1).max(32),
+        definitionId: z.string(),
+        reason: z.string().trim().min(3).max(300),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const him = await context.db.query.animal.findFirst({
+        where: {
+          farmId: context.farm.id,
+          tagNumber: input.tagNumber.toUpperCase(),
+        },
+        columns: { id: true },
+      });
+      if (!him) {
+        throw new ORPCError("NOT_FOUND", { message: "No such animal" });
+      }
+      const readExcuse = async (tx: Pick<Tx, "query">) =>
+        (await tx.query.excusedDose.findFirst({
+          where: { animalId: him.id, definitionId: input.definitionId },
+        })) ?? null;
+      await audited(context).write(
+        {
+          entity: "excused_dose",
+          entityId: `${him.id}:${input.definitionId}`,
+          action: "create",
+          reason: input.reason,
+          after: readExcuse,
+        },
+        (tx) =>
+          excuseArrivalDose(tx, {
+            farmId: context.farm.id,
+            animalId: him.id,
+            definitionId: input.definitionId,
+            reason: input.reason,
+            vetId: context.actor.id,
+            now,
+            trail: audited(context).recordEvent,
+          })
+      );
+      return { tagNumber: input.tagNumber.toUpperCase() };
     }),
 };
