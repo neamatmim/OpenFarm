@@ -1,6 +1,7 @@
 import type { Database } from "@OpenFarm/db";
 import { farmDayOf } from "@OpenFarm/domain";
 
+import { leaveOneAstray } from "./astray";
 import {
   lastEidsSeason,
   priceTheDairyHerd,
@@ -76,6 +77,8 @@ export const seedFarm = async (db: Database) => {
   await callInAVisitingVet(farm, db, clock, today);
   step("the office bKash statements read, the last one short");
   await readTheStatements(farm);
+  step("one bull left in Quarantine outside the quarantine pen");
+  await leaveOneAstray(db, farm);
 
   return {
     password: SEED_PASSWORD,

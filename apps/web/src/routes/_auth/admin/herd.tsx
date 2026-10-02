@@ -6,6 +6,7 @@ import { FileUp, Plus, Warehouse } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { TagLink } from "@/components/fattening/fattening-words";
 import { ImportRegisterSheet } from "@/components/herd/import-register-sheet";
 import { NameDialog } from "@/components/herd/name-dialog";
 import type { ShedActions, ShedRow } from "@/components/herd/shed-card";
@@ -61,6 +62,28 @@ const useNamingWords = (naming: Naming | null) => {
   }
 };
 
+/** Animals in Quarantine outside every quarantine pen — put there before pens were marked — for the Manager to walk in.
+ *  Nothing at all once they are in. */
+const QuarantineAstray = () => {
+  const { t } = useLanguage();
+  const astray = useQuery(orpc.herd.quarantineAstray.queryOptions());
+  const rows = astray.data ?? [];
+  if (rows.length === 0) {
+    return null;
+  }
+  return (
+    <Notice title={t("herd.quarantineAstray")} tone="warning">
+      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+        {rows.map((one) => (
+          <li key={one.tagNumber}>
+            <TagLink tagNumber={one.tagNumber} /> · {one.penName}
+          </li>
+        ))}
+      </ul>
+    </Notice>
+  );
+};
+
 /**
  * The farm's Sheds and the Pens inside them, a card to each Shed with its Pens and how many animals stand in each.
  * Registering an animal is the page's own act; a new Shed and the opening register sit over the cards, and a name —
@@ -71,6 +94,7 @@ const HerdPage = () => {
   const refused = useRefused();
   const sheds = useQuery(orpc.herd.list.queryOptions());
   const animals = useQuery(orpc.animals.list.queryOptions({ input: {} }));
+
   const [naming, setNaming] = useState<Naming | null>(null);
   const [importing, setImporting] = useState(false);
   const words = useNamingWords(naming);
@@ -138,6 +162,7 @@ const HerdPage = () => {
         title={t("herd.title")}
       />
 
+      <QuarantineAstray />
       <div className="flex flex-wrap items-center gap-2">
         <Button
           onClick={() => setNaming({ kind: "newShed" })}

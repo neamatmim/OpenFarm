@@ -208,6 +208,7 @@ const WORDED_REFUSALS = {
   no_quarantine_pen: "refusal.noQuarantinePen",
   not_a_quarantine_pen: "refusal.notAQuarantinePen",
   pen_holds_quarantine: "refusal.penHoldsQuarantine",
+  stays_in_quarantine: "refusal.staysInQuarantine",
   wind_up_not_over: "refusal.windUpNotOver",
   bank_rate_from_the_future: "refusal.bankRateFromTheFuture",
   crossing_unweighed: "refusal.crossingUnweighed",

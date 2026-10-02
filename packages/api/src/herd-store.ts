@@ -287,6 +287,33 @@ export const assertAQuarantinePen = async (
 };
 
 /**
+ * An animal in Quarantine is walked only into a quarantine pen, whichever way the Move comes: by hand, by a phone's late
+ * Batch, or by a Step. The Release walks him out once he is Fattening, so it is never refused; nor is a bull standing
+ * outside one from before pens were marked, walked in.
+ */
+export const assertQuarantineStaysIn = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  beast: { state: AnimalState },
+  toPenId: string
+): Promise<void> => {
+  if (beast.state !== "quarantine") {
+    return;
+  }
+  const into = await tx.query.pen.findFirst({
+    where: { id: toPenId, farmId },
+    columns: { quarantine: true },
+  });
+  if (!into?.quarantine) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "An animal in Quarantine stays in a quarantine pen until she is released",
+      data: { refusal: "stays_in_quarantine" },
+    });
+  }
+};
+
+/**
  * The rows that make an Animal: the Animal itself and the Move that put it in its Pen.
  *
  * Takes a transaction rather than opening one, because an arrival writes more than an Animal —
@@ -505,6 +532,7 @@ export const walkTo = async (
 ): Promise<void> => {
   const { beast } = entry;
   refuseOnceSheHasLeft(beast);
+  await assertQuarantineStaysIn(tx, entry.farmId, beast, entry.toPenId);
   // Somebody walked her somewhere after this Move was made — a phone held it out of signal, or the Step was recorded
   // late. Walking her now would put her back where she has since left, so it is late, and a person decides.
   if (
@@ -861,6 +889,7 @@ export const walkByStep = async (
   }
 
   const { toPenId } = entry;
+  await assertQuarantineStaysIn(tx, entry.farmId, beast, toPenId);
   const fromPenId = already?.fromPenId ?? beast.penId;
   if (already) {
     // What the Step now says, whatever becomes of her.
