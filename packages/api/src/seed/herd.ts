@@ -270,7 +270,16 @@ export const takeInBulls = async (
     count,
     pen,
     heavier = 0,
-  }: { on: string; count: number; pen: PenKey; heavier?: number }
+    oneTypedHeavy = false,
+  }: {
+    on: string;
+    count: number;
+    pen: PenKey;
+    heavier?: number;
+    /** The lorry whose first bull the Manager wrote down 24 kg heavier than he was, and paid for so: his first round on
+     *  the farm's own scale comes in under it, and the Owner is told. */
+    oneTypedHeavy?: boolean;
+  }
 ): Promise<Bull[]> => {
   const { random } = farm;
   const seller = random.pick(SELLERS);
@@ -307,7 +316,9 @@ export const takeInBulls = async (
     );
     const breed = random.pick(BULL_BREEDS);
     const weightKg = random.int(185, 290) + heavier;
-    const price = Math.round((weightKg * random.between(430, 520)) / 500) * 500;
+    // What the Manager wrote down and paid for; what he really weighed is what the scale will say.
+    const typedKg = weightKg + (oneTypedHeavy && index === 0 ? 24 : 0);
+    const price = Math.round((typedKg * random.between(430, 520)) / 500) * 500;
     const recorded = await farm.as.manager.intake.record({
       penId: farm.pens[pen],
       sex: "male",
@@ -316,7 +327,7 @@ export const takeInBulls = async (
       // The haat's toll on this beast, as its slip gives it: a fraction of what she fetched.
       hasilBdt: Math.round((price * random.between(0.03, 0.045)) / 50) * 50,
       buyingTripId: trip.id,
-      weightKg,
+      weightKg: typedKg,
       estimatedAgeMonths: random.int(16, 26),
       breedId: await breedIdNamed(farm.as.manager, breed),
       // The haat takes cash, and the float is what it is paid from.

@@ -4969,6 +4969,10 @@ export const en = {
   "alerts.cashShort": "{name}'s cash count on {day} came up ৳{amount} short",
   "digest.cashShort":
     "{count, plural, one {# cash count} other {# cash counts}} came up short",
+  "alerts.arrivalWeightShort":
+    "{tag} came off the lorry at {arrival} kg; at her first weighing {days} days on she was {weighed} kg, {percent}% under — bought from {seller}",
+  "digest.arrivalWeightShort":
+    "{count, plural, one {# bought animal} other {# bought animals}} weighed under what {count, plural, one {it was} other {they were}} bought at",
   "alerts.openTheEids": "Open the Eid list",
   "alerts.openTheMoney": "Open income and expenses",
   "alerts.openTheCash": "Open the cash in hand",
@@ -5059,6 +5063,10 @@ export const en = {
   "params.feedPriceHint":
     "When a feed is bought at this much more per unit than the last time it was bought, you are told in the evening's post.",
   "params.feedPriceJumpPercent": "More than",
+  "params.arrivalShort": "Weighed under what was bought",
+  "params.arrivalShortHint":
+    "When a bought animal's first weighing, within her first thirty days, comes this much under the weight she was bought at, you are told in the evening's post.",
+  "params.arrivalShortPercent": "More than",
   "params.missing": "Missing animals",
   "params.missingHint":
     "How long an animal the round cannot find stays missing before you are asked whether to write it off as lost. You can write it off sooner from its page.",

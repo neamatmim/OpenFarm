@@ -336,6 +336,8 @@ export type { Bought } from "./last-buys";
 export { LAST_BUYS_DAYS, againstLastBuys, lastBuysPerKg } from "./last-buys";
 export type { BoughtIn, EarlyLosses } from "./early-losses";
 export { EARLY_DAYS, earlyLosses } from "./early-losses";
+export type { BoughtAt, ScaleReading } from "./arrival-weight";
+export { weighedShort } from "./arrival-weight";
 export type { ListedDisease } from "./disease-names";
 export type { Shrink } from "./shrink";
 export { SHRINK_STALE_DAYS, shrinkOf, shrinkOfMany } from "./shrink";

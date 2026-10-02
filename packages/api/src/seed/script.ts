@@ -281,6 +281,7 @@ const fattenTheBulls = ({ farm, on }: Script) => {
         count,
         pen: "quarantine",
         heavier: offset === 18 ? 60 : 0,
+        oneTypedHeavy: offset === 52,
       });
     });
   }

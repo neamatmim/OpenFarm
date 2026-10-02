@@ -170,6 +170,11 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
     audience: [theOwner],
     entity: "feed_in",
   },
+  // The Owner asks the Manager who bought him; about the Intake, so a reading put right is not told again.
+  arrival_weight_short: {
+    audience: [theOwner],
+    entity: "intake",
+  },
   // The Owner signs the count off and asks where the cash went; the Manager counted it. About the one count, so a count
   // put right is not told again.
   cash_short: {

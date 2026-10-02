@@ -4638,6 +4638,10 @@ export const bn: Record<MessageKey, string> = {
   "digest.enteredTwice": "{count}টি টাকার হিসাব জেনেশুনে দ্বিতীয়বার লেখা হয়েছে",
   "alerts.cashShort": "{day}-এর নগদ গণনায় {name}-এর হাতে ৳{amount} কম পাওয়া গেছে",
   "digest.cashShort": "{count}টি নগদ গণনায় টাকা কম পাওয়া গেছে",
+  "alerts.arrivalWeightShort":
+    "{tag} লরি থেকে নেমেছিল {arrival} কেজি; {days} দিন পর প্রথম ওজনে {weighed} কেজি, {percent}% কম — কেনা হয়েছিল {seller}-এর কাছ থেকে",
+  "digest.arrivalWeightShort":
+    "{count}টি কেনা পশু প্রথম ওজনে কেনার ওজনের চেয়ে কম হয়েছে",
   "alerts.openTheEids": "ঈদের তালিকা খুলুন",
   "alerts.openTheMoney": "টাকার হিসাব খুলুন",
   "alerts.openTheCash": "হাতে নগদ খুলুন",
@@ -4721,6 +4725,10 @@ export const bn: Record<MessageKey, string> = {
   "params.feedPriceHint":
     "কোনো খাদ্য আগের বারের চেয়ে প্রতি একক এতটা বেশি দামে কেনা হলে সন্ধ্যার খবরে আপনাকে জানানো হবে।",
   "params.feedPriceJumpPercent": "এর বেশি হলে",
+  "params.arrivalShort": "কেনা ওজনের চেয়ে কম",
+  "params.arrivalShortHint":
+    "কেনা পশুর প্রথম ত্রিশ দিনের মধ্যে প্রথম ওজন নেওয়ার সময় সে লরি থেকে নামার ওজনের চেয়ে এতটা কম হলে সন্ধ্যার খবরে আপনাকে জানানো হবে।",
+  "params.arrivalShortPercent": "এর বেশি কম হলে",
   "params.missing": "পাওয়া যাচ্ছে না এমন পশু",
   "params.missingHint":
     "রাউন্ডে খুঁজে না পাওয়া পশু কত দিন পাওয়া না গেলে আপনাকে জিজ্ঞেস করা হবে তাকে হারিয়ে গেছে বলে বাদ দেবেন কিনা। তার পাতা থেকে আগেও বাদ দিতে পারেন।",

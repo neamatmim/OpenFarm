@@ -1,7 +1,12 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { weighIn } from "@OpenFarm/db/schema/fattening";
-import { KG_DECIMALS, implausibleChange, roundKg } from "@OpenFarm/domain";
+import {
+  KG_DECIMALS,
+  implausibleChange,
+  roundKg,
+  weighedShort,
+} from "@OpenFarm/domain";
 
 import type { Tx } from "../audit";
 import { tell } from "../notice";
@@ -21,6 +26,71 @@ type WeighInFacts = Pick<
   | "recordedAt"
   | "now"
 >;
+
+/**
+ * A bought animal's first Weigh-in set against the weight she came off the lorry at: more than the Owner's line under it,
+ * within her first thirty days, is told to the Owner in the evening's post — the reading is right; it is the purchase
+ * she asks the Manager about. About the Intake, so a reading put right is not told twice. Nothing for an animal born
+ * here, or one weighed before.
+ */
+const judgeHerFirstWeighIn = async (
+  tx: Tx,
+  input: WeighInFacts,
+  animalId: string,
+  reading: { weightKg: number; weighedAt: Date }
+) => {
+  const before = await tx.query.weighIn.findFirst({
+    where: {
+      animalId,
+      weighedAt: { lt: reading.weighedAt },
+      completionId: { ne: input.completionId },
+    },
+    columns: { id: true },
+  });
+  if (before) {
+    return;
+  }
+  const bought = await tx.query.intake.findFirst({
+    where: { animalId, farmId: input.instance.farmId },
+    columns: { id: true, weightKg: true, arrivedAt: true },
+    with: {
+      seller: { columns: { name: true } },
+      animal: { columns: { tagNumber: true } },
+    },
+  });
+  if (!bought) {
+    return;
+  }
+  const farm = await tx.query.farm.findFirst({
+    where: { id: input.instance.farmId },
+    columns: { arrivalShortPercent: true },
+  });
+  const short = weighedShort(
+    { arrivalKg: Number(bought.weightKg), arrivedAt: bought.arrivedAt },
+    reading,
+    farm?.arrivalShortPercent ?? 5
+  );
+  if (!short) {
+    return;
+  }
+  await tell(
+    tx,
+    input.instance.farmId,
+    {
+      kind: "arrival_weight_short",
+      about: { id: bought.id },
+      facts: {
+        tag: bought.animal.tagNumber,
+        seller: bought.seller?.name ?? "",
+        arrivalKg: Number(bought.weightKg),
+        weighedKg: reading.weightKg,
+        days: short.days,
+        percent: short.percent,
+      },
+    },
+    input.now
+  );
+};
 
 /**
  * Records what one animal weighed on the scale this round.
@@ -121,6 +191,7 @@ const weighHer = async (tx: Tx, input: WeighInFacts): Promise<EffectResult> => {
       input.now
     );
   }
+  await judgeHerFirstWeighIn(tx, input, animalId, { weightKg, weighedAt });
   return { kind: "weigh_in", weightKg, flagged: flaggedNote !== null };
 };
 

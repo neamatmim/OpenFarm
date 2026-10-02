@@ -169,6 +169,8 @@ const parameters = z
     missingWriteOffDays: z.number().int().min(1).max(90).optional(),
     /** How far a Feed Purchase's price per unit may rise on the last one before the Owner is told. */
     feedPriceJumpPercent: z.number().int().min(1).max(100).optional(),
+    /** How far under her arrival weight a bought animal's first Weigh-in may come before the Owner is told. */
+    arrivalShortPercent: z.number().int().min(1).max(50).optional(),
     /** How many days of a feed left, at the rate it is fed, before it is Running Low. */
     feedDaysLow: z.number().int().min(1).max(60).optional(),
     /** How far a Cash Count may come up short before the Owner is told. */
@@ -263,6 +265,8 @@ const WHEN_A_SHORT_STORE_IS_TOLD = [
   "milkUnaccountedPercent",
   // And what the Manager paid for the feed.
   "feedPriceJumpPercent",
+  // And the weight the Manager bought a bull at.
+  "arrivalShortPercent",
   // And the cash in the Manager's hand.
   "cashShortTellBdt",
   // And the medicine the Manager buys and counts.
@@ -819,6 +823,7 @@ export const farmRouter = {
                 milkUnaccountedPercent: true,
                 missingWriteOffDays: true,
                 feedPriceJumpPercent: true,
+                arrivalShortPercent: true,
                 feedDaysLow: true,
                 cashShortTellBdt: true,
                 medicineShortTellBdt: true,

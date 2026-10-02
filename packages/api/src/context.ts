@@ -142,6 +142,8 @@ export interface Context {
     missingWriteOffDays: number;
     /** How far a Feed Purchase's price per unit may rise on the last one before the Owner is told. */
     feedPriceJumpPercent: number;
+    /** How far under her arrival weight a bought animal's first Weigh-in may come before the Owner is told. */
+    arrivalShortPercent: number;
     /** How many days of a feed left, at the rate it is fed, before it is Running Low. */
     feedDaysLow: number;
     /** How far a Cash Count may come up short before the Owner is told. */
