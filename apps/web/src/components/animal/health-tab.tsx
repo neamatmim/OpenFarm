@@ -1,5 +1,6 @@
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
+import { Textarea } from "@OpenFarm/ui/components/textarea";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -10,9 +11,11 @@ import { DoseTable } from "@/components/animal-histories";
 import type { Course } from "@/components/course";
 import { CourseLine } from "@/components/course";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
+import { FormDialog, FormField } from "@/components/page-kit";
 import { VetCases } from "@/components/vet-cases";
 import { DiagnosisSheet } from "@/components/vet/diagnosis-sheet";
 import { useLanguage } from "@/i18n/language-provider";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 import type { AnimalDetail, AnimalPowers } from "./animal-types";
@@ -223,9 +226,72 @@ const HealthChain = ({
 
 /** Her health, by what somebody came to it for: what was seen and what the Vet made of it, what she has been given —
  *  per animal, not per campaign, the list a slaughter vet asks for — and the visiting Vets called in about her. */
-/** Her arrival doses still owed — put off, and not given since — each with when it comes round next. Nothing when none. */
-const DosesOwed = ({ tagNumber }: { tagNumber: string }) => {
+type Owed = Awaited<ReturnType<typeof orpc.animals.dosesOwed.call>>[number];
+
+/** The Vet writing why one of her arrival doses is not needed: kept, and her Release may then go ahead. */
+const ExcuseDose = ({
+  tagNumber,
+  dose,
+  onOpenChange,
+}: {
+  tagNumber: string;
+  dose: Owed | null;
+  onOpenChange: (open: boolean) => void;
+}) => {
+  const { t } = useLanguage();
+  const refused = useRefused();
+  const [reason, setReason] = useState("");
+  const excuse = useMutation(
+    orpc.treatments.excuseArrivalDose.mutationOptions({
+      onSuccess: () => {
+        setReason("");
+        onOpenChange(false);
+      },
+      onError: refused,
+    })
+  );
+  return (
+    <FormDialog
+      description={t("animals.doseNotNeededHint")}
+      onOpenChange={onOpenChange}
+      onSubmit={() =>
+        excuse.mutate({
+          tagNumber,
+          definitionId: dose?.definitionId ?? "",
+          reason: reason.trim(),
+        })
+      }
+      open={dose !== null}
+      pending={excuse.isPending}
+      ready={reason.trim().length >= 3}
+      submitLabel={t("animals.doseNotNeeded")}
+      title={t("animals.doseNotNeeded")}
+    >
+      <FormField id="excuse-reason" label={t("animals.doseNotNeededWhy")}>
+        <Textarea
+          id="excuse-reason"
+          onChange={(event) => setReason(event.target.value)}
+          rows={2}
+          value={reason}
+        />
+      </FormField>
+    </FormDialog>
+  );
+};
+
+/**
+ * Her arrival doses still owed — put off, and not given since — each with when it comes round next; the Vet may write
+ * why one is not needed, and one excused reads as the Vet's word. Nothing when none.
+ */
+const DosesOwed = ({
+  tagNumber,
+  isVet,
+}: {
+  tagNumber: string;
+  isVet: boolean;
+}) => {
   const { t, language } = useLanguage();
+  const [excusing, setExcusing] = useState<Owed | null>(null);
   const owed = useQuery(
     orpc.animals.dosesOwed.queryOptions({ input: { tagNumber } })
   );
@@ -233,27 +299,55 @@ const DosesOwed = ({ tagNumber }: { tagNumber: string }) => {
   if (rows.length === 0) {
     return null;
   }
+  const when = (one: Owed) =>
+    one.nextDueAt
+      ? t("animals.doseComesRound", {
+          day: formatDate(new Date(one.nextDueAt), language, "date"),
+        })
+      : t("animals.doseNotRaised");
   return (
     <Section title={t("animals.dosesOwed")}>
-      <ul className="flex flex-col gap-1 text-sm">
+      <ul className="flex flex-col gap-2 text-sm">
         {rows.map((one) => (
           <li
-            className="flex flex-wrap justify-between gap-2"
+            className="flex flex-wrap items-center justify-between gap-2"
             key={one.definitionId}
           >
             <span className="font-medium">
               {language === "en" ? (one.name.en ?? one.name.bn) : one.name.bn}
             </span>
-            <span className="text-warning tabular-nums">
-              {one.nextDueAt
-                ? t("animals.doseComesRound", {
-                    day: formatDate(new Date(one.nextDueAt), language, "date"),
-                  })
-                : t("animals.doseNotRaised")}
-            </span>
+            {/* Missing from an answer kept from before the Vet could excuse a dose: read as not excused. */}
+            {one.excused ? (
+              <span className="text-muted-foreground">
+                {t("animals.doseExcused", { reason: one.excused.reason })}
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <span className="text-warning tabular-nums">{when(one)}</span>
+                {isVet ? (
+                  <Button
+                    onClick={() => setExcusing(one)}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    {t("animals.doseNotNeeded")}
+                  </Button>
+                ) : null}
+              </span>
+            )}
           </li>
         ))}
       </ul>
+      <ExcuseDose
+        dose={excusing}
+        onOpenChange={(open) => {
+          if (!open) {
+            setExcusing(null);
+          }
+        }}
+        tagNumber={tagNumber}
+      />
     </Section>
   );
 };
@@ -298,7 +392,7 @@ export const HealthTab = ({
           <DoseTable doses={detail.treatments} />
         </Section>
       ) : null}
-      <DosesOwed tagNumber={detail.tagNumber} />
+      <DosesOwed isVet={powers.isVet} tagNumber={detail.tagNumber} />
       {/* Calling a vet to her is for an animal still here; the cases she had stay listed either way. */}
       <VetCases
         mayCall={powers.runsTheFarm && powers.stillHere}

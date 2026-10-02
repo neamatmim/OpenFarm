@@ -4,6 +4,7 @@ import type {
   Evidence,
   MilkDestination,
   SopChange,
+  SopContent,
   Step,
 } from "@OpenFarm/domain";
 import {
@@ -138,6 +139,46 @@ const WhatWasSeen = ({
       </p>
       {seen.note ? <p>{seen.note}</p> : null}
     </section>
+  );
+};
+
+/**
+ * A Release whose bull still owes an arrival dose says so before it is ticked: the Release will be refused until the dose
+ * is given or the Vet writes why it is not needed. Nothing for other work, or a bull who owes nothing.
+ */
+const DosesOwedBeforeRelease = ({
+  content,
+  animals,
+}: {
+  content: SopContent;
+  animals: readonly { tagNumber: string }[];
+}) => {
+  const { t, language } = useLanguage();
+  const releases = content.steps.some(
+    (step) => step.effect?.kind === "release"
+  );
+  const [him] = animals;
+  const owed = useQuery({
+    ...orpc.animals.dosesOwed.queryOptions({
+      input: { tagNumber: him?.tagNumber ?? "" },
+    }),
+    enabled: releases && animals.length === 1,
+  });
+  const still = (owed.data ?? []).filter((one) => !one.excused);
+  if (!releases || still.length === 0) {
+    return null;
+  }
+  return (
+    <Notice
+      title={t("work.releaseOwesDoses", {
+        doses: still
+          .map((one) =>
+            language === "en" ? (one.name.en ?? one.name.bn) : one.name.bn
+          )
+          .join(", "),
+      })}
+      tone="warning"
+    />
   );
 };
 
@@ -659,6 +700,7 @@ const WorkPage = () => {
       />
 
       <WhatRaisedIt report={instance.data.report} seen={instance.data.seen} />
+      <DosesOwedBeforeRelease animals={animals} content={content} />
 
       {changed ? <WhatChanged changed={changed} /> : null}
 

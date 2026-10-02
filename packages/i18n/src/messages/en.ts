@@ -1473,6 +1473,9 @@ export const en = {
     "An animal in Quarantine is in this pen — release or walk her first",
   "refusal.staysInQuarantine":
     "An animal in Quarantine stays in a quarantine pen until she is released",
+  "refusal.arrivalDoseOwed":
+    "Still owed: {doses} — he leaves Quarantine once it is given, or the Vet writes why it is not needed",
+  "refusal.doseNotOwed": "He does not owe that dose",
   "refusal.windUpNotOver":
     "The Wind-up Period has not ended; there are still days to sell in",
   "refusal.nothingLeftToBuy": "This Venture has no animals left to buy",
@@ -2344,6 +2347,11 @@ export const en = {
   "animals.dosesOwed": "Still owed",
   "animals.doseComesRound": "comes round again {day}",
   "animals.doseNotRaised": "not raised again yet",
+  "animals.doseNotNeeded": "Not needed",
+  "animals.doseNotNeededWhy": "Why it is not needed",
+  "animals.doseNotNeededHint":
+    "Write why this dose is not needed — given at the farm he came from, say, and you saw the card. It is then not owed, and he may leave Quarantine.",
+  "animals.doseExcused": "Vet: not needed — {reason}",
   "animals.fromCampaign": "campaign",
   "animals.observationWithdrawn": "Withdrawn",
   "sop.effect.registration_renewal": "Renews the Registration",
@@ -3873,6 +3881,8 @@ export const en = {
   "work.overdue": "Late",
   "work.putOff": "Again — put off before",
   "work.putOffSince": "Again — first put off {day}",
+  "work.releaseOwesDoses":
+    "Still owed: {doses} — he cannot be let out until it is given, or the Vet writes why it is not needed",
   "work.overdueTitle": "Late work",
   "work.overdueNone": "Nothing is late",
   "work.lateFor": "Late by {hours, plural, one {# hour} other {# hours}}",

@@ -16,6 +16,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { MoveDialog } from "@/components/animal/move-dialog";
+import { Notice } from "@/components/page";
 import {
   FormDialog,
   FormField,
@@ -48,6 +49,15 @@ const StateDialog = ({ detail, open, onOpenChange }: ActProps) => {
   const onError = useRefused();
   const [nextState, setNextState] = useState("");
   const [reason, setReason] = useState("");
+  // Out of Quarantine by hand: not while an arrival dose is still owed him, as by his Release — said before it is asked.
+  const owed = useQuery({
+    ...orpc.animals.dosesOwed.queryOptions({
+      input: { tagNumber: detail.tagNumber },
+    }),
+    enabled: open && detail.state === "quarantine",
+  });
+  const stillOwed = (owed.data ?? []).filter((one) => !one.excused);
+  const heldIn = detail.state === "quarantine" && stillOwed.length > 0;
   const setState = useMutation(
     orpc.animals.setState.mutationOptions({
       onSuccess: () => {
@@ -72,10 +82,18 @@ const StateDialog = ({ detail, open, onOpenChange }: ActProps) => {
       }
       open={open}
       pending={setState.isPending}
-      ready={nextState !== ""}
+      ready={nextState !== "" && !heldIn}
       submitLabel={t("animals.setState")}
       title={`${t("animals.setState")} · ${detail.tagNumber}`}
     >
+      {heldIn ? (
+        <Notice
+          title={t("work.releaseOwesDoses", {
+            doses: stillOwed.map((one) => one.name.bn).join(", "),
+          })}
+          tone="warning"
+        />
+      ) : null}
       <FormField id="act-state" label={t("animals.state")}>
         <NativeSelect
           id="act-state"

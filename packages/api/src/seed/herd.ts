@@ -345,9 +345,7 @@ export const takeInBulls = async (
       arrivedOn: on,
       state: "quarantine",
       // The second off the same lorry is weighed once, then will not go up the crush again.
-      ...(oneTypedHeavy && index === 1
-        ? { crushShyFrom: addDays(on, 15) }
-        : {}),
+      ...(oneTypedHeavy && index === 1 ? { crushShyFrom: addDays(on, 9) } : {}),
     };
     herd.bulls.set(bull.tag, bull);
     arrived.push(bull);

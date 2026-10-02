@@ -14,6 +14,7 @@ import { ROLES, farm } from "./farm";
 import { animal } from "./herd";
 import { sopInstance, stepCompletion } from "./instance";
 import { observation } from "./observation";
+import { sopDefinition } from "./sop";
 
 /**
  * One product on the farm's Drug List, with the days its milk and its meat must be withheld.
@@ -449,5 +450,32 @@ export const medicineCount = pgTable(
       table.drugProductId,
       table.countedAt
     ),
+  ]
+);
+
+/**
+ * An **Excused Dose**: the Vet's written reason, for one bull and one arrival dose, that it is not needed — the card from
+ * the farm he came from, say. It is no longer owed, what was raised again for it is called off, and his Release may go
+ * ahead. The Vet's alone; kept, never removed. One per animal per procedure.
+ */
+export const excusedDose = pgTable(
+  "excused_dose",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    animalId: text("animal_id")
+      .notNull()
+      .references(() => animal.id, { onDelete: "cascade" }),
+    definitionId: text("definition_id")
+      .notNull()
+      .references(() => sopDefinition.id),
+    reason: text("reason").notNull(),
+    excusedBy: text("excused_by").references(() => user.id),
+    excusedAt: timestamp("excused_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("excused_dose_uidx").on(table.animalId, table.definitionId),
   ]
 );

@@ -4,7 +4,11 @@ import type { Tx } from "../audit";
 import { pensThatSuit } from "../band-store";
 import { AS_WEIGHED, weighedAs } from "../feed-store";
 import { entersState, loadLiveAnimal, walkByStep } from "../herd-store";
-import { callOffPutOffReleases, raiseThePutOff } from "../put-off-store";
+import {
+  assertNoDoseOwed,
+  callOffPutOffReleases,
+  raiseThePutOff,
+} from "../put-off-store";
 import type { EffectInput, EffectResult, EffectKind } from "./effect";
 import { asPublished } from "./evidence";
 
@@ -80,6 +84,8 @@ const letHimOut = async (
       standsAside: null,
     };
   }
+  // Not while an arrival dose is still owed him and the Vet has not said why it is not needed.
+  await assertNoDoseOwed(tx, farmId, live.id, input.recordedAt);
   await entersState(tx, farmId, live, {
     state: "fattening",
     at: input.recordedAt,

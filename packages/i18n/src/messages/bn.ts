@@ -1364,6 +1364,9 @@ export const bn: Record<MessageKey, string> = {
     "এই পেনে কোয়ারেন্টিনের পশু আছে — আগে তাকে ছাড়ুন বা সরান",
   "refusal.staysInQuarantine":
     "কোয়ারেন্টিনের পশু ছাড়া না হওয়া পর্যন্ত কোয়ারেন্টিন পেনেই থাকে",
+  "refusal.arrivalDoseOwed":
+    "{doses} এখনো দেওয়া বাকি — দেওয়া হলে, বা ভেট দরকার নেই লিখলে, তবেই কোয়ারেন্টিন থেকে ছাড়া যাবে",
+  "refusal.doseNotOwed": "এই ডোজ তার বাকি নেই",
   "refusal.windUpNotOver": "গুটিয়ে আনার সময় এখনও শেষ হয়নি, বিক্রির দিন আছে",
   "refusal.nothingLeftToBuy": "এই ভেঞ্চারের আর কোনো গরু কেনার নেই",
   "refusal.bankRateFromTheFuture":
@@ -2191,6 +2194,11 @@ export const bn: Record<MessageKey, string> = {
   "animals.dosesOwed": "দেওয়া বাকি",
   "animals.doseComesRound": "আবার আসবে {day}",
   "animals.doseNotRaised": "এখনো আবার আসেনি",
+  "animals.doseNotNeeded": "দরকার নেই",
+  "animals.doseNotNeededWhy": "কেন দরকার নেই",
+  "animals.doseNotNeededHint":
+    "লিখে রাখুন কেন এই ডোজ দরকার নেই — যেমন আগের খামারে দেওয়া, কার্ড দেখেছেন। তখন এটি আর বাকি থাকবে না, আর কোয়ারেন্টিন থেকে ছাড়া যাবে।",
+  "animals.doseExcused": "ভেট: দরকার নেই — {reason}",
   "animals.fromCampaign": "অভিযান",
   "animals.observationWithdrawn": "প্রত্যাহার করা হয়েছে",
   "sop.effect.registration_renewal": "নিবন্ধন নবায়ন করে",
@@ -3612,6 +3620,8 @@ export const bn: Record<MessageKey, string> = {
   "work.overdue": "দেরি",
   "work.putOff": "আবার — আগে পিছিয়ে দেওয়া হয়েছিল",
   "work.putOffSince": "আবার — প্রথমবার পিছিয়েছে {day}",
+  "work.releaseOwesDoses":
+    "এখনো দেওয়া বাকি: {doses} — দেওয়া হলে, বা ভেট \"দরকার নেই\" লিখলে, তবেই ছাড়া যাবে",
   "work.overdueTitle": "দেরি হওয়া কাজ",
   "work.overdueNone": "কোনো কাজ দেরি হয়নি",
   "work.lateFor": "{hours} ঘণ্টা দেরি",
