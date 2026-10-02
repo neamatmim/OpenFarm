@@ -1,0 +1,1 @@
+ALTER TABLE "venture_movement" ADD COLUMN "carried" jsonb;

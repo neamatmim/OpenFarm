@@ -22,6 +22,7 @@ import {
   mayMoveTo,
   RUNNING_STATES,
   monthOf,
+  monthsFromTo,
   CAPITAL_PAID,
   capitalItMayHold,
   monthlyTermsOf,
@@ -43,7 +44,12 @@ import {
   ventureMovementCorrectionInput,
   whyItStands,
 } from "../corrections/venture-movement";
-import { consumedBy, economicsOfHerd, farmCosts } from "../cost-store";
+import {
+  consumedBy,
+  economicsOfHerd,
+  farmCosts,
+  owedByMonth,
+} from "../cost-store";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay, targetWindowInput } from "../farm-clock";
 import { tagsOfHerRecords } from "../herd-store";
@@ -390,6 +396,26 @@ const whatItsAnimalsConsumed = async (
   const { from, until } = monthOf(startOfFarmDay(`${month}-01`));
   const costs = await farmCosts(context.db, context.farm.id);
   const consumed = consumedBy(costs, ownedThenBy, ventureId, { from, until });
+  // Besides its own: every earlier month already repaid whose figure has moved since, more or less — a cost that
+  // landed late, or a Correction — so it reaches the Farm with this transfer, and no month is paid for twice.
+  const [run, repaid] = await Promise.all([
+    context.db.query.venture.findFirst({
+      where: { id: ventureId, farmId: context.farm.id },
+      columns: { createdAt: true },
+    }),
+    context.db.query.ventureMovement.findMany({
+      where: { farmId: context.farm.id, ventureId, kind: "reimbursement" },
+      columns: { forMonth: true, amountBdt: true, carried: true },
+    }),
+  ]);
+  const earlier = run
+    ? monthsFromTo(farmDayOf(run.createdAt).slice(0, 7), month).filter(
+        (one) => one < month
+      )
+    : [];
+  const carried = owedByMonth(costs, ownedThenBy, ventureId, earlier, repaid)
+    .filter((one) => one.repaid && one.stillOwedBdt !== 0)
+    .map((one) => ({ month: one.month, bdt: one.stillOwedBdt }));
   // Named, not numbered: "which Feed Items, which doses, which Herd Costs" is a list the Owner reads
   // aloud, and an id is not something anybody can read aloud.
   const [items, drugs, categories] = await Promise.all([
@@ -408,6 +434,13 @@ const whatItsAnimalsConsumed = async (
   ]);
   return {
     ...consumed,
+    /** The month's own figure, before what it carries. */
+    ownBdt: consumed.totalBdt,
+    carried,
+    /** What the transfer comes to: its own figure and every carried line. */
+    totalBdt: roundTaka(
+      consumed.totalBdt + carried.reduce((sum, line) => sum + line.bdt, 0)
+    ),
     madeOf: {
       feed: named(
         consumed.madeOf.feed,
@@ -3393,16 +3426,19 @@ export const venturesRouter = {
         row.id,
         input.month
       );
+      // Asked first: a month that comes to nothing or less — its lines carried back more than it ate — sends nothing,
+      // and what it carries rides on to the month after.
+      if (consumed.totalBdt <= 0) {
+        throw new ORPCError("BAD_REQUEST", {
+          message:
+            "Its animals consumed nothing that month, or less than what it carries back",
+          data: { refusal: "nothing_to_reimburse" },
+        });
+      }
       if (roundTaka(input.amountBdt) !== consumed.totalBdt) {
         throw new ORPCError("BAD_REQUEST", {
           message: `That month now comes to ${consumed.totalBdt}`,
           data: { refusal: "amount_changed", totalBdt: consumed.totalBdt },
-        });
-      }
-      if (consumed.totalBdt <= 0) {
-        throw new ORPCError("BAD_REQUEST", {
-          message: "Its animals consumed nothing that month",
-          data: { refusal: "nothing_to_reimburse" },
         });
       }
       const id = uuidv7(now);
@@ -3415,6 +3451,7 @@ export const venturesRouter = {
           after: async (tx) => ({
             ...(await readMovement(tx, context.farm.id, id)),
             madeOf: consumed.madeOf,
+            carried: consumed.carried,
           }),
         },
         async (tx) => {
@@ -3441,6 +3478,7 @@ export const venturesRouter = {
             kind: "reimbursement",
             forMonth: input.month,
             amountBdt: consumed.totalBdt,
+            carried: consumed.carried,
             movedOn: input.movedOn,
             reference: input.reference,
             recordedBy: context.actor.id,

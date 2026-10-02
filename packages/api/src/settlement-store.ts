@@ -10,12 +10,10 @@ import {
 import type { Split } from "@OpenFarm/domain";
 import {
   farmDayOf,
-  monthOf,
   monthsFromTo,
   payoutOf,
   roundTaka,
   splitOfProfit,
-  startOfFarmDay,
   unitsAltogether,
   unitsHeld,
   whatUnitsTake,
@@ -23,8 +21,8 @@ import {
 import { ORPCError } from "@orpc/server";
 
 import type { SnapshotValue, Trail, Tx } from "./audit";
-import type { FarmCosts } from "./cost-store";
-import { chargedTo, consumedBy, farmCosts } from "./cost-store";
+import type { CarriedLine, FarmCosts } from "./cost-store";
+import { chargedTo, farmCosts, owedByMonth } from "./cost-store";
 import { adjustmentsOf } from "./settlement-adjustment-store";
 import type { BankStanding } from "./venture-store";
 import {
@@ -83,7 +81,13 @@ export type Block =
   | { word: "an_animal_still_stands"; tagNumbers: string[] }
   | { word: "a_price_is_missing"; unpricedKg: number; uncostedDoses: number }
   | { word: "a_float_is_open"; openFloatBdt: number }
-  | { word: "a_reimbursement_is_owed"; months: string[] }
+  | {
+      word: "a_reimbursement_is_owed";
+      /** The months never repaid. */
+      months: string[];
+      /** What months already repaid have moved by since, for the next Reimbursement to carry; less where negative. */
+      carryBdt: number;
+    }
   /** The account would hold a taka or more once everybody is paid (over), or be that much short of paying them
    *  (under, negative): not rounding, but money the Owner has to go and find before anybody is paid. */
   | { word: "the_account_does_not_add_up"; overBdt: number }
@@ -149,29 +153,6 @@ const sumOf = (figures: readonly number[]) => {
   return total;
 };
 
-/** Which of the months a Venture ran for it still owes the Farm for. */
-const monthsOwed = (
-  costs: Awaited<ReturnType<typeof farmCosts>>,
-  ownedThenBy: (animalId: string, at: Date) => string | null,
-  ventureId: string,
-  months: readonly string[],
-  alreadyPaid: ReadonlySet<string>
-): string[] =>
-  months.filter((month) => {
-    if (alreadyPaid.has(month)) {
-      return false;
-    }
-    // A month its animals ate nothing in is owed nothing for, and `reimburse` would refuse it anyway.
-    return (
-      consumedBy(
-        costs,
-        ownedThenBy,
-        ventureId,
-        monthOf(startOfFarmDay(`${month}-01`))
-      ).totalBdt !== 0
-    );
-  });
-
 /** What a Settlement is worked out from, for the reasons it cannot yet be acted on. */
 interface Grounds {
   agreements: readonly { investorsPercent: number }[];
@@ -179,7 +160,12 @@ interface Grounds {
   costs: Awaited<ReturnType<typeof farmCosts>>;
   held: { openFloatBdt: number } | undefined;
   ownedThenBy: (animalId: string, at: Date) => string | null;
-  paidIn: readonly { kind: string; forMonth: string | null }[];
+  paidIn: readonly {
+    kind: string;
+    forMonth: string | null;
+    amountBdt: number;
+    carried: readonly CarriedLine[] | null;
+  }[];
   standing: readonly { tagNumber: string }[];
   today: string;
   venture: { id: string; createdAt: Date };
@@ -201,42 +187,35 @@ type OwedGrounds = Pick<
   "costs" | "ownedThenBy" | "paidIn" | "today" | "venture"
 >;
 
-/** The months a Venture ran that it has not yet reimbursed the Farm for. */
-const owedMonthsOf = ({
+/**
+ * What a Venture still owes the Farm: the months it ran that were never repaid (and came to something), what months
+ * already repaid have moved by since and the next Reimbursement is to carry, and the two together — money the
+ * account holds that is the Farm's, said so on its own block, and so not money nobody can explain.
+ */
+const owedOf = ({
   costs,
   ownedThenBy,
   paidIn,
   today,
   venture,
-}: OwedGrounds) =>
-  monthsOwed(
+}: OwedGrounds) => {
+  const months = owedByMonth(
     costs,
     ownedThenBy,
     venture.id,
     monthsRan(venture, today),
-    new Set(
-      paidIn
-        .filter((one) => one.kind === "reimbursement")
-        .map((one) => one.forMonth ?? "")
-    )
+    paidIn.filter((one) => one.kind === "reimbursement")
   );
-
-/**
- * What those months come to: money the account still holds that is the Farm's, owed and said so on its own block —
- * so not money the account holds that nobody can explain.
- */
-const stillOwedBdt = (grounds: OwedGrounds) =>
-  sumOf(
-    owedMonthsOf(grounds).map(
-      (month) =>
-        consumedBy(
-          grounds.costs,
-          grounds.ownedThenBy,
-          grounds.venture.id,
-          monthOf(startOfFarmDay(`${month}-01`))
-        ).totalBdt
-    )
-  );
+  return {
+    neverRepaid: months
+      .filter((one) => !one.repaid && one.comesToBdt !== 0)
+      .map((one) => one.month),
+    carryBdt: roundTaka(
+      sumOf(months.filter((one) => one.repaid).map((one) => one.stillOwedBdt))
+    ),
+    totalBdt: roundTaka(sumOf(months.map((one) => one.stillOwedBdt))),
+  };
+};
 
 /**
  * Everything that makes a Settlement a guess rather than a sum, each with the word the reader has.
@@ -295,9 +274,13 @@ const whatBlocksIt = ({
     blocks.push({ word: "a_float_is_open", openFloatBdt });
   }
   const ran = monthsRan(venture, today);
-  const owed = owedMonthsOf({ costs, ownedThenBy, paidIn, today, venture });
-  if (owed.length !== 0) {
-    blocks.push({ word: "a_reimbursement_is_owed", months: owed });
+  const owed = owedOf({ costs, ownedThenBy, paidIn, today, venture });
+  if (owed.neverRepaid.length !== 0 || owed.carryBdt !== 0) {
+    blocks.push({
+      word: "a_reimbursement_is_owed",
+      months: owed.neverRepaid,
+      carryBdt: owed.carryBdt,
+    });
   }
   // A month nobody ever read is as much of a gap as one that disagreed: agreeing with a statement nobody
   // opened is not agreeing, and there is no Bank Check row to go stale.
@@ -438,6 +421,7 @@ export const settlementOf = async (
       agreementId: true,
       forMonth: true,
       amountBdt: true,
+      carried: true,
     },
   });
   // The split a Venture divides on is the one in force today, not the one on the original paper. An
@@ -553,7 +537,7 @@ export const settlementOf = async (
   );
   // What the account holds for months still owed is the Farm's, and its own block says so.
   const unexplainedBdt = roundTaka(
-    overBdt - stillOwedBdt({ costs, ownedThenBy, paidIn, today, venture })
+    overBdt - owedOf({ costs, ownedThenBy, paidIn, today, venture }).totalBdt
   );
   if (!theSumIsAGuess && Math.abs(unexplainedBdt) >= A_ROUNDING_BDT) {
     blocks.push({

@@ -705,6 +705,10 @@ export const ventureMovement = pgTable(
     /** The month a Reimbursement is for, "YYYY-MM". Only a Reimbursement has one, and a Venture has one
      *  Reimbursement per month. */
     forMonth: text("for_month"),
+    /** What a Reimbursement carried besides its own month: each earlier month already repaid whose figure has moved
+     *  since, and by how much, more or less. Its own month's figure is its amount less these. Only a Reimbursement
+     *  has them; one written before they were carried carries nothing. */
+    carried: jsonb("carried").$type<{ month: string; bdt: number }[]>(),
     /** The Internal Sale this is one side of. Only an Internal Sale's movements have one. By id and
      *  not by foreign key: an Internal Sale is an Animal's record and lives with the fattening ones,
      *  and a reference from here would send the schema round in a circle. */
