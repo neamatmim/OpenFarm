@@ -142,6 +142,13 @@ const EXAMPLE: NoticeFacts = {
     advice: "জ্বর, ফার্মেসির পরামর্শে",
   },
   cash_short: { name: "রফিকুল ইসলাম", shortBdt: 1500, countedOn: "2038-03-09" },
+  mortality_recorded: {
+    tag: "F-0123",
+    kind: "died",
+    cause: "পেট ফাঁপা",
+    costBdt: 82_500,
+    venture: "ঈদ ২০৩৮",
+  },
   large_shrink: {
     tag: "F-0123",
     lastKg: 400,

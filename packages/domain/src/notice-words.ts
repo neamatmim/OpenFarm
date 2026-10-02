@@ -146,6 +146,19 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     amount: Number(facts.missedBdt),
     day: saidDate(facts.dueOn, language),
   }),
+  mortality_recorded: (facts, language) => ({
+    tag: facts.tag,
+    how: named(
+      facts.kind === "culled" ? "বাদ দেওয়া হয়েছে" : "মারা গেছে",
+      facts.kind === "culled" ? "was culled" : "died",
+      language
+    ),
+    cause: facts.cause,
+    cost: Number(facts.costBdt),
+    venture: facts.venture
+      ? named(` (${facts.venture}-এর)`, ` (${facts.venture}'s)`, language)
+      : "",
+  }),
   large_shrink: (facts, language) => ({
     tag: facts.tag,
     last: Number(facts.lastKg),

@@ -88,6 +88,16 @@ export interface NoticeFacts {
     /** The farm day ("YYYY-MM-DD") the latest missed sum fell due. */
     dueOn: string;
   };
+  mortality_recorded: {
+    tag: string;
+    kind: "died" | "culled";
+    /** The cause as the writer gave it. */
+    cause: string;
+    /** What she cost the farm, bought for and every charge on her, to the taka, when it was written. */
+    costBdt: number;
+    /** Whose she was, where she was a Venture's; nothing for the Farm's own. */
+    venture: string | null;
+  };
   large_shrink: {
     tag: string;
     /** Her last weighing on the farm, and the farm day it was. */
