@@ -115,6 +115,8 @@ export const DELIVERY = {
   // A death or a cull is the Owner's to hear at once — a bull sold on the quiet and written "died" is caught the day it
   // happens or not at all. At once, but it does not wake the farm: the quiet hours hold its push till morning.
   mortality_recorded: { when: "immediate" },
+  // A death nobody had diagnosed is the Vet's to look at, the same day: at once, held through the quiet hours.
+  mortality_undiagnosed: { when: "immediate" },
   // A Monthly Sum missed is the evening's for the Owner, who rings the man: the farm reminds him, the app never does.
   monthly_sum_missed: { when: "digest" },
   // Money entered twice on purpose is the evening's question for the Owner, not a buzz: it may well be two bills.
@@ -281,6 +283,14 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
   feed_price_jump: {
     app: "alerts.feedPriceJump",
     digest: "digest.feedPriceJump",
+  },
+  mortality_undiagnosed: {
+    app: "alerts.mortalityUndiagnosed",
+    push: {
+      title: "push.mortalityRecordedTitle",
+      body: "alerts.mortalityUndiagnosed",
+    },
+    digest: "digest.mortalityUndiagnosed",
   },
   mortality_recorded: {
     app: "alerts.mortalityRecorded",

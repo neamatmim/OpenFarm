@@ -188,6 +188,12 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
     entity: "mortality",
     leavesOutTheWriter: true,
   },
+  // A death no Diagnosis was named for is every Vet's to look at, unless the Vet wrote it; about the Mortality, once.
+  mortality_undiagnosed: {
+    audience: [theVet],
+    entity: "mortality",
+    leavesOutTheWriter: true,
+  },
   // The Owner signs the count off and asks where the cash went; the Manager counted it. About the one count, so a count
   // put right is not told again.
   cash_short: {
