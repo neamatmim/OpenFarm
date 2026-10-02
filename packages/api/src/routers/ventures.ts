@@ -413,9 +413,17 @@ const whatItsAnimalsConsumed = async (
         (one) => one < month
       )
     : [];
-  const carried = owedByMonth(costs, ownedThenBy, ventureId, earlier, repaid)
-    .filter((one) => one.repaid && one.stillOwedBdt !== 0)
-    .map((one) => ({ month: one.month, bdt: one.stillOwedBdt }));
+  const carrying = owedByMonth(
+    costs,
+    ownedThenBy,
+    ventureId,
+    earlier,
+    repaid
+  ).filter((one) => one.repaid && one.stillOwedBdt !== 0);
+  const carried = carrying.map((one) => ({
+    month: one.month,
+    bdt: one.stillOwedBdt,
+  }));
   // Named, not numbered: "which Feed Items, which doses, which Herd Costs" is a list the Owner reads
   // aloud, and an id is not something anybody can read aloud.
   const [items, drugs, categories] = await Promise.all([
@@ -440,6 +448,15 @@ const whatItsAnimalsConsumed = async (
     /** What the transfer comes to: its own figure and every carried line. */
     totalBdt: roundTaka(
       consumed.totalBdt + carried.reduce((sum, line) => sum + line.bdt, 0)
+    ),
+    /** Kilos nothing can price and doses nothing can cost, in the month or in a month it carries: it waits for them. */
+    unpricedKg: carrying.reduce(
+      (sum, one) => sum + one.unpricedKg,
+      consumed.unpricedKg
+    ),
+    uncostedDoses: carrying.reduce(
+      (sum, one) => sum + one.uncostedDoses,
+      consumed.uncostedDoses
     ),
     madeOf: {
       feed: named(
@@ -3426,6 +3443,19 @@ export const venturesRouter = {
         row.id,
         input.month
       );
+      // Asked before anything else: a month with feed nothing can price, or a dose nothing can cost, would repay the Farm
+      // nothing for them — and the Settlement, which refuses an unpriced kilo, would then price it into a month paid.
+      if (consumed.unpricedKg > 0 || consumed.uncostedDoses > 0) {
+        throw new ORPCError("BAD_REQUEST", {
+          message:
+            "Something its animals ate or were dosed with that month has no price yet",
+          data: {
+            refusal: "a_price_is_missing",
+            unpricedKg: consumed.unpricedKg,
+            uncostedDoses: consumed.uncostedDoses,
+          },
+        });
+      }
       // Asked first: a month that comes to nothing or less — its lines carried back more than it ate — sends nothing,
       // and what it carries rides on to the month after.
       if (consumed.totalBdt <= 0) {
