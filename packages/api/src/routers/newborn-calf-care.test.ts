@@ -10,6 +10,7 @@ import {
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 // Newborn calf care from the Standard Playbook: two jobs raised for each live calf the moment her Calving is
@@ -262,6 +263,7 @@ describe("what the farm loses in calves", () => {
     const tag = await theCalf();
     const manager = await as("manager", "2052-03-20T04:00:00.000Z");
     await manager.client.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
       tagNumber: tag,
       kind: "died",
       cause: "পাতলা পায়খানা",

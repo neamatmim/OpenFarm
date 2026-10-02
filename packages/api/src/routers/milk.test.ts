@@ -12,6 +12,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
 import { correctStepAsShown } from "../test/correct-step";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 const suffix = `${Date.now()}`;
@@ -308,6 +309,7 @@ describe("the milking effect", () => {
     await walkTo("milking");
     // She leaves the herd the way the farm records it leaving: with a cause and a disposal.
     await world.owner.client.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
       tagNumber: doomed.tagNumber,
       kind: "died",
       cause: "test",

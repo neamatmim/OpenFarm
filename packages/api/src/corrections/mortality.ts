@@ -4,7 +4,12 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
-import { correctMortality, readMortality } from "../mortality-store";
+import { receiptInput } from "../money-inputs";
+import {
+  correctMortality,
+  keepDeathPhoto,
+  readMortality,
+} from "../mortality-store";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput, herVenturesAround } from "./correction";
 
@@ -28,7 +33,11 @@ export const mortalityCorrectionInput = correctionInput({
   diagnosisId: changeOf(z.string().nullable(), z.string().nullable()),
 })
   .omit({ id: true })
-  .extend({ tagNumber: z.string().trim().min(1).max(32) });
+  .extend({
+    tagNumber: z.string().trim().min(1).max(32),
+    /** A newer photograph of her: added, never in place of the one kept. */
+    photo: receiptInput.optional(),
+  });
 
 /**
  * A mortality put right. Whether she died or was culled is her exit State as well as this row, so both move together:
@@ -36,7 +45,9 @@ export const mortalityCorrectionInput = correctionInput({
  */
 export const mortalityCorrection: CorrectionKind<
   NonNullable<Awaited<ReturnType<typeof loadMortality>>>,
-  z.infer<typeof mortalityCorrectionInput>["changes"]
+  z.infer<typeof mortalityCorrectionInput>["changes"],
+  unknown,
+  Pick<z.infer<typeof mortalityCorrectionInput>, "photo">
 > = {
   entity: "mortality",
   table: mortality,
@@ -56,12 +67,28 @@ export const mortalityCorrection: CorrectionKind<
       happenedAt: row.happenedAt,
       diagnosisId: row.diagnosisId,
     }),
+  // A newer photograph is a change of its own, with nothing else put right beside it.
+  changesBeyondValues: ({ photo }) => photo !== undefined,
   trail: (tx, row) => readMortality(tx, row.id),
-  apply: async (tx, row, to, { now }) => {
+  apply: async (tx, row, to, { now, context, extra }) => {
+    if (extra.photo) {
+      await keepDeathPhoto(
+        tx,
+        row.farmId,
+        row.id,
+        extra.photo,
+        context.actor.id,
+        now
+      );
+    }
     if (to.happenedAt && to.happenedAt > now) {
       throw new ORPCError("BAD_REQUEST", {
         message: "An animal cannot have died in the future",
       });
+    }
+    // Only a newer photograph: nothing of the record itself to put right.
+    if (Object.keys(to).length === 0) {
+      return;
     }
     await correctMortality(
       tx,

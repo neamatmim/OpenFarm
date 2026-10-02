@@ -10,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
 import { correctStepAsShown } from "../test/correct-step";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 // The Calving: she calves, the record says when, how it went and what was born, and the farm does
@@ -253,6 +254,7 @@ describe("the calving", () => {
       clock: new FakeClock("2032-03-21T04:00:00.000Z"),
     });
     await weekOn.client.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
       tagNumber: bullCalf?.tagNumber ?? "",
       kind: "died",
       cause: "ডায়রিয়া",

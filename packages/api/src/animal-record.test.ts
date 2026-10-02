@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { herRecord } from "./animal-record";
 import { appRouter } from "./routers/index";
 import { createTestClient } from "./test/client";
+import { A_DEATH_PHOTO } from "./test/death-photo";
 
 // Her record, read as every reader of it reads it: one bought in, one born here, and one who has gone. The facts these
 // tests are about — how she arrived, where she stood, how she left — are the ones her page, her Animal Passport and the
@@ -135,6 +136,7 @@ describe("her record", () => {
     });
     const later = await as("manager", LATER);
     await later.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
       tagNumber: cow.tagNumber,
       kind: "culled",
       cause: "বারবার ওলান প্রদাহ",

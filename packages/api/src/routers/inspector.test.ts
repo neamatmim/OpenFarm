@@ -2,6 +2,7 @@ import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 // The Inspector View: the one screen the Manager shows a DLS inspector, with the Registration (R1) and the
@@ -89,6 +90,7 @@ const setup = async () => {
     targetWindowEnd: "2043-07-05",
   });
   await manager.client.animals.recordMortality({
+    photo: A_DEATH_PHOTO,
     tagNumber: gone.tagNumber,
     kind: "died",
     cause: "সাপের কামড়",

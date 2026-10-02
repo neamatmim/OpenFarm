@@ -12,6 +12,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { rowsOfRegister } from "../registers/rows";
 import { createTestClient } from "../test/client";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 // The Inspector View's health registers: the treatment register (R4), every dose in a period with the
@@ -198,6 +199,7 @@ beforeAll(async () => {
   // 12 March: she died of it.
   const dying = await as("manager", "2044-03-12T04:00:00.000Z");
   await dying.client.animals.recordMortality({
+    photo: A_DEATH_PHOTO,
     tagNumber: world.anthraxCow.tagNumber,
     kind: "died",
     cause: "তড়কা",

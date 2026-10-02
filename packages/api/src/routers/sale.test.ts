@@ -9,6 +9,7 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 // The Sale: the one gate that stops a farm selling meat it cannot say is safe.
@@ -379,6 +380,7 @@ describe("the sale", () => {
     // There is no second way out: a cull that went to a buyer is this record and no other.
     await expect(
       manager.client.animals.recordMortality({
+        photo: A_DEATH_PHOTO,
         tagNumber: tagOf(1),
         kind: "culled",
         cause: "ওলান প্রদাহ",

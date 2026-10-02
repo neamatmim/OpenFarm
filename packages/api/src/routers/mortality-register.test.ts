@@ -13,6 +13,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
 import { correctStepAsShown } from "../test/correct-step";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 // The mortality register (R6): every death, its cause, how the carcass went, and the DLS reference when the
@@ -206,6 +207,7 @@ beforeAll(async () => {
   });
   const seventh = await as("manager", "2046-02-07T04:00:00.000Z");
   await seventh.client.animals.recordMortality({
+    photo: A_DEATH_PHOTO,
     tagNumber: heifer.tagNumber,
     kind: "died",
     cause: "তড়কা",
@@ -218,6 +220,7 @@ beforeAll(async () => {
   // 8 February: the bull calf, not thriving, culled.
   const eighth = await as("manager", "2046-02-08T04:00:00.000Z");
   await eighth.client.animals.recordMortality({
+    photo: A_DEATH_PHOTO,
     tagNumber: world.bull.tagNumber,
     kind: "culled",
     cause: "বাড়ছে না",
@@ -395,6 +398,7 @@ describe("the mortality register", () => {
     const staff = await as("staff", "2046-02-11T04:00:00.000Z");
     await expect(
       staff.client.animals.recordDisposal({
+        photo: A_DEATH_PHOTO,
         tagNumber: tags.stillborn ?? "",
         disposal: "buried",
       })
@@ -402,12 +406,14 @@ describe("the mortality register", () => {
 
     const manager = await as("manager", "2046-02-11T04:00:00.000Z");
     await manager.client.animals.recordDisposal({
+      photo: A_DEATH_PHOTO,
       tagNumber: tags.stillborn ?? "",
       disposal: "buried",
       disposalNote: "ছয় ফুট, বাছুরের ঘরের পেছনে",
     });
     await expect(
       manager.client.animals.recordDisposal({
+        photo: A_DEATH_PHOTO,
         tagNumber: tags.stillborn ?? "",
         disposal: "burned",
       })

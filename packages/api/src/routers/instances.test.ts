@@ -13,6 +13,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
 import { correctStepAsShown } from "../test/correct-step";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 /** The milking SOP: twice a day, a per-cow block with litres, a bulk total at the end. */
@@ -536,6 +537,7 @@ describe("review findings", () => {
     const doomed = before.animals[0]?.tagNumber ?? "";
 
     await owner.client.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
       tagNumber: doomed,
       kind: "died",
       cause: "test",

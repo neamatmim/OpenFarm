@@ -2,7 +2,7 @@ import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, isNull } from "@OpenFarm/db/operators";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
-import { mortality } from "@OpenFarm/db/schema/herd";
+import { mortality, mortalityPhoto } from "@OpenFarm/db/schema/herd";
 import type { Disposal, MortalityKind } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
@@ -224,4 +224,51 @@ export const redateDeathOf = async (
   if (death) {
     await correctMortality(tx, farmId, death.id, her, { happenedAt }, now);
   }
+};
+
+/** A photograph of a dead animal, as a phone sends it: downscaled and base64. */
+export interface DeathPhoto {
+  contentType: string;
+  data: string;
+}
+
+/** Refused: a death or a cull is not taken without a photograph of her showing her tag. */
+export const deathNeedsAPhoto = () =>
+  new ORPCError("BAD_REQUEST", {
+    message:
+      "A death or a cull is written with a photograph of her showing her tag",
+    data: { refusal: "death_needs_a_photo" },
+  });
+
+/**
+ * Keeps a photograph of her with her Mortality. One kept before stays, marked replaced: a Correction may add a newer
+ * photograph and never takes one away.
+ */
+export const keepDeathPhoto = async (
+  tx: Tx,
+  farmId: string,
+  mortalityId: string,
+  photo: DeathPhoto,
+  by: string,
+  now: Date
+): Promise<void> => {
+  await tx
+    .update(mortalityPhoto)
+    .set({ replacedAt: now })
+    .where(
+      and(
+        eq(mortalityPhoto.mortalityId, mortalityId),
+        eq(mortalityPhoto.farmId, farmId),
+        isNull(mortalityPhoto.replacedAt)
+      )
+    );
+  await tx.insert(mortalityPhoto).values({
+    id: uuidv7(now),
+    farmId,
+    mortalityId,
+    contentType: photo.contentType,
+    data: photo.data,
+    takenBy: by,
+    takenAt: now,
+  });
 };

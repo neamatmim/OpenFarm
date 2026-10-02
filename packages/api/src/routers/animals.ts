@@ -74,7 +74,10 @@ import {
   openMissing,
   readMissing,
 } from "../missing-store";
+import { receiptInput } from "../money-inputs";
 import {
+  deathNeedsAPhoto,
+  keepDeathPhoto,
   mortalityOf,
   readMortality,
   recordMortality,
@@ -925,12 +928,18 @@ export const animalsRouter = {
         /** When she went, if it was not now — the morning round finds her, the record is
          *  written at noon. */
         happenedAt: z.coerce.date().optional(),
+        /** A photograph of her showing her tag: refused without one, by its own word, so the screen says why. */
+        photo: receiptInput.optional(),
       })
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const tagNumber = input.tagNumber.toUpperCase();
       const happenedAt = input.happenedAt ?? now;
+      const { photo } = input;
+      if (!photo) {
+        throw deathNeedsAPhoto();
+      }
       if (happenedAt > now) {
         throw new ORPCError("BAD_REQUEST", {
           message: "An animal cannot have died in the future",
@@ -972,6 +981,14 @@ export const animalsRouter = {
               disposalNote: input.disposalNote,
             }
           ));
+          await keepDeathPhoto(
+            tx,
+            context.farm.id,
+            id,
+            photo,
+            context.actor.id,
+            now
+          );
         }
       );
       return { tagNumber, state: input.kind, workClosed: closed };
@@ -989,10 +1006,16 @@ export const animalsRouter = {
         tagNumber: tagInput,
         disposal: z.enum(DISPOSALS),
         disposalNote: z.string().trim().max(300).optional(),
+        /** A photograph of her showing her tag — or beside her dam's, a newborn wearing none yet. */
+        photo: receiptInput.optional(),
       })
     )
     .handler(async ({ context, input }) => {
       const tagNumber = input.tagNumber.toUpperCase();
+      const { photo } = input;
+      if (!photo) {
+        throw deathNeedsAPhoto();
+      }
       const { existing } = await mortalityOf(
         context.db,
         context.farm.id,
@@ -1006,11 +1029,20 @@ export const animalsRouter = {
           before: (tx) => readMortality(tx, existing.id),
           after: (tx) => readMortality(tx, existing.id),
         },
-        (tx) =>
-          writeDisposal(tx, existing.id, {
+        async (tx) => {
+          await writeDisposal(tx, existing.id, {
             disposal: input.disposal,
             disposalNote: input.disposalNote,
-          })
+          });
+          await keepDeathPhoto(
+            tx,
+            context.farm.id,
+            existing.id,
+            photo,
+            context.actor.id,
+            context.clock.now()
+          );
+        }
       );
       return { tagNumber, disposal: input.disposal };
     }),
@@ -1414,6 +1446,40 @@ export const animalsRouter = {
         }
       );
       return { tagNumber, photoUpdatedAt: now };
+    }),
+
+  /**
+   * The photographs kept with her death, oldest first, each saying when a newer one replaced it. Read by whoever may read
+   * her photo; nothing for a death written before photographs were asked for.
+   */
+  deathPhotos: protectedProcedure
+    .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
+    .input(z.object({ tagNumber: tagInput }))
+    .handler(async ({ context, input }) => {
+      const target = await requireAnimal(
+        context.db,
+        context.farm.id,
+        input.tagNumber.toUpperCase()
+      );
+      requireLookUp(context.scope, target);
+      const death = await context.db.query.mortality.findFirst({
+        where: { farmId: context.farm.id, animalId: target.id },
+        columns: { id: true },
+      });
+      if (!death) {
+        return [];
+      }
+      return await context.db.query.mortalityPhoto.findMany({
+        where: { farmId: context.farm.id, mortalityId: death.id },
+        columns: {
+          id: true,
+          contentType: true,
+          data: true,
+          takenAt: true,
+          replacedAt: true,
+        },
+        orderBy: { takenAt: "asc", id: "asc" },
+      });
     }),
 
   photo: protectedProcedure

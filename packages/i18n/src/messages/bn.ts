@@ -1367,6 +1367,7 @@ export const bn: Record<MessageKey, string> = {
   "refusal.arrivalDoseOwed":
     "{doses} এখনো দেওয়া বাকি — দেওয়া হলে, বা ভেট দরকার নেই লিখলে, তবেই কোয়ারেন্টিন থেকে ছাড়া যাবে",
   "refusal.doseNotOwed": "এই ডোজ তার বাকি নেই",
+  "refusal.deathNeedsAPhoto": "মৃত পশুর ছবি দিন, তার ট্যাগ যেন দেখা যায়",
   "refusal.windUpNotOver": "গুটিয়ে আনার সময় এখনও শেষ হয়নি, বিক্রির দিন আছে",
   "refusal.nothingLeftToBuy": "এই ভেঞ্চারের আর কোনো গরু কেনার নেই",
   "refusal.bankRateFromTheFuture":
@@ -3294,6 +3295,13 @@ export const bn: Record<MessageKey, string> = {
   "mortality.buried": "মাটিচাপা (ছয় ফুট)",
   "mortality.burned": "পোড়ানো হয়েছে",
   "mortality.disposalNote": "কোথায়, কীভাবে",
+  "mortality.photo": "ছবি",
+  "mortality.photoHint":
+    "মৃত পশুর ছবি, তার কানের ট্যাগ যেন দেখা যায় — সদ্য জন্মানো বাছুরের ট্যাগ না থাকলে মায়ের ট্যাগের পাশে",
+  "mortality.photoTake": "ছবি তুলুন",
+  "mortality.noPhoto": "ছবি নেই — ছবি চাওয়ার আগে লেখা",
+  "mortality.photoAlt": "{tag}-এর মৃত্যুর ছবি",
+  "mortality.photoReplaced": "নতুন ছবি দিয়ে বদলানো",
   "mortality.recorded": "লেখা হয়েছে",
   "alerts.notifiableDiagnosis":
     "{tag} — {disease}: ডিএলএস-কে জানাতে হবে, দেরি না করে",
@@ -3621,7 +3629,7 @@ export const bn: Record<MessageKey, string> = {
   "work.putOff": "আবার — আগে পিছিয়ে দেওয়া হয়েছিল",
   "work.putOffSince": "আবার — প্রথমবার পিছিয়েছে {day}",
   "work.releaseOwesDoses":
-    "এখনো দেওয়া বাকি: {doses} — দেওয়া হলে, বা ভেট \"দরকার নেই\" লিখলে, তবেই ছাড়া যাবে",
+    'এখনো দেওয়া বাকি: {doses} — দেওয়া হলে, বা ভেট "দরকার নেই" লিখলে, তবেই ছাড়া যাবে',
   "work.overdueTitle": "দেরি হওয়া কাজ",
   "work.overdueNone": "কোনো কাজ দেরি হয়নি",
   "work.lateFor": "{hours} ঘণ্টা দেরি",

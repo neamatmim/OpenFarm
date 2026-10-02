@@ -21,6 +21,7 @@ import { buildContext } from "../context";
 import { appRouter } from "../routers/index";
 import type { Entry } from "../sync-entries";
 import { createTestClient } from "../test/client";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 
 // An Entry is the same fact however it reaches the farm (ADR 0004). Each case records one of a pair
 // through its procedure, with signal, and the other in a Batch that finds signal two hours later, and
@@ -361,6 +362,7 @@ const setup = async () => {
 
   const gone = await heifer(penA.id);
   await owner.animals.recordMortality({
+    photo: A_DEATH_PHOTO,
     tagNumber: gone.tagNumber,
     kind: "died",
     cause: "পরীক্ষা",

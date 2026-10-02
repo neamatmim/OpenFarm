@@ -2,6 +2,7 @@ import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 // What the money in the Farm's own cattle returned, for the Owner: each Season worked as a Settlement is, the dead in.
@@ -68,6 +69,7 @@ beforeAll(async () => {
   await sell(b.tagNumber, "2028-03-01", 90_000);
   const { client: finding } = await as("manager", "2028-02-15T06:00:00.000Z");
   await finding.animals.recordMortality({
+    photo: A_DEATH_PHOTO,
     tagNumber: c.tagNumber,
     kind: "died",
     cause: "পেট ফুলে গিয়েছিল",

@@ -9,6 +9,7 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 // The passport and the withdrawal summary: everything the farm knows about one animal, for
@@ -343,6 +344,7 @@ describe("the passport and the withdrawal summary", () => {
   it("says she stood in her last Pen only until she died, not that she stands there still", async () => {
     const manager = await asManager("2027-07-27");
     await manager.client.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
       tagNumber: tagOf(1),
       kind: "died",
       cause: "হঠাৎ মৃত্যু",

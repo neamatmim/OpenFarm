@@ -5,6 +5,7 @@ import { scratchDb, theFarm, thePerson } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 /** One shed with a dairy pen, a fattening pen and a staff-assigned pen, made once. */
@@ -110,6 +111,7 @@ describe("tag numbers", () => {
   it("never reuses a number, even after the animal has left", async () => {
     const gone = await registerDairyCalf();
     await pens.owner.client.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
       tagNumber: gone.tagNumber,
       kind: "died",
       cause: "test",
@@ -434,6 +436,7 @@ describe("review findings", () => {
   it("nothing may change an animal that has left", async () => {
     const { tagNumber } = await registerDairyCalf();
     await pens.owner.client.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
       tagNumber,
       kind: "died",
       cause: "test",

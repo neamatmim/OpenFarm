@@ -1476,6 +1476,7 @@ export const en = {
   "refusal.arrivalDoseOwed":
     "Still owed: {doses} — he leaves Quarantine once it is given, or the Vet writes why it is not needed",
   "refusal.doseNotOwed": "He does not owe that dose",
+  "refusal.deathNeedsAPhoto": "Add a photograph of her, her tag showing",
   "refusal.windUpNotOver":
     "The Wind-up Period has not ended; there are still days to sell in",
   "refusal.nothingLeftToBuy": "This Venture has no animals left to buy",
@@ -3526,6 +3527,13 @@ export const en = {
   "mortality.buried": "Buried (six feet)",
   "mortality.burned": "Burned",
   "mortality.disposalNote": "Where, and how",
+  "mortality.photo": "Photograph",
+  "mortality.photoHint":
+    "The dead animal, her ear tag showing — a newborn with no tag yet, beside her dam's",
+  "mortality.photoTake": "Take a photo",
+  "mortality.noPhoto": "No photograph — written before one was asked for",
+  "mortality.photoAlt": "{tag}'s death photograph",
+  "mortality.photoReplaced": "replaced by a newer one",
   "mortality.recorded": "Recorded",
   "alerts.notifiableDiagnosis":
     "{tag} — {disease}: must be reported to DLS without delay",
