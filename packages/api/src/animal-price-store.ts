@@ -1,5 +1,7 @@
 import type { Database } from "@OpenFarm/db";
 import {
+  farmDayOf,
+  floorWeightOf,
   groupedBy,
   keepOrSell,
   keepRateOf,
@@ -7,6 +9,8 @@ import {
   perKgOfSales,
   priceOfAnimal,
   priceRangeFor,
+  shrankPast,
+  shrinkOf,
   soldUnder,
 } from "@OpenFarm/domain";
 
@@ -172,11 +176,34 @@ export const pricesOnTheSide = async (
   };
 };
 
+/** Her last weighing before the Sale that the farm did not doubt — a flagged reading is passed over. */
+const lastTrustedWeighIn = async (
+  tx: Tx,
+  farmId: string,
+  animalId: string,
+  soldAt: Date
+): Promise<{ weightKg: number; at: Date } | null> => {
+  const last = await tx.query.weighIn.findFirst({
+    where: {
+      farmId,
+      animalId,
+      weighedAt: { lte: soldAt },
+      flaggedNote: { isNull: true },
+    },
+    orderBy: { weighedAt: "desc", id: "desc" },
+    columns: { weightKg: true, weighedAt: true },
+  });
+  return last ? { weightKg: Number(last.weightKg), at: last.weighedAt } : null;
+};
+
 /**
  * Tells the Owner, in the evening's post, of a Sale that fetched less than she cost the farm or less than her weight
  * at the low price a kilo — her Venture's, or the farm's market price. A fattening animal only: a cow culled to a
  * butcher has cost her whole working life and was never going to fetch it back. The Owner's alone to hear, as her
  * cost is; the sale itself stands.
+ *
+ * Her weight is the heavier of the day's and her last trusted weighing less the farm's allowance for Shrink: a weight
+ * typed low cannot lower the floor with it. The notice says which it was.
  */
 export const tellIfSoldUnderCost = async (
   tx: Tx,
@@ -186,11 +213,16 @@ export const tellIfSoldUnderCost = async (
 ): Promise<void> => {
   const farm = await tx.query.farm.findFirst({
     where: { id: farmId },
-    columns: { id: true, marketLowBdtPerKg: true, marketHighBdtPerKg: true },
+    columns: {
+      id: true,
+      marketLowBdtPerKg: true,
+      marketHighBdtPerKg: true,
+      shrinkTellPercent: true,
+    },
   });
   const sold = await tx.query.sale.findFirst({
     where: { id: saleId, farmId },
-    columns: { priceBdt: true, weightKg: true },
+    columns: { priceBdt: true, weightKg: true, soldAt: true },
     with: {
       animal: {
         columns: {
@@ -232,10 +264,16 @@ export const tellIfSoldUnderCost = async (
         : null,
     inAVenture: animal.ownerVentureId !== null,
   });
+  const floor = floorWeightOf({
+    saleKg: Number(sold.weightKg),
+    last: await lastTrustedWeighIn(tx, farm.id, animal.id, sold.soldAt),
+    soldAt: sold.soldAt,
+    allowPercent: farm.shrinkTellPercent,
+  });
   const under = soldUnder({
     priceBdt: sold.priceBdt,
     costBdt,
-    weightKg: Number(sold.weightKg),
+    weightKg: floor.weightKg,
     range,
   });
   if (!(under.underCost || under.underMarket)) {
@@ -252,6 +290,66 @@ export const tellIfSoldUnderCost = async (
         priceBdt: sold.priceBdt,
         costBdt: Math.round(costBdt),
         lowBdt: under.lowBdt,
+        floorKg: floor.weightKg,
+        floorFrom: floor.from,
+      },
+    },
+    now
+  );
+};
+
+/**
+ * Tells the Owner, in the evening's post, of a fattening animal that lost more than the farm allows between her last
+ * trusted weighing and the sale's scale — the lorry, the haat, a night without water, or a weight typed low. Never on a
+ * weighing older than the farm trusts for it; a cow culled to a butcher is not asked about. About the Sale, once.
+ */
+export const tellIfShrankTooMuch = async (
+  tx: Tx,
+  farmId: string,
+  saleId: string,
+  now: Date
+): Promise<void> => {
+  const farm = await tx.query.farm.findFirst({
+    where: { id: farmId },
+    columns: { shrinkTellPercent: true },
+  });
+  const sold = await tx.query.sale.findFirst({
+    where: { id: saleId, farmId },
+    columns: { weightKg: true, soldAt: true },
+    with: { animal: { columns: { id: true, tagNumber: true, side: true } } },
+  });
+  if (!farm || !sold?.animal || sold.animal.side !== "fattening") {
+    return;
+  }
+  const last = await lastTrustedWeighIn(
+    tx,
+    farmId,
+    sold.animal.id,
+    sold.soldAt
+  );
+  const shrink = last
+    ? shrinkOf({
+        lastKg: last.weightKg,
+        lastAt: last.at,
+        saleKg: Number(sold.weightKg),
+        saleAt: sold.soldAt,
+      })
+    : null;
+  if (!(last && shrink && shrankPast(shrink, farm.shrinkTellPercent))) {
+    return;
+  }
+  await tell(
+    tx,
+    farmId,
+    {
+      kind: "large_shrink",
+      about: { id: saleId },
+      facts: {
+        tag: sold.animal.tagNumber,
+        lastKg: last.weightKg,
+        lastOn: farmDayOf(last.at),
+        saleKg: Number(sold.weightKg),
+        percent: shrink.percent,
       },
     },
     now

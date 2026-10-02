@@ -76,3 +76,35 @@ export const shrinkOfMany = (
     animals: known.length,
   };
 };
+
+/**
+ * The weight a fattening Sale's low price a kilo is set against: the heavier of what the sale's scale said and her last
+ * weighing on the farm less the farm's allowance for Shrink — a weight typed low cannot lower the floor with it. Her
+ * last weighing counts only while it is still trusted (`SHRINK_STALE_DAYS`); says which weight it was.
+ */
+export const floorWeightOf = ({
+  saleKg,
+  last,
+  soldAt,
+  allowPercent,
+}: {
+  saleKg: number;
+  last: { weightKg: number; at: Date } | null;
+  soldAt: Date;
+  allowPercent: number;
+}): { weightKg: number; from: "scale" | "day" } => {
+  if (last) {
+    const days = (soldAt.getTime() - last.at.getTime()) / DAY_MS;
+    const allowed = roundKg(last.weightKg * (1 - allowPercent / 100));
+    if (days >= 0 && days <= SHRINK_STALE_DAYS && allowed > saleKg) {
+      return { weightKg: allowed, from: "scale" };
+    }
+  }
+  return { weightKg: saleKg, from: "day" };
+};
+
+/** Whether she lost more than the farm allows a lorry to take off a bull, on a weighing still trusted. */
+export const shrankPast = (
+  shrink: Shrink | null,
+  allowPercent: number
+): boolean => shrink !== null && !shrink.stale && shrink.percent > allowPercent;

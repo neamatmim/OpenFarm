@@ -65,6 +65,10 @@ export interface NoticeFacts {
     costBdt: number;
     /** Her weight on the day at the low price a kilo — her Venture's or the farm's market price; null while unset. */
     lowBdt: number | null;
+    /** The kilos the low price was worked on, and whose they were: her last weighing less the farm's allowance, or the
+     *  weight typed on the day. Missing from a notice told before the floor read her weighing. */
+    floorKg?: number;
+    floorFrom?: "scale" | "day";
   };
   entered_twice: {
     /** Who the money went to or came from. */
@@ -83,6 +87,16 @@ export interface NoticeFacts {
     missedBdt: number;
     /** The farm day ("YYYY-MM-DD") the latest missed sum fell due. */
     dueOn: string;
+  };
+  large_shrink: {
+    tag: string;
+    /** Her last weighing on the farm, and the farm day it was. */
+    lastKg: number;
+    lastOn: string;
+    /** What the sale's scale said. */
+    saleKg: number;
+    /** How much of her last weight she lost, to a tenth of a percent. */
+    percent: number;
   };
   arrival_weight_short: {
     tag: string;

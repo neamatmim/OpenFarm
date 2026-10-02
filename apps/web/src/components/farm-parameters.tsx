@@ -67,6 +67,7 @@ type NumberKey =
   | "missingWriteOffDays"
   | "feedPriceJumpPercent"
   | "arrivalShortPercent"
+  | "shrinkTellPercent"
   | "feedDaysLow"
   | "cashShortTellBdt"
   | "medicineShortTellBdt"
@@ -423,6 +424,21 @@ const GROUPS: {
         unit: "params.percent",
         min: 1,
         max: 50,
+      },
+    ],
+  },
+  {
+    id: "params-shrink",
+    title: "params.shrink",
+    hint: "params.shrinkHint",
+    owner: true,
+    fields: [
+      {
+        key: "shrinkTellPercent",
+        label: "params.shrinkTellPercent",
+        unit: "params.percent",
+        min: 1,
+        max: 30,
       },
     ],
   },

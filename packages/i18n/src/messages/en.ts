@@ -4959,7 +4959,7 @@ export const en = {
   "digest.stillHereAfterEid":
     "{count, plural, one {# Eid has} other {# Eids have}} animals still here after Qurbani",
   "alerts.soldUnderCost":
-    "{tag} was sold for ৳{price}; she had cost ৳{cost}, and her weight at the low price was {low}",
+    "{tag} was sold for ৳{price}; she had cost ৳{cost}, and her weight at the low price was {low}{basis}",
   "digest.soldUnderCost":
     "{count, plural, one {# animal was} other {# animals were}} sold under her cost or the market",
   "alerts.enteredTwice":
@@ -4973,6 +4973,10 @@ export const en = {
     "{tag} came off the lorry at {arrival} kg; at her first weighing {days} days on she was {weighed} kg, {percent}% under — bought from {seller}",
   "digest.arrivalWeightShort":
     "{count, plural, one {# bought animal} other {# bought animals}} weighed under what {count, plural, one {it was} other {they were}} bought at",
+  "alerts.largeShrink":
+    "{tag} last weighed {last} kg ({day}); the sale's scale said {sale} kg — {percent}% lost",
+  "digest.largeShrink":
+    "{count, plural, one {# animal} other {# animals}} lost more weight than allowed on the way to sale",
   "alerts.openTheEids": "Open the Eid list",
   "alerts.openTheMoney": "Open income and expenses",
   "alerts.openTheCash": "Open the cash in hand",
@@ -5067,6 +5071,10 @@ export const en = {
   "params.arrivalShortHint":
     "When a bought animal's first weighing, within her first thirty days, comes this much under the weight she was bought at, you are told in the evening's post.",
   "params.arrivalShortPercent": "More than",
+  "params.shrink": "Weight lost at sale",
+  "params.shrinkHint":
+    "What a lorry, a haat and a night without water may take off an animal between her last weighing and the sale's scale. Past it you are told in the evening's post, and a sale's low price is never worked on less than her last weighing less this.",
+  "params.shrinkTellPercent": "More than",
   "params.missing": "Missing animals",
   "params.missingHint":
     "How long an animal the round cannot find stays missing before you are asked whether to write it off as lost. You can write it off sooner from its page.",

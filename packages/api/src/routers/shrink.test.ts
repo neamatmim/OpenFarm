@@ -1,5 +1,5 @@
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock } from "@OpenFarm/test-harness";
+import { FakeClock, scratchDb, thePerson } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -18,11 +18,17 @@ const SOLD = "2079-03-18T06:00:00.000Z";
 const as = (role: "owner" | "manager", instant = SOLD) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
-const weighInSop = (): SopContent => ({
-  name: { bn: `ওজন ${suffix}` },
+/** The fattening side's round, unless another is named. */
+const FATTENING: SopContent["appliesTo"] = {
+  side: "fattening",
+  states: ["quarantine", "fattening"],
+};
+
+const weighInSop = (appliesTo = FATTENING): SopContent => ({
+  name: { bn: `ওজন ${suffix} ${appliesTo.side}` },
   purpose: { bn: "প্রতিটি পশুর ওজন নেওয়া" },
   triggers: [{ kind: "schedule", times: ["07:00"] }],
-  appliesTo: { side: "fattening", states: ["quarantine", "fattening"] },
+  appliesTo,
   assignedRole: "manager",
   checkerRole: null,
   graceMinutes: 240,
@@ -50,10 +56,10 @@ let penId = "";
 let weighed = "";
 let unweighed = "";
 
-const aBull = async (weightKg: number) => {
+const aBull = async (weightKg: number, into = penId) => {
   const manager = await as("manager", "2079-03-02T04:00:00.000Z");
   const bull = await manager.client.intake.record({
-    penId,
+    penId: into,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
     purchasePriceBdt: 90_000,
@@ -171,5 +177,122 @@ describe("shrink at sale", () => {
       weightKg: 310,
       shrink: { lostKg: 10 },
     });
+  });
+});
+
+describe("shrink past the farm's allowance", () => {
+  const bulls = { twelve: "", five: "", stale: "", cow: "" };
+  const saleOf = new Map<string, string>();
+
+  const sold = async (tagNumber: string, weightKg: number, instant = SOLD) => {
+    const manager = await as("manager", instant);
+    await manager.client.sale.record({
+      tagNumber,
+      buyer: { name: `ক্রেতা ${suffix}` },
+      priceBdt: 150_000,
+      weightKg,
+      destination: `গাবতলী ${suffix}`,
+      vehicle: "ঢাকা মেট্রো-ট ১১-৪৪৫৭",
+      driver: `চালক ${suffix}`,
+    });
+    const her = await scratchDb().query.animal.findFirst({
+      where: { tagNumber },
+      columns: { id: true },
+      with: { sale: { columns: { id: true } } },
+    });
+    saleOf.set(tagNumber, her?.sale?.id ?? "");
+  };
+
+  const toldOf = async (tagNumber: string) =>
+    await scratchDb().query.alert.findMany({
+      where: { kind: "large_shrink", entityId: saleOf.get(tagNumber) ?? "" },
+      columns: { userId: true, params: true },
+    });
+
+  beforeAll(async () => {
+    const owner = await as("owner", "2079-03-01T04:00:00.000Z");
+    const shed = await owner.client.herd.createShed({ name: `বড় ${suffix}` });
+    const pen = await owner.client.herd.createPen({
+      shedId: shed.id,
+      name: `বড় পেন ${suffix}`,
+    });
+    const fattening = await owner.client.sops.create({ content: weighInSop() });
+    const dairy = await owner.client.sops.create({
+      content: weighInSop({ side: "dairy", states: ["heifer"] }),
+    });
+    bulls.twelve = await aBull(380, pen.id);
+    bulls.five = await aBull(380, pen.id);
+    bulls.stale = await aBull(380, pen.id);
+    const cow = await owner.client.animals.register({
+      sex: "female",
+      side: "dairy",
+      state: "heifer",
+      penId: pen.id,
+      source: "born",
+      aliases: [],
+    });
+    bulls.cow = cow.tagNumber;
+    // All four on the scale on the tenth at 400 kg.
+    const manager = await as("manager", "2079-03-10T02:00:00.000Z");
+    await manager.client.instances.ensureDue();
+    const today = await manager.client.instances.today({ penId: pen.id });
+    for (const [definitionId, tags] of [
+      [fattening.definitionId, [bulls.twelve, bulls.five, bulls.stale]],
+      [dairy.definitionId, [bulls.cow]],
+    ] as const) {
+      const work = today.find((row) => row.definitionId === definitionId);
+      // oxlint-disable-next-line no-await-in-loop -- one round, then the other
+      await manager.client.instances.claim({ id: work?.id ?? "" });
+      for (const animalTag of tags) {
+        // oxlint-disable-next-line no-await-in-loop -- one animal at a time, as a round is walked
+        await manager.client.instances.completeStep({
+          instanceId: work?.id ?? "",
+          stepId: "weigh",
+          animalTag,
+          evidence: [400],
+        });
+      }
+    }
+    await sold(bulls.twelve, 352);
+    await sold(bulls.five, 380);
+    // Twenty-six days after he was weighed: past what the farm trusts a weighing for.
+    await sold(bulls.stale, 352, "2079-04-05T06:00:00.000Z");
+    await sold(bulls.cow, 352);
+  });
+
+  it("is told to the Owner once, with the kilos either side", async () => {
+    expect(await toldOf(bulls.twelve)).toEqual([
+      {
+        userId: thePerson("owner").id,
+        params: expect.objectContaining({
+          tag: bulls.twelve,
+          lastKg: 400,
+          lastOn: "2079-03-10",
+          saleKg: 352,
+          percent: 12,
+        }),
+      },
+    ]);
+    // Put right, still a sale that shrank too much: told once.
+    const manager = await as("manager", "2079-03-18T09:00:00.000Z");
+    await manager.client.sale.correct({
+      id: saleOf.get(bulls.twelve) ?? "",
+      reason: `দাম ভুল ${suffix}`,
+      changes: { weightKg: { from: 352, to: 350 } },
+    });
+    expect(await toldOf(bulls.twelve)).toHaveLength(1);
+  });
+
+  it("is not told within the allowance, on a stale weighing, or for a cow", async () => {
+    expect(await toldOf(bulls.five)).toEqual([]);
+    expect(await toldOf(bulls.stale)).toEqual([]);
+    expect(await toldOf(bulls.cow)).toEqual([]);
+  });
+
+  it("is the Owner's allowance to move, not the Manager's", async () => {
+    const manager = await as("manager");
+    await expect(
+      manager.client.farm.setParameters({ shrinkTellPercent: 12 })
+    ).rejects.toThrow("Owner");
   });
 });

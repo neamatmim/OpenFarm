@@ -110,6 +110,8 @@ export const DELIVERY = {
   cash_short: { when: "digest" },
   // A bull weighing under what he was bought at is the evening's question for the Owner to ask the Manager who bought him.
   arrival_weight_short: { when: "digest" },
+  // A bull that lost more than the farm allows on the way to the sale is the evening's question for the Owner.
+  large_shrink: { when: "digest" },
   // A Monthly Sum missed is the evening's for the Owner, who rings the man: the farm reminds him, the app never does.
   monthly_sum_missed: { when: "digest" },
   // Money entered twice on purpose is the evening's question for the Owner, not a buzz: it may well be two bills.
@@ -276,6 +278,10 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
   feed_price_jump: {
     app: "alerts.feedPriceJump",
     digest: "digest.feedPriceJump",
+  },
+  large_shrink: {
+    app: "alerts.largeShrink",
+    digest: "digest.largeShrink",
   },
   arrival_weight_short: {
     app: "alerts.arrivalWeightShort",

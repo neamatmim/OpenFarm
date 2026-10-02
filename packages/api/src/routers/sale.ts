@@ -10,7 +10,10 @@ import {
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import { tellIfSoldUnderCost } from "../animal-price-store";
+import {
+  tellIfShrankTooMuch,
+  tellIfSoldUnderCost,
+} from "../animal-price-store";
 import { audited } from "../audit";
 import { bakiOrRefuse, paidNowInput, promisedByInput } from "../baki-store";
 import { assertTheHand } from "../cash-store";
@@ -258,6 +261,7 @@ export const saleRouter = {
           );
           // Told, never refused: the haat is the Manager's call, and what she cost is the Owner's to read.
           await tellIfSoldUnderCost(tx, context.farm.id, id, now);
+          await tellIfShrankTooMuch(tx, context.farm.id, id, now);
           ({ workClosed: closed } = await leaves(tx, context.farm.id, her, {
             state: "sold",
             at: soldAt,

@@ -1010,12 +1010,18 @@ const sellTheReady = ({ farm, on }: Script) => {
       if (!bull) {
         return;
       }
+      // The third is written 14% under what the scale said a fortnight ago, and priced on it at the low end: the Owner
+      // is told he shrank past the allowance, and that he went under his last weighing at the low price a kilo.
+      const typedLow = index === 2;
       const weightKg = Math.round(
-        bull.weightKg + bull.dailyGainKg * daysBetween(bull.arrivedOn, day)
+        (bull.weightKg + bull.dailyGainKg * daysBetween(bull.arrivedOn, day)) *
+          (typedLow ? 0.86 : 1)
       );
       const buyer = random.pick(CATTLE_BUYERS);
       const priceBdt =
-        Math.round((weightKg * random.between(560, 620)) / 1000) * 1000;
+        Math.round(
+          (weightKg * (typedLow ? 565 : random.between(560, 620))) / 1000
+        ) * 1000;
       await f.as.manager.sale.record({
         tagNumber: bull.tag,
         buyer,

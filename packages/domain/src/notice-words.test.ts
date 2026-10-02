@@ -142,6 +142,13 @@ const EXAMPLE: NoticeFacts = {
     advice: "জ্বর, ফার্মেসির পরামর্শে",
   },
   cash_short: { name: "রফিকুল ইসলাম", shortBdt: 1500, countedOn: "2038-03-09" },
+  large_shrink: {
+    tag: "F-0123",
+    lastKg: 400,
+    lastOn: "2038-03-13",
+    saleKg: 352,
+    percent: 12,
+  },
   arrival_weight_short: {
     tag: "F-0123",
     seller: "করিম ব্যাপারী",
