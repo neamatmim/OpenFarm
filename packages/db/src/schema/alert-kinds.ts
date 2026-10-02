@@ -18,6 +18,7 @@ export const ALERT_KINDS = [
   "money_awaiting_approval",
   "registration_renewal_due",
   "investor_statement_due",
+  "reimbursement_due",
   "day_not_turning",
   "backup_overdue",
   "lot_expiring",

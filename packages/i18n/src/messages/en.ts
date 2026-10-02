@@ -3506,6 +3506,8 @@ export const en = {
     "{count, plural, one {# feed} other {# feeds}} running low",
   "digest.investorStatementDue":
     "{count, plural, one {# Venture owes its Investors a statement} other {# Ventures owe their Investors a statement}}",
+  "digest.reimbursementDue":
+    "{count, plural, one {# Venture owes the Farm a month's Reimbursement} other {# Ventures owe the Farm a month's Reimbursement}}",
   "digest.moneyAwaiting":
     "{count, plural, one {# Money Event} other {# Money Events}} awaiting your approval",
   "alerts.moneyAwaiting": "৳{amount} for {category} is awaiting your approval",
@@ -3539,6 +3541,9 @@ export const en = {
   "drugs.doseWord": "doses",
   "alerts.investorStatementDue":
     "{venture}: {investors, plural, one {# Investor is} other {# Investors are}} due their progress statement ({occasion})",
+  "alerts.reimbursementDue":
+    "{venture}: {month}'s Reimbursement is due — ৳{amount}",
+  "alerts.reimburseNow": "Reimburse",
   "alerts.joinRequested":
     "Request to join {venture} from {investor}: {units, plural, one {# Unit} other {# Units}}",
   "digest.joinRequested":

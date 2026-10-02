@@ -179,6 +179,8 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
   // Who has paid into a Venture is the Owner's business alone, as every Investor is; she rings him, and no other
   // Investor hears. About one Agreement's month, so each missed month is told once however many mornings it stays so.
   monthly_sum_missed: { audience: [theOwner], entity: "monthly_sum" },
+  // The Venture Account is the Owner's, and so is the transfer out of it; about the Venture and the month, told once.
+  reimbursement_due: { audience: [theOwner], entity: "venture" },
   // The Owner asks the Manager tomorrow whether it was two bills; about the second entry, told once.
   // The Owner asks the Manager, who both buys the medicine and counts it; about the count, told once.
   medicine_short: {

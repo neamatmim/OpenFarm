@@ -22,7 +22,6 @@ import {
   mayMoveTo,
   RUNNING_STATES,
   monthOf,
-  monthsFromTo,
   CAPITAL_PAID,
   capitalItMayHold,
   monthlyTermsOf,
@@ -44,12 +43,7 @@ import {
   ventureMovementCorrectionInput,
   whyItStands,
 } from "../corrections/venture-movement";
-import {
-  consumedBy,
-  economicsOfHerd,
-  farmCosts,
-  owedByMonth,
-} from "../cost-store";
+import { economicsOfHerd, farmCosts } from "../cost-store";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay, targetWindowInput } from "../farm-clock";
 import { tagsOfHerRecords } from "../herd-store";
@@ -75,6 +69,7 @@ import {
 } from "../nominations";
 import { photoInput } from "../photo-input";
 import { projectionBasisOf, projectionOf } from "../projection-store";
+import { aMonthsReimbursement } from "../reimbursement-store";
 import {
   answerBySigning,
   answerRequest,
@@ -140,11 +135,11 @@ import {
   nextVentureOrdinal,
   stillHersByEach,
   priceAtWeight,
+  ownedThenByOf,
   stillHersOf,
   windowInForceOn,
   windUpEndsOn,
   withWindowsInForce,
-  ownedThenByOf,
 } from "../venture-store";
 
 /** Taka. A Venture is planned in lakhs; the column keeps poisha so the money can be added up. */
@@ -392,38 +387,15 @@ const whatItsAnimalsConsumed = async (
   ventureId: string,
   month: string
 ) => {
-  const ownedThenBy = await ownedThenByOf(context.db, context.farm.id);
-  const { from, until } = monthOf(startOfFarmDay(`${month}-01`));
-  const costs = await farmCosts(context.db, context.farm.id);
-  const consumed = consumedBy(costs, ownedThenBy, ventureId, { from, until });
-  // Besides its own: every earlier month already repaid whose figure has moved since, more or less — a cost that
-  // landed late, or a Correction — so it reaches the Farm with this transfer, and no month is paid for twice.
-  const [run, repaid] = await Promise.all([
-    context.db.query.venture.findFirst({
-      where: { id: ventureId, farmId: context.farm.id },
-      columns: { createdAt: true },
-    }),
-    context.db.query.ventureMovement.findMany({
-      where: { farmId: context.farm.id, ventureId, kind: "reimbursement" },
-      columns: { forMonth: true, amountBdt: true, carried: true },
-    }),
+  const [costs, ownedThenBy] = await Promise.all([
+    farmCosts(context.db, context.farm.id),
+    ownedThenByOf(context.db, context.farm.id),
   ]);
-  const earlier = run
-    ? monthsFromTo(farmDayOf(run.createdAt).slice(0, 7), month).filter(
-        (one) => one < month
-      )
-    : [];
-  const carrying = owedByMonth(
-    costs,
-    ownedThenBy,
-    ventureId,
-    earlier,
-    repaid
-  ).filter((one) => one.repaid && one.stillOwedBdt !== 0);
-  const carried = carrying.map((one) => ({
-    month: one.month,
-    bdt: one.stillOwedBdt,
-  }));
+  const { consumed, carried, totalBdt, unpricedKg, uncostedDoses } =
+    await aMonthsReimbursement(context.db, context.farm.id, ventureId, month, {
+      costs,
+      ownedThenBy,
+    });
   // Named, not numbered: "which Feed Items, which doses, which Herd Costs" is a list the Owner reads
   // aloud, and an id is not something anybody can read aloud.
   const [items, drugs, categories] = await Promise.all([
@@ -446,18 +418,10 @@ const whatItsAnimalsConsumed = async (
     ownBdt: consumed.totalBdt,
     carried,
     /** What the transfer comes to: its own figure and every carried line. */
-    totalBdt: roundTaka(
-      consumed.totalBdt + carried.reduce((sum, line) => sum + line.bdt, 0)
-    ),
+    totalBdt,
     /** Kilos nothing can price and doses nothing can cost, in the month or in a month it carries: it waits for them. */
-    unpricedKg: carrying.reduce(
-      (sum, one) => sum + one.unpricedKg,
-      consumed.unpricedKg
-    ),
-    uncostedDoses: carrying.reduce(
-      (sum, one) => sum + one.uncostedDoses,
-      consumed.uncostedDoses
-    ),
+    unpricedKg,
+    uncostedDoses,
     madeOf: {
       feed: named(
         consumed.madeOf.feed,

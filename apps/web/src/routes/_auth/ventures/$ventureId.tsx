@@ -18,7 +18,7 @@ import {
   Wallet,
   Wheat,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { BackLink, EmptyState, Page, PageHeader } from "@/components/page";
 import type { Figure, RowAction } from "@/components/page-kit";
@@ -141,10 +141,26 @@ const useFiguresOf = (venture: Venture): Figure[] => {
 };
 
 /** One Venture, read whole: where it is on its road, what stands in its way, and its money, people and animals. */
-const TheVenture = ({ venture, tab }: { venture: Venture; tab: Tab }) => {
+const TheVenture = ({
+  venture,
+  tab,
+  reimburse,
+}: {
+  venture: Venture;
+  tab: Tab;
+  reimburse?: string;
+}) => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { acts, sheets } = useVentureActs();
+  // Come from a notice that a month's Reimbursement is due: its sheet opens on that month, once.
+  const opened = useRef<string | null>(null);
+  useEffect(() => {
+    if (reimburse && opened.current !== reimburse) {
+      opened.current = reimburse;
+      acts.reimburse(venture, reimburse);
+    }
+  }, [acts, reimburse, venture]);
   const figures = useFiguresOf(venture);
   const [movingIn, setMovingIn] = useState(false);
   // A run buying or fattening may take a bull on from the Farm or another run: offered here with this one chosen.
@@ -246,7 +262,7 @@ const TheVenture = ({ venture, tab }: { venture: Venture; tab: Tab }) => {
 const VenturePage = () => {
   const { t } = useLanguage();
   const { ventureId } = Route.useParams();
-  const { tab = "overview" } = Route.useSearch();
+  const { tab = "overview", reimburse } = Route.useSearch();
   const ventures = useQuery(orpc.ventures.list.queryOptions());
   if (ventures.isPending) {
     return (
@@ -275,20 +291,28 @@ const VenturePage = () => {
       </Page>
     );
   }
-  return <TheVenture tab={tab} venture={venture} />;
+  return <TheVenture reimburse={reimburse} tab={tab} venture={venture} />;
 };
 
 /** What the address may say about this page: which tab she is reading. */
 interface VentureSearch {
   tab?: Tab;
+  /** A month whose Reimbursement a notice said is due, "YYYY-MM": the page opens its sheet on it. */
+  reimburse?: string;
 }
+
+const A_MONTH = /^\d{4}-\d{2}$/u;
 
 export const Route = createFileRoute("/_auth/ventures/$ventureId")({
   /** The Owner's alone, as every Venture is. */
   beforeLoad: onlyFor("owner"),
   component: VenturePage,
-  validateSearch: (search: Record<string, unknown>): VentureSearch =>
-    TABS.includes(search.tab as Tab) && search.tab !== "overview"
+  validateSearch: (search: Record<string, unknown>): VentureSearch => ({
+    ...(TABS.includes(search.tab as Tab) && search.tab !== "overview"
       ? { tab: search.tab as Tab }
-      : {},
+      : {}),
+    ...(typeof search.reimburse === "string" && A_MONTH.test(search.reimburse)
+      ? { reimburse: search.reimburse }
+      : {}),
+  }),
 });

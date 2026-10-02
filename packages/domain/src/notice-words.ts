@@ -187,6 +187,19 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     investors: Number(facts.investors),
     occasion: facts.occasion,
   }),
+  reimbursement_due: (facts, language) => ({
+    venture: facts.venture,
+    month:
+      typeof facts.month === "string"
+        ? formatDate(
+            new Date(`${facts.month}-01T06:00:00.000Z`),
+            language,
+            "monthYear"
+          )
+        : "",
+    // Whole taka, as the sheet it opens says the transfer: paisa in one and not the other read as two figures.
+    amount: Math.round(Number(facts.owedBdt)),
+  }),
   entry_rejected: (facts) => ({
     count: Number(facts.count),
     reason: facts.reason,

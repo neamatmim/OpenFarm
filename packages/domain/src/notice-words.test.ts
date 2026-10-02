@@ -79,6 +79,12 @@ const EXAMPLE: NoticeFacts = {
     investors: 3,
     occasion: "কেনা শেষ",
   },
+  reimbursement_due: {
+    ventureId: "venture-1",
+    venture: "কোরবানি ২০৩৮",
+    month: "2038-03",
+    owedBdt: 41_250,
+  },
   entry_rejected: { count: 2, reason: "পশুটি আর খামারে নেই" },
   day_not_turning: { since: "2038-03-01T00:00:00.000Z" },
   backup_overdue: { since: "2038-03-01T00:00:00.000Z" },
