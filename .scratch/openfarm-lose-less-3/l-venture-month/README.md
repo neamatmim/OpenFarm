@@ -38,7 +38,7 @@ at Settlement and never paid to the Farm: it stays in the Venture Account, and n
 
 | #   | Ticket                                              | Blocked by |
 | --- | --------------------------------------------------- | ---------- |
-| 01  | A Settlement whose account does not add up waits    | —          |
+| 01  | A Settlement whose account does not add up waits (done) | —          |
 | 02  | A late cost rides on the next month's Reimbursement | 01         |
 | 03  | A month with a price missing is not reimbursed      | 02         |
 | 04  | The Owner is told a month's Reimbursement is due    | 02         |

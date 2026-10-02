@@ -84,6 +84,9 @@ export type Block =
   | { word: "a_price_is_missing"; unpricedKg: number; uncostedDoses: number }
   | { word: "a_float_is_open"; openFloatBdt: number }
   | { word: "a_reimbursement_is_owed"; months: string[] }
+  /** The account would hold a taka or more once everybody is paid (over), or be that much short of paying them
+   *  (under, negative): not rounding, but money the Owner has to go and find before anybody is paid. */
+  | { word: "the_account_does_not_add_up"; overBdt: number }
   | {
       word: "the_bank_disagrees";
       /** The statement disagreed and nobody has explained it. */
@@ -107,6 +110,15 @@ export type Block =
  * quietly absorbing it would be the farm hiding its own mistake.
  */
 const A_ROUNDING_BDT = 1;
+
+/** The blocks under which the Settlement's own sum is not yet known, so an account that does not match it says nothing. */
+const A_GUESS_BEFORE_THE_SUM: ReadonlySet<Block["word"]> = new Set([
+  "nobody_has_signed",
+  "agreements_disagree",
+  "an_animal_still_stands",
+  "a_price_is_missing",
+  "a_float_is_open",
+]);
 
 /**
  * The split with the account's own remainder folded into it: the paisa joins the taka the flooring
@@ -175,6 +187,58 @@ interface Grounds {
 }
 
 /**
+ * Every month a Venture ran, up to and including the month it is being settled in. A month still running cannot be
+ * reimbursed — `reimburse` refuses one that is not over — and that is the point: what its animals have eaten this
+ * month is money the account still has to part with, so a Settlement that passed it by would promise the Investors
+ * more than there is. Read on the farm's own clock, because a Venture opened at midnight in Dhaka is opened the day
+ * before in UTC.
+ */
+const monthsRan = (venture: { createdAt: Date }, today: string) =>
+  monthsFromTo(farmDayOf(venture.createdAt).slice(0, 7), today.slice(0, 7));
+
+type OwedGrounds = Pick<
+  Grounds,
+  "costs" | "ownedThenBy" | "paidIn" | "today" | "venture"
+>;
+
+/** The months a Venture ran that it has not yet reimbursed the Farm for. */
+const owedMonthsOf = ({
+  costs,
+  ownedThenBy,
+  paidIn,
+  today,
+  venture,
+}: OwedGrounds) =>
+  monthsOwed(
+    costs,
+    ownedThenBy,
+    venture.id,
+    monthsRan(venture, today),
+    new Set(
+      paidIn
+        .filter((one) => one.kind === "reimbursement")
+        .map((one) => one.forMonth ?? "")
+    )
+  );
+
+/**
+ * What those months come to: money the account still holds that is the Farm's, owed and said so on its own block —
+ * so not money the account holds that nobody can explain.
+ */
+const stillOwedBdt = (grounds: OwedGrounds) =>
+  sumOf(
+    owedMonthsOf(grounds).map(
+      (month) =>
+        consumedBy(
+          grounds.costs,
+          grounds.ownedThenBy,
+          grounds.venture.id,
+          monthOf(startOfFarmDay(`${month}-01`))
+        ).totalBdt
+    )
+  );
+
+/**
  * Everything that makes a Settlement a guess rather than a sum, each with the word the reader has.
  *
  * Five in the spec's words — an Animal still standing, a price missing, a Buying Float unreconciled, a
@@ -230,26 +294,8 @@ const whatBlocksIt = ({
   if (openFloatBdt !== 0) {
     blocks.push({ word: "a_float_is_open", openFloatBdt });
   }
-  // Every month it ran, up to and including the month it is being settled in. A month still running
-  // cannot be reimbursed — `reimburse` refuses one that is not over — and that is the point: what its
-  // animals have eaten this month is money the account still has to part with, so a Settlement that
-  // passed it by would promise the Investors more than there is. Read on the farm's own clock, because a
-  // Venture opened at midnight in Dhaka is opened the day before in UTC.
-  const ran = monthsFromTo(
-    farmDayOf(venture.createdAt).slice(0, 7),
-    today.slice(0, 7)
-  );
-  const owed = monthsOwed(
-    costs,
-    ownedThenBy,
-    venture.id,
-    ran,
-    new Set(
-      paidIn
-        .filter((one) => one.kind === "reimbursement")
-        .map((one) => one.forMonth ?? "")
-    )
-  );
+  const ran = monthsRan(venture, today);
+  const owed = owedMonthsOf({ costs, ownedThenBy, paidIn, today, venture });
   if (owed.length !== 0) {
     blocks.push({ word: "a_reimbursement_is_owed", months: owed });
   }
@@ -488,7 +534,7 @@ export const settlementOf = async (
   );
   const swept = sweptUp(split, overBdt);
 
-  const blocks = whatBlocksIt({
+  const blocks: Block[] = whatBlocksIt({
     agreements,
     charged,
     costs,
@@ -500,6 +546,21 @@ export const settlementOf = async (
     venture,
     withTheBank: bank.get(venture.id) ?? NEVER_CHECKED,
   });
+  // Asked once the figures can be trusted at all: with an Animal standing, a price missing or a Float out, what the
+  // account "should" hold is itself a guess, and those blocks already say why.
+  const theSumIsAGuess = blocks.some((one) =>
+    A_GUESS_BEFORE_THE_SUM.has(one.word)
+  );
+  // What the account holds for months still owed is the Farm's, and its own block says so.
+  const unexplainedBdt = roundTaka(
+    overBdt - stillOwedBdt({ costs, ownedThenBy, paidIn, today, venture })
+  );
+  if (!theSumIsAGuess && Math.abs(unexplainedBdt) >= A_ROUNDING_BDT) {
+    blocks.push({
+      word: "the_account_does_not_add_up",
+      overBdt: unexplainedBdt,
+    });
+  }
 
   return {
     blocks,
@@ -536,12 +597,8 @@ export const approveSettlement = async (
   worked: Awaited<ReturnType<typeof settlementOf>>,
   by: { actorId: string; now: Date }
 ) => {
-  if (worked.blocks.length !== 0) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "This Settlement is not settled enough to approve",
-      data: { refusal: worked.blocks[0]?.word ?? "nothing_to_settle" },
-    });
-  }
+  // Asked first: once approved, a cost landing afterwards moves the costing and leaves the account not adding up —
+  // a Settlement Adjustment's business, not a second approval's.
   const already = await tx.query.ventureSettlement.findFirst({
     where: { farmId, ventureId },
     columns: { id: true },
@@ -550,6 +607,12 @@ export const approveSettlement = async (
     throw new ORPCError("BAD_REQUEST", {
       message: "This Venture's Settlement has already been approved",
       data: { refusal: "already_approved" },
+    });
+  }
+  if (worked.blocks.length !== 0) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This Settlement is not settled enough to approve",
+      data: { refusal: worked.blocks[0]?.word ?? "nothing_to_settle" },
     });
   }
   const id = uuidv7(by.now);

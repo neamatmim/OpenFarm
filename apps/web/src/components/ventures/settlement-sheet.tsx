@@ -54,6 +54,7 @@ const BLOCK_WORD = {
   a_price_is_missing: "refusal.aPriceIsMissing",
   a_float_is_open: "refusal.aFloatIsOpen",
   a_reimbursement_is_owed: "refusal.aReimbursementIsOwed",
+  the_account_does_not_add_up: "refusal.theAccountDoesNotAddUp",
   the_bank_disagrees: "refusal.theBankDisagrees",
   nobody_has_signed: "refusal.nobodyHasSigned",
 } as const satisfies Record<Block["word"], MessageKey>;
@@ -189,6 +190,16 @@ const WhatItIsAbout = ({ block }: { block: Block }) => {
     }
     case "the_bank_disagrees": {
       return <WhatTheBankSays block={block} />;
+    }
+    // Over, the account holds money nobody has explained; short, it cannot pay what the sum says it owes.
+    case "the_account_does_not_add_up": {
+      return (
+        <span>
+          {block.overBdt > 0
+            ? t("ventures.accountOver", { taka: taka(block.overBdt) })
+            : t("ventures.accountShort", { taka: taka(-block.overBdt) })}
+        </span>
+      );
     }
     // Its title says the whole of it: there is nobody to settle with.
     case "nobody_has_signed": {
