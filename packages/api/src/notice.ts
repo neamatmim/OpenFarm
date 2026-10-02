@@ -59,6 +59,8 @@ export interface NoticeKind {
   /** True for the kind of Notice that is not finished until a person has decided: raising it writes the judgement
    *  owed beside it, under the reason its facts carry. */
   wantsJudgement?: true;
+  /** Left out: whoever wrote the thing it is about. A person is not told what they have just written themselves. */
+  leavesOutTheWriter?: true;
   /** What the thing is, as the trail and the screens name it — for the kinds that are always about one sort of thing.
    *  A Needs Review is about whatever was being put right, so it says so when it is raised. */
   entity?: string;
@@ -180,6 +182,12 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
     audience: [theOwner],
     entity: "sale",
   },
+  // A death or a cull is the Owner's to hear at once, unless she wrote it; about the Mortality, so told once.
+  mortality_recorded: {
+    audience: [theOwner],
+    entity: "mortality",
+    leavesOutTheWriter: true,
+  },
   // The Owner signs the count off and asks where the cash went; the Manager counted it. About the one count, so a count
   // put right is not told again.
   cash_short: {
@@ -250,6 +258,8 @@ export interface About {
   assignedRole?: RoleName;
   /** The Audit Event that raised it, which a judgement owed is read back from either end. */
   auditEventId?: string;
+  /** Who wrote the thing it is about, for a kind that leaves them out. */
+  writtenBy?: string;
 }
 
 /**
@@ -362,7 +372,17 @@ export const tell = async <Kind extends AlertKind>(
     );
   }
   const params = notice.facts as Record<string, unknown>;
-  const people = await peopleFor(tx, farmId, kind.audience, about, remembering);
+  const everyone = await peopleFor(
+    tx,
+    farmId,
+    kind.audience,
+    about,
+    remembering
+  );
+  const people =
+    kind.leavesOutTheWriter && about.writtenBy
+      ? everyone.filter((one) => one !== about.writtenBy)
+      : everyone;
   const written = {
     kind: notice.kind,
     entity,

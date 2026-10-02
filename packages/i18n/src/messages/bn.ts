@@ -4688,6 +4688,10 @@ export const bn: Record<MessageKey, string> = {
   "alerts.largeShrink":
     "{tag}-এর শেষ ওজন ছিল {last} কেজি ({day}); বিক্রির পাল্লায় {sale} কেজি — {percent}% কমেছে",
   "digest.largeShrink": "{count}টি পশুর বিক্রির সময় ওজন অনেক কমেছে",
+  "alerts.mortalityRecorded":
+    "{tag}{venture} {how} — কারণ: {cause}; তার খরচ পড়েছিল ৳{cost}",
+  "push.mortalityRecordedTitle": "একটি পশু চলে গেছে",
+  "digest.mortalityRecorded": "{count}টি পশু মারা গেছে বা বাদ দেওয়া হয়েছে",
   "alerts.openTheEids": "ঈদের তালিকা খুলুন",
   "alerts.openTheMoney": "টাকার হিসাব খুলুন",
   "alerts.openTheCash": "হাতে নগদ খুলুন",

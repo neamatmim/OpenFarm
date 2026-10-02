@@ -5021,6 +5021,11 @@ export const en = {
     "{tag} last weighed {last} kg ({day}); the sale's scale said {sale} kg — {percent}% lost",
   "digest.largeShrink":
     "{count, plural, one {# animal} other {# animals}} lost more weight than allowed on the way to sale",
+  "alerts.mortalityRecorded":
+    "{tag}{venture} {how} — cause: {cause}; she had cost ৳{cost}",
+  "push.mortalityRecordedTitle": "An animal has gone",
+  "digest.mortalityRecorded":
+    "{count, plural, one {# animal} other {# animals}} died or {count, plural, one {was} other {were}} culled",
   "alerts.openTheEids": "Open the Eid list",
   "alerts.openTheMoney": "Open income and expenses",
   "alerts.openTheCash": "Open the cash in hand",

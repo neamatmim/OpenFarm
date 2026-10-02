@@ -40,6 +40,21 @@ export const silentTransport: PushTransport = {
   send: () => Promise.resolve({ delivered: false, gone: false }),
 };
 
+/** Where a push opens: the work it is about, the animal a death is about, or else the day's list. */
+const urlOf = (alert: {
+  entity: string;
+  entityId: string;
+  params: unknown;
+}): string => {
+  if (alert.entity === "sop_instance") {
+    return `/work/${alert.entityId}`;
+  }
+  const tag = (alert.params as { tag?: unknown } | null)?.tag;
+  return alert.entity === "mortality" && typeof tag === "string"
+    ? `/animals/${tag}`
+    : "/today";
+};
+
 /** What a kind says in a pocket, and nothing for the kinds that do not travel that way: the farm's own table puts a
  *  Needs Review in the evening's post, not in somebody's pocket. */
 const inAPocket = (kind: AlertKind) => SAYS[kind].push;
@@ -74,7 +89,7 @@ export const messageFor = (
       ? translate(reader, said.title)
       : translate(reader, "alerts.title"),
     body: said ? translate(reader, said.body, params) : alert.kind,
-    url: alert.entity === "sop_instance" ? `/work/${alert.entityId}` : "/today",
+    url: urlOf(alert),
     // One notice per thing per kind: a phone that has been in a pocket all morning should
     // show what is waiting, not a history of it being told.
     tag: `${alert.kind}:${alert.entityId}`,

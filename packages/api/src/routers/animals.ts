@@ -46,6 +46,7 @@ import {
   mortalityCorrectionInput,
 } from "../corrections/mortality";
 import { parseCsvRecords } from "../csv";
+import { tellOfTheDeath } from "../death-notice";
 import { recordNow } from "../entries/entry";
 import { moveEntry, moveInput } from "../entries/move";
 import { farmDay } from "../farm-clock";
@@ -83,6 +84,8 @@ import {
   recordMortality,
   writeDisposal,
 } from "../mortality-store";
+import type { Raised } from "../notice";
+import { pushRaised } from "../push-send";
 import {
   arrivalDosesOwed,
   assertNoDoseOwed,
@@ -947,6 +950,7 @@ export const animalsRouter = {
       }
       const id = newId(now);
       let closed = 0;
+      let raised: Raised[] = [];
       await audited(context).write(
         {
           // Keyed on the Mortality, not on the animal, so that putting it right later is a
@@ -989,8 +993,17 @@ export const animalsRouter = {
             context.actor.id,
             now
           );
+          // The Owner hears at once, unless she wrote it herself.
+          raised = await tellOfTheDeath(
+            tx,
+            context.farm.id,
+            { id, animalId: her.id, writtenBy: context.actor.id },
+            now
+          );
         }
       );
+      // Pushed once the death is written, never from inside its transaction.
+      await pushRaised(context, raised, now);
       return { tagNumber, state: input.kind, workClosed: closed };
     }),
 
@@ -1016,11 +1029,13 @@ export const animalsRouter = {
       if (!photo) {
         throw deathNeedsAPhoto();
       }
-      const { existing } = await mortalityOf(
+      const { her, existing } = await mortalityOf(
         context.db,
         context.farm.id,
         tagNumber
       );
+      const now = context.clock.now();
+      let raised: Raised[] = [];
       await audited(context).write(
         {
           entity: "mortality",
@@ -1040,10 +1055,22 @@ export const animalsRouter = {
             existing.id,
             photo,
             context.actor.id,
-            context.clock.now()
+            now
+          );
+          // A stillborn calf's death was written by her Calving, which told nobody: the Owner hears now.
+          raised = await tellOfTheDeath(
+            tx,
+            context.farm.id,
+            {
+              id: existing.id,
+              animalId: her.id,
+              writtenBy: context.actor.id,
+            },
+            now
           );
         }
       );
+      await pushRaised(context, raised, now);
       return { tagNumber, disposal: input.disposal };
     }),
 
