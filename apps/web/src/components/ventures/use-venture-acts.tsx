@@ -50,6 +50,7 @@ export const useVentureActs = (): { acts: VentureActs; sheets: ReactNode } => {
     act: ActOnOneVenture;
     venture: Venture;
     agreementId?: string;
+    month?: string;
   } | null>(null);
   /**
    * Moving a Venture along. Two acts with no form to fill: she says buying has started, and later that it is
@@ -78,7 +79,8 @@ export const useVentureActs = (): { acts: VentureActs; sheets: ReactNode } => {
     callOff: opens("callOff"),
     drawFloat: opens("drawFloat"),
     countFloat: opens("countFloat"),
-    reimburse: opens("reimburse"),
+    reimburse: (venture, month) =>
+      setStaged({ act: "reimburse", venture, month }),
     buyWhatIsLeft: opens("buyWhatIsLeft"),
     settle: opens("settle"),
     advance: opens("advance"),
@@ -122,7 +124,10 @@ export const useVentureActs = (): { acts: VentureActs; sheets: ReactNode } => {
       />
       <BankCheckSheet {...staging("checkTheBank")} />
       <AdvanceSheet {...staging("advance")} />
-      <ReimburseSheet {...staging("reimburse")} />
+      <ReimburseSheet
+        {...staging("reimburse")}
+        onMonth={staged?.act === "reimburse" ? staged.month : undefined}
+      />
       <SettlementSheet {...staging("settle")} />
       <BuyWhatIsLeftSheet {...staging("buyWhatIsLeft")} />
       <CountFloatSheet {...staging("countFloat")} />

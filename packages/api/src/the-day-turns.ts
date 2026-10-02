@@ -39,6 +39,10 @@ import { missedToTell, raiseMissedSums } from "./monthly-sums-store";
 import { tell } from "./notice";
 import { carryThePost, pushRaised } from "./push-send";
 import { tellOfRenewals } from "./registration-store";
+import {
+  reimbursementsToTell,
+  tellAboutReimbursementsDue,
+} from "./reimbursement-store";
 import { textAgainWhatDidNotGo, textTheSafetyAlerts } from "./sms-send";
 import { contentOf } from "./sop-content";
 import { soresToTell, tellOfSores } from "./sores-store";
@@ -622,6 +626,31 @@ const tellAboutPapers = async (context: Turning, now: Date) => {
   );
 };
 
+/**
+ * Telling the Owner which running Ventures owe the Farm the month just over, from the first of the month. Asked before
+ * any transaction, as the paper sweep is: once the month's tellings are made, a turn of the day writes nothing.
+ */
+const tellAboutReimbursements = async (context: Turning, now: Date) => {
+  const due = await reimbursementsToTell(context.db, context.farm.id, now);
+  const [first] = due;
+  if (!first) {
+    return;
+  }
+  let raised = 0;
+  await audited(context).write(
+    {
+      // Keyed on the first Venture it has something to say about, with the count in the payload.
+      entity: "venture",
+      entityId: first.venture.id,
+      action: "update",
+      after: () => Promise.resolve({ reimbursementsDue: raised }),
+    },
+    async (tx) => {
+      raised = await tellAboutReimbursementsDue(tx, context.farm.id, due, now);
+    }
+  );
+};
+
 /** The Instance the sweep's Audit Event is keyed on: the first it has something to say
  *  about, with the rest named in the event's payload. */
 const first = (pending: {
@@ -646,6 +675,7 @@ export const theSweep = async (context: Turning) => {
   await tellAboutOverdueBaki(context, now);
   await tellAboutMissedSums(context, now);
   await tellAboutPapers(context, now);
+  await tellAboutReimbursements(context, now);
   // And the safety texts that did not go when their notice was raised, tried again until they do.
   await textAgainWhatDidNotGo(context);
   const pending = await findPendingNotices(context.db, context.farm, now);

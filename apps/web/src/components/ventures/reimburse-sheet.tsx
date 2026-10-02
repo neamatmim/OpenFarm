@@ -207,18 +207,21 @@ export const ReimburseSheet = ({
   venture,
   open,
   onOpenChange,
+  onMonth,
 }: {
   venture: { id: string; name: string } | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** The month to open on, "YYYY-MM" — the one a notice said is due; left out, last month. */
+  onMonth?: string;
 }) => {
   const { t, language } = useLanguage();
   const refused = useRefused();
-  const [month, setMonth] = useState(lastMonth);
+  const [month, setMonth] = useState(() => onMonth ?? lastMonth());
   const [movedOn, setMovedOn] = useState("");
   const [reference, setReference] = useState("");
   useFreshFor(venture?.id, () => {
-    setMonth(lastMonth());
+    setMonth(onMonth ?? lastMonth());
     setMovedOn("");
     setReference("");
   });

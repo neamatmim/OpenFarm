@@ -169,6 +169,14 @@ export interface NoticeFacts {
      *  the Wind-up Period starting. */
     occasion: string;
   };
+  reimbursement_due: {
+    ventureId: string;
+    venture: string;
+    /** The month just over it owes for, "YYYY-MM": worded where it is read, in the reader's language. */
+    month: string;
+    /** What the transfer comes to: the month's own figure and every line it carries. */
+    owedBdt: number;
+  };
   entry_rejected: { count: number; reason: string };
   /** When the Day Turning last turned whole, as an ISO instant: the screen says it in the reader's own date. */
   day_not_turning: { since: string };

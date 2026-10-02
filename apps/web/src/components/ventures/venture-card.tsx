@@ -176,7 +176,8 @@ export interface VentureActs {
   callOff: (venture: Venture) => void;
   drawFloat: (venture: Venture) => void;
   countFloat: (venture: Venture) => void;
-  reimburse: (venture: Venture) => void;
+  /** On a given month, "YYYY-MM", where a notice said it is due; left out, last month. */
+  reimburse: (venture: Venture, month?: string) => void;
   buyWhatIsLeft: (venture: Venture) => void;
   settle: (venture: Venture) => void;
   advance: (venture: Venture) => void;

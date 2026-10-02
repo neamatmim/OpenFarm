@@ -3273,6 +3273,7 @@ export const bn: Record<MessageKey, string> = {
   "digest.bakiOverdue": "{count}টি বাকির তারিখ পেরিয়ে গেছে",
   "digest.investorStatementDue":
     "{count}টি ভেঞ্চারের বিনিয়োগকারীদের অগ্রগতিপত্র পাওনা",
+  "digest.reimbursementDue": "{count}টি ভেঞ্চারের মাসের খরচ ফেরত পাওনা",
   "digest.moneyAwaiting": "{count}টি টাকার হিসাব আপনার অনুমোদনের অপেক্ষায়",
   "alerts.moneyAwaiting": "{category}: ৳{amount} আপনার অনুমোদনের অপেক্ষায়",
   "alerts.lowStock": "{feed} কমে আসছে — {onHand} {unit} বাকি",
@@ -3299,6 +3300,9 @@ export const bn: Record<MessageKey, string> = {
   "drugs.doseWord": "ডোজ",
   "alerts.investorStatementDue":
     "{venture}: {investors} জন বিনিয়োগকারীর অগ্রগতিপত্র পাওনা ({occasion})",
+  "alerts.reimbursementDue":
+    "{venture}: {month}-এর খরচ ফেরত দেওয়ার সময় হয়েছে — ৳{amount}",
+  "alerts.reimburseNow": "খরচ ফেরত দিন",
   "alerts.joinRequested":
     "{investor} {units}টি ইউনিট নিয়ে {venture}-এ যোগ দিতে চান",
   "digest.joinRequested": "{count}টি যোগ দেওয়ার অনুরোধ আপনার উত্তরের অপেক্ষায়",

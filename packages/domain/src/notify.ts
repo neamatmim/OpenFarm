@@ -67,6 +67,9 @@ export const DELIVERY = {
   // An Investor's paper is owed, not overdue: the Owner writes it when she sits down to the evening's
   // post, and a phone that buzzes for a letter is a phone nobody answers for a withdrawal.
   investor_statement_due: { when: "digest" },
+  // A month's Reimbursement owed: the Owner moves it from the bank when she sits down to the evening's post — a
+  // transfer due is not a buzz, and the Farm has carried the feed all month already.
+  reimbursement_due: { when: "digest" },
   // The farm's own machinery going quiet: nothing raising the day's work, or nothing copying the records off the
   // machine. The Owner hears at once, because every hour of either is an hour nobody else will notice — but not by
   // text and not at night: it is not a cow or a deadline, and the records are still there in the morning.
@@ -192,6 +195,10 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
   investor_statement_due: {
     app: "alerts.investorStatementDue",
     digest: "digest.investorStatementDue",
+  },
+  reimbursement_due: {
+    app: "alerts.reimbursementDue",
+    digest: "digest.reimbursementDue",
   },
   money_awaiting_approval: {
     app: "alerts.moneyAwaiting",

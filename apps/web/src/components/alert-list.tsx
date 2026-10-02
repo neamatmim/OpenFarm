@@ -136,6 +136,20 @@ const WhereItLeads = ({
       </Link>
     );
   }
+  if (notice.kind === "reimbursement_due") {
+    const ventureId = ventureOf(notice.params);
+    const { month } = notice.params as { month?: unknown };
+    return ventureId === null ? null : (
+      <Link
+        className={LEADS_CLASS}
+        params={{ ventureId }}
+        search={typeof month === "string" ? { reimburse: month } : {}}
+        to="/ventures/$ventureId"
+      >
+        {t("alerts.reimburseNow")}
+      </Link>
+    );
+  }
   if (notice.kind === "monthly_sum_missed") {
     const ventureId = ventureOf(notice.params);
     return ventureId === null ? null : (
