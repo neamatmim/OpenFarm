@@ -11,6 +11,7 @@ import {
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 /**
@@ -426,6 +427,7 @@ describe("the Internal Sale", () => {
     const hers = await bull("2047-02-12T05:00:00.000Z");
     await weigh("2047-02-13", [[hers.tagNumber, 260]]);
     await owner.client.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
       tagNumber: hers.tagNumber,
       kind: "died",
       cause: `বুক ফুলে মারা গেছে ${suffix}`,
@@ -642,6 +644,7 @@ describe("the animals the Owner is offered to move", () => {
       [gone.tagNumber, 250],
     ]);
     await owner.client.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
       tagNumber: gone.tagNumber,
       kind: "died",
       cause: `মারা গেছে ${suffix}`,

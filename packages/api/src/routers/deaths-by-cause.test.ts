@@ -2,6 +2,7 @@ import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 // Deaths among grown animals: how many died, of what, and deaths for every hundred head kept a year, by Side — culls
@@ -46,6 +47,7 @@ const die = async (
 ) => {
   const manager = await as("manager", instant);
   return await manager.client.animals.recordMortality({
+    photo: A_DEATH_PHOTO,
     tagNumber,
     kind,
     cause,

@@ -6,8 +6,10 @@ import { useMutation } from "@tanstack/react-query";
 import type { LucideIcon } from "lucide-react";
 import { Beef, MapPinOff, Milk, Shovel, TimerOff } from "lucide-react";
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
+import { DeathPhotoField, DeathPhotos } from "@/components/animal/death-photo";
 import {
   CorrectionAnswer,
   CorrectionChoice,
@@ -20,6 +22,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { breedName } from "@/lib/breed";
 import { choice, words } from "@/lib/correcting";
 import { causeWord, disposalWord } from "@/lib/mortality-words";
+import type { Photo } from "@/lib/photo";
 import { orpc } from "@/utils/orpc";
 
 import { Fact, FactGrid } from "./animal-facts";
@@ -52,6 +55,8 @@ const PutItRight = ({
   const correct = useMutation(
     orpc.animals.correctMortality.mutationOptions({})
   );
+  // A newer photograph of her: added beside the one kept, never in its place.
+  const [photo, setPhoto] = useState<Photo | null>(null);
   return (
     <CorrectionDialog
       onOpen={correcting.handleOpen}
@@ -60,9 +65,11 @@ const PutItRight = ({
           tagNumber: detail.tagNumber,
           changes: correcting.changes(),
           reason,
+          ...(photo ? { photo } : {}),
         });
+        setPhoto(null);
       }}
-      ready={correcting.changed}
+      ready={correcting.changed || photo !== null}
       title={t("mortality.correct")}
       trigger={t("mortality.correct")}
     >
@@ -110,6 +117,7 @@ const PutItRight = ({
         }
         value={correcting.typed.disposal ?? ""}
       />
+      <DeathPhotoField id="mortality-newer-photo" onChange={setPhoto} />
     </CorrectionDialog>
   );
 };
@@ -183,6 +191,7 @@ const HowSheWent = ({
           <Fact label={t("animals.recordedBy")}>{gone.recordedByName}</Fact>
         ) : null}
       </FactGrid>
+      <DeathPhotos tagNumber={detail.tagNumber} />
     </Section>
   );
 };

@@ -3,6 +3,7 @@ import { FakeClock, thePerson } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 /** A daily round, so there is work in the Pen for a dead cow to disappear from. */
@@ -126,6 +127,7 @@ describe("a death and a cull", () => {
     expect(before.map((one) => one.id)).toContain(cow.id);
 
     await manager.client.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
       tagNumber: cow.tagNumber,
       kind: "died",
       cause: "পেট ফুলে গিয়েছিল, সকালে মরে পড়ে ছিল",
@@ -168,6 +170,7 @@ describe("a death and a cull", () => {
       kind: "culled" as const,
       cause: "বারবার ওলান প্রদাহ, আর সারছিল না",
       disposal: "burned" as const,
+      photo: A_DEATH_PHOTO,
     };
 
     // The milker who found her does not decide she is gone from the herd, and neither does the
@@ -200,7 +203,10 @@ describe("a death and a cull", () => {
 
     // She goes once: a second exit would lose which one the farm stands behind.
     await expect(
-      manager.client.animals.recordMortality({ ...exit, kind: "died" })
+      manager.client.animals.recordMortality({
+        ...exit,
+        kind: "died",
+      })
     ).rejects.toThrow(/has left the farm/u);
     // With the word the screens say it by, rather than the server's English.
     await expect(
@@ -219,6 +225,7 @@ describe("a death and a cull", () => {
     // Found dead this morning; written up at noon, and the record says which was which.
     const foundAt = new Date(clock.now().getTime() - 4 * 60 * 60 * 1000);
     await manager.client.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
       tagNumber: cow.tagNumber,
       kind: "died",
       cause: "সাপে কাটা",
@@ -248,6 +255,7 @@ describe("a death and a cull", () => {
     const another = await aCowOfHerOwn(clock);
     await expect(
       manager.client.animals.recordMortality({
+        photo: A_DEATH_PHOTO,
         tagNumber: another.cow.tagNumber,
         kind: "died",
         cause: "ভুল তারিখ",
@@ -261,6 +269,7 @@ describe("a death and a cull", () => {
     const { cow } = await aCowOfHerOwn(clock);
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     await manager.client.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
       tagNumber: cow.tagNumber,
       kind: "died",
       cause: "কারণ জানা যায়নি",
@@ -309,6 +318,7 @@ describe("a death and a cull", () => {
 
     const before = await owner.client.home.owner();
     await manager.client.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
       tagNumber: cow.tagNumber,
       kind: "died",
       cause: "হঠাৎ মরে গেছে",
@@ -347,6 +357,7 @@ describe("a death and a cull", () => {
     }
 
     await manager.client.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
       tagNumber: cow.tagNumber,
       kind: "died",
       cause: "রাতে মরে গেছে",

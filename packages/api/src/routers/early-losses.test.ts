@@ -3,6 +3,7 @@ import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 // Animals lost soon after they came, by who sold them and where: a death, a cull or a Diagnosis within thirty days of
@@ -113,6 +114,7 @@ beforeAll(async () => {
     const recorder = await as("manager", instant);
     // oxlint-disable-next-line no-await-in-loop -- as above
     await recorder.client.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
       tagNumber,
       kind: "died",
       cause: "নিউমোনিয়া",

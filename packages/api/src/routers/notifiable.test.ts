@@ -3,6 +3,7 @@ import { FakeClock } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 /**
@@ -438,6 +439,7 @@ describe("the letter that goes without delay", () => {
     // ref" in one row, and it gets there through the Diagnosis rather than through a flag
     // somebody has to remember to tick.
     await manager.client.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
       tagNumber: cow.tagNumber,
       kind: "died",
       cause: disease,

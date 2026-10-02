@@ -9,6 +9,7 @@ import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 /**
@@ -240,6 +241,7 @@ beforeAll(async () => {
   // The third dies on the 5th of February.
   const losing = await asManager("2052-02-05T05:00:00.000Z");
   await losing.client.animals.recordMortality({
+    photo: A_DEATH_PHOTO,
     tagNumber: tags[2] ?? "",
     kind: "died",
     cause: `পেট ফাঁপা ${suffix}`,

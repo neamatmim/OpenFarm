@@ -1,3 +1,4 @@
+import { A_DEATH_PHOTO } from "./death-photo";
 import { DAY, addDays, onFarm } from "./runtime";
 import { CATTLE_BUYERS, breedIdNamed } from "./shared";
 /* oxlint-disable no-await-in-loop */
@@ -399,6 +400,7 @@ export const lastEidsSeason = async (farm: Farm, herd: Herd) => {
   if (dead) {
     farm.clock.set(onFarm("2026-04-10", "08:00"));
     await farm.as.manager.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
       tagNumber: dead.tag,
       kind: "died",
       cause: "পেট ফুলে গিয়েছিল, সকালে মরে পড়ে ছিল",

@@ -211,6 +211,7 @@ const WORDED_REFUSALS = {
   stays_in_quarantine: "refusal.staysInQuarantine",
   arrival_dose_owed: "refusal.arrivalDoseOwed",
   dose_not_owed: "refusal.doseNotOwed",
+  death_needs_a_photo: "refusal.deathNeedsAPhoto",
   wind_up_not_over: "refusal.windUpNotOver",
   bank_rate_from_the_future: "refusal.bankRateFromTheFuture",
   crossing_unweighed: "refusal.crossingUnweighed",

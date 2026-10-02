@@ -9,6 +9,7 @@ import {
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 // A finished Season opened out, for the Owner judging the buying: by haat, by trader, by breed, by the Weight Band her
@@ -287,6 +288,7 @@ beforeAll(async () => {
 
   const { client: finding } = await as("manager", "2028-02-15T06:00:00.000Z");
   await finding.animals.recordMortality({
+    photo: A_DEATH_PHOTO,
     tagNumber: tags.c,
     kind: "died",
     cause: "পেট ফুলে গিয়েছিল",

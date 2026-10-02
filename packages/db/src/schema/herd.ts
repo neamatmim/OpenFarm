@@ -344,3 +344,29 @@ export const mortality = pgTable(
     index("mortality_farm_idx").on(table.farmId, table.happenedAt),
   ]
 );
+
+/**
+ * A photograph of a dead animal showing her tag, kept with her Mortality: the death's own, never her profile photo. One
+ * or more — a Correction may add a newer one, and the one before is marked replaced and never removed. A death written
+ * before photographs were asked for has none.
+ */
+export const mortalityPhoto = pgTable(
+  "mortality_photo",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    mortalityId: text("mortality_id")
+      .notNull()
+      .references(() => mortality.id, { onDelete: "cascade" }),
+    contentType: text("content_type").notNull(),
+    /** Downscaled on the device before upload, base64. */
+    data: text("data").notNull(),
+    takenBy: text("taken_by").references(() => user.id),
+    takenAt: timestamp("taken_at").notNull(),
+    /** When a newer photograph replaced it; null for the one that stands. */
+    replacedAt: timestamp("replaced_at"),
+  },
+  (table) => [index("mortality_photo_mortality_idx").on(table.mortalityId)]
+);

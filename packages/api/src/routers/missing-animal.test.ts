@@ -10,6 +10,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import type { PushMessage, PushTarget, PushTransport } from "../push";
 import { createTestClient } from "../test/client";
 import { correctStepAsShown } from "../test/correct-step";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 // The round's "Animal not found" is heard: a Missing opens against her, the Owner and the Manager are told once and at
@@ -191,6 +192,7 @@ describe("an animal the round could not find", () => {
       skipReason: NOT_FOUND,
     });
     await manager.client.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
       tagNumber: tag,
       kind: "died",
       happenedAt: new Date("2054-02-06T20:00:00.000Z"),

@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
 import { correctStepAsShown } from "../test/correct-step";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 /** The round that starts the health chain: somebody walks the pen and says what they saw. */
@@ -127,6 +128,7 @@ describe("a Diagnosis, and the Vet who makes it", () => {
     });
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     await manager.client.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
       tagNumber: cow.tagNumber,
       kind: "died",
       cause: "হঠাৎ মরে গেছে",
@@ -316,6 +318,7 @@ describe("a Diagnosis, and the Vet who makes it", () => {
 
     const owner = await createTestClient(appRouter, { as: "owner", clock });
     await owner.client.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
       tagNumber: cow.tagNumber,
       kind: "died",
       cause: "হঠাৎ মারা গেছে",

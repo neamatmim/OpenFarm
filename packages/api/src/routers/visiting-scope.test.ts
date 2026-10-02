@@ -22,6 +22,8 @@ const OPEN_TO_A_VISIT = new Set<string>([
   "animals.list",
   "animals.byTag",
   "animals.photo",
+  // The photographs kept with her death, read as her photo is.
+  "animals.deathPhotos",
   "audit.list",
   "breeding.recordAbortion",
   "breeding.correctAbortion",

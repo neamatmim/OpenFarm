@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { PAID_FROM_THE_ACCOUNT, putCapitalIn } from "../test/bought-by-bank";
 import { createTestClient } from "../test/client";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 /**
@@ -123,6 +124,7 @@ beforeAll(async () => {
   // He dies in February, so nothing of the Venture's still stands.
   const manager = await as("manager", "2075-02-05T06:00:00.000Z");
   await manager.client.animals.recordMortality({
+    photo: A_DEATH_PHOTO,
     tagNumber: bull.tagNumber,
     kind: "died",
     cause: `সাপে কেটেছে ${suffix}`,

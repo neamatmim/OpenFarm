@@ -3,6 +3,7 @@ import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
 /**
@@ -186,6 +187,7 @@ beforeAll(async () => {
   diagnosisId = said.id;
   const losing = await as("manager", "2048-01-12T05:00:00.000Z");
   await losing.client.animals.recordMortality({
+    photo: A_DEATH_PHOTO,
     tagNumber: deadTag,
     kind: "died",
     cause: `জ্বরে মারা গেছে ${suffix}`,

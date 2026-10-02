@@ -15,6 +15,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { DeathPhotoField } from "@/components/animal/death-photo";
 import { MoveDialog } from "@/components/animal/move-dialog";
 import { Notice } from "@/components/page";
 import {
@@ -25,6 +26,7 @@ import {
 } from "@/components/page-kit";
 import { InternalSaleSheet } from "@/components/ventures/internal-sale-sheet";
 import { useLanguage } from "@/i18n/language-provider";
+import type { Photo } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
@@ -171,6 +173,7 @@ const MortalitySheet = ({ detail, open, onOpenChange }: ActProps) => {
   const [note, setNote] = useState("");
   const [happenedAt, setHappenedAt] = useState("");
   const [diagnosisId, setDiagnosisId] = useState("");
+  const [photo, setPhoto] = useState<Photo | null>(null);
   // Her Vet's recent conclusions, one of which she may have died of: linked, the register names the disease and the
   // office's reference. Only those who read her clinical record are sent any.
   const diagnoses = herRecentDiagnoses(detail, new Date());
@@ -201,11 +204,12 @@ const MortalitySheet = ({ detail, open, onOpenChange }: ActProps) => {
           // so it can be said.
           ...(happenedAt ? { happenedAt: new Date(happenedAt) } : {}),
           ...(diagnosisId ? { diagnosisId } : {}),
+          ...(photo ? { photo } : {}),
         })
       }
       open={open}
       pending={record.isPending}
-      ready={cause.trim() !== ""}
+      ready={cause.trim() !== "" && photo !== null}
       submitLabel={t("mortality.record")}
       title={t("mortality.record")}
     >
@@ -297,6 +301,7 @@ const MortalitySheet = ({ detail, open, onOpenChange }: ActProps) => {
           />
         </FormField>
       </div>
+      <DeathPhotoField id="mortality-photo" onChange={setPhoto} />
     </FormSheet>
   );
 };
@@ -308,6 +313,7 @@ const DisposalDialog = ({ detail, open, onOpenChange }: ActProps) => {
   const refused = useRefused();
   const [disposal, setDisposal] = useState<Disposal>("buried");
   const [note, setNote] = useState("");
+  const [photo, setPhoto] = useState<Photo | null>(null);
   const record = useMutation(
     orpc.animals.recordDisposal.mutationOptions({
       onSuccess: () => {
@@ -325,11 +331,12 @@ const DisposalDialog = ({ detail, open, onOpenChange }: ActProps) => {
           tagNumber: detail.tagNumber,
           disposal,
           ...(note.trim() ? { disposalNote: note.trim() } : {}),
+          ...(photo ? { photo } : {}),
         })
       }
       open={open}
       pending={record.isPending}
-      ready
+      ready={photo !== null}
       submitLabel={t("mortality.recordDisposal")}
       title={`${t("mortality.recordDisposal")} · ${detail.tagNumber}`}
     >
@@ -353,6 +360,7 @@ const DisposalDialog = ({ detail, open, onOpenChange }: ActProps) => {
           value={note}
         />
       </FormField>
+      <DeathPhotoField id="afterwards-photo" onChange={setPhoto} />
     </FormDialog>
   );
 };

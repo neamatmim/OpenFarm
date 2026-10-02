@@ -11,6 +11,7 @@ import type { Recorder } from "../completion-store";
 import { appRouter } from "../routers/index";
 import { requireAnimalInScope } from "../scope";
 import { createTestClient } from "../test/client";
+import { A_DEATH_PHOTO } from "../test/death-photo";
 import type { Change, CorrectionKind } from "./correction";
 import { correct } from "./correction";
 
@@ -235,6 +236,7 @@ const KINDS: Kind[] = [
     make: async (manager) => {
       const bull = await intakeFor(manager, 20_000);
       await manager.animals.recordMortality({
+        photo: A_DEATH_PHOTO,
         tagNumber: bull.tagNumber,
         kind: "died",
         cause: "কারণ জানা যায়নি",

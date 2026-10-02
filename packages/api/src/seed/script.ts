@@ -6,6 +6,7 @@
 import type { StandardDrugKey } from "@OpenFarm/domain";
 import { ROUND_WORDS } from "@OpenFarm/domain";
 
+import { A_DEATH_PHOTO } from "./death-photo";
 import type { Cow, Herd } from "./herd";
 import { takeInBulls } from "./herd";
 import type { Happening } from "./history";
@@ -28,8 +29,8 @@ import {
   shelfReason,
 } from "./shared";
 import { HERD_SUNDRIES, paidBy } from "./standing";
-import type { Farm, PenKey } from "./standing";
 import "./responders";
+import type { Farm, PenKey } from "./standing";
 
 interface Script {
   farm: Farm;
@@ -938,6 +939,7 @@ const loseACalf = ({ farm, cows, on }: Script) => {
       return;
     }
     await f.as.manager.animals.recordMortality({
+      photo: A_DEATH_PHOTO,
       tagNumber: calfTag,
       kind: "died",
       cause: "ডায়রিয়া ও পানিশূন্যতা, চিকিৎসায় সাড়া দেয়নি",
