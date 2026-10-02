@@ -1,0 +1,1 @@
+ALTER TABLE "farm" ADD COLUMN "arrival_short_percent" integer DEFAULT 5 NOT NULL;

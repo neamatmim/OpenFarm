@@ -84,6 +84,18 @@ export interface NoticeFacts {
     /** The farm day ("YYYY-MM-DD") the latest missed sum fell due. */
     dueOn: string;
   };
+  arrival_weight_short: {
+    tag: string;
+    /** Who the farm bought her from, as the Intake names them; empty where nobody wrote it down. */
+    seller: string;
+    /** What she weighed coming off the lorry, and at her first Weigh-in. */
+    arrivalKg: number;
+    weighedKg: number;
+    /** How many days after she came the first Weigh-in was. */
+    days: number;
+    /** How far under, to a tenth of a percent. */
+    percent: number;
+  };
   cash_short: {
     /** Whose hand was counted. */
     name: string;

@@ -66,6 +66,7 @@ type NumberKey =
   | "milkUnaccountedPercent"
   | "missingWriteOffDays"
   | "feedPriceJumpPercent"
+  | "arrivalShortPercent"
   | "feedDaysLow"
   | "cashShortTellBdt"
   | "medicineShortTellBdt"
@@ -407,6 +408,21 @@ const GROUPS: {
         unit: "params.percent",
         min: 1,
         max: 100,
+      },
+    ],
+  },
+  {
+    id: "params-arrival-short",
+    title: "params.arrivalShort",
+    hint: "params.arrivalShortHint",
+    owner: true,
+    fields: [
+      {
+        key: "arrivalShortPercent",
+        label: "params.arrivalShortPercent",
+        unit: "params.percent",
+        min: 1,
+        max: 50,
       },
     ],
   },

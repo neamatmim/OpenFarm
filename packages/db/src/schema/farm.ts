@@ -228,6 +228,10 @@ export const farm = pgTable("farm", {
   feedPriceJumpPercent: integer("feed_price_jump_percent")
     .notNull()
     .default(10),
+  /** How far under the weight a bought animal came off the lorry at her first Weigh-in, within her first thirty days,
+   *  may come before the Owner is told, in the evening's post: 5%. A convention, not a measured line: a lorry takes
+   *  weight off a bull and a fortnight puts it back. The Owner's alone, as the Manager buys. */
+  arrivalShortPercent: integer("arrival_short_percent").notNull().default(5),
   /** How many days of a feed, at the rate it has been fed lately, before it is Running Low and the Manager is told in
    *  the evening's post: a week, time to order (the Owner, 2026-09-29). The Manager's to set, who keeps the store. */
   feedDaysLow: integer("feed_days_low").notNull().default(7),

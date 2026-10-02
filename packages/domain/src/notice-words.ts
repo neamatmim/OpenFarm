@@ -126,6 +126,15 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     amount: Number(facts.missedBdt),
     day: saidDate(facts.dueOn, language),
   }),
+  arrival_weight_short: (facts, language) => ({
+    tag: facts.tag,
+    seller:
+      facts.seller || (language === "bn" ? "অজানা বিক্রেতা" : "an unnamed seller"),
+    arrival: Number(facts.arrivalKg),
+    weighed: Number(facts.weighedKg),
+    days: Number(facts.days),
+    percent: Number(facts.percent),
+  }),
   cash_short: (facts, language) => ({
     name: facts.name,
     amount: Number(facts.shortBdt),

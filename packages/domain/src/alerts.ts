@@ -39,6 +39,7 @@ export const ALERT_KINDS = [
   "medicine_short",
   "feed_price_jump",
   "cash_short",
+  "arrival_weight_short",
   "monthly_sum_missed",
 ] as const;
 export type AlertKind = (typeof ALERT_KINDS)[number];
