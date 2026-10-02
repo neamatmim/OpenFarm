@@ -1358,6 +1358,10 @@ export const bn: Record<MessageKey, string> = {
   "refusal.neverWeighed": "গরুটির কোনো ওজন নেওয়া হয়নি, তাই দাম ঠিক করার ভিত্তি নেই",
   "refusal.weighedTooLongAgo":
     "গরুটির শেষ ওজন অনেক পুরোনো — আবার ওজন নিয়ে তারপর দাম ঠিক করুন",
+  "refusal.noQuarantinePen": "আগে একটি পেন কোয়ারেন্টিন পেন হিসেবে চিহ্নিত করুন",
+  "refusal.notAQuarantinePen": "কেনা পশু কোয়ারেন্টিন পেনেই ওঠে",
+  "refusal.penHoldsQuarantine":
+    "এই পেনে কোয়ারেন্টিনের পশু আছে — আগে তাকে ছাড়ুন বা সরান",
   "refusal.windUpNotOver": "গুটিয়ে আনার সময় এখনও শেষ হয়নি, বিক্রির দিন আছে",
   "refusal.nothingLeftToBuy": "এই ভেঞ্চারের আর কোনো গরু কেনার নেই",
   "refusal.bankRateFromTheFuture":
@@ -2067,6 +2071,7 @@ export const bn: Record<MessageKey, string> = {
   "herd.title": "শেড ও পেন",
   "herd.addShed": "নতুন শেড",
   "herd.addPen": "নতুন পেন",
+  "herd.quarantinePen": "কোয়ারেন্টিন পেন",
   "herd.shedName": "শেডের নাম",
   "herd.penName": "পেনের নাম",
   "herd.rename": "নাম বদলান",
@@ -3898,7 +3903,10 @@ export const bn: Record<MessageKey, string> = {
   "intake.kg": "{kg} কেজি",
   "intake.months": "{months} মাস",
   "intake.pen": "পেন",
-  "intake.penHint": "যে পেনেই রাখুন, পশুটি প্রথমে কোয়ারেন্টিনে থাকবে।",
+  "intake.penHint": "পশুটি প্রথমে কোয়ারেন্টিনে থাকবে, কোয়ারেন্টিন পেনে।",
+  "intake.noQuarantinePen":
+    "খামারে এখনো কোনো কোয়ারেন্টিন পেন চিহ্নিত নেই — কেনা পশু কোয়ারেন্টিন পেনেই ওঠে। আগে একটি পেন কোয়ারেন্টিন পেন হিসেবে চিহ্নিত করুন।",
+  "intake.markAQuarantinePen": "শেড ও পেনে যান",
   "intake.sellerName": "বিক্রেতার নাম",
   "intake.sellerPlace": "বিক্রেতার হাট বা এলাকা",
   "intake.sellerPhone": "বিক্রেতার মোবাইল",

@@ -365,6 +365,7 @@ describe("a Venture still buying", () => {
     await owner.ventures.startBuying({ id: buying.id });
     const shed = await owner.herd.createShed({ name: `কেনা ${suffix}` });
     const pen = await owner.herd.createPen({
+      quarantine: true,
       shedId: shed.id,
       name: `কেনা ${suffix}`,
     });

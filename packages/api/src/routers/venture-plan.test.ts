@@ -298,6 +298,7 @@ describe("a plan line's Breed", () => {
     });
     const shed = await manager.herd.createShed({ name: `জাত-শেড ${suffix}` });
     const pen = await manager.herd.createPen({
+      quarantine: true,
       shedId: shed.id,
       name: `জাত-পেন ${suffix}`,
     });

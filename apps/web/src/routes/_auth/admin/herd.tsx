@@ -92,6 +92,9 @@ const HerdPage = () => {
   const renamePen = useMutation(
     orpc.herd.renamePen.mutationOptions({ onSuccess: done, onError })
   );
+  const markQuarantine = useMutation(
+    orpc.herd.markQuarantine.mutationOptions({ onError })
+  );
   const pending =
     createShed.isPending ||
     createPen.isPending ||
@@ -123,6 +126,8 @@ const HerdPage = () => {
       setNaming({ kind: "renameShed", id: shed.id, current: shed.name }),
     handleRenamePen: (pen) =>
       setNaming({ kind: "renamePen", id: pen.id, current: pen.name }),
+    handleMarkQuarantine: (pen, quarantine) =>
+      markQuarantine.mutate({ penId: pen.id, quarantine }),
   };
 
   return (

@@ -20,6 +20,7 @@ const setup = async () => {
   const manager = await as("manager");
   const shed = await manager.client.herd.createShed({ name: suffix });
   const pen = await manager.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: "ঈদের পেন",
   });

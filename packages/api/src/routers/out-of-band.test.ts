@@ -18,7 +18,11 @@ const setup = async () => {
   const manager = await as("manager", ARRIVED);
   const shed = await manager.client.herd.createShed({ name: suffix });
   const pen = async (name: string) =>
-    await manager.client.herd.createPen({ shedId: shed.id, name });
+    await manager.client.herd.createPen({
+      quarantine: true,
+      shedId: shed.id,
+      name,
+    });
   const growers = await pen("গ্রোয়ার পেন");
   const finishers = await pen("ফিনিশার পেন");
   const unbanded = await pen("সাধারণ পেন");

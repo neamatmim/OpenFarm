@@ -22,7 +22,11 @@ const setup = async () => {
     if (found) {
       return found.id;
     }
-    const created = await owner.client.herd.createPen({ shedId, name });
+    const created = await owner.client.herd.createPen({
+      quarantine: true,
+      shedId,
+      name,
+    });
     return created.id;
   };
   return {
@@ -64,7 +68,11 @@ describe("sheds and pens", () => {
   it("creates and renames a shed and a pen", async () => {
     const { client } = pens.owner;
     const shed = await client.herd.createShed({ name: `শেড ${Date.now()}` });
-    const pen = await client.herd.createPen({ shedId: shed.id, name: "পেন ক" });
+    const pen = await client.herd.createPen({
+      quarantine: true,
+      shedId: shed.id,
+      name: "পেন ক",
+    });
 
     await client.herd.renameShed({ id: shed.id, name: "শেড খ" });
     await client.herd.renamePen({ id: pen.id, name: "পেন গ" });

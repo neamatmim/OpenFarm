@@ -59,6 +59,9 @@ export const pen = pgTable(
       .notNull()
       .references(() => shed.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
+    /** A quarantine pen: where a bought animal comes in, and is kept until she is released. Marked by the Owner or
+     *  the Manager; never unmarked while it holds an animal in Quarantine. */
+    quarantine: boolean("quarantine").notNull().default(false),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [uniqueIndex("pen_name_uidx").on(table.shedId, table.name)]

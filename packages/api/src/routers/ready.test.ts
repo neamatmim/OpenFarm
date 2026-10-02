@@ -75,11 +75,13 @@ const setup = async () => {
   const vet = await createTestClient(appRouter, { as: "vet", clock });
   const shed = await owner.client.herd.createShed({ name: `ready-${suffix}` });
   const pen = await owner.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: `বিক্রয় ${suffix}`,
   });
   /** The treated bull stands apart, because a campaign doses every animal in its Pen. */
   const treatedPen = await owner.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: `চিকিৎসা ${suffix}`,
   });

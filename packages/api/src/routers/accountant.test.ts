@@ -30,6 +30,7 @@ const setup = async () => {
   }
   const shed = await manager.client.herd.createShed({ name: `acc-${suffix}` });
   const pen = await manager.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: `হিসাব ${suffix}`,
   });
@@ -79,6 +80,7 @@ const setup = async () => {
   // A cow in the Dairy side's Pen, and the Vet seeing her and the bull on one visit for 2,000: 1,000 each
   // Side.
   const dairyPen = await manager.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: `হিসাব দুধ ${suffix}`,
   });

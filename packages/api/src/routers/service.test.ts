@@ -105,6 +105,7 @@ const setup = async () => {
   const manager = await createTestClient(appRouter, { as: "manager", clock });
   const shed = await owner.client.herd.createShed({ name: `serve-${suffix}` });
   const pen = await owner.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: `প্রজনন ${suffix}`,
   });

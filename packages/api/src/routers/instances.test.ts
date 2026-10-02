@@ -81,10 +81,12 @@ const setup = async () => {
     name: `instances-${Date.now()}`,
   });
   const milkingPen = await owner.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: "দোহন পেন",
   });
   const fatteningPen = await owner.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: "মোটা পেন",
   });

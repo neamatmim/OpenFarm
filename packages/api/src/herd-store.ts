@@ -262,6 +262,31 @@ export const requirePen = async (tx: Tx, farmId: string, penId: string) => {
 };
 
 /**
+ * That an animal coming into Quarantine comes into a quarantine pen — the one place a bought animal is kept apart from
+ * the herd until she is released. A farm with none is told to mark one first, which is a different thing to do from
+ * choosing another pen.
+ */
+export const assertAQuarantinePen = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  into: { quarantine: boolean }
+): Promise<void> => {
+  if (into.quarantine) {
+    return;
+  }
+  const any = await tx.query.pen.findFirst({
+    where: { farmId, quarantine: true },
+    columns: { id: true },
+  });
+  throw new ORPCError("BAD_REQUEST", {
+    message: any
+      ? "A bought animal comes into Quarantine in a quarantine pen"
+      : "Mark a quarantine pen first",
+    data: { refusal: any ? "not_a_quarantine_pen" : "no_quarantine_pen" },
+  });
+};
+
+/**
  * The rows that make an Animal: the Animal itself and the Move that put it in its Pen.
  *
  * Takes a transaction rather than opening one, because an arrival writes more than an Animal —
@@ -295,7 +320,10 @@ export const insertAnimal = async (
     arrivedAt?: Date;
   }
 ): Promise<{ tagNumber: string }> => {
-  await requirePen(tx, farmId, input.penId);
+  const into = await requirePen(tx, farmId, input.penId);
+  if (input.state === "quarantine") {
+    await assertAQuarantinePen(tx, farmId, into);
+  }
   if (input.breedId !== undefined) {
     await requireBreed(tx, farmId, input.breedId);
   }

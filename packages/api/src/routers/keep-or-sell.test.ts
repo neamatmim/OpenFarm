@@ -181,10 +181,12 @@ beforeAll(async () => {
   await manager.client.farm.setParameters({ gainReadDays: 14 });
   const shed = await owner.client.herd.createShed({ name: `keep-${suffix}` });
   const fed = await owner.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: `খাওয়ানো পেন ${suffix}`,
   });
   const hungry = await owner.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: `অন্য পেন ${suffix}`,
   });

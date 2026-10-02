@@ -56,6 +56,7 @@ beforeAll(async () => {
   await owner.client.farm.setParameters({ runningBudgetWarnBdt: 199_000 });
   const shed = await owner.client.herd.createShed({ name: suffix });
   const pen = await owner.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
   });

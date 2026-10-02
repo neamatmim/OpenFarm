@@ -87,6 +87,7 @@ const aStore = async (tag: string) => {
     name: `lots-${suffix}-${tag}`,
   });
   const pen = await owner.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: `লট পেন ${suffix} ${tag}`,
   });

@@ -183,6 +183,7 @@ beforeAll(async () => {
   const { client: owner } = await as("owner", "2027-12-31T04:00:00.000Z");
   const shed = await owner.herd.createShed({ name: `ভাগ ${suffix}` });
   const pen = await owner.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: `মোটাতাজা ${suffix}`,
   });

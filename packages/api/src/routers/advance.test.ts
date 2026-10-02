@@ -101,6 +101,7 @@ const theVenture = async (owner: Owner) => {
 const theyEat = async (owner: Owner) => {
   const shed = await owner.client.herd.createShed({ name: suffix });
   const pen = await owner.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
   });

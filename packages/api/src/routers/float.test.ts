@@ -88,6 +88,7 @@ beforeAll(async () => {
   ventureId = await funded(owner, 1, 800_000);
   const shed = await owner.client.herd.createShed({ name: suffix });
   const pen = await owner.client.herd.createPen({
+    quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
   });
