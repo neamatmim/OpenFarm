@@ -27,6 +27,8 @@ export interface IntakeFields {
   /** A Venture's bull with no outing, paid from its account by bank: the transfer or cheque, and the day it moved. */
   reference: string;
   paidOn: string;
+  /** Which Farm Account the Farm's own bull was paid from by bKash or the bank. */
+  farmAccountId: string;
 }
 
 /** The Venture an animal is being taken in for, when she is one's: her Target Window is its, not the form's. */
@@ -84,6 +86,7 @@ export const EMPTY: IntakeFields = {
   paymentMethod: "cash",
   reference: "",
   paidOn: "",
+  farmAccountId: "",
 };
 
 /** A Venture's bull with no outing: paid straight from its account by bank, the Owner's to take in. */

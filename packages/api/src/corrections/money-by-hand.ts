@@ -20,13 +20,14 @@ import {
 import {
   amountInput,
   counterpartyInput,
+  farmAccountChange,
   monthInput,
   noteInput,
   paymentMethodChange,
   receiptInput,
   sideInput,
 } from "../money-inputs";
-import { bookMoney, bookingOf } from "../money-store";
+import { accountSaid, bookingOf, bookMoney } from "../money-store";
 import { drawsTakenBy } from "../wage-draw-store";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput, venturesCharged } from "./correction";
@@ -61,6 +62,8 @@ export const moneyByHandCorrectionInput = correctionInput({
   occurredOn: changeOf(farmDay, z.string()),
   counterparty: changeOf(counterpartyInput, z.string().nullable()),
   paymentMethod: paymentMethodChange,
+  /** Which Farm Account bKash or bank money names, and its transaction ID. */
+  farmAccount: farmAccountChange,
   note: changeOf(noteInput.nullable(), z.string().nullable()),
   wageMonth: changeOf(monthInput.nullable(), z.string().nullable()),
   side: changeOf(sideInput.nullable(), z.string().nullable()),
@@ -164,6 +167,10 @@ export const moneyByHandCorrection: CorrectionKind<
       occurredOn: farmDayOf(row.occurredAt),
       counterparty: row.counterparty?.name ?? null,
       paymentMethod: row.paymentMethod,
+      farmAccount: {
+        farmAccountId: row.farmAccountId,
+        reference: row.reference,
+      },
       note: row.note,
       wageMonth: row.wageMonth,
       side: row.side,
@@ -204,7 +211,12 @@ export const moneyByHandCorrection: CorrectionKind<
     }
     await bookMoney(
       tx,
-      bookingOf(context, context.roleUsed, now),
+      bookingOf(
+        context,
+        context.roleUsed,
+        now,
+        to.farmAccount ? accountSaid(["by_hand"], to.farmAccount) : undefined
+      ),
       {
         source: "by_hand",
         sourceId: row.id,

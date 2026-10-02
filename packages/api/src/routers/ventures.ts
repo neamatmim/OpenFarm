@@ -58,8 +58,8 @@ import {
   theFarmsShare,
   unitsTaken,
 } from "../investor-store";
-import { monthInput } from "../money-inputs";
-import { bookMoney, bookingOf } from "../money-store";
+import { farmAccountIdInput, monthInput } from "../money-inputs";
+import { accountSaid, bookMoney, bookingOf } from "../money-store";
 import { missedByEach } from "../monthly-sums-store";
 import {
   assertNamable,
@@ -618,6 +618,8 @@ const moveSettlementMoney = async (
     movedOn: string;
     paymentMethod: PaymentMethod;
     reference: string;
+    /** The Farm Account the Farm's own side of it went into or came out of: its share, or its share of a loss. */
+    farmAccountId?: string;
   },
   kind: "payout" | "advance_repaid" | "farm_share" | "farm_loss_in",
   owed: (
@@ -666,14 +668,23 @@ const moveSettlementMoney = async (
       // The Farm's share of a loss is the same money the other way: the Farm's own taka, going in to carry
       // its part of a run that lost, and so on the Farm's books as money out.
       if (kind === "farm_share" || kind === "farm_loss_in") {
-        await bookMoney(tx, bookingOf(context, context.roleUsed, now), {
-          source: kind === "farm_share" ? "farm_share" : "farm_loss",
-          sourceId: movementId,
-          amountBdt: going.amountBdt,
-          occurredAt: startOfFarmDay(input.movedOn),
-          counterpartyId: null,
-          paymentMethod: input.paymentMethod,
-        });
+        await bookMoney(
+          tx,
+          bookingOf(
+            context,
+            context.roleUsed,
+            now,
+            accountSaid(["farm_share", "farm_loss"], input)
+          ),
+          {
+            source: kind === "farm_share" ? "farm_share" : "farm_loss",
+            sourceId: movementId,
+            amountBdt: going.amountBdt,
+            occurredAt: startOfFarmDay(input.movedOn),
+            counterpartyId: null,
+            paymentMethod: input.paymentMethod,
+          }
+        );
       }
       await reachesSettledOnLastPayout(
         tx,
@@ -2109,6 +2120,8 @@ export const venturesRouter = {
         paymentMethod: z.enum(PAYMENT_METHODS),
         /** The transfer, cheque or deposit slip the money moved on. */
         reference: z.string().trim().min(1).max(120),
+        /** The Farm Account the Farm's side of it went into or came out of: the transfer is the same one. */
+        farmAccountId: farmAccountIdInput,
         /** The price the Owner read before she committed. Refused when it is not the price the farm
          *  works out, because she may be looking at a weight taken before this morning's round. */
         priceBdt: z.number().positive().max(100_000_000),
@@ -2227,7 +2240,12 @@ export const venturesRouter = {
           }
           struck = await recordInternalSale(
             tx,
-            bookingOf(context, context.roleUsed, now),
+            bookingOf(
+              context,
+              context.roleUsed,
+              now,
+              accountSaid(["internal_sale_in", "internal_sale_out"], input)
+            ),
             {
               id,
               animalId: her.id,
@@ -2484,6 +2502,8 @@ export const venturesRouter = {
         movedOn: farmDay,
         paymentMethod: z.enum(PAYMENT_METHODS),
         reference: z.string().trim().min(1).max(120),
+        /** The Farm Account the Farm's side of it went into or came out of. */
+        farmAccountId: farmAccountIdInput,
       })
     )
     .handler(({ context, input }) =>
@@ -2535,6 +2555,8 @@ export const venturesRouter = {
         movedOn: farmDay,
         paymentMethod: z.enum(PAYMENT_METHODS),
         reference: z.string().trim().min(1).max(120),
+        /** The Farm Account the Farm's side of it went into or came out of. */
+        farmAccountId: farmAccountIdInput,
       })
     )
     .handler(({ context, input }) =>
@@ -2726,6 +2748,8 @@ export const venturesRouter = {
         movedOn: farmDay,
         paymentMethod: z.enum(PAYMENT_METHODS),
         reference: z.string().trim().min(1).max(120),
+        /** The Farm Account the Farm's side of it went into or came out of: the transfer is the same one. */
+        farmAccountId: farmAccountIdInput,
       })
     )
     .handler(async ({ context, input }) => {
@@ -2795,7 +2819,12 @@ export const venturesRouter = {
             columns: { id: true, name: true },
           });
           const nameOf = new Map(people.map((one) => [one.id, one.name]));
-          const booking = bookingOf(context, context.roleUsed, now);
+          const booking = bookingOf(
+            context,
+            context.roleUsed,
+            now,
+            accountSaid(["settlement_adjustment"], input)
+          );
           let paidBdt = 0;
           for (const his of approved.shares) {
             const amountBdt = whatUnitsTake(perUnitToPay, his.units);
@@ -2944,6 +2973,8 @@ export const venturesRouter = {
         paymentMethod: z.enum(PAYMENT_METHODS),
         /** The transfer, cheque or deposit slip the money moved on. */
         reference: z.string().trim().min(1).max(120),
+        /** The Farm Account the Farm's side of it went into or came out of: the transfer is the same one. */
+        farmAccountId: farmAccountIdInput,
         /** The one Season every animal it takes joins: the next Eid where none is said. */
         targetWindow: targetWindowInput.optional(),
       })
@@ -3043,7 +3074,12 @@ export const venturesRouter = {
             // oxlint-disable-next-line no-await-in-loop -- one transaction, one animal at a time
             const struck = await recordInternalSale(
               tx,
-              bookingOf(context, context.roleUsed, now),
+              bookingOf(
+                context,
+                context.roleUsed,
+                now,
+                accountSaid(["internal_sale_in", "internal_sale_out"], input)
+              ),
               {
                 id: saleId,
                 animalId: her.id,
@@ -3403,6 +3439,8 @@ export const venturesRouter = {
         movedOn: farmDay,
         paymentMethod: z.enum(PAYMENT_METHODS),
         reference: z.string().trim().min(1).max(120),
+        /** The Farm Account the Farm's side of it went into or came out of: the transfer is the same one. */
+        farmAccountId: farmAccountIdInput,
         /** The figure the Owner read before she committed. Refused when it is not what the farm works
          *  out now — a Feeding entered late, or a Category re-marked, moves the sum she was shown. */
         amountBdt: money,
@@ -3504,14 +3542,23 @@ export const venturesRouter = {
             createdAt: now,
           });
           // The Farm's side, on the Farm's purse: it bought the feed and is being paid for it.
-          await bookMoney(tx, bookingOf(context, context.roleUsed, now), {
-            source: "reimbursement",
-            sourceId: id,
-            amountBdt: consumed.totalBdt,
-            occurredAt: startOfFarmDay(input.movedOn),
-            counterpartyId: null,
-            paymentMethod: input.paymentMethod,
-          });
+          await bookMoney(
+            tx,
+            bookingOf(
+              context,
+              context.roleUsed,
+              now,
+              accountSaid(["reimbursement"], input)
+            ),
+            {
+              source: "reimbursement",
+              sourceId: id,
+              amountBdt: consumed.totalBdt,
+              occurredAt: startOfFarmDay(input.movedOn),
+              counterpartyId: null,
+              paymentMethod: input.paymentMethod,
+            }
+          );
         }
       );
       return { id, ...consumed };

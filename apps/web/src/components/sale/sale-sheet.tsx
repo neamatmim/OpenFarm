@@ -14,7 +14,12 @@ import { BakiFields, BuyerOwes } from "@/components/baki-fields";
 import { fitOnFrom } from "@/components/fattening/fattening-types";
 import { Notice, SECTION_TITLE } from "@/components/page";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
-import { PaymentMethodField } from "@/components/payment-method";
+import type { AccountTyped } from "@/components/payment-method";
+import {
+  accountSent,
+  NO_ACCOUNT,
+  PaymentMethodField,
+} from "@/components/payment-method";
 import { useShrinkWords } from "@/components/sale/shrink-words";
 import { SearchablePicker } from "@/components/searchable-picker";
 import { WhoseHandField } from "@/components/whose-hand";
@@ -47,6 +52,8 @@ export interface SaleAnswers {
   paymentMethod: PaymentMethod;
   /** Whose hand took the cash, where the Owner names another's; empty for the writer's own. */
   heldBy: string;
+  /** Which Farm Account bKash or bank money went into, and its transaction ID. */
+  account: AccountTyped;
   /** Whether the buyer still owes some of it, what he paid now, and the day he promised. */
   baki: BakiTyped;
   /** What the broker at the haat took for this sale, where one was used; empty where none was. */
@@ -66,6 +73,7 @@ export const NOTHING_TYPED: SaleAnswers = {
   note: "",
   paymentMethod: "cash",
   heldBy: "",
+  account: NO_ACCOUNT,
   baki: NO_BAKI,
   brokerBdt: "",
 };
@@ -408,6 +416,7 @@ export const SaleSheet = ({
           driver: answers.driver,
           note: answers.note || undefined,
           paymentMethod: answers.paymentMethod,
+          ...accountSent(answers.paymentMethod, answers.account),
           ...(answers.paymentMethod === "cash" && answers.heldBy
             ? { heldBy: answers.heldBy }
             : {}),
@@ -488,6 +497,10 @@ export const SaleSheet = ({
         />
         {somethingPaid(answers.baki) ? (
           <PaymentMethodField
+            account={{
+              typed: answers.account,
+              onChange: (account) => edit({ account }),
+            }}
             id="sale-paid-by"
             onChange={(paymentMethod) => edit({ paymentMethod })}
             value={answers.paymentMethod}

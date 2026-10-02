@@ -7,7 +7,12 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
-import { PaymentMethodField } from "@/components/payment-method";
+import type { AccountTyped } from "@/components/payment-method";
+import {
+  accountSent,
+  NO_ACCOUNT,
+  PaymentMethodField,
+} from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
@@ -67,6 +72,7 @@ export const BuyMedicineSheet = ({
   const [typed, setTyped] = useState(NOTHING_BOUGHT);
   const [purchasedOn, setPurchasedOn] = useState(() => farmDayOf(new Date()));
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const [account, setAccount] = useState<AccountTyped>(NO_ACCOUNT);
   const chosen =
     products.find((product) => product.id === chosenId) ?? products[0];
   const buy = useMutation(
@@ -110,6 +116,7 @@ export const BuyMedicineSheet = ({
           seller: { name: typed.seller.trim() },
           purchasedOn,
           paymentMethod,
+          ...accountSent(paymentMethod, account),
           lotNumber: typed.lotNumber.trim() || undefined,
           expiresOn: typed.expiresOn,
         });
@@ -169,6 +176,7 @@ export const BuyMedicineSheet = ({
               />
             </FormField>
             <PaymentMethodField
+              account={{ typed: account, onChange: setAccount }}
               id="buy-paid-by"
               onChange={setPaymentMethod}
               value={paymentMethod}

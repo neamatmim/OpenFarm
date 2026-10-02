@@ -136,6 +136,45 @@ export const moneyCategory = pgTable(
   ]
 );
 
+/** What a Farm Account is: a bKash number, or an account at a bank. */
+export const FARM_ACCOUNT_KINDS = ["bkash", "bank"] as const;
+export type FarmAccountKind = (typeof FARM_ACCOUNT_KINDS)[number];
+
+/**
+ * A **Farm Account**: one of the Farm's own bKash numbers or bank accounts, where its money by bKash or the bank goes in
+ * and comes out — the pair of the Venture Account, which is the Investors'. The Owner's to list; retired, never removed,
+ * since money booked last year still names it.
+ */
+export const farmAccount = pgTable(
+  "farm_account",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: FARM_ACCOUNT_KINDS }).notNull(),
+    /** What the farm calls it: "অফিস বিকাশ", "সোনালী ব্যাংক চলতি". */
+    name: text("name").notNull(),
+    /** The bKash number, or the bank account's number. */
+    number: text("number").notNull(),
+    /** A bank account's bank and branch; nothing for bKash. */
+    bank: text("bank"),
+    branch: text("branch"),
+    retiredAt: timestamp("retired_at"),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => user.id),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("farm_account_number_uidx").on(
+      table.farmId,
+      table.kind,
+      table.number
+    ),
+  ]
+);
+
 /**
  * One flow of money in or out of the Farm: how much, when, which way, under what Category, with whom, how
  * it was paid, and the record that caused it.
@@ -180,9 +219,18 @@ export const moneyEvent = pgTable(
     /** Whose **Cash in Hand** the notes went into, or came out of: only for cash, and only for money booked since the
      *  farm began saying so — an older one, or one by bKash or the bank, names nobody. */
     heldBy: text("held_by").references(() => user.id),
+    /** The Farm Account bKash or bank money went into or came out of, and its transaction ID or reference: only the
+     *  Farm's own purse, only since the farm listed its accounts. Cash names none. */
+    farmAccountId: text("farm_account_id").references(() => farmAccount.id),
+    reference: text("reference"),
   },
   (table) => [
     uniqueIndex("money_event_source_uidx").on(table.source, table.sourceId),
+    // A transaction ID is one payment: twice on one Farm Account is a payment written twice. NULLs never collide.
+    uniqueIndex("money_event_reference_uidx").on(
+      table.farmAccountId,
+      table.reference
+    ),
     index("money_event_held_idx").on(table.farmId, table.heldBy),
     index("money_event_day_idx").on(table.farmId, table.occurredAt),
     index("money_event_approval_idx").on(table.farmId, table.approval),
@@ -229,6 +277,9 @@ export const handover = pgTable(
     /** The Venture Account a deposit went into: a Venture's sale cash, held in a hand since the haat, banked with its
      *  slip. Nothing for the Farm's own cash. */
     ventureId: text("venture_id").references(() => venture.id),
+    /** The Farm Account at either bank end: cash deposited into it, drawn out of it, or bKash moved to the bank. */
+    fromAccountId: text("from_account_id").references(() => farmAccount.id),
+    toAccountId: text("to_account_id").references(() => farmAccount.id),
     recordedBy: text("recorded_by")
       .notNull()
       .references(() => user.id),

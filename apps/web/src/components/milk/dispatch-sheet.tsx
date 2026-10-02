@@ -7,7 +7,12 @@ import { toast } from "sonner";
 
 import { BakiFields, BuyerOwes } from "@/components/baki-fields";
 import { FormField, FormSheet } from "@/components/page-kit";
-import { PaymentMethodField } from "@/components/payment-method";
+import type { AccountTyped } from "@/components/payment-method";
+import {
+  accountSent,
+  NO_ACCOUNT,
+  PaymentMethodField,
+} from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import type { BakiTyped } from "@/lib/baki";
 import { NO_BAKI, bakiComplete, bakiSent, somethingPaid } from "@/lib/baki";
@@ -103,6 +108,7 @@ export const DispatchSheet = ({
   const refused = useRefused();
   const [form, setForm] = useState(NOTHING_TYPED);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const [account, setAccount] = useState<AccountTyped>(NO_ACCOUNT);
   const [baki, setBaki] = useState<BakiTyped>(NO_BAKI);
   const record = useMutation(
     orpc.milk.dispatch.mutationOptions({
@@ -147,6 +153,7 @@ export const DispatchSheet = ({
           snfPercent: typed(form.snf),
           note: written(form.note),
           paymentMethod,
+          ...accountSent(paymentMethod, account),
           ...bakiSent(baki),
         })
       }
@@ -209,6 +216,7 @@ export const DispatchSheet = ({
         <DispatchInput {...box} label={t("dispatch.challan")} name="challan" />
         {somethingPaid(baki) ? (
           <PaymentMethodField
+            account={{ typed: account, onChange: setAccount }}
             id="dispatch-paid-by"
             onChange={setPaymentMethod}
             value={paymentMethod}

@@ -1088,8 +1088,8 @@ export const bookSaleProceeds = async (
     ventureId: string | null;
     priceBdt: number;
     soldAt: Date;
-    /** What the movement is looked up by. Her tag, and not a slip number: the money came off a buyer
-     *  at the haat, and her tag is what the Owner has to go on. */
+    /** What the movement is looked up by: the transfer's reference where she was paid for by bank, as the account's
+     *  statement reads it; otherwise her tag, for money that came off a buyer at the haat. */
     reference: string;
     /** Taken in cash: held in the hand that took it, and not in the account, until a deposit carries it there. */
     inCash?: boolean;

@@ -16,7 +16,10 @@ import {
 } from "@/components/correction-dialog";
 import { EmptyState } from "@/components/page";
 import { FormDialog, FormField } from "@/components/page-kit";
+import type { AccountTyped } from "@/components/payment-method";
 import {
+  accountSent,
+  NO_ACCOUNT,
   PAYMENT_METHOD_WORD,
   PaymentMethodField,
 } from "@/components/payment-method";
@@ -47,6 +50,7 @@ const DrawDialog = ({
   const [amount, setAmount] = useState("");
   const [day, setDay] = useState(() => farmDayOf(new Date()));
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const [account, setAccount] = useState<AccountTyped>(NO_ACCOUNT);
   const [note, setNote] = useState("");
   const drawWage = useMutation(
     orpc.money.drawWage.mutationOptions({
@@ -70,6 +74,7 @@ const DrawDialog = ({
           amountBdt: Number(amount),
           drawnOn: day,
           paymentMethod,
+          ...accountSent(paymentMethod, account),
           ...(note.trim() ? { note: note.trim() } : {}),
         })
       }
@@ -112,6 +117,7 @@ const DrawDialog = ({
         </FormField>
       </div>
       <PaymentMethodField
+        account={{ typed: account, onChange: setAccount }}
         id="draw-paid-by"
         onChange={setPaymentMethod}
         value={paymentMethod}

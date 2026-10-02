@@ -13,6 +13,7 @@ import {
   SettingsSection,
 } from "@/components/farm-parameters";
 import { useIsOwner } from "@/components/money";
+import { FarmAccounts } from "@/components/money/farm-accounts";
 import { Notice, Page, PageHeader } from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -232,6 +233,7 @@ const OnThisPage = () => {
     { id: "farm-contact", title: t("identity.contact") },
     { id: "farm-registration", title: t("identity.registration") },
     { id: "farm-certificate", title: t("certificate.title") },
+    { id: "farm-accounts", title: t("farmAccounts.title") },
     ...PARAMETER_SECTIONS.filter((part) => !part.owner || isOwner).map(
       (part) => ({
         id: part.id,
@@ -306,6 +308,7 @@ const IdentityPage = () => {
             id="farm-certificate"
             updatedAt={farm.certificateUpdatedAt}
           />
+          <FarmAccounts id="farm-accounts" />
           <FarmParameters />
         </div>
       </div>

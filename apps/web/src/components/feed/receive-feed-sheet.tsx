@@ -16,7 +16,12 @@ import { toast } from "sonner";
 
 import { SegmentedControl } from "@/components/page";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
-import { PaymentMethodField } from "@/components/payment-method";
+import type { AccountTyped } from "@/components/payment-method";
+import {
+  accountSent,
+  NO_ACCOUNT,
+  PaymentMethodField,
+} from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
@@ -38,6 +43,8 @@ interface Draft {
   price: string;
   seller: string;
   paymentMethod: PaymentMethod;
+  /** Which Farm Account bKash or bank money came out of, and its transaction ID. */
+  account: AccountTyped;
   receivedOn: string;
   /** The bag's Lot Number and last day, where it prints them: concentrate and premix do, hay does not. */
   lotNumber: string;
@@ -54,6 +61,7 @@ const freshDraft = (feedItemId: string): Draft => ({
   price: "",
   seller: "",
   paymentMethod: "cash",
+  account: NO_ACCOUNT,
   receivedOn: farmDayOf(new Date()),
   lotNumber: "",
   expiresOn: "",
@@ -376,6 +384,7 @@ export const ReceiveFeedSheet = ({
                 priceBdt: Number(draft.price),
                 seller: { name: draft.seller.trim() },
                 paymentMethod: draft.paymentMethod,
+                ...accountSent(draft.paymentMethod, draft.account),
                 lotNumber: draft.lotNumber.trim() || undefined,
                 expiresOn: draft.expiresOn || undefined,
                 weighed: weighedOf(draft, chosen) ?? undefined,
@@ -494,6 +503,10 @@ export const ReceiveFeedSheet = ({
                   />
                 </FormField>
                 <PaymentMethodField
+                  account={{
+                    typed: draft.account,
+                    onChange: (account) => set("account", account),
+                  }}
                   id="receive-paid-by"
                   onChange={(method) => set("paymentMethod", method)}
                   value={draft.paymentMethod}

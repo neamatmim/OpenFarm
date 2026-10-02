@@ -11,12 +11,18 @@ import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import { requireAnimal, tagsOfHerRecords } from "../herd-store";
 import { protectedProcedure } from "../index";
-import { amountInput, paymentMethodInput } from "../money-inputs";
 import {
-  THE_FARMS_PURSE,
-  bookMoney,
+  amountInput,
+  farmAccountIdInput,
+  paymentMethodInput,
+  referenceInput,
+} from "../money-inputs";
+import {
+  accountSaid,
   bookingOf,
+  bookMoney,
   settleMoneyNotices,
+  THE_FARMS_PURSE,
 } from "../money-store";
 import { periodInput, periodOf } from "../period";
 import {
@@ -126,6 +132,18 @@ export const moneyRouter = {
         saleIds: idsFrom("sale"),
         internalSaleIds: idsFrom("internal_sale_in", "internal_sale_out"),
       });
+      // The Farm Account bKash or bank money named, by its name: what the register reads beside the transaction ID.
+      const accountIds = [
+        ...new Set(listed.flatMap((row) => row.farmAccountId ?? [])),
+      ];
+      const accounts =
+        accountIds.length === 0
+          ? []
+          : await context.db.query.farmAccount.findMany({
+              where: { farmId: context.farm.id, id: { in: accountIds } },
+              columns: { id: true, name: true },
+            });
+      const accountName = new Map(accounts.map((one) => [one.id, one.name]));
       const events = listed.map((row) => ({
         id: row.id,
         occurredAt: row.occurredAt,
@@ -154,6 +172,12 @@ export const moneyRouter = {
         /** Whose hand its cash went into or came out of; nothing for bKash, the bank, or one booked before hands
          *  were named. */
         holderName: row.holder?.name ?? null,
+        /** The Farm Account bKash or bank money went into or came out of, and its transaction ID or reference. */
+        farmAccountId: row.farmAccountId,
+        farmAccountName: row.farmAccountId
+          ? (accountName.get(row.farmAccountId) ?? null)
+          : null,
+        reference: row.reference,
       }));
       return { events, more: rows.length > LISTED };
     }),
@@ -242,6 +266,10 @@ export const moneyRouter = {
           .default([]),
         note: z.string().trim().min(1).max(300).optional(),
         paymentMethod: paymentMethodInput,
+        /** Which Farm Account bKash or bank money went into or came out of. */
+        farmAccountId: farmAccountIdInput,
+        /** Its transaction ID, or the cheque's or slip's number. */
+        reference: referenceInput,
       })
     )
     .handler(async ({ context, input }) => {
@@ -283,19 +311,23 @@ export const moneyRouter = {
                 seen.map((animal) => ({ vetFeeId: id, animalId: animal.id }))
               );
           }
-          await bookMoney(tx, bookingOf(context, "vet", now), {
-            source: "vet_fee",
-            sourceId: id,
-            amountBdt: input.amountBdt,
-            occurredAt: visitedOn,
-            counterpartyId: await counterpartyNamed(
-              tx,
-              context.farm.id,
-              { name: context.actor.name },
-              now
-            ),
-            paymentMethod: input.paymentMethod,
-          });
+          await bookMoney(
+            tx,
+            bookingOf(context, "vet", now, accountSaid(["vet_fee"], input)),
+            {
+              source: "vet_fee",
+              sourceId: id,
+              amountBdt: input.amountBdt,
+              occurredAt: visitedOn,
+              counterpartyId: await counterpartyNamed(
+                tx,
+                context.farm.id,
+                { name: context.actor.name },
+                now
+              ),
+              paymentMethod: input.paymentMethod,
+            }
+          );
         }
       );
       return { id };

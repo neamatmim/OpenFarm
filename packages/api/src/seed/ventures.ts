@@ -13,6 +13,7 @@ import {
 } from "./runtime";
 import { CATTLE_BUYERS, breedIdNamed, daysBetween } from "./shared";
 import type { Farm } from "./standing";
+import { paidBy } from "./standing";
 
 /**
  * The farm's Ventures: other people's money, buying and fattening cattle that stand in the same Pens as
@@ -492,6 +493,7 @@ const reimburseTheMonth = async (
     amountBdt: owed.totalBdt,
     movedOn: on,
     paymentMethod: "bank",
+    farmAccountId: farm.farmAccounts.bank,
     reference: `RMB-${month}-${farm.random.int(1000, 9999)}`,
   });
 };
@@ -580,7 +582,7 @@ const sellTheVenture = async (
       destination: buyer.address,
       vehicle: `ঢাকা মেট্রো-ন ${farm.random.int(11, 19)}-${farm.random.int(1000, 9999)}`,
       driver: farm.random.pick(["মোঃ হাবিব", "সোহেল রানা", "আব্দুর রহিম"]),
-      paymentMethod: "bank",
+      ...paidBy(farm, "bank"),
     });
     bull.state = "sold";
   }
@@ -658,6 +660,7 @@ const settleUp = async (
       ventureId: venture.id,
       movedOn: addDays(on, 2),
       paymentMethod: "bank",
+      farmAccountId: farm.farmAccounts.bank,
       reference: `FARM-${farm.random.int(1000, 9999)}`,
     });
   }

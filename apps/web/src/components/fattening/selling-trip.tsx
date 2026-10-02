@@ -12,7 +12,12 @@ import { toast } from "sonner";
 
 import { Loaded, Section } from "@/components/page";
 import { FormField } from "@/components/page-kit";
-import { PaymentMethodField } from "@/components/payment-method";
+import type { AccountTyped } from "@/components/payment-method";
+import {
+  accountSent,
+  NO_ACCOUNT,
+  PaymentMethodField,
+} from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
@@ -158,6 +163,7 @@ export const SellingTripForm = () => {
   const [day, setDay] = useState<Day>(NOTHING_YET);
   const [taken, setTaken] = useState<string[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const [account, setAccount] = useState<AccountTyped>(NO_ACCOUNT);
   const trips = useQuery(orpc.sellingTrips.list.queryOptions());
   // Every beast on the Fattening side, not only the ones already flagged Ready: at Eid the lorry takes
   // whoever is worth taking, and the day is often written up after they have sold.
@@ -198,6 +204,7 @@ export const SellingTripForm = () => {
             />
           </FormField>
           <PaymentMethodField
+            account={{ typed: account, onChange: setAccount }}
             id="selling-payment"
             onChange={setPaymentMethod}
             value={paymentMethod}
@@ -254,6 +261,7 @@ export const SellingTripForm = () => {
                 keepBdt: orNothing(day.keepBdt),
                 animals: taken,
                 paymentMethod,
+                ...accountSent(paymentMethod, account),
               })
             }
             type="button"

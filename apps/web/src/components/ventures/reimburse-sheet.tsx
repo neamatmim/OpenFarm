@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { Notice } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
+import { FarmAccountField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
 import { lastMonth, saidMonth } from "@/lib/months";
@@ -220,6 +221,8 @@ export const ReimburseSheet = ({
   const [month, setMonth] = useState(() => onMonth ?? lastMonth());
   const [movedOn, setMovedOn] = useState("");
   const [reference, setReference] = useState("");
+  // The Farm's bank account its own side of this went into or came out of.
+  const [farmAccountId, setFarmAccountId] = useState("");
   useFreshFor(venture?.id, () => {
     setMonth(onMonth ?? lastMonth());
     setMovedOn("");
@@ -267,6 +270,7 @@ export const ReimburseSheet = ({
           movedOn,
           paymentMethod: "bank",
           reference,
+          ...(farmAccountId ? { farmAccountId } : {}),
           amountBdt: total,
         })
       }
@@ -295,6 +299,12 @@ export const ReimburseSheet = ({
             value={movedOn}
           />
         </FormField>
+        <FarmAccountField
+          id="reimburse-reference-account"
+          kind="bank"
+          onChange={setFarmAccountId}
+          value={farmAccountId}
+        />
         <FormField id="reimburse-reference" label={t("ventures.reference")}>
           <Input
             autoComplete="off"

@@ -12,8 +12,12 @@ import {
   sellingTripCorrectionInput,
 } from "../corrections/selling-trip";
 import { protectedProcedure } from "../index";
-import { paymentMethodInput } from "../money-inputs";
-import { bookingOf } from "../money-store";
+import {
+  farmAccountIdInput,
+  paymentMethodInput,
+  referenceInput,
+} from "../money-inputs";
+import { accountSaid, bookingOf } from "../money-store";
 import { requireRole } from "../roles";
 import { shrinkOfSales } from "../shrink-store";
 import {
@@ -37,6 +41,10 @@ const recordInput = z.object({
   animals: z.array(z.string().trim().min(1).max(32)).min(1).max(200),
   wentOn: z.coerce.date().optional(),
   paymentMethod: paymentMethodInput,
+  /** Which Farm Account bKash or bank money went into or came out of. */
+  farmAccountId: farmAccountIdInput,
+  /** Its transaction ID, or the cheque's or slip's number. */
+  reference: referenceInput,
 });
 
 export const sellingTripsRouter = {
@@ -150,7 +158,12 @@ export const sellingTripsRouter = {
             );
           await bookSellingTripMoney(
             tx,
-            bookingOf(context, context.roleUsed, now),
+            bookingOf(
+              context,
+              context.roleUsed,
+              now,
+              accountSaid(["selling_trip"], input)
+            ),
             id,
             input.paymentMethod
           );

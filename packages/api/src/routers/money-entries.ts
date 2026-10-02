@@ -42,6 +42,8 @@ import {
   paymentMethodInput,
   receiptInput,
   sideInput,
+  farmAccountIdInput,
+  referenceInput,
 } from "../money-inputs";
 import {
   addStandardCategories,
@@ -53,6 +55,7 @@ import {
   mayBePaidMonthly,
   mayBeRetired,
   missingStandardCategories,
+  accountSaid,
 } from "../money-store";
 import { tell } from "../notice";
 import {
@@ -444,6 +447,9 @@ export const moneyEntryProcedures = {
         occurredOn: farmDay,
         counterparty: counterpartyInput,
         paymentMethod: paymentMethodInput,
+        /** Which Farm Account bKash or bank money went into or came out of, and its transaction ID. */
+        farmAccountId: farmAccountIdInput,
+        reference: referenceInput,
         note: noteInput.optional(),
         wageMonth: monthInput.optional(),
         side: sideInput.optional(),
@@ -515,7 +521,12 @@ export const moneyEntryProcedures = {
           ({ takenBdt } = draws);
           await bookMoney(
             tx,
-            bookingOf(context, context.roleUsed, now),
+            bookingOf(
+              context,
+              context.roleUsed,
+              now,
+              accountSaid(["by_hand"], input)
+            ),
             {
               source: "by_hand",
               sourceId: id,
@@ -554,6 +565,9 @@ export const moneyEntryProcedures = {
         amountBdt: amountInput,
         drawnOn: farmDay,
         paymentMethod: paymentMethodInput,
+        /** Which Farm Account bKash or bank money came out of, and its transaction ID. */
+        farmAccountId: farmAccountIdInput,
+        reference: referenceInput,
         note: noteInput.optional(),
       })
     )
@@ -578,7 +592,12 @@ export const moneyEntryProcedures = {
           );
           ({ id } = await recordWageDraw(
             tx,
-            bookingOf(context, context.roleUsed, now),
+            bookingOf(
+              context,
+              context.roleUsed,
+              now,
+              accountSaid(["wage_draw"], input)
+            ),
             {
               counterpartyId,
               amountBdt: input.amountBdt,

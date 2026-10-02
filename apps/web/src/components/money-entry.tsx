@@ -29,7 +29,12 @@ import {
   FormSheet,
   NativeSelect,
 } from "@/components/page-kit";
-import { PaymentMethodField } from "@/components/payment-method";
+import type { AccountTyped } from "@/components/payment-method";
+import {
+  accountSent,
+  NO_ACCOUNT,
+  PaymentMethodField,
+} from "@/components/payment-method";
 import { PhotoField } from "@/components/photo-field";
 import { useLanguage } from "@/i18n/language-provider";
 import { amount, note } from "@/lib/correcting";
@@ -305,6 +310,7 @@ export const EnterMoneySheet = ({
   }));
   const [occurredOn, setOccurredOn] = useState(() => farmDayOf(new Date()));
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const [account, setAccount] = useState<AccountTyped>(NO_ACCOUNT);
   const [receipt, setReceipt] = useState<Photo | null>(null);
   const [side, setSide] = useState<SideChoice>("");
   const usable = (categories.data ?? []).filter(
@@ -348,6 +354,7 @@ export const EnterMoneySheet = ({
           occurredOn,
           counterparty: { name: typed.counterparty.trim() },
           paymentMethod,
+          ...accountSent(paymentMethod, account),
           note: typed.note.trim() || undefined,
           wageMonth: isWage ? typed.wageMonth : undefined,
           side: side || undefined,
@@ -453,6 +460,7 @@ export const EnterMoneySheet = ({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <PaymentMethodField
+              account={{ typed: account, onChange: setAccount }}
               id="entry-paid-by"
               onChange={setPaymentMethod}
               value={paymentMethod}

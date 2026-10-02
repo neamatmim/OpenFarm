@@ -20,8 +20,12 @@ import { counterpartyNamed } from "../counterparty-store";
 import { leaves, loadLiveAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { tellTheOwnerAPaperIsDue } from "../investor-statement-notice";
-import { paymentMethodInput } from "../money-inputs";
-import { bookingOf } from "../money-store";
+import {
+  farmAccountIdInput,
+  paymentMethodInput,
+  referenceInput,
+} from "../money-inputs";
+import { accountSaid, bookingOf } from "../money-store";
 import { fatteningRows } from "../ready-store";
 import { requireRole } from "../roles";
 import {
@@ -135,6 +139,10 @@ export const saleRouter = {
         soldAt: z.coerce.date().optional(),
         /** How the buyer paid what he paid. */
         paymentMethod: paymentMethodInput,
+        /** Which Farm Account bKash or bank money went into or came out of. */
+        farmAccountId: farmAccountIdInput,
+        /** Its transaction ID, or the cheque's or slip's number. */
+        reference: referenceInput,
         /** Whose hand took the cash, where it was not the writer's: the Owner writing up the Manager's sale. */
         heldBy: z.string().optional(),
         /** What he paid there and then; left out, all of it. Less than the price, and the rest is his Baki. */
@@ -230,7 +238,12 @@ export const saleRouter = {
           });
           await bookSaleMoney(
             tx,
-            bookingOf(context, context.roleUsed, now),
+            bookingOf(
+              context,
+              context.roleUsed,
+              now,
+              accountSaid(["sale"], input)
+            ),
             id,
             input.paymentMethod,
             await assertTheHand(

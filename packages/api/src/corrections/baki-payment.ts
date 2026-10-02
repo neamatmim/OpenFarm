@@ -13,8 +13,19 @@ import {
 import { assertTheHand, handOfTheRecord } from "../cash-store";
 import { farmDay } from "../farm-clock";
 import { enteredOn } from "../money-by-hand-store";
-import { amountInput, noteInput, paymentMethodChange } from "../money-inputs";
-import { bookMoney, bookingOf, paymentMethodOf } from "../money-store";
+import {
+  amountInput,
+  farmAccountChange,
+  noteInput,
+  paymentMethodChange,
+} from "../money-inputs";
+import {
+  accountSaid,
+  bookingOf,
+  bookMoney,
+  farmAccountShownOf,
+  paymentMethodOf,
+} from "../money-store";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput, somethingChanged } from "./correction";
 
@@ -27,6 +38,8 @@ export const bakiPaymentCorrectionInput = correctionInput({
   amountBdt: changeOf(amountInput, z.number()),
   paidOn: changeOf(farmDay, z.string()),
   paymentMethod: paymentMethodChange,
+  /** Which Farm Account bKash or bank money names, and its transaction ID. */
+  farmAccount: farmAccountChange,
   note: changeOf(noteInput.nullable(), z.string().nullable()),
   /** Whose hand took the cash, put right on the rule a payment is written on (`assertTheHand`). */
   heldBy: changeOf(z.string(), z.string().nullable()),
@@ -44,6 +57,12 @@ export const bakiPaymentCorrection: CorrectionKind<
   load: loadPayment,
   entry: (row) => ({ enteredAt: row.recordedAt, enteredBy: row.recordedBy }),
   shown: async (tx, row) => ({
+    farmAccount: await farmAccountShownOf(
+      tx,
+      row.farmId,
+      "baki_payment",
+      row.id
+    ),
     amountBdt: row.amountBdt,
     paidOn: row.paidOn,
     paymentMethod: await paymentMethodOf(
@@ -86,24 +105,35 @@ export const bakiPaymentCorrection: CorrectionKind<
         .set(putRight)
         .where(eq(bakiPayment.id, row.id));
     }
-    await bookMoney(tx, bookingOf(context, context.roleUsed, now), {
-      source: "baki_payment",
-      sourceId: row.id,
-      amountBdt,
-      occurredAt: startOfFarmDay(paidOn),
-      counterpartyId: row.counterpartyId,
-      paymentMethod: to.paymentMethod,
-      ...(to.heldBy === undefined
-        ? {}
-        : {
-            heldBy: await assertTheHand(
-              tx,
-              row.farmId,
-              { id: context.actor.id, roles: context.roles },
-              to.heldBy
-            ),
-          }),
-      categoryKey: CATEGORY_OF_BAKI[row.kind],
-    });
+    await bookMoney(
+      tx,
+      bookingOf(
+        context,
+        context.roleUsed,
+        now,
+        to.farmAccount
+          ? accountSaid(["baki_payment"], to.farmAccount)
+          : undefined
+      ),
+      {
+        source: "baki_payment",
+        sourceId: row.id,
+        amountBdt,
+        occurredAt: startOfFarmDay(paidOn),
+        counterpartyId: row.counterpartyId,
+        paymentMethod: to.paymentMethod,
+        ...(to.heldBy === undefined
+          ? {}
+          : {
+              heldBy: await assertTheHand(
+                tx,
+                row.farmId,
+                { id: context.actor.id, roles: context.roles },
+                to.heldBy
+              ),
+            }),
+        categoryKey: CATEGORY_OF_BAKI[row.kind],
+      }
+    );
   },
 };

@@ -15,8 +15,13 @@ import {
   twoPlaces,
   worthOfDispatch,
 } from "../dispatch-store";
-import { paymentMethodChange } from "../money-inputs";
-import { bookingOf, paymentMethodOf } from "../money-store";
+import { farmAccountChange, paymentMethodChange } from "../money-inputs";
+import {
+  accountSaid,
+  bookingOf,
+  farmAccountShownOf,
+  paymentMethodOf,
+} from "../money-store";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput, somethingChanged } from "./correction";
 
@@ -49,6 +54,8 @@ export const dispatchCorrectionInput = correctionInput({
   ),
   note: changeOf(dispatchFields.note.nullable(), z.string().nullable()),
   paymentMethod: paymentMethodChange,
+  /** Which Farm Account bKash or bank money names, and its transaction ID. */
+  farmAccount: farmAccountChange,
   paidNowBdt: changeOf(paidNowInput, z.number()),
   promisedBy: changeOf(promisedByInput.nullable(), z.string().nullable()),
 });
@@ -65,6 +72,7 @@ export const dispatchCorrection: CorrectionKind<
   load: loadDispatch,
   entry: (row) => ({ enteredAt: row.recordedAt, enteredBy: row.recordedBy }),
   shown: async (tx, row) => ({
+    farmAccount: await farmAccountShownOf(tx, row.farmId, "dispatch", row.id),
     dispatchedAt: row.dispatchedAt,
     litres: Number(row.litres),
     buyer: row.buyerName,
@@ -131,7 +139,12 @@ export const dispatchCorrection: CorrectionKind<
     }
     await bookDispatchMoney(
       tx,
-      bookingOf(context, context.roleUsed, now),
+      bookingOf(
+        context,
+        context.roleUsed,
+        now,
+        to.farmAccount ? accountSaid(["dispatch"], to.farmAccount) : undefined
+      ),
       row.id,
       to.paymentMethod
     );

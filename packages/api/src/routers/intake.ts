@@ -26,8 +26,8 @@ import {
   readIntake,
   sellerInput,
 } from "../intake-store";
-import { paymentMethodInput } from "../money-inputs";
-import { bookingOf } from "../money-store";
+import { farmAccountIdInput, paymentMethodInput } from "../money-inputs";
+import { accountSaid, bookingOf } from "../money-store";
 import { OWNER_ONLY, requireOnly, requireRole } from "../roles";
 import { ventureWindowOf } from "../venture-store";
 
@@ -66,6 +66,8 @@ const recordInput = z
     arrivedAt: z.coerce.date().optional(),
     /** How the seller was paid. */
     paymentMethod: paymentMethodInput,
+    /** Which Farm Account bKash or bank money went into or came out of. */
+    farmAccountId: farmAccountIdInput,
     /** A Venture's bull with no outing is paid from its account by bank: the transfer or cheque, and what it is
      *  numbered. */
     reference: z.string().trim().min(1).max(120).optional(),
@@ -334,7 +336,12 @@ export const intakeRouter = {
           });
           await bookIntakeMoney(
             tx,
-            bookingOf(context, context.roleUsed, now),
+            bookingOf(
+              context,
+              context.roleUsed,
+              now,
+              accountSaid(["intake"], input)
+            ),
             intakeId,
             input.paymentMethod
           );

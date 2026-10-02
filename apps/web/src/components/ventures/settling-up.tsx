@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 import { StatusBadge } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
+import { FarmAccountField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
@@ -105,6 +106,13 @@ export const PayOutSheet = ({
   const refused = useRefused();
   const [movedOn, setMovedOn] = useState("");
   const [reference, setReference] = useState("");
+  const [farmAccountId, setFarmAccountId] = useState("");
+  // The Farm's own side of it — its share, its share of a loss, an Adjustment it pays — is booked on the Farm's books,
+  // so it names the Farm's bank account the transfer went into or came out of.
+  const farmsSide =
+    what?.kind === "farm" ||
+    what?.kind === "farmLoss" ||
+    what?.kind === "adjustment";
   // Emptied whenever the sheet is opened for somebody else: a bank reference left over from the last man
   // is a reference against the wrong payment, and the whole point of writing it down is that it is real.
   const [lastFor, setLastFor] = useState<string | null>(null);
@@ -116,6 +124,7 @@ export const PayOutSheet = ({
     setLastFor(who);
     setMovedOn("");
     setReference("");
+    setFarmAccountId("");
   }
   const done = () => {
     setMovedOn("");
@@ -170,13 +179,18 @@ export const PayOutSheet = ({
       paymentMethod: "bank" as const,
       reference,
     };
+    const farmsAccount = farmAccountId ? { farmAccountId } : {};
     // One call for each kind of payment, looked up rather than asked in turn.
     const byKind = {
       advance: () => repaying.mutate(where),
-      farm: () => taking.mutate(where),
-      farmLoss: () => covering.mutate(where),
+      farm: () => taking.mutate({ ...where, ...farmsAccount }),
+      farmLoss: () => covering.mutate({ ...where, ...farmsAccount }),
       adjustment: () =>
-        adjusting.mutate({ ...where, adjustmentId: what.adjustmentId ?? "" }),
+        adjusting.mutate({
+          ...where,
+          ...farmsAccount,
+          adjustmentId: what.adjustmentId ?? "",
+        }),
       share: () =>
         paying.mutate({
           ...where,
@@ -205,6 +219,14 @@ export const PayOutSheet = ({
         onReference={setReference}
         reference={reference}
       />
+      {farmsSide ? (
+        <FarmAccountField
+          id="pay-out-account"
+          kind="bank"
+          onChange={setFarmAccountId}
+          value={farmAccountId}
+        />
+      ) : null}
     </FormSheet>
   );
 };

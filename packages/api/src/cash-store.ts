@@ -614,7 +614,11 @@ export const reconcileFarmFloat = async (
 };
 
 /** One end of a Handover: a person's hand, or the bank. */
-export type HandEnd = { userId: string } | { bank: true };
+export type HandEnd =
+  | { userId: string }
+  | { bank: true }
+  /** One of the Farm's own bKash numbers or bank accounts, named. */
+  | { farmAccountId: string };
 
 /** A deposit of a Venture's sale cash into its Venture Account, naming the Sales whose notes it carries. */
 export interface IntoAVenture {
@@ -624,6 +628,81 @@ export interface IntoAVenture {
 
 const userOf = (end: HandEnd): string | null =>
   "userId" in end ? end.userId : null;
+
+const accountOf = (end: HandEnd): string | null =>
+  "farmAccountId" in end ? end.farmAccountId : null;
+
+/**
+ * Whether a Handover goes nowhere: a hand to itself, the bank to the bank unnamed, or one Farm Account to itself. bKash
+ * to the bank — two named accounts — is a Handover with no hand at either end.
+ */
+const goesNowhere = (from: HandEnd, to: HandEnd): boolean => {
+  const fromUserId = userOf(from);
+  const fromAccountId = accountOf(from);
+  const toAccountId = accountOf(to);
+  const sameHand = fromUserId !== null && fromUserId === userOf(to);
+  const noHandNoAccounts =
+    fromUserId === null &&
+    userOf(to) === null &&
+    (fromAccountId === null || toAccountId === null);
+  const sameAccount = fromAccountId !== null && fromAccountId === toAccountId;
+  return sameHand || noHandNoAccounts || sameAccount;
+};
+
+/** That a Handover's named account is one of this farm's and not retired. */
+const assertAnOpenAccount = async (
+  tx: Tx,
+  farmId: string,
+  farmAccountId: string | null
+) => {
+  if (!farmAccountId) {
+    return;
+  }
+  const account = await tx.query.farmAccount.findFirst({
+    where: { id: farmAccountId, farmId },
+    columns: { retiredAt: true },
+  });
+  if (!account) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "No such Farm Account",
+      data: { refusal: "names_no_farm_account" },
+    });
+  }
+  if (account.retiredAt) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "That Farm Account has been retired",
+      data: { refusal: "farm_account_retired" },
+    });
+  }
+};
+
+/**
+ * That each named account end is open, and that the bank is left unnamed only while the farm has no bank account open
+ * to name: once it has, a deposit says which.
+ */
+const assertTheAccountEnds = async (
+  tx: Tx,
+  farmId: string,
+  from: HandEnd,
+  to: HandEnd
+) => {
+  await assertAnOpenAccount(tx, farmId, accountOf(from));
+  await assertAnOpenAccount(tx, farmId, accountOf(to));
+  if (!("bank" in from || "bank" in to)) {
+    return;
+  }
+  const open = await tx.query.farmAccount.findFirst({
+    where: { farmId, kind: "bank", retiredAt: { isNull: true } },
+    columns: { id: true },
+  });
+  if (open) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "Say which of the Farm's bank accounts it went into or came out of",
+      data: { refusal: "names_no_farm_account" },
+    });
+  }
+};
 
 /**
  * A Venture's sale cash banked: from the hand that took it at the haat into its Venture Account, with the slip. Each Sale
@@ -760,7 +839,9 @@ export const recordHandover = async (
   }
   const fromUserId = userOf(input.from);
   const toUserId = userOf(input.to);
-  if (fromUserId === toUserId) {
+  const fromAccountId = accountOf(input.from);
+  const toAccountId = accountOf(input.to);
+  if (goesNowhere(input.from, input.to)) {
     throw new ORPCError("BAD_REQUEST", {
       message:
         "Cash is handed from one hand to another, or to or from the bank",
@@ -774,6 +855,7 @@ export const recordHandover = async (
       data: { refusal: "bank_needs_a_slip" },
     });
   }
+  await assertTheAccountEnds(tx, input.farmId, input.from, input.to);
   const holders = await holdersOf(tx, input.farmId, CASH_HOLDING_ROLES);
   for (const userId of [fromUserId, toUserId]) {
     if (userId && !holders.includes(userId)) {
@@ -789,6 +871,8 @@ export const recordHandover = async (
     farmId: input.farmId,
     fromUserId,
     toUserId,
+    fromAccountId,
+    toAccountId,
     amountBdt: input.amountBdt,
     handedAt: input.handedAt,
     reference: input.reference,

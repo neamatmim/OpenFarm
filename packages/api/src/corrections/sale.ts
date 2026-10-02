@@ -8,8 +8,13 @@ import type { Tx } from "../audit";
 import { bakiOrRefuse, paidNowInput, promisedByInput } from "../baki-store";
 import { assertTheHand, handOfTheRecord } from "../cash-store";
 import { counterpartyNamed } from "../counterparty-store";
-import { paymentMethodChange } from "../money-inputs";
-import { bookingOf, paymentMethodOf } from "../money-store";
+import { farmAccountChange, paymentMethodChange } from "../money-inputs";
+import {
+  accountSaid,
+  bookingOf,
+  farmAccountShownOf,
+  paymentMethodOf,
+} from "../money-store";
 import {
   bookSaleMoney,
   brokerInput,
@@ -45,6 +50,8 @@ export const saleCorrectionInput = correctionInput({
   priceBdt: changeOf(salePriceInput, z.number()),
   buyer: changeOf(buyerInput, z.string()),
   paymentMethod: paymentMethodChange,
+  /** Which Farm Account bKash or bank money names, and its transaction ID. */
+  farmAccount: farmAccountChange,
   paidNowBdt: changeOf(paidNowInput, z.number()),
   promisedBy: changeOf(promisedByInput.nullable(), z.string().nullable()),
   brokerBdt: changeOf(brokerInput, z.number()),
@@ -74,6 +81,7 @@ export const saleCorrection: CorrectionKind<
   load: loadSale,
   entry: (row) => ({ enteredAt: row.createdAt, enteredBy: row.recordedBy }),
   shown: async (tx, row) => ({
+    farmAccount: await farmAccountShownOf(tx, row.farmId, "sale", row.id),
     priceBdt: row.priceBdt,
     buyer: row.buyer.name,
     paymentMethod: await paymentMethodOf(tx, row.farmId, "sale", row.id),
@@ -128,7 +136,12 @@ export const saleCorrection: CorrectionKind<
     }
     await bookSaleMoney(
       tx,
-      bookingOf(context, context.roleUsed, now),
+      bookingOf(
+        context,
+        context.roleUsed,
+        now,
+        to.farmAccount ? accountSaid(["sale"], to.farmAccount) : undefined
+      ),
       row.id,
       to.paymentMethod,
       await assertTheHand(

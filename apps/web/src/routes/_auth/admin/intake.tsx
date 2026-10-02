@@ -27,6 +27,7 @@ import { IntakeSummary } from "@/components/intake/intake-summary";
 import { RecentIntakes } from "@/components/intake/recent-intakes";
 import { useIsOwner } from "@/components/money";
 import { Page, PageHeader } from "@/components/page";
+import { accountSent } from "@/components/payment-method";
 import { useT } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
@@ -155,9 +156,14 @@ const IntakePage = () => {
             buyingTripId: fields.buyingTripId || undefined,
             ventureId: fields.ventureId || undefined,
             paymentMethod: sheet.paymentMethod,
-            reference: boughtFromTheAccount(fields)
-              ? fields.reference.trim()
-              : undefined,
+            // A Venture's bull at the gate: the transfer from its account. The Farm's own by bKash or the bank: the
+            // Farm Account it came out of and its transaction ID.
+            ...(boughtFromTheAccount(fields)
+              ? { reference: fields.reference.trim() }
+              : accountSent(sheet.paymentMethod, {
+                  farmAccountId: fields.farmAccountId,
+                  reference: fields.reference,
+                })),
             paidOn:
               boughtFromTheAccount(fields) && fields.paidOn
                 ? fields.paidOn
