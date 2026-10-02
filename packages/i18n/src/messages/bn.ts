@@ -883,6 +883,8 @@ export const bn: Record<MessageKey, string> = {
   "params.ventureRunning": "খাওয়ানোর জন্য রাখা, ভেঞ্চারের মূলধনের কত ভাগ",
   "params.ventureInvestors": "মুনাফায় বিনিয়োগকারীদের ভাগ, নতুন চুক্তি যেখান থেকে শুরু হয়",
   "params.windUp": "সময় শেষ হওয়ার পর কত দিন বিক্রি চলবে",
+  "params.priceWeighIn":
+    "ভেতরের বিক্রি বা কিনে নেওয়ার দামে শেষ ওজন কত দিনের পুরোনো চলবে",
   "params.adjustmentThreshold": "যত টাকার সমন্বয় করার মতো",
   "params.investorCap": "একসাথে সর্বোচ্চ কতজন বিনিয়োগকারী",
   "params.investorWarnAt": "কতজন হলে সতর্ক করবে",
@@ -1255,6 +1257,10 @@ export const bn: Record<MessageKey, string> = {
   "ventures.total": "মোট",
   "ventures.weighThemFirst":
     "আগে {tags}-এর ওজন নিন — ওজন থেকেই দাম ঠিক হয়, আর যে দামের পক্ষে কিছু বলা যায় না খামার তা ঠিক করে না।",
+  "ventures.weighThemAgain":
+    "{tags}-এর শেষ ওজন {days} দিনের বেশি পুরোনো — আবার ওজন নিন, তারপর দাম ধরুন; এর মধ্যে সে খেয়েছে, ওজন বদলেছে।",
+  "ventures.weighedOnDay": "ওজন {day}",
+  "ventures.weighAgainFirst": "শেষ ওজন পুরোনো — আগে ওজন নিন",
   "ventures.neverWeighed": "ওজন নেওয়া হয়নি",
   "ventures.soldOn": "বিক্রির দিন",
   "ventures.priceFromWeight": "{weight} কেজি এই দরে · ৳{price}",
@@ -1350,6 +1356,8 @@ export const bn: Record<MessageKey, string> = {
     "গরুটি বিক্রির জন্য তৈরি, তৈরি গরু এক পার্স থেকে আরেক পার্সে যায় না",
   "refusal.alreadyThatPurse": "গরুটি তো তাদেরই",
   "refusal.neverWeighed": "গরুটির কোনো ওজন নেওয়া হয়নি, তাই দাম ঠিক করার ভিত্তি নেই",
+  "refusal.weighedTooLongAgo":
+    "গরুটির শেষ ওজন অনেক পুরোনো — আবার ওজন নিয়ে তারপর দাম ঠিক করুন",
   "refusal.windUpNotOver": "গুটিয়ে আনার সময় এখনও শেষ হয়নি, বিক্রির দিন আছে",
   "refusal.nothingLeftToBuy": "এই ভেঞ্চারের আর কোনো গরু কেনার নেই",
   "refusal.bankRateFromTheFuture":

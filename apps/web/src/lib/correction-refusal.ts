@@ -204,6 +204,7 @@ const WORDED_REFUSALS = {
   she_is_ready_for_sale: "refusal.sheIsReadyForSale",
   already_that_purse: "refusal.alreadyThatPurse",
   never_weighed: "refusal.neverWeighed",
+  weighed_too_long_ago: "refusal.weighedTooLongAgo",
   wind_up_not_over: "refusal.windUpNotOver",
   bank_rate_from_the_future: "refusal.bankRateFromTheFuture",
   crossing_unweighed: "refusal.crossingUnweighed",

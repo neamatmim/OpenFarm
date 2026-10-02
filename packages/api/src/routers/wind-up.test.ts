@@ -205,6 +205,11 @@ beforeAll(async () => {
     driver: `চালক ${suffix}`,
     paymentMethod: "bank",
   });
+  // The two left are weighed again on the last day of April: twenty days before the buy-back, too long ago to price on.
+  await weigh("2047-04-30", [
+    [tags[0] ?? "", 300],
+    [tags[1] ?? "", 320],
+  ]);
 });
 
 const buying = {
@@ -229,7 +234,7 @@ describe("the buy-back at wind-up", () => {
       ventureId: neverWeighedVentureId,
     });
     expect(unweighed.animals).toEqual([
-      { tagNumber: unweighedTag, weightKg: null },
+      { tagNumber: unweighedTag, weightKg: null, weighedAt: null },
     ]);
   });
 
@@ -279,7 +284,40 @@ describe("the buy-back at wind-up", () => {
     });
   });
 
+  it("names the Animal last weighed too long ago, and the day", async () => {
+    const owner = await as("owner", "2047-05-20T04:45:00.000Z");
+    const refused = await owner.client.ventures
+      .buyWhatIsLeft({ ventureId, boughtOn: "2047-05-20", ...buying })
+      .catch((error: unknown) => error);
+    expect(refused).toMatchObject({
+      code: "BAD_REQUEST",
+      data: {
+        refusal: "weighed_too_long_ago",
+        weighedOn: "2047-04-30",
+        days: 20,
+      },
+    });
+    // Said on the sheet's list before she commits, as an unweighed one is.
+    const left = await owner.client.ventures.whatIsLeft({ ventureId });
+    expect(left.animals.map((one) => one.weighedAt)).toEqual([
+      new Date("2047-04-30T07:30:00.000Z"),
+      new Date("2047-04-30T07:30:00.000Z"),
+    ]);
+  });
+
+  it("is the Owner's line how old a weighing may be, not the Manager's", async () => {
+    const manager = await as("manager", "2047-05-20T04:50:00.000Z");
+    await expect(
+      manager.client.farm.setParameters({ priceWeighInDays: 30 })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
   it("buys everything left, in one act, each at her own weight", async () => {
+    // Weighed again ten days before: recent enough to strike a price on.
+    await weigh("2047-05-10", [
+      [tags[0] ?? "", 300],
+      [tags[1] ?? "", 320],
+    ]);
     const owner = await as("owner", "2047-05-20T05:00:00.000Z");
     const before = await theVenture(owner);
     expect(before?.state).toBe("selling");

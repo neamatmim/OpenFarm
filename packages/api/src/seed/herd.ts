@@ -33,6 +33,9 @@ export interface Bull {
   /** The day he is to be made ready for sale, where the script knows it: his last month goes unsprayed, as a spray's
    *  meat withdrawal would hold up the sale. */
   sellBy?: string;
+  /** The day from which he will not go up the crush, so his last weighing grows old: too old to price an Internal Sale
+   *  on, as the Owner's picker says. */
+  crushShyFrom?: string;
 }
 
 export interface Herd {
@@ -341,6 +344,10 @@ export const takeInBulls = async (
       dailyGainKg: random.between(0.55, 1.05) + (heavier > 0 ? 0.2 : 0),
       arrivedOn: on,
       state: "quarantine",
+      // The second off the same lorry is weighed once, then will not go up the crush again.
+      ...(oneTypedHeavy && index === 1
+        ? { crushShyFrom: addDays(on, 15) }
+        : {}),
     };
     herd.bulls.set(bull.tag, bull);
     arrived.push(bull);

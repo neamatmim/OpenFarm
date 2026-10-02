@@ -1,0 +1,1 @@
+ALTER TABLE "farm" ADD COLUMN "price_weigh_in_days" integer DEFAULT 14 NOT NULL;

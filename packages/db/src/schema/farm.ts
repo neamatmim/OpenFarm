@@ -170,6 +170,9 @@ export const farm = pgTable("farm", {
   /** The days after a Venture's Target Window in which it keeps selling before the Farm buys whatever is
    *  left, so the Venture settles on time. */
   windUpDays: integer("wind_up_days").notNull().default(30),
+  /** How many days old her last Weigh-in may be for an Internal Sale or the buy-back to strike a price on: the
+   *  fortnightly round. Older, and she is to be weighed again first. The Owner's alone, as a Venture is. */
+  priceWeighInDays: integer("price_weigh_in_days").notNull().default(14),
   /** The taka above which a Settlement Adjustment has to be paid or waived rather than only noted: a
    *  hundred taka should not cost a trip to the bank. */
   adjustmentThresholdBdt: integer("adjustment_threshold_bdt")

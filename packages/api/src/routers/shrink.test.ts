@@ -1,5 +1,10 @@
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock, scratchDb, thePerson } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -195,8 +200,9 @@ describe("shrink past the farm's allowance", () => {
       vehicle: "ঢাকা মেট্রো-ট ১১-৪৪৫৭",
       driver: `চালক ${suffix}`,
     });
+    // This file's farm's: every test farm has its own F-0003.
     const her = await scratchDb().query.animal.findFirst({
-      where: { tagNumber },
+      where: { farmId: theFarm().id, tagNumber },
       columns: { id: true },
       with: { sale: { columns: { id: true } } },
     });

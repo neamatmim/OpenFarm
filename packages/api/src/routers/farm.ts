@@ -186,6 +186,8 @@ const parameters = z
     ventureInvestorsPercent: z.number().int().min(0).max(100).optional(),
     /** The days a Venture keeps selling after its window before the Farm buys the rest. */
     windUpDays: z.number().int().min(0).max(180).optional(),
+    /** How old her last Weigh-in may be for an Internal Sale or the buy-back to price her on. */
+    priceWeighInDays: z.number().int().min(1).max(60).optional(),
     adjustmentThresholdBdt: z.number().int().min(0).max(1_000_000).optional(),
     /** How many Investors the Farm may have at a time, and where it starts warning. */
     investorCap: z.number().int().min(1).max(50).optional(),
@@ -229,6 +231,7 @@ const A_VENTURES_OWN = [
   "ventureRunningPercent",
   "ventureInvestorsPercent",
   "windUpDays",
+  "priceWeighInDays",
   "adjustmentThresholdBdt",
   "investorCap",
   "investorWarnAt",
@@ -527,6 +530,7 @@ export const farmRouter = {
       ventureRunningPercent,
       ventureInvestorsPercent,
       windUpDays,
+      priceWeighInDays,
       adjustmentThresholdBdt,
       investorCap,
       investorWarnAt,
@@ -539,6 +543,7 @@ export const farmRouter = {
           ventureRunningPercent,
           ventureInvestorsPercent,
           windUpDays,
+          priceWeighInDays,
           adjustmentThresholdBdt,
           investorCap,
           investorWarnAt,
@@ -836,6 +841,7 @@ export const farmRouter = {
                 ventureRunningPercent: true,
                 ventureInvestorsPercent: true,
                 windUpDays: true,
+                priceWeighInDays: true,
                 adjustmentThresholdBdt: true,
                 investorCap: true,
                 investorWarnAt: true,
