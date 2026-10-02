@@ -207,11 +207,12 @@ export const openTheFarm = async (
   for (const shed of SHEDS) {
     const made = await owner.herd.createShed({ name: shed.name });
     for (const [key, name] of shed.pens) {
-      // The quarantine pen is marked as one: every bought animal comes in through it.
+      // The quarantine pen is marked as one: every bought animal comes in through it. So is the isolation pen, where a
+      // bull taken ill in Quarantine is kept apart — he stays in Quarantine, and so in a quarantine pen.
       const pen = await owner.herd.createPen({
         shedId: made.id,
         name,
-        quarantine: key === "quarantine",
+        quarantine: key === "quarantine" || key === "isolation",
       });
       pens[key] = pen.id;
     }

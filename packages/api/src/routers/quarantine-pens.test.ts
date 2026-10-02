@@ -1,7 +1,11 @@
-import { FakeClock } from "@OpenFarm/test-harness";
+import { and, eq } from "@OpenFarm/db/operators";
+import { animal } from "@OpenFarm/db/schema/herd";
+import type { SopContent } from "@OpenFarm/domain";
+import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 /**
@@ -113,5 +117,159 @@ describe("quarantine pens", () => {
     await expect(
       staff.client.herd.markQuarantine({ penId: dairyPen, quarantine: true })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});
+
+/** A round that walks each bull to the Pen the Step names. */
+const walkingSop = (pens: { id: string; name: string }[]): SopContent => ({
+  name: { bn: `পেন বদল ${suffix}` },
+  purpose: { bn: "ষাঁড় সরানো" },
+  triggers: [{ kind: "schedule", times: ["06:00"] }],
+  appliesTo: { side: "fattening", states: ["quarantine", "fattening"] },
+  assignedRole: "manager",
+  checkerRole: null,
+  graceMinutes: 120,
+  steps: [
+    {
+      id: "walk",
+      text: { bn: "ষাঁড়কে পেনে নিন" },
+      repeatPerAnimal: true,
+      evidence: [
+        {
+          type: "choice",
+          required: true,
+          choices: pens.map((pen) => ({
+            value: pen.id,
+            label: { bn: pen.name },
+          })),
+        },
+      ],
+      skipReasons: [{ bn: "আজ নয়" }],
+      effect: { kind: "move" },
+    },
+  ],
+});
+
+describe("a bull in Quarantine", () => {
+  const pens = { first: "", second: "", fattening: "" };
+  let walking = "";
+
+  const intoQuarantine = async () => {
+    const manager = await as("manager");
+    const bull = await manager.client.intake.record(bought(pens.first));
+    return bull.tagNumber;
+  };
+
+  const moved = async (tagNumber: string, toPenId: string) => {
+    const manager = await as("manager");
+    return await manager.client.animals.move({ tagNumber, toPenId });
+  };
+
+  it("is walked only into a quarantine pen", async () => {
+    const manager = await as("manager");
+    const owner = await as("owner");
+    const shed = await manager.client.herd.createShed({
+      name: `দ্বিতীয় ${suffix}`,
+    });
+    const firstPen = await manager.client.herd.createPen({
+      shedId: shed.id,
+      name: `প্রথম কোয়ারেন্টিন ${suffix}`,
+      quarantine: true,
+    });
+    pens.first = firstPen.id;
+    const secondPen = await manager.client.herd.createPen({
+      shedId: shed.id,
+      name: `দ্বিতীয় কোয়ারেন্টিন ${suffix}`,
+      quarantine: true,
+    });
+    pens.second = secondPen.id;
+    const fatteningPen = await manager.client.herd.createPen({
+      shedId: shed.id,
+      name: `ষাঁড় পেন ${suffix}`,
+    });
+    pens.fattening = fatteningPen.id;
+    const sop = await owner.client.sops.create({
+      content: walkingSop([
+        { id: pens.second, name: "দ্বিতীয়" },
+        { id: pens.fattening, name: "ষাঁড়" },
+      ]),
+    });
+    walking = sop.definitionId;
+    const tag = await intoQuarantine();
+    await expect(moved(tag, pens.fattening)).rejects.toMatchObject({
+      data: { refusal: "stays_in_quarantine" },
+    });
+    await expect(moved(tag, pens.second)).resolves.toBeDefined();
+  });
+
+  it("is not walked out of quarantine by a Step either", async () => {
+    const tag = await intoQuarantine();
+    const manager = await as("manager");
+    await manager.client.instances.ensureDue();
+    const today = await manager.client.instances.today({ penId: pens.first });
+    const round = today.find((row) => row.definitionId === walking);
+    await manager.client.instances.claim({ id: round?.id ?? "" });
+    await expect(
+      manager.client.instances.completeStep({
+        instanceId: round?.id ?? "",
+        stepId: "walk",
+        animalTag: tag,
+        evidence: [pens.fattening],
+      })
+    ).rejects.toMatchObject({ data: { refusal: "stays_in_quarantine" } });
+    // Walked to the other quarantine pen, then put right to say the fattening pen: refused all the same.
+    await manager.client.instances.completeStep({
+      instanceId: round?.id ?? "",
+      stepId: "walk",
+      animalTag: tag,
+      evidence: [pens.second],
+    });
+    const board = await manager.client.instances.get({ id: round?.id ?? "" });
+    const walked = board.completions.find(
+      (row) => row.stepId === "walk" && row.animalId !== null
+    );
+    await expect(
+      correctStepAsShown(manager.client, {
+        completionId: walked?.id ?? "",
+        evidence: [pens.fattening],
+        reason: `ভুল পেন ${suffix}`,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "stays_in_quarantine" } });
+  });
+
+  it("standing outside a quarantine pen from before, is walked into one", async () => {
+    const tag = await intoQuarantine();
+    // As a bull put in Quarantine before pens were marked would stand.
+    await scratchDb()
+      .update(animal)
+      .set({ penId: pens.fattening })
+      .where(and(eq(animal.farmId, theFarm().id), eq(animal.tagNumber, tag)));
+    await expect(moved(tag, pens.first)).resolves.toBeDefined();
+  });
+
+  it("once Fattening, is walked anywhere — and a Fattening bull into a quarantine pen", async () => {
+    const tag = await intoQuarantine();
+    const owner = await as("owner");
+    await owner.client.animals.setState({
+      tagNumber: tag,
+      state: "fattening",
+      reason: `ছাড়া হলো ${suffix}`,
+    });
+    await expect(moved(tag, pens.fattening)).resolves.toBeDefined();
+    await expect(moved(tag, pens.second)).resolves.toBeDefined();
+  });
+
+  it("left outside one is named for the Manager to walk", async () => {
+    const tag = await intoQuarantine();
+    await scratchDb()
+      .update(animal)
+      .set({ penId: pens.fattening })
+      .where(and(eq(animal.farmId, theFarm().id), eq(animal.tagNumber, tag)));
+    const manager = await as("manager");
+    const astray = await manager.client.herd.quarantineAstray();
+    expect(astray.map((one) => one.tagNumber)).toContain(tag);
+    expect(
+      astray.every((one) => one.tagNumber !== "" && one.penName !== "")
+    ).toBe(true);
   });
 });

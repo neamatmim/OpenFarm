@@ -46,6 +46,26 @@ export const herdRouter = {
       })
     ),
 
+  /**
+   * Animals in Quarantine standing outside every quarantine pen — put there before pens were marked — for the Manager to
+   * walk in. Nothing moves them by itself; empty once they are in.
+   */
+  quarantineAstray: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(async ({ context }) => {
+      const rows = await context.db.query.animal.findMany({
+        where: { farmId: context.farm.id, state: "quarantine" },
+        columns: { tagNumber: true },
+        with: {
+          pen: { columns: { name: true, quarantine: true } },
+        },
+        orderBy: { tagNumber: "asc" },
+      });
+      return rows
+        .filter((one) => !one.pen.quarantine)
+        .map((one) => ({ tagNumber: one.tagNumber, penName: one.pen.name }));
+    }),
+
   createShed: protectedProcedure
     .use(requireRole("owner", "manager"))
     .input(z.object({ name }))

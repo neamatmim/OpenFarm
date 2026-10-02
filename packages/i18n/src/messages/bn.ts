@@ -1362,6 +1362,8 @@ export const bn: Record<MessageKey, string> = {
   "refusal.notAQuarantinePen": "কেনা পশু কোয়ারেন্টিন পেনেই ওঠে",
   "refusal.penHoldsQuarantine":
     "এই পেনে কোয়ারেন্টিনের পশু আছে — আগে তাকে ছাড়ুন বা সরান",
+  "refusal.staysInQuarantine":
+    "কোয়ারেন্টিনের পশু ছাড়া না হওয়া পর্যন্ত কোয়ারেন্টিন পেনেই থাকে",
   "refusal.windUpNotOver": "গুটিয়ে আনার সময় এখনও শেষ হয়নি, বিক্রির দিন আছে",
   "refusal.nothingLeftToBuy": "এই ভেঞ্চারের আর কোনো গরু কেনার নেই",
   "refusal.bankRateFromTheFuture":
@@ -2072,6 +2074,8 @@ export const bn: Record<MessageKey, string> = {
   "herd.addShed": "নতুন শেড",
   "herd.addPen": "নতুন পেন",
   "herd.quarantinePen": "কোয়ারেন্টিন পেন",
+  "herd.quarantineAstray":
+    "কোয়ারেন্টিনে আছে, কিন্তু কোয়ারেন্টিন পেনে নয় — এদের কোয়ারেন্টিন পেনে নিন",
   "herd.shedName": "শেডের নাম",
   "herd.penName": "পেনের নাম",
   "herd.rename": "নাম বদলান",

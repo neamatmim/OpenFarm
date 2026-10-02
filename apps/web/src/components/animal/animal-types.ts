@@ -14,6 +14,8 @@ export interface PenChoice {
   id: string;
   name: string;
   shedName: string;
+  /** A quarantine pen. Missing from an answer kept from before pens were marked: read as not one. */
+  quarantine?: boolean;
 }
 
 /** A person's Scope under each Role they hold, as `people.me` tells a screen. */
@@ -128,9 +130,13 @@ export const useAnimalPowers = (detail: AnimalDetail | undefined) => {
     mayMove:
       stillHere &&
       (runsTheFarm || (mayHandle && ownPens.includes(detail.penId))),
-    movePens: runsTheFarm
+    // An animal in Quarantine is walked only into a quarantine pen until she is released: nowhere else is offered.
+    movePens: (runsTheFarm
       ? pens
-      : pens.filter((pen) => ownPens.includes(pen.id)),
+      : pens.filter((pen) => ownPens.includes(pen.id))
+    ).filter(
+      (pen) => detail?.state !== "quarantine" || pen.quarantine === true
+    ),
     mayChangeState: (runsTheFarm || fullVet) && hasAStateToSet(detail),
     mayHandle: stillHere && mayHandle,
     runsTheFarm,

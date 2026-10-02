@@ -1471,6 +1471,8 @@ export const en = {
     "A bought animal comes into Quarantine in a quarantine pen",
   "refusal.penHoldsQuarantine":
     "An animal in Quarantine is in this pen — release or walk her first",
+  "refusal.staysInQuarantine":
+    "An animal in Quarantine stays in a quarantine pen until she is released",
   "refusal.windUpNotOver":
     "The Wind-up Period has not ended; there are still days to sell in",
   "refusal.nothingLeftToBuy": "This Venture has no animals left to buy",
@@ -2220,6 +2222,8 @@ export const en = {
   "herd.addShed": "Add a shed",
   "herd.addPen": "Add a pen",
   "herd.quarantinePen": "Quarantine pen",
+  "herd.quarantineAstray":
+    "In Quarantine, but not in a quarantine pen — walk them into one",
   "herd.shedName": "Shed name",
   "herd.penName": "Pen name",
   "herd.rename": "Rename",
