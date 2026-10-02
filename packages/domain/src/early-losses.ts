@@ -1,3 +1,6 @@
+import { weighedShort } from "./arrival-weight";
+import { EARLY_DAYS } from "./early-days";
+
 /**
  * Animals lost soon after they came, by who sold them and where they were bought — the question a farm asks of a
  * trader whose bulls keep dying in quarantine: bought sick, or bought tired? Early is the quarantine's thirty days. A
@@ -7,9 +10,6 @@
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** Early is the first thirty days after arrival: the quarantine the standard playbook keeps a bought animal in. */
-export const EARLY_DAYS = 30;
-
 /** One animal the farm bought: who sold her, where, and when she came. */
 export interface BoughtIn {
   animalId: string;
@@ -17,6 +17,9 @@ export interface BoughtIn {
   /** The haat as the Buying Trip wrote it; nothing for one bought at the farm gate. */
   haat: string | null;
   arrivedAt: Date;
+  /** What she weighed coming off the lorry, and her first Weigh-in on the farm's scale, where she has had one. */
+  arrivalKg?: number;
+  firstWeighIn?: { weightKg: number; at: Date } | null;
 }
 
 /** One seller's, or one haat's, animals: how many were bought, and how many were lost or fell ill early. */
@@ -27,6 +30,8 @@ export interface EarlyLosses {
   culled: number;
   /** Animals the Vet diagnosed within the early days, each once. */
   diagnosed: number;
+  /** Animals whose first Weigh-in, within the early days, came under their arrival weight past the Owner's line. */
+  weighedShort: number;
 }
 
 const earlyAfter = (arrivedAt: Date, at: Date) => {
@@ -41,6 +46,7 @@ const counted = (
     died: boolean;
     culled: boolean;
     diagnosed: boolean;
+    weighedShort: boolean;
   }
 ): EarlyLosses[] => {
   const byName = new Map<string, EarlyLosses>();
@@ -55,35 +61,45 @@ const counted = (
       died: 0,
       culled: 0,
       diagnosed: 0,
+      weighedShort: 0,
     };
     const how = lost(one);
     row.bought += 1;
     row.died += how.died ? 1 : 0;
     row.culled += how.culled ? 1 : 0;
     row.diagnosed += how.diagnosed ? 1 : 0;
+    row.weighedShort += how.weighedShort ? 1 : 0;
     byName.set(name, row);
   }
   return [...byName.values()]
-    .filter((row) => row.died + row.culled + row.diagnosed > 0)
+    .filter(
+      (row) => row.died + row.culled + row.diagnosed + row.weighedShort > 0
+    )
     .toSorted(
       (a, b) =>
         b.died - a.died ||
         b.culled - a.culled ||
         b.diagnosed - a.diagnosed ||
+        b.weighedShort - a.weighedShort ||
         b.bought - a.bought ||
         a.name.localeCompare(b.name)
     );
 };
 
 /**
- * The animals bought in `from`–`until`, by seller and by haat: those with an early death, cull or Diagnosis, the most
- * lost first. A seller or a haat with none lost early is not named.
+ * The animals bought in `from`–`until`, by seller and by haat: those with an early death, cull or Diagnosis, or whose
+ * first Weigh-in came under their arrival weight past the Owner's line (`shortPercent`), the most lost first. A seller
+ * or a haat with none of these is not named.
  */
 export const earlyLosses = (
   bought: readonly BoughtIn[],
   deaths: readonly { animalId: string; kind: "died" | "culled"; at: Date }[],
   diagnoses: readonly { animalId: string; at: Date }[],
-  { from, until }: { from: Date; until: Date }
+  {
+    from,
+    until,
+    shortPercent = 5,
+  }: { from: Date; until: Date; shortPercent?: number }
 ): { bySeller: EarlyLosses[]; byHaat: EarlyLosses[] } => {
   const inTheStretch = bought.filter(
     (one) => one.arrivedAt >= from && one.arrivedAt < until
@@ -99,6 +115,18 @@ export const earlyLosses = (
         (seen) =>
           seen.animalId === one.animalId && earlyAfter(one.arrivedAt, seen.at)
       ),
+      weighedShort:
+        one.arrivalKg !== undefined &&
+        one.firstWeighIn !== undefined &&
+        one.firstWeighIn !== null &&
+        weighedShort(
+          { arrivalKg: one.arrivalKg, arrivedAt: one.arrivedAt },
+          {
+            weightKg: one.firstWeighIn.weightKg,
+            weighedAt: one.firstWeighIn.at,
+          },
+          shortPercent
+        ) !== null,
     };
   };
   return {

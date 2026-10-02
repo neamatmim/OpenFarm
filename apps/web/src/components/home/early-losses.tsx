@@ -5,7 +5,7 @@ import { Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
-/** One seller's, or one haat's, year: how many were bought, and how many were lost or fell ill early. */
+/** One seller's, or one haat's, year: how many were bought, and how many were lost, fell ill or weighed short early. */
 const LossLine = ({ row }: { row: EarlyLosses }) => {
   const { t } = useLanguage();
   return (
@@ -17,6 +17,8 @@ const LossLine = ({ row }: { row: EarlyLosses }) => {
           died: row.died,
           culled: row.culled,
           diagnosed: row.diagnosed,
+          // Missing from an answer a phone kept from before weights were counted: none.
+          weighedShort: row.weighedShort ?? 0,
         })}
       </span>
     </li>

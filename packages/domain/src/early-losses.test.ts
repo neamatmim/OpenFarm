@@ -38,10 +38,24 @@ describe("early losses by seller and by haat", () => {
       stretch
     );
     expect(losses.bySeller).toEqual([
-      { name: "করিম", bought: 3, died: 1, culled: 0, diagnosed: 1 },
+      {
+        name: "করিম",
+        bought: 3,
+        died: 1,
+        culled: 0,
+        diagnosed: 1,
+        weighedShort: 0,
+      },
     ]);
     expect(losses.byHaat).toEqual([
-      { name: "গাবতলী", bought: 2, died: 1, culled: 0, diagnosed: 1 },
+      {
+        name: "গাবতলী",
+        bought: 2,
+        died: 1,
+        culled: 0,
+        diagnosed: 1,
+        weighedShort: 0,
+      },
     ]);
   });
 
@@ -50,5 +64,54 @@ describe("early losses by seller and by haat", () => {
       bySeller: [],
       byHaat: [],
     });
+  });
+
+  it("names a seller whose bulls weighed short at their first weighing, though none was lost", () => {
+    const weighed = (
+      animalId: string,
+      seller: string,
+      weightKg: number,
+      day = "2026-03-13"
+    ) => ({
+      animalId,
+      seller,
+      haat: "হাটহাজারী",
+      arrivedAt: at("2026-03-01"),
+      arrivalKg: 280,
+      firstWeighIn: { weightKg, at: at(day) },
+    });
+    const losses = earlyLosses(
+      [
+        weighed("e", "সালাম", 255),
+        weighed("f", "সালাম", 250),
+        // Within the line: 270 kg is under 4% short.
+        weighed("g", "জব্বার", 270),
+        // Short, but first weighed past thirty days.
+        weighed("h", "জব্বার", 240, "2026-04-05"),
+        // Never weighed.
+        {
+          animalId: "i",
+          seller: "জব্বার",
+          haat: null,
+          arrivedAt: at("2026-03-01"),
+        },
+      ],
+      [],
+      [],
+      { ...stretch, shortPercent: 5 }
+    );
+    expect(losses.bySeller).toEqual([
+      {
+        name: "সালাম",
+        bought: 2,
+        died: 0,
+        culled: 0,
+        diagnosed: 0,
+        weighedShort: 2,
+      },
+    ]);
+    expect(losses.byHaat).toEqual([
+      expect.objectContaining({ name: "হাটহাজারী", weighedShort: 2 }),
+    ]);
   });
 });
