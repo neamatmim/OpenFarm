@@ -1,9 +1,11 @@
 import type { Language, MessageKey } from "@OpenFarm/i18n";
+import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Fragment, useState } from "react";
 import { toast } from "sonner";
 
+import { Notice } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
@@ -163,6 +165,38 @@ const WhatItIsMadeOf = ({
   );
 };
 
+/** What holds the month: kilos nothing can price and doses nothing can cost, worded where they are said. */
+const PriceMissing = ({
+  unpricedKg,
+  uncostedDoses,
+}: {
+  unpricedKg: number;
+  uncostedDoses: number;
+}) => {
+  const { t, language } = useLanguage();
+  if (unpricedKg === 0 && uncostedDoses === 0) {
+    return null;
+  }
+  return (
+    <Notice title={t("refusal.aPriceIsMissing")} tone="warning">
+      {[
+        unpricedKg === 0
+          ? null
+          : t("ventures.unpricedKg", {
+              kg: formatNumber(unpricedKg, language),
+            }),
+        uncostedDoses === 0
+          ? null
+          : t("ventures.uncostedDoses", {
+              doses: formatNumber(uncostedDoses, language),
+            }),
+      ]
+        .filter((one) => one !== null)
+        .join(" · ")}
+    </Notice>
+  );
+};
+
 /**
  * The month's Reimbursement: what a Venture's Animals consumed of what the Farm bought.
  *
@@ -206,8 +240,17 @@ export const ReimburseSheet = ({
     })
   );
   const total = consumed.data?.totalBdt ?? 0;
+  // Feed nothing can price or a dose nothing can cost holds the month: repaid now, they would be repaid at nothing.
+  // Missing from an answer cached before they were said.
+  const unpricedKg = consumed.data?.unpricedKg ?? 0;
+  const uncostedDoses = consumed.data?.uncostedDoses ?? 0;
+  const priceMissing = unpricedKg > 0 || uncostedDoses > 0;
   const ready =
-    venture !== null && total > 0 && movedOn !== "" && reference.trim() !== "";
+    venture !== null &&
+    total > 0 &&
+    !priceMissing &&
+    movedOn !== "" &&
+    reference.trim() !== "";
   return (
     <FormSheet
       description={t("ventures.reimburseHint", {
@@ -239,6 +282,7 @@ export const ReimburseSheet = ({
         />
       </FormField>
       <WhatItIsMadeOf consumed={consumed.data} language={language} />
+      <PriceMissing uncostedDoses={uncostedDoses} unpricedKg={unpricedKg} />
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField id="reimburse-moved-on" label={t("ventures.movedOn")}>
           <Input

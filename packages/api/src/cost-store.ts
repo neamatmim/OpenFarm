@@ -894,6 +894,9 @@ export const consumedBy = (
     // that do not add up to the figure beneath them is the farm arguing with itself in front of an
     // Investor.
     totalBdt: roundTaka(feedBdt + medicineBdt + vetBdt + herdBdt + tripsBdt),
+    /** Kilos fed that nothing can price, and doses nothing can cost: the figure is short by them until they are. */
+    unpricedKg: summed.unpricedKg,
+    uncostedDoses: summed.uncostedDoses,
     /** What it was made of, so the Owner can read it to an Investor: which Feed Items, which
      *  medicines, which Categories of Herd Cost, and what each came to. */
     madeOf: {
@@ -937,12 +940,13 @@ export const owedByMonth = (
   paid: readonly Reimbursed[]
 ) =>
   months.map((month) => {
-    const comesToBdt = consumedBy(
+    const consumed = consumedBy(
       costs,
       ownedThenBy,
       ventureId,
       monthOf(startOfFarmDay(`${month}-01`))
-    ).totalBdt;
+    );
+    const comesToBdt = consumed.totalBdt;
     const own = paid.find((one) => one.forMonth === month);
     const ownFigureBdt = own
       ? own.amountBdt -
@@ -960,5 +964,7 @@ export const owedByMonth = (
       repaid: own !== undefined,
       paidBdt,
       stillOwedBdt: roundTaka(comesToBdt - paidBdt),
+      unpricedKg: consumed.unpricedKg,
+      uncostedDoses: consumed.uncostedDoses,
     };
   });
