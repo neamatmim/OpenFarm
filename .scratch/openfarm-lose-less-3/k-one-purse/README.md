@@ -36,7 +36,7 @@ bull bought with no outing at all is paid for by nobody the app can name.
 
 | #   | Ticket                                          | Blocked by |
 | --- | ----------------------------------------------- | ---------- |
-| 01  | The Farm's Float counted home shuts its outing  | —          |
+| 01  | The Farm's Float counted home shuts its outing (done) | —          |
 | 02  | One purse to an outing, both ways               | 01         |
 | 03  | A Venture's bull with no outing is paid by bank | 02         |
 

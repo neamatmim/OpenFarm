@@ -284,6 +284,8 @@ export const PriceSection = ({
     wentTo: string;
     wentOn: Date;
     animals: number;
+    /** Its Float counted home, so it takes no further animal. Missing from an answer cached before it was said. */
+    countedHome?: boolean;
     /** What the outing was given to buy with, where it was given one. */
     float: { ventureId: string; ventureName: string; amountBdt: number } | null;
   }[];
@@ -351,14 +353,17 @@ export const PriceSection = ({
             value={fields.buyingTripId}
           >
             <option value="">{t("intake.noTrip")}</option>
-            {trips.map((trip) => (
-              <option key={trip.id} value={trip.id}>
-                {trip.wentTo} · {formatDate(trip.wentOn, language, "date")}
-                {trip.float
-                  ? ` · ${trip.float.ventureName} ${taka(trip.float.amountBdt)}`
-                  : ""}
-              </option>
-            ))}
+            {/* An outing counted home takes no further animal, so it is not offered. */}
+            {trips
+              .filter((trip) => !trip.countedHome)
+              .map((trip) => (
+                <option key={trip.id} value={trip.id}>
+                  {trip.wentTo} · {formatDate(trip.wentOn, language, "date")}
+                  {trip.float
+                    ? ` · ${trip.float.ventureName} ${taka(trip.float.amountBdt)}`
+                    : ""}
+                </option>
+              ))}
           </NativeSelect>
           <Button
             className="h-11 shrink-0 md:h-9"

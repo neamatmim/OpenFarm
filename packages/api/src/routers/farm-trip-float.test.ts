@@ -14,6 +14,7 @@ const as = (role: "owner" | "manager", instant = NOW) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 let tripId = "";
+let penId = "";
 
 const handOf = async (role: "owner" | "manager") => {
   const owner = await as("owner");
@@ -29,6 +30,7 @@ beforeAll(async () => {
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
   });
+  penId = pen.id;
   // The outing, and the ৳1,00,000 the Owner hands the Manager for it.
   const trip = await manager.client.trips.record({
     wentTo: `গাবতলী হাট ${suffix}`,
@@ -108,6 +110,11 @@ describe("a Buying Float for the Farm's own outing", () => {
     const manager = await as("manager");
     const floats = await manager.client.cash.tripFloats();
     expect(floats.map((one) => one.tripId)).not.toContain(tripId);
+    // And the outing says so, so the Intake sheet stops offering it.
+    const trips = await manager.client.trips.list();
+    expect(trips.find((one) => one.id === tripId)).toMatchObject({
+      countedHome: true,
+    });
   });
 
   it("takes no more float once counted home", async () => {
@@ -118,6 +125,58 @@ describe("a Buying Float for the Farm's own outing", () => {
         to: { userId: thePerson("manager").id },
         amountBdt: 1000,
         buyingTripId: tripId,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "float_already_reconciled" } });
+  });
+
+  it("takes no further animal once counted home", async () => {
+    const manager = await as("manager", "2072-02-11T05:00:00.000Z");
+    await expect(
+      manager.client.intake.record({
+        penId,
+        sex: "male",
+        seller: { name: `ব্যাপারী গ ${suffix}` },
+        purchasePriceBdt: 42_000,
+        weightKg: 240,
+        estimatedAgeMonths: 20,
+        arrivedAt: new Date("2072-02-11T05:00:00.000Z"),
+        buyingTripId: tripId,
+        targetWindowStart: "2072-06-01",
+        targetWindowEnd: "2072-06-05",
+      })
+    ).rejects.toMatchObject({ data: { refusal: "float_already_reconciled" } });
+  });
+
+  it("takes no change to what it cost once counted home", async () => {
+    const manager = await as("manager", "2072-02-11T06:00:00.000Z");
+    await expect(
+      manager.client.trips.correct({
+        id: tripId,
+        reason: `লরির ভাড়া আসলে বেশি ছিল ${suffix}`,
+        changes: { transportBdt: { from: 3000, to: 5000 } },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "float_already_reconciled" } });
+  });
+
+  it("takes no animal moved onto it by a Correction once counted home", async () => {
+    const manager = await as("manager", "2072-02-11T07:00:00.000Z");
+    // A bull bought at the farm gate the same week, then said to have come home on the counted outing.
+    const hers = await manager.client.intake.record({
+      penId,
+      sex: "male",
+      seller: { name: `প্রতিবেশী ${suffix}` },
+      purchasePriceBdt: 38_000,
+      weightKg: 230,
+      estimatedAgeMonths: 18,
+      arrivedAt: new Date("2072-02-11T07:00:00.000Z"),
+      targetWindowStart: "2072-06-01",
+      targetWindowEnd: "2072-06-05",
+    });
+    await expect(
+      manager.client.intake.correct({
+        id: hers.intakeId,
+        reason: `এটাও গাবতলীর লরিতে এসেছিল ${suffix}`,
+        changes: { buyingTrip: { from: null, to: tripId } },
       })
     ).rejects.toMatchObject({ data: { refusal: "float_already_reconciled" } });
   });

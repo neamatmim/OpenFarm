@@ -133,6 +133,11 @@ export const tripsRouter = {
           wentOn: one.wentOn,
           costBdt: tripCostOf(one),
           animals: one.intakes.length,
+          /** Whether its Float — a Venture's, or the Farm's own — has been counted home: it then takes no animal
+           *  and no change to what it cost. */
+          countedHome:
+            one.floatReconciledAt !== null ||
+            (float?.reconciledAt ?? null) !== null,
           /** The Buying Float this outing was given, where one was. */
           float: float
             ? { ...float, boughtBdt: bought.get(one.id) ?? 0 }
