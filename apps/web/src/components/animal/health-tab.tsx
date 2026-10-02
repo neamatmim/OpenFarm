@@ -1,7 +1,7 @@
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ClipboardPlus, Eye, Stethoscope } from "lucide-react";
 import { useState } from "react";
@@ -223,6 +223,41 @@ const HealthChain = ({
 
 /** Her health, by what somebody came to it for: what was seen and what the Vet made of it, what she has been given —
  *  per animal, not per campaign, the list a slaughter vet asks for — and the visiting Vets called in about her. */
+/** Her arrival doses still owed — put off, and not given since — each with when it comes round next. Nothing when none. */
+const DosesOwed = ({ tagNumber }: { tagNumber: string }) => {
+  const { t, language } = useLanguage();
+  const owed = useQuery(
+    orpc.animals.dosesOwed.queryOptions({ input: { tagNumber } })
+  );
+  const rows = owed.data ?? [];
+  if (rows.length === 0) {
+    return null;
+  }
+  return (
+    <Section title={t("animals.dosesOwed")}>
+      <ul className="flex flex-col gap-1 text-sm">
+        {rows.map((one) => (
+          <li
+            className="flex flex-wrap justify-between gap-2"
+            key={one.definitionId}
+          >
+            <span className="font-medium">
+              {language === "en" ? (one.name.en ?? one.name.bn) : one.name.bn}
+            </span>
+            <span className="text-warning tabular-nums">
+              {one.nextDueAt
+                ? t("animals.doseComesRound", {
+                    day: formatDate(new Date(one.nextDueAt), language, "date"),
+                  })
+                : t("animals.doseNotRaised")}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </Section>
+  );
+};
+
 export const HealthTab = ({
   detail,
   powers,
@@ -263,6 +298,7 @@ export const HealthTab = ({
           <DoseTable doses={detail.treatments} />
         </Section>
       ) : null}
+      <DosesOwed tagNumber={detail.tagNumber} />
       {/* Calling a vet to her is for an animal still here; the cases she had stay listed either way. */}
       <VetCases
         mayCall={powers.runsTheFarm && powers.stillHere}

@@ -48,7 +48,7 @@ import {
 } from "../instances-store";
 import { tell } from "../notice";
 import { pushRaised } from "../push-send";
-import { raiseThePutOffRelease } from "../put-off-store";
+import { raiseThePutOff } from "../put-off-store";
 import { requireRole } from "../roles";
 import { isWorkInScope, requireWorkInScope, workInScopeWhere } from "../scope";
 import { contentOf } from "../sop-content";
@@ -727,13 +727,7 @@ export const instancesRouter = {
           // Audit Event's business.
           await requireTransition(tx, instance, "closeAsMissed");
           // A Release nobody walked is still owed while he is in Quarantine: raised again after the farm's days.
-          await raiseThePutOffRelease(
-            tx,
-            context.farm.id,
-            instance.id,
-            now,
-            now
-          );
+          await raiseThePutOff(tx, context.farm.id, instance.id, now, now);
         }
       );
       return { id: input.id, state: "missed" } as const;
