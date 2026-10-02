@@ -1,6 +1,7 @@
 import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { PAID_FROM_THE_ACCOUNT } from "../test/bought-by-bank";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
@@ -80,8 +81,9 @@ const bull = async (
     targetWindowEnd?: string;
   }
 ) => {
-  const manager = await as("manager", instant);
-  return await manager.client.intake.record({
+  // A Venture's bull at the gate is the Owner's, paid from its account by bank.
+  const buyer = await as(sheet.ventureId ? "owner" : "manager", instant);
+  return await buyer.client.intake.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -89,6 +91,7 @@ const bull = async (
     weightKg: 200,
     estimatedAgeMonths: 20,
     arrivedAt: new Date(instant),
+    ...(sheet.ventureId ? PAID_FROM_THE_ACCOUNT : {}),
     ...sheet,
   });
 };
@@ -135,11 +138,16 @@ describe("a Venture's animal and its Target Window", () => {
       targetWindowEnd: FARMS.end,
     });
     tags.push(slip.tagNumber);
-    const manager = await as("manager", "2047-01-07T09:00:00.000Z");
-    await manager.client.intake.correct({
+    // The Owner's, paid from the Venture Account by bank.
+    const owner = await as("owner", "2047-01-07T09:00:00.000Z");
+    await owner.client.intake.correct({
       id: slip.intakeId,
       reason: `ভেঞ্চারের গরু, খামারের নামে লেখা হয়েছিল ${suffix}`,
-      changes: { owner: { from: null, to: ventureId } },
+      changes: {
+        owner: { from: null, to: ventureId },
+        paymentMethod: { from: "cash", to: "bank" },
+        reference: { from: null, to: `TRF ${suffix}` },
+      },
     });
     expect(await windowsOf("2047-01-07T10:00:00.000Z", slip.tagNumber)).toEqual(
       { board: VENTURES, page: VENTURES }

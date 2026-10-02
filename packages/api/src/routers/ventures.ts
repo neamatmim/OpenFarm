@@ -1840,12 +1840,19 @@ export const venturesRouter = {
           // Counted inside the write, behind the same lock every other Venture count takes: what the
           // Cattle Budget holds is only true until the next Float commits.
           const held = await heldByEach(tx, context.farm.id, [row.id]);
-          const view = ventureView(standing, held.get(row.id), undefined, {
-            warnBelowBdt: context.farm.runningBudgetWarnBdt,
-            bank: NEVER_CHECKED,
-            windUpDays: context.farm.windUpDays,
-            stillHers: 0,
-          });
+          // Its signed Units too: paid by the month, its cattle money is what their Cattle Parts brought in.
+          const signed = await signedForEach(tx, context.farm.id, [row.id]);
+          const view = ventureView(
+            standing,
+            held.get(row.id),
+            signed.get(row.id),
+            {
+              warnBelowBdt: context.farm.runningBudgetWarnBdt,
+              bank: NEVER_CHECKED,
+              windUpDays: context.farm.windUpDays,
+              stillHers: 0,
+            }
+          );
           if (input.amountBdt > view.cattleBudgetHeldBdt) {
             throw new ORPCError("BAD_REQUEST", {
               message: `The Cattle Budget is holding ${view.cattleBudgetHeldBdt}`,
@@ -2163,8 +2170,10 @@ export const venturesRouter = {
           if (to !== null) {
             // The buyer pays out of what it holds for cattle, exactly as it would at the haat.
             const held = await heldByEach(tx, context.farm.id, [to]);
+            // Its signed Units too: paid by the month, its cattle money is what their Cattle Parts brought in.
+            const signed = await signedForEach(tx, context.farm.id, [to]);
             const buyer = await ours(context, to);
-            const view = ventureView(buyer, held.get(to), undefined, {
+            const view = ventureView(buyer, held.get(to), signed.get(to), {
               warnBelowBdt: context.farm.runningBudgetWarnBdt,
               bank: NEVER_CHECKED,
               windUpDays: context.farm.windUpDays,
@@ -3510,8 +3519,10 @@ export const venturesRouter = {
             : []
         )
       );
-      // The animal a sale's money, or an Internal Sale's, was for — so the row names her and reaches her page.
+      // The animal a sale's money, an Internal Sale's, or a bull bought by bank was for — so the row names her and
+      // reaches her page.
       const tagOf = await tagsOfHerRecords(context.db, context.farm.id, {
+        intakeIds: rows.flatMap((one) => (one.intakeId ? [one.intakeId] : [])),
         saleIds: rows.flatMap((one) => (one.saleId ? [one.saleId] : [])),
         internalSaleIds: rows.flatMap((one) =>
           one.internalSaleId ? [one.internalSaleId] : []
@@ -3520,8 +3531,12 @@ export const venturesRouter = {
       return rows.map((one) => ({
         id: one.id,
         kind: one.kind,
-        /** The animal it was for, where it was a Sale's or an Internal Sale's money. */
-        tagNumber: tagOf.get(one.saleId ?? one.internalSaleId ?? "") ?? null,
+        /** The animal it was for, where it was a Sale's, an Internal Sale's or a bull bought by bank's money. */
+        tagNumber:
+          tagOf.get(one.saleId ?? one.internalSaleId ?? one.intakeId ?? "") ??
+          null,
+        /** The Intake of a bull bought by bank with no outing, which it is written from. */
+        intakeId: one.intakeId,
         /** Which way it moved the account, so a list of them can be added up to the balance the farm keeps. */
         direction: directionOf(one.kind),
         agreementId: one.agreementId,

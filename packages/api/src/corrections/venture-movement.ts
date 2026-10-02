@@ -26,6 +26,7 @@ const findMovement = (tx: Tx, farmId: string, id: string) =>
       buyingTripId: true,
       internalSaleId: true,
       saleId: true,
+      intakeId: true,
       amountBdt: true,
       movedOn: true,
       reference: true,
@@ -48,7 +49,11 @@ export interface WhyItStands {
  * nothing: the button and the refusal are the one answer.
  */
 export const whyItStands = (
-  row: { internalSaleId: string | null; saleId: string | null },
+  row: {
+    internalSaleId: string | null;
+    saleId: string | null;
+    intakeId: string | null;
+  },
   ventureState: string | undefined,
   floatCounted: boolean
 ): WhyItStands | null => {
@@ -73,6 +78,14 @@ export const whyItStands = (
       message:
         "That is one side of an Internal Sale; the sale itself is what to put right",
       refusal: "one_side_of_a_sale",
+    };
+  }
+  if (row.intakeId) {
+    // A bull bought by bank with no outing: the movement is written from her Intake and moves when the Intake's price
+    // is put right. Changed here instead, the account and what she cost would disagree.
+    return {
+      message: "That money paid for a bull at the gate; put her Intake right",
+      refusal: "correct_the_record",
     };
   }
   if (row.saleId) {

@@ -1,12 +1,20 @@
+import { uuidv7 } from "@OpenFarm/db/ids";
+import { and, eq } from "@OpenFarm/db/operators";
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
-import { startOfFarmDay } from "@OpenFarm/domain";
+import { ventureMovement } from "@OpenFarm/db/schema/venture";
+import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "./audit";
 import type { Booking } from "./money-store";
-import { bookMoney, moneySnapshotOf } from "./money-store";
-import { assertTripIsOpen } from "./venture-store";
+import { bookMoney, moneySnapshotOf, paymentMethodOf } from "./money-store";
+import {
+  assertTripIsOpen,
+  budgetsOf,
+  heldByEach,
+  signedForEach,
+} from "./venture-store";
 
 /** The arrival as the trail records it: the Animal it made and what the farm paid for it. */
 export const readIntake = async (tx: Tx, animalId: string) => {
@@ -222,6 +230,162 @@ export const assertSheBelongsWithTheFloat = async (
       data: { refusal: "not_whose_float_bought_her" },
     });
   }
+  // A Venture pays for a bull on an outing with its own Float, drawn before the lorry went: on an outing nobody's
+  // Float paid for, her price would be in nobody's counted hand.
+  if (paidBy === undefined && ventureId !== undefined) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "No Float of this Venture's went on that outing",
+      data: { refusal: "no_float_on_the_trip" },
+    });
+  }
+};
+
+/** The transfer or cheque a Venture's bull bought with no outing was paid by, or nothing where none was. */
+export const boughtByBankReference = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  intakeId: string
+): Promise<string | null> => {
+  const paid = await tx.query.ventureMovement.findFirst({
+    where: { farmId, intakeId, kind: "intake_out" },
+    columns: { reference: true },
+  });
+  return paid?.reference ?? null;
+};
+
+/** That a Venture's Cattle Budget still holds what a bull at the gate cost, less what her own payment already took. */
+const assertTheCattleBudgetHolds = async (
+  tx: Tx,
+  farmId: string,
+  ventureId: string,
+  { amountBdt, alreadyPaidBdt }: { amountBdt: number; alreadyPaidBdt: number }
+) => {
+  const venture = await tx.query.venture.findFirst({
+    where: { id: ventureId, farmId },
+  });
+  if (!venture) {
+    return;
+  }
+  const held = await heldByEach(tx, farmId, [ventureId]);
+  const signed = await signedForEach(tx, farmId, [ventureId]);
+  const { cattleBudgetHeldBdt } = budgetsOf(
+    venture,
+    held.get(ventureId),
+    signed.get(ventureId)?.units ?? 0
+  );
+  const room = cattleBudgetHeldBdt + alreadyPaidBdt;
+  if (amountBdt > room) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `The Cattle Budget is holding ${room}`,
+      data: { refusal: "cattle_budget_short" },
+    });
+  }
+};
+
+/**
+ * A Venture's bull bought with no outing — at the farm gate, from a neighbour — is paid straight from its account by
+ * bank, and that payment is one `intake_out` Venture Movement written from her Intake, as a Sale's money is from the
+ * Sale. Decided after every Intake and every Intake Correction, from the Intake as it now stands: written where she is
+ * a Venture's with no outing, its amount moved with her price and Hasil, and taken away where she is the Farm's or on
+ * an outing. Never cash, so no pocket carries Investors' money; never more than the Cattle Budget still holds.
+ */
+export const bookBoughtByBank = async (
+  tx: Tx,
+  intakeId: string,
+  paid: {
+    /** The transfer or cheque, for a payment not written yet; left out, the one already written stands. */
+    reference?: string;
+    /** The day the bank moved it; left out, the day she came. */
+    movedOn?: string;
+    /** Whether whoever is writing may move the Venture Account's money: the Owner's alone. */
+    mayWrite: boolean;
+    /** Held to what the Cattle Budget holds, as a bull taken in is. A Correction is not: it says what was so when
+     *  she was bought, and by then buying may have closed and its money rolled into what keeps the animals. */
+    withinTheCattleBudget: boolean;
+    recordedBy: string;
+    now: Date;
+  }
+) => {
+  const row = await tx.query.intake.findFirst({
+    where: { id: intakeId },
+    columns: {
+      id: true,
+      farmId: true,
+      animalId: true,
+      buyingTripId: true,
+      purchasePriceBdt: true,
+      hasilBdt: true,
+      arrivedAt: true,
+    },
+  });
+  if (!row) {
+    return;
+  }
+  const ventureId = await ownerOf(tx, row.animalId);
+  const already = await tx.query.ventureMovement.findFirst({
+    where: { farmId: row.farmId, intakeId: row.id, kind: "intake_out" },
+    columns: { id: true, ventureId: true, amountBdt: true },
+  });
+  if (!ventureId || row.buyingTripId !== null) {
+    if (already) {
+      await tx
+        .delete(ventureMovement)
+        .where(
+          and(
+            eq(ventureMovement.id, already.id),
+            eq(ventureMovement.farmId, row.farmId)
+          )
+        );
+    }
+    return;
+  }
+  if (!(already || paid.mayWrite)) {
+    throw new ORPCError("FORBIDDEN", {
+      message:
+        "A Venture's bull bought with no outing is the Owner's to take in: it is paid from the Venture Account",
+      data: { refusal: "owner_only" },
+    });
+  }
+  const method = await paymentMethodOf(tx, row.farmId, "intake", row.id);
+  const reference = paid.reference?.trim() || undefined;
+  if (method !== "bank" || !(already || reference)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "A Venture's bull bought with no outing is paid from its account by bank, with the reference",
+      data: { refusal: "venture_buys_by_bank" },
+    });
+  }
+  const amountBdt = row.purchasePriceBdt + row.hasilBdt;
+  if (paid.withinTheCattleBudget) {
+    await assertTheCattleBudgetHolds(tx, row.farmId, ventureId, {
+      amountBdt,
+      alreadyPaidBdt: already?.ventureId === ventureId ? already.amountBdt : 0,
+    });
+  }
+  if (already) {
+    await tx
+      .update(ventureMovement)
+      .set({ ventureId, amountBdt, ...(reference ? { reference } : {}) })
+      .where(
+        and(
+          eq(ventureMovement.id, already.id),
+          eq(ventureMovement.farmId, row.farmId)
+        )
+      );
+    return;
+  }
+  await tx.insert(ventureMovement).values({
+    id: uuidv7(paid.now),
+    farmId: row.farmId,
+    ventureId,
+    kind: "intake_out",
+    intakeId: row.id,
+    amountBdt,
+    movedOn: paid.movedOn ?? farmDayOf(row.arrivedAt),
+    reference: reference ?? "",
+    recordedBy: paid.recordedBy,
+    createdAt: paid.now,
+  });
 };
 
 /**

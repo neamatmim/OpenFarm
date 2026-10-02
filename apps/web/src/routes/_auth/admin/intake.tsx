@@ -13,6 +13,7 @@ import {
   EMPTY,
   missingFrom,
   orNothing,
+  boughtFromTheAccount,
   owningVenture,
   windowIsWhole,
 } from "@/components/intake/intake-fields";
@@ -24,6 +25,7 @@ import {
 } from "@/components/intake/intake-sections";
 import { IntakeSummary } from "@/components/intake/intake-summary";
 import { RecentIntakes } from "@/components/intake/recent-intakes";
+import { useIsOwner } from "@/components/money";
 import { Page, PageHeader } from "@/components/page";
 import { useT } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
@@ -72,6 +74,7 @@ const IntakePage = () => {
   // Whose she is: the Ventures that are buying, which the Manager may read by name because she is the
   // one at the haat writing the arrival down.
   const ventures = useQuery(orpc.ventures.takingAnimals.queryOptions());
+  const isOwner = useIsOwner();
   const pens = (sheds.data ?? []).flatMap((shed) =>
     shed.pens.map((pen) => ({ id: pen.id, name: `${shed.name} / ${pen.name}` }))
   );
@@ -112,9 +115,12 @@ const IntakePage = () => {
   const venture = owningVenture(fields, trips.data ?? [], ventures.data ?? []);
   // A Venture's animal is sold in the Venture's window, so days typed before she was named its are not sent. They are
   // kept in the form, for the moment somebody names her the Farm's again.
-  const sheet = venture
-    ? { ...fields, targetWindowStart: "", targetWindowEnd: "" }
-    : fields;
+  // And one bought with no outing is paid from its account by bank, whatever the box last said.
+  const sheet = {
+    ...fields,
+    ...(venture ? { targetWindowStart: "", targetWindowEnd: "" } : {}),
+    ...(boughtFromTheAccount(fields) ? { paymentMethod: "bank" as const } : {}),
+  };
   const ready = missingFrom(sheet).length === 0 && windowIsWhole(sheet);
   // The photograph goes up after the animal exists, so the whole arrival is pending until it has.
   const pending = record.isPending || setItsPhoto.isPending;
@@ -148,7 +154,14 @@ const IntakePage = () => {
             targetWindowEnd: sheet.targetWindowEnd || undefined,
             buyingTripId: fields.buyingTripId || undefined,
             ventureId: fields.ventureId || undefined,
-            paymentMethod: fields.paymentMethod,
+            paymentMethod: sheet.paymentMethod,
+            reference: boughtFromTheAccount(fields)
+              ? fields.reference.trim()
+              : undefined,
+            paidOn:
+              boughtFromTheAccount(fields) && fields.paidOn
+                ? fields.paidOn
+                : undefined,
           });
         }}
       >
@@ -169,6 +182,7 @@ const IntakePage = () => {
             ventures={(ventures.data ?? []).filter(
               (one) => one.state === "buying"
             )}
+            isOwner={isOwner}
           />
           <TargetSection fields={fields} onEdit={edit} venture={venture} />
         </div>

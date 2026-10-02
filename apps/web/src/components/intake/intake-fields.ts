@@ -24,6 +24,9 @@ export interface IntakeFields {
   targetWindowStart: string;
   targetWindowEnd: string;
   paymentMethod: PaymentMethod;
+  /** A Venture's bull with no outing, paid from its account by bank: the transfer or cheque, and the day it moved. */
+  reference: string;
+  paidOn: string;
 }
 
 /** The Venture an animal is being taken in for, when she is one's: her Target Window is its, not the form's. */
@@ -79,7 +82,13 @@ export const EMPTY: IntakeFields = {
   targetWindowStart: "",
   targetWindowEnd: "",
   paymentMethod: "cash",
+  reference: "",
+  paidOn: "",
 };
+
+/** A Venture's bull with no outing: paid straight from its account by bank, the Owner's to take in. */
+export const boughtFromTheAccount = (fields: IntakeFields): boolean =>
+  fields.ventureId !== "" && fields.buyingTripId === "";
 
 /** A blank field means "the farm's own answer", never zero. */
 export const orNothing = (value: string) =>
@@ -91,6 +100,9 @@ export const missingFrom = (fields: IntakeFields): MessageKey[] => {
   const missing: MessageKey[] = [];
   if (fields.penId === "") {
     missing.push("intake.pen");
+  }
+  if (boughtFromTheAccount(fields) && fields.reference.trim() === "") {
+    missing.push("intake.reference");
   }
   if (fields.sellerName.trim() === "") {
     missing.push("intake.sellerName");

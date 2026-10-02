@@ -3,6 +3,7 @@ import { moneyEvent } from "@OpenFarm/db/schema/money";
 import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { PAID_FROM_THE_ACCOUNT, putCapitalIn } from "../test/bought-by-bank";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
@@ -73,13 +74,25 @@ beforeAll(async () => {
     unitPriceBdt: 50_000,
     units: 10,
   });
+  // Capital in first: a bull at the gate is paid from what the account holds.
+  await putCapitalIn(
+    owner.client,
+    { id: venture.id, units: 10, unitPriceBdt: 50_000 },
+    "overheads",
+    "2045-02-27"
+  );
   await owner.client.ventures.startBuying({ id: venture.id });
 
   // One bull the Farm's and one the Venture's, both here all of March.
   const manager = await as("manager", "2045-02-28T18:00:00.000Z");
   for (const ventureId of [undefined, venture.id]) {
-    // oxlint-disable-next-line no-await-in-loop -- two arrivals, one after the other
-    await manager.client.intake.record({
+    // The Venture's at the gate is the Owner's, paid from its account by bank.
+    const buyer = ventureId
+      ? // oxlint-disable-next-line no-await-in-loop -- two arrivals, one after the other
+        await as("owner", "2045-02-28T18:00:00.000Z")
+      : manager;
+    // oxlint-disable-next-line no-await-in-loop -- as above
+    await buyer.client.intake.record({
       penId: pen.id,
       sex: "male",
       seller: { name: "ব্যাপারী" },
@@ -87,6 +100,7 @@ beforeAll(async () => {
       weightKg: 200,
       estimatedAgeMonths: 20,
       ventureId,
+      ...(ventureId ? PAID_FROM_THE_ACCOUNT : {}),
       arrivedAt: FIRST_OF_MARCH,
       ...WINDOW,
     });

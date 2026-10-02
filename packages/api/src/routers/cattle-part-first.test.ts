@@ -154,6 +154,28 @@ describe("a Venture paid by the month, once every Cattle Part is in", () => {
       runningBudgetHeldBdt: 0,
     });
   });
+
+  it("draws a Float to the haat against the cattle money it holds", async () => {
+    const owner = await asOwner();
+    const trip = await owner.trips.record({
+      wentTo: `হাট ${suffix}`,
+      wentOn: "2074-01-05",
+      brokerBdt: 0,
+      transportBdt: 0,
+      keepBdt: 0,
+    });
+    // A lakh of the five lakh twenty thousand its signed Units' Cattle Parts brought in.
+    await owner.ventures.drawFloat({
+      ventureId: monthly,
+      buyingTripId: trip.id,
+      amountBdt: 100_000,
+      movedOn: "2074-01-05",
+      paymentMethod: "bank",
+      reference: `FLT-${suffix}`,
+    });
+    const venture = await listed(owner, monthly);
+    expect(venture?.cattleBudgetHeldBdt).toBe(420_000);
+  });
 });
 
 describe("a Venture paid before buying", () => {

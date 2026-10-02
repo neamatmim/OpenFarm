@@ -418,6 +418,8 @@ const WHAT_IT_DOES = {
   // What came home is the same line and the same budget, moving the other way: the unspent part was
   // never spent, and it is cattle money still.
   float_back: { line: "spentBdt", sign: -1, cattle: -1 },
+  // A bull bought with no outing, paid straight from the account: cattle money spent, as a Float's is.
+  intake_out: { line: "spentBdt", sign: 1, cattle: 1 },
   // An Animal taken on is bought with cattle money, exactly as one bought at the haat is; one let go
   // gives that money back, and it is the Venture's own proceeds rather than anybody's capital.
   internal_buy: { line: "spentBdt", sign: 1, cattle: 1 },

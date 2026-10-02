@@ -33,6 +33,7 @@ export const KIND_WORD = {
   refund: "ventures.kind.refund",
   float_out: "ventures.kind.floatOut",
   float_back: "ventures.kind.floatBack",
+  intake_out: "ventures.kind.intakeOut",
   internal_buy: "ventures.kind.internalBuy",
   internal_sell: "ventures.kind.internalSell",
   sale_in: "ventures.kind.saleIn",

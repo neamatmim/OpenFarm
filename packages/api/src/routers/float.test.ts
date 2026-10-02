@@ -206,7 +206,15 @@ describe("the Buying Float", () => {
     const owner = await as("owner", "2046-12-11T04:00:00.000Z");
     const other = await funded(owner, 2, 200_000);
     const trip = await outing(owner, 7);
-    // The other Venture's bull comes home on this lorry.
+    // The other Venture's bull comes home on this lorry, on that Venture's own Float.
+    await owner.client.ventures.drawFloat({
+      ventureId: other,
+      buyingTripId: trip,
+      amountBdt: 60_000,
+      movedOn: "2046-12-11",
+      paymentMethod: "bank",
+      reference: `FLT-${suffix}-other`,
+    });
     const manager = await as("manager", "2046-12-11T05:00:00.000Z");
     await manager.client.intake.record({
       penId,

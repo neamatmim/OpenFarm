@@ -1,6 +1,7 @@
 import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { PAID_FROM_THE_ACCOUNT } from "../test/bought-by-bank";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
@@ -83,7 +84,8 @@ beforeAll(async () => {
     name: `ফ্যাটেনিং ${suffix}`,
   });
   penId = pen.id;
-  const manager = await as("manager", "2047-01-04T05:00:00.000Z");
+  // At the gate, so the Owner's, paid from the Venture Account by bank.
+  const manager = await as("owner", "2047-01-04T05:00:00.000Z");
   // One at a time, and not in parallel: two Intakes racing for the next tag number is a race this
   // test would rather not be about.
   const broughtIn = async () => {
@@ -95,6 +97,7 @@ beforeAll(async () => {
       weightKg: 200,
       estimatedAgeMonths: 20,
       ventureId,
+      ...PAID_FROM_THE_ACCOUNT,
       arrivedAt: new Date("2047-01-04T05:00:00.000Z"),
       targetWindowStart: plan.targetWindowStart,
       targetWindowEnd: plan.targetWindowEnd,
@@ -371,15 +374,16 @@ describe("selling a Venture's animals", () => {
     const owner = await as("owner", "2047-04-19T07:00:00.000Z");
     const venture = await theVenture(owner);
     // A buyer took both away for a lakh twenty and a lakh thirty. The money is the Venture's, as the
-    // animals were, so its account holds the capital and what they fetched.
+    // animals were, so its account holds the capital, less the sixty thousand each cost at the gate, and
+    // what they fetched.
     expect(venture).toMatchObject({
       proceedsBdt: 250_000,
-      balanceBdt: 1_250_000,
+      balanceBdt: 1_130_000,
       // Not money to go and buy more cattle with, and by now not money the Cattle Budget is holding
       // either: buying closed long ago, so the whole of the account is there to keep them with. What
       // they fetched lands on that side with the rest.
       cattleBudgetHeldBdt: 0,
-      runningBudgetHeldBdt: 1_250_000,
+      runningBudgetHeldBdt: 1_130_000,
     });
     // And it reads as a movement of the Venture's money like any other.
     const movements = await owner.client.ventures.movements({ ventureId });
@@ -421,7 +425,7 @@ describe("selling a Venture's animals", () => {
     const venture = await theVenture(owner);
     expect(venture).toMatchObject({
       proceedsBdt: 255_000,
-      balanceBdt: 1_255_000,
+      balanceBdt: 1_135_000,
     });
   });
 
@@ -447,7 +451,9 @@ describe("selling a Venture's animals", () => {
     const slow = await funded(owner, 2);
     await owner.client.ventures.startBuying({ id: slow });
     const manager = await as("manager", "2047-06-01T05:00:00.000Z");
-    const her = await manager.client.intake.record({
+    // At the gate, so the Owner's, paid from the Venture Account by bank.
+    const buyer = await as("owner", "2047-06-01T05:00:00.000Z");
+    const her = await buyer.client.intake.record({
       penId,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
@@ -455,6 +461,7 @@ describe("selling a Venture's animals", () => {
       weightKg: 200,
       estimatedAgeMonths: 20,
       ventureId: slow,
+      ...PAID_FROM_THE_ACCOUNT,
       arrivedAt: new Date("2047-06-01T05:00:00.000Z"),
       targetWindowStart: plan.targetWindowStart,
       targetWindowEnd: plan.targetWindowEnd,

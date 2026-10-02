@@ -8,6 +8,7 @@ import {
 } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { PAID_FROM_THE_ACCOUNT, putCapitalIn } from "../test/bought-by-bank";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
@@ -83,6 +84,13 @@ const aMixedPen = async () => {
     units: 10,
   });
   twoItemsVentureId = venture.id;
+  // Capital in first: a bull at the gate is paid from what the account holds.
+  await putCapitalIn(
+    owner.client,
+    { id: venture.id, units: 10, unitPriceBdt: 50_000 },
+    `two-items ${suffix}`,
+    "2047-03-05"
+  );
   await owner.client.ventures.startBuying({ id: venture.id });
 
   const manager = await as("manager", "2047-03-06T05:00:00.000Z");
@@ -111,8 +119,14 @@ const aMixedPen = async () => {
 
   // One of the Venture's, one of the Farm's, standing together and fed together.
   for (const forVenture of [venture.id, undefined]) {
+    // The Venture's at the gate is the Owner's, paid from its account by bank.
     // oxlint-disable-next-line no-await-in-loop -- two arrivals, one after the other
-    await manager.client.intake.record({
+    const buyer = await as(
+      forVenture ? "owner" : "manager",
+      "2047-03-06T05:00:00.000Z"
+    );
+    // oxlint-disable-next-line no-await-in-loop -- as above
+    await buyer.client.intake.record({
       penId: sharedPenId,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
@@ -120,6 +134,7 @@ const aMixedPen = async () => {
       weightKg: 180,
       estimatedAgeMonths: 20,
       ventureId: forVenture,
+      ...(forVenture ? PAID_FROM_THE_ACCOUNT : {}),
       arrivedAt: new Date("2047-03-06T05:00:00.000Z"),
       targetWindowStart: "2047-05-17",
       targetWindowEnd: "2047-05-19",
@@ -217,8 +232,9 @@ beforeAll(async () => {
     receivedOn: "2047-03-03",
   });
 
-  // One bull of the Venture's, standing in that Pen and eating that feed.
-  const buying = await as("manager", "2047-03-04T06:00:00.000Z");
+  // One bull of the Venture's, standing in that Pen and eating that feed — bought at the gate, so the Owner's, paid
+  // from its account by bank.
+  const buying = await as("owner", "2047-03-04T06:00:00.000Z");
   await buying.client.intake.record({
     penId,
     sex: "male",
@@ -227,6 +243,7 @@ beforeAll(async () => {
     weightKg: 200,
     estimatedAgeMonths: 20,
     ventureId,
+    ...PAID_FROM_THE_ACCOUNT,
     arrivedAt: new Date("2047-03-04T05:00:00.000Z"),
     targetWindowStart: "2047-05-17",
     targetWindowEnd: "2047-05-19",
@@ -295,7 +312,8 @@ describe("the monthly Reimbursement", () => {
     // Out of the Venture Account, off the Running Budget — it is the cost of keeping them.
     expect(venture).toMatchObject({
       balanceBdt: heldBefore - 2000,
-      cattleBudgetHeldBdt: 500_000,
+      // Five lakh of cattle money, less the bull bought at the gate by bank.
+      cattleBudgetHeldBdt: 440_000,
       // Its own figure, and not folded into what the Venture spent at the haat: what it paid the Farm
       // back is the question an Investor asks, and buying is a different one.
       reimbursedBdt: reimbursedBefore + 2000,

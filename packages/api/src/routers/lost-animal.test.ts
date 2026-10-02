@@ -2,6 +2,7 @@ import { standardPlaybook } from "@OpenFarm/domain";
 import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { PAID_FROM_THE_ACCOUNT, putCapitalIn } from "../test/bought-by-bank";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
@@ -49,13 +50,21 @@ beforeAll(async () => {
     units: 20,
     ...WINDOW,
   });
+  // Capital in first: a bull at the gate is paid from what the account holds.
+  await putCapitalIn(
+    owner.client,
+    { id: venture.id, units: 20, unitPriceBdt: 50_000 },
+    `venture ${suffix}`,
+    "2066-03-01"
+  );
   await owner.client.ventures.startBuying({ id: venture.id });
   ventureId = venture.id;
 });
 
 /** One bull off the lorry — the Farm's own, or a Venture's. */
 const aBull = async (instant: string, ventureFor?: string) => {
-  const manager = await as("manager", instant);
+  // A Venture's bull at the gate is the Owner's, paid from its account by bank.
+  const manager = await as(ventureFor ? "owner" : "manager", instant);
   return manager.client.intake.record({
     penId,
     sex: "male",
@@ -65,6 +74,7 @@ const aBull = async (instant: string, ventureFor?: string) => {
     estimatedAgeMonths: 20,
     arrivedAt: new Date(instant),
     ventureId: ventureFor,
+    ...(ventureFor ? PAID_FROM_THE_ACCOUNT : {}),
     ...WINDOW,
   });
 };

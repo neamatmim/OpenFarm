@@ -4,6 +4,7 @@ import { createRouterClient } from "@orpc/server";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { buildContext } from "../context";
+import { PAID_FROM_THE_ACCOUNT, putCapitalIn } from "../test/bought-by-bank";
 import { createTestClient } from "../test/client";
 import { invitedWithConsent } from "../test/portal-client";
 import { appRouter } from "./index";
@@ -354,20 +355,24 @@ describe("a Venture still buying", () => {
         },
       ],
     });
+    // Capital in first: a bull at the gate is paid from what the account holds.
+    await putCapitalIn(
+      owner,
+      { id: buying.id, units: 20, unitPriceBdt: 50_000 },
+      `buying ${suffix}`,
+      "2052-01-01"
+    );
     await owner.ventures.startBuying({ id: buying.id });
     const shed = await owner.herd.createShed({ name: `কেনা ${suffix}` });
     const pen = await owner.herd.createPen({
       shedId: shed.id,
       name: `কেনা ${suffix}`,
     });
-    const { client: manager } = await createTestClient(appRouter, {
-      as: "manager",
-      clock: new FakeClock(JANUARY),
-    });
     // One of 250 kg, inside the first band, and one of 400 kg that no band planned.
     for (const weightKg of [250, 400]) {
+      // At the gate, so the Owner's, paid from the Venture Account by bank.
       // oxlint-disable-next-line no-await-in-loop -- one beast off the lorry at a time
-      await manager.intake.record({
+      await owner.intake.record({
         penId: pen.id,
         sex: "male",
         seller: { name: `ব্যাপারী ${suffix}` },
@@ -375,6 +380,7 @@ describe("a Venture still buying", () => {
         weightKg,
         estimatedAgeMonths: 20,
         ventureId: buying.id,
+        ...PAID_FROM_THE_ACCOUNT,
         arrivedAt: new Date(JANUARY),
         targetWindowStart: "2052-03-17",
         targetWindowEnd: "2052-03-19",

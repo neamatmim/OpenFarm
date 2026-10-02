@@ -13,7 +13,9 @@ import {
   assertSheBelongsWithTheFloat,
   assertTripIsOurs,
   assertVentureIsBuying,
+  bookBoughtByBank,
   bookIntakeMoney,
+  boughtByBankReference,
   hasilInput,
   ownerOf,
   purchasePriceInput,
@@ -95,6 +97,9 @@ export const intakeCorrectionInput = correctionInput({
   ),
   seller: changeOf(sellerInput, z.string().nullable()),
   paymentMethod: paymentMethodChange,
+  /** For a Venture's bull with no outing, paid from its account by bank: the transfer or cheque. Asked when a
+   *  Correction makes her one, and put right like any other slip. */
+  reference: changeOf(z.string().trim().min(1).max(120), z.string().nullable()),
 });
 
 /** Whose she will be after a Correction: the owner it names, else whose she was. */
@@ -168,6 +173,7 @@ export const intakeCorrection: CorrectionKind<
       targetWindow: await windowShown(tx, row, owner, now),
       seller: row.seller?.name ?? null,
       paymentMethod: await paymentMethodOf(tx, row.farmId, "intake", row.id),
+      reference: await boughtByBankReference(tx, row.farmId, row.id),
     };
   },
   shownAs: { seller: (to) => to.name },
@@ -237,6 +243,14 @@ export const intakeCorrection: CorrectionKind<
     }
     const booking = bookingOf(context, context.roleUsed, now);
     await bookIntakeMoney(tx, booking, row.id, to.paymentMethod);
+    // Whether the Venture Account paid for her, decided from the Intake as it now stands.
+    await bookBoughtByBank(tx, row.id, {
+      reference: to.reference,
+      mayWrite: context.roleUsed === "owner",
+      withinTheCattleBudget: false,
+      recordedBy: context.actor.id,
+      now,
+    });
     if (to.owner !== undefined) {
       // She may already have been sold inside the window. What she fetched belongs where she did, so
       // her Sale's money moves purses with her — cost and proceeds in two purses would make both
