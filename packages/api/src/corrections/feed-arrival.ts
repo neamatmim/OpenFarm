@@ -6,8 +6,13 @@ import { z } from "zod";
 import type { Tx } from "../audit";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
-import { paymentMethodChange } from "../money-inputs";
-import { bookingOf, paymentMethodOf } from "../money-store";
+import { farmAccountChange, paymentMethodChange } from "../money-inputs";
+import {
+  accountSaid,
+  bookingOf,
+  farmAccountShownOf,
+  paymentMethodOf,
+} from "../money-store";
 import {
   assertShapeOf,
   bookPurchaseMoney,
@@ -51,6 +56,8 @@ export const feedArrivalCorrectionInput = correctionInput({
   seller: changeOf(sellerInput, z.string().nullable()),
   receivedOn: changeOf(farmDay, z.string()),
   paymentMethod: paymentMethodChange,
+  /** Which Farm Account bKash or bank money names, and its transaction ID. */
+  farmAccount: farmAccountChange,
 });
 
 /**
@@ -87,6 +94,7 @@ export const feedArrivalCorrection: CorrectionKind<
   load: loadArrival,
   entry: (row) => ({ enteredAt: row.recordedAt, enteredBy: row.recordedBy }),
   shown: async (tx, row) => ({
+    farmAccount: await farmAccountShownOf(tx, row.farmId, "feed_in", row.id),
     quantity: Number(row.quantity),
     priceBdt: row.priceBdt === null ? null : row.priceBdt,
     seller: row.seller?.name ?? null,
@@ -144,7 +152,12 @@ export const feedArrivalCorrection: CorrectionKind<
     }
     await bookPurchaseMoney(
       tx,
-      bookingOf(context, context.roleUsed, now),
+      bookingOf(
+        context,
+        context.roleUsed,
+        now,
+        to.farmAccount ? accountSaid(["feed_in"], to.farmAccount) : undefined
+      ),
       row.id,
       to.paymentMethod
     );

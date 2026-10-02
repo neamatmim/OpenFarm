@@ -109,9 +109,33 @@ export interface Farm {
   sops: Record<PlaybookKey, string>;
   /** The Pens each person works, so work goes to somebody whose Pen it is. */
   crews: Partial<Record<PersonKey, Set<string>>>;
+  /** The Farm's own bKash number and bank account, which its bKash and bank money names. */
+  farmAccounts: { bkash: string; bank: string };
   today: string;
   start: string;
 }
+
+let transactions = 0;
+
+/**
+ * How the farm's own money was paid, with what bKash and the bank ask beside it: the Farm Account and a transaction ID
+ * of its own — a bKash TrxID, or the bank's transfer reference — never the same one twice.
+ */
+export const paidBy = (
+  farm: Pick<Farm, "farmAccounts">,
+  paymentMethod: "cash" | "bkash" | "bank"
+) => {
+  if (paymentMethod === "cash") {
+    return { paymentMethod } as const;
+  }
+  transactions += 1;
+  const serial = String(transactions).padStart(6, "0");
+  return {
+    paymentMethod,
+    farmAccountId: farm.farmAccounts[paymentMethod],
+    reference: paymentMethod === "bkash" ? `BK7Q${serial}` : `NPSB${serial}`,
+  } as const;
+};
 
 /** How long the Registration has left today: inside the renewal lead, so the farm is being asked to renew. */
 const REGISTRATION_LEFT_DAYS = 40;
@@ -163,6 +187,20 @@ export const openTheFarm = async (
     fatteningTargetWeightKg: 420,
     pregnancyCheckAfterDays: 45,
     registrationRenewalLeadDays: 60,
+  });
+
+  // The Farm's own bKash number and bank account, listed before any money is written, so all of it names them.
+  const bkash = await owner.farmAccounts.add({
+    kind: "bkash",
+    name: "অফিস বিকাশ",
+    number: "01711-482093",
+  });
+  const bank = await owner.farmAccounts.add({
+    kind: "bank",
+    name: "সোনালী ব্যাংক চলতি হিসাব",
+    number: "4402-0100-118273",
+    bank: "সোনালী ব্যাংক",
+    branch: "সাভার",
   });
 
   const pens = {} as Record<PenKey, string>;
@@ -222,6 +260,7 @@ export const openTheFarm = async (
     drugs: {},
     sops: {} as Record<PlaybookKey, string>,
     crews,
+    farmAccounts: { bkash: bkash.id, bank: bank.id },
     today,
     start,
   };

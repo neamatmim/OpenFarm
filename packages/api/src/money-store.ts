@@ -348,8 +348,48 @@ export interface EnteredByHand {
   side: (typeof SIDES)[number] | null;
 }
 
+/** Which Farm Account a record's bKash or bank money names, and its transaction ID — as the form said it, for the one
+ *  Money Event of the record it is about. */
+export interface AccountSaid {
+  /** The Money Events of the record it is about: a Sale's money, and not its broker's. */
+  sources: readonly MoneySource[];
+  farmAccountId?: string;
+  reference?: string;
+}
+
+/** Which Farm Account a record's Money Event names, and its reference, as a Correction is shown them. */
+export const farmAccountShownOf = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  source: MoneySource,
+  sourceId: string
+): Promise<{ farmAccountId: string | null; reference: string | null }> => {
+  const money = await tx.query.moneyEvent.findFirst({
+    where: { farmId, source, sourceId },
+    columns: { farmAccountId: true, reference: true },
+  });
+  return {
+    farmAccountId: money?.farmAccountId ?? null,
+    reference: money?.reference ?? null,
+  };
+};
+
+/** The Farm Account and reference a form named, for the Money Events of these sources. */
+export const accountSaid = (
+  sources: readonly MoneySource[],
+  input: { farmAccountId?: string; reference?: string }
+): AccountSaid => ({
+  sources,
+  ...(input.farmAccountId === undefined
+    ? {}
+    : { farmAccountId: input.farmAccountId }),
+  ...(input.reference === undefined ? {} : { reference: input.reference }),
+});
+
 /** Who is writing the record, and the farm it is on. */
 export interface Booking {
+  /** The Farm Account and reference the form named, where it named one (`farmAccountOf`). */
+  account?: AccountSaid;
   farm: { id: string; approvalThresholdBdt: number };
   actorId: string;
   /** The Role the record is written under, which the Money Event is recorded under too. */
@@ -396,14 +436,148 @@ export const bookingOf = (
     roles: readonly string[];
   },
   role: RoleName,
-  now: Date
+  now: Date,
+  /** The Farm Account and reference the form named for this record's money. */
+  account?: AccountSaid
 ): Booking => ({
   farm: context.farm,
   actorId: context.actor.id,
   role,
   byTheOwner: context.roles.includes("owner"),
   now,
+  ...(account ? { account } : {}),
 });
+
+const refuse = (refusal: string, message: string) =>
+  new ORPCError("BAD_REQUEST", { message, data: { refusal } });
+
+type ExistingMoney =
+  | {
+      id: string;
+      paymentMethod: string;
+      farmAccountId: string | null;
+      reference: string | null;
+    }
+  | undefined;
+
+/** What the form named for this money, or, where it named nothing and the method is unchanged, what was named before. */
+const accountAsked = (
+  booking: Booking,
+  money: MoneyOfARecord,
+  existing: ExistingMoney,
+  method: string
+) => {
+  const said = booking.account?.sources.includes(money.source)
+    ? booking.account
+    : undefined;
+  const kept = existing?.paymentMethod === method ? existing : undefined;
+  return {
+    farmAccountId: said?.farmAccountId ?? kept?.farmAccountId ?? null,
+    reference: said?.reference?.trim() || kept?.reference || null,
+  };
+};
+
+/** That the named account is this farm's, of the kind the money moved by, and open — unless it was already named. */
+const assertTheAccount = async (
+  tx: Tx,
+  farmId: string,
+  farmAccountId: string,
+  method: string,
+  existing: ExistingMoney
+) => {
+  const account = await tx.query.farmAccount.findFirst({
+    where: { id: farmAccountId, farmId },
+    columns: { kind: true, retiredAt: true },
+  });
+  if (!account) {
+    throw refuse("names_no_farm_account", "No such Farm Account");
+  }
+  if (account.kind !== method) {
+    throw refuse(
+      "farm_account_not_that_kind",
+      "That Farm Account is not the kind the money moved by"
+    );
+  }
+  if (account.retiredAt && farmAccountId !== existing?.farmAccountId) {
+    throw refuse("farm_account_retired", "That Farm Account has been retired");
+  }
+};
+
+/** That the reference is there, and not on another Money Event of the same account. */
+const assertTheReference = async (
+  tx: Tx,
+  farmAccountId: string,
+  reference: string | null,
+  id: string
+): Promise<string> => {
+  if (!reference) {
+    throw refuse(
+      "needs_its_reference",
+      "Money by bKash or the bank carries its transaction ID or reference"
+    );
+  }
+  const twice = await tx.query.moneyEvent.findFirst({
+    where: { farmAccountId, reference, id: { ne: id } },
+    columns: { id: true },
+  });
+  if (twice) {
+    throw refuse(
+      "reference_used_already",
+      "That transaction ID is on this Farm Account already"
+    );
+  }
+  return reference;
+};
+
+/**
+ * Which Farm Account a Money Event names, and its transaction ID. Cash names none, nor does a Venture's purse — its
+ * account is the Venture Account. bKash or the bank, in the Farm's purse, names one of that kind, not retired, with a
+ * reference used on it once — from the day the farm lists any of that kind: before then there is nothing to name, and
+ * no start day goes back. A Correction that leaves the method alone keeps what was named.
+ */
+const farmAccountOf = async (
+  tx: Tx,
+  booking: Booking,
+  money: MoneyOfARecord,
+  existing: ExistingMoney,
+  purseVentureId: string | null,
+  id: string
+): Promise<{ farmAccountId: string | null; reference: string | null }> => {
+  const method = money.paymentMethod ?? existing?.paymentMethod ?? "cash";
+  if (method === "cash" || purseVentureId !== null) {
+    return { farmAccountId: null, reference: null };
+  }
+  const { farmAccountId, reference } = accountAsked(
+    booking,
+    money,
+    existing,
+    method
+  );
+  // Asked for only while one of the kind is open to name: a farm whose only bank account has closed still writes
+  // bank money, rather than having every bank payment refused for want of an account it cannot choose.
+  const anyOfTheKind = await tx.query.farmAccount.findFirst({
+    where: {
+      farmId: booking.farm.id,
+      kind: method as "bkash" | "bank",
+      retiredAt: { isNull: true },
+    },
+    columns: { id: true },
+  });
+  if (!(anyOfTheKind || farmAccountId)) {
+    return { farmAccountId: null, reference };
+  }
+  if (!farmAccountId) {
+    throw refuse(
+      "names_no_farm_account",
+      "Money by bKash or the bank names which of the Farm's accounts it went into or came out of"
+    );
+  }
+  await assertTheAccount(tx, booking.farm.id, farmAccountId, method, existing);
+  return {
+    farmAccountId,
+    reference: await assertTheReference(tx, farmAccountId, reference, id),
+  };
+};
 
 /**
  * Takes down the Owner's notices about a Money Event — approved, brought under the threshold, or changed
@@ -639,6 +813,8 @@ export const bookMoney = async (
       purseVentureId: true,
       paymentMethod: true,
       heldBy: true,
+      farmAccountId: true,
+      reference: true,
     },
   });
   const id = existing?.id ?? byHand?.id ?? newId(now);
@@ -683,6 +859,14 @@ export const bookMoney = async (
   const fields = {
     ...moneyFieldsOf({ amountBdt, money, approval, byHand }),
     heldBy: handOf(booking, money, existing),
+    ...(await farmAccountOf(
+      tx,
+      booking,
+      money,
+      existing,
+      terms.purseVentureId,
+      id
+    )),
   };
   await (existing
     ? tx.update(moneyEvent).set(fields).where(eq(moneyEvent.id, id))

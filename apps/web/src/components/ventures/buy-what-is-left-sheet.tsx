@@ -15,6 +15,7 @@ import {
 import type { WindowPick } from "@/components/fattening/window-choice";
 import { Notice } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
+import { FarmAccountField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { allTyped } from "@/lib/all-typed";
 import { useFreshFor } from "@/lib/fresh-for";
@@ -96,6 +97,8 @@ export const BuyWhatIsLeftSheet = ({
   const [note, setNote] = useState("");
   const [boughtOn, setBoughtOn] = useState("");
   const [reference, setReference] = useState("");
+  // The Farm's bank account its own side of this went into or came out of.
+  const [farmAccountId, setFarmAccountId] = useState("");
   // The one Season every animal the Farm takes joins: the next Eid unless another window is said.
   const [windowPick, setWindowPick] = useState<WindowPick>(NEXT_EID);
   useFreshFor(venture?.id, () => {
@@ -150,6 +153,7 @@ export const BuyWhatIsLeftSheet = ({
           boughtOn,
           paymentMethod: "bank",
           reference,
+          ...(farmAccountId ? { farmAccountId } : {}),
           targetWindow: windowOf(windowPick),
         })
       }
@@ -202,6 +206,12 @@ export const BuyWhatIsLeftSheet = ({
             value={boughtOn}
           />
         </FormField>
+        <FarmAccountField
+          id="wind-up-reference-account"
+          kind="bank"
+          onChange={setFarmAccountId}
+          value={farmAccountId}
+        />
         <FormField id="wind-up-reference" label={t("ventures.reference")}>
           <Input
             autoComplete="off"

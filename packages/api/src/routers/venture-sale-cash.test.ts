@@ -41,7 +41,8 @@ const sold = async (
   tagNumber: string,
   priceBdt: number,
   paymentMethod: "cash" | "bkash" | "bank",
-  instant = "2080-01-10T06:00:00.000Z"
+  instant = "2080-01-10T06:00:00.000Z",
+  reference?: string
 ) => {
   const manager = await as("manager", instant);
   return await manager.client.sale.record({
@@ -54,6 +55,7 @@ const sold = async (
     driver: `চালক ${suffix}`,
     paymentMethod,
     soldAt: new Date(instant),
+    ...(reference ? { reference } : {}),
   });
 };
 
@@ -199,5 +201,19 @@ describe("a Venture's bull sold for cash", () => {
     ).rejects.toMatchObject({
       data: { refusal: "venture_sale_not_by_bkash" },
     });
+  });
+});
+
+describe("a Venture's bull sold by bank", () => {
+  it("reaches the Venture Account under the transfer's reference, not her tag", async () => {
+    await sold(
+      tags[2] ?? "",
+      110_000,
+      "bank",
+      "2080-01-14T06:00:00.000Z",
+      `NPSB-${suffix}`
+    );
+    const moved = await saleMoneyIn("2080-01-14T07:00:00.000Z");
+    expect(moved.map((one) => one.reference)).toContain(`NPSB-${suffix}`);
   });
 });

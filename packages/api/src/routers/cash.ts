@@ -27,6 +27,8 @@ import {
 const handEnd = z.union([
   z.object({ userId: z.string() }),
   z.object({ bank: z.literal(true) }),
+  /** One of the Farm's own bKash numbers or bank accounts. */
+  z.object({ farmAccountId: z.string().min(1) }),
 ]);
 
 /** Where a Handover may go: a hand, the bank, or a Venture's sale cash into its Venture Account with the Sales it carries. */

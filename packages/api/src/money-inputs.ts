@@ -18,6 +18,24 @@ export const amountInput = z.number().positive().max(100_000_000);
 /** How the money changed hands. Left unsaid, cash: the farm's gate is a cash gate. */
 export const paymentMethodInput = z.enum(PAYMENT_METHODS).default("cash");
 
+/** Which of the Farm's own bKash numbers or bank accounts bKash or bank money went into or came out of. */
+export const farmAccountIdInput = z.string().min(1).optional();
+
+/** Its transaction ID, or the cheque's or the slip's number. */
+export const referenceInput = z.string().trim().min(1).max(80).optional();
+
+/** Which Farm Account, and its transaction ID, as a Correction puts them right. */
+export const farmAccountChange = changeOf(
+  z.object({
+    farmAccountId: z.string().min(1),
+    reference: z.string().trim().min(1).max(80),
+  }),
+  z.object({
+    farmAccountId: z.string().nullable(),
+    reference: z.string().nullable(),
+  })
+);
+
 /** A calendar month, as a wage pays for one. */
 export const monthInput = z.string().regex(/^\d{4}-(?:0[1-9]|1[0-2])$/u);
 

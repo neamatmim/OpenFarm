@@ -16,8 +16,12 @@ import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { assertNotExpiredWhenBought, lotFields } from "../lot-input";
-import { paymentMethodInput } from "../money-inputs";
-import { bookingOf } from "../money-store";
+import {
+  farmAccountIdInput,
+  paymentMethodInput,
+  referenceInput,
+} from "../money-inputs";
+import { accountSaid, bookingOf } from "../money-store";
 import { requireRole } from "../roles";
 import {
   assertShapeOf,
@@ -244,6 +248,10 @@ export const stockRouter = {
         receivedOn: farmDay,
         /** How the seller was paid, for a purchase. */
         paymentMethod: paymentMethodInput,
+        /** Which Farm Account bKash or bank money went into or came out of. */
+        farmAccountId: farmAccountIdInput,
+        /** Its transaction ID, or the cheque's or slip's number. */
+        reference: referenceInput,
         ...lotFields,
       })
     )
@@ -326,7 +334,12 @@ export const stockRouter = {
           });
           await bookPurchaseMoney(
             tx,
-            bookingOf(context, recordedByRole, now),
+            bookingOf(
+              context,
+              recordedByRole,
+              now,
+              accountSaid(["feed_in"], input)
+            ),
             id,
             input.paymentMethod
           );

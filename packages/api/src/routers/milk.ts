@@ -39,8 +39,12 @@ import {
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { litresOf, milkDropsOn } from "../milk-store";
-import { paymentMethodInput } from "../money-inputs";
-import { bookingOf } from "../money-store";
+import {
+  farmAccountIdInput,
+  paymentMethodInput,
+  referenceInput,
+} from "../money-inputs";
+import { accountSaid, bookingOf } from "../money-store";
 import { requireRole } from "../roles";
 import { isPenInScope, requireLookUp } from "../scope";
 
@@ -88,6 +92,10 @@ export const milkRouter = {
         note: dispatchFields.note.optional(),
         buyer: buyerInput,
         paymentMethod: paymentMethodInput,
+        /** Which Farm Account bKash or bank money went into or came out of. */
+        farmAccountId: farmAccountIdInput,
+        /** Its transaction ID, or the cheque's or slip's number. */
+        reference: referenceInput,
         /** What the buyer paid there and then; left out, all of it. Less than the milk came to, and the rest is his
          *  Baki. */
         paidNowBdt: paidNowInput.optional(),
@@ -145,7 +153,12 @@ export const milkRouter = {
           });
           await bookDispatchMoney(
             tx,
-            bookingOf(context, recordedByRole, now),
+            bookingOf(
+              context,
+              recordedByRole,
+              now,
+              accountSaid(["dispatch"], input)
+            ),
             id,
             input.paymentMethod
           );

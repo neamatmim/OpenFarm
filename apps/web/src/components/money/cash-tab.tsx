@@ -17,8 +17,20 @@ import { orpc } from "@/utils/orpc";
 type Hand = Awaited<ReturnType<typeof orpc.cash.inHand.call>>[number];
 type Movement = Awaited<ReturnType<typeof orpc.cash.movements.call>>[number];
 
-/** The bank, as the "to" of a Handover is chosen. */
+/** The bank, as the "to" of a Handover is chosen, where the farm has listed none of its accounts. */
 const BANK = "bank";
+/** One of the Farm's own accounts, as the "to" of a Handover is chosen: the prefix, then its id. */
+const ACCOUNT = "account:";
+
+/** The Handover's "to", from what was chosen: a Farm Account, the bank unnamed, or a hand. */
+const endChosen = (
+  to: string
+): { farmAccountId: string } | { bank: true } | { userId: string } => {
+  if (to.startsWith(ACCOUNT)) {
+    return { farmAccountId: to.slice(ACCOUNT.length) };
+  }
+  return to === BANK ? { bank: true } : { userId: to };
+};
 
 /** Cash passed from one hand to another person's, or into the bank with its slip. */
 const HandOverDialog = ({
@@ -39,11 +51,15 @@ const HandOverDialog = ({
   );
   const [chosen, setChosen] = useState("");
   const to = chosen || (others[0]?.userId ?? BANK);
+  // The Farm's own accounts a deposit may go into, by name — the bank itself where none is listed yet.
+  const accounts = useQuery(orpc.farmAccounts.list.queryOptions());
+  const intoAccounts = (accounts.data ?? []).filter((one) => !one.retired);
+  const toAnAccount = to.startsWith(ACCOUNT);
   const [amount, setAmount] = useState("");
   const [reference, setReference] = useState("");
   const [note, setNote] = useState("");
   const [tripId, setTripId] = useState("");
-  const toTheBank = to === BANK;
+  const toTheBank = to === BANK || toAnAccount;
   // The Farm's own outings a float may go on: none a Venture's Buying Float paid for.
   const trips = useQuery(orpc.trips.list.queryOptions());
   const farmsTrips = (trips.data ?? []).filter((one) => one.float === null);
@@ -68,7 +84,7 @@ const HandOverDialog = ({
       onSubmit={() =>
         handOver.mutate({
           from: { userId: from.userId },
-          to: toTheBank ? { bank: true } : { userId: to },
+          to: endChosen(to),
           amountBdt: Number(amount),
           ...(slipSaid ? { reference: reference.trim() } : {}),
           ...(note.trim() ? { note: note.trim() } : {}),
@@ -92,7 +108,15 @@ const HandOverDialog = ({
               {one.name}
             </option>
           ))}
-          <option value={BANK}>{t("cash.bank")}</option>
+          {intoAccounts.length === 0 ? (
+            <option value={BANK}>{t("cash.bank")}</option>
+          ) : (
+            intoAccounts.map((one) => (
+              <option key={one.id} value={`${ACCOUNT}${one.id}`}>
+                {one.name} · {one.number.slice(-4)}
+              </option>
+            ))
+          )}
         </NativeSelect>
       </FormField>
       <FormField id="hand-amount" label={t("cash.amount")}>

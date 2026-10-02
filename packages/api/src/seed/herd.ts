@@ -2,7 +2,7 @@ import { DAY, addDays, onFarm } from "./runtime";
 import { CATTLE_BUYERS, breedIdNamed } from "./shared";
 /* oxlint-disable no-await-in-loop */
 import type { Farm, PenKey } from "./standing";
-import { SHEDS } from "./standing";
+import { SHEDS, paidBy } from "./standing";
 
 /** What the seed remembers about a cow so the days that follow are hers: how much she gives, and where she is in
  *  her cycle. The farm's own records are the truth; this is only what the seed needs to answer the work
@@ -291,7 +291,7 @@ export const takeInBulls = async (
   });
   const tripCostBdt = costs.brokerBdt + costs.transportBdt + costs.keepBdt;
   await farm.as.owner.cash.handOver({
-    from: { bank: true },
+    from: { farmAccountId: farm.farmAccounts.bank },
     to: { userId: farm.accounts.manager.session.user.id },
     amountBdt:
       Math.ceil(
@@ -410,7 +410,7 @@ export const lastEidsSeason = async (farm: Farm, herd: Herd) => {
       destination: buyer.address,
       vehicle: `ঢাকা মেট্রো-ন ${farm.random.int(11, 19)}-${farm.random.int(1000, 9999)}`,
       driver: farm.random.pick(["মোঃ হাবিব", "সোহেল রানা", "আব্দুর রহিম"]),
-      paymentMethod: "bank",
+      ...paidBy(farm, "bank"),
     });
   }
   for (const bull of lorry) {

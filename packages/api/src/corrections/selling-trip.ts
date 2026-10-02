@@ -4,8 +4,13 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { theOwnersOf } from "../intake-store";
-import { paymentMethodChange } from "../money-inputs";
-import { bookingOf, paymentMethodOf } from "../money-store";
+import { farmAccountChange, paymentMethodChange } from "../money-inputs";
+import {
+  accountSaid,
+  bookingOf,
+  farmAccountShownOf,
+  paymentMethodOf,
+} from "../money-store";
 import {
   bookSellingTripMoney,
   readSellingTrip,
@@ -34,6 +39,8 @@ export const sellingTripCorrectionInput = correctionInput({
   transportBdt: changeOf(tripCostInput, z.number()),
   keepBdt: changeOf(tripCostInput, z.number()),
   paymentMethod: paymentMethodChange,
+  /** Which Farm Account bKash or bank money names, and its transaction ID. */
+  farmAccount: farmAccountChange,
 });
 
 /**
@@ -66,6 +73,12 @@ export const sellingTripCorrection: CorrectionKind<
   supersedes: false,
   entry: (row) => ({ enteredAt: row.createdAt, enteredBy: row.recordedBy }),
   shown: async (tx, row) => ({
+    farmAccount: await farmAccountShownOf(
+      tx,
+      row.farmId,
+      "selling_trip",
+      row.id
+    ),
     wentTo: row.wentTo,
     transportBdt: row.transportBdt,
     keepBdt: row.keepBdt,
@@ -95,7 +108,14 @@ export const sellingTripCorrection: CorrectionKind<
     }
     await bookSellingTripMoney(
       tx,
-      bookingOf(context, context.roleUsed, now),
+      bookingOf(
+        context,
+        context.roleUsed,
+        now,
+        to.farmAccount
+          ? accountSaid(["selling_trip"], to.farmAccount)
+          : undefined
+      ),
       row.id,
       to.paymentMethod
     );

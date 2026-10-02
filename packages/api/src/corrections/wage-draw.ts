@@ -10,10 +10,17 @@ import { farmDay } from "../farm-clock";
 import { enteredOn } from "../money-by-hand-store";
 import {
   counterpartyInput,
+  farmAccountChange,
   noteInput,
   paymentMethodChange,
 } from "../money-inputs";
-import { bookMoney, bookingOf, paymentMethodOf } from "../money-store";
+import {
+  accountSaid,
+  bookingOf,
+  bookMoney,
+  farmAccountShownOf,
+  paymentMethodOf,
+} from "../money-store";
 import { lockTheFarm } from "../venture-store";
 import { readWageDraw, takenOffDraw } from "../wage-draw-store";
 import type { CorrectionKind } from "./correction";
@@ -34,6 +41,8 @@ export const wageDrawCorrectionInput = correctionInput({
   counterparty: changeOf(counterpartyInput, z.string()),
   drawnOn: changeOf(farmDay, z.string()),
   paymentMethod: paymentMethodChange,
+  /** Which Farm Account bKash or bank money names, and its transaction ID. */
+  farmAccount: farmAccountChange,
   note: changeOf(noteInput.nullable(), z.string().nullable()),
 });
 
@@ -60,6 +69,7 @@ export const wageDrawCorrection: CorrectionKind<
   load: loadDraw,
   entry: (row) => ({ enteredAt: row.recordedAt, enteredBy: row.recordedBy }),
   shown: async (tx, row) => ({
+    farmAccount: await farmAccountShownOf(tx, row.farmId, "wage_draw", row.id),
     amountBdt: row.amountBdt,
     counterparty: row.person.name,
     drawnOn: farmDayOf(row.drawnAt),
@@ -98,14 +108,23 @@ export const wageDrawCorrection: CorrectionKind<
     if (somethingChanged(putRight)) {
       await tx.update(wageDraw).set(putRight).where(eq(wageDraw.id, row.id));
     }
-    await bookMoney(tx, bookingOf(context, context.roleUsed, now), {
-      source: "wage_draw",
-      sourceId: row.id,
-      categoryKey: "wages",
-      amountBdt,
-      occurredAt: drawnAt,
-      counterpartyId,
-      paymentMethod: to.paymentMethod,
-    });
+    await bookMoney(
+      tx,
+      bookingOf(
+        context,
+        context.roleUsed,
+        now,
+        to.farmAccount ? accountSaid(["wage_draw"], to.farmAccount) : undefined
+      ),
+      {
+        source: "wage_draw",
+        sourceId: row.id,
+        categoryKey: "wages",
+        amountBdt,
+        occurredAt: drawnAt,
+        counterpartyId,
+        paymentMethod: to.paymentMethod,
+      }
+    );
   },
 };

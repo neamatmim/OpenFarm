@@ -147,7 +147,12 @@ export const bookSaleMoney = async (
       ventureId,
       priceBdt,
       soldAt: row.soldAt,
-      reference: her?.tagNumber ?? row.id,
+      // By bank, the transfer's own reference, which is what the Venture Account's statement reads; otherwise her tag.
+      reference:
+        (method === "bank" && booking.account?.sources.includes("sale")
+          ? booking.account.reference?.trim()
+          : undefined) ||
+        (her?.tagNumber ?? row.id),
       // Taken in cash, it is in the hand that took it until it is deposited with its slip.
       inCash:
         (await paymentMethodOf(tx, row.farmId, "sale", row.id)) === "cash",

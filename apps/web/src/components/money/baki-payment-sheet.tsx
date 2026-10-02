@@ -6,7 +6,12 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
-import { PaymentMethodField } from "@/components/payment-method";
+import type { AccountTyped } from "@/components/payment-method";
+import {
+  accountSent,
+  NO_ACCOUNT,
+  PaymentMethodField,
+} from "@/components/payment-method";
 import { WhoseHandField } from "@/components/whose-hand";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
@@ -35,6 +40,7 @@ export const BakiPaymentSheet = ({
   const [amount, setAmount] = useState("");
   const [paidOn, setPaidOn] = useState(() => farmDayOf(new Date()));
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const [account, setAccount] = useState<AccountTyped>(NO_ACCOUNT);
   const [heldBy, setHeldBy] = useState("");
   const [note, setNote] = useState("");
   const pay = useMutation(
@@ -66,6 +72,7 @@ export const BakiPaymentSheet = ({
             amountBdt: figure,
             paidOn,
             paymentMethod,
+            ...accountSent(paymentMethod, account),
             ...(paymentMethod === "cash" && heldBy ? { heldBy } : {}),
             note: note.trim() || undefined,
           });
@@ -122,6 +129,7 @@ export const BakiPaymentSheet = ({
           />
         </FormField>
         <PaymentMethodField
+          account={{ typed: account, onChange: setAccount }}
           id="baki-paid-by"
           onChange={setPaymentMethod}
           value={paymentMethod}

@@ -22,8 +22,13 @@ import {
   readIntake,
   sellerInput,
 } from "../intake-store";
-import { paymentMethodChange } from "../money-inputs";
-import { bookingOf, paymentMethodOf } from "../money-store";
+import { farmAccountChange, paymentMethodChange } from "../money-inputs";
+import {
+  accountSaid,
+  bookingOf,
+  farmAccountShownOf,
+  paymentMethodOf,
+} from "../money-store";
 import { bookSaleMoney } from "../sale-store";
 import {
   assertTripIsOpen,
@@ -97,6 +102,8 @@ export const intakeCorrectionInput = correctionInput({
   ),
   seller: changeOf(sellerInput, z.string().nullable()),
   paymentMethod: paymentMethodChange,
+  /** Which Farm Account bKash or bank money names, and its transaction ID. */
+  farmAccount: farmAccountChange,
   /** For a Venture's bull with no outing, paid from its account by bank: the transfer or cheque. Asked when a
    *  Correction makes her one, and put right like any other slip. */
   reference: changeOf(z.string().trim().min(1).max(120), z.string().nullable()),
@@ -173,6 +180,7 @@ export const intakeCorrection: CorrectionKind<
       targetWindow: await windowShown(tx, row, owner, now),
       seller: row.seller?.name ?? null,
       paymentMethod: await paymentMethodOf(tx, row.farmId, "intake", row.id),
+      farmAccount: await farmAccountShownOf(tx, row.farmId, "intake", row.id),
       reference: await boughtByBankReference(tx, row.farmId, row.id),
     };
   },
@@ -241,7 +249,12 @@ export const intakeCorrection: CorrectionKind<
     if (somethingChanged(putRight)) {
       await tx.update(intake).set(putRight).where(eq(intake.id, row.id));
     }
-    const booking = bookingOf(context, context.roleUsed, now);
+    const booking = bookingOf(
+      context,
+      context.roleUsed,
+      now,
+      to.farmAccount ? accountSaid(["intake"], to.farmAccount) : undefined
+    );
     await bookIntakeMoney(tx, booking, row.id, to.paymentMethod);
     // Whether the Venture Account paid for her, decided from the Intake as it now stands.
     await bookBoughtByBank(tx, row.id, {

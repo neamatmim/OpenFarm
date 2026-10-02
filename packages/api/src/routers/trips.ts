@@ -10,8 +10,12 @@ import {
 } from "../corrections/buying-trip";
 import { correct } from "../corrections/correction";
 import { protectedProcedure } from "../index";
-import { paymentMethodInput } from "../money-inputs";
-import { bookingOf } from "../money-store";
+import {
+  farmAccountIdInput,
+  paymentMethodInput,
+  referenceInput,
+} from "../money-inputs";
+import { accountSaid, bookingOf } from "../money-store";
 import { requireRole } from "../roles";
 import {
   bookTripMoney,
@@ -34,6 +38,10 @@ const recordInput = z.object({
   /** When the lorry went, for an outing written up the next morning. */
   wentOn: z.coerce.date().optional(),
   paymentMethod: paymentMethodInput,
+  /** Which Farm Account bKash or bank money went into or came out of. */
+  farmAccountId: farmAccountIdInput,
+  /** Its transaction ID, or the cheque's or slip's number. */
+  reference: referenceInput,
 });
 
 export const tripsRouter = {
@@ -202,7 +210,12 @@ export const tripsRouter = {
           });
           await bookTripMoney(
             tx,
-            bookingOf(context, context.roleUsed, now),
+            bookingOf(
+              context,
+              context.roleUsed,
+              now,
+              accountSaid(["buying_trip"], input)
+            ),
             id,
             input.paymentMethod
           );

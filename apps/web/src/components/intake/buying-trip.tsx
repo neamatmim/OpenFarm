@@ -4,7 +4,12 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { FormField, FormSheet } from "@/components/page-kit";
-import { PaymentMethodField } from "@/components/payment-method";
+import type { AccountTyped } from "@/components/payment-method";
+import {
+  accountSent,
+  NO_ACCOUNT,
+  PaymentMethodField,
+} from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
@@ -46,6 +51,7 @@ export const BuyingTripSheet = ({
   const [outing, setOuting] = useState<Outing>(NOTHING_YET);
   const [paymentMethod, setPaymentMethod] =
     useState<IntakeFields["paymentMethod"]>("cash");
+  const [account, setAccount] = useState<AccountTyped>(NO_ACCOUNT);
   const record = useMutation(
     orpc.trips.record.mutationOptions({
       onError: refused,
@@ -69,6 +75,7 @@ export const BuyingTripSheet = ({
           transportBdt: orNothing(outing.transportBdt),
           keepBdt: orNothing(outing.keepBdt),
           paymentMethod,
+          ...accountSent(paymentMethod, account),
         })
       }
       open={open}
@@ -111,6 +118,7 @@ export const BuyingTripSheet = ({
         ))}
       </div>
       <PaymentMethodField
+        account={{ typed: account, onChange: setAccount }}
         id="trip-payment"
         onChange={setPaymentMethod}
         value={paymentMethod}

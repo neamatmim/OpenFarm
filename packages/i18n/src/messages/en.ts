@@ -1422,6 +1422,16 @@ export const en = {
     "A Venture's bull bought with no outing is paid from its account by bank, with the reference",
   "refusal.notHeldHere":
     "That Sale's cash is not held in this hand for this Venture",
+  "refusal.namesNoFarmAccount":
+    "Say which of the Farm's accounts the bKash or bank money went into or came out of",
+  "refusal.farmAccountNotThatKind":
+    "That Farm Account is not the kind the money moved by",
+  "refusal.farmAccountRetired": "That Farm Account has been retired",
+  "refusal.needsItsReference":
+    "bKash or bank money carries its transaction ID or reference",
+  "refusal.referenceUsedAlready":
+    "That transaction ID is on this Farm Account already",
+  "refusal.farmAccountListedAlready": "That number is listed already",
   "refusal.alreadyDeposited": "That Sale's money has been deposited already",
   "refusal.ventureSaleNotByBkash":
     "A Venture's animal is paid for by bank or in cash, never by bKash",
@@ -3028,7 +3038,25 @@ export const en = {
     "The period has more entries than one page. Narrow the period, or use the accountant's report for complete totals.",
   "money.shownOnly": "Entries shown only",
   "money.title": "Income & expenses",
+  "farmAccounts.title": "Farm Accounts",
+  "farmAccounts.why":
+    "The Farm's own bKash numbers and bank accounts. Once one of a kind is listed, money by it names which one it went into or came out of, with its transaction ID.",
+  "farmAccounts.none": "No accounts listed yet.",
+  "farmAccounts.kind": "Kind",
+  "farmAccounts.name": "Name",
+  "farmAccounts.number": "Number",
+  "farmAccounts.bank": "Bank",
+  "farmAccounts.branch": "Branch",
+  "farmAccounts.add": "Add account",
+  "farmAccounts.added": "Account added",
+  "farmAccounts.retire": "Retire",
+  "farmAccounts.retired": "retired",
+  "farmAccounts.retiredDone": "Account retired",
+  "money.referenceWas": "ref. {reference}",
   "money.paidBy": "Paid by",
+  "money.whichAccount": "Which Farm Account",
+  "money.chooseAccount": "Choose an account",
+  "money.reference": "Transaction ID or reference",
   "money.method.cash": "Cash",
   "money.method.bkash": "bKash",
   "money.method.bank": "Bank",

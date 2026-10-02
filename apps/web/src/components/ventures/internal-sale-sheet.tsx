@@ -15,6 +15,7 @@ import {
 } from "@/components/fattening/window-choice";
 import type { WindowPick } from "@/components/fattening/window-choice";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
+import { FarmAccountField } from "@/components/payment-method";
 import type { PickerOption } from "@/components/searchable-picker";
 import { SearchablePicker } from "@/components/searchable-picker";
 import { useLanguage } from "@/i18n/language-provider";
@@ -89,6 +90,8 @@ export const InternalSaleSheet = ({
   const [note, setNote] = useState("");
   const [soldOn, setSoldOn] = useState("");
   const [reference, setReference] = useState("");
+  // The Farm's bank account its own side of this went into or came out of.
+  const [farmAccountId, setFarmAccountId] = useState("");
   // Where the Farm takes her on, the Season she joins: the next Eid unless another window is said.
   const [windowPick, setWindowPick] = useState<WindowPick>(NEXT_EID);
   // Read only once it is open: it sits closed on every animal's page, where most people may read neither.
@@ -150,6 +153,7 @@ export const InternalSaleSheet = ({
           soldOn,
           paymentMethod: "bank",
           reference,
+          ...(farmAccountId ? { farmAccountId } : {}),
           priceBdt,
         })
       }
@@ -226,6 +230,12 @@ export const InternalSaleSheet = ({
           })}
         </p>
       )}
+      <FarmAccountField
+        id="internal-reference-account"
+        kind="bank"
+        onChange={setFarmAccountId}
+        value={farmAccountId}
+      />
       <FormField
         hint={t("ventures.referenceHint")}
         id="internal-reference"

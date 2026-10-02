@@ -149,6 +149,11 @@ const Detail = ({ event }: { event: MoneyEvent }) => {
     event.purse ? t("money.purseWas", { venture: event.purse.name }) : "",
     // Whose hand the cash is in — left out of an answer kept from before hands were named.
     event.holderName ? t("cash.heldBy", { name: event.holderName }) : "",
+    // The Farm Account bKash or bank money named, and its transaction ID — both missing from an older answer.
+    event.farmAccountName ?? "",
+    event.reference
+      ? t("money.referenceWas", { reference: event.reference })
+      : "",
     event.note ?? "",
   ].filter(Boolean);
   return <>{parts.join(" · ")}</>;

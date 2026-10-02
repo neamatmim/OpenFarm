@@ -22,8 +22,13 @@ import { assertNameFree, bringBackToList, retireFromList } from "../farm-list";
 import { protectedProcedure } from "../index";
 import { assertNotExpiredWhenBought, lotFields } from "../lot-input";
 import { medicineStockOf, noMedicine } from "../medicine-stock";
-import { amountInput, paymentMethodInput } from "../money-inputs";
-import { bookMoney, bookingOf } from "../money-store";
+import {
+  amountInput,
+  farmAccountIdInput,
+  paymentMethodInput,
+  referenceInput,
+} from "../money-inputs";
+import { accountSaid, bookingOf, bookMoney } from "../money-store";
 import {
   forbidden,
   requireOnly,
@@ -195,6 +200,10 @@ export const drugsRouter = {
         }),
         purchasedOn: farmDay,
         paymentMethod: paymentMethodInput,
+        /** Which Farm Account bKash or bank money went into or came out of. */
+        farmAccountId: farmAccountIdInput,
+        /** Its transaction ID, or the cheque's or slip's number. */
+        reference: referenceInput,
         ...lotFields,
       })
     )
@@ -255,14 +264,23 @@ export const drugsRouter = {
             recordedByRole: context.roleUsed,
             recordedAt: now,
           });
-          await bookMoney(tx, bookingOf(context, context.roleUsed, now), {
-            source: "medicine_purchase",
-            sourceId: id,
-            amountBdt: input.priceBdt,
-            occurredAt: purchasedOn,
-            counterpartyId: sellerId,
-            paymentMethod: input.paymentMethod,
-          });
+          await bookMoney(
+            tx,
+            bookingOf(
+              context,
+              context.roleUsed,
+              now,
+              accountSaid(["medicine_purchase"], input)
+            ),
+            {
+              source: "medicine_purchase",
+              sourceId: id,
+              amountBdt: input.priceBdt,
+              occurredAt: purchasedOn,
+              counterpartyId: sellerId,
+              paymentMethod: input.paymentMethod,
+            }
+          );
         }
       );
       return { id };

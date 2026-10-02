@@ -16,6 +16,7 @@ import { diagnosesRouter } from "./diagnoses";
 import { drugsRouter } from "./drugs";
 import { eidRouter } from "./eid";
 import { farmRouter } from "./farm";
+import { farmAccountsRouter } from "./farm-accounts";
 import { fatteningRouter } from "./fattening";
 import { feedRouter } from "./feed";
 import { herdRouter } from "./herd";
@@ -52,10 +53,82 @@ import { venturesRouter } from "./ventures";
 import { vetCasesRouter } from "./vet-cases";
 import { withdrawalsRouter } from "./withdrawals";
 
-export const appRouter = {
-  healthCheck: publicProcedure.handler(() => "OK"),
-  /** The API's notion of now — from the injected Clock, so clients can show sync age. */
-  serverTime: publicProcedure.handler(({ context }) => context.clock.now()),
+/** Whether the API answers at all. */
+const healthCheck = publicProcedure.handler(() => "OK");
+/** The API's notion of now — from the injected Clock, so clients can show sync age. */
+const serverTime = publicProcedure.handler(({ context }) =>
+  context.clock.now()
+);
+const privateData = protectedProcedure.handler(({ context }) => ({
+  message: "This is private",
+  user: context.actor,
+}));
+
+/**
+ * The router's shape, spelled out as each part's own type. Left to inference, the whole of it is written into the
+ * declaration file expanded, and it has grown past what the compiler will write; named, each part is written by name.
+ */
+// oxlint-disable-next-line typescript/consistent-type-definitions -- an interface has no index signature, and oRPC's Router type asks for one
+type AppRouterShape = {
+  healthCheck: typeof healthCheck;
+  serverTime: typeof serverTime;
+  alerts: typeof alertsRouter;
+  animals: typeof animalsRouter;
+  audit: typeof auditRouter;
+  backups: typeof backupsRouter;
+  breeds: typeof breedsRouter;
+  devices: typeof devicesRouter;
+  diagnoses: typeof diagnosesRouter;
+  drugs: typeof drugsRouter;
+  eid: typeof eidRouter;
+  farm: typeof farmRouter;
+  farmAccounts: typeof farmAccountsRouter;
+  fattening: typeof fatteningRouter;
+  feed: typeof feedRouter;
+  herd: typeof herdRouter;
+  home: typeof homeRouter;
+  returns: typeof returnsRouter;
+  instances: typeof instancesRouter;
+  intake: typeof intakeRouter;
+  language: typeof languageRouter;
+  milk: typeof milkRouter;
+  notifiable: typeof notifiableRouter;
+  observations: typeof observationsRouter;
+  papers: typeof papersRouter;
+  people: typeof peopleRouter;
+  prescriptions: typeof prescriptionsRouter;
+  push: typeof pushRouter;
+  ready: typeof readyRouter;
+  costs: typeof costsRouter;
+  culling: typeof cullingRouter;
+  inspector: typeof inspectorRouter;
+  money: typeof moneyRouter;
+  cash: typeof cashRouter;
+  baki: typeof bakiRouter;
+  reports: typeof reportsRouter;
+  breeding: typeof breedingRouter;
+  stock: typeof stockRouter;
+  review: typeof reviewRouter;
+  sale: typeof saleRouter;
+  trips: typeof tripsRouter;
+  sellingTrips: typeof sellingTripsRouter;
+  ventures: typeof venturesRouter;
+  investorStatements: typeof investorStatementsRouter;
+  investors: typeof investorsRouter;
+  portal: typeof portalRouter;
+  portalPreview: typeof portalPreviewRouter;
+  sops: typeof sopsRouter;
+  templates: typeof templatesRouter;
+  sync: typeof syncRouter;
+  vetCases: typeof vetCasesRouter;
+  treatments: typeof treatmentsRouter;
+  withdrawals: typeof withdrawalsRouter;
+  privateData: typeof privateData;
+};
+
+export const appRouter: AppRouterShape = {
+  healthCheck,
+  serverTime,
   alerts: alertsRouter,
   animals: animalsRouter,
   audit: auditRouter,
@@ -66,6 +139,7 @@ export const appRouter = {
   drugs: drugsRouter,
   eid: eidRouter,
   farm: farmRouter,
+  farmAccounts: farmAccountsRouter,
   fattening: fatteningRouter,
   feed: feedRouter,
   herd: herdRouter,
@@ -106,10 +180,7 @@ export const appRouter = {
   vetCases: vetCasesRouter,
   treatments: treatmentsRouter,
   withdrawals: withdrawalsRouter,
-  privateData: protectedProcedure.handler(({ context }) => ({
-    message: "This is private",
-    user: context.actor,
-  })),
+  privateData,
 };
 export type AppRouter = typeof appRouter;
 export type AppRouterClient = RouterClient<typeof appRouter>;

@@ -36,8 +36,14 @@ import { correct } from "../corrections/correction";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { enteredOn } from "../money-by-hand-store";
-import { amountInput, noteInput, paymentMethodInput } from "../money-inputs";
-import { bookMoney, bookingOf } from "../money-store";
+import {
+  amountInput,
+  farmAccountIdInput,
+  noteInput,
+  paymentMethodInput,
+  referenceInput,
+} from "../money-inputs";
+import { accountSaid, bookingOf, bookMoney } from "../money-store";
 import {
   OWNER_ONLY,
   requireOnly,
@@ -104,6 +110,10 @@ export const bakiRouter = {
         amountBdt: amountInput,
         paidOn: farmDay,
         paymentMethod: paymentMethodInput,
+        /** Which Farm Account bKash or bank money went into or came out of. */
+        farmAccountId: farmAccountIdInput,
+        /** Its transaction ID, or the cheque's or slip's number. */
+        reference: referenceInput,
         note: noteInput.optional(),
         /** Whose hand took the cash, where it was not the writer's: the Owner writing up what the Manager was handed. */
         heldBy: z.string().optional(),
@@ -149,25 +159,34 @@ export const bakiRouter = {
             recordedByRole: context.roleUsed,
             recordedAt: now,
           });
-          await bookMoney(tx, bookingOf(context, context.roleUsed, now), {
-            source: "baki_payment",
-            sourceId: id,
-            amountBdt: input.amountBdt,
-            occurredAt,
-            counterpartyId: known.id,
-            paymentMethod: input.paymentMethod,
-            ...(input.heldBy === undefined
-              ? {}
-              : {
-                  heldBy: await assertTheHand(
-                    tx,
-                    context.farm.id,
-                    { id: context.actor.id, roles: context.roles },
-                    input.heldBy
-                  ),
-                }),
-            categoryKey: CATEGORY_OF_BAKI[input.kind],
-          });
+          await bookMoney(
+            tx,
+            bookingOf(
+              context,
+              context.roleUsed,
+              now,
+              accountSaid(["baki_payment"], input)
+            ),
+            {
+              source: "baki_payment",
+              sourceId: id,
+              amountBdt: input.amountBdt,
+              occurredAt,
+              counterpartyId: known.id,
+              paymentMethod: input.paymentMethod,
+              ...(input.heldBy === undefined
+                ? {}
+                : {
+                    heldBy: await assertTheHand(
+                      tx,
+                      context.farm.id,
+                      { id: context.actor.id, roles: context.roles },
+                      input.heldBy
+                    ),
+                  }),
+              categoryKey: CATEGORY_OF_BAKI[input.kind],
+            }
+          );
         }
       );
       return { id };

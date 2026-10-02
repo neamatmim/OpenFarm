@@ -27,7 +27,7 @@ import {
   shelfCount,
   shelfReason,
 } from "./shared";
-import { HERD_SUNDRIES } from "./standing";
+import { HERD_SUNDRIES, paidBy } from "./standing";
 import type { Farm, PenKey } from "./standing";
 import "./responders";
 
@@ -88,7 +88,7 @@ const keepTheStore = ({ farm, days, on }: Script) => {
         priceBdt: price ? price * quantity : undefined,
         seller,
         receivedOn: start,
-        paymentMethod: "bank",
+        ...paidBy(f, "bank"),
       });
     }
   });
@@ -138,7 +138,7 @@ const keepTheStore = ({ farm, days, on }: Script) => {
           priceBdt: price * quantity,
           seller,
           receivedOn: day,
-          paymentMethod: random.chance(0.5) ? "cash" : "bkash",
+          ...paidBy(f, random.chance(0.5) ? "cash" : "bkash"),
         });
       }
     });
@@ -174,7 +174,7 @@ const sendTheMilk = ({ farm, days, on }: Script) => {
         pricePerLitreBdt: random.int(56, 60),
         fatPercent: Math.round(random.between(3.8, 4.4) * 10) / 10,
         snfPercent: Math.round(random.between(8.1, 8.6) * 10) / 10,
-        paymentMethod: "bank",
+        ...paidBy(f, "bank"),
       });
       f.clock.set(onFarm(day, "09:10"));
       if (day === addDays(today, -3)) {
@@ -415,7 +415,7 @@ const payTheMonth = async (
       amountBdt: amount,
       occurredOn: payday,
       counterparty: { name },
-      paymentMethod: "bkash",
+      ...paidBy(f, "bkash"),
       wageMonth,
     });
   }
@@ -476,7 +476,7 @@ const payTheMonth = async (
       amountBdt,
       occurredOn: payday,
       counterparty: { name },
-      paymentMethod,
+      ...paidBy(f, paymentMethod),
       note,
     });
   }
@@ -532,7 +532,7 @@ const settleTheHand = async (f: Farm) => {
   const holds = hand?.bdt ?? 0;
   if (holds < HAND_LOW_BDT) {
     await f.as.owner.cash.handOver({
-      from: { bank: true },
+      from: { farmAccountId: f.farmAccounts.bank },
       to: { userId: managerId },
       amountBdt:
         Math.ceil((HAND_FLOAT_BDT - holds) / HAND_ROUNDS_TO_BDT) *
@@ -594,7 +594,7 @@ const keepTheBooks = ({ farm, days, on }: Script) => {
         amountBdt: 3000,
         visitedOn: visit,
         note: "মাসিক খামার পরিদর্শন ও গর্ভ পরীক্ষা",
-        paymentMethod: "bkash",
+        ...paidBy(f, "bkash"),
       });
     });
   }
@@ -1016,7 +1016,7 @@ const sellTheReady = ({ farm, on }: Script) => {
         destination: buyer.address,
         vehicle: `ঢাকা মেট্রো-ন ${random.int(11, 19)}-${random.int(1000, 9999)}`,
         driver: random.pick(["মোঃ হাবিব", "সোহেল রানা", "আব্দুর রহিম"]),
-        paymentMethod: random.chance(0.5) ? "bank" : "cash",
+        ...paidBy(f, random.chance(0.5) ? "bank" : "cash"),
       });
       bull.state = "sold";
     });
@@ -1035,7 +1035,7 @@ const sellTheReady = ({ farm, on }: Script) => {
       kind: "cattle",
       amountBdt: 10_000,
       paidOn: addDays(today, -1),
-      paymentMethod: "bkash",
+      ...paidBy(f, "bkash"),
     });
   });
   on(addDays(start, 70), "11:00", "a cull", async (f, h) => {

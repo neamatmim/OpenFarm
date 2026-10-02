@@ -457,6 +457,17 @@ export const PriceSection = ({
         <PaidFromTheAccount fields={fields} onEdit={onEdit} />
       ) : (
         <PaymentMethodField
+          account={{
+            typed: {
+              farmAccountId: fields.farmAccountId,
+              reference: fields.reference,
+            },
+            onChange: (account) =>
+              onEdit({
+                farmAccountId: account.farmAccountId,
+                reference: account.reference,
+              }),
+          }}
           id="intake-paid-by"
           onChange={(paymentMethod) => onEdit({ paymentMethod })}
           value={fields.paymentMethod}
