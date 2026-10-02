@@ -17,6 +17,7 @@ import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useShrinkWords } from "@/components/sale/shrink-words";
 import { SearchablePicker } from "@/components/searchable-picker";
+import { WhoseHandField } from "@/components/whose-hand";
 import { useLanguage } from "@/i18n/language-provider";
 import type { BakiTyped } from "@/lib/baki";
 import { NO_BAKI, bakiComplete, bakiSent, somethingPaid } from "@/lib/baki";
@@ -44,6 +45,8 @@ export interface SaleAnswers {
   driver: string;
   note: string;
   paymentMethod: PaymentMethod;
+  /** Whose hand took the cash, where the Owner names another's; empty for the writer's own. */
+  heldBy: string;
   /** Whether the buyer still owes some of it, what he paid now, and the day he promised. */
   baki: BakiTyped;
   /** What the broker at the haat took for this sale, where one was used; empty where none was. */
@@ -62,6 +65,7 @@ export const NOTHING_TYPED: SaleAnswers = {
   driver: "",
   note: "",
   paymentMethod: "cash",
+  heldBy: "",
   baki: NO_BAKI,
   brokerBdt: "",
 };
@@ -404,6 +408,9 @@ export const SaleSheet = ({
           driver: answers.driver,
           note: answers.note || undefined,
           paymentMethod: answers.paymentMethod,
+          ...(answers.paymentMethod === "cash" && answers.heldBy
+            ? { heldBy: answers.heldBy }
+            : {}),
           ...bakiSent(answers.baki),
           ...brokerSent(answers),
         })
@@ -484,6 +491,13 @@ export const SaleSheet = ({
             id="sale-paid-by"
             onChange={(paymentMethod) => edit({ paymentMethod })}
             value={answers.paymentMethod}
+          />
+        ) : null}
+        {somethingPaid(answers.baki) && answers.paymentMethod === "cash" ? (
+          <WhoseHandField
+            id="sale-whose-hand"
+            onChange={(heldBy) => edit({ heldBy })}
+            value={answers.heldBy}
           />
         ) : null}
         <TextField

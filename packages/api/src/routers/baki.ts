@@ -23,6 +23,7 @@ import {
   readBakiPayment,
   readWriteOff,
 } from "../baki-store";
+import { assertTheHand } from "../cash-store";
 import {
   bakiPaymentCorrection,
   bakiPaymentCorrectionInput,
@@ -104,6 +105,8 @@ export const bakiRouter = {
         paidOn: farmDay,
         paymentMethod: paymentMethodInput,
         note: noteInput.optional(),
+        /** Whose hand took the cash, where it was not the writer's: the Owner writing up what the Manager was handed. */
+        heldBy: z.string().optional(),
       })
     )
     .handler(async ({ context, input }) => {
@@ -153,6 +156,16 @@ export const bakiRouter = {
             occurredAt,
             counterpartyId: known.id,
             paymentMethod: input.paymentMethod,
+            ...(input.heldBy === undefined
+              ? {}
+              : {
+                  heldBy: await assertTheHand(
+                    tx,
+                    context.farm.id,
+                    { id: context.actor.id, roles: context.roles },
+                    input.heldBy
+                  ),
+                }),
             categoryKey: CATEGORY_OF_BAKI[input.kind],
           });
         }

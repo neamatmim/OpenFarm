@@ -35,7 +35,7 @@ Account the moment she is sold, though nobody has been to the bank.
 | #   | Ticket                                            | Blocked by |
 | --- | ------------------------------------------------- | ---------- |
 | 01  | A Venture's sale cash, held until it is deposited (done) | —          |
-| 02  | Whose hand took the notes                         | —          |
+| 02  | Whose hand took the notes (done) | —          |
 | 03  | The Farm Accounts, named on bKash and bank money  | —          |
 | 04  | The monthly check of a Farm Account               | 03         |
 

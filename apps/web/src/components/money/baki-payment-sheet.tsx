@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
+import { WhoseHandField } from "@/components/whose-hand";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
@@ -34,6 +35,7 @@ export const BakiPaymentSheet = ({
   const [amount, setAmount] = useState("");
   const [paidOn, setPaidOn] = useState(() => farmDayOf(new Date()));
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const [heldBy, setHeldBy] = useState("");
   const [note, setNote] = useState("");
   const pay = useMutation(
     orpc.baki.pay.mutationOptions({
@@ -64,6 +66,7 @@ export const BakiPaymentSheet = ({
             amountBdt: figure,
             paidOn,
             paymentMethod,
+            ...(paymentMethod === "cash" && heldBy ? { heldBy } : {}),
             note: note.trim() || undefined,
           });
         }
@@ -123,6 +126,13 @@ export const BakiPaymentSheet = ({
           onChange={setPaymentMethod}
           value={paymentMethod}
         />
+        {paymentMethod === "cash" ? (
+          <WhoseHandField
+            id="baki-whose-hand"
+            onChange={setHeldBy}
+            value={heldBy}
+          />
+        ) : null}
       </div>
       <FormField
         hint={t("baki.noteHint")}

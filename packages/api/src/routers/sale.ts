@@ -13,6 +13,7 @@ import { z } from "zod";
 import { tellIfSoldUnderCost } from "../animal-price-store";
 import { audited } from "../audit";
 import { bakiOrRefuse, paidNowInput, promisedByInput } from "../baki-store";
+import { assertTheHand } from "../cash-store";
 import { correct } from "../corrections/correction";
 import { saleCorrection, saleCorrectionInput } from "../corrections/sale";
 import { counterpartyNamed } from "../counterparty-store";
@@ -134,6 +135,8 @@ export const saleRouter = {
         soldAt: z.coerce.date().optional(),
         /** How the buyer paid what he paid. */
         paymentMethod: paymentMethodInput,
+        /** Whose hand took the cash, where it was not the writer's: the Owner writing up the Manager's sale. */
+        heldBy: z.string().optional(),
         /** What he paid there and then; left out, all of it. Less than the price, and the rest is his Baki. */
         paidNowBdt: paidNowInput.optional(),
         /** The day he promised to pay the rest by. Asked whenever anything is left owing: a trader promises a day. */
@@ -229,7 +232,16 @@ export const saleRouter = {
             tx,
             bookingOf(context, context.roleUsed, now),
             id,
-            input.paymentMethod
+            input.paymentMethod,
+            await assertTheHand(
+              tx,
+              context.farm.id,
+              {
+                id: context.actor.id,
+                roles: context.roles,
+              },
+              input.heldBy
+            )
           );
           // Told, never refused: the haat is the Manager's call, and what she cost is the Owner's to read.
           await tellIfSoldUnderCost(tx, context.farm.id, id, now);
