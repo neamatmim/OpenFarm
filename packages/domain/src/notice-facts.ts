@@ -88,6 +88,12 @@ export interface NoticeFacts {
     /** The farm day ("YYYY-MM-DD") the latest missed sum fell due. */
     dueOn: string;
   };
+  /** Never what she cost: that is the Owner's, as every price is. */
+  mortality_undiagnosed: {
+    tag: string;
+    kind: "died" | "culled";
+    cause: string;
+  };
   mortality_recorded: {
     tag: string;
     kind: "died" | "culled";

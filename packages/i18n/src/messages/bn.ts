@@ -4692,6 +4692,10 @@ export const bn: Record<MessageKey, string> = {
     "{tag}{venture} {how} — কারণ: {cause}; তার খরচ পড়েছিল ৳{cost}",
   "push.mortalityRecordedTitle": "একটি পশু চলে গেছে",
   "digest.mortalityRecorded": "{count}টি পশু মারা গেছে বা বাদ দেওয়া হয়েছে",
+  "alerts.mortalityUndiagnosed":
+    "{tag} {how} — কারণ লেখা হয়েছে: {cause}; কোনো রোগ নির্ণয় নেই",
+  "digest.mortalityUndiagnosed":
+    "{count}টি পশু রোগ নির্ণয় ছাড়াই মারা গেছে বা বাদ দেওয়া হয়েছে",
   "alerts.openTheEids": "ঈদের তালিকা খুলুন",
   "alerts.openTheMoney": "টাকার হিসাব খুলুন",
   "alerts.openTheCash": "হাতে নগদ খুলুন",

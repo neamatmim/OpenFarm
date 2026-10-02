@@ -5026,6 +5026,10 @@ export const en = {
   "push.mortalityRecordedTitle": "An animal has gone",
   "digest.mortalityRecorded":
     "{count, plural, one {# animal} other {# animals}} died or {count, plural, one {was} other {were}} culled",
+  "alerts.mortalityUndiagnosed":
+    "{tag} {how} — cause written: {cause}; no Diagnosis named",
+  "digest.mortalityUndiagnosed":
+    "{count, plural, one {# animal} other {# animals}} died or {count, plural, one {was} other {were}} culled with no Diagnosis",
   "alerts.openTheEids": "Open the Eid list",
   "alerts.openTheMoney": "Open income and expenses",
   "alerts.openTheCash": "Open the cash in hand",
