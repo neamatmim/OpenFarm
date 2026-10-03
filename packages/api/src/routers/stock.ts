@@ -248,7 +248,7 @@ export const stockRouter = {
         receivedOn: farmDay,
         /** How the seller was paid, for a purchase. */
         paymentMethod: paymentMethodInput,
-        /** Which Farm Account bKash or bank money went into or came out of. */
+        /** Which Farm Account mobile money or bank money went into or came out of. */
         farmAccountId: farmAccountIdInput,
         /** Its transaction ID, or the cheque's or slip's number. */
         reference: referenceInput,

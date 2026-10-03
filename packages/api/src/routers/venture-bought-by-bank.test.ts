@@ -75,7 +75,7 @@ beforeAll(async () => {
 const atTheGate = async (
   who: Client,
   sheet: {
-    paymentMethod?: "cash" | "bank" | "bkash";
+    paymentMethod?: "cash" | "bank" | "mobile_money";
     reference?: string;
     purchasePriceMoney?: number;
     buyingTripId?: string;

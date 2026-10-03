@@ -16,7 +16,7 @@ import { useRefused } from "@/lib/refused";
 import { monthsStillOut } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
 
-type Kind = "bkash" | "bank";
+type Kind = "mobile_money" | "bank";
 
 type Listed = Awaited<ReturnType<typeof orpc.farmAccounts.list.call>>[number];
 
@@ -72,14 +72,14 @@ interface Typed {
 }
 
 const NOTHING_TYPED: Typed = {
-  kind: "bkash",
+  kind: "mobile_money",
   name: "",
   number: "",
   bank: "",
   branch: "",
 };
 
-/** The Owner listing one more of the Farm's own bKash numbers or bank accounts. */
+/** The Owner listing one more of the Farm's own mobile money numbers or bank accounts. */
 const AddAccount = () => {
   const { t } = useLanguage();
   const refused = useRefused();
@@ -122,11 +122,13 @@ const AddAccount = () => {
           className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
           id="farm-account-kind"
           onChange={(event) =>
-            edit({ kind: event.target.value === "bank" ? "bank" : "bkash" })
+            edit({
+              kind: event.target.value === "bank" ? "bank" : "mobile_money",
+            })
           }
           value={typed.kind}
         >
-          <option value="bkash">{t("money.method.bkash")}</option>
+          <option value="mobile_money">{t("money.method.mobile_money")}</option>
           <option value="bank">{t("money.method.bank")}</option>
         </select>
       </div>
@@ -177,7 +179,7 @@ const AddAccount = () => {
 };
 
 /**
- * The Farm's own bKash numbers and bank accounts. Once one of a kind is listed, bKash or bank money names which it
+ * The Farm's own mobile money numbers and bank accounts. Once one of a kind is listed, mobile money or bank money names which it
  * went into or came out of, with its transaction ID. The Owner's to list and retire; the Manager reads them, the
  * numbers masked. A retired one stays on the books it was named on and is offered for no new money.
  */
@@ -227,8 +229,8 @@ export const FarmAccounts = ({ id }: { id: string }) => {
                 </p>
                 <p className="text-muted-foreground text-xs tabular-nums">
                   {t(
-                    one.kind === "bkash"
-                      ? "money.method.bkash"
+                    one.kind === "mobile_money"
+                      ? "money.method.mobile_money"
                       : "money.method.bank"
                   )}{" "}
                   · {one.number}

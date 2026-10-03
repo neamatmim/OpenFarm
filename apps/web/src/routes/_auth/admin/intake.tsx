@@ -162,7 +162,7 @@ const IntakePage = () => {
             buyingTripId: fields.buyingTripId || undefined,
             ventureId: fields.ventureId || undefined,
             paymentMethod: sheet.paymentMethod,
-            // A Venture's bull at the gate: the transfer from its account. The Farm's own by bKash or the bank: the
+            // A Venture's bull at the gate: the transfer from its account. The Farm's own by mobile money or the bank: the
             // Farm Account it came out of and its transaction ID.
             ...(boughtFromTheAccount(fields)
               ? { reference: fields.reference.trim() }

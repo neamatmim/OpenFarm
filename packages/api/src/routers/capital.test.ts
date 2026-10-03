@@ -102,7 +102,7 @@ describe("capital in", () => {
   it("refuses money that came by hand", async () => {
     const owner = await as("owner", "2046-09-04T04:00:00.000Z");
     const cashy = await signedUp(owner, 2, ventureId, 1);
-    const byHand = (["cash", "bkash"] as const).map((paymentMethod) =>
+    const byHand = (["cash", "mobile_money"] as const).map((paymentMethod) =>
       expect(
         owner.client.ventures.takeCapital({
           agreementId: cashy.agreementId,

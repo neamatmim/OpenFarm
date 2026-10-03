@@ -6,7 +6,7 @@ import { appRouter } from "./index";
 
 /**
  * Each month the Owner reads a Farm Account's statement against what the farm believes it held at the month's end —
- * the Bank Check, of the Farm's own bKash number. Manure sold for cash and written as bKash, with a TrxID made up to
+ * the Bank Check, of the Farm's own mobile money number. Manure sold for cash and written as mobile money, with a TrxID made up to
  * get past the form, is a month the statement will not agree with.
  */
 const suffix = `account-check-${Date.now()}`;
@@ -24,7 +24,7 @@ const entered = async (
   day: string,
   categoryId: string,
   amountMoney: number,
-  sheet: { paymentMethod: "cash" | "bkash"; reference?: string }
+  sheet: { paymentMethod: "cash" | "mobile_money"; reference?: string }
 ) => {
   const manager = await as("manager", `${day}T10:00:00.000Z`);
   return await manager.client.money.enter({
@@ -68,18 +68,18 @@ beforeAll(async () => {
   manureId = categories.find((one) => one.key === "manure_sales")?.id ?? "";
   repairsId = categories.find((one) => one.key === "repairs")?.id ?? "";
   const office = await owner.client.farmAccounts.add({
-    kind: "bkash",
+    kind: "mobile_money",
     name: `অফিস বিকাশ ${suffix}`,
     number: "01711000077",
   });
   accountId = office.id;
-  // May: ৳3,000 of manure really paid by bKash, and ৳5,000 sold for cash but written as bKash.
+  // May: ৳3,000 of manure really paid by mobile money, and ৳5,000 sold for cash but written as mobile money.
   await entered("2083-05-10", manureId, 3000, {
-    paymentMethod: "bkash",
+    paymentMethod: "mobile_money",
     reference: `TRX-REAL-${suffix}`,
   });
   const fake = await entered("2083-05-20", manureId, 5000, {
-    paymentMethod: "bkash",
+    paymentMethod: "mobile_money",
     reference: `TRX-MADE-UP-${suffix}`,
   });
   fakeId = fake.id;
@@ -96,7 +96,7 @@ describe("a Farm Account's monthly check", () => {
     expect(first).toMatchObject({ expectedMoney: 10_000, differenceMoney: 0 });
   });
 
-  it("disagrees by the bKash money that never reached the number", async () => {
+  it("disagrees by the mobile money money that never reached the number", async () => {
     // What the farm believes: ৳10,000, the ৳3,000 that came in, and the ৳5,000 that never did.
     const may = await checked(
       "2083-05",
@@ -134,7 +134,7 @@ describe("a Farm Account's monthly check", () => {
     await manager.client.money.correctEntered({
       id: fakeId,
       reason: `নগদে বিক্রি হয়েছিল ${suffix}`,
-      changes: { paymentMethod: { from: "bkash", to: "cash" } },
+      changes: { paymentMethod: { from: "mobile_money", to: "cash" } },
     });
     expect(await standing()).toMatchObject({
       monthsOut: ["2083-05"],
@@ -154,10 +154,10 @@ describe("a Farm Account's monthly check", () => {
 
   it("agrees the next month with the money and the Handovers that named it", async () => {
     await entered("2083-06-05", repairsId, 1000, {
-      paymentMethod: "bkash",
+      paymentMethod: "mobile_money",
       reference: `TRX-OUT-${suffix}`,
     });
-    // The Manager's cash from manure, put into the bKash number at an agent.
+    // The Manager's cash from manure, put into the mobile money number at an agent.
     await entered("2083-06-08", manureId, 3000, { paymentMethod: "cash" });
     const manager = await as("manager", "2083-06-09T10:00:00.000Z");
     await manager.client.cash.handOver({

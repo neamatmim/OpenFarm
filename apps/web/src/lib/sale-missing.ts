@@ -54,11 +54,11 @@ const receivableMissing = (typed: SaleTyped): SaleMissing | null => {
   return null;
 };
 
-/** Which of the farm's accounts bKash or bank money went into, and its transaction ID — asked only where something
+/** Which of the farm's accounts mobile money or bank money went into, and its transaction ID — asked only where something
  *  was paid at the gate and the farm lists an open account of that kind, as the farm itself asks. */
 const accountMissing = (
   typed: SaleTyped,
-  accountKindsOpen: ReadonlySet<"bkash" | "bank">
+  accountKindsOpen: ReadonlySet<"mobile_money" | "bank">
 ): SaleMissing | null => {
   const method = typed.paymentMethod;
   const asked =
@@ -86,7 +86,7 @@ const accountMissing = (
  */
 export const saleStillMissing = (
   typed: SaleTyped,
-  accountKindsOpen: ReadonlySet<"bkash" | "bank">
+  accountKindsOpen: ReadonlySet<"mobile_money" | "bank">
 ): SaleMissing | null => {
   if (blank(typed.tagNumber)) {
     return { said: "sale.missing.animal", at: "sale-animal" };

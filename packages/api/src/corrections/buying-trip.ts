@@ -42,7 +42,7 @@ export const buyingTripCorrectionInput = correctionInput({
   transportMoney: changeOf(tripCostInput, z.number()),
   keepMoney: changeOf(tripCostInput, z.number()),
   paymentMethod: paymentMethodChange,
-  /** Which Farm Account bKash or bank money names, and its transaction ID. */
+  /** Which Farm Account mobile money or bank money names, and its transaction ID. */
   farmAccount: farmAccountChange,
 });
 

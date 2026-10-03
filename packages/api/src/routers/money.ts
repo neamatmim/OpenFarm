@@ -133,7 +133,7 @@ export const moneyRouter = {
         saleIds: idsFrom("sale"),
         internalSaleIds: idsFrom("internal_sale_in", "internal_sale_out"),
       });
-      // The Farm Account bKash or bank money named, by its name: what the register reads beside the transaction ID.
+      // The Farm Account mobile money or bank money named, by its name: what the register reads beside the transaction ID.
       const accountIds = [
         ...new Set(listed.flatMap((row) => row.farmAccountId ?? [])),
       ];
@@ -170,10 +170,10 @@ export const moneyRouter = {
           ? { id: row.purseVentureId, name: row.purse.name }
           : null,
         hasReceipt: row.receipt !== null,
-        /** Whose hand its cash went into or came out of; nothing for bKash, the bank, or one booked before hands
+        /** Whose hand its cash went into or came out of; nothing for mobile money, the bank, or one booked before hands
          *  were named. */
         holderName: row.holder?.name ?? null,
-        /** The Farm Account bKash or bank money went into or came out of, and its transaction ID or reference. */
+        /** The Farm Account mobile money or bank money went into or came out of, and its transaction ID or reference. */
         farmAccountId: row.farmAccountId,
         farmAccountName: row.farmAccountId
           ? (accountName.get(row.farmAccountId) ?? null)
@@ -273,7 +273,7 @@ export const moneyRouter = {
           .default([]),
         note: z.string().trim().min(1).max(300).optional(),
         paymentMethod: paymentMethodInput,
-        /** Which Farm Account bKash or bank money went into or came out of. */
+        /** Which Farm Account mobile money or bank money went into or came out of. */
         farmAccountId: farmAccountIdInput,
         /** Its transaction ID, or the cheque's or slip's number. */
         reference: referenceInput,

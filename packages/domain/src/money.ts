@@ -1,6 +1,6 @@
 /** How money changed hands. Shared with the client, which offers each; mirrored from the database's
  *  own list, which this package does not depend on. */
-export const PAYMENT_METHODS = ["cash", "bkash", "bank"] as const;
+export const PAYMENT_METHODS = ["cash", "mobile_money", "bank"] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 export type MoneyApproval = "not_needed" | "awaiting" | "approved";

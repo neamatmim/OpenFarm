@@ -18,7 +18,7 @@ export const amountInput = z.number().positive().max(100_000_000);
 /** How the money changed hands. Left unsaid, cash: the farm's gate is a cash gate. */
 export const paymentMethodInput = z.enum(PAYMENT_METHODS).default("cash");
 
-/** Which of the Farm's own bKash numbers or bank accounts bKash or bank money went into or came out of. */
+/** Which of the Farm's own mobile money numbers or bank accounts mobile money or bank money went into or came out of. */
 export const farmAccountIdInput = z.string().min(1).optional();
 
 /** Its transaction ID, or the cheque's or the slip's number. */

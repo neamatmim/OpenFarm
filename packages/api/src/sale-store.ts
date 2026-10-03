@@ -105,17 +105,17 @@ export const bookSaleMoney = async (
       data: { refusal: "venture_paid_in_full" },
     });
   }
-  // A Venture Account takes a buyer's money by bank, or as cash deposited with its slip — never by bKash, whose number
+  // A Venture Account takes a buyer's money by bank, or as cash deposited with its slip — never by mobile money, whose number
   // is the Farm's own.
   const method =
     paymentMethod ??
     (await paymentMethodOf(tx, row.farmId, "sale", row.id)) ??
     undefined;
-  if (ventureId && method === "bkash") {
+  if (ventureId && method === "mobile_money") {
     throw new ORPCError("BAD_REQUEST", {
       message:
-        "A Venture's animal is paid for by bank or in cash, never by bKash",
-      data: { refusal: "venture_sale_not_by_bkash" },
+        "A Venture's animal is paid for by bank or in cash, never by mobile money",
+      data: { refusal: "venture_sale_not_by_mobile_money" },
     });
   }
   const paidMoney = paidAtTheGate(priceMoney, row.receivableMoney);

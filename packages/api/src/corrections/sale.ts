@@ -57,7 +57,7 @@ export const saleCorrectionInput = correctionInput({
   priceMoney: changeOf(salePriceInput, z.number()),
   buyer: changeOf(buyerInput, z.string()),
   paymentMethod: paymentMethodChange,
-  /** Which Farm Account bKash or bank money names, and its transaction ID. */
+  /** Which Farm Account mobile money or bank money names, and its transaction ID. */
   farmAccount: farmAccountChange,
   paidNowMoney: changeOf(paidNowInput, z.number()),
   promisedBy: changeOf(promisedByInput.nullable(), z.string().nullable()),

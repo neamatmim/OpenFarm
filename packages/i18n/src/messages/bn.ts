@@ -1433,7 +1433,7 @@ export const bn: Record<MessageKey, string> = {
   "refusal.beforeTheFirstReading":
     "এই মাসটি এই হিসাবের প্রথম স্টেটমেন্ট মেলানোর আগের",
   "refusal.alreadyDeposited": "এই বিক্রির {currencySum} আগেই জমা হয়েছে",
-  "refusal.ventureSaleNotByBkash":
+  "refusal.ventureSaleNotByMobileMoney":
     "ভেঞ্চারের গরুর দাম ব্যাংকে বা নগদে নেওয়া হয়, বিকাশে নয়",
   "refusal.saleCashInAHand":
     "বিক্রির নগদ {currencySum} এখনও কারও হাতে, ভেঞ্চারের হিসাবে জমা হয়নি",
@@ -3044,7 +3044,7 @@ export const bn: Record<MessageKey, string> = {
   "money.chooseAccount": "হিসাব বেছে নিন",
   "money.reference": "ট্রানজ্যাকশন আইডি বা রেফারেন্স",
   "money.method.cash": "নগদ",
-  "money.method.bkash": "বিকাশ",
+  "money.method.mobile_money": "বিকাশ",
   "money.method.bank": "ব্যাংক",
   "money.approve": "অনুমোদন",
   "money.awaiting": "অনুমোদনের অপেক্ষায়",

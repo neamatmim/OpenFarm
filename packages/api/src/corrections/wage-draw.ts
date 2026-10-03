@@ -41,7 +41,7 @@ export const wageDrawCorrectionInput = correctionInput({
   counterparty: changeOf(counterpartyInput, z.string()),
   drawnOn: changeOf(farmDay, z.string()),
   paymentMethod: paymentMethodChange,
-  /** Which Farm Account bKash or bank money names, and its transaction ID. */
+  /** Which Farm Account mobile money or bank money names, and its transaction ID. */
   farmAccount: farmAccountChange,
   note: changeOf(noteInput.nullable(), z.string().nullable()),
 });

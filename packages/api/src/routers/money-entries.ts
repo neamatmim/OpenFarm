@@ -447,7 +447,7 @@ export const moneyEntryProcedures = {
         occurredOn: farmDay,
         counterparty: counterpartyInput,
         paymentMethod: paymentMethodInput,
-        /** Which Farm Account bKash or bank money went into or came out of, and its transaction ID. */
+        /** Which Farm Account mobile money or bank money went into or came out of, and its transaction ID. */
         farmAccountId: farmAccountIdInput,
         reference: referenceInput,
         note: noteInput.optional(),
@@ -565,7 +565,7 @@ export const moneyEntryProcedures = {
         amountMoney: amountInput,
         drawnOn: farmDay,
         paymentMethod: paymentMethodInput,
-        /** Which Farm Account bKash or bank money came out of, and its transaction ID. */
+        /** Which Farm Account mobile money or bank money came out of, and its transaction ID. */
         farmAccountId: farmAccountIdInput,
         reference: referenceInput,
         note: noteInput.optional(),

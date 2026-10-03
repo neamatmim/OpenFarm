@@ -58,7 +58,7 @@ export const dispatchCorrectionInput = correctionInput({
   ),
   note: changeOf(dispatchFields.note.nullable(), z.string().nullable()),
   paymentMethod: paymentMethodChange,
-  /** Which Farm Account bKash or bank money names, and its transaction ID. */
+  /** Which Farm Account mobile money or bank money names, and its transaction ID. */
   farmAccount: farmAccountChange,
   paidNowMoney: changeOf(paidNowInput, z.number()),
   promisedBy: changeOf(promisedByInput.nullable(), z.string().nullable()),

@@ -19,8 +19,10 @@ const aSale = {
   receivable: NO_RECEIVABLE,
 };
 
-const NO_ACCOUNTS = new Set<"bkash" | "bank">();
-const A_BKASH_NUMBER = new Set<"bkash" | "bank">(["bkash"]);
+const NO_ACCOUNTS = new Set<"mobile_money" | "bank">();
+const A_MOBILE_MONEY_NUMBER = new Set<"mobile_money" | "bank">([
+  "mobile_money",
+]);
 
 describe("what a Sale still needs", () => {
   it("needs nothing more once everything is given", () => {
@@ -48,37 +50,37 @@ describe("what a Sale still needs", () => {
     );
   });
 
-  it("asks which of the farm's bKash numbers, then the transaction ID", () => {
-    const byBkash = { ...aSale, paymentMethod: "bkash" as const };
-    expect(saleStillMissing(byBkash, A_BKASH_NUMBER)).toEqual({
+  it("asks which of the farm's mobile money numbers, then the transaction ID", () => {
+    const byMobileMoney = { ...aSale, paymentMethod: "mobile_money" as const };
+    expect(saleStillMissing(byMobileMoney, A_MOBILE_MONEY_NUMBER)).toEqual({
       said: "refusal.namesNoFarmAccount",
       at: "sale-paid-by-account",
     });
     const named = {
-      ...byBkash,
+      ...byMobileMoney,
       account: { farmAccountId: "office", reference: " " },
     };
-    expect(saleStillMissing(named, A_BKASH_NUMBER)).toEqual({
+    expect(saleStillMissing(named, A_MOBILE_MONEY_NUMBER)).toEqual({
       said: "refusal.needsItsReference",
       at: "sale-paid-by-reference",
     });
     expect(
       saleStillMissing(
         { ...named, account: { farmAccountId: "office", reference: "TRX1" } },
-        A_BKASH_NUMBER
+        A_MOBILE_MONEY_NUMBER
       )
     ).toBeNull();
   });
 
   it("asks for no account the farm has not listed, nor for money nobody paid at the gate", () => {
     const byBank = { ...aSale, paymentMethod: "bank" as const };
-    expect(saleStillMissing(byBank, A_BKASH_NUMBER)).toBeNull();
+    expect(saleStillMissing(byBank, A_MOBILE_MONEY_NUMBER)).toBeNull();
     const nothingPaid = {
       ...aSale,
-      paymentMethod: "bkash" as const,
+      paymentMethod: "mobile_money" as const,
       receivable: { owed: true, paidNow: "0", promisedBy: "2027-04-30" },
     };
-    expect(saleStillMissing(nothingPaid, A_BKASH_NUMBER)).toBeNull();
+    expect(saleStillMissing(nothingPaid, A_MOBILE_MONEY_NUMBER)).toBeNull();
   });
 
   it("goes to the first box left empty, in the sheet's order", () => {

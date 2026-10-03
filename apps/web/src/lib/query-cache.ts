@@ -24,8 +24,9 @@ const KEEP_FOR_MS = 14 * 24 * 60 * 60 * 1000;
  *  made of, the one after that because a Venture says what it owes the Owner and whether it is running
  *  low, the one after that because it says whether the bank agreed, the one after that because every sum
  *  of money is named for money, not for the taka it is counted in, the one after that because what a
- *  buyer still owes is a Receivable, not a Baki, and this one because a haat is a Livestock Market. */
-const CACHE_KEY = "kept-with-livestock-markets";
+ *  buyer still owes is a Receivable, not a Baki, the one after that because a haat is a Livestock
+ *  Market, and this one because bKash money is Mobile Money. */
+const CACHE_KEY = "kept-with-mobile-money";
 /** The shape of what this phone keeps, written on everything it puts away, so nothing put away the old way is read. */
 export const CACHE_SHAPE = CACHE_KEY;
 

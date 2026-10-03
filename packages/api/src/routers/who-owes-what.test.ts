@@ -148,7 +148,7 @@ describe("a Receivable Payment", () => {
       kind: "cattle",
       amountMoney: 25_000,
       paidOn: "2049-05-06",
-      paymentMethod: "bkash",
+      paymentMethod: "mobile_money",
     });
     const trader = await theTrader("2049-05-06T07:00:00.000Z");
     const [cattle] = trader?.kinds ?? [];
@@ -170,7 +170,7 @@ describe("a Receivable Payment", () => {
       amountMoney: 25_000,
       direction: "in",
       categoryKey: "sale",
-      paymentMethod: "bkash",
+      paymentMethod: "mobile_money",
       counterpartyName: TRADER,
     });
   });

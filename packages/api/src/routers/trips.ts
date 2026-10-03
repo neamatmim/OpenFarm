@@ -38,7 +38,7 @@ const recordInput = z.object({
   /** When the lorry went, for an outing written up the next morning. */
   wentOn: z.coerce.date().optional(),
   paymentMethod: paymentMethodInput,
-  /** Which Farm Account bKash or bank money went into or came out of. */
+  /** Which Farm Account mobile money or bank money went into or came out of. */
   farmAccountId: farmAccountIdInput,
   /** Its transaction ID, or the cheque's or slip's number. */
   reference: referenceInput,

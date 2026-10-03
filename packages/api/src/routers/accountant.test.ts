@@ -66,7 +66,7 @@ const setup = async () => {
     amountMoney: 3000,
     occurredOn: "2040-03-05",
     counterparty: { name: `পল্লী বিদ্যুৎ ${suffix}` },
-    paymentMethod: "bkash",
+    paymentMethod: "mobile_money",
     side: "dairy",
     note: "ফেব্রুয়ারির বিল",
   });
@@ -155,7 +155,7 @@ describe("the accountant's export", () => {
       `2040-03-05,out,30900.00,গরু কেনা,Cattle purchases,গাবতলী ${suffix},cash,fattening,intake,${world.bull.intakeId},${world.bull.tagNumber},awaiting_approval,`
     );
     expect(mine(world.power.id)).toBe(
-      `2040-03-05,out,3000.00,বিদ্যুৎ ও পানি,Utilities,পল্লী বিদ্যুৎ ${suffix},bkash,dairy,by_hand,${world.power.id},,not_needed,ফেব্রুয়ারির বিল`
+      `2040-03-05,out,3000.00,বিদ্যুৎ ও পানি,Utilities,পল্লী বিদ্যুৎ ${suffix},mobile_money,dairy,by_hand,${world.power.id},,not_needed,ফেব্রুয়ারির বিল`
     );
     expect(mine(world.wage.id)).toBe(
       `2040-03-05,out,12000.00,মজুরি,Wages,রহিম ${suffix},cash,whole_farm,by_hand,${world.wage.id},2040-02,not_needed,`
