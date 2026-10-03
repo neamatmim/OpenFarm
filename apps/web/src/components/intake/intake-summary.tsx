@@ -114,7 +114,7 @@ export const PricePerKg = ({ fields }: { fields: IntakeFields }) => {
     return null;
   }
   return t("intake.perKg", {
-    taka: formatNumber(Math.round((price / weight) * 100) / 100, language),
+    amount: formatNumber(Math.round((price / weight) * 100) / 100, language),
   });
 };
 
@@ -185,7 +185,7 @@ export const IntakeSummary = ({
           {price > 0 ? (
             <span className="flex flex-col">
               <span>
-                {t("intake.taka", { taka: formatNumber(price, language) })}
+                {t("intake.money", { amount: formatNumber(price, language) })}
               </span>
               <span className="text-muted-foreground text-xs font-normal">
                 <PricePerKg fields={fields} />
@@ -197,8 +197,8 @@ export const IntakeSummary = ({
         </Line>
         <Line label={t("intake.hasil")}>
           {Number(fields.hasilMoney) > 0
-            ? t("intake.taka", {
-                taka: formatNumber(Number(fields.hasilMoney), language),
+            ? t("intake.money", {
+                amount: formatNumber(Number(fields.hasilMoney), language),
               })
             : "—"}
         </Line>

@@ -42,7 +42,7 @@ import { WeightLine } from "@/components/portal/weight-line";
 import { StageTrack } from "@/components/ventures/stage-track";
 import { useLanguage } from "@/i18n/language-provider";
 import { CHARGE_WORD } from "@/lib/charge-words";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 import type { client } from "@/utils/orpc";
 
 type Today = Awaited<ReturnType<typeof client.portal.venture>>;
@@ -78,11 +78,11 @@ const useFigures = (
   settlement: HisSettlement | null
 ): Figure[] => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const terms: Figure[] = [
     {
       label: t("portal.capital"),
-      value: taka(today.his.capitalMoney),
+      value: asMoney(today.his.capitalMoney),
       // What investors open the page to see, as the portfolio sets its capital first and largest.
       lead: true,
       hint: t("portal.unitsShare", {
@@ -108,13 +108,13 @@ const useFigures = (
       ...terms,
       {
         label: t("portal.profit"),
-        value: taka(settlement.shareMoney),
+        value: asMoney(settlement.shareMoney),
         icon: TrendingUp,
         tone: settlement.shareMoney < 0 ? "warning" : "neutral",
       },
       {
         label: t("money.payout"),
-        value: taka(settlement.payoutMoney),
+        value: asMoney(settlement.payoutMoney),
         hint: settlement.paidOn
           ? t("portal.paidOnDay", {
               day: formatDate(startOfFarmDay(settlement.paidOn), language),
@@ -431,7 +431,7 @@ const Herd = ({ today }: { today: Today }) => {
 /** Where the Venture's money has gone, by charge, and what is left of its two budgets. */
 const Money = ({ today }: { today: Today }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const { spend } = today;
   return (
     <Section description={t("portal.moneyHint")} title={t("portal.money")}>
@@ -446,12 +446,12 @@ const Money = ({ today }: { today: Today }) => {
             key={one.word}
           >
             <dt>{t(CHARGE_WORD[one.word])}</dt>
-            <dd className="tabular-nums">{taka(one.amount)}</dd>
+            <dd className="tabular-nums">{asMoney(one.amount)}</dd>
           </div>
         ))}
         <div className="flex justify-between gap-4 py-2 font-semibold">
           <dt>{t("portal.spentTotal")}</dt>
-          <dd className="tabular-nums">{taka(spend.chargedMoney)}</dd>
+          <dd className="tabular-nums">{asMoney(spend.chargedMoney)}</dd>
         </div>
       </dl>
       <dl className="grid gap-3 text-sm sm:grid-cols-2">
@@ -459,8 +459,8 @@ const Money = ({ today }: { today: Today }) => {
           <dt className="text-muted-foreground">{t("portal.cattleBudget")}</dt>
           <dd className="font-medium tabular-nums">
             {t("portal.budgetLeft", {
-              left: taka(spend.cattleBudgetLeftMoney),
-              of: taka(spend.cattleBudgetMoney),
+              left: asMoney(spend.cattleBudgetLeftMoney),
+              of: asMoney(spend.cattleBudgetMoney),
             })}
           </dd>
         </div>
@@ -468,8 +468,8 @@ const Money = ({ today }: { today: Today }) => {
           <dt className="text-muted-foreground">{t("portal.runningBudget")}</dt>
           <dd className="font-medium tabular-nums">
             {t("portal.budgetSpent", {
-              spent: taka(spend.runningSpentMoney),
-              of: taka(spend.runningBudgetMoney),
+              spent: asMoney(spend.runningSpentMoney),
+              of: asMoney(spend.runningBudgetMoney),
             })}
           </dd>
         </div>

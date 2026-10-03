@@ -29,8 +29,8 @@ import {
   TodayRange,
 } from "@/components/returns/return-words";
 import { useLanguage } from "@/i18n/language-provider";
+import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
-import { useTaka } from "@/lib/taka";
 import { aFigure, figureOf } from "@/lib/typed-figure";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
@@ -85,21 +85,21 @@ const useCameSaid = () => {
 /** What her run is made of: how it began, what she cost, her milk and its price, and what she went for. */
 const DairyRunFacts = ({ run }: { run: DairyRun }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const came = useCameSaid();
   return (
     <div className="text-muted-foreground flex flex-col gap-0.5 text-sm tabular-nums">
       <p>{came(run)}</p>
       <p>
-        {t("returns.dairyCost", { amount: taka(run.costMoney) })}
+        {t("returns.dairyCost", { amount: asMoney(run.costMoney) })}
         {" · "}
         {t("returns.dairyMilk", {
           litres: run.milkLitres,
-          amount: taka(run.milkMoney),
+          amount: asMoney(run.milkMoney),
         })}
         {run.endMoney === null
           ? null
-          : ` · ${t("returns.dairyEnd", { amount: taka(run.endMoney) })}`}
+          : ` · ${t("returns.dairyEnd", { amount: asMoney(run.endMoney) })}`}
       </p>
       {run.milkPricedEarlier.length > 0 ? (
         <p className="text-xs">
@@ -119,12 +119,12 @@ const DairyRunFacts = ({ run }: { run: DairyRun }) => {
 /** What a head of her kind would fetch today, low and high: hers while nothing has been spent on her yet. */
 const WorthToday = ({ worth }: { worth: HeadRange }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   return (
     <span className="text-muted-foreground tabular-nums">
       {t("returns.worthToday", {
-        low: taka(worth.lowMoney),
-        high: taka(worth.highMoney),
+        low: asMoney(worth.lowMoney),
+        high: asMoney(worth.highMoney),
       })}
     </span>
   );
@@ -254,7 +254,7 @@ const Calves = ({ calves }: { calves: DairyRun[] }) => {
  *  named. */
 export const DairyHerdNow = ({ page }: { page: ReturnsPage }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const { herdNow } = dairyPart(page);
   if (herdNow.head === 0) {
     return <EmptyState bare icon={Milk} title={t("returns.dairyNone")} />;
@@ -267,7 +267,7 @@ export const DairyHerdNow = ({ page }: { page: ReturnsPage }) => {
       {herdNow.running ? <RunningLines running={herdNow.running} /> : null}
       {herdNow.milkMoney > 0 ? (
         <p className="text-muted-foreground text-sm tabular-nums">
-          {t("returns.herdMilk", { amount: taka(herdNow.milkMoney) })}
+          {t("returns.herdMilk", { amount: asMoney(herdNow.milkMoney) })}
         </p>
       ) : null}
       <Gaps gaps={herdNow.gaps} ventureId={null} />
@@ -388,7 +388,7 @@ const HeadPriceSheet = ({
 /** The five Head Prices, each with what it is set at or that it is not, and the act that sets it. */
 export const HeadPriceList = ({ page }: { page: ReturnsPage }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const [setting, setSetting] = useState<HeadPrice | null>(null);
   return (
     <>
@@ -404,8 +404,8 @@ export const HeadPriceList = ({ page }: { page: ReturnsPage }) => {
                 {one.lowMoney === null || one.highMoney === null
                   ? t("returns.headPriceNone")
                   : t("returns.headPriceRange", {
-                      low: taka(one.lowMoney),
-                      high: taka(one.highMoney),
+                      low: asMoney(one.lowMoney),
+                      high: asMoney(one.highMoney),
                     })}
               </span>
             </span>

@@ -1,5 +1,5 @@
 import type { Side } from "./lifecycle";
-import { roundTaka } from "./money";
+import { roundMoney } from "./money";
 
 /** Part of a Money Event that belongs to a Side, or to the whole farm when the Side is null. */
 export interface SideShare {
@@ -58,8 +58,8 @@ const tally = <K>(
 };
 
 const rounded = (totals: InAndOut): InAndOut => ({
-  inMoney: roundTaka(totals.inMoney),
-  outMoney: roundTaka(totals.outMoney),
+  inMoney: roundMoney(totals.inMoney),
+  outMoney: roundMoney(totals.outMoney),
 });
 
 /**
@@ -99,7 +99,7 @@ export const summariseMoney = (
   return {
     incomeMoney: totals.inMoney,
     expenseMoney: totals.outMoney,
-    netMoney: roundTaka(totals.inMoney - totals.outMoney),
+    netMoney: roundMoney(totals.inMoney - totals.outMoney),
     byCategory: [...byCategory.entries()]
       .map(([nameBn, line]) => ({
         nameBn,

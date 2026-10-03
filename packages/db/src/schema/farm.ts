@@ -10,7 +10,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
-import { taka } from "./taka";
+import { numericMoney } from "./numeric-columns";
 
 /** The single operating unit the system serves. Modelled so a second could exist later. */
 export const farm = pgTable("farm", {
@@ -264,8 +264,8 @@ export const farm = pgTable("farm", {
   /** What a kilo of live weight is fetching, low and high, as the Owner last judged the market: what the farm's own
    *  animals are priced at on the Ready, Sale and Fattening screens, beside what each has cost. The Owner's guess, for
    *  the Owner's eyes; a Venture's animals are priced at their Venture's own figures instead. Nothing until it is set. */
-  marketLowMoneyPerKg: taka("market_low_money_per_kg"),
-  marketHighMoneyPerKg: taka("market_high_money_per_kg"),
+  marketLowMoneyPerKg: numericMoney("market_low_money_per_kg"),
+  marketHighMoneyPerKg: numericMoney("market_high_money_per_kg"),
   marketPriceSetAt: timestamp("market_price_set_at"),
   /** Whether Investors are shown each Venture's **Projection** in the portal (ADR 0010). Off until the Owner turns it
    *  on — once the lawyer and the Shariah scholar have seen its wording — and the Owner's Portal Preview shows it

@@ -6,7 +6,7 @@ import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { handover } from "@OpenFarm/db/schema/money";
 import { buyingTrip } from "@OpenFarm/db/schema/trip";
 import { ventureMovement } from "@OpenFarm/db/schema/venture";
-import { farmDayOf, roundTaka } from "@OpenFarm/domain";
+import { farmDayOf, roundMoney } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import { holdersOf } from "./alerts-store";
@@ -259,7 +259,7 @@ export const cashInHand = async (
     .map(([userId, amount]) => ({
       userId,
       name: nameOf.get(userId) ?? "",
-      amount: roundTaka(amount),
+      amount: roundMoney(amount),
       ventures: held.filter((one) => one.heldBy === userId),
       lastCount: lastOf.get(userId) ?? null,
     }))
@@ -286,7 +286,7 @@ export const recordCashCount = async (
   const holds = await handsOf(tx, input.farm.id, {
     excludingCount: input.completionId,
   });
-  const expected = roundTaka(holds.get(input.userId) ?? 0);
+  const expected = roundMoney(holds.get(input.userId) ?? 0);
   const row = {
     userId: input.userId,
     counted: input.counted,
@@ -304,7 +304,7 @@ export const recordCashCount = async (
       ...row,
     })
     .onConflictDoUpdate({ target: cashCount.completionId, set: row });
-  const shortMoney = roundTaka(expected - input.counted);
+  const shortMoney = roundMoney(expected - input.counted);
   if (shortMoney > input.farm.cashShortTellMoney) {
     const counter = await tx.query.user.findFirst({
       where: { id: input.userId },
@@ -453,7 +453,7 @@ const sumOf = (rows: readonly { amountMoney: number }[]): number => {
   for (const one of rows) {
     total += one.amountMoney;
   }
-  return roundTaka(total);
+  return roundMoney(total);
 };
 
 /** One outing's Farm float, or nothing where no Farm float went on it. */
@@ -488,7 +488,7 @@ export const farmTripFloat = async (
     carrierId: first?.toUserId ?? null,
     carrierName: first?.taker?.name ?? null,
     handedMoney: sumOf(outs),
-    boughtMoney: roundTaka(bought.animalsMoney + bought.tripMoney),
+    boughtMoney: roundMoney(bought.animalsMoney + bought.tripMoney),
     backMoney: sumOf(handed.filter((one) => one.float === "back")),
     reconciledAt: trip.floatReconciledAt,
   };
@@ -578,7 +578,7 @@ export const reconcileFarmFloat = async (
       data: { refusal: "no_float_on_the_trip" },
     });
   }
-  const gapMoney = roundTaka(
+  const gapMoney = roundMoney(
     float.handedMoney -
       float.boughtMoney -
       float.backMoney -
@@ -771,8 +771,10 @@ const depositSaleCash = async (
     });
   }
   const sales = carried.filter((one) => one !== undefined);
-  const totalMoney = roundTaka(sales.reduce((sum, one) => sum + one.amount, 0));
-  if (roundTaka(input.amountMoney) !== totalMoney) {
+  const totalMoney = roundMoney(
+    sales.reduce((sum, one) => sum + one.amount, 0)
+  );
+  if (roundMoney(input.amountMoney) !== totalMoney) {
     throw new ORPCError("BAD_REQUEST", {
       message: `Those Sales come to ${totalMoney}`,
       data: { refusal: "amount_changed", totalMoney },

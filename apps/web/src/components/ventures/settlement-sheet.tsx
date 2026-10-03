@@ -21,9 +21,9 @@ import {
 import { PayOutSheet } from "@/components/ventures/settling-up";
 import { useLanguage } from "@/i18n/language-provider";
 import { CHARGE_WORD } from "@/lib/charge-words";
+import { useMoney } from "@/lib/money";
 import { saidMonth } from "@/lib/months";
 import { useRefused } from "@/lib/refused";
-import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 type Settlement = Awaited<ReturnType<typeof orpc.ventures.settlement.call>>;
@@ -92,12 +92,12 @@ const Outcome = ({
   lost: MessageKey;
 }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const down = amount < 0;
   return (
     <div className={down ? "text-warning" : ""}>
       <Line label={t(down ? lost : made)} strong>
-        {taka(Math.abs(amount))}
+        {asMoney(Math.abs(amount))}
       </Line>
     </div>
   );
@@ -148,7 +148,7 @@ const WhatTheBankSays = ({
  */
 const WhatItIsAbout = ({ block }: { block: Block }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const count = (howMany: number) => formatNumber(howMany, language);
   switch (block.word) {
     case "an_animal_still_stands": {
@@ -180,7 +180,7 @@ const WhatItIsAbout = ({ block }: { block: Block }) => {
       );
     }
     case "a_float_is_open": {
-      return <span>{taka(block.openFloatMoney)}</span>;
+      return <span>{asMoney(block.openFloatMoney)}</span>;
     }
     case "sale_cash_in_a_hand": {
       return (
@@ -207,7 +207,7 @@ const WhatItIsAbout = ({ block }: { block: Block }) => {
             carry === 0
               ? null
               : t(carry > 0 ? "ventures.toCarry" : "ventures.toCarryBack", {
-                  taka: taka(Math.abs(carry)),
+                  amount: asMoney(Math.abs(carry)),
                 }),
           ]
             .filter((one) => one !== null)
@@ -223,8 +223,8 @@ const WhatItIsAbout = ({ block }: { block: Block }) => {
       return (
         <span>
           {block.overMoney > 0
-            ? t("ventures.accountOver", { taka: taka(block.overMoney) })
-            : t("ventures.accountShort", { taka: taka(-block.overMoney) })}
+            ? t("ventures.accountOver", { amount: asMoney(block.overMoney) })
+            : t("ventures.accountShort", { amount: asMoney(-block.overMoney) })}
         </span>
       );
     }
@@ -262,20 +262,20 @@ const WhatBlocksIt = ({ blocks }: { blocks: readonly Block[] }) => {
 /** What the run made: what its Animals fetched, every charge as its own line, and the profit. */
 const WhatItCameTo = ({ settlement }: { settlement: Figures }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   return (
     <Section plain title={t("ventures.whatItMade")}>
       <div className="bg-muted flex flex-col gap-1 rounded-md px-3 py-2 text-sm">
         <Line label={t("ventures.proceeds")}>
-          {taka(settlement.proceedsMoney)}
+          {asMoney(settlement.proceedsMoney)}
         </Line>
         {settlement.charges.map((one) => (
           <Line key={one.word} label={`· ${t(CHARGE_WORD[one.word])}`}>
-            {taka(one.amount)}
+            {asMoney(one.amount)}
           </Line>
         ))}
         <Line label={t("ventures.charged")}>
-          {taka(settlement.chargedMoney)}
+          {asMoney(settlement.chargedMoney)}
         </Line>
         <div className="mt-1 border-t pt-1">
           <Outcome
@@ -292,7 +292,7 @@ const WhatItCameTo = ({ settlement }: { settlement: Figures }) => {
 /** How the profit divides: the Investors' share, what a Unit takes, and the Farm's. */
 const HowItSplits = ({ settlement }: { settlement: Figures }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   return (
     <Section plain title={t("ventures.howItSplits")}>
       <div className="flex flex-col gap-1 text-sm">
@@ -301,7 +301,7 @@ const HowItSplits = ({ settlement }: { settlement: Figures }) => {
             percent: formatNumber(settlement.investorsPercent, language),
           })}
         >
-          {taka(settlement.investorsMoney)}
+          {asMoney(settlement.investorsMoney)}
         </Line>
         <Outcome
           amount={settlement.perUnitMoney}
@@ -310,10 +310,12 @@ const HowItSplits = ({ settlement }: { settlement: Figures }) => {
         />
         {settlement.roundingMoney === 0 ? null : (
           <Line label={t("ventures.rounding")}>
-            {taka(settlement.roundingMoney)}
+            {asMoney(settlement.roundingMoney)}
           </Line>
         )}
-        <Line label={t("ventures.theFarms")}>{taka(settlement.farmMoney)}</Line>
+        <Line label={t("ventures.theFarms")}>
+          {asMoney(settlement.farmMoney)}
+        </Line>
       </div>
     </Section>
   );
@@ -330,27 +332,29 @@ const WhatTheAccountHolds = ({
   heldNowMoney: number | undefined;
 }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const moved =
     heldNowMoney !== undefined && heldNowMoney !== settlement.balanceMoney;
   return (
     <Section plain title={t("ventures.whatItHolds")}>
       <div className="flex flex-col gap-1 text-sm">
-        <Line label={t("ventures.held")}>{taka(settlement.capitalMoney)}</Line>
+        <Line label={t("ventures.held")}>
+          {asMoney(settlement.capitalMoney)}
+        </Line>
         {settlement.advanceMoney === 0 ? null : (
           <Line label={t("ventures.owedToYou")}>
-            {taka(settlement.advanceMoney)}
+            {asMoney(settlement.advanceMoney)}
           </Line>
         )}
         <Line
           label={moved ? t("ventures.heldWhenApproved") : t("ventures.balance")}
           strong={!moved}
         >
-          {taka(settlement.balanceMoney)}
+          {asMoney(settlement.balanceMoney)}
         </Line>
         {moved ? (
           <Line label={t("ventures.balance")} strong>
-            {taka(heldNowMoney)}
+            {asMoney(heldNowMoney)}
           </Line>
         ) : null}
       </div>
@@ -361,14 +365,14 @@ const WhatTheAccountHolds = ({
 /** What each Investor would be paid: his capital back, and what his Units took of the profit. */
 const WhatEachIsOwed = ({ settlement }: { settlement: Figures }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   return (
     <Section plain title={t("ventures.whatEachIsPaid")}>
       <div className="flex flex-col gap-2">
         {settlement.payouts.map((one) => (
           <div className="border-t pt-2 text-sm" key={one.agreementId}>
             <Line label={one.name} strong>
-              {taka(one.payoutMoney)}
+              {asMoney(one.payoutMoney)}
             </Line>
             <Line
               label={t("ventures.unitsHeld", {
@@ -378,8 +382,8 @@ const WhatEachIsOwed = ({ settlement }: { settlement: Figures }) => {
               {/* Taken away where his Units lost money: a plus sign in front of a negative figure is
                   how a loss reads as a gain. */}
               {one.shareMoney < 0
-                ? `${taka(one.capitalMoney)} − ${taka(Math.abs(one.shareMoney))}`
-                : `${taka(one.capitalMoney)} + ${taka(one.shareMoney)}`}
+                ? `${asMoney(one.capitalMoney)} − ${asMoney(Math.abs(one.shareMoney))}`
+                : `${asMoney(one.capitalMoney)} + ${asMoney(one.shareMoney)}`}
             </Line>
           </div>
         ))}
@@ -434,7 +438,7 @@ const WhatIsLeftToSend = ({
   }) => void;
 }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   // Said as its own name because the guard against untranslated JSX text reads a comparison's angle bracket
   // as the end of a tag.
   const farmOwesALoss = approved.farmMoney < 0;
@@ -447,7 +451,9 @@ const WhatIsLeftToSend = ({
           <div className="flex items-center justify-between gap-2">
             <span>{t("ventures.farmsLoss")}</span>
             <span className="flex items-center gap-2">
-              <span className="tabular-nums">{taka(-approved.farmMoney)}</span>
+              <span className="tabular-nums">
+                {asMoney(-approved.farmMoney)}
+              </span>
               <Button
                 onClick={() =>
                   onPay({
@@ -471,7 +477,7 @@ const WhatIsLeftToSend = ({
             <span>{t("ventures.owedToYou")}</span>
             <span className="flex items-center gap-2">
               <span className="tabular-nums">
-                {taka(approved.advanceMoney)}
+                {asMoney(approved.advanceMoney)}
               </span>
               <Button
                 onClick={() =>
@@ -502,7 +508,9 @@ const WhatIsLeftToSend = ({
           <div className="flex items-center justify-between gap-2">
             <span>{t("ventures.theFarms")}</span>
             <span className="flex items-center gap-2">
-              <span className="tabular-nums">{taka(approved.farmMoney)}</span>
+              <span className="tabular-nums">
+                {asMoney(approved.farmMoney)}
+              </span>
               <Button
                 onClick={() =>
                   onPay({

@@ -2,7 +2,7 @@ import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
 import { ROLES, farm } from "./farm";
-import { taka } from "./taka";
+import { numericMoney } from "./numeric-columns";
 
 // The farm's outings have a module of their own because they belong to nobody in particular: a Trip may
 // carry the Farm's animals and two Ventures', and both the fattening records and a Venture's money point
@@ -24,11 +24,11 @@ export const buyingTrip = pgTable(
     /** Where it went, as the farm says it: a haat's name, or a village's. */
     wentTo: text("went_to").notNull(),
     /** What the broker took for finding the animals. */
-    brokerMoney: taka("broker_money").notNull().default(0),
+    brokerMoney: numericMoney("broker_money").notNull().default(0),
     /** The lorry home. */
-    transportMoney: taka("transport_money").notNull().default(0),
+    transportMoney: numericMoney("transport_money").notNull().default(0),
     /** Keeping the men who went: their food, and a night's lodging when the haat runs late. */
-    keepMoney: taka("keep_money").notNull().default(0),
+    keepMoney: numericMoney("keep_money").notNull().default(0),
     wentOn: timestamp("went_on").notNull(),
     recordedBy: text("recorded_by").references(() => user.id),
     recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
@@ -58,9 +58,9 @@ export const sellingTrip = pgTable(
     /** Where it went, as the farm says it. */
     wentTo: text("went_to").notNull(),
     /** The lorry, both ways. */
-    transportMoney: taka("transport_money").notNull().default(0),
+    transportMoney: numericMoney("transport_money").notNull().default(0),
     /** The stall or the space, and keeping the men who went. */
-    keepMoney: taka("keep_money").notNull().default(0),
+    keepMoney: numericMoney("keep_money").notNull().default(0),
     wentOn: timestamp("went_on").notNull(),
     recordedBy: text("recorded_by").references(() => user.id),
     recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),

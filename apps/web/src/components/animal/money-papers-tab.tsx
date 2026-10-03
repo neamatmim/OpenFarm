@@ -218,8 +218,8 @@ const HowSheArrived = ({
             .join(" · ") || "—"}
         </Fact>
         <Fact label={t("intake.price")}>
-          {t("intake.taka", {
-            taka: formatNumber(intake.purchasePriceMoney, language),
+          {t("intake.money", {
+            amount: formatNumber(intake.purchasePriceMoney, language),
           })}
         </Fact>
         {intake.buyingTrip ? (
@@ -227,8 +227,8 @@ const HowSheArrived = ({
         ) : null}
         {intake.hasilMoney > 0 ? (
           <Fact label={t("intake.hasil")}>
-            {t("intake.taka", {
-              taka: formatNumber(intake.hasilMoney, language),
+            {t("intake.money", {
+              amount: formatNumber(intake.hasilMoney, language),
             })}
           </Fact>
         ) : null}
@@ -280,8 +280,8 @@ const HowSheLeft = ({
         <Fact label={t("sale.soldTo")}>{sale.buyerName}</Fact>
         <Fact label={t("sale.price")}>
           <span className="flex flex-col">
-            {t("intake.taka", {
-              taka: formatNumber(sale.priceMoney, language),
+            {t("intake.money", {
+              amount: formatNumber(sale.priceMoney, language),
             })}
             <BakiOwed
               bakiMoney={sale.bakiMoney}
@@ -293,8 +293,8 @@ const HowSheLeft = ({
         {/* Only where a broker was used — or left out of an answer kept from before one was written. */}
         {sale.brokerMoney ? (
           <Fact label={t("sale.brokerPaid")}>
-            {t("intake.taka", {
-              taka: formatNumber(sale.brokerMoney, language),
+            {t("intake.money", {
+              amount: formatNumber(sale.brokerMoney, language),
             })}
           </Fact>
         ) : null}

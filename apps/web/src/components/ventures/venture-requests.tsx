@@ -22,7 +22,7 @@ import {
   WhereItStands,
 } from "@/components/ventures/request-parts";
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 import type { Venture } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
 
@@ -143,7 +143,7 @@ const RequestRow = ({
  */
 export const VentureRequests = ({ venture }: { venture: Venture }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const read = useQuery(
     orpc.ventures.requests.queryOptions({ input: { ventureId: venture.id } })
   );
@@ -200,10 +200,10 @@ export const VentureRequests = ({ venture }: { venture: Venture }) => {
       handleNo: () => setAnswering({ ...about, kind: "no" }),
     };
   };
-  const unitsAndTaka = (units: number, amount: number) =>
-    t("ventures.requests.unitsAndTaka", {
+  const unitsAndMoney = (units: number, amount: number) =>
+    t("ventures.requests.unitsAndMoney", {
       units: formatNumber(units, language),
-      taka: taka(amount),
+      amount: asMoney(amount),
     });
   return (
     <Section
@@ -215,22 +215,22 @@ export const VentureRequests = ({ venture }: { venture: Venture }) => {
         {totals ? (
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3 lg:grid-cols-5">
             <Total label={t("ventures.requests.signed")}>
-              {unitsAndTaka(totals.signedUnits, totals.signedMoney)}
+              {unitsAndMoney(totals.signedUnits, totals.signedMoney)}
             </Total>
             <Total label={t("ventures.requests.promised")}>
-              {unitsAndTaka(
+              {unitsAndMoney(
                 totals.promisedUnits ?? 0,
                 totals.promisedMoney ?? 0
               )}
             </Total>
             <Total label={t("ventures.requests.waiting")}>
-              {unitsAndTaka(totals.waitingUnits, totals.waitingMoney)}
+              {unitsAndMoney(totals.waitingUnits, totals.waitingMoney)}
             </Total>
             <Total label={t("ventures.requests.target")}>
-              {taka(venture.targetCapitalMoney)}
+              {asMoney(venture.targetCapitalMoney)}
             </Total>
             <Total label={t("ventures.requests.floor")}>
-              {taka(venture.floorMoney)}
+              {asMoney(venture.floorMoney)}
             </Total>
           </dl>
         ) : null}

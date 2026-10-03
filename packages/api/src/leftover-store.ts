@@ -5,7 +5,7 @@ import {
   leftoverStanding,
   priceHistory,
   roundFeedKg,
-  roundTaka,
+  roundMoney,
 } from "@OpenFarm/domain";
 
 import { movementsByItem } from "./stock-store";
@@ -81,7 +81,7 @@ const worthOf = (
   if (tally.left.length === 0) {
     return 0;
   }
-  return priced.some((one) => one !== null) ? roundTaka(worth) : null;
+  return priced.some((one) => one !== null) ? roundMoney(worth) : null;
 };
 
 /** Every session's lines, added up by Pen and Feed Item — in the order fed, so the Ration kept is the latest. */

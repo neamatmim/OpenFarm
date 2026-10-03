@@ -1,4 +1,4 @@
-import { roundTaka } from "./money";
+import { roundMoney } from "./money";
 
 /**
  * What money put into cattle returned: a **Return on Cost** or a **Return on Capital**, in `CONTEXT.md`'s words.
@@ -59,11 +59,11 @@ export const returnOf = ({
   if (costMoney <= 0) {
     return null;
   }
-  const takaDays = spent.reduce(
+  const moneyDays = spent.reduce(
     (sum, one) => sum + one.amount * daysBetween(one.from, one.until),
     0
   );
-  const averageDays = takaDays / costMoney;
+  const averageDays = moneyDays / costMoney;
   const resultMoney = backMoney - costMoney;
   const share = (resultMoney / costMoney) * 100;
   // The floor is held against the days as they are shown, whole, so money said to have been out 60 days is never
@@ -71,9 +71,9 @@ export const returnOf = ({
   const scaled =
     finished && averageDays > 0 && Math.round(averageDays) >= floorDays;
   return {
-    costMoney: roundTaka(costMoney),
-    backMoney: roundTaka(backMoney),
-    resultMoney: roundTaka(resultMoney),
+    costMoney: roundMoney(costMoney),
+    backMoney: roundMoney(backMoney),
+    resultMoney: roundMoney(resultMoney),
     per100: oneDecimal(share),
     averageDays: Math.round(averageDays),
     perYear: scaled ? oneDecimal((share * DAYS_A_YEAR) / averageDays) : null,
@@ -169,11 +169,11 @@ export const runningRangeOf = ({
     return null;
   }
   return {
-    soldCostMoney: roundTaka(costOf(sold.spent)),
-    soldResultMoney: roundTaka(sold.backMoney - costOf(sold.spent)),
-    standingCostMoney: roundTaka(costOf(standing.spent)),
-    standingLowMoney: roundTaka(standing.lowMoney),
-    standingHighMoney: roundTaka(standing.highMoney),
+    soldCostMoney: roundMoney(costOf(sold.spent)),
+    soldResultMoney: roundMoney(sold.backMoney - costOf(sold.spent)),
+    standingCostMoney: roundMoney(costOf(standing.spent)),
+    standingLowMoney: roundMoney(standing.lowMoney),
+    standingHighMoney: roundMoney(standing.highMoney),
     low,
     high,
   };

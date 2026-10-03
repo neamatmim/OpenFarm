@@ -4,7 +4,7 @@ import {
   monthBefore,
   monthOf,
   monthsFromTo,
-  roundTaka,
+  roundMoney,
   startOfFarmDay,
 } from "@OpenFarm/domain";
 
@@ -82,7 +82,7 @@ export const aMonthsReimbursement = async (
     /** Whether the month has had a Reimbursement of its own already. */
     repaid: repaid.some((one) => one.forMonth === month),
     /** What the transfer comes to: its own figure and every carried line. */
-    totalMoney: roundTaka(
+    totalMoney: roundMoney(
       consumed.totalMoney + carried.reduce((sum, line) => sum + line.amount, 0)
     ),
     /** Kilos nothing can price and doses nothing can cost, in the month or in a month it carries: it waits for them. */
@@ -142,7 +142,7 @@ export const owedTheFarmByEach = async (
     );
     owed.set(
       venture.id,
-      roundTaka(months.reduce((sum, one) => sum + one.stillOwedMoney, 0))
+      roundMoney(months.reduce((sum, one) => sum + one.stillOwedMoney, 0))
     );
   }
   return owed;

@@ -52,7 +52,7 @@ export const BakiFields = ({
             hint={
               owes === null
                 ? undefined
-                : t("baki.stillOwes", { taka: formatNumber(owes, language) })
+                : t("baki.stillOwes", { amount: formatNumber(owes, language) })
             }
             id={`${idPrefix}-paid-now`}
             label={t("baki.paidNow")}
@@ -108,13 +108,13 @@ export const BakiOwed = ({
   if (owed <= 0) {
     return null;
   }
-  const taka = formatNumber(owed, language);
+  const amount = formatNumber(owed, language);
   return (
     <span className="text-warning text-xs font-medium">
       {promisedBy === null
-        ? t("baki.owed", { taka })
+        ? t("baki.owed", { amount })
         : t("baki.owedBy", {
-            taka,
+            amount,
             day: formatDate(startOfFarmDay(promisedBy), language, "date"),
           })}
     </span>
@@ -140,23 +140,27 @@ export const BuyerOwes = ({ name }: { name: string }) => {
   }
   const day = (value: string) =>
     formatDate(startOfFarmDay(value), language, "date");
-  const taka = formatNumber(owes.owingMoney, language);
+  const amount = formatNumber(owes.owingMoney, language);
   const lines = [
     owes.owingMoney > 0 && owes.overdueSince
       ? t("baki.buyerOverdue", {
           name: owes.name,
-          taka,
+          amount,
           day: day(owes.overdueSince),
         })
       : null,
     owes.owingMoney > 0 && !owes.overdueSince && owes.oldestOn
-      ? t("baki.buyerOwes", { name: owes.name, taka, day: day(owes.oldestOn) })
+      ? t("baki.buyerOwes", {
+          name: owes.name,
+          amount,
+          day: day(owes.oldestOn),
+        })
       : null,
     // His mark: the farm has lost money to him before. Missing from an answer kept from before write-offs.
     (owes.writtenOffMoney ?? 0) > 0 && owes.lastWrittenOffOn
       ? t("baki.buyerWrittenOff", {
           name: owes.name,
-          taka: formatNumber(owes.writtenOffMoney, language),
+          amount: formatNumber(owes.writtenOffMoney, language),
           day: day(owes.lastWrittenOffOn),
         })
       : null,

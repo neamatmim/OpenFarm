@@ -8,7 +8,7 @@ import { Section } from "@/components/page";
 import { useTheirRecord } from "@/components/portal/portal-source";
 import { VentureAccountDetails } from "@/components/ventures/venture-account-details";
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 import type { orpc } from "@/utils/orpc";
 
 /** "How to pay" on one of their Agreements, as the portal reads it. */
@@ -61,14 +61,14 @@ const TheWarning = ({
 /** The next Monthly Sum his Units pay and its day, in the place a Venture still gathering says its decision date. */
 const NextSum = ({ next }: { next: MonthlySum | null }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   return (
     <div className="flex flex-col gap-0.5">
       <dt className="text-muted-foreground text-sm">{t("portal.pay.next")}</dt>
       {next ? (
         <>
           <dd className="text-lg font-semibold tabular-nums">
-            {taka(next.amount)}
+            {asMoney(next.amount)}
           </dd>
           <dd className="text-muted-foreground text-xs">
             <SaidDate at={next.dueOn} />
@@ -89,7 +89,7 @@ const NextSum = ({ next }: { next: MonthlySum | null }) => {
  */
 export const HowToPay = ({ paying }: { paying: Paying | null }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const me = useTheirRecord();
   if (!paying) {
     return null;
@@ -109,11 +109,11 @@ export const HowToPay = ({ paying }: { paying: Paying | null }) => {
                 {t("portal.pay.dueNow")}
               </dt>
               <dd className="text-lg font-semibold tabular-nums">
-                {taka(monthly.dueMoney)}
+                {asMoney(monthly.dueMoney)}
               </dd>
               <dd className="text-muted-foreground text-xs">
                 {t("portal.pay.owedAltogether", {
-                  owed: taka(paying.owedMoney),
+                  owed: asMoney(paying.owedMoney),
                 })}
               </dd>
             </div>
@@ -123,7 +123,7 @@ export const HowToPay = ({ paying }: { paying: Paying | null }) => {
                 {t("portal.pay.owed")}
               </dt>
               <dd className="text-lg font-semibold tabular-nums">
-                {taka(paying.owedMoney)}
+                {asMoney(paying.owedMoney)}
               </dd>
             </div>
           )}

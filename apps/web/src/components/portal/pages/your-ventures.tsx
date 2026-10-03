@@ -26,7 +26,7 @@ import {
 } from "@/components/portal/portal-source";
 import { StateBadge } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 
 type HisAgreement = TheirAgreements["agreements"][number];
 
@@ -61,8 +61,8 @@ const UnitsCell = ({ row }: { row: { original: HisAgreement } }) => {
 };
 
 const CapitalCell = ({ row }: { row: { original: HisAgreement } }) => {
-  const taka = useTaka();
-  return <>{taka(row.original.capitalHeldMoney)}</>;
+  const asMoney = useMoney();
+  return <>{asMoney(row.original.capitalHeldMoney)}</>;
 };
 
 const SplitCell = ({ row }: { row: { original: HisAgreement } }) => {
@@ -84,15 +84,15 @@ const WindowCell = ({ row }: { row: { original: HisAgreement } }) => (
 );
 
 const ShareCell = ({ row }: { row: { original: HisAgreement } }) => {
-  const taka = useTaka();
+  const asMoney = useMoney();
   const { settlement } = row.original;
-  return settlement ? <>{taka(settlement.shareMoney)}</> : <Nothing />;
+  return settlement ? <>{asMoney(settlement.shareMoney)}</> : <Nothing />;
 };
 
 const PayoutCell = ({ row }: { row: { original: HisAgreement } }) => {
-  const taka = useTaka();
+  const asMoney = useMoney();
   const { settlement } = row.original;
-  return settlement ? <>{taka(settlement.payoutMoney)}</> : <Nothing />;
+  return settlement ? <>{asMoney(settlement.payoutMoney)}</> : <Nothing />;
 };
 
 const PaidOnCell = ({ row }: { row: { original: HisAgreement } }) => {
@@ -186,7 +186,7 @@ const FINISHED = columns.columns([
 /** One Venture as a row on a phone: its name and stage, their capital, and when it sells or what it paid them. */
 const VentureRow = ({ one }: { one: HisAgreement }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const { to, params } = usePortalPlaces().venture(one.id).link;
   return (
     <Link
@@ -203,7 +203,7 @@ const VentureRow = ({ one }: { one: HisAgreement }) => {
       </div>
       <div className="flex shrink-0 flex-col items-end gap-0.5">
         <span className="font-medium tabular-nums">
-          {taka(one.settlement?.payoutMoney ?? one.capitalHeldMoney)}
+          {asMoney(one.settlement?.payoutMoney ?? one.capitalHeldMoney)}
         </span>
         <span className="text-muted-foreground text-xs">
           {one.settlement ? (

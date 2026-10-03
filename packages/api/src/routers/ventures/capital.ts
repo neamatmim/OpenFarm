@@ -1,9 +1,10 @@
-// The Venture router's part for capital in, and the Buying Floats drawn and counted home.
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { PAYMENT_METHODS } from "@OpenFarm/db/schema/money";
 import { ventureMovement } from "@OpenFarm/db/schema/venture";
-import { capitalItMayHold, roundTaka, takesCapital } from "@OpenFarm/domain";
+import { capitalItMayHold, roundMoney, takesCapital } from "@OpenFarm/domain";
+// The Venture router's part for capital in, and the Buying Floats drawn and counted home.
+import { currencyWords } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -32,7 +33,7 @@ import { assertByBank, money } from "./shared";
 
 const capitalInput = z.object({
   agreementId: z.string(),
-  amountMoney: money.refine((taka) => taka > 0, {
+  amountMoney: money.refine((amount) => amount > 0, {
     message: "Capital in is money arriving",
   }),
   /** The day the bank moved it, on the farm's own clock. */
@@ -132,8 +133,8 @@ export const capitalProcedures = {
             // that is full, because it is not.
             throw new ORPCError("BAD_REQUEST", {
               message: cattlePartOnly
-                ? `This Agreement's Cattle Part is for ${owed - paidAlready} more taka; the rest comes by the month`
-                : `This Agreement is for ${owed - paidAlready} more taka`,
+                ? `This Agreement's Cattle Part is for ${owed - paidAlready} more ${currencyWords("en").sum}; the rest comes by the month`
+                : `This Agreement is for ${owed - paidAlready} more ${currencyWords("en").sum}`,
               data: {
                 refusal: cattlePartOnly
                   ? "capital_over_cattle_part"
@@ -186,7 +187,7 @@ export const capitalProcedures = {
       z.object({
         ventureId: z.string(),
         buyingTripId: z.string(),
-        amountMoney: money.refine((taka) => taka > 0, {
+        amountMoney: money.refine((amount) => amount > 0, {
           message: "A Float is money going out",
         }),
         movedOn: farmDay,
@@ -376,12 +377,12 @@ export const capitalProcedures = {
             ventureId: float.ventureId,
           });
           counted = bought;
-          const accountedFor = roundTaka(
+          const accountedFor = roundMoney(
             bought.animalsMoney + bought.tripMoney + input.cashBackMoney
           );
-          const outMoney = roundTaka(float.amountMoney);
+          const outMoney = roundMoney(float.amountMoney);
           if (accountedFor !== outMoney) {
-            const gapMoney = roundTaka(Math.abs(accountedFor - outMoney));
+            const gapMoney = roundMoney(Math.abs(accountedFor - outMoney));
             throw new ORPCError("BAD_REQUEST", {
               message: `That is ${gapMoney} ${
                 accountedFor > outMoney ? "more than" : "short of"

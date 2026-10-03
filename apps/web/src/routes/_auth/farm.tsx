@@ -15,7 +15,7 @@ import {
   MoneyMonth,
   OpenWords,
   thisMonth,
-  useTaka,
+  useMoney,
 } from "@/components/home/farm-panels";
 import { MilkWeek } from "@/components/home/milk-week";
 import {
@@ -88,7 +88,7 @@ const useMilkFigure = (tiles: OwnerAnswer["tiles"]): Figure => {
  *  the rest. */
 const useFarmFigures = (data: OwnerAnswer): Figure[] => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const milk = useMilkFigure(data.tiles);
   const money = useQuery(orpc.money.list.queryOptions({ input: thisMonth() }));
   const animals = useQuery(
@@ -104,9 +104,12 @@ const useFarmFigures = (data: OwnerAnswer): Figure[] => {
     milk,
     {
       label: t("owner.monthNet"),
-      value: money.data ? taka(net) : loading,
+      value: money.data ? asMoney(net) : loading,
       hint: money.data
-        ? t("owner.inAndOut", { in: taka(sum("in")), out: taka(sum("out")) })
+        ? t("owner.inAndOut", {
+            in: asMoney(sum("in")),
+            out: asMoney(sum("out")),
+          })
         : undefined,
       icon: Scale,
       tone: net < 0 ? "danger" : "neutral",
@@ -132,7 +135,7 @@ const useFarmFigures = (data: OwnerAnswer): Figure[] => {
       label: t("money.awaitingCount"),
       value: (
         <Link className={FIGURE_LINK} to="/money">
-          {taka(moneyAwaitingTotal(data.needsYou))}
+          {asMoney(moneyAwaitingTotal(data.needsYou))}
         </Link>
       ),
       hint: t("owner.entries", { count: formatNumber(awaiting, language) }),

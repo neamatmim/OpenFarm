@@ -32,8 +32,8 @@ import { useLanguage } from "@/i18n/language-provider";
 import { breedName } from "@/lib/breed";
 import { gainSettingOf } from "@/lib/gain-settings";
 import { useKg } from "@/lib/kg";
+import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
-import { useTaka } from "@/lib/taka";
 import { aFigure, figureOf } from "@/lib/typed-figure";
 import type { Venture } from "@/lib/ventures";
 import type { client } from "@/utils/orpc";
@@ -231,7 +231,7 @@ const PlanLineCard = ({
   onRemove: (() => void) | undefined;
 }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const id = (field: keyof TypedLine) => `plan-${line.key}-${field}`;
   const typed =
     (field: keyof TypedLine) => (event: ChangeEvent<HTMLInputElement>) =>
@@ -318,7 +318,7 @@ const PlanLineCard = ({
             id={id("buyMoneyPerKg")}
             inputMode="decimal"
             onChange={typed("buyMoneyPerKg")}
-            unit={t("plan.unit.takaPerKg")}
+            unit={t("plan.unit.moneyPerKg")}
             value={line.buyMoneyPerKg}
           />
         </FormField>
@@ -348,7 +348,7 @@ const PlanLineCard = ({
         <p className="text-muted-foreground border-t pt-2 text-xs tabular-nums">
           {t("plan.lineSum", {
             kg: formatNumber(sum.boughtKg, language),
-            cost: taka(sum.costMoney),
+            cost: asMoney(sum.costMoney),
             saleKg: formatNumber(sum.saleKgEach, language),
           })}
         </p>
@@ -371,7 +371,7 @@ const PlanSum = ({
   daysOnFeed: number;
 }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const weight = useKg();
   const totals = planTotals({ lines, cattleBudgetMoney, daysOnFeed });
   const over = totals.overBudgetMoney > 0;
@@ -386,7 +386,7 @@ const PlanSum = ({
       </div>
       <div className="flex flex-col gap-0.5">
         <dt className="text-muted-foreground text-xs">{t("plan.sum.cost")}</dt>
-        <dd className={figure}>{taka(totals.costMoney)}</dd>
+        <dd className={figure}>{asMoney(totals.costMoney)}</dd>
         <dd
           className={cn(
             "text-xs",
@@ -395,12 +395,12 @@ const PlanSum = ({
         >
           {over
             ? t("plan.sum.over", {
-                amount: taka(totals.overBudgetMoney),
-                budget: taka(cattleBudgetMoney),
+                amount: asMoney(totals.overBudgetMoney),
+                budget: asMoney(cattleBudgetMoney),
               })
             : t("plan.sum.left", {
-                amount: taka(cattleBudgetMoney - totals.costMoney),
-                budget: taka(cattleBudgetMoney),
+                amount: asMoney(cattleBudgetMoney - totals.costMoney),
+                budget: asMoney(cattleBudgetMoney),
               })}
         </dd>
       </div>
@@ -449,7 +449,7 @@ const PlanSelling = ({
             id="plan-sale-low"
             inputMode="decimal"
             onChange={(event) => onSale({ ...sale, low: event.target.value })}
-            unit={t("plan.unit.takaPerKg")}
+            unit={t("plan.unit.moneyPerKg")}
             value={sale.low}
           />
         </FormField>
@@ -459,7 +459,7 @@ const PlanSelling = ({
             id="plan-sale-high"
             inputMode="decimal"
             onChange={(event) => onSale({ ...sale, high: event.target.value })}
-            unit={t("plan.unit.takaPerKg")}
+            unit={t("plan.unit.moneyPerKg")}
             value={sale.high}
           />
         </FormField>
@@ -672,7 +672,7 @@ const averageGainOf = (version: Version) => {
 const PlanTable = ({ version }: { version: Version }) => {
   const { t, language } = useLanguage();
   const breedOfLine = useLineBreedName();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const kg = (value: number) => formatNumber(value, language);
   const weight = useKg();
   const head = "text-muted-foreground px-2 py-1.5 text-xs font-medium";
@@ -714,10 +714,10 @@ const PlanTable = ({ version }: { version: Version }) => {
                 {formatNumber(line.animals, language)}
               </td>
               <td className="px-2 py-2 text-end tabular-nums">
-                {taka(line.buyMoneyPerKg)}
+                {asMoney(line.buyMoneyPerKg)}
               </td>
               <td className="px-2 py-2 text-end tabular-nums">
-                {taka(version.totals.lines[at]?.costMoney ?? 0)}
+                {asMoney(version.totals.lines[at]?.costMoney ?? 0)}
               </td>
               <td className="px-2 py-2 text-end tabular-nums">
                 {weight(line.dailyGainKg)}
@@ -736,14 +736,14 @@ const PlanTable = ({ version }: { version: Version }) => {
             </td>
             {/* What a kilo costs across every band, and what a head puts on, each weighted as bought. */}
             <td className="px-2 py-2 text-end tabular-nums">
-              {taka(
+              {asMoney(
                 version.totals.boughtKg > 0
                   ? version.totals.costMoney / version.totals.boughtKg
                   : 0
               )}
             </td>
             <td className="px-2 py-2 text-end tabular-nums">
-              {taka(version.totals.costMoney)}
+              {asMoney(version.totals.costMoney)}
             </td>
             <td className="px-2 py-2 text-end tabular-nums">
               {weight(averageGainOf(version))}
@@ -761,7 +761,7 @@ const PlanTable = ({ version }: { version: Version }) => {
 /** The plan in force, with its budget, sale prices and days on feed, and which version it is measured against. */
 const PlanRead = ({ plan, venture }: { plan: Plan; venture: Venture }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const { latest, baseline } = plan;
   if (!latest) {
     return <EmptyState compact icon={ClipboardList} title={t("plan.none")} />;
@@ -789,19 +789,19 @@ const PlanRead = ({ plan, venture }: { plan: Plan; venture: Venture }) => {
         <FigureTerm
           hint={
             overBudget
-              ? t("plan.over", { over: taka(latest.totals.overBudgetMoney) })
+              ? t("plan.over", { over: asMoney(latest.totals.overBudgetMoney) })
               : undefined
           }
           label={t("ventures.page.cattleBudget")}
           size="sm"
           tone={overBudget ? "warning" : "neutral"}
         >
-          {taka(venture.cattleBudgetMoney)}
+          {asMoney(venture.cattleBudgetMoney)}
         </FigureTerm>
         <FigureTerm label={t("plan.fact.sale")} size="sm">
           {t("projection.range", {
-            low: taka(latest.saleLowMoneyPerKg),
-            high: taka(latest.saleHighMoneyPerKg),
+            low: asMoney(latest.saleLowMoneyPerKg),
+            high: asMoney(latest.saleHighMoneyPerKg),
           })}
         </FigureTerm>
         <FigureTerm label={t("plan.fact.days")} size="sm">

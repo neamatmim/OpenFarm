@@ -13,7 +13,7 @@ import { user } from "./auth";
 import { ROLES, farm } from "./farm";
 import { counterparty } from "./fattening";
 import { pen } from "./herd";
-import { taka } from "./taka";
+import { numericMoney } from "./numeric-columns";
 
 /** What a Feed Item is counted in. Its own copy, as `SIDES` and `ANIMAL_STATES` are: this package depends on
  *  nothing, and the domain keeps the rules that read it — a test holds the two the same. */
@@ -43,7 +43,7 @@ export const feedItem = pgTable(
     /** What a kilo of this is worth when the farm grows it itself: roughly what buying it would cost.
      *  A Harvest comes into the store at it, so the animals that eat home-grown fodder are charged for
      *  it. Null for anything the farm does not grow, which comes in at what it was bought for. */
-    fodderPriceMoney: taka("fodder_price_money"),
+    fodderPriceMoney: numericMoney("fodder_price_money"),
     retiredAt: timestamp("retired_at"),
     createdBy: text("created_by").references(() => user.id),
     createdAt: timestamp("created_at").notNull(),
@@ -218,7 +218,7 @@ export const feedIn = pgTable(
     packKind: text("pack_kind", { enum: FEED_PACKS }),
     packCount: numeric("pack_count", { precision: 10, scale: 1 }),
     /** What the whole lot cost, in taka. Null for a harvest. */
-    priceMoney: taka("price_money"),
+    priceMoney: numericMoney("price_money"),
     /** The seller: who the farm bought it from, as on an Intake. Null for a harvest. */
     counterpartyId: text("counterparty_id").references(() => counterparty.id),
     /** The farm's day it came in. */

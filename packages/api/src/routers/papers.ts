@@ -4,7 +4,7 @@ import {
   WITHDRAWAL_LOOK_BACK_DAYS,
   animalPassport,
   farmDayOf,
-  roundTaka,
+  roundMoney,
   saleReceipt,
   startOfFarmDay,
   transportCard,
@@ -61,7 +61,7 @@ const bakiOnTheReceipt = (
   if (owing.length === 0) {
     return null;
   }
-  const owedMoney = roundTaka(
+  const owedMoney = roundMoney(
     owing.reduce((sum, row) => sum + row.bakiMoney, 0)
   );
   const dayOf = (day: string | null) =>
@@ -69,7 +69,7 @@ const bakiOnTheReceipt = (
   const days = new Set(owing.map((row) => row.promisedBy));
   const [onlyDay] = days;
   return {
-    paid: formatNumber(roundTaka(totalMoney - owedMoney), language),
+    paid: formatNumber(roundMoney(totalMoney - owedMoney), language),
     owed: formatNumber(owedMoney, language),
     toBePaidBy:
       days.size === 1

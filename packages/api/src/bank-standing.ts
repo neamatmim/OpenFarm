@@ -1,9 +1,9 @@
-import { roundTaka } from "@OpenFarm/domain";
+import { roundMoney } from "@OpenFarm/domain";
 
 /** Whether a Bank Check still stands: what the farm believes that month ended on now, against what it
  *  believed when she read the statement. Agreeing with a figure nobody holds any more is not agreeing. */
 export const hasGoneStale = (believedNow: number, believedThen: number) =>
-  roundTaka(believedNow - believedThen) !== 0;
+  roundMoney(believedNow - believedThen) !== 0;
 
 /** How an account — a Venture Account or a Farm Account — stands against its statements. */
 export interface BankStanding {
@@ -53,7 +53,7 @@ export const standingOf = (
     if (stale) {
       standing.monthsStale.push(one.forMonth);
     }
-    if (stale || roundTaka(one.readMoney - one.expectedMoney) !== 0) {
+    if (stale || roundMoney(one.readMoney - one.expectedMoney) !== 0) {
       standing.monthsOut.push(one.forMonth);
     }
     standing.lastCheckedMonth = one.forMonth;

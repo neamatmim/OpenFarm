@@ -11,10 +11,10 @@ import { customType } from "drizzle-orm/pg-core";
  * read and written, not what it is.
  *
  * What it does **not** do is make arithmetic exact. Taka and paisa still arrive as a JS number, so a
- * sum of many of them can still land a paisa out; `roundTaka` is still how a total is settled, and the
+ * sum of many of them can still land a paisa out; `roundMoney` is still how a total is settled, and the
  * Settlement's own sweep is still what catches the rest.
  */
-export const taka = (name: string) =>
+export const numericMoney = (name: string) =>
   customType<{ data: number; driverData: string }>({
     dataType: () => "numeric(12, 2)",
     fromDriver: Number,

@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Section } from "@/components/page";
 import { BuyingTripCorrection } from "@/components/trips/trip-corrections";
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -13,7 +13,7 @@ import { orpc } from "@/utils/orpc";
  */
 export const PastOutings = () => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const trips = useQuery(orpc.trips.list.queryOptions());
   const past = trips.data ?? [];
   if (past.length === 0) {
@@ -34,7 +34,7 @@ export const PastOutings = () => {
               </span>
             </span>
             <span className="flex flex-col items-end gap-0.5 whitespace-nowrap tabular-nums">
-              <span className="font-medium">{taka(one.costMoney)}</span>
+              <span className="font-medium">{asMoney(one.costMoney)}</span>
               <span className="text-muted-foreground text-xs">
                 {t("intake.cameHome", {
                   count: formatNumber(one.animals, language),

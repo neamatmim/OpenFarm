@@ -12,7 +12,7 @@ import { MoneySkeleton } from "@/components/portal/portal-skeletons";
 import { useTheirPortfolio } from "@/components/portal/portal-source";
 import { StillToPay } from "@/components/portal/still-to-pay";
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 
 /** What the lines below come to, as a statement opens with its totals: what they paid in, what came back to them —
  *  Settlement payouts, and apart from them any capital refunded when a Venture was cancelled, so each figure says what
@@ -20,30 +20,30 @@ import { useTaka } from "@/lib/taka";
  *  their portfolio shows. */
 const useTotals = (theirs: TheirAgreements): Figure[] => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const sums = portfolioOf(theirs);
   const refunded: Figure = {
     label: t("money.refund"),
-    value: taka(sums.returnedMoney),
+    value: asMoney(sums.returnedMoney),
     hint: t("money.refundedHint"),
     icon: Undo2,
   };
   return [
     {
       label: t("portal.money.paidIn"),
-      value: taka(sums.paidInMoney),
+      value: asMoney(sums.paidInMoney),
       icon: Landmark,
     },
     {
       label: t("money.payouts"),
-      value: taka(sums.paidOutMoney),
+      value: asMoney(sums.paidOutMoney),
       icon: Wallet,
     },
     // Only for somebody a Venture was cancelled on: everybody else would read a line of nothing.
     ...(sums.returnedMoney > 0 ? [refunded] : []),
     {
       label: t("portal.heldNow"),
-      value: taka(sums.heldMoney),
+      value: asMoney(sums.heldMoney),
       icon: Banknote,
     },
   ];

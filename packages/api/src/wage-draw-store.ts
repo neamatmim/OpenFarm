@@ -2,7 +2,7 @@ import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
 import { wageDraw, wageDrawTaken } from "@OpenFarm/db/schema/money";
-import { roundTaka } from "@OpenFarm/domain";
+import { roundMoney } from "@OpenFarm/domain";
 
 import type { SnapshotValue, Tx } from "./audit";
 import type { Booking } from "./money-store";
@@ -47,7 +47,7 @@ export const openDrawsOf = async (
     for (const part of taken) {
       takenMoney += part.amount;
     }
-    const openMoney = roundTaka(one.amountMoney - takenMoney);
+    const openMoney = roundMoney(one.amountMoney - takenMoney);
     return openMoney > 0 ? [{ ...one, openMoney }] : [];
   });
 };
@@ -94,7 +94,7 @@ export const drawsByPerson = async (db: Db, farmId: string) => {
       return {
         counterpartyId,
         name: nameOf.get(counterpartyId) ?? "",
-        openMoney: roundTaka(openMoney),
+        openMoney: roundMoney(openMoney),
         draws,
       };
     })
@@ -163,11 +163,11 @@ export const drawsToTake = async (
     if (left <= 0) {
       break;
     }
-    const amount = roundTaka(Math.min(left, one.openMoney));
+    const amount = roundMoney(Math.min(left, one.openMoney));
     parts.push({ drawId: one.id, amount });
-    left = roundTaka(left - amount);
+    left = roundMoney(left - amount);
   }
-  return { parts, takenMoney: roundTaka(wageMoney - left) };
+  return { parts, takenMoney: roundMoney(wageMoney - left) };
 };
 
 /** Writes what a wage took off each draw. */
@@ -204,7 +204,7 @@ export const drawsTakenBy = async (
   for (const one of taken) {
     total += one.amount;
   }
-  return roundTaka(total);
+  return roundMoney(total);
 };
 
 /** What paydays have taken off one draw so far. */
@@ -217,7 +217,7 @@ export const takenOffDraw = async (db: Db, drawId: string): Promise<number> => {
   for (const one of taken) {
     total += one.amount;
   }
-  return roundTaka(total);
+  return roundMoney(total);
 };
 
 /** A draw as the trail keeps it: the draw, and what paydays have taken off it. */

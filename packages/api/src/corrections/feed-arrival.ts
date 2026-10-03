@@ -1,6 +1,6 @@
 import { eq } from "@OpenFarm/db/operators";
 import { feedIn } from "@OpenFarm/db/schema/feed";
-import { farmDayOf, roundTaka, startOfFarmDay } from "@OpenFarm/domain";
+import { farmDayOf, roundMoney, startOfFarmDay } from "@OpenFarm/domain";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
@@ -40,7 +40,7 @@ const revalued = (
   if (row.priceMoney === null || was === 0) {
     return row.priceMoney;
   }
-  return roundTaka((row.priceMoney / was) * quantity);
+  return roundMoney((row.priceMoney / was) * quantity);
 };
 
 const loadArrival = (tx: Tx, farmId: string, id: string) =>

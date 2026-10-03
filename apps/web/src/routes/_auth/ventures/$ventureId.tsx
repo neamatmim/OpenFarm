@@ -40,8 +40,8 @@ import { VentureOverview } from "@/components/ventures/venture-overview";
 import { VentureRequests } from "@/components/ventures/venture-requests";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
+import { useMoney } from "@/lib/money";
 import { lastMonth } from "@/lib/months";
-import { useTaka } from "@/lib/taka";
 import type { Venture } from "@/lib/ventures";
 import { shortOfFloor } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
@@ -58,23 +58,23 @@ type Tab = (typeof TABS)[number];
  */
 const useFiguresOf = (venture: Venture): Figure[] => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const money = moneyOf(venture);
   if (venture.state === "open") {
     const short = shortOfFloor(venture);
     return [
       {
         label: t("ventures.held"),
-        value: taka(venture.capitalInMoney),
+        value: asMoney(venture.capitalInMoney),
         hint: t("ventures.page.ofTarget", {
-          target: taka(venture.targetCapitalMoney),
+          target: asMoney(venture.targetCapitalMoney),
         }),
         icon: Banknote,
       },
       {
         label: t("ventures.page.toTheFloor"),
-        value: short > 0 ? taka(short) : t("ventures.page.floorMet"),
-        hint: t("ventures.ofTheFloor", { floor: taka(venture.floorMoney) }),
+        value: short > 0 ? asMoney(short) : t("ventures.page.floorMet"),
+        hint: t("ventures.ofTheFloor", { floor: asMoney(venture.floorMoney) }),
         icon: Target,
         tone: short > 0 ? "warning" : "success",
       },
@@ -100,17 +100,17 @@ const useFiguresOf = (venture: Venture): Figure[] => {
     return [
       {
         label: t("ventures.held"),
-        value: taka(venture.capitalInMoney),
+        value: asMoney(venture.capitalInMoney),
         icon: Banknote,
       },
       {
         label: t("ventures.page.paidOut"),
-        value: taka(money.paidOutMoney),
+        value: asMoney(money.paidOutMoney),
         icon: Handshake,
       },
       {
         label: t("ventures.balance"),
-        value: taka(money.balanceMoney),
+        value: asMoney(money.balanceMoney),
         icon: Wallet,
       },
     ];
@@ -118,17 +118,17 @@ const useFiguresOf = (venture: Venture): Figure[] => {
   return [
     {
       label: t("ventures.balance"),
-      value: taka(money.balanceMoney),
+      value: asMoney(money.balanceMoney),
       icon: Wallet,
     },
     {
       label: t("ventures.page.cattleLeft"),
-      value: taka(money.cattleBudgetHeldMoney),
+      value: asMoney(money.cattleBudgetHeldMoney),
       icon: PiggyBank,
     },
     {
       label: t("ventures.page.runningLeft"),
-      value: taka(money.runningBudgetHeldMoney),
+      value: asMoney(money.runningBudgetHeldMoney),
       icon: Wheat,
       tone: venture.runningBudgetLow ? "warning" : "neutral",
     },

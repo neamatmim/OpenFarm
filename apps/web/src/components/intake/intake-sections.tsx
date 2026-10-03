@@ -11,7 +11,7 @@ import { Section } from "@/components/page";
 import { FormField, NativeSelect } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 import { orpc } from "@/utils/orpc";
 
 import type { IntakeFields, OwningVenture } from "./intake-fields";
@@ -242,7 +242,7 @@ const LastBuys = ({ price, weight }: { price: number; weight: number }) => {
   const said = t("intake.lastBuys", {
     animals: last.data.animals,
     days: last.data.days,
-    taka: formatNumber(last.data.moneyPerKg, language),
+    amount: formatNumber(last.data.moneyPerKg, language),
   });
   let against = t("intake.lastBuysSame");
   if (percent > 0) {
@@ -329,7 +329,7 @@ export const PriceSection = ({
   onNewTrip: () => void;
 }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   // The outing she came on, where it went on a Venture's Float: then whose she is is not a choice.
   const trip = trips.find((one) => one.id === fields.buyingTripId);
   const float = trip?.float ?? null;
@@ -414,7 +414,7 @@ export const PriceSection = ({
                 <option key={one.id} value={one.id}>
                   {one.wentTo} · {formatDate(one.wentOn, language, "date")}
                   {one.float
-                    ? ` · ${one.float.ventureName} ${taka(one.float.amountMoney)}`
+                    ? ` · ${one.float.ventureName} ${asMoney(one.float.amountMoney)}`
                     : ""}
                   {one.farmFloat ? ` · ${t("intake.farmFloat")}` : ""}
                 </option>

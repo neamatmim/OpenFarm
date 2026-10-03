@@ -1,4 +1,4 @@
-import { roundTaka } from "./money";
+import { roundMoney } from "./money";
 import type { PenHistoryLine } from "./pen-history";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -55,9 +55,9 @@ export const overheadsOver = ({
   }
   const totalMoney = money.reduce((sum, one) => sum + one.amount, 0);
   return {
-    totalMoney: roundTaka(totalMoney),
+    totalMoney: roundMoney(totalMoney),
     lines: [...byCategory.values()]
-      .map((one) => ({ ...one, amount: roundTaka(one.amount) }))
+      .map((one) => ({ ...one, amount: roundMoney(one.amount) }))
       .toSorted(
         (a, b) =>
           b.amount - a.amount ||
@@ -66,6 +66,6 @@ export const overheadsOver = ({
       ),
     /** Days, to the tenth: what the figure below is over. */
     headDays: Math.round(headDays * 10) / 10,
-    perHeadPerDayMoney: headDays > 0 ? roundTaka(totalMoney / headDays) : null,
+    perHeadPerDayMoney: headDays > 0 ? roundMoney(totalMoney / headDays) : null,
   };
 };

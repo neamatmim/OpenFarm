@@ -165,7 +165,7 @@ const GROUPS: {
       {
         key: "approvalThresholdMoney",
         label: "params.approvalThreshold",
-        unit: "params.taka",
+        unit: "params.money",
         min: 0,
         max: 100_000_000,
       },
@@ -364,7 +364,7 @@ const GROUPS: {
       {
         key: "cashShortTellMoney",
         label: "params.cashShortTellMoney",
-        unit: "params.taka",
+        unit: "params.money",
         min: 0,
         max: 1_000_000,
       },
@@ -379,7 +379,7 @@ const GROUPS: {
       {
         key: "medicineShortTellMoney",
         label: "params.medicineShortTellMoney",
-        unit: "params.taka",
+        unit: "params.money",
         min: 0,
         max: 1_000_000,
       },
@@ -503,7 +503,7 @@ const GROUPS: {
       {
         key: "storeShortfallTellMoney",
         label: "params.storeShortfallTellMoney",
-        unit: "params.taka",
+        unit: "params.money",
         min: 0,
         max: 1_000_000,
       },
@@ -568,7 +568,7 @@ const GROUPS: {
       {
         key: "adjustmentThresholdMoney",
         label: "params.adjustmentThreshold",
-        unit: "params.taka",
+        unit: "params.money",
         min: 0,
         max: 1_000_000,
       },
@@ -589,7 +589,7 @@ const GROUPS: {
       {
         key: "runningBudgetWarnMoney",
         label: "params.runningBudgetWarn",
-        unit: "params.taka",
+        unit: "params.money",
         min: 0,
         max: 100_000_000,
       },

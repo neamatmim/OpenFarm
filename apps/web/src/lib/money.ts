@@ -1,4 +1,4 @@
-import { roundTaka } from "@OpenFarm/domain";
+import { roundMoney } from "@OpenFarm/domain";
 import type { Language } from "@OpenFarm/i18n";
 import { currencySign, formatNumber } from "@OpenFarm/i18n";
 
@@ -20,7 +20,7 @@ const said = (amount: number, language: Language, figure: number): string =>
  * Whole, because the paisa on a sum are noise the farm does not bank in — the Settlement is worked out
  * to the paisa and paid out in taka, and a balance carrying two decimals reads as precision nobody has.
  */
-export const saidInTaka = (amount: number, language: Language): string =>
+export const saidAsMoney = (amount: number, language: Language): string =>
   said(amount, language, Math.abs(Math.round(amount)));
 
 /**
@@ -29,23 +29,23 @@ export const saidInTaka = (amount: number, language: Language): string =>
  * A cost per litre or a cost of gain is not a sum but a figure to compare against another, and rounding
  * it to the taka is what makes two different rates print the same. This is the one place paisa are said.
  */
-export const saidToThePaisa = (amount: number, language: Language): string =>
-  said(amount, language, Math.abs(roundTaka(amount)));
+export const saidAsMoneyRate = (amount: number, language: Language): string =>
+  said(amount, language, Math.abs(roundMoney(amount)));
 
 /** A sum, for a screen that need not ask who is reading. */
-export const useTaka = () => {
+export const useMoney = () => {
   const { language } = useLanguage();
-  return (amount: number) => saidInTaka(amount, language);
+  return (amount: number) => saidAsMoney(amount, language);
 };
 
 /** A rate, for the same. */
-export const useTakaToThePaisa = () => {
+export const useMoneyRate = () => {
   const { language } = useLanguage();
-  return (amount: number) => saidToThePaisa(amount, language);
+  return (amount: number) => saidAsMoneyRate(amount, language);
 };
 
 /** What the farm's Overhead came to a head a day, or a dash where no animal stood to divide it by. */
 export const usePerHeadPerDay = () => {
-  const rate = useTakaToThePaisa();
+  const rate = useMoneyRate();
   return (amount: number | null) => (amount === null ? "—" : rate(amount));
 };

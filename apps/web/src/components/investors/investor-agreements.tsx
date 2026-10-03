@@ -25,7 +25,7 @@ import { PapersMenu } from "@/components/ventures/venture-investors";
 import { MoneyTotals } from "@/components/ventures/venture-money";
 import { useLanguage } from "@/i18n/language-provider";
 import { agreedInApp } from "@/lib/agreed-in-app";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 import type { orpc } from "@/utils/orpc";
 
 /** One Investor's Agreements and money, as the server answers for their page. */
@@ -96,7 +96,7 @@ const INTO_THE_FARM: Record<Movement["kind"], boolean> = {
 /** What a Settlement came to on one paper, and whether the money has reached them. */
 const SettlementCell = ({ agreement }: { agreement: Agreement }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const { settlement } = agreement;
   if (!settlement) {
     return <Nothing />;
@@ -121,7 +121,7 @@ const SettlementCell = ({ agreement }: { agreement: Agreement }) => {
   return (
     <span className="flex flex-col items-end gap-1">
       <span className="font-medium tabular-nums">
-        {taka(settlement.payoutMoney)}
+        {asMoney(settlement.payoutMoney)}
       </span>
       {said()}
     </span>
@@ -211,15 +211,15 @@ const SignedCell = ({ row }: AgreementCell) => (
 /** The capital held on it against what its Units promised, the held part in the warning's colour while an open
  *  Venture still waits on some of it. */
 const HeldCell = ({ row }: AgreementCell) => {
-  const taka = useTaka();
+  const asMoney = useMoney();
   const { venture, capitalHeldMoney, promisedMoney } = row.original;
   const short = venture.state === "open" && capitalHeldMoney < promisedMoney;
   return (
     <>
       <span className={cn(short && "text-warning")}>
-        {taka(capitalHeldMoney)}
+        {asMoney(capitalHeldMoney)}
       </span>
-      <span className="text-muted-foreground">{` / ${taka(promisedMoney)}`}</span>
+      <span className="text-muted-foreground">{` / ${asMoney(promisedMoney)}`}</span>
     </>
   );
 };
@@ -463,20 +463,20 @@ const ReferenceCell = ({ row }: MovementCell) => (
 );
 
 const IntoCell = ({ row }: MovementCell) => {
-  const taka = useTaka();
+  const asMoney = useMoney();
   return INTO_THE_FARM[row.original.kind] ? (
-    <>{taka(row.original.amountMoney)}</>
+    <>{asMoney(row.original.amountMoney)}</>
   ) : (
     <Nothing />
   );
 };
 
 const BackCell = ({ row }: MovementCell) => {
-  const taka = useTaka();
+  const asMoney = useMoney();
   return INTO_THE_FARM[row.original.kind] ? (
     <Nothing />
   ) : (
-    <>{taka(row.original.amountMoney)}</>
+    <>{asMoney(row.original.amountMoney)}</>
   );
 };
 
@@ -531,7 +531,7 @@ const MONEY_COLUMNS = {
  *  first, then the day, the Venture and the reference under them. */
 const MovementCard = ({ row }: { row: MovementRow }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const words = MONEY_WORDS[row.inThePortal ? "portal" : "owner"];
   const into = INTO_THE_FARM[row.kind];
   return (
@@ -552,7 +552,7 @@ const MovementCard = ({ row }: { row: MovementRow }) => {
       </div>
       <div className="flex shrink-0 flex-col items-end gap-0.5">
         <span className="font-medium tabular-nums">
-          {taka(row.amountMoney)}
+          {asMoney(row.amountMoney)}
         </span>
         <span className="text-muted-foreground text-xs">
           {into ? t("investors.page.toTheFarm") : t(words.back)}
@@ -595,7 +595,7 @@ export const InvestorMoney = ({
   inThePortal?: boolean;
 }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const words = MONEY_WORDS[inThePortal ? "portal" : "owner"];
   const ventureOf = new Map(
     agreements.map((one) => [one.id, one.venture] as const)
@@ -630,8 +630,8 @@ export const InvestorMoney = ({
           />
           <MoneyTotals
             figures={[
-              { label: t("investors.page.toTheFarm"), value: taka(inMoney) },
-              { label: t(words.back), value: taka(outMoney) },
+              { label: t("investors.page.toTheFarm"), value: asMoney(inMoney) },
+              { label: t(words.back), value: asMoney(outMoney) },
             ]}
           />
         </div>

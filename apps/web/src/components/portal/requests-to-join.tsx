@@ -37,8 +37,8 @@ import {
   useTheirRequests,
 } from "@/components/portal/portal-source";
 import { useLanguage } from "@/i18n/language-provider";
+import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
-import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 /** One of the Investor's own Requests to Join, as the portal reads it back to them. */
@@ -178,7 +178,7 @@ const RequestForm = ({
   earlier: TheirRequest | null;
 }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const acting = useCanAct();
   const refused = useRefused(REQUEST_REFUSALS);
   const [units, setUnits] = useState(live ? String(live.units) : "");
@@ -223,7 +223,7 @@ const RequestForm = ({
             <p>
               {t("portal.request.yours", {
                 units: formatNumber(live.units, language),
-                taka: taka(live.amount),
+                amount: asMoney(live.amount),
                 // When it last said this, which is when it was made until they change it.
                 day: formatDate(new Date(live.changedAt), language, "date"),
               })}
@@ -243,7 +243,7 @@ const RequestForm = ({
                 whole
                   ? t("portal.request.comesTo", {
                       units: formatNumber(asked, language),
-                      taka: taka(asked * one.unitPriceMoney),
+                      amount: asMoney(asked * one.unitPriceMoney),
                     })
                   : undefined
               }
@@ -605,7 +605,7 @@ const RequestCard = ({
   stillOffered: boolean;
 }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const places = usePortalPlaces();
   const live = isLiveRequest(one.state);
   const changeable = one.state === "waiting" && stillOffered;
@@ -623,7 +623,7 @@ const RequestCard = ({
         <Fact label={t("portal.units")}>
           {formatNumber(one.units, language)}
         </Fact>
-        <Fact label={t("portal.requests.comesTo")}>{taka(one.amount)}</Fact>
+        <Fact label={t("portal.requests.comesTo")}>{asMoney(one.amount)}</Fact>
         <Fact label={t("portal.requests.askedOn")}>
           <SaidDate at={one.madeAt} />
         </Fact>

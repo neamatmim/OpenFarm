@@ -11,8 +11,8 @@ import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { paperOnFile } from "@/lib/agreed-in-app";
 import { useFreshFor } from "@/lib/fresh-for";
+import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
-import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 interface Arrival {
@@ -112,7 +112,7 @@ export const TakeCapitalSheet = ({
     enabled: venture !== null,
   });
   const nameOf = useInvestorNames();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const taking = useMutation(
     orpc.ventures.takeCapital.mutationOptions({
       onError: refused,
@@ -150,7 +150,7 @@ export const TakeCapitalSheet = ({
       paper &&
       `${t("ventures.holdsUnits", {
         units: formatNumber(paper.units, language),
-      })} · ${t("ventures.capitalLeft", { taka: taka(paper.capitalLeftMoney) })}`,
+      })} · ${t("ventures.capitalLeft", { amount: asMoney(paper.capitalLeftMoney) })}`,
     t,
   });
   const amount = Number(arrival.amountMoney);

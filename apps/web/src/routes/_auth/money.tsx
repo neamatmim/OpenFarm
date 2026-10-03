@@ -35,8 +35,8 @@ import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
+import { useMoney } from "@/lib/money";
 import { moneyTotals, totalsPartial } from "@/lib/money-totals";
-import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 const TABS = [
@@ -58,7 +58,7 @@ const firstOfTheMonth = () =>
  *  for the Owner — the farm's own totals, from every entry in the period however many the register shows. */
 const useMoneyFigures = (list: MoneyList | undefined): Figure[] => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const {
     inMoney: moneyIn,
     outMoney: moneyOut,
@@ -71,20 +71,20 @@ const useMoneyFigures = (list: MoneyList | undefined): Figure[] => {
   return [
     {
       label: t("money.totalIn"),
-      value: list ? taka(moneyIn) : loading,
+      value: list ? asMoney(moneyIn) : loading,
       hint: partial,
       icon: ArrowDownLeft,
       tone: "success",
     },
     {
       label: t("money.totalOut"),
-      value: list ? taka(moneyOut) : loading,
+      value: list ? asMoney(moneyOut) : loading,
       hint: partial,
       icon: ArrowUpRight,
     },
     {
       label: t("money.net"),
-      value: list ? taka(net) : loading,
+      value: list ? asMoney(net) : loading,
       hint: partial,
       icon: Scale,
       tone: net < 0 ? "danger" : "neutral",

@@ -47,7 +47,7 @@ import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { initialsOf } from "@/lib/initials";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 import { orpc } from "@/utils/orpc";
 
 const TABS = ["overview", "agreements", "money"] as const;
@@ -64,13 +64,13 @@ const useFiguresOf = (
   theirs: TheirAgreements | undefined
 ): Figure[] => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const loading = <Skeleton className="h-8 w-24" />;
   const sums = theirs ? portfolioOf(theirs) : null;
   return [
     {
       label: t("investors.page.heldNow"),
-      value: sums ? taka(sums.heldMoney) : loading,
+      value: sums ? asMoney(sums.heldMoney) : loading,
       hint: sums?.heldOn
         ? t("investors.page.onPapers", { count: sums.heldOn })
         : undefined,
@@ -84,16 +84,16 @@ const useFiguresOf = (
     },
     {
       label: t("money.payouts"),
-      value: sums ? taka(sums.paidOutMoney) : loading,
+      value: sums ? asMoney(sums.paidOutMoney) : loading,
       // Capital refunded is not a payout: said beside it, as the portal's money page counts it apart.
       hint: sums?.returnedMoney
-        ? t("money.refundedApart", { amount: taka(sums.returnedMoney) })
+        ? t("money.refundedApart", { amount: asMoney(sums.returnedMoney) })
         : undefined,
       icon: Wallet,
     },
     {
       label: t("investors.page.profit"),
-      value: sums ? taka(sums.profitMoney) : loading,
+      value: sums ? asMoney(sums.profitMoney) : loading,
       hint: sums?.settled
         ? t("investors.page.fromSettled", { count: sums.settled })
         : t("investors.page.noneSettled"),

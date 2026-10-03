@@ -8,7 +8,7 @@ import type { TheirAgreements } from "@/components/investors/investor-agreements
 import { Notice } from "@/components/page";
 import { usePortalPlaces } from "@/components/portal/portal-source";
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 
 type HisAgreement = TheirAgreements["agreements"][number];
 
@@ -21,7 +21,7 @@ const owedOn = (one: HisAgreement) =>
 /** One line for a Venture they still owe capital on, leading to its page, where the Venture Account is. */
 const OwedLine = ({ one }: { one: HisAgreement }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const { to, params } = usePortalPlaces().venture(one.id).link;
   return (
     <Notice
@@ -33,7 +33,7 @@ const OwedLine = ({ one }: { one: HisAgreement }) => {
       }
       icon={Landmark}
       title={t("portal.owed.line", {
-        taka: taka(owedOn(one)),
+        amount: asMoney(owedOn(one)),
         venture: one.venture.name,
       })}
       tone="info"

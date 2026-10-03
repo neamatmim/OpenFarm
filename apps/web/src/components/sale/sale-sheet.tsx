@@ -241,7 +241,10 @@ const PerKg = ({ answers }: { answers: SaleAnswers }) => {
   return (
     <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm tabular-nums">
       {t("intake.perKg", {
-        taka: formatNumber(Math.round((price / weight) * 100) / 100, language),
+        amount: formatNumber(
+          Math.round((price / weight) * 100) / 100,
+          language
+        ),
       })}
     </p>
   );

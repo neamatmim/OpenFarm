@@ -23,7 +23,7 @@ import { EmptyState, SegmentedControl, StatusBadge } from "@/components/page";
 import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { amount as amountArrived, day, figure } from "@/lib/correcting";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 import { orpc } from "@/utils/orpc";
 
 import type { Adjustment, Arrival, FeedItemRow } from "./feed-types";
@@ -192,7 +192,7 @@ const UnitPriceLine = ({ arrival }: { arrival: Arrival }) => {
   return (
     <span className="text-muted-foreground text-xs whitespace-nowrap">
       {t("stock.averagePrice", {
-        taka: formatNumber(Math.round(unitPrice * 100) / 100, language),
+        amount: formatNumber(Math.round(unitPrice * 100) / 100, language),
         unit: feedUnitEach(arrival.unit, language),
       })}
       {change === null ? null : (
@@ -299,7 +299,7 @@ const arrivalColumns = arrivalColumn.columns([
 /** A lot on a phone: what and how much on top, when, what it cost and from whom beneath. */
 const ArrivalCard = ({ row }: { row: ArrivalRow }) => {
   const { language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   return (
     <div className="flex items-start justify-between gap-3">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -321,7 +321,7 @@ const ArrivalCard = ({ row }: { row: ArrivalRow }) => {
           {formatDate(row.receivedOn, language)}
           {row.kind === "harvest" || row.priceMoney === null
             ? ""
-            : ` · ${taka(row.priceMoney)} · ${row.sellerName ?? ""}`}
+            : ` · ${asMoney(row.priceMoney)} · ${row.sellerName ?? ""}`}
         </span>
         <SlipLine arrival={row} />
         <UnitPriceLine arrival={row} />
@@ -472,7 +472,7 @@ const DifferenceCell = ({ row }: { row: { original: Adjustment } }) => {
 /** What a difference is worth at the store's price when counted: missing in the danger colour; nothing for feed never
  *  bought, which has no price. Missing from an answer a phone kept from before counts were priced. */
 const ValueCell = ({ row }: { row: { original: Adjustment } }) => {
-  const taka = useTaka();
+  const asMoney = useMoney();
   const value = row.original.valueMoney;
   if (value === null || value === undefined) {
     return <Nothing />;
@@ -484,7 +484,7 @@ const ValueCell = ({ row }: { row: { original: Adjustment } }) => {
         value < 0 && "text-danger font-medium"
       )}
     >
-      {taka(value)}
+      {asMoney(value)}
     </span>
   );
 };

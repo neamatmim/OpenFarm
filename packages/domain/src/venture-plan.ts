@@ -1,4 +1,4 @@
-import { roundTaka } from "./money";
+import { roundMoney } from "./money";
 import { livingKg } from "./projection";
 
 /**
@@ -54,12 +54,12 @@ export const planTotals = ({
     const saleKgEach = roundKg(middleOf(line) + line.dailyGainKg * days);
     return {
       boughtKg,
-      costMoney: roundTaka(boughtKg * line.buyMoneyPerKg),
+      costMoney: roundMoney(boughtKg * line.buyMoneyPerKg),
       saleKgEach,
       saleKg: roundKg(saleKgEach * line.animals),
     };
   });
-  const costMoney = roundTaka(
+  const costMoney = roundMoney(
     each.reduce((sum, one) => sum + one.costMoney, 0)
   );
   return {
@@ -68,7 +68,7 @@ export const planTotals = ({
     boughtKg: roundKg(each.reduce((sum, one) => sum + one.boughtKg, 0)),
     costMoney,
     saleKg: roundKg(each.reduce((sum, one) => sum + one.saleKg, 0)),
-    overBudgetMoney: Math.max(0, roundTaka(costMoney - cattleBudgetMoney)),
+    overBudgetMoney: Math.max(0, roundMoney(costMoney - cattleBudgetMoney)),
   };
 };
 
@@ -114,14 +114,14 @@ export const baselineOf = (
 /** Some animals added up: how many, their kilos, what they cost, and so a kilo; no price a kilo for none. */
 const addUp = (bought: readonly PlanBought[]) => {
   const kg = roundKg(bought.reduce((sum, one) => sum + one.weightKg, 0));
-  const costMoney = roundTaka(
+  const costMoney = roundMoney(
     bought.reduce((sum, one) => sum + one.priceMoney, 0)
   );
   return {
     animals: bought.length,
     kg,
     costMoney,
-    moneyPerKg: kg > 0 ? roundTaka(costMoney / kg) : null,
+    moneyPerKg: kg > 0 ? roundMoney(costMoney / kg) : null,
   };
 };
 
@@ -153,7 +153,7 @@ export const buyingAgainstPlan = (
         planned: {
           animals: line.animals,
           kg,
-          costMoney: roundTaka(kg * line.buyMoneyPerKg),
+          costMoney: roundMoney(kg * line.buyMoneyPerKg),
           moneyPerKg: line.buyMoneyPerKg,
         },
         bought: addUp(inBand[at] ?? []),
@@ -203,10 +203,10 @@ export const plannedResult = ({
 }) => {
   const spent = cattleMoney + runningBudgetMoney;
   return {
-    lowMoney: roundTaka(
+    lowMoney: roundMoney(
       livingKg(saleKg, deathsPercent) * saleLowMoneyPerKg - spent
     ),
-    highMoney: roundTaka(saleKg * saleHighMoneyPerKg - spent),
+    highMoney: roundMoney(saleKg * saleHighMoneyPerKg - spent),
   };
 };
 
@@ -230,7 +230,7 @@ export const planAverages = (lines: readonly PlanLine[]) => {
     0
   );
   return {
-    buyMoneyPerKg: roundTaka(cost / kg),
+    buyMoneyPerKg: roundMoney(cost / kg),
     buyWeightKg: roundKg(kg / animals),
     dailyGainKg: Math.round((gain / animals) * 100) / 100,
   };

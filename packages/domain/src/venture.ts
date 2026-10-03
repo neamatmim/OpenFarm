@@ -1,4 +1,4 @@
-import { roundTaka } from "./money";
+import { roundMoney } from "./money";
 
 /**
  * The arithmetic of closing a Venture out. Here in the domain rather than in the API, because the sum an
@@ -16,7 +16,7 @@ import { roundTaka } from "./money";
 export const priceAtWeight = (
   weightKg: number,
   rateMoneyPerKg: number
-): number => roundTaka(weightKg * rateMoneyPerKg);
+): number => roundMoney(weightKg * rateMoneyPerKg);
 
 /**
  * The months from one to another, both included, as "YYYY-MM". A Venture is asked about every month it

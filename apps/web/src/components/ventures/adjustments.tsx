@@ -9,8 +9,8 @@ import { toast } from "sonner";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
-import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 type Approved = NonNullable<
@@ -172,7 +172,7 @@ const OneAdjustment = ({
   onWaive: () => void;
 }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const down = adjustment.perUnitDifferenceMoney < 0;
   return (
     <div className="flex flex-col gap-1 border-t pt-2 text-sm">
@@ -197,14 +197,14 @@ const OneAdjustment = ({
       </p>
       <p className="tabular-nums">
         {t("ventures.wouldBeNow", {
-          profit: taka(adjustment.profitMoney),
-          perUnit: taka(adjustment.perUnitMoney),
+          profit: asMoney(adjustment.profitMoney),
+          perUnit: asMoney(adjustment.perUnitMoney),
         })}
       </p>
       <p className="text-muted-foreground tabular-nums">
         {t("ventures.wasFrozenAt", {
-          profit: taka(frozen.profitMoney),
-          perUnit: taka(frozen.perUnitMoney),
+          profit: asMoney(frozen.profitMoney),
+          perUnit: asMoney(frozen.perUnitMoney),
         })}
       </p>
       <p
@@ -213,7 +213,7 @@ const OneAdjustment = ({
         }
       >
         {t(down ? "ventures.aUnitLost" : "ventures.aUnitGained", {
-          amount: taka(Math.abs(adjustment.perUnitDifferenceMoney)),
+          amount: asMoney(Math.abs(adjustment.perUnitDifferenceMoney)),
         })}
       </p>
       {adjustment.waivedNote ? (
@@ -230,7 +230,7 @@ const OneAdjustment = ({
             <div className="flex justify-between gap-2" key={one.agreementId}>
               <span className="text-muted-foreground">{one.name}</span>
               <span className="tabular-nums">
-                {taka(adjustment.perUnitPaidMoney * one.units)}
+                {asMoney(adjustment.perUnitPaidMoney * one.units)}
               </span>
             </div>
           ))}

@@ -21,8 +21,8 @@ import type { Tone } from "@/components/page";
 import { EmptyState, StatusBadge } from "@/components/page";
 import { FormDialog, FormField, RowMenu } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
-import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 import type { StockLine, StockStanding } from "./feed-types";
@@ -114,7 +114,7 @@ const AveragePriceCell = ({ row }: { row: { original: StockRow } }) => {
   return (
     <span className="whitespace-nowrap">
       {t("stock.averagePrice", {
-        taka: formatNumber(line.averagePriceMoney, language),
+        amount: formatNumber(line.averagePriceMoney, language),
         unit: feedUnitEach(line.unit, language),
       })}
     </span>
@@ -305,7 +305,7 @@ const stockColumns = column.columns([
 /** A Feed Item on a phone: its name and standing on one line, what the store holds large beneath. */
 const StockCard = ({ row }: { row: StockRow }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const value = valueOf(row);
   return (
     <div className="flex items-start justify-between gap-3">
@@ -338,9 +338,9 @@ const StockCard = ({ row }: { row: StockRow }) => {
           {row.averagePriceMoney === null
             ? t("stock.harvest")
             : `${t("stock.averagePrice", {
-                taka: formatNumber(row.averagePriceMoney, language),
+                amount: formatNumber(row.averagePriceMoney, language),
                 unit: feedUnitEach(row.unit, language),
-              })} · ${taka(value ?? 0)}`}
+              })} · ${asMoney(value ?? 0)}`}
           {row.lowStockAt === null
             ? ""
             : ` · ${t("stock.col.lowAt")} ${formatNumber(row.lowStockAt, language)} ${feedUnitWord(row.unit, language)}`}

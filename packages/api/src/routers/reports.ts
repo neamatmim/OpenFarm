@@ -42,7 +42,7 @@ const accountantPaper = async (
     from: formatDate(startOfFarmDay(period.from), language),
     to: formatDate(startOfFarmDay(period.to), language),
     summary,
-    taka: (amount) => `${currencySign()}${formatNumber(amount, language)}`,
+    asMoney: (amount) => `${currencySign()}${formatNumber(amount, language)}`,
     bakiAtTheEnd: book
       .filter((buyer) => buyer.owingMoney > 0)
       .map((buyer) => ({ name: buyer.name, owingMoney: buyer.owingMoney }))

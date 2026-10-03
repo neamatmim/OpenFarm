@@ -16,7 +16,7 @@ import { EmptyState, Section } from "@/components/page";
 import { Line } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
 import { useKg } from "@/lib/kg";
-import { useTaka, useTakaToThePaisa } from "@/lib/taka";
+import { useMoney, useMoneyRate } from "@/lib/money";
 import type { Venture } from "@/lib/ventures";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
@@ -102,8 +102,8 @@ const GainCell = ({ row }: AnimalCell) => (
 
 /** A sum in taka, or nothing where there is none yet. */
 const Sum = ({ amount }: { amount: number | null }) => {
-  const taka = useTaka();
-  return amount === null ? <Nothing /> : <>{taka(amount)}</>;
+  const asMoney = useMoney();
+  return amount === null ? <Nothing /> : <>{asMoney(amount)}</>;
 };
 
 const BoughtCell = ({ row }: AnimalCell) => (
@@ -116,7 +116,7 @@ const FetchedCell = ({ row }: AnimalCell) => (
 
 /** What each kilogram she put on cost: the figure the run is judged by, per animal. */
 const CostOfGainSaid = ({ amount }: { amount: number | null }) => {
-  const rate = useTakaToThePaisa();
+  const rate = useMoneyRate();
   return amount === null ? <Nothing /> : <>{rate(amount)}</>;
 };
 
@@ -250,8 +250,8 @@ const AnimalsTable = ({ animals }: { animals: AnimalRow[] }) => {
  */
 export const VentureAnimals = ({ venture }: { venture: Venture }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
-  const rate = useTakaToThePaisa();
+  const asMoney = useMoney();
+  const rate = useMoneyRate();
   const input = { input: { ventureId: venture.id } };
   const herd = useQuery(orpc.ventures.herd.queryOptions(input));
   const money = useQuery(orpc.ventures.economics.queryOptions(input));
@@ -270,7 +270,7 @@ export const VentureAnimals = ({ venture }: { venture: Venture }) => {
     );
   }
   const orDash = (amount: number | null) =>
-    amount === null ? "—" : taka(amount);
+    amount === null ? "—" : asMoney(amount);
   return (
     <div className="flex flex-col gap-4">
       <Section>

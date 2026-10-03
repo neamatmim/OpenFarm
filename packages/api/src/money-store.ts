@@ -15,7 +15,7 @@ import {
   moneyEvent,
 } from "@OpenFarm/db/schema/money";
 import type { ApprovedTerms, MoneyApproval } from "@OpenFarm/domain";
-import { approvalOf, roundTaka, termsUnchanged } from "@OpenFarm/domain";
+import { approvalOf, roundMoney, termsUnchanged } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
@@ -356,7 +356,7 @@ export const moneyTotalsOf = async (
     )
     .groupBy(moneyEvent.direction);
   const totalOf = (direction: "in" | "out") =>
-    roundTaka(
+    roundMoney(
       Number(rows.find((row) => row.direction === direction)?.totalMoney ?? 0)
     );
   return {
@@ -817,7 +817,7 @@ const piecesOf = async (
   for (const one of pieces) {
     total += one.amountMoney;
   }
-  return roundTaka(total);
+  return roundMoney(total);
 };
 
 /**
@@ -845,7 +845,7 @@ export const bookMoney = async (
       data: { refusal: "wage_is_the_farms" },
     });
   }
-  const amountMoney = roundTaka(money.amountMoney);
+  const amountMoney = roundMoney(money.amountMoney);
   const existing = await tx.query.moneyEvent.findFirst({
     where: {
       farmId: farm.id,
@@ -953,6 +953,6 @@ export const awaitingApproval = async (
     );
   return {
     count: Number(row?.count ?? 0),
-    totalMoney: roundTaka(Number(row?.totalMoney ?? 0)),
+    totalMoney: roundMoney(Number(row?.totalMoney ?? 0)),
   };
 };

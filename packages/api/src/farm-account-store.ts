@@ -1,4 +1,4 @@
-import { monthOf, roundTaka, startOfFarmDay } from "@OpenFarm/domain";
+import { monthOf, roundMoney, startOfFarmDay } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
 import type { BankStanding } from "./bank-standing";
@@ -78,7 +78,7 @@ const heldAtEnd = (
       held += one.amount;
     }
   }
-  return roundTaka(held);
+  return roundMoney(held);
 };
 
 /** The first reading of a Farm Account, or nothing if its statement has never been read. */

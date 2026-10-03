@@ -1,7 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, notInArray } from "@OpenFarm/db/operators";
 import { medicineCount } from "@OpenFarm/db/schema/health";
-import { roundTaka } from "@OpenFarm/domain";
+import { roundMoney } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
@@ -78,7 +78,7 @@ export const bookAt = async (
       {
         expected: Math.max(0, line.expected),
         perDoseMoney:
-          line.bought > 0 ? roundTaka(line.amount / line.bought) : null,
+          line.bought > 0 ? roundMoney(line.amount / line.bought) : null,
       },
     ])
   );
@@ -217,5 +217,5 @@ export const medicineShortMoney = (
       short += -one.difference * one.perDoseMoney;
     }
   }
-  return roundTaka(short);
+  return roundMoney(short);
 };

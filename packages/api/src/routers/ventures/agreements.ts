@@ -51,7 +51,7 @@ const signInput = z.object({
   investorsPercent: z.number().int().min(0).max(100),
   arbitrator: z.string().trim().min(1).max(200),
   /** What the stamp cost. A stamped instrument with no stamp on it is not one. */
-  stampValueMoney: money.refine((taka) => taka > 0, {
+  stampValueMoney: money.refine((amount) => amount > 0, {
     message: "A stamped paper has a stamp value",
   }),
   stampedOn: farmDay,

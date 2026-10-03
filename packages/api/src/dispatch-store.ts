@@ -6,7 +6,7 @@ import {
   milkAccountOf,
   paidAtTheGate,
   roundLitres,
-  roundTaka,
+  roundMoney,
   startOfFarmDay,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -123,7 +123,7 @@ export const readDispatch = async (tx: Tx, id: string) => {
 export const worthOfDispatch = (row: {
   litres: string | number;
   pricePerLitreMoney: string | number;
-}): number => roundTaka(Number(row.litres) * Number(row.pricePerLitreMoney));
+}): number => roundMoney(Number(row.litres) * Number(row.pricePerLitreMoney));
 
 /**
  * Books a Dispatch's milk sale as it now stands: what the buyer paid for it as it left — its litres at its price,

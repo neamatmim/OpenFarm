@@ -6,7 +6,7 @@ import {
   farmDayOf,
   hasEnded,
   monthOf,
-  roundTaka,
+  roundMoney,
   RUNNING_STATES,
   startOfFarmDay,
 } from "@OpenFarm/domain";
@@ -193,7 +193,7 @@ export const booksProcedures = {
                *  something has moved in that month since. */
               expectedMoney: already.expectedMoney,
               note: already.note,
-              stale: roundTaka(expectedMoney - already.expectedMoney) !== 0,
+              stale: roundMoney(expectedMoney - already.expectedMoney) !== 0,
             }
           : null,
       };
@@ -288,8 +288,8 @@ export const booksProcedures = {
           // between correcting a reading and quietly making a problem go away.
           const disagreed =
             already !== undefined &&
-            roundTaka(already.readMoney - already.expectedMoney) !== 0;
-          const agreesNow = roundTaka(input.readMoney - expectedMoney) === 0;
+            roundMoney(already.readMoney - already.expectedMoney) !== 0;
+          const agreesNow = roundMoney(input.readMoney - expectedMoney) === 0;
           // Said now, not once before: the note she wrote when it disagreed explains the disagreement,
           // and putting the month right is a different thing to explain.
           if (disagreed && !input.note) {
@@ -331,7 +331,7 @@ export const booksProcedures = {
       return {
         expectedMoney,
         readMoney: input.readMoney,
-        differenceMoney: roundTaka(input.readMoney - expectedMoney),
+        differenceMoney: roundMoney(input.readMoney - expectedMoney),
       };
     }),
 
@@ -349,7 +349,7 @@ export const booksProcedures = {
     .input(
       z.object({
         ventureId: z.string(),
-        amountMoney: money.refine((taka) => taka > 0, {
+        amountMoney: money.refine((amount) => amount > 0, {
           message: "An Advance is money going in",
         }),
         movedOn: farmDay,
@@ -523,7 +523,7 @@ export const booksProcedures = {
           data: { refusal: "nothing_to_reimburse" },
         });
       }
-      if (roundTaka(input.amountMoney) !== consumed.totalMoney) {
+      if (roundMoney(input.amountMoney) !== consumed.totalMoney) {
         throw new ORPCError("BAD_REQUEST", {
           message: `That month now comes to ${consumed.totalMoney}`,
           data: { refusal: "amount_changed", totalMoney: consumed.totalMoney },

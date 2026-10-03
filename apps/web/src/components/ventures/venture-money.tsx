@@ -20,7 +20,7 @@ import { NativeSelect } from "@/components/page-kit";
 import { CorrectMovement } from "@/components/ventures/correct-movement";
 import { Line } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 import type { Venture } from "@/lib/ventures";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
@@ -140,20 +140,20 @@ const ReferenceCell = ({ row }: MovementCell) => (
 );
 
 const InCell = ({ row }: MovementCell) => {
-  const taka = useTaka();
+  const asMoney = useMoney();
   return row.original.coming ? (
-    <span className="text-success">{taka(row.original.amountMoney)}</span>
+    <span className="text-success">{asMoney(row.original.amountMoney)}</span>
   ) : null;
 };
 
 const OutCell = ({ row }: MovementCell) => {
-  const taka = useTaka();
-  return row.original.coming ? null : <>{taka(row.original.amountMoney)}</>;
+  const asMoney = useMoney();
+  return row.original.coming ? null : <>{asMoney(row.original.amountMoney)}</>;
 };
 
 const AfterCell = ({ row }: MovementCell) => {
-  const taka = useTaka();
-  return <span className="font-medium">{taka(row.original.after)}</span>;
+  const asMoney = useMoney();
+  return <span className="font-medium">{asMoney(row.original.after)}</span>;
 };
 
 /** Only where the farm will take a Correction: not a Sale's or an Internal Sale's money, not a counted Float, not a
@@ -209,7 +209,7 @@ const movementColumns = column.columns([
  *  reference under them, what the account held after it, and its Correction where the farm will take one. */
 const MovementCard = ({ row }: { row: MovementRow }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   return (
     <div className="flex flex-col gap-1.5 text-sm">
       <div className="flex items-start justify-between gap-3">
@@ -229,14 +229,14 @@ const MovementCard = ({ row }: { row: MovementRow }) => {
               row.coming && "text-success"
             )}
           >
-            {taka(row.amountMoney)}
+            {asMoney(row.amountMoney)}
           </span>
           <span className="text-muted-foreground text-xs">
             {t(row.coming ? "ventures.page.in" : "ventures.page.out")}
           </span>
         </div>
       </div>
-      <Line label={t("ventures.page.after")}>{taka(row.after)}</Line>
+      <Line label={t("ventures.page.after")}>{asMoney(row.after)}</Line>
       <div className="flex justify-end empty:hidden">
         <Correct movement={row} />
       </div>
@@ -267,7 +267,7 @@ const MovementsTable = ({ movements }: { movements: MovementRow[] }) => {
  */
 export const VentureMoney = ({ venture }: { venture: Venture }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const nameOf = useInvestorNames();
   const [showing, setShowing] = useState<Showing>("all");
   const movements = useQuery(
@@ -327,13 +327,13 @@ export const VentureMoney = ({ venture }: { venture: Venture }) => {
           figures={[
             {
               label: t("ventures.page.in"),
-              value: taka(totalIn),
+              value: asMoney(totalIn),
               className: "text-success",
             },
-            { label: t("ventures.page.out"), value: taka(totalOut) },
+            { label: t("ventures.page.out"), value: asMoney(totalOut) },
             {
               label: t("ventures.balance"),
-              value: taka(closing),
+              value: asMoney(closing),
               className: "font-semibold",
             },
           ]}

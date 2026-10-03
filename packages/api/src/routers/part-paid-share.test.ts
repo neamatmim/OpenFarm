@@ -150,10 +150,10 @@ describe("a Settlement with Agreements only part paid", () => {
     const settlement = await owner.ventures.settlement({ ventureId });
 
     // Per taka put in, both carry the same loss.
-    const perTaka = settlement.payouts.map(
+    const perMoney = settlement.payouts.map(
       (one) => one.shareMoney / one.capitalMoney
     );
-    expect(new Set(perTaka).size).toBe(1);
+    expect(new Set(perMoney).size).toBe(1);
   });
 });
 

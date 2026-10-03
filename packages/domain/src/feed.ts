@@ -348,9 +348,9 @@ export const leftoverStanding = (
 /** Kilograms as maunds, to the kilo's own precision: what the trader's slip will say. */
 export const maundsOf = (kg: number): number => roundKg(kg / MAUND_KG);
 
-const PAISA_IN_A_TAKA = 100;
-const roundTaka = (value: number): number =>
-  Math.round(value * PAISA_IN_A_TAKA) / PAISA_IN_A_TAKA;
+const MINOR_UNITS_IN_ONE = 100;
+const roundMoney = (value: number): number =>
+  Math.round(value * MINOR_UNITS_IN_ONE) / MINOR_UNITS_IN_ONE;
 
 /** Something that moved feed in or out of the store, as the store's price is worked out from it. */
 export type StockMovement =
@@ -442,7 +442,7 @@ export const stockLedger = (
   );
   return {
     onHand: roundKg(onHand),
-    averagePriceMoney: price === null ? null : roundTaka(price),
+    averagePriceMoney: price === null ? null : roundMoney(price),
   };
 };
 
@@ -468,7 +468,7 @@ export const shortfallOf = (
       over += value;
     }
   }
-  return { shortMoney: roundTaka(short), overMoney: roundTaka(over) };
+  return { shortMoney: roundMoney(short), overMoney: roundMoney(over) };
 };
 
 /** One arrival of feed, as its price per unit is read: a Purchase has one, a Harvest never — its worth is the farm's

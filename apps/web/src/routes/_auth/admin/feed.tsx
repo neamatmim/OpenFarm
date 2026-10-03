@@ -34,7 +34,7 @@ import { Loaded, Page, PageHeader } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 import { orpc } from "@/utils/orpc";
 
 const TABS = [
@@ -75,7 +75,7 @@ const useStoreFigures = (
   fed: ReadonlySet<string>
 ): Figure[] => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const live = lines.filter((line) => !line.retiredAt);
   const short = shortOf(lines, fed);
   const worth = live.reduce((sum, line) => sum + (valueOf(line) ?? 0), 0);
@@ -102,13 +102,13 @@ const useStoreFigures = (
     },
     {
       label: t("feed.kpi.value"),
-      value: taka(worth),
+      value: asMoney(worth),
       hint: t("feed.kpi.valueHint"),
       icon: Coins,
     },
     {
       label: t("feed.kpi.bought"),
-      value: taka(spent),
+      value: asMoney(spent),
       hint: t("feed.kpi.boughtHint", {
         count: formatNumber(bought.length, language),
       }),

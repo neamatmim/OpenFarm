@@ -17,7 +17,7 @@ import {
   monthOf,
   cattleMoneyOf,
   monthlySumsOf,
-  roundTaka,
+  roundMoney,
   startOfFarmDay,
 } from "@OpenFarm/domain";
 import type { CapitalPaid } from "@OpenFarm/domain";
@@ -257,7 +257,7 @@ export const cattleMoneyShortOf = (
   row.capitalPaid === "by_the_month" && row.cattlePartMoney !== null
     ? Math.max(
         0,
-        roundTaka(
+        roundMoney(
           signedUnits * row.cattlePartMoney -
             (held.capitalInMoney - held.refundedMoney)
         )
@@ -471,14 +471,14 @@ const folded = (
   }
 ): Held => {
   const does = WHAT_IT_DOES[one.kind];
-  const taka = one.amountMoney;
+  const amount = one.amountMoney;
   return {
     ...soFar,
-    [does.line]: soFar[does.line] + does.sign * taka,
-    cattleOutMoney: soFar.cattleOutMoney + does.cattle * taka,
+    [does.line]: soFar[does.line] + does.sign * amount,
+    cattleOutMoney: soFar.cattleOutMoney + does.cattle * amount,
     openFloatMoney:
       soFar.openFloatMoney +
-      (one.kind === "float_out" && one.reconciledAt === null ? taka : 0),
+      (one.kind === "float_out" && one.reconciledAt === null ? amount : 0),
   };
 };
 
@@ -949,7 +949,7 @@ export const balanceAtMonthEnd = async (
   month: string
 ): Promise<number> => {
   const held = await heldByEach(tx, farmId, [ventureId], lastDayOf(month));
-  return roundTaka(balanceOf(held.get(ventureId) ?? NOTHING_HELD));
+  return roundMoney(balanceOf(held.get(ventureId) ?? NOTHING_HELD));
 };
 
 /**
@@ -998,7 +998,7 @@ const balancesAtMonthEnds = async (
     }
     answer.set(
       month,
-      new Map([...held].map(([id, one]) => [id, roundTaka(balanceOf(one))]))
+      new Map([...held].map(([id, one]) => [id, roundMoney(balanceOf(one))]))
     );
   }
   return answer;

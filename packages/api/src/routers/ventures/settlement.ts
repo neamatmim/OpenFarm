@@ -9,7 +9,7 @@ import {
 import type { PaymentMethod } from "@OpenFarm/domain";
 import {
   farmDayOf,
-  roundTaka,
+  roundMoney,
   startOfFarmDay,
   whatUnitsTake,
 } from "@OpenFarm/domain";
@@ -306,7 +306,7 @@ export const settlementProcedures = {
             data: { refusal: "nothing_to_pay_him", owed },
           });
         }
-        if (roundTaka(input.amountMoney) !== roundTaka(owed)) {
+        if (roundMoney(input.amountMoney) !== roundMoney(owed)) {
           throw new ORPCError("BAD_REQUEST", {
             message: `This Settlement owes ${owed} on that Agreement`,
             data: { refusal: "not_what_he_is_owed", owed },

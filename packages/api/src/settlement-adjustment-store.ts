@@ -2,7 +2,7 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
 import type { AdjustmentOutcome } from "@OpenFarm/db/schema/venture";
 import { settlementAdjustment } from "@OpenFarm/db/schema/venture";
-import { roundTaka, whatUnitsTake } from "@OpenFarm/domain";
+import { roundMoney, whatUnitsTake } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
@@ -25,7 +25,7 @@ const alreadyAdjustedPerUnitMoney = (
       perUnit += one.perUnitDifferenceMoney;
     }
   }
-  return roundTaka(perUnit);
+  return roundMoney(perUnit);
 };
 
 /**
@@ -67,8 +67,8 @@ export const adjustmentsOf = async (
   let before = 0;
   for (const one of inTheOrderTheyWerePaid) {
     const difference = one.perUnitDifferenceMoney;
-    sent.set(one.id, roundTaka(difference - before));
-    before = roundTaka(before + difference);
+    sent.set(one.id, roundMoney(difference - before));
+    before = roundMoney(before + difference);
   }
   return rows.map((one) => {
     const { perUnitDifferenceMoney } = one;
@@ -87,7 +87,7 @@ export const adjustmentsOf = async (
       /** What a Unit took of this one, where it was paid. */
       perUnitPaidMoney: sent.get(one.id) ?? 0,
       /** What a Unit would take if it were paid now, less what every paid one has already sent. */
-      perUnitToPayMoney: roundTaka(perUnitDifferenceMoney - sentAlready),
+      perUnitToPayMoney: roundMoney(perUnitDifferenceMoney - sentAlready),
     };
   });
 };
@@ -103,7 +103,7 @@ export const adjustmentAgainst = (
   frozen: { perUnitMoney: number; units: number },
   now: { perUnitMoney: number; profitMoney: number }
 ) => {
-  const perUnitDifferenceMoney = roundTaka(
+  const perUnitDifferenceMoney = roundMoney(
     now.perUnitMoney - frozen.perUnitMoney
   );
   return {

@@ -2,7 +2,7 @@ import { farmDayOf, startOfFarmDay } from "./farm-clock";
 import { roundKg } from "./feed";
 import { groupedBy } from "./grouped-by";
 import type { Side } from "./lifecycle";
-import { roundTaka } from "./money";
+import { roundMoney } from "./money";
 import type { PenHistoryLine } from "./pen-history";
 import { covers } from "./pen-history";
 
@@ -383,14 +383,14 @@ const spentOn = (costs: Costs): number =>
 
 /** Costs as the farm reads them: to the poisha and to the kilo. */
 export const roundedCosts = (costs: Costs): Costs => ({
-  feedMoney: roundTaka(costs.feedMoney),
+  feedMoney: roundMoney(costs.feedMoney),
   unpricedKg: roundKg(costs.unpricedKg),
-  medicineMoney: roundTaka(costs.medicineMoney),
+  medicineMoney: roundMoney(costs.medicineMoney),
   uncostedDoses: costs.uncostedDoses,
-  vetMoney: roundTaka(costs.vetMoney),
-  hasilMoney: roundTaka(costs.hasilMoney),
-  tripMoney: roundTaka(costs.tripMoney),
-  herdMoney: roundTaka(costs.herdMoney),
+  vetMoney: roundMoney(costs.vetMoney),
+  hasilMoney: roundMoney(costs.hasilMoney),
+  tripMoney: roundMoney(costs.tripMoney),
+  herdMoney: roundMoney(costs.herdMoney),
 });
 
 /**
@@ -409,7 +409,7 @@ export const marginOf = ({
 }): number | null =>
   saleMoney === null
     ? null
-    : roundTaka(saleMoney - (purchaseMoney ?? 0) - spentOn(costs));
+    : roundMoney(saleMoney - (purchaseMoney ?? 0) - spentOn(costs));
 
 /** What each kilogram an Animal put on cost: everything she cost over the weight she gained. Null for an
  *  animal who has not gained. */
@@ -417,11 +417,11 @@ export const costOfGainOf = (
   costs: Costs,
   gainKg: number | null
 ): number | null =>
-  gainKg !== null && gainKg > 0 ? roundTaka(spentOn(costs) / gainKg) : null;
+  gainKg !== null && gainKg > 0 ? roundMoney(spentOn(costs) / gainKg) : null;
 
 /** A dairy cow's Cost per Litre: what she cost over the litres she sent to Bulk. Null for none sent. */
 export const costPerLitreOf = (
   costs: Costs,
   litresToBulk: number
 ): number | null =>
-  litresToBulk > 0 ? roundTaka(spentOn(costs) / litresToBulk) : null;
+  litresToBulk > 0 ? roundMoney(spentOn(costs) / litresToBulk) : null;

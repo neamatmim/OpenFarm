@@ -5,7 +5,7 @@ import type { BetweenPursesRefusal } from "@OpenFarm/domain";
 import {
   farmDayOf,
   isRunning,
-  roundTaka,
+  roundMoney,
   weighedTooLongAgo,
   whyNotBetweenPurses,
 } from "@OpenFarm/domain";
@@ -301,7 +301,7 @@ export const tradingProcedures = {
             weighed.weightKg,
             input.rateMoneyPerKg
           );
-          if (roundTaka(input.priceMoney) !== priceMoney) {
+          if (roundMoney(input.priceMoney) !== priceMoney) {
             // She was weighed again since the Owner read the figure: the price she is committing to is
             // not the price the farm would strike, and a sale is not something to guess at.
             throw new ORPCError("BAD_REQUEST", {
@@ -568,7 +568,7 @@ export const tradingProcedures = {
       );
       return {
         animals: bought,
-        totalMoney: roundTaka(
+        totalMoney: roundMoney(
           bought.reduce((sum, one) => sum + one.priceMoney, 0)
         ),
         rateMoneyPerKg: input.rateMoneyPerKg,

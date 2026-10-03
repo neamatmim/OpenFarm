@@ -9,7 +9,7 @@ import {
 import { user } from "./auth";
 import { farm } from "./farm";
 import { stepCompletion } from "./instance";
-import { taka } from "./taka";
+import { numericMoney } from "./numeric-columns";
 
 /**
  * One **Cash Count**: the notes a person found in their own hand, blind, beside what the farm said they held at that
@@ -31,9 +31,9 @@ export const cashCount = pgTable(
     completionId: text("completion_id")
       .notNull()
       .references(() => stepCompletion.id),
-    counted: taka("counted").notNull(),
+    counted: numericMoney("counted").notNull(),
     /** What the farm said the hand held when it was counted, this count left out. */
-    expected: taka("expected").notNull(),
+    expected: numericMoney("expected").notNull(),
     /** Why it differs, in the counter's words, where they gave one. */
     note: text("note"),
     countedAt: timestamp("counted_at").notNull(),
