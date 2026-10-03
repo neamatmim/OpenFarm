@@ -1,0 +1,1 @@
+ALTER TABLE "animal_photo" ADD COLUMN "thumb" text;

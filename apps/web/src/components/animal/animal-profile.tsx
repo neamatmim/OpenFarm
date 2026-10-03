@@ -30,6 +30,7 @@ import { PageHeader } from "@/components/page";
 import type { RowAction } from "@/components/page-kit";
 import { ReportSighting } from "@/components/report-sighting";
 import { useLanguage } from "@/i18n/language-provider";
+import { shrinkAnimalPhoto } from "@/lib/photo";
 import { breedName } from "@/lib/breed";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
@@ -46,14 +47,6 @@ import {
 
 /** The camera's file picker, opened from her menu. */
 const PHOTO_INPUT = "animal-photo-input";
-
-const readAsBase64 = async (file: File): Promise<string> => {
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const binary = Array.from(bytes, (byte) => String.fromCodePoint(byte)).join(
-    ""
-  );
-  return btoa(binary);
-};
 
 /** One act in the header's menu, with its icon; an act that ends her record in the danger colour. */
 const ActItem = ({ action }: { action: RowAction }) => {
@@ -354,14 +347,15 @@ export const AnimalProfile = ({
                   toast.error(t("common.error"));
                   return;
                 }
-                const data = await readAsBase64(file);
-                const contentType =
-                  file.type === "image/png" ? "image/png" : "image/jpeg";
-                setPhoto.mutate({
-                  tagNumber: detail.tagNumber,
-                  contentType,
-                  data,
-                });
+                // Shrunk on the phone, with a thumbnail for the herd's lists: the camera's file would go up whole.
+                try {
+                  setPhoto.mutate({
+                    tagNumber: detail.tagNumber,
+                    ...(await shrinkAnimalPhoto(file)),
+                  });
+                } catch {
+                  toast.error(t("common.error"));
+                }
               }}
               tabIndex={-1}
               type="file"

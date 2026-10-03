@@ -2,6 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 
 import { orpc } from "@/utils/orpc";
 
+/** The largest size she is drawn at from her thumbnail, which is made 192px on its longest side: 96px at 2x. */
+const THUMB_SIZE = 96;
+
 /** The Animal's photo where an animal is picked. Falls back to the Tag Number's digits,
  *  so a pen still reads at a glance before photos are taken. */
 export const AnimalPhoto = ({
@@ -16,7 +19,10 @@ export const AnimalPhoto = ({
   // A photo only changes when someone replaces it, and every such mutation invalidates the
   // whole `animals` key — which overrides staleTime — so it is never fetched twice otherwise.
   const photo = useQuery({
-    ...orpc.animals.photo.queryOptions({ input: { tagNumber } }),
+    // Drawn the size of a thumb, she is sent as her thumbnail (whole, for a photo taken before there were any).
+    ...orpc.animals.photo.queryOptions({
+      input: { tagNumber, size: size <= THUMB_SIZE ? "thumb" : "full" },
+    }),
     enabled: photoUpdatedAt !== null,
     staleTime: Number.POSITIVE_INFINITY,
   });

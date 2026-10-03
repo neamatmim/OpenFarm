@@ -30,14 +30,10 @@ import { accountSent } from "@/components/payment-method";
 import { PastOutings } from "@/components/trips/past-outings";
 import { useT } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
+import { shrinkAnimalPhoto } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
-
-const readAsBase64 = async (file: File): Promise<string> => {
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  return btoa(Array.from(bytes, (byte) => String.fromCodePoint(byte)).join(""));
-};
 
 /**
  * The button at the foot of the form on a phone and a tablet, held in sight the whole way down it — above the phone's
@@ -97,11 +93,10 @@ const IntakePage = () => {
         // animal is on the farm either way, and its page will ask for one.
         if (photo) {
           try {
+            // Shrunk on the phone, with a thumbnail for the herd's lists: the camera's file would go up whole.
             await setItsPhoto.mutateAsync({
               tagNumber: taken.tagNumber,
-              contentType:
-                photo.type === "image/png" ? "image/png" : "image/jpeg",
-              data: await readAsBase64(photo),
+              ...(await shrinkAnimalPhoto(photo)),
             });
           } catch {
             toast.error(t("intake.photoLater"));

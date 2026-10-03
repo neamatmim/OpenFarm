@@ -94,26 +94,56 @@ const toBeAskedAgain = (kept: PersistedClient): PersistedClient => ({
   },
 });
 
+/** How long a change waits before the cache is written out, so a page that answers twenty queries at once is one
+ *  write, not twenty: every write turns the whole fortnight into one string on the phone's only thread. */
+export const KEEP_AT_MOST_EVERY_MS = 1000;
+
 /**
  * Keeps what the app has read on the device, so a phone with no signal opens on what it last
  * knew rather than on a spinner.
  *
  * This is the read half of working offline; the Outbox is the write half. Without it the pen
  * board has no Steps to show, no cows to tap and no button to claim with — and a milker
- * standing in a shed with no bars would have nothing to work from at all.
+ * standing in a shed with no bars would have nothing to work from at all. A change waits a moment before it is
+ * written, and only the last of a burst is.
  */
-export const onDevice = (storage: KeptStorage = cacheStore()): Persister => ({
-  persistClient: async (client: PersistedClient) => {
-    await storage.set(CACHE_KEY, writeKept(client));
-  },
-  restoreClient: async () => {
-    const raw = await storage.get(CACHE_KEY);
-    return raw ? toBeAskedAgain(readKept(raw)) : undefined;
-  },
-  removeClient: async () => {
-    await storage.delete(CACHE_KEY);
-  },
-});
+export const onDevice = (
+  storage: KeptStorage = cacheStore(),
+  wait: number = KEEP_AT_MOST_EVERY_MS
+): Persister => {
+  let latest: PersistedClient | null = null;
+  let waiting: ReturnType<typeof setTimeout> | null = null;
+  const writeOut = async () => {
+    waiting = null;
+    const client = latest;
+    latest = null;
+    if (client) {
+      await storage.set(CACHE_KEY, writeKept(client));
+    }
+  };
+  // Leaving the page writes what is waiting, so the last second's answers are not lost to a closed tab.
+  if (typeof window !== "undefined") {
+    window.addEventListener("pagehide", () => {
+      void writeOut();
+    });
+  }
+  return {
+    persistClient: (client: PersistedClient) => {
+      latest = client;
+      waiting ??= setTimeout(() => {
+        void writeOut();
+      }, wait);
+      return Promise.resolve();
+    },
+    restoreClient: async () => {
+      const raw = await storage.get(CACHE_KEY);
+      return raw ? toBeAskedAgain(readKept(raw)) : undefined;
+    },
+    removeClient: async () => {
+      await storage.delete(CACHE_KEY);
+    },
+  };
+};
 
 /** Whether an answer is an Investor's, read in the portal: the procedure's path starts with `portal`. */
 const isPortalQuery = (queryKey: readonly unknown[]): boolean => {
@@ -121,9 +151,32 @@ const isPortalQuery = (queryKey: readonly unknown[]): boolean => {
   return Array.isArray(path) && path[0] === "portal";
 };
 
+/** The reads that answer with a photo whole: a death's photos, the certificate, a receipt, and an Animal's photo
+ *  unless it was asked for as her thumbnail. Each is fetched again when it is opened; kept, a herd's photos would make
+ *  the fortnight's cache tens of megabytes, written out again on every change. */
+const WHOLE_PHOTOS = new Set([
+  "animals.deathPhotos",
+  "farm.certificate",
+  "money.receipt",
+]);
+
+const isWholePhoto = (queryKey: readonly unknown[]): boolean => {
+  const [path, options] = queryKey;
+  if (!Array.isArray(path)) {
+    return false;
+  }
+  const name = path.join(".");
+  if (WHOLE_PHOTOS.has(name)) {
+    return true;
+  }
+  const input = (options as { input?: { size?: string } } | undefined)?.input;
+  return name === "animals.photo" && input?.size !== "thumb";
+};
+
 /**
  * Whether an answer is kept on the device: only what actually answered — a query that failed is not a picture of the
- * farm — and never an Investor's. An Investor has no shed with no signal to read in, and their capital, their record
+ * farm — never a photo whole (an Animal's thumbnail is kept, so a shed with no signal still shows her face), and never
+ * an Investor's. An Investor has no shed with no signal to read in, and their capital, their record
  * and their papers left on a phone for a fortnight after they sign out are anybody's who picks it up (the exposure
  * review, 2.5; ASVS 14.3.1). On the portal's own address nothing is kept at all, whoever's it is (ADR 0009).
  */
@@ -133,6 +186,7 @@ export const keptOnDevice = (
 ): boolean =>
   host === "farm" &&
   query.state.status === "success" &&
+  !isWholePhoto(query.queryKey) &&
   !isPortalQuery(query.queryKey);
 
 /**
