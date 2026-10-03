@@ -143,7 +143,7 @@ const SalePage = () => {
           </Button>
         }
         description={t("sale.subtitle")}
-        title={t("sale.title")}
+        title={t("nav.sale")}
       />
 
       <SaleFigures sellable={sellable.data} sold={sold.data} />

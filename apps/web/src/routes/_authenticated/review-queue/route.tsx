@@ -40,7 +40,7 @@ const SignOffPage = () => {
     <Page>
       <PageHeader
         description={t("signOff.subtitle")}
-        title={t("signOff.title")}
+        title={t("nav.signOff")}
       />
 
       <PageTabs

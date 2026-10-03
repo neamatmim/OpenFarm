@@ -249,7 +249,7 @@ const BackupsPage = () => {
     <Page>
       <PageHeader
         description={t("backups.subtitle")}
-        title={t("backups.title")}
+        title={t("nav.backups")}
       />
       <Loaded query={backups}>
         <SummaryFigures figures={figures} />

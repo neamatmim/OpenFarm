@@ -168,7 +168,7 @@ const OwnerHome = () => {
   if (!home.data) {
     return (
       <Page>
-        <PageHeader title={t("owner.title")} />
+        <PageHeader title={t("nav.farm")} />
         {home.isError ? (
           <Notice title={t("common.error")} tone="danger" />
         ) : (
@@ -270,7 +270,7 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
             <AllFine shown={allFine} />
           )
         }
-        title={t("owner.title")}
+        title={t("nav.farm")}
       />
 
       <SummaryFigures figures={figures} />

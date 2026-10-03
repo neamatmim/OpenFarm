@@ -264,7 +264,7 @@ const VetPage = () => {
           </Button>
         }
         description={t("vet.subtitle")}
-        title={t("vet.title")}
+        title={t("nav.vet")}
       />
 
       <SummaryFigures figures={figures} />

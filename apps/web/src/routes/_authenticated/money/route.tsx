@@ -145,7 +145,7 @@ const MoneyPage = () => {
           ) : null
         }
         description={t("money.subtitle")}
-        title={t("money.title")}
+        title={t("nav.money")}
       />
 
       <div className="flex flex-col gap-4">

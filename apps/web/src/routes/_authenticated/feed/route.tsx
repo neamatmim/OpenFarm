@@ -180,7 +180,7 @@ const FeedPage = () => {
           ) : null
         }
         description={t("feed.subtitle")}
-        title={t("feed.title")}
+        title={t("nav.feed")}
       />
 
       <SummaryFigures figures={figures} />

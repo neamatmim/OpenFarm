@@ -174,7 +174,7 @@ const ObservationsPage = () => {
     <Page>
       <PageHeader
         description={t("observations.days", { days: WINDOW_DAYS })}
-        title={t("observations.title")}
+        title={t("nav.observations")}
       />
 
       <div className="surface flex flex-col gap-4 p-4 md:p-5">

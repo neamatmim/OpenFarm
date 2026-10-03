@@ -822,7 +822,6 @@ export const bn: Record<MessageKey, string> = {
   "people.passwordCodeWhy":
     "এই কোডটি তাঁকে দিন। সাইন ইন পাতায় কোডটি দিয়ে তিনি নিজের পাসওয়ার্ড বেছে নেবেন — খামার কারও পাসওয়ার্ড ঠিক করে দেয় না।",
   "people.newPasswordCode": "নতুন পাসওয়ার্ড কোড",
-  "people.title": "মানুষ ও অ্যাক্সেস",
   "people.correctName": "নাম সংশোধন",
   "people.name": "নাম",
   "people.email": "ইমেইল",
@@ -2217,7 +2216,6 @@ export const bn: Record<MessageKey, string> = {
   "refusal.breedUnknown": "এই জাত খামারের তালিকায় নেই",
   "refusal.breedRetired":
     "এই জাত বাদ দেওয়া হয়েছে। এই জাত ধরে পশু লিখতে জাত পাতায় গিয়ে এটি ফিরিয়ে আনুন।",
-  "herd.title": "শেড ও পেন",
   "herd.addShed": "নতুন শেড",
   "herd.addPen": "নতুন পেন",
   "herd.quarantinePen": "কোয়ারেন্টিন পেন",
@@ -2329,7 +2327,6 @@ export const bn: Record<MessageKey, string> = {
   "animals.breedingNoneHint":
     "গরম, পাল, গর্ভ পরীক্ষা আর বাচ্চা দেওয়া নথিভুক্ত হলে এখানে দেখা যাবে।",
   "animals.healthNone": "এখনো কিছু চোখে পড়েনি বা দেওয়া হয়নি",
-  "observations.title": "রাউন্ডে যা দেখা গেছে",
   "observations.all": "সব",
   "observations.none": "গত কিছু দিনে কিছু চোখে পড়েনি",
   "observations.days": "গত {days} দিন",
@@ -2372,7 +2369,6 @@ export const bn: Record<MessageKey, string> = {
   "state.culled": "বাতিল",
   "state.lost": "হারিয়ে গেছে",
   "nav.devices": "শেড ফোন",
-  "device.title": "শেড ফোন",
   "device.add": "নতুন ফোন যুক্ত করুন",
   "device.name": "ফোনের নাম",
   "device.code": "সংযুক্তি কোড",
@@ -2685,7 +2681,6 @@ export const bn: Record<MessageKey, string> = {
   "feed.editRation": "রেশন সম্পাদনা",
   "feed.inUse": "চালু",
   "feed.col.status": "অবস্থা",
-  "feed.title": "খাবার ও রেশন",
   "feed.items": "খাদ্য উপাদান",
   "feed.addItem": "উপাদান যোগ করুন",
   "feed.retire": "বাদ দিন",
@@ -2952,7 +2947,6 @@ export const bn: Record<MessageKey, string> = {
   "refusal.bundlesByTheHead": "আঁটিতে গোনা খাদ্য মাথাপিছু যায়, দৈহিক ওজন ধরে নয়",
   "refusal.packNeedsKg": "কেবল কেজিতে মাপা খাদ্যই বস্তায় বা মণে আসে",
   "nav.milk": "দুধ",
-  "dispatch.title": "খামার থেকে যাওয়া দুধ",
   "dispatch.subtitle":
     "দিনের ট্যাংক আর গেট দিয়ে যা গেছে পাশাপাশি, সাথে প্রসেসর বা বিএফএসএ যে রেকর্ড চায়।",
   "dispatch.intoTank": "ট্যাংকে গেছে",
@@ -3017,7 +3011,6 @@ export const bn: Record<MessageKey, string> = {
   "money.partialHint":
     "এই সময়ে এক পাতার চেয়ে বেশি লেনদেন আছে। সময় ছোট করুন, অথবা পূর্ণ মোটের জন্য হিসাবরক্ষকের প্রতিবেদন দেখুন।",
   "money.shownOnly": "শুধু দেখানো লেনদেন",
-  "money.title": "{currencyOf} হিসাব",
   "farmAccounts.title": "খামারের বিকাশ ও ব্যাংক হিসাব",
   "farmAccounts.why":
     "খামারের নিজের বিকাশ নম্বর ও ব্যাংক হিসাব। কোনো এক ধরনের হিসাব তালিকায় থাকলে, সেই ধরনের প্রতিটি লেনদেনে কোন হিসাবে {currencySum} গেল বা এল আর তার ট্রানজ্যাকশন আইডি লিখতে হবে।",
@@ -3280,7 +3273,6 @@ export const bn: Record<MessageKey, string> = {
   "refusal.workInNoPen": "এই ধাপ একটি পেনের কাজ লেখে, আর এই কাজ কোনো পেনে নয়",
   "renewal.issuedOn": "নবায়িত সনদ ইস্যুর তারিখ",
   "nav.inspector": "পরিদর্শনের পাতা",
-  "inspector.title": "পরিদর্শনের পাতা",
   "inspector.registration": "নিবন্ধন",
   "inspector.herd": "পশুর সারসংক্ষেপ",
   "inspector.animals": "খামারে পশু",
@@ -3359,7 +3351,6 @@ export const bn: Record<MessageKey, string> = {
   "home.pensWorking": "আজ কাজ আছে এমন পেন",
   "home.pensHint": "কাজ দেখতে একটি পেনে চাপুন।",
   "home.endingSoon": "শিগগির শেষ",
-  "home.title": "খামারে আজ",
   "home.queue": "আপনার কাছে যা আছে",
   "home.overdue": "দেরি হয়ে গেছে",
   "home.signOff": "যাচাই করার অপেক্ষায়",
@@ -3382,7 +3373,6 @@ export const bn: Record<MessageKey, string> = {
   "owner.waitingCount": "{count}টি আপনার অপেক্ষায়",
   "owner.allFineHint":
     "কোনো অনুমোদন, প্রস্তাব বা দেরির কাজ অপেক্ষায় নেই। নতুন কিছু দরকার হলে এখানে আসবে।",
-  "owner.title": "খামারের অবস্থা",
   "owner.needsYou": "আপনার সিদ্ধান্ত দরকার",
   "owner.allFine": "সব ঠিক আছে",
   "owner.proposals": "কার্যপ্রণালীর প্রস্তাব",
@@ -3466,7 +3456,6 @@ export const bn: Record<MessageKey, string> = {
   "alerts.notifiableDiagnosis":
     "{tag} — {disease}: ডিএলএস-কে জানাতে হবে, দেরি না করে",
   "digest.notifiable": "{count}টি রোগ জানানো বাকি",
-  "notifiable.title": "যে রোগ জানাতে হয়",
   "notifiable.add": "রোগ যোগ করুন",
   "notifiable.name": "রোগের নাম",
   "notifiable.nameEn": "ইংরেজি নাম (থাকলে)",
@@ -3561,7 +3550,6 @@ export const bn: Record<MessageKey, string> = {
   "push.withdrawalChangedTitle": "আটকে রাখার সময় বদলেছে",
   "push.withdrawalChangedBody": "{tag} — খামারের অ্যাপ দেখুন",
   "nav.farm": "খামারের অবস্থা",
-  "drugs.title": "ওষুধের তালিকা",
   "drugs.add": "ওষুধ যোগ করুন",
   "drugs.name": "ওষুধের নাম",
   "drugs.milkDays": "দুধ আটকে রাখার দিন",
@@ -3617,7 +3605,6 @@ export const bn: Record<MessageKey, string> = {
   "drugs.noneBought": "এই ওষুধ এখনও কেনা হয়নি",
   "drugs.boughtSummary":
     "{count} বার কেনা · {currencySign}{amount} · {doses} ডোজ",
-  "vet.title": "ভেটের কাজ",
   "vet.waiting": "উত্তরের অপেক্ষায়",
   "vet.nothingWaiting": "সব দেখা হয়েছে",
   "vet.mine": "আপনার সিদ্ধান্ত",
@@ -3799,7 +3786,6 @@ export const bn: Record<MessageKey, string> = {
   "work.lateFor": "{hours} ঘণ্টা দেরি",
   "work.counted": "গোনা পরিমাণ",
   "work.countReason": "কেন কম-বেশি",
-  "signOff.title": "যাচাই করার জন্য",
   "signOff.none": "যাচাই করার কিছু নেই",
   "signOff.approve": "অনুমোদন",
   "signOff.yoursToBeChecked": "আপনার কাজ — অন্য কেউ যাচাই করবেন",
@@ -3887,7 +3873,7 @@ export const bn: Record<MessageKey, string> = {
   "nav.group.milkFeed": "দুধ ও খাবার",
   "nav.group.money": "অর্থ ও বিনিয়োগ",
   "nav.group.compliance": "নিয়মকানুন",
-  "nav.group.admin": "খামারের ব্যবস্থা",
+  "nav.group.admin": "পরিচালনা",
   "nav.overview": "সারসংক্ষেপ",
   "nav.more": "আরও",
   "nav.menu": "মেনু",
@@ -3942,7 +3928,6 @@ export const bn: Record<MessageKey, string> = {
   "push.notTold": "এই ডিভাইসে জানানো হয় না",
   "settings.subtitle":
     "নিজের জন্য যা ঠিক করবেন: এই ডিভাইসে জানানো হবে কিনা, আর খামার কোন নম্বরে এসএমএস পাঠাবে।",
-  "backups.title": "খামারের কপি",
   "backups.subtitle":
     "খামারের রেকর্ড এই মেশিনের বাইরে কপি হচ্ছে কিনা, আর খামারের নিজের ঘড়ি চলছে কিনা।",
   "schedule.lastRan": "খামারের সময়সূচি শেষ চলেছে {when}",
@@ -4260,7 +4245,7 @@ export const bn: Record<MessageKey, string> = {
   "ready.kpi.heldHint": "এখনো নিশ্চিত বা বিক্রয় করা যাবে না",
   "nav.sale": "বিক্রয়",
   "nav.culling": "ছাঁটাই",
-  "nav.months": "মাসে মাসে",
+  "nav.months": "মাসিক প্রতিবেদন",
   "months.subtitle":
     "গত এক বছরে খামার প্রতি মাসে কেমন চলেছে: {currencySum}, দুগ্ধ গাভীর খরচের পাশে দুধ বিক্রি, মোটাতাজা পশু বিক্রি, আর প্রতিটি ভেঞ্চার তার পরিকল্পনার পাশে।",
   "months.net": "বছরে নিট",
@@ -4675,8 +4660,7 @@ export const bn: Record<MessageKey, string> = {
   "sale.kpi.perKgHint": "বিক্রয়ের দিনের ওজনে",
   "sale.kpi.ready": "যাওয়ার জন্য প্রস্তুত",
   "sale.kpi.readyHint": "নিশ্চিত, অপেক্ষমাণ সময় নেই",
-  "nav.identity": "পরিচয় ও প্যারামিটার",
-  "identity.title": "খামারের পরিচয় ও প্যারামিটার",
+  "nav.identity": "খামারের সেটিংস",
   "identity.why":
     "যে কাগজ খামার থেকে বাইরে যায় — পরিবহন কার্ড, দপ্তরের চিঠি — তাতে এই তথ্যই ছাপা হয়।",
   "identity.name": "খামারের নাম",

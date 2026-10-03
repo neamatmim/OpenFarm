@@ -94,7 +94,7 @@ const ManagerHome = () => {
   if (!home.data) {
     return (
       <Page>
-        <PageHeader title={t("home.title")} />
+        <PageHeader title={t("nav.theDay")} />
         {home.isError ? (
           <Notice title={t("common.error")} tone="danger" />
         ) : (
@@ -163,7 +163,7 @@ const ManagerHome = () => {
       <PageHeader
         description={t("home.subtitle")}
         eyebrow={formatDate(new Date(), language, "date")}
-        title={t("home.title")}
+        title={t("nav.theDay")}
       />
 
       <SummaryFigures figures={figures} />

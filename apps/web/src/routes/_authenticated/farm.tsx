@@ -281,10 +281,7 @@ const IdentityPage = () => {
   if (!identity.data) {
     return (
       <Page>
-        <PageHeader
-          description={t("identity.why")}
-          title={t("identity.title")}
-        />
+        <PageHeader description={t("identity.why")} title={t("nav.identity")} />
         {identity.isError ? (
           <Notice title={t("common.error")} tone="danger" />
         ) : (
@@ -297,7 +294,7 @@ const IdentityPage = () => {
 
   return (
     <Page>
-      <PageHeader description={t("identity.why")} title={t("identity.title")} />
+      <PageHeader description={t("identity.why")} title={t("nav.identity")} />
 
       <div className="grid items-start gap-8 lg:grid-cols-[12rem_minmax(0,1fr)]">
         <OnThisPage />

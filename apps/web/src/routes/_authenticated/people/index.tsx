@@ -215,7 +215,7 @@ const PeoplePage = () => {
           </Button>
         }
         description={t("people.subtitle")}
-        title={t("people.title")}
+        title={t("nav.people")}
       />
 
       <Loaded query={list}>

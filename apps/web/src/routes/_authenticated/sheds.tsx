@@ -160,7 +160,7 @@ const HerdPage = () => {
       <PageHeader
         actions={<RegisterAnimal />}
         description={t("herd.subtitle")}
-        title={t("herd.title")}
+        title={t("nav.herd")}
       />
 
       <QuarantineAstray />
