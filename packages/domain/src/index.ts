@@ -861,3 +861,4 @@ export type {
 } from "./monthly-sums";
 export type { BetweenPursesRefusal } from "./between-purses";
 export { whyNotBetweenPurses } from "./between-purses";
+export { heldFromThem } from "./held-by";

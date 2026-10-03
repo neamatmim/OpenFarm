@@ -1,7 +1,7 @@
 // The work page's board: its header, its tiles and step rows, who holds it, and how it closes.
 
 import type { Step } from "@OpenFarm/domain";
-import { isFinished } from "@OpenFarm/domain";
+import { heldFromThem } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -80,14 +80,10 @@ export const useHeldByOther = (
     | undefined
 ): { id: string; name: string } | null => {
   const me = useQuery(orpc.people.me.queryOptions());
-  const heldBy = work?.heldBy;
-  if (!(heldBy && me.data)) {
+  if (!(work && me.data)) {
     return null;
   }
-  const putsItRight =
-    isFinished(work.state) &&
-    me.data.roles.some((role) => role === "owner" || role === "manager");
-  return heldBy.id === me.data.id || putsItRight ? null : heldBy;
+  return heldFromThem(work.heldBy, me.data, work.state);
 };
 
 /** Work not yet begun: the button to begin it — or, where it is pinned to somebody else, whose it is. */
