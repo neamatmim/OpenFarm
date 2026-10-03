@@ -1,3 +1,4 @@
+import type { StampKind } from "@OpenFarm/db/schema/venture";
 import { payInCode } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
@@ -96,6 +97,16 @@ export const unitsTaken = async (
   });
   return signed.reduce((sum, one) => sum + one.units, 0);
 };
+
+/**
+ * Whether an Agreement's paper is on file as capital needs it: the photograph of its stamped paper kept, or — agreed in
+ * the app — no stamped paper to photograph, the paper agreed to kept with the offer it was approved from. The one place
+ * this is decided: capital is refused on it, and every list that says whether a paper may take capital reads it.
+ */
+export const paperOnFile = (
+  agreement: { stampKind: StampKind },
+  photoKept: boolean
+): boolean => agreement.stampKind === "in_app" || photoKept;
 
 /** One Agreement as the trail records it: what was taken, on what terms, and against what paper. */
 export const readAgreement = async (tx: Tx, farmId: string, id: string) => {

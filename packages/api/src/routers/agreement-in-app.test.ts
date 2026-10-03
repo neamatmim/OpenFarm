@@ -304,6 +304,66 @@ describe("an Agreement agreed in the app", () => {
     }
   });
 
+  it("is said to have its paper on file exactly where capital is taken against it — on the Venture and the Investor's page alike", async () => {
+    const ventureId = await aVenture("কাগজ");
+    const inApp = await invited("কাগজ অ্যাপে");
+    const { id } = await offeredAndAgreed(ventureId, inApp, 2);
+    const owner = await as("owner");
+    await owner.ventures.approveOffer({ offerId: id });
+    const signOnStamp = async (name: string, photographed: boolean) => {
+      const them = await invited(name);
+      const signed = await owner.ventures.sign({
+        ...terms(ventureId, them.id, 2),
+        stampValueBdt: 300,
+        stampedOn: "2093-01-02",
+        stampSerial: `AC ${them.id.slice(-8)}`,
+      });
+      if (photographed) {
+        await owner.ventures.keepAgreementPaper({
+          agreementId: signed.id,
+          contentType: "image/jpeg",
+          data: "aGVsbG8=",
+        });
+      }
+    };
+    await signOnStamp("কাগজ ছবিসহ", true);
+    await signOnStamp("কাগজ ছবি ছাড়া", false);
+
+    const listed = await owner.ventures.agreements({ ventureId });
+    const said = await Promise.all(
+      listed.map(async (one) => {
+        const onTheirPage = await owner.investors.agreements({
+          id: one.investorId,
+        });
+        const taken = await owner.ventures
+          .takeCapital({
+            agreementId: one.id,
+            amountBdt: 50_000,
+            movedOn: "2093-01-05",
+            paymentMethod: "bank",
+            reference: `TRF ${one.id.slice(-8)}`,
+          })
+          .then(
+            () => true,
+            () => false
+          );
+        return {
+          stamp: one.stamp.kind,
+          onTheVenture: one.paperOnFile,
+          onTheirPage: onTheirPage.agreements.find(
+            (theirs) => theirs.id === one.id
+          )?.paperOnFile,
+          taken,
+        };
+      })
+    );
+    expect(said).toEqual([
+      { stamp: "in_app", onTheVenture: true, onTheirPage: true, taken: true },
+      { stamp: "paper", onTheVenture: true, onTheirPage: true, taken: true },
+      { stamp: "paper", onTheVenture: false, onTheirPage: false, taken: false },
+    ]);
+  });
+
   it("is no way round stamped paper: signing on stamp paper cannot say it was agreed in the app", async () => {
     const ventureId = await aVenture("স্ট্যাম্প");
     const them = await invited("স্ট্যাম্পের বিনিয়োগকারী");
