@@ -6,7 +6,7 @@ import { appRouter } from "./index";
 
 /**
  * A cash Sale or Receivable Payment names whose hand took the notes: the writer's, unless the Owner names another Owner or
- * Manager. The Owner writing up the Manager's haat sale that evening puts the cash in the Manager's hand, where his
+ * Manager. The Owner writing up the Manager's livestock market sale that evening puts the cash in the Manager's hand, where his
  * Friday count will look for it — not in her own, where it never was.
  */
 const suffix = `whose-hand-${Date.now()}`;

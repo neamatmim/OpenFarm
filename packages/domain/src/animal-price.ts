@@ -72,7 +72,7 @@ export const priceRangeFor = ({
 
 /**
  * Whether a Sale fetched less than she cost the farm, or less than the low price a kilo her weight on the day was worth
- * — what the Owner is told of, never what the Manager is refused: a bull with a bad leg goes cheap, and the haat is the
+ * — what the Owner is told of, never what the Manager is refused: a bull with a bad leg goes cheap, and the livestock market is the
  * Manager's call. The low price is her Venture's, or the farm's market price; nothing while neither is set.
  */
 export const soldUnder = ({

@@ -22,7 +22,7 @@ export interface Shrink {
 }
 
 /**
- * **Shrink**: what she weighed last on the farm against what the sale's scale said — the lorry, the haat, a night without
+ * **Shrink**: what she weighed last on the farm against what the sale's scale said — the lorry, the livestock market, a night without
  * water. Nothing without both weights.
  */
 export const shrinkOf = ({

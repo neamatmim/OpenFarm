@@ -156,7 +156,7 @@ export const saleRouter = {
         paidNowMoney: paidNowInput.optional(),
         /** The day he promised to pay the rest by. Asked whenever anything is left owing: a trader promises a day. */
         promisedBy: promisedByInput.optional(),
-        /** What the broker at the haat took for this sale, where one was used: paid by the Farm, charged to her. */
+        /** What the broker at the livestock market took for this sale, where one was used: paid by the Farm, charged to her. */
         brokerMoney: brokerInput.optional(),
       })
     )
@@ -263,7 +263,7 @@ export const saleRouter = {
               input.heldBy
             )
           );
-          // Told, never refused: the haat is the Manager's call, and what she cost is the Owner's to read.
+          // Told, never refused: the livestock market is the Manager's call, and what she cost is the Owner's to read.
           await tellIfSoldUnderCost(tx, context.farm.id, id, now);
           await tellIfShrankTooMuch(tx, context.farm.id, id, now);
           ({ workClosed: closed } = await leaves(tx, context.farm.id, her, {
@@ -273,7 +273,7 @@ export const saleRouter = {
             trail: audited(context).recordEvent,
           }));
           // A Venture keeps up with its own animals rather than waiting to be told: the Manager at the
-          // haat is not asked whose animal this is, and the Owner is not asked to remember.
+          // livestock market is not asked whose animal this is, and the Owner is not asked to remember.
           if (her.ownerVentureId) {
             const started = await reachesSellingOnASale(
               tx,

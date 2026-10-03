@@ -972,26 +972,31 @@ const sellTheReady = ({ farm, on }: Script) => {
       bull.state = "ready_for_sale";
     }
   });
-  // The day at the haat: four bulls went, and what the day cost is split across all of them — the two
+  // The day at the livestock market: four bulls went, and what the day cost is split across all of them — the two
   // that came home again took a place on the lorry too.
-  on(addDays(today, -9), "05:30", "off to the haat", async (f, h) => {
-    const going = [...h.bulls.values()]
-      .filter((bull) => bull.state === "ready_for_sale")
-      .slice(0, 6)
-      .map((bull) => bull.tag);
-    if (going.length === 0) {
-      return;
+  on(
+    addDays(today, -9),
+    "05:30",
+    "off to the livestock market",
+    async (f, h) => {
+      const going = [...h.bulls.values()]
+        .filter((bull) => bull.state === "ready_for_sale")
+        .slice(0, 6)
+        .map((bull) => bull.tag);
+      if (going.length === 0) {
+        return;
+      }
+      await f.as.manager.sellingTrips.record({
+        wentTo: "গাবতলী পশুর হাট, ঢাকা",
+        transportMoney: random.int(7000, 9000),
+        keepMoney: random.int(1200, 2200),
+        animals: going,
+        wentOn: onFarm(addDays(today, -9), "05:30"),
+        paymentMethod: "cash",
+      });
     }
-    await f.as.manager.sellingTrips.record({
-      wentTo: "গাবতলী পশুর হাট, ঢাকা",
-      transportMoney: random.int(7000, 9000),
-      keepMoney: random.int(1200, 2200),
-      animals: going,
-      wentOn: onFarm(addDays(today, -9), "05:30"),
-      paymentMethod: "cash",
-    });
-  });
-  // Home from the haat, the Owner writes down what a kilo went for there: what the farm's own bulls are priced at, and
+  );
+  // Home from the livestock market, the Owner writes down what a kilo went for there: what the farm's own bulls are priced at, and
   // what keeping each one another fortnight is weighed against.
   on(addDays(today, -9), "20:00", "the Owner prices the market", async (f) => {
     await f.as.owner.fattening.setMarketPrice({

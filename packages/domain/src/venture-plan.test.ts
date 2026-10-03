@@ -83,7 +83,7 @@ describe("the line a bull of a Breed was bought in", () => {
   const SAHIWAL_CROSS = "breed-sahiwal-cross";
   const BRAHMAN = "breed-brahman";
   // One weight band, two Breeds and any other: ten Pabna bulls at 0.55 a day, ten Sahiwal crosses at 0.8, and four of
-  // whatever else the haat has. Then a heavier band of Pabna only.
+  // whatever else the livestock market has. Then a heavier band of Pabna only.
   const LIGHT = { fromKg: 200, toKg: 250, buyMoneyPerKg: 480 };
   const HEAVY = { fromKg: 250, toKg: 300, buyMoneyPerKg: 470 };
   const BY_BREED = [

@@ -6,7 +6,7 @@ import { appRouter } from "./index";
 
 /**
  * The Float counted when the trip comes home: what went out equals the animals it bought, plus the
- * outing's own costs, plus the cash brought back and deposited. Nothing goes missing between the haat
+ * outing's own costs, plus the cash brought back and deposited. Nothing goes missing between the livestock market
  * and the shed.
  */
 const suffix = `home-${Date.now()}`;

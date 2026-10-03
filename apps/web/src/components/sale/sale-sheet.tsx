@@ -57,7 +57,7 @@ export interface SaleAnswers {
   account: AccountTyped;
   /** Whether the buyer still owes some of it, what he paid now, and the day he promised. */
   receivable: ReceivableTyped;
-  /** What the broker at the haat took for this sale, where one was used; empty where none was. */
+  /** What the broker at the livestock market took for this sale, where one was used; empty where none was. */
   brokerMoney: string;
 }
 

@@ -12,7 +12,7 @@ import { numericMoney } from "./numeric-columns";
 /**
  * One outing to buy cattle, with what it cost beyond the animals' prices: the broker, the lorry home, and
  * keeping the men who went. Split evenly across the Animals whose Intakes name it, because the lorry was
- * hired for all of them; the Hasil is not, because a haat takes that per animal.
+ * hired for all of them; the Hasil is not, because a livestock market takes that per animal.
  */
 export const buyingTrip = pgTable(
   "buying_trip",
@@ -21,13 +21,13 @@ export const buyingTrip = pgTable(
     farmId: text("farm_id")
       .notNull()
       .references(() => farm.id, { onDelete: "cascade" }),
-    /** Where it went, as the farm says it: a haat's name, or a village's. */
+    /** Where it went, as the farm says it: a livestock market's name, or a village's. */
     wentTo: text("went_to").notNull(),
     /** What the broker took for finding the animals. */
     brokerMoney: numericMoney("broker_money").notNull().default(0),
     /** The lorry home. */
     transportMoney: numericMoney("transport_money").notNull().default(0),
-    /** Keeping the men who went: their food, and a night's lodging when the haat runs late. */
+    /** Keeping the men who went: their food, and a night's lodging when the livestock market runs late. */
     keepMoney: numericMoney("keep_money").notNull().default(0),
     wentOn: timestamp("went_on").notNull(),
     recordedBy: text("recorded_by").references(() => user.id),

@@ -153,7 +153,7 @@ const WhoWent = ({
 };
 
 /**
- * The day at the haat written up: where the lorry went, what the day cost, and every Animal that stood on
+ * The day at the livestock market written up: where the lorry went, what the day cost, and every Animal that stood on
  * it. Who was taken is ticked here rather than read back from who sold — the ones that came home again paid
  * for their place too, and that is the whole point of writing it down.
  */

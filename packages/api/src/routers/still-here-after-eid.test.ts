@@ -48,7 +48,7 @@ beforeAll(async () => {
   await aBull();
   soldTag = await aBull();
   await aBull();
-  // One of the three went at the haat on the first day of Qurbani.
+  // One of the three went at the livestock market on the first day of Qurbani.
   const manager = await as("manager", "2027-05-17T06:00:00.000Z");
   await manager.client.sale.record({
     tagNumber: soldTag,

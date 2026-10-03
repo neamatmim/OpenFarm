@@ -219,7 +219,7 @@ const setup = async () => {
     sex: "male",
     seller: { name: `হাট ${suffix}` },
     purchasePriceMoney: 50_000,
-    // The haat took its toll on this one; the bull bought later paid none.
+    // The livestock market took its toll on this one; the bull bought later paid none.
     hasilMoney: 1500,
     weightKg: 250,
     estimatedAgeMonths: 20,
@@ -634,7 +634,7 @@ describe("what an animal costs, and what a litre costs", () => {
     });
   });
 
-  // The haat takes its toll per beast, and often on her price: it is hers alone, never spread over the
+  // The livestock market takes its toll per beast, and often on her price: it is hers alone, never spread over the
   // bulls that came home on the same lorry.
   // Grass cut from the farm's own fields is not free to whoever eats it: once the Owner says what a kilo
   // of it is worth, the next cut comes in at that and the animals fed it are charged.
@@ -672,7 +672,7 @@ describe("what an animal costs, and what a litre costs", () => {
     expect(paid.hasilMoney).toBe(1500);
     const none = await owner.client.costs.ofAnimal({ tagNumber: bullB });
     expect(none.hasilMoney).toBe(0);
-    // A cow born on the farm was never at a haat.
+    // A cow born on the farm was never at a livestock market.
     const born = await owner.client.costs.ofAnimal({
       tagNumber: world.cow.tagNumber,
     });

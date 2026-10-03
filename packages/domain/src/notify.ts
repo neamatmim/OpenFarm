@@ -89,7 +89,7 @@ export const DELIVERY = {
   // A buyer gone past the day he promised is a call to make today, not a buzz: the farm is told once, in the evening's
   // post, and never the buyer (the Owner, 2026-09-29).
   receivable_overdue: { when: "digest" },
-  // An animal the round could not find may be on a lorry to a haat: the Owner and the Manager hear at once, by push
+  // An animal the round could not find may be on a lorry to a livestock market: the Owner and the Manager hear at once, by push
   // and not by text (the Owner, 2026-09-29). Not at night — the round is walked in the morning.
   animal_missing: { when: "immediate" },
   // A count come up short has happened: the evening's reading, with the figure to ask the Manager about tomorrow.
@@ -121,7 +121,7 @@ export const DELIVERY = {
   monthly_sum_missed: { when: "digest" },
   // Money entered twice on purpose is the evening's question for the Owner, not a buzz: it may well be two bills.
   entered_twice: { when: "digest" },
-  // A sale gone cheap is the evening's question for the Owner to ask about, never a buzz at the haat.
+  // A sale gone cheap is the evening's question for the Owner to ask about, never a buzz at the livestock market.
   sold_under_cost: { when: "digest" },
   // Animals still here after their Eid are the evening's news for the Owner and the Manager: the next market is a
   // decision, not a buzz.

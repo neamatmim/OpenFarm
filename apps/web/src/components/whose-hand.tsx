@@ -6,7 +6,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
 /**
- * Whose hand took the cash, asked of the Owner alone — writing up the Manager's haat sale that evening, the notes are in
+ * Whose hand took the cash, asked of the Owner alone — writing up the Manager's livestock market sale that evening, the notes are in
  * his hand, where his Friday count will look for them. Her own by default ("" sends nothing, and the farm takes the
  * writer's); a Manager is never asked, since the cash he writes is his own.
  */

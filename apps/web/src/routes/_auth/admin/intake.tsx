@@ -74,7 +74,7 @@ const IntakePage = () => {
   // The Ventures that may take an animal in. Only the Owner may read them, so a Manager recording an
   // Intake is simply not asked whose she is — which is right: buying for a Venture is the Owner's call.
   // Whose she is: the Ventures that are buying, which the Manager may read by name because she is the
-  // one at the haat writing the arrival down.
+  // one at the livestock market writing the arrival down.
   const ventures = useQuery(orpc.ventures.takingAnimals.queryOptions());
   const isOwner = useIsOwner();
   // A bought animal comes in only through a quarantine pen. An answer kept from before pens were marked offers none,

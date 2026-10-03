@@ -263,7 +263,7 @@ const FLOAT_ROUNDS_TO_MONEY = 50_000;
 
 /**
  * A lorry of bulls from the hat, taken in by the Manager on the day they arrive — on the Farm's own float: the Owner
- * draws enough for the dearest lorry from the bank into the Manager's hand that morning, the haat is paid in cash
+ * draws enough for the dearest lorry from the bank into the Manager's hand that morning, the livestock market is paid in cash
  * from it, and the Owner counts it home that night against what the outing bought.
  */
 export const takeInBulls = async (
@@ -289,7 +289,7 @@ export const takeInBulls = async (
   const seller = random.pick(SELLERS);
   const arrived: Bull[] = [];
   farm.clock.set(onFarm(on, "06:00"));
-  // The day at the haat: a broker to find them, the lorry home, and keeping the men who went. Its cost is
+  // The day at the livestock market: a broker to find them, the lorry home, and keeping the men who went. Its cost is
   // split evenly across the beasts that came home on it.
   const costs = {
     brokerMoney: count * random.int(250, 400),
@@ -330,13 +330,13 @@ export const takeInBulls = async (
       sex: "male",
       seller,
       purchasePriceMoney: price,
-      // The haat's toll on this beast, as its slip gives it: a fraction of what she fetched.
+      // The livestock market's toll on this beast, as its slip gives it: a fraction of what she fetched.
       hasilMoney: Math.round((price * random.between(0.03, 0.045)) / 50) * 50,
       buyingTripId: trip.id,
       weightKg: typedKg,
       estimatedAgeMonths: random.int(16, 26),
       breedId: await breedIdNamed(farm.as.manager, breed),
-      // The haat takes cash, and the float is what it is paid from.
+      // The livestock market takes cash, and the float is what it is paid from.
       paymentMethod: "cash",
     });
     const bull: Bull = {
@@ -353,7 +353,7 @@ export const takeInBulls = async (
     herd.bulls.set(bull.tag, bull);
     arrived.push(bull);
   }
-  // That night the Manager brings back what the haat did not take, and the Owner counts it against the slips.
+  // That night the Manager brings back what the livestock market did not take, and the Owner counts it against the slips.
   farm.clock.set(onFarm(on, "20:30"));
   const floats = await farm.as.owner.cash.tripFloats();
   const float = floats.find((one) => one.tripId === trip.id);

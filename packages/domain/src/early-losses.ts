@@ -14,15 +14,15 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export interface BoughtIn {
   animalId: string;
   seller: string | null;
-  /** The haat as the Buying Trip wrote it; nothing for one bought at the farm gate. */
-  haat: string | null;
+  /** The livestock market as the Buying Trip wrote it; nothing for one bought at the farm gate. */
+  livestockMarket: string | null;
   arrivedAt: Date;
   /** What she weighed coming off the lorry, and her first Weigh-in on the farm's scale, where she has had one. */
   arrivalKg?: number;
   firstWeighIn?: { weightKg: number; at: Date } | null;
 }
 
-/** One seller's, or one haat's, animals: how many were bought, and how many were lost or fell ill early. */
+/** One seller's, or one livestock market's, animals: how many were bought, and how many were lost or fell ill early. */
 export interface EarlyLosses {
   name: string;
   bought: number;
@@ -87,9 +87,9 @@ const counted = (
 };
 
 /**
- * The animals bought in `from`–`until`, by seller and by haat: those with an early death, cull or Diagnosis, or whose
+ * The animals bought in `from`–`until`, by seller and by livestock market: those with an early death, cull or Diagnosis, or whose
  * first Weigh-in came under their arrival weight past the Owner's line (`shortPercent`), the most lost first. A seller
- * or a haat with none of these is not named.
+ * or a livestock market with none of these is not named.
  */
 export const earlyLosses = (
   bought: readonly BoughtIn[],
@@ -100,7 +100,7 @@ export const earlyLosses = (
     until,
     shortPercent = 5,
   }: { from: Date; until: Date; shortPercent?: number }
-): { bySeller: EarlyLosses[]; byHaat: EarlyLosses[] } => {
+): { bySeller: EarlyLosses[]; byLivestockMarket: EarlyLosses[] } => {
   const inTheStretch = bought.filter(
     (one) => one.arrivedAt >= from && one.arrivedAt < until
   );
@@ -131,6 +131,10 @@ export const earlyLosses = (
   };
   return {
     bySeller: counted(inTheStretch, (one) => one.seller, lost),
-    byHaat: counted(inTheStretch, (one) => one.haat, lost),
+    byLivestockMarket: counted(
+      inTheStretch,
+      (one) => one.livestockMarket,
+      lost
+    ),
   };
 };

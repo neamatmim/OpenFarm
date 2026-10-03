@@ -47,7 +47,7 @@ const weighInSop = (): SopContent => ({
     },
   ],
 });
-const HAAT = `গাবতলী হাট ${suffix}`;
+const LIVESTOCK_MARKET = `গাবতলী হাট ${suffix}`;
 
 const as = (role: "owner" | "manager" | "vet", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
@@ -62,7 +62,7 @@ beforeAll(async () => {
   });
   const manager = await as("manager", CAME);
   const trip = await manager.client.trips.record({
-    wentTo: HAAT,
+    wentTo: LIVESTOCK_MARKET,
     brokerMoney: 0,
     transportMoney: 3000,
     wentOn: new Date(CAME),
@@ -123,8 +123,8 @@ beforeAll(async () => {
   }
 });
 
-describe("early losses by seller and by haat", () => {
-  it("names the seller and the haat whose animals died, fell ill or weighed short within thirty days, and nobody else", async () => {
+describe("early losses by seller and by livestock market", () => {
+  it("names the seller and the livestock market whose animals died, fell ill or weighed short within thirty days, and nobody else", async () => {
     const owner = await as("owner", "2083-05-01T04:00:00.000Z");
     const losses = await owner.client.intake.earlyLosses();
     expect(losses.bySeller).toEqual([
@@ -145,9 +145,9 @@ describe("early losses by seller and by haat", () => {
         weighedShort: 1,
       },
     ]);
-    expect(losses.byHaat).toEqual([
+    expect(losses.byLivestockMarket).toEqual([
       {
-        name: HAAT,
+        name: LIVESTOCK_MARKET,
         bought: 5,
         died: 1,
         culled: 0,

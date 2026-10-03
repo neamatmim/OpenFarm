@@ -33,7 +33,7 @@ type BreakdownLine = BreakdownRow["line"];
 
 /** Every way a finished Season opens out, and its chip's word: a way the server adds is a type error here until named. */
 const BY_WORD = {
-  haat: "returns.by.haat",
+  livestockMarket: "returns.by.livestockMarket",
   trader: "returns.by.trader",
   breed: "returns.by.breed",
   band: "returns.by.band",
@@ -45,7 +45,7 @@ const OPEN_BY = Object.keys(BY_WORD) as (keyof typeof BY_WORD)[];
 
 /** A line with none of it written: what "none" means depends on what it was opened by. An Animal is always herself. */
 const NONE_WORD = {
-  haat: "returns.none.haat",
+  livestockMarket: "returns.none.livestockMarket",
   trader: "returns.none.trader",
   breed: "returns.none.breed",
   band: "returns.none.band",
@@ -155,7 +155,7 @@ const breakdownColumnsFor = (by: BreakdownBy) =>
     }),
   ]);
 const BREAKDOWN_COLUMNS = {
-  haat: breakdownColumnsFor("haat"),
+  livestockMarket: breakdownColumnsFor("livestockMarket"),
   trader: breakdownColumnsFor("trader"),
   breed: breakdownColumnsFor("breed"),
   band: breakdownColumnsFor("band"),
@@ -194,7 +194,7 @@ const BreakdownTable = ({
 };
 
 /**
- * A finished Season opened out by haat, trader, breed, buying weight or each animal — asked for only when the Owner
+ * A finished Season opened out by livestock market, trader, breed, buying weight or each animal — asked for only when the Owner
  * picks a way, so a page of Seasons is not a page of breakdowns. A share on every line, never a rate a year.
  */
 export const SeasonBreakdown = ({ seasonKey }: { seasonKey: string }) => {
@@ -202,7 +202,7 @@ export const SeasonBreakdown = ({ seasonKey }: { seasonKey: string }) => {
   const [by, setBy] = useState<BreakdownBy | null>(null);
   const opened = useQuery({
     ...orpc.returns.breakdown.queryOptions({
-      input: { seasonKey, by: by ?? "haat" },
+      input: { seasonKey, by: by ?? "livestockMarket" },
     }),
     enabled: by !== null,
   });

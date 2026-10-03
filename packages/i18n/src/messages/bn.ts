@@ -3425,7 +3425,7 @@ export const bn: Record<MessageKey, string> = {
   "early.hint":
     "গত এক বছর: আসার ৩০ দিনের মধ্যে যে পশু মারা গেছে, বাদ গেছে, অসুস্থ হয়েছে বা প্রথম ওজনে কেনা ওজনের চেয়ে কম হয়েছে — কে বিক্রি করেছিল আর কোথা থেকে।",
   "early.bySeller": "বিক্রেতা অনুযায়ী",
-  "early.byHaat": "হাট অনুযায়ী",
+  "early.byLivestockMarket": "হাট অনুযায়ী",
   "early.line":
     "কেনা {bought} · মারা গেছে {died} · বাদ {culled} · অসুস্থ {diagnosed} · কম ওজনের {weighedShort}",
   "early.none":
@@ -4061,7 +4061,7 @@ export const bn: Record<MessageKey, string> = {
   "intake.groupTrip": "যাত্রার হিসাব",
   "intake.groupTripHint":
     "গরুর দাম ছাড়া দিনটার খরচ। একবার লিখলেই হয় — ওই গাড়িতে আসা প্রতিটি গরু সমান ভাগ বহন করবে।",
-  "intake.tripHaat": "কোথায় গিয়েছিল",
+  "intake.tripLivestockMarket": "কোথায় গিয়েছিল",
   "intake.tripBroker": "দালালি",
   "intake.tripTransport": "গাড়ি ভাড়া",
   "intake.tripKeep": "খাওয়া ও থাকা",
@@ -4415,12 +4415,12 @@ export const bn: Record<MessageKey, string> = {
   "returns.priceWorks": "{kg} কেজি × {rate} = {price}",
   "returns.priceSaved": "দাম রাখা হলো",
   "returns.openBy": "ভাগ করে দেখুন",
-  "returns.by.haat": "হাট",
+  "returns.by.livestockMarket": "হাট",
   "returns.by.trader": "ব্যাপারী",
   "returns.by.breed": "জাত",
   "returns.by.band": "কেনার ওজন",
   "returns.by.animal": "প্রতিটি গরু",
-  "returns.none.haat": "খামারের গেট",
+  "returns.none.livestockMarket": "খামারের গেট",
   "returns.none.trader": "ব্যাপারীর নাম লেখা নেই",
   "returns.none.breed": "জাত লেখা নেই",
   "returns.none.band": "কোনো ওজনসীমায় পড়েনি",

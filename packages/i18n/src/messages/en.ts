@@ -1264,7 +1264,7 @@ export const en = {
   "ventures.buyingStarted": "The Venture is buying",
   "ventures.startFattening": "Buying is done",
   "ventures.floatStillOut":
-    "Bring the haat money home first — a Float still out cannot be counted afterwards.",
+    "Bring the livestock market money home first — a Float still out cannot be counted afterwards.",
   "ventures.fatteningStarted": "The Venture is fattening",
   "ventures.takeCapital": "Capital in",
   "ventures.capitalHint":
@@ -1358,9 +1358,9 @@ export const en = {
   "ventures.movements": "Money in and out",
   "ventures.kind.capitalIn": "Capital in",
   "ventures.kind.refund": "Refunded",
-  "ventures.kind.floatOut": "Float to the haat",
+  "ventures.kind.floatOut": "Float to the livestock market",
   "ventures.kind.intakeOut": "Bought at the gate",
-  "ventures.kind.floatBack": "Cash back from the haat",
+  "ventures.kind.floatBack": "Cash back from the livestock market",
   "ventures.kind.internalBuy": "Bought an animal",
   "ventures.kind.internalSell": "Sold an animal",
   "ventures.kind.saleIn": "A buyer took her away",
@@ -1402,7 +1402,7 @@ export const en = {
   "ventures.owedToYou": "Owed to you",
   "ventures.runningLow": "The running budget is low",
   "ventures.reimburse": "Reimburse the month",
-  /** Not "consumed" any more: a lorry to the haat is on this now, and a lorry is not eaten. */
+  /** Not "consumed" any more: a lorry to the livestock market is on this now, and a lorry is not eaten. */
   "ventures.reimburseHint":
     "What {venture}'s animals cost of what the farm paid for, moved from the Venture Account to the farm's.",
   "ventures.reimbursed": "The month is reimbursed",
@@ -1410,7 +1410,7 @@ export const en = {
   "ventures.feed": "Feed",
   "ventures.medicine": "Medicine",
   "ventures.vet": "Vet",
-  /** The lorry that took a Venture's animals to the haat. Its own line on the month, because the Farm
+  /** The lorry that took a Venture's animals to the livestock market. Its own line on the month, because the Farm
    *  pays it and the Venture pays the Farm back — a Buying Trip came out of the Buying Float instead. */
   "ventures.sellingTrips": "Selling trips",
   "ventures.herdCosts": "Share of herd costs",
@@ -1454,7 +1454,7 @@ export const en = {
     "{weight} kg at that rate · {currencySign}{price}",
   "ventures.whereTheRateCameFrom": "Where the rate came from",
   "ventures.whereTheRateCameFromHint":
-    "The haat that morning, a buyer's offer, the last sale — an Investor asking years later is owed a reason",
+    "The livestock market that morning, a buyer's offer, the last sale — an Investor asking years later is owed a reason",
   "ventures.countFloat": "Count the Float home",
   "ventures.countFloatHint":
     "What went out, against the animals it bought, the outing's own costs and the cash coming back.",
@@ -1465,9 +1465,9 @@ export const en = {
   "ventures.cashBackHint": "What is left of the Float, going into the bank",
   "ventures.depositedOn": "Deposited on",
   "ventures.slip": "Deposit slip",
-  "ventures.openFloat": "Out at the haat",
+  "ventures.openFloat": "Out at the livestock market",
   "ventures.floatHint":
-    "Money for the haat, out of the {currencySign}{cattle} the Cattle Budget is holding. The rest of the account keeps the animals.",
+    "Money for the livestock market, out of the {currencySign}{cattle} the Cattle Budget is holding. The rest of the account keeps the animals.",
   "ventures.floatDrawn": "The Float is drawn",
   "ventures.floatTrip": "Which outing",
   "ventures.floatTripHint":
@@ -1549,7 +1549,7 @@ export const en = {
   "refusal.floatShort":
     "The animals, the outing's costs and the cash back come to less than went out",
   "refusal.notWhoseFloatBoughtHer":
-    "That outing went to the haat on another purse's money, so she is that purse's",
+    "That outing went to the livestock market on another purse's money, so she is that purse's",
   "refusal.windowIsTheVentures":
     "A Venture's animal is sold in the Venture's Target Window; an Amendment moves it, not the Intake",
   "refusal.windowNeeded":
@@ -3256,7 +3256,7 @@ export const en = {
   "money.from.wageDraw": "Wage draw",
   "selling.trip": "The outing",
   "selling.tripHint":
-    "What the day at the haat cost beyond the animals. Tick every beast that stood on the lorry — the ones that came home again paid for their place too.",
+    "What the day at the livestock market cost beyond the animals. Tick every beast that stood on the lorry — the ones that came home again paid for their place too.",
   "selling.wentTo": "Where it went",
   "selling.transport": "Lorry, both ways",
   "selling.keep": "Stall, food and lodging",
@@ -3430,7 +3430,7 @@ export const en = {
   "costs.unallocatedNote":
     "{currencySign}{amount} of feed went to Pens with no animals recorded in them, and is charged to nobody",
   "costs.vet": "Vet visits",
-  "costs.hasil": "Hasil at the haat",
+  "costs.hasil": "Hasil at the livestock market",
   "costs.trips": "Buying and selling trips",
   "costs.herd": "Herd costs",
   "costs.overheads": "Running the farm",
@@ -3644,7 +3644,7 @@ export const en = {
   "early.hint":
     "The last year: animals that died, were culled, fell ill or weighed under what they were bought at within 30 days of arriving, by who sold them and where.",
   "early.bySeller": "By seller",
-  "early.byHaat": "By haat",
+  "early.byLivestockMarket": "By livestock market",
   "early.line":
     "bought {bought} · died {died} · culled {culled} · ill {diagnosed} · weighed short {weighedShort}",
   "early.none":
@@ -4083,7 +4083,7 @@ export const en = {
   "animals.manageHint":
     "Her photo, where she stands, her State and her tag — each change in the audit trail.",
   "pregnancy.expectedOn": "Expected to calve on",
-  /** Whose animal she is, put right inside the Correction Window — a slip at the haat, where she was
+  /** Whose animal she is, put right inside the Correction Window — a slip at the livestock market, where she was
    *  written to the wrong purse. The Farm owning her is an answer, not the absence of one. */
   "correct.whoseSheIs": "Whose she is",
   "correct.theFarmsOwn": "The farm's own",
@@ -4324,12 +4324,12 @@ export const en = {
   "intake.title": "How it arrived",
   "intake.seller": "Seller",
   "intake.price": "Purchase price",
-  "intake.hasil": "Hasil at the haat",
+  "intake.hasil": "Hasil at the livestock market",
   "intake.trip": "Came home on",
   "intake.groupTrip": "The outing",
   "intake.groupTripHint":
     "What the day cost beyond the animals themselves. Write it up once; every animal that came home on the lorry carries an equal share.",
-  "intake.tripHaat": "Where it went",
+  "intake.tripLivestockMarket": "Where it went",
   "intake.tripBroker": "Broker",
   "intake.tripTransport": "Lorry home",
   "intake.tripKeep": "Food and lodging",
@@ -4345,7 +4345,7 @@ export const en = {
     "The Venture whose money bought her. Only a Venture that is buying may take one in.",
   "intake.ownerFromFloat": "Bought on {venture}'s Float, so she is {venture}'s",
   "intake.ownerFromFarmFloat":
-    "This outing went to the haat on the Farm's own money, so she is the Farm's.",
+    "This outing went to the livestock market on the Farm's own money, so she is the Farm's.",
   "intake.farmFloat": "on the Farm's money",
   "intake.paidFromTheAccount": "Paid from the Venture Account by bank",
   "intake.reference": "Cheque or transfer number",
@@ -4703,12 +4703,12 @@ export const en = {
   "returns.priceWorks": "{kg} kg × {rate} = {price}",
   "returns.priceSaved": "Price saved",
   "returns.openBy": "Open it out by",
-  "returns.by.haat": "Haat",
+  "returns.by.livestockMarket": "LivestockMarket",
   "returns.by.trader": "Trader",
   "returns.by.breed": "Breed",
   "returns.by.band": "Buying weight",
   "returns.by.animal": "Each animal",
-  "returns.none.haat": "Farm gate",
+  "returns.none.livestockMarket": "Farm gate",
   "returns.none.trader": "No trader written",
   "returns.none.breed": "No breed written",
   "returns.none.band": "In no weight band",
@@ -4839,7 +4839,7 @@ export const en = {
   "sale.brokerPaid": "Broker's fee",
   "sale.broker": "Broker's fee ({currencySign})",
   "sale.brokerHint":
-    "What the broker at the haat took for this sale, if one was used. The farm pays it; it is this animal's cost.",
+    "What the broker at the livestock market took for this sale, if one was used. The farm pays it; it is this animal's cost.",
   "sale.price": "Sale price",
   "sale.weight": "Weight on the day",
   "sale.destination": "Where she is going",
@@ -5305,7 +5305,7 @@ export const en = {
   "params.arrivalShortPercent": "More than",
   "params.shrink": "Weight lost at sale",
   "params.shrinkHint":
-    "What a lorry, a haat and a night without water may take off an animal between her last weighing and the sale's scale. Past it you are told in the evening's post, and a sale's low price is never worked on less than her last weighing less this.",
+    "What a lorry, a livestock market and a night without water may take off an animal between her last weighing and the sale's scale. Past it you are told in the evening's post, and a sale's low price is never worked on less than her last weighing less this.",
   "params.shrinkTellPercent": "More than",
   "params.missing": "Missing animals",
   "params.missingHint":
@@ -5388,7 +5388,7 @@ export const en = {
   "cash.deposit": "Deposit into the Venture Account",
   "cash.depositTitle": "Deposit into {venture}'s account",
   "cash.depositHint":
-    "Bank a Venture's sale cash taken at the haat, with the deposit slip. The Venture Account holds it only once it is deposited.",
+    "Bank a Venture's sale cash taken at the livestock market, with the deposit slip. The Venture Account holds it only once it is deposited.",
   "cash.depositTotal": "To be deposited: {amount}",
   "cash.depositDay": "Day it went in",
   "cash.deposited": "Deposited into the Venture Account",

@@ -29,7 +29,7 @@ export interface FeedShare {
 
 /**
  * One Animal's share of something charged to her by the head rather than by what she ate: the Hasil the
- * haat took on her, a Buying or Selling Trip she was on, a month's Herd Costs. One shape for the three,
+ * livestock market took on her, a Buying or Selling Trip she was on, a month's Herd Costs. One shape for the three,
  * because each is only ever an animal, a moment and an amount.
  */
 export interface CostShare {
@@ -37,7 +37,7 @@ export interface CostShare {
   side: Side;
   at: Date;
   amount: number;
-  /** What it came from: the Category of a Herd Cost, or the outing or haat a by-the-head cost was
+  /** What it came from: the Category of a Herd Cost, or the outing or livestock market a by-the-head cost was
    *  paid at. Always said, so a month's charges can be named rather than only totalled. */
   fromId: string;
 }
@@ -365,7 +365,7 @@ export interface Costs {
   uncostedDoses: number;
   /** Her share of the Vet Fees for visits that named her. */
   vetMoney: number;
-  /** The Hasil the haat took on her, charged to her alone. */
+  /** The Hasil the livestock market took on her, charged to her alone. */
   hasilMoney: number;
   /** Her share of the Buying Trip that brought her and the Selling Trips that took her. */
   tripMoney: number;

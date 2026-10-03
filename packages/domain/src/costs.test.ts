@@ -277,7 +277,7 @@ describe("the months that end with this one", () => {
 });
 
 describe("what she came to, once she is sold", () => {
-  // 3,000 taka of keep: feed, doses, the Vet, the haat, the lorries and her share of the month.
+  // 3,000 taka of keep: feed, doses, the Vet, the livestock market, the lorries and her share of the month.
   const costs: Costs = {
     feedMoney: 1000,
     unpricedKg: 5,

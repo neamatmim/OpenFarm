@@ -169,7 +169,7 @@ export const venturePlanLine = pgTable(
     toKg: numeric("to_kg", { precision: 7, scale: 2 }).notNull(),
     buyMoneyPerKg: numericMoney("buy_money_per_kg").notNull(),
     dailyGainKg: numeric("daily_gain_kg", { precision: 5, scale: 2 }).notNull(),
-    /** The Breed this line buys, or nothing for any Breed the haat offers. An animal bought counts towards the line of
+    /** The Breed this line buys, or nothing for any Breed the livestock market offers. An animal bought counts towards the line of
      *  her Breed that holds her weight before an any-Breed one. No foreign key: the herd schema reads this one, not the
      *  other way about; the plan's save checks it is one of the farm's Breeds. */
     breedId: text("breed_id"),
@@ -822,7 +822,7 @@ export const agreementPaper = pgTable("agreement_paper", {
 
 /**
  * What a Venture Movement is for: capital in, the refund that undoes it, the Buying Float drawn for one
- * trip to the haat, the cash that Float brings home, the two sides of an **Internal Sale** — a Venture
+ * trip to the livestock market, the cash that Float brings home, the two sides of an **Internal Sale** — a Venture
  * paying for an Animal it takes on, and being paid for one it lets go — and the monthly
  * **Reimbursement** of what its Animals consumed of what the Farm bought, and the Owner's **Advance**
  * when the Running Budget has run out, what a buyer paid for one of its Animals, and — once its Settlement
@@ -873,7 +873,7 @@ export const ventureMovement = pgTable(
       .references(() => venture.id),
     kind: text("kind", { enum: VENTURE_MOVEMENT_KINDS }).notNull(),
     /** Whose money moved, by the paper they signed: capital in and the refund that undoes it. A Float
-     *  is the Venture's own money going to the haat and belongs to no one Investor, so it has none. */
+     *  is the Venture's own money going to the livestock market and belongs to no one Investor, so it has none. */
     agreementId: text("agreement_id").references(() => investmentAgreement.id),
     /** The outing a Buying Float was drawn for. Only a Float has one. */
     buyingTripId: text("buying_trip_id").references(() => buyingTrip.id),
@@ -894,7 +894,7 @@ export const ventureMovement = pgTable(
     /** The Intake of a bull bought with no outing and paid from this account by bank. Only that movement has one,
      *  and by id rather than by foreign key for the same reason a Sale's is. */
     intakeId: text("intake_id"),
-    /** The deposit that carried a cash Sale's money here from the hand that took it at the haat. By id, as a Sale's is:
+    /** The deposit that carried a cash Sale's money here from the hand that took it at the livestock market. By id, as a Sale's is:
      *  a Handover is the Farm's cash record and lives with the money ones. */
     handoverId: text("handover_id"),
     amountMoney: numericMoney("amount_money").notNull(),
@@ -903,7 +903,7 @@ export const ventureMovement = pgTable(
     /** Bank channels only: the transfer, the cheque or the deposit slip, and what it is numbered. */
     reference: text("reference").notNull(),
     /** The movement this one sends back: a refund is tied to the capital it returns, and the cash off a
-     *  Buying Float to the Float that took it to the haat. */
+     *  Buying Float to the Float that took it to the livestock market. */
     refundsId: text("refunds_id"),
     /** When a Buying Float was reconciled, and by whom: what went out, counted against the animals it
      *  bought, the outing's own costs and the cash brought home. Only a Float has them, and until it

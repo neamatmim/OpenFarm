@@ -2,13 +2,13 @@ import type { Database } from "@OpenFarm/db";
 import type { EarlyLosses } from "@OpenFarm/domain";
 import { earlyLosses } from "@OpenFarm/domain";
 
-/** A year of buying: every Eid's worth of haats and the sellers met at them. */
+/** A year of buying: every Eid's worth of livestock markets and the sellers met at them. */
 export const EARLY_LOSSES_DAYS = 365;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * The animals bought over the last year, by seller and by haat, that died, were culled or were diagnosed within their
+ * The animals bought over the last year, by seller and by livestock market, that died, were culled or were diagnosed within their
  * first thirty days, or whose first Weigh-in came under what they were bought at past the Owner's line — the Owner's
  * to read, never written on the animal.
  */
@@ -18,7 +18,7 @@ export const earlyLossesOf = async (
   now: Date
 ): Promise<{
   bySeller: EarlyLosses[];
-  byHaat: EarlyLosses[];
+  byLivestockMarket: EarlyLosses[];
   days: number;
 }> => {
   const farmId = farm.id;
@@ -59,7 +59,7 @@ export const earlyLossesOf = async (
     bought.map((one) => ({
       animalId: one.animalId,
       seller: one.seller?.name ?? null,
-      haat: one.buyingTrip?.wentTo ?? null,
+      livestockMarket: one.buyingTrip?.wentTo ?? null,
       arrivedAt: one.arrivedAt,
       arrivalKg: Number(one.weightKg),
       firstWeighIn: firstOf.get(one.animalId) ?? null,

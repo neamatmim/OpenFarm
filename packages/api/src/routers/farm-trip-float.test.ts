@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
-// A Buying Float for one of the Farm's own outings: the Owner hands the Manager cash before the haat, and counts it
+// A Buying Float for one of the Farm's own outings: the Owner hands the Manager cash before the livestock market, and counts it
 // home against the animals the outing bought, their Hasil, its costs and the cash brought back, to the taka.
 
 const suffix = `farm-float-${Date.now()}`;

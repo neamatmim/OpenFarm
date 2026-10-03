@@ -42,7 +42,7 @@ export const BuyingTripCorrection = ({
       title={t("correct.buyingTrip")}
     >
       <CorrectionAnswer
-        label={t("intake.tripHaat")}
+        label={t("intake.tripLivestockMarket")}
         onChange={(value) => correcting.set("wentTo", value)}
         value={correcting.typed.wentTo ?? ""}
       />

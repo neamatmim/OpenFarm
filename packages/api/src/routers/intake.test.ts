@@ -162,9 +162,9 @@ describe("intake", () => {
     });
   });
 
-  // The haat takes a toll on every beast bought there, often on her price. It is part of what she cost
+  // The livestock market takes a toll on every beast bought there, often on her price. It is part of what she cost
   // the farm, not a second payment to a second party — so it rides on her Intake and on its Money Event.
-  it("records the Hasil the haat took, as part of what her arrival cost", async () => {
+  it("records the Hasil the livestock market took, as part of what her arrival cost", async () => {
     const clock = new FakeClock("2027-02-02T04:00:00.000Z");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
 

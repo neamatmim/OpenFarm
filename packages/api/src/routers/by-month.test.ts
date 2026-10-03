@@ -189,8 +189,11 @@ beforeAll(async () => {
     reference: `TRF-MB-${suffix}`,
   });
   await owner.ventures.startBuying({ id: fundedId });
-  const { client: toTheHaat } = await as("owner", "2044-03-03T04:00:00.000Z");
-  const trip = await toTheHaat.trips.record({
+  const { client: toTheLivestockMarket } = await as(
+    "owner",
+    "2044-03-03T04:00:00.000Z"
+  );
+  const trip = await toTheLivestockMarket.trips.record({
     wentTo: `হাট ${suffix}`,
     wentOn: "2044-03-03",
     brokerMoney: 0,
@@ -198,7 +201,7 @@ beforeAll(async () => {
     transportMoney: 0,
     keepMoney: 0,
   });
-  await toTheHaat.ventures.drawFloat({
+  await toTheLivestockMarket.ventures.drawFloat({
     ventureId: fundedId,
     buyingTripId: trip.id,
     amountMoney: 100_000,

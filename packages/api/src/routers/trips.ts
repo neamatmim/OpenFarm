@@ -25,15 +25,15 @@ import {
 } from "../trip-store";
 import { whatTheFloatBought } from "../venture-store";
 
-/** How many outings the form offers to put an arrival on. Newest first; a haat is written up the same week. */
+/** How many outings the form offers to put an arrival on. Newest first; a livestock market is written up the same week. */
 const OFFERED = 20;
 
 const recordInput = z.object({
-  /** Where it went, as the farm says it: a haat's name, or a village's. */
+  /** Where it went, as the farm says it: a livestock market's name, or a village's. */
   wentTo: z.string().trim().min(1).max(120),
   brokerMoney: tripCostInput.optional(),
   transportMoney: tripCostInput.optional(),
-  /** Keeping the men who went: their food, and a night's lodging when the haat runs late. */
+  /** Keeping the men who went: their food, and a night's lodging when the livestock market runs late. */
   keepMoney: tripCostInput.optional(),
   /** When the lorry went, for an outing written up the next morning. */
   wentOn: z.coerce.date().optional(),
@@ -93,7 +93,7 @@ export const tripsRouter = {
         with: { intakes: { columns: { id: true } } },
       });
       // What each outing was given, and by whom. The Manager reads it because she is the one taking it
-      // to the haat; she may see what is in her hand without being able to draw it.
+      // to the livestock market; she may see what is in her hand without being able to draw it.
       const floats = await context.db.query.ventureMovement.findMany({
         where: {
           farmId: context.farm.id,
@@ -112,7 +112,7 @@ export const tripsRouter = {
                     amountMoney: one.amountMoney,
                     ventureId: one.ventureId,
                     ventureName: one.venture?.name ?? "",
-                    /** When it was reconciled, or null while it is still out at the haat. */
+                    /** When it was reconciled, or null while it is still out at the livestock market. */
                     reconciledAt: one.reconciledAt,
                   },
                 ] as const,

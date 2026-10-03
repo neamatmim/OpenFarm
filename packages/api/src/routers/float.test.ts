@@ -5,7 +5,7 @@ import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
 /**
- * The Buying Float: money drawn from a Venture Account for one trip to the haat, so the Manager goes
+ * The Buying Float: money drawn from a Venture Account for one trip to the livestock market, so the Manager goes
  * with money that is accounted for — and so the Running Budget is not spent on one more bull.
  */
 const suffix = `float-${Date.now()}`;
@@ -266,7 +266,7 @@ describe("the Buying Float", () => {
     });
 
     const manager = await as("manager", "2046-12-10T05:00:00.000Z");
-    // She is taking it to the haat, so she may see what is in her hand.
+    // She is taking it to the livestock market, so she may see what is in her hand.
     await expect(
       manager.client.ventures.floatOf({ buyingTripId: trip })
     ).resolves.toMatchObject({
@@ -303,7 +303,7 @@ describe("the Buying Float", () => {
       reference: `FLT-${suffix}-early`,
     });
     for (let which = 501; which <= 521; which += 1) {
-      // oxlint-disable-next-line no-await-in-loop -- one outing after another, as a season of haats is
+      // oxlint-disable-next-line no-await-in-loop -- one outing after another, as a season of livestock markets is
       await owner.client.trips.record({
         wentTo: `পরের হাট ${which} ${suffix}`,
         wentOn: "2046-12-10",

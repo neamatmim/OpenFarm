@@ -46,7 +46,7 @@ export const returnsRouter = {
     ),
 
   /**
-   * A finished Season opened out by haat, trader, breed, buying weight or each Animal: the Season's own sum, line by
+   * A finished Season opened out by livestock market, trader, breed, buying weight or each Animal: the Season's own sum, line by
    * line, a share only. The Owner's alone.
    */
   breakdown: protectedProcedure

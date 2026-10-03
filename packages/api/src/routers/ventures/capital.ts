@@ -174,7 +174,7 @@ export const capitalProcedures = {
 
   /**
    * The Buying Float: money drawn from a Venture Account for one Buying Trip, so the Manager goes to the
-   * haat with money that is accounted for. By bank, like every movement of a Venture's money.
+   * livestock market with money that is accounted for. By bank, like every movement of a Venture's money.
    *
    * Refused unless the Venture is buying, refused for more than its Cattle Budget is holding — feed
    * money is not spent on one more bull — and refused for a trip that has been given money already,
@@ -419,7 +419,7 @@ export const capitalProcedures = {
 
   /**
    * What a Buying Trip was given, and from which Venture. The Manager's as well as the Owner's: she is
-   * the one taking it to the haat, and she may see what is in her hand without being able to draw it.
+   * the one taking it to the livestock market, and she may see what is in her hand without being able to draw it.
    */
   floatOf: protectedProcedure
     .use(requireRole("owner", "manager"))

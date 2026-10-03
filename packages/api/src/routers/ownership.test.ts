@@ -216,7 +216,7 @@ describe("whose animal she is", () => {
     const slip = await buy("2046-11-11T05:00:00.000Z", 60_000);
     await owner.client.ventures.startFattening({ id: movedOn.id });
     const manager = await as("owner", "2046-11-11T07:00:00.000Z");
-    // The Correction Window is thirty days and a Venture does not wait that long: a slip at the haat
+    // The Correction Window is thirty days and a Venture does not wait that long: a slip at the livestock market
     // is still a slip once buying has finished.
     await manager.client.intake.correct({
       id: slip.intakeId,

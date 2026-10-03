@@ -6,7 +6,7 @@ import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
 /**
- * The weight a bull was bought at is a figure the Manager typed at the haat. A fortnight on, a well bull weighs more
+ * The weight a bull was bought at is a figure the Manager typed at the livestock market. A fortnight on, a well bull weighs more
  * than he came off the lorry at, not less: his first Weigh-in under it by more than the Owner's line is told to the
  * Owner, once — the reading is right; it is the purchase she asks about.
  */
