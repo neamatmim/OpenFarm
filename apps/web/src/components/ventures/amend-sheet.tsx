@@ -100,7 +100,7 @@ const useAmendSaving = (done: Clear) => {
   const { t, language } = useLanguage();
   const refused = useRefused(WHY_NOT);
   const amending = useMutation(
-    orpc.ventures.amend.mutationOptions({
+    orpc.ventures.agreements.amend.mutationOptions({
       onError: refused,
       onSuccess: ({ agreements }) => {
         done();
@@ -113,7 +113,7 @@ const useAmendSaving = (done: Clear) => {
     })
   );
   const offering = useMutation(
-    orpc.ventures.proposeAmendmentInApp.mutationOptions({
+    orpc.ventures.agreements.amendments.propose.mutationOptions({
       onError: refused,
       onSuccess: () => {
         done();

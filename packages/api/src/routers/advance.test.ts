@@ -66,7 +66,7 @@ const funded = async (owner: Owner, which: number) => {
     name: `বিনিয়োগকারী ${which} ${suffix}`,
     phone: `0196${String(which).padStart(7, "0")}`,
   });
-  const agreement = await owner.client.ventures.sign({
+  const agreement = await owner.client.ventures.agreements.sign({
     ventureId: venture.id,
     investorId: person.id,
     units: 20,
@@ -76,7 +76,7 @@ const funded = async (owner: Owner, which: number) => {
     stampedOn: "2047-05-02",
     stampSerial: `AA ${which} ${suffix}`,
   });
-  await owner.client.ventures.keepAgreementPaper({
+  await owner.client.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -199,7 +199,7 @@ describe("the Running Budget", () => {
       keepMoney: 0,
     });
     // The rest of the cattle money: the bull at the gate was paid for from it by bank.
-    await owner.client.ventures.drawFloat({
+    await owner.client.ventures.floats.draw({
       ventureId,
       buyingTripId: trip.id,
       amountMoney: 740_000,

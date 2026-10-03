@@ -42,7 +42,7 @@ beforeAll(async () => {
     name: `বিনিয়োগকারী ${suffix}`,
     phone: "01977777777",
   });
-  const agreement = await owner.client.ventures.sign({
+  const agreement = await owner.client.ventures.agreements.sign({
     ventureId,
     investorId: person.id,
     units: 20,
@@ -52,7 +52,7 @@ beforeAll(async () => {
     stampedOn: "2047-07-02",
     stampSerial: `AA ${suffix}`,
   });
-  await owner.client.ventures.keepAgreementPaper({
+  await owner.client.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -184,13 +184,13 @@ describe("the monthly bank check", () => {
 
   it("goes stale when the ground under it moves, and every month after it", async () => {
     const owner = await as("owner", "2047-09-06T04:00:00.000Z");
-    const movements = await owner.client.ventures.movements({ ventureId });
+    const movements = await owner.client.ventures.movements.list({ ventureId });
     const july = movements.find(
       (one) => one.reference === `TRF-${suffix}-1`
     )?.id;
     // Six lakh was typed where five and a half was sent. July is put right — and so, silently, is what
     // the farm believes about every month that followed it.
-    await owner.client.ventures.correctMovement({
+    await owner.client.ventures.movements.correct({
       id: july ?? "",
       reason: `স্লিপে সাড়ে পাঁচ লাখ ${suffix}`,
       changes: { amountMoney: { from: 600_000, to: 550_000 } },

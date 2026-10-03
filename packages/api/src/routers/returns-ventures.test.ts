@@ -154,7 +154,7 @@ beforeAll(async () => {
     phone: "01999000041",
   });
   investorId = person.id;
-  const agreement = await owner.ventures.sign({
+  const agreement = await owner.ventures.agreements.sign({
     ventureId,
     investorId: person.id,
     units: 20,
@@ -165,7 +165,7 @@ beforeAll(async () => {
     stampSerial: `AA 1 ${suffix}`,
   });
   agreementId = agreement.id;
-  await owner.ventures.keepAgreementPaper({
+  await owner.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -188,7 +188,7 @@ beforeAll(async () => {
     transportMoney: 0,
     keepMoney: 0,
   });
-  await buying.ventures.drawFloat({
+  await buying.ventures.floats.draw({
     ventureId,
     buyingTripId: trip.id,
     amountMoney: 200_000,
@@ -214,7 +214,7 @@ beforeAll(async () => {
   const second = await bull(100_000, true);
   const farms = await bull(90_000, false);
   const x = await bull(80_000, false);
-  await buying.ventures.reconcileFloat({
+  await buying.ventures.floats.reconcile({
     buyingTripId: trip.id,
     cashBackMoney: 0,
     movedOn: "2053-01-04",
@@ -255,12 +255,12 @@ beforeAll(async () => {
       readMoney: believed.expectedMoney,
     });
   }
-  await reading.ventures.approveSettlement({ ventureId });
+  await reading.ventures.settlement.approve({ ventureId });
   const { client: paying } = await as("owner", "2053-04-02T04:00:00.000Z");
-  const approved = await paying.ventures.approvedSettlement({ ventureId });
+  const approved = await paying.ventures.settlement.approved({ ventureId });
   for (const his of approved?.shares ?? []) {
     // oxlint-disable-next-line no-await-in-loop -- one Investor at a time
-    await paying.ventures.paySettlement({
+    await paying.ventures.settlement.pay({
       ventureId,
       agreementId: his.agreementId,
       amountMoney: his.payoutMoney,
@@ -269,7 +269,7 @@ beforeAll(async () => {
       reference: `PAY-${suffix}`,
     });
   }
-  await paying.ventures.takeTheFarmsShare({
+  await paying.ventures.settlement.takeTheFarmsShare({
     ventureId,
     movedOn: "2053-04-02",
     paymentMethod: "bank",
@@ -311,7 +311,7 @@ describe("what a settled Venture returned", () => {
 
   it("works its cattle from the costing to the same totals its Settlement froze", async () => {
     const { client: owner } = await as("owner", "2053-04-10T04:00:00.000Z");
-    const approved = await owner.ventures.approvedSettlement({ ventureId });
+    const approved = await owner.ventures.settlement.approved({ ventureId });
     const { ventures } = await owner.returns.list();
     const read = ventures.find((one) => one.id === ventureId)?.returnOnCost;
     expect(read?.costMoney).toBe(approved?.chargedMoney);
@@ -498,7 +498,7 @@ describe("a Venture still going, at today's price", () => {
       ...TERMS,
     });
     goingId = going.id;
-    await owner.ventures.setPlan({
+    await owner.ventures.plan.set({
       ventureId: goingId,
       lines: [
         {
@@ -516,7 +516,7 @@ describe("a Venture still going, at today's price", () => {
       name: `জসিম ${suffix}`,
       phone: "01999000051",
     });
-    const agreement = await owner.ventures.sign({
+    const agreement = await owner.ventures.agreements.sign({
       ventureId: goingId,
       investorId: person.id,
       units: 20,
@@ -526,7 +526,7 @@ describe("a Venture still going, at today's price", () => {
       stampedOn: "2053-01-02",
       stampSerial: `AA 2 ${suffix}`,
     });
-    await owner.ventures.keepAgreementPaper({
+    await owner.ventures.agreements.keepPaper({
       agreementId: agreement.id,
       contentType: "image/jpeg",
       data: "aGVsbG8=",
@@ -547,7 +547,7 @@ describe("a Venture still going, at today's price", () => {
       transportMoney: 0,
       keepMoney: 0,
     });
-    await buying.ventures.drawFloat({
+    await buying.ventures.floats.draw({
       ventureId: goingId,
       buyingTripId: trip.id,
       amountMoney: 100_000,
@@ -615,7 +615,7 @@ describe("a Venture buying, with no cattle yet", () => {
       name: `করিম ${suffix}`,
       phone: "01999000061",
     });
-    const agreement = await owner.ventures.sign({
+    const agreement = await owner.ventures.agreements.sign({
       ventureId: emptyId,
       investorId: person.id,
       units: 20,
@@ -625,7 +625,7 @@ describe("a Venture buying, with no cattle yet", () => {
       stampedOn: "2053-01-02",
       stampSerial: `AA 3 ${suffix}`,
     });
-    await owner.ventures.keepAgreementPaper({
+    await owner.ventures.agreements.keepPaper({
       agreementId: agreement.id,
       contentType: "image/jpeg",
       data: "aGVsbG8=",

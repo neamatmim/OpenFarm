@@ -44,7 +44,7 @@ const signedFor = async (
     name: `বিনিয়োগকারী ${which} ${suffix}`,
     phone: `0172${String(which).padStart(7, "0")}`,
   });
-  const agreement = await owner.client.ventures.sign({
+  const agreement = await owner.client.ventures.agreements.sign({
     ventureId,
     investorId: person.id,
     units: 2,
@@ -54,7 +54,7 @@ const signedFor = async (
     stampedOn: "2046-09-02",
     stampSerial: `AA ${which} ${suffix}`,
   });
-  await owner.client.ventures.keepAgreementPaper({
+  await owner.client.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -90,7 +90,7 @@ describe("two payments against one Agreement at once", () => {
         pay(`TRF-${suffix}-${round}-A`),
         pay(`TRF-${suffix}-${round}-B`),
       ]);
-      const movements = await owner.client.ventures.movements({
+      const movements = await owner.client.ventures.movements.list({
         ventureId: venture.id,
       });
       const takenMoney = movements

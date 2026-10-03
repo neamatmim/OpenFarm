@@ -12,7 +12,7 @@ import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
 type Offer = Awaited<
-  ReturnType<typeof client.ventures.agreementOffers>
+  ReturnType<typeof client.ventures.agreements.offers.list>
 >[number];
 
 /** Why the farm would not approve or withdraw an offer, in the Owner's words. */
@@ -33,7 +33,7 @@ const OfferLine = ({ offer }: { offer: Offer }) => {
   const refused = useRefused(OFFER_REFUSALS);
   const nameOf = useInvestorNames();
   const approving = useMutation(
-    orpc.ventures.approveOffer.mutationOptions({
+    orpc.ventures.agreements.offers.approve.mutationOptions({
       onError: refused,
       onSuccess: (done) =>
         toast.success(t("ventures.signedWithCode", { code: done.payInCode }), {
@@ -43,7 +43,7 @@ const OfferLine = ({ offer }: { offer: Offer }) => {
     })
   );
   const withdrawing = useMutation(
-    orpc.ventures.withdrawOffer.mutationOptions({
+    orpc.ventures.agreements.offers.withdraw.mutationOptions({
       onError: refused,
       onSuccess: () => toast.success(t("agreeInApp.withdrawn")),
     })
@@ -108,7 +108,7 @@ const OfferLine = ({ offer }: { offer: Offer }) => {
 export const OffersInApp = ({ ventureId }: { ventureId: string }) => {
   const { t } = useLanguage();
   const offers = useQuery(
-    orpc.ventures.agreementOffers.queryOptions({ input: { ventureId } })
+    orpc.ventures.agreements.offers.list.queryOptions({ input: { ventureId } })
   );
   const waiting = (offers.data ?? []).filter(
     (one) => one.standing === "offered" || one.standing === "agreed"
@@ -132,7 +132,7 @@ export const OffersInApp = ({ ventureId }: { ventureId: string }) => {
 };
 
 type AmendmentOffer = Awaited<
-  ReturnType<typeof client.ventures.amendmentOffers>
+  ReturnType<typeof client.ventures.agreements.amendments.list>
 >[number];
 
 /** Why the farm would not approve or withdraw an Amendment offer, in the Owner's words. */
@@ -149,13 +149,13 @@ const AmendmentLine = ({ offer }: { offer: AmendmentOffer }) => {
   const { t, language } = useLanguage();
   const refused = useRefused(AMENDMENT_REFUSALS);
   const approving = useMutation(
-    orpc.ventures.approveAmendment.mutationOptions({
+    orpc.ventures.agreements.amendments.approve.mutationOptions({
       onError: refused,
       onSuccess: () => toast.success(t("agreeInApp.amendmentApproved")),
     })
   );
   const withdrawing = useMutation(
-    orpc.ventures.withdrawAmendment.mutationOptions({
+    orpc.ventures.agreements.amendments.withdraw.mutationOptions({
       onError: refused,
       onSuccess: () => toast.success(t("agreeInApp.withdrawn")),
     })
@@ -214,7 +214,9 @@ const AmendmentLine = ({ offer }: { offer: AmendmentOffer }) => {
 export const AmendmentOffersInApp = ({ ventureId }: { ventureId: string }) => {
   const { t } = useLanguage();
   const offers = useQuery(
-    orpc.ventures.amendmentOffers.queryOptions({ input: { ventureId } })
+    orpc.ventures.agreements.amendments.list.queryOptions({
+      input: { ventureId },
+    })
   );
   const waiting = (offers.data ?? []).filter(
     (one) => one.standing === "offered"

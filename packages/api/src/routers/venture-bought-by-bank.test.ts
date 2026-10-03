@@ -39,7 +39,7 @@ beforeAll(async () => {
     name: `বিনিয়োগকারী ${suffix}`,
     phone: "01930000074",
   });
-  const agreement = await owner.client.ventures.sign({
+  const agreement = await owner.client.ventures.agreements.sign({
     ventureId,
     investorId: person.id,
     units: 20,
@@ -49,7 +49,7 @@ beforeAll(async () => {
     stampedOn: "2074-02-02",
     stampSerial: `AA ${suffix}`,
   });
-  await owner.client.ventures.keepAgreementPaper({
+  await owner.client.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -102,7 +102,7 @@ const theVenture = async () => {
 
 const movementsOf = async () => {
   const owner = await as("owner");
-  return await owner.client.ventures.movements({ ventureId });
+  return await owner.client.ventures.movements.list({ ventureId });
 };
 
 describe("a Venture's bull with no outing", () => {
@@ -189,7 +189,7 @@ describe("a Venture's bull with no outing", () => {
     expect(itsOwn).toMatchObject({ kind: "intake_out", amountMoney: 55_000 });
     // The movement is written from the Intake, and put right only there.
     await expect(
-      owner.client.ventures.correctMovement({
+      owner.client.ventures.movements.correct({
         id: itsOwn?.id ?? "",
         reason: `ভুল ${suffix}`,
         changes: { amountMoney: { from: 55_000, to: 50_000 } },

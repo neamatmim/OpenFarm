@@ -68,7 +68,7 @@ const offeredAndAgreed = async (
   units = 3
 ) => {
   const owner = await as("owner");
-  const { id } = await owner.ventures.offerInApp(
+  const { id } = await owner.ventures.agreements.offers.make(
     terms(ventureId, them.id, units)
   );
   const theirs = await them.client.portal.agreementOffers();
@@ -100,7 +100,9 @@ describe("the switch", () => {
     const listed = await owner.investors.list();
     expect(listed.agreementsInApp).toBe(false);
     expect(
-      await refusalOf(owner.ventures.offerInApp(terms(ventureId, them.id)))
+      await refusalOf(
+        owner.ventures.agreements.offers.make(terms(ventureId, them.id))
+      )
     ).toBe("agreements_in_app_off");
   });
 
@@ -128,13 +130,14 @@ describe("an Agreement agreed in the app", () => {
 
     const owner = await as("owner");
     // Agreed, not yet approved: not an Agreement, and nothing counts it.
-    expect(await owner.ventures.agreements({ ventureId })).toEqual([]);
+    expect(await owner.ventures.agreements.list({ ventureId })).toEqual([]);
 
     const approver = await as("owner", LATER);
-    const { agreementId, payInCode } = await approver.ventures.approveOffer({
-      offerId: id,
-    });
-    const [agreement] = await owner.ventures.agreements({ ventureId });
+    const { agreementId, payInCode } =
+      await approver.ventures.agreements.offers.approve({
+        offerId: id,
+      });
+    const [agreement] = await owner.ventures.agreements.list({ ventureId });
     expect(agreement).toMatchObject({
       id: agreementId,
       payInCode,
@@ -155,7 +158,7 @@ describe("an Agreement agreed in the app", () => {
       paymentMethod: "bank",
       reference: `TRF অ্যাপে ${suffix}`,
     });
-    const offers = await owner.ventures.agreementOffers({ ventureId });
+    const offers = await owner.ventures.agreements.offers.list({ ventureId });
     expect(offers).toEqual([
       expect.objectContaining({ id, standing: "approved", agreementId }),
     ]);
@@ -168,15 +171,15 @@ describe("an Agreement agreed in the app", () => {
     // Signed on stamped paper meanwhile, for four of the ten: the offer held none of them.
     const other = await invited("কাগজের বিনিয়োগকারী");
     const owner = await as("owner");
-    await owner.ventures.sign({
+    await owner.ventures.agreements.sign({
       ...terms(ventureId, other.id, 4),
       stampValueMoney: 300,
       stampedOn: "2093-01-02",
       stampSerial: `AA ${suffix}`,
     });
-    expect(await refusalOf(owner.ventures.approveOffer({ offerId: id }))).toBe(
-      "venture_units_gone"
-    );
+    expect(
+      await refusalOf(owner.ventures.agreements.offers.approve({ offerId: id }))
+    ).toBe("venture_units_gone");
     // The farm says what is left, as it counts it when it refuses.
     const listed = await owner.ventures.list();
     expect(listed.find((one) => one.id === ventureId)?.unitsLeft).toBe(6);
@@ -186,10 +189,12 @@ describe("an Agreement agreed in the app", () => {
     const ventureId = await aVenture("অসম্মত");
     const them = await invited("অপেক্ষার বিনিয়োগকারী");
     const owner = await as("owner");
-    const { id } = await owner.ventures.offerInApp(terms(ventureId, them.id));
-    expect(await refusalOf(owner.ventures.approveOffer({ offerId: id }))).toBe(
-      "offer_not_agreed"
+    const { id } = await owner.ventures.agreements.offers.make(
+      terms(ventureId, them.id)
     );
+    expect(
+      await refusalOf(owner.ventures.agreements.offers.approve({ offerId: id }))
+    ).toBe("offer_not_agreed");
   });
 
   it("is agreed only by the Investor it is offered to", async () => {
@@ -197,7 +202,7 @@ describe("an Agreement agreed in the app", () => {
     const offeredTo = await invited("যাঁকে দেওয়া");
     const stranger = await invited("অন্য বিনিয়োগকারী");
     const owner = await as("owner");
-    const { id, paperHash } = await owner.ventures.offerInApp(
+    const { id, paperHash } = await owner.ventures.agreements.offers.make(
       terms(ventureId, offeredTo.id)
     );
     expect(await stranger.client.portal.agreementOffers()).toEqual([]);
@@ -210,7 +215,9 @@ describe("an Agreement agreed in the app", () => {
     const ventureId = await aVenture("বদলানো");
     const them = await invited("বদলানো কাগজ");
     const owner = await as("owner");
-    const { id } = await owner.ventures.offerInApp(terms(ventureId, them.id));
+    const { id } = await owner.ventures.agreements.offers.make(
+      terms(ventureId, them.id)
+    );
     expect(
       await refusalOf(
         them.client.portal.agreeToOffer({
@@ -219,7 +226,7 @@ describe("an Agreement agreed in the app", () => {
         })
       )
     ).toBe("paper_changed_since");
-    const [offer] = await owner.ventures.agreementOffers({ ventureId });
+    const [offer] = await owner.ventures.agreements.offers.list({ ventureId });
     expect(offer?.standing).toBe("offered");
   });
 
@@ -227,19 +234,19 @@ describe("an Agreement agreed in the app", () => {
     const ventureId = await aVenture("ফিরিয়ে নেওয়া");
     const them = await invited("ফিরিয়ে নেওয়া প্রস্তাব");
     const owner = await as("owner");
-    const { id, paperHash } = await owner.ventures.offerInApp(
+    const { id, paperHash } = await owner.ventures.agreements.offers.make(
       terms(ventureId, them.id)
     );
-    await owner.ventures.withdrawOffer({ offerId: id });
+    await owner.ventures.agreements.offers.withdraw({ offerId: id });
     expect(await them.client.portal.agreementOffers()).toEqual([]);
     expect(
       await refusalOf(
         them.client.portal.agreeToOffer({ offerId: id, paperHash })
       )
     ).toBe("offer_withdrawn");
-    expect(await refusalOf(owner.ventures.approveOffer({ offerId: id }))).toBe(
-      "offer_withdrawn"
-    );
+    expect(
+      await refusalOf(owner.ventures.agreements.offers.approve({ offerId: id }))
+    ).toBe("offer_withdrawn");
   });
 
   it("is not withdrawn once approved", async () => {
@@ -247,10 +254,12 @@ describe("an Agreement agreed in the app", () => {
     const them = await invited("অনুমোদিত প্রস্তাব");
     const { id } = await offeredAndAgreed(ventureId, them);
     const owner = await as("owner");
-    await owner.ventures.approveOffer({ offerId: id });
-    expect(await refusalOf(owner.ventures.withdrawOffer({ offerId: id }))).toBe(
-      "offer_already_approved"
-    );
+    await owner.ventures.agreements.offers.approve({ offerId: id });
+    expect(
+      await refusalOf(
+        owner.ventures.agreements.offers.withdraw({ offerId: id })
+      )
+    ).toBe("offer_already_approved");
   });
 
   it("is offered only to an Investor who can agree in the portal", async () => {
@@ -261,7 +270,9 @@ describe("an Agreement agreed in the app", () => {
       phone: `01799${suffix}`,
     });
     expect(
-      await refusalOf(owner.ventures.offerInApp(terms(ventureId, byPhone.id)))
+      await refusalOf(
+        owner.ventures.agreements.offers.make(terms(ventureId, byPhone.id))
+      )
     ).toBe("investor_not_in_portal");
   });
 
@@ -269,9 +280,11 @@ describe("an Agreement agreed in the app", () => {
     const ventureId = await aVenture("দুবার");
     const them = await invited("দুবার প্রস্তাব");
     const owner = await as("owner");
-    await owner.ventures.offerInApp(terms(ventureId, them.id));
+    await owner.ventures.agreements.offers.make(terms(ventureId, them.id));
     expect(
-      await refusalOf(owner.ventures.offerInApp(terms(ventureId, them.id)))
+      await refusalOf(
+        owner.ventures.agreements.offers.make(terms(ventureId, them.id))
+      )
     ).toBe("offer_already_made");
   });
 
@@ -281,7 +294,7 @@ describe("an Agreement agreed in the app", () => {
     const notYet = await invited("এখনো না");
     const { id } = await offeredAndAgreed(ventureId, agreedFirst);
     const owner = await as("owner");
-    const pending = await owner.ventures.offerInApp(
+    const pending = await owner.ventures.agreements.offers.make(
       terms(ventureId, notYet.id)
     );
     await owner.investors.setAgreementsInApp({ shown: false });
@@ -296,7 +309,7 @@ describe("an Agreement agreed in the app", () => {
           })
         )
       ).toBe("agreements_in_app_off");
-      const { agreementId } = await owner.ventures.approveOffer({
+      const { agreementId } = await owner.ventures.agreements.offers.approve({
         offerId: id,
       });
       const written = await scratchDb().query.investmentAgreement.findFirst({
@@ -314,17 +327,17 @@ describe("an Agreement agreed in the app", () => {
     const inApp = await invited("কাগজ অ্যাপে");
     const { id } = await offeredAndAgreed(ventureId, inApp, 2);
     const owner = await as("owner");
-    await owner.ventures.approveOffer({ offerId: id });
+    await owner.ventures.agreements.offers.approve({ offerId: id });
     const signOnStamp = async (name: string, photographed: boolean) => {
       const them = await invited(name);
-      const signed = await owner.ventures.sign({
+      const signed = await owner.ventures.agreements.sign({
         ...terms(ventureId, them.id, 2),
         stampValueMoney: 300,
         stampedOn: "2093-01-02",
         stampSerial: `AC ${them.id.slice(-8)}`,
       });
       if (photographed) {
-        await owner.ventures.keepAgreementPaper({
+        await owner.ventures.agreements.keepPaper({
           agreementId: signed.id,
           contentType: "image/jpeg",
           data: "aGVsbG8=",
@@ -334,7 +347,7 @@ describe("an Agreement agreed in the app", () => {
     await signOnStamp("কাগজ ছবিসহ", true);
     await signOnStamp("কাগজ ছবি ছাড়া", false);
 
-    const listed = await owner.ventures.agreements({ ventureId });
+    const listed = await owner.ventures.agreements.list({ ventureId });
     const said = await Promise.all(
       listed.map(async (one) => {
         const onTheirPage = await owner.investors.agreements({
@@ -374,7 +387,7 @@ describe("an Agreement agreed in the app", () => {
     const them = await invited("অনুলিপি বিনিয়োগকারী");
     const { id, offer } = await offeredAndAgreed(ventureId, them);
     const approver = await as("owner", LATER);
-    const { agreementId } = await approver.ventures.approveOffer({
+    const { agreementId } = await approver.ventures.agreements.offers.approve({
       offerId: id,
     });
     // Asked for a month on: the copy is still the paper as it was laid out when it was offered.
@@ -406,7 +419,9 @@ describe("an Agreement agreed in the app", () => {
     const them = await invited("বদলে ফেলা কাগজ");
     const { id } = await offeredAndAgreed(ventureId, them);
     const owner = await as("owner");
-    const { agreementId } = await owner.ventures.approveOffer({ offerId: id });
+    const { agreementId } = await owner.ventures.agreements.offers.approve({
+      offerId: id,
+    });
     const kept = await scratchDb().query.agreementOffer.findFirst({
       where: { id, farmId: theFarm().id },
       columns: { paper: true },
@@ -425,7 +440,7 @@ describe("an Agreement agreed in the app", () => {
     const them = await invited("স্ট্যাম্পের বিনিয়োগকারী");
     const owner = await as("owner");
     await expect(
-      owner.ventures.sign({
+      owner.ventures.agreements.sign({
         ...terms(ventureId, them.id),
         stampKind: "in_app" as never,
         stampValueMoney: 300,

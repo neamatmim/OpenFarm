@@ -64,13 +64,13 @@ describe("the Investors", () => {
   it("is one record per person, however many Ventures they join", async () => {
     const owner = await as("owner", "2046-08-03T04:00:00.000Z");
     const karim = await someone(owner, 1);
-    await owner.client.ventures.sign({
+    await owner.client.ventures.agreements.sign({
       ventureId,
       investorId: karim.id,
       units: 3,
       ...paper,
     });
-    await owner.client.ventures.sign({
+    await owner.client.ventures.agreements.sign({
       ventureId: otherVentureId,
       investorId: karim.id,
       units: 2,
@@ -83,7 +83,7 @@ describe("the Investors", () => {
       { id: otherVentureId, name: `দ্বিতীয় ${suffix}`, state: "open", units: 2 },
       { id: ventureId, name: `ঈদ ২০৪৭ ${suffix}`, state: "open", units: 3 },
     ]);
-    const signed = await owner.client.ventures.agreements({ ventureId });
+    const signed = await owner.client.ventures.agreements.list({ ventureId });
     expect(signed).toEqual([
       expect.objectContaining({
         investorId: karim.id,
@@ -97,13 +97,15 @@ describe("the Investors", () => {
 
   it("keeps the stamped paper against the Agreement", async () => {
     const owner = await as("owner", "2046-08-04T04:00:00.000Z");
-    const [signed] = await owner.client.ventures.agreements({ ventureId });
-    await owner.client.ventures.keepAgreementPaper({
+    const [signed] = await owner.client.ventures.agreements.list({ ventureId });
+    await owner.client.ventures.agreements.keepPaper({
       agreementId: signed?.id ?? "",
       contentType: "image/jpeg",
       data: "aGVsbG8=",
     });
-    const afterwards = await owner.client.ventures.agreements({ ventureId });
+    const afterwards = await owner.client.ventures.agreements.list({
+      ventureId,
+    });
     expect(afterwards[0]).toMatchObject({ hasPaper: true });
   });
 
@@ -111,7 +113,7 @@ describe("the Investors", () => {
     const owner = await as("owner", "2046-08-05T04:00:00.000Z");
     const greedy = await someone(owner, 2);
     await expect(
-      owner.client.ventures.sign({
+      owner.client.ventures.agreements.sign({
         ventureId,
         investorId: greedy.id,
         units: 39,
@@ -129,7 +131,7 @@ describe("the Investors", () => {
     });
     await owner.client.ventures.startBuying({ id: started.id });
     await expect(
-      owner.client.ventures.sign({
+      owner.client.ventures.agreements.sign({
         ventureId: started.id,
         investorId: late.id,
         units: 1,
@@ -140,7 +142,7 @@ describe("the Investors", () => {
 
   it("keeps the Target Window as the paper said it, and the split it earns", async () => {
     const owner = await as("owner", "2046-08-09T04:00:00.000Z");
-    const [signed] = await owner.client.ventures.agreements({ ventureId });
+    const [signed] = await owner.client.ventures.agreements.list({ ventureId });
     expect(signed).toMatchObject({
       targetWindow: {
         start: plan.targetWindowStart,
@@ -173,7 +175,7 @@ describe("the Investors", () => {
         createdAt: new Date("2046-01-01T00:00:00.000Z"),
       });
     await expect(
-      owner.client.ventures.sign({
+      owner.client.ventures.agreements.sign({
         ventureId,
         investorId: elsewhere,
         units: 1,
@@ -198,7 +200,7 @@ describe("the Investors", () => {
     const owner = await as("owner", "2046-08-12T04:00:00.000Z");
     const unstamped = await someone(owner, 4);
     await expect(
-      owner.client.ventures.sign({
+      owner.client.ventures.agreements.sign({
         ventureId,
         investorId: unstamped.id,
         units: 1,
@@ -215,7 +217,7 @@ describe("the Investors", () => {
       ...plan,
     });
     const only = await someone(owner, 5);
-    await owner.client.ventures.sign({
+    await owner.client.ventures.agreements.sign({
       ventureId: doomed.id,
       investorId: only.id,
       units: 1,
@@ -251,7 +253,7 @@ describe("the Investors", () => {
         // oxlint-disable-next-line no-await-in-loop -- each signature is counted against the one before it
         const person = await someone(owner, 100 + which);
         // oxlint-disable-next-line no-await-in-loop -- as above
-        await owner.client.ventures.sign({
+        await owner.client.ventures.agreements.sign({
           ventureId: roomy.id,
           investorId: person.id,
           units: 1,
@@ -282,7 +284,7 @@ describe("the Investors", () => {
     // every Venture still running, so a second Venture is not a second twenty.
     const oneTooMany = await someone(owner, 999);
     await expect(
-      owner.client.ventures.sign({
+      owner.client.ventures.agreements.sign({
         ventureId,
         investorId: oneTooMany.id,
         units: 1,
@@ -294,10 +296,10 @@ describe("the Investors", () => {
   it("is the Owner's alone, Agreements and signatures too", async () => {
     const manager = await as("manager", "2046-08-14T04:00:00.000Z");
     await expect(
-      manager.client.ventures.agreements({ ventureId })
+      manager.client.ventures.agreements.list({ ventureId })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(
-      manager.client.ventures.sign({
+      manager.client.ventures.agreements.sign({
         ventureId,
         investorId: "whoever",
         units: 1,

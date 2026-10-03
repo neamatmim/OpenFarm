@@ -55,7 +55,7 @@ const asking = async (name: string, ventureId: string, units: number) => {
 const toldYes = async (name: string, ventureId: string, units: number) => {
   const them = await asking(name, ventureId, units);
   const owner = await asOwner();
-  await owner.ventures.answerRequest({
+  await owner.ventures.requests.answer({
     requestId: them.requestId,
     answer: { kind: "come_and_sign", units },
   });
@@ -69,7 +69,7 @@ const meetTheFloor = async (ventureId: string) => {
     name: `স্বাক্ষরী ${ventureId.slice(-6)} ${suffix}`,
     phone: `0133${ventureId.slice(-7).replaceAll(/\D/gu, "7").padStart(7, "7")}`,
   });
-  const agreement = await owner.ventures.sign({
+  const agreement = await owner.ventures.agreements.sign({
     ventureId,
     investorId: signer.id,
     units: 1,
@@ -80,7 +80,7 @@ const meetTheFloor = async (ventureId: string) => {
     stampedOn: "2055-01-02",
     stampSerial: `S-${ventureId.slice(-8)}`,
   });
-  await owner.ventures.keepAgreementPaper({
+  await owner.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -97,7 +97,7 @@ const meetTheFloor = async (ventureId: string) => {
 /** Where each Request on a Venture stands, and why the farm closed it, as the Owner reads them. */
 const standings = async (ventureId: string) => {
   const owner = await asOwner();
-  const { requests } = await owner.ventures.requests({ ventureId });
+  const { requests } = await owner.ventures.requests.list({ ventureId });
   return new Map(
     requests.map((one) => [one.id, [one.state, one.closedBecause]] as const)
   );
@@ -279,7 +279,7 @@ describe("an Investor", () => {
       note: "",
     });
     const owner = await asOwner();
-    await owner.ventures.answerRequest({
+    await owner.ventures.requests.answer({
       requestId: two.id,
       answer: { kind: "come_and_sign", units: 1 },
     });

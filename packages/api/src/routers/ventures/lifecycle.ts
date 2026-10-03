@@ -501,109 +501,112 @@ export const lifecycleProcedures = {
       return { id: row.id };
     }),
 
-  /**
-   * A Venture's **Venture Plan**: every version the Owner saved, the one in force, and the baseline it is measured
-   * against, each with what it comes to (`planOf`). The Owner's alone, as a Venture's money is.
-   */
-  plan: protectedProcedure
-    .use(requireOnly("owner", OWNER_ONLY))
-    .use(requirePersonalSession())
-    .input(z.object({ ventureId: z.string() }))
-    .handler(async ({ context, input }) => {
-      const row = await ours(context, input.ventureId);
-      return await planOf(
-        context.db,
-        context.farm.id,
-        row,
-        farmDayOf(context.clock.now())
-      );
-    }),
+  /** The Venture Plan: what its capital is meant to buy and feed, and how it is going against that. */
+  plan: {
+    /**
+     * A Venture's **Venture Plan**: every version the Owner saved, the one in force, and the baseline it is measured
+     * against, each with what it comes to (`planOf`). The Owner's alone, as a Venture's money is.
+     */
+    get: protectedProcedure
+      .use(requireOnly("owner", OWNER_ONLY))
+      .use(requirePersonalSession())
+      .input(z.object({ ventureId: z.string() }))
+      .handler(async ({ context, input }) => {
+        const row = await ours(context, input.ventureId);
+        return await planOf(
+          context.db,
+          context.farm.id,
+          row,
+          farmDayOf(context.clock.now())
+        );
+      }),
 
-  /**
-   * A Venture measured against the plan it opened on (`planAgainstActual`): buying by band, growth and money beside
-   * the baseline. The Owner's alone; nothing while it has no plan.
-   */
-  planAgainstActual: protectedProcedure
-    .use(requireOnly("owner", OWNER_ONLY))
-    .use(requirePersonalSession())
-    .input(z.object({ ventureId: z.string() }))
-    .handler(async ({ context, input }) => {
-      const row = await ours(context, input.ventureId);
-      return await planAgainstActual(
-        context.db,
-        context.farm.id,
-        row,
-        context.farm.ventureInvestorsPercent,
-        context.clock.now()
-      );
-    }),
-
-  /**
-   * A new version of a Venture's plan: its buying lines by weight band and what a kilo will sell at. While it is Open
-   * the Owner may change it as often as she likes; after buying begins each change is a revision with its reason, and
-   * the plan made before stays what the Venture is measured against. An Audit Event each time.
-   */
-  setPlan: protectedProcedure
-    .use(requireOnly("owner", OWNER_ONLY))
-    .use(requirePersonalSession())
-    .input(
-      z
-        .object({
-          ventureId: z.string(),
-          lines: z
-            .array(
-              z
-                .object({
-                  animals: z.number().int().positive().max(500),
-                  fromKg: z.number().positive().max(2000),
-                  toKg: z.number().positive().max(2000),
-                  buyMoneyPerKg: z.number().positive().max(100_000),
-                  dailyGainKg: z.number().min(0).max(5),
-                  /** The Breed the line buys; nothing for any Breed. */
-                  breedId: z.string().min(1).nullable().default(null),
-                })
-                .refine((line) => line.fromKg < line.toKg, {
-                  message: "A band's lower weight is below its upper",
-                  path: ["fromKg"],
-                })
+    /**
+     * A new version of a Venture's plan: its buying lines by weight band and what a kilo will sell at. While it is Open
+     * the Owner may change it as often as she likes; after buying begins each change is a revision with its reason, and
+     * the plan made before stays what the Venture is measured against. An Audit Event each time.
+     */
+    set: protectedProcedure
+      .use(requireOnly("owner", OWNER_ONLY))
+      .use(requirePersonalSession())
+      .input(
+        z
+          .object({
+            ventureId: z.string(),
+            lines: z
+              .array(
+                z
+                  .object({
+                    animals: z.number().int().positive().max(500),
+                    fromKg: z.number().positive().max(2000),
+                    toKg: z.number().positive().max(2000),
+                    buyMoneyPerKg: z.number().positive().max(100_000),
+                    dailyGainKg: z.number().min(0).max(5),
+                    /** The Breed the line buys; nothing for any Breed. */
+                    breedId: z.string().min(1).nullable().default(null),
+                  })
+                  .refine((line) => line.fromKg < line.toKg, {
+                    message: "A band's lower weight is below its upper",
+                    path: ["fromKg"],
+                  })
+              )
+              .min(1)
+              .max(20),
+            saleLowMoneyPerKg: z.number().positive().max(100_000),
+            saleHighMoneyPerKg: z.number().positive().max(100_000),
+            /** The share of its animals the Owner expects not to live to be sold. Half the herd is past planning. */
+            deathsPercent: z.number().min(0).max(50).default(0),
+            reason: z.string().trim().max(300).nullable().default(null),
+          })
+          .refine((one) => one.saleLowMoneyPerKg <= one.saleHighMoneyPerKg, {
+            message: "The low price is above the high one",
+            path: ["saleLowMoneyPerKg"],
+          })
+      )
+      .handler(async ({ context, input }) => {
+        const row = await ours(context, input.ventureId);
+        const { ventureId: _venture, ...said } = input;
+        const saved = await audited(context).write(
+          {
+            entity: "venture_plan",
+            entityId: row.id,
+            action: "create",
+            after: { ...said, lines: said.lines.map((line) => ({ ...line })) },
+          },
+          (tx) =>
+            savePlan(
+              tx,
+              context.farm.id,
+              row,
+              { ...said, reason: said.reason === "" ? null : said.reason },
+              {
+                userId: context.session?.user.id ?? null,
+                at: context.clock.now(),
+              }
             )
-            .min(1)
-            .max(20),
-          saleLowMoneyPerKg: z.number().positive().max(100_000),
-          saleHighMoneyPerKg: z.number().positive().max(100_000),
-          /** The share of its animals the Owner expects not to live to be sold. Half the herd is past planning. */
-          deathsPercent: z.number().min(0).max(50).default(0),
-          reason: z.string().trim().max(300).nullable().default(null),
-        })
-        .refine((one) => one.saleLowMoneyPerKg <= one.saleHighMoneyPerKg, {
-          message: "The low price is above the high one",
-          path: ["saleLowMoneyPerKg"],
-        })
-    )
-    .handler(async ({ context, input }) => {
-      const row = await ours(context, input.ventureId);
-      const { ventureId: _venture, ...said } = input;
-      const saved = await audited(context).write(
-        {
-          entity: "venture_plan",
-          entityId: row.id,
-          action: "create",
-          after: { ...said, lines: said.lines.map((line) => ({ ...line })) },
-        },
-        (tx) =>
-          savePlan(
-            tx,
-            context.farm.id,
-            row,
-            { ...said, reason: said.reason === "" ? null : said.reason },
-            {
-              userId: context.session?.user.id ?? null,
-              at: context.clock.now(),
-            }
-          )
-      );
-      return { ventureId: row.id, ...saved };
-    }),
+        );
+        return { ventureId: row.id, ...saved };
+      }),
+
+    /**
+     * A Venture measured against the plan it opened on (`planAgainstActual`): buying by band, growth and money beside
+     * the baseline. The Owner's alone; nothing while it has no plan.
+     */
+    againstActual: protectedProcedure
+      .use(requireOnly("owner", OWNER_ONLY))
+      .use(requirePersonalSession())
+      .input(z.object({ ventureId: z.string() }))
+      .handler(async ({ context, input }) => {
+        const row = await ours(context, input.ventureId);
+        return await planAgainstActual(
+          context.db,
+          context.farm.id,
+          row,
+          context.farm.ventureInvestorsPercent,
+          context.clock.now()
+        );
+      }),
+  },
 
   /**
    * A Venture's **Projection** and the figures it is worked from (ADR 0010): what its Settlement might come to at the
@@ -628,30 +631,33 @@ export const lifecycleProcedures = {
       };
     }),
 
-  /**
-   * A Venture's Requests to Join, each with its history beneath it, and beside them the Units signed and the Units
-   * asked for and waiting — the Owner's to read, and nobody else's.
-   */
-  requests: protectedProcedure
-    .use(requireOnly("owner", OWNER_ONLY))
-    .use(requirePersonalSession())
-    .input(z.object({ ventureId: z.string() }))
-    .handler(({ context, input }) =>
-      requestsOf(context.db, context.farm, input.ventureId)
-    ),
+  /** Investors' Requests to Join, waiting for the Owner's answer. */
+  requests: {
+    /**
+     * A Venture's Requests to Join, each with its history beneath it, and beside them the Units signed and the Units
+     * asked for and waiting — the Owner's to read, and nobody else's.
+     */
+    list: protectedProcedure
+      .use(requireOnly("owner", OWNER_ONLY))
+      .use(requirePersonalSession())
+      .input(z.object({ ventureId: z.string() }))
+      .handler(({ context, input }) =>
+        requestsOf(context.db, context.farm, input.ventureId)
+      ),
 
-  /**
-   * The Owner answers a Request to Join: come and sign for the Units asked or fewer — never more than the Venture has
-   * left to promise — or not this time, with a line to the Investor if she likes. A yes to somebody new answers with
-   * what signing them would make the Investor count: a warning, never a refusal.
-   */
-  answerRequest: protectedProcedure
-    .use(requireOnly("owner", OWNER_ONLY))
-    .use(requirePersonalSession())
-    .input(z.object({ requestId: z.string(), answer: theAnswer }))
-    .handler(({ context, input }) =>
-      answerRequest(context, input.requestId, input.answer)
-    ),
+    /**
+     * The Owner answers a Request to Join: come and sign for the Units asked or fewer — never more than the Venture has
+     * left to promise — or not this time, with a line to the Investor if she likes. A yes to somebody new answers with
+     * what signing them would make the Investor count: a warning, never a refusal.
+     */
+    answer: protectedProcedure
+      .use(requireOnly("owner", OWNER_ONLY))
+      .use(requirePersonalSession())
+      .input(z.object({ requestId: z.string(), answer: theAnswer }))
+      .handler(({ context, input }) =>
+        answerRequest(context, input.requestId, input.answer)
+      ),
+  },
 
   /**
    * The Owner says the money is in and the buying may start. Refused while what the Venture holds is under

@@ -96,7 +96,7 @@ const noSuchAgreement = () =>
  * One Agreement's standing: the Venture, the man, what his paper froze, and every taka of his that has
  * moved either way — narrowed to him before anything is assembled.
  *
- * Every existing reading of a Venture is Venture-shaped: `ventures.agreements` and `ventures.movements`
+ * Every existing reading of a Venture is Venture-shaped: `ventures.agreements.list` and `ventures.movements`
  * hand back every Agreement and every movement on the run, and a Settlement's payout rows carry every
  * Investor's name. A statement assembled from those would be one careless `.filter` away from sending a
  * man his neighbour's money, and a payload that reached a browser holding it has left the farm whatever
@@ -120,7 +120,7 @@ export const hisStanding = async (
   if (!agreement) {
     throw noSuchAgreement();
   }
-  // Three reads rather than a join, as `ventures.agreements` does it: an Agreement declares no relations.
+  // Three reads rather than a join, as `ventures.agreements.list` does it: an Agreement declares no relations.
   const [venture, investor] = await Promise.all([
     tx.query.venture.findFirst({
       where: { id: agreement.ventureId, farmId },

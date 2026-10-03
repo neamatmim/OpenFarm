@@ -36,7 +36,7 @@ const signAndPay = async (
   units: number
 ) => {
   const owner = await asOwner();
-  const signed = await owner.ventures.sign({
+  const signed = await owner.ventures.agreements.sign({
     ventureId,
     investorId,
     units,
@@ -47,7 +47,7 @@ const signAndPay = async (
     stampedOn: "2052-01-02",
     stampSerial: `S-${phone}`,
   });
-  await owner.ventures.keepAgreementPaper({
+  await owner.ventures.agreements.keepPaper({
     agreementId: signed.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",

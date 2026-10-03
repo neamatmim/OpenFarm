@@ -99,7 +99,7 @@ const aVenture = async (owner: Client, which: number, splits: number[]) => {
       phone: `0198${which}${String(at_).padStart(6, "0")}`,
     });
     // oxlint-disable-next-line no-await-in-loop -- one paper at a time
-    const agreement = await owner.client.ventures.sign({
+    const agreement = await owner.client.ventures.agreements.sign({
       ventureId: venture.id,
       investorId: person.id,
       units,
@@ -110,7 +110,7 @@ const aVenture = async (owner: Client, which: number, splits: number[]) => {
       stampSerial: `AA ${who} ${suffix}`,
     });
     // oxlint-disable-next-line no-await-in-loop
-    await owner.client.ventures.keepAgreementPaper({
+    await owner.client.ventures.agreements.keepPaper({
       agreementId: agreement.id,
       contentType: "image/jpeg",
       data: "aGVsbG8=",
@@ -178,7 +178,7 @@ beforeAll(async () => {
     transportMoney: 0,
     keepMoney: 0,
   });
-  await buying.client.ventures.drawFloat({
+  await buying.client.ventures.floats.draw({
     ventureId: firstVenture,
     buyingTripId: trip.id,
     amountMoney: 400_000,
@@ -204,7 +204,7 @@ beforeAll(async () => {
     });
     tags.push(her.tagNumber);
   }
-  await buying.client.ventures.reconcileFloat({
+  await buying.client.ventures.floats.reconcile({
     buyingTripId: trip.id,
     // Four lakh out, three lakh sixty spent on six bulls, forty thousand home again.
     cashBackMoney: 40_000,
@@ -444,14 +444,14 @@ describe("what a Venture's animals are doing", () => {
 
   it("is projected from the animals it stands on, what it sold, and what it has been charged (ADR 0010)", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
-    await owner.client.ventures.setPlan({
+    await owner.client.ventures.plan.set({
       ventureId: firstVenture,
       ...THE_PLAN,
     });
     const { projection } = await owner.client.ventures.projection({
       ventureId: firstVenture,
     });
-    const settlement = await owner.client.ventures.settlement({
+    const settlement = await owner.client.ventures.settlement.get({
       ventureId: firstVenture,
     });
     // The three standing, grown to 1 April at their own whole-stay rates: 228 kg at a kilo a day for the 59 days from
@@ -463,7 +463,7 @@ describe("what a Venture's animals are doing", () => {
     expect(projection?.realisedMoney).toBe(settlement.proceedsMoney);
     // Charged what the Settlement counts, and the rest of the ৳1,00,000 running budget (৳5,00,000 of capital less
     // ৳4,00,000 for cattle) taken as spent. Selling, it has nothing left to buy.
-    const measured = await owner.client.ventures.planAgainstActual({
+    const measured = await owner.client.ventures.plan.againstActual({
       ventureId: firstVenture,
     });
     const runningLeft = Math.max(
@@ -486,7 +486,7 @@ describe("what a Venture's animals are doing", () => {
 
   it("prices each bull for the Owner at his Venture's prices against what he cost, and for nobody else", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
-    await owner.client.ventures.setPlan({
+    await owner.client.ventures.plan.set({
       ventureId: firstVenture,
       ...THE_PLAN,
     });
@@ -580,11 +580,11 @@ describe("what a Venture's animals are doing", () => {
   it("measures what it bought, how it grows and what it makes against its plan", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
     // Its plan, made after buying began: its own baseline, and it says why.
-    await owner.client.ventures.setPlan({
+    await owner.client.ventures.plan.set({
       ventureId: firstVenture,
       ...THE_PLAN,
     });
-    const measured = await owner.client.ventures.planAgainstActual({
+    const measured = await owner.client.ventures.plan.againstActual({
       ventureId: firstVenture,
     });
 
@@ -614,14 +614,14 @@ describe("what a Venture's animals are doing", () => {
 
     const manager = await asManager("2052-02-20T06:00:00.000Z");
     await expect(
-      manager.client.ventures.planAgainstActual({ ventureId: firstVenture })
+      manager.client.ventures.plan.againstActual({ ventureId: firstVenture })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("counts an animal bought across from another Venture as bought, at what she weighed and cost that day", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
     // The second Venture means to buy one bull of 220 to 240 kg, and has: the one it took across at 228 kg for ৳1,14,000.
-    await owner.client.ventures.setPlan({
+    await owner.client.ventures.plan.set({
       ventureId: secondVenture,
       lines: [
         {
@@ -636,7 +636,7 @@ describe("what a Venture's animals are doing", () => {
       saleHighMoneyPerKg: 600,
       reason: "পরিকল্পনা পরে লেখা হলো",
     });
-    const measured = await owner.client.ventures.planAgainstActual({
+    const measured = await owner.client.ventures.plan.againstActual({
       ventureId: secondVenture,
     });
     expect(measured?.buying.bands[0]?.bought).toEqual({
@@ -730,7 +730,7 @@ describe("অগ্রগতি — the sheet while the run goes on", () => {
   /** His Agreement on the first Venture, and the other man's on the second. */
   const hisAgreement = async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
-    const agreements = await owner.client.ventures.agreements({
+    const agreements = await owner.client.ventures.agreements.list({
       ventureId: firstVenture,
     });
     return agreements[0]?.id ?? "";
@@ -759,7 +759,7 @@ describe("অগ্রগতি — the sheet while the run goes on", () => {
     // joining letter is wanted at exactly that moment and sits beside this button.
     const owner = await at("2052-02-20T04:00:00.000Z");
     const empty = await aVenture(owner, 3, [10]);
-    const agreements = await owner.client.ventures.agreements({
+    const agreements = await owner.client.ventures.agreements.list({
       ventureId: empty,
     });
     const { text } = await owner.client.investorStatements.progress({
@@ -862,7 +862,7 @@ describe("a Venture whose Target Window an Amendment moved", () => {
   it("counts the days and grows the herd to the window in force, not the one it opened with", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
     // Everybody on the second Venture signs to sell a month later: 1 May rather than 1 April.
-    await owner.client.ventures.amend({
+    await owner.client.ventures.agreements.amend({
       ventureId: secondVenture,
       investorsPercent: 60,
       targetWindowStart: "2052-05-01",
@@ -883,7 +883,7 @@ describe("a Venture whose Target Window an Amendment moved", () => {
     });
     expect(projection?.kgAtSale).toBeCloseTo(317, 6);
     // And its plan is fed to the same window: 3 January to 1 May is 119 days, where 1 April was 89.
-    const itsPlan = await owner.client.ventures.plan({
+    const itsPlan = await owner.client.ventures.plan.get({
       ventureId: secondVenture,
     });
     expect(itsPlan.daysOnFeed).toBe(119);

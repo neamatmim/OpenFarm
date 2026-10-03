@@ -14,7 +14,7 @@ import type { orpc } from "@/utils/orpc";
 // halves of a row are one set, so the two lists cannot come to say the same Request differently.
 
 type ARequest = Awaited<
-  ReturnType<typeof orpc.ventures.requests.call>
+  ReturnType<typeof orpc.ventures.requests.list.call>
 >["requests"][number];
 
 /** Where on a Venture's page its Requests are, as an address names them: the Owner's Notice and an Investor's page

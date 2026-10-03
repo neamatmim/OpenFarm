@@ -143,7 +143,9 @@ beforeAll(async () => {
 describe("a Settlement whose account does not add up", () => {
   it("owes a cost it never paid the Farm, as what the next Reimbursement is to carry", async () => {
     const owner = await as("owner", "2075-03-02T04:00:00.000Z");
-    const settlement = await owner.client.ventures.settlement({ ventureId });
+    const settlement = await owner.client.ventures.settlement.get({
+      ventureId,
+    });
     // The late two thousand is charged to the Investors and still sits in their account: it is the Farm's, owed,
     // and so not money nobody can explain.
     expect(settlement.blocks).toContainEqual({
@@ -172,13 +174,15 @@ describe("a Settlement whose account does not add up", () => {
         createdAt: new Date("2075-02-20T04:00:00.000Z"),
       });
     const owner = await as("owner", "2075-03-02T04:00:00.000Z");
-    const settlement = await owner.client.ventures.settlement({ ventureId });
+    const settlement = await owner.client.ventures.settlement.get({
+      ventureId,
+    });
     expect(settlement.blocks).toContainEqual({
       word: "the_account_does_not_add_up",
       overMoney: -1500,
     });
     await expect(
-      owner.client.ventures.approveSettlement({ ventureId })
+      owner.client.ventures.settlement.approve({ ventureId })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });

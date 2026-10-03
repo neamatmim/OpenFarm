@@ -100,7 +100,7 @@ describe("an Investor's record", () => {
   it("will not retire somebody whose money is in a Venture still running", async () => {
     const owner = await as("owner", "2046-08-05T04:00:00.000Z");
     const { id } = await owner.client.investors.record(person(4));
-    await owner.client.ventures.sign({
+    await owner.client.ventures.agreements.sign({
       ventureId,
       investorId: id,
       units: 1,
@@ -122,7 +122,7 @@ describe("an Investor's record", () => {
       new Date("2046-08-06T04:00:00.000Z")
     );
     await expect(
-      owner.client.ventures.sign({
+      owner.client.ventures.agreements.sign({
         ventureId,
         investorId: id,
         units: 1,
@@ -144,7 +144,7 @@ describe("an Investor's record", () => {
     const back = await owner.client.investors.list();
     expect(back.people.find((one) => one.id === id)?.retiredAt).toBeNull();
     await expect(
-      owner.client.ventures.sign({
+      owner.client.ventures.agreements.sign({
         ventureId,
         investorId: id,
         units: 1,
@@ -156,7 +156,7 @@ describe("an Investor's record", () => {
   it("signs one Agreement per person per Venture, and says so of a second", async () => {
     const owner = await as("owner", "2046-08-06T06:00:00.000Z");
     const { id } = await owner.client.investors.record(person(7));
-    await owner.client.ventures.sign({
+    await owner.client.ventures.agreements.sign({
       ventureId,
       investorId: id,
       units: 1,
@@ -165,7 +165,7 @@ describe("an Investor's record", () => {
     // Asked again — a sheet left filled in after its photo failed, a second tap — the farm says what is
     // wrong in words, not with the database's unique index.
     await expect(
-      owner.client.ventures.sign({
+      owner.client.ventures.agreements.sign({
         ventureId,
         investorId: id,
         units: 1,

@@ -36,7 +36,7 @@ export const putCapitalIn = async (
       .padStart(8, "0")
       .slice(-8)}`,
   });
-  const agreement = await client.ventures.sign({
+  const agreement = await client.ventures.agreements.sign({
     ventureId: venture.id,
     investorId: person.id,
     units: venture.units,
@@ -46,7 +46,7 @@ export const putCapitalIn = async (
     stampedOn: on,
     stampSerial: `AA ${label}`,
   });
-  await client.ventures.keepAgreementPaper({
+  await client.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",

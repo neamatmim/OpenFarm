@@ -47,7 +47,7 @@ export const CallOffSheet = ({
     setSentBack({});
   });
   const movements = useQuery({
-    ...orpc.ventures.movements.queryOptions({
+    ...orpc.ventures.movements.list.queryOptions({
       input: { ventureId: venture?.id ?? "" },
     }),
     enabled: venture !== null,

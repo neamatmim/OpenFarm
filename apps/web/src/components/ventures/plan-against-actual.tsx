@@ -14,7 +14,7 @@ import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
 type Measured = NonNullable<
-  Awaited<ReturnType<typeof client.ventures.planAgainstActual>>
+  Awaited<ReturnType<typeof client.ventures.plan.againstActual>>
 >;
 type Heads = Measured["buying"]["outside"];
 
@@ -256,7 +256,7 @@ const Money = ({ measured }: { measured: Measured }) => {
 export const PlanAgainstActual = ({ venture }: { venture: Venture }) => {
   const { t, language } = useLanguage();
   const measured = useQuery({
-    ...orpc.ventures.planAgainstActual.queryOptions({
+    ...orpc.ventures.plan.againstActual.queryOptions({
       input: { ventureId: venture.id },
     }),
     enabled: venture.state !== "open",

@@ -40,7 +40,7 @@ const signed = async (owner: Owner, ventureId: string, units: number) => {
     name: `বিনিয়োগকারী ${phones} ${suffix}`,
     phone: `0177${suffix}${phones}`,
   });
-  const agreement = await owner.ventures.sign({
+  const agreement = await owner.ventures.agreements.sign({
     ventureId,
     investorId: him.id,
     units,
@@ -50,7 +50,7 @@ const signed = async (owner: Owner, ventureId: string, units: number) => {
     stampedOn: "2075-01-03",
     stampSerial: `MS ${phones} ${suffix}`,
   });
-  await owner.ventures.keepAgreementPaper({
+  await owner.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -126,7 +126,9 @@ describe("a Venture paid by the month, fattening", () => {
     await pay(owner, tenUnits, 75_000);
     await pay(owner, threeUnits, 30_000);
 
-    const settlement = await owner.ventures.settlement({ ventureId: monthly });
+    const settlement = await owner.ventures.settlement.get({
+      ventureId: monthly,
+    });
     expect(settlement.units).toBe(13);
     expect(
       settlement.payouts.map((one) => one.units).toSorted((a, b) => a - b)

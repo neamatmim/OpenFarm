@@ -39,7 +39,7 @@ const refusalOf = async (act: Promise<unknown>) => {
 /** One Investor signed on stamp for a Venture: their Agreement. */
 const signs = async (ventureId: string, them: { id: string }, at = JANUARY) => {
   const owner = await as("owner", at);
-  const { id } = await owner.ventures.sign({
+  const { id } = await owner.ventures.agreements.sign({
     ventureId,
     investorId: them.id,
     units: 2,
@@ -113,7 +113,9 @@ describe("the switch", () => {
     const { ventureId } = await aVentureOfTwo("বন্ধ");
     const owner = await as("owner");
     expect(
-      await refusalOf(owner.ventures.proposeAmendmentInApp(terms(ventureId)))
+      await refusalOf(
+        owner.ventures.agreements.amendments.propose(terms(ventureId))
+      )
     ).toBe("agreements_in_app_off");
   });
 });
@@ -128,7 +130,9 @@ describe("an Amendment agreed in the app", () => {
     const { ventureId, first, second, agreements } =
       await aVentureOfTwo("সম্মত");
     const owner = await as("owner");
-    const { id } = await owner.ventures.proposeAmendmentInApp(terms(ventureId));
+    const { id } = await owner.ventures.agreements.amendments.propose(
+      terms(ventureId)
+    );
     const read = await agrees(first, id);
     // What they read is the paper kept, naming them both.
     expect(read && stillAsKept(read)).toBe(true);
@@ -136,20 +140,21 @@ describe("an Amendment agreed in the app", () => {
     expect(JSON.stringify(read?.paper)).toContain("দ্বিতীয়");
     await agrees(second, id);
     // Agreed by both, not yet approved: nothing has moved.
-    const before = await owner.ventures.termsOn({
+    const before = await owner.ventures.agreements.termsOn({
       agreementId: agreements[0] ?? "",
       on: "2094-01-10",
     });
     expect(before.investorsPercent).toBe(60);
 
     const approver = await as("owner", LATER);
-    const { agreements: amended } = await approver.ventures.approveAmendment({
-      offerId: id,
-    });
+    const { agreements: amended } =
+      await approver.ventures.agreements.amendments.approve({
+        offerId: id,
+      });
     expect(amended).toBe(2);
     const after = await Promise.all(
       agreements.map((agreementId) =>
-        owner.ventures.termsOn({ agreementId, on: "2094-01-10" })
+        owner.ventures.agreements.termsOn({ agreementId, on: "2094-01-10" })
       )
     );
     expect(after).toEqual([
@@ -162,33 +167,40 @@ describe("an Amendment agreed in the app", () => {
       expect.objectContaining({ investorsPercent: 65 }),
     ]);
     // In force from the day approved, not before.
-    const theDayBefore = await owner.ventures.termsOn({
+    const theDayBefore = await owner.ventures.agreements.termsOn({
       agreementId: agreements[0] ?? "",
       on: "2094-01-06",
     });
     expect(theDayBefore.investorsPercent).toBe(60);
-    const [offer] = await owner.ventures.amendmentOffers({ ventureId });
+    const [offer] = await owner.ventures.agreements.amendments.list({
+      ventureId,
+    });
     expect(offer).toMatchObject({ id, standing: "approved", agreed: 2, of: 2 });
   });
 
   it("is not approved until every Investor on the Venture has agreed", async () => {
     const { ventureId, first } = await aVentureOfTwo("একজন");
     const owner = await as("owner");
-    const { id } = await owner.ventures.proposeAmendmentInApp(terms(ventureId));
+    const { id } = await owner.ventures.agreements.amendments.propose(
+      terms(ventureId)
+    );
     await agrees(first, id);
     expect(
-      await refusalOf(owner.ventures.approveAmendment({ offerId: id }))
+      await refusalOf(
+        owner.ventures.agreements.amendments.approve({ offerId: id })
+      )
     ).toBe("amendment_not_agreed");
-    const [offer] = await owner.ventures.amendmentOffers({ ventureId });
+    const [offer] = await owner.ventures.agreements.amendments.list({
+      ventureId,
+    });
     expect(offer).toMatchObject({ standing: "offered", agreed: 1, of: 2 });
   });
 
   it("is not approved past somebody who signed for the Venture after it was offered, who cannot agree to it", async () => {
     const { ventureId, first, second } = await aVentureOfTwo("পরে যোগ");
     const owner = await as("owner");
-    const { id, paperHash } = await owner.ventures.proposeAmendmentInApp(
-      terms(ventureId)
-    );
+    const { id, paperHash } =
+      await owner.ventures.agreements.amendments.propose(terms(ventureId));
     await agrees(first, id);
     await agrees(second, id);
     const late = await invited("পরে যোগ তৃতীয়");
@@ -198,7 +210,9 @@ describe("an Amendment agreed in the app", () => {
       late.client.portal.agreeToAmendment({ offerId: id, paperHash })
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect(
-      await refusalOf(owner.ventures.approveAmendment({ offerId: id }))
+      await refusalOf(
+        owner.ventures.agreements.amendments.approve({ offerId: id })
+      )
     ).toBe("amendment_not_agreed");
   });
 
@@ -206,9 +220,8 @@ describe("an Amendment agreed in the app", () => {
     const { ventureId } = await aVentureOfTwo("অন্যের");
     const stranger = await invited("অন্যের বাইরের");
     const owner = await as("owner");
-    const { id, paperHash } = await owner.ventures.proposeAmendmentInApp(
-      terms(ventureId)
-    );
+    const { id, paperHash } =
+      await owner.ventures.agreements.amendments.propose(terms(ventureId));
     expect(await stranger.client.portal.amendmentOffers()).toEqual([]);
     await expect(
       stranger.client.portal.agreeToAmendment({ offerId: id, paperHash })
@@ -218,7 +231,9 @@ describe("an Amendment agreed in the app", () => {
   it("is not agreed to a paper other than the one kept", async () => {
     const { ventureId, first } = await aVentureOfTwo("বদলানো");
     const owner = await as("owner");
-    const { id } = await owner.ventures.proposeAmendmentInApp(terms(ventureId));
+    const { id } = await owner.ventures.agreements.amendments.propose(
+      terms(ventureId)
+    );
     expect(
       await refusalOf(
         first.client.portal.agreeToAmendment({
@@ -232,13 +247,14 @@ describe("an Amendment agreed in the app", () => {
   it("cannot be agreed or approved once withdrawn, and another may then be offered", async () => {
     const { ventureId, first } = await aVentureOfTwo("ফিরিয়ে");
     const owner = await as("owner");
-    const { id, paperHash } = await owner.ventures.proposeAmendmentInApp(
-      terms(ventureId)
-    );
+    const { id, paperHash } =
+      await owner.ventures.agreements.amendments.propose(terms(ventureId));
     expect(
-      await refusalOf(owner.ventures.proposeAmendmentInApp(terms(ventureId)))
+      await refusalOf(
+        owner.ventures.agreements.amendments.propose(terms(ventureId))
+      )
     ).toBe("amendment_already_proposed");
-    await owner.ventures.withdrawAmendment({ offerId: id });
+    await owner.ventures.agreements.amendments.withdraw({ offerId: id });
     expect(await first.client.portal.amendmentOffers()).toEqual([]);
     expect(
       await refusalOf(
@@ -246,9 +262,11 @@ describe("an Amendment agreed in the app", () => {
       )
     ).toBe("offer_withdrawn");
     expect(
-      await refusalOf(owner.ventures.approveAmendment({ offerId: id }))
+      await refusalOf(
+        owner.ventures.agreements.amendments.approve({ offerId: id })
+      )
     ).toBe("offer_withdrawn");
-    await owner.ventures.proposeAmendmentInApp(terms(ventureId));
+    await owner.ventures.agreements.amendments.propose(terms(ventureId));
   });
 
   it("is offered only where every Investor on the Venture can agree in the portal", async () => {
@@ -260,7 +278,9 @@ describe("an Amendment agreed in the app", () => {
     });
     await signs(ventureId, byPhone);
     expect(
-      await refusalOf(owner.ventures.proposeAmendmentInApp(terms(ventureId)))
+      await refusalOf(
+        owner.ventures.agreements.amendments.propose(terms(ventureId))
+      )
     ).toBe("investor_not_in_portal");
   });
 
@@ -269,7 +289,7 @@ describe("an Amendment agreed in the app", () => {
     const owner = await as("owner");
     expect(
       await refusalOf(
-        owner.ventures.proposeAmendmentInApp({
+        owner.ventures.agreements.amendments.propose({
           ...terms(ventureId),
           targetWindowStart: "2094-06-20",
           targetWindowEnd: "2094-06-10",
@@ -282,12 +302,12 @@ describe("an Amendment agreed in the app", () => {
     const agreedFirst = await aVentureOfTwo("আগে সম্মত");
     const notYet = await aVentureOfTwo("এখনো না");
     const owner = await as("owner");
-    const done = await owner.ventures.proposeAmendmentInApp(
+    const done = await owner.ventures.agreements.amendments.propose(
       terms(agreedFirst.ventureId)
     );
     await agrees(agreedFirst.first, done.id);
     await agrees(agreedFirst.second, done.id);
-    const pending = await owner.ventures.proposeAmendmentInApp(
+    const pending = await owner.ventures.agreements.amendments.propose(
       terms(notYet.ventureId)
     );
     await owner.investors.setAgreementsInApp({ shown: false });
@@ -302,9 +322,11 @@ describe("an Amendment agreed in the app", () => {
           })
         )
       ).toBe("agreements_in_app_off");
-      const { agreements } = await owner.ventures.approveAmendment({
-        offerId: done.id,
-      });
+      const { agreements } = await owner.ventures.agreements.amendments.approve(
+        {
+          offerId: done.id,
+        }
+      );
       expect(agreements).toBe(2);
     } finally {
       await owner.investors.setAgreementsInApp({ shown: true });

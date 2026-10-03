@@ -87,7 +87,7 @@ const WITH_NOMINEES = {
 
 /**
  * What an Agreement adds to the Nominations it made: its Venture's name, and its stamped paper's photo as the proof.
- * Three reads rather than a join, as `ventures.agreements` does it: an Agreement declares no relations.
+ * Three reads rather than a join, as `ventures.agreements.list` does it: an Agreement declares no relations.
  */
 const withTheirAgreements = async (
   db: Reader,

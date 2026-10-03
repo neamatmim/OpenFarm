@@ -93,7 +93,7 @@ beforeAll(async () => {
     name: `বিনিয়োগকারী ${suffix}`,
     phone: "01955555555",
   });
-  const agreement = await owner.client.ventures.sign({
+  const agreement = await owner.client.ventures.agreements.sign({
     ventureId,
     investorId: person.id,
     units: 10,
@@ -103,7 +103,7 @@ beforeAll(async () => {
     stampedOn: "2048-01-02",
     stampSerial: `AA ${suffix}`,
   });
-  await owner.client.ventures.keepAgreementPaper({
+  await owner.client.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -127,7 +127,7 @@ beforeAll(async () => {
     transportMoney: 0,
     keepMoney: 0,
   });
-  await buying.client.ventures.drawFloat({
+  await buying.client.ventures.floats.draw({
     ventureId,
     buyingTripId: trip.id,
     amountMoney: 200_000,
@@ -154,7 +154,7 @@ beforeAll(async () => {
   };
   soldTag = await broughtIn();
   deadTag = await broughtIn();
-  await buying.client.ventures.reconcileFloat({
+  await buying.client.ventures.floats.reconcile({
     buyingTripId: trip.id,
     cashBackMoney: 0,
     movedOn: "2048-01-04",
@@ -246,13 +246,13 @@ beforeAll(async () => {
     readMoney: 600_000,
   });
   const settling = await as("owner", "2048-03-02T04:00:00.000Z");
-  await settling.client.ventures.approveSettlement({ ventureId });
-  const approved = await settling.client.ventures.approvedSettlement({
+  await settling.client.ventures.settlement.approve({ ventureId });
+  const approved = await settling.client.ventures.settlement.approved({
     ventureId,
   });
   for (const his of approved?.shares ?? []) {
     // oxlint-disable-next-line no-await-in-loop -- one Investor at a time
-    await settling.client.ventures.paySettlement({
+    await settling.client.ventures.settlement.pay({
       ventureId,
       agreementId: his.agreementId,
       amountMoney: his.payoutMoney,
@@ -262,7 +262,7 @@ beforeAll(async () => {
     });
   }
   if ((approved?.farmMoney ?? 0) > 0) {
-    await settling.client.ventures.takeTheFarmsShare({
+    await settling.client.ventures.settlement.takeTheFarmsShare({
       ventureId,
       movedOn: "2048-03-02",
       paymentMethod: "bank",
@@ -340,7 +340,9 @@ describe("a settled Venture's records", () => {
       changes: { priceMoney: { from: 300_000, to: 320_000 } },
     });
     // And the Settlement it was approved on has not moved a taka for it.
-    const after = await owner.client.ventures.approvedSettlement({ ventureId });
+    const after = await owner.client.ventures.settlement.approved({
+      ventureId,
+    });
     expect(after?.proceedsMoney).toBe(300_000);
   });
 
@@ -360,7 +362,7 @@ describe("a settled Venture's records", () => {
       name: `দ্বিতীয় বিনিয়োগকারী ${suffix}`,
       phone: "01966666666",
     });
-    const paper = await owner.client.ventures.sign({
+    const paper = await owner.client.ventures.agreements.sign({
       ventureId: next.id,
       investorId: person.id,
       units: 10,
@@ -370,7 +372,7 @@ describe("a settled Venture's records", () => {
       stampedOn: "2048-03-04",
       stampSerial: `BB ${suffix}`,
     });
-    await owner.client.ventures.keepAgreementPaper({
+    await owner.client.ventures.agreements.keepPaper({
       agreementId: paper.id,
       contentType: "image/jpeg",
       data: "aGVsbG8=",

@@ -14,7 +14,7 @@ import { orpc } from "@/utils/orpc";
 
 /** What saying yes to one Request would make the Investor count, as the Owner's list of Requests says it. */
 type IfYes = Awaited<
-  ReturnType<typeof orpc.ventures.requests.call>
+  ReturnType<typeof orpc.ventures.requests.list.call>
 >["requests"][number]["ifYes"];
 
 /** What the Owner is answering: whose Request, for how many Units, and what a yes would make the Investor count. */
@@ -47,7 +47,7 @@ export const ComeAndSignSheet = ({
     String(Math.min(answering.units, promisable))
   );
   const answer = useMutation(
-    orpc.ventures.answerRequest.mutationOptions({
+    orpc.ventures.requests.answer.mutationOptions({
       onError: refused,
       onSuccess: () => {
         onOpenChange(false);
@@ -131,7 +131,7 @@ export const NotThisTimeSheet = ({
   const refused = useRefused();
   const [line, setLine] = useState("");
   const answer = useMutation(
-    orpc.ventures.answerRequest.mutationOptions({
+    orpc.ventures.requests.answer.mutationOptions({
       onError: refused,
       onSuccess: () => {
         onOpenChange(false);

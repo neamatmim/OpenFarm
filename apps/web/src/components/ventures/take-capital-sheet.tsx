@@ -106,7 +106,7 @@ export const TakeCapitalSheet = ({
     setArrival({ ...NOTHING_YET, agreementId: agreementId ?? "" })
   );
   const agreements = useQuery({
-    ...orpc.ventures.agreements.queryOptions({
+    ...orpc.ventures.agreements.list.queryOptions({
       input: { ventureId: venture?.id ?? "" },
     }),
     enabled: venture !== null,

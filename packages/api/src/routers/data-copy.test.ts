@@ -99,11 +99,11 @@ const withAHistory = async () => {
     units: 3,
     note: "তিনটি",
   });
-  await owner.ventures.answerRequest({
+  await owner.ventures.requests.answer({
     requestId,
     answer: { kind: "come_and_sign", units: 3 },
   });
-  const agreement = await owner.ventures.sign({
+  const agreement = await owner.ventures.agreements.sign({
     ventureId: venture.id,
     investorId: them.id,
     units: 3,
@@ -114,7 +114,7 @@ const withAHistory = async () => {
     stampedOn: "2061-01-02",
     stampSerial: `S-${suffix}`,
   });
-  await owner.ventures.keepAgreementPaper({
+  await owner.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",

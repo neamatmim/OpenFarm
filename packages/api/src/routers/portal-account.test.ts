@@ -103,7 +103,7 @@ const signAndPay = async (
     signedOn: "2054-01-01",
     recordedAt: new Date(JANUARY),
   });
-  const signed = await owner.ventures.sign({
+  const signed = await owner.ventures.agreements.sign({
     ventureId,
     investorId: person.id,
     units,
@@ -114,7 +114,7 @@ const signAndPay = async (
     stampedOn: "2054-01-02",
     stampSerial: `S-${phone}`,
   });
-  await owner.ventures.keepAgreementPaper({
+  await owner.ventures.agreements.keepPaper({
     agreementId: signed.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",

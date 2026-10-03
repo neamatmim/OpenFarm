@@ -33,7 +33,7 @@ const investorIds: string[] = [];
 /** Signs one Investor for the Venture on stamp paper, keeps the paper, and takes his capital. */
 const signAndPay = async (investorId: string, serial: string) => {
   const { client: owner } = await as("owner");
-  const signed = await owner.ventures.sign({
+  const signed = await owner.ventures.agreements.sign({
     ventureId,
     investorId,
     units: 2,
@@ -44,7 +44,7 @@ const signAndPay = async (investorId: string, serial: string) => {
     stampedOn: "2052-01-02",
     stampSerial: serial,
   });
-  await owner.ventures.keepAgreementPaper({
+  await owner.ventures.agreements.keepPaper({
     agreementId: signed.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -176,7 +176,7 @@ describe("the farm's wording", () => {
 describe("changing the wording", () => {
   it("publishes the next Version, which papers are printed in from then, while a signed Agreement keeps its own", async () => {
     const { client: owner } = await as("owner");
-    const [signedBefore] = await owner.ventures.agreements({ ventureId });
+    const [signedBefore] = await owner.ventures.agreements.list({ ventureId });
     if (!signedBefore) {
       throw new Error("expected the Agreement signed above");
     }
@@ -324,7 +324,7 @@ describe("the Amendment", () => {
 
     const { document } =
       await owner.investorStatements.amendmentToSign(amending);
-    const amended = await owner.ventures.amend({
+    const amended = await owner.ventures.agreements.amend({
       ...amending,
       contentType: "image/jpeg",
       data: "aGVsbG8=",

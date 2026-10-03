@@ -60,7 +60,7 @@ const aShownVenture = async (
 const signedUp = async (name: string, ventureId: string, units: number) => {
   const them = await invited(name);
   const owner = await as("owner");
-  const agreement = await owner.ventures.sign({
+  const agreement = await owner.ventures.agreements.sign({
     ventureId,
     investorId: them.id,
     units,
@@ -70,7 +70,7 @@ const signedUp = async (name: string, ventureId: string, units: number) => {
     stampedOn: "2058-01-02",
     stampSerial: `S-${them.id.slice(-8)}`,
   });
-  await owner.ventures.keepAgreementPaper({
+  await owner.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",

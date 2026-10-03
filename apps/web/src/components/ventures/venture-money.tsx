@@ -25,7 +25,9 @@ import type { Venture } from "@/lib/ventures";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
-type Movement = Awaited<ReturnType<typeof client.ventures.movements>>[number];
+type Movement = Awaited<
+  ReturnType<typeof client.ventures.movements.list>
+>[number];
 
 /** What each kind of movement is called, in the reader's own language. */
 export const KIND_WORD = {
@@ -271,7 +273,9 @@ export const VentureMoney = ({ venture }: { venture: Venture }) => {
   const nameOf = useInvestorNames();
   const [showing, setShowing] = useState<Showing>("all");
   const movements = useQuery(
-    orpc.ventures.movements.queryOptions({ input: { ventureId: venture.id } })
+    orpc.ventures.movements.list.queryOptions({
+      input: { ventureId: venture.id },
+    })
   );
   const all = movements.data ?? [];
   // A list cached before the answer said which way each movement went cannot be added up, so it is waited

@@ -68,7 +68,7 @@ beforeAll(async () => {
     name: `বিনিয়োগকারী ${suffix}`,
     phone: "01966000011",
   });
-  const agreement = await owner.client.ventures.sign({
+  const agreement = await owner.client.ventures.agreements.sign({
     ventureId,
     investorId: person.id,
     units: 10,
@@ -78,7 +78,7 @@ beforeAll(async () => {
     stampedOn: "2054-01-02",
     stampSerial: `AA ${suffix}`,
   });
-  await owner.client.ventures.keepAgreementPaper({
+  await owner.client.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -110,7 +110,7 @@ beforeAll(async () => {
     transportMoney: 0,
     keepMoney: 0,
   });
-  await buying.client.ventures.drawFloat({
+  await buying.client.ventures.floats.draw({
     ventureId,
     buyingTripId: trip.id,
     amountMoney: 200_000,
@@ -133,7 +133,7 @@ beforeAll(async () => {
     targetWindowEnd: plan.targetWindowEnd,
   });
   ({ tagNumber } = her);
-  await buying.client.ventures.reconcileFloat({
+  await buying.client.ventures.floats.reconcile({
     buyingTripId: trip.id,
     cashBackMoney: 100_000,
     movedOn: "2054-01-04",
@@ -246,7 +246,7 @@ describe("hearing that a paper is due", () => {
       name: `ফেরতপ্রাপ্ত ${suffix}`,
       phone: "01966000021",
     });
-    const agreement = await owner.client.ventures.sign({
+    const agreement = await owner.client.ventures.agreements.sign({
       ventureId: doomed.id,
       investorId: person.id,
       units: 10,
@@ -256,7 +256,7 @@ describe("hearing that a paper is due", () => {
       stampedOn: "2054-03-08",
       stampSerial: `AA বাতিল ${suffix}`,
     });
-    await owner.client.ventures.keepAgreementPaper({
+    await owner.client.ventures.agreements.keepPaper({
       agreementId: agreement.id,
       contentType: "image/jpeg",
       data: "aGVsbG8=",
@@ -269,7 +269,7 @@ describe("hearing that a paper is due", () => {
       reference: `TRF-বাতিল-${suffix}`,
     });
     const calling = await as("owner", "2054-03-10T04:00:00.000Z");
-    const taken = await calling.client.ventures.movements({
+    const taken = await calling.client.ventures.movements.list({
       ventureId: doomed.id,
     });
     await calling.client.ventures.cancel({

@@ -62,7 +62,7 @@ const saleIds: string[] = [];
 const intakeIds: string[] = [];
 
 const theSettlement = async (owner: Owner, which = ventureId) =>
-  await owner.client.ventures.settlement({ ventureId: which });
+  await owner.client.ventures.settlement.get({ ventureId: which });
 
 const wordsOf = (blocks: readonly { word: string }[]) =>
   blocks.map((one) => one.word);
@@ -77,7 +77,7 @@ const funded = async (owner: Owner, which: number) => {
     name: `বিনিয়োগকারী ${which} ${suffix}`,
     phone: `0192${String(which).padStart(7, "0")}`,
   });
-  const agreement = await owner.client.ventures.sign({
+  const agreement = await owner.client.ventures.agreements.sign({
     ventureId: venture.id,
     investorId: person.id,
     units: 20,
@@ -87,7 +87,7 @@ const funded = async (owner: Owner, which: number) => {
     stampedOn: "2047-01-02",
     stampSerial: `AA ${which} ${suffix}`,
   });
-  await owner.client.ventures.keepAgreementPaper({
+  await owner.client.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -136,7 +136,7 @@ beforeAll(async () => {
     keepMoney: 0,
   });
   tripId = trip.id;
-  await buying.client.ventures.drawFloat({
+  await buying.client.ventures.floats.draw({
     ventureId,
     buyingTripId: trip.id,
     amountMoney: 200_000,
@@ -234,7 +234,7 @@ describe("what a Settlement is", () => {
     // যোগদানপত্র would promise a man fifty-five while the Settlement quietly paid him sixty.
     const owner = await as("owner", "2047-02-05T05:00:00.000Z");
     const third = await funded(owner, 3);
-    await owner.client.ventures.amend({
+    await owner.client.ventures.agreements.amend({
       ventureId: third,
       investorsPercent: 55,
       targetWindowStart: plan.targetWindowStart,
@@ -289,7 +289,7 @@ describe("what a Settlement is", () => {
     // The Float comes home: two hundred thousand went out, a hundred and sixty bought the bulls and
     // five thousand was the outing's own cost, so thirty-five thousand comes back.
     const counting = await as("owner", "2047-02-01T04:00:00.000Z");
-    await counting.client.ventures.reconcileFloat({
+    await counting.client.ventures.floats.reconcile({
       buyingTripId: tripId,
       cashBackMoney: 35_000,
       movedOn: "2047-02-01",
@@ -435,7 +435,7 @@ describe("what a Settlement is", () => {
       transportMoney: 0,
       keepMoney: 0,
     });
-    await owner.client.ventures.drawFloat({
+    await owner.client.ventures.floats.draw({
       ventureId: second,
       buyingTripId: trip.id,
       amountMoney: 100_000,
@@ -555,7 +555,7 @@ describe("what a Settlement is", () => {
       transportMoney: 0,
       keepMoney: 0,
     });
-    await owner.client.ventures.drawFloat({
+    await owner.client.ventures.floats.draw({
       ventureId: losing,
       buyingTripId: trip.id,
       amountMoney: 100_000,
@@ -577,7 +577,7 @@ describe("what a Settlement is", () => {
       targetWindowStart: plan.targetWindowStart,
       targetWindowEnd: plan.targetWindowEnd,
     });
-    await owner.client.ventures.reconcileFloat({
+    await owner.client.ventures.floats.reconcile({
       buyingTripId: trip.id,
       cashBackMoney: 0,
     });
@@ -601,8 +601,8 @@ describe("what a Settlement is", () => {
       farmMoney: -16_000,
       balanceMoney: 960_000,
     });
-    await deciding.client.ventures.approveSettlement({ ventureId: losing });
-    const approved = await deciding.client.ventures.approvedSettlement({
+    await deciding.client.ventures.settlement.approve({ ventureId: losing });
+    const approved = await deciding.client.ventures.settlement.approved({
       ventureId: losing,
     });
     const his = approved?.shares[0];
@@ -610,21 +610,21 @@ describe("what a Settlement is", () => {
 
     // There is no share of a profit to take out of it; there is one of a loss to put in.
     await expect(
-      deciding.client.ventures.takeTheFarmsShare({
+      deciding.client.ventures.settlement.takeTheFarmsShare({
         ventureId: losing,
         movedOn: "2047-04-05",
         paymentMethod: "bank",
         reference: `FARM4-${suffix}`,
       })
     ).rejects.toMatchObject({ data: { refusal: "no_farm_share_to_take" } });
-    await deciding.client.ventures.coverTheFarmsLoss({
+    await deciding.client.ventures.settlement.coverTheFarmsLoss({
       ventureId: losing,
       movedOn: "2047-04-05",
       paymentMethod: "bank",
       reference: `LOSS4-${suffix}`,
     });
     await expect(
-      deciding.client.ventures.coverTheFarmsLoss({
+      deciding.client.ventures.settlement.coverTheFarmsLoss({
         ventureId: losing,
         movedOn: "2047-04-05",
         paymentMethod: "bank",
@@ -643,7 +643,7 @@ describe("what a Settlement is", () => {
       )
     ).toMatchObject({ direction: "out" });
 
-    await deciding.client.ventures.paySettlement({
+    await deciding.client.ventures.settlement.pay({
       ventureId: losing,
       agreementId: his?.agreementId ?? "",
       amountMoney: 976_000,
@@ -662,9 +662,11 @@ describe("what a Settlement is", () => {
 
   it("refuses a payout before anything is approved", async () => {
     const owner = await as("owner", "2047-04-06T03:00:00.000Z");
-    const agreements = await owner.client.ventures.agreements({ ventureId });
+    const agreements = await owner.client.ventures.agreements.list({
+      ventureId,
+    });
     await expect(
-      owner.client.ventures.paySettlement({
+      owner.client.ventures.settlement.pay({
         ventureId,
         agreementId: agreements[0]?.id ?? "",
         amountMoney: 1_117_600,
@@ -685,11 +687,11 @@ describe("what a Settlement is", () => {
     expect(
       unapproved.find((one) => one.id === ventureId)?.settlementApproved
     ).toBe(false);
-    await owner.client.ventures.approveSettlement({
+    await owner.client.ventures.settlement.approve({
       ventureId,
       note: `হিসাব চূড়ান্ত ${suffix}`,
     });
-    const approved = await owner.client.ventures.approvedSettlement({
+    const approved = await owner.client.ventures.settlement.approved({
       ventureId,
     });
     expect(approved).toMatchObject({
@@ -720,7 +722,7 @@ describe("what a Settlement is", () => {
       note: `দেরিতে আসা খরচ ${suffix}`,
       paymentMethod: "bank",
     });
-    const stillSays = await late.client.ventures.approvedSettlement({
+    const stillSays = await late.client.ventures.settlement.approved({
       ventureId,
     });
     expect(stillSays).toMatchObject({
@@ -730,7 +732,7 @@ describe("what a Settlement is", () => {
 
     // Approving twice is two answers to one question.
     await expect(
-      late.client.ventures.approveSettlement({ ventureId })
+      late.client.ventures.settlement.approve({ ventureId })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
       data: { refusal: "already_approved" },
@@ -741,7 +743,7 @@ describe("what a Settlement is", () => {
     // The first run made money: the Farm takes a share of it, and has nothing to put in.
     const owner = await as("owner", "2047-04-07T04:00:00.000Z");
     await expect(
-      owner.client.ventures.coverTheFarmsLoss({
+      owner.client.ventures.settlement.coverTheFarmsLoss({
         ventureId,
         movedOn: "2047-04-07",
         paymentMethod: "bank",
@@ -755,13 +757,13 @@ describe("what a Settlement is", () => {
 
   it("pays each Investor what he is owed, and refuses anything else", async () => {
     const owner = await as("owner", "2047-04-08T04:00:00.000Z");
-    const approved = await owner.client.ventures.approvedSettlement({
+    const approved = await owner.client.ventures.settlement.approved({
       ventureId,
     });
     const his = approved?.shares[0];
     // Her own money comes back before any capital does, whatever else is right about the payment.
     await expect(
-      owner.client.ventures.paySettlement({
+      owner.client.ventures.settlement.pay({
         ventureId,
         agreementId: his?.agreementId ?? "",
         amountMoney: 1_117_600,
@@ -773,7 +775,7 @@ describe("what a Settlement is", () => {
       code: "BAD_REQUEST",
       data: { refusal: "advance_comes_first" },
     });
-    await owner.client.ventures.repayAdvance({
+    await owner.client.ventures.settlement.repayAdvance({
       ventureId,
       movedOn: "2047-04-08",
       paymentMethod: "bank",
@@ -782,7 +784,7 @@ describe("what a Settlement is", () => {
 
     // And not a figure she has typed from memory.
     await expect(
-      owner.client.ventures.paySettlement({
+      owner.client.ventures.settlement.pay({
         ventureId,
         agreementId: his?.agreementId ?? "",
         amountMoney: 1_200_000,
@@ -795,7 +797,7 @@ describe("what a Settlement is", () => {
       data: { refusal: "not_what_he_is_owed" },
     });
 
-    await owner.client.ventures.paySettlement({
+    await owner.client.ventures.settlement.pay({
       ventureId,
       agreementId: his?.agreementId ?? "",
       amountMoney: 1_117_600,
@@ -805,7 +807,7 @@ describe("what a Settlement is", () => {
     });
     // Twice for one man is once too many.
     await expect(
-      owner.client.ventures.paySettlement({
+      owner.client.ventures.settlement.pay({
         ventureId,
         agreementId: his?.agreementId ?? "",
         amountMoney: 1_117_600,
@@ -819,7 +821,7 @@ describe("what a Settlement is", () => {
     });
 
     // It went out on a movement of the Venture's money, with the reference it went on.
-    const movements = await owner.client.ventures.movements({ ventureId });
+    const movements = await owner.client.ventures.movements.list({ ventureId });
     expect(movements.find((one) => one.kind === "payout")).toMatchObject({
       amountMoney: 1_117_600,
       movedOn: "2047-04-08",
@@ -839,16 +841,16 @@ describe("what a Settlement is", () => {
 
   it("takes his word for it, and settles on the last of the money", async () => {
     const owner = await as("owner", "2047-04-09T04:00:00.000Z");
-    const approved = await owner.client.ventures.approvedSettlement({
+    const approved = await owner.client.ventures.settlement.approved({
       ventureId,
     });
     const his = approved?.shares[0];
-    await owner.client.ventures.acknowledgePayout({
+    await owner.client.ventures.settlement.acknowledgePayout({
       ventureId,
       agreementId: his?.agreementId ?? "",
       note: `ফোনে বললেন পেয়েছেন ${suffix}`,
     });
-    const said = await owner.client.ventures.approvedSettlement({ ventureId });
+    const said = await owner.client.ventures.settlement.approved({ ventureId });
     expect(said?.shares[0]).toMatchObject({
       paid: true,
       acknowledgedNote: `ফোনে বললেন পেয়েছেন ${suffix}`,
@@ -866,7 +868,7 @@ describe("what a Settlement is", () => {
       from: "2047-04-01",
       to: "2047-04-30",
     });
-    const took = await owner.client.ventures.takeTheFarmsShare({
+    const took = await owner.client.ventures.settlement.takeTheFarmsShare({
       ventureId,
       movedOn: "2047-04-09",
       paymentMethod: "bank",
@@ -929,7 +931,7 @@ describe("what a Settlement is", () => {
     // Nor may the terms move any more. Every Investor has been paid on the split and the window as
     // they stood at approval; an amendment afterwards would restate what the money already did.
     await expect(
-      owner.client.ventures.amend({
+      owner.client.ventures.agreements.amend({
         ventureId,
         investorsPercent: 50,
         targetWindowStart: plan.targetWindowStart,
@@ -945,10 +947,10 @@ describe("what a Settlement is", () => {
     });
 
     // And a movement of its money is no longer the Owner's to put right: a Settlement Adjustment is.
-    const movements = await owner.client.ventures.movements({ ventureId });
+    const movements = await owner.client.ventures.movements.list({ ventureId });
     const capital = movements.find((one) => one.kind === "capital_in");
     await expect(
-      owner.client.ventures.correctMovement({
+      owner.client.ventures.movements.correct({
         id: capital?.id ?? "",
         reason: `ভুল ছিল ${suffix}`,
         changes: { amountMoney: { from: 1_000_000, to: 900_000 } },
@@ -978,7 +980,7 @@ describe("what a Settlement is", () => {
       note: `পকেটে পড়ে ছিল ${suffix}`,
       paymentMethod: "bank",
     });
-    const raised = await late.client.ventures.raiseAdjustment({
+    const raised = await late.client.ventures.settlement.adjustments.raise({
       ventureId,
       reason: `দেরিতে আসা ভেটের বিল ${suffix}`,
     });
@@ -988,7 +990,7 @@ describe("what a Settlement is", () => {
     // nothing moves.
     expect(raised.outcome).toBe("noted");
 
-    const settlement = await late.client.ventures.approvedSettlement({
+    const settlement = await late.client.ventures.settlement.approved({
       ventureId,
     });
     // And the Settlement's own figures have not moved a taka.
@@ -1018,7 +1020,7 @@ describe("what a Settlement is", () => {
       note: `বড় বিল ${suffix}`,
       paymentMethod: "bank",
     });
-    const raised = await owner.client.ventures.raiseAdjustment({
+    const raised = await owner.client.ventures.settlement.adjustments.raise({
       ventureId,
       reason: `দেরিতে আসা বড় খরচ ${suffix}`,
     });
@@ -1026,7 +1028,7 @@ describe("what a Settlement is", () => {
     // do about it and it would be ceremony to leave it waiting to be waived.
     expect(raised.outcome).toBe("noted");
     await expect(
-      owner.client.ventures.payAdjustment({
+      owner.client.ventures.settlement.adjustments.pay({
         ventureId,
         adjustmentId: raised.id,
         movedOn: "2047-04-12",
@@ -1038,7 +1040,7 @@ describe("what a Settlement is", () => {
       data: { refusal: "adjustment_is_closed" },
     });
 
-    const settlement = await owner.client.ventures.approvedSettlement({
+    const settlement = await owner.client.ventures.settlement.approved({
       ventureId,
     });
     // And the Settlement's own figures have not moved through any of it.
@@ -1056,7 +1058,7 @@ describe("what a Settlement is", () => {
       reason: `ক্রেতা বাকি টাকা দিয়েছে ${suffix}`,
       changes: { priceMoney: { from: 202_505, to: 260_000 } },
     });
-    const raised = await owner.client.ventures.raiseAdjustment({
+    const raised = await owner.client.ventures.settlement.adjustments.raise({
       ventureId,
       reason: `বিক্রির দাম সংশোধন ${suffix}`,
     });
@@ -1066,7 +1068,7 @@ describe("what a Settlement is", () => {
       from: "2047-04-01",
       to: "2047-04-30",
     });
-    const paid = await owner.client.ventures.payAdjustment({
+    const paid = await owner.client.ventures.settlement.adjustments.pay({
       ventureId,
       adjustmentId: raised.id,
       movedOn: "2047-04-13",
@@ -1086,7 +1088,7 @@ describe("what a Settlement is", () => {
     expect(supplementary).toHaveLength(1);
     expect(after.events.length).toBe(before.events.length + 1);
 
-    const settlement = await owner.client.ventures.approvedSettlement({
+    const settlement = await owner.client.ventures.settlement.approved({
       ventureId,
     });
     // And after everything — noted, waived and paid — the Settlement still says what it always said.
@@ -1117,11 +1119,11 @@ describe("what a Settlement is", () => {
       reason: `আরেকটু বেশি এসেছে ${suffix}`,
       changes: { priceMoney: { from: 202_500, to: 212_500 } },
     });
-    const raised = await owner.client.ventures.raiseAdjustment({
+    const raised = await owner.client.ventures.settlement.adjustments.raise({
       ventureId,
       reason: `দ্বিতীয় সংশোধন ${suffix}`,
     });
-    const paid = await owner.client.ventures.payAdjustment({
+    const paid = await owner.client.ventures.settlement.adjustments.pay({
       ventureId,
       adjustmentId: raised.id,
       movedOn: "2047-04-14",
@@ -1150,19 +1152,19 @@ describe("what a Settlement is", () => {
       reason: `আরও কিছু এসেছে ${suffix}`,
       changes: { priceMoney: { from: 212_500, to: 245_000 } },
     });
-    const raised = await owner.client.ventures.raiseAdjustment({
+    const raised = await owner.client.ventures.settlement.adjustments.raise({
       ventureId,
       reason: `তৃতীয় সংশোধন ${suffix}`,
     });
     expect(raised.outcome).toBe("outstanding");
-    await owner.client.ventures.waiveAdjustment({
+    await owner.client.ventures.settlement.adjustments.waive({
       ventureId,
       adjustmentId: raised.id,
       note: `খামার বহন করবে ${suffix}`,
     });
     // Once dealt with, it stays dealt with.
     await expect(
-      owner.client.ventures.waiveAdjustment({
+      owner.client.ventures.settlement.adjustments.waive({
         ventureId,
         adjustmentId: raised.id,
         note: `আবার ${suffix}`,
@@ -1171,7 +1173,7 @@ describe("what a Settlement is", () => {
       code: "BAD_REQUEST",
       data: { refusal: "adjustment_is_closed" },
     });
-    const settlement = await owner.client.ventures.approvedSettlement({
+    const settlement = await owner.client.ventures.settlement.approved({
       ventureId,
     });
     // Through noted, paid and waived alike, the Settlement says what it always said.
@@ -1188,7 +1190,7 @@ describe("what a Settlement is", () => {
   it("is the Owner's alone", async () => {
     const manager = await as("manager", "2047-03-26T04:00:00.000Z");
     await expect(
-      manager.client.ventures.settlement({ ventureId })
+      manager.client.ventures.settlement.get({ ventureId })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

@@ -115,7 +115,7 @@ const venturesTwo = async (penId: string) => {
     name: `রফিক ${suffix}`,
     phone: "01999000077",
   });
-  const agreement = await owner.ventures.sign({
+  const agreement = await owner.ventures.agreements.sign({
     ventureId: venture.id,
     investorId: person.id,
     units: 20,
@@ -125,7 +125,7 @@ const venturesTwo = async (penId: string) => {
     stampedOn: "2027-12-30",
     stampSerial: `AA 1 ${suffix}`,
   });
-  await owner.ventures.keepAgreementPaper({
+  await owner.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -146,7 +146,7 @@ const venturesTwo = async (penId: string) => {
     transportMoney: 0,
     keepMoney: 0,
   });
-  await buying.ventures.drawFloat({
+  await buying.ventures.floats.draw({
     ventureId: venture.id,
     buyingTripId: trip.id,
     amountMoney: 200_000,
@@ -171,7 +171,7 @@ const venturesTwo = async (penId: string) => {
     });
   const v = await bull();
   const w = await bull();
-  await buying.ventures.reconcileFloat({
+  await buying.ventures.floats.reconcile({
     buyingTripId: trip.id,
     cashBackMoney: 0,
     movedOn: "2028-01-01",

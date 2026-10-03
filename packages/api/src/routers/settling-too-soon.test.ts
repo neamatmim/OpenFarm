@@ -41,13 +41,13 @@ describe("a Venture that has not run", () => {
     expect(standing).toMatchObject({ state: "open" });
 
     // The farm should say why it cannot be settled, rather than settling it.
-    const worked = await owner.client.ventures.settlement({
+    const worked = await owner.client.ventures.settlement.get({
       ventureId: venture.id,
     });
     expect(worked.blocks).not.toEqual([]);
 
     await expect(
-      owner.client.ventures.approveSettlement({ ventureId: venture.id })
+      owner.client.ventures.settlement.approve({ ventureId: venture.id })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
 
     // And it is still Open afterwards, taking capital as it was before anybody asked.

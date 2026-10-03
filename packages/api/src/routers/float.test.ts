@@ -47,13 +47,13 @@ const funded = async (owner: Owner, which: number, capitalMoney: number) => {
     name: `বিনিয়োগকারী ${which} ${suffix}`,
     phone: `0191${String(which).padStart(7, "0")}`,
   });
-  const agreement = await owner.client.ventures.sign({
+  const agreement = await owner.client.ventures.agreements.sign({
     ventureId: venture.id,
     investorId: person.id,
     units: capitalMoney / plan.unitPriceMoney,
     ...paper,
   });
-  await owner.client.ventures.keepAgreementPaper({
+  await owner.client.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     ...photo,
   });
@@ -109,7 +109,7 @@ describe("the Buying Float", () => {
       spentMoney: 0,
     });
 
-    await owner.client.ventures.drawFloat({
+    await owner.client.ventures.floats.draw({
       ventureId,
       buyingTripId: trip,
       amountMoney: 500_000,
@@ -134,7 +134,7 @@ describe("the Buying Float", () => {
     const trip = await outing(owner, 2);
     // A lakh is left of the cattle money, whatever the account still holds.
     await expect(
-      owner.client.ventures.drawFloat({
+      owner.client.ventures.floats.draw({
         ventureId,
         buyingTripId: trip,
         amountMoney: 150_000,
@@ -151,7 +151,7 @@ describe("the Buying Float", () => {
   it("is refused twice for one outing", async () => {
     const owner = await as("owner", "2046-12-07T04:00:00.000Z");
     const trip = await outing(owner, 3);
-    await owner.client.ventures.drawFloat({
+    await owner.client.ventures.floats.draw({
       ventureId,
       buyingTripId: trip,
       amountMoney: 50_000,
@@ -160,7 +160,7 @@ describe("the Buying Float", () => {
       reference: `FLT-${suffix}-3`,
     });
     await expect(
-      owner.client.ventures.drawFloat({
+      owner.client.ventures.floats.draw({
         ventureId,
         buyingTripId: trip,
         amountMoney: 10_000,
@@ -182,7 +182,7 @@ describe("the Buying Float", () => {
     });
     const trip = await outing(owner, 4);
     await expect(
-      owner.client.ventures.drawFloat({
+      owner.client.ventures.floats.draw({
         ventureId: notYet.id,
         buyingTripId: trip,
         amountMoney: 1000,
@@ -192,7 +192,7 @@ describe("the Buying Float", () => {
       })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     await expect(
-      owner.client.ventures.drawFloat({
+      owner.client.ventures.floats.draw({
         ventureId,
         buyingTripId: trip,
         amountMoney: 1000,
@@ -208,7 +208,7 @@ describe("the Buying Float", () => {
     const other = await funded(owner, 2, 200_000);
     const trip = await outing(owner, 7);
     // The other Venture's bull comes home on this lorry, on that Venture's own Float.
-    await owner.client.ventures.drawFloat({
+    await owner.client.ventures.floats.draw({
       ventureId: other,
       buyingTripId: trip,
       amountMoney: 60_000,
@@ -232,7 +232,7 @@ describe("the Buying Float", () => {
     });
     // Money and animals pointing at different Ventures is a sum nobody could make balance.
     await expect(
-      owner.client.ventures.drawFloat({
+      owner.client.ventures.floats.draw({
         ventureId,
         buyingTripId: trip,
         amountMoney: 10_000,
@@ -256,7 +256,7 @@ describe("the Buying Float", () => {
   it("is the Manager's to see and the Owner's to draw", async () => {
     const owner = await as("owner", "2046-12-10T04:00:00.000Z");
     const trip = await outing(owner, 5);
-    await owner.client.ventures.drawFloat({
+    await owner.client.ventures.floats.draw({
       ventureId,
       buyingTripId: trip,
       amountMoney: 40_000,
@@ -268,7 +268,7 @@ describe("the Buying Float", () => {
     const manager = await as("manager", "2046-12-10T05:00:00.000Z");
     // She is taking it to the livestock market, so she may see what is in her hand.
     await expect(
-      manager.client.ventures.floatOf({ buyingTripId: trip })
+      manager.client.ventures.floats.get({ buyingTripId: trip })
     ).resolves.toMatchObject({
       amountMoney: 40_000,
       reference: `FLT-${suffix}-5`,
@@ -277,7 +277,7 @@ describe("the Buying Float", () => {
     // Drawing it is not hers.
     const another = await outing(owner, 6);
     await expect(
-      manager.client.ventures.drawFloat({
+      manager.client.ventures.floats.draw({
         ventureId,
         buyingTripId: another,
         amountMoney: 1000,
@@ -294,7 +294,7 @@ describe("the Buying Float", () => {
     const owner = await as("owner", "2046-12-20T04:00:00.000Z");
     const longRun = await funded(owner, 50, 500_000);
     const early = await outing(owner, 500);
-    await owner.client.ventures.drawFloat({
+    await owner.client.ventures.floats.draw({
       ventureId: longRun,
       buyingTripId: early,
       amountMoney: 100_000,
@@ -347,7 +347,7 @@ describe("an outing a Float paid for", () => {
       keepMoney: 800,
     });
     paidFor = trip.id;
-    await owner.client.ventures.drawFloat({
+    await owner.client.ventures.floats.draw({
       ventureId: paying,
       buyingTripId: paidFor,
       amountMoney: 50_000,
@@ -410,7 +410,7 @@ describe("an outing a Float paid for", () => {
       keepMoney: 0,
     });
     const trip = written.id;
-    await owner.client.ventures.drawFloat({
+    await owner.client.ventures.floats.draw({
       ventureId: paying,
       buyingTripId: trip,
       amountMoney: 40_000,

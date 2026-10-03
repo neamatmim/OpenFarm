@@ -49,7 +49,7 @@ const signed = async (
     name,
     phone: `0178${suffix}${phones}`,
   });
-  const agreement = await owner.ventures.sign({
+  const agreement = await owner.ventures.agreements.sign({
     ventureId,
     investorId: him.id,
     units,
@@ -59,7 +59,7 @@ const signed = async (
     stampedOn: "2076-01-03",
     stampSerial: `WB ${phones} ${suffix}`,
   });
-  await owner.ventures.keepAgreementPaper({
+  await owner.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -124,7 +124,7 @@ describe("the Investors tab of a Venture paid by the month", () => {
   it("says per Agreement how many months are paid, what is missed and the next sum", async () => {
     const owner = await asOwner("2076-02-20T04:00:00.000Z");
 
-    const papers = await owner.ventures.agreements({ ventureId });
+    const papers = await owner.ventures.agreements.list({ ventureId });
 
     const of = new Map(papers.map((one) => [one.id, one.sums]));
     expect(of.get(paidUp)).toMatchObject({

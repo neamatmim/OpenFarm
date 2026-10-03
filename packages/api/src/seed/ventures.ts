@@ -247,7 +247,7 @@ const signOn = async (
     nid: who.nid,
     bankAccount: who.bankAccount,
   });
-  const agreement = await farm.as.owner.ventures.sign({
+  const agreement = await farm.as.owner.ventures.agreements.sign({
     ventureId,
     investorId: person.id,
     units,
@@ -261,7 +261,7 @@ const signOn = async (
   });
   // No capital is taken until the farm holds a photo of the stamped instrument. The app refuses
   // otherwise, which is why this is here and not an afterthought.
-  await farm.as.owner.ventures.keepAgreementPaper({
+  await farm.as.owner.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: A_STAMPED_PAPER,
@@ -374,7 +374,7 @@ const buyOnTheVenture = async (
     paymentMethod: "cash",
   });
   farm.clock.set(onFarm(on, "06:00"));
-  await farm.as.owner.ventures.drawFloat({
+  await farm.as.owner.ventures.floats.draw({
     ventureId: venture.id,
     buyingTripId: trip.id,
     amountMoney: floatMoney,
@@ -439,7 +439,7 @@ const buyOnTheVenture = async (
   // The beasts *and* the day itself came out of it — the broker, the lorry and keeping the men who went
   // — and the app refuses a count that does not balance to the taka, which is the whole point of it.
   const spentOnTheDay = day.brokerMoney + day.transportMoney + day.keepMoney;
-  await farm.as.owner.ventures.reconcileFloat({
+  await farm.as.owner.ventures.floats.reconcile({
     buyingTripId: trip.id,
     cashBackMoney: floatMoney - spent - spentOnTheDay,
     movedOn: on,
@@ -612,11 +612,11 @@ const settleUp = async (
     await readTheStatement(farm, venture, month, on);
   }
   farm.clock.set(onFarm(on, "10:00"));
-  await farm.as.owner.ventures.approveSettlement({
+  await farm.as.owner.ventures.settlement.approve({
     ventureId: venture.id,
     note: "হিসাব মিলিয়ে দেখা হয়েছে; সব পশু বিক্রি, ব্যাংকও মিলেছে।",
   });
-  const approved = await farm.as.owner.ventures.approvedSettlement({
+  const approved = await farm.as.owner.ventures.settlement.approved({
     ventureId: venture.id,
   });
   if (!approved) {
@@ -624,7 +624,7 @@ const settleUp = async (
   }
   if (approved.advanceMoney > 0) {
     farm.clock.set(onFarm(on, "10:30"));
-    await farm.as.owner.ventures.repayAdvance({
+    await farm.as.owner.ventures.settlement.repayAdvance({
       ventureId: venture.id,
       movedOn: on,
       paymentMethod: "bank",
@@ -634,7 +634,7 @@ const settleUp = async (
   for (const [index, share] of approved.shares.entries()) {
     const day = addDays(on, index === 0 ? 0 : 1);
     farm.clock.set(onFarm(day, `${11 + index}:00`));
-    await farm.as.owner.ventures.paySettlement({
+    await farm.as.owner.ventures.settlement.pay({
       ventureId: venture.id,
       agreementId: share.agreementId,
       amountMoney: share.payoutMoney,
@@ -646,7 +646,7 @@ const settleUp = async (
   // Two of the three say they had it; the third has not been reached yet.
   for (const share of approved.shares.slice(0, -1)) {
     farm.clock.set(onFarm(addDays(on, 2), "09:30"));
-    await farm.as.owner.ventures.acknowledgePayout({
+    await farm.as.owner.ventures.settlement.acknowledgePayout({
       ventureId: venture.id,
       agreementId: share.agreementId,
       note: "ফোনে জানিয়েছেন, টাকা পেয়েছেন।",
@@ -656,7 +656,7 @@ const settleUp = async (
   // reads nothing. A run that made the Farm nothing has nothing to take.
   if (approved.farmMoney > 0) {
     farm.clock.set(onFarm(addDays(on, 2), "16:00"));
-    await farm.as.owner.ventures.takeTheFarmsShare({
+    await farm.as.owner.ventures.settlement.takeTheFarmsShare({
       ventureId: venture.id,
       movedOn: addDays(on, 2),
       paymentMethod: "bank",
@@ -929,7 +929,7 @@ export const runTheVentures = (
         note: "",
       });
       // The Owner says come and sign, for five of the six: the rest are for somebody she has already promised.
-      await f.as.owner.ventures.answerRequest({
+      await f.as.owner.ventures.requests.answer({
         requestId: promised,
         answer: { kind: "come_and_sign", units: 5 },
       });
