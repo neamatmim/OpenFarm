@@ -114,7 +114,7 @@ const PortalJoin = () => {
         }}
       >
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="text-2xl font-semibold">
             {t(forgot ? "portal.resetTitle" : "portal.joinTitle")}
           </h1>
           <p className="text-muted-foreground text-sm">

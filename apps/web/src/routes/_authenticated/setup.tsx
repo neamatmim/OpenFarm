@@ -116,7 +116,7 @@ const StandardStep = () => {
       >
         <div className="flex flex-col gap-1.5">
           <p className="text-success text-sm font-medium">{t("setup.done")}</p>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="text-2xl font-semibold">
             {t("setup.standard.title")}
           </h1>
           <p className="text-muted-foreground text-sm">
@@ -226,9 +226,7 @@ const SetupPage = () => {
         }}
       >
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {t("setup.title")}
-          </h1>
+          <h1 className="text-2xl font-semibold">{t("setup.title")}</h1>
           <p className="text-muted-foreground text-sm">{t("setup.intro")}</p>
         </div>
         <div className="flex flex-col gap-1.5">

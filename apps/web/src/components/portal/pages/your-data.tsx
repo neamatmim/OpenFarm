@@ -18,9 +18,7 @@ type Notice = NonNullable<Answer["notice"]>;
 const TheNotice = ({ notice }: { notice: Notice }) => (
   <article className="flex max-w-3xl flex-col gap-5" lang="bn">
     <header className="flex flex-col gap-2">
-      <h1 className="text-2xl font-semibold tracking-tight text-balance">
-        {notice.title}
-      </h1>
+      <h1 className="text-2xl font-semibold text-balance">{notice.title}</h1>
       <p className="text-muted-foreground">{notice.preamble}</p>
     </header>
     {notice.parts.map((part) => (

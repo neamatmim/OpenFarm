@@ -12,7 +12,7 @@ const SideFigure = ({ label, side }: { label: string; side: SideDeaths }) => {
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
       <dt className="text-muted-foreground text-xs">{label}</dt>
-      <dd className="text-lg font-semibold tracking-tight tabular-nums sm:text-xl">
+      <dd className="text-lg font-semibold tabular-nums sm:text-xl">
         {side.perHundred === null
           ? t("deaths.noneKept")
           : t("deaths.rate", { rate: formatNumber(side.perHundred, language) })}

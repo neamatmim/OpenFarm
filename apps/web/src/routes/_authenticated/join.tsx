@@ -43,9 +43,7 @@ const JoinPage = () => {
     <SignedInDoor>
       <div className="surface flex flex-col gap-6 p-6 sm:p-8">
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {t("join.title")}
-          </h1>
+          <h1 className="text-2xl font-semibold">{t("join.title")}</h1>
           <p className="text-muted-foreground text-sm">{t("join.subtitle")}</p>
         </div>
         <form

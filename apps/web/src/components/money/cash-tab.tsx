@@ -730,9 +730,7 @@ const FloatsOut = ({ isOwner }: { isOwner: boolean }) => {
   }
   return (
     <section className="surface flex flex-col p-4 md:p-5">
-      <h3 className="text-base font-semibold tracking-tight">
-        {t("cash.floatsOut")}
-      </h3>
+      <h3 className="text-base font-semibold">{t("cash.floatsOut")}</h3>
       <ul className="divide-y md:hidden">
         {floats.data.map((float) => (
           <FloatLine float={float} isOwner={isOwner} key={float.tripId} />

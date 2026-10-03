@@ -72,9 +72,7 @@ const PortalLogin = () => {
         }}
       >
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {t("portal.signInTitle")}
-          </h1>
+          <h1 className="text-2xl font-semibold">{t("portal.signInTitle")}</h1>
           <p className="text-muted-foreground text-sm">
             {t("portal.signInHint")}
           </p>

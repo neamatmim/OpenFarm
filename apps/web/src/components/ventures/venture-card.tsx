@@ -639,7 +639,7 @@ export const VentureCard = ({
     className={cn("flex flex-col gap-3 text-sm", !bare && "surface p-4 md:p-5")}
   >
     <div className="flex items-start justify-between gap-3">
-      <h3 className="text-base font-semibold tracking-tight">
+      <h3 className="text-base font-semibold">
         <Link
           className="rounded-md underline-offset-4 outline-none hover:underline focus-visible:ring-2"
           params={{ ventureId: venture.id }}

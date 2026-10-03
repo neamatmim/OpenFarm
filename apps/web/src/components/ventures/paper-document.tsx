@@ -283,7 +283,7 @@ export const Letterhead = ({
   letterhead: PaperDocument["letterhead"];
 }) => (
   <header className="border-foreground flex flex-col items-center gap-1 border-b-2 pb-4 text-center">
-    <p className="text-lg font-semibold tracking-tight">{letterhead.name}</p>
+    <p className="text-lg font-semibold">{letterhead.name}</p>
     <p className="text-muted-foreground text-xs">
       {letterhead.details.join(" · ")}
     </p>
@@ -326,9 +326,7 @@ export const PaperDocumentView = ({
     <Letterhead letterhead={document.letterhead} />
 
     <div className="flex flex-col items-center gap-1 text-center">
-      <h2 className="text-2xl font-semibold tracking-tight">
-        {document.title.bn}
-      </h2>
+      <h2 className="text-2xl font-semibold">{document.title.bn}</h2>
       {document.title.en ? (
         <p className="text-muted-foreground text-xs tracking-[0.2em] uppercase">
           {document.title.en}

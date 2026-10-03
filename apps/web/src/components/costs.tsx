@@ -105,9 +105,7 @@ export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
     amount === null ? "—" : rate(amount);
   return (
     <section className="surface flex flex-col p-4 text-sm md:p-5">
-      <h2 className="mb-2 text-base font-semibold tracking-tight">
-        {t("costs.title")}
-      </h2>
+      <h2 className="mb-2 text-base font-semibold">{t("costs.title")}</h2>
       <WhatWasSpent costs={her} />
       {her.side === "fattening" ? (
         <>
@@ -154,7 +152,7 @@ const CostCard = ({
   children: ReactNode;
 }) => (
   <section className="surface flex flex-col p-4 text-sm md:p-5">
-    <h3 className="mb-1 text-base font-semibold tracking-tight">{title}</h3>
+    <h3 className="mb-1 text-base font-semibold">{title}</h3>
     {children}
   </section>
 );
