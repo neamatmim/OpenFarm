@@ -44,7 +44,7 @@ export const sopVersion = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     definitionId: text("definition_id")
       .notNull()
-      .references(() => sopDefinition.id, { onDelete: "cascade" }),
+      .references(() => sopDefinition.id),
     /** 1, 2, 3 … within the Definition. */
     number: integer("number").notNull(),
     content: jsonb("content").notNull(),
@@ -71,7 +71,7 @@ export const sopProposal = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     definitionId: text("definition_id")
       .notNull()
-      .references(() => sopDefinition.id, { onDelete: "cascade" }),
+      .references(() => sopDefinition.id),
     /** The Version this was drafted against, so the Owner can see what has moved since. */
     basedOnVersionId: text("based_on_version_id").references(
       () => sopVersion.id
@@ -108,7 +108,7 @@ export const sopTraining = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     definitionId: text("definition_id")
       .notNull()
-      .references(() => sopDefinition.id, { onDelete: "cascade" }),
+      .references(() => sopDefinition.id),
     versionId: text("version_id")
       .notNull()
       .references(() => sopVersion.id),

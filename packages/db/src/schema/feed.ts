@@ -94,13 +94,13 @@ export const ration = pgTable(
 export const penRation = pgTable("pen_ration", {
   penId: text("pen_id")
     .primaryKey()
-    .references(() => pen.id, { onDelete: "cascade" }),
+    .references(() => pen.id),
   farmId: text("farm_id")
     .notNull()
     .references(() => farm.id, { onDelete: "cascade" }),
   rationId: text("ration_id")
     .notNull()
-    .references(() => ration.id, { onDelete: "cascade" }),
+    .references(() => ration.id),
   assignedBy: text("assigned_by").references(() => user.id),
   assignedAt: timestamp("assigned_at").notNull(),
 });
@@ -115,7 +115,7 @@ export const rationVersion = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     rationId: text("ration_id")
       .notNull()
-      .references(() => ration.id, { onDelete: "cascade" }),
+      .references(() => ration.id),
     /** 1, 2, 3 … within the Ration. */
     number: integer("number").notNull(),
     /**
@@ -157,7 +157,7 @@ export const feeding = pgTable(
     completionId: text("completion_id").notNull(),
     penId: text("pen_id")
       .notNull()
-      .references(() => pen.id, { onDelete: "cascade" }),
+      .references(() => pen.id),
     /** The Ration Version this session was worked out from, pinned for ever (ADR 0001). */
     rationVersionId: text("ration_version_id")
       .notNull()

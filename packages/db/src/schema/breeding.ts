@@ -43,10 +43,10 @@ export const service = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     animalId: text("animal_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     completionId: text("completion_id")
       .notNull()
-      .references(() => stepCompletion.id, { onDelete: "cascade" }),
+      .references(() => stepCompletion.id),
     method: text("method", { enum: SERVICE_METHODS }).notNull(),
     /** The straw's number, for AI. Null for a natural service. */
     sireStraw: text("sire_straw"),
@@ -87,10 +87,10 @@ export const pregnancyCheck = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     animalId: text("animal_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     completionId: text("completion_id")
       .notNull()
-      .references(() => stepCompletion.id, { onDelete: "cascade" }),
+      .references(() => stepCompletion.id),
     /** The first service of the attempt checked. */
     serviceId: text("service_id")
       .notNull()
@@ -123,10 +123,10 @@ export const calving = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     damId: text("dam_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     completionId: text("completion_id")
       .notNull()
-      .references(() => stepCompletion.id, { onDelete: "cascade" }),
+      .references(() => stepCompletion.id),
     calvedAt: timestamp("calved_at").notNull(),
     ease: text("ease", { enum: CALVING_EASES }).notNull(),
     /** The first service of the attempt she calved from, when this farm served her. */
@@ -158,7 +158,7 @@ export const abortion = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     animalId: text("animal_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     abortedAt: timestamp("aborted_at").notNull(),
     /** How far along she was, in months, as the Vet judged it. */
     stageMonths: integer("stage_months").notNull(),
@@ -189,7 +189,7 @@ export const repeatBreederAnswer = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     animalId: text("animal_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     decision: text("decision", { enum: REPEAT_BREEDER_DECISIONS }).notNull(),
     note: text("note").notNull(),
     failedAttempts: integer("failed_attempts").notNull(),
@@ -222,7 +222,7 @@ export const weaning = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     animalId: text("animal_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     weanedAt: timestamp("weaned_at").notNull(),
     /** Her latest Weigh-in when she was weaned, or nothing where nobody had weighed her. */
     weightKg: numeric("weight_kg", { precision: 7, scale: 2 }),

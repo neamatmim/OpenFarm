@@ -57,8 +57,8 @@ export const drugProduct = pgTable(
     createdAt: timestamp("created_at").notNull(),
   },
   (table) => [
+    // Its farm's rows are read by this unique index's own leading column; no second index on it.
     uniqueIndex("drug_product_name_uidx").on(table.farmId, table.nameBn),
-    index("drug_product_farm_idx").on(table.farmId),
   ]
 );
 
@@ -88,7 +88,7 @@ export const diagnosis = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     animalId: text("animal_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     /** The Observation it answers, when the Vet is answering the round. */
     observationId: text("observation_id").references(() => observation.id),
     /** What the Vet concluded she has, in their own words. The glossary's word for the
@@ -150,7 +150,7 @@ export const prescription = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     animalId: text("animal_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     /** What it treats. A Prescription for nothing in particular is not one. */
     diagnosisId: text("diagnosis_id")
       .notNull()
@@ -206,9 +206,7 @@ export const treatment = pgTable(
       .notNull()
       .references(() => farm.id, { onDelete: "cascade" }),
     /** The course this dose belongs to. Null for a campaign, which nobody prescribed. */
-    prescriptionId: text("prescription_id").references(() => prescription.id, {
-      onDelete: "cascade",
-    }),
+    prescriptionId: text("prescription_id").references(() => prescription.id),
     /** What was given. Kept here rather than read back through the Prescription: what went
      *  into the animal is the Treatment's own fact, and it is what the Withdrawal is worked
      *  out from. */
@@ -217,11 +215,9 @@ export const treatment = pgTable(
       .references(() => drugProduct.id),
     animalId: text("animal_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     /** The work this dose was given under. Null for a dose not prescribed, which no work asked for. */
-    instanceId: text("instance_id").references(() => sopInstance.id, {
-      onDelete: "cascade",
-    }),
+    instanceId: text("instance_id").references(() => sopInstance.id),
     /** Which dose of the course this is — 1 of 6 — so the farm can say where it got to. One
      *  for a campaign, which gives each animal a single dose. */
     number: integer("number").notNull(),
@@ -274,11 +270,11 @@ export const campaignLotNumber = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     instanceId: text("instance_id")
       .notNull()
-      .references(() => sopInstance.id, { onDelete: "cascade" }),
+      .references(() => sopInstance.id),
     lotNumber: text("lot_number").notNull(),
     completionId: text("completion_id")
       .notNull()
-      .references(() => stepCompletion.id, { onDelete: "cascade" }),
+      .references(() => stepCompletion.id),
     recordedBy: text("recorded_by").references(() => user.id),
     recordedAt: timestamp("recorded_at").notNull(),
   },
@@ -321,8 +317,8 @@ export const notifiableDisease = pgTable(
     retiredAt: timestamp("retired_at"),
   },
   (table) => [
+    // Its farm's rows are read by this unique index's own leading column; no second index on it.
     uniqueIndex("notifiable_disease_name_uidx").on(table.farmId, table.nameBn),
-    index("notifiable_disease_farm_idx").on(table.farmId),
   ]
 );
 
@@ -344,13 +340,11 @@ export const dlsReport = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     diagnosisId: text("diagnosis_id")
       .notNull()
-      .references(() => diagnosis.id, { onDelete: "cascade" }),
+      .references(() => diagnosis.id),
     /** The work raised to report it — null when the farm has published no report procedure.
      *  The report is owed to the office either way; an Instance is only how the farm remembers
      *  to do it, and a farm missing the procedure still has the letter to write. */
-    instanceId: text("instance_id").references(() => sopInstance.id, {
-      onDelete: "cascade",
-    }),
+    instanceId: text("instance_id").references(() => sopInstance.id),
     /** The list entry that matched, so the farm can say which of its diseases this was
      *  reported as — the answer to "why did you report that one". */
     diseaseId: text("disease_id").references(() => notifiableDisease.id),
@@ -391,7 +385,7 @@ export const vetCase = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     animalId: text("animal_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     vetId: text("vet_id")
       .notNull()
       .references(() => user.id),
@@ -467,7 +461,7 @@ export const excusedDose = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     animalId: text("animal_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     definitionId: text("definition_id")
       .notNull()
       .references(() => sopDefinition.id),

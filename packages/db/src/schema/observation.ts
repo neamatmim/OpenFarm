@@ -32,11 +32,9 @@ export const observation = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     animalId: text("animal_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     /** The Step that recorded it — or nothing, for something somebody saw and reported with no round asking. */
-    completionId: text("completion_id").references(() => stepCompletion.id, {
-      onDelete: "cascade",
-    }),
+    completionId: text("completion_id").references(() => stepCompletion.id),
     /** What was seen, as the Version's own choice value — the stable word Health and
      *  Breeding will match on. */
     saw: text("saw").notNull(),

@@ -31,10 +31,10 @@ export const headCount = pgTable(
     /** The evening's work for the Pen: what the Manager is told of, and opens to count again. */
     instanceId: text("instance_id")
       .notNull()
-      .references(() => sopInstance.id, { onDelete: "cascade" }),
+      .references(() => sopInstance.id),
     completionId: text("completion_id")
       .notNull()
-      .references(() => stepCompletion.id, { onDelete: "cascade" }),
+      .references(() => stepCompletion.id),
     counted: integer("counted").notNull(),
     expected: integer("expected").notNull(),
     /** The animals the register put in the Pen when it was counted. */

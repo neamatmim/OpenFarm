@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -7,6 +8,7 @@ import {
   text,
   timestamp,
   uniqueIndex,
+  check,
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
@@ -201,6 +203,10 @@ export const farmAccountCheck = pgTable(
     checkedAt: timestamp("checked_at").notNull(),
   },
   (table) => [
+    check(
+      "farm_account_check_month",
+      sql`${table.forMonth} ~ '^[0-9]{4}-[0-9]{2}$'`
+    ),
     uniqueIndex("farm_account_check_uidx").on(
       table.farmAccountId,
       table.forMonth
@@ -258,6 +264,10 @@ export const moneyEvent = pgTable(
     reference: text("reference"),
   },
   (table) => [
+    check(
+      "money_event_wage_month",
+      sql`${table.wageMonth} is null or ${table.wageMonth} ~ '^[0-9]{4}-[0-9]{2}$'`
+    ),
     uniqueIndex("money_event_source_uidx").on(table.source, table.sourceId),
     // A transaction ID is one payment: twice on one Farm Account is a payment written twice. NULLs never collide.
     uniqueIndex("money_event_reference_uidx").on(
@@ -361,11 +371,11 @@ export const wageDrawTaken = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     drawId: text("draw_id")
       .notNull()
-      .references(() => wageDraw.id, { onDelete: "cascade" }),
+      .references(() => wageDraw.id),
     /** The wage's Money Event that took it. */
     wageEventId: text("wage_event_id")
       .notNull()
-      .references(() => moneyEvent.id, { onDelete: "cascade" }),
+      .references(() => moneyEvent.id),
     bdt: taka("bdt").notNull(),
   },
   (table) => [
@@ -378,7 +388,7 @@ export const wageDrawTaken = pgTable(
 export const moneyReceipt = pgTable("money_receipt", {
   moneyEventId: text("money_event_id")
     .primaryKey()
-    .references(() => moneyEvent.id, { onDelete: "cascade" }),
+    .references(() => moneyEvent.id),
   farmId: text("farm_id")
     .notNull()
     .references(() => farm.id, { onDelete: "cascade" }),
@@ -460,7 +470,7 @@ export const vetFeeAnimal = pgTable(
   {
     vetFeeId: text("vet_fee_id")
       .notNull()
-      .references(() => vetFee.id, { onDelete: "cascade" }),
+      .references(() => vetFee.id),
     animalId: text("animal_id")
       .notNull()
       .references(() => animal.id),

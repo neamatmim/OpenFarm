@@ -57,7 +57,7 @@ export const paperTemplateVersion = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     templateId: text("template_id")
       .notNull()
-      .references(() => paperTemplate.id, { onDelete: "cascade" }),
+      .references(() => paperTemplate.id),
     /** 1, 2, 3 … within the Template. */
     number: integer("number").notNull(),
     content: jsonb("content").notNull(),

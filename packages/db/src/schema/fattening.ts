@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -8,6 +9,7 @@ import {
   text,
   timestamp,
   uniqueIndex,
+  check,
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
@@ -60,7 +62,7 @@ export const intake = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     animalId: text("animal_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     /** Who the farm bought it from. Null for an animal whose seller nobody wrote down. */
     counterpartyId: text("counterparty_id").references(() => counterparty.id),
     /** The outing she came home on, when she came home on one. Null for an animal bought at the farm
@@ -91,6 +93,14 @@ export const intake = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
+    check(
+      "intake_window_days",
+      sql`${table.targetWindowStart} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' and ${table.targetWindowEnd} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'`
+    ),
+    check(
+      "intake_window_in_order",
+      sql`${table.targetWindowStart} <= ${table.targetWindowEnd}`
+    ),
     uniqueIndex("intake_animal_uidx").on(table.animalId),
     index("intake_window_idx").on(table.farmId, table.targetWindowStart),
   ]
@@ -134,7 +144,7 @@ export const sellingTripAnimal = pgTable(
   {
     sellingTripId: text("selling_trip_id")
       .notNull()
-      .references(() => sellingTrip.id, { onDelete: "cascade" }),
+      .references(() => sellingTrip.id),
     /** No cascade, as the Vet Fee's animals have none: an Animal removed would silently re-split a cost
      *  the farm has already paid and already booked. */
     animalId: text("animal_id")
@@ -165,10 +175,10 @@ export const weighIn = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     animalId: text("animal_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     completionId: text("completion_id")
       .notNull()
-      .references(() => stepCompletion.id, { onDelete: "cascade" }),
+      .references(() => stepCompletion.id),
     weightKg: numeric("weight_kg", { precision: 7, scale: 2 }).notNull(),
     method: text("method", { enum: WEIGH_METHODS }).notNull().default("scale"),
     /** What the farm found doubtful about this reading, in its own words, and null for one it
@@ -204,7 +214,7 @@ export const readySetAside = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     animalId: text("animal_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     /** The grounds the Manager was looking at when they decided she is staying. A ground that
      *  was not among them is something new, and worth raising again. */
     grounds: text("grounds", { enum: READY_REASONS }).array().notNull(),
@@ -238,7 +248,7 @@ export const sale = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     animalId: text("animal_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     /** Who took her. The same Counterparty the farm buys from, on the other side of the deal. */
     counterpartyId: text("counterparty_id")
       .notNull()
@@ -291,7 +301,7 @@ export const internalSale = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     animalId: text("animal_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     /** Who is letting her go, and who is taking her on: a Venture's id, or nothing for the Farm. */
     fromVentureId: text("from_venture_id").references(() => venture.id),
     toVentureId: text("to_venture_id").references(() => venture.id),
@@ -335,7 +345,7 @@ export const fatteningJoining = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     animalId: text("animal_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     /** The farm day she joined. */
     joinedOn: text("joined_on").notNull(),
     /** When, on the farm's clock: what her Season counts her money out from. */

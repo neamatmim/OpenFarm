@@ -57,7 +57,7 @@ export const pen = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     shedId: text("shed_id")
       .notNull()
-      .references(() => shed.id, { onDelete: "cascade" }),
+      .references(() => shed.id),
     name: text("name").notNull(),
     /** A quarantine pen: where a bought animal comes in, and is kept until she is released. Marked by the Owner or
      *  the Manager; never unmarked while it holds an animal in Quarantine. */
@@ -194,6 +194,7 @@ export const animal = pgTable(
     uniqueIndex("animal_tag_uidx").on(table.farmId, table.tagNumber),
     index("animal_pen_idx").on(table.farmId, table.penId),
     index("animal_side_state_idx").on(table.farmId, table.side, table.state),
+    index("animal_owner_venture_idx").on(table.ownerVentureId),
   ]
 );
 
@@ -207,7 +208,7 @@ export const animalMove = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     animalId: text("animal_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     fromPenId: text("from_pen_id").references(() => pen.id),
     toPenId: text("to_pen_id")
       .notNull()
@@ -241,7 +242,7 @@ export const retag = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     animalId: text("animal_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     reason: text("reason").notNull(),
     retaggedBy: text("retagged_by").references(() => user.id),
     retaggedAt: timestamp("retagged_at").notNull(),
@@ -253,7 +254,7 @@ export const retag = pgTable(
 export const animalPhoto = pgTable("animal_photo", {
   animalId: text("animal_id")
     .primaryKey()
-    .references(() => animal.id, { onDelete: "cascade" }),
+    .references(() => animal.id),
   farmId: text("farm_id")
     .notNull()
     .references(() => farm.id, { onDelete: "cascade" }),
@@ -276,7 +277,7 @@ export const penAssignment = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
     penId: text("pen_id")
       .notNull()
-      .references(() => pen.id, { onDelete: "cascade" }),
+      .references(() => pen.id),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     /** Assignments are never deleted; one taken away is ended, and handing the Pen back reopens it. */
     endedAt: timestamp("ended_at"),
@@ -318,7 +319,7 @@ export const mortality = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     animalId: text("animal_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     kind: text("kind", { enum: MORTALITY_KINDS }).notNull(),
     /** When she died or was culled, on the farm's clock — not when it was written down. */
     happenedAt: timestamp("happened_at").notNull(),
@@ -359,7 +360,7 @@ export const mortalityPhoto = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     mortalityId: text("mortality_id")
       .notNull()
-      .references(() => mortality.id, { onDelete: "cascade" }),
+      .references(() => mortality.id),
     contentType: text("content_type").notNull(),
     /** Downscaled on the device before upload, base64. */
     data: text("data").notNull(),

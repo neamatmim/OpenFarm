@@ -30,7 +30,7 @@ export const cashCount = pgTable(
       .references(() => user.id),
     completionId: text("completion_id")
       .notNull()
-      .references(() => stepCompletion.id, { onDelete: "cascade" }),
+      .references(() => stepCompletion.id),
     counted: taka("counted").notNull(),
     /** What the farm said the hand held when it was counted, this count left out. */
     expected: taka("expected").notNull(),

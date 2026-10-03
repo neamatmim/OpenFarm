@@ -42,13 +42,13 @@ export const sopInstance = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     definitionId: text("definition_id")
       .notNull()
-      .references(() => sopDefinition.id, { onDelete: "cascade" }),
+      .references(() => sopDefinition.id),
     versionId: text("version_id")
       .notNull()
       .references(() => sopVersion.id),
     /** The Pen the work is in; null for work that concerns the whole farm rather than any Pen of it —
      *  the Registration's renewal, say. */
-    penId: text("pen_id").references(() => pen.id, { onDelete: "cascade" }),
+    penId: text("pen_id").references(() => pen.id),
     state: text("state", { enum: INSTANCE_STATES }).notNull().default("due"),
     dueAt: timestamp("due_at").notNull(),
     graceMinutes: integer("grace_minutes").notNull(),
@@ -64,9 +64,7 @@ export const sopInstance = pgTable(
     cause: text("cause"),
     /** The animal this work is about, for work something happened to one animal raised. Null
      *  for work that concerns the whole Pen. */
-    animalId: text("animal_id").references(() => animal.id, {
-      onDelete: "cascade",
-    }),
+    animalId: text("animal_id").references(() => animal.id),
     assignedTo: text("assigned_to").references(() => user.id),
     assignedBy: text("assigned_by").references(() => user.id),
     claimedBy: text("claimed_by").references(() => user.id),
@@ -88,6 +86,7 @@ export const sopInstance = pgTable(
       .where(sql`${table.cause} is not null`),
     index("sop_instance_open_idx").on(table.farmId, table.state, table.dueAt),
     index("sop_instance_pen_idx").on(table.farmId, table.penId, table.dueAt),
+    index("sop_instance_animal_idx").on(table.animalId),
   ]
 );
 
@@ -103,12 +102,10 @@ export const stepCompletion = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     instanceId: text("instance_id")
       .notNull()
-      .references(() => sopInstance.id, { onDelete: "cascade" }),
+      .references(() => sopInstance.id),
     stepId: text("step_id").notNull(),
     /** Null for a Step that runs once for the whole Pen. */
-    animalId: text("animal_id").references(() => animal.id, {
-      onDelete: "cascade",
-    }),
+    animalId: text("animal_id").references(() => animal.id),
     /** `animalId`, or "" for a Step that runs once. Postgres treats NULLs as distinct, so a
      *  unique index over the nullable column would let a pen-level Step be recorded twice
      *  instead of corrected; this column gives the index something to bite on. */
@@ -141,7 +138,8 @@ export const stepCompletion = pgTable(
       table.stepId,
       table.animalKey
     ),
-    index("step_completion_instance_idx").on(table.instanceId),
+    // A piece of work's completions are read by the unique index's leading column; and an animal's, by her own.
+    index("step_completion_animal_idx").on(table.animalId),
   ]
 );
 
@@ -158,7 +156,7 @@ export const completionPhoto = pgTable(
   {
     completionId: text("completion_id")
       .notNull()
-      .references(() => stepCompletion.id, { onDelete: "cascade" }),
+      .references(() => stepCompletion.id),
     /** Which Evidence of the Step this answers, by its place in the Version. */
     slot: integer("slot").notNull().default(0),
     farmId: text("farm_id")

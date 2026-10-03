@@ -28,7 +28,7 @@ export const milkingSession = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     instanceId: text("instance_id")
       .notNull()
-      .references(() => sopInstance.id, { onDelete: "cascade" }),
+      .references(() => sopInstance.id),
     penId: text("pen_id")
       .notNull()
       .references(() => pen.id),
@@ -62,14 +62,14 @@ export const milkRecord = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     sessionId: text("session_id")
       .notNull()
-      .references(() => milkingSession.id, { onDelete: "cascade" }),
+      .references(() => milkingSession.id),
     animalId: text("animal_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     /** The Step Completion this came from. Unique, so replaying it cannot double-count. */
     completionId: text("completion_id")
       .notNull()
-      .references(() => stepCompletion.id, { onDelete: "cascade" }),
+      .references(() => stepCompletion.id),
     litres: numeric("litres", { precision: 6, scale: 2 }).notNull(),
     destination: text("destination", { enum: MILK_DESTINATIONS }).notNull(),
     /** The Destination was taken out of the person's hands by a Withdrawal, rather than
