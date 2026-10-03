@@ -25,9 +25,10 @@ import { SearchablePicker } from "@/components/searchable-picker";
 import { WhoseHandField } from "@/components/whose-hand";
 import { useLanguage } from "@/i18n/language-provider";
 import type { BakiTyped } from "@/lib/baki";
-import { NO_BAKI, bakiComplete, bakiSent, somethingPaid } from "@/lib/baki";
+import { NO_BAKI, bakiSent, somethingPaid } from "@/lib/baki";
 import { usePenNames } from "@/lib/pen-names";
 import { useRefused } from "@/lib/refused";
+import { saleStillMissing } from "@/lib/sale-missing";
 import { orpc } from "@/utils/orpc";
 
 /** The broker's fee as the Sale takes it: whole taka, and nothing sent where none was typed — or on answers a phone
@@ -286,23 +287,6 @@ const TextField = ({
   </FormField>
 );
 
-/**
- * Whether everything a Sale needs has been given.
- *
- * Not whether anything is Ready: a cull off the dairy side goes to the butcher by her tag whether or not a
- * fattening bull is Ready that day, and the farm takes her — it asks only that she is here and out of her
- * withdrawal. Asking the list here held Save shut on exactly the day the typed tag was offered for.
- */
-const isReady = (answers: SaleAnswers) =>
-  answers.tagNumber.trim() !== "" &&
-  answers.buyerName.trim() !== "" &&
-  Number(answers.priceBdt) > 0 &&
-  Number(answers.weightKg) > 0 &&
-  answers.destination.trim() !== "" &&
-  answers.vehicle.trim() !== "" &&
-  answers.driver.trim() !== "" &&
-  bakiComplete(answers.baki, Number(answers.priceBdt), true);
-
 /** What she last weighed and when, and — once the day's weight is typed — the Shrink since. */
 const useLastWeighedWords = (
   last: { kg: number; at: Date | string } | null,
@@ -350,6 +334,15 @@ export const SaleSheet = ({
 }) => {
   const { t, language } = useLanguage();
   const refused = useRefused();
+  // The kinds of account the farm lists an open one of: only those are asked for, as the farm itself asks.
+  const accounts = useQuery({
+    ...orpc.farmAccounts.list.queryOptions(),
+    enabled: open,
+  });
+  const accountKindsOpen = new Set(
+    (accounts.data ?? []).filter((one) => !one.retired).map((one) => one.kind)
+  );
+  const missing = saleStillMissing(answers, accountKindsOpen);
   const edit = (patch: Partial<SaleAnswers>) =>
     onAnswers({ ...answers, ...patch });
   // What the chosen animal last weighed, beside the box for what she weighs today: a figure to check the scale
@@ -426,7 +419,8 @@ export const SaleSheet = ({
       }
       open={open}
       pending={record.isPending}
-      ready={isReady(answers)}
+      missing={missing && { said: t(missing.said), at: missing.at }}
+      ready={missing === null}
       submitLabel={t("sale.record")}
       title={t("sale.title")}
     >
