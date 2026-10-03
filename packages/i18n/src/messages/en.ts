@@ -2795,6 +2795,7 @@ export const en = {
   "common.nextPage": "Next page",
   "common.col.actions": "Actions",
   "common.col.details": "Details",
+  "common.selectPage": "Select every row on this page",
   "common.showDetails": "Show details",
   "common.hideDetails": "Hide details",
   "common.cancel": "Cancel",
@@ -4062,6 +4063,12 @@ export const en = {
   "signOff.missedHint":
     "The work is closed without being done; your reason stays with it in the record.",
   "signOff.approved": "Approved",
+  "signOff.selected": "{count} selected",
+  "signOff.approveSelected": "Approve {count}",
+  "signOff.clearSelection": "Clear",
+  "signOff.approvedMany":
+    "{count, plural, one {# approved} other {# approved}}",
+  "signOff.select": "Select {work}",
   "signOff.sentBack": "Sent back",
   "signOff.closedMissed": "Closed as missed",
   "correct.why": "Why is it being changed?",

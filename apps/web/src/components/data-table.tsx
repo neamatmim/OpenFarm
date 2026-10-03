@@ -1,6 +1,7 @@
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
+import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import {
   Table,
   TableBody,
@@ -64,6 +65,23 @@ export const {
   // "nothing" as undefined, never as a made-up -1 or 9999-12-31.
   defaultColumn: { sortUndefined: "last" },
 });
+
+/** A row's state for its look: ticked rows are shaded as selected, an opened one as open. */
+const rowState = (ticked: boolean, open: boolean) => {
+  if (ticked) {
+    return "selected";
+  }
+  return open ? "open" : undefined;
+};
+
+/** What a page ticks rows for: the ids ticked, how a tick changes them, which rows may be ticked at all, and what a
+ *  screen reader hears for a row's box. */
+export interface RowSelection<TData> {
+  selected: ReadonlySet<string>;
+  onChange: (next: ReadonlySet<string>) => void;
+  selectable: (row: TData) => boolean;
+  label: (row: TData) => string;
+}
 
 /** The features every list table has, for a component that is handed one. */
 export type ListFeatures = typeof listFeatures;
@@ -197,6 +215,10 @@ const Pager = ({
  * A row that opens to a breakdown — a buyer's sales and payments under what he owes — gives `renderDetail`: a button at
  * the row's start opens it under the row, across the whole table (Carbon's expandable data table), so the list stays
  * one line a record to read down and the breakdown is a press away. The phone's cards carry their breakdown as before.
+ *
+ * A list with a job done to many rows at once gives `selection`: a box at each row's start the page may tick, and one
+ * in the heading for every row on this page (Carbon's batch selection). The page keeps what is ticked and says what to
+ * do with it; a row it says may not be ticked has no box.
  */
 export const DataTable = <TData extends object>({
   table,
@@ -206,10 +228,12 @@ export const DataTable = <TData extends object>({
   pageSize,
   className,
   renderDetail,
+  selection,
 }: {
   table: TableInstance<ListFeatures, TData>;
   card?: (row: TData) => ReactNode;
   renderDetail?: (row: TData) => ReactNode;
+  selection?: RowSelection<TData>;
   minWidth?: string;
   bare?: boolean;
   pageSize?: number;
@@ -235,6 +259,37 @@ export const DataTable = <TData extends object>({
     ? all.slice(shown * pageSize, (shown + 1) * pageSize)
     : all;
   const paged = pageSize !== undefined && all.length > pageSize;
+  const tickable = selection
+    ? rows.filter((row) => selection.selectable(row.original))
+    : [];
+  const ticked = tickable.filter((row) => selection?.selected.has(row.id));
+  const tickPage = (on: boolean) => {
+    if (!selection) {
+      return;
+    }
+    const next = new Set(selection.selected);
+    for (const row of tickable) {
+      if (on) {
+        next.add(row.id);
+      } else {
+        next.delete(row.id);
+      }
+    }
+    selection.onChange(next);
+  };
+  const tickRow = (id: string, on: boolean) => {
+    if (!selection) {
+      return;
+    }
+    const next = new Set(selection.selected);
+    if (on) {
+      next.add(id);
+    } else {
+      next.delete(id);
+    }
+    selection.onChange(next);
+  };
+  const leadingCells = (selection ? 1 : 0) + (renderDetail ? 1 : 0);
   return (
     <>
       {card ? (
@@ -270,6 +325,22 @@ export const DataTable = <TData extends object>({
           >
             {table.getHeaderGroups().map((group) => (
               <TableRow key={group.id}>
+                {selection ? (
+                  <TableHead className="w-10 pl-4 md:pl-5">
+                    {tickable.length > 0 ? (
+                      <Checkbox
+                        aria-label={t("common.selectPage")}
+                        checked={
+                          ticked.length > 0 && ticked.length === tickable.length
+                        }
+                        indeterminate={
+                          ticked.length > 0 && ticked.length < tickable.length
+                        }
+                        onCheckedChange={(on) => tickPage(on)}
+                      />
+                    ) : null}
+                  </TableHead>
+                ) : null}
                 {renderDetail ? (
                   <TableHead className="w-12 pl-4 md:pl-5">
                     <span className="sr-only">{t("common.col.details")}</span>
@@ -307,7 +378,24 @@ export const DataTable = <TData extends object>({
               const detailId = `row-detail-${row.id}`;
               return (
                 <Fragment key={row.id}>
-                  <TableRow data-state={isOpen ? "open" : undefined}>
+                  <TableRow
+                    data-state={rowState(
+                      selection?.selected.has(row.id) ?? false,
+                      isOpen
+                    )}
+                  >
+                    {selection ? (
+                      <TableCell className="w-10 pl-4 align-top md:pl-5">
+                        {selection.selectable(row.original) ? (
+                          <Checkbox
+                            aria-label={selection.label(row.original)}
+                            checked={selection.selected.has(row.id)}
+                            className="mt-0.5"
+                            onCheckedChange={(on) => tickRow(row.id, on)}
+                          />
+                        ) : null}
+                      </TableCell>
+                    ) : null}
                     {renderDetail ? (
                       <TableCell className="w-12 pl-4 align-top md:pl-5">
                         <Button
@@ -351,7 +439,7 @@ export const DataTable = <TData extends object>({
                     <TableRow className="hover:bg-transparent" id={detailId}>
                       <TableCell
                         className="bg-muted/40 px-4 py-4 whitespace-normal md:px-5"
-                        colSpan={row.getAllCells().length + 1}
+                        colSpan={row.getAllCells().length + leadingCells}
                       >
                         {renderDetail(row.original)}
                       </TableCell>

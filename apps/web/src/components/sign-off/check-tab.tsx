@@ -162,7 +162,9 @@ const checkCard = (row: CheckRow) => <CheckCard row={row} />;
 
 /**
  * Work done and waiting on the checker: approve it where it stands, or send it back with what needs doing again. Each
- * row waits only for its own answer, so the rest of the queue stays usable while one is saving.
+ * row waits only for its own answer, so the rest of the queue stays usable while one is saving. On a desk rows may be
+ * ticked and approved together, the job done most to many at once; sending back stays one at a time, as each needs
+ * its own reason.
  */
 export const CheckTab = ({ queue }: { queue: Asked<ToCheck> }) => {
   const { t, language } = useLanguage();
@@ -175,6 +177,11 @@ export const CheckTab = ({ queue }: { queue: Asked<ToCheck> }) => {
       inFlight.end(id),
     onError: refused,
   };
+  // One approval at a time for the rows ticked together: each is its own Sign-off in the audit log, and a refused one
+  // says why without stopping the rest. No toast each — one says how many when they are done.
+  const approveOne = useMutation(orpc.work.approve.mutationOptions(tracked));
+  const [ticked, setTicked] = useState<ReadonlySet<string>>(() => new Set());
+  const [approvingMany, setApprovingMany] = useState(false);
   const approve = useMutation(
     orpc.work.approve.mutationOptions({
       ...tracked,
@@ -201,6 +208,28 @@ export const CheckTab = ({ queue }: { queue: Asked<ToCheck> }) => {
     handleApprove: (id) => approve.mutate({ id }),
     handleSendBack: setSendingBack,
   };
+  // A row that has left the queue — approved, sent back, or by somebody else — is no longer ticked.
+  const inQueue = new Set((queue.data ?? []).map((row) => row.id));
+  const chosen = [...ticked].filter((id) => inQueue.has(id));
+  const approveChosen = async () => {
+    setApprovingMany(true);
+    let done = 0;
+    for (const id of chosen) {
+      try {
+        // In turn, not all at once: the farm's answer to one comes before the next is asked.
+        // oxlint-disable-next-line no-await-in-loop
+        await approveOne.mutateAsync({ id });
+        done += 1;
+      } catch {
+        // Said by the mutation's own refusal; the rest go on.
+      }
+    }
+    setApprovingMany(false);
+    setTicked(new Set());
+    if (done > 0) {
+      toast.success(t("signOff.approvedMany", { count: done }));
+    }
+  };
   const table = useListTable({
     columns: checkColumns,
     data: (queue.data ?? []).map((row) => ({ ...row, actions })),
@@ -210,12 +239,55 @@ export const CheckTab = ({ queue }: { queue: Asked<ToCheck> }) => {
     <div className="surface p-4 md:p-5">
       <Loaded query={queue}>
         {queue.data?.length ? (
-          <DataTable
-            card={checkCard}
-            minWidth="48rem"
-            pageSize={20}
-            table={table}
-          />
+          <div className="flex flex-col gap-3">
+            {/* Carbon's batch bar: over the table while rows are ticked, what is ticked and what to do with it. A phone
+                signs off one card at a time. */}
+            {chosen.length > 0 ? (
+              <div className="bg-accent text-accent-foreground hidden items-center justify-between gap-3 rounded-lg px-4 py-2 md:flex">
+                <span aria-live="polite" className="text-sm font-medium">
+                  {t("signOff.selected", { count: chosen.length })}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    disabled={approvingMany}
+                    onClick={() => setTicked(new Set())}
+                    type="button"
+                    variant="ghost"
+                  >
+                    {t("signOff.clearSelection")}
+                  </Button>
+                  <Button
+                    disabled={approvingMany}
+                    onClick={approveChosen}
+                    type="button"
+                  >
+                    {approvingMany ? (
+                      <Spinner />
+                    ) : (
+                      <Check aria-hidden data-icon="inline-start" />
+                    )}
+                    {t("signOff.approveSelected", { count: chosen.length })}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+            <DataTable
+              card={checkCard}
+              minWidth="48rem"
+              pageSize={20}
+              selection={{
+                selected: new Set(chosen),
+                onChange: setTicked,
+                selectable: (row) =>
+                  actions.mayCheck(row) && !inFlight.has(row.id),
+                label: (row) =>
+                  t("signOff.select", {
+                    work: titleOf(row, language === "bn"),
+                  }),
+              }}
+              table={table}
+            />
+          </div>
         ) : (
           <EmptyState bare icon={ClipboardCheck} title={t("signOff.none")} />
         )}
