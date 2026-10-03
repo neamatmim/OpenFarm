@@ -42,7 +42,7 @@ const buy = async (
   feedItemId: string,
   seller: string,
   amount: { quantity: number } | { pack: { kind: "bag"; count: number } },
-  priceBdt: number,
+  priceMoney: number,
   weighed?: number
 ) => {
   const manager = await as("manager");
@@ -50,7 +50,7 @@ const buy = async (
     feedItemId,
     kind: "purchase",
     ...amount,
-    priceBdt,
+    priceMoney,
     seller: { name: seller },
     receivedOn: "2068-03-15",
     ...(weighed === undefined ? {} : { weighed }),
@@ -81,7 +81,7 @@ describe("feed weighed on arrival", () => {
       slipQuantity: 500,
       pack: { kind: "bag", count: 10 },
       // Its price per kilo is on what came, not what the slip said.
-      unitPriceBdt: 20_000 / 488,
+      unitPriceMoney: 20_000 / 488,
     });
   });
 
@@ -104,7 +104,7 @@ describe("feed weighed on arrival", () => {
       weighedKg: 785,
       shortKg: 15,
       shortPercent: 1.9,
-      shortBdt: 630,
+      shortMoney: 630,
     });
     // Kamal's unweighed lot claims nothing; his weighed one came over.
     expect(sellers.find((one) => one.sellerName === KAMAL)).toMatchObject({

@@ -70,7 +70,7 @@ const useFiguresOf = (
   return [
     {
       label: t("investors.page.heldNow"),
-      value: sums ? taka(sums.heldBdt) : loading,
+      value: sums ? taka(sums.heldMoney) : loading,
       hint: sums?.heldOn
         ? t("investors.page.onPapers", { count: sums.heldOn })
         : undefined,
@@ -84,21 +84,21 @@ const useFiguresOf = (
     },
     {
       label: t("money.payouts"),
-      value: sums ? taka(sums.paidOutBdt) : loading,
+      value: sums ? taka(sums.paidOutMoney) : loading,
       // Capital refunded is not a payout: said beside it, as the portal's money page counts it apart.
-      hint: sums?.returnedBdt
-        ? t("money.refundedApart", { bdt: taka(sums.returnedBdt) })
+      hint: sums?.returnedMoney
+        ? t("money.refundedApart", { amount: taka(sums.returnedMoney) })
         : undefined,
       icon: Wallet,
     },
     {
       label: t("investors.page.profit"),
-      value: sums ? taka(sums.profitBdt) : loading,
+      value: sums ? taka(sums.profitMoney) : loading,
       hint: sums?.settled
         ? t("investors.page.fromSettled", { count: sums.settled })
         : t("investors.page.noneSettled"),
       icon: TrendingUp,
-      tone: (sums?.profitBdt ?? 0) < 0 ? "warning" : "neutral",
+      tone: (sums?.profitMoney ?? 0) < 0 ? "warning" : "neutral",
     },
   ];
 };

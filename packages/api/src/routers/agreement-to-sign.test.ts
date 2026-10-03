@@ -31,14 +31,14 @@ beforeAll(async () => {
   });
   const venture = await owner.ventures.open({
     name: `ভেঞ্চার ${suffix}`,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2052-01-20",
     targetWindowStart: "2052-03-17",
     targetWindowEnd: "2052-03-19",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
-    cattleBudgetBdt: 800_000,
+    cattleBudgetMoney: 800_000,
   });
   ventureId = venture.id;
   const him = await owner.investors.record({
@@ -247,7 +247,7 @@ describe("stamp duty paid by e-challan", () => {
     const signed = await owner.ventures.sign({
       ...terms(),
       stampKind: "e_challan",
-      stampValueBdt: 300,
+      stampValueMoney: 300,
       stampedOn: "2052-01-02",
       stampSerial: `2324-${suffix}`,
     });
@@ -258,7 +258,7 @@ describe("stamp duty paid by e-challan", () => {
     });
     await owner.ventures.takeCapital({
       agreementId: signed.id,
-      amountBdt: 150_000,
+      amountMoney: 150_000,
       movedOn: "2052-01-03",
       paymentMethod: "bank",
       reference: `TRF-${suffix}`,

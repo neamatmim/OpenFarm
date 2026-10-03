@@ -9,7 +9,7 @@ import { saleStillMissing } from "./sale-missing";
 const aSale = {
   tagNumber: "F-0054",
   buyerName: "রহমান ব্যাপারী",
-  priceBdt: "150000",
+  priceMoney: "150000",
   weightKg: "280",
   destination: "গাবতলী",
   vehicle: "ঢাকা মেট্রো ট ১১-২২৩৩",

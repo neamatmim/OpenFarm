@@ -22,7 +22,7 @@ const bought = (penId: string) => ({
   penId,
   sex: "male" as const,
   seller: { name: `ব্যাপারী ${suffix}` },
-  purchasePriceBdt: 80_000,
+  purchasePriceMoney: 80_000,
   weightKg: 250,
   estimatedAgeMonths: 22,
   arrivedAt: new Date(AT),

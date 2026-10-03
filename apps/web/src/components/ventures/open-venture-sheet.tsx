@@ -14,12 +14,12 @@ import { orpc } from "@/utils/orpc";
 
 interface Plan {
   name: string;
-  targetCapitalBdt: string;
-  unitPriceBdt: string;
+  targetCapitalMoney: string;
+  unitPriceMoney: string;
   /** How many Units there are, when the Owner wants a number of her own. */
   units: string;
   /** What is meant for buying animals, when the Owner wants a figure of her own. */
-  cattleBudgetBdt: string;
+  cattleBudgetMoney: string;
   decideBy: string;
   targetWindowStart: string;
   targetWindowEnd: string;
@@ -37,16 +37,16 @@ const wouldKeep = (amount: number, runningPercent: number | undefined) =>
 
 /** The Cattle Budget the Venture will open with: hers where she typed one, the farm's share of the capital where not. */
 const cattleBudgetOf = (plan: Plan, runningPercent: number | undefined) =>
-  plan.cattleBudgetBdt.trim() === ""
-    ? Number(wouldKeep(Number(plan.targetCapitalBdt), runningPercent) || 0)
-    : Number(plan.cattleBudgetBdt);
+  plan.cattleBudgetMoney.trim() === ""
+    ? Number(wouldKeep(Number(plan.targetCapitalMoney), runningPercent) || 0)
+    : Number(plan.cattleBudgetMoney);
 
 const NOTHING_YET: Plan = {
   name: "",
-  targetCapitalBdt: "",
-  unitPriceBdt: "",
+  targetCapitalMoney: "",
+  unitPriceMoney: "",
   units: "",
-  cattleBudgetBdt: "",
+  cattleBudgetMoney: "",
   decideBy: "",
   targetWindowStart: "",
   targetWindowEnd: "",
@@ -58,31 +58,31 @@ const NOTHING_YET: Plan = {
  * opens it — or why there is none. Nothing until the figures it is worked from are in.
  */
 const MonthlyPreview = ({
-  unitPriceBdt,
-  targetCapitalBdt,
-  cattleBudgetBdt,
+  unitPriceMoney,
+  targetCapitalMoney,
+  cattleBudgetMoney,
   decideBy,
   targetWindowStart,
 }: {
-  unitPriceBdt: number;
-  targetCapitalBdt: number;
-  cattleBudgetBdt: number;
+  unitPriceMoney: number;
+  targetCapitalMoney: number;
+  cattleBudgetMoney: number;
   decideBy: string;
   targetWindowStart: string;
 }) => {
   const { t } = useLanguage();
   const known =
-    unitPriceBdt > 0 &&
-    targetCapitalBdt > 0 &&
+    unitPriceMoney > 0 &&
+    targetCapitalMoney > 0 &&
     decideBy !== "" &&
     targetWindowStart !== "";
   if (!known) {
     return null;
   }
   const terms = monthlyTermsOf({
-    unitPriceBdt,
-    targetCapitalBdt,
-    cattleBudgetBdt,
+    unitPriceMoney,
+    targetCapitalMoney,
+    cattleBudgetMoney,
     decideBy,
     targetWindowStart,
   });
@@ -104,10 +104,10 @@ const MonthlyPreview = ({
     <output className="bg-muted block rounded-md px-3 py-2 text-sm">
       <PaidForBy
         paidFor={{
-          unitPriceBdt,
+          unitPriceMoney,
           monthly: {
-            cattlePartBdt: terms.cattlePartBdt,
-            sums: monthlySumsOf(unitPriceBdt, terms),
+            cattlePartMoney: terms.cattlePartMoney,
+            sums: monthlySumsOf(unitPriceMoney, terms),
           },
         }}
       />
@@ -141,8 +141,8 @@ export const OpenVentureSheet = ({
       },
     })
   );
-  const target = Number(plan.targetCapitalBdt);
-  const unit = Number(plan.unitPriceBdt);
+  const target = Number(plan.targetCapitalMoney);
+  const unit = Number(plan.unitPriceMoney);
   // What the farm plans a Venture by, for the sentence under the title. The figures themselves are the
   // server's to apply, so the sheet never has to know the rule — only how to say it.
   const settings =
@@ -176,16 +176,16 @@ export const OpenVentureSheet = ({
         // Owner says otherwise here.
         opening.mutate({
           name: plan.name,
-          targetCapitalBdt: target,
+          targetCapitalMoney: target,
           decideBy: plan.decideBy,
           targetWindowStart: window.start,
           targetWindowEnd: window.end,
-          unitPriceBdt: unit,
+          unitPriceMoney: unit,
           units: plan.units.trim() === "" ? undefined : Number(plan.units),
-          cattleBudgetBdt:
-            plan.cattleBudgetBdt.trim() === ""
+          cattleBudgetMoney:
+            plan.cattleBudgetMoney.trim() === ""
               ? undefined
-              : Number(plan.cattleBudgetBdt),
+              : Number(plan.cattleBudgetMoney),
           capitalPaid: plan.capitalPaid,
         })
       }
@@ -232,10 +232,10 @@ export const OpenVentureSheet = ({
             id="venture-target"
             inputMode="numeric"
             onChange={(event) =>
-              setPlan({ ...plan, targetCapitalBdt: event.target.value })
+              setPlan({ ...plan, targetCapitalMoney: event.target.value })
             }
             type="number"
-            value={plan.targetCapitalBdt}
+            value={plan.targetCapitalMoney}
           />
         </FormField>
         <FormField id="venture-unit" label={t("ventures.unitPrice")}>
@@ -243,10 +243,10 @@ export const OpenVentureSheet = ({
             id="venture-unit"
             inputMode="numeric"
             onChange={(event) =>
-              setPlan({ ...plan, unitPriceBdt: event.target.value })
+              setPlan({ ...plan, unitPriceMoney: event.target.value })
             }
             type="number"
-            value={plan.unitPriceBdt}
+            value={plan.unitPriceMoney}
           />
         </FormField>
       </div>
@@ -268,11 +268,11 @@ export const OpenVentureSheet = ({
             id="venture-cattle"
             inputMode="numeric"
             onChange={(event) =>
-              setPlan({ ...plan, cattleBudgetBdt: event.target.value })
+              setPlan({ ...plan, cattleBudgetMoney: event.target.value })
             }
             placeholder={wouldKeep(target, running)}
             type="number"
-            value={plan.cattleBudgetBdt}
+            value={plan.cattleBudgetMoney}
           />
         </FormField>
       </div>
@@ -310,11 +310,11 @@ export const OpenVentureSheet = ({
       </div>
       {plan.capitalPaid === "by_the_month" ? (
         <MonthlyPreview
-          cattleBudgetBdt={cattleBudgetOf(plan, running)}
+          cattleBudgetMoney={cattleBudgetOf(plan, running)}
           decideBy={plan.decideBy}
-          targetCapitalBdt={target}
+          targetCapitalMoney={target}
           targetWindowStart={window.start}
-          unitPriceBdt={unit}
+          unitPriceMoney={unit}
         />
       ) : null}
     </FormSheet>

@@ -13,56 +13,56 @@ describe("splitting a Venture's profit", () => {
   it("gives the Investors their percentage and the Farm the rest", () => {
     // Two lakh profit, sixty per cent to the Investors, twenty Units between them.
     expect(
-      splitOfProfit({ profitBdt: 200_000, investorsPercent: 60, units: 20 })
+      splitOfProfit({ profitMoney: 200_000, investorsPercent: 60, units: 20 })
     ).toEqual({
-      investorsBdt: 120_000,
-      perUnitBdt: 6000,
-      roundingBdt: 0,
-      farmBdt: 80_000,
+      investorsMoney: 120_000,
+      perUnitMoney: 6000,
+      roundingMoney: 0,
+      farmMoney: 80_000,
     });
   });
 
   it("floors the Unit and gives the Farm what flooring leaves over", () => {
     // 60% of 200,015 is 120,009, which will not divide twenty ways in whole taka.
     const split = splitOfProfit({
-      profitBdt: 200_015,
+      profitMoney: 200_015,
       investorsPercent: 60,
       units: 20,
     });
     expect(split).toEqual({
-      investorsBdt: 120_009,
-      perUnitBdt: 6000,
-      roundingBdt: 9,
-      farmBdt: 80_015,
+      investorsMoney: 120_009,
+      perUnitMoney: 6000,
+      roundingMoney: 9,
+      farmMoney: 80_015,
     });
     // Nothing is paid out that the account does not hold, and nothing is left with nobody: what the
     // Units take and what the Farm takes are the whole profit. The remainder is inside the Farm's line,
     // not beside it.
-    expect(split.perUnitBdt * 20 + split.farmBdt).toBe(200_015);
+    expect(split.perUnitMoney * 20 + split.farmMoney).toBe(200_015);
   });
 
   it("divides a loss the same way, and says so as a negative", () => {
     const split = splitOfProfit({
-      profitBdt: -100_000,
+      profitMoney: -100_000,
       investorsPercent: 60,
       units: 20,
     });
     expect(split).toEqual({
-      investorsBdt: -60_000,
-      perUnitBdt: -3000,
-      roundingBdt: 0,
-      farmBdt: -40_000,
+      investorsMoney: -60_000,
+      perUnitMoney: -3000,
+      roundingMoney: 0,
+      farmMoney: -40_000,
     });
   });
 
   it("adds up whatever the profit is", () => {
-    for (const profitBdt of [0, 1, -1, 999_999, -999_999, 123_457]) {
+    for (const profitMoney of [0, 1, -1, 999_999, -999_999, 123_457]) {
       const split = splitOfProfit({
-        profitBdt,
+        profitMoney,
         investorsPercent: 55,
         units: 17,
       });
-      expect(split.perUnitBdt * 17 + split.farmBdt).toBe(profitBdt);
+      expect(split.perUnitMoney * 17 + split.farmMoney).toBe(profitMoney);
     }
   });
 
@@ -71,12 +71,12 @@ describe("splitting a Venture's profit", () => {
     // flooring left over — which is the Farm's. A Venture in this state cannot reach a Settlement
     // anyway, but the arithmetic must not divide by nothing to find that out.
     expect(
-      splitOfProfit({ profitBdt: 50_000, investorsPercent: 60, units: 0 })
+      splitOfProfit({ profitMoney: 50_000, investorsPercent: 60, units: 0 })
     ).toEqual({
-      investorsBdt: 30_000,
-      perUnitBdt: 0,
-      roundingBdt: 30_000,
-      farmBdt: 50_000,
+      investorsMoney: 30_000,
+      perUnitMoney: 0,
+      roundingMoney: 30_000,
+      farmMoney: 50_000,
     });
   });
 });
@@ -119,16 +119,18 @@ describe("a split among holdings with part of a Unit", () => {
   it("floors each holding on its own and gives the paisa to the Farm's line", () => {
     // Ten Units paid for and 2.4: 60% of 10,000 over 12.4 Units is 483 a Unit.
     const split = splitOfProfit({
-      profitBdt: 10_000,
+      profitMoney: 10_000,
       investorsPercent: 60,
       units: 12.4,
       held: [10, 2.4],
     });
 
-    expect(split.perUnitBdt).toBe(483);
+    expect(split.perUnitMoney).toBe(483);
     // 4,830 and 1,159 (1,159.2 floored) taken between them.
-    expect(split.roundingBdt).toBe(6000 - 4830 - 1159);
-    expect(split.investorsBdt - split.roundingBdt + split.farmBdt).toBe(10_000);
+    expect(split.roundingMoney).toBe(6000 - 4830 - 1159);
+    expect(split.investorsMoney - split.roundingMoney + split.farmMoney).toBe(
+      10_000
+    );
   });
 });
 

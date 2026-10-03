@@ -117,7 +117,7 @@ export const CallOffSheet = ({
             key={one.id}
           >
             <p className="text-sm font-medium">
-              {`${nameOf(one.investorId)} · ${taka(one.amountBdt)} · ${one.reference}`}
+              {`${nameOf(one.investorId)} · ${taka(one.amountMoney)} · ${one.reference}`}
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <FormField

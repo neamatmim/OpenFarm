@@ -20,14 +20,14 @@ export const CorrectMovement = ({
 }: {
   movement: {
     id: string;
-    amountBdt: number;
+    amountMoney: number;
     movedOn: string;
     reference: string;
   };
 }) => {
   const { t } = useLanguage();
   const correcting = useCorrecting({
-    amountBdt: amount(movement.amountBdt),
+    amountMoney: amount(movement.amountMoney),
     movedOn: day(movement.movedOn),
     reference: words(movement.reference),
   });
@@ -52,9 +52,9 @@ export const CorrectMovement = ({
       <CorrectionAnswer
         inputMode="numeric"
         label={t("ventures.amount")}
-        onChange={(value) => correcting.set("amountBdt", value)}
+        onChange={(value) => correcting.set("amountMoney", value)}
         type="number"
-        value={correcting.typed.amountBdt ?? ""}
+        value={correcting.typed.amountMoney ?? ""}
       />
       <CorrectionAnswer
         label={t("ventures.movedOn")}

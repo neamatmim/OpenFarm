@@ -106,22 +106,22 @@ export const HisProjectionSection = ({
   return (
     <Said
       hint={t("portal.projection.hint", {
-        low: taka(projection.saleLowBdtPerKg),
-        high: taka(projection.saleHighBdtPerKg),
+        low: taka(projection.saleLowMoneyPerKg),
+        high: taka(projection.saleHighMoneyPerKg),
         day: formatDate(new Date(projection.setAt), language, "date"),
       })}
       deathsPercent={projection.deathsPercent}
-      loss={projection.low.profitBdt < 0}
+      loss={projection.low.profitMoney < 0}
     >
       <Range
-        high={projection.high.shareBdt}
+        high={projection.high.shareMoney}
         label={t("portal.projection.yourShare")}
-        low={projection.low.shareBdt}
+        low={projection.low.shareMoney}
       />
       <Range
-        high={projection.high.payoutBdt}
+        high={projection.high.payoutMoney}
         label={t("portal.projection.yourPayout")}
-        low={projection.low.payoutBdt}
+        low={projection.low.payoutMoney}
       />
     </Said>
   );
@@ -146,20 +146,20 @@ export const OfferProjectionSection = ({
   return (
     <Said
       hint={t("portal.projection.offerHint", {
-        buy: taka(projection.buyBdtPerKg ?? 0),
+        buy: taka(projection.buyMoneyPerKg ?? 0),
         weight: kg(projection.buyWeightKg),
         gain: kg(projection.dailyGainKg),
-        low: taka(projection.saleLowBdtPerKg),
-        high: taka(projection.saleHighBdtPerKg),
+        low: taka(projection.saleLowMoneyPerKg),
+        high: taka(projection.saleHighMoneyPerKg),
         day: formatDate(new Date(projection.setAt), language, "date"),
       })}
       deathsPercent={projection.deathsPercent}
-      loss={projection.low.profitBdt < 0}
+      loss={projection.low.profitMoney < 0}
     >
       <Range
-        high={projection.high.perUnitBdt}
+        high={projection.high.perUnitMoney}
         label={t("portal.projection.perUnit")}
-        low={projection.low.perUnitBdt}
+        low={projection.low.perUnitMoney}
       />
     </Said>
   );

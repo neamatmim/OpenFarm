@@ -140,7 +140,7 @@ const parameters = z
      *  more than a year, past which nothing a Season does would ever be scaled. */
     returnYearFloorDays: z.number().int().min(1).max(365).optional(),
     /** The taka above which a Money Event waits for the Owner. */
-    approvalThresholdBdt: z.number().int().min(0).max(100_000_000).optional(),
+    approvalThresholdMoney: z.number().int().min(0).max(100_000_000).optional(),
     /** The day of the month from which a Monthly Cost with nothing entered that month is named: no later than the 28th,
      *  which every month has. */
     monthlyCostsFromDay: z.number().int().min(1).max(28).optional(),
@@ -148,7 +148,7 @@ const parameters = z
      *  the most. */
     bakiDays: z.number().int().min(7).max(120).optional(),
     /** The taka a Stock Count may come up short by before the Owner and the Manager are told of it. */
-    storeShortfallTellBdt: z.number().int().min(0).max(1_000_000).optional(),
+    storeShortfallTellMoney: z.number().int().min(0).max(1_000_000).optional(),
     /** How many animals in one Pen with sores on the mouth or feet, within how many hours, before the farm is told. */
     soresTellAnimals: z.number().int().min(2).max(20).optional(),
     soresTellHours: z.number().int().min(12).max(168).optional(),
@@ -178,8 +178,8 @@ const parameters = z
     /** How many days after a Release or an arrival dose is put off it is raised again. */
     putOffDays: z.number().int().min(1).max(60).optional(),
     /** How far a Cash Count may come up short before the Owner is told. */
-    cashShortTellBdt: z.number().int().min(0).max(1_000_000).optional(),
-    medicineShortTellBdt: z.number().int().min(0).max(1_000_000).optional(),
+    cashShortTellMoney: z.number().int().min(0).max(1_000_000).optional(),
+    medicineShortTellMoney: z.number().int().min(0).max(1_000_000).optional(),
     /** What part of a Venture's target capital is the least worth starting on. */
     ventureFloorPercent: z.number().int().min(0).max(100).optional(),
     /** What part of a Venture's capital keeps the animals rather than buying them. */
@@ -190,11 +190,11 @@ const parameters = z
     windUpDays: z.number().int().min(0).max(180).optional(),
     /** How old her last Weigh-in may be for an Internal Sale or the buy-back to price her on. */
     priceWeighInDays: z.number().int().min(1).max(60).optional(),
-    adjustmentThresholdBdt: z.number().int().min(0).max(1_000_000).optional(),
+    adjustmentThresholdMoney: z.number().int().min(0).max(1_000_000).optional(),
     /** How many Investors the Farm may have at a time, and where it starts warning. */
     investorCap: z.number().int().min(1).max(50).optional(),
     investorWarnAt: z.number().int().min(1).max(50).optional(),
-    runningBudgetWarnBdt: z.number().int().min(0).max(100_000_000).optional(),
+    runningBudgetWarnMoney: z.number().int().min(0).max(100_000_000).optional(),
   })
   .refine(
     (value) => Object.values(value).some((entry) => entry !== undefined),
@@ -234,10 +234,10 @@ const A_VENTURES_OWN = [
   "ventureInvestorsPercent",
   "windUpDays",
   "priceWeighInDays",
-  "adjustmentThresholdBdt",
+  "adjustmentThresholdMoney",
   "investorCap",
   "investorWarnAt",
-  "runningBudgetWarnBdt",
+  "runningBudgetWarnMoney",
 ] as const;
 
 /** What the Owner's keep-or-sell figures and list of cows to think about culling read: the Owner's to set, as the two
@@ -267,7 +267,7 @@ const WHEN_A_MISSING_ANIMAL_IS_ASKED_ABOUT = ["missingWriteOffDays"] as const;
 
 /** When a count's shortfall is told: the Owner's to set, as the count is the one check on the Manager's feed. */
 const WHEN_A_SHORT_STORE_IS_TOLD = [
-  "storeShortfallTellBdt",
+  "storeShortfallTellMoney",
   // Milk nobody can account for is checked on the Manager, as the store is.
   "milkUnaccountedPercent",
   // And what the Manager paid for the feed.
@@ -277,9 +277,9 @@ const WHEN_A_SHORT_STORE_IS_TOLD = [
   // And the weight he sold one at.
   "shrinkTellPercent",
   // And the cash in the Manager's hand.
-  "cashShortTellBdt",
+  "cashShortTellMoney",
   // And the medicine the Manager buys and counts.
-  "medicineShortTellBdt",
+  "medicineShortTellMoney",
 ] as const;
 
 type ParametersInput = z.infer<typeof parameters>;
@@ -527,16 +527,16 @@ export const farmRouter = {
     // The Approval Threshold is a money figure, and money is not Barn Staff's or the Vet's to see; the
     // three a Venture is planned by are the Owner's alone, as a Venture is.
     const {
-      approvalThresholdBdt,
+      approvalThresholdMoney,
       ventureFloorPercent,
       ventureRunningPercent,
       ventureInvestorsPercent,
       windUpDays,
       priceWeighInDays,
-      adjustmentThresholdBdt,
+      adjustmentThresholdMoney,
       investorCap,
       investorWarnAt,
-      runningBudgetWarnBdt,
+      runningBudgetWarnMoney,
       ...withoutMoney
     } = context.farm;
     const planning = context.roles.some((role) => role === "owner")
@@ -546,17 +546,17 @@ export const farmRouter = {
           ventureInvestorsPercent,
           windUpDays,
           priceWeighInDays,
-          adjustmentThresholdBdt,
+          adjustmentThresholdMoney,
           investorCap,
           investorWarnAt,
-          runningBudgetWarnBdt,
+          runningBudgetWarnMoney,
         }
       : {};
     const readsMoney = context.roles.some(
       (role) => role === "owner" || role === "manager"
     );
     return readsMoney
-      ? { ...withoutMoney, ...planning, approvalThresholdBdt }
+      ? { ...withoutMoney, ...planning, approvalThresholdMoney }
       : withoutMoney;
   }),
 
@@ -818,10 +818,10 @@ export const farmRouter = {
                 cullCalfMilkDays: true,
                 cullMilkPriceDays: true,
                 returnYearFloorDays: true,
-                approvalThresholdBdt: true,
+                approvalThresholdMoney: true,
                 monthlyCostsFromDay: true,
                 bakiDays: true,
-                storeShortfallTellBdt: true,
+                storeShortfallTellMoney: true,
                 soresTellAnimals: true,
                 soresTellHours: true,
                 illAgainDiagnoses: true,
@@ -838,17 +838,17 @@ export const farmRouter = {
                 shrinkTellPercent: true,
                 feedDaysLow: true,
                 putOffDays: true,
-                cashShortTellBdt: true,
-                medicineShortTellBdt: true,
+                cashShortTellMoney: true,
+                medicineShortTellMoney: true,
                 ventureFloorPercent: true,
                 ventureRunningPercent: true,
                 ventureInvestorsPercent: true,
                 windUpDays: true,
                 priceWeighInDays: true,
-                adjustmentThresholdBdt: true,
+                adjustmentThresholdMoney: true,
                 investorCap: true,
                 investorWarnAt: true,
-                runningBudgetWarnBdt: true,
+                runningBudgetWarnMoney: true,
               },
             })) ?? null,
           after: () => Promise.resolve({ ...changes, ...retimed }),

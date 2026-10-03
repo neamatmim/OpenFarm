@@ -52,7 +52,7 @@ const setup = async () => {
     feedItemId: concentrate.id,
     kind: "purchase",
     quantity: 1000,
-    priceBdt: 40_000,
+    priceMoney: 40_000,
     seller: { name: `রহমান ফিডস ${suffix}` },
     receivedOn: "2035-01-01",
   });
@@ -243,7 +243,7 @@ describe("the stock count", () => {
       world.concentrate.id
     );
     // The count is what is on hand now, and a count moves no price: the farm paid what it paid.
-    expect(concentrate).toMatchObject({ onHand: 950, averagePriceBdt: 40 });
+    expect(concentrate).toMatchObject({ onHand: 950, averagePriceMoney: 40 });
     const adjustments = await manager.client.stock.adjustments({
       feedItemId: world.concentrate.id,
     });
@@ -296,7 +296,7 @@ describe("the stock count", () => {
       feedItemId: world.concentrate.id,
       kind: "purchase",
       quantity: 100,
-      priceBdt: 4000,
+      priceMoney: 4000,
       seller: { name: `রহমান ফিডস ${suffix}` },
       receivedOn: "2035-01-09",
     });
@@ -424,7 +424,7 @@ describe("running low", () => {
         feedItemId: world.concentrate.id,
         kind: "purchase",
         quantity: 500,
-        priceBdt: 20_000,
+        priceMoney: 20_000,
         seller: { name: `রহমান ফিডস ${suffix}` },
         receivedOn: "2035-01-14",
       });

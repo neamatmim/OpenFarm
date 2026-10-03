@@ -23,16 +23,16 @@ let fakeId = "";
 const entered = async (
   day: string,
   categoryId: string,
-  amountBdt: number,
+  amountMoney: number,
   sheet: { paymentMethod: "cash" | "bkash"; reference?: string }
 ) => {
   const manager = await as("manager", `${day}T10:00:00.000Z`);
   return await manager.client.money.enter({
     categoryId,
-    amountBdt,
+    amountMoney,
     occurredOn: day,
     counterparty: { name: `ক্রেতা ${suffix}` },
-    note: `${amountBdt} ${suffix}`,
+    note: `${amountMoney} ${suffix}`,
     paymentMethod: sheet.paymentMethod,
     ...(sheet.reference
       ? { farmAccountId: accountId, reference: sheet.reference }
@@ -42,7 +42,7 @@ const entered = async (
 
 const checked = async (
   month: string,
-  readBdt: number,
+  readMoney: number,
   note?: string,
   instant = "2083-07-02T10:00:00.000Z"
 ) => {
@@ -50,7 +50,7 @@ const checked = async (
   return await owner.client.farmAccounts.check({
     id: accountId,
     month,
-    readBdt,
+    readMoney,
     ...(note ? { note } : {}),
   });
 };
@@ -93,7 +93,7 @@ describe("a Farm Account's monthly check", () => {
       undefined,
       "2083-05-02T10:00:00.000Z"
     );
-    expect(first).toMatchObject({ expectedBdt: 10_000, differenceBdt: 0 });
+    expect(first).toMatchObject({ expectedMoney: 10_000, differenceMoney: 0 });
   });
 
   it("disagrees by the bKash money that never reached the number", async () => {
@@ -104,7 +104,10 @@ describe("a Farm Account's monthly check", () => {
       undefined,
       "2083-06-02T10:00:00.000Z"
     );
-    expect(may).toMatchObject({ expectedBdt: 18_000, differenceBdt: -5000 });
+    expect(may).toMatchObject({
+      expectedMoney: 18_000,
+      differenceMoney: -5000,
+    });
     expect(await standing()).toMatchObject({
       lastCheckedMonth: "2083-05",
       monthsOut: ["2083-05"],
@@ -160,15 +163,15 @@ describe("a Farm Account's monthly check", () => {
     await manager.client.cash.handOver({
       from: { userId: thePerson("manager").id },
       to: { farmAccountId: accountId },
-      amountBdt: 2000,
+      amountMoney: 2000,
       reference: `CASH-IN-${suffix}`,
     });
     const june = await checked("2083-06", 14_000);
-    expect(june).toMatchObject({ expectedBdt: 14_000, differenceBdt: 0 });
+    expect(june).toMatchObject({ expectedMoney: 14_000, differenceMoney: 0 });
     expect(await standing()).toMatchObject({
       lastCheckedMonth: "2083-06",
       monthsOut: [],
-      heldNowBdt: 14_000,
+      heldNowMoney: 14_000,
     });
   });
 
@@ -187,7 +190,7 @@ describe("a Farm Account's monthly check", () => {
       manager.client.farmAccounts.check({
         id: accountId,
         month: "2083-06",
-        readBdt: 14_000,
+        readMoney: 14_000,
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     const listed = await manager.client.farmAccounts.list();

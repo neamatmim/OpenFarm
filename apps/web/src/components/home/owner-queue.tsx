@@ -142,7 +142,7 @@ const MoneyGroup = ({ needsYou, headless }: GroupProps) => {
             <Link className="hover:underline" to="/money">
               {categoryName(row, language)} ·{" "}
               <span className="tabular-nums">
-                ৳{formatNumber(row.amountBdt, language)}
+                ৳{formatNumber(row.amountMoney, language)}
               </span>
             </Link>
           }
@@ -151,7 +151,10 @@ const MoneyGroup = ({ needsYou, headless }: GroupProps) => {
               className={ROW_ACT}
               disabled={approveMoney.isPending}
               onClick={() =>
-                approveMoney.mutate({ id: row.id, amountBdt: row.amountBdt })
+                approveMoney.mutate({
+                  id: row.id,
+                  amountMoney: row.amountMoney,
+                })
               }
               size="sm"
               type="button"

@@ -22,15 +22,15 @@ const as = (role: "owner" | "manager" | "staff", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 const plan = {
-  targetCapitalBdt: 1_000_000,
-  floorBdt: 0,
+  targetCapitalMoney: 1_000_000,
+  floorMoney: 0,
   decideBy: "2047-05-20",
   targetWindowStart: "2047-08-17",
   targetWindowEnd: "2047-08-19",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 20,
   /** Eight lakh for cattle, so two lakh keeps them. */
-  cattleBudgetBdt: 800_000,
+  cattleBudgetMoney: 800_000,
 };
 
 const feedSop = (): SopContent => ({
@@ -72,7 +72,7 @@ const funded = async (owner: Owner, which: number) => {
     units: 20,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2047-05-02",
     stampSerial: `AA ${which} ${suffix}`,
   });
@@ -83,7 +83,7 @@ const funded = async (owner: Owner, which: number) => {
   });
   await owner.client.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: 1_000_000,
+    amountMoney: 1_000_000,
     movedOn: "2047-05-03",
     paymentMethod: "bank",
     reference: `TRF-${suffix}-${which}`,
@@ -124,7 +124,7 @@ const theyEat = async (owner: Owner) => {
     feedItemId: item.id,
     kind: "purchase",
     quantity: 10_000,
-    priceBdt: 400_000,
+    priceMoney: 400_000,
     seller: { name: `ডিলার ${suffix}` },
     receivedOn: "2047-05-04",
   });
@@ -142,7 +142,7 @@ const theyEat = async (owner: Owner) => {
     penId: pen.id,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 60_000,
+    purchasePriceMoney: 60_000,
     weightKg: 200,
     estimatedAgeMonths: 20,
     ventureId,
@@ -172,7 +172,7 @@ const theyEat = async (owner: Owner) => {
 beforeAll(async () => {
   const owner = await as("owner", "2047-05-01T04:00:00.000Z");
   // Her own line, and not the farm's default: a test that sets the default proves nothing.
-  await owner.client.farm.setParameters({ runningBudgetWarnBdt: 40_000 });
+  await owner.client.farm.setParameters({ runningBudgetWarnMoney: 40_000 });
   ventureId = await funded(owner, 1);
 });
 
@@ -182,7 +182,7 @@ describe("the Running Budget", () => {
     const venture = await theVenture(owner);
     // Two lakh came in for keeping them, and none of it is spent.
     expect(venture).toMatchObject({
-      runningBudgetHeldBdt: 200_000,
+      runningBudgetHeldMoney: 200_000,
       runningBudgetLow: false,
     });
   });
@@ -194,15 +194,15 @@ describe("the Running Budget", () => {
     const trip = await owner.client.trips.record({
       wentTo: `হাট ${suffix}`,
       wentOn: "2047-05-05",
-      brokerBdt: 0,
-      transportBdt: 0,
-      keepBdt: 0,
+      brokerMoney: 0,
+      transportMoney: 0,
+      keepMoney: 0,
     });
     // The rest of the cattle money: the bull at the gate was paid for from it by bank.
     await owner.client.ventures.drawFloat({
       ventureId,
       buyingTripId: trip.id,
-      amountBdt: 740_000,
+      amountMoney: 740_000,
       movedOn: "2047-05-05",
       paymentMethod: "bank",
       reference: `FLT-${suffix}`,
@@ -211,8 +211,8 @@ describe("the Running Budget", () => {
     // have eaten of the Farm's feed is owed the Farm, and what is really left is under her line already.
     const afterFloat = await theVenture(owner);
     expect(afterFloat).toMatchObject({
-      runningBudgetHeldBdt: 200_000,
-      owedTheFarmBdt: 164_000,
+      runningBudgetHeldMoney: 200_000,
+      owedTheFarmMoney: 164_000,
       runningBudgetLow: true,
     });
 
@@ -225,34 +225,34 @@ describe("the Running Budget", () => {
       movedOn: "2047-06-02",
       paymentMethod: "bank",
       reference: `REI-${suffix}`,
-      amountBdt: 164_000,
+      amountMoney: 164_000,
     });
     const afterEating = await theVenture(paying);
     // Her line is forty thousand, and thirty-six is below it.
     expect(afterEating).toMatchObject({
-      runningBudgetHeldBdt: 36_000,
+      runningBudgetHeldMoney: 36_000,
       runningBudgetLow: true,
     });
 
     // Exactly on the line is not below it, and the farm says nothing. Read on a fresh client, because
     // a client carries the farm's parameters as they stood when it was made.
-    await paying.client.farm.setParameters({ runningBudgetWarnBdt: 36_000 });
+    await paying.client.farm.setParameters({ runningBudgetWarnMoney: 36_000 });
     const sinceChanged = await as("owner", "2047-06-03T04:00:00.000Z");
     const onTheLine = await theVenture(sinceChanged);
     expect(onTheLine?.runningBudgetLow).toBe(false);
     await sinceChanged.client.farm.setParameters({
-      runningBudgetWarnBdt: 40_000,
+      runningBudgetWarnMoney: 40_000,
     });
   });
 
   it("takes the Owner's own money in, and holds it against the Running Budget", async () => {
     const owner = await as("owner", "2047-05-06T04:00:00.000Z");
     const before = await theVenture(owner);
-    const heldBefore = before?.runningBudgetHeldBdt ?? 0;
+    const heldBefore = before?.runningBudgetHeldMoney ?? 0;
 
     await owner.client.ventures.advance({
       ventureId,
-      amountBdt: 50_000,
+      amountMoney: 50_000,
       movedOn: "2047-05-06",
       paymentMethod: "bank",
       reference: `ADV-${suffix}`,
@@ -261,10 +261,10 @@ describe("the Running Budget", () => {
     const after = await theVenture(owner);
     // Her money keeps the animals; it does not buy one more of them.
     expect(after).toMatchObject({
-      advancedBdt: 50_000,
-      runningBudgetHeldBdt: heldBefore + 50_000,
-      cattleBudgetHeldBdt: before?.cattleBudgetHeldBdt ?? 0,
-      balanceBdt: (before?.balanceBdt ?? 0) + 50_000,
+      advancedMoney: 50_000,
+      runningBudgetHeldMoney: heldBefore + 50_000,
+      cattleBudgetHeldMoney: before?.cattleBudgetHeldMoney ?? 0,
+      balanceMoney: (before?.balanceMoney ?? 0) + 50_000,
     });
   });
 
@@ -283,9 +283,9 @@ describe("the Running Budget", () => {
     // and separate lines.
     const venture = await theVenture(owner);
     expect(venture).toMatchObject({
-      advancedBdt: 50_000,
-      spentBdt: 800_000,
-      reimbursedBdt: 164_000,
+      advancedMoney: 50_000,
+      spentMoney: 800_000,
+      reimbursedMoney: 164_000,
     });
   });
 
@@ -294,7 +294,7 @@ describe("the Running Budget", () => {
     await expect(
       owner.client.ventures.advance({
         ventureId,
-        amountBdt: 1000,
+        amountMoney: 1000,
         movedOn: "2047-05-08",
         paymentMethod: "cash",
         reference: "হাতে হাতে",
@@ -315,7 +315,7 @@ describe("the Running Budget", () => {
     await expect(
       owner.client.ventures.advance({
         ventureId: calledOff.id,
-        amountBdt: 1000,
+        amountMoney: 1000,
         movedOn: "2047-05-08",
         paymentMethod: "bank",
         reference: `ADV2-${suffix}`,
@@ -331,7 +331,7 @@ describe("the Running Budget", () => {
     await expect(
       manager.client.ventures.advance({
         ventureId,
-        amountBdt: 1000,
+        amountMoney: 1000,
         movedOn: "2047-05-09",
         paymentMethod: "bank",
         reference: `ADV3-${suffix}`,

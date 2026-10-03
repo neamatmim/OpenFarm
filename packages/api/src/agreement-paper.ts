@@ -42,11 +42,11 @@ export const agreementLaidOut = ({
   run: Pick<
     VentureRow,
     | "name"
-    | "unitPriceBdt"
+    | "unitPriceMoney"
     | "targetWindowStart"
     | "targetWindowEnd"
     | "capitalPaid"
-    | "cattlePartBdt"
+    | "cattlePartMoney"
     | "monthlySums"
     | "firstSumDueOn"
   >;
@@ -76,7 +76,7 @@ export const agreementLaidOut = ({
       him: investor,
       ventureName: run.name,
       units: terms.units,
-      unitPriceBdt: run.unitPriceBdt,
+      unitPriceMoney: run.unitPriceMoney,
       investorsPercent: terms.investorsPercent,
       windowStart: run.targetWindowStart,
       windowEnd: run.targetWindowEnd,

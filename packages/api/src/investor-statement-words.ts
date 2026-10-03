@@ -48,9 +48,9 @@ export const shareOfUnits = (his: number, all: number): number =>
 export const herdStoryWords = (
   story: {
     boughtCount: number;
-    averageBoughtBdt: number | null;
+    averageBoughtMoney: number | null;
     soldCount: number;
-    averageSoldBdt: number | null;
+    averageSoldMoney: number | null;
     boughtBackCount: number;
     diedCount: number;
   },
@@ -58,14 +58,14 @@ export const herdStoryWords = (
 ): string[] =>
   [
     `কেনা হয়েছে / Bought: ${said(story.boughtCount)}${
-      story.averageBoughtBdt === null
+      story.averageBoughtMoney === null
         ? ""
-        : ` · গড়ে ${said(story.averageBoughtBdt)} টাকা`
+        : ` · গড়ে ${said(story.averageBoughtMoney)} টাকা`
     }`,
     `বিক্রি হয়েছে / Sold: ${said(story.soldCount)}${
-      story.averageSoldBdt === null
+      story.averageSoldMoney === null
         ? ""
-        : ` · গড়ে ${said(story.averageSoldBdt)} টাকা`
+        : ` · গড়ে ${said(story.averageSoldMoney)} টাকা`
     }`,
     story.boughtBackCount > 0
       ? `খামার কিনে নিয়েছে / Bought back by the Farm: ${said(story.boughtBackCount)}`

@@ -23,8 +23,8 @@ export const moneyAwaitingCount = (needsYou: NeedsYou): number =>
 /** The taka the money awaiting approval comes to, whichever way it goes — the farm's total, or the rows sent in an
  *  answer kept from before. */
 export const moneyAwaitingTotal = (needsYou: NeedsYou): number =>
-  needsYou.moneyAwaitingAll?.totalBdt ??
-  needsYou.moneyAwaiting.reduce((sum, row) => sum + row.amountBdt, 0);
+  needsYou.moneyAwaitingAll?.totalMoney ??
+  needsYou.moneyAwaiting.reduce((sum, row) => sum + row.amountMoney, 0);
 
 /** How many rows of the month's rent, electricity and wages are not entered yet — none in an answer a phone kept from before
  *  there were Monthly Costs. */

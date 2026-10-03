@@ -144,15 +144,15 @@ export const bookIntakeMoney = async (
   }
   // What the farm handed over for her: the price and the haat's toll on her, which is not a second
   // payment to a second party but part of what she cost.
-  const priceBdt = row.purchasePriceBdt + row.hasilBdt;
+  const priceMoney = row.purchasePriceMoney + row.hasilMoney;
   if (
-    priceBdt > 0 ||
+    priceMoney > 0 ||
     (await moneySnapshotOf(tx, row.farmId, "intake", row.id))
   ) {
     await bookMoney(tx, booking, {
       source: "intake",
       sourceId: row.id,
-      amountBdt: priceBdt,
+      amountMoney: priceMoney,
       occurredAt: row.arrivedAt,
       counterpartyId: row.counterpartyId,
       paymentMethod,
@@ -254,14 +254,17 @@ const assertTheCattleBudgetHolds = async (
   tx: Tx,
   farmId: string,
   ventureId: string,
-  { amountBdt, alreadyPaidBdt }: { amountBdt: number; alreadyPaidBdt: number }
+  {
+    amountMoney,
+    alreadyPaidMoney,
+  }: { amountMoney: number; alreadyPaidMoney: number }
 ) => {
   const venture = await tx.query.venture.findFirst({
     where: { id: ventureId, farmId },
   });
   if (venture) {
-    await assertCattleBudgetHolds(tx, farmId, venture, amountBdt, {
-      alreadyPaidBdt,
+    await assertCattleBudgetHolds(tx, farmId, venture, amountMoney, {
+      alreadyPaidMoney,
     });
   }
 };
@@ -297,8 +300,8 @@ export const bookBoughtByBank = async (
       farmId: true,
       animalId: true,
       buyingTripId: true,
-      purchasePriceBdt: true,
-      hasilBdt: true,
+      purchasePriceMoney: true,
+      hasilMoney: true,
       arrivedAt: true,
     },
   });
@@ -308,7 +311,7 @@ export const bookBoughtByBank = async (
   const ventureId = await ownerOf(tx, row.animalId);
   const already = await tx.query.ventureMovement.findFirst({
     where: { farmId: row.farmId, intakeId: row.id, kind: "intake_out" },
-    columns: { id: true, ventureId: true, amountBdt: true },
+    columns: { id: true, ventureId: true, amountMoney: true },
   });
   if (!ventureId || row.buyingTripId !== null) {
     if (already) {
@@ -339,17 +342,18 @@ export const bookBoughtByBank = async (
       data: { refusal: "venture_buys_by_bank" },
     });
   }
-  const amountBdt = row.purchasePriceBdt + row.hasilBdt;
+  const amountMoney = row.purchasePriceMoney + row.hasilMoney;
   if (paid.withinTheCattleBudget) {
     await assertTheCattleBudgetHolds(tx, row.farmId, ventureId, {
-      amountBdt,
-      alreadyPaidBdt: already?.ventureId === ventureId ? already.amountBdt : 0,
+      amountMoney,
+      alreadyPaidMoney:
+        already?.ventureId === ventureId ? already.amountMoney : 0,
     });
   }
   if (already) {
     await tx
       .update(ventureMovement)
-      .set({ ventureId, amountBdt, ...(reference ? { reference } : {}) })
+      .set({ ventureId, amountMoney, ...(reference ? { reference } : {}) })
       .where(
         and(
           eq(ventureMovement.id, already.id),
@@ -364,7 +368,7 @@ export const bookBoughtByBank = async (
     ventureId,
     kind: "intake_out",
     intakeId: row.id,
-    amountBdt,
+    amountMoney,
     movedOn: paid.movedOn ?? farmDayOf(row.arrivedAt),
     reference: reference ?? "",
     recordedBy: paid.recordedBy,

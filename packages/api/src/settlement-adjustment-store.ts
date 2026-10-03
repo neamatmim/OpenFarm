@@ -13,16 +13,16 @@ import type { Tx } from "./audit";
  * Each Adjustment says what the figures would be now against what was frozen, so the second carries the
  * first's news as well as its own. Paying the whole of it again would send the same good news twice.
  */
-const alreadyAdjustedPerUnitBdt = (
+const alreadyAdjustedPerUnitMoney = (
   raised: readonly {
     outcome: AdjustmentOutcome;
-    perUnitDifferenceBdt: number;
+    perUnitDifferenceMoney: number;
   }[]
 ) => {
   let perUnit = 0;
   for (const one of raised) {
     if (one.outcome === "paid") {
-      perUnit += one.perUnitDifferenceBdt;
+      perUnit += one.perUnitDifferenceMoney;
     }
   }
   return roundTaka(perUnit);
@@ -50,10 +50,10 @@ export const adjustmentsOf = async (
   // has sent — every one of them, in whatever order they were dealt with, because that is the sum the
   // farm itself subtracts when it pays. Reading them in the order they were raised instead would offer
   // to send money again the moment one was paid out of turn.
-  const sentAlready = alreadyAdjustedPerUnitBdt(
+  const sentAlready = alreadyAdjustedPerUnitMoney(
     rows.map((one) => ({
       outcome: one.outcome,
-      perUnitDifferenceBdt: one.perUnitDifferenceBdt,
+      perUnitDifferenceMoney: one.perUnitDifferenceMoney,
     }))
   );
   // What one of them actually sent is what it was worth less what had been sent before *it* — by when it
@@ -66,28 +66,28 @@ export const adjustmentsOf = async (
   const sent = new Map<string, number>();
   let before = 0;
   for (const one of inTheOrderTheyWerePaid) {
-    const difference = one.perUnitDifferenceBdt;
+    const difference = one.perUnitDifferenceMoney;
     sent.set(one.id, roundTaka(difference - before));
     before = roundTaka(before + difference);
   }
   return rows.map((one) => {
-    const { perUnitDifferenceBdt } = one;
+    const { perUnitDifferenceMoney } = one;
     return {
       id: one.id,
       reason: one.reason,
       raisedAt: one.raisedAt,
-      profitBdt: one.profitBdt,
-      perUnitBdt: one.perUnitBdt,
-      perUnitDifferenceBdt,
-      investorsDifferenceBdt: one.investorsDifferenceBdt,
-      thresholdBdt: one.thresholdBdt,
+      profitMoney: one.profitMoney,
+      perUnitMoney: one.perUnitMoney,
+      perUnitDifferenceMoney,
+      investorsDifferenceMoney: one.investorsDifferenceMoney,
+      thresholdMoney: one.thresholdMoney,
       outcome: one.outcome,
       waivedNote: one.waivedNote,
       closedAt: one.closedAt,
       /** What a Unit took of this one, where it was paid. */
-      perUnitPaidBdt: sent.get(one.id) ?? 0,
+      perUnitPaidMoney: sent.get(one.id) ?? 0,
       /** What a Unit would take if it were paid now, less what every paid one has already sent. */
-      perUnitToPayBdt: roundTaka(perUnitDifferenceBdt - sentAlready),
+      perUnitToPayMoney: roundTaka(perUnitDifferenceMoney - sentAlready),
     };
   });
 };
@@ -100,15 +100,20 @@ export const adjustmentsOf = async (
  * him keeps what he was paid — so only a rise is ever a payment.
  */
 export const adjustmentAgainst = (
-  frozen: { perUnitBdt: number; units: number },
-  now: { perUnitBdt: number; profitBdt: number }
+  frozen: { perUnitMoney: number; units: number },
+  now: { perUnitMoney: number; profitMoney: number }
 ) => {
-  const perUnitDifferenceBdt = roundTaka(now.perUnitBdt - frozen.perUnitBdt);
+  const perUnitDifferenceMoney = roundTaka(
+    now.perUnitMoney - frozen.perUnitMoney
+  );
   return {
-    profitBdt: now.profitBdt,
-    perUnitBdt: now.perUnitBdt,
-    perUnitDifferenceBdt,
-    investorsDifferenceBdt: whatUnitsTake(perUnitDifferenceBdt, frozen.units),
+    profitMoney: now.profitMoney,
+    perUnitMoney: now.perUnitMoney,
+    perUnitDifferenceMoney,
+    investorsDifferenceMoney: whatUnitsTake(
+      perUnitDifferenceMoney,
+      frozen.units
+    ),
   };
 };
 
@@ -122,9 +127,9 @@ export const adjustmentAgainst = (
  * down, because an Investor is owed the news whichever way it went.
  */
 export const outcomeFor = (
-  investorsDifferenceBdt: number,
-  thresholdBdt: number
-) => (investorsDifferenceBdt > thresholdBdt ? "outstanding" : "noted");
+  investorsDifferenceMoney: number,
+  thresholdMoney: number
+) => (investorsDifferenceMoney > thresholdMoney ? "outstanding" : "noted");
 
 /** An Adjustment written down: what arrived late, what it does to the figures, and what must be done. */
 export const raiseAdjustment = async (
@@ -133,26 +138,26 @@ export const raiseAdjustment = async (
   settlementId: string,
   what: {
     reason: string;
-    thresholdBdt: number;
+    thresholdMoney: number;
     against: ReturnType<typeof adjustmentAgainst>;
   },
   by: { actorId: string; now: Date }
 ): Promise<{ id: string; outcome: AdjustmentOutcome }> => {
   const id = uuidv7(by.now);
   const outcome = outcomeFor(
-    what.against.investorsDifferenceBdt,
-    what.thresholdBdt
+    what.against.investorsDifferenceMoney,
+    what.thresholdMoney
   );
   await tx.insert(settlementAdjustment).values({
     id,
     farmId,
     settlementId,
     reason: what.reason,
-    profitBdt: what.against.profitBdt,
-    perUnitBdt: what.against.perUnitBdt,
-    perUnitDifferenceBdt: what.against.perUnitDifferenceBdt,
-    investorsDifferenceBdt: what.against.investorsDifferenceBdt,
-    thresholdBdt: what.thresholdBdt,
+    profitMoney: what.against.profitMoney,
+    perUnitMoney: what.against.perUnitMoney,
+    perUnitDifferenceMoney: what.against.perUnitDifferenceMoney,
+    investorsDifferenceMoney: what.against.investorsDifferenceMoney,
+    thresholdMoney: what.thresholdMoney,
     // Below the figure the Farm set, there is nothing to do and it says so at once.
     outcome,
     closedAt: outcome === "noted" ? by.now : null,

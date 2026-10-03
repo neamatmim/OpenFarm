@@ -19,14 +19,14 @@ const asOwner = async () => {
 };
 
 const TERMS = {
-  targetCapitalBdt: 1_000_000,
-  floorBdt: 0,
+  targetCapitalMoney: 1_000_000,
+  floorMoney: 0,
   decideBy: "2073-01-20",
   targetWindowStart: "2073-06-01",
   targetWindowEnd: "2073-06-10",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 20,
-  cattleBudgetBdt: 800_000,
+  cattleBudgetMoney: 800_000,
 };
 
 const listed = async (id: string) => {
@@ -48,12 +48,12 @@ describe("a Venture paid by the month", () => {
     const venture = await listed(id);
     expect(venture?.capitalPaid).toBe("by_the_month");
     expect(venture?.monthly).toEqual({
-      cattlePartBdt: 40_000,
+      cattlePartMoney: 40_000,
       sums: [
-        { dueOn: "2073-02-10", bdt: 2500 },
-        { dueOn: "2073-03-10", bdt: 2500 },
-        { dueOn: "2073-04-10", bdt: 2500 },
-        { dueOn: "2073-05-10", bdt: 2500 },
+        { dueOn: "2073-02-10", amount: 2500 },
+        { dueOn: "2073-03-10", amount: 2500 },
+        { dueOn: "2073-04-10", amount: 2500 },
+        { dueOn: "2073-05-10", amount: 2500 },
       ],
     });
   });
@@ -81,7 +81,7 @@ describe("a Venture paid by the month", () => {
       owner.ventures.open({
         name: `সবই গরু ${suffix}`,
         ...TERMS,
-        cattleBudgetBdt: 1_000_000,
+        cattleBudgetMoney: 1_000_000,
         capitalPaid: "by_the_month",
       })
     ).rejects.toMatchObject({

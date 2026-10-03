@@ -155,7 +155,7 @@ describe("feed stock", () => {
       feedItemId: world.concentrate.id,
       kind: "purchase",
       quantity: 500,
-      priceBdt: 20_000,
+      priceMoney: 20_000,
       seller: { name: `রহমান ফিডস ${suffix}`, phone: "01711000000" },
       receivedOn: "2034-01-02",
     });
@@ -163,7 +163,7 @@ describe("feed stock", () => {
       feedItemId: world.concentrate.id,
       kind: "purchase",
       quantity: 500,
-      priceBdt: 25_000,
+      priceMoney: 25_000,
       seller: { name: `রহমান ফিডস ${suffix}` },
       receivedOn: "2034-01-02",
     });
@@ -182,11 +182,11 @@ describe("feed stock", () => {
     expect(concentrate).toMatchObject({
       onHand: 1000,
       unit: "kg",
-      averagePriceBdt: 45,
+      averagePriceMoney: 45,
     });
     const grass = await lineFor("2034-01-02T05:00:00.000Z", world.grass.id);
     // Home-grown: plenty on hand, and no price to average.
-    expect(grass).toMatchObject({ onHand: 1000, averagePriceBdt: null });
+    expect(grass).toMatchObject({ onHand: 1000, averagePriceMoney: null });
   });
 
   it("adds a harvest at no cost, so what the pens are charged is what was paid", async () => {
@@ -204,7 +204,10 @@ describe("feed stock", () => {
       "2034-01-03T05:00:00.000Z",
       world.concentrate.id
     );
-    expect(concentrate).toMatchObject({ onHand: 1200, averagePriceBdt: 37.5 });
+    expect(concentrate).toMatchObject({
+      onHand: 1200,
+      averagePriceMoney: 37.5,
+    });
   });
 
   it("falls with every Feeding, and shows it when it falls below nothing", async () => {
@@ -220,7 +223,7 @@ describe("feed stock", () => {
     const grass = await lineFor("2034-01-05T05:00:00.000Z", world.grass.id);
     expect(grass?.onHand).toBe(-200);
     // Feeding takes feed out at the price of the moment and leaves the price where it was.
-    expect(concentrate?.averagePriceBdt).toBe(37.5);
+    expect(concentrate?.averagePriceMoney).toBe(37.5);
   });
 
   it("averages a new purchase with what is still in the store, not with every purchase ever made", async () => {
@@ -231,7 +234,7 @@ describe("feed stock", () => {
       feedItemId: world.concentrate.id,
       kind: "purchase",
       quantity: 100,
-      priceBdt: 6000,
+      priceMoney: 6000,
       seller: { name: `রহমান ফিডস ${suffix}` },
       receivedOn: "2034-01-06",
     });
@@ -239,7 +242,10 @@ describe("feed stock", () => {
       "2034-01-06T05:00:00.000Z",
       world.concentrate.id
     );
-    expect(concentrate).toMatchObject({ onHand: 1000, averagePriceBdt: 39.75 });
+    expect(concentrate).toMatchObject({
+      onHand: 1000,
+      averagePriceMoney: 39.75,
+    });
 
     // A second tap on the same form is the same lorry.
     await manager.client.stock.receive({
@@ -247,7 +253,7 @@ describe("feed stock", () => {
       feedItemId: world.concentrate.id,
       kind: "purchase",
       quantity: 100,
-      priceBdt: 6000,
+      priceMoney: 6000,
       seller: { name: `রহমান ফিডস ${suffix}` },
       receivedOn: "2034-01-06",
     });
@@ -265,7 +271,7 @@ describe("feed stock", () => {
       feedItemId: world.concentrate.id,
       kind: "purchase",
       quantity: 5000,
-      priceBdt: 25_000,
+      priceMoney: 25_000,
       seller: { name: `রহমান ফিডস ${suffix}` },
       receivedOn: "2034-01-07",
     });
@@ -285,7 +291,7 @@ describe("feed stock", () => {
       world.concentrate.id
     );
     // 1000 kg at ৳39.75 and 500 kg for ৳25,000: ৳64,750 for 1500 kg.
-    expect(right).toMatchObject({ onHand: 1500, averagePriceBdt: 43.17 });
+    expect(right).toMatchObject({ onHand: 1500, averagePriceMoney: 43.17 });
 
     // And the list of what came in says it, in maunds too.
     const arrivals = await manager.client.stock.arrivals({
@@ -295,7 +301,7 @@ describe("feed stock", () => {
       id: typo.id,
       quantity: 500,
       maunds: 13.4,
-      priceBdt: 25_000,
+      priceMoney: 25_000,
       sellerName: `রহমান ফিডস ${suffix}`,
     });
   });
@@ -348,7 +354,7 @@ describe("feed stock", () => {
         feedItemId: world.grass.id,
         kind: "harvest",
         quantity: 10,
-        priceBdt: 500,
+        priceMoney: 500,
         receivedOn: "2034-01-08",
       })
     ).rejects.toMatchObject({

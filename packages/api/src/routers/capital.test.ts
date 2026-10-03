@@ -14,20 +14,20 @@ const as = (role: "owner" | "manager", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 const plan = {
-  targetCapitalBdt: 1_000_000,
-  floorBdt: 700_000,
+  targetCapitalMoney: 1_000_000,
+  floorMoney: 700_000,
   decideBy: "2046-09-20",
   targetWindowStart: "2047-05-17",
   targetWindowEnd: "2047-05-19",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 20,
-  cattleBudgetBdt: 750_000,
+  cattleBudgetMoney: 750_000,
 };
 
 const paper = {
   investorsPercent: 60,
   arbitrator: `মাওলানা আব্দুল হক ${suffix}`,
-  stampValueBdt: 300,
+  stampValueMoney: 300,
   stampedOn: "2046-09-02",
   stampSerial: `AA ${suffix}`,
 };
@@ -80,7 +80,7 @@ describe("capital in", () => {
     const karim = await signedUp(owner, 1, ventureId, 4);
     await owner.client.ventures.takeCapital({
       agreementId: karim.agreementId,
-      amountBdt: 200_000,
+      amountMoney: 200_000,
       movedOn: "2046-09-03",
       paymentMethod: "bank",
       reference: `TRF-${suffix}-1`,
@@ -89,14 +89,14 @@ describe("capital in", () => {
     expect(movements).toEqual([
       expect.objectContaining({
         kind: "capital_in",
-        amountBdt: 200_000,
+        amountMoney: 200_000,
         movedOn: "2046-09-03",
         reference: `TRF-${suffix}-1`,
         investorId: karim.person.id,
       }),
     ]);
     const [venture] = await owner.client.ventures.list();
-    expect(venture).toMatchObject({ capitalInBdt: 200_000 });
+    expect(venture).toMatchObject({ capitalInMoney: 200_000 });
   });
 
   it("refuses money that came by hand", async () => {
@@ -106,7 +106,7 @@ describe("capital in", () => {
       expect(
         owner.client.ventures.takeCapital({
           agreementId: cashy.agreementId,
-          amountBdt: 50_000,
+          amountMoney: 50_000,
           movedOn: "2046-09-04",
           paymentMethod,
           reference: "হাতে হাতে",
@@ -124,7 +124,7 @@ describe("capital in", () => {
     await expect(
       owner.client.ventures.takeCapital({
         agreementId: unstamped.agreementId,
-        amountBdt: 50_000,
+        amountMoney: 50_000,
         movedOn: "2046-09-05",
         paymentMethod: "bank",
         reference: `TRF-${suffix}-3`,
@@ -142,14 +142,14 @@ describe("capital in", () => {
     const second = await signedUp(owner, 11, shared.id, 8);
     await owner.client.ventures.takeCapital({
       agreementId: first.agreementId,
-      amountBdt: 200_000,
+      amountMoney: 200_000,
       movedOn: "2046-09-06",
       paymentMethod: "bank",
       reference: `TRF-${suffix}-10`,
     });
     await owner.client.ventures.takeCapital({
       agreementId: second.agreementId,
-      amountBdt: 400_000,
+      amountMoney: 400_000,
       movedOn: "2046-09-06",
       paymentMethod: "bank",
       reference: `TRF-${suffix}-11`,
@@ -158,12 +158,12 @@ describe("capital in", () => {
     // Three quarters of the plan buys animals, so three quarters of what has come in is the Cattle
     // Budget's and the rest keeps them.
     expect(ventures.find((one) => one.id === shared.id)).toMatchObject({
-      capitalInBdt: 600_000,
-      balanceBdt: 600_000,
-      cattleBudgetHeldBdt: 450_000,
-      runningBudgetHeldBdt: 150_000,
-      spentBdt: 0,
-      paidOutBdt: 0,
+      capitalInMoney: 600_000,
+      balanceMoney: 600_000,
+      cattleBudgetHeldMoney: 450_000,
+      runningBudgetHeldMoney: 150_000,
+      spentMoney: 0,
+      paidOutMoney: 0,
     });
   });
 
@@ -174,7 +174,7 @@ describe("capital in", () => {
     await expect(
       owner.client.ventures.takeCapital({
         agreementId: small.agreementId,
-        amountBdt: 50_001,
+        amountMoney: 50_001,
         movedOn: "2046-09-13",
         paymentMethod: "bank",
         reference: `TRF-${suffix}-12`,
@@ -184,14 +184,14 @@ describe("capital in", () => {
     // Paid in two halves it is the same money, and the second half is taken.
     await owner.client.ventures.takeCapital({
       agreementId: small.agreementId,
-      amountBdt: 30_000,
+      amountMoney: 30_000,
       movedOn: "2046-09-13",
       paymentMethod: "bank",
       reference: `TRF-${suffix}-12a`,
     });
     await owner.client.ventures.takeCapital({
       agreementId: small.agreementId,
-      amountBdt: 20_000,
+      amountMoney: 20_000,
       movedOn: "2046-09-13",
       paymentMethod: "bank",
       reference: `TRF-${suffix}-12b`,
@@ -200,7 +200,7 @@ describe("capital in", () => {
     await expect(
       owner.client.ventures.takeCapital({
         agreementId: small.agreementId,
-        amountBdt: 1,
+        amountMoney: 1,
         movedOn: "2046-09-13",
         paymentMethod: "bank",
         reference: `TRF-${suffix}-12c`,
@@ -213,14 +213,14 @@ describe("capital in", () => {
     const late = await owner.client.ventures.open({
       name: `শুরু হয়ে গেছে ${suffix}`,
       ...plan,
-      floorBdt: 0,
+      floorMoney: 0,
     });
     const lateInvestor = await signedUp(owner, 5, late.id, 1);
     await owner.client.ventures.startBuying({ id: late.id });
     await expect(
       owner.client.ventures.takeCapital({
         agreementId: lateInvestor.agreementId,
-        amountBdt: 50_000,
+        amountMoney: 50_000,
         movedOn: "2046-09-07",
         paymentMethod: "bank",
         reference: `TRF-${suffix}-5`,
@@ -233,13 +233,13 @@ describe("capital in", () => {
     const funded = await owner.client.ventures.open({
       name: `সীমা উঠেছে ${suffix}`,
       ...plan,
-      floorBdt: 100_000,
+      floorMoney: 100_000,
     });
     const backer = await signedUp(owner, 9, funded.id, 3);
     // A taka short of the Floor, and the Venture stays a plan.
     await owner.client.ventures.takeCapital({
       agreementId: backer.agreementId,
-      amountBdt: 99_999,
+      amountMoney: 99_999,
       movedOn: "2046-09-08",
       paymentMethod: "bank",
       reference: `TRF-${suffix}-9a`,
@@ -250,7 +250,7 @@ describe("capital in", () => {
 
     await owner.client.ventures.takeCapital({
       agreementId: backer.agreementId,
-      amountBdt: 1,
+      amountMoney: 1,
       movedOn: "2046-09-08",
       paymentMethod: "bank",
       reference: `TRF-${suffix}-9b`,
@@ -277,7 +277,7 @@ describe("capital in", () => {
     await expect(
       manager.client.ventures.takeCapital({
         agreementId: "whichever",
-        amountBdt: 1000,
+        amountMoney: 1000,
         movedOn: "2046-09-09",
         paymentMethod: "bank",
         reference: "কোনো",
@@ -297,14 +297,14 @@ describe("a Venture called off", () => {
     const second = await signedUp(owner, 7, doomed.id, 3);
     await owner.client.ventures.takeCapital({
       agreementId: first.agreementId,
-      amountBdt: 100_000,
+      amountMoney: 100_000,
       movedOn: "2046-09-10",
       paymentMethod: "bank",
       reference: `TRF-${suffix}-6`,
     });
     await owner.client.ventures.takeCapital({
       agreementId: second.agreementId,
-      amountBdt: 150_000,
+      amountMoney: 150_000,
       movedOn: "2046-09-10",
       paymentMethod: "bank",
       reference: `TRF-${suffix}-7`,
@@ -328,7 +328,7 @@ describe("a Venture called off", () => {
     });
     const refunds = afterwards.filter((one) => one.kind === "refund");
     expect(refunds).toHaveLength(2);
-    expect(refunds.map((one) => one.amountBdt).toSorted()).toEqual([
+    expect(refunds.map((one) => one.amountMoney).toSorted()).toEqual([
       100_000, 150_000,
     ]);
     const ventures = await owner.client.ventures.list();
@@ -336,19 +336,19 @@ describe("a Venture called off", () => {
     // Every taka that came in has gone back, so the account should hold nothing.
     expect(called).toMatchObject({
       state: "cancelled",
-      capitalInBdt: 250_000,
-      refundedBdt: 250_000,
-      balanceBdt: 0,
+      capitalInMoney: 250_000,
+      refundedMoney: 250_000,
+      balanceMoney: 0,
     });
     // And read from his side, on his own page: his capital in and back, and nothing of the other man's.
     const his = await owner.client.investors.agreements({
       id: first.person.id,
     });
     expect(his.agreements).toEqual([
-      expect.objectContaining({ id: first.agreementId, capitalHeldBdt: 0 }),
+      expect.objectContaining({ id: first.agreementId, capitalHeldMoney: 0 }),
     ]);
     expect(
-      his.movements.map((one) => [one.kind, one.amountBdt, one.reference])
+      his.movements.map((one) => [one.kind, one.amountMoney, one.reference])
     ).toEqual([
       ["refund", 100_000, expect.stringMatching(/^RFD-/u)],
       ["capital_in", 100_000, `TRF-${suffix}-6`],
@@ -364,7 +364,7 @@ describe("a Venture called off", () => {
     const investor = await signedUp(owner, 8, held.id, 1);
     await owner.client.ventures.takeCapital({
       agreementId: investor.agreementId,
-      amountBdt: 50_000,
+      amountMoney: 50_000,
       movedOn: "2046-09-12",
       paymentMethod: "bank",
       reference: `TRF-${suffix}-8`,

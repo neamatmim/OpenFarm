@@ -14,14 +14,14 @@ const as = (role: "owner" | "manager" | "staff" | "vet", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 const opening = {
-  targetCapitalBdt: 2_000_000,
-  floorBdt: 1_400_000,
+  targetCapitalMoney: 2_000_000,
+  floorMoney: 1_400_000,
   decideBy: "2044-08-15",
   targetWindowStart: "2045-05-17",
   targetWindowEnd: "2045-05-19",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 40,
-  cattleBudgetBdt: 1_500_000,
+  cattleBudgetMoney: 1_500_000,
 };
 
 let first = "";
@@ -43,14 +43,14 @@ describe("a Venture", () => {
     expect(ours).toMatchObject({
       name: `ঈদ ২০৪৫ ${suffix}`,
       state: "open",
-      targetCapitalBdt: 2_000_000,
-      floorBdt: 1_400_000,
-      unitPriceBdt: 50_000,
+      targetCapitalMoney: 2_000_000,
+      floorMoney: 1_400_000,
+      unitPriceMoney: 50_000,
       units: 40,
-      cattleBudgetBdt: 1_500_000,
+      cattleBudgetMoney: 1_500_000,
       // What is not for cattle is for keeping them.
-      runningBudgetBdt: 500_000,
-      capitalInBdt: 0,
+      runningBudgetMoney: 500_000,
+      capitalInMoney: 0,
     });
   });
 
@@ -68,7 +68,7 @@ describe("a Venture", () => {
     const free = await owner.client.ventures.open({
       name: `মেঝে নেই ${suffix}`,
       ...opening,
-      floorBdt: 0,
+      floorMoney: 0,
     });
     expect(await owner.client.ventures.startBuying({ id: free.id })).toEqual({
       state: "buying",
@@ -87,7 +87,7 @@ describe("a Venture", () => {
     const buying = await owner.client.ventures.open({
       name: `কেনা শুরু ${suffix}`,
       ...opening,
-      floorBdt: 0,
+      floorMoney: 0,
     });
     await owner.client.ventures.startBuying({ id: buying.id });
     await expect(
@@ -124,7 +124,7 @@ describe("a Venture", () => {
       owner.client.ventures.open({
         name: `ভুল পরিকল্পনা ${suffix}`,
         ...opening,
-        floorBdt: 2_500_000,
+        floorMoney: 2_500_000,
       })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     // And a Cattle Budget that outruns the capital it is planned from.
@@ -132,7 +132,7 @@ describe("a Venture", () => {
       owner.client.ventures.open({
         name: `ভুল বাজেট ${suffix}`,
         ...opening,
-        cattleBudgetBdt: 2_400_000,
+        cattleBudgetMoney: 2_400_000,
       })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });

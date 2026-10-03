@@ -109,13 +109,13 @@ const useTooOld = (open: boolean, soldOn: string, her: Movable | undefined) => {
 const readyToSell = (given: {
   chosen: boolean;
   toChosen: boolean;
-  rateBdtPerKg: number;
+  rateMoneyPerKg: number;
   typed: boolean;
   windowSaid: boolean;
 }): boolean =>
   given.chosen &&
   given.toChosen &&
-  given.rateBdtPerKg > 0 &&
+  given.rateMoneyPerKg > 0 &&
   given.typed &&
   given.windowSaid;
 
@@ -183,7 +183,7 @@ export const InternalSaleSheet = ({
         onOpenChange(false);
         toast.success(
           t("ventures.soldInternally", {
-            price: formatNumber(sold.priceBdt, language),
+            price: formatNumber(sold.priceMoney, language),
           })
         );
       },
@@ -193,16 +193,16 @@ export const InternalSaleSheet = ({
   const her = animals.find((one) => one.tagNumber === tagNumber);
   const { tooOld, weighHerAgain } = useTooOld(open, soldOn, her);
   const weightKg = her?.weightKg ?? 0;
-  const rateBdtPerKg = Number(rate);
+  const rateMoneyPerKg = Number(rate);
   // Struck by the same function the farm strikes it with, so what she reads is what she commits to and
   // a refusal means she was weighed again, not that two roundings disagreed.
-  const priceBdt = priceAtWeight(weightKg, rateBdtPerKg);
+  const priceMoney = priceAtWeight(weightKg, rateMoneyPerKg);
   const herPurse = purseOf(her);
   const toChosen = to !== "" && to !== herPurse;
   const ready = readyToSell({
     chosen: her !== undefined && weighHerAgain === undefined,
     toChosen,
-    rateBdtPerKg,
+    rateMoneyPerKg,
     typed: allTyped(note, reference, soldOn),
     windowSaid: windowSaid(to, windowPick),
   });
@@ -216,13 +216,13 @@ export const InternalSaleSheet = ({
           tagNumber,
           toVentureId: to === THE_FARM ? undefined : to,
           targetWindow: windowFor(to, windowPick),
-          rateBdtPerKg,
+          rateMoneyPerKg,
           note,
           soldOn,
           paymentMethod: "bank",
           reference,
           ...(farmAccountId ? { farmAccountId } : {}),
-          priceBdt,
+          priceMoney,
         })
       }
       missing={weighHerAgain}
@@ -301,7 +301,7 @@ export const InternalSaleSheet = ({
         <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm tabular-nums">
           {t("ventures.priceFromWeight", {
             weight: formatNumber(weightKg, language),
-            price: formatNumber(priceBdt, language),
+            price: formatNumber(priceMoney, language),
           })}
         </p>
       )}

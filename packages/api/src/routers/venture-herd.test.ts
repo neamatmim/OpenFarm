@@ -36,14 +36,14 @@ const asManager = (instant: string) =>
   createTestClient(appRouter, { as: "manager", clock: new FakeClock(instant) });
 
 const plan = {
-  targetCapitalBdt: 500_000,
-  floorBdt: 0,
+  targetCapitalMoney: 500_000,
+  floorMoney: 0,
   decideBy: "2052-01-03",
   targetWindowStart: "2052-04-01",
   targetWindowEnd: "2052-04-10",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 10,
-  cattleBudgetBdt: 400_000,
+  cattleBudgetMoney: 400_000,
 };
 
 /** The round that puts a bull on the scale, and nothing else. */
@@ -105,7 +105,7 @@ const aVenture = async (owner: Client, which: number, splits: number[]) => {
       units,
       investorsPercent: 60,
       arbitrator: `মাওলানা ${suffix}`,
-      stampValueBdt: 300,
+      stampValueMoney: 300,
       stampedOn: "2052-01-02",
       stampSerial: `AA ${who} ${suffix}`,
     });
@@ -118,7 +118,7 @@ const aVenture = async (owner: Client, which: number, splits: number[]) => {
     // oxlint-disable-next-line no-await-in-loop
     await owner.client.ventures.takeCapital({
       agreementId: agreement.id,
-      amountBdt: units * plan.unitPriceBdt,
+      amountMoney: units * plan.unitPriceMoney,
       movedOn: "2052-01-03",
       paymentMethod: "bank",
       reference: `TRF-${who}-${suffix}`,
@@ -174,14 +174,14 @@ beforeAll(async () => {
   const trip = await buying.client.trips.record({
     wentTo: `হাট ${suffix}`,
     wentOn: "2052-01-04",
-    brokerBdt: 0,
-    transportBdt: 0,
-    keepBdt: 0,
+    brokerMoney: 0,
+    transportMoney: 0,
+    keepMoney: 0,
   });
   await buying.client.ventures.drawFloat({
     ventureId: firstVenture,
     buyingTripId: trip.id,
-    amountBdt: 400_000,
+    amountMoney: 400_000,
     movedOn: "2052-01-04",
     paymentMethod: "bank",
     reference: `FLT-${suffix}`,
@@ -193,7 +193,7 @@ beforeAll(async () => {
       penId,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
-      purchasePriceBdt: 60_000,
+      purchasePriceMoney: 60_000,
       weightKg: 200,
       estimatedAgeMonths: 20,
       buyingTripId: trip.id,
@@ -207,7 +207,7 @@ beforeAll(async () => {
   await buying.client.ventures.reconcileFloat({
     buyingTripId: trip.id,
     // Four lakh out, three lakh sixty spent on six bulls, forty thousand home again.
-    cashBackBdt: 40_000,
+    cashBackMoney: 40_000,
     movedOn: "2052-01-04",
     reference: `DEP-${suffix}`,
   });
@@ -253,12 +253,12 @@ beforeAll(async () => {
   await selling.client.ventures.sellInternally({
     tagNumber: tags[3] ?? "",
     toVentureId: secondVenture,
-    rateBdtPerKg: 500,
+    rateMoneyPerKg: 500,
     note: `হাটের দর ${suffix}`,
     soldOn: "2052-02-10",
     paymentMethod: "bank",
     reference: `INT-${suffix}`,
-    priceBdt: 228 * 500,
+    priceMoney: 228 * 500,
   });
 
   // And the sixth goes to a buyer on the 18th — after the Internal Sale, because the first Sale moves
@@ -267,7 +267,7 @@ beforeAll(async () => {
   await toABuyer.client.sale.record({
     tagNumber: tags[5] ?? "",
     buyer: { name: `ক্রেতা ${suffix}` },
-    priceBdt: 250_000,
+    priceMoney: 250_000,
     weightKg: 228,
     destination: `ঢাকা ${suffix}`,
     vehicle: `ঢাকা মেট্রো ${suffix}`,
@@ -306,11 +306,11 @@ afterAll(async () => {
  */
 const THE_PLAN = {
   lines: [
-    { animals: 6, fromKg: 180, toKg: 220, buyBdtPerKg: 320, dailyGainKg: 1 },
-    { animals: 2, fromKg: 260, toKg: 300, buyBdtPerKg: 300, dailyGainKg: 1 },
+    { animals: 6, fromKg: 180, toKg: 220, buyMoneyPerKg: 320, dailyGainKg: 1 },
+    { animals: 2, fromKg: 260, toKg: 300, buyMoneyPerKg: 300, dailyGainKg: 1 },
   ],
-  saleLowBdtPerKg: 500,
-  saleHighBdtPerKg: 600,
+  saleLowMoneyPerKg: 500,
+  saleHighMoneyPerKg: 600,
   reason: "পরিকল্পনা পরে লেখা হলো",
 };
 
@@ -342,20 +342,20 @@ describe("what a Venture's animals are doing", () => {
 
     // A Margin belongs to the sold one alone: the rest have not earned anything yet, and a beast that
     // died never will.
-    const withMargin = theirs.animals.filter((one) => one.marginBdt !== null);
+    const withMargin = theirs.animals.filter((one) => one.marginMoney !== null);
     expect(withMargin).toHaveLength(1);
-    expect(theirs.marginBdt).toBe(withMargin[0]?.marginBdt);
+    expect(theirs.marginMoney).toBe(withMargin[0]?.marginMoney);
 
     // Worst first, and the ones with nothing to compare come last rather than reading as the worst.
-    expect(theirs.animals.at(0)?.marginBdt).not.toBeNull();
-    expect(theirs.animals.at(-1)?.marginBdt).toBeNull();
+    expect(theirs.animals.at(0)?.marginMoney).not.toBeNull();
+    expect(theirs.animals.at(-1)?.marginMoney).toBeNull();
 
     // They put weight on here; nobody has fed them on this farm, so there is nothing charged and each
     // kilogram cost nothing. What a Venture's Cost of Gain is made of is proved where there are real
     // costs to make it of — see settlement.test.ts.
     expect(theirs.gainKg).toBeGreaterThan(0);
-    expect(theirs.chargedBdt).toBe(0);
-    expect(theirs.costOfGainBdt).toBe(0);
+    expect(theirs.chargedMoney).toBe(0);
+    expect(theirs.costOfGainMoney).toBe(0);
   });
 
   it("is the Owner's alone, as the money side of a Venture is", async () => {
@@ -460,7 +460,7 @@ describe("what a Venture's animals are doing", () => {
     // 818.5 kg. The dead bull and the two sold are not in it.
     expect(projection?.kgAtSale).toBeCloseTo(818.5, 6);
     // What the one sold to a buyer fetched is a fact at both ends — the figure the Settlement counts.
-    expect(projection?.realisedBdt).toBe(settlement.proceedsBdt);
+    expect(projection?.realisedMoney).toBe(settlement.proceedsMoney);
     // Charged what the Settlement counts, and the rest of the ৳1,00,000 running budget (৳5,00,000 of capital less
     // ৳4,00,000 for cattle) taken as spent. Selling, it has nothing left to buy.
     const measured = await owner.client.ventures.planAgainstActual({
@@ -468,15 +468,17 @@ describe("what a Venture's animals are doing", () => {
     });
     const runningLeft = Math.max(
       0,
-      100_000 - (measured?.money.runningSpentBdt ?? 0)
+      100_000 - (measured?.money.runningSpentMoney ?? 0)
     );
     expect(runningLeft).toBeGreaterThan(0);
-    expect(projection?.chargedBdt).toBe(settlement.chargedBdt + runningLeft);
-    expect(projection?.low.proceedsBdt).toBe(
-      Math.round(settlement.proceedsBdt + 818.5 * 500)
+    expect(projection?.chargedMoney).toBe(
+      settlement.chargedMoney + runningLeft
     );
-    expect(projection?.high.proceedsBdt).toBe(
-      Math.round(settlement.proceedsBdt + 818.5 * 600)
+    expect(projection?.low.proceedsMoney).toBe(
+      Math.round(settlement.proceedsMoney + 818.5 * 500)
+    );
+    expect(projection?.high.proceedsMoney).toBe(
+      Math.round(settlement.proceedsMoney + 818.5 * 600)
     );
     // Its Agreements' own split: sixty per cent over the ten Units signed.
     expect(projection).toMatchObject({ investorsPercent: 60, units: 10 });
@@ -493,14 +495,14 @@ describe("what a Venture's animals are doing", () => {
     // ৳60,000 off the lorry and nothing charged since; 228 kg on 1 February. At ৳500 a kilo he fetches ৳1,14,000,
     // ৳54,000 over his cost; at ৳600, ৳1,36,800 and ৳76,800 over. He pays for himself at ৳263.16 a kilo.
     expect(first).toMatchObject({
-      costBdt: 60_000,
+      costMoney: 60_000,
       costIsWhole: true,
       bought: true,
       latestKg: 228,
       from: "venture",
-      breakEvenBdtPerKg: 263.16,
-      low: { priceBdt: 114_000, marginBdt: 54_000 },
-      high: { priceBdt: 136_800, marginBdt: 76_800 },
+      breakEvenMoneyPerKg: 263.16,
+      low: { priceMoney: 114_000, marginMoney: 54_000 },
+      high: { priceMoney: 136_800, marginMoney: 76_800 },
     });
 
     const manager = await asManager("2052-02-20T06:00:00.000Z");
@@ -534,7 +536,7 @@ describe("what a Venture's animals are doing", () => {
       farmId: bull?.farmId ?? "",
       animalId: cow,
       counterpartyId: bull?.sale?.counterpartyId ?? "",
-      priceBdt: 152_000,
+      priceMoney: 152_000,
       weightKg: "400",
       destination: `কসাই ${suffix}`,
       vehicle: "ভ্যান",
@@ -547,30 +549,30 @@ describe("what a Venture's animals are doing", () => {
     const { recentSales } = await owner.client.fattening.prices();
     // The one bull sold to a buyer, on the 18th: ৳2,50,000 for 228 kg, ৳1,096.49 a kilo. The one sold across to the
     // other Venture is not a sale to a buyer, and the culled cow is not what a fattened animal fetches: neither is in it.
-    expect(recentSales).toMatchObject({ bdtPerKg: 1096.49, animals: 1 });
+    expect(recentSales).toMatchObject({ moneyPerKg: 1096.49, animals: 1 });
   });
 
   it("keeps the farm's market price a kilo as the Owner sets it, and the Owner's alone", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
     await owner.client.fattening.setMarketPrice({
-      lowBdtPerKg: 480,
-      highBdtPerKg: 560,
+      lowMoneyPerKg: 480,
+      highMoneyPerKg: 560,
     });
     // A request reads the farm as it stands when it is made.
     const later = await at("2052-02-20T05:00:00.000Z");
     const { market } = await later.client.fattening.prices();
-    expect(market).toMatchObject({ lowBdtPerKg: 480, highBdtPerKg: 560 });
+    expect(market).toMatchObject({ lowMoneyPerKg: 480, highMoneyPerKg: 560 });
     await expect(
       owner.client.fattening.setMarketPrice({
-        lowBdtPerKg: 600,
-        highBdtPerKg: 560,
+        lowMoneyPerKg: 600,
+        highMoneyPerKg: 560,
       })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     const manager = await asManager("2052-02-20T06:00:00.000Z");
     await expect(
       manager.client.fattening.setMarketPrice({
-        lowBdtPerKg: 480,
-        highBdtPerKg: 560,
+        lowMoneyPerKg: 480,
+        highMoneyPerKg: 560,
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
@@ -590,8 +592,8 @@ describe("what a Venture's animals are doing", () => {
     // Venture was this one's when it came. The plan had six there at 200 kg and ৳320: ৳3,84,000.
     expect(measured?.buying.bands[0]).toEqual({
       line: { fromKg: 180, toKg: 220, breedId: null },
-      planned: { animals: 6, kg: 1200, costBdt: 384_000, bdtPerKg: 320 },
-      bought: { animals: 6, kg: 1200, costBdt: 360_000, bdtPerKg: 300 },
+      planned: { animals: 6, kg: 1200, costMoney: 384_000, moneyPerKg: 320 },
+      bought: { animals: 6, kg: 1200, costMoney: 360_000, moneyPerKg: 300 },
     });
     expect(measured?.buying.bands[1]?.bought.animals).toBe(0);
     expect(measured?.buying.outside.animals).toBe(0);
@@ -605,9 +607,9 @@ describe("what a Venture's animals are doing", () => {
     // 2,472 kg at sale after 89 days on feed, sold at ৳500 and ৳600, less ৳5,52,000 of cattle and the ৳1,00,000
     // running budget.
     expect(measured?.money).toMatchObject({
-      plannedCattleBdt: 552_000,
-      boughtBdt: 360_000,
-      planned: { lowBdt: 584_000, highBdt: 831_200 },
+      plannedCattleMoney: 552_000,
+      boughtMoney: 360_000,
+      planned: { lowMoney: 584_000, highMoney: 831_200 },
     });
 
     const manager = await asManager("2052-02-20T06:00:00.000Z");
@@ -626,12 +628,12 @@ describe("what a Venture's animals are doing", () => {
           animals: 1,
           fromKg: 220,
           toKg: 240,
-          buyBdtPerKg: 500,
+          buyMoneyPerKg: 500,
           dailyGainKg: 1,
         },
       ],
-      saleLowBdtPerKg: 500,
-      saleHighBdtPerKg: 600,
+      saleLowMoneyPerKg: 500,
+      saleHighMoneyPerKg: 600,
       reason: "পরিকল্পনা পরে লেখা হলো",
     });
     const measured = await owner.client.ventures.planAgainstActual({
@@ -640,8 +642,8 @@ describe("what a Venture's animals are doing", () => {
     expect(measured?.buying.bands[0]?.bought).toEqual({
       animals: 1,
       kg: 228,
-      costBdt: 114_000,
-      bdtPerKg: 500,
+      costMoney: 114_000,
+      moneyPerKg: 500,
     });
     // So nothing is left to buy, and he is counted once: 228 kg on 1 February at a kilo a day for the 59 days to the
     // window, 287 kg — not again as a bull the plan has still to buy.
@@ -698,9 +700,9 @@ describe("what the Manager may see of a Venture", () => {
     const mine = running.find((one) => one.id === firstVenture);
     expect(mine).toMatchObject({
       name: `ভেঞ্চার 1 ${suffix}`,
-      cattleBudgetBdt: expect.any(Number),
-      runningBudgetBdt: expect.any(Number),
-      spentBdt: expect.any(Number),
+      cattleBudgetMoney: expect.any(Number),
+      runningBudgetMoney: expect.any(Number),
+      spentMoney: expect.any(Number),
       runningBudgetLow: expect.any(Boolean),
       animalsStanding: 3,
     });
@@ -708,13 +710,13 @@ describe("what the Manager may see of a Venture", () => {
     // still a field the client was sent.
     for (const secret of [
       "signedFor",
-      "capitalInBdt",
-      "paidOutBdt",
-      "balanceBdt",
-      "unitPriceBdt",
+      "capitalInMoney",
+      "paidOutMoney",
+      "balanceMoney",
+      "unitPriceMoney",
       "units",
-      "targetCapitalBdt",
-      "floorBdt",
+      "targetCapitalMoney",
+      "floorMoney",
     ]) {
       expect(mine).not.toHaveProperty(secret);
     }

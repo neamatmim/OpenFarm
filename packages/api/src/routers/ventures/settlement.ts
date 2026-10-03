@@ -46,7 +46,7 @@ import { assertByBank } from "./shared";
 
 /** What one payment out of an approved Settlement is: how much, and what it marks off when it lands. */
 interface GoingOut {
-  amountBdt: number;
+  amountMoney: number;
   mark: (tx: Tx, movementId: string) => Promise<unknown>;
 }
 
@@ -106,7 +106,7 @@ const moveSettlementMoney = async (
         {
           ventureId: row.id,
           kind,
-          amountBdt: going.amountBdt,
+          amountMoney: going.amountMoney,
           movedOn: input.movedOn,
           reference: input.reference,
         },
@@ -132,7 +132,7 @@ const moveSettlementMoney = async (
           {
             source: kind === "farm_share" ? "farm_share" : "farm_loss",
             sourceId: movementId,
-            amountBdt: going.amountBdt,
+            amountMoney: going.amountMoney,
             occurredAt: startOfFarmDay(input.movedOn),
             counterpartyId: null,
             paymentMethod: input.paymentMethod,
@@ -146,7 +146,7 @@ const moveSettlementMoney = async (
         audited(context).recordEvent,
         (inner) => readVenture(inner, context.farm.id, row.id)
       );
-      return { paidBdt: going.amountBdt };
+      return { paidMoney: going.amountMoney };
     }
   );
 };
@@ -266,7 +266,7 @@ export const settlementProcedures = {
         agreementId: z.string(),
         /** What the Owner read before she sent it. Refused when it is not what the paper says she owes:
          *  a figure typed from memory is how a payout goes out wrong. */
-        amountBdt: z.number().positive().max(1_000_000_000),
+        amountMoney: z.number().positive().max(1_000_000_000),
         movedOn: farmDay,
         paymentMethod: z.enum(PAYMENT_METHODS),
         reference: z.string().trim().min(1).max(120),
@@ -276,7 +276,7 @@ export const settlementProcedures = {
       moveSettlementMoney(context, input, "payout", (approved) => {
         if (
           approved.row.advanceRepaidId === null &&
-          approved.row.advanceBdt !== 0
+          approved.row.advanceMoney !== 0
         ) {
           throw new ORPCError("BAD_REQUEST", {
             message: "Your own money comes back before any capital does",
@@ -297,7 +297,7 @@ export const settlementProcedures = {
             data: { refusal: "already_paid" },
           });
         }
-        const owed = his.payoutBdt;
+        const owed = his.payoutMoney;
         if (owed <= 0) {
           // The run lost more than he put in, so there is nothing to send him. What he owes back is a
           // conversation, not a movement of the Venture's money.
@@ -306,14 +306,14 @@ export const settlementProcedures = {
             data: { refusal: "nothing_to_pay_him", owed },
           });
         }
-        if (roundTaka(input.amountBdt) !== roundTaka(owed)) {
+        if (roundTaka(input.amountMoney) !== roundTaka(owed)) {
           throw new ORPCError("BAD_REQUEST", {
             message: `This Settlement owes ${owed} on that Agreement`,
             data: { refusal: "not_what_he_is_owed", owed },
           });
         }
         return {
-          amountBdt: owed,
+          amountMoney: owed,
           mark: (tx: Tx, movementId: string) =>
             tx
               .update(ventureSettlementShare)
@@ -351,7 +351,7 @@ export const settlementProcedures = {
             data: { refusal: "already_paid" },
           });
         }
-        const owed = approved.row.advanceBdt;
+        const owed = approved.row.advanceMoney;
         if (owed === 0) {
           throw new ORPCError("BAD_REQUEST", {
             message: "You put nothing of your own into this Venture",
@@ -359,7 +359,7 @@ export const settlementProcedures = {
           });
         }
         return {
-          amountBdt: owed,
+          amountMoney: owed,
           mark: (tx: Tx, movementId: string) =>
             tx
               .update(ventureSettlement)
@@ -401,7 +401,7 @@ export const settlementProcedures = {
             data: { refusal: "already_paid" },
           });
         }
-        const owed = approved.row.farmBdt;
+        const owed = approved.row.farmMoney;
         if (owed <= 0) {
           throw new ORPCError("BAD_REQUEST", {
             message: "This Venture made the Farm nothing to take",
@@ -409,7 +409,7 @@ export const settlementProcedures = {
           });
         }
         return {
-          amountBdt: owed,
+          amountMoney: owed,
           mark: (tx: Tx, movementId: string) =>
             tx
               .update(ventureSettlement)
@@ -454,7 +454,7 @@ export const settlementProcedures = {
             data: { refusal: "already_paid" },
           });
         }
-        const owed = -approved.row.farmBdt;
+        const owed = -approved.row.farmMoney;
         if (owed <= 0) {
           throw new ORPCError("BAD_REQUEST", {
             message: "This Venture made no loss for the Farm to carry",
@@ -462,7 +462,7 @@ export const settlementProcedures = {
           });
         }
         return {
-          amountBdt: owed,
+          amountMoney: owed,
           mark: (tx: Tx, movementId: string) =>
             tx
               .update(ventureSettlement)
@@ -600,7 +600,7 @@ export const settlementProcedures = {
             farmDayOf(now)
           );
           const against = adjustmentAgainst(approved.row, worked);
-          if (against.investorsDifferenceBdt === 0) {
+          if (against.investorsDifferenceMoney === 0) {
             throw new ORPCError("BAD_REQUEST", {
               message: "Nothing has changed since this Settlement was approved",
               data: { refusal: "nothing_has_changed" },
@@ -612,7 +612,7 @@ export const settlementProcedures = {
             approved.row.id,
             {
               reason: input.reason,
-              thresholdBdt: context.farm.adjustmentThresholdBdt,
+              thresholdMoney: context.farm.adjustmentThresholdMoney,
               against,
             },
             { actorId: context.actor.id, now }
@@ -670,8 +670,8 @@ export const settlementProcedures = {
             approved.row.id,
             input.adjustmentId
           );
-          const perUnitBdt = adjustment.perUnitDifferenceBdt;
-          if (perUnitBdt <= 0) {
+          const perUnitMoney = adjustment.perUnitDifferenceMoney;
+          if (perUnitMoney <= 0) {
             // The late news was bad. Nothing is chased: an Investor paid on figures the farm gave him
             // keeps what he was paid, so there is nothing to send and this is waived, not paid.
             throw new ORPCError("BAD_REQUEST", {
@@ -689,7 +689,7 @@ export const settlementProcedures = {
           // What this one still has to send, as the Adjustments themselves say it: worked out in one
           // place, so the screen offering to send a figure the farm then refuses cannot happen.
           const perUnitToPay =
-            raised.find((one) => one.id === adjustment.id)?.perUnitToPayBdt ??
+            raised.find((one) => one.id === adjustment.id)?.perUnitToPayMoney ??
             0;
           if (perUnitToPay <= 0) {
             throw new ORPCError("BAD_REQUEST", {
@@ -712,9 +712,9 @@ export const settlementProcedures = {
             now,
             accountSaid(["settlement_adjustment"], input)
           );
-          let paidBdt = 0;
+          let paidMoney = 0;
           for (const his of approved.shares) {
-            const amountBdt = whatUnitsTake(perUnitToPay, his.units);
+            const amountMoney = whatUnitsTake(perUnitToPay, his.units);
             // oxlint-disable-next-line no-await-in-loop -- one transaction, one Investor at a time
             const counterpartyId = await counterpartyNamed(
               tx,
@@ -726,12 +726,12 @@ export const settlementProcedures = {
             await bookMoney(tx, booking, {
               source: "settlement_adjustment",
               sourceId: `${adjustment.id}:${his.agreementId}`,
-              amountBdt,
+              amountMoney,
               occurredAt: startOfFarmDay(input.movedOn),
               counterpartyId,
               paymentMethod: input.paymentMethod,
             });
-            paidBdt += amountBdt;
+            paidMoney += amountMoney;
           }
           await closeAdjustment(
             tx,
@@ -740,7 +740,7 @@ export const settlementProcedures = {
             { outcome: "paid" },
             { actorId: context.actor.id, now }
           );
-          return { paidBdt };
+          return { paidMoney };
         }
       );
     }),

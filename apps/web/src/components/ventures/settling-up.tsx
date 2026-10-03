@@ -61,11 +61,11 @@ const WhenAndWhat = ({
  * going out, and says so: "send the Farm its money" would be the wrong way round for the Farm putting money in.
  */
 const sheetWords = (
-  what: { kind: string; title: string; amountBdt: number } | null,
+  what: { kind: string; title: string; amountMoney: number } | null,
   t: (key: MessageKey, params?: MessageParams) => string,
   language: Language
 ) => {
-  const amount = formatNumber(what?.amountBdt ?? 0, language);
+  const amount = formatNumber(what?.amountMoney ?? 0, language);
   const who = what?.title ?? "";
   if (what?.kind === "farmLoss") {
     return {
@@ -95,7 +95,7 @@ export const PayOutSheet = ({
     ventureId: string;
     kind: "advance" | "share" | "farm" | "farmLoss" | "adjustment";
     title: string;
-    amountBdt: number;
+    amountMoney: number;
     agreementId?: string;
     adjustmentId?: string;
   } | null;
@@ -195,7 +195,7 @@ export const PayOutSheet = ({
         paying.mutate({
           ...where,
           agreementId: what.agreementId ?? "",
-          amountBdt: what.amountBdt,
+          amountMoney: what.amountMoney,
         }),
     } as const;
     byKind[what.kind]();

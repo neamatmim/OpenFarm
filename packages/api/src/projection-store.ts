@@ -45,8 +45,8 @@ import { windowInForceOn } from "./venture-store";
 
 /** What a Projection is worked from: the plan in force. */
 export interface ProjectionBasis {
-  saleLowBdtPerKg: number;
-  saleHighBdtPerKg: number;
+  saleLowMoneyPerKg: number;
+  saleHighMoneyPerKg: number;
   /** The share of the animals still to sell the plan expects not to live to be sold, taken off the low end. */
   deathsPercent: number;
   setAt: Date;
@@ -55,7 +55,7 @@ export interface ProjectionBasis {
   /** The plan's buying lines, for animals still to buy. */
   lines: PlanLine[];
   /** The plan's buying as one average, weighted by its bands, as an offer says it. */
-  buyBdtPerKg: number | null;
+  buyMoneyPerKg: number | null;
   buyWeightKg: number | null;
   dailyGainKg: number | null;
 }
@@ -63,9 +63,9 @@ export interface ProjectionBasis {
 export interface Projection extends Projected {
   basis: ProjectionBasis;
   /** What the animals already sold fetched. */
-  realisedBdt: number;
+  realisedMoney: number;
   /** Everything it is taken to have been charged by the end. */
-  chargedBdt: number;
+  chargedMoney: number;
   investorsPercent: number;
   units: number;
 }
@@ -81,8 +81,8 @@ export const projectionBasisOf = async (
     return null;
   }
   return {
-    saleLowBdtPerKg: plan.saleLowBdtPerKg,
-    saleHighBdtPerKg: plan.saleHighBdtPerKg,
+    saleLowMoneyPerKg: plan.saleLowMoneyPerKg,
+    saleHighMoneyPerKg: plan.saleHighMoneyPerKg,
     deathsPercent: plan.deathsPercent,
     setAt: plan.madeAt,
     planVersion: plan.version,
@@ -147,12 +147,12 @@ type Run = Pick<
   | "decideBy"
   | "targetWindowStart"
   | "targetWindowEnd"
-  | "targetCapitalBdt"
-  | "cattleBudgetBdt"
+  | "targetCapitalMoney"
+  | "cattleBudgetMoney"
   | "units"
-  | "unitPriceBdt"
+  | "unitPriceMoney"
   | "capitalPaid"
-  | "cattlePartBdt"
+  | "cattlePartMoney"
 > & {
   /** When it was opened, which its Settlement is read from. */
   createdAt: Date;
@@ -181,9 +181,9 @@ const stillToBuy = async (
   run: Run,
   basis: ProjectionBasis,
   now: Date
-): Promise<{ kg: number; costBdt: number }> => {
+): Promise<{ kg: number; costMoney: number }> => {
   if (!isStillBuying(run.state)) {
-    return { kg: 0, costBdt: 0 };
+    return { kg: 0, costMoney: 0 };
   }
   const buyingFrom = new Date(
     Math.max(now.getTime(), startOfFarmDay(run.decideBy).getTime())
@@ -219,8 +219,9 @@ export const offerProjectionOf = async (
     now
   );
   const figures = {
-    realisedBdt: 0,
-    chargedBdt: run.targetCapitalBdt - run.cattleBudgetBdt + buying.costBdt,
+    realisedMoney: 0,
+    chargedMoney:
+      run.targetCapitalMoney - run.cattleBudgetMoney + buying.costMoney,
     investorsPercent: offeredPercent,
     units: run.units,
   };
@@ -230,8 +231,8 @@ export const offerProjectionOf = async (
     ...projectedSettlement({
       kgAtSale: buying.kg,
       ...figures,
-      saleLowBdtPerKg: basis.saleLowBdtPerKg,
-      saleHighBdtPerKg: basis.saleHighBdtPerKg,
+      saleLowMoneyPerKg: basis.saleLowMoneyPerKg,
+      saleHighMoneyPerKg: basis.saleHighMoneyPerKg,
       deathsPercent: basis.deathsPercent,
     }),
   };
@@ -274,11 +275,11 @@ export const projectionOf = async (
   ]);
   const buying = await stillToBuy(db, farmId, run, basis, now);
   const figures = {
-    realisedBdt: settled.proceedsBdt,
-    chargedBdt:
-      settled.chargedBdt +
-      Math.max(0, spend.runningBudgetBdt - spend.runningSpentBdt) +
-      buying.costBdt,
+    realisedMoney: settled.proceedsMoney,
+    chargedMoney:
+      settled.chargedMoney +
+      Math.max(0, spend.runningBudgetMoney - spend.runningSpentMoney) +
+      buying.costMoney,
     investorsPercent: settled.investorsPercent,
     units: settled.units,
   };
@@ -288,8 +289,8 @@ export const projectionOf = async (
     ...projectedSettlement({
       kgAtSale: standingKg + buying.kg,
       ...figures,
-      saleLowBdtPerKg: basis.saleLowBdtPerKg,
-      saleHighBdtPerKg: basis.saleHighBdtPerKg,
+      saleLowMoneyPerKg: basis.saleLowMoneyPerKg,
+      saleHighMoneyPerKg: basis.saleHighMoneyPerKg,
       deathsPercent: basis.deathsPercent,
     }),
   };
@@ -299,8 +300,8 @@ export const projectionOf = async (
  *  the share of it the lower figure allows not to live to be sold. */
 const saidBasis = (projection: Projection) => ({
   setAt: projection.basis.setAt,
-  saleLowBdtPerKg: projection.basis.saleLowBdtPerKg,
-  saleHighBdtPerKg: projection.basis.saleHighBdtPerKg,
+  saleLowMoneyPerKg: projection.basis.saleLowMoneyPerKg,
+  saleHighMoneyPerKg: projection.basis.saleHighMoneyPerKg,
   kgAtSale: Math.round(projection.kgAtSale),
   deathsPercent: projection.basis.deathsPercent,
 });
@@ -311,18 +312,18 @@ const saidBasis = (projection: Projection) => ({
  */
 export const hisProjection = (
   projection: Projection,
-  his: { units: number; capitalBdt: number }
+  his: { units: number; capitalMoney: number }
 ) => {
   const end = (one: Projection["low"]) => ({
-    proceedsBdt: one.proceedsBdt,
-    profitBdt: one.profitBdt,
-    shareBdt: whatUnitsTake(one.perUnitBdt, his.units),
-    payoutBdt: payoutOf(his.capitalBdt, his.units, one.perUnitBdt),
+    proceedsMoney: one.proceedsMoney,
+    profitMoney: one.profitMoney,
+    shareMoney: whatUnitsTake(one.perUnitMoney, his.units),
+    payoutMoney: payoutOf(his.capitalMoney, his.units, one.perUnitMoney),
   });
   return {
     ...saidBasis(projection),
-    realisedBdt: projection.realisedBdt,
-    chargedBdt: projection.chargedBdt,
+    realisedMoney: projection.realisedMoney,
+    chargedMoney: projection.chargedMoney,
     low: end(projection.low),
     high: end(projection.high),
   };
@@ -331,15 +332,15 @@ export const hisProjection = (
 /** A Projection as an offer says it: per Unit, with the plan it was worked from. */
 export const offeredProjection = (projection: Projection) => ({
   ...saidBasis(projection),
-  buyBdtPerKg: projection.basis.buyBdtPerKg,
+  buyMoneyPerKg: projection.basis.buyMoneyPerKg,
   buyWeightKg: projection.basis.buyWeightKg,
   dailyGainKg: projection.basis.dailyGainKg,
   low: {
-    profitBdt: projection.low.profitBdt,
-    perUnitBdt: projection.low.perUnitBdt,
+    profitMoney: projection.low.profitMoney,
+    perUnitMoney: projection.low.perUnitMoney,
   },
   high: {
-    profitBdt: projection.high.profitBdt,
-    perUnitBdt: projection.high.perUnitBdt,
+    profitMoney: projection.high.profitMoney,
+    perUnitMoney: projection.high.perUnitMoney,
   },
 });

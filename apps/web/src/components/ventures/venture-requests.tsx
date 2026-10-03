@@ -200,10 +200,10 @@ export const VentureRequests = ({ venture }: { venture: Venture }) => {
       handleNo: () => setAnswering({ ...about, kind: "no" }),
     };
   };
-  const unitsAndTaka = (units: number, bdt: number) =>
+  const unitsAndTaka = (units: number, amount: number) =>
     t("ventures.requests.unitsAndTaka", {
       units: formatNumber(units, language),
-      taka: taka(bdt),
+      taka: taka(amount),
     });
   return (
     <Section
@@ -215,19 +215,22 @@ export const VentureRequests = ({ venture }: { venture: Venture }) => {
         {totals ? (
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3 lg:grid-cols-5">
             <Total label={t("ventures.requests.signed")}>
-              {unitsAndTaka(totals.signedUnits, totals.signedBdt)}
+              {unitsAndTaka(totals.signedUnits, totals.signedMoney)}
             </Total>
             <Total label={t("ventures.requests.promised")}>
-              {unitsAndTaka(totals.promisedUnits ?? 0, totals.promisedBdt ?? 0)}
+              {unitsAndTaka(
+                totals.promisedUnits ?? 0,
+                totals.promisedMoney ?? 0
+              )}
             </Total>
             <Total label={t("ventures.requests.waiting")}>
-              {unitsAndTaka(totals.waitingUnits, totals.waitingBdt)}
+              {unitsAndTaka(totals.waitingUnits, totals.waitingMoney)}
             </Total>
             <Total label={t("ventures.requests.target")}>
-              {taka(venture.targetCapitalBdt)}
+              {taka(venture.targetCapitalMoney)}
             </Total>
             <Total label={t("ventures.requests.floor")}>
-              {taka(venture.floorBdt)}
+              {taka(venture.floorMoney)}
             </Total>
           </dl>
         ) : null}

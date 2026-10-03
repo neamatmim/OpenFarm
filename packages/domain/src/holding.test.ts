@@ -38,14 +38,14 @@ const ventures: Holding = {
 const charge = (
   kind: ChargeKind,
   at: string | Date,
-  bdt: number,
+  amount: number,
   more: Partial<Charge> = {}
 ): Charge => ({
   kind,
   animalId: "১০১",
   side: "fattening",
   at: typeof at === "string" ? new Date(at) : at,
-  bdt,
+  amount,
   fromId: kind,
   unpricedKg: 0,
   priced: true,
@@ -64,7 +64,7 @@ const hisCharges = [
 ];
 
 const total = (charges: readonly Charge[]) =>
-  charges.reduce((sum, one) => sum + one.bdt, 0);
+  charges.reduce((sum, one) => sum + one.amount, 0);
 
 describe("the charges inside a Holding", () => {
   it("add up across his Holdings to everything he was charged, nothing lost and nothing twice", () => {
@@ -173,17 +173,18 @@ describe("what some charges came to", () => {
       }),
     ]);
     expect(
-      costsOf([charge("sale_broker", "2030-02-01T02:00:00.000Z", 1200)]).tripBdt
+      costsOf([charge("sale_broker", "2030-02-01T02:00:00.000Z", 1200)])
+        .tripMoney
     ).toBe(1200);
     expect(costs).toEqual({
-      feedBdt: 7000,
+      feedMoney: 7000,
       unpricedKg: 40,
-      medicineBdt: 0,
+      medicineMoney: 0,
       uncostedDoses: 1,
-      vetBdt: 1500,
-      hasilBdt: 500,
-      tripBdt: 1900,
-      herdBdt: 900,
+      vetMoney: 1500,
+      hasilMoney: 500,
+      tripMoney: 1900,
+      herdMoney: 900,
     });
   });
 });

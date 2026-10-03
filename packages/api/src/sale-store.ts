@@ -15,9 +15,9 @@ export const readSale = async (tx: Tx, id: string) => {
     where: { id },
     columns: {
       farmId: true,
-      priceBdt: true,
-      bakiBdt: true,
-      brokerBdt: true,
+      priceMoney: true,
+      bakiMoney: true,
+      brokerMoney: true,
       promisedBy: true,
       weightKg: true,
       destination: true,
@@ -35,7 +35,7 @@ export const readSale = async (tx: Tx, id: string) => {
   return {
     ...sold,
     money: await moneySnapshotOf(tx, farmId, "sale", id),
-    brokerMoney: await moneySnapshotOf(tx, farmId, "sale_broker", id),
+    brokerMoneyEvent: await moneySnapshotOf(tx, farmId, "sale_broker", id),
   };
 };
 
@@ -59,16 +59,16 @@ export const brokerInput = z.number().int().min(0).max(1_000_000);
 const bookBrokerMoney = async (
   tx: Tx,
   booking: Booking,
-  row: { id: string; farmId: string; brokerBdt: number; soldAt: Date }
+  row: { id: string; farmId: string; brokerMoney: number; soldAt: Date }
 ) => {
   if (
-    row.brokerBdt > 0 ||
+    row.brokerMoney > 0 ||
     (await moneySnapshotOf(tx, row.farmId, "sale_broker", row.id))
   ) {
     await bookMoney(tx, booking, {
       source: "sale_broker",
       sourceId: row.id,
-      amountBdt: row.brokerBdt,
+      amountMoney: row.brokerMoney,
       occurredAt: row.soldAt,
       counterpartyId: null,
     });
@@ -97,9 +97,9 @@ export const bookSaleMoney = async (
   if (!row) {
     return;
   }
-  const { priceBdt } = row;
+  const { priceMoney } = row;
   const ventureId = await ownerOf(tx, row.animalId);
-  if (ventureId && row.bakiBdt > 0) {
+  if (ventureId && row.bakiMoney > 0) {
     throw new ORPCError("BAD_REQUEST", {
       message: "A Venture's animal leaves paid in full",
       data: { refusal: "venture_paid_in_full" },
@@ -118,12 +118,15 @@ export const bookSaleMoney = async (
       data: { refusal: "venture_sale_not_by_bkash" },
     });
   }
-  const paidBdt = paidAtTheGate(priceBdt, row.bakiBdt);
-  if (paidBdt > 0 || (await moneySnapshotOf(tx, row.farmId, "sale", row.id))) {
+  const paidMoney = paidAtTheGate(priceMoney, row.bakiMoney);
+  if (
+    paidMoney > 0 ||
+    (await moneySnapshotOf(tx, row.farmId, "sale", row.id))
+  ) {
     await bookMoney(tx, booking, {
       source: "sale",
       sourceId: row.id,
-      amountBdt: paidBdt,
+      amountMoney: paidMoney,
       occurredAt: row.soldAt,
       counterpartyId: row.counterpartyId,
       paymentMethod,
@@ -145,7 +148,7 @@ export const bookSaleMoney = async (
       id: row.id,
       farmId: row.farmId,
       ventureId,
-      priceBdt,
+      priceMoney,
       soldAt: row.soldAt,
       // By bank, the transfer's own reference, which is what the Venture Account's statement reads; otherwise her tag.
       reference:

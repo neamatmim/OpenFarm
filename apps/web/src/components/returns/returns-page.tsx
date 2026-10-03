@@ -102,7 +102,7 @@ const Row = ({
           </span>
           <span className="flex flex-col gap-0.5 ps-6 sm:items-end sm:ps-0">
             <span className="font-medium">
-              <Result bdt={returned.resultBdt} />
+              <Result amount={returned.resultMoney} />
             </span>
             <ShareUnder per100={returned.per100} />
           </span>
@@ -178,7 +178,7 @@ const VentureRow = ({
           {t("returns.settlementToComeHint")}
         </p>
       ) : null}
-      <SinceSettlement bdt={venture.sinceSettlementBdt} />
+      <SinceSettlement amount={venture.sinceSettlementMoney} />
       {venture.returnOnCapital ? (
         <div className="bg-muted/50 flex flex-col gap-1 rounded-md p-3">
           <p className="text-sm font-medium">{t("returns.capitalTitle")}</p>
@@ -193,9 +193,9 @@ const VentureRow = ({
           </p>
         </div>
       ) : null}
-      {venture.farmsShareBdt === null ? null : (
+      {venture.farmsShareMoney === null ? null : (
         <p className="text-muted-foreground text-sm tabular-nums">
-          {t("returns.farmsShare", { bdt: taka(venture.farmsShareBdt) })}
+          {t("returns.farmsShare", { amount: taka(venture.farmsShareMoney) })}
         </p>
       )}
       <Link
@@ -524,7 +524,7 @@ export const VentureReturnsPanel = ({ ventureId }: { ventureId: string }) => {
             on="onCost"
             shares={venture.returnOnCost}
           />
-          <SinceSettlement bdt={venture.sinceSettlementBdt} />
+          <SinceSettlement amount={venture.sinceSettlementMoney} />
           {venture.settled ? null : (
             <p className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
               <StatusBadge tone="warning">

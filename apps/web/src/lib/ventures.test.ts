@@ -11,11 +11,11 @@ const NOW = new Date("2026-09-23T06:00:00.000Z");
 const open = (fields: Partial<Venture>): Venture =>
   ({
     state: "open",
-    floorBdt: 700_000,
-    capitalInBdt: 100_000,
+    floorMoney: 700_000,
+    capitalInMoney: 100_000,
     capitalPaid: "before_buying",
     signedFor: { units: 2, people: 1 },
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     decideBy: "2026-09-30",
     ...fields,
   }) as Venture;
@@ -34,7 +34,7 @@ describe("a decision coming due", () => {
   });
 
   it("is not said once the Floor is met", () => {
-    expect(decisionIsDue(open({ capitalInBdt: 700_000 }), NOW)).toBe(false);
+    expect(decisionIsDue(open({ capitalInMoney: 700_000 }), NOW)).toBe(false);
   });
 
   it("is not said of a run that has started buying", () => {
@@ -47,7 +47,7 @@ describe("a decision coming due", () => {
     expect(troubleWith(due)).toContainEqual({
       word: "decision_due",
       decideBy: "2025-09-30",
-      shortBdt: 600_000,
+      shortMoney: 600_000,
     });
   });
 });

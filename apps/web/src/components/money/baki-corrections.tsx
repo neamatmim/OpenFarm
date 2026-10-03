@@ -16,14 +16,14 @@ export const BakiPaymentCorrection = ({
 }: {
   payment: {
     id: string;
-    amountBdt: number;
+    amountMoney: number;
     paidOn: string;
     note: string | null;
   };
 }) => {
   const { t } = useLanguage();
   const correcting = useCorrecting({
-    amountBdt: amount(payment.amountBdt),
+    amountMoney: amount(payment.amountMoney),
     paidOn: day(payment.paidOn),
     note: note(payment.note),
   });
@@ -45,9 +45,9 @@ export const BakiPaymentCorrection = ({
         <CorrectionAnswer
           inputMode="decimal"
           label={t("baki.amount")}
-          onChange={(value) => correcting.set("amountBdt", value)}
+          onChange={(value) => correcting.set("amountMoney", value)}
           type="number"
-          value={correcting.typed.amountBdt ?? ""}
+          value={correcting.typed.amountMoney ?? ""}
         />
         <CorrectionAnswer
           label={t("baki.paidOn")}
@@ -69,11 +69,11 @@ export const BakiPaymentCorrection = ({
 export const WriteOffCorrection = ({
   writeOff,
 }: {
-  writeOff: { id: string; amountBdt: number; reason: string };
+  writeOff: { id: string; amountMoney: number; reason: string };
 }) => {
   const { t } = useLanguage();
   const correcting = useCorrecting({
-    amountBdt: figure(writeOff.amountBdt),
+    amountMoney: figure(writeOff.amountMoney),
     why: words(writeOff.reason),
   });
   const correct = useMutation(orpc.baki.correctWriteOff.mutationOptions({}));
@@ -93,9 +93,9 @@ export const WriteOffCorrection = ({
       <CorrectionAnswer
         inputMode="decimal"
         label={t("baki.amount")}
-        onChange={(value) => correcting.set("amountBdt", value)}
+        onChange={(value) => correcting.set("amountMoney", value)}
         type="number"
-        value={correcting.typed.amountBdt ?? ""}
+        value={correcting.typed.amountMoney ?? ""}
       />
       <CorrectionAnswer
         label={t("baki.writeOffWhy")}

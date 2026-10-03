@@ -65,8 +65,11 @@ const useVentureFigures = (ventures: Venture[] | undefined): Figure[] => {
   // Everything the Running tab holds, Open runs included: a tile that counts four while the tab under it
   // draws five is a page arguing with itself, and an Open Venture's capital is in the account already.
   const running = (ventures ?? []).filter((one) => tabOf(one) === "running");
-  const held = running.reduce((sum, one) => sum + one.capitalInBdt, 0);
-  const balance = running.reduce((sum, one) => sum + (one.balanceBdt ?? 0), 0);
+  const held = running.reduce((sum, one) => sum + one.capitalInMoney, 0);
+  const balance = running.reduce(
+    (sum, one) => sum + (one.balanceMoney ?? 0),
+    0
+  );
   const needHer = venturesNeedingHer(ventures).length;
   const loading = <Skeleton className="h-8 w-24" />;
   const taka = useTaka();

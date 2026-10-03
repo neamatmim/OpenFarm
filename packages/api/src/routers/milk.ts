@@ -98,7 +98,7 @@ export const milkRouter = {
         reference: referenceInput,
         /** What the buyer paid there and then; left out, all of it. Less than the milk came to, and the rest is his
          *  Baki. */
-        paidNowBdt: paidNowInput.optional(),
+        paidNowMoney: paidNowInput.optional(),
         /** The day he promised to pay the rest by, when he named one. A milk buyer who pays on a round often does
          *  not, so it is never asked for. */
         promisedBy: promisedByInput.optional(),
@@ -113,8 +113,8 @@ export const milkRouter = {
       assertNotLater(input.dispatchedAt, now);
       const baki = bakiOrRefuse(
         bakiAtTheGate({
-          worthBdt: worthOfDispatch(input),
-          paidNowBdt: input.paidNowBdt,
+          worthMoney: worthOfDispatch(input),
+          paidNowMoney: input.paidNowMoney,
           promisedBy: input.promisedBy,
           leftOn: farmDayOf(input.dispatchedAt),
           promiseRequired: false,
@@ -142,7 +142,7 @@ export const milkRouter = {
             litres: input.litres.toFixed(2),
             ...buyer,
             challan: input.challan ?? null,
-            pricePerLitreBdt: input.pricePerLitreBdt.toFixed(2),
+            pricePerLitreMoney: input.pricePerLitreMoney.toFixed(2),
             fatPercent: twoPlaces(input.fatPercent),
             snfPercent: twoPlaces(input.snfPercent),
             ...baki,
@@ -204,7 +204,7 @@ export const milkRouter = {
       const owing = await owingNowOf(
         context.db,
         context.farm.id,
-        dispatches.filter((one) => one.bakiBdt > 0).map((one) => one.id)
+        dispatches.filter((one) => one.bakiMoney > 0).map((one) => one.id)
       );
       return {
         day: input.day,
@@ -212,7 +212,7 @@ export const milkRouter = {
         dispatchedLitres: litresDispatched(dispatches),
         dispatches: dispatches.map((one) => ({
           ...one,
-          owingBdt: owing.get(one.id) ?? 0,
+          owingMoney: owing.get(one.id) ?? 0,
         })),
       };
     }),

@@ -38,7 +38,7 @@ const ArrivalCorrection = ({ arrival }: { arrival: Arrival }) => {
   const { t, language } = useLanguage();
   const correcting = useCorrecting({
     quantity: amountArrived(arrival.quantity),
-    priceBdt: figure(arrival.priceBdt),
+    priceMoney: figure(arrival.priceMoney),
     receivedOn: day(arrival.receivedOn),
   });
   const correct = useMutation(orpc.stock.correct.mutationOptions({}));
@@ -68,9 +68,9 @@ const ArrivalCorrection = ({ arrival }: { arrival: Arrival }) => {
         <CorrectionAnswer
           inputMode="numeric"
           label={t("stock.price")}
-          onChange={(value) => correcting.set("priceBdt", value)}
+          onChange={(value) => correcting.set("priceMoney", value)}
           type="number"
-          value={correcting.typed.priceBdt ?? ""}
+          value={correcting.typed.priceMoney ?? ""}
         />
       )}
       <CorrectionAnswer
@@ -184,7 +184,7 @@ const QuantityCell = ({ row }: { row: { original: ArrivalRow } }) => {
  *  or on an answer a phone kept from before prices per unit were said. */
 const UnitPriceLine = ({ arrival }: { arrival: Arrival }) => {
   const { t, language } = useLanguage();
-  const unitPrice = arrival.unitPriceBdt ?? null;
+  const unitPrice = arrival.unitPriceMoney ?? null;
   if (unitPrice === null) {
     return null;
   }
@@ -207,12 +207,12 @@ const UnitPriceLine = ({ arrival }: { arrival: Arrival }) => {
 
 const PriceCell = ({ row }: { row: { original: ArrivalRow } }) => {
   const { language } = useLanguage();
-  return row.original.priceBdt === null ? (
+  return row.original.priceMoney === null ? (
     <Nothing />
   ) : (
     <div className="flex flex-col items-end">
       <span className="whitespace-nowrap">
-        ৳{formatNumber(row.original.priceBdt, language)}
+        ৳{formatNumber(row.original.priceMoney, language)}
       </span>
       <UnitPriceLine arrival={row.original} />
     </div>
@@ -265,7 +265,7 @@ const arrivalColumns = arrivalColumn.columns([
     cell: QuantityCell,
     meta: { align: "end" },
   }),
-  arrivalColumn.accessor((one) => one.priceBdt ?? undefined, {
+  arrivalColumn.accessor((one) => one.priceMoney ?? undefined, {
     id: "price",
     header: listHeader("stock.price"),
     cell: PriceCell,
@@ -318,9 +318,9 @@ const ArrivalCard = ({ row }: { row: ArrivalRow }) => {
         </span>
         <span className="text-muted-foreground text-xs">
           {formatDate(row.receivedOn, language)}
-          {row.kind === "harvest" || row.priceBdt === null
+          {row.kind === "harvest" || row.priceMoney === null
             ? ""
-            : ` · ${taka(row.priceBdt)} · ${row.sellerName ?? ""}`}
+            : ` · ${taka(row.priceMoney)} · ${row.sellerName ?? ""}`}
         </span>
         <SlipLine arrival={row} />
         <UnitPriceLine arrival={row} />
@@ -472,7 +472,7 @@ const DifferenceCell = ({ row }: { row: { original: Adjustment } }) => {
  *  bought, which has no price. Missing from an answer a phone kept from before counts were priced. */
 const ValueCell = ({ row }: { row: { original: Adjustment } }) => {
   const taka = useTaka();
-  const value = row.original.valueBdt;
+  const value = row.original.valueMoney;
   if (value === null || value === undefined) {
     return <Nothing />;
   }
@@ -515,7 +515,7 @@ const countColumns = countColumn.columns([
     cell: DifferenceCell,
     meta: { align: "end" },
   }),
-  countColumn.accessor((one) => one.valueBdt ?? 0, {
+  countColumn.accessor((one) => one.valueMoney ?? 0, {
     id: "value",
     header: listHeader("stock.col.value"),
     cell: ValueCell,

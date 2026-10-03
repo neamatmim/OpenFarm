@@ -13,7 +13,7 @@ import { appRouter } from "./index";
 const suffix = `awaiting-all-${Date.now()}`;
 const AT = "2093-05-10T04:00:00.000Z";
 const WAITING = 51;
-const EACH_BDT = 2_000_000;
+const EACH_MONEY = 2_000_000;
 
 const as = (role: "owner" | "manager") =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(AT) });
@@ -28,7 +28,7 @@ beforeAll(async () => {
   const manager = await as("manager");
   await manager.client.money.enter({
     categoryId: category.id,
-    amountBdt: EACH_BDT,
+    amountMoney: EACH_MONEY,
     occurredOn: "2093-05-09",
     counterparty: { name: `দোকান ${suffix}` },
     paymentMethod: "cash",
@@ -59,7 +59,7 @@ describe("money waiting for the Owner", () => {
     expect(needsYou.moneyAwaiting).toHaveLength(50);
     expect(needsYou.moneyAwaitingAll).toEqual({
       count: WAITING,
-      totalBdt: WAITING * EACH_BDT,
+      totalMoney: WAITING * EACH_MONEY,
     });
   });
 });

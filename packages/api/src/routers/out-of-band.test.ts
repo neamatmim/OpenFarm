@@ -56,7 +56,7 @@ const setup = async () => {
       penId,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
-      purchasePriceBdt: 60_000,
+      purchasePriceMoney: 60_000,
       weightKg,
       estimatedAgeMonths: 20,
       arrivedAt: new Date(ARRIVED),
@@ -89,7 +89,7 @@ beforeAll(async () => {
   await manager.client.sale.record({
     tagNumber: world.tags.sold,
     buyer: { name: `কসাই ${suffix}` },
-    priceBdt: 90_000,
+    priceMoney: 90_000,
     weightKg: 300,
     destination: "গাবতলী",
     vehicle: "ঢাকা মেট্রো ট ১১-২২৩৩",

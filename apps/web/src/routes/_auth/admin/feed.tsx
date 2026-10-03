@@ -82,10 +82,10 @@ const useStoreFigures = (
   const month = farmDayOf(new Date()).slice(0, 7);
   const bought = arrivals.filter(
     (one) =>
-      one.priceBdt !== null &&
+      one.priceMoney !== null &&
       farmDayOf(new Date(one.receivedOn)).slice(0, 7) === month
   );
-  const spent = bought.reduce((sum, one) => sum + (one.priceBdt ?? 0), 0);
+  const spent = bought.reduce((sum, one) => sum + (one.priceMoney ?? 0), 0);
   return [
     {
       label: t("feed.kpi.items"),

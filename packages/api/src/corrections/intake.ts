@@ -50,8 +50,8 @@ const loadIntake = (tx: Tx, farmId: string, id: string) =>
       id: true,
       farmId: true,
       animalId: true,
-      purchasePriceBdt: true,
-      hasilBdt: true,
+      purchasePriceMoney: true,
+      hasilMoney: true,
       buyingTripId: true,
       targetWindowStart: true,
       targetWindowEnd: true,
@@ -88,8 +88,8 @@ const windowShown = async (
  * home on, who sold the animal, how he was paid, and — for the Farm's own — the window she is sold in.
  */
 export const intakeCorrectionInput = correctionInput({
-  purchasePriceBdt: changeOf(purchasePriceInput, z.number()),
-  hasilBdt: changeOf(hasilInput, z.number()),
+  purchasePriceMoney: changeOf(purchasePriceInput, z.number()),
+  hasilMoney: changeOf(hasilInput, z.number()),
   buyingTrip: changeOf(z.string().nullable(), z.string().nullable()),
   /** Whose animal she is. A slip at the haat is fixable here and nowhere else: once the window has
    *  closed, only an Internal Sale moves her between owners. */
@@ -173,8 +173,8 @@ export const intakeCorrection: CorrectionKind<
   shown: async (tx, row, { now }) => {
     const owner = await ownerOf(tx, row.animalId);
     return {
-      purchasePriceBdt: row.purchasePriceBdt,
-      hasilBdt: row.hasilBdt,
+      purchasePriceMoney: row.purchasePriceMoney,
+      hasilMoney: row.hasilMoney,
       buyingTrip: row.buyingTripId,
       owner,
       targetWindow: await windowShown(tx, row, owner, now),
@@ -222,10 +222,10 @@ export const intakeCorrection: CorrectionKind<
         .where(eq(animal.id, row.animalId));
     }
     const putRight = {
-      ...(to.purchasePriceBdt === undefined
+      ...(to.purchasePriceMoney === undefined
         ? {}
-        : { purchasePriceBdt: to.purchasePriceBdt }),
-      ...(to.hasilBdt === undefined ? {} : { hasilBdt: to.hasilBdt }),
+        : { purchasePriceMoney: to.purchasePriceMoney }),
+      ...(to.hasilMoney === undefined ? {} : { hasilMoney: to.hasilMoney }),
       ...(to.buyingTrip === undefined ? {} : { buyingTripId: to.buyingTrip }),
       ...(to.targetWindow === undefined
         ? {}

@@ -44,17 +44,17 @@ beforeAll(async () => {
   roundId = round.definitionId;
   const venture = await owner.client.ventures.open({
     name: `ভেঞ্চার ${suffix}`,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2066-03-02",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
     ...WINDOW,
   });
   // Capital in first: a bull at the gate is paid from what the account holds.
   await putCapitalIn(
     owner.client,
-    { id: venture.id, units: 20, unitPriceBdt: 50_000 },
+    { id: venture.id, units: 20, unitPriceMoney: 50_000 },
     `venture ${suffix}`,
     "2066-03-01"
   );
@@ -70,7 +70,7 @@ const aBull = async (instant: string, ventureFor?: string) => {
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 80_000,
+    purchasePriceMoney: 80_000,
     weightKg: 250,
     estimatedAgeMonths: 20,
     arrivedAt: new Date(instant),
@@ -132,7 +132,7 @@ describe("an animal that leaves without dying", () => {
       destination: `গাবতলী ${suffix}`,
       vehicle: "ঢাকা মেট্রো-ট ১১-৪৪৫৬",
       driver: `চালক ${suffix}`,
-      priceBdt: 120_000,
+      priceMoney: 120_000,
     });
     expect(
       await burialsFor(bull.tagNumber, "2066-03-10T07:00:00.000Z")
@@ -166,7 +166,7 @@ describe("an animal that leaves without dying", () => {
     );
     // Bought for ৳80,000 and fed since: the year's lost animals cost at least that.
     expect(after.tiles.lostYear.count).toBeGreaterThanOrEqual(1);
-    expect(after.tiles.lostYear.costBdt).toBeGreaterThanOrEqual(80_000);
+    expect(after.tiles.lostYear.costMoney).toBeGreaterThanOrEqual(80_000);
     const page = await owner.client.animals.byTag({
       tagNumber: bull.tagNumber,
     });

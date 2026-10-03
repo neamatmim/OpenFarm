@@ -43,9 +43,9 @@ const recordInput = z
     sex: z.enum(SEXES),
     /** Who the farm bought it from. A name is enough; the rest is what anyone remembers. */
     seller: sellerInput,
-    purchasePriceBdt: purchasePriceInput,
+    purchasePriceMoney: purchasePriceInput,
     /** The toll the haat took on her, as its slip gives it. None at a farm-gate sale. */
-    hasilBdt: hasilInput.optional(),
+    hasilMoney: hasilInput.optional(),
     /** The outing she came home on, when the farm wrote one. */
     buyingTripId: z.string().optional(),
     /** Whose animal she is: the Venture whose money bought her, or left out for the Farm's own. */
@@ -104,11 +104,11 @@ export const intakeRouter = {
       const since = new Date(now.getTime() - LAST_BUYS_DAYS * DAY_MS);
       const buys = await context.db.query.intake.findMany({
         where: { farmId: context.farm.id, arrivedAt: { gte: since } },
-        columns: { purchasePriceBdt: true, weightKg: true, arrivedAt: true },
+        columns: { purchasePriceMoney: true, weightKg: true, arrivedAt: true },
       });
       return lastBuysPerKg(
         buys.map((one) => ({
-          priceBdt: one.purchasePriceBdt,
+          priceMoney: one.purchasePriceMoney,
           weightKg: Number(one.weightKg),
           arrivedAt: one.arrivedAt,
         })),
@@ -328,8 +328,8 @@ export const intakeRouter = {
             farmId: context.farm.id,
             animalId: id,
             counterpartyId: sellerId,
-            purchasePriceBdt: input.purchasePriceBdt,
-            hasilBdt: input.hasilBdt ?? 0,
+            purchasePriceMoney: input.purchasePriceMoney,
+            hasilMoney: input.hasilMoney ?? 0,
             buyingTripId: input.buyingTripId ?? null,
             weightKg: input.weightKg.toFixed(2),
             estimatedAgeMonths: input.estimatedAgeMonths,

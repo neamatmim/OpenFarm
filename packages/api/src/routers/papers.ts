@@ -49,26 +49,28 @@ const LOAD_LIMIT = 200;
  */
 const bakiOnTheReceipt = (
   rows: readonly {
-    priceBdt: number;
-    bakiBdt: number;
+    priceMoney: number;
+    bakiMoney: number;
     promisedBy: string | null;
     animal: { tagNumber: string };
   }[],
-  totalBdt: number,
+  totalMoney: number,
   language: Language
 ) => {
-  const owing = rows.filter((row) => row.bakiBdt > 0);
+  const owing = rows.filter((row) => row.bakiMoney > 0);
   if (owing.length === 0) {
     return null;
   }
-  const owedBdt = roundTaka(owing.reduce((sum, row) => sum + row.bakiBdt, 0));
+  const owedMoney = roundTaka(
+    owing.reduce((sum, row) => sum + row.bakiMoney, 0)
+  );
   const dayOf = (day: string | null) =>
     day === null ? "—" : formatDate(startOfFarmDay(day), language, "date");
   const days = new Set(owing.map((row) => row.promisedBy));
   const [onlyDay] = days;
   return {
-    paid: formatNumber(roundTaka(totalBdt - owedBdt), language),
-    owed: formatNumber(owedBdt, language),
+    paid: formatNumber(roundTaka(totalMoney - owedMoney), language),
+    owed: formatNumber(owedMoney, language),
     toBePaidBy:
       days.size === 1
         ? dayOf(onlyDay ?? null)
@@ -126,8 +128,8 @@ const salesWith = async (
     limit: LOAD_LIMIT + 1,
     columns: {
       id: true,
-      priceBdt: true,
-      bakiBdt: true,
+      priceMoney: true,
+      bakiMoney: true,
       promisedBy: true,
       weightKg: true,
       destination: true,
@@ -308,9 +310,9 @@ export const papersRouter = {
         columns: {
           id: true,
           animalId: true,
-          priceBdt: true,
-          bakiBdt: true,
-          brokerBdt: true,
+          priceMoney: true,
+          bakiMoney: true,
+          brokerMoney: true,
           promisedBy: true,
           weightKg: true,
           soldAt: true,
@@ -326,7 +328,7 @@ export const papersRouter = {
       const owing = await owingNowOf(
         context.db,
         context.farm.id,
-        rows.filter((one) => one.bakiBdt > 0).map((one) => one.id)
+        rows.filter((one) => one.bakiMoney > 0).map((one) => one.id)
       );
       // What each lost between her last weighing on the farm and the sale's scale.
       const shrink = await shrinkOfSales(
@@ -341,8 +343,8 @@ export const papersRouter = {
       return rows.map(({ animal: beast, buyer, animalId, ...row }) => ({
         ...row,
         shrink: shrink.get(animalId) ?? null,
-        owingBdt: owing.get(row.id) ?? 0,
-        priceBdt: row.priceBdt,
+        owingMoney: owing.get(row.id) ?? 0,
+        priceMoney: row.priceMoney,
         weightKg: Number(row.weightKg),
         tagNumber: beast.tagNumber,
         buyerName: buyer.name,
@@ -372,18 +374,18 @@ export const papersRouter = {
       const animals = rows.map((row) => ({
         tagNumber: row.animal.tagNumber,
         weight: formatNumber(Number(row.weightKg), language),
-        price: formatNumber(row.priceBdt, language),
+        price: formatNumber(row.priceMoney, language),
       }));
-      const totalBdt = rows.reduce((sum, row) => sum + row.priceBdt, 0);
+      const totalMoney = rows.reduce((sum, row) => sum + row.priceMoney, 0);
       const text = saleReceipt({
-        baki: bakiOnTheReceipt(rows, totalBdt, language),
+        baki: bakiOnTheReceipt(rows, totalMoney, language),
         farm: context.farm,
         buyerName: first.buyer.name,
         buyerAddress: first.buyer.address,
         buyerPhone: first.buyer.phone,
         day: formatDate(day, language, "date"),
         animals,
-        total: formatNumber(totalBdt, language),
+        total: formatNumber(totalMoney, language),
         producedBy: context.actor.name,
         producedAt: formatDate(now, language, "dateTime"),
       });
@@ -394,12 +396,12 @@ export const papersRouter = {
           entityId: input.saleId,
           action: "export",
           after: aboutAnimals(context.farm, "receipt", tagNumbers, {
-            totalBdt,
+            totalMoney,
           }),
         },
         () => Promise.resolve()
       );
-      return { text, animals: tagNumbers, totalBdt };
+      return { text, animals: tagNumbers, totalMoney };
     }),
 
   /**

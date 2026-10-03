@@ -22,17 +22,17 @@ let sprayId = "";
 const sprayed = async (
   instant: string,
   occurredOn: string,
-  amountBdt: number
+  amountMoney: number
 ) => {
   const owner = await as("owner", instant);
   await owner.client.money.enter({
     categoryId: sprayId,
-    amountBdt,
+    amountMoney,
     occurredOn,
     counterparty: { name: `দোকান ${suffix}` },
     paymentMethod: "cash",
     side: "fattening",
-    note: `${occurredOn} ${amountBdt} ${suffix}`,
+    note: `${occurredOn} ${amountMoney} ${suffix}`,
   });
 };
 
@@ -42,8 +42,8 @@ const toldOf = async (role: "owner" | "manager", instant: string) => {
   const alerts = await who.client.alerts.mine({ about: ventureId });
   return alerts
     .filter((one) => one.kind === "reimbursement_due")
-    .map((one) => one.params as { month: string; owedBdt: number })
-    .map((one) => ({ month: one.month, owedBdt: one.owedBdt }));
+    .map((one) => one.params as { month: string; owedMoney: number })
+    .map((one) => ({ month: one.month, owedMoney: one.owedMoney }));
 };
 
 const sweptOn = async (instant: string) => {
@@ -60,7 +60,7 @@ const reimburse = async (instant: string, month: string) => {
     movedOn: instant.slice(0, 10),
     paymentMethod: "bank",
     reference: `REI-${month}-${suffix}`,
-    amountBdt: figure.totalBdt,
+    amountMoney: figure.totalMoney,
   });
 };
 
@@ -68,19 +68,19 @@ beforeAll(async () => {
   const owner = await as("owner", "2078-01-02T04:00:00.000Z");
   const venture = await owner.client.ventures.open({
     name: `ভেঞ্চার ${suffix}`,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2078-01-02",
     targetWindowStart: "2078-09-01",
     targetWindowEnd: "2078-09-05",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
-    cattleBudgetBdt: 800_000,
+    cattleBudgetMoney: 800_000,
   });
   ventureId = venture.id;
   await putCapitalIn(
     owner.client,
-    { id: ventureId, units: 20, unitPriceBdt: 50_000 },
+    { id: ventureId, units: 20, unitPriceMoney: 50_000 },
     suffix,
     "2078-01-02"
   );
@@ -105,7 +105,7 @@ beforeAll(async () => {
     penId: pen.id,
     sex: "male",
     seller: { name: `প্রতিবেশী ${suffix}` },
-    purchasePriceBdt: 60_000,
+    purchasePriceMoney: 60_000,
     weightKg: 200,
     estimatedAgeMonths: 20,
     arrivedAt: new Date("2078-01-02T05:00:00.000Z"),
@@ -121,7 +121,7 @@ describe("a month's Reimbursement due", () => {
     // A second turn of the day says nothing more.
     await sweptOn("2078-02-01T09:00:00.000Z");
     expect(await toldOf("owner", "2078-02-01T10:00:00.000Z")).toEqual([
-      { month: "2078-01", owedBdt: 3000 },
+      { month: "2078-01", owedMoney: 3000 },
     ]);
     // The Venture Account is the Owner's: the Manager is not told what it owes.
     expect(await toldOf("manager", "2078-02-01T10:00:00.000Z")).toEqual([]);
@@ -132,7 +132,7 @@ describe("a month's Reimbursement due", () => {
     // February costs nothing at all, and January has been repaid.
     await sweptOn("2078-03-01T04:00:00.000Z");
     expect(await toldOf("owner", "2078-03-01T10:00:00.000Z")).toEqual([
-      { month: "2078-01", owedBdt: 3000 },
+      { month: "2078-01", owedMoney: 3000 },
     ]);
   });
 
@@ -142,7 +142,7 @@ describe("a month's Reimbursement due", () => {
     await sweptOn("2078-04-01T04:00:00.000Z");
     expect(await toldOf("owner", "2078-04-01T10:00:00.000Z")).toContainEqual({
       month: "2078-03",
-      owedBdt: 2000,
+      owedMoney: 2000,
     });
   });
 });

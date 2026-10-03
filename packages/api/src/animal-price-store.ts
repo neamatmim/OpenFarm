@@ -46,8 +46,8 @@ export const pricesOnTheSide = async (
   db: Database,
   farm: {
     id: string;
-    marketLowBdtPerKg: number | null;
-    marketHighBdtPerKg: number | null;
+    marketLowMoneyPerKg: number | null;
+    marketHighMoneyPerKg: number | null;
     marketPriceSetAt: Date | null;
     keepReadDays: number;
     keepAheadDays: number;
@@ -79,8 +79,8 @@ export const pricesOnTheSide = async (
             [
               id,
               {
-                lowBdtPerKg: basis.saleLowBdtPerKg,
-                highBdtPerKg: basis.saleHighBdtPerKg,
+                lowMoneyPerKg: basis.saleLowMoneyPerKg,
+                highMoneyPerKg: basis.saleHighMoneyPerKg,
               },
             ] as const,
           ]
@@ -88,10 +88,10 @@ export const pricesOnTheSide = async (
     )
   );
   const market =
-    farm.marketLowBdtPerKg !== null && farm.marketHighBdtPerKg !== null
+    farm.marketLowMoneyPerKg !== null && farm.marketHighMoneyPerKg !== null
       ? {
-          lowBdtPerKg: farm.marketLowBdtPerKg,
-          highBdtPerKg: farm.marketHighBdtPerKg,
+          lowMoneyPerKg: farm.marketLowMoneyPerKg,
+          highMoneyPerKg: farm.marketHighMoneyPerKg,
         }
       : null;
   const costed = new Map(costs.animals.map((one) => [one.id, one]));
@@ -101,14 +101,14 @@ export const pricesOnTheSide = async (
   const since = new Date(now.getTime() - RECENT_SALES_DAYS * DAY_MS);
   const sold = await db.query.sale.findMany({
     where: { farmId: farm.id, soldAt: { gte: since } },
-    columns: { priceBdt: true, weightKg: true },
+    columns: { priceMoney: true, weightKg: true },
     with: { animal: { columns: { side: true } } },
   });
   const recent = perKgOfSales(
     sold
       .filter((one) => one.animal?.side === "fattening")
       .map((one) => ({
-        priceBdt: one.priceBdt,
+        priceMoney: one.priceMoney,
         weightKg: Number(one.weightKg),
       }))
   );
@@ -127,7 +127,7 @@ export const pricesOnTheSide = async (
         return [];
       }
       const economics = economicsOfAnimal(costs, animal);
-      const costBdt = (economics.purchaseBdt ?? 0) + chargedOf(economics);
+      const costMoney = (economics.purchaseMoney ?? 0) + chargedOf(economics);
       const venture = ventureOf.get(row.id) ?? null;
       const range = priceRangeFor({
         ofHerVenture: venture ? (ventureRange.get(venture) ?? null) : null,
@@ -138,19 +138,19 @@ export const pricesOnTheSide = async (
         {
           id: row.id,
           tagNumber: row.tagNumber,
-          costBdt,
+          costMoney,
           /** False while feed she ate has no price or a dose has no cost: her cost is short by those. */
           costIsWhole:
             economics.unpricedKg === 0 && economics.uncostedDoses === 0,
           /** False for one born here, whose cost has no purchase in it and so is not the whole of her. */
-          bought: economics.purchaseBdt !== null,
+          bought: economics.purchaseMoney !== null,
           latestKg: row.view.latestKg,
           /** Where the price a kilo came from, or nothing while none is set for her. */
           from: range?.from ?? null,
-          lowBdtPerKg: range?.lowBdtPerKg ?? null,
-          highBdtPerKg: range?.highBdtPerKg ?? null,
+          lowMoneyPerKg: range?.lowMoneyPerKg ?? null,
+          highMoneyPerKg: range?.highMoneyPerKg ?? null,
           ...priceOfAnimal({
-            costBdt,
+            costMoney,
             latestKg: row.view.latestKg,
             range,
           }),
@@ -215,14 +215,14 @@ export const tellIfSoldUnderCost = async (
     where: { id: farmId },
     columns: {
       id: true,
-      marketLowBdtPerKg: true,
-      marketHighBdtPerKg: true,
+      marketLowMoneyPerKg: true,
+      marketHighMoneyPerKg: true,
       shrinkTellPercent: true,
     },
   });
   const sold = await tx.query.sale.findFirst({
     where: { id: saleId, farmId },
-    columns: { priceBdt: true, weightKg: true, soldAt: true },
+    columns: { priceMoney: true, weightKg: true, soldAt: true },
     with: {
       animal: {
         columns: {
@@ -244,22 +244,22 @@ export const tellIfSoldUnderCost = async (
     return;
   }
   const economics = economicsOfAnimal(costs, costed);
-  const costBdt = (economics.purchaseBdt ?? 0) + chargedOf(economics);
+  const costMoney = (economics.purchaseMoney ?? 0) + chargedOf(economics);
   const basis = animal.ownerVentureId
     ? await projectionBasisOf(tx, farm.id, animal.ownerVentureId)
     : null;
   const range = priceRangeFor({
     ofHerVenture: basis
       ? {
-          lowBdtPerKg: basis.saleLowBdtPerKg,
-          highBdtPerKg: basis.saleHighBdtPerKg,
+          lowMoneyPerKg: basis.saleLowMoneyPerKg,
+          highMoneyPerKg: basis.saleHighMoneyPerKg,
         }
       : null,
     market:
-      farm.marketLowBdtPerKg !== null && farm.marketHighBdtPerKg !== null
+      farm.marketLowMoneyPerKg !== null && farm.marketHighMoneyPerKg !== null
         ? {
-            lowBdtPerKg: farm.marketLowBdtPerKg,
-            highBdtPerKg: farm.marketHighBdtPerKg,
+            lowMoneyPerKg: farm.marketLowMoneyPerKg,
+            highMoneyPerKg: farm.marketHighMoneyPerKg,
           }
         : null,
     inAVenture: animal.ownerVentureId !== null,
@@ -271,8 +271,8 @@ export const tellIfSoldUnderCost = async (
     allowPercent: farm.shrinkTellPercent,
   });
   const under = soldUnder({
-    priceBdt: sold.priceBdt,
-    costBdt,
+    priceMoney: sold.priceMoney,
+    costMoney,
     weightKg: floor.weightKg,
     range,
   });
@@ -287,9 +287,9 @@ export const tellIfSoldUnderCost = async (
       about: { id: saleId },
       facts: {
         tag: animal.tagNumber,
-        priceBdt: sold.priceBdt,
-        costBdt: Math.round(costBdt),
-        lowBdt: under.lowBdt,
+        priceMoney: sold.priceMoney,
+        costMoney: Math.round(costMoney),
+        lowMoney: under.lowMoney,
         floorKg: floor.weightKg,
         floorFrom: floor.from,
       },

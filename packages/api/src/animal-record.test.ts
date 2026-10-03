@@ -61,7 +61,7 @@ describe("her record", () => {
       penId: world.quarantine,
       sex: "male",
       seller: { name: `বেপারী ${suffix}`, address: "সাভার হাট" },
-      purchasePriceBdt: 90_000,
+      purchasePriceMoney: 90_000,
       weightKg: 200,
       estimatedAgeMonths: 20,
       breedId: sahiwal,

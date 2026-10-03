@@ -26,7 +26,7 @@ export interface Charge {
   side: Side;
   at: Date;
   /** Nought for a dose of something the farm had not bought by then, which is shown, never charged. */
-  bdt: number;
+  amount: number;
   /** What it came from — the Feed Item, the medicine, the haat's Intake, the outing, the Category of a Herd Cost — so a
    *  sum can be read back as what it was made of. */
   fromId: string;
@@ -114,40 +114,40 @@ export const chargesInHolding = (
 
 /** What some charges came to, by kind, unrounded: the sum every figure of an Animal's cost is read from. */
 export const costsOf = (charges: readonly Charge[]): Costs => {
-  const bdtOf = (...kinds: ChargeKind[]) =>
+  const amountOf = (...kinds: ChargeKind[]) =>
     charges
       .filter((one) => kinds.includes(one.kind))
-      .reduce((sum, one) => sum + one.bdt, 0);
+      .reduce((sum, one) => sum + one.amount, 0);
   return {
-    feedBdt: bdtOf("feed"),
+    feedMoney: amountOf("feed"),
     unpricedKg: charges.reduce((sum, one) => sum + one.unpricedKg, 0),
-    medicineBdt: bdtOf("dose"),
+    medicineMoney: amountOf("dose"),
     uncostedDoses: charges.filter((one) => one.kind === "dose" && !one.priced)
       .length,
-    vetBdt: bdtOf("vet"),
-    hasilBdt: bdtOf("hasil"),
+    vetMoney: amountOf("vet"),
+    hasilMoney: amountOf("hasil"),
     // A broker is a cost of the outing, bought or sold: the Buying Trip's broker is in it already.
-    tripBdt: bdtOf("buying_trip", "selling_trip", "sale_broker"),
-    herdBdt: bdtOf("herd"),
+    tripMoney: amountOf("buying_trip", "selling_trip", "sale_broker"),
+    herdMoney: amountOf("herd"),
   };
 };
 
 /** What happened to one Animal that could end a Holding: her Sale, every Internal Sale of her, her crossing from the
  *  Dairy side, her death, her being written off as Lost. */
 export interface WhatHappened {
-  sale: { soldAt: Date; priceBdt: number } | null;
+  sale: { soldAt: Date; priceMoney: number } | null;
   /** Every Internal Sale of her, in the order they were saved. */
   internalSales: readonly {
     id: string;
     fromVentureId: string | null;
-    priceBdt: number;
+    priceMoney: number;
     /** When it was saved: which of two came first. */
     createdAt: Date;
     /** When she changed hands: the start of the day written on the sale. */
     on: Date;
   }[];
   /** Her crossing to the Fattening side, and the price the Owner put on it — or none yet. */
-  crossing: { on: Date; priceBdt: number | null } | null;
+  crossing: { on: Date; priceMoney: number | null } | null;
   died: Date | null;
   /** When she was written off as Lost: gone, and nothing came back for her, as for a death. */
   lost: Date | null;
@@ -158,7 +158,7 @@ export interface WhatHappened {
 export interface Left {
   how: "sold" | "sold_to_venture" | "crossed" | "died" | "lost";
   on: Date;
-  backBdt: number | null;
+  backMoney: number | null;
 }
 
 /**
@@ -184,7 +184,7 @@ export const howSheLeft = (
     return {
       how: "crossed",
       on: her.crossing.on,
-      backBdt: her.crossing.priceBdt,
+      backMoney: her.crossing.priceMoney,
     };
   }
   const cameAt = holding.cameBy
@@ -201,17 +201,17 @@ export const howSheLeft = (
       // The start of the day she was sold on, though never before this owner took her on, for one bought and sold
       // on in the same day.
       on: soldOn.on > holding.from ? soldOn.on : holding.from,
-      backBdt: soldOn.priceBdt,
+      backMoney: soldOn.priceMoney,
     };
   }
   if (
     her.sale &&
     ownedThenBy(holding.animalId, her.sale.soldAt) === holding.owner
   ) {
-    return { how: "sold", on: her.sale.soldAt, backBdt: her.sale.priceBdt };
+    return { how: "sold", on: her.sale.soldAt, backMoney: her.sale.priceMoney };
   }
   if (her.died) {
-    return { how: "died", on: her.died, backBdt: 0 };
+    return { how: "died", on: her.died, backMoney: 0 };
   }
-  return her.lost ? { how: "lost", on: her.lost, backBdt: 0 } : null;
+  return her.lost ? { how: "lost", on: her.lost, backMoney: 0 } : null;
 };

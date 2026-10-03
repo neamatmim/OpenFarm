@@ -58,7 +58,7 @@ const keepTheStore = ({ farm, days, on }: Script) => {
     ] as [FeedKey, number][]) {
       await f.as.owner.feed.setFodderPrice({
         feedItemId: f.feeds[key],
-        fodderPriceBdt: price,
+        fodderPriceMoney: price,
       });
     }
   });
@@ -86,7 +86,7 @@ const keepTheStore = ({ farm, days, on }: Script) => {
         feedItemId: f.feeds[key],
         kind,
         quantity,
-        priceBdt: price ? price * quantity : undefined,
+        priceMoney: price ? price * quantity : undefined,
         seller,
         receivedOn: start,
         ...paidBy(f, "bank"),
@@ -136,7 +136,7 @@ const keepTheStore = ({ farm, days, on }: Script) => {
           feedItemId: f.feeds[key],
           kind: "purchase",
           quantity,
-          priceBdt: price * quantity,
+          priceMoney: price * quantity,
           seller,
           receivedOn: day,
           // A lorry of feed is paid in cash at the gate or by bank: more than a bKash number moves in a month.
@@ -173,7 +173,7 @@ const sendTheMilk = ({ farm, days, on }: Script) => {
         litres: Math.round(litres - sweets),
         buyer: random.chance(0.8) ? MILK_BUYERS.pran : MILK_BUYERS.milkVita,
         challan: `${challan}-${random.int(10, 99)}`,
-        pricePerLitreBdt: random.int(56, 60),
+        pricePerLitreMoney: random.int(56, 60),
         fatPercent: Math.round(random.between(3.8, 4.4) * 10) / 10,
         snfPercent: Math.round(random.between(8.1, 8.6) * 10) / 10,
         ...paidBy(f, "bank"),
@@ -184,7 +184,7 @@ const sendTheMilk = ({ farm, days, on }: Script) => {
         await f.as.manager.baki.pay({
           buyer: MILK_BUYERS.sweets.name,
           kind: "milk",
-          amountBdt: 5000,
+          amountMoney: 5000,
           paidOn: day,
           paymentMethod: "cash",
         });
@@ -194,9 +194,9 @@ const sendTheMilk = ({ farm, days, on }: Script) => {
         litres: sweets,
         buyer: MILK_BUYERS.sweets,
         challan: `${challan}-মি`,
-        pricePerLitreBdt: 70,
+        pricePerLitreMoney: 70,
         paymentMethod: "cash",
-        ...(day > addDays(today, -10) ? { paidNowBdt: 0 } : {}),
+        ...(day > addDays(today, -10) ? { paidNowMoney: 0 } : {}),
       });
     });
   }
@@ -359,7 +359,7 @@ const crossTwoCalves = ({ farm, on }: Script) => {
     if (hers?.weightKg) {
       await f.as.owner.returns.priceCrossing({
         joiningId: hers.id,
-        rateBdtPerKg: 380,
+        rateMoneyPerKg: 380,
         note: "বাছুরের এ সপ্তাহের হাটের দর",
       });
     }
@@ -408,7 +408,7 @@ const payTheMonth = async (
   await f.as.owner.cash.handOver({
     from: { farmAccountId: f.farmAccounts.bank },
     to: { farmAccountId: f.farmAccounts.bkash },
-    amountBdt: 55_000,
+    amountMoney: 55_000,
     reference: paidBy(f, "bank").reference,
     note: "ব্যাংক থেকে অফিস বিকাশে মাসের টাকা",
   });
@@ -423,7 +423,7 @@ const payTheMonth = async (
   for (const [name, amount] of last ? wages.slice(0, -1) : wages) {
     await f.as.manager.money.enter({
       categoryId: id("wages"),
-      amountBdt: amount,
+      amountMoney: amount,
       occurredOn: payday,
       counterparty: { name },
       ...paidBy(f, "bkash"),
@@ -437,7 +437,7 @@ const payTheMonth = async (
   if (sundries !== "") {
     await f.as.manager.money.enter({
       categoryId: sundries,
-      amountBdt: random.int(2800, 4600),
+      amountMoney: random.int(2800, 4600),
       occurredOn: payday,
       counterparty: { name: "পশু ওষুধের দোকান — সদর" },
       paymentMethod: "cash",
@@ -481,10 +481,10 @@ const payTheMonth = async (
       "মিল্কিং মেশিনের ভ্যাকুয়াম পাম্প মেরামত",
     ]);
   }
-  for (const [key, amountBdt, name, paymentMethod, note] of bills) {
+  for (const [key, amountMoney, name, paymentMethod, note] of bills) {
     await f.as.manager.money.enter({
       categoryId: id(key),
-      amountBdt,
+      amountMoney,
       occurredOn: payday,
       counterparty: { name },
       ...paidBy(f, paymentMethod),
@@ -524,13 +524,13 @@ const weighTheShelves = async (f: Farm) => {
 };
 
 /** Below this the Manager asks for cash: a day's feed and sundries can come to more. */
-const HAND_LOW_BDT = 150_000;
+const HAND_LOW_MONEY = 150_000;
 /** What the Owner draws the Manager's hand back up to, and leaves in it when the takings go over. */
-const HAND_FLOAT_BDT = 300_000;
+const HAND_FLOAT_MONEY = 300_000;
 /** Above this the Manager hands the takings to the Owner rather than carry them. */
-const HAND_FULL_BDT = 500_000;
+const HAND_FULL_MONEY = 500_000;
 /** Cash moves in round thousands. */
-const HAND_ROUNDS_TO_BDT = 1000;
+const HAND_ROUNDS_TO_MONEY = 1000;
 
 /**
  * Each morning the Manager's hand is put right before the day's buying: drawn up from the bank when it runs low, the
@@ -540,26 +540,26 @@ const HAND_ROUNDS_TO_BDT = 1000;
 const settleTheHand = async (f: Farm) => {
   const managerId = f.accounts.manager.session.user.id;
   const [hand] = await f.as.manager.cash.inHand();
-  const holds = hand?.bdt ?? 0;
-  if (holds < HAND_LOW_BDT) {
+  const holds = hand?.amount ?? 0;
+  if (holds < HAND_LOW_MONEY) {
     await f.as.owner.cash.handOver({
       from: { farmAccountId: f.farmAccounts.bank },
       to: { userId: managerId },
-      amountBdt:
-        Math.ceil((HAND_FLOAT_BDT - holds) / HAND_ROUNDS_TO_BDT) *
-        HAND_ROUNDS_TO_BDT,
+      amountMoney:
+        Math.ceil((HAND_FLOAT_MONEY - holds) / HAND_ROUNDS_TO_MONEY) *
+        HAND_ROUNDS_TO_MONEY,
       reference: `চেক নং ${f.random.int(100_000, 999_999)}`,
       note: "ম্যানেজারের হাতখরচ",
     });
     return;
   }
-  if (holds > HAND_FULL_BDT) {
+  if (holds > HAND_FULL_MONEY) {
     await f.as.manager.cash.handOver({
       from: { userId: managerId },
       to: { userId: f.accounts.owner.session.user.id },
-      amountBdt:
-        Math.floor((holds - HAND_FLOAT_BDT) / HAND_ROUNDS_TO_BDT) *
-        HAND_ROUNDS_TO_BDT,
+      amountMoney:
+        Math.floor((holds - HAND_FLOAT_MONEY) / HAND_ROUNDS_TO_MONEY) *
+        HAND_ROUNDS_TO_MONEY,
       note: "বিক্রির টাকা মালিকের হাতে",
     });
   }
@@ -602,7 +602,7 @@ const keepTheBooks = ({ farm, days, on }: Script) => {
     const visit = addDays(start, 12 + month * 30);
     on(visit, "18:00", "vet visit fee", async (f) => {
       await f.as.vet.money.vetFee({
-        amountBdt: 3000,
+        amountMoney: 3000,
         visitedOn: visit,
         note: "মাসিক খামার পরিদর্শন ও গর্ভ পরীক্ষা",
         ...paidBy(f, "bkash"),
@@ -614,12 +614,12 @@ const keepTheBooks = ({ farm, days, on }: Script) => {
     on(addDays(start, offset), "21:00", "owner approvals", async (f) => {
       const waiting = await f.db.query.moneyEvent.findMany({
         where: { farmId: f.farmId, approval: "awaiting" },
-        columns: { id: true, amountBdt: true },
+        columns: { id: true, amountMoney: true },
       });
       for (const row of waiting) {
         await f.as.owner.money.approve({
           id: row.id,
-          amountBdt: row.amountBdt,
+          amountMoney: row.amountMoney,
         });
       }
     });
@@ -984,8 +984,8 @@ const sellTheReady = ({ farm, on }: Script) => {
     }
     await f.as.manager.sellingTrips.record({
       wentTo: "গাবতলী পশুর হাট, ঢাকা",
-      transportBdt: random.int(7000, 9000),
-      keepBdt: random.int(1200, 2200),
+      transportMoney: random.int(7000, 9000),
+      keepMoney: random.int(1200, 2200),
       animals: going,
       wentOn: onFarm(addDays(today, -9), "05:30"),
       paymentMethod: "cash",
@@ -995,8 +995,8 @@ const sellTheReady = ({ farm, on }: Script) => {
   // what keeping each one another fortnight is weighed against.
   on(addDays(today, -9), "20:00", "the Owner prices the market", async (f) => {
     await f.as.owner.fattening.setMarketPrice({
-      lowBdtPerKg: 560,
-      highBdtPerKg: 620,
+      lowMoneyPerKg: 560,
+      highMoneyPerKg: 620,
     });
   });
   for (const [index, offset] of [-9, -9, -6, -4].entries()) {
@@ -1019,16 +1019,16 @@ const sellTheReady = ({ farm, on }: Script) => {
           (typedLow ? 0.86 : 1)
       );
       const buyer = random.pick(CATTLE_BUYERS);
-      const priceBdt =
+      const priceMoney =
         Math.round(
           (weightKg * (typedLow ? 565 : random.between(560, 620))) / 1000
         ) * 1000;
       await f.as.manager.sale.record({
         tagNumber: bull.tag,
         buyer,
-        priceBdt,
+        priceMoney,
         ...(onBaki
-          ? { paidNowBdt: priceBdt - 20_000, promisedBy: addDays(day, 7) }
+          ? { paidNowMoney: priceMoney - 20_000, promisedBy: addDays(day, 7) }
           : {}),
         weightKg,
         destination: buyer.address,
@@ -1043,7 +1043,7 @@ const sellTheReady = ({ farm, on }: Script) => {
   on(addDays(today, -1), "16:00", "a trader pays half his baki", async (f) => {
     const owing = await f.as.manager.baki.list();
     const late = owing.find((one) =>
-      one.kinds.some((kind) => kind.kind === "cattle" && kind.owingBdt > 0)
+      one.kinds.some((kind) => kind.kind === "cattle" && kind.owingMoney > 0)
     );
     if (!late) {
       return;
@@ -1051,7 +1051,7 @@ const sellTheReady = ({ farm, on }: Script) => {
     await f.as.manager.baki.pay({
       buyer: late.name,
       kind: "cattle",
-      amountBdt: 10_000,
+      amountMoney: 10_000,
       paidOn: addDays(today, -1),
       ...paidBy(f, "bkash"),
     });
@@ -1067,7 +1067,7 @@ const sellTheReady = ({ farm, on }: Script) => {
     await f.as.manager.sale.record({
       tagNumber: old.tag,
       buyer: butcher,
-      priceBdt: 78_000,
+      priceMoney: 78_000,
       weightKg: 285,
       destination: butcher.address,
       vehicle: "ঢাকা মেট্রো-ন ১৫-৪৪১৮",

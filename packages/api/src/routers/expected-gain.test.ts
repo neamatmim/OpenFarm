@@ -137,7 +137,7 @@ const setup = async () => {
       sex,
       ...(breedId ? { breedId } : {}),
       seller: { name: `ব্যাপারী ${suffix}` },
-      purchasePriceBdt: 60_000,
+      purchasePriceMoney: 60_000,
       weightKg,
       estimatedAgeMonths: 20,
       arrivedAt: new Date(ARRIVED),
@@ -574,7 +574,7 @@ describe("the target weight a bull is taken in towards", () => {
       const arrived = await manager.client.intake.record({
         penId: world.pens.plain.id,
         seller: { name: `ব্যাপারী ${suffix}` },
-        purchasePriceBdt: 60_000,
+        purchasePriceMoney: 60_000,
         weightKg,
         estimatedAgeMonths: 20,
         targetWindowEnd: "2037-10-05",

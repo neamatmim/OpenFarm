@@ -56,18 +56,18 @@ export const venture = pgTable(
     name: text("name").notNull(),
     state: text("state", { enum: VENTURE_STATES }).notNull().default("open"),
     /** What the Owner is looking to raise, and the least it is worth starting on. */
-    targetCapitalBdt: taka("target_capital_bdt").notNull(),
-    floorBdt: taka("floor_bdt").notNull(),
+    targetCapitalMoney: taka("target_capital_money").notNull(),
+    floorMoney: taka("floor_money").notNull(),
     /** The day the Floor must be met by, as a calendar names it. */
     decideBy: text("decide_by").notNull(),
     /** The period the Venture means to sell in; its Animals inherit it. */
     targetWindowStart: text("target_window_start").notNull(),
     targetWindowEnd: text("target_window_end").notNull(),
     /** What one Unit costs, and how many there are. An Investor holds whole Units. */
-    unitPriceBdt: taka("unit_price_bdt").notNull(),
+    unitPriceMoney: taka("unit_price_money").notNull(),
     units: integer("units").notNull(),
     /** The part of the capital meant for buying animals; the rest is the Running Budget. */
-    cattleBudgetBdt: taka("cattle_budget_bdt").notNull(),
+    cattleBudgetMoney: taka("cattle_budget_money").notNull(),
     /** How its Investors pay for their Units. Every Venture before 2026-10-02 was paid before buying. */
     capitalPaid: text("capital_paid", { enum: CAPITAL_PAID })
       .notNull()
@@ -76,7 +76,7 @@ export const venture = pgTable(
      *  the day the first falls due (each after it on the same day of the next month). Worked from its budgets and
      *  dates when it opens (`monthlyTermsOf`), and never moved: an Amendment that moves its window moves no Investor's
      *  schedule. Empty for a Venture paid before buying. */
-    cattlePartBdt: taka("cattle_part_bdt"),
+    cattlePartMoney: taka("cattle_part_money"),
     monthlySums: integer("monthly_sums"),
     firstSumDueOn: text("first_sum_due_on"),
     /** Why a Venture was called off, in the Owner's words. */
@@ -108,7 +108,7 @@ export const venture = pgTable(
     ),
     check(
       "venture_floor_within_target",
-      sql`${table.floorBdt} <= ${table.targetCapitalBdt}`
+      sql`${table.floorMoney} <= ${table.targetCapitalMoney}`
     ),
     index("venture_state_idx").on(table.farmId, table.state),
     uniqueIndex("venture_ordinal_uidx").on(table.farmId, table.ordinal),
@@ -134,8 +134,8 @@ export const venturePlan = pgTable(
     /** Where the Venture was when this was saved: "open" for a plan made before buying, a later state for a
      *  revision. */
     madeWhile: text("made_while", { enum: VENTURE_STATES }).notNull(),
-    saleLowBdtPerKg: taka("sale_low_bdt_per_kg").notNull(),
-    saleHighBdtPerKg: taka("sale_high_bdt_per_kg").notNull(),
+    saleLowMoneyPerKg: taka("sale_low_money_per_kg").notNull(),
+    saleHighMoneyPerKg: taka("sale_high_money_per_kg").notNull(),
     /** The share of its animals the Owner expects not to live to be sold, in per cent: taken off the low end of its
      *  projection, never the high. Nothing for a plan made before it could be said. */
     deathsPercent: numeric("deaths_percent", { precision: 5, scale: 2 })
@@ -167,7 +167,7 @@ export const venturePlanLine = pgTable(
     animals: integer("animals").notNull(),
     fromKg: numeric("from_kg", { precision: 7, scale: 2 }).notNull(),
     toKg: numeric("to_kg", { precision: 7, scale: 2 }).notNull(),
-    buyBdtPerKg: taka("buy_bdt_per_kg").notNull(),
+    buyMoneyPerKg: taka("buy_money_per_kg").notNull(),
     dailyGainKg: numeric("daily_gain_kg", { precision: 5, scale: 2 }).notNull(),
     /** The Breed this line buys, or nothing for any Breed the haat offers. An animal bought counts towards the line of
      *  her Breed that holds her weight before an any-Breed one. No foreign key: the herd schema reads this one, not the
@@ -436,7 +436,7 @@ export const investmentAgreement = pgTable(
     stampKind: text("stamp_kind", { enum: STAMP_KINDS })
       .notNull()
       .default("paper"),
-    stampValueBdt: taka("stamp_value_bdt").notNull(),
+    stampValueMoney: taka("stamp_value_money").notNull(),
     stampedOn: text("stamped_on").notNull(),
     stampSerial: text("stamp_serial").notNull(),
     /** The wording it was printed and signed in. Every Agreement signed before the wording could be edited is
@@ -883,7 +883,7 @@ export const ventureMovement = pgTable(
     /** What a Reimbursement carried besides its own month: each earlier month already repaid whose figure has moved
      *  since, and by how much, more or less. Its own month's figure is its amount less these. Only a Reimbursement
      *  has them; one written before they were carried carries nothing. */
-    carried: jsonb("carried").$type<{ month: string; bdt: number }[]>(),
+    carried: jsonb("carried").$type<{ month: string; amount: number }[]>(),
     /** The Internal Sale this is one side of. Only an Internal Sale's movements have one. By id and
      *  not by foreign key: an Internal Sale is an Animal's record and lives with the fattening ones,
      *  and a reference from here would send the schema round in a circle. */
@@ -897,7 +897,7 @@ export const ventureMovement = pgTable(
     /** The deposit that carried a cash Sale's money here from the hand that took it at the haat. By id, as a Sale's is:
      *  a Handover is the Farm's cash record and lives with the money ones. */
     handoverId: text("handover_id"),
-    amountBdt: taka("amount_bdt").notNull(),
+    amountMoney: taka("amount_money").notNull(),
     /** The day the bank moved it, on the farm's own clock. */
     movedOn: text("moved_on").notNull(),
     /** Bank channels only: the transfer, the cheque or the deposit slip, and what it is numbered. */
@@ -958,8 +958,8 @@ export const ventureBankCheck = pgTable(
     /** The month it is of, "YYYY-MM". One check per Venture per month. */
     forMonth: text("for_month").notNull(),
     /** What the statement said, and what the farm thought at the moment she read it. */
-    readBdt: taka("read_bdt").notNull(),
-    expectedBdt: taka("expected_bdt").notNull(),
+    readMoney: taka("read_money").notNull(),
+    expectedMoney: taka("expected_money").notNull(),
     /** What she found out about a difference, where she has found out anything. */
     note: text("note"),
     checkedBy: text("checked_by").references(() => user.id),
@@ -996,27 +996,27 @@ export const ventureSettlement = pgTable(
       .notNull()
       .references(() => venture.id),
     /** What its Animals fetched, and everything the run was charged. */
-    proceedsBdt: taka("proceeds_bdt").notNull(),
-    chargedBdt: taka("charged_bdt").notNull(),
-    /** Every charge as its own line, as the statement showed it: `[{ word, bdt }]` — "bought", "hasil",
+    proceedsMoney: taka("proceeds_money").notNull(),
+    chargedMoney: taka("charged_money").notNull(),
+    /** Every charge as its own line, as the statement showed it: `[{ word, amount }]` — "bought", "hasil",
      *  "trips", "feed", "medicine", "vet", "herd". Frozen, never queried and never joined, which is why
      *  they live here rather than in a table of their own. */
     charges: jsonb("charges").notNull(),
-    profitBdt: taka("profit_bdt").notNull(),
+    profitMoney: taka("profit_money").notNull(),
     /** The split as the Agreements froze it, and what it came to. */
     investorsPercent: integer("investors_percent").notNull(),
     /** Every Unit held — paid for — across its Agreements, which is what the profit divided by. */
     units: heldUnits("units").notNull(),
-    investorsBdt: taka("investors_bdt").notNull(),
-    perUnitBdt: taka("per_unit_bdt").notNull(),
+    investorsMoney: taka("investors_money").notNull(),
+    perUnitMoney: taka("per_unit_money").notNull(),
     /** What flooring left over, which is the Farm's. */
-    roundingBdt: taka("rounding_bdt").notNull(),
-    farmBdt: taka("farm_bdt").notNull(),
+    roundingMoney: taka("rounding_money").notNull(),
+    farmMoney: taka("farm_money").notNull(),
     /** The Owner's own money, repaid at cost before any capital returns. */
-    advanceBdt: taka("advance_bdt").notNull(),
-    capitalBdt: taka("capital_bdt").notNull(),
+    advanceMoney: taka("advance_money").notNull(),
+    capitalMoney: taka("capital_money").notNull(),
     /** What the account held when it was approved, which everything above adds up to. */
-    balanceBdt: taka("balance_bdt").notNull(),
+    balanceMoney: taka("balance_money").notNull(),
     /** The movement the Owner's Advance went back to her on, once it has. */
     advanceRepaidId: text("advance_repaid_id"),
     /** The movement the Farm's own share left on. The Farm's money never stays in a Venture Account. */
@@ -1053,9 +1053,9 @@ export const ventureSettlementShare = pgTable(
     /** The Units he held: his capital over the Unit price, a fraction where he paid part of one. */
     units: heldUnits("units").notNull(),
     /** His capital back, what his Units took of the profit, and the two together. */
-    capitalBdt: taka("capital_bdt").notNull(),
-    shareBdt: taka("share_bdt").notNull(),
-    payoutBdt: taka("payout_bdt").notNull(),
+    capitalMoney: taka("capital_money").notNull(),
+    shareMoney: taka("share_money").notNull(),
+    payoutMoney: taka("payout_money").notNull(),
     /** The Venture Movement the money went out on, once it has. */
     paidMovementId: text("paid_movement_id"),
     /** When he said he had it, and anything he said about it. */
@@ -1105,15 +1105,15 @@ export const settlementAdjustment = pgTable(
      *  a reason and not only a figure. */
     reason: text("reason").notNull(),
     /** What the run would come to now, worked out the same way the Settlement was. */
-    profitBdt: taka("profit_bdt").notNull(),
-    perUnitBdt: taka("per_unit_bdt").notNull(),
+    profitMoney: taka("profit_money").notNull(),
+    perUnitMoney: taka("per_unit_money").notNull(),
     /** What that is against the frozen figures: what one Unit gained or lost by the late news, and what
      *  every Unit did together. Negative where the news was bad. */
-    perUnitDifferenceBdt: taka("per_unit_difference_bdt").notNull(),
-    investorsDifferenceBdt: taka("investors_difference_bdt").notNull(),
+    perUnitDifferenceMoney: taka("per_unit_difference_money").notNull(),
+    investorsDifferenceMoney: taka("investors_difference_money").notNull(),
     /** The figure it was judged against, frozen with it: turning the Farm Parameter afterwards must not
      *  change what an Adjustment already decided about itself. */
-    thresholdBdt: taka("threshold_bdt").notNull(),
+    thresholdMoney: taka("threshold_money").notNull(),
     outcome: text("outcome", { enum: ADJUSTMENT_OUTCOMES }).notNull(),
     /** What the Owner said when she waived it, which she stands behind. */
     waivedNote: text("waived_note"),

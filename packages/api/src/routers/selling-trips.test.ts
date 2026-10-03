@@ -25,7 +25,7 @@ const buy = async (manager: Awaited<ReturnType<typeof as>>, price = 50_000) => {
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: price,
+    purchasePriceMoney: price,
     weightKg: 200,
     estimatedAgeMonths: 20,
     ...WINDOW,
@@ -61,8 +61,8 @@ describe("a Selling Trip", () => {
     ];
     await manager.client.sellingTrips.record({
       wentTo: `ঈদের হাট ${suffix}`,
-      transportBdt: 6000,
-      keepBdt: 2000,
+      transportMoney: 6000,
+      keepMoney: 2000,
       animals: herd,
       paymentMethod: "cash",
     });
@@ -76,7 +76,7 @@ describe("a Selling Trip", () => {
           tagNumber,
           // A buyer each: two buyers of one name would be one trader, and the two sales race to make him.
           buyer: { name: `ক্রেতা ${which} ${suffix}` },
-          priceBdt: 90_000,
+          priceMoney: 90_000,
           weightKg: 300,
           destination: "ঢাকা",
           vehicle: "ঢাকা মেট্রো ট-১১-২২৩৩",
@@ -88,7 +88,7 @@ describe("a Selling Trip", () => {
 
     const each = await Promise.all(herd.map((tagNumber) => costOf(tagNumber)));
     for (const one of each) {
-      expect(one).toMatchObject({ tripBdt: 2000 });
+      expect(one).toMatchObject({ tripMoney: 2000 });
     }
   });
 
@@ -98,20 +98,20 @@ describe("a Selling Trip", () => {
     const other = await buy(manager);
     await manager.client.sellingTrips.record({
       wentTo: `প্রথম হাট ${suffix}`,
-      transportBdt: 4000,
+      transportMoney: 4000,
       animals: [twice, other],
       paymentMethod: "cash",
     });
     const again = await as("manager", "2041-03-15T04:00:00.000Z");
     await again.client.sellingTrips.record({
       wentTo: `দ্বিতীয় হাট ${suffix}`,
-      transportBdt: 3000,
+      transportMoney: 3000,
       animals: [twice],
       paymentMethod: "cash",
     });
     // Half of the first outing, the whole of the second.
-    expect(await costOf(twice)).toMatchObject({ tripBdt: 5000 });
-    expect(await costOf(other)).toMatchObject({ tripBdt: 2000 });
+    expect(await costOf(twice)).toMatchObject({ tripMoney: 5000 });
+    expect(await costOf(other)).toMatchObject({ tripMoney: 2000 });
   });
 
   it("charges the animals taken even when the day sold nothing", async () => {
@@ -120,17 +120,17 @@ describe("a Selling Trip", () => {
     const two = await buy(manager);
     await manager.client.sellingTrips.record({
       wentTo: `খালি ফেরা ${suffix}`,
-      transportBdt: 5000,
+      transportMoney: 5000,
       animals: [one, two],
       paymentMethod: "cash",
     });
-    expect(await costOf(one)).toMatchObject({ tripBdt: 2500 });
-    expect(await costOf(two)).toMatchObject({ tripBdt: 2500 });
+    expect(await costOf(one)).toMatchObject({ tripMoney: 2500 });
+    expect(await costOf(two)).toMatchObject({ tripMoney: 2500 });
 
     const owner = await as("owner", "2041-04-01T04:00:00.000Z");
     const report = await owner.client.costs.bySide(PERIOD);
     // Nothing of it is unallocated: the animals were taken, whether or not anybody bought them.
-    expect(report.unallocated.tripBdt).toBe(0);
+    expect(report.unallocated.tripMoney).toBe(0);
   });
 
   it("reaches the farm's money once, under its own Category", async () => {
@@ -138,8 +138,8 @@ describe("a Selling Trip", () => {
     const one = await buy(manager);
     const trip = await manager.client.sellingTrips.record({
       wentTo: `হিসাবের হাট ${suffix}`,
-      transportBdt: 2200,
-      keepBdt: 800,
+      transportMoney: 2200,
+      keepMoney: 800,
       animals: [one],
       paymentMethod: "bank",
     });
@@ -148,7 +148,7 @@ describe("a Selling Trip", () => {
       to: "2041-03-31",
     });
     expect(money.events.filter((each) => each.sourceId === trip.id)).toEqual([
-      expect.objectContaining({ amountBdt: 3000, direction: "out" }),
+      expect.objectContaining({ amountMoney: 3000, direction: "out" }),
     ]);
     const categories = await manager.client.money.categories();
     expect(
@@ -164,7 +164,7 @@ describe("a Selling Trip", () => {
     await manager.client.sale.record({
       tagNumber: one,
       buyer: { name: `ঈদের ক্রেতা ${suffix}` },
-      priceBdt: 95_000,
+      priceMoney: 95_000,
       weightKg: 310,
       destination: "চট্টগ্রাম",
       vehicle: "চট্ট মেট্রো ট-৯-১১১১",
@@ -173,12 +173,12 @@ describe("a Selling Trip", () => {
     });
     await manager.client.sellingTrips.record({
       wentTo: `সন্ধ্যায় লেখা ${suffix}`,
-      transportBdt: 3000,
+      transportMoney: 3000,
       animals: [one, two],
       paymentMethod: "cash",
     });
-    expect(await costOf(one)).toMatchObject({ tripBdt: 1500 });
-    expect(await costOf(two)).toMatchObject({ tripBdt: 1500 });
+    expect(await costOf(one)).toMatchObject({ tripMoney: 1500 });
+    expect(await costOf(two)).toMatchObject({ tripMoney: 1500 });
   });
 
   it("puts right what the day cost, and re-charges the animals taken", async () => {
@@ -187,28 +187,28 @@ describe("a Selling Trip", () => {
     const two = await buy(manager);
     const trip = await manager.client.sellingTrips.record({
       wentTo: `ভুল ভাড়া ${suffix}`,
-      transportBdt: 4000,
+      transportMoney: 4000,
       animals: [one, two],
       paymentMethod: "cash",
     });
     await manager.client.sellingTrips.correct({
       id: trip.id,
       reason: "গাড়ি ভাড়া ৫,০০০ ছিল",
-      changes: { transportBdt: { from: 4000, to: 5000 } },
+      changes: { transportMoney: { from: 4000, to: 5000 } },
     });
-    expect(await costOf(one)).toMatchObject({ tripBdt: 2500 });
+    expect(await costOf(one)).toMatchObject({ tripMoney: 2500 });
     // Listed with each part as it now stands, which is what the screen puts right from.
     const listed = await manager.client.sellingTrips.list();
     expect(listed.find((each) => each.id === trip.id)?.parts).toEqual({
-      transportBdt: 5000,
-      keepBdt: 0,
+      transportMoney: 5000,
+      keepMoney: 0,
     });
     const money = await manager.client.money.list({
       from: "2041-03-01",
       to: "2041-03-31",
     });
     expect(money.events.filter((each) => each.sourceId === trip.id)).toEqual([
-      expect.objectContaining({ amountBdt: 5000 }),
+      expect.objectContaining({ amountMoney: 5000 }),
     ]);
   });
 
@@ -217,11 +217,11 @@ describe("a Selling Trip", () => {
     const one = await buy(manager);
     await manager.client.sellingTrips.record({
       wentTo: `দুইবার টিক ${suffix}`,
-      transportBdt: 2000,
+      transportMoney: 2000,
       animals: [one, one],
       paymentMethod: "cash",
     });
-    expect(await costOf(one)).toMatchObject({ tripBdt: 2000 });
+    expect(await costOf(one)).toMatchObject({ tripMoney: 2000 });
   });
 
   it("refuses an animal that is not this farm's, and nobody but the Owner and the Manager", async () => {
@@ -229,7 +229,7 @@ describe("a Selling Trip", () => {
     await expect(
       manager.client.sellingTrips.record({
         wentTo: `ভুল গরু ${suffix}`,
-        transportBdt: 100,
+        transportMoney: 100,
         animals: ["F-9999999"],
         paymentMethod: "cash",
       })
@@ -245,7 +245,7 @@ describe("a Selling Trip", () => {
         expect(
           other.client.sellingTrips.record({
             wentTo: `না ${suffix}`,
-            transportBdt: 100,
+            transportMoney: 100,
             animals: ["F-0001"],
             paymentMethod: "cash",
           })

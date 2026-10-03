@@ -33,7 +33,7 @@ const signedAndPaid = async (
   owner: Awaited<ReturnType<typeof as>>,
   name: string,
   units: number,
-  amountBdt: number
+  amountMoney: number
 ) => {
   phones += 1;
   const him = await owner.investors.record({
@@ -46,7 +46,7 @@ const signedAndPaid = async (
     units,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2071-01-02",
     stampSerial: `PP ${name} ${suffix}`,
   });
@@ -57,7 +57,7 @@ const signedAndPaid = async (
   });
   await owner.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt,
+    amountMoney,
     movedOn: "2071-01-03",
     paymentMethod: "bank",
     reference: `TRF-${name}-${suffix}`,
@@ -75,14 +75,14 @@ beforeAll(async () => {
   });
   const venture = await owner.ventures.open({
     name: `আংশিক ${suffix}`,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2071-01-20",
     targetWindowStart: "2071-06-01",
     targetWindowEnd: "2071-06-10",
-    unitPriceBdt: UNIT_PRICE,
+    unitPriceMoney: UNIT_PRICE,
     units: 20,
-    cattleBudgetBdt: 800_000,
+    cattleBudgetMoney: 800_000,
   });
   ventureId = venture.id;
   // Each pays the cattle money of his Units and no more when the buying starts.
@@ -95,14 +95,14 @@ beforeAll(async () => {
   const trip = await buying.trips.record({
     wentTo: `হাট ${suffix}`,
     wentOn: "2071-01-04",
-    brokerBdt: 0,
-    transportBdt: 0,
-    keepBdt: 0,
+    brokerMoney: 0,
+    transportMoney: 0,
+    keepMoney: 0,
   });
   await buying.ventures.drawFloat({
     ventureId,
     buyingTripId: trip.id,
-    amountBdt: 100_000,
+    amountMoney: 100_000,
     movedOn: "2071-01-04",
     paymentMethod: "bank",
     reference: `FLT-${suffix}`,
@@ -112,7 +112,7 @@ beforeAll(async () => {
     penId: pen.id,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 100_000,
+    purchasePriceMoney: 100_000,
     weightKg: 200,
     estimatedAgeMonths: 20,
     buyingTripId: trip.id,
@@ -133,15 +133,15 @@ describe("a Settlement with Agreements only part paid", () => {
     const three = settlement.payouts.find(
       (one) => one.agreementId === threeUnits
     );
-    expect(settlement.profitBdt).toBe(-100_000);
+    expect(settlement.profitMoney).toBe(-100_000);
     // Four lakh is eight Units' worth and 1,20,000 is 2.4 — not two, and not the three he signed for.
     expect(ten?.units).toBe(8);
     expect(three?.units).toBe(2.4);
     expect(settlement.units).toBe(10.4);
     // The Investors' sixty thousand of the loss over 10.4 Units: 5,770 a Unit, floored like every figure per Unit.
-    expect(settlement.perUnitBdt).toBe(-5770);
-    expect(ten).toMatchObject({ shareBdt: -46_160, payoutBdt: 353_840 });
-    expect(three).toMatchObject({ shareBdt: -13_848, payoutBdt: 106_152 });
+    expect(settlement.perUnitMoney).toBe(-5770);
+    expect(ten).toMatchObject({ shareMoney: -46_160, payoutMoney: 353_840 });
+    expect(three).toMatchObject({ shareMoney: -13_848, payoutMoney: 106_152 });
   });
 
   it("loses no more per taka for the man with more Units than for the man with fewer", async () => {
@@ -151,7 +151,7 @@ describe("a Settlement with Agreements only part paid", () => {
 
     // Per taka put in, both carry the same loss.
     const perTaka = settlement.payouts.map(
-      (one) => one.shareBdt / one.capitalBdt
+      (one) => one.shareMoney / one.capitalMoney
     );
     expect(new Set(perTaka).size).toBe(1);
   });
@@ -169,14 +169,14 @@ describe("the progress paper of a part-paid Venture", () => {
     });
     const venture = await owner.ventures.open({
       name: `অগ্রগতি ${suffix}`,
-      targetCapitalBdt: 1_000_000,
-      floorBdt: 0,
+      targetCapitalMoney: 1_000_000,
+      floorMoney: 0,
       decideBy: "2071-02-20",
       targetWindowStart: "2071-07-01",
       targetWindowEnd: "2071-07-10",
-      unitPriceBdt: UNIT_PRICE,
+      unitPriceMoney: UNIT_PRICE,
       units: 20,
-      cattleBudgetBdt: 800_000,
+      cattleBudgetMoney: 800_000,
     });
     ventureId = venture.id;
     const full = await signedAndPaid(owner, "পূর্ণ", 10, UNIT_PRICE * 10);

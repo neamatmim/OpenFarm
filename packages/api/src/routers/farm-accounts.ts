@@ -199,7 +199,7 @@ export const farmAccountsRouter = {
     .input(z.object({ id: z.string(), month: monthInput }))
     .handler(async ({ context, input }) => {
       const row = await ours(context.db, context.farm.id, input.id);
-      const expectedBdt = await believedAtMonthEnd(
+      const expectedMoney = await believedAtMonthEnd(
         context.db,
         context.farm.id,
         row.id,
@@ -210,15 +210,15 @@ export const farmAccountsRouter = {
       });
       return {
         /** Nothing: no statement read yet, or this month is before the first one. */
-        expectedBdt,
+        expectedMoney,
         checked: already
           ? {
-              readBdt: already.readBdt,
-              expectedBdt: already.expectedBdt,
+              readMoney: already.readMoney,
+              expectedMoney: already.expectedMoney,
               note: already.note,
               stale:
-                expectedBdt !== null &&
-                roundTaka(expectedBdt - already.expectedBdt) !== 0,
+                expectedMoney !== null &&
+                roundTaka(expectedMoney - already.expectedMoney) !== 0,
             }
           : null,
       };
@@ -237,7 +237,7 @@ export const farmAccountsRouter = {
         id: z.string(),
         month: monthInput,
         /** What the statement said. Signed: an overdrawn account is told, not refused. */
-        readBdt: z.number().min(-1_000_000_000).max(1_000_000_000),
+        readMoney: z.number().min(-1_000_000_000).max(1_000_000_000),
         /** What she has found out about a difference, where she has found out anything. */
         note: z.string().trim().max(400).optional(),
       })
@@ -253,7 +253,7 @@ export const farmAccountsRouter = {
       }
       const id = idOfTheMonth(context.farm.id, row.id, input.month);
       const readBefore = await readCheck(context.db, id);
-      let expectedBdt = 0;
+      let expectedMoney = 0;
       await audited(context).write(
         {
           entity: "farm_account_check",
@@ -272,21 +272,21 @@ export const farmAccountsRouter = {
           }
           // The first reading is the statement itself: what the account held, which every later month starts from.
           const isFirst = !first || first.forMonth === input.month;
-          expectedBdt = isFirst
-            ? input.readBdt
+          expectedMoney = isFirst
+            ? input.readMoney
             : ((await believedAtMonthEnd(
                 tx,
                 context.farm.id,
                 row.id,
                 input.month
-              )) ?? input.readBdt);
+              )) ?? input.readMoney);
           const already = await tx.query.farmAccountCheck.findFirst({
             where: { id },
           });
           // A month found to disagree does not come right by being typed again: she says what she found out.
           const disagreed =
             already !== undefined &&
-            roundTaka(already.readBdt - already.expectedBdt) !== 0;
+            roundTaka(already.readMoney - already.expectedMoney) !== 0;
           if (disagreed && !input.note) {
             throw new ORPCError("BAD_REQUEST", {
               message:
@@ -294,7 +294,7 @@ export const farmAccountsRouter = {
               data: { refusal: "say_what_you_found_out" },
             });
           }
-          const agreesNow = roundTaka(input.readBdt - expectedBdt) === 0;
+          const agreesNow = roundTaka(input.readMoney - expectedMoney) === 0;
           await tx
             .insert(farmAccountCheck)
             .values({
@@ -302,8 +302,8 @@ export const farmAccountsRouter = {
               farmId: context.farm.id,
               farmAccountId: row.id,
               forMonth: input.month,
-              readBdt: input.readBdt,
-              expectedBdt,
+              readMoney: input.readMoney,
+              expectedMoney,
               note: input.note ?? null,
               checkedBy: context.actor.id,
               checkedAt: now,
@@ -311,8 +311,8 @@ export const farmAccountsRouter = {
             .onConflictDoUpdate({
               target: farmAccountCheck.id,
               set: {
-                readBdt: input.readBdt,
-                expectedBdt,
+                readMoney: input.readMoney,
+                expectedMoney,
                 // Kept unless she says something new; dropped once the month agrees.
                 note:
                   input.note ?? (agreesNow ? null : (already?.note ?? null)),
@@ -323,9 +323,9 @@ export const farmAccountsRouter = {
         }
       );
       return {
-        expectedBdt,
-        readBdt: input.readBdt,
-        differenceBdt: roundTaka(input.readBdt - expectedBdt),
+        expectedMoney,
+        readMoney: input.readMoney,
+        differenceMoney: roundTaka(input.readMoney - expectedMoney),
       };
     }),
 };

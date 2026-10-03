@@ -17,14 +17,14 @@ const as = (instant: string) =>
   createTestClient(appRouter, { as: "owner", clock: new FakeClock(instant) });
 
 const plan = {
-  targetCapitalBdt: 1_000_000,
-  floorBdt: 700_000,
+  targetCapitalMoney: 1_000_000,
+  floorMoney: 700_000,
   decideBy: "2046-09-20",
   targetWindowStart: "2047-05-17",
   targetWindowEnd: "2047-05-19",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 20,
-  cattleBudgetBdt: 750_000,
+  cattleBudgetMoney: 750_000,
 };
 
 describe("a Venture that has not run", () => {

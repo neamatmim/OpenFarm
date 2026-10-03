@@ -91,7 +91,7 @@ const booksOf = async (
     columns: {
       id: true,
       animalId: true,
-      purchasePriceBdt: true,
+      purchasePriceMoney: true,
       arrivedAt: true,
       targetWindowStart: true,
       targetWindowEnd: true,
@@ -106,7 +106,7 @@ const booksOf = async (
       how: true,
       targetWindowStart: true,
       targetWindowEnd: true,
-      priceBdt: true,
+      priceMoney: true,
       internalSaleId: true,
     },
     orderBy: { joinedAt: "asc", id: "asc" },
@@ -124,7 +124,7 @@ const booksOf = async (
       animalId: true,
       fromVentureId: true,
       toVentureId: true,
-      priceBdt: true,
+      priceMoney: true,
       createdAt: true,
       soldOn: true,
     },
@@ -136,7 +136,7 @@ const booksOf = async (
     priced.animals.map((one) => [
       one.id,
       one.low && one.high
-        ? { lowBdt: one.low.priceBdt, highBdt: one.high.priceBdt }
+        ? { lowMoney: one.low.priceMoney, highMoney: one.high.priceMoney }
         : {
             tagNumber: one.tagNumber,
             why: one.latestKg === null ? "no_weight" : "no_price",
@@ -200,7 +200,7 @@ const venturesOf = async (
             ventureId: true,
             kind: true,
             agreementId: true,
-            amountBdt: true,
+            amountMoney: true,
             movedOn: true,
           },
         });
@@ -228,8 +228,8 @@ const venturesOf = async (
         books,
         read,
         {
-          profitBdt: approved.row.profitBdt,
-          farmBdt: approved.row.farmBdt,
+          profitMoney: approved.row.profitMoney,
+          farmMoney: approved.row.farmMoney,
           shares: approved.shares,
           movements: movements.filter((one) => one.ventureId === venture.id),
         },
@@ -254,7 +254,7 @@ const crossingsOf = async (db: Database, farmId: string) => {
       farmId,
       how: "crossed",
       OR: [
-        { priceBdt: { isNull: true } },
+        { priceMoney: { isNull: true } },
         { animal: { state: { notIn: [...EXIT_STATES] } } },
       ],
     },
@@ -262,8 +262,8 @@ const crossingsOf = async (db: Database, farmId: string) => {
       id: true,
       animalId: true,
       joinedOn: true,
-      priceBdt: true,
-      rateBdtPerKg: true,
+      priceMoney: true,
+      rateMoneyPerKg: true,
     },
     with: { animal: { columns: { tagNumber: true } } },
     orderBy: { joinedAt: "asc", id: "asc" },
@@ -277,8 +277,9 @@ const crossingsOf = async (db: Database, farmId: string) => {
       tagNumber: row.animal?.tagNumber ?? "",
       joinedOn: row.joinedOn,
       weightKg: weighed?.weightKg ?? null,
-      priceBdt: row.priceBdt,
-      rateBdtPerKg: row.rateBdtPerKg === null ? null : Number(row.rateBdtPerKg),
+      priceMoney: row.priceMoney,
+      rateMoneyPerKg:
+        row.rateMoneyPerKg === null ? null : Number(row.rateMoneyPerKg),
     });
   }
   return out;
@@ -374,9 +375,9 @@ export interface BreakdownRow {
   died: number;
   /** Written off as Lost. */
   lost: number;
-  costBdt: number;
-  backBdt: number;
-  resultBdt: number;
+  costMoney: number;
+  backMoney: number;
+  resultMoney: number;
   /** What every hundred taka made, to one place; null for a line that cost nothing. */
   per100: number | null;
 }
@@ -625,7 +626,7 @@ export const seasonBreakdown = async (
     .map(({ line, holdings }) => {
       const returned = returnOf({
         spent: holdings.flatMap((one) => spentOn(books, null, one, now)),
-        backBdt: backOf(holdings),
+        backMoney: backOf(holdings),
         floorDays: farm.returnYearFloorDays,
         finished: true,
       });
@@ -634,9 +635,9 @@ export const seasonBreakdown = async (
         head: holdings.length,
         died: holdings.filter((one) => one.left?.how === "died").length,
         lost: holdings.filter((one) => one.left?.how === "lost").length,
-        costBdt: returned?.costBdt ?? 0,
-        backBdt: returned?.backBdt ?? backOf(holdings),
-        resultBdt: returned?.resultBdt ?? backOf(holdings),
+        costMoney: returned?.costMoney ?? 0,
+        backMoney: returned?.backMoney ?? backOf(holdings),
+        resultMoney: returned?.resultMoney ?? backOf(holdings),
         per100: returned?.per100 ?? null,
       };
     });
@@ -696,14 +697,14 @@ export const agreementReturnOnCapital = async (
       id: true,
       kind: true,
       agreementId: true,
-      amountBdt: true,
+      amountMoney: true,
       movedOn: true,
     },
   });
   const capital = capitalOf([share], movements);
   const returned = returnOnCapitalOf({
     capital,
-    shareBdt: share.shareBdt,
+    shareMoney: share.shareMoney,
     // No floor: nothing here is put a year.
     floorDays: 0,
   });

@@ -33,14 +33,14 @@ import {
 
 /** A cut lot re-valued for a new quantity, at the price a kilo of it was worth the day it came in. */
 const revalued = (
-  row: { quantity: string; priceBdt: number | null },
+  row: { quantity: string; priceMoney: number | null },
   quantity: number
 ): number | null => {
   const was = Number(row.quantity);
-  if (row.priceBdt === null || was === 0) {
-    return row.priceBdt;
+  if (row.priceMoney === null || was === 0) {
+    return row.priceMoney;
   }
-  return roundTaka((row.priceBdt / was) * quantity);
+  return roundTaka((row.priceMoney / was) * quantity);
 };
 
 const loadArrival = (tx: Tx, farmId: string, id: string) =>
@@ -52,7 +52,7 @@ const loadArrival = (tx: Tx, farmId: string, id: string) =>
 /** What putting right feed that came in may change: how much, what it cost, who sold it, the day, and how it was paid. */
 export const feedArrivalCorrectionInput = correctionInput({
   quantity: changeOf(quantityInput, z.number()),
-  priceBdt: changeOf(feedPriceInput, z.number().nullable()),
+  priceMoney: changeOf(feedPriceInput, z.number().nullable()),
   seller: changeOf(sellerInput, z.string().nullable()),
   receivedOn: changeOf(farmDay, z.string()),
   paymentMethod: paymentMethodChange,
@@ -96,7 +96,7 @@ export const feedArrivalCorrection: CorrectionKind<
   shown: async (tx, row) => ({
     farmAccount: await farmAccountShownOf(tx, row.farmId, "feed_in", row.id),
     quantity: Number(row.quantity),
-    priceBdt: row.priceBdt === null ? null : row.priceBdt,
+    priceMoney: row.priceMoney === null ? null : row.priceMoney,
     seller: row.seller?.name ?? null,
     receivedOn: farmDayOf(row.receivedOn),
     paymentMethod: await paymentMethodOf(tx, row.farmId, "feed_in", row.id),
@@ -110,8 +110,8 @@ export const feedArrivalCorrection: CorrectionKind<
       // typed into this Correction makes it "priced", and that is what a Harvest may not have.
       priced:
         row.kind === "harvest"
-          ? to.priceBdt !== undefined
-          : (to.priceBdt ?? row.priceBdt) !== null,
+          ? to.priceMoney !== undefined
+          : (to.priceMoney ?? row.priceMoney) !== null,
       seller: to.seller !== undefined || row.counterpartyId !== null,
     });
     const putRight = {
@@ -127,10 +127,10 @@ export const feedArrivalCorrection: CorrectionKind<
             // A cut lot is worth its kilos at the price it came in at: fewer kilos, less fodder, and
             // the price a kilo of it was worth that day is untouched.
             ...(row.kind === "harvest"
-              ? { priceBdt: revalued(row, to.quantity) }
+              ? { priceMoney: revalued(row, to.quantity) }
               : {}),
           }),
-      ...(to.priceBdt === undefined ? {} : { priceBdt: to.priceBdt }),
+      ...(to.priceMoney === undefined ? {} : { priceMoney: to.priceMoney }),
       ...(to.receivedOn === undefined
         ? {}
         : { receivedOn: receivedDay(to.receivedOn, now) }),

@@ -30,7 +30,7 @@ export interface HeldSale {
   ventureId: string;
   ventureName: string;
   tagNumber: string;
-  bdt: number;
+  amount: number;
 }
 
 /**
@@ -55,7 +55,7 @@ export const heldSalesOf = async (
       sourceId: true,
       heldBy: true,
       purseVentureId: true,
-      amountBdt: true,
+      amountMoney: true,
     },
   });
   if (events.length === 0) {
@@ -94,7 +94,7 @@ export const heldSalesOf = async (
             ventureId: one.purseVentureId,
             ventureName: nameOf.get(one.purseVentureId) ?? "",
             tagNumber: tagOf.get(one.sourceId) ?? "",
-            bdt: one.amountBdt,
+            amount: one.amountMoney,
           },
         ]
       : []
@@ -150,7 +150,7 @@ export interface HandHolds {
   userId: string;
   name: string;
   /** Every note in the hand, the Farm's and any Venture's sale cash together: what a Cash Count finds. */
-  bdt: number;
+  amount: number;
   /** Of which, a Venture's sale cash not yet deposited, Sale by Sale. */
   ventures: HeldSale[];
   /** The last Cash Count of this hand: when, what was found, and what the farm said it held; nothing if never. */
@@ -174,12 +174,12 @@ const handsOf = async (
       heldBy: { isNotNull: true },
       purseVentureId: THE_FARMS_PURSE,
     },
-    columns: { heldBy: true, direction: true, amountBdt: true },
+    columns: { heldBy: true, direction: true, amountMoney: true },
   });
   // A deposit of a Venture's sale cash is left out: the Sales it carried stop being held the moment it is written.
   const handed = await db.query.handover.findMany({
     where: { farmId, ventureId: { isNull: true } },
-    columns: { fromUserId: true, toUserId: true, amountBdt: true },
+    columns: { fromUserId: true, toUserId: true, amountMoney: true },
   });
   const held = await heldSalesOf(db, farmId);
   const counts = await db.query.cashCount.findMany({
@@ -192,21 +192,24 @@ const handsOf = async (
     },
   });
   const holds = new Map<string, number>();
-  const add = (userId: string | null, bdt: number) => {
+  const add = (userId: string | null, amount: number) => {
     if (userId) {
-      holds.set(userId, (holds.get(userId) ?? 0) + bdt);
+      holds.set(userId, (holds.get(userId) ?? 0) + amount);
     }
   };
   for (const one of events) {
-    add(one.heldBy, one.direction === "in" ? one.amountBdt : -one.amountBdt);
+    add(
+      one.heldBy,
+      one.direction === "in" ? one.amountMoney : -one.amountMoney
+    );
   }
   for (const one of handed) {
-    add(one.fromUserId, -one.amountBdt);
-    add(one.toUserId, one.amountBdt);
+    add(one.fromUserId, -one.amountMoney);
+    add(one.toUserId, one.amountMoney);
   }
   // A Venture's sale cash is in the hand that took it until it is deposited: the notes are there to be counted.
   for (const one of held) {
-    add(one.heldBy, one.bdt);
+    add(one.heldBy, one.amount);
   }
   for (const one of counts) {
     if (one.completionId !== excludingCount) {
@@ -253,14 +256,14 @@ export const cashInHand = async (
   }
   const nameOf = new Map(people.map((one) => [one.id, one.name]));
   return [...holds]
-    .map(([userId, bdt]) => ({
+    .map(([userId, amount]) => ({
       userId,
       name: nameOf.get(userId) ?? "",
-      bdt: roundTaka(bdt),
+      amount: roundTaka(amount),
       ventures: held.filter((one) => one.heldBy === userId),
       lastCount: lastOf.get(userId) ?? null,
     }))
-    .toSorted((a, b) => b.bdt - a.bdt || a.name.localeCompare(b.name));
+    .toSorted((a, b) => b.amount - a.amount || a.name.localeCompare(b.name));
 };
 
 /**
@@ -271,7 +274,7 @@ export const cashInHand = async (
 export const recordCashCount = async (
   tx: Tx,
   input: {
-    farm: { id: string; cashShortTellBdt: number };
+    farm: { id: string; cashShortTellMoney: number };
     userId: string;
     completionId: string;
     counted: number;
@@ -301,8 +304,8 @@ export const recordCashCount = async (
       ...row,
     })
     .onConflictDoUpdate({ target: cashCount.completionId, set: row });
-  const shortBdt = roundTaka(expected - input.counted);
-  if (shortBdt > input.farm.cashShortTellBdt) {
+  const shortMoney = roundTaka(expected - input.counted);
+  if (shortMoney > input.farm.cashShortTellMoney) {
     const counter = await tx.query.user.findFirst({
       where: { id: input.userId },
       columns: { name: true },
@@ -315,7 +318,7 @@ export const recordCashCount = async (
         about: { id: input.completionId },
         facts: {
           name: counter?.name ?? "",
-          shortBdt,
+          shortMoney,
           countedOn: farmDayOf(input.countedAt),
         },
       },
@@ -338,7 +341,7 @@ export interface CashMovement {
   id: string;
   at: Date;
   /** Into the hand, above nothing; out of it, below. */
-  bdt: number;
+  amount: number;
   kind: "money" | "handover";
   /** The Money Event's Category, in both languages; nothing for a Handover. */
   categoryBn: string | null;
@@ -369,7 +372,7 @@ export const cashMovementsOf = async (
       id: true,
       occurredAt: true,
       direction: true,
-      amountBdt: true,
+      amountMoney: true,
       note: true,
     },
     with: { category: { columns: { nameBn: true, nameEn: true } } },
@@ -383,7 +386,7 @@ export const cashMovementsOf = async (
       handedAt: true,
       fromUserId: true,
       toUserId: true,
-      amountBdt: true,
+      amountMoney: true,
       note: true,
     },
     with: {
@@ -397,7 +400,7 @@ export const cashMovementsOf = async (
     ...events.map((one) => ({
       id: one.id,
       at: one.occurredAt,
-      bdt: one.direction === "in" ? one.amountBdt : -one.amountBdt,
+      amount: one.direction === "in" ? one.amountMoney : -one.amountMoney,
       kind: "money" as const,
       categoryBn: one.category.nameBn,
       categoryEn: one.category.nameEn,
@@ -411,7 +414,7 @@ export const cashMovementsOf = async (
       return {
         id: one.id,
         at: one.handedAt,
-        bdt: outOfThisHand ? -one.amountBdt : one.amountBdt,
+        amount: outOfThisHand ? -one.amountMoney : one.amountMoney,
         kind: "handover" as const,
         categoryBn: null,
         categoryEn: null,
@@ -436,19 +439,19 @@ export interface FarmTripFloat {
   /** Who carried it: whose hand the float went into. */
   carrierId: string | null;
   carrierName: string | null;
-  handedBdt: number;
+  handedMoney: number;
   /** What the outing bought of the Farm's own: the animals and their Hasil, and the outing's costs. */
-  boughtBdt: number;
+  boughtMoney: number;
   /** What was brought back, where it was counted home. */
-  backBdt: number;
+  backMoney: number;
   reconciledAt: Date | null;
 }
 
 /** What some Handovers came to, to the paisa. */
-const sumOf = (rows: readonly { amountBdt: number }[]): number => {
+const sumOf = (rows: readonly { amountMoney: number }[]): number => {
   let total = 0;
   for (const one of rows) {
-    total += one.amountBdt;
+    total += one.amountMoney;
   }
   return roundTaka(total);
 };
@@ -465,7 +468,7 @@ export const farmTripFloat = async (
   });
   const handed = await db.query.handover.findMany({
     where: { farmId, buyingTripId: tripId },
-    columns: { float: true, amountBdt: true, toUserId: true },
+    columns: { float: true, amountMoney: true, toUserId: true },
     with: { taker: { columns: { name: true } } },
     orderBy: { handedAt: "asc", id: "asc" },
   });
@@ -484,9 +487,9 @@ export const farmTripFloat = async (
     wentOn: trip.wentOn,
     carrierId: first?.toUserId ?? null,
     carrierName: first?.taker?.name ?? null,
-    handedBdt: sumOf(outs),
-    boughtBdt: roundTaka(bought.animalsBdt + bought.tripBdt),
-    backBdt: sumOf(handed.filter((one) => one.float === "back")),
+    handedMoney: sumOf(outs),
+    boughtMoney: roundTaka(bought.animalsMoney + bought.tripMoney),
+    backMoney: sumOf(handed.filter((one) => one.float === "back")),
     reconciledAt: trip.floatReconciledAt,
   };
 };
@@ -561,7 +564,7 @@ export const reconcileFarmFloat = async (
   input: {
     farmId: string;
     tripId: string;
-    cashBackBdt: number;
+    cashBackMoney: number;
     ownerId: string;
     role: RoleName;
     now: Date;
@@ -575,28 +578,31 @@ export const reconcileFarmFloat = async (
       data: { refusal: "no_float_on_the_trip" },
     });
   }
-  const gapBdt = roundTaka(
-    float.handedBdt - float.boughtBdt - float.backBdt - input.cashBackBdt
+  const gapMoney = roundTaka(
+    float.handedMoney -
+      float.boughtMoney -
+      float.backMoney -
+      input.cashBackMoney
   );
-  if (gapBdt !== 0) {
+  if (gapMoney !== 0) {
     throw new ORPCError("BAD_REQUEST", {
       message:
-        gapBdt > 0
+        gapMoney > 0
           ? "More went out than the outing bought and brought back"
           : "The outing bought and brought back more than went out",
       data: {
-        refusal: gapBdt > 0 ? "float_short" : "float_over",
-        gapBdt: Math.abs(gapBdt),
+        refusal: gapMoney > 0 ? "float_short" : "float_over",
+        gapMoney: Math.abs(gapMoney),
       },
     });
   }
-  if (input.cashBackBdt > 0 && float.carrierId !== input.ownerId) {
+  if (input.cashBackMoney > 0 && float.carrierId !== input.ownerId) {
     await tx.insert(handover).values({
       id: uuidv7(input.now),
       farmId: input.farmId,
       fromUserId: float.carrierId,
       toUserId: input.ownerId,
-      amountBdt: input.cashBackBdt,
+      amountMoney: input.cashBackMoney,
       handedAt: input.now,
       reference: null,
       note: null,
@@ -715,7 +721,7 @@ const depositSaleCash = async (
     farmId: string;
     fromUserId: string | null;
     into: IntoAVenture;
-    amountBdt: number;
+    amountMoney: number;
     handedAt: Date;
     reference: string | null;
     note: string | null;
@@ -765,11 +771,11 @@ const depositSaleCash = async (
     });
   }
   const sales = carried.filter((one) => one !== undefined);
-  const totalBdt = roundTaka(sales.reduce((sum, one) => sum + one.bdt, 0));
-  if (roundTaka(input.amountBdt) !== totalBdt) {
+  const totalMoney = roundTaka(sales.reduce((sum, one) => sum + one.amount, 0));
+  if (roundTaka(input.amountMoney) !== totalMoney) {
     throw new ORPCError("BAD_REQUEST", {
-      message: `Those Sales come to ${totalBdt}`,
-      data: { refusal: "amount_changed", totalBdt },
+      message: `Those Sales come to ${totalMoney}`,
+      data: { refusal: "amount_changed", totalMoney },
     });
   }
   const id = uuidv7(input.now);
@@ -779,7 +785,7 @@ const depositSaleCash = async (
     fromUserId: input.fromUserId,
     toUserId: null,
     ventureId: input.into.ventureId,
-    amountBdt: totalBdt,
+    amountMoney: totalMoney,
     handedAt: input.handedAt,
     reference: input.reference,
     note: input.note,
@@ -796,7 +802,7 @@ const depositSaleCash = async (
       kind: "sale_in",
       saleId: one.saleId,
       handoverId: id,
-      amountBdt: one.bdt,
+      amountMoney: one.amount,
       movedOn: farmDayOf(input.handedAt),
       reference: input.reference,
       recordedBy: input.recordedBy,
@@ -816,7 +822,7 @@ export const recordHandover = async (
     farmId: string;
     from: HandEnd;
     to: HandEnd | IntoAVenture;
-    amountBdt: number;
+    amountMoney: number;
     handedAt: Date;
     reference: string | null;
     note: string | null;
@@ -873,7 +879,7 @@ export const recordHandover = async (
     toUserId,
     fromAccountId,
     toAccountId,
-    amountBdt: input.amountBdt,
+    amountMoney: input.amountMoney,
     handedAt: input.handedAt,
     reference: input.reference,
     note: input.note,

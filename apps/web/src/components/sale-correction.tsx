@@ -22,24 +22,24 @@ export const SaleCorrection = ({
 }: {
   sale: {
     id: string;
-    priceBdt: number;
+    priceMoney: number;
     buyerName: string;
     // Left out of an answer cached before Baki was written down: paid in full, as every such Sale was.
-    bakiBdt?: number;
+    bakiMoney?: number;
     promisedBy?: string | null;
     // Left out of an answer cached before a broker was written on a Sale: none was.
-    brokerBdt?: number;
+    brokerMoney?: number;
     /** What she weighed on the day, which her Shrink and her price a kilo are read from. */
     weightKg: number;
   };
 }) => {
   const t = useT();
   const correcting = useCorrecting({
-    priceBdt: amount(sale.priceBdt),
+    priceMoney: amount(sale.priceMoney),
     buyer: counterparty(sale.buyerName),
-    paidNowBdt: figure(paidAtTheGate(sale.priceBdt, sale.bakiBdt ?? 0)),
+    paidNowMoney: figure(paidAtTheGate(sale.priceMoney, sale.bakiMoney ?? 0)),
     promisedBy: day(sale.promisedBy ?? null),
-    brokerBdt: figure(sale.brokerBdt ?? 0),
+    brokerMoney: figure(sale.brokerMoney ?? 0),
     weightKg: amount(Number(sale.weightKg)),
   });
   const correct = useMutation(orpc.sale.correct.mutationOptions({}));
@@ -59,9 +59,9 @@ export const SaleCorrection = ({
       <CorrectionAnswer
         inputMode="numeric"
         label={t("sale.price")}
-        onChange={(value) => correcting.set("priceBdt", value)}
+        onChange={(value) => correcting.set("priceMoney", value)}
         type="number"
-        value={correcting.typed.priceBdt ?? ""}
+        value={correcting.typed.priceMoney ?? ""}
       />
       <CorrectionAnswer
         inputMode="decimal"
@@ -79,9 +79,9 @@ export const SaleCorrection = ({
         <CorrectionAnswer
           inputMode="numeric"
           label={t("baki.paidNow")}
-          onChange={(value) => correcting.set("paidNowBdt", value)}
+          onChange={(value) => correcting.set("paidNowMoney", value)}
           type="number"
-          value={correcting.typed.paidNowBdt ?? ""}
+          value={correcting.typed.paidNowMoney ?? ""}
         />
         <CorrectionAnswer
           label={t("baki.promisedBy")}
@@ -93,9 +93,9 @@ export const SaleCorrection = ({
       <CorrectionAnswer
         inputMode="numeric"
         label={t("sale.broker")}
-        onChange={(value) => correcting.set("brokerBdt", value)}
+        onChange={(value) => correcting.set("brokerMoney", value)}
         type="number"
-        value={correcting.typed.brokerBdt ?? ""}
+        value={correcting.typed.brokerMoney ?? ""}
       />
     </CorrectionDialog>
   );

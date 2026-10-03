@@ -195,8 +195,8 @@ export const farmAccountCheck = pgTable(
     /** The month it is of, "YYYY-MM". One reading per account per month. */
     forMonth: text("for_month").notNull(),
     /** What the statement said, and what the farm thought at the moment she read it. */
-    readBdt: taka("read_bdt").notNull(),
-    expectedBdt: taka("expected_bdt").notNull(),
+    readMoney: taka("read_money").notNull(),
+    expectedMoney: taka("expected_money").notNull(),
     /** What she found out about a difference, where she has found out anything. */
     note: text("note"),
     checkedBy: text("checked_by").references(() => user.id),
@@ -228,7 +228,7 @@ export const moneyEvent = pgTable(
       .notNull()
       .references(() => farm.id, { onDelete: "cascade" }),
     direction: text("direction", { enum: MONEY_DIRECTIONS }).notNull(),
-    amountBdt: taka("amount_bdt").notNull(),
+    amountMoney: taka("amount_money").notNull(),
     /** When the money moved, as the record that caused it says. */
     occurredAt: timestamp("occurred_at").notNull(),
     categoryId: text("category_id")
@@ -308,7 +308,7 @@ export const handover = pgTable(
     fromUserId: text("from_user_id").references(() => user.id),
     /** Whose hand it went into; nothing for cash deposited in the bank. */
     toUserId: text("to_user_id").references(() => user.id),
-    amountBdt: taka("amount_bdt").notNull(),
+    amountMoney: taka("amount_money").notNull(),
     handedAt: timestamp("handed_at").notNull(),
     /** The deposit slip or the cheque, where the bank is one end. */
     reference: text("reference"),
@@ -348,7 +348,7 @@ export const wageDraw = pgTable(
     counterpartyId: text("counterparty_id")
       .notNull()
       .references(() => counterparty.id),
-    amountBdt: taka("amount_bdt").notNull(),
+    amountMoney: taka("amount_money").notNull(),
     drawnAt: timestamp("drawn_at").notNull(),
     note: text("note"),
     recordedBy: text("recorded_by")
@@ -376,7 +376,7 @@ export const wageDrawTaken = pgTable(
     wageEventId: text("wage_event_id")
       .notNull()
       .references(() => moneyEvent.id),
-    bdt: taka("bdt").notNull(),
+    amount: taka("amount").notNull(),
   },
   (table) => [
     index("wage_draw_taken_draw_idx").on(table.drawId),
@@ -416,7 +416,7 @@ export const medicinePurchase = pgTable(
     /** How much, as the box or the shop says it: "10 vials", "500 ml". */
     quantity: text("quantity").notNull(),
     doses: integer("doses").notNull(),
-    priceBdt: taka("price_bdt").notNull(),
+    priceMoney: taka("price_money").notNull(),
     counterpartyId: text("counterparty_id")
       .notNull()
       .references(() => counterparty.id),
@@ -455,7 +455,7 @@ export const vetFee = pgTable(
     vetId: text("vet_id")
       .notNull()
       .references(() => user.id),
-    amountBdt: taka("amount_bdt").notNull(),
+    amountMoney: taka("amount_money").notNull(),
     /** The farm's day of the visit. */
     visitedOn: timestamp("visited_on").notNull(),
     note: text("note"),
@@ -497,7 +497,7 @@ export const bakiPayment = pgTable(
       .notNull()
       .references(() => counterparty.id),
     kind: text("kind", { enum: BAKI_KINDS }).notNull(),
-    amountBdt: taka("amount_bdt").notNull(),
+    amountMoney: taka("amount_money").notNull(),
     /** The farm day ("YYYY-MM-DD") the money came. */
     paidOn: text("paid_on").notNull(),
     /** What the Manager wrote beside it: always, when he paid more than he owed. */
@@ -536,7 +536,7 @@ export const bakiWriteOff = pgTable(
     counterpartyId: text("counterparty_id")
       .notNull()
       .references(() => counterparty.id),
-    amountBdt: taka("amount_bdt").notNull(),
+    amountMoney: taka("amount_money").notNull(),
     reason: text("reason").notNull(),
     /** The farm day ("YYYY-MM-DD") the Owner wrote it off. */
     writtenOn: text("written_on").notNull(),

@@ -108,7 +108,7 @@ const TargetWindow = ({
 /** What the price and the weight say together: taka a kilo off the lorry. */
 export const PricePerKg = ({ fields }: { fields: IntakeFields }) => {
   const { t, language } = useLanguage();
-  const price = Number(fields.purchasePriceBdt);
+  const price = Number(fields.purchasePriceMoney);
   const weight = Number(fields.weightKg);
   if (!(price > 0 && weight > 0)) {
     return null;
@@ -160,7 +160,7 @@ export const IntakeSummary = ({
     breeds.data?.find((one) => one.id === fields.breedId),
     language
   );
-  const price = Number(fields.purchasePriceBdt);
+  const price = Number(fields.purchasePriceMoney);
   const weight = Number(fields.weightKg);
   const age = fields.estimatedAgeMonths.trim();
   const ready = missingFrom(fields).length === 0 && windowIsWhole(fields);
@@ -196,9 +196,9 @@ export const IntakeSummary = ({
           )}
         </Line>
         <Line label={t("intake.hasil")}>
-          {Number(fields.hasilBdt) > 0
+          {Number(fields.hasilMoney) > 0
             ? t("intake.taka", {
-                taka: formatNumber(Number(fields.hasilBdt), language),
+                taka: formatNumber(Number(fields.hasilMoney), language),
               })
             : "—"}
         </Line>

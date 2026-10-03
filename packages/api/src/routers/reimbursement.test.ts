@@ -76,19 +76,19 @@ const aMixedPen = async () => {
 
   const venture = await owner.client.ventures.open({
     name: `দ্বিতীয় ভেঞ্চার ${suffix}`,
-    targetCapitalBdt: 500_000,
-    floorBdt: 0,
+    targetCapitalMoney: 500_000,
+    floorMoney: 0,
     decideBy: "2047-03-20",
     targetWindowStart: "2047-05-17",
     targetWindowEnd: "2047-05-19",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 10,
   });
   twoItemsVentureId = venture.id;
   // Capital in first: a bull at the gate is paid from what the account holds.
   await putCapitalIn(
     owner.client,
-    { id: venture.id, units: 10, unitPriceBdt: 50_000 },
+    { id: venture.id, units: 10, unitPriceMoney: 50_000 },
     `two-items ${suffix}`,
     "2047-03-05"
   );
@@ -102,7 +102,7 @@ const aMixedPen = async () => {
     feedItemId: straw.id,
     kind: "purchase",
     quantity: 1000,
-    priceBdt: 20_000,
+    priceMoney: 20_000,
     seller: { name: `খড়ের দোকান ${suffix}` },
     receivedOn: "2047-03-06",
   });
@@ -131,7 +131,7 @@ const aMixedPen = async () => {
       penId: sharedPenId,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
-      purchasePriceBdt: 50_000,
+      purchasePriceMoney: 50_000,
       weightKg: 180,
       estimatedAgeMonths: 20,
       ventureId: forVenture,
@@ -181,14 +181,14 @@ beforeAll(async () => {
 
   const venture = await owner.client.ventures.open({
     name: `ভেঞ্চার ${suffix}`,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2047-03-20",
     targetWindowStart: "2047-05-17",
     targetWindowEnd: "2047-05-19",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
-    cattleBudgetBdt: 500_000,
+    cattleBudgetMoney: 500_000,
   });
   ventureId = venture.id;
   const person = await owner.client.investors.record({
@@ -201,7 +201,7 @@ beforeAll(async () => {
     units: 20,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2047-03-02",
     stampSerial: `AA ${suffix}`,
   });
@@ -212,7 +212,7 @@ beforeAll(async () => {
   });
   await owner.client.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: 1_000_000,
+    amountMoney: 1_000_000,
     movedOn: "2047-03-02",
     paymentMethod: "bank",
     reference: `TRF-${suffix}`,
@@ -229,7 +229,7 @@ beforeAll(async () => {
     feedItemId: itemId,
     kind: "purchase",
     quantity: 1000,
-    priceBdt: 40_000,
+    priceMoney: 40_000,
     seller: { name: `ডিলার ${suffix}` },
     receivedOn: "2047-03-03",
   });
@@ -241,7 +241,7 @@ beforeAll(async () => {
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 60_000,
+    purchasePriceMoney: 60_000,
     weightKg: 200,
     estimatedAgeMonths: 20,
     ventureId,
@@ -285,10 +285,10 @@ describe("the monthly Reimbursement", () => {
       month: MONTH,
     });
     // Fifty kilos of a forty-taka feed, eaten by the one bull standing there.
-    expect(consumed.feedBdt).toBe(2000);
-    expect(consumed.totalBdt).toBe(2000);
+    expect(consumed.feedMoney).toBe(2000);
+    expect(consumed.totalMoney).toBe(2000);
     expect(consumed.madeOf.feed).toEqual([
-      expect.objectContaining({ id: itemId, bdt: 2000 }),
+      expect.objectContaining({ id: itemId, amount: 2000 }),
     ]);
   });
 
@@ -296,9 +296,9 @@ describe("the monthly Reimbursement", () => {
     const owner = await as("owner", "2047-04-02T04:00:00.000Z");
     const before = await owner.client.ventures.list();
     const was = before.find((one) => one.id === ventureId);
-    const heldBefore = was?.balanceBdt ?? 0;
-    const spentBefore = was?.spentBdt ?? 0;
-    const reimbursedBefore = was?.reimbursedBdt ?? 0;
+    const heldBefore = was?.balanceMoney ?? 0;
+    const spentBefore = was?.spentMoney ?? 0;
+    const reimbursedBefore = was?.reimbursedMoney ?? 0;
 
     await owner.client.ventures.reimburse({
       ventureId,
@@ -306,20 +306,20 @@ describe("the monthly Reimbursement", () => {
       movedOn: "2047-04-02",
       paymentMethod: "bank",
       reference: `REI-${suffix}`,
-      amountBdt: 2000,
+      amountMoney: 2000,
     });
 
     const after = await owner.client.ventures.list();
     const venture = after.find((one) => one.id === ventureId);
     // Out of the Venture Account, off the Running Budget — it is the cost of keeping them.
     expect(venture).toMatchObject({
-      balanceBdt: heldBefore - 2000,
+      balanceMoney: heldBefore - 2000,
       // Five lakh of cattle money, less the bull bought at the gate by bank.
-      cattleBudgetHeldBdt: 440_000,
+      cattleBudgetHeldMoney: 440_000,
       // Its own figure, and not folded into what the Venture spent at the haat: what it paid the Farm
       // back is the question an Investor asks, and buying is a different one.
-      reimbursedBdt: reimbursedBefore + 2000,
-      spentBdt: spentBefore,
+      reimbursedMoney: reimbursedBefore + 2000,
+      spentMoney: spentBefore,
     });
 
     // And in on the Farm's own books, gross: the feed it bought is still its expense.
@@ -329,7 +329,7 @@ describe("the monthly Reimbursement", () => {
     });
     const paid = money.events.find((one) => one.source === "reimbursement");
     expect(paid).toMatchObject({
-      amountBdt: 2000,
+      amountMoney: 2000,
       direction: "in",
       purse: null,
     });
@@ -343,9 +343,9 @@ describe("the monthly Reimbursement", () => {
     });
     // Twenty kilos of a forty-taka feed and ten of a twenty-taka one, eaten by two animals of which
     // one is this Venture's: half of 800 + 200.
-    expect(consumed.feedBdt).toBe(500);
+    expect(consumed.feedMoney).toBe(500);
     expect(
-      consumed.madeOf.feed.map((one) => one.bdt).toSorted((a, b) => a - b)
+      consumed.madeOf.feed.map((one) => one.amount).toSorted((a, b) => a - b)
     ).toEqual([100, 400]);
   });
 
@@ -359,7 +359,7 @@ describe("the monthly Reimbursement", () => {
       owner.client.ventures.correctMovement({
         id: paid?.id ?? "",
         reason: `কম মনে হচ্ছে ${suffix}`,
-        changes: { amountBdt: { from: 2000, to: 1000 } },
+        changes: { amountMoney: { from: 2000, to: 1000 } },
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -376,7 +376,7 @@ describe("the monthly Reimbursement", () => {
     });
     const after = await owner.client.ventures.movements({ ventureId });
     expect(after.find((one) => one.id === paid?.id)).toMatchObject({
-      amountBdt: 2000,
+      amountMoney: 2000,
       reference: `REI-RIGHT-${suffix}`,
     });
   });
@@ -390,7 +390,7 @@ describe("the monthly Reimbursement", () => {
         movedOn: "2047-04-03",
         paymentMethod: "bank",
         reference: `REI2-${suffix}`,
-        amountBdt: 2000,
+        amountMoney: 2000,
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -404,7 +404,7 @@ describe("the monthly Reimbursement", () => {
       ventureId,
       month: "2047-02",
     });
-    expect(quiet.totalBdt).toBe(0);
+    expect(quiet.totalMoney).toBe(0);
     await expect(
       owner.client.ventures.reimburse({
         ventureId,
@@ -412,7 +412,7 @@ describe("the monthly Reimbursement", () => {
         movedOn: "2047-04-04",
         paymentMethod: "bank",
         reference: `REI3-${suffix}`,
-        amountBdt: 0,
+        amountMoney: 0,
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -432,7 +432,7 @@ describe("the monthly Reimbursement", () => {
         movedOn: "2047-04-05",
         paymentMethod: "bank",
         reference: `REI4-${suffix}`,
-        amountBdt: 0,
+        amountMoney: 0,
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });

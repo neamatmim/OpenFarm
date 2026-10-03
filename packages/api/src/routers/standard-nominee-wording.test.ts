@@ -82,14 +82,14 @@ beforeAll(async () => {
   });
   const venture = await client.ventures.open({
     name: `ভেঞ্চার ${suffix}`,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2065-01-20",
     targetWindowStart: "2065-03-17",
     targetWindowEnd: "2065-03-19",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
-    cattleBudgetBdt: 800_000,
+    cattleBudgetMoney: 800_000,
   });
   ventureId = venture.id;
   const him = await client.investors.record({

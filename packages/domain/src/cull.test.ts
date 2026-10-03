@@ -10,8 +10,8 @@ import {
 import type { Kept, MilkAgainstKeep } from "./index";
 
 // ৳8,400 of keep over four weeks: ৳300 a day.
-const kept: Kept = { bdt: 8400, days: 28, fed: true, whole: true };
-const price = { bdtPerLitre: 55 };
+const kept: Kept = { amount: 8400, days: 28, fed: true, whole: true };
+const price = { moneyPerLitre: 55 };
 
 describe("what a litre of the farm's milk fetched", () => {
   it("is everything the Dispatches fetched over every litre they took, not the mean of their prices", () => {
@@ -19,10 +19,10 @@ describe("what a litre of the farm's milk fetched", () => {
     // say ৳53 and let the can at the gate count as much as the tanker.
     expect(
       milkPriceOf([
-        { litres: 1000, pricePerLitreBdt: 50 },
-        { litres: 500, pricePerLitreBdt: 56 },
+        { litres: 1000, pricePerLitreMoney: 50 },
+        { litres: 500, pricePerLitreMoney: 56 },
       ])
-    ).toEqual({ bdtPerLitre: 52, litres: 1500, bdt: 78_000 });
+    ).toEqual({ moneyPerLitre: 52, litres: 1500, amount: 78_000 });
   });
 
   it("is nothing where no milk left the farm", () => {
@@ -91,11 +91,11 @@ describe("her milk against her keep", () => {
       days: 28,
       litres: 280,
       litresPerDay: 10,
-      bdtPerLitre: 55,
-      worthBdt: 15_400,
-      keepBdt: 8400,
-      overKeepBdt: 7000,
-      costPerLitreBdt: 30,
+      moneyPerLitre: 55,
+      worthMoney: 15_400,
+      keepMoney: 8400,
+      overKeepMoney: 7000,
+      costPerLitreMoney: 30,
       whole: true,
     });
   });
@@ -111,7 +111,7 @@ describe("her milk against her keep", () => {
         needsDays: 7,
         price,
       })
-    ).toMatchObject({ overKeepBdt: -700, costPerLitreBdt: 60 });
+    ).toMatchObject({ overKeepMoney: -700, costPerLitreMoney: 60 });
     // None at all to Bulk: every taka of her keep is short, and a litre has no cost to say.
     expect(
       milkAgainstKeep({
@@ -122,7 +122,11 @@ describe("her milk against her keep", () => {
         needsDays: 7,
         price,
       })
-    ).toMatchObject({ worthBdt: 0, overKeepBdt: -8400, costPerLitreBdt: null });
+    ).toMatchObject({
+      worthMoney: 0,
+      overKeepMoney: -8400,
+      costPerLitreMoney: null,
+    });
   });
 
   it("does not weigh her until five weeks into her Lactation, without a Feeding charged to her, or without a price", () => {
@@ -157,7 +161,7 @@ describe("her milk against her keep", () => {
 
   it("weighs a cow bought in as soon as the farm says she has been here long enough", () => {
     // Long in milk but five days on this farm: a farm that waits a week cannot weigh her yet, one that waits three can.
-    const fiveDays = { ...kept, bdt: 1500, days: 5 };
+    const fiveDays = { ...kept, amount: 1500, days: 5 };
     expect(
       milkAgainstKeep({
         kept: fiveDays,
@@ -177,7 +181,7 @@ describe("her milk against her keep", () => {
         needsDays: 3,
         price,
       })
-    ).toMatchObject({ known: true, worthBdt: 2750, keepBdt: 1500 });
+    ).toMatchObject({ known: true, worthMoney: 2750, keepMoney: 1500 });
   });
 
   it("waits as many days into her Lactation as the farm says, and weighs her from that day on", () => {
@@ -201,7 +205,7 @@ describe("her milk against her keep", () => {
         needsDays: 7,
         price,
       })
-    ).toMatchObject({ known: true, overKeepBdt: -700 });
+    ).toMatchObject({ known: true, overKeepMoney: -700 });
   });
 });
 

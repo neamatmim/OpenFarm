@@ -17,14 +17,14 @@ import { orpc } from "@/utils/orpc";
 
 interface Arrival {
   agreementId: string;
-  amountBdt: string;
+  amountMoney: string;
   movedOn: string;
   reference: string;
 }
 
 const NOTHING_YET: Arrival = {
   agreementId: "",
-  amountBdt: "",
+  amountMoney: "",
   movedOn: "",
   reference: "",
 };
@@ -32,13 +32,13 @@ const NOTHING_YET: Arrival = {
 /** Why a paper takes no capital now, as its option says it — paid up, or not yet papered — or nothing. */
 const whyNotThisPaper = (
   one: {
-    capitalLeftBdt: number;
+    capitalLeftMoney: number;
     hasPaper: boolean;
     paperOnFile?: boolean;
   },
   t: (key: MessageKey) => string
 ): string | undefined => {
-  if (one.capitalLeftBdt === 0) {
+  if (one.capitalLeftMoney === 0) {
     return t("ventures.paidInFull");
   }
   return paperOnFile(one) ? undefined : t("ventures.noPaperYet");
@@ -150,10 +150,10 @@ export const TakeCapitalSheet = ({
       paper &&
       `${t("ventures.holdsUnits", {
         units: formatNumber(paper.units, language),
-      })} · ${t("ventures.capitalLeft", { taka: taka(paper.capitalLeftBdt) })}`,
+      })} · ${t("ventures.capitalLeft", { taka: taka(paper.capitalLeftMoney) })}`,
     t,
   });
-  const amount = Number(arrival.amountBdt);
+  const amount = Number(arrival.amountMoney);
   const ready =
     arrival.agreementId !== "" &&
     amount > 0 &&
@@ -166,7 +166,7 @@ export const TakeCapitalSheet = ({
       onSubmit={() =>
         taking.mutate({
           agreementId: arrival.agreementId,
-          amountBdt: amount,
+          amountMoney: amount,
           movedOn: arrival.movedOn,
           paymentMethod: "bank",
           reference: arrival.reference,
@@ -233,10 +233,10 @@ export const TakeCapitalSheet = ({
             id="capital-amount"
             inputMode="numeric"
             onChange={(event) =>
-              setArrival({ ...arrival, amountBdt: event.target.value })
+              setArrival({ ...arrival, amountMoney: event.target.value })
             }
             type="number"
-            value={arrival.amountBdt}
+            value={arrival.amountMoney}
           />
         </FormField>
         <FormField id="capital-moved-on" label={t("ventures.movedOn")}>

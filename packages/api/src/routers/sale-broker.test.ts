@@ -31,17 +31,17 @@ beforeAll(async () => {
   penId = pen.id;
   const venture = await owner.client.ventures.open({
     name: `ভেঞ্চার ${suffix}`,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2070-03-02",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
     ...WINDOW,
   });
   // Capital in first: a bull at the gate is paid from what the account holds.
   await putCapitalIn(
     owner.client,
-    { id: venture.id, units: 20, unitPriceBdt: 50_000 },
+    { id: venture.id, units: 20, unitPriceMoney: 50_000 },
     `venture ${suffix}`,
     "2070-03-01"
   );
@@ -56,7 +56,7 @@ const aBull = async (instant: string, ventureFor?: string) => {
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 80_000,
+    purchasePriceMoney: 80_000,
     weightKg: 250,
     estimatedAgeMonths: 20,
     arrivedAt: new Date(instant),
@@ -66,7 +66,7 @@ const aBull = async (instant: string, ventureFor?: string) => {
   });
 };
 
-const sell = async (tagNumber: string, brokerBdt?: number) => {
+const sell = async (tagNumber: string, brokerMoney?: number) => {
   const manager = await as("manager", "2070-03-20T06:00:00.000Z");
   await manager.client.sale.record({
     tagNumber,
@@ -75,8 +75,8 @@ const sell = async (tagNumber: string, brokerBdt?: number) => {
     destination: `গাবতলী ${suffix}`,
     vehicle: "ঢাকা মেট্রো-ট ১১-৪৪৫৭",
     driver: `চালক ${suffix}`,
-    priceBdt: 120_000,
-    ...(brokerBdt === undefined ? {} : { brokerBdt }),
+    priceMoney: 120_000,
+    ...(brokerMoney === undefined ? {} : { brokerMoney }),
   });
   const her = await scratchDb().query.animal.findFirst({
     where: { farmId: theFarm().id, tagNumber },
@@ -89,7 +89,7 @@ const sell = async (tagNumber: string, brokerBdt?: number) => {
 const brokerMoneyOf = async (saleId: string) =>
   await scratchDb().query.moneyEvent.findMany({
     where: { source: "sale_broker", sourceId: saleId },
-    columns: { amountBdt: true, direction: true, purseVentureId: true },
+    columns: { amountMoney: true, direction: true, purseVentureId: true },
   });
 
 const herCosts = async (tagNumber: string) => {
@@ -102,10 +102,10 @@ describe("a broker's fee on a Sale", () => {
     const bull = await aBull("2070-03-02T04:00:00.000Z");
     const saleId = await sell(bull.tagNumber, 1500);
     expect(await brokerMoneyOf(saleId)).toEqual([
-      { amountBdt: 1500, direction: "out", purseVentureId: null },
+      { amountMoney: 1500, direction: "out", purseVentureId: null },
     ]);
     const costs = await herCosts(bull.tagNumber);
-    expect(costs.tripBdt).toBe(1500);
+    expect(costs.tripMoney).toBe(1500);
   });
 
   it("books nothing where no broker was used", async () => {
@@ -113,7 +113,7 @@ describe("a broker's fee on a Sale", () => {
     const saleId = await sell(bull.tagNumber);
     expect(await brokerMoneyOf(saleId)).toEqual([]);
     const costs = await herCosts(bull.tagNumber);
-    expect(costs.tripBdt).toBe(0);
+    expect(costs.tripMoney).toBe(0);
   });
 
   it("is put right by the Sale's Correction, its money with it", async () => {
@@ -123,13 +123,13 @@ describe("a broker's fee on a Sale", () => {
     await manager.client.sale.correct({
       id: saleId,
       reason: `দালাল দুই হাজার নিয়েছিল ${suffix}`,
-      changes: { brokerBdt: { from: 1500, to: 2000 } },
+      changes: { brokerMoney: { from: 1500, to: 2000 } },
     });
     expect(await brokerMoneyOf(saleId)).toEqual([
-      { amountBdt: 2000, direction: "out", purseVentureId: null },
+      { amountMoney: 2000, direction: "out", purseVentureId: null },
     ]);
     const costs = await herCosts(bull.tagNumber);
-    expect(costs.tripBdt).toBe(2000);
+    expect(costs.tripMoney).toBe(2000);
   });
 
   it("is repaid by a Venture for its own animal, named by her", async () => {
@@ -137,18 +137,18 @@ describe("a broker's fee on a Sale", () => {
     const saleId = await sell(bull.tagNumber, 1000);
     // The Farm paid the broker, as it pays the lorry.
     expect(await brokerMoneyOf(saleId)).toEqual([
-      { amountBdt: 1000, direction: "out", purseVentureId: null },
+      { amountMoney: 1000, direction: "out", purseVentureId: null },
     ]);
     const owner = await as("owner", "2070-04-02T06:00:00.000Z");
     const consumed = await owner.client.ventures.consumption({
       ventureId,
       month: "2070-03",
     });
-    expect(consumed.tripsBdt).toBe(1000);
+    expect(consumed.tripsMoney).toBe(1000);
     expect(consumed.madeOf.trips).toEqual([
       {
         id: saleId,
-        bdt: 1000,
+        amount: 1000,
         nameBn: `দালালি · ${bull.tagNumber}`,
         nameEn: `Broker · ${bull.tagNumber}`,
       },

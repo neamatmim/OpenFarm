@@ -34,7 +34,7 @@ export const PastOutings = () => {
               </span>
             </span>
             <span className="flex flex-col items-end gap-0.5 whitespace-nowrap tabular-nums">
-              <span className="font-medium">{taka(one.costBdt)}</span>
+              <span className="font-medium">{taka(one.costMoney)}</span>
               <span className="text-muted-foreground text-xs">
                 {t("intake.cameHome", {
                   count: formatNumber(one.animals, language),

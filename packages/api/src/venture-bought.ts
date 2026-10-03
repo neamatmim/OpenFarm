@@ -21,13 +21,13 @@ export const boughtFor = async (
       columns: {
         animalId: true,
         weightKg: true,
-        purchasePriceBdt: true,
+        purchasePriceMoney: true,
         arrivedAt: true,
       },
     }),
     db.query.internalSale.findMany({
       where: { farmId, toVentureId: ventureId },
-      columns: { animalId: true, weightKg: true, priceBdt: true },
+      columns: { animalId: true, weightKg: true, priceMoney: true },
     }),
   ]);
   const ours = intakes.filter(
@@ -44,12 +44,12 @@ export const boughtFor = async (
   return [
     ...ours.map((one) => ({
       weightKg: Number(one.weightKg),
-      priceBdt: one.purchasePriceBdt,
+      priceMoney: one.purchasePriceMoney,
       breedId: breedOf.get(one.animalId) ?? null,
     })),
     ...across.map((one) => ({
       weightKg: Number(one.weightKg),
-      priceBdt: one.priceBdt,
+      priceMoney: one.priceMoney,
       breedId: breedOf.get(one.animalId) ?? null,
     })),
   ];

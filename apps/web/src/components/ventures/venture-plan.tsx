@@ -48,7 +48,7 @@ interface TypedLine {
   animals: string;
   fromKg: string;
   toKg: string;
-  buyBdtPerKg: string;
+  buyMoneyPerKg: string;
   dailyGainKg: string;
   /** The Breed it buys, or "" for any. */
   breedId: string;
@@ -71,7 +71,7 @@ const blankLine = (): TypedLine => {
     animals: "",
     fromKg: "",
     toKg: "",
-    buyBdtPerKg: "",
+    buyMoneyPerKg: "",
     dailyGainKg: "",
     breedId: "",
   };
@@ -86,7 +86,7 @@ const typedFrom = (version: Version | null): TypedLine[] =>
           animals: String(line.animals),
           fromKg: String(line.fromKg),
           toKg: String(line.toKg),
-          buyBdtPerKg: String(line.buyBdtPerKg),
+          buyMoneyPerKg: String(line.buyMoneyPerKg),
           dailyGainKg: String(line.dailyGainKg),
           // A plan this phone kept from before a line could name a Breed names none: any.
           breedId: line.breedId ?? "",
@@ -99,7 +99,7 @@ const lineOf = (typed: TypedLine) => {
   const animals = figureOf(typed.animals);
   const fromKg = figureOf(typed.fromKg);
   const toKg = figureOf(typed.toKg);
-  const buyBdtPerKg = figureOf(typed.buyBdtPerKg);
+  const buyMoneyPerKg = figureOf(typed.buyMoneyPerKg);
   const dailyGainKg = figureOf(typed.dailyGainKg);
   if (
     !(
@@ -107,7 +107,7 @@ const lineOf = (typed: TypedLine) => {
       Number.isInteger(animals) &&
       aFigure(fromKg) &&
       aFigure(toKg) &&
-      aFigure(buyBdtPerKg) &&
+      aFigure(buyMoneyPerKg) &&
       aFigure(dailyGainKg, true)
     )
   ) {
@@ -119,7 +119,7 @@ const lineOf = (typed: TypedLine) => {
     return null;
   }
   const breedId = typed.breedId === "" ? null : typed.breedId;
-  return { animals, fromKg, toKg, buyBdtPerKg, dailyGainKg, breedId };
+  return { animals, fromKg, toKg, buyMoneyPerKg, dailyGainKg, breedId };
 };
 
 /** A gain a day halfway between two, kept to the hundredth as a plan's gains are. */
@@ -202,7 +202,7 @@ const RationsSay = ({
 /** What one line comes to, as the plan's own sums say it: the kilos it buys and their cost, and a head by the window. */
 interface LineSum {
   boughtKg: number;
-  costBdt: number;
+  costMoney: number;
   saleKgEach: number;
 }
 
@@ -310,16 +310,16 @@ const PlanLineCard = ({
         </FormField>
         <FormField
           className="col-span-3"
-          id={id("buyBdtPerKg")}
+          id={id("buyMoneyPerKg")}
           label={t("plan.pricePerKg")}
         >
           <UnitInput
             className="pe-20"
-            id={id("buyBdtPerKg")}
+            id={id("buyMoneyPerKg")}
             inputMode="decimal"
-            onChange={typed("buyBdtPerKg")}
+            onChange={typed("buyMoneyPerKg")}
             unit={t("plan.unit.takaPerKg")}
-            value={line.buyBdtPerKg}
+            value={line.buyMoneyPerKg}
           />
         </FormField>
         <FormField
@@ -348,7 +348,7 @@ const PlanLineCard = ({
         <p className="text-muted-foreground border-t pt-2 text-xs tabular-nums">
           {t("plan.lineSum", {
             kg: formatNumber(sum.boughtKg, language),
-            cost: taka(sum.costBdt),
+            cost: taka(sum.costMoney),
             saleKg: formatNumber(sum.saleKgEach, language),
           })}
         </p>
@@ -363,18 +363,18 @@ const PlanLineCard = ({
  */
 const PlanSum = ({
   lines,
-  cattleBudgetBdt,
+  cattleBudgetMoney,
   daysOnFeed,
 }: {
   lines: PlanLine[];
-  cattleBudgetBdt: number;
+  cattleBudgetMoney: number;
   daysOnFeed: number;
 }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
   const weight = useKg();
-  const totals = planTotals({ lines, cattleBudgetBdt, daysOnFeed });
-  const over = totals.overBudgetBdt > 0;
+  const totals = planTotals({ lines, cattleBudgetMoney, daysOnFeed });
+  const over = totals.overBudgetMoney > 0;
   const figure = "text-base font-semibold tabular-nums";
   return (
     <dl className="bg-muted/40 grid grid-cols-[auto_1fr_1fr] gap-x-4 gap-y-3 rounded-lg border p-3">
@@ -386,7 +386,7 @@ const PlanSum = ({
       </div>
       <div className="flex flex-col gap-0.5">
         <dt className="text-muted-foreground text-xs">{t("plan.sum.cost")}</dt>
-        <dd className={figure}>{taka(totals.costBdt)}</dd>
+        <dd className={figure}>{taka(totals.costMoney)}</dd>
         <dd
           className={cn(
             "text-xs",
@@ -395,12 +395,12 @@ const PlanSum = ({
         >
           {over
             ? t("plan.sum.over", {
-                amount: taka(totals.overBudgetBdt),
-                budget: taka(cattleBudgetBdt),
+                amount: taka(totals.overBudgetMoney),
+                budget: taka(cattleBudgetMoney),
               })
             : t("plan.sum.left", {
-                amount: taka(cattleBudgetBdt - totals.costBdt),
-                budget: taka(cattleBudgetBdt),
+                amount: taka(cattleBudgetMoney - totals.costMoney),
+                budget: taka(cattleBudgetMoney),
               })}
         </dd>
       </div>
@@ -522,8 +522,8 @@ const PlanSheet = ({
       : null;
   };
   const [sale, setSale] = useState({
-    low: latest ? String(latest.saleLowBdtPerKg) : "",
-    high: latest ? String(latest.saleHighBdtPerKg) : "",
+    low: latest ? String(latest.saleLowMoneyPerKg) : "",
+    high: latest ? String(latest.saleHighMoneyPerKg) : "",
   });
   // An answer this phone kept from before a plan could expect deaths has none: read as none.
   const [deaths, setDeaths] = useState(() =>
@@ -574,8 +574,8 @@ const PlanSheet = ({
         saving.mutate({
           ventureId: venture.id,
           lines: complete,
-          saleLowBdtPerKg: low ?? 0,
-          saleHighBdtPerKg: high ?? 0,
+          saleLowMoneyPerKg: low ?? 0,
+          saleHighMoneyPerKg: high ?? 0,
           deathsPercent,
           reason: revising ? reason.trim() : null,
         })
@@ -607,7 +607,7 @@ const PlanSheet = ({
               typed
                 ? (planTotals({
                     lines: [typed],
-                    cattleBudgetBdt: venture.cattleBudgetBdt,
+                    cattleBudgetMoney: venture.cattleBudgetMoney,
                     daysOnFeed,
                   }).lines[0] ?? null)
                 : null
@@ -627,7 +627,7 @@ const PlanSheet = ({
       </Button>
       {complete.length > 0 ? (
         <PlanSum
-          cattleBudgetBdt={venture.cattleBudgetBdt}
+          cattleBudgetMoney={venture.cattleBudgetMoney}
           daysOnFeed={daysOnFeed}
           lines={complete}
         />
@@ -714,10 +714,10 @@ const PlanTable = ({ version }: { version: Version }) => {
                 {formatNumber(line.animals, language)}
               </td>
               <td className="px-2 py-2 text-end tabular-nums">
-                {taka(line.buyBdtPerKg)}
+                {taka(line.buyMoneyPerKg)}
               </td>
               <td className="px-2 py-2 text-end tabular-nums">
-                {taka(version.totals.lines[at]?.costBdt ?? 0)}
+                {taka(version.totals.lines[at]?.costMoney ?? 0)}
               </td>
               <td className="px-2 py-2 text-end tabular-nums">
                 {weight(line.dailyGainKg)}
@@ -738,12 +738,12 @@ const PlanTable = ({ version }: { version: Version }) => {
             <td className="px-2 py-2 text-end tabular-nums">
               {taka(
                 version.totals.boughtKg > 0
-                  ? version.totals.costBdt / version.totals.boughtKg
+                  ? version.totals.costMoney / version.totals.boughtKg
                   : 0
               )}
             </td>
             <td className="px-2 py-2 text-end tabular-nums">
-              {taka(version.totals.costBdt)}
+              {taka(version.totals.costMoney)}
             </td>
             <td className="px-2 py-2 text-end tabular-nums">
               {weight(averageGainOf(version))}
@@ -769,7 +769,7 @@ const PlanRead = ({ plan, venture }: { plan: Plan; venture: Venture }) => {
   const isBaseline = baseline?.version === latest.version;
   // Missing from an answer this phone kept from before a plan could expect deaths: read as none.
   const expectsDeaths = (latest.deathsPercent ?? 0) > 0;
-  const overBudget = latest.totals.overBudgetBdt > 0;
+  const overBudget = latest.totals.overBudgetMoney > 0;
   return (
     <>
       <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -789,19 +789,19 @@ const PlanRead = ({ plan, venture }: { plan: Plan; venture: Venture }) => {
         <FigureTerm
           hint={
             overBudget
-              ? t("plan.over", { over: taka(latest.totals.overBudgetBdt) })
+              ? t("plan.over", { over: taka(latest.totals.overBudgetMoney) })
               : undefined
           }
           label={t("ventures.page.cattleBudget")}
           size="sm"
           tone={overBudget ? "warning" : "neutral"}
         >
-          {taka(venture.cattleBudgetBdt)}
+          {taka(venture.cattleBudgetMoney)}
         </FigureTerm>
         <FigureTerm label={t("plan.fact.sale")} size="sm">
           {t("projection.range", {
-            low: taka(latest.saleLowBdtPerKg),
-            high: taka(latest.saleHighBdtPerKg),
+            low: taka(latest.saleLowMoneyPerKg),
+            high: taka(latest.saleHighMoneyPerKg),
           })}
         </FigureTerm>
         <FigureTerm label={t("plan.fact.days")} size="sm">

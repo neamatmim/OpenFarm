@@ -113,16 +113,16 @@ export const BankStanding = ({
 /** What a Venture's card needs of the figures, whatever shape the answer it was drawn from had. A phone
  *  can be holding a fortnight-old cache written before any of this existed. */
 export const moneyOf = (venture: Venture) => ({
-  balanceBdt: venture.balanceBdt ?? 0,
-  cattleBudgetHeldBdt: venture.cattleBudgetHeldBdt ?? 0,
-  runningBudgetHeldBdt: venture.runningBudgetHeldBdt ?? 0,
+  balanceMoney: venture.balanceMoney ?? 0,
+  cattleBudgetHeldMoney: venture.cattleBudgetHeldMoney ?? 0,
+  runningBudgetHeldMoney: venture.runningBudgetHeldMoney ?? 0,
   /** What its animals have cost the Farm since the last Reimbursement: in the account, but the Farm's. */
-  owedTheFarmBdt: venture.owedTheFarmBdt ?? 0,
-  spentBdt: venture.spentBdt ?? 0,
-  reimbursedBdt: venture.reimbursedBdt ?? 0,
-  advancedBdt: venture.advancedBdt ?? 0,
-  openFloatBdt: venture.openFloatBdt ?? 0,
-  paidOutBdt: venture.paidOutBdt ?? 0,
+  owedTheFarmMoney: venture.owedTheFarmMoney ?? 0,
+  spentMoney: venture.spentMoney ?? 0,
+  reimbursedMoney: venture.reimbursedMoney ?? 0,
+  advancedMoney: venture.advancedMoney ?? 0,
+  openFloatMoney: venture.openFloatMoney ?? 0,
+  paidOutMoney: venture.paidOutMoney ?? 0,
   signedFor: venture.signedFor ?? { units: 0, people: 0 },
   /** The Units nobody has signed for yet, as the farm counts them; worked out from what it signed for in an answer
    *  kept from before the farm said. */
@@ -234,7 +234,7 @@ export const WhatStopsHer = ({
     if (short > 0) {
       stops = t("ventures.floorNotMetYet", {
         short: formatNumber(short, language),
-        floor: formatNumber(venture.floorBdt, language),
+        floor: formatNumber(venture.floorMoney, language),
       });
     } else if (cattleShort > 0) {
       stops = t("ventures.cattleMoneyShort", {
@@ -251,7 +251,7 @@ export const WhatStopsHer = ({
   // Paid by the month: the keep running short because Monthly Sums are missed, which her own money may cover until they
   // come. Said beside the acts, the Advance among them. An answer cached before Ventures were paid by the month has
   // nothing missed.
-  const sumsMissed = venture.sumsMissedBdt ?? 0;
+  const sumsMissed = venture.sumsMissedMoney ?? 0;
   if (venture.runningBudgetLow && sumsMissed > 0) {
     return (
       <p className={said}>
@@ -261,7 +261,7 @@ export const WhatStopsHer = ({
       </p>
     );
   }
-  if (venture.state === "buying" && moneyOf(venture).openFloatBdt !== 0) {
+  if (venture.state === "buying" && moneyOf(venture).openFloatMoney !== 0) {
     return <p className={said}>{t("ventures.floatStillOut")}</p>;
   }
   return null;
@@ -287,7 +287,7 @@ const MoneyLines = ({ venture }: { venture: Venture }) => {
       search={{ tab: "money" }}
       to="/ventures/$ventureId"
     >
-      {taka(venture.capitalInBdt)}
+      {taka(venture.capitalInMoney)}
     </Link>
   );
   return (
@@ -295,10 +295,10 @@ const MoneyLines = ({ venture }: { venture: Venture }) => {
       <Line label={t("ventures.held")}>{held}</Line>
       {venture.state === "open" ? (
         <Line label={t("ventures.target")}>
-          {taka(venture.targetCapitalBdt)}
+          {taka(venture.targetCapitalMoney)}
         </Line>
       ) : (
-        <Line label={t("ventures.balance")}>{taka(money.balanceBdt)}</Line>
+        <Line label={t("ventures.balance")}>{taka(money.balanceMoney)}</Line>
       )}
       <Line label={t("ventures.signedFor")}>
         {t("ventures.unitsOfUnits", {
@@ -310,30 +310,32 @@ const MoneyLines = ({ venture }: { venture: Venture }) => {
       {stillRunning(venture) ? (
         <Line label={t("ventures.budgetsHeld")}>
           {t("ventures.budgetSplit", {
-            cattle: taka(money.cattleBudgetHeldBdt),
-            running: taka(money.runningBudgetHeldBdt),
+            cattle: taka(money.cattleBudgetHeldMoney),
+            running: taka(money.runningBudgetHeldMoney),
           })}
         </Line>
       ) : null}
-      {stillRunning(venture) && money.owedTheFarmBdt > 0 ? (
+      {stillRunning(venture) && money.owedTheFarmMoney > 0 ? (
         <Line label={t("ventures.owedTheFarm")}>
-          {taka(money.owedTheFarmBdt)}
+          {taka(money.owedTheFarmMoney)}
         </Line>
       ) : null}
-      {money.openFloatBdt === 0 ? null : (
-        <Line label={t("ventures.openFloat")}>{taka(money.openFloatBdt)}</Line>
+      {money.openFloatMoney === 0 ? null : (
+        <Line label={t("ventures.openFloat")}>
+          {taka(money.openFloatMoney)}
+        </Line>
       )}
-      {money.advancedBdt === 0 ? null : (
-        <Line label={t("ventures.owedToYou")}>{taka(money.advancedBdt)}</Line>
+      {money.advancedMoney === 0 ? null : (
+        <Line label={t("ventures.owedToYou")}>{taka(money.advancedMoney)}</Line>
       )}
       {venture.state === "open" ? null : (
         <Line label={t("ventures.outOfTheAccount")}>
-          {`${taka(money.spentBdt)} · ${taka(money.paidOutBdt)}`}
+          {`${taka(money.spentMoney)} · ${taka(money.paidOutMoney)}`}
         </Line>
       )}
-      {money.reimbursedBdt === 0 ? null : (
+      {money.reimbursedMoney === 0 ? null : (
         <Line label={t("ventures.reimbursedSoFar")}>
-          {taka(money.reimbursedBdt)}
+          {taka(money.reimbursedMoney)}
         </Line>
       )}
     </div>
@@ -354,13 +356,13 @@ export const Terms = ({ venture }: { venture: Venture }) => {
   const said = [
     `${t("ventures.units")}: ${t("ventures.unitsAt", {
       units: formatNumber(venture.units, language),
-      price: taka(venture.unitPriceBdt),
+      price: taka(venture.unitPriceMoney),
     })}`,
     `${t("ventures.budgets")}: ${t("ventures.budgetSplit", {
-      cattle: taka(venture.cattleBudgetBdt),
-      running: taka(venture.runningBudgetBdt),
+      cattle: taka(venture.cattleBudgetMoney),
+      running: taka(venture.runningBudgetMoney),
     })}`,
-    `${t("ventures.floor")}: ${taka(venture.floorBdt)}`,
+    `${t("ventures.floor")}: ${taka(venture.floorMoney)}`,
     `${t("ventures.decideBy")}: ${day(venture.decideBy)}`,
     `${t("ventures.window")}: ${day(venture.targetWindow.start)} – ${day(
       venture.targetWindow.end
@@ -461,7 +463,7 @@ export const primaryActsOf = (
       {
         label: t("ventures.startFattening"),
         icon: Wheat,
-        disabled: money.openFloatBdt !== 0,
+        disabled: money.openFloatMoney !== 0,
         handleSelect: () => acts.startFattening(venture),
       },
     ];
@@ -565,7 +567,7 @@ export const actsInTheMenu = (
   // here from a list of the same people.
   // Asked of the Float, not of the state: the first Sale moves a run from buying to selling with a Float
   // still out, and that Float then stands in the way of its Settlement.
-  if (money.openFloatBdt !== 0) {
+  if (money.openFloatMoney !== 0) {
     inTheMenu.push({
       label: t("ventures.countFloat"),
       icon: ScrollText,

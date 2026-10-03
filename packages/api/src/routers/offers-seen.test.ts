@@ -31,14 +31,14 @@ beforeAll(async () => {
   await owner.investors.setPortalOpen({ open: true });
   const venture = await owner.ventures.open({
     name: `নতুন ভেঞ্চার ${suffix}`,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2053-01-20",
     targetWindowStart: "2053-06-01",
     targetWindowEnd: "2053-06-10",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
-    cattleBudgetBdt: 800_000,
+    cattleBudgetMoney: 800_000,
   });
   ventureId = venture.id;
   const them = await anInvitedInvestor(

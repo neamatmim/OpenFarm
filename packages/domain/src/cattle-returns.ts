@@ -91,14 +91,14 @@ export interface ReturnBooks {
   animals: readonly {
     id: string;
     tagNumber: string;
-    sale: { soldAt: Date; priceBdt: number } | null;
+    sale: { soldAt: Date; priceMoney: number } | null;
   }[];
   ownedThenBy: OwnedThenBy;
   /** Every Intake: who came, for how much, when, and fed for which Target Window. */
   intakes: readonly {
     id: string;
     animalId: string;
-    purchasePriceBdt: number;
+    purchasePriceMoney: number;
     arrivedAt: Date;
     targetWindowStart: string;
     targetWindowEnd: string;
@@ -111,7 +111,7 @@ export interface ReturnBooks {
     how: JoinedHow;
     targetWindowStart: string;
     targetWindowEnd: string;
-    priceBdt: number | null;
+    priceMoney: number | null;
     internalSaleId: string | null;
   }[];
   /** Every Internal Sale, in the order they were saved. */
@@ -120,7 +120,7 @@ export interface ReturnBooks {
     animalId: string;
     fromVentureId: string | null;
     toVentureId: string | null;
-    priceBdt: number;
+    priceMoney: number;
     createdAt: Date;
     on: Date;
   }[];
@@ -128,7 +128,7 @@ export interface ReturnBooks {
   /** Every Animal written off as Lost, and when she went missing for good. */
   lost: ReadonlyMap<string, Date>;
   /** What each standing fattening Animal is worth today, low and high — or why not. */
-  values: ReadonlyMap<string, { lowBdt: number; highBdt: number } | Gap>;
+  values: ReadonlyMap<string, { lowMoney: number; highMoney: number } | Gap>;
   /** Every Bank Rate typed, the one that would be in force first: the latest day, then the latest typed. */
   bankRates: readonly BankRate[];
 }
@@ -148,7 +148,7 @@ export const whatHappenedTo = (
     sale: books.animals.find((one) => one.id === animalId)?.sale ?? null,
     internalSales: books.internal.filter((one) => one.animalId === animalId),
     crossing: crossing
-      ? { on: crossing.joinedAt, priceBdt: crossing.priceBdt }
+      ? { on: crossing.joinedAt, priceMoney: crossing.priceMoney }
       : null,
     died: books.died.get(animalId) ?? null,
     lost: books.lost.get(animalId) ?? null,
@@ -160,7 +160,7 @@ export const whatHappenedTo = (
 export interface HoldingRead {
   animalId: string;
   takenOn: Date;
-  priceBdt: number;
+  priceMoney: number;
   left: Left | null;
   /** A crossing the Owner has not priced yet: left out of every figure, whole, and named, until she is. */
   unpriced?: { tagNumber: string };
@@ -192,7 +192,7 @@ export const spentOn = (
 ): Spent[] => {
   const until = holding.left?.on ?? today;
   return [
-    { bdt: holding.priceBdt, from: holding.takenOn, until },
+    { amount: holding.priceMoney, from: holding.takenOn, until },
     ...chargesInHolding(
       books.charges.get(holding.animalId) ?? [],
       {
@@ -203,13 +203,13 @@ export const spentOn = (
         until,
       },
       books.ownedThenBy
-    ).map((one) => ({ bdt: one.bdt, from: one.at, until })),
+    ).map((one) => ({ amount: one.amount, from: one.at, until })),
   ];
 };
 
 /** What some holdings brought back: each one's Sale or Internal Sale out, nothing for the dead, nothing standing. */
 export const backOf = (holdings: readonly HoldingRead[]) =>
-  holdings.reduce((sum, one) => sum + (one.left?.backBdt ?? 0), 0);
+  holdings.reduce((sum, one) => sum + (one.left?.backMoney ?? 0), 0);
 
 /** What some priced holdings returned: a result once all have gone and none waits on a price, a range until then.
  *  With none at all nothing has finished: there was nothing to go. */
@@ -231,7 +231,7 @@ const returnOfPriced = (
       finished,
       returnOnCost: returnOf({
         spent: holdings.flatMap(spentOf),
-        backBdt: backOf(holdings),
+        backMoney: backOf(holdings),
         floorDays,
         finished,
       }),
@@ -258,12 +258,12 @@ const returnOfPriced = (
     running: runningRangeOf({
       sold: {
         spent: gone.flatMap(spentOf),
-        backBdt: backOf(gone),
+        backMoney: backOf(gone),
       },
       standing: {
         spent: valued.flatMap(({ holding }) => spentOf(holding)),
-        lowBdt: valued.reduce((sum, { value }) => sum + value.lowBdt, 0),
-        highBdt: valued.reduce((sum, { value }) => sum + value.highBdt, 0),
+        lowMoney: valued.reduce((sum, { value }) => sum + value.lowMoney, 0),
+        highMoney: valued.reduce((sum, { value }) => sum + value.highMoney, 0),
       },
     }),
     gaps: standing.flatMap(({ value }) =>
@@ -338,7 +338,7 @@ export const seasonGroupsOf = (books: ReturnBooks) => {
       {
         animalId: intake.animalId,
         takenOn: intake.arrivedAt,
-        priceBdt: intake.purchasePriceBdt,
+        priceMoney: intake.purchasePriceMoney,
         left: leftOf(books, null, intake.animalId, intake.arrivedAt),
         came: { how: "intake", intakeId: intake.id },
       }
@@ -359,7 +359,7 @@ export const seasonGroupsOf = (books: ReturnBooks) => {
       {
         animalId: joining.animalId,
         takenOn,
-        priceBdt: joining.priceBdt ?? 0,
+        priceMoney: joining.priceMoney ?? 0,
         left: leftOf(
           books,
           null,
@@ -367,7 +367,7 @@ export const seasonGroupsOf = (books: ReturnBooks) => {
           takenOn,
           joining.internalSaleId
         ),
-        ...(joining.priceBdt === null
+        ...(joining.priceMoney === null
           ? { unpriced: { tagNumber: tagOf.get(joining.animalId) ?? "" } }
           : {}),
         came: { how: joining.how, joiningId: joining.id },
@@ -433,7 +433,7 @@ export interface CapitalMovement {
   id: string;
   kind: string;
   agreementId: string | null;
-  amountBdt: number;
+  amountMoney: number;
   movedOn: string;
 }
 
@@ -465,7 +465,7 @@ export const capitalOf = (
           one.kind === "capital_in" && one.agreementId === share.agreementId
       )
       .map((one) => ({
-        bdt: one.amountBdt,
+        amount: one.amountMoney,
         arrived: startOfFarmDay(one.movedOn),
         paidBack,
       }));
@@ -487,7 +487,7 @@ export interface VentureReturn {
   returnOnCost: Returned | null;
   /** Once settled, where a cost or a Correction came after it: how far its cattle's result now stands from the profit
    *  its Settlement was approved on — less below nothing. Null where the two still agree. */
-  sinceSettlementBdt: number | null;
+  sinceSettlementMoney: number | null;
   /** While going: the same at today's price, its standing animals at its plan's prices, low and high. */
   running: RunningRange | null;
   /** Standing animals left out of `running`, and why. */
@@ -495,7 +495,7 @@ export interface VentureReturn {
   /** Once settled: on the Investors' capital, after the Farm's share, each taka from arrival to payout. Never before. */
   returnOnCapital: ReturnType<typeof returnOnCapitalOf>;
   /** Once settled: the Farm's share, for its work — taka, never a ratio, because the Farm put in no money. */
-  farmsShareBdt: number | null;
+  farmsShareMoney: number | null;
   /** The Bank Rate in force on the day its first taka went on cattle, beside its Return on Cost a year. */
   bankRate: BankRateSaid | null;
   /** The Bank Rate in force on the day the Investors' first capital reached the Venture Account — earlier than the
@@ -505,12 +505,12 @@ export interface VentureReturn {
 
 /** A settled Venture's approved Settlement as its return reads it: what it made, the Farm's share, and whom it paid. */
 export interface ApprovedSettlement {
-  profitBdt: number;
-  farmBdt: number;
+  profitMoney: number;
+  farmMoney: number;
   shares: readonly {
     agreementId: string;
     paidMovementId: string | null;
-    shareBdt: number;
+    shareMoney: number;
   }[];
   movements: readonly CapitalMovement[];
 }
@@ -536,7 +536,7 @@ export const ventureReturnOf = (
       .map((one) => ({
         animalId: one.animalId,
         takenOn: one.arrivedAt,
-        priceBdt: one.purchasePriceBdt,
+        priceMoney: one.purchasePriceMoney,
         cameBy: null,
       })),
     ...books.internal
@@ -544,7 +544,7 @@ export const ventureReturnOf = (
       .map((one) => ({
         animalId: one.animalId,
         takenOn: one.on,
-        priceBdt: one.priceBdt,
+        priceMoney: one.priceMoney,
         cameBy: one.id,
       })),
   ].map(({ cameBy, ...one }) => ({
@@ -579,29 +579,29 @@ export const ventureReturnOf = (
     return {
       ...common,
       settled: false,
-      sinceSettlementBdt: null,
+      sinceSettlementMoney: null,
       returnOnCapital: null,
-      farmsShareBdt: null,
+      farmsShareMoney: null,
       capitalBankRate: null,
     };
   }
   const capital = capitalOf(settlement.shares, settlement.movements);
   const returnOnCapital = returnOnCapitalOf({
     capital,
-    shareBdt: settlement.shares.reduce((sum, one) => sum + one.shareBdt, 0),
+    shareMoney: settlement.shares.reduce((sum, one) => sum + one.shareMoney, 0),
     floorDays,
   });
   const since =
     worked.returnOnCost === null
       ? 0
-      : roundTaka(worked.returnOnCost.resultBdt - settlement.profitBdt);
+      : roundTaka(worked.returnOnCost.resultMoney - settlement.profitMoney);
   return {
     ...common,
     settled: true,
     // Under a taka is the rounding the two sums round at, not news.
-    sinceSettlementBdt: Math.abs(since) < 1 ? null : since,
+    sinceSettlementMoney: Math.abs(since) < 1 ? null : since,
     returnOnCapital,
-    farmsShareBdt: settlement.farmBdt,
+    farmsShareMoney: settlement.farmMoney,
     capitalBankRate: bankRateFor(
       books.bankRates,
       earliest(capital.map((one) => one.arrived)),

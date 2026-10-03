@@ -15,16 +15,16 @@ const cow = (more: Partial<DairyAnimalRead> = {}): DairyAnimalRead => ({
   damId: null,
   birthDate: null,
   createdAt: new Date("2031-12-01T06:00:00.000Z"),
-  entryPrice: { priceBdt: 80_000, asOf: "2032-01-01" },
+  entryPrice: { priceMoney: 80_000, asOf: "2032-01-01" },
   ...more,
 });
 
-const feed = (at: string, bdt: number): Charge => ({
+const feed = (at: string, amount: number): Charge => ({
   kind: "feed",
   animalId: "১",
   side: "dairy",
   at: new Date(at),
-  bdt,
+  amount,
   fromId: "ঘাস",
   unpricedKg: 0,
   priced: true,
@@ -63,19 +63,19 @@ const january = milkPricesByMonth([
   {
     dispatchedAt: new Date("2032-01-20T04:00:00.000Z"),
     litres: 1000,
-    pricePerLitreBdt: 60,
+    pricePerLitreMoney: 60,
   },
 ]);
-const heads = new Map([["milking", { lowBdt: 90_000, highBdt: 110_000 }]]);
+const heads = new Map([["milking", { lowMoney: 90_000, highMoney: 110_000 }]]);
 
 describe("a dairy Animal's run", () => {
   it("prices a month with no Dispatch at the month before's, and says so", () => {
     const { run } = dairyRunOf(books(), cow(), january, heads, 60, now);
     expect(run).toMatchObject({
       milkLitres: 500,
-      milkBdt: 30_000,
+      milkMoney: 30_000,
       milkPricedEarlier: ["2032-02"],
-      worthToday: { lowBdt: 90_000, highBdt: 110_000 },
+      worthToday: { lowMoney: 90_000, highMoney: 110_000 },
       gaps: [],
     });
   });
@@ -96,10 +96,10 @@ describe("a dairy Animal's run", () => {
       now
     );
     expect(run.left?.how).toBe("died");
-    expect(run.endBdt).toBe(0);
+    expect(run.endMoney).toBe(0);
     // ৳30,000 of milk back against ৳86,000 — her price and her feed.
-    expect(run.resultBdt).toBe(-56_000);
-    expect(run.returnOnCost?.resultBdt).toBe(-56_000);
+    expect(run.resultMoney).toBe(-56_000);
+    expect(run.returnOnCost?.resultMoney).toBe(-56_000);
   });
 
   it("names her until her crossing to Fattening is priced", () => {
@@ -110,7 +110,7 @@ describe("a dairy Animal's run", () => {
           animalId: "১",
           joinedAt: new Date("2032-03-01T06:00:00.000Z"),
           how: "crossed",
-          priceBdt: null,
+          priceMoney: null,
           internalSaleId: null,
           targetWindowStart: "2032-05-15",
           targetWindowEnd: "2032-05-17",
@@ -135,10 +135,10 @@ describe("a dairy Animal's run", () => {
       books({ litres: new Map() }),
       calf,
       january,
-      new Map([["calf", { lowBdt: 12_000, highBdt: 18_000 }]]),
+      new Map([["calf", { lowMoney: 12_000, highMoney: 18_000 }]]),
       60,
       now
     );
-    expect(run).toMatchObject({ came: "born", costBdt: 6000, gaps: [] });
+    expect(run).toMatchObject({ came: "born", costMoney: 6000, gaps: [] });
   });
 });

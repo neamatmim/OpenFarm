@@ -1393,11 +1393,11 @@ export const bn: Record<MessageKey, string> = {
   "refusal.bakiNeedsAPromise": "বাকি টাকা কবে দেবে, সেই তারিখ লিখুন",
   "refusal.promiseBeforeItLeft":
     "যেদিন গেছে, তার আগের তারিখে বাকি দেওয়ার কথা হতে পারে না",
-  "refusal.paidMoreThanOwed": "বাকি ৳{owingBdt}; বেশি দিলে কেন, মন্তব্যে লিখুন",
+  "refusal.paidMoreThanOwed": "বাকি ৳{owingMoney}; বেশি দিলে কেন, মন্তব্যে লিখুন",
   "refusal.noSuchBuyer": "এই নামে কারো কাছে খামার কখনো বিক্রি করেনি",
   "refusal.aBullCalfIsNoHeifer":
     "এঁড়ে বাছুর বকনা হিসেবে থাকে না — তার মোটাতাজাকরণ পেন বাছুন",
-  "refusal.writtenOffMoreThanOwed": "এর ওপর এখন বাকি মাত্র ৳{owingBdt}",
+  "refusal.writtenOffMoreThanOwed": "এর ওপর এখন বাকি মাত্র ৳{owingMoney}",
   "refusal.nothingOwedOnIt": "এর ওপর কখনো কিছু বাকি ছিল না",
   "refusal.ventureOwnsHer":
     "এই গরু একটি ভেঞ্চারের, আর ভেঞ্চারের গরু দুধের দিকে যেতে পারে না",
@@ -1973,7 +1973,7 @@ export const bn: Record<MessageKey, string> = {
   "auditField.withdrawalShortenedReason": "আটকে রাখার সময় কমানোর কারণ",
   "auditField.photoUpdatedAt": "ছবি বদলানোর সময়",
   "auditField.stateChangedAt": "অবস্থা বদলের সময়",
-  "auditField.amountBdt": "টাকা (৳)",
+  "auditField.amountMoney": "টাকা (৳)",
   "auditField.approval": "অনুমোদন",
   "auditField.approvedBy": "কে অনুমোদন করেছেন",
   "auditField.approvedAt": "কখন অনুমোদন হয়েছে",
@@ -1981,7 +1981,7 @@ export const bn: Record<MessageKey, string> = {
   "auditField.perYear": "বছরে হার",
   "auditField.fromDay": "যেদিন থেকে",
   "auditField.counterpartyId": "কার সাথে",
-  "auditField.priceBdt": "দাম (৳)",
+  "auditField.priceMoney": "দাম (৳)",
   "auditField.kind": "ধরন",
   "auditField.receivedOn": "যেদিন এসেছে",
   "auditField.quantity": "পরিমাণ",
@@ -1989,7 +1989,7 @@ export const bn: Record<MessageKey, string> = {
   "auditField.dispatchedAt": "কখন গেল",
   "auditField.challan": "চালান নম্বর",
   "auditField.litres": "লিটার",
-  "auditField.pricePerLitreBdt": "প্রতি লিটার দাম (৳)",
+  "auditField.pricePerLitreMoney": "প্রতি লিটার দাম (৳)",
   "auditField.fatPercent": "ফ্যাট %",
   "auditField.snfPercent": "এসএনএফ %",
   "auditField.buyerId": "ক্রেতা",
@@ -4245,9 +4245,9 @@ export const bn: Record<MessageKey, string> = {
   "returns.col.costBack": "খরচ → ফেরত",
   "returns.col.share": "প্রতি ১০০ টাকায়",
   "months.col.overheads": "খামার চালানোর খরচ · প্রতি পশু প্রতিদিন",
-  "months.cardOverheads": "খামার চালানোর খরচ {bdt}, প্রতি পশু প্রতিদিন {perHead}",
+  "months.cardOverheads": "খামার চালানোর খরচ {amount}, প্রতি পশু প্রতিদিন {perHead}",
   "months.yearOverheads":
-    "বছরে খামার চালানোর খরচ: {bdt}, ভেঞ্চারের পশুসহ খামারের সব পশুর হিসাবে প্রতি পশু প্রতিদিন {perHead}। মজুরি, ভাড়া আর বিদ্যুৎ: ওপরের কোনো দিক, মৌসুম বা ভেঞ্চারের হিসাবে এটা ধরা নেই।",
+    "বছরে খামার চালানোর খরচ: {amount}, ভেঞ্চারের পশুসহ খামারের সব পশুর হিসাবে প্রতি পশু প্রতিদিন {perHead}। মজুরি, ভাড়া আর বিদ্যুৎ: ওপরের কোনো দিক, মৌসুম বা ভেঞ্চারের হিসাবে এটা ধরা নেই।",
   "months.soFar": "এখন পর্যন্ত",
   "months.pair": "{first} · {second}",
   "months.cardMilk": "দুধ বিক্রি {sold} · দুগ্ধ গাভীর খরচ {cost}",
@@ -4285,8 +4285,8 @@ export const bn: Record<MessageKey, string> = {
   "returns.head": "{count}টি",
   "returns.died": "{count}টি মারা গেছে",
   "returns.lostHead": "{count}টি হারিয়ে গেছে",
-  "returns.made": "লাভ {bdt}",
-  "returns.lost": "ক্ষতি {bdt}",
+  "returns.made": "লাভ {amount}",
+  "returns.lost": "ক্ষতি {amount}",
   "returns.onCostGain": "প্রতি ১০০ টাকা খরচে {amount} টাকা লাভ",
   "returns.onCostLoss": "প্রতি ১০০ টাকা খরচে {amount} টাকা ক্ষতি",
   "returns.onCapitalGain": "প্রতি ১০০ টাকা মূলধনে {amount} টাকা লাভ",
@@ -4303,14 +4303,14 @@ export const bn: Record<MessageKey, string> = {
   "returns.capitalTitle": "বিনিয়োগকারীদের মূলধনে",
   "returns.capitalHint":
     "তাঁদের পুরো মূলধনের ওপর মুনাফার ভাগ — টাকা ভেঞ্চার হিসাবে পৌঁছানোর দিন থেকে ফেরত যাওয়ার দিন পর্যন্ত, অলস পড়ে থাকা দিনগুলোও ধরে।",
-  "returns.farmsShare": "খামারের ভাগ, কাজের জন্য: {bdt}",
+  "returns.farmsShare": "খামারের ভাগ, কাজের জন্য: {amount}",
   "returns.settlementToCome": "হিসাব নিকাশ বাকি",
   "returns.settlementToComeHint":
     "শেষ পশুটিও চলে গেছে, তাই এটিই এর ফল — হিসাব নিকাশ যেভাবে হবে সেভাবেই হিসাব করা। বিনিয়োগকারীদের মূলধনে লাভ আর খামারের ভাগ আসবে হিসাব নিকাশের টাকা দেওয়া হলে।",
   "returns.sinceSettlementLess":
-    "হিসাব নিকাশের সময়ের চেয়ে {bdt} কম — পরে আসা কোনো খরচ বা সংশোধনের কারণে। এর হিসাব সমন্বয় দেখুন।",
+    "হিসাব নিকাশের সময়ের চেয়ে {amount} কম — পরে আসা কোনো খরচ বা সংশোধনের কারণে। এর হিসাব সমন্বয় দেখুন।",
   "returns.sinceSettlementMore":
-    "হিসাব নিকাশের সময়ের চেয়ে {bdt} বেশি — পরে আসা কোনো সংশোধনের কারণে। এর হিসাব সমন্বয় দেখুন।",
+    "হিসাব নিকাশের সময়ের চেয়ে {amount} বেশি — পরে আসা কোনো সংশোধনের কারণে। এর হিসাব সমন্বয় দেখুন।",
   "returns.openVenture": "ভেঞ্চারটি খুলুন",
   "returns.tab.fattening": "মোটাতাজা",
   "returns.tab.prices": "দাম",
@@ -4342,8 +4342,8 @@ export const bn: Record<MessageKey, string> = {
   "returns.todayRangeMixed":
     "আজকের দামে প্রতি ১০০ টাকা খরচে {loss} টাকা ক্ষতি থেকে {gain} টাকা লাভ",
   "returns.estimate": "অনুমান, ফল নয়",
-  "returns.goneMade": "চলে গেছে: লাভ {bdt}",
-  "returns.goneLost": "চলে গেছে: ক্ষতি {bdt}",
+  "returns.goneMade": "চলে গেছে: লাভ {amount}",
+  "returns.goneLost": "চলে গেছে: ক্ষতি {amount}",
   "returns.standingWorth": "দাঁড়িয়ে: খরচ {cost}, আজকের দামে {low} থেকে {high}",
   "returns.daysSoFar": "এ পর্যন্ত {days} দিন · শেষটি চলে গেলে বছরের হিসাব",
   "returns.gapsTitle": "{count}টি পশু বাদ, আজ দাম ধরা যায়নি",
@@ -4430,9 +4430,9 @@ export const bn: Record<MessageKey, string> = {
   "returns.cameBorn": "এখানে জন্ম, জন্ম থেকে বিনা দামে ধরা",
   "returns.camePriced": "আপনার দেওয়া দাম থেকে, {day} থেকে ধরা",
   "returns.cameUnpriced": "দাম দেওয়া হয়নি",
-  "returns.dairyCost": "খরচ {bdt}",
-  "returns.dairyMilk": "বাল্কে দুধ: {litres} লিটার, {bdt}",
-  "returns.dairyEnd": "গেছে {bdt}-এ",
+  "returns.dairyCost": "খরচ {amount}",
+  "returns.dairyMilk": "বাল্কে দুধ: {litres} লিটার, {amount}",
+  "returns.dairyEnd": "গেছে {amount}-এ",
   "returns.milkEarlier":
     "{months}: সে মাসে দুধ বিক্রি হয়নি, তাই তার দুধ আগের সবশেষ মাসের দামে ধরা",
   "returns.calvesTitle": "তার বাছুর",
@@ -4461,7 +4461,7 @@ export const bn: Record<MessageKey, string> = {
   "returns.soFar": "এ পর্যন্ত",
   "returns.noFigure": "এখনো হিসাব নেই",
   "returns.worthToday": "আজকের দামে {low} থেকে {high}",
-  "returns.herdMilk": "এ পর্যন্ত বাল্কে দুধ: {bdt}, হাতে এসেছে",
+  "returns.herdMilk": "এ পর্যন্ত বাল্কে দুধ: {amount}, হাতে এসেছে",
   "refusal.bredHereNeedsNoPrice":
     "এখানে জন্মানো পশু জন্ম থেকে বিনা দামে ধরা হয়; তার দাম লাগে না",
   "refusal.headPriceBackwards":
@@ -4789,7 +4789,8 @@ export const bn: Record<MessageKey, string> = {
   "money.payout": "হিসাব নিকাশের পরিশোধ",
   "money.payouts": "হিসাব নিকাশের পরিশোধ",
   "money.refund": "ফেরত দেওয়া মূলধন",
-  "money.refundedApart": "এর বাইরে, ভেঞ্চার বাতিল হওয়ায় {bdt} মূলধন ফেরত দেওয়া হয়েছে",
+  "money.refundedApart":
+    "এর বাইরে, ভেঞ্চার বাতিল হওয়ায় {amount} মূলধন ফেরত দেওয়া হয়েছে",
   "money.refundedHint": "ভেঞ্চার বাতিল হওয়ায়",
   "units.kg": "{kg} কেজি",
   "units.kgADay": "দিনে {kg} কেজি",
@@ -4854,7 +4855,7 @@ export const bn: Record<MessageKey, string> = {
   "params.storeShortfall": "গুদামে খাদ্য কম",
   "params.storeShortfallHint":
     "সাপ্তাহিক গণনায় কেনা দামে এর বেশি খাদ্য কম পাওয়া গেলে আপনাকে আর ম্যানেজারকে জানানো হবে।",
-  "params.storeShortfallTellBdt": "গণনায় এর বেশি কম হলে জানান",
+  "params.storeShortfallTellMoney": "গণনায় এর বেশি কম হলে জানান",
   "costs.storeShortfall": "গণনায় কম পাওয়া খাদ্য",
   "costs.storeShortfallHint":
     "গুদাম গণনায় যা কম পাওয়া গেছে, গণনার দিনের গুদামের দামে। কোনো দিকের খরচে নেই: কোনো পশু এটা খায়নি।",
@@ -4917,11 +4918,11 @@ export const bn: Record<MessageKey, string> = {
   "params.cashShort": "নগদ গণনায় কম",
   "params.cashShortHint":
     "সাপ্তাহিক নগদ গণনায় খামারের হিসাবের চেয়ে এর বেশি কম পাওয়া গেলে সন্ধ্যার খবরে আপনাকে জানানো হবে।",
-  "params.cashShortTellBdt": "এর বেশি কম হলে জানান",
+  "params.cashShortTellMoney": "এর বেশি কম হলে জানান",
   "params.medicineShort": "ওষুধ গণনা",
   "params.medicineShortHint":
     "মাসিক ওষুধ গণনা, ডোজে: ডোজের দামে এর বেশি কম পাওয়া গেলে আপনাকে জানানো হবে। এটা আপনার ঠিক করার: ম্যানেজার কেনেন আর গোনেন।",
-  "params.medicineShortTellBdt": "এর বেশি কম হলে জানান",
+  "params.medicineShortTellMoney": "এর বেশি কম হলে জানান",
   "params.feedDays": "খাদ্য আর কত দিনের",
   "params.feedDaysHint":
     "গত দুই সপ্তাহ যে হারে খাওয়ানো হয়েছে, সেই হারে কোনো খাদ্য এর কম দিন চললে সেটি কমে আসছে ধরা হবে, আর সন্ধ্যার খবরে ম্যানেজারকে জানানো হবে।",
@@ -4982,7 +4983,7 @@ export const bn: Record<MessageKey, string> = {
     "কে বেতনের আগে কত নিয়েছেন আর এখনো বাকি। পরের বেতন থেকে কাটা যায়, আগেরটা আগে।",
   "wageDraw.atPayday":
     "অগ্রিম বাকি {owed}: এই বেতন থেকে কাটা {taken}, এখন দেওয়া {paid}।",
-  "wageDraw.carried": "{bdt} পরের বেতনে যাবে।",
+  "wageDraw.carried": "{amount} পরের বেতনে যাবে।",
   "wageDraw.correct": "এই অগ্রিম ঠিক করুন",
   "wageDraw.correctHint":
     "যা ভুল তা ঠিক করুন। যে অগ্রিম আসলে নেওয়া হয়নি, টাকা শূন্য করে দিলে তা ফিরে যায়। বেতন থেকে যা কাটা হয়ে গেছে, তা কাটাই থাকে। আগের তথ্য অডিট লগে পড়া যাবে।",
@@ -5010,19 +5011,19 @@ export const bn: Record<MessageKey, string> = {
   "cash.cashBack": "ফেরত আনা নগদ (৳)",
   "cash.countedHome": "যাত্রার টাকা মেলানো হলো",
   "cash.lastCount": "{day} গোনা: পাওয়া গেছে {counted}, থাকার কথা {expected}",
-  "cash.countShort": "{bdt} কম",
-  "cash.countOver": "{bdt} বেশি",
+  "cash.countShort": "{amount} কম",
+  "cash.countOver": "{amount} বেশি",
   "cash.handOver": "হাতবদল",
   "cash.handOverTitle": "নগদ হাতবদল · {name}",
   "cash.handOverHint":
     "নগদ আরেকজনের হাতে, বা স্লিপসহ ব্যাংকে। কোনো আয় বা খরচ নয়: শুধু হাত বদলায়।",
   "cash.handedOver": "হাতবদল লেখা হলো",
-  "cash.heldForVenture": "এর মধ্যে {bdt} {venture}-এর — {tags}",
+  "cash.heldForVenture": "এর মধ্যে {amount} {venture}-এর — {tags}",
   "cash.deposit": "ভেঞ্চারের হিসাবে জমা",
   "cash.depositTitle": "{venture}-এর হিসাবে জমা",
   "cash.depositHint":
     "হাটে নগদে বিক্রি হওয়া ভেঞ্চারের গরুর টাকা ব্যাংকে জমা দিন, জমার স্লিপের নম্বরসহ। জমা হলে তবেই টাকা ভেঞ্চারের হিসাবে ওঠে।",
-  "cash.depositTotal": "জমা হবে {bdt}",
+  "cash.depositTotal": "জমা হবে {amount}",
   "cash.depositDay": "যেদিন জমা হলো",
   "cash.deposited": "ভেঞ্চারের হিসাবে জমা হয়েছে",
   "cash.to": "কার কাছে",
@@ -5094,5 +5095,5 @@ export const bn: Record<MessageKey, string> = {
   "animals.writtenOff": "{day} তারিখে হারিয়ে গেছে বলে বাদ দেওয়া হয়েছে",
   "animals.writtenOffStolen": "চুরি · জিডি {gd}",
   "animals.foundAfterAll": "পাওয়া গেছে",
-  "owner.lostYear": "১২ মাসে হারিয়ে গেছে: {count}টি · খরচ হয়েছিল {bdt}",
+  "owner.lostYear": "১২ মাসে হারিয়ে গেছে: {count}টি · খরচ হয়েছিল {amount}",
 };

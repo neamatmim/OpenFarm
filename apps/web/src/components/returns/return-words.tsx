@@ -106,8 +106,8 @@ export const Working = ({ returned }: { returned: Returned }) => {
       </summary>
       <p className="mt-1 max-w-prose">
         {t("returns.workingText", {
-          cost: taka(returned.costBdt),
-          back: taka(returned.backBdt),
+          cost: taka(returned.costMoney),
+          back: taka(returned.backMoney),
           days: returned.averageDays,
         })}{" "}
         {returned.perYear === null
@@ -123,12 +123,12 @@ export const Working = ({ returned }: { returned: Returned }) => {
 };
 
 /** The result in taka, said as made or lost. */
-export const Result = ({ bdt }: { bdt: number }) => {
+export const Result = ({ amount }: { amount: number }) => {
   const { t } = useLanguage();
   const taka = useTaka();
   return (
-    <span className={cn("tabular-nums", isLoss(bdt) && "text-danger")}>
-      {t(wordFor(SAID.result, bdt), { bdt: taka(Math.abs(bdt)) })}
+    <span className={cn("tabular-nums", isLoss(amount) && "text-danger")}>
+      {t(wordFor(SAID.result, amount), { amount: taka(Math.abs(amount)) })}
     </span>
   );
 };
@@ -154,18 +154,20 @@ export const ShareUnder = ({ per100 }: { per100: number }) => {
  * answer this phone kept from before it was said.
  */
 export const SinceSettlement = ({
-  bdt,
+  amount,
 }: {
-  bdt: number | null | undefined;
+  amount: number | null | undefined;
 }) => {
   const { t } = useLanguage();
   const taka = useTaka();
-  if (bdt === null || bdt === undefined) {
+  if (amount === null || amount === undefined) {
     return null;
   }
   return (
     <p className="text-warning text-sm tabular-nums">
-      {t(wordFor(SAID.sinceSettlement, bdt), { bdt: taka(Math.abs(bdt)) })}
+      {t(wordFor(SAID.sinceSettlement, amount), {
+        amount: taka(Math.abs(amount)),
+      })}
     </p>
   );
 };
@@ -209,18 +211,18 @@ export const RunningLines = ({ running }: { running: Running }) => {
         <TodayRange running={running} />
         <StatusBadge tone="warning">{t("returns.estimate")}</StatusBadge>
       </p>
-      {running.soldCostBdt === 0 ? null : (
+      {running.soldCostMoney === 0 ? null : (
         <p className="text-muted-foreground text-sm tabular-nums">
-          {t(wordFor(SAID.gone, running.soldResultBdt), {
-            bdt: taka(Math.abs(running.soldResultBdt)),
+          {t(wordFor(SAID.gone, running.soldResultMoney), {
+            amount: taka(Math.abs(running.soldResultMoney)),
           })}
         </p>
       )}
       <p className="text-muted-foreground text-sm tabular-nums">
         {t("returns.standingWorth", {
-          cost: taka(running.standingCostBdt),
-          low: taka(running.standingLowBdt),
-          high: taka(running.standingHighBdt),
+          cost: taka(running.standingCostMoney),
+          low: taka(running.standingLowMoney),
+          high: taka(running.standingHighMoney),
         })}
       </p>
       <p className="text-muted-foreground text-xs tabular-nums">

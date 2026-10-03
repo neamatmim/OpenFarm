@@ -19,10 +19,10 @@ export const NO_BAKI: BakiTyped = { owed: false, paidNow: "", promisedBy: "" };
 /** What the farm is sent of it: nothing at all for a buyer who paid in full, which the farm reads as paid in full. */
 export const bakiSent = (
   typed: BakiTyped
-): { paidNowBdt?: number; promisedBy?: string } =>
+): { paidNowMoney?: number; promisedBy?: string } =>
   typed.owed
     ? {
-        paidNowBdt: Number(typed.paidNow),
+        paidNowMoney: Number(typed.paidNow),
         promisedBy: typed.promisedBy || undefined,
       }
     : {};
@@ -30,7 +30,7 @@ export const bakiSent = (
 /** Whether enough is typed of it to save: what was paid, no more than it came to, and a day where one is asked for. */
 export const bakiComplete = (
   typed: BakiTyped,
-  worthBdt: number,
+  worthMoney: number,
   promiseRequired: boolean
 ): boolean => {
   if (!typed.owed) {
@@ -40,7 +40,7 @@ export const bakiComplete = (
   const paidIsAFigure =
     typed.paidNow.trim() !== "" && !Number.isNaN(paid) && paid >= 0;
   const promised = !promiseRequired || typed.promisedBy !== "";
-  return paidIsAFigure && paid <= worthBdt && promised;
+  return paidIsAFigure && paid <= worthMoney && promised;
 };
 
 /** Whether anything was paid at the gate, so how it was paid is worth asking. Still asked while what he paid is not
@@ -52,10 +52,12 @@ export const somethingPaid = (typed: BakiTyped): boolean =>
  *  yet a figure the farm would take. */
 export const stillOwes = (
   typed: BakiTyped,
-  worthBdt: number
+  worthMoney: number
 ): number | null => {
   const paid = Number(typed.paidNow);
   const paidIsAFigure =
     typed.paidNow.trim() !== "" && !Number.isNaN(paid) && paid >= 0;
-  return paidIsAFigure && paid <= worthBdt ? roundTaka(worthBdt - paid) : null;
+  return paidIsAFigure && paid <= worthMoney
+    ? roundTaka(worthMoney - paid)
+    : null;
 };

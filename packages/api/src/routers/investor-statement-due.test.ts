@@ -21,14 +21,14 @@ const as = (role: "owner" | "manager", instant: string) =>
 type Client = Awaited<ReturnType<typeof as>>;
 
 const plan = {
-  targetCapitalBdt: 500_000,
-  floorBdt: 0,
+  targetCapitalMoney: 500_000,
+  floorMoney: 0,
   decideBy: "2054-01-20",
   targetWindowStart: "2054-02-17",
   targetWindowEnd: "2054-02-19",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 10,
-  cattleBudgetBdt: 400_000,
+  cattleBudgetMoney: 400_000,
 };
 
 let ventureId = "";
@@ -74,7 +74,7 @@ beforeAll(async () => {
     units: 10,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2054-01-02",
     stampSerial: `AA ${suffix}`,
   });
@@ -85,7 +85,7 @@ beforeAll(async () => {
   });
   await owner.client.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: 500_000,
+    amountMoney: 500_000,
     movedOn: "2054-01-03",
     paymentMethod: "bank",
     reference: `TRF-${suffix}`,
@@ -106,14 +106,14 @@ beforeAll(async () => {
   const trip = await buying.client.trips.record({
     wentTo: `হাট ${suffix}`,
     wentOn: "2054-01-04",
-    brokerBdt: 0,
-    transportBdt: 0,
-    keepBdt: 0,
+    brokerMoney: 0,
+    transportMoney: 0,
+    keepMoney: 0,
   });
   await buying.client.ventures.drawFloat({
     ventureId,
     buyingTripId: trip.id,
-    amountBdt: 200_000,
+    amountMoney: 200_000,
     movedOn: "2054-01-04",
     paymentMethod: "bank",
     reference: `FLT-${suffix}`,
@@ -123,7 +123,7 @@ beforeAll(async () => {
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 100_000,
+    purchasePriceMoney: 100_000,
     weightKg: 200,
     estimatedAgeMonths: 20,
     buyingTripId: trip.id,
@@ -135,7 +135,7 @@ beforeAll(async () => {
   ({ tagNumber } = her);
   await buying.client.ventures.reconcileFloat({
     buyingTripId: trip.id,
-    cashBackBdt: 100_000,
+    cashBackMoney: 100_000,
     movedOn: "2054-01-04",
     reference: `DEP-${suffix}`,
   });
@@ -165,7 +165,7 @@ describe("hearing that a paper is due", () => {
     await selling.client.sale.record({
       tagNumber,
       buyer: { name: `ক্রেতা ${suffix}` },
-      priceBdt: 150_000,
+      priceMoney: 150_000,
       weightKg: 320,
       destination: `ঢাকা ${suffix}`,
       vehicle: `ঢাকা মেট্রো ${suffix}`,
@@ -252,7 +252,7 @@ describe("hearing that a paper is due", () => {
       units: 10,
       investorsPercent: 60,
       arbitrator: `মাওলানা ${suffix}`,
-      stampValueBdt: 300,
+      stampValueMoney: 300,
       stampedOn: "2054-03-08",
       stampSerial: `AA বাতিল ${suffix}`,
     });
@@ -263,7 +263,7 @@ describe("hearing that a paper is due", () => {
     });
     await owner.client.ventures.takeCapital({
       agreementId: agreement.id,
-      amountBdt: 500_000,
+      amountMoney: 500_000,
       movedOn: "2054-03-08",
       paymentMethod: "bank",
       reference: `TRF-বাতিল-${suffix}`,

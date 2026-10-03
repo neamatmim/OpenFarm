@@ -22,14 +22,14 @@ type Owner = Awaited<ReturnType<typeof asOwner>>;
 
 // Forty thousand of each Unit before buying, then 2,500 on each 10th, February to May.
 const TERMS = {
-  targetCapitalBdt: 1_000_000,
-  floorBdt: 0,
+  targetCapitalMoney: 1_000_000,
+  floorMoney: 0,
   decideBy: "2076-01-20",
   targetWindowStart: "2076-06-01",
   targetWindowEnd: "2076-06-10",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 20,
-  cattleBudgetBdt: 800_000,
+  cattleBudgetMoney: 800_000,
 };
 
 const PAID_UP = `সময়মতো ${suffix}`;
@@ -55,7 +55,7 @@ const signed = async (
     units,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2076-01-03",
     stampSerial: `WB ${phones} ${suffix}`,
   });
@@ -67,11 +67,11 @@ const signed = async (
   return agreement.id;
 };
 
-const pay = async (owner: Owner, agreementId: string, amountBdt: number) => {
+const pay = async (owner: Owner, agreementId: string, amountMoney: number) => {
   payments += 1;
   await owner.ventures.takeCapital({
     agreementId,
-    amountBdt,
+    amountMoney,
     movedOn: "2076-01-05",
     paymentMethod: "bank",
     reference: `TRF-${suffix}-${payments}`,
@@ -130,12 +130,12 @@ describe("the Investors tab of a Venture paid by the month", () => {
     expect(of.get(paidUp)).toMatchObject({
       sumsPaid: 1,
       sums: 4,
-      missedBdt: 0,
-      next: { dueOn: "2076-03-10", bdt: 25_000 },
+      missedMoney: 0,
+      next: { dueOn: "2076-03-10", amount: 25_000 },
     });
     expect(of.get(behind)).toMatchObject({
       sumsPaid: 0,
-      missedBdt: 7500,
+      missedMoney: 7500,
       lastMissedOn: "2076-02-10",
     });
   });
@@ -145,7 +145,7 @@ describe("the Investors tab of a Venture paid by the month", () => {
 
     const all = await owner.ventures.list();
 
-    expect(all.find((one) => one.id === ventureId)?.sumsMissedBdt).toBe(7500);
+    expect(all.find((one) => one.id === ventureId)?.sumsMissedMoney).toBe(7500);
   });
 });
 

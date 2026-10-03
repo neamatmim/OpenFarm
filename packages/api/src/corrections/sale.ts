@@ -35,9 +35,9 @@ const loadSale = (tx: Tx, farmId: string, id: string) =>
     columns: {
       id: true,
       farmId: true,
-      priceBdt: true,
-      bakiBdt: true,
-      brokerBdt: true,
+      priceMoney: true,
+      bakiMoney: true,
+      brokerMoney: true,
       promisedBy: true,
       weightKg: true,
       soldAt: true,
@@ -50,14 +50,14 @@ const loadSale = (tx: Tx, farmId: string, id: string) =>
 /** What a Sale's Correction may change: what she fetched, what she weighed on the day, who bought her, how he paid,
  *  what he paid there and then, the day he promised to pay the rest by, and what the broker took. */
 export const saleCorrectionInput = correctionInput({
-  priceBdt: changeOf(salePriceInput, z.number()),
+  priceMoney: changeOf(salePriceInput, z.number()),
   buyer: changeOf(buyerInput, z.string()),
   paymentMethod: paymentMethodChange,
   /** Which Farm Account bKash or bank money names, and its transaction ID. */
   farmAccount: farmAccountChange,
-  paidNowBdt: changeOf(paidNowInput, z.number()),
+  paidNowMoney: changeOf(paidNowInput, z.number()),
   promisedBy: changeOf(promisedByInput.nullable(), z.string().nullable()),
-  brokerBdt: changeOf(brokerInput, z.number()),
+  brokerMoney: changeOf(brokerInput, z.number()),
   weightKg: changeOf(z.number().positive().max(2000), z.number()),
   /** Whose hand took the cash, put right on the rule a Sale is written on (`assertTheHand`). */
   heldBy: changeOf(z.string(), z.string().nullable()),
@@ -85,12 +85,12 @@ export const saleCorrection: CorrectionKind<
   entry: (row) => ({ enteredAt: row.createdAt, enteredBy: row.recordedBy }),
   shown: async (tx, row) => ({
     farmAccount: await farmAccountShownOf(tx, row.farmId, "sale", row.id),
-    priceBdt: row.priceBdt,
+    priceMoney: row.priceMoney,
     buyer: row.buyer.name,
     paymentMethod: await paymentMethodOf(tx, row.farmId, "sale", row.id),
-    paidNowBdt: paidAtTheGate(row.priceBdt, row.bakiBdt),
+    paidNowMoney: paidAtTheGate(row.priceMoney, row.bakiMoney),
     promisedBy: row.promisedBy,
-    brokerBdt: row.brokerBdt,
+    brokerMoney: row.brokerMoney,
     weightKg: Number(row.weightKg),
     heldBy: await handOfTheRecord(tx, row.farmId, "sale", row.id),
   }),
@@ -101,22 +101,22 @@ export const saleCorrection: CorrectionKind<
     const baki = bakiOrRefuse(
       bakiPutRight({
         before: {
-          worthBdt: row.priceBdt,
-          bakiBdt: row.bakiBdt,
+          worthMoney: row.priceMoney,
+          bakiMoney: row.bakiMoney,
           promisedBy: row.promisedBy,
         },
-        worthBdt: to.priceBdt ?? row.priceBdt,
-        paidNowBdt: to.paidNowBdt,
+        worthMoney: to.priceMoney ?? row.priceMoney,
+        paidNowMoney: to.paidNowMoney,
         promisedBy: to.promisedBy,
         leftOn: farmDayOf(row.soldAt),
         promiseRequired: true,
       })
     );
     const bakiMoved =
-      baki.bakiBdt !== row.bakiBdt || baki.promisedBy !== row.promisedBy;
+      baki.bakiMoney !== row.bakiMoney || baki.promisedBy !== row.promisedBy;
     const putRight = {
-      ...(to.priceBdt === undefined ? {} : { priceBdt: to.priceBdt }),
-      ...(to.brokerBdt === undefined ? {} : { brokerBdt: to.brokerBdt }),
+      ...(to.priceMoney === undefined ? {} : { priceMoney: to.priceMoney }),
+      ...(to.brokerMoney === undefined ? {} : { brokerMoney: to.brokerMoney }),
       ...(to.weightKg === undefined
         ? {}
         : { weightKg: to.weightKg.toFixed(2) }),
@@ -157,8 +157,8 @@ export const saleCorrection: CorrectionKind<
     // A price, a broker's fee or her weight put right may take her under her cost or the market; told once about the
     // Sale, as when it was made.
     const worthMoved =
-      to.priceBdt !== undefined ||
-      to.brokerBdt !== undefined ||
+      to.priceMoney !== undefined ||
+      to.brokerMoney !== undefined ||
       to.weightKg !== undefined;
     if (worthMoved) {
       await tellIfSoldUnderCost(tx, row.farmId, row.id, now);

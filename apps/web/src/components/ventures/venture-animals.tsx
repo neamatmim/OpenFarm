@@ -40,12 +40,12 @@ interface AnimalCell {
 /** Where one of its animals is now: still hers, sold, or gone some other way — died or culled. */
 const whereSheIs = (
   standing: boolean | undefined,
-  saleBdt: number | null | undefined
+  saleMoney: number | null | undefined
 ) => {
   if (standing) {
     return "ventures.page.standing" as const;
   }
-  return saleBdt === null || saleBdt === undefined
+  return saleMoney === null || saleMoney === undefined
     ? ("ventures.page.gone" as const)
     : ("ventures.page.sold" as const);
 };
@@ -70,7 +70,7 @@ const TagCell = ({ row }: AnimalCell) => (
 const WhereCell = ({ row }: AnimalCell) => {
   const { t } = useLanguage();
   return (
-    <>{t(whereSheIs(row.original.weighed?.standing, row.original.saleBdt))}</>
+    <>{t(whereSheIs(row.original.weighed?.standing, row.original.saleMoney))}</>
   );
 };
 
@@ -101,42 +101,44 @@ const GainCell = ({ row }: AnimalCell) => (
 );
 
 /** A sum in taka, or nothing where there is none yet. */
-const Sum = ({ bdt }: { bdt: number | null }) => {
+const Sum = ({ amount }: { amount: number | null }) => {
   const taka = useTaka();
-  return bdt === null ? <Nothing /> : <>{taka(bdt)}</>;
+  return amount === null ? <Nothing /> : <>{taka(amount)}</>;
 };
 
 const BoughtCell = ({ row }: AnimalCell) => (
-  <Sum bdt={row.original.purchaseBdt} />
+  <Sum amount={row.original.purchaseMoney} />
 );
 
-const FetchedCell = ({ row }: AnimalCell) => <Sum bdt={row.original.saleBdt} />;
+const FetchedCell = ({ row }: AnimalCell) => (
+  <Sum amount={row.original.saleMoney} />
+);
 
 /** What each kilogram she put on cost: the figure the run is judged by, per animal. */
-const CostOfGainSaid = ({ bdt }: { bdt: number | null }) => {
+const CostOfGainSaid = ({ amount }: { amount: number | null }) => {
   const rate = useTakaToThePaisa();
-  return bdt === null ? <Nothing /> : <>{rate(bdt)}</>;
+  return amount === null ? <Nothing /> : <>{rate(amount)}</>;
 };
 
 const CostOfGainCell = ({ row }: AnimalCell) => (
-  <CostOfGainSaid bdt={row.original.costOfGainBdt} />
+  <CostOfGainSaid amount={row.original.costOfGainMoney} />
 );
 
 /** What she made, in the loss's colour where she lost money. */
-const MarginSaid = ({ bdt }: { bdt: number | null }) => {
+const MarginSaid = ({ amount }: { amount: number | null }) => {
   // Named, because the guard against untranslated JSX text reads an angle bracket in a comparison as a tag.
-  const lostMoney = bdt !== null && bdt < 0;
+  const lostMoney = amount !== null && amount < 0;
   return (
     <span
       className={cn("font-medium tabular-nums", lostMoney && "text-danger")}
     >
-      <Sum bdt={bdt} />
+      <Sum amount={amount} />
     </span>
   );
 };
 
 const MarginCell = ({ row }: AnimalCell) => (
-  <MarginSaid bdt={row.original.marginBdt} />
+  <MarginSaid amount={row.original.marginMoney} />
 );
 
 const column = createListColumns<AnimalRow>();
@@ -147,7 +149,7 @@ const animalColumns = column.columns([
   }),
   column.accessor(
     (row) =>
-      WHERE_ORDER.indexOf(whereSheIs(row.weighed?.standing, row.saleBdt)),
+      WHERE_ORDER.indexOf(whereSheIs(row.weighed?.standing, row.saleMoney)),
     {
       id: "where",
       header: listHeader("ventures.page.whereSheIs"),
@@ -166,25 +168,25 @@ const animalColumns = column.columns([
     cell: GainCell,
     meta: { align: "end" },
   }),
-  column.accessor((row) => row.purchaseBdt ?? undefined, {
+  column.accessor((row) => row.purchaseMoney ?? undefined, {
     id: "bought",
     header: listHeader("ventures.page.bought"),
     cell: BoughtCell,
     meta: { align: "end" },
   }),
-  column.accessor((row) => row.saleBdt ?? undefined, {
+  column.accessor((row) => row.saleMoney ?? undefined, {
     id: "fetched",
     header: listHeader("ventures.page.fetched"),
     cell: FetchedCell,
     meta: { align: "end" },
   }),
-  column.accessor((row) => row.costOfGainBdt ?? undefined, {
+  column.accessor((row) => row.costOfGainMoney ?? undefined, {
     id: "costOfGain",
     header: listHeader("ventures.herdCostOfGain"),
     cell: CostOfGainCell,
     meta: { align: "end" },
   }),
-  column.accessor((row) => row.marginBdt ?? undefined, {
+  column.accessor((row) => row.marginMoney ?? undefined, {
     id: "margin",
     header: listHeader("ventures.page.margin"),
     cell: MarginCell,
@@ -204,7 +206,7 @@ const AnimalCard = ({ row }: { row: AnimalRow }) => {
             <WhereCell row={{ original: row }} />
           </span>
         </span>
-        <MarginSaid bdt={row.marginBdt} />
+        <MarginSaid amount={row.marginMoney} />
       </div>
       <div className="text-sm">
         <Line label={t("ventures.page.weight")}>
@@ -214,13 +216,13 @@ const AnimalCard = ({ row }: { row: AnimalRow }) => {
           <GainSaid weighed={row.weighed} />
         </Line>
         <Line label={t("ventures.page.bought")}>
-          <Sum bdt={row.purchaseBdt} />
+          <Sum amount={row.purchaseMoney} />
         </Line>
         <Line label={t("ventures.page.fetched")}>
-          <Sum bdt={row.saleBdt} />
+          <Sum amount={row.saleMoney} />
         </Line>
         <Line label={t("ventures.herdCostOfGain")}>
-          <CostOfGainSaid bdt={row.costOfGainBdt} />
+          <CostOfGainSaid amount={row.costOfGainMoney} />
         </Line>
       </div>
     </div>
@@ -267,7 +269,8 @@ export const VentureAnimals = ({ venture }: { venture: Venture }) => {
       </Section>
     );
   }
-  const orDash = (bdt: number | null) => (bdt === null ? "—" : taka(bdt));
+  const orDash = (amount: number | null) =>
+    amount === null ? "—" : taka(amount);
   return (
     <div className="flex flex-col gap-4">
       <Section>
@@ -279,13 +282,13 @@ export const VentureAnimals = ({ venture }: { venture: Venture }) => {
             {formatNumber(herd.data?.soldCount ?? 0, language)}
           </Line>
           <Line label={t("ventures.herdMargin")}>
-            {orDash(money.data?.marginBdt ?? null)}
+            {orDash(money.data?.marginMoney ?? null)}
           </Line>
           <Line label={t("ventures.herdCostOfGain")}>
-            {money.data?.costOfGainBdt === null ||
-            money.data?.costOfGainBdt === undefined
+            {money.data?.costOfGainMoney === null ||
+            money.data?.costOfGainMoney === undefined
               ? "—"
-              : rate(money.data.costOfGainBdt)}
+              : rate(money.data.costOfGainMoney)}
           </Line>
         </div>
       </Section>

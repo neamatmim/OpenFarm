@@ -30,7 +30,7 @@ const monthlyMilkPrices = async (db: Database, farmId: string) => {
       id: true,
       dispatchedAt: true,
       litres: true,
-      pricePerLitreBdt: true,
+      pricePerLitreMoney: true,
     },
   });
   // Milk a buyer never paid for, and the Owner wrote off, did not fetch its price.
@@ -39,7 +39,7 @@ const monthlyMilkPrices = async (db: Database, farmId: string) => {
     rows.map((one) => ({
       dispatchedAt: one.dispatchedAt,
       litres: Number(one.litres),
-      pricePerLitreBdt: fetchedPerLitre(one, writtenOff),
+      pricePerLitreMoney: fetchedPerLitre(one, writtenOff),
     }))
   );
 };
@@ -58,7 +58,7 @@ const dairyAnimalsOf = async (db: Database, farmId: string) =>
       createdAt: true,
     },
     with: {
-      entryPrice: { columns: { priceBdt: true, asOf: true } },
+      entryPrice: { columns: { priceMoney: true, asOf: true } },
     },
     orderBy: { tagNumber: "asc", id: "asc" },
   });
@@ -75,10 +75,13 @@ const dairyRunsOf = async (
   const milkPrices = await monthlyMilkPrices(db, farmId);
   const heads = await db.query.headPrice.findMany({
     where: { farmId },
-    columns: { kind: true, lowBdt: true, highBdt: true },
+    columns: { kind: true, lowMoney: true, highMoney: true },
   });
   const headPrices = new Map<string, HeadRange>(
-    heads.map((one) => [one.kind, { lowBdt: one.lowBdt, highBdt: one.highBdt }])
+    heads.map((one) => [
+      one.kind,
+      { lowMoney: one.lowMoney, highMoney: one.highMoney },
+    ])
   );
   const worked = animals.map((her) =>
     dairyRunOf(books, her, milkPrices, headPrices, floorDays, now)
@@ -126,8 +129,8 @@ export const dairyOf = async (
       const set = heads.find((one) => one.kind === kind);
       return {
         kind,
-        lowBdt: set?.lowBdt ?? null,
-        highBdt: set?.highBdt ?? null,
+        lowMoney: set?.lowMoney ?? null,
+        highMoney: set?.highMoney ?? null,
       };
     }),
     /** Every dairy Animal the Owner has yet to price: bought, or here before the books, with the day she was written

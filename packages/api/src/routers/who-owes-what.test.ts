@@ -29,7 +29,7 @@ const buy = async (instant: string) => {
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 80_000,
+    purchasePriceMoney: 80_000,
     weightKg: 250,
     estimatedAgeMonths: 20,
     arrivedAt: new Date(instant),
@@ -39,8 +39,8 @@ const buy = async (instant: string) => {
 
 const sellOnBaki = async (
   instant: string,
-  priceBdt: number,
-  paidNowBdt: number,
+  priceMoney: number,
+  paidNowMoney: number,
   promisedBy: string
 ) => {
   const bull = await buy(instant);
@@ -48,8 +48,8 @@ const sellOnBaki = async (
   return await manager.client.sale.record({
     tagNumber: bull.tagNumber,
     buyer: { name: TRADER, phone: "+8801711000088" },
-    priceBdt,
-    paidNowBdt,
+    priceMoney,
+    paidNowMoney,
     promisedBy,
     weightKg: 330,
     destination: `গাবতলী ${suffix}`,
@@ -64,8 +64,8 @@ const milkOnBaki = async (day: string) => {
     dispatchedAt: new Date(`${day}T03:00:00.000Z`),
     litres: 25,
     buyer: { name: SHOP },
-    pricePerLitreBdt: 70,
-    paidNowBdt: 0,
+    pricePerLitreMoney: 70,
+    paidNowMoney: 0,
   });
 };
 
@@ -110,14 +110,14 @@ describe("who owes what", () => {
   it("lists each buyer with what he owes, since when and the day he promised", async () => {
     const trader = await theTrader("2049-05-05T06:00:00.000Z");
     expect(trader).toMatchObject({
-      owingBdt: 30_000,
+      owingMoney: 30_000,
       oldestOn: "2049-05-02",
       phone: "+8801711000088",
     });
     expect(trader?.kinds).toHaveLength(1);
     expect(trader?.kinds[0]).toMatchObject({
       kind: "cattle",
-      owingBdt: 30_000,
+      owingMoney: 30_000,
       soonestPromise: "2049-05-09",
     });
     const owner = await as("owner", "2049-05-05T06:00:00.000Z");
@@ -125,7 +125,7 @@ describe("who owes what", () => {
     const shop = everyone.find((one) => one.name === SHOP);
     expect(shop?.kinds[0]).toMatchObject({
       kind: "milk",
-      owingBdt: 5250,
+      owingMoney: 5250,
       soonestPromise: null,
     });
   });
@@ -133,7 +133,7 @@ describe("who owes what", () => {
   it("tells the sheets what a buyer still owes, and nothing of a stranger", async () => {
     const manager = await as("manager", "2049-05-05T06:00:00.000Z");
     const his = await manager.client.baki.ofBuyer({ name: TRADER });
-    expect(his?.owingBdt).toBe(30_000);
+    expect(his?.owingMoney).toBe(30_000);
     expect(
       await manager.client.baki.ofBuyer({ name: `অচেনা ${suffix}` })
     ).toBeNull();
@@ -146,20 +146,20 @@ describe("a Baki Payment", () => {
     const { id } = await manager.client.baki.pay({
       buyer: TRADER,
       kind: "cattle",
-      amountBdt: 25_000,
+      amountMoney: 25_000,
       paidOn: "2049-05-06",
       paymentMethod: "bkash",
     });
     const trader = await theTrader("2049-05-06T07:00:00.000Z");
     const [cattle] = trader?.kinds ?? [];
-    expect(cattle?.owingBdt).toBe(5000);
+    expect(cattle?.owingMoney).toBe(5000);
     expect(cattle?.items).toMatchObject([
-      { id: saleIds[0], owingBdt: 0, paidBdt: 20_000 },
-      { id: saleIds[1], owingBdt: 5000, paidBdt: 5000 },
+      { id: saleIds[0], owingMoney: 0, paidMoney: 20_000 },
+      { id: saleIds[1], owingMoney: 5000, paidMoney: 5000 },
     ]);
     expect(cattle?.payments[0]?.cleared).toEqual([
-      { itemId: saleIds[0], amountBdt: 20_000 },
-      { itemId: saleIds[1], amountBdt: 5000 },
+      { itemId: saleIds[0], amountMoney: 20_000 },
+      { itemId: saleIds[1], amountMoney: 5000 },
     ]);
 
     const owner = await as("owner", "2049-05-31T12:00:00.000Z");
@@ -167,7 +167,7 @@ describe("a Baki Payment", () => {
     const booked = money.events.filter((one) => one.sourceId === id);
     expect(booked).toHaveLength(1);
     expect(booked[0]).toMatchObject({
-      amountBdt: 25_000,
+      amountMoney: 25_000,
       direction: "in",
       categoryKey: "sale",
       paymentMethod: "bkash",
@@ -180,14 +180,14 @@ describe("a Baki Payment", () => {
     const { id } = await manager.client.baki.pay({
       buyer: SHOP,
       kind: "milk",
-      amountBdt: 4000,
+      amountMoney: 4000,
       paidOn: "2049-05-07",
       paymentMethod: "cash",
     });
     const owner = await as("owner", "2049-05-31T12:00:00.000Z");
     const everyone = await owner.client.baki.list();
     const shop = everyone.find((one) => one.name === SHOP);
-    expect(shop?.kinds[0]?.owingBdt).toBe(1250);
+    expect(shop?.kinds[0]?.owingMoney).toBe(1250);
     expect(shop?.kinds[0]?.payments[0]?.cleared).toHaveLength(3);
     const money = await owner.client.money.list(PERIOD);
     expect(money.events.find((one) => one.sourceId === id)).toMatchObject({
@@ -201,17 +201,17 @@ describe("a Baki Payment", () => {
       manager.client.baki.pay({
         buyer: SHOP,
         kind: "milk",
-        amountBdt: 2000,
+        amountMoney: 2000,
         paidOn: "2049-05-08",
         paymentMethod: "cash",
       })
     ).rejects.toMatchObject({
-      data: { refusal: "paid_more_than_owed", owingBdt: 1250 },
+      data: { refusal: "paid_more_than_owed", owingMoney: 1250 },
     });
     await manager.client.baki.pay({
       buyer: SHOP,
       kind: "milk",
-      amountBdt: 2000,
+      amountMoney: 2000,
       paidOn: "2049-05-08",
       paymentMethod: "cash",
       note: "আগামী সপ্তাহের দুধের টাকা আগাম দিলেন",
@@ -219,7 +219,7 @@ describe("a Baki Payment", () => {
     const owner = await as("owner", "2049-05-08T07:00:00.000Z");
     const everyone = await owner.client.baki.list();
     const shop = everyone.find((one) => one.name === SHOP);
-    expect(shop?.kinds[0]).toMatchObject({ owingBdt: 0, creditBdt: 750 });
+    expect(shop?.kinds[0]).toMatchObject({ owingMoney: 0, creditMoney: 750 });
   });
 
   it("spends his credit on the next milk he takes on Baki", async () => {
@@ -227,7 +227,7 @@ describe("a Baki Payment", () => {
     const owner = await as("owner", "2049-05-09T07:00:00.000Z");
     const everyone = await owner.client.baki.list();
     const shop = everyone.find((one) => one.name === SHOP);
-    expect(shop?.kinds[0]).toMatchObject({ owingBdt: 1000, creditBdt: 0 });
+    expect(shop?.kinds[0]).toMatchObject({ owingMoney: 1000, creditMoney: 0 });
   });
 
   it("refuses a payment from nobody the farm has sold to, and one from a day not yet come", async () => {
@@ -236,7 +236,7 @@ describe("a Baki Payment", () => {
       manager.client.baki.pay({
         buyer: `অচেনা ${suffix}`,
         kind: "cattle",
-        amountBdt: 1000,
+        amountMoney: 1000,
         paidOn: "2049-05-10",
         paymentMethod: "cash",
       })
@@ -245,7 +245,7 @@ describe("a Baki Payment", () => {
       manager.client.baki.pay({
         buyer: TRADER,
         kind: "cattle",
-        amountBdt: 1000,
+        amountMoney: 1000,
         paidOn: "2049-05-11",
         paymentMethod: "cash",
       })
@@ -257,7 +257,7 @@ describe("a Baki Payment", () => {
     const { id } = await manager.client.baki.pay({
       buyer: TRADER,
       kind: "cattle",
-      amountBdt: 2000,
+      amountMoney: 2000,
       paidOn: "2049-05-12",
       paymentMethod: "cash",
     });
@@ -265,13 +265,13 @@ describe("a Baki Payment", () => {
     await manager.client.baki.correctPayment({
       id,
       reason: "পাঁচ হাজার দিয়েছিলেন, দুই লেখা হয়েছে",
-      changes: { amountBdt: { from: 2000, to: 5000 } },
+      changes: { amountMoney: { from: 2000, to: 5000 } },
     });
     const owner = await as("owner", "2049-05-31T12:00:00.000Z");
     const money = await owner.client.money.list(PERIOD);
     const booked = money.events.filter((one) => one.sourceId === id);
     expect(booked).toHaveLength(1);
-    expect(booked[0]).toMatchObject({ amountBdt: 5000 });
+    expect(booked[0]).toMatchObject({ amountMoney: 5000 });
     // Paid off, he leaves the list — nothing owed and no credit held.
     expect(await theTrader("2049-05-12T08:00:00.000Z")).toBeUndefined();
   });

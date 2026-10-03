@@ -85,7 +85,7 @@ const HandOverDialog = ({
         handOver.mutate({
           from: { userId: from.userId },
           to: endChosen(to),
-          amountBdt: Number(amount),
+          amountMoney: Number(amount),
           ...(slipSaid ? { reference: reference.trim() } : {}),
           ...(note.trim() ? { note: note.trim() } : {}),
           ...(tripId && !toTheBank ? { buyingTripId: tripId } : {}),
@@ -217,7 +217,7 @@ const DepositDialog = ({
   const [reference, setReference] = useState("");
   const [day, setDay] = useState("");
   const going = sales.filter((one) => ticked.includes(one.saleId));
-  const totalBdt = going.reduce((sum, one) => sum + one.bdt, 0);
+  const totalMoney = going.reduce((sum, one) => sum + one.amount, 0);
   const deposit = useMutation(
     orpc.cash.handOver.mutationOptions({
       onSuccess: () => {
@@ -237,7 +237,7 @@ const DepositDialog = ({
         deposit.mutate({
           from: { userId: from.userId },
           to: { ventureId, saleIds: going.map((one) => one.saleId) },
-          amountBdt: totalBdt,
+          amountMoney: totalMoney,
           reference: reference.trim(),
           ...(day ? { handedAt: new Date(`${day}T06:00:00.000Z`) } : {}),
         })
@@ -263,12 +263,12 @@ const DepositDialog = ({
               type="checkbox"
             />
             <span className="font-mono">{one.tagNumber}</span>
-            <span className="tabular-nums">{taka(one.bdt)}</span>
+            <span className="tabular-nums">{taka(one.amount)}</span>
           </label>
         ))}
       </fieldset>
       <p className="text-sm font-medium">
-        {t("cash.depositTotal", { bdt: taka(totalBdt) })}
+        {t("cash.depositTotal", { amount: taka(totalMoney) })}
       </p>
       <FormField id="deposit-slip" label={t("cash.slip")}>
         <Input
@@ -304,12 +304,12 @@ const VentureShare = ({
   const { t } = useLanguage();
   const taka = useTaka();
   const [depositing, setDepositing] = useState(false);
-  const bdt = share.sales.reduce((sum, one) => sum + one.bdt, 0);
+  const amount = share.sales.reduce((sum, one) => sum + one.amount, 0);
   return (
     <div className="bg-muted flex flex-wrap items-center justify-between gap-2 rounded-md px-3 py-2 text-sm">
       <span>
         {t("cash.heldForVenture", {
-          bdt: taka(bdt),
+          amount: taka(amount),
           venture: share.name,
           tags: share.sales.map((one) => one.tagNumber).join(", "),
         })}
@@ -347,7 +347,7 @@ const MovementWhat = ({ one }: { one: Movement }) => {
       ? one.categoryEn
       : (one.categoryBn ?? "");
   }
-  const leaving = one.bdt < 0;
+  const leaving = one.amount < 0;
   if (one.bank) {
     return t(leaving ? "cash.toBank" : "cash.fromBank");
   }
@@ -390,10 +390,10 @@ const Movements = ({ hand }: { hand: Hand }) => {
           <span
             className={cn(
               "whitespace-nowrap tabular-nums",
-              one.bdt < 0 ? "text-muted-foreground" : "font-medium"
+              one.amount < 0 ? "text-muted-foreground" : "font-medium"
             )}
           >
-            {one.bdt < 0 ? `− ${taka(-one.bdt)}` : taka(one.bdt)}
+            {one.amount < 0 ? `− ${taka(-one.amount)}` : taka(one.amount)}
           </span>
         </li>
       ))}
@@ -433,8 +433,8 @@ const LastCount = ({ hand }: { hand: Hand }) => {
         }
       >
         {cameShort
-          ? t("cash.countShort", { bdt: taka(short) })
-          : t("cash.countOver", { bdt: taka(-short) })}
+          ? t("cash.countShort", { amount: taka(short) })
+          : t("cash.countOver", { amount: taka(-short) })}
       </span>
     </span>
   );
@@ -452,7 +452,7 @@ const HandLine = ({
   const taka = useTaka();
   const [open, setOpen] = useState(false);
   const [handing, setHanding] = useState(false);
-  const overdrawn = hand.bdt < 0;
+  const overdrawn = hand.amount < 0;
   return (
     <li className="flex flex-col gap-2 py-3">
       <div className="flex items-center justify-between gap-3">
@@ -469,7 +469,7 @@ const HandLine = ({
               overdrawn && "text-danger"
             )}
           >
-            {overdrawn ? `− ${taka(-hand.bdt)}` : taka(hand.bdt)}
+            {overdrawn ? `− ${taka(-hand.amount)}` : taka(hand.amount)}
           </span>
           <LastCount hand={hand} />
         </button>
@@ -516,7 +516,7 @@ const CountHomeDialog = ({
 }) => {
   const { t } = useLanguage();
   const onError = useRefused();
-  const due = float.handedBdt - float.boughtBdt - float.backBdt;
+  const due = float.handedMoney - float.boughtMoney - float.backMoney;
   const [back, setBack] = useState(String(Math.max(0, due)));
   const countHome = useMutation(
     orpc.cash.countFloatHome.mutationOptions({
@@ -534,7 +534,7 @@ const CountHomeDialog = ({
       description={t("cash.countHomeHint", { name: float.carrierName ?? "" })}
       onOpenChange={onOpenChange}
       onSubmit={() =>
-        countHome.mutate({ tripId: float.tripId, cashBackBdt: typed })
+        countHome.mutate({ tripId: float.tripId, cashBackMoney: typed })
       }
       open={open}
       pending={countHome.isPending}
@@ -561,7 +561,7 @@ const FloatLine = ({ float, isOwner }: { float: Float; isOwner: boolean }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
   const [counting, setCounting] = useState(false);
-  const due = float.handedBdt - float.boughtBdt - float.backBdt;
+  const due = float.handedMoney - float.boughtMoney - float.backMoney;
   return (
     <li className="flex items-center justify-between gap-3 py-3">
       <span className="flex min-w-0 flex-col">
@@ -572,8 +572,8 @@ const FloatLine = ({ float, isOwner }: { float: Float; isOwner: boolean }) => {
         <span className="text-muted-foreground text-xs tabular-nums">
           {t("cash.floatLine", {
             name: float.carrierName ?? "",
-            handed: taka(float.handedBdt),
-            bought: taka(float.boughtBdt),
+            handed: taka(float.handedMoney),
+            bought: taka(float.boughtMoney),
             due: taka(due),
           })}
         </span>

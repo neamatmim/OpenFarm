@@ -36,7 +36,7 @@ const standing = (
 ): PenHistoryLine => ({ animalId, penId, side, from, until });
 
 describe("what an outing cost, charged to the animals it carried", () => {
-  const trip = { id: "t1", at: on("03-02"), costBdt: 9000 };
+  const trip = { id: "t1", at: on("03-02"), costMoney: 9000 };
   const carried = ["১০১", "১০২", "১০৩"].map((animalId) => ({
     animalId,
     tripId: "t1",
@@ -46,7 +46,7 @@ describe("what an outing cost, charged to the animals it carried", () => {
 
   it("splits it evenly, because the lorry was hired for all of them and not for one", () => {
     const { shares, unallocated } = tripShares({ trips: [trip], carried });
-    expect(shares.map((one) => one.bdt)).toEqual([3000, 3000, 3000]);
+    expect(shares.map((one) => one.amount)).toEqual([3000, 3000, 3000]);
     expect(shares.map((one) => one.fromId)).toEqual(["t1", "t1", "t1"]);
     expect(unallocated).toEqual([]);
   });
@@ -54,11 +54,11 @@ describe("what an outing cost, charged to the animals it carried", () => {
   it("charges an outing nobody came home on to nobody, and says so", () => {
     const { shares, unallocated } = tripShares({ trips: [trip], carried: [] });
     expect(shares).toEqual([]);
-    expect(unallocated).toEqual([{ at: trip.at, bdt: 9000 }]);
+    expect(unallocated).toEqual([{ at: trip.at, amount: 9000 }]);
   });
 
   it("says nothing at all about an outing that cost nothing", () => {
-    const free = { id: "t2", at: on("03-02"), costBdt: 0 };
+    const free = { id: "t2", at: on("03-02"), costMoney: 0 };
     expect(tripShares({ trips: [free], carried: [] })).toEqual({
       shares: [],
       unallocated: [],
@@ -72,7 +72,7 @@ describe("a month's marked money, charged by the days each beast stood here", ()
   const cost = {
     at: on("03-10"),
     side: "fattening" as const,
-    bdt: 4600,
+    amount: 4600,
     categoryId: "ওষুধ",
   };
   const history = [
@@ -86,7 +86,7 @@ describe("a month's marked money, charged by the days each beast stood here", ()
 
   it("gives each her days and no more", () => {
     const { shares } = herdShares({ costs: [cost], history });
-    expect(shares.map((one) => [one.animalId, one.bdt] as const)).toEqual([
+    expect(shares.map((one) => [one.animalId, one.amount] as const)).toEqual([
       ["১০১", 3100],
       ["১০২", 1500],
     ]);
@@ -134,7 +134,7 @@ describe("a month's marked money, charged by the days each beast stood here", ()
         ],
       ]),
     });
-    expect(shares.map((one) => [one.bdt, one.at] as const)).toEqual([
+    expect(shares.map((one) => [one.amount, one.at] as const)).toEqual([
       [(4600 * 15) / 31, cost.at],
       [(4600 * 16) / 31, sixteenth],
     ]);
@@ -153,7 +153,7 @@ describe("a month's marked money, charged by the days each beast stood here", ()
       history: [standing("১০১", "p1", "fattening", on("02-01"), on("06-01"))],
     });
     expect(shares).toEqual([]);
-    expect(unallocated).toEqual([{ at: later.at, bdt: 4600 }]);
+    expect(unallocated).toEqual([{ at: later.at, amount: 4600 }]);
   });
 });
 
@@ -174,7 +174,9 @@ describe("what a Pen was fed, charged to the animals that ate it", () => {
   it("splits each Feed Item evenly across those standing in the Pen, one share per item", () => {
     const { shares } = feedShares({ feedings: [fed], history, priceOf });
     expect(
-      shares.map((one) => [one.animalId, one.feedItemId, one.feedBdt] as const)
+      shares.map(
+        (one) => [one.animalId, one.feedItemId, one.feedMoney] as const
+      )
     ).toEqual([
       ["১০১", "খড়", 0],
       ["১০২", "খড়", 0],
@@ -187,7 +189,7 @@ describe("what a Pen was fed, charged to the animals that ate it", () => {
     const { shares } = feedShares({ feedings: [fed], history, priceOf });
     const hay = shares.filter((one) => one.feedItemId === "খড়");
     expect(hay.map((one) => one.unpricedKg)).toEqual([5, 5]);
-    expect(hay.map((one) => one.feedBdt)).toEqual([0, 0]);
+    expect(hay.map((one) => one.feedMoney)).toEqual([0, 0]);
   });
 
   it("charges a Feeding nobody was standing for to nobody, and says so rather than spreading it", () => {
@@ -199,16 +201,16 @@ describe("what a Pen was fed, charged to the animals that ate it", () => {
     });
     expect(shares).toEqual([]);
     expect(unallocated).toEqual([
-      { at: elsewhere.fedAt, feedBdt: 200, unpricedKg: 10 },
+      { at: elsewhere.fedAt, feedMoney: 200, unpricedKg: 10 },
     ]);
   });
 });
 
 describe("what one dose of a product cost", () => {
   const purchases = [
-    { id: "a", purchasedOn: on("01-01"), priceBdt: 300, doses: 10 },
-    { id: "b", purchasedOn: on("02-01"), priceBdt: 400, doses: 10 },
-    { id: "c", purchasedOn: on("03-01"), priceBdt: 500, doses: 10 },
+    { id: "a", purchasedOn: on("01-01"), priceMoney: 300, doses: 10 },
+    { id: "b", purchasedOn: on("02-01"), priceMoney: 400, doses: 10 },
+    { id: "c", purchasedOn: on("03-01"), priceMoney: 500, doses: 10 },
   ];
 
   it("is what its latest purchases cost, over the doses they held", () => {
@@ -219,7 +221,7 @@ describe("what one dose of a product cost", () => {
   it("looks no further back than three purchases", () => {
     // A cheap old lot must not drag the price of a dose given today.
     const older = [
-      { id: "z", purchasedOn: on("01-01", "06:00"), priceBdt: 30, doses: 10 },
+      { id: "z", purchasedOn: on("01-01", "06:00"), priceMoney: 30, doses: 10 },
       ...purchases,
     ];
     expect(dosePriceOf(older, on("03-15"))).toBe(40);
@@ -228,7 +230,7 @@ describe("what one dose of a product cost", () => {
   it("does not cost a dose by what the farm bought after giving it", () => {
     const later = [
       ...purchases,
-      { id: "d", purchasedOn: on("04-01"), priceBdt: 900, doses: 10 },
+      { id: "d", purchasedOn: on("04-01"), priceMoney: 900, doses: 10 },
     ];
     expect(dosePriceOf(later, on("03-15"))).toBe(40);
   });
@@ -277,28 +279,30 @@ describe("the months that end with this one", () => {
 describe("what she came to, once she is sold", () => {
   // 3,000 taka of keep: feed, doses, the Vet, the haat, the lorries and her share of the month.
   const costs: Costs = {
-    feedBdt: 1000,
+    feedMoney: 1000,
     unpricedKg: 5,
-    medicineBdt: 200,
+    medicineMoney: 200,
     uncostedDoses: 1,
-    vetBdt: 300,
-    hasilBdt: 500,
-    tripBdt: 400,
-    herdBdt: 600,
+    vetMoney: 300,
+    hasilMoney: 500,
+    tripMoney: 400,
+    herdMoney: 600,
   };
 
   it("is her sale less what she was bought for and everything she cost", () => {
-    expect(marginOf({ costs, purchaseBdt: 50_000, saleBdt: 62_000 })).toBe(
+    expect(marginOf({ costs, purchaseMoney: 50_000, saleMoney: 62_000 })).toBe(
       9000
     );
   });
 
   it("is nothing at all until she is sold", () => {
-    expect(marginOf({ costs, purchaseBdt: 50_000, saleBdt: null })).toBe(null);
+    expect(marginOf({ costs, purchaseMoney: 50_000, saleMoney: null })).toBe(
+      null
+    );
   });
 
   it("counts a beast bred on the farm as bought for nothing", () => {
-    expect(marginOf({ costs, purchaseBdt: null, saleBdt: 62_000 })).toBe(
+    expect(marginOf({ costs, purchaseMoney: null, saleMoney: 62_000 })).toBe(
       59_000
     );
   });
@@ -317,11 +321,11 @@ describe("what she came to, once she is sold", () => {
   it("reads her costs to the poisha, and leaves the uncosted doses as the count they are", () => {
     const rounded = roundedCosts({
       ...costs,
-      feedBdt: 1000.126,
-      vetBdt: 0.005,
+      feedMoney: 1000.126,
+      vetMoney: 0.005,
     });
-    expect(rounded.feedBdt).toBe(1000.13);
-    expect(rounded.vetBdt).toBe(0.01);
+    expect(rounded.feedMoney).toBe(1000.13);
+    expect(rounded.vetMoney).toBe(0.01);
     expect(rounded.uncostedDoses).toBe(1);
   });
 });

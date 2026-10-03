@@ -216,7 +216,7 @@ export const tradingProcedures = {
         /** Who takes her on: a Venture, or left out for the Farm's own herd. */
         toVentureId: z.string().optional(),
         /** Taka per kilogramme of live weight, as the day's market gives it. */
-        rateBdtPerKg: z.number().positive().max(100_000),
+        rateMoneyPerKg: z.number().positive().max(100_000),
         /** Where the rate came from. Asked for, not optional. */
         note: z.string().trim().min(1).max(300),
         soldOn: farmDay,
@@ -227,7 +227,7 @@ export const tradingProcedures = {
         farmAccountId: farmAccountIdInput,
         /** The price the Owner read before she committed. Refused when it is not the price the farm
          *  works out, because she may be looking at a weight taken before this morning's round. */
-        priceBdt: z.number().positive().max(100_000_000),
+        priceMoney: z.number().positive().max(100_000_000),
         /** Where the Farm takes her on: the Season she joins. The next Eid where none is said. */
         targetWindow: targetWindowInput.optional(),
       })
@@ -236,7 +236,7 @@ export const tradingProcedures = {
       const now = context.clock.now();
       assertByBank(input.paymentMethod);
       const id = uuidv7(now);
-      let struck = { weightKg: 0, priceBdt: 0 };
+      let struck = { weightKg: 0, priceMoney: 0 };
       await audited(context).write(
         {
           entity: "internal_sale",
@@ -297,19 +297,27 @@ export const tradingProcedures = {
             input.soldOn,
             context.farm.priceWeighInDays
           );
-          const priceBdt = priceAtWeight(weighed.weightKg, input.rateBdtPerKg);
-          if (roundTaka(input.priceBdt) !== priceBdt) {
+          const priceMoney = priceAtWeight(
+            weighed.weightKg,
+            input.rateMoneyPerKg
+          );
+          if (roundTaka(input.priceMoney) !== priceMoney) {
             // She was weighed again since the Owner read the figure: the price she is committing to is
             // not the price the farm would strike, and a sale is not something to guess at.
             throw new ORPCError("BAD_REQUEST", {
-              message: `She last weighed ${weighed.weightKg} kg, so the price is ${priceBdt}`,
-              data: { refusal: "weighed_again_since", priceBdt },
+              message: `She last weighed ${weighed.weightKg} kg, so the price is ${priceMoney}`,
+              data: { refusal: "weighed_again_since", priceMoney },
             });
           }
           if (to !== null) {
             // The buyer pays out of what it holds for cattle, exactly as it would at the haat.
             const buyer = await ours(context, to);
-            await assertCattleBudgetHolds(tx, context.farm.id, buyer, priceBdt);
+            await assertCattleBudgetHolds(
+              tx,
+              context.farm.id,
+              buyer,
+              priceMoney
+            );
           }
           struck = await recordInternalSale(
             tx,
@@ -325,7 +333,7 @@ export const tradingProcedures = {
               from,
               to,
               weighed,
-              rateBdtPerKg: input.rateBdtPerKg,
+              rateMoneyPerKg: input.rateMoneyPerKg,
               targetWindow: input.targetWindow,
               note: input.note,
               soldOn: input.soldOn,
@@ -335,7 +343,7 @@ export const tradingProcedures = {
           );
         }
       );
-      return { id, ...struck, rateBdtPerKg: input.rateBdtPerKg };
+      return { id, ...struck, rateMoneyPerKg: input.rateMoneyPerKg };
     }),
 
   /**
@@ -397,7 +405,7 @@ export const tradingProcedures = {
         ventureId: z.string(),
         /** Taka per kilogramme of live weight, as the day's market gives it. One rate for the lot: it
          *  is one act on one day, and each animal's own weight is what makes her price her own. */
-        rateBdtPerKg: z.number().positive().max(100_000),
+        rateMoneyPerKg: z.number().positive().max(100_000),
         /** Where the rate came from. Asked for, not optional. */
         note: z.string().trim().min(1).max(300),
         boughtOn: farmDay,
@@ -416,8 +424,11 @@ export const tradingProcedures = {
       // Read once for the Audit Event's subject; everything the act turns on is read again under the
       // lock, because a Venture can be called off between the two.
       const row = await ours(context, input.ventureId);
-      let bought: { tagNumber: string; weightKg: number; priceBdt: number }[] =
-        [];
+      let bought: {
+        tagNumber: string;
+        weightKg: number;
+        priceMoney: number;
+      }[] = [];
       await audited(context).write(
         {
           entity: "venture",
@@ -523,7 +534,7 @@ export const tradingProcedures = {
                 from: row.id,
                 to: null,
                 weighed,
-                rateBdtPerKg: input.rateBdtPerKg,
+                rateMoneyPerKg: input.rateMoneyPerKg,
                 targetWindow: input.targetWindow,
                 note: input.note,
                 soldOn: input.boughtOn,
@@ -549,7 +560,7 @@ export const tradingProcedures = {
             taken.push({
               tagNumber: her.tagNumber,
               weightKg: struck.weightKg,
-              priceBdt: struck.priceBdt,
+              priceMoney: struck.priceMoney,
             });
           }
           bought = taken;
@@ -557,8 +568,10 @@ export const tradingProcedures = {
       );
       return {
         animals: bought,
-        totalBdt: roundTaka(bought.reduce((sum, one) => sum + one.priceBdt, 0)),
-        rateBdtPerKg: input.rateBdtPerKg,
+        totalMoney: roundTaka(
+          bought.reduce((sum, one) => sum + one.priceMoney, 0)
+        ),
+        rateMoneyPerKg: input.rateMoneyPerKg,
       };
     }),
 };

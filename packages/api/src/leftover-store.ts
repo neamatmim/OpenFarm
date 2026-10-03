@@ -34,7 +34,7 @@ export interface PenLeftovers {
   sessions: number;
   sessionsWithLeftover: number;
   /** What was left behind cost, at the price each session was charged at; null for feed never priced. */
-  worthBdt: number | null;
+  worthMoney: number | null;
   standing: LeftoverStanding;
 }
 
@@ -198,7 +198,7 @@ export const leftoversOf = async (
       leftoverPercent: leftoverPercent({ givenKg, leftoverKg }),
       sessions: tally.sessions,
       sessionsWithLeftover: tally.sessionsWithLeftover,
-      worthBdt: worthOf(tally, priced, worth),
+      worthMoney: worthOf(tally, priced, worth),
       standing: leftoverStanding(tally, {
         penLeftAnything: pensThatLeft.has(tally.penId),
       }),
@@ -207,7 +207,7 @@ export const leftoversOf = async (
   return rows.toSorted(
     (a, b) =>
       STANDING_ORDER[a.standing] - STANDING_ORDER[b.standing] ||
-      (b.worthBdt ?? 0) - (a.worthBdt ?? 0) ||
+      (b.worthMoney ?? 0) - (a.worthMoney ?? 0) ||
       a.penName.localeCompare(b.penName) ||
       a.itemName.localeCompare(b.itemName)
   );

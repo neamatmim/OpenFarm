@@ -30,14 +30,14 @@ const aShownVenture = async (name: string) => {
   const owner = await as("owner");
   const venture = await owner.ventures.open({
     name: `${name} ${suffix}`,
-    targetCapitalBdt: 500_000,
-    floorBdt: 300_000,
+    targetCapitalMoney: 500_000,
+    floorMoney: 300_000,
     decideBy: "2060-01-20",
     targetWindowStart: "2060-06-01",
     targetWindowEnd: "2060-06-10",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 10,
-    cattleBudgetBdt: 400_000,
+    cattleBudgetMoney: 400_000,
   });
   await owner.ventures.showInPortal({ id: venture.id, words: "" });
   return venture.id;

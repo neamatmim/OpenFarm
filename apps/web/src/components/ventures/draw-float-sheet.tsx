@@ -12,14 +12,14 @@ import { orpc } from "@/utils/orpc";
 
 interface Drawing {
   buyingTripId: string;
-  amountBdt: string;
+  amountMoney: string;
   movedOn: string;
   reference: string;
 }
 
 const NOTHING_YET: Drawing = {
   buyingTripId: "",
-  amountBdt: "",
+  amountMoney: "",
   movedOn: "",
   reference: "",
 };
@@ -35,7 +35,7 @@ export const DrawFloatSheet = ({
   open,
   onOpenChange,
 }: {
-  venture: { cattleBudgetHeldBdt: number; id: string } | null;
+  venture: { cattleBudgetHeldMoney: number; id: string } | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) => {
@@ -57,8 +57,8 @@ export const DrawFloatSheet = ({
       },
     })
   );
-  const amount = Number(drawing.amountBdt);
-  const held = venture?.cattleBudgetHeldBdt ?? 0;
+  const amount = Number(drawing.amountMoney);
+  const held = venture?.cattleBudgetHeldMoney ?? 0;
   const ready =
     venture !== null &&
     drawing.buyingTripId !== "" &&
@@ -76,7 +76,7 @@ export const DrawFloatSheet = ({
         drawingIt.mutate({
           ventureId: venture?.id ?? "",
           buyingTripId: drawing.buyingTripId,
-          amountBdt: amount,
+          amountMoney: amount,
           movedOn: drawing.movedOn,
           paymentMethod: "bank",
           reference: drawing.reference,
@@ -123,10 +123,10 @@ export const DrawFloatSheet = ({
             inputMode="numeric"
             max={held}
             onChange={(event) =>
-              setDrawing({ ...drawing, amountBdt: event.target.value })
+              setDrawing({ ...drawing, amountMoney: event.target.value })
             }
             type="number"
-            value={drawing.amountBdt}
+            value={drawing.amountMoney}
           />
         </FormField>
         <FormField id="float-moved-on" label={t("ventures.movedOn")}>

@@ -36,7 +36,7 @@ describe("intake", () => {
       penId,
       sex: "male",
       seller: { name: "রহমান ব্যাপারী", address: "সাভার হাট, ঢাকা" },
-      purchasePriceBdt: 95_000,
+      purchasePriceMoney: 95_000,
       weightKg: 210.5,
       estimatedAgeMonths: 24,
       breedId: sahiwal,
@@ -57,7 +57,7 @@ describe("intake", () => {
     // Her page reads as an intake: what she cost, what she weighed, and what she is being
     // fed towards — the next Eid-ul-Adha, which nobody had to type.
     expect(her.intake).toMatchObject({
-      purchasePriceBdt: 95_000,
+      purchasePriceMoney: 95_000,
       weightKg: 210.5,
       estimatedAgeMonths: 24,
       sellerName: "রহমান ব্যাপারী",
@@ -81,7 +81,7 @@ describe("intake", () => {
       penId,
       sex: "male" as const,
       seller: { name: "রহমান ব্যাপারী" },
-      purchasePriceBdt: 88_000,
+      purchasePriceMoney: 88_000,
       weightKg: 190,
       estimatedAgeMonths: 20,
     };
@@ -103,7 +103,7 @@ describe("intake", () => {
     expect(
       money.events.filter((one) => one.sourceId === ownersBuy.intakeId)
     ).toEqual([
-      expect.objectContaining({ amountBdt: 88_000, approval: "not_needed" }),
+      expect.objectContaining({ amountMoney: 88_000, approval: "not_needed" }),
     ]);
 
     // This one is for the Qurbani market in Chattogram, which the Manager sells into early.
@@ -137,7 +137,7 @@ describe("intake", () => {
     const arriving = {
       penId,
       sex: "male" as const,
-      purchasePriceBdt: 70_000,
+      purchasePriceMoney: 70_000,
       weightKg: 175,
       estimatedAgeMonths: 18,
     };
@@ -172,8 +172,8 @@ describe("intake", () => {
       penId,
       sex: "male",
       seller: { name: `হাসিল বেপারী ${QUARANTINE}` },
-      purchasePriceBdt: 80_000,
-      hasilBdt: 2000,
+      purchasePriceMoney: 80_000,
+      hasilMoney: 2000,
       weightKg: 200,
       estimatedAgeMonths: 20,
     });
@@ -182,8 +182,8 @@ describe("intake", () => {
       tagNumber: taken.tagNumber,
     });
     expect(her.intake).toMatchObject({
-      purchasePriceBdt: 80_000,
-      hasilBdt: 2000,
+      purchasePriceMoney: 80_000,
+      hasilMoney: 2000,
     });
 
     // One Money Event for her arrival, for what the farm actually handed over.
@@ -192,32 +192,32 @@ describe("intake", () => {
       to: "2027-02-28",
     });
     const hers = money.events.find((one) => one.sourceId === taken.intakeId);
-    expect(hers).toMatchObject({ amountBdt: 82_000 });
+    expect(hers).toMatchObject({ amountMoney: 82_000 });
 
     // An animal bought with no toll paid carries none.
     const free = await manager.client.intake.record({
       penId,
       sex: "male",
       seller: { name: `হাসিল বেপারী ${QUARANTINE}` },
-      purchasePriceBdt: 60_000,
+      purchasePriceMoney: 60_000,
       weightKg: 190,
       estimatedAgeMonths: 18,
     });
     const his = await manager.client.animals.byTag({
       tagNumber: free.tagNumber,
     });
-    expect(his.intake).toMatchObject({ hasilBdt: 0 });
+    expect(his.intake).toMatchObject({ hasilMoney: 0 });
 
     // The slip said 2,400 and the Manager typed 2,000: a Correction like any other.
     await manager.client.intake.correct({
       id: taken.intakeId,
       reason: "হাটের রসিদ অনুযায়ী ঠিক করা হলো",
-      changes: { hasilBdt: { from: 2000, to: 2400 } },
+      changes: { hasilMoney: { from: 2000, to: 2400 } },
     });
     const afterwards = await manager.client.animals.byTag({
       tagNumber: taken.tagNumber,
     });
-    expect(afterwards.intake).toMatchObject({ hasilBdt: 2400 });
+    expect(afterwards.intake).toMatchObject({ hasilMoney: 2400 });
     // The same Money Event put right, never a second one.
     const afterMoney = await manager.client.money.list({
       from: "2027-02-01",
@@ -225,7 +225,7 @@ describe("intake", () => {
     });
     expect(
       afterMoney.events.filter((one) => one.sourceId === taken.intakeId)
-    ).toEqual([expect.objectContaining({ amountBdt: 82_400 })]);
+    ).toEqual([expect.objectContaining({ amountMoney: 82_400 })]);
 
     // And it is in the trail, under the animal it belongs to, with what it said before.
     const trail = await manager.client.audit.list({
@@ -252,7 +252,7 @@ describe("intake", () => {
         penId,
         sex: "male",
         seller: { name: `বাজার ${Date.now()}` },
-        purchasePriceBdt: 70_000,
+        purchasePriceMoney: 70_000,
         weightKg: 175,
         estimatedAgeMonths: 18,
       });
@@ -275,7 +275,7 @@ describe("intake", () => {
       penId,
       sex: "male",
       seller: { name: `বাজার ${Date.now()}` },
-      purchasePriceBdt: 72_000,
+      purchasePriceMoney: 72_000,
       weightKg: 180,
       estimatedAgeMonths: 19,
     });

@@ -144,7 +144,7 @@ const setup = async () => {
     feedItemId: concentrate.id,
     kind: "purchase",
     quantity: 1000,
-    priceBdt: 30_000,
+    priceMoney: 30_000,
     seller: { name: `দানাদারের দোকান ${suffix}` },
     receivedOn: "2039-01-01",
   });
@@ -184,7 +184,7 @@ const setup = async () => {
     drugProductId: wormer.id,
     quantity: "১০ ডোজ",
     doses: 10,
-    priceBdt: 1000,
+    priceMoney: 1000,
     seller: { name: `ফার্মেসি ${suffix}` },
     purchasedOn: "2039-01-01",
   });
@@ -218,9 +218,9 @@ const setup = async () => {
     penId: fattening.id,
     sex: "male",
     seller: { name: `হাট ${suffix}` },
-    purchasePriceBdt: 50_000,
+    purchasePriceMoney: 50_000,
     // The haat took its toll on this one; the bull bought later paid none.
-    hasilBdt: 1500,
+    hasilMoney: 1500,
     weightKg: 250,
     estimatedAgeMonths: 20,
     targetWindowStart: "2039-06-01",
@@ -342,7 +342,7 @@ beforeAll(async () => {
     penId: world.fattening.id,
     sex: "male",
     seller: { name: `হাট ${suffix}` },
-    purchasePriceBdt: 40_000,
+    purchasePriceMoney: 40_000,
     weightKg: 220,
     estimatedAgeMonths: 18,
     targetWindowStart: "2039-06-01",
@@ -399,7 +399,7 @@ beforeAll(async () => {
   // The Vet saw both bulls on one visit, for 1,000: 500 each.
   const vet = await as("vet", "2039-01-05T08:00:00.000Z");
   await vet.client.money.vetFee({
-    amountBdt: 1000,
+    amountMoney: 1000,
     visitedOn: "2039-01-05",
     animalTags: [world.bullA.tagNumber, bullB],
   });
@@ -416,7 +416,7 @@ beforeAll(async () => {
   const sold = await seller.client.sale.record({
     tagNumber: world.bullA.tagNumber,
     buyer: { name: `কসাই ${suffix}` },
-    priceBdt: 60_000,
+    priceMoney: 60_000,
     weightKg: 270,
     destination: "গাবতলী",
     vehicle: "ঢাকা মেট্রো ট ১১-২২",
@@ -493,19 +493,19 @@ describe("what an animal costs, and what a litre costs", () => {
       await owner.client.costs.ofAnimal({ tagNumber: world.bullA.tagNumber })
     ).toEqual({
       side: "fattening",
-      feedBdt: 450,
+      feedMoney: 450,
       unpricedKg: 30,
-      medicineBdt: 100,
+      medicineMoney: 100,
       uncostedDoses: 0,
-      vetBdt: 500,
-      hasilBdt: 1500,
-      tripBdt: 0,
-      herdBdt: 0,
-      purchaseBdt: 50_000,
-      saleBdt: 60_000,
-      marginBdt: 7450,
+      vetMoney: 500,
+      hasilMoney: 1500,
+      tripMoney: 0,
+      herdMoney: 0,
+      purchaseMoney: 50_000,
+      saleMoney: 60_000,
+      marginMoney: 7450,
       gainKg: 20,
-      costOfGainBdt: 127.5,
+      costOfGainMoney: 127.5,
       lactation: null,
     });
     expect(soldA).not.toBe("");
@@ -517,14 +517,14 @@ describe("what an animal costs, and what a litre costs", () => {
     expect(
       await manager.client.costs.ofAnimal({ tagNumber: bullB })
     ).toMatchObject({
-      feedBdt: 450,
+      feedMoney: 450,
       unpricedKg: 30,
-      medicineBdt: 0,
+      medicineMoney: 0,
       uncostedDoses: 1,
-      vetBdt: 500,
-      purchaseBdt: 40_000,
-      saleBdt: null,
-      marginBdt: null,
+      vetMoney: 500,
+      purchaseMoney: 40_000,
+      saleMoney: null,
+      marginMoney: null,
     });
   });
 
@@ -535,13 +535,13 @@ describe("what an animal costs, and what a litre costs", () => {
     ).toMatchObject({
       side: "dairy",
       // Everything she ate, heifer days included — but a litre is costed over her Lactation alone.
-      feedBdt: 1200,
-      marginBdt: null,
+      feedMoney: 1200,
+      marginMoney: null,
       // Her six litres poured away under the Withdrawal are not litres to Bulk.
       lactation: expect.objectContaining({
-        feedBdt: 600,
+        feedMoney: 600,
         litresToBulk: 10,
-        costPerLitreBdt: 60,
+        costPerLitreMoney: 60,
       }),
     });
   });
@@ -551,41 +551,41 @@ describe("what an animal costs, and what a litre costs", () => {
     const report = await owner.client.costs.bySide(PERIOD);
     // The period's Dairy side: everything its animals ate in it, over what it sent to Bulk in it.
     expect(report.dairy).toMatchObject({
-      feedBdt: 1200,
+      feedMoney: 1200,
       unpricedKg: 0,
-      medicineBdt: 0,
+      medicineMoney: 0,
       uncostedDoses: 0,
       litresToBulk: 10,
-      costPerLitreBdt: 120,
+      costPerLitreMoney: 120,
     });
     expect(report.fattening).toEqual({
-      feedBdt: 900,
+      feedMoney: 900,
       unpricedKg: 60,
-      medicineBdt: 100,
+      medicineMoney: 100,
       uncostedDoses: 1,
-      vetBdt: 1000,
+      vetMoney: 1000,
       // The Hasil paid on Bull A when he came off the lorry, in this period as he was.
-      hasilBdt: 1500,
-      tripBdt: 0,
-      herdBdt: 0,
+      hasilMoney: 1500,
+      tripMoney: 0,
+      herdMoney: 0,
     });
     // The bulls sold in the period, each with a whole life's Margin: a different sum, kept apart.
     expect(report.soldFattening).toEqual({
       animals: [
         {
           tagNumber: world.bullA.tagNumber,
-          purchaseBdt: 50_000,
-          saleBdt: 60_000,
-          marginBdt: 7450,
+          purchaseMoney: 50_000,
+          saleMoney: 60_000,
+          marginMoney: 7450,
         },
       ],
-      marginBdt: 7450,
+      marginMoney: 7450,
     });
     expect(report.unallocated).toEqual({
-      feedBdt: 300,
+      feedMoney: 300,
       unpricedKg: 5,
-      tripBdt: 0,
-      herdBdt: 0,
+      tripMoney: 0,
+      herdMoney: 0,
     });
 
     // A period after the sale sells nobody, whatever the bull's margin was.
@@ -593,12 +593,12 @@ describe("what an animal costs, and what a litre costs", () => {
       from: "2039-02-01",
       to: "2039-02-28",
     });
-    expect(february.soldFattening).toEqual({ animals: [], marginBdt: 0 });
+    expect(february.soldFattening).toEqual({ animals: [], marginMoney: 0 });
     expect(february.unallocated).toEqual({
-      feedBdt: 0,
+      feedMoney: 0,
       unpricedKg: 0,
-      tripBdt: 0,
-      herdBdt: 0,
+      tripMoney: 0,
+      herdMoney: 0,
     });
   });
 
@@ -609,28 +609,28 @@ describe("what an animal costs, and what a litre costs", () => {
     const her = await owner.client.costs.ofAnimal({
       tagNumber: world.bullA.tagNumber,
     });
-    expect(her).toMatchObject({ tripBdt: 0, herdBdt: 0 });
+    expect(her).toMatchObject({ tripMoney: 0, herdMoney: 0 });
     // Bought at 50,000, sold at 60,000, less 450 of feed, 100 of medicine, 500 of the Vet and
     // 1,500 of Hasil.
-    expect(her.marginBdt).toBe(7450);
-    expect(her.costOfGainBdt).toBe(127.5);
+    expect(her.marginMoney).toBe(7450);
+    expect(her.costOfGainMoney).toBe(127.5);
 
     const cow = await owner.client.costs.ofAnimal({
       tagNumber: world.cow.tagNumber,
     });
     expect(cow.lactation).toMatchObject({
-      hasilBdt: 0,
-      tripBdt: 0,
-      herdBdt: 0,
-      costPerLitreBdt: 60,
+      hasilMoney: 0,
+      tripMoney: 0,
+      herdMoney: 0,
+      costPerLitreMoney: 60,
     });
 
     const report = await owner.client.costs.bySide(PERIOD);
     expect(report.dairy).toMatchObject({
-      hasilBdt: 0,
-      tripBdt: 0,
-      herdBdt: 0,
-      costPerLitreBdt: 120,
+      hasilMoney: 0,
+      tripMoney: 0,
+      herdMoney: 0,
+      costPerLitreMoney: 120,
     });
   });
 
@@ -645,7 +645,7 @@ describe("what an animal costs, and what a litre costs", () => {
     const before = await owner.client.costs.ofAnimal({ tagNumber: bullB });
     await owner.client.feed.setFodderPrice({
       feedItemId: world.grass.id,
-      fodderPriceBdt: 2,
+      fodderPriceMoney: 2,
     });
     const manager = await as("manager", "2039-02-02T04:00:00.000Z");
     // A hundred kilos cut at two taka, then twenty of it fed to the pen Bull A stands in.
@@ -660,8 +660,8 @@ describe("what an animal costs, and what a litre costs", () => {
     const after = await owner.client.costs.ofAnimal({ tagNumber: bullB });
     // The store held a thousand kilos worth nothing and now holds a hundred worth two, so a kilo of the
     // mix is worth a fraction of a taka — and whatever it is, he is charged for it and was not before.
-    expect(after.feedBdt).toBeGreaterThan(before.feedBdt);
-    expect(after.costOfGainBdt ?? 0).toBeGreaterThanOrEqual(0);
+    expect(after.feedMoney).toBeGreaterThan(before.feedMoney);
+    expect(after.costOfGainMoney ?? 0).toBeGreaterThanOrEqual(0);
   });
 
   it("charges the Hasil to the animal it was paid on, and to nobody else", async () => {
@@ -669,14 +669,14 @@ describe("what an animal costs, and what a litre costs", () => {
     const paid = await owner.client.costs.ofAnimal({
       tagNumber: world.bullA.tagNumber,
     });
-    expect(paid.hasilBdt).toBe(1500);
+    expect(paid.hasilMoney).toBe(1500);
     const none = await owner.client.costs.ofAnimal({ tagNumber: bullB });
-    expect(none.hasilBdt).toBe(0);
+    expect(none.hasilMoney).toBe(0);
     // A cow born on the farm was never at a haat.
     const born = await owner.client.costs.ofAnimal({
       tagNumber: world.cow.tagNumber,
     });
-    expect(born.hasilBdt).toBe(0);
+    expect(born.hasilMoney).toBe(0);
   });
 
   it("is the Owner's and the Manager's, and never Barn Staff's or the Vet's", async () => {

@@ -44,7 +44,7 @@ export const planOf = async (
     | "decideBy"
     | "targetWindowStart"
     | "targetWindowEnd"
-    | "cattleBudgetBdt"
+    | "cattleBudgetMoney"
   >,
   /** The day it is read on, which decides the window in force. */
   on: string
@@ -60,7 +60,7 @@ export const planOf = async (
           ...one,
           totals: planTotals({
             lines: one.lines,
-            cattleBudgetBdt: run.cattleBudgetBdt,
+            cattleBudgetMoney: run.cattleBudgetMoney,
             daysOnFeed,
           }),
         }
@@ -82,8 +82,8 @@ export const planOf = async (
 /** What a new version of a plan says. */
 export interface PlanSaid {
   lines: PlanLine[];
-  saleLowBdtPerKg: number;
-  saleHighBdtPerKg: number;
+  saleLowMoneyPerKg: number;
+  saleHighMoneyPerKg: number;
   /** The share of its animals it expects not to live to be sold, in per cent. */
   deathsPercent: number;
   reason: string | null;
@@ -139,8 +139,8 @@ export const savePlan = async (
     ventureId: run.id,
     version,
     madeWhile: run.state,
-    saleLowBdtPerKg: said.saleLowBdtPerKg,
-    saleHighBdtPerKg: said.saleHighBdtPerKg,
+    saleLowMoneyPerKg: said.saleLowMoneyPerKg,
+    saleHighMoneyPerKg: said.saleHighMoneyPerKg,
     deathsPercent: said.deathsPercent.toFixed(2),
     reason: run.state === "open" ? null : said.reason,
     madeAt: by.at,
@@ -155,7 +155,7 @@ export const savePlan = async (
       animals: line.animals,
       fromKg: line.fromKg.toFixed(2),
       toKg: line.toKg.toFixed(2),
-      buyBdtPerKg: line.buyBdtPerKg,
+      buyMoneyPerKg: line.buyMoneyPerKg,
       dailyGainKg: line.dailyGainKg.toFixed(2),
       breedId: line.breedId,
     }))
@@ -194,7 +194,7 @@ export const planAgainstActual = async (
     plan.daysOnFeed,
     farmDaysApart(run.decideBy, farmDayOf(now))
   );
-  const plannedRunningBdt = run.targetCapitalBdt - run.cattleBudgetBdt;
+  const plannedRunningMoney = run.targetCapitalMoney - run.cattleBudgetMoney;
   return {
     baselineVersion: baseline.version,
     buying,
@@ -207,23 +207,23 @@ export const planAgainstActual = async (
       plannedKgAtWindow: plannedHeadKg(baseline.lines, plan.daysOnFeed),
     },
     money: {
-      plannedCattleBdt: baseline.totals.costBdt,
-      boughtBdt: buying.total.costBdt,
-      plannedRunningBdt,
-      runningSpentBdt: spend.runningSpentBdt,
+      plannedCattleMoney: baseline.totals.costMoney,
+      boughtMoney: buying.total.costMoney,
+      plannedRunningMoney,
+      runningSpentMoney: spend.runningSpentMoney,
       planned: plannedResult({
         saleKg: baseline.totals.saleKg,
-        cattleBdt: baseline.totals.costBdt,
-        runningBudgetBdt: plannedRunningBdt,
-        saleLowBdtPerKg: baseline.saleLowBdtPerKg,
-        saleHighBdtPerKg: baseline.saleHighBdtPerKg,
+        cattleMoney: baseline.totals.costMoney,
+        runningBudgetMoney: plannedRunningMoney,
+        saleLowMoneyPerKg: baseline.saleLowMoneyPerKg,
+        saleHighMoneyPerKg: baseline.saleHighMoneyPerKg,
         deathsPercent: baseline.deathsPercent,
       }),
       /** What it is projected to make now, worked from its plan in force; nothing once it has ended. */
       projected: projected
         ? {
-            lowBdt: projected.low.profitBdt,
-            highBdt: projected.high.profitBdt,
+            lowMoney: projected.low.profitMoney,
+            highMoney: projected.high.profitMoney,
           }
         : null,
     },

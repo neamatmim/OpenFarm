@@ -22,7 +22,7 @@ export interface FeedShare {
    *  read back as the sacks it was made of — an Investor asks what his animals ate, not what the
    *  total was. */
   feedItemId: string;
-  feedBdt: number;
+  feedMoney: number;
   /** Home-grown fodder at no price costs nothing — and the farm is told how much of it there was. */
   unpricedKg: number;
 }
@@ -36,7 +36,7 @@ export interface CostShare {
   animalId: string;
   side: Side;
   at: Date;
-  bdt: number;
+  amount: number;
   /** What it came from: the Category of a Herd Cost, or the outing or haat a by-the-head cost was
    *  paid at. Always said, so a month's charges can be named rather than only totalled. */
   fromId: string;
@@ -46,7 +46,7 @@ export interface CostShare {
 export interface TripToSplit {
   id: string;
   at: Date;
-  costBdt: number;
+  costMoney: number;
 }
 
 /** An Animal an outing carried: which one, when it went, and the Side she stood on then. */
@@ -60,7 +60,7 @@ export interface Carried {
 /** An outing nobody came home on: charged to nobody, and said. */
 export interface UnallocatedTrip {
   at: Date;
-  bdt: number;
+  amount: number;
 }
 
 /**
@@ -79,22 +79,22 @@ export const tripShares = ({
   const shares: CostShare[] = [];
   const unallocated: UnallocatedTrip[] = [];
   for (const trip of trips) {
-    if (trip.costBdt === 0) {
+    if (trip.costMoney === 0) {
       continue;
     }
     const theirs = byTrip.get(trip.id) ?? [];
     if (theirs.length === 0) {
-      unallocated.push({ at: trip.at, bdt: trip.costBdt });
+      unallocated.push({ at: trip.at, amount: trip.costMoney });
       continue;
     }
-    const each = trip.costBdt / theirs.length;
+    const each = trip.costMoney / theirs.length;
     shares.push(
       ...theirs.map((one) => ({
         animalId: one.animalId,
         side: one.side,
         fromId: trip.id,
         at: one.at,
-        bdt: each,
+        amount: each,
       }))
     );
   }
@@ -105,7 +105,7 @@ export const tripShares = ({
 export interface HerdCostToSplit {
   at: Date;
   side: Side;
-  bdt: number;
+  amount: number;
   /** The Category the Owner marked as charged to the animals. */
   categoryId: string;
 }
@@ -113,7 +113,7 @@ export interface HerdCostToSplit {
 /** A month's marked money no animal was standing for: charged to nobody, and said. */
 export interface UnallocatedHerdCost {
   at: Date;
-  bdt: number;
+  amount: number;
 }
 
 /**
@@ -243,7 +243,7 @@ export const herdShares = ({
     );
     const total = stood.reduce((sum, one) => sum + one.ms, 0);
     if (total === 0) {
-      unallocated.push({ at: cost.at, bdt: cost.bdt });
+      unallocated.push({ at: cost.at, amount: cost.amount });
       continue;
     }
     shares.push(
@@ -256,7 +256,7 @@ export const herdShares = ({
         at: new Date(
           Math.min(Math.max(cost.at.getTime(), one.since), one.until - 1)
         ),
-        bdt: (cost.bdt * one.ms) / total,
+        amount: (cost.amount * one.ms) / total,
         fromId: cost.categoryId,
       }))
     );
@@ -267,7 +267,7 @@ export const herdShares = ({
 /** A Feeding nobody can be found standing for: charged to nobody, and said. */
 export interface UnallocatedFeeding {
   at: Date;
-  feedBdt: number;
+  feedMoney: number;
   unpricedKg: number;
 }
 
@@ -295,13 +295,13 @@ export const feedShares = ({
     const standing = (byPen.get(fed.penId) ?? []).filter((line) =>
       covers(line, fed.fedAt)
     );
-    let feedBdt = 0;
+    let feedMoney = 0;
     let unpricedKg = 0;
     for (const line of fed.lines) {
       const price = priceOf(line.feedItemId, fed.fedAt);
-      const lineBdt = price === null ? 0 : price * line.givenKg;
+      const lineMoney = price === null ? 0 : price * line.givenKg;
       const lineUnpricedKg = price === null ? line.givenKg : 0;
-      feedBdt += lineBdt;
+      feedMoney += lineMoney;
       unpricedKg += lineUnpricedKg;
       // One share per item per animal: the sum is what it always was, and what a month cost can now be
       // read back as the sacks that made it.
@@ -311,13 +311,13 @@ export const feedShares = ({
           side: who.side,
           at: fed.fedAt,
           feedItemId: line.feedItemId,
-          feedBdt: lineBdt / standing.length,
+          feedMoney: lineMoney / standing.length,
           unpricedKg: lineUnpricedKg / standing.length,
         });
       }
     }
     if (standing.length === 0) {
-      unallocated.push({ at: fed.fedAt, feedBdt, unpricedKg });
+      unallocated.push({ at: fed.fedAt, feedMoney, unpricedKg });
     }
   }
   return { shares, unallocated };
@@ -336,7 +336,7 @@ export const dosePriceOf = (
   purchases: readonly {
     id: string;
     purchasedOn: Date;
-    priceBdt: number;
+    priceMoney: number;
     doses: number;
   }[],
   givenAt: Date
@@ -353,44 +353,44 @@ export const dosePriceOf = (
   if (doses === 0) {
     return null;
   }
-  return recent.reduce((sum, one) => sum + one.priceBdt, 0) / doses;
+  return recent.reduce((sum, one) => sum + one.priceMoney, 0) / doses;
 };
 
 /** What an Animal has cost, added up from her shares. */
 export interface Costs {
-  feedBdt: number;
+  feedMoney: number;
   unpricedKg: number;
-  medicineBdt: number;
+  medicineMoney: number;
   /** Doses of products the farm had not bought by then, shown rather than counted as free. */
   uncostedDoses: number;
   /** Her share of the Vet Fees for visits that named her. */
-  vetBdt: number;
+  vetMoney: number;
   /** The Hasil the haat took on her, charged to her alone. */
-  hasilBdt: number;
+  hasilMoney: number;
   /** Her share of the Buying Trip that brought her and the Selling Trips that took her. */
-  tripBdt: number;
+  tripMoney: number;
   /** Her share of the Herd Costs of the Side she stood on, by the days she stood there. */
-  herdBdt: number;
+  herdMoney: number;
 }
 
 const spentOn = (costs: Costs): number =>
-  costs.feedBdt +
-  costs.medicineBdt +
-  costs.vetBdt +
-  costs.hasilBdt +
-  costs.tripBdt +
-  costs.herdBdt;
+  costs.feedMoney +
+  costs.medicineMoney +
+  costs.vetMoney +
+  costs.hasilMoney +
+  costs.tripMoney +
+  costs.herdMoney;
 
 /** Costs as the farm reads them: to the poisha and to the kilo. */
 export const roundedCosts = (costs: Costs): Costs => ({
-  feedBdt: roundTaka(costs.feedBdt),
+  feedMoney: roundTaka(costs.feedMoney),
   unpricedKg: roundKg(costs.unpricedKg),
-  medicineBdt: roundTaka(costs.medicineBdt),
+  medicineMoney: roundTaka(costs.medicineMoney),
   uncostedDoses: costs.uncostedDoses,
-  vetBdt: roundTaka(costs.vetBdt),
-  hasilBdt: roundTaka(costs.hasilBdt),
-  tripBdt: roundTaka(costs.tripBdt),
-  herdBdt: roundTaka(costs.herdBdt),
+  vetMoney: roundTaka(costs.vetMoney),
+  hasilMoney: roundTaka(costs.hasilMoney),
+  tripMoney: roundTaka(costs.tripMoney),
+  herdMoney: roundTaka(costs.herdMoney),
 });
 
 /**
@@ -400,16 +400,16 @@ export const roundedCosts = (costs: Costs): Costs => ({
  */
 export const marginOf = ({
   costs,
-  purchaseBdt,
-  saleBdt,
+  purchaseMoney,
+  saleMoney,
 }: {
   costs: Costs;
-  purchaseBdt: number | null;
-  saleBdt: number | null;
+  purchaseMoney: number | null;
+  saleMoney: number | null;
 }): number | null =>
-  saleBdt === null
+  saleMoney === null
     ? null
-    : roundTaka(saleBdt - (purchaseBdt ?? 0) - spentOn(costs));
+    : roundTaka(saleMoney - (purchaseMoney ?? 0) - spentOn(costs));
 
 /** What each kilogram an Animal put on cost: everything she cost over the weight she gained. Null for an
  *  animal who has not gained. */

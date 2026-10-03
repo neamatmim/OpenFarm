@@ -57,7 +57,7 @@ export const aMonthsReimbursement = async (
     }),
     db.query.ventureMovement.findMany({
       where: { farmId, ventureId, kind: "reimbursement" },
-      columns: { forMonth: true, amountBdt: true, carried: true },
+      columns: { forMonth: true, amountMoney: true, carried: true },
     }),
   ]);
   const earlier = run
@@ -71,10 +71,10 @@ export const aMonthsReimbursement = async (
     ventureId,
     earlier,
     repaid
-  ).filter((one) => one.repaid && one.stillOwedBdt !== 0);
+  ).filter((one) => one.repaid && one.stillOwedMoney !== 0);
   const carried = carrying.map((one) => ({
     month: one.month,
-    bdt: one.stillOwedBdt,
+    amount: one.stillOwedMoney,
   }));
   return {
     consumed,
@@ -82,8 +82,8 @@ export const aMonthsReimbursement = async (
     /** Whether the month has had a Reimbursement of its own already. */
     repaid: repaid.some((one) => one.forMonth === month),
     /** What the transfer comes to: its own figure and every carried line. */
-    totalBdt: roundTaka(
-      consumed.totalBdt + carried.reduce((sum, line) => sum + line.bdt, 0)
+    totalMoney: roundTaka(
+      consumed.totalMoney + carried.reduce((sum, line) => sum + line.amount, 0)
     ),
     /** Kilos nothing can price and doses nothing can cost, in the month or in a month it carries: it waits for them. */
     unpricedKg: carrying.reduce(
@@ -127,7 +127,7 @@ export const owedTheFarmByEach = async (
       columns: {
         ventureId: true,
         forMonth: true,
-        amountBdt: true,
+        amountMoney: true,
         carried: true,
       },
     }),
@@ -142,7 +142,7 @@ export const owedTheFarmByEach = async (
     );
     owed.set(
       venture.id,
-      roundTaka(months.reduce((sum, one) => sum + one.stillOwedBdt, 0))
+      roundTaka(months.reduce((sum, one) => sum + one.stillOwedMoney, 0))
     );
   }
   return owed;
@@ -152,7 +152,7 @@ export const owedTheFarmByEach = async (
 export interface ReimbursementDue {
   venture: { id: string; name: string };
   month: string;
-  owedBdt: number;
+  owedMoney: number;
   noticeId: string;
 }
 
@@ -228,11 +228,11 @@ export const reimbursementsToTell = async (
       costs,
       ownedThenBy,
     });
-    if (figure.totalBdt > 0) {
+    if (figure.totalMoney > 0) {
       due.push({
         venture,
         month,
-        owedBdt: figure.totalBdt,
+        owedMoney: figure.totalMoney,
         noticeId: `${venture.id}:${month}`,
       });
     }
@@ -261,7 +261,7 @@ export const tellAboutReimbursementsDue = async (
           ventureId: one.venture.id,
           venture: one.venture.name,
           month: one.month,
-          owedBdt: one.owedBdt,
+          owedMoney: one.owedMoney,
         },
       },
       now

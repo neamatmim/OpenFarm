@@ -12,10 +12,10 @@ import { joiningWeighedBy } from "./fattening-store";
 
 /** The price an Animal joined at: her weight that day, from a Weigh-in, times a rate a kilo. */
 export interface JoiningPrice {
-  priceBdt: number;
+  priceMoney: number;
   weighInId: string;
   weightKg: number;
-  rateBdtPerKg: number;
+  rateMoneyPerKg: number;
   note: string;
   pricedBy: string | null;
   pricedAt: Date;
@@ -23,10 +23,10 @@ export interface JoiningPrice {
 
 /** A price as its columns keep it. */
 const priceColumns = (price: JoiningPrice) => ({
-  priceBdt: price.priceBdt,
+  priceMoney: price.priceMoney,
   weighInId: price.weighInId,
   weightKg: price.weightKg.toFixed(2),
-  rateBdtPerKg: price.rateBdtPerKg.toFixed(2),
+  rateMoneyPerKg: price.rateMoneyPerKg.toFixed(2),
   note: price.note,
   pricedBy: price.pricedBy,
   pricedAt: price.pricedAt,

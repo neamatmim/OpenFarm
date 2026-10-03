@@ -21,7 +21,7 @@ export type BakiRefusal = (typeof BAKI_REFUSALS)[number];
 
 /** What a buyer still owed when it left, and the farm day ("YYYY-MM-DD") he promised to pay it by. */
 export interface BakiAtTheGate {
-  bakiBdt: number;
+  bakiMoney: number;
   /** Always a day when something is owed and a promise was given; never a day when nothing is owed. */
   promisedBy: string | null;
 }
@@ -35,37 +35,37 @@ export const isBakiRefusal = (
 ): outcome is { refusal: BakiRefusal } => "refusal" in outcome;
 
 /** What was paid when it left: what it came to, less what was still owed. */
-export const paidAtTheGate = (worthBdt: number, bakiBdt: number): number =>
-  roundTaka(worthBdt - bakiBdt);
+export const paidAtTheGate = (worthMoney: number, bakiMoney: number): number =>
+  roundTaka(worthMoney - bakiMoney);
 
 /** The checks every Baki passes, whichever way it was worked out. */
 const checked = ({
-  bakiBdt,
+  bakiMoney,
   promisedBy,
   leftOn,
   promiseRequired,
 }: {
-  bakiBdt: number;
+  bakiMoney: number;
   promisedBy: string | null;
   leftOn: string;
   promiseRequired: boolean;
 }): BakiOutcome => {
-  if (bakiBdt < 0) {
+  if (bakiMoney < 0) {
     return { refusal: "paid_more_than_price" };
   }
-  if (bakiBdt === 0) {
+  if (bakiMoney === 0) {
     // Paid in full owes nothing, and a promise to pay nothing is not a promise.
-    return { bakiBdt: 0, promisedBy: null };
+    return { bakiMoney: 0, promisedBy: null };
   }
   if (promisedBy === null) {
     return promiseRequired
       ? { refusal: "baki_needs_a_promise" }
-      : { bakiBdt, promisedBy: null };
+      : { bakiMoney, promisedBy: null };
   }
   if (promisedBy < leftOn) {
     return { refusal: "promise_before_it_left" };
   }
-  return { bakiBdt, promisedBy };
+  return { bakiMoney, promisedBy };
 };
 
 /**
@@ -73,15 +73,15 @@ const checked = ({
  * paid it all — every Sale and Dispatch before Baki was written down was paid in full.
  */
 export const bakiAtTheGate = ({
-  worthBdt,
-  paidNowBdt,
+  worthMoney,
+  paidNowMoney,
   promisedBy,
   leftOn,
   promiseRequired,
 }: {
   /** What the animal or the milk came to: a Sale's price, a Dispatch's litres at its price. */
-  worthBdt: number;
-  paidNowBdt?: number;
+  worthMoney: number;
+  paidNowMoney?: number;
   promisedBy?: string | null;
   /** The farm day it left. */
   leftOn: string;
@@ -89,7 +89,8 @@ export const bakiAtTheGate = ({
   promiseRequired: boolean;
 }): BakiOutcome =>
   checked({
-    bakiBdt: paidNowBdt === undefined ? 0 : roundTaka(worthBdt - paidNowBdt),
+    bakiMoney:
+      paidNowMoney === undefined ? 0 : roundTaka(worthMoney - paidNowMoney),
     promisedBy: promisedBy ?? null,
     leftOn,
     promiseRequired,
@@ -104,29 +105,31 @@ export const bakiAtTheGate = ({
  */
 export const bakiPutRight = ({
   before,
-  worthBdt,
-  paidNowBdt,
+  worthMoney,
+  paidNowMoney,
   promisedBy,
   leftOn,
   promiseRequired,
 }: {
   /** What it came to and what was owed, as the record stood. */
-  before: { worthBdt: number; bakiBdt: number; promisedBy: string | null };
+  before: { worthMoney: number; bakiMoney: number; promisedBy: string | null };
   /** What it comes to now: the corrected price, or the old one where the price was not corrected. */
-  worthBdt: number;
+  worthMoney: number;
   /** What he paid, when the Correction says; left out, what he paid stands. */
-  paidNowBdt?: number;
+  paidNowMoney?: number;
   /** The day he promised, when the Correction says; null takes a promise away, left out keeps it. */
   promisedBy?: string | null;
   leftOn: string;
   promiseRequired: boolean;
 }): BakiOutcome => {
-  const paidInFull = before.bakiBdt === 0;
+  const paidInFull = before.bakiMoney === 0;
   const paid =
-    paidNowBdt ??
-    (paidInFull ? worthBdt : paidAtTheGate(before.worthBdt, before.bakiBdt));
+    paidNowMoney ??
+    (paidInFull
+      ? worthMoney
+      : paidAtTheGate(before.worthMoney, before.bakiMoney));
   return checked({
-    bakiBdt: roundTaka(worthBdt - paid),
+    bakiMoney: roundTaka(worthMoney - paid),
     promisedBy: promisedBy === undefined ? before.promisedBy : promisedBy,
     leftOn,
     promiseRequired,
@@ -144,10 +147,10 @@ export interface BakiItem {
   /** The farm day it left. */
   leftOn: string;
   /** What he still owed as it left. */
-  bakiBdt: number;
+  bakiMoney: number;
   promisedBy: string | null;
   /** What the Owner has written off of it, in all; nothing where nothing was. */
-  writtenOffBdt?: number;
+  writtenOffMoney?: number;
 }
 
 /** One handover of money from him towards it. */
@@ -155,22 +158,22 @@ export interface BakiPaymentIn {
   id: string;
   /** The farm day it came. */
   paidOn: string;
-  amountBdt: number;
+  amountMoney: number;
 }
 
 /** One item as his payments leave it: what of it they cleared, and what is still owing. */
 export interface BakiItemStanding extends BakiItem {
-  paidBdt: number;
-  owingBdt: number;
+  paidMoney: number;
+  owingMoney: number;
   /** What stays written off once his payments are counted: a buyer who pays after all puts a write-off back. */
-  writtenOffBdt: number;
+  writtenOffMoney: number;
 }
 
 /** What one payment cleared of one item. */
 export interface BakiPart {
   paymentId: string;
   itemId: string;
-  amountBdt: number;
+  amountMoney: number;
 }
 
 /** A buyer's Baki of one kind, as his payments leave it. */
@@ -178,11 +181,11 @@ export interface BakiStanding {
   items: BakiItemStanding[];
   /** Which payment cleared what, so a payment can say what it was for. */
   parts: BakiPart[];
-  owingBdt: number;
+  owingMoney: number;
   /** What he paid beyond everything he owed, held for his next Baki. */
-  creditBdt: number;
+  creditMoney: number;
   /** What stays written off of it, in all. */
-  writtenOffBdt: number;
+  writtenOffMoney: number;
   /** The day the oldest thing still owing left, or nothing when nothing is. */
   oldestOn: string | null;
   /** The soonest day he promised for what is still owing, or nothing when he promised none. */
@@ -206,18 +209,18 @@ export const bakiStanding = (
   payments: readonly BakiPaymentIn[]
 ): BakiStanding => {
   const owed = items
-    .filter((one) => one.bakiBdt > 0)
+    .filter((one) => one.bakiMoney > 0)
     .toSorted(byDayThenId((one) => one.leftOn));
   // Two purses per item: what is still open, and what the Owner wrote off. Money pays the open first, everything
   // open before anything written off, and only then puts a write-off back.
   const open = new Map(
     owed.map((one) => [
       one.id,
-      roundTaka(Math.max(one.bakiBdt - (one.writtenOffBdt ?? 0), 0)),
+      roundTaka(Math.max(one.bakiMoney - (one.writtenOffMoney ?? 0), 0)),
     ])
   );
   const writtenOff = new Map(
-    owed.map((one) => [one.id, one.writtenOffBdt ?? 0])
+    owed.map((one) => [one.id, one.writtenOffMoney ?? 0])
   );
   const parts: BakiPart[] = [];
   const spend = (
@@ -235,33 +238,33 @@ export const bakiStanding = (
         const cleared = roundTaka(Math.min(still, left));
         purse.set(item.id, roundTaka(still - cleared));
         left = roundTaka(left - cleared);
-        parts.push({ paymentId, itemId: item.id, amountBdt: cleared });
+        parts.push({ paymentId, itemId: item.id, amountMoney: cleared });
       }
     }
     return left;
   };
   for (const payment of payments.toSorted(byDayThenId((one) => one.paidOn))) {
-    spend(payment.id, writtenOff, spend(payment.id, open, payment.amountBdt));
+    spend(payment.id, writtenOff, spend(payment.id, open, payment.amountMoney));
   }
   const standing = owed.map((item) => {
-    const owingBdt = open.get(item.id) ?? 0;
+    const owingMoney = open.get(item.id) ?? 0;
     const stillWrittenOff = writtenOff.get(item.id) ?? 0;
     return {
       ...item,
-      paidBdt: roundTaka(item.bakiBdt - owingBdt - stillWrittenOff),
-      owingBdt,
-      writtenOffBdt: stillWrittenOff,
+      paidMoney: roundTaka(item.bakiMoney - owingMoney - stillWrittenOff),
+      owingMoney,
+      writtenOffMoney: stillWrittenOff,
     };
   });
   const total = (pick: (one: BakiItemStanding) => number) =>
     roundTaka(standing.reduce((sum, one) => sum + pick(one), 0));
   const paidIn = roundTaka(
-    payments.reduce((sum, one) => sum + one.amountBdt, 0)
+    payments.reduce((sum, one) => sum + one.amountMoney, 0)
   );
-  const clearedBdt = roundTaka(
-    parts.reduce((sum, one) => sum + one.amountBdt, 0)
+  const clearedMoney = roundTaka(
+    parts.reduce((sum, one) => sum + one.amountMoney, 0)
   );
-  const stillOwing = standing.filter((one) => one.owingBdt > 0);
+  const stillOwing = standing.filter((one) => one.owingMoney > 0);
   const [soonestPromise] = stillOwing
     .map((one) => one.promisedBy)
     .filter((one) => one !== null)
@@ -269,9 +272,9 @@ export const bakiStanding = (
   return {
     items: standing,
     parts,
-    owingBdt: total((one) => one.owingBdt),
-    creditBdt: roundTaka(paidIn - clearedBdt),
-    writtenOffBdt: total((one) => one.writtenOffBdt),
+    owingMoney: total((one) => one.owingMoney),
+    creditMoney: roundTaka(paidIn - clearedMoney),
+    writtenOffMoney: total((one) => one.writtenOffMoney),
     oldestOn: stillOwing[0]?.leftOn ?? null,
     soonestPromise: soonestPromise ?? null,
   };
@@ -298,10 +301,10 @@ export const overdueFrom = (
 
 /** Whether something still owing is overdue today. Paid off, it is not overdue however late it was paid. */
 export const isBakiOverdue = (
-  item: Pick<BakiItemStanding, "leftOn" | "promisedBy" | "owingBdt">,
+  item: Pick<BakiItemStanding, "leftOn" | "promisedBy" | "owingMoney">,
   today: string,
   bakiDays: number
-): boolean => item.owingBdt > 0 && today >= overdueFrom(item, bakiDays);
+): boolean => item.owingMoney > 0 && today >= overdueFrom(item, bakiDays);
 
 /**
  * Whether a buyer was sold to on Baki again while something he owed was already overdue: the Owner hears of it, since
@@ -311,11 +314,11 @@ export const isBakiOverdue = (
 export const soldOnBakiWhileOverdue = (
   items: readonly Pick<
     BakiItemStanding,
-    "id" | "leftOn" | "promisedBy" | "owingBdt"
+    "id" | "leftOn" | "promisedBy" | "owingMoney"
   >[],
   bakiDays: number
 ): boolean => {
-  const owing = items.filter((one) => one.owingBdt > 0);
+  const owing = items.filter((one) => one.owingMoney > 0);
   return owing.some((late) =>
     owing.some(
       (again) =>

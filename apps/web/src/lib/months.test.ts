@@ -38,11 +38,11 @@ describe("the month before this one", () => {
 });
 
 /** A month in which only this much money came in. */
-const month = (name: string, inBdt: number) => ({
+const month = (name: string, inMoney: number) => ({
   name,
-  money: { inBdt, outBdt: 0 },
-  dairy: { milkSoldBdt: 0, chargedBdt: 0, litresToBulk: 0 },
-  fattening: { chargedBdt: 0, sold: 0 },
+  money: { inMoney, outMoney: 0 },
+  dairy: { milkSoldMoney: 0, chargedMoney: 0, litresToBulk: 0 },
+  fattening: { chargedMoney: 0, sold: 0 },
 });
 
 describe("the months a farm is shown", () => {

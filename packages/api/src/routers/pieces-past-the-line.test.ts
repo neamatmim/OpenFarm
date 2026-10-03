@@ -27,13 +27,13 @@ beforeAll(async () => {
 const enter = async (
   role: "owner" | "manager",
   name: string,
-  amountBdt: number,
+  amountMoney: number,
   day: string
 ) => {
   const who = await as(role, day);
   const made = await who.client.money.enter({
     categoryId: repairsId,
-    amountBdt,
+    amountMoney,
     occurredOn: day,
     counterparty: { name },
   });
@@ -48,10 +48,10 @@ const enter = async (
 const standing = async (
   role: "owner" | "manager",
   name: string,
-  amountBdt: number,
+  amountMoney: number,
   day: string
 ) => {
-  const made = await enter(role, name, amountBdt, day);
+  const made = await enter(role, name, amountMoney, day);
   return made.approval;
 };
 

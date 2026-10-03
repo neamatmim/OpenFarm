@@ -58,12 +58,12 @@ export const CHARGE_WORDS = [
  */
 const chargesAsWritten = (
   written: unknown
-): { word: ChargeWord; bdt: number }[] =>
+): { word: ChargeWord; amount: number }[] =>
   (Array.isArray(written) ? written : []).flatMap((one) =>
     typeof one === "object" &&
     one !== null &&
     CHARGE_WORDS.includes((one as { word: string }).word as ChargeWord)
-      ? [one as { word: ChargeWord; bdt: number }]
+      ? [one as { word: ChargeWord; amount: number }]
       : []
   );
 
@@ -81,7 +81,7 @@ export type Block =
   | { word: "agreements_disagree"; percents: number[] }
   | { word: "an_animal_still_stands"; tagNumbers: string[] }
   | { word: "a_price_is_missing"; unpricedKg: number; uncostedDoses: number }
-  | { word: "a_float_is_open"; openFloatBdt: number }
+  | { word: "a_float_is_open"; openFloatMoney: number }
   /** A Venture's animals sold for cash whose price is still in the hand that took it, not yet deposited. */
   | { word: "sale_cash_in_a_hand"; tagNumbers: string[]; hands: string[] }
   | {
@@ -89,11 +89,11 @@ export type Block =
       /** The months never repaid. */
       months: string[];
       /** What months already repaid have moved by since, for the next Reimbursement to carry; less where negative. */
-      carryBdt: number;
+      carryMoney: number;
     }
   /** The account would hold a taka or more once everybody is paid (over), or be that much short of paying them
    *  (under, negative): not rounding, but money the Owner has to go and find before anybody is paid. */
-  | { word: "the_account_does_not_add_up"; overBdt: number }
+  | { word: "the_account_does_not_add_up"; overMoney: number }
   | {
       word: "the_bank_disagrees";
       /** The statement disagreed and nobody has explained it. */
@@ -116,7 +116,7 @@ export type Block =
  * disagreement between what the run was charged and what actually left the account, and the Farm
  * quietly absorbing it would be the farm hiding its own mistake.
  */
-const A_ROUNDING_BDT = 1;
+const A_ROUNDING_MONEY = 1;
 
 /** The blocks under which the Settlement's own sum is not yet known, so an account that does not match it says nothing. */
 const A_GUESS_BEFORE_THE_SUM: ReadonlySet<Block["word"]> = new Set([
@@ -136,15 +136,17 @@ const A_GUESS_BEFORE_THE_SUM: ReadonlySet<Block["word"]> = new Set([
  * moved it would be hiding something the Owner needs to go and find.
  */
 export const sweptUp = (
-  split: Pick<Split, "roundingBdt" | "farmBdt">,
-  overBdt: number
-): Pick<Split, "roundingBdt" | "farmBdt"> => {
-  const isRounding = Math.abs(overBdt) < A_ROUNDING_BDT;
+  split: Pick<Split, "roundingMoney" | "farmMoney">,
+  overMoney: number
+): Pick<Split, "roundingMoney" | "farmMoney"> => {
+  const isRounding = Math.abs(overMoney) < A_ROUNDING_MONEY;
   return {
-    roundingBdt: isRounding
-      ? roundTaka(split.roundingBdt + overBdt)
-      : split.roundingBdt,
-    farmBdt: isRounding ? roundTaka(split.farmBdt + overBdt) : split.farmBdt,
+    roundingMoney: isRounding
+      ? roundTaka(split.roundingMoney + overMoney)
+      : split.roundingMoney,
+    farmMoney: isRounding
+      ? roundTaka(split.farmMoney + overMoney)
+      : split.farmMoney,
   };
 };
 
@@ -162,12 +164,12 @@ interface Grounds {
   agreements: readonly { investorsPercent: number }[];
   charged: { unpricedKg: number; uncostedDoses: number };
   costs: Awaited<ReturnType<typeof farmCosts>>;
-  held: { openFloatBdt: number } | undefined;
+  held: { openFloatMoney: number } | undefined;
   ownedThenBy: (animalId: string, at: Date) => string | null;
   paidIn: readonly {
     kind: string;
     forMonth: string | null;
-    amountBdt: number;
+    amountMoney: number;
     carried: readonly CarriedLine[] | null;
   }[];
   standing: readonly { tagNumber: string }[];
@@ -212,12 +214,12 @@ const owedOf = ({
   );
   return {
     neverRepaid: months
-      .filter((one) => !one.repaid && one.comesToBdt !== 0)
+      .filter((one) => !one.repaid && one.comesToMoney !== 0)
       .map((one) => one.month),
-    carryBdt: roundTaka(
-      sumOf(months.filter((one) => one.repaid).map((one) => one.stillOwedBdt))
+    carryMoney: roundTaka(
+      sumOf(months.filter((one) => one.repaid).map((one) => one.stillOwedMoney))
     ),
-    totalBdt: roundTaka(sumOf(months.map((one) => one.stillOwedBdt))),
+    totalMoney: roundTaka(sumOf(months.map((one) => one.stillOwedMoney))),
   };
 };
 
@@ -273,17 +275,17 @@ const whatBlocksIt = ({
       uncostedDoses: charged.uncostedDoses,
     });
   }
-  const openFloatBdt = roundTaka(held?.openFloatBdt ?? 0);
-  if (openFloatBdt !== 0) {
-    blocks.push({ word: "a_float_is_open", openFloatBdt });
+  const openFloatMoney = roundTaka(held?.openFloatMoney ?? 0);
+  if (openFloatMoney !== 0) {
+    blocks.push({ word: "a_float_is_open", openFloatMoney });
   }
   const ran = monthsRan(venture, today);
   const owed = owedOf({ costs, ownedThenBy, paidIn, today, venture });
-  if (owed.neverRepaid.length !== 0 || owed.carryBdt !== 0) {
+  if (owed.neverRepaid.length !== 0 || owed.carryMoney !== 0) {
     blocks.push({
       word: "a_reimbursement_is_owed",
       months: owed.neverRepaid,
-      carryBdt: owed.carryBdt,
+      carryMoney: owed.carryMoney,
     });
   }
   // A month nobody ever read is as much of a gap as one that disagreed: agreeing with a statement nobody
@@ -337,10 +339,10 @@ export interface Payout {
   investorId: string;
   name: string;
   units: number;
-  capitalBdt: number;
+  capitalMoney: number;
   /** What their Units took of the profit, or lost of it. */
-  shareBdt: number;
-  payoutBdt: number;
+  shareMoney: number;
+  payoutMoney: number;
 }
 
 /**
@@ -356,33 +358,33 @@ export const whatItWasCharged = (
   ownedThenBy: (animalId: string, at: Date) => string | null,
   ventureId: string,
   /** Its own money movements, for what it paid another purse to take an Animal on. */
-  paidIn: readonly { kind: string; amountBdt: number }[]
+  paidIn: readonly { kind: string; amountMoney: number }[]
 ) => {
   const charged = chargedTo(costs, ownedThenBy, ventureId);
   // What it paid to take its Animals on: their price at the haat where its own Float bought them, and
   // what it paid another purse for one bought in.
-  const purchaseBdt = roundTaka(
+  const purchaseMoney = roundTaka(
     sumOf(
       costs.animals.map((one) =>
         one.intake && ownedThenBy(one.id, one.intake.arrivedAt) === ventureId
-          ? one.intake.purchasePriceBdt
+          ? one.intake.purchasePriceMoney
           : 0
       )
     ) +
       sumOf(
         paidIn
           .filter((one) => one.kind === "internal_buy")
-          .map((one) => one.amountBdt)
+          .map((one) => one.amountMoney)
       )
   );
-  const charges: { word: ChargeWord; bdt: number }[] = [
-    { word: "bought", bdt: purchaseBdt },
-    { word: "hasil", bdt: charged.hasilBdt },
-    { word: "trips", bdt: charged.tripBdt },
-    { word: "feed", bdt: charged.feedBdt },
-    { word: "medicine", bdt: charged.medicineBdt },
-    { word: "vet", bdt: charged.vetBdt },
-    { word: "herd", bdt: charged.herdBdt },
+  const charges: { word: ChargeWord; amount: number }[] = [
+    { word: "bought", amount: purchaseMoney },
+    { word: "hasil", amount: charged.hasilMoney },
+    { word: "trips", amount: charged.tripMoney },
+    { word: "feed", amount: charged.feedMoney },
+    { word: "medicine", amount: charged.medicineMoney },
+    { word: "vet", amount: charged.vetMoney },
+    { word: "herd", amount: charged.herdMoney },
   ];
   // The narrowed shares come back with the lines: a Settlement reads them again for the unpriced feed
   // and the uncosted doses that make it a guess, and summing them twice would be summing them twice.
@@ -404,7 +406,7 @@ export const whatItWasCharged = (
 export const settlementOf = async (
   db: Db,
   farmId: string,
-  venture: { id: string; createdAt: Date; unitPriceBdt: number },
+  venture: { id: string; createdAt: Date; unitPriceMoney: number },
   today: string
 ) => {
   // Approval works this out inside a transaction. Its PostgreSQL client may only execute one query at a time.
@@ -424,7 +426,7 @@ export const settlementOf = async (
       kind: true,
       agreementId: true,
       forMonth: true,
-      amountBdt: true,
+      amountMoney: true,
       carried: true,
     },
   });
@@ -455,7 +457,7 @@ export const settlementOf = async (
   const named = new Map(people.map((one) => [one.id, one.name]));
 
   // ---- what the run made ----
-  const proceedsBdt = roundTaka(what?.proceedsBdt ?? 0);
+  const proceedsMoney = roundTaka(what?.proceedsMoney ?? 0);
   const { charged, charges } = whatItWasCharged(
     costs,
     ownedThenBy,
@@ -464,8 +466,8 @@ export const settlementOf = async (
   );
   // The sum of the lines as they are shown, not of the figures behind them: lines that do not add up to
   // the total beneath them is the farm arguing with itself in front of an Investor.
-  const chargedBdt = roundTaka(sumOf(charges.map((one) => one.bdt)));
-  const profitBdt = roundTaka(proceedsBdt - chargedBdt);
+  const chargedMoney = roundTaka(sumOf(charges.map((one) => one.amount)));
+  const profitMoney = roundTaka(proceedsMoney - chargedMoney);
 
   // ---- how it divides ----
   const capitalOf = (agreementId: string) =>
@@ -476,17 +478,17 @@ export const settlementOf = async (
             (one) =>
               one.kind === "capital_in" && one.agreementId === agreementId
           )
-          .map((one) => one.amountBdt)
+          .map((one) => one.amountMoney)
       )
     );
   // By the Units each Agreement holds — what it paid in, over the Unit price — not the Units it signed for: a Venture
   // may start buying while one is part paid, and money nobody put in must take no share of what was made or lost.
   const holdings = agreements.map((one) => {
-    const capitalBdt = capitalOf(one.id);
+    const capitalMoney = capitalOf(one.id);
     return {
       ...one,
-      capitalBdt,
-      units: unitsHeld(capitalBdt, venture.unitPriceBdt),
+      capitalMoney,
+      units: unitsHeld(capitalMoney, venture.unitPriceMoney),
     };
   });
   const eachHolds = holdings.map((one) => one.units);
@@ -494,7 +496,7 @@ export const settlementOf = async (
   const [first] = agreements;
   const investorsPercent = first?.investorsPercent ?? 0;
   const split = splitOfProfit({
-    profitBdt,
+    profitMoney,
     investorsPercent,
     units,
     held: eachHolds,
@@ -504,23 +506,23 @@ export const settlementOf = async (
     investorId: one.investorId,
     name: named.get(one.investorId) ?? "",
     units: one.units,
-    capitalBdt: one.capitalBdt,
-    shareBdt: whatUnitsTake(split.perUnitBdt, one.units),
-    payoutBdt: payoutOf(one.capitalBdt, one.units, split.perUnitBdt),
+    capitalMoney: one.capitalMoney,
+    shareMoney: whatUnitsTake(split.perUnitMoney, one.units),
+    payoutMoney: payoutOf(one.capitalMoney, one.units, split.perUnitMoney),
   }));
 
   // What the account would still be holding once the Owner's own money and every payout had left it. It
   // is the paisa the two roundings differ by, and it goes where the other remainder already goes: to the
   // Farm, on its own line, so that a settled account reads nothing.
-  const advanceBdt = roundTaka(what?.advancedBdt ?? 0);
-  const balanceBdt = roundTaka(balanceOf(what ?? NOTHING_HELD));
-  const overBdt = roundTaka(
-    balanceBdt -
-      advanceBdt -
-      sumOf(payouts.map((one) => one.payoutBdt)) -
-      split.farmBdt
+  const advanceMoney = roundTaka(what?.advancedMoney ?? 0);
+  const balanceMoney = roundTaka(balanceOf(what ?? NOTHING_HELD));
+  const overMoney = roundTaka(
+    balanceMoney -
+      advanceMoney -
+      sumOf(payouts.map((one) => one.payoutMoney)) -
+      split.farmMoney
   );
-  const swept = sweptUp(split, overBdt);
+  const swept = sweptUp(split, overMoney);
 
   const blocks: Block[] = whatBlocksIt({
     agreements,
@@ -556,22 +558,23 @@ export const settlementOf = async (
     A_GUESS_BEFORE_THE_SUM.has(one.word)
   );
   // What the account holds for months still owed is the Farm's, and its own block says so.
-  const unexplainedBdt = roundTaka(
-    overBdt - owedOf({ costs, ownedThenBy, paidIn, today, venture }).totalBdt
+  const unexplainedMoney = roundTaka(
+    overMoney -
+      owedOf({ costs, ownedThenBy, paidIn, today, venture }).totalMoney
   );
-  if (!theSumIsAGuess && Math.abs(unexplainedBdt) >= A_ROUNDING_BDT) {
+  if (!theSumIsAGuess && Math.abs(unexplainedMoney) >= A_ROUNDING_MONEY) {
     blocks.push({
       word: "the_account_does_not_add_up",
-      overBdt: unexplainedBdt,
+      overMoney: unexplainedMoney,
     });
   }
 
   return {
     blocks,
-    proceedsBdt,
+    proceedsMoney,
     charges,
-    chargedBdt,
-    profitBdt,
+    chargedMoney,
+    profitMoney,
     investorsPercent,
     units,
     ...split,
@@ -579,10 +582,12 @@ export const settlementOf = async (
     /** Repaid at cost out of the Venture's cash before any capital returns, even where the run lost
      *  money: the Owner's own taka went in to feed their animals, and it is not a charge — what it paid
      *  for is already among the charges. */
-    advanceBdt,
-    capitalBdt: roundTaka((what?.capitalInBdt ?? 0) - (what?.refundedBdt ?? 0)),
+    advanceMoney,
+    capitalMoney: roundTaka(
+      (what?.capitalInMoney ?? 0) - (what?.refundedMoney ?? 0)
+    ),
     /** What the account holds, which is what everything above has to add up to. */
-    balanceBdt,
+    balanceMoney,
     payouts,
   };
 };
@@ -624,19 +629,19 @@ export const approveSettlement = async (
     id,
     farmId,
     ventureId,
-    proceedsBdt: worked.proceedsBdt,
-    chargedBdt: worked.chargedBdt,
+    proceedsMoney: worked.proceedsMoney,
+    chargedMoney: worked.chargedMoney,
     charges: worked.charges,
-    profitBdt: worked.profitBdt,
+    profitMoney: worked.profitMoney,
     investorsPercent: worked.investorsPercent,
     units: worked.units,
-    investorsBdt: worked.investorsBdt,
-    perUnitBdt: worked.perUnitBdt,
-    roundingBdt: worked.roundingBdt,
-    farmBdt: worked.farmBdt,
-    advanceBdt: worked.advanceBdt,
-    capitalBdt: worked.capitalBdt,
-    balanceBdt: worked.balanceBdt,
+    investorsMoney: worked.investorsMoney,
+    perUnitMoney: worked.perUnitMoney,
+    roundingMoney: worked.roundingMoney,
+    farmMoney: worked.farmMoney,
+    advanceMoney: worked.advanceMoney,
+    capitalMoney: worked.capitalMoney,
+    balanceMoney: worked.balanceMoney,
     approvedBy: by.actorId,
     approvedAt: by.now,
   });
@@ -649,9 +654,9 @@ export const approveSettlement = async (
       agreementId: one.agreementId,
       investorId: one.investorId,
       units: one.units,
-      capitalBdt: one.capitalBdt,
-      shareBdt: one.shareBdt,
-      payoutBdt: one.payoutBdt,
+      capitalMoney: one.capitalMoney,
+      shareMoney: one.shareMoney,
+      payoutMoney: one.payoutMoney,
       createdAt: by.now,
     });
   }
@@ -683,16 +688,16 @@ export const approvedSettlementOf = async (
  */
 export const nothingLeftToPay = (
   settlement: {
-    advanceBdt: number;
+    advanceMoney: number;
     advanceRepaidId: string | null;
-    farmBdt: number;
+    farmMoney: number;
     farmSharePaidId: string | null;
   },
   shares: readonly { paidMovementId: string | null }[]
 ) =>
   shares.every((one) => one.paidMovementId !== null) &&
-  (settlement.advanceBdt === 0 || settlement.advanceRepaidId !== null) &&
-  (settlement.farmBdt === 0 || settlement.farmSharePaidId !== null);
+  (settlement.advanceMoney === 0 || settlement.advanceRepaidId !== null) &&
+  (settlement.farmMoney === 0 || settlement.farmSharePaidId !== null);
 
 /**
  * An approved Settlement as the trail and the screen read it: the figures as they stood, and each
@@ -711,29 +716,29 @@ export const readSettlement = async (
   const nameOf = await namesOf(tx, farmId, shares);
   return {
     approvedAt: row.approvedAt,
-    proceedsBdt: row.proceedsBdt,
-    chargedBdt: row.chargedBdt,
+    proceedsMoney: row.proceedsMoney,
+    chargedMoney: row.chargedMoney,
     charges: chargesAsWritten(row.charges),
-    profitBdt: row.profitBdt,
+    profitMoney: row.profitMoney,
     investorsPercent: row.investorsPercent,
     units: row.units,
-    investorsBdt: row.investorsBdt,
-    perUnitBdt: row.perUnitBdt,
-    roundingBdt: row.roundingBdt,
-    farmBdt: row.farmBdt,
-    advanceBdt: row.advanceBdt,
+    investorsMoney: row.investorsMoney,
+    perUnitMoney: row.perUnitMoney,
+    roundingMoney: row.roundingMoney,
+    farmMoney: row.farmMoney,
+    advanceMoney: row.advanceMoney,
     advanceRepaid: row.advanceRepaidId !== null,
     farmSharePaid: row.farmSharePaidId !== null,
-    capitalBdt: row.capitalBdt,
-    balanceBdt: row.balanceBdt,
+    capitalMoney: row.capitalMoney,
+    balanceMoney: row.balanceMoney,
     shares: shares.map((one) => ({
       agreementId: one.agreementId,
       investorId: one.investorId,
       name: nameOf.get(one.investorId) ?? "",
       units: one.units,
-      capitalBdt: one.capitalBdt,
-      shareBdt: one.shareBdt,
-      payoutBdt: one.payoutBdt,
+      capitalMoney: one.capitalMoney,
+      shareMoney: one.shareMoney,
+      payoutMoney: one.payoutMoney,
       paid: one.paidMovementId !== null,
       /** The Venture Movement his money went out on, for whoever has to print the reference it went
        *  on — a payout movement carries the Venture and not the Agreement, so this is the only way
@@ -783,7 +788,7 @@ export const payOut = async (
   what: {
     ventureId: string;
     kind: "payout" | "advance_repaid" | "farm_share" | "farm_loss_in";
-    amountBdt: number;
+    amountMoney: number;
     movedOn: string;
     reference: string;
   },
@@ -795,7 +800,7 @@ export const payOut = async (
     farmId,
     ventureId: what.ventureId,
     kind: what.kind,
-    amountBdt: what.amountBdt,
+    amountMoney: what.amountMoney,
     movedOn: what.movedOn,
     reference: what.reference,
     recordedBy: by.actorId,

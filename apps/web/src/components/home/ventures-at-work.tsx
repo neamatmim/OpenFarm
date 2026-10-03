@@ -50,12 +50,12 @@ export const VenturesAtWork = () => {
                     // Less what its animals have cost the Farm since the last Reimbursement — missing from an
                     // answer cached before it was said.
                     left: taka(
-                      one.runningBudgetHeldBdt - (one.owedTheFarmBdt ?? 0)
+                      one.runningBudgetHeldMoney - (one.owedTheFarmMoney ?? 0)
                     ),
                   })}
                 </span>
                 <span>
-                  {t("venturesAtWork.spent", { spent: taka(one.spentBdt) })}
+                  {t("venturesAtWork.spent", { spent: taka(one.spentMoney) })}
                 </span>
                 <span>
                   {t("venturesAtWork.standing", {

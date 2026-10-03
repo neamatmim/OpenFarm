@@ -17,16 +17,16 @@ import { orpc } from "@/utils/orpc";
 export const WriteOffButton = ({
   source,
   id,
-  owingBdt,
+  owingMoney,
 }: {
   source: "sale" | "dispatch";
   id: string;
-  owingBdt: number;
+  owingMoney: number;
 }) => {
   const { t } = useLanguage();
   const refused = useRefused();
   const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState(String(owingBdt));
+  const [amount, setAmount] = useState(String(owingMoney));
   const [why, setWhy] = useState("");
   const writeOff = useMutation(
     orpc.baki.writeOff.mutationOptions({
@@ -41,7 +41,7 @@ export const WriteOffButton = ({
   const ready =
     amount.trim() !== "" &&
     figure > 0 &&
-    !(figure > owingBdt) &&
+    !(figure > owingMoney) &&
     why.trim() !== "";
   return (
     <>
@@ -57,7 +57,7 @@ export const WriteOffButton = ({
         description={t("baki.writeOffDescription")}
         onOpenChange={setOpen}
         onSubmit={() =>
-          writeOff.mutate({ source, id, amountBdt: figure, why: why.trim() })
+          writeOff.mutate({ source, id, amountMoney: figure, why: why.trim() })
         }
         open={open}
         pending={writeOff.isPending}
@@ -69,7 +69,7 @@ export const WriteOffButton = ({
           <Input
             id={`write-off-${id}-amount`}
             inputMode="numeric"
-            max={owingBdt}
+            max={owingMoney}
             min={0}
             onChange={(event) => setAmount(event.target.value)}
             type="number"

@@ -45,7 +45,7 @@ const signs = async (ventureId: string, them: { id: string }, at = JANUARY) => {
     units: 2,
     investorsPercent: 60,
     arbitrator: `মাওলানা সালিস ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2094-01-01",
     stampSerial: `AA ${them.id.slice(-8)}`,
   });
@@ -57,14 +57,14 @@ const aVentureOfTwo = async (name: string) => {
   const owner = await as("owner");
   const venture = await owner.ventures.open({
     name: `${name} ${suffix}`,
-    targetCapitalBdt: 500_000,
-    floorBdt: 0,
+    targetCapitalMoney: 500_000,
+    floorMoney: 0,
     decideBy: "2094-01-20",
     targetWindowStart: "2094-06-01",
     targetWindowEnd: "2094-06-10",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 10,
-    cattleBudgetBdt: 400_000,
+    cattleBudgetMoney: 400_000,
   });
   const first = await invited(`${name} প্রথম`);
   const second = await invited(`${name} দ্বিতীয়`);

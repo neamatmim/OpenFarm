@@ -235,17 +235,17 @@ describe("what a Stock Count's differences are worth", () => {
   it("prices each at its own price, keeping what was short apart from what was over", () => {
     expect(
       shortfallOf([
-        { difference: -100, priceBdt: 40 },
-        { difference: -2.5, priceBdt: 30 },
-        { difference: 50, priceBdt: 40 },
+        { difference: -100, priceMoney: 40 },
+        { difference: -2.5, priceMoney: 30 },
+        { difference: 50, priceMoney: 40 },
       ])
-    ).toEqual({ shortBdt: 4075, overBdt: 2000 });
+    ).toEqual({ shortMoney: 4075, overMoney: 2000 });
   });
 
   it("adds nothing for feed never bought, which has no price", () => {
-    expect(shortfallOf([{ difference: -300, priceBdt: null }])).toEqual({
-      shortBdt: 0,
-      overBdt: 0,
+    expect(shortfallOf([{ difference: -300, priceMoney: null }])).toEqual({
+      shortMoney: 0,
+      overMoney: 0,
     });
   });
 });
@@ -255,14 +255,14 @@ const bought = (
   id: string,
   day: string,
   quantity: number,
-  priceBdt: number | null,
+  priceMoney: number | null,
   kind: "purchase" | "harvest" = "purchase"
 ) => ({
   id,
   feedItemId: "ভুসি",
   kind,
   quantity,
-  priceBdt,
+  priceMoney,
   receivedOn: new Date(`${day}T04:00:00.000Z`),
 });
 
@@ -274,13 +274,13 @@ describe("a Feed Purchase's price per unit", () => {
       bought("b", "2040-01-08", 500, 22_000),
     ]);
     expect(prices.get("a")).toEqual({
-      unitPriceBdt: 40,
-      previousUnitPriceBdt: null,
+      unitPriceMoney: 40,
+      previousUnitPriceMoney: null,
       changePercent: null,
     });
     expect(prices.get("b")).toEqual({
-      unitPriceBdt: 44,
-      previousUnitPriceBdt: 40,
+      unitPriceMoney: 44,
+      previousUnitPriceMoney: 40,
       changePercent: 10,
     });
   });
@@ -292,7 +292,7 @@ describe("a Feed Purchase's price per unit", () => {
       bought("b", "2040-01-08", 100, 4100),
     ]);
     expect(prices.has("h")).toBe(false);
-    expect(prices.get("b")?.previousUnitPriceBdt).toBe(40);
+    expect(prices.get("b")?.previousUnitPriceMoney).toBe(40);
   });
 
   it("puts one written up late where its day falls", () => {
@@ -301,7 +301,7 @@ describe("a Feed Purchase's price per unit", () => {
       bought("a", "2040-01-01", 100, 4000),
       bought("b", "2040-01-08", 100, 5000),
     ]);
-    expect(prices.get("late")?.previousUnitPriceBdt).toBe(40);
+    expect(prices.get("late")?.previousUnitPriceMoney).toBe(40);
     expect(prices.get("b")?.changePercent).toBe(0);
   });
 
@@ -318,8 +318,8 @@ const weighed = (
   sellerName: string,
   slipQuantity: number,
   quantity: number,
-  priceBdt: number
-) => ({ sellerId: sellerName, sellerName, slipQuantity, quantity, priceBdt });
+  priceMoney: number
+) => ({ sellerId: sellerName, sellerName, slipQuantity, quantity, priceMoney });
 
 describe("how short a seller runs on the farm's scale", () => {
   it("claims nothing of a lot never weighed", () => {
@@ -340,10 +340,10 @@ describe("how short a seller runs on the farm's scale", () => {
       weighedKg: 785,
       shortKg: 15,
       shortPercent: 1.9,
-      shortBdt: 630,
+      shortMoney: 630,
     });
     // Over on the scale is below nothing, never netted into another seller.
-    expect(other).toMatchObject({ shortKg: -1, shortBdt: -40 });
+    expect(other).toMatchObject({ shortKg: -1, shortMoney: -40 });
   });
 });
 

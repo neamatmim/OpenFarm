@@ -116,7 +116,7 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     since: saidDate(facts.since, language),
   }),
   medicine_short: (facts, language) => ({
-    amount: Number(facts.shortBdt),
+    amount: Number(facts.shortMoney),
     day: saidDate(facts.countedOn, language),
   }),
   still_here_after_eid: (facts, language) => ({
@@ -126,24 +126,24 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
   }),
   sold_under_cost: (facts, language) => ({
     tag: facts.tag,
-    price: Number(facts.priceBdt),
-    cost: Number(facts.costBdt),
+    price: Number(facts.priceMoney),
+    cost: Number(facts.costMoney),
     low:
-      typeof facts.lowBdt === "number"
-        ? `৳${formatNumber(facts.lowBdt, language)}`
+      typeof facts.lowMoney === "number"
+        ? `৳${formatNumber(facts.lowMoney, language)}`
         : "—",
     basis: floorBasis(facts, language),
   }),
   entered_twice: (facts, language) => ({
     name: facts.name,
-    amount: Number(facts.amountBdt),
+    amount: Number(facts.amountMoney),
     day: saidDate(facts.day, language),
     by: facts.by,
   }),
   monthly_sum_missed: (facts, language) => ({
     investor: facts.investor,
     venture: facts.venture,
-    amount: Number(facts.missedBdt),
+    amount: Number(facts.missedMoney),
     day: saidDate(facts.dueOn, language),
   }),
   mortality_undiagnosed: (facts, language) => ({
@@ -163,7 +163,7 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
       language
     ),
     cause: facts.cause,
-    cost: Number(facts.costBdt),
+    cost: Number(facts.costMoney),
     venture: facts.venture
       ? named(` (${facts.venture}-এর)`, ` (${facts.venture}'s)`, language)
       : "",
@@ -186,14 +186,14 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
   }),
   cash_short: (facts, language) => ({
     name: facts.name,
-    amount: Number(facts.shortBdt),
+    amount: Number(facts.shortMoney),
     day: saidDate(facts.countedOn, language),
   }),
   feed_price_jump: (facts, language) => ({
     feed: facts.feed,
     unit: feedUnitEach(facts.unit, language),
-    price: Number(facts.unitPriceBdt),
-    previous: Number(facts.previousUnitPriceBdt),
+    price: Number(facts.unitPriceMoney),
+    previous: Number(facts.previousUnitPriceMoney),
     percent: Number(facts.percent),
   }),
   dose_not_prescribed: (facts) => ({
@@ -212,7 +212,7 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     since: saidDate(facts.since, language),
   }),
   store_shortfall: (facts, language) => ({
-    amount: Number(facts.shortBdt),
+    amount: Number(facts.shortMoney),
     day: saidDate(facts.countedOn, language),
   }),
   animal_missing: (facts, language) => ({
@@ -222,7 +222,7 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
   }),
   baki_overdue: (facts, language) => ({
     buyer: facts.buyer,
-    amount: Number(facts.owingBdt),
+    amount: Number(facts.owingMoney),
     since: saidDate(facts.overdueFrom, language),
   }),
   low_stock: (facts, language) => ({
@@ -232,7 +232,7 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
   }),
   money_awaiting_approval: (facts, language) => ({
     // A Notice raised before money crossed the store as a number carries its amount as text.
-    amount: Number(facts.amountBdt),
+    amount: Number(facts.amountMoney),
     category: named(facts.categoryBn, facts.categoryEn, language),
   }),
   registration_renewal_due: (facts, language) => ({
@@ -256,7 +256,7 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
           )
         : "",
     // Whole taka, as the sheet it opens says the transfer: paisa in one and not the other read as two figures.
-    amount: Math.round(Number(facts.owedBdt)),
+    amount: Math.round(Number(facts.owedMoney)),
   }),
   entry_rejected: (facts) => ({
     count: Number(facts.count),

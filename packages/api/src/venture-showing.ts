@@ -132,14 +132,14 @@ const offeredAs = (
 ) => ({
   id: row.id,
   name: row.name,
-  unitPriceBdt: row.unitPriceBdt,
-  targetCapitalBdt: row.targetCapitalBdt,
-  floorBdt: row.floorBdt,
+  unitPriceMoney: row.unitPriceMoney,
+  targetCapitalMoney: row.targetCapitalMoney,
+  floorMoney: row.floorMoney,
   decideBy: row.decideBy,
   targetWindow: { start: row.targetWindowStart, end: row.targetWindowEnd },
   // What its capital is planned as, a fact about the Venture that does not move — never what has come in.
-  cattleBudgetBdt: row.cattleBudgetBdt,
-  runningBudgetBdt: row.targetCapitalBdt - row.cattleBudgetBdt,
+  cattleBudgetMoney: row.cattleBudgetMoney,
+  runningBudgetMoney: row.targetCapitalMoney - row.cattleBudgetMoney,
   /** How a Unit is paid for — all before buying, or its Cattle Part and then each Monthly Sum and its day — which he
    *  must know before he asks to join, as he must know the split. */
   ...paidForBy(row),

@@ -11,18 +11,18 @@ const widthOf = (part: number, whole: number) =>
  * waits on. Drawn for the eye only: whatever sits beside it says the same in words.
  */
 export const RaisingBar = ({
-  inBdt,
-  floorBdt,
-  targetBdt,
+  inMoney,
+  floorMoney,
+  targetMoney,
   className,
 }: {
-  inBdt: number;
-  floorBdt: number;
-  targetBdt: number;
+  inMoney: number;
+  floorMoney: number;
+  targetMoney: number;
   className?: string;
 }) => {
   // Lighter until the Floor is reached, since until then buying cannot start.
-  const pastTheFloor = inBdt >= floorBdt;
+  const pastTheFloor = inMoney >= floorMoney;
   return (
     <div
       aria-hidden
@@ -36,11 +36,11 @@ export const RaisingBar = ({
           "h-full rounded-full",
           pastTheFloor ? "bg-primary" : "bg-primary/60"
         )}
-        style={{ width: widthOf(inBdt, targetBdt) }}
+        style={{ width: widthOf(inMoney, targetMoney) }}
       />
       <div
         className="bg-foreground/70 absolute inset-y-0 w-0.5"
-        style={{ left: widthOf(floorBdt, targetBdt) }}
+        style={{ left: widthOf(floorMoney, targetMoney) }}
       />
     </div>
   );

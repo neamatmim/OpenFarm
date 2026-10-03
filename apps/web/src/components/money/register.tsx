@@ -112,7 +112,7 @@ const Amount = ({
       )}
     >
       {event.direction === "in" ? "+" : "−"}৳
-      {formatNumber(event.amountBdt, language)}
+      {formatNumber(event.amountMoney, language)}
     </span>
   );
 };
@@ -180,7 +180,7 @@ const EntryActions = ({ row }: { row: MoneyRow }) => {
         <DrawCorrection
           draw={{
             id: event.sourceId,
-            amountBdt: event.amountBdt,
+            amountMoney: event.amountMoney,
             name: event.counterpartyName ?? "",
             drawnAt: event.occurredAt,
             paymentMethod: event.paymentMethod,
@@ -293,7 +293,9 @@ const moneyColumns = column.columns([
   }),
   column.accessor(
     (row) =>
-      row.event.direction === "in" ? row.event.amountBdt : -row.event.amountBdt,
+      row.event.direction === "in"
+        ? row.event.amountMoney
+        : -row.event.amountMoney,
     {
       id: "amount",
       header: listHeader("money.col.amount"),
@@ -448,7 +450,7 @@ export const RegisterTab = ({
     entersMoney,
     approving: approve.isPending,
     handleApprove: (one: MoneyEvent) =>
-      approve.mutate({ id: one.id, amountBdt: one.amountBdt }),
+      approve.mutate({ id: one.id, amountMoney: one.amountMoney }),
   }));
   const shown = rows.filter((row) => passes(filters, row.event, row.what));
   const categories = [...new Set(rows.map((row) => row.what))].toSorted(

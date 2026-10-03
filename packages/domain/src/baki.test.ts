@@ -14,7 +14,7 @@ const LEFT_ON = "2026-06-16";
 
 const atTheGate = (more: Partial<Parameters<typeof bakiAtTheGate>[0]> = {}) =>
   bakiAtTheGate({
-    worthBdt: 120_000,
+    worthMoney: 120_000,
     leftOn: LEFT_ON,
     promiseRequired: true,
     ...more,
@@ -22,55 +22,55 @@ const atTheGate = (more: Partial<Parameters<typeof bakiAtTheGate>[0]> = {}) =>
 
 describe("Baki at the gate", () => {
   it("owes nothing when nothing is said of what was paid", () => {
-    expect(atTheGate()).toEqual({ bakiBdt: 0, promisedBy: null });
+    expect(atTheGate()).toEqual({ bakiMoney: 0, promisedBy: null });
   });
 
   it("owes the rest of the price, by the day he promised", () => {
     expect(
-      atTheGate({ paidNowBdt: 100_000, promisedBy: "2026-06-23" })
-    ).toEqual({ bakiBdt: 20_000, promisedBy: "2026-06-23" });
+      atTheGate({ paidNowMoney: 100_000, promisedBy: "2026-06-23" })
+    ).toEqual({ bakiMoney: 20_000, promisedBy: "2026-06-23" });
   });
 
   it("owes all of it when he paid nothing", () => {
-    expect(atTheGate({ paidNowBdt: 0, promisedBy: "2026-06-23" })).toEqual({
-      bakiBdt: 120_000,
+    expect(atTheGate({ paidNowMoney: 0, promisedBy: "2026-06-23" })).toEqual({
+      bakiMoney: 120_000,
       promisedBy: "2026-06-23",
     });
   });
 
   it("drops a promise when he paid in full", () => {
     expect(
-      atTheGate({ paidNowBdt: 120_000, promisedBy: "2026-06-23" })
-    ).toEqual({ bakiBdt: 0, promisedBy: null });
+      atTheGate({ paidNowMoney: 120_000, promisedBy: "2026-06-23" })
+    ).toEqual({ bakiMoney: 0, promisedBy: null });
   });
 
   it("refuses more paid than the price", () => {
-    expect(atTheGate({ paidNowBdt: 120_001 })).toEqual({
+    expect(atTheGate({ paidNowMoney: 120_001 })).toEqual({
       refusal: "paid_more_than_price",
     });
   });
 
   it("refuses a Sale's Baki with no promised day", () => {
-    expect(atTheGate({ paidNowBdt: 100_000 })).toEqual({
+    expect(atTheGate({ paidNowMoney: 100_000 })).toEqual({
       refusal: "baki_needs_a_promise",
     });
   });
 
   it("takes a Dispatch's Baki with no promised day", () => {
     expect(
-      atTheGate({ worthBdt: 3150, paidNowBdt: 0, promiseRequired: false })
-    ).toEqual({ bakiBdt: 3150, promisedBy: null });
+      atTheGate({ worthMoney: 3150, paidNowMoney: 0, promiseRequired: false })
+    ).toEqual({ bakiMoney: 3150, promisedBy: null });
   });
 
   it("takes a promise to pay the same day it left", () => {
-    expect(atTheGate({ paidNowBdt: 0, promisedBy: LEFT_ON })).toEqual({
-      bakiBdt: 120_000,
+    expect(atTheGate({ paidNowMoney: 0, promisedBy: LEFT_ON })).toEqual({
+      bakiMoney: 120_000,
       promisedBy: LEFT_ON,
     });
   });
 
   it("refuses a promise to pay before it left", () => {
-    expect(atTheGate({ paidNowBdt: 0, promisedBy: "2026-06-15" })).toEqual({
+    expect(atTheGate({ paidNowMoney: 0, promisedBy: "2026-06-15" })).toEqual({
       refusal: "promise_before_it_left",
     });
   });
@@ -79,83 +79,83 @@ describe("Baki at the gate", () => {
     // 45.5 litres at 68.3 comes to 3107.65; a float would carry it a hair off.
     expect(
       atTheGate({
-        worthBdt: 45.5 * 68.3,
-        paidNowBdt: 3000,
+        worthMoney: 45.5 * 68.3,
+        paidNowMoney: 3000,
         promiseRequired: false,
       })
-    ).toEqual({ bakiBdt: 107.65, promisedBy: null });
+    ).toEqual({ bakiMoney: 107.65, promisedBy: null });
   });
 });
 
 const putRight = (
-  before: { worthBdt: number; bakiBdt: number; promisedBy: string | null },
+  before: { worthMoney: number; bakiMoney: number; promisedBy: string | null },
   more: Partial<Parameters<typeof bakiPutRight>[0]> = {}
 ) =>
   bakiPutRight({
     before,
-    worthBdt: before.worthBdt,
+    worthMoney: before.worthMoney,
     leftOn: LEFT_ON,
     promiseRequired: true,
     ...more,
   });
 
-const PAID_IN_FULL = { worthBdt: 120_000, bakiBdt: 0, promisedBy: null };
+const PAID_IN_FULL = { worthMoney: 120_000, bakiMoney: 0, promisedBy: null };
 const PART_PAID = {
-  worthBdt: 120_000,
-  bakiBdt: 20_000,
+  worthMoney: 120_000,
+  bakiMoney: 20_000,
   promisedBy: "2026-06-23",
 };
 
 describe("Baki put right", () => {
   it("keeps a buyer who paid in full paid in full at a corrected price", () => {
-    expect(putRight(PAID_IN_FULL, { worthBdt: 125_000 })).toEqual({
-      bakiBdt: 0,
+    expect(putRight(PAID_IN_FULL, { worthMoney: 125_000 })).toEqual({
+      bakiMoney: 0,
       promisedBy: null,
     });
   });
 
   it("keeps what a part-paying buyer paid at a corrected price", () => {
-    expect(putRight(PART_PAID, { worthBdt: 125_000 })).toEqual({
-      bakiBdt: 25_000,
+    expect(putRight(PART_PAID, { worthMoney: 125_000 })).toEqual({
+      bakiMoney: 25_000,
       promisedBy: "2026-06-23",
     });
   });
 
   it("takes what he paid when the Correction says it", () => {
-    expect(putRight(PART_PAID, { paidNowBdt: 110_000 })).toEqual({
-      bakiBdt: 10_000,
+    expect(putRight(PART_PAID, { paidNowMoney: 110_000 })).toEqual({
+      bakiMoney: 10_000,
       promisedBy: "2026-06-23",
     });
   });
 
   it("clears the promise when what he paid comes to the price", () => {
-    expect(putRight(PART_PAID, { paidNowBdt: 120_000 })).toEqual({
-      bakiBdt: 0,
+    expect(putRight(PART_PAID, { paidNowMoney: 120_000 })).toEqual({
+      bakiMoney: 0,
       promisedBy: null,
     });
   });
 
   it("turns a paid Sale into Baki only with a promise", () => {
-    expect(putRight(PAID_IN_FULL, { paidNowBdt: 100_000 })).toEqual({
+    expect(putRight(PAID_IN_FULL, { paidNowMoney: 100_000 })).toEqual({
       refusal: "baki_needs_a_promise",
     });
     expect(
       putRight(PAID_IN_FULL, {
-        paidNowBdt: 100_000,
+        paidNowMoney: 100_000,
         promisedBy: "2026-06-30",
       })
-    ).toEqual({ bakiBdt: 20_000, promisedBy: "2026-06-30" });
+    ).toEqual({ bakiMoney: 20_000, promisedBy: "2026-06-30" });
   });
 
   it("refuses a price corrected below what he paid", () => {
-    expect(putRight(PART_PAID, { worthBdt: 90_000 })).toEqual({
+    expect(putRight(PART_PAID, { worthMoney: 90_000 })).toEqual({
       refusal: "paid_more_than_price",
     });
   });
 
   it("moves only the promised day when that is all it says", () => {
     expect(putRight(PART_PAID, { promisedBy: "2026-07-01" })).toEqual({
-      bakiBdt: 20_000,
+      bakiMoney: 20_000,
       promisedBy: "2026-07-01",
     });
   });
@@ -170,13 +170,13 @@ describe("What was paid at the gate", () => {
 const item = (
   id: string,
   leftOn: string,
-  bakiBdt: number,
+  bakiMoney: number,
   promisedBy: string | null = null
-) => ({ id, leftOn, bakiBdt, promisedBy });
-const paid = (id: string, paidOn: string, amountBdt: number) => ({
+) => ({ id, leftOn, bakiMoney, promisedBy });
+const paid = (id: string, paidOn: string, amountMoney: number) => ({
   id,
   paidOn,
-  amountBdt,
+  amountMoney,
 });
 
 describe("a buyer's Baki, cleared oldest first", () => {
@@ -188,7 +188,7 @@ describe("a buyer's Baki, cleared oldest first", () => {
       ],
       []
     );
-    expect(standing.owingBdt).toBe(25_000);
+    expect(standing.owingMoney).toBe(25_000);
     expect(standing.oldestOn).toBe("2026-06-01");
     expect(standing.soonestPromise).toBe("2026-06-08");
     expect(standing.items.map((one) => one.id)).toEqual(["a", "b"]);
@@ -200,12 +200,12 @@ describe("a buyer's Baki, cleared oldest first", () => {
       [paid("p1", "2026-06-12", 12_000)]
     );
     expect(standing.items).toMatchObject([
-      { id: "a", paidBdt: 12_000, owingBdt: 8000 },
-      { id: "b", paidBdt: 0, owingBdt: 5000 },
+      { id: "a", paidMoney: 12_000, owingMoney: 8000 },
+      { id: "b", paidMoney: 0, owingMoney: 5000 },
     ]);
-    expect(standing.owingBdt).toBe(13_000);
+    expect(standing.owingMoney).toBe(13_000);
     expect(standing.parts).toEqual([
-      { paymentId: "p1", itemId: "a", amountBdt: 12_000 },
+      { paymentId: "p1", itemId: "a", amountMoney: 12_000 },
     ]);
   });
 
@@ -219,11 +219,11 @@ describe("a buyer's Baki, cleared oldest first", () => {
       [paid("p1", "2026-06-05", 4000)]
     );
     expect(standing.parts).toEqual([
-      { paymentId: "p1", itemId: "d1", amountBdt: 1750 },
-      { paymentId: "p1", itemId: "d2", amountBdt: 1750 },
-      { paymentId: "p1", itemId: "d3", amountBdt: 500 },
+      { paymentId: "p1", itemId: "d1", amountMoney: 1750 },
+      { paymentId: "p1", itemId: "d2", amountMoney: 1750 },
+      { paymentId: "p1", itemId: "d3", amountMoney: 500 },
     ]);
-    expect(standing.owingBdt).toBe(1250);
+    expect(standing.owingMoney).toBe(1250);
     expect(standing.oldestOn).toBe("2026-06-03");
   });
 
@@ -232,7 +232,7 @@ describe("a buyer's Baki, cleared oldest first", () => {
       [item("z", "2026-06-01", 1000), item("m", "2026-06-01", 1000)],
       [paid("p1", "2026-06-02", 1000)]
     );
-    expect(standing.items.find((one) => one.owingBdt === 0)?.id).toBe("m");
+    expect(standing.items.find((one) => one.owingMoney === 0)?.id).toBe("m");
   });
 
   it("holds what he paid beyond it as credit, and spends it on what he takes next", () => {
@@ -241,8 +241,8 @@ describe("a buyer's Baki, cleared oldest first", () => {
       [paid("p1", "2026-06-02", 1500)]
     );
     expect(ahead).toMatchObject({
-      owingBdt: 0,
-      creditBdt: 500,
+      owingMoney: 0,
+      creditMoney: 500,
       oldestOn: null,
     });
 
@@ -250,7 +250,7 @@ describe("a buyer's Baki, cleared oldest first", () => {
       [item("a", "2026-06-01", 1000), item("b", "2026-06-05", 800)],
       [paid("p1", "2026-06-02", 1500)]
     );
-    expect(later).toMatchObject({ owingBdt: 300, creditBdt: 0 });
+    expect(later).toMatchObject({ owingMoney: 300, creditMoney: 0 });
   });
 
   it("reads a Correction that shrank an old Baki below what was paid on it as credit", () => {
@@ -258,7 +258,7 @@ describe("a buyer's Baki, cleared oldest first", () => {
       [item("a", "2026-06-01", 500)],
       [paid("p1", "2026-06-02", 1000)]
     );
-    expect(standing).toMatchObject({ owingBdt: 0, creditBdt: 500 });
+    expect(standing).toMatchObject({ owingMoney: 0, creditMoney: 500 });
   });
 
   it("names no promise for what is already paid", () => {
@@ -276,9 +276,9 @@ describe("a buyer's Baki, cleared oldest first", () => {
 const standingItem = (
   id: string,
   leftOn: string,
-  owingBdt: number,
+  owingMoney: number,
   promisedBy: string | null = null
-) => ({ id, leftOn, promisedBy, owingBdt });
+) => ({ id, leftOn, promisedBy, owingMoney });
 
 describe("overdue Baki", () => {
   it("is not late on the day he promised, and is the day after", () => {
@@ -324,18 +324,18 @@ describe("overdue Baki", () => {
     expect(soldOnBakiWhileOverdue([late, before], 30)).toBe(false);
     expect(soldOnBakiWhileOverdue([late, after], 30)).toBe(true);
     // Paid off, the late one no longer makes the next a loan to a man who has not paid.
-    expect(soldOnBakiWhileOverdue([{ ...late, owingBdt: 0 }, after], 30)).toBe(
-      false
-    );
+    expect(
+      soldOnBakiWhileOverdue([{ ...late, owingMoney: 0 }, after], 30)
+    ).toBe(false);
   });
 });
 
 const writtenOff = (
   id: string,
   leftOn: string,
-  bakiBdt: number,
-  writtenOffBdt: number
-) => ({ id, leftOn, bakiBdt, promisedBy: null, writtenOffBdt });
+  bakiMoney: number,
+  writtenOffMoney: number
+) => ({ id, leftOn, bakiMoney, promisedBy: null, writtenOffMoney });
 
 describe("Baki written off", () => {
   it("is no longer owed, and says what stays written off", () => {
@@ -344,9 +344,9 @@ describe("Baki written off", () => {
       []
     );
     expect(standing).toMatchObject({
-      owingBdt: 0,
-      writtenOffBdt: 20_000,
-      creditBdt: 0,
+      owingMoney: 0,
+      writtenOffMoney: 20_000,
+      creditMoney: 0,
     });
   });
 
@@ -359,10 +359,10 @@ describe("Baki written off", () => {
       [paid("p1", "2026-06-12", 8000)]
     );
     expect(standing.items).toMatchObject([
-      { id: "a", owingBdt: 0, writtenOffBdt: 17_000, paidBdt: 3000 },
-      { id: "b", owingBdt: 0, writtenOffBdt: 0, paidBdt: 5000 },
+      { id: "a", owingMoney: 0, writtenOffMoney: 17_000, paidMoney: 3000 },
+      { id: "b", owingMoney: 0, writtenOffMoney: 0, paidMoney: 5000 },
     ]);
-    expect(standing.writtenOffBdt).toBe(17_000);
+    expect(standing.writtenOffMoney).toBe(17_000);
   });
 
   it("is put back whole by a buyer who pays it all after all, and the rest is credit", () => {
@@ -370,7 +370,7 @@ describe("Baki written off", () => {
       [writtenOff("a", "2026-06-01", 20_000, 20_000)],
       [paid("p1", "2026-07-01", 21_000)]
     );
-    expect(standing).toMatchObject({ writtenOffBdt: 0, creditBdt: 1000 });
+    expect(standing).toMatchObject({ writtenOffMoney: 0, creditMoney: 1000 });
   });
 
   it("leaves the rest owing when only part was written off", () => {
@@ -379,9 +379,9 @@ describe("Baki written off", () => {
       [paid("p1", "2026-06-05", 10_000)]
     );
     expect(standing.items[0]).toMatchObject({
-      owingBdt: 5000,
-      writtenOffBdt: 5000,
-      paidBdt: 10_000,
+      owingMoney: 5000,
+      writtenOffMoney: 5000,
+      paidMoney: 10_000,
     });
   });
 });

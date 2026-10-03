@@ -130,7 +130,7 @@ export const saleRouter = {
       z.object({
         tagNumber: tagInput,
         buyer: buyerInput,
-        priceBdt: salePriceInput,
+        priceMoney: salePriceInput,
         /** What she weighed on the day, which is what the price was struck on. */
         weightKg: z.number().positive().max(2000),
         destination: z.string().trim().min(1).max(200),
@@ -149,11 +149,11 @@ export const saleRouter = {
         /** Whose hand took the cash, where it was not the writer's: the Owner writing up the Manager's sale. */
         heldBy: z.string().optional(),
         /** What he paid there and then; left out, all of it. Less than the price, and the rest is his Baki. */
-        paidNowBdt: paidNowInput.optional(),
+        paidNowMoney: paidNowInput.optional(),
         /** The day he promised to pay the rest by. Asked whenever anything is left owing: a trader promises a day. */
         promisedBy: promisedByInput.optional(),
         /** What the broker at the haat took for this sale, where one was used: paid by the Farm, charged to her. */
-        brokerBdt: brokerInput.optional(),
+        brokerMoney: brokerInput.optional(),
       })
     )
     .handler(async ({ context, input }) => {
@@ -168,8 +168,8 @@ export const saleRouter = {
       // Asked before anything is written: what he owes is a fact about the handshake, not about the farm.
       const baki = bakiOrRefuse(
         bakiAtTheGate({
-          worthBdt: input.priceBdt,
-          paidNowBdt: input.paidNowBdt,
+          worthMoney: input.priceMoney,
+          paidNowMoney: input.paidNowMoney,
           promisedBy: input.promisedBy,
           leftOn: farmDayOf(soldAt),
           promiseRequired: true,
@@ -226,9 +226,9 @@ export const saleRouter = {
             farmId: context.farm.id,
             animalId: her.id,
             counterpartyId: buyerId,
-            priceBdt: input.priceBdt,
+            priceMoney: input.priceMoney,
             ...baki,
-            brokerBdt: input.brokerBdt ?? 0,
+            brokerMoney: input.brokerMoney ?? 0,
             weightKg: input.weightKg.toFixed(2),
             destination: input.destination,
             vehicle: input.vehicle,

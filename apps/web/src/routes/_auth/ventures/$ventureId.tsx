@@ -65,16 +65,16 @@ const useFiguresOf = (venture: Venture): Figure[] => {
     return [
       {
         label: t("ventures.held"),
-        value: taka(venture.capitalInBdt),
+        value: taka(venture.capitalInMoney),
         hint: t("ventures.page.ofTarget", {
-          target: taka(venture.targetCapitalBdt),
+          target: taka(venture.targetCapitalMoney),
         }),
         icon: Banknote,
       },
       {
         label: t("ventures.page.toTheFloor"),
         value: short > 0 ? taka(short) : t("ventures.page.floorMet"),
-        hint: t("ventures.ofTheFloor", { floor: taka(venture.floorBdt) }),
+        hint: t("ventures.ofTheFloor", { floor: taka(venture.floorMoney) }),
         icon: Target,
         tone: short > 0 ? "warning" : "success",
       },
@@ -100,17 +100,17 @@ const useFiguresOf = (venture: Venture): Figure[] => {
     return [
       {
         label: t("ventures.held"),
-        value: taka(venture.capitalInBdt),
+        value: taka(venture.capitalInMoney),
         icon: Banknote,
       },
       {
         label: t("ventures.page.paidOut"),
-        value: taka(money.paidOutBdt),
+        value: taka(money.paidOutMoney),
         icon: Handshake,
       },
       {
         label: t("ventures.balance"),
-        value: taka(money.balanceBdt),
+        value: taka(money.balanceMoney),
         icon: Wallet,
       },
     ];
@@ -118,17 +118,17 @@ const useFiguresOf = (venture: Venture): Figure[] => {
   return [
     {
       label: t("ventures.balance"),
-      value: taka(money.balanceBdt),
+      value: taka(money.balanceMoney),
       icon: Wallet,
     },
     {
       label: t("ventures.page.cattleLeft"),
-      value: taka(money.cattleBudgetHeldBdt),
+      value: taka(money.cattleBudgetHeldMoney),
       icon: PiggyBank,
     },
     {
       label: t("ventures.page.runningLeft"),
-      value: taka(money.runningBudgetHeldBdt),
+      value: taka(money.runningBudgetHeldMoney),
       icon: Wheat,
       tone: venture.runningBudgetLow ? "warning" : "neutral",
     },

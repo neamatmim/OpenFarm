@@ -77,7 +77,7 @@ export const OpenVentureCard = ({ one }: { one: OpenVenture }) => {
           </Badge>
         )}
         <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-          <Fact label={t("portal.open.unit")}>{taka(one.unitPriceBdt)}</Fact>
+          <Fact label={t("portal.open.unit")}>{taka(one.unitPriceMoney)}</Fact>
           <Fact label={t("portal.open.decideBy")}>
             <SaidDate at={one.decideBy} />
           </Fact>

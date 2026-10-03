@@ -71,12 +71,12 @@ const signedInAs = async (loginEmail: string): Promise<Client> => {
 };
 
 const TERMS = {
-  targetCapitalBdt: 1_000_000,
-  floorBdt: 0,
+  targetCapitalMoney: 1_000_000,
+  floorMoney: 0,
   decideBy: "2052-01-20",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 20,
-  cattleBudgetBdt: 800_000,
+  cattleBudgetMoney: 800_000,
 };
 
 /** Six animals of 240 to 260 kg — 250 kg at the middle — at ৳500 a kilo, putting on 0.8 kg a day. */
@@ -84,14 +84,14 @@ const PLAN_LINE = {
   animals: 6,
   fromKg: 240,
   toKg: 260,
-  buyBdtPerKg: 500,
+  buyMoneyPerKg: 500,
   dailyGainKg: 0.8,
 };
 /** That line, sold at ৳600 to ৳700: the Venture Plan both Ventures are projected from. */
 const PLAN = {
   lines: [PLAN_LINE],
-  saleLowBdtPerKg: 600,
-  saleHighBdtPerKg: 700,
+  saleLowMoneyPerKg: 600,
+  saleHighMoneyPerKg: 700,
 };
 
 /** The Venture Rahim is in, whose window opens 17 March: 57 days of gain, 295.6 kg each, 1,773.6 kg. */
@@ -142,7 +142,7 @@ beforeAll(async () => {
     investorsPercent: 60,
     arbitrator: `সালিস ${suffix}`,
     stampKind: "paper",
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2052-01-02",
     stampSerial: `S-P-${suffix}`,
   });
@@ -154,7 +154,7 @@ beforeAll(async () => {
   });
   await owner.ventures.takeCapital({
     agreementId,
-    amountBdt: 150_000,
+    amountMoney: 150_000,
     movedOn: "2052-01-03",
     paymentMethod: "bank",
     reference: `TRF-P-${suffix}`,
@@ -194,15 +194,23 @@ describe("a Venture still gathering capital", () => {
 
     expect(projection?.kgAtSale).toBeCloseTo(1773.6, 6);
     expect(projection).toMatchObject({
-      realisedBdt: 0,
+      realisedMoney: 0,
       // Six at ৳1,25,000 is ৳7,50,000 of cattle, and the ৳2,00,000 running budget taken as spent.
-      chargedBdt: 950_000,
+      chargedMoney: 950_000,
       investorsPercent: 60,
       units: 20,
       // 1,773.6 kg at ৳600 is ৳10,64,160, a profit of ৳1,14,160: sixty per cent is ৳68,496, ৳3,424 a Unit.
-      low: { proceedsBdt: 1_064_160, profitBdt: 114_160, perUnitBdt: 3424 },
+      low: {
+        proceedsMoney: 1_064_160,
+        profitMoney: 114_160,
+        perUnitMoney: 3424,
+      },
       // At ৳700 it is ৳12,41,520, a profit of ৳2,91,520: ৳1,74,912 to the Investors, ৳8,745 a Unit.
-      high: { proceedsBdt: 1_241_520, profitBdt: 291_520, perUnitBdt: 8745 },
+      high: {
+        proceedsMoney: 1_241_520,
+        profitMoney: 291_520,
+        perUnitMoney: 8745,
+      },
     });
   });
 });
@@ -227,7 +235,7 @@ describe("a plan that spends past its cattle budget", () => {
     });
     // Seven grown to 295.6 kg is 2,069.2 kg; charged ৳8,75,000 of cattle and the ৳2,00,000 running budget.
     expect(projection?.kgAtSale).toBeCloseTo(2069.2, 6);
-    expect(projection?.chargedBdt).toBe(1_075_000);
+    expect(projection?.chargedMoney).toBe(1_075_000);
   });
 });
 
@@ -254,8 +262,8 @@ describe("a plan that expects some animals to die", () => {
     // One in ten of the 1,773.6 kg does not live to be sold: 1,596.24 kg at ৳600 is ৳9,57,744, against the same
     // ৳9,50,000 charged — a profit of ৳7,744. At ৳700 every animal lives: ৳2,91,520, as without deaths.
     expect(projection?.low.kgAtSale).toBeCloseTo(1596.24, 6);
-    expect(projection?.low.profitBdt).toBe(7744);
-    expect(projection?.high).toMatchObject({ profitBdt: 291_520 });
+    expect(projection?.low.profitMoney).toBe(7744);
+    expect(projection?.high).toMatchObject({ profitMoney: 291_520 });
 
     // Measured once buying begins, the plan says the same low end.
     await owner.ventures.startBuying({ id: run.id });
@@ -263,17 +271,17 @@ describe("a plan that expects some animals to die", () => {
       ventureId: run.id,
     });
     expect(measured?.money.planned).toEqual({
-      lowBdt: 7744,
-      highBdt: 291_520,
+      lowMoney: 7744,
+      highMoney: 291_520,
     });
     // And what it is projected to make now is the projection's own profit at both ends. Buying has begun but nothing is
     // bought, so the plan's animals are all still to buy: charged ৳9,50,000 as before.
     const now = await owner.ventures.projection({ ventureId: run.id });
     expect(measured?.money.projected).toEqual({
-      lowBdt: now.projection?.low.profitBdt,
-      highBdt: now.projection?.high.profitBdt,
+      lowMoney: now.projection?.low.profitMoney,
+      highMoney: now.projection?.high.profitMoney,
     });
-    expect(now.projection?.chargedBdt).toBe(950_000);
+    expect(now.projection?.chargedMoney).toBe(950_000);
   });
 });
 
@@ -343,14 +351,14 @@ describe("a Venture still buying", () => {
           animals: 3,
           fromKg: 240,
           toKg: 260,
-          buyBdtPerKg: 500,
+          buyMoneyPerKg: 500,
           dailyGainKg: 0.8,
         },
         {
           animals: 2,
           fromKg: 300,
           toKg: 340,
-          buyBdtPerKg: 480,
+          buyMoneyPerKg: 480,
           dailyGainKg: 0.6,
         },
       ],
@@ -358,7 +366,7 @@ describe("a Venture still buying", () => {
     // Capital in first: a bull at the gate is paid from what the account holds.
     await putCapitalIn(
       owner,
-      { id: buying.id, units: 20, unitPriceBdt: 50_000 },
+      { id: buying.id, units: 20, unitPriceMoney: 50_000 },
       `buying ${suffix}`,
       "2052-01-01"
     );
@@ -377,7 +385,7 @@ describe("a Venture still buying", () => {
         penId: pen.id,
         sex: "male",
         seller: { name: `ব্যাপারী ${suffix}` },
-        purchasePriceBdt: weightKg * 500,
+        purchasePriceMoney: weightKg * 500,
         weightKg,
         estimatedAgeMonths: 20,
         ventureId: buying.id,
@@ -401,14 +409,14 @@ describe("a Venture still buying", () => {
     const settlement = await owner.ventures.settlement({
       ventureId: buying.id,
     });
-    expect(projection?.chargedBdt).toBe(
-      settlement.chargedBdt + 200_000 + 557_200
+    expect(projection?.chargedMoney).toBe(
+      settlement.chargedMoney + 200_000 + 557_200
     );
     // The plan's buying as one average, as an offer says it: ৳6,82,200 for 1,390 kg is ৳490.79 a kilo; 278 kg a head;
     // 3.6 kg a day over five head is 0.72.
     expect(basis).toMatchObject({
       planVersion: 1,
-      buyBdtPerKg: 490.79,
+      buyMoneyPerKg: 490.79,
       buyWeightKg: 278,
       dailyGainKg: 0.72,
     });
@@ -439,17 +447,17 @@ describe("an Investor's own Venture in the portal", () => {
     await owner.investors.setProjectionsShown({ shown: false });
 
     expect(today.projection).toMatchObject({
-      saleLowBdtPerKg: 600,
-      saleHighBdtPerKg: 700,
+      saleLowMoneyPerKg: 600,
+      saleHighMoneyPerKg: 700,
       kgAtSale: 1774,
       // Three Units at ৳3,424 and ৳8,745 a Unit, on top of the ৳1,50,000 they put in.
-      low: { shareBdt: 10_272, payoutBdt: 160_272 },
-      high: { shareBdt: 26_235, payoutBdt: 176_235 },
+      low: { shareMoney: 10_272, payoutMoney: 160_272 },
+      high: { shareMoney: 26_235, payoutMoney: 176_235 },
     });
     // Their own figures; the Venture's whole split is not theirs to read.
     const said = JSON.stringify(today.projection);
-    expect(said).not.toContain("farmBdt");
-    expect(said).not.toContain("investorsBdt");
+    expect(said).not.toContain("farmMoney");
+    expect(said).not.toContain("investorsMoney");
   });
 });
 
@@ -468,15 +476,15 @@ describe("a Venture offered in the portal", () => {
     await owner.investors.setProjectionsShown({ shown: false });
 
     expect(on.find((one) => one.id === offered)?.projection).toMatchObject({
-      saleLowBdtPerKg: 600,
-      saleHighBdtPerKg: 700,
-      buyBdtPerKg: 500,
+      saleLowMoneyPerKg: 600,
+      saleHighMoneyPerKg: 700,
+      buyMoneyPerKg: 500,
       buyWeightKg: 250,
       dailyGainKg: 0.8,
       kgAtSale: 2138,
       // 2,138.4 kg at ৳600 makes ৳3,33,040, ৳9,991 a Unit; at ৳700, ৳5,46,880 and ৳16,406 a Unit.
-      low: { profitBdt: 333_040, perUnitBdt: 9991 },
-      high: { profitBdt: 546_880, perUnitBdt: 16_406 },
+      low: { profitMoney: 333_040, perUnitMoney: 9991 },
+      high: { profitMoney: 546_880, perUnitMoney: 16_406 },
     });
   });
 });

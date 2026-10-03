@@ -424,7 +424,7 @@ export interface AccountantSummary {
   taka: (amount: number) => string;
   /** Who still owed the farm what on the period's last day — its **Baki** — biggest first. The money list is cash as
    *  it came; this is what had not come yet. */
-  bakiAtTheEnd: readonly { name: string; owingBdt: number }[];
+  bakiAtTheEnd: readonly { name: string; owingMoney: number }[];
   producedBy: string;
   producedAt: string;
 }
@@ -441,17 +441,17 @@ const SIDE_LABEL: Record<Side, [string, string]> = {
  */
 export const accountantSummary = (paper: AccountantSummary): string => {
   const { summary, taka } = paper;
-  const inAndOut = (line: { inBdt: number; outBdt: number }) =>
-    `আয় / in ${taka(line.inBdt)} · ব্যয় / out ${taka(line.outBdt)}`;
+  const inAndOut = (line: { inMoney: number; outMoney: number }) =>
+    `আয় / in ${taka(line.inMoney)} · ব্যয় / out ${taka(line.outMoney)}`;
   return [
     ...farmOfOriginLines(paper.farm),
     "",
     "আয় ও ব্যয় / Income and expense",
     field("সময়কাল", "Period", `${paper.from} — ${paper.to}`),
     "",
-    field("মোট আয়", "Income", taka(summary.incomeBdt)),
-    field("মোট ব্যয়", "Expense", taka(summary.expenseBdt)),
-    field("নিট", "Net", taka(summary.netBdt)),
+    field("মোট আয়", "Income", taka(summary.incomeMoney)),
+    field("মোট ব্যয়", "Expense", taka(summary.expenseMoney)),
+    field("নিট", "Net", taka(summary.netMoney)),
     summary.awaiting.count > 0
       ? field(
           "মালিকের অনুমোদনের অপেক্ষায়",
@@ -483,13 +483,13 @@ export const accountantSummary = (paper: AccountantSummary): string => {
       ? [
           "সময়কালের শেষে বাকি / Owed to the farm at the period's end",
           ...paper.bakiAtTheEnd.map(
-            (line) => `  ${line.name}: ${taka(line.owingBdt)}`
+            (line) => `  ${line.name}: ${taka(line.owingMoney)}`
           ),
           field(
             "মোট বাকি",
             "Total owed",
             taka(
-              paper.bakiAtTheEnd.reduce((sum, line) => sum + line.owingBdt, 0)
+              paper.bakiAtTheEnd.reduce((sum, line) => sum + line.owingMoney, 0)
             )
           ),
           "",

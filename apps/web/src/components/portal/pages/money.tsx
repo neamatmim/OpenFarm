@@ -24,26 +24,26 @@ const useTotals = (theirs: TheirAgreements): Figure[] => {
   const sums = portfolioOf(theirs);
   const refunded: Figure = {
     label: t("money.refund"),
-    value: taka(sums.returnedBdt),
+    value: taka(sums.returnedMoney),
     hint: t("money.refundedHint"),
     icon: Undo2,
   };
   return [
     {
       label: t("portal.money.paidIn"),
-      value: taka(sums.paidInBdt),
+      value: taka(sums.paidInMoney),
       icon: Landmark,
     },
     {
       label: t("money.payouts"),
-      value: taka(sums.paidOutBdt),
+      value: taka(sums.paidOutMoney),
       icon: Wallet,
     },
     // Only for somebody a Venture was cancelled on: everybody else would read a line of nothing.
-    ...(sums.returnedBdt > 0 ? [refunded] : []),
+    ...(sums.returnedMoney > 0 ? [refunded] : []),
     {
       label: t("portal.heldNow"),
-      value: taka(sums.heldBdt),
+      value: taka(sums.heldMoney),
       icon: Banknote,
     },
   ];

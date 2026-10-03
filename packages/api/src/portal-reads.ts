@@ -235,11 +235,14 @@ export const theirVentureToday = async (
     venture: { name: standing.venture.name, state: run.state },
     his: {
       ...hisHolding(
-        { units: standing.agreement.units, capitalBdt: standing.capitalBdt },
+        {
+          units: standing.agreement.units,
+          capitalMoney: standing.capitalMoney,
+        },
         spend,
         run
       ),
-      capitalBdt: standing.capitalBdt,
+      capitalMoney: standing.capitalMoney,
       investorsPercent: standing.agreement.investorsPercent,
       amendedOn: standing.agreement.amendedOn,
     },
@@ -270,12 +273,15 @@ export const theirVentureToday = async (
         })),
     },
     spend: {
-      charges: spend.charges.map((one) => ({ word: one.word, bdt: one.bdt })),
-      chargedBdt: spend.chargedBdt,
-      cattleBudgetBdt: spend.cattleBudgetBdt,
-      cattleBudgetLeftBdt: spend.cattleBudgetLeftBdt,
-      runningBudgetBdt: spend.runningBudgetBdt,
-      runningSpentBdt: spend.runningSpentBdt,
+      charges: spend.charges.map((one) => ({
+        word: one.word,
+        amount: one.amount,
+      })),
+      chargedMoney: spend.chargedMoney,
+      cattleBudgetMoney: spend.cattleBudgetMoney,
+      cattleBudgetLeftMoney: spend.cattleBudgetLeftMoney,
+      runningBudgetMoney: spend.runningBudgetMoney,
+      runningSpentMoney: spend.runningSpentMoney,
     },
     /** Where to pay and how much is left, while their capital is still owed; nothing once it is all in. */
     howToPay: paying,
@@ -284,8 +290,8 @@ export const theirVentureToday = async (
     projection: projected
       ? hisProjection(projected, {
           // The Units he holds — paid for — as the Settlement will divide by them.
-          units: unitsHeld(standing.capitalBdt, run.unitPriceBdt),
-          capitalBdt: standing.capitalBdt,
+          units: unitsHeld(standing.capitalMoney, run.unitPriceMoney),
+          capitalMoney: standing.capitalMoney,
         })
       : null,
   };

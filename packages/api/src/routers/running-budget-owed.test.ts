@@ -34,26 +34,26 @@ beforeAll(async () => {
   const owner = await as("owner", "2079-01-01T04:00:00.000Z");
   const venture = await owner.client.ventures.open({
     name: `ভেঞ্চার ${suffix}`,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2079-01-01",
     targetWindowStart: "2079-09-01",
     targetWindowEnd: "2079-09-05",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
     // Two lakh to keep the animals with.
-    cattleBudgetBdt: 800_000,
+    cattleBudgetMoney: 800_000,
   });
   ventureId = venture.id;
   await putCapitalIn(
     owner.client,
-    { id: ventureId, units: 20, unitPriceBdt: 50_000 },
+    { id: ventureId, units: 20, unitPriceMoney: 50_000 },
     suffix,
     "2079-01-01"
   );
   await owner.client.ventures.startBuying({ id: ventureId });
   // The Owner's line, just under the two lakh.
-  await owner.client.farm.setParameters({ runningBudgetWarnBdt: 199_000 });
+  await owner.client.farm.setParameters({ runningBudgetWarnMoney: 199_000 });
   const shed = await owner.client.herd.createShed({ name: suffix });
   const pen = await owner.client.herd.createPen({
     quarantine: true,
@@ -74,7 +74,7 @@ beforeAll(async () => {
     penId: pen.id,
     sex: "male",
     seller: { name: `প্রতিবেশী ${suffix}` },
-    purchasePriceBdt: 60_000,
+    purchasePriceMoney: 60_000,
     weightKg: 200,
     estimatedAgeMonths: 20,
     arrivedAt: new Date("2079-01-02T05:00:00.000Z"),
@@ -87,15 +87,15 @@ describe("the Running Budget warning", () => {
   it("counts what the Farm has paid for its animals this month and not been repaid", async () => {
     const before = await readBoth("2079-01-05T04:00:00.000Z");
     expect(before.listed).toMatchObject({
-      runningBudgetHeldBdt: 200_000,
-      owedTheFarmBdt: 0,
+      runningBudgetHeldMoney: 200_000,
+      owedTheFarmMoney: 0,
       runningBudgetLow: false,
     });
     // Three thousand of fly spray, the Farm's money, for the Venture's one bull.
     const owner = await as("owner", "2079-01-10T06:00:00.000Z");
     await owner.client.money.enter({
       categoryId: sprayId,
-      amountBdt: 3000,
+      amountMoney: 3000,
       occurredOn: "2079-01-10",
       counterparty: { name: `দোকান ${suffix}` },
       paymentMethod: "cash",
@@ -105,13 +105,13 @@ describe("the Running Budget warning", () => {
     const after = await readBoth("2079-01-20T04:00:00.000Z");
     // The account still holds two lakh; what is really left is a hundred and ninety-seven thousand, under the line.
     expect(after.listed).toMatchObject({
-      runningBudgetHeldBdt: 200_000,
-      owedTheFarmBdt: 3000,
+      runningBudgetHeldMoney: 200_000,
+      owedTheFarmMoney: 3000,
       runningBudgetLow: true,
     });
     // The Manager's reading of the same Venture says the same.
     expect(after.running).toMatchObject({
-      owedTheFarmBdt: after.listed?.owedTheFarmBdt,
+      owedTheFarmMoney: after.listed?.owedTheFarmMoney,
       runningBudgetLow: after.listed?.runningBudgetLow,
     });
   });
@@ -128,17 +128,17 @@ describe("the Running Budget warning", () => {
       movedOn: "2079-02-02",
       paymentMethod: "bank",
       reference: `REI-${suffix}`,
-      amountBdt: january.totalBdt,
+      amountMoney: january.totalMoney,
     });
     const repaid = await readBoth("2079-02-03T04:00:00.000Z");
     // The money has left the account and nothing is owed: what is left is what it was.
     expect(repaid.listed).toMatchObject({
-      runningBudgetHeldBdt: 197_000,
-      owedTheFarmBdt: 0,
+      runningBudgetHeldMoney: 197_000,
+      owedTheFarmMoney: 0,
       runningBudgetLow: true,
     });
     expect(repaid.running).toMatchObject({
-      owedTheFarmBdt: 0,
+      owedTheFarmMoney: 0,
       runningBudgetLow: true,
     });
   });

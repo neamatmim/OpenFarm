@@ -36,7 +36,7 @@ const SellerLine = ({ seller }: { seller: Seller }) => {
           ? `${t("stock.shortOnScale", {
               kg: formatNumber(seller.shortKg, language),
             })} (${formatNumber(seller.shortPercent, language)}%) · ${taka(
-              seller.shortBdt
+              seller.shortMoney
             )}`
           : t("stock.overOnScale", {
               kg: formatNumber(-seller.shortKg, language),

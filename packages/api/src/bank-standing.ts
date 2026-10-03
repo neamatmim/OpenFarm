@@ -28,8 +28,8 @@ export const NEVER_CHECKED: BankStanding = {
 /** One month's reading of a statement, as the standing reads it. */
 export interface AMonthRead {
   forMonth: string;
-  readBdt: number;
-  expectedBdt: number;
+  readMoney: number;
+  expectedMoney: number;
 }
 
 /**
@@ -49,11 +49,11 @@ export const standingOf = (
     monthsStale: [],
   };
   for (const one of checks) {
-    const stale = hasGoneStale(believedNow(one.forMonth), one.expectedBdt);
+    const stale = hasGoneStale(believedNow(one.forMonth), one.expectedMoney);
     if (stale) {
       standing.monthsStale.push(one.forMonth);
     }
-    if (stale || roundTaka(one.readBdt - one.expectedBdt) !== 0) {
+    if (stale || roundTaka(one.readMoney - one.expectedMoney) !== 0) {
       standing.monthsOut.push(one.forMonth);
     }
     standing.lastCheckedMonth = one.forMonth;

@@ -22,8 +22,9 @@ const KEEP_FOR_MS = 14 * 24 * 60 * 60 * 1000;
  *  an outing says what it was given and what it has bought, and this one because a Venture says what it
  *  has been paid for an Animal it let go, and this one because a month's Reimbursement says what it is
  *  made of, the one after that because a Venture says what it owes the Owner and whether it is running
- *  low, and this one because it says whether the bank agreed. */
-const CACHE_KEY = "kept-with-the-adjustments";
+ *  low, the one after that because it says whether the bank agreed, and this one because every sum of
+ *  money is named for money, not for the taka it is counted in. */
+const CACHE_KEY = "kept-with-money-names";
 /** The shape of what this phone keeps, written on everything it puts away, so nothing put away the old way is read. */
 export const CACHE_SHAPE = CACHE_KEY;
 

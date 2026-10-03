@@ -19,7 +19,7 @@ let penId = "";
 const handOf = async (role: "owner" | "manager") => {
   const owner = await as("owner");
   const hands = await owner.client.cash.inHand();
-  return hands.find((one) => one.userId === thePerson(role).id)?.bdt ?? 0;
+  return hands.find((one) => one.userId === thePerson(role).id)?.amount ?? 0;
 };
 
 beforeAll(async () => {
@@ -35,15 +35,15 @@ beforeAll(async () => {
   // The outing, and the ৳1,00,000 the Owner hands the Manager for it.
   const trip = await manager.client.trips.record({
     wentTo: `গাবতলী হাট ${suffix}`,
-    brokerBdt: 2000,
-    transportBdt: 3000,
+    brokerMoney: 2000,
+    transportMoney: 3000,
     wentOn: new Date(NOW),
   });
   tripId = trip.id;
   await owner.client.cash.handOver({
     from: { userId: thePerson("owner").id },
     to: { userId: thePerson("manager").id },
-    amountBdt: 100_000,
+    amountMoney: 100_000,
     buyingTripId: tripId,
   });
   // Two bulls bought on it, paid in cash out of the Manager's hand.
@@ -56,8 +56,8 @@ beforeAll(async () => {
       penId: pen.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${name} ${suffix}` },
-      purchasePriceBdt: price,
-      hasilBdt: 500,
+      purchasePriceMoney: price,
+      hasilMoney: 500,
       weightKg: 250,
       estimatedAgeMonths: 20,
       arrivedAt: new Date(NOW),
@@ -73,10 +73,10 @@ describe("a Buying Float for the Farm's own outing", () => {
     const manager = await as("manager");
     const floats = await manager.client.cash.tripFloats();
     expect(floats.find((one) => one.tripId === tripId)).toMatchObject({
-      handedBdt: 100_000,
+      handedMoney: 100_000,
       // 85,000 for the bulls, 1,000 of Hasil, 5,000 for the broker and the lorry.
-      boughtBdt: 91_000,
-      backBdt: 0,
+      boughtMoney: 91_000,
+      backMoney: 0,
       carrierId: thePerson("manager").id,
     });
   });
@@ -84,28 +84,28 @@ describe("a Buying Float for the Farm's own outing", () => {
   it("is refused short or over, with the gap", async () => {
     const owner = await as("owner");
     await expect(
-      owner.client.cash.countFloatHome({ tripId, cashBackBdt: 8000 })
+      owner.client.cash.countFloatHome({ tripId, cashBackMoney: 8000 })
     ).rejects.toMatchObject({
-      data: { refusal: "float_short", gapBdt: 1000 },
+      data: { refusal: "float_short", gapMoney: 1000 },
     });
     await expect(
-      owner.client.cash.countFloatHome({ tripId, cashBackBdt: 10_000 })
+      owner.client.cash.countFloatHome({ tripId, cashBackMoney: 10_000 })
     ).rejects.toMatchObject({
-      data: { refusal: "float_over", gapBdt: 1000 },
+      data: { refusal: "float_over", gapMoney: 1000 },
     });
   });
 
   it("is the Owner's to count home", async () => {
     const manager = await as("manager");
     await expect(
-      manager.client.cash.countFloatHome({ tripId, cashBackBdt: 9000 })
+      manager.client.cash.countFloatHome({ tripId, cashBackMoney: 9000 })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("counts home to the taka, the cash back in the Owner's hand and the carrier's hand empty", async () => {
     const ownerBefore = await handOf("owner");
     const owner = await as("owner");
-    await owner.client.cash.countFloatHome({ tripId, cashBackBdt: 9000 });
+    await owner.client.cash.countFloatHome({ tripId, cashBackMoney: 9000 });
     expect(await handOf("owner")).toBe(ownerBefore + 9000);
     expect(await handOf("manager")).toBe(0);
     const manager = await as("manager");
@@ -124,7 +124,7 @@ describe("a Buying Float for the Farm's own outing", () => {
       owner.client.cash.handOver({
         from: { userId: thePerson("owner").id },
         to: { userId: thePerson("manager").id },
-        amountBdt: 1000,
+        amountMoney: 1000,
         buyingTripId: tripId,
       })
     ).rejects.toMatchObject({ data: { refusal: "float_already_reconciled" } });
@@ -137,7 +137,7 @@ describe("a Buying Float for the Farm's own outing", () => {
         penId,
         sex: "male",
         seller: { name: `ব্যাপারী গ ${suffix}` },
-        purchasePriceBdt: 42_000,
+        purchasePriceMoney: 42_000,
         weightKg: 240,
         estimatedAgeMonths: 20,
         arrivedAt: new Date("2072-02-11T05:00:00.000Z"),
@@ -154,7 +154,7 @@ describe("a Buying Float for the Farm's own outing", () => {
       manager.client.trips.correct({
         id: tripId,
         reason: `লরির ভাড়া আসলে বেশি ছিল ${suffix}`,
-        changes: { transportBdt: { from: 3000, to: 5000 } },
+        changes: { transportMoney: { from: 3000, to: 5000 } },
       })
     ).rejects.toMatchObject({ data: { refusal: "float_already_reconciled" } });
   });
@@ -166,7 +166,7 @@ describe("a Buying Float for the Farm's own outing", () => {
       penId,
       sex: "male",
       seller: { name: `প্রতিবেশী ${suffix}` },
-      purchasePriceBdt: 38_000,
+      purchasePriceMoney: 38_000,
       weightKg: 230,
       estimatedAgeMonths: 18,
       arrivedAt: new Date("2072-02-11T07:00:00.000Z"),

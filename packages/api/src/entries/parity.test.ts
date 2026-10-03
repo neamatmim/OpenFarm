@@ -222,7 +222,7 @@ const joiningOf = async (animalId: string) => {
         joinedAt: row.joinedAt.toISOString(),
         targetWindowStart: row.targetWindowStart,
         targetWindowEnd: row.targetWindowEnd,
-        priceBdt: row.priceBdt,
+        priceMoney: row.priceMoney,
       }
     : null;
 };
@@ -470,7 +470,7 @@ describe("a Move", () => {
     });
     expect(later?.outcome).toBe("applied");
     const joined = await joiningOf(offline.id);
-    expect(joined).toMatchObject({ how: "crossed", priceBdt: null });
+    expect(joined).toMatchObject({ how: "crossed", priceMoney: null });
     expect(joined).toEqual(await joiningOf(online.id));
   });
 

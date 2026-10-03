@@ -2,7 +2,10 @@ import { farmDayOf } from "@OpenFarm/domain";
 
 import type { Tx } from "../audit";
 import type { MedicineAdjustment } from "../medicine-count-store";
-import { medicineShortBdt, recordMedicineCount } from "../medicine-count-store";
+import {
+  medicineShortMoney,
+  recordMedicineCount,
+} from "../medicine-count-store";
 import { tell } from "../notice";
 import type { EffectInput, EffectKind, EffectResult } from "./effect";
 
@@ -26,12 +29,12 @@ const tellIfTheMedicineCameUpShort = async (
   input: MedicineCountFacts,
   adjustments: readonly MedicineAdjustment[]
 ) => {
-  const shortBdt = medicineShortBdt(adjustments);
+  const shortMoney = medicineShortMoney(adjustments);
   const farm = await tx.query.farm.findFirst({
     where: { id: input.instance.farmId },
-    columns: { medicineShortTellBdt: true },
+    columns: { medicineShortTellMoney: true },
   });
-  if (!farm || shortBdt <= farm.medicineShortTellBdt) {
+  if (!farm || shortMoney <= farm.medicineShortTellMoney) {
     return;
   }
   await tell(
@@ -41,7 +44,7 @@ const tellIfTheMedicineCameUpShort = async (
       kind: "medicine_short",
       about: { id: input.completionId },
       facts: {
-        shortBdt: Math.round(shortBdt),
+        shortMoney: Math.round(shortMoney),
         countedOn: farmDayOf(input.recordedAt),
       },
     },

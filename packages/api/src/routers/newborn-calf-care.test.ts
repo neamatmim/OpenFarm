@@ -117,7 +117,7 @@ beforeAll(async () => {
     penId: pen.id,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 60_000,
+    purchasePriceMoney: 60_000,
     weightKg: 220,
     estimatedAgeMonths: 18,
     arrivedAt: new Date("2052-03-01T05:00:00.000Z"),

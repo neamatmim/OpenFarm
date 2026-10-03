@@ -20,14 +20,14 @@ const as = (role: "owner" | "manager", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 const plan = {
-  targetCapitalBdt: 1_000_000,
-  floorBdt: 0,
+  targetCapitalMoney: 1_000_000,
+  floorMoney: 0,
   decideBy: "2051-01-20",
   targetWindowStart: "2051-03-17",
   targetWindowEnd: "2051-03-19",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 20,
-  cattleBudgetBdt: 800_000,
+  cattleBudgetMoney: 800_000,
 };
 
 let ventureId = "";
@@ -55,7 +55,7 @@ const signFor = async (
     units,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${which} ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2051-01-02",
     stampSerial: `AA ${which} ${suffix}`,
   });
@@ -127,7 +127,7 @@ beforeAll(async () => {
   const paying = await as("owner", "2051-01-03T04:00:00.000Z");
   await paying.client.ventures.takeCapital({
     agreementId: hisFirst,
-    amountBdt: 200_000,
+    amountMoney: 200_000,
     movedOn: "2051-01-03",
     paymentMethod: "bank",
     reference: `TRF-A-${suffix}`,
@@ -135,14 +135,14 @@ beforeAll(async () => {
   const later = await as("owner", "2051-01-17T04:00:00.000Z");
   await later.client.ventures.takeCapital({
     agreementId: hisFirst,
-    amountBdt: 100_000,
+    amountMoney: 100_000,
     movedOn: "2051-01-17",
     paymentMethod: "bank",
     reference: `TRF-B-${suffix}`,
   });
   await later.client.ventures.takeCapital({
     agreementId: theOtherMans,
-    amountBdt: 400_000,
+    amountMoney: 400_000,
     movedOn: "2051-01-17",
     paymentMethod: "bank",
     reference: `TRF-C-${suffix}`,
@@ -242,7 +242,7 @@ describe("the paper an Investor gets when he joins", () => {
       paper: "joining_letter",
       ventureId,
       movements: 2,
-      capitalBdt: 300_000,
+      capitalMoney: 300_000,
     });
     // The Registration number every Export is stamped with, so "which registration did that sheet
     // quote" has an answer years later.
@@ -279,7 +279,7 @@ describe("the paper an Investor gets when he joins", () => {
       units: 4,
       investorsPercent: 60,
       arbitrator: `মাওলানা ৫ ${suffix}`,
-      stampValueBdt: 300,
+      stampValueMoney: 300,
       stampedOn: "2051-02-10",
       stampSerial: `AA 5 ${suffix}`,
     });
@@ -290,7 +290,7 @@ describe("the paper an Investor gets when he joins", () => {
     });
     await owner.client.ventures.takeCapital({
       agreementId: agreement.id,
-      amountBdt: 200_000,
+      amountMoney: 200_000,
       movedOn: "2051-02-10",
       paymentMethod: "bank",
       reference: `TRF-E-${suffix}`,

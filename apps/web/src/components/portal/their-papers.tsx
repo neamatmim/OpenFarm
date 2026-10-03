@@ -59,7 +59,7 @@ export const TheirPapers = ({
         <Section key={one.id} title={<VentureName one={one} />}>
           <PortalPapers
             agreementId={one.id}
-            hasCapital={one.capitalHeldBdt > 0 || one.settlement !== null}
+            hasCapital={one.capitalHeldMoney > 0 || one.settlement !== null}
             settled={one.settlement !== null}
           />
         </Section>

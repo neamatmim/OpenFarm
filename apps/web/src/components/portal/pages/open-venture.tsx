@@ -45,11 +45,11 @@ const TheOffer = ({ one }: { one: OpenVenture }) => {
       ) : null}
       <Section title={t("ventures.page.terms")}>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-3">
-          <Fact label={t("portal.open.unit")}>{taka(one.unitPriceBdt)}</Fact>
+          <Fact label={t("portal.open.unit")}>{taka(one.unitPriceMoney)}</Fact>
           <Fact label={t("portal.open.target")}>
-            {taka(one.targetCapitalBdt)}
+            {taka(one.targetCapitalMoney)}
           </Fact>
-          <Fact label={t("portal.open.floor")}>{taka(one.floorBdt)}</Fact>
+          <Fact label={t("portal.open.floor")}>{taka(one.floorMoney)}</Fact>
           <Fact label={t("portal.open.decideBy")}>
             <SaidDate at={one.decideBy} />
           </Fact>
@@ -65,17 +65,17 @@ const TheOffer = ({ one }: { one: OpenVenture }) => {
             })}
           </Fact>
           <Fact label={t("portal.open.cattleBudget")}>
-            {taka(one.cattleBudgetBdt)}
+            {taka(one.cattleBudgetMoney)}
           </Fact>
           <Fact label={t("portal.open.runningBudget")}>
-            {taka(one.runningBudgetBdt)}
+            {taka(one.runningBudgetMoney)}
           </Fact>
           {/* How a Unit is paid for, across the whole row: a schedule is read as one sentence. An answer cached before
               Ventures were paid by the month has no schedule, and is one paid before buying. */}
           <Fact className="col-span-full" label={t("ventures.paidFor.label")}>
             <PaidForBy
               paidFor={{
-                unitPriceBdt: one.unitPriceBdt,
+                unitPriceMoney: one.unitPriceMoney,
                 monthly: one.monthly ?? null,
               }}
             />
@@ -88,7 +88,7 @@ const TheOffer = ({ one }: { one: OpenVenture }) => {
         <ul className="flex list-disc flex-col gap-2 pl-5 text-sm">
           <li>
             {t("portal.open.ruleFloor", {
-              floor: taka(one.floorBdt),
+              floor: taka(one.floorMoney),
               day: formatDate(startOfFarmDay(one.decideBy), language, "date"),
             })}
           </li>

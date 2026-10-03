@@ -166,14 +166,14 @@ const OneAdjustment = ({
   onWaive,
 }: {
   adjustment: Adjustment;
-  frozen: { profitBdt: number; perUnitBdt: number };
+  frozen: { profitMoney: number; perUnitMoney: number };
   shares: Approved["shares"];
   onPay: () => void;
   onWaive: () => void;
 }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
-  const down = adjustment.perUnitDifferenceBdt < 0;
+  const down = adjustment.perUnitDifferenceMoney < 0;
   return (
     <div className="flex flex-col gap-1 border-t pt-2 text-sm">
       <div className="flex items-start justify-between gap-2">
@@ -181,13 +181,13 @@ const OneAdjustment = ({
         <StatusBadge
           tone={
             adjustment.outcome === "outstanding" &&
-            adjustment.perUnitToPayBdt <= 0
+            adjustment.perUnitToPayMoney <= 0
               ? "neutral"
               : OUTCOME[adjustment.outcome].tone
           }
         >
           {adjustment.outcome === "outstanding" &&
-          adjustment.perUnitToPayBdt <= 0
+          adjustment.perUnitToPayMoney <= 0
             ? t("ventures.alreadySentByAnEarlierOne")
             : t(OUTCOME[adjustment.outcome].word)}
         </StatusBadge>
@@ -197,14 +197,14 @@ const OneAdjustment = ({
       </p>
       <p className="tabular-nums">
         {t("ventures.wouldBeNow", {
-          profit: taka(adjustment.profitBdt),
-          perUnit: taka(adjustment.perUnitBdt),
+          profit: taka(adjustment.profitMoney),
+          perUnit: taka(adjustment.perUnitMoney),
         })}
       </p>
       <p className="text-muted-foreground tabular-nums">
         {t("ventures.wasFrozenAt", {
-          profit: taka(frozen.profitBdt),
-          perUnit: taka(frozen.perUnitBdt),
+          profit: taka(frozen.profitMoney),
+          perUnit: taka(frozen.perUnitMoney),
         })}
       </p>
       <p
@@ -213,7 +213,7 @@ const OneAdjustment = ({
         }
       >
         {t(down ? "ventures.aUnitLost" : "ventures.aUnitGained", {
-          amount: taka(Math.abs(adjustment.perUnitDifferenceBdt)),
+          amount: taka(Math.abs(adjustment.perUnitDifferenceMoney)),
         })}
       </p>
       {adjustment.waivedNote ? (
@@ -230,7 +230,7 @@ const OneAdjustment = ({
             <div className="flex justify-between gap-2" key={one.agreementId}>
               <span className="text-muted-foreground">{one.name}</span>
               <span className="tabular-nums">
-                {taka(adjustment.perUnitPaidBdt * one.units)}
+                {taka(adjustment.perUnitPaidMoney * one.units)}
               </span>
             </div>
           ))}
@@ -238,7 +238,7 @@ const OneAdjustment = ({
       ) : null}
       {adjustment.outcome === "outstanding" ? (
         <div className="flex justify-end gap-2">
-          {adjustment.perUnitToPayBdt <= 0 ? null : (
+          {adjustment.perUnitToPayMoney <= 0 ? null : (
             <Button
               aria-label={t("ventures.sendOnThis", {
                 reason: adjustment.reason,
@@ -280,7 +280,7 @@ export const Adjustments = ({
 }: {
   approved: Approved;
   onRaise: () => void;
-  onPay: (what: { adjustmentId: string; amountBdt: number }) => void;
+  onPay: (what: { adjustmentId: string; amountMoney: number }) => void;
   onWaive: (adjustmentId: string) => void;
 }) => {
   const { t } = useLanguage();
@@ -306,7 +306,7 @@ export const Adjustments = ({
             onPay={() =>
               onPay({
                 adjustmentId: one.id,
-                amountBdt: one.perUnitToPayBdt * approved.units,
+                amountMoney: one.perUnitToPayMoney * approved.units,
               })
             }
             onWaive={() => onWaive(one.id)}

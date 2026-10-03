@@ -142,7 +142,7 @@ beforeAll(async () => {
       penId: pen.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
-      purchasePriceBdt: 80_000,
+      purchasePriceMoney: 80_000,
       weightKg: 250,
       estimatedAgeMonths: 20,
       arrivedAt: new Date(`${DAY}T01:00:00.000Z`),
@@ -158,18 +158,18 @@ beforeAll(async () => {
   ventureName = `ভেঞ্চার ${suffix}`;
   const venture = await owner.client.ventures.open({
     name: ventureName,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2090-04-01",
     targetWindowStart: "2090-09-01",
     targetWindowEnd: "2090-09-05",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
-    cattleBudgetBdt: 800_000,
+    cattleBudgetMoney: 800_000,
   });
   await putCapitalIn(
     owner.client,
-    { id: venture.id, units: 20, unitPriceBdt: 50_000 },
+    { id: venture.id, units: 20, unitPriceMoney: 50_000 },
     suffix,
     "2090-04-01"
   );
@@ -231,7 +231,7 @@ describe("a death told to the Owner", () => {
           tag: tags.died,
           kind: "died",
           cause: `পেট ফাঁপা ${suffix}`,
-          costBdt: 80_000,
+          costMoney: 80_000,
           venture: null,
         }),
       },

@@ -27,14 +27,14 @@ const aShownVenture = async (name: string) => {
   const owner = await asOwner();
   const venture = await owner.ventures.open({
     name: `${name} ${suffix}`,
-    targetCapitalBdt: 500_000,
-    floorBdt: 50_000,
+    targetCapitalMoney: 500_000,
+    floorMoney: 50_000,
     decideBy: "2055-01-20",
     targetWindowStart: "2055-06-01",
     targetWindowEnd: "2055-06-10",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 10,
-    cattleBudgetBdt: 400_000,
+    cattleBudgetMoney: 400_000,
   });
   await owner.ventures.showInPortal({ id: venture.id, words: "" });
   return venture.id;
@@ -76,7 +76,7 @@ const meetTheFloor = async (ventureId: string) => {
     investorsPercent: 60,
     arbitrator: `সালিস ${suffix}`,
     stampKind: "paper",
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2055-01-02",
     stampSerial: `S-${ventureId.slice(-8)}`,
   });
@@ -87,7 +87,7 @@ const meetTheFloor = async (ventureId: string) => {
   });
   await owner.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: 50_000,
+    amountMoney: 50_000,
     movedOn: "2055-01-03",
     paymentMethod: "bank",
     reference: `TRF-${ventureId.slice(-8)}`,

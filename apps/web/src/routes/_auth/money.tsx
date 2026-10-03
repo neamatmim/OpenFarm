@@ -60,8 +60,8 @@ const useMoneyFigures = (list: MoneyList | undefined): Figure[] => {
   const { t, language } = useLanguage();
   const taka = useTaka();
   const {
-    inBdt: moneyIn,
-    outBdt: moneyOut,
+    inMoney: moneyIn,
+    outMoney: moneyOut,
     awaiting,
   } = moneyTotals(list ?? { events: [] });
   const net = moneyIn - moneyOut;

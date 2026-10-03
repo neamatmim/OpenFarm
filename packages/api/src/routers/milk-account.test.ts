@@ -68,7 +68,7 @@ beforeAll(async () => {
       litres: 9,
       buyer: { name: `মিষ্টির দোকান ${suffix}` },
       challan: `CH-${day}`,
-      pricePerLitreBdt: 60,
+      pricePerLitreMoney: 60,
       fatPercent: 4,
       snfPercent: 8.5,
     });

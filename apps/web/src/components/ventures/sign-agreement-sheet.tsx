@@ -38,7 +38,7 @@ interface Terms {
   stampKind: StampKind;
   /** Offered to agree to in the app instead, with no stamp: the farm's switch is on. */
   inApp: boolean;
-  stampValueBdt: string;
+  stampValueMoney: string;
   stampedOn: string;
   stampSerial: string;
 }
@@ -96,7 +96,7 @@ const NOTHING_SIGNED: Terms = {
   arbitrator: "",
   stampKind: "paper",
   inApp: false,
-  stampValueBdt: "",
+  stampValueMoney: "",
   stampedOn: "",
   stampSerial: "",
 };
@@ -123,7 +123,7 @@ const stampMissing = (
   terms: Terms,
   t: ReturnType<typeof useLanguage>["t"]
 ): StillMissing | null => {
-  if (!(Number(terms.stampValueBdt) > 0)) {
+  if (!(Number(terms.stampValueMoney) > 0)) {
     return {
       said: t("ventures.missing.stampValue"),
       at: "agreement-stamp-value",
@@ -473,10 +473,10 @@ const TheStamp = ({
             id="agreement-stamp-value"
             inputMode="numeric"
             onChange={(event) =>
-              onChange({ ...terms, stampValueBdt: event.target.value })
+              onChange({ ...terms, stampValueMoney: event.target.value })
             }
             type="number"
-            value={terms.stampValueBdt}
+            value={terms.stampValueMoney}
           />
         </FormField>
         <FormField
@@ -735,7 +735,7 @@ export const SignAgreementSheet = ({
           ...said,
           arbitrator: terms.arbitrator,
           stampKind: terms.stampKind,
-          stampValueBdt: Number(terms.stampValueBdt),
+          stampValueMoney: Number(terms.stampValueMoney),
           stampedOn: terms.stampedOn,
           stampSerial: terms.stampSerial,
         });

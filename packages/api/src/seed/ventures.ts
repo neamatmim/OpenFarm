@@ -228,15 +228,15 @@ const signOn = async (
   who: (typeof INVESTORS)[number],
   {
     units,
-    unitPriceBdt,
+    unitPriceMoney,
     on,
-    paidBdt = units * unitPriceBdt,
+    paidMoney = units * unitPriceMoney,
   }: {
     units: number;
-    unitPriceBdt: number;
+    unitPriceMoney: number;
     on: string;
     /** What comes in on the day: his Units' whole price, or — paid by the month — their Cattle Part. */
-    paidBdt?: number;
+    paidMoney?: number;
   }
 ) => {
   farm.clock.set(onFarm(on, "10:30"));
@@ -253,7 +253,7 @@ const signOn = async (
     units,
     investorsPercent: INVESTORS_PERCENT,
     arbitrator: ARBITRATOR,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: on,
     stampSerial: `AA-${farm.random.int(100_000, 999_999)}`,
     // The Agreement names their nominee, who collects the whole: signing makes it their Nomination.
@@ -269,7 +269,7 @@ const signOn = async (
   farm.clock.set(onFarm(on, "11:15"));
   await farm.as.owner.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: paidBdt,
+    amountMoney: paidMoney,
     movedOn: on,
     paymentMethod: "bank",
     // What the bank printed, with the Pay-in Code the Investor wrote on the transfer inside it.
@@ -291,10 +291,10 @@ const openAVenture = async (
     openedOn: string;
     signedOn: string;
     buyingFrom: string;
-    targetCapitalBdt: number;
-    unitPriceBdt: number;
+    targetCapitalMoney: number;
+    unitPriceMoney: number;
     units: number;
-    cattleBudgetBdt: number;
+    cattleBudgetMoney: number;
     decideBy: string;
     targetWindowStart: string;
     targetWindowEnd: string;
@@ -304,10 +304,10 @@ const openAVenture = async (
   farm.clock.set(onFarm(plan.openedOn, "09:30"));
   const venture = await farm.as.owner.ventures.open({
     name: plan.name,
-    targetCapitalBdt: plan.targetCapitalBdt,
-    unitPriceBdt: plan.unitPriceBdt,
+    targetCapitalMoney: plan.targetCapitalMoney,
+    unitPriceMoney: plan.unitPriceMoney,
     units: plan.units,
-    cattleBudgetBdt: plan.cattleBudgetBdt,
+    cattleBudgetMoney: plan.cattleBudgetMoney,
     decideBy: plan.decideBy,
     targetWindowStart: plan.targetWindowStart,
     targetWindowEnd: plan.targetWindowEnd,
@@ -321,7 +321,7 @@ const openAVenture = async (
     agreements.push(
       await signOn(farm, venture.id, who, {
         units: taken.units,
-        unitPriceBdt: plan.unitPriceBdt,
+        unitPriceMoney: plan.unitPriceMoney,
         on: addDays(plan.signedOn, index),
       })
     );
@@ -352,20 +352,20 @@ const buyOnTheVenture = async (
   {
     on,
     count,
-    floatBdt,
+    floatMoney,
     window,
   }: {
     on: string;
     count: number;
-    floatBdt: number;
+    floatMoney: number;
     window: { start: string; end: string };
   }
 ): Promise<void> => {
   farm.clock.set(onFarm(on, "05:30"));
   const day = {
-    brokerBdt: count * farm.random.int(250, 400),
-    transportBdt: farm.random.int(6000, 11_000),
-    keepBdt: farm.random.int(900, 1800),
+    brokerMoney: count * farm.random.int(250, 400),
+    transportMoney: farm.random.int(6000, 11_000),
+    keepMoney: farm.random.int(900, 1800),
   };
   const trip = await farm.as.manager.trips.record({
     wentTo: "গাবতলী গরুর হাট, ঢাকা",
@@ -377,7 +377,7 @@ const buyOnTheVenture = async (
   await farm.as.owner.ventures.drawFloat({
     ventureId: venture.id,
     buyingTripId: trip.id,
-    amountBdt: floatBdt,
+    amountMoney: floatMoney,
     movedOn: on,
     paymentMethod: "bank",
     reference: `FLT-${farm.random.int(100_000, 999_999)}`,
@@ -408,8 +408,8 @@ const buyOnTheVenture = async (
         address: "গাবতলী গরুর হাট, ঢাকা",
         phone: "01819-224571",
       },
-      purchasePriceBdt: price,
-      hasilBdt: hasil,
+      purchasePriceMoney: price,
+      hasilMoney: hasil,
       buyingTripId: trip.id,
       weightKg,
       estimatedAgeMonths: farm.random.int(17, 26),
@@ -438,10 +438,10 @@ const buyOnTheVenture = async (
   // What went to the haat and did not get spent goes back in the same evening, and the Float is closed.
   // The beasts *and* the day itself came out of it — the broker, the lorry and keeping the men who went
   // — and the app refuses a count that does not balance to the taka, which is the whole point of it.
-  const spentOnTheDay = day.brokerBdt + day.transportBdt + day.keepBdt;
+  const spentOnTheDay = day.brokerMoney + day.transportMoney + day.keepMoney;
   await farm.as.owner.ventures.reconcileFloat({
     buyingTripId: trip.id,
-    cashBackBdt: floatBdt - spent - spentOnTheDay,
+    cashBackMoney: floatMoney - spent - spentOnTheDay,
     movedOn: on,
     reference: `DEP-${farm.random.int(100_000, 999_999)}`,
   });
@@ -484,13 +484,13 @@ const reimburseTheMonth = async (
     ventureId: venture.id,
     month,
   });
-  if (owed.totalBdt <= 0) {
+  if (owed.totalMoney <= 0) {
     return;
   }
   await farm.as.owner.ventures.reimburse({
     ventureId: venture.id,
     month,
-    amountBdt: owed.totalBdt,
+    amountMoney: owed.totalMoney,
     movedOn: on,
     paymentMethod: "bank",
     farmAccountId: farm.farmAccounts.bank,
@@ -522,7 +522,7 @@ const readTheStatement = async (
   await farm.as.owner.ventures.checkTheBank({
     ventureId: venture.id,
     month,
-    readBdt: expected,
+    readMoney: expected,
   });
 };
 
@@ -560,8 +560,8 @@ const sellTheVenture = async (
   farm.clock.set(onFarm(wentOn, "05:30"));
   await farm.as.manager.sellingTrips.record({
     wentTo: "গাবতলী পশুর হাট, ঢাকা",
-    transportBdt: farm.random.int(7000, 9500),
-    keepBdt: farm.random.int(1200, 2200),
+    transportMoney: farm.random.int(7000, 9500),
+    keepMoney: farm.random.int(1200, 2200),
     animals: standing.map((bull) => bull.tag),
     wentOn: onFarm(wentOn, "05:30"),
     paymentMethod: "cash",
@@ -576,7 +576,7 @@ const sellTheVenture = async (
     await farm.as.manager.sale.record({
       tagNumber: bull.tag,
       buyer,
-      priceBdt:
+      priceMoney:
         Math.round((weightKg * farm.random.between(575, 640)) / 1000) * 1000,
       weightKg,
       destination: buyer.address,
@@ -622,7 +622,7 @@ const settleUp = async (
   if (!approved) {
     return;
   }
-  if (approved.advanceBdt > 0) {
+  if (approved.advanceMoney > 0) {
     farm.clock.set(onFarm(on, "10:30"));
     await farm.as.owner.ventures.repayAdvance({
       ventureId: venture.id,
@@ -637,7 +637,7 @@ const settleUp = async (
     await farm.as.owner.ventures.paySettlement({
       ventureId: venture.id,
       agreementId: share.agreementId,
-      amountBdt: share.payoutBdt,
+      amountMoney: share.payoutMoney,
       movedOn: day,
       paymentMethod: "bank",
       reference: `OUT-${farm.random.int(100_000, 999_999)}`,
@@ -654,7 +654,7 @@ const settleUp = async (
   }
   // The Farm's own share leaves too: its money never stays in a Venture Account, so a settled one
   // reads nothing. A run that made the Farm nothing has nothing to take.
-  if (approved.farmBdt > 0) {
+  if (approved.farmMoney > 0) {
     farm.clock.set(onFarm(addDays(on, 2), "16:00"));
     await farm.as.owner.ventures.takeTheFarmsShare({
       ventureId: venture.id,
@@ -681,10 +681,10 @@ export const openTheVentures = async (
     openedOn: addDays(start, -10),
     signedOn: addDays(start, -9),
     buyingFrom: addDays(start, -6),
-    targetCapitalBdt: 1_200_000,
-    unitPriceBdt: 50_000,
+    targetCapitalMoney: 1_200_000,
+    unitPriceMoney: 50_000,
     units: 24,
-    cattleBudgetBdt: 900_000,
+    cattleBudgetMoney: 900_000,
     decideBy: addDays(start, -7),
     targetWindowStart: closing.window.start,
     targetWindowEnd: closing.window.end,
@@ -697,7 +697,7 @@ export const openTheVentures = async (
   await buyOnTheVenture(farm, herd, settling, {
     on: addDays(start, -5),
     count: 6,
-    floatBdt: 900_000,
+    floatMoney: 900_000,
     window: closing.window,
   });
 
@@ -706,10 +706,10 @@ export const openTheVentures = async (
     openedOn: addDays(start, -8),
     signedOn: addDays(start, -7),
     buyingFrom: addDays(start, -4),
-    targetCapitalBdt: 1_000_000,
-    unitPriceBdt: 50_000,
+    targetCapitalMoney: 1_000_000,
+    unitPriceMoney: 50_000,
     units: 20,
-    cattleBudgetBdt: 750_000,
+    cattleBudgetMoney: 750_000,
     decideBy: addDays(start, -5),
     targetWindowStart: addDays(today, 150),
     targetWindowEnd: addDays(today, 160),
@@ -729,7 +729,7 @@ export const openTheVentures = async (
   await buyOnTheVenture(farm, herd, running, {
     on: addDays(start, -3),
     count: 5,
-    floatBdt: 750_000,
+    floatMoney: 750_000,
     window: {
       start: addDays(today, 150),
       end: addDays(today, 160),
@@ -783,10 +783,10 @@ const payTheMonthlyVenture = (
   const { start, today } = farm;
   const plan = {
     name: "মাসে মাসে ২০২৭ ভেঞ্চার",
-    targetCapitalBdt: 1_000_000,
-    unitPriceBdt: 50_000,
+    targetCapitalMoney: 1_000_000,
+    unitPriceMoney: 50_000,
     units: 20,
-    cattleBudgetBdt: 800_000,
+    cattleBudgetMoney: 800_000,
     decideBy: addDays(start, 15),
     targetWindowStart: addDays(today, 120),
     targetWindowEnd: addDays(today, 130),
@@ -795,7 +795,7 @@ const payTheMonthlyVenture = (
   if (typeof terms === "string") {
     throw new TypeError(`the monthly Venture cannot open: ${terms}`);
   }
-  const sums = monthlySumsOf(plan.unitPriceBdt, terms);
+  const sums = monthlySumsOf(plan.unitPriceMoney, terms);
   const onTime = { who: INVESTORS[5], units: 10, id: "" };
   const behind = { who: INVESTORS[6], units: 6, id: "" };
   let ventureId = "";
@@ -808,9 +808,9 @@ const payTheMonthlyVenture = (
     for (const [index, one] of [onTime, behind].entries()) {
       const signed = await signOn(f, ventureId, one.who, {
         units: one.units,
-        unitPriceBdt: plan.unitPriceBdt,
+        unitPriceMoney: plan.unitPriceMoney,
         on: addDays(start, 6 + index),
-        paidBdt: one.units * terms.cattlePartBdt,
+        paidMoney: one.units * terms.cattlePartMoney,
       });
       one.id = signed.id;
     }
@@ -828,7 +828,7 @@ const payTheMonthlyVenture = (
         }
         await f.as.owner.ventures.takeCapital({
           agreementId: one.id,
-          amountBdt: one.units * sum.bdt,
+          amountMoney: one.units * sum.amount,
           movedOn: sum.dueOn,
           paymentMethod: "bank",
           reference: `BEFTN TRF-${f.random.int(100_000, 999_999)}`,
@@ -883,10 +883,10 @@ export const runTheVentures = (
     async (f) => {
       const next = await f.as.owner.ventures.open({
         name: "কোরবানি ২০২৭ ভেঞ্চার",
-        targetCapitalBdt: 1_500_000,
-        unitPriceBdt: 50_000,
+        targetCapitalMoney: 1_500_000,
+        unitPriceMoney: 50_000,
         units: 30,
-        cattleBudgetBdt: 1_100_000,
+        cattleBudgetMoney: 1_100_000,
         decideBy: addDays(today, 25),
         targetWindowStart: addDays(today, 200),
         targetWindowEnd: addDays(today, 210),
@@ -945,7 +945,7 @@ export const runTheVentures = (
     async (f) => {
       await f.as.owner.ventures.advance({
         ventureId: running.id,
-        amountBdt: 60_000,
+        amountMoney: 60_000,
         movedOn: addDays(today, -47),
         paymentMethod: "bank",
         reference: `ADV-${f.random.int(100_000, 999_999)}`,

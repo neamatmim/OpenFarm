@@ -359,7 +359,7 @@ export type StockMovement =
       at: Date;
       quantity: number;
       /** What the lot cost; null for a Harvest from the farm's own fields. */
-      priceBdt: number | null;
+      priceMoney: number | null;
     }
   | { kind: "out"; at: Date; quantity: number }
   /** A Stock Count: what was really there. It wins over whatever the store was thought to hold. */
@@ -398,7 +398,7 @@ const replayStore = (
       onHand -= one.quantity;
       value = onHand > 0 ? Math.max(0, value - unitPrice * one.quantity) : 0;
     } else {
-      const cost = one.priceBdt ?? 0;
+      const cost = one.priceMoney ?? 0;
       // A store at or below nothing starts again from what came in: there is nothing left to average the
       // new lot with, and what the pens already ate of it before it was written down was charged when
       // they ate it — so only the part still standing carries its share of the cost.
@@ -410,7 +410,7 @@ const replayStore = (
         onHand += one.quantity;
         value += cost;
       }
-      if (one.priceBdt !== null || price !== null) {
+      if (one.priceMoney !== null || price !== null) {
         price = onHand > 0 ? value / onHand : price;
       }
     }
@@ -436,13 +436,13 @@ const replayStore = (
 export const stockLedger = (
   movements: readonly StockMovement[],
   asOf?: Date
-): { onHand: number; averagePriceBdt: number | null } => {
+): { onHand: number; averagePriceMoney: number | null } => {
   const { onHand, price } = replayStore(
     asOf ? movements.filter((one) => one.at <= asOf) : movements
   );
   return {
     onHand: roundKg(onHand),
-    averagePriceBdt: price === null ? null : roundTaka(price),
+    averagePriceMoney: price === null ? null : roundTaka(price),
   };
 };
 
@@ -453,22 +453,22 @@ export const stockLedger = (
  * has no price — the farm's own napier — and adds nothing either way.
  */
 export const shortfallOf = (
-  lines: readonly { difference: number; priceBdt: number | null }[]
-): { shortBdt: number; overBdt: number } => {
+  lines: readonly { difference: number; priceMoney: number | null }[]
+): { shortMoney: number; overMoney: number } => {
   let short = 0;
   let over = 0;
   for (const line of lines) {
-    if (line.priceBdt === null) {
+    if (line.priceMoney === null) {
       continue;
     }
-    const value = line.difference * line.priceBdt;
+    const value = line.difference * line.priceMoney;
     if (value < 0) {
       short -= value;
     } else {
       over += value;
     }
   }
-  return { shortBdt: roundTaka(short), overBdt: roundTaka(over) };
+  return { shortMoney: roundTaka(short), overMoney: roundTaka(over) };
 };
 
 /** One arrival of feed, as its price per unit is read: a Purchase has one, a Harvest never — its worth is the farm's
@@ -478,27 +478,27 @@ export interface ArrivalPriced {
   feedItemId: string;
   kind: "purchase" | "harvest";
   quantity: number;
-  priceBdt: number | null;
+  priceMoney: number | null;
   receivedOn: Date;
 }
 
 /** What one unit of a Feed Purchase cost — a bag bought by the bag is read per kilo, as it is stored — or nothing for a
  *  Harvest, or a purchase with no price or nothing in it. */
 export const unitPriceOf = (
-  arrival: Pick<ArrivalPriced, "kind" | "quantity" | "priceBdt">
+  arrival: Pick<ArrivalPriced, "kind" | "quantity" | "priceMoney">
 ): number | null =>
   arrival.kind === "purchase" &&
-  arrival.priceBdt !== null &&
+  arrival.priceMoney !== null &&
   arrival.quantity > 0
-    ? arrival.priceBdt / arrival.quantity
+    ? arrival.priceMoney / arrival.quantity
     : null;
 
 /** A Feed Purchase's price per unit, beside the one before it of the same feed. */
 export interface PurchasePrice {
-  unitPriceBdt: number;
+  unitPriceMoney: number;
   /** The last Purchase of the same feed before it, by the day it came and then the order it was written; nothing for
    *  the first. */
-  previousUnitPriceBdt: number | null;
+  previousUnitPriceMoney: number | null;
   /** How far it moved on that one, to a tenth of a percent; nothing for the first. */
   changePercent: number | null;
 }
@@ -520,20 +520,20 @@ export const purchasePricesOf = (
   const lastOf = new Map<string, number>();
   const prices = new Map<string, PurchasePrice>();
   for (const arrival of inOrder) {
-    const unitPriceBdt = unitPriceOf(arrival);
-    if (unitPriceBdt === null) {
+    const unitPriceMoney = unitPriceOf(arrival);
+    if (unitPriceMoney === null) {
       continue;
     }
     const previous = lastOf.get(arrival.feedItemId) ?? null;
     prices.set(arrival.id, {
-      unitPriceBdt,
-      previousUnitPriceBdt: previous,
+      unitPriceMoney,
+      previousUnitPriceMoney: previous,
       changePercent:
         previous === null || previous === 0
           ? null
-          : Math.round(((unitPriceBdt - previous) / previous) * 1000) / 10,
+          : Math.round(((unitPriceMoney - previous) / previous) * 1000) / 10,
     });
-    lastOf.set(arrival.feedItemId, unitPriceBdt);
+    lastOf.set(arrival.feedItemId, unitPriceMoney);
   }
   return prices;
 };
@@ -601,7 +601,7 @@ export interface WeighedLot {
   /** What the farm's scale showed. */
   quantity: number;
   /** What the lot cost, which the slip's kilos were charged at. */
-  priceBdt: number;
+  priceMoney: number;
 }
 
 /** One seller's lots on the farm's scale: what the slips said, what the scale showed, and what was short — in kilos, as
@@ -615,7 +615,7 @@ export interface SellerOnTheScale {
   /** Below nothing where the scale came over. */
   shortKg: number;
   shortPercent: number;
-  shortBdt: number;
+  shortMoney: number;
 }
 
 /**
@@ -638,14 +638,14 @@ export const sellersOnTheScale = (
       weighedKg: 0,
       shortKg: 0,
       shortPercent: 0,
-      shortBdt: 0,
+      shortMoney: 0,
     };
     const short = lot.slipQuantity - lot.quantity;
     seller.lots += 1;
     seller.slipKg += lot.slipQuantity;
     seller.weighedKg += lot.quantity;
     seller.shortKg += short;
-    seller.shortBdt += (short * lot.priceBdt) / lot.slipQuantity;
+    seller.shortMoney += (short * lot.priceMoney) / lot.slipQuantity;
     bySeller.set(lot.sellerId, seller);
   }
   return [...bySeller.values()]
@@ -655,11 +655,11 @@ export const sellersOnTheScale = (
       weighedKg: roundKg(seller.weighedKg),
       shortKg: roundKg(seller.shortKg),
       shortPercent: Math.round((seller.shortKg / seller.slipKg) * 1000) / 10,
-      shortBdt: Math.round(seller.shortBdt),
+      shortMoney: Math.round(seller.shortMoney),
     }))
     .toSorted(
       (a, b) =>
-        b.shortBdt - a.shortBdt || a.sellerName.localeCompare(b.sellerName)
+        b.shortMoney - a.shortMoney || a.sellerName.localeCompare(b.sellerName)
     );
 };
 

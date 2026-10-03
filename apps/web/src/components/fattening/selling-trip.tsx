@@ -26,14 +26,14 @@ import { orpc } from "@/utils/orpc";
 
 interface Day {
   wentTo: string;
-  transportBdt: string;
-  keepBdt: string;
+  transportMoney: string;
+  keepMoney: string;
 }
 
 const NOTHING_YET: Day = {
   wentTo: "",
-  transportBdt: "",
-  keepBdt: "",
+  transportMoney: "",
+  keepMoney: "",
 };
 
 const orNothing = (value: string) =>
@@ -212,8 +212,8 @@ export const SellingTripForm = () => {
           />
           {(
             [
-              ["selling-transport", "selling.transport", "transportBdt"],
-              ["selling-keep", "selling.keep", "keepBdt"],
+              ["selling-transport", "selling.transport", "transportMoney"],
+              ["selling-keep", "selling.keep", "keepMoney"],
             ] as const
           ).map(([id, label, key]) => (
             <FormField id={id} key={id} label={t(label)}>
@@ -258,8 +258,8 @@ export const SellingTripForm = () => {
             onClick={() =>
               record.mutate({
                 wentTo: day.wentTo,
-                transportBdt: orNothing(day.transportBdt),
-                keepBdt: orNothing(day.keepBdt),
+                transportMoney: orNothing(day.transportMoney),
+                keepMoney: orNothing(day.keepMoney),
                 animals: taken,
                 paymentMethod,
                 ...accountSent(paymentMethod, account),
@@ -287,7 +287,7 @@ export const SellingTripForm = () => {
                   </span>
                 </span>
                 <span className="flex flex-col items-end gap-0.5 whitespace-nowrap tabular-nums">
-                  <span className="font-medium">{taka(one.costBdt)}</span>
+                  <span className="font-medium">{taka(one.costMoney)}</span>
                   <span className="text-muted-foreground text-xs">
                     {t("selling.tookAnimals", {
                       count: formatNumber(one.animals, language),

@@ -73,7 +73,7 @@ const whatItsAnimalsConsumed = async (
     farmCosts(context.db, context.farm.id),
     ownedThenByOf(context.db, context.farm.id),
   ]);
-  const { consumed, carried, totalBdt, unpricedKg, uncostedDoses } =
+  const { consumed, carried, totalMoney, unpricedKg, uncostedDoses } =
     await aMonthsReimbursement(context.db, context.farm.id, ventureId, month, {
       costs,
       ownedThenBy,
@@ -97,10 +97,10 @@ const whatItsAnimalsConsumed = async (
   return {
     ...consumed,
     /** The month's own figure, before what it carries. */
-    ownBdt: consumed.totalBdt,
+    ownMoney: consumed.totalMoney,
     carried,
     /** What the transfer comes to: its own figure and every carried line. */
-    totalBdt,
+    totalMoney,
     /** Kilos nothing can price and doses nothing can cost, in the month or in a month it carries: it waits for them. */
     unpricedKg,
     uncostedDoses,
@@ -171,7 +171,7 @@ export const booksProcedures = {
     .input(z.object({ ventureId: z.string(), month: monthInput }))
     .handler(async ({ context, input }) => {
       const row = await ours(context, input.ventureId);
-      const expectedBdt = await balanceAtMonthEnd(
+      const expectedMoney = await balanceAtMonthEnd(
         context.db,
         context.farm.id,
         row.id,
@@ -185,15 +185,15 @@ export const booksProcedures = {
         },
       });
       return {
-        expectedBdt,
+        expectedMoney,
         checked: already
           ? {
-              readBdt: already.readBdt,
-              /** What the farm believed when she read the statement, which is not `expectedBdt` once
+              readMoney: already.readMoney,
+              /** What the farm believed when she read the statement, which is not `expectedMoney` once
                *  something has moved in that month since. */
-              expectedBdt: already.expectedBdt,
+              expectedMoney: already.expectedMoney,
               note: already.note,
-              stale: roundTaka(expectedBdt - already.expectedBdt) !== 0,
+              stale: roundTaka(expectedMoney - already.expectedMoney) !== 0,
             }
           : null,
       };
@@ -216,7 +216,7 @@ export const booksProcedures = {
         month: monthInput,
         /** What the statement said. Signed, because a statement can read below nothing and the farm
          *  would rather be told than have the figure refused. */
-        readBdt: z.number().min(-1_000_000_000).max(1_000_000_000),
+        readMoney: z.number().min(-1_000_000_000).max(1_000_000_000),
         /** What she has found out about a difference, where she has found out anything. */
         note: z.string().trim().max(400).optional(),
       })
@@ -239,7 +239,7 @@ export const booksProcedures = {
           data: { refusal: "month_before_the_venture" },
         });
       }
-      let expectedBdt = 0;
+      let expectedMoney = 0;
       // Read for the label alone: whether the trail calls this a first reading or a month put right.
       // What is written is decided inside the lock, so a race can mislabel the act but never the row.
       const readBefore = await context.db.query.ventureBankCheck.findFirst({
@@ -270,7 +270,7 @@ export const booksProcedures = {
           // true until the next movement commits, and two readings of one month must not race into two
           // rows.
           await lockTheFarm(tx, context.farm.id);
-          expectedBdt = await balanceAtMonthEnd(
+          expectedMoney = await balanceAtMonthEnd(
             tx,
             context.farm.id,
             row.id,
@@ -288,8 +288,8 @@ export const booksProcedures = {
           // between correcting a reading and quietly making a problem go away.
           const disagreed =
             already !== undefined &&
-            roundTaka(already.readBdt - already.expectedBdt) !== 0;
-          const agreesNow = roundTaka(input.readBdt - expectedBdt) === 0;
+            roundTaka(already.readMoney - already.expectedMoney) !== 0;
+          const agreesNow = roundTaka(input.readMoney - expectedMoney) === 0;
           // Said now, not once before: the note she wrote when it disagreed explains the disagreement,
           // and putting the month right is a different thing to explain.
           if (disagreed && !input.note) {
@@ -306,8 +306,8 @@ export const booksProcedures = {
               farmId: context.farm.id,
               ventureId: row.id,
               forMonth: input.month,
-              readBdt: input.readBdt,
-              expectedBdt,
+              readMoney: input.readMoney,
+              expectedMoney,
               note: input.note ?? null,
               checkedBy: context.actor.id,
               checkedAt: now,
@@ -315,8 +315,8 @@ export const booksProcedures = {
             .onConflictDoUpdate({
               target: ventureBankCheck.id,
               set: {
-                readBdt: input.readBdt,
-                expectedBdt,
+                readMoney: input.readMoney,
+                expectedMoney,
                 // Kept unless she says something new: re-reading a month must not erase what she
                 // found out about it last time. Dropped once the month agrees, because what she found
                 // out was about a difference that is no longer there.
@@ -329,9 +329,9 @@ export const booksProcedures = {
         }
       );
       return {
-        expectedBdt,
-        readBdt: input.readBdt,
-        differenceBdt: roundTaka(input.readBdt - expectedBdt),
+        expectedMoney,
+        readMoney: input.readMoney,
+        differenceMoney: roundTaka(input.readMoney - expectedMoney),
       };
     }),
 
@@ -349,7 +349,7 @@ export const booksProcedures = {
     .input(
       z.object({
         ventureId: z.string(),
-        amountBdt: money.refine((taka) => taka > 0, {
+        amountMoney: money.refine((taka) => taka > 0, {
           message: "An Advance is money going in",
         }),
         movedOn: farmDay,
@@ -381,7 +381,7 @@ export const booksProcedures = {
             farmId: context.farm.id,
             ventureId: standing.id,
             kind: "advance",
-            amountBdt: input.amountBdt,
+            amountMoney: input.amountMoney,
             movedOn: input.movedOn,
             reference: input.reference,
             recordedBy: context.actor.id,
@@ -479,7 +479,7 @@ export const booksProcedures = {
         farmAccountId: farmAccountIdInput,
         /** The figure the Owner read before she committed. Refused when it is not what the farm works
          *  out now — a Feeding entered late, or a Category re-marked, moves the sum she was shown. */
-        amountBdt: money,
+        amountMoney: money,
       })
     )
     .handler(async ({ context, input }) => {
@@ -516,17 +516,17 @@ export const booksProcedures = {
       }
       // Asked first: a month that comes to nothing or less — its lines carried back more than it ate — sends nothing,
       // and what it carries rides on to the month after.
-      if (consumed.totalBdt <= 0) {
+      if (consumed.totalMoney <= 0) {
         throw new ORPCError("BAD_REQUEST", {
           message:
             "Its animals consumed nothing that month, or less than what it carries back",
           data: { refusal: "nothing_to_reimburse" },
         });
       }
-      if (roundTaka(input.amountBdt) !== consumed.totalBdt) {
+      if (roundTaka(input.amountMoney) !== consumed.totalMoney) {
         throw new ORPCError("BAD_REQUEST", {
-          message: `That month now comes to ${consumed.totalBdt}`,
-          data: { refusal: "amount_changed", totalBdt: consumed.totalBdt },
+          message: `That month now comes to ${consumed.totalMoney}`,
+          data: { refusal: "amount_changed", totalMoney: consumed.totalMoney },
         });
       }
       const id = uuidv7(now);
@@ -573,7 +573,7 @@ export const booksProcedures = {
             ventureId: row.id,
             kind: "reimbursement",
             forMonth: input.month,
-            amountBdt: consumed.totalBdt,
+            amountMoney: consumed.totalMoney,
             carried: consumed.carried,
             movedOn: input.movedOn,
             reference: input.reference,
@@ -592,7 +592,7 @@ export const booksProcedures = {
             {
               source: "reimbursement",
               sourceId: id,
-              amountBdt: consumed.totalBdt,
+              amountMoney: consumed.totalMoney,
               occurredAt: startOfFarmDay(input.movedOn),
               counterpartyId: null,
               paymentMethod: input.paymentMethod,
@@ -687,7 +687,7 @@ export const booksProcedures = {
           ? (whose.get(one.agreementId) ?? null)
           : null,
         buyingTripId: one.buyingTripId,
-        amountBdt: one.amountBdt,
+        amountMoney: one.amountMoney,
         movedOn: one.movedOn,
         reference: one.reference,
         refundsId: one.refundsId,

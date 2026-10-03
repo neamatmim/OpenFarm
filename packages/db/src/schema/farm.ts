@@ -164,7 +164,7 @@ export const farm = pgTable("farm", {
    *  and not a proportion: the animals eat what they eat whatever the Venture raised, and a Venture
    *  funded short would otherwise be warned later than one funded full. The Owner is told while an
    *  Advance is still a decision rather than an emergency at the feed store. */
-  runningBudgetWarnBdt: integer("running_budget_warn_bdt")
+  runningBudgetWarnMoney: integer("running_budget_warn_money")
     .notNull()
     .default(50_000),
   /** The days after a Venture's Target Window in which it keeps selling before the Farm buys whatever is
@@ -175,11 +175,11 @@ export const farm = pgTable("farm", {
   priceWeighInDays: integer("price_weigh_in_days").notNull().default(14),
   /** The taka above which a Settlement Adjustment has to be paid or waived rather than only noted: a
    *  hundred taka should not cost a trip to the bank. */
-  adjustmentThresholdBdt: integer("adjustment_threshold_bdt")
+  adjustmentThresholdMoney: integer("adjustment_threshold_money")
     .notNull()
     .default(500),
   /** The taka above which a Money Event the Owner did not enter waits for the Owner's approval. */
-  approvalThresholdBdt: integer("approval_threshold_bdt")
+  approvalThresholdMoney: integer("approval_threshold_money")
     .notNull()
     .default(20_000),
   /** The day of the month from which a Monthly Cost with nothing entered under it that month is named to the Manager
@@ -191,7 +191,7 @@ export const farm = pgTable("farm", {
   bakiDays: integer("baki_days").notNull().default(30),
   /** The taka a Stock Count may come up short by before the Owner and the Manager are told of that count: ৳2,000 unless
    *  the Owner says otherwise. The Owner's, because the count is the one check on the feed the Manager takes in. */
-  storeShortfallTellBdt: integer("store_shortfall_tell_bdt")
+  storeShortfallTellMoney: integer("store_shortfall_tell_money")
     .notNull()
     .default(2000),
   /** How many animals in one Pen seen with sores on the mouth or feet, within how many hours, before the Owner and the
@@ -247,10 +247,10 @@ export const farm = pgTable("farm", {
   putOffDays: integer("put_off_days").notNull().default(7),
   /** How far a weekly Cash Count may come up short before the Owner is told, in the evening's post: ৳1,000. The Owner's
    *  alone, as the person counted should not set the line that checks them (the Owner, 2026-09-30). */
-  cashShortTellBdt: integer("cash_short_tell_bdt").notNull().default(1000),
+  cashShortTellMoney: integer("cash_short_tell_money").notNull().default(1000),
   /** How far the monthly medicine count may come up short, priced at what each dose cost, before the Owner is told in
    *  the evening's post: ৳1,000. The Owner's alone, as the Manager both buys the medicine and counts it. */
-  medicineShortTellBdt: integer("medicine_short_tell_bdt")
+  medicineShortTellMoney: integer("medicine_short_tell_money")
     .notNull()
     .default(1000),
   /** The **Default Withdrawal Days**: how long a dose given without a Prescription holds her milk and her meat when its
@@ -264,8 +264,8 @@ export const farm = pgTable("farm", {
   /** What a kilo of live weight is fetching, low and high, as the Owner last judged the market: what the farm's own
    *  animals are priced at on the Ready, Sale and Fattening screens, beside what each has cost. The Owner's guess, for
    *  the Owner's eyes; a Venture's animals are priced at their Venture's own figures instead. Nothing until it is set. */
-  marketLowBdtPerKg: taka("market_low_bdt_per_kg"),
-  marketHighBdtPerKg: taka("market_high_bdt_per_kg"),
+  marketLowMoneyPerKg: taka("market_low_money_per_kg"),
+  marketHighMoneyPerKg: taka("market_high_money_per_kg"),
   marketPriceSetAt: timestamp("market_price_set_at"),
   /** Whether Investors are shown each Venture's **Projection** in the portal (ADR 0010). Off until the Owner turns it
    *  on — once the lawyer and the Shariah scholar have seen its wording — and the Owner's Portal Preview shows it

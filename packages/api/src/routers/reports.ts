@@ -44,10 +44,10 @@ const accountantPaper = async (
     summary,
     taka: (amount) => `৳${formatNumber(amount, language)}`,
     bakiAtTheEnd: book
-      .filter((buyer) => buyer.owingBdt > 0)
-      .map((buyer) => ({ name: buyer.name, owingBdt: buyer.owingBdt }))
+      .filter((buyer) => buyer.owingMoney > 0)
+      .map((buyer) => ({ name: buyer.name, owingMoney: buyer.owingMoney }))
       .toSorted(
-        (a, b) => b.owingBdt - a.owingBdt || a.name.localeCompare(b.name)
+        (a, b) => b.owingMoney - a.owingMoney || a.name.localeCompare(b.name)
       ),
     producedBy: context.actor.name,
     producedAt: formatDate(context.clock.now(), language, "dateTime"),
@@ -61,7 +61,7 @@ const accountantCsv = (money: readonly ExportedMoney[]) =>
     [
       "date",
       "direction",
-      "amount_bdt",
+      "amount_money",
       "category",
       "category_en",
       "counterparty",
@@ -76,7 +76,7 @@ const accountantCsv = (money: readonly ExportedMoney[]) =>
     money.map((one) => [
       farmDayOf(one.occurredAt),
       one.direction,
-      one.amountBdt.toFixed(2),
+      one.amountMoney.toFixed(2),
       one.categoryBn,
       one.categoryEn,
       one.counterpartyName,
@@ -281,8 +281,8 @@ export const reportsRouter = {
       await recordExport(context, "accountant_export", input, {
         format: input.format,
         moneyEvents: money.length,
-        incomeBdt: summary.incomeBdt,
-        expenseBdt: summary.expenseBdt,
+        incomeMoney: summary.incomeMoney,
+        expenseMoney: summary.expenseMoney,
       });
       return result;
     }),

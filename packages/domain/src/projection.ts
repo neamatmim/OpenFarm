@@ -13,14 +13,14 @@ export interface ToProject {
   /** What the animals still to sell are expected to weigh between them when they are sold. */
   kgAtSale: number;
   /** What the animals already sold fetched: a fact, the same at both ends. */
-  realisedBdt: number;
+  realisedMoney: number;
   /** Everything the Venture is expected to have been charged by the end. */
-  chargedBdt: number;
+  chargedMoney: number;
   investorsPercent: number;
   /** Every Unit signed for, or offered, across the Venture. */
   units: number;
-  saleLowBdtPerKg: number;
-  saleHighBdtPerKg: number;
+  saleLowMoneyPerKg: number;
+  saleHighMoneyPerKg: number;
   /** The share of the animals still to sell the Owner expects not to live to be sold, taken at the low end only: the
    *  high end is every one of them living. Nothing expected to die, when not said. */
   deathsPercent?: number;
@@ -28,12 +28,12 @@ export interface ToProject {
 
 /** One end of a Projection: what the herd fetches at that price, what that makes, and how it divides. */
 export interface ProjectedEnd extends Split {
-  saleBdtPerKg: number;
+  saleMoneyPerKg: number;
   /** What the animals still to sell weigh between them at this end: fewer at the low end, by the deaths expected. */
   kgAtSale: number;
-  proceedsBdt: number;
+  proceedsMoney: number;
   /** Negative where that price does not cover what the Venture was charged. */
-  profitBdt: number;
+  profitMoney: number;
 }
 
 export interface Projected {
@@ -50,29 +50,29 @@ export const livingKg = (kg: number, deathsPercent: number): number =>
  *  deaths expected taken off what is still to sell. */
 export const projectedSettlement = ({
   kgAtSale,
-  realisedBdt,
-  chargedBdt,
+  realisedMoney,
+  chargedMoney,
   investorsPercent,
   units,
-  saleLowBdtPerKg,
-  saleHighBdtPerKg,
+  saleLowMoneyPerKg,
+  saleHighMoneyPerKg,
   deathsPercent = 0,
 }: ToProject): Projected => {
   // What an animal that dies cost stays charged: only what she would have fetched is lost.
-  const at = (saleBdtPerKg: number, kg: number): ProjectedEnd => {
-    const proceedsBdt = Math.round(realisedBdt + kg * saleBdtPerKg);
-    const profitBdt = Math.round(proceedsBdt - chargedBdt);
+  const at = (saleMoneyPerKg: number, kg: number): ProjectedEnd => {
+    const proceedsMoney = Math.round(realisedMoney + kg * saleMoneyPerKg);
+    const profitMoney = Math.round(proceedsMoney - chargedMoney);
     return {
-      saleBdtPerKg,
+      saleMoneyPerKg,
       kgAtSale: kg,
-      proceedsBdt,
-      profitBdt,
-      ...splitOfProfit({ profitBdt, investorsPercent, units }),
+      proceedsMoney,
+      profitMoney,
+      ...splitOfProfit({ profitMoney, investorsPercent, units }),
     };
   };
   return {
     kgAtSale,
-    low: at(saleLowBdtPerKg, livingKg(kgAtSale, deathsPercent)),
-    high: at(saleHighBdtPerKg, kgAtSale),
+    low: at(saleLowMoneyPerKg, livingKg(kgAtSale, deathsPercent)),
+    high: at(saleHighMoneyPerKg, kgAtSale),
   };
 };

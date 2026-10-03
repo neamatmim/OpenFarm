@@ -58,11 +58,11 @@ describe("what waits on the Owner", () => {
   });
 
   it("counts and totals all the money waiting, not the fifty rows listed", () => {
-    const listed = Array.from({ length: 50 }, () => ({ amountBdt: 100 }));
+    const listed = Array.from({ length: 50 }, () => ({ amountMoney: 100 }));
     const busy = {
       ...NOTHING,
       moneyAwaiting: listed,
-      moneyAwaitingAll: { count: 51, totalBdt: 5100 },
+      moneyAwaitingAll: { count: 51, totalMoney: 5100 },
     } as unknown as NeedsYou;
     expect(moneyAwaitingCount(busy)).toBe(51);
     expect(moneyAwaitingTotal(busy)).toBe(5100);

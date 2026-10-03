@@ -2,18 +2,18 @@ import { describe, expect, it } from "vitest";
 
 import { approvalOf } from "./money";
 
-const terms = (amountBdt: number) => ({
-  amountBdt,
+const terms = (amountMoney: number) => ({
+  amountMoney,
   counterpartyId: "rahim",
   categoryId: "repairs",
 });
 
 describe("where money stands with the Owner", () => {
   it("waits over the line, and not at or under it", () => {
-    const at = (amountBdt: number) =>
+    const at = (amountMoney: number) =>
       approvalOf({
-        terms: terms(amountBdt),
-        thresholdBdt: 20_000,
+        terms: terms(amountMoney),
+        thresholdMoney: 20_000,
         enteredByTheOwner: false,
       });
     expect(at(20_001)).toBe("awaiting");
@@ -24,17 +24,17 @@ describe("where money stands with the Owner", () => {
     expect(
       approvalOf({
         terms: terms(15_000),
-        thresholdBdt: 20_000,
+        thresholdMoney: 20_000,
         enteredByTheOwner: false,
-        piecesBdt: 15_000,
+        piecesMoney: 15_000,
       })
     ).toBe("awaiting");
     expect(
       approvalOf({
         terms: terms(5000),
-        thresholdBdt: 20_000,
+        thresholdMoney: 20_000,
         enteredByTheOwner: false,
-        piecesBdt: 15_000,
+        piecesMoney: 15_000,
       })
     ).toBe("not_needed");
   });
@@ -43,9 +43,9 @@ describe("where money stands with the Owner", () => {
     expect(
       approvalOf({
         terms: terms(15_000),
-        thresholdBdt: 20_000,
+        thresholdMoney: 20_000,
         enteredByTheOwner: true,
-        piecesBdt: 45_000,
+        piecesMoney: 45_000,
       })
     ).toBe("not_needed");
   });

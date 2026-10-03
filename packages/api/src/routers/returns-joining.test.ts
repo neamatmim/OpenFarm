@@ -66,7 +66,10 @@ let fatteningPenId = "";
 
 beforeAll(async () => {
   const { client: owner } = await as("owner", "2030-09-01T04:00:00.000Z");
-  await owner.fattening.setMarketPrice({ lowBdtPerKg: 500, highBdtPerKg: 600 });
+  await owner.fattening.setMarketPrice({
+    lowMoneyPerKg: 500,
+    highMoneyPerKg: 600,
+  });
   const shed = await owner.herd.createShed({ name: suffix });
   const fattening = await owner.herd.createPen({
     quarantine: true,
@@ -112,7 +115,7 @@ beforeAll(async () => {
     penId: fattening.id,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 70_000,
+    purchasePriceMoney: 70_000,
     weightKg: 200,
     estimatedAgeMonths: 18,
     arrivedAt: new Date("2030-10-01T00:00:00Z"),
@@ -167,7 +170,7 @@ describe("a calf walked across from Dairy joins a Season", () => {
     expect(eid?.running?.high.per100).toBe(71.4);
     expect(
       crossings
-        .filter((one) => one.priceBdt === null)
+        .filter((one) => one.priceMoney === null)
         .map((one) => one.tagNumber)
         .toSorted()
     ).toEqual([calfA, calfB].toSorted());
@@ -214,7 +217,7 @@ describe("the Owner prices a crossing", () => {
     await expect(
       owner.returns.priceCrossing({
         joiningId: joiningB,
-        rateBdtPerKg: 400,
+        rateMoneyPerKg: 400,
         note: `বাছুরের দর ${suffix}`,
       })
     ).rejects.toMatchObject({
@@ -227,13 +230,13 @@ describe("the Owner prices a crossing", () => {
     const { client: owner } = await as("owner", "2030-10-02T04:00:00.000Z");
     const priced = await owner.returns.priceCrossing({
       joiningId: joiningA,
-      rateBdtPerKg: 380,
+      rateMoneyPerKg: 380,
       note: `প্রথম দর ${suffix}`,
     });
-    expect(priced).toMatchObject({ weightKg: 150, priceBdt: 57_000 });
+    expect(priced).toMatchObject({ weightKg: 150, priceMoney: 57_000 });
     await owner.returns.priceCrossing({
       joiningId: joiningA,
-      rateBdtPerKg: 400,
+      rateMoneyPerKg: 400,
       note: `বাছুরের দর ${suffix}`,
     });
     const { client: reading } = await as("owner", "2030-10-02T04:00:00.000Z");
@@ -241,9 +244,9 @@ describe("the Owner prices a crossing", () => {
     const eid = seasons.find((one) => one.key === "eid:2031-04-03");
     expect(eid?.gaps).toEqual([]);
     expect(eid?.running).toMatchObject({
-      standingCostBdt: 130_000,
-      standingLowBdt: 175_000,
-      standingHighBdt: 210_000,
+      standingCostMoney: 130_000,
+      standingLowMoney: 175_000,
+      standingHighMoney: 210_000,
       low: { per100: 34.6 },
       high: { per100: 61.5 },
     });
@@ -252,12 +255,12 @@ describe("the Owner prices a crossing", () => {
     const byTag = new Map(crossings.map((one) => [one.tagNumber, one]));
     expect(byTag.size).toBe(2);
     expect(byTag.get(calfA)).toMatchObject({
-      priceBdt: 60_000,
-      rateBdtPerKg: 400,
+      priceMoney: 60_000,
+      rateMoneyPerKg: 400,
     });
     expect(byTag.get(calfB)).toMatchObject({
-      priceBdt: null,
-      rateBdtPerKg: null,
+      priceMoney: null,
+      rateMoneyPerKg: null,
     });
     // Both prices stay in the trail, the second over the first.
     const trail = await scratchDb().query.auditEvent.findMany({
@@ -266,8 +269,8 @@ describe("the Owner prices a crossing", () => {
       orderBy: { receivedAt: "asc", id: "asc" },
     });
     expect(trail).toMatchObject([
-      { before: { priceBdt: null }, after: { priceBdt: 57_000 } },
-      { before: { priceBdt: 57_000 }, after: { priceBdt: 60_000 } },
+      { before: { priceMoney: null }, after: { priceMoney: 57_000 } },
+      { before: { priceMoney: 57_000 }, after: { priceMoney: 60_000 } },
     ]);
   });
 
@@ -276,7 +279,7 @@ describe("the Owner prices a crossing", () => {
     await expect(
       manager.returns.priceCrossing({
         joiningId: joiningA,
-        rateBdtPerKg: 400,
+        rateMoneyPerKg: 400,
         note: "ম্যানেজার",
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });

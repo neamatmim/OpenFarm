@@ -256,10 +256,10 @@ const SELLERS = [
 ];
 
 /** The dearest a bull off the lorry can come to, with his Hasil: what the Owner's float allows for each. */
-const dearestBullBdt = (heavier: number) => (290 + heavier) * 520 * 1.05;
+const dearestBullMoney = (heavier: number) => (290 + heavier) * 520 * 1.05;
 
 /** Floats go out in round sums, as the bank counts notes. */
-const FLOAT_ROUNDS_TO_BDT = 50_000;
+const FLOAT_ROUNDS_TO_MONEY = 50_000;
 
 /**
  * A lorry of bulls from the hat, taken in by the Manager on the day they arrive — on the Farm's own float: the Owner
@@ -292,9 +292,9 @@ export const takeInBulls = async (
   // The day at the haat: a broker to find them, the lorry home, and keeping the men who went. Its cost is
   // split evenly across the beasts that came home on it.
   const costs = {
-    brokerBdt: count * random.int(250, 400),
-    transportBdt: random.int(6000, 11_000),
-    keepBdt: random.int(900, 1800),
+    brokerMoney: count * random.int(250, 400),
+    transportMoney: random.int(6000, 11_000),
+    keepMoney: random.int(900, 1800),
   };
   const trip = await farm.as.manager.trips.record({
     wentTo: seller.address ?? "গাবতলী হাট, ঢাকা",
@@ -302,14 +302,16 @@ export const takeInBulls = async (
     wentOn: onFarm(on, "06:00"),
     paymentMethod: "cash",
   });
-  const tripCostBdt = costs.brokerBdt + costs.transportBdt + costs.keepBdt;
+  const tripCostMoney =
+    costs.brokerMoney + costs.transportMoney + costs.keepMoney;
   await farm.as.owner.cash.handOver({
     from: { farmAccountId: farm.farmAccounts.bank },
     to: { userId: farm.accounts.manager.session.user.id },
-    amountBdt:
+    amountMoney:
       Math.ceil(
-        (count * dearestBullBdt(heavier) + tripCostBdt) / FLOAT_ROUNDS_TO_BDT
-      ) * FLOAT_ROUNDS_TO_BDT,
+        (count * dearestBullMoney(heavier) + tripCostMoney) /
+          FLOAT_ROUNDS_TO_MONEY
+      ) * FLOAT_ROUNDS_TO_MONEY,
     reference: `চেক নং ${random.int(100_000, 999_999)}`,
     note: "হাটে গরু কেনার টাকা",
     buyingTripId: trip.id,
@@ -327,9 +329,9 @@ export const takeInBulls = async (
       penId: farm.pens[pen],
       sex: "male",
       seller,
-      purchasePriceBdt: price,
+      purchasePriceMoney: price,
       // The haat's toll on this beast, as its slip gives it: a fraction of what she fetched.
-      hasilBdt: Math.round((price * random.between(0.03, 0.045)) / 50) * 50,
+      hasilMoney: Math.round((price * random.between(0.03, 0.045)) / 50) * 50,
       buyingTripId: trip.id,
       weightKg: typedKg,
       estimatedAgeMonths: random.int(16, 26),
@@ -358,7 +360,7 @@ export const takeInBulls = async (
   if (float) {
     await farm.as.owner.cash.countFloatHome({
       tripId: trip.id,
-      cashBackBdt: float.handedBdt - float.boughtBdt,
+      cashBackMoney: float.handedMoney - float.boughtMoney,
     });
   }
   return arrived;
@@ -419,7 +421,7 @@ export const lastEidsSeason = async (farm: Farm, herd: Herd) => {
     await farm.as.manager.sale.record({
       tagNumber: bull.tag,
       buyer,
-      priceBdt:
+      priceMoney:
         // Lower than a finished bull fetches in the days that follow: these bulls were bought before the farm's
         // history begins, so nothing they ate is charged to them, and at a full price their Season would read as a
         // return no fattening makes.
@@ -482,7 +484,7 @@ export const priceTheDairyHerd = async (farm: Farm, herd: Herd) => {
     // oxlint-disable-next-line no-await-in-loop -- one price at a time, each its own line in the trail
     await farm.as.owner.returns.priceCow({
       animalId: her.id,
-      priceBdt: Math.round(farm.random.between(low, high) / 500) * 500,
+      priceMoney: Math.round(farm.random.between(low, high) / 500) * 500,
       note: bought.has(cow.tag)
         ? "কেনার রসিদ অনুযায়ী"
         : "খাতা খোলার দিন পাড়ার বেপারীর মুখের দাম",
@@ -495,8 +497,8 @@ export const priceTheDairyHerd = async (farm: Farm, herd: Herd) => {
     "pregnant_heifer",
     "milking",
   ] as const) {
-    const [lowBdt, highBdt] = OPENING_PRICE[kind];
+    const [lowMoney, highMoney] = OPENING_PRICE[kind];
     // oxlint-disable-next-line no-await-in-loop -- one kind at a time
-    await farm.as.owner.returns.setHeadPrice({ kind, lowBdt, highBdt });
+    await farm.as.owner.returns.setHeadPrice({ kind, lowMoney, highMoney });
   }
 };

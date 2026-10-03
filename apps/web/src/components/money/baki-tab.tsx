@@ -69,25 +69,28 @@ const OwedRow = ({
         <span className="flex flex-col items-end gap-0.5">
           <span
             className={
-              item.owingBdt > 0
+              item.owingMoney > 0
                 ? "text-warning text-sm font-medium tabular-nums"
                 : "text-muted-foreground text-sm"
             }
           >
-            {item.owingBdt > 0
-              ? t("baki.itemOwes", { owing: item.owingBdt, baki: item.bakiBdt })
+            {item.owingMoney > 0
+              ? t("baki.itemOwes", {
+                  owing: item.owingMoney,
+                  baki: item.bakiMoney,
+                })
               : t("baki.itemPaidOff")}
           </span>
           {/* Missing from an answer a phone kept from before anything was written off. */}
-          {(item.writtenOffBdt ?? 0) > 0 ? (
+          {(item.writtenOffMoney ?? 0) > 0 ? (
             <span className="text-danger text-xs tabular-nums">
-              {t("baki.writtenOff", { taka: item.writtenOffBdt })}
+              {t("baki.writtenOff", { taka: item.writtenOffMoney })}
             </span>
           ) : null}
-          {mayWriteOff && item.owingBdt > 0 ? (
+          {mayWriteOff && item.owingMoney > 0 ? (
             <WriteOffButton
               id={item.id}
-              owingBdt={item.owingBdt}
+              owingMoney={item.owingMoney}
               source={kind === "milk" ? "dispatch" : "sale"}
             />
           ) : null}
@@ -115,7 +118,7 @@ const WriteOffLines = ({ standing }: { standing: KindStanding }) => {
         >
           <span>
             {t("baki.writeOffLine", {
-              taka: one.amountBdt,
+              taka: one.amountMoney,
               day: day(one.writtenOn),
             })}
             {` — ${one.reason}`}
@@ -149,7 +152,7 @@ const KindPart = ({
             )}
             {" · "}
             <span className="tabular-nums">
-              {t("baki.owed", { taka: standing.owingBdt })}
+              {t("baki.owed", { taka: standing.owingMoney })}
             </span>
           </span>
           <span className="text-muted-foreground text-xs">
@@ -160,8 +163,8 @@ const KindPart = ({
               standing.soonestPromise === null
                 ? null
                 : t("baki.promised", { day: day(standing.soonestPromise) }),
-              standing.creditBdt > 0
-                ? t("baki.credit", { taka: standing.creditBdt })
+              standing.creditMoney > 0
+                ? t("baki.credit", { taka: standing.creditMoney })
                 : null,
             ]
               .filter(Boolean)
@@ -192,7 +195,7 @@ const KindPart = ({
             >
               <span>
                 {t("baki.paymentLine", {
-                  taka: payment.amountBdt,
+                  taka: payment.amountMoney,
                   day: day(payment.paidOn),
                 })}
                 {payment.note ? ` — ${payment.note}` : null}
@@ -224,14 +227,14 @@ const BuyerCard = ({
       title={
         <span className="flex flex-wrap items-baseline gap-x-2">
           {buyer.name}
-          {buyer.owingBdt > 0 ? (
+          {buyer.owingMoney > 0 ? (
             <span className="text-warning text-sm font-medium tabular-nums">
-              {t("baki.owed", { taka: buyer.owingBdt })}
+              {t("baki.owed", { taka: buyer.owingMoney })}
             </span>
           ) : null}
-          {(buyer.writtenOffBdt ?? 0) > 0 ? (
+          {(buyer.writtenOffMoney ?? 0) > 0 ? (
             <span className="text-danger text-sm font-medium tabular-nums">
-              {t("baki.writtenOff", { taka: buyer.writtenOffBdt })}
+              {t("baki.writtenOff", { taka: buyer.writtenOffMoney })}
             </span>
           ) : null}
         </span>
@@ -260,8 +263,8 @@ export const BakiTab = () => {
   const mayWriteOff = useIsOwner();
   const [paying, setPaying] = useState<PaymentFor | null>(null);
   const buyers = list.data ?? [];
-  const owing = buyers.reduce((sum, one) => sum + one.owingBdt, 0);
-  const owingBuyers = buyers.filter((one) => one.owingBdt > 0).length;
+  const owing = buyers.reduce((sum, one) => sum + one.owingMoney, 0);
+  const owingBuyers = buyers.filter((one) => one.owingMoney > 0).length;
   return (
     <Loaded query={list}>
       {buyers.length === 0 ? (

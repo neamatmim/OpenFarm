@@ -35,19 +35,19 @@ export const pastWindUp = (venture: Venture) =>
  * refusing what this still offers.
  */
 export const shortOfFloor = (venture: Venture) =>
-  venture.floorBdt -
+  venture.floorMoney -
   towardsTheFloor({
     // An answer cached before Ventures were paid by the month is one paid before buying.
     capitalPaid: venture.capitalPaid ?? "before_buying",
-    heldBdt: venture.capitalInBdt,
+    heldMoney: venture.capitalInMoney,
     signedUnits: venture.signedFor.units,
-    unitPriceBdt: venture.unitPriceBdt,
+    unitPriceMoney: venture.unitPriceMoney,
   });
 
 /** Paid by the month: the signed Units' Cattle Part still to come, which the buying waits on as well as the Floor. An
  *  answer cached before Ventures were paid by the month has none, and is a Venture paid before buying. */
 export const cattleMoneyShort = (venture: Venture) =>
-  venture.cattleMoneyShortBdt ?? 0;
+  venture.cattleMoneyShortMoney ?? 0;
 
 /** Whether it takes capital today: any Venture while Open, and one paid by the month while it buys and fattens. An
  *  answer cached before Ventures were paid by the month is one paid before buying. */
@@ -121,8 +121,8 @@ export const monthsStillOut = (bank: BankStanding | undefined) => {
  * card says so quietly.
  */
 export type VentureTrouble =
-  | { word: "decision_due"; decideBy: string; shortBdt: number }
-  | { word: "running_budget_low"; leftBdt: number }
+  | { word: "decision_due"; decideBy: string; shortMoney: number }
+  | { word: "running_budget_low"; leftMoney: number }
   | { word: "past_wind_up"; standing: number }
   | { word: "bank_disagrees"; months: string[] }
   | { word: "bank_stale"; months: string[] };
@@ -145,7 +145,7 @@ export const troubleWith = (venture: Venture): VentureTrouble[] => {
     troubles.push({
       word: "decision_due",
       decideBy: venture.decideBy,
-      shortBdt: shortOfFloor(venture),
+      shortMoney: shortOfFloor(venture),
     });
   }
   if (venture.runningBudgetLow) {
@@ -153,8 +153,8 @@ export const troubleWith = (venture: Venture): VentureTrouble[] => {
       word: "running_budget_low",
       // What is really left: what the account holds less what its animals have cost the Farm since the last
       // Reimbursement. Missing from an answer cached before it was said.
-      leftBdt:
-        (venture.runningBudgetHeldBdt ?? 0) - (venture.owedTheFarmBdt ?? 0),
+      leftMoney:
+        (venture.runningBudgetHeldMoney ?? 0) - (venture.owedTheFarmMoney ?? 0),
     });
   }
   if (pastWindUp(venture)) {

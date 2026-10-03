@@ -29,14 +29,14 @@ const aShownVenture = async (name: string) => {
   const owner = await asOwner();
   const venture = await owner.ventures.open({
     name: `${name} ${suffix}`,
-    targetCapitalBdt: 500_000,
-    floorBdt: 300_000,
+    targetCapitalMoney: 500_000,
+    floorMoney: 300_000,
     decideBy: "2054-01-20",
     targetWindowStart: "2054-06-01",
     targetWindowEnd: "2054-06-10",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 10,
-    cattleBudgetBdt: 400_000,
+    cattleBudgetMoney: 400_000,
   });
   await owner.ventures.showInPortal({ id: venture.id, words: "" });
   return venture.id;
@@ -67,7 +67,7 @@ const signFor = async (
     investorsPercent: 60,
     arbitrator: `সালিস ${suffix}`,
     stampKind: "paper",
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2054-01-02",
     stampSerial: `S-${investorId.slice(-8)}`,
   });
@@ -190,7 +190,7 @@ describe("the Owner saying come and sign", () => {
         ventureId,
         ventureName: `হ্যাঁ ভেঞ্চার ${suffix}`,
         units: 4,
-        bdt: 200_000,
+        amount: 200_000,
         note: null,
         state: "come_and_sign",
         answeredUnits: 4,
@@ -235,7 +235,7 @@ describe("the Owner saying come and sign", () => {
     expect(before.totals).toMatchObject({
       signedUnits: 4,
       promisedUnits: 4,
-      promisedBdt: 200_000,
+      promisedMoney: 200_000,
       promisableUnits: 2,
       waitingUnits: 3,
     });

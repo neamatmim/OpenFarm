@@ -24,7 +24,7 @@ beforeAll(async () => {
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
   });
-  for (const [priceBdt, weightKg, day] of [
+  for (const [priceMoney, weightKg, day] of [
     [100_000, 250, "2082-03-10"],
     [120_000, 270, "2082-02-10"],
     // Too light to set beside a 260 kg bull, and one bought too long ago.
@@ -38,7 +38,7 @@ beforeAll(async () => {
       penId: pen.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
-      purchasePriceBdt: priceBdt,
+      purchasePriceMoney: priceMoney,
       weightKg,
       estimatedAgeMonths: 20,
       arrivedAt: new Date(`${day}T04:00:00.000Z`),
@@ -51,7 +51,7 @@ describe("what the last buys cost a kilo", () => {
   it("is the last two months' buys near her weight, weighed by weight", async () => {
     const manager = await as("manager");
     expect(await manager.client.intake.lastBuys({ weightKg: 260 })).toEqual({
-      bdtPerKg: 423.08,
+      moneyPerKg: 423.08,
       animals: 2,
       days: 60,
     });

@@ -41,7 +41,7 @@ type HeadPriceKind = Parameters<typeof client.returns.setHeadPrice>[0]["kind"];
 
 /** An answer the phone kept from before the dairy herd was on the page has none of it: read as an empty herd. */
 const NO_DAIRY: Dairy = {
-  herdNow: { head: 0, milkBdt: 0, running: null, gaps: [] },
+  herdNow: { head: 0, milkMoney: 0, running: null, gaps: [] },
   standing: [],
   gone: [],
   headPrices: [],
@@ -91,15 +91,15 @@ const DairyRunFacts = ({ run }: { run: DairyRun }) => {
     <div className="text-muted-foreground flex flex-col gap-0.5 text-sm tabular-nums">
       <p>{came(run)}</p>
       <p>
-        {t("returns.dairyCost", { bdt: taka(run.costBdt) })}
+        {t("returns.dairyCost", { amount: taka(run.costMoney) })}
         {" · "}
         {t("returns.dairyMilk", {
           litres: run.milkLitres,
-          bdt: taka(run.milkBdt),
+          amount: taka(run.milkMoney),
         })}
-        {run.endBdt === null
+        {run.endMoney === null
           ? null
-          : ` · ${t("returns.dairyEnd", { bdt: taka(run.endBdt) })}`}
+          : ` · ${t("returns.dairyEnd", { amount: taka(run.endMoney) })}`}
       </p>
       {run.milkPricedEarlier.length > 0 ? (
         <p className="text-xs">
@@ -123,8 +123,8 @@ const WorthToday = ({ worth }: { worth: HeadRange }) => {
   return (
     <span className="text-muted-foreground tabular-nums">
       {t("returns.worthToday", {
-        low: taka(worth.lowBdt),
-        high: taka(worth.highBdt),
+        low: taka(worth.lowMoney),
+        high: taka(worth.highMoney),
       })}
     </span>
   );
@@ -153,7 +153,7 @@ const DairyRunFigure = ({
     case "result": {
       return (
         <p className="font-medium">
-          <Result bdt={figure.bdt} />
+          <Result amount={figure.amount} />
         </p>
       );
     }
@@ -179,10 +179,10 @@ const DairyRunShort = ({ run }: { run: DairyRun }) => {
   const figure = dairyFigureOf(run);
   switch (figure.kind) {
     case "returned": {
-      return <Result bdt={figure.returned.resultBdt} />;
+      return <Result amount={figure.returned.resultMoney} />;
     }
     case "result": {
-      return <Result bdt={figure.bdt} />;
+      return <Result amount={figure.amount} />;
     }
     case "running": {
       return (
@@ -265,9 +265,9 @@ export const DairyHerdNow = ({ page }: { page: ReturnsPage }) => {
         {t("returns.herdNowHead", { count: herdNow.head })}
       </p>
       {herdNow.running ? <RunningLines running={herdNow.running} /> : null}
-      {herdNow.milkBdt > 0 ? (
+      {herdNow.milkMoney > 0 ? (
         <p className="text-muted-foreground text-sm tabular-nums">
-          {t("returns.herdMilk", { bdt: taka(herdNow.milkBdt) })}
+          {t("returns.herdMilk", { amount: taka(herdNow.milkMoney) })}
         </p>
       ) : null}
       <Gaps gaps={herdNow.gaps} ventureId={null} />
@@ -330,10 +330,10 @@ const HeadPriceSheet = ({
   const { t } = useLanguage();
   const refused = useRefused();
   const [low, setLow] = useState(
-    price.lowBdt === null ? "" : String(price.lowBdt)
+    price.lowMoney === null ? "" : String(price.lowMoney)
   );
   const [high, setHigh] = useState(
-    price.highBdt === null ? "" : String(price.highBdt)
+    price.highMoney === null ? "" : String(price.highMoney)
   );
   const saving = useMutation(
     orpc.returns.setHeadPrice.mutationOptions({
@@ -344,8 +344,8 @@ const HeadPriceSheet = ({
       },
     })
   );
-  const lowBdt = figureOf(low);
-  const highBdt = figureOf(high);
+  const lowMoney = figureOf(low);
+  const highMoney = figureOf(high);
   return (
     <FormSheet
       description={t("returns.headPricesHint")}
@@ -353,13 +353,13 @@ const HeadPriceSheet = ({
       onSubmit={() =>
         saving.mutate({
           kind: price.kind,
-          lowBdt: Math.round(lowBdt ?? 0),
-          highBdt: Math.round(highBdt ?? 0),
+          lowMoney: Math.round(lowMoney ?? 0),
+          highMoney: Math.round(highMoney ?? 0),
         })
       }
       open
       pending={saving.isPending}
-      ready={aFigure(lowBdt) && aFigure(highBdt)}
+      ready={aFigure(lowMoney) && aFigure(highMoney)}
       submitLabel={t("returns.setHeadPrice")}
       title={t("returns.headPriceTitle", { kind: t(KIND_WORD[price.kind]) })}
     >
@@ -401,11 +401,11 @@ export const HeadPriceList = ({ page }: { page: ReturnsPage }) => {
             <span className="flex flex-col">
               <span className="font-medium">{t(KIND_WORD[one.kind])}</span>
               <span className="text-muted-foreground text-sm tabular-nums">
-                {one.lowBdt === null || one.highBdt === null
+                {one.lowMoney === null || one.highMoney === null
                   ? t("returns.headPriceNone")
                   : t("returns.headPriceRange", {
-                      low: taka(one.lowBdt),
-                      high: taka(one.highBdt),
+                      low: taka(one.lowMoney),
+                      high: taka(one.highMoney),
                     })}
               </span>
             </span>
@@ -452,7 +452,7 @@ const EntryPriceSheet = ({
       },
     })
   );
-  const priceBdt = figureOf(price);
+  const priceMoney = figureOf(price);
   const today = farmDayOf(new Date());
   return (
     <FormSheet
@@ -461,14 +461,14 @@ const EntryPriceSheet = ({
       onSubmit={() =>
         saving.mutate({
           animalId: cow.animalId,
-          priceBdt: Math.round(priceBdt ?? 0),
+          priceMoney: Math.round(priceMoney ?? 0),
           asOf,
           note: note.trim(),
         })
       }
       open
       pending={saving.isPending}
-      ready={aFigure(priceBdt) && note.trim().length > 0 && asOf.length > 0}
+      ready={aFigure(priceMoney) && note.trim().length > 0 && asOf.length > 0}
       submitLabel={t("returns.priceIt")}
       title={t("returns.entryPriceTitle", { tag: cow.tagNumber })}
     >

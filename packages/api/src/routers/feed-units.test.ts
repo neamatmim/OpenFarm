@@ -95,7 +95,7 @@ beforeAll(async () => {
 const bought = (feedItemId: string) => ({
   feedItemId,
   kind: "purchase" as const,
-  priceBdt: 10_000,
+  priceMoney: 10_000,
   seller: { name: `রহমান ফিডস ${suffix}` },
   receivedOn: DAY,
 });

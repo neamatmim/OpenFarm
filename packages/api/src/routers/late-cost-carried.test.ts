@@ -23,19 +23,19 @@ const entered = new Map<string, string>();
 const sprayed = async (
   instant: string,
   occurredOn: string,
-  amountBdt: number
+  amountMoney: number
 ) => {
   const owner = await as("owner", instant);
   const { id } = await owner.client.money.enter({
     categoryId: sprayId,
-    amountBdt,
+    amountMoney,
     occurredOn,
     counterparty: { name: `দোকান ${suffix}` },
     paymentMethod: "cash",
     side: "fattening",
-    note: `${occurredOn} ${amountBdt} ${suffix}`,
+    note: `${occurredOn} ${amountMoney} ${suffix}`,
   });
-  entered.set(`${occurredOn}:${amountBdt}`, id);
+  entered.set(`${occurredOn}:${amountMoney}`, id);
 };
 
 const consumption = async (instant: string, month: string) => {
@@ -53,7 +53,7 @@ const reimbursed = async (instant: string, month: string) => {
     movedOn: instant.slice(0, 10),
     paymentMethod: "bank",
     reference: `REI-${month}-${suffix}`,
-    amountBdt: figure.totalBdt,
+    amountMoney: figure.totalMoney,
   });
 };
 
@@ -61,19 +61,19 @@ beforeAll(async () => {
   const owner = await as("owner", "2076-01-02T04:00:00.000Z");
   const venture = await owner.client.ventures.open({
     name: `ভেঞ্চার ${suffix}`,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2076-01-02",
     targetWindowStart: "2076-09-01",
     targetWindowEnd: "2076-09-05",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
-    cattleBudgetBdt: 800_000,
+    cattleBudgetMoney: 800_000,
   });
   ventureId = venture.id;
   await putCapitalIn(
     owner.client,
-    { id: ventureId, units: 20, unitPriceBdt: 50_000 },
+    { id: ventureId, units: 20, unitPriceMoney: 50_000 },
     suffix,
     "2076-01-02"
   );
@@ -99,7 +99,7 @@ beforeAll(async () => {
     penId: pen.id,
     sex: "male",
     seller: { name: `প্রতিবেশী ${suffix}` },
-    purchasePriceBdt: 60_000,
+    purchasePriceMoney: 60_000,
     weightKg: 200,
     estimatedAgeMonths: 20,
     arrivedAt: new Date("2076-01-02T05:00:00.000Z"),
@@ -112,23 +112,27 @@ describe("a cost that lands in a month already reimbursed", () => {
   it("rides on the next month's Reimbursement, as its own line", async () => {
     await sprayed("2076-01-20T06:00:00.000Z", "2076-01-20", 3000);
     const january = await reimbursed("2076-02-02T04:00:00.000Z", "2076-01");
-    expect(january.totalBdt).toBe(3000);
+    expect(january.totalMoney).toBe(3000);
     // A second bill for January turns up after January was repaid, and February has its own.
     await sprayed("2076-02-03T06:00:00.000Z", "2076-01-25", 2000);
     await sprayed("2076-02-10T06:00:00.000Z", "2076-02-10", 1000);
 
     const february = await consumption("2076-03-02T04:00:00.000Z", "2076-02");
     expect(february).toMatchObject({
-      ownBdt: 1000,
-      carried: [{ month: "2076-01", bdt: 2000 }],
-      totalBdt: 3000,
+      ownMoney: 1000,
+      carried: [{ month: "2076-01", amount: 2000 }],
+      totalMoney: 3000,
     });
     const taken = await reimbursed("2076-03-02T04:00:00.000Z", "2076-02");
-    expect(taken.totalBdt).toBe(3000);
+    expect(taken.totalMoney).toBe(3000);
     // Carried once: the month after carries nothing more for January.
     await sprayed("2076-03-10T06:00:00.000Z", "2076-03-10", 500);
     const march = await consumption("2076-04-02T04:00:00.000Z", "2076-03");
-    expect(march).toMatchObject({ ownBdt: 500, carried: [], totalBdt: 500 });
+    expect(march).toMatchObject({
+      ownMoney: 500,
+      carried: [],
+      totalMoney: 500,
+    });
     await reimbursed("2076-04-02T04:00:00.000Z", "2076-03");
   });
 
@@ -138,14 +142,14 @@ describe("a cost that lands in a month already reimbursed", () => {
     await owner.client.money.correctEntered({
       id: entered.get("2076-01-20:3000") ?? "",
       reason: `বিলে আসলে কম ছিল ${suffix}`,
-      changes: { amountBdt: { from: 3000, to: 2500 } },
+      changes: { amountMoney: { from: 3000, to: 2500 } },
     });
     // April has nothing of its own, so all it would carry is five hundred less: nothing to send.
     const april = await consumption("2076-05-02T04:00:00.000Z", "2076-04");
     expect(april).toMatchObject({
-      ownBdt: 0,
-      carried: [{ month: "2076-01", bdt: -500 }],
-      totalBdt: -500,
+      ownMoney: 0,
+      carried: [{ month: "2076-01", amount: -500 }],
+      totalMoney: -500,
     });
     const tryingApril = await as("owner", "2076-05-02T04:00:00.000Z");
     await expect(
@@ -155,16 +159,16 @@ describe("a cost that lands in a month already reimbursed", () => {
         movedOn: "2076-05-02",
         paymentMethod: "bank",
         reference: `REI-2076-04-${suffix}`,
-        amountBdt: 0,
+        amountMoney: 0,
       })
     ).rejects.toMatchObject({ data: { refusal: "nothing_to_reimburse" } });
     // May's own thousand takes it.
     await sprayed("2076-05-10T06:00:00.000Z", "2076-05-10", 1000);
     const may = await consumption("2076-06-02T04:00:00.000Z", "2076-05");
     expect(may).toMatchObject({
-      ownBdt: 1000,
-      carried: [{ month: "2076-01", bdt: -500 }],
-      totalBdt: 500,
+      ownMoney: 1000,
+      carried: [{ month: "2076-01", amount: -500 }],
+      totalMoney: 500,
     });
     await reimbursed("2076-06-02T04:00:00.000Z", "2076-05");
   });
@@ -174,11 +178,11 @@ describe("a cost that lands in a month already reimbursed", () => {
     await sprayed("2076-07-10T06:00:00.000Z", "2076-07-10", 900);
     // July first: June has never been paid, so July carries nothing of it.
     const july = await consumption("2076-08-02T04:00:00.000Z", "2076-07");
-    expect(july).toMatchObject({ ownBdt: 900, carried: [], totalBdt: 900 });
+    expect(july).toMatchObject({ ownMoney: 900, carried: [], totalMoney: 900 });
     await reimbursed("2076-08-02T04:00:00.000Z", "2076-07");
     // Then June, its own figure once.
     const june = await consumption("2076-08-03T04:00:00.000Z", "2076-06");
-    expect(june).toMatchObject({ ownBdt: 700, carried: [], totalBdt: 700 });
+    expect(june).toMatchObject({ ownMoney: 700, carried: [], totalMoney: 700 });
     await reimbursed("2076-08-03T04:00:00.000Z", "2076-06");
   });
 
@@ -190,7 +194,7 @@ describe("a cost that lands in a month already reimbursed", () => {
     expect(settlement.blocks).toContainEqual({
       word: "a_reimbursement_is_owed",
       months: [],
-      carryBdt: 400,
+      carryMoney: 400,
     });
   });
 });

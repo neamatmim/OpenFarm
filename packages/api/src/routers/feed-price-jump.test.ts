@@ -34,7 +34,7 @@ beforeAll(async () => {
   });
   await owner.client.feed.setFodderPrice({
     feedItemId: grown.id,
-    fodderPriceBdt: 3,
+    fodderPriceMoney: 3,
   });
   concentrate = bagged.id;
   bran = loose.id;
@@ -45,14 +45,14 @@ const buy = async (
   feedItemId: string,
   day: string,
   amount: { quantity: number } | { pack: { kind: "bag"; count: number } },
-  priceBdt: number
+  priceMoney: number
 ) => {
   const manager = await as("manager");
   return await manager.client.stock.receive({
     feedItemId,
     kind: "purchase",
     ...amount,
-    priceBdt,
+    priceMoney,
     seller: { name: `রহমান ফিডস ${suffix}` },
     receivedOn: day,
   });
@@ -89,15 +89,18 @@ describe("a Feed Purchase's price per unit", () => {
       feedItemId: concentrate,
     });
     expect(newest).toMatchObject({
-      unitPriceBdt: 45,
+      unitPriceMoney: 45,
       priceChangePercent: 12.5,
     });
-    expect(first).toMatchObject({ unitPriceBdt: 40, priceChangePercent: null });
+    expect(first).toMatchObject({
+      unitPriceMoney: 40,
+      priceChangePercent: null,
+    });
     const told = await toldOf(dearer.id, "owner");
     expect(told).toHaveLength(1);
     expect(told[0]?.params).toMatchObject({
-      unitPriceBdt: 45,
-      previousUnitPriceBdt: 40,
+      unitPriceMoney: 45,
+      previousUnitPriceMoney: 40,
       percent: 12.5,
     });
     expect(await toldOf(dearer.id, "manager")).toEqual([]);
@@ -123,17 +126,17 @@ describe("a Feed Purchase's price per unit", () => {
     const manager = await as("manager");
     const rows = await manager.client.stock.arrivals({ feedItemId: napier });
     expect(rows.find((row) => row.id === cut.id)).toMatchObject({
-      unitPriceBdt: null,
+      unitPriceMoney: null,
       priceChangePercent: null,
     });
     expect(rows.find((row) => row.id !== cut.id)).toMatchObject({
-      unitPriceBdt: 8,
+      unitPriceMoney: 8,
       priceChangePercent: null,
     });
     expect(
       await manager.client.stock.lastPurchase({ feedItemId: napier })
     ).toMatchObject({
-      unitPriceBdt: 8,
+      unitPriceMoney: 8,
     });
   });
 
@@ -149,12 +152,15 @@ describe("a Feed Purchase's price per unit", () => {
     await manager.client.stock.correct({
       id: typedLow.id,
       reason: `রশিদে ৬,১০০ টাকা, ৫,১০০ নয় ${suffix}`,
-      changes: { priceBdt: { from: 5100, to: 6100 } },
+      changes: { priceMoney: { from: 5100, to: 6100 } },
     });
     const [newest] = await manager.client.stock.arrivals({
       feedItemId: item.id,
     });
-    expect(newest).toMatchObject({ unitPriceBdt: 61, priceChangePercent: 22 });
+    expect(newest).toMatchObject({
+      unitPriceMoney: 61,
+      priceChangePercent: 22,
+    });
     expect(await toldOf(typedLow.id, "owner")).toHaveLength(1);
   });
 

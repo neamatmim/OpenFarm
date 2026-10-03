@@ -80,12 +80,12 @@ const weigh = async (day: string, tagNumber: string, kg: number) => {
   });
 };
 
-const sell = async (tagNumber: string, at: string, priceBdt: number) => {
+const sell = async (tagNumber: string, at: string, priceMoney: number) => {
   const { client } = await as("manager", at);
   await client.sale.record({
     tagNumber,
     buyer: { name: `ক্রেতা ${suffix}` },
-    priceBdt,
+    priceMoney,
     weightKg: 320,
     destination: `ঢাকা ${suffix}`,
     vehicle: `ঢাকা মেট্রো ${suffix}`,
@@ -96,7 +96,7 @@ const sell = async (tagNumber: string, at: string, priceBdt: number) => {
 
 /** A bull off the lorry on 4 January: the Venture's on its Float when a trip is given, the Farm's own otherwise. */
 const bull = async (
-  priceBdt: number,
+  priceMoney: number,
   forVenture?: { ventureId: string; buyingTripId: string }
 ) => {
   const { client: manager } = await as("manager", "2054-01-04T05:00:00.000Z");
@@ -104,7 +104,7 @@ const bull = async (
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: priceBdt,
+    purchasePriceMoney: priceMoney,
     weightKg: 250,
     estimatedAgeMonths: 20,
     ...forVenture,
@@ -127,14 +127,14 @@ const aVentureWithBulls = async (
   const { client: owner } = await as("owner", "2054-01-01T04:00:00.000Z");
   const venture = await owner.ventures.open({
     name: `${name} ${suffix}`,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2054-01-03",
     targetWindowStart: WINDOW.start,
     targetWindowEnd: WINDOW.end,
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
-    cattleBudgetBdt: 800_000,
+    cattleBudgetMoney: 800_000,
   });
   const person = await owner.investors.record({
     name: `${name} বিনিয়োগকারী ${suffix}`,
@@ -146,7 +146,7 @@ const aVentureWithBulls = async (
     units: 20,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2054-01-02",
     stampSerial: `${name} ${suffix}`,
   });
@@ -157,7 +157,7 @@ const aVentureWithBulls = async (
   });
   await owner.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: 1_000_000,
+    amountMoney: 1_000_000,
     movedOn: "2054-01-02",
     paymentMethod: "bank",
     reference: `TRF-${name}-${suffix}`,
@@ -168,24 +168,24 @@ const aVentureWithBulls = async (
   const trip = await buying.trips.record({
     wentTo: `হাট ${name} ${suffix}`,
     wentOn: "2054-01-04",
-    brokerBdt: 0,
-    transportBdt: 0,
-    keepBdt: 0,
+    brokerMoney: 0,
+    transportMoney: 0,
+    keepMoney: 0,
   });
-  const spentBdt = prices.reduce((sum, one) => sum + one, 0);
+  const spentMoney = prices.reduce((sum, one) => sum + one, 0);
   await buying.ventures.drawFloat({
     ventureId: venture.id,
     buyingTripId: trip.id,
-    amountBdt: spentBdt,
+    amountMoney: spentMoney,
     movedOn: "2054-01-04",
     paymentMethod: "bank",
     reference: `FLT-${name}-${suffix}`,
   });
   const tags = [];
-  for (const priceBdt of prices) {
+  for (const priceMoney of prices) {
     // One bull off the lorry at a time, each with the next Tag Number.
     // oxlint-disable-next-line no-await-in-loop -- one bull off the lorry at a time
-    const tag = await bull(priceBdt, {
+    const tag = await bull(priceMoney, {
       ventureId: venture.id,
       buyingTripId: trip.id,
     });
@@ -193,7 +193,7 @@ const aVentureWithBulls = async (
   }
   await buying.ventures.reconcileFloat({
     buyingTripId: trip.id,
-    cashBackBdt: 0,
+    cashBackMoney: 0,
     movedOn: "2054-01-04",
     reference: `DEP-${name}-${suffix}`,
   });
@@ -220,14 +220,14 @@ const settle = async (ventureId: string, name: string) => {
     ventureId,
     month: "2054-01",
   });
-  if (owed.totalBdt > 0) {
+  if (owed.totalMoney > 0) {
     await paying.ventures.reimburse({
       ventureId,
       month: "2054-01",
       movedOn: "2054-02-20",
       paymentMethod: "bank",
       reference: `REI-${name}-${suffix}`,
-      amountBdt: owed.totalBdt,
+      amountMoney: owed.totalMoney,
     });
   }
   const { client: owner } = await as("owner", "2054-03-02T04:00:00.000Z");
@@ -241,11 +241,11 @@ const settle = async (ventureId: string, name: string) => {
     await owner.ventures.checkTheBank({
       ventureId,
       month,
-      readBdt: believed.expectedBdt,
+      readMoney: believed.expectedMoney,
     });
   }
   const shown = await owner.ventures.settlement({ ventureId });
-  settledProfit.set(ventureId, shown.profitBdt);
+  settledProfit.set(ventureId, shown.profitMoney);
   await owner.ventures.approveSettlement({ ventureId });
   // Settled once the last of the money has gone out: each Investor paid, and the Farm's share taken.
   const approved = await owner.ventures.approvedSettlement({ ventureId });
@@ -254,7 +254,7 @@ const settle = async (ventureId: string, name: string) => {
     await owner.ventures.paySettlement({
       ventureId,
       agreementId: his.agreementId,
-      amountBdt: his.payoutBdt,
+      amountMoney: his.payoutMoney,
       movedOn: "2054-03-02",
       paymentMethod: "bank",
       reference: `PAY-${name}-${suffix}`,
@@ -274,7 +274,7 @@ const bothFigures = async (ventureId: string) => {
   const page = await owner.returns.page();
   const itsReturn = page.ventures.find((one) => one.id === ventureId);
   return {
-    returned: itsReturn?.returnOnCost?.resultBdt,
+    returned: itsReturn?.returnOnCost?.resultMoney,
     settled: settledProfit.get(ventureId) ?? Number.NaN,
   };
 };
@@ -325,7 +325,7 @@ beforeAll(async () => {
   const { client: manager } = await as("manager", "2054-01-31T10:00:00.000Z");
   await manager.money.enter({
     categoryId: spray.id,
-    amountBdt: 9000,
+    amountMoney: 9000,
     occurredOn: "2054-01-31",
     counterparty: { name: `দোকান ${suffix}` },
     paymentMethod: "cash",
@@ -342,16 +342,16 @@ beforeAll(async () => {
   await selling.ventures.sellInternally({
     tagNumber: x,
     toVentureId: ventureB,
-    rateBdtPerKg: 360,
+    rateMoneyPerKg: 360,
     note: `হাটের দর ${suffix}`,
     soldOn: "2054-01-20",
     paymentMethod: "bank",
     reference: `INT-${suffix}`,
-    priceBdt: 90_000,
+    priceMoney: 90_000,
   });
   const { client: vet } = await as("vet", "2054-01-20T08:00:00.000Z");
   await vet.money.vetFee({
-    amountBdt: 1500,
+    amountMoney: 1500,
     visitedOn: "2054-01-20",
     animalTags: [x],
     paymentMethod: "cash",
@@ -378,7 +378,7 @@ beforeAll(async () => {
   // The late news: C's bull was seen by the Vet on 10 February, and the fee is entered on 5 March.
   const { client: lateVet } = await as("vet", "2054-03-05T08:00:00.000Z");
   await lateVet.money.vetFee({
-    amountBdt: 1200,
+    amountMoney: 1200,
     visitedOn: "2054-02-10",
     animalTags: [c1 ?? ""],
     paymentMethod: "cash",
@@ -391,8 +391,8 @@ describe("a settled Venture when a cost comes in after its Settlement", () => {
     const page = await owner.returns.page();
     const itsReturn = page.ventures.find((one) => one.id === ventureC);
     const settled = settledProfit.get(ventureC) ?? Number.NaN;
-    expect(itsReturn?.returnOnCost?.resultBdt).toBeCloseTo(settled - 1200, 0);
-    expect(itsReturn?.sinceSettlementBdt).toBeCloseTo(-1200, 0);
+    expect(itsReturn?.returnOnCost?.resultMoney).toBeCloseTo(settled - 1200, 0);
+    expect(itsReturn?.sinceSettlementMoney).toBeCloseTo(-1200, 0);
     // The Investors were paid on the Settlement: their return does not move with the late news.
     expect(itsReturn?.returnOnCapital).not.toBeNull();
   });
@@ -401,7 +401,7 @@ describe("a settled Venture when a cost comes in after its Settlement", () => {
     const { client: owner } = await as("owner", "2054-03-06T04:00:00.000Z");
     const page = await owner.returns.page();
     expect(
-      page.ventures.find((one) => one.id === ventureA)?.sinceSettlementBdt
+      page.ventures.find((one) => one.id === ventureA)?.sinceSettlementMoney
     ).toBeNull();
   });
 });
@@ -412,7 +412,7 @@ describe("a Venture whose last animal has gone, before its Settlement", () => {
       (one) => one.id === ventureA
     );
     expect(itsReturn).toMatchObject({ settled: false, running: null });
-    expect(itsReturn?.returnOnCost?.resultBdt).toBeCloseTo(
+    expect(itsReturn?.returnOnCost?.resultMoney).toBeCloseTo(
       settledProfit.get(ventureA) ?? Number.NaN,
       0
     );
@@ -445,12 +445,12 @@ describe("a Venture's Return and its Settlement", () => {
         const movements = await owner.ventures.movements({ ventureId });
         return {
           back: page.ventures.find((one) => one.id === ventureId)?.returnOnCost
-            ?.backBdt,
+            ?.backMoney,
           inTheAccount: movements
             .filter(
               (one) => one.kind === "sale_in" || one.kind === "internal_sell"
             )
-            .reduce((sum, one) => sum + one.amountBdt, 0),
+            .reduce((sum, one) => sum + one.amountMoney, 0),
         };
       })
     );

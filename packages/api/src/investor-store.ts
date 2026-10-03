@@ -132,7 +132,7 @@ export const readAgreement = async (tx: Tx, farmId: string, id: string) => {
     arbitrator: row.arbitrator,
     stamp: {
       kind: row.stampKind,
-      valueBdt: row.stampValueBdt,
+      valueMoney: row.stampValueMoney,
       on: row.stampedOn,
       serial: row.stampSerial,
     },

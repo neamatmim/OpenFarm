@@ -319,8 +319,8 @@ export const THE_FARMS_PURSE = { isNull: true } as const;
 
 /** What a period's money comes to, in and out, and how many entries wait for the Owner's word. */
 export interface MoneyTotals {
-  inBdt: number;
-  outBdt: number;
+  inMoney: number;
+  outMoney: number;
   awaiting: number;
 }
 
@@ -340,7 +340,7 @@ export const moneyTotalsOf = async (
   const rows = await db
     .select({
       direction: moneyEvent.direction,
-      totalBdt: sql<string>`coalesce(sum(${moneyEvent.amountBdt}), 0)`,
+      totalMoney: sql<string>`coalesce(sum(${moneyEvent.amountMoney}), 0)`,
       awaiting: sql<number>`(count(*) filter (where ${moneyEvent.approval} = 'awaiting'))::int`,
     })
     .from(moneyEvent)
@@ -357,11 +357,11 @@ export const moneyTotalsOf = async (
     .groupBy(moneyEvent.direction);
   const totalOf = (direction: "in" | "out") =>
     roundTaka(
-      Number(rows.find((row) => row.direction === direction)?.totalBdt ?? 0)
+      Number(rows.find((row) => row.direction === direction)?.totalMoney ?? 0)
     );
   return {
-    inBdt: totalOf("in"),
-    outBdt: totalOf("out"),
+    inMoney: totalOf("in"),
+    outMoney: totalOf("out"),
     awaiting: rows.reduce((sum, row) => sum + Number(row.awaiting), 0),
   };
 };
@@ -370,7 +370,7 @@ export const moneyTotalsOf = async (
 export interface MoneyOfARecord {
   source: MoneySource;
   sourceId: string;
-  amountBdt: number;
+  amountMoney: number;
   occurredAt: Date;
   counterpartyId: string | null;
   /** How it was paid. Left out of a Correction, it stays as it was booked; left out of a first
@@ -439,7 +439,7 @@ export const accountSaid = (
 export interface Booking {
   /** The Farm Account and reference the form named, where it named one (`farmAccountOf`). */
   account?: AccountSaid;
-  farm: { id: string; approvalThresholdBdt: number };
+  farm: { id: string; approvalThresholdMoney: number };
   actorId: string;
   /** The Role the record is written under, which the Money Event is recorded under too. */
   role: RoleName;
@@ -480,7 +480,7 @@ const handOf = (
 /** The booking for a record this request is writing, now. */
 export const bookingOf = (
   context: {
-    farm: { id: string; approvalThresholdBdt: number };
+    farm: { id: string; approvalThresholdMoney: number };
     actor: { id: string };
     roles: readonly string[];
   },
@@ -662,7 +662,7 @@ export const moneySnapshotOf = async (
   (await tx.query.moneyEvent.findFirst({
     where: { farmId, source, sourceId },
     columns: {
-      amountBdt: true,
+      amountMoney: true,
       paymentMethod: true,
       approval: true,
       approvedBy: true,
@@ -683,17 +683,17 @@ export const paymentMethodOf = async (
 
 /** The columns a booking writes, whether it makes the Money Event or puts it right. */
 const moneyFieldsOf = ({
-  amountBdt,
+  amountMoney,
   money,
   approval,
   byHand,
 }: {
-  amountBdt: number;
+  amountMoney: number;
   money: MoneyOfARecord;
   approval: MoneyApproval;
   byHand: EnteredByHand | undefined;
 }) => ({
-  amountBdt,
+  amountMoney,
   occurredAt: money.occurredAt,
   counterpartyId: money.counterpartyId,
   ...(money.paymentMethod === undefined
@@ -727,13 +727,13 @@ const tellTheOwner = async (
   { farm, now }: Booking,
   {
     id,
-    amountBdt,
+    amountMoney,
     approval,
     before,
     terms,
   }: {
     id: string;
-    amountBdt: number;
+    amountMoney: number;
     approval: MoneyApproval;
     before: { terms: ApprovedTerms; approval: MoneyApproval } | undefined;
     terms: ApprovedTerms;
@@ -763,7 +763,7 @@ const tellTheOwner = async (
       about: { id: `${id}:${newId(now)}` },
       facts: {
         moneyEventId: id,
-        amountBdt,
+        amountMoney,
         ...(await categoryNamesOf(tx, farm.id, id)),
       },
     },
@@ -811,11 +811,11 @@ const piecesOf = async (
         lte: money.occurredAt,
       },
     },
-    columns: { amountBdt: true },
+    columns: { amountMoney: true },
   });
   let total = 0;
   for (const one of pieces) {
-    total += one.amountBdt;
+    total += one.amountMoney;
   }
   return roundTaka(total);
 };
@@ -845,7 +845,7 @@ export const bookMoney = async (
       data: { refusal: "wage_is_the_farms" },
     });
   }
-  const amountBdt = roundTaka(money.amountBdt);
+  const amountMoney = roundTaka(money.amountMoney);
   const existing = await tx.query.moneyEvent.findFirst({
     where: {
       farmId: farm.id,
@@ -854,7 +854,7 @@ export const bookMoney = async (
     },
     columns: {
       id: true,
-      amountBdt: true,
+      amountMoney: true,
       approval: true,
       counterpartyId: true,
       categoryId: true,
@@ -874,7 +874,7 @@ export const bookMoney = async (
       }
     : await placedUnder(tx, farm.id, money, byHand, now);
   const terms = {
-    amountBdt,
+    amountMoney,
     counterpartyId: money.counterpartyId,
     categoryId: placed.categoryId,
     // Left out of a Correction, the purse stays as it was booked, so the terms are read the same way.
@@ -886,7 +886,7 @@ export const bookMoney = async (
   const before = existing
     ? {
         terms: {
-          amountBdt: existing.amountBdt,
+          amountMoney: existing.amountMoney,
           counterpartyId: existing.counterpartyId,
           categoryId: existing.categoryId,
           purseVentureId: existing.purseVentureId,
@@ -896,17 +896,17 @@ export const bookMoney = async (
     : undefined;
   const approval = approvalOf({
     terms,
-    thresholdBdt: farm.approvalThresholdBdt,
+    thresholdMoney: farm.approvalThresholdMoney,
     enteredByTheOwner: booking.byTheOwner,
     before,
-    piecesBdt: await piecesOf(tx, booking, money, {
+    piecesMoney: await piecesOf(tx, booking, money, {
       id,
       direction: placed.direction,
       purseVentureId: terms.purseVentureId,
     }),
   });
   const fields = {
-    ...moneyFieldsOf({ amountBdt, money, approval, byHand }),
+    ...moneyFieldsOf({ amountMoney, money, approval, byHand }),
     heldBy: handOf(booking, money, existing),
     ...(await farmAccountOf(
       tx,
@@ -932,7 +932,7 @@ export const bookMoney = async (
         paymentMethod: "cash",
         ...fields,
       }));
-  await tellTheOwner(tx, booking, { id, amountBdt, approval, before, terms });
+  await tellTheOwner(tx, booking, { id, amountMoney, approval, before, terms });
   return { id, approval };
 };
 
@@ -941,11 +941,11 @@ export const bookMoney = async (
 export const awaitingApproval = async (
   db: Pick<Tx, "select">,
   farmId: string
-): Promise<{ count: number; totalBdt: number }> => {
+): Promise<{ count: number; totalMoney: number }> => {
   const [row] = await db
     .select({
       count: sql<number>`count(*)::int`,
-      totalBdt: sql<string>`coalesce(sum(${moneyEvent.amountBdt}), 0)`,
+      totalMoney: sql<string>`coalesce(sum(${moneyEvent.amountMoney}), 0)`,
     })
     .from(moneyEvent)
     .where(
@@ -953,6 +953,6 @@ export const awaitingApproval = async (
     );
   return {
     count: Number(row?.count ?? 0),
-    totalBdt: roundTaka(Number(row?.totalBdt ?? 0)),
+    totalMoney: roundTaka(Number(row?.totalMoney ?? 0)),
   };
 };

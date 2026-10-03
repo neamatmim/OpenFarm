@@ -59,9 +59,9 @@ const CostNotes = ({ one, parts }: { one: AnimalPriced; parts: string[] }) => {
   const taka = useTaka();
   const lines = [
     ...parts,
-    one.breakEvenBdtPerKg === null
+    one.breakEvenMoneyPerKg === null
       ? null
-      : t("price.breakEven", { perKg: taka(one.breakEvenBdtPerKg) }),
+      : t("price.breakEven", { perKg: taka(one.breakEvenMoneyPerKg) }),
     one.costIsWhole ? null : t("price.costShort"),
     one.bought ? null : t("price.born"),
   ].filter((part): part is string => part !== null);
@@ -87,7 +87,7 @@ const CostLine = ({ one }: { one: AnimalPriced }) => {
   return (
     <CostNotes
       one={one}
-      parts={[t("price.cost", { cost: taka(one.costBdt) })]}
+      parts={[t("price.cost", { cost: taka(one.costMoney) })]}
     />
   );
 };
@@ -104,11 +104,11 @@ const EstimateLine = ({ one }: { one: AnimalPriced }) => {
       </span>
     );
   }
-  const short = one.low.marginBdt < 0;
+  const short = one.low.marginMoney < 0;
   return (
     <>
       <span className="font-medium tabular-nums">
-        {range(taka(one.low.priceBdt), taka(one.high.priceBdt))}
+        {range(taka(one.low.priceMoney), taka(one.high.priceMoney))}
       </span>
       <span
         className={cn(
@@ -117,8 +117,8 @@ const EstimateLine = ({ one }: { one: AnimalPriced }) => {
         )}
       >
         {t("price.margin", {
-          low: taka(one.low.marginBdt),
-          high: taka(one.high.marginBdt),
+          low: taka(one.low.marginMoney),
+          high: taka(one.high.marginMoney),
         })}
       </span>
     </>
@@ -187,12 +187,14 @@ const KeepLine = ({ one, full }: { one: AnimalPriced; full: boolean }) => {
   }
   const { ahead } = keep;
   const look = keep.keeping ? KEEPING_LOOK[keep.keeping] : null;
-  const gaining = keep.costOfGainNowBdt !== null;
+  const gaining = keep.costOfGainNowMoney !== null;
   const gain = `${ahead.gainKg < 0 ? "−" : "+"}${kg(Math.abs(ahead.gainKg))}`;
   const details = [
-    full || !look ? t("keep.ahead", { gain, keep: taka(ahead.keepBdt) }) : null,
-    (full || !look) && keep.costOfGainNowBdt !== null
-      ? t("keep.perKg", { perKg: perKg(keep.costOfGainNowBdt) })
+    full || !look
+      ? t("keep.ahead", { gain, keep: taka(ahead.keepMoney) })
+      : null,
+    (full || !look) && keep.costOfGainNowMoney !== null
+      ? t("keep.perKg", { perKg: perKg(keep.costOfGainNowMoney) })
       : null,
     keep.whole ? null : t("keep.short"),
   ].filter((part): part is string => part !== null);
@@ -208,8 +210,8 @@ const KeepLine = ({ one, full }: { one: AnimalPriced; full: boolean }) => {
           {t("keep.over", {
             days: ahead.days,
             over: range(
-              taka(ahead.low.overKeepBdt),
-              taka(ahead.high.overKeepBdt)
+              taka(ahead.low.overKeepMoney),
+              taka(ahead.high.overKeepMoney)
             ),
           })}
         </span>
@@ -218,7 +220,7 @@ const KeepLine = ({ one, full }: { one: AnimalPriced; full: boolean }) => {
         <span className="text-danger text-xs tabular-nums">
           {t("keep.notGaining", {
             days: ahead.days,
-            keep: taka(ahead.keepBdt),
+            keep: taka(ahead.keepMoney),
           })}
         </span>
       )}
@@ -279,7 +281,7 @@ export const CostCell = ({ tagNumber }: { tagNumber: string }) => {
   return (
     <span className="flex flex-col items-end gap-0.5 text-end">
       <span className="font-medium whitespace-nowrap tabular-nums">
-        {taka(one.costBdt)}
+        {taka(one.costMoney)}
       </span>
       <CostNotes one={one} parts={[]} />
     </span>
@@ -393,8 +395,8 @@ const MarketSheet = ({
   const { t } = useLanguage();
   const refused = useRefused();
   const [typed, setTyped] = useState<Typed>({
-    low: market ? String(market.lowBdtPerKg) : "",
-    high: market ? String(market.highBdtPerKg) : "",
+    low: market ? String(market.lowMoneyPerKg) : "",
+    high: market ? String(market.highMoneyPerKg) : "",
   });
   const saving = useMutation(
     orpc.fattening.setMarketPrice.mutationOptions({
@@ -416,7 +418,7 @@ const MarketSheet = ({
       description={t("market.hint")}
       onOpenChange={onOpenChange}
       onSubmit={() =>
-        saving.mutate({ lowBdtPerKg: low ?? 0, highBdtPerKg: high ?? 0 })
+        saving.mutate({ lowMoneyPerKg: low ?? 0, highMoneyPerKg: high ?? 0 })
       }
       open
       pending={saving.isPending}
@@ -481,8 +483,8 @@ export const MarketPrice = ({ compact = false }: { compact?: boolean }) => {
       <p className="text-sm">
         {market
           ? t("market.line", {
-              low: taka(market.lowBdtPerKg),
-              high: taka(market.highBdtPerKg),
+              low: taka(market.lowMoneyPerKg),
+              high: taka(market.highMoneyPerKg),
               day: market.setAt
                 ? formatDate(new Date(market.setAt), language, "date")
                 : "—",
@@ -493,7 +495,7 @@ export const MarketPrice = ({ compact = false }: { compact?: boolean }) => {
         {recent
           ? t("market.recent", {
               days: recent.days,
-              perKg: taka(recent.bdtPerKg),
+              perKg: taka(recent.moneyPerKg),
               animals: recent.animals,
             })
           : t("market.noRecent", { days: 60 })}

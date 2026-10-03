@@ -47,10 +47,10 @@ export const AdvanceSheet = ({
       },
     })
   );
-  const amountBdt = Number(amount);
+  const amountMoney = Number(amount);
   const ready =
     venture !== null &&
-    amountBdt > 0 &&
+    amountMoney > 0 &&
     movedOn !== "" &&
     reference.trim() !== "";
   return (
@@ -60,7 +60,7 @@ export const AdvanceSheet = ({
       onSubmit={() =>
         advancing.mutate({
           ventureId: venture?.id ?? "",
-          amountBdt,
+          amountMoney,
           movedOn,
           paymentMethod: "bank",
           reference,

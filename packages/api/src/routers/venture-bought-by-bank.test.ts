@@ -24,15 +24,15 @@ beforeAll(async () => {
   const owner = await as("owner");
   const venture = await owner.client.ventures.open({
     name: `ভেঞ্চার ${suffix}`,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2074-03-01",
     targetWindowStart: "2074-07-01",
     targetWindowEnd: "2074-07-05",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
     // Two lakh for cattle, so one dear bull is over it.
-    cattleBudgetBdt: 200_000,
+    cattleBudgetMoney: 200_000,
   });
   ventureId = venture.id;
   const person = await owner.client.investors.record({
@@ -45,7 +45,7 @@ beforeAll(async () => {
     units: 20,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2074-02-02",
     stampSerial: `AA ${suffix}`,
   });
@@ -56,7 +56,7 @@ beforeAll(async () => {
   });
   await owner.client.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: 1_000_000,
+    amountMoney: 1_000_000,
     movedOn: "2074-02-03",
     paymentMethod: "bank",
     reference: `TRF-${suffix}`,
@@ -77,7 +77,7 @@ const atTheGate = async (
   sheet: {
     paymentMethod?: "cash" | "bank" | "bkash";
     reference?: string;
-    purchasePriceBdt?: number;
+    purchasePriceMoney?: number;
     buyingTripId?: string;
   }
 ) =>
@@ -85,8 +85,8 @@ const atTheGate = async (
     penId,
     sex: "male",
     seller: { name: `প্রতিবেশী ${suffix}` },
-    purchasePriceBdt: 60_000,
-    hasilBdt: 0,
+    purchasePriceMoney: 60_000,
+    hasilMoney: 0,
     weightKg: 200,
     estimatedAgeMonths: 20,
     arrivedAt: new Date(`${DAY}T05:00:00.000Z`),
@@ -130,16 +130,16 @@ describe("a Venture's bull with no outing", () => {
       reference: `চেক ১২৩৪ ${suffix}`,
     });
     const after = await theVenture();
-    expect(after?.balanceBdt).toBe((before?.balanceBdt ?? 0) - 60_000);
-    expect(after?.cattleBudgetHeldBdt).toBe(
-      (before?.cattleBudgetHeldBdt ?? 0) - 60_000
+    expect(after?.balanceMoney).toBe((before?.balanceMoney ?? 0) - 60_000);
+    expect(after?.cattleBudgetHeldMoney).toBe(
+      (before?.cattleBudgetHeldMoney ?? 0) - 60_000
     );
     const movements = await movementsOf();
     expect(
       movements.find((one) => one.intakeId === hers.intakeId)
     ).toMatchObject({
       kind: "intake_out",
-      amountBdt: 60_000,
+      amountMoney: 60_000,
       reference: `চেক ১২৩৪ ${suffix}`,
     });
   });
@@ -157,15 +157,15 @@ describe("a Venture's bull with no outing", () => {
       atTheGate(owner, {
         paymentMethod: "bank",
         reference: `চেক ২ ${suffix}`,
-        purchasePriceBdt: 500_000,
+        purchasePriceMoney: 500_000,
       })
     ).rejects.toMatchObject({ data: { refusal: "cattle_budget_short" } });
     const trip = await owner.client.trips.record({
       wentTo: `হাট ${suffix}`,
       wentOn: DAY,
-      brokerBdt: 0,
-      transportBdt: 0,
-      keepBdt: 0,
+      brokerMoney: 0,
+      transportMoney: 0,
+      keepMoney: 0,
     });
     await expect(
       atTheGate(owner, { buyingTripId: trip.id })
@@ -182,17 +182,17 @@ describe("a Venture's bull with no outing", () => {
     await manager.client.intake.correct({
       id: hers.intakeId,
       reason: `দাম আসলে কম ছিল ${suffix}`,
-      changes: { purchasePriceBdt: { from: 60_000, to: 55_000 } },
+      changes: { purchasePriceMoney: { from: 60_000, to: 55_000 } },
     });
     const moved = await movementsOf();
     const itsOwn = moved.find((one) => one.intakeId === hers.intakeId);
-    expect(itsOwn).toMatchObject({ kind: "intake_out", amountBdt: 55_000 });
+    expect(itsOwn).toMatchObject({ kind: "intake_out", amountMoney: 55_000 });
     // The movement is written from the Intake, and put right only there.
     await expect(
       owner.client.ventures.correctMovement({
         id: itsOwn?.id ?? "",
         reason: `ভুল ${suffix}`,
-        changes: { amountBdt: { from: 55_000, to: 50_000 } },
+        changes: { amountMoney: { from: 55_000, to: 50_000 } },
       })
     ).rejects.toMatchObject({ data: { refusal: "correct_the_record" } });
     await manager.client.intake.correct({

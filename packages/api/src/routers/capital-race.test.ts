@@ -24,14 +24,14 @@ const as = (instant: string) =>
   createTestClient(appRouter, { as: "owner", clock: new FakeClock(instant) });
 
 const plan = {
-  targetCapitalBdt: 5_000_000,
-  floorBdt: 700_000,
+  targetCapitalMoney: 5_000_000,
+  floorMoney: 700_000,
   decideBy: "2046-09-20",
   targetWindowStart: "2047-05-17",
   targetWindowEnd: "2047-05-19",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 100,
-  cattleBudgetBdt: 3_750_000,
+  cattleBudgetMoney: 3_750_000,
 };
 
 /** An Agreement worth two Units — one lakh — with its stamped paper on file. */
@@ -50,7 +50,7 @@ const signedFor = async (
     units: 2,
     investorsPercent: 60,
     arbitrator: `মাওলানা আব্দুল হক ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2046-09-02",
     stampSerial: `AA ${which} ${suffix}`,
   });
@@ -70,7 +70,7 @@ describe("two payments against one Agreement at once", () => {
       ...plan,
     });
 
-    const overpaid: { agreementId: string; takenBdt: number }[] = [];
+    const overpaid: { agreementId: string; takenMoney: number }[] = [];
     // Round after round, each its own race: rounds run together would race each other, not the two payments.
     /* oxlint-disable no-await-in-loop */
     for (let round = 0; round < ROUNDS; round += 1) {
@@ -81,7 +81,7 @@ describe("two payments against one Agreement at once", () => {
       const pay = (reference: string) =>
         owner.client.ventures.takeCapital({
           agreementId,
-          amountBdt: 60_000,
+          amountMoney: 60_000,
           movedOn: "2046-09-03",
           paymentMethod: "bank",
           reference,
@@ -93,13 +93,13 @@ describe("two payments against one Agreement at once", () => {
       const movements = await owner.client.ventures.movements({
         ventureId: venture.id,
       });
-      const takenBdt = movements
+      const takenMoney = movements
         .filter(
           (one) => one.kind === "capital_in" && one.agreementId === agreementId
         )
-        .reduce((sum, one) => sum + one.amountBdt, 0);
-      if (takenBdt > 100_000) {
-        overpaid.push({ agreementId, takenBdt });
+        .reduce((sum, one) => sum + one.amountMoney, 0);
+      if (takenMoney > 100_000) {
+        overpaid.push({ agreementId, takenMoney });
       }
     }
     /* oxlint-enable no-await-in-loop */

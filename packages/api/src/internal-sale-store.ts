@@ -28,7 +28,7 @@ export interface Handover {
   from: string | null;
   to: string | null;
   weighed: Weighed;
-  rateBdtPerKg: number;
+  rateMoneyPerKg: number;
   /** Where the Farm takes her on: the Target Window of the Season she joins — the next Eid where none is said. */
   targetWindow?: TargetWindow;
   /** Where the rate came from. An Investor asking years later why his bull was worth that is owed a
@@ -53,10 +53,10 @@ export const recordInternalSale = async (
    *  farm id passed beside it would be a second answer nothing reconciles. */
   booking: Booking,
   hand: Handover
-): Promise<{ id: string; weightKg: number; priceBdt: number }> => {
+): Promise<{ id: string; weightKg: number; priceMoney: number }> => {
   const { now, actorId } = booking;
   const farmId = booking.farm.id;
-  const priceBdt = priceAtWeight(hand.weighed.weightKg, hand.rateBdtPerKg);
+  const priceMoney = priceAtWeight(hand.weighed.weightKg, hand.rateMoneyPerKg);
   await tx.insert(internalSale).values({
     id: hand.id,
     farmId,
@@ -65,8 +65,8 @@ export const recordInternalSale = async (
     toVentureId: hand.to,
     weightKg: hand.weighed.weightKg.toFixed(2),
     weighInId: hand.weighed.id,
-    rateBdtPerKg: hand.rateBdtPerKg.toFixed(2),
-    priceBdt,
+    rateMoneyPerKg: hand.rateMoneyPerKg.toFixed(2),
+    priceMoney,
     note: hand.note,
     soldOn: hand.soldOn,
     recordedBy: actorId,
@@ -90,7 +90,7 @@ export const recordInternalSale = async (
       ventureId: side.ventureId,
       kind: side.kind,
       internalSaleId: hand.id,
-      amountBdt: priceBdt,
+      amountMoney: priceMoney,
       movedOn: hand.soldOn,
       reference: hand.reference,
       recordedBy: actorId,
@@ -105,7 +105,7 @@ export const recordInternalSale = async (
       // The Farm letting her go is money in; the Farm taking her on is money out.
       source: hand.from === null ? "internal_sale_in" : "internal_sale_out",
       sourceId: hand.id,
-      amountBdt: priceBdt,
+      amountMoney: priceMoney,
       occurredAt: startOfFarmDay(hand.soldOn),
       counterpartyId: null,
       paymentMethod: hand.paymentMethod,
@@ -126,10 +126,10 @@ export const recordInternalSale = async (
       internalSaleId: hand.id,
       targetWindow: hand.targetWindow,
       price: {
-        priceBdt,
+        priceMoney,
         weighInId: hand.weighed.id,
         weightKg: hand.weighed.weightKg,
-        rateBdtPerKg: hand.rateBdtPerKg,
+        rateMoneyPerKg: hand.rateMoneyPerKg,
         note: hand.note,
         pricedBy: actorId,
         pricedAt: now,
@@ -138,5 +138,5 @@ export const recordInternalSale = async (
       now,
     });
   }
-  return { id: hand.id, weightKg: hand.weighed.weightKg, priceBdt };
+  return { id: hand.id, weightKg: hand.weighed.weightKg, priceMoney };
 };

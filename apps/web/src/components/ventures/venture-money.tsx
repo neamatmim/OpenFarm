@@ -52,7 +52,7 @@ type Showing = "all" | "in" | "out";
  * this one. Worked out in one pass, oldest first, which is the order the list arrives in.
  */
 const withBalances = <
-  T extends { direction?: "in" | "out"; amountBdt: number },
+  T extends { direction?: "in" | "out"; amountMoney: number },
 >(
   movements: readonly T[]
 ) => {
@@ -63,7 +63,7 @@ const withBalances = <
     read.push({
       ...one,
       coming,
-      after: before + (coming ? one.amountBdt : -one.amountBdt),
+      after: before + (coming ? one.amountMoney : -one.amountMoney),
     });
   }
   return read;
@@ -142,13 +142,13 @@ const ReferenceCell = ({ row }: MovementCell) => (
 const InCell = ({ row }: MovementCell) => {
   const taka = useTaka();
   return row.original.coming ? (
-    <span className="text-success">{taka(row.original.amountBdt)}</span>
+    <span className="text-success">{taka(row.original.amountMoney)}</span>
   ) : null;
 };
 
 const OutCell = ({ row }: MovementCell) => {
   const taka = useTaka();
-  return row.original.coming ? null : <>{taka(row.original.amountBdt)}</>;
+  return row.original.coming ? null : <>{taka(row.original.amountMoney)}</>;
 };
 
 const AfterCell = ({ row }: MovementCell) => {
@@ -180,13 +180,13 @@ const movementColumns = column.columns([
     cell: ReferenceCell,
     enableSorting: false,
   }),
-  column.accessor((row) => (row.coming ? row.amountBdt : undefined), {
+  column.accessor((row) => (row.coming ? row.amountMoney : undefined), {
     id: "in",
     header: listHeader("ventures.page.in"),
     cell: InCell,
     meta: { align: "end" },
   }),
-  column.accessor((row) => (row.coming ? undefined : row.amountBdt), {
+  column.accessor((row) => (row.coming ? undefined : row.amountMoney), {
     id: "out",
     header: listHeader("ventures.page.out"),
     cell: OutCell,
@@ -229,7 +229,7 @@ const MovementCard = ({ row }: { row: MovementRow }) => {
               row.coming && "text-success"
             )}
           >
-            {taka(row.amountBdt)}
+            {taka(row.amountMoney)}
           </span>
           <span className="text-muted-foreground text-xs">
             {t(row.coming ? "ventures.page.in" : "ventures.page.out")}
@@ -301,10 +301,10 @@ export const VentureMoney = ({ venture }: { venture: Venture }) => {
     }));
   const totalIn = read
     .filter((one) => one.coming)
-    .reduce((sum, one) => sum + one.amountBdt, 0);
+    .reduce((sum, one) => sum + one.amountMoney, 0);
   const totalOut = read
     .filter((one) => !one.coming)
-    .reduce((sum, one) => sum + one.amountBdt, 0);
+    .reduce((sum, one) => sum + one.amountMoney, 0);
   return (
     <Section
       action={

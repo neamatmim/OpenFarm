@@ -78,7 +78,7 @@ const VentureCard = ({
               {t("portal.capital")}
             </dt>
             <dd className="font-semibold tabular-nums">
-              {taka(one.capitalHeldBdt)}
+              {taka(one.capitalHeldMoney)}
             </dd>
           </div>
           <div className="flex flex-col gap-0.5">

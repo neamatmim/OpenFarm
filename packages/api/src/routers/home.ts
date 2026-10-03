@@ -28,8 +28,8 @@ import {
   workAwaitingSignOff,
 } from "../instances-store";
 import { milkDropsOn } from "../milk-store";
-import { awaitingApproval } from "../money-store";
 import { lostInAYear, missingNow } from "../missing-store";
+import { awaitingApproval } from "../money-store";
 import { monthByMonth } from "../month-store";
 import { monthlyCostsNow } from "../monthly-costs-store";
 import { renewalDue } from "../registration-store";
@@ -452,7 +452,7 @@ export const homeRouter = {
           moneyAwaiting: moneyAwaiting.map((row) => ({
             id: row.id,
             // A Money Event, whose column is still `numeric` and so still arrives as a string.
-            amountBdt: row.amountBdt,
+            amountMoney: row.amountMoney,
             direction: row.direction,
             categoryBn: row.category.nameBn,
             categoryEn: row.category.nameEn,
@@ -465,7 +465,7 @@ export const homeRouter = {
             recordedByName: row.recorder?.name ?? null,
             /** Under the line alone, and waiting because the week's other pieces to the same person take it past. */
             inPieces:
-              Number(row.amountBdt) <= context.farm.approvalThresholdBdt,
+              Number(row.amountMoney) <= context.farm.approvalThresholdMoney,
           })),
           /** All the money waiting for her word, counted and totalled, where the list above shows the oldest few. */
           moneyAwaitingAll,

@@ -30,7 +30,7 @@ export interface HisAgreement {
   amendedOn: string | null;
   arbitrator: string;
   stampKind: StampKind;
-  stampValueBdt: number;
+  stampValueMoney: number;
   stampedOn: string;
   stampSerial: string;
   /** The wording it was signed in. */
@@ -47,7 +47,7 @@ export interface HisAgreement {
  */
 export interface HisCapital {
   kind: "received" | "returned";
-  amountBdt: number;
+  amountMoney: number;
   movedOn: string;
   reference: string;
 }
@@ -68,10 +68,10 @@ export interface TheVenture {
   id: string;
   name: string;
   state: VentureRow["state"];
-  unitPriceBdt: number;
+  unitPriceMoney: number;
   /** How its Units are paid for, and — paid by the month — the terms it froze, which his papers print. */
   capitalPaid: VentureRow["capitalPaid"];
-  cattlePartBdt: number | null;
+  cattlePartMoney: number | null;
   monthlySums: number | null;
   firstSumDueOn: string | null;
 }
@@ -83,7 +83,7 @@ export interface HisStanding {
   agreement: HisAgreement;
   capital: HisCapital[];
   /** What the Farm holds of his: received less returned. */
-  capitalBdt: number;
+  capitalMoney: number;
 }
 
 const noSuchAgreement = () =>
@@ -128,9 +128,9 @@ export const hisStanding = async (
         id: true,
         name: true,
         state: true,
-        unitPriceBdt: true,
+        unitPriceMoney: true,
         capitalPaid: true,
-        cattlePartBdt: true,
+        cattlePartMoney: true,
         monthlySums: true,
         firstSumDueOn: true,
       },
@@ -153,7 +153,7 @@ export const hisStanding = async (
       agreementId,
       kind: { in: ["capital_in", "refund"] },
     },
-    columns: { kind: true, amountBdt: true, movedOn: true, reference: true },
+    columns: { kind: true, amountMoney: true, movedOn: true, reference: true },
     orderBy: { movedOn: "asc", id: "asc" },
   });
   const terms = (await termsInForceOn(tx, farmId, agreement.id, on)) ?? {
@@ -164,7 +164,7 @@ export const hisStanding = async (
   };
   const capital: HisCapital[] = moved.map((one) => ({
     kind: one.kind === "refund" ? "returned" : "received",
-    amountBdt: one.amountBdt,
+    amountMoney: one.amountMoney,
     movedOn: one.movedOn,
     reference: one.reference,
   }));
@@ -189,15 +189,15 @@ export const hisStanding = async (
       amendedOn: terms.amendedOn,
       arbitrator: agreement.arbitrator,
       stampKind: agreement.stampKind,
-      stampValueBdt: agreement.stampValueBdt,
+      stampValueMoney: agreement.stampValueMoney,
       stampedOn: agreement.stampedOn,
       stampSerial: agreement.stampSerial,
       templateVersionId: agreement.templateVersionId,
     },
     capital,
-    capitalBdt: capital.reduce(
+    capitalMoney: capital.reduce(
       (sum, one) =>
-        sum + (one.kind === "returned" ? -one.amountBdt : one.amountBdt),
+        sum + (one.kind === "returned" ? -one.amountMoney : one.amountMoney),
       0
     ),
   };
@@ -217,7 +217,7 @@ export const assertCapitalHeld = (standing: HisStanding) => {
       data: { refusal: "no_capital_yet" },
     });
   }
-  if (standing.capitalBdt <= 0) {
+  if (standing.capitalMoney <= 0) {
     throw new ORPCError("BAD_REQUEST", {
       message: "That agreement's capital has been refunded",
       data: { refusal: "capital_returned" },
@@ -227,18 +227,18 @@ export const assertCapitalHeld = (standing: HisStanding) => {
 
 /** What a Venture's run has cost so far, by the same seven words the Settlement will freeze. */
 export interface TheirSpend {
-  charges: { word: ChargeWord; bdt: number }[];
-  chargedBdt: number;
+  charges: { word: ChargeWord; amount: number }[];
+  chargedMoney: number;
   /** The Units actually signed for, which is what a share of this Venture divides by while it gathers its capital —
    *  not the Units the plan offered, which an under-subscribed Venture never sold. */
   signedUnits: number;
   /** The Units held — the capital in, over the Unit price — which is what a share divides by once buying starts, as
    *  the Settlement will divide by them: a Unit signed for and never paid takes no share. */
   heldUnits: number;
-  cattleBudgetBdt: number;
-  runningBudgetBdt: number;
+  cattleBudgetMoney: number;
+  runningBudgetMoney: number;
   /** What of the money that came in for buying animals has not been drawn against. */
-  cattleBudgetLeftBdt: number;
+  cattleBudgetLeftMoney: number;
   /**
    * What keeping the animals has cost so far: feed, medicine, the vet and their share of the Herd
    * Costs, off the charge lines above.
@@ -249,7 +249,7 @@ export interface TheirSpend {
    * on a sheet a man keeps. What has gone on keeping them is a figure he can check against the lines
    * printed right above it.
    */
-  runningSpentBdt: number;
+  runningSpentMoney: number;
 }
 
 /**
@@ -259,9 +259,9 @@ export interface TheirSpend {
  * then reads as what it paid for, so the share he is shown is the share he will be paid.
  */
 export const hisHolding = (
-  his: { units: number; capitalBdt: number },
+  his: { units: number; capitalMoney: number },
   spend: Pick<TheirSpend, "signedUnits" | "heldUnits">,
-  venture: { state: VentureRow["state"]; unitPriceBdt: number }
+  venture: { state: VentureRow["state"]; unitPriceMoney: number }
 ) => {
   const gathering = venture.state === "open" || venture.state === "cancelled";
   if (gathering) {
@@ -270,7 +270,7 @@ export const hisHolding = (
       sharePercent: shareOfUnits(his.units, spend.signedUnits),
     };
   }
-  const units = unitsHeld(his.capitalBdt, venture.unitPriceBdt);
+  const units = unitsHeld(his.capitalMoney, venture.unitPriceMoney);
   return { units, sharePercent: shareOfUnits(units, spend.heldUnits) };
 };
 
@@ -300,11 +300,11 @@ export const theirSpend = async (
   farmId: string,
   venture: {
     id: string;
-    targetCapitalBdt: number;
-    cattleBudgetBdt: number;
-    unitPriceBdt: number;
+    targetCapitalMoney: number;
+    cattleBudgetMoney: number;
+    unitPriceMoney: number;
     capitalPaid: VentureRow["capitalPaid"];
-    cattlePartBdt: number | null;
+    cattlePartMoney: number | null;
     /** Which side of the run it is on: what buying did not spend is feeding money once it closes. */
     state: VentureRow["state"];
   }
@@ -316,7 +316,7 @@ export const theirSpend = async (
     signedForEach(tx, farmId, [venture.id]),
     tx.query.ventureMovement.findMany({
       where: { farmId, ventureId: venture.id },
-      columns: { kind: true, amountBdt: true },
+      columns: { kind: true, amountMoney: true },
     }),
   ]);
   const { charges } = whatItWasCharged(costs, ownedThenBy, venture.id, paidIn);
@@ -329,20 +329,20 @@ export const theirSpend = async (
     charges,
     // The sum of the lines as they are shown, not of the figures behind them — as the Settlement does
     // it, because lines that do not add up to the total beneath them is the farm arguing with itself.
-    chargedBdt: roundTaka(charges.reduce((sum, one) => sum + one.bdt, 0)),
+    chargedMoney: roundTaka(charges.reduce((sum, one) => sum + one.amount, 0)),
     signedUnits: signed.get(venture.id)?.units ?? 0,
     heldUnits: unitsHeld(
-      (held.get(venture.id)?.capitalInBdt ?? 0) -
-        (held.get(venture.id)?.refundedBdt ?? 0),
-      venture.unitPriceBdt
+      (held.get(venture.id)?.capitalInMoney ?? 0) -
+        (held.get(venture.id)?.refundedMoney ?? 0),
+      venture.unitPriceMoney
     ),
-    cattleBudgetBdt: budgets.cattleBudgetBdt,
-    runningBudgetBdt: budgets.runningBudgetBdt,
-    cattleBudgetLeftBdt: budgets.cattleBudgetDrawnAgainstBdt,
-    runningSpentBdt: roundTaka(
+    cattleBudgetMoney: budgets.cattleBudgetMoney,
+    runningBudgetMoney: budgets.runningBudgetMoney,
+    cattleBudgetLeftMoney: budgets.cattleBudgetDrawnAgainstMoney,
+    runningSpentMoney: roundTaka(
       charges
         .filter((one) => KEEPING_THEM.has(one.word))
-        .reduce((sum, one) => sum + one.bdt, 0)
+        .reduce((sum, one) => sum + one.amount, 0)
     ),
   };
 };
@@ -401,9 +401,9 @@ export const theirPhotographs = async (
 /** What became of the herd over the whole run, as the closing sheet tells it. */
 export interface TheirHerdStory {
   boughtCount: number;
-  averageBoughtBdt: number | null;
+  averageBoughtMoney: number | null;
   soldCount: number;
-  averageSoldBdt: number | null;
+  averageSoldMoney: number | null;
   boughtBackCount: number;
   diedCount: number;
 }
@@ -414,33 +414,33 @@ export interface HisAdjustment {
   raisedAt: Date;
   outcome: AdjustmentOutcome;
   /** What his Units are worth of it, and what of that has actually reached him. */
-  differenceBdt: number;
-  paidBdt: number;
+  differenceMoney: number;
+  paidMoney: number;
 }
 
 /** His own line of an approved Settlement, and the Venture's figures it was worked out from. */
 export interface HisSettlement {
   approvedAt: Date;
-  proceedsBdt: number;
-  charges: { word: ChargeWord; bdt: number }[];
-  chargedBdt: number;
-  profitBdt: number;
+  proceedsMoney: number;
+  charges: { word: ChargeWord; amount: number }[];
+  chargedMoney: number;
+  profitMoney: number;
   investorsPercent: number;
   units: number;
-  perUnitBdt: number;
-  roundingBdt: number;
-  farmBdt: number;
-  advanceBdt: number;
+  perUnitMoney: number;
+  roundingMoney: number;
+  farmMoney: number;
+  advanceMoney: number;
   advanceRepaid: boolean;
   /** Capital returned to all of them, which is what a Unit's own capital divides out of. Follows from
    *  the Units and the unit price he already holds, so it discloses nothing of anybody else. */
-  capitalBdt: number;
+  capitalMoney: number;
   /** His: what his Units took, what came back, and what went out to him. */
   his: {
     units: number;
-    capitalBdt: number;
-    shareBdt: number;
-    payoutBdt: number;
+    capitalMoney: number;
+    shareMoney: number;
+    payoutMoney: number;
     /** The reference the money went out on, or nothing while it has not. */
     reference: string | null;
     paidOn: string | null;
@@ -484,23 +484,23 @@ export const hisSettlement = async (
     : null;
   return {
     approvedAt: settled.approvedAt,
-    proceedsBdt: settled.proceedsBdt,
+    proceedsMoney: settled.proceedsMoney,
     charges: settled.charges,
-    chargedBdt: settled.chargedBdt,
-    profitBdt: settled.profitBdt,
+    chargedMoney: settled.chargedMoney,
+    profitMoney: settled.profitMoney,
     investorsPercent: settled.investorsPercent,
     units: settled.units,
-    perUnitBdt: settled.perUnitBdt,
-    roundingBdt: settled.roundingBdt,
-    farmBdt: settled.farmBdt,
-    advanceBdt: settled.advanceBdt,
+    perUnitMoney: settled.perUnitMoney,
+    roundingMoney: settled.roundingMoney,
+    farmMoney: settled.farmMoney,
+    advanceMoney: settled.advanceMoney,
     advanceRepaid: settled.advanceRepaid,
-    capitalBdt: settled.capitalBdt,
+    capitalMoney: settled.capitalMoney,
     his: {
       units: his.units,
-      capitalBdt: his.capitalBdt,
-      shareBdt: his.shareBdt,
-      payoutBdt: his.payoutBdt,
+      capitalMoney: his.capitalMoney,
+      shareMoney: his.shareMoney,
+      payoutMoney: his.payoutMoney,
       reference: paid?.reference ?? null,
       paidOn: paid?.movedOn ?? null,
     },
@@ -509,8 +509,8 @@ export const hisSettlement = async (
       reason: one.reason,
       raisedAt: one.raisedAt,
       outcome: one.outcome,
-      differenceBdt: whatUnitsTake(one.perUnitDifferenceBdt, his.units),
-      paidBdt: whatUnitsTake(one.perUnitPaidBdt, his.units),
+      differenceMoney: whatUnitsTake(one.perUnitDifferenceMoney, his.units),
+      paidMoney: whatUnitsTake(one.perUnitPaidMoney, his.units),
     })),
   };
 };
@@ -541,7 +541,7 @@ export const theirHerdStory = async (
         animalId: true,
         fromVentureId: true,
         toVentureId: true,
-        priceBdt: true,
+        priceMoney: true,
         soldOn: true,
       },
     }),
@@ -558,10 +558,10 @@ export const theirHerdStory = async (
 
   for (const one of costs.animals) {
     if (one.intake && ownedThenBy(one.id, one.intake.arrivedAt) === ventureId) {
-      bought.push(one.intake.purchasePriceBdt);
+      bought.push(one.intake.purchasePriceMoney);
     }
     if (one.sale && ownedThenBy(one.id, one.sale.soldAt) === ventureId) {
-      sold.push(one.sale.priceBdt);
+      sold.push(one.sale.priceMoney);
     }
     const exit = exitOf(one);
     if (
@@ -576,7 +576,7 @@ export const theirHerdStory = async (
     // Taken on from another purse: bought with this Venture's money as surely as one off a lorry, and
     // the Settlement's own "bought" line counts it, so the story must too.
     if (one.toVentureId === ventureId && byId.has(one.animalId)) {
-      bought.push(one.priceBdt);
+      bought.push(one.priceMoney);
     }
     // Let go to the Farm, which is the wind-up buy-back: it takes every Animal still standing at one
     // rate on one day, and it is not a Sale.
@@ -586,9 +586,9 @@ export const theirHerdStory = async (
   }
   return {
     boughtCount: bought.length,
-    averageBoughtBdt: meanTaka(bought),
+    averageBoughtMoney: meanTaka(bought),
     soldCount: sold.length,
-    averageSoldBdt: meanTaka(sold),
+    averageSoldMoney: meanTaka(sold),
     boughtBackCount,
     diedCount,
   };

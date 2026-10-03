@@ -37,7 +37,7 @@ const Line = ({
 /** What a total was made of, each thing under the total it belongs to. */
 interface Named {
   id: string;
-  bdt: number;
+  amount: number;
   nameBn: string;
   nameEn: string | null;
 }
@@ -54,7 +54,7 @@ const MadeOf = ({
     <>
       {lines.map((one) => (
         <Line key={one.id} label={`· ${nameOf(one, language)}`}>
-          {taka(one.bdt)}
+          {taka(one.amount)}
         </Line>
       ))}
     </>
@@ -63,13 +63,13 @@ const MadeOf = ({
 
 /** A month nobody has asked about yet: every figure nothing, every list empty. */
 const NOTHING_YET = {
-  feedBdt: 0,
-  medicineBdt: 0,
-  vetBdt: 0,
-  herdBdt: 0,
-  tripsBdt: 0,
-  totalBdt: 0,
-  ownBdt: 0,
+  feedMoney: 0,
+  medicineMoney: 0,
+  vetMoney: 0,
+  herdMoney: 0,
+  tripsMoney: 0,
+  totalMoney: 0,
+  ownMoney: 0,
   madeOf: {
     feed: [] as readonly Named[],
     medicine: [] as readonly Named[],
@@ -85,16 +85,16 @@ const WhatItIsMadeOf = ({
 }: {
   consumed:
     | {
-        feedBdt: number;
-        medicineBdt: number;
-        vetBdt: number;
-        herdBdt: number;
-        tripsBdt: number;
-        totalBdt: number;
+        feedMoney: number;
+        medicineMoney: number;
+        vetMoney: number;
+        herdMoney: number;
+        tripsMoney: number;
+        totalMoney: number;
         /** The month's own figure, and what it carries of earlier months already repaid. Missing from an answer
          *  cached before they were said. */
-        ownBdt?: number;
-        carried?: readonly { month: string; bdt: number }[];
+        ownMoney?: number;
+        carried?: readonly { month: string; amount: number }[];
         madeOf: {
           feed: readonly Named[];
           medicine: readonly Named[];
@@ -114,22 +114,26 @@ const WhatItIsMadeOf = ({
   const carried = consumed?.carried ?? [];
   // One head and the things that made it, five times over. The Vet's fee names nobody — a visit is
   // charged to the animals it named, and the visit is the thing.
-  const heads: { label: MessageKey; bdt: number; lines: readonly Named[] }[] = [
-    { label: "ventures.feed", bdt: said.feedBdt, lines: said.madeOf.feed },
+  const heads: {
+    label: MessageKey;
+    amount: number;
+    lines: readonly Named[];
+  }[] = [
+    { label: "ventures.feed", amount: said.feedMoney, lines: said.madeOf.feed },
     {
       label: "ventures.medicine",
-      bdt: said.medicineBdt,
+      amount: said.medicineMoney,
       lines: said.madeOf.medicine,
     },
-    { label: "ventures.vet", bdt: said.vetBdt, lines: [] },
+    { label: "ventures.vet", amount: said.vetMoney, lines: [] },
     {
       label: "ventures.herdCosts",
-      bdt: said.herdBdt,
+      amount: said.herdMoney,
       lines: said.madeOf.herd,
     },
     {
       label: "ventures.sellingTrips",
-      bdt: said.tripsBdt,
+      amount: said.tripsMoney,
       lines: said.madeOf.trips,
     },
   ];
@@ -137,13 +141,13 @@ const WhatItIsMadeOf = ({
     <div className="bg-muted flex flex-col gap-1 rounded-md px-3 py-2 text-sm">
       {heads.map((head) => (
         <Fragment key={head.label}>
-          <Line label={t(head.label)}>{taka(head.bdt)}</Line>
+          <Line label={t(head.label)}>{taka(head.amount)}</Line>
           <MadeOf language={language} lines={head.lines} />
         </Fragment>
       ))}
       <div className="mt-1 border-t pt-1 font-medium">
         <Line label={t("ventures.thatMonth")}>
-          {taka(said.ownBdt ?? said.totalBdt)}
+          {taka(said.ownMoney ?? said.totalMoney)}
         </Line>
       </div>
       {carried.length === 0 ? null : (
@@ -154,11 +158,11 @@ const WhatItIsMadeOf = ({
               key={line.month}
               label={`· ${saidMonth(line.month, language)}`}
             >
-              {line.bdt < 0 ? `− ${taka(-line.bdt)}` : taka(line.bdt)}
+              {line.amount < 0 ? `− ${taka(-line.amount)}` : taka(line.amount)}
             </Line>
           ))}
           <div className="mt-1 border-t pt-1 font-medium">
-            <Line label={t("ventures.toBeSent")}>{taka(said.totalBdt)}</Line>
+            <Line label={t("ventures.toBeSent")}>{taka(said.totalMoney)}</Line>
           </div>
         </>
       )}
@@ -245,7 +249,7 @@ export const ReimburseSheet = ({
       },
     })
   );
-  const total = consumed.data?.totalBdt ?? 0;
+  const total = consumed.data?.totalMoney ?? 0;
   // Feed nothing can price or a dose nothing can cost holds the month: repaid now, they would be repaid at nothing.
   // Missing from an answer cached before they were said.
   const unpricedKg = consumed.data?.unpricedKg ?? 0;
@@ -271,7 +275,7 @@ export const ReimburseSheet = ({
           paymentMethod: "bank",
           reference,
           ...(farmAccountId ? { farmAccountId } : {}),
-          amountBdt: total,
+          amountMoney: total,
         })
       }
       open={open}

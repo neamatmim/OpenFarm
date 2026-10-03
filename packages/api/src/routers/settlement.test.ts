@@ -21,14 +21,14 @@ const as = (role: "owner" | "manager" | "staff", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 const plan = {
-  targetCapitalBdt: 1_000_000,
-  floorBdt: 0,
+  targetCapitalMoney: 1_000_000,
+  floorMoney: 0,
   decideBy: "2047-01-20",
   targetWindowStart: "2047-03-17",
   targetWindowEnd: "2047-03-19",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 20,
-  cattleBudgetBdt: 800_000,
+  cattleBudgetMoney: 800_000,
 };
 
 const feedSop = (): SopContent => ({
@@ -83,7 +83,7 @@ const funded = async (owner: Owner, which: number) => {
     units: 20,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2047-01-02",
     stampSerial: `AA ${which} ${suffix}`,
   });
@@ -94,7 +94,7 @@ const funded = async (owner: Owner, which: number) => {
   });
   await owner.client.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: 1_000_000,
+    amountMoney: 1_000_000,
     movedOn: "2047-01-03",
     paymentMethod: "bank",
     reference: `TRF-${suffix}-${which}`,
@@ -131,15 +131,15 @@ beforeAll(async () => {
   const trip = await buying.client.trips.record({
     wentTo: `হাট ${suffix}`,
     wentOn: "2047-01-04",
-    brokerBdt: 2000,
-    transportBdt: 3000,
-    keepBdt: 0,
+    brokerMoney: 2000,
+    transportMoney: 3000,
+    keepMoney: 0,
   });
   tripId = trip.id;
   await buying.client.ventures.drawFloat({
     ventureId,
     buyingTripId: trip.id,
-    amountBdt: 200_000,
+    amountMoney: 200_000,
     movedOn: "2047-01-04",
     paymentMethod: "bank",
     reference: `FLT-${suffix}`,
@@ -149,7 +149,7 @@ beforeAll(async () => {
       penId,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
-      purchasePriceBdt: 80_000,
+      purchasePriceMoney: 80_000,
       weightKg: 200,
       estimatedAgeMonths: 20,
       buyingTripId: trip.id,
@@ -174,7 +174,7 @@ beforeAll(async () => {
     feedItemId,
     kind: "purchase",
     quantity: 5000,
-    priceBdt: 200_000,
+    priceMoney: 200_000,
     seller: { name: `ডিলার ${suffix}` },
     receivedOn: "2047-01-05",
   });
@@ -258,25 +258,25 @@ describe("what a Settlement is", () => {
     const theirs = await owner.client.ventures.economics({ ventureId });
 
     expect(theirs.animals).toHaveLength(2);
-    expect(theirs.chargedBdt).toBeGreaterThan(0);
+    expect(theirs.chargedMoney).toBeGreaterThan(0);
     expect(theirs.gainKg).toBe(0);
-    expect(theirs.costOfGainBdt).toBeNull();
-    expect(theirs.animals.every((one) => one.costOfGainBdt === null)).toBe(
+    expect(theirs.costOfGainMoney).toBeNull();
+    expect(theirs.animals.every((one) => one.costOfGainMoney === null)).toBe(
       true
     );
 
     // Neither has been sold, so neither has earned a Margin yet and the herd has none either.
     expect(theirs.soldCount).toBe(0);
     expect(theirs.unsoldCount).toBe(2);
-    expect(theirs.marginBdt).toBeNull();
-    expect(theirs.animals.every((one) => one.marginBdt === null)).toBe(true);
+    expect(theirs.marginMoney).toBeNull();
+    expect(theirs.animals.every((one) => one.marginMoney === null)).toBe(true);
   });
 
   it("charges the run what its animals cost, whichever purse paid", async () => {
     const owner = await as("owner", "2047-02-06T04:00:00.000Z");
     const settlement = await theSettlement(owner);
     const line = (word: string) =>
-      settlement.charges.find((one) => one.word === word)?.bdt;
+      settlement.charges.find((one) => one.word === word)?.amount;
     // Two bulls at eighty thousand, out of its own Float.
     expect(line("bought")).toBe(160_000);
     // The outing's broker and lorry, split between the two of them.
@@ -291,7 +291,7 @@ describe("what a Settlement is", () => {
     const counting = await as("owner", "2047-02-01T04:00:00.000Z");
     await counting.client.ventures.reconcileFloat({
       buyingTripId: tripId,
-      cashBackBdt: 35_000,
+      cashBackMoney: 35_000,
       movedOn: "2047-02-01",
       reference: `DEP-${suffix}`,
     });
@@ -303,12 +303,12 @@ describe("what a Settlement is", () => {
       movedOn: "2047-02-02",
       paymentMethod: "bank",
       reference: `REI-${suffix}`,
-      amountBdt: 40_000,
+      amountMoney: 40_000,
     });
     // The Owner's own money goes in to keep them, and comes back at cost before any capital does.
     await paying.client.ventures.advance({
       ventureId,
-      amountBdt: 50_000,
+      amountMoney: 50_000,
       movedOn: "2047-02-02",
       paymentMethod: "bank",
       reference: `ADV-${suffix}`,
@@ -319,12 +319,12 @@ describe("what a Settlement is", () => {
     await reading.client.ventures.checkTheBank({
       ventureId,
       month: "2047-01",
-      readBdt: 800_000,
+      readMoney: 800_000,
     });
     await reading.client.ventures.checkTheBank({
       ventureId,
       month: "2047-02",
-      readBdt: 845_000,
+      readMoney: 845_000,
     });
 
     // They eat again in March, the month she means to settle in — a month that cannot be reimbursed
@@ -344,7 +344,7 @@ describe("what a Settlement is", () => {
 
     // And both bulls go to a buyer, for four lakh five thousand and five taka between them.
     const selling = await as("manager", "2047-03-18T05:00:00.000Z");
-    for (const [at, priceBdt] of [
+    for (const [at, priceMoney] of [
       [0, 202_505],
       [1, 202_500],
     ] as const) {
@@ -352,7 +352,7 @@ describe("what a Settlement is", () => {
       const sold = await selling.client.sale.record({
         tagNumber: tags[at] ?? "",
         buyer: { name: `ক্রেতা ${at} ${suffix}` },
-        priceBdt,
+        priceMoney,
         weightKg: 340,
         destination: `ঢাকা ${suffix}`,
         vehicle: `ঢাকা মেট্রো ${suffix}`,
@@ -379,37 +379,37 @@ describe("what a Settlement is", () => {
       movedOn: "2047-04-01",
       paymentMethod: "bank",
       reference: `REI2-${suffix}`,
-      amountBdt: 4000,
+      amountMoney: 4000,
     });
     await april.client.ventures.checkTheBank({
       ventureId,
       month: "2047-03",
-      readBdt: 1_250_005,
+      readMoney: 1_250_005,
     });
 
     const owner = await as("owner", "2047-04-05T04:00:00.000Z");
     const settlement = await theSettlement(owner);
     expect(settlement.blocks).toEqual([]);
     expect(settlement).toMatchObject({
-      proceedsBdt: 405_005,
-      chargedBdt: 209_000,
-      profitBdt: 196_005,
+      proceedsMoney: 405_005,
+      chargedMoney: 209_000,
+      profitMoney: 196_005,
       // Sixty per cent of one lakh ninety-six thousand and five is a hundred and seventeen thousand
       // six hundred and three, which will not divide twenty ways in whole taka: three taka is left
       // over and it is the Farm's.
-      investorsBdt: 117_603,
-      perUnitBdt: 5880,
-      roundingBdt: 3,
-      farmBdt: 78_405,
-      advanceBdt: 50_000,
-      capitalBdt: 1_000_000,
+      investorsMoney: 117_603,
+      perUnitMoney: 5880,
+      roundingMoney: 3,
+      farmMoney: 78_405,
+      advanceMoney: 50_000,
+      capitalMoney: 1_000_000,
     });
     expect(settlement.payouts).toEqual([
       expect.objectContaining({
         units: 20,
-        capitalBdt: 1_000_000,
-        shareBdt: 117_600,
-        payoutBdt: 1_117_600,
+        capitalMoney: 1_000_000,
+        shareMoney: 117_600,
+        payoutMoney: 1_117_600,
       }),
     ]);
 
@@ -417,10 +417,10 @@ describe("what a Settlement is", () => {
     // are exactly what the account holds. A Settlement that does not is one that cannot be paid — and
     // it only holds because nothing is owed, which is what every block above is for.
     const owedOut =
-      settlement.advanceBdt +
-      settlement.payouts.reduce((sum, one) => sum + one.payoutBdt, 0) +
-      settlement.farmBdt;
-    expect(owedOut).toBe(settlement.balanceBdt);
+      settlement.advanceMoney +
+      settlement.payouts.reduce((sum, one) => sum + one.payoutMoney, 0) +
+      settlement.farmMoney;
+    expect(owedOut).toBe(settlement.balanceMoney);
   });
 
   it("says a price is missing, and shows a loss as a loss", async () => {
@@ -431,14 +431,14 @@ describe("what a Settlement is", () => {
     const trip = await owner.client.trips.record({
       wentTo: `হাট দুই ${suffix}`,
       wentOn: "2047-04-01",
-      brokerBdt: 0,
-      transportBdt: 0,
-      keepBdt: 0,
+      brokerMoney: 0,
+      transportMoney: 0,
+      keepMoney: 0,
     });
     await owner.client.ventures.drawFloat({
       ventureId: second,
       buyingTripId: trip.id,
-      amountBdt: 100_000,
+      amountMoney: 100_000,
       movedOn: "2047-04-01",
       paymentMethod: "bank",
       reference: `FLT2-${suffix}`,
@@ -447,7 +447,7 @@ describe("what a Settlement is", () => {
       penId,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
-      purchasePriceBdt: 100_000,
+      purchasePriceMoney: 100_000,
       weightKg: 200,
       estimatedAgeMonths: 20,
       buyingTripId: trip.id,
@@ -493,7 +493,7 @@ describe("what a Settlement is", () => {
     const advancing = await as("owner", "2047-04-02T07:00:00.000Z");
     await advancing.client.ventures.advance({
       ventureId: second,
-      amountBdt: 10_000,
+      amountMoney: 10_000,
       movedOn: "2047-04-02",
       paymentMethod: "bank",
       reference: `ADV2-${suffix}`,
@@ -513,7 +513,7 @@ describe("what a Settlement is", () => {
     await selling.client.sale.record({
       tagNumber: her.tagNumber,
       buyer: { name: `ক্রেতা দুই ${suffix}` },
-      priceBdt: 60_000,
+      priceMoney: 60_000,
       weightKg: 210,
       destination: `ঢাকা ${suffix}`,
       vehicle: `ঢাকা মেট্রো ${suffix}`,
@@ -524,21 +524,21 @@ describe("what a Settlement is", () => {
     const settlement = await theSettlement(after, second);
     // Forty thousand less than she cost, and it reads as a loss rather than as nothing.
     expect(settlement).toMatchObject({
-      proceedsBdt: 60_000,
-      chargedBdt: 100_000,
-      profitBdt: -40_000,
-      investorsBdt: -24_000,
-      perUnitBdt: -1200,
-      farmBdt: -16_000,
+      proceedsMoney: 60_000,
+      chargedMoney: 100_000,
+      profitMoney: -40_000,
+      investorsMoney: -24_000,
+      perUnitMoney: -1200,
+      farmMoney: -16_000,
       // Repaid at cost, out of a run that lost money: the Owner's taka went in to feed their animals.
-      advanceBdt: 10_000,
+      advanceMoney: 10_000,
     });
     // It comes off the capital the Investor gets back, by the Units he holds.
     expect(settlement.payouts[0]).toMatchObject({
       units: 20,
-      capitalBdt: 1_000_000,
-      shareBdt: -24_000,
-      payoutBdt: 976_000,
+      capitalMoney: 1_000_000,
+      shareMoney: -24_000,
+      payoutMoney: 976_000,
     });
   });
 
@@ -551,14 +551,14 @@ describe("what a Settlement is", () => {
     const trip = await owner.client.trips.record({
       wentTo: `হাট তিন ${suffix}`,
       wentOn: "2047-04-04",
-      brokerBdt: 0,
-      transportBdt: 0,
-      keepBdt: 0,
+      brokerMoney: 0,
+      transportMoney: 0,
+      keepMoney: 0,
     });
     await owner.client.ventures.drawFloat({
       ventureId: losing,
       buyingTripId: trip.id,
-      amountBdt: 100_000,
+      amountMoney: 100_000,
       movedOn: "2047-04-04",
       paymentMethod: "bank",
       reference: `FLT4-${suffix}`,
@@ -568,7 +568,7 @@ describe("what a Settlement is", () => {
       penId,
       sex: "male",
       seller: { name: `ব্যাপারী তিন ${suffix}` },
-      purchasePriceBdt: 100_000,
+      purchasePriceMoney: 100_000,
       weightKg: 200,
       estimatedAgeMonths: 20,
       buyingTripId: trip.id,
@@ -579,12 +579,12 @@ describe("what a Settlement is", () => {
     });
     await owner.client.ventures.reconcileFloat({
       buyingTripId: trip.id,
-      cashBackBdt: 0,
+      cashBackMoney: 0,
     });
     await manager.client.sale.record({
       tagNumber: him.tagNumber,
       buyer: { name: `ক্রেতা তিন ${suffix}` },
-      priceBdt: 60_000,
+      priceMoney: 60_000,
       weightKg: 205,
       destination: `ঢাকা ${suffix}`,
       vehicle: `ঢাকা মেট্রো ${suffix}`,
@@ -597,16 +597,16 @@ describe("what a Settlement is", () => {
     const settlement = await theSettlement(deciding, losing);
     expect(settlement.blocks).toEqual([]);
     expect(settlement).toMatchObject({
-      profitBdt: -40_000,
-      farmBdt: -16_000,
-      balanceBdt: 960_000,
+      profitMoney: -40_000,
+      farmMoney: -16_000,
+      balanceMoney: 960_000,
     });
     await deciding.client.ventures.approveSettlement({ ventureId: losing });
     const approved = await deciding.client.ventures.approvedSettlement({
       ventureId: losing,
     });
     const his = approved?.shares[0];
-    expect(his?.payoutBdt).toBe(976_000);
+    expect(his?.payoutMoney).toBe(976_000);
 
     // There is no share of a profit to take out of it; there is one of a loss to put in.
     await expect(
@@ -639,14 +639,14 @@ describe("what a Settlement is", () => {
     });
     expect(
       books.events.find(
-        (one) => one.categoryKey === "farm_loss" && one.amountBdt === 16_000
+        (one) => one.categoryKey === "farm_loss" && one.amountMoney === 16_000
       )
     ).toMatchObject({ direction: "out" });
 
     await deciding.client.ventures.paySettlement({
       ventureId: losing,
       agreementId: his?.agreementId ?? "",
-      amountBdt: 976_000,
+      amountMoney: 976_000,
       movedOn: "2047-04-05",
       paymentMethod: "bank",
       reference: `PAY4-${suffix}`,
@@ -656,7 +656,7 @@ describe("what a Settlement is", () => {
     const after = await deciding.client.ventures.list();
     expect(after.find((one) => one.id === losing)).toMatchObject({
       state: "settled",
-      balanceBdt: 0,
+      balanceMoney: 0,
     });
   });
 
@@ -667,7 +667,7 @@ describe("what a Settlement is", () => {
       owner.client.ventures.paySettlement({
         ventureId,
         agreementId: agreements[0]?.id ?? "",
-        amountBdt: 1_117_600,
+        amountMoney: 1_117_600,
         movedOn: "2047-04-06",
         paymentMethod: "bank",
         reference: `PAY-${suffix}`,
@@ -693,10 +693,10 @@ describe("what a Settlement is", () => {
       ventureId,
     });
     expect(approved).toMatchObject({
-      profitBdt: 196_005,
-      perUnitBdt: 5880,
-      farmBdt: 78_405,
-      advanceBdt: 50_000,
+      profitMoney: 196_005,
+      perUnitMoney: 5880,
+      farmMoney: 78_405,
+      advanceMoney: 50_000,
       allPaid: false,
     });
 
@@ -714,7 +714,7 @@ describe("what a Settlement is", () => {
     await late.client.money.enter({
       side: "fattening",
       categoryId: charged?.id ?? "",
-      amountBdt: 9000,
+      amountMoney: 9000,
       occurredOn: "2047-03-11",
       counterparty: { name: `দোকান ${suffix}` },
       note: `দেরিতে আসা খরচ ${suffix}`,
@@ -723,7 +723,10 @@ describe("what a Settlement is", () => {
     const stillSays = await late.client.ventures.approvedSettlement({
       ventureId,
     });
-    expect(stillSays).toMatchObject({ profitBdt: 196_005, perUnitBdt: 5880 });
+    expect(stillSays).toMatchObject({
+      profitMoney: 196_005,
+      perUnitMoney: 5880,
+    });
 
     // Approving twice is two answers to one question.
     await expect(
@@ -761,7 +764,7 @@ describe("what a Settlement is", () => {
       owner.client.ventures.paySettlement({
         ventureId,
         agreementId: his?.agreementId ?? "",
-        amountBdt: 1_117_600,
+        amountMoney: 1_117_600,
         movedOn: "2047-04-08",
         paymentMethod: "bank",
         reference: `PAY-${suffix}`,
@@ -782,7 +785,7 @@ describe("what a Settlement is", () => {
       owner.client.ventures.paySettlement({
         ventureId,
         agreementId: his?.agreementId ?? "",
-        amountBdt: 1_200_000,
+        amountMoney: 1_200_000,
         movedOn: "2047-04-08",
         paymentMethod: "bank",
         reference: `PAY-${suffix}`,
@@ -795,7 +798,7 @@ describe("what a Settlement is", () => {
     await owner.client.ventures.paySettlement({
       ventureId,
       agreementId: his?.agreementId ?? "",
-      amountBdt: 1_117_600,
+      amountMoney: 1_117_600,
       movedOn: "2047-04-08",
       paymentMethod: "bank",
       reference: `PAY-${suffix}`,
@@ -805,7 +808,7 @@ describe("what a Settlement is", () => {
       owner.client.ventures.paySettlement({
         ventureId,
         agreementId: his?.agreementId ?? "",
-        amountBdt: 1_117_600,
+        amountMoney: 1_117_600,
         movedOn: "2047-04-08",
         paymentMethod: "bank",
         reference: `PAY2-${suffix}`,
@@ -818,7 +821,7 @@ describe("what a Settlement is", () => {
     // It went out on a movement of the Venture's money, with the reference it went on.
     const movements = await owner.client.ventures.movements({ ventureId });
     expect(movements.find((one) => one.kind === "payout")).toMatchObject({
-      amountBdt: 1_117_600,
+      amountMoney: 1_117_600,
       movedOn: "2047-04-08",
       reference: `PAY-${suffix}`,
       // Which way it moved the account, said by the server that keeps the balance, so a screen adding them
@@ -874,7 +877,7 @@ describe("what a Settlement is", () => {
     const after = await owner.client.ventures.list();
     expect(after.find((one) => one.id === ventureId)).toMatchObject({
       state: "settled",
-      balanceBdt: 0,
+      balanceMoney: 0,
     });
 
     // And it arrives where it was going: what the Farm managed the run for is the Farm's earnings, so
@@ -888,7 +891,7 @@ describe("what a Settlement is", () => {
     expect(earned).toHaveLength(1);
     expect(earned[0]).toMatchObject({
       direction: "in",
-      amountBdt: took.paidBdt,
+      amountMoney: took.paidMoney,
     });
     expect(books.events.length).toBe(booksBefore.events.length + 1);
   });
@@ -900,7 +903,7 @@ describe("what a Settlement is", () => {
     await expect(
       owner.client.ventures.advance({
         ventureId,
-        amountBdt: 1000,
+        amountMoney: 1000,
         movedOn: "2047-04-10",
         paymentMethod: "bank",
         reference: `LATE-ADV-${suffix}`,
@@ -916,7 +919,7 @@ describe("what a Settlement is", () => {
       owner.client.intake.correct({
         id: intakeIds[0] ?? "",
         reason: `দাম ভুল ছিল ${suffix}`,
-        changes: { purchasePriceBdt: { from: 80_000, to: 70_000 } },
+        changes: { purchasePriceMoney: { from: 80_000, to: 70_000 } },
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -948,7 +951,7 @@ describe("what a Settlement is", () => {
       owner.client.ventures.correctMovement({
         id: capital?.id ?? "",
         reason: `ভুল ছিল ${suffix}`,
-        changes: { amountBdt: { from: 1_000_000, to: 900_000 } },
+        changes: { amountMoney: { from: 1_000_000, to: 900_000 } },
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -959,7 +962,7 @@ describe("what a Settlement is", () => {
   it("notes a small Adjustment and moves nothing", async () => {
     const owner = await as("owner", "2047-04-11T04:00:00.000Z");
     // Her line for what is worth a trip to the bank.
-    await owner.client.farm.setParameters({ adjustmentThresholdBdt: 10_000 });
+    await owner.client.farm.setParameters({ adjustmentThresholdMoney: 10_000 });
     // A vet's bill that was in a pocket: two hundred taka against one of the bulls.
     const late = await as("owner", "2047-04-11T05:00:00.000Z");
     const categories = await late.client.money.categories();
@@ -969,7 +972,7 @@ describe("what a Settlement is", () => {
     await late.client.money.enter({
       side: "fattening",
       categoryId: charged?.id ?? "",
-      amountBdt: 200,
+      amountMoney: 200,
       occurredOn: "2047-03-12",
       counterparty: { name: `ডাক্তার ${suffix}` },
       note: `পকেটে পড়ে ছিল ${suffix}`,
@@ -989,7 +992,10 @@ describe("what a Settlement is", () => {
       ventureId,
     });
     // And the Settlement's own figures have not moved a taka.
-    expect(settlement).toMatchObject({ profitBdt: 196_005, perUnitBdt: 5880 });
+    expect(settlement).toMatchObject({
+      profitMoney: 196_005,
+      perUnitMoney: 5880,
+    });
     expect(settlement?.adjustments[0]).toMatchObject({
       outcome: "noted",
       reason: `দেরিতে আসা ভেটের বিল ${suffix}`,
@@ -1006,7 +1012,7 @@ describe("what a Settlement is", () => {
     await owner.client.money.enter({
       side: "fattening",
       categoryId: charged?.id ?? "",
-      amountBdt: 20_000,
+      amountMoney: 20_000,
       occurredOn: "2047-03-13",
       counterparty: { name: `দোকান দুই ${suffix}` },
       note: `বড় বিল ${suffix}`,
@@ -1036,7 +1042,10 @@ describe("what a Settlement is", () => {
       ventureId,
     });
     // And the Settlement's own figures have not moved through any of it.
-    expect(settlement).toMatchObject({ profitBdt: 196_005, perUnitBdt: 5880 });
+    expect(settlement).toMatchObject({
+      profitMoney: 196_005,
+      perUnitMoney: 5880,
+    });
   });
 
   it("pays one the Investors gained by, out of the Farm's own books", async () => {
@@ -1045,7 +1054,7 @@ describe("what a Settlement is", () => {
     await owner.client.sale.correct({
       id: saleIds[0] ?? "",
       reason: `ক্রেতা বাকি টাকা দিয়েছে ${suffix}`,
-      changes: { priceBdt: { from: 202_505, to: 260_000 } },
+      changes: { priceMoney: { from: 202_505, to: 260_000 } },
     });
     const raised = await owner.client.ventures.raiseAdjustment({
       ventureId,
@@ -1064,7 +1073,7 @@ describe("what a Settlement is", () => {
       paymentMethod: "bank",
       reference: `ADJPAY-${suffix}`,
     });
-    expect(paid.paidBdt).toBeGreaterThan(0);
+    expect(paid.paidMoney).toBeGreaterThan(0);
 
     // On the Farm's own books, because the Venture Account closed when the Settlement was paid out.
     const after = await owner.client.money.list({
@@ -1081,7 +1090,10 @@ describe("what a Settlement is", () => {
       ventureId,
     });
     // And after everything — noted, waived and paid — the Settlement still says what it always said.
-    expect(settlement).toMatchObject({ profitBdt: 196_005, perUnitBdt: 5880 });
+    expect(settlement).toMatchObject({
+      profitMoney: 196_005,
+      perUnitMoney: 5880,
+    });
     expect(settlement?.adjustments.map((one) => one.outcome)).toEqual([
       "noted",
       "noted",
@@ -1097,13 +1109,13 @@ describe("what a Settlement is", () => {
     });
     const before = paidAlready.events
       .filter((one) => one.source === "settlement_adjustment")
-      .reduce((sum, one) => sum + one.amountBdt, 0);
+      .reduce((sum, one) => sum + one.amountMoney, 0);
 
     // A second piece of late news, worth much less than the first.
     await owner.client.sale.correct({
       id: saleIds[1] ?? "",
       reason: `আরেকটু বেশি এসেছে ${suffix}`,
-      changes: { priceBdt: { from: 202_500, to: 212_500 } },
+      changes: { priceMoney: { from: 202_500, to: 212_500 } },
     });
     const raised = await owner.client.ventures.raiseAdjustment({
       ventureId,
@@ -1119,15 +1131,15 @@ describe("what a Settlement is", () => {
 
     // Ten thousand of new proceeds, sixty per cent of it to the Investors: six thousand, floored across
     // twenty Units. Not the whole difference since the Settlement, which the first payout already sent.
-    expect(paid.paidBdt).toBeLessThan(10_000);
+    expect(paid.paidMoney).toBeLessThan(10_000);
     const after = await owner.client.money.list({
       from: "2047-04-01",
       to: "2047-04-30",
     });
     const total = after.events
       .filter((one) => one.source === "settlement_adjustment")
-      .reduce((sum, one) => sum + one.amountBdt, 0);
-    expect(total - before).toBe(paid.paidBdt);
+      .reduce((sum, one) => sum + one.amountMoney, 0);
+    expect(total - before).toBe(paid.paidMoney);
   });
 
   it("lets the Owner waive one she would rather not send", async () => {
@@ -1136,7 +1148,7 @@ describe("what a Settlement is", () => {
     await owner.client.sale.correct({
       id: saleIds[1] ?? "",
       reason: `আরও কিছু এসেছে ${suffix}`,
-      changes: { priceBdt: { from: 212_500, to: 245_000 } },
+      changes: { priceMoney: { from: 212_500, to: 245_000 } },
     });
     const raised = await owner.client.ventures.raiseAdjustment({
       ventureId,
@@ -1163,7 +1175,10 @@ describe("what a Settlement is", () => {
       ventureId,
     });
     // Through noted, paid and waived alike, the Settlement says what it always said.
-    expect(settlement).toMatchObject({ profitBdt: 196_005, perUnitBdt: 5880 });
+    expect(settlement).toMatchObject({
+      profitMoney: 196_005,
+      perUnitMoney: 5880,
+    });
     expect(settlement?.adjustments.at(-1)).toMatchObject({
       outcome: "waived",
       waivedNote: `খামার বহন করবে ${suffix}`,

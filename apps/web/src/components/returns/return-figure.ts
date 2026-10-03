@@ -69,7 +69,7 @@ export const todayRangeSaid = ({
 /** Which figure a dairy run is read by: one choice, so her line on a list and her own page never say two things. */
 export type DairyFigure =
   | { kind: "returned"; returned: Returned }
-  | { kind: "result"; bdt: number }
+  | { kind: "result"; amount: number }
   | { kind: "running"; running: Running }
   | { kind: "worth"; worth: HeadRange }
   | { kind: "none"; gaps: Gap[] };
@@ -84,9 +84,9 @@ export const dairyFigureOf = (run: DairyRun): DairyFigure => {
   if (run.returnOnCost) {
     return { kind: "returned", returned: run.returnOnCost };
   }
-  const result = run.resultBdt ?? null;
+  const result = run.resultMoney ?? null;
   if (result !== null) {
-    return { kind: "result", bdt: result };
+    return { kind: "result", amount: result };
   }
   if (run.running) {
     return { kind: "running", running: run.running };

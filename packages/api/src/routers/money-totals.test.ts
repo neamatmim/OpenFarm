@@ -16,7 +16,7 @@ const MARCH = { from: "2076-03-01", to: "2076-03-31" };
 
 /** More than the list shows. */
 const ENTRIES = 501;
-const EACH_BDT = 100;
+const EACH_MONEY = 100;
 
 const as = (role: "owner" | "manager") =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(AT) });
@@ -30,7 +30,7 @@ beforeAll(async () => {
   const manager = await as("manager");
   await manager.client.money.enter({
     categoryId: category.id,
-    amountBdt: EACH_BDT,
+    amountMoney: EACH_MONEY,
     occurredOn: "2076-03-05",
     counterparty: { name: `দোকান ${suffix}` },
     paymentMethod: "cash",
@@ -67,8 +67,8 @@ describe("a month's money", () => {
     const manager = await as("manager");
     const list = await manager.client.money.list(MARCH);
     expect(list.totals).toEqual({
-      inBdt: 0,
-      outBdt: ENTRIES * EACH_BDT,
+      inMoney: 0,
+      outMoney: ENTRIES * EACH_MONEY,
       awaiting: 0,
     });
   });

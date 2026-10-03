@@ -38,7 +38,7 @@ const AmountCell = ({ row }: { row: { original: Fee } }) => {
   const { language } = useLanguage();
   return (
     <span className="font-medium whitespace-nowrap">
-      ৳{formatNumber(row.original.amountBdt, language)}
+      ৳{formatNumber(row.original.amountMoney, language)}
     </span>
   );
 };
@@ -71,7 +71,7 @@ const feeColumns = column.columns([
     header: listHeader("vetFee.visitedOn"),
     cell: VisitedOnCell,
   }),
-  column.accessor("amountBdt", {
+  column.accessor("amountMoney", {
     header: listHeader("vetFee.amount"),
     cell: AmountCell,
     meta: { align: "end" },
@@ -97,7 +97,7 @@ const FeeCard = ({ row }: { row: Fee }) => {
         {formatDate(row.visitedOn, language)}
       </span>
       <span className="text-lg font-semibold tabular-nums">
-        ৳{formatNumber(row.amountBdt, language)}
+        ৳{formatNumber(row.amountMoney, language)}
       </span>
       {row.tagNumbers.length > 0 ? <Tags tags={row.tagNumbers} /> : null}
       {row.note ? (
@@ -178,7 +178,7 @@ const FeeSheet = ({
       onOpenChange={onOpenChange}
       onSubmit={() =>
         record.mutate({
-          amountBdt: Number(amount),
+          amountMoney: Number(amount),
           visitedOn,
           animalTags: tags,
           note: note.trim() || undefined,

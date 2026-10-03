@@ -9,11 +9,11 @@ const day = (n: number) => new Date(Date.UTC(2044, 0, 1) + n * 86_400_000);
 // 1,00,000 × 150 + 10,000 × (150 + 120 + 90 + 60) = 1,92,00,000 taka-days, over ৳1,40,000 is 137.1 days on average,
 // and 21.43 × 365 ÷ 137.14 is 57.0 a year.
 const BULL = [
-  { bdt: 100_000, from: day(0), until: day(150) },
-  { bdt: 10_000, from: day(0), until: day(150) },
-  { bdt: 10_000, from: day(30), until: day(150) },
-  { bdt: 10_000, from: day(60), until: day(150) },
-  { bdt: 10_000, from: day(90), until: day(150) },
+  { amount: 100_000, from: day(0), until: day(150) },
+  { amount: 10_000, from: day(0), until: day(150) },
+  { amount: 10_000, from: day(30), until: day(150) },
+  { amount: 10_000, from: day(60), until: day(150) },
+  { amount: 10_000, from: day(90), until: day(150) },
 ];
 
 describe("what money in cattle returned", () => {
@@ -21,14 +21,14 @@ describe("what money in cattle returned", () => {
     expect(
       returnOf({
         spent: BULL,
-        backBdt: 170_000,
+        backMoney: 170_000,
         floorDays: 60,
         finished: true,
       })
     ).toEqual({
-      costBdt: 140_000,
-      backBdt: 170_000,
-      resultBdt: 30_000,
+      costMoney: 140_000,
+      backMoney: 170_000,
+      resultMoney: 30_000,
       per100: 21.4,
       averageDays: 137,
       perYear: 57,
@@ -39,19 +39,19 @@ describe("what money in cattle returned", () => {
     // ৳1,33,000 back on ৳1,40,000 is ৳7,000 lost: 5 on every hundred, and 5 × 365 ÷ 137.14 is 13.3 a year.
     const lost = returnOf({
       spent: BULL,
-      backBdt: 133_000,
+      backMoney: 133_000,
       floorDays: 60,
       finished: true,
     });
-    expect(lost?.resultBdt).toBe(-7000);
+    expect(lost?.resultMoney).toBe(-7000);
     expect(lost?.per100).toBe(-5);
     expect(lost?.perYear).toBe(-13.3);
   });
 
   it("puts nothing a year on money tied up fewer days than the floor", () => {
     const short = returnOf({
-      spent: [{ bdt: 100_000, from: day(0), until: day(45) }],
-      backBdt: 108_000,
+      spent: [{ amount: 100_000, from: day(0), until: day(45) }],
+      backMoney: 108_000,
       floorDays: 60,
       finished: true,
     });
@@ -61,8 +61,8 @@ describe("what money in cattle returned", () => {
     // At the floor itself it is put a year: 8 × 365 ÷ 45.
     expect(
       returnOf({
-        spent: [{ bdt: 100_000, from: day(0), until: day(45) }],
-        backBdt: 108_000,
+        spent: [{ amount: 100_000, from: day(0), until: day(45) }],
+        backMoney: 108_000,
         floorDays: 45,
         finished: true,
       })?.perYear
@@ -74,12 +74,12 @@ describe("what money in cattle returned", () => {
     const nearly = returnOf({
       spent: [
         {
-          bdt: 100_000,
+          amount: 100_000,
           from: day(0),
           until: new Date(day(59).getTime() + 0.6 * 86_400_000),
         },
       ],
-      backBdt: 110_000,
+      backMoney: 110_000,
       floorDays: 60,
       finished: true,
     });
@@ -91,7 +91,7 @@ describe("what money in cattle returned", () => {
     expect(
       returnOf({
         spent: BULL,
-        backBdt: 170_000,
+        backMoney: 170_000,
         floorDays: 60,
         finished: false,
       })?.perYear
@@ -100,7 +100,7 @@ describe("what money in cattle returned", () => {
 
   it("has no return at all where nothing was spent", () => {
     expect(
-      returnOf({ spent: [], backBdt: 10_000, floorDays: 60, finished: true })
+      returnOf({ spent: [], backMoney: 10_000, floorDays: 60, finished: true })
     ).toBeNull();
   });
 });
@@ -113,26 +113,26 @@ describe("the example the Owner decided it on", () => {
     // 1,670 = 3,34,00,000. Together 19,54,00,000 over ৳14,00,000 is 139.6 days. ৳3,00,000 on ৳14,00,000 is 21.4 on
     // every hundred, and 21.43 × 365 ÷ 139.57 is 56.0 a year: about fifty.
     const bulls = Array.from({ length: 10 }, (_, i) => ({
-      bdt: 100_000,
+      amount: 100_000,
       from: day(i * 4),
       until: day(180),
     }));
     const feed = Array.from({ length: 20 }, (_, i) => ({
-      bdt: 20_000,
+      amount: 20_000,
       from: day(30 + i * 7),
       until: day(180),
     }));
     expect(
       returnOf({
         spent: [...bulls, ...feed],
-        backBdt: 1_700_000,
+        backMoney: 1_700_000,
         floorDays: 60,
         finished: true,
       })
     ).toEqual({
-      costBdt: 1_400_000,
-      backBdt: 1_700_000,
-      resultBdt: 300_000,
+      costMoney: 1_400_000,
+      backMoney: 1_700_000,
+      resultMoney: 300_000,
       per100: 21.4,
       averageDays: 140,
       perYear: 56,
@@ -148,15 +148,15 @@ describe("what the Investors' capital returned", () => {
     expect(
       returnOnCapitalOf({
         capital: [
-          { bdt: 600_000, arrived: day(0), paidBack: day(180) },
-          { bdt: 400_000, arrived: day(30), paidBack: day(180) },
+          { amount: 600_000, arrived: day(0), paidBack: day(180) },
+          { amount: 400_000, arrived: day(30), paidBack: day(180) },
         ],
-        shareBdt: 78_000,
+        shareMoney: 78_000,
         floorDays: 60,
       })
     ).toEqual({
-      capitalBdt: 1_000_000,
-      shareBdt: 78_000,
+      capitalMoney: 1_000_000,
+      shareMoney: 78_000,
       per100: 7.8,
       averageDays: 168,
       perYear: 16.9,
@@ -171,33 +171,33 @@ describe("what money still out in cattle is making, at today's price", () => {
     // 33.3. The money was out 1,00,000 × 90 + 80,000 × 90 = 1,62,00,000 taka-days, 90 days on average.
     const range = runningRangeOf({
       sold: {
-        spent: [{ bdt: 100_000, from: day(0), until: day(90) }],
-        backBdt: 130_000,
+        spent: [{ amount: 100_000, from: day(0), until: day(90) }],
+        backMoney: 130_000,
       },
       standing: {
-        spent: [{ bdt: 80_000, from: day(30), until: day(120) }],
-        lowBdt: 90_000,
-        highBdt: 110_000,
+        spent: [{ amount: 80_000, from: day(30), until: day(120) }],
+        lowMoney: 90_000,
+        highMoney: 110_000,
       },
     });
     expect(range).toEqual({
-      soldCostBdt: 100_000,
-      soldResultBdt: 30_000,
-      standingCostBdt: 80_000,
-      standingLowBdt: 90_000,
-      standingHighBdt: 110_000,
+      soldCostMoney: 100_000,
+      soldResultMoney: 30_000,
+      standingCostMoney: 80_000,
+      standingLowMoney: 90_000,
+      standingHighMoney: 110_000,
       low: {
-        costBdt: 180_000,
-        backBdt: 220_000,
-        resultBdt: 40_000,
+        costMoney: 180_000,
+        backMoney: 220_000,
+        resultMoney: 40_000,
         per100: 22.2,
         averageDays: 90,
         perYear: null,
       },
       high: {
-        costBdt: 180_000,
-        backBdt: 240_000,
-        resultBdt: 60_000,
+        costMoney: 180_000,
+        backMoney: 240_000,
+        resultMoney: 60_000,
         per100: 33.3,
         averageDays: 90,
         perYear: null,
@@ -208,8 +208,8 @@ describe("what money still out in cattle is making, at today's price", () => {
   it("has no range where nothing can be counted", () => {
     expect(
       runningRangeOf({
-        sold: { spent: [], backBdt: 0 },
-        standing: { spent: [], lowBdt: 0, highBdt: 0 },
+        sold: { spent: [], backMoney: 0 },
+        standing: { spent: [], lowMoney: 0, highMoney: 0 },
       })
     ).toBeNull();
   });

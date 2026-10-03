@@ -23,11 +23,11 @@ describe("Baki on the sheets", () => {
 
   it("sends what he paid and the day he promised", () => {
     expect(bakiSent(owed("100000", "2026-06-23"))).toEqual({
-      paidNowBdt: 100_000,
+      paidNowMoney: 100_000,
       promisedBy: "2026-06-23",
     });
     expect(bakiSent(owed("0"))).toEqual({
-      paidNowBdt: 0,
+      paidNowMoney: 0,
       promisedBy: undefined,
     });
   });

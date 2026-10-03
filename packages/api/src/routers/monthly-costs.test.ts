@@ -38,7 +38,7 @@ const enter = async (
   instant: string,
   entry: {
     categoryId: string;
-    amountBdt: number;
+    amountMoney: number;
     occurredOn: string;
     name: string;
     wageMonth?: string;
@@ -47,7 +47,7 @@ const enter = async (
   const manager = await as("manager", instant);
   await manager.client.money.enter({
     categoryId: entry.categoryId,
-    amountBdt: entry.amountBdt,
+    amountMoney: entry.amountMoney,
     occurredOn: entry.occurredOn,
     counterparty: { name: entry.name },
     paymentMethod: "cash",
@@ -100,7 +100,7 @@ describe("a Monthly Cost", () => {
     // Over the Approval Threshold, so it waits for the Owner: entered all the same.
     await enter("2044-05-12T04:00:00.000Z", {
       categoryId: category.rent ?? "",
-      amountBdt: 25_000,
+      amountMoney: 25_000,
       occurredOn: "2044-05-05",
       name: "জমির মালিক",
     });
@@ -154,7 +154,7 @@ describe("a wage not entered", () => {
     const wage = (name: string, wageMonth: string, occurredOn: string) =>
       enter(`${occurredOn}T06:00:00.000Z`, {
         categoryId: category.wages ?? "",
-        amountBdt: 9000,
+        amountMoney: 9000,
         occurredOn,
         name,
         wageMonth,
@@ -261,12 +261,12 @@ describe("a Venture's money", () => {
     const owner = await as("owner", "2044-12-01T04:00:00.000Z");
     const venture = await owner.client.ventures.open({
       name: "শীতের ভেঞ্চার",
-      targetCapitalBdt: 500_000,
-      floorBdt: 0,
+      targetCapitalMoney: 500_000,
+      floorMoney: 0,
       decideBy: "2044-12-20",
       targetWindowStart: "2045-06-01",
       targetWindowEnd: "2045-06-05",
-      unitPriceBdt: 50_000,
+      unitPriceMoney: 50_000,
       units: 10,
     });
     // Nothing the app offers writes a Venture's money under the rent, so it is written here, as its writer would.
@@ -277,7 +277,7 @@ describe("a Venture's money", () => {
         id,
         farmId: theFarm().id,
         direction: "out",
-        amountBdt: 18_000,
+        amountMoney: 18_000,
         occurredAt: new Date("2044-12-05T04:00:00.000Z"),
         categoryId: category.rent ?? "",
         paymentMethod: "bank",

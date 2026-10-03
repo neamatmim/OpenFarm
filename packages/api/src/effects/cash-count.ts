@@ -35,7 +35,7 @@ const countTheCash = async (
   }
   const farm = await tx.query.farm.findFirst({
     where: { id: input.instance.farmId },
-    columns: { id: true, cashShortTellBdt: true },
+    columns: { id: true, cashShortTellMoney: true },
   });
   if (!farm) {
     return null;

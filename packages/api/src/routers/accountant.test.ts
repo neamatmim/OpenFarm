@@ -41,7 +41,7 @@ const setup = async () => {
     litres: 100,
     buyer: { name: `মিল্ক ভিটা ${suffix}` },
     challan: "CH-2040",
-    pricePerLitreBdt: 50,
+    pricePerLitreMoney: 50,
     paymentMethod: "bank",
   });
   // A bull bought for 30,000 with 900 of Hasil on him: over the threshold, and not yet approved. What the
@@ -50,8 +50,8 @@ const setup = async () => {
     penId: pen.id,
     sex: "male",
     seller: { name: `গাবতলী ${suffix}` },
-    purchasePriceBdt: 30_000,
-    hasilBdt: 900,
+    purchasePriceMoney: 30_000,
+    hasilMoney: 900,
     weightKg: 240,
     estimatedAgeMonths: 20,
     targetWindowStart: "2040-06-01",
@@ -63,7 +63,7 @@ const setup = async () => {
   // The electricity for the milking parlour, and a milker's wage.
   const power = await manager.client.money.enter({
     categoryId: keyed("utilities"),
-    amountBdt: 3000,
+    amountMoney: 3000,
     occurredOn: "2040-03-05",
     counterparty: { name: `পল্লী বিদ্যুৎ ${suffix}` },
     paymentMethod: "bkash",
@@ -72,7 +72,7 @@ const setup = async () => {
   });
   const wage = await manager.client.money.enter({
     categoryId: keyed("wages"),
-    amountBdt: 12_000,
+    amountMoney: 12_000,
     occurredOn: "2040-03-05",
     counterparty: { name: `রহিম ${suffix}` },
     wageMonth: "2040-02",
@@ -94,7 +94,7 @@ const setup = async () => {
   });
   const vet = await as("vet", "2040-03-06T08:00:00.000Z");
   const visit = await vet.client.money.vetFee({
-    amountBdt: 2000,
+    amountMoney: 2000,
     visitedOn: "2040-03-06",
     animalTags: [bull.tagNumber, cow.tagNumber],
   });
@@ -106,7 +106,7 @@ const setup = async () => {
     feedItemId: feed.id,
     kind: "purchase",
     quantity: 100,
-    priceBdt: 4000,
+    priceMoney: 4000,
     seller: { name: `দোকান ${suffix}` },
     receivedOn: "2040-03-05",
   });
@@ -115,7 +115,7 @@ const setup = async () => {
   const sold = await seller.client.sale.record({
     tagNumber: bull.tagNumber,
     buyer: { name: `কসাই ${suffix}` },
-    priceBdt: 35_000,
+    priceMoney: 35_000,
     weightKg: 260,
     destination: "গাবতলী",
     vehicle: "ঢাকা মেট্রো ট ১১",
@@ -145,7 +145,7 @@ describe("the accountant's export", () => {
     });
     const [header, ...rows] = (csv ?? "").slice(1).trim().split("\r\n");
     expect(header).toBe(
-      "date,direction,amount_bdt,category,category_en,counterparty,payment_method,side,record,record_id,reference,approval,note"
+      "date,direction,amount_money,category,category_en,counterparty,payment_method,side,record,record_id,reference,approval,note"
     );
     const mine = (id: string) => rows.find((row) => row.includes(id));
     expect(mine(world.milk.id)).toBe(
@@ -177,27 +177,39 @@ describe("the accountant's export", () => {
     // March 2040 is the only month this file books anything in, so the farm's month is this file's work.
     // The bull's 900 of Hasil is part of what he cost, so it is in his Category, his Side and the month.
     expect(summary).toMatchObject({
-      incomeBdt: 40_000,
-      expenseBdt: 51_900,
-      netBdt: -11_900,
-      awaiting: { count: 2, inBdt: 35_000, outBdt: 30_900 },
+      incomeMoney: 40_000,
+      expenseMoney: 51_900,
+      netMoney: -11_900,
+      awaiting: { count: 2, inMoney: 35_000, outMoney: 30_900 },
     });
     expect(summary?.byCategory).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ nameBn: "দুধ বিক্রি", inBdt: 5000, outBdt: 0 }),
-        expect.objectContaining({ nameBn: "গরু কেনা", inBdt: 0, outBdt: 30_900 }),
-        expect.objectContaining({ nameBn: "মজুরি", inBdt: 0, outBdt: 12_000 }),
+        expect.objectContaining({
+          nameBn: "দুধ বিক্রি",
+          inMoney: 5000,
+          outMoney: 0,
+        }),
+        expect.objectContaining({
+          nameBn: "গরু কেনা",
+          inMoney: 0,
+          outMoney: 30_900,
+        }),
+        expect.objectContaining({
+          nameBn: "মজুরি",
+          inMoney: 0,
+          outMoney: 12_000,
+        }),
       ])
     );
     expect(summary?.byCounterparty).toEqual(
       expect.arrayContaining([
-        { name: `রহিম ${suffix}`, inBdt: 0, outBdt: 12_000 },
+        { name: `রহিম ${suffix}`, inMoney: 0, outMoney: 12_000 },
       ])
     );
     expect(summary?.bySide).toEqual([
-      { side: "dairy", inBdt: 5000, outBdt: 4000 },
-      { side: "fattening", inBdt: 35_000, outBdt: 31_900 },
-      { side: null, inBdt: 0, outBdt: 16_000 },
+      { side: "dairy", inMoney: 5000, outMoney: 4000 },
+      { side: "fattening", inMoney: 35_000, outMoney: 31_900 },
+      { side: null, inMoney: 0, outMoney: 16_000 },
     ]);
     expect(text).toContain(REGISTRATION);
     expect(text).toContain("আয় ও ব্যয় / Income and expense");

@@ -24,7 +24,7 @@ const bullArriving = async (penId: string, at: string) => {
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 60_000,
+    purchasePriceMoney: 60_000,
     weightKg: 200,
     estimatedAgeMonths: 18,
     arrivedAt: new Date(at),

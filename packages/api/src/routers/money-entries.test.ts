@@ -67,7 +67,7 @@ describe("money entered by hand", () => {
 
     const bill = await manager.client.money.enter({
       categoryId: utilities.id,
-      amountBdt: 3500,
+      amountMoney: 3500,
       occurredOn: "2038-01-10",
       counterparty: { name: `পল্লী বিদ্যুৎ ${suffix}` },
       paymentMethod: "bank",
@@ -78,7 +78,7 @@ describe("money entered by hand", () => {
     expect(await eventOf(bill.id)).toMatchObject({
       source: "by_hand",
       direction: "out",
-      amountBdt: 3500,
+      amountMoney: 3500,
       categoryKey: "utilities",
       counterpartyName: `পল্লী বিদ্যুৎ ${suffix}`,
       paymentMethod: "bank",
@@ -94,13 +94,13 @@ describe("money entered by hand", () => {
 
     const dung = await manager.client.money.enter({
       categoryId: manure.id,
-      amountBdt: 2000,
+      amountMoney: 2000,
       occurredOn: "2038-01-10",
       counterparty: { name: `বায়োগ্যাস ${suffix}` },
     });
     expect(await eventOf(dung.id)).toMatchObject({
       direction: "in",
-      amountBdt: 2000,
+      amountMoney: 2000,
       paymentMethod: "cash",
       side: null,
       hasReceipt: false,
@@ -118,7 +118,7 @@ describe("money entered by hand", () => {
     const vetFees = await categoryKeyed("vet_fee");
     const visit = await manager.client.money.enter({
       categoryId: vetFees.id,
-      amountBdt: 1000,
+      amountMoney: 1000,
       occurredOn: "2038-01-10",
       counterparty: { name: `ডাঃ রহমান ${suffix}` },
     });
@@ -131,7 +131,7 @@ describe("money entered by hand", () => {
     const karim = { name: `করিম মিয়া ${suffix}` };
     const january = await manager.client.money.enter({
       categoryId: wages.id,
-      amountBdt: 12_000,
+      amountMoney: 12_000,
       occurredOn: "2038-02-01",
       counterparty: karim,
       wageMonth: "2038-01",
@@ -145,7 +145,7 @@ describe("money entered by hand", () => {
     await expect(
       manager.client.money.enter({
         categoryId: wages.id,
-        amountBdt: 12_000,
+        amountMoney: 12_000,
         occurredOn: "2038-02-01",
         counterparty: karim,
         wageMonth: "2038-01",
@@ -154,7 +154,7 @@ describe("money entered by hand", () => {
     await expect(
       manager.client.money.enter({
         categoryId: wages.id,
-        amountBdt: 12_000,
+        amountMoney: 12_000,
         occurredOn: "2038-02-01",
         counterparty: karim,
       })
@@ -163,7 +163,7 @@ describe("money entered by hand", () => {
     await expect(
       manager.client.money.enter({
         categoryId: repairs.id,
-        amountBdt: 500,
+        amountMoney: 500,
         occurredOn: "2038-02-01",
         counterparty: karim,
         wageMonth: "2038-01",
@@ -173,7 +173,7 @@ describe("money entered by hand", () => {
     const inMarch = await as("manager", "2038-03-01T04:00:00.000Z");
     const february = await inMarch.client.money.enter({
       categoryId: wages.id,
-      amountBdt: 12_000,
+      amountMoney: 12_000,
       occurredOn: "2038-03-01",
       counterparty: karim,
       wageMonth: "2038-02",
@@ -196,7 +196,7 @@ describe("money entered by hand", () => {
     ).rejects.toMatchObject({ data: { refusal: "category_exists" } });
     const premium = await manager.client.money.enter({
       categoryId: insurance.id,
-      amountBdt: 4000,
+      amountMoney: 4000,
       occurredOn: "2038-03-01",
       counterparty: { name: `সাধারণ বীমা ${suffix}` },
     });
@@ -215,17 +215,17 @@ describe("money entered by hand", () => {
     // What was entered under it keeps it, and can still be put right where it is.
     await manager.client.money.correctEntered({
       id: premium.id,
-      changes: { amountBdt: { from: 4000, to: 4200 } },
+      changes: { amountMoney: { from: 4000, to: 4200 } },
       reason: "প্রিমিয়াম বেড়েছে",
     });
     expect(await eventOf(premium.id)).toMatchObject({
       categoryBn: `পশু বীমা ${suffix}`,
-      amountBdt: 4200,
+      amountMoney: 4200,
     });
     await expect(
       manager.client.money.enter({
         categoryId: insurance.id,
-        amountBdt: 4000,
+        amountMoney: 4000,
         occurredOn: "2038-03-01",
         counterparty: { name: `সাধারণ বীমা ${suffix}` },
       })
@@ -237,7 +237,7 @@ describe("money entered by hand", () => {
     await expect(
       manager.client.money.enter({
         categoryId: milkSales.id,
-        amountBdt: 500,
+        amountMoney: 500,
         occurredOn: "2038-03-01",
         counterparty: { name: `ঘোষ ${suffix}` },
       })
@@ -257,14 +257,14 @@ describe("money entered by hand", () => {
     const manager = await as("manager", "2038-04-01T04:00:00.000Z");
     const pump = await manager.client.money.enter({
       categoryId: repairs.id,
-      amountBdt: 30_000,
+      amountMoney: 30_000,
       occurredOn: "2038-04-01",
       counterparty: { name: `মোটর মেকানিক ${suffix}` },
       note: "দুধের পাম্প",
     });
     expect(await eventOf(pump.id)).toMatchObject({ approval: "awaiting" });
     const owner = await as("owner", "2038-04-01T05:00:00.000Z");
-    await owner.client.money.approve({ id: pump.id, amountBdt: 30_000 });
+    await owner.client.money.approve({ id: pump.id, amountMoney: 30_000 });
 
     // Approved for the mechanic; paid to somebody else, it is a new thing to approve.
     await manager.client.money.correctEntered({
@@ -287,25 +287,25 @@ describe("money entered by hand", () => {
     });
     const told = await owner.client.alerts.mine({ about: pump.id });
     expect(told.map((notice) => notice.id)).toEqual([asked?.id]);
-    await owner.client.money.approve({ id: pump.id, amountBdt: 30_000 });
+    await owner.client.money.approve({ id: pump.id, amountMoney: 30_000 });
 
     await expect(
       manager.client.money.correctEntered({
         id: pump.id,
-        changes: { amountBdt: { from: 30_000, to: 3000 } },
+        changes: { amountMoney: { from: 30_000, to: 3000 } },
         reason: " ",
       })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     await manager.client.money.correctEntered({
       id: pump.id,
       changes: {
-        amountBdt: { from: 30_000, to: 3000 },
+        amountMoney: { from: 30_000, to: 3000 },
         note: { from: "মোটর বদলানো হয়েছে", to: null },
       },
       reason: "একটা শূন্য বেশি লেখা হয়েছিল",
     });
     expect(await eventOf(pump.id)).toMatchObject({
-      amountBdt: 3000,
+      amountMoney: 3000,
       note: null,
       approval: "not_needed",
     });
@@ -321,14 +321,14 @@ describe("money entered by hand", () => {
       dispatchedAt: new Date("2038-04-01T02:00:00.000Z"),
       litres: 40,
       buyer: { name: `ঘোষ ${suffix}` },
-      pricePerLitreBdt: 50,
+      pricePerLitreMoney: 50,
     });
     const year = await owner.client.money.list(YEAR);
     const fromTheRecord = year.events.find((one) => one.sourceId === milk.id);
     await expect(
       manager.client.money.correctEntered({
         id: fromTheRecord?.id ?? "",
-        changes: { amountBdt: { from: 2000, to: 1 } },
+        changes: { amountMoney: { from: 2000, to: 1 } },
         reason: "ভুল",
       })
     ).rejects.toMatchObject({ data: { refusal: "correct_the_record" } });
@@ -338,7 +338,7 @@ describe("money entered by hand", () => {
     const repairs = await categoryKeyed("repairs");
     const entry = {
       categoryId: repairs.id,
-      amountBdt: 100,
+      amountMoney: 100,
       occurredOn: "2038-05-01",
       counterparty: { name: `দোকান ${suffix}` },
     };
@@ -358,10 +358,10 @@ describe("money entered by hand", () => {
     const owner = await as("owner", "2038-05-01T04:00:00.000Z");
     const ownersRepair = await owner.client.money.enter({
       ...entry,
-      amountBdt: 90_000,
+      amountMoney: 90_000,
     });
     expect(await eventOf(ownersRepair.id)).toMatchObject({
-      amountBdt: 90_000,
+      amountMoney: 90_000,
       approval: "not_needed",
     });
     const onShedPhone = await as("manager", "2038-05-01T04:00:00.000Z", true);

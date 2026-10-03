@@ -71,8 +71,8 @@ export const CountFloatSheet = ({
       one.float.ventureId === venture?.id
   );
   const chosen = stillOut.find((one) => one.id === buyingTripId);
-  const bought = chosen?.float?.boughtBdt ?? 0;
-  const went = chosen?.float?.amountBdt ?? 0;
+  const bought = chosen?.float?.boughtMoney ?? 0;
+  const went = chosen?.float?.amountMoney ?? 0;
   const shouldBeBack = went - bought;
   const cash = Number(cashBack);
   const balances = Math.abs(cash - shouldBeBack) < 0.01;
@@ -87,7 +87,7 @@ export const CountFloatSheet = ({
       onSubmit={() =>
         counting.mutate({
           buyingTripId,
-          cashBackBdt: cash,
+          cashBackMoney: cash,
           movedOn: movedOn || undefined,
           reference: reference || undefined,
         })
@@ -108,7 +108,7 @@ export const CountFloatSheet = ({
           {stillOut.map((one) => (
             <option key={one.id} value={one.id}>
               {`${one.wentTo} · ${formatDate(one.wentOn, language, "date")} · ${taka(
-                one.float?.amountBdt ?? 0
+                one.float?.amountMoney ?? 0
               )}`}
             </option>
           ))}

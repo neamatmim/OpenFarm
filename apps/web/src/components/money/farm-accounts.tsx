@@ -41,7 +41,7 @@ const StandingLine = ({ standing }: { standing: Listed["standing"] }) => {
     <div className="text-xs">
       <p className="text-muted-foreground tabular-nums">
         {t("farmAccounts.heldNow", {
-          amount: formatNumber(standing.heldNowBdt, language),
+          amount: formatNumber(standing.heldNowMoney, language),
         })}
         {standing.lastCheckedMonth
           ? ` · ${t("farmAccounts.lastRead", {

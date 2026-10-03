@@ -19,7 +19,7 @@ export interface MissedToTell {
     ventureId: string;
     venture: string;
     investor: string;
-    missedBdt: number;
+    missedMoney: number;
     dueOn: string;
   };
 }
@@ -62,13 +62,13 @@ export const standingsOf = async (
       kind: "capital_in",
       agreementId: { in: agreements.map((one) => one.id) },
     },
-    columns: { agreementId: true, amountBdt: true },
+    columns: { agreementId: true, amountMoney: true },
   });
   for (const movement of movements) {
     if (movement.agreementId) {
       paid.set(
         movement.agreementId,
-        (paid.get(movement.agreementId) ?? 0) + movement.amountBdt
+        (paid.get(movement.agreementId) ?? 0) + movement.amountMoney
       );
     }
   }
@@ -86,9 +86,9 @@ export const standingsOf = async (
         investorId: one.investorId,
         standing: sumsStandingOf({
           units: one.units,
-          unitPriceBdt: venture.unitPriceBdt,
+          unitPriceMoney: venture.unitPriceMoney,
           monthly,
-          paidBdt: paid.get(one.id) ?? 0,
+          paidMoney: paid.get(one.id) ?? 0,
           today,
         }),
       },
@@ -107,7 +107,7 @@ export const missedByEach = async (
   for (const one of await standingsOf(db, farmId, ventures, today)) {
     missed.set(
       one.ventureId,
-      (missed.get(one.ventureId) ?? 0) + one.standing.missedBdt
+      (missed.get(one.ventureId) ?? 0) + one.standing.missedMoney
     );
   }
   return missed;
@@ -152,7 +152,7 @@ export const missedToTell = async (
         ventureId: one.ventureId,
         venture: byId.get(one.ventureId)?.name ?? "",
         investor: named.get(one.investorId) ?? "",
-        missedBdt: one.standing.missedBdt,
+        missedMoney: one.standing.missedMoney,
         dueOn,
       },
     };

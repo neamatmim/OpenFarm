@@ -7,7 +7,7 @@ export type MoneyApproval = "not_needed" | "awaiting" | "approved";
 
 /** What an approval approves: how much, to or from whom, under what Category, and whose money it was. */
 export interface ApprovedTerms {
-  amountBdt: number;
+  amountMoney: number;
   counterpartyId: string | null;
   categoryId: string;
   /** The Purse: null for the Farm's own money, or the Venture whose it was. */
@@ -15,7 +15,7 @@ export interface ApprovedTerms {
 }
 
 const sameTerms = (a: ApprovedTerms, b: ApprovedTerms): boolean =>
-  a.amountBdt === b.amountBdt &&
+  a.amountMoney === b.amountMoney &&
   a.counterpartyId === b.counterpartyId &&
   a.categoryId === b.categoryId &&
   (a.purseVentureId ?? null) === (b.purseVentureId ?? null);
@@ -34,21 +34,21 @@ const sameTerms = (a: ApprovedTerms, b: ApprovedTerms): boolean =>
  */
 export const approvalOf = ({
   terms,
-  thresholdBdt,
+  thresholdMoney,
   enteredByTheOwner,
   before,
-  piecesBdt = 0,
+  piecesMoney = 0,
 }: {
   terms: ApprovedTerms;
-  thresholdBdt: number;
+  thresholdMoney: number;
   /** The Owner is not asked to approve their own money. */
   enteredByTheOwner: boolean;
   /** The Money Event as it stood, for one being corrected. */
   before?: { terms: ApprovedTerms; approval: MoneyApproval };
   /** What else the same person was paid by hand, by anybody but the Owner, in the week up to this — its other pieces. */
-  piecesBdt?: number;
+  piecesMoney?: number;
 }): MoneyApproval => {
-  const pastTheLine = terms.amountBdt + piecesBdt > thresholdBdt;
+  const pastTheLine = terms.amountMoney + piecesMoney > thresholdMoney;
   if (enteredByTheOwner || !pastTheLine) {
     return "not_needed";
   }
@@ -73,7 +73,7 @@ export interface EnteredBefore {
   id: string;
   /** Who it went to or came from. */
   name: string | null;
-  amountBdt: number;
+  amountMoney: number;
   /** The farm day it was for ("YYYY-MM-DD"). */
   day: string;
 }
@@ -84,13 +84,13 @@ export interface EnteredBefore {
  * a person a month is already the farm's rule.
  */
 export const looksEnteredAlready = <Earlier extends EnteredBefore>(
-  entry: { name: string; amountBdt: number; day: string },
+  entry: { name: string; amountMoney: number; day: string },
   earlier: readonly Earlier[]
 ): Earlier | undefined =>
   earlier.find(
     (one) =>
       one.name !== null &&
       personKey(one.name) === personKey(entry.name) &&
-      roundTaka(one.amountBdt) === roundTaka(entry.amountBdt) &&
+      roundTaka(one.amountMoney) === roundTaka(entry.amountMoney) &&
       one.day === entry.day
   );

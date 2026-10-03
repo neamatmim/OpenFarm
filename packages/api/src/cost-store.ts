@@ -51,7 +51,7 @@ interface DoseShare {
   at: Date;
   /** Which medicine she was given, so a month's doses can be named rather than counted. */
   drugProductId: string;
-  medicineBdt: number | null;
+  medicineMoney: number | null;
 }
 
 /** One animal's share of a Vet Fee for a visit that named her. */
@@ -61,7 +61,7 @@ interface VetShare {
   at: Date;
   /** The fee it is a share of. */
   feeId: string;
-  vetBdt: number;
+  vetMoney: number;
 }
 
 /** Litres one animal sent to Bulk in one Milking Session. */
@@ -82,7 +82,7 @@ const byTheHead = (kind: Charge["kind"], one: CostShare): Charge => ({
   animalId: one.animalId,
   side: one.side,
   at: one.at,
-  bdt: one.bdt,
+  amount: one.amount,
   fromId: one.fromId,
   unpricedKg: 0,
   priced: true,
@@ -110,7 +110,7 @@ const chargesFrom = (
     animalId: one.animalId,
     side: one.side,
     at: one.at,
-    bdt: one.feedBdt,
+    amount: one.feedMoney,
     fromId: one.feedItemId,
     unpricedKg: one.unpricedKg,
     priced: one.unpricedKg === 0,
@@ -120,17 +120,17 @@ const chargesFrom = (
     animalId: one.animalId,
     side: one.side,
     at: one.at,
-    bdt: one.medicineBdt ?? 0,
+    amount: one.medicineMoney ?? 0,
     fromId: one.drugProductId,
     unpricedKg: 0,
-    priced: one.medicineBdt !== null,
+    priced: one.medicineMoney !== null,
   })),
   ...shares.vet.map((one): Charge => ({
     kind: "vet",
     animalId: one.animalId,
     side: one.side,
     at: one.at,
-    bdt: one.vetBdt,
+    amount: one.vetMoney,
     fromId: one.feeId,
     unpricedKg: 0,
     priced: true,
@@ -159,13 +159,13 @@ export const herdCostOf = (money: {
   side: Side | null;
   categoryId: string;
   chargedToAnimals: boolean;
-  bdt: number;
+  amount: number;
 }): HerdCostToSplit | null =>
   money.side !== null && money.chargedToAnimals
     ? {
         at: money.at,
         side: money.side,
-        bdt: money.bdt,
+        amount: money.amount,
         categoryId: money.categoryId,
       }
     : null;
@@ -210,8 +210,8 @@ export const farmCosts = async (db: Db, farmId: string) => {
       intake: {
         columns: {
           id: true,
-          purchasePriceBdt: true,
-          hasilBdt: true,
+          purchasePriceMoney: true,
+          hasilMoney: true,
           buyingTripId: true,
           weightKg: true,
           arrivedAt: true,
@@ -220,10 +220,10 @@ export const farmCosts = async (db: Db, farmId: string) => {
       sale: {
         columns: {
           id: true,
-          priceBdt: true,
+          priceMoney: true,
           soldAt: true,
           weightKg: true,
-          brokerBdt: true,
+          brokerMoney: true,
         },
       },
       weighIns: {
@@ -243,8 +243,8 @@ export const farmCosts = async (db: Db, farmId: string) => {
           ...one,
           sale: {
             ...one.sale,
-            priceBdt: roundTaka(
-              one.sale.priceBdt - (writtenOff.get(one.sale.id) ?? 0)
+            priceMoney: roundTaka(
+              one.sale.priceMoney - (writtenOff.get(one.sale.id) ?? 0)
             ),
           },
         }
@@ -275,13 +275,13 @@ export const farmCosts = async (db: Db, farmId: string) => {
       id: true,
       drugProductId: true,
       purchasedOn: true,
-      priceBdt: true,
+      priceMoney: true,
       doses: true,
     },
   });
   const fees = await db.query.vetFee.findMany({
     where: { farmId },
-    columns: { id: true, amountBdt: true, visitedOn: true },
+    columns: { id: true, amountMoney: true, visitedOn: true },
     with: { animals: { columns: { animalId: true } } },
   });
   const sessions = await db.query.milkingSession.findMany({
@@ -298,9 +298,9 @@ export const farmCosts = async (db: Db, farmId: string) => {
     where: { farmId },
     columns: {
       id: true,
-      brokerBdt: true,
-      transportBdt: true,
-      keepBdt: true,
+      brokerMoney: true,
+      transportMoney: true,
+      keepMoney: true,
       wentOn: true,
     },
   });
@@ -308,8 +308,8 @@ export const farmCosts = async (db: Db, farmId: string) => {
     where: { farmId },
     columns: {
       id: true,
-      transportBdt: true,
-      keepBdt: true,
+      transportMoney: true,
+      keepMoney: true,
       wentOn: true,
       // Where it went, so a month's charges can name the outing rather than only total it.
       wentTo: true,
@@ -337,7 +337,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
       purseVentureId: THE_FARMS_PURSE,
     },
     columns: {
-      amountBdt: true,
+      amountMoney: true,
       occurredAt: true,
       side: true,
       categoryId: true,
@@ -381,7 +381,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
       id: one.id,
       drugProductId: one.drugProductId,
       purchasedOn: one.purchasedOn,
-      priceBdt: one.priceBdt,
+      priceMoney: one.priceMoney,
       doses: one.doses,
     })),
     (one) => one.drugProductId
@@ -395,7 +395,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
             side: sideOf(animal, one.givenAt),
             at: one.givenAt,
             drugProductId: one.productId,
-            medicineBdt: dosePriceOf(
+            medicineMoney: dosePriceOf(
               purchasesOf.get(one.productId) ?? [],
               one.givenAt
             ),
@@ -414,7 +414,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
               side: sideOf(animal, fee.visitedOn),
               at: fee.visitedOn,
               feeId: fee.id,
-              vetBdt: fee.amountBdt / fee.animals.length,
+              vetMoney: fee.amountMoney / fee.animals.length,
             },
           ]
         : [];
@@ -423,28 +423,28 @@ export const farmCosts = async (db: Db, farmId: string) => {
 
   // The haat's toll on one beast, charged to her alone from the day she came off the lorry.
   const hasil: CostShare[] = animals.flatMap((one) =>
-    one.intake && one.intake.hasilBdt > 0
+    one.intake && one.intake.hasilMoney > 0
       ? [
           {
             animalId: one.id,
             side: sideOf(one, one.intake.arrivedAt),
             at: one.intake.arrivedAt,
             fromId: one.intake.id,
-            bdt: one.intake.hasilBdt,
+            amount: one.intake.hasilMoney,
           },
         ]
       : []
   );
   // The broker's fee on one Sale, charged to her alone on the day she was sold: hers as the Hasil is.
   const brokers: CostShare[] = animals.flatMap((one) =>
-    one.sale && one.sale.brokerBdt > 0
+    one.sale && one.sale.brokerMoney > 0
       ? [
           {
             animalId: one.id,
             side: sideOf(one, one.sale.soldAt),
             at: one.sale.soldAt,
             fromId: one.sale.id,
-            bdt: one.sale.brokerBdt,
+            amount: one.sale.brokerMoney,
           },
         ]
       : []
@@ -461,7 +461,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
     trips: [...buyingTrips, ...sellingTrips].map((one) => ({
       id: one.id,
       at: one.wentOn,
-      costBdt: tripCostOf(one),
+      costMoney: tripCostOf(one),
     })),
     carried: [
       ...animals.flatMap((one) =>
@@ -506,7 +506,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
         side: one.side,
         categoryId: one.categoryId,
         chargedToAnimals: one.category?.chargedToAnimals ?? false,
-        bdt: one.amountBdt,
+        amount: one.amountMoney,
       });
       return cost ? [cost] : [];
     }),
@@ -592,7 +592,7 @@ export const keepChargesOf = (
     .filter((one) => HER_KEEP.has(one.kind))
     .map((one) => ({
       at: one.at,
-      bdt: one.bdt,
+      amount: one.amount,
       fed: one.kind === "feed",
       priced: one.priced,
     }));
@@ -638,7 +638,7 @@ const lactationOf = (
     since,
     ...roundedCosts(costs),
     litresToBulk: roundLitres(litresToBulk),
-    costPerLitreBdt: costPerLitreOf(costs, litresToBulk),
+    costPerLitreMoney: costPerLitreOf(costs, litresToBulk),
   };
 };
 
@@ -654,28 +654,28 @@ export const economicsOfAnimal = (costs: FarmCosts, animal: FarmAnimal) => {
     litres: costs.ofAnimal.litres.get(animal.id) ?? [],
   };
   const whole = costsOf(hers.charges);
-  const purchaseBdt = animal.intake ? animal.intake.purchasePriceBdt : null;
-  const saleBdt = animal.sale ? animal.sale.priceBdt : null;
+  const purchaseMoney = animal.intake ? animal.intake.purchasePriceMoney : null;
+  const saleMoney = animal.sale ? animal.sale.priceMoney : null;
   const gainKg = gainOf(animal);
   return {
     ...roundedCosts(whole),
-    purchaseBdt,
-    saleBdt,
-    marginBdt: marginOf({ costs: whole, purchaseBdt, saleBdt }),
+    purchaseMoney,
+    saleMoney,
+    marginMoney: marginOf({ costs: whole, purchaseMoney, saleMoney }),
     gainKg,
-    costOfGainBdt: costOfGainOf(whole, gainKg),
+    costOfGainMoney: costOfGainOf(whole, gainKg),
     lactation: lactationOf(animal, hers),
   };
 };
 
 /** Everything charged to one animal, as her own line shows it. */
 export const chargedOf = (one: Costs) =>
-  one.feedBdt +
-  one.medicineBdt +
-  one.vetBdt +
-  one.hasilBdt +
-  one.tripBdt +
-  one.herdBdt;
+  one.feedMoney +
+  one.medicineMoney +
+  one.vetMoney +
+  one.hasilMoney +
+  one.tripMoney +
+  one.herdMoney;
 
 /**
  * What a Venture's cattle earned: each of them, and the herd together.
@@ -702,30 +702,30 @@ export const economicsOfHerd = (
       tagNumber: one.tagNumber,
       ...economicsOfAnimal(costs, one),
     }));
-  const chargedBdt = roundTaka(
+  const chargedMoney = roundTaka(
     each.reduce((sum, one) => sum + chargedOf(one), 0)
   );
   const gainKg = roundKg(each.reduce((sum, one) => sum + (one.gainKg ?? 0), 0));
-  const sold = each.filter((one) => one.marginBdt !== null);
+  const sold = each.filter((one) => one.marginMoney !== null);
   return {
     // Worst first: the question is which bull did not earn, and he is the one worth finding. A beast
     // with no Margin yet is not the worst of them — she is not in the running — so she follows.
     animals: each.toSorted((a, b) => {
-      if (a.marginBdt === null || b.marginBdt === null) {
-        return Number(a.marginBdt === null) - Number(b.marginBdt === null);
+      if (a.marginMoney === null || b.marginMoney === null) {
+        return Number(a.marginMoney === null) - Number(b.marginMoney === null);
       }
-      return a.marginBdt - b.marginBdt;
+      return a.marginMoney - b.marginMoney;
     }),
     soldCount: sold.length,
     /** Everyone else: those still standing, and any that died. Neither has earned a Margin. */
     unsoldCount: each.length - sold.length,
-    chargedBdt,
+    chargedMoney,
     gainKg,
-    marginBdt:
+    marginMoney:
       sold.length === 0
         ? null
-        : roundTaka(sold.reduce((sum, one) => sum + (one.marginBdt ?? 0), 0)),
-    costOfGainBdt: gainKg > 0 ? roundTaka(chargedBdt / gainKg) : null,
+        : roundTaka(sold.reduce((sum, one) => sum + (one.marginMoney ?? 0), 0)),
+    costOfGainMoney: gainKg > 0 ? roundTaka(chargedMoney / gainKg) : null,
   };
 };
 
@@ -768,29 +768,33 @@ export const costsBySide = (
     dairy: {
       ...roundedCosts(dairy.costs),
       litresToBulk: roundLitres(dairy.litresToBulk),
-      costPerLitreBdt: costPerLitreOf(dairy.costs, dairy.litresToBulk),
+      costPerLitreMoney: costPerLitreOf(dairy.costs, dairy.litresToBulk),
     },
     fattening: roundedCosts(fattening.costs),
     soldFattening: {
-      animals: sold.map(({ tagNumber, purchaseBdt, saleBdt, marginBdt }) => ({
-        tagNumber,
-        purchaseBdt,
-        saleBdt,
-        marginBdt,
-      })),
-      marginBdt: roundTaka(
-        sold.reduce((sum, one) => sum + (one.marginBdt ?? 0), 0)
+      animals: sold.map(
+        ({ tagNumber, purchaseMoney, saleMoney, marginMoney }) => ({
+          tagNumber,
+          purchaseMoney,
+          saleMoney,
+          marginMoney,
+        })
+      ),
+      marginMoney: roundTaka(
+        sold.reduce((sum, one) => sum + (one.marginMoney ?? 0), 0)
       ),
     },
     unallocated: {
-      feedBdt: roundTaka(
-        unallocated.reduce((sum, one) => sum + one.feedBdt, 0)
+      feedMoney: roundTaka(
+        unallocated.reduce((sum, one) => sum + one.feedMoney, 0)
       ),
       unpricedKg: roundKg(
         unallocated.reduce((sum, one) => sum + one.unpricedKg, 0)
       ),
-      tripBdt: roundTaka(strayTrips.reduce((sum, one) => sum + one.bdt, 0)),
-      herdBdt: roundTaka(strayHerd.reduce((sum, one) => sum + one.bdt, 0)),
+      tripMoney: roundTaka(
+        strayTrips.reduce((sum, one) => sum + one.amount, 0)
+      ),
+      herdMoney: roundTaka(strayHerd.reduce((sum, one) => sum + one.amount, 0)),
     },
   };
 };
@@ -799,11 +803,11 @@ export const costsBySide = (
 const groupedLines = (charges: readonly Charge[]): ConsumedLine[] => {
   const byId = new Map<string, number>();
   for (const one of charges) {
-    byId.set(one.fromId, (byId.get(one.fromId) ?? 0) + one.bdt);
+    byId.set(one.fromId, (byId.get(one.fromId) ?? 0) + one.amount);
   }
   return [...byId]
-    .map(([id, bdt]) => ({ id, bdt: roundTaka(bdt) }))
-    .filter((line) => line.bdt > 0);
+    .map(([id, amount]) => ({ id, amount: roundTaka(amount) }))
+    .filter((line) => line.amount > 0);
 };
 
 /**
@@ -852,7 +856,7 @@ export const chargedTo = (
 /** One line of what a month's consumption was made of: what it was, and what it came to. */
 export interface ConsumedLine {
   id: string;
-  bdt: number;
+  amount: number;
 }
 
 /**
@@ -884,24 +888,26 @@ export const consumedBy = (
     WHAT_THE_FARM_IS_OWED
   ).filter((one) => one.at >= from && one.at < until);
   const summed = costsOf(theirs);
-  const feedBdt = roundTaka(summed.feedBdt);
-  const medicineBdt = roundTaka(summed.medicineBdt);
-  const vetBdt = roundTaka(summed.vetBdt);
-  const herdBdt = roundTaka(summed.herdBdt);
+  const feedMoney = roundTaka(summed.feedMoney);
+  const medicineMoney = roundTaka(summed.medicineMoney);
+  const vetMoney = roundTaka(summed.vetMoney);
+  const herdMoney = roundTaka(summed.herdMoney);
   // Only the outings the Farm paid for: what the Farm is owed leaves the Buying Trips behind.
-  const tripsBdt = roundTaka(summed.tripBdt);
+  const tripsMoney = roundTaka(summed.tripMoney);
   const ofKind = (kind: Charge["kind"]) =>
     theirs.filter((one) => one.kind === kind);
   return {
-    feedBdt,
-    medicineBdt,
-    vetBdt,
-    herdBdt,
-    tripsBdt,
+    feedMoney,
+    medicineMoney,
+    vetMoney,
+    herdMoney,
+    tripsMoney,
     // The sum of the parts as they are shown, not of the parts before they were rounded: five lines
     // that do not add up to the figure beneath them is the farm arguing with itself in front of an
     // Investor.
-    totalBdt: roundTaka(feedBdt + medicineBdt + vetBdt + herdBdt + tripsBdt),
+    totalMoney: roundTaka(
+      feedMoney + medicineMoney + vetMoney + herdMoney + tripsMoney
+    ),
     /** Kilos fed that nothing can price, and doses nothing can cost: the figure is short by them until they are. */
     unpricedKg: summed.unpricedKg,
     uncostedDoses: summed.uncostedDoses,
@@ -924,13 +930,13 @@ export const consumedBy = (
 /** One earlier month a Reimbursement carried, and by how much — less where it came to less than was paid. */
 export interface CarriedLine {
   month: string;
-  bdt: number;
+  amount: number;
 }
 
 /** A month's Reimbursement as its Venture Movement keeps it. */
 export interface Reimbursed {
   forMonth: string | null;
-  amountBdt: number;
+  amountMoney: number;
   carried: readonly CarriedLine[] | null;
 }
 
@@ -954,24 +960,24 @@ export const owedByMonth = (
       ventureId,
       monthOf(startOfFarmDay(`${month}-01`))
     );
-    const comesToBdt = consumed.totalBdt;
+    const comesToMoney = consumed.totalMoney;
     const own = paid.find((one) => one.forMonth === month);
-    const ownFigureBdt = own
-      ? own.amountBdt -
-        (own.carried ?? []).reduce((sum, line) => sum + line.bdt, 0)
+    const ownFigureMoney = own
+      ? own.amountMoney -
+        (own.carried ?? []).reduce((sum, line) => sum + line.amount, 0)
       : 0;
-    const carriedForBdt = paid
+    const carriedForMoney = paid
       .flatMap((one) => one.carried ?? [])
       .filter((line) => line.month === month)
-      .reduce((sum, line) => sum + line.bdt, 0);
-    const paidBdt = roundTaka(ownFigureBdt + carriedForBdt);
+      .reduce((sum, line) => sum + line.amount, 0);
+    const paidMoney = roundTaka(ownFigureMoney + carriedForMoney);
     return {
       month,
-      comesToBdt,
+      comesToMoney,
       /** Whether the month has had a Reimbursement of its own. */
       repaid: own !== undefined,
-      paidBdt,
-      stillOwedBdt: roundTaka(comesToBdt - paidBdt),
+      paidMoney,
+      stillOwedMoney: roundTaka(comesToMoney - paidMoney),
       unpricedKg: consumed.unpricedKg,
       uncostedDoses: consumed.uncostedDoses,
     };
