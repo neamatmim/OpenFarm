@@ -38,8 +38,9 @@ import type { ComponentProps, FormEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import type { Tone } from "@/components/page";
-import { StatTile } from "@/components/page";
+import { Notice, StatTile } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
+import { holdOpenForm } from "@/lib/open-form";
 
 /**
  * The pieces every working page is built from, so a Manager who has learnt one page has learnt them all: the figures a
@@ -490,172 +491,14 @@ interface FormPanelProps {
   /** Whether everything the form needs has been given. */
   ready: boolean;
   /**
-   * What is still missing, for a form long enough that a grey button leaves its reason out of sight. Given — even as
-   * nothing — the act stays pressable: pressed too soon, it says what is missing at its foot and goes to the field.
+   * What is still missing, in the form's own words and with the field to go to. The act is pressable either way:
+   * pressed too soon, it says this at its foot — or, without it, the kit's own words and the first field its checks
+   * find wrong.
    */
   missing?: StillMissing | null;
   pending: boolean;
   children: ReactNode;
 }
-
-const submitted =
-  (ready: boolean, onSubmit: () => void) => (event: FormEvent) => {
-    event.preventDefault();
-    if (ready) {
-      onSubmit();
-    }
-  };
-
-/**
- * A form that is a piece of work of its own — feed in, a sale, milk handed over — in a sheet beside the page, so the
- * page it came from stays in sight. A title and a line of what it does above; the fields, labelled, in a body that
- * scrolls; cancel and the act itself pinned at the foot.
- *
- * `wide` is for a record with more to it than a handful of fields — a person, written down in sections — where two
- * columns on a computer read better than one long column. `full` is for a form written in rows of several fields at
- * once, such as a Venture Plan's lines, which a two-column sheet would wrap (Carbon: "complex, lengthier" forms get
- * the room of a page; Fluent's large drawer).
- */
-export const FormSheet = ({
-  open,
-  onOpenChange,
-  title,
-  description,
-  submitLabel,
-  onSubmit,
-  ready,
-  missing,
-  pending,
-  children,
-  wide = false,
-  full = false,
-}: FormPanelProps & { wide?: boolean; full?: boolean }) => {
-  const { t } = useLanguage();
-  // A form that says what it is missing keeps its act pressable; one that does not stands grey until it is ready.
-  const saysWhy = missing !== undefined;
-  // Pressed too soon at least once since it opened: from then on what is missing is said, and changes as it is given.
-  const [asked, setAsked] = useState(false);
-  // Closed, it forgets: opened again, it says nothing until pressed too soon again.
-  const [wasOpen, setWasOpen] = useState(open);
-  if (open !== wasOpen) {
-    setWasOpen(open);
-    if (!open) {
-      setAsked(false);
-    }
-  }
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    if (ready) {
-      onSubmit();
-      return;
-    }
-    if (!saysWhy) {
-      return;
-    }
-    setAsked(true);
-    const field = missing?.at
-      ? document.querySelector<HTMLElement>(`#${CSS.escape(missing.at)}`)
-      : null;
-    field?.scrollIntoView({ behavior: "smooth", block: "center" });
-    field?.focus({ preventScroll: true });
-  };
-  return (
-    <Sheet onOpenChange={onOpenChange} open={open}>
-      <SheetContent
-        className={cn(
-          "gap-0 data-[side=right]:w-full",
-          full && "data-[side=right]:sm:max-w-5xl",
-          wide && !full && "data-[side=right]:sm:max-w-3xl",
-          !(wide || full) && "data-[side=right]:sm:max-w-lg"
-        )}
-        closeLabel={t("common.close")}
-      >
-        <SheetHeader className="border-b">
-          <SheetTitle>{title}</SheetTitle>
-          {description ? (
-            <SheetDescription>{description}</SheetDescription>
-          ) : null}
-        </SheetHeader>
-        {/* A form that says what it is missing says it in the farm's words: the browser's own check of a required
-            box would stop the press first, and say nothing at the foot. */}
-        <form
-          className="flex min-h-0 flex-1 flex-col"
-          noValidate={saysWhy}
-          onSubmit={submit}
-        >
-          <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-4">
-            {children}
-          </div>
-          <SheetFooter className="flex-row flex-wrap items-center justify-end border-t">
-            {asked && missing ? (
-              <p className="text-warning me-auto text-sm" role="alert">
-                {missing.said}
-              </p>
-            ) : null}
-            <Button
-              onClick={() => onOpenChange(false)}
-              type="button"
-              variant="outline"
-            >
-              {t("common.cancel")}
-            </Button>
-            <Button disabled={pending || (!ready && !saysWhy)} type="submit">
-              {pending ? <Spinner /> : null}
-              {submitLabel}
-            </Button>
-          </SheetFooter>
-        </form>
-      </SheetContent>
-    </Sheet>
-  );
-};
-
-/** A short form — a level, a name, a reason — in a dialog over the page, with cancel and the act itself at its foot. */
-export const FormDialog = ({
-  open,
-  onOpenChange,
-  title,
-  description,
-  submitLabel,
-  onSubmit,
-  ready,
-  pending,
-  children,
-  className,
-}: FormPanelProps & { className?: string }) => {
-  const { t } = useLanguage();
-  return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className={className} closeLabel={t("common.close")}>
-        <form
-          className="flex flex-col gap-4"
-          onSubmit={submitted(ready, onSubmit)}
-        >
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-            {description ? (
-              <DialogDescription>{description}</DialogDescription>
-            ) : null}
-          </DialogHeader>
-          {children}
-          <DialogFooter>
-            <Button
-              onClick={() => onOpenChange(false)}
-              type="button"
-              variant="outline"
-            >
-              {t("common.cancel")}
-            </Button>
-            <Button disabled={!ready || pending} type="submit">
-              {pending ? <Spinner /> : null}
-              {submitLabel}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-};
 
 /**
  * Asking before an act that takes something away — retiring a product, a Category — so a stray tap in a row's menu is
@@ -709,6 +552,289 @@ export const ConfirmDialog = ({
   );
 };
 
+/** The first control a form's own checks say is wrong: a required box left empty, a figure out of its range. */
+const firstWrong = (form: HTMLFormElement | null) =>
+  form?.querySelector<HTMLElement>(":invalid, [aria-invalid='true']") ?? null;
+
+/**
+ * What every form in the kit does around its fields (docs/research/next-improvements.md §3):
+ *
+ * - **A refusal is said at its top**, where the person is, not in a toast beside it (GOV.UK: errors stay with what
+ *   they are about); `useRefused` finds the open form through `lib/open-form.ts`.
+ * - **Its act is never grey for want of something.** Pressed too soon it says what is missing — the form's own
+ *   words where it gives them, the kit's otherwise — and goes to the field, or to the first one its checks find wrong.
+ * - **Typed work is not thrown away unasked.** Closed with changes in it, by Cancel, Escape, the cross or a tap
+ *   beside it, it asks first. A form the page closes itself, once saved, is not asked about.
+ */
+const useFormKeeping = ({
+  open,
+  onOpenChange,
+  ready,
+  missing,
+  onSubmit,
+  pending,
+}: Pick<
+  FormPanelProps,
+  "open" | "onOpenChange" | "ready" | "missing" | "onSubmit" | "pending"
+>) => {
+  const { t } = useLanguage();
+  const form = useRef<HTMLFormElement>(null);
+  const top = useRef<HTMLDivElement>(null);
+  // Pressed too soon at least once since it opened: from then on what is missing is said, and changes as it is given.
+  const [asked, setAsked] = useState(false);
+  const [refusal, setRefusal] = useState<string | null>(null);
+  const [changed, setChanged] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
+  // Closed, it forgets: opened again, it says nothing until pressed too soon again.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (!open) {
+      setAsked(false);
+      setRefusal(null);
+      setChanged(false);
+      setDiscarding(false);
+    }
+  }
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    return holdOpenForm((words) => {
+      setRefusal(words);
+      top.current?.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }, [open]);
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    setRefusal(null);
+    if (ready) {
+      onSubmit();
+      return;
+    }
+    setAsked(true);
+    const field =
+      (missing?.at
+        ? document.querySelector<HTMLElement>(`#${CSS.escape(missing.at)}`)
+        : null) ?? firstWrong(form.current);
+    field?.scrollIntoView({ behavior: "smooth", block: "center" });
+    field?.focus({ preventScroll: true });
+  };
+  const requestClose = () => {
+    if (changed && !pending) {
+      setDiscarding(true);
+      return;
+    }
+    onOpenChange(false);
+  };
+  const handleOpenChange = (next: boolean) => {
+    if (next) {
+      onOpenChange(true);
+    } else {
+      requestClose();
+    }
+  };
+  const stillMissing =
+    asked && !ready ? (missing?.said ?? t("form.notReady")) : null;
+  const refused = refusal ? <Notice title={refusal} tone="danger" /> : null;
+  const askToDiscard = (
+    <ConfirmDialog
+      confirmLabel={t("form.discard")}
+      description={t("form.discardWhy")}
+      onConfirm={() => {
+        setDiscarding(false);
+        onOpenChange(false);
+      }}
+      onOpenChange={setDiscarding}
+      open={discarding}
+      title={t("form.discardTitle")}
+    />
+  );
+  return {
+    form,
+    top,
+    handleSubmit: submit,
+    handleCancel: requestClose,
+    handleOpenChange,
+    handleChange: () => setChanged(true),
+    stillMissing,
+    refused,
+    askToDiscard,
+  };
+};
+
+/**
+ * A form that is a piece of work of its own — feed in, a sale, milk handed over — in a sheet beside the page, so the
+ * page it came from stays in sight. A title and a line of what it does above; the fields, labelled, in a body that
+ * scrolls; cancel and the act itself pinned at the foot.
+ *
+ * `wide` is for a record with more to it than a handful of fields — a person, written down in sections — where two
+ * columns on a computer read better than one long column. `full` is for a form written in rows of several fields at
+ * once, such as a Venture Plan's lines, which a two-column sheet would wrap (Carbon: "complex, lengthier" forms get
+ * the room of a page; Fluent's large drawer).
+ */
+export const FormSheet = ({
+  open,
+  onOpenChange,
+  title,
+  description,
+  submitLabel,
+  onSubmit,
+  ready,
+  missing,
+  pending,
+  children,
+  wide = false,
+  full = false,
+}: FormPanelProps & { wide?: boolean; full?: boolean }) => {
+  const { t } = useLanguage();
+  const {
+    form,
+    top,
+    handleSubmit,
+    handleCancel,
+    handleOpenChange,
+    handleChange,
+    stillMissing,
+    refused,
+    askToDiscard,
+  } = useFormKeeping({
+    open,
+    onOpenChange,
+    ready,
+    missing,
+    onSubmit,
+    pending,
+  });
+  return (
+    <Sheet onOpenChange={handleOpenChange} open={open}>
+      <SheetContent
+        className={cn(
+          "gap-0 data-[side=right]:w-full",
+          full && "data-[side=right]:sm:max-w-5xl",
+          wide && !full && "data-[side=right]:sm:max-w-3xl",
+          !(wide || full) && "data-[side=right]:sm:max-w-lg"
+        )}
+        closeLabel={t("common.close")}
+      >
+        <SheetHeader className="border-b">
+          <SheetTitle>{title}</SheetTitle>
+          {description ? (
+            <SheetDescription>{description}</SheetDescription>
+          ) : null}
+        </SheetHeader>
+        {/* What is missing is said in the farm's words: the browser's own check of a required box would stop the
+            press first, in the browser's language, and say nothing at the foot. */}
+        <form
+          className="flex min-h-0 flex-1 flex-col"
+          noValidate
+          onChangeCapture={handleChange}
+          onSubmit={handleSubmit}
+          ref={form}
+        >
+          <div
+            className="flex flex-1 flex-col gap-5 overflow-y-auto p-4"
+            ref={top}
+          >
+            {refused}
+            {children}
+          </div>
+          <SheetFooter className="flex-row flex-wrap items-center justify-end border-t">
+            {stillMissing ? (
+              <p className="text-warning me-auto text-sm" role="alert">
+                {stillMissing}
+              </p>
+            ) : null}
+            <Button onClick={handleCancel} type="button" variant="outline">
+              {t("common.cancel")}
+            </Button>
+            <Button disabled={pending} type="submit">
+              {pending ? <Spinner /> : null}
+              {submitLabel}
+            </Button>
+          </SheetFooter>
+        </form>
+        {askToDiscard}
+      </SheetContent>
+    </Sheet>
+  );
+};
+
+/** A short form — a level, a name, a reason — in a dialog over the page, with cancel and the act itself at its foot. */
+export const FormDialog = ({
+  open,
+  onOpenChange,
+  title,
+  description,
+  submitLabel,
+  onSubmit,
+  ready,
+  missing,
+  pending,
+  children,
+  className,
+}: FormPanelProps & { className?: string }) => {
+  const { t } = useLanguage();
+  const {
+    form,
+    top,
+    handleSubmit,
+    handleCancel,
+    handleOpenChange,
+    handleChange,
+    stillMissing,
+    refused,
+    askToDiscard,
+  } = useFormKeeping({
+    open,
+    onOpenChange,
+    ready,
+    missing,
+    onSubmit,
+    pending,
+  });
+  return (
+    <Dialog onOpenChange={handleOpenChange} open={open}>
+      <DialogContent className={className} closeLabel={t("common.close")}>
+        <form
+          className="flex flex-col gap-4"
+          noValidate
+          onChangeCapture={handleChange}
+          onSubmit={handleSubmit}
+          ref={form}
+        >
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+            {description ? (
+              <DialogDescription>{description}</DialogDescription>
+            ) : null}
+          </DialogHeader>
+          <div className="flex flex-col gap-4" ref={top}>
+            {refused}
+            {children}
+          </div>
+          {stillMissing ? (
+            <p className="text-warning text-sm" role="alert">
+              {stillMissing}
+            </p>
+          ) : null}
+          <DialogFooter>
+            <Button onClick={handleCancel} type="button" variant="outline">
+              {t("common.cancel")}
+            </Button>
+            <Button disabled={pending} type="submit">
+              {pending ? <Spinner /> : null}
+              {submitLabel}
+            </Button>
+          </DialogFooter>
+        </form>
+        {askToDiscard}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 /**
  * One part of a longer form under its own heading — who the person is, where the money goes — with a line of what
  * it is for. Its fields sit two to a row where there is room; a field that needs the whole row says so with
@@ -734,28 +860,71 @@ export const FormSection = ({
   </div>
 );
 
-/** A labelled field: its label, the control, and a line of help or of what is wrong beneath. */
+/**
+ * A labelled field: its label, the control, and a line of help or of what is wrong beneath. The help and the error
+ * are tied to the control with the field's `id` (`aria-describedby`, and `aria-invalid` with an error), so a screen
+ * reader says them with it (WCAG 1.3.1, 3.3.1).
+ */
 export const FormField = ({
   id,
   label,
   hint,
+  error,
   children,
   className,
 }: {
   id: string;
   label: ReactNode;
   hint?: ReactNode;
+  /** What is wrong with what was given, said in red under it. */
+  error?: ReactNode;
   children: ReactNode;
   className?: string;
-}) => (
-  <div className={cn("flex flex-col gap-1.5", className)}>
-    <label className="text-sm font-medium" data-slot="form-label" htmlFor={id}>
-      {label}
-    </label>
-    {children}
-    {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
-  </div>
-);
+}) => {
+  const hintId = hint ? `${id}-hint` : undefined;
+  const errorId = error ? `${id}-error` : undefined;
+  const describedBy = [errorId, hintId].filter(Boolean).join(" ");
+  const wrong = Boolean(error);
+  // Tied to the control by its id, wherever in the field it sits: inside a wrapper with its unit, or its own child.
+  useEffect(() => {
+    const control = document.querySelector(`#${CSS.escape(id)}`);
+    if (!control) {
+      return;
+    }
+    if (describedBy) {
+      control.setAttribute("aria-describedby", describedBy);
+    } else {
+      control.removeAttribute("aria-describedby");
+    }
+    if (wrong) {
+      control.setAttribute("aria-invalid", "true");
+    } else {
+      control.removeAttribute("aria-invalid");
+    }
+  }, [id, describedBy, wrong]);
+  return (
+    <div className={cn("flex flex-col gap-1.5", className)}>
+      <label
+        className="text-sm font-medium"
+        data-slot="form-label"
+        htmlFor={id}
+      >
+        {label}
+      </label>
+      {children}
+      {error ? (
+        <p className="text-danger text-xs font-medium" id={errorId}>
+          {error}
+        </p>
+      ) : null}
+      {hint ? (
+        <p className="text-muted-foreground text-xs" id={hintId}>
+          {hint}
+        </p>
+      ) : null}
+    </div>
+  );
+};
 
 /**
  * A figure typed with its unit written inside the box at its end — "কেজি", "৳/কেজি" — so the label says only what the
