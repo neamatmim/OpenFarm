@@ -69,7 +69,7 @@ const signOn = async (
   which: string
 ) => {
   const person = await owner.client.investors.record({ name, phone });
-  const agreement = await owner.client.ventures.sign({
+  const agreement = await owner.client.ventures.agreements.sign({
     ventureId,
     investorId: person.id,
     units,
@@ -79,7 +79,7 @@ const signOn = async (
     stampedOn: "2053-01-02",
     stampSerial: `AA ${which} ${suffix}`,
   });
-  await owner.client.ventures.keepAgreementPaper({
+  await owner.client.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -104,7 +104,7 @@ const aBull = async (ventureId: string, penId: string, which: string) => {
     transportMoney: 0,
     keepMoney: 0,
   });
-  await buying.client.ventures.drawFloat({
+  await buying.client.ventures.floats.draw({
     ventureId,
     buyingTripId: trip.id,
     amountMoney: 100_000,
@@ -126,7 +126,7 @@ const aBull = async (ventureId: string, penId: string, which: string) => {
     targetWindowStart: WON.targetWindowStart,
     targetWindowEnd: WON.targetWindowEnd,
   });
-  await buying.client.ventures.reconcileFloat({
+  await buying.client.ventures.floats.reconcile({
     buyingTripId: trip.id,
     cashBackMoney: 0,
     movedOn: "2053-01-04",
@@ -177,11 +177,11 @@ const closeUp = async (ventureId: string, which: string) => {
     });
   }
   const settling = await as("owner", "2053-03-02T04:00:00.000Z");
-  await settling.client.ventures.approveSettlement({ ventureId });
-  const approved = await settling.client.ventures.approvedSettlement({
+  await settling.client.ventures.settlement.approve({ ventureId });
+  const approved = await settling.client.ventures.settlement.approved({
     ventureId,
   });
-  await settling.client.ventures.repayAdvance({
+  await settling.client.ventures.settlement.repayAdvance({
     ventureId,
     movedOn: "2053-03-02",
     paymentMethod: "bank",
@@ -189,7 +189,7 @@ const closeUp = async (ventureId: string, which: string) => {
   });
   for (const his of approved?.shares ?? []) {
     // oxlint-disable-next-line no-await-in-loop -- one Investor at a time
-    await settling.client.ventures.paySettlement({
+    await settling.client.ventures.settlement.pay({
       ventureId,
       agreementId: his.agreementId,
       amountMoney: his.payoutMoney,
@@ -199,7 +199,7 @@ const closeUp = async (ventureId: string, which: string) => {
     });
   }
   if ((approved?.farmMoney ?? 0) > 0) {
-    await settling.client.ventures.takeTheFarmsShare({
+    await settling.client.ventures.settlement.takeTheFarmsShare({
       ventureId,
       movedOn: "2053-03-02",
       paymentMethod: "bank",
@@ -448,7 +448,7 @@ describe("the sheet an Investor checks the whole run against", () => {
       note: `দেরিতে ${suffix}`,
     });
     const raising = await as("owner", "2053-03-06T04:00:00.000Z");
-    await raising.client.ventures.raiseAdjustment({
+    await raising.client.ventures.settlement.adjustments.raise({
       ventureId: wonId,
       reason: `জানুয়ারির ওষুধের বিল দেরিতে এসেছে ${suffix}`,
     });

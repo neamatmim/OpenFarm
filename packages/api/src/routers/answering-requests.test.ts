@@ -60,7 +60,7 @@ const signFor = async (
   units: number
 ) => {
   const owner = await asOwner();
-  await owner.ventures.sign({
+  await owner.ventures.agreements.sign({
     ventureId,
     investorId,
     units,
@@ -95,7 +95,7 @@ const refusalOf = async (act: Promise<unknown>) => {
 
 const comeAndSign = (requestId: string, units: number, at = JANUARY) =>
   asOwner(at).then((owner) =>
-    owner.ventures.answerRequest({
+    owner.ventures.requests.answer({
       requestId,
       answer: { kind: "come_and_sign", units },
     })
@@ -103,7 +103,7 @@ const comeAndSign = (requestId: string, units: number, at = JANUARY) =>
 
 const notThisTime = (requestId: string, line = "", at = JANUARY) =>
   asOwner(at).then((owner) =>
-    owner.ventures.answerRequest({
+    owner.ventures.requests.answer({
       requestId,
       answer: { kind: "not_this_time", line },
     })
@@ -133,7 +133,7 @@ describe("the Investor Cap at a yes", () => {
         investorWarnAt: 1,
       });
       const reading = await asOwner();
-      const before = await reading.ventures.requests({ ventureId });
+      const before = await reading.ventures.requests.list({ ventureId });
       expect(ifYesOf(before.requests, first.requestId)).toEqual({
         countAfter: standing + 1,
         cap: standing + 1,
@@ -144,7 +144,7 @@ describe("the Investor Cap at a yes", () => {
       const firstYes = await comeAndSign(first.requestId, 1);
       expect(firstYes.ifYes?.atOrBeyondCap).toBe(true);
       const rereading = await asOwner();
-      const after = await rereading.ventures.requests({ ventureId });
+      const after = await rereading.ventures.requests.list({ ventureId });
       expect(ifYesOf(after.requests, second.requestId)).toEqual({
         countAfter: standing + 2,
         cap: standing + 1,
@@ -231,7 +231,7 @@ describe("the Owner saying come and sign", () => {
     await comeAndSign(first.requestId, 4);
 
     const owner = await asOwner();
-    const before = await owner.ventures.requests({ ventureId });
+    const before = await owner.ventures.requests.list({ ventureId });
     expect(before.totals).toMatchObject({
       signedUnits: 4,
       promisedUnits: 4,
@@ -277,7 +277,7 @@ describe("the Owner saying come and sign", () => {
         comeAndSign(two.requestId, 6),
       ]);
       const owner = await asOwner();
-      const { totals } = await owner.ventures.requests({ ventureId });
+      const { totals } = await owner.ventures.requests.list({ ventureId });
       promisedPerRound.push(totals.promisedUnits);
     }
     /* oxlint-enable no-await-in-loop */
@@ -330,7 +330,7 @@ describe("the Owner saying come and sign", () => {
     await signFor(ventureId, promised.id, 4);
 
     const owner = await asOwner();
-    const { totals } = await owner.ventures.requests({ ventureId });
+    const { totals } = await owner.ventures.requests.list({ ventureId });
     expect(totals).toMatchObject({
       signedUnits: 4,
       promisedUnits: 0,
@@ -450,13 +450,13 @@ describe("an answer", () => {
     });
 
     await expect(
-      manager.ventures.answerRequest({
+      manager.ventures.requests.answer({
         requestId: babul.requestId,
         answer: { kind: "come_and_sign", units: 1 },
       })
     ).rejects.toThrow();
     await expect(
-      babul.client.ventures.answerRequest({
+      babul.client.ventures.requests.answer({
         requestId: babul.requestId,
         answer: { kind: "come_and_sign", units: 1 },
       })

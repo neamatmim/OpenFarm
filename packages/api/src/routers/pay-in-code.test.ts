@@ -53,7 +53,7 @@ const people: string[] = [];
 
 const signed = async (instant: string, ventureId: string, who: number) => {
   const { client } = await as(instant);
-  return client.ventures.sign({
+  return client.ventures.agreements.sign({
     ventureId,
     investorId: people[who] ?? "",
     ...paper,
@@ -62,7 +62,7 @@ const signed = async (instant: string, ventureId: string, who: number) => {
 
 const codesOn = async (ventureId: string) => {
   const { client } = await as("2050-01-10T04:00:00.000Z");
-  const rows = await client.ventures.agreements({ ventureId });
+  const rows = await client.ventures.agreements.list({ ventureId });
   return rows.map((one) => one.payInCode);
 };
 

@@ -209,7 +209,7 @@ const stillMissing = (
 const useWhoMaySign = (venture: { id: string; units: number } | null) => {
   const investors = useQuery(orpc.investors.list.queryOptions());
   const signedSoFar = useQuery({
-    ...orpc.ventures.agreements.queryOptions({
+    ...orpc.ventures.agreements.list.queryOptions({
       input: { ventureId: venture?.id ?? "" },
     }),
     enabled: venture !== null,
@@ -232,7 +232,7 @@ const useWhoMaySign = (venture: { id: string; units: number } | null) => {
 
 /** One Investor's live Request on the Venture being signed, as the Owner's list reads it. */
 type LiveRequest = Awaited<
-  ReturnType<typeof orpc.ventures.requests.call>
+  ReturnType<typeof orpc.ventures.requests.list.call>
 >["requests"][number];
 
 /**
@@ -247,7 +247,7 @@ const useTheRequestItAnswers = (
   answersNone: boolean
 ) => {
   const requests = useQuery({
-    ...orpc.ventures.requests.queryOptions({
+    ...orpc.ventures.requests.list.queryOptions({
       input: { ventureId: venture?.id ?? "" },
     }),
     enabled: venture !== null,
@@ -593,10 +593,10 @@ const useSaving = (paper: Photo | null, done: () => void) => {
   const refused = useRefused();
   const refusedOffer = useRefused(OFFER_REFUSALS);
   const keeping = useMutation(
-    orpc.ventures.keepAgreementPaper.mutationOptions()
+    orpc.ventures.agreements.keepPaper.mutationOptions()
   );
   const offering = useMutation(
-    orpc.ventures.offerInApp.mutationOptions({
+    orpc.ventures.agreements.offers.make.mutationOptions({
       onError: refusedOffer,
       onSuccess: () => {
         done();
@@ -607,7 +607,7 @@ const useSaving = (paper: Photo | null, done: () => void) => {
     })
   );
   const signing = useMutation(
-    orpc.ventures.sign.mutationOptions({
+    orpc.ventures.agreements.sign.mutationOptions({
       onError: refused,
       onSuccess: async (signed) => {
         // The photo goes up against the Agreement it proves, so it is kept once there is an id to keep

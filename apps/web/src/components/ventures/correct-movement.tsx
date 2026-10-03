@@ -32,7 +32,7 @@ export const CorrectMovement = ({
     reference: words(movement.reference),
   });
   const correct = useMutation(
-    orpc.ventures.correctMovement.mutationOptions({})
+    orpc.ventures.movements.correct.mutationOptions({})
   );
   return (
     <CorrectionDialog

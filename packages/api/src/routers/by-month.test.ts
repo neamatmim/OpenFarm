@@ -149,7 +149,7 @@ beforeAll(async () => {
     ...TERMS,
   });
   plannedId = planned.id;
-  await owner.ventures.setPlan({ ventureId: plannedId, ...PLAN });
+  await owner.ventures.plan.set({ ventureId: plannedId, ...PLAN });
   const calledOff = await owner.ventures.open({
     name: `যে ভেঞ্চার হলো না ${suffix}`,
     ...TERMS,
@@ -166,7 +166,7 @@ beforeAll(async () => {
     name: `বিনিয়োগকারী ${suffix}`,
     phone: `0193${suffix}`,
   });
-  const agreement = await owner.ventures.sign({
+  const agreement = await owner.ventures.agreements.sign({
     ventureId: fundedId,
     investorId: investor.id,
     units: 20,
@@ -176,7 +176,7 @@ beforeAll(async () => {
     stampedOn: "2044-03-01",
     stampSerial: `MB ${suffix}`,
   });
-  await owner.ventures.keepAgreementPaper({
+  await owner.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -201,7 +201,7 @@ beforeAll(async () => {
     transportMoney: 0,
     keepMoney: 0,
   });
-  await toTheLivestockMarket.ventures.drawFloat({
+  await toTheLivestockMarket.ventures.floats.draw({
     ventureId: fundedId,
     buyingTripId: trip.id,
     amountMoney: 100_000,
@@ -348,7 +348,7 @@ describe("the farm month by month", () => {
   it("sets each Venture that was not called off against its plan, as its own page does", async () => {
     const { client: owner } = await as("owner");
     const { ventures } = await owner.monthlyReport.get();
-    const measured = await owner.ventures.planAgainstActual({
+    const measured = await owner.ventures.plan.againstActual({
       ventureId: plannedId,
     });
 

@@ -23,7 +23,7 @@ export const AgreementPaperButton = ({
   const { t } = useLanguage();
   const refused = useRefused();
   const keeping = useMutation(
-    orpc.ventures.keepAgreementPaper.mutationOptions({
+    orpc.ventures.agreements.keepPaper.mutationOptions({
       onError: refused,
       onSuccess: () => {
         toast.success(t("ventures.paperKept"));

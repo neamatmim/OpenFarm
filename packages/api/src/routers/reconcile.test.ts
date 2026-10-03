@@ -52,7 +52,7 @@ const outingWithFloat = async (
     transportMoney: 0,
     keepMoney: 0,
   });
-  await owner.client.ventures.drawFloat({
+  await owner.client.ventures.floats.draw({
     ventureId,
     buyingTripId: trip.id,
     amountMoney: floatMoney,
@@ -106,13 +106,13 @@ beforeAll(async () => {
     name: `বিনিয়োগকারী ${suffix}`,
     phone: "01912345678",
   });
-  const agreement = await owner.client.ventures.sign({
+  const agreement = await owner.client.ventures.agreements.sign({
     ventureId,
     investorId: person.id,
     units: 20,
     ...paper,
   });
-  await owner.client.ventures.keepAgreementPaper({
+  await owner.client.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -134,7 +134,7 @@ describe("the Float comes home", () => {
     await bull(trip, 80_000, 2000, "2047-01-05T06:00:00.000Z");
     await bull(trip, 100_000, 3000, "2047-01-05T07:00:00.000Z");
     // 185,000 of animals and 5,000 of lorry and broker, so 10,000 comes home.
-    const counted = await owner.client.ventures.reconcileFloat({
+    const counted = await owner.client.ventures.floats.reconcile({
       buyingTripId: trip,
       cashBackMoney: 10_000,
       movedOn: "2047-01-06",
@@ -164,7 +164,7 @@ describe("the Float comes home", () => {
     await bull(trip, 60_000, 0, "2047-01-07T06:00:00.000Z");
     // Sixty thousand of bull and ten back leaves thirty thousand nobody can account for.
     await expect(
-      owner.client.ventures.reconcileFloat({
+      owner.client.ventures.floats.reconcile({
         buyingTripId: trip,
         cashBackMoney: 10_000,
         movedOn: "2047-01-08",
@@ -177,7 +177,7 @@ describe("the Float comes home", () => {
     });
     // And more back than went out is just as wrong.
     await expect(
-      owner.client.ventures.reconcileFloat({
+      owner.client.ventures.floats.reconcile({
         buyingTripId: trip,
         cashBackMoney: 50_000,
         movedOn: "2047-01-08",
@@ -206,12 +206,12 @@ describe("the Float comes home", () => {
     const owner = await as("owner", "2047-01-10T04:00:00.000Z");
     const trip = await outingWithFloat(owner, 3, 50_000, 0);
     await bull(trip, 50_000, 0, "2047-01-10T06:00:00.000Z");
-    await owner.client.ventures.reconcileFloat({
+    await owner.client.ventures.floats.reconcile({
       buyingTripId: trip,
       cashBackMoney: 0,
     });
     await expect(
-      owner.client.ventures.reconcileFloat({
+      owner.client.ventures.floats.reconcile({
         buyingTripId: trip,
         cashBackMoney: 0,
       })
@@ -225,7 +225,7 @@ describe("the Float comes home", () => {
     const owner = await as("owner", "2047-01-11T04:00:00.000Z");
     const trip = await outingWithFloat(owner, 4, 70_000, 0);
     await bull(trip, 70_000, 0, "2047-01-11T06:00:00.000Z");
-    await owner.client.ventures.reconcileFloat({
+    await owner.client.ventures.floats.reconcile({
       buyingTripId: trip,
       cashBackMoney: 0,
     });
@@ -272,7 +272,7 @@ describe("the Float comes home", () => {
 
     // And once it is counted, her price may not be put right either: the sum was signed against it.
     const her = await bull(trip, 60_000, 0, "2047-01-13T06:00:00.000Z");
-    await owner.client.ventures.reconcileFloat({
+    await owner.client.ventures.floats.reconcile({
       buyingTripId: trip,
       cashBackMoney: 0,
     });
@@ -294,7 +294,7 @@ describe("the Float comes home", () => {
     const trip = await outingWithFloat(owner, 5, 60_000, 0);
     await bull(trip, 50_000, 0, "2047-01-12T06:00:00.000Z");
     await expect(
-      owner.client.ventures.reconcileFloat({
+      owner.client.ventures.floats.reconcile({
         buyingTripId: trip,
         cashBackMoney: 10_000,
       })
@@ -304,7 +304,7 @@ describe("the Float comes home", () => {
     });
     const manager = await as("manager", "2047-01-12T07:00:00.000Z");
     await expect(
-      manager.client.ventures.reconcileFloat({
+      manager.client.ventures.floats.reconcile({
         buyingTripId: trip,
         cashBackMoney: 10_000,
         movedOn: "2047-01-12",

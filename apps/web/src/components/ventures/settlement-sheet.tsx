@@ -26,9 +26,9 @@ import { saidMonth } from "@/lib/months";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
-type Settlement = Awaited<ReturnType<typeof orpc.ventures.settlement.call>>;
+type Settlement = Awaited<ReturnType<typeof orpc.ventures.settlement.get.call>>;
 type Approved = NonNullable<
-  Awaited<ReturnType<typeof orpc.ventures.approvedSettlement.call>>
+  Awaited<ReturnType<typeof orpc.ventures.settlement.approved.call>>
 >;
 type Block = Settlement["blocks"][number];
 
@@ -397,7 +397,7 @@ const Approve = ({ ventureId }: { ventureId: string }) => {
   const { t } = useLanguage();
   const refused = useRefused();
   const approving = useMutation(
-    orpc.ventures.approveSettlement.mutationOptions({
+    orpc.ventures.settlement.approve.mutationOptions({
       onError: refused,
       onSuccess: () => {
         toast.success(t("ventures.approved"));
@@ -639,13 +639,13 @@ export const SettlementSheet = ({
   const [waiving, setWaiving] =
     useState<Parameters<typeof WaiveAdjustmentSheet>[0]["what"]>(null);
   const working = useQuery({
-    ...orpc.ventures.settlement.queryOptions({
+    ...orpc.ventures.settlement.get.queryOptions({
       input: { ventureId: venture?.id ?? "" },
     }),
     enabled: venture !== null,
   });
   const frozen = useQuery({
-    ...orpc.ventures.approvedSettlement.queryOptions({
+    ...orpc.ventures.settlement.approved.queryOptions({
       input: { ventureId: venture?.id ?? "" },
     }),
     enabled: venture !== null,

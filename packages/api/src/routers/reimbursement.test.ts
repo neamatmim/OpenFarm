@@ -195,7 +195,7 @@ beforeAll(async () => {
     name: `বিনিয়োগকারী ${suffix}`,
     phone: "01955555555",
   });
-  const agreement = await owner.client.ventures.sign({
+  const agreement = await owner.client.ventures.agreements.sign({
     ventureId,
     investorId: person.id,
     units: 20,
@@ -205,7 +205,7 @@ beforeAll(async () => {
     stampedOn: "2047-03-02",
     stampSerial: `AA ${suffix}`,
   });
-  await owner.client.ventures.keepAgreementPaper({
+  await owner.client.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -351,12 +351,12 @@ describe("the monthly Reimbursement", () => {
 
   it("refuses the figure typed over, but not its day or its reference", async () => {
     const owner = await as("owner", "2047-04-02T05:00:00.000Z");
-    const movements = await owner.client.ventures.movements({ ventureId });
+    const movements = await owner.client.ventures.movements.list({ ventureId });
     const paid = movements.find((one) => one.kind === "reimbursement");
     // The figure is what that month's costs came to, and the month may not be reimbursed again — so a
     // figure typed over it is one nothing can be recomputed from.
     await expect(
-      owner.client.ventures.correctMovement({
+      owner.client.ventures.movements.correct({
         id: paid?.id ?? "",
         reason: `কম মনে হচ্ছে ${suffix}`,
         changes: { amountMoney: { from: 2000, to: 1000 } },
@@ -367,14 +367,14 @@ describe("the monthly Reimbursement", () => {
     });
 
     // What she typed herself is still hers to put right, and the figure is untouched by it.
-    await owner.client.ventures.correctMovement({
+    await owner.client.ventures.movements.correct({
       id: paid?.id ?? "",
       reason: `স্লিপ নম্বর ভুল ছিল ${suffix}`,
       changes: {
         reference: { from: `REI-${suffix}`, to: `REI-RIGHT-${suffix}` },
       },
     });
-    const after = await owner.client.ventures.movements({ ventureId });
+    const after = await owner.client.ventures.movements.list({ ventureId });
     expect(after.find((one) => one.id === paid?.id)).toMatchObject({
       amountMoney: 2000,
       reference: `REI-RIGHT-${suffix}`,

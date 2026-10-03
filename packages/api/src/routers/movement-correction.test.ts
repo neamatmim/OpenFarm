@@ -41,7 +41,7 @@ const signedUp = async (owner: Owner, which: number, forVenture: string) => {
     name: `বিনিয়োগকারী ${which} ${suffix}`,
     phone: `0198${String(which).padStart(7, "0")}`,
   });
-  const agreement = await owner.client.ventures.sign({
+  const agreement = await owner.client.ventures.agreements.sign({
     ventureId: forVenture,
     investorId: person.id,
     units: 20,
@@ -51,7 +51,7 @@ const signedUp = async (owner: Owner, which: number, forVenture: string) => {
     stampedOn: "2047-11-02",
     stampSerial: `AA ${which} ${suffix}`,
   });
-  await owner.client.ventures.keepAgreementPaper({
+  await owner.client.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -92,7 +92,7 @@ describe("putting a movement right", () => {
       owner.client.ventures.startBuying({ id: ventureId })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
 
-    await owner.client.ventures.correctMovement({
+    await owner.client.ventures.movements.correct({
       id: capitalId,
       reason: `স্লিপে পাঁচ লাখ, লেখা হয়েছিল চার ${suffix}`,
       changes: { amountMoney: { from: 400_000, to: 500_000 } },
@@ -113,7 +113,7 @@ describe("putting a movement right", () => {
 
   it("keeps what it said before, and does not write a second movement", async () => {
     const owner = await as("owner", "2047-11-07T04:00:00.000Z");
-    const movements = await owner.client.ventures.movements({ ventureId });
+    const movements = await owner.client.ventures.movements.list({ ventureId });
     // One movement, put right — not one wrong and one right.
     expect(movements.filter((one) => one.kind === "capital_in")).toHaveLength(
       1
@@ -144,7 +144,7 @@ describe("putting a movement right", () => {
       paymentMethod: "bank",
       reference: `ADV-${suffix}`,
     });
-    await owner.client.ventures.correctMovement({
+    await owner.client.ventures.movements.correct({
       id: advance.id,
       reason: `রেফারেন্স ভুল ছিল ${suffix}`,
       changes: {
@@ -165,7 +165,7 @@ describe("putting a movement right", () => {
       transportMoney: 0,
       keepMoney: 0,
     });
-    const float = await owner.client.ventures.drawFloat({
+    const float = await owner.client.ventures.floats.draw({
       ventureId,
       buyingTripId: trip.id,
       amountMoney: 100_000,
@@ -174,21 +174,21 @@ describe("putting a movement right", () => {
       reference: `FLT-${suffix}`,
     });
     // Before it comes home it is still only a figure, and may be put right.
-    await owner.client.ventures.correctMovement({
+    await owner.client.ventures.movements.correct({
       id: float.id,
       reason: `স্লিপ অনুযায়ী ${suffix}`,
       changes: { amountMoney: { from: 100_000, to: 90_000 } },
     });
 
     // Counted home, it is part of a sum somebody signed.
-    await owner.client.ventures.reconcileFloat({
+    await owner.client.ventures.floats.reconcile({
       buyingTripId: trip.id,
       cashBackMoney: 90_000,
       movedOn: "2047-11-10",
       reference: `DEP-${suffix}`,
     });
     await expect(
-      owner.client.ventures.correctMovement({
+      owner.client.ventures.movements.correct({
         id: float.id,
         reason: `আবার বদলাতে চাই ${suffix}`,
         changes: { amountMoney: { from: 90_000, to: 80_000 } },
@@ -204,7 +204,7 @@ describe("putting a movement right", () => {
     // Twenty Units at fifty thousand: ten lakh, and five have been paid. A Correction is the same door
     // the payment came through, and it is not a way round the Agreement.
     await expect(
-      owner.client.ventures.correctMovement({
+      owner.client.ventures.movements.correct({
         id: capitalId,
         reason: `আরও বেশি লিখতে চাই ${suffix}`,
         changes: { amountMoney: { from: 500_000, to: 1_200_000 } },
@@ -243,7 +243,7 @@ describe("putting a movement right", () => {
     // Cancelling sent every taka back, one refund against each payment. Change what came in now and the
     // refund beside it stops matching, and the Venture reads as still holding somebody's money.
     await expect(
-      owner.client.ventures.correctMovement({
+      owner.client.ventures.movements.correct({
         id: taken.id,
         reason: `দুই লাখ নয়, তিন ${suffix}`,
         changes: { amountMoney: { from: 200_000, to: 300_000 } },
@@ -256,12 +256,12 @@ describe("putting a movement right", () => {
 
   it("is the Owner's alone", async () => {
     const owner = await as("owner", "2047-11-15T04:00:00.000Z");
-    const movements = await owner.client.ventures.movements({ ventureId });
+    const movements = await owner.client.ventures.movements.list({ ventureId });
     const held =
       movements.find((one) => one.id === capitalId)?.amountMoney ?? 0;
     const manager = await as("manager", "2047-11-15T05:00:00.000Z");
     await expect(
-      manager.client.ventures.correctMovement({
+      manager.client.ventures.movements.correct({
         id: capitalId,
         reason: `আমি ঠিক করছি ${suffix}`,
         changes: { amountMoney: { from: held, to: 400_000 } },

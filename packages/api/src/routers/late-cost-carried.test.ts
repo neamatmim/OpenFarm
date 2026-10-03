@@ -190,7 +190,9 @@ describe("a cost that lands in a month already reimbursed", () => {
     // A late bill for June, after June was repaid: the Settlement owes it, and says how much.
     await sprayed("2076-08-04T06:00:00.000Z", "2076-06-20", 400);
     const owner = await as("owner", "2076-08-05T04:00:00.000Z");
-    const settlement = await owner.client.ventures.settlement({ ventureId });
+    const settlement = await owner.client.ventures.settlement.get({
+      ventureId,
+    });
     expect(settlement.blocks).toContainEqual({
       word: "a_reimbursement_is_owed",
       months: [],

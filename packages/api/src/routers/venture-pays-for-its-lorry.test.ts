@@ -62,7 +62,7 @@ beforeAll(async () => {
     name: `বিনিয়োগকারী ${suffix}`,
     phone: "01955000111",
   });
-  const agreement = await owner.client.ventures.sign({
+  const agreement = await owner.client.ventures.agreements.sign({
     ventureId,
     investorId: person.id,
     units: 10,
@@ -73,7 +73,7 @@ beforeAll(async () => {
     stampedOn: "2049-01-02",
   });
   agreementId = agreement.id;
-  await owner.client.ventures.keepAgreementPaper({
+  await owner.client.ventures.agreements.keepPaper({
     agreementId,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -97,7 +97,7 @@ beforeAll(async () => {
     transportMoney: 0,
     keepMoney: 0,
   });
-  await buying.client.ventures.drawFloat({
+  await buying.client.ventures.floats.draw({
     ventureId,
     buyingTripId: trip.id,
     amountMoney: 200_000,
@@ -120,7 +120,7 @@ beforeAll(async () => {
     targetWindowEnd: plan.targetWindowEnd,
   });
   ({ tagNumber } = her);
-  await buying.client.ventures.reconcileFloat({
+  await buying.client.ventures.floats.reconcile({
     buyingTripId: trip.id,
     cashBackMoney: 50_000,
     movedOn: "2049-01-04",
@@ -179,11 +179,11 @@ describe("the lorry that took them to the livestock market", () => {
     // Everything else is in order — the bull is gone, his price is known, the Float came home — and it
     // still refuses, because the Farm paid for that lorry and nobody has paid the Farm.
     await expect(
-      owner.client.ventures.approveSettlement({ ventureId })
+      owner.client.ventures.settlement.approve({ ventureId })
     ).rejects.toMatchObject({
       data: { refusal: "a_reimbursement_is_owed" },
     });
-    const showing = await owner.client.ventures.settlement({ ventureId });
+    const showing = await owner.client.ventures.settlement.get({ ventureId });
     expect(
       showing.blocks.find((one) => one.word === "a_reimbursement_is_owed")
     ).toMatchObject({ months: ["2049-02"] });
@@ -214,12 +214,12 @@ describe("the lorry that took them to the livestock market", () => {
       expect(said.differenceMoney).toBe(0);
     }
 
-    await owner.client.ventures.approveSettlement({ ventureId });
-    const approved = await owner.client.ventures.approvedSettlement({
+    await owner.client.ventures.settlement.approve({ ventureId });
+    const approved = await owner.client.ventures.settlement.approved({
       ventureId,
     });
     const [his] = approved?.shares ?? [];
-    await owner.client.ventures.paySettlement({
+    await owner.client.ventures.settlement.pay({
       ventureId,
       agreementId,
       amountMoney: his?.payoutMoney ?? 0,
@@ -227,7 +227,7 @@ describe("the lorry that took them to the livestock market", () => {
       paymentMethod: "bank",
       reference: `PAY-${suffix}`,
     });
-    await owner.client.ventures.takeTheFarmsShare({
+    await owner.client.ventures.settlement.takeTheFarmsShare({
       ventureId,
       movedOn: "2049-03-03",
       paymentMethod: "bank",

@@ -203,7 +203,7 @@ describe("what an invited Investor is offered", () => {
     });
     await owner.ventures.showInPortal({ id: theirs.id, words: "" });
     const salma = await invited("সালমা", `0175${suffix}`);
-    await owner.ventures.sign({
+    await owner.ventures.agreements.sign({
       ventureId: theirs.id,
       investorId: salma.id,
       units: 2,

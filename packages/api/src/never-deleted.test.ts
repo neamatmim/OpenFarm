@@ -44,7 +44,7 @@ describe("a ledger row's parent, deleted", () => {
       cattleBudgetMoney: 800_000,
     });
     // A plan and nothing more: before, deleting the Venture took its plan with it, unasked.
-    await client.ventures.setPlan({
+    await client.ventures.plan.set({
       ventureId: opened.id,
       lines: [
         {

@@ -17,10 +17,10 @@ describe("the Owner's money, read on a Shed Phone", () => {
     });
     const venture = { ventureId: "no-such-venture" };
     const reads: [string, Promise<unknown>][] = [
-      ["ventures.plan", client.ventures.plan(venture)],
+      ["ventures.plan.get", client.ventures.plan.get(venture)],
       [
-        "ventures.planAgainstActual",
-        client.ventures.planAgainstActual(venture),
+        "ventures.plan.againstActual",
+        client.ventures.plan.againstActual(venture),
       ],
       ["ventures.projection", client.ventures.projection(venture)],
       ["ventures.movableAnimals", client.ventures.movableAnimals()],

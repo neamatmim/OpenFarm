@@ -15,7 +15,7 @@ import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 type Approved = NonNullable<
-  Awaited<ReturnType<typeof orpc.ventures.approvedSettlement.call>>
+  Awaited<ReturnType<typeof orpc.ventures.settlement.approved.call>>
 >;
 type Share = Approved["shares"][number];
 
@@ -134,31 +134,31 @@ export const PayOutSheet = ({
   };
   const failed = refused;
   const repaying = useMutation(
-    orpc.ventures.repayAdvance.mutationOptions({
+    orpc.ventures.settlement.repayAdvance.mutationOptions({
       onError: failed,
       onSuccess: done,
     })
   );
   const paying = useMutation(
-    orpc.ventures.paySettlement.mutationOptions({
+    orpc.ventures.settlement.pay.mutationOptions({
       onError: failed,
       onSuccess: done,
     })
   );
   const taking = useMutation(
-    orpc.ventures.takeTheFarmsShare.mutationOptions({
+    orpc.ventures.settlement.takeTheFarmsShare.mutationOptions({
       onError: failed,
       onSuccess: done,
     })
   );
   const covering = useMutation(
-    orpc.ventures.coverTheFarmsLoss.mutationOptions({
+    orpc.ventures.settlement.coverTheFarmsLoss.mutationOptions({
       onError: failed,
       onSuccess: done,
     })
   );
   const adjusting = useMutation(
-    orpc.ventures.payAdjustment.mutationOptions({
+    orpc.ventures.settlement.adjustments.pay.mutationOptions({
       onError: failed,
       onSuccess: done,
     })
@@ -252,7 +252,7 @@ export const AcknowledgeSheet = ({
     setNote("");
   }
   const saying = useMutation(
-    orpc.ventures.acknowledgePayout.mutationOptions({
+    orpc.ventures.settlement.acknowledgePayout.mutationOptions({
       onError: refused,
       onSuccess: () => {
         setNote("");

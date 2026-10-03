@@ -234,7 +234,7 @@ describe("what the farm keeps of a Request", () => {
     await latest.portal.withdrawRequest({ requestId: made.id });
 
     const owner = await asOwner();
-    const { requests } = await owner.ventures.requests({ ventureId });
+    const { requests } = await owner.ventures.requests.list({ ventureId });
 
     expect(requests).toHaveLength(1);
     expect(requests[0]?.history.map(({ id: _id, ...step }) => step)).toEqual([
@@ -312,7 +312,7 @@ describe("the Owner reading a Venture's Requests", () => {
     const ventureId = await aVenture("মালিকের ভেঞ্চার");
     const owner = await asOwner();
     const signedOne = await invited("স্বাক্ষরী");
-    await owner.ventures.sign({
+    await owner.ventures.agreements.sign({
       ventureId,
       investorId: signedOne.id,
       units: 5,
@@ -339,7 +339,9 @@ describe("the Owner reading a Venture's Requests", () => {
     });
     await leaver.client.portal.withdrawRequest({ requestId: gone.id });
 
-    const { requests, totals } = await owner.ventures.requests({ ventureId });
+    const { requests, totals } = await owner.ventures.requests.list({
+      ventureId,
+    });
 
     expect(requests.find((one) => one.id === made.id)).toMatchObject({
       investorId: asker.id,
@@ -375,7 +377,9 @@ describe("the Owner reading a Venture's Requests", () => {
       clock: new FakeClock(JANUARY),
     });
 
-    expect(await refused(manager.ventures.requests({ ventureId }))).toBe(true);
+    expect(await refused(manager.ventures.requests.list({ ventureId }))).toBe(
+      true
+    );
     expect(
       await manager.audit.list({
         entity: "request_to_join",
@@ -392,9 +396,9 @@ describe("another Investor's Request", () => {
     await asker.client.portal.requestToJoin({ ventureId, units: 1, note: "" });
     const nosy = await invited("কৌতূহলী");
 
-    expect(await refused(nosy.client.ventures.requests({ ventureId }))).toBe(
-      true
-    );
+    expect(
+      await refused(nosy.client.ventures.requests.list({ ventureId }))
+    ).toBe(true);
   });
 
   it("is no such thing to anybody else: they cannot withdraw it, and it is not on their page", async () => {
@@ -500,7 +504,7 @@ describe("a Request the farm refuses", () => {
     const ventureId = await aVenture("স্বাক্ষরের ভেঞ্চার");
     const nasir = await invited("নাসির");
     const owner = await asOwner();
-    await owner.ventures.sign({
+    await owner.ventures.agreements.sign({
       ventureId,
       investorId: nasir.id,
       units: 2,

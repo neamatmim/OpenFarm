@@ -89,7 +89,7 @@ const funded = async (owner: Owner, which: number) => {
     name: `বিনিয়োগকারী ${which} ${suffix}`,
     phone: `0193${String(which).padStart(7, "0")}`,
   });
-  const agreement = await owner.client.ventures.sign({
+  const agreement = await owner.client.ventures.agreements.sign({
     ventureId: venture.id,
     investorId: person.id,
     units: 20,
@@ -99,7 +99,7 @@ const funded = async (owner: Owner, which: number) => {
     stampedOn: "2047-01-02",
     stampSerial: `AA ${which} ${suffix}`,
   });
-  await owner.client.ventures.keepAgreementPaper({
+  await owner.client.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -372,7 +372,7 @@ describe("the buy-back at wind-up", () => {
     expect(today.every((one) => one.reason === buying.note)).toBe(true);
 
     // And a movement out of the Venture Account for each of them.
-    const movements = await owner.client.ventures.movements({ ventureId });
+    const movements = await owner.client.ventures.movements.list({ ventureId });
     const sold = movements.filter(
       (one) => one.kind === "internal_sell" && one.movedOn === "2047-05-20"
     );
@@ -436,7 +436,7 @@ describe("a Venture whose Target Window an Amendment moved", () => {
     const owner = await as("owner", "2047-02-10T04:00:00.000Z");
     const moved = await funded(owner, 7);
     // Everybody signs to sell two months later: 17 to 19 June, so the Wind-up Period runs to 19 July.
-    await owner.client.ventures.amend({
+    await owner.client.ventures.agreements.amend({
       ventureId: moved,
       investorsPercent: 60,
       targetWindowStart: "2047-06-17",
@@ -503,13 +503,13 @@ describe("a Venture whose Target Window an Amendment moved", () => {
       stampValueMoney: 300,
       stampedOn: "2047-02-11",
     };
-    await owner.client.ventures.sign({
+    await owner.client.ventures.agreements.sign({
       ventureId: open.id,
       investorId: first.id,
       stampSerial: `AA 81 ${suffix}`,
       ...paper,
     });
-    await owner.client.ventures.amend({
+    await owner.client.ventures.agreements.amend({
       ventureId: open.id,
       investorsPercent: 60,
       targetWindowStart: "2047-06-17",
@@ -519,7 +519,7 @@ describe("a Venture whose Target Window an Amendment moved", () => {
       contentType: "image/jpeg",
       data: "aGVsbG8=",
     });
-    const later = await owner.client.ventures.sign({
+    const later = await owner.client.ventures.agreements.sign({
       ventureId: open.id,
       investorId: second.id,
       stampSerial: `AA 82 ${suffix}`,

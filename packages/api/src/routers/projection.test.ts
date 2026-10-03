@@ -135,7 +135,7 @@ beforeAll(async () => {
     bankAccount: `01234${suffix.slice(-5)}`,
   });
   rahimId = him.id;
-  const signed = await owner.ventures.sign({
+  const signed = await owner.ventures.agreements.sign({
     ventureId: hisVenture,
     investorId: him.id,
     units: 3,
@@ -147,7 +147,7 @@ beforeAll(async () => {
     stampSerial: `S-P-${suffix}`,
   });
   agreementId = signed.id;
-  await owner.ventures.keepAgreementPaper({
+  await owner.ventures.agreements.keepPaper({
     agreementId,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -187,7 +187,7 @@ describe("what a Venture is projected from", () => {
 describe("a Venture still gathering capital", () => {
   it("is projected from the plan: six animals grown to the window, charged what they cost and the whole running budget, every Unit taken", async () => {
     const owner = await asOwner();
-    await owner.ventures.setPlan({ ventureId: hisVenture, ...PLAN });
+    await owner.ventures.plan.set({ ventureId: hisVenture, ...PLAN });
     const { projection } = await owner.ventures.projection({
       ventureId: hisVenture,
     });
@@ -225,7 +225,7 @@ describe("a plan that spends past its cattle budget", () => {
       targetWindowEnd: "2052-03-19",
     });
     // Seven at ৳1,25,000 is ৳8,75,000: ৳75,000 past the ৳8,00,000 cattle budget.
-    await owner.ventures.setPlan({
+    await owner.ventures.plan.set({
       ventureId: over.id,
       ...PLAN,
       lines: [{ ...PLAN_LINE, animals: 7 }],
@@ -248,12 +248,12 @@ describe("a plan that expects some animals to die", () => {
       targetWindowStart: "2052-03-17",
       targetWindowEnd: "2052-03-19",
     });
-    await owner.ventures.setPlan({
+    await owner.ventures.plan.set({
       ventureId: run.id,
       ...PLAN,
       deathsPercent: 10,
     });
-    const plan = await owner.ventures.plan({ ventureId: run.id });
+    const plan = await owner.ventures.plan.get({ ventureId: run.id });
     expect(plan.latest?.deathsPercent).toBe(10);
 
     const { projection } = await owner.ventures.projection({
@@ -267,7 +267,7 @@ describe("a plan that expects some animals to die", () => {
 
     // Measured once buying begins, the plan says the same low end.
     await owner.ventures.startBuying({ id: run.id });
-    const measured = await owner.ventures.planAgainstActual({
+    const measured = await owner.ventures.plan.againstActual({
       ventureId: run.id,
     });
     expect(measured?.money.planned).toEqual({
@@ -297,14 +297,14 @@ describe("a plan's refusals", () => {
     await owner.ventures.startBuying({ id: run.id });
     // Nothing measured before there is a plan to measure against.
     expect(
-      await owner.ventures.planAgainstActual({ ventureId: run.id })
+      await owner.ventures.plan.againstActual({ ventureId: run.id })
     ).toBeNull();
     await expect(
-      owner.ventures.setPlan({ ventureId: run.id, ...PLAN, reason: "   " })
+      owner.ventures.plan.set({ ventureId: run.id, ...PLAN, reason: "   " })
     ).rejects.toMatchObject({
       data: { refusal: "plan_revision_needs_reason" },
     });
-    const plan = await owner.ventures.plan({ ventureId: run.id });
+    const plan = await owner.ventures.plan.get({ ventureId: run.id });
     expect(plan.versions).toEqual([]);
   });
 
@@ -316,16 +316,16 @@ describe("a plan's refusals", () => {
       targetWindowStart: "2052-03-17",
       targetWindowEnd: "2052-03-19",
     });
-    await owner.ventures.setPlan({ ventureId: run.id, ...PLAN });
+    await owner.ventures.plan.set({ ventureId: run.id, ...PLAN });
     await owner.ventures.cancel({ id: run.id, reason: `মূলধন ওঠেনি ${suffix}` });
     await expect(
-      owner.ventures.setPlan({
+      owner.ventures.plan.set({
         ventureId: run.id,
         ...PLAN,
         reason: "বাতিলের পরে",
       })
     ).rejects.toMatchObject({ data: { refusal: "plan_after_the_end" } });
-    const plan = await owner.ventures.plan({ ventureId: run.id });
+    const plan = await owner.ventures.plan.get({ ventureId: run.id });
     expect(plan.versions.map((one) => one.version)).toEqual([1]);
     // Nor is anything projected for it.
     const read = await owner.ventures.projection({ ventureId: run.id });
@@ -343,7 +343,7 @@ describe("a Venture still buying", () => {
       targetWindowEnd: "2052-03-19",
     });
     // Three of 240 to 260 kg at ৳500 putting on 0.8 kg a day, and two of 300 to 340 kg at ৳480 putting on 0.6.
-    await owner.ventures.setPlan({
+    await owner.ventures.plan.set({
       ventureId: buying.id,
       ...PLAN,
       lines: [
@@ -406,7 +406,7 @@ describe("a Venture still buying", () => {
     expect(projection?.kgAtSale).toBeCloseTo(2010.4, 6);
     // And charged what those four still to buy cost: two at ৳1,25,000 and two at 320 kg for ৳480, ৳1,53,600 — ৳5,57,200
     // on top of what it has been charged and the ৳2,00,000 running budget it has not yet spent.
-    const settlement = await owner.ventures.settlement({
+    const settlement = await owner.ventures.settlement.get({
       ventureId: buying.id,
     });
     expect(projection?.chargedMoney).toBe(
@@ -464,7 +464,7 @@ describe("an Investor's own Venture in the portal", () => {
 describe("a Venture offered in the portal", () => {
   it("carries its projection a Unit once it is on, and none while it is off", async () => {
     const owner = await asOwner();
-    await owner.ventures.setPlan({ ventureId: offered, ...PLAN });
+    await owner.ventures.plan.set({ ventureId: offered, ...PLAN });
 
     const before = await rahimNow();
     const off = await before.portal.openVentures();

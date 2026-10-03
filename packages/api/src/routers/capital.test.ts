@@ -48,14 +48,14 @@ const signedUp = async (
     name: `বিনিয়োগকারী ${which} ${suffix}`,
     phone: `0171${String(which).padStart(7, "0")}`,
   });
-  const agreement = await owner.client.ventures.sign({
+  const agreement = await owner.client.ventures.agreements.sign({
     ventureId,
     investorId: person.id,
     units,
     ...paper,
   });
   if (withPaper) {
-    await owner.client.ventures.keepAgreementPaper({
+    await owner.client.ventures.agreements.keepPaper({
       agreementId: agreement.id,
       ...photo,
     });
@@ -85,7 +85,7 @@ describe("capital in", () => {
       paymentMethod: "bank",
       reference: `TRF-${suffix}-1`,
     });
-    const movements = await owner.client.ventures.movements({ ventureId });
+    const movements = await owner.client.ventures.movements.list({ ventureId });
     expect(movements).toEqual([
       expect.objectContaining({
         kind: "capital_in",
@@ -272,7 +272,7 @@ describe("capital in", () => {
   it("is the Owner's alone", async () => {
     const manager = await as("manager", "2046-09-09T04:00:00.000Z");
     await expect(
-      manager.client.ventures.movements({ ventureId })
+      manager.client.ventures.movements.list({ ventureId })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(
       manager.client.ventures.takeCapital({
@@ -309,7 +309,7 @@ describe("a Venture called off", () => {
       paymentMethod: "bank",
       reference: `TRF-${suffix}-7`,
     });
-    const taken = await owner.client.ventures.movements({
+    const taken = await owner.client.ventures.movements.list({
       ventureId: doomed.id,
     });
 
@@ -323,7 +323,7 @@ describe("a Venture called off", () => {
       })),
     });
 
-    const afterwards = await owner.client.ventures.movements({
+    const afterwards = await owner.client.ventures.movements.list({
       ventureId: doomed.id,
     });
     const refunds = afterwards.filter((one) => one.kind === "refund");

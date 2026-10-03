@@ -45,7 +45,7 @@ export const DrawFloatSheet = ({
   useFreshFor(venture?.id, () => setDrawing(NOTHING_YET));
   const trips = useQuery(orpc.buyingTrips.list.queryOptions());
   const drawingIt = useMutation(
-    orpc.ventures.drawFloat.mutationOptions({
+    orpc.ventures.floats.draw.mutationOptions({
       onError: refused,
       onSuccess: () => {
         setDrawing(NOTHING_YET);

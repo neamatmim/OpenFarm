@@ -26,7 +26,9 @@ import { useMoney } from "@/lib/money";
 import type { Venture } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
 
-type RequestsRead = Awaited<ReturnType<typeof orpc.ventures.requests.call>>;
+type RequestsRead = Awaited<
+  ReturnType<typeof orpc.ventures.requests.list.call>
+>;
 type OneRequest = RequestsRead["requests"][number];
 
 /** One figure beside the target and the Floor. */
@@ -145,7 +147,9 @@ export const VentureRequests = ({ venture }: { venture: Venture }) => {
   const { t, language } = useLanguage();
   const asMoney = useMoney();
   const read = useQuery(
-    orpc.ventures.requests.queryOptions({ input: { ventureId: venture.id } })
+    orpc.ventures.requests.list.queryOptions({
+      input: { ventureId: venture.id },
+    })
   );
   const hash = useLocation({ select: (location) => location.hash });
   const nameOf = useInvestorNames();

@@ -59,34 +59,34 @@ describe("a Venture Plan", () => {
       clock: new FakeClock(JANUARY),
     });
     await expect(
-      manager.ventures.setPlan({ ventureId, lines: LINES, ...SALE })
+      manager.ventures.plan.set({ ventureId, lines: LINES, ...SALE })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("refuses a band whose lower weight is not below its upper, and a plan with no lines", async () => {
     const owner = await asOwner();
     await expect(
-      owner.ventures.setPlan({
+      owner.ventures.plan.set({
         ventureId,
         lines: [{ ...FIRST, fromKg: 250, toKg: 250 }],
         ...SALE,
       })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     await expect(
-      owner.ventures.setPlan({ ventureId, lines: [], ...SALE })
+      owner.ventures.plan.set({ ventureId, lines: [], ...SALE })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
   it("keeps each save as a version, measures by the last made while Open, and says what it comes to", async () => {
     const owner = await asOwner();
-    await owner.ventures.setPlan({
+    await owner.ventures.plan.set({
       ventureId,
       lines: [FIRST],
       ...SALE,
     });
-    await owner.ventures.setPlan({ ventureId, lines: LINES, ...SALE });
+    await owner.ventures.plan.set({ ventureId, lines: LINES, ...SALE });
 
-    const plan = await owner.ventures.plan({ ventureId });
+    const plan = await owner.ventures.plan.get({ ventureId });
     expect(plan.versions.map((one) => [one.version, one.madeWhile])).toEqual([
       [1, "open"],
       [2, "open"],
@@ -113,7 +113,7 @@ describe("a Venture Plan", () => {
       name: `বিনিয়োগকারী ${suffix}`,
       phone: `0189${suffix}`,
     });
-    const signed = await owner.ventures.sign({
+    const signed = await owner.ventures.agreements.sign({
       ventureId,
       investorId: him.id,
       units: 2,
@@ -123,7 +123,7 @@ describe("a Venture Plan", () => {
       stampedOn: "2053-01-02",
       stampSerial: `PL-${suffix}`,
     });
-    await owner.ventures.keepAgreementPaper({
+    await owner.ventures.agreements.keepPaper({
       agreementId: signed.id,
       contentType: "image/jpeg",
       data: "aGVsbG8=",
@@ -139,19 +139,19 @@ describe("a Venture Plan", () => {
 
     const buying = await asOwner();
     await expect(
-      buying.ventures.setPlan({ ventureId, lines: LINES, ...SALE })
+      buying.ventures.plan.set({ ventureId, lines: LINES, ...SALE })
     ).rejects.toMatchObject({
       data: { refusal: "plan_revision_needs_reason" },
     });
 
-    await buying.ventures.setPlan({
+    await buying.ventures.plan.set({
       ventureId,
       lines: LINES,
       saleLowMoneyPerKg: 540,
       saleHighMoneyPerKg: 620,
       reason: "হাটে দাম বেড়েছে",
     });
-    const plan = await buying.ventures.plan({ ventureId });
+    const plan = await buying.ventures.plan.get({ ventureId });
     expect(plan.latest).toMatchObject({
       version: 3,
       madeWhile: "buying",
@@ -190,7 +190,7 @@ describe("a plan line's Breed", () => {
       cattleBudgetMoney: 1_400_000,
     });
     // Its baseline: the plan made while it was still Open.
-    await owner.ventures.setPlan({
+    await owner.ventures.plan.set({
       ventureId: venture.id,
       lines: lines as typeof LINES,
       ...SALE,
@@ -199,7 +199,7 @@ describe("a plan line's Breed", () => {
       name: `${name} বিনিয়োগকারী ${suffix}`,
       phone: `0177${suffix}`,
     });
-    const signed = await owner.ventures.sign({
+    const signed = await owner.ventures.agreements.sign({
       ventureId: venture.id,
       investorId: him.id,
       units: 6,
@@ -209,7 +209,7 @@ describe("a plan line's Breed", () => {
       stampedOn: "2053-01-02",
       stampSerial: `PB-${name}-${suffix}`,
     });
-    await owner.ventures.keepAgreementPaper({
+    await owner.ventures.agreements.keepPaper({
       agreementId: signed.id,
       contentType: "image/jpeg",
       data: "aGVsbG8=",
@@ -228,17 +228,17 @@ describe("a plan line's Breed", () => {
   it("keeps the Breed a line names, and refuses one the farm does not have", async () => {
     const pabna = await breedNamed("Pabna");
     const owner = await asOwner();
-    await owner.ventures.setPlan({
+    await owner.ventures.plan.set({
       ventureId,
       lines: [{ ...FIRST, breedId: pabna }],
       ...SALE,
       reason: "পাবনার ষাঁড় কিনব",
     });
-    const plan = await owner.ventures.plan({ ventureId });
+    const plan = await owner.ventures.plan.get({ ventureId });
     expect(plan.latest?.lines[0]?.breedId).toBe(pabna);
 
     await expect(
-      owner.ventures.setPlan({
+      owner.ventures.plan.set({
         ventureId,
         lines: [{ ...FIRST, breedId: "no-such-breed" }],
         ...SALE,
@@ -251,7 +251,7 @@ describe("a plan line's Breed", () => {
     const owner = await asOwner();
     const kept = await owner.breeds.create({ nameBn: `পুরনো জাত ${suffix}` });
     const fresh = await owner.breeds.create({ nameBn: `অবসরের জাত ${suffix}` });
-    await owner.ventures.setPlan({
+    await owner.ventures.plan.set({
       ventureId,
       lines: [{ ...FIRST, breedId: kept.id }],
       ...SALE,
@@ -262,7 +262,7 @@ describe("a plan line's Breed", () => {
 
     // The line the plan already had goes on naming it.
     await expect(
-      owner.ventures.setPlan({
+      owner.ventures.plan.set({
         ventureId,
         lines: [{ ...FIRST, breedId: kept.id }],
         saleLowMoneyPerKg: 530,
@@ -272,7 +272,7 @@ describe("a plan line's Breed", () => {
     ).resolves.toMatchObject({ ventureId });
     // A line that names a retired Breed for the first time does not.
     await expect(
-      owner.ventures.setPlan({
+      owner.ventures.plan.set({
         ventureId,
         lines: [{ ...FIRST, breedId: fresh.id }],
         ...SALE,
@@ -309,7 +309,7 @@ describe("a plan line's Breed", () => {
       keepMoney: 0,
     });
     const atTheLivestockMarket = await asOwner("2053-01-21T06:00:00.000Z");
-    await atTheLivestockMarket.ventures.drawFloat({
+    await atTheLivestockMarket.ventures.floats.draw({
       ventureId: id,
       buyingTripId: trip.id,
       amountMoney: 230_000,
@@ -335,7 +335,7 @@ describe("a plan line's Breed", () => {
     }
 
     const owner = await asOwner("2053-01-21T09:00:00.000Z");
-    const against = await owner.ventures.planAgainstActual({ ventureId: id });
+    const against = await owner.ventures.plan.againstActual({ ventureId: id });
 
     // The Pabna bull fills the Pabna line; the Sahiwal cross, whom no line names, the any-Breed one.
     expect(against?.buying.bands.map((one) => one.bought.animals)).toEqual([

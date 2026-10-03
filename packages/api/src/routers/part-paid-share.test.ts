@@ -40,7 +40,7 @@ const signedAndPaid = async (
     name: `${name} ${suffix}`,
     phone: `0175${suffix}${phones}`,
   });
-  const agreement = await owner.ventures.sign({
+  const agreement = await owner.ventures.agreements.sign({
     ventureId,
     investorId: him.id,
     units,
@@ -50,7 +50,7 @@ const signedAndPaid = async (
     stampedOn: "2071-01-02",
     stampSerial: `PP ${name} ${suffix}`,
   });
-  await owner.ventures.keepAgreementPaper({
+  await owner.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -99,7 +99,7 @@ beforeAll(async () => {
     transportMoney: 0,
     keepMoney: 0,
   });
-  await buying.ventures.drawFloat({
+  await buying.ventures.floats.draw({
     ventureId,
     buyingTripId: trip.id,
     amountMoney: 100_000,
@@ -127,7 +127,7 @@ describe("a Settlement with Agreements only part paid", () => {
   it("divides by the Units each holds — what it paid over the Unit price — not the Units signed for", async () => {
     const owner = await as("owner", "2071-01-10T04:00:00.000Z");
 
-    const settlement = await owner.ventures.settlement({ ventureId });
+    const settlement = await owner.ventures.settlement.get({ ventureId });
 
     const ten = settlement.payouts.find((one) => one.agreementId === tenUnits);
     const three = settlement.payouts.find(
@@ -147,7 +147,7 @@ describe("a Settlement with Agreements only part paid", () => {
   it("loses no more per taka for the man with more Units than for the man with fewer", async () => {
     const owner = await as("owner", "2071-01-10T04:00:00.000Z");
 
-    const settlement = await owner.ventures.settlement({ ventureId });
+    const settlement = await owner.ventures.settlement.get({ ventureId });
 
     // Per taka put in, both carry the same loss.
     const perMoney = settlement.payouts.map(

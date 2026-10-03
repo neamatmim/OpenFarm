@@ -140,7 +140,7 @@ const aVentureWithBulls = async (
     name: `${name} বিনিয়োগকারী ${suffix}`,
     phone,
   });
-  const agreement = await owner.ventures.sign({
+  const agreement = await owner.ventures.agreements.sign({
     ventureId: venture.id,
     investorId: person.id,
     units: 20,
@@ -150,7 +150,7 @@ const aVentureWithBulls = async (
     stampedOn: "2054-01-02",
     stampSerial: `${name} ${suffix}`,
   });
-  await owner.ventures.keepAgreementPaper({
+  await owner.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -173,7 +173,7 @@ const aVentureWithBulls = async (
     keepMoney: 0,
   });
   const spentMoney = prices.reduce((sum, one) => sum + one, 0);
-  await buying.ventures.drawFloat({
+  await buying.ventures.floats.draw({
     ventureId: venture.id,
     buyingTripId: trip.id,
     amountMoney: spentMoney,
@@ -191,7 +191,7 @@ const aVentureWithBulls = async (
     });
     tags.push(tag);
   }
-  await buying.ventures.reconcileFloat({
+  await buying.ventures.floats.reconcile({
     buyingTripId: trip.id,
     cashBackMoney: 0,
     movedOn: "2054-01-04",
@@ -244,14 +244,14 @@ const settle = async (ventureId: string, name: string) => {
       readMoney: believed.expectedMoney,
     });
   }
-  const shown = await owner.ventures.settlement({ ventureId });
+  const shown = await owner.ventures.settlement.get({ ventureId });
   settledProfit.set(ventureId, shown.profitMoney);
-  await owner.ventures.approveSettlement({ ventureId });
+  await owner.ventures.settlement.approve({ ventureId });
   // Settled once the last of the money has gone out: each Investor paid, and the Farm's share taken.
-  const approved = await owner.ventures.approvedSettlement({ ventureId });
+  const approved = await owner.ventures.settlement.approved({ ventureId });
   for (const his of approved?.shares ?? []) {
     // oxlint-disable-next-line no-await-in-loop -- one Investor at a time
-    await owner.ventures.paySettlement({
+    await owner.ventures.settlement.pay({
       ventureId,
       agreementId: his.agreementId,
       amountMoney: his.payoutMoney,
@@ -260,7 +260,7 @@ const settle = async (ventureId: string, name: string) => {
       reference: `PAY-${name}-${suffix}`,
     });
   }
-  await owner.ventures.takeTheFarmsShare({
+  await owner.ventures.settlement.takeTheFarmsShare({
     ventureId,
     movedOn: "2054-03-02",
     paymentMethod: "bank",
@@ -442,7 +442,7 @@ describe("a Venture's Return and its Settlement", () => {
     const page = await owner.returns.list();
     const came = await Promise.all(
       [ventureA, ventureB].map(async (ventureId) => {
-        const movements = await owner.ventures.movements({ ventureId });
+        const movements = await owner.ventures.movements.list({ ventureId });
         return {
           back: page.ventures.find((one) => one.id === ventureId)?.returnOnCost
             ?.backMoney,

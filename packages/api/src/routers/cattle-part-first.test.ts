@@ -40,7 +40,7 @@ const signed = async (owner: Owner, ventureId: string, units: number) => {
     name: `বিনিয়োগকারী ${phones} ${suffix}`,
     phone: `0176${suffix}${phones}`,
   });
-  const agreement = await owner.ventures.sign({
+  const agreement = await owner.ventures.agreements.sign({
     ventureId,
     investorId: him.id,
     units,
@@ -50,7 +50,7 @@ const signed = async (owner: Owner, ventureId: string, units: number) => {
     stampedOn: "2074-01-03",
     stampSerial: `CP ${phones} ${suffix}`,
   });
-  await owner.ventures.keepAgreementPaper({
+  await owner.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -105,7 +105,7 @@ describe("a Venture paid by the month, while it gathers its capital", () => {
     const owner = await asOwner();
     await pay(owner, threeUnits, 100_000);
 
-    const papers = await owner.ventures.agreements({ ventureId: monthly });
+    const papers = await owner.ventures.agreements.list({ ventureId: monthly });
 
     const left = new Map(papers.map((one) => [one.id, one.capitalLeftMoney]));
     expect(left.get(tenUnits)).toBe(0);
@@ -128,7 +128,7 @@ describe("a Venture paid by the month, while it gathers its capital", () => {
     const { id } = await pay(owner, threeUnits, 10_000);
 
     await expect(
-      owner.ventures.correctMovement({
+      owner.ventures.movements.correct({
         id,
         reason: `বেশি লিখতে চাই ${suffix}`,
         changes: { amountMoney: { from: 10_000, to: 30_000 } },
@@ -165,7 +165,7 @@ describe("a Venture paid by the month, once every Cattle Part is in", () => {
       keepMoney: 0,
     });
     // A lakh of the five lakh twenty thousand its signed Units' Cattle Parts brought in.
-    await owner.ventures.drawFloat({
+    await owner.ventures.floats.draw({
       ventureId: monthly,
       buyingTripId: trip.id,
       amountMoney: 100_000,

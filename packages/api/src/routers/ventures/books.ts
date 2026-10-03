@@ -603,101 +603,106 @@ export const booksProcedures = {
       return { id, ...consumed };
     }),
 
-  /**
-   * A movement of a Venture's money put right: how much moved, the day the bank moved it, or the
-   * reference on the instrument. A Correction like any other — a reason, and the trail holding what it
-   * said before.
-   *
-   * Refused where the farm has already built something on it: a Float counted home, a month reimbursed,
-   * a Venture settled. Changing a figure underneath a decision somebody has already made is not putting
-   * anything right.
-   */
-  correctMovement: protectedProcedure
-    .use(requireOnly("owner", OWNER_ONLY))
-    .use(requirePersonalSession())
-    .input(ventureMovementCorrectionInput)
-    .handler(({ context, input }) =>
-      correct(context, ventureMovementCorrection, input)
-    ),
+  /** Money moved in and out of the Venture Account. */
+  movements: {
+    /** Every movement of one Venture's money, oldest first: what came in, and what went back. */
+    list: protectedProcedure
+      .use(requireOnly("owner", OWNER_ONLY))
+      .use(requirePersonalSession())
+      .input(z.object({ ventureId: z.string() }))
+      .handler(async ({ context, input }) => {
+        const rows = await context.db.query.ventureMovement.findMany({
+          where: { farmId: context.farm.id, ventureId: input.ventureId },
+          orderBy: { movedOn: "asc", id: "asc" },
+        });
+        if (rows.length === 0) {
+          return [];
+        }
+        // Only the movements that belong to one Investor's paper have one; a Float belongs to none.
+        const papers = rows.flatMap((one) =>
+          one.agreementId ? [one.agreementId] : []
+        );
+        const agreements =
+          papers.length === 0
+            ? []
+            : await context.db.query.investmentAgreement.findMany({
+                where: { farmId: context.farm.id, id: { in: papers } },
+                columns: { id: true, investorId: true },
+              });
+        const whose = new Map(
+          agreements.map((one) => [one.id, one.investorId] as const)
+        );
+        // What a Correction would be refused for, row by row, by the one rule the Correction refuses by — so the
+        // list offers Correct only where the farm will take it.
+        const run = await context.db.query.venture.findFirst({
+          where: { id: input.ventureId, farmId: context.farm.id },
+          columns: { state: true },
+        });
+        const countedTrips = new Set(
+          rows.flatMap((one) =>
+            one.kind === "float_out" &&
+            one.reconciledAt !== null &&
+            one.buyingTripId
+              ? [one.buyingTripId]
+              : []
+          )
+        );
+        // The animal a sale's money, an Internal Sale's, or a bull bought by bank was for — so the row names her and
+        // reaches her page.
+        const tagOf = await tagsOfHerRecords(context.db, context.farm.id, {
+          intakeIds: rows.flatMap((one) =>
+            one.intakeId ? [one.intakeId] : []
+          ),
+          saleIds: rows.flatMap((one) => (one.saleId ? [one.saleId] : [])),
+          internalSaleIds: rows.flatMap((one) =>
+            one.internalSaleId ? [one.internalSaleId] : []
+          ),
+        });
+        return rows.map((one) => ({
+          id: one.id,
+          kind: one.kind,
+          /** The animal it was for, where it was a Sale's, an Internal Sale's or a bull bought by bank's money. */
+          tagNumber:
+            tagOf.get(one.saleId ?? one.internalSaleId ?? one.intakeId ?? "") ??
+            null,
+          /** The Intake of a bull bought by bank with no outing, which it is written from. */
+          intakeId: one.intakeId,
+          /** Which way it moved the account, so a list of them can be added up to the balance the farm keeps. */
+          direction: directionOf(one.kind),
+          agreementId: one.agreementId,
+          investorId: one.agreementId
+            ? (whose.get(one.agreementId) ?? null)
+            : null,
+          buyingTripId: one.buyingTripId,
+          amountMoney: one.amountMoney,
+          movedOn: one.movedOn,
+          reference: one.reference,
+          refundsId: one.refundsId,
+          /** Why it may not be put right, as the farm's word for it; null where it may. */
+          whyItStands:
+            whyItStands(
+              one,
+              run?.state,
+              one.buyingTripId !== null && countedTrips.has(one.buyingTripId)
+            )?.refusal ?? null,
+        }));
+      }),
 
-  /** Every movement of one Venture's money, oldest first: what came in, and what went back. */
-  movements: protectedProcedure
-    .use(requireOnly("owner", OWNER_ONLY))
-    .use(requirePersonalSession())
-    .input(z.object({ ventureId: z.string() }))
-    .handler(async ({ context, input }) => {
-      const rows = await context.db.query.ventureMovement.findMany({
-        where: { farmId: context.farm.id, ventureId: input.ventureId },
-        orderBy: { movedOn: "asc", id: "asc" },
-      });
-      if (rows.length === 0) {
-        return [];
-      }
-      // Only the movements that belong to one Investor's paper have one; a Float belongs to none.
-      const papers = rows.flatMap((one) =>
-        one.agreementId ? [one.agreementId] : []
-      );
-      const agreements =
-        papers.length === 0
-          ? []
-          : await context.db.query.investmentAgreement.findMany({
-              where: { farmId: context.farm.id, id: { in: papers } },
-              columns: { id: true, investorId: true },
-            });
-      const whose = new Map(
-        agreements.map((one) => [one.id, one.investorId] as const)
-      );
-      // What a Correction would be refused for, row by row, by the one rule the Correction refuses by — so the
-      // list offers Correct only where the farm will take it.
-      const run = await context.db.query.venture.findFirst({
-        where: { id: input.ventureId, farmId: context.farm.id },
-        columns: { state: true },
-      });
-      const countedTrips = new Set(
-        rows.flatMap((one) =>
-          one.kind === "float_out" &&
-          one.reconciledAt !== null &&
-          one.buyingTripId
-            ? [one.buyingTripId]
-            : []
-        )
-      );
-      // The animal a sale's money, an Internal Sale's, or a bull bought by bank was for — so the row names her and
-      // reaches her page.
-      const tagOf = await tagsOfHerRecords(context.db, context.farm.id, {
-        intakeIds: rows.flatMap((one) => (one.intakeId ? [one.intakeId] : [])),
-        saleIds: rows.flatMap((one) => (one.saleId ? [one.saleId] : [])),
-        internalSaleIds: rows.flatMap((one) =>
-          one.internalSaleId ? [one.internalSaleId] : []
-        ),
-      });
-      return rows.map((one) => ({
-        id: one.id,
-        kind: one.kind,
-        /** The animal it was for, where it was a Sale's, an Internal Sale's or a bull bought by bank's money. */
-        tagNumber:
-          tagOf.get(one.saleId ?? one.internalSaleId ?? one.intakeId ?? "") ??
-          null,
-        /** The Intake of a bull bought by bank with no outing, which it is written from. */
-        intakeId: one.intakeId,
-        /** Which way it moved the account, so a list of them can be added up to the balance the farm keeps. */
-        direction: directionOf(one.kind),
-        agreementId: one.agreementId,
-        investorId: one.agreementId
-          ? (whose.get(one.agreementId) ?? null)
-          : null,
-        buyingTripId: one.buyingTripId,
-        amountMoney: one.amountMoney,
-        movedOn: one.movedOn,
-        reference: one.reference,
-        refundsId: one.refundsId,
-        /** Why it may not be put right, as the farm's word for it; null where it may. */
-        whyItStands:
-          whyItStands(
-            one,
-            run?.state,
-            one.buyingTripId !== null && countedTrips.has(one.buyingTripId)
-          )?.refusal ?? null,
-      }));
-    }),
+    /**
+     * A movement of a Venture's money put right: how much moved, the day the bank moved it, or the
+     * reference on the instrument. A Correction like any other — a reason, and the trail holding what it
+     * said before.
+     *
+     * Refused where the farm has already built something on it: a Float counted home, a month reimbursed,
+     * a Venture settled. Changing a figure underneath a decision somebody has already made is not putting
+     * anything right.
+     */
+    correct: protectedProcedure
+      .use(requireOnly("owner", OWNER_ONLY))
+      .use(requirePersonalSession())
+      .input(ventureMovementCorrectionInput)
+      .handler(({ context, input }) =>
+        correct(context, ventureMovementCorrection, input)
+      ),
+  },
 };

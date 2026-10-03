@@ -72,7 +72,7 @@ beforeAll(async () => {
     phone: `0187${suffix}`,
   });
   investorId = him.id;
-  const signed = await owner.ventures.sign({
+  const signed = await owner.ventures.agreements.sign({
     ventureId: venture.id,
     investorId,
     units: 3,
@@ -187,16 +187,16 @@ describe("the photo of a signed Agreement's stamped paper", () => {
     const owner = await as("owner");
 
     await expect(
-      owner.ventures.agreementPaper({ agreementId })
+      owner.ventures.agreements.paper({ agreementId })
     ).resolves.toBeNull();
-    await owner.ventures.keepAgreementPaper({
+    await owner.ventures.agreements.keepPaper({
       agreementId,
       contentType: "image/jpeg",
       data: "c3RhbXBlZA==",
     });
 
     await expect(
-      owner.ventures.agreementPaper({ agreementId })
+      owner.ventures.agreements.paper({ agreementId })
     ).resolves.toMatchObject({
       contentType: "image/jpeg",
       data: "c3RhbXBlZA==",
@@ -207,7 +207,7 @@ describe("the photo of a signed Agreement's stamped paper", () => {
     const manager = await as("manager");
 
     await expect(
-      manager.ventures.agreementPaper({ agreementId })
+      manager.ventures.agreements.paper({ agreementId })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

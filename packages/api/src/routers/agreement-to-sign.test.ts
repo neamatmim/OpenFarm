@@ -244,14 +244,14 @@ describe("«আপনার তথ্য», handed over with the Agreement", () 
 describe("stamp duty paid by e-challan", () => {
   it("is kept against the Agreement, and the joining letter says it by its e-challan number", async () => {
     const { client: owner } = await as("owner");
-    const signed = await owner.ventures.sign({
+    const signed = await owner.ventures.agreements.sign({
       ...terms(),
       stampKind: "e_challan",
       stampValueMoney: 300,
       stampedOn: "2052-01-02",
       stampSerial: `2324-${suffix}`,
     });
-    await owner.ventures.keepAgreementPaper({
+    await owner.ventures.agreements.keepPaper({
       agreementId: signed.id,
       contentType: "image/jpeg",
       data: "aGVsbG8=",
@@ -264,7 +264,7 @@ describe("stamp duty paid by e-challan", () => {
       reference: `TRF-${suffix}`,
     });
 
-    const agreements = await owner.ventures.agreements({ ventureId });
+    const agreements = await owner.ventures.agreements.list({ ventureId });
     const { text } = await owner.investorStatements.joining({
       agreementId: signed.id,
     });

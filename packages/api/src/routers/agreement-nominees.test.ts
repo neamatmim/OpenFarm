@@ -76,7 +76,7 @@ describe("an Agreement's Nominees", () => {
     const owner = await as("owner");
     const investorId = await someone("করিম");
 
-    const { id } = await owner.ventures.sign({
+    const { id } = await owner.ventures.agreements.sign({
       ...terms(investorId),
       nominees: [
         { ...WIFE, sharePercent: 70 },
@@ -112,7 +112,7 @@ describe("an Agreement's Nominees", () => {
       recordedAt: new Date("2064-01-01T04:00:00.000Z"),
     });
 
-    const { id } = await owner.ventures.sign({
+    const { id } = await owner.ventures.agreements.sign({
       ...terms(investorId),
       nominees: [{ ...WIFE, sharePercent: 100 }],
     });
@@ -154,20 +154,25 @@ describe("an Agreement's Nominees", () => {
       recordedAt: new Date("2064-01-01T04:00:00.000Z"),
     });
 
-    await expect(owner.ventures.sign(terms(investorId))).rejects.toMatchObject({
+    await expect(
+      owner.ventures.agreements.sign(terms(investorId))
+    ).rejects.toMatchObject({
       data: { refusal: "nominees_born_missing", at: 1 },
     });
     // Refused before anything was written: no Agreement, and the list as it was.
-    expect(await owner.ventures.agreements({ ventureId })).not.toContainEqual(
-      expect.objectContaining({ investorId })
-    );
+    expect(
+      await owner.ventures.agreements.list({ ventureId })
+    ).not.toContainEqual(expect.objectContaining({ investorId }));
   });
 
   it("may be none, and signing still records that he named nobody", async () => {
     const owner = await as("owner");
     const investorId = await someone("একা");
 
-    await owner.ventures.sign({ ...terms(investorId), nominees: [] });
+    await owner.ventures.agreements.sign({
+      ...terms(investorId),
+      nominees: [],
+    });
 
     const { people } = await owner.investors.list();
     expect(
@@ -187,13 +192,13 @@ describe("an Agreement's Nominees", () => {
     };
 
     await expect(
-      owner.ventures.sign({
+      owner.ventures.agreements.sign({
         ...terms(investorId, "2064-01-09"),
         nominees: [turning],
       })
     ).rejects.toMatchObject({ data: { refusal: "nominees_receiver_missing" } });
 
-    await owner.ventures.sign({
+    await owner.ventures.agreements.sign({
       ...terms(investorId, "2064-01-10"),
       nominees: [turning],
     });

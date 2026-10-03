@@ -49,7 +49,7 @@ const signFor = async (
   which: string,
   units: number
 ) => {
-  const agreement = await owner.client.ventures.sign({
+  const agreement = await owner.client.ventures.agreements.sign({
     ventureId,
     investorId,
     units,
@@ -59,7 +59,7 @@ const signFor = async (
     stampedOn: "2051-01-02",
     stampSerial: `AA ${which} ${suffix}`,
   });
-  await owner.client.ventures.keepAgreementPaper({
+  await owner.client.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -254,7 +254,9 @@ describe("the paper an Investor gets when he joins", () => {
     // One Agreement per Investor per Venture, as the database has it — so asking by Agreement can never
     // be ambiguous, and a man cannot end up with two sheets that each tell half a story.
     await expect(signFor(owner, hisId, "4", 3)).rejects.toBeDefined();
-    const agreements = await owner.client.ventures.agreements({ ventureId });
+    const agreements = await owner.client.ventures.agreements.list({
+      ventureId,
+    });
     expect(agreements.filter((one) => one.investorId === hisId)).toHaveLength(
       1
     );
@@ -273,7 +275,7 @@ describe("the paper an Investor gets when he joins", () => {
       name: `ফেরতপ্রাপ্ত ${suffix}`,
       phone: "01977000041",
     });
-    const agreement = await owner.client.ventures.sign({
+    const agreement = await owner.client.ventures.agreements.sign({
       ventureId: cancelled.id,
       investorId: person.id,
       units: 4,
@@ -283,7 +285,7 @@ describe("the paper an Investor gets when he joins", () => {
       stampedOn: "2051-02-10",
       stampSerial: `AA 5 ${suffix}`,
     });
-    await owner.client.ventures.keepAgreementPaper({
+    await owner.client.ventures.agreements.keepPaper({
       agreementId: agreement.id,
       contentType: "image/jpeg",
       data: "aGVsbG8=",
@@ -303,7 +305,7 @@ describe("the paper an Investor gets when he joins", () => {
 
     // Calling a Venture off sends every taka back, and each capital movement needs its own refund named.
     const calling = await as("owner", "2051-02-16T04:00:00.000Z");
-    const taken = await calling.client.ventures.movements({
+    const taken = await calling.client.ventures.movements.list({
       ventureId: cancelled.id,
     });
     await calling.client.ventures.cancel({
@@ -317,7 +319,7 @@ describe("the paper an Investor gets when he joins", () => {
           reference: `REF-${suffix}`,
         })),
     });
-    const refunds = await calling.client.ventures.movements({
+    const refunds = await calling.client.ventures.movements.list({
       ventureId: cancelled.id,
     });
     expect(refunds.some((one) => one.kind === "refund")).toBe(true);

@@ -48,7 +48,7 @@ const funded = async (owner: Owner, which: number) => {
     name: `বিনিয়োগকারী ${which} ${suffix}`,
     phone: `0194${String(which).padStart(7, "0")}`,
   });
-  const agreement = await owner.client.ventures.sign({
+  const agreement = await owner.client.ventures.agreements.sign({
     ventureId: venture.id,
     investorId: person.id,
     units: 20,
@@ -58,7 +58,7 @@ const funded = async (owner: Owner, which: number) => {
     stampedOn: "2047-01-02",
     stampSerial: `AA ${which} ${suffix}`,
   });
-  await owner.client.ventures.keepAgreementPaper({
+  await owner.client.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -120,11 +120,11 @@ describe("amending what everybody signed", () => {
 
   it("moves the terms on every Agreement at once, and leaves the originals alone", async () => {
     const owner = await as("owner", "2047-02-01T04:00:00.000Z");
-    const before = await owner.client.ventures.agreements({ ventureId });
+    const before = await owner.client.ventures.agreements.list({ ventureId });
     expect(before[0]).toMatchObject({ investorsPercent: 60 });
 
     // One paper, signed by everybody on the tenth, moving the split and the window.
-    const done = await owner.client.ventures.amend({
+    const done = await owner.client.ventures.agreements.amend({
       ventureId,
       investorsPercent: 55,
       targetWindowStart: "2047-05-01",
@@ -136,7 +136,7 @@ describe("amending what everybody signed", () => {
     expect(done.agreements).toBe(before.length);
 
     // The Agreement itself is untouched: what he signed at the start is still legible.
-    const after = await owner.client.ventures.agreements({ ventureId });
+    const after = await owner.client.ventures.agreements.list({ ventureId });
     expect(after[0]).toMatchObject({
       investorsPercent: 60,
       targetWindow: {
@@ -166,9 +166,12 @@ describe("amending what everybody signed", () => {
 
   it("says what was in force on a day, which is the question a dispute asks", async () => {
     const owner = await as("owner", "2047-02-20T04:00:00.000Z");
-    const [his] = await owner.client.ventures.agreements({ ventureId });
+    const [his] = await owner.client.ventures.agreements.list({ ventureId });
     const onThe = (day: string) =>
-      owner.client.ventures.termsOn({ agreementId: his?.id ?? "", on: day });
+      owner.client.ventures.agreements.termsOn({
+        agreementId: his?.id ?? "",
+        on: day,
+      });
 
     // The day before everybody signed, the paper still read sixty.
     expect(await onThe("2047-02-09")).toMatchObject({
@@ -189,9 +192,9 @@ describe("amending what everybody signed", () => {
     // whatever the database felt like returning, and a paper reprinted next week could read differently
     // from the one a man is holding. `id` behind the day is what stops that.
     const owner = await as("owner", "2047-02-19T04:00:00.000Z");
-    const [his] = await owner.client.ventures.agreements({ ventureId });
+    const [his] = await owner.client.ventures.agreements.list({ ventureId });
     const sameDay = async (percent: number) => {
-      await owner.client.ventures.amend({
+      await owner.client.ventures.agreements.amend({
         ventureId,
         investorsPercent: percent,
         targetWindowStart: "2047-05-01",
@@ -204,7 +207,7 @@ describe("amending what everybody signed", () => {
     await sameDay(52);
     await sameDay(51);
     const asked = () =>
-      owner.client.ventures.termsOn({
+      owner.client.ventures.agreements.termsOn({
         agreementId: his?.id ?? "",
         on: "2047-02-18",
       });
@@ -215,7 +218,7 @@ describe("amending what everybody signed", () => {
     expect(await asked()).toMatchObject({ paperKept: true });
 
     // Put back, so the tests that follow read the amendment they were written about.
-    await owner.client.ventures.amend({
+    await owner.client.ventures.agreements.amend({
       ventureId,
       investorsPercent: 55,
       targetWindowStart: "2047-05-01",
@@ -238,7 +241,7 @@ describe("amending what everybody signed", () => {
       phone: "01711-000555",
     });
     const owner = await as("owner", "2047-02-20T05:00:00.000Z");
-    const [his] = await owner.client.ventures.agreements({ ventureId });
+    const [his] = await owner.client.ventures.agreements.list({ ventureId });
     const { text } = await owner.client.investorStatements.joining({
       agreementId: his?.id ?? "",
     });
@@ -251,7 +254,7 @@ describe("amending what everybody signed", () => {
   it("is the Owner's alone, and wants a reason", async () => {
     const manager = await as("manager", "2047-02-21T04:00:00.000Z");
     await expect(
-      manager.client.ventures.amend({
+      manager.client.ventures.agreements.amend({
         ventureId,
         investorsPercent: 50,
         targetWindowStart: "2047-05-01",
@@ -264,7 +267,7 @@ describe("amending what everybody signed", () => {
 
     const owner = await as("owner", "2047-02-21T05:00:00.000Z");
     await expect(
-      owner.client.ventures.amend({
+      owner.client.ventures.agreements.amend({
         ventureId,
         investorsPercent: 50,
         targetWindowStart: "2047-05-01",
@@ -387,7 +390,7 @@ describe("selling a Venture's animals", () => {
       runningBudgetHeldMoney: 1_130_000,
     });
     // And it reads as a movement of the Venture's money like any other.
-    const movements = await owner.client.ventures.movements({ ventureId });
+    const movements = await owner.client.ventures.movements.list({ ventureId });
     const sales = movements.filter((one) => one.kind === "sale_in");
     expect(sales).toHaveLength(2);
     expect(
@@ -401,13 +404,13 @@ describe("selling a Venture's animals", () => {
 
   it("moves with the Sale when the Sale's price is put right", async () => {
     const owner = await as("owner", "2047-04-21T04:00:00.000Z");
-    const movements = await owner.client.ventures.movements({ ventureId });
+    const movements = await owner.client.ventures.movements.list({ ventureId });
     const first = movements.find(
       (one) => one.kind === "sale_in" && one.amountMoney === 120_000
     );
     // The movement is the Sale's, so it is not hers to change here.
     await expect(
-      owner.client.ventures.correctMovement({
+      owner.client.ventures.movements.correct({
         id: first?.id ?? "",
         reason: `দাম ভুল ছিল ${suffix}`,
         changes: { amountMoney: { from: 120_000, to: 125_000 } },
@@ -441,7 +444,7 @@ describe("selling a Venture's animals", () => {
     });
     const venture = await theVenture(owner);
     expect(venture).toMatchObject({ proceedsMoney: 125_000 });
-    const movements = await owner.client.ventures.movements({ ventureId });
+    const movements = await owner.client.ventures.movements.list({ ventureId });
     expect(movements.filter((one) => one.kind === "sale_in")).toHaveLength(1);
   });
 
@@ -488,7 +491,9 @@ describe("selling a Venture's animals", () => {
 
   it("keeps refusing what Selling refuses", async () => {
     const owner = await as("owner", "2047-04-20T04:00:00.000Z");
-    const agreements = await owner.client.ventures.agreements({ ventureId });
+    const agreements = await owner.client.ventures.agreements.list({
+      ventureId,
+    });
     // No more capital against an Agreement already signed.
     await expect(
       owner.client.ventures.takeCapital({
@@ -520,7 +525,7 @@ describe("selling a Venture's animals", () => {
       phone: "01944444444",
     });
     await expect(
-      owner.client.ventures.sign({
+      owner.client.ventures.agreements.sign({
         ventureId,
         investorId: latecomer.id,
         units: 1,

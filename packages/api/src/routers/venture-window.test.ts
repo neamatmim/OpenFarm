@@ -48,7 +48,7 @@ beforeAll(async () => {
     name: `বিনিয়োগকারী ${suffix}`,
     phone: "01950000001",
   });
-  const agreement = await owner.client.ventures.sign({
+  const agreement = await owner.client.ventures.agreements.sign({
     ventureId,
     investorId: person.id,
     units: 20,
@@ -58,7 +58,7 @@ beforeAll(async () => {
     stampedOn: "2047-01-02",
     stampSerial: `AA ${suffix}`,
   });
-  await owner.client.ventures.keepAgreementPaper({
+  await owner.client.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -157,7 +157,7 @@ describe("a Venture's animal and its Target Window", () => {
 
   it("moves with the Venture's window when an Amendment moves it", async () => {
     const owner = await as("owner", "2047-02-01T04:00:00.000Z");
-    await owner.client.ventures.amend({
+    await owner.client.ventures.agreements.amend({
       ventureId,
       investorsPercent: 60,
       targetWindowStart: AMENDED.start,

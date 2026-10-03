@@ -78,7 +78,7 @@ const funded = async (owner: Owner, which: number) => {
     name: `বিনিয়োগকারী ${which} ${suffix}`,
     phone: `0193${String(which).padStart(7, "0")}`,
   });
-  const agreement = await owner.client.ventures.sign({
+  const agreement = await owner.client.ventures.agreements.sign({
     ventureId: venture.id,
     investorId: person.id,
     units: 20,
@@ -88,7 +88,7 @@ const funded = async (owner: Owner, which: number) => {
     stampedOn: "2047-02-02",
     stampSerial: `AA ${which} ${suffix}`,
   });
-  await owner.client.ventures.keepAgreementPaper({
+  await owner.client.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -206,7 +206,7 @@ describe("the Internal Sale", () => {
       spentMoney: 77_000,
     });
     // Both sides of the money name her, so each leads to her page.
-    const movements = await owner.client.ventures.movements({ ventureId });
+    const movements = await owner.client.ventures.movements.list({ ventureId });
     expect(
       movements.find((one) => one.kind === "internal_buy")?.tagNumber
     ).toBe(hers.tagNumber);
@@ -221,12 +221,12 @@ describe("the Internal Sale", () => {
 
   it("refuses one side of the sale put right on its own", async () => {
     const owner = await as("owner", "2047-02-06T10:00:00.000Z");
-    const movements = await owner.client.ventures.movements({ ventureId });
+    const movements = await owner.client.ventures.movements.list({ ventureId });
     const bought = movements.find((one) => one.kind === "internal_buy");
     // A sale is two movements, a price and the Farm's own Money Event. Correcting the Venture's side
     // alone would leave the Farm's books saying it was paid something else for the same animal.
     await expect(
-      owner.client.ventures.correctMovement({
+      owner.client.ventures.movements.correct({
         id: bought?.id ?? "",
         reason: `দর ভুল ছিল ${suffix}`,
         changes: { amountMoney: { from: 77_000, to: 70_000 } },
@@ -709,7 +709,7 @@ describe("the animals the Owner is offered to move", () => {
 describe("what a paper may still take", () => {
   it("is nothing once its Units are paid for", async () => {
     const owner = await as("owner", "2047-03-04T04:00:00.000Z");
-    const [paper] = await owner.client.ventures.agreements({ ventureId });
+    const [paper] = await owner.client.ventures.agreements.list({ ventureId });
     // Twenty Units at fifty thousand, paid in full when the Venture was funded.
     expect(paper).toMatchObject({ capitalLeftMoney: 0 });
   });

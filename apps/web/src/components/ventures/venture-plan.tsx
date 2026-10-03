@@ -39,7 +39,7 @@ import type { Venture } from "@/lib/ventures";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
-type Plan = Awaited<ReturnType<typeof client.ventures.plan>>;
+type Plan = Awaited<ReturnType<typeof client.ventures.plan.get>>;
 type Version = NonNullable<Plan["latest"]>;
 
 /** One band as the sheet holds it while it is typed. */
@@ -531,7 +531,7 @@ const PlanSheet = ({
   );
   const [reason, setReason] = useState("");
   const saving = useMutation(
-    orpc.ventures.setPlan.mutationOptions({
+    orpc.ventures.plan.set.mutationOptions({
       onError: refused,
       onSuccess: () => {
         onOpenChange(false);
@@ -843,7 +843,7 @@ export const VenturePlanPanel = ({ venture }: { venture: Venture }) => {
   const { t } = useLanguage();
   const [writing, setWriting] = useState(false);
   const plan = useQuery(
-    orpc.ventures.plan.queryOptions({ input: { ventureId: venture.id } })
+    orpc.ventures.plan.get.queryOptions({ input: { ventureId: venture.id } })
   );
   const ended = venture.state === "settled" || venture.state === "cancelled";
   const latest = plan.data?.latest ?? null;

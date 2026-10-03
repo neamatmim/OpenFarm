@@ -14,7 +14,7 @@ import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 type Approved = NonNullable<
-  Awaited<ReturnType<typeof orpc.ventures.approvedSettlement.call>>
+  Awaited<ReturnType<typeof orpc.ventures.settlement.approved.call>>
 >;
 type Adjustment = Approved["adjustments"][number];
 
@@ -56,7 +56,7 @@ export const RaiseAdjustmentSheet = ({
     setReason("");
   }
   const raising = useMutation(
-    orpc.ventures.raiseAdjustment.mutationOptions({
+    orpc.ventures.settlement.adjustments.raise.mutationOptions({
       onError: refused,
       onSuccess: (done) => {
         setReason("");
@@ -115,7 +115,7 @@ export const WaiveAdjustmentSheet = ({
     setNote("");
   }
   const waiving = useMutation(
-    orpc.ventures.waiveAdjustment.mutationOptions({
+    orpc.ventures.settlement.adjustments.waive.mutationOptions({
       onError: refused,
       onSuccess: () => {
         setNote("");

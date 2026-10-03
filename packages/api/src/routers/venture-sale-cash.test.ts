@@ -67,7 +67,7 @@ const handOf = async (role: "owner" | "manager", instant: string) => {
 
 const saleMoneyIn = async (instant: string) => {
   const owner = await as("owner", instant);
-  const moves = await owner.client.ventures.movements({ ventureId });
+  const moves = await owner.client.ventures.movements.list({ ventureId });
   return moves.filter((one) => one.kind === "sale_in");
 };
 
@@ -121,7 +121,9 @@ describe("a Venture's bull sold for cash", () => {
 
   it("waits in the Settlement while it is held", async () => {
     const owner = await as("owner", "2080-01-10T10:00:00.000Z");
-    const settlement = await owner.client.ventures.settlement({ ventureId });
+    const settlement = await owner.client.ventures.settlement.get({
+      ventureId,
+    });
     expect(settlement.blocks.map((one) => one.word)).toContain(
       "sale_cash_in_a_hand"
     );
@@ -176,7 +178,9 @@ describe("a Venture's bull sold for cash", () => {
       })
     ).rejects.toMatchObject({ data: { refusal: "already_deposited" } });
     const owner = await as("owner", "2080-01-11T07:00:00.000Z");
-    const settlement = await owner.client.ventures.settlement({ ventureId });
+    const settlement = await owner.client.ventures.settlement.get({
+      ventureId,
+    });
     expect(settlement.blocks.map((one) => one.word)).not.toContain(
       "sale_cash_in_a_hand"
     );

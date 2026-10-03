@@ -53,7 +53,9 @@ import { takesCapitalNow } from "@/lib/ventures";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
-type Agreement = Awaited<ReturnType<typeof client.ventures.agreements>>[number];
+type Agreement = Awaited<
+  ReturnType<typeof client.ventures.agreements.list>
+>[number];
 type Share = Parameters<typeof SharePaid>[0]["share"];
 
 /** How each kind of movement on an Agreement counts towards what it has paid: capital in, and capital sent back. */
@@ -464,15 +466,19 @@ export const VentureInvestors = ({
   const { t, language } = useLanguage();
   const nameOf = useInvestorNames();
   const input = { input: { ventureId: venture.id } };
-  const agreements = useQuery(orpc.ventures.agreements.queryOptions(input));
-  const movements = useQuery(orpc.ventures.movements.queryOptions(input));
+  const agreements = useQuery(
+    orpc.ventures.agreements.list.queryOptions(input)
+  );
+  const movements = useQuery(orpc.ventures.movements.list.queryOptions(input));
   const paid = paidAgainst(movements.data ?? []);
   const signed = moneyOf(venture).signedFor;
   const { unitsLeft } = moneyOf(venture);
   const papers = useInvestorPapers();
   // Once the Settlement is approved, what each man is owed from it and whether it has gone — sent from his row,
   // as his capital and his papers are.
-  const frozen = useQuery(orpc.ventures.approvedSettlement.queryOptions(input));
+  const frozen = useQuery(
+    orpc.ventures.settlement.approved.queryOptions(input)
+  );
   const approved = frozen.data ?? null;
   const shareOf = new Map(
     (approved?.shares ?? []).map((one) => [one.agreementId, one] as const)

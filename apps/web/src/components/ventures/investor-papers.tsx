@@ -78,7 +78,7 @@ type AgreementCopy = Awaited<
 >;
 
 /** The photo of a signed Agreement's stamped paper, as the farm kept it; nothing for one never photographed. */
-type SignedPaper = Awaited<ReturnType<typeof client.ventures.agreementPaper>>;
+type SignedPaper = Awaited<ReturnType<typeof client.ventures.agreements.paper>>;
 
 /**
  * The three papers an Investor ever receives, asked for from his own row on the Venture's Investors tab and shown
@@ -124,7 +124,7 @@ export const useInvestorPapers = () => {
     })
   );
   const seeing = useMutation(
-    orpc.ventures.agreementPaper.mutationOptions({
+    orpc.ventures.agreements.paper.mutationOptions({
       onError: refused,
       onSuccess: setPhoto,
     })

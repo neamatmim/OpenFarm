@@ -36,7 +36,7 @@ const funded = async (owner: Owner) => {
     name: `বিনিয়োগকারী ${suffix}`,
     phone: "01930000073",
   });
-  const agreement = await owner.client.ventures.sign({
+  const agreement = await owner.client.ventures.agreements.sign({
     ventureId: venture.id,
     investorId: person.id,
     units: 20,
@@ -46,7 +46,7 @@ const funded = async (owner: Owner) => {
     stampedOn: "2073-02-02",
     stampSerial: `AA ${suffix}`,
   });
-  await owner.client.ventures.keepAgreementPaper({
+  await owner.client.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -92,7 +92,7 @@ const bull = async (sheet: { buyingTripId?: string; ventureId?: string }) => {
 };
 
 const drawFor = async (owner: Owner, tripId: string, reference: string) =>
-  await owner.client.ventures.drawFloat({
+  await owner.client.ventures.floats.draw({
     ventureId,
     buyingTripId: tripId,
     amountMoney: 100_000,

@@ -82,7 +82,7 @@ const signAndPay = async (name: string, phone: string, units: number) => {
     nid: "1234567890",
     bankAccount: `01234${phone.slice(-5)}`,
   });
-  const signed = await owner.ventures.sign({
+  const signed = await owner.ventures.agreements.sign({
     ventureId,
     investorId: him.id,
     units,
@@ -93,7 +93,7 @@ const signAndPay = async (name: string, phone: string, units: number) => {
     stampedOn: "2052-01-02",
     stampSerial: `S-${phone}`,
   });
-  await owner.ventures.keepAgreementPaper({
+  await owner.ventures.agreements.keepPaper({
     agreementId: signed.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",

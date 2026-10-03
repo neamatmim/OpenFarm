@@ -53,7 +53,7 @@ const asking = async (name: string, ventureId: string, units: number) => {
 
 const comeAndSign = async (requestId: string, units: number) => {
   const owner = await asOwner();
-  await owner.ventures.answerRequest({
+  await owner.ventures.requests.answer({
     requestId,
     answer: { kind: "come_and_sign", units },
   });
@@ -67,7 +67,7 @@ const sign = async (
   requestId?: string
 ) => {
   const owner = await asOwner();
-  return owner.ventures.sign({
+  return owner.ventures.agreements.sign({
     ventureId,
     investorId,
     units,
@@ -94,7 +94,7 @@ const refusalOf = async (act: Promise<unknown>) => {
 /** One Request as the Owner's list reads it. */
 const theRequest = async (ventureId: string, requestId: string) => {
   const owner = await asOwner();
-  const { requests } = await owner.ventures.requests({ ventureId });
+  const { requests } = await owner.ventures.requests.list({ ventureId });
   return requests.find((one) => one.id === requestId);
 };
 
@@ -116,7 +116,7 @@ describe("signing from a yes", () => {
       answeredUnits: 4,
     });
     const owner = await asOwner();
-    const [agreement] = await owner.ventures.agreements({ ventureId });
+    const [agreement] = await owner.ventures.agreements.list({ ventureId });
     expect(agreement).toMatchObject({
       id,
       units: 3,
@@ -132,7 +132,7 @@ describe("signing from a yes", () => {
     await sign(ventureId, rahim.id, 5, rahim.requestId);
 
     const owner = await asOwner();
-    const [agreement] = await owner.ventures.agreements({ ventureId });
+    const [agreement] = await owner.ventures.agreements.list({ ventureId });
     expect(agreement?.units).toBe(5);
     expect(await theRequest(ventureId, rahim.requestId)).toMatchObject({
       state: "signed",
@@ -149,7 +149,7 @@ describe("signing from a yes", () => {
     await sign(ventureId, karim.id, 3, karim.requestId);
 
     const owner = await asOwner();
-    const { totals } = await owner.ventures.requests({ ventureId });
+    const { totals } = await owner.ventures.requests.list({ ventureId });
     expect(totals).toMatchObject({
       signedUnits: 3,
       promisedUnits: 2,
@@ -234,7 +234,7 @@ describe("a Request that is not this signing's to answer", () => {
       "request_not_theirs"
     );
     const owner = await asOwner();
-    expect(await owner.ventures.agreements({ ventureId })).toEqual([]);
+    expect(await owner.ventures.agreements.list({ ventureId })).toEqual([]);
   });
 
   it("is refused when it is on another Venture", async () => {
@@ -253,7 +253,7 @@ describe("a Request that is not this signing's to answer", () => {
     await karim.client.portal.withdrawRequest({ requestId: karim.requestId });
     const rahim = await asking("রহিম না", ventureId, 2);
     const owner = await asOwner();
-    await owner.ventures.answerRequest({
+    await owner.ventures.requests.answer({
       requestId: rahim.requestId,
       answer: { kind: "not_this_time", line: "" },
     });
@@ -287,7 +287,7 @@ describe("signing with no Request", () => {
     await sign(ventureId, karim.id, 4);
 
     const owner = await asOwner();
-    const [agreement] = await owner.ventures.agreements({ ventureId });
+    const [agreement] = await owner.ventures.agreements.list({ ventureId });
     expect(agreement).toMatchObject({ units: 4, requestId: null });
   });
 
@@ -304,7 +304,7 @@ describe("signing with no Request", () => {
       state: "signed",
     });
     const owner = await asOwner();
-    const [agreement] = await owner.ventures.agreements({ ventureId });
+    const [agreement] = await owner.ventures.agreements.list({ ventureId });
     expect(agreement).toMatchObject({ id, units: 3, requestId: null });
     expect(await karim.client.portal.requests()).toEqual([
       expect.objectContaining({ state: "signed", agreementId: id }),

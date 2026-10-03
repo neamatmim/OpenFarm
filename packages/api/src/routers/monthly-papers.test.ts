@@ -111,7 +111,7 @@ describe("the Agreement to sign", () => {
 describe("a signed Agreement paid by the month", () => {
   beforeAll(async () => {
     const owner = await asOwner();
-    const signed = await owner.ventures.sign({
+    const signed = await owner.ventures.agreements.sign({
       ventureId: monthly,
       investorId,
       units: 4,
@@ -122,7 +122,7 @@ describe("a signed Agreement paid by the month", () => {
       stampSerial: `MP ${suffix}`,
     });
     agreementId = signed.id;
-    await owner.ventures.keepAgreementPaper({
+    await owner.ventures.agreements.keepPaper({
       agreementId,
       contentType: "image/jpeg",
       data: "aGVsbG8=",

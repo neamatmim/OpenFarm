@@ -111,7 +111,7 @@ const aVentureWithABull = async (owner: Owner, which: number) => {
     name: `বিনিয়োগকারী ${which} ${suffix}`,
     phone: `0194${String(which).padStart(7, "0")}`,
   });
-  const agreement = await owner.client.ventures.sign({
+  const agreement = await owner.client.ventures.agreements.sign({
     ventureId: venture.id,
     investorId: person.id,
     units: 10,
@@ -121,7 +121,7 @@ const aVentureWithABull = async (owner: Owner, which: number) => {
     stampedOn: "2049-01-02",
     stampSerial: `AA ${which} ${suffix}`,
   });
-  await owner.client.ventures.keepAgreementPaper({
+  await owner.client.ventures.agreements.keepPaper({
     agreementId: agreement.id,
     contentType: "image/jpeg",
     data: "aGVsbG8=",
@@ -143,7 +143,7 @@ const aVentureWithABull = async (owner: Owner, which: number) => {
     transportMoney: 0,
     keepMoney: 0,
   });
-  await buying.client.ventures.drawFloat({
+  await buying.client.ventures.floats.draw({
     ventureId: venture.id,
     buyingTripId: trip.id,
     amountMoney: 200_000,
@@ -165,7 +165,7 @@ const aVentureWithABull = async (owner: Owner, which: number) => {
     targetWindowStart: plan.targetWindowStart,
     targetWindowEnd: plan.targetWindowEnd,
   });
-  await buying.client.ventures.reconcileFloat({
+  await buying.client.ventures.floats.reconcile({
     buyingTripId: trip.id,
     cashBackMoney: 100_000,
     movedOn: "2049-01-04",
@@ -206,13 +206,13 @@ const payOut = async (ventureId: string) => {
     month: "2049-02",
     readMoney: reading.find((one) => one.id === ventureId)?.balanceMoney ?? 0,
   });
-  await settling.client.ventures.approveSettlement({ ventureId });
-  const approved = await settling.client.ventures.approvedSettlement({
+  await settling.client.ventures.settlement.approve({ ventureId });
+  const approved = await settling.client.ventures.settlement.approved({
     ventureId,
   });
   for (const his of approved?.shares ?? []) {
     // oxlint-disable-next-line no-await-in-loop -- one Investor at a time
-    await settling.client.ventures.paySettlement({
+    await settling.client.ventures.settlement.pay({
       ventureId,
       agreementId: his.agreementId,
       amountMoney: his.payoutMoney,
@@ -222,7 +222,7 @@ const payOut = async (ventureId: string) => {
     });
   }
   if ((approved?.farmMoney ?? 0) > 0) {
-    await settling.client.ventures.takeTheFarmsShare({
+    await settling.client.ventures.settlement.takeTheFarmsShare({
       ventureId,
       movedOn: "2049-03-02",
       paymentMethod: "bank",
