@@ -4548,6 +4548,9 @@ export const en = {
   "months.tableHint":
     "Money is what moved in and out of the Farm's purse. What a side cost is what its animals were fed, dosed and visited for in the month, whenever it was bought. The Farm's own animals only: a Venture's are on its own line below.",
   "months.col.month": "Month",
+  "months.col.venture": "Venture",
+  "months.col.planned": "Planned",
+  "months.col.now": "Now: made or projected",
   "months.col.milk": "Milk sold",
   "months.col.dairyCost": "Dairy cows cost",
   "months.col.litre": "A litre fetched · cost",

@@ -4269,6 +4269,9 @@ export const bn: Record<MessageKey, string> = {
   "months.tableHint":
     "{currencySum} মানে খামারের নিজের তহবিলে যা এসেছে আর গেছে। কোনো দিকের খরচ মানে সে মাসে তার পশুদের খাবার, ওষুধ আর ভেটের খরচ, যখনই কেনা হোক। শুধু খামারের নিজের পশু: ভেঞ্চারের পশু নিচে তার নিজের সারিতে।",
   "months.col.month": "মাস",
+  "months.col.venture": "ভেঞ্চার",
+  "months.col.planned": "পরিকল্পনা",
+  "months.col.now": "এখন: লাভ বা আনুমানিক",
   "months.col.milk": "দুধ বিক্রি",
   "months.col.dairyCost": "দুগ্ধ গাভীর খরচ",
   "months.col.litre": "লিটারে পাওয়া · খরচ",
