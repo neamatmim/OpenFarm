@@ -3,7 +3,7 @@
   "short_name": "OpenFarm",
   "description": "খামারের কাজ ও রেকর্ড",
   "lang": "bn",
-  "start_url": "/today",
+  "start_url": "/work",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

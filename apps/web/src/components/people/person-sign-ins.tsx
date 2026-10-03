@@ -299,7 +299,7 @@ export const TrainingTab = ({
                 <Link
                   className="hover:underline"
                   params={{ definitionId: row.definitionId }}
-                  to="/cards/$definitionId"
+                  to="/sops/$definitionId/card"
                 >
                   {row.sopName.bn}
                 </Link>

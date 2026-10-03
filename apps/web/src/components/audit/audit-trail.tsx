@@ -101,7 +101,7 @@ const RecordLink = ({
       <Link
         className={LINK_CLASS}
         params={{ definitionId: entityId }}
-        to="/cards/$definitionId"
+        to="/sops/$definitionId/card"
       >
         {name}
       </Link>

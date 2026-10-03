@@ -96,7 +96,7 @@ const ReviewRow = ({
           <Link
             className="after:absolute after:inset-0 hover:underline"
             search={{ tab: "review" }}
-            to="/admin/sign-off"
+            to="/admin/review-queue"
           >
             {said}
           </Link>
@@ -178,7 +178,7 @@ const QueueKindList = ({
             <Link
               className={MORE_LINK}
               search={{ tab: "late" }}
-              to="/admin/sign-off"
+              to="/admin/review-queue"
             >
               {t("home.openList")}
             </Link>
@@ -197,7 +197,7 @@ const QueueKindList = ({
           icon={ClipboardCheck}
           label={t("home.signOff")}
           more={
-            <Link className={MORE_LINK} to="/admin/sign-off">
+            <Link className={MORE_LINK} to="/admin/review-queue">
               {t("home.openList")}
             </Link>
           }
@@ -218,7 +218,7 @@ const QueueKindList = ({
             <Link
               className={MORE_LINK}
               search={{ tab: "review" }}
-              to="/admin/sign-off"
+              to="/admin/review-queue"
             >
               {t("home.openList")}
             </Link>

@@ -87,7 +87,7 @@ export const NAV_GROUPS: NavGroup[] = [
         audience: "runsTheFarm",
       },
       {
-        to: "/today",
+        to: "/work",
         label: "nav.today",
         icon: ClipboardList,
         audience: "anyone",
@@ -99,7 +99,7 @@ export const NAV_GROUPS: NavGroup[] = [
         audience: "runsTheFarm",
       },
       {
-        to: "/admin/sign-off",
+        to: "/admin/review-queue",
         label: "nav.signOff",
         icon: ClipboardCheck,
         audience: "runsTheFarm",
@@ -128,7 +128,7 @@ export const NAV_GROUPS: NavGroup[] = [
         audience: "runsTheFarm",
       },
       {
-        to: "/admin/intake",
+        to: "/admin/intakes",
         label: "nav.intake",
         icon: Truck,
         audience: "runsTheFarm",
@@ -140,20 +140,20 @@ export const NAV_GROUPS: NavGroup[] = [
         audience: "runsTheFarm",
       },
       {
-        to: "/admin/eid",
+        to: "/admin/eid-dates",
         label: "nav.eid",
         icon: MoonStar,
         audience: "runsTheFarm",
       },
       {
-        to: "/ready",
+        to: "/ready-for-sale",
         label: "nav.ready",
         icon: Activity,
         audience: "runsTheFarm",
       },
-      { to: "/sale", label: "nav.sale", icon: Store, audience: "runsTheFarm" },
+      { to: "/sales", label: "nav.sale", icon: Store, audience: "runsTheFarm" },
       {
-        to: "/culling",
+        to: "/cull-list",
         label: "nav.culling",
         icon: ListX,
         audience: "owner",
@@ -171,7 +171,7 @@ export const NAV_GROUPS: NavGroup[] = [
         audience: "vetOrRunsTheFarm",
       },
       {
-        to: "/notifiable",
+        to: "/notifiable-diseases",
         label: "nav.notifiable",
         icon: ShieldAlert,
         audience: "vetOrRunsTheFarm",
@@ -206,7 +206,7 @@ export const NAV_GROUPS: NavGroup[] = [
         audience: "runsTheFarm",
       },
       {
-        to: "/months",
+        to: "/monthly-report",
         label: "nav.months",
         icon: ChartColumn,
         audience: "owner",
@@ -241,7 +241,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "nav.group.compliance",
     items: [
       {
-        to: "/inspector",
+        to: "/registration-certificate",
         label: "nav.inspector",
         icon: FileBadge,
         audience: "runsTheFarm",
@@ -363,7 +363,7 @@ export const BOTTOM_BAR: Record<Role, NavItem[]> = {
   manager: [
     { to: "/home", label: "nav.theDay", icon: House, audience: "runsTheFarm" },
     {
-      to: "/admin/sign-off",
+      to: "/admin/review-queue",
       label: "nav.signOff",
       icon: ClipboardCheck,
       audience: "runsTheFarm",
@@ -392,7 +392,7 @@ export const BOTTOM_BAR: Record<Role, NavItem[]> = {
   ],
   staff: [
     {
-      to: "/today",
+      to: "/work",
       label: "nav.today",
       icon: ClipboardList,
       audience: "anyone",
@@ -407,9 +407,9 @@ export const BOTTOM_BAR: Record<Role, NavItem[]> = {
 };
 
 /** Where each Role lands when it opens the app. */
-export const LANDING: Record<Role, "/farm" | "/home" | "/vet" | "/today"> = {
+export const LANDING: Record<Role, "/farm" | "/home" | "/vet" | "/work"> = {
   owner: "/farm",
   manager: "/home",
   vet: "/vet",
-  staff: "/today",
+  staff: "/work",
 };

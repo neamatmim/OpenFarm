@@ -124,7 +124,7 @@ const NameCell = ({ row }: { row: { original: ProposalRow } }) => {
         <Link
           className="w-fit font-medium hover:underline"
           params={{ definitionId }}
-          to="/cards/$definitionId"
+          to="/sops/$definitionId/card"
         >
           {name}
         </Link>

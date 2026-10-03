@@ -239,7 +239,7 @@ const ReviewGroup = ({ needsYou, headless }: GroupProps) => {
         <Link
           className={MORE_LINK}
           search={{ tab: "review" }}
-          to="/admin/sign-off"
+          to="/admin/review-queue"
         >
           {t("home.openList")}
         </Link>
@@ -262,7 +262,7 @@ const ReviewGroup = ({ needsYou, headless }: GroupProps) => {
                 <Link
                   className={ROW_LINK}
                   search={{ tab: "review" }}
-                  to="/admin/sign-off"
+                  to="/admin/review-queue"
                 >
                   {said}
                 </Link>
@@ -357,7 +357,7 @@ const ApprovalGroup = ({ needsYou, headless }: GroupProps) => {
       icon={BadgeCheck}
       label={t("owner.approvals")}
       more={
-        <Link className={MORE_LINK} to="/admin/sign-off">
+        <Link className={MORE_LINK} to="/admin/review-queue">
           {t("home.openList")}
         </Link>
       }
@@ -587,7 +587,7 @@ const DayProgress = ({ tiles }: { tiles: Tiles }) => {
         <Link
           className="text-primary tabular-nums underline-offset-4 hover:underline"
           search={{}}
-          to="/today"
+          to="/work"
         >
           {t("home.progress", {
             done: formatNumber(tiles.workDone, language),
@@ -630,7 +630,7 @@ const FarmTodayList = ({
             <Link
               className={MORE_LINK}
               search={{ tab: "late" }}
-              to="/admin/sign-off"
+              to="/admin/review-queue"
             >
               {t("home.openList")}
             </Link>

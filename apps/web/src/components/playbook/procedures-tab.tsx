@@ -186,7 +186,7 @@ const ProcedureName = ({ row }: { row: ProcedureRow }) =>
         row.retired && "text-muted-foreground"
       )}
       params={{ definitionId: row.id }}
-      to="/cards/$definitionId"
+      to="/sops/$definitionId/card"
     >
       {row.name}
     </Link>

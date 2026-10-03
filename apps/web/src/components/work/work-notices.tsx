@@ -167,7 +167,7 @@ export const WorkNotShown = ({ error }: { error: Error | null }) => {
     <Page width="narrow">
       <Notice
         action={
-          <Link className={buttonVariants({ variant: "outline" })} to="/today">
+          <Link className={buttonVariants({ variant: "outline" })} to="/work">
             {t("nav.today")}
           </Link>
         }

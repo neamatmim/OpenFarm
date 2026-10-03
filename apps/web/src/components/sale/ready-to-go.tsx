@@ -188,7 +188,10 @@ export const ReadyToGo = ({
     return (
       <EmptyState
         action={
-          <Link className={buttonVariants({ variant: "outline" })} to="/ready">
+          <Link
+            className={buttonVariants({ variant: "outline" })}
+            to="/ready-for-sale"
+          >
             {t("nav.ready")}
           </Link>
         }
