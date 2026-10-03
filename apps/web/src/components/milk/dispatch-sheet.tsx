@@ -138,6 +138,7 @@ export const DispatchSheet = ({
 
   return (
     <FormSheet
+      wide
       description={t("dispatch.sheetDescription")}
       onOpenChange={onOpenChange}
       onSubmit={() =>

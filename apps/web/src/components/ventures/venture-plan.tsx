@@ -568,6 +568,7 @@ const PlanSheet = ({
   const complete = said.filter((line) => line !== null);
   return (
     <FormSheet
+      full
       description={t("plan.sheetHint")}
       onOpenChange={onOpenChange}
       onSubmit={() =>

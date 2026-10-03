@@ -281,6 +281,7 @@ export const AmendSheet = ({
   };
   return (
     <FormSheet
+      wide
       description={t("ventures.amendHint", { venture: venture?.name ?? "" })}
       onOpenChange={onOpenChange}
       onSubmit={() => {

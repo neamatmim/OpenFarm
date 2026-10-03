@@ -139,6 +139,7 @@ export const InviteSheet = ({
 
   return (
     <FormSheet
+      wide
       description={t("people.inviteWhy")}
       onOpenChange={onOpenChange}
       onSubmit={() =>

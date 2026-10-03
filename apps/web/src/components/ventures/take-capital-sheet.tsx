@@ -161,6 +161,7 @@ export const TakeCapitalSheet = ({
     arrival.reference.trim() !== "";
   return (
     <FormSheet
+      wide
       description={t("ventures.capitalHint", { venture: venture?.name ?? "" })}
       onOpenChange={onOpenChange}
       onSubmit={() =>

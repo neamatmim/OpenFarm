@@ -28,7 +28,7 @@ import { useState } from "react";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
 import type { RowAction } from "@/components/page-kit";
 import {
-  FormDialog,
+  FormSheet,
   FormField,
   NativeSelect,
   RowMenu,
@@ -252,8 +252,8 @@ const RationDialog = ({
   const idFor = (part: string) => `ration-${ration?.id ?? "new"}-${part}`;
 
   return (
-    <FormDialog
-      className="sm:max-w-lg"
+    <FormSheet
+      wide
       description={t("feed.rationsDescription")}
       onOpenChange={onOpenChange}
       onSubmit={() =>
@@ -308,7 +308,7 @@ const RationDialog = ({
             <legend className="mb-2 text-sm font-medium">
               {t("feed.kgPerAnimal")}
             </legend>
-            <ul className="divide-border max-h-80 divide-y overflow-y-auto rounded-lg border">
+            <ul className="divide-border divide-y rounded-lg border">
               {offered.map((item) => (
                 <li
                   className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-3 py-2"
@@ -416,7 +416,7 @@ const RationDialog = ({
           />
         </>
       )}
-    </FormDialog>
+    </FormSheet>
   );
 };
 

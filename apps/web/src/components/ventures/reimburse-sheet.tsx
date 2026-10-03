@@ -267,6 +267,7 @@ export const ReimburseSheet = ({
     reference.trim() !== "";
   return (
     <FormSheet
+      wide
       description={t("ventures.reimburseHint", {
         venture: venture?.name ?? "",
       })}
