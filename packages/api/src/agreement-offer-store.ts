@@ -13,7 +13,7 @@ import { audited } from "./audit";
 import type { Actor, Context } from "./context";
 import { assertRegistered } from "./export-store";
 import { readAgreement, unitsTaken } from "./investor-store";
-import { assertReadAsKept, keepPaper } from "./kept-paper";
+import { assertReadAsKept, keepPaper, stillAsKept } from "./kept-paper";
 import { assertNamable, nomineesToSign } from "./nominations";
 import { producedAt } from "./paper-values";
 import { languageOf } from "./reader-language";
@@ -490,4 +490,28 @@ export const agreeToOffer = async (
         );
     }
   );
+};
+
+/**
+ * The paper an Agreement approved from an offer was agreed on, as it was kept — what a copy of it prints — or nothing
+ * for an Agreement signed on stamp. Never a paper that is not still as kept: one changed since is no copy of anything.
+ */
+export const agreedPaperOf = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
+  agreementId: string
+): Promise<PaperDocument | null> => {
+  const offer = await db.query.agreementOffer.findFirst({
+    where: { farmId, agreementId },
+    columns: { paper: true, paperHash: true },
+  });
+  if (!offer) {
+    return null;
+  }
+  if (!stillAsKept(offer)) {
+    throw new ORPCError("INTERNAL_SERVER_ERROR", {
+      message: "The paper this Agreement was agreed on is not as it was kept",
+    });
+  }
+  return offer.paper as PaperDocument;
 };
