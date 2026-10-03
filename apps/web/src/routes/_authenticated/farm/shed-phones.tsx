@@ -104,6 +104,7 @@ const DevicesPage = () => {
   return (
     <Page>
       <PageHeader
+        eyebrow={t("nav.identity")}
         actions={addButton}
         description={t("device.subtitle")}
         title={t("nav.devices")}
@@ -146,7 +147,7 @@ const DevicesPage = () => {
   );
 };
 
-export const Route = createFileRoute("/_authenticated/shed-phones")({
+export const Route = createFileRoute("/_authenticated/farm/shed-phones")({
   /** For those who run the farm: the Owner and the Farm Managers. */
   beforeLoad: onlyFor("runsTheFarm"),
   component: DevicesPage,

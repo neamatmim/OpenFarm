@@ -208,6 +208,7 @@ const PeoplePage = () => {
   return (
     <Page>
       <PageHeader
+        eyebrow={t("nav.identity")}
         actions={
           <Button onClick={() => setInviting(true)} type="button">
             <UserPlus aria-hidden data-icon="inline-start" />
@@ -278,7 +279,7 @@ const PeoplePage = () => {
   );
 };
 
-export const Route = createFileRoute("/_authenticated/people/")({
+export const Route = createFileRoute("/_authenticated/farm/people/")({
   /** For those who run the farm: the Owner and the Farm Managers. */
   beforeLoad: onlyFor("runsTheFarm"),
   component: PeoplePage,

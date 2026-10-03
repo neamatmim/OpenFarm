@@ -335,7 +335,7 @@ const TrainedOn = ({
                 <Link
                   className="hover:underline"
                   params={{ userId: row.userId }}
-                  to="/people/$userId"
+                  to="/farm/people/$userId"
                 >
                   {row.personName}
                 </Link>

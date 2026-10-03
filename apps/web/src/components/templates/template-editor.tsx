@@ -210,7 +210,7 @@ export const TemplateEditor = ({
   return (
     <Page>
       {/* The editor is drawn in the templates' own place, so the way back is to the same address with the draft let go. */}
-      <BackLink onClick={onCancel} to="/templates">
+      <BackLink onClick={onCancel} to="/farm/agreement-templates">
         {t("nav.templates")}
       </BackLink>
       <PageHeader

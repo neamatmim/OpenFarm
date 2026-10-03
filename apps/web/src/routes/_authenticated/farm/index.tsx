@@ -6,17 +6,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { Certificate } from "@/components/certificate";
-import {
-  FarmParameters,
-  PARAMETER_SECTIONS,
-  SettingsSection,
-} from "@/components/farm-parameters";
-import { useIsOwner } from "@/components/money";
-import { FarmAccounts } from "@/components/money/farm-accounts";
+import { SettingsSection } from "@/components/farm-parameters";
 import { Notice, Page, PageHeader } from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { onlyFor } from "@/lib/guard";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
@@ -226,53 +219,12 @@ const RegistrationNotices = ({ farm }: { farm: Identity }) => {
   );
 };
 
-/** The parts of the page, listed beside it where there is room, each a jump to its place. */
-const OnThisPage = () => {
-  const { t } = useLanguage();
-  const isOwner = useIsOwner();
-  const parts = [
-    { id: "farm-contact", title: t("identity.contact") },
-    { id: "farm-registration", title: t("identity.registration") },
-    { id: "farm-certificate", title: t("certificate.title") },
-    { id: "farm-accounts", title: t("farmAccounts.title") },
-    ...PARAMETER_SECTIONS.filter((part) => !part.owner || isOwner).map(
-      (part) => ({
-        id: part.id,
-        title: t(part.title),
-      })
-    ),
-  ];
-  return (
-    <nav
-      aria-label={t("identity.onThisPage")}
-      className="hidden lg:sticky lg:top-6 lg:block"
-    >
-      <p className="text-muted-foreground mb-2 px-3 text-xs font-semibold tracking-wider uppercase">
-        {t("identity.onThisPage")}
-      </p>
-      <ul className="flex flex-col gap-0.5 border-l">
-        {parts.map((part) => (
-          <li key={part.id}>
-            <a
-              className="text-muted-foreground hover:text-foreground hover:border-foreground focus-visible:ring-ring -ml-px block border-l-2 border-transparent px-3 py-1.5 text-sm outline-none focus-visible:ring-2"
-              href={`#${part.id}`}
-            >
-              {part.title}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </nav>
-  );
-};
-
 /**
- * The farm's own identity and how it is tuned, a part at a time, each saved on its own: how it is reached, its DLS
- * Registration and the certificate's photograph, and the Parameters in their groups.
+ * The farm's details, a part at a time, each saved on its own: how it is reached, its DLS Registration and the
+ * certificate's photograph — the words printed on papers that leave the farm. The first part of its settings.
  *
- * The Owner's or the Manager's to write — the roles matrix gives farm parameters to both, and
- * at go-live it is the Manager who has the certificate in hand. The identity is kept apart from the Parameters
- * because those are numbers to tune and these are the words printed on papers that leave the farm.
+ * The Owner's or the Manager's to write: at go-live it is the Manager who has the certificate in hand. How the farm
+ * behaves is the Rules and alerts part, and its money the Money part.
  */
 const IdentityPage = () => {
   const { t } = useLanguage();
@@ -281,7 +233,11 @@ const IdentityPage = () => {
   if (!identity.data) {
     return (
       <Page>
-        <PageHeader description={t("identity.why")} title={t("nav.identity")} />
+        <PageHeader
+          description={t("identity.why")}
+          eyebrow={t("nav.identity")}
+          title={t("settings.section.farm")}
+        />
         {identity.isError ? (
           <Notice title={t("common.error")} tone="danger" />
         ) : (
@@ -294,28 +250,22 @@ const IdentityPage = () => {
 
   return (
     <Page>
-      <PageHeader description={t("identity.why")} title={t("nav.identity")} />
-
-      <div className="grid items-start gap-8 lg:grid-cols-[12rem_minmax(0,1fr)]">
-        <OnThisPage />
-        <div className="flex min-w-0 flex-col gap-6">
-          <RegistrationNotices farm={farm} />
-          <ContactSection farm={farm} />
-          <RegistrationSection farm={farm} />
-          <Certificate
-            id="farm-certificate"
-            updatedAt={farm.certificateUpdatedAt}
-          />
-          <FarmAccounts id="farm-accounts" />
-          <FarmParameters />
-        </div>
-      </div>
+      <PageHeader
+        description={t("identity.why")}
+        eyebrow={t("nav.identity")}
+        title={t("settings.section.farm")}
+      />
+      <RegistrationNotices farm={farm} />
+      <ContactSection farm={farm} />
+      <RegistrationSection farm={farm} />
+      <Certificate
+        id="farm-certificate"
+        updatedAt={farm.certificateUpdatedAt}
+      />
     </Page>
   );
 };
 
-export const Route = createFileRoute("/_authenticated/farm")({
-  /** For those who run the farm: the Owner and the Farm Managers. */
-  beforeLoad: onlyFor("runsTheFarm"),
+export const Route = createFileRoute("/_authenticated/farm/")({
   component: IdentityPage,
 });

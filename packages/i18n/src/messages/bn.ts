@@ -2633,7 +2633,7 @@ export const bn: Record<MessageKey, string> = {
   "common.close": "বন্ধ করুন",
   "nav.signOff": "যাচাই",
   "nav.backups": "খামারের কপি",
-  "nav.settings": "সেটিংস",
+  "nav.settings": "আপনার সেটিংস",
   "feed.subtitle": "গুদামে কী আছে, কী এসেছে, আর কোন পেনে কোন রেশন চলছে।",
   "feed.tab.stock": "গুদাম",
   "feed.tab.feedIn": "যা এসেছে",
@@ -3165,7 +3165,6 @@ export const bn: Record<MessageKey, string> = {
   "refusal.looksEnteredAlready":
     "এটা আগেই লেখা {currencyOf} মতো: একই মানুষ, একই {currencySum}, একই দিন",
   "byHand.entered": "লেখা হয়েছে",
-  "byHand.categories": "খাতসমূহ",
   "byHand.retireTitle": "“{name}” খাত বাদ দেবেন?",
   "byHand.retireWhy":
     "বাদ দিলে নতুন হিসাব লেখার সময় এই খাত আর বাছা যাবে না। আগে যা লেখা হয়েছে তা যেমন আছে থাকবে।",
@@ -3184,6 +3183,7 @@ export const bn: Record<MessageKey, string> = {
   "byHand.retired": "বাদ দেওয়া",
   "byHand.categoryName": "নাম",
   "byHand.noCategories": "এখনো কোনো খাত নেই",
+  "byHand.categories": "খাতসমূহ",
   "byHand.newCategoryHint":
     "হাতে লেখা {currencyOf} একটি খাত। যে খাত আর লাগে না তা বাদ দেওয়া হয়, মুছে ফেলা হয় না।",
   "refusal.wageAlreadyEntered": "ওই মাসে তার মজুরি আগেই লেখা হয়েছে",
@@ -4661,6 +4661,14 @@ export const bn: Record<MessageKey, string> = {
   "sale.kpi.ready": "যাওয়ার জন্য প্রস্তুত",
   "sale.kpi.readyHint": "নিশ্চিত, অপেক্ষমাণ সময় নেই",
   "nav.identity": "খামারের সেটিংস",
+  "settings.section.farm": "খামারের তথ্য",
+  "settings.section.rules": "নিয়ম ও সতর্কবার্তা",
+  "settings.section.money": "আর্থিক",
+  "settings.section.portal": "বিনিয়োগকারীর পোর্টাল",
+  "settings.rulesWhy":
+    "খামার কীভাবে চলে: দিনের সারসংক্ষেপ কখন যায় আর নীরব সময় কখন, একটি পরিমাপ কতটা সরে যেতে পারে, দেরি হওয়া কাজ কতক্ষণ পরে জানানো হয়, আর কখন একটি গাভী বাদের তালিকায় ওঠে।",
+  "settings.moneyWhy":
+    "যে হিসাবে খামার টাকা নেয় ও দেয়, প্রতিটি লেনদেন যে খাতে লেখা হয়, আর খামারের নিজের পশুর দাম যে বাজারদরে ধরা হয়।",
   "identity.why":
     "যে কাগজ খামার থেকে বাইরে যায় — পরিবহন কার্ড, দপ্তরের চিঠি — তাতে এই তথ্যই ছাপা হয়।",
   "identity.name": "খামারের নাম",

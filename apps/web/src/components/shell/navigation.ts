@@ -10,10 +10,8 @@ import {
   ChartColumn,
   ClipboardCheck,
   ClipboardList,
-  Dna,
   Eye,
   FileBadge,
-  FileSignature,
   HandCoins,
   Handshake,
   HeartPulse,
@@ -26,12 +24,10 @@ import {
   Pill,
   ScrollText,
   ShieldAlert,
-  Smartphone,
   Stethoscope,
   Store,
   TrendingUp,
   Truck,
-  Users,
   Warehouse,
   Wheat,
 } from "lucide-react";
@@ -119,12 +115,6 @@ export const NAV_GROUPS: NavGroup[] = [
         to: "/sheds",
         label: "nav.herd",
         icon: Warehouse,
-        audience: "runsTheFarm",
-      },
-      {
-        to: "/breeds",
-        label: "nav.breeds",
-        icon: Dna,
         audience: "runsTheFarm",
       },
       {
@@ -229,12 +219,6 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: BriefcaseBusiness,
         audience: "owner",
       },
-      {
-        to: "/templates",
-        label: "nav.templates",
-        icon: FileSignature,
-        audience: "owner",
-      },
     ],
   },
   {
@@ -267,18 +251,6 @@ export const NAV_GROUPS: NavGroup[] = [
         to: "/sops",
         label: "nav.sops",
         icon: BookOpenCheck,
-        audience: "runsTheFarm",
-      },
-      {
-        to: "/people",
-        label: "nav.people",
-        icon: Users,
-        audience: "runsTheFarm",
-      },
-      {
-        to: "/shed-phones",
-        label: "nav.devices",
-        icon: Smartphone,
         audience: "runsTheFarm",
       },
       {

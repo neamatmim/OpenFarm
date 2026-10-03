@@ -325,6 +325,7 @@ const BreedsPage = () => {
   return (
     <Page>
       <PageHeader
+        eyebrow={t("nav.identity")}
         actions={
           <Button onClick={() => setNaming({ kind: "add" })} type="button">
             <Plus aria-hidden data-icon="inline-start" />
@@ -376,7 +377,7 @@ const BreedsPage = () => {
   );
 };
 
-export const Route = createFileRoute("/_authenticated/breeds")({
+export const Route = createFileRoute("/_authenticated/farm/breeds")({
   /** For those who run the farm: the Owner and the Farm Managers. */
   beforeLoad: onlyFor("runsTheFarm"),
   component: BreedsPage,

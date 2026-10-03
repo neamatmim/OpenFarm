@@ -24,6 +24,7 @@ import {
 import { RetiredBadge, nameTone, retiredLast } from "@/components/list-cells";
 import { useIsOwner, categoryName } from "@/components/money";
 import {
+  SECTION_TITLE,
   EmptyState,
   Loaded,
   SegmentedControl,
@@ -352,9 +353,12 @@ export const CategoriesTab = () => {
   return (
     <div className="surface flex flex-col gap-4 p-4 md:p-5">
       <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-muted-foreground text-sm">
-          {t("byHand.newCategoryHint")}
-        </p>
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <h2 className={SECTION_TITLE}>{t("byHand.categories")}</h2>
+          <p className="text-muted-foreground text-sm">
+            {t("byHand.newCategoryHint")}
+          </p>
+        </div>
         <Button
           className="shrink-0"
           onClick={() => setAdding(true)}

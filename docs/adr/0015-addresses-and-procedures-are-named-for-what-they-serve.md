@@ -31,6 +31,8 @@ On 2026-10-03 the Owner asked for every route to be checked against the conventi
 - Feed coming into the store is the glossary's **Feed In**, as its table `feed_in` already was. It has the path `/feed/feed-in` and the procedure `stock.feedIn`.
 - The reads that were named after their screens are named for what they return: `returns.list`, `fattening.list` and `inspectorView.get`.
 
+**Settled 2026-10-04: the farm's settings are one place.** `/farm` is the farm's settings, its parts down the left on a desk (`components/settings-nav.tsx`): Farm details (`/farm`), Rules and alerts (`/farm/rules`), Money (`/farm/money`: Farm Accounts, Categories, the market price), Investor portal (`/farm/portal`), Agreement templates (`/farm/agreement-templates`), People and access (`/farm/people`, `/farm/people/$userId`), Shed phones (`/farm/shed-phones`) and Breeds (`/farm/breeds`). A part that is the Owner's keeps its own `onlyFor`. What daily work reads stays with the work: the Playbook, sheds and pens, feed items and rations, Eid dates, the medicine list (the Vet's), notifiable diseases (the Vet's too), head prices and the bank rate (beside the animals to price on Returns). A person's own settings stay at `/settings`, "Your settings". None of the moved addresses was held outside the code, so none keeps a redirect.
+
 **Left open:** whether `devices` becomes `shedPhones`. "Device" also names the session behind a Shed Phone, so it waits until the device code is touched.
 
 **Revisit** if anything outside the farm will ever call the API. It would then get its own versioned, resource-shaped surface, and the RPC paths would stay the app's own.
