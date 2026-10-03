@@ -111,7 +111,7 @@ beforeAll(async () => {
   calfB = second.tagNumber;
 
   const { client: buying } = await as("manager", "2030-10-01T00:00:00.000Z");
-  await buying.intake.record({
+  await buying.intakes.record({
     penId: fattening.id,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -289,7 +289,7 @@ describe("the Owner prices a crossing", () => {
 describe("a crossed animal's window is read as a bought one's is", () => {
   it("suggests her for sale once the window her crossing gave her opens", async () => {
     const { client: manager } = await as("manager", "2030-12-16T04:00:00.000Z");
-    const suggested = await manager.ready.suggestions();
+    const suggested = await manager.readyForSale.suggestions();
     expect(suggested.find((row) => row.tagNumber === calfB)?.grounds).toContain(
       "window"
     );
@@ -299,10 +299,10 @@ describe("a crossed animal's window is read as a bought one's is", () => {
 describe("an Eid announced moves a crossed animal's window with the bought ones'", () => {
   it("brings her along from the day expected to the day announced, where her joining keeps it", async () => {
     const { client: manager } = await as("manager", "2031-03-30T04:00:00.000Z");
-    await manager.eid.announce({ day: "2031-04-04" });
+    await manager.eidDates.announce({ day: "2031-04-04" });
     // Bull C by his Intake, calf A by her crossing; B is aimed at winter, and stays.
     expect(
-      await manager.eid.bringAlong({ expectedDay: EID_2031.start })
+      await manager.eidDates.bringAlong({ expectedDay: EID_2031.start })
     ).toMatchObject({ moved: 2 });
     const board = await manager.fattening.board();
     expect(board.find((row) => row.tagNumber === calfA)?.targetWindow).toEqual({

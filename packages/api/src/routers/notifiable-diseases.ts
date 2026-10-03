@@ -108,7 +108,7 @@ const buildLetter = async (
   };
 };
 
-export const notifiableRouter = {
+export const notifiableDiseasesRouter = {
   /**
    * The letter for one notifiable Diagnosis, ready to print and take to the office.
    *

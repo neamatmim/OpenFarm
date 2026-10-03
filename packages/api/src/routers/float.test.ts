@@ -217,7 +217,7 @@ describe("the Buying Float", () => {
       reference: `FLT-${suffix}-other`,
     });
     const manager = await as("manager", "2046-12-11T05:00:00.000Z");
-    await manager.client.intake.record({
+    await manager.client.intakes.record({
       penId,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },

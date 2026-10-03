@@ -27,7 +27,7 @@ import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { requireRole } from "../roles";
 
-export const eidRouter = {
+export const eidDatesRouter = {
   /**
    * The Eid-ul-Adha the Farm is feeding towards: its three days, and whether they were announced, are expected by the
    * table, or are the calendar's guess past its end. Once announced, how many of the Farm's own animals are still

@@ -84,7 +84,7 @@ const bull = async (
 ) => {
   // A Venture's bull at the gate is the Owner's, paid from its account by bank.
   const buyer = await as(sheet.ventureId ? "owner" : "manager", instant);
-  return await buyer.client.intake.record({
+  return await buyer.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -141,7 +141,7 @@ describe("a Venture's animal and its Target Window", () => {
     tags.push(slip.tagNumber);
     // The Owner's, paid from the Venture Account by bank.
     const owner = await as("owner", "2047-01-07T09:00:00.000Z");
-    await owner.client.intake.correct({
+    await owner.client.intakes.correct({
       id: slip.intakeId,
       reason: `ভেঞ্চারের গরু, খামারের নামে লেখা হয়েছিল ${suffix}`,
       changes: {
@@ -186,7 +186,7 @@ describe("a Correction and the window she is sold in", () => {
     const reason = `খামারের গরু, ভেঞ্চারের নামে লেখা হয়েছিল ${suffix}`;
     // The Venture's window was never the Farm's choice for her: nobody may leave her on it without saying so.
     await expect(
-      manager.client.intake.correct({
+      manager.client.intakes.correct({
         id: hers.intakeId,
         reason,
         changes: { owner: { from: ventureId, to: null } },
@@ -195,7 +195,7 @@ describe("a Correction and the window she is sold in", () => {
       code: "BAD_REQUEST",
       data: { refusal: "window_needed" },
     });
-    await manager.client.intake.correct({
+    await manager.client.intakes.correct({
       id: hers.intakeId,
       reason,
       changes: {
@@ -212,7 +212,7 @@ describe("a Correction and the window she is sold in", () => {
     const hers = await bull("2047-02-03T05:00:00.000Z", { ventureId });
     const manager = await as("manager", "2047-02-03T09:00:00.000Z");
     await expect(
-      manager.client.intake.correct({
+      manager.client.intakes.correct({
         id: hers.intakeId,
         reason: `ভুল তারিখ ${suffix}`,
         changes: { targetWindow: { from: AMENDED, to: FARMS } },
@@ -230,7 +230,7 @@ describe("a Correction and the window she is sold in", () => {
       targetWindowEnd: FARMS.end,
     });
     const manager = await as("manager", "2047-02-04T09:00:00.000Z");
-    await manager.client.intake.correct({
+    await manager.client.intakes.correct({
       id: hers.intakeId,
       reason: `ভুল তারিখ লেখা হয়েছিল ${suffix}`,
       changes: { targetWindow: { from: FARMS, to: OTHER } },

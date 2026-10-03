@@ -77,7 +77,7 @@ const outing = async (owner: Owner, which: string) => {
 /** One bull off the lorry: the Venture's when one is named. */
 const bull = async (sheet: { buyingTripId?: string; ventureId?: string }) => {
   const manager = await as("manager", `${DAY}T05:00:00.000Z`);
-  return await manager.client.intake.record({
+  return await manager.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -165,7 +165,7 @@ describe("one purse to an outing", () => {
     const hers = await bull({ buyingTripId: farms });
     const manager = await as("manager", `${DAY}T09:00:00.000Z`);
     await expect(
-      manager.client.intake.correct({
+      manager.client.intakes.correct({
         id: hers.intakeId,
         reason: `অন্য লরিতে এসেছিল ${suffix}`,
         changes: { buyingTrip: { from: farms, to: theirs } },
@@ -183,7 +183,7 @@ describe("one purse to an outing", () => {
     const hers = await bull({ buyingTripId: trip });
     const manager = await as("manager", `${DAY}T09:30:00.000Z`);
     await expect(
-      manager.client.intake.correct({
+      manager.client.intakes.correct({
         id: hers.intakeId,
         reason: `ভেঞ্চারের গরু ভেবেছিলাম ${suffix}`,
         changes: { owner: { from: null, to: ventureId } },

@@ -108,7 +108,7 @@ beforeAll(async () => {
     reference: `FLT-${suffix}`,
   });
   const manager = await as("manager", "2071-01-04T05:00:00.000Z");
-  await manager.intake.record({
+  await manager.intakes.record({
     penId: pen.id,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },

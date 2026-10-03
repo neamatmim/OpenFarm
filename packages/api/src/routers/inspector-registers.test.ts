@@ -137,7 +137,7 @@ const setup = async () => {
   const mastitisCow = await cow();
   const anthraxCow = await cow();
   const disease = `তড়কা ${suffix}`;
-  await manager.client.notifiable.add({ name: { bn: disease } });
+  await manager.client.notifiableDiseases.add({ name: { bn: disease } });
   return {
     pen,
     sops,
@@ -265,7 +265,7 @@ const ours = (tag: string) =>
 describe("the health registers", () => {
   it("lists every dose in the period with its prescription and withdrawal, a campaign's without either", async () => {
     const manager = await as("manager", "2044-04-10T04:00:00.000Z");
-    const march = await manager.client.inspector.rows({
+    const march = await manager.client.registrationCertificate.rows({
       register: "treatment_register",
       ...MARCH,
     });
@@ -305,12 +305,12 @@ describe("the health registers", () => {
     ]);
 
     // Thirty days to today unless asked, today counted: the dose of 1 March is past it, the campaign is not.
-    const lately = await manager.client.inspector.rows({
+    const lately = await manager.client.registrationCertificate.rows({
       register: "treatment_register",
     });
     expect(lately).toMatchObject({ from: "2044-03-12", to: "2044-04-10" });
     // Asked only where to end, the thirty days end there (2044 is a leap year).
-    const back = await manager.client.inspector.rows({
+    const back = await manager.client.registrationCertificate.rows({
       register: "treatment_register",
       to: "2044-03-01",
     });
@@ -330,7 +330,7 @@ describe("the health registers", () => {
   it("takes an asked period's first and last days whole, and refuses one that runs backwards", async () => {
     const manager = await as("manager", "2044-04-10T04:00:00.000Z");
     const givenOn = async (period: { from: string; to: string }) => {
-      const doses = await manager.client.inspector.rows({
+      const doses = await manager.client.registrationCertificate.rows({
         register: "treatment_register",
         ...period,
       });
@@ -347,7 +347,7 @@ describe("the health registers", () => {
     expect(await givenOn({ from: "2044-03-02", to: "2044-03-19" })).toEqual([]);
 
     const diagnosedOn = async (period: { from: string; to: string }) => {
-      const history = await manager.client.inspector.rows({
+      const history = await manager.client.registrationCertificate.rows({
         register: "disease_history",
         ...period,
       });
@@ -363,7 +363,7 @@ describe("the health registers", () => {
     );
 
     await expect(
-      manager.client.inspector.rows({
+      manager.client.registrationCertificate.rows({
         register: "treatment_register",
         from: "2044-03-20",
         to: "2044-03-01",
@@ -375,7 +375,7 @@ describe("the health registers", () => {
     const manager = await as("manager", "2044-04-10T04:00:00.000Z");
     // A paper is in its producer's language, and other files choose the Manager's: this one says Bangla.
     await manager.client.language.set({ language: "bn" });
-    const paper = await manager.client.inspector.print({
+    const paper = await manager.client.registrationCertificate.print({
       register: "treatment_register",
       ...MARCH,
     });
@@ -397,7 +397,7 @@ describe("the health registers", () => {
       "  দুধ মুক্ত / Milk clear: ৫ মার্চ, ২০৪৪\n  মাংস মুক্ত / Meat clear: ২২ মার্চ, ২০৪৪"
     );
 
-    const sheet = await manager.client.inspector.print({
+    const sheet = await manager.client.registrationCertificate.print({
       register: "treatment_register",
       format: "csv",
       ...MARCH,
@@ -441,13 +441,13 @@ describe("the health registers", () => {
 
   it("lists every diagnosis with the notifiable ones marked, their reference, and what became of the animal", async () => {
     const owner = await as("owner", "2044-04-10T04:00:00.000Z");
-    const history = await owner.client.inspector.rows({
+    const history = await owner.client.registrationCertificate.rows({
       register: "disease_history",
     });
     // Six months back from today unless asked.
     expect(history).toMatchObject({ from: "2043-10-11", to: "2044-04-10" });
     // A month too short for the day ends it: six months before the 31st of August is the end of February.
-    const summer = await owner.client.inspector.rows({
+    const summer = await owner.client.registrationCertificate.rows({
       register: "disease_history",
       to: "2044-08-31",
     });
@@ -487,7 +487,7 @@ describe("the health registers", () => {
 
     // Other files choose the Owner's language too.
     await owner.client.language.set({ language: "bn" });
-    const paper = await owner.client.inspector.print({
+    const paper = await owner.client.registrationCertificate.print({
       register: "disease_history",
     });
     expect(paper.text).toContain("রোগের ইতিহাস / Disease history");
@@ -503,7 +503,7 @@ describe("the health registers", () => {
       `১৫ মার্চ, ২০৪৪ · ${world.mastitisCow.tagNumber} · জ্বর, কারণ অজানা\n`
     );
     await expect(
-      owner.client.inspector.print({
+      owner.client.registrationCertificate.print({
         register: "disease_history",
         format: "csv",
       })
@@ -532,12 +532,14 @@ describe("the health registers", () => {
   it("is the Owner's and the Manager's, never Barn Staff's", async () => {
     const staff = await as("staff", "2044-04-10T04:00:00.000Z");
     await expect(
-      staff.client.inspector.rows({ register: "treatment_register" })
+      staff.client.registrationCertificate.rows({
+        register: "treatment_register",
+      })
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
     await expect(
-      staff.client.inspector.rows({ register: "disease_history" })
+      staff.client.registrationCertificate.rows({ register: "disease_history" })
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
     });

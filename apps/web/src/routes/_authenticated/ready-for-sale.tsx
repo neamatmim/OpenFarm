@@ -135,7 +135,7 @@ const SuggestionsBody = ({
 const ReadyPage = () => {
   const { t, language } = useLanguage();
   const [keeping, setKeeping] = useState<Suggestion | null>(null);
-  const suggestions = useQuery(orpc.ready.suggestions.queryOptions());
+  const suggestions = useQuery(orpc.readyForSale.suggestions.queryOptions());
   const board = useQuery(orpc.fattening.board.queryOptions({ input: {} }));
 
   const onError = (error: Error) => {
@@ -150,7 +150,7 @@ const ReadyPage = () => {
   };
 
   const confirm = useMutation(
-    orpc.ready.confirm.mutationOptions({
+    orpc.readyForSale.confirm.mutationOptions({
       onSuccess: ({ tagNumber }) => {
         toast.success(t("ready.confirmed", { tag: tagNumber }));
       },
@@ -158,7 +158,7 @@ const ReadyPage = () => {
     })
   );
   const setAside = useMutation(
-    orpc.ready.setAside.mutationOptions({
+    orpc.readyForSale.setAside.mutationOptions({
       onSuccess: ({ tagNumber }) => {
         toast.success(t("ready.setAsideDone", { tag: tagNumber }));
         setKeeping(null);

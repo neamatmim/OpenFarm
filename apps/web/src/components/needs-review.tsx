@@ -168,7 +168,7 @@ export const NeedsReview = ({ queue }: { queue: Asked<OpenReview> }) => {
   const [resolving, setResolving] = useState<OpenReview | null>(null);
   const inFlight = useInFlight();
   const resolve = useMutation(
-    orpc.review.resolve.mutationOptions({
+    orpc.reviewQueue.resolve.mutationOptions({
       onMutate: ({ id }) => inFlight.start(id),
       onSettled: (_data, _error, { id }) => inFlight.end(id),
       onSuccess: () => {

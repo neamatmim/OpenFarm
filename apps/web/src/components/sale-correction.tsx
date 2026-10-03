@@ -44,7 +44,7 @@ export const SaleCorrection = ({
     brokerMoney: figure(sale.brokerMoney ?? 0),
     weightKg: amount(Number(sale.weightKg)),
   });
-  const correct = useMutation(orpc.sale.correct.mutationOptions({}));
+  const correct = useMutation(orpc.sales.correct.mutationOptions({}));
   return (
     <CorrectionDialog
       onOpen={correcting.handleOpen}

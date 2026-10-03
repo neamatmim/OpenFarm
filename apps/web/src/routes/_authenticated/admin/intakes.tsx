@@ -88,7 +88,7 @@ const IntakePage = () => {
 
   const setItsPhoto = useMutation(orpc.animals.setPhoto.mutationOptions({}));
   const record = useMutation(
-    orpc.intake.record.mutationOptions({
+    orpc.intakes.record.mutationOptions({
       onSuccess: async (taken) => {
         toast.success(t("intake.recorded", { tag: taken.tagNumber }));
         // After the animal exists, because a photo belongs to an animal and there was none

@@ -600,7 +600,7 @@ describe("needs review", () => {
     });
 
     expect(corrected.needsReview).toBe(true);
-    const queue = await manager.review.open();
+    const queue = await manager.reviewQueue.open();
     const entry = queue.find((row) => row.entityId === completionId);
     expect(entry).toMatchObject({
       entity: "step_completion",
@@ -624,14 +624,14 @@ describe("needs review", () => {
     if (!entry) {
       throw new Error("expected a queue entry");
     }
-    await manager.review.resolve({
+    await manager.reviewQueue.resolve({
       id: entry.id,
       resolution: "খাতা ঠিক, অনুমোদন বহাল",
     });
-    const remaining = await manager.review.open();
+    const remaining = await manager.reviewQueue.open();
     expect(remaining.some((row) => row.id === entry.id)).toBe(false);
     await expect(
-      manager.review.resolve({ id: entry.id, resolution: "আবার" })
+      manager.reviewQueue.resolve({ id: entry.id, resolution: "আবার" })
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
@@ -650,7 +650,7 @@ describe("needs review", () => {
 
     expect(corrected.needsReview).toBe(false);
     const manager = await as("manager", clock);
-    const queue = await manager.review.open();
+    const queue = await manager.reviewQueue.open();
     expect(queue.some((row) => row.entityId === completionId)).toBe(false);
   });
 
@@ -658,7 +658,7 @@ describe("needs review", () => {
     const clock = new FakeClock("2026-12-12T05:30:00.000Z");
     const staff = await as("staff", clock);
 
-    await expect(staff.review.open()).rejects.toMatchObject({
+    await expect(staff.reviewQueue.open()).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
   });

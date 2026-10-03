@@ -270,10 +270,10 @@ describe("the two alerts worth a text message", () => {
       sms: gateway.transport,
     });
     await manager.client.people.setPhone({ phone: "+8801711000004" });
-    await manager.client.notifiable.add({
+    await manager.client.notifiableDiseases.add({
       name: { bn: `তড়কা-এসএমএস ${Date.now()}` },
     });
-    const listed = await manager.client.notifiable.list();
+    const listed = await manager.client.notifiableDiseases.list();
     const disease = listed.at(-1)?.nameBn ?? "";
 
     const cow = await owner.client.animals.register({

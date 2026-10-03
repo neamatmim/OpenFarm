@@ -92,7 +92,7 @@ const IntakeCorrection = ({
     owner: whoseSheIs(owner?.id ?? null),
     targetWindow: itsWindow,
   });
-  const correct = useMutation(orpc.intake.correct.mutationOptions({}));
+  const correct = useMutation(orpc.intakes.correct.mutationOptions({}));
   // The window is the Farm's to say only for an animal that will be the Farm's own; a Venture's is its Venture's.
   const willBeTheFarms = (correcting.typed.owner ?? THE_FARMS) === THE_FARMS;
   const typedWindow = correcting.typed.targetWindow ?? "";

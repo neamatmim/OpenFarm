@@ -27,7 +27,7 @@ let first = "";
 
 const buy = async (instant: string, arrivedAt: string) => {
   const manager = await as("manager", instant);
-  const taken = await manager.client.intake.record({
+  const taken = await manager.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -134,7 +134,7 @@ describe("Herd Costs", () => {
     // And on the animal herself: what she carries of the month comes off what she made.
     const sold = await buy("2043-03-02T06:00:00.000Z", "2043-03-02T00:00:00Z");
     const selling = await as("manager", "2043-03-28T06:00:00.000Z");
-    await selling.client.sale.record({
+    await selling.client.sales.record({
       tagNumber: sold,
       buyer: { name: `ক্রেতা ${suffix}` },
       priceMoney: 90_000,
@@ -164,7 +164,7 @@ describe("Herd Costs", () => {
     // She sold in March; April's fly spray is nothing to do with her.
     const gone = await buy("2043-03-04T06:00:00.000Z", "2043-03-04T00:00:00Z");
     const selling = await as("manager", "2043-03-29T06:00:00.000Z");
-    await selling.client.sale.record({
+    await selling.client.sales.record({
       tagNumber: gone,
       buyer: { name: `আরেক ক্রেতা ${suffix}` },
       priceMoney: 88_000,

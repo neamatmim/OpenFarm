@@ -44,7 +44,7 @@ beforeAll(async () => {
 /** A bull bought for ৳1,00,000 and ৳1,000 of Market toll: he has cost ৳1,01,000 before he eats anything. */
 const aBull = async (into = penId) => {
   const manager = await as("manager", "2078-03-02T04:00:00.000Z");
-  return await manager.client.intake.record({
+  return await manager.client.intakes.record({
     penId: into,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -66,7 +66,7 @@ const sell = async (
   }: { weightKg?: number; instant?: string } = {}
 ) => {
   const manager = await as("manager", instant);
-  await manager.client.sale.record({
+  await manager.client.sales.record({
     tagNumber,
     buyer: { name: `করিম ব্যাপারী ${suffix}`, phone: "+8801711000079" },
     // Three hundred kilos at the ৳500 low is ৳1,50,000.
@@ -123,7 +123,7 @@ describe("a sale under her cost or the market", () => {
     const bull = await aBull();
     const saleId = await sell(bull.tagNumber, 160_000);
     const manager = await as("manager", "2078-03-20T09:00:00.000Z");
-    await manager.client.sale.correct({
+    await manager.client.sales.correct({
       id: saleId,
       reason: `দাম ভুল লেখা হয়েছিল ${suffix}`,
       changes: { priceMoney: { from: 160_000, to: 95_000 } },

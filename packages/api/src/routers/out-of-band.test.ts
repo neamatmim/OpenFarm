@@ -52,7 +52,7 @@ const setup = async () => {
   await ration("ফিনিশার", finishers.id, { fromKg: 250, toKg: null });
   await ration("সাধারণ", unbanded.id);
   const bull = async (penId: string, weightKg: number) => {
-    const arrived = await manager.client.intake.record({
+    const arrived = await manager.client.intakes.record({
       penId,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
@@ -86,7 +86,7 @@ beforeAll(async () => {
   world = await setup();
   // Gone from the farm: however heavy, nobody need move him.
   const manager = await as("manager");
-  await manager.client.sale.record({
+  await manager.client.sales.record({
     tagNumber: world.tags.sold,
     buyer: { name: `কসাই ${suffix}` },
     priceMoney: 90_000,

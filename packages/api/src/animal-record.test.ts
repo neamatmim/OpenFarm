@@ -57,7 +57,7 @@ describe("her record", () => {
     const manager = await as("manager", AT);
     const breeds = await manager.breeds.list();
     const sahiwal = breeds.find((one) => one.key === "sahiwal")?.id;
-    const taken = await manager.intake.record({
+    const taken = await manager.intakes.record({
       penId: world.quarantine,
       sex: "male",
       seller: { name: `বেপারী ${suffix}`, address: "সাভার হাট" },

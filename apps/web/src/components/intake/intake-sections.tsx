@@ -233,7 +233,7 @@ const LastBuys = ({ price, weight }: { price: number; weight: number }) => {
     Math.round(weight / ASKED_TO_KG) * ASKED_TO_KG
   );
   const last = useQuery(
-    orpc.intake.lastBuys.queryOptions({ input: { weightKg: askedKg } })
+    orpc.intakes.lastBuys.queryOptions({ input: { weightKg: askedKg } })
   );
   if (!last.data) {
     return null;

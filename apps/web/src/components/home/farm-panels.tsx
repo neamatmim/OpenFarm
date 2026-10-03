@@ -357,7 +357,7 @@ export const HerdPanel = ({
 export const FatteningPanel = () => {
   const { t, language } = useLanguage();
   const board = useQuery(orpc.fattening.board.queryOptions({ input: {} }));
-  const ready = useQuery(orpc.ready.suggestions.queryOptions());
+  const ready = useQuery(orpc.readyForSale.suggestions.queryOptions());
   const keepings = useKeepings();
   const rows = board.data ?? [];
   const costsMore = rows.filter(

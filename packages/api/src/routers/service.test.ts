@@ -124,7 +124,7 @@ const setup = async () => {
     cows.push(await heifer());
   }
   // The farm's own bull, for a natural service.
-  const bull = await manager.client.intake.record({
+  const bull = await manager.client.intakes.record({
     penId: pen.id,
     sex: "male",
     seller: { name: `হাট ${suffix}` },

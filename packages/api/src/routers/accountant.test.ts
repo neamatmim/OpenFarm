@@ -46,7 +46,7 @@ const setup = async () => {
   });
   // A bull bought for 30,000 with 900 of Market toll on him: over the threshold, and not yet approved. What the
   // export shows is what the farm handed over at the livestock market — 30,900 — on one line, not two.
-  const bull = await manager.client.intake.record({
+  const bull = await manager.client.intakes.record({
     penId: pen.id,
     sex: "male",
     seller: { name: `গাবতলী ${suffix}` },
@@ -112,7 +112,7 @@ const setup = async () => {
   });
   // The bull sold at 35,000: over the threshold too.
   const seller = await as("manager", "2040-03-20T04:00:00.000Z");
-  const sold = await seller.client.sale.record({
+  const sold = await seller.client.sales.record({
     tagNumber: bull.tagNumber,
     buyer: { name: `কসাই ${suffix}` },
     priceMoney: 35_000,

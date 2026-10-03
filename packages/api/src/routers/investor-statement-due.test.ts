@@ -119,7 +119,7 @@ beforeAll(async () => {
     reference: `FLT-${suffix}`,
   });
   const manager = await as("manager", "2054-01-04T05:00:00.000Z");
-  const her = await manager.client.intake.record({
+  const her = await manager.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -162,7 +162,7 @@ describe("hearing that a paper is due", () => {
 
   it("tells her at the first Sale", async () => {
     const selling = await as("manager", "2054-02-18T05:00:00.000Z");
-    await selling.client.sale.record({
+    await selling.client.sales.record({
       tagNumber,
       buyer: { name: `ক্রেতা ${suffix}` },
       priceMoney: 150_000,

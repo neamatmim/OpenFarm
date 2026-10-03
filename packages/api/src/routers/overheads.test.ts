@@ -93,7 +93,7 @@ beforeAll(async () => {
         await as("owner", "2045-02-28T18:00:00.000Z")
       : manager;
     // oxlint-disable-next-line no-await-in-loop -- as above
-    await buyer.client.intake.record({
+    await buyer.client.intakes.record({
       penId: pen.id,
       sex: "male",
       seller: { name: "ব্যাপারী" },

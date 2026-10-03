@@ -32,7 +32,7 @@ describe("the Owner's money, read on a Shed Phone", () => {
       ],
       ["returns.animal", client.returns.animal({ animalId: "no-such-animal" })],
       ["returns.venture", client.returns.venture(venture)],
-      ["culling.list", client.culling.list()],
+      ["cullList.list", client.cullList.list()],
     ];
     const said = await Promise.all(
       reads.map(async ([name, read]) => {
@@ -51,7 +51,7 @@ describe("the Owner's money, read on a Shed Phone", () => {
 
   it("is still the Owner's to read on her own phone", async () => {
     const { client } = await createTestClient(appRouter, { as: "owner" });
-    await expect(client.culling.list()).resolves.toBeDefined();
+    await expect(client.cullList.list()).resolves.toBeDefined();
     await expect(client.returns.page()).resolves.toBeDefined();
   });
 });

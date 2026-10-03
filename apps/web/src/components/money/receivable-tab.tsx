@@ -26,7 +26,7 @@ import {
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
-type Buyer = Awaited<ReturnType<typeof orpc.receivable.list.call>>[number];
+type Buyer = Awaited<ReturnType<typeof orpc.receivables.list.call>>[number];
 type KindStanding = Buyer["kinds"][number];
 
 /** A farm day as the reader reads it. */
@@ -264,7 +264,7 @@ const BuyerCard = ({
  */
 export const ReceivableTab = () => {
   const { t, language } = useLanguage();
-  const list = useQuery(orpc.receivable.list.queryOptions());
+  const list = useQuery(orpc.receivables.list.queryOptions());
   // Writing Receivable off is the Owner's alone.
   const mayWriteOff = useIsOwner();
   const [paying, setPaying] = useState<PaymentFor | null>(null);

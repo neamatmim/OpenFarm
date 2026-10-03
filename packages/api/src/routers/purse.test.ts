@@ -174,7 +174,7 @@ describe("whose money was it", () => {
       chargedToAnimals: true,
     });
     const manager = await as("manager", "2046-10-15T05:00:00.000Z");
-    const bull = await manager.client.intake.record({
+    const bull = await manager.client.intakes.record({
       penId: pen.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },

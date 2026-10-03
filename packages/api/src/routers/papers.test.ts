@@ -30,7 +30,7 @@ const setup = async () => {
   });
 
   const bull = async () => {
-    const taken = await manager.client.intake.record({
+    const taken = await manager.client.intakes.record({
       penId: pen.id,
       sex: "male",
       seller: { name: `হাট ${suffix}` },
@@ -45,7 +45,7 @@ const setup = async () => {
       tagNumber: taken.tagNumber,
       state: "fattening",
     });
-    await manager.client.ready.confirm({ tagNumber: taken.tagNumber });
+    await manager.client.readyForSale.confirm({ tagNumber: taken.tagNumber });
     return taken;
   };
   return { owner, manager, pen, bulls: [await bull(), await bull()] };
@@ -80,7 +80,7 @@ describe("the papers a buyer leaves with", () => {
     });
 
     const seller = await asManager("2027-06-02");
-    const first = await seller.client.sale.record({
+    const first = await seller.client.sales.record({
       tagNumber: tagOf(0),
       buyer: BUYER,
       ...LORRY,
@@ -88,7 +88,7 @@ describe("the papers a buyer leaves with", () => {
       weightKg: 312.5,
     });
     sold = first.id;
-    await seller.client.sale.record({
+    await seller.client.sales.record({
       tagNumber: tagOf(1),
       buyer: BUYER,
       ...LORRY,
@@ -128,7 +128,7 @@ describe("the papers a buyer leaves with", () => {
   it("gives each lorry its own card, even to one buyer on one day", async () => {
     // The same man, the same morning, a second beast on a different lorry to a different hat.
     const manager = await asManager("2027-06-02");
-    const third = await manager.client.intake.record({
+    const third = await manager.client.intakes.record({
       penId: world.pen.id,
       sex: "male",
       seller: { name: `হাট ${suffix}` },
@@ -143,8 +143,8 @@ describe("the papers a buyer leaves with", () => {
       tagNumber: third.tagNumber,
       state: "fattening",
     });
-    await manager.client.ready.confirm({ tagNumber: third.tagNumber });
-    const other = await manager.client.sale.record({
+    await manager.client.readyForSale.confirm({ tagNumber: third.tagNumber });
+    const other = await manager.client.sales.record({
       tagNumber: third.tagNumber,
       buyer: BUYER,
       destination: "সাভার হাট, ঢাকা",

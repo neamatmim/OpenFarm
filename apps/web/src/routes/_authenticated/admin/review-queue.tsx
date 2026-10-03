@@ -24,7 +24,7 @@ const SignOffPage = () => {
   const { tab = "check" } = Route.useSearch();
 
   const queue = useQuery(orpc.instances.signOffQueue.queryOptions());
-  const review = useQuery(orpc.review.open.queryOptions());
+  const review = useQuery(orpc.reviewQueue.open.queryOptions());
   const late = useQuery(orpc.instances.overdue.queryOptions());
 
   return (

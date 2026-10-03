@@ -66,7 +66,7 @@ beforeAll(async () => {
 const aBull = async (instant: string, ventureFor?: string) => {
   // A Venture's bull at the gate is the Owner's, paid from its account by bank.
   const manager = await as(ventureFor ? "owner" : "manager", instant);
-  return manager.client.intake.record({
+  return manager.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -125,7 +125,7 @@ describe("an animal that leaves without dying", () => {
   it("raises no carcass disposal when he is sold", async () => {
     const bull = await aBull("2066-03-02T04:00:00.000Z");
     const manager = await as("manager", "2066-03-10T06:00:00.000Z");
-    await manager.client.sale.record({
+    await manager.client.sales.record({
       tagNumber: bull.tagNumber,
       buyer: { name: `করিম ব্যাপারী ${suffix}`, phone: "+8801711000078" },
       weightKg: 330,

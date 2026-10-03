@@ -145,7 +145,7 @@ beforeAll(async () => {
     reference: `FLT-${suffix}`,
   });
   const broughtIn = async () => {
-    const her = await manager.client.intake.record({
+    const her = await manager.client.intakes.record({
       penId,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
@@ -349,7 +349,7 @@ describe("what a Settlement is", () => {
       [1, 202_500],
     ] as const) {
       // oxlint-disable-next-line no-await-in-loop -- one lorry at a time
-      const sold = await selling.client.sale.record({
+      const sold = await selling.client.sales.record({
         tagNumber: tags[at] ?? "",
         buyer: { name: `ক্রেতা ${at} ${suffix}` },
         priceMoney,
@@ -443,7 +443,7 @@ describe("what a Settlement is", () => {
       paymentMethod: "bank",
       reference: `FLT2-${suffix}`,
     });
-    const her = await manager.client.intake.record({
+    const her = await manager.client.intakes.record({
       penId,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
@@ -510,7 +510,7 @@ describe("what a Settlement is", () => {
 
     // She goes for well under what she cost, and the run loses money.
     const selling = await as("manager", "2047-04-03T05:00:00.000Z");
-    await selling.client.sale.record({
+    await selling.client.sales.record({
       tagNumber: her.tagNumber,
       buyer: { name: `ক্রেতা দুই ${suffix}` },
       priceMoney: 60_000,
@@ -564,7 +564,7 @@ describe("what a Settlement is", () => {
       reference: `FLT4-${suffix}`,
     });
     const manager = await as("manager", "2047-04-04T09:00:00.000Z");
-    const him = await manager.client.intake.record({
+    const him = await manager.client.intakes.record({
       penId,
       sex: "male",
       seller: { name: `ব্যাপারী তিন ${suffix}` },
@@ -581,7 +581,7 @@ describe("what a Settlement is", () => {
       buyingTripId: trip.id,
       cashBackMoney: 0,
     });
-    await manager.client.sale.record({
+    await manager.client.sales.record({
       tagNumber: him.tagNumber,
       buyer: { name: `ক্রেতা তিন ${suffix}` },
       priceMoney: 60_000,
@@ -916,7 +916,7 @@ describe("what a Settlement is", () => {
     // Nor is an Intake of one of its animals, whose price and Market toll the Settlement was worked out
     // from — the words say what to do instead.
     await expect(
-      owner.client.intake.correct({
+      owner.client.intakes.correct({
         id: intakeIds[0] ?? "",
         reason: `দাম ভুল ছিল ${suffix}`,
         changes: { purchasePriceMoney: { from: 80_000, to: 70_000 } },
@@ -1051,7 +1051,7 @@ describe("what a Settlement is", () => {
   it("pays one the Investors gained by, out of the Farm's own books", async () => {
     const owner = await as("owner", "2047-04-13T04:00:00.000Z");
     // The buyer had underpaid and made it up: the Sale is put right upwards, months after settling.
-    await owner.client.sale.correct({
+    await owner.client.sales.correct({
       id: saleIds[0] ?? "",
       reason: `ক্রেতা বাকি টাকা দিয়েছে ${suffix}`,
       changes: { priceMoney: { from: 202_505, to: 260_000 } },
@@ -1112,7 +1112,7 @@ describe("what a Settlement is", () => {
       .reduce((sum, one) => sum + one.amountMoney, 0);
 
     // A second piece of late news, worth much less than the first.
-    await owner.client.sale.correct({
+    await owner.client.sales.correct({
       id: saleIds[1] ?? "",
       reason: `আরেকটু বেশি এসেছে ${suffix}`,
       changes: { priceMoney: { from: 202_500, to: 212_500 } },
@@ -1145,7 +1145,7 @@ describe("what a Settlement is", () => {
   it("lets the Owner waive one she would rather not send", async () => {
     const owner = await as("owner", "2047-04-15T04:00:00.000Z");
     // More good news, over her line — and she decides it is not worth a trip to the bank after all.
-    await owner.client.sale.correct({
+    await owner.client.sales.correct({
       id: saleIds[1] ?? "",
       reason: `আরও কিছু এসেছে ${suffix}`,
       changes: { priceMoney: { from: 212_500, to: 245_000 } },

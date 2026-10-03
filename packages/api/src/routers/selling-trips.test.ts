@@ -21,7 +21,7 @@ const as = (role: "owner" | "manager", instant: string) =>
 let penId = "";
 
 const buy = async (manager: Awaited<ReturnType<typeof as>>, price = 50_000) => {
-  const taken = await manager.client.intake.record({
+  const taken = await manager.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -72,7 +72,7 @@ describe("a Selling Trip", () => {
     // Two of them sold at the livestock market; two came home again.
     await Promise.all(
       herd.slice(0, 2).map((tagNumber, which) =>
-        selling.client.sale.record({
+        selling.client.sales.record({
           tagNumber,
           // A buyer each: two buyers of one name would be one trader, and the two sales race to make him.
           buyer: { name: `ক্রেতা ${which} ${suffix}` },
@@ -161,7 +161,7 @@ describe("a Selling Trip", () => {
     const one = await buy(manager);
     const two = await buy(manager);
     // The Eid order: the bulls sell at the livestock market, and the day's costs are written up that evening.
-    await manager.client.sale.record({
+    await manager.client.sales.record({
       tagNumber: one,
       buyer: { name: `ঈদের ক্রেতা ${suffix}` },
       priceMoney: 95_000,

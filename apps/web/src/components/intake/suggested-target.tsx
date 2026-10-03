@@ -26,7 +26,7 @@ export const useSuggestedTarget = (fields: IntakeFields) => {
       : {}),
   };
   const suggested = useQuery(
-    orpc.intake.suggestTarget.queryOptions({
+    orpc.intakes.suggestTarget.queryOptions({
       input,
       enabled: weightKg > 0,
     })

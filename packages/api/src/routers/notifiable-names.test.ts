@@ -25,7 +25,7 @@ beforeAll(async () => {
   });
   penId = pen.id;
   const manager = await as("manager");
-  const fmd = await manager.client.notifiable.add({
+  const fmd = await manager.client.notifiableDiseases.add({
     name: { bn: "ক্ষুরা রোগ", en: "Foot-and-mouth disease" },
     otherNames: ["FMD", "খুরা রোগ"],
   });
@@ -72,7 +72,7 @@ describe("a notifiable disease by another name", () => {
   it("learns a new other name from whoever keeps the list, and is reported by it from then", async () => {
     expect(await isReported({ bn: "খুরা" })).toBe(false);
     const vet = await as("vet");
-    await vet.client.notifiable.setOtherNames({
+    await vet.client.notifiableDiseases.setOtherNames({
       id: fmdId,
       otherNames: ["FMD", "খুরা রোগ", "খুরা"],
     });
@@ -103,7 +103,10 @@ describe("a notifiable disease by another name", () => {
   it("has its other names kept by the Owner, the Manager or the Vet, never Barn Staff", async () => {
     const staff = await as("staff");
     await expect(
-      staff.client.notifiable.setOtherNames({ id: fmdId, otherNames: [] })
+      staff.client.notifiableDiseases.setOtherNames({
+        id: fmdId,
+        otherNames: [],
+      })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

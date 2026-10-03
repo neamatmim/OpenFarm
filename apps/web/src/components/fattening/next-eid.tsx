@@ -33,7 +33,7 @@ export const eidDayWords = (day: string, language: "bn" | "en") =>
  * left without a default.
  */
 export const useNextEid = (): EidWindow | null => {
-  const next = useQuery(orpc.eid.next.queryOptions());
+  const next = useQuery(orpc.eidDates.next.queryOptions());
   if (next.data) {
     return next.data.window;
   }
@@ -64,7 +64,7 @@ export const AnnounceDialog = ({
   const refused = useRefused();
   const [day, setDay] = useState(startFrom);
   const announce = useMutation(
-    orpc.eid.announce.mutationOptions({
+    orpc.eidDates.announce.mutationOptions({
       onSuccess: () => {
         toast.success(t("eid.announced"));
         onOpenChange(false);
@@ -122,10 +122,10 @@ export const untilSaid = (
 export const NextEid = ({ compact = false }: { compact?: boolean }) => {
   const { t, language } = useLanguage();
   const refused = useRefused();
-  const next = useQuery(orpc.eid.next.queryOptions());
+  const next = useQuery(orpc.eidDates.next.queryOptions());
   const [announcing, setAnnouncing] = useState(false);
   const bringAlong = useMutation(
-    orpc.eid.bringAlong.mutationOptions({
+    orpc.eidDates.bringAlong.mutationOptions({
       onSuccess: (done) => {
         toast.success(
           t("eid.broughtAlong", { count: formatNumber(done.moved, language) })

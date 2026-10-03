@@ -107,7 +107,7 @@ const funded = async (owner: Owner, which: number) => {
 /** One bull of the Farm's own. */
 const bull = async (instant: string) => {
   const manager = await as("manager", instant);
-  return await manager.client.intake.record({
+  return await manager.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -423,7 +423,7 @@ describe("the Internal Sale", () => {
       state: "fattening",
       reason: `কোয়ারেন্টিন শেষ ${suffix}`,
     });
-    await manager.client.ready.confirm({ tagNumber: hers.tagNumber });
+    await manager.client.readyForSale.confirm({ tagNumber: hers.tagNumber });
     await expect(
       owner.client.ventures.sellInternally({
         tagNumber: hers.tagNumber,

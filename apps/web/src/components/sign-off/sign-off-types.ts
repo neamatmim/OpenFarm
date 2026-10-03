@@ -21,7 +21,7 @@ export type LateWork = Awaited<
 
 /** Something the farm could not put right on its own, as the review queue reads it. */
 export type OpenReview = Awaited<
-  ReturnType<typeof orpc.review.open.call>
+  ReturnType<typeof orpc.reviewQueue.open.call>
 >[number];
 
 /** SOP content is jsonb, so it arrives untyped; the Version's own shape is the promise. */

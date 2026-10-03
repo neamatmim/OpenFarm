@@ -380,7 +380,7 @@ describe("a heat, and the window it opens", () => {
       as: "manager",
       clock: new FakeClock("2027-09-16T19:30:00.000Z"),
     });
-    const queue = await manager.client.review.open();
+    const queue = await manager.client.reviewQueue.open();
     const asked = queue.find(
       (row) => row.reason === "late_entry" && row.entityId === raised[0]?.id
     );
@@ -388,7 +388,7 @@ describe("a heat, and the window it opens", () => {
     // Raised on the work itself, so the queue leads straight to it.
     expect(asked?.instanceId).toBe(raised[0]?.id);
     // Answered, because the queue is the whole Farm's and this file shares it.
-    await manager.client.review.resolve({
+    await manager.client.reviewQueue.resolve({
       id: asked?.id ?? "",
       resolution: "পরের গরমে প্রজনন করা হবে",
     });

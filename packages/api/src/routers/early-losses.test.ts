@@ -71,7 +71,7 @@ beforeAll(async () => {
   const weighing = await owner.client.sops.create({ content: weighInSop() });
   for (const seller of [KARIM, KARIM, KARIM, RAHIM, SALAM]) {
     // oxlint-disable-next-line no-await-in-loop -- one bull off the lorry after the other
-    const bull = await manager.client.intake.record({
+    const bull = await manager.client.intakes.record({
       penId: pen.id,
       sex: "male",
       seller: { name: seller },
@@ -126,7 +126,7 @@ beforeAll(async () => {
 describe("early losses by seller and by livestock market", () => {
   it("names the seller and the livestock market whose animals died, fell ill or weighed short within thirty days, and nobody else", async () => {
     const owner = await as("owner", "2083-05-01T04:00:00.000Z");
-    const losses = await owner.client.intake.earlyLosses();
+    const losses = await owner.client.intakes.earlyLosses();
     expect(losses.bySeller).toEqual([
       {
         name: KARIM,
@@ -159,7 +159,7 @@ describe("early losses by seller and by livestock market", () => {
 
   it("is the Owner's alone", async () => {
     const manager = await as("manager", "2083-05-01T04:00:00.000Z");
-    await expect(manager.client.intake.earlyLosses()).rejects.toMatchObject({
+    await expect(manager.client.intakes.earlyLosses()).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
   });

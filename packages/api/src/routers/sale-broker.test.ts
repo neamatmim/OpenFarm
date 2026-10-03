@@ -52,7 +52,7 @@ beforeAll(async () => {
 const aBull = async (instant: string, ventureFor?: string) => {
   // A Venture's bull at the gate is the Owner's, paid from its account by bank.
   const manager = await as(ventureFor ? "owner" : "manager", instant);
-  return await manager.client.intake.record({
+  return await manager.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -68,7 +68,7 @@ const aBull = async (instant: string, ventureFor?: string) => {
 
 const sell = async (tagNumber: string, brokerMoney?: number) => {
   const manager = await as("manager", "2070-03-20T06:00:00.000Z");
-  await manager.client.sale.record({
+  await manager.client.sales.record({
     tagNumber,
     buyer: { name: `করিম ব্যাপারী ${suffix}`, phone: "+8801711000079" },
     weightKg: 330,
@@ -120,7 +120,7 @@ describe("a broker's fee on a Sale", () => {
     const bull = await aBull("2070-03-04T04:00:00.000Z");
     const saleId = await sell(bull.tagNumber, 1500);
     const manager = await as("manager", "2070-03-21T06:00:00.000Z");
-    await manager.client.sale.correct({
+    await manager.client.sales.correct({
       id: saleId,
       reason: `দালাল দুই হাজার নিয়েছিল ${suffix}`,
       changes: { brokerMoney: { from: 1500, to: 2000 } },

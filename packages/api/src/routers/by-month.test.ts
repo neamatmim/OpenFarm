@@ -90,7 +90,7 @@ beforeAll(async () => {
   });
 
   const { client: buying } = await as("manager", "2044-03-02T06:00:00.000Z");
-  const bull = await buying.intake.record({
+  const bull = await buying.intakes.record({
     penId: pen.id,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -130,7 +130,7 @@ beforeAll(async () => {
   });
   const { client: selling } = await as("manager", "2044-03-15T06:00:00.000Z");
   farmsBull = bull.tagNumber;
-  await selling.sale.record({
+  await selling.sales.record({
     tagNumber: bull.tagNumber,
     buyer: {
       name: `কাদের কসাই ${suffix}`,
@@ -213,7 +213,7 @@ beforeAll(async () => {
     "manager",
     "2044-03-03T06:00:00.000Z"
   );
-  const theirs = await buyingForIt.intake.record({
+  const theirs = await buyingForIt.intakes.record({
     penId: pen.id,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -230,7 +230,7 @@ beforeAll(async () => {
     "manager",
     "2044-03-16T06:00:00.000Z"
   );
-  await sellingForIt.sale.record({
+  await sellingForIt.sales.record({
     tagNumber: theirs.tagNumber,
     buyer: {
       name: `কাদের কসাই ${suffix}`,

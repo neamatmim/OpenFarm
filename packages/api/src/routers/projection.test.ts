@@ -381,7 +381,7 @@ describe("a Venture still buying", () => {
     for (const weightKg of [250, 400]) {
       // At the gate, so the Owner's, paid from the Venture Account by bank.
       // oxlint-disable-next-line no-await-in-loop -- one beast off the lorry at a time
-      await owner.intake.record({
+      await owner.intakes.record({
         penId: pen.id,
         sex: "male",
         seller: { name: `ব্যাপারী ${suffix}` },

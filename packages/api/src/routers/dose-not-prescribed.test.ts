@@ -141,7 +141,7 @@ describe("a dose not prescribed", () => {
       givenAt: new Date(NOW),
       advice: `কাশি, ফার্মেসির পরামর্শে ${suffix}`,
     });
-    const rows = await manager.client.inspector.rows({
+    const rows = await manager.client.registrationCertificate.rows({
       register: "treatment_register",
       from: "2074-03-01",
       to: "2074-03-31",

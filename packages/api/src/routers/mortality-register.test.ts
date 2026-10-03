@@ -129,7 +129,7 @@ const setup = async () => {
     aliases: [],
   });
   const disease = `তড়কা ${suffix}`;
-  await manager.client.notifiable.add({ name: { bn: disease } });
+  await manager.client.notifiableDiseases.add({ name: { bn: disease } });
   const sops = {
     round: await owner.client.sops.create({ content: calvingRoundSop() }),
     report: await owner.client.sops.create({ content: reportSop() }),
@@ -170,7 +170,7 @@ beforeAll(async () => {
 
   // 4 February: a bull bought in at the hat; 5 February, sold on.
   const fourth = await as("manager", "2046-02-04T04:00:00.000Z");
-  const bought = await fourth.client.intake.record({
+  const bought = await fourth.client.intakes.record({
     penId: world.pens.fattening.id,
     sex: "male",
     seller: { name: `রহমান ব্যাপারী ${suffix}` },
@@ -182,7 +182,7 @@ beforeAll(async () => {
   });
   tags.bought = bought.tagNumber;
   const fifth = await as("manager", "2046-02-05T04:00:00.000Z");
-  await fifth.client.sale.record({
+  await fifth.client.sales.record({
     tagNumber: bought.tagNumber,
     buyer: { name: `কাদের কসাই ${suffix}`, address: "গাবতলী, ঢাকা" },
     priceMoney: 120_000,
@@ -311,7 +311,7 @@ const ours = (tag: string) =>
 describe("the mortality register", () => {
   it("lists every death with its cause, disposal and DLS reference, a stillbirth awaiting its disposal", async () => {
     const manager = await as("manager", "2046-03-01T04:00:00.000Z");
-    const register = await manager.client.inspector.rows({
+    const register = await manager.client.registrationCertificate.rows({
       register: "mortality_register",
       ...FEBRUARY,
     });
@@ -354,13 +354,15 @@ describe("the mortality register", () => {
     ]);
     // A year to today unless asked, today counted.
     expect(
-      await manager.client.inspector.rows({ register: "mortality_register" })
+      await manager.client.registrationCertificate.rows({
+        register: "mortality_register",
+      })
     ).toMatchObject({
       from: "2045-03-02",
       to: "2046-03-01",
     });
 
-    const awaiting = await manager.client.inspector.print({
+    const awaiting = await manager.client.registrationCertificate.print({
       register: "mortality_register",
       format: "csv",
       ...FEBRUARY,
@@ -370,7 +372,7 @@ describe("the mortality register", () => {
     );
 
     await manager.client.language.set({ language: "bn" });
-    const paper = await manager.client.inspector.print({
+    const paper = await manager.client.registrationCertificate.print({
       register: "mortality_register",
       ...FEBRUARY,
     });
@@ -422,7 +424,7 @@ describe("the mortality register", () => {
     });
 
     const later = await as("manager", "2046-03-01T04:00:00.000Z");
-    const register = await later.client.inspector.rows({
+    const register = await later.client.registrationCertificate.rows({
       register: "mortality_register",
       ...FEBRUARY,
     });
@@ -433,7 +435,7 @@ describe("the mortality register", () => {
       disposalNote: "ছয় ফুট, বাছুরের ঘরের পেছনে",
     });
 
-    const sheet = await later.client.inspector.print({
+    const sheet = await later.client.registrationCertificate.print({
       register: "mortality_register",
       format: "csv",
       ...FEBRUARY,
@@ -466,7 +468,7 @@ describe("the mortality register", () => {
 describe("the movement log", () => {
   it("lists every Move, Side change, calving, intake, sale, death and cull in time order, as a CSV and an Export", async () => {
     const manager = await as("manager", "2046-03-01T04:00:00.000Z");
-    const log = await manager.client.inspector.print({
+    const log = await manager.client.registrationCertificate.print({
       register: "movement_log",
       format: "csv",
       ...FEBRUARY,
@@ -521,20 +523,26 @@ describe("the movement log", () => {
     const manager = await as("manager", "2046-03-01T04:00:00.000Z");
 
     await expect(
-      manager.client.inspector.print({ register: "movement_log", ...FEBRUARY })
+      manager.client.registrationCertificate.print({
+        register: "movement_log",
+        ...FEBRUARY,
+      })
     ).rejects.toMatchObject({ data: { refusal: "register_has_no_paper" } });
   });
 
   it("is the Owner's and the Manager's, never Barn Staff's", async () => {
     const staff = await as("staff", "2046-03-01T04:00:00.000Z");
     await expect(
-      staff.client.inspector.rows({
+      staff.client.registrationCertificate.rows({
         register: "mortality_register",
         ...FEBRUARY,
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(
-      staff.client.inspector.rows({ register: "movement_log", ...FEBRUARY })
+      staff.client.registrationCertificate.rows({
+        register: "movement_log",
+        ...FEBRUARY,
+      })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

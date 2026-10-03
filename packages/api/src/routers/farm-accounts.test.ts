@@ -178,7 +178,7 @@ describe("the Farm Accounts", () => {
       shedId: shed.id,
       name: `ফ্যাটেনিং ${suffix}`,
     });
-    const bull = await owner.client.intake.record({
+    const bull = await owner.client.intakes.record({
       penId: pen.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
@@ -188,7 +188,7 @@ describe("the Farm Accounts", () => {
       arrivedAt: new Date(`${DAY}T04:00:00.000Z`),
       paymentMethod: "cash",
     });
-    await owner.client.sale.record({
+    await owner.client.sales.record({
       tagNumber: bull.tagNumber,
       buyer: { name: `বাকির ক্রেতা ${suffix}` },
       priceMoney: 80_000,
@@ -202,7 +202,7 @@ describe("the Farm Accounts", () => {
       promisedBy: "2082-04-20",
     });
     const later = await as("owner", `${DAY}T08:00:00.000Z`);
-    const { id } = await later.client.receivable.pay({
+    const { id } = await later.client.receivables.pay({
       buyer: `বাকির ক্রেতা ${suffix}`,
       kind: "cattle",
       amountMoney: 20_000,

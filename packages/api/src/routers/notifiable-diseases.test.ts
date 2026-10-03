@@ -78,7 +78,7 @@ describe("the letter that goes without delay", () => {
     const vet = await createTestClient(appRouter, { as: "vet", clock });
 
     // What the ULO confirmed must be reported.
-    const anthrax = await manager.client.notifiable.add({
+    const anthrax = await manager.client.notifiableDiseases.add({
       name: { bn: "তড়কা", en: "Anthrax" },
       note: "ইউএলও নিশ্চিত করেছেন, ২০২৬",
     });
@@ -130,7 +130,7 @@ describe("the letter that goes without delay", () => {
       )
     ).toBe(false);
     await expect(
-      manager.client.notifiable.letter({ diagnosisId: made.id })
+      manager.client.notifiableDiseases.letter({ diagnosisId: made.id })
     ).rejects.toThrow(/must be reported/u);
   });
 
@@ -139,10 +139,10 @@ describe("the letter that goes without delay", () => {
     const cow = await aCow(clock);
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     const vet = await createTestClient(appRouter, { as: "vet", clock });
-    await manager.client.notifiable.add({
+    await manager.client.notifiableDiseases.add({
       name: { bn: `ক্ষুরারোগ ${Date.now()}`, en: "Foot and mouth" },
     });
-    const listed = await manager.client.notifiable.list();
+    const listed = await manager.client.notifiableDiseases.list();
     const disease = listed.at(-1)?.nameBn ?? "";
 
     const made = await vet.client.diagnoses.record({
@@ -151,7 +151,7 @@ describe("the letter that goes without delay", () => {
     });
     expect(made.notifiable).toBe(true);
 
-    const { text } = await manager.client.notifiable.letter({
+    const { text } = await manager.client.notifiableDiseases.letter({
       diagnosisId: made.id,
     });
     // Addressed to the office, naming the animal, the disease, the Vet who found it and the
@@ -182,10 +182,10 @@ describe("the letter that goes without delay", () => {
     const cow = await aCow(clock);
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     const vet = await createTestClient(appRouter, { as: "vet", clock });
-    await manager.client.notifiable.add({
+    await manager.client.notifiableDiseases.add({
       name: { bn: `তড়কা ${Date.now()}` },
     });
-    const listed = await manager.client.notifiable.list();
+    const listed = await manager.client.notifiableDiseases.list();
     const disease = listed.at(-1)?.nameBn ?? "";
     const made = await vet.client.diagnoses.record({
       animalTag: cow.tagNumber,
@@ -252,10 +252,10 @@ describe("the letter that goes without delay", () => {
     const cow = await aCow(clock);
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     const vet = await createTestClient(appRouter, { as: "vet", clock });
-    await manager.client.notifiable.add({
+    await manager.client.notifiableDiseases.add({
       name: { bn: `জলাতঙ্ক ${Date.now()}` },
     });
-    const listed = await manager.client.notifiable.list();
+    const listed = await manager.client.notifiableDiseases.list();
     const disease = listed.at(-1)?.nameBn ?? "";
 
     const made = await vet.client.diagnoses.record({
@@ -284,10 +284,10 @@ describe("the letter that goes without delay", () => {
     const cow = await aCow(clock);
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     const vet = await createTestClient(appRouter, { as: "vet", clock });
-    await manager.client.notifiable.add({
+    await manager.client.notifiableDiseases.add({
       name: { bn: `গলাফুলা ${Date.now()}` },
     });
-    const listed = await manager.client.notifiable.list();
+    const listed = await manager.client.notifiableDiseases.list();
     const disease = listed.at(-1)?.nameBn ?? "";
 
     // Called something else first, so nothing was owed.
@@ -310,7 +310,7 @@ describe("the letter that goes without delay", () => {
     expect(
       await manager.client.alerts.mine({ entityId: made.id })
     ).toHaveLength(1);
-    const letter = await manager.client.notifiable.letter({
+    const letter = await manager.client.notifiableDiseases.letter({
       diagnosisId: made.id,
     });
     expect(letter.text).toContain(disease);
@@ -321,10 +321,10 @@ describe("the letter that goes without delay", () => {
     const cow = await aCow(clock);
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     const vet = await createTestClient(appRouter, { as: "vet", clock });
-    await manager.client.notifiable.add({
+    await manager.client.notifiableDiseases.add({
       name: { bn: `বাদলা ${Date.now()}` },
     });
-    const listed = await manager.client.notifiable.list();
+    const listed = await manager.client.notifiableDiseases.list();
     const disease = listed.at(-1)?.nameBn ?? "";
     const made = await vet.client.diagnoses.record({
       animalTag: cow.tagNumber,
@@ -347,7 +347,7 @@ describe("the letter that goes without delay", () => {
     });
     expect(work.state).toBe("called_off");
     await expect(
-      manager.client.notifiable.letter({ diagnosisId: made.id })
+      manager.client.notifiableDiseases.letter({ diagnosisId: made.id })
     ).rejects.toThrow(/must be reported/u);
   });
 
@@ -358,10 +358,10 @@ describe("the letter that goes without delay", () => {
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     const vet = await createTestClient(appRouter, { as: "vet", clock });
     const owner = await createTestClient(appRouter, { as: "owner", clock });
-    await manager.client.notifiable.add({
+    await manager.client.notifiableDiseases.add({
       name: { bn: `পিপিআর ${Date.now()}` },
     });
-    const listed = await manager.client.notifiable.list();
+    const listed = await manager.client.notifiableDiseases.list();
     const disease = listed.at(-1)?.nameBn ?? "";
 
     // The file's own procedure, retired for the length of this test.
@@ -383,7 +383,7 @@ describe("the letter that goes without delay", () => {
     expect(await owner.client.alerts.mine({ entityId: made.id })).toHaveLength(
       1
     );
-    const letter = await manager.client.notifiable.letter({
+    const letter = await manager.client.notifiableDiseases.letter({
       diagnosisId: made.id,
     });
     expect(letter.text).toContain(disease);
@@ -416,10 +416,10 @@ describe("the letter that goes without delay", () => {
     const cow = await aCow(clock);
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     const vet = await createTestClient(appRouter, { as: "vet", clock });
-    await manager.client.notifiable.add({
+    await manager.client.notifiableDiseases.add({
       name: { bn: `তড়কা-রেজিস্টার ${Date.now()}` },
     });
-    const listed = await manager.client.notifiable.list();
+    const listed = await manager.client.notifiableDiseases.list();
     const disease = listed.at(-1)?.nameBn ?? "";
     const made = await vet.client.diagnoses.record({
       animalTag: cow.tagNumber,

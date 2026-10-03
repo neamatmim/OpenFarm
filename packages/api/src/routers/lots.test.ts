@@ -120,7 +120,7 @@ const aStore = async (tag: string) => {
   // Bought in the other order from the one they will be used in: the later day came in first.
   const late = await lot("LATE-1", "2039-12-31");
   const early = await lot("EARLY-1", "2038-06-30");
-  const bull = await manager.client.intake.record({
+  const bull = await manager.client.intakes.record({
     penId: pen.id,
     sex: "male",
     seller: { name: `হাট ${suffix}` },

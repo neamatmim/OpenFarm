@@ -113,7 +113,7 @@ const aBull = async (ventureId: string, penId: string, which: string) => {
     reference: `FLT-${which}-${suffix}`,
   });
   const manager = await as("manager", "2053-01-04T05:00:00.000Z");
-  const her = await manager.client.intake.record({
+  const her = await manager.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -137,7 +137,7 @@ const aBull = async (ventureId: string, penId: string, which: string) => {
 
 const sell = async (tagNumber: string, priceMoney: number, which: string) => {
   const selling = await as("manager", "2053-02-18T05:00:00.000Z");
-  await selling.client.sale.record({
+  await selling.client.sales.record({
     tagNumber,
     buyer: { name: `ক্রেতা ${which} ${suffix}` },
     priceMoney,

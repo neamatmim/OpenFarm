@@ -32,7 +32,7 @@ describe("intake", () => {
 
     const breeds = await manager.client.breeds.list();
     const sahiwal = breeds.find((one) => one.key === "sahiwal")?.id;
-    const taken = await manager.client.intake.record({
+    const taken = await manager.client.intakes.record({
       penId,
       sex: "male",
       seller: { name: "রহমান ব্যাপারী", address: "সাভার হাট, ঢাকা" },
@@ -87,15 +87,15 @@ describe("intake", () => {
     };
 
     // Buying an animal is not a milker's act, nor a Vet's.
-    await expect(staff.client.intake.record(arriving)).rejects.toMatchObject({
+    await expect(staff.client.intakes.record(arriving)).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
-    await expect(vet.client.intake.record(arriving)).rejects.toMatchObject({
+    await expect(vet.client.intakes.record(arriving)).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
     // The Owner may do it as the Manager does, and what the Owner paid waits for nobody's approval.
     const owner = await createTestClient(appRouter, { as: "owner", clock });
-    const ownersBuy = await owner.client.intake.record(arriving);
+    const ownersBuy = await owner.client.intakes.record(arriving);
     const money = await owner.client.money.list({
       from: "2027-01-01",
       to: "2027-01-31",
@@ -107,7 +107,7 @@ describe("intake", () => {
     ]);
 
     // This one is for the Qurbani market in Chattogram, which the Manager sells into early.
-    const taken = await manager.client.intake.record({
+    const taken = await manager.client.intakes.record({
       ...arriving,
       targetWindowStart: "2027-05-10",
       targetWindowEnd: "2027-05-16",
@@ -143,16 +143,16 @@ describe("intake", () => {
     };
 
     // He gave his hat the first time and his number the second. The farm ends with one man.
-    await manager.client.intake.record({
+    await manager.client.intakes.record({
       ...arriving,
       seller: { name: trader, address: "গাবতলী হাট, ঢাকা" },
     });
-    await manager.client.intake.record({
+    await manager.client.intakes.record({
       ...arriving,
       seller: { name: trader, address: "অন্য কোথাও", phone: "+8801711000077" },
     });
 
-    const sellers = await manager.client.intake.sellers();
+    const sellers = await manager.client.intakes.sellers();
     const named = sellers.filter((one) => one.name === trader);
     expect(named).toHaveLength(1);
     expect(named[0]).toMatchObject({
@@ -168,7 +168,7 @@ describe("intake", () => {
     const clock = new FakeClock("2027-02-02T04:00:00.000Z");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
 
-    const taken = await manager.client.intake.record({
+    const taken = await manager.client.intakes.record({
       penId,
       sex: "male",
       seller: { name: `হাসিল বেপারী ${QUARANTINE}` },
@@ -195,7 +195,7 @@ describe("intake", () => {
     expect(hers).toMatchObject({ amountMoney: 82_000 });
 
     // An animal bought with no toll paid carries none.
-    const free = await manager.client.intake.record({
+    const free = await manager.client.intakes.record({
       penId,
       sex: "male",
       seller: { name: `হাসিল বেপারী ${QUARANTINE}` },
@@ -209,7 +209,7 @@ describe("intake", () => {
     expect(his.intake).toMatchObject({ marketTollMoney: 0 });
 
     // The slip said 2,400 and the Manager typed 2,000: a Correction like any other.
-    await manager.client.intake.correct({
+    await manager.client.intakes.correct({
       id: taken.intakeId,
       reason: "হাটের রসিদ অনুযায়ী ঠিক করা হলো",
       changes: { marketTollMoney: { from: 2000, to: 2400 } },
@@ -248,7 +248,7 @@ describe("intake", () => {
         as: "manager",
         clock,
       });
-      const taken = await manager.client.intake.record({
+      const taken = await manager.client.intakes.record({
         penId,
         sex: "male",
         seller: { name: `বাজার ${Date.now()}` },
@@ -271,7 +271,7 @@ describe("intake", () => {
     const clock = new FakeClock("2027-01-19T04:00:00.000Z");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     const vet = await createTestClient(appRouter, { as: "vet", clock });
-    const taken = await manager.client.intake.record({
+    const taken = await manager.client.intakes.record({
       penId,
       sex: "male",
       seller: { name: `বাজার ${Date.now()}` },

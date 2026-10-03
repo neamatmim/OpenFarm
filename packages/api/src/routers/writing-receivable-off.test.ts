@@ -37,7 +37,7 @@ beforeAll(async () => {
   });
   penId = pen.id;
   const manager = await as("manager", "2051-03-02T05:00:00.000Z");
-  const bull = await manager.client.intake.record({
+  const bull = await manager.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -48,7 +48,7 @@ beforeAll(async () => {
     ...WINDOW,
   });
   ({ tagNumber } = bull);
-  const sold = await manager.client.sale.record({
+  const sold = await manager.client.sales.record({
     tagNumber,
     buyer: { name: TRADER },
     priceMoney: 120_000,
@@ -87,7 +87,7 @@ describe("writing Receivable off", () => {
   it("is the Owner's alone", async () => {
     const manager = await as("manager", "2051-03-20T06:00:00.000Z");
     await expect(
-      manager.client.receivable.writeOff({
+      manager.client.receivables.writeOff({
         source: "sale",
         id: saleId,
         amountMoney: 20_000,
@@ -99,7 +99,7 @@ describe("writing Receivable off", () => {
   it("is refused above what is still owed", async () => {
     const owner = await as("owner", "2051-03-20T06:00:00.000Z");
     await expect(
-      owner.client.receivable.writeOff({
+      owner.client.receivables.writeOff({
         source: "sale",
         id: saleId,
         amountMoney: 20_001,
@@ -113,7 +113,7 @@ describe("writing Receivable off", () => {
   it("lowers what she fetched, and her Margin with it, by what was written off", async () => {
     const before = await herSale();
     const owner = await as("owner", "2051-03-20T06:00:00.000Z");
-    ({ id: writeOffId } = await owner.client.receivable.writeOff({
+    ({ id: writeOffId } = await owner.client.receivables.writeOff({
       source: "sale",
       id: saleId,
       amountMoney: 20_000,
@@ -127,14 +127,14 @@ describe("writing Receivable off", () => {
 
   it("marks the buyer: the sheets say what was written off, and he owes nothing more", async () => {
     const manager = await as("manager", "2051-03-21T06:00:00.000Z");
-    const his = await manager.client.receivable.ofBuyer({ name: TRADER });
+    const his = await manager.client.receivables.ofBuyer({ name: TRADER });
     expect(his).toMatchObject({
       owingMoney: 0,
       writtenOffMoney: 20_000,
       lastWrittenOffOn: "2051-03-20",
     });
     // Still listed, apart, for what was written off.
-    const list = await manager.client.receivable.list();
+    const list = await manager.client.receivables.list();
     expect(list.find((one) => one.name === TRADER)).toMatchObject({
       writtenOffMoney: 20_000,
     });
@@ -154,7 +154,7 @@ describe("writing Receivable off", () => {
 
   it("is put back by a buyer who pays after all", async () => {
     const manager = await as("manager", "2051-03-22T06:00:00.000Z");
-    await manager.client.receivable.pay({
+    await manager.client.receivables.pay({
       buyer: TRADER,
       kind: "cattle",
       amountMoney: 5000,
@@ -164,20 +164,20 @@ describe("writing Receivable off", () => {
     });
     const after = await herSale();
     expect(after.saleMoney).toBe(105_000);
-    const his = await manager.client.receivable.ofBuyer({ name: TRADER });
+    const his = await manager.client.receivables.ofBuyer({ name: TRADER });
     expect(his?.writtenOffMoney).toBe(15_000);
   });
 
   it("is taken back whole by the Owner as a Correction, and he owes again what stays unpaid", async () => {
     const owner = await as("owner", "2051-03-23T06:00:00.000Z");
-    await owner.client.receivable.correctWriteOff({
+    await owner.client.receivables.correctWriteOff({
       id: writeOffId,
       reason: "ভুল করে লেখা হয়েছিল, ব্যাপারী টাকা দেবেন বলেছেন",
       changes: { amountMoney: { from: 20_000, to: 0 } },
     });
     const after = await herSale();
     expect(after.saleMoney).toBe(120_000);
-    const his = await owner.client.receivable.ofBuyer({ name: TRADER });
+    const his = await owner.client.receivables.ofBuyer({ name: TRADER });
     expect(his).toMatchObject({ owingMoney: 15_000, writtenOffMoney: 0 });
   });
 
@@ -185,7 +185,7 @@ describe("writing Receivable off", () => {
     const before = await march();
     expect(before?.dairy).toMatchObject({ fetchedPerLitreMoney: 70 });
     const owner = await as("owner", "2051-03-25T06:00:00.000Z");
-    await owner.client.receivable.writeOff({
+    await owner.client.receivables.writeOff({
       source: "dispatch",
       id: dispatchId,
       amountMoney: 7000,

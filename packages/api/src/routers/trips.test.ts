@@ -24,7 +24,7 @@ const buy = async (
   price: number,
   buyingTripId?: string
 ) => {
-  const taken = await manager.client.intake.record({
+  const taken = await manager.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -108,7 +108,7 @@ describe("a Buying Trip", () => {
     expect(await costOf(stays.tagNumber)).toMatchObject({ tripMoney: 3000 });
 
     // He came home on his own legs from the next village, not on that lorry.
-    await manager.client.intake.correct({
+    await manager.client.intakes.correct({
       id: leaves.intakeId,
       reason: "এই গরু ওই ট্রিপে আসেনি",
       changes: { buyingTrip: { from: trip.id, to: null } },
@@ -192,7 +192,7 @@ describe("a Buying Trip", () => {
     });
     const only = await buy(manager, 50_000, emptied.id);
     expect(await costOf(only.tagNumber)).toMatchObject({ tripMoney: 1500 });
-    await manager.client.intake.correct({
+    await manager.client.intakes.correct({
       id: only.intakeId,
       reason: "এই গরু ওই ট্রিপে আসেনি",
       changes: { buyingTrip: { from: emptied.id, to: null } },

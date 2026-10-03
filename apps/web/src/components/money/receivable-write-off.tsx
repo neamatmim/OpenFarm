@@ -29,7 +29,7 @@ export const WriteOffButton = ({
   const [amount, setAmount] = useState(String(owingMoney));
   const [why, setWhy] = useState("");
   const writeOff = useMutation(
-    orpc.receivable.writeOff.mutationOptions({
+    orpc.receivables.writeOff.mutationOptions({
       onSuccess: () => {
         toast.success(t("receivable.writtenOffDone"));
         setOpen(false);

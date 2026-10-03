@@ -189,7 +189,7 @@ beforeAll(async () => {
   const manager = await asManager("2052-01-04T05:00:00.000Z");
   for (let which = 0; which < 6; which += 1) {
     // oxlint-disable-next-line no-await-in-loop -- one beast off the lorry at a time
-    const her = await manager.client.intake.record({
+    const her = await manager.client.intakes.record({
       penId,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
@@ -264,7 +264,7 @@ beforeAll(async () => {
   // And the sixth goes to a buyer on the 18th — after the Internal Sale, because the first Sale moves
   // the Venture to Selling and a Venture that is Selling will not trade an animal across.
   const toABuyer = await asManager("2052-02-18T05:00:00.000Z");
-  await toABuyer.client.sale.record({
+  await toABuyer.client.sales.record({
     tagNumber: tags[5] ?? "",
     buyer: { name: `ক্রেতা ${suffix}` },
     priceMoney: 250_000,

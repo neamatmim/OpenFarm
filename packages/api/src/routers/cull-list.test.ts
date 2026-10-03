@@ -367,7 +367,7 @@ const backToFourWeeks = async () => {
 
 const theList = async () => {
   const owner = await as("owner", "2041-03-01T04:00:00.000Z");
-  const list = await owner.client.culling.list();
+  const list = await owner.client.cullList.list();
   const of = (tagNumber: string) =>
     list.cows.find((one) => one.tagNumber === tagNumber);
   return { list, of };
@@ -446,7 +446,7 @@ describe("why the farm names a dairy cow to the Owner", () => {
 
   it("is the Owner's alone", async () => {
     const manager = await as("manager", "2041-03-01T04:00:00.000Z");
-    await expect(manager.client.culling.list()).rejects.toMatchObject({
+    await expect(manager.client.cullList.list()).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
   });

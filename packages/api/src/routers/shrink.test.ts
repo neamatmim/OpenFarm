@@ -63,7 +63,7 @@ let unweighed = "";
 
 const aBull = async (weightKg: number, into = penId) => {
   const manager = await as("manager", "2079-03-02T04:00:00.000Z");
-  const bull = await manager.client.intake.record({
+  const bull = await manager.client.intakes.record({
     penId: into,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -115,7 +115,7 @@ beforeAll(async () => {
     [unweighed, 250],
   ] as const) {
     // oxlint-disable-next-line no-await-in-loop -- one bull after the other off the lorry
-    await selling.client.sale.record({
+    await selling.client.sales.record({
       tagNumber,
       buyer: { name: `ক্রেতা ${suffix}` },
       priceMoney: 150_000,
@@ -162,7 +162,7 @@ describe("shrink at sale", () => {
 
   it("gives the sale sheet her last weighing, whoever she is", async () => {
     const manager = await as("manager", "2079-03-12T06:00:00.000Z");
-    const last = await manager.client.sale.lastWeighed({ tagNumber: weighed });
+    const last = await manager.client.sales.lastWeighed({ tagNumber: weighed });
     expect(last).toEqual({
       kg: 320,
       at: new Date("2079-03-10T02:00:00.000Z"),
@@ -173,7 +173,7 @@ describe("shrink at sale", () => {
     const manager = await as("manager", "2079-03-18T09:00:00.000Z");
     const before = await soldToday();
     const sold = before.find((one) => one.tagNumber === weighed);
-    await manager.client.sale.correct({
+    await manager.client.sales.correct({
       id: sold?.id ?? "",
       reason: `পাল্লা ভুল পড়া হয়েছিল ${suffix}`,
       changes: { weightKg: { from: 300, to: 310 } },
@@ -192,7 +192,7 @@ describe("shrink past the farm's allowance", () => {
 
   const sold = async (tagNumber: string, weightKg: number, instant = SOLD) => {
     const manager = await as("manager", instant);
-    await manager.client.sale.record({
+    await manager.client.sales.record({
       tagNumber,
       buyer: { name: `ক্রেতা ${suffix}` },
       priceMoney: 150_000,
@@ -283,7 +283,7 @@ describe("shrink past the farm's allowance", () => {
     ]);
     // Put right, still a sale that shrank too much: told once.
     const manager = await as("manager", "2079-03-18T09:00:00.000Z");
-    await manager.client.sale.correct({
+    await manager.client.sales.correct({
       id: saleOf.get(bulls.twelve) ?? "",
       reason: `দাম ভুল ${suffix}`,
       changes: { weightKg: { from: 352, to: 350 } },

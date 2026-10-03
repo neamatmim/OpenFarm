@@ -38,7 +38,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
-type Eid = Awaited<ReturnType<typeof orpc.eid.list.call>>[number];
+type Eid = Awaited<ReturnType<typeof orpc.eidDates.list.call>>[number];
 
 /** An Eid in the list, with its name and what may be done about it. */
 interface EidRow extends Eid {
@@ -234,14 +234,14 @@ const eidCard = (row: EidRow) => <EidCard row={row} />;
 const EidPage = () => {
   const { t, language } = useLanguage();
   const refused = useRefused();
-  const eids = useQuery(orpc.eid.list.queryOptions());
+  const eids = useQuery(orpc.eidDates.list.queryOptions());
   const [announcing, setAnnouncing] = useState<Eid | null>(null);
   const [withdrawing, setWithdrawing] = useState<{
     expectedDay: string;
     name: string;
   } | null>(null);
   const withdraw = useMutation(
-    orpc.eid.withdraw.mutationOptions({
+    orpc.eidDates.withdraw.mutationOptions({
       onSuccess: () => {
         toast.success(t("eid.withdrawn"));
         setWithdrawing(null);
@@ -250,7 +250,7 @@ const EidPage = () => {
     })
   );
   const bringAlong = useMutation(
-    orpc.eid.bringAlong.mutationOptions({
+    orpc.eidDates.bringAlong.mutationOptions({
       onSuccess: (done) => {
         toast.success(
           t("eid.broughtAlong", { count: formatNumber(done.moved, language) })

@@ -121,7 +121,7 @@ const SalePage = () => {
     tagNumber: sell ?? "",
   }));
   const [selling, setSelling] = useState(sell !== undefined);
-  const sellable = useQuery(orpc.sale.sellable.queryOptions());
+  const sellable = useQuery(orpc.sales.sellable.queryOptions());
   const sold = useQuery(orpc.papers.day.queryOptions({ input: {} }));
   const me = useQuery(orpc.people.me.queryOptions());
   const mayCorrect =

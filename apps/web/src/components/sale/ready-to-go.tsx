@@ -24,7 +24,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import type { orpc } from "@/utils/orpc";
 
 export type Sellable = Awaited<
-  ReturnType<typeof orpc.sale.sellable.call>
+  ReturnType<typeof orpc.sales.sellable.call>
 >[number];
 
 interface SellableRow extends Sellable {

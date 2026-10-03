@@ -42,7 +42,7 @@ const moneyOf = async (sourceId: string) => {
 /** A bull taken in, for a sale or a fee. */
 const intakeOf = (priceMoney: number, instant: string) =>
   as("manager", instant).then((manager) =>
-    manager.client.intake.record({
+    manager.client.intakes.record({
       penId: world.pen.id,
       sex: "male",
       seller: { name: `গাবতলী হাট ${suffix}` },
@@ -125,7 +125,7 @@ describe("money from the farm's records", () => {
 
     const manager = await as("manager", "2037-02-20T04:00:00.000Z");
     // The Manager put the price in wrong: the same Money Event is put right, not a second one booked.
-    await manager.client.intake.correct({
+    await manager.client.intakes.correct({
       id: bull.intakeId,
       changes: { purchasePriceMoney: { from: 18_000, to: 18_500 } },
       reason: "হাটের রসিদে ১৮,৫০০",
@@ -134,7 +134,7 @@ describe("money from the farm's records", () => {
       expect.objectContaining({ amountMoney: 18_500, paymentMethod: "bank" }),
     ]);
 
-    const sold = await manager.client.sale.record({
+    const sold = await manager.client.sales.record({
       tagNumber: bull.tagNumber,
       buyer: { name: `কসাই ${suffix}` },
       priceMoney: 19_500,
@@ -153,7 +153,7 @@ describe("money from the farm's records", () => {
         paymentMethod: "cash",
       }),
     ]);
-    await manager.client.sale.correct({
+    await manager.client.sales.correct({
       id: sold.id,
       changes: {
         priceMoney: { from: 19_500, to: 19_000 },
@@ -169,7 +169,7 @@ describe("money from the farm's records", () => {
     ]);
     // How he paid, and nothing else. Every Correction of a record's money may name the payment method
     // alone, and that alone changes no column of the Sale itself.
-    await manager.client.sale.correct({
+    await manager.client.sales.correct({
       id: sold.id,
       changes: { paymentMethod: { from: "mobile_money", to: "bank" } },
       reason: "ব্যাংকেই এসেছিল",
@@ -180,7 +180,7 @@ describe("money from the farm's records", () => {
 
     // A year on, past the Manager's window, the Owner can still put the same Sale right.
     const yearOn = await as("owner", "2038-02-25T04:00:00.000Z");
-    await yearOn.client.sale.correct({
+    await yearOn.client.sales.correct({
       id: sold.id,
       changes: { priceMoney: { from: 19_000, to: 19_200 } },
       reason: "মালিক রসিদ মিলিয়ে দেখেছেন",
@@ -255,7 +255,7 @@ describe("money from the farm's records", () => {
     const id = waiting?.id ?? "";
 
     // And a Sale over the threshold: she leaves, sold, and only the money waits.
-    const sold = await manager.client.sale.record({
+    const sold = await manager.client.sales.record({
       tagNumber: bull.tagNumber,
       buyer: { name: `ঈদের ক্রেতা ${suffix}` },
       priceMoney: 140_000,

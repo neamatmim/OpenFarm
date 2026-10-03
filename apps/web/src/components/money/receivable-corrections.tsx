@@ -28,7 +28,7 @@ export const ReceivablePaymentCorrection = ({
     note: note(payment.note),
   });
   const correct = useMutation(
-    orpc.receivable.correctPayment.mutationOptions({})
+    orpc.receivables.correctPayment.mutationOptions({})
   );
   return (
     <CorrectionDialog
@@ -79,7 +79,7 @@ export const WriteOffCorrection = ({
     why: words(writeOff.reason),
   });
   const correct = useMutation(
-    orpc.receivable.correctWriteOff.mutationOptions({})
+    orpc.receivables.correctWriteOff.mutationOptions({})
   );
   return (
     <CorrectionDialog

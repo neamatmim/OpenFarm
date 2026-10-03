@@ -82,7 +82,7 @@ beforeAll(async () => {
 
   // The Venture's one bull, bought at the gate on the fifth of January.
   const buyer = await as("owner", "2075-01-05T06:00:00.000Z");
-  const bull = await buyer.client.intake.record({
+  const bull = await buyer.client.intakes.record({
     penId: pen.id,
     sex: "male",
     seller: { name: `প্রতিবেশী ${suffix}` },

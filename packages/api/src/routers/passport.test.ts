@@ -57,7 +57,7 @@ const setup = async () => {
   const bull = async (penId: string) => {
     const breeds = await manager.client.breeds.list();
     const sahiwal = breeds.find((one) => one.key === "sahiwal")?.id;
-    const taken = await manager.client.intake.record({
+    const taken = await manager.client.intakes.record({
       penId,
       sex: "male",
       seller: { name: `হাট ${suffix}`, address: "সাভার হাট" },
@@ -198,7 +198,7 @@ describe("the passport and the withdrawal summary", () => {
   it("says she was bought and when she came, not when she was written down", async () => {
     // Bought on 20 June and entered on 1 July: a farm writes up an intake when it gets to the office.
     const manager = await asManager("2027-07-06");
-    const late = await manager.client.intake.record({
+    const late = await manager.client.intakes.record({
       penId: world.pen.id,
       sex: "male",
       seller: { name: `দেরির হাট ${suffix}`, address: "সাভার হাট" },
@@ -254,8 +254,8 @@ describe("the passport and the withdrawal summary", () => {
 
   it("is still readable after she has gone, which is when a vet asks", async () => {
     const manager = await asManager("2027-07-25");
-    await manager.client.ready.confirm({ tagNumber: tagOf(0) });
-    await manager.client.sale.record({
+    await manager.client.readyForSale.confirm({ tagNumber: tagOf(0) });
+    await manager.client.sales.record({
       tagNumber: tagOf(0),
       buyer: { name: `কসাই ${suffix}` },
       priceMoney: 150_000,

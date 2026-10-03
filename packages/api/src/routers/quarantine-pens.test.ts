@@ -53,7 +53,7 @@ describe("quarantine pens", () => {
     });
     dairyPen = dairy.id;
     await expect(
-      manager.client.intake.record(bought(dairyPen))
+      manager.client.intakes.record(bought(dairyPen))
     ).rejects.toMatchObject({ data: { refusal: "no_quarantine_pen" } });
     const owner = await as("owner");
     await expect(
@@ -73,7 +73,7 @@ describe("quarantine pens", () => {
     });
     quarantinePen = marked.id;
     await expect(
-      manager.client.intake.record(bought(dairyPen))
+      manager.client.intakes.record(bought(dairyPen))
     ).rejects.toMatchObject({ data: { refusal: "not_a_quarantine_pen" } });
     const owner = await as("owner");
     await expect(
@@ -84,7 +84,7 @@ describe("quarantine pens", () => {
   it("takes one into a quarantine pen, by Intake or by hand", async () => {
     const manager = await as("manager");
     await expect(
-      manager.client.intake.record(bought(quarantinePen))
+      manager.client.intakes.record(bought(quarantinePen))
     ).resolves.toMatchObject({ tagNumber: expect.any(String) });
     const owner = await as("owner");
     await expect(
@@ -156,7 +156,7 @@ describe("a bull in Quarantine", () => {
 
   const intoQuarantine = async () => {
     const manager = await as("manager");
-    const bull = await manager.client.intake.record(bought(pens.first));
+    const bull = await manager.client.intakes.record(bought(pens.first));
     return bull.tagNumber;
   };
 
