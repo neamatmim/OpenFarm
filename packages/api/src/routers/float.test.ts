@@ -70,7 +70,7 @@ const funded = async (owner: Owner, which: number, capitalMoney: number) => {
 
 /** One outing the farm wrote up. */
 const outing = async (owner: Owner, which: number) => {
-  const trip = await owner.client.trips.record({
+  const trip = await owner.client.buyingTrips.record({
     wentTo: `হাট ${which} ${suffix}`,
     wentOn: "2046-12-05",
     brokerMoney: 0,
@@ -86,8 +86,8 @@ let penId = "";
 beforeAll(async () => {
   const owner = await as("owner", "2046-12-01T04:00:00.000Z");
   ventureId = await funded(owner, 1, 800_000);
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -304,7 +304,7 @@ describe("the Buying Float", () => {
     });
     for (let which = 501; which <= 521; which += 1) {
       // oxlint-disable-next-line no-await-in-loop -- one outing after another, as a season of livestock markets is
-      await owner.client.trips.record({
+      await owner.client.buyingTrips.record({
         wentTo: `পরের হাট ${which} ${suffix}`,
         wentOn: "2046-12-10",
         brokerMoney: 0,
@@ -313,9 +313,11 @@ describe("the Buying Float", () => {
       });
     }
 
-    const lately = await owner.client.trips.list();
+    const lately = await owner.client.buyingTrips.list();
     expect(lately.map((one) => one.id)).not.toContain(early);
-    const stillOut = await owner.client.trips.list({ openFloatsOf: longRun });
+    const stillOut = await owner.client.buyingTrips.list({
+      openFloatsOf: longRun,
+    });
     expect(stillOut.map((one) => one.id)).toEqual([early]);
     expect(stillOut[0]?.float).toMatchObject({
       ventureId: longRun,
@@ -337,7 +339,7 @@ describe("an outing a Float paid for", () => {
     const owner = await as("owner", "2047-01-10T04:00:00.000Z");
     paying = await funded(owner, 60, 400_000);
     const manager = await as("manager", "2047-01-10T04:00:00.000Z");
-    const trip = await manager.client.trips.record({
+    const trip = await manager.client.buyingTrips.record({
       wentTo: `ভাড়ার হাট ${suffix}`,
       wentOn: "2047-01-10",
       brokerMoney: 1500,
@@ -379,7 +381,7 @@ describe("an outing a Float paid for", () => {
 
   it("keeps it the Venture's when what it cost is put right", async () => {
     const manager = await as("manager", "2047-01-11T04:00:00.000Z");
-    await manager.client.trips.correct({
+    await manager.client.buyingTrips.correct({
       id: paidFor,
       reason: "লরির ভাড়া বেশি ছিল",
       changes: { transportMoney: { from: 4000, to: 4500 } },
@@ -400,7 +402,7 @@ describe("an outing a Float paid for", () => {
 
   it("is booked to the Venture from the start when it cost nothing until after the Float went", async () => {
     const owner = await as("owner", "2047-01-12T04:00:00.000Z");
-    const written = await owner.client.trips.record({
+    const written = await owner.client.buyingTrips.record({
       wentTo: `শেষে লেখা হাট ${suffix}`,
       wentOn: "2047-01-12",
       brokerMoney: 0,
@@ -417,7 +419,7 @@ describe("an outing a Float paid for", () => {
       reference: `FLT-${suffix}-late`,
     });
     const manager = await as("manager", "2047-01-12T06:00:00.000Z");
-    await manager.client.trips.correct({
+    await manager.client.buyingTrips.correct({
       id: trip,
       reason: "লরির ভাড়া লেখা হয়নি",
       changes: { transportMoney: { from: 0, to: 3000 } },
@@ -437,7 +439,7 @@ describe("an outing a Float paid for", () => {
 
   it("stays the Farm's when no Float paid for it", async () => {
     const manager = await as("manager", "2047-01-13T04:00:00.000Z");
-    const trip = await manager.client.trips.record({
+    const trip = await manager.client.buyingTrips.record({
       wentTo: `খামারের হাট ${suffix}`,
       wentOn: "2047-01-13",
       brokerMoney: 0,

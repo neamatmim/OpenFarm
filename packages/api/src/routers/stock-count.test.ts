@@ -37,8 +37,8 @@ const countSop = (): SopContent => ({
 const setup = async () => {
   const clock = new FakeClock("2035-01-01T04:00:00.000Z");
   const manager = await createTestClient(appRouter, { as: "manager", clock });
-  const shed = await manager.client.herd.createShed({ name: `sc-${suffix}` });
-  const pen = await manager.client.herd.createPen({
+  const shed = await manager.client.sheds.createShed({ name: `sc-${suffix}` });
+  const pen = await manager.client.sheds.createPen({
     shedId: shed.id,
     name: `গুদাম ${suffix}`,
   });
@@ -108,16 +108,16 @@ const lineFor = async (at: string, feedItemId: string) => {
 /** This week's count, raised by hand on `day`, claimed by the Manager unless asked not to. */
 const countWork = async (day: string, { claim = true } = {}) => {
   const manager = await managerAt(`${day}T04:00:00.000Z`);
-  await manager.client.instances.raiseNow({
+  await manager.client.work.raiseNow({
     definitionId: world.sop.definitionId,
     penId: world.pen.id,
   });
-  const today = await manager.client.instances.today({ penId: world.pen.id });
+  const today = await manager.client.work.today({ penId: world.pen.id });
   const work = today.find(
     (row) => row.definitionId === world.sop.definitionId && row.state === "due"
   );
   if (claim) {
-    await manager.client.instances.claim({ id: work?.id ?? "" });
+    await manager.client.work.claim({ id: work?.id ?? "" });
   }
   return { id: work?.id ?? "", manager };
 };
@@ -134,7 +134,7 @@ const countLines = async (
   workId: string,
   mine: Record<string, { counted: number; reason?: string }>
 ) => {
-  const board = await manager.client.instances.get({ id: workId });
+  const board = await manager.client.work.get({ id: workId });
   const stock = await manager.client.stock.onHand();
   return (board.stockCount?.items ?? []).map((item) => {
     const onHand =
@@ -164,13 +164,13 @@ const countOn = async (
   mine: Record<string, { counted: number; reason?: string }>
 ) => {
   const { id, manager } = await countWork(day);
-  await manager.client.instances.completeStep({
+  await manager.client.work.completeStep({
     instanceId: id,
     stepId: "count",
     evidence: [true],
     counts: await countLines(manager, id, mine),
   });
-  await manager.client.instances.complete({ id });
+  await manager.client.work.complete({ id });
   return id;
 };
 
@@ -180,7 +180,7 @@ describe("the stock count", () => {
 
     // The board says what to count, and does not say what the store is thought to hold: a count
     // that can see the answer is a count that copies it.
-    const board = await manager.client.instances.get({ id });
+    const board = await manager.client.work.get({ id });
     expect(board.stockCount?.items.map((item) => item.feedItemId)).toEqual(
       expect.arrayContaining([world.concentrate.id, world.grass.id])
     );
@@ -188,7 +188,7 @@ describe("the stock count", () => {
 
     // A count that leaves the straw out has a hole the store would read straight through: refused.
     await expect(
-      manager.client.instances.completeStep({
+      manager.client.work.completeStep({
         instanceId: id,
         stepId: "count",
         evidence: [true],
@@ -210,7 +210,7 @@ describe("the stock count", () => {
 
     // Fifty kilos short, and nobody says why: refused, naming it.
     await expect(
-      manager.client.instances.completeStep({
+      manager.client.work.completeStep({
         instanceId: id,
         stepId: "count",
         evidence: [true],
@@ -227,7 +227,7 @@ describe("the stock count", () => {
       },
     });
 
-    await manager.client.instances.completeStep({
+    await manager.client.work.completeStep({
       instanceId: id,
       stepId: "count",
       evidence: [true],
@@ -236,7 +236,7 @@ describe("the stock count", () => {
         [world.grass.id]: { counted: 500 },
       }),
     });
-    await manager.client.instances.complete({ id });
+    await manager.client.work.complete({ id });
 
     const concentrate = await lineFor(
       "2035-01-08T05:00:00.000Z",
@@ -347,7 +347,7 @@ describe("the stock count", () => {
       clock: new FakeClock("2035-01-10T04:30:00.000Z"),
     });
     await expect(
-      owner.client.instances.completeStep({
+      owner.client.work.completeStep({
         instanceId: id,
         stepId: "count",
         evidence: [true],
@@ -382,7 +382,7 @@ describe("running low", () => {
       ).length;
     };
     try {
-      const home = await manager.client.home.manager();
+      const home = await manager.client.home.get();
       expect(home.queue.lowStock).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -396,7 +396,7 @@ describe("running low", () => {
         as: "owner",
         clock: new FakeClock("2035-01-11T04:00:00.000Z"),
       });
-      const ownersHome = await owner.client.home.owner();
+      const ownersHome = await owner.client.overview.get();
       expect(
         ownersHome.needsYou.lowStock.map((line) => line.feedItemId)
       ).toContain(world.concentrate.id);
@@ -428,7 +428,7 @@ describe("running low", () => {
         seller: { name: `রহমান ফিডস ${suffix}` },
         receivedOn: "2035-01-14",
       });
-      const restocked = await restocking.client.home.manager();
+      const restocked = await restocking.client.home.get();
       expect(
         restocked.queue.lowStock.map((line) => line.feedItemId)
       ).not.toContain(world.concentrate.id);
@@ -469,10 +469,10 @@ describe("a count from a phone's Outbox", () => {
     });
 
     expect(sent.results).toMatchObject([{ outcome: "applied" }]);
-    const board = await manager.client.instances.get({ id });
+    const board = await manager.client.work.get({ id });
     expect(
       board.stockCount?.counted.map((line) => line.feedItemId).toSorted()
     ).toEqual(counts.map((line) => line.feedItemId).toSorted());
-    await manager.client.instances.complete({ id });
+    await manager.client.work.complete({ id });
   });
 });

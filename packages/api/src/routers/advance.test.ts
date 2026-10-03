@@ -99,8 +99,8 @@ const theVenture = async (owner: Owner) => {
 
 /** A Pen of this Venture's animals, fed enough that a month's Reimbursement bites. */
 const theyEat = async (owner: Owner) => {
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -154,14 +154,14 @@ const theyEat = async (owner: Owner) => {
 
   const sop = await owner.client.sops.create({ content: feedSop() });
   const scheduler = await as("owner", "2047-05-05T06:30:00.000Z");
-  await scheduler.client.instances.ensureDue();
-  const today = await scheduler.client.instances.today({ penId: pen.id });
+  await scheduler.client.work.ensureDue();
+  const today = await scheduler.client.work.today({ penId: pen.id });
   const instance = today.find((one) => one.definitionId === sop.definitionId);
   const staff = await as("staff", "2047-05-05T06:30:00.000Z");
-  await staff.client.instances.claim({ id: instance?.id ?? "" });
+  await staff.client.work.claim({ id: instance?.id ?? "" });
   // Four thousand one hundred kilos at forty taka: a hundred and sixty-four thousand of the two lakh,
   // which leaves less than the fifth the Owner set as her line.
-  await staff.client.instances.completeStep({
+  await staff.client.work.completeStep({
     instanceId: instance?.id ?? "",
     stepId: "feed",
     evidence: [true],
@@ -191,7 +191,7 @@ describe("the Running Budget", () => {
     const owner = await as("owner", "2047-05-05T04:00:00.000Z");
     // The animals eat their way through most of it, on the Farm's feed: owed the Farm until a Reimbursement repays it.
     await theyEat(owner);
-    const trip = await owner.client.trips.record({
+    const trip = await owner.client.buyingTrips.record({
       wentTo: `হাট ${suffix}`,
       wentOn: "2047-05-05",
       brokerMoney: 0,

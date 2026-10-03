@@ -135,7 +135,7 @@ const tabOf = (register: InspectorRegister): Tab =>
   REGISTER_TABS.find((one) => one.register === register)?.value ??
   "registration";
 
-type View = Awaited<ReturnType<typeof orpc.registrationCertificate.view.call>>;
+type View = Awaited<ReturnType<typeof orpc.inspectorView.view.call>>;
 type CertificatePhoto = Awaited<ReturnType<typeof orpc.farm.certificate.call>>;
 
 const Line = ({ label, children }: { label: string; children: ReactNode }) => (
@@ -316,7 +316,7 @@ const InspectorPage = () => {
   const refused = useRefused();
   const navigate = useNavigate({ from: Route.fullPath });
   const { tab = "registration" } = Route.useSearch();
-  const view = useQuery(orpc.registrationCertificate.view.queryOptions());
+  const view = useQuery(orpc.inspectorView.view.queryOptions());
   // The very photograph the view named, so the printed Registration shows the certificate the screen does.
   const certificateId = view.data?.registration.certificate?.id;
   const certificate = useQuery({
@@ -334,7 +334,7 @@ const InspectorPage = () => {
     text: string;
   } | null>(null);
   const print = useMutation(
-    orpc.registrationCertificate.print.mutationOptions({
+    orpc.inspectorView.print.mutationOptions({
       onSuccess: ({ text }, { register }) => {
         // The movement log is a spreadsheet and comes back with no paper to show.
         if (!text || register === "movement_log") {

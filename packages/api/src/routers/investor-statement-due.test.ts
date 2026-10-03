@@ -51,8 +51,8 @@ const papersDue = async (owner: Client, which: string) => {
 
 beforeAll(async () => {
   const owner = await as("owner", "2054-01-01T04:00:00.000Z");
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -103,7 +103,7 @@ beforeAll(async () => {
 
   // One bull, so the run has something to sell.
   const buying = await as("owner", "2054-01-04T04:00:00.000Z");
-  const trip = await buying.client.trips.record({
+  const trip = await buying.client.buyingTrips.record({
     wentTo: `হাট ${suffix}`,
     wentOn: "2054-01-04",
     brokerMoney: 0,

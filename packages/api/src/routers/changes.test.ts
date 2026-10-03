@@ -25,10 +25,10 @@ const waterSop = (): SopContent => ({
 
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.client.herd.createShed({
+  const shed = await owner.client.sheds.createShed({
     name: `changes-${Date.now()}`,
   });
-  const pen = await owner.client.herd.createPen({
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: "পানির পেন",
   });
@@ -52,8 +52,8 @@ beforeAll(async () => {
 
 const openWork = async (clock: FakeClock) => {
   const owner = await createTestClient(appRouter, { as: "owner", clock });
-  await owner.client.instances.ensureDue();
-  const today = await owner.client.instances.today({ penId: world.pen.id });
+  await owner.client.work.ensureDue();
+  const today = await owner.client.work.today({ penId: world.pen.id });
   const instance = today.find(
     (row) => row.definitionId === world.sop.definitionId
   );
@@ -97,7 +97,7 @@ describe("a Version that changed under somebody", () => {
     const clock = new FakeClock("2027-11-02T02:00:00.000Z");
     const { owner, instance } = await openWork(clock);
 
-    const board = await owner.client.instances.get({ id: instance.id });
+    const board = await owner.client.work.get({ id: instance.id });
     expect(board.changed?.from).toBe(1);
     expect(board.changed?.to).toBe(2);
     expect(board.changed?.changes).toContainEqual({
@@ -110,17 +110,17 @@ describe("a Version that changed under somebody", () => {
     const clock = new FakeClock("2027-11-03T02:00:00.000Z");
     const { owner, instance } = await openWork(clock);
 
-    const before = await owner.client.instances.get({ id: instance.id });
+    const before = await owner.client.work.get({ id: instance.id });
     expect(before.changed).not.toBeNull();
 
-    await owner.client.instances.claim({ id: instance.id });
-    await owner.client.instances.completeStep({
+    await owner.client.work.claim({ id: instance.id });
+    await owner.client.work.completeStep({
       instanceId: instance.id,
       stepId: "check",
       evidence: [true],
     });
 
-    const after = await owner.client.instances.get({ id: instance.id });
+    const after = await owner.client.work.get({ id: instance.id });
     // They have done it on this Version, which is how the farm knows they read it. No
     // button to press, and nothing left nagging.
     expect(after.changed).toBeNull();
@@ -157,7 +157,7 @@ describe("a Version that changed under somebody", () => {
       note: "ধোয়ার ধাপ",
     });
 
-    const board = await owner.client.instances.get({ id: instance.id });
+    const board = await owner.client.work.get({ id: instance.id });
     // The work in hand is still the work that was raised: same Version, same Steps (ADR
     // 0001), and the newer one is not quietly swapped under the person doing it.
     expect(board.versionId).toBe(startedOn);
@@ -168,10 +168,10 @@ describe("a Version that changed under somebody", () => {
   it("shows everything that changed while somebody was away, not only the last of it", async () => {
     const clock = new FakeClock("2027-11-05T02:00:00.000Z");
     const owner = await createTestClient(appRouter, { as: "owner", clock });
-    const shed = await owner.client.herd.createShed({
+    const shed = await owner.client.sheds.createShed({
       name: `away-${Date.now()}`,
     });
-    const pen = await owner.client.herd.createPen({
+    const pen = await owner.client.sheds.createPen({
       shedId: shed.id,
       name: "দূরের পেন",
     });
@@ -186,16 +186,16 @@ describe("a Version that changed under somebody", () => {
     const sop = await owner.client.sops.create({ content: waterSop() });
 
     // They do the work on Version 1.
-    await owner.client.instances.ensureDue();
-    const todaysWork = await owner.client.instances.today({ penId: pen.id });
+    await owner.client.work.ensureDue();
+    const todaysWork = await owner.client.work.today({ penId: pen.id });
     const first = todaysWork.find(
       (row) => row.definitionId === sop.definitionId
     );
     if (!first) {
       throw new Error("expected work on version 1");
     }
-    await owner.client.instances.claim({ id: first.id });
-    await owner.client.instances.completeStep({
+    await owner.client.work.claim({ id: first.id });
+    await owner.client.work.completeStep({
       instanceId: first.id,
       stepId: "check",
       evidence: [true],
@@ -240,15 +240,15 @@ describe("a Version that changed under somebody", () => {
 
     clock.advance(DAY);
     const later = await createTestClient(appRouter, { as: "owner", clock });
-    await later.client.instances.ensureDue();
-    const laterWork = await later.client.instances.today({ penId: pen.id });
+    await later.client.work.ensureDue();
+    const laterWork = await later.client.work.today({ penId: pen.id });
     const today = laterWork.find(
       (row) => row.definitionId === sop.definitionId
     );
     if (!today) {
       throw new Error("expected work on version 3");
     }
-    const board = await later.client.instances.get({ id: today.id });
+    const board = await later.client.work.get({ id: today.id });
 
     // Version 1 is what they last worked to, so both new Steps are new to them.
     expect(board.changed?.from).toBe(1);
@@ -261,10 +261,10 @@ describe("a Version that changed under somebody", () => {
   it("says nothing when two Versions differ in ways nobody doing the work would see", async () => {
     const clock = new FakeClock("2027-11-06T02:00:00.000Z");
     const owner = await createTestClient(appRouter, { as: "owner", clock });
-    const shed = await owner.client.herd.createShed({
+    const shed = await owner.client.sheds.createShed({
       name: `quiet-${Date.now()}`,
     });
-    const pen = await owner.client.herd.createPen({
+    const pen = await owner.client.sheds.createPen({
       shedId: shed.id,
       name: "শান্ত পেন",
     });
@@ -285,13 +285,13 @@ describe("a Version that changed under somebody", () => {
       note: "কিছু বদলায়নি",
     });
 
-    await owner.client.instances.ensureDue();
-    const raised = await owner.client.instances.today({ penId: pen.id });
+    await owner.client.work.ensureDue();
+    const raised = await owner.client.work.today({ penId: pen.id });
     const work = raised.find((row) => row.definitionId === sop.definitionId);
     if (!work) {
       throw new Error("expected work");
     }
-    const board = await owner.client.instances.get({ id: work.id });
+    const board = await owner.client.work.get({ id: work.id });
     // Announcing a change with nothing under it teaches people to ignore the banner.
     expect(board.changed).toBeNull();
   });

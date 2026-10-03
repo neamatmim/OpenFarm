@@ -146,7 +146,7 @@ const FeedPage = () => {
   );
 
   const me = useQuery(orpc.people.me.queryOptions());
-  const sheds = useQuery(orpc.herd.list.queryOptions());
+  const sheds = useQuery(orpc.sheds.list.queryOptions());
   const items = useQuery(orpc.feed.items.queryOptions());
   const rations = useQuery(orpc.feed.rations.queryOptions());
   const stock = useQuery(orpc.stock.onHand.queryOptions());

@@ -17,8 +17,8 @@ const as = (role: "owner" | "manager" | "staff" | "vet", instant: string) =>
 
 const setup = async () => {
   const owner = await as("owner", "2037-01-02T04:00:00.000Z");
-  const shed = await owner.client.herd.createShed({ name: `money-${suffix}` });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `money-${suffix}` });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `টাকা ${suffix}`,
@@ -273,7 +273,7 @@ describe("money from the farm's records", () => {
 
     // On the Owner's queue, and in the Owner's digest.
     const owner = await as("owner", "2037-03-01T06:00:00.000Z");
-    const home = await owner.client.home.owner();
+    const home = await owner.client.overview.get();
     expect(home.needsYou.moneyAwaiting).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id, amountMoney: 85_000, source: "intake" }),
@@ -312,7 +312,7 @@ describe("money from the farm's records", () => {
     ).rejects.toMatchObject({ data: { refusal: "not_awaiting_approval" } });
     // Approved, the notice about it is taken down.
     expect(await owner.client.alerts.mine({ about: id })).toEqual([]);
-    const after = await owner.client.home.owner();
+    const after = await owner.client.overview.get();
     expect(after.needsYou.moneyAwaiting.map((one) => one.id)).not.toContain(id);
   });
 

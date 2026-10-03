@@ -65,12 +65,12 @@ const milkingSop = (): SopContent => ({
 
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.client.herd.createShed({ name: `milk-${suffix}` });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `milk-${suffix}` });
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `দোহন ${suffix}`,
   });
-  const sickPen = await owner.client.herd.createPen({
+  const sickPen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `চিকিৎসা ${suffix}`,
   });
@@ -127,8 +127,8 @@ beforeAll(async () => {
 const session = async (day: string, penId = world.pen.id) => {
   const clock = new FakeClock(`${day}T05:30:00.000Z`);
   const scheduler = await createTestClient(appRouter, { as: "owner", clock });
-  await scheduler.client.instances.ensureDue();
-  const today = await scheduler.client.instances.today({ penId });
+  await scheduler.client.work.ensureDue();
+  const today = await scheduler.client.work.today({ penId });
   const instance = today.find(
     (candidate) => candidate.definitionId === world.sop.definitionId
   );
@@ -136,7 +136,7 @@ const session = async (day: string, penId = world.pen.id) => {
     throw new Error("expected a milking instance");
   }
   const staff = await createTestClient(appRouter, { as: "staff", clock });
-  await staff.client.instances.claim({ id: instance.id });
+  await staff.client.work.claim({ id: instance.id });
   return { instance, staff, clock, manager: scheduler };
 };
 
@@ -146,21 +146,21 @@ describe("the milking effect", () => {
   it("writes one Milk Record per cow, and correcting her replaces it", async () => {
     const { instance, staff } = await session("2026-10-01");
 
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: tagOf(0),
       evidence: [12.5],
     });
     // The same entry arriving twice — a phone replaying its outbox — is one fact.
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: tagOf(0),
       evidence: [12.5],
     });
     // A different figure is a changed fact, so it goes through a Correction.
-    const board = await staff.client.instances.get({ id: instance.id });
+    const board = await staff.client.work.get({ id: instance.id });
     const entry = board.completions.find((row) => row.stepId === "milk");
     await correctStepAsShown(staff.client, {
       completionId: entry?.id ?? "",
@@ -182,13 +182,13 @@ describe("the milking effect", () => {
   it("defaults to Bulk and takes Calves or Discard when the person picks one", async () => {
     const { instance, staff } = await session("2026-10-02");
 
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: tagOf(0),
       evidence: [10],
     });
-    const picked = await staff.client.instances.completeStep({
+    const picked = await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: tagOf(1),
@@ -219,7 +219,7 @@ describe("the milking effect", () => {
       .set({ milkWithdrawalUntil: new Date(clock.now().getTime() + 2 * DAY) })
       .where(eq(animal.tagNumber, world.sickCow.tagNumber));
 
-    const recorded = await staff.client.instances.completeStep({
+    const recorded = await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: world.sickCow.tagNumber,
@@ -239,7 +239,7 @@ describe("the milking effect", () => {
       forced: true,
     });
     // And the pen board renders her locked, so nobody is asked to make the choice at all.
-    const board = await staff.client.instances.get({ id: instance.id });
+    const board = await staff.client.work.get({ id: instance.id });
     expect(
       board.animals.find((beast) => beast.tagNumber === world.sickCow.tagNumber)
         ?.underMilkWithdrawal
@@ -254,13 +254,13 @@ describe("the milking effect", () => {
   it("a skipped cow has no litres to her name, and skipping her later takes them away", async () => {
     const { instance, staff } = await session("2026-10-04");
 
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: tagOf(0),
       evidence: [11],
     });
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: tagOf(1),
@@ -273,7 +273,7 @@ describe("the milking effect", () => {
 
     // The first cow turns out to have been the sick one: her entry becomes a skip, which
     // changes what was recorded and so goes through a Correction.
-    const board = await staff.client.instances.get({ id: instance.id });
+    const board = await staff.client.work.get({ id: instance.id });
     const entry = board.completions.find(
       (row) => row.stepId === "milk" && row.status === "done"
     );
@@ -319,7 +319,7 @@ describe("the milking effect", () => {
 
     // She keeps her Pen, so the Pen alone would still have let the entry through.
     await expect(
-      staff.client.instances.completeStep({
+      staff.client.work.completeStep({
         instanceId: instance.id,
         stepId: "milk",
         animalTag: doomed.tagNumber,
@@ -333,13 +333,13 @@ describe("the milking effect", () => {
 describe("reconciling the tank", () => {
   it("stores the difference and leaves it unflagged exactly at the tolerance", async () => {
     const { instance, staff } = await session("2026-10-05");
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: tagOf(0),
       evidence: [10],
     });
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: tagOf(1),
@@ -347,7 +347,7 @@ describe("reconciling the tank", () => {
     });
 
     // 21 litres in the tank against 20 the cows account for: one litre out, exactly 5%.
-    const closed = await staff.client.instances.completeStep({
+    const closed = await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "bulk",
       evidence: [21],
@@ -372,13 +372,13 @@ describe("reconciling the tank", () => {
 
   it("flags the Session for the Manager once the difference goes beyond it", async () => {
     const { instance, staff, manager } = await session("2026-10-06");
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: tagOf(0),
       evidence: [10],
     });
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: tagOf(1),
@@ -386,7 +386,7 @@ describe("reconciling the tank", () => {
     });
 
     // 21.5 against 20 is 7.5% — a missed cow, a typo, or milk going somewhere it should not.
-    const closed = await staff.client.instances.completeStep({
+    const closed = await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "bulk",
       evidence: [21.5],
@@ -403,13 +403,13 @@ describe("reconciling the tank", () => {
 
   it("milk that went to the calves is not milk the tank should hold", async () => {
     const { instance, staff } = await session("2026-10-07");
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: tagOf(0),
       evidence: [10],
     });
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: tagOf(1),
@@ -417,7 +417,7 @@ describe("reconciling the tank", () => {
       destination: "calves",
     });
 
-    const closed = await staff.client.instances.completeStep({
+    const closed = await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "bulk",
       evidence: [10],
@@ -432,26 +432,26 @@ describe("reconciling the tank", () => {
 
   it("correcting a cow after the tank was read moves the difference with her", async () => {
     const { instance, staff } = await session("2026-10-08");
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: tagOf(0),
       evidence: [10],
     });
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: tagOf(1),
       evidence: [10],
     });
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "bulk",
       evidence: [21.5],
     });
 
     // The 10 was a mis-keyed 11.5: the tank was right all along.
-    const board = await staff.client.instances.get({ id: instance.id });
+    const board = await staff.client.work.get({ id: instance.id });
     const entry = board.completions.find(
       (row) => row.stepId === "milk" && row.animalId === world.cows[1]?.id
     );
@@ -475,13 +475,13 @@ describe("reconciling the tank", () => {
     try {
       // A new client, because a request reads the Farm once when its context is built.
       const { instance, staff } = await session("2026-10-09");
-      await staff.client.instances.completeStep({
+      await staff.client.work.completeStep({
         instanceId: instance.id,
         stepId: "milk",
         animalTag: tagOf(0),
         evidence: [10],
       });
-      await staff.client.instances.completeStep({
+      await staff.client.work.completeStep({
         instanceId: instance.id,
         stepId: "milk",
         animalTag: tagOf(1),
@@ -489,7 +489,7 @@ describe("reconciling the tank", () => {
       });
 
       // 7.5% would have been flagged a moment ago; the Manager has widened the tolerance.
-      const closed = await staff.client.instances.completeStep({
+      const closed = await staff.client.work.completeStep({
         instanceId: instance.id,
         stepId: "bulk",
         evidence: [21.5],
@@ -556,7 +556,7 @@ describe("review findings", () => {
     const { instance, staff } = await session("2026-10-15");
 
     await expect(
-      staff.client.instances.completeStep({
+      staff.client.work.completeStep({
         instanceId: instance.id,
         stepId: "bulk",
         evidence: [20],
@@ -567,25 +567,25 @@ describe("review findings", () => {
 
   it("reads the reconciliation back on the Instance the Manager opens", async () => {
     const { instance, staff, manager } = await session("2026-10-16");
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: tagOf(0),
       evidence: [10],
     });
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: tagOf(1),
       evidence: [10],
     });
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "bulk",
       evidence: [25],
     });
 
-    const opened = await manager.client.instances.get({ id: instance.id });
+    const opened = await manager.client.work.get({ id: instance.id });
     expect(opened.milkingSession).toMatchObject({
       bulkLitres: "25.00",
       sumBulkLitres: "20.00",
@@ -722,7 +722,7 @@ describe("lactations", () => {
 
   it("keeps each milking against the Lactation it belonged to", async () => {
     const { instance, staff } = await session("2026-10-12");
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: tagOf(0),

@@ -36,10 +36,10 @@ beforeAll(async () => {
 /** A Pen of its own, with this many heifers in it, for each question. */
 const aPenOf = async (name: string, head: number) => {
   const owner = await as("owner", "2055-01-01T00:00:00.000Z");
-  const shed = await owner.client.herd.createShed({
+  const shed = await owner.client.sheds.createShed({
     name: `${suffix}-${name}`,
   });
-  const pen = await owner.client.herd.createPen({ shedId: shed.id, name });
+  const pen = await owner.client.sheds.createPen({ shedId: shed.id, name });
   const tags: string[] = [];
   for (let one = 0; one < head; one += 1) {
     // One after another, as the register is written.
@@ -60,14 +60,14 @@ const aPenOf = async (name: string, head: number) => {
 /** The evening's count for a Pen, written by the Manager on the Pen's phone. */
 const countIn = async (day: string, penId: string, counted: number) => {
   const manager = await as("manager", lockUp(day));
-  await manager.client.instances.ensureDue();
-  const today = await manager.client.instances.today({ penId });
+  await manager.client.work.ensureDue();
+  const today = await manager.client.work.today({ penId });
   const work = today.find((row) => row.definitionId === countId);
   if (!work) {
     throw new Error("expected the evening head count");
   }
-  await manager.client.instances.claim({ id: work.id });
-  const done = await manager.client.instances.completeStep({
+  await manager.client.work.claim({ id: work.id });
+  const done = await manager.client.work.completeStep({
     instanceId: work.id,
     stepId: "count",
     evidence: [counted],

@@ -64,8 +64,8 @@ const milkingSop = (over: Partial<SopContent> = {}): SopContent => ({
 
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.client.herd.createShed({ name: `corr-${suffix}` });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `corr-${suffix}` });
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `পেন ${suffix}`,
   });
@@ -140,8 +140,8 @@ const as = async (role: Role, clock: FakeClock) => {
 const session = async (day: string, definitionId = world.sop.definitionId) => {
   const clock = new FakeClock(`${day}T05:30:00.000Z`);
   const scheduler = await as("owner", clock);
-  await scheduler.instances.ensureDue();
-  const today = await scheduler.instances.today({ penId: world.pen.id });
+  await scheduler.work.ensureDue();
+  const today = await scheduler.work.today({ penId: world.pen.id });
   const instance = today.find(
     (candidate) => candidate.definitionId === definitionId
   );
@@ -158,13 +158,13 @@ const recordCow = async (
   tagNumber: string,
   litres: number
 ) => {
-  await client.instances.completeStep({
+  await client.work.completeStep({
     instanceId,
     stepId: "milk",
     animalTag: tagNumber,
     evidence: [litres],
   });
-  const loaded = await client.instances.get({ id: instanceId });
+  const loaded = await client.work.get({ id: instanceId });
   const completion = loaded.completions.find(
     (row) => row.stepId === "milk" && row.animalId !== null
   );
@@ -182,13 +182,13 @@ describe("two people recording together", () => {
     const staff = await as("staff", clock);
     const manager = await as("manager", clock);
     const both = await Promise.allSettled([
-      staff.instances.completeStep({
+      staff.work.completeStep({
         instanceId: instance.id,
         stepId: "milk",
         animalTag: tagOf(0),
         evidence: [10],
       }),
-      manager.instances.completeStep({
+      manager.work.completeStep({
         instanceId: instance.id,
         stepId: "milk",
         animalTag: tagOf(1),
@@ -196,7 +196,7 @@ describe("two people recording together", () => {
       }),
     ]);
     expect(both.map((one) => one.status)).toEqual(["fulfilled", "fulfilled"]);
-    const loaded = await manager.instances.get({ id: instance.id });
+    const loaded = await manager.work.get({ id: instance.id });
     expect(loaded.state).toBe("in_progress");
     expect(
       loaded.completions.filter((row) => row.stepId === "milk")
@@ -208,7 +208,7 @@ describe("correction windows", () => {
   it("lets Staff put their own entry right for two hours, and not after", async () => {
     const { instance, clock } = await session("2026-12-01");
     const staff = await as("staff", clock);
-    await staff.instances.claim({ id: instance.id });
+    await staff.work.claim({ id: instance.id });
     const completionId = await recordCow(staff, instance.id, tagOf(0), 10);
 
     clock.advance(HOUR);
@@ -237,7 +237,7 @@ describe("correction windows", () => {
   it("refuses Staff another person's entry even inside the window", async () => {
     const { instance, clock } = await session("2026-12-02");
     const manager = await as("manager", clock);
-    await manager.instances.claim({ id: instance.id });
+    await manager.work.claim({ id: instance.id });
     const completionId = await recordCow(manager, instance.id, tagOf(0), 10);
 
     const staff = await as("staff", clock);
@@ -253,7 +253,7 @@ describe("correction windows", () => {
   it("lets the Manager put anyone's right for thirty days, and not after", async () => {
     const { instance, clock } = await session("2026-12-03");
     const staff = await as("staff", clock);
-    await staff.instances.claim({ id: instance.id });
+    await staff.work.claim({ id: instance.id });
     const completionId = await recordCow(staff, instance.id, tagOf(0), 10);
 
     clock.advance(29 * DAY);
@@ -284,7 +284,7 @@ describe("correction windows", () => {
   it("lets the Owner put anything right whenever", async () => {
     const { instance, clock } = await session("2026-12-04");
     const staff = await as("staff", clock);
-    await staff.instances.claim({ id: instance.id });
+    await staff.work.claim({ id: instance.id });
     const completionId = await recordCow(staff, instance.id, tagOf(0), 10);
 
     clock.advance(400 * DAY);
@@ -304,13 +304,13 @@ describe("correction windows", () => {
       world.vetSop.definitionId
     );
     const vet = await as("vet", clock);
-    await vet.instances.claim({ id: instance.id });
-    await vet.instances.completeStep({
+    await vet.work.claim({ id: instance.id });
+    await vet.work.completeStep({
       instanceId: instance.id,
       stepId: "check",
       evidence: ["সব ঠিক"],
     });
-    const loaded = await vet.instances.get({ id: instance.id });
+    const loaded = await vet.work.get({ id: instance.id });
     const completionId = loaded.completions[0]?.id ?? "";
 
     // A Vet's unlimited window is over the clinical record — a Diagnosis, a Prescription,
@@ -337,7 +337,7 @@ describe("correction windows", () => {
     try {
       const { instance, clock } = await session("2026-12-06");
       const staff = await as("staff", clock);
-      await staff.instances.claim({ id: instance.id });
+      await staff.work.claim({ id: instance.id });
       const completionId = await recordCow(staff, instance.id, tagOf(0), 10);
 
       // Six hours would have been too late a moment ago.
@@ -358,15 +358,15 @@ describe("what a correction does", () => {
   it("replaces the Milk Record and works the reconciliation out again", async () => {
     const { instance, clock } = await session("2026-12-07");
     const staff = await as("staff", clock);
-    await staff.instances.claim({ id: instance.id });
+    await staff.work.claim({ id: instance.id });
     const completionId = await recordCow(staff, instance.id, tagOf(0), 10);
-    await staff.instances.completeStep({
+    await staff.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: tagOf(1),
       evidence: [10],
     });
-    await staff.instances.completeStep({
+    await staff.work.completeStep({
       instanceId: instance.id,
       stepId: "bulk",
       evidence: [21.5],
@@ -395,7 +395,7 @@ describe("what a correction does", () => {
   it("keeps the entry as it was, beside the correction and its reason", async () => {
     const { instance, clock } = await session("2026-12-08");
     const staff = await as("staff", clock);
-    await staff.instances.claim({ id: instance.id });
+    await staff.work.claim({ id: instance.id });
     const completionId = await recordCow(staff, instance.id, tagOf(0), 10);
 
     clock.advance(HOUR);
@@ -429,7 +429,7 @@ describe("what a correction does", () => {
   it("reads the trail newest first, even within the one second", async () => {
     const { instance, clock } = await session("2026-12-18");
     const staff = await as("staff", clock);
-    await staff.instances.claim({ id: instance.id });
+    await staff.work.claim({ id: instance.id });
     const completionId = await recordCow(staff, instance.id, tagOf(0), 10);
     // No clock.advance: the Correction lands in the same instant as the entry, which is what a farm
     // phone sending a fix straight after the entry actually does. Ordering by the instant alone would
@@ -451,7 +451,7 @@ describe("what a correction does", () => {
   it("turning an entry into a skip takes its litres away", async () => {
     const { instance, clock } = await session("2026-12-09");
     const staff = await as("staff", clock);
-    await staff.instances.claim({ id: instance.id });
+    await staff.work.claim({ id: instance.id });
     const completionId = await recordCow(staff, instance.id, tagOf(0), 10);
 
     clock.advance(HOUR);
@@ -469,7 +469,7 @@ describe("what a correction does", () => {
   it("refuses an answer the Step no longer holds, and one that changes nothing", async () => {
     const { instance, clock } = await session("2026-12-15");
     const staff = await as("staff", clock);
-    await staff.instances.claim({ id: instance.id });
+    await staff.work.claim({ id: instance.id });
     const completionId = await recordCow(staff, instance.id, tagOf(0), 10);
     const recorded = {
       skipReason: null,
@@ -487,7 +487,7 @@ describe("what a correction does", () => {
       reason: "খাতায় এগারো",
     });
     await expect(
-      staff.instances.correctStep({
+      staff.work.correctStep({
         id: completionId,
         reason: "ভুল লিখেছিলাম",
         changes: { answer: { from: recorded, to: { evidence: [12] } } },
@@ -513,13 +513,13 @@ describe("review findings", () => {
   it("keeps the first figure in the trail when a second, different one is sent", async () => {
     const { instance, clock } = await session("2026-12-13");
     const staff = await as("staff", clock);
-    await staff.instances.claim({ id: instance.id });
+    await staff.work.claim({ id: instance.id });
     const completionId = await recordCow(staff, instance.id, tagOf(0), 10);
 
     // Sending a different figure through the recording path would once have overwritten the
     // first with no reason, no window, and nothing left to say it had ever been ten.
     await expect(
-      staff.instances.completeStep({
+      staff.work.completeStep({
         instanceId: instance.id,
         stepId: "milk",
         animalTag: tagOf(0),
@@ -548,7 +548,7 @@ describe("review findings", () => {
   it("records the Role whose window allowed it, not the highest one held", async () => {
     const { instance, clock } = await session("2026-12-14");
     const staff = await as("staff", clock);
-    await staff.instances.claim({ id: instance.id });
+    await staff.work.claim({ id: instance.id });
     const completionId = await recordCow(staff, instance.id, tagOf(0), 10);
 
     clock.advance(3 * HOUR);
@@ -573,22 +573,22 @@ describe("needs review", () => {
   it("flags a correction to work already signed off, and tells the Manager", async () => {
     const { instance, clock } = await session("2026-12-10");
     const staff = await as("staff", clock);
-    await staff.instances.claim({ id: instance.id });
+    await staff.work.claim({ id: instance.id });
     const completionId = await recordCow(staff, instance.id, tagOf(0), 10);
-    await staff.instances.completeStep({
+    await staff.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: tagOf(1),
       evidence: [10],
     });
-    await staff.instances.completeStep({
+    await staff.work.completeStep({
       instanceId: instance.id,
       stepId: "bulk",
       evidence: [20],
     });
-    await staff.instances.complete({ id: instance.id });
+    await staff.work.complete({ id: instance.id });
     const manager = await as("manager", clock);
-    await manager.instances.approve({ id: instance.id });
+    await manager.work.approve({ id: instance.id });
 
     // The Manager signed off on 10 litres. The Owner now says it was 14.
     clock.advance(2 * DAY);
@@ -638,7 +638,7 @@ describe("needs review", () => {
   it("does not flag a correction to work nobody has signed off yet", async () => {
     const { instance, clock } = await session("2026-12-11");
     const staff = await as("staff", clock);
-    await staff.instances.claim({ id: instance.id });
+    await staff.work.claim({ id: instance.id });
     const completionId = await recordCow(staff, instance.id, tagOf(0), 10);
 
     clock.advance(HOUR);

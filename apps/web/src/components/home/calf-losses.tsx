@@ -39,7 +39,7 @@ const Figure = ({
  */
 export const CalfLossesSection = () => {
   const { t, language } = useLanguage();
-  const losses = useQuery(orpc.herd.calfLosses.queryOptions());
+  const losses = useQuery(orpc.animals.calfLosses.queryOptions());
   const figure = losses.data;
   if (!figure || figure.bornAlive + figure.stillborn === 0) {
     return null;

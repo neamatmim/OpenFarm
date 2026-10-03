@@ -36,8 +36,8 @@ const bullArriving = async (penId: string, at: string) => {
 
 const setup = async () => {
   const manager = await as("manager", ARRIVED_B);
-  const shed = await manager.client.herd.createShed({ name: suffix });
-  const pen = await manager.client.herd.createPen({
+  const shed = await manager.client.sheds.createShed({ name: suffix });
+  const pen = await manager.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: "কোয়ারেন্টিন",
@@ -54,7 +54,7 @@ const setup = async () => {
     content: playbook.arrivalCheck,
   });
   const turning = await as("manager", "2039-03-21T05:00:00.000Z");
-  await turning.client.instances.ensureDue();
+  await turning.client.work.ensureDue();
   return {
     tags: { onHisWay, late },
     sops: { release: release.definitionId, arrival: arrival.definitionId },
@@ -106,7 +106,7 @@ describe("a procedure published after the animals came", () => {
       note: "পঁচিশ দিন",
     });
     const turning = await as("manager", "2039-03-22T05:00:00.000Z");
-    await turning.client.instances.ensureDue();
+    await turning.client.work.ensureDue();
     expect(
       await workAbout(world.sops.release, world.tags.onHisWay)
     ).toHaveLength(1);

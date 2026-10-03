@@ -27,8 +27,8 @@ const as = (role: "owner" | "manager", instant: string) =>
 
 beforeAll(async () => {
   const owner = await as("owner", "2066-03-01T04:00:00.000Z");
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -83,14 +83,14 @@ const aBull = async (instant: string, ventureFor?: string) => {
 /** The round on a morning cannot find him. */
 const notFoundOn = async (day: string, tag: string) => {
   const manager = await as("manager", `${day}T02:30:00.000Z`);
-  await manager.client.instances.ensureDue();
-  const today = await manager.client.instances.today({ penId });
+  await manager.client.work.ensureDue();
+  const today = await manager.client.work.today({ penId });
   const work = today.find((row) => row.definitionId === roundId);
   if (!work) {
     throw new Error("expected the round");
   }
-  await manager.client.instances.claim({ id: work.id });
-  await manager.client.instances.completeStep({
+  await manager.client.work.claim({ id: work.id });
+  await manager.client.work.completeStep({
     instanceId: work.id,
     stepId: "look",
     animalTag: tag,
@@ -107,7 +107,7 @@ const him = async (tag: string) =>
 
 const burialsFor = async (tag: string, instant: string) => {
   const manager = await as("manager", instant);
-  await manager.client.instances.ensureDue();
+  await manager.client.work.ensureDue();
   const bull = await him(tag);
   return scratchDb().query.sopInstance.findMany({
     where: { animalId: bull?.id ?? "", definitionId: burialId },
@@ -143,7 +143,7 @@ describe("an animal that leaves without dying", () => {
     const bull = await aBull("2066-03-03T04:00:00.000Z");
     await notFoundOn("2066-03-11", bull.tagNumber);
     const owner = await as("owner", "2066-03-19T06:00:00.000Z");
-    const home = await owner.client.home.owner();
+    const home = await owner.client.overview.get();
     // A week and a day missing: past the Owner's seven, so the Owner is asked.
     expect(
       home.needsYou.missing.find((one) => one.tag === bull.tagNumber)
@@ -160,7 +160,7 @@ describe("an animal that leaves without dying", () => {
       await burialsFor(bull.tagNumber, "2066-03-19T07:00:00.000Z")
     ).toEqual([]);
 
-    const after = await owner.client.home.owner();
+    const after = await owner.client.overview.get();
     expect(after.needsYou.missing.map((one) => one.tag)).not.toContain(
       bull.tagNumber
     );
@@ -177,7 +177,7 @@ describe("an animal that leaves without dying", () => {
     const bull = await aBull("2066-03-04T04:00:00.000Z");
     await notFoundOn("2066-03-12", bull.tagNumber);
     const owner = await as("owner", "2066-03-14T06:00:00.000Z");
-    const home = await owner.client.home.owner();
+    const home = await owner.client.overview.get();
     expect(
       home.needsYou.missing.find((one) => one.tag === bull.tagNumber)
     ).toMatchObject({ askWriteOff: false });

@@ -146,7 +146,7 @@ describe("whose money was it", () => {
   it("still puts a Venture's money in front of the Owner to approve, and says whose", async () => {
     const owner = await as("owner", "2046-10-14T04:00:00.000Z");
     const waiting = await theVenturesOwnSpend(120_000, "awaiting");
-    const home = await owner.client.home.owner();
+    const home = await owner.client.overview.get();
     const mine = home.needsYou.moneyAwaiting.find((one) => one.id === waiting);
     // Money waiting for her is work, not a figure: a Venture's waits for her as the Farm's does, and the
     // row says whose it is before she approves somebody else's spending.
@@ -158,8 +158,8 @@ describe("whose money was it", () => {
 
   it("charges the Farm's animals nothing of a Venture's own cost", async () => {
     const owner = await as("owner", "2046-10-15T04:00:00.000Z");
-    const shed = await owner.client.herd.createShed({ name: suffix });
-    const pen = await owner.client.herd.createPen({
+    const shed = await owner.client.sheds.createShed({ name: suffix });
+    const pen = await owner.client.sheds.createPen({
       quarantine: true,
       shedId: shed.id,
       name: `ফ্যাটেনিং ${suffix}`,

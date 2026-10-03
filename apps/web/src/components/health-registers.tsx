@@ -547,7 +547,7 @@ export type HealthRegisterName =
 const useCsv = () => {
   const refused = useRefused();
   return useMutation(
-    orpc.registrationCertificate.print.mutationOptions({
+    orpc.inspectorView.print.mutationOptions({
       onSuccess: ({ csv, period }, { register }) =>
         saveCsv(
           `${register.replaceAll("_", "-")}-${period?.from}-${period?.to}.csv`,
@@ -583,7 +583,7 @@ export const HealthRegister = ({
 }) => {
   const { t } = useLanguage();
   const rows = useQuery(
-    orpc.registrationCertificate.rows.queryOptions({
+    orpc.inspectorView.rows.queryOptions({
       input: { register, ...asked },
     })
   );

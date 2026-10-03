@@ -18,8 +18,8 @@ const cows: string[] = [];
 
 beforeAll(async () => {
   const owner = await as("owner", "2080-01-01T04:00:00.000Z");
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `গাভী পেন ${suffix}`,
   });
@@ -102,7 +102,7 @@ describe("deaths among grown animals", () => {
 
   it("counts the year's deaths by Side and by cause, culls apart, as a rate a hundred head a year", async () => {
     const owner = await as("owner", "2081-01-01T04:00:00.000Z");
-    const deaths = await owner.client.herd.deaths();
+    const deaths = await owner.client.animals.deaths();
     expect(deaths.dairy).toMatchObject({ died: 1, culled: 1 });
     // Two cows the whole year, one to July and one to March: about 2.7 head-years, one death.
     expect(deaths.dairy.headYears).toBeCloseTo(2.7, 1);

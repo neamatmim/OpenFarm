@@ -15,7 +15,7 @@ import type { orpc } from "@/utils/orpc";
 
 /** A buyer whose Receivable has gone past its day, as the home screens are told it. */
 export type OverdueBuyers = Awaited<
-  ReturnType<typeof orpc.home.manager.call>
+  ReturnType<typeof orpc.home.get.call>
 >["queue"]["receivableOverdue"];
 
 /**

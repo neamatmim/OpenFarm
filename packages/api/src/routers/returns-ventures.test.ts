@@ -87,15 +87,15 @@ const weigh = async (
   kg: number
 ) => {
   const { client: scheduler } = await as("owner", `${day}T07:30:00.000Z`);
-  await scheduler.instances.ensureDue();
-  const today = await scheduler.instances.today({ penId });
+  await scheduler.work.ensureDue();
+  const today = await scheduler.work.today({ penId });
   const instance = today.find((one) => one.definitionId === definitionId);
   if (!instance) {
     throw new Error("expected a weigh-in instance");
   }
   const { client: staff } = await as("staff", `${day}T07:30:00.000Z`);
-  await staff.instances.claim({ id: instance.id });
-  await staff.instances.completeStep({
+  await staff.work.claim({ id: instance.id });
+  await staff.work.completeStep({
     instanceId: instance.id,
     stepId: "weigh",
     animalTag: tagNumber,
@@ -126,8 +126,8 @@ beforeAll(async () => {
     registrationOffice: "উপজেলা প্রাণিসম্পদ দপ্তর, সাভার",
     registrationExpiresOn: "2055-03-31",
   });
-  const shed = await owner.herd.createShed({ name: suffix });
-  const pen = await owner.herd.createPen({
+  const shed = await owner.sheds.createShed({ name: suffix });
+  const pen = await owner.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -181,7 +181,7 @@ beforeAll(async () => {
 
   // Its two bulls, off the lorry on its own Float.
   const { client: buying } = await as("owner", "2053-01-04T04:00:00.000Z");
-  const trip = await buying.trips.record({
+  const trip = await buying.buyingTrips.record({
     wentTo: `হাট ${suffix}`,
     wentOn: "2053-01-04",
     brokerMoney: 0,
@@ -487,8 +487,8 @@ describe("a Venture still going, at today's price", () => {
     // ৳1,00,000 on 4 January stands. At its plan's prices he is worth ৳1,50,000 to ৳1,75,000: 50 to 75 on every
     // hundred, his money out since 4 January — 96 days on 10 April.
     const { client: owner } = await as("owner", "2053-01-02T04:00:00.000Z");
-    const shed = await owner.herd.createShed({ name: `চলতি ${suffix}` });
-    const pen = await owner.herd.createPen({
+    const shed = await owner.sheds.createShed({ name: `চলতি ${suffix}` });
+    const pen = await owner.sheds.createPen({
       quarantine: true,
       shedId: shed.id,
       name: `চলতি পেন ${suffix}`,
@@ -540,7 +540,7 @@ describe("a Venture still going, at today's price", () => {
     });
     await owner.ventures.startBuying({ id: goingId });
     const { client: buying } = await as("owner", "2053-01-04T04:00:00.000Z");
-    const trip = await buying.trips.record({
+    const trip = await buying.buyingTrips.record({
       wentTo: `হাট ২ ${suffix}`,
       wentOn: "2053-01-04",
       brokerMoney: 0,

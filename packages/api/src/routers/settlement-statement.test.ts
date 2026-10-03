@@ -97,7 +97,7 @@ const signOn = async (
 /** A bull off the lorry on the Venture's own Float. */
 const aBull = async (ventureId: string, penId: string, which: string) => {
   const buying = await as("owner", "2053-01-04T04:00:00.000Z");
-  const trip = await buying.client.trips.record({
+  const trip = await buying.client.buyingTrips.record({
     wentTo: `হাট ${which} ${suffix}`,
     wentOn: "2053-01-04",
     brokerMoney: 0,
@@ -217,8 +217,8 @@ beforeAll(async () => {
     registrationOffice: "উপজেলা প্রাণিসম্পদ দপ্তর, সাভার",
     registrationExpiresOn: "2055-03-31",
   });
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,

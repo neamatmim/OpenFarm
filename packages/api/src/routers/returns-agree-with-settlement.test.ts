@@ -64,15 +64,15 @@ const weighInSop = (): SopContent => ({
 
 const weigh = async (day: string, tagNumber: string, kg: number) => {
   const { client: scheduler } = await as("owner", `${day}T07:30:00.000Z`);
-  await scheduler.instances.ensureDue();
-  const today = await scheduler.instances.today({ penId });
+  await scheduler.work.ensureDue();
+  const today = await scheduler.work.today({ penId });
   const instance = today.find((one) => one.definitionId === weighInId);
   if (!instance) {
     throw new Error("expected a weigh-in instance");
   }
   const { client: staff } = await as("staff", `${day}T07:30:00.000Z`);
-  await staff.instances.claim({ id: instance.id });
-  await staff.instances.completeStep({
+  await staff.work.claim({ id: instance.id });
+  await staff.work.completeStep({
     instanceId: instance.id,
     stepId: "weigh",
     animalTag: tagNumber,
@@ -165,7 +165,7 @@ const aVentureWithBulls = async (
   await owner.ventures.startBuying({ id: venture.id });
 
   const { client: buying } = await as("owner", "2054-01-04T04:00:00.000Z");
-  const trip = await buying.trips.record({
+  const trip = await buying.buyingTrips.record({
     wentTo: `হাট ${name} ${suffix}`,
     wentOn: "2054-01-04",
     brokerMoney: 0,
@@ -288,8 +288,8 @@ beforeAll(async () => {
     registrationOffice: "উপজেলা প্রাণিসম্পদ দপ্তর, সাভার",
     registrationExpiresOn: "2056-03-31",
   });
-  const shed = await owner.herd.createShed({ name: suffix });
-  const pen = await owner.herd.createPen({
+  const shed = await owner.sheds.createShed({ name: suffix });
+  const pen = await owner.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,

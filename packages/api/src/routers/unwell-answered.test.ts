@@ -42,10 +42,10 @@ beforeAll(async () => {
 /** A cow in a Pen of her own, so each question's work is hers alone. */
 const aCow = async (name: string) => {
   const owner = await as("owner", "2058-03-01T00:00:00.000Z");
-  const shed = await owner.client.herd.createShed({
+  const shed = await owner.client.sheds.createShed({
     name: `${suffix}-${name}`,
   });
-  const pen = await owner.client.herd.createPen({ shedId: shed.id, name });
+  const pen = await owner.client.sheds.createPen({ shedId: shed.id, name });
   const cow = await owner.client.animals.register({
     sex: "female",
     side: "dairy",
@@ -64,12 +64,12 @@ const theRound = async (
   answer: { evidence: string[] } | { skipReason: string }
 ) => {
   const manager = await as("manager", `${day}T02:30:00.000Z`);
-  await manager.client.instances.ensureDue();
-  const today = await manager.client.instances.today({ penId: cow.penId });
+  await manager.client.work.ensureDue();
+  const today = await manager.client.work.today({ penId: cow.penId });
   const work = today.find((row) => row.definitionId === roundId);
   const id = work?.id ?? "";
-  await manager.client.instances.claim({ id });
-  await manager.client.instances.completeStep({
+  await manager.client.work.claim({ id });
+  await manager.client.work.completeStep({
     instanceId: id,
     stepId: "look",
     animalTag: cow.tag,
@@ -88,7 +88,7 @@ const theRound = async (
 /** The Manager's work about her, as the day raises it at an instant. */
 const workFor = async (instant: string, cow: { tag: string }) => {
   const manager = await as("manager", instant);
-  await manager.client.instances.ensureDue();
+  await manager.client.work.ensureDue();
   const her = await scratchDb().query.animal.findFirst({
     where: { farmId: theFarm().id, tagNumber: cow.tag },
     columns: { id: true },
@@ -125,7 +125,7 @@ describe("what the round saw, as the Manager's work", () => {
     });
     // The job says what the round saw: it is what the Manager is answering.
     const manager = await as("manager", "2058-03-02T03:00:00.000Z");
-    const board = await manager.client.instances.get({ id: work[0]?.id ?? "" });
+    const board = await manager.client.work.get({ id: work[0]?.id ?? "" });
     expect(board.seen).toMatchObject({
       tag: cow.tag,
       label: "খোঁড়াচ্ছে",
@@ -153,14 +153,14 @@ describe("what the round saw, as the Manager's work", () => {
     await theRound("2058-03-05", cow, { evidence: ["off_feed"] });
     const [work] = await workFor("2058-03-05T03:00:00.000Z", cow);
     const manager = await as("manager", "2058-03-05T05:00:00.000Z");
-    await manager.client.instances.claim({ id: work?.id ?? "" });
-    await manager.client.instances.completeStep({
+    await manager.client.work.claim({ id: work?.id ?? "" });
+    await manager.client.work.completeStep({
       instanceId: work?.id ?? "",
       stepId: "answer",
       animalTag: cow.tag,
       evidence: ["vet_called", "বিকেলে আসবেন"],
     });
-    await manager.client.instances.complete({ id: work?.id ?? "" });
+    await manager.client.work.complete({ id: work?.id ?? "" });
     const [after] = await workFor("2058-03-05T06:00:00.000Z", cow);
     expect(after?.state).toBe("completed");
   });

@@ -67,13 +67,13 @@ const setup = async () => {
   const feeding = await owner.client.sops.create({ content: feedingSop() });
   const weighing = await owner.client.sops.create({ content: weighInSop() });
   const manager = await as("manager", ARRIVED);
-  const shed = await manager.client.herd.createShed({ name: suffix });
-  const bulls = await manager.client.herd.createPen({
+  const shed = await manager.client.sheds.createShed({ name: suffix });
+  const bulls = await manager.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: "ষাঁড় পেন",
   });
-  const heifers = await manager.client.herd.createPen({
+  const heifers = await manager.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: "বকনা পেন",
@@ -142,15 +142,15 @@ beforeAll(async () => {
 /** The morning's work of one kind in the bulls' Pen, raised and claimed. */
 const dueIn = async (day: string, definitionId: string) => {
   const owner = await as("owner", `${day}T07:30:00.000Z`);
-  await owner.client.instances.ensureDue();
-  const today = await owner.client.instances.today({
+  await owner.client.work.ensureDue();
+  const today = await owner.client.work.today({
     penId: world.pens.bulls.id,
   });
   const instance = today.find((one) => one.definitionId === definitionId);
   if (!instance) {
     throw new Error("expected the work to be due");
   }
-  await owner.client.instances.claim({ id: instance.id });
+  await owner.client.work.claim({ id: instance.id });
   return { owner, instance };
 };
 
@@ -159,7 +159,7 @@ const weigh = async (day: string, readings: [string, number][]) => {
   const { owner, instance } = await dueIn(day, world.sops.weighing);
   for (const [tagNumber, kg] of readings) {
     // oxlint-disable-next-line no-await-in-loop -- the crush takes one animal at a time
-    await owner.client.instances.completeStep({
+    await owner.client.work.completeStep({
       instanceId: instance.id,
       stepId: "weigh",
       animalTag: tagNumber,
@@ -238,7 +238,7 @@ describe("a Ration by weight", () => {
 
   it("keeps with the Feeding what the Pen weighed, so its target can still be shown", async () => {
     const { owner, instance } = await dueIn("2036-01-07", world.sops.feeding);
-    await owner.client.instances.completeStep({
+    await owner.client.work.completeStep({
       instanceId: instance.id,
       stepId: "feed",
       evidence: [true],
@@ -247,7 +247,7 @@ describe("a Ration by weight", () => {
         { feedItemId: world.items.minerals.id, givenKg: 0.2 },
       ],
     });
-    const board = await owner.client.instances.get({ id: instance.id });
+    const board = await owner.client.work.get({ id: instance.id });
     expect(board.fed).toMatchObject({ animals: 3, herdWeightKg: 765 });
     expect(board.fed?.lines).toContainEqual({
       feedItemId: world.items.napier.id,

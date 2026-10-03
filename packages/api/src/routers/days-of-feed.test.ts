@@ -59,11 +59,11 @@ const buy = async (feedItemId: string, day: number, quantity: number) => {
 /** The Pen fed so much bran on a morning. */
 const feedOn = async (day: number, givenKg: number) => {
   const manager = await as("manager", morning(day));
-  await manager.client.instances.ensureDue();
-  const today = await manager.client.instances.today({ penId });
+  await manager.client.work.ensureDue();
+  const today = await manager.client.work.today({ penId });
   const work = today.find((one) => one.definitionId === sopId);
-  await manager.client.instances.claim({ id: work?.id ?? "" });
-  await manager.client.instances.completeStep({
+  await manager.client.work.claim({ id: work?.id ?? "" });
+  await manager.client.work.completeStep({
     instanceId: work?.id ?? "",
     stepId: "feed",
     evidence: [true],
@@ -98,8 +98,8 @@ beforeAll(async () => {
   });
   bran = branItem.id;
   hay = hayItem.id;
-  const shed = await manager.client.herd.createShed({ name: suffix });
-  const pen = await manager.client.herd.createPen({
+  const shed = await manager.client.sheds.createShed({ name: suffix });
+  const pen = await manager.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ভুসির পেন ${suffix}`,

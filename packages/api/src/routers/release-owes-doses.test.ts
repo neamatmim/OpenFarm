@@ -44,13 +44,13 @@ const doseHim = async (
   { skipped }: { skipped: boolean }
 ) => {
   const manager = await as("manager", at);
-  await manager.client.instances.claim({ id: workId });
-  await manager.client.instances.completeStep({
+  await manager.client.work.claim({ id: workId });
+  await manager.client.work.completeStep({
     instanceId: workId,
     stepId: "lot",
     evidence: [`FMD-${suffix}`],
   });
-  await manager.client.instances.completeStep({
+  await manager.client.work.completeStep({
     instanceId: workId,
     stepId: "dose",
     animalTag: tagNumber,
@@ -75,8 +75,8 @@ beforeAll(async () => {
   });
   releaseId = release.definitionId;
   const manager = await as("manager", ARRIVED);
-  const shed = await manager.client.herd.createShed({ name: suffix });
-  const pen = await manager.client.herd.createPen({
+  const shed = await manager.client.sheds.createShed({ name: suffix });
+  const pen = await manager.client.sheds.createPen({
     shedId: shed.id,
     name: `কোয়ারেন্টিন ${suffix}`,
     quarantine: true,
@@ -99,7 +99,7 @@ beforeAll(async () => {
   }
   // His FMD, skipped for every bull but the early one, whose day the test never turns to.
   const day = await as("manager", DOSE_DAY);
-  await day.client.instances.ensureDue();
+  await day.client.work.ensureDue();
   for (const key of ["owes", "given", "excused", "byHand"] as const) {
     // oxlint-disable-next-line no-await-in-loop -- one bull at a time
     const [work] = await workOf(fmdId, tags[key]);
@@ -110,12 +110,12 @@ beforeAll(async () => {
 /** His Release walked, every step done: well, every dose given, let out. */
 const releaseHim = async (tagNumber: string, at = RELEASE_DAY) => {
   const manager = await as("manager", at);
-  await manager.client.instances.ensureDue();
+  await manager.client.work.ensureDue();
   const [work] = await workOf(releaseId, tagNumber);
-  await manager.client.instances.claim({ id: work?.id ?? "" });
+  await manager.client.work.claim({ id: work?.id ?? "" });
   for (const stepId of ["healthy", "doses", "release"]) {
     // oxlint-disable-next-line no-await-in-loop -- the steps are walked in their order
-    await manager.client.instances.completeStep({
+    await manager.client.work.completeStep({
       instanceId: work?.id ?? "",
       stepId,
       animalTag: tagNumber,

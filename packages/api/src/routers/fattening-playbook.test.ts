@@ -26,9 +26,9 @@ const setup = async () => {
     content: playbook.arrivalCheck,
   });
   const manager = await as("manager", ARRIVED);
-  const shed = await manager.client.herd.createShed({ name: suffix });
+  const shed = await manager.client.sheds.createShed({ name: suffix });
   const pen = async (name: string) =>
-    await manager.client.herd.createPen({
+    await manager.client.sheds.createPen({
       quarantine: true,
       shedId: shed.id,
       name,
@@ -103,7 +103,7 @@ const workAbout = async (
   tagNumber: string
 ) => {
   const manager = await as("manager", at);
-  await manager.client.instances.ensureDue();
+  await manager.client.work.ensureDue();
   const him = await manager.client.animals.byTag({ tagNumber });
   const rows = await scratchDb().query.sopInstance.findMany({
     where: { definitionId, animalId: him.id },
@@ -123,11 +123,11 @@ const releaseHim = async (tagNumber: string, { kept = false } = {}) => {
   if (!work) {
     throw new Error("expected his release to be due");
   }
-  await manager.client.instances.claim({ id: work.id });
+  await manager.client.work.claim({ id: work.id });
   for (const stepId of ["healthy", "doses", "release"]) {
     const skipping = kept && stepId !== "doses";
     // oxlint-disable-next-line no-await-in-loop -- the steps are walked in their order
-    await manager.client.instances.completeStep({
+    await manager.client.work.completeStep({
       instanceId: work.id,
       stepId,
       animalTag: tagNumber,

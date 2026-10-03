@@ -92,9 +92,9 @@ describe("a save refreshes the screen", () => {
 
   it("leaves the saves the app makes on opening to refresh once, at the end", async () => {
     const client = aClient();
-    const work = await onScreen(client, ["instances", "today"]);
+    const work = await onScreen(client, ["work", "today"]);
 
-    await save(client, ["instances", "ensureDue"]);
+    await save(client, ["work", "ensureDue"]);
     await save(client, ["alerts", "sweep"]);
     await save(client, ["alerts", "digest"]);
 
@@ -115,7 +115,7 @@ describe("a save refreshes the screen", () => {
 
   it("reads nothing again for an entry the phone only queued for the Outbox", async () => {
     const client = aClient();
-    const work = await onScreen(client, ["instances", "byId"]);
+    const work = await onScreen(client, ["work", "byId"]);
 
     await save(client, null);
 

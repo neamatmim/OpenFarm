@@ -83,10 +83,10 @@ const aStore = async (tag: string) => {
   const owner = await as("owner", start);
   const manager = await as("manager", start);
   const vet = await as("vet", start);
-  const shed = await owner.client.herd.createShed({
+  const shed = await owner.client.sheds.createShed({
     name: `lots-${suffix}-${tag}`,
   });
-  const pen = await owner.client.herd.createPen({
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `লট পেন ${suffix} ${tag}`,
@@ -136,15 +136,15 @@ const aStore = async (tag: string) => {
   /** One dose, given to the bull at this instant. */
   const dose = async (instant: string) => {
     const raising = await as("manager", instant);
-    await raising.client.instances.raiseNow({
+    await raising.client.work.raiseNow({
       definitionId: sop.definitionId,
       penId: pen.id,
     });
-    const today = await raising.client.instances.today({ penId: pen.id });
+    const today = await raising.client.work.today({ penId: pen.id });
     const raised = today.find((row) => row.definitionId === sop.definitionId);
     const staff = await as("staff", instant);
-    await staff.client.instances.claim({ id: raised?.id ?? "" });
-    await staff.client.instances.completeStep({
+    await staff.client.work.claim({ id: raised?.id ?? "" });
+    await staff.client.work.completeStep({
       instanceId: raised?.id ?? "",
       stepId: "dose",
       animalTag: bull.tagNumber,
@@ -169,17 +169,17 @@ const aStore = async (tag: string) => {
     const feeding = await owner.client.sops.create({
       content: feedingSop(`${tag} ${instant}`),
     });
-    await raising.client.instances.raiseNow({
+    await raising.client.work.raiseNow({
       definitionId: feeding.definitionId,
       penId: pen.id,
     });
-    const today = await raising.client.instances.today({ penId: pen.id });
+    const today = await raising.client.work.today({ penId: pen.id });
     const raised = today.find(
       (row) => row.definitionId === feeding.definitionId
     );
     const staff = await as("staff", instant);
-    await staff.client.instances.claim({ id: raised?.id ?? "" });
-    await staff.client.instances.completeStep({
+    await staff.client.work.claim({ id: raised?.id ?? "" });
+    await staff.client.work.completeStep({
       instanceId: raised?.id ?? "",
       stepId: "feed",
       evidence: [true],

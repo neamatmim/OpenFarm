@@ -102,19 +102,19 @@ let newcomer = "";
 /** The Pen's work of one SOP, due at this instant, claimed by the Manager. */
 const workIn = async (penId: string, definitionId: string, instant: string) => {
   const manager = await as("manager", instant);
-  await manager.client.instances.ensureDue();
-  const today = await manager.client.instances.today({ penId });
+  await manager.client.work.ensureDue();
+  const today = await manager.client.work.today({ penId });
   const work = today.find((row) => row.definitionId === definitionId);
   if (!work) {
     throw new Error("expected the work to be due");
   }
-  await manager.client.instances.claim({ id: work.id });
+  await manager.client.work.claim({ id: work.id });
   return { manager, id: work.id };
 };
 
 const feed = async (instant: string, givenKg: number) => {
   const { manager, id } = await workIn(fedPen, feedingId, instant);
-  await manager.client.instances.completeStep({
+  await manager.client.work.completeStep({
     instanceId: id,
     stepId: "feed",
     evidence: [true],
@@ -130,7 +130,7 @@ const weigh = async (
   const { manager, id } = await workIn(penId, weighingId, instant);
   for (const [tagNumber, kg] of readings) {
     // oxlint-disable-next-line no-await-in-loop -- one animal at a time, as a round is walked
-    await manager.client.instances.completeStep({
+    await manager.client.work.completeStep({
       instanceId: id,
       stepId: "weigh",
       animalTag: tagNumber,
@@ -146,11 +146,11 @@ const dose = async (
   instant: string
 ) => {
   const manager = await as("manager", instant);
-  await manager.client.instances.raiseNow({ definitionId, penId: fedPen });
-  const today = await manager.client.instances.today({ penId: fedPen });
+  await manager.client.work.raiseNow({ definitionId, penId: fedPen });
+  const today = await manager.client.work.today({ penId: fedPen });
   const raised = today.find((row) => row.definitionId === definitionId);
-  await manager.client.instances.claim({ id: raised?.id ?? "" });
-  await manager.client.instances.completeStep({
+  await manager.client.work.claim({ id: raised?.id ?? "" });
+  await manager.client.work.completeStep({
     instanceId: raised?.id ?? "",
     stepId: "dose",
     animalTag: tagNumber,
@@ -179,13 +179,13 @@ beforeAll(async () => {
   const manager = await as("manager", "2040-01-01T03:00:00.000Z");
   // This farm reads a gain over a fortnight, the shortest it may: her gain now is her last fortnight's.
   await manager.client.farm.setParameters({ gainReadDays: 14 });
-  const shed = await owner.client.herd.createShed({ name: `keep-${suffix}` });
-  const fed = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `keep-${suffix}` });
+  const fed = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `খাওয়ানো পেন ${suffix}`,
   });
-  const hungry = await owner.client.herd.createPen({
+  const hungry = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `অন্য পেন ${suffix}`,

@@ -58,10 +58,10 @@ beforeAll(async () => {
 /** A Pen of its own, with one animal in it, for each question. */
 const aPenWithHer = async (name: string) => {
   const owner = await as("owner", "2054-01-01T00:00:00.000Z");
-  const shed = await owner.client.herd.createShed({
+  const shed = await owner.client.sheds.createShed({
     name: `${suffix}-${name}`,
   });
-  const pen = await owner.client.herd.createPen({ shedId: shed.id, name });
+  const pen = await owner.client.sheds.createPen({ shedId: shed.id, name });
   const her = await owner.client.animals.register({
     sex: "female",
     side: "dairy",
@@ -82,14 +82,14 @@ const theRound = async (
   definitionId = roundId
 ) => {
   const manager = await as("manager", `${day}T02:30:00.000Z`);
-  await manager.client.instances.ensureDue();
-  const today = await manager.client.instances.today({ penId });
+  await manager.client.work.ensureDue();
+  const today = await manager.client.work.today({ penId });
   const work = today.find((row) => row.definitionId === definitionId);
   if (!work) {
     throw new Error("expected the round");
   }
-  await manager.client.instances.claim({ id: work.id });
-  await manager.client.instances.completeStep({
+  await manager.client.work.claim({ id: work.id });
+  await manager.client.work.completeStep({
     instanceId: work.id,
     stepId: "look",
     animalTag: tag,
@@ -140,12 +140,12 @@ describe("an animal the round could not find", () => {
       skipReason: NOT_FOUND,
     });
 
-    const managerHome = await manager.client.home.manager();
+    const managerHome = await manager.client.home.get();
     expect(
       managerHome.queue.missing.find((one) => one.tag === tag)
     ).toMatchObject({ penName: "খোঁজা পেন খ" });
     const owner = await as("owner", "2054-02-03T04:00:00.000Z");
-    const ownerHome = await owner.client.home.owner();
+    const ownerHome = await owner.client.overview.get();
     expect(ownerHome.needsYou.missing.map((one) => one.tag)).toContain(tag);
     const page = await owner.client.animals.byTag({ tagNumber: tag });
     expect(page.missing).toMatchObject({ penName: "খোঁজা পেন খ" });
@@ -182,7 +182,7 @@ describe("an animal the round could not find", () => {
       skipReason: WELL,
     });
     expect(await openFor(tag)).toHaveLength(0);
-    const home = await manager.client.home.manager();
+    const home = await manager.client.home.get();
     expect(home.queue.missing.map((one) => one.tag)).not.toContain(tag);
   });
 
@@ -199,7 +199,7 @@ describe("an animal the round could not find", () => {
       cause: "সাপের কামড়",
       disposal: "buried",
     });
-    const home = await manager.client.home.manager();
+    const home = await manager.client.home.get();
     expect(home.queue.missing.map((one) => one.tag)).not.toContain(tag);
   });
 });

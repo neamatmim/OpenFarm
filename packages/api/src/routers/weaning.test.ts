@@ -31,12 +31,12 @@ let bullCalf = "";
 
 beforeAll(async () => {
   const owner = await as("owner", BORN);
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const calves = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const calves = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `বাছুর ${suffix}`,
   });
-  const fattening = await owner.client.herd.createPen({
+  const fattening = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `এঁড়ে ${suffix}`,
   });
@@ -85,8 +85,8 @@ const idOf = async (tag: string) => {
 const weaningWork = async (day: string) => {
   const instant = `${day}T02:00:00.000Z`;
   const manager = await as("manager", instant);
-  await manager.client.instances.ensureDue();
-  const today = await manager.client.instances.today({ penId: calfPenId });
+  await manager.client.work.ensureDue();
+  const today = await manager.client.work.today({ penId: calfPenId });
   return today.filter((row) => row.definitionId === weaningId);
 };
 
@@ -104,20 +104,20 @@ describe("weaning", () => {
       const calfId = await idOf(tag);
       const job = work.find((row) => row.animalId === calfId);
       const id = job?.id ?? "";
-      await staff.client.instances.claim({ id });
-      await staff.client.instances.completeStep({
+      await staff.client.work.claim({ id });
+      await staff.client.work.completeStep({
         instanceId: id,
         stepId: "starter",
         animalTag: tag,
         evidence: [true],
       });
-      await staff.client.instances.completeStep({
+      await staff.client.work.completeStep({
         instanceId: id,
         stepId: "weigh",
         animalTag: tag,
         evidence: [kg],
       });
-      await staff.client.instances.completeStep({
+      await staff.client.work.completeStep({
         instanceId: id,
         stepId: "wean",
         animalTag: tag,
@@ -191,9 +191,9 @@ describe("weaning", () => {
     const lateId = await idOf(late.tagNumber);
     const job = work.find((row) => row.animalId === lateId);
     const staff = await as("staff", `${later}T03:00:00.000Z`);
-    await staff.client.instances.claim({ id: job?.id ?? "" });
+    await staff.client.work.claim({ id: job?.id ?? "" });
     await expect(
-      staff.client.instances.completeStep({
+      staff.client.work.completeStep({
         instanceId: job?.id ?? "",
         stepId: "wean",
         animalTag: late.tagNumber,

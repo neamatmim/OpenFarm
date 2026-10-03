@@ -43,7 +43,7 @@ export const DrawFloatSheet = ({
   const refused = useRefused();
   const [drawing, setDrawing] = useState<Drawing>(NOTHING_YET);
   useFreshFor(venture?.id, () => setDrawing(NOTHING_YET));
-  const trips = useQuery(orpc.trips.list.queryOptions());
+  const trips = useQuery(orpc.buyingTrips.list.queryOptions());
   const drawingIt = useMutation(
     orpc.ventures.drawFloat.mutationOptions({
       onError: refused,

@@ -57,8 +57,8 @@ const calvingRoundSop = (): SopContent => ({
 const setup = async () => {
   const clock = new FakeClock("2032-03-01T00:00:00.000Z");
   const owner = await createTestClient(appRouter, { as: "owner", clock });
-  const shed = await owner.client.herd.createShed({ name: `cv-${suffix}` });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `cv-${suffix}` });
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `বাচ্চার ঘর ${suffix}`,
   });
@@ -148,8 +148,8 @@ const morningRound = async (
 ) => {
   const clock = new FakeClock(`${day}T01:00:00.000Z`);
   const manager = await createTestClient(appRouter, { as: "manager", clock });
-  await manager.client.instances.ensureDue();
-  const today = await manager.client.instances.today({ penId: world.pen.id });
+  await manager.client.work.ensureDue();
+  const today = await manager.client.work.today({ penId: world.pen.id });
   const round = today.find(
     (row) =>
       row.definitionId === world.round.definitionId &&
@@ -157,7 +157,7 @@ const morningRound = async (
   );
   const client = await createTestClient(appRouter, { as, clock });
   if (round?.state === "due") {
-    await client.client.instances.claim({ id: round.id });
+    await client.client.work.claim({ id: round.id });
   }
   return { id: round?.id ?? "", client, manager };
 };
@@ -169,7 +169,7 @@ describe("the calving", () => {
     const before = await manager.client.animals.byTag({
       tagNumber: world.single,
     });
-    await client.client.instances.completeStep({
+    await client.client.work.completeStep({
       instanceId: id,
       stepId: "calved",
       animalTag: world.single,
@@ -222,7 +222,7 @@ describe("the calving", () => {
 
   it("records twins as one calving with two calves", async () => {
     const { id, client, manager } = await morningRound("2032-03-14");
-    await client.client.instances.completeStep({
+    await client.client.work.completeStep({
       instanceId: id,
       stepId: "calved",
       animalTag: world.twins,
@@ -269,7 +269,7 @@ describe("the calving", () => {
 
   it("creates a stillborn calf and lets it go as Died in the same act", async () => {
     const { id, client, manager } = await morningRound("2032-03-18");
-    await client.client.instances.completeStep({
+    await client.client.work.completeStep({
       instanceId: id,
       stepId: "calved",
       animalTag: world.stillborn,
@@ -322,7 +322,7 @@ describe("the calving", () => {
       expectedCalvingOn: "2032-03-19",
     });
     const { id, client } = await morningRound("2032-03-19", "owner");
-    await client.client.instances.completeStep({
+    await client.client.work.completeStep({
       instanceId: id,
       stepId: "calved",
       animalTag: ownersHeifer.tagNumber,
@@ -343,7 +343,7 @@ describe("the calving", () => {
     // An open heifer walks the round with the rest, and nothing she does is a calving.
     const nextMorning = await morningRound("2032-03-20", "manager");
     await expect(
-      nextMorning.client.client.instances.completeStep({
+      nextMorning.client.client.work.completeStep({
         instanceId: nextMorning.id,
         stepId: "calved",
         animalTag: world.heifer,
@@ -364,7 +364,7 @@ describe("the calving", () => {
 
   it("lets a calf written up alive be put right as stillborn, and asks before undoing a calving", async () => {
     const { id, client, manager } = await morningRound("2032-03-24");
-    await client.client.instances.completeStep({
+    await client.client.work.completeStep({
       instanceId: id,
       stepId: "calved",
       animalTag: world.corrected,
@@ -377,7 +377,7 @@ describe("the calving", () => {
         "",
       ],
     });
-    const board = await manager.client.instances.get({ id });
+    const board = await manager.client.work.get({ id });
     const entry = board.completions.find(
       (row) => row.stepId === "calved" && row.status === "done"
     );

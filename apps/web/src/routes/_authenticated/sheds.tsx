@@ -67,7 +67,7 @@ const useNamingWords = (naming: Naming | null) => {
  *  Nothing at all once they are in. */
 const QuarantineAstray = () => {
   const { t } = useLanguage();
-  const astray = useQuery(orpc.herd.quarantineAstray.queryOptions());
+  const astray = useQuery(orpc.sheds.quarantineAstray.queryOptions());
   const rows = astray.data ?? [];
   if (rows.length === 0) {
     return null;
@@ -93,7 +93,7 @@ const QuarantineAstray = () => {
 const HerdPage = () => {
   const { t } = useLanguage();
   const refused = useRefused();
-  const sheds = useQuery(orpc.herd.list.queryOptions());
+  const sheds = useQuery(orpc.sheds.list.queryOptions());
   const animals = useQuery(orpc.animals.list.queryOptions({ input: {} }));
 
   const [naming, setNaming] = useState<Naming | null>(null);
@@ -106,19 +106,19 @@ const HerdPage = () => {
   };
   const onError = refused;
   const createShed = useMutation(
-    orpc.herd.createShed.mutationOptions({ onSuccess: done, onError })
+    orpc.sheds.createShed.mutationOptions({ onSuccess: done, onError })
   );
   const createPen = useMutation(
-    orpc.herd.createPen.mutationOptions({ onSuccess: done, onError })
+    orpc.sheds.createPen.mutationOptions({ onSuccess: done, onError })
   );
   const renameShed = useMutation(
-    orpc.herd.renameShed.mutationOptions({ onSuccess: done, onError })
+    orpc.sheds.renameShed.mutationOptions({ onSuccess: done, onError })
   );
   const renamePen = useMutation(
-    orpc.herd.renamePen.mutationOptions({ onSuccess: done, onError })
+    orpc.sheds.renamePen.mutationOptions({ onSuccess: done, onError })
   );
   const markQuarantine = useMutation(
-    orpc.herd.markQuarantine.mutationOptions({ onError })
+    orpc.sheds.markQuarantine.mutationOptions({ onError })
   );
   const pending =
     createShed.isPending ||

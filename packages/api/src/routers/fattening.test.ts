@@ -54,8 +54,8 @@ const setup = async () => {
   const clock = new FakeClock("2027-01-04T07:30:00.000Z");
   const owner = await createTestClient(appRouter, { as: "owner", clock });
   const manager = await createTestClient(appRouter, { as: "manager", clock });
-  const shed = await owner.client.herd.createShed({ name: `gain-${suffix}` });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `gain-${suffix}` });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `মোটাতাজা ${suffix}`,
@@ -125,8 +125,8 @@ afterAll(async () => {
 const weigh = async (day: string, readings: [number, number][]) => {
   const clock = new FakeClock(`${day}T07:30:00.000Z`);
   const scheduler = await createTestClient(appRouter, { as: "owner", clock });
-  await scheduler.client.instances.ensureDue();
-  const today = await scheduler.client.instances.today({ penId: world.pen.id });
+  await scheduler.client.work.ensureDue();
+  const today = await scheduler.client.work.today({ penId: world.pen.id });
   const instance = today.find(
     (candidate) => candidate.definitionId === world.sop.definitionId
   );
@@ -134,11 +134,11 @@ const weigh = async (day: string, readings: [number, number][]) => {
     throw new Error("expected a weigh-in instance");
   }
   const staff = await createTestClient(appRouter, { as: "staff", clock });
-  await staff.client.instances.claim({ id: instance.id });
+  await staff.client.work.claim({ id: instance.id });
   for (const [index, kg] of readings) {
     // Sequential: the Steps of one round are recorded one animal at a time.
     // oxlint-disable-next-line no-await-in-loop
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "weigh",
       animalTag: world.bulls[index]?.tagNumber ?? "",

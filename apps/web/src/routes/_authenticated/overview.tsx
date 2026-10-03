@@ -51,7 +51,7 @@ import { moneyTotals } from "@/lib/money-totals";
 import { venturesNeedingHer } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
 
-type OwnerAnswer = Awaited<ReturnType<typeof orpc.home.owner.call>>;
+type OwnerAnswer = Awaited<ReturnType<typeof orpc.overview.get.call>>;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -160,7 +160,7 @@ const FIGURE_LINK =
  */
 const OwnerHome = () => {
   const t = useT();
-  const home = useQuery(orpc.home.owner.queryOptions());
+  const home = useQuery(orpc.overview.get.queryOptions());
 
   // Cached first, error second. A phone with no signal has the farm as it last knew it,
   // and a screen that throws that away to show the word "error" has taken away the only
@@ -237,7 +237,7 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
   const figures = useFarmFigures(data);
   const { needs, onFarm } = Route.useSearch();
   const navigate = Route.useNavigate();
-  // Asked here rather than folded into `home.owner`, because whether a Wind-up Period has run out is
+  // Asked here rather than folded into `overview.get`, because whether a Wind-up Period has run out is
   // worked out where it is read — a cached `true` would tell her a run is over on the strength of a
   // date that has since moved. Owner-only already, and a farm with no Venture gets an empty list.
   const ventures = useQuery(orpc.ventures.list.queryOptions());

@@ -157,7 +157,7 @@ describe("a Venture paid by the month, once every Cattle Part is in", () => {
 
   it("draws a Float to the livestock market against the cattle money it holds", async () => {
     const owner = await asOwner();
-    const trip = await owner.trips.record({
+    const trip = await owner.buyingTrips.record({
       wentTo: `হাট ${suffix}`,
       wentOn: "2074-01-05",
       brokerMoney: 0,

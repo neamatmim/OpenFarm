@@ -46,8 +46,8 @@ const costOf = async (tagNumber: string) => {
 
 beforeAll(async () => {
   const owner = await as("owner", "2041-01-01T04:00:00.000Z");
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: "কোয়ারেন্টিন",
@@ -59,7 +59,7 @@ describe("a Buying Trip", () => {
   it("splits what the outing cost across the animals that came home on it", async () => {
     const manager = await as("manager", "2041-01-05T04:00:00.000Z");
     // A lorry to Gabtoli and back: 3,000 to the broker, 5,000 for the lorry, 1,000 to keep the men.
-    const trip = await manager.client.trips.record({
+    const trip = await manager.client.buyingTrips.record({
       wentTo: `গাবতলী ${suffix}`,
       brokerMoney: 3000,
       transportMoney: 5000,
@@ -81,7 +81,7 @@ describe("a Buying Trip", () => {
 
   it("charges the whole outing to the one animal that came home on it", async () => {
     const manager = await as("manager", "2041-01-06T04:00:00.000Z");
-    const trip = await manager.client.trips.record({
+    const trip = await manager.client.buyingTrips.record({
       wentTo: `একলা হাট ${suffix}`,
       transportMoney: 4000,
       paymentMethod: "cash",
@@ -98,7 +98,7 @@ describe("a Buying Trip", () => {
 
   it("re-splits when a Correction moves an animal off the Trip", async () => {
     const manager = await as("manager", "2041-01-08T04:00:00.000Z");
-    const trip = await manager.client.trips.record({
+    const trip = await manager.client.buyingTrips.record({
       wentTo: `ভুল হাট ${suffix}`,
       transportMoney: 6000,
       paymentMethod: "cash",
@@ -119,7 +119,7 @@ describe("a Buying Trip", () => {
 
   it("puts right what an outing cost, and re-charges the animals at once", async () => {
     const manager = await as("manager", "2041-01-11T04:00:00.000Z");
-    const trip = await manager.client.trips.record({
+    const trip = await manager.client.buyingTrips.record({
       wentTo: `ভুল ভাড়া ${suffix}`,
       transportMoney: 4000,
       paymentMethod: "cash",
@@ -129,7 +129,7 @@ describe("a Buying Trip", () => {
     expect(await costOf(first.tagNumber)).toMatchObject({ tripMoney: 2000 });
 
     // The lorry man's rate was 5,000, not 4,000.
-    await manager.client.trips.correct({
+    await manager.client.buyingTrips.correct({
       id: trip.id,
       reason: "গাড়ি ভাড়া ৫,০০০ ছিল",
       changes: { transportMoney: { from: 4000, to: 5000 } },
@@ -137,7 +137,7 @@ describe("a Buying Trip", () => {
     expect(await costOf(first.tagNumber)).toMatchObject({ tripMoney: 2500 });
     expect(await costOf(second.tagNumber)).toMatchObject({ tripMoney: 2500 });
     // Listed with each part as it now stands, which is what the screen puts right from.
-    const listed = await manager.client.trips.list();
+    const listed = await manager.client.buyingTrips.list();
     expect(listed.find((one) => one.id === trip.id)?.parts).toEqual({
       brokerMoney: 0,
       transportMoney: 5000,
@@ -164,7 +164,7 @@ describe("a Buying Trip", () => {
   it("refuses a lorry that has not gone yet", async () => {
     const manager = await as("manager", "2041-01-13T04:00:00.000Z");
     await expect(
-      manager.client.trips.record({
+      manager.client.buyingTrips.record({
         wentTo: `আগামীকাল ${suffix}`,
         transportMoney: 1000,
         wentOn: new Date("2041-02-01T04:00:00.000Z"),
@@ -175,7 +175,7 @@ describe("a Buying Trip", () => {
 
   it("charges a Trip that brought nobody home to nobody, and says so", async () => {
     const manager = await as("manager", "2041-01-09T04:00:00.000Z");
-    await manager.client.trips.record({
+    await manager.client.buyingTrips.record({
       wentTo: `খালি হাত ${suffix}`,
       transportMoney: 2500,
       paymentMethod: "cash",
@@ -185,7 +185,7 @@ describe("a Buying Trip", () => {
     expect(report.unallocated.tripMoney).toBeGreaterThanOrEqual(2500);
 
     // And an outing whose only arrival is corrected off it becomes one of those too.
-    const emptied = await manager.client.trips.record({
+    const emptied = await manager.client.buyingTrips.record({
       wentTo: `সবাই সরানো ${suffix}`,
       transportMoney: 1500,
       paymentMethod: "cash",
@@ -206,7 +206,7 @@ describe("a Buying Trip", () => {
 
   it("reaches the farm's money once, and never a second time by hand", async () => {
     const manager = await as("manager", "2041-01-10T04:00:00.000Z");
-    const trip = await manager.client.trips.record({
+    const trip = await manager.client.buyingTrips.record({
       wentTo: `হিসাবের হাট ${suffix}`,
       brokerMoney: 1200,
       transportMoney: 3800,
@@ -239,7 +239,7 @@ describe("a Buying Trip", () => {
     await Promise.all(
       others.map((other) =>
         expect(
-          other.client.trips.record({
+          other.client.buyingTrips.record({
             wentTo: `না ${suffix}`,
             transportMoney: 100,
             paymentMethod: "cash",

@@ -39,10 +39,10 @@ const sop = (over: Partial<SopContent> = {}): SopContent => ({
 
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.client.herd.createShed({
+  const shed = await owner.client.sheds.createShed({
     name: `signoff-${suffix}`,
   });
-  const pen = await owner.client.herd.createPen({
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `পেন ${suffix}`,
   });
@@ -137,8 +137,8 @@ const workFor = async (
 ) => {
   const clock = new FakeClock(`${day}T${at}`);
   const scheduler = await as("owner", clock);
-  await scheduler.instances.ensureDue();
-  const today = await scheduler.instances.today({ penId: world.pen.id });
+  await scheduler.work.ensureDue();
+  const today = await scheduler.work.today({ penId: world.pen.id });
   const instance = today.find(
     (candidate) => candidate.definitionId === definitionId
   );
@@ -153,13 +153,13 @@ const workFor = async (
 const doneWork = async (day: string) => {
   const { instance, clock } = await workFor(day, "23:10:00.000Z");
   const staff = await as("staff", clock);
-  await staff.instances.claim({ id: instance.id });
-  await staff.instances.completeStep({
+  await staff.work.claim({ id: instance.id });
+  await staff.work.completeStep({
     instanceId: instance.id,
     stepId: "clean",
     evidence: [true],
   });
-  await staff.instances.complete({ id: instance.id });
+  await staff.work.complete({ id: instance.id });
   return { instance, clock, staff };
 };
 
@@ -193,22 +193,22 @@ describe("going late", () => {
     const { instance, clock } = await workFor("2026-11-01", "23:05:00.000Z");
     const manager = await as("manager", clock);
 
-    const onTime = await manager.instances.today({ penId: world.pen.id });
+    const onTime = await manager.work.today({ penId: world.pen.id });
     expect(onTime.find((row) => row.id === instance.id)?.overdue).toBe(false);
 
     clock.set(after("2026-11-01", 29));
-    const inGrace = await manager.instances.today({ penId: world.pen.id });
+    const inGrace = await manager.work.today({ penId: world.pen.id });
     expect(inGrace.find((row) => row.id === instance.id)?.overdue).toBe(false);
 
     clock.set(after("2026-11-01", 31));
-    const late = await manager.instances.today({ penId: world.pen.id });
+    const late = await manager.work.today({ penId: world.pen.id });
     expect(late.find((row) => row.id === instance.id)?.overdue).toBe(true);
   });
 
   it("tells the Manager and the person it is on, once however often the sweep runs", async () => {
     const { instance, clock } = await workFor("2026-11-02", "23:05:00.000Z");
     const staff = await as("staff", clock);
-    await staff.instances.claim({ id: instance.id });
+    await staff.work.claim({ id: instance.id });
 
     clock.set(after("2026-11-02", 45));
     const manager = await as("manager", clock);
@@ -313,7 +313,7 @@ describe("going late", () => {
     const manager = await as("manager", clock);
 
     clock.set(after("2026-11-05", 5 * 60));
-    const late = await manager.instances.overdue();
+    const late = await manager.work.overdue();
 
     expect(late.some((row) => row.id === instance.id)).toBe(false);
   });
@@ -324,13 +324,13 @@ describe("sign-off", () => {
     const { instance, clock } = await doneWork("2026-11-06");
     const manager = await as("manager", clock);
 
-    const queued = await manager.instances.signOffQueue();
+    const queued = await manager.work.signOffQueue();
     expect(queued.some((row) => row.id === instance.id)).toBe(true);
 
-    const approved = await manager.instances.approve({ id: instance.id });
+    const approved = await manager.work.approve({ id: instance.id });
 
     expect(approved.state).toBe("approved");
-    const remaining = await manager.instances.signOffQueue();
+    const remaining = await manager.work.signOffQueue();
     expect(remaining.some((row) => row.id === instance.id)).toBe(false);
   });
 
@@ -338,7 +338,7 @@ describe("sign-off", () => {
     const { instance, clock, staff } = await doneWork("2026-11-07");
     const manager = await as("manager", clock);
 
-    await manager.instances.sendBack({
+    await manager.work.sendBack({
       id: instance.id,
       reason: "শেডের কোণা বাকি আছে",
     });
@@ -352,16 +352,16 @@ describe("sign-off", () => {
     ).toBeDefined();
 
     // Back on the doer's list, and recording the Step again corrects rather than duplicates.
-    const mine = await staff.instances.today({ penId: world.pen.id });
+    const mine = await staff.work.today({ penId: world.pen.id });
     expect(mine.find((row) => row.id === instance.id)?.state).toBe("sent_back");
 
-    await staff.instances.completeStep({
+    await staff.work.completeStep({
       instanceId: instance.id,
       stepId: "clean",
       evidence: [true],
     });
-    await staff.instances.complete({ id: instance.id });
-    const redone = await manager.instances.get({ id: instance.id });
+    await staff.work.complete({ id: instance.id });
+    const redone = await manager.work.get({ id: instance.id });
     expect(redone.state).toBe("completed");
     expect(redone.completions).toHaveLength(1);
   });
@@ -371,28 +371,28 @@ describe("sign-off", () => {
     const manager = await as("manager", clock);
 
     await expect(
-      manager.instances.sendBack({ id: instance.id, reason: "   " })
+      manager.work.sendBack({ id: instance.id, reason: "   " })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
 
     // The doer cannot sign their own work off, whatever Roles they hold — unless the doer is the Owner.
-    await expect(
-      staff.instances.approve({ id: instance.id })
-    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(staff.work.approve({ id: instance.id })).rejects.toMatchObject(
+      { code: "FORBIDDEN" }
+    );
   });
 
   it("lets the Owner sign off work the Owner did", async () => {
     // After every other day this file raises, so the work it raises is nobody else's to sweep.
     const { instance, clock } = await workFor("2026-12-20", "00:05:00.000Z");
     const owner = await as("owner", clock);
-    await owner.instances.claim({ id: instance.id });
-    await owner.instances.completeStep({
+    await owner.work.claim({ id: instance.id });
+    await owner.work.completeStep({
       instanceId: instance.id,
       stepId: "clean",
       evidence: [true],
     });
-    await owner.instances.complete({ id: instance.id });
+    await owner.work.complete({ id: instance.id });
 
-    const approved = await owner.instances.approve({ id: instance.id });
+    const approved = await owner.work.approve({ id: instance.id });
     expect(approved.state).toBe("approved");
   });
 
@@ -403,19 +403,19 @@ describe("sign-off", () => {
       world.unchecked.definitionId
     );
     const staff = await as("staff", clock);
-    await staff.instances.claim({ id: instance.id });
-    await staff.instances.completeStep({
+    await staff.work.claim({ id: instance.id });
+    await staff.work.completeStep({
       instanceId: instance.id,
       stepId: "clean",
       evidence: [true],
     });
-    await staff.instances.complete({ id: instance.id });
+    await staff.work.complete({ id: instance.id });
 
     const manager = await as("manager", clock);
-    const queue = await manager.instances.signOffQueue();
+    const queue = await manager.work.signOffQueue();
     expect(queue.some((row) => row.id === instance.id)).toBe(false);
     await expect(
-      manager.instances.approve({ id: instance.id })
+      manager.work.approve({ id: instance.id })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });
@@ -428,16 +428,16 @@ describe("closing as missed", () => {
     const manager = await as("manager", clock);
 
     await expect(
-      staff.instances.closeAsMissed({
+      staff.work.closeAsMissed({
         id: instance.id,
         reason: "লোক ছিল না",
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(
-      manager.instances.closeAsMissed({ id: instance.id, reason: "" })
+      manager.work.closeAsMissed({ id: instance.id, reason: "" })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
 
-    const closed = await manager.instances.closeAsMissed({
+    const closed = await manager.work.closeAsMissed({
       id: instance.id,
       reason: "লোক ছিল না",
     });
@@ -445,9 +445,9 @@ describe("closing as missed", () => {
     expect(closed.state).toBe("missed");
     // Nothing disappears: it is off the Overdue list because it is no longer open, not
     // because it was removed.
-    const kept = await manager.instances.get({ id: instance.id });
+    const kept = await manager.work.get({ id: instance.id });
     expect(kept.state).toBe("missed");
-    const late = await manager.instances.overdue();
+    const late = await manager.work.overdue();
     expect(late.some((row) => row.id === instance.id)).toBe(false);
   });
 
@@ -456,7 +456,7 @@ describe("closing as missed", () => {
     const manager = await as("manager", clock);
 
     await expect(
-      manager.instances.closeAsMissed({ id: instance.id, reason: "পরে" })
+      manager.work.closeAsMissed({ id: instance.id, reason: "পরে" })
     ).rejects.toMatchObject({
       code: "CONFLICT",
       data: { state: "completed" },
@@ -469,31 +469,31 @@ describe("moves the work's state does not allow", () => {
     const { instance, clock } = await workFor("2026-11-24", "23:05:00.000Z");
     clock.set(after("2026-11-24", 6 * 60));
     const manager = await as("manager", clock);
-    await manager.instances.closeAsMissed({
+    await manager.work.closeAsMissed({
       id: instance.id,
       reason: "লোক ছিল না",
     });
 
     const staff = await as("staff", clock);
     const closed = { code: "CONFLICT", data: { state: "missed", late: true } };
-    await expect(
-      staff.instances.claim({ id: instance.id })
-    ).rejects.toMatchObject(closed);
+    await expect(staff.work.claim({ id: instance.id })).rejects.toMatchObject(
+      closed
+    );
     // A phone that did the cleaning anyway is told the work was closed, and nothing it said is written down.
     await expect(
-      staff.instances.completeStep({
+      staff.work.completeStep({
         instanceId: instance.id,
         stepId: "clean",
         evidence: [true],
       })
     ).rejects.toMatchObject(closed);
     await expect(
-      manager.instances.assign({
+      manager.work.assign({
         id: instance.id,
         userId: thePerson("staff").id,
       })
     ).rejects.toMatchObject(closed);
-    const kept = await manager.instances.get({ id: instance.id });
+    const kept = await manager.work.get({ id: instance.id });
     expect(kept).toMatchObject({ state: "missed", claimedBy: null });
     expect(kept.completions).toEqual([]);
   });
@@ -501,31 +501,32 @@ describe("moves the work's state does not allow", () => {
   it("tells the person holding work closed as Missed that it is closed, when their claim arrives again", async () => {
     const { instance, clock } = await workFor("2026-11-27", "23:05:00.000Z");
     const staff = await as("staff", clock);
-    await staff.instances.claim({ id: instance.id });
+    await staff.work.claim({ id: instance.id });
     clock.set(after("2026-11-27", 6 * 60));
     const manager = await as("manager", clock);
-    await manager.instances.closeAsMissed({
+    await manager.work.closeAsMissed({
       id: instance.id,
       reason: "শেষ করা হয়নি",
     });
     const later = await as("staff", clock);
-    await expect(
-      later.instances.claim({ id: instance.id })
-    ).rejects.toMatchObject({ code: "CONFLICT", data: { state: "missed" } });
+    await expect(later.work.claim({ id: instance.id })).rejects.toMatchObject({
+      code: "CONFLICT",
+      data: { state: "missed" },
+    });
   });
 
   it("keeps work sent back sent back when it is given to somebody else", async () => {
     const { instance, clock } = await doneWork("2026-11-25");
     const manager = await as("manager", clock);
-    await manager.instances.sendBack({
+    await manager.work.sendBack({
       id: instance.id,
       reason: "কোণগুলো বাকি",
     });
-    await manager.instances.assign({
+    await manager.work.assign({
       id: instance.id,
       userId: thePerson("staff").id,
     });
-    const given = await manager.instances.get({ id: instance.id });
+    const given = await manager.work.get({ id: instance.id });
     expect(given).toMatchObject({
       state: "sent_back",
       assignedTo: thePerson("staff").id,
@@ -538,8 +539,8 @@ describe("moves the work's state does not allow", () => {
     const manager = await as("manager", clock);
     const owner = await as("owner", clock);
     const both = await Promise.allSettled([
-      manager.instances.approve({ id: instance.id }),
-      owner.instances.sendBack({ id: instance.id, reason: "আবার দেখুন" }),
+      manager.work.approve({ id: instance.id }),
+      owner.work.sendBack({ id: instance.id, reason: "আবার দেখুন" }),
     ]);
     expect(both.filter((one) => one.status === "fulfilled")).toHaveLength(1);
     expect(both.find((one) => one.status === "rejected")).toMatchObject({
@@ -574,21 +575,21 @@ describe("review findings", () => {
       world.vetChecked.definitionId
     );
     const vet = await createTestClient(appRouter, { as: "vet", clock });
-    await vet.client.instances.claim({ id: instance.id });
-    await vet.client.instances.completeStep({
+    await vet.client.work.claim({ id: instance.id });
+    await vet.client.work.completeStep({
       instanceId: instance.id,
       stepId: "clean",
       evidence: [true],
     });
-    await vet.client.instances.complete({ id: instance.id });
+    await vet.client.work.complete({ id: instance.id });
 
     // Checked by Staff, so the Staff member sees it — being Staff is not a reason to be
     // kept out of a queue the Version named them for.
     const staff = await as("staff", clock);
-    const queue = await staff.instances.signOffQueue();
+    const queue = await staff.work.signOffQueue();
     expect(queue.some((row) => row.id === instance.id)).toBe(true);
 
-    const approved = await staff.instances.approve({ id: instance.id });
+    const approved = await staff.work.approve({ id: instance.id });
     expect(approved.state).toBe("approved");
   });
 
@@ -596,15 +597,15 @@ describe("review findings", () => {
     const { instance, clock } = await workFor("2026-11-15", "23:05:00.000Z");
     const staff = await as("staff", clock);
     // Straight to recording: a Step can be done without anyone claiming the Instance first.
-    await staff.instances.completeStep({
+    await staff.work.completeStep({
       instanceId: instance.id,
       stepId: "clean",
       evidence: [true],
     });
-    await staff.instances.complete({ id: instance.id });
+    await staff.work.complete({ id: instance.id });
 
     const manager = await as("manager", clock);
-    await manager.instances.sendBack({
+    await manager.work.sendBack({
       id: instance.id,
       reason: "আবার করুন",
     });
@@ -624,17 +625,17 @@ describe("review findings", () => {
 
     // Five minutes past due, still inside the half-hour of Grace.
     await expect(
-      manager.instances.closeAsMissed({ id: instance.id, reason: "পরে" })
+      manager.work.closeAsMissed({ id: instance.id, reason: "পরে" })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
 
     clock.set(after("2026-11-16", 45));
-    const closed = await manager.instances.closeAsMissed({
+    const closed = await manager.work.closeAsMissed({
       id: instance.id,
       reason: "লোক ছিল না",
     });
     expect(closed.state).toBe("missed");
     // Nobody completed it, so it carries no completion time.
-    const kept = await manager.instances.get({ id: instance.id });
+    const kept = await manager.work.get({ id: instance.id });
     expect(kept.completedAt).toBeNull();
   });
 
@@ -701,8 +702,8 @@ describe("review findings", () => {
         triggers: [{ kind: "schedule", times: ["05:00"] }],
       }),
     });
-    await owner.instances.ensureDue();
-    const today = await owner.instances.today({ penId: world.pen.id });
+    await owner.work.ensureDue();
+    const today = await owner.work.today({ penId: world.pen.id });
     const raised = today.find((row) => row.definitionId === late.definitionId);
     if (!raised) {
       throw new Error("expected an instance from the newly published SOP");
@@ -724,7 +725,7 @@ describe("the trail", () => {
   it("records every transition with the Role it was done under", async () => {
     const { instance, clock } = await doneWork("2026-11-12");
     const manager = await as("manager", clock);
-    await manager.instances.sendBack({
+    await manager.work.sendBack({
       id: instance.id,
       reason: "আবার করুন",
     });

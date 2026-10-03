@@ -139,7 +139,7 @@ const venturesTwo = async (penId: string) => {
   });
   await owner.ventures.startBuying({ id: venture.id });
   const { client: buying } = await as("owner", "2028-01-01T00:00:00.000Z");
-  const trip = await buying.trips.record({
+  const trip = await buying.buyingTrips.record({
     wentTo: `ভেঞ্চারের হাট ${suffix}`,
     wentOn: "2028-01-01",
     brokerMoney: 0,
@@ -182,8 +182,8 @@ const venturesTwo = async (penId: string) => {
 
 beforeAll(async () => {
   const { client: owner } = await as("owner", "2027-12-31T04:00:00.000Z");
-  const shed = await owner.herd.createShed({ name: `ভাগ ${suffix}` });
-  const pen = await owner.herd.createPen({
+  const shed = await owner.sheds.createShed({ name: `ভাগ ${suffix}` });
+  const pen = await owner.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `মোটাতাজা ${suffix}`,
@@ -219,7 +219,7 @@ beforeAll(async () => {
   const breed = await owner.breeds.add({ nameBn: SAHIWAL });
   breedId = breed.id;
   const { client: onTheDay } = await as("owner", "2028-01-01T00:00:00.000Z");
-  const trip = await onTheDay.trips.record({
+  const trip = await onTheDay.buyingTrips.record({
     wentTo: GABTOLI,
     wentOn: "2028-01-01",
     brokerMoney: 0,
@@ -300,15 +300,15 @@ beforeAll(async () => {
   const theirs = await venturesTwo(pen.id);
   tags.w = theirs.w;
   const { client: scheduler } = await as("owner", "2028-03-01T07:30:00.000Z");
-  await scheduler.instances.ensureDue();
-  const today = await scheduler.instances.today({ penId: pen.id });
+  await scheduler.work.ensureDue();
+  const today = await scheduler.work.today({ penId: pen.id });
   const round = today.find((one) => one.definitionId === definitionId);
   if (!round) {
     throw new Error("expected a weigh-in instance");
   }
   const { client: staff } = await as("staff", "2028-03-01T07:30:00.000Z");
-  await staff.instances.claim({ id: round.id });
-  await staff.instances.completeStep({
+  await staff.work.claim({ id: round.id });
+  await staff.work.completeStep({
     instanceId: round.id,
     stepId: "weigh",
     animalTag: tags.w,

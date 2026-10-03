@@ -30,12 +30,12 @@ const roundSop = (): SopContent => ({
 
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.client.herd.createShed({ name: `home-${suffix}` });
-  const worked = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `home-${suffix}` });
+  const worked = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: "কাজের পেন",
   });
-  const untouched = await owner.client.herd.createPen({
+  const untouched = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: "ছোঁয়া হয়নি এমন পেন",
   });
@@ -66,9 +66,9 @@ describe("the screen the Manager runs the day from", () => {
     // Half past nine in the morning, farm time: the five o'clock round is long overdue.
     const clock = new FakeClock("2028-01-05T03:30:00.000Z");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    await manager.client.instances.ensureDue();
+    await manager.client.work.ensureDue();
 
-    const home = await manager.client.home.manager();
+    const home = await manager.client.home.get();
 
     const mine = home.pens.filter((pen) =>
       [world.worked.id, world.untouched.id].includes(pen.penId)
@@ -82,7 +82,7 @@ describe("the screen the Manager runs the day from", () => {
     // farm — or a test database — carrying an older backlog, this Pen's round is late whether
     // or not it makes that list.
     const lateIn = async (penId: string) => {
-      const work = await manager.client.instances.today({ penId });
+      const work = await manager.client.work.today({ penId });
       return work.some(
         (row) => row.definitionId === world.sop.definitionId && row.overdue
       );
@@ -95,10 +95,10 @@ describe("the screen the Manager runs the day from", () => {
     const clock = new FakeClock("2028-01-06T03:30:00.000Z");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     const staff = await createTestClient(appRouter, { as: "staff", clock });
-    await manager.client.instances.ensureDue();
+    await manager.client.work.ensureDue();
 
     // The morning round is done in one Pen and not in the other.
-    const today = await manager.client.instances.today({
+    const today = await manager.client.work.today({
       penId: world.worked.id,
     });
     const morning = today.find(
@@ -107,15 +107,15 @@ describe("the screen the Manager runs the day from", () => {
     if (!morning) {
       throw new Error("expected the morning round");
     }
-    await manager.client.instances.claim({ id: morning.id });
-    await manager.client.instances.completeStep({
+    await manager.client.work.claim({ id: morning.id });
+    await manager.client.work.completeStep({
       instanceId: morning.id,
       stepId: "look",
       evidence: [true],
     });
-    await manager.client.instances.complete({ id: morning.id });
+    await manager.client.work.complete({ id: morning.id });
 
-    const home = await manager.client.home.manager();
+    const home = await manager.client.home.get();
     const worked = home.pens.find((pen) => pen.penId === world.worked.id);
     const untouched = home.pens.find((pen) => pen.penId === world.untouched.id);
 
@@ -137,7 +137,7 @@ describe("the screen the Manager runs the day from", () => {
     const clock = new FakeClock("2028-01-07T20:00:00.000Z");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
 
-    const home = await manager.client.home.manager();
+    const home = await manager.client.home.get();
     const mine = home.pens.filter((pen) =>
       [world.worked.id, world.untouched.id].includes(pen.penId)
     );
@@ -147,14 +147,14 @@ describe("the screen the Manager runs the day from", () => {
 
   it("will not show the farm's queue to a Staff member", async () => {
     const staff = await createTestClient(appRouter, { as: "staff" });
-    await expect(staff.client.home.manager()).rejects.toThrow();
+    await expect(staff.client.home.get()).rejects.toThrow();
   });
 
   it("keeps a Pen that was settled as Missed out of what is still outstanding", async () => {
     const clock = new FakeClock("2028-01-08T03:30:00.000Z");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    await manager.client.instances.ensureDue();
-    const today = await manager.client.instances.today({
+    await manager.client.work.ensureDue();
+    const today = await manager.client.work.today({
       penId: world.untouched.id,
     });
     const morning = today.find(
@@ -164,12 +164,12 @@ describe("the screen the Manager runs the day from", () => {
       throw new Error("expected the morning round");
     }
 
-    await manager.client.instances.closeAsMissed({
+    await manager.client.work.closeAsMissed({
       id: morning.id,
       reason: "কেউ ছিল না",
     });
 
-    const home = await manager.client.home.manager();
+    const home = await manager.client.home.get();
     const pen = home.pens.find((row) => row.penId === world.untouched.id);
     // Settled, not outstanding: the Manager decided this one, and a screen that keeps
     // showing it is telling them about a decision they have already made.
@@ -197,7 +197,7 @@ describe("the screen the Manager runs the day from", () => {
       })
       .where(eq(animal.tagNumber, cow.tagNumber));
 
-    const home = await manager.client.home.manager();
+    const home = await manager.client.home.get();
     const hers = home.queue.withdrawal.find(
       (row) => row.tagNumber === cow.tagNumber
     );

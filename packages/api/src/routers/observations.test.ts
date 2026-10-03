@@ -38,10 +38,10 @@ const healthWalkSop = (): SopContent => ({
 
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.client.herd.createShed({
+  const shed = await owner.client.sheds.createShed({
     name: `observations-${Date.now()}`,
   });
-  const pen = await owner.client.herd.createPen({
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: "পরিদর্শন পেন",
   });
@@ -69,15 +69,15 @@ const aCow = async (clock: FakeClock) => {
 
 const walkThePen = async (clock: FakeClock) => {
   const owner = await createTestClient(appRouter, { as: "owner", clock });
-  await owner.client.instances.ensureDue();
-  const today = await owner.client.instances.today({ penId: world.pen.id });
+  await owner.client.work.ensureDue();
+  const today = await owner.client.work.today({ penId: world.pen.id });
   const instance = today.find(
     (row) => row.definitionId === world.sop.definitionId
   );
   if (!instance) {
     throw new Error("expected the health walk");
   }
-  await owner.client.instances.claim({ id: instance.id });
+  await owner.client.work.claim({ id: instance.id });
   return { owner, instance };
 };
 
@@ -87,7 +87,7 @@ describe("what somebody saw on the round", () => {
     const cow = await aCow(clock);
     const { owner, instance } = await walkThePen(clock);
 
-    await owner.client.instances.completeStep({
+    await owner.client.work.completeStep({
       instanceId: instance.id,
       stepId: "look",
       animalTag: cow.tagNumber,
@@ -141,13 +141,13 @@ describe("what somebody saw on the round", () => {
     const clock = new FakeClock("2027-04-03T02:00:00.000Z");
     const cow = await aCow(clock);
     const { owner, instance } = await walkThePen(clock);
-    await owner.client.instances.completeStep({
+    await owner.client.work.completeStep({
       instanceId: instance.id,
       stepId: "look",
       animalTag: cow.tagNumber,
       evidence: ["lame"],
     });
-    const board = await owner.client.instances.get({ id: instance.id });
+    const board = await owner.client.work.get({ id: instance.id });
     const completionId =
       board.completions.find(
         (row) => row.stepId === "look" && row.animalId !== null
@@ -179,13 +179,13 @@ describe("what somebody saw on the round", () => {
     const clock = new FakeClock("2027-04-04T02:00:00.000Z");
     const cow = await aCow(clock);
     const { owner, instance } = await walkThePen(clock);
-    await owner.client.instances.completeStep({
+    await owner.client.work.completeStep({
       instanceId: instance.id,
       stepId: "look",
       animalTag: cow.tagNumber,
       evidence: ["lame"],
     });
-    const board = await owner.client.instances.get({ id: instance.id });
+    const board = await owner.client.work.get({ id: instance.id });
     const completionId =
       board.completions.find(
         (row) => row.stepId === "look" && row.animalId !== null
@@ -214,7 +214,7 @@ describe("what somebody saw on the round", () => {
       [lame, "lame"],
     ] as const) {
       // oxlint-disable-next-line no-await-in-loop -- one piece of work's steps are recorded one after another
-      await owner.client.instances.completeStep({
+      await owner.client.work.completeStep({
         instanceId: instance.id,
         stepId: "look",
         animalTag: cow.tagNumber,
@@ -246,7 +246,7 @@ describe("what somebody saw on the round", () => {
     const { owner, instance } = await walkThePen(clock);
 
     await expect(
-      owner.client.instances.completeStep({
+      owner.client.work.completeStep({
         instanceId: instance.id,
         stepId: "look",
         animalTag: cow.tagNumber,

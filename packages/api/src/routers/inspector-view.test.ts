@@ -33,13 +33,13 @@ const setup = async () => {
     data: "AAAA",
   });
   const owner = await as("owner", "2043-05-01T04:00:00.000Z");
-  const shed = await owner.client.herd.createShed({ name: `insp-${suffix}` });
-  const milkingPen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `insp-${suffix}` });
+  const milkingPen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `পরিদর্শন দুধ ${suffix}`,
   });
-  const bullPen = await owner.client.herd.createPen({
+  const bullPen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `পরিদর্শন ষাঁড় ${suffix}`,
@@ -109,14 +109,14 @@ beforeAll(async () => {
 describe("the Inspector View", () => {
   it("shows the Registration with its certificate, and prints it headed by the farm", async () => {
     const manager = await as("manager", "2043-05-02T04:00:00.000Z");
-    const view = await manager.client.registrationCertificate.view();
+    const view = await manager.client.inspectorView.view();
     // No file photographs the certificate on a later clock, so this file's is the farm's newest.
     expect(view.registration).toMatchObject({
       number: REGISTRATION,
       certificate: { id: world.certificate.id, takenAt: expect.any(Date) },
     });
 
-    const { text } = await manager.client.registrationCertificate.print({
+    const { text } = await manager.client.inspectorView.print({
       register: "registration",
     });
     expect(text).toContain("নিবন্ধন / Registration");
@@ -140,7 +140,7 @@ describe("the Inspector View", () => {
 
   it("counts the herd on the farm today by Side and State and by Pen, the animals that have gone left out", async () => {
     const owner = await as("owner", "2043-05-02T04:00:00.000Z");
-    const view = await owner.client.registrationCertificate.view();
+    const view = await owner.client.inspectorView.view();
     const pen = (id: string) => view.herd.byPen.find((one) => one.penId === id);
     expect(pen(world.milkingPen.id)).toMatchObject({
       animals: 3,
@@ -158,7 +158,7 @@ describe("the Inspector View", () => {
       ])
     );
 
-    const { text } = await owner.client.registrationCertificate.print({
+    const { text } = await owner.client.inspectorView.print({
       register: "herd_summary",
     });
     expect(text).toContain("পশুর সারসংক্ষেপ / Herd summary");
@@ -187,22 +187,20 @@ describe("the Inspector View", () => {
       // oxlint-disable-next-line no-await-in-loop
       const other = await as(role, "2043-05-03T04:00:00.000Z");
       // oxlint-disable-next-line no-await-in-loop
-      await expect(
-        other.client.registrationCertificate.view()
-      ).rejects.toMatchObject({
+      await expect(other.client.inspectorView.view()).rejects.toMatchObject({
         code: "FORBIDDEN",
       });
       // oxlint-disable-next-line no-await-in-loop
       await expect(
-        other.client.registrationCertificate.print({ register: "registration" })
+        other.client.inspectorView.print({ register: "registration" })
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
     }
     const onShedPhone = await as("manager", "2043-05-03T04:00:00.000Z", true);
-    await expect(
-      onShedPhone.client.registrationCertificate.view()
-    ).rejects.toMatchObject({
-      code: "FORBIDDEN",
-    });
+    await expect(onShedPhone.client.inspectorView.view()).rejects.toMatchObject(
+      {
+        code: "FORBIDDEN",
+      }
+    );
 
     // A paper for an inspector carries the Registration number, or it is not printed.
     const writer = await as("manager", "2043-05-03T04:00:00.000Z");
@@ -212,7 +210,7 @@ describe("the Inspector View", () => {
       for (const register of ["registration", "herd_summary"] as const) {
         // oxlint-disable-next-line no-await-in-loop
         await expect(
-          unregistered.client.registrationCertificate.print({ register })
+          unregistered.client.inspectorView.print({ register })
         ).rejects.toMatchObject({
           data: { refusal: "farm_identity_incomplete" },
         });
@@ -221,7 +219,7 @@ describe("the Inspector View", () => {
       // But a register nobody makes a spreadsheet of is refused as that, before the farm's own paperwork is
       // looked at: what an inspector asked for cannot be given at all, and that is the more useful answer.
       await expect(
-        unregistered.client.registrationCertificate.print({
+        unregistered.client.inspectorView.print({
           register: "disease_history",
           format: "csv",
         })

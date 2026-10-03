@@ -9,7 +9,7 @@ import type { orpc } from "@/utils/orpc";
 /** An animal the round could not find, as the home screens are told it — and, on the Owner's, whether she has been
  *  missing long enough for the Owner to be asked about writing her off. */
 export type MissingAnimals = (Awaited<
-  ReturnType<typeof orpc.home.manager.call>
+  ReturnType<typeof orpc.home.get.call>
 >["queue"]["missing"][number] & { days?: number; askWriteOff?: boolean })[];
 
 /**

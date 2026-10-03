@@ -57,8 +57,8 @@ let sharedPenId = "";
  */
 const aMixedPen = async () => {
   const owner = await as("owner", "2047-03-06T04:00:00.000Z");
-  const shed = await owner.client.herd.createShed({ name: `mixed-${suffix}` });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `mixed-${suffix}` });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `মিশ্র ${suffix}`,
@@ -143,12 +143,12 @@ const aMixedPen = async () => {
   }
 
   const scheduler = await as("owner", "2047-03-07T06:30:00.000Z");
-  await scheduler.client.instances.ensureDue();
-  const today = await scheduler.client.instances.today({ penId: sharedPenId });
+  await scheduler.client.work.ensureDue();
+  const today = await scheduler.client.work.today({ penId: sharedPenId });
   const instance = today.find((one) => one.definitionId === definitionId);
   const staff = await as("staff", "2047-03-07T06:30:00.000Z");
-  await staff.client.instances.claim({ id: instance?.id ?? "" });
-  await staff.client.instances.completeStep({
+  await staff.client.work.claim({ id: instance?.id ?? "" });
+  await staff.client.work.completeStep({
     instanceId: instance?.id ?? "",
     stepId: "feed",
     evidence: [true],
@@ -161,8 +161,8 @@ const aMixedPen = async () => {
 
 beforeAll(async () => {
   const owner = await as("owner", "2047-03-01T04:00:00.000Z");
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -263,12 +263,12 @@ beforeAll(async () => {
 
   ({ definitionId } = await owner.client.sops.create({ content: feedSop() }));
   const scheduler = await as("owner", "2047-03-05T06:30:00.000Z");
-  await scheduler.client.instances.ensureDue();
-  const today = await scheduler.client.instances.today({ penId });
+  await scheduler.client.work.ensureDue();
+  const today = await scheduler.client.work.today({ penId });
   const instance = today.find((one) => one.definitionId === definitionId);
   const staff = await as("staff", "2047-03-05T06:30:00.000Z");
-  await staff.client.instances.claim({ id: instance?.id ?? "" });
-  await staff.client.instances.completeStep({
+  await staff.client.work.claim({ id: instance?.id ?? "" });
+  await staff.client.work.completeStep({
     instanceId: instance?.id ?? "",
     stepId: "feed",
     evidence: [true],

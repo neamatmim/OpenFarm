@@ -69,9 +69,9 @@ const IntakePage = () => {
   const [fields, setFields] = useState<IntakeFields>(EMPTY);
   const [photo, setPhoto] = useState<File | null>(null);
   const [writingTrip, setWritingTrip] = useState(false);
-  const sheds = useQuery(orpc.herd.list.queryOptions());
+  const sheds = useQuery(orpc.sheds.list.queryOptions());
   // The outings the farm has written up lately, so an arrival can be put on the one it came home on.
-  const trips = useQuery(orpc.trips.list.queryOptions());
+  const trips = useQuery(orpc.buyingTrips.list.queryOptions());
   // The Ventures that may take an animal in. Only the Owner may read them, so a Manager recording an
   // Intake is simply not asked whose she is — which is right: buying for a Venture is the Owner's call.
   // Whose she is: the Ventures that are buying, which the Manager may read by name because she is the

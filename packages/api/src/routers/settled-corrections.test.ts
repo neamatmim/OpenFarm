@@ -76,8 +76,8 @@ const theVenture = async (owner: Owner) => {
 
 beforeAll(async () => {
   const owner = await as("owner", "2048-01-01T04:00:00.000Z");
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -120,7 +120,7 @@ beforeAll(async () => {
   // Two bulls on the Venture's own Float. Nothing is ever fed to them, so no month owes a
   // Reimbursement and the Settlement turns only on what they fetched.
   const buying = await as("owner", "2048-01-04T04:00:00.000Z");
-  const trip = await buying.client.trips.record({
+  const trip = await buying.client.buyingTrips.record({
     wentTo: `হাট ${suffix}`,
     wentOn: "2048-01-04",
     brokerMoney: 0,
@@ -165,11 +165,11 @@ beforeAll(async () => {
   // A dead Animal is gone, so the Venture may still settle.
   const sop = await owner.client.sops.create({ content: healthWalkSop() });
   const walking = await as("manager", "2048-01-10T07:30:00.000Z");
-  await walking.client.instances.ensureDue();
-  const today = await walking.client.instances.today({ penId });
+  await walking.client.work.ensureDue();
+  const today = await walking.client.work.today({ penId });
   const walk = today.find((one) => one.definitionId === sop.definitionId);
-  await walking.client.instances.claim({ id: walk?.id ?? "" });
-  await walking.client.instances.completeStep({
+  await walking.client.work.claim({ id: walk?.id ?? "" });
+  await walking.client.work.completeStep({
     instanceId: walk?.id ?? "",
     stepId: "look",
     animalTag: deadTag,

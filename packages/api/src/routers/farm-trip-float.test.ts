@@ -25,15 +25,15 @@ const handOf = async (role: "owner" | "manager") => {
 beforeAll(async () => {
   const owner = await as("owner");
   const manager = await as("manager");
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
   });
   penId = pen.id;
   // The outing, and the ৳1,00,000 the Owner hands the Manager for it.
-  const trip = await manager.client.trips.record({
+  const trip = await manager.client.buyingTrips.record({
     wentTo: `গাবতলী হাট ${suffix}`,
     brokerMoney: 2000,
     transportMoney: 3000,
@@ -112,7 +112,7 @@ describe("a Buying Float for the Farm's own outing", () => {
     const floats = await manager.client.cash.tripFloats();
     expect(floats.map((one) => one.tripId)).not.toContain(tripId);
     // And the outing says so, so the Intake sheet stops offering it.
-    const trips = await manager.client.trips.list();
+    const trips = await manager.client.buyingTrips.list();
     expect(trips.find((one) => one.id === tripId)).toMatchObject({
       countedHome: true,
     });
@@ -151,7 +151,7 @@ describe("a Buying Float for the Farm's own outing", () => {
   it("takes no change to what it cost once counted home", async () => {
     const manager = await as("manager", "2072-02-11T06:00:00.000Z");
     await expect(
-      manager.client.trips.correct({
+      manager.client.buyingTrips.correct({
         id: tripId,
         reason: `লরির ভাড়া আসলে বেশি ছিল ${suffix}`,
         changes: { transportMoney: { from: 3000, to: 5000 } },

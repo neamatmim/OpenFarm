@@ -63,10 +63,10 @@ const milkingSop = (): SopContent => ({
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
   const vet = await createTestClient(appRouter, { as: "vet" });
-  const shed = await owner.client.herd.createShed({
+  const shed = await owner.client.sheds.createShed({
     name: `withdrawals-${Date.now()}`,
   });
-  const pen = await owner.client.herd.createPen({
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: "চিকিৎসা পেন",
   });
@@ -150,8 +150,8 @@ const giveDose = async (
   if (!dose) {
     throw new Error(`expected dose ${number} of her course`);
   }
-  await staff.client.instances.claim({ id: dose.instanceId });
-  await staff.client.instances.completeStep({
+  await staff.client.work.claim({ id: dose.instanceId });
+  await staff.client.work.completeStep({
     instanceId: dose.instanceId,
     stepId: "dose",
     evidence: [true],
@@ -209,16 +209,16 @@ describe("withdrawal, from the last dose actually given", () => {
     // The milking round, on a phone that has been out of signal since before the dose and
     // still believes her milk is saleable.
     const staff = await createTestClient(appRouter, { as: "staff", clock });
-    await staff.client.instances.ensureDue();
-    const today = await staff.client.instances.today({ penId: world.pen.id });
+    await staff.client.work.ensureDue();
+    const today = await staff.client.work.today({ penId: world.pen.id });
     const milking = today.find(
       (row) => row.definitionId === world.milking.definitionId
     );
     if (!milking) {
       throw new Error("expected the milking round");
     }
-    await staff.client.instances.claim({ id: milking.id });
-    const recorded = await staff.client.instances.completeStep({
+    await staff.client.work.claim({ id: milking.id });
+    const recorded = await staff.client.work.completeStep({
       instanceId: milking.id,
       stepId: "litres",
       animalTag: cow.tagNumber,
@@ -248,8 +248,8 @@ describe("withdrawal, from the last dose actually given", () => {
       onShedPhone: true,
       phone: { id: "test-phone-gate", name: "গেট শেড ফোন" },
     });
-    await phone.client.instances.ensureDue();
-    const today = await phone.client.instances.today({ penId: world.pen.id });
+    await phone.client.work.ensureDue();
+    const today = await phone.client.work.today({ penId: world.pen.id });
     const milking = today.find(
       (row) => row.definitionId === world.milking.definitionId
     );
@@ -406,7 +406,7 @@ describe("withdrawal, from the last dose actually given", () => {
     await giveDose(clock, cow.tagNumber, 1);
 
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    const home = await manager.client.home.manager();
+    const home = await manager.client.home.get();
     const hers = home.queue.meatWithdrawal.find((one) => one.id === cow.id);
     // Twenty-one days for the meat: the Sale SOP arrives in increment 4 and reads this same
     // date, and until then the Manager is at least told.

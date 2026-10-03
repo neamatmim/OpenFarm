@@ -31,8 +31,8 @@ beforeAll(async () => {
   });
   releaseId = release.definitionId;
   const manager = await as("manager", ARRIVED);
-  const shed = await manager.client.herd.createShed({ name: suffix });
-  const pen = await manager.client.herd.createPen({
+  const shed = await manager.client.sheds.createShed({ name: suffix });
+  const pen = await manager.client.sheds.createPen({
     shedId: shed.id,
     name: `কোয়ারেন্টিন ${suffix}`,
     quarantine: true,
@@ -57,7 +57,7 @@ beforeAll(async () => {
 /** Every piece of release work about him, oldest first, once the day is turned at `at`. */
 const hisReleases = async (at: string, tagNumber: string) => {
   const manager = await as("manager", at);
-  await manager.client.instances.ensureDue();
+  await manager.client.work.ensureDue();
   const him = await manager.client.animals.byTag({ tagNumber });
   const rows = await scratchDb().query.sopInstance.findMany({
     where: { definitionId: releaseId, animalId: him.id },
@@ -70,11 +70,11 @@ const hisReleases = async (at: string, tagNumber: string) => {
 /** His release walked and kept in: well-ness skipped, the release skipped. The completion of the release step. */
 const keepHimIn = async (at: string, tagNumber: string, workId: string) => {
   const manager = await as("manager", at);
-  await manager.client.instances.claim({ id: workId });
+  await manager.client.work.claim({ id: workId });
   for (const stepId of ["healthy", "doses", "release"]) {
     const skipping = stepId !== "doses";
     // oxlint-disable-next-line no-await-in-loop -- the steps are walked in their order
-    await manager.client.instances.completeStep({
+    await manager.client.work.completeStep({
       instanceId: workId,
       stepId,
       animalTag: tagNumber,
@@ -82,7 +82,7 @@ const keepHimIn = async (at: string, tagNumber: string, workId: string) => {
       ...(skipping ? { skipReason: KEPT_IN } : {}),
     });
   }
-  const board = await manager.client.instances.get({ id: workId });
+  const board = await manager.client.work.get({ id: workId });
   return board.completions.find((row) => row.stepId === "release")?.id ?? "";
 };
 
@@ -118,10 +118,10 @@ describe("a Release put off", () => {
     const [again] = openAgain(kept.rows);
     const day = new Date(again?.dueAt ?? 0).toISOString();
     const manager = await as("manager", day);
-    await manager.client.instances.claim({ id: again?.id ?? "" });
+    await manager.client.work.claim({ id: again?.id ?? "" });
     for (const stepId of ["healthy", "doses", "release"]) {
       // oxlint-disable-next-line no-await-in-loop -- the steps are walked in their order
-      await manager.client.instances.completeStep({
+      await manager.client.work.completeStep({
         instanceId: again?.id ?? "",
         stepId,
         animalTag: tags.later,
@@ -138,7 +138,7 @@ describe("a Release put off", () => {
     const { rows } = await hisReleases(RELEASE_DAY, tags.missed);
     const [work] = rows;
     const owner = await as("owner", "2086-02-08T05:00:00.000Z");
-    await owner.client.instances.closeAsMissed({
+    await owner.client.work.closeAsMissed({
       id: work?.id ?? "",
       reason: `কেউ করেনি ${suffix}`,
     });

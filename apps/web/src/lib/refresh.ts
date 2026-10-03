@@ -6,7 +6,7 @@ import type { Mutation, QueryClient } from "@tanstack/react-query";
  * times over; whoever runs them refreshes once, when the last has gone.
  */
 const OPENING_THE_APP: ReadonlySet<string> = new Set([
-  "instances.ensureDue",
+  "work.ensureDue",
   "alerts.sweep",
   "alerts.digest",
 ]);

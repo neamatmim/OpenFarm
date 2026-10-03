@@ -11,7 +11,7 @@ import type { Farm, PersonKey } from "./standing";
 
 const MINUTE = 60_000;
 
-type Board = Awaited<ReturnType<ApiClient["instances"]["get"]>>;
+type Board = Awaited<ReturnType<ApiClient["work"]["get"]>>;
 type StepOf = Board["content"]["steps"][number];
 type AnimalOf = Board["animals"][number];
 
@@ -158,7 +158,7 @@ const answerTheStep = async ({
       if (!answer) {
         continue;
       }
-      const recorded = await api.instances.completeStep({
+      const recorded = await api.work.completeStep({
         instanceId,
         stepId: step.id,
         animalTag: beast?.tagNumber,
@@ -179,7 +179,7 @@ const answerTheStep = async ({
     if (!step.repeatPerAnimal) {
       return;
     }
-    const again = await api.instances.get({ id: instanceId });
+    const again = await api.work.get({ id: instanceId });
     subjects = again.animals.filter((beast) => !answered.has(beast.tagNumber));
   }
 };
@@ -209,8 +209,8 @@ export const doTheWork = async (
   const api = farm.as[worker];
   const at = instance.dueAt.getTime() + farm.random.int(3, 25) * MINUTE;
   farm.clock.set(new Date(at));
-  await api.instances.claim({ id: instance.id });
-  const board = await api.instances.get({ id: instance.id });
+  await api.work.claim({ id: instance.id });
+  const board = await api.work.get({ id: instance.id });
   const work: WorkContext = {
     farm,
     herd,
@@ -232,11 +232,11 @@ export const doTheWork = async (
   }
   const finishedAt = pace.at + 2 * MINUTE;
   farm.clock.set(new Date(finishedAt));
-  await api.instances.complete({ id: instance.id });
+  await api.work.complete({ id: instance.id });
 
   if (signOff && crew.checker) {
     farm.clock.set(new Date(finishedAt + farm.random.int(40, 180) * MINUTE));
-    await farm.as[crew.checker].instances.approve({ id: instance.id });
+    await farm.as[crew.checker].work.approve({ id: instance.id });
   }
   return "done";
 };
@@ -276,7 +276,7 @@ const closeWhatWasMissed = async (farm: Farm, day: string) => {
   });
   farm.clock.set(onFarm(day, "06:00"));
   for (const row of missed) {
-    await farm.as.manager.instances.closeAsMissed({
+    await farm.as.manager.work.closeAsMissed({
       id: row.id,
       reason: farm.random.pick(MISSED_REASONS),
     });
@@ -326,7 +326,7 @@ export const liveTheDays = async (
     let done = 0;
 
     farm.clock.set(onFarm(day, "04:30"));
-    await farm.as.manager.instances.ensureDue();
+    await farm.as.manager.work.ensureDue();
     await closeWhatWasMissed(farm, day);
 
     for (;;) {
@@ -348,7 +348,7 @@ export const liveTheDays = async (
           nextEvent.run(farm, herd)
         );
         farm.clock.set(new Date(eventAt + MINUTE));
-        await farm.as.manager.instances.ensureDue();
+        await farm.as.manager.work.ensureDue();
         continue;
       }
       if (!nextWork) {
@@ -373,7 +373,7 @@ export const liveTheDays = async (
             Math.max(farm.clock.now().getTime(), nextWork.dueAt.getTime())
           )
         );
-        await farm.as.manager.instances.ensureDue();
+        await farm.as.manager.work.ensureDue();
       }
     }
     report(

@@ -11,12 +11,12 @@ export interface Asked<T> {
 
 /** A piece of work done and waiting for its checker, as the queue reads it. */
 export type ToCheck = Awaited<
-  ReturnType<typeof orpc.instances.signOffQueue.call>
+  ReturnType<typeof orpc.work.signOffQueue.call>
 >[number];
 
 /** A piece of work gone late and still open, as the Overdue list reads it. */
 export type LateWork = Awaited<
-  ReturnType<typeof orpc.instances.overdue.call>
+  ReturnType<typeof orpc.work.overdue.call>
 >[number];
 
 /** Something the farm could not put right on its own, as the review queue reads it. */

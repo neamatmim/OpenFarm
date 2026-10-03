@@ -27,7 +27,7 @@ export const BuyingTripCorrection = ({
     transportMoney: figure(trip.parts.transportMoney),
     keepMoney: figure(trip.parts.keepMoney),
   });
-  const correct = useMutation(orpc.trips.correct.mutationOptions({}));
+  const correct = useMutation(orpc.buyingTrips.correct.mutationOptions({}));
   return (
     <CorrectionDialog
       onOpen={correcting.handleOpen}

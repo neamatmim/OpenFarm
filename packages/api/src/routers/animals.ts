@@ -34,6 +34,7 @@ import {
   expectedCalvingWithinReach,
   pregnancyTimesOf,
 } from "../breeding-store";
+import { calfLossesOf } from "../calf-losses-store";
 import type { Context } from "../context";
 import { correct, reasonInput } from "../corrections/correction";
 import {
@@ -46,6 +47,7 @@ import {
 } from "../corrections/mortality";
 import { parseCsvRecords } from "../csv";
 import { tellOfTheDeath } from "../death-notice";
+import { adultDeathsOf } from "../deaths-store";
 import { recordNow } from "../entries/entry";
 import { moveEntry, moveInput } from "../entries/move";
 import { farmDay } from "../farm-clock";
@@ -579,6 +581,26 @@ const deathShown = (
 };
 
 export const animalsRouter = {
+  /**
+   * What the farm lost in grown animals over the last year: deaths and culls by Side, what the dead died of, and deaths
+   * for every hundred head kept a year. The Owner's and the Manager's, as the calf losses are.
+   */
+  deaths: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(({ context }) =>
+      adultDeathsOf(context.db, context.farm.id, context.clock.now())
+    ),
+
+  /**
+   * What the farm lost in calves over the last year: born alive, born dead, and lost before weaning, with what they
+   * died of — the figure that says whether its calf care works. The Owner's and the Manager's: it is care, not money.
+   */
+  calfLosses: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(({ context }) =>
+      calfLossesOf(context.db, context.farm.id, context.clock.now())
+    ),
+
   /** Staff see their assigned Pens; everyone who runs the farm sees the whole herd. */
   list: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))

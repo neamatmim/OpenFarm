@@ -40,10 +40,10 @@ const treatmentSop = (): SopContent => ({
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
   const vet = await createTestClient(appRouter, { as: "vet" });
-  const shed = await owner.client.herd.createShed({
+  const shed = await owner.client.sheds.createShed({
     name: `prescriptions-${Date.now()}`,
   });
-  const pen = await owner.client.herd.createPen({
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: "চিকিৎসা পেন",
   });
@@ -134,7 +134,7 @@ describe("a Prescription, and a dose per Instance", () => {
     expect(mine?.doses.at(0)?.state).toBe("due");
 
     // And the first of them is on today's list, for whoever is in the shed.
-    const today = await owner.client.instances.today({ penId: world.pen.id });
+    const today = await owner.client.work.today({ penId: world.pen.id });
     const treatment = today.filter(
       (row) => row.definitionId === world.sop.definitionId
     );
@@ -157,7 +157,7 @@ describe("a Prescription, and a dose per Instance", () => {
     });
 
     // The dose is on the shed's list like anything else, and Staff pick it up.
-    const today = await staff.client.instances.today({ penId: world.pen.id });
+    const today = await staff.client.work.today({ penId: world.pen.id });
     const dose = today.find(
       (row) =>
         row.definitionId === world.sop.definitionId && row.animalId === cow.id
@@ -165,8 +165,8 @@ describe("a Prescription, and a dose per Instance", () => {
     if (!dose) {
       throw new Error("expected the first dose on today's list");
     }
-    await staff.client.instances.claim({ id: dose.id });
-    const recorded = await staff.client.instances.completeStep({
+    await staff.client.work.claim({ id: dose.id });
+    const recorded = await staff.client.work.completeStep({
       instanceId: dose.id,
       stepId: "dose",
       evidence: [true],
@@ -209,14 +209,14 @@ describe("a Prescription, and a dose per Instance", () => {
       days: 2,
     });
 
-    const onTime = await staff.client.instances.today({ penId: world.pen.id });
+    const onTime = await staff.client.work.today({ penId: world.pen.id });
     const first = onTime.find((row) => row.animalId === cow.id);
     expect(first?.overdue).toBe(false);
 
     // Half past ten: due at eight, two hours' grace, and nobody gave it.
     clock.set("2028-06-03T04:30:00.000Z");
     const later = await createTestClient(appRouter, { as: "staff", clock });
-    const missed = await later.client.instances.today({ penId: world.pen.id });
+    const missed = await later.client.work.today({ penId: world.pen.id });
     const late = missed.find((row) => row.animalId === cow.id);
     // Late on the same list as everything else late, worked out from the clock rather than
     // waiting for anything to have run.
@@ -239,7 +239,7 @@ describe("a Prescription, and a dose per Instance", () => {
     });
 
     const doseWork = async () => {
-      const today = await staff.client.instances.today({ penId: world.pen.id });
+      const today = await staff.client.work.today({ penId: world.pen.id });
       return today.filter((row) => row.animalId === cow.id);
     };
     const before = await doseWork();
@@ -247,8 +247,8 @@ describe("a Prescription, and a dose per Instance", () => {
 
     // Whatever opens the app gathers the day's work. A Prescription's doses are not the
     // clock's to raise, so gathering finds nothing to add.
-    await staff.client.instances.ensureDue();
-    await staff.client.instances.ensureDue();
+    await staff.client.work.ensureDue();
+    await staff.client.work.ensureDue();
 
     expect(await doseWork()).toHaveLength(2);
     const courses = await vet.client.prescriptions.forAnimal({
@@ -333,7 +333,7 @@ describe("a Prescription, and a dose per Instance", () => {
       onShedPhone: true,
       phone: { id: "test-phone-doses", name: "ডোজ শেড ফোন" },
     });
-    const today = await phone.client.instances.today({ penId: world.pen.id });
+    const today = await phone.client.work.today({ penId: world.pen.id });
     const dose = today.find((row) => row.animalId === cow.id);
     if (!dose) {
       throw new Error("expected the first dose on today's list");
@@ -403,19 +403,19 @@ describe("a Prescription, and a dose per Instance", () => {
       days: 2,
     });
 
-    const today = await manager.client.instances.today({ penId: world.pen.id });
+    const today = await manager.client.work.today({ penId: world.pen.id });
     const dose = today.find((row) => row.animalId === cow.id);
     if (!dose) {
       throw new Error("expected the first dose on today's list");
     }
-    await manager.client.instances.claim({ id: dose.id });
-    await manager.client.instances.completeStep({
+    await manager.client.work.claim({ id: dose.id });
+    await manager.client.work.completeStep({
       instanceId: dose.id,
       stepId: "dose",
       evidence: [true],
     });
 
-    const board = await manager.client.instances.get({ id: dose.id });
+    const board = await manager.client.work.get({ id: dose.id });
     const completionId = board.completions.find(
       (row) => row.stepId === "dose"
     )?.id;
@@ -488,7 +488,7 @@ describe("a Prescription, and a dose per Instance", () => {
 
     // The cow gets one today: a Vet who orders an antibiotic at ten does not mean she waits
     // until tomorrow morning for the first of it.
-    const today = await staff.client.instances.today({ penId: world.pen.id });
+    const today = await staff.client.work.today({ penId: world.pen.id });
     expect(today.filter((row) => row.animalId === cow.id)).toHaveLength(1);
 
     const courses = await vet.client.prescriptions.forAnimal({
@@ -508,7 +508,7 @@ describe("a Prescription, and a dose per Instance", () => {
     const clock = new FakeClock("2028-06-11T02:00:00.000Z");
     const { cow, diagnosis, vet } = await aSickCow(clock);
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    const sickBay = await manager.client.herd.createPen({
+    const sickBay = await manager.client.sheds.createPen({
       shedId: world.shedId,
       name: `আইসোলেশন ${Date.now()}`,
     });
@@ -531,11 +531,11 @@ describe("a Prescription, and a dose per Instance", () => {
       reason: "চিকিৎসার জন্য আলাদা করা হয়েছে",
     });
 
-    const there = await manager.client.instances.today({ penId: sickBay.id });
+    const there = await manager.client.work.today({ penId: sickBay.id });
     expect(
       there.filter((row) => row.animalId === cow.id).length
     ).toBeGreaterThan(0);
-    const behind = await manager.client.instances.today({
+    const behind = await manager.client.work.today({
       penId: world.pen.id,
     });
     expect(behind.filter((row) => row.animalId === cow.id)).toHaveLength(0);

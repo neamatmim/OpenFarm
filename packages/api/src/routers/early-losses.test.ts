@@ -54,14 +54,14 @@ const as = (role: "owner" | "manager" | "vet", instant: string) =>
 
 beforeAll(async () => {
   const owner = await as("owner", "2083-02-28T04:00:00.000Z");
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `কোয়ারেন্টাইন ${suffix}`,
   });
   const manager = await as("manager", CAME);
-  const trip = await manager.client.trips.record({
+  const trip = await manager.client.buyingTrips.record({
     wentTo: LIVESTOCK_MARKET,
     brokerMoney: 0,
     transportMoney: 3000,
@@ -87,14 +87,14 @@ beforeAll(async () => {
   const [died = "", ill = "", , late = "", short = ""] = tags;
   // Salam's bull, bought at 250 kg, weighs 230 at the first round twelve days on: none lost, but weighed short.
   const scale = await as("manager", "2083-03-13T02:00:00.000Z");
-  await scale.client.instances.ensureDue();
-  const today = await scale.client.instances.today({ penId: pen.id });
+  await scale.client.work.ensureDue();
+  const today = await scale.client.work.today({ penId: pen.id });
   const round = today.find((row) => row.definitionId === weighing.definitionId);
   if (!round) {
     throw new Error("expected the weighing to be due");
   }
-  await scale.client.instances.claim({ id: round.id });
-  await scale.client.instances.completeStep({
+  await scale.client.work.claim({ id: round.id });
+  await scale.client.work.completeStep({
     instanceId: round.id,
     stepId: "weigh",
     animalTag: short,

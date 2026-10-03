@@ -73,14 +73,14 @@ const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner", clock });
   const manager = await createTestClient(appRouter, { as: "manager", clock });
   const vet = await createTestClient(appRouter, { as: "vet", clock });
-  const shed = await owner.client.herd.createShed({ name: `ready-${suffix}` });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `ready-${suffix}` });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `বিক্রয় ${suffix}`,
   });
   /** The treated bull stands apart, because a campaign doses every animal in its Pen. */
-  const treatedPen = await owner.client.herd.createPen({
+  const treatedPen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `চিকিৎসা ${suffix}`,
@@ -178,8 +178,8 @@ afterAll(async () => {
 const weigh = async (day: string, readings: [number, number][]) => {
   const clock = new FakeClock(`${day}T07:30:00.000Z`);
   const scheduler = await createTestClient(appRouter, { as: "owner", clock });
-  await scheduler.client.instances.ensureDue();
-  const today = await scheduler.client.instances.today({ penId: world.pen.id });
+  await scheduler.client.work.ensureDue();
+  const today = await scheduler.client.work.today({ penId: world.pen.id });
   const instance = today.find(
     (candidate) => candidate.definitionId === world.sop.definitionId
   );
@@ -187,10 +187,10 @@ const weigh = async (day: string, readings: [number, number][]) => {
     throw new Error("expected a weigh-in instance");
   }
   const staff = await createTestClient(appRouter, { as: "staff", clock });
-  await staff.client.instances.claim({ id: instance.id });
+  await staff.client.work.claim({ id: instance.id });
   for (const [index, kg] of readings) {
     // oxlint-disable-next-line no-await-in-loop
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "weigh",
       animalTag: world.bulls[index]?.tagNumber ?? "",
@@ -204,11 +204,11 @@ const weigh = async (day: string, readings: [number, number][]) => {
 const worm = async (day: string) => {
   const clock = new FakeClock(`${day}T08:00:00.000Z`);
   const manager = await createTestClient(appRouter, { as: "manager", clock });
-  await manager.client.instances.raiseNow({
+  await manager.client.work.raiseNow({
     definitionId: world.campaign.definitionId,
     penId: world.treatedPen.id,
   });
-  const today = await manager.client.instances.today({
+  const today = await manager.client.work.today({
     penId: world.treatedPen.id,
   });
   const raised = today.find(
@@ -218,8 +218,8 @@ const worm = async (day: string) => {
     throw new Error("expected a worming instance");
   }
   const staff = await createTestClient(appRouter, { as: "staff", clock });
-  await staff.client.instances.claim({ id: raised.id });
-  await staff.client.instances.completeStep({
+  await staff.client.work.claim({ id: raised.id });
+  await staff.client.work.completeStep({
     instanceId: raised.id,
     stepId: "dose",
     animalTag: world.bulls[2]?.tagNumber ?? "",

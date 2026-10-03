@@ -27,8 +27,8 @@ beforeAll(async () => {
   });
   countId = made.definitionId;
   // Work about the whole farm is raised while any Pen holds an animal.
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `গাভী পেন ${suffix}`,
   });
@@ -83,8 +83,8 @@ beforeAll(async () => {
 /** The count's work on a Friday morning, claimed by the Manager — or nothing, where none was raised. */
 const theCount = async (day: string) => {
   const manager = await as("manager", fridayMorning(day));
-  await manager.client.instances.ensureDue();
-  const today = await manager.client.instances.today();
+  await manager.client.work.ensureDue();
+  const today = await manager.client.work.today();
   const work = today.find((row) => row.definitionId === countId);
   return { manager, work };
 };
@@ -97,8 +97,8 @@ const count = async (
   if (!work) {
     throw new Error("expected the monthly medicine count");
   }
-  await manager.client.instances.claim({ id: work.id });
-  return await manager.client.instances.completeStep({
+  await manager.client.work.claim({ id: work.id });
+  return await manager.client.work.completeStep({
     instanceId: work.id,
     stepId: "count",
     evidence: [true],
@@ -116,7 +116,7 @@ describe("the monthly medicine count", () => {
   it("is raised on the first Friday of the month, blind, and every medicine is counted", async () => {
     const { manager, work } = await theCount("2084-03-03");
     expect(work).toBeDefined();
-    const shown = await manager.client.instances.get({ id: work?.id ?? "" });
+    const shown = await manager.client.work.get({ id: work?.id ?? "" });
     expect(shown.medicineCount?.items.map((one) => one.drugProductId)).toEqual(
       expect.arrayContaining([oxy, dewormer])
     );

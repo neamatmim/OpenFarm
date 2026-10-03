@@ -57,8 +57,8 @@ beforeAll(async () => {
     as: "owner",
     clock: new FakeClock(MORNING),
   });
-  const shed = await client.herd.createShed({ name: `দিন ${suffix}` });
-  const pen = await client.herd.createPen({
+  const shed = await client.sheds.createShed({ name: `দিন ${suffix}` });
+  const pen = await client.sheds.createPen({
     shedId: shed.id,
     name: `পেন ${suffix}`,
   });

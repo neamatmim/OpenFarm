@@ -69,7 +69,7 @@ const WorkPage = () => {
   const [outcome, setOutcome] = useState<BulkOutcome | null>(null);
 
   const instance = useQuery(
-    orpc.instances.get.queryOptions({ input: { id: instanceId } })
+    orpc.work.get.queryOptions({ input: { id: instanceId } })
   );
   const someoneElse = useHeldByOther(instance.data);
   // What this phone last knew of the herd. With no signal the board still has to say which
@@ -80,7 +80,7 @@ const WorkPage = () => {
       correctionRefusalMessage(error, t) ?? error.message ?? t("common.error")
     );
 
-  const instanceKey = orpc.instances.get.queryKey({
+  const instanceKey = orpc.work.get.queryKey({
     input: { id: instanceId },
   });
   const claim = useMutation({
@@ -108,7 +108,7 @@ const WorkPage = () => {
     onError,
   });
   const renew = useMutation(
-    orpc.instances.completeStep.mutationOptions({
+    orpc.work.completeStep.mutationOptions({
       onSuccess: () => {
         setOpenStep(null);
       },
@@ -116,7 +116,7 @@ const WorkPage = () => {
     })
   );
   const correct = useMutation(
-    orpc.instances.correctStep.mutationOptions({
+    orpc.work.correctStep.mutationOptions({
       onSuccess: ({ effect, needsReview }) => {
         setOutcome(effect?.kind === "bulk_total" ? effect : null);
         if (needsReview) {

@@ -11,7 +11,7 @@ export const usePenNames = (enabled = true): ReadonlyMap<string, string> => {
   const onlyCases =
     me.data?.roles.length === 1 && me.data.scopes?.vet?.kind === "cases";
   const sheds = useQuery({
-    ...orpc.herd.list.queryOptions(),
+    ...orpc.sheds.list.queryOptions(),
     enabled: enabled && Boolean(me.data) && !onlyCases,
   });
   return new Map(

@@ -76,8 +76,8 @@ beforeAll(async () => {
   const vet = await calling(vetId, DURING);
   await vet.people.acceptInvite({ code: invited.code });
 
-  const shed = await owner.herd.createShed({ name: `visit-${suffix}` });
-  const pen = await owner.herd.createPen({
+  const shed = await owner.sheds.createShed({ name: `visit-${suffix}` });
+  const pen = await owner.sheds.createPen({
     shedId: shed.id,
     name: `পেন ${suffix}`,
   });
@@ -148,7 +148,7 @@ describe("a visiting Vet", () => {
     expect(Object.keys(me.farm ?? {}).toSorted()).toEqual(["id", "name"]);
     // And their screens are told their Scope is their Cases, and nothing of the farm besides.
     expect(me.scopes).toMatchObject({ vet: { kind: "cases" } });
-    await expect(vet.herd.list()).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(vet.sheds.list()).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(vet.sops.card({ definitionId: "any" })).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
@@ -314,12 +314,10 @@ describe("a visiting Vet who also works the barn", () => {
         createdAt: new Date(DURING),
       });
     try {
-      const today = await withCase.instances.today({});
+      const today = await withCase.work.today({});
       expect(today.map((work) => work.id)).toContain(workId);
       // And they may open it, though it stands in no Pen of theirs: it is about an animal on their Case.
-      await expect(
-        withCase.instances.get({ id: workId })
-      ).resolves.toMatchObject({
+      await expect(withCase.work.get({ id: workId })).resolves.toMatchObject({
         id: workId,
       });
     } finally {

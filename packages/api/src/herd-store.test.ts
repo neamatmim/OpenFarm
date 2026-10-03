@@ -79,9 +79,9 @@ const as = async (who: "owner" | "manager", at: string) => {
 
 beforeAll(async () => {
   const owner = await as("owner", AT);
-  const shed = await owner.herd.createShed({ name: `lifecycle-${suffix}` });
+  const shed = await owner.sheds.createShed({ name: `lifecycle-${suffix}` });
   const pen = async (name: string) => {
-    const made = await owner.herd.createPen({
+    const made = await owner.sheds.createPen({
       shedId: shed.id,
       name: `${name} ${suffix}`,
     });

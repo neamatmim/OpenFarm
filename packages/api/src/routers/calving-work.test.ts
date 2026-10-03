@@ -159,12 +159,12 @@ const prepSop = (calvingPenId: string): SopContent => ({
 const setup = async () => {
   const clock = new FakeClock("2031-01-01T00:00:00.000Z");
   const owner = await createTestClient(appRouter, { as: "owner", clock });
-  const shed = await owner.client.herd.createShed({ name: `cw-${suffix}` });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `cw-${suffix}` });
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `দুধের ঘর ${suffix}`,
   });
-  const calvingPen = await owner.client.herd.createPen({
+  const calvingPen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `বাচ্চার ঘর ${suffix}`,
   });
@@ -267,15 +267,15 @@ const workFor = async (
   const clock = new FakeClock(at);
   const client = await createTestClient(appRouter, { as, clock });
   const manager = await createTestClient(appRouter, { as: "manager", clock });
-  await manager.client.instances.ensureDue();
+  await manager.client.work.ensureDue();
   const her = await manager.client.animals.byTag({ tagNumber });
   const pens = [world.pen.id, world.calvingPen.id];
   const today = [];
   for (const penId of pens) {
     // oxlint-disable-next-line no-await-in-loop
-    today.push(...(await manager.client.instances.today({ penId })));
+    today.push(...(await manager.client.work.today({ penId })));
   }
-  const late = await manager.client.instances.overdue();
+  const late = await manager.client.work.overdue();
   const seen = new Set<string>();
   const rows = [...today, ...late].filter((row) => {
     const mine =
@@ -292,17 +292,17 @@ const workFor = async (
 const getHerInCalf = async (tagNumber: string, day = "01-02") => {
   const clock = new FakeClock(`2031-${day}T00:00:00.000Z`);
   const manager = await createTestClient(appRouter, { as: "manager", clock });
-  await manager.client.instances.raiseNow({
+  await manager.client.work.raiseNow({
     definitionId: world.watch.definitionId,
     penId: world.pen.id,
   });
-  const rounds = await manager.client.instances.today({ penId: world.pen.id });
+  const rounds = await manager.client.work.today({ penId: world.pen.id });
   const round = rounds.find(
     (row) => row.definitionId === world.watch.definitionId
   );
   const staff = await createTestClient(appRouter, { as: "staff", clock });
-  await staff.client.instances.claim({ id: round?.id ?? "" });
-  await staff.client.instances.completeStep({
+  await staff.client.work.claim({ id: round?.id ?? "" });
+  await staff.client.work.completeStep({
     instanceId: round?.id ?? "",
     stepId: "look",
     animalTag: tagNumber,
@@ -315,8 +315,8 @@ const getHerInCalf = async (tagNumber: string, day = "01-02") => {
     tagNumber
   );
   const aiWork = serving.rows[0]?.id ?? "";
-  await serving.manager.client.instances.claim({ id: aiWork });
-  await serving.manager.client.instances.completeStep({
+  await serving.manager.client.work.claim({ id: aiWork });
+  await serving.manager.client.work.completeStep({
     instanceId: aiWork,
     stepId: "serve",
     evidence: ["ai", "HF-2231-BD", "রহিম", `2031-${day}T12:00:00.000Z`],
@@ -331,8 +331,8 @@ const getHerInCalf = async (tagNumber: string, day = "01-02") => {
     "vet"
   );
   const checkWork = checking.rows[0]?.id ?? "";
-  await checking.client.client.instances.claim({ id: checkWork });
-  await checking.client.client.instances.completeStep({
+  await checking.client.client.work.claim({ id: checkWork });
+  await checking.client.client.work.completeStep({
     instanceId: checkWork,
     stepId: "check",
     evidence: ["positive"],
@@ -356,8 +356,8 @@ describe("the work Expected Calving pulls towards it", () => {
       "2031-08-12T18:00:00.000Z",
     ]);
     const dryWork = drying.rows[0]?.id ?? "";
-    await drying.client.client.instances.claim({ id: dryWork });
-    await drying.client.client.instances.completeStep({
+    await drying.client.client.work.claim({ id: dryWork });
+    await drying.client.client.work.completeStep({
       instanceId: dryWork,
       stepId: "dry",
       animalTag: world.homeBred,
@@ -379,8 +379,8 @@ describe("the work Expected Calving pulls towards it", () => {
       "2031-10-04T18:00:00.000Z",
     ]);
     const prepWork = prepping.rows[0]?.id ?? "";
-    await prepping.client.client.instances.claim({ id: prepWork });
-    await prepping.client.client.instances.completeStep({
+    await prepping.client.client.work.claim({ id: prepWork });
+    await prepping.client.client.work.completeStep({
       instanceId: prepWork,
       stepId: "walk",
       animalTag: world.homeBred,
@@ -455,14 +455,14 @@ describe("the work Expected Calving pulls towards it", () => {
       "2031-07-02T18:00:00.000Z",
     ]);
     const dryWork = drying.rows[0]?.id ?? "";
-    await drying.client.client.instances.claim({ id: dryWork });
-    await drying.client.client.instances.completeStep({
+    await drying.client.client.work.claim({ id: dryWork });
+    await drying.client.client.work.completeStep({
       instanceId: dryWork,
       stepId: "dry",
       animalTag: world.alreadyCarrying,
       evidence: [true],
     });
-    await drying.client.client.instances.complete({ id: dryWork });
+    await drying.client.client.work.complete({ id: dryWork });
 
     // The register had her calving ten days early. Put right, her calving prep follows the date.
     const clock = new FakeClock("2031-07-04T04:00:00.000Z");
@@ -476,7 +476,7 @@ describe("the work Expected Calving pulls towards it", () => {
       where: { definitionId: world.prep.definitionId, animalId: before.her.id },
       columns: { id: true },
     });
-    const prepWork = await manager.client.instances.get({
+    const prepWork = await manager.client.work.get({
       id: raisedPrep?.id ?? "",
     });
     expect(prepWork.dueAt.toISOString()).toBe("2031-08-24T18:00:00.000Z");
@@ -487,10 +487,10 @@ describe("the work Expected Calving pulls towards it", () => {
       reason: "রেজিস্টারে তারিখ ভুল ছিল",
     });
 
-    const moved = await manager.client.instances.get({ id: prepWork.id });
+    const moved = await manager.client.work.get({ id: prepWork.id });
     expect(moved.dueAt.toISOString()).toBe("2031-09-03T18:00:00.000Z");
     expect(moved.state).toBe("due");
-    const done = await manager.client.instances.get({ id: dryWork });
+    const done = await manager.client.work.get({ id: dryWork });
     expect(done.state).toBe("completed");
     expect(done.dueAt.toISOString()).toBe("2031-07-02T18:00:00.000Z");
 
@@ -535,13 +535,13 @@ describe("the work Expected Calving pulls towards it", () => {
   it("closes the calving work when the positive it came from is put right", async () => {
     // Served on 9 January and found carrying on 23 February: her dry-off is raised for 20 August.
     const { checkWork, vet } = await getHerInCalf(world.mistaken, "01-09");
-    const board = await vet.client.instances.get({ id: checkWork });
+    const board = await vet.client.work.get({ id: checkWork });
     const entry = board.completions.find((row) => row.stepId === "check");
     const manager = await createTestClient(appRouter, {
       as: "manager",
       clock: new FakeClock("2031-02-24T04:00:00.000Z"),
     });
-    await manager.client.instances.ensureDue();
+    await manager.client.work.ensureDue();
     const raised = await scratchDb().query.sopInstance.findMany({
       where: {
         definitionId: {
@@ -567,7 +567,7 @@ describe("the work Expected Calving pulls towards it", () => {
     for (const work of raised) {
       // Sequential, reading each piece of work back.
       // oxlint-disable-next-line no-await-in-loop
-      const now = await manager.client.instances.get({ id: work.id });
+      const now = await manager.client.work.get({ id: work.id });
       expect(now.state).toBe("called_off");
     }
     // And the correction's own entry in the trail says which work it closed.
@@ -605,10 +605,10 @@ describe("the work Expected Calving pulls towards it", () => {
     for (const work of calledOff) {
       // Sequential, reading each piece of work back.
       // oxlint-disable-next-line no-await-in-loop
-      const back = await manager.client.instances.get({ id: work.id });
+      const back = await manager.client.work.get({ id: work.id });
       expect(back.state).toBe("due");
     }
-    const stillClosed = await manager.client.instances.get({
+    const stillClosed = await manager.client.work.get({
       id: closedByHand?.id ?? "",
     });
     expect(stillClosed.state).toBe("missed");
@@ -640,14 +640,14 @@ describe("the work Expected Calving pulls towards it", () => {
       state: "dry",
     });
     const dryWork = drying.rows[0]?.id ?? "";
-    await manager.client.instances.claim({ id: dryWork });
-    await manager.client.instances.completeStep({
+    await manager.client.work.claim({ id: dryWork });
+    await manager.client.work.completeStep({
       instanceId: dryWork,
       stepId: "dry",
       animalTag: world.nearlyDue,
       evidence: [true],
     });
-    const board = await manager.client.instances.get({ id: dryWork });
+    const board = await manager.client.work.get({ id: dryWork });
     const entry = board.completions.find((row) => row.stepId === "dry");
     const corrected = await correctStepAsShown(manager.client, {
       completionId: entry?.id ?? "",
@@ -675,7 +675,7 @@ describe("the work Expected Calving pulls towards it", () => {
     );
     expect(after.her.expectedCalvingAt).toBeNull();
     expect(after.rows).toHaveLength(0);
-    const closed = await manager.client.instances.get({
+    const closed = await manager.client.work.get({
       id: prep.rows[0]?.id ?? "",
     });
     expect(closed.state).toBe("called_off");
@@ -706,14 +706,14 @@ describe("the work Expected Calving pulls towards it", () => {
     // Dried off by the Step itself, so a skip would have to put her back in milk.
     const clock = new FakeClock("2031-10-02T04:00:00.000Z");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    await manager.client.instances.claim({ id: dryWork });
-    await manager.client.instances.completeStep({
+    await manager.client.work.claim({ id: dryWork });
+    await manager.client.work.completeStep({
       instanceId: dryWork,
       stepId: "dry",
       animalTag: tagNumber,
       evidence: [true],
     });
-    const board = await manager.client.instances.get({ id: dryWork });
+    const board = await manager.client.work.get({ id: dryWork });
     const entry = board.completions.find((row) => row.stepId === "dry");
     const corrected = await correctStepAsShown(manager.client, {
       completionId: entry?.id ?? "",
@@ -744,13 +744,13 @@ describe("the work Expected Calving pulls towards it", () => {
     const prepId = raisedPrep?.id ?? "";
     try {
       await manager.client.farm.setParameters({ calvingPrepLeadDays: 10 });
-      const moved = await manager.client.instances.get({ id: prepId });
+      const moved = await manager.client.work.get({ id: prepId });
       expect(moved.dueAt.toISOString()).toBe("2031-08-31T18:00:00.000Z");
     } finally {
       // The parameter is the Farm's and the tests around this one read it; put it back.
       await manager.client.farm.setParameters({ calvingPrepLeadDays: 7 });
     }
-    const back = await manager.client.instances.get({ id: prepId });
+    const back = await manager.client.work.get({ id: prepId });
     expect(back.dueAt.toISOString()).toBe("2031-09-03T18:00:00.000Z");
   });
 });

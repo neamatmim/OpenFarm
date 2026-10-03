@@ -17,7 +17,7 @@ import type { orpc } from "@/utils/orpc";
 
 /** What of the farm's month has not been entered yet, as the home screens are told it. */
 export type MonthlyCostsData = Awaited<
-  ReturnType<typeof orpc.home.manager.call>
+  ReturnType<typeof orpc.home.get.call>
 >["queue"]["monthlyCosts"];
 
 /** A row that opens the money entry with what is missing already filled. */

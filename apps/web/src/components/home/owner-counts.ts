@@ -2,7 +2,7 @@ import type { client } from "@/utils/orpc";
 
 /** The Owner's exception list as the farm answers it. */
 export type NeedsYou = Awaited<
-  ReturnType<typeof client.home.owner>
+  ReturnType<typeof client.overview.get>
 >["needsYou"];
 
 /** Every kind of thing that can wait on the Owner, apart from the Ventures, which come from their own list. */

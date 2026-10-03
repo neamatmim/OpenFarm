@@ -48,12 +48,12 @@ const milkingSop = (): SopContent => ({
 
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.client.herd.createShed({ name: `sync-${suffix}` });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `sync-${suffix}` });
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `পেন ${suffix}`,
   });
-  const spare = await owner.client.herd.createPen({
+  const spare = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `খালি ${suffix}`,
   });
@@ -119,8 +119,8 @@ const recordId = () => `rec-${nextName()}`;
 const session = async (day: string) => {
   const clock = new FakeClock(`${day}T05:30:00.000Z`);
   const scheduler = await createTestClient(appRouter, { as: "owner", clock });
-  await scheduler.client.instances.ensureDue();
-  const today = await scheduler.client.instances.today({ penId: world.pen.id });
+  await scheduler.client.work.ensureDue();
+  const today = await scheduler.client.work.today({ penId: world.pen.id });
   const instance = today.find(
     (candidate) => candidate.definitionId === world.sop.definitionId
   );
@@ -128,7 +128,7 @@ const session = async (day: string) => {
     throw new Error(`expected an instance on ${day}`);
   }
   const staff = await createTestClient(appRouter, { as: "staff", clock });
-  await staff.client.instances.claim({ id: instance.id });
+  await staff.client.work.claim({ id: instance.id });
   return { instance, clock, staff: staff.client };
 };
 
@@ -170,7 +170,7 @@ describe("a batch arriving", () => {
     const loaded = await staff.milk.session({ instanceId: instance.id });
     expect(loaded.records).toHaveLength(2);
     // The record carries the client's own id, so a replay is the same fact.
-    const board = await staff.instances.get({ id: instance.id });
+    const board = await staff.work.get({ id: instance.id });
     expect(board.completions.map((row) => row.id).toSorted()).toEqual(
       sent.results.map((row) => row.id).toSorted()
     );
@@ -286,7 +286,7 @@ describe("a batch arriving", () => {
       entries: [milkEntry(instance.id, tagOf(0), 11, drawnAt)],
     });
 
-    const board = await staff.instances.get({ id: instance.id });
+    const board = await staff.work.get({ id: instance.id });
     const [completion] = board.completions;
     expect(completion?.recordedAt).toEqual(drawnAt);
     expect(completion?.receivedAt).toEqual(clock.now());
@@ -466,7 +466,7 @@ describe("review findings", () => {
     });
 
     expect(again.results[0]?.outcome).toBe("applied");
-    const board = await staff.instances.get({ id: instance.id });
+    const board = await staff.work.get({ id: instance.id });
     expect(board.completions).toHaveLength(1);
     expect(board.completions[0]).toMatchObject({
       recordedBy: thePerson("staff").id,
@@ -535,7 +535,7 @@ describe("review findings", () => {
 
     expect(sent.results[0]?.outcome).toBe("rejected");
     expect(sent.results[1]?.outcome).toBe("applied");
-    const board = await staff.instances.get({ id: instance.id });
+    const board = await staff.work.get({ id: instance.id });
     // Only the good one: the half-written row rolled back with its own savepoint.
     expect(board.completions).toHaveLength(1);
     const loaded = await staff.milk.session({ instanceId: instance.id });
@@ -575,8 +575,8 @@ describe("a phone that was out of signal all morning", () => {
       as: "owner",
       clock,
     });
-    await scheduler.client.instances.ensureDue();
-    const today = await scheduler.client.instances.today({
+    await scheduler.client.work.ensureDue();
+    const today = await scheduler.client.work.today({
       penId: world.pen.id,
     });
     const instance = today.find(
@@ -619,7 +619,7 @@ describe("a phone that was out of signal all morning", () => {
     ]);
     // The farm is where the phone was: the shift is claimed by the milker, both cows are
     // recorded, and the work is finished and waiting for sign-off.
-    const board = await staff.client.instances.get({ id: instance.id });
+    const board = await staff.client.work.get({ id: instance.id });
     expect(board).toMatchObject({
       state: "completed",
       claimedBy: thePerson("staff").id,
@@ -636,8 +636,8 @@ describe("a phone that was out of signal all morning", () => {
       as: "owner",
       clock,
     });
-    await scheduler.client.instances.ensureDue();
-    const today = await scheduler.client.instances.today({
+    await scheduler.client.work.ensureDue();
+    const today = await scheduler.client.work.today({
       penId: world.pen.id,
     });
     const instance = today.find(
@@ -648,7 +648,7 @@ describe("a phone that was out of signal all morning", () => {
     }
     // The Manager took it while the milker's phone was out of range.
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    await manager.client.instances.claim({ id: instance.id });
+    await manager.client.work.claim({ id: instance.id });
 
     const staff = await createTestClient(appRouter, { as: "staff", clock });
     const sent = await staff.client.sync.batch({
@@ -777,7 +777,7 @@ describe("a phone that was out of signal all morning", () => {
     expect(milked.records.every((row) => row.destination === "bulk")).toBe(
       true
     );
-    const board = await staff.instances.get({ id: instance.id });
+    const board = await staff.work.get({ id: instance.id });
     expect(
       board.completions.every(
         (row) => row.recordedAt.getTime() === drawnAt.getTime()
@@ -814,8 +814,8 @@ describe("photos", () => {
       as: "owner",
       clock,
     });
-    await scheduler.client.instances.ensureDue();
-    const today = await scheduler.client.instances.today({
+    await scheduler.client.work.ensureDue();
+    const today = await scheduler.client.work.today({
       penId: world.pen.id,
     });
     const instance = today.find(
@@ -870,7 +870,7 @@ describe("photos", () => {
       "applied",
       "applied",
     ]);
-    const board = await staff.client.instances.get({ id: instance.id });
+    const board = await staff.client.work.get({ id: instance.id });
     expect(board.completions).toHaveLength(1);
   });
 
@@ -949,7 +949,7 @@ describe("who is sending", () => {
       entries: [milkEntry(instance.id, tagOf(0), 11, at)],
     });
 
-    const board = await phone.client.instances.get({ id: instance.id });
+    const board = await phone.client.work.get({ id: instance.id });
     expect(board.completions[0]).toMatchObject({
       recordedBy: thePerson("staff").id,
       deviceId: theShedPhone().id,

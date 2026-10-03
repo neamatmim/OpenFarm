@@ -59,10 +59,10 @@ const setup = async () => {
   const owner = await as("owner", "2040-12-01T04:00:00.000Z");
   const sop = await owner.client.sops.create({ content: renewalSop() });
   // Barn Staff with a Pen of their own, so what they are shown of late work is scoped rather than empty.
-  const shed = await owner.client.herd.createShed({
+  const shed = await owner.client.sheds.createShed({
     name: `reg-${Date.now()}`,
   });
-  const pen = await owner.client.herd.createPen({
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: "নিবন্ধন পেন",
   });
@@ -104,7 +104,7 @@ afterAll(async () => {
 /** The renewal work this file's SOP has raised, once the farm has been opened at this instant. */
 const renewalWork = async (instant: string) => {
   const owner = await as("owner", instant);
-  await owner.client.instances.ensureDue();
+  await owner.client.work.ensureDue();
   return scratchDb().query.sopInstance.findMany({
     where: { definitionId: world.sop.definitionId },
     columns: {
@@ -123,7 +123,7 @@ const renewedStepOn = async (
   client: Awaited<ReturnType<typeof as>>["client"],
   workId: string | undefined
 ): Promise<string> => {
-  const board = await client.instances.get({ id: workId ?? "" });
+  const board = await client.work.get({ id: workId ?? "" });
   return board.completions.find((one) => one.stepId === "renewed")?.id ?? "";
 };
 
@@ -213,7 +213,7 @@ describe("the Registration and its renewal", () => {
     // The lead opens at midnight on 1 January, the farm's clock: a minute before, nothing.
     expect(await renewalWork("2040-12-31T17:59:00.000Z")).toEqual([]);
     const owner = await as("owner", "2040-12-31T17:59:00.000Z");
-    const early = await owner.client.home.owner();
+    const early = await owner.client.overview.get();
     expect(early.needsYou.registrationRenewal).toBeNull();
 
     const raised = await renewalWork("2040-12-31T18:00:00.000Z");
@@ -226,7 +226,7 @@ describe("the Registration and its renewal", () => {
       }),
     ]);
     const board = await as("owner", "2041-01-02T04:00:00.000Z");
-    const renewal = await board.client.instances.get({
+    const renewal = await board.client.work.get({
       id: raised[0]?.id ?? "",
     });
     expect(renewal.renewal).toEqual({
@@ -251,14 +251,14 @@ describe("the Registration and its renewal", () => {
 
     // Late only once the Registration has run out — and the Owner's to be late with, not Barn Staff's.
     const staff = await as("staff", "2041-04-02T04:00:00.000Z");
-    const staffLate = await staff.client.instances.overdue();
+    const staffLate = await staff.client.work.overdue();
     expect(staffLate.map((row) => row.id)).not.toContain(raised[0]?.id);
     const lateOwner = await as("owner", "2041-04-02T04:00:00.000Z");
-    const ownerLate = await lateOwner.client.instances.overdue();
+    const ownerLate = await lateOwner.client.work.overdue();
     expect(ownerLate.map((row) => row.id)).toContain(raised[0]?.id);
 
     const due = await as("owner", "2041-01-03T04:00:00.000Z");
-    const home = await due.client.home.owner();
+    const home = await due.client.overview.get();
     expect(home.needsYou.registrationRenewal).toMatchObject({
       expiresOn: new Date("2041-03-30T18:00:00.000Z"),
       expired: false,
@@ -269,8 +269,8 @@ describe("the Registration and its renewal", () => {
   it("renews the Registration from the renewal's closing Step, and raises nothing more until the next lead", async () => {
     const [work] = await renewalWork("2041-02-10T04:00:00.000Z");
     const owner = await as("owner", "2041-02-10T04:00:00.000Z");
-    await owner.client.instances.claim({ id: work?.id ?? "" });
-    await owner.client.instances.completeStep({
+    await owner.client.work.claim({ id: work?.id ?? "" });
+    await owner.client.work.completeStep({
       instanceId: work?.id ?? "",
       stepId: "apply",
       evidence: [true],
@@ -278,7 +278,7 @@ describe("the Registration and its renewal", () => {
 
     // A renewal with no photograph of the renewed certificate keeps nothing to show an inspector.
     await expect(
-      owner.client.instances.completeStep({
+      owner.client.work.completeStep({
         instanceId: work?.id ?? "",
         stepId: "renewed",
         evidence: [true],
@@ -288,7 +288,7 @@ describe("the Registration and its renewal", () => {
 
     // A renewal to a date that is not after the one it replaces is not a renewal.
     await expect(
-      owner.client.instances.completeStep({
+      owner.client.work.completeStep({
         instanceId: work?.id ?? "",
         stepId: "renewed",
         evidence: [true],
@@ -299,7 +299,7 @@ describe("the Registration and its renewal", () => {
       })
     ).rejects.toMatchObject({ data: { refusal: "renewal_not_later" } });
 
-    await owner.client.instances.completeStep({
+    await owner.client.work.completeStep({
       instanceId: work?.id ?? "",
       stepId: "renewed",
       evidence: [true],
@@ -311,11 +311,11 @@ describe("the Registration and its renewal", () => {
     });
     // Still on the Owner's list until the renewal is done.
     const midway = await as("owner", "2041-02-10T04:30:00.000Z");
-    const beforeDone = await midway.client.home.owner();
+    const beforeDone = await midway.client.overview.get();
     expect(beforeDone.needsYou.registrationRenewal).toMatchObject({
       instanceId: work?.id,
     });
-    await owner.client.instances.complete({ id: work?.id ?? "" });
+    await owner.client.work.complete({ id: work?.id ?? "" });
 
     // A fresh client, because a Context carries the Farm as it stood when the request began.
     const after = await as("owner", "2041-02-10T05:00:00.000Z");
@@ -351,7 +351,7 @@ describe("the Registration and its renewal", () => {
       ])
     );
 
-    const home = await after.client.home.owner();
+    const home = await after.client.overview.get();
     expect(home.needsYou.registrationRenewal).toBeNull();
     // Nothing more until the next lead: a year on, 1 January 2042.
     const midYear = await renewalWork("2041-06-01T04:00:00.000Z");

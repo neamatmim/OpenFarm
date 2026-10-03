@@ -7,7 +7,7 @@ import type { StepAnswer } from "../entries/step-completion";
 import type { appRouter } from "../routers/index";
 import { contentOf } from "../sop-content";
 
-type Client = Pick<RouterClient<typeof appRouter>, "instances">;
+type Client = Pick<RouterClient<typeof appRouter>, "work">;
 
 /**
  * Puts a Step right as the work screen does: the answer it was shown — the Completion as the farm holds it, and what its
@@ -42,7 +42,7 @@ export const correctStepAsShown = async (
         )
       )
     : {};
-  return client.instances.correctStep({
+  return client.work.correctStep({
     id: completionId,
     reason,
     changes: {

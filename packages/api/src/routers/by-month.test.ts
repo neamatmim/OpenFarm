@@ -74,8 +74,8 @@ beforeAll(async () => {
     registrationOffice: "উপজেলা প্রাণিসম্পদ দপ্তর, সাভার",
     registrationExpiresOn: "2046-03-31",
   });
-  const shed = await owner.herd.createShed({ name: `মাস ${suffix}` });
-  const pen = await owner.herd.createPen({
+  const shed = await owner.sheds.createShed({ name: `মাস ${suffix}` });
+  const pen = await owner.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `মোটাতাজা ${suffix}`,
@@ -193,7 +193,7 @@ beforeAll(async () => {
     "owner",
     "2044-03-03T04:00:00.000Z"
   );
-  const trip = await toTheLivestockMarket.trips.record({
+  const trip = await toTheLivestockMarket.buyingTrips.record({
     wentTo: `হাট ${suffix}`,
     wentOn: "2044-03-03",
     brokerMoney: 0,
@@ -248,14 +248,14 @@ beforeAll(async () => {
 describe("the farm month by month", () => {
   it("is the Owner's alone", async () => {
     const { client: manager } = await as("manager");
-    await expect(manager.home.byMonth()).rejects.toMatchObject({
+    await expect(manager.monthlyReport.get()).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
   });
 
   it("reads back a year, oldest first, this month so far", async () => {
     const { client: owner } = await as("owner");
-    const { months } = await owner.home.byMonth();
+    const { months } = await owner.monthlyReport.get();
 
     expect(months.map((one) => one.month)).toEqual([
       "2043-04",
@@ -283,7 +283,7 @@ describe("the farm month by month", () => {
 
   it("says March as the milk it sold, the accountant, and Costs by Side say it, the Venture's bull left to the Venture", async () => {
     const { client: owner } = await as("owner");
-    const { months } = await owner.home.byMonth();
+    const { months } = await owner.monthlyReport.get();
     const march = months.at(-1);
     const { summary } = await owner.reports.accountantExport({
       ...MARCH,
@@ -325,7 +325,7 @@ describe("the farm month by month", () => {
 
   it("says the year as the accountant says the same twelve months, worked over all of them", async () => {
     const { client: owner } = await as("owner");
-    const { year } = await owner.home.byMonth();
+    const { year } = await owner.monthlyReport.get();
     const { summary } = await owner.reports.accountantExport({
       from: "2043-04-01",
       to: "2044-03-31",
@@ -347,7 +347,7 @@ describe("the farm month by month", () => {
 
   it("sets each Venture that was not called off against its plan, as its own page does", async () => {
     const { client: owner } = await as("owner");
-    const { ventures } = await owner.home.byMonth();
+    const { ventures } = await owner.monthlyReport.get();
     const measured = await owner.ventures.planAgainstActual({
       ventureId: plannedId,
     });

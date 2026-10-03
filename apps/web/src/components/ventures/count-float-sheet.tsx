@@ -44,7 +44,7 @@ export const CountFloatSheet = ({
   // Every outing still holding this Venture's Float, however long ago it went: the latest twenty would
   // lose an old one, and a Float nobody can pick is one the run can never count home.
   const trips = useQuery({
-    ...orpc.trips.list.queryOptions({
+    ...orpc.buyingTrips.list.queryOptions({
       input: { openFloatsOf: venture?.id ?? "" },
     }),
     enabled: venture !== null,

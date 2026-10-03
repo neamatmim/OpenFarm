@@ -34,10 +34,10 @@ const feedingSop = (): SopContent => ({
 
 const setup = async () => {
   const manager = await createTestClient(appRouter, { as: "manager" });
-  const shed = await manager.client.herd.createShed({
+  const shed = await manager.client.sheds.createShed({
     name: `feeding-${Date.now()}`,
   });
-  const pen = await manager.client.herd.createPen({
+  const pen = await manager.client.sheds.createPen({
     shedId: shed.id,
     name: "খাওয়ানোর পেন",
   });
@@ -81,8 +81,8 @@ const feedingDue = async (
 ) => {
   const staff = await createTestClient(appRouter, { as: "staff", clock });
   const owner = await createTestClient(appRouter, { as: "owner", clock });
-  await owner.client.instances.ensureDue();
-  const today = await owner.client.instances.today({ penId: world.pen.id });
+  await owner.client.work.ensureDue();
+  const today = await owner.client.work.today({ penId: world.pen.id });
   const instance = today.find(
     (row) => row.definitionId === world.sop.definitionId
   );
@@ -90,7 +90,7 @@ const feedingDue = async (
     throw new Error("expected a feeding instance");
   }
   if (claim) {
-    await owner.client.instances.claim({ id: instance.id });
+    await owner.client.work.claim({ id: instance.id });
   }
   return { owner, staff, instance };
 };
@@ -115,7 +115,7 @@ describe("feeding a Pen", () => {
     );
 
     const { owner, instance } = await feedingDue(clock);
-    const board = await owner.client.instances.get({ id: instance.id });
+    const board = await owner.client.work.get({ id: instance.id });
 
     // Four animals, 3 kg each a day, fed twice: 6 kg this session.
     expect(board.feeding?.items).toEqual([
@@ -137,7 +137,7 @@ describe("feeding a Pen", () => {
     leftover?: number
   ) => {
     const { owner, instance } = await feedingDue(clock);
-    await owner.client.instances.completeStep({
+    await owner.client.work.completeStep({
       instanceId: instance.id,
       stepId: "feed",
       evidence: [true],
@@ -156,7 +156,7 @@ describe("feeding a Pen", () => {
     const clock = new FakeClock("2027-08-02T02:00:00.000Z");
     const { owner, instance } = await fedWith(clock, 6);
 
-    const board = await owner.client.instances.get({ id: instance.id });
+    const board = await owner.client.work.get({ id: instance.id });
     expect(board.fed).toMatchObject({
       shortfallPercent: 0,
       flaggedAt: null,
@@ -176,7 +176,7 @@ describe("feeding a Pen", () => {
     const clock = new FakeClock("2027-08-03T02:00:00.000Z");
     const { owner, instance } = await fedWith(clock, 3);
 
-    const board = await owner.client.instances.get({ id: instance.id });
+    const board = await owner.client.work.get({ id: instance.id });
     // Half of what it was owed, against a farm tolerance of a tenth.
     expect(board.fed?.shortfallPercent).toBe(50);
     expect(board.fed?.flaggedAt).not.toBeNull();
@@ -186,7 +186,7 @@ describe("feeding a Pen", () => {
     const clock = new FakeClock("2027-08-04T02:00:00.000Z");
     const { owner, instance } = await fedWith(clock, 6, 3);
 
-    const board = await owner.client.instances.get({ id: instance.id });
+    const board = await owner.client.work.get({ id: instance.id });
     // Everything was put out, and half of it came back: the Pen is off its feed, which is
     // exactly what the Manager needs to hear.
     expect(board.fed?.shortfallPercent).toBe(50);
@@ -203,7 +203,7 @@ describe("feeding a Pen", () => {
       phone: { id: "test-phone-feeding", name: "খাওয়ানোর শেড ফোন" },
     });
     // The phone takes the work, as the person doing the round would.
-    await phone.client.instances.claim({ id: instance.id });
+    await phone.client.work.claim({ id: instance.id });
 
     const batch = {
       key: `feeding-replay-${instance.id}`,
@@ -224,7 +224,7 @@ describe("feeding a Pen", () => {
     expect(sent.results.map((row) => row.outcome)).toEqual(["applied"]);
     expect(await phone.client.sync.batch(batch)).toEqual(sent);
 
-    const board = await owner.client.instances.get({ id: instance.id });
+    const board = await owner.client.work.get({ id: instance.id });
     // One meal, not two: the same entry twice is the same six kilos.
     expect(board.fed?.lines).toEqual([
       {
@@ -239,7 +239,7 @@ describe("feeding a Pen", () => {
   it("rewrites the meal when a Correction says a different amount went out", async () => {
     const clock = new FakeClock("2027-08-06T02:00:00.000Z");
     const { owner, instance } = await fedWith(clock, 3);
-    const board = await owner.client.instances.get({ id: instance.id });
+    const board = await owner.client.work.get({ id: instance.id });
     const completionId =
       board.completions.find((row) => row.stepId === "feed")?.id ?? "";
 
@@ -250,7 +250,7 @@ describe("feeding a Pen", () => {
       reason: "ওজন ভুল লেখা হয়েছিল",
     });
 
-    const after = await owner.client.instances.get({ id: instance.id });
+    const after = await owner.client.work.get({ id: instance.id });
     expect(after.fed?.lines).toEqual([
       {
         feedItemId: world.concentrate.id,
@@ -267,7 +267,7 @@ describe("feeding a Pen", () => {
   it("keeps what went out when a Correction leaves the lines out, and refuses one made against lines since changed", async () => {
     const clock = new FakeClock("2027-08-12T02:00:00.000Z");
     const { owner, instance } = await fedWith(clock, 3);
-    const board = await owner.client.instances.get({ id: instance.id });
+    const board = await owner.client.work.get({ id: instance.id });
     const done = board.completions.find((row) => row.stepId === "feed");
     const completionId = done?.id ?? "";
     // What the screen shows beside the tick: the three kilos that went out.
@@ -280,7 +280,7 @@ describe("feeding a Pen", () => {
     // A note about the tick, with no lines sent: the meal the Pen had is kept, not taken as nothing fed. Made from what a
     // phone showed before the farm had seen the entry, whose lines are as they were typed — no leftovers said — and
     // still the lines the farm holds.
-    await owner.client.instances.correctStep({
+    await owner.client.work.correctStep({
       id: completionId,
       reason: "টিক দেওয়া ঠিক ছিল, নোট যোগ",
       changes: {
@@ -296,7 +296,7 @@ describe("feeding a Pen", () => {
         },
       },
     });
-    const kept = await owner.client.instances.get({ id: instance.id });
+    const kept = await owner.client.work.get({ id: instance.id });
     expect(kept.fed?.lines).toEqual([
       {
         feedItemId: world.concentrate.id,
@@ -315,7 +315,7 @@ describe("feeding a Pen", () => {
       reason: "ওজন ভুল লেখা হয়েছিল",
     });
     await expect(
-      owner.client.instances.correctStep({
+      owner.client.work.correctStep({
         id: completionId,
         reason: "আমার খাতায় চার",
         changes: {
@@ -343,7 +343,7 @@ describe("feeding a Pen", () => {
   it("will not let a Pen's feeding be skipped, because a Pen is not skipped one animal at a time", async () => {
     const clock = new FakeClock("2027-08-07T02:00:00.000Z");
     const { owner, instance } = await fedWith(clock, 6);
-    const board = await owner.client.instances.get({ id: instance.id });
+    const board = await owner.client.work.get({ id: instance.id });
     const completionId =
       board.completions.find((row) => row.stepId === "feed")?.id ?? "";
 
@@ -358,7 +358,7 @@ describe("feeding a Pen", () => {
       })
     ).rejects.toThrow(/per-animal step or a dose can be skipped/u);
 
-    const after = await owner.client.instances.get({ id: instance.id });
+    const after = await owner.client.work.get({ id: instance.id });
     expect(after.fed).not.toBeNull();
   });
 
@@ -373,17 +373,17 @@ describe("feeding a Pen", () => {
         triggers: [{ kind: "schedule", times: ["05:00", "12:00", "19:00"] }],
       },
     });
-    await owner.client.instances.ensureDue();
-    const today = await owner.client.instances.today({ penId: world.pen.id });
+    await owner.client.work.ensureDue();
+    const today = await owner.client.work.today({ penId: world.pen.id });
     const instance = today.find(
       (row) => row.definitionId === thrice.definitionId
     );
     if (!instance) {
       throw new Error("expected the three-times instance");
     }
-    await owner.client.instances.claim({ id: instance.id });
+    await owner.client.work.claim({ id: instance.id });
 
-    const board = await owner.client.instances.get({ id: instance.id });
+    const board = await owner.client.work.get({ id: instance.id });
     // Four animals, 3 kg each a day, fed three times: 4 kg this session, not 6.
     expect(board.feeding?.sessionsPerDay).toBe(3);
     expect(board.feeding?.items[0]?.quantity).toBe(4);

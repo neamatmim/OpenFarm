@@ -22,10 +22,10 @@ beforeAll(async () => {
     as: "owner",
     clock,
   });
-  const shed = await client.herd.createShed({ name: `move-${suffix}` });
+  const shed = await client.sheds.createShed({ name: `move-${suffix}` });
   const pens = await Promise.all(
     ["ক", "খ", "গ"].map((name) =>
-      client.herd.createPen({ shedId: shed.id, name: `${name} ${suffix}` })
+      client.sheds.createPen({ shedId: shed.id, name: `${name} ${suffix}` })
     )
   );
   world = {

@@ -131,14 +131,14 @@ const aVenture = async (owner: Client, which: number, splits: number[]) => {
 /** One round of the scale, weighing whichever bulls the caller names. */
 const weigh = async (day: string, readings: [number, number][]) => {
   const manager = await asManager(`${day}T07:30:00.000Z`);
-  await manager.client.instances.ensureDue();
-  const today = await manager.client.instances.today({ penId });
+  await manager.client.work.ensureDue();
+  const today = await manager.client.work.today({ penId });
   const instance = today.find((one) => one.definitionId === sopId);
   const id = instance?.id ?? "";
-  await manager.client.instances.claim({ id });
+  await manager.client.work.claim({ id });
   for (const [index, kg] of readings) {
     // oxlint-disable-next-line no-await-in-loop -- one animal at a time, as a round is walked
-    await manager.client.instances.completeStep({
+    await manager.client.work.completeStep({
       instanceId: id,
       stepId: "weigh",
       animalTag: tags[index] ?? "",
@@ -157,8 +157,8 @@ beforeAll(async () => {
     registrationOffice: "উপজেলা প্রাণিসম্পদ দপ্তর, সাভার",
     registrationExpiresOn: "2054-03-31",
   });
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -171,7 +171,7 @@ beforeAll(async () => {
 
   // Six bulls, all onto the first Venture's books, all at 200 kg on 4 January.
   const buying = await at("2052-01-04T04:00:00.000Z");
-  const trip = await buying.client.trips.record({
+  const trip = await buying.client.buyingTrips.record({
     wentTo: `হাট ${suffix}`,
     wentOn: "2052-01-04",
     brokerMoney: 0,

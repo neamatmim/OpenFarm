@@ -103,8 +103,8 @@ const setup = async () => {
   const clock = new FakeClock("2027-11-01T00:00:00.000Z");
   const owner = await createTestClient(appRouter, { as: "owner", clock });
   const manager = await createTestClient(appRouter, { as: "manager", clock });
-  const shed = await owner.client.herd.createShed({ name: `serve-${suffix}` });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `serve-${suffix}` });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `প্রজনন ${suffix}`,
@@ -190,25 +190,25 @@ const tagOf = (index: number) => world.cows[index]?.tagNumber ?? "";
 const inHeat = async (day: string, tagNumber: string) => {
   const clock = new FakeClock(`${day}T00:00:00.000Z`);
   const manager = await createTestClient(appRouter, { as: "manager", clock });
-  await manager.client.instances.raiseNow({
+  await manager.client.work.raiseNow({
     definitionId: world.watch.definitionId,
     penId: world.pen.id,
   });
-  const rounds = await manager.client.instances.today({ penId: world.pen.id });
+  const rounds = await manager.client.work.today({ penId: world.pen.id });
   const round = rounds.find(
     (row) => row.definitionId === world.watch.definitionId
   );
   const staff = await createTestClient(appRouter, { as: "staff", clock });
-  await staff.client.instances.claim({ id: round?.id ?? "" });
-  await staff.client.instances.completeStep({
+  await staff.client.work.claim({ id: round?.id ?? "" });
+  await staff.client.work.completeStep({
     instanceId: round?.id ?? "",
     stepId: "look",
     animalTag: tagNumber,
     evidence: [HEAT],
   });
-  await manager.client.instances.ensureDue();
+  await manager.client.work.ensureDue();
   const her = await manager.client.animals.byTag({ tagNumber });
-  const work = await manager.client.instances.today({ penId: world.pen.id });
+  const work = await manager.client.work.today({ penId: world.pen.id });
   const ai = work.find(
     (row) =>
       row.definitionId === world.ai.definitionId && row.animalId === her.id
@@ -226,8 +226,8 @@ describe("the service", () => {
       as: "manager",
       clock: new FakeClock("2027-11-02T13:00:00.000Z"),
     });
-    await manager.client.instances.claim({ id: workId });
-    await manager.client.instances.completeStep({
+    await manager.client.work.claim({ id: workId });
+    await manager.client.work.completeStep({
       instanceId: workId,
       stepId: "serve",
       evidence: [
@@ -237,7 +237,7 @@ describe("the service", () => {
         "2027-11-02T13:00:00.000Z",
       ],
     });
-    await manager.client.instances.complete({ id: workId });
+    await manager.client.work.complete({ id: workId });
 
     const her = await manager.client.animals.byTag({ tagNumber: tagOf(0) });
     expect(her.services).toHaveLength(1);
@@ -251,7 +251,7 @@ describe("the service", () => {
     expect(her.services[0]?.heatId).toBe(her.heats[0]?.id);
 
     // And the work is done, not closed beside it — nobody is sent to serve a cow who has been.
-    const board = await manager.client.instances.get({ id: workId });
+    const board = await manager.client.work.get({ id: workId });
     expect(board.state).toBe("completed");
   });
 
@@ -263,18 +263,18 @@ describe("the service", () => {
       as: "manager",
       clock: new FakeClock("2027-11-08T03:00:00.000Z"),
     });
-    await manager.client.instances.claim({ id: workId });
+    await manager.client.work.claim({ id: workId });
 
     // Not tomorrow: a service that has not happened yet is not a service.
     await expect(
-      manager.client.instances.completeStep({
+      manager.client.work.completeStep({
         instanceId: workId,
         stepId: "serve",
         evidence: ["ai", "HF-4400", "রহিম", "2027-11-09T12:00:00.000Z"],
       })
     ).rejects.toMatchObject({ data: { refusal: "served_in_the_future" } });
 
-    await manager.client.instances.completeStep({
+    await manager.client.work.completeStep({
       instanceId: workId,
       stepId: "serve",
       evidence: ["ai", "HF-4400", "রহিম", "2027-11-07T13:30:00.000Z"],
@@ -284,7 +284,7 @@ describe("the service", () => {
     expect(served?.servedAt.toISOString()).toBe("2027-11-07T13:30:00.000Z");
 
     // And a wrong hour can be put right, which the moment of writing it down never could.
-    const board = await manager.client.instances.get({ id: workId });
+    const board = await manager.client.work.get({ id: workId });
     const entry = board.completions.find((row) => row.stepId === "serve");
     await correctStepAsShown(manager.client, {
       completionId: entry?.id ?? "",
@@ -305,8 +305,8 @@ describe("the service", () => {
       as: "manager",
       clock: new FakeClock("2027-11-03T13:00:00.000Z"),
     });
-    await manager.client.instances.claim({ id: workId });
-    await manager.client.instances.completeStep({
+    await manager.client.work.claim({ id: workId });
+    await manager.client.work.completeStep({
       instanceId: workId,
       stepId: "serve",
       evidence: [
@@ -330,16 +330,16 @@ describe("the service", () => {
     // Pen afterwards writes it down, on work no heat raised.
     const clock = new FakeClock("2027-11-06T09:00:00.000Z");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    await manager.client.instances.raiseNow({
+    await manager.client.work.raiseNow({
       definitionId: world.bullRun.definitionId,
       penId: world.pen.id,
     });
-    const today = await manager.client.instances.today({ penId: world.pen.id });
+    const today = await manager.client.work.today({ penId: world.pen.id });
     const round = today.find(
       (row) => row.definitionId === world.bullRun.definitionId
     );
-    await manager.client.instances.claim({ id: round?.id ?? "" });
-    await manager.client.instances.completeStep({
+    await manager.client.work.claim({ id: round?.id ?? "" });
+    await manager.client.work.completeStep({
       instanceId: round?.id ?? "",
       stepId: "served",
       animalTag: tagOf(4),
@@ -363,7 +363,7 @@ describe("the service", () => {
     // A bull is not served. Recorded against him, a service would be a service of nothing, and
     // everything that counts from it would be counting from a mistake.
     await expect(
-      manager.client.instances.completeStep({
+      manager.client.work.completeStep({
         instanceId: round?.id ?? "",
         stepId: "served",
         animalTag: world.bull.tagNumber,
@@ -381,12 +381,12 @@ describe("the service", () => {
     // The story asks for the technician. A bull has nobody standing over him, but a straw does.
     const clock = new FakeClock("2027-11-06T10:00:00.000Z");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    const today = await manager.client.instances.today({ penId: world.pen.id });
+    const today = await manager.client.work.today({ penId: world.pen.id });
     const round = today.find(
       (row) => row.definitionId === world.bullRun.definitionId
     );
     await expect(
-      manager.client.instances.completeStep({
+      manager.client.work.completeStep({
         instanceId: round?.id ?? "",
         stepId: "served",
         animalTag: tagOf(3),
@@ -403,11 +403,11 @@ describe("the service", () => {
       as: "manager",
       clock: new FakeClock("2027-11-04T13:00:00.000Z"),
     });
-    await manager.client.instances.claim({ id: workId });
+    await manager.client.work.claim({ id: workId });
     // A natural service names a bull standing on this farm. A tag that is not one is a sire
     // nobody can trace, and parentage is the whole reason the record exists.
     await expect(
-      manager.client.instances.completeStep({
+      manager.client.work.completeStep({
         instanceId: workId,
         stepId: "serve",
         evidence: ["natural", "D-9999", "", "2027-11-04T13:00:00.000Z"],
@@ -428,7 +428,7 @@ describe("the service", () => {
       const other = await createTestClient(appRouter, { as, clock });
       // oxlint-disable-next-line no-await-in-loop
       await expect(
-        other.client.instances.completeStep({
+        other.client.work.completeStep({
           instanceId: workId,
           stepId: "serve",
           evidence: ["ai", "HF-1100", "রহিম", "2027-11-05T13:00:00.000Z"],
@@ -443,7 +443,7 @@ describe("the service", () => {
       stepId: "serve",
       evidence: ["ai", "HF-1100", "রহিম", "2027-11-05T13:00:00.000Z"],
     };
-    await owner.client.instances.completeStep(served);
+    await owner.client.work.completeStep(served);
     const cow = await owner.client.animals.byTag({ tagNumber: tagOf(3) });
     const recorded = await scratchDb().query.service.findFirst({
       where: { animalId: cow.id },
@@ -455,7 +455,7 @@ describe("the service", () => {
     // not refused: whose it is to record was asked when it was recorded.
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     await expect(
-      manager.client.instances.completeStep(served)
+      manager.client.work.completeStep(served)
     ).resolves.toMatchObject({ effect: null });
   });
 

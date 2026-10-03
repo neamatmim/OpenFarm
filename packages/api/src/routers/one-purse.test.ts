@@ -64,7 +64,7 @@ const funded = async (owner: Owner) => {
 
 /** One outing the farm wrote up, with a lorry to pay for. */
 const outing = async (owner: Owner, which: string) => {
-  const trip = await owner.client.trips.record({
+  const trip = await owner.client.buyingTrips.record({
     wentTo: `হাট ${which} ${suffix}`,
     wentOn: DAY,
     brokerMoney: 0,
@@ -113,8 +113,8 @@ const farmFloatFor = async (owner: Owner, tripId: string) =>
 beforeAll(async () => {
   const owner = await as("owner");
   ventureId = await funded(owner);
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -145,7 +145,7 @@ describe("one purse to an outing", () => {
     const trip = await outing(owner, "farm-floated");
     await farmFloatFor(owner, trip);
     // The outing says whose money it went on, so the Intake sheet can stop offering a Venture.
-    const trips = await owner.client.trips.list();
+    const trips = await owner.client.buyingTrips.list();
     expect(trips.find((one) => one.id === trip)).toMatchObject({
       farmFloat: true,
     });

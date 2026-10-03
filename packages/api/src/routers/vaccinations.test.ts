@@ -73,8 +73,8 @@ const setup = async () => {
   if (identity.registrationMissing) {
     await manager.client.farm.setIdentity({ registrationNumber: REGISTRATION });
   }
-  const shed = await owner.client.herd.createShed({ name: `reg3-${suffix}` });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `reg3-${suffix}` });
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `টিকা ${suffix}`,
   });
@@ -117,14 +117,14 @@ const sops: string[] = [];
 /** Raises a campaign over the Pen and hands back its Instance, claimed by Barn Staff. */
 const raiseCampaign = async (definitionId: string, instant: string) => {
   const manager = await as("manager", instant);
-  await manager.client.instances.raiseNow({
+  await manager.client.work.raiseNow({
     definitionId,
     penId: world.pen.id,
   });
-  const listed = await manager.client.instances.today({ penId: world.pen.id });
+  const listed = await manager.client.work.today({ penId: world.pen.id });
   const id = listed.find((row) => row.definitionId === definitionId)?.id ?? "";
   const staff = await as("staff", instant);
-  await staff.client.instances.claim({ id });
+  await staff.client.work.claim({ id });
   return { id, staff, manager };
 };
 
@@ -187,7 +187,7 @@ describe("the vaccination register", () => {
       "2045-05-03T04:00:00.000Z"
     );
     await expect(
-      fmd.staff.client.instances.completeStep({
+      fmd.staff.client.work.completeStep({
         instanceId: fmd.id,
         stepId: "dose",
         animalTag: first.tagNumber,
@@ -195,13 +195,13 @@ describe("the vaccination register", () => {
       })
     ).rejects.toMatchObject({ data: { refusal: "lot_number_missing" } });
 
-    await fmd.staff.client.instances.completeStep({
+    await fmd.staff.client.work.completeStep({
       instanceId: fmd.id,
       stepId: "lot",
       evidence: ["FMD-2045-A"],
     });
     const dose = (cow: { tagNumber: string }, own: string) =>
-      fmd.staff.client.instances.completeStep({
+      fmd.staff.client.work.completeStep({
         instanceId: fmd.id,
         stepId: "dose",
         animalTag: cow.tagNumber,
@@ -212,7 +212,7 @@ describe("the vaccination register", () => {
     await dose(third, "");
 
     // The vaccinator misread the vial: the Campaign's Lot Number put right, and the third cow's dose was from another vial.
-    const board = await fmd.manager.client.instances.get({ id: fmd.id });
+    const board = await fmd.manager.client.work.get({ id: fmd.id });
     const completionOf = (stepId: string, animalId: string | null) =>
       board.completions.find(
         (row) => row.stepId === stepId && row.animalId === animalId
@@ -241,7 +241,7 @@ describe("the vaccination register", () => {
       worming.definitionId,
       "2045-05-10T04:00:00.000Z"
     );
-    await worm.staff.client.instances.completeStep({
+    await worm.staff.client.work.completeStep({
       instanceId: worm.id,
       stepId: "dose",
       animalTag: first.tagNumber,
@@ -249,14 +249,14 @@ describe("the vaccination register", () => {
     });
 
     const manager = await as("manager", "2045-06-01T04:00:00.000Z");
-    const register = await manager.client.registrationCertificate.rows({
+    const register = await manager.client.inspectorView.rows({
       register: "vaccination_register",
       ...MAY,
     });
     expect(register).toMatchObject(MAY);
     // A year to today unless asked, today counted: FMD and anthrax come round yearly.
     expect(
-      await manager.client.registrationCertificate.rows({
+      await manager.client.inspectorView.rows({
         register: "vaccination_register",
       })
     ).toMatchObject({
@@ -296,7 +296,7 @@ describe("the vaccination register", () => {
     // A paper is in its producer's language, and other files choose the Manager's.
     await manager.client.language.set({ language: "bn" });
     const [first] = world.cows;
-    const paper = await manager.client.registrationCertificate.print({
+    const paper = await manager.client.inspectorView.print({
       register: "vaccination_register",
       ...MAY,
     });
@@ -310,7 +310,7 @@ describe("the vaccination register", () => {
       ].join("\n")
     );
 
-    const sheet = await manager.client.registrationCertificate.print({
+    const sheet = await manager.client.inspectorView.print({
       register: "vaccination_register",
       format: "csv",
       ...MAY,
@@ -354,7 +354,7 @@ describe("the vaccination register", () => {
   it("is the Owner's and the Manager's, never Barn Staff's", async () => {
     const staff = await as("staff", "2045-06-01T04:00:00.000Z");
     await expect(
-      staff.client.registrationCertificate.rows({
+      staff.client.inspectorView.rows({
         register: "vaccination_register",
         ...MAY,
       })

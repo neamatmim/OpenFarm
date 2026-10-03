@@ -93,7 +93,7 @@ const SopsPage = () => {
 
   const me = useQuery(orpc.people.me.queryOptions());
   // The Pens a moving Step may walk an animal to, named as the farm names them.
-  const sheds = useQuery(orpc.herd.list.queryOptions());
+  const sheds = useQuery(orpc.sheds.list.queryOptions());
   const pens = (sheds.data ?? []).flatMap((shed) =>
     shed.pens.map((pen) => ({
       id: pen.id,

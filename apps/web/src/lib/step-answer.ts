@@ -2,8 +2,8 @@ import type { orpc } from "@/utils/orpc";
 
 import type { StepRecord } from "./record-offline";
 
-type CompleteStep = Parameters<typeof orpc.instances.completeStep.call>[0];
-type CorrectStep = Parameters<typeof orpc.instances.correctStep.call>[0];
+type CompleteStep = Parameters<typeof orpc.work.completeStep.call>[0];
+type CorrectStep = Parameters<typeof orpc.work.correctStep.call>[0];
 
 /**
  * What a person answers at a Step on the pen board: the Evidence, a skip and its reason, the warning they went past,

@@ -31,8 +31,8 @@ describe("the farm's schedule, on the server", () => {
     const { client: owner } = await createTestClient(appRouter, {
       as: "owner",
     });
-    const shed = await owner.herd.createShed({ name: `schedule-${suffix}` });
-    const pen = await owner.herd.createPen({
+    const shed = await owner.sheds.createShed({ name: `schedule-${suffix}` });
+    const pen = await owner.sheds.createPen({
       shedId: shed.id,
       name: `পেন ${suffix}`,
     });
@@ -59,7 +59,7 @@ describe("the farm's schedule, on the server", () => {
       as: "manager",
       clock,
     });
-    const today = await manager.instances.today({ penId: pen.id });
+    const today = await manager.work.today({ penId: pen.id });
     expect(today.some((row) => row.definitionId === sop.definitionId)).toBe(
       true
     );

@@ -31,10 +31,10 @@ const reportSop = (): SopContent => ({
 
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.client.herd.createShed({
+  const shed = await owner.client.sheds.createShed({
     name: `notifiable-${Date.now()}`,
   });
-  const pen = await owner.client.herd.createPen({
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: "রোগ পেন",
   });
@@ -90,7 +90,7 @@ describe("the letter that goes without delay", () => {
     });
 
     // Raised there and then, not when somebody next opens the app: the Act says without delay.
-    const work = await manager.client.instances.today({ penId: world.pen.id });
+    const work = await manager.client.work.today({ penId: world.pen.id });
     const report = work.filter(
       (row) => row.definitionId === world.sop.definitionId
     );
@@ -100,8 +100,8 @@ describe("the letter that goes without delay", () => {
     expect(report.at(0)?.overdue).toBe(true);
 
     // Once per Diagnosis, however often anything runs.
-    await manager.client.instances.ensureDue();
-    const again = await manager.client.instances.today({ penId: world.pen.id });
+    await manager.client.work.ensureDue();
+    const again = await manager.client.work.today({ penId: world.pen.id });
     expect(
       again.filter((row) => row.definitionId === world.sop.definitionId)
     ).toHaveLength(1);
@@ -122,7 +122,7 @@ describe("the letter that goes without delay", () => {
 
     // No work, and no letter to write: reporting a mastitis to the office would teach the
     // office to ignore the farm.
-    const work = await manager.client.instances.today({ penId: world.pen.id });
+    const work = await manager.client.work.today({ penId: world.pen.id });
     expect(
       work.some(
         (row) =>
@@ -195,17 +195,17 @@ describe("the letter that goes without delay", () => {
       throw new Error("expected the report to have been raised");
     }
 
-    await manager.client.instances.claim({ id: made.reportInstanceId });
+    await manager.client.work.claim({ id: made.reportInstanceId });
     // Delivered with nothing to show for it is not delivered.
     await expect(
-      manager.client.instances.completeStep({
+      manager.client.work.completeStep({
         instanceId: made.reportInstanceId,
         stepId: "deliver",
         evidence: [""],
       })
     ).rejects.toThrow();
 
-    const done = await manager.client.instances.completeStep({
+    const done = await manager.client.work.completeStep({
       instanceId: made.reportInstanceId,
       stepId: "deliver",
       evidence: ["ULO/2027/০১১"],
@@ -342,7 +342,7 @@ describe("the letter that goes without delay", () => {
       reason: "আগের সিদ্ধান্ত ভুল ছিল",
     });
 
-    const work = await manager.client.instances.get({
+    const work = await manager.client.work.get({
       id: made.reportInstanceId,
     });
     expect(work.state).toBe("called_off");
@@ -428,8 +428,8 @@ describe("the letter that goes without delay", () => {
     if (!made.reportInstanceId) {
       throw new Error("expected the report to have been raised");
     }
-    await manager.client.instances.claim({ id: made.reportInstanceId });
-    await manager.client.instances.completeStep({
+    await manager.client.work.claim({ id: made.reportInstanceId });
+    await manager.client.work.completeStep({
       instanceId: made.reportInstanceId,
       stepId: "deliver",
       evidence: ["ULO/2027/৩৩"],

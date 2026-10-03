@@ -118,7 +118,7 @@ const OutOfBandGroupLine = ({
 export const OutOfBand = () => {
   const { t } = useLanguage();
   const rows = useQuery(orpc.fattening.outOfBand.queryOptions());
-  const sheds = useQuery(orpc.herd.list.queryOptions());
+  const sheds = useQuery(orpc.sheds.list.queryOptions());
   const [moving, setMoving] = useState<OutOfBandRow | null>(null);
   const pens: PenChoice[] = (sheds.data ?? []).flatMap((shed) =>
     shed.pens.map((pen) => ({

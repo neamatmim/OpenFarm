@@ -59,8 +59,8 @@ const sop = (): SopContent => ({
 
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.client.herd.createShed({ name: `push-${suffix}` });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `push-${suffix}` });
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `পেন ${suffix}`,
   });
@@ -129,8 +129,8 @@ const sweepFrom = async (at: Date) => {
 const lateWork = async (day: string) => {
   const clock = new FakeClock(`${day}T23:05:00.000Z`);
   const scheduler = await createTestClient(appRouter, { as: "owner", clock });
-  await scheduler.client.instances.ensureDue();
-  const today = await scheduler.client.instances.today({ penId: world.pen.id });
+  await scheduler.client.work.ensureDue();
+  const today = await scheduler.client.work.today({ penId: world.pen.id });
   const instance = today.find(
     (row) => row.definitionId === world.definition.definitionId
   );
@@ -364,20 +364,20 @@ describe("review findings", () => {
       p256dh: "key",
       auth: "secret",
     });
-    await staff.client.instances.claim({ id: instance.id });
-    await staff.client.instances.completeStep({
+    await staff.client.work.claim({ id: instance.id });
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "clean",
       evidence: [true],
     });
-    await staff.client.instances.complete({ id: instance.id });
+    await staff.client.work.complete({ id: instance.id });
 
     const manager = await createTestClient(appRouter, {
       as: "manager",
       clock,
       push: post.transport,
     });
-    await manager.client.instances.sendBack({
+    await manager.client.work.sendBack({
       id: instance.id,
       reason: "কোণা বাকি",
     });

@@ -27,14 +27,14 @@ const twoPens = async () => {
     as: "manager",
   });
   sheds += 1;
-  const shed = await manager.herd.createShed({
+  const shed = await manager.sheds.createShed({
     name: `assign-${suffix}-${sheds}`,
   });
-  const first = await manager.herd.createPen({
+  const first = await manager.sheds.createPen({
     shedId: shed.id,
     name: `ক ${suffix}`,
   });
-  const second = await manager.herd.createPen({
+  const second = await manager.sheds.createPen({
     shedId: shed.id,
     name: `খ ${suffix}`,
   });

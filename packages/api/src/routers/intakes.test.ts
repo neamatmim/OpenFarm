@@ -15,8 +15,8 @@ let penId = "";
 
 beforeAll(async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.client.herd.createShed({ name: QUARANTINE });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: QUARANTINE });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: "কোয়ারেন্টিন",

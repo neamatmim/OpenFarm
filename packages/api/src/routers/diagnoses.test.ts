@@ -38,10 +38,10 @@ const healthWalkSop = (): SopContent => ({
 
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.client.herd.createShed({
+  const shed = await owner.client.sheds.createShed({
     name: `diagnoses-${Date.now()}`,
   });
-  const pen = await owner.client.herd.createPen({
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: "রোগ পেন",
   });
@@ -68,16 +68,16 @@ const aLameCow = async (clock: FakeClock) => {
     source: "born",
     aliases: [],
   });
-  await owner.client.instances.ensureDue();
-  const today = await owner.client.instances.today({ penId: world.pen.id });
+  await owner.client.work.ensureDue();
+  const today = await owner.client.work.today({ penId: world.pen.id });
   const instance = today.find(
     (row) => row.definitionId === world.sop.definitionId
   );
   if (!instance) {
     throw new Error("expected the health walk");
   }
-  await owner.client.instances.claim({ id: instance.id });
-  await owner.client.instances.completeStep({
+  await owner.client.work.claim({ id: instance.id });
+  await owner.client.work.completeStep({
     instanceId: instance.id,
     stepId: "look",
     animalTag: cow.tagNumber,

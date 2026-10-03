@@ -56,7 +56,7 @@ describe("a Step a phone held", () => {
     });
 
     await expect(
-      client.instances.completeStep({
+      client.work.completeStep({
         instanceId: "any-work",
         stepId: "renew",
         evidence: [true],
