@@ -219,6 +219,14 @@ export const TRIGGER_KINDS = [
 ] as const;
 export type TriggerKind = (typeof TRIGGER_KINDS)[number];
 
+/** A cow calved: her Calving was recorded. The cow herself, not her calf — a live calf is an arrival. */
+export const CALVED = "calved";
+
+/** Something the round saw of an animal that is not a Heat: work for the Manager, late in a day. */
+export const UNWELL = "unwell";
+/** Something the round saw that kills within hours — bloat, laboured breathing: work for the Manager, late in an hour. */
+export const UNWELL_URGENT = "unwell_urgent";
+
 /**
  * Things that happen to an animal that the Playbook may hang work on. Only what the farm
  * actually records belongs here: a Trigger naming an event nobody writes is work that never
@@ -234,14 +242,6 @@ export type TriggerKind = (typeof TRIGGER_KINDS)[number];
  * her to the depth the rule names, and reporting her if what killed her is notifiable. That is
  * work precisely because she has gone.
  */
-/** A cow calved: her Calving was recorded. The cow herself, not her calf — a live calf is an arrival. */
-export const CALVED = "calved";
-
-/** Something the round saw of an animal that is not a Heat: work for the Manager, late in a day. */
-export const UNWELL = "unwell";
-/** Something the round saw that kills within hours — bloat, laboured breathing: work for the Manager, late in an hour. */
-export const UNWELL_URGENT = "unwell_urgent";
-
 export const FARM_EVENTS = [
   "move",
   "arrival",

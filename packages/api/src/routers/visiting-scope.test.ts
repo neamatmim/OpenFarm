@@ -64,8 +64,6 @@ const OPEN_TO_A_VISIT = new Set<string>([
  */
 const ROLE_FREE = new Map<string, string>([
   ["healthCheck", "says the server is up, and nothing else"],
-  ["serverTime", "says what time the farm's clock reads"],
-  ["privateData", "says who is signed in, to them"],
   ["people.me", "says who they are, and what their Scope is"],
   [
     "people.acceptInvite",

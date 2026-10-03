@@ -528,11 +528,6 @@ export const investorsRouter = {
     }),
 
   /**
-   * Shows invited Investors each Venture's Projection in the portal, or stops showing it (ADR 0010). Off until the
-   * Owner turns it on — once the lawyer and the Shariah scholar have seen what it says — and the Portal Preview shows
-   * it to the Owner either way. The Owner's alone.
-   */
-  /**
    * Lets an Investment Agreement or an Amendment be agreed within the app — offered by the Owner, agreed by the Investor
    * in the portal, approved by the Owner — or stops it. Off until the Owner turns it on, once the lawyer and the Shariah
    * scholar have confirmed the farm may rely on an Agreement with no stamp on it. Turned off, an offer already agreed may
@@ -560,6 +555,11 @@ export const investorsRouter = {
       return { shown: input.shown };
     }),
 
+  /**
+   * Shows invited Investors each Venture's Projection in the portal, or stops showing it (ADR 0010). Off until the
+   * Owner turns it on — once the lawyer and the Shariah scholar have seen what it says — and the Portal Preview shows
+   * it to the Owner either way. The Owner's alone.
+   */
   setProjectionsShown: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())

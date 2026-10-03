@@ -127,11 +127,6 @@ export const breedingRouter = {
       correct(context, abortionCorrection, input)
     ),
 
-  /**
-   * The cows somebody has to decide about, for whoever may read the question: the Manager's queue,
-   * which the Vet decides on as well and the Owner reads (roles matrix: Repeat Breeder flag — Vet R,
-   * decide). Listed, never pushed.
-   */
   /** The heat watch: open cows the farm expects in heat and nobody has seen, for the Manager and the Vet. */
   heatWatch: protectedProcedure
     .use(requireRole("owner", "manager", "vet"))
@@ -139,6 +134,11 @@ export const breedingRouter = {
       heatWatchOn(context.db, context.farm, context.clock.now())
     ),
 
+  /**
+   * The cows somebody has to decide about, for whoever may read the question: the Manager's queue,
+   * which the Vet decides on as well and the Owner reads (roles matrix: Repeat Breeder flag — Vet R,
+   * decide). Listed, never pushed.
+   */
   repeatBreeders: protectedProcedure
     .use(requireRole("owner", "manager", "vet"))
     .handler(({ context }) =>

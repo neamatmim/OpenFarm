@@ -212,11 +212,6 @@ const DATA: TemplateSection = {
 };
 
 /**
- * The standard Investment Agreement: the words the farm first printed, with the lines under the Investor for their
- * Nominees — what each knows, a minor's Receiver, and none named — the heirs clause and its five rules in the terms,
- * before the Arbitrator, and the data section after them. A farm holding an earlier Version takes this only when the Owner publishes it.
- */
-/**
  * The standard Investment Agreement from the several-nominees wording (2026-09-26) until the clauses for capital paid by
  * the month were added (2026-10-02): kept whole, so a farm still on exactly these words can be caught up to the
  * standard that followed, and a farm that changed them is left with its own.

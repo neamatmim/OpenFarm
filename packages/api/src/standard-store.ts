@@ -180,12 +180,12 @@ const addRations = async (
   return added;
 };
 
-/** On the Drug List without withdrawal days: nothing may prescribe them until the Vet has written the label's. */
 /** The standard medicines the farm does not call by either of their names already. */
 export const drugsNotHad = (
   have: readonly { id: string; nameBn: string; nameEn: string | null }[]
 ) => Object.values(STANDARD_DRUGS).filter((name) => !nameTaken(have, name));
 
+/** On the Drug List without withdrawal days: nothing may prescribe them until the Vet has written the label's. */
 const addDrugs = async (
   tx: Tx,
   trail: Trail,

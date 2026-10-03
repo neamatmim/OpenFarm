@@ -344,18 +344,6 @@ export interface Payout {
 }
 
 /**
- * The close-out of a Venture, worked out and shown before anything is done.
- *
- * What its Animals fetched, everything the run was charged as its own line, the Owner's Advance repaid at
- * cost, capital returned whole, and the profit split by the percentages the Agreements froze. The charges
- * are the costing the farm already does, narrowed to the Animals that were this Venture's at the time —
- * never a second sum, because two answers to "what did this bull cost" is the argument a Settlement
- * exists to end.
- *
- * Blocked is not refused: the figures come back with the reasons they cannot be acted on, because an
- * Owner told only "no" has nothing to go and put right.
- */
-/**
  * What a Venture's run has been charged, as its own lines.
  *
  * Named rather than numbered, and named in one place: a screen that has to know what "trips" is called
@@ -401,6 +389,18 @@ export const whatItWasCharged = (
   return { charged, charges };
 };
 
+/**
+ * The close-out of a Venture, worked out and shown before anything is done.
+ *
+ * What its Animals fetched, everything the run was charged as its own line, the Owner's Advance repaid at
+ * cost, capital returned whole, and the profit split by the percentages the Agreements froze. The charges
+ * are the costing the farm already does, narrowed to the Animals that were this Venture's at the time —
+ * never a second sum, because two answers to "what did this bull cost" is the argument a Settlement
+ * exists to end.
+ *
+ * Blocked is not refused: the figures come back with the reasons they cannot be acted on, because an
+ * Owner told only "no" has nothing to go and put right.
+ */
 export const settlementOf = async (
   db: Db,
   farmId: string,

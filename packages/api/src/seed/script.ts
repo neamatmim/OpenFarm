@@ -260,7 +260,6 @@ const calveTheCows = ({ farm, cows, on }: Script) => {
   }
 };
 
-/** Quarantine over: into the fattening state and a fattening pen. */
 /**
  * Lorries from the hat, and the fortnightly weigh-in. What happens to a bull between — his arrival check, his drench
  * and his vaccines on his own days, his release thirty days on to the Pen whose Ration suits his weight — is the

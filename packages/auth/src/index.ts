@@ -182,12 +182,6 @@ const turnAwayWhoseDoorIsShut = (db: Database, where: AnsweringOn) =>
     throw new APIError("FORBIDDEN", { message: translate(language, shut.why) });
   });
 
-/**
- * A password everybody else uses is no secret (ASVS 6.2.4): refused wherever somebody chooses one through Better Auth
- * — opening an account from an invite, changing it while signed in, or setting it with a reset — whatever path led
- * there. The farm's own procedures that
- * set a password refuse it first, in their own words; this is the door nothing gets round.
- */
 /** Where Better Auth lets somebody choose a password, and which field of the request carries it. */
 const CHOSEN_AT = {
   "/sign-up/email": "password",
@@ -195,6 +189,12 @@ const CHOSEN_AT = {
   "/reset-password": "newPassword",
 } as const;
 
+/**
+ * A password everybody else uses is no secret (ASVS 6.2.4): refused wherever somebody chooses one through Better Auth
+ * — opening an account from an invite, changing it while signed in, or setting it with a reset — whatever path led
+ * there. The farm's own procedures that
+ * set a password refuse it first, in their own words; this is the door nothing gets round.
+ */
 const turnAwayCommonPasswords = () =>
   createAuthMiddleware((ctx) => {
     const field = CHOSEN_AT[ctx.path as keyof typeof CHOSEN_AT];

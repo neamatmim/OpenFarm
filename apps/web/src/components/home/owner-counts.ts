@@ -15,6 +15,17 @@ export type OwnerKind =
   | "money"
   | "review";
 
+/** How many entries of money wait for the Owner's word — all of them, as the farm counts them, where the list shows the
+ *  oldest few; in an answer a phone kept from before it did, the rows it was sent. */
+export const moneyAwaitingCount = (needsYou: NeedsYou): number =>
+  needsYou.moneyAwaitingAll?.count ?? needsYou.moneyAwaiting.length;
+
+/** The taka the money awaiting approval comes to, whichever way it goes — the farm's total, or the rows sent in an
+ *  answer kept from before. */
+export const moneyAwaitingTotal = (needsYou: NeedsYou): number =>
+  needsYou.moneyAwaitingAll?.totalBdt ??
+  needsYou.moneyAwaiting.reduce((sum, row) => sum + row.amountBdt, 0);
+
 /** How many rows of the month's rent, electricity and wages are not entered yet — none in an answer a phone kept from before
  *  there were Monthly Costs. */
 export const monthlyCostsMissing = (needsYou: NeedsYou): number =>
@@ -36,7 +47,7 @@ export const ownerCountsOf = (
   approvals: needsYou.approvals.length,
   proposals: needsYou.proposals.length,
   money:
-    needsYou.moneyAwaiting.length +
+    moneyAwaitingCount(needsYou) +
     monthlyCostsMissing(needsYou) +
     // Missing from an answer a phone kept from before Farm Accounts were checked.
     (needsYou.farmAccountsOut?.length ?? 0) +
@@ -56,5 +67,5 @@ export const decisionsWaiting = (needsYou: NeedsYou): number =>
   needsYou.approvals.length +
   needsYou.proposals.length +
   needsYou.needsReview.length +
-  needsYou.moneyAwaiting.length +
+  moneyAwaitingCount(needsYou) +
   (needsYou.registrationRenewal ? 1 : 0);

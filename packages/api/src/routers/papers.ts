@@ -43,16 +43,6 @@ const tagInput = z.string().trim().min(1).max(32);
 const LOAD_LIMIT = 200;
 
 /**
- * What one buyer took on one day, and what went on one lorry.
- *
- * Two different questions, and the papers answer them differently. The **receipt** covers
- * everything he took that day — at Eid a man buys five beasts before breakfast, and handing him
- * five sheets is how one gets lost. The **transport card** covers one Load: the animals that went
- * to one destination, on one vehicle, with one driver. A card listing a day's worth of beasts
- * above one lorry's registration would assert a load that was never on that lorry, which is the
- * thing Meat Rules r.18 exists to prevent.
- */
-/**
  * What the buyer paid that day and still owed, for the paper he signs, or nothing when he paid in full. One promised
  * day is said as it is; several are said beside the tags they were promised for, since a paper that gave one day for
  * two promises would hold him to the wrong one.
@@ -88,6 +78,16 @@ const bakiOnTheReceipt = (
   };
 };
 
+/**
+ * What one buyer took on one day, and what went on one lorry.
+ *
+ * Two different questions, and the papers answer them differently. The **receipt** covers
+ * everything he took that day — at Eid a man buys five beasts before breakfast, and handing him
+ * five sheets is how one gets lost. The **transport card** covers one Load: the animals that went
+ * to one destination, on one vehicle, with one driver. A card listing a day's worth of beasts
+ * above one lorry's registration would assert a load that was never on that lorry, which is the
+ * thing Meat Rules r.18 exists to prevent.
+ */
 const salesWith = async (
   db: Database,
   farmId: string,

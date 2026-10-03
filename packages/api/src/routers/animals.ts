@@ -1582,9 +1582,12 @@ export const animalsRouter = {
           );
           imported.push({ line, tagNumber: created.tagNumber });
         } catch (error) {
+          // The farm's own refusal says why in its words; anything else — the database, the network — is not for the
+          // screen, which says only that the row could not be taken.
           failed.push({
             line,
-            reason: error instanceof Error ? error.message : "could not import",
+            reason:
+              error instanceof ORPCError ? error.message : "could not import",
           });
         }
       }

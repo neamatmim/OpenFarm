@@ -51,11 +51,6 @@ export type PaperMaking = Parameters<typeof audited>[0] & {
 const madeIn = (context: PaperMaking) =>
   context.inPreviewOf ? { inPreviewOf: context.inPreviewOf } : {};
 
-/**
- * যোগদানপত্র for one Agreement: that the Farm has his money, how much, on what day and by which bank reference, and
- * the terms of the wording his Agreement was signed in, filled from what is in force today. `ownerName` is who signs
- * for the Farm, which is the Owner's name whoever is asking for the paper.
- */
 /** A figure in Bangla numerals, for a Bangla sentence whoever reads it. */
 const bn = (value: number) => formatNumber(value, "bn");
 
@@ -93,6 +88,11 @@ const sumsSaid = (
   return parts.join(" · ");
 };
 
+/**
+ * যোগদানপত্র for one Agreement: that the Farm has his money, how much, on what day and by which bank reference, and
+ * the terms of the wording his Agreement was signed in, filled from what is in force today. `ownerName` is who signs
+ * for the Farm, which is the Owner's name whoever is asking for the paper.
+ */
 export const joiningLetterFor = async (
   context: PaperMaking,
   agreementId: string,

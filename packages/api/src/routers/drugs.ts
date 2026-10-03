@@ -456,11 +456,6 @@ export const drugsRouter = {
       return { id: input.id };
     }),
 
-  /**
-   * The Vet says whether a product is a vaccine: its doses then go on the vaccination register, and a campaign
-   * giving it asks which lot it came from. The Vet's, from their own phone, as the withdrawal days are — it is
-   * the prescriber's statement of what the product is.
-   */
   /** The farm's Default Withdrawal Days: what a dose not prescribed holds her for when its product has none. */
   defaultDays: protectedProcedure
     .use(requireRole("owner", "manager", "vet", { visitingVet: true }))
@@ -503,6 +498,11 @@ export const drugsRouter = {
       return { milkDays: input.milkDays, meatDays: input.meatDays };
     }),
 
+  /**
+   * The Vet says whether a product is a vaccine: its doses then go on the vaccination register, and a campaign
+   * giving it asks which lot it came from. The Vet's, from their own phone, as the withdrawal days are — it is
+   * the prescriber's statement of what the product is.
+   */
   markVaccine: protectedProcedure
     .use(requireOnly("vet", VET_ONLY))
     .use(requirePersonalSession())

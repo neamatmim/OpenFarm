@@ -187,11 +187,6 @@ export const windUpEndsOn = (targetWindowEnd: string, windUpDays: number) =>
   addDays(targetWindowEnd, windUpDays);
 
 /**
- * A Venture as a screen reads it: the plan it opened on, what it holds, who has signed for it, and the
- * Running Budget, which is whatever the Cattle Budget is not — worked out, never stored, so the two can
- * never drift apart.
- */
-/**
  * A Venture's two budgets: what the plan says each is, and what is left of each.
  *
  * The budgets are a plan for the whole capital, so what has actually arrived is split in the same
@@ -305,6 +300,11 @@ export const paidForBy = (
   };
 };
 
+/**
+ * A Venture as a screen reads it: the plan it opened on, what it holds, who has signed for it, and the
+ * Running Budget, which is whatever the Cattle Budget is not — worked out, never stored, so the two can
+ * never drift apart.
+ */
 export const ventureView = (
   row: VentureRow,
   held: Held | undefined,
@@ -354,11 +354,11 @@ export const ventureView = (
      *  side is the rest of the balance, so the two always add to what the account should hold. */
     cattleBudgetHeldBdt,
     runningBudgetHeldBdt,
+    /** What its animals have cost the Farm since the last Reimbursement, and the Farm is still owed. */
+    owedTheFarmBdt: alsoKnown.owedTheFarmBdt,
     /** Whether what is left to keep the animals with has fallen below the level the Owner set. Said of
      *  a Venture that is running: one not yet buying has spent nothing, and one whose run is over is
      *  not feeding anybody. */
-    /** What its animals have cost the Farm since the last Reimbursement, and the Farm is still owed. */
-    owedTheFarmBdt: alsoKnown.owedTheFarmBdt,
     runningBudgetLow:
       isRunning(row.state) &&
       runningBudgetHeldBdt - alsoKnown.owedTheFarmBdt < alsoKnown.warnBelowBdt,
@@ -457,10 +457,6 @@ const WHAT_IT_DOES = {
   { line: keyof Held; sign: 1 | -1; cattle: 0 | 1 | -1 }
 >;
 
-/**
- * What each Venture's account has seen, in one query for the whole list. Capital in and refunds are
- * Venture Movements; spending and payouts are read as nothing until the work that makes them arrives.
- */
 /** One movement folded into what a Venture holds. The only place a movement becomes a figure, so a
  *  running total and a month-by-month walk cannot come to different answers about the same money. */
 const folded = (
@@ -495,6 +491,10 @@ export const directionOf = (kind: VentureMovementKind): "in" | "out" =>
     ? "in"
     : "out";
 
+/**
+ * What each Venture's account has seen, in one query for the whole list. Capital in and refunds are
+ * Venture Movements; spending and payouts are read as nothing until the work that makes them arrives.
+ */
 export const heldByEach = async (
   tx: Pick<Tx, "query">,
   farmId: string,
@@ -1122,13 +1122,6 @@ export const bookSaleProceeds = async (
   });
 };
 
-/**
- * How many Animals each Venture still has: neither sold, nor dead, nor culled.
- *
- * What a Wind-up Period is measured against: past its last day with any of them still hers is the
- * Venture that cannot settle on time. Whether a Settlement then refuses is the Settlement's own rule
- * and not kept here.
- */
 /** Which Animals a Venture still has, by tag: neither sold, nor dead, nor culled. */
 export const stillHersOf = (
   tx: Pick<Tx, "query">,
@@ -1147,6 +1140,13 @@ export const stillHersOf = (
 
 /** What one Animal is worth at a live-weight rate, as the farm rounds it. */
 
+/**
+ * How many Animals each Venture still has: neither sold, nor dead, nor culled.
+ *
+ * What a Wind-up Period is measured against: past its last day with any of them still hers is the
+ * Venture that cannot settle on time. Whether a Settlement then refuses is the Settlement's own rule
+ * and not kept here.
+ */
 export const stillHersByEach = async (
   tx: Pick<Tx, "query">,
   farmId: string,

@@ -1,6 +1,6 @@
 import type { RouterClient } from "@orpc/server";
 
-import { protectedProcedure, publicProcedure } from "../index";
+import { publicProcedure } from "../index";
 import { alertsRouter } from "./alerts";
 import { animalsRouter } from "./animals";
 import { auditRouter } from "./audit";
@@ -55,14 +55,6 @@ import { withdrawalsRouter } from "./withdrawals";
 
 /** Whether the API answers at all. */
 const healthCheck = publicProcedure.handler(() => "OK");
-/** The API's notion of now — from the injected Clock, so clients can show sync age. */
-const serverTime = publicProcedure.handler(({ context }) =>
-  context.clock.now()
-);
-const privateData = protectedProcedure.handler(({ context }) => ({
-  message: "This is private",
-  user: context.actor,
-}));
 
 /**
  * The router's shape, spelled out as each part's own type. Left to inference, the whole of it is written into the
@@ -71,7 +63,6 @@ const privateData = protectedProcedure.handler(({ context }) => ({
 // oxlint-disable-next-line typescript/consistent-type-definitions -- an interface has no index signature, and oRPC's Router type asks for one
 type AppRouterShape = {
   healthCheck: typeof healthCheck;
-  serverTime: typeof serverTime;
   alerts: typeof alertsRouter;
   animals: typeof animalsRouter;
   audit: typeof auditRouter;
@@ -123,12 +114,10 @@ type AppRouterShape = {
   vetCases: typeof vetCasesRouter;
   treatments: typeof treatmentsRouter;
   withdrawals: typeof withdrawalsRouter;
-  privateData: typeof privateData;
 };
 
 export const appRouter: AppRouterShape = {
   healthCheck,
-  serverTime,
   alerts: alertsRouter,
   animals: animalsRouter,
   audit: auditRouter,
@@ -180,7 +169,6 @@ export const appRouter: AppRouterShape = {
   vetCases: vetCasesRouter,
   treatments: treatmentsRouter,
   withdrawals: withdrawalsRouter,
-  privateData,
 };
 export type AppRouter = typeof appRouter;
 export type AppRouterClient = RouterClient<typeof appRouter>;

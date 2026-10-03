@@ -816,13 +816,6 @@ const nomineeLineOf = (one: PaperNominee) => {
 };
 
 /**
- * The paper an Investor gets when he joins: that the Farm has his money, and what he has agreed to.
- *
- * Every arrival is printed with its own day and bank reference rather than summed into one figure,
- * because the whole use of this sheet is that a man can hold it beside his own bank statement and see
- * the same lines. A total nobody can check against anything is not an acknowledgement.
- */
-/**
  * A Venture paid by the month, on the joining letter: his Units' Monthly Sums, and what the letter acknowledges — in the
  * words the advisers approved on 2026-10-02. Nothing for any other Venture.
  */
@@ -839,6 +832,13 @@ const monthlySumLines = (
       ]
     : [];
 
+/**
+ * The paper an Investor gets when he joins: that the Farm has his money, and what he has agreed to.
+ *
+ * Every arrival is printed with its own day and bank reference rather than summed into one figure,
+ * because the whole use of this sheet is that a man can hold it beside his own bank statement and see
+ * the same lines. A total nobody can check against anything is not an acknowledgement.
+ */
 export const joiningLetter = (letter: JoiningLetter): string => {
   if (letter.capital.length === 0) {
     throw new Error(

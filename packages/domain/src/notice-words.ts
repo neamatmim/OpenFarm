@@ -18,7 +18,6 @@ export const hoursLate = (minutes: number): number =>
 const named = (bn: unknown, en: unknown, language: Language) =>
   String((language === "bn" ? bn : en) ?? bn ?? "");
 
-/** A day or an instant the Notice carries, said in the reader's own calendar; nothing when it carries none. */
 /** The kilos a Sale's low price was worked on and whose they were, after the price; nothing for an older notice. */
 const floorBasis = (
   facts: { floorKg?: number; floorFrom?: "scale" | "day" },
@@ -38,6 +37,7 @@ const floorBasis = (
     : ` — on the day's ${kg} kg`;
 };
 
+/** A day or an instant the Notice carries, said in the reader's own calendar; nothing when it carries none. */
 const saidDate = (
   value: unknown,
   language: Language,

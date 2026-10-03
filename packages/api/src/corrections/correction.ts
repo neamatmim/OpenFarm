@@ -112,7 +112,6 @@ export const changeOf = <
 ): z.ZodOptional<z.ZodObject<{ from: FromSchema; to: ToSchema }>> =>
   z.object({ from, to }).optional();
 
-/** What a Correction is asked to do: which record, why, and each value it changes. */
 /**
  * Whether a Correction changed anything on this row at all.
  *
@@ -123,6 +122,7 @@ export const changeOf = <
 export const somethingChanged = (values: object) =>
   Object.keys(values).length > 0;
 
+/** What a Correction is asked to do: which record, why, and each value it changes. */
 export const correctionInput = <Shape extends z.ZodRawShape>(changes: Shape) =>
   z.object({
     id: z.string(),

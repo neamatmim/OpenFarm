@@ -21,13 +21,14 @@ import { MilkWeek } from "@/components/home/milk-week";
 import {
   anythingWaiting,
   decisionsWaiting,
+  moneyAwaitingCount,
+  moneyAwaitingTotal,
 } from "@/components/home/owner-counts";
 import {
   DECISION_KINDS,
   FARM_TODAY_KINDS,
   FarmToday,
   NeedsYouTabs,
-  moneyAwaitingTotal,
 } from "@/components/home/owner-queue";
 import type {
   DecisionKind,
@@ -98,7 +99,7 @@ const useFarmFigures = (data: OwnerAnswer): Figure[] => {
     direction === "in" ? totals.inBdt : totals.outBdt;
   const net = sum("in") - sum("out");
   const herd = animals.data ?? [];
-  const awaiting = data.needsYou.moneyAwaiting.length;
+  const awaiting = moneyAwaitingCount(data.needsYou);
   return [
     milk,
     {
@@ -212,7 +213,6 @@ const MilkPanel = ({ tiles }: { tiles: OwnerAnswer["tiles"] }) => {
   );
 };
 
-/** The Owner's day once the farm has answered. */
 /**
  * The green word, said only when the farm has actually been asked everything it is said about.
  *
@@ -227,6 +227,7 @@ const AllFine = ({ shown }: { shown: boolean }) => {
   ) : null;
 };
 
+/** The Owner's day once the farm has answered. */
 const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
   const { t, language } = useLanguage();
   const { needsYou, tiles } = data;

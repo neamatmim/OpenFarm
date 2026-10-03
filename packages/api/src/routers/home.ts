@@ -28,6 +28,7 @@ import {
   workAwaitingSignOff,
 } from "../instances-store";
 import { milkDropsOn } from "../milk-store";
+import { awaitingApproval } from "../money-store";
 import { lostInAYear, missingNow } from "../missing-store";
 import { monthByMonth } from "../month-store";
 import { monthlyCostsNow } from "../monthly-costs-store";
@@ -290,6 +291,7 @@ export const homeRouter = {
         week,
         lowStock,
         moneyAwaiting,
+        moneyAwaitingAll,
         monthlyCosts,
         bakiOverdue,
         missing,
@@ -366,6 +368,8 @@ export const homeRouter = {
           orderBy: { recordedAt: "asc", id: "asc" },
           limit: QUEUE_LIMIT,
         }),
+        // All of it counted and totalled, however many the list above shows.
+        awaitingApproval(context.db, farmId),
         // The rent, the electricity and the wages the month has nothing entered for yet: a month missing is otherwise read as
         // a cheaper month.
         monthlyCostsNow(context.db, context.farm, now),
@@ -463,6 +467,8 @@ export const homeRouter = {
             inPieces:
               Number(row.amountBdt) <= context.farm.approvalThresholdBdt,
           })),
+          /** All the money waiting for her word, counted and totalled, where the list above shows the oldest few. */
+          moneyAwaitingAll,
           monthlyCosts,
           bakiOverdue: bakiOverdue.slice(0, QUEUE_LIMIT),
           /** Animals the round could not find, until the Manager marks them Found — each asked about once she has been

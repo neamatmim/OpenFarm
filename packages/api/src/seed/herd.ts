@@ -378,17 +378,17 @@ export const dailyYield = (cow: Cow, day: string): number => {
   return cow.peak * rising * falling;
 };
 
+/** Days from the lorry in January to Eid-ul-Adha 2026: what each bull grew over. */
+const DAYS_TO_EID_2026 = 123;
+/** How many of them go on the first day of Qurbani; the rest the next. */
+const SOLD_ON_THE_FIRST_DAY = 3;
+
 /**
  * Last Eid's Season, finished before the farm's history begins: a lorry of the Farm's own bulls bought in January for
  * Eid-ul-Adha 2026, one of them dead in April, the rest sold over Eid — so the Owner's Returns page has a Season that is
  * a result, the dead among it, beside the settled Venture. Taken off the herd once gone, so the days that follow never
  * feed or sell them again.
  */
-/** Days from the lorry in January to Eid-ul-Adha 2026: what each bull grew over. */
-const DAYS_TO_EID_2026 = 123;
-/** How many of them go on the first day of Qurbani; the rest the next. */
-const SOLD_ON_THE_FIRST_DAY = 3;
-
 export const lastEidsSeason = async (farm: Farm, herd: Herd) => {
   const lorry = await takeInBulls(farm, herd, {
     on: "2026-01-25",

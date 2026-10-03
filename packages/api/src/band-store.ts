@@ -30,12 +30,6 @@ export const hasBand = ({ fromKg, toKg }: WeightBand) =>
 /** Grown out of it first — he is eating a small bull's share of the trough — then too light, then by tag. */
 const STANDING_ORDER = { outgrown: 0, too_light: 1 } as const;
 
-/**
- * The fattening animals standing in a Pen whose Ration has a weight band their weight is outside of: grown past it, or
- * not yet up to it. Weighed as feeding weighs them — the latest Weigh-in the farm did not doubt, or the Intake — so the
- * Pen a bull is told to leave is the one whose trough his weight is fed at. An animal nobody has weighed is left out:
- * there is nothing to say he is in the wrong place.
- */
 /** Every Pen on a Ration in use that has a Weight Band, with the band — the places a bull can be put by his weight. */
 const pensOnBandedRations = async (
   db: Pick<Database, "query">,
@@ -85,6 +79,12 @@ export const pensThatSuit = async (
   return placed.filter((one) => bandStanding(weightKg, one.band) === "fits");
 };
 
+/**
+ * The fattening animals standing in a Pen whose Ration has a weight band their weight is outside of: grown past it, or
+ * not yet up to it. Weighed as feeding weighs them — the latest Weigh-in the farm did not doubt, or the Intake — so the
+ * Pen a bull is told to leave is the one whose trough his weight is fed at. An animal nobody has weighed is left out:
+ * there is nothing to say he is in the wrong place.
+ */
 export const outOfTheirBand = async (
   db: Pick<Database, "query">,
   farmId: string

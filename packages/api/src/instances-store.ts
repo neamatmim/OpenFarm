@@ -1113,8 +1113,6 @@ export const minuteOfFarmDay = (at: Date): number => {
   return Math.floor((at.getTime() - from.getTime()) / MINUTE_MS);
 };
 
-/** The farm's own day, as a date somebody would write down. Not the UTC one: at half past
- *  midnight in a shed in Dhaka, yesterday's date is the wrong answer. */
 /**
  * When the farm's post was last due to be carried, as an instant — today's most recent
  * carrying moment, or yesterday's last one if the day has not reached its first.
@@ -1153,8 +1151,6 @@ export const openReviews = (
     limit,
   });
 
-/** Cows whose milk may not go to the tank, soonest to come off first — a Withdrawal ending
- *  is the one anybody has to plan around. */
 /** Every cow the farm is holding back — her milk from the tank, her carcass from the lorry,
  *  or both. Each screen sorts and counts by the hold it is actually about. */
 export const heldByWithdrawal = async (

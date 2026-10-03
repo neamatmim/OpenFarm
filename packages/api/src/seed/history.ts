@@ -283,7 +283,6 @@ const closeWhatWasMissed = async (farm: Farm, day: string) => {
   }
 };
 
-/** Something the farm did on a day that is not answering the Playbook: a lorry arriving, a campaign raised. */
 /** Runs one step of the three months, and says which one when it fails: a refusal alone does not say whose it was,
  *  and finding out means living the months again. */
 const saying = async <T>(what: string, run: () => Promise<T>): Promise<T> => {
@@ -294,6 +293,7 @@ const saying = async <T>(what: string, run: () => Promise<T>): Promise<T> => {
   }
 };
 
+/** Something the farm did on a day that is not answering the Playbook: a lorry arriving, a campaign raised. */
 export interface Happening {
   day: string;
   time: string;

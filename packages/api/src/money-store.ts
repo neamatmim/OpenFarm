@@ -311,7 +311,6 @@ const placedUnder = async (
   };
 };
 
-/** The money a farm record carries, as that record says it. */
 /**
  * The Farm's own purse, as a reader asks for it. Every reader of the Farm's money says this and not the
  * shape behind it, so the next reader that forgets is visible as the one that does not say it.
@@ -367,6 +366,7 @@ export const moneyTotalsOf = async (
   };
 };
 
+/** The money a farm record carries, as that record says it. */
 export interface MoneyOfARecord {
   source: MoneySource;
   sourceId: string;
@@ -934,4 +934,25 @@ export const bookMoney = async (
       }));
   await tellTheOwner(tx, booking, { id, amountBdt, approval, before, terms });
   return { id, approval };
+};
+
+/** All the money waiting for the Owner's word, every purse, counted and totalled on the farm — whichever way each
+ *  goes — however many of them a queue lists. */
+export const awaitingApproval = async (
+  db: Pick<Tx, "select">,
+  farmId: string
+): Promise<{ count: number; totalBdt: number }> => {
+  const [row] = await db
+    .select({
+      count: sql<number>`count(*)::int`,
+      totalBdt: sql<string>`coalesce(sum(${moneyEvent.amountBdt}), 0)`,
+    })
+    .from(moneyEvent)
+    .where(
+      and(eq(moneyEvent.farmId, farmId), eq(moneyEvent.approval, "awaiting"))
+    );
+  return {
+    count: Number(row?.count ?? 0),
+    totalBdt: roundTaka(Number(row?.totalBdt ?? 0)),
+  };
 };

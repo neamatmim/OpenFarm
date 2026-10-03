@@ -262,7 +262,6 @@ export const partsAllowed = (
 export const isTemplateField = (name: string): name is TemplateField =>
   Object.hasOwn(TEMPLATE_FIELDS, name);
 
-/** One fact of the paper's own, as the Owner words its line: what it is called, and what it says. */
 /**
  * When a line of wording is printed at all: on the paper of a Venture paid by the month, and only there. A line with no
  * condition is printed on every paper of its kind.
@@ -270,6 +269,7 @@ export const isTemplateField = (name: string): name is TemplateField =>
 export type PaperCondition = "by_the_month";
 export const PAPER_CONDITIONS = ["by_the_month"] as const;
 
+/** One fact of the paper's own, as the Owner words its line: what it is called, and what it says. */
 export interface FactLine {
   label: Said;
   /** In Bangla, the paper's language; fields in braces. */

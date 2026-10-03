@@ -204,13 +204,6 @@ const tellIfItsLotHadExpired = async (
 };
 
 /**
- * Records that a dose was actually given — or, when the Step was skipped, that it was not
- * after all — and works her Withdrawals out afresh from everything she has had.
- *
- * The row is keyed on the work and the animal, so a phone sending the same dose twice records
- * it once, and a Correction back to a skip takes it off her again.
- */
-/**
  * An arrival dose put off — skipped for any reason — is raised again for him after the farm's days; given, on the work
  * first raised or on one raised again, whatever else was raised for it is owed no more. Nothing for any other dose:
  * which work is an arrival dose is the store's to say.
@@ -234,6 +227,13 @@ const followTheArrivalDose = async (tx: Tx, input: TreatmentFacts) => {
   );
 };
 
+/**
+ * Records that a dose was actually given — or, when the Step was skipped, that it was not
+ * after all — and works her Withdrawals out afresh from everything she has had.
+ *
+ * The row is keyed on the work and the animal, so a phone sending the same dose twice records
+ * it once, and a Correction back to a skip takes it off her again.
+ */
 const giveTheDose = async (
   tx: Tx,
   input: TreatmentFacts
