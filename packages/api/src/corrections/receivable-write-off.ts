@@ -1,19 +1,19 @@
 import { eq } from "@OpenFarm/db/operators";
-import { bakiWriteOff } from "@OpenFarm/db/schema/money";
+import { receivableWriteOff } from "@OpenFarm/db/schema/money";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
+import { noteInput } from "../money-inputs";
 import {
   assertWrittenOffNoMoreThanOwed,
   owingOnItem,
   readWriteOff,
-} from "../baki-store";
-import { noteInput } from "../money-inputs";
+} from "../receivable-store";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput, somethingChanged } from "./correction";
 
 const loadWriteOff = (tx: Tx, farmId: string, id: string) =>
-  tx.query.bakiWriteOff.findFirst({ where: { id, farmId } });
+  tx.query.receivableWriteOff.findFirst({ where: { id, farmId } });
 
 /** What putting a Write-off right may change: how much — nothing takes it back whole — and why. */
 export const writeOffCorrectionInput = correctionInput({
@@ -26,8 +26,8 @@ export const writeOffCorrection: CorrectionKind<
   NonNullable<Awaited<ReturnType<typeof loadWriteOff>>>,
   z.infer<typeof writeOffCorrectionInput>["changes"]
 > = {
-  entity: "baki_write_off",
-  table: bakiWriteOff,
+  entity: "receivable_write_off",
+  table: receivableWriteOff,
   roles: ["owner"],
   missing: "No such write-off",
   load: loadWriteOff,
@@ -55,9 +55,9 @@ export const writeOffCorrection: CorrectionKind<
     };
     if (somethingChanged(putRight)) {
       await tx
-        .update(bakiWriteOff)
+        .update(receivableWriteOff)
         .set(putRight)
-        .where(eq(bakiWriteOff.id, row.id));
+        .where(eq(receivableWriteOff.id, row.id));
     }
   },
 };

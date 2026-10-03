@@ -225,7 +225,7 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     pen: facts.pen,
     since: saidDate(facts.since, language),
   }),
-  baki_overdue: (facts, language) => ({
+  receivable_overdue: (facts, language) => ({
     buyer: facts.buyer,
     amount: Number(facts.owingMoney),
     since: saidDate(facts.overdueFrom, language),

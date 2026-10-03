@@ -4,7 +4,6 @@ import { farmDayOf, isQuiet } from "@OpenFarm/domain";
 
 import { audited } from "./audit";
 import type { Tx } from "./audit";
-import { overdueToTell, raiseOverdueBaki } from "./baki-store";
 import { pregnancyTimesOf } from "./breeding-store";
 import type { Context } from "./context";
 import { milkAccountOn, tellOfUnaccountedMilk } from "./dispatch-store";
@@ -38,6 +37,7 @@ import { missingToTell, tellOfMissing } from "./missing-store";
 import { missedToTell, raiseMissedSums } from "./monthly-sums-store";
 import { tell } from "./notice";
 import { carryThePost, pushRaised } from "./push-send";
+import { overdueToTell, raiseOverdueReceivable } from "./receivable-store";
 import { tellOfRenewals } from "./registration-store";
 import {
   reimbursementsToTell,
@@ -514,11 +514,11 @@ const tellAboutMissing = async (context: Turning, now: Date) => {
 };
 
 /**
- * Baki gone past its day: each Sale or Dispatch told once to the Owner and the Manager, in the evening's post, the day
+ * Receivable gone past its day: each Sale or Dispatch told once to the Owner and the Manager, in the evening's post, the day
  * it first goes late. Keyed on the first one it tells about, with the rest named in the event, as the store's notices
  * are — the money owed, not any work, is what these are about.
  */
-const tellAboutOverdueBaki = async (context: Turning, now: Date) => {
+const tellAboutOverdueReceivable = async (context: Turning, now: Date) => {
   const untold = await overdueToTell(context.db, context.farm, farmDayOf(now));
   const [firstOne] = untold;
   if (!firstOne) {
@@ -526,19 +526,19 @@ const tellAboutOverdueBaki = async (context: Turning, now: Date) => {
   }
   await audited(context).write(
     {
-      entity: "baki",
+      entity: "receivable",
       entityId: firstOne.item.id,
       action: "update",
       after: () =>
         Promise.resolve({ toldOverdue: untold.map((one) => one.item.id) }),
     },
-    (tx) => raiseOverdueBaki(tx, context.farm.id, untold, now)
+    (tx) => raiseOverdueReceivable(tx, context.farm.id, untold, now)
   );
 };
 
 /**
  * Monthly Sums missed: each Agreement's latest missed month told once to the Owner, in the evening's post. Keyed on the
- * first Agreement it tells about, with the rest named in the event, as the overdue Baki is — the money owed, not any
+ * first Agreement it tells about, with the rest named in the event, as the overdue Receivable is — the money owed, not any
  * work, is what these are about.
  */
 const tellAboutMissedSums = async (context: Turning, now: Date) => {
@@ -672,7 +672,7 @@ export const theSweep = async (context: Turning) => {
   await tellAboutEidLeftovers(context, now);
   await tellAboutLowStock(context, now);
   await tellAboutTheStore(context, now);
-  await tellAboutOverdueBaki(context, now);
+  await tellAboutOverdueReceivable(context, now);
   await tellAboutMissedSums(context, now);
   await tellAboutPapers(context, now);
   await tellAboutReimbursements(context, now);

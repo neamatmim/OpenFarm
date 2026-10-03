@@ -167,7 +167,7 @@ describe("the Farm Accounts", () => {
     });
   });
 
-  it("are named on a Baki Payment by bKash, number and TrxID kept", async () => {
+  it("are named on a Receivable Payment by bKash, number and TrxID kept", async () => {
     const owner = await as("owner", `${DAY}T07:00:00.000Z`);
     const shed = await owner.client.herd.createShed({ name: suffix });
     const pen = await owner.client.herd.createPen({
@@ -199,24 +199,24 @@ describe("the Farm Accounts", () => {
       promisedBy: "2082-04-20",
     });
     const later = await as("owner", `${DAY}T08:00:00.000Z`);
-    const { id } = await later.client.baki.pay({
+    const { id } = await later.client.receivable.pay({
       buyer: `বাকির ক্রেতা ${suffix}`,
       kind: "cattle",
       amountMoney: 20_000,
       paidOn: DAY,
       paymentMethod: "bkash",
       farmAccountId: accounts.office,
-      reference: `TRX-BAKI-${suffix}`,
+      reference: `TRX-RECEIVABLE-${suffix}`,
     });
     const owner2 = await as("owner");
     const list = await owner2.client.money.list({ from: DAY, to: DAY });
     expect(
       list.events.find(
-        (one) => one.source === "baki_payment" && one.sourceId === id
+        (one) => one.source === "receivable_payment" && one.sourceId === id
       )
     ).toMatchObject({
       farmAccountId: accounts.office,
-      reference: `TRX-BAKI-${suffix}`,
+      reference: `TRX-RECEIVABLE-${suffix}`,
     });
   });
 

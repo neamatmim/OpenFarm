@@ -22,14 +22,14 @@ import {
 } from "@OpenFarm/db/schema/herd";
 import { MILK_DESTINATIONS as STORED_MILK_DESTINATIONS } from "@OpenFarm/db/schema/milk-destinations";
 import {
-  BAKI_KINDS as STORED_BAKI_KINDS,
+  RECEIVABLE_KINDS as STORED_RECEIVABLE_KINDS,
   PAYMENT_METHODS as STORED_PAYMENT_METHODS,
 } from "@OpenFarm/db/schema/money";
 import { REVIEW_REASONS as STORED_REASONS } from "@OpenFarm/db/schema/review";
 import { CAPITAL_PAID as STORED_CAPITAL_PAID } from "@OpenFarm/db/schema/venture";
 import {
   ALERT_KINDS,
-  BAKI_KINDS,
+  RECEIVABLE_KINDS,
   CALF_OUTCOMES,
   CALF_SEXES,
   CALVING_EASES,
@@ -77,7 +77,7 @@ describe("the lists the store keeps and the lists the screens read", () => {
   it.each([
     ["Roles", ROLES, STORED_ROLES],
     ["ways of paying", PAYMENT_METHODS, STORED_PAYMENT_METHODS],
-    ["kinds of Baki", BAKI_KINDS, STORED_BAKI_KINDS],
+    ["kinds of Receivable", RECEIVABLE_KINDS, STORED_RECEIVABLE_KINDS],
     ["ways she is served", SERVICE_METHODS, STORED_SERVICE_METHODS],
     [
       "what a pregnancy check finds",

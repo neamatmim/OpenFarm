@@ -1,39 +1,41 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  bakiAtTheGate,
-  bakiPutRight,
-  bakiStanding,
-  isBakiOverdue,
+  receivableAtTheGate,
+  receivablePutRight,
+  receivableStanding,
+  isReceivableOverdue,
   overdueFrom,
   paidAtTheGate,
-  soldOnBakiWhileOverdue,
-} from "./baki";
+  soldOnCreditWhileOverdue,
+} from "./receivable";
 
 const LEFT_ON = "2026-06-16";
 
-const atTheGate = (more: Partial<Parameters<typeof bakiAtTheGate>[0]> = {}) =>
-  bakiAtTheGate({
+const atTheGate = (
+  more: Partial<Parameters<typeof receivableAtTheGate>[0]> = {}
+) =>
+  receivableAtTheGate({
     worthMoney: 120_000,
     leftOn: LEFT_ON,
     promiseRequired: true,
     ...more,
   });
 
-describe("Baki at the gate", () => {
+describe("Receivable at the gate", () => {
   it("owes nothing when nothing is said of what was paid", () => {
-    expect(atTheGate()).toEqual({ bakiMoney: 0, promisedBy: null });
+    expect(atTheGate()).toEqual({ receivableMoney: 0, promisedBy: null });
   });
 
   it("owes the rest of the price, by the day he promised", () => {
     expect(
       atTheGate({ paidNowMoney: 100_000, promisedBy: "2026-06-23" })
-    ).toEqual({ bakiMoney: 20_000, promisedBy: "2026-06-23" });
+    ).toEqual({ receivableMoney: 20_000, promisedBy: "2026-06-23" });
   });
 
   it("owes all of it when he paid nothing", () => {
     expect(atTheGate({ paidNowMoney: 0, promisedBy: "2026-06-23" })).toEqual({
-      bakiMoney: 120_000,
+      receivableMoney: 120_000,
       promisedBy: "2026-06-23",
     });
   });
@@ -41,7 +43,7 @@ describe("Baki at the gate", () => {
   it("drops a promise when he paid in full", () => {
     expect(
       atTheGate({ paidNowMoney: 120_000, promisedBy: "2026-06-23" })
-    ).toEqual({ bakiMoney: 0, promisedBy: null });
+    ).toEqual({ receivableMoney: 0, promisedBy: null });
   });
 
   it("refuses more paid than the price", () => {
@@ -50,21 +52,21 @@ describe("Baki at the gate", () => {
     });
   });
 
-  it("refuses a Sale's Baki with no promised day", () => {
+  it("refuses a Sale's Receivable with no promised day", () => {
     expect(atTheGate({ paidNowMoney: 100_000 })).toEqual({
-      refusal: "baki_needs_a_promise",
+      refusal: "receivable_needs_a_promise",
     });
   });
 
-  it("takes a Dispatch's Baki with no promised day", () => {
+  it("takes a Dispatch's Receivable with no promised day", () => {
     expect(
       atTheGate({ worthMoney: 3150, paidNowMoney: 0, promiseRequired: false })
-    ).toEqual({ bakiMoney: 3150, promisedBy: null });
+    ).toEqual({ receivableMoney: 3150, promisedBy: null });
   });
 
   it("takes a promise to pay the same day it left", () => {
     expect(atTheGate({ paidNowMoney: 0, promisedBy: LEFT_ON })).toEqual({
-      bakiMoney: 120_000,
+      receivableMoney: 120_000,
       promisedBy: LEFT_ON,
     });
   });
@@ -83,15 +85,19 @@ describe("Baki at the gate", () => {
         paidNowMoney: 3000,
         promiseRequired: false,
       })
-    ).toEqual({ bakiMoney: 107.65, promisedBy: null });
+    ).toEqual({ receivableMoney: 107.65, promisedBy: null });
   });
 });
 
 const putRight = (
-  before: { worthMoney: number; bakiMoney: number; promisedBy: string | null },
-  more: Partial<Parameters<typeof bakiPutRight>[0]> = {}
+  before: {
+    worthMoney: number;
+    receivableMoney: number;
+    promisedBy: string | null;
+  },
+  more: Partial<Parameters<typeof receivablePutRight>[0]> = {}
 ) =>
-  bakiPutRight({
+  receivablePutRight({
     before,
     worthMoney: before.worthMoney,
     leftOn: LEFT_ON,
@@ -99,52 +105,56 @@ const putRight = (
     ...more,
   });
 
-const PAID_IN_FULL = { worthMoney: 120_000, bakiMoney: 0, promisedBy: null };
+const PAID_IN_FULL = {
+  worthMoney: 120_000,
+  receivableMoney: 0,
+  promisedBy: null,
+};
 const PART_PAID = {
   worthMoney: 120_000,
-  bakiMoney: 20_000,
+  receivableMoney: 20_000,
   promisedBy: "2026-06-23",
 };
 
-describe("Baki put right", () => {
+describe("Receivable put right", () => {
   it("keeps a buyer who paid in full paid in full at a corrected price", () => {
     expect(putRight(PAID_IN_FULL, { worthMoney: 125_000 })).toEqual({
-      bakiMoney: 0,
+      receivableMoney: 0,
       promisedBy: null,
     });
   });
 
   it("keeps what a part-paying buyer paid at a corrected price", () => {
     expect(putRight(PART_PAID, { worthMoney: 125_000 })).toEqual({
-      bakiMoney: 25_000,
+      receivableMoney: 25_000,
       promisedBy: "2026-06-23",
     });
   });
 
   it("takes what he paid when the Correction says it", () => {
     expect(putRight(PART_PAID, { paidNowMoney: 110_000 })).toEqual({
-      bakiMoney: 10_000,
+      receivableMoney: 10_000,
       promisedBy: "2026-06-23",
     });
   });
 
   it("clears the promise when what he paid comes to the price", () => {
     expect(putRight(PART_PAID, { paidNowMoney: 120_000 })).toEqual({
-      bakiMoney: 0,
+      receivableMoney: 0,
       promisedBy: null,
     });
   });
 
-  it("turns a paid Sale into Baki only with a promise", () => {
+  it("turns a paid Sale into Receivable only with a promise", () => {
     expect(putRight(PAID_IN_FULL, { paidNowMoney: 100_000 })).toEqual({
-      refusal: "baki_needs_a_promise",
+      refusal: "receivable_needs_a_promise",
     });
     expect(
       putRight(PAID_IN_FULL, {
         paidNowMoney: 100_000,
         promisedBy: "2026-06-30",
       })
-    ).toEqual({ bakiMoney: 20_000, promisedBy: "2026-06-30" });
+    ).toEqual({ receivableMoney: 20_000, promisedBy: "2026-06-30" });
   });
 
   it("refuses a price corrected below what he paid", () => {
@@ -155,7 +165,7 @@ describe("Baki put right", () => {
 
   it("moves only the promised day when that is all it says", () => {
     expect(putRight(PART_PAID, { promisedBy: "2026-07-01" })).toEqual({
-      bakiMoney: 20_000,
+      receivableMoney: 20_000,
       promisedBy: "2026-07-01",
     });
   });
@@ -170,18 +180,18 @@ describe("What was paid at the gate", () => {
 const item = (
   id: string,
   leftOn: string,
-  bakiMoney: number,
+  receivableMoney: number,
   promisedBy: string | null = null
-) => ({ id, leftOn, bakiMoney, promisedBy });
+) => ({ id, leftOn, receivableMoney, promisedBy });
 const paid = (id: string, paidOn: string, amountMoney: number) => ({
   id,
   paidOn,
   amountMoney,
 });
 
-describe("a buyer's Baki, cleared oldest first", () => {
+describe("a buyer's Receivable, cleared oldest first", () => {
   it("owes all of it before he pays anything", () => {
-    const standing = bakiStanding(
+    const standing = receivableStanding(
       [
         item("b", "2026-06-10", 5000),
         item("a", "2026-06-01", 20_000, "2026-06-08"),
@@ -195,7 +205,7 @@ describe("a buyer's Baki, cleared oldest first", () => {
   });
 
   it("clears the oldest first when he pays part", () => {
-    const standing = bakiStanding(
+    const standing = receivableStanding(
       [item("a", "2026-06-01", 20_000), item("b", "2026-06-10", 5000)],
       [paid("p1", "2026-06-12", 12_000)]
     );
@@ -210,7 +220,7 @@ describe("a buyer's Baki, cleared oldest first", () => {
   });
 
   it("lets one round sum clear several, and says what it cleared", () => {
-    const standing = bakiStanding(
+    const standing = receivableStanding(
       [
         item("d1", "2026-06-01", 1750),
         item("d2", "2026-06-02", 1750),
@@ -228,41 +238,41 @@ describe("a buyer's Baki, cleared oldest first", () => {
   });
 
   it("orders two things left the same day by id, every time", () => {
-    const standing = bakiStanding(
+    const standing = receivableStanding(
       [item("z", "2026-06-01", 1000), item("m", "2026-06-01", 1000)],
       [paid("p1", "2026-06-02", 1000)]
     );
     expect(standing.items.find((one) => one.owingMoney === 0)?.id).toBe("m");
   });
 
-  it("holds what he paid beyond it as credit, and spends it on what he takes next", () => {
-    const ahead = bakiStanding(
+  it("holds what he paid beyond it as paid ahead, and spends it on what he takes next", () => {
+    const ahead = receivableStanding(
       [item("a", "2026-06-01", 1000)],
       [paid("p1", "2026-06-02", 1500)]
     );
     expect(ahead).toMatchObject({
       owingMoney: 0,
-      creditMoney: 500,
+      paidAheadMoney: 500,
       oldestOn: null,
     });
 
-    const later = bakiStanding(
+    const later = receivableStanding(
       [item("a", "2026-06-01", 1000), item("b", "2026-06-05", 800)],
       [paid("p1", "2026-06-02", 1500)]
     );
-    expect(later).toMatchObject({ owingMoney: 300, creditMoney: 0 });
+    expect(later).toMatchObject({ owingMoney: 300, paidAheadMoney: 0 });
   });
 
-  it("reads a Correction that shrank an old Baki below what was paid on it as credit", () => {
-    const standing = bakiStanding(
+  it("reads a Correction that shrank an old Receivable below what was paid on it, as paid ahead", () => {
+    const standing = receivableStanding(
       [item("a", "2026-06-01", 500)],
       [paid("p1", "2026-06-02", 1000)]
     );
-    expect(standing).toMatchObject({ owingMoney: 0, creditMoney: 500 });
+    expect(standing).toMatchObject({ owingMoney: 0, paidAheadMoney: 500 });
   });
 
   it("names no promise for what is already paid", () => {
-    const standing = bakiStanding(
+    const standing = receivableStanding(
       [
         item("a", "2026-06-01", 1000, "2026-06-03"),
         item("b", "2026-06-02", 1000, "2026-06-20"),
@@ -280,31 +290,31 @@ const standingItem = (
   promisedBy: string | null = null
 ) => ({ id, leftOn, promisedBy, owingMoney });
 
-describe("overdue Baki", () => {
+describe("overdue Receivable", () => {
   it("is not late on the day he promised, and is the day after", () => {
     const bull = standingItem("a", "2026-06-01", 20_000, "2026-06-08");
     expect(overdueFrom(bull, 30)).toBe("2026-06-09");
-    expect(isBakiOverdue(bull, "2026-06-08", 30)).toBe(false);
-    expect(isBakiOverdue(bull, "2026-06-09", 30)).toBe(true);
+    expect(isReceivableOverdue(bull, "2026-06-08", 30)).toBe(false);
+    expect(isReceivableOverdue(bull, "2026-06-09", 30)).toBe(true);
   });
 
   it("gives milk with no promise the farm's days, and is late the day after they run out", () => {
     const milk = standingItem("d", "2026-06-01", 1750);
     // Thirty days from the first of June is the first of July: still within them.
-    expect(isBakiOverdue(milk, "2026-07-01", 30)).toBe(false);
-    expect(isBakiOverdue(milk, "2026-07-02", 30)).toBe(true);
+    expect(isReceivableOverdue(milk, "2026-07-01", 30)).toBe(false);
+    expect(isReceivableOverdue(milk, "2026-07-02", 30)).toBe(true);
   });
 
   it("is still overdue when part is paid, and not when all is", () => {
     expect(
-      isBakiOverdue(
+      isReceivableOverdue(
         standingItem("a", "2026-06-01", 5000, "2026-06-08"),
         "2026-06-20",
         30
       )
     ).toBe(true);
     expect(
-      isBakiOverdue(
+      isReceivableOverdue(
         standingItem("a", "2026-06-01", 0, "2026-06-08"),
         "2026-06-20",
         30
@@ -317,15 +327,15 @@ describe("overdue Baki", () => {
     expect(overdueFrom(bull, 30)).toBe("2026-02-01");
   });
 
-  it("says when he was sold to on Baki again while already late", () => {
+  it("says when he was sold to on credit again while already late", () => {
     const late = standingItem("a", "2026-06-01", 20_000, "2026-06-08");
     const before = standingItem("b", "2026-06-05", 10_000, "2026-06-20");
     const after = standingItem("c", "2026-06-10", 10_000, "2026-06-25");
-    expect(soldOnBakiWhileOverdue([late, before], 30)).toBe(false);
-    expect(soldOnBakiWhileOverdue([late, after], 30)).toBe(true);
+    expect(soldOnCreditWhileOverdue([late, before], 30)).toBe(false);
+    expect(soldOnCreditWhileOverdue([late, after], 30)).toBe(true);
     // Paid off, the late one no longer makes the next a loan to a man who has not paid.
     expect(
-      soldOnBakiWhileOverdue([{ ...late, owingMoney: 0 }, after], 30)
+      soldOnCreditWhileOverdue([{ ...late, owingMoney: 0 }, after], 30)
     ).toBe(false);
   });
 });
@@ -333,25 +343,25 @@ describe("overdue Baki", () => {
 const writtenOff = (
   id: string,
   leftOn: string,
-  bakiMoney: number,
+  receivableMoney: number,
   writtenOffMoney: number
-) => ({ id, leftOn, bakiMoney, promisedBy: null, writtenOffMoney });
+) => ({ id, leftOn, receivableMoney, promisedBy: null, writtenOffMoney });
 
-describe("Baki written off", () => {
+describe("Receivable written off", () => {
   it("is no longer owed, and says what stays written off", () => {
-    const standing = bakiStanding(
+    const standing = receivableStanding(
       [writtenOff("a", "2026-06-01", 20_000, 20_000)],
       []
     );
     expect(standing).toMatchObject({
       owingMoney: 0,
       writtenOffMoney: 20_000,
-      creditMoney: 0,
+      paidAheadMoney: 0,
     });
   });
 
   it("is paid last: money clears what is open before it puts a write-off back", () => {
-    const standing = bakiStanding(
+    const standing = receivableStanding(
       [
         writtenOff("a", "2026-06-01", 20_000, 20_000),
         item("b", "2026-06-10", 5000),
@@ -365,16 +375,19 @@ describe("Baki written off", () => {
     expect(standing.writtenOffMoney).toBe(17_000);
   });
 
-  it("is put back whole by a buyer who pays it all after all, and the rest is credit", () => {
-    const standing = bakiStanding(
+  it("is put back whole by a buyer who pays it all after all, and the rest is paid ahead", () => {
+    const standing = receivableStanding(
       [writtenOff("a", "2026-06-01", 20_000, 20_000)],
       [paid("p1", "2026-07-01", 21_000)]
     );
-    expect(standing).toMatchObject({ writtenOffMoney: 0, creditMoney: 1000 });
+    expect(standing).toMatchObject({
+      writtenOffMoney: 0,
+      paidAheadMoney: 1000,
+    });
   });
 
   it("leaves the rest owing when only part was written off", () => {
-    const standing = bakiStanding(
+    const standing = receivableStanding(
       [writtenOff("a", "2026-06-01", 20_000, 5000)],
       [paid("p1", "2026-06-05", 10_000)]
     );

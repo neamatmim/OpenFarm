@@ -1,7 +1,7 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { sale } from "@OpenFarm/db/schema/fattening";
 import {
-  bakiAtTheGate,
+  receivableAtTheGate,
   farmDayOf,
   startOfFarmDay,
   underMeatWithdrawal,
@@ -15,7 +15,6 @@ import {
   tellIfSoldUnderCost,
 } from "../animal-price-store";
 import { audited } from "../audit";
-import { bakiOrRefuse, paidNowInput, promisedByInput } from "../baki-store";
 import { assertTheHand } from "../cash-store";
 import { correct } from "../corrections/correction";
 import { saleCorrection, saleCorrectionInput } from "../corrections/sale";
@@ -30,6 +29,11 @@ import {
 } from "../money-inputs";
 import { accountSaid, bookingOf } from "../money-store";
 import { fatteningRows } from "../ready-store";
+import {
+  receivableOrRefuse,
+  paidNowInput,
+  promisedByInput,
+} from "../receivable-store";
 import { requireRole } from "../roles";
 import {
   bookSaleMoney,
@@ -148,7 +152,7 @@ export const saleRouter = {
         reference: referenceInput,
         /** Whose hand took the cash, where it was not the writer's: the Owner writing up the Manager's sale. */
         heldBy: z.string().optional(),
-        /** What he paid there and then; left out, all of it. Less than the price, and the rest is his Baki. */
+        /** What he paid there and then; left out, all of it. Less than the price, and the rest is his Receivable. */
         paidNowMoney: paidNowInput.optional(),
         /** The day he promised to pay the rest by. Asked whenever anything is left owing: a trader promises a day. */
         promisedBy: promisedByInput.optional(),
@@ -166,8 +170,8 @@ export const saleRouter = {
         });
       }
       // Asked before anything is written: what he owes is a fact about the handshake, not about the farm.
-      const baki = bakiOrRefuse(
-        bakiAtTheGate({
+      const receivable = receivableOrRefuse(
+        receivableAtTheGate({
           worthMoney: input.priceMoney,
           paidNowMoney: input.paidNowMoney,
           promisedBy: input.promisedBy,
@@ -227,7 +231,7 @@ export const saleRouter = {
             animalId: her.id,
             counterpartyId: buyerId,
             priceMoney: input.priceMoney,
-            ...baki,
+            ...receivable,
             brokerMoney: input.brokerMoney ?? 0,
             weightKg: input.weightKg.toFixed(2),
             destination: input.destination,

@@ -9,9 +9,9 @@ import {
   milkPriceOf,
 } from "@OpenFarm/domain";
 
-import { fetchedPerLitre, writtenOffByItem } from "./baki-store";
 import { repeatBreedersOn } from "./breeding-store";
 import { farmCosts, keepChargesOf } from "./cost-store";
+import { fetchedPerLitre, writtenOffByItem } from "./receivable-store";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

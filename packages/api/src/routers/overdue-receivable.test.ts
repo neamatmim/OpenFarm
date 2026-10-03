@@ -5,7 +5,7 @@ import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
 /**
- * Overdue Baki: past the day the buyer promised, or — with no promise — past the farm's days for it. Named on the
+ * Overdue Receivable: past the day the buyer promised, or — with no promise — past the farm's days for it. Named on the
  * Manager's queue and the Owner's list with a number to ring, told once in the Digest, and never sent to the buyer.
  */
 const suffix = `late-${Date.now()}`;
@@ -22,7 +22,7 @@ const SHOP = `দেরির দোকান ${suffix}`;
 
 let penId = "";
 
-const sellOnBaki = async (instant: string, promisedBy: string) => {
+const sellOnCredit = async (instant: string, promisedBy: string) => {
   const manager = await as("manager", instant);
   const bull = await manager.client.intake.record({
     penId,
@@ -60,7 +60,7 @@ beforeAll(async () => {
   });
   penId = pen.id;
   // Twenty thousand owed on a bull, promised by the eighth of March.
-  await sellOnBaki("2050-03-01T05:00:00.000Z", "2050-03-08");
+  await sellOnCredit("2050-03-01T05:00:00.000Z", "2050-03-08");
   // A can of milk to the sweet shop with no day promised.
   const manager = await as("manager", "2050-03-01T06:00:00.000Z");
   await manager.client.milk.dispatch({
@@ -72,31 +72,31 @@ beforeAll(async () => {
   });
 });
 
-describe("the farm's days for a Baki with no promise", () => {
+describe("the farm's days for a Receivable with no promise", () => {
   it("are the Owner's to set, and not the Manager's", async () => {
     const manager = await as("manager", "2050-03-01T07:00:00.000Z");
     await expect(
-      manager.client.farm.setParameters({ bakiDays: 20 })
+      manager.client.farm.setParameters({ receivableDays: 20 })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     const owner = await as("owner", "2050-03-01T07:00:00.000Z");
-    await owner.client.farm.setParameters({ bakiDays: 14 });
+    await owner.client.farm.setParameters({ receivableDays: 14 });
     await expect(
-      owner.client.farm.setParameters({ bakiDays: 3 })
+      owner.client.farm.setParameters({ receivableDays: 3 })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });
 
-describe("overdue Baki on the homes", () => {
+describe("overdue Receivable on the homes", () => {
   it("is not named on the day he promised", async () => {
     const manager = await as("manager", "2050-03-08T06:00:00.000Z");
     const home = await manager.client.home.manager();
-    expect(theTrader(home.queue.bakiOverdue)).toBeUndefined();
+    expect(theTrader(home.queue.receivableOverdue)).toBeUndefined();
   });
 
   it("is named to the Manager the day after, with what is late, since when and his phone", async () => {
     const manager = await as("manager", "2050-03-09T06:00:00.000Z");
     const home = await manager.client.home.manager();
-    expect(theTrader(home.queue.bakiOverdue)).toMatchObject({
+    expect(theTrader(home.queue.receivableOverdue)).toMatchObject({
       overdueMoney: 20_000,
       overdueSince: "2050-03-09",
       phone: "+8801711000099",
@@ -109,7 +109,7 @@ describe("overdue Baki on the homes", () => {
     const on = async (instant: string) => {
       const manager = await as("manager", instant);
       const home = await manager.client.home.manager();
-      return home.queue.bakiOverdue.find((one) => one.name === SHOP);
+      return home.queue.receivableOverdue.find((one) => one.name === SHOP);
     };
     expect(await on("2050-03-15T06:00:00.000Z")).toBeUndefined();
     expect(await on("2050-03-16T06:00:00.000Z")).toMatchObject({
@@ -118,22 +118,22 @@ describe("overdue Baki on the homes", () => {
     });
   });
 
-  it("tells the Owner when he was sold to on Baki again while late, and the sheets say he is overdue", async () => {
-    await sellOnBaki("2050-03-10T05:00:00.000Z", "2050-03-20");
+  it("tells the Owner when he was sold to on credit again while late, and the sheets say he is overdue", async () => {
+    await sellOnCredit("2050-03-10T05:00:00.000Z", "2050-03-20");
     const owner = await as("owner", "2050-03-10T08:00:00.000Z");
     const home = await owner.client.home.owner();
-    expect(theTrader(home.needsYou.bakiOverdue)).toMatchObject({
+    expect(theTrader(home.needsYou.receivableOverdue)).toMatchObject({
       overdueMoney: 20_000,
       owingMoney: 40_000,
       soldAgainWhileOverdue: true,
     });
-    const his = await owner.client.baki.ofBuyer({ name: TRADER });
+    const his = await owner.client.receivable.ofBuyer({ name: TRADER });
     expect(his?.overdueSince).toBe("2050-03-09");
   });
 
   it("leaves him off once what was late is paid, however late", async () => {
     const manager = await as("manager", "2050-03-11T06:00:00.000Z");
-    await manager.client.baki.pay({
+    await manager.client.receivable.pay({
       buyer: TRADER,
       kind: "cattle",
       amountMoney: 20_000,
@@ -141,15 +141,15 @@ describe("overdue Baki on the homes", () => {
       paymentMethod: "cash",
     });
     const home = await manager.client.home.manager();
-    expect(theTrader(home.queue.bakiOverdue)).toBeUndefined();
+    expect(theTrader(home.queue.receivableOverdue)).toBeUndefined();
   });
 });
 
-describe("overdue Baki in the Digest", () => {
+describe("overdue Receivable in the Digest", () => {
   it("is told to the Manager once, however many mornings it stays late", async () => {
     const told = async () => {
       const rows = await scratchDb().query.alert.findMany({
-        where: { kind: "baki_overdue", userId: thePerson("manager").id },
+        where: { kind: "receivable_overdue", userId: thePerson("manager").id },
         columns: { params: true },
       });
       return rows.filter(

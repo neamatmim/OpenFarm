@@ -2,7 +2,6 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { ReceiptText, Truck } from "lucide-react";
 import { useState } from "react";
 
-import { BakiOwed } from "@/components/baki-fields";
 import {
   ActionsHeader,
   DataTable,
@@ -15,6 +14,7 @@ import { EmptyState } from "@/components/page";
 import { RowMenu } from "@/components/page-kit";
 import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
+import { ReceivableOwed } from "@/components/receivable-fields";
 import { SaleCorrection } from "@/components/sale-correction";
 import { useSalePapers } from "@/components/sale/sale-papers";
 import { useShrinkWords } from "@/components/sale/shrink-words";
@@ -98,8 +98,8 @@ const TagCell = ({ row }: SoldCell) => (
 const BuyerCell = ({ row }: SoldCell) => (
   <span className="flex flex-col">
     <span className="font-medium">{row.original.buyerName}</span>
-    <BakiOwed
-      bakiMoney={row.original.bakiMoney}
+    <ReceivableOwed
+      receivableMoney={row.original.receivableMoney}
       owingMoney={row.original.owingMoney}
       promisedBy={row.original.promisedBy}
     />
@@ -215,8 +215,8 @@ const SoldCard = ({ row }: { row: SoldRow }) => {
         <span className="text-lg font-semibold tabular-nums">
           <Money value={row.priceMoney} />
         </span>
-        <BakiOwed
-          bakiMoney={row.bakiMoney}
+        <ReceivableOwed
+          receivableMoney={row.receivableMoney}
           owingMoney={row.owingMoney}
           promisedBy={row.promisedBy}
         />

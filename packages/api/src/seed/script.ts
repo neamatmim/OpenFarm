@@ -148,7 +148,7 @@ const keepTheStore = ({ farm, days, on }: Script) => {
 };
 
 /** Milk leaves every morning: the tank to the chilling centre, a can to the sweet shop — which, these last ten days,
- *  has taken its can on Baki and not said when it will pay. */
+ *  has taken its can on credit and not said when it will pay. */
 const sendTheMilk = ({ farm, days, on }: Script) => {
   const { random, today } = farm;
   for (const day of days) {
@@ -181,7 +181,7 @@ const sendTheMilk = ({ farm, days, on }: Script) => {
       f.clock.set(onFarm(day, "09:10"));
       if (day === addDays(today, -3)) {
         // A round five thousand from the sweet shop, which clears its oldest few days and leaves the rest owing.
-        await f.as.manager.baki.pay({
+        await f.as.manager.receivable.pay({
           buyer: MILK_BUYERS.sweets.name,
           kind: "milk",
           amountMoney: 5000,
@@ -1003,7 +1003,7 @@ const sellTheReady = ({ farm, on }: Script) => {
     const day = addDays(today, offset);
     // Two of the four go to traders who pay the last twenty thousand later, as Eid buyers do: one promised a day
     // already gone, one a day still ahead.
-    const onBaki = index === 1 || index === 3;
+    const onCredit = index === 1 || index === 3;
     on(day, `${10 + index}:30`, "a bull sold", async (f, h) => {
       const bull = [...h.bulls.values()].find(
         (one) => one.state === "ready_for_sale"
@@ -1027,7 +1027,7 @@ const sellTheReady = ({ farm, on }: Script) => {
         tagNumber: bull.tag,
         buyer,
         priceMoney,
-        ...(onBaki
+        ...(onCredit
           ? { paidNowMoney: priceMoney - 20_000, promisedBy: addDays(day, 7) }
           : {}),
         weightKg,
@@ -1040,22 +1040,27 @@ const sellTheReady = ({ farm, on }: Script) => {
     });
   }
   // The trader who promised a day now gone pays half of what he owes, late; the other has not paid yet.
-  on(addDays(today, -1), "16:00", "a trader pays half his baki", async (f) => {
-    const owing = await f.as.manager.baki.list();
-    const late = owing.find((one) =>
-      one.kinds.some((kind) => kind.kind === "cattle" && kind.owingMoney > 0)
-    );
-    if (!late) {
-      return;
+  on(
+    addDays(today, -1),
+    "16:00",
+    "a trader pays half his receivable",
+    async (f) => {
+      const owing = await f.as.manager.receivable.list();
+      const late = owing.find((one) =>
+        one.kinds.some((kind) => kind.kind === "cattle" && kind.owingMoney > 0)
+      );
+      if (!late) {
+        return;
+      }
+      await f.as.manager.receivable.pay({
+        buyer: late.name,
+        kind: "cattle",
+        amountMoney: 10_000,
+        paidOn: addDays(today, -1),
+        ...paidBy(f, "bkash"),
+      });
     }
-    await f.as.manager.baki.pay({
-      buyer: late.name,
-      kind: "cattle",
-      amountMoney: 10_000,
-      paidOn: addDays(today, -1),
-      ...paidBy(f, "bkash"),
-    });
-  });
+  );
   on(addDays(start, 70), "11:00", "a cull", async (f, h) => {
     const old = [...h.cows.values()].find(
       (cow) => cow.state === "milking" && !cow.expectedCalving && cow.peak < 8

@@ -46,13 +46,14 @@ const SaleFigures = ({
 }) => {
   const { t, language } = useLanguage();
   const fetched = sold?.reduce((sum, one) => sum + one.priceMoney, 0);
-  // Left out of an answer cached before Baki was written down: paid in full, as every such Sale was.
-  const owed = sold?.reduce((sum, one) => sum + (one.bakiMoney ?? 0), 0) ?? 0;
+  // Left out of an answer cached before Receivable was written down: paid in full, as every such Sale was.
+  const owed =
+    sold?.reduce((sum, one) => sum + (one.receivableMoney ?? 0), 0) ?? 0;
   const taken = fetched === undefined ? undefined : fetched - owed;
   // And what of it is still owed now, as the buyers' payments since have left it.
   const owingNow =
     sold?.reduce(
-      (sum, one) => sum + (one.owingMoney ?? one.bakiMoney ?? 0),
+      (sum, one) => sum + (one.owingMoney ?? one.receivableMoney ?? 0),
       0
     ) ?? 0;
   const weighed = sold?.reduce((sum, one) => sum + one.weightKg, 0) ?? 0;
@@ -76,7 +77,9 @@ const SaleFigures = ({
           value: asMoney(taken),
           hint:
             owingNow > 0
-              ? t("baki.owed", { amount: formatNumber(owingNow, language) })
+              ? t("receivable.owed", {
+                  amount: formatNumber(owingNow, language),
+                })
               : t("sale.kpi.takingsHint"),
           icon: Banknote,
           tone: (taken ?? 0) > 0 ? "success" : "neutral",

@@ -23,10 +23,10 @@ import { useState } from "react";
 import { AccountantExport } from "@/components/accountant-export";
 import { CostsBySide } from "@/components/costs";
 import { EnterMoneySheet } from "@/components/money-entry";
-import { BakiTab } from "@/components/money/baki-tab";
 import { CashTab } from "@/components/money/cash-tab";
 import { CategoriesTab } from "@/components/money/categories-tab";
 import { PeriodBar } from "@/components/money/period-bar";
+import { ReceivableTab } from "@/components/money/receivable-tab";
 import type { MoneyList } from "@/components/money/register";
 import { RegisterTab } from "@/components/money/register";
 import { WageDrawsTab } from "@/components/money/wage-draws";
@@ -43,7 +43,7 @@ const TABS = [
   "register",
   "cash",
   "draws",
-  "baki",
+  "receivable",
   "costs",
   "accountant",
   "categories",
@@ -192,10 +192,10 @@ const MoneyPage = () => {
             content: <WageDrawsTab />,
           },
           {
-            value: "baki",
-            label: t("baki.tab"),
+            value: "receivable",
+            label: t("receivable.tab"),
             icon: HandCoins,
-            content: <BakiTab />,
+            content: <ReceivableTab />,
           },
           {
             value: "costs",

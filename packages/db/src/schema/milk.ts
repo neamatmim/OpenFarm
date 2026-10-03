@@ -125,9 +125,9 @@ export const dispatch = pgTable(
     }).notNull(),
     fatPercent: numeric("fat_percent", { precision: 4, scale: 2 }),
     snfPercent: numeric("snf_percent", { precision: 4, scale: 2 }),
-    /** What the buyer still owed for this milk when it left — its **Baki**. Nothing for milk paid for at the gate, as
-     *  every Dispatch before Baki was written down was. Its Money Event is what the milk came to, less this. */
-    bakiMoney: numericMoney("baki_money").notNull().default(0),
+    /** What the buyer still owed for this milk when it left — its **Receivable**. Nothing for milk paid for at the gate, as
+     *  every Dispatch before Receivable was written down was. Its Money Event is what the milk came to, less this. */
+    receivableMoney: numericMoney("receivable_money").notNull().default(0),
     /** The farm day ("YYYY-MM-DD") the buyer promised to pay by, when he promised one. A milk buyer who pays on a
      *  round often names none. */
     promisedBy: text("promised_by"),

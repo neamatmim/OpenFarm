@@ -10,7 +10,6 @@ import type { ReactNode } from "react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 
-import { BakiFields, BuyerOwes } from "@/components/baki-fields";
 import { fitOnFrom } from "@/components/fattening/fattening-types";
 import { Notice, SECTION_TITLE } from "@/components/page";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
@@ -20,13 +19,14 @@ import {
   NO_ACCOUNT,
   PaymentMethodField,
 } from "@/components/payment-method";
+import { ReceivableFields, BuyerOwes } from "@/components/receivable-fields";
 import { useShrinkWords } from "@/components/sale/shrink-words";
 import { SearchablePicker } from "@/components/searchable-picker";
 import { WhoseHandField } from "@/components/whose-hand";
 import { useLanguage } from "@/i18n/language-provider";
-import type { BakiTyped } from "@/lib/baki";
-import { NO_BAKI, bakiSent, somethingPaid } from "@/lib/baki";
 import { usePenNames } from "@/lib/pen-names";
+import type { ReceivableTyped } from "@/lib/receivable";
+import { NO_RECEIVABLE, receivableSent, somethingPaid } from "@/lib/receivable";
 import { useRefused } from "@/lib/refused";
 import { saleStillMissing } from "@/lib/sale-missing";
 import { orpc } from "@/utils/orpc";
@@ -56,7 +56,7 @@ export interface SaleAnswers {
   /** Which Farm Account bKash or bank money went into, and its transaction ID. */
   account: AccountTyped;
   /** Whether the buyer still owes some of it, what he paid now, and the day he promised. */
-  baki: BakiTyped;
+  receivable: ReceivableTyped;
   /** What the broker at the haat took for this sale, where one was used; empty where none was. */
   brokerMoney: string;
 }
@@ -75,7 +75,7 @@ export const NOTHING_TYPED: SaleAnswers = {
   paymentMethod: "cash",
   heldBy: "",
   account: NO_ACCOUNT,
-  baki: NO_BAKI,
+  receivable: NO_RECEIVABLE,
   brokerMoney: "",
 };
 
@@ -372,7 +372,7 @@ export const SaleSheet = ({
           tagNumber: "",
           weightKg: "",
           priceMoney: "",
-          baki: NO_BAKI,
+          receivable: NO_RECEIVABLE,
           brokerMoney: "",
         });
         onOpenChange(false);
@@ -380,7 +380,7 @@ export const SaleSheet = ({
       onError: (error) => {
         const fitOn = fitOnFrom(error);
         if (!fitOn) {
-          // In the reader's own words: a Venture's bull refused on Baki, a promise before she left.
+          // In the reader's own words: a Venture's bull refused on credit, a promise before she left.
           refused(error);
           return;
         }
@@ -416,7 +416,7 @@ export const SaleSheet = ({
           ...(answers.paymentMethod === "cash" && answers.heldBy
             ? { heldBy: answers.heldBy }
             : {}),
-          ...bakiSent(answers.baki),
+          ...receivableSent(answers.receivable),
           ...brokerSent(answers),
         })
       }
@@ -497,15 +497,17 @@ export const SaleSheet = ({
           />
         </div>
         <PerKg answers={answers} />
-        <BakiFields
-          idPrefix="sale-baki"
-          onType={(patch) => edit({ baki: { ...answers.baki, ...patch } })}
+        <ReceivableFields
+          idPrefix="sale-receivable"
+          onType={(patch) =>
+            edit({ receivable: { ...answers.receivable, ...patch } })
+          }
           promiseRequired
-          typed={answers.baki}
+          typed={answers.receivable}
           worthMoney={Number(answers.priceMoney)}
         />
         <div className="grid gap-4 sm:grid-cols-3">
-          {somethingPaid(answers.baki) ? (
+          {somethingPaid(answers.receivable) ? (
             <PaymentMethodField
               account={{
                 typed: answers.account,
@@ -517,7 +519,8 @@ export const SaleSheet = ({
               value={answers.paymentMethod}
             />
           ) : null}
-          {somethingPaid(answers.baki) && answers.paymentMethod === "cash" ? (
+          {somethingPaid(answers.receivable) &&
+          answers.paymentMethod === "cash" ? (
             <WhoseHandField
               id="sale-whose-hand"
               onChange={(heldBy) => edit({ heldBy })}

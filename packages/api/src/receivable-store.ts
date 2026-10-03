@@ -1,21 +1,21 @@
 import type { Database } from "@OpenFarm/db";
 import type { CategoryKey } from "@OpenFarm/db/schema/money";
 import type {
-  BakiAtTheGate,
-  BakiKind,
-  BakiOutcome,
-  BakiStanding,
+  ReceivableAtTheGate,
+  ReceivableKind,
+  ReceivableOutcome,
+  ReceivableStanding,
 } from "@OpenFarm/domain";
 import {
-  BAKI_KINDS,
-  bakiStanding,
+  RECEIVABLE_KINDS,
+  receivableStanding,
   farmDayOf,
-  isBakiOverdue,
-  isBakiRefusal,
+  isReceivableOverdue,
+  isReceivableRefusal,
   overdueFrom,
   roundLitres,
   roundMoney,
-  soldOnBakiWhileOverdue,
+  soldOnCreditWhileOverdue,
   startOfFarmDay,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -29,14 +29,16 @@ import { rememberingPeople, tell } from "./notice";
 /** The farm day a buyer promised to pay what he still owed by. */
 export { farmDay as promisedByInput } from "./farm-clock";
 
-/** What a buyer paid there and then, in taka to the poisha. Nothing is a buyer who took it all on Baki. */
+/** What a buyer paid there and then, in taka to the poisha. Nothing is a buyer who took it all on credit. */
 export const paidNowInput = z.number().min(0).max(100_000_000);
 
 /** What a buyer owed as it left, or the refusal the reader is told in their own words. */
-export const bakiOrRefuse = (outcome: BakiOutcome): BakiAtTheGate => {
-  if (isBakiRefusal(outcome)) {
+export const receivableOrRefuse = (
+  outcome: ReceivableOutcome
+): ReceivableAtTheGate => {
+  if (isReceivableRefusal(outcome)) {
     throw new ORPCError("BAD_REQUEST", {
-      message: `The farm will not write that Baki down: ${outcome.refusal}`,
+      message: `The farm will not write that Receivable down: ${outcome.refusal}`,
       data: { refusal: outcome.refusal },
     });
   }
@@ -45,20 +47,20 @@ export const bakiOrRefuse = (outcome: BakiOutcome): BakiAtTheGate => {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** The Category a Baki Payment books under: what it paid for. Milk sales for milk, cattle sales for cattle. */
-export const CATEGORY_OF_BAKI: Record<BakiKind, CategoryKey> = {
+/** The Category a Receivable Payment books under: what it paid for. Milk sales for milk, cattle sales for cattle. */
+export const CATEGORY_OF_RECEIVABLE: Record<ReceivableKind, CategoryKey> = {
   milk: "dispatch",
   cattle: "sale",
 };
 
-/** One Sale or Dispatch a buyer left owing on, as the Baki list names it. */
+/** One Sale or Dispatch a buyer left owing on, as the Receivable list names it. */
 export interface OwedItem {
   id: string;
   leftOn: string;
   /** A Sale's animal by her tag; a Dispatch by its litres. */
   tagNumber: string | null;
   litres: number | null;
-  bakiMoney: number;
+  receivableMoney: number;
   paidMoney: number;
   owingMoney: number;
   /** What stays written off of it once his payments are counted. */
@@ -86,15 +88,18 @@ export interface PaidItem {
   cleared: readonly { itemId: string; amountMoney: number }[];
 }
 
-/** A buyer's Baki of one kind. */
-export interface KindStanding extends Omit<BakiStanding, "items" | "parts"> {
-  kind: BakiKind;
+/** A buyer's Receivable of one kind. */
+export interface KindStanding extends Omit<
+  ReceivableStanding,
+  "items" | "parts"
+> {
+  kind: ReceivableKind;
   items: OwedItem[];
   payments: PaidItem[];
 }
 
-/** One buyer who owes the farm, or holds credit with it. */
-export interface BuyerBaki {
+/** One buyer who owes the farm, or has paid it ahead. */
+export interface BuyerReceivable {
   counterpartyId: string;
   name: string;
   phone: string | null;
@@ -107,9 +112,9 @@ export interface BuyerBaki {
   kinds: KindStanding[];
 }
 
-/** A Sale or a Dispatch as the Baki list names it, before any payment is set against it. */
+/** A Sale or a Dispatch as the Receivable list names it, before any payment is set against it. */
 const owedItem = (
-  one: { id: string; bakiMoney: number; promisedBy: string | null },
+  one: { id: string; receivableMoney: number; promisedBy: string | null },
   leftAt: Date,
   label: Pick<OwedItem, "tagNumber" | "litres">,
   /** What the Owner wrote off of it, before any payment puts some back. */
@@ -119,9 +124,9 @@ const owedItem = (
   id: one.id,
   leftOn: farmDayOf(leftAt),
   ...label,
-  bakiMoney: one.bakiMoney,
+  receivableMoney: one.receivableMoney,
   paidMoney: 0,
-  owingMoney: one.bakiMoney,
+  owingMoney: one.receivableMoney,
   writtenOffMoney,
   promisedBy: one.promisedBy,
   writeOffs,
@@ -137,7 +142,7 @@ interface BookAsked {
   asOf?: string;
 }
 
-/** The four things a Baki book is read from: what was left owing on, what was paid, and what was written off. */
+/** The four things a Receivable book is read from: what was left owing on, what was paid, and what was written off. */
 const readBook = async (
   db: Db,
   farmId: string,
@@ -156,14 +161,14 @@ const readBook = async (
     db.query.sale.findMany({
       where: {
         farmId,
-        bakiMoney: { gt: 0 },
+        receivableMoney: { gt: 0 },
         ...whose,
         ...(leftBy ? { soldAt: leftBy } : {}),
       },
       columns: {
         id: true,
         soldAt: true,
-        bakiMoney: true,
+        receivableMoney: true,
         promisedBy: true,
         counterpartyId: true,
       },
@@ -175,21 +180,21 @@ const readBook = async (
     db.query.dispatch.findMany({
       where: {
         farmId,
-        bakiMoney: { gt: 0 },
+        receivableMoney: { gt: 0 },
         ...(only?.counterpartyId ? { buyerId: only.counterpartyId } : {}),
         ...(leftBy ? { dispatchedAt: leftBy } : {}),
       },
       columns: {
         id: true,
         dispatchedAt: true,
-        bakiMoney: true,
+        receivableMoney: true,
         promisedBy: true,
         litres: true,
         buyerId: true,
       },
       with: { buyer: { columns: { name: true, phone: true } } },
     }),
-    db.query.bakiPayment.findMany({
+    db.query.receivablePayment.findMany({
       where: { farmId, ...whose, ...byThe("paidOn") },
       columns: {
         id: true,
@@ -201,7 +206,7 @@ const readBook = async (
       },
       with: { buyer: { columns: { name: true, phone: true } } },
     }),
-    db.query.bakiWriteOff.findMany({
+    db.query.receivableWriteOff.findMany({
       where: { farmId, ...whose, ...byThe("writtenOn") },
       columns: {
         id: true,
@@ -249,7 +254,7 @@ const writeOffsOf = (writeOffs: Book["writeOffs"]) => {
 interface BuyerItems {
   name: string;
   phone: string | null;
-  items: Map<BakiKind, OwedItem[]>;
+  items: Map<ReceivableKind, OwedItem[]>;
 }
 
 /** Everything each buyer was left owing on, by kind, with what was written off of each. */
@@ -262,7 +267,7 @@ const itemsByBuyer = (
   const add = (
     id: string,
     who: { name: string; phone: string | null },
-    kind?: BakiKind,
+    kind?: ReceivableKind,
     item?: OwedItem
   ) => {
     const known = buyers.get(id) ?? { ...who, items: new Map() };
@@ -305,17 +310,17 @@ const itemsByBuyer = (
   return buyers;
 };
 
-/** One buyer's Baki of one kind as his payments leave it, or nothing when there is nothing to say of it. */
+/** One buyer's Receivable of one kind as his payments leave it, or nothing when there is nothing to say of it. */
 const kindStandingOf = (
-  kind: BakiKind,
+  kind: ReceivableKind,
   items: readonly OwedItem[],
   paid: Book["payments"],
   settledToo: boolean
 ): KindStanding | null => {
-  const standing = bakiStanding(items, paid);
+  const standing = receivableStanding(items, paid);
   const settled =
     standing.owingMoney === 0 &&
-    standing.creditMoney === 0 &&
+    standing.paidAheadMoney === 0 &&
     standing.writtenOffMoney === 0;
   if (settled && !(settledToo && paid.length > 0)) {
     return null;
@@ -355,22 +360,22 @@ const kindStandingOf = (
 };
 
 /**
- * Every buyer's Baki on the farm — or one buyer's, when asked — as his payments leave it, oldest first. Only the
- * Farm's own: a Venture's animal never leaves owing. A buyer who owes nothing, holds no credit and has nothing written
+ * Every buyer's Receivable on the farm — or one buyer's, when asked — as his payments leave it, oldest first. Only the
+ * Farm's own: a Venture's animal never leaves owing. A buyer who owes nothing, has paid nothing ahead and has nothing written
  * off is left off, unless the whole book is asked for — the accountant's export reads what an old payment cleared of
  * a debt long since paid.
  */
-export const bakiOfBuyers = async (
+export const receivableOfBuyers = async (
   db: Db,
   farmId: string,
   only?: BookAsked
-): Promise<BuyerBaki[]> => {
+): Promise<BuyerReceivable[]> => {
   const book = await readBook(db, farmId, only);
   const { payments, writeOffs } = book;
   const { writtenOff, lastWrittenOff, written } = writeOffsOf(writeOffs);
   const buyers = itemsByBuyer(book, writtenOff, written);
   const listed = [...buyers.entries()].flatMap(([counterpartyId, who]) => {
-    const kinds = BAKI_KINDS.flatMap((kind) => {
+    const kinds = RECEIVABLE_KINDS.flatMap((kind) => {
       const paid = payments.filter(
         (one) => one.counterpartyId === counterpartyId && one.kind === kind
       );
@@ -406,7 +411,7 @@ export const bakiOfBuyers = async (
       },
     ];
   });
-  // Oldest owing first — the buyer to ring today — and a buyer only holding credit or written off last; the same day
+  // Oldest owing first — the buyer to ring today — and a buyer who has only paid ahead or been written off last; the same day
   // by name.
   return listed.toSorted(
     (a, b) =>
@@ -415,14 +420,14 @@ export const bakiOfBuyers = async (
   );
 };
 
-/** A Baki Payment as the trail records it: the payment, and the money it booked. */
-export const readBakiPayment = async (tx: Tx, id: string) => {
-  const row = await tx.query.bakiPayment.findFirst({ where: { id } });
+/** A Receivable Payment as the trail records it: the payment, and the money it booked. */
+export const readReceivablePayment = async (tx: Tx, id: string) => {
+  const row = await tx.query.receivablePayment.findFirst({ where: { id } });
   if (!row) {
     return null;
   }
   const money = await tx.query.moneyEvent.findFirst({
-    where: { farmId: row.farmId, source: "baki_payment", sourceId: id },
+    where: { farmId: row.farmId, source: "receivable_payment", sourceId: id },
     columns: { amountMoney: true, paymentMethod: true, approval: true },
   });
   return { ...row, money: money ?? null };
@@ -433,9 +438,9 @@ export const owingOf = async (
   db: Db,
   farmId: string,
   counterpartyId: string,
-  kind: BakiKind
+  kind: ReceivableKind
 ): Promise<number> => {
-  const [his] = await bakiOfBuyers(db, farmId, { counterpartyId });
+  const [his] = await receivableOfBuyers(db, farmId, { counterpartyId });
   return his?.kinds.find((one) => one.kind === kind)?.owingMoney ?? 0;
 };
 
@@ -474,7 +479,7 @@ export const owingNowOf = async (
   if (ids.length === 0) {
     return owing;
   }
-  for (const buyer of await bakiOfBuyers(db, farmId)) {
+  for (const buyer of await receivableOfBuyers(db, farmId)) {
     for (const kind of buyer.kinds) {
       for (const item of kind.items) {
         if (owing.has(item.id)) {
@@ -490,19 +495,19 @@ export const owingNowOf = async (
 export const owingOnHerSale = async (
   db: Db,
   farmId: string,
-  sale: { id: string; bakiMoney: number } | null | undefined
+  sale: { id: string; receivableMoney: number } | null | undefined
 ): Promise<number> => {
-  if (!sale || sale.bakiMoney <= 0) {
+  if (!sale || sale.receivableMoney <= 0) {
     return 0;
   }
   const owing = await owingNowOf(db, farmId, [sale.id]);
   return owing.get(sale.id) ?? 0;
 };
 
-/** One Baki gone past its day, as the homes and the Digest name it. */
+/** One Receivable gone past its day, as the homes and the Digest name it. */
 export interface OverdueItem {
   id: string;
-  kind: BakiKind;
+  kind: ReceivableKind;
   leftOn: string;
   promisedBy: string | null;
   owingMoney: number;
@@ -510,7 +515,7 @@ export interface OverdueItem {
   overdueFrom: string;
 }
 
-/** A buyer with Baki gone past its day. */
+/** A buyer with Receivable gone past its day. */
 export interface OverdueBuyer {
   counterpartyId: string;
   name: string;
@@ -520,27 +525,27 @@ export interface OverdueBuyer {
   owingMoney: number;
   /** The first day any of it was overdue. */
   overdueSince: string;
-  /** Sold to on Baki again after something he owed was already overdue: the Owner hears of it. */
+  /** Sold to on credit again after something he owed was already overdue: the Owner hears of it. */
   soldAgainWhileOverdue: boolean;
   items: OverdueItem[];
 }
 
-/** What of one buyer's Baki is overdue today, or nothing when none is. */
+/** What of one buyer's Receivable is overdue today, or nothing when none is. */
 export const overdueOfBuyer = (
-  buyer: BuyerBaki,
+  buyer: BuyerReceivable,
   today: string,
-  bakiDays: number
+  receivableDays: number
 ): OverdueBuyer | null => {
   const items = buyer.kinds.flatMap((standing) =>
     standing.items
-      .filter((item) => isBakiOverdue(item, today, bakiDays))
+      .filter((item) => isReceivableOverdue(item, today, receivableDays))
       .map((item) => ({
         id: item.id,
         kind: standing.kind,
         leftOn: item.leftOn,
         promisedBy: item.promisedBy,
         owingMoney: item.owingMoney,
-        overdueFrom: overdueFrom(item, bakiDays),
+        overdueFrom: overdueFrom(item, receivableDays),
       }))
   );
   const [first] = items.map((one) => one.overdueFrom).toSorted();
@@ -557,25 +562,25 @@ export const overdueOfBuyer = (
     owingMoney: buyer.owingMoney,
     overdueSince: first,
     soldAgainWhileOverdue: buyer.kinds.some((standing) =>
-      soldOnBakiWhileOverdue(standing.items, bakiDays)
+      soldOnCreditWhileOverdue(standing.items, receivableDays)
     ),
     items,
   };
 };
 
 /**
- * Every buyer with Baki gone past its day, the longest overdue first — the Manager's calls to make and the Owner's to
+ * Every buyer with Receivable gone past its day, the longest overdue first — the Manager's calls to make and the Owner's to
  * know of. Past the day he promised, or, with no promise, past the farm's days for it.
  */
-export const overdueBaki = async (
+export const overdueReceivable = async (
   db: Db,
-  farm: { id: string; bakiDays: number },
+  farm: { id: string; receivableDays: number },
   today: string
 ): Promise<OverdueBuyer[]> => {
-  const book = await bakiOfBuyers(db, farm.id);
+  const book = await receivableOfBuyers(db, farm.id);
   return book
     .flatMap((buyer) => {
-      const overdue = overdueOfBuyer(buyer, today, farm.bakiDays);
+      const overdue = overdueOfBuyer(buyer, today, farm.receivableDays);
       return overdue ? [overdue] : [];
     })
     .toSorted(
@@ -585,23 +590,23 @@ export const overdueBaki = async (
     );
 };
 
-/** One overdue Baki not yet told to everybody who hears of it. */
+/** One overdue Receivable not yet told to everybody who hears of it. */
 export interface OverdueToTell {
   item: OverdueItem;
   buyer: Pick<OverdueBuyer, "counterpartyId" | "name">;
 }
 
 /**
- * The overdue Baki somebody who hears of it has not been told about yet — each Sale or Dispatch told once, the day it
+ * The overdue Receivable somebody who hears of it has not been told about yet — each Sale or Dispatch told once, the day it
  * first goes past its day, however many mornings it stays late. Nothing at all asked of the transaction when there is
  * nothing to tell, which is most mornings.
  */
 export const overdueToTell = async (
   db: Db,
-  farm: { id: string; bakiDays: number },
+  farm: { id: string; receivableDays: number },
   today: string
 ): Promise<OverdueToTell[]> => {
-  const overdue = await overdueBaki(db, farm, today);
+  const overdue = await overdueReceivable(db, farm, today);
   const all = overdue.flatMap((buyer) =>
     buyer.items.map((item) => ({ item, buyer }))
   );
@@ -612,7 +617,7 @@ export const overdueToTell = async (
   const told = await db.query.alert.findMany({
     where: {
       farmId: farm.id,
-      kind: "baki_overdue",
+      kind: "receivable_overdue",
       entityId: { in: all.map((one) => one.item.id) },
     },
     columns: { entityId: true, userId: true },
@@ -623,8 +628,8 @@ export const overdueToTell = async (
   );
 };
 
-/** Raises the notices for these overdue Baki. Who hears them is the Notice's to say. */
-export const raiseOverdueBaki = async (
+/** Raises the notices for these overdue Receivable. Who hears them is the Notice's to say. */
+export const raiseOverdueReceivable = async (
   tx: Tx,
   farmId: string,
   untold: readonly OverdueToTell[],
@@ -639,7 +644,7 @@ export const raiseOverdueBaki = async (
       tx,
       farmId,
       {
-        kind: "baki_overdue",
+        kind: "receivable_overdue",
         about: { id: item.id },
         facts: {
           counterpartyId: buyer.counterpartyId,
@@ -665,7 +670,7 @@ export const writtenOffByItem = async (
   db: Db,
   farmId: string
 ): Promise<Map<string, number>> => {
-  const any = await db.query.bakiWriteOff.findFirst({
+  const any = await db.query.receivableWriteOff.findFirst({
     where: { farmId },
     columns: { id: true },
   });
@@ -673,7 +678,7 @@ export const writtenOffByItem = async (
   if (!any) {
     return new Map();
   }
-  const book = await bakiOfBuyers(db, farmId, { settledToo: true });
+  const book = await receivableOfBuyers(db, farmId, { settledToo: true });
   return new Map(
     book.flatMap((buyer) =>
       buyer.kinds.flatMap((kind) =>
@@ -686,7 +691,7 @@ export const writtenOffByItem = async (
 };
 
 /**
- * What a litre of a Dispatch fetched after all: what the milk came to, less whatever of its Baki stays written off,
+ * What a litre of a Dispatch fetched after all: what the milk came to, less whatever of its Receivable stays written off,
  * over its litres. The price itself where nothing was written off — nearly always.
  */
 export const fetchedPerLitre = (
@@ -705,7 +710,7 @@ export const fetchedPerLitre = (
 
 /** A Write-off as the trail records it. */
 export const readWriteOff = async (tx: Tx, id: string) =>
-  (await tx.query.bakiWriteOff.findFirst({ where: { id } })) ?? null;
+  (await tx.query.receivableWriteOff.findFirst({ where: { id } })) ?? null;
 
 /** What is still owing on one Sale or Dispatch now, and whose it is, or nothing where it was never left owing. */
 export const owingOnItem = async (
@@ -718,13 +723,13 @@ export const owingOnItem = async (
     source === "sale"
       ? await db.query.sale.findFirst({
           where: { farmId, id },
-          columns: { counterpartyId: true, bakiMoney: true },
+          columns: { counterpartyId: true, receivableMoney: true },
         })
       : await db.query.dispatch.findFirst({
           where: { farmId, id },
-          columns: { buyerId: true, bakiMoney: true },
+          columns: { buyerId: true, receivableMoney: true },
         });
-  if (!row || row.bakiMoney <= 0) {
+  if (!row || row.receivableMoney <= 0) {
     return null;
   }
   const counterpartyId =

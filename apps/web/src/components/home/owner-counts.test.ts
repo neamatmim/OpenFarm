@@ -19,7 +19,7 @@ const NOTHING = {
   storeCount: null,
   monthlyCosts: { costs: [], wages: [] },
   farmAccountsOut: [],
-  bakiOverdue: [],
+  receivableOverdue: [],
 } as unknown as NeedsYou;
 
 const counted = (needsYou: NeedsYou) =>
@@ -36,11 +36,11 @@ describe("what waits on the Owner", () => {
     expect(counted(missing)).toBe(1);
   });
 
-  it("counts a store count due, overdue Baki and an account not checked under their own kinds", () => {
+  it("counts a store count due, overdue Receivable and an account not checked under their own kinds", () => {
     const waiting = {
       ...NOTHING,
       storeCount: {},
-      bakiOverdue: [{}],
+      receivableOverdue: [{}],
       farmAccountsOut: [{}],
     } as unknown as NeedsYou;
     expect(ownerCountsOf(waiting)).toMatchObject({ storeCount: 1, money: 2 });

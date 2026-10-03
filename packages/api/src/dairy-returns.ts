@@ -9,7 +9,7 @@ import {
   milkPricesByMonth,
 } from "@OpenFarm/domain";
 
-import { fetchedPerLitre, writtenOffByItem } from "./baki-store";
+import { fetchedPerLitre, writtenOffByItem } from "./receivable-store";
 
 /**
  * What the dairy herd returns, read for the domain's `dairy-returns` to work: every Animal who has stood on the Dairy

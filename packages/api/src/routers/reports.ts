@@ -11,7 +11,6 @@ import {
 import { currencySign, formatDate, formatNumber } from "@OpenFarm/i18n";
 import { z } from "zod";
 
-import { bakiOfBuyers } from "../baki-store";
 import type { Context } from "../context";
 import { toCsv } from "../csv";
 import { dispatchesBetween, litresDispatched } from "../dispatch-store";
@@ -22,6 +21,7 @@ import type { ExportedMoney } from "../money-export-store";
 import { moneyForTheAccountant } from "../money-export-store";
 import { periodInput, periodOf } from "../period";
 import { languageOf } from "../reader-language";
+import { receivableOfBuyers } from "../receivable-store";
 import { requirePersonalSession, requireRole } from "../roles";
 
 type FarmContext = Context & { farm: NonNullable<Context["farm"]> };
@@ -34,7 +34,7 @@ const accountantPaper = async (
 ) => {
   const language = await languageOf(context.db, context.actor.id);
   // Who still owed what on the period's last day, as the buyers' payments up to then had left it.
-  const book = await bakiOfBuyers(context.db, context.farm.id, {
+  const book = await receivableOfBuyers(context.db, context.farm.id, {
     asOf: period.to,
   });
   return accountantSummary({
@@ -43,7 +43,7 @@ const accountantPaper = async (
     to: formatDate(startOfFarmDay(period.to), language),
     summary,
     asMoney: (amount) => `${currencySign()}${formatNumber(amount, language)}`,
-    bakiAtTheEnd: book
+    receivableAtTheEnd: book
       .filter((buyer) => buyer.owingMoney > 0)
       .map((buyer) => ({ name: buyer.name, owingMoney: buyer.owingMoney }))
       .toSorted(

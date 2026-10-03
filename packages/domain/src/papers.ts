@@ -51,7 +51,7 @@ export interface SaleReceipt {
   /** What the buyer paid that day and what he still owed, formatted, and the day or days he promised to pay it by —
    *  or nothing, for a buyer who paid in full. On the paper he signs, because a trader's promise is worth what the
    *  farm can show of it. */
-  baki: { paid: string; owed: string; toBePaidBy: string } | null;
+  receivable: { paid: string; owed: string; toBePaidBy: string } | null;
   /** Who produced this copy and when — the report set asks it of every paper, so that two
    *  copies of one receipt can be told apart and the later one accounted for. */
   producedBy: string;
@@ -89,19 +89,23 @@ export const saleReceipt = (receipt: SaleReceipt): string => {
     ),
     "",
     field("মোট", "Total", `${receipt.total} ${currencyWords("bn").sum}`),
-    ...(receipt.baki
+    ...(receipt.receivable
       ? [
           field(
             "পরিশোধ",
             "Paid",
-            `${receipt.baki.paid} ${currencyWords("bn").sum}`
+            `${receipt.receivable.paid} ${currencyWords("bn").sum}`
           ),
           field(
             "বাকি",
             "Still owed",
-            `${receipt.baki.owed} ${currencyWords("bn").sum}`
+            `${receipt.receivable.owed} ${currencyWords("bn").sum}`
           ),
-          field("পরিশোধের তারিখ", "To be paid by", receipt.baki.toBePaidBy),
+          field(
+            "পরিশোধের তারিখ",
+            "To be paid by",
+            receipt.receivable.toBePaidBy
+          ),
         ]
       : []),
     "",
@@ -431,9 +435,9 @@ export interface AccountantSummary {
   summary: MoneySummary;
   /** Taka as the reader reads it. */
   asMoney: (amount: number) => string;
-  /** Who still owed the farm what on the period's last day — its **Baki** — biggest first. The money list is cash as
+  /** Who still owed the farm what on the period's last day — its **Receivable** — biggest first. The money list is cash as
    *  it came; this is what had not come yet. */
-  bakiAtTheEnd: readonly { name: string; owingMoney: number }[];
+  receivableAtTheEnd: readonly { name: string; owingMoney: number }[];
   producedBy: string;
   producedAt: string;
 }
@@ -488,17 +492,20 @@ export const accountantSummary = (paper: AccountantSummary): string => {
       return `  ${bn} / ${en}: ${inAndOut(line)}`;
     }),
     "",
-    ...(paper.bakiAtTheEnd.length > 0
+    ...(paper.receivableAtTheEnd.length > 0
       ? [
           "সময়কালের শেষে বাকি / Owed to the farm at the period's end",
-          ...paper.bakiAtTheEnd.map(
+          ...paper.receivableAtTheEnd.map(
             (line) => `  ${line.name}: ${asMoney(line.owingMoney)}`
           ),
           field(
             "মোট বাকি",
             "Total owed",
             asMoney(
-              paper.bakiAtTheEnd.reduce((sum, line) => sum + line.owingMoney, 0)
+              paper.receivableAtTheEnd.reduce(
+                (sum, line) => sum + line.owingMoney,
+                0
+              )
             )
           ),
           "",

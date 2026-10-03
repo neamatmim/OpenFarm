@@ -2,37 +2,26 @@ import type { Database } from "@OpenFarm/db";
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { sql } from "@OpenFarm/db/operators";
 import {
-  BAKI_KINDS as KINDS,
-  BAKI_SOURCES,
-  bakiPayment,
-  bakiWriteOff,
+  RECEIVABLE_KINDS as KINDS,
+  RECEIVABLE_SOURCES,
+  receivablePayment,
+  receivableWriteOff,
 } from "@OpenFarm/db/schema/money";
 import { farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
-import {
-  CATEGORY_OF_BAKI,
-  assertPaidNoMoreThanOwed,
-  bakiOfBuyers,
-  assertWrittenOffNoMoreThanOwed,
-  overdueOfBuyer,
-  owingOf,
-  owingOnItem,
-  readBakiPayment,
-  readWriteOff,
-} from "../baki-store";
 import { assertTheHand } from "../cash-store";
+import { correct } from "../corrections/correction";
 import {
-  bakiPaymentCorrection,
-  bakiPaymentCorrectionInput,
-} from "../corrections/baki-payment";
+  receivablePaymentCorrection,
+  receivablePaymentCorrectionInput,
+} from "../corrections/receivable-payment";
 import {
   writeOffCorrection,
   writeOffCorrectionInput,
-} from "../corrections/baki-write-off";
-import { correct } from "../corrections/correction";
+} from "../corrections/receivable-write-off";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { enteredOn } from "../money-by-hand-store";
@@ -44,6 +33,17 @@ import {
   referenceInput,
 } from "../money-inputs";
 import { accountSaid, bookingOf, bookMoney } from "../money-store";
+import {
+  CATEGORY_OF_RECEIVABLE,
+  assertPaidNoMoreThanOwed,
+  receivableOfBuyers,
+  assertWrittenOffNoMoreThanOwed,
+  overdueOfBuyer,
+  owingOf,
+  owingOnItem,
+  readReceivablePayment,
+  readWriteOff,
+} from "../receivable-store";
 import {
   OWNER_ONLY,
   requireOnly,
@@ -60,14 +60,14 @@ const buyerNamed = (db: Database, farmId: string, name: string) =>
     columns: { id: true },
   });
 
-export const bakiRouter = {
+export const receivableRouter = {
   /**
-   * Every buyer who owes the farm — or holds credit with it — oldest owing first, with what he took, what he has paid
+   * Every buyer who owes the farm — or has paid it ahead — oldest owing first, with what he took, what he has paid
    * and what each payment cleared. The Owner's and the Manager's, as the Money page is.
    */
   list: protectedProcedure
     .use(requireRole("owner", "manager"))
-    .handler(({ context }) => bakiOfBuyers(context.db, context.farm.id)),
+    .handler(({ context }) => receivableOfBuyers(context.db, context.farm.id)),
 
   /**
    * What one buyer still owes, for the Sale and the Dispatch sheets to say as his name is typed. Nothing for a name the
@@ -81,7 +81,7 @@ export const bakiRouter = {
       if (!known) {
         return null;
       }
-      const [his] = await bakiOfBuyers(context.db, context.farm.id, {
+      const [his] = await receivableOfBuyers(context.db, context.farm.id, {
         counterpartyId: known.id,
       });
       if (!his) {
@@ -91,14 +91,14 @@ export const bakiRouter = {
       const overdue = overdueOfBuyer(
         his,
         farmDayOf(context.clock.now()),
-        context.farm.bakiDays
+        context.farm.receivableDays
       );
       return { ...his, overdueSince: overdue?.overdueSince ?? null };
     }),
 
   /**
-   * A buyer paying towards his Baki: one handover of money, for his milk or his cattle, and one Money Event on the day
-   * it came, under that one's Category. It clears his oldest Baki first. More than he owes is taken only with a note.
+   * A buyer paying towards his Receivable: one handover of money, for his milk or his cattle, and one Money Event on the day
+   * it came, under that one's Category. It clears his oldest Receivable first. More than he owes is taken only with a note.
    */
   pay: protectedProcedure
     .use(requireRole("owner", "manager"))
@@ -132,13 +132,13 @@ export const bakiRouter = {
       const id = newId(now);
       await audited(context).write(
         {
-          entity: "baki_payment",
+          entity: "receivable_payment",
           entityId: id,
           action: "create",
-          after: (tx) => readBakiPayment(tx, id),
+          after: (tx) => readReceivablePayment(tx, id),
         },
         async (tx) => {
-          // Held while his Baki is read, so two phones taking his money at once each see the other's.
+          // Held while his Receivable is read, so two phones taking his money at once each see the other's.
           await tx.execute(
             sql`select 1 from counterparty where id = ${known.id} for update`
           );
@@ -152,7 +152,7 @@ export const bakiRouter = {
             ),
             note: input.note ?? null,
           });
-          await tx.insert(bakiPayment).values({
+          await tx.insert(receivablePayment).values({
             id,
             farmId: context.farm.id,
             counterpartyId: known.id,
@@ -170,10 +170,10 @@ export const bakiRouter = {
               context,
               context.roleUsed,
               now,
-              accountSaid(["baki_payment"], input)
+              accountSaid(["receivable_payment"], input)
             ),
             {
-              source: "baki_payment",
+              source: "receivable_payment",
               sourceId: id,
               amountMoney: input.amountMoney,
               occurredAt,
@@ -189,7 +189,7 @@ export const bakiRouter = {
                       input.heldBy
                     ),
                   }),
-              categoryKey: CATEGORY_OF_BAKI[input.kind],
+              categoryKey: CATEGORY_OF_RECEIVABLE[input.kind],
             }
           );
         }
@@ -198,7 +198,7 @@ export const bakiRouter = {
     }),
 
   /**
-   * The Owner writing off Baki that will not be paid: so much of one Sale's or Dispatch's, with a reason. What the
+   * The Owner writing off Receivable that will not be paid: so much of one Sale's or Dispatch's, with a reason. What the
    * animal or the milk fetched is then its price less it, and the buyer carries the mark. The Owner's alone.
    */
   writeOff: protectedProcedure
@@ -206,7 +206,7 @@ export const bakiRouter = {
     .use(requirePersonalSession())
     .input(
       z.object({
-        source: z.enum(BAKI_SOURCES),
+        source: z.enum(RECEIVABLE_SOURCES),
         id: z.string(),
         amountMoney: amountInput,
         why: noteInput,
@@ -217,7 +217,7 @@ export const bakiRouter = {
       const id = newId(now);
       await audited(context).write(
         {
-          entity: "baki_write_off",
+          entity: "receivable_write_off",
           entityId: id,
           action: "create",
           after: (tx) => readWriteOff(tx, id),
@@ -243,7 +243,7 @@ export const bakiRouter = {
             input.amountMoney,
             standing.owingMoney
           );
-          await tx.insert(bakiWriteOff).values({
+          await tx.insert(receivableWriteOff).values({
             id,
             farmId: context.farm.id,
             source: input.source,
@@ -269,13 +269,13 @@ export const bakiRouter = {
     ),
 
   /**
-   * A Baki Payment put right: how much, the day, how it was paid, the note. A Correction like any other — a reason,
+   * A Receivable Payment put right: how much, the day, how it was paid, the note. A Correction like any other — a reason,
    * the Role's Correction Window, the trail holding what it said — and its Money Event with it.
    */
   correctPayment: protectedProcedure
-    .use(requireRole(...bakiPaymentCorrection.roles))
-    .input(bakiPaymentCorrectionInput)
+    .use(requireRole(...receivablePaymentCorrection.roles))
+    .input(receivablePaymentCorrectionInput)
     .handler(({ context, input }) =>
-      correct(context, bakiPaymentCorrection, input)
+      correct(context, receivablePaymentCorrection, input)
     ),
 };

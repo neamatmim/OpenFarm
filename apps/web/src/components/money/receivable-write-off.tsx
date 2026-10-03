@@ -10,7 +10,7 @@ import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 /**
- * The Owner writing off one Sale's or one Dispatch's Baki that will not be paid: how much, filled with what is still
+ * The Owner writing off one Sale's or one Dispatch's Receivable that will not be paid: how much, filled with what is still
  * owed, and why. What the animal or the milk fetched drops by it and the buyer carries the mark. The Owner's alone —
  * the button is shown to nobody else.
  */
@@ -29,9 +29,9 @@ export const WriteOffButton = ({
   const [amount, setAmount] = useState(String(owingMoney));
   const [why, setWhy] = useState("");
   const writeOff = useMutation(
-    orpc.baki.writeOff.mutationOptions({
+    orpc.receivable.writeOff.mutationOptions({
       onSuccess: () => {
-        toast.success(t("baki.writtenOffDone"));
+        toast.success(t("receivable.writtenOffDone"));
         setOpen(false);
       },
       onError: refused,
@@ -51,10 +51,10 @@ export const WriteOffButton = ({
         type="button"
         variant="ghost"
       >
-        {t("baki.writeOff")}
+        {t("receivable.writeOff")}
       </Button>
       <FormDialog
-        description={t("baki.writeOffDescription")}
+        description={t("receivable.writeOffDescription")}
         onOpenChange={setOpen}
         onSubmit={() =>
           writeOff.mutate({ source, id, amountMoney: figure, why: why.trim() })
@@ -62,10 +62,10 @@ export const WriteOffButton = ({
         open={open}
         pending={writeOff.isPending}
         ready={ready}
-        submitLabel={t("baki.writeOff")}
-        title={t("baki.writeOffTitle")}
+        submitLabel={t("receivable.writeOff")}
+        title={t("receivable.writeOffTitle")}
       >
-        <FormField id={`write-off-${id}-amount`} label={t("baki.amount")}>
+        <FormField id={`write-off-${id}-amount`} label={t("receivable.amount")}>
           <Input
             id={`write-off-${id}-amount`}
             inputMode="numeric"
@@ -76,7 +76,10 @@ export const WriteOffButton = ({
             value={amount}
           />
         </FormField>
-        <FormField id={`write-off-${id}-why`} label={t("baki.writeOffWhy")}>
+        <FormField
+          id={`write-off-${id}-why`}
+          label={t("receivable.writeOffWhy")}
+        >
           <Input
             autoComplete="off"
             id={`write-off-${id}-why`}

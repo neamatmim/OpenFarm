@@ -8,15 +8,15 @@ import { useDeferredValue } from "react";
 import { Notice } from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import type { BakiTyped } from "@/lib/baki";
-import { stillOwes } from "@/lib/baki";
+import type { ReceivableTyped } from "@/lib/receivable";
+import { stillOwes } from "@/lib/receivable";
 import { orpc } from "@/utils/orpc";
 
 /**
  * Some of it still owed: a tick, and behind it what the buyer paid now and the day he promised. What he still owes is
  * worked out beneath as it is typed, so the Manager reads the figure the buyer will be held to.
  */
-export const BakiFields = ({
+export const ReceivableFields = ({
   idPrefix,
   typed,
   onType,
@@ -24,8 +24,8 @@ export const BakiFields = ({
   promiseRequired,
 }: {
   idPrefix: string;
-  typed: BakiTyped;
-  onType: (patch: Partial<BakiTyped>) => void;
+  typed: ReceivableTyped;
+  onType: (patch: Partial<ReceivableTyped>) => void;
   /** What it came to — a Sale's price, a Dispatch's litres at its price — or nothing while it is not yet typed. */
   worthMoney: number;
   /** A trader promises a day; a milk buyer who pays on a round often does not. */
@@ -44,7 +44,7 @@ export const BakiFields = ({
           id={`${idPrefix}-owed`}
           onCheckedChange={(owed) => onType({ owed })}
         />
-        {t("baki.someOwed")}
+        {t("receivable.someOwed")}
       </label>
       {typed.owed ? (
         <div className="grid gap-4 sm:grid-cols-2">
@@ -52,10 +52,12 @@ export const BakiFields = ({
             hint={
               owes === null
                 ? undefined
-                : t("baki.stillOwes", { amount: formatNumber(owes, language) })
+                : t("receivable.stillOwes", {
+                    amount: formatNumber(owes, language),
+                  })
             }
             id={`${idPrefix}-paid-now`}
-            label={t("baki.paidNow")}
+            label={t("receivable.paidNow")}
           >
             <Input
               autoComplete="off"
@@ -71,7 +73,9 @@ export const BakiFields = ({
           <FormField
             id={`${idPrefix}-promised-by`}
             label={t(
-              promiseRequired ? "baki.promisedBy" : "baki.promisedByOptional"
+              promiseRequired
+                ? "receivable.promisedBy"
+                : "receivable.promisedByOptional"
             )}
           >
             <Input
@@ -90,21 +94,21 @@ export const BakiFields = ({
 
 /**
  * What a buyer still owed as it left, said beside the Sale or the Dispatch: the figure and the day he promised, or
- * nothing for one paid in full. Left out of an answer cached before Baki was written down, it is paid in full, as
+ * nothing for one paid in full. Left out of an answer cached before Receivable was written down, it is paid in full, as
  * every one of those was.
  */
-export const BakiOwed = ({
-  bakiMoney = 0,
+export const ReceivableOwed = ({
+  receivableMoney = 0,
   owingMoney,
   promisedBy = null,
 }: {
-  bakiMoney?: number;
+  receivableMoney?: number;
   /** What is still owed today, as his payments have left it; left out of an older answer, what was owed as it left. */
   owingMoney?: number;
   promisedBy?: string | null;
 }) => {
   const { t, language } = useLanguage();
-  const owed = owingMoney ?? bakiMoney;
+  const owed = owingMoney ?? receivableMoney;
   if (owed <= 0) {
     return null;
   }
@@ -112,8 +116,8 @@ export const BakiOwed = ({
   return (
     <span className="text-warning text-xs font-medium">
       {promisedBy === null
-        ? t("baki.owed", { amount })
-        : t("baki.owedBy", {
+        ? t("receivable.owed", { amount })
+        : t("receivable.owedBy", {
             amount,
             day: formatDate(startOfFarmDay(promisedBy), language, "date"),
           })}
@@ -122,7 +126,7 @@ export const BakiOwed = ({
 };
 
 /**
- * What the buyer being typed still owes the farm, said before anything more is sold to him on Baki. Never a refusal:
+ * What the buyer being typed still owes the farm, said before anything more is sold to him on credit. Never a refusal:
  * the Manager at the haat decides, but decides knowing. Nothing for a buyer who owes nothing, or a name the farm does
  * not know.
  */
@@ -131,7 +135,7 @@ export const BuyerOwes = ({ name }: { name: string }) => {
   // Asked once the typing settles, not at every letter of his name.
   const settled = useDeferredValue(name.trim());
   const his = useQuery({
-    ...orpc.baki.ofBuyer.queryOptions({ input: { name: settled } }),
+    ...orpc.receivable.ofBuyer.queryOptions({ input: { name: settled } }),
     enabled: settled.length > 1,
   });
   const owes = his.data;
@@ -143,14 +147,14 @@ export const BuyerOwes = ({ name }: { name: string }) => {
   const amount = formatNumber(owes.owingMoney, language);
   const lines = [
     owes.owingMoney > 0 && owes.overdueSince
-      ? t("baki.buyerOverdue", {
+      ? t("receivable.buyerOverdue", {
           name: owes.name,
           amount,
           day: day(owes.overdueSince),
         })
       : null,
     owes.owingMoney > 0 && !owes.overdueSince && owes.oldestOn
-      ? t("baki.buyerOwes", {
+      ? t("receivable.buyerOwes", {
           name: owes.name,
           amount,
           day: day(owes.oldestOn),
@@ -158,7 +162,7 @@ export const BuyerOwes = ({ name }: { name: string }) => {
       : null,
     // His mark: the farm has lost money to him before. Missing from an answer kept from before write-offs.
     (owes.writtenOffMoney ?? 0) > 0 && owes.lastWrittenOffOn
-      ? t("baki.buyerWrittenOff", {
+      ? t("receivable.buyerWrittenOff", {
           name: owes.name,
           amount: formatNumber(owes.writtenOffMoney, language),
           day: day(owes.lastWrittenOffOn),

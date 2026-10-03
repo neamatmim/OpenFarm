@@ -31,7 +31,7 @@ export interface DispatchRow {
   fatPercent: number | null;
   snfPercent: number | null;
   /** What the buyer still owed for it as it left, and the farm day he promised to pay by, when he named one. */
-  bakiMoney: number;
+  receivableMoney: number;
   promisedBy: string | null;
   note: string | null;
 }
@@ -56,7 +56,7 @@ export const dispatchesBetween = async (
     pricePerLitreMoney: Number(row.pricePerLitreMoney),
     fatPercent: row.fatPercent === null ? null : Number(row.fatPercent),
     snfPercent: row.snfPercent === null ? null : Number(row.snfPercent),
-    bakiMoney: row.bakiMoney,
+    receivableMoney: row.receivableMoney,
     promisedBy: row.promisedBy,
     note: row.note,
   }));
@@ -127,7 +127,7 @@ export const worthOfDispatch = (row: {
 
 /**
  * Books a Dispatch's milk sale as it now stands: what the buyer paid for it as it left — its litres at its price,
- * less whatever he still owed — to its buyer. Milk taken all on Baki books nothing, unless it was booked before and a
+ * less whatever he still owed — to its buyer. Milk taken all on credit books nothing, unless it was booked before and a
  * Correction now puts it right.
  */
 export const bookDispatchMoney = async (
@@ -140,7 +140,7 @@ export const bookDispatchMoney = async (
   if (!row) {
     return;
   }
-  const paidMoney = paidAtTheGate(worthOfDispatch(row), row.bakiMoney);
+  const paidMoney = paidAtTheGate(worthOfDispatch(row), row.receivableMoney);
   if (
     paidMoney > 0 ||
     (await moneySnapshotOf(tx, row.farmId, "dispatch", row.id))

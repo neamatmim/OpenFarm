@@ -1,5 +1,5 @@
-import type { BakiKind, PaymentMethod } from "@OpenFarm/domain";
-import { BAKI_KINDS, farmDayOf } from "@OpenFarm/domain";
+import type { ReceivableKind, PaymentMethod } from "@OpenFarm/domain";
+import { RECEIVABLE_KINDS, farmDayOf } from "@OpenFarm/domain";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
@@ -20,14 +20,14 @@ import { orpc } from "@/utils/orpc";
 /** Who is paying and for what, when the sheet is opened from his row. */
 export interface PaymentFor {
   buyer: string;
-  kind: BakiKind;
+  kind: ReceivableKind;
 }
 
 /**
- * A buyer paying towards his Baki: how much, for his cattle or his milk, the day it came and how. It clears his oldest
- * Baki first; more than he owes is taken only with a note saying why.
+ * A buyer paying towards his Receivable: how much, for his cattle or his milk, the day it came and how. It clears his oldest
+ * Receivable first; more than he owes is taken only with a note saying why.
  */
-export const BakiPaymentSheet = ({
+export const ReceivablePaymentSheet = ({
   paying,
   onClose,
 }: {
@@ -36,7 +36,7 @@ export const BakiPaymentSheet = ({
 }) => {
   const { t } = useLanguage();
   const refused = useRefused();
-  const [kind, setKind] = useState<BakiKind>(paying?.kind ?? "cattle");
+  const [kind, setKind] = useState<ReceivableKind>(paying?.kind ?? "cattle");
   const [amount, setAmount] = useState("");
   const [paidOn, setPaidOn] = useState(() => farmDayOf(new Date()));
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
@@ -44,9 +44,9 @@ export const BakiPaymentSheet = ({
   const [heldBy, setHeldBy] = useState("");
   const [note, setNote] = useState("");
   const pay = useMutation(
-    orpc.baki.pay.mutationOptions({
+    orpc.receivable.pay.mutationOptions({
       onSuccess: () => {
-        toast.success(t("baki.recorded"));
+        toast.success(t("receivable.recorded"));
         setAmount("");
         setNote("");
         onClose();
@@ -58,7 +58,7 @@ export const BakiPaymentSheet = ({
   const ready = paying !== null && amount.trim() !== "" && figure > 0;
   return (
     <FormSheet
-      description={t("baki.paymentDescription")}
+      description={t("receivable.paymentDescription")}
       onOpenChange={(open) => {
         if (!open) {
           onClose();
@@ -81,34 +81,39 @@ export const BakiPaymentSheet = ({
       open={paying !== null}
       pending={pay.isPending}
       ready={ready}
-      submitLabel={t("baki.record")}
-      title={t("baki.paymentTitle")}
+      submitLabel={t("receivable.record")}
+      title={t("receivable.paymentTitle")}
     >
-      <FormField id="baki-buyer" label={t("baki.buyer")}>
-        <Input disabled id="baki-buyer" value={paying?.buyer ?? ""} />
+      <FormField id="receivable-buyer" label={t("receivable.buyer")}>
+        <Input disabled id="receivable-buyer" value={paying?.buyer ?? ""} />
       </FormField>
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField id="baki-kind" label={t("baki.kind")}>
+        <FormField id="receivable-kind" label={t("receivable.kind")}>
           <NativeSelect
-            id="baki-kind"
+            id="receivable-kind"
             onChange={(event) =>
               setKind(
-                BAKI_KINDS.find((one) => one === event.target.value) ?? "cattle"
+                RECEIVABLE_KINDS.find((one) => one === event.target.value) ??
+                  "cattle"
               )
             }
             value={kind}
           >
-            {BAKI_KINDS.map((one) => (
+            {RECEIVABLE_KINDS.map((one) => (
               <option key={one} value={one}>
-                {t(one === "milk" ? "baki.kind.milk" : "baki.kind.cattle")}
+                {t(
+                  one === "milk"
+                    ? "receivable.kind.milk"
+                    : "receivable.kind.cattle"
+                )}
               </option>
             ))}
           </NativeSelect>
         </FormField>
-        <FormField id="baki-amount" label={t("baki.amount")}>
+        <FormField id="receivable-amount" label={t("receivable.amount")}>
           <Input
             autoComplete="off"
-            id="baki-amount"
+            id="receivable-amount"
             inputMode="numeric"
             min={0}
             onChange={(event) => setAmount(event.target.value)}
@@ -119,9 +124,9 @@ export const BakiPaymentSheet = ({
         </FormField>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField id="baki-paid-on" label={t("baki.paidOn")}>
+        <FormField id="receivable-paid-on" label={t("receivable.paidOn")}>
           <Input
-            id="baki-paid-on"
+            id="receivable-paid-on"
             onChange={(event) => setPaidOn(event.target.value)}
             required
             type="date"
@@ -130,26 +135,26 @@ export const BakiPaymentSheet = ({
         </FormField>
         <PaymentMethodField
           account={{ typed: account, onChange: setAccount }}
-          id="baki-paid-by"
+          id="receivable-paid-by"
           onChange={setPaymentMethod}
           value={paymentMethod}
         />
         {paymentMethod === "cash" ? (
           <WhoseHandField
-            id="baki-whose-hand"
+            id="receivable-whose-hand"
             onChange={setHeldBy}
             value={heldBy}
           />
         ) : null}
       </div>
       <FormField
-        hint={t("baki.noteHint")}
-        id="baki-note"
-        label={t("baki.note")}
+        hint={t("receivable.noteHint")}
+        id="receivable-note"
+        label={t("receivable.note")}
       >
         <Input
           autoComplete="off"
-          id="baki-note"
+          id="receivable-note"
           maxLength={300}
           onChange={(event) => setNote(event.target.value)}
           value={note}

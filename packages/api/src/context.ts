@@ -122,8 +122,8 @@ export interface Context {
     approvalThresholdMoney: number;
     /** The day of the month from which a Monthly Cost with nothing entered that month is named. */
     monthlyCostsFromDay: number;
-    /** How many days a Baki with no promised day may run before it is overdue. */
-    bakiDays: number;
+    /** How many days a Receivable with no promised day may run before it is overdue. */
+    receivableDays: number;
     /** The taka a Stock Count may come up short by before the Owner and the Manager are told of it. */
     storeShortfallTellMoney: number;
     /** How many animals in one Pen seen with sores, within how many hours, before the farm is told at once. */

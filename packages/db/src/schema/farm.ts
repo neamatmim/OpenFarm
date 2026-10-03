@@ -186,9 +186,9 @@ export const farm = pgTable("farm", {
    *  and the Owner — and a wage for the month before from the person paid the month before that. The 10th unless the
    *  Owner says otherwise: rent and wages are paid in the first days, and a list on the 1st would only nag. */
   monthlyCostsFromDay: integer("monthly_costs_from_day").notNull().default(10),
-  /** How many days a Baki with no promised day may run before it is overdue — a milk buyer who pays on a round. A
+  /** How many days a Receivable with no promised day may run before it is overdue — a milk buyer who pays on a round. A
    *  month unless the Owner says otherwise: the Owner's, as whom the farm lends to is. */
-  bakiDays: integer("baki_days").notNull().default(30),
+  receivableDays: integer("receivable_days").notNull().default(30),
   /** The taka a Stock Count may come up short by before the Owner and the Manager are told of that count: ৳2,000 unless
    *  the Owner says otherwise. The Owner's, because the count is the one check on the feed the Manager takes in. */
   storeShortfallTellMoney: integer("store_shortfall_tell_money")

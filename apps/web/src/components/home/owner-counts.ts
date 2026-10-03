@@ -51,8 +51,8 @@ export const ownerCountsOf = (
     monthlyCostsMissing(needsYou) +
     // Missing from an answer a phone kept from before Farm Accounts were checked.
     (needsYou.farmAccountsOut?.length ?? 0) +
-    // Missing from an answer a phone kept from before Baki was written down.
-    (needsYou.bakiOverdue?.length ?? 0),
+    // Missing from an answer a phone kept from before Receivable was written down.
+    (needsYou.receivableOverdue?.length ?? 0),
   review: needsYou.needsReview.length,
 });
 

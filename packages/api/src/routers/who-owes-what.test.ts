@@ -5,8 +5,8 @@ import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
 /**
- * Who owes the farm what: every buyer with Baki, oldest first, and his payments — each one Money Event on the day it
- * came, under milk sales or cattle sales, clearing his oldest Baki first.
+ * Who owes the farm what: every buyer with Receivable, oldest first, and his payments — each one Money Event on the day it
+ * came, under milk sales or cattle sales, clearing his oldest Receivable first.
  */
 const suffix = `owes-${Date.now()}`;
 
@@ -37,7 +37,7 @@ const buy = async (instant: string) => {
   });
 };
 
-const sellOnBaki = async (
+const sellOnCredit = async (
   instant: string,
   priceMoney: number,
   paidNowMoney: number,
@@ -58,7 +58,7 @@ const sellOnBaki = async (
   });
 };
 
-const milkOnBaki = async (day: string) => {
+const milkOnCredit = async (day: string) => {
   const manager = await as("manager", `${day}T04:00:00.000Z`);
   return await manager.client.milk.dispatch({
     dispatchedAt: new Date(`${day}T03:00:00.000Z`),
@@ -71,7 +71,7 @@ const milkOnBaki = async (day: string) => {
 
 const theTrader = async (instant: string) => {
   const owner = await as("owner", instant);
-  const list = await owner.client.baki.list();
+  const list = await owner.client.receivable.list();
   return list.find((one) => one.name === TRADER);
 };
 
@@ -87,13 +87,13 @@ beforeAll(async () => {
   });
   penId = pen.id;
   // Two bulls to the one trader on two days: twenty thousand owed on the first, ten on the second.
-  const first = await sellOnBaki(
+  const first = await sellOnCredit(
     "2049-05-02T05:00:00.000Z",
     120_000,
     100_000,
     "2049-05-09"
   );
-  const second = await sellOnBaki(
+  const second = await sellOnCredit(
     "2049-05-04T05:00:00.000Z",
     110_000,
     100_000,
@@ -101,9 +101,9 @@ beforeAll(async () => {
   );
   saleIds.push(first.id, second.id);
   // Three days of the sweet shop's milk, none of it paid: 1,750 a day.
-  await milkOnBaki("2049-05-02");
-  await milkOnBaki("2049-05-03");
-  await milkOnBaki("2049-05-04");
+  await milkOnCredit("2049-05-02");
+  await milkOnCredit("2049-05-03");
+  await milkOnCredit("2049-05-04");
 });
 
 describe("who owes what", () => {
@@ -121,7 +121,7 @@ describe("who owes what", () => {
       soonestPromise: "2049-05-09",
     });
     const owner = await as("owner", "2049-05-05T06:00:00.000Z");
-    const everyone = await owner.client.baki.list();
+    const everyone = await owner.client.receivable.list();
     const shop = everyone.find((one) => one.name === SHOP);
     expect(shop?.kinds[0]).toMatchObject({
       kind: "milk",
@@ -132,18 +132,18 @@ describe("who owes what", () => {
 
   it("tells the sheets what a buyer still owes, and nothing of a stranger", async () => {
     const manager = await as("manager", "2049-05-05T06:00:00.000Z");
-    const his = await manager.client.baki.ofBuyer({ name: TRADER });
+    const his = await manager.client.receivable.ofBuyer({ name: TRADER });
     expect(his?.owingMoney).toBe(30_000);
     expect(
-      await manager.client.baki.ofBuyer({ name: `অচেনা ${suffix}` })
+      await manager.client.receivable.ofBuyer({ name: `অচেনা ${suffix}` })
     ).toBeNull();
   });
 });
 
-describe("a Baki Payment", () => {
-  it("clears his oldest Baki first, and is one Money Event under cattle sales on the day it came", async () => {
+describe("a Receivable Payment", () => {
+  it("clears his oldest Receivable first, and is one Money Event under cattle sales on the day it came", async () => {
     const manager = await as("manager", "2049-05-06T06:00:00.000Z");
-    const { id } = await manager.client.baki.pay({
+    const { id } = await manager.client.receivable.pay({
       buyer: TRADER,
       kind: "cattle",
       amountMoney: 25_000,
@@ -177,7 +177,7 @@ describe("a Baki Payment", () => {
 
   it("books milk money under milk sales, and clears a round sum across several days", async () => {
     const manager = await as("manager", "2049-05-07T06:00:00.000Z");
-    const { id } = await manager.client.baki.pay({
+    const { id } = await manager.client.receivable.pay({
       buyer: SHOP,
       kind: "milk",
       amountMoney: 4000,
@@ -185,7 +185,7 @@ describe("a Baki Payment", () => {
       paymentMethod: "cash",
     });
     const owner = await as("owner", "2049-05-31T12:00:00.000Z");
-    const everyone = await owner.client.baki.list();
+    const everyone = await owner.client.receivable.list();
     const shop = everyone.find((one) => one.name === SHOP);
     expect(shop?.kinds[0]?.owingMoney).toBe(1250);
     expect(shop?.kinds[0]?.payments[0]?.cleared).toHaveLength(3);
@@ -195,10 +195,10 @@ describe("a Baki Payment", () => {
     });
   });
 
-  it("refuses more than he owes without a note, and holds it as credit with one", async () => {
+  it("refuses more than he owes without a note, and holds it as paid ahead with one", async () => {
     const manager = await as("manager", "2049-05-08T06:00:00.000Z");
     await expect(
-      manager.client.baki.pay({
+      manager.client.receivable.pay({
         buyer: SHOP,
         kind: "milk",
         amountMoney: 2000,
@@ -208,7 +208,7 @@ describe("a Baki Payment", () => {
     ).rejects.toMatchObject({
       data: { refusal: "paid_more_than_owed", owingMoney: 1250 },
     });
-    await manager.client.baki.pay({
+    await manager.client.receivable.pay({
       buyer: SHOP,
       kind: "milk",
       amountMoney: 2000,
@@ -217,23 +217,29 @@ describe("a Baki Payment", () => {
       note: "আগামী সপ্তাহের দুধের টাকা আগাম দিলেন",
     });
     const owner = await as("owner", "2049-05-08T07:00:00.000Z");
-    const everyone = await owner.client.baki.list();
+    const everyone = await owner.client.receivable.list();
     const shop = everyone.find((one) => one.name === SHOP);
-    expect(shop?.kinds[0]).toMatchObject({ owingMoney: 0, creditMoney: 750 });
+    expect(shop?.kinds[0]).toMatchObject({
+      owingMoney: 0,
+      paidAheadMoney: 750,
+    });
   });
 
-  it("spends his credit on the next milk he takes on Baki", async () => {
-    await milkOnBaki("2049-05-09");
+  it("spends what he paid ahead on the next milk he takes on credit", async () => {
+    await milkOnCredit("2049-05-09");
     const owner = await as("owner", "2049-05-09T07:00:00.000Z");
-    const everyone = await owner.client.baki.list();
+    const everyone = await owner.client.receivable.list();
     const shop = everyone.find((one) => one.name === SHOP);
-    expect(shop?.kinds[0]).toMatchObject({ owingMoney: 1000, creditMoney: 0 });
+    expect(shop?.kinds[0]).toMatchObject({
+      owingMoney: 1000,
+      paidAheadMoney: 0,
+    });
   });
 
   it("refuses a payment from nobody the farm has sold to, and one from a day not yet come", async () => {
     const manager = await as("manager", "2049-05-10T06:00:00.000Z");
     await expect(
-      manager.client.baki.pay({
+      manager.client.receivable.pay({
         buyer: `অচেনা ${suffix}`,
         kind: "cattle",
         amountMoney: 1000,
@@ -242,7 +248,7 @@ describe("a Baki Payment", () => {
       })
     ).rejects.toMatchObject({ data: { refusal: "no_such_buyer" } });
     await expect(
-      manager.client.baki.pay({
+      manager.client.receivable.pay({
         buyer: TRADER,
         kind: "cattle",
         amountMoney: 1000,
@@ -254,7 +260,7 @@ describe("a Baki Payment", () => {
 
   it("is put right with its Money Event, and re-clears what it paid for", async () => {
     const manager = await as("manager", "2049-05-12T06:00:00.000Z");
-    const { id } = await manager.client.baki.pay({
+    const { id } = await manager.client.receivable.pay({
       buyer: TRADER,
       kind: "cattle",
       amountMoney: 2000,
@@ -262,7 +268,7 @@ describe("a Baki Payment", () => {
       paymentMethod: "cash",
     });
     // He still owed five thousand: two was written, and it was all five.
-    await manager.client.baki.correctPayment({
+    await manager.client.receivable.correctPayment({
       id,
       reason: "পাঁচ হাজার দিয়েছিলেন, দুই লেখা হয়েছে",
       changes: { amountMoney: { from: 2000, to: 5000 } },
@@ -272,7 +278,7 @@ describe("a Baki Payment", () => {
     const booked = money.events.filter((one) => one.sourceId === id);
     expect(booked).toHaveLength(1);
     expect(booked[0]).toMatchObject({ amountMoney: 5000 });
-    // Paid off, he leaves the list — nothing owed and no credit held.
+    // Paid off, he leaves the list — nothing owed and nothing paid ahead.
     expect(await theTrader("2049-05-12T08:00:00.000Z")).toBeUndefined();
   });
 });
@@ -291,7 +297,7 @@ describe("the accountant's export", () => {
     });
     const paymentLines = csv
       .split("\n")
-      .filter((line) => line.includes("baki_payment"));
+      .filter((line) => line.includes("receivable_payment"));
     // The trader's two payments and the shop's two.
     expect(paymentLines).toHaveLength(4);
 

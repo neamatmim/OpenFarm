@@ -6,7 +6,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { FileText, ReceiptText, ShieldCheck, Truck } from "lucide-react";
 import { useState } from "react";
 
-import { BakiOwed } from "@/components/baki-fields";
 import {
   CorrectionAnswer,
   CorrectionDialog,
@@ -17,6 +16,7 @@ import { WhatSheCost } from "@/components/costs";
 import { Section } from "@/components/page";
 import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
+import { ReceivableOwed } from "@/components/receivable-fields";
 import { DairyReturnsPanel } from "@/components/returns/dairy-returns";
 import { SaleCorrection } from "@/components/sale-correction";
 import { useSalePapers } from "@/components/sale/sale-papers";
@@ -283,8 +283,8 @@ const HowSheLeft = ({
             {t("intake.money", {
               amount: formatNumber(sale.priceMoney, language),
             })}
-            <BakiOwed
-              bakiMoney={sale.bakiMoney}
+            <ReceivableOwed
+              receivableMoney={sale.receivableMoney}
               owingMoney={sale.owingMoney}
               promisedBy={sale.promisedBy}
             />
