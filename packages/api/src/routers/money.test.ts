@@ -17,8 +17,8 @@ const as = (role: "owner" | "manager" | "staff" | "vet", instant: string) =>
 
 const setup = async () => {
   const owner = await as("owner", "2037-01-02T04:00:00.000Z");
-  const shed = await owner.client.sheds.createShed({ name: `money-${suffix}` });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: `money-${suffix}` });
+  const pen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `টাকা ${suffix}`,
@@ -189,7 +189,7 @@ describe("money from the farm's records", () => {
       expect.objectContaining({ amountMoney: 19_200 }),
     ]);
 
-    const feed = await manager.client.feed.createItem({
+    const feed = await manager.client.feed.items.create({
       name: { bn: `ভুসি ${suffix}` },
       unit: "kg",
     });
@@ -236,7 +236,7 @@ describe("money from the farm's records", () => {
     ]);
 
     // Retired, so a Stock Count later in this file does not find a lorry from 2037 still in the store.
-    await manager.client.feed.retireItem({ id: feed.id });
+    await manager.client.feed.items.retire({ id: feed.id });
   });
 
   it("holds the money over the threshold and never the Sale, until the Owner approves it", async () => {

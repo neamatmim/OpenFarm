@@ -30,12 +30,12 @@ const roundSop = (): SopContent => ({
 
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.client.sheds.createShed({ name: `home-${suffix}` });
-  const worked = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: `home-${suffix}` });
+  const worked = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: "কাজের পেন",
   });
-  const untouched = await owner.client.sheds.createPen({
+  const untouched = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: "ছোঁয়া হয়নি এমন পেন",
   });

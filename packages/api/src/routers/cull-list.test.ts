@@ -242,12 +242,12 @@ beforeAll(async () => {
   const start = "2040-12-01T03:00:00.000Z";
   const owner = await as("owner", start);
   const manager = await as("manager", start);
-  const shed = await owner.client.sheds.createShed({ name: `cull-${suffix}` });
-  const milking = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: `cull-${suffix}` });
+  const milking = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: `দোহন পেন ${suffix}`,
   });
-  const dry = await owner.client.sheds.createPen({
+  const dry = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: `শুকনো পেন ${suffix}`,
   });
@@ -285,7 +285,7 @@ beforeAll(async () => {
   ] = tags;
 
   // Concentrate at ৳30 a kilo, for the cows in milk alone.
-  const item = await manager.client.feed.createItem({
+  const item = await manager.client.feed.items.create({
     name: { bn: `দানাদার ${suffix}` },
   });
   concentrate = item.id;
@@ -297,11 +297,11 @@ beforeAll(async () => {
     seller: { name: `দানাদারের দোকান ${suffix}` },
     receivedOn: "2040-12-01",
   });
-  const ration = await manager.client.feed.saveRation({
+  const ration = await manager.client.feed.rations.save({
     name: { bn: `রেশন ${suffix}` },
     items: [{ feedItemId: concentrate, kgPerAnimalPerDay: 10 }],
   });
-  await manager.client.feed.assignRation({
+  await manager.client.feed.rations.assign({
     penId: milkPen,
     rationId: ration.rationId,
   });

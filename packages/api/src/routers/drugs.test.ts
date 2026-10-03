@@ -118,7 +118,7 @@ describe("the Drug List", () => {
     await expect(
       vet.client.drugs.create({ name: { bn: bnName } })
     ).rejects.toThrow(/already on the list, retired/u);
-    await vet.client.drugs.bringBack({ id: old.id });
+    await vet.client.drugs.restore({ id: old.id });
     const back = await vet.client.drugs.list();
     expect(back.find((one) => one.id === old.id)?.prescribable).toBe(true);
   });

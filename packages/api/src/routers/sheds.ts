@@ -44,7 +44,7 @@ export const shedsRouter = {
         .map((one) => ({ tagNumber: one.tagNumber, penName: one.pen.name }));
     }),
 
-  createShed: protectedProcedure
+  create: protectedProcedure
     .use(requireRole("owner", "manager"))
     .input(z.object({ name }))
     .handler(async ({ context, input }) => {
@@ -64,7 +64,7 @@ export const shedsRouter = {
       return { id, name: input.name };
     }),
 
-  renameShed: protectedProcedure
+  rename: protectedProcedure
     .use(requireRole("owner", "manager"))
     .input(z.object({ id: z.string(), name }))
     .handler(async ({ context, input }) => {
@@ -96,132 +96,135 @@ export const shedsRouter = {
       return { id: input.id, name: input.name };
     }),
 
-  createPen: protectedProcedure
-    .use(requireRole("owner", "manager"))
-    .input(
-      z.object({
-        shedId: z.string(),
-        name,
-        /** A quarantine pen, where bought animals come in. */
-        quarantine: z.boolean().default(false),
-      })
-    )
-    .handler(async ({ context, input }) => {
-      const id = uuidv7(context.clock.now());
-      await audited(context).write(
-        {
-          entity: "pen",
-          entityId: id,
-          action: "create",
-          after: {
-            name: input.name,
-            shedId: input.shedId,
-            quarantine: input.quarantine,
+  /** The Pens inside a Shed, where every Animal is. */
+  pens: {
+    create: protectedProcedure
+      .use(requireRole("owner", "manager"))
+      .input(
+        z.object({
+          shedId: z.string(),
+          name,
+          /** A quarantine pen, where bought animals come in. */
+          quarantine: z.boolean().default(false),
+        })
+      )
+      .handler(async ({ context, input }) => {
+        const id = uuidv7(context.clock.now());
+        await audited(context).write(
+          {
+            entity: "pen",
+            entityId: id,
+            action: "create",
+            after: {
+              name: input.name,
+              shedId: input.shedId,
+              quarantine: input.quarantine,
+            },
           },
-        },
-        async (tx) => {
-          const parent = await tx.query.shed.findFirst({
-            where: { id: input.shedId, farmId: context.farm.id },
-            columns: { id: true },
-          });
-          if (!parent) {
-            throw new ORPCError("NOT_FOUND", { message: "No such shed" });
-          }
-          await tx.insert(pen).values({
-            id,
-            farmId: context.farm.id,
-            shedId: input.shedId,
-            name: input.name,
-            quarantine: input.quarantine,
-          });
-        }
-      );
-      return { id, name: input.name };
-    }),
-
-  /**
-   * A Pen marked as a quarantine pen, or not: where a bought animal comes in, and is kept until released. The Owner's or
-   * the Manager's, as Pens are made. Never unmarked while it holds an animal in Quarantine — that would leave her
-   * standing outside every quarantine pen without having been walked.
-   */
-  markQuarantine: protectedProcedure
-    .use(requireRole("owner", "manager"))
-    .input(z.object({ penId: z.string(), quarantine: z.boolean() }))
-    .handler(async ({ context, input }) => {
-      const readPen = async (tx: Pick<Tx, "query">) =>
-        (await tx.query.pen.findFirst({
-          where: { id: input.penId, farmId: context.farm.id },
-          columns: { name: true, quarantine: true },
-        })) ?? null;
-      await audited(context).write(
-        {
-          entity: "pen",
-          entityId: input.penId,
-          action: "update",
-          before: readPen,
-          after: readPen,
-        },
-        async (tx) => {
-          await requirePen(tx, context.farm.id, input.penId);
-          if (!input.quarantine) {
-            const held = await tx.query.animal.findFirst({
-              where: {
-                farmId: context.farm.id,
-                penId: input.penId,
-                state: "quarantine",
-              },
-              columns: { tagNumber: true },
+          async (tx) => {
+            const parent = await tx.query.shed.findFirst({
+              where: { id: input.shedId, farmId: context.farm.id },
+              columns: { id: true },
             });
-            if (held) {
-              throw new ORPCError("BAD_REQUEST", {
-                message: `${held.tagNumber} is in Quarantine in this pen`,
-                data: {
-                  refusal: "pen_holds_quarantine",
-                  tagNumber: held.tagNumber,
-                },
+            if (!parent) {
+              throw new ORPCError("NOT_FOUND", { message: "No such shed" });
+            }
+            await tx.insert(pen).values({
+              id,
+              farmId: context.farm.id,
+              shedId: input.shedId,
+              name: input.name,
+              quarantine: input.quarantine,
+            });
+          }
+        );
+        return { id, name: input.name };
+      }),
+
+    rename: protectedProcedure
+      .use(requireRole("owner", "manager"))
+      .input(z.object({ id: z.string(), name }))
+      .handler(async ({ context, input }) => {
+        await audited(context).write(
+          {
+            entity: "pen",
+            entityId: input.id,
+            action: "update",
+            before: async (tx) => {
+              const row = await tx.query.pen.findFirst({
+                where: { id: input.id },
+                columns: { name: true },
               });
+              return row ?? null;
+            },
+            after: { name: input.name },
+          },
+          async (tx) => {
+            const [row] = await tx
+              .update(pen)
+              .set({ name: input.name })
+              .where(and(eq(pen.id, input.id), eq(pen.farmId, context.farm.id)))
+              .returning({ id: pen.id });
+            if (!row) {
+              throw new ORPCError("NOT_FOUND");
             }
           }
-          await tx
-            .update(pen)
-            .set({ quarantine: input.quarantine })
-            .where(
-              and(eq(pen.id, input.penId), eq(pen.farmId, context.farm.id))
-            );
-        }
-      );
-      return { penId: input.penId, quarantine: input.quarantine };
-    }),
+        );
+        return { id: input.id, name: input.name };
+      }),
 
-  renamePen: protectedProcedure
-    .use(requireRole("owner", "manager"))
-    .input(z.object({ id: z.string(), name }))
-    .handler(async ({ context, input }) => {
-      await audited(context).write(
-        {
-          entity: "pen",
-          entityId: input.id,
-          action: "update",
-          before: async (tx) => {
-            const row = await tx.query.pen.findFirst({
-              where: { id: input.id },
-              columns: { name: true },
-            });
-            return row ?? null;
+    /**
+     * A Pen marked as a quarantine pen, or not: where a bought animal comes in, and is kept until released. The Owner's or
+     * the Manager's, as Pens are made. Never unmarked while it holds an animal in Quarantine — that would leave her
+     * standing outside every quarantine pen without having been walked.
+     */
+    markQuarantine: protectedProcedure
+      .use(requireRole("owner", "manager"))
+      .input(z.object({ penId: z.string(), quarantine: z.boolean() }))
+      .handler(async ({ context, input }) => {
+        const readPen = async (tx: Pick<Tx, "query">) =>
+          (await tx.query.pen.findFirst({
+            where: { id: input.penId, farmId: context.farm.id },
+            columns: { name: true, quarantine: true },
+          })) ?? null;
+        await audited(context).write(
+          {
+            entity: "pen",
+            entityId: input.penId,
+            action: "update",
+            before: readPen,
+            after: readPen,
           },
-          after: { name: input.name },
-        },
-        async (tx) => {
-          const [row] = await tx
-            .update(pen)
-            .set({ name: input.name })
-            .where(and(eq(pen.id, input.id), eq(pen.farmId, context.farm.id)))
-            .returning({ id: pen.id });
-          if (!row) {
-            throw new ORPCError("NOT_FOUND");
+          async (tx) => {
+            await requirePen(tx, context.farm.id, input.penId);
+            if (!input.quarantine) {
+              const held = await tx.query.animal.findFirst({
+                where: {
+                  farmId: context.farm.id,
+                  penId: input.penId,
+                  state: "quarantine",
+                },
+                columns: { tagNumber: true },
+              });
+              if (held) {
+                throw new ORPCError("BAD_REQUEST", {
+                  message: `${held.tagNumber} is in Quarantine in this pen`,
+                  data: {
+                    refusal: "pen_holds_quarantine",
+                    tagNumber: held.tagNumber,
+                  },
+                });
+              }
+            }
+            await tx
+              .update(pen)
+              .set({ quarantine: input.quarantine })
+              .where(
+                and(eq(pen.id, input.penId), eq(pen.farmId, context.farm.id))
+              );
           }
-        }
-      );
-      return { id: input.id, name: input.name };
-    }),
+        );
+        return { penId: input.penId, quarantine: input.quarantine };
+      }),
+  },
 };

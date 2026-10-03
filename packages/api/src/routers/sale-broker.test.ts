@@ -22,8 +22,8 @@ const as = (role: "owner" | "manager", instant: string) =>
 
 beforeAll(async () => {
   const owner = await as("owner", "2070-03-01T04:00:00.000Z");
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const pen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,

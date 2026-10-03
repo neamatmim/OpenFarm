@@ -13,12 +13,12 @@ const suffix = `${Date.now()}`;
 let world: { ours: string; theirs: string };
 beforeAll(async () => {
   const { client: owner } = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.sheds.createShed({ name: `observation-${suffix}` });
-  const ourPen = await owner.sheds.createPen({
+  const shed = await owner.sheds.create({ name: `observation-${suffix}` });
+  const ourPen = await owner.sheds.pens.create({
     shedId: shed.id,
     name: `আমাদের ${suffix}`,
   });
-  const otherPen = await owner.sheds.createPen({
+  const otherPen = await owner.sheds.pens.create({
     shedId: shed.id,
     name: `অন্যের ${suffix}`,
   });

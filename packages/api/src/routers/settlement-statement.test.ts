@@ -217,8 +217,8 @@ beforeAll(async () => {
     registrationOffice: "উপজেলা প্রাণিসম্পদ দপ্তর, সাভার",
     registrationExpiresOn: "2055-03-31",
   });
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const pen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -429,11 +429,11 @@ describe("the sheet an Investor checks the whole run against", () => {
     // A Herd Cost the Farm entered late, charged to the animals for a month these bulls stood. The
     // costing moves; the Settlement does not.
     const owner = await as("owner", "2053-03-05T04:00:00.000Z");
-    const category = await owner.client.money.createCategory({
+    const category = await owner.client.money.categories.create({
       nameBn: `দেরিতে আসা খরচ ${suffix}`,
       direction: "out",
     });
-    await owner.client.money.setChargedToAnimals({
+    await owner.client.money.categories.setChargedToAnimals({
       categoryId: category.id,
       chargedToAnimals: true,
     });

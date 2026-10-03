@@ -67,8 +67,8 @@ const signedAndPaid = async (
 
 beforeAll(async () => {
   const owner = await as("owner", "2071-01-02T04:00:00.000Z");
-  const shed = await owner.sheds.createShed({ name: `শেড ${suffix}` });
-  const pen = await owner.sheds.createPen({
+  const shed = await owner.sheds.create({ name: `শেড ${suffix}` });
+  const pen = await owner.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,

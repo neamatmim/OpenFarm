@@ -36,8 +36,8 @@ const bullArriving = async (penId: string, at: string) => {
 
 const setup = async () => {
   const manager = await as("manager", ARRIVED_B);
-  const shed = await manager.client.sheds.createShed({ name: suffix });
-  const pen = await manager.client.sheds.createPen({
+  const shed = await manager.client.sheds.create({ name: suffix });
+  const pen = await manager.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: "কোয়ারেন্টিন",

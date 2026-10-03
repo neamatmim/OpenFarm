@@ -73,8 +73,8 @@ const aiSop = (): SopContent => ({
 const setup = async () => {
   const clock = new FakeClock("2027-09-01T03:00:00.000Z");
   const owner = await createTestClient(appRouter, { as: "owner", clock });
-  const shed = await owner.client.sheds.createShed({ name: `heat-${suffix}` });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: `heat-${suffix}` });
+  const pen = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: `বকনা ${suffix}`,
   });

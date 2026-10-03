@@ -38,8 +38,8 @@ const milkingSop = (): SopContent => ({
 
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.client.sheds.createShed({ name: `owner-${suffix}` });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: `owner-${suffix}` });
+  const pen = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: "দোহন পেন",
   });
@@ -113,7 +113,7 @@ describe("the Owner's home", () => {
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     const owner = await createTestClient(appRouter, { as: "owner", clock });
 
-    await manager.client.sops.propose({
+    await manager.client.sops.proposals.create({
       definitionId: world.sop.definitionId,
       content: {
         ...milkingSop(),
@@ -176,10 +176,10 @@ describe("the Owner's home", () => {
   it("puts work the Owner is the checker of in front of them", async () => {
     const clock = new FakeClock("2028-02-05T03:30:00.000Z");
     const owner = await createTestClient(appRouter, { as: "owner", clock });
-    const shed = await owner.client.sheds.createShed({
+    const shed = await owner.client.sheds.create({
       name: `checked-${Date.now()}`,
     });
-    const pen = await owner.client.sheds.createPen({
+    const pen = await owner.client.sheds.pens.create({
       shedId: shed.id,
       name: "মালিকের পেন",
     });

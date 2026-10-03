@@ -37,13 +37,13 @@ describe("a farm started with the standard lists", () => {
     await expect(
       ownerOnPhone.client.farm.startWithStandard({ kinds: [...ALL] })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
-    expect(await manager.client.feed.items()).toEqual([]);
+    expect(await manager.client.feed.items.list()).toEqual([]);
     expect(await manager.client.drugs.list()).toEqual([]);
   });
 
   it("gives what it asks for, and leaves a name the farm already uses as the farm's", async () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
-    const own = await owner.client.feed.createItem({
+    const own = await owner.client.feed.items.create({
       name: { bn: STANDARD_FEED_ITEMS.napier.bn, en: "Our own Napier" },
       unit: "kg",
     });
@@ -58,7 +58,7 @@ describe("a farm started with the standard lists", () => {
         .filter((bn) => bn !== STANDARD_FEED_ITEMS.napier.bn)
         .toSorted()
     );
-    const items = await owner.client.feed.items();
+    const items = await owner.client.feed.items.list();
     expect(items.map((item) => item.nameBn).toSorted()).toEqual(
       standardFeeds.toSorted()
     );
@@ -66,7 +66,7 @@ describe("a farm started with the standard lists", () => {
     expect(napier).toMatchObject({ nameEn: "Our own Napier", unit: "kg" });
 
     // Every Ration is in force at its first Version, fed from this farm's own Feed Items — the Napier its own.
-    const rations = await owner.client.feed.rations();
+    const rations = await owner.client.feed.rations.list();
     expect(rations.map((one) => one.name.bn).toSorted()).toEqual(
       Object.values(STANDARD_RATIONS)
         .map((one) => one.name.bn)
@@ -123,11 +123,11 @@ describe("a farm started with the standard lists", () => {
 
   it("writes each thing it gives into the trail, as if it had been added by hand", async () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
-    const items = await owner.client.feed.items();
+    const items = await owner.client.feed.items.list();
     const given = items.filter(
       (item) => item.nameBn !== STANDARD_FEED_ITEMS.napier.bn
     );
-    const rations = await owner.client.feed.rations();
+    const rations = await owner.client.feed.rations.list();
     const drugs = await owner.client.drugs.list();
 
     const itemEvents = await eventsFor(
@@ -152,7 +152,7 @@ describe("a farm started with the standard lists", () => {
 
   it("adds nothing when it is asked again", async () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
-    const before = await owner.client.feed.rations();
+    const before = await owner.client.feed.rations.list();
 
     const again = await owner.client.farm.startWithStandard({
       kinds: [...ALL],
@@ -164,6 +164,6 @@ describe("a farm started with the standard lists", () => {
       drugs: [],
       diseases: [],
     });
-    expect(await owner.client.feed.rations()).toHaveLength(before.length);
+    expect(await owner.client.feed.rations.list()).toHaveLength(before.length);
   });
 });

@@ -52,14 +52,14 @@ const goneDrySop = (): SopContent => ({
 
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.client.sheds.createShed({
+  const shed = await owner.client.sheds.create({
     name: `triggers-${Date.now()}`,
   });
-  const from = await owner.client.sheds.createPen({
+  const from = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: "পুরনো পেন",
   });
-  const to = await owner.client.sheds.createPen({
+  const to = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: "নতুন পেন",
   });

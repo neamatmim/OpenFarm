@@ -76,8 +76,8 @@ beforeAll(async () => {
   const vet = await calling(vetId, DURING);
   await vet.people.acceptInvite({ code: invited.code });
 
-  const shed = await owner.sheds.createShed({ name: `visit-${suffix}` });
-  const pen = await owner.sheds.createPen({
+  const shed = await owner.sheds.create({ name: `visit-${suffix}` });
+  const pen = await owner.sheds.pens.create({
     shedId: shed.id,
     name: `পেন ${suffix}`,
   });

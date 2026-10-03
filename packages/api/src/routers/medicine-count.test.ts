@@ -27,8 +27,8 @@ beforeAll(async () => {
   });
   countId = made.definitionId;
   // Work about the whole farm is raised while any Pen holds an animal.
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const pen = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: `গাভী পেন ${suffix}`,
   });

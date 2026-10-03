@@ -905,7 +905,7 @@ export const ProductsTab = ({
     })
   );
   const bringBack = useMutation(
-    orpc.drugs.bringBack.mutationOptions({ onError })
+    orpc.drugs.restore.mutationOptions({ onError })
   );
   const markVaccine = useMutation(
     orpc.drugs.markVaccine.mutationOptions({ onError })

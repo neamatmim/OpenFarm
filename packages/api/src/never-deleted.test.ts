@@ -70,8 +70,8 @@ describe("a ledger row's parent, deleted", () => {
       as: "owner",
       clock: new FakeClock("2092-02-01T04:00:00.000Z"),
     });
-    const shed = await client.sheds.createShed({ name: suffix });
-    const pen = await client.sheds.createPen({
+    const shed = await client.sheds.create({ name: suffix });
+    const pen = await client.sheds.pens.create({
       shedId: shed.id,
       name: `পেন ${suffix}`,
     });

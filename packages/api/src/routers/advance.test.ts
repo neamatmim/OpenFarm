@@ -99,8 +99,8 @@ const theVenture = async (owner: Owner) => {
 
 /** A Pen of this Venture's animals, fed enough that a month's Reimbursement bites. */
 const theyEat = async (owner: Owner) => {
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const pen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -117,7 +117,7 @@ const theyEat = async (owner: Owner) => {
     .onConflictDoNothing();
 
   const manager = await as("manager", "2047-05-04T05:00:00.000Z");
-  const item = await manager.client.feed.createItem({
+  const item = await manager.client.feed.items.create({
     name: { bn: `দানাদার ${suffix}` },
   });
   await manager.client.stock.receive({
@@ -128,11 +128,11 @@ const theyEat = async (owner: Owner) => {
     seller: { name: `ডিলার ${suffix}` },
     receivedOn: "2047-05-04",
   });
-  const ration = await manager.client.feed.saveRation({
+  const ration = await manager.client.feed.rations.save({
     name: { bn: `রেশন ${suffix}` },
     items: [{ feedItemId: item.id, kgPerAnimalPerDay: 5 }],
   });
-  await manager.client.feed.assignRation({
+  await manager.client.feed.rations.assign({
     penId: pen.id,
     rationId: ration.rationId,
   });

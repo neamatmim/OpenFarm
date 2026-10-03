@@ -68,8 +68,8 @@ const milkingSop = (): SopContent => ({
 const setup = async () => {
   const clock = new FakeClock("2036-01-01T00:00:00.000Z");
   const owner = await createTestClient(appRouter, { as: "owner", clock });
-  const shed = await owner.client.sheds.createShed({ name: `dp-${suffix}` });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: `dp-${suffix}` });
+  const pen = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: `দোহনের ঘর ${suffix}`,
   });

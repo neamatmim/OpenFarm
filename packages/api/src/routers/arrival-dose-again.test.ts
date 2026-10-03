@@ -48,8 +48,8 @@ beforeAll(async () => {
   });
   campaignId = campaign.definitionId;
   const manager = await as("manager", ARRIVED);
-  const shed = await manager.client.sheds.createShed({ name: suffix });
-  const pen = await manager.client.sheds.createPen({
+  const shed = await manager.client.sheds.create({ name: suffix });
+  const pen = await manager.client.sheds.pens.create({
     shedId: shed.id,
     name: `কোয়ারেন্টিন ${suffix}`,
     quarantine: true,

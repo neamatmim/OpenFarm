@@ -39,23 +39,23 @@ const setup = async () => {
   const owner = await as("owner");
   await owner.client.sops.create({ content: feedingSop() });
   const manager = await as("manager");
-  const concentrate = await manager.client.feed.createItem({
+  const concentrate = await manager.client.feed.items.create({
     name: { bn: `দানাদার ${suffix}` },
     bagSizeKg: 50,
   });
-  const bran = await manager.client.feed.createItem({
+  const bran = await manager.client.feed.items.create({
     name: { bn: `ভুসি ${suffix}` },
   });
-  const molasses = await manager.client.feed.createItem({
+  const molasses = await manager.client.feed.items.create({
     name: { bn: `চিটাগুড় ${suffix}` },
     unit: "litre",
   });
-  const napier = await manager.client.feed.createItem({
+  const napier = await manager.client.feed.items.create({
     name: { bn: `নেপিয়ার আঁটি ${suffix}` },
     unit: "bundle",
   });
-  const shed = await manager.client.sheds.createShed({ name: suffix });
-  const pen = await manager.client.sheds.createPen({
+  const shed = await manager.client.sheds.create({ name: suffix });
+  const pen = await manager.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: "আঁটির পেন",
@@ -71,7 +71,7 @@ const setup = async () => {
       aliases: [],
     });
   }
-  const ration = await manager.client.feed.saveRation({
+  const ration = await manager.client.feed.rations.save({
     name: { bn: `আঁটির রেশন ${suffix}` },
     items: [
       { feedItemId: napier.id, kgPerAnimalPerDay: 2.5 },
@@ -79,7 +79,7 @@ const setup = async () => {
       { feedItemId: molasses.id, kgPer100KgPerDay: 0.1 },
     ],
   });
-  await manager.client.feed.assignRation({
+  await manager.client.feed.rations.assign({
     penId: pen.id,
     rationId: ration.rationId,
   });
@@ -137,7 +137,7 @@ describe("feed bought by the bag or the maund", () => {
         pack: { kind: "bag", count: 3 },
       })
     ).rejects.toMatchObject({ data: { refusal: "bag_size_unknown" } });
-    await manager.client.feed.setBagSize({
+    await manager.client.feed.items.setBagSize({
       feedItemId: world.bran.id,
       bagSizeKg: 25,
     });
@@ -146,7 +146,7 @@ describe("feed bought by the bag or the maund", () => {
       pack: { kind: "bag", count: 3 },
     });
     expect(await arrivalOf(world.bran.id)).toMatchObject({ quantity: 75 });
-    const items = await manager.client.feed.items();
+    const items = await manager.client.feed.items.list();
     expect(items.find((one) => one.id === world.bran.id)).toMatchObject({
       bagSizeKg: 25,
     });
@@ -161,13 +161,13 @@ describe("feed bought by the bag or the maund", () => {
       })
     ).rejects.toMatchObject({ data: { refusal: "pack_needs_kg" } });
     await expect(
-      manager.client.feed.setBagSize({
+      manager.client.feed.items.setBagSize({
         feedItemId: world.napier.id,
         bagSizeKg: 20,
       })
     ).rejects.toMatchObject({ data: { refusal: "pack_needs_kg" } });
     await expect(
-      manager.client.feed.createItem({
+      manager.client.feed.items.create({
         name: { bn: `বস্তায় গুড় ${suffix}` },
         unit: "litre",
         bagSizeKg: 20,
@@ -218,7 +218,7 @@ describe("feed counted in bundles", () => {
   it("goes by the head, not by body weight", async () => {
     const manager = await as("manager");
     await expect(
-      manager.client.feed.saveRation({
+      manager.client.feed.rations.save({
         name: { bn: `ওজনে আঁটি ${suffix}` },
         items: [{ feedItemId: world.napier.id, kgPer100KgPerDay: 1 }],
       })

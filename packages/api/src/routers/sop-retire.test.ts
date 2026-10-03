@@ -26,8 +26,8 @@ const workOf = (definitionId: string) =>
 /** A heifer in a Pen, so the farm's whole-farm work has somewhere to be owed. */
 beforeAll(async () => {
   const { client } = await asOwner(onDay(1));
-  const shed = await client.sheds.createShed({ name: `retire-${Date.now()}` });
-  const pen = await client.sheds.createPen({ shedId: shed.id, name: "পেন" });
+  const shed = await client.sheds.create({ name: `retire-${Date.now()}` });
+  const pen = await client.sheds.pens.create({ shedId: shed.id, name: "পেন" });
   await client.animals.register({
     sex: "female",
     side: "dairy",
@@ -109,7 +109,7 @@ describe("retiring a procedure", () => {
     const { definitionId } = await owner.client.sops.create({
       content: feeding,
     });
-    const waiting = await manager.client.sops.propose({
+    const waiting = await manager.client.sops.proposals.create({
       definitionId,
       content: { ...feeding, graceMinutes: 60 },
     });
@@ -121,12 +121,12 @@ describe("retiring a procedure", () => {
       owner.client.sops.publish({ definitionId, content: feeding })
     ).rejects.toMatchObject(refusedAsRetired);
     await expect(
-      manager.client.sops.propose({ definitionId, content: feeding })
+      manager.client.sops.proposals.create({ definitionId, content: feeding })
     ).rejects.toMatchObject(refusedAsRetired);
     await expect(
-      owner.client.sops.approveProposal({ id: waiting.id })
+      owner.client.sops.proposals.approve({ id: waiting.id })
     ).rejects.toMatchObject(refusedAsRetired);
-    const proposals = await owner.client.sops.proposals();
+    const proposals = await owner.client.sops.proposals.list();
     expect(proposals.some((one) => one.id === waiting.id)).toBe(false);
   });
 });
@@ -152,7 +152,7 @@ describe("the people who do its work", () => {
     };
 
     await owner.client.sops.retire({ definitionId });
-    await owner.client.sops.bringBack({ definitionId });
+    await owner.client.sops.restore({ definitionId });
     await owner.client.sops.retire({ definitionId });
 
     expect(await told("sop_retired")).toBe(2);
@@ -171,7 +171,7 @@ describe("bringing a procedure back", () => {
     const [calledOff] = await workOf(definitionId);
 
     const day7 = await asOwner(onDay(7));
-    await day7.client.sops.bringBack({ definitionId });
+    await day7.client.sops.restore({ definitionId });
     await day7.client.work.ensureDue();
 
     const work = await workOf(definitionId);
@@ -190,7 +190,7 @@ describe("bringing a procedure back", () => {
     await owner.client.sops.create({ content: treatmentDose });
 
     await expect(
-      owner.client.sops.bringBack({ definitionId: first.definitionId })
+      owner.client.sops.restore({ definitionId: first.definitionId })
     ).rejects.toMatchObject({
       code: "CONFLICT",
       data: { refusal: "treatment_sop_exists" },

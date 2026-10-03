@@ -39,8 +39,8 @@ const feedingSop = (): SopContent => ({
 const setup = async () => {
   const clock = new FakeClock("2034-01-01T00:00:00.000Z");
   const manager = await createTestClient(appRouter, { as: "manager", clock });
-  const shed = await manager.client.sheds.createShed({ name: `st-${suffix}` });
-  const pen = await manager.client.sheds.createPen({
+  const shed = await manager.client.sheds.create({ name: `st-${suffix}` });
+  const pen = await manager.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `খাদ্যের পেন ${suffix}`,
@@ -53,20 +53,20 @@ const setup = async () => {
     source: "bought",
     aliases: [],
   });
-  const concentrate = await manager.client.feed.createItem({
+  const concentrate = await manager.client.feed.items.create({
     name: { bn: `দানাদার ${suffix}` },
   });
-  const grass = await manager.client.feed.createItem({
+  const grass = await manager.client.feed.items.create({
     name: { bn: `নেপিয়ার ঘাস ${suffix}` },
   });
-  const ration = await manager.client.feed.saveRation({
+  const ration = await manager.client.feed.rations.save({
     name: { bn: `রেশন ${suffix}` },
     items: [
       { feedItemId: concentrate.id, kgPerAnimalPerDay: 4 },
       { feedItemId: grass.id, kgPerAnimalPerDay: 20 },
     ],
   });
-  await manager.client.feed.assignRation({
+  await manager.client.feed.rations.assign({
     penId: pen.id,
     rationId: ration.rationId,
   });
@@ -314,7 +314,7 @@ describe("feed stock", () => {
       ownersView.some((line) => line.feedItemId === world.concentrate.id)
     ).toBe(true);
     // A feed of the Owner's own buying, so the store the other tests weigh is as they left it.
-    const hay = await owner.client.feed.createItem({
+    const hay = await owner.client.feed.items.create({
       name: { bn: `খড় মালিকের ${suffix}` },
     });
     await owner.client.stock.receive({
@@ -327,7 +327,7 @@ describe("feed stock", () => {
     expect(
       afterOwnersHay.find((line) => line.feedItemId === hay.id)
     ).toMatchObject({ onHand: 10 });
-    await owner.client.feed.retireItem({ id: hay.id });
+    await owner.client.feed.items.retire({ id: hay.id });
     for (const as of ["staff", "vet"] as const) {
       // oxlint-disable-next-line no-await-in-loop
       const other = await createTestClient(appRouter, { as, clock: at });
@@ -370,10 +370,10 @@ describe("feed stock", () => {
         receivedOn: "2034-02-01",
       })
     ).rejects.toMatchObject({ data: { refusal: "received_in_the_future" } });
-    const old = await manager.client.feed.createItem({
+    const old = await manager.client.feed.items.create({
       name: { bn: `পুরনো খাদ্য ${suffix}` },
     });
-    await manager.client.feed.retireItem({ id: old.id });
+    await manager.client.feed.items.retire({ id: old.id });
     await expect(
       manager.client.stock.receive({
         feedItemId: old.id,

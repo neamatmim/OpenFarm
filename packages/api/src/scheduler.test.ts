@@ -31,8 +31,8 @@ describe("the farm's schedule, on the server", () => {
     const { client: owner } = await createTestClient(appRouter, {
       as: "owner",
     });
-    const shed = await owner.sheds.createShed({ name: `schedule-${suffix}` });
-    const pen = await owner.sheds.createPen({
+    const shed = await owner.sheds.create({ name: `schedule-${suffix}` });
+    const pen = await owner.sheds.pens.create({
       shedId: shed.id,
       name: `পেন ${suffix}`,
     });

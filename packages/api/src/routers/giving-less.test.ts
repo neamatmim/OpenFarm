@@ -29,10 +29,10 @@ beforeAll(async () => {
 /** A cow on the opening register, in milk since long ago, in a Pen of her own. */
 const aCowInMilk = async (name: string) => {
   const owner = await as("owner", "2064-01-01T00:00:00.000Z");
-  const shed = await owner.client.sheds.createShed({
+  const shed = await owner.client.sheds.create({
     name: `${suffix}-${name}`,
   });
-  const pen = await owner.client.sheds.createPen({ shedId: shed.id, name });
+  const pen = await owner.client.sheds.pens.create({ shedId: shed.id, name });
   const imported = await owner.client.animals.importRegister({
     csv: [
       "sex,side,state,pen,source,calved_at",

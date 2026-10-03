@@ -491,7 +491,7 @@ export const investorsRouter = {
     }),
 
   /** A retired Investor coming back for another Venture. The Owner's, like retiring them. */
-  bringBack: protectedProcedure
+  restore: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())
     .input(z.object({ id: z.string().min(1) }))

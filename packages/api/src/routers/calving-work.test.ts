@@ -159,12 +159,12 @@ const prepSop = (calvingPenId: string): SopContent => ({
 const setup = async () => {
   const clock = new FakeClock("2031-01-01T00:00:00.000Z");
   const owner = await createTestClient(appRouter, { as: "owner", clock });
-  const shed = await owner.client.sheds.createShed({ name: `cw-${suffix}` });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: `cw-${suffix}` });
+  const pen = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: `দুধের ঘর ${suffix}`,
   });
-  const calvingPen = await owner.client.sheds.createPen({
+  const calvingPen = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: `বাচ্চার ঘর ${suffix}`,
   });

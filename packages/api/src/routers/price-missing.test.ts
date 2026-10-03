@@ -103,8 +103,8 @@ beforeAll(async () => {
     "2077-01-01"
   );
   await owner.client.ventures.startBuying({ id: ventureId });
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const pen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -123,7 +123,7 @@ beforeAll(async () => {
 
   // Grass cut on the farm's own land, which nobody has put a price on.
   const manager = await as("manager", "2077-01-01T05:00:00.000Z");
-  const grass = await manager.client.feed.createItem({
+  const grass = await manager.client.feed.items.create({
     name: { bn: `ঘাস ${suffix}` },
   });
   grassId = grass.id;
@@ -133,11 +133,11 @@ beforeAll(async () => {
     quantity: 2000,
     receivedOn: "2077-01-01",
   });
-  const ration = await manager.client.feed.saveRation({
+  const ration = await manager.client.feed.rations.save({
     name: { bn: `রেশন ${suffix}` },
     items: [{ feedItemId: grassId, kgPerAnimalPerDay: 20 }],
   });
-  await manager.client.feed.assignRation({
+  await manager.client.feed.rations.assign({
     penId,
     rationId: ration.rationId,
   });
@@ -204,7 +204,7 @@ describe("a month with a price missing", () => {
   it("waits for the one feed nothing can price, though the rest of the month has a price", async () => {
     // Straw cut on the farm and never priced, fed beside the grass, which now has one.
     const manager = await as("manager", "2077-02-05T05:00:00.000Z");
-    const straw = await manager.client.feed.createItem({
+    const straw = await manager.client.feed.items.create({
       name: { bn: `খড় ${suffix}` },
     });
     await manager.client.stock.receive({
@@ -214,14 +214,14 @@ describe("a month with a price missing", () => {
       receivedOn: "2077-02-05",
     });
     // On the Pen's Ration beside the grass, as anything fed there is.
-    const ration = await manager.client.feed.saveRation({
+    const ration = await manager.client.feed.rations.save({
       name: { bn: `ঘাস আর খড় ${suffix}` },
       items: [
         { feedItemId: grassId, kgPerAnimalPerDay: 20 },
         { feedItemId: straw.id, kgPerAnimalPerDay: 5 },
       ],
     });
-    await manager.client.feed.assignRation({
+    await manager.client.feed.rations.assign({
       penId,
       rationId: ration.rationId,
     });

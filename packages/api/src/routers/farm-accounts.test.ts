@@ -50,7 +50,7 @@ beforeAll(async () => {
   const owner = await as("owner", `${DAY}T03:00:00.000Z`);
   await as("manager", `${DAY}T03:00:00.000Z`);
   await as("vet", `${DAY}T03:00:00.000Z`);
-  const categories = await owner.client.money.categories();
+  const categories = await owner.client.money.categories.list();
   manureId = categories.find((one) => one.key === "manure_sales")?.id ?? "";
   const office = await owner.client.farmAccounts.create({
     kind: "mobile_money",
@@ -172,8 +172,8 @@ describe("the Farm Accounts", () => {
 
   it("are named on a Receivable Payment by mobile money, number and TrxID kept", async () => {
     const owner = await as("owner", `${DAY}T07:00:00.000Z`);
-    const shed = await owner.client.sheds.createShed({ name: suffix });
-    const pen = await owner.client.sheds.createPen({
+    const shed = await owner.client.sheds.create({ name: suffix });
+    const pen = await owner.client.sheds.pens.create({
       quarantine: true,
       shedId: shed.id,
       name: `ফ্যাটেনিং ${suffix}`,

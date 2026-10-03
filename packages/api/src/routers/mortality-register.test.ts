@@ -89,9 +89,9 @@ const setup = async () => {
   if (identity.registrationMissing) {
     await manager.client.farm.setIdentity({ registrationNumber: REGISTRATION });
   }
-  const shed = await owner.client.sheds.createShed({ name: `r6-${suffix}` });
+  const shed = await owner.client.sheds.create({ name: `r6-${suffix}` });
   const pen = (name: string) =>
-    owner.client.sheds.createPen({
+    owner.client.sheds.pens.create({
       quarantine: true,
       shedId: shed.id,
       name: `${name} ${suffix}`,

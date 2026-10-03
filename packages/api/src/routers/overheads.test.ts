@@ -46,22 +46,22 @@ const spend = async (entry: {
 
 beforeAll(async () => {
   const owner = await as("owner", "2045-02-27T04:00:00.000Z");
-  for (const one of await owner.client.money.categories()) {
+  for (const one of await owner.client.money.categories.list()) {
     if (one.key) {
       category[one.key] = one.id;
     }
   }
-  const spray = await owner.client.money.createCategory({
+  const spray = await owner.client.money.categories.create({
     nameBn: "মাছি স্প্রে",
     direction: "out",
   });
   sprayId = spray.id;
-  await owner.client.money.setChargedToAnimals({
+  await owner.client.money.categories.setChargedToAnimals({
     categoryId: sprayId,
     chargedToAnimals: true,
   });
-  const shed = await owner.client.sheds.createShed({ name: "মোটাতাজাকরণ" });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: "মোটাতাজাকরণ" });
+  const pen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: "ষাঁড় পেন",

@@ -34,21 +34,21 @@ const feedingSop = (): SopContent => ({
 
 const setup = async () => {
   const manager = await createTestClient(appRouter, { as: "manager" });
-  const shed = await manager.client.sheds.createShed({
+  const shed = await manager.client.sheds.create({
     name: `feeding-${Date.now()}`,
   });
-  const pen = await manager.client.sheds.createPen({
+  const pen = await manager.client.sheds.pens.create({
     shedId: shed.id,
     name: "খাওয়ানোর পেন",
   });
-  const concentrate = await manager.client.feed.createItem({
+  const concentrate = await manager.client.feed.items.create({
     name: { bn: `দানাদার ${Date.now()}` },
   });
-  const ration = await manager.client.feed.saveRation({
+  const ration = await manager.client.feed.rations.save({
     name: { bn: `খাওয়ানোর রেশন ${Date.now()}` },
     items: [{ feedItemId: concentrate.id, kgPerAnimalPerDay: 3 }],
   });
-  await manager.client.feed.assignRation({
+  await manager.client.feed.rations.assign({
     penId: pen.id,
     rationId: ration.rationId,
   });

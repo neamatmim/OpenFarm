@@ -28,8 +28,8 @@ beforeAll(async () => {
   const owner = await as("owner");
   const vet = await as("vet");
   const manager = await as("manager");
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const pen = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: `গাভী পেন ${suffix}`,
   });

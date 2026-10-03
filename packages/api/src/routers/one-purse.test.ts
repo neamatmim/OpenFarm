@@ -113,8 +113,8 @@ const farmFloatFor = async (owner: Owner, tripId: string) =>
 beforeAll(async () => {
   const owner = await as("owner");
   ventureId = await funded(owner);
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const pen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,

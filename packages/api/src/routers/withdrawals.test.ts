@@ -63,10 +63,10 @@ const milkingSop = (): SopContent => ({
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
   const vet = await createTestClient(appRouter, { as: "vet" });
-  const shed = await owner.client.sheds.createShed({
+  const shed = await owner.client.sheds.create({
     name: `withdrawals-${Date.now()}`,
   });
-  const pen = await owner.client.sheds.createPen({
+  const pen = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: "চিকিৎসা পেন",
   });

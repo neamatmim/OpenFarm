@@ -18,8 +18,8 @@ const as = (role: "owner" | "manager" | "staff", instant = JANUARY) =>
 
 const setup = async () => {
   const manager = await as("manager");
-  const shed = await manager.client.sheds.createShed({ name: suffix });
-  const pen = await manager.client.sheds.createPen({
+  const shed = await manager.client.sheds.create({ name: suffix });
+  const pen = await manager.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: "ঈদের পেন",

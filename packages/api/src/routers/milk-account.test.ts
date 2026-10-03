@@ -27,8 +27,8 @@ beforeAll(async () => {
     content: standardPlaybook().morningMilking,
   });
   milkingId = milking.definitionId;
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const made = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const made = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: `হিসাব পেন ${suffix}`,
   });

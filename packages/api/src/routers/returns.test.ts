@@ -42,8 +42,8 @@ const sell = async (tagNumber: string, on: string, priceMoney: number) => {
 
 beforeAll(async () => {
   const { client: owner } = await as("owner", "2027-12-31T04:00:00.000Z");
-  const shed = await owner.sheds.createShed({ name: `ফল ${suffix}` });
-  const pen = await owner.sheds.createPen({
+  const shed = await owner.sheds.create({ name: `ফল ${suffix}` });
+  const pen = await owner.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `মোটাতাজা ${suffix}`,
@@ -365,8 +365,8 @@ describe("a Season still going with one bull sold and one standing", () => {
       lowMoneyPerKg: 500,
       highMoneyPerKg: 600,
     });
-    const shed = await owner.sheds.createShed({ name: `২০৩০ ${suffix}` });
-    const pen = await owner.sheds.createPen({
+    const shed = await owner.sheds.create({ name: `২০৩০ ${suffix}` });
+    const pen = await owner.sheds.pens.create({
       quarantine: true,
       shedId: shed.id,
       name: `মোটাতাজা ২০৩০ ${suffix}`,

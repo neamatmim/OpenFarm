@@ -111,33 +111,33 @@ const setup = async () => {
   const owner = await as("owner", start);
   const manager = await as("manager", start);
   const vet = await as("vet", start);
-  const shed = await owner.client.sheds.createShed({ name: `costs-${suffix}` });
-  const fattening = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: `costs-${suffix}` });
+  const fattening = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `খরচ মোটাতাজা ${suffix}`,
   });
-  const dairy = await owner.client.sheds.createPen({
+  const dairy = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `খরচ দুধ ${suffix}`,
   });
-  const empty = await owner.client.sheds.createPen({
+  const empty = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `খরচ খালি ${suffix}`,
   });
-  const away = await owner.client.sheds.createPen({
+  const away = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `খরচ অন্যত্র ${suffix}`,
   });
 
   // Concentrate bought at 30 a kg; grass cut from the farm's own fields at no price.
-  const concentrate = await manager.client.feed.createItem({
+  const concentrate = await manager.client.feed.items.create({
     name: { bn: `খরচের দানাদার ${suffix}` },
   });
-  const grass = await manager.client.feed.createItem({
+  const grass = await manager.client.feed.items.create({
     name: { bn: `খরচের ঘাস ${suffix}` },
   });
   await manager.client.stock.receive({
@@ -154,7 +154,7 @@ const setup = async () => {
     quantity: 1000,
     receivedOn: "2039-01-01",
   });
-  const ration = await manager.client.feed.saveRation({
+  const ration = await manager.client.feed.rations.save({
     name: { bn: `খরচের রেশন ${suffix}` },
     items: [
       { feedItemId: concentrate.id, kgPerAnimalPerDay: 5 },
@@ -163,7 +163,7 @@ const setup = async () => {
   });
   for (const pen of [fattening, dairy, empty]) {
     // oxlint-disable-next-line no-await-in-loop
-    await manager.client.feed.assignRation({
+    await manager.client.feed.rations.assign({
       penId: pen.id,
       rationId: ration.rationId,
     });
@@ -480,7 +480,7 @@ afterAll(async () => {
   const manager = await as("manager", "2039-02-01T04:00:00.000Z");
   for (const item of [world.concentrate, world.grass]) {
     // oxlint-disable-next-line no-await-in-loop
-    await manager.client.feed.retireItem({ id: item.id });
+    await manager.client.feed.items.retire({ id: item.id });
   }
 });
 
@@ -643,7 +643,7 @@ describe("what an animal costs, and what a litre costs", () => {
     // Bull B, who is still standing here: nothing is charged to a beast for feed put out after she has
     // gone, so the bull who sold in January is the wrong one to ask.
     const before = await owner.client.costs.forAnimal({ tagNumber: bullB });
-    await owner.client.feed.setFodderPrice({
+    await owner.client.feed.items.setFodderPrice({
       feedItemId: world.grass.id,
       fodderPriceMoney: 2,
     });

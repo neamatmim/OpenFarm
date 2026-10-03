@@ -131,8 +131,8 @@ beforeAll(async () => {
     p256dh: "test-p256dh-key",
     auth: "test-auth-key",
   });
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const pen = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: `কোয়ারেন্টিন ${suffix}`,
     quarantine: true,
@@ -181,7 +181,7 @@ beforeAll(async () => {
     ...PAID_FROM_THE_ACCOUNT,
   });
   // A stillborn calf on the morning round: her Calving writes her death and tells nobody.
-  const calving = await owner.client.sheds.createPen({
+  const calving = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: `বাচ্চার ঘর ${suffix}`,
   });

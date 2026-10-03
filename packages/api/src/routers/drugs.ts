@@ -589,7 +589,7 @@ export const drugsRouter = {
     }),
 
   /** A retired product bought again. The Vet's, like retiring it. */
-  bringBack: protectedProcedure
+  restore: protectedProcedure
     .use(requireOnly("vet", VET_ONLY))
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {

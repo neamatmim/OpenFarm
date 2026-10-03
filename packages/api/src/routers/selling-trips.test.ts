@@ -40,8 +40,8 @@ const costOf = async (tagNumber: string) => {
 
 beforeAll(async () => {
   const owner = await as("owner", "2041-03-01T04:00:00.000Z");
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const pen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: "ফ্যাটেনিং",
@@ -150,7 +150,7 @@ describe("a Selling Trip", () => {
     expect(money.events.filter((each) => each.sourceId === trip.id)).toEqual([
       expect.objectContaining({ amountMoney: 3000, direction: "out" }),
     ]);
-    const categories = await manager.client.money.categories();
+    const categories = await manager.client.money.categories.list();
     expect(
       categories.find((each) => each.key === "selling_trip")?.enterable
     ).toBe(false);

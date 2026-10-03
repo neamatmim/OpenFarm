@@ -57,8 +57,8 @@ let sharedPenId = "";
  */
 const aMixedPen = async () => {
   const owner = await as("owner", "2047-03-06T04:00:00.000Z");
-  const shed = await owner.client.sheds.createShed({ name: `mixed-${suffix}` });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: `mixed-${suffix}` });
+  const pen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `মিশ্র ${suffix}`,
@@ -95,7 +95,7 @@ const aMixedPen = async () => {
   await owner.client.ventures.startBuying({ id: venture.id });
 
   const manager = await as("manager", "2047-03-06T05:00:00.000Z");
-  const straw = await manager.client.feed.createItem({
+  const straw = await manager.client.feed.items.create({
     name: { bn: `খড় ${suffix}` },
   });
   await manager.client.stock.receive({
@@ -106,14 +106,14 @@ const aMixedPen = async () => {
     seller: { name: `খড়ের দোকান ${suffix}` },
     receivedOn: "2047-03-06",
   });
-  const ration = await manager.client.feed.saveRation({
+  const ration = await manager.client.feed.rations.save({
     name: { bn: `মিশ্র রেশন ${suffix}` },
     items: [
       { feedItemId: itemId, kgPerAnimalPerDay: 5 },
       { feedItemId: straw.id, kgPerAnimalPerDay: 5 },
     ],
   });
-  await manager.client.feed.assignRation({
+  await manager.client.feed.rations.assign({
     penId: sharedPenId,
     rationId: ration.rationId,
   });
@@ -161,8 +161,8 @@ const aMixedPen = async () => {
 
 beforeAll(async () => {
   const owner = await as("owner", "2047-03-01T04:00:00.000Z");
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const pen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -221,7 +221,7 @@ beforeAll(async () => {
 
   // The Farm buys a sack of feed for the whole herd, as it always does.
   const manager = await as("manager", "2047-03-03T05:00:00.000Z");
-  const item = await manager.client.feed.createItem({
+  const item = await manager.client.feed.items.create({
     name: { bn: `দানাদার ${suffix}` },
   });
   itemId = item.id;
@@ -252,11 +252,11 @@ beforeAll(async () => {
   });
 
   // A Pen is fed against its Ration, so the Pen has to be on one.
-  const ration = await manager.client.feed.saveRation({
+  const ration = await manager.client.feed.rations.save({
     name: { bn: `রেশন ${suffix}` },
     items: [{ feedItemId: itemId, kgPerAnimalPerDay: 5 }],
   });
-  await manager.client.feed.assignRation({
+  await manager.client.feed.rations.assign({
     penId,
     rationId: ration.rationId,
   });

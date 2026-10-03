@@ -611,187 +611,190 @@ export const sopsRouter = {
       return { id, versionNumber: version.number, taught: true };
     }),
 
-  /** A Manager's suggested change, waiting for the Owner. Approving it publishes a Version. */
-  propose: protectedProcedure
-    .use(requireRole("owner", "manager"))
-    .use(requirePersonalSession())
-    .input(
-      z.object({ definitionId: z.string(), content: sopContentSchema, note })
-    )
-    .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      const id = uuidv7(now);
-      await audited(context).write(
-        {
-          entity: "sop_proposal",
-          entityId: id,
-          action: "create",
-          after: { definitionId: input.definitionId, status: "pending" },
-          reason: input.note,
-        },
-        async (tx) => {
-          await requireInForce(tx, context.farm.id, input.definitionId);
-          const definition = await tx.query.sopDefinition.findFirst({
-            where: { id: input.definitionId, farmId: context.farm.id },
-            columns: { id: true, currentVersionId: true },
-          });
-          if (!definition) {
-            throw new ORPCError("NOT_FOUND");
-          }
-          await tx.insert(sopProposal).values({
-            id,
+  /** Proposed changes to an SOP, waiting for the Owner. */
+  proposals: {
+    list: protectedProcedure
+      .use(requireRole("owner", "manager"))
+      .handler(({ context }) =>
+        context.db.query.sopProposal.findMany({
+          // One waiting on a retired procedure waits for it to be brought back: nobody can approve it meanwhile.
+          where: {
             farmId: context.farm.id,
-            definitionId: input.definitionId,
-            basedOnVersionId: definition.currentVersionId,
-            content: input.content,
-            note: input.note ?? null,
             status: "pending",
-            proposedBy: context.actor.id,
-            proposedByRole: context.roleUsed,
-            createdAt: now,
-          });
-          // The Owner is the only person who can answer a proposal, so the Owner is who is
-          // told. In the digest: a suggested change to the Playbook is not something to
-          // wake anybody for (notification channels).
-          await tell(
-            tx,
-            context.farm.id,
-            {
-              kind: "sop_proposed",
-              about: { id },
-              facts: {
-                sopBn: input.content.name.bn,
-                sopEn: input.content.name.en ?? input.content.name.bn,
+            definition: { retiredAt: { isNull: true } },
+          },
+          with: {
+            definition: {
+              with: {
+                currentVersion: { columns: { content: true, number: true } },
               },
             },
-            now
-          );
-        }
-      );
-      return { id, status: "pending" } as const;
-    }),
-
-  proposals: protectedProcedure
-    .use(requireRole("owner", "manager"))
-    .handler(({ context }) =>
-      context.db.query.sopProposal.findMany({
-        // One waiting on a retired procedure waits for it to be brought back: nobody can approve it meanwhile.
-        where: {
-          farmId: context.farm.id,
-          status: "pending",
-          definition: { retiredAt: { isNull: true } },
-        },
-        with: {
-          definition: {
-            with: {
-              currentVersion: { columns: { content: true, number: true } },
-            },
+            proposer: { columns: { name: true } },
           },
-          proposer: { columns: { name: true } },
-        },
-        orderBy: { createdAt: "asc" },
-      })
-    ),
+          orderBy: { createdAt: "asc" },
+        })
+      ),
 
-  /** Approving a proposal is how a Manager's change becomes the Playbook. */
-  approveProposal: protectedProcedure
-    .use(requireRole("owner"))
-    .use(requirePersonalSession())
-    .input(z.object({ id: z.string(), note }))
-    .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      let published = { id: "", number: 0 };
-      await audited(context).write(
-        {
-          entity: "sop_proposal",
-          entityId: input.id,
-          action: "update",
-          before: { status: "pending" },
-          after: { status: "approved" },
-          reason: input.note,
-        },
-        async (tx) => {
-          const [proposal] = await tx
-            .update(sopProposal)
-            .set({
-              status: "approved",
-              decidedBy: context.actor.id,
-              decidedAt: now,
-              decisionNote: input.note ?? null,
-            })
-            .where(
-              and(
-                eq(sopProposal.id, input.id),
-                eq(sopProposal.farmId, context.farm.id),
-                eq(sopProposal.status, "pending")
-              )
-            )
-            .returning({
-              definitionId: sopProposal.definitionId,
-              content: sopProposal.content,
+    /** A Manager's suggested change, waiting for the Owner. Approving it publishes a Version. */
+    create: protectedProcedure
+      .use(requireRole("owner", "manager"))
+      .use(requirePersonalSession())
+      .input(
+        z.object({ definitionId: z.string(), content: sopContentSchema, note })
+      )
+      .handler(async ({ context, input }) => {
+        const now = context.clock.now();
+        const id = uuidv7(now);
+        await audited(context).write(
+          {
+            entity: "sop_proposal",
+            entityId: id,
+            action: "create",
+            after: { definitionId: input.definitionId, status: "pending" },
+            reason: input.note,
+          },
+          async (tx) => {
+            await requireInForce(tx, context.farm.id, input.definitionId);
+            const definition = await tx.query.sopDefinition.findFirst({
+              where: { id: input.definitionId, farmId: context.farm.id },
+              columns: { id: true, currentVersionId: true },
             });
-          if (!proposal) {
-            throw new ORPCError("NOT_FOUND");
+            if (!definition) {
+              throw new ORPCError("NOT_FOUND");
+            }
+            await tx.insert(sopProposal).values({
+              id,
+              farmId: context.farm.id,
+              definitionId: input.definitionId,
+              basedOnVersionId: definition.currentVersionId,
+              content: input.content,
+              note: input.note ?? null,
+              status: "pending",
+              proposedBy: context.actor.id,
+              proposedByRole: context.roleUsed,
+              createdAt: now,
+            });
+            // The Owner is the only person who can answer a proposal, so the Owner is who is
+            // told. In the digest: a suggested change to the Playbook is not something to
+            // wake anybody for (notification channels).
+            await tell(
+              tx,
+              context.farm.id,
+              {
+                kind: "sop_proposed",
+                about: { id },
+                facts: {
+                  sopBn: input.content.name.bn,
+                  sopEn: input.content.name.en ?? input.content.name.bn,
+                },
+              },
+              now
+            );
           }
-          published = await publishVersion(tx, {
-            farmId: context.farm.id,
-            definitionId: proposal.definitionId,
-            content: proposal.content as SopContent,
-            note: input.note,
-            actorId: context.actor.id,
-            roleUsed: context.roleUsed,
-            now,
-          });
-        }
-      );
-      return {
-        id: input.id,
-        versionId: published.id,
-        number: published.number,
-      };
-    }),
+        );
+        return { id, status: "pending" } as const;
+      }),
 
-  rejectProposal: protectedProcedure
-    .use(requireRole("owner"))
-    .use(requirePersonalSession())
-    .input(
-      z.object({ id: z.string(), note: z.string().trim().min(1).max(400) })
-    )
-    .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      await audited(context).write(
-        {
-          entity: "sop_proposal",
-          entityId: input.id,
-          action: "update",
-          before: { status: "pending" },
-          after: { status: "rejected" },
-          reason: input.note,
-        },
-        async (tx) => {
-          const [row] = await tx
-            .update(sopProposal)
-            .set({
-              status: "rejected",
-              decidedBy: context.actor.id,
-              decidedAt: now,
-              decisionNote: input.note,
-            })
-            .where(
-              and(
-                eq(sopProposal.id, input.id),
-                eq(sopProposal.farmId, context.farm.id),
-                eq(sopProposal.status, "pending")
+    /** Approving a proposal is how a Manager's change becomes the Playbook. */
+    approve: protectedProcedure
+      .use(requireRole("owner"))
+      .use(requirePersonalSession())
+      .input(z.object({ id: z.string(), note }))
+      .handler(async ({ context, input }) => {
+        const now = context.clock.now();
+        let published = { id: "", number: 0 };
+        await audited(context).write(
+          {
+            entity: "sop_proposal",
+            entityId: input.id,
+            action: "update",
+            before: { status: "pending" },
+            after: { status: "approved" },
+            reason: input.note,
+          },
+          async (tx) => {
+            const [proposal] = await tx
+              .update(sopProposal)
+              .set({
+                status: "approved",
+                decidedBy: context.actor.id,
+                decidedAt: now,
+                decisionNote: input.note ?? null,
+              })
+              .where(
+                and(
+                  eq(sopProposal.id, input.id),
+                  eq(sopProposal.farmId, context.farm.id),
+                  eq(sopProposal.status, "pending")
+                )
               )
-            )
-            .returning({ id: sopProposal.id });
-          if (!row) {
-            throw new ORPCError("NOT_FOUND");
+              .returning({
+                definitionId: sopProposal.definitionId,
+                content: sopProposal.content,
+              });
+            if (!proposal) {
+              throw new ORPCError("NOT_FOUND");
+            }
+            published = await publishVersion(tx, {
+              farmId: context.farm.id,
+              definitionId: proposal.definitionId,
+              content: proposal.content as SopContent,
+              note: input.note,
+              actorId: context.actor.id,
+              roleUsed: context.roleUsed,
+              now,
+            });
           }
-        }
-      );
-      return { id: input.id, status: "rejected" } as const;
-    }),
+        );
+        return {
+          id: input.id,
+          versionId: published.id,
+          number: published.number,
+        };
+      }),
+
+    reject: protectedProcedure
+      .use(requireRole("owner"))
+      .use(requirePersonalSession())
+      .input(
+        z.object({ id: z.string(), note: z.string().trim().min(1).max(400) })
+      )
+      .handler(async ({ context, input }) => {
+        const now = context.clock.now();
+        await audited(context).write(
+          {
+            entity: "sop_proposal",
+            entityId: input.id,
+            action: "update",
+            before: { status: "pending" },
+            after: { status: "rejected" },
+            reason: input.note,
+          },
+          async (tx) => {
+            const [row] = await tx
+              .update(sopProposal)
+              .set({
+                status: "rejected",
+                decidedBy: context.actor.id,
+                decidedAt: now,
+                decisionNote: input.note,
+              })
+              .where(
+                and(
+                  eq(sopProposal.id, input.id),
+                  eq(sopProposal.farmId, context.farm.id),
+                  eq(sopProposal.status, "pending")
+                )
+              )
+              .returning({ id: sopProposal.id });
+            if (!row) {
+              throw new ORPCError("NOT_FOUND");
+            }
+          }
+        );
+        return { id: input.id, status: "rejected" } as const;
+      }),
+  },
 
   /**
    * Takes a procedure out of force: the farm raises no more of its work, by the clock, by what happens to an animal or
@@ -862,7 +865,7 @@ export const sopsRouter = {
    * it comes due. What was called off when it was retired stays called off. Refused while another procedure does what
    * only one may — the one a prescription raises, the one a notifiable diagnosis raises.
    */
-  bringBack: protectedProcedure
+  restore: protectedProcedure
     .use(requireRole("owner"))
     .use(requirePersonalSession())
     .input(z.object({ definitionId: z.string(), note }))

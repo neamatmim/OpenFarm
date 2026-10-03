@@ -206,11 +206,11 @@ export const openTheFarm = async (
 
   const pens = {} as Record<PenKey, string>;
   for (const shed of SHEDS) {
-    const made = await owner.sheds.createShed({ name: shed.name });
+    const made = await owner.sheds.create({ name: shed.name });
     for (const [key, name] of shed.pens) {
       // The quarantine pen is marked as one: every bought animal comes in through it. So is the isolation pen, where a
       // bull taken ill in Quarantine is kept apart — he stays in Quarantine, and so in a quarantine pen.
-      const pen = await owner.sheds.createPen({
+      const pen = await owner.sheds.pens.create({
         shedId: made.id,
         name,
         quarantine: key === "quarantine" || key === "isolation",
@@ -355,7 +355,7 @@ export const stockTheFarm = async (farm: Farm): Promise<void> => {
     kinds: ["feed", "rations", "health"],
   });
 
-  const items = await as.manager.feed.items();
+  const items = await as.manager.feed.items.list();
   for (const [key, name] of Object.entries(STANDARD_FEED_ITEMS)) {
     farm.feeds[key as FeedKey] =
       items.find((item) => item.nameBn === name.bn)?.id ?? "";
@@ -363,23 +363,23 @@ export const stockTheFarm = async (farm: Farm): Promise<void> => {
 
   // What the farm spends on the animals without naming any of them — fly spray, lime, a lab test. The
   // Owner marks it as one the animals of its Side carry, and the month's worth is split by their days.
-  const sundries = await as.manager.money.createCategory({
+  const sundries = await as.manager.money.categories.create({
     nameBn: HERD_SUNDRIES,
     nameEn: "Herd sundries",
     direction: "out",
   });
-  await as.owner.money.setChargedToAnimals({
+  await as.owner.money.categories.setChargedToAnimals({
     categoryId: sundries.id,
     chargedToAnimals: true,
   });
 
-  const rations = await as.manager.feed.rations();
+  const rations = await as.manager.feed.rations.list();
   for (const [key, penKeys] of FED) {
     const ration = rations.find(
       (one) => one.name.bn === STANDARD_RATIONS[key].name.bn
     );
     for (const penKey of penKeys) {
-      await as.manager.feed.assignRation({
+      await as.manager.feed.rations.assign({
         penId: farm.pens[penKey],
         rationId: ration?.id ?? "",
       });
@@ -393,7 +393,7 @@ export const stockTheFarm = async (farm: Farm): Promise<void> => {
     ["minerals", 20],
   ];
   for (const [key, threshold] of lowStock) {
-    await as.manager.feed.setLowStock({
+    await as.manager.feed.items.setLowStock({
       feedItemId: farm.feeds[key],
       threshold,
     });

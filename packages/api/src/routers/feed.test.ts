@@ -31,14 +31,14 @@ const setup = async () => {
   // Publishing the Playbook is the Owner's.
   const owner = await createTestClient(appRouter, { as: "owner" });
   await owner.client.sops.create({ content: feedingSop() });
-  const shed = await manager.client.sheds.createShed({
+  const shed = await manager.client.sheds.create({
     name: `feed-${Date.now()}`,
   });
-  const pen = await manager.client.sheds.createPen({
+  const pen = await manager.client.sheds.pens.create({
     shedId: shed.id,
     name: "দোহন পেন",
   });
-  const empty = await manager.client.sheds.createPen({
+  const empty = await manager.client.sheds.pens.create({
     shedId: shed.id,
     name: "খালি পেন",
   });
@@ -69,19 +69,21 @@ describe("what a Pen is fed", () => {
     const clock = new FakeClock("2027-05-01T02:00:00.000Z");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
 
-    const concentrate = await manager.client.feed.createItem({
+    const concentrate = await manager.client.feed.items.create({
       name: { bn: "দানাদার", en: "Concentrate" },
     });
-    const straw = await manager.client.feed.createItem({ name: { bn: "খড়" } });
+    const straw = await manager.client.feed.items.create({
+      name: { bn: "খড়" },
+    });
 
-    const saved = await manager.client.feed.saveRation({
+    const saved = await manager.client.feed.rations.save({
       name: { bn: `দোহন রেশন ${Date.now()}` },
       items: [
         { feedItemId: concentrate.id, kgPerAnimalPerDay: 2.5 },
         { feedItemId: straw.id, kgPerAnimalPerDay: 4 },
       ],
     });
-    await manager.client.feed.assignRation({
+    await manager.client.feed.rations.assign({
       penId: world.pen.id,
       rationId: saved.rationId,
     });
@@ -113,22 +115,22 @@ describe("what a Pen is fed", () => {
   it("follows the herd and the Ration, and can still say what yesterday's was", async () => {
     const clock = new FakeClock("2027-06-01T02:00:00.000Z");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    const shed = await manager.client.sheds.createShed({
+    const shed = await manager.client.sheds.create({
       name: `feed-version-${Date.now()}`,
     });
-    const pen = await manager.client.sheds.createPen({
+    const pen = await manager.client.sheds.pens.create({
       shedId: shed.id,
       name: "পরিবর্তনের পেন",
     });
-    const silage = await manager.client.feed.createItem({
+    const silage = await manager.client.feed.items.create({
       name: { bn: "সাইলেজ" },
     });
 
-    const saved = await manager.client.feed.saveRation({
+    const saved = await manager.client.feed.rations.save({
       name: { bn: `শুরুর রেশন ${Date.now()}` },
       items: [{ feedItemId: silage.id, kgPerAnimalPerDay: 10 }],
     });
-    await manager.client.feed.assignRation({
+    await manager.client.feed.rations.assign({
       penId: pen.id,
       rationId: saved.rationId,
     });
@@ -148,7 +150,7 @@ describe("what a Pen is fed", () => {
 
     // And the Manager changes what they are fed, which is a new Version of the Ration.
     clock.advance(HOUR);
-    await manager.client.feed.saveRation({
+    await manager.client.feed.rations.save({
       rationId: saved.rationId,
       name: { bn: `শুরুর রেশন ${Date.now()}` },
       items: [{ feedItemId: silage.id, kgPerAnimalPerDay: 12 }],
@@ -179,13 +181,13 @@ describe("what a Pen is fed", () => {
 
   it("keeps a retired Feed Item, because a Ration that fed it still names it", async () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
-    const molasses = await manager.client.feed.createItem({
+    const molasses = await manager.client.feed.items.create({
       name: { bn: `চিটাগুড়-${Date.now()}` },
     });
 
-    await manager.client.feed.retireItem({ id: molasses.id });
+    await manager.client.feed.items.retire({ id: molasses.id });
 
-    const items = await manager.client.feed.items();
+    const items = await manager.client.feed.items.list();
     const mine = items.find((item) => item.id === molasses.id);
     expect(mine?.retiredAt).not.toBeNull();
   });
@@ -193,7 +195,7 @@ describe("what a Pen is fed", () => {
   it("refuses a Ration that names a feed this farm does not have", async () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
     await expect(
-      manager.client.feed.saveRation({
+      manager.client.feed.rations.save({
         name: { bn: `ভুল রেশন ${Date.now()}` },
         items: [{ feedItemId: "not-a-feed", kgPerAnimalPerDay: 1 }],
       })
@@ -203,7 +205,7 @@ describe("what a Pen is fed", () => {
   it("will not let Staff change what a Pen is fed", async () => {
     const staff = await createTestClient(appRouter, { as: "staff" });
     await expect(
-      staff.client.feed.saveRation({
+      staff.client.feed.rations.save({
         name: { bn: "স্টাফের রেশন" },
         items: [{ feedItemId: "anything", kgPerAnimalPerDay: 1 }],
       })
@@ -213,27 +215,27 @@ describe("what a Pen is fed", () => {
   it("feeds two Pens from one Ration, so changing it is one change", async () => {
     const clock = new FakeClock("2027-07-01T02:00:00.000Z");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    const shed = await manager.client.sheds.createShed({
+    const shed = await manager.client.sheds.create({
       name: `feed-shared-${Date.now()}`,
     });
-    const first = await manager.client.sheds.createPen({
+    const first = await manager.client.sheds.pens.create({
       shedId: shed.id,
       name: "দোহন ১",
     });
-    const second = await manager.client.sheds.createPen({
+    const second = await manager.client.sheds.pens.create({
       shedId: shed.id,
       name: "দোহন ২",
     });
-    const hay = await manager.client.feed.createItem({
+    const hay = await manager.client.feed.items.create({
       name: { bn: `খড় ${Date.now()}` },
     });
-    const shared = await manager.client.feed.saveRation({
+    const shared = await manager.client.feed.rations.save({
       name: { bn: `দোহনের রেশন ${Date.now()}` },
       items: [{ feedItemId: hay.id, kgPerAnimalPerDay: 6 }],
     });
     await Promise.all(
       [first, second].map(async (pen) => {
-        await manager.client.feed.assignRation({
+        await manager.client.feed.rations.assign({
           penId: pen.id,
           rationId: shared.rationId,
         });
@@ -243,7 +245,7 @@ describe("what a Pen is fed", () => {
 
     // One change to the recipe, and both Pens are fed the new figure.
     clock.advance(HOUR);
-    await manager.client.feed.saveRation({
+    await manager.client.feed.rations.save({
       rationId: shared.rationId,
       name: { bn: `দোহনের রেশন ${Date.now()}` },
       items: [{ feedItemId: hay.id, kgPerAnimalPerDay: 8 }],
@@ -271,39 +273,39 @@ describe("what a Pen is fed", () => {
 describe("retiring a Ration", () => {
   it("is refused while a Pen is fed on it, and done once the Pen is on another", async () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
-    const shed = await manager.client.sheds.createShed({
+    const shed = await manager.client.sheds.create({
       name: `feed-retire-${Date.now()}`,
     });
-    const pen = await manager.client.sheds.createPen({
+    const pen = await manager.client.sheds.pens.create({
       shedId: shed.id,
       name: "পুরনো পেন",
     });
-    const hay = await manager.client.feed.createItem({
+    const hay = await manager.client.feed.items.create({
       name: { bn: `খড় পুরনো ${Date.now()}` },
     });
-    const old = await manager.client.feed.saveRation({
+    const old = await manager.client.feed.rations.save({
       name: { bn: `পুরনো রেশন ${Date.now()}` },
       items: [{ feedItemId: hay.id, kgPerAnimalPerDay: 5 }],
     });
-    const next = await manager.client.feed.saveRation({
+    const next = await manager.client.feed.rations.save({
       name: { bn: `নতুন রেশন ${Date.now()}` },
       items: [{ feedItemId: hay.id, kgPer100KgPerDay: 1 }],
     });
-    await manager.client.feed.assignRation({
+    await manager.client.feed.rations.assign({
       penId: pen.id,
       rationId: old.rationId,
     });
 
     await expect(
-      manager.client.feed.retireRation({ id: old.rationId })
+      manager.client.feed.rations.retire({ id: old.rationId })
     ).rejects.toMatchObject({ data: { refusal: "ration_in_use" } });
 
-    await manager.client.feed.assignRation({
+    await manager.client.feed.rations.assign({
       penId: pen.id,
       rationId: next.rationId,
     });
-    await manager.client.feed.retireRation({ id: old.rationId });
-    const rations = await manager.client.feed.rations();
+    await manager.client.feed.rations.retire({ id: old.rationId });
+    const rations = await manager.client.feed.rations.list();
     expect(
       rations.find((one) => one.id === old.rationId)?.retiredAt
     ).not.toBeNull();
@@ -318,28 +320,28 @@ describe("retiring a Ration", () => {
 
   it("puts no Pen on a retired Ration until it is brought back", async () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
-    const hay = await manager.client.feed.createItem({
+    const hay = await manager.client.feed.items.create({
       name: { bn: `খড় ফেরত ${Date.now()}` },
     });
-    const retired = await manager.client.feed.saveRation({
+    const retired = await manager.client.feed.rations.save({
       name: { bn: `অবসরের রেশন ${Date.now()}` },
       items: [{ feedItemId: hay.id, kgPerAnimalPerDay: 5 }],
     });
-    await manager.client.feed.retireRation({ id: retired.rationId });
+    await manager.client.feed.rations.retire({ id: retired.rationId });
 
     await expect(
-      manager.client.feed.assignRation({
+      manager.client.feed.rations.assign({
         penId: world.empty.id,
         rationId: retired.rationId,
       })
     ).rejects.toMatchObject({ data: { refusal: "ration_retired" } });
 
-    await manager.client.feed.bringBackRation({ id: retired.rationId });
-    await manager.client.feed.assignRation({
+    await manager.client.feed.rations.restore({ id: retired.rationId });
+    await manager.client.feed.rations.assign({
       penId: world.empty.id,
       rationId: retired.rationId,
     });
-    const rations = await manager.client.feed.rations();
+    const rations = await manager.client.feed.rations.list();
     expect(rations.find((one) => one.id === retired.rationId)).toMatchObject({
       retiredAt: null,
       penIds: [world.empty.id],
@@ -349,7 +351,7 @@ describe("retiring a Ration", () => {
   it("is the Owner's and the Manager's", async () => {
     const staff = await createTestClient(appRouter, { as: "staff" });
     await expect(
-      staff.client.feed.retireRation({ id: "any" })
+      staff.client.feed.rations.retire({ id: "any" })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

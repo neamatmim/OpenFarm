@@ -59,10 +59,10 @@ const setup = async () => {
   const owner = await as("owner", "2040-12-01T04:00:00.000Z");
   const sop = await owner.client.sops.create({ content: renewalSop() });
   // Barn Staff with a Pen of their own, so what they are shown of late work is scoped rather than empty.
-  const shed = await owner.client.sheds.createShed({
+  const shed = await owner.client.sheds.create({
     name: `reg-${Date.now()}`,
   });
-  const pen = await owner.client.sheds.createPen({
+  const pen = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: "নিবন্ধন পেন",
   });

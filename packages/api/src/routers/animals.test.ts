@@ -14,7 +14,7 @@ const setup = async () => {
   const sheds = await owner.client.sheds.list();
   let shedId = sheds[0]?.id;
   if (!shedId) {
-    const created = await owner.client.sheds.createShed({ name: "শেড A" });
+    const created = await owner.client.sheds.create({ name: "শেড A" });
     shedId = created.id;
   }
   const named = async (name: string) => {
@@ -23,7 +23,7 @@ const setup = async () => {
     if (found) {
       return found.id;
     }
-    const created = await owner.client.sheds.createPen({
+    const created = await owner.client.sheds.pens.create({
       quarantine: true,
       shedId,
       name,
@@ -68,15 +68,15 @@ const registerDairyCalf = (penId = pens.dairyPen) =>
 describe("sheds and pens", () => {
   it("creates and renames a shed and a pen", async () => {
     const { client } = pens.owner;
-    const shed = await client.sheds.createShed({ name: `শেড ${Date.now()}` });
-    const pen = await client.sheds.createPen({
+    const shed = await client.sheds.create({ name: `শেড ${Date.now()}` });
+    const pen = await client.sheds.pens.create({
       quarantine: true,
       shedId: shed.id,
       name: "পেন ক",
     });
 
-    await client.sheds.renameShed({ id: shed.id, name: "শেড খ" });
-    await client.sheds.renamePen({ id: pen.id, name: "পেন গ" });
+    await client.sheds.rename({ id: shed.id, name: "শেড খ" });
+    await client.sheds.pens.rename({ id: pen.id, name: "পেন গ" });
 
     const listed = await client.sheds.list();
     const found = listed.find((s) => s.id === shed.id);

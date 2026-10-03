@@ -33,13 +33,13 @@ const setup = async () => {
     data: "AAAA",
   });
   const owner = await as("owner", "2043-05-01T04:00:00.000Z");
-  const shed = await owner.client.sheds.createShed({ name: `insp-${suffix}` });
-  const milkingPen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: `insp-${suffix}` });
+  const milkingPen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `পরিদর্শন দুধ ${suffix}`,
   });
-  const bullPen = await owner.client.sheds.createPen({
+  const bullPen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `পরিদর্শন ষাঁড় ${suffix}`,

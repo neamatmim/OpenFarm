@@ -18,7 +18,7 @@ export type Sop = Awaited<ReturnType<typeof orpc.sops.list.call>>[number];
 
 /** A change somebody proposed to a procedure, waiting for the Owner. */
 export type Proposal = Awaited<
-  ReturnType<typeof orpc.sops.proposals.call>
+  ReturnType<typeof orpc.sops.proposals.list.call>
 >[number];
 
 type Translate = ReturnType<typeof useLanguage>["t"];

@@ -34,11 +34,11 @@ const harvest = async (
 
 beforeAll(async () => {
   const owner = await as("owner", "2042-03-01T04:00:00.000Z");
-  const grass = await owner.client.feed.createItem({
+  const grass = await owner.client.feed.items.create({
     name: { bn: `নেপিয়ার ${suffix}`, en: `Napier ${suffix}` },
   });
   grassId = grass.id;
-  const bought = await owner.client.feed.createItem({
+  const bought = await owner.client.feed.items.create({
     name: { bn: `ভুসি ${suffix}`, en: `Bran ${suffix}` },
   });
   boughtId = bought.id;
@@ -47,14 +47,14 @@ beforeAll(async () => {
 describe("the Fodder Price", () => {
   it("brings a Harvest into the store at what the Owner says it is worth", async () => {
     const owner = await as("owner", "2042-03-02T04:00:00.000Z");
-    await owner.client.feed.setFodderPrice({
+    await owner.client.feed.items.setFodderPrice({
       feedItemId: grassId,
       fodderPriceMoney: 4,
     });
     const manager = await as("manager", "2042-03-03T04:00:00.000Z");
     await harvest(manager, grassId, 100, "2042-03-03");
 
-    const items = await manager.client.feed.items();
+    const items = await manager.client.feed.items.list();
     const grass = items.find((one) => one.id === grassId);
     expect(grass).toMatchObject({ fodderPriceMoney: 4 });
 
@@ -85,11 +85,11 @@ describe("the Fodder Price", () => {
 
   it("blends with bought feed in the store's price", async () => {
     const manager = await as("manager", "2042-03-10T04:00:00.000Z");
-    const blended = await manager.client.feed.createItem({
+    const blended = await manager.client.feed.items.create({
       name: { bn: `মিশ্র ${suffix}` },
     });
     const owner = await as("owner", "2042-03-10T04:00:00.000Z");
-    await owner.client.feed.setFodderPrice({
+    await owner.client.feed.items.setFodderPrice({
       feedItemId: blended.id,
       fodderPriceMoney: 10,
     });
@@ -114,10 +114,10 @@ describe("the Fodder Price", () => {
 
   it("still lets a cut lot be put right, and keeps it worth its kilos", async () => {
     const owner = await as("owner", "2042-03-06T04:00:00.000Z");
-    const item = await owner.client.feed.createItem({
+    const item = await owner.client.feed.items.create({
       name: { bn: `ভুট্টা ${suffix}` },
     });
-    await owner.client.feed.setFodderPrice({
+    await owner.client.feed.items.setFodderPrice({
       feedItemId: item.id,
       fodderPriceMoney: 5,
     });
@@ -142,7 +142,7 @@ describe("the Fodder Price", () => {
 
   it("charges the animals that eat it, and moves what a bull cost", async () => {
     const owner = await as("owner", "2042-03-18T04:00:00.000Z");
-    const items = await owner.client.feed.items();
+    const items = await owner.client.feed.items.list();
     const grass = items.find((one) => one.id === grassId);
     expect(grass?.fodderPriceMoney).toBe(4);
     // The trail holds what the Owner did, as every change does.
@@ -156,7 +156,7 @@ describe("the Fodder Price", () => {
   it("is the Owner's alone to set", async () => {
     const manager = await as("manager", "2042-03-12T04:00:00.000Z");
     await expect(
-      manager.client.feed.setFodderPrice({
+      manager.client.feed.items.setFodderPrice({
         feedItemId: grassId,
         fodderPriceMoney: 9,
       })
@@ -165,13 +165,13 @@ describe("the Fodder Price", () => {
 
   it("changes what is cut afterwards, and never what was cut before", async () => {
     const owner = await as("owner", "2042-03-15T04:00:00.000Z");
-    const item = await owner.client.feed.createItem({
+    const item = await owner.client.feed.items.create({
       name: { bn: `খড় ${suffix}` },
     });
     const manager = await as("manager", "2042-03-15T04:00:00.000Z");
     // Cut before the farm put a price on it: worth nothing, and it stays worth nothing.
     await harvest(manager, item.id, 100, "2042-03-15");
-    await owner.client.feed.setFodderPrice({
+    await owner.client.feed.items.setFodderPrice({
       feedItemId: item.id,
       fodderPriceMoney: 6,
     });

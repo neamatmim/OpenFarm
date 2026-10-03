@@ -28,8 +28,8 @@ const setup = async () => {
   if (identity.registrationMissing) {
     await manager.client.farm.setIdentity({ registrationNumber: REGISTRATION });
   }
-  const shed = await manager.client.sheds.createShed({ name: `acc-${suffix}` });
-  const pen = await manager.client.sheds.createPen({
+  const shed = await manager.client.sheds.create({ name: `acc-${suffix}` });
+  const pen = await manager.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `হিসাব ${suffix}`,
@@ -57,7 +57,7 @@ const setup = async () => {
     targetWindowStart: "2040-06-01",
     targetWindowEnd: "2040-06-05",
   });
-  const categories = await manager.client.money.categories();
+  const categories = await manager.client.money.categories.list();
   const keyed = (key: string) =>
     categories.find((one) => one.key === key)?.id ?? "";
   // The electricity for the milking parlour, and a milker's wage.
@@ -79,7 +79,7 @@ const setup = async () => {
   });
   // A cow in the Dairy side's Pen, and the Vet seeing her and the bull on one visit for 2,000: 1,000 each
   // Side.
-  const dairyPen = await manager.client.sheds.createPen({
+  const dairyPen = await manager.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `হিসাব দুধ ${suffix}`,
@@ -99,7 +99,7 @@ const setup = async () => {
     animalTags: [bull.tagNumber, cow.tagNumber],
   });
   // Concentrate for the store: the whole farm's.
-  const feed = await manager.client.feed.createItem({
+  const feed = await manager.client.feed.items.create({
     name: { bn: `হিসাবের দানাদার ${suffix}` },
   });
   const lorry = await manager.client.stock.receive({
@@ -133,7 +133,7 @@ beforeAll(async () => {
 afterAll(async () => {
   // Retired, so a Stock Count later in this file does not find a lorry from 2040 still in the store.
   const manager = await as("manager", "2040-04-01T04:00:00.000Z");
-  await manager.client.feed.retireItem({ id: world.feed.id });
+  await manager.client.feed.items.retire({ id: world.feed.id });
 });
 
 describe("the accountant's export", () => {

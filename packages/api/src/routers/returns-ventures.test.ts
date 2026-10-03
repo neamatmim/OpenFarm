@@ -126,8 +126,8 @@ beforeAll(async () => {
     registrationOffice: "উপজেলা প্রাণিসম্পদ দপ্তর, সাভার",
     registrationExpiresOn: "2055-03-31",
   });
-  const shed = await owner.sheds.createShed({ name: suffix });
-  const pen = await owner.sheds.createPen({
+  const shed = await owner.sheds.create({ name: suffix });
+  const pen = await owner.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -487,8 +487,8 @@ describe("a Venture still going, at today's price", () => {
     // ৳1,00,000 on 4 January stands. At its plan's prices he is worth ৳1,50,000 to ৳1,75,000: 50 to 75 on every
     // hundred, his money out since 4 January — 96 days on 10 April.
     const { client: owner } = await as("owner", "2053-01-02T04:00:00.000Z");
-    const shed = await owner.sheds.createShed({ name: `চলতি ${suffix}` });
-    const pen = await owner.sheds.createPen({
+    const shed = await owner.sheds.create({ name: `চলতি ${suffix}` });
+    const pen = await owner.sheds.pens.create({
       quarantine: true,
       shedId: shed.id,
       name: `চলতি পেন ${suffix}`,

@@ -13,8 +13,8 @@ let penId: string;
 
 beforeAll(async () => {
   ({ client: owner } = await asOwner());
-  const shed = await owner.sheds.createShed({ name: "জাতের শেড" });
-  ({ id: penId } = await owner.sheds.createPen({
+  const shed = await owner.sheds.create({ name: "জাতের শেড" });
+  ({ id: penId } = await owner.sheds.pens.create({
     shedId: shed.id,
     name: "জাতের পেন",
   }));
@@ -110,7 +110,7 @@ describe("the farm's list of breeds", () => {
     expect(refusal(refused)).toBe("breed_retired");
     expect(her.breed?.nameBn).toBe("অবসরের জাত");
 
-    await owner.breeds.bringBack({ id });
+    await owner.breeds.restore({ id });
     await expect(registerCalf(id)).resolves.toMatchObject({
       tagNumber: expect.any(String),
     });

@@ -57,13 +57,13 @@ const enter = async (
 
 beforeAll(async () => {
   const owner = await as("owner", "2044-05-01T04:00:00.000Z");
-  for (const one of await owner.client.money.categories()) {
+  for (const one of await owner.client.money.categories.list()) {
     if (one.key) {
       category[one.key] = one.id;
     }
   }
   const marking = await as("owner", "2044-05-02T04:00:00.000Z");
-  await marking.client.money.setPaidMonthly({
+  await marking.client.money.categories.setPaidMonthly({
     categoryId: category.rent ?? "",
     paidMonthly: true,
   });
@@ -72,7 +72,7 @@ beforeAll(async () => {
 describe("a Monthly Cost", () => {
   it("is shed rent, a standard Category the Owner may mark and nobody may charge to the animals", async () => {
     const owner = await as("owner", "2044-05-02T05:00:00.000Z");
-    const categories = await owner.client.money.categories();
+    const categories = await owner.client.money.categories.list();
     const rent = categories.find((one) => one.key === "rent");
     expect(rent).toMatchObject({
       nameBn: "শেড ভাড়া",
@@ -123,7 +123,7 @@ describe("a Monthly Cost", () => {
   it("is the Owner's alone to mark, and never Wages, money coming in, or a record's money — a Vet's fee among them", async () => {
     const manager = await as("manager", "2044-05-03T04:00:00.000Z");
     await expect(
-      manager.client.money.setPaidMonthly({
+      manager.client.money.categories.setPaidMonthly({
         categoryId: category.utilities ?? "",
         paidMonthly: true,
       })
@@ -131,7 +131,7 @@ describe("a Monthly Cost", () => {
 
     const owner = await as("owner", "2044-05-03T04:00:00.000Z");
     await expect(
-      owner.client.money.setPaidMonthly({
+      owner.client.money.categories.setPaidMonthly({
         categoryId: category.wages ?? "",
         paidMonthly: true,
       })
@@ -139,7 +139,7 @@ describe("a Monthly Cost", () => {
     await Promise.all(
       ["manure_sales", "feed_in", "vet_fee"].map((key) =>
         expect(
-          owner.client.money.setPaidMonthly({
+          owner.client.money.categories.setPaidMonthly({
             categoryId: category[key] ?? "",
             paidMonthly: true,
           })
@@ -208,17 +208,17 @@ describe("the day of the month", () => {
 describe("the mark", () => {
   it("is never put on a retired Category, and a retired one is not offered it", async () => {
     const owner = await as("owner", "2044-09-02T04:00:00.000Z");
-    const gone = await owner.client.money.createCategory({
+    const gone = await owner.client.money.categories.create({
       nameBn: "পুরোনো জেনারেটর",
       direction: "out",
     });
-    await owner.client.money.retireCategory({ id: gone.id });
-    const categories = await owner.client.money.categories();
+    await owner.client.money.categories.retire({ id: gone.id });
+    const categories = await owner.client.money.categories.list();
     expect(categories.find((one) => one.id === gone.id)).toMatchObject({
       monthlyMarkable: false,
     });
     await expect(
-      owner.client.money.setPaidMonthly({
+      owner.client.money.categories.setPaidMonthly({
         categoryId: gone.id,
         paidMonthly: true,
       })
@@ -227,21 +227,21 @@ describe("the mark", () => {
 
   it("taken off and put back, starts again from the day it went back on", async () => {
     const owner = await as("owner", "2044-10-02T04:00:00.000Z");
-    const internet = await owner.client.money.createCategory({
+    const internet = await owner.client.money.categories.create({
       nameBn: "ইন্টারনেট",
       direction: "out",
     });
-    await owner.client.money.setPaidMonthly({
+    await owner.client.money.categories.setPaidMonthly({
       categoryId: internet.id,
       paidMonthly: true,
     });
     const off = await as("owner", "2044-10-03T04:00:00.000Z");
-    await off.client.money.setPaidMonthly({
+    await off.client.money.categories.setPaidMonthly({
       categoryId: internet.id,
       paidMonthly: false,
     });
     const back = await as("owner", "2044-11-20T04:00:00.000Z");
-    await back.client.money.setPaidMonthly({
+    await back.client.money.categories.setPaidMonthly({
       categoryId: internet.id,
       paidMonthly: true,
     });

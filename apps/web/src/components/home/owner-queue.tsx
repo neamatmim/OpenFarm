@@ -177,7 +177,7 @@ const ProposalGroup = ({ needsYou, headless }: GroupProps) => {
   const { t } = useLanguage();
   const refused = useRefused();
   const approve = useMutation(
-    orpc.sops.approveProposal.mutationOptions({
+    orpc.sops.proposals.approve.mutationOptions({
       onError: refused,
     })
   );

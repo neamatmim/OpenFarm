@@ -205,9 +205,9 @@ const dispatch = async (on: string, pricePerLitreMoney: number) => {
 beforeAll(async () => {
   const start = "2045-01-01T03:00:00.000Z";
   const { client: owner } = await as("owner", start);
-  const shed = await owner.sheds.createShed({ name: `দুগ্ধ ${suffix}` });
+  const shed = await owner.sheds.create({ name: `দুগ্ধ ${suffix}` });
   const pen = async (name: string) => {
-    const made = await owner.sheds.createPen({
+    const made = await owner.sheds.pens.create({
       shedId: shed.id,
       name: `${name} ${suffix}`,
     });
@@ -270,7 +270,7 @@ beforeAll(async () => {
     .set({ damId: ids.m })
     .where(eq(animal.id, ids.b));
 
-  const item = await manager.feed.createItem({
+  const item = await manager.feed.items.create({
     name: { bn: `দানাদার ${suffix}` },
   });
   concentrate = item.id;
@@ -282,13 +282,13 @@ beforeAll(async () => {
     seller: { name: `দানাদারের দোকান ${suffix}` },
     receivedOn: "2045-01-01",
   });
-  const ration = await manager.feed.saveRation({
+  const ration = await manager.feed.rations.save({
     name: { bn: `রেশন ${suffix}` },
     items: [{ feedItemId: concentrate, kgPerAnimalPerDay: 5 }],
   });
   for (const penId of [pens.cows, pens.calves]) {
     // oxlint-disable-next-line no-await-in-loop -- two Pens, one after the other
-    await manager.feed.assignRation({ penId, rationId: ration.rationId });
+    await manager.feed.rations.assign({ penId, rationId: ration.rationId });
   }
   const feeding = await owner.sops.create({ content: feedingSop() });
   const milking = await owner.sops.create({ content: milkingSop() });

@@ -89,8 +89,8 @@ const toldOf = async (tag: string, role: "owner" | "manager" = "owner") =>
 beforeAll(async () => {
   const owner = await as("owner", ARRIVED);
   const manager = await as("manager", ARRIVED);
-  const shed = await manager.client.sheds.createShed({ name: suffix });
-  const pen = await manager.client.sheds.createPen({
+  const shed = await manager.client.sheds.create({ name: suffix });
+  const pen = await manager.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `নতুন ${suffix}`,

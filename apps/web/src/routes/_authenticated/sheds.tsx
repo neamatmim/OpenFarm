@@ -106,19 +106,19 @@ const HerdPage = () => {
   };
   const onError = refused;
   const createShed = useMutation(
-    orpc.sheds.createShed.mutationOptions({ onSuccess: done, onError })
+    orpc.sheds.create.mutationOptions({ onSuccess: done, onError })
   );
   const createPen = useMutation(
-    orpc.sheds.createPen.mutationOptions({ onSuccess: done, onError })
+    orpc.sheds.pens.create.mutationOptions({ onSuccess: done, onError })
   );
   const renameShed = useMutation(
-    orpc.sheds.renameShed.mutationOptions({ onSuccess: done, onError })
+    orpc.sheds.rename.mutationOptions({ onSuccess: done, onError })
   );
   const renamePen = useMutation(
-    orpc.sheds.renamePen.mutationOptions({ onSuccess: done, onError })
+    orpc.sheds.pens.rename.mutationOptions({ onSuccess: done, onError })
   );
   const markQuarantine = useMutation(
-    orpc.sheds.markQuarantine.mutationOptions({ onError })
+    orpc.sheds.pens.markQuarantine.mutationOptions({ onError })
   );
   const pending =
     createShed.isPending ||

@@ -54,8 +54,8 @@ const setup = async () => {
   const clock = new FakeClock("2027-01-04T07:30:00.000Z");
   const owner = await createTestClient(appRouter, { as: "owner", clock });
   const manager = await createTestClient(appRouter, { as: "manager", clock });
-  const shed = await owner.client.sheds.createShed({ name: `gain-${suffix}` });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: `gain-${suffix}` });
+  const pen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `মোটাতাজা ${suffix}`,

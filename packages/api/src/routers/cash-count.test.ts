@@ -27,8 +27,8 @@ beforeAll(async () => {
   });
   countId = made.definitionId;
   // Work about the whole farm is raised while any Pen holds an animal.
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const pen = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: `বকনা পেন ${suffix}`,
   });
@@ -41,7 +41,7 @@ beforeAll(async () => {
     aliases: [],
   });
   const manager = await as("manager", "2071-05-01T04:00:00.000Z");
-  const categories = await manager.client.money.categories();
+  const categories = await manager.client.money.categories.list();
   manureId = categories.find((one) => one.key === "manure_sales")?.id ?? "";
   // Ten thousand in the Manager's hand from the manure sold.
   await manager.client.money.enter({

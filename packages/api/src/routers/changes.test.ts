@@ -25,10 +25,10 @@ const waterSop = (): SopContent => ({
 
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.client.sheds.createShed({
+  const shed = await owner.client.sheds.create({
     name: `changes-${Date.now()}`,
   });
-  const pen = await owner.client.sheds.createPen({
+  const pen = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: "পানির পেন",
   });
@@ -168,10 +168,10 @@ describe("a Version that changed under somebody", () => {
   it("shows everything that changed while somebody was away, not only the last of it", async () => {
     const clock = new FakeClock("2027-11-05T02:00:00.000Z");
     const owner = await createTestClient(appRouter, { as: "owner", clock });
-    const shed = await owner.client.sheds.createShed({
+    const shed = await owner.client.sheds.create({
       name: `away-${Date.now()}`,
     });
-    const pen = await owner.client.sheds.createPen({
+    const pen = await owner.client.sheds.pens.create({
       shedId: shed.id,
       name: "দূরের পেন",
     });
@@ -261,10 +261,10 @@ describe("a Version that changed under somebody", () => {
   it("says nothing when two Versions differ in ways nobody doing the work would see", async () => {
     const clock = new FakeClock("2027-11-06T02:00:00.000Z");
     const owner = await createTestClient(appRouter, { as: "owner", clock });
-    const shed = await owner.client.sheds.createShed({
+    const shed = await owner.client.sheds.create({
       name: `quiet-${Date.now()}`,
     });
-    const pen = await owner.client.sheds.createPen({
+    const pen = await owner.client.sheds.pens.create({
       shedId: shed.id,
       name: "শান্ত পেন",
     });

@@ -74,10 +74,10 @@ let penId = "";
 
 beforeAll(async () => {
   const owner = await as("owner", RECORDED);
-  const shed = await owner.client.sheds.createShed({
+  const shed = await owner.client.sheds.create({
     name: `correction-${suffix}`,
   });
-  const pen = await owner.client.sheds.createPen({
+  const pen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `সংশোধন ${suffix}`,
@@ -180,7 +180,7 @@ const KINDS: Kind[] = [
     by: "manager",
     ownerToo: true,
     make: async (manager) => {
-      const feed = await manager.feed.createItem({
+      const feed = await manager.feed.items.create({
         name: { bn: `খড় ${suffix} ${Math.random()}` },
         unit: "kg",
       });
@@ -193,7 +193,7 @@ const KINDS: Kind[] = [
         receivedOn: "2039-03-01",
       });
       // Retired at once: a Stock Count later in this file must not find this lot still in the store.
-      await manager.feed.retireItem({ id: feed.id });
+      await manager.feed.items.retire({ id: feed.id });
       return {
         id: made.id,
         trail: { entity: "feed_in", entityId: made.id },
@@ -209,7 +209,7 @@ const KINDS: Kind[] = [
     name: "money entered by hand",
     by: "manager",
     make: async (manager) => {
-      const categories = await manager.money.categories();
+      const categories = await manager.money.categories.list();
       const repairs = categories.find((one) => one.key === "repairs");
       const made = await manager.money.enter({
         categoryId: repairs?.id ?? "",

@@ -58,10 +58,10 @@ beforeAll(async () => {
 /** A Pen of its own, with one animal in it, for each question. */
 const aPenWithHer = async (name: string) => {
   const owner = await as("owner", "2054-01-01T00:00:00.000Z");
-  const shed = await owner.client.sheds.createShed({
+  const shed = await owner.client.sheds.create({
     name: `${suffix}-${name}`,
   });
-  const pen = await owner.client.sheds.createPen({ shedId: shed.id, name });
+  const pen = await owner.client.sheds.pens.create({ shedId: shed.id, name });
   const her = await owner.client.animals.register({
     sex: "female",
     side: "dairy",

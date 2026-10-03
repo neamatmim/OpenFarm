@@ -233,14 +233,14 @@ const payOut = async (ventureId: string) => {
 
 beforeAll(async () => {
   const owner = await as("owner", "2049-01-01T04:00:00.000Z");
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const pen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
   });
   penId = pen.id;
-  const elsewhere = await owner.client.sheds.createPen({
+  const elsewhere = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `আলাদা ${suffix}`,
@@ -284,7 +284,7 @@ beforeAll(async () => {
 
   // Feed bought, a ration the Pen is on, and the SOP that puts it out.
   const feeding = await as("manager", "2049-01-05T05:00:00.000Z");
-  const item = await feeding.client.feed.createItem({
+  const item = await feeding.client.feed.items.create({
     name: { bn: `দানাদার ${suffix}` },
   });
   feedItemId = item.id;
@@ -298,7 +298,7 @@ beforeAll(async () => {
   });
   arrivalId = arrival.id;
   // A second Feed Item that came in and was never put in front of anybody.
-  const straw = await feeding.client.feed.createItem({
+  const straw = await feeding.client.feed.items.create({
     name: { bn: `খড় ${suffix}` },
   });
   const untouched = await feeding.client.stock.receive({
@@ -310,12 +310,15 @@ beforeAll(async () => {
     receivedOn: "2049-01-05",
   });
   untouchedArrivalId = untouched.id;
-  const ration = await feeding.client.feed.saveRation({
+  const ration = await feeding.client.feed.rations.save({
     name: { bn: `রেশন ${suffix}` },
     items: [{ feedItemId, kgPerAnimalPerDay: 5 }],
   });
-  await feeding.client.feed.assignRation({ penId, rationId: ration.rationId });
-  await feeding.client.feed.assignRation({
+  await feeding.client.feed.rations.assign({
+    penId,
+    rationId: ration.rationId,
+  });
+  await feeding.client.feed.rations.assign({
     penId: elsewherePenId,
     rationId: ration.rationId,
   });
@@ -344,12 +347,12 @@ beforeAll(async () => {
 
   // Money entered by hand under a Category the Owner marks as the herd's, so January's is split across
   // everybody standing that month — the two Ventures' bulls among them.
-  const spraying = await owner.client.money.createCategory({
+  const spraying = await owner.client.money.categories.create({
     nameBn: `মাছি স্প্রে ${suffix}`,
     direction: "out",
   });
   herdCostId = spraying.id;
-  await owner.client.money.setChargedToAnimals({
+  await owner.client.money.categories.setChargedToAnimals({
     categoryId: herdCostId,
     chargedToAnimals: true,
   });

@@ -24,7 +24,7 @@ const as = (
 /** The Category with this standard key, as the Manager reads the list. */
 const categoryKeyed = async (key: string) => {
   const manager = await as("manager", "2038-01-01T04:00:00.000Z");
-  const all = await manager.client.money.categories();
+  const all = await manager.client.money.categories.list();
   const found = all.find((one) => one.key === key);
   if (!found) {
     throw new Error(`No ${key} Category`);
@@ -42,7 +42,7 @@ const eventOf = async (id: string) => {
 describe("money entered by hand", () => {
   it("starts from the standard Categories, the records' own among them", async () => {
     const manager = await as("manager", "2038-01-01T04:00:00.000Z");
-    const all = await manager.client.money.categories();
+    const all = await manager.client.money.categories.list();
     expect(all.map((one) => one.key)).toEqual(
       expect.arrayContaining([
         "dispatch",
@@ -183,13 +183,13 @@ describe("money entered by hand", () => {
 
   it("keeps the farm's own Categories, retiring one rather than removing it", async () => {
     const manager = await as("manager", "2038-03-01T04:00:00.000Z");
-    const insurance = await manager.client.money.createCategory({
+    const insurance = await manager.client.money.categories.create({
       nameBn: `পশু বীমা ${suffix}`,
       nameEn: "Cattle insurance",
       direction: "out",
     });
     await expect(
-      manager.client.money.createCategory({
+      manager.client.money.categories.create({
         nameBn: `পশু বীমা ${suffix}`,
         direction: "out",
       })
@@ -203,15 +203,15 @@ describe("money entered by hand", () => {
 
     // A farm's own Category may not take a standard one's name, which the records book under.
     await expect(
-      manager.client.money.createCategory({
+      manager.client.money.categories.create({
         nameBn: "দুধ বিক্রি",
         direction: "in",
       })
     ).rejects.toMatchObject({ data: { refusal: "category_exists" } });
 
     const owner = await as("owner", "2038-03-02T04:00:00.000Z");
-    await owner.client.money.retireCategory({ id: insurance.id });
-    const listed = await manager.client.money.categories();
+    await owner.client.money.categories.retire({ id: insurance.id });
+    const listed = await manager.client.money.categories.list();
     expect(listed.find((one) => one.id === insurance.id)).toMatchObject({
       retiredAt: expect.any(Date),
     });
@@ -246,12 +246,12 @@ describe("money entered by hand", () => {
       })
     ).rejects.toMatchObject({ data: { refusal: "category_kept_by_records" } });
     await expect(
-      owner.client.money.retireCategory({ id: milkSales.id })
+      owner.client.money.categories.retire({ id: milkSales.id })
     ).rejects.toMatchObject({ data: { refusal: "category_kept_by_records" } });
     // Nor Wages, which the one-wage-a-month rule is kept by.
     const wages = await categoryKeyed("wages");
     await expect(
-      owner.client.money.retireCategory({ id: wages.id })
+      owner.client.money.categories.retire({ id: wages.id })
     ).rejects.toMatchObject({ data: { refusal: "category_kept_for_wages" } });
   });
 
@@ -349,7 +349,7 @@ describe("money entered by hand", () => {
       // oxlint-disable-next-line no-await-in-loop
       const other = await as(role, "2038-05-01T04:00:00.000Z");
       // oxlint-disable-next-line no-await-in-loop
-      await expect(other.client.money.categories()).rejects.toMatchObject({
+      await expect(other.client.money.categories.list()).rejects.toMatchObject({
         code: "FORBIDDEN",
       });
       // oxlint-disable-next-line no-await-in-loop

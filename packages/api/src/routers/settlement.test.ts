@@ -105,8 +105,8 @@ const funded = async (owner: Owner, which: number) => {
 
 beforeAll(async () => {
   const owner = await as("owner", "2047-01-01T04:00:00.000Z");
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const pen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -166,7 +166,7 @@ beforeAll(async () => {
 
   // Feed, so there is something for a month's Reimbursement to be about.
   const feeding = await as("manager", "2047-01-05T05:00:00.000Z");
-  const item = await feeding.client.feed.createItem({
+  const item = await feeding.client.feed.items.create({
     name: { bn: `দানাদার ${suffix}` },
   });
   feedItemId = item.id;
@@ -178,11 +178,11 @@ beforeAll(async () => {
     seller: { name: `ডিলার ${suffix}` },
     receivedOn: "2047-01-05",
   });
-  const ration = await feeding.client.feed.saveRation({
+  const ration = await feeding.client.feed.rations.save({
     name: { bn: `রেশন ${suffix}` },
     items: [{ feedItemId, kgPerAnimalPerDay: 5 }],
   });
-  await feeding.client.feed.assignRation({
+  await feeding.client.feed.rations.assign({
     penId,
     rationId: ration.rationId,
   });
@@ -458,7 +458,7 @@ describe("what a Settlement is", () => {
     });
     // The farm's own fodder: harvested, never bought, so the store holds kilos at no price at all and
     // nothing can say what a kilo of it cost.
-    const fodder = await manager.client.feed.createItem({
+    const fodder = await manager.client.feed.items.create({
       name: { bn: `নিজের খড় ${suffix}` },
     });
     await manager.client.stock.receive({
@@ -467,11 +467,11 @@ describe("what a Settlement is", () => {
       quantity: 2000,
       receivedOn: "2047-04-02",
     });
-    const ration = await manager.client.feed.saveRation({
+    const ration = await manager.client.feed.rations.save({
       name: { bn: `রেশন দুই ${suffix}` },
       items: [{ feedItemId: fodder.id, kgPerAnimalPerDay: 5 }],
     });
-    await manager.client.feed.assignRation({
+    await manager.client.feed.rations.assign({
       penId,
       rationId: ration.rationId,
     });
@@ -703,11 +703,11 @@ describe("what a Settlement is", () => {
     // A late cost lands — the vet's bill for a visit that named one of them. The costing moves; what
     // was approved does not.
     const late = await as("owner", "2047-04-07T04:00:00.000Z");
-    const categories = await late.client.money.categories();
+    const categories = await late.client.money.categories.list();
     const charged = categories.find(
       (one) => one.enterable && one.chargeable && one.direction === "out"
     );
-    await late.client.money.setChargedToAnimals({
+    await late.client.money.categories.setChargedToAnimals({
       categoryId: charged?.id ?? "",
       chargedToAnimals: true,
     });
@@ -965,7 +965,7 @@ describe("what a Settlement is", () => {
     await owner.client.farm.setParameters({ adjustmentThresholdMoney: 10_000 });
     // A vet's bill that was in a pocket: two hundred taka against one of the bulls.
     const late = await as("owner", "2047-04-11T05:00:00.000Z");
-    const categories = await late.client.money.categories();
+    const categories = await late.client.money.categories.list();
     const charged = categories.find(
       (one) => one.enterable && one.chargeable && one.direction === "out"
     );
@@ -1004,7 +1004,7 @@ describe("what a Settlement is", () => {
 
   it("notes a large one the Investors lost by, and chases nobody", async () => {
     const owner = await as("owner", "2047-04-12T04:00:00.000Z");
-    const categories = await owner.client.money.categories();
+    const categories = await owner.client.money.categories.list();
     const charged = categories.find(
       (one) => one.enterable && one.chargeable && one.direction === "out"
     );

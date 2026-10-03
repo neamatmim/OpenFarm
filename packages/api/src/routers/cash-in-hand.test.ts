@@ -20,7 +20,7 @@ beforeAll(async () => {
   // Both hands exist on the farm before anybody asks what is in them.
   await as("owner");
   const manager = await as("manager");
-  const categories = await manager.client.money.categories();
+  const categories = await manager.client.money.categories.list();
   const keyed = (key: string) =>
     categories.find((one) => one.key === key)?.id ?? "";
   manureId = keyed("manure_sales");

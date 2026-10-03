@@ -288,8 +288,8 @@ beforeAll(async () => {
     registrationOffice: "উপজেলা প্রাণিসম্পদ দপ্তর, সাভার",
     registrationExpiresOn: "2056-03-31",
   });
-  const shed = await owner.sheds.createShed({ name: suffix });
-  const pen = await owner.sheds.createPen({
+  const shed = await owner.sheds.create({ name: suffix });
+  const pen = await owner.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -314,11 +314,11 @@ beforeAll(async () => {
   ventureA = a.ventureId;
   const [a1, a2] = a.tags;
   await sell(a1 ?? "", "2054-01-10T05:00:00.000Z", 115_000);
-  const spray = await owner.money.createCategory({
+  const spray = await owner.money.categories.create({
     nameBn: `মাছি স্প্রে ${suffix}`,
     direction: "out",
   });
-  await owner.money.setChargedToAnimals({
+  await owner.money.categories.setChargedToAnimals({
     categoryId: spray.id,
     chargedToAnimals: true,
   });
