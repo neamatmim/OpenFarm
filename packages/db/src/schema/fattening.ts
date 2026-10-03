@@ -73,7 +73,7 @@ export const intake = pgTable(
     /** The toll the livestock market took on this beast, as its slip gives it. Part of what she cost the farm and
      *  charged to her alone, because a livestock market takes it per animal and often on her price. Zero for one
      *  bought at the farm gate, and for one born here. */
-    hasilMoney: numericMoney("hasil_money").notNull().default(0),
+    marketTollMoney: numericMoney("market_toll_money").notNull().default(0),
     /** What it weighed when it came off the lorry: the first point every gain is measured from. */
     weightKg: numeric("weight_kg", { precision: 7, scale: 2 }).notNull(),
     /** Months, as the seller says and the Manager judges. Nobody has a bought-in bull's papers. */

@@ -3221,7 +3221,7 @@ export const bn: Record<MessageKey, string> = {
   "costs.unallocatedNote":
     "{currencySign}{amount} খাদ্য এমন পেনে গেছে যেখানে কোনো পশু লেখা নেই, কারো খরচে ধরা হয়নি",
   "costs.vet": "ভেট ভিজিট",
-  "costs.hasil": "হাটের হাসিল",
+  "costs.market_toll": "হাটের হাসিল",
   "costs.trips": "কেনা-বেচার যাত্রা",
   "costs.herd": "পশুপালের খরচ",
   "costs.overheads": "খামার চালানোর খরচ",
@@ -4056,7 +4056,7 @@ export const bn: Record<MessageKey, string> = {
   "intake.title": "যেভাবে এসেছে",
   "intake.seller": "বিক্রেতা",
   "intake.price": "ক্রয়মূল্য",
-  "intake.hasil": "হাটের হাসিল",
+  "intake.market_toll": "হাটের হাসিল",
   "intake.trip": "যে যাত্রায় এসেছে",
   "intake.groupTrip": "যাত্রার হিসাব",
   "intake.groupTripHint":

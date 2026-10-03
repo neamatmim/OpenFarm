@@ -8,7 +8,7 @@ import { appRouter } from "./index";
 // What the money in the Farm's own cattle returned, for the Owner: each Season worked as a Settlement is, the dead in.
 //
 // Worked by hand. Three bulls aimed at Eid-ul-Adha 2028 (6 May, the table's day):
-// - A, bought on 1 January for ৳1,00,000 with ৳1,000 of Hasil, sold at Eid on 6 May for ৳1,60,000;
+// - A, bought on 1 January for ৳1,00,000 with ৳1,000 of Market toll, sold at Eid on 6 May for ৳1,60,000;
 // - B, bought on 1 February for ৳80,000, sold early on 1 March for ৳90,000;
 // - C, bought on 1 January for ৳60,000, dead on 15 February.
 // The Season cost ৳2,41,000 and brought back ৳2,50,000: ৳9,000, 3.7 on every hundred. Its money was out
@@ -51,7 +51,7 @@ beforeAll(async () => {
   const bought = async (
     on: string,
     purchasePriceMoney: number,
-    hasilMoney = 0
+    marketTollMoney = 0
   ) => {
     const { client } = await as("manager", `${on}T00:00:00.000Z`);
     return await client.intake.record({
@@ -59,7 +59,7 @@ beforeAll(async () => {
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
       purchasePriceMoney,
-      hasilMoney,
+      marketTollMoney,
       weightKg: 220,
       estimatedAgeMonths: 20,
       arrivedAt: new Date(`${on}T00:00:00Z`),

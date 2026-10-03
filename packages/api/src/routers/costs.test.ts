@@ -220,7 +220,7 @@ const setup = async () => {
     seller: { name: `হাট ${suffix}` },
     purchasePriceMoney: 50_000,
     // The livestock market took its toll on this one; the bull bought later paid none.
-    hasilMoney: 1500,
+    marketTollMoney: 1500,
     weightKg: 250,
     estimatedAgeMonths: 20,
     targetWindowStart: "2039-06-01",
@@ -498,7 +498,7 @@ describe("what an animal costs, and what a litre costs", () => {
       medicineMoney: 100,
       uncostedDoses: 0,
       vetMoney: 500,
-      hasilMoney: 1500,
+      marketTollMoney: 1500,
       tripMoney: 0,
       herdMoney: 0,
       purchaseMoney: 50_000,
@@ -564,8 +564,8 @@ describe("what an animal costs, and what a litre costs", () => {
       medicineMoney: 100,
       uncostedDoses: 1,
       vetMoney: 1000,
-      // The Hasil paid on Bull A when he came off the lorry, in this period as he was.
-      hasilMoney: 1500,
+      // The Market toll paid on Bull A when he came off the lorry, in this period as he was.
+      marketTollMoney: 1500,
       tripMoney: 0,
       herdMoney: 0,
     });
@@ -611,7 +611,7 @@ describe("what an animal costs, and what a litre costs", () => {
     });
     expect(her).toMatchObject({ tripMoney: 0, herdMoney: 0 });
     // Bought at 50,000, sold at 60,000, less 450 of feed, 100 of medicine, 500 of the Vet and
-    // 1,500 of Hasil.
+    // 1,500 of Market toll.
     expect(her.marginMoney).toBe(7450);
     expect(her.costOfGainMoney).toBe(127.5);
 
@@ -619,7 +619,7 @@ describe("what an animal costs, and what a litre costs", () => {
       tagNumber: world.cow.tagNumber,
     });
     expect(cow.lactation).toMatchObject({
-      hasilMoney: 0,
+      marketTollMoney: 0,
       tripMoney: 0,
       herdMoney: 0,
       costPerLitreMoney: 60,
@@ -627,7 +627,7 @@ describe("what an animal costs, and what a litre costs", () => {
 
     const report = await owner.client.costs.bySide(PERIOD);
     expect(report.dairy).toMatchObject({
-      hasilMoney: 0,
+      marketTollMoney: 0,
       tripMoney: 0,
       herdMoney: 0,
       costPerLitreMoney: 120,
@@ -664,19 +664,19 @@ describe("what an animal costs, and what a litre costs", () => {
     expect(after.costOfGainMoney ?? 0).toBeGreaterThanOrEqual(0);
   });
 
-  it("charges the Hasil to the animal it was paid on, and to nobody else", async () => {
+  it("charges the Market toll to the animal it was paid on, and to nobody else", async () => {
     const owner = await as("owner", "2039-02-01T04:00:00.000Z");
     const paid = await owner.client.costs.ofAnimal({
       tagNumber: world.bullA.tagNumber,
     });
-    expect(paid.hasilMoney).toBe(1500);
+    expect(paid.marketTollMoney).toBe(1500);
     const none = await owner.client.costs.ofAnimal({ tagNumber: bullB });
-    expect(none.hasilMoney).toBe(0);
+    expect(none.marketTollMoney).toBe(0);
     // A cow born on the farm was never at a livestock market.
     const born = await owner.client.costs.ofAnimal({
       tagNumber: world.cow.tagNumber,
     });
-    expect(born.hasilMoney).toBe(0);
+    expect(born.marketTollMoney).toBe(0);
   });
 
   it("is the Owner's and the Manager's, and never Barn Staff's or the Vet's", async () => {

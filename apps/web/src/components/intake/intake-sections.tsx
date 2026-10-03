@@ -368,10 +368,10 @@ export const PriceSection = ({
           value={fields.purchasePriceMoney}
         />
         <NumberField
-          id="intake-hasil"
-          label={t("intake.hasil")}
-          onChange={(hasilMoney) => onEdit({ hasilMoney })}
-          value={fields.hasilMoney}
+          id="intake-market-toll"
+          label={t("intake.market_toll")}
+          onChange={(marketTollMoney) => onEdit({ marketTollMoney })}
+          value={fields.marketTollMoney}
         />
         <NumberField
           decimal

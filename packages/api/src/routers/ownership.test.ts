@@ -38,7 +38,7 @@ const buy = async (
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
     purchasePriceMoney: priceMoney,
-    hasilMoney: 1000,
+    marketTollMoney: 1000,
     weightKg: 200,
     estimatedAgeMonths: 20,
     arrivedAt: new Date(arrivedAt),

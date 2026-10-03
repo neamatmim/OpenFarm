@@ -10,7 +10,7 @@ export interface IntakeFields {
   sellerPhone: string;
   purchasePriceMoney: string;
   /** The livestock market's toll on this beast, as its slip gives it. Blank at a farm-gate sale. */
-  hasilMoney: string;
+  marketTollMoney: string;
   /** The outing she came home on, chosen from the ones the farm has written up lately. Blank for an
    *  animal bought at the farm gate, or one nobody wrote a Trip for. */
   buyingTripId: string;
@@ -74,7 +74,7 @@ export const EMPTY: IntakeFields = {
   sellerPlace: "",
   sellerPhone: "",
   purchasePriceMoney: "",
-  hasilMoney: "",
+  marketTollMoney: "",
   buyingTripId: "",
   ventureId: "",
   weightKg: "",

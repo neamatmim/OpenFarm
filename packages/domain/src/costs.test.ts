@@ -284,7 +284,7 @@ describe("what she came to, once she is sold", () => {
     medicineMoney: 200,
     uncostedDoses: 1,
     vetMoney: 300,
-    hasilMoney: 500,
+    marketTollMoney: 500,
     tripMoney: 400,
     herdMoney: 600,
   };

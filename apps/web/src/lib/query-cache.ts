@@ -13,7 +13,7 @@ import { dehydrate, hydrate } from "@tanstack/react-query";
 const KEEP_FOR_MS = 14 * 24 * 60 * 60 * 1000;
 /** Named again when what is kept changes shape, so a phone never reads back a cache written the old way: the first
  *  one kept every date as a string, and a page drawn from it failed on the first date it wrote out; the next one
- *  came before what an animal costs carried the Hasil, the Trips and the Herd Costs, and the one after it
+ *  came before what an animal costs carried the Market toll, the Trips and the Herd Costs, and the one after it
  *  before her arrival said what the livestock market took, the one after that before the store said what the
  *  farm's own fodder is worth, and this one because a Venture now carries who has signed for it and what
  *  its account holds — a card drawn from the older shape had no figures to write out — and this one
@@ -25,8 +25,9 @@ const KEEP_FOR_MS = 14 * 24 * 60 * 60 * 1000;
  *  low, the one after that because it says whether the bank agreed, the one after that because every sum
  *  of money is named for money, not for the taka it is counted in, the one after that because what a
  *  buyer still owes is a Receivable, not a Baki, the one after that because a haat is a Livestock
- *  Market, and this one because bKash money is Mobile Money. */
-const CACHE_KEY = "kept-with-mobile-money";
+ *  Market, the one after that because bKash money is Mobile Money, and this one because the Hasil is the
+ *  Market Toll. */
+const CACHE_KEY = "kept-with-market-tolls";
 /** The shape of what this phone keeps, written on everything it puts away, so nothing put away the old way is read. */
 export const CACHE_SHAPE = CACHE_KEY;
 

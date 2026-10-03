@@ -76,7 +76,7 @@ interface LitresShare {
 const byAnimal = <T extends { animalId: string }>(shares: readonly T[]) =>
   groupedBy(shares, (one) => one.animalId);
 
-/** A charge the costing gave out by the head — the Hasil, an outing, a Herd Cost — as a Charge of its kind. */
+/** A charge the costing gave out by the head — the Market toll, an outing, a Herd Cost — as a Charge of its kind. */
 const byTheHead = (kind: Charge["kind"], one: CostShare): Charge => ({
   kind,
   animalId: one.animalId,
@@ -98,7 +98,7 @@ const chargesFrom = (
     feed: readonly FeedShare[];
     doses: readonly DoseShare[];
     vet: readonly VetShare[];
-    hasil: readonly CostShare[];
+    marketToll: readonly CostShare[];
     trips: readonly CostShare[];
     brokers: readonly CostShare[];
     herd: readonly CostShare[];
@@ -135,7 +135,7 @@ const chargesFrom = (
     unpricedKg: 0,
     priced: true,
   })),
-  ...shares.hasil.map((one) => byTheHead("hasil", one)),
+  ...shares.marketToll.map((one) => byTheHead("market_toll", one)),
   ...shares.trips.map((one) =>
     byTheHead(
       sellingTrips.has(one.fromId) ? "selling_trip" : "buying_trip",
@@ -211,7 +211,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
         columns: {
           id: true,
           purchasePriceMoney: true,
-          hasilMoney: true,
+          marketTollMoney: true,
           buyingTripId: true,
           weightKg: true,
           arrivedAt: true,
@@ -422,20 +422,20 @@ export const farmCosts = async (db: Db, farmId: string) => {
   );
 
   // The livestock market's toll on one beast, charged to her alone from the day she came off the lorry.
-  const hasil: CostShare[] = animals.flatMap((one) =>
-    one.intake && one.intake.hasilMoney > 0
+  const marketToll: CostShare[] = animals.flatMap((one) =>
+    one.intake && one.intake.marketTollMoney > 0
       ? [
           {
             animalId: one.id,
             side: sideOf(one, one.intake.arrivedAt),
             at: one.intake.arrivedAt,
             fromId: one.intake.id,
-            amount: one.intake.hasilMoney,
+            amount: one.intake.marketTollMoney,
           },
         ]
       : []
   );
-  // The broker's fee on one Sale, charged to her alone on the day she was sold: hers as the Hasil is.
+  // The broker's fee on one Sale, charged to her alone on the day she was sold: hers as the Market toll is.
   const brokers: CostShare[] = animals.flatMap((one) =>
     one.sale && one.sale.brokerMoney > 0
       ? [
@@ -538,7 +538,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
       feed: fed.shares,
       doses: dosed,
       vet: visited,
-      hasil,
+      marketToll,
       trips: outings.shares,
       brokers,
       herd,
@@ -673,7 +673,7 @@ export const chargedOf = (one: Costs) =>
   one.feedMoney +
   one.medicineMoney +
   one.vetMoney +
-  one.hasilMoney +
+  one.marketTollMoney +
   one.tripMoney +
   one.herdMoney;
 
@@ -845,7 +845,7 @@ export const theFarmsOwn = (
 /**
  * Everything a Venture's Animals were charged over the whole run, whoever paid it.
  *
- * The same costing narrowed to the Animals that were this Venture's at the time — its Hasil and its
+ * The same costing narrowed to the Animals that were this Venture's at the time — its Market toll and its
  * Trips too, which `consumedBy` leaves out because a Reimbursement is only about what the Farm bought and
  * is owed back. A Settlement is a different question: what did this run cost, whichever purse the taka
  * came out of. Never a second sum — the same shares, filtered.
@@ -869,7 +869,7 @@ export interface ConsumedLine {
  * Only what the Farm bought for the whole herd and is owed back: feed, medicine and the vet, and the
  * Animals' share of the month's Herd Costs, and the Selling Trips that carried them and the brokers at their Sales.
  *
- * Not the Hasil and not a Buying Trip: those came out of the Venture's own Buying Float, drawn before
+ * Not the Market toll and not a Buying Trip: those came out of the Venture's own Buying Float, drawn before
  * the lorry went and counted against it the same evening, so they were never the Farm's to be repaid
  * for. A **Selling Trip** is different and used not to be here at all — it happens long after that
  * Float is shut, the Farm pays the lorry and the men who went, and until 2026-09-19 nothing ever paid

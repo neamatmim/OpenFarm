@@ -16,7 +16,7 @@ import {
   bookBoughtByBank,
   bookIntakeMoney,
   boughtByBankReference,
-  hasilInput,
+  marketTollInput,
   ownerOf,
   purchasePriceInput,
   readIntake,
@@ -51,7 +51,7 @@ const loadIntake = (tx: Tx, farmId: string, id: string) =>
       farmId: true,
       animalId: true,
       purchasePriceMoney: true,
-      hasilMoney: true,
+      marketTollMoney: true,
       buyingTripId: true,
       targetWindowStart: true,
       targetWindowEnd: true,
@@ -89,7 +89,7 @@ const windowShown = async (
  */
 export const intakeCorrectionInput = correctionInput({
   purchasePriceMoney: changeOf(purchasePriceInput, z.number()),
-  hasilMoney: changeOf(hasilInput, z.number()),
+  marketTollMoney: changeOf(marketTollInput, z.number()),
   buyingTrip: changeOf(z.string().nullable(), z.string().nullable()),
   /** Whose animal she is. A slip at the livestock market is fixable here and nowhere else: once the window has
    *  closed, only an Internal Sale moves her between owners. */
@@ -162,7 +162,7 @@ export const intakeCorrection: CorrectionKind<
   // Putting one of these right can move a Venture Movement, so it takes the Farm lock first, as
   // everything that counts a Venture's money does.
   lock: lockTheFarm,
-  // An Intake carries her price, her Hasil and whose she is — every one of them a figure a Settlement
+  // An Intake carries her price, her Market toll and whose she is — every one of them a figure a Settlement
   // was worked out from.
   venturesOf: herVenturesAround((row) => row.createdAt),
   missing: "No such intake",
@@ -174,7 +174,7 @@ export const intakeCorrection: CorrectionKind<
     const owner = await ownerOf(tx, row.animalId);
     return {
       purchasePriceMoney: row.purchasePriceMoney,
-      hasilMoney: row.hasilMoney,
+      marketTollMoney: row.marketTollMoney,
       buyingTrip: row.buyingTripId,
       owner,
       targetWindow: await windowShown(tx, row, owner, now),
@@ -225,7 +225,9 @@ export const intakeCorrection: CorrectionKind<
       ...(to.purchasePriceMoney === undefined
         ? {}
         : { purchasePriceMoney: to.purchasePriceMoney }),
-      ...(to.hasilMoney === undefined ? {} : { hasilMoney: to.hasilMoney }),
+      ...(to.marketTollMoney === undefined
+        ? {}
+        : { marketTollMoney: to.marketTollMoney }),
       ...(to.buyingTrip === undefined ? {} : { buyingTripId: to.buyingTrip }),
       ...(to.targetWindow === undefined
         ? {}

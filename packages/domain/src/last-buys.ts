@@ -1,7 +1,7 @@
 /**
  * What the farm's own recent buys of an animal her weight cost a kilo — the Manager's check at the livestock market against paying
  * over the odds, from the farm's own slips rather than a market nobody wrote down. The price alone, as the intake sheet's
- * own taka a kilo is: Hasil is the livestock market's toll, not what the animal fetched.
+ * own taka a kilo is: Market toll is the livestock market's toll, not what the animal fetched.
  */
 
 const DAY_MS = 24 * 60 * 60 * 1000;

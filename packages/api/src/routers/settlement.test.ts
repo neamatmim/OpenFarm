@@ -218,7 +218,7 @@ describe("what a Settlement is", () => {
     // And the figures come all the same, because she is owed the shape of the answer while she works.
     expect(settlement.charges.map((one) => one.word)).toEqual([
       "bought",
-      "hasil",
+      "market_toll",
       "trips",
       "feed",
       "medicine",
@@ -913,7 +913,7 @@ describe("what a Settlement is", () => {
       data: { refusal: "already_approved" },
     });
 
-    // Nor is an Intake of one of its animals, whose price and Hasil the Settlement was worked out
+    // Nor is an Intake of one of its animals, whose price and Market toll the Settlement was worked out
     // from — the words say what to do instead.
     await expect(
       owner.client.intake.correct({

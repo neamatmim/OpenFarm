@@ -86,7 +86,7 @@ const atTheGate = async (
     sex: "male",
     seller: { name: `প্রতিবেশী ${suffix}` },
     purchasePriceMoney: 60_000,
-    hasilMoney: 0,
+    marketTollMoney: 0,
     weightKg: 200,
     estimatedAgeMonths: 20,
     arrivedAt: new Date(`${DAY}T05:00:00.000Z`),

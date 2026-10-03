@@ -41,7 +41,7 @@ const Note = ({
 };
 
 /**
- * Feed, doses, the Vet, the Hasil, the Trips and the Herd Costs — however much of each there was, and what
+ * Feed, doses, the Vet, the Market toll, the Trips and the Herd Costs — however much of each there was, and what
  * the figures leave out.
  */
 const WhatWasSpent = ({
@@ -55,7 +55,7 @@ const WhatWasSpent = ({
     vetMoney: number;
     // An answer kept on the phone from before these existed carries none of them: default them, or a
     // fortnight of cached answers draws ৳NaN.
-    hasilMoney?: number;
+    marketTollMoney?: number;
     tripMoney?: number;
     herdMoney?: number;
   };
@@ -67,7 +67,9 @@ const WhatWasSpent = ({
       <Line label={t("costs.feed")}>{asMoney(costs.feedMoney)}</Line>
       <Line label={t("costs.medicine")}>{asMoney(costs.medicineMoney)}</Line>
       <Line label={t("costs.vet")}>{asMoney(costs.vetMoney)}</Line>
-      <Line label={t("costs.hasil")}>{asMoney(costs.hasilMoney ?? 0)}</Line>
+      <Line label={t("costs.market_toll")}>
+        {asMoney(costs.marketTollMoney ?? 0)}
+      </Line>
       <Line label={t("costs.trips")}>{asMoney(costs.tripMoney ?? 0)}</Line>
       <Line label={t("costs.herd")}>{asMoney(costs.herdMoney ?? 0)}</Line>
       <Note amount={costs.unpricedKg} word="costs.unpricedNote" />

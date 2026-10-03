@@ -50,14 +50,14 @@ const charged = (costs: {
   feedMoney: number;
   medicineMoney: number;
   vetMoney: number;
-  hasilMoney: number;
+  marketTollMoney: number;
   tripMoney: number;
   herdMoney: number;
 }) =>
   costs.feedMoney +
   costs.medicineMoney +
   costs.vetMoney +
-  costs.hasilMoney +
+  costs.marketTollMoney +
   costs.tripMoney +
   costs.herdMoney;
 

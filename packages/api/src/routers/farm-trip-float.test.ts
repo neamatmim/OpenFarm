@@ -5,7 +5,7 @@ import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
 // A Buying Float for one of the Farm's own outings: the Owner hands the Manager cash before the livestock market, and counts it
-// home against the animals the outing bought, their Hasil, its costs and the cash brought back, to the taka.
+// home against the animals the outing bought, their Market toll, its costs and the cash brought back, to the taka.
 
 const suffix = `farm-float-${Date.now()}`;
 const NOW = "2072-02-10T04:00:00.000Z";
@@ -57,7 +57,7 @@ beforeAll(async () => {
       sex: "male",
       seller: { name: `ব্যাপারী ${name} ${suffix}` },
       purchasePriceMoney: price,
-      hasilMoney: 500,
+      marketTollMoney: 500,
       weightKg: 250,
       estimatedAgeMonths: 20,
       arrivedAt: new Date(NOW),
@@ -69,12 +69,12 @@ beforeAll(async () => {
 });
 
 describe("a Buying Float for the Farm's own outing", () => {
-  it("is open, bought against the animals, their Hasil and the outing's costs", async () => {
+  it("is open, bought against the animals, their Market toll and the outing's costs", async () => {
     const manager = await as("manager");
     const floats = await manager.client.cash.tripFloats();
     expect(floats.find((one) => one.tripId === tripId)).toMatchObject({
       handedMoney: 100_000,
-      // 85,000 for the bulls, 1,000 of Hasil, 5,000 for the broker and the lorry.
+      // 85,000 for the bulls, 1,000 of Market toll, 5,000 for the broker and the lorry.
       boughtMoney: 91_000,
       backMoney: 0,
       carrierId: thePerson("manager").id,
