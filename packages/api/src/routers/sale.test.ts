@@ -302,6 +302,22 @@ describe("the sale", () => {
     expect(sold.state).toBe("sold");
   });
 
+  it("refuses a sale written for a time that has not come yet", async () => {
+    // Written at nine on the 20th for the afternoon: a lorry that has not left has sold nothing.
+    const manager = await asManager("2027-04-20");
+    await expect(
+      manager.client.sale.record({
+        tagNumber: tagOf(1),
+        ...aBuyer,
+        priceBdt: 120_000,
+        weightKg: 290,
+        soldAt: new Date("2027-04-21T09:00:00.000Z"),
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    const still = await manager.client.animals.byTag({ tagNumber: tagOf(1) });
+    expect(still.state).not.toBe("sold");
+  });
+
   it("is not a milker's to make, is the Owner's as the Manager's, and not twice over", async () => {
     const staff = await createTestClient(appRouter, {
       as: "staff",
