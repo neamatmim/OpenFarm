@@ -74,6 +74,26 @@ export const writeKept = (client: PersistedClient): string =>
 export const readKept = (raw: string): PersistedClient =>
   JSON.parse(raw, readDates) as PersistedClient;
 
+/** Where the kept cache is written: the device's database, or a stand-in for it. */
+type KeptStorage = Pick<IndexedDBAdapter, "get" | "set" | "delete">;
+
+/**
+ * What was kept, as it is read back: every answer in it to be asked again as soon as a screen shows it. It is drawn at
+ * once — a phone with no signal opens on what it last knew — but it is not taken as the farm's answer today. Kept
+ * with the time it was fetched, an answer under a minute old counted as fresh, so a reload asked the farm nothing and
+ * showed a list from before what somebody else had just saved on their own phone.
+ */
+const toBeAskedAgain = (kept: PersistedClient): PersistedClient => ({
+  ...kept,
+  clientState: {
+    ...kept.clientState,
+    queries: kept.clientState.queries.map((query) => ({
+      ...query,
+      state: { ...query.state, isInvalidated: true },
+    })),
+  },
+});
+
 /**
  * Keeps what the app has read on the device, so a phone with no signal opens on what it last
  * knew rather than on a spinner.
@@ -82,21 +102,18 @@ export const readKept = (raw: string): PersistedClient =>
  * board has no Steps to show, no cows to tap and no button to claim with — and a milker
  * standing in a shed with no bars would have nothing to work from at all.
  */
-const onDevice = (): Persister => {
-  const storage = cacheStore();
-  return {
-    persistClient: async (client: PersistedClient) => {
-      await storage.set(CACHE_KEY, writeKept(client));
-    },
-    restoreClient: async () => {
-      const raw = await storage.get(CACHE_KEY);
-      return raw ? readKept(raw) : undefined;
-    },
-    removeClient: async () => {
-      await storage.delete(CACHE_KEY);
-    },
-  };
-};
+export const onDevice = (storage: KeptStorage = cacheStore()): Persister => ({
+  persistClient: async (client: PersistedClient) => {
+    await storage.set(CACHE_KEY, writeKept(client));
+  },
+  restoreClient: async () => {
+    const raw = await storage.get(CACHE_KEY);
+    return raw ? toBeAskedAgain(readKept(raw)) : undefined;
+  },
+  removeClient: async () => {
+    await storage.delete(CACHE_KEY);
+  },
+});
 
 /** Whether an answer is an Investor's, read in the portal: the procedure's path starts with `portal`. */
 const isPortalQuery = (queryKey: readonly unknown[]): boolean => {
