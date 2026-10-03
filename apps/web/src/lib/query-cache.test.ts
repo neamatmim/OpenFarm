@@ -10,6 +10,7 @@ import { animalPhotoKey } from "@/components/portal/animal-photo-key";
 import { orpc } from "@/utils/orpc";
 
 import {
+  KEEP_AT_MOST_EVERY_MS,
   keptOnDevice,
   onDevice,
   readKept,
@@ -61,6 +62,27 @@ describe("what a phone keeps", () => {
     expect(
       keptOnDevice(answered(orpc.animals.list.queryKey({ input: {} })), "farm")
     ).toBe(true);
+  });
+
+  it("keeps an Animal's thumbnail, and no photo whole", () => {
+    expect(
+      keptOnDevice(
+        answered(
+          orpc.animals.photo.queryKey({
+            input: { tagNumber: "D-0001", size: "thumb" },
+          })
+        ),
+        "farm"
+      )
+    ).toBe(true);
+    for (const whole of [
+      orpc.animals.photo.queryKey({ input: { tagNumber: "D-0001" } }),
+      orpc.animals.deathPhotos.queryKey({ input: { tagNumber: "D-0001" } }),
+      orpc.farm.certificate.queryKey({ input: {} }),
+      orpc.money.receipt.queryKey({ input: { id: "e" } }),
+    ]) {
+      expect(keptOnDevice(answered(whole), "farm")).toBe(false);
+    }
   });
 
   it("never keeps an Investor's, which would outlive their signing out", () => {
@@ -173,10 +195,14 @@ describe("a reload", () => {
     const storage = memoryStorage();
     const before = new QueryClient();
     before.setQueryData(["openDraws"], ["Test worker ৳2,500"]);
+    vi.useFakeTimers();
     await persistQueryClientSave({
       queryClient: before,
       persister: onDevice(storage),
     });
+    // Written out once the moment passes, as on a phone a second after the page settles.
+    await vi.advanceTimersByTimeAsync(KEEP_AT_MOST_EVERY_MS);
+    vi.useRealTimers();
 
     const reloaded = new QueryClient();
     await persistQueryClientRestore({
@@ -198,5 +224,39 @@ describe("a reload", () => {
     stop();
     expect(drawnFirst).toEqual(["Test worker ৳2,500"]);
     expect(asked).toHaveBeenCalledOnce();
+  });
+});
+
+/** A kept cache with nothing in it, told apart by when it was taken. */
+const keptAt = (timestamp: number): PersistedClient => ({
+  timestamp,
+  buster: "",
+  clientState: { mutations: [], queries: [] },
+});
+
+describe("writing the cache out", () => {
+  it("writes a burst of changes once, as they stand at the end", async () => {
+    vi.useFakeTimers();
+    const written: string[] = [];
+    const storage = {
+      ...memoryStorage(),
+      set: (_key: string, value: unknown) => {
+        written.push(String(value));
+        return Promise.resolve();
+      },
+    } as Parameters<typeof onDevice>[0];
+    const persister = onDevice(storage, 1000);
+    await Promise.all(
+      Array.from({ length: 20 }, (_, change) =>
+        persister.persistClient(keptAt(change + 1))
+      )
+    );
+    const beforeTheSecond = written.length;
+    await vi.advanceTimersByTimeAsync(1000);
+    vi.useRealTimers();
+
+    expect(beforeTheSecond).toBe(0);
+    expect(written).toHaveLength(1);
+    expect(readKept(written[0] ?? "").timestamp).toBe(20);
   });
 });
