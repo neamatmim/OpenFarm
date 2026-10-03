@@ -9,12 +9,7 @@ import { z } from "zod";
 import type { Tx } from "./audit";
 import type { Booking } from "./money-store";
 import { bookMoney, moneySnapshotOf, paymentMethodOf } from "./money-store";
-import {
-  assertTripIsOpen,
-  budgetsOf,
-  heldByEach,
-  signedForEach,
-} from "./venture-store";
+import { assertCattleBudgetHolds, assertTripIsOpen } from "./venture-store";
 
 /** The arrival as the trail records it: the Animal it made and what the farm paid for it. */
 export const readIntake = async (tx: Tx, animalId: string) => {
@@ -253,7 +248,8 @@ export const boughtByBankReference = async (
   return paid?.reference ?? null;
 };
 
-/** That a Venture's Cattle Budget still holds what a bull at the gate cost, less what her own payment already took. */
+/** That a Venture's Cattle Budget still holds what a bull at the gate cost, less what her own payment already took
+ *  (`assertCattleBudgetHolds`). Nothing to ask of a Venture that is not there. */
 const assertTheCattleBudgetHolds = async (
   tx: Tx,
   farmId: string,
@@ -263,21 +259,9 @@ const assertTheCattleBudgetHolds = async (
   const venture = await tx.query.venture.findFirst({
     where: { id: ventureId, farmId },
   });
-  if (!venture) {
-    return;
-  }
-  const held = await heldByEach(tx, farmId, [ventureId]);
-  const signed = await signedForEach(tx, farmId, [ventureId]);
-  const { cattleBudgetHeldBdt } = budgetsOf(
-    venture,
-    held.get(ventureId),
-    signed.get(ventureId)?.units ?? 0
-  );
-  const room = cattleBudgetHeldBdt + alreadyPaidBdt;
-  if (amountBdt > room) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: `The Cattle Budget is holding ${room}`,
-      data: { refusal: "cattle_budget_short" },
+  if (venture) {
+    await assertCattleBudgetHolds(tx, farmId, venture, amountBdt, {
+      alreadyPaidBdt,
     });
   }
 };
