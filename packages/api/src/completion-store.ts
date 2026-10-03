@@ -6,6 +6,7 @@ import type { Tx } from "./audit";
 import type { Context } from "./context";
 import { isOnTheFarm } from "./instances-store";
 import { lateEntry } from "./late";
+import { PERSONAL_PHONE_ONLY, forbidden } from "./roles";
 import type { Scope } from "./scope";
 import { requireWorkInScope } from "./scope";
 
@@ -102,9 +103,7 @@ export const assertMayWork = (
   }
   // A Vet's clinical work is signed on their own phone, never a shared one (ADR 0003).
   if (instance.assignedRole === "vet" && context.device) {
-    throw new ORPCError("FORBIDDEN", {
-      message: "This can only be done from your own phone, not a shed phone",
-    });
+    throw forbidden(PERSONAL_PHONE_ONLY);
   }
   // Somebody else holding the work is not a question of permission: it is the world having
   // moved, which is exactly what happens to a phone that has been out of range. Marked as

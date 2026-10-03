@@ -315,7 +315,15 @@ export const farmCosts = async (db: Db, farmId: string) => {
       wentTo: true,
     },
   });
-  const takenOnSellingTrips = await db.query.sellingTripAnimal.findMany({});
+  // Its own outings' animals alone: the table carries no farm of its own, so it is asked by this farm's outings.
+  const takenOnSellingTrips =
+    sellingTrips.length === 0
+      ? []
+      : await db.query.sellingTripAnimal.findMany({
+          where: {
+            sellingTripId: { in: sellingTrips.map((one) => one.id) },
+          },
+        });
   // Money the farm entered by hand under a Category the Owner marked as charged to the animals.
   const enteredByHand = await db.query.moneyEvent.findMany({
     // The Farm's purse alone: this money is split across the Animals of its Side, and a Venture's own

@@ -3108,6 +3108,7 @@ export const bn: Record<MessageKey, string> = {
   "vetFee.none": "এখনও কোনো ফি লেখা হয়নি",
   "vetFee.noAnimals": "খামারে এখনো কোনো গরু নেই যা ভেট দেখেছেন বলা যায়",
   "refusal.ownerOnly": "এটি শুধু মালিক করতে পারেন",
+  "refusal.personalPhoneOnly": "এটি শেডের ফোন থেকে নয়, নিজের ফোন থেকে করুন",
   "refusal.notAwaitingApproval": "এই টাকা অনুমোদনের অপেক্ষায় নেই",
   "refusal.visitedInTheFuture": "যে দিন আসেনি সেদিন ভিজিট হতে পারে না",
   "refusal.boughtInTheFuture": "যে দিন আসেনি সেদিন ওষুধ কেনা হতে পারে না",

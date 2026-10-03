@@ -268,6 +268,7 @@ const WORDED_REFUSALS = {
   nothing_to_correct: "refusal.nothingToCorrect",
   owner_only: "refusal.ownerOnly",
   period_backwards: "refusal.periodBackwards",
+  personal_phone_only: "refusal.personalPhoneOnly",
   period_too_long: "refusal.periodTooLong",
   purchase_needs_price_and_seller: "refusal.purchaseNeedsPriceAndSeller",
   received_in_the_future: "refusal.receivedInTheFuture",

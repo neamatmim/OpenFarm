@@ -1044,6 +1044,7 @@ export const venturesRouter = {
    */
   plan: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
     .input(z.object({ ventureId: z.string() }))
     .handler(async ({ context, input }) => {
       const row = await ours(context, input.ventureId);
@@ -1061,6 +1062,7 @@ export const venturesRouter = {
    */
   planAgainstActual: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
     .input(z.object({ ventureId: z.string() }))
     .handler(async ({ context, input }) => {
       const row = await ours(context, input.ventureId);
@@ -1147,6 +1149,7 @@ export const venturesRouter = {
    */
   projection: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
     .input(z.object({ ventureId: z.string() }))
     .handler(async ({ context, input }) => {
       const row = await ours(context, input.ventureId);
@@ -1684,6 +1687,7 @@ export const venturesRouter = {
    */
   movableAnimals: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
     .handler(async ({ context }) => {
       const rows = await context.db.query.animal.findMany({
         where: {
