@@ -21,7 +21,7 @@ export const en = {
   "common.errorHint":
     "Try again. If it keeps happening, tell the farm's owner.",
   "setup.standard.chooseOne": "Choose at least one list, or skip.",
-  "auth.shedPhone": "Shed Phone",
+  "auth.shedPhone": "Shed phone",
   "auth.shedPhoneHint":
     "Staff sign in with their PIN. A new phone is set up with the manager's code.",
   "auth.signIn": "Sign in",
@@ -851,7 +851,7 @@ export const en = {
     "That password is one of the most common, and anybody could guess it. Choose another.",
   "auth.nameTooShort":
     "Name must be at least {min, plural, one {# character} other {# characters}}",
-  "nav.people": "People & access",
+  "nav.people": "People and access",
   "people.search": "Search by name or email",
   "people.noneFound": "Nobody by that name",
   "people.standing.working": "Working",
@@ -869,7 +869,6 @@ export const en = {
   "people.passwordCodeWhy":
     "Hand them this code. They enter it on the sign-in screen and choose their own password — the farm never sets one for them.",
   "people.newPasswordCode": "New password code",
-  "people.title": "People & access",
   "people.name": "Name",
   "people.correctName": "Correct the name",
   "people.email": "Email",
@@ -914,11 +913,11 @@ export const en = {
     "Your own owner role stays: another owner takes it off, so the farm is never left with nobody to run it.",
   "people.pensWhy": "Their daily work comes from these pens.",
   "people.pinWhy":
-    "Four digits to switch to themselves on a Shed Phone. It is never shown again.",
+    "Four digits to switch to themselves on a shed phone. It is never shown again.",
   "people.enableWhy": "They can sign in again with their own password.",
   "people.trainingNone": "Not trained on anything in the Playbook yet",
   "people.signInsWhy":
-    "Browsers and phones signed in as them. Sign one out if it is lost or shared. Shed Phones are kept apart.",
+    "Browsers and phones signed in as them. Sign one out if it is lost or shared. Shed phones are kept apart.",
   "people.unknownDevice": "Unknown device",
   "people.col.device": "Device",
   "people.col.lastSeen": "Last seen",
@@ -937,7 +936,7 @@ export const en = {
   "people.noPending": "No invites waiting",
   "role.owner": "Owner",
   "role.manager": "Manager",
-  "role.staff": "Barn Staff",
+  "role.staff": "Barn staff",
   "role.vet": "Vet",
   "setup.title": "Set up the farm",
   "setup.intro": "Name the farm. You become its owner.",
@@ -948,13 +947,13 @@ export const en = {
   "setup.standard.title": "Start with the standard lists",
   "setup.standard.intro":
     "Tick what the farm starts with instead of an empty store. Anything it already has by name is left as it is, and all of it can be changed later.",
-  "setup.standard.feed": "Feed Items",
+  "setup.standard.feed": "Feed items",
   "setup.standard.feedHint":
     "{count, plural, one {# common feed} other {# common feeds}}, in kg — no prices, no stock",
   "setup.standard.rations": "Rations",
   "setup.standard.rationsHint":
     "{count, plural, one {# ration} other {# rations}}, not yet fed to any pen. They bring the feed items they name.",
-  "setup.standard.health": "Drug List and notifiable diseases",
+  "setup.standard.health": "Medicine list and notifiable diseases",
   "setup.standard.healthHint":
     "{drugs, plural, one {# medicine} other {# medicines}} for the vet to finish with their withdrawal days, and the {diseases, plural, one {# disease} other {# diseases}} the DLS must be told of",
   "setup.standard.playbook":
@@ -963,7 +962,7 @@ export const en = {
   "setup.standard.skip": "Start empty",
   "setup.standard.done": "The farm has its standard lists",
   "setup.standard.feedRetired":
-    "The standard rations feed {feed}, which this farm has retired: restore it on the Feed Items tab first",
+    "The standard rations feed {feed}, which this farm has retired: restore it on the Feed items tab first",
   "setup.standard.bundlesByTheHead":
     "The standard rations give {feed} by body weight, and this farm counts it in bundles: start without the rations and write them by hand",
   "common.error": "Something went wrong",
@@ -1281,7 +1280,7 @@ export const en = {
   "ventures.referenceHint":
     "The transfer, cheque or deposit slip, and what it is numbered",
   /** The code one Agreement is given for its Investor to write on the transfer. Never the bank's reference. */
-  "ventures.payInCodeIs": "Pay-in Code {code}",
+  "ventures.payInCodeIs": "Pay-in code {code}",
   /** The Request to Join a paper answers, chosen on the sign form. */
   "ventures.signAnswers": "Answers their request",
   "ventures.signNoRequest":
@@ -1396,7 +1395,7 @@ export const en = {
   "ventures.advance": "Put your own money in",
   "ventures.advanceHint":
     "Your own money into {venture} so the animals keep eating. Interest-free, never a charge against them, and back at cost before any capital returns.",
-  "ventures.advanced": "The Advance is recorded",
+  "ventures.advanced": "The advance is recorded",
   "ventures.advanceEarnsNothing":
     "It earns nothing and costs the venture nothing; it comes back first, at what you put in",
   "ventures.owedToYou": "Owed to you",
@@ -1586,7 +1585,7 @@ export const en = {
   "refusal.anAnimalStillStands": "An Animal of this venture is still standing",
   "refusal.aPriceIsMissing":
     "Feed was given or a dose used that nothing can put a price on",
-  "refusal.aFloatIsOpen": "A Buying float has not been counted home",
+  "refusal.aFloatIsOpen": "A buying float has not been counted home",
   "refusal.aReimbursementIsOwed":
     "A month's reimbursement has not been transferred",
   "refusal.theAccountDoesNotAddUp": "The account does not add up",
@@ -1656,7 +1655,7 @@ export const en = {
   "ventures.page.money": "The money",
   "ventures.page.terms": "The terms",
   /** The Venture Account's bank details, as the Owner writes them and as a signed Investor is told them. */
-  "ventures.account.title": "Venture Account",
+  "ventures.account.title": "Venture account",
   "ventures.account.hint":
     "Where an investor who has signed is told to pay, on their own agreement in the portal — never beside the venture itself.",
   "ventures.account.none":
@@ -2113,7 +2112,7 @@ export const en = {
   "auditField.recordedByRole": "Recorded as",
   "auditField.recordedBy": "Recorded by",
   "auditField.side": "Side",
-  "auditField.tagNumber": "Tag Number",
+  "auditField.tagNumber": "Tag number",
   "auditField.sex": "Sex",
   "auditField.source": "Source",
   "auditField.breed": "Breed",
@@ -2143,7 +2142,7 @@ export const en = {
   "auditField.kind": "Kind",
   "auditField.receivedOn": "Received on",
   "auditField.quantity": "Quantity",
-  "auditField.feedItemId": "Feed Item",
+  "auditField.feedItemId": "Feed item",
   "auditField.dispatchedAt": "Dispatched at",
   "auditField.deliveryNote": "Delivery note",
   "auditField.litres": "Litres",
@@ -2238,7 +2237,7 @@ export const en = {
   "audit.entity.sync_entry": "Phone entry",
   "audit.entity.sync_batch": "Phone batch",
   "audit.entity.sop_proposal": "Playbook proposal",
-  "audit.entity.shed_phone": "Shed Phone",
+  "audit.entity.shed_phone": "Shed phone",
   "audit.entity.feed_item": "Feed item",
   "audit.entity.diagnosis": "Diagnosis",
   "audit.entity.alert": "Alert",
@@ -2263,23 +2262,23 @@ export const en = {
   "audit.entity.backup_run": "Backup",
   "audit.entity.lot": "Medicine lot",
   "audit.entity.treatment": "Treatment",
-  "audit.entity.request_to_join": "Request to Join",
+  "audit.entity.request_to_join": "Request to join",
   "audit.entity.receivable": "Receivable",
   "audit.entity.missing": "Missing animal",
   "audit.entity.farm_day": "Farm day",
   "audit.entity.intake": "Intake",
-  "audit.entity.monthly_sum": "Monthly Sum",
+  "audit.entity.monthly_sum": "Monthly sum",
   "audit.entity.eid": "Eid-ul-Adha",
-  "audit.entity.portal_consent": "Portal Consent",
+  "audit.entity.portal_consent": "Portal consent",
   "audit.entity.investor_access": "Portal access",
   "audit.entity.breed": "Breed",
   "audit.entity.handover": "Cash handover",
-  "audit.entity.farm_account": "Farm Account",
-  "audit.entity.farm_account_check": "Bank Check",
+  "audit.entity.farm_account": "Farm account",
+  "audit.entity.farm_account_check": "Bank check",
   "audit.entity.needs_review": "Needs review",
   "audit.entity.excused_dose": "Dose excused",
   "audit.entity.venture_settlement": "Settlement",
-  "audit.entity.venture_plan": "Venture Plan",
+  "audit.entity.venture_plan": "Venture plan",
   "audit.entity.internal_sale": "Internal sale",
   "audit.entity.venture_bank_check": "Venture bank check",
   "audit.entity.vet_case": "Vet case",
@@ -2306,12 +2305,12 @@ export const en = {
   "audit.entity.ready_set_aside": "Set aside from sale",
   "audit.entity.investor": "Investor",
   "audit.entity.nomination": "Nomination",
-  "audit.entity.bank_rate": "Bank Rate",
+  "audit.entity.bank_rate": "Bank rate",
   "audit.entity.invite": "Invite",
   "audit.entity.farm": "Farm",
   "audit.system": "System",
   "nav.animals": "Animals",
-  "nav.herd": "Sheds & pens",
+  "nav.herd": "Sheds and pens",
   "nav.breeds": "Breeds",
   "breeds.subtitle":
     "The breeds an animal is written down under. The standard ones come with the farm; add your own. One no longer used is retired, never removed.",
@@ -2359,7 +2358,6 @@ export const en = {
   "refusal.breedUnknown": "That breed is not on the farm's list",
   "refusal.breedRetired":
     "That breed is retired. Restore it on the Breeds page to write an animal under it.",
-  "herd.title": "Sheds & pens",
   "herd.addShed": "Add a shed",
   "herd.addPen": "Add a pen",
   "herd.quarantinePen": "Quarantine pen",
@@ -2392,7 +2390,7 @@ export const en = {
   "animals.subtitle":
     "Every animal on the farm you work, by her tag number. Type to narrow; press Find to open.",
   "animals.count": "{count, plural, one {# animal} other {# animals}}",
-  "animals.searchPlaceholder": "Tag Number, e.g. D-0001",
+  "animals.searchPlaceholder": "Tag number, e.g. D-0001",
   "goTo.label": "Go to tag number",
   "goTo.title": "Go to an animal",
   "goTo.hint": "Type her tag number; Enter opens her page.",
@@ -2403,7 +2401,7 @@ export const en = {
     "No animal's tag number matches that. Check the number on her ear tag.",
   "animals.noneHint":
     "Animals appear here once they are registered or taken in.",
-  "animals.col.tag": "Tag Number",
+  "animals.col.tag": "Tag number",
   "animals.col.held": "Held",
   "animals.title": "Animals",
   "animals.search": "Find by tag number",
@@ -2476,7 +2474,6 @@ export const en = {
   "animals.breedingNoneHint":
     "Heats, services, pregnancy checks and calvings show here as they are recorded.",
   "animals.healthNone": "Nothing seen or given yet",
-  "observations.title": "What the rounds have seen",
   "observations.all": "Everything",
   "observations.none": "Nothing has been noticed in the last few days",
   "observations.days": "Last {days, plural, one {# day} other {# days}}",
@@ -2519,7 +2516,6 @@ export const en = {
   "state.culled": "Culled",
   "state.lost": "Lost",
   "nav.devices": "Shed phones",
-  "device.title": "Shed phones",
   "device.add": "Enrol a phone",
   "device.name": "Phone name",
   "device.code": "Enrolment code",
@@ -2561,7 +2557,7 @@ export const en = {
   "device.wrongPin": "That PIN is not right",
   "device.pinDelete": "Delete the last digit",
   "device.lock": "Lock",
-  "device.onShedPhone": "Working on the Shed Phone",
+  "device.onShedPhone": "Working on the shed phone",
   "device.startWork": "Start work",
   "device.switchPerson": "Lock / switch person",
   "device.workingAs": "Working as {name}",
@@ -2598,7 +2594,7 @@ export const en = {
   "sop.standard.choose": "Choose…",
   "sop.standard.noPens": "The farm has no pens yet",
   "sop.standard.noProducts":
-    "Nothing on the drug list may be given yet — the vet writes its withdrawal days first",
+    "Nothing on the medicine list may be given yet — the vet writes its withdrawal days first",
   "sop.edit": "Edit",
   "sop.publish": "Publish",
   "sop.propose": "Propose a change",
@@ -2630,13 +2626,13 @@ export const en = {
   "sop.trigger.withoutDelay": "The moment it is found, without delay",
   "sop.trigger.add": "Add a trigger",
   "sop.trigger.event": "Something that happened",
-  "sop.trigger.state": "An animal's State",
+  "sop.trigger.state": "An animal's state",
   "sop.trigger.prescription": "A prescription",
   "sop.trigger.perDose": "One piece of work per dose",
   "sop.effect.treatment": "Records a dose given",
   "sop.trigger.after": "Days after",
   "sop.trigger.remove": "Remove",
-  "event.move": "A Move",
+  "event.move": "A move",
   "event.arrival": "An arrival",
   "sop.assignedRole": "Who does it",
   "sop.checkerRole": "Who signs it off",
@@ -2647,7 +2643,7 @@ export const en = {
   "sop.effect.prescriptionNames": "A prescription will name it",
   "sop.effect.none": "Only the evidence itself",
   "sop.effect.feeding": "Feeding the pen its ration",
-  "sop.effect.milk_record": "A cow's Milk Record",
+  "sop.effect.milk_record": "A cow's milk record",
   "sop.effect.bulk_total": "The bulk tank total",
   "sop.effect.move": "Moving the animal to another pen",
   "sop.effect.needsPens": "Make a pen first",
@@ -2734,7 +2730,7 @@ export const en = {
   "sop.editor.publishHint": "Publishing makes a new version of this procedure.",
   "sop.editor.proposeHint":
     "Your change goes to the owner, who publishes it or turns it down.",
-  "card.title": "SOP Card",
+  "card.title": "SOP card",
   "card.pageHint":
     "The procedure as it goes on the shed wall, in Bangla, made from its published version. Print it on one A4 sheet.",
   "card.version": "Version {number} · {date}",
@@ -2800,7 +2796,7 @@ export const en = {
   "common.hideDetails": "Hide details",
   "common.cancel": "Cancel",
   "common.close": "Close",
-  "nav.signOff": "To check",
+  "nav.signOff": "Review",
   "nav.backups": "Backups",
   "nav.settings": "Settings",
   "feed.subtitle":
@@ -2809,7 +2805,7 @@ export const en = {
   "feed.tab.feedIn": "Came in",
   "feed.tab.counts": "Counts",
   "feed.tab.rations": "Rations",
-  "feed.tab.items": "Feed Items",
+  "feed.tab.items": "Feed items",
   "feed.tab.leftovers": "Leftovers",
   "leftovers.summary":
     "In the last {days, plural, one {# day} other {# days}} the pens left feed worth {worth} uneaten.",
@@ -2836,7 +2832,7 @@ export const en = {
   "leftovers.why.wastingNoRation": "Give less of it",
   "leftovers.why.all_eaten":
     "They may want more — or nobody is writing the leftovers down",
-  "feed.kpi.items": "Feed Items in store",
+  "feed.kpi.items": "Feed items in store",
   "feed.kpi.itemsHint": "Being fed now",
   "feed.kpi.low": "Running low",
   "feed.kpi.lowHint":
@@ -2854,8 +2850,7 @@ export const en = {
   "feed.editRation": "Edit ration",
   "feed.inUse": "In use",
   "feed.col.status": "Status",
-  "feed.title": "Feed and rations",
-  "feed.items": "Feed Items",
+  "feed.items": "Feed items",
   "feed.addItem": "Add a feed",
   "feed.retire": "Retire",
   "feed.retired": "Retired",
@@ -3068,7 +3063,7 @@ export const en = {
   "stock.receivedOn": "The day it came in",
   "stock.record": "Record it coming in",
   "stock.received": "Recorded",
-  "stock.col.item": "Feed Item",
+  "stock.col.item": "Feed item",
   "stock.col.onHand": "On hand",
   "stock.col.daysLeft": "Days left",
   "stock.daysLeft": "{days, plural, one {# day} other {# days}}",
@@ -3141,14 +3136,13 @@ export const en = {
     "A wage is looked for by the person paid, not by the category",
   "refusal.feedRetired": "That feed is retired",
   "refusal.bagSizeUnknown":
-    "Say what one of its bags weighs first, on the Feed Items tab",
+    "Say what one of its bags weighs first, on the Feed items tab",
   "refusal.bundlesByTheHead":
     "A feed counted in bundles goes by the head, not by body weight",
   "refusal.packNeedsKg": "Only feed weighed in kilos comes in bags or maunds",
   "nav.feed": "Feed",
   "nav.standards": "Standards and sources",
   "nav.milk": "Milk",
-  "dispatch.title": "Milk leaving the farm",
   "dispatch.subtitle":
     "The day's tank beside what went out of the gate, and the records a processor or BFSA asks for.",
   "dispatch.intoTank": "Into the tank",
@@ -3190,7 +3184,7 @@ export const en = {
   "refusal.dispatchedInTheFuture": "Milk cannot have left later than now",
   "refusal.periodTooLong": "One report covers a year at most",
   "nav.ventures": "Ventures",
-  "nav.money": "Income & expenses",
+  "nav.money": "Income and expenses",
   "money.subtitle":
     "Every {currencyOne} in and out, as the farm's own records made it — and what waits for the owner's approval.",
   "money.period": "Period",
@@ -3213,8 +3207,7 @@ export const en = {
   "money.partialHint":
     "The period has more entries than one page. Narrow the period, or use the accountant's report for complete totals.",
   "money.shownOnly": "Entries shown only",
-  "money.title": "Income & expenses",
-  "farmAccounts.title": "Farm Accounts",
+  "farmAccounts.title": "Farm accounts",
   "farmAccounts.why":
     "The farm's own mobile money numbers and bank accounts. Once one of a kind is listed, money by it names which one it went into or came out of, with its transaction ID.",
   "farmAccounts.none": "No accounts listed yet.",
@@ -3423,7 +3416,7 @@ export const en = {
   "costs.sold": "Sold for",
   "costs.margin": "Margin",
   "costs.notSold": "not sold yet",
-  "costs.litres": "Litres to Bulk",
+  "costs.litres": "Litres to bulk",
   "costs.perLitre": "Cost per litre",
   "costs.bySide": "Costs by side",
   "costs.unpricedNote":
@@ -3487,15 +3480,14 @@ export const en = {
     "The registration runs out on {date}: its renewal is on your list",
   "digest.dayNotTurning": "The farm's schedule has stopped",
   "alerts.dayNotTurning":
-    "The farm's schedule has not run cleanly since {since}: work may not be raised and notices may not go. See Copies of the farm.",
+    "The farm's schedule has not run cleanly since {since}: work may not be raised and notices may not go. See Backups.",
   "digest.backupOverdue": "The farm is not being copied",
   "alerts.backupOverdue":
-    "No copy of the farm has succeeded since {since}. See Copies of the farm.",
+    "No copy of the farm has succeeded since {since}. See Backups.",
   "refusal.workInNoPen":
     "This step records a pen's work, and this work is in no pen",
   "renewal.issuedOn": "The renewed certificate was issued on",
-  "nav.inspector": "Inspector View",
-  "inspector.title": "Inspector View",
+  "nav.inspector": "Inspector view",
   "inspector.registration": "Registration",
   "inspector.herd": "Herd summary",
   "inspector.animals": "Animals on the farm",
@@ -3505,7 +3497,7 @@ export const en = {
   "refusal.registerHasNoPaper": "That register is given as a CSV, not printed",
   "inspector.vaccinations": "Vaccination register",
   "inspector.noVaccinations": "No vaccinations in this period",
-  "inspector.lotNumber": "Lot Number {lotNumber}",
+  "inspector.lotNumber": "Lot number {lotNumber}",
   "inspector.vaccinatedBy": "Given by {giver}",
   "refusal.lotNumberMissing":
     "This is a vaccine: write the campaign's lot Number first, or this dose's own",
@@ -3549,7 +3541,7 @@ export const en = {
   "inspector.noTreatments": "No treatments in this period",
   "inspector.noDiseases": "No diagnoses in this period",
   "inspector.notifiable": "notifiable · DLS reference {reference}",
-  "inspector.col.lotNumber": "Lot Number",
+  "inspector.col.lotNumber": "Lot number",
   "inspector.col.prescribedBy": "Prescribed by",
   "inspector.col.milkClear": "Milk clear",
   "inspector.col.meatClear": "Meat clear",
@@ -3574,7 +3566,6 @@ export const en = {
   "home.pensWorking": "Pens with work today",
   "home.pensHint": "Tap a pen to see its work.",
   "home.endingSoon": "Ending soon",
-  "home.title": "Today on the farm",
   "home.queue": "What needs you",
   "home.overdue": "Late",
   "home.signOff": "Waiting for sign-off",
@@ -3599,7 +3590,6 @@ export const en = {
   "owner.waitingCount": "{count} waiting for you",
   "owner.allFineHint":
     "No approvals, proposals or late work are waiting. Anything new that needs you appears here.",
-  "owner.title": "How the farm stands",
   "owner.needsYou": "Needs you",
   "owner.allFine": "All fine",
   "owner.proposals": "Playbook proposals",
@@ -3684,7 +3674,6 @@ export const en = {
   "alerts.notifiableDiagnosis":
     "{tag} — {disease}: must be reported to DLS without delay",
   "digest.notifiable": "{count} to report",
-  "notifiable.title": "Diseases that must be reported",
   "notifiable.add": "Add a disease",
   "notifiable.name": "Disease name",
   "notifiable.nameEn": "English name (if any)",
@@ -3795,7 +3784,6 @@ export const en = {
   "push.withdrawalChangedTitle": "A withdrawal has changed",
   "push.withdrawalChangedBody": "{tag} — see the farm app",
   "nav.farm": "Farm overview",
-  "drugs.title": "The drug list",
   "drugs.add": "Add a product",
   "drugs.name": "Product name",
   "drugs.milkDays": "Milk withdrawal days",
@@ -3854,7 +3842,6 @@ export const en = {
   "drugs.noneBought": "Nothing bought for this product yet",
   "drugs.boughtSummary":
     "{count, plural, one {# purchase} other {# purchases}} · {currencySign}{amount} · {doses, plural, one {# dose} other {# doses}}",
-  "vet.title": "The vet's work",
   "vet.waiting": "Waiting for an answer",
   "vet.nothingWaiting": "Everything the rounds saw has been answered",
   "vet.mine": "What you concluded",
@@ -3920,7 +3907,7 @@ export const en = {
   "animals.diagnosis": "The vet's conclusion",
   "animals.healthChain": "Health",
   "animals.diagnosedBy": "{name}, {date}",
-  "nav.drugs": "Drugs",
+  "nav.drugs": "Medicines",
   "nav.today": "Today's work",
   "work.subtitle": "Everything due now in the pens you work. Tap one to start.",
   "work.count": "{count} due",
@@ -4044,7 +4031,6 @@ export const en = {
   "work.lateFor": "Late by {hours, plural, one {# hour} other {# hours}}",
   "work.counted": "Counted",
   "work.countReason": "Why it differs",
-  "signOff.title": "To check",
   "signOff.none": "Nothing to check",
   "signOff.approve": "Approve",
   "signOff.yoursToBeChecked": "Yours — somebody else checks it",
@@ -4138,10 +4124,10 @@ export const en = {
   "nav.group.today": "Today",
   "nav.group.herd": "Herd",
   "nav.group.health": "Health",
-  "nav.group.milkFeed": "Milk & feed",
-  "nav.group.money": "Money & investment",
+  "nav.group.milkFeed": "Milk and feed",
+  "nav.group.money": "Money and investment",
   "nav.group.compliance": "Compliance",
-  "nav.group.admin": "Farm system",
+  "nav.group.admin": "Administration",
   "nav.overview": "Overview",
   "nav.more": "More",
   "nav.menu": "Menu",
@@ -4185,7 +4171,7 @@ export const en = {
     "Work may not be raised and notices may not go. Open the app to see.",
   "push.backupOverdueTitle": "The farm is not being copied",
   "push.backupOverdueBody":
-    "No copy has succeeded in over a day and a half. Open Copies of the farm to see why.",
+    "No copy has succeeded in over a day and a half. Open Backups to see why.",
   "push.escalatedTitle": "Still not done",
   "push.sentBackTitle": "Sent back to you",
   "push.enable": "Tell me on this device",
@@ -4199,7 +4185,6 @@ export const en = {
   "push.notTold": "This device is not told",
   "settings.subtitle":
     "What you set for yourself: whether this device tells you things, and the number the farm may text.",
-  "backups.title": "Copies of the farm",
   "backups.subtitle":
     "Whether the farm's records are being copied off this machine, and whether its own clock is running.",
   "schedule.lastRan": "The farm's schedule last ran at {when}",
@@ -4300,7 +4285,7 @@ export const en = {
   "refusal.calvingOfAMale": "A bull does not calve",
   "refusal.calvedInTheFuture": "A calving cannot be later than now",
   "sop.trigger.registrationRenewal": "the registration coming up for renewal",
-  "sop.trigger.beforeCalving": "Before a cow's Expected Calving",
+  "sop.trigger.beforeCalving": "Before a cow's expected calving",
   "sop.trigger.farmTimed": "The farm's days, set once for every cow",
   "calvingLead.dry_off": "Dry-off lead",
   "calvingLead.calving_prep": "Calving-prep lead",
@@ -4369,7 +4354,7 @@ export const en = {
   "intake.weight": "Weight on arrival",
   "intake.age": "Estimated age",
   "intake.targetWeight": "Target weight",
-  "intake.targetWindow": "Target Window",
+  "intake.targetWindow": "Target window",
   "intake.money": "{amount} {currencySum}",
   "intake.kg": "{kg} kg",
   "intake.months": "{months, plural, one {# month} other {# months}}",
@@ -4381,8 +4366,8 @@ export const en = {
   "intake.sellerName": "Seller's name",
   "intake.sellerPlace": "Seller's market or place",
   "intake.sellerPhone": "Seller's phone",
-  "intake.windowStart": "Target Window from",
-  "intake.windowEnd": "Target Window to",
+  "intake.windowStart": "Target window from",
+  "intake.windowEnd": "Target window to",
   "intake.windowNote":
     "Left blank, the next Eid-ul-Adha is used; change it once the date is announced.",
   "intake.ventureWindow": "{from} – {to} — {venture}'s target window",
@@ -4527,7 +4512,7 @@ export const en = {
     "An animal is suggested once it reaches its target weight or its target window opens.",
   "ready.windowClosed": "Its target window has passed",
   "ready.filter.weight": "Target weight",
-  "ready.filter.window": "Target Window",
+  "ready.filter.window": "Target window",
   "ready.setAsideTitle": "Keep {tag} longer",
   "ready.setAsideHint":
     "Say why it is staying. The farm stops suggesting it until something new holds.",
@@ -4537,16 +4522,16 @@ export const en = {
   "ready.kpi.confirmedHint": "{count} can be sold today",
   "ready.kpi.held": "Held by withdrawal",
   "ready.kpi.heldHint": "Cannot be confirmed or sold yet",
-  "nav.sale": "Sale",
+  "nav.sale": "Sales",
   "nav.culling": "Culling",
-  "nav.months": "Month by month",
+  "nav.months": "Monthly report",
   "months.subtitle":
     "How the farm has done each month over the last year: its money, the milk against what the dairy cows cost, the fattening animals sold, and each venture against its plan.",
   "months.net": "Net over the year",
   "months.milkSold": "Milk sold over the year",
   "months.milkSoldHint": "{litres} L · a litre fetched {fetched}",
   "months.dairyCost": "What the dairy cows cost",
-  "months.dairyCostHint": "{perLitre} a litre sent to Bulk",
+  "months.dairyCostHint": "{perLitre} a litre sent to bulk",
   "months.margins": "Margins on fattening sold",
   "months.marginsHint":
     "{count, plural, one {# animal sold} other {# animals sold}}",
@@ -4652,7 +4637,7 @@ export const en = {
   "returns.bankLine": "The bank's rate a year: {rate} — {note}",
   "returns.bankMark":
     "Marked: the bank's rate on the day that money first went in",
-  "returns.bankTitle": "The Bank Rate",
+  "returns.bankTitle": "The bank rate",
   "returns.bankHint":
     "A bank's rate a year, before its tax, as the bank quotes it: set beside each finished rate a year, as it stood on the day that money first went in. Yours alone, and never shown to an investor.",
   "returns.bankNone":
@@ -4779,16 +4764,16 @@ export const en = {
   "returns.milkEarlier":
     "{months}: no dispatch that month, so her milk went at the latest earlier month's price",
   "returns.calvesTitle": "Her calves",
-  "returns.headPricesTitle": "Head Prices",
+  "returns.headPricesTitle": "Head prices",
   "returns.headPricesHint":
     "What a dairy animal still here counts at, low and high, by what she is: a cow is sold by the head, not the kilo.",
   "returns.headPriceNone": "Not set",
   "returns.headPriceRange": "{low} to {high}",
   "returns.setHeadPrice": "Set",
-  "returns.headPriceTitle": "Head Price: {kind}",
+  "returns.headPriceTitle": "Head price: {kind}",
   "returns.low": "Low",
   "returns.high": "High",
-  "returns.headPriceSaved": "Head Price saved",
+  "returns.headPriceSaved": "Head price saved",
   "returns.toPriceTitle": "Dairy animals to price",
   "returns.toPriceHint":
     "A dairy animal bought, or here before the farm kept its books, is counted from a price you enter, with where it came from. One bred here needs none.",
@@ -4811,7 +4796,7 @@ export const en = {
     "A head price needs a low above nothing and no higher than its high",
   "audit.entity.fattening_joining": "Joining a season",
   "audit.entity.dairy_entry_price": "Dairy animal's price",
-  "audit.entity.head_price": "Head Price",
+  "audit.entity.head_price": "Head price",
   "returns.switch.title": "Return on capital for investors",
   "returns.switch.show": "Show their Return on capital",
   "returns.switch.hide": "Hide their Return on capital",
@@ -4974,8 +4959,7 @@ export const en = {
   "sale.kpi.perKgHint": "On the weights on the day",
   "sale.kpi.ready": "Ready to go",
   "sale.kpi.readyHint": "Confirmed, and clear of withdrawal",
-  "nav.identity": "Identity & parameters",
-  "identity.title": "The farm's identity and parameters",
+  "nav.identity": "Farm settings",
   "identity.why":
     "Every paper that leaves the farm — the transport card, the letter to the office — prints what is written here.",
   "identity.name": "Farm name",
@@ -5473,7 +5457,7 @@ export const en = {
     "A medicine count counts every medicine on the list",
   "refusal.givenInTheFuture":
     "A dose cannot be given at a time that has not come yet",
-  "refusal.productRetired": "That medicine is retired from the drug list",
+  "refusal.productRetired": "That medicine is retired from the medicine list",
   "alerts.doseNotPrescribed":
     "{tag} was given {product} without a prescription: {advice}. Check her withdrawal",
   "push.doseNotPrescribedTitle": "A dose without a prescription",

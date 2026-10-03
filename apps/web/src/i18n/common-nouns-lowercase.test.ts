@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
  *
  * Left as they are: what an Investor reads and the papers, whose wording the advisers approved and whose capitals mark
  * a contract's defined terms; a page or a tab named as where to go ("the Investors page"); and the parts of the product
- * there is one of (the Investor Portal, the Shed Phone, the Playbook).
+ * there is one of (the Investor Portal, the Playbook).
  */
 const ADVISERS_WORDING = new Set([
   "portal",
@@ -34,6 +34,7 @@ const COMMON_NOUNS = [
   "Feed Item",
   "Wind-up Period",
   "Tag Number",
+  "Shed Phone",
   "Barn Staff",
   "Settlement",
   "Registration",
@@ -75,7 +76,7 @@ const COMMON_NOUNS = [
 ];
 
 /** Tabs a sentence sends somebody to, said as the tab says them. */
-const TAB_NAMES = ["Capital in", "Money in and out", "Feed Items tab"];
+const TAB_NAMES = ["Capital in", "Money in and out"];
 
 /** Inside a sentence: after any word (the sentence's first among them), a figure, a comma, a closing brace or
  *  bracket, a dash or a count's "#". */
@@ -123,6 +124,27 @@ const portalKeys = new Set(
     .map((match) => match.groups?.key)
 );
 
+/** A label's own length: a menu item, a heading, a column, a button — not a sentence. */
+const LABEL_LENGTH = 40;
+
+/** Names a label keeps capitalised after its first word: proper names, an acronym, and the Return on capital the
+ *  advisers approved by that name. */
+const PROPER = new Set([
+  "OpenFarm",
+  "Eid",
+  "Bangla",
+  "English",
+  "Bangladesh",
+  "DLS",
+  "SOP",
+  "PIN",
+  "Playbook",
+  "Return",
+]);
+
+/** A word after a label's first that begins with a capital. */
+const LATER_CAPITAL = /(?<=[A-Za-z0-9,;:'’)] )(?<word>[A-Z][a-z]+)/gu;
+
 describe("the farm's English", () => {
   it("keeps common nouns lowercase inside a sentence", () => {
     const capitalised = Object.entries(en)
@@ -134,5 +156,23 @@ describe("the farm's English", () => {
       .map(([key, words]) => `${key}: ${words}`);
 
     expect(capitalised).toEqual([]);
+  });
+
+  it("writes its labels in sentence case", () => {
+    const titleCased = Object.entries(en)
+      .filter(
+        ([key, words]) =>
+          !ADVISERS_WORDING.has(key.split(".")[0] ?? "") &&
+          !portalKeys.has(key) &&
+          words.length <= LABEL_LENGTH
+      )
+      .filter(([, words]) =>
+        [...words.matchAll(LATER_CAPITAL)].some(
+          (found) => !PROPER.has(found.groups?.word ?? "")
+        )
+      )
+      .map(([key, words]) => `${key}: ${words}`);
+
+    expect(titleCased).toEqual([]);
   });
 });

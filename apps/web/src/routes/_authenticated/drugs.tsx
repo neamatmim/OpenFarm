@@ -130,7 +130,7 @@ const DrugsPage = () => {
           ) : null
         }
         description={t("drugs.subtitle")}
-        title={t("drugs.title")}
+        title={t("nav.drugs")}
       />
 
       {drugs.data ? <SummaryFigures figures={figures} /> : null}

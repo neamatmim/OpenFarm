@@ -126,7 +126,7 @@ const MilkPage = () => {
           ) : null
         }
         description={t("dispatch.subtitle")}
-        title={t("dispatch.title")}
+        title={t("nav.milk")}
       />
 
       <SummaryFigures figures={figures} />

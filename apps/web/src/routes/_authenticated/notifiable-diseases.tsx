@@ -462,7 +462,7 @@ const NotifiablePage = () => {
       <PageHeader
         actions={addButton}
         description={t("notifiable.subtitle")}
-        title={t("notifiable.title")}
+        title={t("nav.notifiable")}
       />
 
       <Loaded query={list}>

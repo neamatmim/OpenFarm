@@ -106,7 +106,7 @@ const DevicesPage = () => {
       <PageHeader
         actions={addButton}
         description={t("device.subtitle")}
-        title={t("device.title")}
+        title={t("nav.devices")}
       />
 
       <Loaded query={phones}>

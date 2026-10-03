@@ -359,7 +359,7 @@ const InspectorPage = () => {
       <Page>
         <PageHeader
           eyebrow={t("nav.group.compliance")}
-          title={t("inspector.title")}
+          title={t("nav.inspector")}
         />
         {view.isError ? (
           <Notice title={t("common.error")} tone="danger" />
@@ -439,7 +439,7 @@ const InspectorPage = () => {
       <PageHeader
         description={t("inspector.subtitle")}
         eyebrow={t("nav.group.compliance")}
-        title={t("inspector.title")}
+        title={t("nav.inspector")}
       />
 
       <RegistrationNotices view={view.data} />
