@@ -105,7 +105,9 @@ export const day = (
     shows: said ?? "",
     sends: (typed) => (typed === "" ? undefined : typed),
     same: (typed) => typed === (said ?? ""),
-    couldBeSent: (typed) => typed !== "",
+    // A day rubbed out is not one the farm can take; a box that was empty and still is changes nothing — a Sale paid
+    // in full holds no day the buyer promised to pay by, and the rest of it can still be put right.
+    couldBeSent: (typed) => typed !== "" || said === null,
   };
 };
 

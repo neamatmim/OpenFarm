@@ -75,6 +75,18 @@ describe("what the farm could take at all", () => {
     const sale = { buyer: counterparty("করিম") };
     expect(readyToSend(sale, { buyer: " " })).toBe(false);
   });
+
+  it("puts a Sale paid in full right, though it holds no day he promised to pay by", () => {
+    const sale = { priceBdt: amount(180_000), promisedBy: day(null) };
+    expect(readyToSend(sale, { priceBdt: "182000", promisedBy: "" })).toBe(
+      true
+    );
+  });
+
+  it("will not rub out a day the record holds", () => {
+    const owed = { promisedBy: day(new Date("2027-04-20T02:00:00.000Z")) };
+    expect(readyToSend(owed, { promisedBy: "" })).toBe(false);
+  });
 });
 
 describe("the farm's kinds of field", () => {
