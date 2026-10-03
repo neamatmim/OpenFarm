@@ -4137,6 +4137,7 @@ export const bn: Record<MessageKey, string> = {
   "intake.farmsTarget": "{kg} কেজি — খামারের নির্ধারিত",
   "intake.nextEid": "{from} – {to} — আগামী ঈদুল আজহা",
   "eid.title": "আগামী ঈদুল আজহা",
+  "eid.allDates": "ঈদুল আজহার সব তারিখ",
   "eid.basis.announced": "ঘোষিত",
   "eid.basis.expected": "প্রত্যাশিত",
   "eid.basis.estimated": "আনুমানিক",
@@ -4158,7 +4159,6 @@ export const bn: Record<MessageKey, string> = {
   "eid.broughtAlong": "{count}টি পশুর বিক্রির সময় ঈদের দিনে সরানো হয়েছে",
   "eid.inVentures":
     "ভেঞ্চারের {count}টি পশুর সময় আগের মতোই থাকবে: ভেঞ্চারের সময় বদলায় কেবল বিনিয়োগকারীদের সই করা সংশোধনী দিয়ে।",
-  "nav.eid": "ঈদুল আজহা",
   "eid.listSubtitle":
     "মোটাতাজাকরণের পশু যেসব ঈদে বিক্রি হয়: প্রতিটির জন্য খামার কোন দিন ধরে আছে, দিনটা কীভাবে জানা, আর কতগুলো পশু সেই দিন ধরে খাচ্ছে। কমিটি ঘোষণা দিলে দিনটা লিখে দিন।",
   "eid.of": "ঈদুল আজহা {year}",
@@ -4665,6 +4665,7 @@ export const bn: Record<MessageKey, string> = {
   "settings.section.rules": "নিয়ম ও সতর্কবার্তা",
   "settings.section.money": "আর্থিক",
   "settings.section.portal": "বিনিয়োগকারীর পোর্টাল",
+  "settings.section.eid": "ঈদুল আজহার তারিখ",
   "settings.rulesWhy":
     "খামার কীভাবে চলে: দিনের সারসংক্ষেপ কখন যায় আর নীরব সময় কখন, একটি পরিমাপ কতটা সরে যেতে পারে, দেরি হওয়া কাজ কতক্ষণ পরে জানানো হয়, আর কখন একটি গাভী বাদের তালিকায় ওঠে।",
   "settings.moneyWhy":

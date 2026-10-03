@@ -4,6 +4,7 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { CalendarCheck, CalendarClock, MoonStar } from "lucide-react";
 import { useState } from "react";
 
@@ -194,6 +195,13 @@ export const NextEid = ({ compact = false }: { compact?: boolean }) => {
           {t("eid.inVentures", { count: formatNumber(inVentures, language) })}
         </p>
       ) : null}
+      {/* Every Eid the farm has, the years ahead and the days written in: with the farm's settings. */}
+      <Link
+        className="self-start text-sm underline-offset-4 hover:underline"
+        to="/farm/eid-dates"
+      >
+        {t("eid.allDates")} →
+      </Link>
       {announcing ? (
         <AnnounceDialog
           onOpenChange={setAnnouncing}

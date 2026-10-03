@@ -270,7 +270,7 @@ const WhereItLeads = ({
   }
   if (notice.kind === "still_here_after_eid") {
     return (
-      <Link className={LEADS_CLASS} to="/eid-dates">
+      <Link className={LEADS_CLASS} to="/farm/eid-dates">
         {t("alerts.openTheEids")}
       </Link>
     );

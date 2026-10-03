@@ -4411,6 +4411,7 @@ export const en = {
   "intake.farmsTarget": "{kg} kg — the farm's own",
   "intake.nextEid": "{from} – {to} — the next Eid-ul-Adha",
   "eid.title": "Next Eid-ul-Adha",
+  "eid.allDates": "All Eid-ul-Adha dates",
   "eid.basis.announced": "Announced",
   "eid.basis.expected": "Expected",
   "eid.basis.estimated": "Estimated",
@@ -4433,7 +4434,6 @@ export const en = {
     "{count, plural, one {# animal} other {# animals}} moved to the Eid's days",
   "eid.inVentures":
     "{count, plural, one {# animal in a venture keeps its window} other {# animals in ventures keep their window}}: a venture's window moves only by an amendment its investors sign.",
-  "nav.eid": "Eid-ul-Adha",
   "eid.listSubtitle":
     "Every Eid the fattening side sells into: the day the farm is on for each, how it knows it, and the animals aimed at it. Write in the committee's day once it is announced.",
   "eid.of": "Eid-ul-Adha {year}",
@@ -4964,6 +4964,7 @@ export const en = {
   "settings.section.rules": "Rules and alerts",
   "settings.section.money": "Money",
   "settings.section.portal": "Investor portal",
+  "settings.section.eid": "Eid-ul-Adha dates",
   "settings.rulesWhy":
     "How the farm behaves: when its digest goes and its quiet hours, how far a reading may drift, how long late work waits before somebody is told, and when a cow is put on the cull list.",
   "settings.moneyWhy":

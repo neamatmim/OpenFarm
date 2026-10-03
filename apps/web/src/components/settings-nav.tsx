@@ -7,6 +7,7 @@ import {
   Dna,
   FileSignature,
   Globe,
+  MoonStar,
   SlidersHorizontal,
   Smartphone,
   Users,
@@ -26,7 +27,8 @@ interface SettingsSectionLink {
     | "/farm/agreement-templates"
     | "/farm/people"
     | "/farm/shed-phones"
-    | "/farm/breeds";
+    | "/farm/breeds"
+    | "/farm/eid-dates";
   label: MessageKey;
   icon: LucideIcon;
   /** The Owner's alone, as its page is. */
@@ -58,6 +60,7 @@ const SECTIONS: readonly SettingsSectionLink[] = [
   { to: "/farm/people", label: "nav.people", icon: Users },
   { to: "/farm/shed-phones", label: "nav.devices", icon: Smartphone },
   { to: "/farm/breeds", label: "nav.breeds", icon: Dna },
+  { to: "/farm/eid-dates", label: "settings.section.eid", icon: MoonStar },
 ];
 
 /**
