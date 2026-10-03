@@ -2051,6 +2051,8 @@ export const en = {
     "Called off: her calving is no longer expected",
   "audit.calledOffBy.report_withdrawn": "Called off: the report was withdrawn",
   "audit.calledOffBy.sop_retired": "Called off: the procedure was retired",
+  "audit.calledOffBy.released": "Called off: he is out of Quarantine",
+  "audit.calledOffBy.excused": "Called off: the Vet excused the dose",
   "audit.raisedAgainBy.calving_expected_again":
     "Raised again: her calving is expected again",
   "audit.before": "Before",

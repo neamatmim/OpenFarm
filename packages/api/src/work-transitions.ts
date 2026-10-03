@@ -83,20 +83,23 @@ export const requireTransition = async (
 /**
  * What called work off: named in each piece's trail, so a board that no longer shows the morning's dose can say why.
  */
-export type CalledOffBy =
-  | "animal_left"
-  | "heat_withdrawn"
-  | "observation_withdrawn"
-  | "diagnosed"
-  | "attempt_no_longer_standing"
-  | "calving_no_longer_expected"
-  | "report_withdrawn"
-  | "sop_retired"
-  | "released"
-  | "excused";
+export const CALLED_OFF_BY = [
+  "animal_left",
+  "heat_withdrawn",
+  "observation_withdrawn",
+  "diagnosed",
+  "attempt_no_longer_standing",
+  "calving_no_longer_expected",
+  "report_withdrawn",
+  "sop_retired",
+  "released",
+  "excused",
+] as const;
+export type CalledOffBy = (typeof CALLED_OFF_BY)[number];
 
 /** What raised called-off work again. */
-export type RaisedAgainBy = "calving_expected_again";
+export const RAISED_AGAIN_BY = ["calving_expected_again"] as const;
+export type RaisedAgainBy = (typeof RAISED_AGAIN_BY)[number];
 
 /**
  * Calls off the open work that matches (the glossary's Called Off): the farm no longer owes it. Each piece is moved on

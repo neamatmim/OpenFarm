@@ -8,6 +8,7 @@ import {
 } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { movementsByItem } from "../stock-store";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
@@ -375,5 +376,24 @@ describe("feed stock", () => {
         receivedOn: "2034-01-08",
       })
     ).rejects.toMatchObject({ data: { refusal: "feed_retired" } });
+  });
+
+  it("reads every Feeding at the moment it was fed, whatever the server's own time zone", async () => {
+    // Read in the database rather than through the tables, so a moment kept without its zone comes back as text; read
+    // as the server's local time, a farm in Dhaka would see every Feeding six hours early — before a Stock Count it
+    // came after, which the count then wipes out.
+    const db = scratchDb();
+    const fed = await db.query.feeding.findMany({
+      where: { farmId: theFarm().id },
+      columns: { fedAt: true },
+    });
+    const byItem = await movementsByItem(db, theFarm().id);
+    const outs = [...byItem.values()]
+      .flat()
+      .filter((one) => one.kind === "out")
+      .map((one) => one.at.toISOString());
+    const fedAt = new Set(fed.map((one) => one.fedAt.toISOString()));
+    expect(outs.length).toBeGreaterThan(0);
+    expect(outs.filter((at) => !fedAt.has(at))).toEqual([]);
   });
 });

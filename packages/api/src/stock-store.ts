@@ -80,6 +80,8 @@ export interface StockLine {
   expiredLeft: number;
 }
 
+const MS_PER_SECOND = 1000;
+
 /**
  * Every movement in and out of the farm's store, by Feed Item: what came in, what each Feeding gave,
  * and what each Stock Count found. Feedings are read in the database, a line per item per session,
@@ -104,14 +106,15 @@ export const movementsByItem = async (
     },
   });
   // A Feeding's lines are in each Feed Item's own unit; `givenKg` is the name the line was given
-  // when every Ration was in kilos.
+  // when every Ration was in kilos. The moment it was fed comes back as seconds since 1970: a moment kept without its
+  // zone read back as text would be taken for the server's local time, six hours early on a server in Dhaka.
   const given = await db.execute<{
     feed_item_id: string;
-    fed_at: Date;
+    fed_at_seconds: string;
     given: string;
   }>(
     sql`select line->>'feedItemId' as feed_item_id,
-               ${feeding.fedAt} as fed_at,
+               extract(epoch from ${feeding.fedAt}) as fed_at_seconds,
                (line->>'givenKg')::numeric as given
           from ${feeding}, jsonb_array_elements(${feeding.lines}) as line
          where ${feeding.farmId} = ${farmId}`
@@ -151,7 +154,7 @@ export const movementsByItem = async (
   for (const row of given.rows) {
     add(row.feed_item_id, {
       kind: "out",
-      at: new Date(row.fed_at),
+      at: new Date(Number(row.fed_at_seconds) * MS_PER_SECOND),
       quantity: Number(row.given),
     });
   }

@@ -306,6 +306,22 @@ const assertNotSettledUp = async (
   }
 };
 
+/** Open, any Venture; paid by the month, its Monthly Sums too while it buys and fattens. Once it sells, a sum not yet
+ *  paid is not paid, and the man shares by what he did pay (the advisers' answers, 2026-10-02). */
+const assertTakesCapital = (
+  row: Parameters<typeof takesCapital>[0] & { capitalPaid: string }
+) => {
+  if (!takesCapital(row)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        row.capitalPaid === "by_the_month"
+          ? "A Venture paid by the month takes its Monthly Sums only until it starts selling"
+          : "A Venture takes capital only while it is open",
+      data: { refusal: "venture_wrong_state" },
+    });
+  }
+};
+
 /** This Farm's Venture, or nothing the caller may act on. */
 const ours = async (context: Context, id: string) => {
   const row = await context.db.query.venture.findFirst({
@@ -1745,17 +1761,7 @@ export const venturesRouter = {
       }
       const agreement = await theAgreement(context, input.agreementId);
       const row = await ours(context, agreement.ventureId);
-      // Open, any Venture; paid by the month, its Monthly Sums too while it buys and fattens. Once it sells, a sum not
-      // yet paid is not paid, and the man shares by what he did pay (the advisers' answers, 2026-10-02).
-      if (!takesCapital(row)) {
-        throw new ORPCError("BAD_REQUEST", {
-          message:
-            row.capitalPaid === "by_the_month"
-              ? "A Venture paid by the month takes its Monthly Sums only until it starts selling"
-              : "A Venture takes capital only while it is open",
-          data: { refusal: "venture_wrong_state" },
-        });
-      }
+      assertTakesCapital(row);
       // Its Units' whole price — or, for a Venture paid by the month, its Units' Cattle Part while it gathers its capital.
       const owed = capitalItMayHold(agreement.units, row);
       const cattlePartOnly = owed < agreement.units * row.unitPriceBdt;
@@ -1774,6 +1780,13 @@ export const venturesRouter = {
           // divides by Units, so a Unit paid for twice would take twice its share of the profit while
           // holding one share of the Venture.
           await lockTheFarm(tx, context.farm.id);
+          // Asked again behind the lock: a Venture cancelled or moved on at the same moment takes nothing.
+          const standing = await tx.query.venture.findFirst({
+            where: { id: row.id, farmId: context.farm.id },
+          });
+          if (standing) {
+            assertTakesCapital(standing);
+          }
           const paidAlready = await takenAgainst(
             tx,
             context.farm.id,

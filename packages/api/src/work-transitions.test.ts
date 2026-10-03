@@ -10,7 +10,11 @@ import {
   mayTransition,
   stateAfter,
 } from "@OpenFarm/domain";
+import { translate } from "@OpenFarm/i18n";
+import type { MessageKey } from "@OpenFarm/i18n";
 import { describe, expect, it } from "vitest";
+
+import { CALLED_OFF_BY, RAISED_AGAIN_BY } from "./work-transitions";
 
 // What can happen to an SOP Instance from each state it can be in, written out transition by transition so the rule reads at a
 // glance. No database: the rule is about states, and the gaps were where one path allowed what another refused.
@@ -155,5 +159,32 @@ describe("the transitions of an SOP Instance", () => {
       "completed",
       "approved",
     ]);
+  });
+});
+
+// The audit trail names the reason by a key it builds from the word kept, so a reason with no words is no type error
+// there — the page throws on it instead. Every reason has its words, in both languages.
+const unsaid = (keys: string[]) =>
+  keys.filter((key) =>
+    (["en", "bn"] as const).some((language) => {
+      try {
+        return translate(language, key as MessageKey) === key;
+      } catch {
+        return true;
+      }
+    })
+  );
+
+describe("why work was called off or raised again, in the trail", () => {
+  it("has words for every reason work is called off", () => {
+    expect(
+      unsaid(CALLED_OFF_BY.map((by) => `audit.calledOffBy.${by}`))
+    ).toEqual([]);
+  });
+
+  it("has words for every reason work is raised again", () => {
+    expect(
+      unsaid(RAISED_AGAIN_BY.map((by) => `audit.raisedAgainBy.${by}`))
+    ).toEqual([]);
   });
 });
