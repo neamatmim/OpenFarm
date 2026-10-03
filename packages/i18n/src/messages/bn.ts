@@ -4276,6 +4276,9 @@ export const bn: Record<MessageKey, string> = {
   "months.col.fatteningCost": "মোটাতাজাকরণের খরচ",
   "returns.col.costBack": "খরচ → ফেরত",
   "returns.col.share": "প্রতি ১০০ {currencyIn}",
+  "returns.col.what": "মৌসুম বা ভেঞ্চার",
+  "returns.col.head": "গরু",
+  "returns.col.result": "ফল",
   "months.col.overheads": "খামার চালানোর খরচ · প্রতি পশু প্রতিদিন",
   "months.cardOverheads": "খামার চালানোর খরচ {amount}, প্রতি পশু প্রতিদিন {perHead}",
   "months.yearOverheads":

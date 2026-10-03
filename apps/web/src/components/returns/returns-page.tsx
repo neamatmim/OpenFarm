@@ -4,6 +4,12 @@ import { Link } from "@tanstack/react-router";
 import { ChevronDown, Sprout } from "lucide-react";
 import type { ReactNode } from "react";
 
+import {
+  DataTable,
+  createListColumns,
+  listHeader,
+  useListTable,
+} from "@/components/data-table";
 import { useIsOwner } from "@/components/fattening/animal-prices";
 import {
   EmptyState,
@@ -50,6 +56,31 @@ const newestFirst = (
 const isFinished = (
   one: Pick<Venture, "returnOnCost"> & { finished?: boolean }
 ): boolean => one.finished ?? one.returnOnCost !== null;
+
+/** How one finished Season or Venture was worked: its return beside the Bank Rate, the working, and what it alone
+ *  has — on a phone inside its closed row, on a desk under its table row. */
+const RowBody = ({
+  bank,
+  floorDays,
+  returned,
+  children,
+}: {
+  bank: BankRateSaid | null;
+  floorDays: number;
+  returned: Returned;
+  children?: ReactNode;
+}) => (
+  <div className="flex flex-col gap-3">
+    <ReturnLines
+      bank={bank}
+      floorDays={floorDays}
+      on="onCost"
+      shares={returned}
+    />
+    <Working returned={returned} />
+    {children}
+  </div>
+);
 
 /** One finished Season or Venture, closed to its name and result, opening into how it was worked. */
 const Row = ({
@@ -107,15 +138,10 @@ const Row = ({
             <ShareUnder per100={returned.per100} />
           </span>
         </summary>
-        <div className="flex flex-col gap-3 border-t p-4">
-          <ReturnLines
-            bank={bank}
-            floorDays={floorDays}
-            on="onCost"
-            shares={returned}
-          />
-          <Working returned={returned} />
-          {children}
+        <div className="border-t p-4">
+          <RowBody bank={bank} floorDays={floorDays} returned={returned}>
+            {children}
+          </RowBody>
         </div>
       </details>
     </li>
@@ -149,7 +175,9 @@ const SeasonRow = ({
   );
 };
 
-const VentureRow = ({
+/** What a finished Venture has that a Season has not: its Settlement still to come, how far it has moved since, its
+ *  return on capital, the Farm's share, and the way to its page. */
+const VentureExtras = ({
   venture,
   floorDays,
 }: {
@@ -158,21 +186,9 @@ const VentureRow = ({
 }) => {
   const { t } = useLanguage();
   const asMoney = useMoney();
-  if (!venture.returnOnCost) {
-    return null;
-  }
   const settlementToCome = !venture.settled;
   return (
-    <Row
-      bank={venture.bankRate}
-      died={venture.died}
-      floorDays={floorDays}
-      head={venture.head}
-      kind="returns.venture"
-      name={venture.name}
-      returned={venture.returnOnCost}
-      settlementToCome={settlementToCome}
-    >
+    <>
       {settlementToCome ? (
         <p className="text-muted-foreground text-sm">
           {t("returns.settlementToComeHint")}
@@ -207,6 +223,33 @@ const VentureRow = ({
       >
         {t("returns.openVenture")} →
       </Link>
+    </>
+  );
+};
+
+const VentureRow = ({
+  venture,
+  floorDays,
+}: {
+  venture: Venture;
+  floorDays: number;
+}) => {
+  if (!venture.returnOnCost) {
+    return null;
+  }
+  const settlementToCome = !venture.settled;
+  return (
+    <Row
+      bank={venture.bankRate}
+      died={venture.died}
+      floorDays={floorDays}
+      head={venture.head}
+      kind="returns.venture"
+      name={venture.name}
+      returned={venture.returnOnCost}
+      settlementToCome={settlementToCome}
+    >
+      <VentureExtras venture={venture} floorDays={floorDays} />
     </Row>
   );
 };
@@ -313,8 +356,135 @@ export const ReturnsChart = ({ page }: { page: ReturnsPage }) => {
 
 /** Every Season and Venture whose last animal has gone, together, the newest window first — a Venture whose
  *  Settlement is still to come among them, and said so. */
+/** One finished Season or Venture as the desk's table reads it. */
+interface FinishedRow {
+  key: string;
+  start: string;
+  kind: "returns.season" | "returns.venture";
+  name: string;
+  head: number;
+  died: number;
+  lost: number;
+  returned: Returned;
+  bank: BankRateSaid | null;
+  settlementToCome: boolean;
+  season: Season | null;
+  venture: Venture | null;
+}
+
+interface FinishedCell {
+  row: { original: FinishedRow };
+}
+
+const FinishedNameCell = ({ row }: FinishedCell) => {
+  const { t } = useLanguage();
+  const one = row.original;
+  return (
+    <span className="flex flex-wrap items-center gap-2">
+      <span className="font-medium">{one.name}</span>
+      <StatusBadge tone="neutral">{t(one.kind)}</StatusBadge>
+      {one.settlementToCome ? (
+        <StatusBadge tone="warning">
+          {t("returns.settlementToCome")}
+        </StatusBadge>
+      ) : null}
+    </span>
+  );
+};
+const FinishedHeadCell = ({ row }: FinishedCell) => {
+  const { t } = useLanguage();
+  const one = row.original;
+  return (
+    <span className="flex flex-col">
+      <span>{t("returns.head", { count: one.head })}</span>
+      {one.died > 0 || one.lost > 0 ? (
+        <span className="text-muted-foreground text-xs">
+          {[
+            one.died > 0 ? t("returns.died", { count: one.died }) : null,
+            one.lost > 0 ? t("returns.lostHead", { count: one.lost }) : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </span>
+      ) : null}
+    </span>
+  );
+};
+const FinishedResultCell = ({ row }: FinishedCell) => (
+  <span className="font-medium">
+    <Result amount={row.original.returned.resultMoney} />
+  </span>
+);
+const FinishedShareCell = ({ row }: FinishedCell) => (
+  <ShareUnder per100={row.original.returned.per100} />
+);
+
+const finishedColumn = createListColumns<FinishedRow>();
+const finishedColumns = finishedColumn.columns([
+  finishedColumn.accessor("name", {
+    header: listHeader("returns.col.what"),
+    cell: FinishedNameCell,
+  }),
+  finishedColumn.accessor("head", {
+    header: listHeader("returns.col.head"),
+    cell: FinishedHeadCell,
+    meta: { align: "end" },
+  }),
+  finishedColumn.accessor((one) => one.returned.resultMoney, {
+    id: "result",
+    header: listHeader("returns.col.result"),
+    cell: FinishedResultCell,
+    meta: { align: "end" },
+  }),
+  finishedColumn.accessor((one) => one.returned.per100, {
+    id: "share",
+    header: listHeader("returns.col.share"),
+    cell: FinishedShareCell,
+    meta: { align: "end" },
+  }),
+]);
+
+/** Under a finished row on a desk: how it was worked, and a Season's breakdown or a Venture's own lines. */
+const FinishedDetail = ({
+  row,
+  floorDays,
+}: {
+  row: FinishedRow;
+  floorDays: number;
+}) => (
+  <RowBody bank={row.bank} floorDays={floorDays} returned={row.returned}>
+    {row.season ? <SeasonBreakdown seasonKey={row.season.key} /> : null}
+    {row.venture ? (
+      <VentureExtras floorDays={floorDays} venture={row.venture} />
+    ) : null}
+  </RowBody>
+);
+
+/** On a desk, every finished Season and Venture a row — what, head, result, and on every hundred — sortable, newest
+ *  first, each opening to how it was worked (Polaris's index table, Carbon's expandable rows). */
+const FinishedTable = ({
+  rows,
+  floorDays,
+}: {
+  rows: FinishedRow[];
+  floorDays: number;
+}) => {
+  const table = useListTable({
+    columns: finishedColumns,
+    data: rows,
+    getRowId: (one) => one.key,
+  });
+  return (
+    <DataTable
+      renderDetail={(row) => <FinishedDetail floorDays={floorDays} row={row} />}
+      table={table}
+    />
+  );
+};
+
 export const FinishedReturns = ({ page }: { page: ReturnsPage }) => {
   const { t } = useLanguage();
+  const named = useSeasonName();
   const rows = [
     ...page.seasons
       .filter((one) => one.finished)
@@ -346,7 +516,60 @@ export const FinishedReturns = ({ page }: { page: ReturnsPage }) => {
       <EmptyState bare icon={Sprout} title={t("returns.nothingFinished")} />
     );
   }
-  return <ul className="flex flex-col gap-2">{rows.map((one) => one.row)}</ul>;
+  const desk: FinishedRow[] = [
+    ...page.seasons
+      .filter((one) => one.finished)
+      .flatMap((season) =>
+        season.returnOnCost
+          ? [
+              {
+                key: season.key,
+                start: season.window.start,
+                kind: "returns.season" as const,
+                name: named(season),
+                head: season.head,
+                died: season.died,
+                lost: season.lost,
+                returned: season.returnOnCost,
+                bank: season.bankRate,
+                settlementToCome: false,
+                season,
+                venture: null,
+              },
+            ]
+          : []
+      ),
+    ...page.ventures.filter(isFinished).flatMap((venture) =>
+      venture.returnOnCost
+        ? [
+            {
+              key: venture.id,
+              start: venture.window.start,
+              kind: "returns.venture" as const,
+              name: venture.name,
+              head: venture.head,
+              died: venture.died,
+              lost: 0,
+              returned: venture.returnOnCost,
+              bank: venture.bankRate,
+              settlementToCome: !venture.settled,
+              season: null,
+              venture,
+            },
+          ]
+        : []
+    ),
+  ].toSorted(newestFirst);
+  return (
+    <>
+      <ul className="flex flex-col gap-2 md:hidden">
+        {rows.map((one) => one.row)}
+      </ul>
+      <div className="hidden md:block">
+        <FinishedTable floorDays={page.floorDays} rows={desk} />
+      </div>
+    </>
+  );
 };
 
 /** An answer the phone kept from before a Season carried its running range has neither: read as none. */

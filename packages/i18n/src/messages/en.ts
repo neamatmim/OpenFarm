@@ -4555,6 +4555,9 @@ export const en = {
   "months.col.fatteningCost": "Fattening cost",
   "returns.col.costBack": "Cost → back",
   "returns.col.share": "On every {currencySign}100",
+  "returns.col.what": "Season or Venture",
+  "returns.col.head": "Head",
+  "returns.col.result": "Result",
   "months.col.overheads": "Running the farm · a head a day",
   "months.cardOverheads": "Running the farm {amount}, {perHead} a head a day",
   "months.yearOverheads":
