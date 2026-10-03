@@ -40,7 +40,7 @@ const setup = async () => {
     dispatchedAt: new Date("2040-03-05T02:00:00.000Z"),
     litres: 100,
     buyer: { name: `মিল্ক ভিটা ${suffix}` },
-    challan: "CH-2040",
+    deliveryNote: "CH-2040",
     pricePerLitreMoney: 50,
     paymentMethod: "bank",
   });

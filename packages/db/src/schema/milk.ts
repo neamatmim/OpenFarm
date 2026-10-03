@@ -95,7 +95,7 @@ export const milkRecord = pgTable(
 );
 
 /**
- * Bulk milk handed over to a buyer: when, how many litres, to whom, the challan the buyer's collector
+ * Bulk milk handed over to a buyer: when, how many litres, to whom, the delivery note the buyer's collector
  * wrote, the price, and the fat and SNF if the processor measured them.
  *
  * The farm's milk-buyer record under the Safe Food Act (s.38) — the buyer's name and address come from
@@ -118,7 +118,7 @@ export const dispatch = pgTable(
     buyerName: text("buyer_name").notNull(),
     buyerAddress: text("buyer_address"),
     /** The collector's slip number, when the buyer gives one. A buyer at the gate may not. */
-    challan: text("challan"),
+    deliveryNote: text("delivery_note"),
     pricePerLitreMoney: numeric("price_per_litre_money", {
       precision: 8,
       scale: 2,

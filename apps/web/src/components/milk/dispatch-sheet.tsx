@@ -32,7 +32,7 @@ const NOTHING_TYPED = {
   buyerName: "",
   buyerAddress: "",
   buyerPhone: "",
-  challan: "",
+  deliveryNote: "",
   price: "",
   fat: "",
   snf: "",
@@ -99,7 +99,7 @@ const Worth = ({ form }: { form: Typed }) => {
 
 /**
  * Milk handed over at the gate, in a sheet beside the page: how much and at what price first, then the buyer as the
- * Safe Food Act wants them written, the challan and how it was paid, and what the collector measured. What is typed
+ * Safe Food Act wants them written, the delivery note and how it was paid, and what the collector measured. What is typed
  * stays when the sheet is closed without recording, so a buyer's phone looked up is not typed twice.
  */
 export const DispatchSheet = ({
@@ -152,7 +152,7 @@ export const DispatchSheet = ({
             address: written(form.buyerAddress),
             phone: written(form.buyerPhone),
           },
-          challan: written(form.challan),
+          deliveryNote: written(form.deliveryNote),
           pricePerLitreMoney: Number(form.price),
           fatPercent: typed(form.fat),
           snfPercent: typed(form.snf),
@@ -220,7 +220,11 @@ export const DispatchSheet = ({
         worthMoney={worthMoney}
       />
       <div className="grid gap-4 sm:grid-cols-2">
-        <DispatchInput {...box} label={t("dispatch.challan")} name="challan" />
+        <DispatchInput
+          {...box}
+          label={t("dispatch.deliveryNote")}
+          name="deliveryNote"
+        />
         {somethingPaid(receivable) ? (
           <PaymentMethodField
             account={{ typed: account, onChange: setAccount }}

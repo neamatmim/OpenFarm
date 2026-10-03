@@ -167,12 +167,12 @@ const sendTheMilk = ({ farm, days, on }: Script) => {
         return;
       }
       const sweets = Math.round(Math.min(40, litres * 0.1));
-      const challan = `চালান-${day.replaceAll("-", "").slice(2)}`;
+      const deliveryNote = `চালান-${day.replaceAll("-", "").slice(2)}`;
       await f.as.manager.milk.dispatch({
         dispatchedAt: onFarm(day, "08:45"),
         litres: Math.round(litres - sweets),
         buyer: random.chance(0.8) ? MILK_BUYERS.pran : MILK_BUYERS.milkVita,
-        challan: `${challan}-${random.int(10, 99)}`,
+        deliveryNote: `${deliveryNote}-${random.int(10, 99)}`,
         pricePerLitreMoney: random.int(56, 60),
         fatPercent: Math.round(random.between(3.8, 4.4) * 10) / 10,
         snfPercent: Math.round(random.between(8.1, 8.6) * 10) / 10,
@@ -193,7 +193,7 @@ const sendTheMilk = ({ farm, days, on }: Script) => {
         dispatchedAt: onFarm(day, "09:10"),
         litres: sweets,
         buyer: MILK_BUYERS.sweets,
-        challan: `${challan}-মি`,
+        deliveryNote: `${deliveryNote}-মি`,
         pricePerLitreMoney: 70,
         paymentMethod: "cash",
         ...(day > addDays(today, -10) ? { paidNowMoney: 0 } : {}),

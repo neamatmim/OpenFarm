@@ -25,9 +25,9 @@ const KEEP_FOR_MS = 14 * 24 * 60 * 60 * 1000;
  *  low, the one after that because it says whether the bank agreed, the one after that because every sum
  *  of money is named for money, not for the taka it is counted in, the one after that because what a
  *  buyer still owes is a Receivable, not a Baki, the one after that because a haat is a Livestock
- *  Market, the one after that because bKash money is Mobile Money, and this one because the Hasil is the
- *  Market Toll. */
-const CACHE_KEY = "kept-with-market-tolls";
+ *  Market, the one after that because bKash money is Mobile Money, the one after that because the Hasil
+ *  is the Market Toll, and this one because a Dispatch's challan is its Delivery Note. */
+const CACHE_KEY = "kept-with-delivery-notes";
 /** The shape of what this phone keeps, written on everything it puts away, so nothing put away the old way is read. */
 export const CACHE_SHAPE = CACHE_KEY;
 

@@ -108,7 +108,7 @@ const dispatchPaper = async (
       litres: formatNumber(one.litres, language),
       buyerName: one.buyerName,
       buyerAddress: one.buyerAddress,
-      challan: one.challan,
+      deliveryNote: one.deliveryNote,
       fatPercent: figure(one.fatPercent),
       snfPercent: figure(one.snfPercent),
     })),
@@ -127,7 +127,7 @@ const dispatchCsv = (dispatches: readonly DispatchRow[]) =>
       "litres",
       "buyer",
       "buyer_address",
-      "challan",
+      "delivery_note",
       "fat_percent",
       "snf_percent",
       "note",
@@ -138,7 +138,7 @@ const dispatchCsv = (dispatches: readonly DispatchRow[]) =>
       one.litres.toFixed(2),
       one.buyerName,
       one.buyerAddress,
-      one.challan,
+      one.deliveryNote,
       one.fatPercent?.toFixed(2) ?? null,
       one.snfPercent?.toFixed(2) ?? null,
       one.note,
@@ -148,7 +148,7 @@ const dispatchCsv = (dispatches: readonly DispatchRow[]) =>
 export const reportsRouter = {
   /**
    * R12, the milk dispatch record: every Dispatch in a period with the buyer's name and address, the
-   * challan, and the fat and SNF where the processor gave them — the paper a processor or BFSA asks for
+   * delivery note, and the fat and SNF where the processor gave them — the paper a processor or BFSA asks for
    * (Safe Food Act s.38), or the same as a CSV.
    *
    * The Owner's and the Manager's, from their own phones (roles matrix: compliance reports — R; export).

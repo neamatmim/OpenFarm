@@ -105,13 +105,17 @@ describe("the farm's kinds of field", () => {
   });
 
   it("clears a note to nothing, rather than to an empty note", () => {
-    expect(asShown({ challan: note(null) })).toEqual({ challan: "" });
-    // Cleared: the farm reads a challan set to nothing as one it no longer holds.
-    expect(changesFrom({ challan: note("৪৪১") }, { challan: " " })).toEqual({
-      challan: { from: "৪৪১", to: null },
+    expect(asShown({ deliveryNote: note(null) })).toEqual({ deliveryNote: "" });
+    // Cleared: the farm reads a delivery note set to nothing as one it no longer holds.
+    expect(
+      changesFrom({ deliveryNote: note("৪৪১") }, { deliveryNote: " " })
+    ).toEqual({
+      deliveryNote: { from: "৪৪১", to: null },
     });
     // Untouched: nothing at all is sent about it.
-    expect(changesFrom({ challan: note(null) }, { challan: "" })).toEqual({});
+    expect(
+      changesFrom({ deliveryNote: note(null) }, { deliveryNote: "" })
+    ).toEqual({});
   });
 
   it("will not clear words the farm always holds, like the cause of a death", () => {

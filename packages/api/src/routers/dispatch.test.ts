@@ -202,7 +202,7 @@ describe("the milk dispatch", () => {
       dispatchedAt: new Date("2036-02-01T02:30:00.000Z"),
       litres: 11.5,
       buyer,
-      challan: "CH-0412",
+      deliveryNote: "CH-0412",
       pricePerLitreMoney: 55,
       fatPercent: 4.1,
       snfPercent: 8.4,
@@ -219,7 +219,7 @@ describe("the milk dispatch", () => {
           id: recorded.id,
           litres: 11.5,
           buyerName: buyer.name,
-          challan: "CH-0412",
+          deliveryNote: "CH-0412",
           pricePerLitreMoney: 55,
           fatPercent: 4.1,
           snfPercent: 8.4,
@@ -242,7 +242,7 @@ describe("the milk dispatch", () => {
     const day = await manager.client.milk.day({ day: "2036-02-01" });
     expect(day.dispatches.find((one) => one.id === dispatchId)).toMatchObject({
       litres: 11.8,
-      challan: "CH-0412",
+      deliveryNote: "CH-0412",
       fatPercent: 4.1,
     });
 
@@ -262,7 +262,7 @@ describe("the milk dispatch", () => {
         litres: 11.9,
       }
     );
-    // And back, as the challan says — the records the next test reads are the Manager's figure.
+    // And back, as the delivery note says — the records the next test reads are the Manager's figure.
     await owner.client.milk.correctDispatch({
       id: dispatchId,
       changes: { litres: { from: 11.9, to: 11.8 } },
@@ -279,7 +279,7 @@ describe("the milk dispatch", () => {
       dispatchedAt: new Date("2036-02-05T02:00:00.000Z"),
       litres: 9,
       buyer: { name: `ঘোষ ${suffix}`, address: "উল্লাপাড়া" },
-      challan: "CH-0999",
+      deliveryNote: "CH-0999",
       pricePerLitreMoney: 52,
       snfPercent: 8.2,
       note: "অন্য গাড়ির",
@@ -287,7 +287,7 @@ describe("the milk dispatch", () => {
     await manager.client.milk.correctDispatch({
       id: wrong.id,
       changes: {
-        challan: { from: "CH-0999", to: null },
+        deliveryNote: { from: "CH-0999", to: null },
         snfPercent: { from: 8.2, to: null },
         note: { from: "অন্য গাড়ির", to: null },
       },
@@ -296,7 +296,7 @@ describe("the milk dispatch", () => {
     const day = await manager.client.milk.day({ day: "2036-02-05" });
     expect(day.dispatches.find((one) => one.id === wrong.id)).toMatchObject({
       litres: 9,
-      challan: null,
+      deliveryNote: null,
       snfPercent: null,
       note: null,
       buyerName: `ঘোষ ${suffix}`,
@@ -328,7 +328,7 @@ describe("the milk dispatch", () => {
     expect(sheet.csv?.startsWith("\uFEFF")).toBe(true);
     const [header, ...rows] = (sheet.csv ?? "").slice(1).split("\r\n");
     expect(header).toBe(
-      "date,time,litres,buyer,buyer_address,challan,fat_percent,snf_percent,note"
+      "date,time,litres,buyer,buyer_address,delivery_note,fat_percent,snf_percent,note"
     );
     expect(rows.find((row) => row.includes("CH-0412"))).toBe(
       `2036-02-01,08:30,11.80,${buyer.name},"${buyer.address}",CH-0412,4.10,8.40,`
@@ -414,7 +414,7 @@ describe("the milk dispatch", () => {
       dispatchedAt: new Date("2036-02-06T02:00:00.000Z"),
       litres: 7,
       buyer: { name: `=HYPERLINK("x") ${suffix}` },
-      challan: "-2+3",
+      deliveryNote: "-2+3",
       pricePerLitreMoney: 50,
     });
     const sheet = await manager.client.reports.milkDispatchRecord({

@@ -336,7 +336,7 @@ describe("money from the farm's records", () => {
     // A note changes nothing the Owner approved.
     await manager.client.milk.correctDispatch({
       id: recorded.id,
-      changes: { challan: { from: null, to: "CH-77" } },
+      changes: { deliveryNote: { from: null, to: "CH-77" } },
       reason: "চালান পরে এল",
     });
     const [kept] = await moneyOf(recorded.id);

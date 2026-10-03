@@ -37,8 +37,8 @@ const figureOf = (value: string | null) =>
   value === null ? null : Number(value);
 
 /**
- * What a Dispatch's Correction may change: the litres, the time, the buyer, the challan, the price, the fat or SNF, the
- * note, how it was paid, what the buyer paid there and then, and the day he promised to pay the rest by. A challan, a
+ * What a Dispatch's Correction may change: the litres, the time, the buyer, the delivery note, the price, the fat or SNF, the
+ * note, how it was paid, what the buyer paid there and then, and the day he promised to pay the rest by. A delivery note, a
  * note, a fat, an SNF or a promise set to nothing is cleared: a figure written against the wrong lorry is put right by
  * taking it away.
  */
@@ -46,7 +46,10 @@ export const dispatchCorrectionInput = correctionInput({
   dispatchedAt: changeOf(dispatchFields.dispatchedAt, z.coerce.date()),
   litres: changeOf(dispatchFields.litres, z.number()),
   buyer: changeOf(buyerInput, z.string()),
-  challan: changeOf(dispatchFields.challan.nullable(), z.string().nullable()),
+  deliveryNote: changeOf(
+    dispatchFields.deliveryNote.nullable(),
+    z.string().nullable()
+  ),
   pricePerLitreMoney: changeOf(dispatchFields.pricePerLitreMoney, z.number()),
   fatPercent: changeOf(
     dispatchFields.fatPercent.nullable(),
@@ -80,7 +83,7 @@ export const dispatchCorrection: CorrectionKind<
     dispatchedAt: row.dispatchedAt,
     litres: Number(row.litres),
     buyer: row.buyerName,
-    challan: row.challan,
+    deliveryNote: row.deliveryNote,
     pricePerLitreMoney: Number(row.pricePerLitreMoney),
     fatPercent: figureOf(row.fatPercent),
     snfPercent: figureOf(row.snfPercent),
@@ -122,7 +125,9 @@ export const dispatchCorrection: CorrectionKind<
         ? {}
         : { dispatchedAt: to.dispatchedAt }),
       ...(to.litres === undefined ? {} : { litres: to.litres.toFixed(2) }),
-      ...(to.challan === undefined ? {} : { challan: to.challan }),
+      ...(to.deliveryNote === undefined
+        ? {}
+        : { deliveryNote: to.deliveryNote }),
       ...(to.pricePerLitreMoney === undefined
         ? {}
         : { pricePerLitreMoney: to.pricePerLitreMoney.toFixed(2) }),

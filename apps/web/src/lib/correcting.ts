@@ -61,8 +61,8 @@ export const counterparty = (
 });
 
 /**
- * Something somebody wrote: a cause a death is put down to, a challan number, a note beside a figure. Cleared, it is
- * sent as nothing rather than as an empty note — the farm reads a challan set to nothing as one it no longer holds.
+ * Something somebody wrote: a cause a death is put down to, a delivery note number, a note beside a figure. Cleared, it is
+ * sent as nothing rather than as an empty note — the farm reads a delivery note set to nothing as one it no longer holds.
  */
 export const note = (
   held: string | null

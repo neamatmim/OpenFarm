@@ -43,7 +43,7 @@ interface Terms {
   stampSerial: string;
 }
 
-/** Stamp paper by its serial, or duty paid by e-challan by the challan's number. */
+/** Stamp paper by its serial, or duty paid by e-challan by the e-challan's number. */
 type StampKind = "paper" | "e_challan";
 
 /** The three stamp boxes' names, which say what is being asked for either way. */

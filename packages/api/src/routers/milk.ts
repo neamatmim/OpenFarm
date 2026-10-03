@@ -74,7 +74,7 @@ const sessionShape = {
 
 export const milkRouter = {
   /**
-   * Milk handed over to a buyer: when, how many litres, to whom, the challan, the price, and the fat
+   * Milk handed over to a buyer: when, how many litres, to whom, the delivery note, the price, and the fat
    * and SNF if the processor measured them.
    *
    * The Manager's to record, or the Owner's, who may do anything the Manager does (the Owner,
@@ -86,7 +86,7 @@ export const milkRouter = {
     .input(
       z.object({
         ...dispatchFields,
-        challan: dispatchFields.challan.optional(),
+        deliveryNote: dispatchFields.deliveryNote.optional(),
         fatPercent: dispatchFields.fatPercent.optional(),
         snfPercent: dispatchFields.snfPercent.optional(),
         note: dispatchFields.note.optional(),
@@ -141,7 +141,7 @@ export const milkRouter = {
             dispatchedAt: input.dispatchedAt,
             litres: input.litres.toFixed(2),
             ...buyer,
-            challan: input.challan ?? null,
+            deliveryNote: input.deliveryNote ?? null,
             pricePerLitreMoney: input.pricePerLitreMoney.toFixed(2),
             fatPercent: twoPlaces(input.fatPercent),
             snfPercent: twoPlaces(input.snfPercent),
@@ -168,9 +168,9 @@ export const milkRouter = {
     }),
 
   /**
-   * Puts a Dispatch right: the litres, the time, the buyer, the challan, the price, the fat or SNF. A
+   * Puts a Dispatch right: the litres, the time, the buyer, the delivery note, the price, the fat or SNF. A
    * Correction like any other — a reason, the Role's Correction Window, the trail holding what it said.
-   * A challan, a note, a fat or an SNF sent as nothing is cleared: a figure written against the wrong
+   * A delivery note, a note, a fat or an SNF sent as nothing is cleared: a figure written against the wrong
    * lorry is put right by taking it away.
    *
    * The Manager's, as recording is, and the Owner's — whose Correction Window never closes (Owner, 2026-09-14: the

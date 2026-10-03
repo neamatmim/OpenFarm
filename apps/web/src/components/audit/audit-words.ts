@@ -321,7 +321,7 @@ const NAMED_FIELDS = new Set<string>([
   "quantity",
   "feedItemId",
   "dispatchedAt",
-  "challan",
+  "deliveryNote",
   "litres",
   "pricePerLitreMoney",
   "fatPercent",
