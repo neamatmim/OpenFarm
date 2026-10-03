@@ -84,7 +84,7 @@ const StandardStep = () => {
   const [kinds, setKinds] = useState<StandardKind[]>([...STANDARD_KINDS]);
   const [noneChosen, setNoneChosen] = useState(false);
   const refused = useRefused(RATIONS_REFUSED);
-  const goOn = () => navigate({ to: "/dashboard" });
+  const goOn = () => navigate({ to: "/" });
   const start = useMutation(
     orpc.farm.startWithStandard.mutationOptions({
       onSuccess: async () => {
@@ -206,7 +206,7 @@ const SetupPage = () => {
           <p className="text-lg font-semibold">{t("setup.done")}</p>
           <Button
             className="h-12 w-full text-base md:h-10"
-            onClick={() => navigate({ to: "/dashboard" })}
+            onClick={() => navigate({ to: "/" })}
           >
             {t("setup.goOn")}
             <ChevronRight data-icon="inline-end" />

@@ -23,12 +23,12 @@ describe("the wipe", () => {
       wipesTheDevice(asked(`${PORTAL}/api/auth/sign-out`, "POST"), "portal")
     ).toBe(true);
     expect(
-      wipesTheDevice(asked(`${PORTAL}/portal/login?ended=true`), "portal")
+      wipesTheDevice(asked(`${PORTAL}/portal/sign-in?ended=true`), "portal")
     ).toBe(true);
   });
 
   it("goes with nothing else there", () => {
-    expect(wipesTheDevice(asked(`${PORTAL}/portal/login`), "portal")).toBe(
+    expect(wipesTheDevice(asked(`${PORTAL}/portal/sign-in`), "portal")).toBe(
       false
     );
     expect(
@@ -45,7 +45,7 @@ describe("the wipe", () => {
       wipesTheDevice(asked(`${FARM}/api/auth/sign-out`, "POST"), "farm")
     ).toBe(false);
     expect(
-      wipesTheDevice(asked(`${FARM}/portal/login?ended=true`), "farm")
+      wipesTheDevice(asked(`${FARM}/portal/sign-in?ended=true`), "farm")
     ).toBe(false);
   });
 });

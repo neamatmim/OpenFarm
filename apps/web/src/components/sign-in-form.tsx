@@ -40,7 +40,7 @@ const SignInForm = ({ onForgotPassword }: { onForgotPassword: () => void }) => {
         {
           onSuccess: () => {
             navigate({
-              to: "/dashboard",
+              to: "/",
             });
             toast.success(t("auth.signInSuccess"));
           },

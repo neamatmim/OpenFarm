@@ -66,7 +66,7 @@ export const Route = createFileRoute("/_authenticated")({
     if (getDeviceToken()) {
       const active = getActiveUser();
       if (isLocked(active, getAutoLockMinutes())) {
-        throw redirect({ to: "/device" });
+        throw redirect({ to: "/shed-phone" });
       }
       if (known && known.id === active?.userId) {
         return { session: null, me: known };
@@ -80,7 +80,7 @@ export const Route = createFileRoute("/_authenticated")({
       } catch {
         // No signal and nothing read for this person yet: the phone still holds their work, but it has no screen
         // to show until the farm has said who they are.
-        throw redirect({ to: "/device" });
+        throw redirect({ to: "/shed-phone" });
       }
     }
     let session: Awaited<ReturnType<typeof getUser>> = null;
@@ -93,10 +93,10 @@ export const Route = createFileRoute("/_authenticated")({
       if (known) {
         return { session: null, me: known };
       }
-      throw redirect({ to: "/login" });
+      throw redirect({ to: "/sign-in" });
     }
     if (!session) {
-      throw redirect({ to: "/login" });
+      throw redirect({ to: "/sign-in" });
     }
     // The farm is asked who this is, and its answer wins: Roles taken away, or a farm that is not there any more,
     // would otherwise go on letting them onto screens where every request is refused. A remembered answer stands
@@ -111,7 +111,7 @@ export const Route = createFileRoute("/_authenticated")({
         }),
     });
     if (!me) {
-      throw redirect({ to: "/login" });
+      throw redirect({ to: "/sign-in" });
     }
     if (!me.farm && location.pathname !== "/setup") {
       throw redirect({ to: "/setup" });

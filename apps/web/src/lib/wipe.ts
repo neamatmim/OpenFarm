@@ -9,7 +9,7 @@ import type { Host } from "@OpenFarm/auth/hosts";
 export const WIPE = '"cache", "storage"';
 
 /** The page a sign-in that has run its day is sent to, and what its address says of it. */
-const ENDED_SIGN_IN = "/portal/login";
+const ENDED_SIGN_IN = "/portal/sign-in";
 const ENDED = "ended";
 
 /** Where a sign-in that has run its day is sent, asked of the server so its answer wipes the address. */

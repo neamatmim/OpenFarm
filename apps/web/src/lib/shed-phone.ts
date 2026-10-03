@@ -122,7 +122,7 @@ export const useShedPhoneKeeper = () => {
         if (hadToken) {
           void lockOnTheFarm();
         }
-        void navigate({ to: "/device" });
+        void navigate({ to: "/shed-phone" });
       }
     };
     const keepAwake = async () => {

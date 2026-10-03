@@ -182,7 +182,7 @@ const PortalJoin = () => {
           {join.isPending ? <Spinner /> : null}
           {t("portal.join")}
         </Button>
-        <BackToSignIn to="/portal/login">
+        <BackToSignIn to="/portal/sign-in">
           {t("portal.haveAccount")}
         </BackToSignIn>
       </form>

@@ -477,7 +477,7 @@ export const Route = createFileRoute("/_authenticated/inspector-view")({
     // What the farm shows an inspector is the Owner's and the Manager's to show.
     const { roles } = context.me;
     if (!(roles.includes("owner") || roles.includes("manager"))) {
-      throw redirect({ to: "/dashboard" });
+      throw redirect({ to: "/" });
     }
   },
   component: InspectorPage,

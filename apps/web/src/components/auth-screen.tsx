@@ -67,7 +67,7 @@ export const AuthScreen = ({
           hint={t("auth.shedPhoneHint")}
           icon={Smartphone}
           title={t("auth.shedPhone")}
-          to="/device"
+          to="/shed-phone"
         />
       </DoorLinks>
     </DoorScreen>
@@ -106,7 +106,7 @@ export const SignedInDoor = ({ children }: { children: ReactNode }) => {
           icon={LogOut}
           onClick={async () => {
             await signOutOfThisPhone(queryClient);
-            await navigate({ to: "/login" });
+            await navigate({ to: "/sign-in" });
           }}
           title={t("auth.signOut")}
         />
