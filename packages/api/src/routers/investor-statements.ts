@@ -1,3 +1,4 @@
+import type { StampKind } from "@OpenFarm/db/schema/venture";
 import {
   dayInBangla,
   farmDayOf,
@@ -8,6 +9,7 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import { agreedPaperOf } from "../agreement-offer-store";
 import { agreementLaidOut, amendmentLaidOut } from "../agreement-paper";
 import { audited } from "../audit";
 import { assertRegistered, exportedPaper } from "../export-store";
@@ -31,6 +33,34 @@ import {
   wordingSignedIn,
 } from "../template-store";
 import { paidForBy } from "../venture-store";
+
+/**
+ * What a copy of an Agreement writes into the stamp's blanks — serial, value, day — and the line marking it a copy and
+ * not the original: the stamp it was signed on, or, agreed in the app, that it carries none, the day it was approved
+ * and the agreed paper's number.
+ */
+const copyMarksOf = (agreement: {
+  stampKind: StampKind;
+  stampSerial: string;
+  stampValueBdt: number;
+  stampedOn: string;
+}): { filled: string[]; copyOf: string } => {
+  const day = dayInBangla(agreement.stampedOn);
+  if (agreement.stampKind === "in_app") {
+    return {
+      filled: [agreement.stampSerial, "নেই — অ্যাপে সম্মত", day],
+      copyOf: `অনুলিপি — মূল নয় / COPY — not the original · অ্যাপে সম্মত / Agreed in the app · অনুমোদন / Approved ${day} · সম্মত কাগজ নম্বর / Agreed paper no. ${agreement.stampSerial}`,
+    };
+  }
+  return {
+    filled: [
+      agreement.stampSerial,
+      `${formatNumber(agreement.stampValueBdt, "bn")} টাকা`,
+      day,
+    ],
+    copyOf: `অনুলিপি — মূল নয় / COPY — not the original · স্ট্যাম্প ক্রমিক / Stamp serial ${agreement.stampSerial} · স্ট্যাম্পের তারিখ / Stamped ${day}`,
+  };
+};
 
 /** What the screen says of the wording a paper was laid out in: its Version, and whether a lawyer approved it. */
 const wordingSaid = (wording: Wording) => ({
@@ -243,19 +273,19 @@ export const investorStatementsRouter = {
         },
         () => Promise.resolve()
       );
-      // The stamp it was signed on, written into the blanks the paper to sign left empty: serial, value, day.
-      const stamped = [
-        agreement.stampSerial,
-        `${formatNumber(agreement.stampValueBdt, "bn")} টাকা`,
-        dayInBangla(agreement.stampedOn),
-      ];
+      // Agreed in the app, the copy is of the very paper agreed to, as it was kept; signed on stamp, laid out again.
+      const original =
+        (agreement.stampKind === "in_app"
+          ? await agreedPaperOf(context.db, context.farm.id, agreement.id)
+          : null) ?? document;
+      const { filled, copyOf } = copyMarksOf(agreement);
       return {
         document: {
-          ...document,
-          sections: document.sections.map((section) =>
-            section.kind === "stamp" ? { ...section, filled: stamped } : section
+          ...original,
+          sections: original.sections.map((section) =>
+            section.kind === "stamp" ? { ...section, filled } : section
           ),
-          copyOf: `অনুলিপি — মূল নয় / COPY — not the original · স্ট্যাম্প ক্রমিক / Stamp serial ${agreement.stampSerial} · স্ট্যাম্পের তারিখ / Stamped ${dayInBangla(agreement.stampedOn)}`,
+          copyOf,
         },
         wording: wordingSaid(wording),
       };

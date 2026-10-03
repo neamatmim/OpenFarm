@@ -1,3 +1,5 @@
+import { eq } from "@OpenFarm/db/operators";
+import { agreementOffer } from "@OpenFarm/db/schema/venture";
 import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -362,6 +364,57 @@ describe("an Agreement agreed in the app", () => {
       { stamp: "paper", onTheVenture: true, onTheirPage: true, taken: true },
       { stamp: "paper", onTheVenture: false, onTheirPage: false, taken: false },
     ]);
+  });
+
+  it("is copied again as the paper agreed, marked a copy, saying it carries no stamp", async () => {
+    const ventureId = await aVenture("অনুলিপি");
+    const them = await invited("অনুলিপি বিনিয়োগকারী");
+    const { id, offer } = await offeredAndAgreed(ventureId, them);
+    const approver = await as("owner", LATER);
+    const { agreementId } = await approver.ventures.approveOffer({
+      offerId: id,
+    });
+    // Asked for a month on: the copy is still the paper as it was laid out when it was offered.
+    const owner = await as("owner", "2093-02-05T04:00:00.000Z");
+    const { document } = await owner.investorStatements.agreementCopy({
+      agreementId,
+    });
+    expect(document.copyOf).toContain("Agreed in the app");
+    expect(document.copyOf).toContain(
+      offer?.paperHash.slice(0, 12).toUpperCase()
+    );
+    expect(document.copyOf).not.toMatch(/Stamp serial|Stamped/u);
+    const stamp = document.sections.find((one) => one.kind === "stamp");
+    expect(stamp?.kind === "stamp" && stamp.filled).toEqual([
+      offer?.paperHash.slice(0, 12).toUpperCase(),
+      "নেই — অ্যাপে সম্মত",
+      "৫ জানুয়ারি, ২০৯৩",
+    ]);
+    // Every word the Investor agreed to, as they read it.
+    const kept = offer?.paper;
+    expect(document.sections.filter((one) => one.kind !== "stamp")).toEqual(
+      kept?.sections.filter((one) => one.kind !== "stamp")
+    );
+    expect(document.produced).toBe(kept?.produced);
+  });
+
+  it("is never copied from a kept paper changed since it was agreed", async () => {
+    const ventureId = await aVenture("বদলে ফেলা");
+    const them = await invited("বদলে ফেলা কাগজ");
+    const { id } = await offeredAndAgreed(ventureId, them);
+    const owner = await as("owner");
+    const { agreementId } = await owner.ventures.approveOffer({ offerId: id });
+    const kept = await scratchDb().query.agreementOffer.findFirst({
+      where: { id, farmId: theFarm().id },
+      columns: { paper: true },
+    });
+    await scratchDb()
+      .update(agreementOffer)
+      .set({ paper: { ...(kept?.paper as object), produced: "অন্য দিন" } })
+      .where(eq(agreementOffer.id, id));
+    await expect(
+      owner.investorStatements.agreementCopy({ agreementId })
+    ).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" });
   });
 
   it("is no way round stamped paper: signing on stamp paper cannot say it was agreed in the app", async () => {
