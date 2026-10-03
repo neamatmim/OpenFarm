@@ -36,6 +36,8 @@ interface Terms {
   investorsPercent: string;
   arbitrator: string;
   stampKind: StampKind;
+  /** Offered to agree to in the app instead, with no stamp: the farm's switch is on. */
+  inApp: boolean;
   stampValueBdt: string;
   stampedOn: string;
   stampSerial: string;
@@ -72,6 +74,13 @@ const NOTICE_REFUSALS = {
   notice_unwritten: "ventures.noticeUnwritten",
 } as const;
 
+/** Why the farm would not offer an Agreement to agree to in the app, in the Owner's words. */
+const OFFER_REFUSALS = {
+  agreements_in_app_off: "agreeInApp.refusal.agreements_in_app_off",
+  investor_not_in_portal: "agreeInApp.refusal.investor_not_in_portal",
+  offer_already_made: "agreeInApp.refusal.offer_already_made",
+} as const;
+
 /** Long enough to read a code out to somebody and have them write it down. */
 const CODE_SHOWN_FOR_MS = 20_000;
 
@@ -86,15 +95,28 @@ const NOTHING_SIGNED: Terms = {
   investorsPercent: "",
   arbitrator: "",
   stampKind: "paper",
+  inApp: false,
   stampValueBdt: "",
   stampedOn: "",
   stampSerial: "",
 };
 
+/** The day its Nominees are judged on, as the farm judges them: the day it is stamped — before a day is typed, or
+ *  offered in the app, today. */
+const judgedOn = (terms: Terms, today: string) =>
+  terms.inApp || terms.stampedOn === "" ? today : terms.stampedOn;
+
+/** A stamp with a value, a day and a serial — or none at all, offered to agree to in the app. */
+const stamped = (terms: Terms) =>
+  terms.inApp ||
+  (Number(terms.stampValueBdt) > 0 &&
+    terms.stampedOn !== "" &&
+    terms.stampSerial.trim() !== "");
+
 /**
  * Whether the paper is filled in enough to be signed: somebody to sign it, Units to take, a whole
  * percentage between none and all, an Arbitrator both sides name, and a stamp with a value, a day and a
- * serial. The photograph is not among them — a stamped paper the farm has not photographed yet is still
+ * serial — unless it is offered to agree to in the app. The photograph is not among them — a stamped paper the farm has not photographed yet is still
  * a signed one, and the Agreement sheet says so separately.
  */
 const fitToSign = (
@@ -108,9 +130,7 @@ const fitToSign = (
   left >= units &&
   aSplit(percent) &&
   terms.arbitrator.trim() !== "" &&
-  Number(terms.stampValueBdt) > 0 &&
-  terms.stampedOn !== "" &&
-  terms.stampSerial.trim() !== "";
+  stamped(terms);
 
 /** The field of a Nominee's row each of the farm's objections is about. */
 const NOMINEE_FIELD: Record<NomineesProblem["code"], string> = {
@@ -122,6 +142,32 @@ const NOMINEE_FIELD: Record<NomineesProblem["code"], string> = {
   shares_not_hundred: "share",
   receiver_missing: "receiver-name",
   receiver_not_needed: "receiver-name",
+};
+
+/** The first of the stamp's three boxes still empty, and the box. */
+const stampMissing = (
+  terms: Terms,
+  t: ReturnType<typeof useLanguage>["t"]
+): StillMissing | null => {
+  if (!(Number(terms.stampValueBdt) > 0)) {
+    return {
+      said: t("ventures.missing.stampValue"),
+      at: "agreement-stamp-value",
+    };
+  }
+  if (terms.stampedOn === "") {
+    return {
+      said: t("ventures.missing.stampedOn"),
+      at: "agreement-stamped-on",
+    };
+  }
+  if (terms.stampSerial.trim() === "") {
+    return {
+      said: t("ventures.missing.stampSerial"),
+      at: "agreement-stamp-serial",
+    };
+  }
+  return null;
 };
 
 /**
@@ -176,25 +222,7 @@ const stillMissing = (
       at: `nominee-${place}-${NOMINEE_FIELD[nominees.code]}`,
     };
   }
-  if (!(Number(terms.stampValueBdt) > 0)) {
-    return {
-      said: t("ventures.missing.stampValue"),
-      at: "agreement-stamp-value",
-    };
-  }
-  if (terms.stampedOn === "") {
-    return {
-      said: t("ventures.missing.stampedOn"),
-      at: "agreement-stamped-on",
-    };
-  }
-  if (terms.stampSerial.trim() === "") {
-    return {
-      said: t("ventures.missing.stampSerial"),
-      at: "agreement-stamp-serial",
-    };
-  }
-  return null;
+  return terms.inApp ? null : stampMissing(terms, t);
 };
 
 /**
@@ -212,6 +240,8 @@ const useWhoMaySign = (venture: { id: string; units: number } | null) => {
     }),
     enabled: venture !== null,
   });
+  // Whether an Agreement may be offered to agree to in the app instead, as the Owner has set the farm.
+  const inAppOn = investors.data?.agreementsInApp ?? false;
   const signed = signedSoFar.data ?? [];
   const alreadyIn = new Set(signed.map((one) => one.investorId));
   const signable = (investors.data?.people ?? []).filter(
@@ -219,6 +249,7 @@ const useWhoMaySign = (venture: { id: string; units: number } | null) => {
   );
   return {
     signable,
+    inAppOn,
     left:
       (venture?.units ?? 0) - signed.reduce((sum, one) => sum + one.units, 0),
     nobodyLeft: investors.isSuccess && signable.length === 0,
@@ -443,6 +474,198 @@ const TheNomineesItNames = ({
   );
 };
 
+/** The stamped instrument: its value, day and serial, in the words of the way its duty was paid, and a photograph of the
+ *  paper itself. */
+const TheStamp = ({
+  terms,
+  onChange,
+  paper,
+  onPaper,
+}: {
+  terms: Terms;
+  onChange: (terms: Terms) => void;
+  paper: Photo | null;
+  onPaper: (photo: Photo | null) => void;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField
+          id="agreement-stamp-value"
+          label={t(STAMP_LABELS[terms.stampKind].value)}
+        >
+          <Input
+            id="agreement-stamp-value"
+            inputMode="numeric"
+            onChange={(event) =>
+              onChange({ ...terms, stampValueBdt: event.target.value })
+            }
+            type="number"
+            value={terms.stampValueBdt}
+          />
+        </FormField>
+        <FormField
+          id="agreement-stamped-on"
+          label={t(STAMP_LABELS[terms.stampKind].on)}
+        >
+          <Input
+            id="agreement-stamped-on"
+            onChange={(event) =>
+              onChange({ ...terms, stampedOn: event.target.value })
+            }
+            type="date"
+            value={terms.stampedOn}
+          />
+        </FormField>
+      </div>
+      <FormField
+        id="agreement-stamp-serial"
+        label={t(STAMP_LABELS[terms.stampKind].serial)}
+      >
+        <Input
+          autoComplete="off"
+          id="agreement-stamp-serial"
+          onChange={(event) =>
+            onChange({ ...terms, stampSerial: event.target.value })
+          }
+          value={terms.stampSerial}
+        />
+      </FormField>
+      <FormField
+        hint={t("ventures.paperHint")}
+        id="agreement-paper"
+        label={t("ventures.paper")}
+      >
+        <PhotoField
+          chosen={paper !== null}
+          id="agreement-paper"
+          onPhoto={onPaper}
+          takeLabel="ventures.paperTake"
+        />
+      </FormField>
+    </>
+  );
+};
+
+/**
+ * How the Agreement is made: on stamp paper, by e-challan, or — while the farm's switch is on — agreed in the app, with
+ * no stamp to write down and the Investor agreeing in the portal.
+ */
+const HowItIsMade = ({
+  terms,
+  inApp,
+  inAppOn,
+  onChange,
+  paper,
+  onPaper,
+}: {
+  terms: Terms;
+  inApp: boolean;
+  inAppOn: boolean;
+  onChange: (terms: Terms) => void;
+  paper: Photo | null;
+  onPaper: (photo: Photo | null) => void;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <>
+      <div className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium" data-slot="form-label">
+          {t("ventures.stampKind")}
+        </span>
+        <SegmentedControl
+          label={t("ventures.stampKind")}
+          name="agreement-stamp-kind"
+          onChange={(route) =>
+            onChange(
+              route === "in_app"
+                ? { ...terms, inApp: true }
+                : { ...terms, stampKind: route, inApp: false }
+            )
+          }
+          options={[
+            { value: "paper", label: t("ventures.stampKind.paper") },
+            { value: "e_challan", label: t("ventures.stampKind.e_challan") },
+            ...(inAppOn
+              ? [{ value: "in_app" as const, label: t("agreeInApp.route") }]
+              : []),
+          ]}
+          value={inApp ? "in_app" : terms.stampKind}
+        />
+      </div>
+      {inApp ? (
+        <p className="text-muted-foreground text-sm">
+          {t("agreeInApp.sheetHint")}
+        </p>
+      ) : (
+        <TheStamp
+          onChange={onChange}
+          onPaper={onPaper}
+          paper={paper}
+          terms={terms}
+        />
+      )}
+    </>
+  );
+};
+
+/**
+ * The sheet's two ways to save: signed on stamp — its photo kept against it once there is an Agreement to keep it
+ * against, and its Pay-in Code said — or offered to agree to in the app. Either closes the sheet when done.
+ */
+const useSaving = (paper: Photo | null, done: () => void) => {
+  const { t } = useLanguage();
+  const refused = useRefused();
+  const refusedOffer = useRefused(OFFER_REFUSALS);
+  const keeping = useMutation(
+    orpc.ventures.keepAgreementPaper.mutationOptions()
+  );
+  const offering = useMutation(
+    orpc.ventures.offerInApp.mutationOptions({
+      onError: refusedOffer,
+      onSuccess: () => {
+        done();
+        toast.success(t("agreeInApp.offered"), {
+          description: t("agreeInApp.offeredHint"),
+        });
+      },
+    })
+  );
+  const signing = useMutation(
+    orpc.ventures.sign.mutationOptions({
+      onError: refused,
+      onSuccess: async (signed) => {
+        // The photo goes up against the Agreement it proves, so it is kept once there is an id to keep
+        // it against. A signature without its photo is still a signature; the Owner can add it later —
+        // so a photo that fails to go up is said, and the sheet still closes. Left open and filled in, it
+        // invites the same signature a second time.
+        if (paper) {
+          try {
+            await keeping.mutateAsync({ agreementId: signed.id, ...paper });
+          } catch {
+            toast.warning(t("ventures.signedWithoutPaper"));
+          }
+        }
+        done();
+        // The Pay-in Code is said here, where the Investor is still sitting across the table, and kept on their row.
+        toast.success(
+          t("ventures.signedWithCode", { code: signed.payInCode }),
+          {
+            description: t("ventures.payInCodeHint"),
+            duration: CODE_SHOWN_FOR_MS,
+          }
+        );
+      },
+    })
+  );
+  return {
+    sign: signing.mutate,
+    offer: offering.mutate,
+    pending: signing.isPending || keeping.isPending || offering.isPending,
+  };
+};
+
 /**
  * One Investment Agreement: the Units this person takes of this Venture, the split those Units earn, the
  * Arbitrator both sides name, and the stamped instrument — its value, day and serial, with a photo of the
@@ -458,7 +681,6 @@ export const SignAgreementSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
-  const refused = useRefused();
   // Where the farm starts a new Agreement. A starting point and nothing more: what is typed here is what
   // the Investor signs, and what he signed is what governs afterwards.
   const farm = useQuery(orpc.farm.current.queryOptions());
@@ -478,46 +700,21 @@ export const SignAgreementSheet = ({
     setNomineeDrafts([]);
   });
   const today = farmDayOf(new Date());
-  // Judged on the day it is stamped, as the farm judges it; before a day is typed, on today.
-  const stampDay = terms.stampedOn === "" ? today : terms.stampedOn;
-  const { signable, left, nobodyLeft } = useWhoMaySign(venture);
+  const { signable, left, nobodyLeft, inAppOn } = useWhoMaySign(venture);
+  // Offered in the app only while the farm's switch is on: turned off meanwhile, the sheet is a stamped paper again.
+  const inApp = terms.inApp && inAppOn;
+  const asOffered = { ...terms, inApp };
+  const stampDay = judgedOn(asOffered, today);
   const { live, answering, yes } = useTheRequestItAnswers(
     venture,
     terms.investorId,
     terms.answersNone
   );
-  const keeping = useMutation(
-    orpc.ventures.keepAgreementPaper.mutationOptions()
-  );
-  const signing = useMutation(
-    orpc.ventures.sign.mutationOptions({
-      onError: refused,
-      onSuccess: async (signed) => {
-        // The photo goes up against the Agreement it proves, so it is kept once there is an id to keep
-        // it against. A signature without its photo is still a signature; the Owner can add it later —
-        // so a photo that fails to go up is said, and the sheet still closes. Left open and filled in, it
-        // invites the same signature a second time.
-        if (paper) {
-          try {
-            await keeping.mutateAsync({ agreementId: signed.id, ...paper });
-          } catch {
-            toast.warning(t("ventures.signedWithoutPaper"));
-          }
-        }
-        setTerms(NOTHING_SIGNED);
-        setPaper(null);
-        onOpenChange(false);
-        // The Pay-in Code is said here, where the Investor is still sitting across the table, and kept on their row.
-        toast.success(
-          t("ventures.signedWithCode", { code: signed.payInCode }),
-          {
-            description: t("ventures.payInCodeHint"),
-            duration: CODE_SHOWN_FOR_MS,
-          }
-        );
-      },
-    })
-  );
+  const saving = useSaving(paper, () => {
+    setTerms(NOTHING_SIGNED);
+    setPaper(null);
+    onOpenChange(false);
+  });
   // Units nobody has typed read as the yes being answered, as an empty split reads as the farm's own: the box shows
   // what would be signed, and clearing it goes back to the yes.
   const unitsSaid =
@@ -542,10 +739,10 @@ export const SignAgreementSheet = ({
     venture !== null &&
     split !== "" &&
     nomineesWrong === null &&
-    fitToSign(terms, { units, percent, left });
+    fitToSign(asOffered, { units, percent, left });
   // What "Sign" says it still needs when pressed too soon, and which field it goes to; nothing once it is ready.
   const missing = stillMissing(
-    terms,
+    asOffered,
     { units, split, percent, left, nominees: nomineesWrong },
     { t, language }
   );
@@ -553,26 +750,30 @@ export const SignAgreementSheet = ({
     <FormSheet
       description={t("ventures.signHint", { venture: venture?.name ?? "" })}
       onOpenChange={onOpenChange}
-      onSubmit={() =>
-        signing.mutate({
-          ventureId: venture?.id ?? "",
-          investorId: terms.investorId,
-          units,
-          investorsPercent: percent,
+      onSubmit={() => {
+        const said = {
+          ...drafting,
+          nominees: nomineesOf(nomineeDrafts, stampDay),
+          ...(answering ? { requestId: answering.id } : {}),
+        };
+        if (inApp) {
+          saving.offer(said);
+          return;
+        }
+        saving.sign({
+          ...said,
           arbitrator: terms.arbitrator,
           stampKind: terms.stampKind,
           stampValueBdt: Number(terms.stampValueBdt),
           stampedOn: terms.stampedOn,
           stampSerial: terms.stampSerial,
-          nominees: nomineesOf(nomineeDrafts, stampDay),
-          ...(answering ? { requestId: answering.id } : {}),
-        })
-      }
+        });
+      }}
       open={open}
-      pending={signing.isPending || keeping.isPending}
+      pending={saving.pending}
       missing={missing}
       ready={ready}
-      submitLabel={t("ventures.sign")}
+      submitLabel={inApp ? t("agreeInApp.offer") : t("ventures.sign")}
       title={t("ventures.sign")}
     >
       <FormField
@@ -684,75 +885,14 @@ export const SignAgreementSheet = ({
         splitGiven={split !== ""}
         today={today}
       />
-      <div className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium" data-slot="form-label">
-          {t("ventures.stampKind")}
-        </span>
-        <SegmentedControl
-          label={t("ventures.stampKind")}
-          name="agreement-stamp-kind"
-          onChange={(stampKind) => setTerms({ ...terms, stampKind })}
-          options={[
-            { value: "paper", label: t("ventures.stampKind.paper") },
-            { value: "e_challan", label: t("ventures.stampKind.e_challan") },
-          ]}
-          value={terms.stampKind}
-        />
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <FormField
-          id="agreement-stamp-value"
-          label={t(STAMP_LABELS[terms.stampKind].value)}
-        >
-          <Input
-            id="agreement-stamp-value"
-            inputMode="numeric"
-            onChange={(event) =>
-              setTerms({ ...terms, stampValueBdt: event.target.value })
-            }
-            type="number"
-            value={terms.stampValueBdt}
-          />
-        </FormField>
-        <FormField
-          id="agreement-stamped-on"
-          label={t(STAMP_LABELS[terms.stampKind].on)}
-        >
-          <Input
-            id="agreement-stamped-on"
-            onChange={(event) =>
-              setTerms({ ...terms, stampedOn: event.target.value })
-            }
-            type="date"
-            value={terms.stampedOn}
-          />
-        </FormField>
-      </div>
-      <FormField
-        id="agreement-stamp-serial"
-        label={t(STAMP_LABELS[terms.stampKind].serial)}
-      >
-        <Input
-          autoComplete="off"
-          id="agreement-stamp-serial"
-          onChange={(event) =>
-            setTerms({ ...terms, stampSerial: event.target.value })
-          }
-          value={terms.stampSerial}
-        />
-      </FormField>
-      <FormField
-        hint={t("ventures.paperHint")}
-        id="agreement-paper"
-        label={t("ventures.paper")}
-      >
-        <PhotoField
-          chosen={paper !== null}
-          id="agreement-paper"
-          onPhoto={setPaper}
-          takeLabel="ventures.paperTake"
-        />
-      </FormField>
+      <HowItIsMade
+        inApp={inApp}
+        inAppOn={inAppOn}
+        onChange={setTerms}
+        onPaper={setPaper}
+        paper={paper}
+        terms={terms}
+      />
     </FormSheet>
   );
 };

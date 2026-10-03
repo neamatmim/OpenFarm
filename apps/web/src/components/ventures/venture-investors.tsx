@@ -34,6 +34,7 @@ import {
   ProducedPaper,
   useInvestorPapers,
 } from "@/components/ventures/investor-papers";
+import { OffersInApp } from "@/components/ventures/offers-in-app";
 import {
   AcknowledgeSheet,
   PayOutSheet,
@@ -255,9 +256,20 @@ const PaidCell = ({ row }: InvestorCell) => {
   );
 };
 
-/** Whether the farm holds the stamped paper's photo — the thing capital may not be taken without. */
+/** Agreed in the app: no stamped paper to photograph, the paper agreed to kept with the offer. An answer cached before
+ *  the farm could agree in the app has no such kind, and reads stamped. */
+const agreedInApp = (one: Pick<Agreement, "stamp">) =>
+  one.stamp?.kind === "in_app";
+
+/** Whether the farm holds the stamped paper's photo — the thing capital may not be taken without — or the paper was
+ *  agreed in the app and needs none. */
 const PaperCell = ({ row }: InvestorCell) => {
   const { t } = useLanguage();
+  if (agreedInApp(row.original)) {
+    return (
+      <StatusBadge tone="success">{t("agreeInApp.agreedBadge")}</StatusBadge>
+    );
+  }
   return row.original.hasPaper ? (
     <StatusBadge tone="success">{t("ventures.page.paperKept")}</StatusBadge>
   ) : (
@@ -303,7 +315,7 @@ const RowActions = ({
           {t("ventures.takeCapital")}
         </Button>
       ) : null}
-      {row.hasPaper || row.cancelled ? null : (
+      {row.hasPaper || row.cancelled || agreedInApp(row) ? null : (
         <AgreementPaperButton agreementId={row.id} idPrefix={idPrefix} />
       )}
       {row.cancelled ? null : (
@@ -348,11 +360,14 @@ const paidColumn = column.accessor("paidBdt", {
   cell: PaidCell,
   meta: { align: "end" },
 });
-const paperColumn = column.accessor((row) => (row.hasPaper ? 1 : 0), {
-  id: "paper",
-  header: listHeader("ventures.page.paper"),
-  cell: PaperCell,
-});
+const paperColumn = column.accessor(
+  (row) => (row.hasPaper || agreedInApp(row) ? 1 : 0),
+  {
+    id: "paper",
+    header: listHeader("ventures.page.paper"),
+    cell: PaperCell,
+  }
+);
 const payoutColumn = column.accessor((row) => row.share?.payoutBdt, {
   id: "payout",
   header: listHeader("ventures.page.payout"),
@@ -484,7 +499,7 @@ export const VentureInvestors = ({
   /** Whether a paper may take capital now: its stamped photo is on file and its Units are not all paid for. An answer
    *  cached before `capitalLeftBdt` was sent works it out from what has come in against it. */
   const mayPayIn = (one: Agreement) =>
-    one.hasPaper &&
+    (one.hasPaper || agreedInApp(one)) &&
     (one.capitalLeftBdt ??
       one.units * venture.unitPriceBdt - (paid.get(one.id) ?? 0)) > 0;
   // Money that lands with only the bank's reference to go on is taken from over the table, where the reference's
@@ -563,6 +578,7 @@ export const VentureInvestors = ({
       ) : (
         <InvestorsTable approved={approved !== null} rows={rows} />
       )}
+      {open ? <OffersInApp ventureId={venture.id} /> : null}
       <PayOutSheet
         onOpenChange={(wanted) => {
           if (!wanted) {

@@ -1,6 +1,7 @@
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import { agreeToOffer, theirOffers } from "../agreement-offer-store";
 import { protectedProcedure, publicProcedure } from "../index";
 import {
   PORTAL_PAPER_KINDS,
@@ -168,6 +169,19 @@ export const portalRouter = {
     .handler(({ context, input }) =>
       theirAnimalPhoto(context, input.agreementId, input.tagNumber)
     ),
+
+  /** The Agreements offered to them to agree to in the app, each with its paper (`theirOffers`). */
+  agreementOffers: investorProcedure.handler(({ context }) =>
+    theirOffers(context, context.investor.id)
+  ),
+
+  /** Agreeing, from their own sign-in, to the paper offered them — the one they read (`agreeToOffer`). */
+  agreeToOffer: investorProcedure
+    .input(z.object({ offerId: z.string(), paperHash: z.string() }))
+    .handler(async ({ context, input }) => {
+      await agreeToOffer(context, context.investor.id, input);
+      return { id: input.offerId };
+    }),
 
   /** One of their own papers (`theirPaper`), an Export in the trail attributed to the Investor. */
   paper: investorProcedure

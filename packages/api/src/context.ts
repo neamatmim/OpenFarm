@@ -177,6 +177,8 @@ export interface Context {
     investorProjections: boolean;
     /** Whether invited Investors are shown a settled Venture's Return on Capital (ADR 0012). */
     investorReturns: boolean;
+    /** Whether Agreements and Amendments may be agreed within the app, instead of on stamped paper. */
+    agreementsInApp: boolean;
     /** The market price a kilo of live weight, low and high, as the Owner last judged it; nothing until set. */
     marketLowBdtPerKg: number | null;
     marketHighBdtPerKg: number | null;

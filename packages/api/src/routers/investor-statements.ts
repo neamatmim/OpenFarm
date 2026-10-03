@@ -8,6 +8,7 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import { agreementLaidOut } from "../agreement-paper";
 import { audited } from "../audit";
 import { assertRegistered, exportedPaper } from "../export-store";
 import { farmDay } from "../farm-clock";
@@ -115,39 +116,17 @@ export const investorStatementsRouter = {
         input.nominees
       );
       assertNamable(nominees, today);
-      const investor = paperInvestor(
+      const document = agreementLaidOut({
+        farm: context.farm,
+        ownerName: context.actor.name,
+        run,
         him,
-        paperNominees({ nominees: [...nominees] }, today)
-      );
-      // Paid by the month, the clauses the advisers approved for it and its schedule; on any other Venture, neither.
-      const { monthly } = paidForBy(run);
-      const document = paperFrom(
-        wordingFor(wording.content, { paidByTheMonth: monthly !== null }),
-        {
-          kind: "investment_agreement",
-          parties: {
-            farm: context.farm,
-            ownerName: context.actor.name,
-            investors: [investor],
-          },
-          values: paperValues({
-            farm: context.farm,
-            ownerName: context.actor.name,
-            him: investor,
-            ventureName: run.name,
-            units: input.units,
-            unitPriceBdt: run.unitPriceBdt,
-            investorsPercent: input.investorsPercent,
-            windowStart: run.targetWindowStart,
-            windowEnd: run.targetWindowEnd,
-            windUpDays: context.farm.windUpDays,
-            arbitrator: input.arbitrator,
-            monthly,
-          }),
-          producedBy: context.actor.name,
-          producedAt: producedAt(now, language),
-        }
-      );
+        nominees,
+        terms: input,
+        wording: wording.content,
+        today,
+        producedAt: producedAt(now, language),
+      });
       await audited(context).write(
         {
           // Filed against the Venture: there is no Agreement yet to file it against, and "what did we hand that man

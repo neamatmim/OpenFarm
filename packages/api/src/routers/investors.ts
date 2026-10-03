@@ -235,6 +235,8 @@ export const investorsRouter = {
         portalOpen: context.farm.investorPortal,
         /** Whether invited Investors are shown each Venture's Projection (ADR 0010). */
         projectionsShown: context.farm.investorProjections,
+        /** Whether Agreements and Amendments may be agreed within the app. */
+        agreementsInApp: context.farm.agreementsInApp,
         /** Whether invited Investors are shown a settled Venture's Return on Capital (ADR 0012). */
         returnsShown: context.farm.investorReturns,
         people: rows.map((one) => ({
@@ -530,6 +532,34 @@ export const investorsRouter = {
    * Owner turns it on — once the lawyer and the Shariah scholar have seen what it says — and the Portal Preview shows
    * it to the Owner either way. The Owner's alone.
    */
+  /**
+   * Lets an Investment Agreement or an Amendment be agreed within the app — offered by the Owner, agreed by the Investor
+   * in the portal, approved by the Owner — or stops it. Off until the Owner turns it on, once the lawyer and the Shariah
+   * scholar have confirmed the farm may rely on an Agreement with no stamp on it. Turned off, an offer already agreed may
+   * still be approved. The Owner's alone.
+   */
+  setAgreementsInApp: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ shown: z.boolean() }))
+    .handler(async ({ context, input }) => {
+      await audited(context).write(
+        {
+          entity: "farm",
+          entityId: context.farm.id,
+          action: "update",
+          before: { agreementsInApp: context.farm.agreementsInApp },
+          after: { agreementsInApp: input.shown },
+        },
+        (tx) =>
+          tx
+            .update(farm)
+            .set({ agreementsInApp: input.shown })
+            .where(eq(farm.id, context.farm.id))
+      );
+      return { shown: input.shown };
+    }),
+
   setProjectionsShown: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())

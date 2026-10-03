@@ -765,7 +765,8 @@ export interface JoiningLetter {
 
 /** How an Agreement's stamp duty was paid, as a paper prints it. */
 export interface StampLine {
-  kind: "paper" | "e_challan";
+  /** Agreed in the app, there is no stamp: the day is the Owner's approval and the number the agreed paper's. */
+  kind: "paper" | "e_challan" | "in_app";
   /** Taka and the day, formatted for the reader. */
   value: string;
   on: string;
@@ -773,9 +774,21 @@ export interface StampLine {
   serial: string;
 }
 
-/** The stamp's three lines: stamp paper by its serial, or duty paid by e-challan by the challan's number. */
-export const stampLines = (stamp: StampLine): string[] =>
-  stamp.kind === "e_challan"
+/** Agreed in the app: no stamp and no taka — that it was agreed so, the day the Owner approved it, and the agreed paper's
+ *  number. */
+const agreedInTheAppLines = (stamp: StampLine): string[] => [
+  field("চুক্তি সম্পাদন", "Made", "অ্যাপে সম্মতি ও অনুমোদনে — স্ট্যাম্প ছাড়া"),
+  field("অনুমোদনের তারিখ", "Approved on", stamp.on),
+  field("সম্মত কাগজের নম্বর", "Agreed paper no.", stamp.serial),
+];
+
+/** The stamp's three lines: stamp paper by its serial, or duty paid by e-challan by the challan's number — or, agreed
+ *  in the app, that it was. */
+export const stampLines = (stamp: StampLine): string[] => {
+  if (stamp.kind === "in_app") {
+    return agreedInTheAppLines(stamp);
+  }
+  return stamp.kind === "e_challan"
     ? [
         field(
           "স্ট্যাম্প শুল্ক (ই-চালান)",
@@ -790,6 +803,7 @@ export const stampLines = (stamp: StampLine): string[] =>
         field("স্ট্যাম্পের তারিখ", "Stamped on", stamp.on),
         field("স্ট্যাম্প সিরিয়াল", "Stamp serial", stamp.serial),
       ];
+};
 
 /** One Nominee on a letter's line: name, relation, phone and share, and who collects for a minor. */
 const nomineeLineOf = (one: PaperNominee) => {

@@ -210,6 +210,11 @@ const InvestorsPage = () => {
               shown={counted.returnsShown ?? false}
               what="returns"
             />
+            {/* Missing from an answer kept from before Agreements could be agreed in the app: off. */}
+            <ShownToInvestorsSwitch
+              shown={counted.agreementsInApp ?? false}
+              what="agreements"
+            />
           </div>
         </Section>
       ) : null}

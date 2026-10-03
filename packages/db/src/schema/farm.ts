@@ -271,6 +271,10 @@ export const farm = pgTable("farm", {
    *  on — once the lawyer and the Shariah scholar have seen its wording — and the Owner's Portal Preview shows it
    *  either way, so it can be read before anybody else does. */
   investorProjections: boolean("investor_projections").notNull().default(false),
+  /** Whether an Investment Agreement or an Amendment may be agreed within the app — the Investor agreeing in the
+   *  portal, the Owner approving — instead of on stamped paper. Off until the Owner turns it on, once the lawyer and
+   *  the Shariah scholar have confirmed it. The Owner's alone. */
+  agreementsInApp: boolean("agreements_in_app").notNull().default(false),
   /** Whether Investors are shown a settled Venture's **Return on Capital** in the portal and on their হিসাব নিকাশ — a
    *  share over its days, never a rate a year (ADR 0012). Off until the Owner turns it on, once the lawyer and the
    *  Shariah scholar have seen its wording; the Owner's Portal Preview shows it either way. */

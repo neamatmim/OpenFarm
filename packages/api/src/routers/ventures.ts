@@ -8,8 +8,7 @@ import {
   ventureSettlementShare,
   ventureSettlement,
   ventureBankCheck,
-  STAMP_KINDS,
-  investmentAgreement,
+  STAMPED_KINDS,
   venture,
   ventureMovement,
 } from "@OpenFarm/db/schema/venture";
@@ -36,6 +35,13 @@ import {
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import {
+  approveOffer,
+  offerInApp,
+  offersOn,
+  withdrawOffer,
+} from "../agreement-offer-store";
+import { writeAgreement } from "../agreement-write";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { NEVER_CHECKED } from "../bank-standing";
@@ -53,22 +59,11 @@ import { protectedProcedure } from "../index";
 import { theOwnersOf } from "../intake-store";
 import { recordInternalSale } from "../internal-sale-store";
 import { tellTheOwnerAPaperIsDue } from "../investor-statement-notice";
-import {
-  countedInvestors,
-  nextPayInCode,
-  readAgreement,
-  theFarmsShare,
-  unitsTaken,
-} from "../investor-store";
+import { readAgreement, theFarmsShare } from "../investor-store";
 import { farmAccountIdInput, monthInput } from "../money-inputs";
 import { accountSaid, bookMoney, bookingOf } from "../money-store";
 import { missedByEach } from "../monthly-sums-store";
-import {
-  assertNamable,
-  nominationBySigning,
-  nomineesInput,
-  nomineesToSign,
-} from "../nominations";
+import { assertNamable, nomineesInput, nomineesToSign } from "../nominations";
 import { photoInput } from "../photo-input";
 import { projectionBasisOf, projectionOf } from "../projection-store";
 import {
@@ -76,7 +71,6 @@ import {
   owedTheFarmByEach,
 } from "../reimbursement-store";
 import {
-  answerBySigning,
   answerRequest,
   closeRequests,
   requestsOf,
@@ -245,8 +239,9 @@ const signInput = z.object({
     message: "A stamped paper has a stamp value",
   }),
   stampedOn: farmDay,
-  /** Stamp paper, or an e-challan paid into the treasury; the serial is the paper's or the challan's number. */
-  stampKind: z.enum(STAMP_KINDS).default("paper"),
+  /** Stamp paper, or an e-challan paid into the treasury; the serial is the paper's or the challan's number. Agreed in
+   *  the app is not signed here: it is offered, agreed and approved. */
+  stampKind: z.enum(STAMPED_KINDS).default("paper"),
   stampSerial: z.string().trim().min(1).max(60),
   /** The Request to Join this paper answers: that Investor's live Request on this Venture. None for somebody who
    *  joined by phone. */
@@ -505,7 +500,7 @@ const idOfTheMonth = (farmId: string, ventureId: string, month: string) =>
 const theAgreement = async (context: Context, id: string) => {
   const row = await context.db.query.investmentAgreement.findFirst({
     where: { id, farmId: context.farm.id },
-    columns: { id: true, ventureId: true, units: true },
+    columns: { id: true, ventureId: true, units: true, stampKind: true },
   });
   if (!row) {
     throw new ORPCError("NOT_FOUND", { message: "No such Agreement" });
@@ -1319,112 +1314,78 @@ export const venturesRouter = {
           action: "create",
           after: (tx) => readAgreement(tx, context.farm.id, id),
         },
-        async (tx) => {
-          // Every count is made inside the write's own transaction, behind a lock on the Farm row: the
-          // Units left, the Investors standing and the Agreements that set the next Pay-in Code are only
-          // true until the next signature commits, and a rule that may not be overridden may not be lost
-          // to two phones at once either.
-          await lockTheFarm(tx, context.farm.id);
-          const signing = await tx.query.investor.findFirst({
-            where: { id: input.investorId, farmId: context.farm.id },
-            columns: { retiredAt: true },
-          });
-          if (signing?.retiredAt) {
-            throw new ORPCError("BAD_REQUEST", {
-              message:
-                "This Investor is retired; bring them back before signing them for a Venture",
-              data: { refusal: "investor_retired" },
-            });
-          }
-          // One Agreement per person per Venture, as the unique index insists — said here in words, where the
-          // index would only say "duplicate key".
-          const already = await tx.query.investmentAgreement.findFirst({
-            where: {
-              farmId: context.farm.id,
-              ventureId: input.ventureId,
-              investorId: input.investorId,
-            },
-            columns: { id: true },
-          });
-          if (already) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: "This Investor has signed for this Venture already",
-              data: { refusal: "investor_already_signed" },
-            });
-          }
-          // The Request it answers reads signed in this same transaction, or the signing is refused with it; with none
-          // named, a Request they had live reads signed all the same.
-          await answerBySigning(
+        (tx) =>
+          writeAgreement(
             tx,
             auditing.recordEvent,
-            context.farm.id,
+            context.farm,
+            { id: context.actor.id, now },
             {
-              requestId: input.requestId,
-              ventureId: input.ventureId,
+              id,
+              venture: row,
               investorId: input.investorId,
-            },
-            now
-          );
-          const taken = await unitsTaken(tx, context.farm.id, input.ventureId);
-          if (taken + input.units > row.units) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: `Only ${row.units - taken} Units of this Venture are left`,
-              data: { refusal: "venture_units_gone" },
-            });
-          }
-          const counted = await countedInvestors(tx, context.farm.id);
-          const newcomer = !counted.unitsOf.has(input.investorId);
-          if (newcomer && counted.standing >= context.farm.investorCap) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: `The farm may have ${context.farm.investorCap} Investors at a time`,
-              data: { refusal: "investor_cap_reached" },
-            });
-          }
-          const given = await nextPayInCode(tx, context.farm.id, row);
-          // As the Amendments the Investors before them signed have left it, not as the Venture opened.
-          const window = await windowInForceOn(
-            tx,
-            context.farm.id,
-            row,
-            farmDayOf(now)
-          );
-          await tx.insert(investmentAgreement).values({
-            id,
-            farmId: context.farm.id,
-            ventureId: input.ventureId,
-            investorId: input.investorId,
-            units: input.units,
-            investorsPercent: input.investorsPercent,
-            // The window the Venture means to sell in, as it stands today, written onto this paper.
-            targetWindowStart: window.targetWindowStart,
-            targetWindowEnd: window.targetWindowEnd,
-            arbitrator: input.arbitrator,
-            stampKind: input.stampKind,
-            stampValueBdt: input.stampValueBdt,
-            stampedOn: input.stampedOn,
-            stampSerial: input.stampSerial,
-            templateVersionId: wording.versionId,
-            payInCode: given,
-            requestId: input.requestId ?? null,
-            signedBy: context.actor.id,
-            createdAt: now,
-          });
-          // The Agreement is a Nomination too, for the Nominees it names.
-          await nominationBySigning(tx, auditing.recordEvent, {
-            farmId: context.farm.id,
-            investorId: input.investorId,
-            agreementId: id,
-            signedOn: input.stampedOn,
-            nominees,
-            recordedBy: context.actor.id,
-            now,
-          });
-          return given;
-        }
+              units: input.units,
+              investorsPercent: input.investorsPercent,
+              arbitrator: input.arbitrator,
+              stamp: {
+                kind: input.stampKind,
+                valueBdt: input.stampValueBdt,
+                on: input.stampedOn,
+                serial: input.stampSerial,
+              },
+              templateVersionId: wording.versionId,
+              requestId: input.requestId,
+              nominees,
+            }
+          )
       );
       // Said back to the Owner where they have just signed, for the Investor to write on the transfer.
       return { id, payInCode: code };
     }),
+
+  /**
+   * An Investment Agreement offered to one Investor to agree to in the app, instead of on stamped paper
+   * (`offerInApp`): the same terms the sign sheet takes, with no stamp. Refused while the farm's switch is off.
+   */
+  offerInApp: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        ventureId: z.string(),
+        investorId: z.string(),
+        units: z.number().int().min(1).max(10_000),
+        investorsPercent: z.number().int().min(0).max(100),
+        arbitrator: z.string().trim().min(1).max(200),
+        requestId: z.string().optional(),
+        nominees: nomineesInput.optional(),
+      })
+    )
+    .handler(({ context, input }) => offerInApp(context, input)),
+
+  /** Takes an offer back, agreed or not, until it is approved (`withdrawOffer`). */
+  withdrawOffer: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ offerId: z.string() }))
+    .handler(async ({ context, input }) => {
+      await withdrawOffer(context, input.offerId);
+      return { id: input.offerId };
+    }),
+
+  /** Approves an offer the Investor has agreed to: the Agreement is written from it (`approveOffer`). */
+  approveOffer: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ offerId: z.string() }))
+    .handler(({ context, input }) => approveOffer(context, input.offerId)),
+
+  /** Every offer made on a Venture to agree to in the app, and where each stands (`offersOn`). */
+  agreementOffers: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ ventureId: z.string() }))
+    .handler(({ context, input }) => offersOn(context, input.ventureId)),
 
   /**
    * One paper amending every Agreement on a Venture: the split, the Target Window, the day everybody
@@ -1797,10 +1758,14 @@ export const venturesRouter = {
           // Asked after the count, which is the order these two were refused in before the count moved
           // inside the lock: a payment that is both unpapered and over its Units hears the same of the
           // two things it heard before.
-          const paper = await tx.query.agreementPaper.findFirst({
-            where: { agreementId: agreement.id, farmId: context.farm.id },
-            columns: { agreementId: true },
-          });
+          // Agreed in the app, there is no stamped paper to photograph: the paper the Investor agreed to is kept with
+          // the offer it was approved from.
+          const paper =
+            agreement.stampKind === "in_app" ||
+            (await tx.query.agreementPaper.findFirst({
+              where: { agreementId: agreement.id, farmId: context.farm.id },
+              columns: { agreementId: true },
+            }));
           if (!paper) {
             throw new ORPCError("BAD_REQUEST", {
               message: "The stamped Agreement is not on file yet",
