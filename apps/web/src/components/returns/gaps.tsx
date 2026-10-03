@@ -27,7 +27,7 @@ const GapFix = ({ gap, ventureId }: { gap: Gap; ventureId: string | null }) => {
     gap.why === "no_head_price";
   if (onThePricesTab) {
     return (
-      <Link className={className} search={{ tab: "prices" }} to="/returns">
+      <Link className={className} to="/returns/head-prices">
         {label}
       </Link>
     );

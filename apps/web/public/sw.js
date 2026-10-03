@@ -9,7 +9,7 @@
  * and every write goes through the Outbox; a service worker quietly replaying a POST would
  * be a second write path, which ADR 0002 rules out.
  */
-const SHELL = "openfarm-shell-v5";
+const SHELL = "openfarm-shell-v6";
 const ASSETS = "openfarm-assets-v3";
 const KEEP = new Set([SHELL, ASSETS]);
 const SHELL_FILES = ["/", "/work", "/manifest.webmanifest", "/icon.svg"];

@@ -187,7 +187,7 @@ const ProposalGroup = ({ needsYou, headless }: GroupProps) => {
       icon={BookOpenCheck}
       label={t("owner.proposals")}
       more={
-        <Link className={MORE_LINK} search={{ tab: "proposals" }} to="/sops">
+        <Link className={MORE_LINK} to="/sops/proposals">
           {t("home.openList")}
         </Link>
       }
@@ -195,11 +195,7 @@ const ProposalGroup = ({ needsYou, headless }: GroupProps) => {
         <QueueRow
           key={row.id}
           title={
-            <Link
-              className="hover:underline"
-              search={{ tab: "proposals" }}
-              to="/sops"
-            >
+            <Link className="hover:underline" to="/sops/proposals">
               {row.note || t("owner.noNote")}
             </Link>
           }
@@ -232,11 +228,7 @@ const ReviewGroup = ({ needsYou, headless }: GroupProps) => {
       icon={Gavel}
       label={t("home.needsReview")}
       more={
-        <Link
-          className={MORE_LINK}
-          search={{ tab: "review" }}
-          to="/review-queue"
-        >
+        <Link className={MORE_LINK} to="/review-queue/needs-review">
           {t("home.openList")}
         </Link>
       }
@@ -255,11 +247,7 @@ const ReviewGroup = ({ needsYou, headless }: GroupProps) => {
                   {said}
                 </Link>
               ) : (
-                <Link
-                  className={ROW_LINK}
-                  search={{ tab: "review" }}
-                  to="/review-queue"
-                >
+                <Link className={ROW_LINK} to="/review-queue/needs-review">
                   {said}
                 </Link>
               )
@@ -326,11 +314,7 @@ const StoreCountGroup = ({ needsYou, headless }: GroupProps) => {
                   </span>
                 }
                 title={
-                  <Link
-                    className={ROW_LINK}
-                    search={{ tab: "counts" }}
-                    to="/feed"
-                  >
+                  <Link className={ROW_LINK} to="/feed/stock-counts">
                     {t("owner.storeNotCounted")}
                   </Link>
                 }
@@ -623,11 +607,7 @@ const FarmTodayList = ({
           icon={AlarmClock}
           label={t("home.overdue")}
           more={
-            <Link
-              className={MORE_LINK}
-              search={{ tab: "late" }}
-              to="/review-queue"
-            >
+            <Link className={MORE_LINK} to="/review-queue/overdue">
               {t("home.openList")}
             </Link>
           }

@@ -95,8 +95,7 @@ const ReviewRow = ({
         ) : (
           <Link
             className="after:absolute after:inset-0 hover:underline"
-            search={{ tab: "review" }}
-            to="/review-queue"
+            to="/review-queue/needs-review"
           >
             {said}
           </Link>
@@ -175,11 +174,7 @@ const QueueKindList = ({
           icon={AlarmClock}
           label={t("home.overdue")}
           more={
-            <Link
-              className={MORE_LINK}
-              search={{ tab: "late" }}
-              to="/review-queue"
-            >
+            <Link className={MORE_LINK} to="/review-queue/overdue">
               {t("home.openList")}
             </Link>
           }
@@ -215,11 +210,7 @@ const QueueKindList = ({
           icon={Gavel}
           label={t("home.needsReview")}
           more={
-            <Link
-              className={MORE_LINK}
-              search={{ tab: "review" }}
-              to="/review-queue"
-            >
+            <Link className={MORE_LINK} to="/review-queue/needs-review">
               {t("home.openList")}
             </Link>
           }

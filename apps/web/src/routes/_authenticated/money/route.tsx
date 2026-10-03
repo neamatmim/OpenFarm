@@ -37,6 +37,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { useMoney } from "@/lib/money";
 import { moneyTotals, totalsPartial } from "@/lib/money-totals";
+import { useTabOfPath } from "@/lib/path-tabs";
 import { orpc } from "@/utils/orpc";
 
 const TABS = [
@@ -49,6 +50,17 @@ const TABS = [
   "categories",
 ] as const;
 type Tab = (typeof TABS)[number];
+
+/** Each tab at its own address, the first at the page's own. */
+const TAB_PATHS = {
+  register: "/money",
+  cash: "/money/cash",
+  draws: "/money/wage-draws",
+  receivable: "/money/receivables",
+  costs: "/money/costs",
+  accountant: "/money/accountant",
+  categories: "/money/categories",
+} as const satisfies Record<Tab, string>;
 
 /** The first of this month on the farm's clock, which is where an Owner starts reading money. */
 const firstOfTheMonth = () =>
@@ -108,7 +120,7 @@ const useMoneyFigures = (list: MoneyList | undefined): Figure[] => {
 const MoneyPage = () => {
   const { t } = useLanguage();
   const navigate = useNavigate({ from: Route.fullPath });
-  const { tab = "register" } = Route.useSearch();
+  const tab = useTabOfPath(TAB_PATHS) ?? "register";
   const me = useQuery(orpc.people.me.queryOptions());
   const [from, setFrom] = useState(firstOfTheMonth);
   const [to, setTo] = useState(() => farmDayOf(new Date()));
@@ -158,12 +170,7 @@ const MoneyPage = () => {
       </div>
 
       <PageTabs
-        onChange={(value) =>
-          navigate({
-            replace: true,
-            search: value === "register" ? {} : { tab: value },
-          })
-        }
+        onChange={(value) => navigate({ replace: true, to: TAB_PATHS[value] })}
         tabs={[
           {
             value: "register",
@@ -235,9 +242,4 @@ export const Route = createFileRoute("/_authenticated/money")({
     }
   },
   component: MoneyPage,
-  /** Which tab, kept in the address so the page comes back as it was left. */
-  validateSearch: (search: Record<string, unknown>): { tab?: Tab } =>
-    TABS.includes(search.tab as Tab) && search.tab !== "register"
-      ? { tab: search.tab as Tab }
-      : {},
 });

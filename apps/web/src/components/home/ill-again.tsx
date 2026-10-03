@@ -36,8 +36,7 @@ export const IllAgainGroup = ({
         <Link
           className="after:absolute after:inset-0 hover:underline"
           params={{ tagNumber: one.tag }}
-          search={{ tab: "health" }}
-          to="/animals/$tagNumber"
+          to="/animals/$tagNumber/health"
         >
           {one.tag}
         </Link>

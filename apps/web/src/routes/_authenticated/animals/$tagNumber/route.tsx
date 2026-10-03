@@ -1,7 +1,12 @@
 import { buttonVariants } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+  Link,
+  createFileRoute,
+  useNavigate,
+  redirect,
+} from "@tanstack/react-router";
 import {
   Baby,
   FileText,
@@ -28,20 +33,30 @@ import { BackLink, EmptyState, Page } from "@/components/page";
 import type { PageTab } from "@/components/page-kit";
 import { PageTabs } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useTabOfPath } from "@/lib/path-tabs";
 import { orpc } from "@/utils/orpc";
 
 const TABS = ["overview", "breeding", "health", "weight", "money"] as const;
 type Tab = (typeof TABS)[number];
 
+/** Each tab at its own address, the first at her page's own. */
+const TAB_PATHS = {
+  overview: "/animals/$tagNumber",
+  breeding: "/animals/$tagNumber/breeding",
+  health: "/animals/$tagNumber/health",
+  weight: "/animals/$tagNumber/weigh-ins",
+  money: "/animals/$tagNumber/money",
+} as const satisfies Record<Tab, string>;
+
 /**
  * One animal's page, by what somebody came to her for: her head says who she is and what holds her, with what was seen
  * of her and a move a thumb away; her tabs hold her at a glance, her breeding, her health, her weight and moves, and
  * her money and papers. Every record-keeping act opens in its own dialog, offered only to a Role the farm lets do it.
- * The tab is kept in the address, so her page comes back as it was left.
+ * Each tab has an address of its own, so her page comes back as it was left.
  */
 const AnimalPage = () => {
   const { tagNumber } = Route.useParams();
-  const { tab = "overview" } = Route.useSearch();
+  const tab = useTabOfPath(TAB_PATHS, { tagNumber }) ?? "overview";
   const navigate = useNavigate({ from: Route.fullPath });
   const { t } = useLanguage();
   const [act, setAct] = useState<AnimalAct | null>(null);
@@ -131,8 +146,9 @@ const AnimalPage = () => {
       <PageTabs
         onChange={(value) =>
           navigate({
+            params: { tagNumber },
             replace: true,
-            search: value === "overview" ? {} : { tab: value },
+            to: TAB_PATHS[value],
           })
         }
         tabs={tabs}
@@ -150,10 +166,19 @@ const AnimalPage = () => {
 };
 
 export const Route = createFileRoute("/_authenticated/animals/$tagNumber")({
+  /** One address for her: a Tag Number is written in capitals, and the server reads `d-0001` as `D-0001`, so an
+   *  address typed in small letters is sent, for good, to the one in capitals. */
+  beforeLoad: ({ location, params }) => {
+    const capitals = params.tagNumber.toUpperCase();
+    if (capitals !== params.tagNumber) {
+      throw redirect({
+        href: location.href.replace(
+          encodeURIComponent(params.tagNumber),
+          encodeURIComponent(capitals)
+        ),
+        statusCode: 308,
+      });
+    }
+  },
   component: AnimalPage,
-  /** Which tab, kept in the address so her page comes back as it was left. */
-  validateSearch: (search: Record<string, unknown>): { tab?: Tab } =>
-    TABS.includes(search.tab as Tab) && search.tab !== "overview"
-      ? { tab: search.tab as Tab }
-      : {},
 });

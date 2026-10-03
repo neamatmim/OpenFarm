@@ -9,10 +9,18 @@ import { CheckTab } from "@/components/sign-off/check-tab";
 import { LateTab } from "@/components/sign-off/late-tab";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
+import { useTabOfPath } from "@/lib/path-tabs";
 import { orpc } from "@/utils/orpc";
 
 const TABS = ["check", "review", "late"] as const;
 type Tab = (typeof TABS)[number];
+
+/** Each tab at its own address, the first at the page's own. */
+const TAB_PATHS = {
+  check: "/review-queue",
+  review: "/review-queue/needs-review",
+  late: "/review-queue/overdue",
+} as const satisfies Record<Tab, string>;
 
 /**
  * The Manager's queues, by what they came to decide: work done and waiting to be checked, entries the farm could not
@@ -22,7 +30,7 @@ type Tab = (typeof TABS)[number];
 const SignOffPage = () => {
   const { t } = useLanguage();
   const navigate = useNavigate({ from: Route.fullPath });
-  const { tab = "check" } = Route.useSearch();
+  const tab = useTabOfPath(TAB_PATHS) ?? "check";
 
   const queue = useQuery(orpc.instances.signOffQueue.queryOptions());
   const review = useQuery(orpc.reviewQueue.open.queryOptions());
@@ -36,12 +44,7 @@ const SignOffPage = () => {
       />
 
       <PageTabs
-        onChange={(value) =>
-          navigate({
-            replace: true,
-            search: value === "check" ? {} : { tab: value },
-          })
-        }
+        onChange={(value) => navigate({ replace: true, to: TAB_PATHS[value] })}
         tabs={[
           {
             value: "check",
@@ -75,9 +78,4 @@ export const Route = createFileRoute("/_authenticated/review-queue")({
   /** For those who run the farm: the Owner and the Farm Managers. */
   beforeLoad: onlyFor("runsTheFarm"),
   component: SignOffPage,
-  /** Which queue, kept in the address so the page comes back as it was left. */
-  validateSearch: (search: Record<string, unknown>): { tab?: Tab } =>
-    TABS.includes(search.tab as Tab) && search.tab !== "check"
-      ? { tab: search.tab as Tab }
-      : {},
 });

@@ -21,9 +21,17 @@ import {
 } from "@/components/returns/returns-page";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
+import { useTabOfPath } from "@/lib/path-tabs";
 
 const TABS = ["fattening", "dairy", "prices"] as const;
 type Tab = (typeof TABS)[number];
+
+/** Each tab at its own address, the first at the page's own. */
+const TAB_PATHS = {
+  fattening: "/returns",
+  dairy: "/returns/dairy",
+  prices: "/returns/head-prices",
+} as const satisfies Record<Tab, string>;
 
 /**
  * What the money in the farm's cattle returned, for the Owner: each Season of the Farm's own fattening cattle and each
@@ -36,7 +44,7 @@ const ReturnsPage = () => {
   const { t } = useLanguage();
   const returns = useReturns();
   const navigate = useNavigate({ from: Route.fullPath });
-  const { tab = "fattening" } = Route.useSearch();
+  const tab = useTabOfPath(TAB_PATHS) ?? "fattening";
   const header = (
     <PageHeader description={t("returns.subtitle")} title={t("nav.returns")} />
   );
@@ -58,12 +66,7 @@ const ReturnsPage = () => {
       {header}
       <MissingPrices page={page} />
       <PageTabs
-        onChange={(value) =>
-          navigate({
-            replace: true,
-            search: value === "fattening" ? {} : { tab: value },
-          })
-        }
+        onChange={(value) => navigate({ replace: true, to: TAB_PATHS[value] })}
         tabs={[
           {
             value: "fattening",
@@ -162,10 +165,5 @@ const ReturnsPage = () => {
 
 export const Route = createFileRoute("/_authenticated/returns")({
   beforeLoad: onlyFor("owner"),
-  /** Which tab, kept in the address so the page comes back as it was left. */
-  validateSearch: (search: Record<string, unknown>): { tab?: Tab } =>
-    TABS.includes(search.tab as Tab) && search.tab !== "fattening"
-      ? { tab: search.tab as Tab }
-      : {},
   component: ReturnsPage,
 });

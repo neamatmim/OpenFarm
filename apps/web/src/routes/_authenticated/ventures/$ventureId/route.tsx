@@ -42,12 +42,21 @@ import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { useMoney } from "@/lib/money";
 import { lastMonth } from "@/lib/months";
+import { useTabOfPath } from "@/lib/path-tabs";
 import type { Venture } from "@/lib/ventures";
 import { shortOfFloor } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
 
 const TABS = ["overview", "investors", "animals", "money"] as const;
 type Tab = (typeof TABS)[number];
+
+/** Each tab at its own address, the first at the Venture's own. */
+const TAB_PATHS = {
+  overview: "/ventures/$ventureId",
+  investors: "/ventures/$ventureId/investors",
+  animals: "/ventures/$ventureId/animals",
+  money: "/ventures/$ventureId/money",
+} as const satisfies Record<Tab, string>;
 
 /**
  * The four figures one Venture is read by, chosen by where it stands.
@@ -206,8 +215,8 @@ const TheVenture = ({
           navigate({
             params: { ventureId: venture.id },
             replace: true,
-            search: value === "overview" ? {} : { tab: value },
-            to: "/ventures/$ventureId",
+            search: {},
+            to: TAB_PATHS[value],
           })
         }
         tabs={[
@@ -262,7 +271,8 @@ const TheVenture = ({
 const VenturePage = () => {
   const { t } = useLanguage();
   const { ventureId } = Route.useParams();
-  const { tab = "overview", reimburse } = Route.useSearch();
+  const { reimburse } = Route.useSearch();
+  const tab = useTabOfPath(TAB_PATHS, { ventureId }) ?? "overview";
   const ventures = useQuery(orpc.ventures.list.queryOptions());
   if (ventures.isPending) {
     return (
@@ -294,9 +304,8 @@ const VenturePage = () => {
   return <TheVenture reimburse={reimburse} tab={tab} venture={venture} />;
 };
 
-/** What the address may say about this page: which tab she is reading. */
+/** What the address may say about this page, beyond its tab. */
 interface VentureSearch {
-  tab?: Tab;
   /** A month whose Reimbursement a notice said is due, "YYYY-MM": the page opens its sheet on it. */
   reimburse?: string;
 }
@@ -307,12 +316,8 @@ export const Route = createFileRoute("/_authenticated/ventures/$ventureId")({
   /** The Owner's alone, as every Venture is. */
   beforeLoad: onlyFor("owner"),
   component: VenturePage,
-  validateSearch: (search: Record<string, unknown>): VentureSearch => ({
-    ...(TABS.includes(search.tab as Tab) && search.tab !== "overview"
-      ? { tab: search.tab as Tab }
-      : {}),
-    ...(typeof search.reimburse === "string" && A_MONTH.test(search.reimburse)
+  validateSearch: (search: Record<string, unknown>): VentureSearch =>
+    typeof search.reimburse === "string" && A_MONTH.test(search.reimburse)
       ? { reimburse: search.reimburse }
-      : {}),
-  }),
+      : {},
 });
