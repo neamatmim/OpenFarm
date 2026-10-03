@@ -1,3 +1,4 @@
 # https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow:
+# Nothing here is for a search engine: the farm's records on one address, an Investor's on the other.
+Disallow: /

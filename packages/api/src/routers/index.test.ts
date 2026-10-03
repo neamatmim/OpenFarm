@@ -5,12 +5,6 @@ import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
 describe("appRouter through the in-process client", () => {
-  it("answers the health check for the Owner", async () => {
-    const { client } = await createTestClient(appRouter, { as: "owner" });
-
-    expect(await client.healthCheck()).toBe("OK");
-  });
-
   it("refuses a signed-in procedure to an unauthenticated caller", async () => {
     const { client } = await createTestClient(appRouter, { as: null });
 

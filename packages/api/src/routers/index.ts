@@ -1,6 +1,5 @@
 import type { RouterClient } from "@orpc/server";
 
-import { publicProcedure } from "../index";
 import { alertsRouter } from "./alerts";
 import { animalsRouter } from "./animals";
 import { auditRouter } from "./audit";
@@ -53,16 +52,12 @@ import { venturesRouter } from "./ventures";
 import { vetCasesRouter } from "./vet-cases";
 import { withdrawalsRouter } from "./withdrawals";
 
-/** Whether the API answers at all. */
-const healthCheck = publicProcedure.handler(() => "OK");
-
 /**
  * The router's shape, spelled out as each part's own type. Left to inference, the whole of it is written into the
  * declaration file expanded, and it has grown past what the compiler will write; named, each part is written by name.
  */
 // oxlint-disable-next-line typescript/consistent-type-definitions -- an interface has no index signature, and oRPC's Router type asks for one
 type AppRouterShape = {
-  healthCheck: typeof healthCheck;
   alerts: typeof alertsRouter;
   animals: typeof animalsRouter;
   audit: typeof auditRouter;
@@ -117,7 +112,6 @@ type AppRouterShape = {
 };
 
 export const appRouter: AppRouterShape = {
-  healthCheck,
   alerts: alertsRouter,
   animals: animalsRouter,
   audit: auditRouter,
