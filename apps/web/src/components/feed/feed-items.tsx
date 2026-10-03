@@ -92,7 +92,7 @@ const ItemMenu = ({ row }: { row: ItemRow }) => {
       <RowMenu
         actions={[
           {
-            label: t("feed.bringBack"),
+            label: t("feed.restore"),
             icon: ArchiveRestore,
             handleSelect: () => handleBringBack(row.id),
             disabled: row.bringingBack,

@@ -575,7 +575,7 @@ export const feedRouter = {
             if (known.retiredAt) {
               throw new ORPCError("BAD_REQUEST", {
                 message:
-                  "That ration is retired: bring it back to feed a Pen on it",
+                  "That ration is retired: restore it to feed a Pen on it",
                 data: { refusal: "ration_retired" },
               });
             }

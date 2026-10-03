@@ -141,7 +141,7 @@ const OnFile = ({ investor }: { investor: Investor }) => {
     orpc.investors.restore.mutationOptions({
       onError: refused,
       onSuccess: () => {
-        toast.success(t("investors.broughtBack"));
+        toast.success(t("investors.restored"));
       },
     })
   );
@@ -165,7 +165,7 @@ const OnFile = ({ investor }: { investor: Investor }) => {
           variant="outline"
         >
           <ArchiveRestore aria-hidden data-icon="inline-start" />
-          {t("investors.bringBack")}
+          {t("investors.restore")}
         </Button>
       </Section>
     );

@@ -64,7 +64,7 @@ export const writeAgreement = async (
   if (signing?.retiredAt) {
     throw new ORPCError("BAD_REQUEST", {
       message:
-        "This Investor is retired; bring them back before signing them for a Venture",
+        "This Investor is retired; restore them before signing them for a Venture",
       data: { refusal: "investor_retired" },
     });
   }

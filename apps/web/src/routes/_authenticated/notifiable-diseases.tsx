@@ -137,7 +137,7 @@ const DiseaseMenu = ({ row }: { row: DiseaseRow }) => {
         },
         row.retiredAt
           ? {
-              label: t("notifiable.putBack"),
+              label: t("notifiable.restore"),
               icon: ShieldAlert,
               handleSelect: () => handlePutBack(row),
             }
@@ -320,7 +320,7 @@ const ChangeDialog = ({
   const { t, language } = useLanguage();
   const refused = useRefused();
   const [why, setWhy] = useState("");
-  const done = (word: "notifiable.takenOff" | "notifiable.putBackDone") => ({
+  const done = (word: "notifiable.takenOff" | "notifiable.restored") => ({
     onSuccess: () => {
       toast.success(t(word));
       setWhy("");
@@ -332,16 +332,14 @@ const ChangeDialog = ({
     orpc.notifiableDiseases.retire.mutationOptions(done("notifiable.takenOff"))
   );
   const putBack = useMutation(
-    orpc.notifiableDiseases.restore.mutationOptions(
-      done("notifiable.putBackDone")
-    )
+    orpc.notifiableDiseases.restore.mutationOptions(done("notifiable.restored"))
   );
   const act = back ? putBack : retire;
-  const label = back ? t("notifiable.putBack") : t("notifiable.retire");
+  const label = back ? t("notifiable.restore") : t("notifiable.retire");
   return (
     <FormDialog
       description={
-        back ? t("notifiable.putBackHint") : t("notifiable.takeOffHint")
+        back ? t("notifiable.restoreHint") : t("notifiable.takeOffHint")
       }
       onOpenChange={onOpenChange}
       onSubmit={() => {

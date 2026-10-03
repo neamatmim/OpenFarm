@@ -1723,8 +1723,8 @@ export const bn: Record<MessageKey, string> = {
   "investors.retiredToast": "বাদ দেওয়া হয়েছে",
   "investors.retired": "বাদ দেওয়া",
   "investors.retiredOn": "{day} তারিখে বাদ দেওয়া",
-  "investors.bringBack": "ফিরিয়ে আনুন",
-  "investors.broughtBack": "ফিরিয়ে আনা হয়েছে",
+  "investors.restore": "ফিরিয়ে আনুন",
+  "investors.restored": "ফিরিয়ে আনা হয়েছে",
   "investors.stillIn":
     "চলমান একটি ভেঞ্চারে তাঁর {currencySum} আছে, তাই ভেঞ্চারের হিসাব শেষ বা বাতিল না হওয়া পর্যন্ত বাদ দেওয়া যাবে না।",
   "investors.nomineeIs": "নমিনি: {name}",
@@ -2204,10 +2204,10 @@ export const bn: Record<MessageKey, string> = {
   "feed.retireTitle": "“{name}” বাদ দেবেন?",
   "feed.retireWhy":
     "এটি দিয়ে নতুন করে খাওয়ানো, কেনা বা গোনা হবে না। কোনো পেনকে যা খাওয়ানো হয়েছে তাতে এর নাম থাকবে, আর এটি ফিরিয়ে আনা যাবে।",
-  "byHand.bringBack": "ফিরিয়ে আনুন",
-  "notifiable.putBack": "তালিকায় ফিরিয়ে আনুন",
-  "notifiable.putBackHint": "কেন এটি আবার জানাতে হয় লিখুন: অফিস কী বলেছে, আর কবে।",
-  "notifiable.putBackDone": "তালিকায় ফিরে এসেছে",
+  "byHand.restore": "ফিরিয়ে আনুন",
+  "notifiable.restore": "তালিকায় ফিরিয়ে আনুন",
+  "notifiable.restoreHint": "কেন এটি আবার জানাতে হয় লিখুন: অফিস কী বলেছে, আর কবে।",
+  "notifiable.restored": "তালিকায় ফিরে এসেছে",
   "refusal.drugExists": "এই পণ্য তালিকায় আগেই আছে",
   "refusal.drugExistsRetired":
     "এই পণ্য তালিকায় আছে, বাদ দেওয়া — দ্বিতীয়বার যোগ না করে ফিরিয়ে আনুন",
@@ -2682,7 +2682,7 @@ export const bn: Record<MessageKey, string> = {
   "feed.addItem": "উপাদান যোগ করুন",
   "feed.retire": "বাদ দিন",
   "feed.retired": "বাদ দেওয়া",
-  "feed.bringBack": "ফিরিয়ে আনুন",
+  "feed.restore": "ফিরিয়ে আনুন",
   "feed.rename": "নাম বদলান",
   "feed.renameTitle": "{name} — নাম বদলান",
   "feed.renameHint": "এই উপাদানের সব রেশন, কেনা আর গণনায় নতুন নাম দেখাবে।",
@@ -2697,7 +2697,7 @@ export const bn: Record<MessageKey, string> = {
   "feed.retiredRationsHint":
     "আগের খাওয়ানোর হিসাব নাম ধরে পড়ার জন্য রাখা। কোনো পেনে দিতে ফিরিয়ে আনুন।",
   "feed.rationRetired": "রেশন বাদ দেওয়া হয়েছে",
-  "feed.rationBroughtBack": "রেশন ফিরিয়ে আনা হয়েছে",
+  "feed.rationRestored": "রেশন ফিরিয়ে আনা হয়েছে",
   "feed.pen": "পেন",
   "feed.noRation": "এই পেনের কোনো রেশন নেই",
   "feed.setRation": "রেশন সংরক্ষণ করুন",
@@ -3561,7 +3561,7 @@ export const bn: Record<MessageKey, string> = {
   "drugs.blank": "ভেটের লেখার অপেক্ষায়",
   "drugs.save": "দিন লিখুন",
   "drugs.setBy": "{name} লিখেছেন, {date}",
-  "drugs.bringBack": "ফিরিয়ে আনুন",
+  "drugs.restore": "ফিরিয়ে আনুন",
   "drugs.rename": "নাম বদলান",
   "drugs.renameTitle": "{name} — নাম বদলান",
   "drugs.renameHint":

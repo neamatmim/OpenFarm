@@ -540,14 +540,14 @@ const useRationActs = (ration: RationRow, onEdit: () => void): RowAction[] => {
   );
   const bringBack = useMutation(
     orpc.feed.rations.restore.mutationOptions({
-      onSuccess: () => toast.success(t("feed.rationBroughtBack")),
+      onSuccess: () => toast.success(t("feed.rationRestored")),
       onError: refused,
     })
   );
   if (ration.retiredAt) {
     return [
       {
-        label: t("feed.bringBack"),
+        label: t("feed.restore"),
         icon: ArchiveRestore,
         disabled: bringBack.isPending,
         handleSelect: () => bringBack.mutate({ id: ration.id }),

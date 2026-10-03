@@ -149,7 +149,7 @@ export const bringBackToList = (
 
 /**
  * Refuses a name another entry on the list already answers to, in either language, retired ones included — with
- * the list's own refusal, and whether the one that has it is retired, so the screen can offer to bring it back.
+ * the list's own refusal, and whether the one that has it is retired, so the screen can offer to restore it.
  * Asked inside the write that would take the name, so two people adding the same one at once do not both succeed.
  */
 export const assertNameFree = async (

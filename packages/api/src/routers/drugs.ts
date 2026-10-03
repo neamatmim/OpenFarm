@@ -83,7 +83,7 @@ const DRUGS = {
     whenRetired: {
       refusal: "drug_exists_retired",
       message:
-        "That product is already on the list, retired; bring it back rather than adding it twice",
+        "That product is already on the list, retired; restore it rather than adding it twice",
     },
   },
 } satisfies FarmList & Parameters<typeof assertNameFree>[2];
