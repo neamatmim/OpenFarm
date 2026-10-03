@@ -5,7 +5,7 @@ import type { Nominee, PaperDocument } from "@OpenFarm/domain";
 import { farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
-import { agreementLaidOut, paperHashOf } from "./agreement-paper";
+import { agreementLaidOut } from "./agreement-paper";
 import type { AgreementTerms } from "./agreement-paper";
 import { writeAgreement } from "./agreement-write";
 import type { Tx } from "./audit";
@@ -13,6 +13,7 @@ import { audited } from "./audit";
 import type { Actor, Context } from "./context";
 import { assertRegistered } from "./export-store";
 import { readAgreement, unitsTaken } from "./investor-store";
+import { assertReadAsKept, keepPaper } from "./kept-paper";
 import { assertNamable, nomineesToSign } from "./nominations";
 import { producedAt } from "./paper-values";
 import { languageOf } from "./reader-language";
@@ -224,7 +225,7 @@ export const offerInApp = async (
     today,
     producedAt: producedAt(now, await languageOf(context.db, context.actor.id)),
   });
-  const paperHash = paperHashOf(paper);
+  const kept = keepPaper(paper);
   const id = uuidv7(now);
   await audited(context).write(
     {
@@ -245,14 +246,13 @@ export const offerInApp = async (
         nominees: [...nominees],
         requestId: input.requestId ?? null,
         templateVersionId: wording.versionId,
-        paper,
-        paperHash,
+        ...kept,
         offeredBy: context.actor.id,
         offeredAt: now,
       });
     }
   );
-  return { id, paperHash };
+  return { id, paperHash: kept.paperHash };
 };
 
 /** The Owner takes an offer back, agreed or not, until it is approved. */
@@ -465,12 +465,7 @@ export const agreeToOffer = async (
   if (offer.withdrawnAt) {
     throw refused("This offer was withdrawn", "offer_withdrawn");
   }
-  if (offer.paperHash !== input.paperHash) {
-    throw refused(
-      "The paper read is not the paper offered; read it again",
-      "paper_changed_since"
-    );
-  }
+  assertReadAsKept(offer, input.paperHash);
   if (offer.agreedAt) {
     return;
   }

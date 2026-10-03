@@ -14,12 +14,13 @@ import {
   assertSwitchedOn,
   refused,
 } from "./agreement-offer-store";
-import { amendmentLaidOut, paperHashOf } from "./agreement-paper";
+import { amendmentLaidOut } from "./agreement-paper";
 import type { AmendmentTerms } from "./agreement-paper";
 import { writeAmendment } from "./agreement-write";
 import type { Tx } from "./audit";
 import { audited } from "./audit";
 import { assertRegistered } from "./export-store";
+import { assertReadAsKept, keepPaper } from "./kept-paper";
 import { producedAt } from "./paper-values";
 import { languageOf } from "./reader-language";
 import { currentWording, giveStandardTemplates } from "./template-store";
@@ -145,7 +146,7 @@ export const proposeAmendmentInApp = async (
     today: farmDayOf(now),
     producedAt: producedAt(now, await languageOf(context.db, context.actor.id)),
   });
-  const paperHash = paperHashOf(paper);
+  const kept = keepPaper(paper);
   const id = uuidv7(now);
   await audited(context).write(
     {
@@ -164,14 +165,13 @@ export const proposeAmendmentInApp = async (
         targetWindowEnd: input.targetWindowEnd,
         reason: input.reason,
         templateVersionId: wording.versionId,
-        paper,
-        paperHash,
+        ...kept,
         offeredBy: context.actor.id,
         offeredAt: now,
       });
     }
   );
-  return { id, paperHash };
+  return { id, paperHash: kept.paperHash };
 };
 
 /** The Owner takes an Amendment offer back, agreed by some or all, until it is approved. */
@@ -457,12 +457,7 @@ export const agreeToAmendment = async (
   if (offer.withdrawnAt) {
     throw refused("This offer was withdrawn", "offer_withdrawn");
   }
-  if (offer.paperHash !== input.paperHash) {
-    throw refused(
-      "The paper read is not the paper offered; read it again",
-      "paper_changed_since"
-    );
-  }
+  assertReadAsKept(offer, input.paperHash);
   const already = await context.db.query.amendmentOfferAnswer.findFirst({
     where: {
       farmId: context.farm.id,

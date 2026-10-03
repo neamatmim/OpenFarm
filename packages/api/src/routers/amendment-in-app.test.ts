@@ -1,7 +1,7 @@
 import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { paperHashOf } from "../agreement-paper";
+import { stillAsKept } from "../kept-paper";
 import { createTestClient } from "../test/client";
 import { invitingInvestors, signedInAs } from "../test/portal-client";
 import { appRouter } from "./index";
@@ -131,7 +131,7 @@ describe("an Amendment agreed in the app", () => {
     const { id } = await owner.ventures.proposeAmendmentInApp(terms(ventureId));
     const read = await agrees(first, id);
     // What they read is the paper kept, naming them both.
-    expect(read?.paperHash).toBe(paperHashOf(read?.paper as never));
+    expect(read && stillAsKept(read)).toBe(true);
     expect(JSON.stringify(read?.paper)).toContain("প্রথম");
     expect(JSON.stringify(read?.paper)).toContain("দ্বিতীয়");
     await agrees(second, id);

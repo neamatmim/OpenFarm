@@ -1,7 +1,7 @@
 import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { paperHashOf } from "../agreement-paper";
+import { stillAsKept } from "../kept-paper";
 import { createTestClient } from "../test/client";
 import { invitingInvestors, signedInAs } from "../test/portal-client";
 import { appRouter } from "./index";
@@ -121,7 +121,7 @@ describe("an Agreement agreed in the app", () => {
     const them = await invited("সম্মত বিনিয়োগকারী");
     const { id, offer } = await offeredAndAgreed(ventureId, them);
     // What they read is the paper kept, to the letter.
-    expect(offer?.paperHash).toBe(paperHashOf(offer?.paper as never));
+    expect(offer && stillAsKept(offer)).toBe(true);
     expect(JSON.stringify(offer?.paper)).toContain(`সালিস ${suffix}`);
 
     const owner = await as("owner");
