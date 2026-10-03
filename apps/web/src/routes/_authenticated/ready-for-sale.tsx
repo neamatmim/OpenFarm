@@ -7,7 +7,6 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { Beef, CircleCheck, Lock, Sparkles, Store } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { MarketPrice } from "@/components/fattening/animal-prices";
 import type {
@@ -22,6 +21,7 @@ import { EmptyState, Notice, Page, PageHeader } from "@/components/page";
 import { SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /**

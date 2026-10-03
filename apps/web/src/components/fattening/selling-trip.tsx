@@ -8,7 +8,6 @@ import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { CircleCheck } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { Loaded, Section } from "@/components/page";
 import { FormField } from "@/components/page-kit";
@@ -22,6 +21,7 @@ import { SellingTripCorrection } from "@/components/trips/trip-corrections";
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 interface Day {

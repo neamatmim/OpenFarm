@@ -1,10 +1,10 @@
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Camera, CircleCheck } from "lucide-react";
-import { toast } from "sonner";
 
 import { useLanguage } from "@/i18n/language-provider";
 import type { Photo } from "@/lib/photo";
 import { shrink } from "@/lib/photo";
+import { toast } from "@/lib/toast";
 
 /**
  * Taking a photograph, in the farm's own words.

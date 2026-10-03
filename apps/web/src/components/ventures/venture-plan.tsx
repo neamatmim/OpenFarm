@@ -10,7 +10,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { ClipboardList, Plus, Sparkles, Trash2 } from "lucide-react";
 import type { ChangeEvent } from "react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { BreedField, useBreeds } from "@/components/breed-field";
 import { expectedGainSaid } from "@/components/feed/band-words";
@@ -34,6 +33,7 @@ import { gainSettingOf } from "@/lib/gain-settings";
 import { useKg } from "@/lib/kg";
 import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { aFigure, figureOf } from "@/lib/typed-figure";
 import type { Venture } from "@/lib/ventures";
 import type { client } from "@/utils/orpc";

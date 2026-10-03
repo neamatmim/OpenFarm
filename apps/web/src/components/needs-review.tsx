@@ -7,7 +7,6 @@ import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { CircleCheck, Gavel } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import {
   ActionsHeader,
@@ -23,6 +22,7 @@ import type { Asked, OpenReview } from "@/components/sign-off/sign-off-types";
 import { useLanguage } from "@/i18n/language-provider";
 import { useInFlight } from "@/lib/in-flight";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** Every reason has something to say, typed by the reason rather than by string, so a new

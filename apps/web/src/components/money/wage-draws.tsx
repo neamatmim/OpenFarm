@@ -6,7 +6,6 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { HandCoins, Plus } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import {
   CorrectionAnswer,
@@ -34,6 +33,7 @@ import {
 } from "@/lib/correcting";
 import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** Money a person takes ahead of payday, written down: who, how much, the day, and how it was paid. */

@@ -2,12 +2,12 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Check, Undo2 } from "lucide-react";
-import { toast } from "sonner";
 
 import { useInvestorNames } from "@/components/investors/investor-names";
 import { StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 

@@ -5,7 +5,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ClipboardList } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { AssignWork } from "@/components/assign-work";
 import { Page } from "@/components/page";
@@ -55,6 +54,7 @@ import {
 import { refreshTheScreen } from "@/lib/refresh";
 import type { StepAnswer } from "@/lib/step-answer";
 import { journeyOf } from "@/lib/step-answer";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** The pen board: chips for the Steps that happen once, the Pen's animals as photo tiles in

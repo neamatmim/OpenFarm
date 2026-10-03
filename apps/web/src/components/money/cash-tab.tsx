@@ -5,13 +5,13 @@ import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Banknote, HandCoins } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { EmptyState } from "@/components/page";
 import { FormDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 type Hand = Awaited<ReturnType<typeof orpc.cash.inHand.call>>[number];

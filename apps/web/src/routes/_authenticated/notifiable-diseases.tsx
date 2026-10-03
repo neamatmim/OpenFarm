@@ -5,7 +5,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Plus, ShieldAlert, ShieldOff, Tags } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import {
   ActionsHeader,
@@ -31,6 +30,7 @@ import {
 import { FormDialog, FormField, RowMenu } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 type Disease = Awaited<

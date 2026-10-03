@@ -16,7 +16,6 @@ import {
   Syringe,
 } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import {
   ActionsHeader,
@@ -37,6 +36,7 @@ import {
 } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import type { DrugProduct } from "./drug-types";

@@ -9,7 +9,6 @@ import {
 } from "@OpenFarm/ui/components/sheet";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { TagLink } from "@/components/fattening/fattening-words";
 import { Loaded, Notice, Section, StatusBadge } from "@/components/page";
@@ -24,6 +23,7 @@ import { CHARGE_WORD } from "@/lib/charge-words";
 import { useMoney } from "@/lib/money";
 import { saidMonth } from "@/lib/months";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 type Settlement = Awaited<ReturnType<typeof orpc.ventures.settlement.get.call>>;

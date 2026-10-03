@@ -4,7 +4,6 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { useIsOwner } from "@/components/money";
 import { Section } from "@/components/page";
@@ -13,6 +12,7 @@ import { BankCheckSheet } from "@/components/ventures/bank-check-sheet";
 import { useLanguage } from "@/i18n/language-provider";
 import { saidMonth } from "@/lib/months";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { monthsStillOut } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
 

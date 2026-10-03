@@ -15,7 +15,6 @@ import {
   Users,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { toast } from "sonner";
 
 import { EmptyState, Loaded, Page, PageHeader } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
@@ -39,6 +38,7 @@ import { roleKey } from "@/components/role-choice";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { useInFlight } from "@/lib/in-flight";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** How many on the list stand one way. */

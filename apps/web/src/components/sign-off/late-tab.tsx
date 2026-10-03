@@ -5,7 +5,6 @@ import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { CircleCheck, CircleSlash, Clock } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import {
   ActionsHeader,
@@ -18,6 +17,7 @@ import { EmptyState, Loaded, StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { useInFlight } from "@/lib/in-flight";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { placeOfWork } from "@/lib/work-place";
 import { orpc } from "@/utils/orpc";
 

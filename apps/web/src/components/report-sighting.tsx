@@ -8,12 +8,12 @@ import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { Eye } from "lucide-react";
 import { useId, useState } from "react";
-import { toast } from "sonner";
 
 import { FormDialog, FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { queueObservation } from "@/lib/record-offline";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /**

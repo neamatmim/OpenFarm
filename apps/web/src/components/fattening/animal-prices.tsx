@@ -7,7 +7,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import type { LucideIcon } from "lucide-react";
 import { Scale, Tags, TrendingDown, TrendingUp } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { Nothing } from "@/components/list-cells";
 import type { Tone } from "@/components/page";
@@ -18,6 +17,7 @@ import { useKg } from "@/lib/kg";
 import { useMoney, useMoneyRate } from "@/lib/money";
 import { useRange } from "@/lib/range";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { aFigure, figureOf } from "@/lib/typed-figure";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";

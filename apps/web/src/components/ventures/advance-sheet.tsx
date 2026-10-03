@@ -1,12 +1,12 @@
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /**

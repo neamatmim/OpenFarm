@@ -10,7 +10,6 @@ import {
   Pencil,
 } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import {
   ActionsHeader,
@@ -37,6 +36,7 @@ import { ConfirmDialog, RowMenu } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 type Eid = Awaited<ReturnType<typeof orpc.eidDates.list.call>>[number];

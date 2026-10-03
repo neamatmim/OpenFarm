@@ -12,7 +12,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { IdCard, LogOut, Monitor, ShieldCheck, Smartphone } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { PasswordInput } from "@/components/auth/password-input";
 import { NomineeList } from "@/components/investors/nominees";
@@ -38,6 +37,7 @@ import {
 } from "@/components/portal/portal-source";
 import { useLanguage } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 type Me = Awaited<ReturnType<typeof orpc.portal.me.call>>;

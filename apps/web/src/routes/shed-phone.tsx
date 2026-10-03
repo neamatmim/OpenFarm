@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { toast } from "sonner";
 
 import { BackToSignIn, CODE_FIELD, DoorScreen } from "@/components/door-screen";
 import { EmptyState, Notice } from "@/components/page";
@@ -52,6 +51,7 @@ import { currentListener } from "@/lib/push";
 import { handOverThisPhone } from "@/lib/query-cache";
 import { useRefused } from "@/lib/refused";
 import { lockAndPutAway, lockOnTheFarm } from "@/lib/shed-phone";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 const LOCK_TICK_MS = 15_000;

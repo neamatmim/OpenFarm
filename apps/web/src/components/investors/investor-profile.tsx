@@ -5,7 +5,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Archive, ArchiveRestore, Check, Copy, Pencil } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import type { Investor } from "@/components/investors/investor-types";
 import { PortalAccess, standingOf } from "@/components/investors/portal-access";
@@ -14,6 +13,7 @@ import { ConfirmDialog } from "@/components/page-kit";
 import { KIND_WORDS } from "@/components/ventures/request-parts";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import { DataCopyAct } from "./data-copy";

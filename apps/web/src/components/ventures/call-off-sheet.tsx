@@ -2,7 +2,6 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { useInvestorNames } from "@/components/investors/investor-names";
 import { FormField, FormSheet } from "@/components/page-kit";
@@ -10,6 +9,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
 import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** The day and the reference of the transfer that sends one movement's money back. */

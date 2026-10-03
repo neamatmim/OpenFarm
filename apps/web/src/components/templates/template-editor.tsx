@@ -17,13 +17,13 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { Copy, Eye, Plus, RotateCcw, Send } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { BackLink, Notice, Page, PageHeader, Section } from "@/components/page";
 import { FormField, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import type { TemplateDraft } from "@/lib/template-draft";
 import { fromDraft, moved, newSection, toDraft } from "@/lib/template-draft";
+import { toast } from "@/lib/toast";
 
 import { SaidField } from "./said-field";
 import { SectionEditor } from "./template-sections";

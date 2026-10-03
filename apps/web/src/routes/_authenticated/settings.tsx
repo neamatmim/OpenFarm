@@ -5,7 +5,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { BellOff, BellRing, Phone } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { Page, PageHeader, Section, StatusBadge } from "@/components/page";
 import { FormField } from "@/components/page-kit";
@@ -17,6 +16,7 @@ import {
   stopBeingTold,
 } from "@/lib/push";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** How this device stands for being told: told, not told, refused by the browser, or unable to be told at all. */

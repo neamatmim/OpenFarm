@@ -4,7 +4,6 @@ import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { Certificate } from "@/components/certificate";
 import {
@@ -19,6 +18,7 @@ import { FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 type Identity = Awaited<ReturnType<typeof orpc.farm.identity.call>>;

@@ -4,7 +4,6 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { useInvestorNames } from "@/components/investors/investor-names";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
@@ -13,6 +12,7 @@ import { paperOnFile } from "@/lib/agreed-in-app";
 import { useFreshFor } from "@/lib/fresh-for";
 import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 interface Arrival {

@@ -15,7 +15,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { PencilLine } from "lucide-react";
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
-import { toast } from "sonner";
 
 import { useT } from "@/i18n/language-provider";
 import type { Answers } from "@/lib/correcting";
@@ -23,6 +22,7 @@ import { asShown, changesFrom, readyToSend } from "@/lib/correcting";
 import { isChangedSince } from "@/lib/correction-refusal";
 import type { OwnWords } from "@/lib/saying";
 import { sayWhy } from "@/lib/saying";
+import { toast } from "@/lib/toast";
 
 /**
  * Putting a record right: what to change, and why. The original stays readable in the trail beside the correction,

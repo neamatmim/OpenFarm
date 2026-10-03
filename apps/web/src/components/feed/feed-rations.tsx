@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { EmptyState, Section, StatusBadge } from "@/components/page";
 import type { RowAction } from "@/components/page-kit";
@@ -36,6 +35,7 @@ import {
 } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import { bandSaid, expectedGainSaid } from "./band-words";

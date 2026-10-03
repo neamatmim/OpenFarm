@@ -3,7 +3,6 @@ import { RECEIVABLE_KINDS, farmDayOf } from "@OpenFarm/domain";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import type { AccountTyped } from "@/components/payment-method";
@@ -15,6 +14,7 @@ import {
 import { WhoseHandField } from "@/components/whose-hand";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** Who is paying and for what, when the sheet is opened from his row. */

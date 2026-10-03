@@ -3,7 +3,6 @@ import { Label } from "@OpenFarm/ui/components/label";
 import { useMutation } from "@tanstack/react-query";
 import { Scale, Tag } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { MoveTable, WeighInTable } from "@/components/animal-histories";
 import { CorrectionDialog } from "@/components/correction-dialog";
@@ -18,6 +17,7 @@ import { EmptyState, RecordList, RecordRow, Section } from "@/components/page";
 import { NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { queueMove } from "@/lib/record-offline";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import type { AnimalDetail, AnimalPowers, PenChoice } from "./animal-types";

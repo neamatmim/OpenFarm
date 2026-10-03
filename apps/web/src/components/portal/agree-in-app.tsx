@@ -3,13 +3,13 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Eye, Handshake } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { Notice } from "@/components/page";
 import { usePreviewing } from "@/components/portal/portal-source";
 import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 

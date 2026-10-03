@@ -7,7 +7,6 @@ import type { LucideIcon } from "lucide-react";
 import { Beef, MapPinOff, Milk, Shovel, TimerOff } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { DeathPhotoField, DeathPhotos } from "@/components/animal/death-photo";
 import {
@@ -23,6 +22,7 @@ import { breedName } from "@/lib/breed";
 import { choice, words } from "@/lib/correcting";
 import { causeWord, disposalWord } from "@/lib/mortality-words";
 import type { Photo } from "@/lib/photo";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import { Fact, FactGrid } from "./animal-facts";

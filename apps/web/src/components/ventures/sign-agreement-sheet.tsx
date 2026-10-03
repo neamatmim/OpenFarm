@@ -7,7 +7,6 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, FileText } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import type { NomineeDraft } from "@/components/investors/nominee-draft";
 import {
@@ -26,6 +25,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
 import type { Photo } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 interface Terms {

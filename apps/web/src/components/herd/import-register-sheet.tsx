@@ -3,12 +3,12 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { Notice } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** What the last import came to: how many were added, and every row the farm would not take, with its line. */

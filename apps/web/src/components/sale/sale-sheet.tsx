@@ -8,7 +8,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { History } from "lucide-react";
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
-import { toast } from "sonner";
 
 import { fitOnFrom } from "@/components/fattening/fattening-types";
 import { Notice, SECTION_TITLE } from "@/components/page";
@@ -29,6 +28,7 @@ import type { ReceivableTyped } from "@/lib/receivable";
 import { NO_RECEIVABLE, receivableSent, somethingPaid } from "@/lib/receivable";
 import { useRefused } from "@/lib/refused";
 import { saleStillMissing } from "@/lib/sale-missing";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** The broker's fee as the Sale takes it: whole taka, and nothing sent where none was typed — or on answers a phone

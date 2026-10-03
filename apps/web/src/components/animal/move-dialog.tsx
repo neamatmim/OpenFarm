@@ -1,13 +1,13 @@
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import type { PenChoice } from "@/components/animal/animal-types";
 import { FormDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { queueMove } from "@/lib/record-offline";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /**

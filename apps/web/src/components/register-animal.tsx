@@ -5,12 +5,12 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { useId, useState } from "react";
-import { toast } from "sonner";
 
 import { BreedField } from "@/components/breed-field";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { useT } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 type EntryState = (typeof ENTRY_STATES)[number];

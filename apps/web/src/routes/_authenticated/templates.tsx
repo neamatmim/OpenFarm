@@ -22,7 +22,6 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import {
   EmptyState,
@@ -43,6 +42,7 @@ import { onlyFor } from "@/lib/guard";
 import { useRefused } from "@/lib/refused";
 import type { TemplateDraft } from "@/lib/template-draft";
 import { fromDraft, toDraft } from "@/lib/template-draft";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 type Listed = Awaited<ReturnType<typeof orpc.templates.list.call>>[number];

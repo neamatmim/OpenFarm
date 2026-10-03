@@ -4,11 +4,11 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { CirclePlus } from "lucide-react";
 import { useId, useState } from "react";
-import { toast } from "sonner";
 
 import { FormDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /**

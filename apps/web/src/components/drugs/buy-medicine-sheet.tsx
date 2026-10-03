@@ -4,7 +4,6 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import type { AccountTyped } from "@/components/payment-method";
@@ -15,6 +14,7 @@ import {
 } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import type { DrugProduct } from "./drug-types";

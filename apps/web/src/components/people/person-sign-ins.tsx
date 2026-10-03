@@ -3,7 +3,6 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { BookOpenCheck, LogOut, Monitor, Smartphone } from "lucide-react";
-import { toast } from "sonner";
 
 import {
   ActionsHeader,
@@ -21,6 +20,7 @@ import {
 } from "@/components/page";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 type SignIn = Awaited<ReturnType<typeof orpc.people.signedInOn.call>>[number];

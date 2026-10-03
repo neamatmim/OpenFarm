@@ -14,10 +14,10 @@ import { createTanstackQueryUtils } from "@orpc/tanstack-query";
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 import { createIsomorphicFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
-import { toast } from "sonner";
 
 import { getDeviceToken, getSwitchToken } from "@/lib/device";
 import { refreshAfterASave } from "@/lib/refresh";
+import { toast } from "@/lib/toast";
 
 /** What a failed read says, in the language the page is showing: a code the person can act on, never the server's
  *  English. A read their Role may not make is not worth retrying. */

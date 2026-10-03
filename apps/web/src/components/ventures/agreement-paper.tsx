@@ -1,10 +1,10 @@
 import { useMutation } from "@tanstack/react-query";
 import { Camera } from "lucide-react";
-import { toast } from "sonner";
 
 import { useLanguage } from "@/i18n/language-provider";
 import { shrink } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /**

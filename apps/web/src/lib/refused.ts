@@ -1,6 +1,5 @@
-import { toast } from "sonner";
-
 import { useT } from "@/i18n/language-provider";
+import { toast } from "@/lib/toast";
 
 import type { OwnWords } from "./saying";
 import { sayWhy } from "./saying";
