@@ -182,6 +182,7 @@ const Pager = ({
       <div className="flex gap-1">
         <Button
           aria-label={t("common.previousPage")}
+          className="size-11 md:size-8"
           disabled={!onPrevious}
           onClick={onPrevious}
           size="icon-sm"
@@ -192,6 +193,7 @@ const Pager = ({
         </Button>
         <Button
           aria-label={t("common.nextPage")}
+          className="size-11 md:size-8"
           disabled={!onNext}
           onClick={onNext}
           size="icon-sm"

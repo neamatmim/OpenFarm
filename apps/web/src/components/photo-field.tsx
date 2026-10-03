@@ -64,7 +64,7 @@ export const PhotoField = ({
           try {
             onPhoto(await shrink(file));
           } catch {
-            toast.error(t("common.error"));
+            toast.error(t("photo.notRead"));
           }
         }}
         type="file"

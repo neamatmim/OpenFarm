@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { RoleChoice, roleKey, toggled } from "@/components/role-choice";
 import { useT } from "@/i18n/language-provider";
+import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
@@ -120,6 +121,7 @@ export const InviteSheet = ({
   // A vet called in for a visit: invited as a Vet, until a day.
   const [visiting, setVisiting] = useState(false);
   const [visitUntil, setVisitUntil] = useState("");
+  const refused = useRefused();
   const invite = useMutation(
     orpc.people.invite.mutationOptions({
       onSuccess: ({ code }) => {
@@ -129,7 +131,7 @@ export const InviteSheet = ({
         setEmail("");
         onOpenChange(false);
       },
-      onError: () => toast.error(t("common.error")),
+      onError: refused,
     })
   );
   const ready =

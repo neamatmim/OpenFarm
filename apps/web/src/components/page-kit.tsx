@@ -1,6 +1,7 @@
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import {
+  AlertDialog,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -452,7 +453,13 @@ export const RowMenu = ({
               <ChevronDown aria-hidden data-icon="inline-end" />
             </Button>
           ) : (
-            <Button aria-label={label} size="icon-sm" variant="ghost">
+            <Button
+              aria-label={label}
+              // A phone's thumb gets the 44px every other control there has; a desk keeps the row's own height.
+              className="size-11 md:size-8"
+              size="icon-sm"
+              variant="ghost"
+            >
               <EllipsisVertical aria-hidden />
             </Button>
           )
@@ -502,7 +509,8 @@ interface FormPanelProps {
 
 /**
  * Asking before an act that takes something away — retiring a product, a Category — so a stray tap in a row's menu is
- * not the end of it. The question names what goes; the line under it says what that means; the act is in red.
+ * not the end of it. The question names what goes; the line under it says what that means; the act is in red. An
+ * alert dialog, so it is announced as a question to answer and a tap beside it does not dismiss it.
  */
 export const ConfirmDialog = ({
   open,
@@ -523,7 +531,7 @@ export const ConfirmDialog = ({
 }) => {
   const { t } = useLanguage();
   return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
+    <AlertDialog onOpenChange={onOpenChange} open={open}>
       <DialogContent closeLabel={t("common.close")}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
@@ -548,7 +556,7 @@ export const ConfirmDialog = ({
           </Button>
         </DialogFooter>
       </DialogContent>
-    </Dialog>
+    </AlertDialog>
   );
 };
 
@@ -563,8 +571,9 @@ const firstWrong = (form: HTMLFormElement | null) =>
  *   they are about); `useRefused` finds the open form through `lib/open-form.ts`.
  * - **Its act is never grey for want of something.** Pressed too soon it says what is missing — the form's own
  *   words where it gives them, the kit's otherwise — and goes to the field, or to the first one its checks find wrong.
- * - **Typed work is not thrown away unasked.** Closed with changes in it, by Cancel, Escape, the cross or a tap
- *   beside it, it asks first. A form the page closes itself, once saved, is not asked about.
+ * - **Typed work is not closed on unasked.** Closed with changes in it, by Cancel, Escape, the cross or a tap
+ *   beside it, it asks first — "close without saving?", since some forms keep what was typed for next time and some
+ *   do not. A form the page closes itself, once saved, is not asked about.
  */
 const useFormKeeping = ({
   open,

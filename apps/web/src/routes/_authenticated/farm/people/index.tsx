@@ -44,6 +44,7 @@ import { roleKey } from "@/components/role-choice";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { useInFlight } from "@/lib/in-flight";
+import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
@@ -169,7 +170,7 @@ const PeoplePage = () => {
   const [inviting, setInviting] = useState(false);
   const [handOver, setHandOver] = useState<HandOver | null>(null);
   const inFlight = useInFlight();
-  const onError = () => toast.error(t("common.error"));
+  const onError = useRefused();
 
   const approve = useMutation(
     orpc.people.approveInvite.mutationOptions({

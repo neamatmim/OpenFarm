@@ -100,7 +100,7 @@ const PhotoField = ({
         onChange={(event) => {
           const file = event.target.files?.[0] ?? null;
           if (file && file.size > PHOTO_FILE_MAX_BYTES) {
-            toast.error(t("common.error"));
+            toast.error(t("photo.tooLarge"));
             return;
           }
           onPhoto(file);

@@ -841,7 +841,8 @@ export const en = {
   "portal.refused.withdrawnBeforeSigned":
     "They cannot have withdrawn it before the day they signed it.",
   "auth.signUpSuccess": "Account created",
-  "auth.invalidEmail": "Enter a valid email address",
+  "auth.invalidEmail":
+    "Enter an email address in the right form, like name@example.com",
   "auth.showPassword": "Show password",
   "auth.hidePassword": "Hide password",
   "auth.refused": "Could not sign you in",
@@ -966,6 +967,7 @@ export const en = {
   "setup.standard.bundlesByTheHead":
     "The standard rations give {feed} by body weight, and this farm counts it in bundles: start without the rations and write them by hand",
   "common.error": "Something went wrong",
+  "common.loading": "Loading…",
   "common.loadFailed": "Could not load this — check the connection",
   "params.title": "Farm parameters",
   "params.why": "How the farm is tuned. Every change is kept in the audit log.",
@@ -1213,6 +1215,10 @@ export const en = {
   "ventures.paperTake": "Photograph the paper",
   "photo.added": "Photo added",
   "photo.none": "No photo yet",
+  "photo.tooLarge":
+    "That photo is too large to send. Take it again, or choose a smaller one.",
+  "photo.notRead":
+    "That photo could not be read. Take it again, or choose another.",
   "byHand.receiptTake": "Photograph the receipt",
   "renewal.certificateTake": "Photograph the certificate",
   "ventures.paperHint":
@@ -2792,9 +2798,9 @@ export const en = {
   "common.col.actions": "Actions",
   "common.col.details": "Details",
   "form.notReady": "Not everything this needs is given yet.",
-  "form.discardTitle": "Discard what you typed?",
-  "form.discardWhy": "It has not been saved, and closing throws it away.",
-  "form.discard": "Discard",
+  "form.discardTitle": "Close without saving?",
+  "form.discardWhy": "What you typed has not been saved yet.",
+  "form.discard": "Close",
   "common.selectPage": "Select every row on this page",
   "common.showDetails": "Show details",
   "common.hideDetails": "Hide details",

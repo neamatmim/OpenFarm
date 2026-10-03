@@ -1,4 +1,5 @@
 import { TooltipProvider } from "@OpenFarm/ui/components/tooltip";
+import { BENGALI_LETTERS_FONT } from "@OpenFarm/ui/lib/fonts";
 import type { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
@@ -137,6 +138,19 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         rel: "stylesheet",
         href: appCss,
       },
+      // A page in Bangla needs its letters' font before it can draw a word, and the stylesheet names it only once it
+      // is read: asked for at once (web.dev, font best practices). An English page never needs it, so is not made to.
+      ...(pageLanguage() === "bn"
+        ? [
+            {
+              rel: "preload",
+              as: "font",
+              type: "font/woff2",
+              href: BENGALI_LETTERS_FONT,
+              crossOrigin: "anonymous" as const,
+            },
+          ]
+        : []),
       // What makes the app installable on a barn phone's home screen — and on the portal's own address, an icon that
       // opens the portal there rather than the farm's first page, which that address does not serve.
       {
