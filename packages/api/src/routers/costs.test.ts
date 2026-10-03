@@ -134,10 +134,10 @@ const setup = async () => {
   });
 
   // Concentrate bought at 30 a kg; grass cut from the farm's own fields at no price.
-  const concentrate = await manager.client.feed.addItem({
+  const concentrate = await manager.client.feed.createItem({
     name: { bn: `খরচের দানাদার ${suffix}` },
   });
-  const grass = await manager.client.feed.addItem({
+  const grass = await manager.client.feed.createItem({
     name: { bn: `খরচের ঘাস ${suffix}` },
   });
   await manager.client.stock.receive({
@@ -170,12 +170,12 @@ const setup = async () => {
   }
 
   // A wormer bought at 1,000 for ten doses: 100 a dose. A tonic nobody has bought.
-  const wormer = await vet.client.drugs.add({
+  const wormer = await vet.client.drugs.create({
     name: { bn: `খরচের কৃমিনাশক ${suffix}` },
     milkWithdrawalDays: 0,
     meatWithdrawalDays: 0,
   });
-  const tonic = await vet.client.drugs.add({
+  const tonic = await vet.client.drugs.create({
     name: { bn: `খরচের টনিক ${suffix}` },
     milkWithdrawalDays: 0,
     meatWithdrawalDays: 0,
@@ -490,7 +490,7 @@ describe("what an animal costs, and what a litre costs", () => {
     // Bull A: 300 alone, then half of 300; 20 kg of grass alone, then half of 20; one dose at 100; half
     // of the Vet's visit. Bought at 250 kg and sold at 270: 20 kg gained for 1,050.
     expect(
-      await owner.client.costs.ofAnimal({ tagNumber: world.bullA.tagNumber })
+      await owner.client.costs.forAnimal({ tagNumber: world.bullA.tagNumber })
     ).toEqual({
       side: "fattening",
       feedMoney: 450,
@@ -515,7 +515,7 @@ describe("what an animal costs, and what a litre costs", () => {
     const manager = await as("manager", "2039-02-01T04:00:00.000Z");
     // Half of the second morning, and the whole of the morning after bull A left.
     expect(
-      await manager.client.costs.ofAnimal({ tagNumber: bullB })
+      await manager.client.costs.forAnimal({ tagNumber: bullB })
     ).toMatchObject({
       feedMoney: 450,
       unpricedKg: 30,
@@ -531,7 +531,7 @@ describe("what an animal costs, and what a litre costs", () => {
   it("works out a dairy cow's Cost per Litre over her Lactation, from her feed and her litres to Bulk", async () => {
     const owner = await as("owner", "2039-02-01T04:00:00.000Z");
     expect(
-      await owner.client.costs.ofAnimal({ tagNumber: world.cow.tagNumber })
+      await owner.client.costs.forAnimal({ tagNumber: world.cow.tagNumber })
     ).toMatchObject({
       side: "dairy",
       // Everything she ate, heifer days included — but a litre is costed over her Lactation alone.
@@ -606,7 +606,7 @@ describe("what an animal costs, and what a litre costs", () => {
   // here on. Nothing fills those two yet.
   it("carries the Trips and the Herd Costs as parts of their own, empty for now", async () => {
     const owner = await as("owner", "2039-02-01T04:00:00.000Z");
-    const her = await owner.client.costs.ofAnimal({
+    const her = await owner.client.costs.forAnimal({
       tagNumber: world.bullA.tagNumber,
     });
     expect(her).toMatchObject({ tripMoney: 0, herdMoney: 0 });
@@ -615,7 +615,7 @@ describe("what an animal costs, and what a litre costs", () => {
     expect(her.marginMoney).toBe(7450);
     expect(her.costOfGainMoney).toBe(127.5);
 
-    const cow = await owner.client.costs.ofAnimal({
+    const cow = await owner.client.costs.forAnimal({
       tagNumber: world.cow.tagNumber,
     });
     expect(cow.lactation).toMatchObject({
@@ -642,7 +642,7 @@ describe("what an animal costs, and what a litre costs", () => {
     const owner = await as("owner", "2039-02-02T04:00:00.000Z");
     // Bull B, who is still standing here: nothing is charged to a beast for feed put out after she has
     // gone, so the bull who sold in January is the wrong one to ask.
-    const before = await owner.client.costs.ofAnimal({ tagNumber: bullB });
+    const before = await owner.client.costs.forAnimal({ tagNumber: bullB });
     await owner.client.feed.setFodderPrice({
       feedItemId: world.grass.id,
       fodderPriceMoney: 2,
@@ -657,7 +657,7 @@ describe("what an animal costs, and what a litre costs", () => {
       paymentMethod: "cash",
     });
     await feed(world.fattening.id, "2039-02-02T06:00:00.000Z", 0, 20);
-    const after = await owner.client.costs.ofAnimal({ tagNumber: bullB });
+    const after = await owner.client.costs.forAnimal({ tagNumber: bullB });
     // The store held a thousand kilos worth nothing and now holds a hundred worth two, so a kilo of the
     // mix is worth a fraction of a taka — and whatever it is, he is charged for it and was not before.
     expect(after.feedMoney).toBeGreaterThan(before.feedMoney);
@@ -666,14 +666,14 @@ describe("what an animal costs, and what a litre costs", () => {
 
   it("charges the Market toll to the animal it was paid on, and to nobody else", async () => {
     const owner = await as("owner", "2039-02-01T04:00:00.000Z");
-    const paid = await owner.client.costs.ofAnimal({
+    const paid = await owner.client.costs.forAnimal({
       tagNumber: world.bullA.tagNumber,
     });
     expect(paid.marketTollMoney).toBe(1500);
-    const none = await owner.client.costs.ofAnimal({ tagNumber: bullB });
+    const none = await owner.client.costs.forAnimal({ tagNumber: bullB });
     expect(none.marketTollMoney).toBe(0);
     // A cow born on the farm was never at a livestock market.
-    const born = await owner.client.costs.ofAnimal({
+    const born = await owner.client.costs.forAnimal({
       tagNumber: world.cow.tagNumber,
     });
     expect(born.marketTollMoney).toBe(0);
@@ -685,7 +685,7 @@ describe("what an animal costs, and what a litre costs", () => {
       const other = await as(role, "2039-02-01T04:00:00.000Z");
       // oxlint-disable-next-line no-await-in-loop
       await expect(
-        other.client.costs.ofAnimal({ tagNumber: world.bullA.tagNumber })
+        other.client.costs.forAnimal({ tagNumber: world.bullA.tagNumber })
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
       // oxlint-disable-next-line no-await-in-loop
       await expect(other.client.costs.bySide(PERIOD)).rejects.toMatchObject({

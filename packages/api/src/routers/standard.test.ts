@@ -43,7 +43,7 @@ describe("a farm started with the standard lists", () => {
 
   it("gives what it asks for, and leaves a name the farm already uses as the farm's", async () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
-    const own = await owner.client.feed.addItem({
+    const own = await owner.client.feed.createItem({
       name: { bn: STANDARD_FEED_ITEMS.napier.bn, en: "Our own Napier" },
       unit: "kg",
     });

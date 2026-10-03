@@ -78,10 +78,10 @@ const setup = async () => {
     shedId: shed.id,
     name: "বকনা পেন",
   });
-  const napier = await manager.client.feed.addItem({
+  const napier = await manager.client.feed.createItem({
     name: { bn: `নেপিয়ার ${suffix}` },
   });
-  const minerals = await manager.client.feed.addItem({
+  const minerals = await manager.client.feed.createItem({
     name: { bn: `মিনারেল ${suffix}` },
   });
   const ration = await manager.client.feed.saveRation({

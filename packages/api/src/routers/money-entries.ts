@@ -215,7 +215,7 @@ export const moneyEntryProcedures = {
     }),
 
   /** A Category of the farm's own. The Owner's and the Manager's. */
-  addCategory: protectedProcedure
+  createCategory: protectedProcedure
     .use(requireRole("owner", "manager"))
     .use(requirePersonalSession())
     .input(

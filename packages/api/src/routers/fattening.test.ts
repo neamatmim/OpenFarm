@@ -167,7 +167,7 @@ describe("gain, days on feed and the projections to Eid", () => {
       as: "manager",
       clock: new FakeClock("2027-02-15T09:00:00.000Z"),
     });
-    const her = await manager.client.animals.byTag({ tagNumber: tagOf(0) });
+    const her = await manager.client.animals.get({ tagNumber: tagOf(0) });
 
     // 42 days from 4 January to 15 February.
     expect(her.fattening?.daysOnFeed).toBe(42);
@@ -203,7 +203,7 @@ describe("gain, days on feed and the projections to Eid", () => {
     // The third bull has been on the scale once. There is a gain since intake to project
     // from, but no second reading and so no recent rate — and the farm says so plainly
     // rather than calling one reading a trend.
-    const only = await manager.client.animals.byTag({ tagNumber: tagOf(2) });
+    const only = await manager.client.animals.get({ tagNumber: tagOf(2) });
     expect(only.fattening).not.toBeNull();
     expect(only.fattening?.sinceIntake).not.toBeNull();
     expect(only.fattening?.recent).toBeNull();
@@ -241,7 +241,7 @@ describe("gain, days on feed and the projections to Eid", () => {
     });
     // The roles matrix gives Intake to the Manager and the Owner; Barn Staff have no row.
     // They weigh her and they see what she weighs — not what she cost.
-    const her = await staff.client.animals.byTag({ tagNumber: tagOf(0) });
+    const her = await staff.client.animals.get({ tagNumber: tagOf(0) });
     expect(her.intake).toBeNull();
     expect(her.fattening?.latestKg).toBe(228);
     await expect(

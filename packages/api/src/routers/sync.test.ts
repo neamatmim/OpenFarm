@@ -311,7 +311,7 @@ describe("what the farm makes of it", () => {
 
     expect(sent.results[0]).toMatchObject({ outcome: "kept" });
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    const queue = await manager.client.reviewQueue.open();
+    const queue = await manager.client.reviewQueue.list();
     expect(queue.some((row) => row.entityId === sent.results[0]?.id)).toBe(
       true
     );
@@ -347,7 +347,7 @@ describe("what the farm makes of it", () => {
 
     expect(sent.results[0]?.outcome).toBe("applied");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    const queue = await manager.client.reviewQueue.open();
+    const queue = await manager.client.reviewQueue.list();
     const gap = queue.find((row) => row.reason === "sync_gap");
     expect(gap).toBeDefined();
     void skippedOver;
@@ -368,7 +368,7 @@ describe("what the farm makes of it", () => {
     const loaded = await staff.milk.session({ instanceId: instance.id });
     expect(loaded.records).toHaveLength(1);
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    const queue = await manager.client.reviewQueue.open();
+    const queue = await manager.client.reviewQueue.list();
     expect(queue.some((row) => row.reason === "clock_skew")).toBe(true);
   });
 
@@ -434,7 +434,7 @@ describe("what the farm makes of it", () => {
 
     expect(sent.results[0]?.outcome).toBe("kept");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    const queue = await manager.client.reviewQueue.open();
+    const queue = await manager.client.reviewQueue.list();
     expect(queue.some((row) => row.reason === "late_entry")).toBe(true);
 
     const [held] = await scratchDb()
@@ -492,7 +492,7 @@ describe("review findings", () => {
 
     expect(sent.results.every((row) => row.outcome === "applied")).toBe(true);
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    const queue = await manager.client.reviewQueue.open();
+    const queue = await manager.client.reviewQueue.list();
     const notice = queue.find((row) => row.reason === "sync_gap");
     expect(notice).toBeDefined();
     void gap;
@@ -546,7 +546,7 @@ describe("review findings", () => {
     const { instance, clock, staff } = await session("2027-01-19");
     const at = clock.now();
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    const before = await manager.client.reviewQueue.open();
+    const before = await manager.client.reviewQueue.list();
 
     await staff.sync.batch({
       key: key(),
@@ -557,7 +557,7 @@ describe("review findings", () => {
       ],
     });
 
-    const after = await manager.client.reviewQueue.open();
+    const after = await manager.client.reviewQueue.list();
     const raised = after.filter(
       (row) =>
         row.reason === "clock_skew" &&
@@ -669,7 +669,7 @@ describe("a phone that was out of signal all morning", () => {
     // Neither is refused: the milker did the work, and the world moved while they were in
     // the shed. Both are held for somebody to decide.
     expect(sent.results.map((row) => row.outcome)).toEqual(["kept", "kept"]);
-    const queue = await manager.client.reviewQueue.open();
+    const queue = await manager.client.reviewQueue.list();
     expect(
       sent.results.every((row) =>
         queue.some((held) => held.entityId === row.id)

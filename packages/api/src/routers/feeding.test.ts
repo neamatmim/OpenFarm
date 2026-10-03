@@ -41,7 +41,7 @@ const setup = async () => {
     shedId: shed.id,
     name: "খাওয়ানোর পেন",
   });
-  const concentrate = await manager.client.feed.addItem({
+  const concentrate = await manager.client.feed.createItem({
     name: { bn: `দানাদার ${Date.now()}` },
   });
   const ration = await manager.client.feed.saveRation({

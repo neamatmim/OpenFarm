@@ -166,7 +166,7 @@ describe("the calving", () => {
   it("starts her next Lactation and gives her calf the next dairy number", async () => {
     // Before six on 10 March — the farm's clock — the morning round finds her with a heifer calf.
     const { id, client, manager } = await morningRound("2032-03-10");
-    const before = await manager.client.animals.byTag({
+    const before = await manager.client.animals.get({
       tagNumber: world.single,
     });
     await client.client.work.completeStep({
@@ -187,7 +187,7 @@ describe("the calving", () => {
       as: "manager",
       clock: new FakeClock("2032-03-20T06:00:00.000Z"),
     });
-    const dam = await later.client.animals.byTag({ tagNumber: world.single });
+    const dam = await later.client.animals.get({ tagNumber: world.single });
     expect(dam.state).toBe("milking");
     expect(dam.lactationNumber).toBe(before.lactationNumber + 1);
     expect(dam.lactationStartedAt?.toISOString()).toBe(
@@ -207,7 +207,7 @@ describe("the calving", () => {
     expect(calfTag).not.toBe(world.single);
 
     // And from the calf's: a Calf of her own, in her mother's Pen, whose mother is named.
-    const calf = await later.client.animals.byTag({ tagNumber: calfTag ?? "" });
+    const calf = await later.client.animals.get({ tagNumber: calfTag ?? "" });
     expect(calf).toMatchObject({
       state: "calf",
       sex: "female",
@@ -235,7 +235,7 @@ describe("the calving", () => {
         "alive",
       ],
     });
-    const dam = await manager.client.animals.byTag({ tagNumber: world.twins });
+    const dam = await manager.client.animals.get({ tagNumber: world.twins });
     // A heifer's first calving is her first Lactation.
     expect(dam.state).toBe("milking");
     expect(dam.lactationNumber).toBe(1);
@@ -260,7 +260,7 @@ describe("the calving", () => {
       cause: "ডায়রিয়া",
       disposal: "buried",
     });
-    const after = await weekOn.client.animals.byTag({ tagNumber: world.twins });
+    const after = await weekOn.client.animals.get({ tagNumber: world.twins });
     expect(after.calvings[0]?.calves.map((calf) => calf.calfOutcome)).toEqual([
       "alive",
       "alive",
@@ -282,14 +282,14 @@ describe("the calving", () => {
         "",
       ],
     });
-    const dam = await manager.client.animals.byTag({
+    const dam = await manager.client.animals.get({
       tagNumber: world.stillborn,
     });
     // She calved all the same: her Lactation begins.
     expect(dam.state).toBe("milking");
     const [calf] = dam.calvings[0]?.calves ?? [];
     expect(calf).toMatchObject({ sex: "male", state: "died" });
-    const record = await manager.client.animals.byTag({
+    const record = await manager.client.animals.get({
       tagNumber: calf?.tagNumber ?? "",
     });
     expect(record.state).toBe("died");
@@ -335,7 +335,7 @@ describe("the calving", () => {
         "",
       ],
     });
-    const dam = await registrar.client.animals.byTag({
+    const dam = await registrar.client.animals.get({
       tagNumber: ownersHeifer.tagNumber,
     });
     expect(dam.calvings).toHaveLength(1);
@@ -393,7 +393,7 @@ describe("the calving", () => {
       ],
       reason: "বাছুর মৃত জন্মেছিল, ভুল লেখা হয়েছিল",
     });
-    const dam = await manager.client.animals.byTag({
+    const dam = await manager.client.animals.get({
       tagNumber: world.corrected,
     });
     expect(dam.calvings[0]?.calves.map((calf) => calf.state)).toEqual(["died"]);
@@ -406,7 +406,7 @@ describe("the calving", () => {
       reason: "ভুল গাভী",
     });
     expect(undone.needsReview).toBe(true);
-    const still = await manager.client.animals.byTag({
+    const still = await manager.client.animals.get({
       tagNumber: world.corrected,
     });
     expect(still.state).toBe("milking");

@@ -28,7 +28,7 @@ const tags = { owes: "", given: "", excused: "", byHand: "", early: "" };
 /** The work one procedure raised about him, oldest first. */
 const workOf = async (definitionId: string, tagNumber: string) => {
   const manager = await as("manager", DOSE_DAY);
-  const him = await manager.client.animals.byTag({ tagNumber });
+  const him = await manager.client.animals.get({ tagNumber });
   return await scratchDb().query.sopInstance.findMany({
     where: { definitionId, animalId: him.id },
     columns: { id: true, state: true, dueAt: true, cause: true },
@@ -62,7 +62,7 @@ const doseHim = async (
 beforeAll(async () => {
   const owner = await as("owner", ARRIVED);
   const vet = await as("vet", ARRIVED);
-  const vaccine = await vet.client.drugs.add({
+  const vaccine = await vet.client.drugs.create({
     name: { bn: `এফএমডি টিকা ${suffix}`, en: "FMD vaccine" },
     milkWithdrawalDays: 0,
     meatWithdrawalDays: 0,
@@ -122,7 +122,7 @@ const releaseHim = async (tagNumber: string, at = RELEASE_DAY) => {
       evidence: [true],
     });
   }
-  return await manager.client.animals.byTag({ tagNumber });
+  return await manager.client.animals.get({ tagNumber });
 };
 
 describe("a Release while an arrival dose is owed", () => {
@@ -186,7 +186,7 @@ describe("a Release while an arrival dose is owed", () => {
       state: "fattening",
       reason: `ভেট দেখে ছেড়েছেন ${suffix}`,
     });
-    const him = await owner.client.animals.byTag({ tagNumber: tags.early });
+    const him = await owner.client.animals.get({ tagNumber: tags.early });
     expect(him.state).toBe("fattening");
   });
 });

@@ -101,7 +101,7 @@ const aStore = async (tag: string) => {
       penId: pen.id,
     })
     .onConflictDoNothing();
-  const product = await vet.client.drugs.add({
+  const product = await vet.client.drugs.create({
     name: { bn: `লটের কৃমিনাশক ${suffix} ${tag}` },
     milkWithdrawalDays: 0,
     meatWithdrawalDays: 0,
@@ -192,7 +192,7 @@ const aStore = async (tag: string) => {
 describe("a Lot, as it comes in", () => {
   it("keeps a medicine's Lot Number and expiry with the purchase", async () => {
     const manager = await as("manager", "2038-03-01T04:00:00.000Z");
-    const product = await manager.client.drugs.add({
+    const product = await manager.client.drugs.create({
       name: { bn: `আইভারমেকটিন ${suffix}` },
     });
     const bought = await manager.client.drugs.purchase({
@@ -219,7 +219,7 @@ describe("a Lot, as it comes in", () => {
 
   it("refuses medicine that had expired before it was bought", async () => {
     const manager = await as("manager", "2038-03-02T04:00:00.000Z");
-    const product = await manager.client.drugs.add({
+    const product = await manager.client.drugs.create({
       name: { bn: `পুরনো ওষুধ ${suffix}` },
     });
     await expect(
@@ -241,7 +241,7 @@ describe("a Lot, as it comes in", () => {
 
   it("keeps a feed delivery's Lot Number and expiry, and needs neither", async () => {
     const manager = await as("manager", "2038-03-03T04:00:00.000Z");
-    const premix = await manager.client.feed.addItem({
+    const premix = await manager.client.feed.createItem({
       name: { bn: `প্রিমিক্স ${suffix}` },
     });
     const bagged = await manager.client.stock.receive({
@@ -330,7 +330,7 @@ describe("medicine in the store", () => {
 describe("feed in the store", () => {
   it("says what is left of each delivery, the first to expire fed first", async () => {
     const store = await aStore("feed");
-    const concentrate = await store.manager.client.feed.addItem({
+    const concentrate = await store.manager.client.feed.createItem({
       name: { bn: `লটের দানাদার ${suffix}` },
     });
     const delivered = async (
@@ -372,7 +372,7 @@ describe("the store warns", () => {
   it("tells the Manager of a Lot about to expire, once, and again once it has", async () => {
     const store = await aStore("warn");
     // A bag of premix with its own day, which the store keeps as a Lot like any box of medicine.
-    const premix = await store.manager.client.feed.addItem({
+    const premix = await store.manager.client.feed.createItem({
       name: { bn: `সতর্কতার প্রিমিক্স ${suffix}` },
     });
     await store.manager.client.stock.receive({

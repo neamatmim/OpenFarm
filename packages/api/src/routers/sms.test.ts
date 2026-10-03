@@ -75,7 +75,7 @@ const setup = async () => {
   const treatment = await owner.client.sops.create({
     content: treatmentSop(),
   });
-  const product = await vet.client.drugs.add({
+  const product = await vet.client.drugs.create({
     name: { bn: `অক্সিটেট্রা ${Date.now()}`, en: "Oxytetracycline" },
     milkWithdrawalDays: 4,
     meatWithdrawalDays: 21,
@@ -270,7 +270,7 @@ describe("the two alerts worth a text message", () => {
       sms: gateway.transport,
     });
     await manager.client.people.setPhone({ phone: "+8801711000004" });
-    await manager.client.notifiableDiseases.add({
+    await manager.client.notifiableDiseases.create({
       name: { bn: `তড়কা-এসএমএস ${Date.now()}` },
     });
     const listed = await manager.client.notifiableDiseases.list();
@@ -325,7 +325,7 @@ describe("the two alerts worth a text message", () => {
 
     // Nothing thrown, nothing sent, and the notice is still in the app.
     expect(swept).toBeDefined();
-    const held = await manager.client.animals.byTag({
+    const held = await manager.client.animals.get({
       tagNumber: cow.tagNumber,
     });
     const told = await manager.client.alerts.mine({

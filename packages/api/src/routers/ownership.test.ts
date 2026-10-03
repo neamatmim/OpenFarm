@@ -97,7 +97,7 @@ describe("whose animal she is", () => {
   it("is the Farm's when the Intake names nobody", async () => {
     const owner = await as("owner", "2046-11-02T06:00:00.000Z");
     const hers = await buy("2046-11-02T05:00:00.000Z", 60_000);
-    const her = await owner.client.animals.byTag({ tagNumber: hers.tagNumber });
+    const her = await owner.client.animals.get({ tagNumber: hers.tagNumber });
     expect(her.owner).toBeNull();
     // And her cost is the Farm's, as every animal's has been until now.
     const money = await owner.client.money.list(PERIOD);
@@ -108,7 +108,7 @@ describe("whose animal she is", () => {
   it("is the Venture's when the Intake names one, and so is what she cost", async () => {
     const owner = await as("owner", "2046-11-03T06:00:00.000Z");
     const theirs = await buy("2046-11-03T05:00:00.000Z", 80_000, ventureId);
-    const her = await owner.client.animals.byTag({
+    const her = await owner.client.animals.get({
       tagNumber: theirs.tagNumber,
     });
     expect(her.owner).toMatchObject({
@@ -146,7 +146,7 @@ describe("whose animal she is", () => {
       changes: { owner: { from: null, to: ventureId }, ...PAID_BY_THE_VENTURE },
     });
     const owner = await as("owner", "2046-11-05T10:00:00.000Z");
-    const her = await owner.client.animals.byTag({ tagNumber: slip.tagNumber });
+    const her = await owner.client.animals.get({ tagNumber: slip.tagNumber });
     expect(her.owner).toMatchObject({ id: ventureId });
     // The one Money Event moved purses with her; the Farm's register is rid of it.
     const theFarms = await owner.client.money.list(PERIOD);
@@ -226,7 +226,7 @@ describe("whose animal she is", () => {
         ...PAID_BY_THE_VENTURE,
       },
     });
-    const her = await owner.client.animals.byTag({ tagNumber: slip.tagNumber });
+    const her = await owner.client.animals.get({ tagNumber: slip.tagNumber });
     expect(her.owner).toMatchObject({ id: movedOn.id });
   });
 
@@ -288,7 +288,7 @@ describe("whose animal she is", () => {
   it("says nothing of whose she is to the people who work the shed", async () => {
     const theirs = await buy("2046-11-07T05:00:00.000Z", 60_000, ventureId);
     const staff = await as("staff", "2046-11-07T06:00:00.000Z");
-    const her = await staff.client.animals.byTag({
+    const her = await staff.client.animals.get({
       tagNumber: theirs.tagNumber,
     });
     // She is in the shed to be fed and watched, and whose money she is standing on is not their business.

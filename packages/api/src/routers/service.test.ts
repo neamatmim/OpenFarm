@@ -207,7 +207,7 @@ const inHeat = async (day: string, tagNumber: string) => {
     evidence: [HEAT],
   });
   await manager.client.work.ensureDue();
-  const her = await manager.client.animals.byTag({ tagNumber });
+  const her = await manager.client.animals.get({ tagNumber });
   const work = await manager.client.work.today({ penId: world.pen.id });
   const ai = work.find(
     (row) =>
@@ -239,7 +239,7 @@ describe("the service", () => {
     });
     await manager.client.work.complete({ id: workId });
 
-    const her = await manager.client.animals.byTag({ tagNumber: tagOf(0) });
+    const her = await manager.client.animals.get({ tagNumber: tagOf(0) });
     expect(her.services).toHaveLength(1);
     expect(her.services[0]).toMatchObject({
       method: "ai",
@@ -279,7 +279,7 @@ describe("the service", () => {
       stepId: "serve",
       evidence: ["ai", "HF-4400", "রহিম", "2027-11-07T13:30:00.000Z"],
     });
-    const her = await manager.client.animals.byTag({ tagNumber: tagOf(5) });
+    const her = await manager.client.animals.get({ tagNumber: tagOf(5) });
     const [served] = her.services;
     expect(served?.servedAt.toISOString()).toBe("2027-11-07T13:30:00.000Z");
 
@@ -291,7 +291,7 @@ describe("the service", () => {
       evidence: ["ai", "HF-4400", "রহিম", "2027-11-07T11:00:00.000Z"],
       reason: "সময় ভুল লেখা হয়েছিল",
     });
-    const corrected = await manager.client.animals.byTag({
+    const corrected = await manager.client.animals.get({
       tagNumber: tagOf(5),
     });
     expect(corrected.services[0]?.servedAt.toISOString()).toBe(
@@ -317,7 +317,7 @@ describe("the service", () => {
       ],
     });
 
-    const her = await manager.client.animals.byTag({ tagNumber: tagOf(1) });
+    const her = await manager.client.animals.get({ tagNumber: tagOf(1) });
     expect(her.services[0]).toMatchObject({
       method: "natural",
       sireStraw: null,
@@ -351,7 +351,7 @@ describe("the service", () => {
       ],
     });
 
-    const her = await manager.client.animals.byTag({ tagNumber: tagOf(4) });
+    const her = await manager.client.animals.get({ tagNumber: tagOf(4) });
     expect(her.services).toHaveLength(1);
     expect(her.services[0]).toMatchObject({
       method: "natural",
@@ -444,7 +444,7 @@ describe("the service", () => {
       evidence: ["ai", "HF-1100", "রহিম", "2027-11-05T13:00:00.000Z"],
     };
     await owner.client.work.completeStep(served);
-    const cow = await owner.client.animals.byTag({ tagNumber: tagOf(3) });
+    const cow = await owner.client.animals.get({ tagNumber: tagOf(3) });
     const recorded = await scratchDb().query.service.findFirst({
       where: { animalId: cow.id },
       columns: { recordedByRole: true },

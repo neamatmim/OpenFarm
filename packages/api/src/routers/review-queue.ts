@@ -14,7 +14,7 @@ const QUEUE_LIMIT = 100;
 export const reviewQueueRouter = {
   /** What the system could not put right on its own, oldest first — the things that have
    *  been waiting longest are the ones most likely to have been forgotten. */
-  open: protectedProcedure
+  list: protectedProcedure
     .use(requireRole("owner", "manager"))
     .handler(async ({ context }) =>
       withTheirWork(

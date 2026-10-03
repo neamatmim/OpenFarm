@@ -53,10 +53,10 @@ beforeAll(async () => {
     name: `গুদাম ${suffix}`,
   });
   penId = pen.id;
-  const branItem = await owner.client.feed.addItem({
+  const branItem = await owner.client.feed.createItem({
     name: { bn: `ভুসি ${suffix}` },
   });
-  const napierItem = await owner.client.feed.addItem({
+  const napierItem = await owner.client.feed.createItem({
     name: { bn: `নেপিয়ার ${suffix}` },
   });
   bran = branItem.id;

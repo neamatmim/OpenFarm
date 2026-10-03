@@ -67,7 +67,7 @@ beforeAll(async () => {
   const categories = await owner.client.money.categories();
   manureId = categories.find((one) => one.key === "manure_sales")?.id ?? "";
   repairsId = categories.find((one) => one.key === "repairs")?.id ?? "";
-  const office = await owner.client.farmAccounts.add({
+  const office = await owner.client.farmAccounts.create({
     kind: "mobile_money",
     name: `অফিস বিকাশ ${suffix}`,
     number: "01711000077",

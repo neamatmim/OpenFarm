@@ -862,7 +862,7 @@ export const sopsRouter = {
    * it comes due. What was called off when it was retired stays called off. Refused while another procedure does what
    * only one may — the one a prescription raises, the one a notifiable diagnosis raises.
    */
-  restore: protectedProcedure
+  bringBack: protectedProcedure
     .use(requireRole("owner"))
     .use(requirePersonalSession())
     .input(z.object({ definitionId: z.string(), note }))

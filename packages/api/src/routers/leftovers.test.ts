@@ -36,7 +36,7 @@ const setup = async () => {
     pen("ঘ পেন"),
   ]);
   const item = async (bn: string) =>
-    await manager.client.feed.addItem({ name: { bn: `${bn} ${suffix}` } });
+    await manager.client.feed.createItem({ name: { bn: `${bn} ${suffix}` } });
   const straw = await item("খড়");
   const concentrate = await item("দানাদার");
   // Never bought and never priced: what is left of it is worth a figure nobody knows.

@@ -358,7 +358,7 @@ export const drugsRouter = {
    * buying is not blocked on the Vet being reachable — and the Vet may add one outright. The
    * Owner may add one as the Manager does; the withdrawal days stay the Vet's to write.
    */
-  add: protectedProcedure
+  create: protectedProcedure
     .use(requireRole("owner", "manager", "vet"))
     .input(
       z

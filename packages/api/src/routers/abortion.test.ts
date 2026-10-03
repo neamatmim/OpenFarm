@@ -213,7 +213,7 @@ const heatAndServe = async (day: string, tagNumber: string) => {
     clock: later,
   });
   await serving.client.work.ensureDue();
-  const her = await serving.client.animals.byTag({ tagNumber });
+  const her = await serving.client.animals.get({ tagNumber });
   // Due at noon and late by evening, on the farm's previous day: it is on the Overdue list.
   const work = [
     ...(await serving.client.work.today({ penId: world.pen.id })),
@@ -249,7 +249,7 @@ describe("the abortion", () => {
       clock: new FakeClock("2033-03-01T04:00:00.000Z"),
     });
     await manager.client.work.ensureDue();
-    const before = await manager.client.animals.byTag({
+    const before = await manager.client.animals.get({
       tagNumber: world.carrying,
     });
     const prep = await scratchDb().query.sopInstance.findFirst({
@@ -279,7 +279,7 @@ describe("the abortion", () => {
       note: "ব্রুসেলোসিস সন্দেহ",
     });
 
-    const her = await manager.client.animals.byTag({
+    const her = await manager.client.animals.get({
       tagNumber: world.carrying,
     });
     // Back to a heifer the heat watch walks past every day, with no calving to expect.
@@ -319,7 +319,7 @@ describe("the abortion", () => {
       changes: { stageMonths: { from: 6, to: 5 } },
       reason: "আবার দেখে পাঁচ মাস মনে হয়েছে",
     });
-    const corrected = await manager.client.animals.byTag({
+    const corrected = await manager.client.animals.get({
       tagNumber: world.carrying,
     });
     expect(corrected.abortions[0]).toMatchObject({ stageMonths: 5 });
@@ -369,7 +369,7 @@ describe("the repeat breeder", () => {
       why: "back_in_heat",
     });
     // Never a State change.
-    const her = await three.manager.client.animals.byTag({
+    const her = await three.manager.client.animals.get({
       tagNumber: world.hardToSettle,
     });
     expect(her.state).toBe("heifer");

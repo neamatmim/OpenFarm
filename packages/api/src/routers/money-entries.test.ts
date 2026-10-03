@@ -183,13 +183,13 @@ describe("money entered by hand", () => {
 
   it("keeps the farm's own Categories, retiring one rather than removing it", async () => {
     const manager = await as("manager", "2038-03-01T04:00:00.000Z");
-    const insurance = await manager.client.money.addCategory({
+    const insurance = await manager.client.money.createCategory({
       nameBn: `পশু বীমা ${suffix}`,
       nameEn: "Cattle insurance",
       direction: "out",
     });
     await expect(
-      manager.client.money.addCategory({
+      manager.client.money.createCategory({
         nameBn: `পশু বীমা ${suffix}`,
         direction: "out",
       })
@@ -203,7 +203,10 @@ describe("money entered by hand", () => {
 
     // A farm's own Category may not take a standard one's name, which the records book under.
     await expect(
-      manager.client.money.addCategory({ nameBn: "দুধ বিক্রি", direction: "in" })
+      manager.client.money.createCategory({
+        nameBn: "দুধ বিক্রি",
+        direction: "in",
+      })
     ).rejects.toMatchObject({ data: { refusal: "category_exists" } });
 
     const owner = await as("owner", "2038-03-02T04:00:00.000Z");

@@ -23,7 +23,7 @@ import { usePenNames } from "@/lib/pen-names";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
-type Fee = Awaited<ReturnType<typeof orpc.money.myFees.call>>[number];
+type Fee = Awaited<ReturnType<typeof orpc.money.mine.call>>[number];
 
 /** How many fees a page shows before the next. */
 const FEE_PAGE = 20;
@@ -242,7 +242,7 @@ const FeeSheet = ({
 export const FeeTab = () => {
   const { t } = useLanguage();
   const [recording, setRecording] = useState(false);
-  const fees = useQuery(orpc.money.myFees.queryOptions());
+  const fees = useQuery(orpc.money.mine.queryOptions());
   return (
     <Section
       action={

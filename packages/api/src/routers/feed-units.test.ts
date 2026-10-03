@@ -39,18 +39,18 @@ const setup = async () => {
   const owner = await as("owner");
   await owner.client.sops.create({ content: feedingSop() });
   const manager = await as("manager");
-  const concentrate = await manager.client.feed.addItem({
+  const concentrate = await manager.client.feed.createItem({
     name: { bn: `দানাদার ${suffix}` },
     bagSizeKg: 50,
   });
-  const bran = await manager.client.feed.addItem({
+  const bran = await manager.client.feed.createItem({
     name: { bn: `ভুসি ${suffix}` },
   });
-  const molasses = await manager.client.feed.addItem({
+  const molasses = await manager.client.feed.createItem({
     name: { bn: `চিটাগুড় ${suffix}` },
     unit: "litre",
   });
-  const napier = await manager.client.feed.addItem({
+  const napier = await manager.client.feed.createItem({
     name: { bn: `নেপিয়ার আঁটি ${suffix}` },
     unit: "bundle",
   });
@@ -167,7 +167,7 @@ describe("feed bought by the bag or the maund", () => {
       })
     ).rejects.toMatchObject({ data: { refusal: "pack_needs_kg" } });
     await expect(
-      manager.client.feed.addItem({
+      manager.client.feed.createItem({
         name: { bn: `বস্তায় গুড় ${suffix}` },
         unit: "litre",
         bagSizeKg: 20,

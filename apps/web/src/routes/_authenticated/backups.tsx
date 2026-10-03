@@ -40,7 +40,7 @@ const SCHEDULE_STALE_MS = 15 * 60_000;
 const olderThan = (at: Date | string, spanMs: number): boolean =>
   Date.now() - new Date(at).getTime() > spanMs;
 
-type Backups = Awaited<ReturnType<typeof orpc.backups.recent.call>>;
+type Backups = Awaited<ReturnType<typeof orpc.backups.list.call>>;
 type BackupRun = Backups["runs"][number];
 type Schedule = Awaited<ReturnType<typeof orpc.farm.schedule.call>>;
 
@@ -237,7 +237,7 @@ const Worries = ({
  */
 const BackupsPage = () => {
   const t = useT();
-  const backups = useQuery(orpc.backups.recent.queryOptions({ input: {} }));
+  const backups = useQuery(orpc.backups.list.queryOptions({ input: {} }));
   const schedule = useQuery({
     ...orpc.farm.schedule.queryOptions(),
     refetchInterval: 60_000,

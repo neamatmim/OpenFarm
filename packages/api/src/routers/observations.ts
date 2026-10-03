@@ -13,7 +13,7 @@ export const observationsRouter = {
    * point: the Manager wants the cows seen bulling this week without opening seven
    * Instances and remembering what was in them.
    */
-  recent: protectedProcedure
+  list: protectedProcedure
     .use(requireRole("owner", "manager", "vet"))
     .input(seenLatelyInput(MANAGER_WINDOW_DAYS))
     .handler(async ({ context, input }) => {

@@ -35,7 +35,7 @@ const buy = async (manager: Awaited<ReturnType<typeof as>>, price = 50_000) => {
 
 const costOf = async (tagNumber: string) => {
   const owner = await as("owner", "2041-04-01T04:00:00.000Z");
-  return await owner.client.costs.ofAnimal({ tagNumber });
+  return await owner.client.costs.forAnimal({ tagNumber });
 };
 
 beforeAll(async () => {

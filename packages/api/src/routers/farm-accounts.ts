@@ -106,7 +106,7 @@ export const farmAccountsRouter = {
     }),
 
   /** One of the Farm's mobile money numbers or bank accounts listed. One per kind and number, retired or not. */
-  add: protectedProcedure
+  create: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())
     .input(

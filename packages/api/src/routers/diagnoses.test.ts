@@ -83,7 +83,7 @@ const aLameCow = async (clock: FakeClock) => {
     animalTag: cow.tagNumber,
     evidence: ["lame"],
   });
-  const page = await owner.client.animals.byTag({ tagNumber: cow.tagNumber });
+  const page = await owner.client.animals.get({ tagNumber: cow.tagNumber });
   const seen = page.observations.at(0);
   if (!seen) {
     throw new Error("expected the round to have seen her");
@@ -105,7 +105,7 @@ describe("a Diagnosis, and the Vet who makes it", () => {
     });
 
     // The animal's page reads as one chain: what the round saw, and what the Vet made of it.
-    const page = await vet.client.animals.byTag({ tagNumber: cow.tagNumber });
+    const page = await vet.client.animals.get({ tagNumber: cow.tagNumber });
     const chain = page.observations.find((one) => one.id === seen.id);
     expect(chain?.diagnoses).toHaveLength(1);
     expect(chain?.diagnoses[0]).toMatchObject({
@@ -137,10 +137,10 @@ describe("a Diagnosis, and the Vet who makes it", () => {
     });
 
     const staff = await createTestClient(appRouter, { as: "staff", clock });
-    const theirs = await staff.client.animals.byTag({
+    const theirs = await staff.client.animals.get({
       tagNumber: cow.tagNumber,
     });
-    const hers = await manager.client.animals.byTag({
+    const hers = await manager.client.animals.get({
       tagNumber: cow.tagNumber,
     });
 
@@ -191,7 +191,7 @@ describe("a Diagnosis, and the Vet who makes it", () => {
 
     // And nothing was written by any of them.
     const vet = await createTestClient(appRouter, { as: "vet", clock });
-    const page = await vet.client.animals.byTag({ tagNumber: cow.tagNumber });
+    const page = await vet.client.animals.get({ tagNumber: cow.tagNumber });
     expect(
       page.observations.find((one) => one.id === seen.id)?.diagnoses
     ).toEqual([]);
@@ -218,7 +218,7 @@ describe("a Diagnosis, and the Vet who makes it", () => {
       animalTag: lame.cow.tagNumber,
       disease: { bn: "ওলান প্রদাহ", en: "Mastitis" },
     });
-    const page = await vet.client.animals.byTag({
+    const page = await vet.client.animals.get({
       tagNumber: lame.cow.tagNumber,
     });
     expect(page.diagnoses.map((one) => one.id)).toContain(found.id);
@@ -258,7 +258,7 @@ describe("a Diagnosis, and the Vet who makes it", () => {
       reason: "মুখের ঘা পরে দেখা গেছে",
     });
 
-    const page = await later.client.animals.byTag({ tagNumber: cow.tagNumber });
+    const page = await later.client.animals.get({ tagNumber: cow.tagNumber });
     const standing = page.observations
       .find((one) => one.id === seen.id)
       ?.diagnoses.find((one) => one.id === made.id);
@@ -370,7 +370,7 @@ describe("a Diagnosis, and the Vet who makes it", () => {
     });
 
     // The other Vet sees it — the herd's health is every Vet's business —
-    const page = await other.client.animals.byTag({ tagNumber: cow.tagNumber });
+    const page = await other.client.animals.get({ tagNumber: cow.tagNumber });
     expect(
       page.observations
         .find((one) => one.id === seen.id)
@@ -408,7 +408,7 @@ describe("a Diagnosis, and the Vet who makes it", () => {
     // Staff record what they see and give the doses they are told to give; the conclusions
     // drawn from them are not theirs to read (roles matrix).
     const staff = await createTestClient(appRouter, { as: "staff", clock });
-    const page = await staff.client.animals.byTag({ tagNumber: cow.tagNumber });
+    const page = await staff.client.animals.get({ tagNumber: cow.tagNumber });
     const theirView = page.observations.find((one) => one.id === seen.id);
     expect(theirView?.sawLabel).toBe("খোঁড়াচ্ছে");
     expect(theirView?.diagnoses).toEqual([]);

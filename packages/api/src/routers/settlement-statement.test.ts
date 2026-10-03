@@ -429,7 +429,7 @@ describe("the sheet an Investor checks the whole run against", () => {
     // A Herd Cost the Farm entered late, charged to the animals for a month these bulls stood. The
     // costing moves; the Settlement does not.
     const owner = await as("owner", "2053-03-05T04:00:00.000Z");
-    const category = await owner.client.money.addCategory({
+    const category = await owner.client.money.createCategory({
       nameBn: `দেরিতে আসা খরচ ${suffix}`,
       direction: "out",
     });

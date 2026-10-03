@@ -41,13 +41,13 @@ beforeAll(async () => {
     aliases: [],
   });
   const vet = await as("vet", "2084-02-01T04:00:00.000Z");
-  const product = await vet.client.drugs.add({
+  const product = await vet.client.drugs.create({
     name: { bn: `অক্সিটেট্রাসাইক্লিন ${suffix}` },
     milkWithdrawalDays: 4,
     meatWithdrawalDays: 21,
   });
   oxy = product.id;
-  const worms = await vet.client.drugs.add({
+  const worms = await vet.client.drugs.create({
     name: { bn: `কৃমিনাশক ${suffix}` },
     milkWithdrawalDays: 0,
     meatWithdrawalDays: 14,

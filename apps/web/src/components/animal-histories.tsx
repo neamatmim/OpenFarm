@@ -23,7 +23,7 @@ import type { orpc } from "@/utils/orpc";
  */
 
 type AnimalDetail = NonNullable<
-  Awaited<ReturnType<typeof orpc.animals.byTag.call>>
+  Awaited<ReturnType<typeof orpc.animals.get.call>>
 >;
 
 /** One of her records of a kind, as her page's answer holds it. A table asks only for the parts it reads, so a part

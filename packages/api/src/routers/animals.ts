@@ -666,7 +666,7 @@ export const animalsRouter = {
     }),
 
   /** Any signed-in person may look up any animal by Tag Number, read-only. */
-  byTag: protectedProcedure
+  get: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(z.object({ tagNumber: tagInput }))
     .handler(async ({ context, input }) => {

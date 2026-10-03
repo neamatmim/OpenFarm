@@ -180,7 +180,7 @@ const KINDS: Kind[] = [
     by: "manager",
     ownerToo: true,
     make: async (manager) => {
-      const feed = await manager.feed.addItem({
+      const feed = await manager.feed.createItem({
         name: { bn: `খড় ${suffix} ${Math.random()}` },
         unit: "kg",
       });
@@ -242,7 +242,7 @@ const KINDS: Kind[] = [
         cause: "কারণ জানা যায়নি",
         disposal: "buried",
       });
-      const her = await manager.animals.byTag({ tagNumber: bull.tagNumber });
+      const her = await manager.animals.get({ tagNumber: bull.tagNumber });
       const row = await scratchDb().query.mortality.findFirst({
         where: { animalId: her.id },
         columns: { id: true },
@@ -275,7 +275,7 @@ const KINDS: Kind[] = [
         aliases: [],
         expectedCalvingOn: "2039-11-01",
       });
-      const row = await manager.animals.byTag({ tagNumber: her.tagNumber });
+      const row = await manager.animals.get({ tagNumber: her.tagNumber });
       return {
         // Asked about by her Tag Number, as the screen knows her.
         id: her.tagNumber,

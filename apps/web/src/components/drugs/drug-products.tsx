@@ -660,7 +660,7 @@ const AddProductDialog = ({
   const refused = useRefused();
   const [name, setName] = useState("");
   const add = useMutation(
-    orpc.drugs.add.mutationOptions({
+    orpc.drugs.create.mutationOptions({
       onSuccess: () => {
         setName("");
         toast.success(t("drugs.added"));

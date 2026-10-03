@@ -257,7 +257,7 @@ beforeAll(async () => {
   tags.b = b.tagNumber;
   for (const key of ["m", "u", "h", "b"] as const) {
     // oxlint-disable-next-line no-await-in-loop -- four animals, looked up one after the other
-    const her = await manager.animals.byTag({ tagNumber: tags[key] });
+    const her = await manager.animals.get({ tagNumber: tags[key] });
     ids[key] = her.id;
   }
   // Both calves are M's: the calving that writes a dam is not what this file is about.
@@ -270,7 +270,9 @@ beforeAll(async () => {
     .set({ damId: ids.m })
     .where(eq(animal.id, ids.b));
 
-  const item = await manager.feed.addItem({ name: { bn: `দানাদার ${suffix}` } });
+  const item = await manager.feed.createItem({
+    name: { bn: `দানাদার ${suffix}` },
+  });
   concentrate = item.id;
   await manager.stock.receive({
     feedItemId: concentrate,
@@ -340,7 +342,7 @@ beforeAll(async () => {
     aliases: [],
   });
   tags.c = c.tagNumber;
-  const hers = await calving.animals.byTag({ tagNumber: tags.c });
+  const hers = await calving.animals.get({ tagNumber: tags.c });
   ids.c = hers.id;
   await scratchDb()
     .update(animal)
@@ -449,7 +451,7 @@ describe("every calf her own", () => {
 
   it("shows a cow's calves beside her, each with her own figure", async () => {
     const { client: owner } = await as("owner", READ_AT);
-    const hers = await owner.returns.animal({ animalId: ids.m });
+    const hers = await owner.returns.forAnimal({ animalId: ids.m });
     expect(hers?.run.tagNumber).toBe(tags.m);
     expect(hers?.calves.map((one) => one.tagNumber).toSorted()).toEqual(
       [tags.h, tags.b].toSorted()
@@ -564,7 +566,7 @@ describe("whose it is", () => {
   it("is the Owner's alone, to read and to price", async () => {
     const { client: manager } = await as("manager", READ_AT);
     await expect(
-      manager.returns.animal({ animalId: ids.m })
+      manager.returns.forAnimal({ animalId: ids.m })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(
       manager.returns.priceCow({

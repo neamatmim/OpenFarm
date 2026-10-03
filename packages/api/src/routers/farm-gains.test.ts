@@ -94,7 +94,7 @@ const setup = async () => {
     shedId: shed.id,
     name: "বদলানো পেন",
   });
-  const straw = await manager.client.feed.addItem({
+  const straw = await manager.client.feed.createItem({
     name: { bn: `খড় ${suffix}` },
   });
   const ration = async (name: string) =>

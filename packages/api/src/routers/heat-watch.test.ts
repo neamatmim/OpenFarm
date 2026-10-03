@@ -75,7 +75,7 @@ describe("a heifer not yet served", () => {
       name: `${suffix}-${name}`,
     });
     const pen = await owner.client.sheds.createPen({ shedId: shed.id, name });
-    const breed = await owner.client.breeds.add({
+    const breed = await owner.client.breeds.create({
       nameBn: `${deshi ? "দেশি" : "সংকর"} ${name}`,
       deshi,
     });

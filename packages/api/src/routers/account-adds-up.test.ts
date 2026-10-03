@@ -70,7 +70,7 @@ beforeAll(async () => {
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
   });
-  const spray = await owner.client.money.addCategory({
+  const spray = await owner.client.money.createCategory({
     nameBn: `মাছি স্প্রে ${suffix}`,
     direction: "out",
   });

@@ -70,7 +70,7 @@ beforeAll(async () => {
 /** The work one procedure raised about one animal. */
 const workAbout = async (definitionId: string, tagNumber: string) => {
   const manager = await as("manager", "2039-03-21T06:00:00.000Z");
-  const him = await manager.client.animals.byTag({ tagNumber });
+  const him = await manager.client.animals.get({ tagNumber });
   return await scratchDb().query.sopInstance.findMany({
     where: { definitionId, animalId: him.id },
     columns: { dueAt: true },

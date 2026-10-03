@@ -114,7 +114,7 @@ beforeAll(async () => {
       "",
     ],
   });
-  const after = await manager.client.animals.byTag({
+  const after = await manager.client.animals.get({
     tagNumber: dam.tagNumber,
   });
   tags.stillborn = after.calvings[0]?.calves[0]?.tagNumber ?? "";
@@ -173,7 +173,7 @@ describe("a death's photograph", () => {
   it("is not asked of the Calving, but of the stillborn calf's disposal", async () => {
     const manager = await as("manager", "2089-03-02T05:00:00.000Z");
     // Her death is written already, by the Calving, with no photograph.
-    const calf = await manager.client.animals.byTag({
+    const calf = await manager.client.animals.get({
       tagNumber: tags.stillborn,
     });
     expect(calf.state).toBe("died");

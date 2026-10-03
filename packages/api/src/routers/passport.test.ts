@@ -77,7 +77,7 @@ const setup = async () => {
   };
   const bulls = [await bull(pen.id), await bull(second.id)];
 
-  const vaccine = await vet.client.drugs.add({
+  const vaccine = await vet.client.drugs.create({
     name: { bn: `ক্ষুরারোগ টিকা ${suffix}`, en: "FMD vaccine" },
     milkWithdrawalDays: 0,
     meatWithdrawalDays: 21,
@@ -327,7 +327,7 @@ describe("the passport and the withdrawal summary", () => {
 
     // And producing one is recorded, because a paper that went is the farm's evidence.
     const manager = await asManager("2027-07-26");
-    const her = await manager.client.animals.byTag({ tagNumber: tagOf(0) });
+    const her = await manager.client.animals.get({ tagNumber: tagOf(0) });
     const trail = await manager.client.audit.list({
       entity: "animal",
       entityId: her.id,

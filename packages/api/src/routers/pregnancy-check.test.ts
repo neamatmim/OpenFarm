@@ -201,7 +201,7 @@ const workFor = async (
   const client = await createTestClient(appRouter, { as, clock });
   const manager = await createTestClient(appRouter, { as: "manager", clock });
   await manager.client.work.ensureDue();
-  const her = await manager.client.animals.byTag({ tagNumber });
+  const her = await manager.client.animals.get({ tagNumber });
   const today = await manager.client.work.today({ penId: world.pen.id });
   const late = await manager.client.work.overdue();
   const seen = new Set<string>();
@@ -289,7 +289,7 @@ describe("the pregnancy check", () => {
       as: "manager",
       clock: new FakeClock("2030-01-03T00:00:00.000Z"),
     });
-    const record = await her.client.animals.byTag({ tagNumber: tagOf(0) });
+    const record = await her.client.animals.get({ tagNumber: tagOf(0) });
     // Both services are kept.
     expect(record.services).toHaveLength(2);
 
@@ -325,7 +325,7 @@ describe("the pregnancy check", () => {
       as: "manager",
       clock: new FakeClock("2030-02-18T05:00:00.000Z"),
     });
-    const her = await manager.client.animals.byTag({ tagNumber: tagOf(0) });
+    const her = await manager.client.animals.get({ tagNumber: tagOf(0) });
     expect(her.state).toBe("pregnant_heifer");
     // Worked out from the first service, never typed: 12:00 on 2 January plus 283 days.
     const expected = new Date(
@@ -373,7 +373,7 @@ describe("the pregnancy check", () => {
       as: "manager",
       clock: new FakeClock("2030-02-19T05:00:00.000Z"),
     });
-    const her = await manager.client.animals.byTag({ tagNumber: tagOf(1) });
+    const her = await manager.client.animals.get({ tagNumber: tagOf(1) });
     // Nothing she has is taken away: she is still a heifer — on heat watch, as every heifer is — with
     // no calving to expect. And two services that did not take are one failure.
     expect(her.state).toBe("heifer");
@@ -397,7 +397,7 @@ describe("the pregnancy check", () => {
     expect(rows.map((row) => row.dueAt.toISOString())).toEqual([
       "2030-03-20T18:00:00.000Z",
     ]);
-    const her = await client.client.animals.byTag({ tagNumber: tagOf(4) });
+    const her = await client.client.animals.get({ tagNumber: tagOf(4) });
     expect(her.failedAttempts).toBe(1);
   });
 
@@ -419,7 +419,7 @@ describe("the pregnancy check", () => {
       evidence: ["negative"],
     });
 
-    const her = await client.client.animals.byTag({ tagNumber: tagOf(0) });
+    const her = await client.client.animals.get({ tagNumber: tagOf(0) });
     // Losing a confirmed pregnancy is an Abortion, recorded as one. A check that disagrees takes
     // nothing from her.
     expect(her.state).toBe("pregnant_heifer");
@@ -539,7 +539,7 @@ describe("the pregnancy check", () => {
       stepId: "check",
       evidence: ["positive"],
     });
-    const carrying = await client.client.animals.byTag({ tagNumber: tagOf(2) });
+    const carrying = await client.client.animals.get({ tagNumber: tagOf(2) });
     expect(carrying.state).toBe("pregnant_heifer");
 
     const board = await client.client.work.get({ id: workId });
@@ -593,7 +593,7 @@ describe("the pregnancy check", () => {
       evidence: ["negative"],
       reason: "ভুল গাভী দেখা হয়েছিল",
     });
-    const her = await client.client.animals.byTag({ tagNumber: tagOf(2) });
+    const her = await client.client.animals.get({ tagNumber: tagOf(2) });
     expect(her.state).toBe("heifer");
     expect(her.expectedCalvingAt).toBeNull();
   });

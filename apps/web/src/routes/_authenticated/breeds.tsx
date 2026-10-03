@@ -212,7 +212,7 @@ const BreedDialog = ({
   const [nameEn, setNameEn] = useState(current?.nameEn ?? "");
   const [deshi, setDeshi] = useState(false);
   const add = useMutation(
-    orpc.breeds.add.mutationOptions({ onSuccess: onClose, onError })
+    orpc.breeds.create.mutationOptions({ onSuccess: onClose, onError })
   );
   const rename = useMutation(
     orpc.breeds.rename.mutationOptions({ onSuccess: onClose, onError })
@@ -302,7 +302,9 @@ const BreedsPage = () => {
       onError,
     })
   );
-  const restore = useMutation(orpc.breeds.restore.mutationOptions({ onError }));
+  const restore = useMutation(
+    orpc.breeds.bringBack.mutationOptions({ onError })
+  );
   const setDeshi = useMutation(
     orpc.breeds.setDeshi.mutationOptions({ onError })
   );

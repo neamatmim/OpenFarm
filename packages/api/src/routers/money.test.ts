@@ -189,7 +189,7 @@ describe("money from the farm's records", () => {
       expect.objectContaining({ amountMoney: 19_200 }),
     ]);
 
-    const feed = await manager.client.feed.addItem({
+    const feed = await manager.client.feed.createItem({
       name: { bn: `ভুসি ${suffix}` },
       unit: "kg",
     });
@@ -243,7 +243,7 @@ describe("money from the farm's records", () => {
     const bull = await intakeOf(85_000, "2037-03-01T04:00:00.000Z");
     // The bull is on the farm, as bought, whatever the money is waiting for.
     const manager = await as("manager", "2037-03-01T05:00:00.000Z");
-    const onTheFarm = await manager.client.animals.byTag({
+    const onTheFarm = await manager.client.animals.get({
       tagNumber: bull.tagNumber,
     });
     expect(onTheFarm.state).toBe("quarantine");
@@ -376,7 +376,7 @@ describe("money from the farm's records", () => {
 
   it("books medicine bought for the Drug List, with the doses it holds", async () => {
     const vet = await as("vet", "2037-05-01T04:00:00.000Z");
-    const product = await vet.client.drugs.add({
+    const product = await vet.client.drugs.create({
       name: { bn: `অক্সিটেট্রাসাইক্লিন ${suffix}` },
       milkWithdrawalDays: 7,
       meatWithdrawalDays: 28,
@@ -421,7 +421,7 @@ describe("money from the farm's records", () => {
       animalTags: [bull.tagNumber],
       note: "জ্বরের চিকিৎসা",
     });
-    expect(await vet.client.money.myFees()).toEqual(
+    expect(await vet.client.money.mine()).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: fee.id,
@@ -455,7 +455,7 @@ describe("money from the farm's records", () => {
     await expect(staff.client.money.list(YEAR)).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
-    await expect(staff.client.money.myFees()).rejects.toMatchObject({
+    await expect(staff.client.money.mine()).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
     await expect(

@@ -34,14 +34,14 @@ beforeAll(async () => {
     name: `গাভী পেন ${suffix}`,
   });
   penId = pen.id;
-  const product = await vet.client.drugs.add({
+  const product = await vet.client.drugs.create({
     name: { bn: `অক্সিটেট্রাসাইক্লিন ${suffix}` },
     milkWithdrawalDays: 4,
     meatWithdrawalDays: 21,
   });
   known = product.id;
   // Bought at the pharmacy and not yet read off the label by the Vet: no days.
-  const blank = await manager.client.drugs.add({
+  const blank = await manager.client.drugs.create({
     name: { bn: `ফার্মেসির ইনজেকশন ${suffix}` },
   });
   unknown = blank.id;

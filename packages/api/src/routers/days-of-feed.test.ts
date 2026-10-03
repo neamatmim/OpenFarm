@@ -90,10 +90,10 @@ const toldOfBran = async (role: "owner" | "manager") => {
 beforeAll(async () => {
   const owner = await as("owner", morning(1));
   const manager = await as("manager", morning(1));
-  const branItem = await manager.client.feed.addItem({
+  const branItem = await manager.client.feed.createItem({
     name: { bn: `ভুসি ${suffix}` },
   });
-  const hayItem = await manager.client.feed.addItem({
+  const hayItem = await manager.client.feed.createItem({
     name: { bn: `খড় ${suffix}` },
   });
   bran = branItem.id;

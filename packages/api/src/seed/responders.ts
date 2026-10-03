@@ -239,7 +239,7 @@ RESPONDERS.quarantineRelease = (step, beast, { farm, herd }) => {
   if (step.id === "release" && bull) {
     // The farm walks him to the Pen whose Ration suits his weight; the script's herd follows where he went.
     herd.followUps.push(async () => {
-      const him = await farm.as.manager.animals.byTag({ tagNumber: bull.tag });
+      const him = await farm.as.manager.animals.get({ tagNumber: bull.tag });
       const penKey = (
         Object.entries(farm.pens) as [keyof typeof farm.pens, string][]
       ).find(([, id]) => id === him.pen.id)?.[0];

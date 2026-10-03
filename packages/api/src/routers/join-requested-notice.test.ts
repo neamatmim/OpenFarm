@@ -200,7 +200,7 @@ describe("when the Owner hears of it", () => {
       push: post.transport,
     });
     const endpoint = `https://fcm.googleapis.com/fcm/send/join-${suffix}`;
-    await owner.push.listen({
+    await owner.push.subscribe({
       endpoint,
       p256dh: "test-p256dh-key",
       auth: "test-auth-key",
@@ -227,7 +227,7 @@ describe("when the Owner hears of it", () => {
       push: post.transport,
     });
     const endpoint = `https://fcm.googleapis.com/fcm/send/join-again-${suffix}`;
-    await owner.push.listen({
+    await owner.push.subscribe({
       endpoint,
       p256dh: "test-p256dh-key",
       auth: "test-auth-key",

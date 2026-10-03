@@ -117,7 +117,7 @@ const theyEat = async (owner: Owner) => {
     .onConflictDoNothing();
 
   const manager = await as("manager", "2047-05-04T05:00:00.000Z");
-  const item = await manager.client.feed.addItem({
+  const item = await manager.client.feed.createItem({
     name: { bn: `দানাদার ${suffix}` },
   });
   await manager.client.stock.receive({

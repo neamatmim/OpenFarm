@@ -95,7 +95,7 @@ const aMixedPen = async () => {
   await owner.client.ventures.startBuying({ id: venture.id });
 
   const manager = await as("manager", "2047-03-06T05:00:00.000Z");
-  const straw = await manager.client.feed.addItem({
+  const straw = await manager.client.feed.createItem({
     name: { bn: `খড় ${suffix}` },
   });
   await manager.client.stock.receive({
@@ -221,7 +221,7 @@ beforeAll(async () => {
 
   // The Farm buys a sack of feed for the whole herd, as it always does.
   const manager = await as("manager", "2047-03-03T05:00:00.000Z");
-  const item = await manager.client.feed.addItem({
+  const item = await manager.client.feed.createItem({
     name: { bn: `দানাদার ${suffix}` },
   });
   itemId = item.id;

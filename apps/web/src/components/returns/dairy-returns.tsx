@@ -559,7 +559,7 @@ export const DairyReturnsPanel = ({ animalId }: { animalId: string }) => {
   const [pricing, setPricing] = useState(false);
   // Asked only for the Owner: an animal's money is hers alone, and a Manager's page never requests it.
   const hers = useQuery({
-    ...orpc.returns.animal.queryOptions({ input: { animalId } }),
+    ...orpc.returns.forAnimal.queryOptions({ input: { animalId } }),
     enabled: owner,
   });
   const found = hers.data;

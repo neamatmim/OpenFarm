@@ -52,7 +52,9 @@ describe("the farm's own identity", () => {
       aliases: [],
     });
     const diseaseName = `তড়কা-পরিচয় ${Date.now()}`;
-    await manager.client.notifiableDiseases.add({ name: { bn: diseaseName } });
+    await manager.client.notifiableDiseases.create({
+      name: { bn: diseaseName },
+    });
     const made = await vet.client.diagnoses.record({
       animalTag: cow.tagNumber,
       disease: { bn: diseaseName },

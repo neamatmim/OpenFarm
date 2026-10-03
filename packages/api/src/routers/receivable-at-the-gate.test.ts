@@ -181,7 +181,7 @@ describe("a bull sold on credit", () => {
       data: { refusal: "promise_before_it_left" },
     });
     // Refused, not half-written: she is still here to be sold properly.
-    const her = await manager.client.animals.byTag({
+    const her = await manager.client.animals.get({
       tagNumber: bull.tagNumber,
     });
     expect(her.state).not.toBe("sold");
@@ -201,7 +201,7 @@ describe("a Venture's bull", () => {
         promisedBy: "2048-03-18",
       })
     ).rejects.toMatchObject({ data: { refusal: "venture_paid_in_full" } });
-    const her = await manager.client.animals.byTag({
+    const her = await manager.client.animals.get({
       tagNumber: bull.tagNumber,
     });
     expect(her.state).not.toBe("sold");

@@ -60,7 +60,7 @@ describe("reporting what was seen", () => {
     expect(
       inbox.some((row) => row.tagNumber === world.ours && row.saw === "lame")
     ).toBe(true);
-    const her = await vet.animals.byTag({ tagNumber: world.ours });
+    const her = await vet.animals.get({ tagNumber: world.ours });
     expect(her.observations[0]).toMatchObject({
       saw: "lame",
       note: "গেটে খোঁড়াচ্ছিল",

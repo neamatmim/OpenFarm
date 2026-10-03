@@ -132,12 +132,12 @@ describe("the fortnightly weigh-in", () => {
     expect(board.completions).toHaveLength(2);
     expect(board.state).not.toBe("open");
 
-    const her = await staff.client.animals.byTag({ tagNumber: tagOf(0) });
+    const her = await staff.client.animals.get({ tagNumber: tagOf(0) });
     expect(her.weighIns).toHaveLength(1);
     expect(her.weighIns[0]).toMatchObject({ weightKg: 214, method: "scale" });
 
     // A skipped animal has no reading to her name — the round saw her and could not weigh her.
-    const other = await staff.client.animals.byTag({ tagNumber: tagOf(1) });
+    const other = await staff.client.animals.get({ tagNumber: tagOf(1) });
     expect(other.weighIns).toHaveLength(0);
   });
 
@@ -158,7 +158,7 @@ describe("the fortnightly weigh-in", () => {
       flagged: true,
     });
 
-    const her = await staff.client.animals.byTag({ tagNumber: tagOf(0) });
+    const her = await staff.client.animals.get({ tagNumber: tagOf(0) });
     expect(her.weighIns).toHaveLength(2);
     // Newest first: her page answers "what does she weigh now" before anything else, and says
     // what was doubtful about it in the farm's own words.
@@ -170,7 +170,7 @@ describe("the fortnightly weigh-in", () => {
     const entry = board.completions.find(
       (row) => row.stepId === "weigh" && row.animalId === her.id
     );
-    const queue = await manager.client.reviewQueue.open();
+    const queue = await manager.client.reviewQueue.list();
     const asked = queue.find(
       (row) => row.reason === "implausible_weight" && row.entityId === entry?.id
     );
@@ -183,7 +183,7 @@ describe("the fortnightly weigh-in", () => {
       evidence: [270],
       reason: "স্কেলে আবার দেখা",
     });
-    const again = await manager.client.reviewQueue.open();
+    const again = await manager.client.reviewQueue.list();
     expect(
       again.filter(
         (row) =>

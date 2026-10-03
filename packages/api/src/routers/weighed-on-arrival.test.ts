@@ -19,14 +19,14 @@ let molasses = "";
 
 beforeAll(async () => {
   const manager = await as("manager");
-  const inBags = await manager.client.feed.addItem({
+  const inBags = await manager.client.feed.createItem({
     name: { bn: `দানাদার ${suffix}` },
     bagSizeKg: 50,
   });
-  const byTheKilo = await manager.client.feed.addItem({
+  const byTheKilo = await manager.client.feed.createItem({
     name: { bn: `ভুসি ${suffix}` },
   });
-  const byTheLitre = await manager.client.feed.addItem({
+  const byTheLitre = await manager.client.feed.createItem({
     name: { bn: `চিটাগুড় ${suffix}` },
     unit: "litre",
   });

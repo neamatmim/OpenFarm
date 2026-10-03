@@ -152,7 +152,7 @@ describe("the people who do its work", () => {
     };
 
     await owner.client.sops.retire({ definitionId });
-    await owner.client.sops.restore({ definitionId });
+    await owner.client.sops.bringBack({ definitionId });
     await owner.client.sops.retire({ definitionId });
 
     expect(await told("sop_retired")).toBe(2);
@@ -171,7 +171,7 @@ describe("bringing a procedure back", () => {
     const [calledOff] = await workOf(definitionId);
 
     const day7 = await asOwner(onDay(7));
-    await day7.client.sops.restore({ definitionId });
+    await day7.client.sops.bringBack({ definitionId });
     await day7.client.work.ensureDue();
 
     const work = await workOf(definitionId);
@@ -190,7 +190,7 @@ describe("bringing a procedure back", () => {
     await owner.client.sops.create({ content: treatmentDose });
 
     await expect(
-      owner.client.sops.restore({ definitionId: first.definitionId })
+      owner.client.sops.bringBack({ definitionId: first.definitionId })
     ).rejects.toMatchObject({
       code: "CONFLICT",
       data: { refusal: "treatment_sop_exists" },

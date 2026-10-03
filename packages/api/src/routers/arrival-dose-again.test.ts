@@ -35,7 +35,7 @@ const tags = {
 beforeAll(async () => {
   const owner = await as("owner", ARRIVED);
   const vet = await as("vet", ARRIVED);
-  const vaccine = await vet.client.drugs.add({
+  const vaccine = await vet.client.drugs.create({
     name: { bn: `এফএমডি টিকা ${suffix}`, en: "FMD vaccine" },
     milkWithdrawalDays: 0,
     meatWithdrawalDays: 0,
@@ -76,7 +76,7 @@ beforeAll(async () => {
 const hisFmd = async (at: string, tagNumber: string) => {
   const manager = await as("manager", at);
   await manager.client.work.ensureDue();
-  const him = await manager.client.animals.byTag({ tagNumber });
+  const him = await manager.client.animals.get({ tagNumber });
   return await scratchDb().query.sopInstance.findMany({
     where: { definitionId: fmdId, animalId: him.id },
     columns: { id: true, state: true, dueAt: true, cause: true, penId: true },

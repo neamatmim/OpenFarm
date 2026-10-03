@@ -41,22 +41,22 @@ const LISTS: AList[] = [
   {
     name: "breeds",
     entity: "breed",
-    add: (label) => idOf(owner.breeds.add({ nameBn: label })),
+    add: (label) => idOf(owner.breeds.create({ nameBn: label })),
     retire: (id) => owner.breeds.retire({ id }),
-    bringBack: (id) => owner.breeds.restore({ id }),
+    bringBack: (id) => owner.breeds.bringBack({ id }),
   },
   {
     name: "feeds",
     entity: "feed_item",
     add: (label) =>
-      idOf(manager.feed.addItem({ name: { bn: label }, unit: "kg" })),
+      idOf(manager.feed.createItem({ name: { bn: label }, unit: "kg" })),
     retire: (id) => manager.feed.retireItem({ id }),
     bringBack: (id) => manager.feed.bringBackItem({ id }),
   },
   {
     name: "medicines",
     entity: "drug_product",
-    add: (label) => idOf(manager.drugs.add({ name: { bn: label } })),
+    add: (label) => idOf(manager.drugs.create({ name: { bn: label } })),
     retire: (id) => vet.drugs.retire({ id }),
     bringBack: (id) => vet.drugs.bringBack({ id }),
   },
@@ -64,7 +64,7 @@ const LISTS: AList[] = [
     name: "Categories",
     entity: "money_category",
     add: (label) =>
-      idOf(owner.money.addCategory({ nameBn: label, direction: "out" })),
+      idOf(owner.money.createCategory({ nameBn: label, direction: "out" })),
     retire: (id) => owner.money.retireCategory({ id }),
     bringBack: (id) => owner.money.bringBackCategory({ id }),
   },
@@ -88,7 +88,7 @@ const LISTS: AList[] = [
     name: "notifiable diseases",
     entity: "notifiable_disease",
     add: (label) =>
-      idOf(manager.notifiableDiseases.add({ name: { bn: label } })),
+      idOf(manager.notifiableDiseases.create({ name: { bn: label } })),
     retire: (id) =>
       manager.notifiableDiseases.retire({ id, reason: "অফিস বলেছে" }),
     bringBack: (id) =>
@@ -135,37 +135,37 @@ describe.each(LISTS)("the $name list", (list) => {
 
 describe("a name on a list", () => {
   it("is taken in either language, whatever the capitals — Categories and diseases as much as feeds", async () => {
-    await owner.money.addCategory({
+    await owner.money.createCategory({
       nameBn: `বিদ্যুৎ ${suffix}`,
       nameEn: `Power ${suffix}`,
       direction: "out",
     });
-    await manager.notifiableDiseases.add({
+    await manager.notifiableDiseases.create({
       name: { bn: `জ্বর ${suffix}`, en: `Fever ${suffix}` },
     });
 
     await expect(
-      owner.money.addCategory({
+      owner.money.createCategory({
         nameBn: `অন্য নাম ${suffix}`,
         nameEn: `POWER ${suffix}`,
         direction: "out",
       })
     ).rejects.toMatchObject({ data: { refusal: "category_exists" } });
     await expect(
-      manager.notifiableDiseases.add({
+      manager.notifiableDiseases.create({
         name: { bn: `অন্য জ্বর ${suffix}`, en: `fever ${suffix}` },
       })
     ).rejects.toMatchObject({ data: { refusal: "disease_exists" } });
   });
 
   it("names a retired entry as retired, so it is brought back rather than written twice", async () => {
-    const { id } = await manager.notifiableDiseases.add({
+    const { id } = await manager.notifiableDiseases.create({
       name: { bn: `তড়কা ${suffix}` },
     });
     await manager.notifiableDiseases.retire({ id, reason: "অফিস বলেছে" });
 
     await expect(
-      manager.notifiableDiseases.add({ name: { bn: `তড়কা ${suffix}` } })
+      manager.notifiableDiseases.create({ name: { bn: `তড়কা ${suffix}` } })
     ).rejects.toMatchObject({
       data: { refusal: "disease_exists_retired", id, retired: true },
     });
@@ -174,7 +174,7 @@ describe("a name on a list", () => {
 
 describe("a Ration", () => {
   it("does not feed what the farm has retired", async () => {
-    const { id } = await manager.feed.addItem({
+    const { id } = await manager.feed.createItem({
       name: { bn: `পুরনো খড় ${suffix}` },
       unit: "kg",
     });

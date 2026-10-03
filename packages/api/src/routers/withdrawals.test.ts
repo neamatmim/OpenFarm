@@ -72,7 +72,7 @@ const setup = async () => {
   });
   const treatment = await owner.client.sops.create({ content: treatmentSop() });
   const milking = await owner.client.sops.create({ content: milkingSop() });
-  const product = await vet.client.drugs.add({
+  const product = await vet.client.drugs.create({
     name: { bn: `পেনস্ট্রেপ ${Date.now()}`, en: "Pen-strep" },
     milkWithdrawalDays: 4,
     meatWithdrawalDays: 21,
@@ -165,7 +165,7 @@ describe("withdrawal, from the last dose actually given", () => {
     const { cow, owner } = await onACourse(clock);
     await giveDose(clock, cow.tagNumber, 1);
 
-    const her = await owner.client.animals.byTag({ tagNumber: cow.tagNumber });
+    const her = await owner.client.animals.get({ tagNumber: cow.tagNumber });
     // Four days for the milk and twenty-one for the meat, counted from the dose that was
     // actually given rather than from the course that was planned.
     expect(her.milkWithdrawalUntil).toEqual(
@@ -180,7 +180,7 @@ describe("withdrawal, from the last dose actually given", () => {
     const clock = new FakeClock("2026-10-02T02:00:00.000Z");
     const { cow, owner } = await onACourse(clock);
     await giveDose(clock, cow.tagNumber, 1);
-    const fromTheFirst = await owner.client.animals.byTag({
+    const fromTheFirst = await owner.client.animals.get({
       tagNumber: cow.tagNumber,
     });
 
@@ -190,7 +190,7 @@ describe("withdrawal, from the last dose actually given", () => {
     const later = await createTestClient(appRouter, { as: "owner", clock });
     await giveDose(clock, cow.tagNumber, 2);
 
-    const her = await later.client.animals.byTag({ tagNumber: cow.tagNumber });
+    const her = await later.client.animals.get({ tagNumber: cow.tagNumber });
     expect(her.milkWithdrawalUntil).toEqual(
       new Date(clock.now().getTime() + 4 * DAY)
     );
@@ -286,7 +286,7 @@ describe("withdrawal, from the last dose actually given", () => {
     const clock = new FakeClock("2026-10-04T02:00:00.000Z");
     const { cow, vet, owner } = await onACourse(clock, 1);
     await giveDose(clock, cow.tagNumber, 1);
-    const held = await owner.client.animals.byTag({ tagNumber: cow.tagNumber });
+    const held = await owner.client.animals.get({ tagNumber: cow.tagNumber });
     const wasUntil = held.milkWithdrawalUntil;
 
     // The Manager runs the farm and the Owner owns it, and neither may let milk into the tank
@@ -312,7 +312,7 @@ describe("withdrawal, from the last dose actually given", () => {
       reason: "একটি ডোজেই সেরে গেছে, দুধ নিরাপদ",
     });
 
-    const after = await owner.client.animals.byTag({
+    const after = await owner.client.animals.get({
       tagNumber: cow.tagNumber,
     });
     expect(after.milkWithdrawalUntil).toEqual(tomorrow);
@@ -368,7 +368,7 @@ describe("withdrawal, from the last dose actually given", () => {
     clock.advance(DAY);
     await giveDose(clock, cow.tagNumber, 2);
 
-    const her = await owner.client.animals.byTag({ tagNumber: cow.tagNumber });
+    const her = await owner.client.animals.get({ tagNumber: cow.tagNumber });
     expect(her.milkWithdrawalUntil).toEqual(
       new Date(clock.now().getTime() + 4 * DAY)
     );
@@ -388,7 +388,7 @@ describe("withdrawal, from the last dose actually given", () => {
 
     // Asked about this cow's own Withdrawal, not about everything the farm is being told:
     // the tests around this one leave their own notices, which are nobody's business here.
-    const held = await manager.client.animals.byTag({
+    const held = await manager.client.animals.get({
       tagNumber: cow.tagNumber,
     });
     const about = {
@@ -430,7 +430,7 @@ describe("withdrawal, from the last dose actually given", () => {
     // think nothing had happened.
     expect(ended).toEqual({ milkUntil: null, meatUntil: null });
 
-    const her = await owner.client.animals.byTag({ tagNumber: cow.tagNumber });
+    const her = await owner.client.animals.get({ tagNumber: cow.tagNumber });
     expect(her.milkWithdrawalUntil).toBeNull();
     expect(her.underMilkWithdrawal).toBe(false);
     // And what her doses said is still on her page, because that is what a slaughter vet asks.
@@ -482,7 +482,7 @@ describe("withdrawal, from the last dose actually given", () => {
     };
     const sent = await phone.client.sync.batch(batch);
 
-    const her = await owner.client.animals.byTag({ tagNumber: cow.tagNumber });
+    const her = await owner.client.animals.get({ tagNumber: cow.tagNumber });
     expect(her.milkWithdrawalUntil).toEqual(
       new Date(clock.now().getTime() + 4 * DAY)
     );
@@ -496,7 +496,7 @@ describe("withdrawal, from the last dose actually given", () => {
       reason: "দেখে মনে হলো ঠিক আছে",
     });
     expect(await phone.client.sync.batch(batch)).toEqual(sent);
-    const after = await owner.client.animals.byTag({
+    const after = await owner.client.animals.get({
       tagNumber: cow.tagNumber,
     });
     expect(after.milkWithdrawalUntil).toEqual(clock.now());

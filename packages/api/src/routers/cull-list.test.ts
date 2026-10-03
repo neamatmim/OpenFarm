@@ -221,7 +221,7 @@ const heatAndServe = async (day: string, tagNumber: string) => {
 
   const serving = await as("manager", `${day}T20:00:00.000Z`);
   await serving.client.work.ensureDue();
-  const her = await serving.client.animals.byTag({ tagNumber });
+  const her = await serving.client.animals.get({ tagNumber });
   const work = [
     ...(await serving.client.work.today({ penId: dryPen })),
     ...(await serving.client.work.overdue()),
@@ -285,7 +285,7 @@ beforeAll(async () => {
   ] = tags;
 
   // Concentrate at ৳30 a kilo, for the cows in milk alone.
-  const item = await manager.client.feed.addItem({
+  const item = await manager.client.feed.createItem({
     name: { bn: `দানাদার ${suffix}` },
   });
   concentrate = item.id;

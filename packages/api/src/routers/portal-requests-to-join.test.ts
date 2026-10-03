@@ -91,7 +91,7 @@ describe("an Investor asking to join", () => {
       note: "ঈদের পরে টাকা দিতে পারব",
     });
 
-    expect(await karim.client.portal.myRequests()).toEqual([
+    expect(await karim.client.portal.requests()).toEqual([
       {
         id: made.id,
         ventureId,
@@ -137,7 +137,7 @@ describe("an Investor asking to join", () => {
     });
 
     expect(again.id).toBe(first.id);
-    const hers = await salma.client.portal.myRequests();
+    const hers = await salma.client.portal.requests();
     // "I only asked for four": what they asked first, and what they changed it to, both read back to them.
     expect(
       hers[0]?.history.map((one) => [one.kind, one.units, one.note])
@@ -167,7 +167,7 @@ describe("an Investor asking to join", () => {
     });
 
     expect(second.id).not.toBe(first.id);
-    const his = await jamal.client.portal.myRequests();
+    const his = await jamal.client.portal.requests();
     expect(his.map((one) => [one.id, one.units, one.state]).toSorted()).toEqual(
       [
         [first.id, 3, "withdrawn"],
@@ -191,7 +191,7 @@ describe("an Investor asking to join", () => {
         : []
     );
     expect(failed.every((word) => word === "asked_twice_at_once")).toBe(true);
-    const his = await dipu.client.portal.myRequests();
+    const his = await dipu.client.portal.requests();
     expect(his.map((one) => one.state)).toEqual(["waiting"]);
   });
 
@@ -410,8 +410,8 @@ describe("another Investor's Request", () => {
     expect(
       await refusalOf(his.client.portal.withdrawRequest({ requestId: made.id }))
     ).toBe("no_such_request");
-    expect(await his.client.portal.myRequests()).toEqual([]);
-    const still = await hers.client.portal.myRequests();
+    expect(await his.client.portal.requests()).toEqual([]);
+    const still = await hers.client.portal.requests();
     expect(still.map((one) => one.state)).toEqual(["waiting"]);
   });
 });

@@ -34,11 +34,11 @@ const harvest = async (
 
 beforeAll(async () => {
   const owner = await as("owner", "2042-03-01T04:00:00.000Z");
-  const grass = await owner.client.feed.addItem({
+  const grass = await owner.client.feed.createItem({
     name: { bn: `নেপিয়ার ${suffix}`, en: `Napier ${suffix}` },
   });
   grassId = grass.id;
-  const bought = await owner.client.feed.addItem({
+  const bought = await owner.client.feed.createItem({
     name: { bn: `ভুসি ${suffix}`, en: `Bran ${suffix}` },
   });
   boughtId = bought.id;
@@ -85,7 +85,7 @@ describe("the Fodder Price", () => {
 
   it("blends with bought feed in the store's price", async () => {
     const manager = await as("manager", "2042-03-10T04:00:00.000Z");
-    const blended = await manager.client.feed.addItem({
+    const blended = await manager.client.feed.createItem({
       name: { bn: `মিশ্র ${suffix}` },
     });
     const owner = await as("owner", "2042-03-10T04:00:00.000Z");
@@ -114,7 +114,7 @@ describe("the Fodder Price", () => {
 
   it("still lets a cut lot be put right, and keeps it worth its kilos", async () => {
     const owner = await as("owner", "2042-03-06T04:00:00.000Z");
-    const item = await owner.client.feed.addItem({
+    const item = await owner.client.feed.createItem({
       name: { bn: `ভুট্টা ${suffix}` },
     });
     await owner.client.feed.setFodderPrice({
@@ -165,7 +165,7 @@ describe("the Fodder Price", () => {
 
   it("changes what is cut afterwards, and never what was cut before", async () => {
     const owner = await as("owner", "2042-03-15T04:00:00.000Z");
-    const item = await owner.client.feed.addItem({
+    const item = await owner.client.feed.createItem({
       name: { bn: `খড় ${suffix}` },
     });
     const manager = await as("manager", "2042-03-15T04:00:00.000Z");

@@ -42,10 +42,10 @@ const setup = async () => {
     shedId: shed.id,
     name: `গুদাম ${suffix}`,
   });
-  const concentrate = await manager.client.feed.addItem({
+  const concentrate = await manager.client.feed.createItem({
     name: { bn: `দানাদার ${suffix}` },
   });
-  const grass = await manager.client.feed.addItem({
+  const grass = await manager.client.feed.createItem({
     name: { bn: `খড় ${suffix}` },
   });
   await manager.client.stock.receive({

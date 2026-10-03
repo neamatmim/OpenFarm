@@ -54,7 +54,7 @@ export const pushRouter = {
 
   /** This browser agrees to be told. Per browser, not per person: a Manager with a phone and
    *  an office machine has two, and an Alert should reach both. */
-  listen: protectedProcedure
+  subscribe: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(
       z.object({
@@ -95,7 +95,7 @@ export const pushRouter = {
 
   /** This browser would rather not be told. The row stays, revoked: who was told what, and
    *  who stopped being told, is part of the farm's record. */
-  stopListening: protectedProcedure
+  unsubscribe: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(z.object({ endpoint: endpointInput }))
     .handler(async ({ context, input }) => {

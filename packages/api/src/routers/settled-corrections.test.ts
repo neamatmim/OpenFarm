@@ -175,7 +175,7 @@ beforeAll(async () => {
     animalTag: deadTag,
     evidence: ["sick"],
   });
-  const page = await walking.client.animals.byTag({ tagNumber: deadTag });
+  const page = await walking.client.animals.get({ tagNumber: deadTag });
   const seen = page.observations.at(0);
   const vet = await as("vet", "2048-01-10T09:00:00.000Z");
   const said = await vet.client.diagnoses.record({

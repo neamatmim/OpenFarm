@@ -151,7 +151,7 @@ describe("a death and a cull", () => {
     expect(board.animals.map((one) => one.id)).not.toContain(cow.id);
 
     // And her page still says everything it said, with how she went on it.
-    const her = await manager.client.animals.byTag({
+    const her = await manager.client.animals.get({
       tagNumber: cow.tagNumber,
     });
     expect(her.state).toBe("died");
@@ -182,7 +182,7 @@ describe("a death and a cull", () => {
       await expect(them.client.animals.recordMortality(exit)).rejects.toThrow();
     }
     const staff = await createTestClient(appRouter, { as: "staff", clock });
-    const stillHere = await staff.client.animals.byTag({
+    const stillHere = await staff.client.animals.get({
       tagNumber: cow.tagNumber,
     });
     expect(stillHere.state).toBe("heifer");
@@ -191,7 +191,7 @@ describe("a death and a cull", () => {
     // The Manager culls her, and the reason she was culled is on the record.
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     await manager.client.animals.recordMortality(exit);
-    const her = await manager.client.animals.byTag({
+    const her = await manager.client.animals.get({
       tagNumber: cow.tagNumber,
     });
     expect(her.state).toBe("culled");
@@ -233,7 +233,7 @@ describe("a death and a cull", () => {
       happenedAt: foundAt,
     });
 
-    const her = await manager.client.animals.byTag({
+    const her = await manager.client.animals.get({
       tagNumber: cow.tagNumber,
     });
     expect(her.mortality?.happenedAt).toEqual(foundAt);
@@ -290,7 +290,7 @@ describe("a death and a cull", () => {
       reason: "ময়নাতদন্তের ফল এসেছে",
     });
 
-    const her = await later.client.animals.byTag({ tagNumber: cow.tagNumber });
+    const her = await later.client.animals.get({ tagNumber: cow.tagNumber });
     expect(her.mortality?.cause).toBe("বিষক্রিয়া — গাছের পাতা খেয়েছিল");
 
     // Nothing is lost: the trail holds what it said before, and why it changed.
@@ -304,7 +304,7 @@ describe("a death and a cull", () => {
 
     // And how she left is not a correction's to change: an animal who died did not get culled
     // instead, because that is her exit State as much as this row.
-    const corrected = await later.client.animals.byTag({
+    const corrected = await later.client.animals.get({
       tagNumber: cow.tagNumber,
     });
     expect(corrected.mortality?.kind).toBe("died");
@@ -405,7 +405,7 @@ describe("a death and a cull", () => {
       ).rejects.toMatchObject({ data: { refusal: "exit_needs_a_record" } });
     }
 
-    const her = await manager.client.animals.byTag({
+    const her = await manager.client.animals.get({
       tagNumber: cow.tagNumber,
     });
     expect(her.state).toBe("heifer");

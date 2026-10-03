@@ -246,7 +246,7 @@ const AddItemDialog = ({
   const [bagSize, setBagSize] = useState("");
   const bagSizeKg = unit === "kg" ? bagSizeOf(bagSize) : null;
   const addItem = useMutation(
-    orpc.feed.addItem.mutationOptions({
+    orpc.feed.createItem.mutationOptions({
       onSuccess: () => {
         setName("");
         setEnglish("");

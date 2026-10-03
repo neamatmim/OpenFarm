@@ -25,7 +25,7 @@ beforeAll(async () => {
   });
   penId = pen.id;
   const manager = await as("manager");
-  const fmd = await manager.client.notifiableDiseases.add({
+  const fmd = await manager.client.notifiableDiseases.create({
     name: { bn: "ক্ষুরা রোগ", en: "Foot-and-mouth disease" },
     otherNames: ["FMD", "খুরা রোগ"],
   });

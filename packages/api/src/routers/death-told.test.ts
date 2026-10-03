@@ -126,7 +126,7 @@ const died = async (
 beforeAll(async () => {
   const owner = await as("owner", `${DAY}T01:00:00.000Z`);
   await as("manager", `${DAY}T01:00:00.000Z`);
-  await owner.client.push.listen({
+  await owner.client.push.subscribe({
     endpoint: ENDPOINT,
     p256dh: "test-p256dh-key",
     auth: "test-auth-key",
@@ -215,7 +215,7 @@ beforeAll(async () => {
       "",
     ],
   });
-  const after = await manager.client.animals.byTag({
+  const after = await manager.client.animals.get({
     tagNumber: dam.tagNumber,
   });
   tags.stillborn = after.calvings[0]?.calves[0]?.tagNumber ?? "";

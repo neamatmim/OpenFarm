@@ -80,7 +80,7 @@ const theRound = async (
     where: { instanceId: id, stepId: "look" },
     columns: { id: true },
   });
-  const her = await manager.client.animals.byTag({ tagNumber: cow.tag });
+  const her = await manager.client.animals.get({ tagNumber: cow.tag });
   const seen = her.observations.find((one) => !one.withdrawn);
   return { completionId: done?.id ?? "", observationId: seen?.id ?? "" };
 };

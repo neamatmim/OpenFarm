@@ -146,13 +146,13 @@ describe("agreeing to be told", () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
     const mine = endpoint();
 
-    await manager.client.push.listen({
+    await manager.client.push.subscribe({
       endpoint: mine,
       p256dh: "key",
       auth: "secret",
     });
     // Subscribing twice is one browser, not two.
-    await manager.client.push.listen({
+    await manager.client.push.subscribe({
       endpoint: mine,
       p256dh: "key",
       auth: "secret",
@@ -166,9 +166,9 @@ describe("agreeing to be told", () => {
     expect(trail.length).toBeGreaterThan(0);
     expect(trail.some((row) => row.entityId === mine)).toBe(false);
 
-    await manager.client.push.stopListening({ endpoint: mine });
+    await manager.client.push.unsubscribe({ endpoint: mine });
     await expect(
-      manager.client.push.stopListening({ endpoint: mine })
+      manager.client.push.unsubscribe({ endpoint: mine })
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
@@ -176,14 +176,14 @@ describe("agreeing to be told", () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
     const staff = await createTestClient(appRouter, { as: "staff" });
     const theirs = endpoint();
-    await manager.client.push.listen({
+    await manager.client.push.subscribe({
       endpoint: theirs,
       p256dh: "key",
       auth: "secret",
     });
 
     await expect(
-      staff.client.push.stopListening({ endpoint: theirs })
+      staff.client.push.unsubscribe({ endpoint: theirs })
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 });
@@ -193,7 +193,7 @@ describe("review findings", () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
     const staff = await createTestClient(appRouter, { as: "staff" });
     const theirs = endpoint();
-    await manager.client.push.listen({
+    await manager.client.push.subscribe({
       endpoint: theirs,
       p256dh: "key",
       auth: "secret",
@@ -202,7 +202,7 @@ describe("review findings", () => {
     // An endpoint is an address, not a secret. Taking one over would silently stop its
     // owner being told — and leave the farm telling the wrong person its business.
     await expect(
-      staff.client.push.listen({
+      staff.client.push.subscribe({
         endpoint: theirs,
         p256dh: "mine",
         auth: "mine",
@@ -225,7 +225,7 @@ describe("review findings", () => {
         "https://push.farm-office.example.com/x",
       ].map(async (address) => {
         try {
-          await manager.client.push.listen({
+          await manager.client.push.subscribe({
             endpoint: address,
             p256dh: "key",
             auth: "secret",
@@ -252,7 +252,7 @@ describe("review findings", () => {
     ]) {
       // oxlint-disable-next-line no-await-in-loop
       await expect(
-        manager.client.push.listen({
+        manager.client.push.subscribe({
           endpoint: address,
           p256dh: "key",
           auth: "secret",
@@ -271,7 +271,7 @@ describe("review findings", () => {
       push: post.transport,
     });
     const handset = endpoint();
-    await phone.client.push.listen({
+    await phone.client.push.subscribe({
       endpoint: handset,
       p256dh: "key",
       auth: "secret",
@@ -318,7 +318,7 @@ describe("review findings", () => {
       push: post.transport,
     });
     const theirOwnPhone = endpoint();
-    await manager.client.push.listen({
+    await manager.client.push.subscribe({
       endpoint: theirOwnPhone,
       p256dh: "key",
       auth: "secret",
@@ -359,7 +359,7 @@ describe("review findings", () => {
       push: post.transport,
     });
     const theirs = endpoint();
-    await staff.client.push.listen({
+    await staff.client.push.subscribe({
       endpoint: theirs,
       p256dh: "key",
       auth: "secret",
@@ -402,7 +402,7 @@ describe("review findings", () => {
       push: post.transport,
     });
     const mine = endpoint();
-    await manager.client.push.listen({
+    await manager.client.push.subscribe({
       endpoint: mine,
       p256dh: "key",
       auth: "secret",
@@ -436,7 +436,7 @@ describe("review findings", () => {
       clock,
       push: post.transport,
     });
-    await manager.client.push.listen({
+    await manager.client.push.subscribe({
       endpoint: endpoint(),
       p256dh: "key",
       auth: "secret",
@@ -479,7 +479,7 @@ describe("being told", () => {
       push: post.transport,
     });
     const mine = endpoint();
-    await manager.client.push.listen({
+    await manager.client.push.subscribe({
       endpoint: mine,
       p256dh: "key",
       auth: "secret",
@@ -521,7 +521,7 @@ describe("being told", () => {
       push: post.transport,
     });
     await manager.client.language.set({ language: "en" });
-    await manager.client.push.listen({
+    await manager.client.push.subscribe({
       endpoint: endpoint(),
       p256dh: "key",
       auth: "secret",
@@ -555,7 +555,7 @@ describe("being told", () => {
       push: post.transport,
     });
     const theirs = endpoint();
-    await owner.client.push.listen({
+    await owner.client.push.subscribe({
       endpoint: theirs,
       p256dh: "key",
       auth: "secret",
@@ -611,7 +611,7 @@ describe("being told", () => {
       push: post.transport,
     });
     const wiped = endpoint();
-    await manager.client.push.listen({
+    await manager.client.push.subscribe({
       endpoint: wiped,
       p256dh: "key",
       auth: "secret",
@@ -629,7 +629,7 @@ describe("being told", () => {
     const inbox = await sweeper.client.alerts.mine({ entityId: instance.id });
     expect(inbox.length).toBeGreaterThan(0);
     await expect(
-      manager.client.push.stopListening({ endpoint: wiped })
+      manager.client.push.unsubscribe({ endpoint: wiped })
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
@@ -643,7 +643,7 @@ describe("being told", () => {
       clock,
       push: broken,
     });
-    await manager.client.push.listen({
+    await manager.client.push.subscribe({
       endpoint: endpoint(),
       p256dh: "key",
       auth: "secret",

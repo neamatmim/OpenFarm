@@ -60,7 +60,7 @@ const spend = async (
 
 const costOf = async (tagNumber: string) => {
   const owner = await as("owner", "2043-04-05T04:00:00.000Z");
-  return await owner.client.costs.ofAnimal({ tagNumber });
+  return await owner.client.costs.forAnimal({ tagNumber });
 };
 
 beforeAll(async () => {
@@ -72,12 +72,12 @@ beforeAll(async () => {
     name: "ফ্যাটেনিং",
   });
   penId = pen.id;
-  const spray = await owner.client.money.addCategory({
+  const spray = await owner.client.money.createCategory({
     nameBn: `মাছি স্প্রে ${suffix}`,
     direction: "out",
   });
   sprayId = spray.id;
-  const bits = await owner.client.money.addCategory({
+  const bits = await owner.client.money.createCategory({
     nameBn: `টুকিটাকি ${suffix}`,
     direction: "out",
   });
@@ -231,7 +231,7 @@ describe("Herd Costs", () => {
   // for and not the one before it, at the turn of the year as anywhere else.
   it("charges a newcomer the month she arrived in, and not the month before", async () => {
     const owner = await as("owner", "2044-01-20T04:00:00.000Z");
-    const winter = await owner.client.money.addCategory({
+    const winter = await owner.client.money.createCategory({
       nameBn: `শীতের খরচ ${suffix}`,
       direction: "out",
     });
@@ -247,14 +247,14 @@ describe("Herd Costs", () => {
     // Money of the December before she came: not hers, however the months are counted.
     await spend("2044-01-02T04:00:00.000Z", winter.id, 1000, "2043-12-31");
     const reader = await as("owner", "2044-02-02T04:00:00.000Z");
-    const afterDecember = await reader.client.costs.ofAnimal({
+    const afterDecember = await reader.client.costs.forAnimal({
       tagNumber: newcomer,
     });
     expect(afterDecember.herdMoney).toBe(0);
 
     // Money of the January she stood in: hers, with the others who were here.
     await spend("2044-01-31T04:00:00.000Z", winter.id, 2000, "2044-01-31");
-    const afterJanuary = await reader.client.costs.ofAnimal({
+    const afterJanuary = await reader.client.costs.forAnimal({
       tagNumber: newcomer,
     });
     expect(afterJanuary.herdMoney).toBeGreaterThan(0);

@@ -30,7 +30,10 @@ describe("the Owner's money, read on a Shed Phone", () => {
         "returns.breakdown",
         client.returns.breakdown({ seasonKey: "2090", by: "breed" }),
       ],
-      ["returns.animal", client.returns.animal({ animalId: "no-such-animal" })],
+      [
+        "returns.forAnimal",
+        client.returns.forAnimal({ animalId: "no-such-animal" }),
+      ],
       ["returns.venture", client.returns.venture(venture)],
       ["cullList.list", client.cullList.list()],
     ];
