@@ -53,4 +53,9 @@ describe("Baki on the sheets", () => {
     expect(somethingPaid(owed("0"))).toBe(false);
     expect(somethingPaid(owed("500"))).toBe(true);
   });
+
+  it("keeps asking how he paid while what he paid is not yet typed, so the box does not vanish at the tick", () => {
+    expect(somethingPaid(owed(""))).toBe(true);
+    expect(somethingPaid(owed(" "))).toBe(true);
+  });
 });

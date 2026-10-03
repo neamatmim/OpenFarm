@@ -43,9 +43,10 @@ export const bakiComplete = (
   return paidIsAFigure && paid <= worthBdt && promised;
 };
 
-/** Whether anything was paid at the gate, so how it was paid is worth asking. */
+/** Whether anything was paid at the gate, so how it was paid is worth asking. Still asked while what he paid is not
+ *  yet typed: the box goes only once nothing is said to have been paid, not the moment the tick is made. */
 export const somethingPaid = (typed: BakiTyped): boolean =>
-  !typed.owed || Number(typed.paidNow) > 0;
+  !typed.owed || typed.paidNow.trim() === "" || Number(typed.paidNow) > 0;
 
 /** What the buyer still owes as it is typed: what it came to less what he paid, or nothing while what he paid is not
  *  yet a figure the farm would take. */
