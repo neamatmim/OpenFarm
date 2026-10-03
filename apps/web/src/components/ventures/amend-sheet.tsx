@@ -2,11 +2,12 @@ import type { PaperDocument } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { FileText } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { SegmentedControl } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { PhotoField } from "@/components/photo-field";
 import type { WordingSaid } from "@/components/ventures/paper-dialog";
@@ -18,10 +19,13 @@ import { useRefused } from "@/lib/refused";
 import type { OwnWords } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
-/** The two refusals only this sheet can meet, in the reader's own language. */
+/** The refusals only this sheet can meet, in the reader's own language. */
 const WHY_NOT: OwnWords = {
   nobody_has_signed: "ventures.nobodyHasSigned",
   window_out_of_order: "ventures.windowOutOfOrder",
+  agreements_in_app_off: "agreeInApp.refusal.agreements_in_app_off",
+  investor_not_in_portal: "agreeInApp.refusal.someoneNotInPortal",
+  amendment_already_proposed: "agreeInApp.refusal.amendment_already_proposed",
 };
 
 /** Nothing of the profit, and all of it: the two ends a split may honestly sit on. */
@@ -87,16 +91,137 @@ const PrintAmendment = ({
   );
 };
 
+/** Clears the sheet's boxes, once saved or opened on another Venture. */
+type Clear = () => void;
+
+/** The sheet's two ways to save: amended on a paper everybody signed, its photograph with it, or offered to every
+ *  Investor to agree to in the app. Either closes the sheet when done. */
+const useAmendSaving = (done: Clear) => {
+  const { t, language } = useLanguage();
+  const refused = useRefused(WHY_NOT);
+  const amending = useMutation(
+    orpc.ventures.amend.mutationOptions({
+      onError: refused,
+      onSuccess: ({ agreements }) => {
+        done();
+        toast.success(
+          t("ventures.amended", {
+            count: formatNumber(agreements, language),
+          })
+        );
+      },
+    })
+  );
+  const offering = useMutation(
+    orpc.ventures.proposeAmendmentInApp.mutationOptions({
+      onError: refused,
+      onSuccess: () => {
+        done();
+        toast.success(t("agreeInApp.amendmentOffered"), {
+          description: t("agreeInApp.amendmentOfferedHint"),
+        });
+      },
+    })
+  );
+  return {
+    amend: amending.mutate,
+    offer: offering.mutate,
+    pending: amending.isPending || offering.isPending,
+  };
+};
+
+/** The signed paper's part of the sheet: the day everybody signed it, the paper to print, and its photograph. */
+const ThePaperPart = ({
+  amending,
+  termsReady,
+  signedOn,
+  onSignedOn,
+  paper,
+  onPaper,
+}: {
+  amending: Amending;
+  termsReady: boolean;
+  signedOn: string;
+  onSignedOn: (day: string) => void;
+  paper: Photo | null;
+  onPaper: (photo: Photo | null) => void;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <>
+      <FormField
+        hint={t("ventures.amendSignedHint")}
+        id="amend-signed"
+        label={t("ventures.amendSignedOn")}
+      >
+        <Input
+          id="amend-signed"
+          onChange={(event) => onSignedOn(event.target.value)}
+          type="date"
+          value={signedOn}
+        />
+      </FormField>
+      <PrintAmendment
+        amending={amending}
+        ready={termsReady && signedOn !== ""}
+      />
+      <FormField
+        hint={t("ventures.amendPaperHint")}
+        id="amend-paper"
+        label={t("ventures.amendPaper")}
+      >
+        <PhotoField
+          chosen={paper !== null}
+          id="amend-paper"
+          onPhoto={onPaper}
+          takeLabel="ventures.paperTake"
+        />
+      </FormField>
+    </>
+  );
+};
+
+/** How it is agreed — on a paper everybody signs, or in the app — offered only while the farm's switch is on. */
+const HowItIsAgreed = ({
+  inApp,
+  onChange,
+}: {
+  inApp: boolean;
+  onChange: (inApp: boolean) => void;
+}) => {
+  const { t } = useLanguage();
+  const investors = useQuery(orpc.investors.list.queryOptions());
+  if (!(investors.data?.agreementsInApp ?? false)) {
+    return null;
+  }
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-sm font-medium" data-slot="form-label">
+        {t("agreeInApp.how")}
+      </span>
+      <SegmentedControl
+        label={t("agreeInApp.how")}
+        name="amend-how"
+        onChange={(how) => onChange(how === "in_app")}
+        options={[
+          { value: "paper", label: t("agreeInApp.onPaper") },
+          { value: "in_app", label: t("agreeInApp.route") },
+        ]}
+        value={inApp ? "in_app" : "paper"}
+      />
+      {inApp ? (
+        <p className="text-muted-foreground text-sm">
+          {t("agreeInApp.amendSheetHint")}
+        </p>
+      ) : null}
+    </div>
+  );
+};
+
 /**
- * One paper amending every Agreement on a Venture.
- *
- * One act because it is one piece of paper: the terms move for everybody or for nobody, which is what
- * "signed by every Investor in that Venture" means when it is written down. What each of them signed at
- * the start is never edited — it stays legible beside what it became, and the farm can still say what a
- * man had agreed to on the day a thing happened.
- *
- * Only the split and the Target Window. Units are fixed once a Venture starts buying, and the cap, the
- * capital already taken and every share worked out since all rest on them.
+ * An Amendment to every Agreement on a Venture: the split and the Target Window it moves them to, why, and — signed on
+ * paper — the day everybody signed it and its photograph; or, while the farm's switch is on, offered to every Investor
+ * to agree to in the app instead.
  */
 export const AmendSheet = ({
   venture,
@@ -107,47 +232,34 @@ export const AmendSheet = ({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) => {
-  const { t, language } = useLanguage();
-  const refused = useRefused(WHY_NOT);
+  const { t } = useLanguage();
   const [percent, setPercent] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [signedOn, setSignedOn] = useState("");
   const [reason, setReason] = useState("");
   const [paper, setPaper] = useState<Photo | null>(null);
-  useFreshFor(venture?.id, () => {
+  const [inApp, setInApp] = useState(false);
+  const clear = () => {
     setPercent("");
     setFrom("");
     setTo("");
     setSignedOn("");
     setReason("");
     setPaper(null);
+    setInApp(false);
+  };
+  useFreshFor(venture?.id, clear);
+  const saving = useAmendSaving(() => {
+    clear();
+    onOpenChange(false);
   });
-  const amending = useMutation(
-    orpc.ventures.amend.mutationOptions({
-      onError: refused,
-      onSuccess: ({ agreements }) => {
-        setPercent("");
-        setFrom("");
-        setTo("");
-        setSignedOn("");
-        setReason("");
-        setPaper(null);
-        onOpenChange(false);
-        toast.success(
-          t("ventures.amended", {
-            count: formatNumber(agreements, language),
-          })
-        );
-      },
-    })
-  );
   const share = Number(percent);
   // Said as two refusals rather than one chained comparison. A comparison written with an angle bracket
   // against a letter reads, to the guard that hunts for untranslated words, as a tag closing on text.
   const takesLessThanNothing = share < NONE;
   const takesMoreThanEverything = share > ALL;
-  // What the paper to sign needs; recording it needs the photograph of it signed as well.
+  // What the paper needs; recording one signed needs the day and its photograph as well, one agreed in the app neither.
   const termsReady =
     venture !== null &&
     percent !== "" &&
@@ -157,31 +269,39 @@ export const AmendSheet = ({
     from !== "" &&
     to !== "" &&
     from <= to &&
-    signedOn !== "" &&
     reason.trim() !== "";
-  const ready = termsReady && paper !== null;
+  const signedReady = signedOn !== "" && paper !== null;
+  const amending = {
+    ventureId: venture?.id ?? "",
+    investorsPercent: share,
+    targetWindowStart: from,
+    targetWindowEnd: to,
+    signedOn,
+    reason: reason.trim(),
+  };
   return (
     <FormSheet
       description={t("ventures.amendHint", { venture: venture?.name ?? "" })}
       onOpenChange={onOpenChange}
       onSubmit={() => {
-        if (!paper) {
+        if (inApp) {
+          saving.offer({
+            ventureId: amending.ventureId,
+            investorsPercent: share,
+            targetWindowStart: from,
+            targetWindowEnd: to,
+            reason: amending.reason,
+          });
           return;
         }
-        amending.mutate({
-          ventureId: venture?.id ?? "",
-          investorsPercent: share,
-          targetWindowStart: from,
-          targetWindowEnd: to,
-          signedOn,
-          reason: reason.trim(),
-          ...paper,
-        });
+        if (paper) {
+          saving.amend({ ...amending, ...paper });
+        }
       }}
       open={open}
-      pending={amending.isPending}
-      ready={ready}
-      submitLabel={t("ventures.amend")}
+      pending={saving.pending}
+      ready={termsReady && (inApp || signedReady)}
+      submitLabel={inApp ? t("agreeInApp.offer") : t("ventures.amend")}
       title={t("ventures.amend")}
     >
       <FormField
@@ -216,18 +336,6 @@ export const AmendSheet = ({
         </FormField>
       </div>
       <FormField
-        hint={t("ventures.amendSignedHint")}
-        id="amend-signed"
-        label={t("ventures.amendSignedOn")}
-      >
-        <Input
-          id="amend-signed"
-          onChange={(event) => setSignedOn(event.target.value)}
-          type="date"
-          value={signedOn}
-        />
-      </FormField>
-      <FormField
         hint={t("ventures.amendReasonHint")}
         id="amend-reason"
         label={t("ventures.amendReason")}
@@ -238,29 +346,17 @@ export const AmendSheet = ({
           value={reason}
         />
       </FormField>
-      <PrintAmendment
-        amending={{
-          ventureId: venture?.id ?? "",
-          investorsPercent: share,
-          targetWindowStart: from,
-          targetWindowEnd: to,
-          signedOn,
-          reason: reason.trim(),
-        }}
-        ready={termsReady}
-      />
-      <FormField
-        hint={t("ventures.amendPaperHint")}
-        id="amend-paper"
-        label={t("ventures.amendPaper")}
-      >
-        <PhotoField
-          chosen={paper !== null}
-          id="amend-paper"
-          onPhoto={setPaper}
-          takeLabel="ventures.paperTake"
+      <HowItIsAgreed inApp={inApp} onChange={setInApp} />
+      {inApp ? null : (
+        <ThePaperPart
+          amending={amending}
+          onPaper={setPaper}
+          onSignedOn={setSignedOn}
+          paper={paper}
+          signedOn={signedOn}
+          termsReady={termsReady}
         />
-      </FormField>
+      )}
     </FormSheet>
   );
 };

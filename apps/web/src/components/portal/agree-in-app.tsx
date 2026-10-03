@@ -1,4 +1,4 @@
-import { formatNumber } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Eye, Handshake } from "lucide-react";
@@ -23,6 +23,46 @@ const REFUSALS = {
   not_an_investor: "portal.refused.notAnInvestor",
   signed_in_too_long: "portal.endedHint",
 } as const;
+
+type AmendmentOffer = Awaited<
+  ReturnType<typeof client.portal.amendmentOffers>
+>[number];
+
+/** The paper offered, to read in full, and «আমি সম্মত» beneath it until they have agreed. */
+const ReadAndAgree = ({
+  title,
+  paper,
+  agreed,
+  pending,
+  onAgree,
+  onClose,
+}: {
+  title: string;
+  paper: Offer["paper"] | null;
+  agreed: boolean;
+  pending: boolean;
+  onAgree: () => void;
+  onClose: () => void;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <PaperDialog
+      action={
+        agreed ? undefined : (
+          <Button disabled={pending} onClick={onAgree} type="button">
+            <Handshake aria-hidden data-icon="inline-start" />
+            {t("agreeInApp.portal.agree")}
+          </Button>
+        )
+      }
+      description={agreed ? undefined : t("agreeInApp.portal.agreeHint")}
+      onClose={onClose}
+      paper={paper}
+      title={title}
+      wording={null}
+    />
+  );
+};
 
 /** One Agreement offered to them: what it is, and the paper to read and agree to — or, agreed, that the farm will
  *  approve it. */
@@ -68,29 +108,76 @@ const OfferNotice = ({ offer }: { offer: Offer }) => {
             : t("agreeInApp.portal.read")}
         </Button>
       </div>
-      <PaperDialog
-        action={
-          agreed ? undefined : (
-            <Button
-              disabled={agreeing.isPending}
-              onClick={() =>
-                agreeing.mutate({
-                  offerId: offer.id,
-                  paperHash: offer.paperHash,
-                })
-              }
-              type="button"
-            >
-              <Handshake aria-hidden data-icon="inline-start" />
-              {t("agreeInApp.portal.agree")}
-            </Button>
-          )
+      <ReadAndAgree
+        agreed={agreed}
+        onAgree={() =>
+          agreeing.mutate({ offerId: offer.id, paperHash: offer.paperHash })
         }
-        description={agreed ? undefined : t("agreeInApp.portal.agreeHint")}
         onClose={() => setReading(false)}
         paper={reading ? offer.paper : null}
+        pending={agreeing.isPending}
         title={t("agreeInApp.portal.paperTitle")}
-        wording={null}
+      />
+    </Notice>
+  );
+};
+
+/** One Amendment offered on a Venture they are in: what it moves their terms to, and the paper to read and agree to. */
+const AmendmentNotice = ({ offer }: { offer: AmendmentOffer }) => {
+  const { t, language } = useLanguage();
+  const refused = useRefused(REFUSALS);
+  const [reading, setReading] = useState(false);
+  const agreeing = useMutation(
+    orpc.portal.agreeToAmendment.mutationOptions({
+      onError: refused,
+      onSuccess: () => {
+        setReading(false);
+        toast.success(t("agreeInApp.portal.agreedDone"));
+      },
+    })
+  );
+  const agreed = offer.agreedAt !== null;
+  return (
+    <Notice
+      icon={Handshake}
+      title={t("agreeInApp.portal.amendmentTitle", {
+        venture: offer.ventureName,
+      })}
+      tone={agreed ? "success" : "info"}
+    >
+      <div className="flex flex-col gap-3">
+        <p>
+          {agreed
+            ? t("agreeInApp.portal.amendmentAgreedHint")
+            : t("agreeInApp.portal.amendmentHint", {
+                percent: formatNumber(offer.investorsPercent, language),
+                from: formatDate(new Date(offer.targetWindowStart), language),
+                to: formatDate(new Date(offer.targetWindowEnd), language),
+                reason: offer.reason,
+              })}
+        </p>
+        <Button
+          className="self-start"
+          onClick={() => setReading(true)}
+          size="sm"
+          type="button"
+          variant={agreed ? "outline" : "default"}
+        >
+          <Eye aria-hidden data-icon="inline-start" />
+          {agreed
+            ? t("agreeInApp.portal.readAgain")
+            : t("agreeInApp.portal.readAmendment")}
+        </Button>
+      </div>
+      <ReadAndAgree
+        agreed={agreed}
+        onAgree={() =>
+          agreeing.mutate({ offerId: offer.id, paperHash: offer.paperHash })
+        }
+        onClose={() => setReading(false)}
+        paper={reading ? offer.paper : null}
+        pending={agreeing.isPending}
+        title={t("agreeInApp.portal.amendmentPaperTitle")}
       />
     </Notice>
   );
@@ -107,6 +194,10 @@ export const AgreeInApp = () => {
     ...orpc.portal.agreementOffers.queryOptions(),
     enabled: !previewing,
   });
+  const amendments = useQuery({
+    ...orpc.portal.amendmentOffers.queryOptions(),
+    enabled: !previewing,
+  });
   if (previewing) {
     return null;
   }
@@ -114,6 +205,9 @@ export const AgreeInApp = () => {
     <>
       {(offers.data ?? []).map((one) => (
         <OfferNotice key={one.id} offer={one} />
+      ))}
+      {(amendments.data ?? []).map((one) => (
+        <AmendmentNotice key={one.id} offer={one} />
       ))}
     </>
   );

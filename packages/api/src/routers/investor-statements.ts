@@ -8,7 +8,7 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import { agreementLaidOut } from "../agreement-paper";
+import { agreementLaidOut, amendmentLaidOut } from "../agreement-paper";
 import { audited } from "../audit";
 import { assertRegistered, exportedPaper } from "../export-store";
 import { farmDay } from "../farm-clock";
@@ -18,11 +18,7 @@ import {
   progressStatementFor,
   settlementStatementFor,
 } from "../investor-papers";
-import {
-  nominationSignedWith,
-  nominationsInForceFor,
-  paperNominees,
-} from "../nomination-store";
+import { nominationSignedWith, paperNominees } from "../nomination-store";
 import { assertNamable, nomineesInput, nomineesToSign } from "../nominations";
 import { paperInvestor, paperValues, producedAt } from "../paper-values";
 import { noticeFilling } from "../portal-reads";
@@ -362,47 +358,6 @@ export const investorStatementsRouter = {
     )
     .handler(async ({ context, input }) => {
       assertRegistered(context.farm, "an Amendment");
-      const run = await context.db.query.venture.findFirst({
-        where: { id: input.ventureId, farmId: context.farm.id },
-        columns: { id: true, name: true },
-      });
-      if (!run) {
-        throw new ORPCError("NOT_FOUND", { message: "No such Venture" });
-      }
-      const signed = await context.db.query.investmentAgreement.findMany({
-        where: { farmId: context.farm.id, ventureId: run.id },
-        columns: { investorId: true },
-        orderBy: { createdAt: "asc", id: "asc" },
-      });
-      const investors = await context.db.query.investor.findMany({
-        where: {
-          farmId: context.farm.id,
-          id: { in: signed.map((one) => one.investorId) },
-        },
-      });
-      const inForce = await nominationsInForceFor(
-        context.db,
-        context.farm.id,
-        investors.map((him) => him.id)
-      );
-      const today = farmDayOf(context.clock.now());
-      const [first, ...rest] = signed.flatMap((one) => {
-        const row = investors.find((him) => him.id === one.investorId);
-        return row
-          ? [
-              paperInvestor(
-                row,
-                paperNominees(inForce.get(row.id) ?? null, today)
-              ),
-            ]
-          : [];
-      });
-      if (!first) {
-        throw new ORPCError("BAD_REQUEST", {
-          message: "Nobody has signed for this Venture yet",
-          data: { refusal: "nobody_has_signed" },
-        });
-      }
       await giveStandardTemplates(context);
       const wording = await currentWording(
         context.db,
@@ -411,24 +366,14 @@ export const investorStatementsRouter = {
       );
       const now = context.clock.now();
       const language = await languageOf(context.db, context.actor.id);
-      const document = paperFrom(wording.content, {
-        kind: "agreement_amendment",
-        parties: {
-          farm: context.farm,
-          ownerName: context.actor.name,
-          investors: [first, ...rest],
-        },
-        values: paperValues({
-          farm: context.farm,
-          ownerName: context.actor.name,
-          ventureName: run.name,
-          investorsPercent: input.investorsPercent,
-          windowStart: input.targetWindowStart,
-          windowEnd: input.targetWindowEnd,
-          amendedOn: input.signedOn,
-          reason: input.reason,
-        }),
-        producedBy: context.actor.name,
+      const { document, run } = await amendmentLaidOut(context.db, {
+        farm: context.farm,
+        ownerName: context.actor.name,
+        ventureId: input.ventureId,
+        terms: input,
+        amendedOn: input.signedOn,
+        wording: wording.content,
+        today: farmDayOf(now),
         producedAt: producedAt(now, language),
       });
       await audited(context).write(

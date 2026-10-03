@@ -1,4 +1,8 @@
-import { investmentAgreement } from "@OpenFarm/db/schema/venture";
+import { uuidv7 } from "@OpenFarm/db/ids";
+import {
+  agreementAmendment,
+  investmentAgreement,
+} from "@OpenFarm/db/schema/venture";
 import type { StampKind } from "@OpenFarm/db/schema/venture";
 import type { Nominee } from "@OpenFarm/domain";
 import { farmDayOf } from "@OpenFarm/domain";
@@ -142,4 +146,70 @@ export const writeAgreement = async (
     now: by.now,
   });
   return given;
+};
+
+/** What an Amendment is written with, however it came to be agreed — on a signed paper or in the app. */
+export interface AmendmentToWrite {
+  ventureId: string;
+  /** The one act its rows are written by, so the Venture's Amendment reads as one paper again. */
+  amendedId: string;
+  /** The day every Investor signed it — or, agreed in the app, the day the Owner approved it. */
+  signedOn: string;
+  investorsPercent: number;
+  targetWindowStart: string;
+  targetWindowEnd: string;
+  reason: string;
+  templateVersionId: string;
+}
+
+/**
+ * Writes one Amendment against every Agreement on a Venture, inside a transaction already held and behind the Farm
+ * lock: one paper, so a Venture is never half amended. Refused once its Settlement is approved — those figures are what
+ * everybody was paid on — and with nobody signed. Answers with the Agreements it was written against.
+ */
+export const writeAmendment = async (
+  tx: Tx,
+  farmId: string,
+  by: { id: string; now: Date },
+  amendment: AmendmentToWrite
+): Promise<string[]> => {
+  await lockTheFarm(tx, farmId);
+  const approved = await tx.query.ventureSettlement.findFirst({
+    where: { farmId, ventureId: amendment.ventureId },
+    columns: { id: true },
+  });
+  if (approved) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This Venture's Settlement has been approved",
+      data: { refusal: "already_approved" },
+    });
+  }
+  const signed = await tx.query.investmentAgreement.findMany({
+    where: { farmId, ventureId: amendment.ventureId },
+    columns: { id: true },
+    orderBy: { createdAt: "asc", id: "asc" },
+  });
+  if (signed.length === 0) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Nobody has signed for this Venture yet",
+      data: { refusal: "nobody_has_signed" },
+    });
+  }
+  await tx.insert(agreementAmendment).values(
+    signed.map((one) => ({
+      id: uuidv7(),
+      farmId,
+      agreementId: one.id,
+      amendedId: amendment.amendedId,
+      signedOn: amendment.signedOn,
+      investorsPercent: amendment.investorsPercent,
+      targetWindowStart: amendment.targetWindowStart,
+      targetWindowEnd: amendment.targetWindowEnd,
+      reason: amendment.reason,
+      templateVersionId: amendment.templateVersionId,
+      amendedBy: by.id,
+      createdAt: by.now,
+    }))
+  );
+  return signed.map((one) => one.id);
 };

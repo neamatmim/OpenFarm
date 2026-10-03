@@ -499,6 +499,68 @@ export const agreementOffer = pgTable(
   (table) => [index("agreement_offer_venture_idx").on(table.ventureId)]
 );
 
+/**
+ * An Amendment offered to every Investor on a Venture to agree to in the app, instead of on a signed paper: the split,
+ * the Target Window and why, and the paper as it was laid out the moment it was offered, kept as it is. Not an
+ * Amendment: nothing reads it until every Investor on the Venture has agreed and the Owner approves it, and then the
+ * Amendment is written from it, signed on the day approved.
+ */
+export const amendmentOffer = pgTable(
+  "amendment_offer",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    ventureId: text("venture_id")
+      .notNull()
+      .references(() => venture.id, { onDelete: "cascade" }),
+    investorsPercent: integer("investors_percent").notNull(),
+    targetWindowStart: text("target_window_start").notNull(),
+    targetWindowEnd: text("target_window_end").notNull(),
+    reason: text("reason").notNull(),
+    templateVersionId: text("template_version_id").references(
+      () => paperTemplateVersion.id
+    ),
+    /** The paper as laid out when it was offered, naming every Investor then on the Venture: what each agreed to. */
+    paper: jsonb("paper").notNull(),
+    paperHash: text("paper_hash").notNull(),
+    offeredBy: text("offered_by").references(() => user.id),
+    offeredAt: timestamp("offered_at").notNull(),
+    withdrawnAt: timestamp("withdrawn_at"),
+    approvedBy: text("approved_by").references(() => user.id),
+    approvedAt: timestamp("approved_at"),
+    /** The Amendment written from it on approval: its rows' `amendedId`. */
+    amendedId: text("amended_id"),
+  },
+  (table) => [index("amendment_offer_venture_idx").on(table.ventureId)]
+);
+
+/** One Investor agreeing, from their own portal sign-in, to an Amendment offered in the app, for one Agreement. */
+export const amendmentOfferAnswer = pgTable(
+  "amendment_offer_answer",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    offerId: text("offer_id")
+      .notNull()
+      .references(() => amendmentOffer.id, { onDelete: "cascade" }),
+    agreementId: text("agreement_id")
+      .notNull()
+      .references(() => investmentAgreement.id),
+    agreedBy: text("agreed_by").references(() => user.id),
+    agreedAt: timestamp("agreed_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("amendment_offer_answer_uidx").on(
+      table.offerId,
+      table.agreementId
+    ),
+  ]
+);
+
 /** What an Investor did to their own Request. */
 export const REQUEST_CHANGE_KINDS = ["made", "changed", "withdrawn"] as const;
 

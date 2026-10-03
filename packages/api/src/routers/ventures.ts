@@ -2,7 +2,6 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
 import { PAYMENT_METHODS } from "@OpenFarm/db/schema/money";
 import {
-  agreementAmendment,
   agreementPaper,
   amendmentPaper,
   ventureSettlementShare,
@@ -41,7 +40,13 @@ import {
   offersOn,
   withdrawOffer,
 } from "../agreement-offer-store";
-import { writeAgreement } from "../agreement-write";
+import { writeAgreement, writeAmendment } from "../agreement-write";
+import {
+  amendmentOffersOn,
+  approveAmendment,
+  proposeAmendmentInApp,
+  withdrawAmendment,
+} from "../amendment-offer-store";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { NEVER_CHECKED } from "../bank-standing";
@@ -1380,6 +1385,50 @@ export const venturesRouter = {
     .input(z.object({ offerId: z.string() }))
     .handler(({ context, input }) => approveOffer(context, input.offerId)),
 
+  /**
+   * An Amendment offered to every Investor on a Venture to agree to in the app, instead of on a paper they all sign
+   * (`proposeAmendmentInApp`). Refused while the farm's switch is off.
+   */
+  proposeAmendmentInApp: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        ventureId: z.string(),
+        investorsPercent: z.number().int().min(0).max(100),
+        targetWindowStart: farmDay,
+        targetWindowEnd: farmDay,
+        reason: z.string().trim().min(1).max(400),
+      })
+    )
+    .handler(({ context, input }) => proposeAmendmentInApp(context, input)),
+
+  /** Takes an Amendment offer back until it is approved (`withdrawAmendment`). */
+  withdrawAmendment: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ offerId: z.string() }))
+    .handler(async ({ context, input }) => {
+      await withdrawAmendment(context, input.offerId);
+      return { id: input.offerId };
+    }),
+
+  /** Approves an Amendment every Investor on the Venture has agreed to: the Venture is amended (`approveAmendment`). */
+  approveAmendment: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ offerId: z.string() }))
+    .handler(({ context, input }) => approveAmendment(context, input.offerId)),
+
+  /** Every Amendment offered on a Venture to agree to in the app, and how far it has got (`amendmentOffersOn`). */
+  amendmentOffers: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ ventureId: z.string() }))
+    .handler(({ context, input }) =>
+      amendmentOffersOn(context, input.ventureId)
+    ),
+
   /** Every offer made on a Venture to agree to in the app, and where each stands (`offersOn`). */
   agreementOffers: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
@@ -1442,24 +1491,12 @@ export const venturesRouter = {
             termsAcrossOn(tx, context.farm.id, row.id, input.signedOn),
         },
         async (tx) => {
-          await lockTheFarm(tx, context.farm.id);
-          await assertNotSettledUp(tx, context.farm.id, row.id);
-          const signed = await tx.query.investmentAgreement.findMany({
-            where: { farmId: context.farm.id, ventureId: row.id },
-            columns: { id: true },
-            orderBy: { createdAt: "asc", id: "asc" },
-          });
-          if (signed.length === 0) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: "Nobody has signed for this Venture yet",
-              data: { refusal: "nobody_has_signed" },
-            });
-          }
-          await tx.insert(agreementAmendment).values(
-            signed.map((one) => ({
-              id: uuidv7(),
-              farmId: context.farm.id,
-              agreementId: one.id,
+          const signed = await writeAmendment(
+            tx,
+            context.farm.id,
+            { id: context.actor.id, now },
+            {
+              ventureId: row.id,
               amendedId,
               signedOn: input.signedOn,
               investorsPercent: input.investorsPercent,
@@ -1467,9 +1504,7 @@ export const venturesRouter = {
               targetWindowEnd: input.targetWindowEnd,
               reason: input.reason,
               templateVersionId: wording.versionId,
-              amendedBy: context.actor.id,
-              createdAt: now,
-            }))
+            }
           );
           // One photograph of one piece of paper, kept once and pointed at by every row.
           await tx.insert(amendmentPaper).values({

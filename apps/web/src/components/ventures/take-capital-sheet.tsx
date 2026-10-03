@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useInvestorNames } from "@/components/investors/investor-names";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { paperOnFile } from "@/lib/agreed-in-app";
 import { useFreshFor } from "@/lib/fresh-for";
 import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
@@ -30,13 +31,17 @@ const NOTHING_YET: Arrival = {
 
 /** Why a paper takes no capital now, as its option says it — paid up, or not yet papered — or nothing. */
 const whyNotThisPaper = (
-  one: { capitalLeftBdt: number; hasPaper: boolean },
+  one: {
+    capitalLeftBdt: number;
+    hasPaper: boolean;
+    stamp?: { kind: string } | null;
+  },
   t: (key: MessageKey) => string
 ): string | undefined => {
   if (one.capitalLeftBdt === 0) {
     return t("ventures.paidInFull");
   }
-  return one.hasPaper ? undefined : t("ventures.noPaperYet");
+  return paperOnFile(one) ? undefined : t("ventures.noPaperYet");
 };
 
 /**
