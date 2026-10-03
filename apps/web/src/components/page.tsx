@@ -44,6 +44,9 @@ const TONE_ICON: Record<Tone, LucideIcon> = {
  *  step of the day's work — keeps to a column in the middle, where one line of it is read at a time. */
 const WIDTH = {
   narrow: "mx-auto max-w-2xl",
+  // A person's own settings: a few short parts, each read as a whole, kept to a width a form is read at (Polaris's
+  // settings pages are its small width). Left-aligned, so the title stands where every other page's does.
+  settings: "max-w-5xl",
   default: "",
 } as const;
 
@@ -212,6 +215,50 @@ export const Section = ({
       </div>
     ) : null}
     {children}
+  </section>
+);
+
+/**
+ * A part of a settings page, laid out as Polaris's annotated layout: on a desk its title and what it is for in a column
+ * on the left, and the card of what to set on the right, so a page of them reads down one line of titles. On a phone
+ * and a tablet the title stands above its card.
+ */
+export const SettingsSection = ({
+  title,
+  description,
+  action,
+  children,
+  id,
+}: {
+  title: ReactNode;
+  description?: ReactNode;
+  action?: ReactNode;
+  children: ReactNode;
+  id: string;
+}) => (
+  <section
+    aria-labelledby={`${id}-title`}
+    className="grid gap-3 lg:grid-cols-[18rem_minmax(0,1fr)] lg:gap-8"
+    id={id}
+  >
+    <div className="flex min-w-0 flex-col gap-0.5 lg:pt-5">
+      <h2
+        className={SECTION_TITLE}
+        data-slot="section-title"
+        id={`${id}-title`}
+      >
+        {title}
+      </h2>
+      {description ? (
+        <p className="text-muted-foreground text-sm">{description}</p>
+      ) : null}
+    </div>
+    <div className="surface flex min-w-0 flex-col gap-4 p-4 md:p-5">
+      {children}
+      {action ? (
+        <div className="flex flex-wrap items-center gap-2">{action}</div>
+      ) : null}
+    </div>
   </section>
 );
 

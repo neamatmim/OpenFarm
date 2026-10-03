@@ -849,7 +849,7 @@ const ParameterGroup = ({
       saveLabel={t("params.save")}
       title={t(group.title)}
     >
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid max-w-3xl gap-4 sm:grid-cols-2">
         {group.fields.map((field) => {
           const id = `param-${field.key}`;
           return (

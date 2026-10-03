@@ -85,7 +85,7 @@ const ContactSection = ({ farm }: { farm: Identity }) => {
       saveLabel={t("identity.save")}
       title={t("identity.contact")}
     >
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid max-w-3xl gap-4 sm:grid-cols-2">
         {/* The name is the farm's, set when it was created, and not changed from here. */}
         <FormField
           className="sm:col-span-2"
@@ -156,7 +156,7 @@ const RegistrationSection = ({ farm }: { farm: Identity }) => {
       saveLabel={t("identity.save")}
       title={t("identity.registration")}
     >
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid max-w-3xl gap-4 sm:grid-cols-2">
         <FormField
           id="identity-number"
           label={t("identity.registrationNumber")}
