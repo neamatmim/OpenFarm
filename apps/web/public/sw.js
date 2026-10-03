@@ -97,7 +97,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   // Never the API: what the farm says is the app's business, and what the phone has to say
   // goes through the Outbox.
-  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/rpc")) {
+  if (url.pathname.startsWith("/api/")) {
     return;
   }
   if (request.mode === "navigate") {

@@ -4,7 +4,7 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRightLeft,
@@ -261,35 +261,19 @@ const VenturesPage = () => {
   );
 };
 
-/** What the address may say about this page: which tab she is reading — and, from an older notice, whose papers
- *  she came for, which now live in that Venture's Investors tab. */
+/** What the address may say about this page: which tab she is reading. */
 interface VenturesSearch {
   tab?: Tab;
-  statements?: string;
 }
 
 export const Route = createFileRoute("/_authenticated/ventures/")({
   /** The Owner's alone: nobody else is shown a screen that would only refuse them. */
-  beforeLoad: ({ context, search }) => {
-    onlyFor("owner")({ context });
-    // A notice raised before each Investor's papers moved into his row still sends her here with the Venture in
-    // the address: she is taken to where they are now.
-    if (search.statements) {
-      throw redirect({
-        params: { ventureId: search.statements },
-        search: { tab: "investors" },
-        to: "/ventures/$ventureId",
-      });
-    }
-  },
+  beforeLoad: onlyFor("owner"),
   component: VenturesPage,
   validateSearch: (search: Record<string, unknown>): VenturesSearch => {
     const said: VenturesSearch = {};
     if (TABS.includes(search.tab as Tab) && search.tab !== "running") {
       said.tab = search.tab as Tab;
-    }
-    if (typeof search.statements === "string" && search.statements !== "") {
-      said.statements = search.statements;
     }
     return said;
   },

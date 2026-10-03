@@ -63,7 +63,6 @@ const OPEN_TO_A_VISIT = new Set<string>([
  * their hand, not about the farm's animals, work or settings.
  */
 const ROLE_FREE = new Map<string, string>([
-  ["healthCheck", "says the server is up, and nothing else"],
   ["people.me", "says who they are, and what their Scope is"],
   [
     "people.acceptInvite",
