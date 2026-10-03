@@ -31,11 +31,13 @@ export const env = createEnv({
     SMS_GATEWAY_KEY: z.string().optional(),
     /** The sender id the provider registered for this farm, where one is needed. */
     SMS_GATEWAY_FROM: z.string().optional(),
-    /** Where the farm is (ADR 0013): the ISO 4217 code its money is counted in, and the IANA time zone its own day is
-     *  read on. Unset, a farm in Bangladesh — taka, Asia/Dhaka. Fixed when the server is set up: changed afterwards,
-     *  every sum and every day the farm already kept reads differently. */
+    /** Where the farm is (ADR 0013): the ISO 4217 code its money is counted in, the IANA time zone its own day is read
+     *  on, and the ISO 3166 country a phone number written without its country code is read in. Unset, a farm in
+     *  Bangladesh — taka, Asia/Dhaka, BD. Fixed when the server is set up: changed afterwards, every sum, every day and
+     *  every number the farm already kept reads differently. */
     OPENFARM_CURRENCY: z.string().optional(),
     OPENFARM_TIME_ZONE: z.string().optional(),
+    OPENFARM_COUNTRY: z.string().optional(),
   },
   runtimeEnv: process.env,
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,

@@ -1,4 +1,5 @@
 import { PASSWORD_MIN_LENGTH } from "@OpenFarm/auth/password";
+import { phoneExample } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -132,7 +133,7 @@ const PortalJoin = () => {
             id="join-phone"
             inputMode="tel"
             onChange={(event) => setPhone(event.target.value)}
-            placeholder={t("portal.phonePlaceholder")}
+            placeholder={phoneExample(language)}
             type="tel"
             value={phone}
           />

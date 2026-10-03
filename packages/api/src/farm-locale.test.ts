@@ -22,8 +22,9 @@ describe("where the server says the farm is", () => {
       await settled({
         OPENFARM_CURRENCY: undefined,
         OPENFARM_TIME_ZONE: undefined,
+        OPENFARM_COUNTRY: undefined,
       })
-    ).toEqual({ currency: "BDT", timeZone: "Asia/Dhaka" });
+    ).toEqual({ currency: "BDT", timeZone: "Asia/Dhaka", country: "BD" });
   });
 
   it("counts in the currency and keeps the clock it was set up with", async () => {
@@ -31,13 +32,20 @@ describe("where the server says the farm is", () => {
       await settled({
         OPENFARM_CURRENCY: "USD",
         OPENFARM_TIME_ZONE: "America/Chicago",
+        OPENFARM_COUNTRY: "us",
       })
-    ).toEqual({ currency: "USD", timeZone: "America/Chicago" });
+    ).toEqual({ currency: "USD", timeZone: "America/Chicago", country: "US" });
   });
 
   it("stops at a currency the farm has no words for", async () => {
     await expect(settled({ OPENFARM_CURRENCY: "XYZ" })).rejects.toThrow(
       "OPENFARM_CURRENCY is XYZ"
+    );
+  });
+
+  it("stops at a country whose mobile numbers it cannot read", async () => {
+    await expect(settled({ OPENFARM_COUNTRY: "XQ" })).rejects.toThrow(
+      "OPENFARM_COUNTRY is XQ"
     );
   });
 

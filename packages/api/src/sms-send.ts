@@ -3,7 +3,7 @@ import { and, eq, lt } from "@OpenFarm/db/operators";
 import { ALERT_KINDS, textMessage } from "@OpenFarm/db/schema/alert";
 import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
 import type { AlertKind } from "@OpenFarm/domain";
-import { goesByText } from "@OpenFarm/domain";
+import { goesByText, mobileNumberOf } from "@OpenFarm/domain";
 
 import type { Context } from "./context";
 import type { RaisedAlert } from "./instances-store";
@@ -142,8 +142,12 @@ const tellThemBySms = async (
         already += 1;
         continue;
       }
+      // Through the gateway as the world writes the number, +8801711234567, whatever way it was typed.
       // oxlint-disable-next-line no-await-in-loop
-      const answer = await context.sms.send(person.phone, message);
+      const answer = await context.sms.send(
+        mobileNumberOf(person.phone) ?? person.phone,
+        message
+      );
       if (answer.delivered) {
         sent += 1;
       } else {

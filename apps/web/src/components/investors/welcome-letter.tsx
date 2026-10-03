@@ -1,4 +1,4 @@
-import { PORTAL_SIGN_IN_HOURS } from "@OpenFarm/domain";
+import { phoneSaid, PORTAL_SIGN_IN_HOURS } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import {
   formatDate,
@@ -34,19 +34,10 @@ export const HANDED_OVER_ID = "handed-over-paper";
 
 /** Four characters of a code at a time. */
 const FOUR_AT_A_TIME = /.{1,4}/gu;
-/** A mobile number as the farm keeps it: 01, then nine digits. */
-const MOBILE = /^01\d{9}$/u;
 
 /** A code as it is printed and read aloud: in fours, `K7QM 4PXA`. */
 export const inFours = (code: string) =>
   code.match(FOUR_AT_A_TIME)?.join(" ") ?? code;
-
-/** A number written as the farm keeps it, in Bangla digits and split after the operator's five: `০১৭১১-২৩৪৫৬৭`. */
-const phoneInBangla = (phone: string) =>
-  timeInDigits(
-    MOBILE.test(phone) ? `${phone.slice(0, 5)}-${phone.slice(5)}` : phone,
-    "bn"
-  );
 
 const said = (key: Parameters<typeof translate>[1]) => translate("bn", key);
 
@@ -138,7 +129,7 @@ const Steps = ({ phone, own }: { phone: string; own: string | null }) => {
     <>
       মোবাইল নম্বর দিন — খামারে আপনার যে নম্বর আছে:{" "}
       <span className="font-semibold whitespace-nowrap">
-        {phoneInBangla(phone)}
+        {phoneSaid(phone, "bn")}
       </span>
     </>,
     <>নিচের ছেঁড়া স্লিপের কোডটি দিন।</>,

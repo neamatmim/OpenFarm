@@ -3,6 +3,7 @@ import type { FarmLocale } from "@OpenFarm/i18n";
 import {
   DEFAULT_FARM_LOCALE,
   farmLocale,
+  isCountry,
   isCurrencyCode,
   isTimeZone,
 } from "@OpenFarm/i18n";
@@ -47,9 +48,11 @@ export const pageHost = createIsomorphicFn()
       : "farm"
   );
 
-/** Where the server writes where the farm is — its currency and its time zone — for the browser to read back. */
+/** Where the server writes where the farm is — its currency, its time zone and its country — for the browser to read
+ *  back. */
 export const CURRENCY_ATTRIBUTE = "data-currency";
 export const TIME_ZONE_ATTRIBUTE = "data-time-zone";
+export const COUNTRY_ATTRIBUTE = "data-country";
 
 /**
  * Where the farm is (ADR 0013): the server's own setting while it writes the page, and in the browser what it wrote on
@@ -62,10 +65,12 @@ export const pageFarmLocale = createIsomorphicFn()
     const root = document.documentElement;
     const currency = root.getAttribute(CURRENCY_ATTRIBUTE) ?? "";
     const timeZone = root.getAttribute(TIME_ZONE_ATTRIBUTE) ?? "";
+    const country = root.getAttribute(COUNTRY_ATTRIBUTE) ?? "";
     return {
       currency: isCurrencyCode(currency)
         ? currency
         : DEFAULT_FARM_LOCALE.currency,
       timeZone: isTimeZone(timeZone) ? timeZone : DEFAULT_FARM_LOCALE.timeZone,
+      country: isCountry(country) ? country : DEFAULT_FARM_LOCALE.country,
     };
   });
