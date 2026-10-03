@@ -91,3 +91,20 @@ domain purity); the top findings of each checked again by hand before anything w
 still shipping, test-only reads (`sops.version`, `farm.certificates`, `ventures.termsOn`, `ventures.floatOf`, …),
 15 doc comments above the wrong declaration (+ a lint script for `*/` followed by `/**`), Owner queue counts capped at
 50 unsaid, a raw `error.message` from the opening-register import, `work/$instanceId.tsx` at 2,343 lines.
+
+## Progress — 2026-10-03, the Owner chose E, D, B, C
+
+- **E — done** (6e63ee77): E1 five correction screens; E2 38 record kinds + 2 fields named, with a test; E3 thirteen
+  notices lead somewhere; E4 Shed Phone shelves stamped with the cache shape; E5 translate falls back. Not done: E6.
+- **D — done** (38216608): D1 17 list pairs tied in order; D2 one weaning age; D3 limits in the domain; D4 no server
+  module in the browser, guarded by a test; D5 money totals from the farm; D6 range judged by the farm; D7 the Internal
+  Sale rule shared (useHeldByOther and powersOf's other rules left); D8 sign sheet ready = nothing missing. Units left
+  still worked out on the client.
+- **B — done** (7b94f5f2): B2 one Cattle Budget check; B3 the router in six parts; B4 personal_phone_only; B5 own
+  phone for the Owner's money reads; B7 scoped read; moveTo and reimburse asked behind the lock. Not done: moving the
+  other ~10 hand-written acts onto actOnVenture (their checks are already behind the lock); B6 farmCosts bounded.
+- **C — part** (this branch): C1 83 ledger FKs NO ACTION instead of CASCADE; C2 20 CHECKs, NOT VALID — run
+  `ALTER TABLE … VALIDATE CONSTRAINT …` once the farm's data is known to hold them (dev and seed do); C3 every
+  connection at UTC and TZ=UTC in the unit (the full timestamptz migration left for a planned deploy); C5 traders found
+  whatever the case, and written once when two phones name one; C8 three redundant indexes dropped, five added. Not
+  done, for a planned deploy: C4 feeding_line, C6 ledger self-FKs, C7 version-pointer FKs, the timestamptz migration.

@@ -9,6 +9,7 @@ import {
   text,
   timestamp,
   uniqueIndex,
+  check,
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
@@ -97,6 +98,18 @@ export const venture = pgTable(
     createdAt: timestamp("created_at").notNull(),
   },
   (table) => [
+    check(
+      "venture_window_days",
+      sql`${table.targetWindowStart} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' and ${table.targetWindowEnd} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'`
+    ),
+    check(
+      "venture_window_in_order",
+      sql`${table.targetWindowStart} <= ${table.targetWindowEnd}`
+    ),
+    check(
+      "venture_floor_within_target",
+      sql`${table.floorBdt} <= ${table.targetCapitalBdt}`
+    ),
     index("venture_state_idx").on(table.farmId, table.state),
     uniqueIndex("venture_ordinal_uidx").on(table.farmId, table.ordinal),
   ]
@@ -116,7 +129,7 @@ export const venturePlan = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     ventureId: text("venture_id")
       .notNull()
-      .references(() => venture.id, { onDelete: "cascade" }),
+      .references(() => venture.id),
     version: integer("version").notNull(),
     /** Where the Venture was when this was saved: "open" for a plan made before buying, a later state for a
      *  revision. */
@@ -149,7 +162,7 @@ export const venturePlanLine = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     planId: text("plan_id")
       .notNull()
-      .references(() => venturePlan.id, { onDelete: "cascade" }),
+      .references(() => venturePlan.id),
     position: integer("position").notNull(),
     animals: integer("animals").notNull(),
     fromKg: numeric("from_kg", { precision: 7, scale: 2 }).notNull(),
@@ -343,7 +356,7 @@ export const requestToJoin = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     ventureId: text("venture_id")
       .notNull()
-      .references(() => venture.id, { onDelete: "cascade" }),
+      .references(() => venture.id),
     investorId: text("investor_id")
       .notNull()
       .references(() => investor.id),
@@ -404,7 +417,7 @@ export const investmentAgreement = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     ventureId: text("venture_id")
       .notNull()
-      .references(() => venture.id, { onDelete: "cascade" }),
+      .references(() => venture.id),
     investorId: text("investor_id")
       .notNull()
       .references(() => investor.id),
@@ -441,6 +454,19 @@ export const investmentAgreement = pgTable(
     createdAt: timestamp("created_at").notNull(),
   },
   (table) => [
+    check(
+      "investment_agreement_window_days",
+      sql`${table.targetWindowStart} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' and ${table.targetWindowEnd} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'`
+    ),
+    check(
+      "investment_agreement_window_in_order",
+      sql`${table.targetWindowStart} <= ${table.targetWindowEnd}`
+    ),
+    check(
+      "investment_agreement_percent_whole",
+      sql`${table.investorsPercent} between 0 and 100`
+    ),
+    index("investment_agreement_investor_idx").on(table.investorId),
     uniqueIndex("investment_agreement_uidx").on(
       table.ventureId,
       table.investorId
@@ -468,7 +494,7 @@ export const agreementOffer = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     ventureId: text("venture_id")
       .notNull()
-      .references(() => venture.id, { onDelete: "cascade" }),
+      .references(() => venture.id),
     investorId: text("investor_id")
       .notNull()
       .references(() => investor.id),
@@ -496,7 +522,13 @@ export const agreementOffer = pgTable(
     /** The Agreement written from it on approval. */
     agreementId: text("agreement_id").references(() => investmentAgreement.id),
   },
-  (table) => [index("agreement_offer_venture_idx").on(table.ventureId)]
+  (table) => [
+    index("agreement_offer_venture_idx").on(table.ventureId),
+    check(
+      "agreement_offer_percent_whole",
+      sql`${table.investorsPercent} between 0 and 100`
+    ),
+  ]
 );
 
 /**
@@ -514,7 +546,7 @@ export const amendmentOffer = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     ventureId: text("venture_id")
       .notNull()
-      .references(() => venture.id, { onDelete: "cascade" }),
+      .references(() => venture.id),
     investorsPercent: integer("investors_percent").notNull(),
     targetWindowStart: text("target_window_start").notNull(),
     targetWindowEnd: text("target_window_end").notNull(),
@@ -533,7 +565,21 @@ export const amendmentOffer = pgTable(
     /** The Amendment written from it on approval: its rows' `amendedId`. */
     amendedId: text("amended_id"),
   },
-  (table) => [index("amendment_offer_venture_idx").on(table.ventureId)]
+  (table) => [
+    index("amendment_offer_venture_idx").on(table.ventureId),
+    check(
+      "amendment_offer_window_days",
+      sql`${table.targetWindowStart} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' and ${table.targetWindowEnd} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'`
+    ),
+    check(
+      "amendment_offer_window_in_order",
+      sql`${table.targetWindowStart} <= ${table.targetWindowEnd}`
+    ),
+    check(
+      "amendment_offer_percent_whole",
+      sql`${table.investorsPercent} between 0 and 100`
+    ),
+  ]
 );
 
 /** One Investor agreeing, from their own portal sign-in, to an Amendment offered in the app, for one Agreement. */
@@ -546,7 +592,7 @@ export const amendmentOfferAnswer = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     offerId: text("offer_id")
       .notNull()
-      .references(() => amendmentOffer.id, { onDelete: "cascade" }),
+      .references(() => amendmentOffer.id),
     agreementId: text("agreement_id")
       .notNull()
       .references(() => investmentAgreement.id),
@@ -577,7 +623,7 @@ export const requestToJoinChange = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     requestId: text("request_id")
       .notNull()
-      .references(() => requestToJoin.id, { onDelete: "cascade" }),
+      .references(() => requestToJoin.id),
     kind: text("kind", { enum: REQUEST_CHANGE_KINDS }).notNull(),
     units: integer("units").notNull(),
     note: text("note"),
@@ -610,7 +656,7 @@ export const agreementAmendment = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     agreementId: text("agreement_id")
       .notNull()
-      .references(() => investmentAgreement.id, { onDelete: "cascade" }),
+      .references(() => investmentAgreement.id),
     /** The one act these rows were written by, so a Venture's amendment reads as one paper again. */
     amendedId: text("amended_id").notNull(),
     /** The day every Investor signed it. What was in force on a day is decided by this, not by when
@@ -629,6 +675,18 @@ export const agreementAmendment = pgTable(
     createdAt: timestamp("created_at").notNull(),
   },
   (table) => [
+    check(
+      "agreement_amendment_window_days",
+      sql`${table.targetWindowStart} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' and ${table.targetWindowEnd} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'`
+    ),
+    check(
+      "agreement_amendment_window_in_order",
+      sql`${table.targetWindowStart} <= ${table.targetWindowEnd}`
+    ),
+    check(
+      "agreement_amendment_percent_whole",
+      sql`${table.investorsPercent} between 0 and 100`
+    ),
     // One amendment per Agreement per act: the same paper may not be written against a man twice.
     uniqueIndex("agreement_amendment_uidx").on(
       table.agreementId,
@@ -707,7 +765,7 @@ export const nominee = pgTable(
   {
     nominationId: text("nomination_id")
       .notNull()
-      .references(() => nomination.id, { onDelete: "cascade" }),
+      .references(() => nomination.id),
     /** From one, in the order the paper prints them. */
     place: integer("place").notNull(),
     name: text("name").notNull(),
@@ -723,7 +781,13 @@ export const nominee = pgTable(
     receiverRelation: text("receiver_relation"),
     receiverPhone: text("receiver_phone"),
   },
-  (table) => [primaryKey({ columns: [table.nominationId, table.place] })]
+  (table) => [
+    primaryKey({ columns: [table.nominationId, table.place] }),
+    check(
+      "nominee_percent_whole",
+      sql`${table.sharePercent} between 0 and 100`
+    ),
+  ]
 );
 
 /** The photo of a signed মনোনয়নপত্র, kept beside it as an Agreement's is: the farm's proof that the Investor named
@@ -731,7 +795,7 @@ export const nominee = pgTable(
 export const nominationPaper = pgTable("nomination_paper", {
   nominationId: text("nomination_id")
     .primaryKey()
-    .references(() => nomination.id, { onDelete: "cascade" }),
+    .references(() => nomination.id),
   farmId: text("farm_id")
     .notNull()
     .references(() => farm.id, { onDelete: "cascade" }),
@@ -746,7 +810,7 @@ export const nominationPaper = pgTable("nomination_paper", {
 export const agreementPaper = pgTable("agreement_paper", {
   agreementId: text("agreement_id")
     .primaryKey()
-    .references(() => investmentAgreement.id, { onDelete: "cascade" }),
+    .references(() => investmentAgreement.id),
   farmId: text("farm_id")
     .notNull()
     .references(() => farm.id, { onDelete: "cascade" }),
@@ -806,7 +870,7 @@ export const ventureMovement = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     ventureId: text("venture_id")
       .notNull()
-      .references(() => venture.id, { onDelete: "cascade" }),
+      .references(() => venture.id),
     kind: text("kind", { enum: VENTURE_MOVEMENT_KINDS }).notNull(),
     /** Whose money moved, by the paper they signed: capital in and the refund that undoes it. A Float
      *  is the Venture's own money going to the haat and belongs to no one Investor, so it has none. */
@@ -850,7 +914,12 @@ export const ventureMovement = pgTable(
     createdAt: timestamp("created_at").notNull(),
   },
   (table) => [
+    check(
+      "venture_movement_month",
+      sql`${table.forMonth} is null or ${table.forMonth} ~ '^[0-9]{4}-[0-9]{2}$'`
+    ),
     index("venture_movement_idx").on(table.farmId, table.ventureId),
+    index("venture_movement_agreement_idx").on(table.agreementId),
     // One Float per outing: a trip given money twice is a trip nobody can reconcile.
     uniqueIndex("venture_movement_float_uidx")
       .on(table.buyingTripId)
@@ -885,7 +954,7 @@ export const ventureBankCheck = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     ventureId: text("venture_id")
       .notNull()
-      .references(() => venture.id, { onDelete: "cascade" }),
+      .references(() => venture.id),
     /** The month it is of, "YYYY-MM". One check per Venture per month. */
     forMonth: text("for_month").notNull(),
     /** What the statement said, and what the farm thought at the moment she read it. */
@@ -897,6 +966,10 @@ export const ventureBankCheck = pgTable(
     checkedAt: timestamp("checked_at").notNull(),
   },
   (table) => [
+    check(
+      "venture_bank_check_month",
+      sql`${table.forMonth} ~ '^[0-9]{4}-[0-9]{2}$'`
+    ),
     uniqueIndex("venture_bank_check_uidx").on(
       table.farmId,
       table.ventureId,
@@ -921,7 +994,7 @@ export const ventureSettlement = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     ventureId: text("venture_id")
       .notNull()
-      .references(() => venture.id, { onDelete: "cascade" }),
+      .references(() => venture.id),
     /** What its Animals fetched, and everything the run was charged. */
     proceedsBdt: taka("proceeds_bdt").notNull(),
     chargedBdt: taka("charged_bdt").notNull(),
@@ -972,7 +1045,7 @@ export const ventureSettlementShare = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     settlementId: text("settlement_id")
       .notNull()
-      .references(() => ventureSettlement.id, { onDelete: "cascade" }),
+      .references(() => ventureSettlement.id),
     agreementId: text("agreement_id")
       .notNull()
       .references(() => investmentAgreement.id),
@@ -1027,7 +1100,7 @@ export const settlementAdjustment = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     settlementId: text("settlement_id")
       .notNull()
-      .references(() => ventureSettlement.id, { onDelete: "cascade" }),
+      .references(() => ventureSettlement.id),
     /** What arrived late, in the Owner's words. Asked for: an Investor reading this years later is owed
      *  a reason and not only a figure. */
     reason: text("reason").notNull(),

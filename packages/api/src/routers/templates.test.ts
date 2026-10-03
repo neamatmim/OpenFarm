@@ -2,6 +2,7 @@ import { eq } from "@OpenFarm/db/operators";
 import {
   TEMPLATE_KINDS as COLUMN_KINDS,
   paperTemplate,
+  paperTemplateVersion,
 } from "@OpenFarm/db/schema/paper-template";
 import { investmentAgreement } from "@OpenFarm/db/schema/venture";
 import type { TemplateContent } from "@OpenFarm/domain";
@@ -147,6 +148,10 @@ describe("the farm's wording", () => {
       .update(investmentAgreement)
       .set({ templateVersionId: null })
       .where(eq(investmentAgreement.id, agreementId));
+    // Its Versions first: the farm never removes wording, so nothing removes them with it.
+    await scratchDb()
+      .delete(paperTemplateVersion)
+      .where(eq(paperTemplateVersion.farmId, theFarm().id));
     await scratchDb()
       .delete(paperTemplate)
       .where(eq(paperTemplate.farmId, theFarm().id));

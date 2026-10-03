@@ -33,15 +33,13 @@ export const missing = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     animalId: text("animal_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     /** The Pen the round looked for her in, as it stood that morning. */
     penId: text("pen_id")
       .notNull()
       .references(() => pen.id),
     /** The round's Step that could not find her. A Correction of it that finds her after all takes the Missing back. */
-    completionId: text("completion_id").references(() => stepCompletion.id, {
-      onDelete: "cascade",
-    }),
+    completionId: text("completion_id").references(() => stepCompletion.id),
     /** When the round says it looked: the phone's clock, as every Step's is. */
     since: timestamp("since").notNull(),
     recordedAt: timestamp("recorded_at").notNull(),

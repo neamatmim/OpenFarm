@@ -54,7 +54,7 @@ export const dairyEntryPrice = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     animalId: text("animal_id")
       .notNull()
-      .references(() => animal.id, { onDelete: "cascade" }),
+      .references(() => animal.id),
     priceBdt: integer("price_bdt").notNull(),
     /** The farm's day her stay counts from: the day she was registered, unless the Owner says. */
     asOf: text("as_of").notNull(),

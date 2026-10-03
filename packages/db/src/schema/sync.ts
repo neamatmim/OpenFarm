@@ -105,7 +105,7 @@ export const syncEntry = pgTable(
     /** The batch it came in, so a replay finds its own work. */
     batchKey: text("batch_key")
       .notNull()
-      .references(() => syncBatch.key, { onDelete: "cascade" }),
+      .references(() => syncBatch.key),
     /** When the phone says it happened, and when the server took it. The phone can never
      *  set the second (ADR 0002). */
     recordedAt: timestamp("recorded_at").notNull(),
