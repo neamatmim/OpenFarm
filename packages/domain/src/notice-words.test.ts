@@ -244,7 +244,7 @@ describe("what a Notice's words are filled with", () => {
       "আবুল হাশেম মিয়া ৪টি ইউনিট নিয়ে কোরবানি ২০৩৮-এ যোগ দিতে চান"
     );
     expect(translate("en", "alerts.joinRequested", params("en"))).toBe(
-      "Request to join কোরবানি ২০৩৮ from আবুল হাশেম মিয়া: 4 Units"
+      "Request to join কোরবানি ২০৩৮ from আবুল হাশেম মিয়া: 4 units"
     );
   });
 
@@ -310,7 +310,7 @@ describe("an overdue Receivable's words", () => {
       "আব্দুর রহিম ঈদ ২০৩৮-এ মাসের টাকা ৳৭,৫০০ দেননি, শেষটি ১০ মার্চ, ২০৩৮ তারিখে দেওয়ার কথা ছিল"
     );
     expect(translate("en", "alerts.monthlySumMissed", params("en"))).toBe(
-      "আব্দুর রহিম has missed ৳7,500 of Monthly Sums on ঈদ ২০৩৮, the latest due 10 March 2038"
+      "আব্দুর রহিম has missed ৳7,500 of monthly sums on ঈদ ২০৩৮, the latest due 10 March 2038"
     );
   });
 

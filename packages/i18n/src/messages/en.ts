@@ -6,24 +6,24 @@ export const en = {
   "language.en": "English",
   "language.switch": "Change language",
   "auth.openAccountHint":
-    "With the address the Owner or a Manager invited, and the code they gave you.",
+    "With the address the owner or a manager invited, and the code they gave you.",
   "auth.formIncomplete": "Fill in every field first.",
   "auth.firstFarmTitle": "Set up the farm",
   "auth.firstFarmHint":
-    "Open the first account. Whoever opens it becomes the farm's Owner, and invites everybody else from inside.",
+    "Open the first account. Whoever opens it becomes the farm's owner, and invites everybody else from inside.",
   "auth.firstFarmRow": "Setting up the farm? Open the first account",
   "auth.firstFarmRowHint":
-    "Whoever opens the first account becomes the farm's Owner.",
+    "Whoever opens the first account becomes the farm's owner.",
   "auth.signOutHint": "Leave this account on this browser.",
   "common.goToStart": "Go to the start",
   "common.notFoundHint":
     "The page may have moved, or the address was mistyped.",
   "common.errorHint":
-    "Try again. If it keeps happening, tell the farm's Owner.",
+    "Try again. If it keeps happening, tell the farm's owner.",
   "setup.standard.chooseOne": "Choose at least one list, or skip.",
   "auth.shedPhone": "Shed Phone",
   "auth.shedPhoneHint":
-    "Staff sign in with their PIN. A new phone is set up with the Manager's code.",
+    "Staff sign in with their PIN. A new phone is set up with the manager's code.",
   "auth.signIn": "Sign in",
   "auth.promise.title":
     "Every job on the farm, done the way the farm decided — and written down as it happens.",
@@ -52,7 +52,7 @@ export const en = {
   "auth.forgotPassword": "Forgot password?",
   "auth.forgotTitle": "Set a new password",
   "auth.forgotHint":
-    "Ask the Owner or the Manager for a code, then choose a password of your own.",
+    "Ask the owner or the manager for a code, then choose a password of your own.",
   "auth.code": "Code",
   "auth.newPassword": "New password",
   "auth.passwordSet": "Password set — sign in with it",
@@ -62,13 +62,13 @@ export const en = {
   "auth.wrongAddress":
     "This address is not yours to sign in at. Sign in at your own: {address}",
   "auth.noLongerHere":
-    "You no longer work on this farm. Ask the Owner if this is wrong.",
+    "You no longer work on this farm. Ask the owner if this is wrong.",
   "auth.notInvited":
     "The farm has not invited this address. Ask the owner to invite you, then open the account with the code you are given.",
   "auth.onlyTheOwnerFirst":
-    "The farm is not set up yet, and only its Owner's address may open the first account.",
+    "The farm is not set up yet, and only its owner's address may open the first account.",
   "auth.ownerNotNamed":
-    "The farm is not open yet. Whoever runs the server must first name the Owner's address (OPENFARM_OWNER_EMAIL).",
+    "The farm is not open yet. Whoever runs the server must first name the owner's address (OPENFARM_OWNER_EMAIL).",
   "portal.account.title": "Your account",
   "portal.account.hint":
     "Your record as the farm holds it, who to ask about it, your password, and where you are signed in.",
@@ -316,7 +316,7 @@ export const en = {
   "portal.closed":
     "The investor portal is not open to you. Ask the farm's Owner.",
   "portal.title": "Investor portal",
-  "investors.whatTheySee": "What invited Investors see",
+  "investors.whatTheySee": "What invited investors see",
   "portal.signInTitle": "Investor sign-in",
   "portal.signInHint":
     "Sign in with the phone number the farm has for you and the password you chose.",
@@ -483,7 +483,7 @@ export const en = {
     "For you alone, and never a decision: her recent milk and keep, whether she is in calf, and whether she has settled.",
   "market.title": "Market price",
   "market.hint":
-    "What a kilo of live weight is fetching, as you judge it. The farm's own animals are priced at it; a Venture's animals at their Venture's own prices. Yours to read: the Manager and Investors do not see prices.",
+    "What a kilo of live weight is fetching, as you judge it. The farm's own animals are priced at it; a venture's animals at their venture's own prices. Yours to read: the manager and investors do not see prices.",
   "market.recent":
     "Your sales to buyers in the last {days, plural, one {# day} other {# days}} fetched {perKg} a kg, over {animals, plural, one {# animal} other {# animals}}.",
   "market.noRecent":
@@ -497,7 +497,7 @@ export const en = {
   "market.saved": "The market price is saved",
   "plan.title": "Venture plan",
   "plan.hint":
-    "What you mean to buy, and what a kilo will sell at. The plan made before buying begins is what the Venture is measured against; later changes are revisions, kept with their reason. Yours alone.",
+    "What you mean to buy, and what a kilo will sell at. The plan made before buying begins is what the venture is measured against; later changes are revisions, kept with their reason. Yours alone.",
   "plan.none": "No plan yet.",
   "plan.write": "Write the plan",
   "plan.change": "Change the plan",
@@ -553,9 +553,9 @@ export const en = {
   "plan.deathsOutOfRange": "Between 0 and 50",
   "plan.reason": "Why the plan changes",
   "plan.reasonHint":
-    "Buying has begun: the plan made before stays what the Venture is measured against, and this is kept as a revision.",
+    "Buying has begun: the plan made before stays what the venture is measured against, and this is kept as a revision.",
   "plan.refused.reason": "A plan changed after buying began needs its reason",
-  "plan.refused.ended": "A Venture that has ended has nothing left to plan",
+  "plan.refused.ended": "A venture that has ended has nothing left to plan",
   "plan.vs.title": "Plan against actual",
   "plan.vs.buying": "Buying",
   "plan.vs.growth": "Growth",
@@ -856,7 +856,7 @@ export const en = {
   "people.noneFound": "Nobody by that name",
   "people.standing.working": "Working",
   "people.standing.gone": "No longer here",
-  "people.standing.waitingForTheOwner": "Waiting for the Owner",
+  "people.standing.waitingForTheOwner": "Waiting for the owner",
   "people.standing.waitingToSignUp": "Waiting to sign up",
   "people.pensHeld": "{count, plural, one {# pen} other {# pens}}",
   "people.col.pens": "Pens",
@@ -898,7 +898,7 @@ export const en = {
   "people.filter.anyStatus": "Any status",
   "people.filter.clear": "Clear filters",
   "people.inviteWhy":
-    "They get a code to sign up with. An invite from the Owner works at once; one from a Manager waits for the Owner.",
+    "They get a code to sign up with. An invite from the owner works at once; one from a manager waits for the owner.",
   "people.rowActions": "{name} — more actions",
   "people.copy": "Copy the code",
   "people.copied": "Copied",
@@ -911,8 +911,8 @@ export const en = {
   "people.change": "Change",
   "people.rolesWhy": "What they may see and do on the farm.",
   "people.ownOwnerRoleStays":
-    "Your own Owner role stays: another Owner takes it off, so the farm is never left with nobody to run it.",
-  "people.pensWhy": "Their daily work comes from these Pens.",
+    "Your own owner role stays: another owner takes it off, so the farm is never left with nobody to run it.",
+  "people.pensWhy": "Their daily work comes from these pens.",
   "people.pinWhy":
     "Four digits to switch to themselves on a Shed Phone. It is never shown again.",
   "people.enableWhy": "They can sign in again with their own password.",
@@ -940,7 +940,7 @@ export const en = {
   "role.staff": "Barn Staff",
   "role.vet": "Vet",
   "setup.title": "Set up the farm",
-  "setup.intro": "Name the farm. You become its Owner.",
+  "setup.intro": "Name the farm. You become its owner.",
   "setup.farmName": "Farm name",
   "setup.create": "Create the farm",
   "setup.done": "The farm is ready",
@@ -953,19 +953,19 @@ export const en = {
     "{count, plural, one {# common feed} other {# common feeds}}, in kg — no prices, no stock",
   "setup.standard.rations": "Rations",
   "setup.standard.rationsHint":
-    "{count, plural, one {# Ration} other {# Rations}}, not yet fed to any Pen. They bring the Feed Items they name.",
+    "{count, plural, one {# ration} other {# rations}}, not yet fed to any pen. They bring the feed items they name.",
   "setup.standard.health": "Drug List and notifiable diseases",
   "setup.standard.healthHint":
-    "{drugs, plural, one {# medicine} other {# medicines}} for the Vet to finish with their withdrawal days, and the {diseases, plural, one {# disease} other {# diseases}} the DLS must be told of",
+    "{drugs, plural, one {# medicine} other {# medicines}} for the vet to finish with their withdrawal days, and the {diseases, plural, one {# disease} other {# diseases}} the DLS must be told of",
   "setup.standard.playbook":
     "The standard procedures wait in the Playbook, for you to read and publish one at a time.",
   "setup.standard.start": "Start with these",
   "setup.standard.skip": "Start empty",
   "setup.standard.done": "The farm has its standard lists",
   "setup.standard.feedRetired":
-    "The standard Rations feed {feed}, which this farm has retired: restore it on the Feed Items tab first",
+    "The standard rations feed {feed}, which this farm has retired: restore it on the Feed Items tab first",
   "setup.standard.bundlesByTheHead":
-    "The standard Rations give {feed} by body weight, and this farm counts it in bundles: start without the Rations and write them by hand",
+    "The standard rations give {feed} by body weight, and this farm counts it in bundles: start without the rations and write them by hand",
   "common.error": "Something went wrong",
   "common.loadFailed": "Could not load this — check the connection",
   "params.title": "Farm parameters",
@@ -975,9 +975,9 @@ export const en = {
   "params.breeding": "Breeding calendar",
   "params.fatteningAndPapers": "Fattening and papers",
   "params.alertsHint":
-    "When the day's digest goes out, the quiet hours, and how long work may run late before the Owner is told.",
+    "When the day's digest goes out, the quiet hours, and how long work may run late before the owner is told.",
   "params.recordsHint":
-    "How far a reading may drift before it is flagged, how long a record stays open to correction, and what spending the Owner approves.",
+    "How far a reading may drift before it is flagged, how long a record stays open to correction, and what spending the owner approves.",
   "params.breedingHint":
     "The days the Playbook times breeding work from, the same for every cow.",
   "params.fatteningAndPapersHint":
@@ -985,7 +985,7 @@ export const en = {
   "params.digestTimes": "Digest times (comma separated)",
   "params.quietFrom": "Quiet from",
   "params.quietUntil": "Quiet until",
-  "params.escalation": "Tell the Owner when work is overdue after",
+  "params.escalation": "Tell the owner when work is overdue after",
   "params.milkTolerance": "Milk tank tolerance",
   "params.feedTolerance": "Feed stock tolerance",
   "params.staffCorrection": "Staff may correct for",
@@ -995,7 +995,7 @@ export const en = {
     "How far back an animal's keep is read for keep-or-sell and the culling list, how far ahead keeping her is weighed, and what puts a dairy cow on that list. Yours alone to set, as the two are yours alone to read.",
   "params.monthlyCosts": "Monthly costs",
   "params.monthlyCostsHint":
-    "From this day of the month, each Category marked as paid every month with nothing entered that month is shown to the Manager and to you, and so is anybody paid a wage last month and not this month.",
+    "From this day of the month, each category marked as paid every month with nothing entered that month is shown to the manager and to you, and so is anybody paid a wage last month and not this month.",
   "params.returns": "Returns",
   "params.returnsHint":
     "What the Returns page puts a year. Money tied up fewer days than this, on average, shows its share and its days but no rate a year, because a few weeks scaled to a year is a figure nobody earned. Yours alone to set, as the page is yours alone to read.",
@@ -1016,26 +1016,26 @@ export const en = {
   "params.cullMilkPriceDays": "Price milk from dispatches of the last",
   "params.ventures": "Ventures",
   "params.venturesHint":
-    "What a Venture is planned by when you open one: the least it is worth starting on, how much of its capital keeps the animals rather than buys them, and how long it keeps selling after its window closes.",
-  "params.ventureFloor": "A Venture\u2019s Floor, of what it is after",
+    "What a venture is planned by when you open one: the least it is worth starting on, how much of its capital keeps the animals rather than buys them, and how long it keeps selling after its window closes.",
+  "params.ventureFloor": "A venture\u2019s floor, of what it is after",
   "params.ventureRunning":
-    "Kept back to feed them, of a Venture\u2019s capital",
+    "Kept back to feed them, of a venture\u2019s capital",
   "params.ventureInvestors":
-    "The Investors’ share of the profit, where a new agreement starts",
+    "The investors’ share of the profit, where a new agreement starts",
   "params.windUp": "Selling after the window closes",
   "params.priceWeighIn":
     "How old a weighing may be to price an internal sale or the buy-back on",
   "params.adjustmentThreshold": "Worth adjusting a settlement over",
   "params.investorCap": "Investors at a time, at most",
-  "params.investorWarnAt": "Warn from this many Investors",
+  "params.investorWarnAt": "Warn from this many investors",
   "params.runningBudgetWarn":
-    "Warn when a Venture has less than this to feed with",
+    "Warn when a venture has less than this to feed with",
   "params.people": "people",
   /** The Ventures the Manager is looking after cattle for. Budgets, spend and warnings only — whose
    *  money it is never reaches this screen. */
   "venturesAtWork.title": "Ventures",
   "venturesAtWork.hint":
-    "The Ventures whose cattle you are looking after, and what each has left to feed them with.",
+    "The ventures whose cattle you are looking after, and what each has left to feed them with.",
   "venturesAtWork.feedingLeft": "{left} left to feed with",
   "venturesAtWork.spent": "{spent} spent",
   "venturesAtWork.standing": "{standing} cattle standing",
@@ -1045,7 +1045,7 @@ export const en = {
    *  are said apart: one needs the statement read again, the other needs explaining. */
   "ventureTrouble.title": "Ventures needing you",
   "ventureTrouble.decisionDue":
-    "Decide by {day}, and still {currencySign}{short} short of the Floor: bring in the rest, or call it off",
+    "Decide by {day}, and still {currencySign}{short} short of the floor: bring in the rest, or call it off",
   "ventureTrouble.runningBudgetLow":
     "Running low on feeding money — {currencySign}{left} left",
   "ventureTrouble.pastWindUp":
@@ -1085,19 +1085,19 @@ export const en = {
     "Write the farm's DLS registration number down first — every paper carries it",
   "ventures.title": "Ventures",
   "ventures.subtitle":
-    "What investors' money is running here: what each Venture is after, what it holds, and when it means to sell.",
-  "ventures.open": "Open a Venture",
-  "ventures.opened": "The Venture is open",
+    "What investors' money is running here: what each venture is after, what it holds, and when it means to sell.",
+  "ventures.open": "Open a venture",
+  "ventures.opened": "The venture is open",
   "ventures.openHint":
-    "The Floor is {floor}% of what the Venture is after, and {running}% of its capital is kept back to feed the animals. Both come from the farm's settings.",
-  "ventures.running": "The Ventures",
-  "ventures.none": "No Venture yet",
+    "The floor is {floor}% of what the venture is after, and {running}% of its capital is kept back to feed the animals. Both come from the farm's settings.",
+  "ventures.running": "The ventures",
+  "ventures.none": "No venture yet",
   "ventures.name": "What it is called",
   "ventures.target": "Looking for",
   "ventures.held": "Held so far",
   "ventures.floor": "Floor",
   "ventures.decideBy": "Decide by",
-  "ventures.paidFor.choose": "How Investors pay",
+  "ventures.paidFor.choose": "How investors pay",
   "ventures.paidFor.before_buying": "All before buying",
   "ventures.paidFor.by_the_month": "Cattle money first, the rest monthly",
   "ventures.paidFor.label": "Each Unit is paid",
@@ -1108,32 +1108,32 @@ export const en = {
     "{cattle} before buying, then {each} on the 10th of each month from {from} to {to}, the last {last}",
   "ventures.paidFor.sums":
     "{count, plural, one {# monthly sum} other {# monthly sums}}",
-  "ventures.unitPrice": "One Unit costs",
+  "ventures.unitPrice": "One unit costs",
   "ventures.units": "Units",
   "ventures.unitsAt": "{units} at {price}",
   "ventures.openHintPlain":
-    "The Floor, the Units and the two budgets follow from the farm’s settings unless you say otherwise.",
+    "The floor, the units and the two budgets follow from the farm’s settings unless you say otherwise.",
   "ventures.unitsOwn": "Units (or leave it)",
   "ventures.cattleBudgetOwn": "For buying cattle (or leave it)",
   "ventures.budgets": "Budgets",
   "ventures.budgetSplit": "{cattle} cattle · {running} keeping them",
   "ventures.buyWhatIsLeft": "Buy what is left",
   "ventures.buyWhatIsLeftHint":
-    "The Wind-up Period is over. {venture} still holds {standing}, and the Farm takes them at weight so it can settle on time.",
+    "The wind-up period is over. {venture} still holds {standing}, and the farm takes them at weight so it can settle on time.",
   "ventures.boughtWhatWasLeft": "Bought {animals} for {currencySign}{total}",
   "ventures.windUpEnds": "Wind-up ends",
   "ventures.pastWindUp":
-    "The Wind-up Period is over with {standing} still standing",
+    "The wind-up period is over with {standing} still standing",
   "ventures.settlement": "Settling up",
   "ventures.nothingBlocksIt": "Nothing is in the way",
   "ventures.proceeds": "What they fetched",
   "ventures.charged": "What it was charged",
   "ventures.profit": "Profit",
-  "ventures.investorsShare": "The Investors' {percent}%",
-  "ventures.perUnit": "A Unit takes",
-  "ventures.rounding": "Left over, to the Farm",
-  "ventures.theFarms": "The Farm's",
-  "ventures.unitsHeld": "{units, plural, one {# Unit} other {# Units}}",
+  "ventures.investorsShare": "The investors' {percent}%",
+  "ventures.perUnit": "A unit takes",
+  "ventures.rounding": "Left over, to the farm",
+  "ventures.theFarms": "The farm's",
+  "ventures.unitsHeld": "{units, plural, one {# unit} other {# units}}",
   "ventures.unpricedKg": "{kg} kg at no price",
   "ventures.accountOver":
     "{amount} would be left in the account once everybody is paid",
@@ -1147,9 +1147,9 @@ export const en = {
   "ventures.whatItMade": "What it made",
   "ventures.howItSplits": "How it divides",
   "ventures.whatItHolds": "What the account holds",
-  "ventures.whatEachIsPaid": "What each Investor is paid",
+  "ventures.whatEachIsPaid": "What each investor is paid",
   "ventures.loss": "Loss",
-  "ventures.perUnitLoss": "A Unit loses",
+  "ventures.perUnitLoss": "A unit loses",
   "ventures.window": "Selling window",
   "ventures.windowFrom": "Selling from",
   "ventures.windowTo": "Selling until",
@@ -1159,27 +1159,27 @@ export const en = {
   "ventures.state.selling": "Selling",
   "ventures.state.settled": "Settled",
   "ventures.state.cancelled": "Called off",
-  "ventures.sign": "Sign an Agreement",
+  "ventures.sign": "Sign an agreement",
   "ventures.missing.investor": "Choose who signs.",
-  "ventures.missing.units": "Write how many Units they take.",
+  "ventures.missing.units": "Write how many units they take.",
   "ventures.missing.unitsLeft":
-    "Only {left, plural, one {# Unit is} other {# Units are}} left.",
+    "Only {left, plural, one {# unit is} other {# units are}} left.",
   "ventures.missing.split":
-    "Write the Investors' share as a whole percentage, 0 to 100.",
-  "ventures.missing.arbitrator": "Name the Arbitrator both sides agree on.",
+    "Write the investors' share as a whole percentage, 0 to 100.",
+  "ventures.missing.arbitrator": "Name the arbitrator both sides agree on.",
   "ventures.missing.stampValue": "Write the stamp's value.",
   "ventures.missing.stampedOn": "Write the day it was stamped.",
   "ventures.missing.stampSerial": "Write the stamp's serial.",
   "ventures.signHint":
-    "The Units this person takes of {venture}, the split they earn, and the stamped paper it is written on",
+    "The units this person takes of {venture}, the split they earn, and the stamped paper it is written on",
   "ventures.signedFor": "Signed for",
   "ventures.unitsOfUnits":
-    "{taken} of {units, plural, one {# Unit} other {# Units}} · {people} in",
+    "{taken} of {units, plural, one {# unit} other {# units}} · {people} in",
   "ventures.investor": "Investor",
   "ventures.investorHint":
-    "Recorded once, on the Investors page, and used for every Venture they join",
+    "Recorded once, on the Investors page, and used for every venture they join",
   "ventures.unitsTaken": "Units taken",
-  "ventures.investorsPercent": "The Investors' percentage",
+  "ventures.investorsPercent": "The investors' percentage",
   "ventures.splitHint": "The farm takes {farm}%",
   "ventures.arbitrator": "Arbitrator",
   "ventures.arbitratorHint":
@@ -1200,14 +1200,14 @@ export const en = {
   "ventures.noticeBeside": "«আপনার তথ্য» to hand with it",
   "ventures.noticeTitle": "«আপনার তথ্য», handed over with the agreement",
   "ventures.noticeBesideHint":
-    "Hand it to every Investor with their Agreement, in the portal or not: the Agreement's data section points to this paper.",
+    "Hand it to every investor with their agreement, in the portal or not: the agreement's data section points to this paper.",
   "ventures.backToAgreement": "Back to the agreement",
   "ventures.noticeUnwritten":
     '«আপনার তথ্য» still needs facts the farm has not written down. Write them under "Who keeps the farm\'s records" on the Agreement templates page and try again.',
-  "ventures.printAmendment": "Print the Amendment to sign",
+  "ventures.printAmendment": "Print the amendment to sign",
   "ventures.printAmendmentHint":
-    "One paper naming every Investor on this Venture, in the farm's current wording. Print it, have everybody sign, then photograph it below.",
-  "ventures.amendmentTitle": "The Amendment to sign",
+    "One paper naming every investor on this venture, in the farm's current wording. Print it, have everybody sign, then photograph it below.",
+  "ventures.amendmentTitle": "The amendment to sign",
   "ventures.paper": "The stamped paper",
   /** The farm's own words on the file button, and whether the stamped paper is on yet — capital is
    *  refused without it, so she is told here rather than at the refusal. */
@@ -1217,13 +1217,13 @@ export const en = {
   "byHand.receiptTake": "Photograph the receipt",
   "renewal.certificateTake": "Photograph the certificate",
   "ventures.paperHint":
-    "A photo of the signed paper, kept against the Agreement",
+    "A photo of the signed paper, kept against the agreement",
   /** One paper amending every Agreement on a Venture. The split and the window only: Units are fixed
    *  once buying starts, and everything worked out since rests on them. */
   "ventures.amend": "Amend the agreements",
   "ventures.amendHint":
-    "One paper, signed by every Investor in {venture}. What each of them signed at the start is kept beside it.",
-  "ventures.amendShare": "The Investors' share (%)",
+    "One paper, signed by every investor in {venture}. What each of them signed at the start is kept beside it.",
+  "ventures.amendShare": "The investors' share (%)",
   "ventures.amendSplitHint": "What they take of the profit from now on.",
   "ventures.amendSignedOn": "The day they all signed",
   "ventures.amendSignedHint":
@@ -1241,36 +1241,36 @@ export const en = {
    *  over. Units are fixed the moment the first one is pressed. */
   "ventures.startBuying": "Start buying",
   "ventures.startBuyingHint":
-    "Once buying starts the Units are fixed: no new Investor, and no top-up.",
+    "Once buying starts the units are fixed: no new investor, and no top-up.",
   "ventures.floorNotMetYet":
-    "{currencySign}{short} more has to come in before buying can start (Floor {currencySign}{floor}).",
+    "{currencySign}{short} more has to come in before buying can start (floor {currencySign}{floor}).",
   "ventures.sums.paidOf":
     "{paid} of {of, plural, one {# month} other {# months}} paid",
   "ventures.sums.missed": "{amount} missed",
   "ventures.sums.due": "{amount} due",
   "ventures.sums.next": "next {amount} on {day}",
   "ventures.sumsMissedAdvance":
-    "Running money is low and {currencySign}{missed} of Monthly Sums is missed: your own money (Advance) can feed the animals until it comes.",
+    "Running money is low and {currencySign}{missed} of monthly sums is missed: your own money (Advance) can feed the animals until it comes.",
   "ventures.cattleMoneyShort":
-    "{currencySign}{short} of the signed Investors' cattle money has still to come before buying can start.",
-  "ventures.noUnitsLeft": "Every Unit is signed for.",
+    "{currencySign}{short} of the signed investors' cattle money has still to come before buying can start.",
+  "ventures.noUnitsLeft": "Every unit is signed for.",
   "ventures.decisionDue": "Decide by {day}",
-  "ventures.ofTheFloor": "of a {floor} Floor",
+  "ventures.ofTheFloor": "of a {floor} floor",
   "ventures.signedWithoutPaper":
     "Signed, but the paper's photo did not save; add it from Capital in",
-  "ventures.unitsLeft": "{left, plural, one {# Unit} other {# Units}} left",
+  "ventures.unitsLeft": "{left, plural, one {# unit} other {# units}} left",
   "ventures.nobodyLeftToSign":
-    "Everybody on file has signed this Venture already: add the next Investor on the Investors page first",
-  "ventures.buyingStarted": "The Venture is buying",
+    "Everybody on file has signed this venture already: add the next investor on the Investors page first",
+  "ventures.buyingStarted": "The venture is buying",
   "ventures.startFattening": "Buying is done",
   "ventures.floatStillOut":
-    "Bring the livestock market money home first — a Float still out cannot be counted afterwards.",
-  "ventures.fatteningStarted": "The Venture is fattening",
+    "Bring the livestock market money home first — a float still out cannot be counted afterwards.",
+  "ventures.fatteningStarted": "The venture is fattening",
   "ventures.takeCapital": "Capital in",
   "ventures.capitalHint":
-    "Money arriving for {venture}, against the paper the Investor signed. By bank only.",
+    "Money arriving for {venture}, against the paper the investor signed. By bank only.",
   "ventures.capitalTaken": "The capital is recorded",
-  "ventures.holdsUnits": "{units, plural, one {# Unit} other {# Units}}",
+  "ventures.holdsUnits": "{units, plural, one {# unit} other {# units}}",
   "ventures.capitalLeft": "{amount} left to pay in",
   /** The way back from signing without the stamped photo: without it capital is refused for good, and
    *  one Investor may hold only one Agreement per Venture, so there is no signing again. */
@@ -1287,17 +1287,17 @@ export const en = {
   "ventures.signNoRequest":
     "None — they joined another way (the request still reads signed)",
   "ventures.signAnswersYes":
-    "Your yes: come and sign for {units, plural, one {# Unit} other {# Units}}",
+    "Your yes: come and sign for {units, plural, one {# unit} other {# units}}",
   "ventures.signAnswersWaiting":
-    "Their request for {units, plural, one {# Unit} other {# Units}}, not answered yet",
+    "Their request for {units, plural, one {# unit} other {# units}}, not answered yet",
   "ventures.signNomineesHint":
-    "The Nominees this Agreement names: their list in force, which you may change for this signing. Signing records them as their Nomination.",
+    "The nominees this agreement names: their list in force, which you may change for this signing. Signing records them as their nomination.",
   "ventures.signRequestHint":
-    "The Units on the paper stand, even where they differ from the request",
+    "The units on the paper stand, even where they differ from the request",
   "ventures.signedWithCode":
-    "The Agreement is recorded. Its Pay-in Code is {code}",
+    "The agreement is recorded. Its Pay-in Code is {code}",
   "ventures.payInCodeHint":
-    "Give it to the Investor to write on the transfer, so the money says whose it is",
+    "Give it to the investor to write on the transfer, so the money says whose it is",
   "ventures.whosePaper": "Whose money",
   "ventures.whosePaperHint":
     "Chosen for you when the reference carries a Pay-in Code",
@@ -1313,15 +1313,15 @@ export const en = {
   "ventures.approvedOn": "Approved {day}",
   "ventures.whatIsLeftToSend": "What is left to send",
   "ventures.payoutsOnTheirRows":
-    "Each Investor's payout is sent from his row on the Investors tab.",
+    "Each investor's payout is sent from his row on the Investors tab.",
   "ventures.send": "Send it",
   "ventures.paid": "Sent",
   "ventures.allPaid": "Everything has gone out",
   "ventures.payOutHint": "Sending {who} {currencySign}{amount}, by bank.",
-  "ventures.farmsLoss": "The Farm's share of the loss",
+  "ventures.farmsLoss": "The farm's share of the loss",
   "ventures.payIn": "Pay it in",
   "ventures.coverLossHint":
-    "The Farm pays {currencySign}{amount} of its own into the Venture's account, by bank, so every payout can be made.",
+    "The farm pays {currencySign}{amount} of its own into the venture's account, by bank, so every payout can be made.",
   "ventures.acknowledge": "He says he had it",
   "ventures.acknowledged": "Written down",
   "ventures.acknowledgeHint": "Writing down that {who} says he had his money.",
@@ -1343,18 +1343,18 @@ export const en = {
   "ventures.waiveHint":
     "Deciding this is not worth moving money over. Say why — it is a decision you stand behind.",
   "ventures.whyLetItGo": "Why you are letting it go",
-  "ventures.wouldBeNow": "It would come to {profit} now · {perUnit} a Unit",
-  "ventures.wasFrozenAt": "Settled at {profit} · {perUnit} a Unit",
-  "ventures.aUnitGained": "A Unit gained {amount}",
-  "ventures.aUnitLost": "A Unit lost {amount}",
+  "ventures.wouldBeNow": "It would come to {profit} now · {perUnit} a unit",
+  "ventures.wasFrozenAt": "Settled at {profit} · {perUnit} a unit",
+  "ventures.aUnitGained": "A unit gained {amount}",
+  "ventures.aUnitLost": "A unit lost {amount}",
   "ventures.alreadySentByAnEarlierOne": "An earlier one already sent this",
-  "ventures.everyInvestor": "every Investor",
-  "ventures.theFarmMadeItGood": "The Farm made this good out of its own money",
+  "ventures.everyInvestor": "every investor",
+  "ventures.theFarmMadeItGood": "The farm made this good out of its own money",
   "ventures.sendOnThis": "Send what is owed on: {reason}",
   "ventures.waiveThis": "Let go: {reason}",
-  "ventures.settlementAdjustments": "Settlement Adjustments",
+  "ventures.settlementAdjustments": "Settlement adjustments",
   "ventures.balance": "The account should hold",
-  "ventures.drawFloat": "Draw a Float",
+  "ventures.drawFloat": "Draw a float",
   "ventures.movements": "Money in and out",
   "ventures.kind.capitalIn": "Capital in",
   "ventures.kind.refund": "Refunded",
@@ -1364,10 +1364,10 @@ export const en = {
   "ventures.kind.internalBuy": "Bought an animal",
   "ventures.kind.internalSell": "Sold an animal",
   "ventures.kind.saleIn": "A buyer took her away",
-  "ventures.kind.payout": "Paid out to an Investor",
+  "ventures.kind.payout": "Paid out to an investor",
   "ventures.kind.advanceRepaid": "Your own money back",
-  "ventures.kind.farmShare": "The Farm's share of the profit",
-  "ventures.kind.farmLossIn": "The Farm's share of the loss, paid in",
+  "ventures.kind.farmShare": "The farm's share of the profit",
+  "ventures.kind.farmLossIn": "The farm's share of the loss, paid in",
   "ventures.kind.reimbursement": "Reimbursed the farm",
   "ventures.kind.advance": "Your own money in",
   "ventures.correctMovement": "Put it right",
@@ -1398,13 +1398,13 @@ export const en = {
     "Your own money into {venture} so the animals keep eating. Interest-free, never a charge against them, and back at cost before any capital returns.",
   "ventures.advanced": "The Advance is recorded",
   "ventures.advanceEarnsNothing":
-    "It earns nothing and costs the Venture nothing; it comes back first, at what you put in",
+    "It earns nothing and costs the venture nothing; it comes back first, at what you put in",
   "ventures.owedToYou": "Owed to you",
   "ventures.runningLow": "The running budget is low",
   "ventures.reimburse": "Reimburse the month",
   /** Not "consumed" any more: a lorry to the livestock market is on this now, and a lorry is not eaten. */
   "ventures.reimburseHint":
-    "What {venture}'s animals cost of what the farm paid for, moved from the Venture Account to the farm's.",
+    "What {venture}'s animals cost of what the farm paid for, moved from the venture account to the farm's.",
   "ventures.reimbursed": "The month is reimbursed",
   "ventures.whichMonth": "Which month",
   "ventures.feed": "Feed",
@@ -1417,14 +1417,14 @@ export const en = {
   "ventures.thatMonth": "That month",
   "ventures.carriedFromBefore": "Carried from months before",
   "ventures.toBeSent": "To be sent",
-  "ventures.owedTheFarm": "Owed the Farm",
+  "ventures.owedTheFarm": "Owed the farm",
   "ventures.toCarry":
-    "{amount} more of months already repaid, to go with the next Reimbursement",
+    "{amount} more of months already repaid, to go with the next reimbursement",
   "ventures.toCarryBack":
-    "{amount} less of months already repaid, to come off the next Reimbursement",
+    "{amount} less of months already repaid, to come off the next reimbursement",
   "ventures.sellInternally": "Move an animal between purses",
   "ventures.internalSaleHint":
-    "An animal sold between the farm's herd and a Venture, priced at her latest weigh-in times a rate you enter.",
+    "An animal sold between the farm's herd and a venture, priced at her latest weigh-in times a rate you enter.",
   "ventures.soldInternally":
     "Sold for {currencySign}{price}, and she has changed hands",
   "ventures.whichAnimal": "Which animal",
@@ -1436,7 +1436,7 @@ export const en = {
   "picker.noMatch": "Nothing matches what you typed",
   "ventures.toPurse": "Who takes her on",
   "ventures.toPurseHint":
-    "Only a Venture that is buying or fattening may take one on",
+    "Only a venture that is buying or fattening may take one on",
   "ventures.rate": "Rate per kg",
   "ventures.rateHint": "Live weight, as the day's market gives it",
   "ventures.total": "Total",
@@ -1454,24 +1454,24 @@ export const en = {
     "{weight} kg at that rate · {currencySign}{price}",
   "ventures.whereTheRateCameFrom": "Where the rate came from",
   "ventures.whereTheRateCameFromHint":
-    "The livestock market that morning, a buyer's offer, the last sale — an Investor asking years later is owed a reason",
-  "ventures.countFloat": "Count the Float home",
+    "The livestock market that morning, a buyer's offer, the last sale — an investor asking years later is owed a reason",
+  "ventures.countFloat": "Count the float home",
   "ventures.countFloatHint":
     "What went out, against the animals it bought, the outing's own costs and the cash coming back.",
-  "ventures.floatCounted": "The Float is counted",
+  "ventures.floatCounted": "The float is counted",
   "ventures.floatSum":
     "{currencySign}{went} went out · {currencySign}{bought} in animals and costs · {currencySign}{back} should come back",
   "ventures.cashBack": "Cash brought back",
-  "ventures.cashBackHint": "What is left of the Float, going into the bank",
+  "ventures.cashBackHint": "What is left of the float, going into the bank",
   "ventures.depositedOn": "Deposited on",
   "ventures.slip": "Deposit slip",
   "ventures.openFloat": "Out at the livestock market",
   "ventures.floatHint":
-    "Money for the livestock market, out of the {currencySign}{cattle} the Cattle Budget is holding. The rest of the account keeps the animals.",
-  "ventures.floatDrawn": "The Float is drawn",
+    "Money for the livestock market, out of the {currencySign}{cattle} the cattle budget is holding. The rest of the account keeps the animals.",
+  "ventures.floatDrawn": "The float is drawn",
   "ventures.floatTrip": "Which outing",
   "ventures.floatTripHint":
-    "One Float per outing, so it can be counted when it comes home",
+    "One float per outing, so it can be counted when it comes home",
   "ventures.floatMost": "At most {currencySign}{cattle}",
   "money.purseWas": "{venture}'s money",
   "ventures.outOfTheAccount": "Out of the account · paid out",
@@ -1486,17 +1486,17 @@ export const en = {
   "refusal.milkWeighedTooSoon":
     "A cow's milk is weighed only past her calf's days and then the days her keep is read over: {soonestDays, plural, one {# day} other {# days}} at the soonest. Change them together.",
   "refusal.capitalOverCattlePart":
-    "That is more than this Agreement's cattle money: the rest comes by the month once buying starts",
+    "That is more than this agreement's cattle money: the rest comes by the month once buying starts",
   "refusal.cattleMoneyShort":
-    "Some signed Investors' cattle money has still to come: buying waits on all of it",
+    "Some signed investors' cattle money has still to come: buying waits on all of it",
   "refusal.capitalOverUnits":
-    "That is more than this Agreement's Units are worth",
+    "That is more than this agreement's units are worth",
   "refusal.refundNotItsMoney":
-    "That refund names money this Venture never took",
+    "That refund names money this venture never took",
   "refusal.wageIsTheFarms":
     "A wage is the farm's own — the farm provides the people",
   "refusal.venturePaidInFull":
-    "A Venture's animal leaves paid in full — its Investors' money is never lent to a buyer",
+    "A venture's animal leaves paid in full — its investors' money is never lent to a buyer",
   "refusal.paidMoreThanPrice": "That is more than it came to",
   "refusal.receivableNeedsAPromise":
     "Write the day he promised to pay the rest by",
@@ -1511,39 +1511,39 @@ export const en = {
     "Only {currencySign}{owingMoney} is still owed on it",
   "refusal.nothingOwedOnIt": "Nothing was ever owed on that",
   "refusal.ventureOwnsHer":
-    "She belongs to a Venture, and a Venture's animal cannot cross to the dairy side",
+    "She belongs to a venture, and a venture's animal cannot cross to the dairy side",
   "refusal.notAVenturesAnimal":
-    "A Venture owns bought-in fattening animals and no others",
+    "A venture owns bought-in fattening animals and no others",
   "refusal.cattleBudgetShort":
-    "The Cattle Budget is not holding that much — the rest of the account keeps the animals",
+    "The cattle budget is not holding that much — the rest of the account keeps the animals",
   "refusal.floatAlreadyDrawn": "That outing has been given money already",
   "refusal.tripIsAnotherVentures":
-    "That outing is bringing another Venture's animals home",
+    "That outing is bringing another venture's animals home",
   "refusal.tripIsTheFarms":
-    "That outing is bringing the Farm's own animals home",
+    "That outing is bringing the farm's own animals home",
   "refusal.ventureBuysByBank":
-    "A Venture's bull bought with no outing is paid from its account by bank, with the reference",
+    "A venture's bull bought with no outing is paid from its account by bank, with the reference",
   "refusal.notHeldHere":
-    "That Sale's cash is not held in this hand for this Venture",
+    "That sale's cash is not held in this hand for this venture",
   "refusal.namesNoFarmAccount":
-    "Say which of the Farm's accounts the mobile money or bank money went into or came out of",
+    "Say which of the farm's accounts the mobile money or bank money went into or came out of",
   "refusal.farmAccountNotThatKind":
-    "That Farm Account is not the kind the money moved by",
-  "refusal.farmAccountRetired": "That Farm Account has been retired",
+    "That farm account is not the kind the money moved by",
+  "refusal.farmAccountRetired": "That farm account has been retired",
   "refusal.needsItsReference":
     "Mobile money or bank money carries its transaction ID or reference",
   "refusal.referenceUsedAlready":
-    "That transaction ID is on this Farm Account already",
+    "That transaction ID is on this farm account already",
   "refusal.farmAccountListedAlready": "That number is listed already",
   "refusal.beforeTheFirstReading":
     "That month is before this account's first reading",
-  "refusal.alreadyDeposited": "That Sale's money has been deposited already",
+  "refusal.alreadyDeposited": "That sale's money has been deposited already",
   "refusal.ventureSaleNotByMobileMoney":
-    "A Venture's animal is paid for by bank or in cash, never by mobile money",
+    "A venture's animal is paid for by bank or in cash, never by mobile money",
   "refusal.saleCashInAHand":
-    "Sale cash is still in a hand, not yet deposited in the Venture Account",
+    "Sale cash is still in a hand, not yet deposited in the venture account",
   "refusal.floatAlreadyReconciled":
-    "That outing's Float has been counted; it takes nothing more",
+    "That outing's float has been counted; it takes nothing more",
   "refusal.floatOver":
     "The animals, the outing's costs and the cash back come to more than went out",
   "refusal.floatShort":
@@ -1551,9 +1551,9 @@ export const en = {
   "refusal.notWhoseFloatBoughtHer":
     "That outing went to the livestock market on another purse's money, so she is that purse's",
   "refusal.windowIsTheVentures":
-    "A Venture's animal is sold in the Venture's Target Window; an Amendment moves it, not the Intake",
+    "A venture's animal is sold in the venture's target window; an amendment moves it, not the intake",
   "refusal.windowNeeded":
-    "She is the Farm's own now: say the window the Farm sells her in",
+    "She is the farm's own now: say the window the farm sells her in",
   "refusal.sheIsGone":
     "She has left the farm — sold, died or culled — and nothing more can be written of her",
   "refusal.sheIsReadyForSale":
@@ -1565,77 +1565,77 @@ export const en = {
     "Her last weighing is too old to price on — weigh her again first",
   "refusal.noQuarantinePen": "Mark a pen as a quarantine pen first",
   "refusal.notAQuarantinePen":
-    "A bought animal comes into Quarantine in a quarantine pen",
+    "A bought animal comes into quarantine in a quarantine pen",
   "refusal.penHoldsQuarantine":
-    "An animal in Quarantine is in this pen — release or walk her first",
+    "An animal in quarantine is in this pen — release or walk her first",
   "refusal.staysInQuarantine":
-    "An animal in Quarantine stays in a quarantine pen until she is released",
+    "An animal in quarantine stays in a quarantine pen until she is released",
   "refusal.arrivalDoseOwed":
-    "Still owed: {doses} — he leaves Quarantine once it is given, or the Vet writes why it is not needed",
+    "Still owed: {doses} — he leaves quarantine once it is given, or the vet writes why it is not needed",
   "refusal.doseNotOwed": "He does not owe that dose",
   "refusal.deathNeedsAPhoto": "Add a photograph of her, her tag showing",
   "refusal.windUpNotOver":
-    "The Wind-up Period has not ended; there are still days to sell in",
-  "refusal.nothingLeftToBuy": "This Venture has no animals left to buy",
+    "The wind-up period has not ended; there are still days to sell in",
+  "refusal.nothingLeftToBuy": "This venture has no animals left to buy",
   "refusal.bankRateFromTheFuture":
     "A bank's rate holds from a day that has come, not one still ahead",
   "refusal.crossingUnweighed":
     "Nobody weighed her by the end of the day she crossed; weigh her first, then price her",
   "refusal.joiningNeedsAWindow":
-    "Say which Target Window she is being fed towards; the next Eid could not be worked out",
-  "refusal.anAnimalStillStands": "An Animal of this Venture is still standing",
+    "Say which target window she is being fed towards; the next Eid could not be worked out",
+  "refusal.anAnimalStillStands": "An Animal of this venture is still standing",
   "refusal.aPriceIsMissing":
     "Feed was given or a dose used that nothing can put a price on",
-  "refusal.aFloatIsOpen": "A Buying Float has not been counted home",
+  "refusal.aFloatIsOpen": "A Buying float has not been counted home",
   "refusal.aReimbursementIsOwed":
-    "A month's Reimbursement has not been transferred",
+    "A month's reimbursement has not been transferred",
   "refusal.theAccountDoesNotAddUp": "The account does not add up",
   "refusal.theBankDisagrees":
     "A month has not been read against the statement, or did not agree",
-  "refusal.nobodyHasSigned": "Nobody has signed for this Venture",
+  "refusal.nobodyHasSigned": "Nobody has signed for this venture",
   "refusal.agreementsDisagree":
-    "This Venture's Agreements were signed on different splits",
+    "This venture's agreements were signed on different splits",
   "refusal.alreadyApproved":
-    "This Venture's Settlement has already been approved",
-  "refusal.notYetApproved": "Nothing is owed until the Settlement is approved",
+    "This venture's settlement has already been approved",
+  "refusal.notYetApproved": "Nothing is owed until the settlement is approved",
   "refusal.alreadyPaid": "That has already gone out",
-  "refusal.notWhatHeIsOwed": "That is not what this Settlement owes him",
+  "refusal.notWhatHeIsOwed": "That is not what this settlement owes him",
   "refusal.notYetPaid": "He cannot have had money nobody has sent him",
-  "refusal.noAdvanceToRepay": "You put nothing of your own into this Venture",
-  "refusal.noFarmShareToTake": "This Venture made the Farm nothing to take",
+  "refusal.noAdvanceToRepay": "You put nothing of your own into this venture",
+  "refusal.noFarmShareToTake": "This venture made the farm nothing to take",
   "refusal.advanceComesFirst":
     "Your own money comes back before any capital does",
   "refusal.alreadyAcknowledged": "He has already said he had it",
   "refusal.nothingToPayHim":
     "The run lost more than he put in, so there is nothing to send him",
-  "refusal.adjustmentIsClosed": "That Adjustment has already been dealt with",
+  "refusal.adjustmentIsClosed": "That adjustment has already been dealt with",
   "refusal.nothingHasChanged":
-    "Nothing has changed since this Settlement was approved",
+    "Nothing has changed since this settlement was approved",
   "refusal.nothingToPayOnIt":
-    "Nothing is owed on this Adjustment; waive it instead",
+    "Nothing is owed on this adjustment; waive it instead",
   "refusal.weighedAgainSince":
     "She has been weighed since you read that price — check the new one",
   "refusal.notAFatteningAnimal":
     "Investor money funds fattening, and a dairy cow is the farm's",
   "refusal.buyerCannotTrade":
-    "The Venture taking her on is past taking animals on",
+    "The venture taking her on is past taking animals on",
   "refusal.nothingToReimburse":
     "Its animals consumed nothing of the farm's that month",
   "refusal.monthAlreadyReimbursed": "That month has been reimbursed already",
   "refusal.monthNotOver": "That month is not over yet",
-  "refusal.monthBeforeTheVenture": "That month is before this Venture opened",
+  "refusal.monthBeforeTheVenture": "That month is before this venture opened",
   "refusal.sayWhatYouFoundOut":
     "Say what you found out about the month that did not agree",
   "refusal.ventureIsSettled":
-    "That Venture is settled — raise a Settlement Adjustment rather than changing what it was paid on",
+    "That venture is settled — raise a settlement adjustment rather than changing what it was paid on",
   "refusal.ventureIsCancelled":
-    "That Venture was called off and its money sent back; what came in cannot change now",
+    "That venture was called off and its money sent back; what came in cannot change now",
   "refusal.oneSideOfASale":
-    "That is one side of an Internal Sale — the sale itself is what to put right",
+    "That is one side of an internal sale — the sale itself is what to put right",
   "refusal.reimbursementIsComputed":
     "A month's reimbursement is what its costs came to; its day and its reference are still yours to correct",
   "refusal.sellerCannotTrade":
-    "The Venture letting her go is past letting animals go",
+    "The venture letting her go is past letting animals go",
   "refusal.cashBackNeedsASlip":
     "Cash coming back needs the day it was deposited and the slip's number",
   "ventures.budgetsHeld": "Of that, cattle and running",
@@ -1644,11 +1644,11 @@ export const en = {
   "ventures.col.unitsSigned": "Units signed",
   "ventures.col.people": "Investors",
   "ventures.col.animals": "Animals",
-  "ventures.stages": "Stages of the Venture",
-  "ventures.page.back": "All Ventures",
-  "ventures.page.notFound": "No Venture here by that address",
+  "ventures.stages": "Stages of the venture",
+  "ventures.page.back": "All ventures",
+  "ventures.page.notFound": "No venture here by that address",
   "ventures.page.tab.overview": "Overview",
-  "ventures.page.tab.investors": "Investors and Agreements",
+  "ventures.page.tab.investors": "Investors and agreements",
   "ventures.page.tab.animals": "Animals",
   "ventures.page.raising": "Raising the capital",
   "ventures.page.raised": "{held} in",
@@ -1658,32 +1658,32 @@ export const en = {
   /** The Venture Account's bank details, as the Owner writes them and as a signed Investor is told them. */
   "ventures.account.title": "Venture Account",
   "ventures.account.hint":
-    "Where an Investor who has signed is told to pay, on their own Agreement in the portal — never beside the Venture itself.",
+    "Where an investor who has signed is told to pay, on their own agreement in the portal — never beside the venture itself.",
   "ventures.account.none":
-    "Not written yet. A signed Investor is told the farm will say where to pay.",
+    "Not written yet. A signed investor is told the farm will say where to pay.",
   "ventures.account.write": "Write the account",
   "ventures.account.change": "Change the account",
-  "ventures.account.saved": "The Venture Account is written",
+  "ventures.account.saved": "The venture account is written",
   "ventures.account.sheetHint":
-    "Every change is kept in the trail with what it said before. Check each digit: this is where the Investors' money goes.",
+    "Every change is kept in the trail with what it said before. Check each digit: this is where the investors' money goes.",
   "ventures.account.bank": "Bank",
   "ventures.account.branch": "Branch",
   "ventures.account.name": "Account name",
   "ventures.account.number": "Account number",
   "ventures.account.routing": "Routing number",
-  "ventures.portal.title": "In the Investor portal",
+  "ventures.portal.title": "In the investor portal",
   "ventures.portal.shown":
-    "Every invited Investor who is not retired sees this Venture, its terms and your words.",
-  "ventures.portal.notShown": "Invited Investors do not see this Venture.",
+    "Every invited investor who is not retired sees this venture, its terms and your words.",
+  "ventures.portal.notShown": "Invited investors do not see this venture.",
   "ventures.portal.noWords": "No words of yours on it.",
   "ventures.portal.show": "Show in the portal",
   "ventures.portal.changeWords": "Change the words",
   "ventures.portal.takeOut": "Take out of the portal",
   "ventures.portal.words": "Your words on it",
   "ventures.portal.wordsHint":
-    "Say what it is for, such as “Qurbani bulls for Eid”. Never a return, a price to come or a comparison with another Venture: on a screen an Investor reads, that is a promise.",
+    "Say what it is for, such as “Qurbani bulls for Eid”. Never a return, a price to come or a comparison with another venture: on a screen an investor reads, that is a promise.",
   "ventures.portal.showHint":
-    "Every invited Investor who is not retired will see its terms, the split the farm signs on and these words. Never who has signed or how many Units are left.",
+    "Every invited investor who is not retired will see its terms, the split the farm signs on and these words. Never who has signed or how many units are left.",
   "ventures.portal.pastDecideBy":
     "Its decide-by day has passed, so it can no longer be shown.",
   "ventures.portal.nowShown": "Shown in the portal",
@@ -1691,21 +1691,21 @@ export const en = {
   "ventures.portal.takenOut": "Taken out of the portal",
   "ventures.requests.title": "Requests to join",
   "ventures.requests.hint":
-    "Asked through the Investor portal. A request binds nobody and holds no Units: only a signed Agreement does.",
+    "Asked through the investor portal. A request binds nobody and holds no units: only a signed agreement does.",
   "ventures.requests.none": "Nobody has asked to join through the portal",
   "ventures.requests.signed": "Signed",
   "ventures.requests.waiting": "Asked for and waiting",
   "ventures.requests.target": "Raising",
   "ventures.requests.floor": "Floor",
   "ventures.requests.unitsAndMoney":
-    "{units, plural, one {# Unit} other {# Units}} · {amount}",
+    "{units, plural, one {# unit} other {# units}} · {amount}",
   "ventures.requests.col.when": "Asked",
   "ventures.requests.col.note": "Note",
   "ventures.requests.history": "What they did",
   "ventures.requests.kind.made":
-    "Asked for {units, plural, one {# Unit} other {# Units}}",
+    "Asked for {units, plural, one {# unit} other {# units}}",
   "ventures.requests.kind.changed":
-    "Changed to {units, plural, one {# Unit} other {# Units}}",
+    "Changed to {units, plural, one {# unit} other {# units}}",
   "ventures.requests.kind.withdrawn": "Withdrew",
   "ventures.requests.state.waiting": "Waiting for your answer",
   "ventures.requests.state.come_and_sign": "Come and sign",
@@ -1718,29 +1718,29 @@ export const en = {
   "ventures.requests.notThisTime": "Not this time",
   "ventures.requests.answer.units": "Units the farm will sign",
   "ventures.requests.answer.askedFor":
-    "They asked for {units, plural, one {# Unit} other {# Units}}.",
+    "They asked for {units, plural, one {# unit} other {# units}}.",
   "ventures.requests.answer.canPromise":
-    "You can still say yes to {units, plural, one {# Unit} other {# Units}}.",
+    "You can still say yes to {units, plural, one {# unit} other {# units}}.",
   "ventures.requests.answer.countAfter":
-    "Signing them would make the Investor count {count}, of the {cap} the farm may have.",
+    "Signing them would make the investor count {count}, of the {cap} the farm may have.",
   "ventures.requests.answer.atTheCap":
-    "Signing them would make the Investor count {count}, and the farm may have {cap} at a time. You can still say yes, but signing is refused beyond the Cap.",
-  "ventures.requests.answer.line": "A line to the Investor, if you like",
+    "Signing them would make the investor count {count}, and the farm may have {cap} at a time. You can still say yes, but signing is refused beyond the Cap.",
+  "ventures.requests.answer.line": "A line to the investor, if you like",
   "ventures.requests.answer.lineHint":
     "They read it on their page in the portal. Nothing is sent to them.",
   "ventures.requests.answer.done": "Answered",
   "ventures.requests.answer.pastDecideBy":
     "Its decide-by day has passed: no new yes can be given",
-  "ventures.requests.answer.nothingLeft": "No Units are left to promise",
+  "ventures.requests.answer.nothingLeft": "No units are left to promise",
   "ventures.requests.answer.saidYes":
-    "Come and sign: {units, plural, one {# Unit} other {# Units}}",
+    "Come and sign: {units, plural, one {# unit} other {# units}}",
   "ventures.requests.closed.venture_buying": "Closed when buying started",
   "ventures.requests.closed.venture_cancelled":
-    "Closed when the Venture was called off",
+    "Closed when the venture was called off",
   "ventures.requests.closed.taken_out_of_portal":
     "Closed when it was taken out of the portal",
   "ventures.requests.closed.investor_retired":
-    "Closed when the Investor was retired",
+    "Closed when the investor was retired",
   "ventures.page.cattleLeft": "Left to buy cattle with",
   "ventures.page.runningLeft": "Left to keep them with",
   "ventures.page.cattleBudget": "Cattle budget",
@@ -1748,12 +1748,12 @@ export const en = {
   "ventures.page.spent": "Spent",
   "ventures.page.paidOut": "Paid out",
   "ventures.page.ofTarget": "of a {target} target",
-  "ventures.page.toTheFloor": "Still to reach the Floor",
+  "ventures.page.toTheFloor": "Still to reach the floor",
   "ventures.page.floorMet": "Reached",
   "ventures.page.unitsOf": "{taken} / {units}",
   "ventures.page.people": "Units · {people} people",
   "ventures.page.animalsStanding": "Animals it keeps",
-  "ventures.page.nobodySigned": "Nobody has signed this Venture yet",
+  "ventures.page.nobodySigned": "Nobody has signed this venture yet",
   "ventures.page.split": "Split",
   "ventures.page.splitIs": "{investors}% · Farm {farm}%",
   "ventures.page.paidOfOwed": "Paid / owed",
@@ -1771,7 +1771,7 @@ export const en = {
   "ventures.page.bought": "Bought for",
   "ventures.page.fetched": "Sold for",
   "ventures.page.margin": "Margin",
-  "ventures.page.noMoney": "No money has moved through this Venture yet",
+  "ventures.page.noMoney": "No money has moved through this venture yet",
   "ventures.page.showing": "Which movements",
   "ventures.page.showAll": "Everything",
   "ventures.page.showIn": "Money in",
@@ -1787,38 +1787,38 @@ export const en = {
   "ventures.figure.held": "Capital held",
   "ventures.figure.balance": "In the accounts",
   "ventures.figure.needsYou": "Needs you",
-  "ventures.noneRunning": "No Venture is running",
-  "ventures.noneSettled": "No Venture has settled yet",
-  "ventures.noneCalledOff": "No Venture has been called off",
+  "ventures.noneRunning": "No venture is running",
+  "ventures.noneSettled": "No venture has settled yet",
+  "ventures.noneCalledOff": "No venture has been called off",
   "ventures.noneRunningHint":
-    "Open one with “New Venture”: it stays here while it raises money, buys, fattens and sells.",
+    "Open one with “New venture”: it stays here while it raises money, buys, fattens and sells.",
   "ventures.noneSettledHint":
-    "A Venture comes here once its Settlement is approved and the last payout has gone.",
+    "A venture comes here once its settlement is approved and the last payout has gone.",
   "ventures.noneCalledOffHint":
-    "A Venture that missed its Floor, or was called off before buying, ends here with every {currencyOne} refunded.",
+    "A venture that missed its floor, or was called off before buying, ends here with every {currencyOne} refunded.",
   "ventures.moreFor": "More for {venture}",
   "ventures.callOff": "Call it off",
   "ventures.callOffHint":
     "Nothing is bought and {venture} ends here. Every {currencyOne} goes back, each with the reference of the transfer that sent it.",
   "ventures.callOffReason": "Why it is being called off",
   "ventures.calledOff":
-    "The Venture is called off, and the money is on its way back",
+    "The venture is called off, and the money is on its way back",
   "ventures.refundedOn": "Sent back on",
   "ventures.nothingToSendBack":
     "No money came in, so there is nothing to send back",
   "investors.title": "Investors",
-  "investors.subtitle": "The people whose money is in the farm's Ventures",
-  "investors.record": "Record an Investor",
+  "investors.subtitle": "The people whose money is in the farm's ventures",
+  "investors.record": "Record an investor",
   "investors.recordHint":
-    "Written down once and used for every Venture they join",
-  "investors.recorded": "The Investor is recorded",
+    "Written down once and used for every venture they join",
+  "investors.recorded": "The investor is recorded",
   "investors.name": "Name",
   "investors.phone": "Phone",
   "investors.address": "Address",
   "investors.nid": "NID number",
   "investors.bank": "Bank account",
   "investors.bankHint":
-    "How they are paid: the farm pays Investors by bank, never by hand",
+    "How they are paid: the farm pays investors by bank, never by hand",
   "investors.nominee": "Nominee",
   "investors.relation.wife": "Wife",
   "investors.relation.husband": "Husband",
@@ -1850,14 +1850,14 @@ export const en = {
   "investors.retire": "Retire",
   "investors.retireTitle": "Retire {name}?",
   "investors.retireWhy":
-    "They come off the people the farm may sign for a Venture. Nothing about them is deleted — their Agreements, payouts and statements are kept — and they can be restored.",
+    "They come off the people the farm may sign for a venture. Nothing about them is deleted — their agreements, payouts and statements are kept — and they can be restored.",
   "investors.retiredToast": "Retired",
   "investors.retired": "Retired",
   "investors.retiredOn": "Retired on {day}",
   "investors.restore": "Restore",
   "investors.restored": "Restored",
   "investors.stillIn":
-    "Their money is in a Venture still running, so they cannot be retired until it settles or is called off.",
+    "Their money is in a venture still running, so they cannot be retired until it settles or is called off.",
   "investors.nomineeIs": "Nominee: {name}",
   "investors.nomineesAre": "{name} and {more} more",
   "nominees.title": "Nominees",
@@ -1923,38 +1923,38 @@ export const en = {
   "nominees.recorded": "মনোনয়নপত্র recorded: these are now their Nominees",
   "nominees.photoKept": "Photo kept",
   "investors.relationInWords": "Their relation, in words",
-  "investors.holds": "{units, plural, one {# Unit} other {# Units}}",
-  "investors.none": "No Investor is recorded yet",
+  "investors.holds": "{units, plural, one {# unit} other {# units}}",
+  "investors.none": "No investor is recorded yet",
   "investors.nearingTheCap":
-    "{standing, plural, one {# Investor} other {# Investors}} of the {cap} the farm may have",
+    "{standing, plural, one {# investor} other {# investors}} of the {cap} the farm may have",
   "investors.capWhy":
-    "Twenty people in one business for gain is a company. The farm counts everyone in a Venture that has not settled or been called off, and will not take one more.",
-  "investors.inARun": "In a running Venture",
+    "Twenty people in one business for gain is a company. The farm counts everyone in a venture that has not settled or been called off, and will not take one more.",
+  "investors.inARun": "In a running venture",
   "investors.ofTheCap": "{standing} of {cap}",
   "investors.capHint":
-    "The Investor Cap, a farm setting: twenty people in one business for gain is a company",
+    "The investor Cap, a farm setting: twenty people in one business for gain is a company",
   "investors.unitsHeld": "Units held",
   "investors.recordedCount": "Names on file",
   "investors.search": "Search a name or a phone",
   "investors.noneFound": "Nobody here by that name",
   "investors.page.onFile": "On file",
-  "investors.page.back": "All Investors",
-  "investors.page.notFound": "No Investor here by that address",
+  "investors.page.back": "All investors",
+  "investors.page.notFound": "No investor here by that address",
   "investors.page.tab.overview": "Overview",
   "investors.page.tab.agreements": "Agreements",
   "investors.page.tab.money": "Money",
   "investors.requests.hint":
-    "Every Venture they asked to join through the portal, the newest first, and where each stands.",
+    "Every venture they asked to join through the portal, the newest first, and where each stands.",
   "investors.page.heldNow": "Capital held now",
   "investors.page.onPapers":
-    "{count, plural, one {On # Agreement} other {On # Agreements}}",
-  "investors.page.inRunning": "In the Ventures still running",
+    "{count, plural, one {On # agreement} other {On # agreements}}",
+  "investors.page.inRunning": "In the ventures still running",
   "investors.page.profit": "Their share of the profit",
   "investors.page.fromSettled":
     "{count, plural, one {From # settled Venture} other {From # settled Ventures}}",
   "investors.page.noneSettled": "No Venture settled yet",
   "investors.page.agreementsHint":
-    "Every paper they signed, the latest first, with the terms in force today. Capital is taken and payouts are made from the Venture's page.",
+    "Every paper they signed, the latest first, with the terms in force today. Capital is taken and payouts are made from the venture's page.",
   "investors.page.venture": "Venture",
   "investors.page.signed": "Signed",
   "investors.page.capitalHeld": "Held / promised",
@@ -1998,12 +1998,12 @@ export const en = {
   "params.saved": "Parameters saved",
   "sighting.report": "Report what you see",
   "sighting.hint":
-    "No round asked, but something is wrong — or she is in heat. The Vet sees it, and a heat starts the breeding work.",
+    "No round asked, but something is wrong — or she is in heat. The vet sees it, and a heat starts the breeding work.",
   "sighting.what": "What did you see?",
   "sighting.note": "Anything to add (optional)",
   "sighting.noteNeeded": "Say what you saw",
   "sighting.save": "Record it",
-  "sighting.recorded": "Recorded — the Vet will see it",
+  "sighting.recorded": "Recorded — the vet will see it",
   "sighting.queued": "Kept on this phone — it goes when there is signal",
   "sighting.reported": "reported",
   "visit.invite": "A vet called in for a visit",
@@ -2048,7 +2048,7 @@ export const en = {
   "audit.calledOffBy.animal_left": "Called off: the animal left the farm",
   "audit.calledOffBy.observation_withdrawn":
     "Called off: what the round saw was taken back",
-  "audit.calledOffBy.diagnosed": "Called off: the Vet has made a diagnosis",
+  "audit.calledOffBy.diagnosed": "Called off: the vet has made a diagnosis",
   "audit.calledOffBy.heat_withdrawn": "Called off: the heat was taken back",
   "audit.calledOffBy.attempt_no_longer_standing":
     "Called off: the service it followed no longer stands",
@@ -2056,8 +2056,8 @@ export const en = {
     "Called off: her calving is no longer expected",
   "audit.calledOffBy.report_withdrawn": "Called off: the report was withdrawn",
   "audit.calledOffBy.sop_retired": "Called off: the procedure was retired",
-  "audit.calledOffBy.released": "Called off: he is out of Quarantine",
-  "audit.calledOffBy.excused": "Called off: the Vet excused the dose",
+  "audit.calledOffBy.released": "Called off: he is out of quarantine",
+  "audit.calledOffBy.excused": "Called off: the vet excused the dose",
   "audit.raisedAgainBy.calving_expected_again":
     "Raised again: her calving is expected again",
   "audit.before": "Before",
@@ -2097,7 +2097,7 @@ export const en = {
     "{count, plural, one {# piece of work} other {# pieces of work}} due on the Playbook's schedule",
   "audit.raised.byWhatHappened":
     "{count, plural, one {# piece of work} other {# pieces of work}} raised by something that happened to an animal",
-  "audit.raised.forTheRenewal": "The Registration's renewal coming due",
+  "audit.raised.forTheRenewal": "The registration's renewal coming due",
   "audit.raised.checked": "The farm checked for the day's work",
   "audit.raised.byHand": "Raised by hand",
   "auditField.raised": "Work raised",
@@ -2247,7 +2247,7 @@ export const en = {
   "audit.entity.paper_template": "Agreement template",
   "audit.entity.paper_template_version": "Agreement template version",
   "audit.entity.agreement_offer": "Agreement offered in the app",
-  "audit.entity.investment_agreement": "Investment Agreement",
+  "audit.entity.investment_agreement": "Investment agreement",
   "audit.entity.amendment_offer": "Amendment offered in the app",
   "audit.entity.venture": "Venture",
   "audit.entity.receivable_payment": "Receivable payment",
@@ -2280,7 +2280,7 @@ export const en = {
   "audit.entity.excused_dose": "Dose excused",
   "audit.entity.venture_settlement": "Settlement",
   "audit.entity.venture_plan": "Venture Plan",
-  "audit.entity.internal_sale": "Internal Sale",
+  "audit.entity.internal_sale": "Internal sale",
   "audit.entity.venture_bank_check": "Venture bank check",
   "audit.entity.vet_case": "Vet case",
   "audit.entity.store": "Store",
@@ -2344,7 +2344,7 @@ export const en = {
   "common.retired": "Retired",
   "feed.retireTitle": "Retire “{name}”?",
   "feed.retireWhy":
-    "Nothing new is fed, bought or counted as it. What a Pen was fed with it keeps its name, and it can be restored.",
+    "Nothing new is fed, bought or counted as it. What a pen was fed with it keeps its name, and it can be restored.",
   "byHand.restore": "Restore",
   "notifiable.restore": "Restore to the list",
   "notifiable.restoreHint":
@@ -2364,7 +2364,7 @@ export const en = {
   "herd.addPen": "Add a pen",
   "herd.quarantinePen": "Quarantine pen",
   "herd.quarantineAstray":
-    "In Quarantine, but not in a quarantine pen — walk them into one",
+    "In quarantine, but not in a quarantine pen — walk them into one",
   "herd.shedName": "Shed name",
   "herd.penName": "Pen name",
   "herd.rename": "Rename",
@@ -2390,17 +2390,17 @@ export const en = {
   "herd.importFile": "Choose a CSV file",
   "herd.importRows": "Rows",
   "animals.subtitle":
-    "Every animal on the farm you work, by her Tag Number. Type to narrow; press Find to open.",
+    "Every animal on the farm you work, by her tag number. Type to narrow; press Find to open.",
   "animals.count": "{count, plural, one {# animal} other {# animals}}",
   "animals.searchPlaceholder": "Tag Number, e.g. D-0001",
-  "goTo.label": "Go to Tag Number",
+  "goTo.label": "Go to tag number",
   "goTo.title": "Go to an animal",
-  "goTo.hint": "Type her Tag Number; Enter opens her page.",
-  "goTo.matches": "Animals by that Tag Number",
+  "goTo.hint": "Type her tag number; Enter opens her page.",
+  "goTo.matches": "Animals by that tag number",
   "animals.milkHeld": "Milk held",
   "animals.meatHeld": "Meat held",
   "animals.noMatch":
-    "No animal's Tag Number matches that. Check the number on her ear tag.",
+    "No animal's tag number matches that. Check the number on her ear tag.",
   "animals.noneHint":
     "Animals appear here once they are registered or taken in.",
   "animals.col.tag": "Tag Number",
@@ -2426,7 +2426,7 @@ export const en = {
   "animals.aliases": "Old marks",
   "animals.registered": "Registered as {tag}",
   "animals.registerHint":
-    "For an animal that did not come in through Intake or a calving. The farm gives her the next Tag Number.",
+    "For an animal that did not come in through intake or a calving. The farm gives her the next tag number.",
   "animals.birthDate": "Date of birth",
   "animals.move": "Move",
   "animals.moveTo": "Move to pen",
@@ -2492,11 +2492,11 @@ export const en = {
   "animals.doseNotNeeded": "Not needed",
   "animals.doseNotNeededWhy": "Why it is not needed",
   "animals.doseNotNeededHint":
-    "Write why this dose is not needed — given at the farm he came from, say, and you saw the card. It is then not owed, and he may leave Quarantine.",
+    "Write why this dose is not needed — given at the farm he came from, say, and you saw the card. It is then not owed, and he may leave quarantine.",
   "animals.doseExcused": "Vet: not needed — {reason}",
   "animals.fromCampaign": "campaign",
   "animals.observationWithdrawn": "Withdrawn",
-  "sop.effect.registration_renewal": "Renews the Registration",
+  "sop.effect.registration_renewal": "Renews the registration",
   "sop.effect.observation": "What was seen (health, heat)",
   "sop.choices": "What may be chosen",
   "sop.choicesHelp": "Comma separated, in Bangla",
@@ -2553,7 +2553,7 @@ export const en = {
   "device.promise.lock": "It locks itself when nobody is using it.",
   "device.setup": "Set up this phone",
   "device.setupHelp":
-    "Type the code on the Manager's screen — ten letters and numbers.",
+    "Type the code on the manager's screen — ten letters and numbers.",
   "device.enrol": "Set up",
   "device.enrolled": "This phone is ready",
   "device.whoAreYou": "Who is working?",
@@ -2583,9 +2583,9 @@ export const en = {
   "sop.standard.hint":
     "Procedures OpenFarm offers to start from. None raises work until you have read it and published it.",
   "sop.standard.adopt": "Read and publish",
-  "sop.standard.need.calvingPen": "The calving Pen",
+  "sop.standard.need.calvingPen": "The calving pen",
   "sop.standard.need.weanedBullPen":
-    "The fattening Pen weaned bull calves go to",
+    "The fattening pen weaned bull calves go to",
   "sop.standard.need.fmdVaccine": "The FMD vaccine",
   "sop.standard.need.lsdVaccine": "The lumpy skin vaccine",
   "sop.standard.need.dewormer": "The dewormer",
@@ -2596,9 +2596,9 @@ export const en = {
   "sop.standard.need.tickSpray": "The tick and fly spray",
   "sop.standard.need.calfDewormer": "The calf dewormer",
   "sop.standard.choose": "Choose…",
-  "sop.standard.noPens": "The farm has no Pens yet",
+  "sop.standard.noPens": "The farm has no pens yet",
   "sop.standard.noProducts":
-    "Nothing on the Drug List may be given yet — the Vet writes its withdrawal days first",
+    "Nothing on the drug list may be given yet — the vet writes its withdrawal days first",
   "sop.edit": "Edit",
   "sop.publish": "Publish",
   "sop.propose": "Propose a change",
@@ -2613,9 +2613,9 @@ export const en = {
   "sop.onTheseDays": "Only on the ticked days",
   "sop.firstOfTheMonth": "The first in the month only",
   "sop.everyOtherWeek": "Every other week (fortnightly)",
-  "sop.wholeFarm": "Once for the whole farm, not for each Pen",
+  "sop.wholeFarm": "Once for the whole farm, not for each pen",
   "sop.wholeFarmHint":
-    "For work about the farm itself — the footbath, the visitor book. Raised once, while any Pen has an animal it is for.",
+    "For work about the farm itself — the footbath, the visitor book. Raised once, while any pen has an animal it is for.",
   "sop.weekday.0": "Sun",
   "sop.weekday.1": "Mon",
   "sop.weekday.2": "Tue",
@@ -2626,7 +2626,7 @@ export const en = {
   "sop.times": "Times of day",
   "sop.timesHelp": "Comma separated, e.g. 05:00, 16:00",
   "sop.triggers": "What raises this work",
-  "sop.trigger.byHand": "Nothing raises this — the Manager runs it on the day",
+  "sop.trigger.byHand": "Nothing raises this — the manager runs it on the day",
   "sop.trigger.withoutDelay": "The moment it is found, without delay",
   "sop.trigger.add": "Add a trigger",
   "sop.trigger.event": "Something that happened",
@@ -2646,11 +2646,11 @@ export const en = {
   "sop.effect.product": "Which product",
   "sop.effect.prescriptionNames": "A prescription will name it",
   "sop.effect.none": "Only the evidence itself",
-  "sop.effect.feeding": "Feeding the Pen its Ration",
+  "sop.effect.feeding": "Feeding the pen its ration",
   "sop.effect.milk_record": "A cow's Milk Record",
   "sop.effect.bulk_total": "The bulk tank total",
-  "sop.effect.move": "Moving the animal to another Pen",
-  "sop.effect.needsPens": "Make a Pen first",
+  "sop.effect.move": "Moving the animal to another pen",
+  "sop.effect.needsPens": "Make a pen first",
   "sop.steps": "Steps",
   "sop.addStep": "Add a step",
   "sop.stepText": "What to do",
@@ -2681,7 +2681,7 @@ export const en = {
   "sop.kpi.proceduresHint": "Published and in force",
   "sop.kpi.waiting": "Changes waiting",
   "sop.kpi.waitingOwner": "Waiting for you to publish or turn down",
-  "sop.kpi.waitingManager": "With the Owner to decide",
+  "sop.kpi.waitingManager": "With the owner to decide",
   "sop.kpi.byHand": "Raised by hand",
   "sop.kpi.byHandHint": "No clock or happening raises them",
   "sop.col.when": "When it comes up",
@@ -2708,7 +2708,7 @@ export const en = {
   "sop.refused.reportExists":
     "The farm already has a procedure a notifiable disease raises. Retire that one first",
   "card.retiredHint": "The farm no longer raises this work",
-  "sop.withTheOwner": "With the Owner",
+  "sop.withTheOwner": "With the owner",
   "sop.readProposal": "Read the proposed change",
   "sop.inForce": "Version {number} in force now",
   "sop.stepNumber": "Step {number}",
@@ -2720,7 +2720,7 @@ export const en = {
     "Its name and why it is done, in Bangla. English is optional.",
   "sop.editor.when": "When it comes up",
   "sop.editor.whenHint":
-    "On the clock, when something the farm records happens, or both. Neither, and the Manager raises it on the day.",
+    "On the clock, when something the farm records happens, or both. Neither, and the manager raises it on the day.",
   "sop.editor.clock": "On the clock",
   "sop.editor.who": "Who does it and who signs it off",
   "sop.editor.whoHint":
@@ -2731,12 +2731,12 @@ export const en = {
   "sop.editor.ready": "Ready",
   "sop.editor.blocked":
     "{count, plural, one {# thing} other {# things}} to put right",
-  "sop.editor.publishHint": "Publishing makes a new Version of this procedure.",
+  "sop.editor.publishHint": "Publishing makes a new version of this procedure.",
   "sop.editor.proposeHint":
-    "Your change goes to the Owner, who publishes it or turns it down.",
+    "Your change goes to the owner, who publishes it or turns it down.",
   "card.title": "SOP Card",
   "card.pageHint":
-    "The procedure as it goes on the shed wall, in Bangla, made from its published Version. Print it on one A4 sheet.",
+    "The procedure as it goes on the shed wall, in Bangla, made from its published version. Print it on one A4 sheet.",
   "card.version": "Version {number} · {date}",
   "card.purpose": "Why",
   "card.who": "Who does it",
@@ -2744,19 +2744,19 @@ export const en = {
   "card.perAnimal": "Once per animal",
   "card.checker": "Checked by",
   "card.where": "Where",
-  "card.eachPen": "Each Pen with animals",
+  "card.eachPen": "Each pen with animals",
   "card.wholeFarm": "Once for the whole farm",
   "card.whenNeeded": "When needed",
   "card.steps": "Steps",
   "card.skippable": "May be skipped if",
   "card.madeFrom":
-    "Made from the published Version: the card on the wall and the work in the app are the same.",
+    "Made from the published version: the card on the wall and the work in the app are the same.",
   "training.title": "Who has been trained",
   "training.mark": "Mark as trained",
   "training.none": "Nobody has been marked yet",
   "training.on": "Version {number} · {date}",
   "training.hint":
-    "Mark somebody once they have been taught from this card's Version.",
+    "Mark somebody once they have been taught from this card's version.",
   "training.who": "Who was taught",
   "changed.title": "This procedure has changed",
   "changed.versions": "Version {from} to {to}",
@@ -2775,9 +2775,9 @@ export const en = {
     "Grace is now {minutes, plural, one {# minute} other {# minutes}}",
   "changed.who_changed": "Now done by: {role}",
   "changed.now_whole_farm":
-    "Now raised once for the whole farm, not for each Pen",
+    "Now raised once for the whole farm, not for each pen",
   "changed.now_per_pen":
-    "Now raised for each Pen with animals, not once for the farm",
+    "Now raised for each pen with animals, not once for the farm",
   "changed.checker_changed": "Now signed off by: {role}",
   "alerts.sopProposed": "{sop} — a change proposed",
   "alerts.sopRetired": "{sop} was retired — its work is no longer raised",
@@ -2804,7 +2804,7 @@ export const en = {
   "nav.backups": "Backups",
   "nav.settings": "Settings",
   "feed.subtitle":
-    "What is in the store, what came in, and which Ration each Pen is on.",
+    "What is in the store, what came in, and which ration each pen is on.",
   "feed.tab.stock": "Store",
   "feed.tab.feedIn": "Came in",
   "feed.tab.counts": "Counts",
@@ -2840,18 +2840,18 @@ export const en = {
   "feed.kpi.itemsHint": "Being fed now",
   "feed.kpi.low": "Running low",
   "feed.kpi.lowHint":
-    "Below their level, short of days, or out of a feed a Pen is on",
+    "Below their level, short of days, or out of a feed a pen is on",
   "feed.kpi.value": "Store value",
   "feed.kpi.valueHint": "At average price",
   "feed.kpi.bought": "Bought this month",
   "feed.kpi.boughtHint": "{count, plural, one {# lot} other {# lots}}",
   "feed.itemsDescription":
-    "What the farm feeds. A retired Feed Item stays named in the Rations that fed it.",
+    "What the farm feeds. A retired feed item stays named in the rations that fed it.",
   "feed.rationsDescription":
-    "Each Ration is a day's feed — each line for every animal, or for every 100 kg it weighs. Choose here which Pen is on which.",
+    "Each ration is a day's feed — each line for every animal, or for every 100 kg it weighs. Choose here which pen is on which.",
   "feed.targetDescription":
-    "This session's feed for the Pen you choose, worked out from the animals standing in it.",
-  "feed.editRation": "Edit Ration",
+    "This session's feed for the pen you choose, worked out from the animals standing in it.",
+  "feed.editRation": "Edit ration",
   "feed.inUse": "In use",
   "feed.col.status": "Status",
   "feed.title": "Feed and rations",
@@ -2863,7 +2863,7 @@ export const en = {
   "feed.rename": "Rename",
   "feed.renameTitle": "Rename {name}",
   "feed.renameHint":
-    "Every Ration, purchase and count of this feed takes the new name.",
+    "Every ration, purchase and count of this feed takes the new name.",
   "feed.addStandard": "Add the standard feeds",
   "feed.addStandardTitle":
     "Add {count, plural, one {# standard feed} other {# standard feeds}}?",
@@ -3023,13 +3023,13 @@ export const en = {
   "stock.perUnit": "{currencySign} per {unit}",
   "stock.setLevel": "Set running-low level",
   "stock.levelHint":
-    "The Manager and the Owner are told when the store falls below this. Leave it blank to not be told.",
+    "The manager and the owner are told when the store falls below this. Leave it blank to not be told.",
   "stock.levelSaved": "Level saved",
-  "stock.allItems": "All Feed Items",
-  "stock.filterItem": "Filter by Feed Item",
+  "stock.allItems": "All feed items",
+  "stock.filterItem": "Filter by feed item",
   "stock.noArrivals": "Nothing has come in yet",
   "stock.noCounts": "No counts yet",
-  "stock.noStock": "Nothing in the store — add a Feed Item first",
+  "stock.noStock": "Nothing in the store — add a feed item first",
   "stock.adjustment": "expected {expected}, counted {counted}",
   "stock.averagePrice": "{currencySign}{amount} per {unit}",
   "stock.weighed": "Weighed on the farm's scale (kg)",
@@ -3087,58 +3087,58 @@ export const en = {
   "refusal.receivedInTheFuture":
     "Feed cannot come in on a day that has not come yet",
   "refusal.ventureWrongState":
-    "The Venture is not where it would have to be for that",
+    "The venture is not where it would have to be for that",
   "refusal.venturePastDecideBy": "Its decide-by day has passed",
   "refusal.ventureNotShown": "It is not shown in the portal",
-  "refusal.unitsBeyondAsked": "More Units than they asked for",
-  "refusal.unitsBeyondPromisable": "More Units than are left to promise",
+  "refusal.unitsBeyondAsked": "More units than they asked for",
+  "refusal.unitsBeyondPromisable": "More units than are left to promise",
   "refusal.requestAlreadyAnswered": "This request has been answered already",
   "refusal.requestNotLive": "This request is no longer waiting",
   "refusal.requestNotTheirs":
-    "This request is another Investor's, or on another Venture",
+    "This request is another investor's, or on another venture",
   "refusal.noSuchRequest": "There is no such request",
   "refusal.ventureUnderFloor":
-    "The Venture holds less than the Floor it was opened on",
+    "The venture holds less than the floor it was opened on",
   "refusal.ventureFloorOverTarget":
-    "The Floor cannot be more than the capital the Venture is after",
+    "The floor cannot be more than the capital the venture is after",
   "refusal.ventureFloorOverUnits":
-    "The Floor is more than the Units can ever raise: lower it, or add Units",
+    "The floor is more than the units can ever raise: lower it, or add units",
   "refusal.ventureNoMonthToPayIn":
     "No 10th falls between the month after the decision date and the sale window: move a date, or have it paid before buying",
   "refusal.ventureNothingToPayMonthly":
     "The cattle budget is all the capital, so nothing is left to pay by the month",
   "refusal.ventureBudgetOverCapital":
-    "The Cattle Budget cannot be more than the capital it comes from",
-  "refusal.ventureUnitsGone": "The Venture has fewer Units left than that",
+    "The cattle budget cannot be more than the capital it comes from",
+  "refusal.ventureUnitsGone": "The venture has fewer units left than that",
   "refusal.investorCapReached":
-    "The farm already has as many Investors as it may have at a time",
+    "The farm already has as many investors as it may have at a time",
   "refusal.investorExists":
     "This person is written down already, on that same phone number",
   "refusal.investorAlreadySigned":
-    "This Investor has signed for this Venture already",
+    "This investor has signed for this venture already",
   "refusal.expiredWhenBought": "That lot had expired before it came in",
   "refusal.noFarmLossToCover":
-    "This Venture made no loss for the Farm to carry",
+    "This venture made no loss for the farm to carry",
   "refusal.investorRetired":
-    "This Investor is retired; restore them from the Investors page first",
+    "This investor is retired; restore them from the Investors page first",
   "refusal.rationInUse":
     "Pens are still fed on this ration. Put them on another ration first.",
   "refusal.rationRetired":
     "That ration is retired. Restore it to put a pen on it.",
   "refusal.investorStillIn":
-    "Their money is in a Venture still running; they can be retired once it settles or is called off",
+    "Their money is in a venture still running; they can be retired once it settles or is called off",
   "refusal.capitalMustBeByBank":
-    "A Venture takes money by bank only — a transfer, a cheque or a deposit slip",
+    "A venture takes money by bank only — a transfer, a cheque or a deposit slip",
   "refusal.agreementHasNoPaper":
-    "The photo of the stamped Agreement has to be on file before its money is",
+    "The photo of the stamped agreement has to be on file before its money is",
   "refusal.capitalNotSentBack":
-    "Every {currencyOne} the Venture took needs a refund with its own reference",
+    "Every {currencyOne} the venture took needs a refund with its own reference",
   "refusal.neverTheAnimals":
     "Wages, shed rent, utilities, repairs, shed hygiene, equipment and money coming in are never charged to the animals",
   "refusal.neverMonthly":
     "Only money going out that no record books may be marked as paid every month",
   "refusal.wagesWatchedByPerson":
-    "A wage is looked for by the person paid, not by the Category",
+    "A wage is looked for by the person paid, not by the category",
   "refusal.feedRetired": "That feed is retired",
   "refusal.bagSizeUnknown":
     "Say what one of its bags weighs first, on the Feed Items tab",
@@ -3192,7 +3192,7 @@ export const en = {
   "nav.ventures": "Ventures",
   "nav.money": "Income & expenses",
   "money.subtitle":
-    "Every {currencyOne} in and out, as the farm's own records made it — and what waits for the Owner's approval.",
+    "Every {currencyOne} in and out, as the farm's own records made it — and what waits for the owner's approval.",
   "money.period": "Period",
   "money.totalIn": "Money in",
   "money.totalOut": "Money out",
@@ -3216,7 +3216,7 @@ export const en = {
   "money.title": "Income & expenses",
   "farmAccounts.title": "Farm Accounts",
   "farmAccounts.why":
-    "The Farm's own mobile money numbers and bank accounts. Once one of a kind is listed, money by it names which one it went into or came out of, with its transaction ID.",
+    "The farm's own mobile money numbers and bank accounts. Once one of a kind is listed, money by it names which one it went into or came out of, with its transaction ID.",
   "farmAccounts.none": "No accounts listed yet.",
   "farmAccounts.kind": "Kind",
   "farmAccounts.name": "Name",
@@ -3245,7 +3245,7 @@ export const en = {
     "This account's first statement: what it reads is what the account held, and every month after is checked from it.",
   "money.referenceWas": "ref. {reference}",
   "money.paidBy": "Paid by",
-  "money.whichAccount": "Which Farm Account",
+  "money.whichAccount": "Which farm account",
   "money.chooseAccount": "Choose an account",
   "money.reference": "Transaction ID or reference",
   "money.method.cash": "Cash",
@@ -3282,12 +3282,12 @@ export const en = {
   "money.from.feedIn": "Feed purchase",
   "money.from.medicinePurchase": "Medicine purchase",
   "money.from.vetFee": "Vet fee",
-  "money.from.internalSaleIn": "Sold to a Venture",
-  "money.from.internalSaleOut": "Bought from a Venture",
-  "money.from.reimbursement": "Reimbursed by a Venture",
-  "money.from.farmShare": "The farm's share of a Venture",
-  "money.from.farmLoss": "The farm's share of a Venture's loss",
-  "money.from.settlementAdjustment": "A Settlement Adjustment",
+  "money.from.internalSaleIn": "Sold to a venture",
+  "money.from.internalSaleOut": "Bought from a venture",
+  "money.from.reimbursement": "Reimbursed by a venture",
+  "money.from.farmShare": "The farm's share of a venture",
+  "money.from.farmLoss": "The farm's share of a venture's loss",
+  "money.from.settlementAdjustment": "A settlement adjustment",
   "owner.enteredBy": "entered by {name}",
   "owner.inPieces":
     "under the line alone, past it with this week's other pieces to the same person",
@@ -3337,8 +3337,8 @@ export const en = {
   "vetFee.recorded": "Fee recorded",
   "vetFee.hint": "The only money you enter here, and the only money you see.",
   "vetFee.none": "No fee recorded yet",
-  "vetFee.noAnimals": "No animal on the farm yet to say the Vet saw",
-  "refusal.ownerOnly": "Only the Owner can do this",
+  "vetFee.noAnimals": "No animal on the farm yet to say the vet saw",
+  "refusal.ownerOnly": "Only the owner can do this",
   "refusal.personalPhoneOnly":
     "This is done from your own phone, not the shed's",
   "refusal.notAwaitingApproval": "That money is not waiting for approval",
@@ -3347,7 +3347,7 @@ export const en = {
   "refusal.boughtInTheFuture":
     "Medicine cannot be bought on a day that has not come yet",
   "refusal.drugRetired":
-    "That product is retired; the Vet restores it before more is bought",
+    "That product is retired; the vet restores it before more is bought",
   "refusal.amountChanged":
     "The amount was corrected since you read it; read it again",
   "money.from.byHand": "Entered by hand",
@@ -3370,7 +3370,7 @@ export const en = {
   "byHand.looksEnteredSaid":
     "{by} already entered {amount} to {name} on {day}, under {category}.",
   "byHand.looksEnteredTold":
-    "Save it again only if it really is a second one; the Owner will hear of it.",
+    "Save it again only if it really is a second one; the owner will hear of it.",
   "byHand.looksEnteredAsk": "Save it again only if it really is a second one.",
   "byHand.saveAgain": "Save it again",
   "byHand.somebody": "Somebody",
@@ -3388,7 +3388,7 @@ export const en = {
   "byHand.markMonthly": "Mark as paid every month",
   "byHand.stopMonthly": "No longer paid every month",
   "byHand.retire": "Retire",
-  "byHand.newCategory": "New Category",
+  "byHand.newCategory": "New category",
   "byHand.direction": "In or out",
   "byHand.addCategory": "Add",
   "byHand.showReceipt": "Receipt",
@@ -3402,11 +3402,11 @@ export const en = {
     "That person's wage for that month is already entered",
   "refusal.wageNeedsMonth": "A wage names the month it pays for",
   "refusal.monthIsForWages": "Only a wage pays for a month",
-  "refusal.categoryExists": "The farm already has that Category",
+  "refusal.categoryExists": "The farm already has that category",
   "refusal.feedItemExists": "The farm already has a feed by that name",
-  "refusal.categoryRetired": "That Category is retired",
+  "refusal.categoryRetired": "That category is retired",
   "refusal.categoryKeptByRecords":
-    "That Category's money comes from its own record",
+    "That category's money comes from its own record",
   "refusal.correctTheRecord":
     "That money comes from a record; put the record right",
   "refusal.enteredInTheFuture":
@@ -3425,28 +3425,28 @@ export const en = {
   "costs.notSold": "not sold yet",
   "costs.litres": "Litres to Bulk",
   "costs.perLitre": "Cost per litre",
-  "costs.bySide": "Costs by Side",
+  "costs.bySide": "Costs by side",
   "costs.unpricedNote":
     "{amount} kg of home-grown fodder was fed at no price, and costs nothing here",
   "costs.uncostedNote":
     "{amount, plural, one {# dose was of medicine the farm had not bought, and is not costed} other {# doses were of medicine the farm had not bought, and are not costed}}",
   "costs.strayHerdNote":
-    "{currencySign}{amount} was spent on the animals of a Side in a month when none were standing there, and is charged to nobody",
+    "{currencySign}{amount} was spent on the animals of a side in a month when none were standing there, and is charged to nobody",
   "costs.strayTripNote":
     "{currencySign}{amount} was spent on buying trips that brought no animal home, and is charged to nobody",
   "costs.unallocatedNote":
-    "{currencySign}{amount} of feed went to Pens with no animals recorded in them, and is charged to nobody",
+    "{currencySign}{amount} of feed went to pens with no animals recorded in them, and is charged to nobody",
   "costs.vet": "Vet visits",
   "costs.market_toll": "Market toll",
   "costs.trips": "Buying and selling trips",
   "costs.herd": "Herd costs",
   "costs.overheads": "Running the farm",
   "costs.overheadsHint":
-    "Wages, rent, electricity and the like. Not charged to any animal, Season or Venture.",
+    "Wages, rent, electricity and the like. Not charged to any animal, season or venture.",
   "costs.overheadsTotal": "All of it",
   "costs.perHeadPerDay": "A head a day",
   "costs.headDays":
-    "Worked over every animal's days on the farm, the Ventures' among them: {days}.",
+    "Worked over every animal's days on the farm, the ventures' among them: {days}.",
   "costs.costOfGain": "Cost per kg gained",
   "costs.thisLactation": "This lactation",
   "costs.soldInPeriod":
@@ -3457,17 +3457,17 @@ export const en = {
   "accountant.hint":
     "For the period chosen above: the income and expense to print, and every money event as a CSV for the accountant's books.",
   "costs.bySideHint":
-    "What each Side's animals were fed, dosed and visited for in the period chosen above, and the fattening animals sold in it.",
+    "What each side's animals were fed, dosed and visited for in the period chosen above, and the fattening animals sold in it.",
   "work.wholeFarm": "The whole farm",
   "work.calledOff":
     "Called off — the farm no longer owes this work, and nothing more is recorded on it",
   "work.closedAsMissed":
-    "Closed as missed by the Manager — nothing more is recorded on it",
-  "renewal.runsOut": "The Registration runs out on {date}",
+    "Closed as missed by the manager — nothing more is recorded on it",
+  "renewal.runsOut": "The registration runs out on {date}",
   "renewal.newExpiry": "The renewed certificate runs out on",
   "renewal.certificate": "Photograph of the renewed certificate",
   "refusal.renewalNotLater":
-    "A renewed Registration runs out after the one it replaces",
+    "A renewed registration runs out after the one it replaces",
   "refusal.renewalNeedsCertificate":
     "A renewal keeps a photograph of the renewed certificate",
   "refusal.renewalNeedsExpiry":
@@ -3480,11 +3480,11 @@ export const en = {
   "certificate.hint":
     "A clear photograph of the certificate, kept the moment it is taken. Take it again when the certificate is renewed.",
   "owner.registrationRenewal": "Registration renewal",
-  "owner.registrationEnding": "The Registration runs out on {date}: renew it",
-  "owner.registrationExpired": "The Registration ran out on {date}",
-  "digest.registrationRenewal": "The Registration is due for renewal",
+  "owner.registrationEnding": "The registration runs out on {date}: renew it",
+  "owner.registrationExpired": "The registration ran out on {date}",
+  "digest.registrationRenewal": "The registration is due for renewal",
   "alerts.registrationRenewal":
-    "The Registration runs out on {date}: its renewal is on your list",
+    "The registration runs out on {date}: its renewal is on your list",
   "digest.dayNotTurning": "The farm's schedule has stopped",
   "alerts.dayNotTurning":
     "The farm's schedule has not run cleanly since {since}: work may not be raised and notices may not go. See Copies of the farm.",
@@ -3492,14 +3492,14 @@ export const en = {
   "alerts.backupOverdue":
     "No copy of the farm has succeeded since {since}. See Copies of the farm.",
   "refusal.workInNoPen":
-    "This step records a Pen's work, and this work is in no Pen",
+    "This step records a pen's work, and this work is in no pen",
   "renewal.issuedOn": "The renewed certificate was issued on",
   "nav.inspector": "Inspector View",
   "inspector.title": "Inspector View",
   "inspector.registration": "Registration",
   "inspector.herd": "Herd summary",
   "inspector.animals": "Animals on the farm",
-  "inspector.byPen": "By Pen",
+  "inspector.byPen": "By pen",
   "inspector.onTheFarm": "On the farm",
   "refusal.registerHasNoCsv": "That register is printed, not given as a CSV",
   "refusal.registerHasNoPaper": "That register is given as a CSV, not printed",
@@ -3508,18 +3508,18 @@ export const en = {
   "inspector.lotNumber": "Lot Number {lotNumber}",
   "inspector.vaccinatedBy": "Given by {giver}",
   "refusal.lotNumberMissing":
-    "This is a vaccine: write the Campaign's Lot Number first, or this dose's own",
+    "This is a vaccine: write the campaign's lot Number first, or this dose's own",
   "inspector.mortalities": "Mortality register",
   "inspector.noMortalities": "No deaths in this period",
   "inspector.movementLog": "Movement log (CSV)",
   "refusal.disposalAlreadyRecorded":
-    "Her disposal is already written down; put it right with a Correction",
+    "Her disposal is already written down; put it right with a correction",
   "inspector.subtitle":
     "Everything a DLS inspector asks to see, ready to show on this screen and hand over as paper.",
   "inspector.standing.unknown": "Expiry not recorded",
-  "inspector.noNumber": "The farm's Registration number is not written down",
+  "inspector.noNumber": "The farm's registration number is not written down",
   "inspector.noNumberHint":
-    "Papers for an inspector carry it. Add it under Farm identity before printing.",
+    "Papers for an inspector carry it. Add it under farm identity before printing.",
   "inspector.asOfLine": "As of {date}",
   "inspector.period": "Period for the registers",
   "inspector.tab.registration": "Registration and herd",
@@ -3539,7 +3539,7 @@ export const en = {
     "Leave a day empty and each register reads its own usual period back.",
   "inspector.clearPeriod": "Clear the period",
   "inspector.movementHint":
-    "Every Move, Intake, Sale and death in the period, as a spreadsheet for the inspector to take away.",
+    "Every Move, intake, sale and death in the period, as a spreadsheet for the inspector to take away.",
   "inspector.saveMovements": "Save the movement log as CSV",
   "inspector.treatments": "Treatment register",
   "inspector.diseases": "Disease history",
@@ -3616,7 +3616,7 @@ export const en = {
   "owner.entries": "{count, plural, one {# entry} other {# entries}}",
   "owner.moneyTotal": "Total {amount}",
   "owner.onTheFarm": "On the farm today",
-  "owner.onTheFarmHint": "The Manager is on these; they are here so you know.",
+  "owner.onTheFarmHint": "The manager is on these; they are here so you know.",
   "owner.nothingLate": "Nothing late and nothing running low",
   "owner.moneyMonth": "This month's money",
   "owner.topSpending": "Where the money went",
@@ -3643,9 +3643,9 @@ export const en = {
   "mortality.kind": "How she went",
   "mortality.died": "Died",
   "mortality.culled": "Culled",
-  "mortality.diagnosis": "What the Vet found",
+  "mortality.diagnosis": "What the vet found",
   "mortality.diagnosisHint":
-    "Where she died of what the Vet diagnosed, link it: the register then names the disease and the office's reference.",
+    "Where she died of what the vet diagnosed, link it: the register then names the disease and the office's reference.",
   "mortality.noDiagnosis": "None of these",
   "early.title": "Lost soon after buying",
   "early.hint":
@@ -3691,7 +3691,7 @@ export const en = {
   "notifiable.otherNames": "Other names",
   "notifiable.otherNamesAre": "Also written: {names}",
   "notifiable.otherNamesHint":
-    "Separated by commas: the letters and other spellings a Vet may write it by, such as FMD or খুরা রোগ. A diagnosis in any of them raises the report.",
+    "Separated by commas: the letters and other spellings a vet may write it by, such as FMD or খুরা রোগ. A diagnosis in any of them raises the report.",
   "notifiable.otherNamesSave": "Save the names",
   "notifiable.otherNamesSaved": "Other names saved",
   "notifiable.note": "What the ULO said",
@@ -3741,9 +3741,9 @@ export const en = {
   "digest.lowStock":
     "{count, plural, one {# feed} other {# feeds}} running low",
   "digest.investorStatementDue":
-    "{count, plural, one {# Venture owes its Investors a statement} other {# Ventures owe their Investors a statement}}",
+    "{count, plural, one {# venture owes its investors a statement} other {# ventures owe their investors a statement}}",
   "digest.reimbursementDue":
-    "{count, plural, one {# Venture owes the Farm a month's Reimbursement} other {# Ventures owe the Farm a month's Reimbursement}}",
+    "{count, plural, one {# venture owes the farm a month's reimbursement} other {# ventures owe the farm a month's reimbursement}}",
   "digest.moneyAwaiting":
     "{count, plural, one {# Money Event} other {# Money Events}} awaiting your approval",
   "alerts.moneyAwaiting":
@@ -3752,40 +3752,40 @@ export const en = {
   "alerts.receivableOverdue":
     "Receivable overdue since {since}: {currencySign}{amount} from {buyer}",
   "alerts.monthlySumMissed":
-    "{investor} has missed {currencySign}{amount} of Monthly Sums on {venture}, the latest due {day}",
+    "{investor} has missed {currencySign}{amount} of monthly sums on {venture}, the latest due {day}",
   "digest.monthlySumMissed":
-    "{count, plural, one {# Investor} other {# Investors}} behind on their Monthly Sums",
+    "{count, plural, one {# investor} other {# investors}} behind on their monthly sums",
   "alerts.seeWhoIsBehind": "See who is behind",
   "alerts.seeWhoOwes": "See who owes what",
   "alerts.lotExpiring":
-    "{item}, Lot {lot}: expires on {date}, with {left} left",
+    "{item}, lot {lot}: expires on {date}, with {left} left",
   "alerts.lotExpired":
-    "{item}, Lot {lot}: expired on {date}, and {left} is still in the store",
+    "{item}, lot {lot}: expired on {date}, and {left} is still in the store",
   "alerts.medicineLowStock":
     "{item} is running low: {onHand, plural, one {# dose} other {# doses}} left",
   "alerts.expiredDoseGiven":
-    "{tag} was given {item} from Lot {lot}, which expired on {date}",
+    "{tag} was given {item} from lot {lot}, which expired on {date}",
   "digest.lotExpiring":
-    "{count, plural, one {# Lot} other {# Lots}} expiring soon",
+    "{count, plural, one {# lot} other {# lots}} expiring soon",
   "digest.lotExpired":
-    "{count, plural, one {# expired Lot} other {# expired Lots}} still in the store",
+    "{count, plural, one {# expired lot} other {# expired lots}} still in the store",
   "digest.medicineLowStock":
     "{count, plural, one {# medicine} other {# medicines}} running low",
   "digest.expiredDoseGiven":
-    "{count, plural, one {# dose} other {# doses}} given from expired Lots",
+    "{count, plural, one {# dose} other {# doses}} given from expired lots",
   "push.expiredDoseTitle": "Expired medicine given",
-  "push.expiredDoseBody": "{tag} was given medicine from an expired Lot",
-  "params.expiryWarn": "Warn of a Lot expiring, this many days before",
+  "push.expiredDoseBody": "{tag} was given medicine from an expired lot",
+  "params.expiryWarn": "Warn of a lot expiring, this many days before",
   "drugs.doseWord": "doses",
   "alerts.investorStatementDue":
-    "{venture}: {investors, plural, one {# Investor is} other {# Investors are}} due their progress statement ({occasion})",
+    "{venture}: {investors, plural, one {# investor is} other {# investors are}} due their progress statement ({occasion})",
   "alerts.reimbursementDue":
-    "{venture}: {month}'s Reimbursement is due — {currencySign}{amount}",
+    "{venture}: {month}'s reimbursement is due — {currencySign}{amount}",
   "alerts.reimburseNow": "Reimburse",
   "alerts.joinRequested":
-    "Request to join {venture} from {investor}: {units, plural, one {# Unit} other {# Units}}",
+    "Request to join {venture} from {investor}: {units, plural, one {# unit} other {# units}}",
   "digest.joinRequested":
-    "{count, plural, one {# request to join a Venture} other {# requests to join a Venture}} waiting for your answer",
+    "{count, plural, one {# request to join a venture} other {# requests to join a venture}} waiting for your answer",
   "alerts.readTheRequests": "Read the requests",
   /** The one notice that leads somewhere: the screen where the paper it is about is made. */
   "alerts.makeThePaper": "Make the papers",
@@ -3795,12 +3795,12 @@ export const en = {
   "push.withdrawalChangedTitle": "A withdrawal has changed",
   "push.withdrawalChangedBody": "{tag} — see the farm app",
   "nav.farm": "Farm overview",
-  "drugs.title": "The Drug List",
+  "drugs.title": "The drug list",
   "drugs.add": "Add a product",
   "drugs.name": "Product name",
   "drugs.milkDays": "Milk withdrawal days",
   "drugs.meatDays": "Meat withdrawal days",
-  "drugs.blank": "Waiting for the Vet",
+  "drugs.blank": "Waiting for the vet",
   "drugs.save": "Write the days",
   "drugs.setBy": "written by {name}, {date}",
   "drugs.restore": "Restore",
@@ -3812,17 +3812,17 @@ export const en = {
   "drugs.addStandardTitle":
     "Add {count, plural, one {# standard medicine} other {# standard medicines}}?",
   "drugs.addStandardHint":
-    "These are added: {names}. None of them can be prescribed until the Vet writes their withdrawal days.",
+    "These are added: {names}. None of them can be prescribed until the vet writes their withdrawal days.",
   "drugs.addedStandard":
     "{count, plural, one {# medicine} other {# medicines}} added",
-  "drugs.managerAdds": "The Vet will write the days",
+  "drugs.managerAdds": "The vet will write the days",
   "drugs.retireTitle": "Retire {name}?",
   "drugs.retireWhy":
     "A retired product can no longer be prescribed or bought. Past treatments keep its name, and it can be restored.",
   "drugs.retire": "Retire",
   "drugs.retired": "Retired",
   "drugs.none": "Nothing on the list yet",
-  "drugs.vetOnly": "Only the Vet writes the days",
+  "drugs.vetOnly": "Only the vet writes the days",
   "drugs.days": "{count, plural, one {# day} other {# days}}",
   "drugs.vaccine": "Vaccine",
   "drugs.markVaccine": "It is a vaccine",
@@ -3847,14 +3847,14 @@ export const en = {
   "drugs.daysSaved": "Days written",
   "drugs.added": "Product added",
   "drugs.addHint":
-    "The name as it is on the label. The Vet writes its days after.",
+    "The name as it is on the label. The vet writes its days after.",
   "drugs.buyHint":
     "As the box and the slip say it. The money for the medicine is recorded from this.",
   "drugs.perDose": "{currencySign}{amount} per dose",
   "drugs.noneBought": "Nothing bought for this product yet",
   "drugs.boughtSummary":
     "{count, plural, one {# purchase} other {# purchases}} · {currencySign}{amount} · {doses, plural, one {# dose} other {# doses}}",
-  "vet.title": "The Vet's work",
+  "vet.title": "The vet's work",
   "vet.waiting": "Waiting for an answer",
   "vet.nothingWaiting": "Everything the rounds saw has been answered",
   "vet.mine": "What you concluded",
@@ -3890,7 +3890,7 @@ export const en = {
     "You came for one animal and found something on another: name her by her tag.",
   "vet.noRepeatBreeders": "No cow is waiting for a decision",
   "prescribe.noTreatmentSop":
-    "The farm has no published treatment procedure yet — the Owner publishes one",
+    "The farm has no published treatment procedure yet — the owner publishes one",
   "prescribe.product": "Product",
   "prescribe.dose": "Dose",
   "prescribe.route": "How it goes in",
@@ -3917,7 +3917,7 @@ export const en = {
   "route.intramammary": "Intramammary",
   "route.topical": "Topical",
   "nav.vet": "Vet",
-  "animals.diagnosis": "The Vet's conclusion",
+  "animals.diagnosis": "The vet's conclusion",
   "animals.healthChain": "Health",
   "animals.diagnosedBy": "{name}, {date}",
   "nav.drugs": "Drugs",
@@ -3952,16 +3952,16 @@ export const en = {
   "work.raise": "Raise work now",
   "work.raiseTitle": "Raise a piece of the Playbook",
   "work.raiseHint":
-    "For work the clock does not raise — a weigh-in, a vaccination campaign, the calving pen, a stock count. It goes on today's list for that Pen.",
+    "For work the clock does not raise — a weigh-in, a vaccination campaign, the calving pen, a stock count. It goes on today's list for that pen.",
   "work.raiseSop": "What to do",
-  "work.raisePen": "For which Pen",
+  "work.raisePen": "For which pen",
   "work.raiseSubmit": "Raise it",
   "work.raised": "Raised — it is on today's list",
-  "work.raisedAlready": "Already raised for that Pen today",
+  "work.raisedAlready": "Already raised for that pen today",
   "people.pens": "Pens they work",
-  "people.pensSave": "Save Pens",
+  "people.pensSave": "Save pens",
   "people.pensSaved": "Pens saved",
-  "people.pensNone": "No Pens yet — they will see no work until they have some",
+  "people.pensNone": "No pens yet — they will see no work until they have some",
   "work.none": "Nothing due right now",
   "work.due": "Due {time}",
   "work.claim": "Start",
@@ -4018,7 +4018,7 @@ export const en = {
   "animals.milkHeldUntil": "Milk held until {date}",
   "animals.meatHeldUntil": "Fit for sale from {date}",
   "animals.withdrawalWas": "The doses alone said {date}",
-  "animals.withdrawalShortened": "Shortened by the Vet: {reason}",
+  "animals.withdrawalShortened": "Shortened by the vet: {reason}",
   "withdrawal.shorten": "Shorten the withdrawal",
   "withdrawal.milkUntil": "Milk held until",
   "withdrawal.meatUntil": "Meat held until",
@@ -4038,7 +4038,7 @@ export const en = {
   "work.putOff": "Again — put off before",
   "work.putOffSince": "Again — first put off {day}",
   "work.releaseOwesDoses":
-    "Still owed: {doses} — he cannot be let out until it is given, or the Vet writes why it is not needed",
+    "Still owed: {doses} — he cannot be let out until it is given, or the vet writes why it is not needed",
   "work.overdueTitle": "Late work",
   "work.overdueNone": "Nothing is late",
   "work.lateFor": "Late by {hours, plural, one {# hour} other {# hours}}",
@@ -4089,9 +4089,9 @@ export const en = {
   "correct.calving": "Correct the expected calving",
   "correct.side": "Move to the other side",
   "correct.sideHint":
-    "A bull calf to fattening, or an animal wrongly put on a side. She keeps her Tag Number.",
+    "A bull calf to fattening, or an animal wrongly put on a side. She keeps her tag number.",
   "correct.toSide": "To which side",
-  "correct.toPen": "Into which Pen",
+  "correct.toPen": "Into which pen",
   "correct.buyer": "Buyer's name",
   "animals.manageHint":
     "Her photo, where she stands, her State and her tag — each change in the audit trail.",
@@ -4101,7 +4101,7 @@ export const en = {
   "correct.whoseSheIs": "Whose she is",
   "correct.theFarmsOwn": "The farm's own",
   "correct.windowForTheFarm":
-    "She was on {venture}'s Target Window; as the Farm's own, say when the Farm sells her.",
+    "She was on {venture}'s target window; as the farm's own, say when the farm sells her.",
   "correct.seller": "Seller's name",
   "correct.windowOwn":
     "A {role} may put their own entry right for {span} after making it",
@@ -4169,7 +4169,7 @@ export const en = {
   "outbox.discard": "Done with this",
   "outbox.entered": "What was entered",
   "outbox.late":
-    "The farm had moved on before this arrived, so the Manager will look at it",
+    "The farm had moved on before this arrived, so the manager will look at it",
   "outbox.wrong": "The farm could not take this as it was written",
   "outbox.notYours": "This was not yours to record",
   "digest.overdue": "{count} late",
@@ -4233,7 +4233,7 @@ export const en = {
   "weighIn.by": "Weighed by {name}",
   "weighIn.col.weight": "Weight",
   "weighIn.col.by": "Weighed by",
-  "refusal.managerOnly": "This is the Manager's to record",
+  "refusal.managerOnly": "This is the manager's to record",
   "refusal.noSuchBull": "There is no bull with that tag on this farm",
   "refusal.serviceNeedsTechnician": "Write who served her for an AI service",
   "refusal.serviceOfAMale": "Only a cow is served",
@@ -4258,7 +4258,7 @@ export const en = {
   "sop.effect.medicine_count": "Counts the medicine",
   "sop.effect.head_count": "Counts the pen against the register",
   "sop.effect.cash_count": "Counts the cash in hand",
-  "sop.effect.lot_number": "The vial's Lot Number, once for the Campaign",
+  "sop.effect.lot_number": "The vial's lot Number, once for the campaign",
   "abortion.title": "Abortions",
   "abortion.stage": "{months, plural, one {# month} other {# months}} along",
   "abortion.when": "When",
@@ -4275,7 +4275,7 @@ export const en = {
   "repeatBreeder.decision": "Decision",
   "repeatBreeder.why": "Why",
   "repeatBreeder.answer": "Record the decision",
-  "repeatBreeder.why.checked_negative": "the Vet found her empty",
+  "repeatBreeder.why.checked_negative": "the vet found her empty",
   "repeatBreeder.why.back_in_heat": "back in heat",
   "repeatBreeder.answered": "Decision recorded",
   "refusal.notARepeatBreeder": "She is not waiting for a decision",
@@ -4295,11 +4295,11 @@ export const en = {
   "calving.col.ease": "How it went",
   "calving.col.lactation": "Lactation",
   "refusal.staffOrManagerOnly":
-    "A calving is recorded by Barn Staff or the Manager",
+    "A calving is recorded by barn staff or the manager",
   "refusal.calvingOfACowNotInCalf": "She is not a cow who calves",
   "refusal.calvingOfAMale": "A bull does not calve",
   "refusal.calvedInTheFuture": "A calving cannot be later than now",
-  "sop.trigger.registrationRenewal": "the Registration coming up for renewal",
+  "sop.trigger.registrationRenewal": "the registration coming up for renewal",
   "sop.trigger.beforeCalving": "Before a cow's Expected Calving",
   "sop.trigger.farmTimed": "The farm's days, set once for every cow",
   "calvingLead.dry_off": "Dry-off lead",
@@ -4317,7 +4317,7 @@ export const en = {
   "refusal.noCalvingExpected": "She is not expected to calve",
   "event.service":
     "A cow is served (the check falls due the farm's days later)",
-  "refusal.vetOnly": "This is the Vet's to record",
+  "refusal.vetOnly": "This is the vet's to record",
   "refusal.checkWithoutAService":
     "A pregnancy check is recorded on the work her latest service raised",
   "refusal.differenceNeedsReason": "Say why a count differs from the store",
@@ -4355,16 +4355,16 @@ export const en = {
   "intake.noTrip": "No outing — bought at the farm gate",
   "intake.owner": "Whose animal she is",
   "intake.ownerHint":
-    "The Venture whose money bought her. Only a Venture that is buying may take one in.",
-  "intake.ownerFromFloat": "Bought on {venture}'s Float, so she is {venture}'s",
+    "The venture whose money bought her. Only a venture that is buying may take one in.",
+  "intake.ownerFromFloat": "Bought on {venture}'s float, so she is {venture}'s",
   "intake.ownerFromFarmFloat":
-    "This outing went to the livestock market on the Farm's own money, so she is the Farm's.",
-  "intake.farmFloat": "on the Farm's money",
-  "intake.paidFromTheAccount": "Paid from the Venture Account by bank",
+    "This outing went to the livestock market on the farm's own money, so she is the farm's.",
+  "intake.farmFloat": "on the farm's money",
+  "intake.paidFromTheAccount": "Paid from the venture account by bank",
   "intake.reference": "Cheque or transfer number",
   "intake.paidOn": "Day the bank moved it",
   "intake.ventureAtTheGate":
-    "A Venture's bull bought with no outing is the Owner's to take in: it is paid from the Venture Account by bank.",
+    "A venture's bull bought with no outing is the owner's to take in: it is paid from the venture account by bank.",
   "intake.theFarms": "The farm's own",
   "intake.weight": "Weight on arrival",
   "intake.age": "Estimated age",
@@ -4374,7 +4374,7 @@ export const en = {
   "intake.kg": "{kg} kg",
   "intake.months": "{months, plural, one {# month} other {# months}}",
   "intake.pen": "Pen",
-  "intake.penHint": "It starts in Quarantine, in a quarantine pen.",
+  "intake.penHint": "It starts in quarantine, in a quarantine pen.",
   "intake.noQuarantinePen":
     "The farm has no quarantine pen marked yet — a bought animal comes in only through one. Mark a pen as a quarantine pen first.",
   "intake.markAQuarantinePen": "Go to sheds and pens",
@@ -4385,13 +4385,13 @@ export const en = {
   "intake.windowEnd": "Target Window to",
   "intake.windowNote":
     "Left blank, the next Eid-ul-Adha is used; change it once the date is announced.",
-  "intake.ventureWindow": "{from} – {to} — {venture}'s Target Window",
+  "intake.ventureWindow": "{from} – {to} — {venture}'s target window",
   "intake.ventureWindowNote":
-    "A Venture's animal is sold in the Venture's Target Window; it moves only by an Amendment its Investors sign.",
+    "A venture's animal is sold in the venture's target window; it moves only by an amendment its investors sign.",
   "intake.targetWeightNote":
     "Left blank, the farm's own target weight is used: no ration says what an animal this weight should gain.",
   "intake.suggested":
-    "Your rations say {low}–{high} kg when the Target Window opens.",
+    "Your rations say {low}–{high} kg when the target window opens.",
   "intake.suggestedUsed": "Left blank, {kg} kg is used.",
   "intake.useSuggested": "Use {kg} kg",
   "intake.suggestedTarget": "{kg} kg — from your rations",
@@ -4447,7 +4447,7 @@ export const en = {
   "eid.broughtAlong":
     "{count, plural, one {# animal} other {# animals}} moved to the Eid's days",
   "eid.inVentures":
-    "{count, plural, one {# animal in a Venture keeps its window} other {# animals in Ventures keep their window}}: a Venture's window moves only by an Amendment its Investors sign.",
+    "{count, plural, one {# animal in a venture keeps its window} other {# animals in ventures keep their window}}: a venture's window moves only by an amendment its investors sign.",
   "nav.eid": "Eid-ul-Adha",
   "eid.listSubtitle":
     "Every Eid the fattening side sells into: the day the farm is on for each, how it knows it, and the animals aimed at it. Write in the committee's day once it is announced.",
@@ -4464,7 +4464,7 @@ export const en = {
   "eid.withdrawWhy":
     "The Eid goes back to the day expected, as if nobody had announced it. Animals already moved to the announced day stay there until you move them.",
   "eid.withdrawn": "Announcement taken back",
-  "eid.aimedInVentures": "{count} in Ventures",
+  "eid.aimedInVentures": "{count} in ventures",
   "eid.none": "No Eid to list",
   "refusal.notAnEid":
     "That day is no Eid-ul-Adha the farm expects. Check the year.",
@@ -4475,7 +4475,7 @@ export const en = {
   "audit.entity.eid_announcement": "Eid day announced",
   "intake.stillNeeded": "Still to fill in",
   "intake.windowHalf":
-    "Give both days of the Target Window, the first before the last — or leave both blank.",
+    "Give both days of the target window, the first before the last — or leave both blank.",
   "intake.recent": "Recently taken in",
   "intake.recentHint":
     "The newest on the fattening side — check the animal in front of you has not already been written up.",
@@ -4506,14 +4506,14 @@ export const en = {
   "gain.col.standing": "Against the target",
   "gain.kpi.onSideHint": "In quarantine, fattening or ready for sale",
   "gain.kpi.behindHint": "At the rate they are gaining now",
-  "gain.kpi.onTrackHint": "By the time their Target Window opens",
+  "gain.kpi.onTrackHint": "By the time their target window opens",
   "gain.kpi.noRateHint": "Weighed once, or not yet",
   "gain.filterPen": "Filter by pen",
   "gain.allPens": "All pens",
   "nav.ready": "Ready for sale",
   "ready.none": "Nothing is being suggested for sale",
   "ready.because.weight": "Reached its target weight",
-  "ready.because.window": "Its Target Window has opened",
+  "ready.because.window": "Its target window has opened",
   "ready.confirm": "Yes, ready",
   "ready.confirmed": "{tag} is ready for sale",
   "ready.setAside": "Keep it longer",
@@ -4524,8 +4524,8 @@ export const en = {
   "ready.subtitle":
     "The farm suggests, you decide: confirm an animal ready for sale, or keep it longer and say why.",
   "ready.noneHint":
-    "An animal is suggested once it reaches its target weight or its Target Window opens.",
-  "ready.windowClosed": "Its Target Window has passed",
+    "An animal is suggested once it reaches its target weight or its target window opens.",
+  "ready.windowClosed": "Its target window has passed",
   "ready.filter.weight": "Target weight",
   "ready.filter.window": "Target Window",
   "ready.setAsideTitle": "Keep {tag} longer",
@@ -4541,7 +4541,7 @@ export const en = {
   "nav.culling": "Culling",
   "nav.months": "Month by month",
   "months.subtitle":
-    "How the farm has done each month over the last year: its money, the milk against what the dairy cows cost, the fattening animals sold, and each Venture against its plan.",
+    "How the farm has done each month over the last year: its money, the milk against what the dairy cows cost, the fattening animals sold, and each venture against its plan.",
   "months.net": "Net over the year",
   "months.milkSold": "Milk sold over the year",
   "months.milkSoldHint": "{litres} L · a litre fetched {fetched}",
@@ -4553,11 +4553,11 @@ export const en = {
   "months.nothingYet": "Nothing yet",
   "months.chartTitle": "Net money each month",
   "months.chartHint":
-    "The Farm's own money in less money out; a Venture's money is its own. This month is so far.",
+    "The farm's own money in less money out; a venture's money is its own. This month is so far.",
   "months.chartSaid": "{month}: net {net}",
   "months.tableTitle": "Each month",
   "months.tableHint":
-    "Money is what moved in and out of the Farm's purse. What a side cost is what its animals were fed, dosed and visited for in the month, whenever it was bought. The Farm's own animals only: a Venture's are on its own line below.",
+    "Money is what moved in and out of the farm's purse. What a side cost is what its animals were fed, dosed and visited for in the month, whenever it was bought. The farm's own animals only: a venture's are on its own line below.",
   "months.col.month": "Month",
   "months.col.venture": "Venture",
   "months.col.planned": "Planned",
@@ -4569,13 +4569,13 @@ export const en = {
   "months.col.fatteningCost": "Fattening cost",
   "returns.col.costBack": "Cost → back",
   "returns.col.share": "On every {currencySign}100",
-  "returns.col.what": "Season or Venture",
+  "returns.col.what": "Season or venture",
   "returns.col.head": "Head",
   "returns.col.result": "Result",
   "months.col.overheads": "Running the farm · a head a day",
   "months.cardOverheads": "Running the farm {amount}, {perHead} a head a day",
   "months.yearOverheads":
-    "Running the farm over the year: {amount}, {perHead} a head a day over every animal here, the Ventures' among them. Wages, rent and electricity: no Side, Season or Venture above carries it.",
+    "Running the farm over the year: {amount}, {perHead} a head a day over every animal here, the ventures' among them. Wages, rent and electricity: no side, season or venture above carries it.",
   "months.soFar": "so far",
   "months.pair": "{first} · {second}",
   "months.cardMilk": "Milk sold {sold} · the dairy cows cost {cost}",
@@ -4594,19 +4594,19 @@ export const en = {
   "months.made": "Made {profit}",
   "months.noPlan": "No plan yet",
   "months.nothingProjected": "Nothing projected",
-  "months.noVentures": "No Ventures yet",
-  "months.returnsLink": "What each Season and Venture returned",
+  "months.noVentures": "No ventures yet",
+  "months.returnsLink": "What each season and venture returned",
   "nav.returns": "Returns",
   "returns.subtitle":
     "What the money in the farm's cattle made, against what went in and how long it was out. Yours alone.",
-  "returns.chartTitle": "A year's rate, finished Seasons and Ventures",
+  "returns.chartTitle": "A year's rate, finished seasons and ventures",
   "returns.chartHint":
-    "What every {currencySign}100 made, scaled simply to a year, for each Season and Venture whose last animal has gone and whose money was out long enough.",
+    "What every {currencySign}100 made, scaled simply to a year, for each season and venture whose last animal has gone and whose money was out long enough.",
   "returns.finishedTitle": "Finished",
   "returns.finishedHint":
-    "Each Season of the Farm's own cattle and each Venture whose last animal has gone — settled, or its Settlement still to come — worked as a Settlement is: what the animals fetched, less what they cost to take on and everything charged to them, the ones that died among them.",
+    "Each season of the farm's own cattle and each venture whose last animal has gone — settled, or its settlement still to come — worked as a settlement is: what the animals fetched, less what they cost to take on and everything charged to them, the ones that died among them.",
   "returns.nothingFinished":
-    "Nothing has finished yet. A Season is finished when its last animal has gone.",
+    "Nothing has finished yet. A season is finished when its last animal has gone.",
   "returns.season": "Season",
   "returns.venture": "Venture",
   "returns.eidSeason": "Eid-ul-Adha {year}",
@@ -4635,18 +4635,18 @@ export const en = {
     "Cost {cost}, back {back}. Each {currencyOne} is counted from the day it was spent to the day its animal left: {days, plural, one {# day} other {# days}} on average.",
   "returns.workingYear":
     "{share} × 365 ÷ {days} = {rate}, simple, never compounded.",
-  "returns.capitalTitle": "On the Investors' capital",
+  "returns.capitalTitle": "On the investors' capital",
   "returns.capitalHint":
-    "Their share of the profit over all their capital, from the day it reached the Venture Account to the day it went back, the days it waited among them.",
-  "returns.farmsShare": "The Farm's share, for its work: {amount}",
+    "Their share of the profit over all their capital, from the day it reached the venture account to the day it went back, the days it waited among them.",
+  "returns.farmsShare": "The farm's share, for its work: {amount}",
   "returns.settlementToCome": "Settlement to come",
   "returns.settlementToComeHint":
-    "Its last animal has gone, so this is its result, worked as its Settlement will be. The Investors' return on their capital, and the Farm's share, come once the Settlement is paid out.",
+    "Its last animal has gone, so this is its result, worked as its settlement will be. The investors' return on their capital, and the farm's share, come once the settlement is paid out.",
   "returns.sinceSettlementLess":
-    "Less than at its Settlement by {amount} — a cost or a Correction that came after it. See its Settlement Adjustments.",
+    "Less than at its settlement by {amount} — a cost or a correction that came after it. See its settlement adjustments.",
   "returns.sinceSettlementMore":
-    "More than at its Settlement by {amount} — a Correction that came after it. See its Settlement Adjustments.",
-  "returns.openVenture": "Open the Venture",
+    "More than at its settlement by {amount} — a correction that came after it. See its settlement adjustments.",
+  "returns.openVenture": "Open the venture",
   "returns.tab.fattening": "Fattening",
   "returns.tab.prices": "Prices",
   "returns.bankLine": "The bank's rate a year: {rate} — {note}",
@@ -4654,7 +4654,7 @@ export const en = {
     "Marked: the bank's rate on the day that money first went in",
   "returns.bankTitle": "The Bank Rate",
   "returns.bankHint":
-    "A bank's rate a year, before its tax, as the bank quotes it: set beside each finished rate a year, as it stood on the day that money first went in. Yours alone, and never shown to an Investor.",
+    "A bank's rate a year, before its tax, as the bank quotes it: set beside each finished rate a year, as it stood on the day that money first went in. Yours alone, and never shown to an investor.",
   "returns.bankNone":
     "No rate typed yet. Until you type one, nothing is set beside the returns.",
   "returns.bankFrom": "From {day}",
@@ -4666,7 +4666,7 @@ export const en = {
     "The bank, the account, and provisional or final — e.g. IBBL 12-month mudaraba, final 2025",
   "returns.bankFromDay": "Holds from",
   "returns.bankFromDayHint":
-    "Today, or an earlier day to set last year's rate beside last year's Season. A rate put right is typed again from the same day.",
+    "Today, or an earlier day to set last year's rate beside last year's season. A rate put right is typed again from the same day.",
   "returns.bankSaved": "Rate saved",
   "returns.stillGoingTitle": "Still going",
   "returns.stillGoingHint":
@@ -4696,19 +4696,19 @@ export const en = {
     "Each is left out whole, what she cost and what she is worth, so the want of a price never reads as a loss.",
   "returns.panelTitle": "What it returns",
   "returns.panelHint":
-    "Worked as its Settlement is: what its cattle fetched against what they cost to take on and everything charged to them.",
-  "returns.seeAll": "All Seasons and Ventures",
-  "window.title": "The Season she joins",
+    "Worked as its settlement is: what its cattle fetched against what they cost to take on and everything charged to them.",
+  "returns.seeAll": "All seasons and ventures",
+  "window.title": "The season she joins",
   "window.nextEid": "The next Eid-ul-Adha",
   "window.nextEidHint": "The farm puts in its days, announced or expected.",
   "window.other": "Another window",
   "window.from": "From",
   "window.to": "To",
-  "returns.gap.not_priced": "Crossed from Dairy, not priced yet",
+  "returns.gap.not_priced": "Crossed from dairy, not priced yet",
   "returns.fix.not_priced": "Enter the price",
-  "returns.crossingsTitle": "Crossings from Dairy",
+  "returns.crossingsTitle": "Crossings from dairy",
   "returns.crossingsHint":
-    "An animal walked across from Dairy joins her Season at her weight that day times a rate a kilo you set. Until you do, she is named and counted nowhere, and her Season is not a result. A price may be put right by pricing her again while she is on the Farm.",
+    "An animal walked across from dairy joins her season at her weight that day times a rate a kilo you set. Until you do, she is named and counted nowhere, and her season is not a result. A price may be put right by pricing her again while she is on the farm.",
   "returns.crossingsNone": "No crossing waits on a price.",
   "returns.crossingLine": "{tag}, crossed {day}",
   "returns.crossingWeighed": "weighed {kg} kg by that day",
@@ -4731,43 +4731,43 @@ export const en = {
   "returns.none.trader": "No trader written",
   "returns.none.breed": "No breed written",
   "returns.none.band": "In no weight band",
-  "returns.joined.crossed": "Crossed from Dairy",
-  "returns.joined.bought_from_venture": "Bought from a Venture",
+  "returns.joined.crossed": "Crossed from dairy",
+  "returns.joined.bought_from_venture": "Bought from a venture",
   "returns.left.sold": "sold",
   "returns.came.intake": "bought in",
-  "returns.came.crossed": "crossed from Dairy",
-  "returns.came.bought_from_venture": "bought from a Venture",
+  "returns.came.crossed": "crossed from dairy",
+  "returns.came.bought_from_venture": "bought from a venture",
   "returns.cameLeft": "{came}, {left}",
   "returns.breakdownFailed": "This could not be opened out just now.",
   "returns.left.died": "died",
   "returns.left.lost": "written off as lost",
-  "returns.left.sold_to_venture": "sold to a Venture",
+  "returns.left.sold_to_venture": "sold to a venture",
   "returns.costBack": "{cost} → {back}",
   "returns.breakdownNone": "Nothing to show this way.",
   "returns.breakdownNote":
-    "Each line is the Season's own sum for its animals, the dead in. A share only: a rate a year on a few animals leads the eye astray.",
+    "Each line is the season's own sum for its animals, the dead in. A share only: a rate a year on a few animals leads the eye astray.",
   "refusal.seasonNotFinished":
-    "This Season is still going; it opens out once the last animal has gone",
-  "refusal.noSuchSeason": "There is no such Season",
+    "This season is still going; it opens out once the last animal has gone",
+  "refusal.noSuchSeason": "There is no such season",
   "returns.tab.dairy": "Dairy",
   "returns.gap.no_entry_price":
     "Bought, or here before the books — not priced yet",
-  "returns.gap.no_head_price": "No Head Price set for their kind",
+  "returns.gap.no_head_price": "No head price set for their kind",
   "returns.gap.no_milk_price":
-    "Milk in a month before any Dispatch had a price",
+    "Milk in a month before any dispatch had a price",
   "returns.fix.no_entry_price": "Enter the price",
-  "returns.fix.no_head_price": "Set the Head Price",
-  "returns.fix.no_milk_price": "Record a Dispatch",
+  "returns.fix.no_head_price": "Set the head price",
+  "returns.fix.no_milk_price": "Record a dispatch",
   "returns.herdNowTitle": "The herd now",
   "returns.herdNowHint":
-    "Every dairy animal still here at her kind's Head Price, low and high, with her milk so far — an estimate, never put a year.",
+    "Every dairy animal still here at her kind's head price, low and high, with her milk so far — an estimate, never put a year.",
   "returns.herdNowHead":
     "{count, plural, one {# dairy animal here} other {# dairy animals here}}",
   "returns.goneTitle": "Gone from the herd",
   "returns.goneHint":
-    "Each dairy animal's whole stay: from her birth here at nothing or from the price you entered, her milk at each month's Dispatch price, and what she went for. Her calves are their own, shown beneath her.",
+    "Each dairy animal's whole stay: from her birth here at nothing or from the price you entered, her milk at each month's dispatch price, and what she went for. Her calves are their own, shown beneath her.",
   "returns.dairyNone": "No dairy animal has gone yet.",
-  "returns.left.crossed": "crossed to Fattening",
+  "returns.left.crossed": "crossed to fattening",
   "returns.leftOn": "{how} on {day}",
   "returns.cameBorn": "Bred here, counted from her birth at nothing",
   "returns.camePriced": "Counted from your price, from {day}",
@@ -4777,7 +4777,7 @@ export const en = {
     "Milk to Bulk: {litres, plural, one {# litre} other {# litres}}, {amount}",
   "returns.dairyEnd": "Went for {amount}",
   "returns.milkEarlier":
-    "{months}: no Dispatch that month, so her milk went at the latest earlier month's price",
+    "{months}: no dispatch that month, so her milk went at the latest earlier month's price",
   "returns.calvesTitle": "Her calves",
   "returns.headPricesTitle": "Head Prices",
   "returns.headPricesHint":
@@ -4808,22 +4808,22 @@ export const en = {
   "refusal.bredHereNeedsNoPrice":
     "One bred here is counted from her birth, at nothing; she needs no price",
   "refusal.headPriceBackwards":
-    "A Head Price needs a low above nothing and no higher than its high",
-  "audit.entity.fattening_joining": "Joining a Season",
+    "A head price needs a low above nothing and no higher than its high",
+  "audit.entity.fattening_joining": "Joining a season",
   "audit.entity.dairy_entry_price": "Dairy animal's price",
   "audit.entity.head_price": "Head Price",
-  "returns.switch.title": "Return on Capital for Investors",
-  "returns.switch.show": "Show their Return on Capital",
-  "returns.switch.hide": "Hide their Return on Capital",
+  "returns.switch.title": "Return on capital for investors",
+  "returns.switch.show": "Show their Return on capital",
+  "returns.switch.hide": "Hide their Return on capital",
   "returns.switch.shownHint":
-    "Investors in a settled Venture see what every {currencySign}100 of their capital made, over its days, under their payout — in the portal and on their settlement statement. Never a rate a year.",
+    "Investors in a settled venture see what every {currencySign}100 of their capital made, over its days, under their payout — in the portal and on their settlement statement. Never a rate a year.",
   "returns.switch.hiddenHint":
     "Hidden until the lawyer and the Shariah scholar have seen how it is worded. You can read it in the Portal Preview meanwhile.",
-  "returns.switch.confirmTitle": "Show Investors their Return on Capital?",
+  "returns.switch.confirmTitle": "Show investors their Return on capital?",
   "returns.switch.confirmWhy":
-    "Only once the lawyer and the Shariah scholar have seen the wording: what every {currencySign}100 of their capital made over the Venture's days, under their payout. Never a rate a year, never across Ventures, never beside an offer.",
-  "returns.switch.shownDone": "Investors now see their Return on Capital",
-  "returns.switch.hiddenDone": "Return on Capital is hidden from Investors",
+    "Only once the lawyer and the Shariah scholar have seen the wording: what every {currencySign}100 of their capital made over the venture's days, under their payout. Never a rate a year, never across ventures, never beside an offer.",
+  "returns.switch.shownDone": "Investors now see their Return on capital",
+  "returns.switch.hiddenDone": "Return on capital is hidden from investors",
   "portal.onCapitalGain":
     "{amount} made on every {currencySign}100 of your capital, over {days, plural, one {# day} other {# days}}",
   "portal.onCapitalLoss":
@@ -5007,11 +5007,11 @@ export const en = {
     "He cannot be put back in quarantine from here",
   "standsAside.calvingActedOn": "The farm has acted on this calving since",
   "standsAside.serviceChecked":
-    "The Vet has checked this service; correct the check first",
+    "The vet has checked this service; correct the check first",
   "standsAside.noRation":
     "This pen is on no ration now, so what was fed cannot be set against one",
   "standsAside.renewalSuperseded":
-    "The Registration has moved on since this renewal; put the newer one right instead",
+    "The registration has moved on since this renewal; put the newer one right instead",
   "templates.pageTitle": "Agreement templates",
   "templates.pageHint":
     "The wording of the papers an Investor signs. Each starts as OpenFarm's standard wording for your lawyer to read; changing it publishes a new version, and every paper already signed keeps the wording it was signed in.",
@@ -5157,7 +5157,7 @@ export const en = {
   "money.payouts": "Settlement payouts",
   "money.refund": "Capital refunded",
   "money.refundedApart":
-    "Apart from these, {amount} of capital refunded when a Venture was cancelled",
+    "Apart from these, {amount} of capital refunded when a venture was cancelled",
   "money.refundedHint": "When a Venture was cancelled",
   "units.kg": "{kg} kg",
   "units.kgADay": "{kg} kg a day",
@@ -5187,7 +5187,7 @@ export const en = {
   "digest.medicineShort":
     "{count, plural, one {# medicine count} other {# medicine counts}} came up short",
   "alerts.stillHereAfterEid":
-    "Qurbani from {day} is over, and {animals, plural, one {# animal} other {# animals}} aimed at it {animals, plural, one {is} other {are}} still on the farm ({inVentures} of them a Venture's)",
+    "Qurbani from {day} is over, and {animals, plural, one {# animal} other {# animals}} aimed at it {animals, plural, one {is} other {are}} still on the farm ({inVentures} of them a venture's)",
   "digest.stillHereAfterEid":
     "{count, plural, one {# Eid has} other {# Eids have}} animals still here after Qurbani",
   "alerts.soldUnderCost":
@@ -5216,9 +5216,9 @@ export const en = {
   "digest.mortalityRecorded":
     "{count, plural, one {# animal} other {# animals}} died or {count, plural, one {was} other {were}} culled",
   "alerts.mortalityUndiagnosed":
-    "{tag} {how} — cause written: {cause}; no Diagnosis named",
+    "{tag} {how} — cause written: {cause}; no diagnosis named",
   "digest.mortalityUndiagnosed":
-    "{count, plural, one {# animal} other {# animals}} died or {count, plural, one {was} other {were}} culled with no Diagnosis",
+    "{count, plural, one {# animal} other {# animals}} died or {count, plural, one {was} other {were}} culled with no diagnosis",
   "alerts.openTheEids": "Open the Eid list",
   "alerts.openTheMoney": "Open income and expenses",
   "alerts.openTheCash": "Open the cash in hand",
@@ -5234,11 +5234,11 @@ export const en = {
     "{count, plural, one {# store count} other {# store counts}} came up short",
   "params.storeShortfall": "A short store",
   "params.storeShortfallHint":
-    "A weekly count that finds this much feed missing, at what the feed cost, is told to you and the Manager.",
+    "A weekly count that finds this much feed missing, at what the feed cost, is told to you and the manager.",
   "params.storeShortfallTellMoney": "Tell when a count is short by more than",
   "costs.storeShortfall": "Feed missing at the counts",
   "costs.storeShortfallHint":
-    "What the Stock Counts found missing, at the store's price when counted. It is in no Side's costs: nothing ate it.",
+    "What the Stock Counts found missing, at the store's price when counted. It is in no side's costs: nothing ate it.",
   "costs.storeShort": "Missing",
   "costs.storeOver": "Found over",
   "costs.storeCounts":
@@ -5250,15 +5250,15 @@ export const en = {
   "alerts.penSoresSeen":
     "{animals, plural, one {# animal} other {# animals}} in {pen} seen with sores on the mouth or feet since {since}",
   "alerts.openObservations": "Open what was seen",
-  "push.penSoresSeenTitle": "Sores in one Pen",
+  "push.penSoresSeenTitle": "Sores in one pen",
   "push.penSoresSeenBody":
-    "{animals, plural, one {# animal} other {# animals}} in {pen} with sores on the mouth or feet. Ring the Vet, and keep the Pen apart.",
+    "{animals, plural, one {# animal} other {# animals}} in {pen} with sores on the mouth or feet. Ring the vet, and keep the pen apart.",
   "digest.penSoresSeen":
-    "{count, plural, one {# Pen} other {# Pens}} with several animals seen with sores",
-  "params.sores": "Sores in one Pen",
+    "{count, plural, one {# pen} other {# pens}} with several animals seen with sores",
+  "params.sores": "Sores in one pen",
   "params.soresHint":
-    "When this many animals in one Pen are seen with sores on the mouth or feet within these hours, you and the Manager are told at once.",
-  "params.soresTellAnimals": "Animals in one Pen",
+    "When this many animals in one pen are seen with sores on the mouth or feet within these hours, you and the manager are told at once.",
+  "params.soresTellAnimals": "Animals in one pen",
   "params.soresTellHours": "Within",
   "params.animals": "animals",
   "animals.outcome.recovered": "Recovered",
@@ -5268,12 +5268,12 @@ export const en = {
     "{count, plural, one {# diagnosis} other {# diagnoses}}; lately {disease}, {day}",
   "params.illAgain": "Ill again and again",
   "params.illAgainHint":
-    "An animal the Vet diagnoses this many times within these days is put on the Manager's list, for the Owner to weigh whether to keep treating it.",
+    "An animal the vet diagnoses this many times within these days is put on the manager's list, for the owner to weigh whether to keep treating it.",
   "params.illAgainDiagnoses": "Diagnoses",
   "params.illAgainDays": "Within",
   "params.diagnoses": "diagnoses",
   "refusal.outcomeSaid":
-    "Its outcome is said already; put the Diagnosis right to change it",
+    "Its outcome is said already; put the diagnosis right to change it",
   "heatWatch.title": "Heat watch",
   "heatWatch.none": "No cow the farm is waiting to see in heat",
   "heatWatch.neverSeen":
@@ -5283,7 +5283,7 @@ export const en = {
   "heatWatch.returnDue": "Due back in heat — served {day} · {pen}",
   "params.heatWatch": "Heat watch",
   "params.heatWatchHint":
-    "An open cow with no heat seen this many days after calving is put on the heat watch, for closer watching and the Vet. DLS re-examines a cow not in heat by 50–60 days.",
+    "An open cow with no heat seen this many days after calving is put on the heat watch, for closer watching and the vet. DLS re-examines a cow not in heat by 50–60 days.",
   "params.heatWatchAfterCalvingDays": "From this day after calving",
   "givingLess.title": "Giving less",
   "givingLess.col.drop": "Less by",
@@ -5295,7 +5295,7 @@ export const en = {
     "{lately} L a milking, usually {usually} L — {drop}% less · {pen}",
   "params.milkDrop": "A cow giving less",
   "params.milkDropHint":
-    "A cow whose milk a milking falls this far under her own week, over these days, is named to the Manager. A convention, not a measured line: it catches sudden illness, and a heat drops milk too.",
+    "A cow whose milk a milking falls this far under her own week, over these days, is named to the manager. A convention, not a measured line: it catches sudden illness, and a heat drops milk too.",
   "params.milkDropPercent": "Less than her week by",
   "params.milkDropDays": "Over the last",
   "alerts.milkUnaccounted":
@@ -5303,7 +5303,7 @@ export const en = {
   "digest.milkUnaccounted": "Milk not accounted for this week",
   "params.milkUnaccounted": "Milk not accounted for",
   "params.milkUnaccountedHint":
-    "When this much of a week's milk into the tank has neither left the gate nor is still in the tank, you and the Manager are told in the evening's post.",
+    "When this much of a week's milk into the tank has neither left the gate nor is still in the tank, you and the manager are told in the evening's post.",
   "params.milkUnaccountedPercent": "More than",
   "params.cashShort": "Cash count short",
   "params.cashShortHint":
@@ -5311,11 +5311,11 @@ export const en = {
   "params.cashShortTellMoney": "Tell when short by more than",
   "params.medicineShort": "Medicine count",
   "params.medicineShortHint":
-    "The monthly count of the medicine, in doses: you are told when it comes up short, at what the doses cost, by more than this. Yours to set: the Manager buys and counts it.",
+    "The monthly count of the medicine, in doses: you are told when it comes up short, at what the doses cost, by more than this. Yours to set: the manager buys and counts it.",
   "params.medicineShortTellMoney": "Tell when short by more than",
   "params.feedDays": "Days of feed left",
   "params.feedDaysHint":
-    "A feed with fewer days left than this, at the rate it has been fed over the last fortnight, is running low, and the Manager is told in the evening's post.",
+    "A feed with fewer days left than this, at the rate it has been fed over the last fortnight, is running low, and the manager is told in the evening's post.",
   "params.feedDaysLow": "Running low under",
   "params.putOff": "Work put off",
   "params.putOffHint":
@@ -5382,7 +5382,7 @@ export const en = {
     "Change what is wrong. A draw that never happened is taken back by putting it to 0. What a payday has already taken off it stays taken. The original stays readable in the audit trail.",
   "refusal.bankNeedsASlip":
     "Cash into or out of the bank needs its slip or cheque",
-  "refusal.holdsNoCash": "Only the Owner or a Manager holds the farm's cash",
+  "refusal.holdsNoCash": "Only the owner or a manager holds the farm's cash",
   "refusal.handoverGoesNowhere":
     "Cash is handed from one hand to another, or to or from the bank",
   "cash.tab": "Cash in hand",
@@ -5422,13 +5422,13 @@ export const en = {
     "Cash passed to another person, or into the bank with its slip. Nothing is earned or spent: it only changes hands.",
   "cash.handedOver": "Handed over",
   "cash.heldForVenture": "of which {amount} is {venture}'s — {tags}",
-  "cash.deposit": "Deposit into the Venture Account",
+  "cash.deposit": "Deposit into the venture account",
   "cash.depositTitle": "Deposit into {venture}'s account",
   "cash.depositHint":
-    "Bank a Venture's sale cash taken at the livestock market, with the deposit slip. The Venture Account holds it only once it is deposited.",
+    "Bank a venture's sale cash taken at the livestock market, with the deposit slip. The venture account holds it only once it is deposited.",
   "cash.depositTotal": "To be deposited: {amount}",
   "cash.depositDay": "Day it went in",
-  "cash.deposited": "Deposited into the Venture Account",
+  "cash.deposited": "Deposited into the venture account",
   "cash.to": "To",
   "cash.whoseHand": "Whose hand took the cash",
   "cash.myOwnHand": "My own",
@@ -5448,7 +5448,7 @@ export const en = {
     "{count, plural, one {# feed} other {# feeds}} bought dearer than last time",
   "dose.give": "Dose not prescribed",
   "dose.hint":
-    "Medicine given on the pharmacy's advice, or anybody's, before the Vet saw her. It holds her milk and meat as any dose does, and the Vet is told at once. Bought it just now? Write the purchase on the Drugs page too, so the store adds up.",
+    "Medicine given on the pharmacy's advice, or anybody's, before the vet saw her. It holds her milk and meat as any dose does, and the vet is told at once. Bought it just now? Write the purchase on the Drugs page too, so the store adds up.",
   "dose.product": "Medicine",
   "dose.pick": "Choose the medicine",
   "dose.givenAt": "When it was given (empty is now)",
@@ -5456,10 +5456,10 @@ export const en = {
   "dose.holdsOwn":
     "Holds her milk {milk, plural, one {# day} other {# days}} and her meat {meat, plural, one {# day} other {# days}}.",
   "dose.holdsDefault":
-    "The Vet has not written this medicine's days, so it takes the Vet's default: milk {milk, plural, one {# day} other {# days}}, meat {meat, plural, one {# day} other {# days}}.",
+    "The vet has not written this medicine's days, so it takes the vet's default: milk {milk, plural, one {# day} other {# days}}, meat {meat, plural, one {# day} other {# days}}.",
   "dose.askTheVet":
-    "The Vet has written no days for this medicine, and no default. Ask the Vet first.",
-  "dose.recorded": "Dose written; the Vet will be told",
+    "The vet has written no days for this medicine, and no default. Ask the vet first.",
+  "dose.recorded": "Dose written; the vet will be told",
   "drugs.defaultDays": "Default withdrawal days",
   "drugs.defaultDaysHint":
     "For a dose given without a prescription, of a medicine with no days written yet. A dose already given keeps the days it took.",
@@ -5467,13 +5467,13 @@ export const en = {
     "Not written yet: such a dose is refused until you write them.",
   "drugs.defaultSaved": "Default days saved",
   "refusal.askTheVetForDays":
-    "The Vet has written no withdrawal days for this medicine, nor the farm's default; ask the Vet",
+    "The vet has written no withdrawal days for this medicine, nor the farm's default; ask the vet",
   "refusal.diagnosisNotHers": "That diagnosis is another animal's",
   "refusal.medicineCountIncomplete":
     "A medicine count counts every medicine on the list",
   "refusal.givenInTheFuture":
     "A dose cannot be given at a time that has not come yet",
-  "refusal.productRetired": "That medicine is retired from the Drug List",
+  "refusal.productRetired": "That medicine is retired from the drug list",
   "alerts.doseNotPrescribed":
     "{tag} was given {product} without a prescription: {advice}. Check her withdrawal",
   "push.doseNotPrescribedTitle": "A dose without a prescription",
@@ -5490,7 +5490,7 @@ export const en = {
     "{count, plural, one {# pen's count} other {# pens' counts}} did not match the register",
   "animals.markNotFound": "Mark not found",
   "animals.markNotFoundHint":
-    "It is not in its pen. It stays in the herd while the farm looks for it, and you and the Owner are told at once.",
+    "It is not in its pen. It stays in the herd while the farm looks for it, and you and the owner are told at once.",
   "animals.markedNotFound": "{tag} marked not found",
   "animals.writeOff": "Write off as lost",
   "animals.writeOffHint":
@@ -5500,7 +5500,7 @@ export const en = {
   "animals.writeOffGd": "Thana GD number",
   "animals.writeOffDone": "{tag} written off as lost",
   "animals.writeOffVenture":
-    "A Venture's animal cannot be written off yet: its Investors' agreement does not say what a loss is to them",
+    "A venture's animal cannot be written off yet: its investors' agreement does not say what a loss is to them",
   "animals.writeOffAsk":
     "Missing {days, plural, one {# day} other {# days}} — write it off as lost?",
   "animals.writtenOff": "Written off as lost on {day}",
