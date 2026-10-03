@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 import type {
   FarmIdentity,
   Nominee,
@@ -179,25 +177,3 @@ export const amendmentLaidOut = async (
   });
   return { document, run };
 };
-
-/** A value with every object's keys in order: the same paper, kept as jsonb and read back, writes out the same. */
-const inKeyOrder = (value: unknown): unknown => {
-  if (Array.isArray(value)) {
-    return value.map(inKeyOrder);
-  }
-  if (value !== null && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value)
-        .toSorted(([one], [other]) => one.localeCompare(other, "en"))
-        .map(([key, inner]) => [key, inKeyOrder(inner)])
-    );
-  }
-  return value;
-};
-
-/** A paper's fingerprint: what an Investor read is the paper kept only when the two agree. Taken over the paper with its
- *  keys in order, as the database keeps it in an order of its own. */
-export const paperHashOf = (paper: PaperDocument): string =>
-  createHash("sha256")
-    .update(JSON.stringify(inKeyOrder(paper)))
-    .digest("hex");
