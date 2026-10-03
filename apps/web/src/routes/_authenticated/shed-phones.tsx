@@ -11,6 +11,7 @@ import { EmptyState, Loaded, Page, PageHeader } from "@/components/page";
 import { FormDialog, FormField } from "@/components/page-kit";
 import { OneTimeCode } from "@/components/people/one-time-code";
 import { useLanguage } from "@/i18n/language-provider";
+import { onlyFor } from "@/lib/guard";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
@@ -145,6 +146,8 @@ const DevicesPage = () => {
   );
 };
 
-export const Route = createFileRoute("/_authenticated/admin/devices")({
+export const Route = createFileRoute("/_authenticated/shed-phones")({
+  /** For those who run the farm: the Owner and the Farm Managers. */
+  beforeLoad: onlyFor("runsTheFarm"),
   component: DevicesPage,
 });

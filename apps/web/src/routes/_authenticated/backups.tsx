@@ -28,6 +28,7 @@ import {
 import type { Figure } from "@/components/page-kit";
 import { SummaryFigures } from "@/components/page-kit";
 import { useLanguage, useT } from "@/i18n/language-provider";
+import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
 
 /** Two nights without a copy is a farm one disk away from losing its own records. */
@@ -270,6 +271,8 @@ const BackupsPage = () => {
   );
 };
 
-export const Route = createFileRoute("/_authenticated/admin/backups")({
+export const Route = createFileRoute("/_authenticated/backups")({
+  /** For those who run the farm: the Owner and the Farm Managers. */
+  beforeLoad: onlyFor("runsTheFarm"),
   component: BackupsPage,
 });

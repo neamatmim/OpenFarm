@@ -218,14 +218,14 @@ export const usePortalPlaces = () => {
     money: place("money"),
     papers: place("papers"),
     account: place("account"),
-    openVentures: place("offers"),
+    openVentures: place("open-ventures"),
     ventures: place("agreements"),
     requests: place("requests"),
     yourData: place("your-data"),
     venture: (agreementId: string) =>
       place("agreements/$agreementId", { agreementId }),
     openVenture: (ventureId: string) =>
-      place("offers/$ventureId", { ventureId }),
+      place("open-ventures/$ventureId", { ventureId }),
   };
 };
 

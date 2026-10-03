@@ -96,7 +96,7 @@ const BoardFigures = ({
 const IntakeButton = () => {
   const { t } = useLanguage();
   return (
-    <Link className={buttonVariants()} to="/admin/intakes">
+    <Link className={buttonVariants()} to="/intakes">
       <ClipboardPlus aria-hidden data-icon="inline-start" />
       {t("nav.intake")}
     </Link>

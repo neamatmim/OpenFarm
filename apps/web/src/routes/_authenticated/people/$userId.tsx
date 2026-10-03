@@ -25,6 +25,7 @@ import { AccessTab } from "@/components/people/person-access";
 import { SignInsTab, TrainingTab } from "@/components/people/person-sign-ins";
 import { useT } from "@/i18n/language-provider";
 import { words } from "@/lib/correcting";
+import { onlyFor } from "@/lib/guard";
 import { reachesTheirAccess } from "@/lib/their-access";
 import { orpc } from "@/utils/orpc";
 
@@ -80,7 +81,7 @@ const PersonPage = () => {
 
   return (
     <Page>
-      <BackLink to="/admin/people">{t("nav.people")}</BackLink>
+      <BackLink to="/people">{t("nav.people")}</BackLink>
       <Loaded query={person}>
         {them ? (
           <>
@@ -160,7 +161,9 @@ const PersonPage = () => {
   );
 };
 
-export const Route = createFileRoute("/_authenticated/admin/people/$userId")({
+export const Route = createFileRoute("/_authenticated/people/$userId")({
+  /** For those who run the farm: the Owner and the Farm Managers. */
+  beforeLoad: onlyFor("runsTheFarm"),
   component: PersonPage,
   /** Which tab, kept in the address so the page comes back as it was left. */
   validateSearch: (search: Record<string, unknown>): { tab?: Tab } =>

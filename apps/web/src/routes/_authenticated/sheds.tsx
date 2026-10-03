@@ -14,6 +14,7 @@ import { ShedCard } from "@/components/herd/shed-card";
 import { EmptyState, Notice, Page, PageHeader } from "@/components/page";
 import { RegisterAnimal } from "@/components/register-animal";
 import { useLanguage } from "@/i18n/language-provider";
+import { onlyFor } from "@/lib/guard";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
@@ -247,6 +248,8 @@ const HerdPage = () => {
   );
 };
 
-export const Route = createFileRoute("/_authenticated/admin/herd")({
+export const Route = createFileRoute("/_authenticated/sheds")({
+  /** For those who run the farm: the Owner and the Farm Managers. */
+  beforeLoad: onlyFor("runsTheFarm"),
   component: HerdPage,
 });

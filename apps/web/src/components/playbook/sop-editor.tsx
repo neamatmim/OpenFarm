@@ -228,7 +228,7 @@ export const SopEditor = ({
   return (
     <Page>
       {/* The editor is drawn in the Playbook's own place, so the way back is to the same address with the draft let go. */}
-      <BackLink onClick={onCancel} search to="/admin/sops">
+      <BackLink onClick={onCancel} search to="/sops">
         {t("nav.sops")}
       </BackLink>
       <PageHeader

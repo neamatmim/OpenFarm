@@ -75,7 +75,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "nav.group.today",
     items: [
       {
-        to: "/farm",
+        to: "/overview",
         label: "nav.farm",
         icon: LayoutDashboard,
         audience: "owner",
@@ -99,7 +99,7 @@ export const NAV_GROUPS: NavGroup[] = [
         audience: "runsTheFarm",
       },
       {
-        to: "/admin/review-queue",
+        to: "/review-queue",
         label: "nav.signOff",
         icon: ClipboardCheck,
         audience: "runsTheFarm",
@@ -116,19 +116,19 @@ export const NAV_GROUPS: NavGroup[] = [
         audience: "anyone",
       },
       {
-        to: "/admin/herd",
+        to: "/sheds",
         label: "nav.herd",
         icon: Warehouse,
         audience: "runsTheFarm",
       },
       {
-        to: "/admin/breeds",
+        to: "/breeds",
         label: "nav.breeds",
         icon: Dna,
         audience: "runsTheFarm",
       },
       {
-        to: "/admin/intakes",
+        to: "/intakes",
         label: "nav.intake",
         icon: Truck,
         audience: "runsTheFarm",
@@ -140,7 +140,7 @@ export const NAV_GROUPS: NavGroup[] = [
         audience: "runsTheFarm",
       },
       {
-        to: "/admin/eid-dates",
+        to: "/eid-dates",
         label: "nav.eid",
         icon: MoonStar,
         audience: "runsTheFarm",
@@ -183,7 +183,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: "/milk", label: "nav.milk", icon: Milk, audience: "runsTheFarm" },
       {
-        to: "/admin/feed",
+        to: "/feed",
         label: "nav.feed",
         icon: Wheat,
         audience: "runsTheFarm",
@@ -241,13 +241,13 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "nav.group.compliance",
     items: [
       {
-        to: "/registration-certificate",
+        to: "/inspector-view",
         label: "nav.inspector",
         icon: FileBadge,
         audience: "runsTheFarm",
       },
       {
-        to: "/admin/audit",
+        to: "/audit",
         label: "nav.audit",
         icon: ScrollText,
         audience: "anyone",
@@ -258,31 +258,31 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "nav.group.admin",
     items: [
       {
-        to: "/admin/farm",
+        to: "/farm",
         label: "nav.identity",
         icon: Building2,
         audience: "runsTheFarm",
       },
       {
-        to: "/admin/sops",
+        to: "/sops",
         label: "nav.sops",
         icon: BookOpenCheck,
         audience: "runsTheFarm",
       },
       {
-        to: "/admin/people",
+        to: "/people",
         label: "nav.people",
         icon: Users,
         audience: "runsTheFarm",
       },
       {
-        to: "/admin/devices",
+        to: "/shed-phones",
         label: "nav.devices",
         icon: Smartphone,
         audience: "runsTheFarm",
       },
       {
-        to: "/admin/backups",
+        to: "/backups",
         label: "nav.backups",
         icon: Archive,
         audience: "runsTheFarm",
@@ -342,7 +342,7 @@ export const primaryRole = (roles: readonly Role[]): Role => {
 export const BOTTOM_BAR: Record<Role, NavItem[]> = {
   owner: [
     {
-      to: "/farm",
+      to: "/overview",
       label: "nav.overview",
       icon: LayoutDashboard,
       audience: "owner",
@@ -354,7 +354,7 @@ export const BOTTOM_BAR: Record<Role, NavItem[]> = {
       audience: "runsTheFarm",
     },
     {
-      to: "/admin/sops",
+      to: "/sops",
       label: "nav.sops",
       icon: BookOpenCheck,
       audience: "runsTheFarm",
@@ -363,7 +363,7 @@ export const BOTTOM_BAR: Record<Role, NavItem[]> = {
   manager: [
     { to: "/home", label: "nav.theDay", icon: House, audience: "runsTheFarm" },
     {
-      to: "/admin/review-queue",
+      to: "/review-queue",
       label: "nav.signOff",
       icon: ClipboardCheck,
       audience: "runsTheFarm",
@@ -407,8 +407,8 @@ export const BOTTOM_BAR: Record<Role, NavItem[]> = {
 };
 
 /** Where each Role lands when it opens the app. */
-export const LANDING: Record<Role, "/farm" | "/home" | "/vet" | "/work"> = {
-  owner: "/farm",
+export const LANDING: Record<Role, "/overview" | "/home" | "/vet" | "/work"> = {
+  owner: "/overview",
   manager: "/home",
   vet: "/vet",
   staff: "/work",

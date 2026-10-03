@@ -199,7 +199,7 @@ const CardPage = () => {
   return (
     <Page>
       {keepsPlaybook ? (
-        <BackLink className="no-print" to="/admin/sops">
+        <BackLink className="no-print" to="/sops">
           {t("nav.sops")}
         </BackLink>
       ) : null}
@@ -337,7 +337,7 @@ const TrainedOn = ({
                 <Link
                   className="hover:underline"
                   params={{ userId: row.userId }}
-                  to="/admin/people/$userId"
+                  to="/people/$userId"
                 >
                   {row.personName}
                 </Link>

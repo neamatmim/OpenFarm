@@ -451,7 +451,7 @@ export const FeedPanel = () => {
   return (
     <Section
       action={
-        <Link className={MORE_LINK} to="/admin/feed">
+        <Link className={MORE_LINK} to="/feed">
           <OpenWords />
         </Link>
       }

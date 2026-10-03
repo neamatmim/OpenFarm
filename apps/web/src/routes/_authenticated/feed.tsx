@@ -34,6 +34,7 @@ import { Loaded, Page, PageHeader } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { onlyFor } from "@/lib/guard";
 import { useMoney } from "@/lib/money";
 import { orpc } from "@/utils/orpc";
 
@@ -280,7 +281,9 @@ const FeedPage = () => {
   );
 };
 
-export const Route = createFileRoute("/_authenticated/admin/feed")({
+export const Route = createFileRoute("/_authenticated/feed")({
+  /** For those who run the farm: the Owner and the Farm Managers. */
+  beforeLoad: onlyFor("runsTheFarm"),
   component: FeedPage,
   /** Which tab, kept in the address so the page comes back as it was left. */
   validateSearch: (search: Record<string, unknown>): { tab?: Tab } =>

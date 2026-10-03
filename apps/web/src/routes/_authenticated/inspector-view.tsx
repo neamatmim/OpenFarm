@@ -472,9 +472,7 @@ const InspectorPage = () => {
   );
 };
 
-export const Route = createFileRoute(
-  "/_authenticated/registration-certificate"
-)({
+export const Route = createFileRoute("/_authenticated/inspector-view")({
   beforeLoad: ({ context }) => {
     // What the farm shows an inspector is the Owner's and the Manager's to show.
     const { roles } = context.me;

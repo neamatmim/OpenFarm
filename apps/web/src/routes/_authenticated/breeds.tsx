@@ -47,6 +47,7 @@ import {
 } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { breedName } from "@/lib/breed";
+import { onlyFor } from "@/lib/guard";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
@@ -375,6 +376,8 @@ const BreedsPage = () => {
   );
 };
 
-export const Route = createFileRoute("/_authenticated/admin/breeds")({
+export const Route = createFileRoute("/_authenticated/breeds")({
+  /** For those who run the farm: the Owner and the Farm Managers. */
+  beforeLoad: onlyFor("runsTheFarm"),
   component: BreedsPage,
 });
