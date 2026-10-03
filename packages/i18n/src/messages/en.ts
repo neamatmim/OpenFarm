@@ -2393,6 +2393,10 @@ export const en = {
     "Every animal on the farm you work, by her Tag Number. Type to narrow; press Find to open.",
   "animals.count": "{count, plural, one {# animal} other {# animals}}",
   "animals.searchPlaceholder": "Tag Number, e.g. D-0001",
+  "goTo.label": "Go to Tag Number",
+  "goTo.title": "Go to an animal",
+  "goTo.hint": "Type her Tag Number; Enter opens her page.",
+  "goTo.matches": "Animals by that Tag Number",
   "animals.milkHeld": "Milk held",
   "animals.meatHeld": "Meat held",
   "animals.noMatch":
