@@ -284,6 +284,44 @@ describe("photos", () => {
       data: "AAAA",
     });
   });
+
+  it("sends a list the thumbnail, and the photo whole to whoever opens it", async () => {
+    const { tagNumber } = await registerDairyCalf();
+    await pens.owner.client.animals.setPhoto({
+      tagNumber,
+      contentType: "image/jpeg",
+      data: "WHOLE",
+      thumb: "SMALL",
+    });
+
+    expect(
+      await pens.owner.client.animals.photo({ tagNumber, size: "thumb" })
+    ).toEqual({ contentType: "image/jpeg", data: "SMALL" });
+    expect(await pens.owner.client.animals.photo({ tagNumber })).toEqual({
+      contentType: "image/jpeg",
+      data: "WHOLE",
+    });
+  });
+
+  it("sends a photo with no thumbnail whole, and a new photo forgets the old one's", async () => {
+    const { tagNumber } = await registerDairyCalf();
+    await pens.owner.client.animals.setPhoto({
+      tagNumber,
+      contentType: "image/jpeg",
+      data: "FIRST",
+      thumb: "FIRST-SMALL",
+    });
+    // A phone on an older build sends the new photo alone.
+    await pens.owner.client.animals.setPhoto({
+      tagNumber,
+      contentType: "image/png",
+      data: "SECOND",
+    });
+
+    expect(
+      await pens.owner.client.animals.photo({ tagNumber, size: "thumb" })
+    ).toEqual({ contentType: "image/png", data: "SECOND" });
+  });
 });
 
 describe("staff scoping", () => {

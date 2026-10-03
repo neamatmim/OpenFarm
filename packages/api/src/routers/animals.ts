@@ -17,6 +17,7 @@ import {
   MORTALITY_KINDS,
   LIVE_STATES,
   PHOTO_MAX_BYTES,
+  THUMB_MAX_BYTES,
   SIDES,
   STATES,
   failedAttempts,
@@ -1450,6 +1451,8 @@ export const animalsRouter = {
         tagNumber: tagInput,
         contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
         data: z.string().min(1).max(PHOTO_MAX_BYTES),
+        /** The same photo small, a JPEG made on the device; a phone running an older build sends none. */
+        thumb: z.string().min(1).max(THUMB_MAX_BYTES).optional(),
       })
     )
     .handler(async ({ context, input }) => {
@@ -1478,6 +1481,7 @@ export const animalsRouter = {
               farmId: context.farm.id,
               contentType: input.contentType,
               data: input.data,
+              thumb: input.thumb ?? null,
               updatedAt: now,
             })
             .onConflictDoUpdate({
@@ -1485,6 +1489,8 @@ export const animalsRouter = {
               set: {
                 contentType: input.contentType,
                 data: input.data,
+                // A new photo without its own thumbnail drops the old one's, which would show the old animal.
+                thumb: input.thumb ?? null,
                 updatedAt: now,
               },
             });
@@ -1531,9 +1537,16 @@ export const animalsRouter = {
       });
     }),
 
+  /** An Animal's photo, whole or as its thumbnail. A list asks for the thumbnail; a photo taken before thumbnails were
+   *  made has none and is sent whole either way. */
   photo: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
-    .input(z.object({ tagNumber: tagInput }))
+    .input(
+      z.object({
+        tagNumber: tagInput,
+        size: z.enum(["thumb", "full"]).default("full"),
+      })
+    )
     .handler(async ({ context, input }) => {
       const target = await requireAnimal(
         context.db,
@@ -1544,9 +1557,12 @@ export const animalsRouter = {
       const photo = await context.db.query.animalPhoto.findFirst({
         where: { animalId: target.id },
       });
-      return photo
-        ? { contentType: photo.contentType, data: photo.data }
-        : null;
+      if (!photo) {
+        return null;
+      }
+      return input.size === "thumb" && photo.thumb
+        ? { contentType: "image/jpeg", data: photo.thumb }
+        : { contentType: photo.contentType, data: photo.data };
     }),
 
   /** The opening register: one row per Animal, each keeping the number on her Ear Tag if it has one, old marks kept

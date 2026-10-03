@@ -405,6 +405,7 @@ export {
   outOfRangeOf,
   outsideItsRange,
   PHOTO_MAX_BYTES,
+  THUMB_MAX_BYTES,
   SKIP_MEANINGS,
   STAYS_A_HEIFER,
   STEP_EFFECT_KINDS,

@@ -261,6 +261,9 @@ export const animalPhoto = pgTable("animal_photo", {
   contentType: text("content_type").notNull(),
   /** Downscaled on the device before upload; base64 so it survives the offline outbox. */
   data: text("data").notNull(),
+  /** The same photo as a small JPEG, for the lists that draw it the size of a thumb: a herd page of them would
+   *  otherwise fetch every photo whole. Null for a photo taken before thumbnails were made; it is then sent whole. */
+  thumb: text("thumb"),
   updatedAt: timestamp("updated_at").notNull(),
 });
 

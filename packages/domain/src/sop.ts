@@ -24,6 +24,8 @@ export interface Bilingual {
 /** 1.5 MB of image becomes 2,000,000 base64 characters. The one bound, shared by every
  *  place a photo can arrive: the single procedure, the batch, and the Animal's own photo. */
 export const PHOTO_MAX_BYTES = 2_000_000;
+/** What a photo's thumbnail may weigh, as base64: a 192px JPEG is a few kilobytes, so this is generous. */
+export const THUMB_MAX_BYTES = 100_000;
 
 /** What a photograph's file may weigh before a phone sends it: the most whose base64 still fits `PHOTO_MAX_BYTES`, as
  *  base64 writes three bytes as four characters. */
