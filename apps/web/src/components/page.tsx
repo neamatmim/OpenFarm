@@ -84,7 +84,7 @@ const BackAnchor = ({
 }) => (
   <a
     className={cn(
-      "text-muted-foreground hover:text-foreground focus-visible:ring-ring -ms-2 -mb-4 inline-flex min-h-11 w-fit items-center gap-1 self-start rounded-md px-2 text-sm font-medium outline-none focus-visible:ring-2 md:-mb-6",
+      "text-muted-foreground hover:text-foreground focus-visible:ring-ring -ms-2 -mb-4 inline-flex min-h-11 w-fit items-center gap-1 self-start rounded-md px-2 text-sm font-medium outline-none focus-visible:ring-2 md:-mb-4 md:min-h-9",
       className
     )}
     ref={ref}
@@ -247,7 +247,9 @@ const TileFrame = ({
       {children}
     </button>
   ) : (
-    <div className="surface flex h-full flex-col gap-3 p-4 md:p-5">{children}</div>
+    <div className="surface flex h-full flex-col gap-3 p-4 md:p-5">
+      {children}
+    </div>
   );
 
 /** One figure the farm watches: what it is, the figure large and aligned, and what it means. */

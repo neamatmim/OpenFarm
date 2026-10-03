@@ -248,7 +248,7 @@ export const PageTabs = <T extends string>({
         className="-mx-4 overflow-x-auto border-b px-4 md:mx-0 md:px-0"
         ref={strip}
       >
-        <TabsList className="h-11 gap-4" variant="line">
+        <TabsList className="h-11 gap-4 md:h-9" variant="line">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
