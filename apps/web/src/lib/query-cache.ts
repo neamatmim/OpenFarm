@@ -29,8 +29,9 @@ const KEEP_FOR_MS = 14 * 24 * 60 * 60 * 1000;
  *  is the Market Toll, the one after that because a Dispatch's challan is its Delivery Note, and this one
  *  because a query is kept under its router's name, and the routers are named for what they serve, and this
  *  one because the work, the Buying Trips, the Sheds, the Inspector View and the Owner's overview have their own,
- *  and this one because a read of one thing is `get`, of many `list`, and an Animal is read by `animals.get`. */
-const CACHE_KEY = "kept-with-one-verb-each";
+ *  the one after that because a read of one thing is `get`, of many `list`, and an Animal is read by
+ *  `animals.get`, and this one because feed come into the store is the Feed In, `stock.feedIn`. */
+const CACHE_KEY = "kept-with-feed-in";
 /** The shape of what this phone keeps, written on everything it puts away, so nothing put away the old way is read. */
 export const CACHE_SHAPE = CACHE_KEY;
 

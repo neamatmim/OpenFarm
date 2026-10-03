@@ -153,7 +153,7 @@ beforeAll(async () => {
   });
 
   const { client: reading } = await as("owner", "2030-10-02T04:00:00.000Z");
-  const { crossings } = await reading.returns.page();
+  const { crossings } = await reading.returns.list();
   joiningA = crossings.find((one) => one.tagNumber === calfA)?.id ?? "";
   joiningB = crossings.find((one) => one.tagNumber === calfB)?.id ?? "";
 });
@@ -161,7 +161,7 @@ beforeAll(async () => {
 describe("a calf walked across from Dairy joins a Season", () => {
   it("joins the next Eid's Season when no window was said, and is named, not counted, until priced", async () => {
     const { client: owner } = await as("owner", "2030-10-02T04:00:00.000Z");
-    const { seasons, crossings } = await owner.returns.page();
+    const { seasons, crossings } = await owner.returns.list();
     const eid = seasons.find((one) => one.key === "eid:2031-04-03");
     expect(eid?.head).toBe(2);
     expect(eid?.gaps).toEqual([{ tagNumber: calfA, why: "not_priced" }]);
@@ -178,7 +178,7 @@ describe("a calf walked across from Dairy joins a Season", () => {
 
   it("is on the board, fed towards the Farm's target from the day she crossed, before anybody prices her", async () => {
     const { client: manager } = await as("manager", "2030-10-02T04:00:00.000Z");
-    const board = await manager.fattening.board();
+    const board = await manager.fattening.list();
     // Crossed at 01:00 the day before: a day on feed, towards the Farm's 350 kg, from the morning's 150.
     expect(board.find((row) => row.tagNumber === calfA)).toMatchObject({
       daysOnFeed: 1,
@@ -201,7 +201,7 @@ describe("a calf walked across from Dairy joins a Season", () => {
 
   it("joins the Season of a window said when she crossed", async () => {
     const { client: owner } = await as("owner", "2030-10-02T04:00:00.000Z");
-    const { seasons } = await owner.returns.page();
+    const { seasons } = await owner.returns.list();
     expect(
       seasons.find((one) => one.key === `window:${WINTER.start}|${WINTER.end}`)
     ).toMatchObject({
@@ -240,7 +240,7 @@ describe("the Owner prices a crossing", () => {
       note: `বাছুরের দর ${suffix}`,
     });
     const { client: reading } = await as("owner", "2030-10-02T04:00:00.000Z");
-    const { seasons, crossings } = await reading.returns.page();
+    const { seasons, crossings } = await reading.returns.list();
     const eid = seasons.find((one) => one.key === "eid:2031-04-03");
     expect(eid?.gaps).toEqual([]);
     expect(eid?.running).toMatchObject({
@@ -304,7 +304,7 @@ describe("an Eid announced moves a crossed animal's window with the bought ones'
     expect(
       await manager.eidDates.bringAlong({ expectedDay: EID_2031.start })
     ).toMatchObject({ moved: 2 });
-    const board = await manager.fattening.board();
+    const board = await manager.fattening.list();
     expect(board.find((row) => row.tagNumber === calfA)?.targetWindow).toEqual({
       start: "2031-04-04",
       end: "2031-04-06",

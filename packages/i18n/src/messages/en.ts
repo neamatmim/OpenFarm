@@ -2799,7 +2799,7 @@ export const en = {
   "feed.subtitle":
     "What is in the store, what came in, and which Ration each Pen is on.",
   "feed.tab.stock": "Store",
-  "feed.tab.arrivals": "Came in",
+  "feed.tab.feedIn": "Came in",
   "feed.tab.counts": "Counts",
   "feed.tab.rations": "Rations",
   "feed.tab.items": "Feed Items",

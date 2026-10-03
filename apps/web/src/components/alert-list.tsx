@@ -177,7 +177,7 @@ const PLACES = {
   feed_price_jump: {
     label: "alerts.openTheArrivals",
     Way: ({ children }) => (
-      <Link className={LEADS_CLASS} search={{ tab: "arrivals" }} to="/feed">
+      <Link className={LEADS_CLASS} to="/feed/feed-in">
         {children}
       </Link>
     ),

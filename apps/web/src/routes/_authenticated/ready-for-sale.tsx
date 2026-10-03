@@ -136,7 +136,7 @@ const ReadyPage = () => {
   const { t, language } = useLanguage();
   const [keeping, setKeeping] = useState<Suggestion | null>(null);
   const suggestions = useQuery(orpc.readyForSale.suggestions.queryOptions());
-  const board = useQuery(orpc.fattening.board.queryOptions({ input: {} }));
+  const board = useQuery(orpc.fattening.list.queryOptions({ input: {} }));
 
   const onError = (error: Error) => {
     const fitOn = fitOnFrom(error);

@@ -263,7 +263,7 @@ describe("a Lot, as it comes in", () => {
       seller: { name: `রহমান ফিডস ${suffix}` },
       receivedOn: "2038-03-03",
     });
-    const arrivals = await manager.client.stock.arrivals({
+    const arrivals = await manager.client.stock.feedIn({
       feedItemId: premix.id,
     });
     expect(arrivals.find((one) => one.id === bagged.id)).toMatchObject({
@@ -360,7 +360,7 @@ describe("feed in the store", () => {
       nextLotNumber: "CON-LATE",
       expiredLeft: 0,
     });
-    const arrivals = await store.manager.client.stock.arrivals({
+    const arrivals = await store.manager.client.stock.feedIn({
       feedItemId: concentrate.id,
     });
     expect(arrivals.find((one) => one.id === early.id)?.left).toBe(0);

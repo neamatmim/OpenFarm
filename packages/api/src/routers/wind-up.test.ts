@@ -356,7 +356,7 @@ describe("the buy-back at wind-up", () => {
     expect(purchases).toHaveLength(2);
 
     // All it takes join the one Season of the window it gives them.
-    const { seasons } = await owner.client.returns.page();
+    const { seasons } = await owner.client.returns.list();
     expect(
       seasons.find((one) => one.key === `window:${WINTER.start}|${WINTER.end}`)
     ).toMatchObject({ head: 2 });

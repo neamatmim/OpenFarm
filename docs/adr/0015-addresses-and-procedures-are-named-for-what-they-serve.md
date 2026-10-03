@@ -11,7 +11,7 @@ On 2026-10-03 the Owner asked for every route to be checked against the conventi
 
 - **Named for what the page is, in the glossary's words.** Use English, lowercase, with hyphens between words. A list is plural (`/sales`, `/sheds`), a mass noun or a single thing is singular (`/milk`, `/money`, `/farm`, `/overview`), and a door says what it does (`/sign-in`, `/shed-phone`). The name follows the page's title, as GOV.UK asks: `/inspector-view`, not `/registration-certificate`.
 - **Never named for who may open it.** There is no `/admin`: W3C names grouping by access as the way addresses break, and it already had (the audit log needed an exception). Each page carries its own `beforeLoad: onlyFor(…)` instead. The only exceptions are the Role start pages fixed in the glossary, `/home` and `/vet`.
-- **A path names a thing; a query filters it.** A tab that is a different kind of record, and that other screens link to, has its own path. Examples are `/money/receivables`, `/animals/$tagNumber/health` and `/ventures/$ventureId/investors`. The page is a layout that draws every tab itself, using `useTabOfPath` (`apps/web/src/lib/path-tabs.ts`). A tab that only narrows one list stays in the query: `/ventures?tab=settled`, `/portal/agreements?tab=finished`, `/feed?tab=arrivals`.
+- **A path names a thing; a query filters it.** A tab that is a different kind of record, and that other screens link to, has its own path. Examples are `/money/receivables`, `/animals/$tagNumber/health` and `/ventures/$ventureId/investors`. The page is a layout that draws every tab itself, using `useTabOfPath` (`apps/web/src/lib/path-tabs.ts`). A tab that only narrows one list stays in the query: `/ventures?tab=settled`, `/portal/agreements?tab=finished`.
 - **Parameters are named for what they identify**, and give one address per thing: `$agreementId`, not `$ventureId`, on an Agreement's page. `/animals/$tagNumber` uses the Tag Number, which is permanent (CONTEXT.md). An address in lower case is sent to the one in capitals.
 - **One address for one page.** `/` sends a signed-in person to their Role's start page, and there is no `/dashboard` beside it.
 - **An address held outside the code keeps a permanent redirect (308)** when it moves. The ones held so far are `/today` (an installed app opens there), `/login`, `/portal/login` and `/device`. An address only the code links to moves without one, because the compiler moves every typed link with it.
@@ -26,10 +26,10 @@ On 2026-10-03 the Owner asked for every route to be checked against the conventi
 - **The Investor address's security allowlist names three routers**: `portal`, `people.me` and `language` (`two-addresses.ts`, `query-cache.ts` and the nginx block in `docs/runbooks/deploy.md`). None of them is renamed without changing all three.
 - **Renaming a router or procedure renames the phone's kept cache too** (`CACHE_KEY`, `apps/web/src/lib/query-cache.ts`), because a query is kept under its path. A moved page bumps the service worker's shell (`SHELL`, `apps/web/public/sw.js`).
 
-**Left open**, until a glossary word is chosen:
+**Settled the same day**, once the words were chosen:
+- Feed coming into the store is the glossary's **Feed In**, as its table `feed_in` already was. It has the path `/feed/feed-in` and the procedure `stock.feedIn`.
+- The reads that were named after their screens are named for what they return: `returns.list`, `fattening.list` and `inspectorView.get`.
 
-- the screen-named reads `returns.page`, `fattening.board` and `inspectorView.view`;
-- one word for feed coming in, whether bought or harvested, which would let `/feed?tab=arrivals` become a path;
-- whether `devices` becomes `shedPhones`. "Device" also names the session behind a Shed Phone, so that waits until the device code is touched.
+**Left open:** whether `devices` becomes `shedPhones`. "Device" also names the session behind a Shed Phone, so it waits until the device code is touched.
 
 **Revisit** if anything outside the farm will ever call the API. It would then get its own versioned, resource-shaped surface, and the RPC paths would stay the app's own.

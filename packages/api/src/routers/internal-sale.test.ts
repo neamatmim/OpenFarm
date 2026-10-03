@@ -308,7 +308,7 @@ describe("the Internal Sale", () => {
     });
     const winterOf = async (instant: string) => {
       const { client: reading } = await as("owner", instant);
-      const { seasons } = await reading.returns.page();
+      const { seasons } = await reading.returns.list();
       return seasons.find((one) => one.key === "window:2047-12-01|2047-12-31");
     };
     // She stands, and this farm has set no market price a kilo: in her Season, named, as any bull with no price is.

@@ -280,7 +280,7 @@ beforeAll(async () => {
 describe("what a settled Venture returned", () => {
   it("reads its cattle as a Season is read, the bull bought from the Farm among them", async () => {
     const { client: owner } = await as("owner", "2053-04-10T04:00:00.000Z");
-    const { ventures } = await owner.returns.page();
+    const { ventures } = await owner.returns.list();
     expect(ventures.find((one) => one.id === ventureId)).toMatchObject({
       head: 3,
       returnOnCost: {
@@ -297,7 +297,7 @@ describe("what a settled Venture returned", () => {
 
   it("reads the Investors' capital from the day it arrived to the day it was paid back", async () => {
     const { client: owner } = await as("owner", "2053-04-10T04:00:00.000Z");
-    const { ventures } = await owner.returns.page();
+    const { ventures } = await owner.returns.list();
     expect(
       ventures.find((one) => one.id === ventureId)?.returnOnCapital
     ).toEqual({
@@ -312,7 +312,7 @@ describe("what a settled Venture returned", () => {
   it("works its cattle from the costing to the same totals its Settlement froze", async () => {
     const { client: owner } = await as("owner", "2053-04-10T04:00:00.000Z");
     const approved = await owner.ventures.approvedSettlement({ ventureId });
-    const { ventures } = await owner.returns.page();
+    const { ventures } = await owner.returns.list();
     const read = ventures.find((one) => one.id === ventureId)?.returnOnCost;
     expect(read?.costMoney).toBe(approved?.chargedMoney);
     expect(read?.backMoney).toBe(approved?.proceedsMoney);
@@ -429,7 +429,7 @@ describe("what the Investor reads of it (ADR 0012)", () => {
 describe("a Season beside a Venture in the same window", () => {
   it("counts the Farm's own bulls and not the Venture's, and lets X go at the Internal Sale's price", async () => {
     const { client: owner } = await as("owner", "2053-04-10T04:00:00.000Z");
-    const { seasons } = await owner.returns.page();
+    const { seasons } = await owner.returns.list();
     const season = seasons.find((one) => one.window.start === WINDOW.start);
     expect(season).toMatchObject({
       head: 2,
@@ -461,7 +461,7 @@ describe("the Bank Rate beside a Venture", () => {
     });
     const { client: reading } = await as("owner", "2053-04-10T04:00:00.000Z");
     const { ventures, bankRates, bankRateInForceId } =
-      await reading.returns.page();
+      await reading.returns.list();
     const venture = ventures.find((one) => one.id === ventureId);
     expect(venture?.bankRate).toEqual({
       perYear: 7.5,
@@ -642,14 +642,14 @@ describe("a Venture buying, with no cattle yet", () => {
 
   it("is not on the Returns page, where it would stand as a name with nothing under it", async () => {
     const { client: owner } = await as("owner", "2053-04-10T04:00:00.000Z");
-    const page = await owner.returns.page();
+    const page = await owner.returns.list();
     expect(page.ventures.map((one) => one.id)).not.toContain(emptyId);
     expect(await owner.returns.venture({ ventureId: emptyId })).toBeNull();
   });
 
   it("leaves every Venture with cattle said finished or going by the server, not guessed", async () => {
     const { client: owner } = await as("owner", "2053-04-10T04:00:00.000Z");
-    const page = await owner.returns.page();
+    const page = await owner.returns.list();
     const finished = new Map(
       page.ventures.map((one) => [one.id, one.finished])
     );

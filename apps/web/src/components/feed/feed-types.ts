@@ -44,7 +44,7 @@ export type Adjustment = Awaited<
 >[number];
 
 export type Arrival = Awaited<
-  ReturnType<typeof orpc.stock.arrivals.call>
+  ReturnType<typeof orpc.stock.feedIn.call>
 >[number];
 
 /** Where a Feed Item's Stock on Hand stands against the level set for it. */

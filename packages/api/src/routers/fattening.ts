@@ -27,7 +27,7 @@ export const fatteningRouter = {
    * to the Manager). Every figure is worked out from Intake and Weigh-ins — nothing here was
    * typed by anybody, which is the point: a projection somebody typed is an opinion.
    */
-  board: protectedProcedure
+  list: protectedProcedure
     .use(requireRole("owner", "manager"))
     .input(z.object({ penId: z.string().optional() }).optional())
     .handler(async ({ context, input }) => {

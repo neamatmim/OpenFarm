@@ -2632,7 +2632,7 @@ export const bn: Record<MessageKey, string> = {
   "nav.settings": "সেটিংস",
   "feed.subtitle": "গুদামে কী আছে, কী এসেছে, আর কোন পেনে কোন রেশন চলছে।",
   "feed.tab.stock": "গুদাম",
-  "feed.tab.arrivals": "যা এসেছে",
+  "feed.tab.feedIn": "যা এসেছে",
   "feed.tab.counts": "গণনা",
   "feed.tab.rations": "রেশন",
   "feed.tab.items": "খাদ্য উপাদান",

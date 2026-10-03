@@ -311,7 +311,7 @@ export const inspectorViewRouter = {
    *
    * The Owner's and the Manager's, from their own phones (roles matrix: compliance reports — R; export).
    */
-  view: protectedProcedure
+  get: protectedProcedure
     .use(requireRole("owner", "manager"))
     .use(requirePersonalSession())
     .handler(async ({ context }) => ({

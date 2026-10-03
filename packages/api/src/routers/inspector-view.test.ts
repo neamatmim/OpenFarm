@@ -109,7 +109,7 @@ beforeAll(async () => {
 describe("the Inspector View", () => {
   it("shows the Registration with its certificate, and prints it headed by the farm", async () => {
     const manager = await as("manager", "2043-05-02T04:00:00.000Z");
-    const view = await manager.client.inspectorView.view();
+    const view = await manager.client.inspectorView.get();
     // No file photographs the certificate on a later clock, so this file's is the farm's newest.
     expect(view.registration).toMatchObject({
       number: REGISTRATION,
@@ -140,7 +140,7 @@ describe("the Inspector View", () => {
 
   it("counts the herd on the farm today by Side and State and by Pen, the animals that have gone left out", async () => {
     const owner = await as("owner", "2043-05-02T04:00:00.000Z");
-    const view = await owner.client.inspectorView.view();
+    const view = await owner.client.inspectorView.get();
     const pen = (id: string) => view.herd.byPen.find((one) => one.penId === id);
     expect(pen(world.milkingPen.id)).toMatchObject({
       animals: 3,
@@ -187,7 +187,7 @@ describe("the Inspector View", () => {
       // oxlint-disable-next-line no-await-in-loop
       const other = await as(role, "2043-05-03T04:00:00.000Z");
       // oxlint-disable-next-line no-await-in-loop
-      await expect(other.client.inspectorView.view()).rejects.toMatchObject({
+      await expect(other.client.inspectorView.get()).rejects.toMatchObject({
         code: "FORBIDDEN",
       });
       // oxlint-disable-next-line no-await-in-loop
@@ -196,11 +196,9 @@ describe("the Inspector View", () => {
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
     }
     const onShedPhone = await as("manager", "2043-05-03T04:00:00.000Z", true);
-    await expect(onShedPhone.client.inspectorView.view()).rejects.toMatchObject(
-      {
-        code: "FORBIDDEN",
-      }
-    );
+    await expect(onShedPhone.client.inspectorView.get()).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
 
     // A paper for an inspector carries the Registration number, or it is not printed.
     const writer = await as("manager", "2043-05-03T04:00:00.000Z");

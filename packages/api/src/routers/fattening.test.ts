@@ -215,7 +215,7 @@ describe("gain, days on feed and the projections to Eid", () => {
       as: "owner",
       clock: new FakeClock("2027-02-15T09:00:00.000Z"),
     });
-    const board = await owner.client.fattening.board({ penId: world.pen.id });
+    const board = await owner.client.fattening.list({ penId: world.pen.id });
 
     const gaining = board.find((row) => row.tagNumber === tagOf(0));
     const stalling = board.find((row) => row.tagNumber === tagOf(1));
@@ -245,7 +245,7 @@ describe("gain, days on feed and the projections to Eid", () => {
     expect(her.intake).toBeNull();
     expect(her.fattening?.latestKg).toBe(228);
     await expect(
-      staff.client.fattening.board({ penId: world.pen.id })
+      staff.client.fattening.list({ penId: world.pen.id })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });
@@ -288,7 +288,7 @@ describe("a reading the farm doubted", () => {
       as: "owner",
       clock: new FakeClock("2027-03-22T09:00:00.000Z"),
     });
-    const board = await owner.client.fattening.board({ penId: world.pen.id });
+    const board = await owner.client.fattening.list({ penId: world.pen.id });
     const him = board.find((row) => row.tagNumber === tagOf(2));
 
     // From 214 on 1 February to 250 on 22 March: 36 kg over 49 days, 0.73 a day. The 120 is three weeks back, far

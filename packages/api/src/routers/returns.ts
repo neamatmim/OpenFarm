@@ -30,7 +30,7 @@ import { priceAtWeight } from "../venture-store";
  * cattle and each Venture, worked as a Settlement is. The Owner's alone, as an animal's money is.
  */
 export const returnsRouter = {
-  page: protectedProcedure
+  list: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())
     .handler(({ context }) =>

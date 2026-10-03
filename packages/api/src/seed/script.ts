@@ -354,7 +354,7 @@ const crossTwoCalves = ({ farm, on }: Script) => {
     if (!first) {
       return;
     }
-    const { crossings } = await f.as.owner.returns.page();
+    const { crossings } = await f.as.owner.returns.list();
     const hers = crossings.find((one) => one.tagNumber === first);
     if (hers?.weightKg) {
       await f.as.owner.returns.priceCrossing({

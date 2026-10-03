@@ -356,7 +356,7 @@ export const HerdPanel = ({
  *  which cost more to keep another fortnight than they would put on. */
 export const FatteningPanel = () => {
   const { t, language } = useLanguage();
-  const board = useQuery(orpc.fattening.board.queryOptions({ input: {} }));
+  const board = useQuery(orpc.fattening.list.queryOptions({ input: {} }));
   const ready = useQuery(orpc.readyForSale.suggestions.queryOptions());
   const keepings = useKeepings();
   const rows = board.data ?? [];

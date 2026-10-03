@@ -100,7 +100,7 @@ const bull = async (
 /** Her window as the board shows it and as her page shows it. */
 const windowsOf = async (instant: string, tagNumber: string) => {
   const owner = await as("owner", instant);
-  const board = await owner.client.fattening.board({ penId });
+  const board = await owner.client.fattening.list({ penId });
   const her = await owner.client.animals.get({ tagNumber });
   return {
     board: board.find((one) => one.tagNumber === tagNumber)?.targetWindow,

@@ -205,7 +205,7 @@ const settledProfit = new Map<string, number>();
 
 /** The Returns page after the last bull went and before either Venture settled. */
 type ReturnsPage = Awaited<
-  ReturnType<Awaited<ReturnType<typeof as>>["client"]["returns"]["page"]>
+  ReturnType<Awaited<ReturnType<typeof as>>["client"]["returns"]["list"]>
 >;
 let beforeSettling: ReturnsPage | undefined;
 
@@ -271,7 +271,7 @@ const settle = async (ventureId: string, name: string) => {
 /** The settled Venture's result on the Returns page, beside what its Settlement made. */
 const bothFigures = async (ventureId: string) => {
   const { client: owner } = await as("owner", "2054-03-03T04:00:00.000Z");
-  const page = await owner.returns.page();
+  const page = await owner.returns.list();
   const itsReturn = page.ventures.find((one) => one.id === ventureId);
   return {
     returned: itsReturn?.returnOnCost?.resultMoney,
@@ -370,7 +370,7 @@ beforeAll(async () => {
 
   // The Returns page the morning after the last of them went, before either Settlement.
   const { client: reading } = await as("owner", "2054-02-16T04:00:00.000Z");
-  beforeSettling = await reading.returns.page();
+  beforeSettling = await reading.returns.list();
 
   await settle(ventureA, "ক");
   await settle(ventureB, "খ");
@@ -388,7 +388,7 @@ beforeAll(async () => {
 describe("a settled Venture when a cost comes in after its Settlement", () => {
   it("reads its cattle as they cost now, and says how far that is from its Settlement", async () => {
     const { client: owner } = await as("owner", "2054-03-06T04:00:00.000Z");
-    const page = await owner.returns.page();
+    const page = await owner.returns.list();
     const itsReturn = page.ventures.find((one) => one.id === ventureC);
     const settled = settledProfit.get(ventureC) ?? Number.NaN;
     expect(itsReturn?.returnOnCost?.resultMoney).toBeCloseTo(settled - 1200, 0);
@@ -399,7 +399,7 @@ describe("a settled Venture when a cost comes in after its Settlement", () => {
 
   it("says nothing of a Settlement a Venture's figure still agrees with", async () => {
     const { client: owner } = await as("owner", "2054-03-06T04:00:00.000Z");
-    const page = await owner.returns.page();
+    const page = await owner.returns.list();
     expect(
       page.ventures.find((one) => one.id === ventureA)?.sinceSettlementMoney
     ).toBeNull();
@@ -439,7 +439,7 @@ describe("a Venture's Return and its Settlement", () => {
     // him. The account's movement is written with the Sale and put right with it, so the two are one figure — and
     // this says so, rather than leaving the Return and the Settlement free to drift apart on it.
     const { client: owner } = await as("owner", "2054-03-03T04:00:00.000Z");
-    const page = await owner.returns.page();
+    const page = await owner.returns.list();
     const came = await Promise.all(
       [ventureA, ventureB].map(async (ventureId) => {
         const movements = await owner.ventures.movements({ ventureId });

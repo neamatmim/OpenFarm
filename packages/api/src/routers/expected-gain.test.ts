@@ -313,7 +313,7 @@ describe("the bulls gaining under their Ration's Expected Gain", () => {
     // The newcomer's 5 kg from day 7 to day 35 would read 0.18 a day; the moved bull's 3 kg from day 21 to day 49,
     // 0.11. Neither has been settled on this Ration four weeks.
     const manager = await as("manager");
-    const board = await manager.client.fattening.board();
+    const board = await manager.client.fattening.list();
     const onRationOf = (tag: string) =>
       board.find((row) => row.tagNumber === tag)?.onRation;
     expect(onRationOf(world.tags.newcomer)).toEqual({
@@ -340,7 +340,7 @@ describe("the bulls gaining under their Ration's Expected Gain", () => {
     const manager = await as("manager");
     const rows = await manager.client.fattening.underExpectedGain();
     expect(rows.map((one) => one.tagNumber)).not.toContain(world.tags.outgrown);
-    const board = await manager.client.fattening.board();
+    const board = await manager.client.fattening.list();
     expect(
       board.find((row) => row.tagNumber === world.tags.outgrown)?.onRation
     ).toMatchObject({
@@ -369,7 +369,7 @@ describe("the bulls gaining under their Ration's Expected Gain", () => {
       gain: { dailyGainKg: 0.36 },
       standing: "under",
     });
-    const board = await manager.client.fattening.board();
+    const board = await manager.client.fattening.list();
     expect(
       board.find((row) => row.tagNumber === world.tags.heifer)?.onRation
     ).toMatchObject({
@@ -408,7 +408,7 @@ describe("the bulls gaining under their Ration's Expected Gain", () => {
 
   it("puts each bull's standing on the board, and nothing for one whose Ration says no gain", async () => {
     const owner = await as("owner");
-    const board = await owner.client.fattening.board();
+    const board = await owner.client.fattening.list();
     const onRationOf = (tag: string) =>
       board.find((row) => row.tagNumber === tag)?.onRation;
     expect(onRationOf(world.tags.good)).toMatchObject({
@@ -587,7 +587,7 @@ describe("the target weight a bull is taken in towards", () => {
     const suggested = await takeIn(200);
     const typed = await takeIn(200, 300);
     const unknown = await takeIn(120);
-    const board = await manager.client.fattening.board();
+    const board = await manager.client.fattening.list();
     const targetOf = (tag: string) =>
       board.find((row) => row.tagNumber === tag)?.targetWeightKg;
     expect(targetOf(suggested)).toBe(260.6);
