@@ -4946,6 +4946,10 @@ export const bn: Record<MessageKey, string> = {
     "বিয়ানোর এত দিন পরেও গরম না দেখা খালি গাভীকে গরমের দিকে নজরের তালিকায় তোলা হবে, যাতে ভালো করে দেখা হয় আর ডাক্তার পরীক্ষা করেন। প্রাণিসম্পদ অধিদপ্তর ৫০–৬০ দিনে গরম না হলে পরীক্ষা করতে বলে।",
   "params.heatWatchAfterCalvingDays": "বিয়ানোর পর এই দিন থেকে",
   "givingLess.title": "দুধ কমেছে",
+  "givingLess.col.drop": "কত কম",
+  "givingLess.col.lately": "ইদানীং (প্রতি দোহনে লি.)",
+  "givingLess.col.usually": "সাধারণত (প্রতি দোহনে লি.)",
+  "givingLess.col.daysInMilk": "দুধে কত দিন",
   "givingLess.none": "কোনো গাভীর দুধ তার নিজের সপ্তাহের চেয়ে অনেক কমেনি",
   "givingLess.line":
     "এখন প্রতি দোহনে {lately} লিটার, সাধারণত {usually} লিটার — {drop}% কম · {pen}",
@@ -5025,6 +5029,9 @@ export const bn: Record<MessageKey, string> = {
   "wageDraw.day": "যেদিন নিয়েছেন",
   "wageDraw.recorded": "অগ্রিম লেখা হলো",
   "wageDraw.none": "কারও কোনো অগ্রিম বাকি নেই",
+  "wageDraw.col.owed": "এখনও বাকি",
+  "wageDraw.col.draws": "অগ্রিম",
+  "wageDraw.col.oldest": "সবচেয়ে পুরনো অগ্রিম",
   "wageDraw.listHint":
     "কে বেতনের আগে কত নিয়েছেন আর এখনো বাকি। পরের বেতন থেকে কাটা যায়, আগেরটা আগে।",
   "wageDraw.atPayday":

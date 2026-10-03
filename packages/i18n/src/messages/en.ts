@@ -5269,6 +5269,10 @@ export const en = {
     "An open cow with no heat seen this many days after calving is put on the heat watch, for closer watching and the Vet. DLS re-examines a cow not in heat by 50–60 days.",
   "params.heatWatchAfterCalvingDays": "From this day after calving",
   "givingLess.title": "Giving less",
+  "givingLess.col.drop": "Less by",
+  "givingLess.col.lately": "Lately (L a milking)",
+  "givingLess.col.usually": "Usually (L a milking)",
+  "givingLess.col.daysInMilk": "Days in milk",
   "givingLess.none": "No cow is giving well under her own week",
   "givingLess.line":
     "{lately} L a milking, usually {usually} L — {drop}% less · {pen}",
@@ -5348,6 +5352,9 @@ export const en = {
   "wageDraw.day": "Day drawn",
   "wageDraw.recorded": "Draw recorded",
   "wageDraw.none": "Nobody owes a draw",
+  "wageDraw.col.owed": "Still owed",
+  "wageDraw.col.draws": "Draws",
+  "wageDraw.col.oldest": "Oldest draw",
   "wageDraw.listHint":
     "What each person has drawn ahead and still owes. Their next wage takes it off, the oldest first.",
   "wageDraw.atPayday":
