@@ -29,6 +29,7 @@ import { categoryName } from "@/components/money";
 import type { Tone } from "@/components/page";
 import { Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
+import { moneyTotals } from "@/lib/money-totals";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
@@ -116,11 +117,11 @@ export const MoneyMonth = () => {
   const taka = useTaka();
   const money = useQuery(orpc.money.list.queryOptions({ input: thisMonth() }));
   const rows = money.data?.events ?? [];
-  const moneyIn = rows
-    .filter((row) => row.direction === "in")
-    .reduce((sum, row) => sum + row.amountBdt, 0);
+  // The month's totals as the farm tells them; where most went is read from the rows shown, and says so when cut short.
+  const { inBdt: moneyIn, outBdt: moneyOut } = moneyTotals(
+    money.data ?? { events: [] }
+  );
   const out = rows.filter((row) => row.direction === "out");
-  const moneyOut = out.reduce((sum, row) => sum + row.amountBdt, 0);
   const byCategory = new Map<string, { name: string; amount: number }>();
   for (const row of out) {
     // A Category the farm made itself has no key, only its name.

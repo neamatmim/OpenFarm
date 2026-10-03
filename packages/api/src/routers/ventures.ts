@@ -11,13 +11,16 @@ import {
   venture,
   ventureMovement,
 } from "@OpenFarm/db/schema/venture";
-import type { MonthlyTerms, PaymentMethod } from "@OpenFarm/domain";
+import type {
+  BetweenPursesRefusal,
+  MonthlyTerms,
+  PaymentMethod,
+} from "@OpenFarm/domain";
 import {
   CAPITAL_PAID,
   capitalItMayHold,
   farmDayOf,
   hasEnded,
-  isExitState,
   isRunning,
   mayMoveTo,
   monthlyTermsOf,
@@ -30,6 +33,7 @@ import {
   towardsTheFloor,
   weighedTooLongAgo,
   whatUnitsTake,
+  whyNotBetweenPurses,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -320,6 +324,19 @@ const assertTakesCapital = (
       data: { refusal: "venture_wrong_state" },
     });
   }
+};
+
+/** Why an Internal Sale would not take her, as the farm says it in its refusal. */
+const BETWEEN_PURSES_SAID: Record<BetweenPursesRefusal, string> = {
+  not_a_fattening_animal:
+    "Investor money funds Fattening, and a Dairy cow is the Farm's",
+  not_a_ventures_animal: "A Venture owns bought-in animals and no others",
+  // Sold, died or culled: there is no animal left to move, and a Venture paying for one would be paying its Investors'
+  // money for a carcass.
+  she_is_gone: "She has left the farm, and there is no animal to move",
+  she_is_ready_for_sale:
+    "She is ready for sale, and a finished bull is not moved between purses",
+  never_weighed: "She has never been weighed, so there is no price to strike",
 };
 
 /** This Farm's Venture, or nothing the caller may act on. */
@@ -2194,32 +2211,12 @@ export const venturesRouter = {
           if (!her) {
             throw new ORPCError("NOT_FOUND", { message: "No such animal" });
           }
-          if (her.side !== "fattening") {
+          // The same rule the screen offers the move by (`whyNotBetweenPurses`), refused in its words.
+          const refusal = whyNotBetweenPurses(her);
+          if (refusal) {
             throw new ORPCError("BAD_REQUEST", {
-              message:
-                "Investor money funds Fattening, and a Dairy cow is the Farm's",
-              data: { refusal: "not_a_fattening_animal" },
-            });
-          }
-          if (her.source !== "bought") {
-            throw new ORPCError("BAD_REQUEST", {
-              message: "A Venture owns bought-in animals and no others",
-              data: { refusal: "not_a_ventures_animal" },
-            });
-          }
-          if (isExitState(her.state)) {
-            // Sold, died or culled: there is no animal left to move, and a Venture paying for one would be paying
-            // its Investors' money for a carcass.
-            throw new ORPCError("BAD_REQUEST", {
-              message: "She has left the farm, and there is no animal to move",
-              data: { refusal: "she_is_gone" },
-            });
-          }
-          if (her.state === "ready_for_sale") {
-            throw new ORPCError("BAD_REQUEST", {
-              message:
-                "She is ready for sale, and a finished bull is not moved between purses",
-              data: { refusal: "she_is_ready_for_sale" },
+              message: BETWEEN_PURSES_SAID[refusal],
+              data: { refusal },
             });
           }
           const from = her.ownerVentureId;

@@ -1,6 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, isNull } from "@OpenFarm/db/operators";
 import { shedPhone } from "@OpenFarm/db/schema/device";
+import { DEFAULT_AUTO_LOCK_MINUTES } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -28,7 +29,6 @@ import { requirePersonalSession, requireRole } from "../roles";
 
 /** How long a Manager's enrolment code is good for. Long enough to walk to the shed. */
 const ENROLMENT_MINUTES = 30;
-const DEFAULT_AUTO_LOCK_MINUTES = 5;
 const MINUTE_MS = 60_000;
 
 export const devicesRouter = {

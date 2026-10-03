@@ -8,12 +8,13 @@ import type {
   Step,
 } from "@OpenFarm/domain";
 import {
-  MILK_DESTINATIONS,
   feedUnitWord,
   isClosingStep,
   isFinished,
   mayTransition,
+  MILK_DESTINATIONS,
   missingEvidence,
+  outsideItsRange,
 } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import {
@@ -262,22 +263,6 @@ interface Completion {
   /** What the Step's Effect recorded beside its Evidence — the feed given, the store counted — as it was shown. */
   facts: FactsAsShown;
 }
-
-const outOfRangeOf = (
-  evidence: Evidence | undefined,
-  value: number
-): string | null => {
-  if (!evidence) {
-    return null;
-  }
-  if (evidence.min !== undefined && value < evidence.min) {
-    return `below ${evidence.min}`;
-  }
-  if (evidence.max !== undefined && value > evidence.max) {
-    return `above ${evidence.max}`;
-  }
-  return null;
-};
 
 /** A Playbook entry's name in the language the page is showing, Bangla where it has no English. */
 const SopName = ({ name }: { name: { bn: string; en?: string } }) => {
@@ -1605,24 +1590,6 @@ const FeedingFields = ({
   );
 };
 
-/** The first figure the person has entered that its Step calls odd, if any. A warning to
- *  acknowledge at the animal, never a refusal: the cow is standing there and they can see her. */
-const outsideItsRange = (step: Step, values: Entered): string | null => {
-  for (const [index, item] of step.evidence.entries()) {
-    if (item.type !== "number") {
-      continue;
-    }
-    const typed = Number(values[index]);
-    if (!Number.isNaN(typed)) {
-      const outside = outOfRangeOf(item, typed);
-      if (outside) {
-        return outside;
-      }
-    }
-  }
-  return null;
-};
-
 /** Has everything the Version asks for been given? A tick needs no answer to be true, and a
  *  photo is answered by the camera rather than by a value. */
 /** Skipping an animal: the Version's own reasons, and nothing typed into a free box. A
@@ -1924,7 +1891,7 @@ const EvidenceSheet = ({
     return values[index] ?? "";
   });
 
-  const firstOutOfRange = () => outsideItsRange(step, values);
+  const firstOutOfRange = () => outsideItsRange(step.evidence, values);
   // Asked of the answers as they will be sent, and by the farm's own rule: the button is offered when
   // the farm would take it, not when the boxes merely look filled.
   const ready = renewing.readyWith(

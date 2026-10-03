@@ -1,4 +1,4 @@
-import { againstLastBuys } from "@OpenFarm/domain";
+import { PHOTO_FILE_MAX_BYTES, againstLastBuys } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -18,9 +18,6 @@ import type { IntakeFields, OwningVenture } from "./intake-fields";
 import { boughtFromTheAccount } from "./intake-fields";
 import { PricePerKg, VentureWindow } from "./intake-summary";
 import { SuggestedTarget } from "./suggested-target";
-
-/** What a photograph may weigh before the farm refuses it, as `animals.setPhoto` counts it. */
-const PHOTO_MAX_BYTES = 1_500_000;
 
 /** One part of the form: the fields as they stand, and a way to change some of them. */
 interface PartProps {
@@ -102,7 +99,7 @@ const PhotoField = ({
         id="intake-photo"
         onChange={(event) => {
           const file = event.target.files?.[0] ?? null;
-          if (file && file.size > PHOTO_MAX_BYTES) {
+          if (file && file.size > PHOTO_FILE_MAX_BYTES) {
             toast.error(t("common.error"));
             return;
           }

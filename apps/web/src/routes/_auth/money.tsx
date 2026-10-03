@@ -35,6 +35,7 @@ import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
+import { moneyTotals, totalsPartial } from "@/lib/money-totals";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
@@ -54,20 +55,18 @@ const firstOfTheMonth = () =>
   `${farmDayOf(new Date()).slice(0, "YYYY-MM".length)}-01`;
 
 /** The four figures a period's money is judged by: what came in, what went out, what that leaves, and how much waits
- *  for the Owner. Totals from a list the server cut short are the shown rows' totals, and say so on every figure. */
+ *  for the Owner — the farm's own totals, from every entry in the period however many the register shows. */
 const useMoneyFigures = (list: MoneyList | undefined): Figure[] => {
   const { t, language } = useLanguage();
-  const rows = list?.events ?? [];
   const taka = useTaka();
-  const moneyIn = rows
-    .filter((row) => row.direction === "in")
-    .reduce((sum, row) => sum + row.amountBdt, 0);
-  const moneyOut = rows
-    .filter((row) => row.direction === "out")
-    .reduce((sum, row) => sum + row.amountBdt, 0);
+  const {
+    inBdt: moneyIn,
+    outBdt: moneyOut,
+    awaiting,
+  } = moneyTotals(list ?? { events: [] });
   const net = moneyIn - moneyOut;
-  const awaiting = rows.filter((row) => row.approval === "awaiting").length;
-  const partial = list?.more ? t("money.shownOnly") : undefined;
+  const partial =
+    list && totalsPartial(list) ? t("money.shownOnly") : undefined;
   const loading = <Skeleton className="h-8 w-28" />;
   return [
     {

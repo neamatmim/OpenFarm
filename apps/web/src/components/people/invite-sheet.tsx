@@ -1,5 +1,5 @@
-import type { RoleName } from "@OpenFarm/api/roles";
-import { ROLES } from "@OpenFarm/api/roles";
+import type { RoleName } from "@OpenFarm/domain";
+import { ROLES } from "@OpenFarm/domain";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";

@@ -371,6 +371,39 @@ describe("working the pen board", () => {
     expect(completion?.outOfRange).toBe("above 40");
   });
 
+  it("judges a number against its range itself, whatever the phone said of it", async () => {
+    const clock = new FakeClock("2026-09-20T17:30:00.000Z");
+    const { instance } = await instanceForPen(clock);
+    const staff = await createTestClient(appRouter, { as: "staff", clock });
+    await staff.client.instances.claim({ id: instance.id });
+    // Out of range, and the phone said nothing of it.
+    await staff.client.instances.completeStep({
+      instanceId: instance.id,
+      stepId: "milk",
+      animalTag: world.cows[0]?.tagNumber ?? "",
+      evidence: [95],
+    });
+    // In range, and the phone said it was not.
+    await staff.client.instances.completeStep({
+      instanceId: instance.id,
+      stepId: "milk",
+      animalTag: world.cows[1]?.tagNumber ?? "",
+      evidence: [10],
+      outOfRange: "above 40",
+    });
+
+    const loaded = await staff.client.instances.get({ id: instance.id });
+    const said = loaded.completions
+      .filter((c) => c.stepId === "milk")
+      .map((c) => ({ evidence: c.evidence, outOfRange: c.outOfRange }));
+    expect(said).toEqual(
+      expect.arrayContaining([
+        { evidence: [95], outOfRange: "above 40" },
+        { evidence: [10], outOfRange: null },
+      ])
+    );
+  });
+
   it("refuses to finish while any animal or Step is outstanding, then completes", async () => {
     const clock = new FakeClock("2026-09-21T05:30:00.000Z");
     const { instance } = await instanceForPen(clock);

@@ -1390,8 +1390,9 @@ const newbornSecondFeed = (): SopContent => ({
 // days and names 100–120 kg, which a crossbred calf does not reach by 90 days (about 64 kg at three months), so the
 // weight is written down and never stops the weaning (NG-GLPP §12.1.1.1.1(b); docs/research/newborn-calf-care.md §7).
 
-/** Weaned at three months, from the day she became a calf — her birth, for one born here. */
-const WEANING_AFTER_DAYS = 90;
+/** Weaned at three months, from the day she became a calf — her birth, for one born here. The standard Weaning raises
+ *  her weaning then, and the farm's figures read a calf as grown from this age: one figure, so the two never part. */
+export const WEANING_AFTER_DAYS = 90;
 
 /** A weaning weight worth a second look: below 30 kg or above 200 (a crossbred calf is about 64 kg at 90 days). */
 const WEANING_WEIGHT_KG = { min: 30, max: 200 } as const;

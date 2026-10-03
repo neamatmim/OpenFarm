@@ -25,6 +25,10 @@ export interface Bilingual {
  *  place a photo can arrive: the single procedure, the batch, and the Animal's own photo. */
 export const PHOTO_MAX_BYTES = 2_000_000;
 
+/** What a photograph's file may weigh before a phone sends it: the most whose base64 still fits `PHOTO_MAX_BYTES`, as
+ *  base64 writes three bytes as four characters. */
+export const PHOTO_FILE_MAX_BYTES = (PHOTO_MAX_BYTES * 3) / 4;
+
 export const EVIDENCE_TYPES = [
   "tick",
   "number",
@@ -50,6 +54,50 @@ export interface Evidence {
   /** choice: what may be picked. */
   choices?: Choice[];
 }
+
+/** Where a figure falls outside the range its Evidence warns at — "below 0", "above 40" — or nothing. */
+export const outOfRangeOf = (
+  evidence: Evidence | undefined,
+  value: number
+): string | null => {
+  if (!evidence) {
+    return null;
+  }
+  if (evidence.min !== undefined && value < evidence.min) {
+    return `below ${evidence.min}`;
+  }
+  if (evidence.max !== undefined && value > evidence.max) {
+    return `above ${evidence.max}`;
+  }
+  return null;
+};
+
+/**
+ * The first figure in a Step's answer that its Evidence calls odd, if any — decided by the farm from the Step's own
+ * range when the answer is written, and shown by the phone as a warning before it is: a warning to acknowledge at the
+ * animal, never a refusal, since the cow is standing there and they can see her.
+ */
+export const outsideItsRange = (
+  evidence: readonly Evidence[],
+  /** The answer by slot: as the farm keeps it, or as a phone holds what is being typed. */
+  values: Readonly<Record<number, unknown>>
+): string | null => {
+  for (const [index, item] of evidence.entries()) {
+    const typed = values[index];
+    const figure = typeof typed === "number" ? typed : Number(typed);
+    const counted =
+      item.type === "number" &&
+      typed !== "" &&
+      typed !== null &&
+      typed !== undefined &&
+      !Number.isNaN(figure);
+    const outside = counted ? outOfRangeOf(item, figure) : null;
+    if (outside) {
+      return outside;
+    }
+  }
+  return null;
+};
 
 /** What completing a Step writes into the farm's records, beyond the Evidence itself. The
  *  effect runs in the same transaction as the Completion and is idempotent on its id, so a

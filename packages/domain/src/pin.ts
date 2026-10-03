@@ -12,8 +12,9 @@
 const ITERATIONS = 210_000;
 const KEY_BITS = 256;
 const SALT_BYTES = 16;
-const PIN_LENGTH = 4;
-const PIN_PATTERN = /^\d{4}$/u;
+/** How many digits a PIN has: what the farm takes, and what the Shed Phone's keypad waits for. */
+export const PIN_LENGTH = 4;
+const PIN_PATTERN = new RegExp(`^\\d{${PIN_LENGTH}}$`, "u");
 
 export const isPin = (pin: string): boolean => PIN_PATTERN.test(pin);
 

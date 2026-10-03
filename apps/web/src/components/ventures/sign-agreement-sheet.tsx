@@ -106,32 +106,6 @@ const NOTHING_SIGNED: Terms = {
 const judgedOn = (terms: Terms, today: string) =>
   terms.inApp || terms.stampedOn === "" ? today : terms.stampedOn;
 
-/** A stamp with a value, a day and a serial — or none at all, offered to agree to in the app. */
-const stamped = (terms: Terms) =>
-  terms.inApp ||
-  (Number(terms.stampValueBdt) > 0 &&
-    terms.stampedOn !== "" &&
-    terms.stampSerial.trim() !== "");
-
-/**
- * Whether the paper is filled in enough to be signed: somebody to sign it, Units to take, a whole
- * percentage between none and all, an Arbitrator both sides name, and a stamp with a value, a day and a
- * serial — unless it is offered to agree to in the app. The photograph is not among them — a stamped paper the farm has not photographed yet is still
- * a signed one, and the Agreement sheet says so separately.
- */
-const fitToSign = (
-  terms: Terms,
-  { units, percent, left }: { units: number; percent: number; left: number }
-) =>
-  terms.investorId !== "" &&
-  units > 0 &&
-  // Named, and this way round, because the guard against untranslated JSX text reads a closing angle
-  // bracket in an expression as the end of a tag.
-  left >= units &&
-  aSplit(percent) &&
-  terms.arbitrator.trim() !== "" &&
-  stamped(terms);
-
 /** The field of a Nominee's row each of the farm's objections is about. */
 const NOMINEE_FIELD: Record<NomineesProblem["code"], string> = {
   too_many: "name",
@@ -735,17 +709,14 @@ export const SignAgreementSheet = ({
     arbitrator: terms.arbitrator.trim(),
   };
   const nomineesWrong = draftsProblem(nomineeDrafts, stampDay);
-  const ready =
-    venture !== null &&
-    split !== "" &&
-    nomineesWrong === null &&
-    fitToSign(asOffered, { units, percent, left });
-  // What "Sign" says it still needs when pressed too soon, and which field it goes to; nothing once it is ready.
+  // What "Sign" says it still needs when pressed too soon, and which field it goes to; nothing once it is ready. One
+  // answer to both, so a button can never stand pressable with nothing to say why it does nothing.
   const missing = stillMissing(
     asOffered,
     { units, split, percent, left, nominees: nomineesWrong },
     { t, language }
   );
+  const ready = venture !== null && missing === null;
   return (
     <FormSheet
       description={t("ventures.signHint", { venture: venture?.name ?? "" })}

@@ -1,5 +1,6 @@
 import type { EntryRefusal } from "@OpenFarm/api/entries/entry";
 import type { EntryInput, EntryResult } from "@OpenFarm/api/sync-entries";
+import { SYNC_BATCH_MAX } from "@OpenFarm/domain";
 import type {
   LeaderElection,
   OnlineDetector,
@@ -107,12 +108,10 @@ export interface OutboxState {
   paused: OutboxPause;
 }
 
-/** The largest batch one send carries; the server refuses more. */
-const BATCH_MAX = 200;
 /** And the most it may weigh. A shed photo is a megabyte or so of base64, and two hundred of
  *  them would be a request no phone on a weak signal will ever finish. What does not fit
  *  goes in the next batch. */
-const BATCH_MAX_BYTES = 4_000_000;
+const SYNC_BATCH_MAX_BYTES = 4_000_000;
 const ENTRY = "entry:";
 const REJECTED = "rejected:";
 const NEEDS_REVIEW = "needs-review:";
@@ -161,7 +160,7 @@ const takeWhatFits = (waiting: OutboxEntry[]): OutboxEntry[] => {
     const weight = JSON.stringify(entry).length;
     if (
       taken.length > 0 &&
-      (taken.length >= BATCH_MAX || bytes + weight > BATCH_MAX_BYTES)
+      (taken.length >= SYNC_BATCH_MAX || bytes + weight > SYNC_BATCH_MAX_BYTES)
     ) {
       break;
     }
