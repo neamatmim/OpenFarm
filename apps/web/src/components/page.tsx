@@ -602,7 +602,10 @@ export const Loaded = ({
  * away from a person with a cow in front of them.
  */
 export const StickyAction = ({ children }: { children: ReactNode }) => (
-  <div className="bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky bottom-0 z-20 -mx-4 mt-2 border-t px-4 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:p-0">
+  <div
+    data-slot="sticky-action"
+    className="bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky bottom-0 z-20 -mx-4 mt-2 border-t px-4 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:p-0"
+  >
     {children}
   </div>
 );
