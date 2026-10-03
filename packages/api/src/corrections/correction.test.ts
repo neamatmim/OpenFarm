@@ -86,7 +86,7 @@ beforeAll(async () => {
 });
 
 const intakeFor = (manager: Client, priceMoney: number) =>
-  manager.intake.record({
+  manager.intakes.record({
     penId,
     sex: "male",
     seller: { name: `হাট ${suffix}` },
@@ -147,7 +147,7 @@ const KINDS: Kind[] = [
         stale: 20_001,
       };
     },
-    correct: (client, input) => client.intake.correct(input as never),
+    correct: (client, input) => client.intakes.correct(input as never),
   },
   {
     name: "a Sale",
@@ -155,7 +155,7 @@ const KINDS: Kind[] = [
     ownerToo: true,
     make: async (manager) => {
       const bull = await intakeFor(manager, 20_000);
-      const made = await manager.sale.record({
+      const made = await manager.sales.record({
         tagNumber: bull.tagNumber,
         buyer: { name: `কসাই ${suffix}` },
         priceMoney: 30_000,
@@ -173,7 +173,7 @@ const KINDS: Kind[] = [
         stale: 30_001,
       };
     },
-    correct: (client, input) => client.sale.correct(input as never),
+    correct: (client, input) => client.sales.correct(input as never),
   },
   {
     name: "feed that came in",

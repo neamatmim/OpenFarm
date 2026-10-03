@@ -113,7 +113,7 @@ beforeAll(async () => {
   }
   // A bought bull in the same Pen: his arrival must never raise calf work.
   const manager = await as("manager", "2052-03-01T05:00:00.000Z");
-  await manager.client.intake.record({
+  await manager.client.intakes.record({
     penId: pen.id,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },

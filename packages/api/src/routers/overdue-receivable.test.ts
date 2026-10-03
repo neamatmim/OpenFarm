@@ -24,7 +24,7 @@ let penId = "";
 
 const sellOnCredit = async (instant: string, promisedBy: string) => {
   const manager = await as("manager", instant);
-  const bull = await manager.client.intake.record({
+  const bull = await manager.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -34,7 +34,7 @@ const sellOnCredit = async (instant: string, promisedBy: string) => {
     arrivedAt: new Date(instant),
     ...WINDOW,
   });
-  return await manager.client.sale.record({
+  return await manager.client.sales.record({
     tagNumber: bull.tagNumber,
     buyer: { name: TRADER, phone: "+8801711000099" },
     priceMoney: 120_000,
@@ -127,13 +127,13 @@ describe("overdue Receivable on the homes", () => {
       owingMoney: 40_000,
       soldAgainWhileOverdue: true,
     });
-    const his = await owner.client.receivable.ofBuyer({ name: TRADER });
+    const his = await owner.client.receivables.ofBuyer({ name: TRADER });
     expect(his?.overdueSince).toBe("2050-03-09");
   });
 
   it("leaves him off once what was late is paid, however late", async () => {
     const manager = await as("manager", "2050-03-11T06:00:00.000Z");
-    await manager.client.receivable.pay({
+    await manager.client.receivables.pay({
       buyer: TRADER,
       kind: "cattle",
       amountMoney: 20_000,

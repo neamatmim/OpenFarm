@@ -137,7 +137,7 @@ beforeAll(async () => {
   });
   const manager = await as("manager", "2048-01-04T05:00:00.000Z");
   const broughtIn = async () => {
-    const her = await manager.client.intake.record({
+    const her = await manager.client.intakes.record({
       penId,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
@@ -204,7 +204,7 @@ beforeAll(async () => {
     paymentMethod: "cash",
   });
   tripId = outing.id;
-  const sold = await selling.client.sale.record({
+  const sold = await selling.client.sales.record({
     tagNumber: soldTag,
     buyer: { name: `ক্রেতা ${suffix}` },
     priceMoney: 300_000,
@@ -334,7 +334,7 @@ describe("a settled Venture's records", () => {
 
   it("lets a Sale be put right, because that is the late news itself", async () => {
     const owner = await as("owner", "2048-03-03T08:00:00.000Z");
-    await owner.client.sale.correct({
+    await owner.client.sales.correct({
       id: saleId,
       reason: `ক্রেতা বাকিটা দিয়েছে ${suffix}`,
       changes: { priceMoney: { from: 300_000, to: 320_000 } },

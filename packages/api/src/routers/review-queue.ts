@@ -11,7 +11,7 @@ import { requireRole } from "../roles";
 /** How much of the queue a screen is handed at once. */
 const QUEUE_LIMIT = 100;
 
-export const reviewRouter = {
+export const reviewQueueRouter = {
   /** What the system could not put right on its own, oldest first — the things that have
    *  been waiting longest are the ones most likely to have been forgotten. */
   open: protectedProcedure

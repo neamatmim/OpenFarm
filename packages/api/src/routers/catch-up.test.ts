@@ -20,7 +20,7 @@ const as = (role: "owner" | "manager", instant: string) =>
 
 const bullArriving = async (penId: string, at: string) => {
   const manager = await as("manager", at);
-  const arrived = await manager.client.intake.record({
+  const arrived = await manager.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },

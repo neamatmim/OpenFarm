@@ -319,7 +319,7 @@ describe("a plan line's Breed", () => {
     });
     for (const breedId of [pabna, sahiwalCross]) {
       // oxlint-disable-next-line no-await-in-loop -- one bull off the lorry after the other
-      await manager.intake.record({
+      await manager.intakes.record({
         penId: pen.id,
         sex: "male",
         seller: { name: `ব্যাপারী ${suffix}` },

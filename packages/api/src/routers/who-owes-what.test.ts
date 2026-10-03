@@ -25,7 +25,7 @@ let penId = "";
 
 const buy = async (instant: string) => {
   const manager = await as("manager", instant);
-  return await manager.client.intake.record({
+  return await manager.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -45,7 +45,7 @@ const sellOnCredit = async (
 ) => {
   const bull = await buy(instant);
   const manager = await as("manager", instant);
-  return await manager.client.sale.record({
+  return await manager.client.sales.record({
     tagNumber: bull.tagNumber,
     buyer: { name: TRADER, phone: "+8801711000088" },
     priceMoney,
@@ -71,7 +71,7 @@ const milkOnCredit = async (day: string) => {
 
 const theTrader = async (instant: string) => {
   const owner = await as("owner", instant);
-  const list = await owner.client.receivable.list();
+  const list = await owner.client.receivables.list();
   return list.find((one) => one.name === TRADER);
 };
 
@@ -121,7 +121,7 @@ describe("who owes what", () => {
       soonestPromise: "2049-05-09",
     });
     const owner = await as("owner", "2049-05-05T06:00:00.000Z");
-    const everyone = await owner.client.receivable.list();
+    const everyone = await owner.client.receivables.list();
     const shop = everyone.find((one) => one.name === SHOP);
     expect(shop?.kinds[0]).toMatchObject({
       kind: "milk",
@@ -132,10 +132,10 @@ describe("who owes what", () => {
 
   it("tells the sheets what a buyer still owes, and nothing of a stranger", async () => {
     const manager = await as("manager", "2049-05-05T06:00:00.000Z");
-    const his = await manager.client.receivable.ofBuyer({ name: TRADER });
+    const his = await manager.client.receivables.ofBuyer({ name: TRADER });
     expect(his?.owingMoney).toBe(30_000);
     expect(
-      await manager.client.receivable.ofBuyer({ name: `অচেনা ${suffix}` })
+      await manager.client.receivables.ofBuyer({ name: `অচেনা ${suffix}` })
     ).toBeNull();
   });
 });
@@ -143,7 +143,7 @@ describe("who owes what", () => {
 describe("a Receivable Payment", () => {
   it("clears his oldest Receivable first, and is one Money Event under cattle sales on the day it came", async () => {
     const manager = await as("manager", "2049-05-06T06:00:00.000Z");
-    const { id } = await manager.client.receivable.pay({
+    const { id } = await manager.client.receivables.pay({
       buyer: TRADER,
       kind: "cattle",
       amountMoney: 25_000,
@@ -177,7 +177,7 @@ describe("a Receivable Payment", () => {
 
   it("books milk money under milk sales, and clears a round sum across several days", async () => {
     const manager = await as("manager", "2049-05-07T06:00:00.000Z");
-    const { id } = await manager.client.receivable.pay({
+    const { id } = await manager.client.receivables.pay({
       buyer: SHOP,
       kind: "milk",
       amountMoney: 4000,
@@ -185,7 +185,7 @@ describe("a Receivable Payment", () => {
       paymentMethod: "cash",
     });
     const owner = await as("owner", "2049-05-31T12:00:00.000Z");
-    const everyone = await owner.client.receivable.list();
+    const everyone = await owner.client.receivables.list();
     const shop = everyone.find((one) => one.name === SHOP);
     expect(shop?.kinds[0]?.owingMoney).toBe(1250);
     expect(shop?.kinds[0]?.payments[0]?.cleared).toHaveLength(3);
@@ -198,7 +198,7 @@ describe("a Receivable Payment", () => {
   it("refuses more than he owes without a note, and holds it as paid ahead with one", async () => {
     const manager = await as("manager", "2049-05-08T06:00:00.000Z");
     await expect(
-      manager.client.receivable.pay({
+      manager.client.receivables.pay({
         buyer: SHOP,
         kind: "milk",
         amountMoney: 2000,
@@ -208,7 +208,7 @@ describe("a Receivable Payment", () => {
     ).rejects.toMatchObject({
       data: { refusal: "paid_more_than_owed", owingMoney: 1250 },
     });
-    await manager.client.receivable.pay({
+    await manager.client.receivables.pay({
       buyer: SHOP,
       kind: "milk",
       amountMoney: 2000,
@@ -217,7 +217,7 @@ describe("a Receivable Payment", () => {
       note: "আগামী সপ্তাহের দুধের টাকা আগাম দিলেন",
     });
     const owner = await as("owner", "2049-05-08T07:00:00.000Z");
-    const everyone = await owner.client.receivable.list();
+    const everyone = await owner.client.receivables.list();
     const shop = everyone.find((one) => one.name === SHOP);
     expect(shop?.kinds[0]).toMatchObject({
       owingMoney: 0,
@@ -228,7 +228,7 @@ describe("a Receivable Payment", () => {
   it("spends what he paid ahead on the next milk he takes on credit", async () => {
     await milkOnCredit("2049-05-09");
     const owner = await as("owner", "2049-05-09T07:00:00.000Z");
-    const everyone = await owner.client.receivable.list();
+    const everyone = await owner.client.receivables.list();
     const shop = everyone.find((one) => one.name === SHOP);
     expect(shop?.kinds[0]).toMatchObject({
       owingMoney: 1000,
@@ -239,7 +239,7 @@ describe("a Receivable Payment", () => {
   it("refuses a payment from nobody the farm has sold to, and one from a day not yet come", async () => {
     const manager = await as("manager", "2049-05-10T06:00:00.000Z");
     await expect(
-      manager.client.receivable.pay({
+      manager.client.receivables.pay({
         buyer: `অচেনা ${suffix}`,
         kind: "cattle",
         amountMoney: 1000,
@@ -248,7 +248,7 @@ describe("a Receivable Payment", () => {
       })
     ).rejects.toMatchObject({ data: { refusal: "no_such_buyer" } });
     await expect(
-      manager.client.receivable.pay({
+      manager.client.receivables.pay({
         buyer: TRADER,
         kind: "cattle",
         amountMoney: 1000,
@@ -260,7 +260,7 @@ describe("a Receivable Payment", () => {
 
   it("is put right with its Money Event, and re-clears what it paid for", async () => {
     const manager = await as("manager", "2049-05-12T06:00:00.000Z");
-    const { id } = await manager.client.receivable.pay({
+    const { id } = await manager.client.receivables.pay({
       buyer: TRADER,
       kind: "cattle",
       amountMoney: 2000,
@@ -268,7 +268,7 @@ describe("a Receivable Payment", () => {
       paymentMethod: "cash",
     });
     // He still owed five thousand: two was written, and it was all five.
-    await manager.client.receivable.correctPayment({
+    await manager.client.receivables.correctPayment({
       id,
       reason: "পাঁচ হাজার দিয়েছিলেন, দুই লেখা হয়েছে",
       changes: { amountMoney: { from: 2000, to: 5000 } },

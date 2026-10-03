@@ -160,7 +160,7 @@ const dose = async (
 
 const bullInto = async (penId: string, instant: string) => {
   const manager = await as("manager", instant);
-  const bull = await manager.client.intake.record({
+  const bull = await manager.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `হাট ${suffix}` },

@@ -138,7 +138,7 @@ const theyEat = async (owner: Owner) => {
   });
   // At the gate, so the Owner's, paid from the Venture Account by bank.
   const buyer = await as("owner", "2047-05-04T05:00:00.000Z");
-  await buyer.client.intake.record({
+  await buyer.client.intakes.record({
     penId: pen.id,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },

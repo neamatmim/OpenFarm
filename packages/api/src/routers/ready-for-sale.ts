@@ -58,7 +58,7 @@ const readAnimalForReady = async (tx: Tx, animalId: string) => {
   return row;
 };
 
-export const readyRouter = {
+export const readyForSaleRouter = {
   /**
    * The animals the farm thinks may be sold, and the grounds it thinks so on.
    *

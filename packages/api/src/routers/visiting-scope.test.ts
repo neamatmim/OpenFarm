@@ -44,7 +44,7 @@ const OPEN_TO_A_VISIT = new Set<string>([
   "instances.correctStep",
   "instances.complete",
   "milk.forAnimal",
-  "notifiable.list",
+  "notifiableDiseases.list",
   "observations.record",
   "papers.passport",
   "papers.withdrawalSummary",

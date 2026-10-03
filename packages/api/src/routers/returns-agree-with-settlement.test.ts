@@ -82,7 +82,7 @@ const weigh = async (day: string, tagNumber: string, kg: number) => {
 
 const sell = async (tagNumber: string, at: string, priceMoney: number) => {
   const { client } = await as("manager", at);
-  await client.sale.record({
+  await client.sales.record({
     tagNumber,
     buyer: { name: `ক্রেতা ${suffix}` },
     priceMoney,
@@ -100,7 +100,7 @@ const bull = async (
   forVenture?: { ventureId: string; buyingTripId: string }
 ) => {
   const { client: manager } = await as("manager", "2054-01-04T05:00:00.000Z");
-  const taken = await manager.intake.record({
+  const taken = await manager.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },

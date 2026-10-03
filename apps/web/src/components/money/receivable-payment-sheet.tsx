@@ -44,7 +44,7 @@ export const ReceivablePaymentSheet = ({
   const [heldBy, setHeldBy] = useState("");
   const [note, setNote] = useState("");
   const pay = useMutation(
-    orpc.receivable.pay.mutationOptions({
+    orpc.receivables.pay.mutationOptions({
       onSuccess: () => {
         toast.success(t("receivable.recorded"));
         setAmount("");

@@ -44,7 +44,7 @@ const LossList = ({ title, rows }: { title: string; rows: EarlyLosses[] }) =>
  */
 export const EarlyLossesSection = () => {
   const { t } = useLanguage();
-  const losses = useQuery(orpc.intake.earlyLosses.queryOptions());
+  const losses = useQuery(orpc.intakes.earlyLosses.queryOptions());
   if (!losses.data) {
     return null;
   }

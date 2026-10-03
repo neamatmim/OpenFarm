@@ -152,7 +152,7 @@ const aVentureWithABull = async (owner: Owner, which: number) => {
     reference: `FLT-${suffix}-${which}`,
   });
   const manager = await as("manager", "2049-01-04T05:00:00.000Z");
-  const her = await manager.client.intake.record({
+  const her = await manager.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -258,7 +258,7 @@ beforeAll(async () => {
   // He is what stays behind when the two runs are over, so a cost that reaches only him reaches no
   // Venture — which is how the Correction that touches nothing settled is told from the ones that do.
   const manager = await as("manager", "2049-01-04T05:30:00.000Z");
-  await manager.client.intake.record({
+  await manager.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -270,7 +270,7 @@ beforeAll(async () => {
     targetWindowEnd: "2049-06-30",
   });
   // And one more of the Farm's own, in the Pen no Venture ever stands in.
-  await manager.client.intake.record({
+  await manager.client.intakes.record({
     penId: elsewherePenId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -369,7 +369,7 @@ beforeAll(async () => {
   const selling = await as("manager", "2049-01-19T05:00:00.000Z");
   for (const [at, tagNumber] of [first.tagNumber, second.tagNumber].entries()) {
     // oxlint-disable-next-line no-await-in-loop -- one buyer at a time
-    await selling.client.sale.record({
+    await selling.client.sales.record({
       tagNumber,
       buyer: { name: `ক্রেতা ${at} ${suffix}` },
       priceMoney: 300_000,

@@ -400,7 +400,7 @@ const buyOnTheVenture = async (
       "পাবনা ক্যাটল",
       "শাহীওয়াল ক্রস",
     ]);
-    const recorded = await farm.as.manager.intake.record({
+    const recorded = await farm.as.manager.intakes.record({
       penId: farm.pens.quarantine,
       sex: "male",
       seller: {
@@ -551,7 +551,7 @@ const sellTheVenture = async (
     );
   farm.clock.set(onFarm(readyOn, "12:00"));
   for (const bull of standing) {
-    await farm.as.manager.ready.confirm({ tagNumber: bull.tag });
+    await farm.as.manager.readyForSale.confirm({ tagNumber: bull.tag });
     bull.state = "ready_for_sale";
   }
   if (standing.length === 0) {
@@ -573,7 +573,7 @@ const sellTheVenture = async (
       bull.weightKg + bull.dailyGainKg * daysBetween(bull.arrivedOn, day)
     );
     const buyer = farm.random.pick(CATTLE_BUYERS);
-    await farm.as.manager.sale.record({
+    await farm.as.manager.sales.record({
       tagNumber: bull.tag,
       buyer,
       priceMoney:

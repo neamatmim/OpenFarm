@@ -23,7 +23,7 @@ let soldTag = "";
 
 const aBull = async () => {
   const manager = await as("manager", "2027-03-02T04:00:00.000Z");
-  const bull = await manager.client.intake.record({
+  const bull = await manager.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -50,7 +50,7 @@ beforeAll(async () => {
   await aBull();
   // One of the three went at the livestock market on the first day of Qurbani.
   const manager = await as("manager", "2027-05-17T06:00:00.000Z");
-  await manager.client.sale.record({
+  await manager.client.sales.record({
     tagNumber: soldTag,
     buyer: { name: `ক্রেতা ${suffix}` },
     priceMoney: 150_000,

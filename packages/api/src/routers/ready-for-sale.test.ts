@@ -91,7 +91,7 @@ const setup = async () => {
     windowStart: string,
     penId = pen.id
   ) =>
-    await manager.client.intake.record({
+    await manager.client.intakes.record({
       penId,
       sex: "male",
       seller: { name: `হাট ${suffix}` },
@@ -255,7 +255,7 @@ describe("ready for sale", () => {
       state: "fattening",
     });
 
-    const suggested = await manager.client.ready.suggestions();
+    const suggested = await manager.client.readyForSale.suggestions();
     const him = suggested.find((row) => row.tagNumber === tagOf(0));
     expect(him?.grounds).toEqual(["weight"]);
 
@@ -267,7 +267,7 @@ describe("ready for sale", () => {
     // Confirming is the State change. A suggestion on its own moves nothing.
     const before = await manager.client.animals.byTag({ tagNumber: tagOf(0) });
     expect(before.state).toBe("fattening");
-    await manager.client.ready.confirm({ tagNumber: tagOf(0) });
+    await manager.client.readyForSale.confirm({ tagNumber: tagOf(0) });
     const after = await manager.client.animals.byTag({ tagNumber: tagOf(0) });
     expect(after.state).toBe("ready_for_sale");
   });
@@ -275,7 +275,7 @@ describe("ready for sale", () => {
   it("suggests when the window opens, whatever she weighs", async () => {
     // His window opens on 16 March and he is still short of 290 kg.
     const manager = await asManager("2027-03-16");
-    const suggested = await manager.client.ready.suggestions();
+    const suggested = await manager.client.readyForSale.suggestions();
     expect(
       suggested.find((row) => row.tagNumber === tagOf(1))?.grounds
     ).toEqual(["window"]);
@@ -300,7 +300,7 @@ describe("ready for sale", () => {
     const clock = new FakeClock("2027-03-16T09:00:00.000Z");
     const staff = await createTestClient(appRouter, { as: "staff", clock });
     await expect(
-      staff.client.ready.confirm({ tagNumber: tagOf(1) })
+      staff.client.readyForSale.confirm({ tagNumber: tagOf(1) })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
 
     // Wormed on 15 March, and the product holds meat for fourteen days.
@@ -310,14 +310,14 @@ describe("ready for sale", () => {
       state: "fattening",
     });
     await expect(
-      manager.client.ready.confirm({ tagNumber: tagOf(2) })
+      manager.client.readyForSale.confirm({ tagNumber: tagOf(2) })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
       data: { refusal: "meat_withdrawal" },
     });
     // And the refusal says the day he is fit, because "not yet" without a date is not an
     // answer anybody can plan around.
-    const refused = await manager.client.ready
+    const refused = await manager.client.readyForSale
       .confirm({ tagNumber: tagOf(2) })
       .catch((error: { data?: { fitOn?: string } }) => error);
     expect((refused as { data: { fitOn: string } }).data.fitOn).toContain(
@@ -328,13 +328,13 @@ describe("ready for sale", () => {
   it("stops shouting about one the Manager has already considered", async () => {
     const manager = await asManager("2027-03-17");
     // His window is open and the Manager has looked at him and wants another month on him.
-    await manager.client.ready.setAside({
+    await manager.client.readyForSale.setAside({
       tagNumber: tagOf(1),
       grounds: ["window"],
       reason: "আরও এক মাস খাওয়াতে চাই",
     });
 
-    const quiet = await manager.client.ready.suggestions();
+    const quiet = await manager.client.readyForSale.suggestions();
     expect(quiet.find((row) => row.tagNumber === tagOf(1))).toBeUndefined();
 
     // He is still on the board — set aside is not hidden, it is only no longer shouted.
@@ -345,7 +345,7 @@ describe("ready for sale", () => {
     // fortnight later — 28 kg in fourteen days, which a bull does — a ground that was not there when the Manager looked.
     await weigh("2027-03-29", [[1, 296]]);
     const later = await asManager("2027-03-29");
-    const again = await later.client.ready.suggestions();
+    const again = await later.client.readyForSale.suggestions();
     expect(again.find((row) => row.tagNumber === tagOf(1))?.grounds).toEqual([
       "weight",
       "window",

@@ -185,7 +185,7 @@ describe("the state machine", () => {
       })
     ).rejects.toMatchObject({ data: { refusal: "exit_needs_a_record" } });
     const manager = await createTestClient(appRouter, { as: "manager" });
-    await manager.client.sale.record({
+    await manager.client.sales.record({
       tagNumber,
       buyer: { name: `বাজার ${Date.now()}` },
       priceMoney: 90_000,

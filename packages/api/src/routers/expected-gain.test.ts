@@ -132,7 +132,7 @@ const setup = async () => {
       breedId,
     }: { sex?: "male" | "female"; breedId?: string } = {}
   ) => {
-    const arrived = await manager.client.intake.record({
+    const arrived = await manager.client.intakes.record({
       penId,
       sex,
       ...(breedId ? { breedId } : {}),
@@ -545,7 +545,7 @@ describe("the target weight a bull is taken in towards", () => {
   it("is suggested from the farm's Rations, low and high, for his breed", async () => {
     const manager = await as("manager");
     await expect(
-      manager.client.intake.suggestTarget({ ...bought, weightKg: 200 })
+      manager.client.intakes.suggestTarget({ ...bought, weightKg: 200 })
     ).resolves.toEqual({
       // 200 + 0.6 × 101, and 200 + 0.9 × 101.
       lowKg: 260.6,
@@ -556,7 +556,7 @@ describe("the target weight a bull is taken in towards", () => {
     const breeds = await manager.client.breeds.list();
     const deshi = breeds.find((one) => one.key === "local")?.id ?? "";
     await expect(
-      manager.client.intake.suggestTarget({
+      manager.client.intakes.suggestTarget({
         ...bought,
         weightKg: 200,
         breedId: deshi,
@@ -564,14 +564,14 @@ describe("the target weight a bull is taken in towards", () => {
     ).resolves.toMatchObject({ lowKg: 242.4, highKg: 263.6 });
     // No Ration says what a 120 kg bull should gain.
     await expect(
-      manager.client.intake.suggestTarget({ ...bought, weightKg: 120 })
+      manager.client.intakes.suggestTarget({ ...bought, weightKg: 120 })
     ).resolves.toBe(null);
   });
 
   it("is the suggestion's low end when nobody types one, the typed one when somebody does, and the farm's own where no Ration says", async () => {
     const manager = await as("manager");
     const takeIn = async (weightKg: number, targetWeightKg?: number) => {
-      const arrived = await manager.client.intake.record({
+      const arrived = await manager.client.intakes.record({
         penId: world.pens.plain.id,
         seller: { name: `ব্যাপারী ${suffix}` },
         purchasePriceMoney: 60_000,

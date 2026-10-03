@@ -57,7 +57,7 @@ let breedId = "";
 
 const sell = async (tagNumber: string, priceMoney: number) => {
   const { client } = await as("manager", "2028-05-06T00:00:00.000Z");
-  await client.sale.record({
+  await client.sales.record({
     tagNumber,
     buyer: { name: `কাদের কসাই ${suffix}` },
     destination: "গাবতলী পশুর হাট",
@@ -156,7 +156,7 @@ const venturesTwo = async (penId: string) => {
   });
   const { client: manager } = await as("manager", "2028-01-01T00:00:00.000Z");
   const bull = async () =>
-    await manager.intake.record({
+    await manager.intakes.record({
       penId,
       sex: "male",
       seller: { name: `ভেঞ্চারের ব্যাপারী ${suffix}` },
@@ -238,7 +238,7 @@ beforeAll(async () => {
     window?: { start: string; end: string };
   }) => {
     const window = one.window ?? EID_2028;
-    const intake = await manager.intake.record({
+    const intake = await manager.intakes.record({
       penId: pen.id,
       sex: "male",
       seller: { name: one.seller },

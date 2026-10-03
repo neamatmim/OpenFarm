@@ -34,7 +34,7 @@ beforeAll(async () => {
     // oxlint-disable-next-line no-await-in-loop -- one bull off the lorry after the other
     const manager = await as("manager", `${day}T04:00:00.000Z`);
     // oxlint-disable-next-line no-await-in-loop -- as above
-    await manager.client.intake.record({
+    await manager.client.intakes.record({
       penId: pen.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
@@ -50,7 +50,7 @@ beforeAll(async () => {
 describe("what the last buys cost a kilo", () => {
   it("is the last two months' buys near her weight, weighed by weight", async () => {
     const manager = await as("manager");
-    expect(await manager.client.intake.lastBuys({ weightKg: 260 })).toEqual({
+    expect(await manager.client.intakes.lastBuys({ weightKg: 260 })).toEqual({
       moneyPerKg: 423.08,
       animals: 2,
       days: 60,
@@ -59,13 +59,13 @@ describe("what the last buys cost a kilo", () => {
 
   it("is nothing where the farm bought none near her weight", async () => {
     const manager = await as("manager");
-    expect(await manager.client.intake.lastBuys({ weightKg: 600 })).toBeNull();
+    expect(await manager.client.intakes.lastBuys({ weightKg: 600 })).toBeNull();
   });
 
   it("is the Owner's and the Manager's, who buy", async () => {
     const staff = await as("staff");
     await expect(
-      staff.client.intake.lastBuys({ weightKg: 260 })
+      staff.client.intakes.lastBuys({ weightKg: 260 })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

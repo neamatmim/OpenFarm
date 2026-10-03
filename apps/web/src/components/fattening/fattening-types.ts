@@ -66,5 +66,5 @@ export const fitOnFrom = (error: unknown): string | null => {
 
 /** One animal the farm suggests may be sold, with the grounds it suggests her on. */
 export type Suggestion = Awaited<
-  ReturnType<typeof orpc.ready.suggestions.call>
+  ReturnType<typeof orpc.readyForSale.suggestions.call>
 >[number];

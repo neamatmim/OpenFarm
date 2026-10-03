@@ -38,7 +38,7 @@ const sold = async (
   } = {}
 ) => {
   const writer = await as(who);
-  return await writer.client.sale.record({
+  return await writer.client.sales.record({
     tagNumber,
     buyer: { name: `ক্রেতা ${suffix}` },
     priceMoney: 80_000,
@@ -66,7 +66,7 @@ beforeAll(async () => {
   const manager = await as("manager", `${DAY}T04:00:00.000Z`);
   for (const which of ["ক", "খ", "গ", "ঘ", "ঙ", "চ"]) {
     // oxlint-disable-next-line no-await-in-loop -- one bull after another off the lorry
-    const bull = await manager.client.intake.record({
+    const bull = await manager.client.intakes.record({
       penId,
       sex: "male",
       seller: { name: `ব্যাপারী ${which} ${suffix}` },
@@ -119,7 +119,7 @@ describe("whose hand took the notes", () => {
     });
     const managerBefore = await handOf("manager");
     const owner = await as("owner", `${DAY}T12:00:00.000Z`);
-    await owner.client.receivable.pay({
+    await owner.client.receivables.pay({
       buyer: `ক্রেতা ${suffix}`,
       kind: "cattle",
       amountMoney: 10_000,
@@ -135,7 +135,7 @@ describe("whose hand took the notes", () => {
     // Written as the Owner's, but it was the Manager who took the notes.
     const managerBefore = await handOf("manager");
     const owner = await as("owner", `${DAY}T13:00:00.000Z`);
-    await owner.client.sale.correct({
+    await owner.client.sales.correct({
       id: sale.id,
       reason: `রফিকুল টাকা নিয়েছিল ${suffix}`,
       changes: {

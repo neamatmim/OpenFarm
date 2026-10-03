@@ -99,7 +99,7 @@ const setup = async () => {
     });
   }
   const bull = async (weightKg: number) =>
-    await manager.client.intake.record({
+    await manager.client.intakes.record({
       penId: bulls.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },

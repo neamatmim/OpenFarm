@@ -214,7 +214,7 @@ const setup = async () => {
       .onConflictDoNothing();
   }
 
-  const bullA = await manager.client.intake.record({
+  const bullA = await manager.client.intakes.record({
     penId: fattening.id,
     sex: "male",
     seller: { name: `হাট ${suffix}` },
@@ -338,7 +338,7 @@ beforeAll(async () => {
     state: "milking",
   });
   const manager = await as("manager", "2039-01-02T04:00:00.000Z");
-  const taken = await manager.client.intake.record({
+  const taken = await manager.client.intakes.record({
     penId: world.fattening.id,
     sex: "male",
     seller: { name: `হাট ${suffix}` },
@@ -413,7 +413,7 @@ beforeAll(async () => {
   await dose(world.sops.tonic.definitionId, bullB, "2039-01-04T09:00:00.000Z");
 
   const seller = await as("manager", "2039-01-10T04:00:00.000Z");
-  const sold = await seller.client.sale.record({
+  const sold = await seller.client.sales.record({
     tagNumber: world.bullA.tagNumber,
     buyer: { name: `কসাই ${suffix}` },
     priceMoney: 60_000,

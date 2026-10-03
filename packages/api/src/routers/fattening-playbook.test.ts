@@ -57,7 +57,7 @@ const setup = async () => {
   await banded("গ্রোয়ার", growers.id, { fromKg: 150, toKg: 250 });
   await banded("ফিনিশার", finishers.id, { fromKg: 250, toKg: null });
   const bull = async (weightKg: number) => {
-    const arrived = await manager.client.intake.record({
+    const arrived = await manager.client.intakes.record({
       penId: quarantine.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },

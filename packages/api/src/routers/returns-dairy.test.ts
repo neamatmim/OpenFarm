@@ -348,7 +348,7 @@ beforeAll(async () => {
     .where(eq(animal.id, ids.c));
 
   const { client: selling } = await as("manager", "2045-03-15T00:00:00.000Z");
-  await selling.sale.record({
+  await selling.sales.record({
     tagNumber: tags.m,
     buyer: { name: `কসাই ${suffix}` },
     destination: "গাবতলী পশুর হাট",

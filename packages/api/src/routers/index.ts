@@ -9,26 +9,25 @@ import { breedingRouter } from "./breeding";
 import { breedsRouter } from "./breeds";
 import { cashRouter } from "./cash";
 import { costsRouter } from "./costs";
-import { cullingRouter } from "./culling";
+import { cullListRouter } from "./cull-list";
 import { devicesRouter } from "./devices";
 import { diagnosesRouter } from "./diagnoses";
 import { drugsRouter } from "./drugs";
-import { eidRouter } from "./eid";
+import { eidDatesRouter } from "./eid-dates";
 import { farmRouter } from "./farm";
 import { farmAccountsRouter } from "./farm-accounts";
 import { fatteningRouter } from "./fattening";
 import { feedRouter } from "./feed";
 import { herdRouter } from "./herd";
 import { homeRouter } from "./home";
-import { inspectorRouter } from "./inspector";
 import { instancesRouter } from "./instances";
-import { intakeRouter } from "./intake";
+import { intakesRouter } from "./intakes";
 import { investorStatementsRouter } from "./investor-statements";
 import { investorsRouter } from "./investors";
 import { languageRouter } from "./language";
 import { milkRouter } from "./milk";
 import { moneyRouter } from "./money";
-import { notifiableRouter } from "./notifiable";
+import { notifiableDiseasesRouter } from "./notifiable-diseases";
 import { observationsRouter } from "./observations";
 import { papersRouter } from "./papers";
 import { peopleRouter } from "./people";
@@ -36,12 +35,13 @@ import { portalRouter } from "./portal";
 import { portalPreviewRouter } from "./portal-preview";
 import { prescriptionsRouter } from "./prescriptions";
 import { pushRouter } from "./push";
-import { readyRouter } from "./ready";
-import { receivableRouter } from "./receivable";
+import { readyForSaleRouter } from "./ready-for-sale";
+import { receivablesRouter } from "./receivables";
+import { registrationCertificateRouter } from "./registration-certificate";
 import { reportsRouter } from "./reports";
 import { returnsRouter } from "./returns";
-import { reviewRouter } from "./review";
-import { saleRouter } from "./sale";
+import { reviewQueueRouter } from "./review-queue";
+import { salesRouter } from "./sales";
 import { sellingTripsRouter } from "./selling-trips";
 import { sopsRouter } from "./sops";
 import { stockRouter } from "./stock";
@@ -71,7 +71,7 @@ type AppRouterShape = {
   devices: typeof devicesRouter;
   diagnoses: typeof diagnosesRouter;
   drugs: typeof drugsRouter;
-  eid: typeof eidRouter;
+  eidDates: typeof eidDatesRouter;
   farm: typeof farmRouter;
   farmAccounts: typeof farmAccountsRouter;
   fattening: typeof fatteningRouter;
@@ -80,27 +80,27 @@ type AppRouterShape = {
   home: typeof homeRouter;
   returns: typeof returnsRouter;
   instances: typeof instancesRouter;
-  intake: typeof intakeRouter;
+  intakes: typeof intakesRouter;
   language: typeof languageRouter;
   milk: typeof milkRouter;
-  notifiable: typeof notifiableRouter;
+  notifiableDiseases: typeof notifiableDiseasesRouter;
   observations: typeof observationsRouter;
   papers: typeof papersRouter;
   people: typeof peopleRouter;
   prescriptions: typeof prescriptionsRouter;
   push: typeof pushRouter;
-  ready: typeof readyRouter;
+  readyForSale: typeof readyForSaleRouter;
   costs: typeof costsRouter;
-  culling: typeof cullingRouter;
-  inspector: typeof inspectorRouter;
+  cullList: typeof cullListRouter;
+  registrationCertificate: typeof registrationCertificateRouter;
   money: typeof moneyRouter;
   cash: typeof cashRouter;
-  receivable: typeof receivableRouter;
+  receivables: typeof receivablesRouter;
   reports: typeof reportsRouter;
   breeding: typeof breedingRouter;
   stock: typeof stockRouter;
-  review: typeof reviewRouter;
-  sale: typeof saleRouter;
+  reviewQueue: typeof reviewQueueRouter;
+  sales: typeof salesRouter;
   trips: typeof tripsRouter;
   sellingTrips: typeof sellingTripsRouter;
   ventures: typeof venturesRouter;
@@ -126,7 +126,7 @@ export const appRouter: AppRouterShape = {
   devices: devicesRouter,
   diagnoses: diagnosesRouter,
   drugs: drugsRouter,
-  eid: eidRouter,
+  eidDates: eidDatesRouter,
   farm: farmRouter,
   farmAccounts: farmAccountsRouter,
   fattening: fatteningRouter,
@@ -135,27 +135,27 @@ export const appRouter: AppRouterShape = {
   home: homeRouter,
   returns: returnsRouter,
   instances: instancesRouter,
-  intake: intakeRouter,
+  intakes: intakesRouter,
   language: languageRouter,
   milk: milkRouter,
-  notifiable: notifiableRouter,
+  notifiableDiseases: notifiableDiseasesRouter,
   observations: observationsRouter,
   papers: papersRouter,
   people: peopleRouter,
   prescriptions: prescriptionsRouter,
   push: pushRouter,
-  ready: readyRouter,
+  readyForSale: readyForSaleRouter,
   costs: costsRouter,
-  culling: cullingRouter,
-  inspector: inspectorRouter,
+  cullList: cullListRouter,
+  registrationCertificate: registrationCertificateRouter,
   money: moneyRouter,
   cash: cashRouter,
-  receivable: receivableRouter,
+  receivables: receivablesRouter,
   reports: reportsRouter,
   breeding: breedingRouter,
   stock: stockRouter,
-  review: reviewRouter,
-  sale: saleRouter,
+  reviewQueue: reviewQueueRouter,
+  sales: salesRouter,
   trips: tripsRouter,
   sellingTrips: sellingTripsRouter,
   ventures: venturesRouter,

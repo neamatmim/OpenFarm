@@ -127,7 +127,7 @@ const aMixedPen = async () => {
       "2047-03-06T05:00:00.000Z"
     );
     // oxlint-disable-next-line no-await-in-loop -- as above
-    await buyer.client.intake.record({
+    await buyer.client.intakes.record({
       penId: sharedPenId,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
@@ -237,7 +237,7 @@ beforeAll(async () => {
   // One bull of the Venture's, standing in that Pen and eating that feed — bought at the gate, so the Owner's, paid
   // from its account by bank.
   const buying = await as("owner", "2047-03-04T06:00:00.000Z");
-  await buying.client.intake.record({
+  await buying.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },

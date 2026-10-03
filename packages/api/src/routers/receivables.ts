@@ -60,7 +60,7 @@ const buyerNamed = (db: Database, farmId: string, name: string) =>
     columns: { id: true },
   });
 
-export const receivableRouter = {
+export const receivablesRouter = {
   /**
    * Every buyer who owes the farm — or has paid it ahead — oldest owing first, with what he took, what he has paid
    * and what each payment cleared. The Owner's and the Manager's, as the Money page is.

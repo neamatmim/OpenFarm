@@ -138,7 +138,7 @@ beforeAll(async () => {
     quarantine: true,
   });
   const bull = async (extra: Record<string, unknown> = {}) => {
-    const bought = await owner.client.intake.record({
+    const bought = await owner.client.intakes.record({
       penId: pen.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },

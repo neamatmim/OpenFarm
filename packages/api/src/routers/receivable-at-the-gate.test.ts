@@ -31,7 +31,7 @@ const ventureBulls: { tagNumber: string; intakeId: string }[] = [];
 const buy = async (instant: string, ventureFor?: string) => {
   // A Venture's bull at the gate is the Owner's, paid from its account by bank.
   const manager = await as(ventureFor ? "owner" : "manager", instant);
-  return await manager.client.intake.record({
+  return await manager.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -111,7 +111,7 @@ describe("a bull sold on credit", () => {
   it("books only what the buyer paid, and keeps what he owes on the Sale", async () => {
     const bull = await buy("2048-03-02T04:00:00.000Z");
     const manager = await as("manager", "2048-03-10T06:00:00.000Z");
-    const sold = await manager.client.sale.record({
+    const sold = await manager.client.sales.record({
       tagNumber: bull.tagNumber,
       ...aTrader,
       priceMoney: 120_000,
@@ -131,7 +131,7 @@ describe("a bull sold on credit", () => {
   it("books nothing when he took her all on credit", async () => {
     const bull = await buy("2048-03-02T04:10:00.000Z");
     const manager = await as("manager", "2048-03-10T06:10:00.000Z");
-    const sold = await manager.client.sale.record({
+    const sold = await manager.client.sales.record({
       tagNumber: bull.tagNumber,
       ...aTrader,
       priceMoney: 110_000,
@@ -145,7 +145,7 @@ describe("a bull sold on credit", () => {
   it("is paid in full when nothing is said of what he paid, as every Sale was before", async () => {
     const bull = await buy("2048-03-02T04:20:00.000Z");
     const manager = await as("manager", "2048-03-10T06:20:00.000Z");
-    const sold = await manager.client.sale.record({
+    const sold = await manager.client.sales.record({
       tagNumber: bull.tagNumber,
       ...aTrader,
       priceMoney: 115_000,
@@ -163,7 +163,7 @@ describe("a bull sold on credit", () => {
     const bull = await buy("2048-03-02T04:30:00.000Z");
     const manager = await as("manager", "2048-03-10T06:30:00.000Z");
     const sell = (more: { paidNowMoney?: number; promisedBy?: string }) =>
-      manager.client.sale.record({
+      manager.client.sales.record({
         tagNumber: bull.tagNumber,
         ...aTrader,
         priceMoney: 100_000,
@@ -193,7 +193,7 @@ describe("a Venture's bull", () => {
     const bull = ventureBull(0);
     const manager = await as("manager", "2048-03-11T06:00:00.000Z");
     await expect(
-      manager.client.sale.record({
+      manager.client.sales.record({
         tagNumber: bull.tagNumber,
         ...aTrader,
         priceMoney: 125_000,
@@ -206,7 +206,7 @@ describe("a Venture's bull", () => {
     });
     expect(her.state).not.toBe("sold");
 
-    const sold = await manager.client.sale.record({
+    const sold = await manager.client.sales.record({
       tagNumber: bull.tagNumber,
       ...aTrader,
       priceMoney: 125_000,
@@ -218,13 +218,13 @@ describe("a Venture's bull", () => {
   it("is refused a Correction that would leave her buyer owing", async () => {
     const bull = ventureBull(1);
     const manager = await as("manager", "2048-03-11T06:10:00.000Z");
-    const sold = await manager.client.sale.record({
+    const sold = await manager.client.sales.record({
       tagNumber: bull.tagNumber,
       ...aTrader,
       priceMoney: 118_000,
     });
     await expect(
-      manager.client.sale.correct({
+      manager.client.sales.correct({
         id: sold.id,
         reason: "পুরো টাকা দেয়নি",
         changes: {
@@ -239,7 +239,7 @@ describe("a Venture's bull", () => {
   it("will not take a Farm bull sold on credit as hers after the fact", async () => {
     const bull = await buy("2048-03-02T05:20:00.000Z");
     const manager = await as("manager", "2048-03-11T06:20:00.000Z");
-    await manager.client.sale.record({
+    await manager.client.sales.record({
       tagNumber: bull.tagNumber,
       ...aTrader,
       priceMoney: 100_000,
@@ -250,7 +250,7 @@ describe("a Venture's bull", () => {
     // taken.
     const owner = await as("owner", "2048-03-11T06:30:00.000Z");
     await expect(
-      owner.client.intake.correct({
+      owner.client.intakes.correct({
         id: bull.intakeId,
         reason: "ভেঞ্চারের গরু ছিল",
         changes: {
@@ -267,14 +267,14 @@ describe("a Sale put right", () => {
   it("keeps what a part-paying buyer paid when the price is put right, in the same Money Event", async () => {
     const bull = await buy("2048-03-02T06:00:00.000Z");
     const manager = await as("manager", "2048-03-12T06:00:00.000Z");
-    const sold = await manager.client.sale.record({
+    const sold = await manager.client.sales.record({
       tagNumber: bull.tagNumber,
       ...aTrader,
       priceMoney: 120_000,
       paidNowMoney: 100_000,
       promisedBy: "2048-03-19",
     });
-    await manager.client.sale.correct({
+    await manager.client.sales.correct({
       id: sold.id,
       reason: "দাম ভুল লেখা হয়েছিল",
       changes: { priceMoney: { from: 120_000, to: 125_000 } },
@@ -288,7 +288,7 @@ describe("a Sale put right", () => {
     expect(booked).toHaveLength(1);
     expect(booked[0]).toMatchObject({ amountMoney: 100_000 });
 
-    await manager.client.sale.correct({
+    await manager.client.sales.correct({
       id: sold.id,
       reason: "সেদিন আরো দশ হাজার দিয়েছিল",
       changes: { paidNowMoney: { from: 100_000, to: 110_000 } },
@@ -302,12 +302,12 @@ describe("a Sale put right", () => {
   it("keeps a buyer who paid in full paid in full at a corrected price", async () => {
     const bull = await buy("2048-03-02T06:10:00.000Z");
     const manager = await as("manager", "2048-03-12T06:10:00.000Z");
-    const sold = await manager.client.sale.record({
+    const sold = await manager.client.sales.record({
       tagNumber: bull.tagNumber,
       ...aTrader,
       priceMoney: 100_000,
     });
-    await manager.client.sale.correct({
+    await manager.client.sales.correct({
       id: sold.id,
       reason: "দাম ভুল লেখা হয়েছিল",
       changes: { priceMoney: { from: 100_000, to: 105_000 } },
@@ -324,7 +324,7 @@ describe("the receipt", () => {
     const first = await buy("2048-03-02T07:00:00.000Z");
     const second = await buy("2048-03-02T07:10:00.000Z");
     const manager = await as("manager", "2048-03-14T06:00:00.000Z");
-    const sold = await manager.client.sale.record({
+    const sold = await manager.client.sales.record({
       tagNumber: first.tagNumber,
       ...aTrader,
       buyer,
@@ -332,7 +332,7 @@ describe("the receipt", () => {
       paidNowMoney: 70_000,
       promisedBy: "2048-03-21",
     });
-    await manager.client.sale.record({
+    await manager.client.sales.record({
       tagNumber: second.tagNumber,
       ...aTrader,
       buyer,
@@ -350,7 +350,7 @@ describe("the receipt", () => {
   it("says nothing of Receivable to a buyer who paid in full", async () => {
     const bull = await buy("2048-03-02T07:20:00.000Z");
     const manager = await as("manager", "2048-03-14T08:00:00.000Z");
-    const sold = await manager.client.sale.record({
+    const sold = await manager.client.sales.record({
       tagNumber: bull.tagNumber,
       ...aTrader,
       buyer: { name: `নগদের ক্রেতা ${suffix}` },

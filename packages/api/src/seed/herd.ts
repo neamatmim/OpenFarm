@@ -325,7 +325,7 @@ export const takeInBulls = async (
     // What the Manager wrote down and paid for; what he really weighed is what the scale will say.
     const typedKg = weightKg + (oneTypedHeavy && index === 0 ? 24 : 0);
     const price = Math.round((typedKg * random.between(430, 520)) / 500) * 500;
-    const recorded = await farm.as.manager.intake.record({
+    const recorded = await farm.as.manager.intakes.record({
       penId: farm.pens[pen],
       sex: "male",
       seller,
@@ -419,7 +419,7 @@ export const lastEidsSeason = async (farm: Farm, herd: Herd) => {
       bull.weightKg + bull.dailyGainKg * DAYS_TO_EID_2026
     );
     const buyer = farm.random.pick(CATTLE_BUYERS);
-    await farm.as.manager.sale.record({
+    await farm.as.manager.sales.record({
       tagNumber: bull.tag,
       buyer,
       priceMoney:

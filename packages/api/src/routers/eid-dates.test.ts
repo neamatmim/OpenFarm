@@ -25,7 +25,7 @@ const setup = async () => {
     name: "ঈদের পেন",
   });
   const bull = async (window?: { start: string; end: string }) =>
-    await manager.client.intake.record({
+    await manager.client.intakes.record({
       penId: pen.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
@@ -81,7 +81,7 @@ const windowOf = async (animalId: string) => {
 
 const nextEid = async (instant = JANUARY) => {
   const manager = await as("manager", instant);
-  return await manager.client.eid.next();
+  return await manager.client.eidDates.next();
 };
 
 describe("the Eid the farm feeds towards", () => {
@@ -101,20 +101,20 @@ describe("the Eid the farm feeds towards", () => {
   it("refuses a day that is no Eid, a year typed wrong", async () => {
     const manager = await as("manager");
     await expect(
-      manager.client.eid.announce({ day: "2026-05-18" })
+      manager.client.eidDates.announce({ day: "2026-05-18" })
     ).rejects.toMatchObject({ data: { refusal: "not_an_eid" } });
   });
 
   it("is written in by the Owner or the Manager, not the Staff", async () => {
     const staff = await as("staff");
     await expect(
-      staff.client.eid.announce({ day: "2027-05-18" })
+      staff.client.eidDates.announce({ day: "2027-05-18" })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("once announced, is the day every bull taken in afterwards is fed towards", async () => {
     const manager = await as("manager");
-    await manager.client.eid.announce({ day: "2027-05-18" });
+    await manager.client.eidDates.announce({ day: "2027-05-18" });
     const after = await world.bull();
     expect(await windowOf(after.id)).toEqual({
       start: "2027-05-18",
@@ -133,7 +133,7 @@ describe("the Eid the farm feeds towards", () => {
 
   it("brings the farm's own along, and leaves the Venture's, the typed and the sold", async () => {
     const manager = await as("manager");
-    const done = await manager.client.eid.bringAlong({
+    const done = await manager.client.eidDates.bringAlong({
       expectedDay: "2027-05-17",
     });
     expect(done.moved).toBe(2);
@@ -163,13 +163,13 @@ describe("the Eid the farm feeds towards", () => {
 
   it("brings along the bulls moved to a day announced wrong, when it is put right", async () => {
     const manager = await as("manager");
-    await manager.client.eid.announce({ day: "2027-05-16" });
+    await manager.client.eidDates.announce({ day: "2027-05-16" });
     // The two moved and the one taken in on the 18th, all aimed at the day announced first.
     expect(await nextEid()).toMatchObject({
       window: { start: "2027-05-16", basis: "announced" },
       behind: 3,
     });
-    const done = await manager.client.eid.bringAlong({
+    const done = await manager.client.eidDates.bringAlong({
       expectedDay: "2027-05-17",
     });
     expect(done.moved).toBe(3);
@@ -178,7 +178,7 @@ describe("the Eid the farm feeds towards", () => {
   it("refuses to bring anybody along to an Eid nobody announced", async () => {
     const manager = await as("manager");
     await expect(
-      manager.client.eid.bringAlong({ expectedDay: "2028-05-06" })
+      manager.client.eidDates.bringAlong({ expectedDay: "2028-05-06" })
     ).rejects.toMatchObject({ data: { refusal: "eid_not_announced" } });
   });
 });
@@ -194,7 +194,7 @@ describe("an Eid past the end of the farm's list", () => {
       basis: "estimated",
     });
     const manager = await as("manager", PAST_THE_TABLE);
-    const taken = await manager.client.intake.record({
+    const taken = await manager.client.intakes.record({
       penId: world.pen.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
@@ -219,7 +219,7 @@ describe("the farm's list of Eids", () => {
   it("names each Eid by the farm's day and how it knows it, and counts who is aimed at it", async () => {
     const { client: manager } = await as("manager", FEBRUARY(1));
 
-    const listed = await manager.eid.list();
+    const listed = await manager.eidDates.list();
 
     const lastYear = listed.find((one) => one.expectedDay === "2026-05-28");
     const thisYear = listed.find((one) => one.expectedDay === "2027-05-17");
@@ -246,8 +246,8 @@ describe("the farm's list of Eids", () => {
   it("takes an announced day back, and offers the bulls brought to it the move back to the day expected", async () => {
     const { client: manager } = await as("manager", FEBRUARY(2));
 
-    await manager.eid.withdraw({ expectedDay: "2027-05-17" });
-    const next = await manager.eid.next();
+    await manager.eidDates.withdraw({ expectedDay: "2027-05-17" });
+    const next = await manager.eidDates.next();
 
     expect(next.window).toEqual({
       start: "2027-05-17",
@@ -255,7 +255,9 @@ describe("the farm's list of Eids", () => {
       basis: "expected",
     });
     expect(next.behind).toBeGreaterThanOrEqual(2);
-    const done = await manager.eid.bringAlong({ expectedDay: "2027-05-17" });
+    const done = await manager.eidDates.bringAlong({
+      expectedDay: "2027-05-17",
+    });
     expect(done.moved).toBe(next.behind);
     for (const one of world.ours) {
       // oxlint-disable-next-line no-await-in-loop -- two bulls, read one after the other
@@ -269,8 +271,8 @@ describe("the farm's list of Eids", () => {
   it("announces the day expected itself, once an announcement has been taken back", async () => {
     const { client: manager } = await as("manager", FEBRUARY(3));
 
-    await manager.eid.announce({ day: "2027-05-17" });
-    const next = await manager.eid.next();
+    await manager.eidDates.announce({ day: "2027-05-17" });
+    const next = await manager.eidDates.next();
 
     expect(next.window).toMatchObject({
       start: "2027-05-17",
@@ -283,10 +285,10 @@ describe("the farm's list of Eids", () => {
     const { client: staff } = await as("staff", FEBRUARY(4));
 
     await expect(
-      manager.eid.withdraw({ expectedDay: "2028-05-06" })
+      manager.eidDates.withdraw({ expectedDay: "2028-05-06" })
     ).rejects.toMatchObject({ data: { refusal: "eid_not_announced" } });
     await expect(
-      staff.eid.withdraw({ expectedDay: "2027-05-17" })
+      staff.eidDates.withdraw({ expectedDay: "2027-05-17" })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

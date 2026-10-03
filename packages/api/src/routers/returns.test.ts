@@ -29,7 +29,7 @@ const buyer = {
 
 const sell = async (tagNumber: string, on: string, priceMoney: number) => {
   const { client } = await as("manager", `${on}T00:00:00.000Z`);
-  await client.sale.record({
+  await client.sales.record({
     tagNumber,
     buyer,
     destination: "গাবতলী পশুর হাট",
@@ -54,7 +54,7 @@ beforeAll(async () => {
     marketTollMoney = 0
   ) => {
     const { client } = await as("manager", `${on}T00:00:00.000Z`);
-    return await client.intake.record({
+    return await client.intakes.record({
       penId: pen.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
@@ -86,7 +86,7 @@ beforeAll(async () => {
   // announced later — one Season — and both still standing.
   const forEid2029 = async (start: string, end: string) => {
     const { client } = await as("manager", "2028-10-01T00:00:00.000Z");
-    await client.intake.record({
+    await client.intakes.record({
       penId: pen.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
@@ -104,7 +104,7 @@ beforeAll(async () => {
   // A winter market that is no Eid: one bull, bought on 1 November for ৳1,00,000 and sold 45 days on for ৳1,08,000 —
   // 8 on every hundred, too short a time to put a year at the farm's 60 days.
   const { client: winter } = await as("manager", "2028-11-01T00:00:00.000Z");
-  const w = await winter.intake.record({
+  const w = await winter.intakes.record({
     penId: pen.id,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -373,7 +373,7 @@ describe("a Season still going with one bull sold and one standing", () => {
     });
     const { client: manager } = await as("manager", "2029-01-01T00:00:00.000Z");
     const bull = async () =>
-      await manager.intake.record({
+      await manager.intakes.record({
         penId: pen.id,
         sex: "male",
         seller: { name: `ব্যাপারী ${suffix}` },

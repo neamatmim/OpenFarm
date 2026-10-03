@@ -114,7 +114,7 @@ const LastBuyerOfTheDay = ({
   onUse: (patch: Partial<SaleAnswers>) => void;
 }) => {
   const { t } = useLanguage();
-  const last = useQuery(orpc.sale.lastToday.queryOptions());
+  const last = useQuery(orpc.sales.lastToday.queryOptions());
   const sale = last.data ?? null;
   if (!sale) {
     return null;
@@ -156,7 +156,7 @@ const AnimalPart = ({
   const [byTag, setByTag] = useState(false);
   // Asked of the farm, not filtered here: the phone cannot see a withdrawal, and a beast
   // confirmed Ready last week and treated on Thursday would sit in this list looking sellable.
-  const sellable = useQuery(orpc.sale.sellable.queryOptions());
+  const sellable = useQuery(orpc.sales.sellable.queryOptions());
   const ready = sellable.data ?? [];
   const listed = ready.some((row) => row.tagNumber === answers.tagNumber);
   const typing =
@@ -353,7 +353,7 @@ export const SaleSheet = ({
   // what she has lost since, as soon as the day's weight is typed.
   const tagTyped = answers.tagNumber.trim();
   const last = useQuery({
-    ...orpc.sale.lastWeighed.queryOptions({ input: { tagNumber: tagTyped } }),
+    ...orpc.sales.lastWeighed.queryOptions({ input: { tagNumber: tagTyped } }),
     enabled: open && tagTyped !== "",
   });
   const lastWeighed = useLastWeighedWords(
@@ -362,7 +362,7 @@ export const SaleSheet = ({
   );
 
   const record = useMutation(
-    orpc.sale.record.mutationOptions({
+    orpc.sales.record.mutationOptions({
       onSuccess: ({ tagNumber }) => {
         toast.success(t("sale.done", { tag: tagNumber }));
         // The buyer and the lorry stay typed: the next beast is usually his too. What he owed on this one does not:

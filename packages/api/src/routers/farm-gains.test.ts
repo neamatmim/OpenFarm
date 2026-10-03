@@ -119,7 +119,7 @@ const setup = async () => {
   const breedOf = (key: string) =>
     breeds.find((one) => one.key === key)?.id ?? "";
   const bull = async (penId: string, breedId: string) => {
-    const arrived = await manager.client.intake.record({
+    const arrived = await manager.client.intakes.record({
       penId,
       sex: "male",
       breedId,
@@ -185,7 +185,7 @@ beforeAll(async () => {
   const manager = await as("manager", DAY_50);
   // The fastest cross is sold: gone from the farm, and still what the Ration put on him.
   const [fastest] = world.cross.at(-1) ?? [];
-  await manager.client.sale.record({
+  await manager.client.sales.record({
     tagNumber: fastest ?? "",
     buyer: { name: `কসাই ${suffix}` },
     priceMoney: 120_000,

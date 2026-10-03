@@ -33,7 +33,9 @@ import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
-type Disease = Awaited<ReturnType<typeof orpc.notifiable.list.call>>[number];
+type Disease = Awaited<
+  ReturnType<typeof orpc.notifiableDiseases.list.call>
+>[number];
 
 interface DiseaseRow extends Disease {
   keeps: boolean;
@@ -227,7 +229,7 @@ const AddDiseaseDialog = ({
   const [note, setNote] = useState("");
   const [otherNames, setOtherNames] = useState("");
   const add = useMutation(
-    orpc.notifiable.add.mutationOptions({
+    orpc.notifiableDiseases.add.mutationOptions({
       onSuccess: () => {
         setName("");
         setNameEn("");
@@ -327,10 +329,12 @@ const ChangeDialog = ({
     onError: refused,
   });
   const retire = useMutation(
-    orpc.notifiable.retire.mutationOptions(done("notifiable.takenOff"))
+    orpc.notifiableDiseases.retire.mutationOptions(done("notifiable.takenOff"))
   );
   const putBack = useMutation(
-    orpc.notifiable.bringBack.mutationOptions(done("notifiable.putBackDone"))
+    orpc.notifiableDiseases.bringBack.mutationOptions(
+      done("notifiable.putBackDone")
+    )
   );
   const act = back ? putBack : retire;
   const label = back ? t("notifiable.putBack") : t("notifiable.retire");
@@ -375,7 +379,7 @@ const OtherNamesDialog = ({
   const refused = useRefused();
   const [typed, setTyped] = useState(disease?.otherNames.join(", ") ?? "");
   const save = useMutation(
-    orpc.notifiable.setOtherNames.mutationOptions({
+    orpc.notifiableDiseases.setOtherNames.mutationOptions({
       onSuccess: () => {
         toast.success(t("notifiable.otherNamesSaved"));
         onOpenChange(false);
@@ -436,7 +440,7 @@ const DiseaseList = ({ rows }: { rows: DiseaseRow[] }) => {
  */
 const NotifiablePage = () => {
   const { t } = useLanguage();
-  const list = useQuery(orpc.notifiable.list.queryOptions());
+  const list = useQuery(orpc.notifiableDiseases.list.queryOptions());
   const me = useQuery(orpc.people.me.queryOptions());
   // A vet called in for a visit reads the list; keeping it is the farm's own people's.
   const keeps = me.data !== undefined && me.data.scopes.vet?.kind !== "cases";

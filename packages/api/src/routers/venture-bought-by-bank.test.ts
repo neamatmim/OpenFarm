@@ -81,7 +81,7 @@ const atTheGate = async (
     buyingTripId?: string;
   }
 ) =>
-  await who.client.intake.record({
+  await who.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `প্রতিবেশী ${suffix}` },
@@ -179,7 +179,7 @@ describe("a Venture's bull with no outing", () => {
       reference: `চেক ৫৬ ${suffix}`,
     });
     const manager = await as("manager", `${DAY}T09:00:00.000Z`);
-    await manager.client.intake.correct({
+    await manager.client.intakes.correct({
       id: hers.intakeId,
       reason: `দাম আসলে কম ছিল ${suffix}`,
       changes: { purchasePriceMoney: { from: 60_000, to: 55_000 } },
@@ -195,7 +195,7 @@ describe("a Venture's bull with no outing", () => {
         changes: { amountMoney: { from: 55_000, to: 50_000 } },
       })
     ).rejects.toMatchObject({ data: { refusal: "correct_the_record" } });
-    await manager.client.intake.correct({
+    await manager.client.intakes.correct({
       id: hers.intakeId,
       reason: `খামারের গরু ছিল ${suffix}`,
       changes: {

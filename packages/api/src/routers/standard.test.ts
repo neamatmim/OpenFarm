@@ -111,7 +111,7 @@ describe("a farm started with the standard lists", () => {
         vaccine: false,
       });
     }
-    const diseases = await owner.client.notifiable.list();
+    const diseases = await owner.client.notifiableDiseases.list();
     expect(diseases.map((one) => one.nameBn).toSorted()).toEqual(
       STANDARD_NOTIFIABLE_DISEASES.map((one) => one.bn).toSorted()
     );

@@ -135,7 +135,7 @@ export const BuyerOwes = ({ name }: { name: string }) => {
   // Asked once the typing settles, not at every letter of his name.
   const settled = useDeferredValue(name.trim());
   const his = useQuery({
-    ...orpc.receivable.ofBuyer.queryOptions({ input: { name: settled } }),
+    ...orpc.receivables.ofBuyer.queryOptions({ input: { name: settled } }),
     enabled: settled.length > 1,
   });
   const owes = his.data;

@@ -55,7 +55,7 @@ const setup = async () => {
   });
 
   const bull = async (weightKg: number) =>
-    await manager.client.intake.record({
+    await manager.client.intakes.record({
       penId: pen.id,
       sex: "male",
       seller: { name: `হাট ${suffix}` },
@@ -170,7 +170,7 @@ describe("the fortnightly weigh-in", () => {
     const entry = board.completions.find(
       (row) => row.stepId === "weigh" && row.animalId === her.id
     );
-    const queue = await manager.client.review.open();
+    const queue = await manager.client.reviewQueue.open();
     const asked = queue.find(
       (row) => row.reason === "implausible_weight" && row.entityId === entry?.id
     );
@@ -183,7 +183,7 @@ describe("the fortnightly weigh-in", () => {
       evidence: [270],
       reason: "স্কেলে আবার দেখা",
     });
-    const again = await manager.client.review.open();
+    const again = await manager.client.reviewQueue.open();
     expect(
       again.filter(
         (row) =>
@@ -192,7 +192,7 @@ describe("the fortnightly weigh-in", () => {
     ).toHaveLength(1);
     // Closed again, because the queue is the whole Farm's and the tests here share it: one
     // left open is one more between the next test and the cap.
-    await manager.client.review.resolve({
+    await manager.client.reviewQueue.resolve({
       id: asked?.id ?? "",
       resolution: "স্কেল দেখে নিশ্চিত করা হয়েছে",
     });

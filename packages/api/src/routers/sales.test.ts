@@ -56,7 +56,7 @@ const setup = async () => {
 
   /** Ready to sell: taken in, walked up to Fattening, and confirmed. */
   const ready = async (penId: string) => {
-    const taken = await manager.client.intake.record({
+    const taken = await manager.client.intakes.record({
       penId,
       sex: "male",
       seller: { name: `হাট ${suffix}` },
@@ -80,7 +80,7 @@ const setup = async () => {
   ];
   for (const bull of bulls.slice(0, 2)) {
     // oxlint-disable-next-line no-await-in-loop
-    await manager.client.ready.confirm({ tagNumber: bull.tagNumber });
+    await manager.client.readyForSale.confirm({ tagNumber: bull.tagNumber });
   }
 
   const wormer = await vet.client.drugs.add({
@@ -187,7 +187,7 @@ const aBuyer = {
 describe("the sale", () => {
   it("sells her, exits her, and leaves her history alone", async () => {
     const manager = await asManager("2027-04-02");
-    const sold = await manager.client.sale.record({
+    const sold = await manager.client.sales.record({
       tagNumber: tagOf(0),
       ...aBuyer,
       priceMoney: 145_000,
@@ -215,7 +215,7 @@ describe("the sale", () => {
 
   it("offers the same buyer and lorry again on the same morning", async () => {
     const manager = await asManager("2027-04-02");
-    const again = await manager.client.sale.lastToday();
+    const again = await manager.client.sales.lastToday();
     expect(again).toMatchObject({
       buyerName: aBuyer.buyer.name,
       destination: aBuyer.destination,
@@ -225,7 +225,7 @@ describe("the sale", () => {
 
     // A different morning is a different market: nothing is offered.
     const tomorrow = await asManager("2027-04-03");
-    expect(await tomorrow.client.sale.lastToday()).toBeNull();
+    expect(await tomorrow.client.sales.lastToday()).toBeNull();
   });
 
   it("refuses outright while she is inside her withdrawal", async () => {
@@ -234,10 +234,10 @@ describe("the sale", () => {
 
     // Not ready, and not sellable either: the gate holds at both doors.
     await expect(
-      manager.client.ready.confirm({ tagNumber: tagOf(2) })
+      manager.client.readyForSale.confirm({ tagNumber: tagOf(2) })
     ).rejects.toMatchObject({ data: { refusal: "meat_withdrawal" } });
     await expect(
-      manager.client.sale.record({
+      manager.client.sales.record({
         tagNumber: tagOf(2),
         ...aBuyer,
         priceMoney: 120_000,
@@ -249,7 +249,7 @@ describe("the sale", () => {
     });
 
     // And the refusal names the day she is fit, so somebody can plan around it.
-    const refused = await manager.client.sale
+    const refused = await manager.client.sales
       .record({
         tagNumber: tagOf(2),
         ...aBuyer,
@@ -282,7 +282,7 @@ describe("the sale", () => {
     // back-dating is exactly how the gate would otherwise be got around.
     const manager = await asManager("2027-04-20");
     await expect(
-      manager.client.sale.record({
+      manager.client.sales.record({
         tagNumber: tagOf(2),
         ...aBuyer,
         priceMoney: 120_000,
@@ -292,7 +292,7 @@ describe("the sale", () => {
     ).rejects.toMatchObject({ data: { refusal: "meat_withdrawal" } });
 
     // The same beast, sold after her days were up, goes through.
-    const sold = await manager.client.sale.record({
+    const sold = await manager.client.sales.record({
       tagNumber: tagOf(2),
       ...aBuyer,
       priceMoney: 120_000,
@@ -306,7 +306,7 @@ describe("the sale", () => {
     // Written at nine on the 20th for the afternoon: a lorry that has not left has sold nothing.
     const manager = await asManager("2027-04-20");
     await expect(
-      manager.client.sale.record({
+      manager.client.sales.record({
         tagNumber: tagOf(1),
         ...aBuyer,
         priceMoney: 120_000,
@@ -324,7 +324,7 @@ describe("the sale", () => {
       clock: new FakeClock("2027-04-03T09:00:00.000Z"),
     });
     await expect(
-      staff.client.sale.record({
+      staff.client.sales.record({
         tagNumber: tagOf(1),
         ...aBuyer,
         priceMoney: 130_000,
@@ -338,7 +338,7 @@ describe("the sale", () => {
       as: "owner",
       clock: new FakeClock("2027-04-03T09:00:00.000Z"),
     });
-    const ownersBull = await owner.client.intake.record({
+    const ownersBull = await owner.client.intakes.record({
       penId: world.pen.id,
       sex: "male",
       seller: { name: `হাট ${suffix}` },
@@ -353,8 +353,10 @@ describe("the sale", () => {
       tagNumber: ownersBull.tagNumber,
       state: "fattening",
     });
-    await owner.client.ready.confirm({ tagNumber: ownersBull.tagNumber });
-    await owner.client.sale.record({
+    await owner.client.readyForSale.confirm({
+      tagNumber: ownersBull.tagNumber,
+    });
+    await owner.client.sales.record({
       tagNumber: ownersBull.tagNumber,
       ...aBuyer,
       priceMoney: 130_000,
@@ -369,7 +371,7 @@ describe("the sale", () => {
     // farm stands behind.
     const manager = await asManager("2027-04-03");
     await expect(
-      manager.client.sale.record({
+      manager.client.sales.record({
         tagNumber: tagOf(0),
         ...aBuyer,
         priceMoney: 130_000,
@@ -382,7 +384,7 @@ describe("the sale", () => {
     // The Owner's decision, 2026-09-12: going to a buyer is a Sale, destroyed here is a Cull.
     // One exit and one record, and why she was culled goes in the Sale's own note.
     const manager = await asManager("2027-04-04");
-    const sold = await manager.client.sale.record({
+    const sold = await manager.client.sales.record({
       tagNumber: tagOf(1),
       ...aBuyer,
       priceMoney: 60_000,

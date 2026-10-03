@@ -132,7 +132,7 @@ beforeAll(async () => {
   });
   for (const key of ["undiagnosed", "diagnosed", "corrected"] as const) {
     // oxlint-disable-next-line no-await-in-loop -- one bull after another off the lorry
-    const bought = await owner.client.intake.record({
+    const bought = await owner.client.intakes.record({
       penId: pen.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },

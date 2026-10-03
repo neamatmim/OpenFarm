@@ -23,7 +23,7 @@ const tags: string[] = [];
 /** A bull for the Venture at the gate, bought on the second of January. */
 const aBull = async (price: number) => {
   const owner = await as("owner", "2080-01-02T06:00:00.000Z");
-  return await owner.client.intake.record({
+  return await owner.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `প্রতিবেশী ${suffix}` },
@@ -45,7 +45,7 @@ const sold = async (
   reference?: string
 ) => {
   const manager = await as("manager", instant);
-  return await manager.client.sale.record({
+  return await manager.client.sales.record({
     tagNumber,
     buyer: { name: `ক্রেতা ${suffix}` },
     priceMoney,
@@ -129,7 +129,7 @@ describe("a Venture's bull sold for cash", () => {
 
   it("moves with its price when the Sale is put right before it is deposited", async () => {
     const manager = await as("manager", "2080-01-10T11:00:00.000Z");
-    await manager.client.sale.correct({
+    await manager.client.sales.correct({
       id: first.saleId,
       reason: `দাম আসলে কম ছিল ${suffix}`,
       changes: { priceMoney: { from: 150_000, to: 148_000 } },

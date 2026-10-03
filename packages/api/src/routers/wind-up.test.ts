@@ -118,7 +118,7 @@ const funded = async (owner: Owner, which: number) => {
 const broughtIn = async (forVenture: string) => {
   // At the gate, so the Owner's, paid from the Venture Account by bank.
   const manager = await as("owner", "2047-01-04T05:00:00.000Z");
-  const her = await manager.client.intake.record({
+  const her = await manager.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -196,7 +196,7 @@ beforeAll(async () => {
   // One sold at the livestock market inside the window, which is what puts the Venture into Selling — the state the
   // whole wind-up flow happens in. Two are left for the clock to deal with.
   const manager = await as("manager", "2047-04-20T05:00:00.000Z");
-  await manager.client.sale.record({
+  await manager.client.sales.record({
     tagNumber: tags[2] ?? "",
     buyer: { name: `ক্রেতা ${suffix}` },
     priceMoney: 112_000,

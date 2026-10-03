@@ -63,7 +63,7 @@ const setup = async () => {
 
   /** Both bought on 4 January at 200 kg, fed towards the same Eid and the same weight. */
   const bull = async () =>
-    await manager.client.intake.record({
+    await manager.client.intakes.record({
       penId: pen.id,
       sex: "male",
       seller: { name: `হাট ${suffix}` },

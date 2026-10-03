@@ -90,7 +90,7 @@ beforeAll(async () => {
   // One at a time, and not in parallel: two Intakes racing for the next tag number is a race this
   // test would rather not be about.
   const broughtIn = async () => {
-    const her = await manager.client.intake.record({
+    const her = await manager.client.intakes.record({
       penId,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
@@ -312,7 +312,7 @@ describe("selling a Venture's animals", () => {
   it("reaches Selling on the first Sale, with nothing extra to remember", async () => {
     const manager = await as("manager", "2047-04-18T05:00:00.000Z");
     // The Manager's ordinary Sale: she is not asked whose animal this is.
-    const sold = await manager.client.sale.record({
+    const sold = await manager.client.sales.record({
       tagNumber: tags[0] ?? "",
       buyer: { name: `ক্রেতা ${suffix}` },
       priceMoney: 120_000,
@@ -345,7 +345,7 @@ describe("selling a Venture's animals", () => {
 
   it("does not move again on the second Sale", async () => {
     const manager = await as("manager", "2047-04-19T05:00:00.000Z");
-    const sold = await manager.client.sale.record({
+    const sold = await manager.client.sales.record({
       tagNumber: tags[1] ?? "",
       buyer: { name: `ক্রেতা দুই ${suffix}` },
       priceMoney: 130_000,
@@ -418,7 +418,7 @@ describe("selling a Venture's animals", () => {
     });
 
     // Putting the Sale right is what moves it, and the Venture's account follows.
-    await owner.client.sale.correct({
+    await owner.client.sales.correct({
       id: saleIds[0] ?? "",
       reason: `স্লিপে এক লাখ পঁচিশ ${suffix}`,
       changes: { priceMoney: { from: 120_000, to: 125_000 } },
@@ -434,7 +434,7 @@ describe("selling a Venture's animals", () => {
     const owner = await as("owner", "2047-04-22T04:00:00.000Z");
     // She was the Farm's all along, written to the Venture by mistake. What she fetched was never the
     // Venture's either, so its account must not keep holding it.
-    await owner.client.intake.correct({
+    await owner.client.intakes.correct({
       id: intakeIds[1] ?? "",
       reason: `ও খামারের গরু ছিল ${suffix}`,
       changes: { owner: { from: ventureId, to: null } },
@@ -454,7 +454,7 @@ describe("selling a Venture's animals", () => {
     const manager = await as("manager", "2047-06-01T05:00:00.000Z");
     // At the gate, so the Owner's, paid from the Venture Account by bank.
     const buyer = await as("owner", "2047-06-01T05:00:00.000Z");
-    const her = await buyer.client.intake.record({
+    const her = await buyer.client.intakes.record({
       penId,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
@@ -468,7 +468,7 @@ describe("selling a Venture's animals", () => {
       targetWindowEnd: plan.targetWindowEnd,
     });
     // Sold from buying, not from fattening: the other state a first Sale may move it out of.
-    await manager.client.sale.record({
+    await manager.client.sales.record({
       tagNumber: her.tagNumber,
       buyer: { name: `ক্রেতা তিন ${suffix}` },
       priceMoney: 90_000,

@@ -49,7 +49,7 @@ const tagInput = z.string().trim().min(1).max(32);
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export const saleRouter = {
+export const salesRouter = {
   /**
    * What she last weighed on the farm, and when: her last Weigh-in, or else what she came in at. Beside the box for what
    * she weighs today, so the Manager sees her Shrink before saving — whichever animal it is, a cull by her tag too.

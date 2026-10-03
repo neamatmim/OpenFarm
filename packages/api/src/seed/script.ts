@@ -181,7 +181,7 @@ const sendTheMilk = ({ farm, days, on }: Script) => {
       f.clock.set(onFarm(day, "09:10"));
       if (day === addDays(today, -3)) {
         // A round five thousand from the sweet shop, which clears its oldest few days and leaves the rest owing.
-        await f.as.manager.receivable.pay({
+        await f.as.manager.receivables.pay({
           buyer: MILK_BUYERS.sweets.name,
           kind: "milk",
           amountMoney: 5000,
@@ -968,7 +968,7 @@ const sellTheReady = ({ farm, on }: Script) => {
       .toSorted((a, b) => projected(b) - projected(a))
       .slice(0, 6);
     for (const bull of first) {
-      await f.as.manager.ready.confirm({ tagNumber: bull.tag });
+      await f.as.manager.readyForSale.confirm({ tagNumber: bull.tag });
       bull.state = "ready_for_sale";
     }
   });
@@ -1028,7 +1028,7 @@ const sellTheReady = ({ farm, on }: Script) => {
         Math.round(
           (weightKg * (typedLow ? 565 : random.between(560, 620))) / 1000
         ) * 1000;
-      await f.as.manager.sale.record({
+      await f.as.manager.sales.record({
         tagNumber: bull.tag,
         buyer,
         priceMoney,
@@ -1050,14 +1050,14 @@ const sellTheReady = ({ farm, on }: Script) => {
     "16:00",
     "a trader pays half his receivable",
     async (f) => {
-      const owing = await f.as.manager.receivable.list();
+      const owing = await f.as.manager.receivables.list();
       const late = owing.find((one) =>
         one.kinds.some((kind) => kind.kind === "cattle" && kind.owingMoney > 0)
       );
       if (!late) {
         return;
       }
-      await f.as.manager.receivable.pay({
+      await f.as.manager.receivables.pay({
         buyer: late.name,
         kind: "cattle",
         amountMoney: 10_000,
@@ -1074,7 +1074,7 @@ const sellTheReady = ({ farm, on }: Script) => {
     if (!(old && butcher)) {
       return;
     }
-    await f.as.manager.sale.record({
+    await f.as.manager.sales.record({
       tagNumber: old.tag,
       buyer: butcher,
       priceMoney: 78_000,

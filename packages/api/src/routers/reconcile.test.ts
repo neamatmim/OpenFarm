@@ -71,7 +71,7 @@ const bull = async (
   instant: string
 ) => {
   const manager = await as("manager", instant);
-  return await manager.client.intake.record({
+  return await manager.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -253,7 +253,7 @@ describe("the Float comes home", () => {
     // The lorry went out on this Venture's money, so every beast on it is this Venture's.
     const manager = await as("manager", "2047-01-13T05:00:00.000Z");
     await expect(
-      manager.client.intake.record({
+      manager.client.intakes.record({
         penId,
         sex: "male",
         seller: { name: `ব্যাপারী ${suffix}` },
@@ -278,7 +278,7 @@ describe("the Float comes home", () => {
     });
     const later = await as("manager", "2047-01-13T08:00:00.000Z");
     await expect(
-      later.client.intake.correct({
+      later.client.intakes.correct({
         id: her.intakeId,
         reason: "দাম ভুল লেখা হয়েছিল",
         changes: { purchasePriceMoney: { from: 60_000, to: 55_000 } },

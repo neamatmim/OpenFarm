@@ -102,7 +102,7 @@ const TheLetter = ({
   const { t } = useLanguage();
   const refused = useRefused();
   const letter = useMutation(
-    orpc.notifiable.letter.mutationOptions({
+    orpc.notifiableDiseases.letter.mutationOptions({
       onError: refused,
     })
   );

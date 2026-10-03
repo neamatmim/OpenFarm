@@ -70,7 +70,7 @@ beforeAll(async () => {
     chargedToAnimals: true,
   });
   const buyer = await as("owner", "2079-01-02T06:00:00.000Z");
-  await buyer.client.intake.record({
+  await buyer.client.intakes.record({
     penId: pen.id,
     sex: "male",
     seller: { name: `প্রতিবেশী ${suffix}` },

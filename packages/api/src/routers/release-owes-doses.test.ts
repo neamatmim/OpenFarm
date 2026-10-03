@@ -84,7 +84,7 @@ beforeAll(async () => {
   penId = pen.id;
   for (const key of Object.keys(tags) as (keyof typeof tags)[]) {
     // oxlint-disable-next-line no-await-in-loop -- one bull after another off the lorry
-    const bull = await manager.client.intake.record({
+    const bull = await manager.client.intakes.record({
       penId,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },

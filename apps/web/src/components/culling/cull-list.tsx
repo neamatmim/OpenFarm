@@ -32,7 +32,7 @@ import { orpc } from "@/utils/orpc";
  * to one that does not. The Owner's alone; nothing here is answered or decided.
  */
 
-export type CullList = Awaited<ReturnType<typeof client.culling.list>>;
+export type CullList = Awaited<ReturnType<typeof client.cullList.list>>;
 type CullCow = CullList["cows"][number];
 
 /** How many cows show before the next page. */
@@ -41,7 +41,7 @@ const CULL_PAGE = 20;
 /** The Owner's list, asked only for the Owner. */
 export const useCullList = () => {
   const owner = useIsOwner();
-  return useQuery({ ...orpc.culling.list.queryOptions(), enabled: owner });
+  return useQuery({ ...orpc.cullList.list.queryOptions(), enabled: owner });
 };
 
 /** Each reason as it is drawn: its colour, its mark. */

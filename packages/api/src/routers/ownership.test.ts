@@ -33,7 +33,7 @@ const buy = async (
 ) => {
   // A Venture's bull at the gate is the Owner's, paid from its account by bank.
   const manager = await as(ventureFor ? "owner" : "manager", instant);
-  return await manager.client.intake.record({
+  return await manager.client.intakes.record({
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
@@ -140,7 +140,7 @@ describe("whose animal she is", () => {
     const slip = await buy("2046-11-05T05:00:00.000Z", 70_000);
     // The Owner's, paid from the Venture Account by bank.
     const manager = await as("owner", "2046-11-05T09:00:00.000Z");
-    await manager.client.intake.correct({
+    await manager.client.intakes.correct({
       id: slip.intakeId,
       reason: "ভেঞ্চারের গরু, ভুল করে খামারের নামে লেখা হয়েছিল",
       changes: { owner: { from: null, to: ventureId }, ...PAID_BY_THE_VENTURE },
@@ -162,7 +162,7 @@ describe("whose animal she is", () => {
     // Five weeks later, past the thirty days the Manager's window gives her.
     const manager = await as("manager", "2046-12-12T05:00:00.000Z");
     await expect(
-      manager.client.intake.correct({
+      manager.client.intakes.correct({
         id: old.intakeId,
         reason: "অনেক দেরিতে",
         changes: { owner: { from: null, to: ventureId } },
@@ -218,7 +218,7 @@ describe("whose animal she is", () => {
     const manager = await as("owner", "2046-11-11T07:00:00.000Z");
     // The Correction Window is thirty days and a Venture does not wait that long: a slip at the livestock market
     // is still a slip once buying has finished.
-    await manager.client.intake.correct({
+    await manager.client.intakes.correct({
       id: slip.intakeId,
       reason: "ভেঞ্চারের গরু ছিল",
       changes: {
@@ -233,7 +233,7 @@ describe("whose animal she is", () => {
   it("moves what she fetched with her when her owner is put right", async () => {
     const slip = await buy("2046-11-12T05:00:00.000Z", 70_000);
     const manager = await as("manager", "2046-11-12T06:00:00.000Z");
-    const sold = await manager.client.sale.record({
+    const sold = await manager.client.sales.record({
       tagNumber: slip.tagNumber,
       buyer: { name: `ক্রেতা ${suffix}` },
       priceMoney: 100_000,
@@ -244,7 +244,7 @@ describe("whose animal she is", () => {
       soldAt: new Date("2046-11-12T06:00:00.000Z"),
     });
     const buyer = await as("owner", "2046-11-12T06:30:00.000Z");
-    await buyer.client.intake.correct({
+    await buyer.client.intakes.correct({
       id: slip.intakeId,
       reason: "ভেঞ্চারের গরু ছিল, বিক্রির পরে ধরা পড়েছে",
       changes: { owner: { from: null, to: ventureId }, ...PAID_BY_THE_VENTURE },
@@ -264,7 +264,7 @@ describe("whose animal she is", () => {
     // Said by the Manager to have been the Farm's all along: the Farm's hundred and fifty-one thousand is a
     // different question from the Investors', and the farm asks it of the Owner.
     const manager = await as("manager", "2046-11-13T07:00:00.000Z");
-    await manager.client.intake.correct({
+    await manager.client.intakes.correct({
       id: big.intakeId,
       reason: "খামারের টাকায় কেনা",
       changes: {
@@ -298,7 +298,7 @@ describe("whose animal she is", () => {
   it("leaves what she fetches where she belonged", async () => {
     const theirs = await buy("2046-11-08T05:00:00.000Z", 90_000, ventureId);
     const manager = await as("manager", "2046-11-09T05:00:00.000Z");
-    const sold = await manager.client.sale.record({
+    const sold = await manager.client.sales.record({
       tagNumber: theirs.tagNumber,
       buyer: { name: `ক্রেতা ${suffix}` },
       priceMoney: 130_000,

@@ -52,7 +52,7 @@ beforeAll(async () => {
     [45_000, "খ"],
   ] as const) {
     // oxlint-disable-next-line no-await-in-loop -- one lorry, one bull after the other
-    await manager.client.intake.record({
+    await manager.client.intakes.record({
       penId: pen.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${name} ${suffix}` },
@@ -133,7 +133,7 @@ describe("a Buying Float for the Farm's own outing", () => {
   it("takes no further animal once counted home", async () => {
     const manager = await as("manager", "2072-02-11T05:00:00.000Z");
     await expect(
-      manager.client.intake.record({
+      manager.client.intakes.record({
         penId,
         sex: "male",
         seller: { name: `ব্যাপারী গ ${suffix}` },
@@ -162,7 +162,7 @@ describe("a Buying Float for the Farm's own outing", () => {
   it("takes no animal moved onto it by a Correction once counted home", async () => {
     const manager = await as("manager", "2072-02-11T07:00:00.000Z");
     // A bull bought at the farm gate the same week, then said to have come home on the counted outing.
-    const hers = await manager.client.intake.record({
+    const hers = await manager.client.intakes.record({
       penId,
       sex: "male",
       seller: { name: `প্রতিবেশী ${suffix}` },
@@ -174,7 +174,7 @@ describe("a Buying Float for the Farm's own outing", () => {
       targetWindowEnd: "2072-06-05",
     });
     await expect(
-      manager.client.intake.correct({
+      manager.client.intakes.correct({
         id: hers.intakeId,
         reason: `এটাও গাবতলীর লরিতে এসেছিল ${suffix}`,
         changes: { buyingTrip: { from: null, to: tripId } },

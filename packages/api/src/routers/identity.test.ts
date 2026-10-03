@@ -52,12 +52,12 @@ describe("the farm's own identity", () => {
       aliases: [],
     });
     const diseaseName = `তড়কা-পরিচয় ${Date.now()}`;
-    await manager.client.notifiable.add({ name: { bn: diseaseName } });
+    await manager.client.notifiableDiseases.add({ name: { bn: diseaseName } });
     const made = await vet.client.diagnoses.record({
       animalTag: cow.tagNumber,
       disease: { bn: diseaseName },
     });
-    const letter = await manager.client.notifiable.letter({
+    const letter = await manager.client.notifiableDiseases.letter({
       diagnosisId: made.id,
     });
     expect(letter.text).toContain("শিমুলিয়া");

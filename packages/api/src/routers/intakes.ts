@@ -90,7 +90,7 @@ const recordInput = z
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export const intakeRouter = {
+export const intakesRouter = {
   /**
    * What the farm's own buys of the last two months near this weight cost a kilo, beside the price being typed — the
    * Manager's check against paying over the odds at the livestock market. The Owner's and the Manager's: they buy, and know the

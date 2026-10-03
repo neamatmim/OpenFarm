@@ -101,7 +101,7 @@ export const DiagnosisSheet = ({
   // The farm's notifiable diseases, offered as the Vet types and named back when the words are one of them: the letter
   // to the office is owed the moment it is saved, and the Vet should know it is.
   const listed = useQuery({
-    ...orpc.notifiable.list.queryOptions(),
+    ...orpc.notifiableDiseases.list.queryOptions(),
     enabled: open,
   });
   const onTheList = (listed.data ?? []).filter((one) => one.retiredAt === null);

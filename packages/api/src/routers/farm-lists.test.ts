@@ -87,10 +87,12 @@ const LISTS: AList[] = [
   {
     name: "notifiable diseases",
     entity: "notifiable_disease",
-    add: (label) => idOf(manager.notifiable.add({ name: { bn: label } })),
-    retire: (id) => manager.notifiable.retire({ id, reason: "অফিস বলেছে" }),
+    add: (label) =>
+      idOf(manager.notifiableDiseases.add({ name: { bn: label } })),
+    retire: (id) =>
+      manager.notifiableDiseases.retire({ id, reason: "অফিস বলেছে" }),
     bringBack: (id) =>
-      manager.notifiable.bringBack({ id, reason: "অফিস আবার বলেছে" }),
+      manager.notifiableDiseases.bringBack({ id, reason: "অফিস আবার বলেছে" }),
   },
 ];
 
@@ -138,7 +140,7 @@ describe("a name on a list", () => {
       nameEn: `Power ${suffix}`,
       direction: "out",
     });
-    await manager.notifiable.add({
+    await manager.notifiableDiseases.add({
       name: { bn: `জ্বর ${suffix}`, en: `Fever ${suffix}` },
     });
 
@@ -150,20 +152,20 @@ describe("a name on a list", () => {
       })
     ).rejects.toMatchObject({ data: { refusal: "category_exists" } });
     await expect(
-      manager.notifiable.add({
+      manager.notifiableDiseases.add({
         name: { bn: `অন্য জ্বর ${suffix}`, en: `fever ${suffix}` },
       })
     ).rejects.toMatchObject({ data: { refusal: "disease_exists" } });
   });
 
   it("names a retired entry as retired, so it is brought back rather than written twice", async () => {
-    const { id } = await manager.notifiable.add({
+    const { id } = await manager.notifiableDiseases.add({
       name: { bn: `তড়কা ${suffix}` },
     });
-    await manager.notifiable.retire({ id, reason: "অফিস বলেছে" });
+    await manager.notifiableDiseases.retire({ id, reason: "অফিস বলেছে" });
 
     await expect(
-      manager.notifiable.add({ name: { bn: `তড়কা ${suffix}` } })
+      manager.notifiableDiseases.add({ name: { bn: `তড়কা ${suffix}` } })
     ).rejects.toMatchObject({
       data: { refusal: "disease_exists_retired", id, retired: true },
     });

@@ -105,7 +105,7 @@ const weigh = async (
 
 const sell = async (tagNumber: string, at: string, priceMoney: number) => {
   const { client } = await as("manager", at);
-  await client.sale.record({
+  await client.sales.record({
     tagNumber,
     buyer: { name: `ক্রেতা ${suffix}` },
     priceMoney,
@@ -198,7 +198,7 @@ beforeAll(async () => {
   });
   const { client: manager } = await as("manager", "2053-01-04T05:00:00.000Z");
   const bull = async (priceMoney: number, forTheVenture: boolean) =>
-    await manager.intake.record({
+    await manager.intakes.record({
       penId: pen.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
@@ -556,7 +556,7 @@ describe("a Venture still going, at today's price", () => {
       reference: `FLT-2-${suffix}`,
     });
     const { client: manager } = await as("manager", "2053-01-04T05:00:00.000Z");
-    await manager.intake.record({
+    await manager.intakes.record({
       penId: pen.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
