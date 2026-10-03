@@ -397,59 +397,62 @@ export const ReceiveFeedSheet = ({
       ready={ready}
       submitLabel={t("stock.record")}
       title={t("stock.recordArrival")}
+      wide
     >
       {chosen ? (
         <>
-          <FormField id="receive-item" label={t("stock.col.item")}>
-            <NativeSelect
-              id="receive-item"
-              onChange={(event) => set("feedItemId", event.target.value)}
-              value={chosen.id}
-            >
-              {live.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.nameBn}
-                </option>
-              ))}
-            </NativeSelect>
-          </FormField>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <FormField id="receive-item" label={t("stock.col.item")}>
+              <NativeSelect
+                id="receive-item"
+                onChange={(event) => set("feedItemId", event.target.value)}
+                value={chosen.id}
+              >
+                {live.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.nameBn}
+                  </option>
+                ))}
+              </NativeSelect>
+            </FormField>
 
-          <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium">{t("stock.kind")}</span>
-            <SegmentedControl
-              label={t("stock.kind")}
-              name="receive-kind"
-              onChange={(value) => set("kind", value)}
-              options={[
-                { value: "purchase", label: t("stock.purchase") },
-                { value: "harvest", label: t("stock.harvest") },
-              ]}
-              value={draft.kind}
-            />
-          </div>
-
-          {ways.length > 1 ? (
             <div className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium">
-                {t("stock.countedIn")}
-              </span>
+              <span className="text-sm font-medium">{t("stock.kind")}</span>
               <SegmentedControl
-                label={t("stock.countedIn")}
-                name="receive-counted-in"
-                onChange={(value) => set("countedIn", value)}
-                options={ways.map((way) => ({
-                  value: way,
-                  label:
-                    way === "own"
-                      ? feedUnitWord(chosen.unit, language)
-                      : FEED_PACK_WORDS[way][language],
-                }))}
-                value={countedIn}
+                label={t("stock.kind")}
+                name="receive-kind"
+                onChange={(value) => set("kind", value)}
+                options={[
+                  { value: "purchase", label: t("stock.purchase") },
+                  { value: "harvest", label: t("stock.harvest") },
+                ]}
+                value={draft.kind}
               />
             </div>
-          ) : null}
 
-          <div className="grid gap-4 sm:grid-cols-2">
+            {ways.length > 1 ? (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium">
+                  {t("stock.countedIn")}
+                </span>
+                <SegmentedControl
+                  label={t("stock.countedIn")}
+                  name="receive-counted-in"
+                  onChange={(value) => set("countedIn", value)}
+                  options={ways.map((way) => ({
+                    value: way,
+                    label:
+                      way === "own"
+                        ? feedUnitWord(chosen.unit, language)
+                        : FEED_PACK_WORDS[way][language],
+                  }))}
+                  value={countedIn}
+                />
+              </div>
+            ) : null}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
             <FormField
               hint={
                 countedIn === "bag" && chosen.bagSizeKg !== null
@@ -486,22 +489,24 @@ export const ReceiveFeedSheet = ({
                 value={draft.receivedOn}
               />
             </FormField>
+            {draft.kind === "purchase" ? (
+              <FormField id="receive-price" label={t("stock.price")}>
+                <Input
+                  id="receive-price"
+                  inputMode="numeric"
+                  min={0}
+                  onChange={(event) => set("price", event.target.value)}
+                  required
+                  type="number"
+                  value={draft.price}
+                />
+              </FormField>
+            ) : null}
           </div>
 
           {draft.kind === "purchase" ? (
             <>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <FormField id="receive-price" label={t("stock.price")}>
-                  <Input
-                    id="receive-price"
-                    inputMode="numeric"
-                    min={0}
-                    onChange={(event) => set("price", event.target.value)}
-                    required
-                    type="number"
-                    value={draft.price}
-                  />
-                </FormField>
+              <div className="grid gap-4 sm:grid-cols-3">
                 <PaymentMethodField
                   account={{
                     typed: draft.account,
@@ -509,19 +514,20 @@ export const ReceiveFeedSheet = ({
                   }}
                   id="receive-paid-by"
                   onChange={(method) => set("paymentMethod", method)}
+                  row
                   value={draft.paymentMethod}
                 />
               </div>
-              <FormField id="receive-seller" label={t("stock.seller")}>
-                <Input
-                  autoComplete="off"
-                  id="receive-seller"
-                  onChange={(event) => set("seller", event.target.value)}
-                  required
-                  value={draft.seller}
-                />
-              </FormField>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <FormField id="receive-seller" label={t("stock.seller")}>
+                  <Input
+                    autoComplete="off"
+                    id="receive-seller"
+                    onChange={(event) => set("seller", event.target.value)}
+                    required
+                    value={draft.seller}
+                  />
+                </FormField>
                 <FormField id="receive-lot" label={t("lots.lotNumber")}>
                   <Input
                     autoComplete="off"

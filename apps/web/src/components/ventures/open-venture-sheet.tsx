@@ -194,15 +194,38 @@ export const OpenVentureSheet = ({
       ready={ready}
       submitLabel={t("ventures.open")}
       title={t("ventures.open")}
+      wide
     >
-      <FormField id="venture-name" label={t("ventures.name")}>
-        <Input
-          autoComplete="off"
-          id="venture-name"
-          onChange={(event) => setPlan({ ...plan, name: event.target.value })}
-          value={plan.name}
-        />
-      </FormField>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField id="venture-name" label={t("ventures.name")}>
+          <Input
+            autoComplete="off"
+            id="venture-name"
+            onChange={(event) => setPlan({ ...plan, name: event.target.value })}
+            value={plan.name}
+          />
+        </FormField>
+        <FormField id="venture-paid" label={t("ventures.paidFor.choose")}>
+          <NativeSelect
+            id="venture-paid"
+            onChange={(event) =>
+              setPlan({
+                ...plan,
+                capitalPaid:
+                  CAPITAL_PAID.find((one) => one === event.target.value) ??
+                  "before_buying",
+              })
+            }
+            value={plan.capitalPaid}
+          >
+            {CAPITAL_PAID.map((one) => (
+              <option key={one} value={one}>
+                {t(`ventures.paidFor.${one}`)}
+              </option>
+            ))}
+          </NativeSelect>
+        </FormField>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField id="venture-target" label={t("ventures.target")}>
           <Input
@@ -253,37 +276,17 @@ export const OpenVentureSheet = ({
           />
         </FormField>
       </div>
-      <FormField id="venture-paid" label={t("ventures.paidFor.choose")}>
-        <NativeSelect
-          id="venture-paid"
-          onChange={(event) =>
-            setPlan({
-              ...plan,
-              capitalPaid:
-                CAPITAL_PAID.find((one) => one === event.target.value) ??
-                "before_buying",
-            })
-          }
-          value={plan.capitalPaid}
-        >
-          {CAPITAL_PAID.map((one) => (
-            <option key={one} value={one}>
-              {t(`ventures.paidFor.${one}`)}
-            </option>
-          ))}
-        </NativeSelect>
-      </FormField>
-      <FormField id="venture-decide" label={t("ventures.decideBy")}>
-        <Input
-          id="venture-decide"
-          onChange={(event) =>
-            setPlan({ ...plan, decideBy: event.target.value })
-          }
-          type="date"
-          value={plan.decideBy}
-        />
-      </FormField>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <FormField id="venture-decide" label={t("ventures.decideBy")}>
+          <Input
+            id="venture-decide"
+            onChange={(event) =>
+              setPlan({ ...plan, decideBy: event.target.value })
+            }
+            type="date"
+            value={plan.decideBy}
+          />
+        </FormField>
         <FormField id="venture-from" label={t("ventures.windowFrom")}>
           <Input
             id="venture-from"

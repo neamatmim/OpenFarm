@@ -464,7 +464,7 @@ const TheStamp = ({
   const { t } = useLanguage();
   return (
     <>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         <FormField
           id="agreement-stamp-value"
           label={t(STAMP_LABELS[terms.stampKind].value)}
@@ -492,20 +492,20 @@ const TheStamp = ({
             value={terms.stampedOn}
           />
         </FormField>
-      </div>
-      <FormField
-        id="agreement-stamp-serial"
-        label={t(STAMP_LABELS[terms.stampKind].serial)}
-      >
-        <Input
-          autoComplete="off"
+        <FormField
           id="agreement-stamp-serial"
-          onChange={(event) =>
-            onChange({ ...terms, stampSerial: event.target.value })
-          }
-          value={terms.stampSerial}
-        />
-      </FormField>
+          label={t(STAMP_LABELS[terms.stampKind].serial)}
+        >
+          <Input
+            autoComplete="off"
+            id="agreement-stamp-serial"
+            onChange={(event) =>
+              onChange({ ...terms, stampSerial: event.target.value })
+            }
+            value={terms.stampSerial}
+          />
+        </FormField>
+      </div>
       <FormField
         hint={t("ventures.paperHint")}
         id="agreement-paper"
@@ -746,6 +746,7 @@ export const SignAgreementSheet = ({
       ready={ready}
       submitLabel={inApp ? t("agreeInApp.offer") : t("ventures.sign")}
       title={t("ventures.sign")}
+      wide
     >
       <FormField
         hint={

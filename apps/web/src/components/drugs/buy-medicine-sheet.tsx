@@ -126,6 +126,7 @@ export const BuyMedicineSheet = ({
       ready={complete}
       submitLabel={t("drugs.recordPurchase")}
       title={t("drugs.buy")}
+      wide
     >
       {chosen ? (
         <>
@@ -143,7 +144,7 @@ export const BuyMedicineSheet = ({
             </NativeSelect>
           </FormField>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
             <FormField id="buy-quantity" label={t("drugs.quantity")}>
               <Input
                 autoComplete="off"
@@ -162,9 +163,6 @@ export const BuyMedicineSheet = ({
                 value={typed.doses}
               />
             </FormField>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
             <FormField id="buy-price" label={t("drugs.price")}>
               <Input
                 id="buy-price"
@@ -175,10 +173,14 @@ export const BuyMedicineSheet = ({
                 value={typed.price}
               />
             </FormField>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
             <PaymentMethodField
               account={{ typed: account, onChange: setAccount }}
               id="buy-paid-by"
               onChange={setPaymentMethod}
+              row
               value={paymentMethod}
             />
           </div>
