@@ -16,7 +16,13 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { EmptyState, Loaded, Page, PageHeader } from "@/components/page";
+import {
+  EmptyState,
+  Loaded,
+  Page,
+  PageHeader,
+  TableSkeleton,
+} from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { FilterBar, NativeSelect, SummaryFigures } from "@/components/page-kit";
 import type { HandOver } from "@/components/people/invite-sheet";
@@ -218,7 +224,7 @@ const PeoplePage = () => {
 
       <div className="surface flex flex-col gap-4 p-4 md:p-5">
         <PeopleFilters filter={filter} onChange={setFilter} />
-        <Loaded query={list}>
+        <Loaded query={list} skeleton={<TableSkeleton />}>
           {shown.length === 0 ? (
             <EmptyState
               action={

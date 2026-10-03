@@ -527,6 +527,31 @@ export const Notice = ({
   );
 };
 
+/** How many rows a table's placeholder draws: about a screen's worth on a laptop. */
+const SKELETON_ROWS = 6;
+
+/**
+ * A table's placeholder while the farm is asked: on a desk a heading row and rows of bars where its columns will
+ * stand, so the page does not jump when the rows come (Carbon: skeletons match the layout, not a spinner); on a phone
+ * the one block a list of cards has always had.
+ */
+export const TableSkeleton = ({ rows = SKELETON_ROWS }: { rows?: number }) => (
+  <div aria-hidden>
+    <Skeleton className="h-20 rounded-lg md:hidden" />
+    <div className="hidden flex-col md:flex">
+      <Skeleton className="h-9 rounded-md" />
+      {Array.from({ length: rows }, (_, row) => (
+        <div className="flex items-center gap-6 border-b py-3.5" key={row}>
+          <Skeleton className="h-4 w-1/5" />
+          <Skeleton className="h-4 w-1/6" />
+          <Skeleton className="h-4 w-1/4" />
+          <Skeleton className="ms-auto h-4 w-20" />
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 /**
  * What a list shows before the farm has answered: a placeholder while it is being asked, a failure with a way to ask
  * again, and only then the list — so "nothing waiting" is said only when the farm has said it.

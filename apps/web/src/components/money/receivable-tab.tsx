@@ -28,6 +28,7 @@ import {
   RecordRow,
   Section,
   StatTile,
+  TableSkeleton,
   TagChip,
 } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
@@ -443,7 +444,7 @@ export const ReceivableTab = () => {
   const owing = buyers.reduce((sum, one) => sum + one.owingMoney, 0);
   const owingBuyers = buyers.filter((one) => one.owingMoney > 0).length;
   return (
-    <Loaded query={list}>
+    <Loaded query={list} skeleton={<TableSkeleton rows={4} />}>
       {buyers.length === 0 ? (
         <EmptyState
           description={t("receivable.nobodyHint")}
