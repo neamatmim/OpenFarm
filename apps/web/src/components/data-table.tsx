@@ -32,7 +32,7 @@ import {
   ChevronsUpDown,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 import { useLanguage, useT } from "@/i18n/language-provider";
 
@@ -193,6 +193,10 @@ const Pager = ({
  *
  * Inside a `Section` the table runs to the card's edges; `bare` keeps it within its own box elsewhere. A long history
  * gives a `pageSize`, and is read a page at a time in the order it is sorted.
+ *
+ * A row that opens to a breakdown — a buyer's sales and payments under what he owes — gives `renderDetail`: a button at
+ * the row's start opens it under the row, across the whole table (Carbon's expandable data table), so the list stays
+ * one line a record to read down and the breakdown is a press away. The phone's cards carry their breakdown as before.
  */
 export const DataTable = <TData extends object>({
   table,
@@ -201,15 +205,27 @@ export const DataTable = <TData extends object>({
   bare = false,
   pageSize,
   className,
+  renderDetail,
 }: {
   table: TableInstance<ListFeatures, TData>;
   card?: (row: TData) => ReactNode;
+  renderDetail?: (row: TData) => ReactNode;
   minWidth?: string;
   bare?: boolean;
   pageSize?: number;
   className?: string;
 }) => {
   const [page, setPage] = useState(0);
+  const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set());
+  const t = useT();
+  const toggle = (id: string) =>
+    setOpened((was) => {
+      const now = new Set(was);
+      if (!now.delete(id)) {
+        now.add(id);
+      }
+      return now;
+    });
   const all = table.getRowModel().rows;
   const size = pageSize ?? all.length;
   const pages = Math.max(1, Math.ceil(all.length / Math.max(size, 1)));
@@ -254,6 +270,11 @@ export const DataTable = <TData extends object>({
           >
             {table.getHeaderGroups().map((group) => (
               <TableRow key={group.id}>
+                {renderDetail ? (
+                  <TableHead className="w-12 pl-4 md:pl-5">
+                    <span className="sr-only">{t("common.col.details")}</span>
+                  </TableHead>
+                ) : null}
                 {group.headers.map((header) => {
                   const look = header.column.columnDef.meta;
                   const sorted = header.column.getIsSorted();
@@ -281,25 +302,64 @@ export const DataTable = <TData extends object>({
             ))}
           </TableHeader>
           <TableBody>
-            {rows.map((row) => (
-              <TableRow key={row.id}>
-                {row.getAllCells().map((cell) => {
-                  const look = cell.column.columnDef.meta;
-                  return (
-                    <TableCell
-                      className={cn(
-                        "align-top whitespace-normal first:pl-4 last:pr-4 md:first:pl-5 md:last:pr-5",
-                        look?.align === "end" && "text-right tabular-nums",
-                        look?.className
-                      )}
-                      key={cell.id}
-                    >
-                      <FlexRender cell={cell} />
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-            ))}
+            {rows.map((row) => {
+              const isOpen = opened.has(row.id);
+              const detailId = `row-detail-${row.id}`;
+              return (
+                <Fragment key={row.id}>
+                  <TableRow data-state={isOpen ? "open" : undefined}>
+                    {renderDetail ? (
+                      <TableCell className="w-12 pl-4 align-top md:pl-5">
+                        <Button
+                          aria-controls={detailId}
+                          aria-expanded={isOpen}
+                          aria-label={t(
+                            isOpen ? "common.hideDetails" : "common.showDetails"
+                          )}
+                          onClick={() => toggle(row.id)}
+                          size="icon-sm"
+                          type="button"
+                          variant="ghost"
+                        >
+                          <ChevronRight
+                            aria-hidden
+                            className={cn(
+                              "transition-transform motion-reduce:transition-none",
+                              isOpen && "rotate-90"
+                            )}
+                          />
+                        </Button>
+                      </TableCell>
+                    ) : null}
+                    {row.getAllCells().map((cell) => {
+                      const look = cell.column.columnDef.meta;
+                      return (
+                        <TableCell
+                          className={cn(
+                            "align-top whitespace-normal first:pl-4 last:pr-4 md:first:pl-5 md:last:pr-5",
+                            look?.align === "end" && "text-right tabular-nums",
+                            look?.className
+                          )}
+                          key={cell.id}
+                        >
+                          <FlexRender cell={cell} />
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                  {renderDetail && isOpen ? (
+                    <TableRow className="hover:bg-transparent" id={detailId}>
+                      <TableCell
+                        className="bg-muted/40 px-4 py-4 whitespace-normal md:px-5"
+                        colSpan={row.getAllCells().length + 1}
+                      >
+                        {renderDetail(row.original)}
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                </Fragment>
+              );
+            })}
           </TableBody>
         </Table>
       </div>

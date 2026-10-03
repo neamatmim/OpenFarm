@@ -5,7 +5,14 @@ import { useQuery } from "@tanstack/react-query";
 import { HandCoins, Plus } from "lucide-react";
 import { useState } from "react";
 
+import {
+  DataTable,
+  createListColumns,
+  listHeader,
+  useListTable,
+} from "@/components/data-table";
 import { phoneLink } from "@/components/investors/phone-link";
+import { Nothing } from "@/components/list-cells";
 import { useIsOwner } from "@/components/money";
 import {
   ReceivablePaymentCorrection,
@@ -24,6 +31,7 @@ import {
   TagChip,
 } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
+import { useMoney } from "@/lib/money";
 import { orpc } from "@/utils/orpc";
 
 type Buyer = Awaited<ReturnType<typeof orpc.receivables.list.call>>[number];
@@ -216,6 +224,29 @@ const KindPart = ({
   );
 };
 
+/** What one buyer owes, kind by kind: what he took, what he paid, and what was written off — on a phone under his
+ *  name, on a desk under his row. */
+const BuyerBreakdown = ({
+  buyer,
+  onPay,
+  mayWriteOff,
+}: {
+  buyer: Buyer;
+  onPay: (paying: PaymentFor) => void;
+  mayWriteOff: boolean;
+}) => (
+  <div className="flex flex-col gap-5">
+    {buyer.kinds.map((standing) => (
+      <KindPart
+        key={standing.kind}
+        mayWriteOff={mayWriteOff}
+        onPay={() => onPay({ buyer: buyer.name, kind: standing.kind })}
+        standing={standing}
+      />
+    ))}
+  </div>
+);
+
 /** One buyer who owes the farm: his name and a number to ring, and his cattle and his milk apart. */
 const BuyerCard = ({
   buyer,
@@ -246,15 +277,155 @@ const BuyerCard = ({
         </span>
       }
     >
-      {buyer.kinds.map((standing) => (
-        <KindPart
-          key={standing.kind}
-          mayWriteOff={mayWriteOff}
-          onPay={() => onPay({ buyer: buyer.name, kind: standing.kind })}
-          standing={standing}
-        />
-      ))}
+      <BuyerBreakdown buyer={buyer} mayWriteOff={mayWriteOff} onPay={onPay} />
     </Section>
+  );
+};
+
+interface Cell {
+  row: { original: Buyer };
+}
+
+const owingOf = (buyer: Buyer, kind: KindStanding["kind"]) =>
+  buyer.kinds.find((one) => one.kind === kind)?.owingMoney ?? 0;
+
+/** The day he has owed since: the older of his cattle and his milk. Nothing, once all he took is paid. */
+const sinceOf = (buyer: Buyer) =>
+  buyer.kinds
+    .map((one) => one.oldestOn)
+    .filter((day) => day !== null)
+    .toSorted()
+    .at(0);
+
+/** The soonest day he promised to pay by, of either kind. */
+const promiseOf = (buyer: Buyer) =>
+  buyer.kinds
+    .map((one) => one.soonestPromise)
+    .filter((day) => day !== null)
+    .toSorted()
+    .at(0);
+
+const BuyerCell = ({ row }: Cell) => (
+  <span className="flex flex-col">
+    <span className="font-medium">{row.original.name}</span>
+    <span className="text-muted-foreground text-xs">
+      {phoneLink(row.original.phone)}
+    </span>
+  </span>
+);
+
+const TONE = {
+  warning: "text-warning font-medium",
+  danger: "text-danger font-medium",
+} as const;
+
+const MoneyOrNothing = ({
+  amount,
+  tone,
+}: {
+  amount: number;
+  tone?: keyof typeof TONE;
+}) => {
+  const asMoney = useMoney();
+  if (amount <= 0) {
+    return <Nothing />;
+  }
+  return (
+    <span className={tone === undefined ? undefined : TONE[tone]}>
+      {asMoney(amount)}
+    </span>
+  );
+};
+
+const CattleCell = ({ row }: Cell) => (
+  <MoneyOrNothing amount={owingOf(row.original, "cattle")} />
+);
+const MilkCell = ({ row }: Cell) => (
+  <MoneyOrNothing amount={owingOf(row.original, "milk")} />
+);
+const WrittenOffCell = ({ row }: Cell) => (
+  // Missing from an answer a phone kept from before anything was written off.
+  <MoneyOrNothing amount={row.original.writtenOffMoney ?? 0} tone="danger" />
+);
+const OwingCell = ({ row }: Cell) => (
+  <MoneyOrNothing amount={row.original.owingMoney} tone="warning" />
+);
+
+const DayCell = ({ day }: { day: string | undefined }) => {
+  const said = useDay();
+  return day === undefined ? <Nothing /> : <span>{said(day)}</span>;
+};
+const SinceCell = ({ row }: Cell) => <DayCell day={sinceOf(row.original)} />;
+const PromiseCell = ({ row }: Cell) => (
+  <DayCell day={promiseOf(row.original)} />
+);
+
+const column = createListColumns<Buyer>();
+const buyerColumns = column.columns([
+  column.accessor("name", {
+    header: listHeader("receivable.buyer"),
+    cell: BuyerCell,
+  }),
+  column.accessor(sinceOf, {
+    id: "since",
+    header: listHeader("receivable.col.since"),
+    cell: SinceCell,
+  }),
+  column.accessor(promiseOf, {
+    id: "promised",
+    header: listHeader("receivable.promisedBy"),
+    cell: PromiseCell,
+  }),
+  column.accessor((buyer) => owingOf(buyer, "cattle"), {
+    id: "cattle",
+    header: listHeader("receivable.kind.cattle"),
+    cell: CattleCell,
+    meta: { align: "end" },
+  }),
+  column.accessor((buyer) => owingOf(buyer, "milk"), {
+    id: "milk",
+    header: listHeader("receivable.kind.milk"),
+    cell: MilkCell,
+    meta: { align: "end" },
+  }),
+  column.accessor((buyer) => buyer.writtenOffMoney ?? 0, {
+    id: "writtenOff",
+    header: listHeader("receivable.col.writtenOff"),
+    cell: WrittenOffCell,
+    meta: { align: "end" },
+  }),
+  column.accessor("owingMoney", {
+    header: listHeader("receivable.col.owing"),
+    cell: OwingCell,
+    meta: { align: "end" },
+  }),
+]);
+
+/** On a desk, every buyer a row to read down — who, since when, promised by, and what of his cattle and his milk is
+ *  still owed — sortable by any of it, each opening to what he took and paid (Polaris's index table, Carbon's
+ *  expandable rows). It starts in the server's order, the one owed longest first. */
+const BuyersTable = ({
+  buyers,
+  onPay,
+  mayWriteOff,
+}: {
+  buyers: Buyer[];
+  onPay: (paying: PaymentFor) => void;
+  mayWriteOff: boolean;
+}) => {
+  const table = useListTable({
+    columns: buyerColumns,
+    data: buyers,
+    getRowId: (buyer) => buyer.counterpartyId,
+  });
+  return (
+    <DataTable
+      renderDetail={(buyer) => (
+        <BuyerBreakdown buyer={buyer} mayWriteOff={mayWriteOff} onPay={onPay} />
+      )}
+      minWidth="56rem"
+      table={table}
+    />
   );
 };
 
@@ -288,14 +459,24 @@ export const ReceivableTab = () => {
             tone={owing > 0 ? "warning" : "neutral"}
             value={`${currencySign()}${formatNumber(owing, language)}`}
           />
-          {buyers.map((buyer) => (
-            <BuyerCard
-              buyer={buyer}
-              key={buyer.counterpartyId}
+          {/* A phone keeps a card a buyer, his breakdown under his name. */}
+          <div className="flex flex-col gap-4 md:hidden">
+            {buyers.map((buyer) => (
+              <BuyerCard
+                buyer={buyer}
+                key={buyer.counterpartyId}
+                mayWriteOff={mayWriteOff}
+                onPay={setPaying}
+              />
+            ))}
+          </div>
+          <Section className="hidden md:flex">
+            <BuyersTable
+              buyers={buyers}
               mayWriteOff={mayWriteOff}
               onPay={setPaying}
             />
-          ))}
+          </Section>
         </div>
       )}
       <ReceivablePaymentSheet
