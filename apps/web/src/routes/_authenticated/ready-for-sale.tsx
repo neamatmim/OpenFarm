@@ -100,7 +100,7 @@ const SuggestionsBody = ({
   const { t } = useLanguage();
   if (suggestions === undefined) {
     return failed ? (
-      <Notice title={t("common.error")} tone="danger" />
+      <Notice title={t("common.loadFailed")} tone="danger" />
     ) : (
       <Skeleton className="h-64 rounded-xl" />
     );

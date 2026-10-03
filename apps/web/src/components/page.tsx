@@ -513,7 +513,9 @@ export const Notice = ({
         "flex items-start gap-3 rounded-xl border px-4 py-3",
         NOTICE_TONE[tone]
       )}
-      role={tone === "danger" || tone === "warning" ? "alert" : "status"}
+      // Only what has gone wrong interrupts: a warning standing on a page as it opens is read in its turn (WCAG 4.1.3),
+      // or every page with one would cut into whatever a screen reader was saying.
+      role={tone === "danger" ? "alert" : "status"}
     >
       <Icon aria-hidden className="mt-0.5 size-5 shrink-0" />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -578,7 +580,13 @@ export const Loaded = ({
     );
   }
   if (query.data === undefined) {
-    return skeleton ?? <Skeleton className="h-20 rounded-lg" />;
+    // The placeholder is drawn for the eye; a screen reader is told the part is loading (WCAG 4.1.3).
+    return (
+      <output className="block">
+        <span className="sr-only">{t("common.loading")}</span>
+        {skeleton ?? <Skeleton aria-hidden className="h-20 rounded-lg" />}
+      </output>
+    );
   }
   if (query.isError) {
     // What this phone last had stays on screen — a barn with no signal still works from it — but it is not passed

@@ -96,7 +96,7 @@ const ManagerHome = () => {
       <Page>
         <PageHeader title={t("nav.theDay")} />
         {home.isError ? (
-          <Notice title={t("common.error")} tone="danger" />
+          <Notice title={t("common.loadFailed")} tone="danger" />
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {[0, 1, 2, 3].map((n) => (

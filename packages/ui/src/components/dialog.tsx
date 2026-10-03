@@ -1,5 +1,6 @@
 "use client";
 
+import { AlertDialog as AlertDialogPrimitive } from "@base-ui/react/alert-dialog";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { Button } from "@OpenFarm/ui/components/button";
 import { cn } from "cn";
@@ -8,6 +9,12 @@ import * as React from "react";
 
 function Dialog({ ...props }: DialogPrimitive.Root.Props) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />;
+}
+
+/** A dialog that asks before an act that cannot easily be undone: announced as an alert dialog, always modal, and not
+ *  closed by a tap beside it (WAI-ARIA APG, Alert dialog). It takes the same parts as `Dialog`. */
+function AlertDialog({ ...props }: AlertDialogPrimitive.Root.Props) {
+  return <AlertDialogPrimitive.Root data-slot="dialog" {...props} />;
 }
 
 function DialogTrigger({ ...props }: DialogPrimitive.Trigger.Props) {
@@ -67,7 +74,7 @@ function DialogContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute top-2 right-2"
+                className="absolute top-1 right-1 size-11 md:top-2 md:right-2 md:size-8"
                 size="icon-sm"
               />
             }
@@ -145,6 +152,7 @@ function DialogDescription({
 }
 
 export {
+  AlertDialog,
   Dialog,
   DialogClose,
   DialogContent,

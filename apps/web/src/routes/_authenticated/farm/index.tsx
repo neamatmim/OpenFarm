@@ -239,7 +239,7 @@ const IdentityPage = () => {
           title={t("settings.section.farm")}
         />
         {identity.isError ? (
-          <Notice title={t("common.error")} tone="danger" />
+          <Notice title={t("common.loadFailed")} tone="danger" />
         ) : (
           <Skeleton className="h-96 rounded-xl" />
         )}

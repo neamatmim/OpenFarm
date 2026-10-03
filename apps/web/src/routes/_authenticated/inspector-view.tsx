@@ -362,7 +362,7 @@ const InspectorPage = () => {
           title={t("nav.inspector")}
         />
         {view.isError ? (
-          <Notice title={t("common.error")} tone="danger" />
+          <Notice title={t("common.loadFailed")} tone="danger" />
         ) : (
           <div className="grid gap-6 lg:grid-cols-2">
             <Skeleton className="h-72 rounded-xl" />

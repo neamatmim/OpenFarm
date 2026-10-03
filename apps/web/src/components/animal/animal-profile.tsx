@@ -30,8 +30,8 @@ import { PageHeader } from "@/components/page";
 import type { RowAction } from "@/components/page-kit";
 import { ReportSighting } from "@/components/report-sighting";
 import { useLanguage } from "@/i18n/language-provider";
-import { shrinkAnimalPhoto } from "@/lib/photo";
 import { breedName } from "@/lib/breed";
+import { shrinkAnimalPhoto } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
@@ -344,7 +344,7 @@ export const AnimalProfile = ({
                   return;
                 }
                 if (file.size > PHOTO_FILE_MAX_BYTES) {
-                  toast.error(t("common.error"));
+                  toast.error(t("photo.tooLarge"));
                   return;
                 }
                 // Shrunk on the phone, with a thumbnail for the herd's lists: the camera's file would go up whole.
@@ -354,7 +354,7 @@ export const AnimalProfile = ({
                     ...(await shrinkAnimalPhoto(file)),
                   });
                 } catch {
-                  toast.error(t("common.error"));
+                  toast.error(t("photo.notRead"));
                 }
               }}
               tabIndex={-1}

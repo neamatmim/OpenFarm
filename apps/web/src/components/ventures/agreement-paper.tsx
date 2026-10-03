@@ -55,7 +55,7 @@ export const AgreementPaperButton = ({
           try {
             keeping.mutate({ agreementId, ...(await shrink(file)) });
           } catch {
-            toast.error(t("common.error"));
+            toast.error(t("photo.notRead"));
           }
         }}
         type="file"

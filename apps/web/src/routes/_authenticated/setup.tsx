@@ -174,6 +174,7 @@ const SetupPage = () => {
   const current = useQuery(orpc.farm.current.queryOptions());
   const me = useQuery(orpc.people.me.queryOptions());
   const isOwner = me.data?.roles.includes("owner") ?? false;
+  const refused = useRefused();
   const bootstrap = useMutation(
     orpc.farm.bootstrap.mutationOptions({
       onSuccess: () => {
@@ -183,7 +184,7 @@ const SetupPage = () => {
         // page asks afresh, finds the farm and the Owner's Role, and offers the standard lists.
         queryClient.removeQueries({ queryKey: orpc.people.me.queryKey() });
       },
-      onError: () => toast.error(t("common.error")),
+      onError: refused,
     })
   );
 
