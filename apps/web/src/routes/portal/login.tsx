@@ -1,4 +1,4 @@
-import { investorLoginOf } from "@OpenFarm/domain";
+import { investorLoginOf, phoneExample } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
@@ -28,7 +28,7 @@ import { authClient } from "@/lib/auth-client";
  * same rule the farm opened it by.
  */
 const PortalLogin = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { ended } = Route.useSearch();
   const navigate = useNavigate();
   const [phone, setPhone] = useState("");
@@ -91,7 +91,7 @@ const PortalLogin = () => {
             id="portal-phone"
             inputMode="tel"
             onChange={(event) => setPhone(event.target.value)}
-            placeholder={t("portal.phonePlaceholder")}
+            placeholder={phoneExample(language)}
             type="tel"
             value={phone}
           />

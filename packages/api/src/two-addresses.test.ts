@@ -4,6 +4,7 @@ import type { Hosts } from "@OpenFarm/auth/hosts";
 import { WRONG_ADDRESS } from "@OpenFarm/auth/wrong-address";
 import { eq } from "@OpenFarm/db/operators";
 import { user } from "@OpenFarm/db/schema/auth";
+import { investorLoginOf } from "@OpenFarm/domain";
 import { env } from "@OpenFarm/env/server";
 import {
   FakeClock,
@@ -40,7 +41,11 @@ const atPortal = createAuth(scratchDb(), {
 const clock = new FakeClock("2058-01-01T04:00:00.000Z");
 const suffix = `${Date.now()}`.slice(-7);
 const PHONE = `0183${suffix}`;
-const INVESTOR = `${PHONE}@investor.openfarm.invalid`;
+
+/** The address an Investor's account signs in as, asked of the one rule that makes it. */
+const loginOf = (phone: string): string =>
+  investorLoginOf(phone) ?? `not a mobile number: ${phone}`;
+const INVESTOR = loginOf(PHONE);
 const STAFF = `milker-${suffix}@test.openfarm`;
 const PASSWORD = "gorur-khamar-2026";
 const WRONG = "not-their-password-at-all";

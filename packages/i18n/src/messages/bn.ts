@@ -299,8 +299,8 @@ export const bn: Record<MessageKey, string> = {
     "খামারে আপনার যে মোবাইল নম্বর আছে আর আপনি যে পাসওয়ার্ড বেছে নিয়েছেন তা দিয়ে সাইন ইন করুন।",
   "portal.signInRefused": "সাইন ইন করা গেল না",
   "portal.phone": "মোবাইল নম্বর",
-  "portal.phoneNotMobile": "এটি বাংলাদেশি মোবাইল নম্বর নয়।",
-  "portal.phonePlaceholder": "০১XXXXXXXXX",
+  "portal.phoneNotMobile":
+    "এটি মোবাইল নম্বর নয়। {farmCountry}-এর বাইরের নম্বর + আর দেশের কোড দিয়ে শুরু হয়।",
   "portal.sessionNote": "সাইন ইন এক কর্মদিবস থাকে।",
   "portal.firstTimeHint":
     "প্রথমবার ঢুকছেন, বা পাসওয়ার্ড ভুলে গেছেন: মালিকের দেওয়া কোড দিয়ে ঠিক করুন।",
@@ -336,7 +336,7 @@ export const bn: Record<MessageKey, string> = {
     "পোর্টালে আপনার প্রবেশাধিকার বন্ধ হয়েছে। খামারের মালিকের সঙ্গে কথা বলুন।",
   "portal.refused.passwordTooShort": "পাসওয়ার্ড খুব ছোট।",
   "portal.refused.phoneNotMobile":
-    "তাঁর ফোন বাংলাদেশি মোবাইল নম্বর নয়, অথচ এটি দিয়েই সাইন ইন হয়। আগে নম্বরটি ঠিক করুন।",
+    "তাঁর ফোন মোবাইল নম্বর নয়, অথচ এটি দিয়েই সাইন ইন হয়। আগে নম্বরটি ঠিক করুন: {farmCountry}-এর বাইরের নম্বর + আর দেশের কোড দিয়ে।",
   "portal.refused.phoneHasPortal":
     "একই ফোনের আরেকজন বিনিয়োগকারীর পোর্টাল আগেই আছে।",
   "portal.refused.retired": "আমন্ত্রণ জানানোর আগে তাঁকে ফিরিয়ে আনুন।",

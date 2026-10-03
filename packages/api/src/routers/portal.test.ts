@@ -1,5 +1,6 @@
 import { auth, openInvestorAccount } from "@OpenFarm/auth";
 import { session as sessionTable } from "@OpenFarm/db/schema/auth";
+import { investorLoginOf } from "@OpenFarm/domain";
 import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { createRouterClient } from "@orpc/server";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -14,6 +15,10 @@ import { appRouter } from "./index";
 
 const suffix = `${Date.now()}`.slice(-7);
 const PHONE = `0171${suffix}`;
+
+/** The address an Investor's account signs in as, asked of the one rule that makes it. */
+const loginOf = (phone: string): string =>
+  investorLoginOf(phone) ?? `not a mobile number: ${phone}`;
 const PASSWORD = "gorur-khamar-2026";
 const JANUARY = "2052-01-01T04:00:00.000Z";
 const clock = () => new FakeClock(JANUARY);
@@ -157,7 +162,7 @@ describe("an invitation", () => {
     const nobody = await asNobody();
     const { loginEmail } = await nobody.portal
       .join({ phone: PHONE, code: "X", password: PASSWORD })
-      .catch(() => ({ loginEmail: `${PHONE}@investor.openfarm.invalid` }));
+      .catch(() => ({ loginEmail: loginOf(PHONE) }));
 
     // Not even with an invitation to work here written against it by mistake.
     const owner = await asOwner();
@@ -186,7 +191,7 @@ describe("the portal", () => {
 
   it("taken away, signs nobody in and answers nobody, and given back with a new code", async () => {
     const owner = await asOwner();
-    const loginEmail = `${PHONE}@investor.openfarm.invalid`;
+    const loginEmail = loginOf(PHONE);
 
     await owner.investors.takePortalAway({
       id: investorId,
@@ -216,7 +221,7 @@ describe("the portal", () => {
     await expect(
       auth.api.signInEmail({
         body: {
-          email: `${PHONE}@investor.openfarm.invalid`,
+          email: loginOf(PHONE),
           password: "a-new-password",
         },
       })
@@ -250,7 +255,7 @@ describe("taking up an invitation, when something goes wrong", () => {
     return {
       owner,
       id: them.id,
-      loginEmail: `${phone}@investor.openfarm.invalid`,
+      loginEmail: loginOf(phone),
     };
   };
 

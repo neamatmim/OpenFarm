@@ -1,3 +1,4 @@
+import { readsMobileNumbersOf } from "@OpenFarm/domain";
 import { env } from "@OpenFarm/env/server";
 import {
   DEFAULT_FARM_LOCALE,
@@ -6,9 +7,10 @@ import {
 } from "@OpenFarm/i18n";
 
 /**
- * Where the farm is, as its server was set up to say (ADR 0013): read once, before anything is written out or a farm
- * day worked out, by every way into the server — a request, the schedule, the seed. A currency or a zone the farm
- * cannot count in stops the server there, rather than reading every sum and every day wrongly.
+ * Where the farm is, as its server was set up to say (ADR 0013): read once, before anything is written out, a farm day
+ * worked out or a number read, by every way into the server — a request, the schedule, the seed. A currency or a zone
+ * the farm cannot count in, or a country whose numbers it cannot read, stops the server there, rather than reading
+ * every sum, every day and every number wrongly.
  */
 export const settleFarmLocale = (): void => {
   const currency = env.OPENFARM_CURRENCY ?? DEFAULT_FARM_LOCALE.currency;
@@ -17,8 +19,17 @@ export const settleFarmLocale = (): void => {
       `OPENFARM_CURRENCY is ${currency}, which OpenFarm does not count money in`
     );
   }
+  const country = (
+    env.OPENFARM_COUNTRY ?? DEFAULT_FARM_LOCALE.country
+  ).toUpperCase();
+  if (!readsMobileNumbersOf(country)) {
+    throw new Error(
+      `OPENFARM_COUNTRY is ${country}, whose mobile numbers OpenFarm cannot read`
+    );
+  }
   setFarmLocale({
     currency,
     timeZone: env.OPENFARM_TIME_ZONE ?? DEFAULT_FARM_LOCALE.timeZone,
+    country,
   });
 };

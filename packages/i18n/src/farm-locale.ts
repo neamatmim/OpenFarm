@@ -41,19 +41,22 @@ export const isCurrencyCode = (code: string): code is CurrencyCode =>
   Object.hasOwn(CURRENCIES, code);
 
 /**
- * Where the farm is, as far as reading its figures goes: the currency its money is counted in, and the IANA time zone
- * its own day and clock are read on. One for the whole server, fixed when it is set up — a farm that changed either
- * would read every sum and every day it already kept differently.
+ * Where the farm is, as far as reading its figures goes: the currency its money is counted in, the IANA time zone its
+ * own day and clock are read on, and the ISO 3166 country a phone number written without its country code is read in.
+ * One for the whole server, fixed when it is set up — a farm that changed one would read every sum, every day or every
+ * number it already kept differently.
  */
 export interface FarmLocale {
   currency: CurrencyCode;
   timeZone: string;
+  country: string;
 }
 
 /** Where OpenFarm was first built: a farm in Bangladesh. */
 export const DEFAULT_FARM_LOCALE: FarmLocale = {
   currency: "BDT",
   timeZone: "Asia/Dhaka",
+  country: "BD",
 };
 
 let current: FarmLocale = DEFAULT_FARM_LOCALE;
@@ -63,6 +66,20 @@ export const isTimeZone = (zone: string): boolean => {
   try {
     const known = new Intl.DateTimeFormat("en", { timeZone: zone });
     return known.resolvedOptions().timeZone !== "";
+  } catch {
+    return false;
+  }
+};
+
+const TWO_LETTERS = /^[A-Z]{2}$/u;
+
+/** Whether a code is a country this runtime can name: two capitals it knows, not one it hands back unread. */
+export const isCountry = (code: string): boolean => {
+  if (!TWO_LETTERS.test(code)) {
+    return false;
+  }
+  try {
+    return new Intl.DisplayNames("en", { type: "region" }).of(code) !== code;
   } catch {
     return false;
   }
@@ -79,12 +96,27 @@ export const setFarmLocale = (locale: FarmLocale): void => {
   if (!isTimeZone(locale.timeZone)) {
     throw new Error(`${locale.timeZone} is not a time zone this runtime knows`);
   }
-  current = { currency: locale.currency, timeZone: locale.timeZone };
+  if (!isCountry(locale.country)) {
+    throw new Error(`${locale.country} is not a country this runtime knows`);
+  }
+  current = {
+    currency: locale.currency,
+    timeZone: locale.timeZone,
+    country: locale.country,
+  };
 };
 
 export const farmLocale = (): FarmLocale => current;
 
 export const farmTimeZone = (): string => current.timeZone;
+
+/** The country a phone number written without its country code is read in: BD for a farm in Bangladesh. */
+export const farmCountry = (): string => current.country;
+
+/** The farm's country as a sentence names it, in a language: বাংলাদেশ, Bangladesh. */
+export const farmCountryName = (language: Language): string =>
+  new Intl.DisplayNames(language, { type: "region" }).of(current.country) ??
+  current.country;
 
 /** The sign the farm's money is written with: ৳ for taka. */
 export const currencySign = (): string => CURRENCIES[current.currency].sign;

@@ -322,8 +322,8 @@ export const en = {
     "Sign in with the phone number the farm has for you and the password you chose.",
   "portal.signInRefused": "Could not sign in",
   "portal.phone": "Phone number",
-  "portal.phoneNotMobile": "That is not a Bangladeshi mobile number.",
-  "portal.phonePlaceholder": "01XXXXXXXXX",
+  "portal.phoneNotMobile":
+    "That is not a mobile number. One from outside {farmCountry} starts with + and its country code.",
   "portal.sessionNote": "You stay signed in for a working day.",
   "portal.firstTimeHint":
     "First time here, or forgotten your password: set it with the Owner's code.",
@@ -363,7 +363,7 @@ export const en = {
     "Your access to the portal has closed. Ask the farm's Owner.",
   "portal.refused.passwordTooShort": "The password is too short.",
   "portal.refused.phoneNotMobile":
-    "Their phone is not a Bangladeshi mobile number, which is what they sign in with. Put their number right first.",
+    "Their phone is not a mobile number, which is what they sign in with. Put their number right first: one from outside {farmCountry} with + and its country code.",
   "portal.refused.phoneHasPortal":
     "Another Investor on the same phone already has the portal.",
   "portal.refused.retired": "Bring them back before inviting them.",

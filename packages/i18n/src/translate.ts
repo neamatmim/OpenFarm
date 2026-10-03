@@ -1,4 +1,4 @@
-import { currencySign, currencyWords } from "./farm-locale";
+import { currencySign, currencyWords, farmCountryName } from "./farm-locale";
 import { formatNumber, numberAsTyped } from "./format";
 import type { Language } from "./languages";
 import { bn } from "./messages/bn";
@@ -32,13 +32,15 @@ const wordsFor = (language: Language, key: MessageKey): string =>
 
 /** What every message may say without being told: the farm's currency, as the sign before a figure
  *  (`{currencySign}`), one of it (`{currencyOne}`: every taka), a sum of it after its figure (`{currencySum}`: ২০০
- *  টাকা) and, in Bangla, of it and in it (`{currencyOf}`: টাকার, `{currencyIn}`: টাকায়). */
+ *  টাকা) and, in Bangla, of it and in it (`{currencyOf}`: টাকার, `{currencyIn}`: টাকায়); and the country it is in,
+ *  as a sentence names it (`{farmCountry}`: বাংলাদেশ). */
 export const FARM_WORDS = [
   "currencySign",
   "currencyOne",
   "currencySum",
   "currencyOf",
   "currencyIn",
+  "farmCountry",
 ] as const;
 
 const farmWords = (
@@ -51,6 +53,7 @@ const farmWords = (
     currencySum: words.sum,
     currencyOf: words.of,
     currencyIn: words.in,
+    farmCountry: farmCountryName(language),
   };
 };
 

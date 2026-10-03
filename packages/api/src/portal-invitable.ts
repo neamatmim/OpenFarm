@@ -18,7 +18,7 @@ export type Owned = Context & {
 
 /**
  * The Investor on this farm, and the address their portal account signs in as, once it is certain they can have one:
- * not retired, on a Bangladeshi mobile number, and no other Investor's portal on that number.
+ * not retired, on a mobile number, and no other Investor's portal on that number.
  */
 export const invitable = async (context: Owned, investorId: string) => {
   const who = await context.db.query.investor.findFirst({
@@ -36,7 +36,7 @@ export const invitable = async (context: Owned, investorId: string) => {
   const loginEmail = investorLoginOf(who.phone);
   if (!loginEmail) {
     throw refused(
-      "Their phone is not a Bangladeshi mobile number, which is what they sign in with",
+      "Their phone is not a mobile number, which is what they sign in with",
       "phone_not_mobile"
     );
   }

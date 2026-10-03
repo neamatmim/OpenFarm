@@ -810,9 +810,15 @@ export {
   PORTAL_SIGN_IN_HOURS,
   investorLoginOf,
   isInvestorLogin,
-  mobileNumberOf,
   phoneOfInvestorLogin,
 } from "./investor-login";
+export type { MobileNumber } from "./phone";
+export {
+  mobileNumberOf,
+  phoneExample,
+  phoneSaid,
+  readsMobileNumbersOf,
+} from "./phone";
 export { maskedDigits } from "./masked-digits";
 export { payInCode, payInCodeIn } from "./pay-in-code";
 export {

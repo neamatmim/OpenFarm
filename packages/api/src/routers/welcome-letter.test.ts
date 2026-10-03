@@ -114,7 +114,8 @@ describe("the Welcome Letter", () => {
 
     expect(letter.investor).toEqual({
       name: `সালমা ${suffix}`,
-      phone: `0179${suffix}2`,
+      // As the world writes it; the letter prints it the way the farm's country does.
+      phone: `+880179${suffix}2`,
     });
     expect(letter.letterhead.details.join(" ")).toContain(
       `DLS/SAV/2059/${suffix}`
