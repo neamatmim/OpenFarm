@@ -1,4 +1,4 @@
-import type { RoleName } from "@OpenFarm/api/roles";
+import type { RoleName } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Badge } from "@OpenFarm/ui/components/badge";
 import { Button } from "@OpenFarm/ui/components/button";

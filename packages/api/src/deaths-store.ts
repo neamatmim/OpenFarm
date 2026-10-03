@@ -1,12 +1,9 @@
 import type { Database } from "@OpenFarm/db";
 import type { AdultDeaths } from "@OpenFarm/domain";
-import { adultDeaths, exitOf } from "@OpenFarm/domain";
+import { WEANING_AFTER_DAYS, adultDeaths, exitOf } from "@OpenFarm/domain";
 
 /** The stretch the figure reads over: a year, as the calf-loss figure does. */
 export const DEATHS_DAYS = 365;
-
-/** Grown from weaning, at three months, as the calf-loss figure reads a calf. */
-const WEANING_DAYS = 90;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -53,7 +50,7 @@ export const adultDeathsOf = async (
         death,
       };
     }),
-    { from, until: now, weaningDays: WEANING_DAYS }
+    { from, until: now, weaningDays: WEANING_AFTER_DAYS }
   );
   return { ...deaths, days: DEATHS_DAYS };
 };

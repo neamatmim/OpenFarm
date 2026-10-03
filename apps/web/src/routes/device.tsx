@@ -1,4 +1,8 @@
-import { verifyPin } from "@OpenFarm/domain";
+import {
+  DEFAULT_AUTO_LOCK_MINUTES,
+  PIN_LENGTH,
+  verifyPin,
+} from "@OpenFarm/domain";
 import { formatDigits, latinDigitsOf, numberAsTyped } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -50,8 +54,6 @@ import { useRefused } from "@/lib/refused";
 import { lockAndPutAway, lockOnTheFarm } from "@/lib/shed-phone";
 import { orpc } from "@/utils/orpc";
 
-const PIN_LENGTH = 4;
-const DEFAULT_AUTO_LOCK_MINUTES = 5;
 const LOCK_TICK_MS = 15_000;
 const PAD_DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 

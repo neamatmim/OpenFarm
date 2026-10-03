@@ -1,3 +1,4 @@
+import { PHOTO_FILE_MAX_BYTES } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import {
   DropdownMenu,
@@ -43,7 +44,6 @@ import {
   herAge,
 } from "./animal-words";
 
-const PHOTO_MAX_BYTES = 1_500_000;
 /** The camera's file picker, opened from her menu. */
 const PHOTO_INPUT = "animal-photo-input";
 
@@ -350,7 +350,7 @@ export const AnimalProfile = ({
                 if (!file) {
                   return;
                 }
-                if (file.size > PHOTO_MAX_BYTES) {
+                if (file.size > PHOTO_FILE_MAX_BYTES) {
                   toast.error(t("common.error"));
                   return;
                 }

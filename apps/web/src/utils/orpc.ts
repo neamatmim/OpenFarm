@@ -1,5 +1,8 @@
 import { createContext } from "@OpenFarm/api/context";
-import { DEVICE_TOKEN_HEADER, SWITCH_TOKEN_HEADER } from "@OpenFarm/api/device";
+import {
+  DEVICE_TOKEN_HEADER,
+  SWITCH_TOKEN_HEADER,
+} from "@OpenFarm/api/device-headers";
 import { appRouter } from "@OpenFarm/api/routers/index";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { DEFAULT_LANGUAGE, isLanguage, translate } from "@OpenFarm/i18n";

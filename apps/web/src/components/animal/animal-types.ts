@@ -1,4 +1,8 @@
-import { isExitState, statesSetByHand } from "@OpenFarm/domain";
+import {
+  isExitState,
+  statesSetByHand,
+  whyNotBetweenPurses,
+} from "@OpenFarm/domain";
 import { useQuery } from "@tanstack/react-query";
 
 import type { client } from "@/utils/orpc";
@@ -106,13 +110,12 @@ export interface AnimalPowers {
 const hasAStateToSet = (detail: AnimalDetail | undefined): boolean =>
   detail !== undefined && statesSetByHand(detail.state).length > 0;
 
-/** Whether an Internal Sale would take her: a bought Fattening animal still being fattened, and weighed. */
+/** Whether an Internal Sale would take her, by the rule the farm refuses one by. */
 const movesBetweenPurses = (detail: AnimalDetail | undefined): boolean =>
   detail !== undefined &&
-  detail.side === "fattening" &&
-  detail.source === "bought" &&
-  (detail.state === "quarantine" || detail.state === "fattening") &&
-  (detail.weighIns?.length ?? 0) > 0;
+  whyNotBetweenPurses(detail, {
+    weighed: (detail.weighIns?.length ?? 0) > 0,
+  }) === null;
 
 /** Everything one person may do to her, from their Roles and Scopes. */
 export const useAnimalPowers = (detail: AnimalDetail | undefined) => {

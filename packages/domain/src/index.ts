@@ -237,7 +237,14 @@ export {
   milkAccountOf,
   milkDropOf,
 } from "./milk";
-export { derivePinHash, isPin, randomPinSalt, verifyPin } from "./pin";
+export {
+  PIN_LENGTH,
+  derivePinHash,
+  isPin,
+  randomPinSalt,
+  verifyPin,
+} from "./pin";
+export { DEFAULT_AUTO_LOCK_MINUTES, SYNC_BATCH_MAX } from "./phone-limits";
 export type { AlertKind, ReviewReason } from "./alerts";
 export type {
   CorrectionRefusal,
@@ -394,6 +401,9 @@ export {
   EVIDENCE_TYPES,
   FARM_EVENTS,
   MAX_TRIGGER_OFFSET_DAYS,
+  PHOTO_FILE_MAX_BYTES,
+  outOfRangeOf,
+  outsideItsRange,
   PHOTO_MAX_BYTES,
   SKIP_MEANINGS,
   STAYS_A_HEIFER,
@@ -701,6 +711,7 @@ export type {
 export {
   ROUND_WORDS,
   URGENT_ROUND_WORDS,
+  WEANING_AFTER_DAYS,
   eventOfObservation,
   PEN_NEEDS,
   STANDARD_SOP_NEEDS,
@@ -848,3 +859,5 @@ export type {
   NoMonthlyTerms,
   SumsStanding,
 } from "./monthly-sums";
+export type { BetweenPursesRefusal } from "./between-purses";
+export { whyNotBetweenPurses } from "./between-purses";

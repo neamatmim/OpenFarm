@@ -1,3 +1,4 @@
+import { DEFAULT_AUTO_LOCK_MINUTES } from "@OpenFarm/domain";
 /**
  * What a Shed Phone remembers: its device token, the roster it checks PINs against, and who
  * is currently PIN-switched in (ADR 0003). All of it lives on the phone so PIN Switch works
@@ -122,7 +123,6 @@ export const setSignedInPerson = (userId: string | null) =>
   write(PERSON_KEY, userId);
 
 /** How long this farm lets a Shed Phone sit untouched before it locks, as the farm last said. */
-export const DEFAULT_AUTO_LOCK_MINUTES = 5;
 export const getAutoLockMinutes = (): number => {
   const saved = Number(read(LOCK_KEY));
   return Number.isFinite(saved) && saved > 0

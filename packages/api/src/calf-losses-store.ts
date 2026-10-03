@@ -1,12 +1,9 @@
 import type { Database } from "@OpenFarm/db";
 import type { CalfLosses } from "@OpenFarm/domain";
-import { calfLosses } from "@OpenFarm/domain";
+import { WEANING_AFTER_DAYS, calfLosses } from "@OpenFarm/domain";
 
 /** The stretch the figure reads over: a year, so a season's worth of calvings and their deaths are both in it. */
 export const CALF_LOSSES_DAYS = 365;
-
-/** Weaned at three months, as the standard Weaning procedure raises it: a calf never weaned is judged by this age. */
-const WEANING_DAYS = 90;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -46,7 +43,7 @@ export const calfLossesOf = async (
           ]
         : []
     ),
-    { from, until: now, weaningDays: WEANING_DAYS }
+    { from, until: now, weaningDays: WEANING_AFTER_DAYS }
   );
   return { ...losses, days: CALF_LOSSES_DAYS };
 };

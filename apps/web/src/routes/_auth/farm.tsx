@@ -46,6 +46,7 @@ import type { Figure } from "@/components/page-kit";
 import { SummaryFigures } from "@/components/page-kit";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
+import { moneyTotals } from "@/lib/money-totals";
 import { venturesNeedingHer } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
 
@@ -92,11 +93,9 @@ const useFarmFigures = (data: OwnerAnswer): Figure[] => {
   const animals = useQuery(
     orpc.animals.list.queryOptions({ input: { includeExited: false } })
   );
-  const rows = money.data?.events ?? [];
+  const totals = moneyTotals(money.data ?? { events: [] });
   const sum = (direction: "in" | "out") =>
-    rows
-      .filter((row) => row.direction === direction)
-      .reduce((total, row) => total + row.amountBdt, 0);
+    direction === "in" ? totals.inBdt : totals.outBdt;
   const net = sum("in") - sum("out");
   const herd = animals.data ?? [];
   const awaiting = data.needsYou.moneyAwaiting.length;

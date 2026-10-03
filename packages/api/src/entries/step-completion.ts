@@ -5,6 +5,7 @@ import {
   MILK_DESTINATIONS,
   mayTransition,
   meaningOfSkip,
+  outsideItsRange,
   sessionsPerDayOf,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -324,7 +325,10 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
           status: skipping ? "skipped" : "done",
           skipReason: input.skipReason ?? null,
           evidence: input.evidence,
-          outOfRange: input.outOfRange ?? null,
+          // Judged by the farm from the Step's own range, never taken from the phone's word for it.
+          outOfRange: skipping
+            ? null
+            : outsideItsRange(step.evidence, input.evidence),
           recordedBy: context.actor.id,
           deviceId: context.device?.id ?? null,
           destination: input.destination ?? null,
@@ -405,7 +409,9 @@ export const replaceStep = async (
       status: skipping ? "skipped" : "done",
       skipReason: answer.skipReason ?? null,
       evidence: answer.evidence,
-      outOfRange: answer.outOfRange ?? null,
+      outOfRange: skipping
+        ? null
+        : outsideItsRange(step.evidence, answer.evidence),
       destination: answer.destination ?? null,
     })
     .where(eq(stepCompletion.id, completion.id));

@@ -18,11 +18,12 @@ import {
   referenceInput,
 } from "../money-inputs";
 import {
-  accountSaid,
-  bookingOf,
-  bookMoney,
-  settleMoneyNotices,
   THE_FARMS_PURSE,
+  accountSaid,
+  bookMoney,
+  bookingOf,
+  moneyTotalsOf,
+  settleMoneyNotices,
 } from "../money-store";
 import { periodInput, periodOf } from "../period";
 import {
@@ -179,7 +180,13 @@ export const moneyRouter = {
           : null,
         reference: row.reference,
       }));
-      return { events, more: rows.length > LISTED };
+      // Told from every entry in the period, not from the rows above: what the screens' totals read.
+      const totals = await moneyTotalsOf(context.db, context.farm.id, {
+        ventureId: input.ventureId,
+        from,
+        until,
+      });
+      return { events, more: rows.length > LISTED, totals };
     }),
 
   /**

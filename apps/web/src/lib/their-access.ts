@@ -1,4 +1,4 @@
-import type { RoleName } from "@OpenFarm/api/roles";
+import type { RoleName } from "@OpenFarm/domain";
 
 /**
  * Whether the viewer may reach into this person's way in — their PIN, a password code, where they are signed in.

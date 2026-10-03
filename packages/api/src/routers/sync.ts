@@ -1,3 +1,4 @@
+import { SYNC_BATCH_MAX } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -14,10 +15,6 @@ import { workingAs } from "../scope";
 import type { EntryResult } from "../sync-entries";
 import { entryInput } from "../sync-entries";
 import { batchUnder, fingerprint, sourceKeyFor } from "../sync-store";
-
-/** How much one batch may carry. A phone out of signal for a week has plenty to send, but it
- *  sends it in batches: one transaction should stay a size a farm's database can hold. */
-const BATCH_MAX = 200;
 
 /** How long before a PIN reached the farm the work it covers may have been recorded: a PIN entered with no signal
  *  is proved when signal comes back, after the work — within a shift, with room. */
@@ -130,7 +127,7 @@ export const syncRouter = {
          *  is exactly what an outbox is for — but how far the phone thinks it is from the
          *  farm, at the same instant, says everything. */
         sentAt: z.coerce.date().optional(),
-        entries: z.array(entryInput).min(1).max(BATCH_MAX),
+        entries: z.array(entryInput).min(1).max(SYNC_BATCH_MAX),
       })
     )
     .handler(async ({ context, input }) => {

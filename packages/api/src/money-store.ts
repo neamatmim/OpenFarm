@@ -1,5 +1,5 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
-import { and, eq, isNull, like } from "@OpenFarm/db/operators";
+import { and, eq, gte, isNull, like, lt, sql } from "@OpenFarm/db/operators";
 import { alert } from "@OpenFarm/db/schema/alert";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import type { SIDES } from "@OpenFarm/db/schema/herd";
@@ -317,6 +317,55 @@ const placedUnder = async (
  * shape behind it, so the next reader that forgets is visible as the one that does not say it.
  */
 export const THE_FARMS_PURSE = { isNull: true } as const;
+
+/** What a period's money comes to, in and out, and how many entries wait for the Owner's word. */
+export interface MoneyTotals {
+  inBdt: number;
+  outBdt: number;
+  awaiting: number;
+}
+
+/**
+ * A period's money told by the farm, from every entry in it — the Farm's own, or one Venture's — however many the
+ * register shows: a phone adding up the rows it was sent would be short in any month busier than the list is long.
+ */
+export const moneyTotalsOf = async (
+  db: Pick<Tx, "select">,
+  farmId: string,
+  {
+    ventureId,
+    from,
+    until,
+  }: { ventureId: string | undefined; from: Date; until: Date }
+): Promise<MoneyTotals> => {
+  const rows = await db
+    .select({
+      direction: moneyEvent.direction,
+      totalBdt: sql<string>`coalesce(sum(${moneyEvent.amountBdt}), 0)`,
+      awaiting: sql<number>`(count(*) filter (where ${moneyEvent.approval} = 'awaiting'))::int`,
+    })
+    .from(moneyEvent)
+    .where(
+      and(
+        eq(moneyEvent.farmId, farmId),
+        ventureId === undefined
+          ? isNull(moneyEvent.purseVentureId)
+          : eq(moneyEvent.purseVentureId, ventureId),
+        gte(moneyEvent.occurredAt, from),
+        lt(moneyEvent.occurredAt, until)
+      )
+    )
+    .groupBy(moneyEvent.direction);
+  const totalOf = (direction: "in" | "out") =>
+    roundTaka(
+      Number(rows.find((row) => row.direction === direction)?.totalBdt ?? 0)
+    );
+  return {
+    inBdt: totalOf("in"),
+    outBdt: totalOf("out"),
+    awaiting: rows.reduce((sum, row) => sum + Number(row.awaiting), 0),
+  };
+};
 
 export interface MoneyOfARecord {
   source: MoneySource;

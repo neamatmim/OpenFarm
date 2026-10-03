@@ -6,8 +6,7 @@ import { ORPCError } from "@orpc/server";
 
 /** Headers a Shed Phone sends: the device's token, and the switch token it got by proving
  *  a PIN. The active *person* is never client-asserted — the token names them. */
-export const DEVICE_TOKEN_HEADER = "x-openfarm-device";
-export const SWITCH_TOKEN_HEADER = "x-openfarm-switch";
+export { DEVICE_TOKEN_HEADER, SWITCH_TOKEN_HEADER } from "./device-headers";
 
 const LAST_SEEN_INTERVAL_MS = 5 * 60_000;
 
