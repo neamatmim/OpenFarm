@@ -2,6 +2,10 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { agreeToOffer, theirOffers } from "../agreement-offer-store";
+import {
+  agreeToAmendment,
+  theirAmendmentOffers,
+} from "../amendment-offer-store";
 import { protectedProcedure, publicProcedure } from "../index";
 import {
   PORTAL_PAPER_KINDS,
@@ -180,6 +184,20 @@ export const portalRouter = {
     .input(z.object({ offerId: z.string(), paperHash: z.string() }))
     .handler(async ({ context, input }) => {
       await agreeToOffer(context, context.investor.id, input);
+      return { id: input.offerId };
+    }),
+
+  /** The Amendments offered on the Ventures they are in to agree to in the app, each with its paper
+   *  (`theirAmendmentOffers`). */
+  amendmentOffers: investorProcedure.handler(({ context }) =>
+    theirAmendmentOffers(context, context.investor.id)
+  ),
+
+  /** Agreeing, from their own sign-in, to the Amendment paper offered them — the one they read (`agreeToAmendment`). */
+  agreeToAmendment: investorProcedure
+    .input(z.object({ offerId: z.string(), paperHash: z.string() }))
+    .handler(async ({ context, input }) => {
+      await agreeToAmendment(context, context.investor.id, input);
       return { id: input.offerId };
     }),
 

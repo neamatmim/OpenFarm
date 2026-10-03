@@ -656,6 +656,38 @@ export const en = {
     "Read it all. Pressing “I agree” records your agreement to this paper, as it is.",
   "agreeInApp.portal.agree": "I agree",
   "agreeInApp.portal.agreedDone": "Your agreement has reached the farm",
+  "agreeInApp.how": "How it is agreed",
+  "agreeInApp.onPaper": "On a signed paper",
+  "agreeInApp.amendSheetHint":
+    "No signed paper or photo. Every Investor on the Venture reads the Amendment in the portal and agrees; once all have, you approve it — in force from the day approved.",
+  "agreeInApp.amendmentOffered": "The Amendment is sent",
+  "agreeInApp.amendmentOfferedHint":
+    "Once everyone agrees in the portal, it shows on the Venture's investors for you to approve.",
+  "agreeInApp.amendmentApproved":
+    "The Amendment is approved — in force from today",
+  "agreeInApp.amendmentTerms":
+    "{percent}% to the Investors · selling {from} – {to}",
+  "agreeInApp.agreedOf": "{agreed} of {of} agreed",
+  "agreeInApp.amendmentWaitingTitle":
+    "Amendment waiting to be agreed in the app",
+  "agreeInApp.amendmentWaitingHint":
+    "No Agreement's terms move until everyone has agreed and you approve.",
+  "agreeInApp.refusal.someoneNotInPortal":
+    "Someone on this Venture has not joined the portal, or it is shut — not everyone can agree in the app. Have it signed on paper.",
+  "agreeInApp.refusal.amendment_already_proposed":
+    "An Amendment is sent on this Venture already; withdraw it before sending another.",
+  "agreeInApp.refusal.amendment_not_agreed":
+    "Not every Investor on the Venture has agreed yet.",
+  "agreeInApp.refusal.settled":
+    "This Venture's Settlement is approved — it is not amended any more.",
+  "agreeInApp.portal.amendmentTitle":
+    "{venture}: an Amendment to your Agreement",
+  "agreeInApp.portal.amendmentHint":
+    "The farm proposes to amend your Agreement: {percent}% of the profit yours, selling {from} – {to}. Why: {reason}. Read the whole paper and, if you agree, press below.",
+  "agreeInApp.portal.amendmentAgreedHint":
+    "You have agreed. Once everyone has, the farm approves it; it is in force from that day.",
+  "agreeInApp.portal.readAmendment": "Read the Amendment",
+  "agreeInApp.portal.amendmentPaperTitle": "Amendment to the Agreement",
   "projection.switch.shown": "Shown",
   "projection.switch.hidden": "Hidden",
   "projection.switch.show": "Show projections",

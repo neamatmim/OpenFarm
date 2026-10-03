@@ -616,6 +616,34 @@ export const bn: Record<MessageKey, string> = {
     "পুরোটা পড়ুন। «আমি সম্মত» চাপলে এই কাগজেই আপনার সম্মতি লেখা থাকবে।",
   "agreeInApp.portal.agree": "আমি সম্মত",
   "agreeInApp.portal.agreedDone": "আপনার সম্মতি খামারে পৌঁছেছে",
+  "agreeInApp.how": "কীভাবে সম্মতি",
+  "agreeInApp.onPaper": "সই করা কাগজে",
+  "agreeInApp.amendSheetHint":
+    "সই করা কাগজ বা ছবি লাগবে না। ভেঞ্চারের প্রত্যেক বিনিয়োগকারী পোর্টালে সংশোধনী পড়ে সম্মতি দেবেন; সবাই দিলে আপনি অনুমোদন দেবেন — অনুমোদনের দিন থেকেই কার্যকর।",
+  "agreeInApp.amendmentOffered": "সংশোধনী পাঠানো হয়েছে",
+  "agreeInApp.amendmentOfferedHint":
+    "সবাই পোর্টালে সম্মতি দিলে ভেঞ্চারের বিনিয়োগকারী তালিকায় অনুমোদনের জন্য দেখাবে।",
+  "agreeInApp.amendmentApproved": "সংশোধনী অনুমোদিত — আজ থেকে কার্যকর",
+  "agreeInApp.amendmentTerms":
+    "বিনিয়োগকারী {percent}% · বিক্রির সময় {from} – {to}",
+  "agreeInApp.agreedOf": "{of} জনের {agreed} জন সম্মত",
+  "agreeInApp.amendmentWaitingTitle": "সংশোধনী — অ্যাপে সম্মতির অপেক্ষায়",
+  "agreeInApp.amendmentWaitingHint":
+    "সবাই সম্মতি দিয়ে আপনি অনুমোদন না দেওয়া পর্যন্ত কোনো চুক্তির শর্ত বদলায় না।",
+  "agreeInApp.refusal.someoneNotInPortal":
+    "এই ভেঞ্চারের কোনো বিনিয়োগকারী পোর্টালে যোগ দেননি, বা পোর্টাল বন্ধ — সবাই অ্যাপে সম্মতি দিতে পারবেন না। কাগজে সই করান।",
+  "agreeInApp.refusal.amendment_already_proposed":
+    "এই ভেঞ্চারে একটি সংশোধনী আগেই পাঠানো আছে; নতুন পাঠাতে আগেরটি ফিরিয়ে নিন।",
+  "agreeInApp.refusal.amendment_not_agreed":
+    "ভেঞ্চারের সব বিনিয়োগকারী এখনো সম্মতি দেননি।",
+  "agreeInApp.refusal.settled": "এই ভেঞ্চারের হিসাব অনুমোদিত — আর সংশোধন হয় না।",
+  "agreeInApp.portal.amendmentTitle": "{venture}: চুক্তির সংশোধনী",
+  "agreeInApp.portal.amendmentHint":
+    "খামার আপনার চুক্তি সংশোধনের প্রস্তাব দিয়েছে: মুনাফার {percent}% আপনার, বিক্রির সময় {from} – {to}। কারণ: {reason}। পুরো কাগজ পড়ে সম্মত হলে নিচে চাপুন।",
+  "agreeInApp.portal.amendmentAgreedHint":
+    "আপনি সম্মতি দিয়েছেন। সবাই সম্মতি দিলে খামার অনুমোদন দেবে; সেদিন থেকে কার্যকর।",
+  "agreeInApp.portal.readAmendment": "সংশোধনী পড়ুন",
+  "agreeInApp.portal.amendmentPaperTitle": "চুক্তির সংশোধনী",
   "projection.switch.shown": "দেখানো হচ্ছে",
   "projection.switch.hidden": "লুকানো",
   "projection.switch.show": "আনুমানিক হিসাব দেখান",

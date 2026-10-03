@@ -24,6 +24,7 @@ import { Line, StateBadge } from "@/components/ventures/venture-card";
 import { PapersMenu } from "@/components/ventures/venture-investors";
 import { MoneyTotals } from "@/components/ventures/venture-money";
 import { useLanguage } from "@/i18n/language-provider";
+import { agreedInApp } from "@/lib/agreed-in-app";
 import { useTaka } from "@/lib/taka";
 import type { orpc } from "@/utils/orpc";
 
@@ -175,9 +176,14 @@ const SplitCell = ({ row }: AgreementCell) => {
   );
 };
 
-/** Whether the Farm keeps the stamped paper's photo. */
+/** Whether the Farm keeps the stamped paper's photo — or the Agreement was agreed in the app, and needs none. */
 const PaperBadge = ({ agreement }: { agreement: Agreement }) => {
   const { t } = useLanguage();
+  if (agreedInApp(agreement)) {
+    return (
+      <StatusBadge tone="success">{t("agreeInApp.agreedBadge")}</StatusBadge>
+    );
+  }
   return agreement.hasPaper ? (
     <StatusBadge tone="success">{t("ventures.page.paperKept")}</StatusBadge>
   ) : (

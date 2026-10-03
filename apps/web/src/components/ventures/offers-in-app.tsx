@@ -130,3 +130,111 @@ export const OffersInApp = ({ ventureId }: { ventureId: string }) => {
     </div>
   );
 };
+
+type AmendmentOffer = Awaited<
+  ReturnType<typeof client.ventures.amendmentOffers>
+>[number];
+
+/** Why the farm would not approve or withdraw an Amendment offer, in the Owner's words. */
+const AMENDMENT_REFUSALS = {
+  amendment_not_agreed: "agreeInApp.refusal.amendment_not_agreed",
+  offer_withdrawn: "agreeInApp.refusal.offer_withdrawn",
+  offer_already_approved: "agreeInApp.refusal.offer_already_approved",
+  already_approved: "agreeInApp.refusal.settled",
+} as const;
+
+/** One Amendment offered and waiting: how many of the Venture's Investors have agreed, to withdraw, and to approve once
+ *  all have. */
+const AmendmentLine = ({ offer }: { offer: AmendmentOffer }) => {
+  const { t, language } = useLanguage();
+  const refused = useRefused(AMENDMENT_REFUSALS);
+  const approving = useMutation(
+    orpc.ventures.approveAmendment.mutationOptions({
+      onError: refused,
+      onSuccess: () => toast.success(t("agreeInApp.amendmentApproved")),
+    })
+  );
+  const withdrawing = useMutation(
+    orpc.ventures.withdrawAmendment.mutationOptions({
+      onError: refused,
+      onSuccess: () => toast.success(t("agreeInApp.withdrawn")),
+    })
+  );
+  const everyone = offer.of > 0 && offer.agreed === offer.of;
+  const busy = approving.isPending || withdrawing.isPending;
+  return (
+    <li className="flex flex-wrap items-center justify-between gap-3 py-3">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <span className="font-medium">
+          {t("agreeInApp.amendmentTerms", {
+            percent: formatNumber(offer.investorsPercent, language),
+            from: formatDate(new Date(offer.targetWindowStart), language),
+            to: formatDate(new Date(offer.targetWindowEnd), language),
+          })}
+        </span>
+        <span className="text-muted-foreground text-sm">{offer.reason}</span>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <StatusBadge tone={everyone ? "success" : "info"}>
+          {t("agreeInApp.agreedOf", {
+            agreed: formatNumber(offer.agreed, language),
+            of: formatNumber(offer.of, language),
+          })}
+        </StatusBadge>
+        <Button
+          disabled={busy}
+          onClick={() => withdrawing.mutate({ offerId: offer.id })}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          <Undo2 aria-hidden data-icon="inline-start" />
+          {t("agreeInApp.withdraw")}
+        </Button>
+        {everyone ? (
+          <Button
+            disabled={busy}
+            onClick={() => approving.mutate({ offerId: offer.id })}
+            size="sm"
+            type="button"
+          >
+            <Check aria-hidden data-icon="inline-start" />
+            {t("agreeInApp.approve")}
+          </Button>
+        ) : null}
+      </div>
+    </li>
+  );
+};
+
+/**
+ * The Amendments offered on a Venture to agree to in the app that are still waiting — on its Investors to agree, or on
+ * the Owner to approve once every one has — each to withdraw. Nothing while none waits.
+ */
+export const AmendmentOffersInApp = ({ ventureId }: { ventureId: string }) => {
+  const { t } = useLanguage();
+  const offers = useQuery(
+    orpc.ventures.amendmentOffers.queryOptions({ input: { ventureId } })
+  );
+  const waiting = (offers.data ?? []).filter(
+    (one) => one.standing === "offered"
+  );
+  if (waiting.length === 0) {
+    return null;
+  }
+  return (
+    <div className="mt-4 flex flex-col gap-1">
+      <h3 className="text-sm font-medium">
+        {t("agreeInApp.amendmentWaitingTitle")}
+      </h3>
+      <p className="text-muted-foreground text-sm">
+        {t("agreeInApp.amendmentWaitingHint")}
+      </p>
+      <ul className="divide-border divide-y">
+        {waiting.map((one) => (
+          <AmendmentLine key={one.id} offer={one} />
+        ))}
+      </ul>
+    </div>
+  );
+};

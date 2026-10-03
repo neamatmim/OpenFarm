@@ -23,7 +23,7 @@ import { currentWording, giveStandardTemplates } from "./template-store";
 // which is off until the lawyer and the Shariah scholar have confirmed the farm may rely on an Agreement with no stamp.
 
 /** A request the Owner or an Investor makes, with the Farm certain. */
-type Acting = Parameters<typeof audited>[0] & {
+export type Acting = Parameters<typeof audited>[0] & {
   farm: NonNullable<Context["farm"]>;
   actor: Actor;
   clock: { now: () => Date };
@@ -47,11 +47,11 @@ const standingOf = (offer: OfferRow): OfferStanding => {
   return offer.agreedAt ? "agreed" : "offered";
 };
 
-const refused = (message: string, refusal: string) =>
+export const refused = (message: string, refusal: string) =>
   new ORPCError("BAD_REQUEST", { message, data: { refusal } });
 
 /** The switch is off: nothing is offered or agreed in the app. */
-const assertSwitchedOn = (farm: { agreementsInApp: boolean }) => {
+export const assertSwitchedOn = (farm: { agreementsInApp: boolean }) => {
   if (!farm.agreementsInApp) {
     throw refused(
       "Agreements are not agreed in the app on this farm",
@@ -82,18 +82,23 @@ const theOffer = async (
   return offer;
 };
 
-/** That they can agree in the app: the portal open, and their access to it taken up and standing. */
-const assertInThePortal = async (context: Acting, investorId: string) => {
-  const access = await context.db.query.investorAccess.findFirst({
+/** That every one of them can agree in the app: the portal open, and each one's access to it taken up and standing. */
+export const assertInThePortal = async (
+  context: Acting,
+  investorIds: readonly string[]
+) => {
+  const access = await context.db.query.investorAccess.findMany({
     where: {
       farmId: context.farm.id,
-      investorId,
+      investorId: { in: [...investorIds] },
       revokedAt: { isNull: true },
       acceptedAt: { isNotNull: true },
     },
-    columns: { id: true },
+    columns: { investorId: true },
   });
-  if (!(context.farm.investorPortal && access)) {
+  const inThePortal = new Set(access.map((one) => one.investorId));
+  const everyone = investorIds.every((id) => inThePortal.has(id));
+  if (!(context.farm.investorPortal && everyone)) {
     throw refused(
       "They cannot agree in the app: the portal is shut, or they have not joined it",
       "investor_not_in_portal"
@@ -184,7 +189,7 @@ export const offerInApp = async (
       "investor_retired"
     );
   }
-  await assertInThePortal(context, him.id);
+  await assertInThePortal(context, [him.id]);
   await assertNothingStanding(context, run.id, him.id);
   const taken = await unitsTaken(context.db, context.farm.id, run.id);
   if (taken + input.units > run.units) {
