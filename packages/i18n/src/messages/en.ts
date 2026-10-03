@@ -1100,7 +1100,7 @@ export const en = {
   "ventures.paidFor.choose": "How investors pay",
   "ventures.paidFor.before_buying": "All before buying",
   "ventures.paidFor.by_the_month": "Cattle money first, the rest monthly",
-  "ventures.paidFor.label": "Each Unit is paid",
+  "ventures.paidFor.label": "Each unit is paid",
   "ventures.paidFor.allBefore": "{price}, all before buying",
   "ventures.paidFor.monthly":
     "{cattle} before buying, then {each} on the 10th of each month from {from} to {to}",
@@ -1952,7 +1952,7 @@ export const en = {
   "investors.page.profit": "Their share of the profit",
   "investors.page.fromSettled":
     "{count, plural, one {From # settled Venture} other {From # settled Ventures}}",
-  "investors.page.noneSettled": "No Venture settled yet",
+  "investors.page.noneSettled": "No venture settled yet",
   "investors.page.agreementsHint":
     "Every paper they signed, the latest first, with the terms in force today. Capital is taken and payouts are made from the venture's page.",
   "investors.page.venture": "Venture",
@@ -3205,7 +3205,7 @@ export const en = {
   "money.col.status": "Status",
   "money.col.amount": "Amount",
   "money.approved": "Approved",
-  "money.allCategories": "All Categories",
+  "money.allCategories": "All categories",
   "money.anyStatus": "Any status",
   "money.search": "Search who, what or a note",
   "byHand.hint": "For money no other record makes: wages, dung sold, repairs.",

@@ -6,13 +6,11 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { UserRoundCheck } from "lucide-react";
 import { useId } from "react";
 
+import { NativeSelect } from "@/components/page-kit";
 import { useT } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
-
-const SELECT =
-  "bg-card border-input focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-md border px-3 text-base outline-none focus-visible:ring-[3px] md:h-9 md:max-w-xs md:text-sm";
 
 /**
  * Pinning work to one person — the milker who knows that Pen, the vet who is coming on Thursday — or leaving it to
@@ -72,8 +70,8 @@ export const AssignWork = ({
         <UserRoundCheck aria-hidden className="text-muted-foreground size-4" />
         {t("work.assignTo")}
       </Label>
-      <select
-        className={SELECT}
+      <NativeSelect
+        className="md:max-w-xs"
         disabled={assign.isPending || !people.data}
         id={id}
         onChange={(event) =>
@@ -91,7 +89,7 @@ export const AssignWork = ({
             {person.name}
           </option>
         ))}
-      </select>
+      </NativeSelect>
       {assign.isPending ? <Spinner /> : null}
     </div>
   );

@@ -16,6 +16,7 @@ import { PencilLine } from "lucide-react";
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
 
+import { NativeSelect } from "@/components/page-kit";
 import { useT } from "@/i18n/language-provider";
 import type { Answers } from "@/lib/correcting";
 import { asShown, changesFrom, readyToSend } from "@/lib/correcting";
@@ -184,8 +185,7 @@ export const CorrectionChoice = ({
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={id}>{label}</Label>
-      <select
-        className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
+      <NativeSelect
         id={id}
         onChange={(event) => onChange(event.target.value)}
         value={value}
@@ -196,7 +196,7 @@ export const CorrectionChoice = ({
             {one.label}
           </option>
         ))}
-      </select>
+      </NativeSelect>
     </div>
   );
 };

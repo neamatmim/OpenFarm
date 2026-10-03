@@ -2,6 +2,7 @@ import { Label } from "@OpenFarm/ui/components/label";
 import { useQuery } from "@tanstack/react-query";
 
 import { useIsOwner } from "@/components/money";
+import { NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -38,8 +39,7 @@ export const WhoseHandField = ({
   return (
     <div className="space-y-1">
       <Label htmlFor={id}>{t("cash.whoseHand")}</Label>
-      <select
-        className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
+      <NativeSelect
         id={id}
         onChange={(event) => onChange(event.target.value)}
         value={value}
@@ -50,7 +50,7 @@ export const WhoseHandField = ({
             {one.name}
           </option>
         ))}
-      </select>
+      </NativeSelect>
     </div>
   );
 };

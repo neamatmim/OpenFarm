@@ -52,7 +52,8 @@ const COMMON_NOUNS = [
   "Intake",
   "Dispatch",
   "Sale",
-  "Category",
+  // Its plural is not "-s".
+  "Categor(?:y|ies)",
   "Dairy",
   "Fattening",
   "Venture",
@@ -76,9 +77,9 @@ const COMMON_NOUNS = [
 /** Tabs a sentence sends somebody to, said as the tab says them. */
 const TAB_NAMES = ["Capital in", "Money in and out", "Feed Items tab"];
 
-/** Inside a sentence: after a word, a figure, a comma, a closing brace or bracket, a dash, a count's "#", or a
- *  sentence's opening "A" or "An". */
-const MID_SENTENCE = String.raw`(?:(?<=[a-z0-9,;}\)%—–#’'] )|(?<=\()|(?<=\bAn? ))`;
+/** Inside a sentence: after any word (the sentence's first among them), a figure, a comma, a closing brace or
+ *  bracket, a dash or a count's "#". */
+const MID_SENTENCE = String.raw`(?:(?<=[A-Za-z0-9,;}\)%—–#’'] )|(?<=\())`;
 const CAPITALISED = new RegExp(
   `${MID_SENTENCE}(?:${COMMON_NOUNS.join("|")})(?:s|'s|s')?\\b(?! page| tab| Portal| Ops)`,
   "u"
