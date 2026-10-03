@@ -231,46 +231,49 @@ export const InternalSaleSheet = ({
       ready={ready}
       submitLabel={t("ventures.sellInternally")}
       title={t("ventures.sellInternally")}
+      wide
     >
-      <FormField id="internal-tag" label={t("ventures.whichAnimal")}>
-        <SearchablePicker
-          empty={t("ventures.noneMovable")}
-          id="internal-tag"
-          loading={movable.isPending}
-          onChange={setTagNumber}
-          options={options}
-          placeholder={t("picker.findAnimal")}
-          value={tagNumber}
-        />
-      </FormField>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField id="internal-tag" label={t("ventures.whichAnimal")}>
+          <SearchablePicker
+            empty={t("ventures.noneMovable")}
+            id="internal-tag"
+            loading={movable.isPending}
+            onChange={setTagNumber}
+            options={options}
+            placeholder={t("picker.findAnimal")}
+            value={tagNumber}
+          />
+        </FormField>
+        <FormField
+          hint={t("ventures.toPurseHint")}
+          id="internal-to"
+          label={t("ventures.toPurse")}
+        >
+          <NativeSelect
+            id="internal-to"
+            onChange={(event) => setTo(event.target.value)}
+            value={toChosen ? to : ""}
+          >
+            <option disabled value="">
+              {t("ventures.choosePurse")}
+            </option>
+            {herPurse === THE_FARM ? null : (
+              <option value={THE_FARM}>{t("intake.theFarms")}</option>
+            )}
+            {(ventures.data ?? [])
+              .filter((one) => one.id !== herPurse)
+              .map((one) => (
+                <option key={one.id} value={one.id}>
+                  {one.name}
+                </option>
+              ))}
+          </NativeSelect>
+        </FormField>
+      </div>
       {weighHerAgain ? (
         <Notice title={weighHerAgain.said} tone="warning" />
       ) : null}
-      <FormField
-        hint={t("ventures.toPurseHint")}
-        id="internal-to"
-        label={t("ventures.toPurse")}
-      >
-        <NativeSelect
-          id="internal-to"
-          onChange={(event) => setTo(event.target.value)}
-          value={toChosen ? to : ""}
-        >
-          <option disabled value="">
-            {t("ventures.choosePurse")}
-          </option>
-          {herPurse === THE_FARM ? null : (
-            <option value={THE_FARM}>{t("intake.theFarms")}</option>
-          )}
-          {(ventures.data ?? [])
-            .filter((one) => one.id !== herPurse)
-            .map((one) => (
-              <option key={one.id} value={one.id}>
-                {one.name}
-              </option>
-            ))}
-        </NativeSelect>
-      </FormField>
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField
           hint={t("ventures.rateHint")}
@@ -302,24 +305,26 @@ export const InternalSaleSheet = ({
           })}
         </p>
       )}
-      <FarmAccountField
-        id="internal-reference-account"
-        kind="bank"
-        onChange={setFarmAccountId}
-        value={farmAccountId}
-      />
-      <FormField
-        hint={t("ventures.referenceHint")}
-        id="internal-reference"
-        label={t("ventures.reference")}
-      >
-        <Input
-          autoComplete="off"
-          id="internal-reference"
-          onChange={(event) => setReference(event.target.value)}
-          value={reference}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FarmAccountField
+          id="internal-reference-account"
+          kind="bank"
+          onChange={setFarmAccountId}
+          value={farmAccountId}
         />
-      </FormField>
+        <FormField
+          hint={t("ventures.referenceHint")}
+          id="internal-reference"
+          label={t("ventures.reference")}
+        >
+          <Input
+            autoComplete="off"
+            id="internal-reference"
+            onChange={(event) => setReference(event.target.value)}
+            value={reference}
+          />
+        </FormField>
+      </div>
       <FormField
         hint={t("ventures.whereTheRateCameFromHint")}
         id="internal-note"

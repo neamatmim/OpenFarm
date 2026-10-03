@@ -385,28 +385,28 @@ export const EnterMoneySheet = ({
       ready={complete}
       submitLabel={t("byHand.save")}
       title={t("byHand.title")}
+      wide
     >
       {chosen ? (
         <>
-          <FormField id="entry-category" label={t("byHand.category")}>
-            <NativeSelect
-              id="entry-category"
-              onChange={(event) => set("categoryId")(event.target.value)}
-              value={chosen.id}
-            >
-              {usable.map((one) => (
-                <option key={one.id} value={one.id}>
-                  {categoryName(
-                    { categoryBn: one.nameBn, categoryEn: one.nameEn },
-                    language
-                  )}{" "}
-                  ({t(one.direction === "in" ? "byHand.in" : "byHand.out")})
-                </option>
-              ))}
-            </NativeSelect>
-          </FormField>
-
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <FormField id="entry-category" label={t("byHand.category")}>
+              <NativeSelect
+                id="entry-category"
+                onChange={(event) => set("categoryId")(event.target.value)}
+                value={chosen.id}
+              >
+                {usable.map((one) => (
+                  <option key={one.id} value={one.id}>
+                    {categoryName(
+                      { categoryBn: one.nameBn, categoryEn: one.nameEn },
+                      language
+                    )}{" "}
+                    ({t(one.direction === "in" ? "byHand.in" : "byHand.out")})
+                  </option>
+                ))}
+              </NativeSelect>
+            </FormField>
             <FormField id="entry-amount" label={t("byHand.amount")}>
               <Input
                 id="entry-amount"
@@ -433,7 +433,7 @@ export const EnterMoneySheet = ({
             typedAmount={typed.amount}
           />
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
             <FormField
               className={isWage ? undefined : "sm:col-span-2"}
               id="entry-who"
@@ -450,6 +450,7 @@ export const EnterMoneySheet = ({
             {isWage ? (
               <WageMonth onChange={set("wageMonth")} value={typed.wageMonth} />
             ) : null}
+            <SideField id="entry-side" onChange={setSide} value={side} />
           </div>
           {isWage ? (
             <WageDrawsNote
@@ -458,14 +459,14 @@ export const EnterMoneySheet = ({
             />
           ) : null}
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
             <PaymentMethodField
               account={{ typed: account, onChange: setAccount }}
               id="entry-paid-by"
               onChange={setPaymentMethod}
+              row
               value={paymentMethod}
             />
-            <SideField id="entry-side" onChange={setSide} value={side} />
           </div>
 
           <FormField id="entry-note" label={t("byHand.note")}>
