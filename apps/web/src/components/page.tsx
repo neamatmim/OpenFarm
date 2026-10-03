@@ -39,15 +39,17 @@ const TONE_ICON: Record<Tone, LucideIcon> = {
   info: Info,
 };
 
-/** Every working page runs the full width beside the sidebar, so its title stands in the same place on every page and
- *  a wide screen is used rather than left as two empty bands. Only a single card of a flow — joining, setting up, a
- *  step of the day's work — keeps to a column in the middle, where one line of it is read at a time. */
+/** Every working page runs the width beside the sidebar, so its title stands in the same place on every page and a
+ *  wide screen is used rather than left as two empty bands — up to 1584px, Carbon's widest grid, past which a row of
+ *  figures is too long to read across; it stays left-aligned there, so the title does not move as a window grows.
+ *  Only a single card of a flow — joining, setting up, a step of the day's work — keeps to a column in the middle,
+ *  where one line of it is read at a time. */
 const WIDTH = {
   narrow: "mx-auto max-w-2xl",
   // A person's own settings: a few short parts, each read as a whole, kept to a width a form is read at (Polaris's
   // settings pages are its small width). Left-aligned, so the title stands where every other page's does.
   settings: "max-w-5xl",
-  default: "",
+  default: "max-w-[99rem]",
 } as const;
 
 /** The title of a part of a page — a Section, a card of its own — at one size and weight everywhere. */
