@@ -4,7 +4,6 @@ import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { Certificate } from "@/components/certificate";
 import {
@@ -19,6 +18,7 @@ import { FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 type Identity = Awaited<ReturnType<typeof orpc.farm.identity.call>>;
@@ -85,7 +85,7 @@ const ContactSection = ({ farm }: { farm: Identity }) => {
       saveLabel={t("identity.save")}
       title={t("identity.contact")}
     >
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid max-w-3xl gap-4 sm:grid-cols-2">
         {/* The name is the farm's, set when it was created, and not changed from here. */}
         <FormField
           className="sm:col-span-2"
@@ -156,7 +156,7 @@ const RegistrationSection = ({ farm }: { farm: Identity }) => {
       saveLabel={t("identity.save")}
       title={t("identity.registration")}
     >
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid max-w-3xl gap-4 sm:grid-cols-2">
         <FormField
           id="identity-number"
           label={t("identity.registrationNumber")}

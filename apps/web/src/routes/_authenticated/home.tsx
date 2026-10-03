@@ -98,7 +98,7 @@ const ManagerHome = () => {
         {home.isError ? (
           <Notice title={t("common.error")} tone="danger" />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {[0, 1, 2, 3].map((n) => (
               <Skeleton className="h-32 rounded-xl" key={n} />
             ))}

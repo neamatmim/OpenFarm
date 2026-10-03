@@ -11,12 +11,12 @@ import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Gavel } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { StatusBadge, TagChip } from "@/components/page";
 import { FormDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** A Repeat Breeder as the queue reads her. */

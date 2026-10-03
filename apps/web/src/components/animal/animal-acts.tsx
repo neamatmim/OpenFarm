@@ -13,7 +13,6 @@ import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { DeathPhotoField } from "@/components/animal/death-photo";
 import { MoveDialog } from "@/components/animal/move-dialog";
@@ -28,6 +27,7 @@ import { InternalSaleSheet } from "@/components/ventures/internal-sale-sheet";
 import { useLanguage } from "@/i18n/language-provider";
 import type { Photo } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import type { AnimalAct, AnimalDetail, PenChoice } from "./animal-types";

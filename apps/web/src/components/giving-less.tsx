@@ -2,7 +2,15 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { Link } from "@tanstack/react-router";
 import { TrendingDown } from "lucide-react";
 
+import {
+  DataTable,
+  createListColumns,
+  listHeader,
+  useListTable,
+} from "@/components/data-table";
 import { Opens, QueueGroup, QueueRow } from "@/components/home/queue";
+import { Nothing } from "@/components/list-cells";
+import { Section, TagChip } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import type { orpc } from "@/utils/orpc";
 
@@ -59,3 +67,93 @@ export const GivingLessGroup = ({
     />
   );
 };
+
+type GivingLessRow = GivingLessRows[number];
+
+interface Cell {
+  row: { original: GivingLessRow };
+}
+
+const TagCell = ({ row }: Cell) => (
+  <Link params={{ tagNumber: row.original.tag }} to="/animals/$tagNumber">
+    <TagChip>{row.original.tag}</TagChip>
+  </Link>
+);
+const Litres = ({ litres }: { litres: number }) => {
+  const { language } = useLanguage();
+  return <span>{formatNumber(litres, language)}</span>;
+};
+const LatelyCell = ({ row }: Cell) => <Litres litres={row.original.lately} />;
+const UsuallyCell = ({ row }: Cell) => <Litres litres={row.original.usually} />;
+const DropCell = ({ row }: Cell) => {
+  const { language } = useLanguage();
+  return (
+    <span className="text-warning font-medium">
+      {`${formatNumber(row.original.dropPercent, language)}%`}
+    </span>
+  );
+};
+const DaysInMilkCell = ({ row }: Cell) => {
+  const { language } = useLanguage();
+  const days = row.original.daysInMilk;
+  return days === null ? (
+    <Nothing />
+  ) : (
+    <span>{formatNumber(days, language)}</span>
+  );
+};
+
+const column = createListColumns<GivingLessRow>();
+const givingLessColumns = column.columns([
+  column.accessor("tag", {
+    header: listHeader("animals.col.tag"),
+    cell: TagCell,
+  }),
+  column.accessor("penName", { header: listHeader("herd.col.pen") }),
+  column.accessor((row) => row.daysInMilk ?? undefined, {
+    id: "daysInMilk",
+    header: listHeader("givingLess.col.daysInMilk"),
+    cell: DaysInMilkCell,
+    meta: { align: "end" },
+  }),
+  column.accessor("usually", {
+    header: listHeader("givingLess.col.usually"),
+    cell: UsuallyCell,
+    meta: { align: "end" },
+  }),
+  column.accessor("lately", {
+    header: listHeader("givingLess.col.lately"),
+    cell: LatelyCell,
+    meta: { align: "end" },
+  }),
+  column.accessor("dropPercent", {
+    header: listHeader("givingLess.col.drop"),
+    cell: DropCell,
+    meta: { align: "end" },
+  }),
+]);
+
+const GivingLessTable = ({ rows }: { rows: GivingLessRows }) => {
+  const table = useListTable({
+    columns: givingLessColumns,
+    data: rows,
+    getRowId: (row) => row.animalId,
+  });
+  return <DataTable table={table} />;
+};
+
+/**
+ * The Milk page's list of cows giving less. A phone keeps the queue's lines; a desk reads them as a table — Tag
+ * Number, Pen, days in milk, and litres a milking usually, lately and how far under — sortable, the furthest under
+ * first (Polaris's index table).
+ */
+export const GivingLessList = ({ rows }: { rows: GivingLessRows }) => (
+  <>
+    <div className="md:hidden">
+      <GivingLessGroup headless rows={rows} />
+    </div>
+    <Section className="hidden md:flex">
+      <GivingLessTable rows={rows} />
+    </Section>
+  </>
+);

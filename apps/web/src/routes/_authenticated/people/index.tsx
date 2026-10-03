@@ -15,9 +15,14 @@ import {
   Users,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { toast } from "sonner";
 
-import { EmptyState, Loaded, Page, PageHeader } from "@/components/page";
+import {
+  EmptyState,
+  Loaded,
+  Page,
+  PageHeader,
+  TableSkeleton,
+} from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { FilterBar, NativeSelect, SummaryFigures } from "@/components/page-kit";
 import type { HandOver } from "@/components/people/invite-sheet";
@@ -39,6 +44,7 @@ import { roleKey } from "@/components/role-choice";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { useInFlight } from "@/lib/in-flight";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** How many on the list stand one way. */
@@ -218,7 +224,7 @@ const PeoplePage = () => {
 
       <div className="surface flex flex-col gap-4 p-4 md:p-5">
         <PeopleFilters filter={filter} onChange={setFilter} />
-        <Loaded query={list}>
+        <Loaded query={list} skeleton={<TableSkeleton />}>
           {shown.length === 0 ? (
             <EmptyState
               action={

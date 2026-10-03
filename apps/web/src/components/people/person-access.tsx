@@ -28,7 +28,6 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { Section, StatusBadge } from "@/components/page";
 import { FormDialog, FormField } from "@/components/page-kit";
@@ -36,6 +35,7 @@ import { RoleChoice, toggled } from "@/components/role-choice";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { reachesTheirAccess } from "@/lib/their-access";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import { OneTimeCode } from "./one-time-code";

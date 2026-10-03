@@ -5,9 +5,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { BellOff, BellRing, Phone } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
-import { Page, PageHeader, Section, StatusBadge } from "@/components/page";
+import {
+  Page,
+  PageHeader,
+  SettingsSection,
+  StatusBadge,
+} from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import {
@@ -17,6 +21,7 @@ import {
   stopBeingTold,
 } from "@/lib/push";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** How this device stands for being told: told, not told, refused by the browser, or unable to be told at all. */
@@ -130,7 +135,7 @@ const BeingTold = () => {
   const pending = agree.isPending || refuse.isPending;
 
   return (
-    <Section
+    <SettingsSection
       action={
         possible ? (
           <Button
@@ -158,7 +163,7 @@ const BeingTold = () => {
       <div>
         <PushStanding already={already} possible={possible} said={said} />
       </div>
-    </Section>
+    </SettingsSection>
   );
 };
 
@@ -185,7 +190,11 @@ const MyNumber = () => {
   const mine = phone ?? me.data?.phone ?? "";
 
   return (
-    <Section description={t("sms.why")} id="my-number" title={t("sms.title")}>
+    <SettingsSection
+      description={t("sms.why")}
+      id="my-number"
+      title={t("sms.title")}
+    >
       <form
         className="flex flex-col gap-3 sm:flex-row sm:items-end"
         onSubmit={(event) => {
@@ -215,7 +224,7 @@ const MyNumber = () => {
           {t("sms.save")}
         </Button>
       </form>
-    </Section>
+    </SettingsSection>
   );
 };
 
@@ -223,7 +232,7 @@ const MyNumber = () => {
 const SettingsPage = () => {
   const { t } = useLanguage();
   return (
-    <Page>
+    <Page width="settings">
       <PageHeader
         description={t("settings.subtitle")}
         title={t("nav.settings")}

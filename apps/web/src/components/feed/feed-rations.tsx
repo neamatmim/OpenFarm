@@ -24,18 +24,18 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { EmptyState, Section, StatusBadge } from "@/components/page";
 import type { RowAction } from "@/components/page-kit";
 import {
-  FormDialog,
+  FormSheet,
   FormField,
   NativeSelect,
   RowMenu,
 } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import { bandSaid, expectedGainSaid } from "./band-words";
@@ -252,8 +252,8 @@ const RationDialog = ({
   const idFor = (part: string) => `ration-${ration?.id ?? "new"}-${part}`;
 
   return (
-    <FormDialog
-      className="sm:max-w-lg"
+    <FormSheet
+      wide
       description={t("feed.rationsDescription")}
       onOpenChange={onOpenChange}
       onSubmit={() =>
@@ -308,7 +308,7 @@ const RationDialog = ({
             <legend className="mb-2 text-sm font-medium">
               {t("feed.kgPerAnimal")}
             </legend>
-            <ul className="divide-border max-h-80 divide-y overflow-y-auto rounded-lg border">
+            <ul className="divide-border divide-y rounded-lg border">
               {offered.map((item) => (
                 <li
                   className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-3 py-2"
@@ -416,7 +416,7 @@ const RationDialog = ({
           />
         </>
       )}
-    </FormDialog>
+    </FormSheet>
   );
 };
 

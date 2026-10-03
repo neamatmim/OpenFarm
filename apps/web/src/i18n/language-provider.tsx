@@ -15,9 +15,9 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 const STORAGE_KEY = "openfarm.language";

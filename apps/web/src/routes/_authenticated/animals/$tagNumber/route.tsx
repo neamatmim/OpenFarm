@@ -88,7 +88,7 @@ const AnimalPage = () => {
     return (
       <Page>
         <Skeleton className="h-36 rounded-xl" />
-        <Skeleton className="h-11 rounded-lg" />
+        <Skeleton className="h-11 rounded-lg md:h-9" />
         <Skeleton className="h-64 rounded-xl" />
       </Page>
     );

@@ -7,7 +7,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Outlet, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { BookOpen, GitPullRequestArrow, Hand, Plus } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { Loaded, Page, PageHeader } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
@@ -23,6 +22,7 @@ import { onlyFor } from "@/lib/guard";
 import { useTabOfPath } from "@/lib/path-tabs";
 import { useRefused } from "@/lib/refused";
 import { emptySop } from "@/lib/sop-draft";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 const TABS = ["procedures", "proposals"] as const;

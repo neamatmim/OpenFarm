@@ -1,6 +1,7 @@
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
+import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import {
   Table,
   TableBody,
@@ -32,7 +33,7 @@ import {
   ChevronsUpDown,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 import { useLanguage, useT } from "@/i18n/language-provider";
 
@@ -64,6 +65,23 @@ export const {
   // "nothing" as undefined, never as a made-up -1 or 9999-12-31.
   defaultColumn: { sortUndefined: "last" },
 });
+
+/** A row's state for its look: ticked rows are shaded as selected, an opened one as open. */
+const rowState = (ticked: boolean, open: boolean) => {
+  if (ticked) {
+    return "selected";
+  }
+  return open ? "open" : undefined;
+};
+
+/** What a page ticks rows for: the ids ticked, how a tick changes them, which rows may be ticked at all, and what a
+ *  screen reader hears for a row's box. */
+export interface RowSelection<TData> {
+  selected: ReadonlySet<string>;
+  onChange: (next: ReadonlySet<string>) => void;
+  selectable: (row: TData) => boolean;
+  label: (row: TData) => string;
+}
 
 /** The features every list table has, for a component that is handed one. */
 export type ListFeatures = typeof listFeatures;
@@ -193,6 +211,14 @@ const Pager = ({
  *
  * Inside a `Section` the table runs to the card's edges; `bare` keeps it within its own box elsewhere. A long history
  * gives a `pageSize`, and is read a page at a time in the order it is sorted.
+ *
+ * A row that opens to a breakdown — a buyer's sales and payments under what he owes — gives `renderDetail`: a button at
+ * the row's start opens it under the row, across the whole table (Carbon's expandable data table), so the list stays
+ * one line a record to read down and the breakdown is a press away. The phone's cards carry their breakdown as before.
+ *
+ * A list with a job done to many rows at once gives `selection`: a box at each row's start the page may tick, and one
+ * in the heading for every row on this page (Carbon's batch selection). The page keeps what is ticked and says what to
+ * do with it; a row it says may not be ticked has no box.
  */
 export const DataTable = <TData extends object>({
   table,
@@ -201,15 +227,29 @@ export const DataTable = <TData extends object>({
   bare = false,
   pageSize,
   className,
+  renderDetail,
+  selection,
 }: {
   table: TableInstance<ListFeatures, TData>;
   card?: (row: TData) => ReactNode;
+  renderDetail?: (row: TData) => ReactNode;
+  selection?: RowSelection<TData>;
   minWidth?: string;
   bare?: boolean;
   pageSize?: number;
   className?: string;
 }) => {
   const [page, setPage] = useState(0);
+  const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set());
+  const t = useT();
+  const toggle = (id: string) =>
+    setOpened((was) => {
+      const now = new Set(was);
+      if (!now.delete(id)) {
+        now.add(id);
+      }
+      return now;
+    });
   const all = table.getRowModel().rows;
   const size = pageSize ?? all.length;
   const pages = Math.max(1, Math.ceil(all.length / Math.max(size, 1)));
@@ -219,6 +259,40 @@ export const DataTable = <TData extends object>({
     ? all.slice(shown * pageSize, (shown + 1) * pageSize)
     : all;
   const paged = pageSize !== undefined && all.length > pageSize;
+  const tickable = selection
+    ? rows.filter((row) => selection.selectable(row.original))
+    : [];
+  const ticked = tickable.filter((row) => selection?.selected.has(row.id));
+  // Every box on this page ticked, or some of them: the heading's box says which.
+  const allTicked = ticked.length > 0 && ticked.length === tickable.length;
+  const someTicked = ticked.length > 0 && !allTicked;
+  const tickPage = (on: boolean) => {
+    if (!selection) {
+      return;
+    }
+    const next = new Set(selection.selected);
+    for (const row of tickable) {
+      if (on) {
+        next.add(row.id);
+      } else {
+        next.delete(row.id);
+      }
+    }
+    selection.onChange(next);
+  };
+  const tickRow = (id: string, on: boolean) => {
+    if (!selection) {
+      return;
+    }
+    const next = new Set(selection.selected);
+    if (on) {
+      next.add(id);
+    } else {
+      next.delete(id);
+    }
+    selection.onChange(next);
+  };
+  const leadingCells = (selection ? 1 : 0) + (renderDetail ? 1 : 0);
   return (
     <>
       {card ? (
@@ -238,10 +312,39 @@ export const DataTable = <TData extends object>({
           className
         )}
       >
-        <Table style={{ minWidth }}>
-          <TableHeader>
+        <Table
+          // A long list read a page at a time keeps its headings in sight as it is scrolled (Fiori: a table's column
+          // headers are sticky). On a desk it scrolls inside a box the window's height, so the heading row has
+          // something to stick to; a phone reads the cards above.
+          containerClassName={
+            paged
+              ? "md:max-h-[calc(100dvh-12rem)] md:overflow-y-auto"
+              : undefined
+          }
+          style={{ minWidth }}
+        >
+          <TableHeader
+            className={cn(paged && "md:bg-card md:sticky md:top-0 md:z-10")}
+          >
             {table.getHeaderGroups().map((group) => (
               <TableRow key={group.id}>
+                {selection ? (
+                  <TableHead className="w-10 pl-4 md:pl-5">
+                    {tickable.length > 0 ? (
+                      <Checkbox
+                        aria-label={t("common.selectPage")}
+                        checked={allTicked}
+                        indeterminate={someTicked}
+                        onCheckedChange={(on) => tickPage(on)}
+                      />
+                    ) : null}
+                  </TableHead>
+                ) : null}
+                {renderDetail ? (
+                  <TableHead className="w-12 pl-4 md:pl-5">
+                    <span className="sr-only">{t("common.col.details")}</span>
+                  </TableHead>
+                ) : null}
                 {group.headers.map((header) => {
                   const look = header.column.columnDef.meta;
                   const sorted = header.column.getIsSorted();
@@ -269,25 +372,81 @@ export const DataTable = <TData extends object>({
             ))}
           </TableHeader>
           <TableBody>
-            {rows.map((row) => (
-              <TableRow key={row.id}>
-                {row.getAllCells().map((cell) => {
-                  const look = cell.column.columnDef.meta;
-                  return (
-                    <TableCell
-                      className={cn(
-                        "align-top whitespace-normal first:pl-4 last:pr-4 md:first:pl-5 md:last:pr-5",
-                        look?.align === "end" && "text-right tabular-nums",
-                        look?.className
-                      )}
-                      key={cell.id}
-                    >
-                      <FlexRender cell={cell} />
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-            ))}
+            {rows.map((row) => {
+              const isOpen = opened.has(row.id);
+              const detailId = `row-detail-${row.id}`;
+              return (
+                <Fragment key={row.id}>
+                  <TableRow
+                    data-state={rowState(
+                      selection?.selected.has(row.id) ?? false,
+                      isOpen
+                    )}
+                  >
+                    {selection ? (
+                      <TableCell className="w-10 pl-4 align-top md:pl-5">
+                        {selection.selectable(row.original) ? (
+                          <Checkbox
+                            aria-label={selection.label(row.original)}
+                            checked={selection.selected.has(row.id)}
+                            className="mt-0.5"
+                            onCheckedChange={(on) => tickRow(row.id, on)}
+                          />
+                        ) : null}
+                      </TableCell>
+                    ) : null}
+                    {renderDetail ? (
+                      <TableCell className="w-12 pl-4 align-top md:pl-5">
+                        <Button
+                          aria-controls={detailId}
+                          aria-expanded={isOpen}
+                          aria-label={t(
+                            isOpen ? "common.hideDetails" : "common.showDetails"
+                          )}
+                          onClick={() => toggle(row.id)}
+                          size="icon-sm"
+                          type="button"
+                          variant="ghost"
+                        >
+                          <ChevronRight
+                            aria-hidden
+                            className={cn(
+                              "transition-transform motion-reduce:transition-none",
+                              isOpen && "rotate-90"
+                            )}
+                          />
+                        </Button>
+                      </TableCell>
+                    ) : null}
+                    {row.getAllCells().map((cell) => {
+                      const look = cell.column.columnDef.meta;
+                      return (
+                        <TableCell
+                          className={cn(
+                            "align-top whitespace-normal first:pl-4 last:pr-4 md:first:pl-5 md:last:pr-5",
+                            look?.align === "end" && "text-right tabular-nums",
+                            look?.className
+                          )}
+                          key={cell.id}
+                        >
+                          <FlexRender cell={cell} />
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                  {renderDetail && isOpen ? (
+                    <TableRow className="hover:bg-transparent" id={detailId}>
+                      <TableCell
+                        className="bg-muted/40 px-4 py-4 whitespace-normal md:px-5"
+                        colSpan={row.getAllCells().length + leadingCells}
+                      >
+                        {renderDetail(row.original)}
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                </Fragment>
+              );
+            })}
           </TableBody>
         </Table>
       </div>

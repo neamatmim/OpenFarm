@@ -24,7 +24,6 @@ import {
   Skull,
   Tag,
 } from "lucide-react";
-import { toast } from "sonner";
 
 import { AnimalPhoto } from "@/components/animal-photo";
 import { PageHeader } from "@/components/page";
@@ -33,6 +32,7 @@ import { ReportSighting } from "@/components/report-sighting";
 import { useLanguage } from "@/i18n/language-provider";
 import { breedName } from "@/lib/breed";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import type { AnimalAct, AnimalDetail, AnimalPowers } from "./animal-types";

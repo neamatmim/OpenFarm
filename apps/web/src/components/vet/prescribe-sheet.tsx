@@ -5,11 +5,11 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { productName } from "@/components/drugs/drug-types";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import type { Made } from "./vet-types";

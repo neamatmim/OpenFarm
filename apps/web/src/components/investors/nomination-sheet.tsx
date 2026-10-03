@@ -5,7 +5,6 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";
 import { FileText } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import type { Investor } from "@/components/investors/investor-types";
 import { FormField, FormSheet } from "@/components/page-kit";
@@ -16,6 +15,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
 import type { Photo } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import type { NomineeDraft } from "./nominee-draft";

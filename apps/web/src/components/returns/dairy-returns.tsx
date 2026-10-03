@@ -7,7 +7,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ChevronDown, Milk, Tag } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { useIsOwner } from "@/components/fattening/animal-prices";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
@@ -31,6 +30,7 @@ import {
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { aFigure, figureOf } from "@/lib/typed-figure";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";

@@ -334,7 +334,7 @@ export const HerdPanel = ({
           ) : null}
           {mightCull > 0 ? (
             <Link
-              className="bg-warning-surface text-warning hover:bg-warning-surface/80 focus-visible:ring-ring flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium outline-none focus-visible:ring-2"
+              className="bg-warning-surface text-warning hover:bg-warning-surface/80 focus-visible:ring-ring flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium outline-none focus-visible:ring-2 md:min-h-9"
               to="/cull-list"
             >
               <ListX aria-hidden className="size-4 shrink-0" />
@@ -400,7 +400,7 @@ export const FatteningPanel = () => {
           </dl>
           {maySell > 0 ? (
             <Link
-              className="bg-success-surface text-success hover:bg-success-surface/80 focus-visible:ring-ring flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium outline-none focus-visible:ring-2"
+              className="bg-success-surface text-success hover:bg-success-surface/80 focus-visible:ring-ring flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium outline-none focus-visible:ring-2 md:min-h-9"
               to="/ready-for-sale"
             >
               <Store aria-hidden className="size-4 shrink-0" />
@@ -418,7 +418,7 @@ export const FatteningPanel = () => {
           )}
           {costsMore > 0 ? (
             <Link
-              className="bg-danger-surface text-danger hover:bg-danger-surface/80 focus-visible:ring-ring flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium outline-none focus-visible:ring-2"
+              className="bg-danger-surface text-danger hover:bg-danger-surface/80 focus-visible:ring-ring flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium outline-none focus-visible:ring-2 md:min-h-9"
               search={{ keeping: "costs_more" }}
               to="/fattening"
             >

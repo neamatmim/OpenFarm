@@ -1,12 +1,11 @@
 import type { PaymentMethod } from "@OpenFarm/domain";
 import { PAYMENT_METHODS, farmDayOf } from "@OpenFarm/domain";
-import { formatDate } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { HandCoins, Plus } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import {
   CorrectionAnswer,
@@ -14,6 +13,12 @@ import {
   CorrectionDialog,
   useCorrecting,
 } from "@/components/correction-dialog";
+import {
+  DataTable,
+  createListColumns,
+  listHeader,
+  useListTable,
+} from "@/components/data-table";
 import { EmptyState } from "@/components/page";
 import { FormDialog, FormField } from "@/components/page-kit";
 import type { AccountTyped } from "@/components/payment-method";
@@ -34,6 +39,7 @@ import {
 } from "@/lib/correcting";
 import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** Money a person takes ahead of payday, written down: who, how much, the day, and how it was paid. */
@@ -215,12 +221,106 @@ export const DrawCorrection = ({
   );
 };
 
+type Person = Awaited<ReturnType<typeof orpc.money.openDraws.call>>[number];
+
+interface PersonCell {
+  row: { original: Person };
+}
+
+/** The day of a person's oldest draw still owed: the one their next wage takes off first. */
+const oldestOf = (person: Person) => {
+  // By the clock: a draw's day comes as a Date, which a plain sort would order by its words ("Fri Oct 02" first).
+  const times = person.draws.map((one) => new Date(one.drawnAt).getTime());
+  return times.length === 0 ? undefined : Math.min(...times);
+};
+
+const PersonNameCell = ({ row }: PersonCell) => (
+  <span className="font-medium">{row.original.name}</span>
+);
+const DrawCountCell = ({ row }: PersonCell) => {
+  const { language } = useLanguage();
+  return <span>{formatNumber(row.original.draws.length, language)}</span>;
+};
+const OldestCell = ({ row }: PersonCell) => {
+  const { language } = useLanguage();
+  const oldest = oldestOf(row.original);
+  return oldest === undefined ? null : (
+    <span>{formatDate(new Date(oldest), language, "date")}</span>
+  );
+};
+const OwedCell = ({ row }: PersonCell) => {
+  const asMoney = useMoney();
+  return <span className="font-medium">{asMoney(row.original.openMoney)}</span>;
+};
+
+const personColumn = createListColumns<Person>();
+const personColumns = personColumn.columns([
+  personColumn.accessor("name", {
+    header: listHeader("byHand.wagePerson"),
+    cell: PersonNameCell,
+  }),
+  personColumn.accessor(oldestOf, {
+    id: "oldest",
+    header: listHeader("wageDraw.col.oldest"),
+    cell: OldestCell,
+  }),
+  personColumn.accessor((person) => person.draws.length, {
+    id: "draws",
+    header: listHeader("wageDraw.col.draws"),
+    cell: DrawCountCell,
+    meta: { align: "end" },
+  }),
+  personColumn.accessor("openMoney", {
+    header: listHeader("wageDraw.col.owed"),
+    cell: OwedCell,
+    meta: { align: "end" },
+  }),
+]);
+
+/** One person's draws still owed, each to put right: on a phone under their name, on a desk under their row. */
+const PersonDraws = ({ person }: { person: Person }) => {
+  const { language } = useLanguage();
+  const asMoney = useMoney();
+  return (
+    <ul className="flex flex-col gap-1">
+      {person.draws.map((one) => (
+        <li
+          className="text-muted-foreground flex items-center justify-between gap-3 text-xs"
+          key={one.id}
+        >
+          <span>
+            {`${formatDate(new Date(one.drawnAt), language, "date")} · ${asMoney(one.openMoney)}`}
+            {one.note ? ` · ${one.note}` : ""}
+          </span>
+          <DrawCorrection draw={{ ...one, name: person.name }} />
+        </li>
+      ))}
+    </ul>
+  );
+};
+
+/** On a desk, a person a row — who, their oldest draw, how many, and what they still owe — each opening to the draws
+ *  themselves (Polaris's index table, Carbon's expandable rows). */
+const DrawsTable = ({ people }: { people: Person[] }) => {
+  const table = useListTable({
+    columns: personColumns,
+    data: people,
+    getRowId: (person) => person.counterpartyId,
+  });
+  return (
+    <DataTable
+      renderDetail={(person) => <PersonDraws person={person} />}
+      table={table}
+    />
+  );
+};
+
 /**
  * Each person's Wage Draws still owed, the most owed first, and the button to write another down. Payday takes them off
  * the month's wage; this is where the Manager sees who has drawn ahead.
  */
 export const WageDrawsTab = () => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const asMoney = useMoney();
   const [drawing, setDrawing] = useState(false);
   const open = useQuery(orpc.money.openDraws.queryOptions());
@@ -240,7 +340,7 @@ export const WageDrawsTab = () => {
           <p className="text-muted-foreground pb-2 text-xs">
             {t("wageDraw.listHint")}
           </p>
-          <ul className="divide-y">
+          <ul className="divide-y md:hidden">
             {people.map((person) => (
               <li
                 className="flex flex-col gap-1 py-3"
@@ -252,23 +352,13 @@ export const WageDrawsTab = () => {
                     {asMoney(person.openMoney)}
                   </span>
                 </span>
-                <ul className="flex flex-col gap-1">
-                  {person.draws.map((one) => (
-                    <li
-                      className="text-muted-foreground flex items-center justify-between gap-3 text-xs"
-                      key={one.id}
-                    >
-                      <span>
-                        {`${formatDate(new Date(one.drawnAt), language, "date")} · ${asMoney(one.openMoney)}`}
-                        {one.note ? ` · ${one.note}` : ""}
-                      </span>
-                      <DrawCorrection draw={{ ...one, name: person.name }} />
-                    </li>
-                  ))}
-                </ul>
+                <PersonDraws person={person} />
               </li>
             ))}
           </ul>
+          <div className="hidden md:block">
+            <DrawsTable people={people} />
+          </div>
         </section>
       )}
       <DrawDialog onOpenChange={setDrawing} open={drawing} />

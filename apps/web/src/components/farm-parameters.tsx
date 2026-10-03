@@ -12,13 +12,13 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { SlidersHorizontal } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { FarmShareNote } from "@/components/feed/farm-gains";
 import { useIsOwner } from "@/components/money";
 import { Section } from "@/components/page";
 import { useT } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 type NumberKey =
@@ -849,7 +849,7 @@ const ParameterGroup = ({
       saveLabel={t("params.save")}
       title={t(group.title)}
     >
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid max-w-3xl gap-4 sm:grid-cols-2">
         {group.fields.map((field) => {
           const id = `param-${field.key}`;
           return (

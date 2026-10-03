@@ -4,7 +4,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { FileUp, Plus, Warehouse } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { TagLink } from "@/components/fattening/fattening-words";
 import { ImportRegisterSheet } from "@/components/herd/import-register-sheet";
@@ -16,6 +15,7 @@ import { RegisterAnimal } from "@/components/register-animal";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** Which name is being written: a new Shed, a new Pen in a Shed, or a new name for one the farm has. */

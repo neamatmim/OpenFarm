@@ -1,6 +1,5 @@
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { History, X } from "lucide-react";
@@ -14,6 +13,7 @@ import {
   Notice,
   Page,
   PageHeader,
+  TableSkeleton,
 } from "@/components/page";
 import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -161,7 +161,7 @@ const AuditPage = () => {
         </p>
       </div>
 
-      <Loaded query={log} skeleton={<Skeleton className="h-96 rounded-xl" />}>
+      <Loaded query={log} skeleton={<TableSkeleton rows={10} />}>
         {log.data?.length ? (
           <AuditTrail events={log.data} seesPeople={seesAll} />
         ) : (

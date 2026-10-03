@@ -4,7 +4,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Smartphone, SmartphoneNfc } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { PhoneTable } from "@/components/devices/phone-table";
 import { EmptyState, Loaded, Page, PageHeader } from "@/components/page";
@@ -13,6 +12,7 @@ import { OneTimeCode } from "@/components/people/one-time-code";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** The enrolment code a new phone is given, with its name and how long it lasts. */

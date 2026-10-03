@@ -16,13 +16,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { BookOpen, ChevronRight, CircleCheck } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { SignedInDoor } from "@/components/auth-screen";
 import Loader from "@/components/loader";
 import { Notice } from "@/components/page";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** One standard list to start with or not, with what it would bring. */

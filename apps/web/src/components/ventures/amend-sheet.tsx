@@ -5,7 +5,6 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { FileText } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { SegmentedControl } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
@@ -17,6 +16,7 @@ import { useFreshFor } from "@/lib/fresh-for";
 import type { Photo } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
 import type { OwnWords } from "@/lib/saying";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** The refusals only this sheet can meet, in the reader's own language. */
@@ -281,6 +281,7 @@ export const AmendSheet = ({
   };
   return (
     <FormSheet
+      wide
       description={t("ventures.amendHint", { venture: venture?.name ?? "" })}
       onOpenChange={onOpenChange}
       onSubmit={() => {

@@ -39,12 +39,17 @@ const TONE_ICON: Record<Tone, LucideIcon> = {
   info: Info,
 };
 
-/** Every working page runs the full width beside the sidebar, so its title stands in the same place on every page and
- *  a wide screen is used rather than left as two empty bands. Only a single card of a flow — joining, setting up, a
- *  step of the day's work — keeps to a column in the middle, where one line of it is read at a time. */
+/** Every working page runs the width beside the sidebar, so its title stands in the same place on every page and a
+ *  wide screen is used rather than left as two empty bands — up to 1584px, Carbon's widest grid, past which a row of
+ *  figures is too long to read across; it stays left-aligned there, so the title does not move as a window grows.
+ *  Only a single card of a flow — joining, setting up, a step of the day's work — keeps to a column in the middle,
+ *  where one line of it is read at a time. */
 const WIDTH = {
   narrow: "mx-auto max-w-2xl",
-  default: "",
+  // A person's own settings: a few short parts, each read as a whole, kept to a width a form is read at (Polaris's
+  // settings pages are its small width). Left-aligned, so the title stands where every other page's does.
+  settings: "max-w-5xl",
+  default: "max-w-[99rem]",
 } as const;
 
 /** The title of a part of a page — a Section, a card of its own — at one size and weight everywhere. */
@@ -84,7 +89,7 @@ const BackAnchor = ({
 }) => (
   <a
     className={cn(
-      "text-muted-foreground hover:text-foreground focus-visible:ring-ring -ms-2 -mb-4 inline-flex min-h-11 w-fit items-center gap-1 self-start rounded-md px-2 text-sm font-medium outline-none focus-visible:ring-2 md:-mb-6",
+      "text-muted-foreground hover:text-foreground focus-visible:ring-ring -ms-2 -mb-4 inline-flex min-h-11 w-fit items-center gap-1 self-start rounded-md px-2 text-sm font-medium outline-none focus-visible:ring-2 md:-mb-4 md:min-h-9",
       className
     )}
     ref={ref}
@@ -215,6 +220,50 @@ export const Section = ({
   </section>
 );
 
+/**
+ * A part of a settings page, laid out as Polaris's annotated layout: on a desk its title and what it is for in a column
+ * on the left, and the card of what to set on the right, so a page of them reads down one line of titles. On a phone
+ * and a tablet the title stands above its card.
+ */
+export const SettingsSection = ({
+  title,
+  description,
+  action,
+  children,
+  id,
+}: {
+  title: ReactNode;
+  description?: ReactNode;
+  action?: ReactNode;
+  children: ReactNode;
+  id: string;
+}) => (
+  <section
+    aria-labelledby={`${id}-title`}
+    className="grid gap-3 lg:grid-cols-[18rem_minmax(0,1fr)] lg:gap-8"
+    id={id}
+  >
+    <div className="flex min-w-0 flex-col gap-0.5 lg:pt-5">
+      <h2
+        className={SECTION_TITLE}
+        data-slot="section-title"
+        id={`${id}-title`}
+      >
+        {title}
+      </h2>
+      {description ? (
+        <p className="text-muted-foreground text-sm">{description}</p>
+      ) : null}
+    </div>
+    <div className="surface flex min-w-0 flex-col gap-4 p-4 md:p-5">
+      {children}
+      {action ? (
+        <div className="flex flex-wrap items-center gap-2">{action}</div>
+      ) : null}
+    </div>
+  </section>
+);
+
 const TILE_TONE: Record<Tone, string> = {
   neutral: "",
   success: "text-success",
@@ -247,7 +296,9 @@ const TileFrame = ({
       {children}
     </button>
   ) : (
-    <div className="surface flex h-full flex-col gap-3 p-4 md:p-5">{children}</div>
+    <div className="surface flex h-full flex-col gap-3 p-4 md:p-5">
+      {children}
+    </div>
   );
 
 /** One figure the farm watches: what it is, the figure large and aligned, and what it means. */
@@ -475,6 +526,31 @@ export const Notice = ({
     </div>
   );
 };
+
+/** How many rows a table's placeholder draws: about a screen's worth on a laptop. */
+const SKELETON_ROWS = 6;
+
+/**
+ * A table's placeholder while the farm is asked: on a desk a heading row and rows of bars where its columns will
+ * stand, so the page does not jump when the rows come (Carbon: skeletons match the layout, not a spinner); on a phone
+ * the one block a list of cards has always had.
+ */
+export const TableSkeleton = ({ rows = SKELETON_ROWS }: { rows?: number }) => (
+  <div aria-hidden>
+    <Skeleton className="h-20 rounded-lg md:hidden" />
+    <div className="hidden flex-col md:flex">
+      <Skeleton className="h-9 rounded-md" />
+      {Array.from({ length: rows }, (_, row) => (
+        <div className="flex items-center gap-6 border-b py-3.5" key={row}>
+          <Skeleton className="h-4 w-1/5" />
+          <Skeleton className="h-4 w-1/6" />
+          <Skeleton className="h-4 w-1/4" />
+          <Skeleton className="ms-auto h-4 w-20" />
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
 /**
  * What a list shows before the farm has answered: a placeholder while it is being asked, a failure with a way to ask

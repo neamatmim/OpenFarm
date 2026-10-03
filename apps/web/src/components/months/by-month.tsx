@@ -311,6 +311,8 @@ const monthColumns = column.columns([
   column.accessor("month", {
     header: listHeader("months.col.month"),
     cell: MonthNameCell,
+    // Pinned as the year scrolls sideways at a laptop's width, so every figure still says which month it is.
+    meta: { className: "bg-card sticky left-0 z-[1]" },
   }),
   column.accessor((row) => row.money.inMoney, {
     id: "in",
@@ -525,6 +527,95 @@ const VentureLine = ({ venture }: { venture: VentureAgainstPlan }) => {
   );
 };
 
+interface VentureCell {
+  row: { original: VentureAgainstPlan };
+}
+
+/** A low-to-high range of profit, in the reader's words. */
+const useRange = () => {
+  const { t } = useLanguage();
+  const asMoney = useMoney();
+  return (between: { lowMoney: number; highMoney: number }) =>
+    t("projection.range", {
+      low: asMoney(between.lowMoney),
+      high: asMoney(between.highMoney),
+    });
+};
+
+const VentureNameCell = ({ row }: VentureCell) => (
+  <span className="flex flex-wrap items-center gap-2">
+    <Link
+      className="font-medium underline-offset-4 hover:underline"
+      params={{ ventureId: row.original.id }}
+      to="/ventures/$ventureId"
+    >
+      {row.original.name}
+    </Link>
+    <StateBadge state={row.original.state} />
+  </span>
+);
+const VenturePlannedCell = ({ row }: VentureCell) => {
+  const { t } = useLanguage();
+  const range = useRange();
+  const { planned } = row.original;
+  return planned ? (
+    <span>{range(planned)}</span>
+  ) : (
+    <span className="text-muted-foreground">{t("months.noPlan")}</span>
+  );
+};
+const VentureNowCell = ({ row }: VentureCell) => {
+  const { t } = useLanguage();
+  const asMoney = useMoney();
+  const range = useRange();
+  const venture = row.original;
+  if (venture.settledProfitMoney !== null) {
+    return (
+      <span className="font-medium">
+        {t("months.made", { profit: asMoney(venture.settledProfitMoney) })}
+      </span>
+    );
+  }
+  if (venture.projected) {
+    return <span className="font-medium">{range(venture.projected)}</span>;
+  }
+  return <Nothing />;
+};
+
+const ventureColumn = createListColumns<VentureAgainstPlan>();
+const ventureColumns = ventureColumn.columns([
+  ventureColumn.accessor("name", {
+    header: listHeader("months.col.venture"),
+    cell: VentureNameCell,
+  }),
+  ventureColumn.accessor((venture) => venture.planned?.lowMoney, {
+    id: "planned",
+    header: listHeader("months.col.planned"),
+    cell: VenturePlannedCell,
+    meta: { align: "end" },
+  }),
+  ventureColumn.accessor(
+    (venture) => venture.settledProfitMoney ?? venture.projected?.lowMoney,
+    {
+      id: "now",
+      header: listHeader("months.col.now"),
+      cell: VentureNowCell,
+      meta: { align: "end" },
+    }
+  ),
+]);
+
+/** On a desk, each Venture a row against its plan: the plan's range beside what it comes to now, made or projected
+ *  (Polaris's index table), oldest first as the report reads. */
+const VenturesTable = ({ ventures }: { ventures: VentureAgainstPlan[] }) => {
+  const table = useListTable({
+    columns: ventureColumns,
+    data: ventures,
+    getRowId: (venture) => venture.id,
+  });
+  return <DataTable table={table} />;
+};
+
 /** Each Venture that was not called off, oldest first, against the plan it opened on. */
 export const VenturesAgainstPlan = ({
   ventures,
@@ -536,10 +627,15 @@ export const VenturesAgainstPlan = ({
     return <EmptyState bare icon={Briefcase} title={t("months.noVentures")} />;
   }
   return (
-    <ul className="divide-border flex flex-col divide-y">
-      {ventures.map((venture) => (
-        <VentureLine key={venture.id} venture={venture} />
-      ))}
-    </ul>
+    <>
+      <ul className="divide-border flex flex-col divide-y md:hidden">
+        {ventures.map((venture) => (
+          <VentureLine key={venture.id} venture={venture} />
+        ))}
+      </ul>
+      <div className="hidden md:block">
+        <VenturesTable ventures={ventures} />
+      </div>
+    </>
   );
 };

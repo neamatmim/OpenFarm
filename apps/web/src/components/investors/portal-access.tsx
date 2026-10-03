@@ -27,7 +27,6 @@ import {
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { flushSync } from "react-dom";
-import { toast } from "sonner";
 
 import type { Tone } from "@/components/page";
 import { StatusBadge } from "@/components/page";
@@ -42,6 +41,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { portalAddress } from "@/lib/portal-address";
 import { printAlone } from "@/lib/print-alone";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 

@@ -248,7 +248,7 @@ export const PageTabs = <T extends string>({
         className="-mx-4 overflow-x-auto border-b px-4 md:mx-0 md:px-0"
         ref={strip}
       >
-        <TabsList className="h-11 gap-4" variant="line">
+        <TabsList className="h-11 gap-4 md:h-9" variant="line">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
@@ -520,7 +520,9 @@ const submitted =
  * scrolls; cancel and the act itself pinned at the foot.
  *
  * `wide` is for a record with more to it than a handful of fields — a person, written down in sections — where two
- * columns on a computer read better than one long column.
+ * columns on a computer read better than one long column. `full` is for a form written in rows of several fields at
+ * once, such as a Venture Plan's lines, which a two-column sheet would wrap (Carbon: "complex, lengthier" forms get
+ * the room of a page; Fluent's large drawer).
  */
 export const FormSheet = ({
   open,
@@ -534,7 +536,8 @@ export const FormSheet = ({
   pending,
   children,
   wide = false,
-}: FormPanelProps & { wide?: boolean }) => {
+  full = false,
+}: FormPanelProps & { wide?: boolean; full?: boolean }) => {
   const { t } = useLanguage();
   // A form that says what it is missing keeps its act pressable; one that does not stands grey until it is ready.
   const saysWhy = missing !== undefined;
@@ -569,9 +572,9 @@ export const FormSheet = ({
       <SheetContent
         className={cn(
           "gap-0 data-[side=right]:w-full",
-          wide
-            ? "data-[side=right]:sm:max-w-3xl"
-            : "data-[side=right]:sm:max-w-lg"
+          full && "data-[side=right]:sm:max-w-5xl",
+          wide && !full && "data-[side=right]:sm:max-w-3xl",
+          !(wide || full) && "data-[side=right]:sm:max-w-lg"
         )}
         closeLabel={t("common.close")}
       >

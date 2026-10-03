@@ -3,7 +3,6 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Fragment, useState } from "react";
-import { toast } from "sonner";
 
 import { Notice } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
@@ -13,6 +12,7 @@ import { useFreshFor } from "@/lib/fresh-for";
 import { useMoney } from "@/lib/money";
 import { lastMonth, saidMonth } from "@/lib/months";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** What a line is called in the reader's own language. */
@@ -267,6 +267,7 @@ export const ReimburseSheet = ({
     reference.trim() !== "";
   return (
     <FormSheet
+      wide
       description={t("ventures.reimburseHint", {
         venture: venture?.name ?? "",
       })}

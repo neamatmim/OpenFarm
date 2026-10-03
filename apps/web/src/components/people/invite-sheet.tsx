@@ -4,12 +4,12 @@ import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { StatusBadge } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { RoleChoice, roleKey, toggled } from "@/components/role-choice";
 import { useT } from "@/i18n/language-provider";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** Who was invited, and the code to hand them. */
@@ -139,6 +139,7 @@ export const InviteSheet = ({
 
   return (
     <FormSheet
+      wide
       description={t("people.inviteWhy")}
       onOpenChange={onOpenChange}
       onSubmit={() =>

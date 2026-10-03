@@ -6,13 +6,13 @@ import { Label } from "@OpenFarm/ui/components/label";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { PasswordInput } from "@/components/auth/password-input";
 import { BackToSignIn, CODE_FIELD } from "@/components/door-screen";
 import { Notice } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** Why the farm would not set the password they chose, in their words. */

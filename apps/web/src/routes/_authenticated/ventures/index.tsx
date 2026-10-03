@@ -23,6 +23,7 @@ import {
   Page,
   PageHeader,
   Section,
+  TableSkeleton,
 } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
@@ -182,10 +183,7 @@ const VenturesPage = () => {
         title={t("ventures.title")}
       />
       <SummaryFigures figures={figures} />
-      <Loaded
-        query={ventures}
-        skeleton={<Skeleton className="h-40 rounded-xl" />}
-      >
+      <Loaded query={ventures} skeleton={<TableSkeleton />}>
         {all.length === 0 ? (
           <EmptyState icon={Handshake} title={t("ventures.none")} />
         ) : (

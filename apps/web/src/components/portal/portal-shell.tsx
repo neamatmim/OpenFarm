@@ -141,7 +141,7 @@ const PortalNavLink = ({
 }) => (
   <SidebarMenuItem>
     <SidebarMenuButton
-      className="data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground h-9 gap-3 px-3 text-sm group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:justify-center data-active:font-medium"
+      className="data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground data-active:before:bg-sidebar-primary relative h-9 gap-3 px-3 text-sm group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:justify-center data-active:font-medium data-active:before:absolute data-active:before:inset-y-2 data-active:before:start-0 data-active:before:w-[3px] data-active:before:rounded-full"
       isActive={here}
       render={
         <Link

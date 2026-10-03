@@ -7,7 +7,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { FileText, Milk, Scale, TrendingDown, Truck } from "lucide-react";
 import { useState } from "react";
 
-import { GivingLessGroup } from "@/components/giving-less";
+import { GivingLessList } from "@/components/giving-less";
 import { MilkMismatches } from "@/components/milk-mismatches";
 import { DispatchSheet } from "@/components/milk/dispatch-sheet";
 import { HandedOverTab } from "@/components/milk/handed-over";
@@ -164,7 +164,7 @@ const MilkPage = () => {
             icon: TrendingDown,
             count: givingLess.data?.length,
             content: givingLess.data?.length ? (
-              <GivingLessGroup headless rows={givingLess.data} />
+              <GivingLessList rows={givingLess.data} />
             ) : (
               <EmptyState icon={TrendingDown} title={t("givingLess.none")} />
             ),

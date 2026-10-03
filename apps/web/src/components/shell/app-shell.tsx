@@ -3,7 +3,7 @@ import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { useMatches } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { useShedPhoneKeeper } from "@/lib/shed-phone";
 import { orpc } from "@/utils/orpc";
@@ -25,22 +25,51 @@ declare module "@tanstack/react-router" {
 /** Wide enough for the sidebar and a table beside it. Below this a tablet keeps the sidebar to its icons. */
 const ROOM_FOR_THE_SIDEBAR = "(min-width: 1024px)";
 
+/** Where this device keeps whether its reader closed the sidebar on a laptop. */
+const SIDEBAR_KEPT = "openfarm.sidebar";
+
+/** The reader's own choice on this device, where the device will say: browser storage can be shut. */
+const keptChoice = (): boolean | null => {
+  try {
+    const kept = window.localStorage.getItem(SIDEBAR_KEPT);
+    return kept === null ? null : kept === "open";
+  } catch {
+    return null;
+  }
+};
+
+const keepChoice = (open: boolean) => {
+  try {
+    window.localStorage.setItem(SIDEBAR_KEPT, open ? "open" : "closed");
+  } catch {
+    // Not kept, then: the sidebar opens again next time, as it always did.
+  }
+};
+
 /**
  * Whether the sidebar stands open: open on a laptop, down to its icons on a tablet, where the whole sidebar would
- * leave a table half the screen. Whoever opens or closes it has it their way until the screen itself changes width
- * across the line — a tablet turned on its side — and then it follows the screen again. A phone has its own drawer
- * and is not this. The Investor portal's sidebar follows the same rule.
+ * leave a table half the screen. On a laptop it opens as its reader last left it on this device, as Carbon's shell
+ * leaves the choice to the person; closed there, it stays closed after a reload. Whoever opens or closes it has it
+ * their way until the screen itself changes width across the line — a tablet turned on its side — and then it
+ * follows the screen again. A phone has its own drawer and is not this. The Investor portal's sidebar follows the
+ * same rule.
  */
 export const useSidebarOpen = () => {
   const [open, setOpen] = useState(true);
   useEffect(() => {
     const room = window.matchMedia(ROOM_FOR_THE_SIDEBAR);
-    const follow = () => setOpen(room.matches);
+    const follow = () => setOpen(room.matches && (keptChoice() ?? true));
     follow();
     room.addEventListener("change", follow);
     return () => room.removeEventListener("change", follow);
   }, []);
-  return [open, setOpen] as const;
+  const choose = useCallback((next: boolean) => {
+    setOpen(next);
+    if (window.matchMedia(ROOM_FOR_THE_SIDEBAR).matches) {
+      keepChoice(next);
+    }
+  }, []);
+  return [open, choose] as const;
 };
 
 /**

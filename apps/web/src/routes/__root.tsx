@@ -88,7 +88,12 @@ const RootDocument = () => {
               </div>
             </TooltipProvider>
           </LanguageProvider>
-          <Toaster position="top-center" richColors />
+          {/* Top right on a desk, under the 56px bar, as Carbon and Fluent place them; on a phone Sonner spans the top. */}
+          <Toaster
+            offset={{ right: 16, top: 64 }}
+            position="top-right"
+            richColors
+          />
         </ThemeProvider>
         {SHOW_DEVTOOLS ? (
           <>

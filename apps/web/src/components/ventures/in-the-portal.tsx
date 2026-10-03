@@ -4,12 +4,12 @@ import { Textarea } from "@OpenFarm/ui/components/textarea";
 import { useMutation } from "@tanstack/react-query";
 import { EyeOff, Pencil, Send } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { Section } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import type { Venture } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
 

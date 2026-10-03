@@ -1,12 +1,14 @@
 import { SidebarTrigger } from "@OpenFarm/ui/components/sidebar";
 
 import LanguageToggle from "@/components/language-toggle";
+import { GoToAnimal } from "@/components/shell/go-to-animal";
 import { SyncBanner } from "@/components/sync-banner";
 import { ThemeMenu } from "@/components/theme-menu";
 import UserMenu from "@/components/user-menu";
 import { useT } from "@/i18n/language-provider";
 
-/** The bar over every signed-in page: the menu, what this phone is holding, and the person's own settings. */
+/** The bar over every signed-in page: the menu, what this phone is holding, the way to any animal by her Tag Number,
+ *  and the person's own settings. */
 export const TopBar = () => {
   const t = useT();
   return (
@@ -19,6 +21,7 @@ export const TopBar = () => {
         <SyncBanner />
       </div>
       <div className="flex shrink-0 items-center gap-1">
+        <GoToAnimal />
         <LanguageToggle />
         <ThemeMenu />
         <UserMenu />

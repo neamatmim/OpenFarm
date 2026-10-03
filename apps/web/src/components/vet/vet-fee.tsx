@@ -6,7 +6,6 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Plus, Receipt } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import {
   DataTable,
@@ -21,6 +20,7 @@ import { SearchableMultiPicker } from "@/components/searchable-picker";
 import { useLanguage } from "@/i18n/language-provider";
 import { usePenNames } from "@/lib/pen-names";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 type Fee = Awaited<ReturnType<typeof orpc.money.mine.call>>[number];

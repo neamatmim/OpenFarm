@@ -23,6 +23,7 @@ import {
   Loaded,
   SegmentedControl,
   StatusBadge,
+  TableSkeleton,
 } from "@/components/page";
 import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { PAYMENT_METHOD_WORD } from "@/components/payment-method";
@@ -471,7 +472,7 @@ export const RegisterTab = ({
         filters={filters}
         onChange={setFilters}
       />
-      <Loaded query={money}>
+      <Loaded query={money} skeleton={<TableSkeleton />}>
         {nothingInPeriod ? (
           <EmptyState bare icon={Wallet} title={t("money.none")} />
         ) : null}

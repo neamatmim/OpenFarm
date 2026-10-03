@@ -2,7 +2,6 @@ import type { MessageKey } from "@OpenFarm/i18n";
 import { useMutation } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { AdvanceSheet } from "@/components/ventures/advance-sheet";
 import { AmendSheet } from "@/components/ventures/amend-sheet";
@@ -18,6 +17,7 @@ import { TakeCapitalSheet } from "@/components/ventures/take-capital-sheet";
 import type { VentureActs } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import type { Venture } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
 

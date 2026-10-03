@@ -7,7 +7,6 @@ import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { toast } from "sonner";
 import { z } from "zod";
 
 import { PasswordInput } from "@/components/auth/password-input";
@@ -16,6 +15,7 @@ import { Notice } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
 import { useNoFarmYet } from "@/lib/farm-name";
+import { toast } from "@/lib/toast";
 
 const NAME_MIN = 2;
 

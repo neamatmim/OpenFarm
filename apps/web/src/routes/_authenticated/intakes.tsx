@@ -5,7 +5,6 @@ import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ClipboardCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { BuyingTripSheet } from "@/components/intake/buying-trip";
 import type { IntakeFields } from "@/components/intake/intake-fields";
@@ -32,6 +31,7 @@ import { PastOutings } from "@/components/trips/past-outings";
 import { useT } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 const readAsBase64 = async (file: File): Promise<string> => {

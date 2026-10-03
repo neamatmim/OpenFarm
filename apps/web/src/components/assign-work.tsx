@@ -5,10 +5,10 @@ import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { UserRoundCheck } from "lucide-react";
 import { useId } from "react";
-import { toast } from "sonner";
 
 import { useT } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 const SELECT =

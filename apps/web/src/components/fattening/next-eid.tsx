@@ -6,13 +6,13 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { CalendarCheck, CalendarClock, MoonStar } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import type { Tone } from "@/components/page";
 import { Notice, Section, StatusBadge } from "@/components/page";
 import { FormDialog, FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 const BASIS_TONE: Record<EidBasis, Tone> = {

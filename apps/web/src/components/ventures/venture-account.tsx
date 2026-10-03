@@ -3,7 +3,6 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";
 import { Landmark } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { EmptyState, Section } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
@@ -15,6 +14,7 @@ import {
 } from "@/components/ventures/venture-account-details";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import type { Venture } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
 

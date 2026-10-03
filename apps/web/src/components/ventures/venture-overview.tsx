@@ -1,5 +1,6 @@
 import { isRunning, startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import type { ReactNode } from "react";
 
 import { Section } from "@/components/page";
 import { FigureTerm } from "@/components/page-kit";
@@ -178,6 +179,21 @@ const TheTerms = ({ venture }: { venture: Venture }) => {
   );
 };
 
+/** A record page on a desk: what the Venture is doing in two-thirds, the facts about it in the third beside (Polaris,
+ *  Fiori's object page; the Investor's own page). On a phone and a tablet the third follows the two-thirds. */
+const RecordColumns = ({
+  main,
+  side,
+}: {
+  main: ReactNode;
+  side: ReactNode;
+}) => (
+  <div className="grid items-start gap-4 lg:grid-cols-3">
+    <div className="flex min-w-0 flex-col gap-4 lg:col-span-2">{main}</div>
+    <div className="flex min-w-0 flex-col gap-4">{side}</div>
+  </div>
+);
+
 /**
  * A Venture read whole. While it is Open: how near it is to starting, whether Investors are shown it, and its Venture
  * Account first, since that is where Investors pay; then its money, terms, plan and what the plan says it makes. Once
@@ -185,34 +201,45 @@ const TheTerms = ({ venture }: { venture: Venture }) => {
  * happened — then its money and terms, the plan itself, and the account that carries its buying, refunds and payouts.
  */
 export const VentureOverview = ({ venture }: { venture: Venture }) => {
-  const open = venture.state === "open";
-  const moneyAndTerms = (
-    <div className="grid items-start gap-4 lg:grid-cols-2">
-      <TheMoney venture={venture} />
-      <TheTerms venture={venture} />
-    </div>
-  );
-  if (open) {
+  if (venture.state === "open") {
     return (
-      <div className="flex flex-col gap-4">
-        <TowardsTheFloor venture={venture} />
-        <InThePortal venture={venture} />
-        <VentureAccountPanel venture={venture} />
-        {moneyAndTerms}
-        <VentureReturnsPanel ventureId={venture.id} />
-        <VenturePlanPanel venture={venture} />
-        <VentureProjectionPanel venture={venture} />
-      </div>
+      <RecordColumns
+        main={
+          <>
+            <TowardsTheFloor venture={venture} />
+            <VentureReturnsPanel ventureId={venture.id} />
+            <VenturePlanPanel venture={venture} />
+            <VentureProjectionPanel venture={venture} />
+          </>
+        }
+        side={
+          <>
+            <InThePortal venture={venture} />
+            <VentureAccountPanel venture={venture} />
+            <TheMoney venture={venture} />
+            <TheTerms venture={venture} />
+          </>
+        }
+      />
     );
   }
   return (
-    <div className="flex flex-col gap-4">
-      <VentureProjectionPanel venture={venture} />
-      <VentureReturnsPanel ventureId={venture.id} />
-      <PlanAgainstActual venture={venture} />
-      {moneyAndTerms}
-      <VenturePlanPanel venture={venture} />
-      <VentureAccountPanel venture={venture} />
-    </div>
+    <RecordColumns
+      main={
+        <>
+          <VentureProjectionPanel venture={venture} />
+          <VentureReturnsPanel ventureId={venture.id} />
+          <PlanAgainstActual venture={venture} />
+          <VenturePlanPanel venture={venture} />
+        </>
+      }
+      side={
+        <>
+          <TheMoney venture={venture} />
+          <TheTerms venture={venture} />
+          <VentureAccountPanel venture={venture} />
+        </>
+      }
+    />
   );
 };

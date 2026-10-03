@@ -19,7 +19,6 @@ import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ReceiptText } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import {
   CorrectionDialog,
@@ -46,6 +45,7 @@ import { amount, note } from "@/lib/correcting";
 import { useMoney } from "@/lib/money";
 import type { Photo } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 const SIDE_WORD = {

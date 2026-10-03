@@ -2,12 +2,12 @@ import { DISPOSALS, MORTALITY_KINDS, bornAroundOf } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import type { Language } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import type { LucideIcon } from "lucide-react";
 import { Beef, MapPinOff, Milk, Shovel, TimerOff } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { DeathPhotoField, DeathPhotos } from "@/components/animal/death-photo";
 import {
@@ -23,6 +23,7 @@ import { breedName } from "@/lib/breed";
 import { choice, words } from "@/lib/correcting";
 import { causeWord, disposalWord } from "@/lib/mortality-words";
 import type { Photo } from "@/lib/photo";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import { Fact, FactGrid } from "./animal-facts";
@@ -572,8 +573,9 @@ const NotFound = ({
   );
 };
 
-/** Her page at a glance: how she left, if she has; what holds her back; how a fattening animal is gaining; and who she
- *  is. */
+/** Her page at a glance: how she left, if she has, across the top; then, as a record page is laid out on a desk
+ *  (Polaris's two-thirds and one-third, the Investor's own page), how a fattening animal is gaining and who she is
+ *  beside what holds her back. On a phone and a tablet it is one column, in that order. */
 export const OverviewTab = ({
   detail,
   powers,
@@ -582,18 +584,38 @@ export const OverviewTab = ({
   detail: AnimalDetail;
   powers: AnimalPowers;
   onAct: (act: AnimalAct) => void;
-}) => (
-  <div className="flex flex-col gap-6">
-    <NotFound detail={detail} onAct={onAct} powers={powers} />
-    <WrittenOff detail={detail} mayFind={powers.mayWriteOff} />
-    <HowSheWent detail={detail} mayRecord={powers.runsTheFarm} onAct={onAct} />
-    <Withdrawals
-      detail={detail}
-      mayShorten={powers.fullVet && powers.stillHere}
-      onAct={onAct}
-    />
-    {detail.fattening ? <TwoProjections view={detail.fattening} /> : null}
-    <HerFirstDay detail={detail} />
-    <AboutHer detail={detail} />
-  </div>
-);
+}) => {
+  // The third column holds what holds her back; with nothing holding her, who she is takes the whole width.
+  const held = Boolean(
+    detail.milkWithdrawalUntil || detail.meatWithdrawalUntil
+  );
+  return (
+    <div className="flex flex-col gap-6">
+      <NotFound detail={detail} onAct={onAct} powers={powers} />
+      <WrittenOff detail={detail} mayFind={powers.mayWriteOff} />
+      <HowSheWent
+        detail={detail}
+        mayRecord={powers.runsTheFarm}
+        onAct={onAct}
+      />
+      <div className={cn("grid items-start gap-6", held && "lg:grid-cols-3")}>
+        <div
+          className={cn("flex min-w-0 flex-col gap-6", held && "lg:col-span-2")}
+        >
+          {detail.fattening ? <TwoProjections view={detail.fattening} /> : null}
+          <HerFirstDay detail={detail} />
+          <AboutHer detail={detail} />
+        </div>
+        {held ? (
+          <div className="flex min-w-0 flex-col gap-6 max-lg:order-first">
+            <Withdrawals
+              detail={detail}
+              mayShorten={powers.fullVet && powers.stillHere}
+              onAct={onAct}
+            />
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+};

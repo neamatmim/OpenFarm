@@ -6,7 +6,6 @@ import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Scale } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { EmptyState } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
@@ -14,6 +13,7 @@ import type { ReturnsPage } from "@/components/returns/return-figure";
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { aFigure, figureOf } from "@/lib/typed-figure";
 import { orpc } from "@/utils/orpc";
 

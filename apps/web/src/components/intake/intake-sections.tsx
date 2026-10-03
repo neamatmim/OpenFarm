@@ -4,7 +4,6 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useQuery } from "@tanstack/react-query";
 import { Camera, CircleCheck, Plus } from "lucide-react";
-import { toast } from "sonner";
 
 import { BreedField } from "@/components/breed-field";
 import { Section } from "@/components/page";
@@ -12,6 +11,7 @@ import { FormField, NativeSelect } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import type { IntakeFields, OwningVenture } from "./intake-fields";

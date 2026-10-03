@@ -4,12 +4,12 @@ import { formatDate } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { FormField, FormSheet } from "@/components/page-kit";
 import { SearchablePicker } from "@/components/searchable-picker";
 import { useLanguage } from "@/i18n/language-provider";
 import { usePenNames } from "@/lib/pen-names";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import type { Seen } from "./vet-types";

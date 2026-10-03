@@ -5,7 +5,6 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import {
   NEXT_EID,
@@ -22,6 +21,7 @@ import { SearchablePicker } from "@/components/searchable-picker";
 import { useLanguage } from "@/i18n/language-provider";
 import { allTyped } from "@/lib/all-typed";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** Where she is going: nothing chosen yet, the Farm's own herd, or a Venture by its id. */

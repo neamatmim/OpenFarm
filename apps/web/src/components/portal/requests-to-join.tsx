@@ -11,7 +11,6 @@ import { Link } from "@tanstack/react-router";
 import { ChevronRight, PenLine, RotateCw, Send, Undo2 } from "lucide-react";
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { toast } from "sonner";
 
 import { MORE_LINK } from "@/components/home/queue";
 import { SaidDate } from "@/components/list-cells";
@@ -39,6 +38,7 @@ import {
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** One of the Investor's own Requests to Join, as the portal reads it back to them. */

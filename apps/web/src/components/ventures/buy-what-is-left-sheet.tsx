@@ -5,7 +5,6 @@ import { Textarea } from "@OpenFarm/ui/components/textarea";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { TagLink } from "@/components/fattening/fattening-words";
 import {
@@ -23,6 +22,7 @@ import { allTyped } from "@/lib/all-typed";
 import { useFreshFor } from "@/lib/fresh-for";
 import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /** One Animal still held, as the sheet lists her: her last weight, and when, where she has been weighed. */

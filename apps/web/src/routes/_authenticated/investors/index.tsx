@@ -26,6 +26,7 @@ import {
   Page,
   PageHeader,
   Section,
+  TableSkeleton,
 } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { FilterBar, NativeSelect, SummaryFigures } from "@/components/page-kit";
@@ -156,10 +157,7 @@ const InvestorsPage = () => {
           {t("investors.capWhy")}
         </Notice>
       ) : null}
-      <Loaded
-        query={investors}
-        skeleton={<Skeleton className="h-40 rounded-xl" />}
-      >
+      <Loaded query={investors} skeleton={<TableSkeleton />}>
         {people.length === 0 ? (
           <EmptyState icon={Users} title={t("investors.none")} />
         ) : (

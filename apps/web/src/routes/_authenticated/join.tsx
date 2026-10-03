@@ -6,7 +6,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Mail } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { SignedInDoor } from "@/components/auth-screen";
 import { CODE_FIELD } from "@/components/door-screen";
@@ -14,6 +13,7 @@ import { Notice } from "@/components/page";
 import { useT } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 /**
