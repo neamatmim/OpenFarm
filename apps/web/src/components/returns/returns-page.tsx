@@ -354,8 +354,6 @@ export const ReturnsChart = ({ page }: { page: ReturnsPage }) => {
   );
 };
 
-/** Every Season and Venture whose last animal has gone, together, the newest window first — a Venture whose
- *  Settlement is still to come among them, and said so. */
 /** One finished Season or Venture as the desk's table reads it. */
 interface FinishedRow {
   key: string;
@@ -482,6 +480,8 @@ const FinishedTable = ({
   );
 };
 
+/** Every Season and Venture whose last animal has gone, together, the newest window first — a Venture whose
+ *  Settlement is still to come among them, and said so. */
 export const FinishedReturns = ({ page }: { page: ReturnsPage }) => {
   const { t } = useLanguage();
   const named = useSeasonName();

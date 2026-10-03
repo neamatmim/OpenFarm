@@ -263,6 +263,9 @@ export const DataTable = <TData extends object>({
     ? rows.filter((row) => selection.selectable(row.original))
     : [];
   const ticked = tickable.filter((row) => selection?.selected.has(row.id));
+  // Every box on this page ticked, or some of them: the heading's box says which.
+  const allTicked = ticked.length > 0 && ticked.length === tickable.length;
+  const someTicked = ticked.length > 0 && !allTicked;
   const tickPage = (on: boolean) => {
     if (!selection) {
       return;
@@ -330,12 +333,8 @@ export const DataTable = <TData extends object>({
                     {tickable.length > 0 ? (
                       <Checkbox
                         aria-label={t("common.selectPage")}
-                        checked={
-                          ticked.length > 0 && ticked.length === tickable.length
-                        }
-                        indeterminate={
-                          ticked.length > 0 && ticked.length < tickable.length
-                        }
+                        checked={allTicked}
+                        indeterminate={someTicked}
                         onCheckedChange={(on) => tickPage(on)}
                       />
                     ) : null}
