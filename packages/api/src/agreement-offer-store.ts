@@ -5,12 +5,17 @@ import type { Nominee, PaperDocument } from "@OpenFarm/domain";
 import { farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
+import type { Acting } from "./agreeing-in-app";
+import {
+  assertInThePortal,
+  assertSwitchedOn,
+  refused,
+} from "./agreeing-in-app";
 import { agreementLaidOut } from "./agreement-paper";
 import type { AgreementTerms } from "./agreement-paper";
 import { writeAgreement } from "./agreement-write";
 import type { Tx } from "./audit";
 import { audited } from "./audit";
-import type { Actor, Context } from "./context";
 import { assertRegistered } from "./export-store";
 import { readAgreement, unitsTaken } from "./investor-store";
 import { assertReadAsKept, keepPaper, stillAsKept } from "./kept-paper";
@@ -22,13 +27,6 @@ import { currentWording, giveStandardTemplates } from "./template-store";
 // An Investment Agreement agreed within the app, instead of on stamped paper: the Owner offers it, the Investor agrees
 // to the paper in the portal, and the Owner approves it — and only then is it an Agreement. Behind the farm's switch,
 // which is off until the lawyer and the Shariah scholar have confirmed the farm may rely on an Agreement with no stamp.
-
-/** A request the Owner or an Investor makes, with the Farm certain. */
-export type Acting = Parameters<typeof audited>[0] & {
-  farm: NonNullable<Context["farm"]>;
-  actor: Actor;
-  clock: { now: () => Date };
-};
 
 /** How much of the paper's fingerprint the Agreement's stamp line carries as its number: enough to find the paper by. */
 const NUMBER_LENGTH = 12;
@@ -46,19 +44,6 @@ const standingOf = (offer: OfferRow): OfferStanding => {
     return "withdrawn";
   }
   return offer.agreedAt ? "agreed" : "offered";
-};
-
-export const refused = (message: string, refusal: string) =>
-  new ORPCError("BAD_REQUEST", { message, data: { refusal } });
-
-/** The switch is off: nothing is offered or agreed in the app. */
-export const assertSwitchedOn = (farm: { agreementsInApp: boolean }) => {
-  if (!farm.agreementsInApp) {
-    throw refused(
-      "Agreements are not agreed in the app on this farm",
-      "agreements_in_app_off"
-    );
-  }
 };
 
 /** The offer as the trail records it either side of a change. */
@@ -81,30 +66,6 @@ const theOffer = async (
     throw new ORPCError("NOT_FOUND", { message: "No such offer" });
   }
   return offer;
-};
-
-/** That every one of them can agree in the app: the portal open, and each one's access to it taken up and standing. */
-export const assertInThePortal = async (
-  context: Acting,
-  investorIds: readonly string[]
-) => {
-  const access = await context.db.query.investorAccess.findMany({
-    where: {
-      farmId: context.farm.id,
-      investorId: { in: [...investorIds] },
-      revokedAt: { isNull: true },
-      acceptedAt: { isNotNull: true },
-    },
-    columns: { investorId: true },
-  });
-  const inThePortal = new Set(access.map((one) => one.investorId));
-  const everyone = investorIds.every((id) => inThePortal.has(id));
-  if (!(context.farm.investorPortal && everyone)) {
-    throw refused(
-      "They cannot agree in the app: the portal is shut, or they have not joined it",
-      "investor_not_in_portal"
-    );
-  }
 };
 
 /** The Venture an Agreement is offered or approved on: this Farm's, and still taking signatures. */

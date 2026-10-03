@@ -8,12 +8,12 @@ import type { PaperDocument } from "@OpenFarm/domain";
 import { farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
-import type { Acting } from "./agreement-offer-store";
+import type { Acting } from "./agreeing-in-app";
 import {
   assertInThePortal,
   assertSwitchedOn,
   refused,
-} from "./agreement-offer-store";
+} from "./agreeing-in-app";
 import { amendmentLaidOut } from "./agreement-paper";
 import type { AmendmentTerms } from "./agreement-paper";
 import { writeAmendment } from "./agreement-write";
