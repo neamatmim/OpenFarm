@@ -152,7 +152,7 @@ const IntakePage = () => {
               phone: fields.sellerPhone || undefined,
             },
             purchasePriceMoney: Number(fields.purchasePriceMoney),
-            hasilMoney: orNothing(fields.hasilMoney),
+            marketTollMoney: orNothing(fields.marketTollMoney),
             weightKg: Number(fields.weightKg),
             estimatedAgeMonths: Number(fields.estimatedAgeMonths),
             breedId: fields.breedId || undefined,

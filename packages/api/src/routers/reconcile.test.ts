@@ -67,7 +67,7 @@ const outingWithFloat = async (
 const bull = async (
   buyingTripId: string,
   priceMoney: number,
-  hasilMoney: number,
+  marketTollMoney: number,
   instant: string
 ) => {
   const manager = await as("manager", instant);
@@ -76,7 +76,7 @@ const bull = async (
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
     purchasePriceMoney: priceMoney,
-    hasilMoney,
+    marketTollMoney,
     weightKg: 200,
     estimatedAgeMonths: 20,
     buyingTripId,

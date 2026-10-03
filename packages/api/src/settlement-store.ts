@@ -42,7 +42,7 @@ type Db = Pick<Database, "query" | "execute">;
 /** What each charge against a run is called. */
 export const CHARGE_WORDS = [
   "bought",
-  "hasil",
+  "market_toll",
   "trips",
   "feed",
   "medicine",
@@ -379,7 +379,7 @@ export const whatItWasCharged = (
   );
   const charges: { word: ChargeWord; amount: number }[] = [
     { word: "bought", amount: purchaseMoney },
-    { word: "hasil", amount: charged.hasilMoney },
+    { word: "market_toll", amount: charged.marketTollMoney },
     { word: "trips", amount: charged.tripMoney },
     { word: "feed", amount: charged.feedMoney },
     { word: "medicine", amount: charged.medicineMoney },

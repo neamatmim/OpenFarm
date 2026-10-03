@@ -317,7 +317,7 @@ const intakeView = (
     | {
         id: string;
         purchasePriceMoney: number;
-        hasilMoney: number;
+        marketTollMoney: number;
         buyingTrip: { id: string; wentTo: string } | null;
         weightKg: string;
         targetWeightKg: string;
@@ -334,7 +334,7 @@ const intakeView = (
     ? {
         id: row.id,
         purchasePriceMoney: row.purchasePriceMoney,
-        hasilMoney: row.hasilMoney,
+        marketTollMoney: row.marketTollMoney,
         buyingTrip: row.buyingTrip
           ? { id: row.buyingTrip.id, wentTo: row.buyingTrip.wentTo }
           : null,

@@ -607,7 +607,11 @@ export const whatTheFloatBought = async (
   });
   const brought = await tx.query.intake.findMany({
     where: { farmId, buyingTripId },
-    columns: { animalId: true, purchasePriceMoney: true, hasilMoney: true },
+    columns: {
+      animalId: true,
+      purchasePriceMoney: true,
+      marketTollMoney: true,
+    },
   });
   const owners = await tx.query.animal.findMany({
     where: { farmId, id: { in: brought.map((one) => one.animalId) } },
@@ -616,7 +620,10 @@ export const whatTheFloatBought = async (
   const whose = new Map(owners.map((one) => [one.id, one.ownerVentureId]));
   const animalsMoney = brought
     .filter((one) => whose.get(one.animalId) === ventureId)
-    .reduce((sum, one) => sum + one.purchasePriceMoney + one.hasilMoney, 0);
+    .reduce(
+      (sum, one) => sum + one.purchasePriceMoney + one.marketTollMoney,
+      0
+    );
   return {
     animalsMoney,
     tripMoney: trip ? tripCostOf(trip) : 0,

@@ -3,7 +3,7 @@ import type { Side } from "./lifecycle";
 
 /**
  * Every kind of charge an Animal carries, as the costing shares them out: what she ate, the doses she was given, her
- * part of the Vet's fees for visits that named her, the Hasil the livestock market took on her, her part of the Buying Trip that
+ * part of the Vet's fees for visits that named her, the Market toll the livestock market took on her, her part of the Buying Trip that
  * brought her and the Selling Trips that took her, the broker's fee on her own Sale, and her part of the Herd Costs. The one list of them: a sum names
  * which of these it counts, and a new kind is added here once.
  */
@@ -11,7 +11,7 @@ export const CHARGE_KINDS = [
   "feed",
   "dose",
   "vet",
-  "hasil",
+  "market_toll",
   "buying_trip",
   "selling_trip",
   "sale_broker",
@@ -40,7 +40,7 @@ export interface Charge {
  * The charges each sum counts, as CONTEXT.md defines it.
  *
  * - Everything: a **Settlement**, **Return on Cost** and **Margin** ask what an Animal cost whichever purse paid.
- * - What the Farm is owed: a **Reimbursement** is only what the Farm paid for the whole herd — not the Hasil or a
+ * - What the Farm is owed: a **Reimbursement** is only what the Farm paid for the whole herd — not the Market toll or a
  *   Buying Trip, which came out of the Venture's own Buying Float, but the Selling Trips and the brokers at its Sales
  *   the Farm paid for later.
  * - Her keep: **Cost of Gain** now, and a dairy cow's milk against her keep, ask what keeping her costs, not what
@@ -125,7 +125,7 @@ export const costsOf = (charges: readonly Charge[]): Costs => {
     uncostedDoses: charges.filter((one) => one.kind === "dose" && !one.priced)
       .length,
     vetMoney: amountOf("vet"),
-    hasilMoney: amountOf("hasil"),
+    marketTollMoney: amountOf("market_toll"),
     // A broker is a cost of the outing, bought or sold: the Buying Trip's broker is in it already.
     tripMoney: amountOf("buying_trip", "selling_trip", "sale_broker"),
     herdMoney: amountOf("herd"),

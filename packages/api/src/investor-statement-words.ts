@@ -29,7 +29,7 @@ export const gainWords = (
  */
 const CHARGE_LABELS = {
   bought: "পশু কেনা / Cattle bought",
-  hasil: "হাসিল / Haat toll",
+  market_toll: "হাসিল / Haat toll",
   trips: "যাতায়াত / Trips",
   feed: "খাবার / Feed",
   medicine: "ওষুধ / Medicine",

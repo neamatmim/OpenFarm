@@ -21,7 +21,7 @@ import {
   assertVentureIsBuying,
   bookBoughtByBank,
   bookIntakeMoney,
-  hasilInput,
+  marketTollInput,
   purchasePriceInput,
   readIntake,
   sellerInput,
@@ -45,7 +45,7 @@ const recordInput = z
     seller: sellerInput,
     purchasePriceMoney: purchasePriceInput,
     /** The toll the livestock market took on her, as its slip gives it. None at a farm-gate sale. */
-    hasilMoney: hasilInput.optional(),
+    marketTollMoney: marketTollInput.optional(),
     /** The outing she came home on, when the farm wrote one. */
     buyingTripId: z.string().optional(),
     /** Whose animal she is: the Venture whose money bought her, or left out for the Farm's own. */
@@ -329,7 +329,7 @@ export const intakeRouter = {
             animalId: id,
             counterpartyId: sellerId,
             purchasePriceMoney: input.purchasePriceMoney,
-            hasilMoney: input.hasilMoney ?? 0,
+            marketTollMoney: input.marketTollMoney ?? 0,
             buyingTripId: input.buyingTripId ?? null,
             weightKg: input.weightKg.toFixed(2),
             estimatedAgeMonths: input.estimatedAgeMonths,

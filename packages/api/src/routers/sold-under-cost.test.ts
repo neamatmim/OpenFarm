@@ -41,7 +41,7 @@ beforeAll(async () => {
   });
 });
 
-/** A bull bought for ৳1,00,000 and ৳1,000 of Hasil: he has cost ৳1,01,000 before he eats anything. */
+/** A bull bought for ৳1,00,000 and ৳1,000 of Market toll: he has cost ৳1,01,000 before he eats anything. */
 const aBull = async (into = penId) => {
   const manager = await as("manager", "2078-03-02T04:00:00.000Z");
   return await manager.client.intake.record({
@@ -49,7 +49,7 @@ const aBull = async (into = penId) => {
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
     purchasePriceMoney: 100_000,
-    hasilMoney: 1000,
+    marketTollMoney: 1000,
     weightKg: 250,
     estimatedAgeMonths: 20,
     arrivedAt: new Date("2078-03-02T04:00:00.000Z"),

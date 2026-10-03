@@ -998,7 +998,7 @@ export const ventureSettlement = pgTable(
     /** What its Animals fetched, and everything the run was charged. */
     proceedsMoney: numericMoney("proceeds_money").notNull(),
     chargedMoney: numericMoney("charged_money").notNull(),
-    /** Every charge as its own line, as the statement showed it: `[{ word, amount }]` — "bought", "hasil",
+    /** Every charge as its own line, as the statement showed it: `[{ word, amount }]` — "bought", "market toll",
      *  "trips", "feed", "medicine", "vet", "herd". Frozen, never queried and never joined, which is why
      *  they live here rather than in a table of their own. */
     charges: jsonb("charges").notNull(),

@@ -144,7 +144,7 @@ export const bookIntakeMoney = async (
   }
   // What the farm handed over for her: the price and the livestock market's toll on her, which is not a second
   // payment to a second party but part of what she cost.
-  const priceMoney = row.purchasePriceMoney + row.hasilMoney;
+  const priceMoney = row.purchasePriceMoney + row.marketTollMoney;
   if (
     priceMoney > 0 ||
     (await moneySnapshotOf(tx, row.farmId, "intake", row.id))
@@ -274,7 +274,7 @@ const assertTheCattleBudgetHolds = async (
  * A Venture's bull bought with no outing — at the farm gate, from a neighbour — is paid straight from its account by
  * bank, and that payment is one `intake_out` Venture Movement written from her Intake, as a Sale's money is from the
  * Sale. Decided after every Intake and every Intake Correction, from the Intake as it now stands: written where she is
- * a Venture's with no outing, its amount moved with her price and Hasil, and taken away where she is the Farm's or on
+ * a Venture's with no outing, its amount moved with her price and Market toll, and taken away where she is the Farm's or on
  * an outing. Never cash, so no pocket carries Investors' money; never more than the Cattle Budget still holds.
  */
 export const bookBoughtByBank = async (
@@ -302,7 +302,7 @@ export const bookBoughtByBank = async (
       animalId: true,
       buyingTripId: true,
       purchasePriceMoney: true,
-      hasilMoney: true,
+      marketTollMoney: true,
       arrivedAt: true,
     },
   });
@@ -343,7 +343,7 @@ export const bookBoughtByBank = async (
       data: { refusal: "venture_buys_by_bank" },
     });
   }
-  const amountMoney = row.purchasePriceMoney + row.hasilMoney;
+  const amountMoney = row.purchasePriceMoney + row.marketTollMoney;
   if (paid.withinTheCattleBudget) {
     await assertTheCattleBudgetHolds(tx, row.farmId, ventureId, {
       amountMoney,
@@ -414,4 +414,4 @@ export const assertVentureIsBuying = async (
 };
 
 /** The livestock market's toll on one beast, as its slip gives it. Taka, like everything else the arrival cost. */
-export const hasilInput = z.number().min(0).max(10_000_000);
+export const marketTollInput = z.number().min(0).max(10_000_000);

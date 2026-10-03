@@ -164,7 +164,7 @@ describe("intake", () => {
 
   // The livestock market takes a toll on every beast bought there, often on her price. It is part of what she cost
   // the farm, not a second payment to a second party — so it rides on her Intake and on its Money Event.
-  it("records the Hasil the livestock market took, as part of what her arrival cost", async () => {
+  it("records the Market toll the livestock market took, as part of what her arrival cost", async () => {
     const clock = new FakeClock("2027-02-02T04:00:00.000Z");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
 
@@ -173,7 +173,7 @@ describe("intake", () => {
       sex: "male",
       seller: { name: `হাসিল বেপারী ${QUARANTINE}` },
       purchasePriceMoney: 80_000,
-      hasilMoney: 2000,
+      marketTollMoney: 2000,
       weightKg: 200,
       estimatedAgeMonths: 20,
     });
@@ -183,7 +183,7 @@ describe("intake", () => {
     });
     expect(her.intake).toMatchObject({
       purchasePriceMoney: 80_000,
-      hasilMoney: 2000,
+      marketTollMoney: 2000,
     });
 
     // One Money Event for her arrival, for what the farm actually handed over.
@@ -206,18 +206,18 @@ describe("intake", () => {
     const his = await manager.client.animals.byTag({
       tagNumber: free.tagNumber,
     });
-    expect(his.intake).toMatchObject({ hasilMoney: 0 });
+    expect(his.intake).toMatchObject({ marketTollMoney: 0 });
 
     // The slip said 2,400 and the Manager typed 2,000: a Correction like any other.
     await manager.client.intake.correct({
       id: taken.intakeId,
       reason: "হাটের রসিদ অনুযায়ী ঠিক করা হলো",
-      changes: { hasilMoney: { from: 2000, to: 2400 } },
+      changes: { marketTollMoney: { from: 2000, to: 2400 } },
     });
     const afterwards = await manager.client.animals.byTag({
       tagNumber: taken.tagNumber,
     });
-    expect(afterwards.intake).toMatchObject({ hasilMoney: 2400 });
+    expect(afterwards.intake).toMatchObject({ marketTollMoney: 2400 });
     // The same Money Event put right, never a second one.
     const afterMoney = await manager.client.money.list({
       from: "2027-02-01",

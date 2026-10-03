@@ -3430,7 +3430,7 @@ export const en = {
   "costs.unallocatedNote":
     "{currencySign}{amount} of feed went to Pens with no animals recorded in them, and is charged to nobody",
   "costs.vet": "Vet visits",
-  "costs.hasil": "Hasil at the livestock market",
+  "costs.market_toll": "Market toll",
   "costs.trips": "Buying and selling trips",
   "costs.herd": "Herd costs",
   "costs.overheads": "Running the farm",
@@ -4324,7 +4324,7 @@ export const en = {
   "intake.title": "How it arrived",
   "intake.seller": "Seller",
   "intake.price": "Purchase price",
-  "intake.hasil": "Hasil at the livestock market",
+  "intake.market_toll": "Market toll",
   "intake.trip": "Came home on",
   "intake.groupTrip": "The outing",
   "intake.groupTripHint":

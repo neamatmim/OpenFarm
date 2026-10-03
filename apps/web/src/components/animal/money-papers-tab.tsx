@@ -67,7 +67,7 @@ const IntakeCorrection = ({
   intake: {
     id: string;
     purchasePriceMoney: number;
-    hasilMoney: number;
+    marketTollMoney: number;
     sellerName: string | null;
     /** As her page shows it: her Venture's where she is one's. */
     targetWindow: { start: string; end: string };
@@ -87,7 +87,7 @@ const IntakeCorrection = ({
     purchasePriceMoney: amount(intake.purchasePriceMoney),
     // Nothing is a real answer here: an animal bought at the farm gate paid no toll, and one typed by
     // mistake is put back to nothing. `amount` would refuse it, and refuse the whole Correction with it.
-    hasilMoney: figure(intake.hasilMoney),
+    marketTollMoney: figure(intake.marketTollMoney),
     seller: counterparty(intake.sellerName),
     owner: whoseSheIs(owner?.id ?? null),
     targetWindow: itsWindow,
@@ -121,10 +121,10 @@ const IntakeCorrection = ({
       />
       <CorrectionAnswer
         inputMode="numeric"
-        label={t("intake.hasil")}
-        onChange={(value) => correcting.set("hasilMoney", value)}
+        label={t("intake.market_toll")}
+        onChange={(value) => correcting.set("marketTollMoney", value)}
         type="number"
-        value={correcting.typed.hasilMoney ?? ""}
+        value={correcting.typed.marketTollMoney ?? ""}
       />
       <CorrectionAnswer
         label={t("correct.seller")}
@@ -225,10 +225,10 @@ const HowSheArrived = ({
         {intake.buyingTrip ? (
           <Fact label={t("intake.trip")}>{intake.buyingTrip.wentTo}</Fact>
         ) : null}
-        {intake.hasilMoney > 0 ? (
-          <Fact label={t("intake.hasil")}>
+        {intake.marketTollMoney > 0 ? (
+          <Fact label={t("intake.market_toll")}>
             {t("intake.money", {
-              amount: formatNumber(intake.hasilMoney, language),
+              amount: formatNumber(intake.marketTollMoney, language),
             })}
           </Fact>
         ) : null}

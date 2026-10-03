@@ -153,7 +153,7 @@ describe("Herd Costs", () => {
         (hers.feedMoney +
           hers.medicineMoney +
           hers.vetMoney +
-          hers.hasilMoney +
+          hers.marketTollMoney +
           hers.tripMoney +
           hers.herdMoney),
       0

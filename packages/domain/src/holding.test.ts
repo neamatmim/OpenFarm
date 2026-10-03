@@ -53,7 +53,7 @@ const charge = (
 });
 
 const hisCharges = [
-  charge("hasil", arrived, 500),
+  charge("market_toll", arrived, 500),
   charge("buying_trip", arrived, 1200),
   charge("feed", "2030-01-10T02:00:00.000Z", 3000),
   // The Vet's fee for a visit on the day he changed hands is dated the start of that day: the buyer's.
@@ -126,11 +126,11 @@ describe("an owner's charges", () => {
     );
   });
 
-  it("are what the Farm is owed back without the Hasil or the Buying Trip, which its own Float paid", () => {
+  it("are what the Farm is owed back without the Market toll or the Buying Trip, which its own Float paid", () => {
     const owed = chargesOfOwner(
       [
         ...hisCharges,
-        charge("hasil", saleDay, 50),
+        charge("market_toll", saleDay, 50),
         charge("buying_trip", saleDay, 60),
       ],
       "v1",
@@ -182,7 +182,7 @@ describe("what some charges came to", () => {
       medicineMoney: 0,
       uncostedDoses: 1,
       vetMoney: 1500,
-      hasilMoney: 500,
+      marketTollMoney: 500,
       tripMoney: 1900,
       herdMoney: 900,
     });

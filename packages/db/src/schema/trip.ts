@@ -12,7 +12,7 @@ import { numericMoney } from "./numeric-columns";
 /**
  * One outing to buy cattle, with what it cost beyond the animals' prices: the broker, the lorry home, and
  * keeping the men who went. Split evenly across the Animals whose Intakes name it, because the lorry was
- * hired for all of them; the Hasil is not, because a livestock market takes that per animal.
+ * hired for all of them; the Market toll is not, because a livestock market takes that per animal.
  */
 export const buyingTrip = pgTable(
   "buying_trip",

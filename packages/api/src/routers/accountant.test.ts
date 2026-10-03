@@ -44,14 +44,14 @@ const setup = async () => {
     pricePerLitreMoney: 50,
     paymentMethod: "bank",
   });
-  // A bull bought for 30,000 with 900 of Hasil on him: over the threshold, and not yet approved. What the
+  // A bull bought for 30,000 with 900 of Market toll on him: over the threshold, and not yet approved. What the
   // export shows is what the farm handed over at the livestock market — 30,900 — on one line, not two.
   const bull = await manager.client.intake.record({
     penId: pen.id,
     sex: "male",
     seller: { name: `গাবতলী ${suffix}` },
     purchasePriceMoney: 30_000,
-    hasilMoney: 900,
+    marketTollMoney: 900,
     weightKg: 240,
     estimatedAgeMonths: 20,
     targetWindowStart: "2040-06-01",
@@ -175,7 +175,7 @@ describe("the accountant's export", () => {
       format: "paper",
     });
     // March 2040 is the only month this file books anything in, so the farm's month is this file's work.
-    // The bull's 900 of Hasil is part of what he cost, so it is in his Category, his Side and the month.
+    // The bull's 900 of Market toll is part of what he cost, so it is in his Category, his Side and the month.
     expect(summary).toMatchObject({
       incomeMoney: 40_000,
       expenseMoney: 51_900,

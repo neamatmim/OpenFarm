@@ -392,7 +392,7 @@ const buyOnTheVenture = async (
     const weightKg = farm.random.int(205, 265);
     const price =
       Math.round((weightKg * farm.random.between(440, 495)) / 500) * 500;
-    const hasil =
+    const marketToll =
       Math.round((price * farm.random.between(0.03, 0.045)) / 50) * 50;
     const breed = farm.random.pick([
       "ব্রাহমা ক্রস",
@@ -409,7 +409,7 @@ const buyOnTheVenture = async (
         phone: "01819-224571",
       },
       purchasePriceMoney: price,
-      hasilMoney: hasil,
+      marketTollMoney: marketToll,
       buyingTripId: trip.id,
       weightKg,
       estimatedAgeMonths: farm.random.int(17, 26),
@@ -421,7 +421,7 @@ const buyOnTheVenture = async (
       targetWindowStart: window.start,
       targetWindowEnd: window.end,
     });
-    spent += price + hasil;
+    spent += price + marketToll;
     const bull: Bull = {
       tag: recorded.tagNumber,
       pen: "quarantine",

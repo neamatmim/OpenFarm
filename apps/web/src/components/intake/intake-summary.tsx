@@ -195,10 +195,10 @@ export const IntakeSummary = ({
             "—"
           )}
         </Line>
-        <Line label={t("intake.hasil")}>
-          {Number(fields.hasilMoney) > 0
+        <Line label={t("intake.market_toll")}>
+          {Number(fields.marketTollMoney) > 0
             ? t("intake.money", {
-                amount: formatNumber(Number(fields.hasilMoney), language),
+                amount: formatNumber(Number(fields.marketTollMoney), language),
               })
             : "—"}
         </Line>

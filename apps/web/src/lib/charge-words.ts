@@ -11,7 +11,7 @@ export type ChargeWord = Awaited<
  *  Investor's portal alike. */
 export const CHARGE_WORD = {
   bought: "costs.bought",
-  hasil: "costs.hasil",
+  market_toll: "costs.market_toll",
   trips: "costs.trips",
   feed: "ventures.feed",
   medicine: "ventures.medicine",

@@ -440,7 +440,7 @@ export interface FarmTripFloat {
   carrierId: string | null;
   carrierName: string | null;
   handedMoney: number;
-  /** What the outing bought of the Farm's own: the animals and their Hasil, and the outing's costs. */
+  /** What the outing bought of the Farm's own: the animals and their Market toll, and the outing's costs. */
   boughtMoney: number;
   /** What was brought back, where it was counted home. */
   backMoney: number;
@@ -556,7 +556,7 @@ export const requireOpenFarmTrip = async (
 
 /**
  * Counts a Farm float home: the cash handed out must be what the outing bought of the Farm's own — its animals, their
- * Hasil and its costs — and the cash brought back, to the taka, as a Venture's is; refused over or short with the gap.
+ * Market toll and its costs — and the cash brought back, to the taka, as a Venture's is; refused over or short with the gap.
  * What was brought back goes from the hand that carried it to the Owner's, and the outing's float is closed.
  */
 export const reconcileFarmFloat = async (

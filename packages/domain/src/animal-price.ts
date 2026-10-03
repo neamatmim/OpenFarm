@@ -140,7 +140,7 @@ export const keepRateOf = (
 /**
  * One thing charged to her keep: her share of a Feeding, a dose she was given, her share of the Vet's fee for a visit
  * that named her, or her share of a Herd Cost (the Owner's choice, 2026-09-27: what she is dosed with and what the Vet
- * charges to see her are part of what keeping her costs). Not the Hasil or a Trip, which were paid to move her, not to
+ * charges to see her are part of what keeping her costs). Not the Market toll or a Trip, which were paid to move her, not to
  * keep her.
  */
 export interface KeepCharge {

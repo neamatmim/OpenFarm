@@ -255,7 +255,7 @@ const SELLERS = [
   { name: "বাবুল মিয়া", address: "মানিকগঞ্জ, সিঙ্গাইর হাট", phone: "01917-330245" },
 ];
 
-/** The dearest a bull off the lorry can come to, with his Hasil: what the Owner's float allows for each. */
+/** The dearest a bull off the lorry can come to, with his Market toll: what the Owner's float allows for each. */
 const dearestBullMoney = (heavier: number) => (290 + heavier) * 520 * 1.05;
 
 /** Floats go out in round sums, as the bank counts notes. */
@@ -331,7 +331,8 @@ export const takeInBulls = async (
       seller,
       purchasePriceMoney: price,
       // The livestock market's toll on this beast, as its slip gives it: a fraction of what she fetched.
-      hasilMoney: Math.round((price * random.between(0.03, 0.045)) / 50) * 50,
+      marketTollMoney:
+        Math.round((price * random.between(0.03, 0.045)) / 50) * 50,
       buyingTripId: trip.id,
       weightKg: typedKg,
       estimatedAgeMonths: random.int(16, 26),

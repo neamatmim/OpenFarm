@@ -28,7 +28,7 @@ export interface FeedShare {
 }
 
 /**
- * One Animal's share of something charged to her by the head rather than by what she ate: the Hasil the
+ * One Animal's share of something charged to her by the head rather than by what she ate: the Market toll the
  * livestock market took on her, a Buying or Selling Trip she was on, a month's Herd Costs. One shape for the three,
  * because each is only ever an animal, a moment and an amount.
  */
@@ -365,8 +365,8 @@ export interface Costs {
   uncostedDoses: number;
   /** Her share of the Vet Fees for visits that named her. */
   vetMoney: number;
-  /** The Hasil the livestock market took on her, charged to her alone. */
-  hasilMoney: number;
+  /** The Market toll the livestock market took on her, charged to her alone. */
+  marketTollMoney: number;
   /** Her share of the Buying Trip that brought her and the Selling Trips that took her. */
   tripMoney: number;
   /** Her share of the Herd Costs of the Side she stood on, by the days she stood there. */
@@ -377,7 +377,7 @@ const spentOn = (costs: Costs): number =>
   costs.feedMoney +
   costs.medicineMoney +
   costs.vetMoney +
-  costs.hasilMoney +
+  costs.marketTollMoney +
   costs.tripMoney +
   costs.herdMoney;
 
@@ -388,14 +388,14 @@ export const roundedCosts = (costs: Costs): Costs => ({
   medicineMoney: roundMoney(costs.medicineMoney),
   uncostedDoses: costs.uncostedDoses,
   vetMoney: roundMoney(costs.vetMoney),
-  hasilMoney: roundMoney(costs.hasilMoney),
+  marketTollMoney: roundMoney(costs.marketTollMoney),
   tripMoney: roundMoney(costs.tripMoney),
   herdMoney: roundMoney(costs.herdMoney),
 });
 
 /**
  * A fattening Animal's Margin: her sale price less her purchase price and everything she cost — her feed,
- * her doses, the Vet's visits that named her, the Hasil paid on her, the Trips that moved her and her
+ * her doses, the Vet's visits that named her, the Market toll paid on her, the Trips that moved her and her
  * share of the Herd Costs. Null until she is sold. A beast bred on the farm was bought for nothing.
  */
 export const marginOf = ({

@@ -19,7 +19,7 @@ import { appRouter } from "./index";
 // Worked by hand. Eid-ul-Adha 2028 (6 May). The Farm's Rations are written for 150 to 250 kg and from 250, and one for
 // anything up to 400 kg — a bull of 200 kg fell in the narrower. The first and the last are retired since. All bought
 // on 1 January:
-// - A, at the Gabtoli livestock market from Karim, no breed written, 200 kg, ৳1,00,000 and ৳1,000 of Hasil; sold at Eid for
+// - A, at the Gabtoli livestock market from Karim, no breed written, 200 kg, ৳1,00,000 and ৳1,000 of Market toll; sold at Eid for
 //   ৳1,30,000.
 // - B, at the Gabtoli livestock market from Rahim, a Sahiwal, 280 kg, ৳1,20,000; sold at Eid for ৳1,50,000.
 // - C, at the farm gate from Karim, a Sahiwal, 260 kg, ৳60,000; dead on 15 February.
@@ -231,7 +231,7 @@ beforeAll(async () => {
   const bought = async (one: {
     seller: string;
     purchasePriceMoney: number;
-    hasilMoney?: number;
+    marketTollMoney?: number;
     weightKg: number;
     atGabtoli: boolean;
     sahiwal: boolean;
@@ -243,7 +243,7 @@ beforeAll(async () => {
       sex: "male",
       seller: { name: one.seller },
       purchasePriceMoney: one.purchasePriceMoney,
-      hasilMoney: one.hasilMoney ?? 0,
+      marketTollMoney: one.marketTollMoney ?? 0,
       weightKg: one.weightKg,
       estimatedAgeMonths: 20,
       arrivedAt: new Date("2028-01-01T00:00:00Z"),
@@ -257,7 +257,7 @@ beforeAll(async () => {
   tags.a = await bought({
     seller: KARIM,
     purchasePriceMoney: 100_000,
-    hasilMoney: 1000,
+    marketTollMoney: 1000,
     weightKg: 200,
     atGabtoli: true,
     sahiwal: false,
