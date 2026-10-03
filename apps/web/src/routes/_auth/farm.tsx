@@ -19,11 +19,14 @@ import {
 } from "@/components/home/farm-panels";
 import { MilkWeek } from "@/components/home/milk-week";
 import {
+  anythingWaiting,
+  decisionsWaiting,
+} from "@/components/home/owner-counts";
+import {
   DECISION_KINDS,
   FARM_TODAY_KINDS,
   FarmToday,
   NeedsYouTabs,
-  decisionsWaiting,
   moneyAwaitingTotal,
 } from "@/components/home/owner-queue";
 import type {
@@ -240,8 +243,11 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
   // at all while the answer is still coming or did not come. An empty list is an answer; no answer is
   // not, and a green "everything is fine" resting on a request that failed is the worst of the three.
   const heardAboutVentures = ventures.isSuccess;
+  // The badge counts her decisions; "all fine" is said only when nothing at all waits — a missing animal, a store to
+  // count or Baki overdue is no decision of hers, but the farm is not all fine while one waits.
   const waiting = decisionsWaiting(needsYou) + troubled.length;
-  const allFine = waiting === 0 && heardAboutVentures;
+  const allFine =
+    anythingWaiting(needsYou) + troubled.length === 0 && heardAboutVentures;
 
   return (
     <Page>
@@ -269,7 +275,7 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <div className="flex min-w-0 flex-col gap-6">
           <Section id="needs-you" title={t("owner.needsYou")}>
-            {waiting === 0 && allFine ? (
+            {allFine ? (
               <EmptyState
                 bare
                 description={t("owner.allFineHint")}

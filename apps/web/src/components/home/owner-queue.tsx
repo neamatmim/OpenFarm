@@ -26,6 +26,8 @@ import { FarmAccountsOutGroup } from "@/components/home/farm-accounts-out";
 import { LowStockWords } from "@/components/home/low-stock-line";
 import { MissingAnimalsGroup } from "@/components/home/missing-animals";
 import { MonthlyCostsGroup } from "@/components/home/monthly-costs";
+import type { NeedsYou } from "@/components/home/owner-counts";
+import { ownerCountsOf } from "@/components/home/owner-counts";
 import {
   MORE_LINK,
   Opens,
@@ -43,11 +45,6 @@ import { useTaka } from "@/lib/taka";
 import type { VentureNeedingHer } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
 
-/** The Owner's exception list as the farm answers it. */
-export type NeedsYou = Awaited<
-  ReturnType<typeof orpc.home.owner.call>
->["needsYou"];
-
 /** One kind of decision, drawn under its own heading or under a tab that already gives it one. */
 interface GroupProps {
   needsYou: NeedsYou;
@@ -59,21 +56,6 @@ type Tiles = Awaited<ReturnType<typeof orpc.home.owner.call>>["tiles"];
 
 /** How many money rows show before the rest wait behind "show all": a pile of approvals is read by its total first. */
 const MONEY_FIRST_SHOWN = 3;
-
-/** How many rows of the month's rent, electricity and wages are not entered yet — none in an answer a phone kept from before
- *  there were Monthly Costs. */
-const monthlyCostsMissing = (needsYou: NeedsYou): number =>
-  (needsYou.monthlyCosts?.costs.length ?? 0) +
-  (needsYou.monthlyCosts?.wages.length ?? 0);
-
-/** What waits on the Owner's own word: work to sign off, proposals, money, entries to decide, the Registration. Not the
- *  month's costs not entered yet — the Manager enters those, and the Owner is shown them under Money all the same. */
-export const decisionsWaiting = (needsYou: NeedsYou): number =>
-  needsYou.approvals.length +
-  needsYou.proposals.length +
-  needsYou.needsReview.length +
-  needsYou.moneyAwaiting.length +
-  (needsYou.registrationRenewal ? 1 : 0);
 
 /** The taka the money awaiting approval comes to, whichever way it goes. */
 export const moneyAwaitingTotal = (needsYou: NeedsYou): number =>
@@ -494,19 +476,19 @@ export const NeedsYouTabs = ({
   onChoose: (kind: DecisionKind) => void;
 }) => {
   const { t } = useLanguage();
+  const counts = ownerCountsOf(needsYou);
   const kinds: Kind[] = [
     {
       value: "missing",
       label: t("home.missing"),
       icon: MapPinOff,
-      // Missing from an answer a phone kept from before a Missing was written down.
-      count: needsYou.missing?.length ?? 0,
+      count: counts.missing,
     },
     {
       value: "storeCount",
       label: t("owner.storeCount"),
       icon: Warehouse,
-      count: needsYou.storeCount ? 1 : 0,
+      count: counts.storeCount,
     },
     {
       value: "ventures",
@@ -518,37 +500,31 @@ export const NeedsYouTabs = ({
       value: "registration",
       label: t("owner.registrationRenewal"),
       icon: FileBadge,
-      count: needsYou.registrationRenewal ? 1 : 0,
+      count: counts.registration,
     },
     {
       value: "approvals",
       label: t("nav.signOff"),
       icon: BadgeCheck,
-      count: needsYou.approvals.length,
+      count: counts.approvals,
     },
     {
       value: "proposals",
       label: t("owner.proposals"),
       icon: BookOpenCheck,
-      count: needsYou.proposals.length,
+      count: counts.proposals,
     },
     {
       value: "money",
       label: t("nav.money"),
       icon: HandCoins,
-      count:
-        needsYou.moneyAwaiting.length +
-        monthlyCostsMissing(needsYou) +
-        // Missing from an answer a phone kept from before Farm Accounts were checked.
-        (needsYou.farmAccountsOut?.length ?? 0) +
-        // Missing from an answer a phone kept from before Baki was written down.
-        (needsYou.bakiOverdue?.length ?? 0),
+      count: counts.money,
     },
     {
       value: "review",
       label: t("home.needsReview"),
       icon: Gavel,
-      count: needsYou.needsReview.length,
+      count: counts.review,
     },
   ];
   const waiting = kinds.filter((kind) => kind.count > 0);

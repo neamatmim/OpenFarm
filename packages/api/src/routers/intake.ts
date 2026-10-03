@@ -29,7 +29,7 @@ import {
 import { farmAccountIdInput, paymentMethodInput } from "../money-inputs";
 import { accountSaid, bookingOf } from "../money-store";
 import { OWNER_ONLY, requireOnly, requireRole } from "../roles";
-import { ventureWindowOf } from "../venture-store";
+import { lockTheFarm, ventureWindowOf } from "../venture-store";
 
 /** Enough that the Manager recognises the man; not so many that a shed phone fetches a ledger. */
 const SELLERS_SHOWN = 100;
@@ -285,6 +285,12 @@ export const intakeRouter = {
           after: (tx) => readIntake(tx, id),
         },
         async (tx) => {
+          // A Venture's bull may move its money, so the Farm is locked first, as every writer of a Venture's money
+          // locks it: the Venture's state and its Cattle Budget are only true until a Float drawn or a Venture moved on
+          // at the same moment commits. Before her tag number, so the two locks are always taken in that order.
+          if (input.ventureId) {
+            await lockTheFarm(tx, context.farm.id);
+          }
           // Asked before she is written down: what may refuse her should refuse her in the farm's own
           // words, not by a foreign key after the row exists and a tag number has been spent.
           await assertTripIsOurs(tx, context.farm.id, input.buyingTripId);

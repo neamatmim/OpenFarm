@@ -22,6 +22,7 @@ import {
   useActiveWorker,
   useIsShedPhone,
 } from "@/lib/shed-phone";
+import { signOutOfThisPhone } from "@/lib/sign-out";
 import { orpc } from "@/utils/orpc";
 
 export const Initials = ({
@@ -150,14 +151,9 @@ const UserMenu = () => {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onClick={() => {
-            authClient.signOut({
-              fetchOptions: {
-                onSuccess: () => {
-                  navigate({ to: "/" });
-                },
-              },
-            });
+          onClick={async () => {
+            await signOutOfThisPhone(queryClient);
+            await navigate({ to: "/" });
           }}
           variant="destructive"
         >

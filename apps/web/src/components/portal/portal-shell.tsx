@@ -63,11 +63,10 @@ import { ThemeMenu } from "@/components/theme-menu";
 import { Initials } from "@/components/user-menu";
 import { Wordmark } from "@/components/wordmark";
 import { useLanguage, useT } from "@/i18n/language-provider";
-import { authClient } from "@/lib/auth-client";
 import { leaveTheEndedSignIn } from "@/lib/ended-sign-in";
 import { useOnline } from "@/lib/online";
-import { forgetWhatThisPhoneRead } from "@/lib/query-cache";
 import { wordOf } from "@/lib/saying";
+import { signOutOfThisPhone } from "@/lib/sign-out";
 
 import { PortalNotice } from "./portal-door";
 
@@ -391,16 +390,8 @@ const PortalUserMenu = ({ name, phone }: { name: string; phone: string }) => {
         ) : (
           <DropdownMenuItem
             onClick={async () => {
-              // Forgotten first, so nothing they read stays behind them — in the tab or on the phone — even if signing
-              // out itself does not go through (ASVS 14.3.1).
-              await forgetWhatThisPhoneRead(queryClient);
-              await authClient.signOut({
-                fetchOptions: {
-                  onSuccess: () => {
-                    void navigate({ to: "/portal/login" });
-                  },
-                },
-              });
+              await signOutOfThisPhone(queryClient);
+              await navigate({ to: "/portal/login" });
             }}
             variant="destructive"
           >

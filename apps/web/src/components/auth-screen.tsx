@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
   BookOpenCheck,
@@ -13,8 +14,8 @@ import type { ReactNode } from "react";
 import { DoorLinks, DoorRow, DoorScreen } from "@/components/door-screen";
 import { PublicHeader } from "@/components/public-header";
 import { useT } from "@/i18n/language-provider";
-import { authClient } from "@/lib/auth-client";
 import { useFarmName, useNoFarmYet } from "@/lib/farm-name";
+import { signOutOfThisPhone } from "@/lib/sign-out";
 
 /**
  * The door into the farm: its promise on one side — the Playbook, the record, working without signal — and the
@@ -81,6 +82,7 @@ export const AuthScreen = ({
 export const SignedInDoor = ({ children }: { children: ReactNode }) => {
   const t = useT();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const farmName = useFarmName();
   return (
     <DoorScreen
@@ -102,14 +104,9 @@ export const SignedInDoor = ({ children }: { children: ReactNode }) => {
         <DoorRow
           hint={t("auth.signOutHint")}
           icon={LogOut}
-          onClick={() => {
-            void authClient.signOut({
-              fetchOptions: {
-                onSuccess: () => {
-                  void navigate({ to: "/login" });
-                },
-              },
-            });
+          onClick={async () => {
+            await signOutOfThisPhone(queryClient);
+            await navigate({ to: "/login" });
           }}
           title={t("auth.signOut")}
         />
