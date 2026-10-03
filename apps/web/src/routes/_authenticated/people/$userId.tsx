@@ -1,3 +1,4 @@
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
@@ -26,6 +27,7 @@ import { SignInsTab, TrainingTab } from "@/components/people/person-sign-ins";
 import { useT } from "@/i18n/language-provider";
 import { words } from "@/lib/correcting";
 import { onlyFor } from "@/lib/guard";
+import { initialsOf } from "@/lib/initials";
 import { reachesTheirAccess } from "@/lib/their-access";
 import { orpc } from "@/utils/orpc";
 
@@ -90,6 +92,21 @@ const PersonPage = () => {
                 isOwner ? (
                   <CorrectName name={them.name} userId={userId} />
                 ) : null
+              }
+              // A person's record leads with their initials, as an animal's leads with her photo: whose page it is,
+              // at a glance, in the user menu's own mark (greyed for one whose access is off).
+              leading={
+                <span
+                  aria-hidden
+                  className={cn(
+                    "grid size-14 shrink-0 place-items-center rounded-full text-lg font-semibold",
+                    gone
+                      ? "bg-muted text-muted-foreground"
+                      : "bg-primary text-primary-foreground"
+                  )}
+                >
+                  {initialsOf(them.name)}
+                </span>
               }
               meta={
                 <>
