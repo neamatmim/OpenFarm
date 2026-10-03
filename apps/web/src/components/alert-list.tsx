@@ -13,6 +13,7 @@ import {
   ChevronUp,
   OctagonAlert,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { StatusBadge } from "@/components/page";
@@ -103,6 +104,109 @@ const procedureOf = (notice: {
 
 const LEADS_CLASS =
   "text-primary mt-1 block text-sm font-medium hover:underline";
+/** A place a notice leads to: the words of the way there, and the way itself. */
+interface Place {
+  label: MessageKey;
+  Way: (props: { children: ReactNode }) => ReactNode;
+}
+
+/**
+ * The notices that lead to one place whatever they name: the list where what they ask about is answered — the money
+ * waiting for approval, a proposal to read, an entry the farm sent back, the backups, the feed store, the medicines,
+ * the milk that does not add up.
+ */
+const TO_THE_MEDICINES: Place = {
+  label: "alerts.openTheMedicines",
+  Way: ({ children }) => (
+    <Link className={LEADS_CLASS} to="/drugs">
+      {children}
+    </Link>
+  ),
+};
+const TO_THE_BACKUPS: Place = {
+  label: "alerts.openTheBackups",
+  Way: ({ children }) => (
+    <Link className={LEADS_CLASS} to="/admin/backups">
+      {children}
+    </Link>
+  ),
+};
+const PLACES = {
+  money_awaiting_approval: {
+    label: "alerts.openTheMoney",
+    Way: ({ children }) => (
+      <Link className={LEADS_CLASS} to="/money">
+        {children}
+      </Link>
+    ),
+  },
+  sop_proposed: {
+    label: "alerts.readTheProposals",
+    Way: ({ children }) => (
+      <Link
+        className={LEADS_CLASS}
+        search={{ tab: "proposals" }}
+        to="/admin/sops"
+      >
+        {children}
+      </Link>
+    ),
+  },
+  sop_published: {
+    label: "alerts.openTheProcedures",
+    Way: ({ children }) => (
+      <Link className={LEADS_CLASS} to="/admin/sops">
+        {children}
+      </Link>
+    ),
+  },
+  entry_rejected: {
+    label: "alerts.openTheOutbox",
+    Way: ({ children }) => (
+      <Link className={LEADS_CLASS} to="/outbox">
+        {children}
+      </Link>
+    ),
+  },
+  day_not_turning: TO_THE_BACKUPS,
+  backup_overdue: TO_THE_BACKUPS,
+  low_stock: {
+    label: "alerts.openTheStore",
+    Way: ({ children }) => (
+      <Link className={LEADS_CLASS} to="/admin/feed">
+        {children}
+      </Link>
+    ),
+  },
+  feed_price_jump: {
+    label: "alerts.openTheArrivals",
+    Way: ({ children }) => (
+      <Link
+        className={LEADS_CLASS}
+        search={{ tab: "arrivals" }}
+        to="/admin/feed"
+      >
+        {children}
+      </Link>
+    ),
+  },
+  lot_expiring: TO_THE_MEDICINES,
+  lot_expired: TO_THE_MEDICINES,
+  medicine_low_stock: TO_THE_MEDICINES,
+  medicine_short: TO_THE_MEDICINES,
+  milk_unaccounted: {
+    label: "alerts.openTheMilk",
+    Way: ({ children }) => (
+      <Link className={LEADS_CLASS} search={{ tab: "mismatches" }} to="/milk">
+        {children}
+      </Link>
+    ),
+  },
+} satisfies Partial<Record<AlertKind, Place>>;
+
+/** Where a notice of this kind leads, if it is one that always leads to the same place. */
+const placeOf = (kind: string): Place | undefined =>
+  (PLACES as Partial<Record<string, Place>>)[kind];
 
 /**
  * Where a notice leads: to what it is about, so the notice is a way there rather than a sentence to go and act on
@@ -116,6 +220,10 @@ const WhereItLeads = ({
   notice: { kind: string; params: unknown; entity: string; entityId: string };
 }) => {
   const { t } = useLanguage();
+  const place = placeOf(notice.kind);
+  if (place) {
+    return <place.Way>{t(place.label)}</place.Way>;
+  }
   if (notice.kind === "investor_statement_due") {
     const ventureId = ventureOf(notice.params);
     return ventureId === null ? null : (

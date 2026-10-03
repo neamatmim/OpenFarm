@@ -18,6 +18,7 @@ import {
   NO_ACCOUNT,
   PaymentMethodField,
 } from "@/components/payment-method";
+import { SellingTripCorrection } from "@/components/trips/trip-corrections";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
@@ -300,6 +301,12 @@ export const SellingTripForm = () => {
                         kg: formatNumber(one.shrink.lostKg, language),
                       })}
                     </span>
+                  ) : null}
+                  {/* Put right part by part; an answer kept from before the parts were listed has none to show. */}
+                  {one.parts ? (
+                    <SellingTripCorrection
+                      trip={{ ...one, parts: one.parts }}
+                    />
                   ) : null}
                 </span>
               </li>

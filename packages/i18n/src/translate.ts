@@ -21,6 +21,14 @@ const PLURAL =
 const said = (value: string | number, language: Language): string =>
   typeof value === "number" ? formatNumber(value, language) : value;
 
+/** The words for a key in a language — the English where that language has none, and the key itself where neither
+ *  has: a key a screen builds by hand is no type error when its words are missing, and a page says what it can rather
+ *  than going blank. */
+const wordsFor = (language: Language, key: MessageKey): string =>
+  (MESSAGES[language] as Partial<Record<string, string>>)[key] ??
+  (MESSAGES.en as Partial<Record<string, string>>)[key] ??
+  key;
+
 /** Look up a message in a language and fill `{name}` placeholders. Numbers are
  *  formatted for the language (Bangla numerals in Bangla), and a plural takes the
  *  form its number asks for — from the figure, even when a screen has already
@@ -30,7 +38,7 @@ export const translate = (
   key: MessageKey,
   params: MessageParams = {}
 ): string =>
-  MESSAGES[language][key]
+  wordsFor(language, key)
     .replace(PLURAL, (match, name: string, one: string, other: string) => {
       const value = params[name];
       if (value === undefined) {

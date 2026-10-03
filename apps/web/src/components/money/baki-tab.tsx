@@ -7,6 +7,10 @@ import { useState } from "react";
 
 import { phoneLink } from "@/components/investors/phone-link";
 import { useIsOwner } from "@/components/money";
+import {
+  BakiPaymentCorrection,
+  WriteOffCorrection,
+} from "@/components/money/baki-corrections";
 import type { PaymentFor } from "@/components/money/baki-payment-sheet";
 import { BakiPaymentSheet } from "@/components/money/baki-payment-sheet";
 import { WriteOffButton } from "@/components/money/baki-write-off";
@@ -93,6 +97,36 @@ const OwedRow = ({
   );
 };
 
+/** Each time the Owner wrote some of his Baki off, as written, each to put right or take back — the Owner's alone.
+ *  None in an answer the phone kept from before write-offs were listed one by one. */
+const WriteOffLines = ({ standing }: { standing: KindStanding }) => {
+  const { t } = useLanguage();
+  const day = useDay();
+  const written = standing.items.flatMap((item) => item.writeOffs ?? []);
+  if (written.length === 0) {
+    return null;
+  }
+  return (
+    <ul className="text-muted-foreground flex flex-col gap-0.5 text-xs">
+      {written.map((one) => (
+        <li
+          className="flex flex-wrap items-center justify-between gap-2"
+          key={one.id}
+        >
+          <span>
+            {t("baki.writeOffLine", {
+              taka: one.amountBdt,
+              day: day(one.writtenOn),
+            })}
+            {` — ${one.reason}`}
+          </span>
+          <WriteOffCorrection writeOff={one} />
+        </li>
+      ))}
+    </ul>
+  );
+};
+
 /** His Baki of one kind: what he owes and since when, each thing he took, and each payment he made. */
 const KindPart = ({
   standing,
@@ -152,16 +186,23 @@ const KindPart = ({
       {standing.payments.length > 0 ? (
         <ul className="text-muted-foreground flex flex-col gap-0.5 text-xs">
           {standing.payments.map((payment) => (
-            <li key={payment.id}>
-              {t("baki.paymentLine", {
-                taka: payment.amountBdt,
-                day: day(payment.paidOn),
-              })}
-              {payment.note ? ` — ${payment.note}` : null}
+            <li
+              className="flex flex-wrap items-center justify-between gap-2"
+              key={payment.id}
+            >
+              <span>
+                {t("baki.paymentLine", {
+                  taka: payment.amountBdt,
+                  day: day(payment.paidOn),
+                })}
+                {payment.note ? ` — ${payment.note}` : null}
+              </span>
+              <BakiPaymentCorrection payment={payment} />
             </li>
           ))}
         </ul>
       ) : null}
+      {mayWriteOff ? <WriteOffLines standing={standing} /> : null}
     </div>
   );
 };

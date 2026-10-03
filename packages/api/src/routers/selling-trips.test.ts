@@ -197,6 +197,12 @@ describe("a Selling Trip", () => {
       changes: { transportBdt: { from: 4000, to: 5000 } },
     });
     expect(await costOf(one)).toMatchObject({ tripBdt: 2500 });
+    // Listed with each part as it now stands, which is what the screen puts right from.
+    const listed = await manager.client.sellingTrips.list();
+    expect(listed.find((each) => each.id === trip.id)?.parts).toEqual({
+      transportBdt: 5000,
+      keepBdt: 0,
+    });
     const money = await manager.client.money.list({
       from: "2041-03-01",
       to: "2041-03-31",

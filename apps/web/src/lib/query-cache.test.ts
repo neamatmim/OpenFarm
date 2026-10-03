@@ -4,7 +4,13 @@ import { describe, expect, it } from "vitest";
 import { animalPhotoKey } from "@/components/portal/animal-photo-key";
 import { orpc } from "@/utils/orpc";
 
-import { keptOnDevice, readKept, writeKept } from "./query-cache";
+import {
+  keptOnDevice,
+  readKept,
+  shelvedInThisShape,
+  writeKept,
+  CACHE_SHAPE,
+} from "./query-cache";
 
 describe("the cache a phone keeps", () => {
   it("gives back a date as a date, however deep in an answer it sits", () => {
@@ -114,5 +120,24 @@ describe("what a phone keeps", () => {
     expect(keptOnDevice(answered(orpc.people.me.queryKey()), "farm")).toBe(
       true
     );
+  });
+});
+
+/** Screens put away under the shape named. */
+const shelf = (buster: string): PersistedClient => ({
+  timestamp: Date.now(),
+  buster,
+  clientState: { queries: [], mutations: [] },
+});
+
+describe("a person's screens put away on a Shed Phone", () => {
+  it("is brought back when it was put away in the shape the phone reads now", () => {
+    expect(shelvedInThisShape(shelf(CACHE_SHAPE))).toBe(true);
+  });
+
+  it("is not brought back when it was put away before the shape changed", () => {
+    // Put away before an update, brought back after it: a screen drawn from it would have no figures to write out.
+    expect(shelvedInThisShape(shelf(""))).toBe(false);
+    expect(shelvedInThisShape(shelf("kept-the-old-way"))).toBe(false);
   });
 });

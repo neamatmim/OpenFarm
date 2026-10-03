@@ -9,6 +9,7 @@ import {
   PregnancyCheckTable,
   ServiceTable,
 } from "@/components/animal-histories";
+import { AbortionCorrection } from "@/components/animal/abortion-correction";
 import {
   CorrectionAnswer,
   CorrectionDialog,
@@ -178,10 +179,13 @@ const HerCalvings = ({ calvings }: { calvings: AnimalDetail["calvings"] }) => {
 const HerAbortions = ({
   abortions,
   mayRecord,
+  mayCorrect,
   onAct,
 }: {
   abortions: AnimalDetail["abortions"];
   mayRecord: boolean;
+  /** The Vet's, as recording one is: each to put right. */
+  mayCorrect: boolean;
   onAct: (act: AnimalAct) => void;
 }) => {
   const { t, language } = useLanguage();
@@ -211,6 +215,9 @@ const HerAbortions = ({
             <RecordRow
               key={one.id}
               meta={one.note}
+              trailing={
+                mayCorrect ? <AbortionCorrection abortion={one} /> : undefined
+              }
               title={`${formatDate(new Date(one.abortedAt), language)} · ${t(
                 "abortion.stage",
                 { months: one.stageMonths }
@@ -264,6 +271,7 @@ export const BreedingTab = ({
       <HerCalvings calvings={detail.calvings} />
       <HerAbortions
         abortions={detail.abortions}
+        mayCorrect={powers.isVet}
         mayRecord={powers.isVet && detail.expectedCalvingAt !== null}
         onAct={onAct}
       />
