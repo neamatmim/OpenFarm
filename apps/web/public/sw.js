@@ -9,7 +9,7 @@
  * and every write goes through the Outbox; a service worker quietly replaying a POST would
  * be a second write path, which ADR 0002 rules out.
  */
-const SHELL = "openfarm-shell-v9";
+const SHELL = "openfarm-shell-v10";
 const ASSETS = "openfarm-assets-v3";
 const KEEP = new Set([SHELL, ASSETS]);
 const SHELL_FILES = ["/", "/work", "/manifest.webmanifest", "/icon.svg"];
@@ -79,14 +79,45 @@ const fromCacheFirst = async (request) => {
   return answer;
 };
 
+/** How long a page waits for the network before the kept page is shown instead: a connection that is up but crawling
+ *  never fails, it only keeps a person at a blank screen in the shed (docs/research/next-improvements.md §2). */
+const NAVIGATION_WAIT_MS = 4000;
+
+/** Resolves to what it is given once the wait is over: a timer has no promise of its own in a service worker. */
+const after = (ms, value) =>
+  // oxlint-disable-next-line promise/avoid-new -- a timer made into a promise, the one way to race one
+  new Promise((resolve) => {
+    setTimeout(resolve, ms, value);
+  });
+
+/**
+ * A page: the network's, as long as it answers within a few seconds; the kept page if it does not, or fails. With no
+ * page kept, the network is waited for however long it takes, since there is nothing else to show. (A navigation
+ * cannot be sent again with a signal to stop it: fetch refuses options for one.)
+ */
 const shellFor = async (request) => {
-  try {
-    return await fetch(request);
-  } catch {
-    const cache = await caches.open(SHELL);
-    const cached = await cache.match(request);
-    return cached ?? (await cache.match("/work")) ?? Response.error();
+  const network = fetch(request);
+  const cache = await caches.open(SHELL);
+  const kept = (await cache.match(request)) ?? (await cache.match("/work"));
+  if (!kept) {
+    try {
+      return await network;
+    } catch {
+      return Response.error();
+    }
   }
+  // A network that fails is answered by the kept page at once; one slower than the wait is not waited for, and its
+  // failure later is nobody's error.
+  const answered = async () => {
+    try {
+      return await network;
+    } catch {
+      return null;
+    }
+  };
+  return (
+    (await Promise.race([answered(), after(NAVIGATION_WAIT_MS, kept)])) ?? kept
+  );
 };
 
 self.addEventListener("fetch", (event) => {
