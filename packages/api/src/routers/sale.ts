@@ -47,14 +47,6 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const saleRouter = {
   /**
-   * The animals that can actually be sold this morning: confirmed Ready, and not inside their
-   * days.
-   *
-   * Answered here rather than filtered on the phone, because the phone cannot see a withdrawal
-   * — and a beast confirmed Ready last week and treated on Thursday would sit in the list
-   * looking sellable and refuse whoever pressed the button.
-   */
-  /**
    * What she last weighed on the farm, and when: her last Weigh-in, or else what she came in at. Beside the box for what
    * she weighs today, so the Manager sees her Shrink before saving — whichever animal it is, a cull by her tag too.
    */
@@ -78,6 +70,14 @@ export const saleRouter = {
       return last.get(her.id) ?? null;
     }),
 
+  /**
+   * The animals that can actually be sold this morning: confirmed Ready, and not inside their
+   * days.
+   *
+   * Answered here rather than filtered on the phone, because the phone cannot see a withdrawal
+   * — and a beast confirmed Ready last week and treated on Thursday would sit in the list
+   * looking sellable and refuse whoever pressed the button.
+   */
   sellable: protectedProcedure
     .use(requireRole("owner", "manager"))
     .handler(async ({ context }) => {

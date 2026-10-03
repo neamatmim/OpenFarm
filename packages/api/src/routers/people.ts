@@ -243,7 +243,6 @@ export const peopleRouter = {
       };
     }),
 
-  /** Owner invites anyone with any Roles (approved at once); Manager invites Staff (pending). */
   /** One person of this farm, and what they have been taught. Anybody may ask about
    *  themselves — the person who has to follow a procedure should be able to see when they
    *  were taught it — and the Manager may ask about anybody who works here. */
@@ -299,6 +298,7 @@ export const peopleRouter = {
       };
     }),
 
+  /** Owner invites anyone with any Roles (approved at once); Manager invites Staff (pending). */
   invite: protectedProcedure
     .use(requireRole("owner", "manager"))
     .use(requirePersonalSession())
@@ -432,8 +432,6 @@ export const peopleRouter = {
       return { id: input.id, status: "approved" } as const;
     }),
 
-  /** Owner sets a person's Roles outright. Kept Roles are untouched; revoked ones keep their
-   *  history; the farm always keeps at least one other Owner. */
   /**
    * Which Pens' work is a person's: the Manager adds and takes away Pens, and the change is in the trail with the
    * whole list either side of it. A Staff member sees the work, animals and withdrawals of their Pens only, so a
@@ -472,6 +470,8 @@ export const peopleRouter = {
       };
     }),
 
+  /** Owner sets a person's Roles outright. Kept Roles are untouched; revoked ones keep their
+   *  history; the farm always keeps at least one other Owner. */
   assignRoles: protectedProcedure
     .use(requireRole("owner"))
     .use(requirePersonalSession())

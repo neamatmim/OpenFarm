@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import type { NeedsYou } from "./owner-counts";
-import { decisionsWaiting, ownerCountsOf } from "./owner-counts";
+import {
+  decisionsWaiting,
+  moneyAwaitingCount,
+  moneyAwaitingTotal,
+  ownerCountsOf,
+} from "./owner-counts";
 
 /** Nothing waiting on the Owner, as the farm answers it. */
 const NOTHING = {
@@ -50,5 +55,21 @@ describe("what waits on the Owner", () => {
       registrationRenewal: null,
     } as unknown as NeedsYou;
     expect(counted(old)).toBe(0);
+  });
+
+  it("counts and totals all the money waiting, not the fifty rows listed", () => {
+    const listed = Array.from({ length: 50 }, () => ({ amountBdt: 100 }));
+    const busy = {
+      ...NOTHING,
+      moneyAwaiting: listed,
+      moneyAwaitingAll: { count: 51, totalBdt: 5100 },
+    } as unknown as NeedsYou;
+    expect(moneyAwaitingCount(busy)).toBe(51);
+    expect(moneyAwaitingTotal(busy)).toBe(5100);
+    expect(decisionsWaiting(busy)).toBe(51);
+    // An answer kept from before the farm counted it: the rows it was sent.
+    const old = { ...NOTHING, moneyAwaiting: listed } as unknown as NeedsYou;
+    expect(moneyAwaitingCount(old)).toBe(50);
+    expect(moneyAwaitingTotal(old)).toBe(5000);
   });
 });

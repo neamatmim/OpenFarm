@@ -629,7 +629,6 @@ const DoseDialog = ({ detail, open, onOpenChange }: ActProps) => {
   );
 };
 
-/** Whichever act is open, drawn once for the page — only the ones this person may do are ever asked for. */
 /** Not found: the Manager has walked a Pen that did not count right and knows which animal is not in it. She stays in
  *  the herd while the farm looks for her, and the Owner and the Manager are told at once, as by the round. */
 const NotFoundDialog = ({ detail, open, onOpenChange }: ActProps) => {
@@ -737,6 +736,7 @@ const WriteOffDialog = ({ detail, open, onOpenChange }: ActProps) => {
   );
 };
 
+/** Whichever act is open, drawn once for the page — only the ones this person may do are ever asked for. */
 export const AnimalActs = ({
   act,
   detail,

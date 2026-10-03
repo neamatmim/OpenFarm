@@ -92,12 +92,6 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const intakeRouter = {
   /**
-   * The traders the farm deals with, most recent first.
-   *
-   * Read by the Owner as well as the Manager: the roles matrix gives the Owner `R` on Intake,
-   * and who the farm buys from is exactly the sort of thing an Owner reads without doing.
-   */
-  /**
    * What the farm's own buys of the last two months near this weight cost a kilo, beside the price being typed — the
    * Manager's check against paying over the odds at the haat. The Owner's and the Manager's: they buy, and know the
    * prices already. Nothing where the farm bought none near her weight.
@@ -133,6 +127,12 @@ export const intakeRouter = {
       earlyLossesOf(context.db, context.farm, context.clock.now())
     ),
 
+  /**
+   * The traders the farm deals with, most recent first.
+   *
+   * Read by the Owner as well as the Manager: the roles matrix gives the Owner `R` on Intake,
+   * and who the farm buys from is exactly the sort of thing an Owner reads without doing.
+   */
   sellers: protectedProcedure
     .use(requireRole("owner", "manager"))
     .handler(({ context }) =>

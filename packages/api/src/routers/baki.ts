@@ -193,10 +193,6 @@ export const bakiRouter = {
     }),
 
   /**
-   * A Baki Payment put right: how much, the day, how it was paid, the note. A Correction like any other — a reason,
-   * the Role's Correction Window, the trail holding what it said — and its Money Event with it.
-   */
-  /**
    * The Owner writing off Baki that will not be paid: so much of one Sale's or Dispatch's, with a reason. What the
    * animal or the milk fetched is then its price less it, and the buyer carries the mark. The Owner's alone.
    */
@@ -264,6 +260,10 @@ export const bakiRouter = {
       correct(context, writeOffCorrection, input)
     ),
 
+  /**
+   * A Baki Payment put right: how much, the day, how it was paid, the note. A Correction like any other — a reason,
+   * the Role's Correction Window, the trail holding what it said — and its Money Event with it.
+   */
   correctPayment: protectedProcedure
     .use(requireRole(...bakiPaymentCorrection.roles))
     .input(bakiPaymentCorrectionInput)

@@ -62,6 +62,10 @@ export const drugProduct = pgTable(
   ]
 );
 
+/** How what the Vet concluded ended, in the Vet's word: she got better, or she did not. A death is read from her
+ *  Mortality, not typed here. */
+export const DIAGNOSIS_OUTCOMES = ["recovered", "not_recovered"] as const;
+
 /**
  * The Vet's recorded conclusion about what an Animal has — **Vet only**, and never recorded
  * on their behalf: antibiotics require a registered practitioner's own prescription (BVC Act
@@ -75,10 +79,6 @@ export const drugProduct = pgTable(
  * reported to DLS without delay; matching these words against the farm's notifiable list is
  * the report's own work, not this table's.
  */
-/** How what the Vet concluded ended, in the Vet's word: she got better, or she did not. A death is read from her
- *  Mortality, not typed here. */
-export const DIAGNOSIS_OUTCOMES = ["recovered", "not_recovered"] as const;
-
 export const diagnosis = pgTable(
   "diagnosis",
   {

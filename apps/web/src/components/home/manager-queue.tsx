@@ -154,16 +154,6 @@ const countsOf = (queue: ManagerQueueData): Record<QueueKind, number> => ({
 export const queueWaiting = (queue: ManagerQueueData): number =>
   Object.values(countsOf(queue)).reduce((sum, count) => sum + count, 0);
 
-/**
- * What needs the Manager, loudest first: work gone late, work to check, entries needing a decision, cows whose milk or
- * carcass is held back, feed running low, the month's rent, electricity and wages not entered yet, and cows somebody
- * has to decide about. Each kind shows its first few, with the way to the page that holds all of it.
- *
- * One tab to a kind, and only for a kind with something in it, as the Owner's own list is: the row of tabs, each with
- * its count, is the whole of what waits read at a glance, and one kind at a time below it keeps thirty cows under
- * withdrawal from pushing the late work off a phone. Late work's count is red on its tab, as its heading was. A single
- * kind needs no tabs — a row of one is furniture — and is drawn under its own heading as before.
- */
 /** One kind's list, under its own heading or under a tab that already gives it one. */
 const QueueKindList = ({
   kind,
@@ -372,6 +362,16 @@ const QueueKindList = ({
   }
 };
 
+/**
+ * What needs the Manager, loudest first: work gone late, work to check, entries needing a decision, cows whose milk or
+ * carcass is held back, feed running low, the month's rent, electricity and wages not entered yet, and cows somebody
+ * has to decide about. Each kind shows its first few, with the way to the page that holds all of it.
+ *
+ * One tab to a kind, and only for a kind with something in it, as the Owner's own list is: the row of tabs, each with
+ * its count, is the whole of what waits read at a glance, and one kind at a time below it keeps thirty cows under
+ * withdrawal from pushing the late work off a phone. Late work's count is red on its tab, as its heading was. A single
+ * kind needs no tabs — a row of one is furniture — and is drawn under its own heading as before.
+ */
 export const ManagerQueue = ({
   queue,
   mayAnswer,

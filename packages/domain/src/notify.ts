@@ -2,24 +2,7 @@ import type { MessageKey } from "@OpenFarm/i18n";
 
 import type { AlertKind } from "./alerts";
 
-/**
- * How each kind of notice reaches a person, in one place.
- *
- * **Immediate** is the Alert proper: it goes now, into a pocket, through quiet hours,
- * because it costs money or breaks a legal deadline if it waits. **Digest** is everything
- * else — true, worth knowing, and no worse for arriving at six with the rest.
- *
- * Typed by the kind, so a new kind of notice cannot be added without somebody deciding
- * which of the two it is. That decision is the whole of the farm's notification table.
- */
-/**
- * The farm's delivery table: when each kind of notice goes, and whether it is one of the two
- * worth a text message as well.
- *
- * One table, because "what goes by SMS" is a delivery decision like any other and a second list
- * somewhere else is how a farm ends up texting people about a feed digest. Two kinds carry
- * `sms`, and they are the two that cost money or break a legal deadline if they are missed.
- */
+/** How one kind of notice is delivered. */
 interface Delivery {
   when: "immediate" | "digest";
   /** Also worth a text message, to the Owner and the Manager. */
@@ -30,7 +13,24 @@ interface Delivery {
   wakesTheFarm?: true;
 }
 
-// Each row keeps what it actually says, so the words table beside it can ask which kinds go by text.
+/**
+ * How each kind of notice reaches a person, in one place.
+ *
+ * **Immediate** is the Alert proper: it goes now, into a pocket, through quiet hours,
+ * because it costs money or breaks a legal deadline if it waits. **Digest** is everything
+ * else — true, worth knowing, and no worse for arriving at six with the rest.
+ *
+ * Typed by the kind, so a new kind of notice cannot be added without somebody deciding
+ * which of the two it is. That decision is the whole of the farm's notification table.
+ *
+ * The farm's delivery table: when each kind of notice goes, and whether it is one of the two
+ * worth a text message as well.
+ *
+ * One table, because "what goes by SMS" is a delivery decision like any other and a second list
+ * somewhere else is how a farm ends up texting people about a feed digest. Two kinds carry
+ * `sms`, and they are the two that cost money or break a legal deadline if they are missed. Each row keeps what it
+ * actually says, so the words table beside it can ask which kinds go by text.
+ */
 export const DELIVERY = {
   instance_overdue: { when: "immediate" },
   instance_escalated: { when: "immediate" },
@@ -130,14 +130,6 @@ export const DELIVERY = {
   medicine_short: { when: "digest" },
 } as const satisfies Record<AlertKind, Delivery>;
 
-/**
- * What each kind of Notice says, wherever it is said: in the farm's own list, in a pocket, in the evening's post, and
- * in the two that also go by text.
- *
- * One table over every kind, beside the one that says when each goes, because a kind given a delivery and no words is
- * a notice that arrives as its own name. What the words are *filled with* is the Notice's facts, which the farm stores
- * as it raised them.
- */
 /** What one kind says. Whether it says anything in a text message is not this table's decision but the delivery
  *  table's: a kind marked for texting must have the words for it, and a kind not marked must not have them. */
 type Saying<Kind extends AlertKind> = {
@@ -151,6 +143,14 @@ type Saying<Kind extends AlertKind> = {
   ? { sms: MessageKey }
   : { sms?: never });
 
+/**
+ * What each kind of Notice says, wherever it is said: in the farm's own list, in a pocket, in the evening's post, and
+ * in the two that also go by text.
+ *
+ * One table over every kind, beside the one that says when each goes, because a kind given a delivery and no words is
+ * a notice that arrives as its own name. What the words are *filled with* is the Notice's facts, which the farm stores
+ * as it raised them.
+ */
 export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
   instance_overdue: {
     app: "alerts.instanceOverdue",

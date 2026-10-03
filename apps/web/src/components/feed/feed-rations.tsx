@@ -525,7 +525,6 @@ const FeedingTarget = ({ penId }: { penId: string }) => {
   );
 };
 
-/** One Ration as a card: its name and version, what one animal gets, the Pens on it, and what can be done with it. */
 /**
  * What can be done with a Ration from its card: put it right, and retire it or bring it back. Retiring is not offered
  * while a Pen is fed on it, and says why rather than leaving a line that only refuses.
@@ -614,6 +613,7 @@ const RationFoot = ({
   );
 };
 
+/** One Ration as a card: its name and version, what one animal gets, the Pens on it, and what can be done with it. */
 const RationCard = ({
   ration,
   items,

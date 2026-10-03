@@ -54,10 +54,10 @@ interface TypedLine {
   breedId: string;
 }
 
-/** Why the farm would not keep a plan, in the Owner's words. */
 /** The most of its animals a plan may expect to die, in per cent: the server's limit too. */
 const MOST_DEATHS_PERCENT = 50;
 
+/** Why the farm would not keep a plan, in the Owner's words. */
 const PLAN_REFUSALS = {
   plan_revision_needs_reason: "plan.refused.reason",
   plan_after_the_end: "plan.refused.ended",

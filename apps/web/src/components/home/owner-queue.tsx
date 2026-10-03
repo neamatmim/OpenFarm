@@ -27,7 +27,10 @@ import { LowStockWords } from "@/components/home/low-stock-line";
 import { MissingAnimalsGroup } from "@/components/home/missing-animals";
 import { MonthlyCostsGroup } from "@/components/home/monthly-costs";
 import type { NeedsYou } from "@/components/home/owner-counts";
-import { ownerCountsOf } from "@/components/home/owner-counts";
+import {
+  moneyAwaitingTotal,
+  ownerCountsOf,
+} from "@/components/home/owner-counts";
 import {
   MORE_LINK,
   Opens,
@@ -56,10 +59,6 @@ type Tiles = Awaited<ReturnType<typeof orpc.home.owner.call>>["tiles"];
 
 /** How many money rows show before the rest wait behind "show all": a pile of approvals is read by its total first. */
 const MONEY_FIRST_SHOWN = 3;
-
-/** The taka the money awaiting approval comes to, whichever way it goes. */
-export const moneyAwaitingTotal = (needsYou: NeedsYou): number =>
-  needsYou.moneyAwaiting.reduce((sum, row) => sum + row.amountBdt, 0);
 
 /** The act at the end of a row: on a phone, big enough for a thumb. */
 const ROW_ACT = "relative h-11 md:h-8";

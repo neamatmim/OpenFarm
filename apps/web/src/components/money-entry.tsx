@@ -214,13 +214,6 @@ export type EnterMoneyStart = Partial<
   Pick<typeof NOTHING_TYPED, "categoryId" | "counterparty" | "wageMonth">
 >;
 
-/**
- * Money no record catches, entered by hand by the Manager in a sheet beside the register: how much, the day, the
- * Category, who with, how it was paid, a note, and a photo of the receipt. A wage names the month it pays for. What is
- * typed stays when the sheet is closed without entering it; a receipt photo is taken again.
- *
- * Opened from something that says what is missing — a Monthly Cost not entered, a wage — it starts with that filled.
- */
 /** The entry the farm says this one looks like a second of, as it said it. */
 interface LooksLike {
   name: string | null;
@@ -292,6 +285,13 @@ const LooksEnteredDialog = ({
   );
 };
 
+/**
+ * Money no record catches, entered by hand by the Manager in a sheet beside the register: how much, the day, the
+ * Category, who with, how it was paid, a note, and a photo of the receipt. A wage names the month it pays for. What is
+ * typed stays when the sheet is closed without entering it; a receipt photo is taken again.
+ *
+ * Opened from something that says what is missing — a Monthly Cost not entered, a wage — it starts with that filled.
+ */
 export const EnterMoneySheet = ({
   open,
   onOpenChange,

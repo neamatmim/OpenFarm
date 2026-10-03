@@ -91,10 +91,6 @@ const useStanding = () => {
   };
 };
 
-/**
- * One piece of work as a card the whole of which is the tap: what it is, where and when, where it stands, and what the
- * tap does — start it, or open work somebody else holds. Late work is edged in the danger colour and says so first.
- */
 /** Work raised again after it was put off: said, with the day the work it follows was first due. Nothing for the rest,
  *  or for an answer kept from before work said so. */
 const PutOffLine = ({ work }: { work: Work }) => {
@@ -114,6 +110,10 @@ const PutOffLine = ({ work }: { work: Work }) => {
   );
 };
 
+/**
+ * One piece of work as a card the whole of which is the tap: what it is, where and when, where it stands, and what the
+ * tap does — start it, or open work somebody else holds. Late work is edged in the danger colour and says so first.
+ */
 const WorkCard = ({
   work,
   standing,
