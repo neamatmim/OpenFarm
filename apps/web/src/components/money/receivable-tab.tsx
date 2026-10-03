@@ -8,12 +8,12 @@ import { useState } from "react";
 import { phoneLink } from "@/components/investors/phone-link";
 import { useIsOwner } from "@/components/money";
 import {
-  BakiPaymentCorrection,
+  ReceivablePaymentCorrection,
   WriteOffCorrection,
-} from "@/components/money/baki-corrections";
-import type { PaymentFor } from "@/components/money/baki-payment-sheet";
-import { BakiPaymentSheet } from "@/components/money/baki-payment-sheet";
-import { WriteOffButton } from "@/components/money/baki-write-off";
+} from "@/components/money/receivable-corrections";
+import type { PaymentFor } from "@/components/money/receivable-payment-sheet";
+import { ReceivablePaymentSheet } from "@/components/money/receivable-payment-sheet";
+import { WriteOffButton } from "@/components/money/receivable-write-off";
 import {
   EmptyState,
   Loaded,
@@ -26,7 +26,7 @@ import {
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
-type Buyer = Awaited<ReturnType<typeof orpc.baki.list.call>>[number];
+type Buyer = Awaited<ReturnType<typeof orpc.receivable.list.call>>[number];
 type KindStanding = Buyer["kinds"][number];
 
 /** A farm day as the reader reads it. */
@@ -50,7 +50,7 @@ const OwedRow = ({
   const day = useDay();
   const what =
     item.tagNumber === null ? (
-      t("baki.litres", { litres: item.litres ?? 0 })
+      t("receivable.litres", { litres: item.litres ?? 0 })
     ) : (
       <TagChip>{item.tagNumber}</TagChip>
     );
@@ -60,7 +60,9 @@ const OwedRow = ({
         <>
           <span>{day(item.leftOn)}</span>
           {item.promisedBy === null ? null : (
-            <span>{t("baki.promised", { day: day(item.promisedBy) })}</span>
+            <span>
+              {t("receivable.promised", { day: day(item.promisedBy) })}
+            </span>
           )}
         </>
       }
@@ -75,16 +77,16 @@ const OwedRow = ({
             }
           >
             {item.owingMoney > 0
-              ? t("baki.itemOwes", {
+              ? t("receivable.itemOwes", {
                   owing: item.owingMoney,
-                  baki: item.bakiMoney,
+                  receivable: item.receivableMoney,
                 })
-              : t("baki.itemPaidOff")}
+              : t("receivable.itemPaidOff")}
           </span>
           {/* Missing from an answer a phone kept from before anything was written off. */}
           {(item.writtenOffMoney ?? 0) > 0 ? (
             <span className="text-danger text-xs tabular-nums">
-              {t("baki.writtenOff", { amount: item.writtenOffMoney })}
+              {t("receivable.writtenOff", { amount: item.writtenOffMoney })}
             </span>
           ) : null}
           {mayWriteOff && item.owingMoney > 0 ? (
@@ -100,7 +102,7 @@ const OwedRow = ({
   );
 };
 
-/** Each time the Owner wrote some of his Baki off, as written, each to put right or take back — the Owner's alone.
+/** Each time the Owner wrote some of his Receivable off, as written, each to put right or take back — the Owner's alone.
  *  None in an answer the phone kept from before write-offs were listed one by one. */
 const WriteOffLines = ({ standing }: { standing: KindStanding }) => {
   const { t } = useLanguage();
@@ -117,7 +119,7 @@ const WriteOffLines = ({ standing }: { standing: KindStanding }) => {
           key={one.id}
         >
           <span>
-            {t("baki.writeOffLine", {
+            {t("receivable.writeOffLine", {
               amount: one.amountMoney,
               day: day(one.writtenOn),
             })}
@@ -130,7 +132,7 @@ const WriteOffLines = ({ standing }: { standing: KindStanding }) => {
   );
 };
 
-/** His Baki of one kind: what he owes and since when, each thing he took, and each payment he made. */
+/** His Receivable of one kind: what he owes and since when, each thing he took, and each payment he made. */
 const KindPart = ({
   standing,
   onPay,
@@ -148,23 +150,27 @@ const KindPart = ({
         <div className="flex flex-col">
           <span className="text-sm font-semibold">
             {t(
-              standing.kind === "milk" ? "baki.kind.milk" : "baki.kind.cattle"
+              standing.kind === "milk"
+                ? "receivable.kind.milk"
+                : "receivable.kind.cattle"
             )}
             {" · "}
             <span className="tabular-nums">
-              {t("baki.owed", { amount: standing.owingMoney })}
+              {t("receivable.owed", { amount: standing.owingMoney })}
             </span>
           </span>
           <span className="text-muted-foreground text-xs">
             {[
               standing.oldestOn === null
                 ? null
-                : t("baki.since", { day: day(standing.oldestOn) }),
+                : t("receivable.since", { day: day(standing.oldestOn) }),
               standing.soonestPromise === null
                 ? null
-                : t("baki.promised", { day: day(standing.soonestPromise) }),
-              standing.creditMoney > 0
-                ? t("baki.credit", { amount: standing.creditMoney })
+                : t("receivable.promised", {
+                    day: day(standing.soonestPromise),
+                  }),
+              standing.paidAheadMoney > 0
+                ? t("receivable.paidAhead", { amount: standing.paidAheadMoney })
                 : null,
             ]
               .filter(Boolean)
@@ -173,7 +179,7 @@ const KindPart = ({
         </div>
         <Button onClick={onPay} size="sm" type="button" variant="outline">
           <Plus aria-hidden data-icon="inline-start" />
-          {t("baki.record")}
+          {t("receivable.record")}
         </Button>
       </div>
       <RecordList>
@@ -194,13 +200,13 @@ const KindPart = ({
               key={payment.id}
             >
               <span>
-                {t("baki.paymentLine", {
+                {t("receivable.paymentLine", {
                   amount: payment.amountMoney,
                   day: day(payment.paidOn),
                 })}
                 {payment.note ? ` — ${payment.note}` : null}
               </span>
-              <BakiPaymentCorrection payment={payment} />
+              <ReceivablePaymentCorrection payment={payment} />
             </li>
           ))}
         </ul>
@@ -229,12 +235,12 @@ const BuyerCard = ({
           {buyer.name}
           {buyer.owingMoney > 0 ? (
             <span className="text-warning text-sm font-medium tabular-nums">
-              {t("baki.owed", { amount: buyer.owingMoney })}
+              {t("receivable.owed", { amount: buyer.owingMoney })}
             </span>
           ) : null}
           {(buyer.writtenOffMoney ?? 0) > 0 ? (
             <span className="text-danger text-sm font-medium tabular-nums">
-              {t("baki.writtenOff", { amount: buyer.writtenOffMoney })}
+              {t("receivable.writtenOff", { amount: buyer.writtenOffMoney })}
             </span>
           ) : null}
         </span>
@@ -253,13 +259,13 @@ const BuyerCard = ({
 };
 
 /**
- * Who owes the farm what: every buyer with Baki, the one owed longest first — the one to ring today — with what he
+ * Who owes the farm what: every buyer with Receivable, the one owed longest first — the one to ring today — with what he
  * took, what he has paid, and a payment one tap away.
  */
-export const BakiTab = () => {
+export const ReceivableTab = () => {
   const { t, language } = useLanguage();
-  const list = useQuery(orpc.baki.list.queryOptions());
-  // Writing Baki off is the Owner's alone.
+  const list = useQuery(orpc.receivable.list.queryOptions());
+  // Writing Receivable off is the Owner's alone.
   const mayWriteOff = useIsOwner();
   const [paying, setPaying] = useState<PaymentFor | null>(null);
   const buyers = list.data ?? [];
@@ -269,16 +275,16 @@ export const BakiTab = () => {
     <Loaded query={list}>
       {buyers.length === 0 ? (
         <EmptyState
-          description={t("baki.nobodyHint")}
+          description={t("receivable.nobodyHint")}
           icon={HandCoins}
-          title={t("baki.nobody")}
+          title={t("receivable.nobody")}
         />
       ) : (
         <div className="flex flex-col gap-4">
           <StatTile
-            hint={t("baki.owingTotalHint", { count: owingBuyers })}
+            hint={t("receivable.owingTotalHint", { count: owingBuyers })}
             icon={HandCoins}
-            label={t("baki.owingTotal")}
+            label={t("receivable.owingTotal")}
             tone={owing > 0 ? "warning" : "neutral"}
             value={`${currencySign()}${formatNumber(owing, language)}`}
           />
@@ -292,7 +298,7 @@ export const BakiTab = () => {
           ))}
         </div>
       )}
-      <BakiPaymentSheet
+      <ReceivablePaymentSheet
         key={paying ? `${paying.buyer}:${paying.kind}` : "none"}
         onClose={() => setPaying(null)}
         paying={paying}

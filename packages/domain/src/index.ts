@@ -429,28 +429,28 @@ export {
   findStructuralProblems,
 } from "./sop";
 export type {
-  BakiAtTheGate,
-  BakiItem,
-  BakiItemStanding,
-  BakiKind,
-  BakiOutcome,
-  BakiPart,
-  BakiPaymentIn,
-  BakiRefusal,
-  BakiStanding,
-} from "./baki";
+  ReceivableAtTheGate,
+  ReceivableItem,
+  ReceivableItemStanding,
+  ReceivableKind,
+  ReceivableOutcome,
+  ReceivablePart,
+  ReceivablePaymentIn,
+  ReceivableRefusal,
+  ReceivableStanding,
+} from "./receivable";
 export {
-  BAKI_KINDS,
-  BAKI_REFUSALS,
-  bakiAtTheGate,
-  bakiStanding,
-  isBakiOverdue,
+  RECEIVABLE_KINDS,
+  RECEIVABLE_REFUSALS,
+  receivableAtTheGate,
+  receivableStanding,
+  isReceivableOverdue,
   overdueFrom,
-  soldOnBakiWhileOverdue,
-  bakiPutRight,
-  isBakiRefusal,
+  soldOnCreditWhileOverdue,
+  receivablePutRight,
+  isReceivableRefusal,
   paidAtTheGate,
-} from "./baki";
+} from "./receivable";
 export type {
   ApprovedTerms,
   EnteredBefore,

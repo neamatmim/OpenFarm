@@ -135,7 +135,7 @@ export const assertTheHand = async (
 export const handOfTheRecord = async (
   db: Db,
   farmId: string,
-  source: "sale" | "baki_payment",
+  source: "sale" | "receivable_payment",
   sourceId: string
 ): Promise<string | null> => {
   const money = await db.query.moneyEvent.findFirst({

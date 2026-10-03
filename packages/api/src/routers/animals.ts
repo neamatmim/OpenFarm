@@ -29,7 +29,6 @@ import { z } from "zod";
 
 import { herRecord } from "../animal-record";
 import { audited } from "../audit";
-import { owingOnHerSale } from "../baki-store";
 import { breedNamed } from "../breed-store";
 import {
   expectedCalvingWithinReach,
@@ -91,6 +90,7 @@ import {
   assertNoDoseOwed,
   callOffPutOffReleases,
 } from "../put-off-store";
+import { owingOnHerSale } from "../receivable-store";
 import { forbidden, requireRole } from "../roles";
 import {
   animalsInScopeWhere,
@@ -162,7 +162,7 @@ const saleView = (
     | {
         id: string;
         priceMoney: number;
-        bakiMoney: number;
+        receivableMoney: number;
         brokerMoney: number;
         promisedBy: string | null;
         weightKg: string;
@@ -180,8 +180,8 @@ const saleView = (
     ? {
         id: row.id,
         priceMoney: row.priceMoney,
-        // What her buyer still owed as she left, and the day he promised to pay it by: her Baki at the gate.
-        bakiMoney: row.bakiMoney,
+        // What her buyer still owed as she left, and the day he promised to pay it by: her Receivable at the gate.
+        receivableMoney: row.receivableMoney,
         promisedBy: row.promisedBy,
         /** What the broker at the haat took for this sale; nothing where none was used. */
         brokerMoney: row.brokerMoney,

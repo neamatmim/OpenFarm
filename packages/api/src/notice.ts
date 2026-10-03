@@ -128,9 +128,9 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
   join_requested: { audience: [theOwner], entity: "request_to_join" },
   // The Manager rings the buyer; the Owner answers for whom the farm lends to. About the one Sale or Dispatch gone past
   // its day, so each is told once however many mornings it stays late.
-  baki_overdue: {
+  receivable_overdue: {
     audience: [{ roles: ["owner", "manager"] }],
-    entity: "baki",
+    entity: "receivable",
   },
   // The Manager walks the farm for her; the Owner answers for an animal gone, and a Venture's is Investors' money. Each
   // Missing told once, however many mornings the round cannot find her.

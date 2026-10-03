@@ -52,7 +52,7 @@ type NumberKey =
   | "returnYearFloorDays"
   | "approvalThresholdMoney"
   | "monthlyCostsFromDay"
-  | "bakiDays"
+  | "receivableDays"
   | "storeShortfallTellMoney"
   | "soresTellAnimals"
   | "soresTellHours"
@@ -256,14 +256,14 @@ const GROUPS: {
     ],
   },
   {
-    id: "params-baki",
-    title: "params.baki",
-    hint: "params.bakiHint",
+    id: "params-receivable",
+    title: "params.receivable",
+    hint: "params.receivableHint",
     owner: true,
     fields: [
       {
-        key: "bakiDays",
-        label: "params.bakiDays",
+        key: "receivableDays",
+        label: "params.receivableDays",
         unit: "params.days",
         min: 7,
         max: 120,

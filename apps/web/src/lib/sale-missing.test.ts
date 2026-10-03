@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { NO_BAKI } from "./baki";
+import { NO_RECEIVABLE } from "./receivable";
 import { saleStillMissing } from "./sale-missing";
 
 // A Save that stands grey says nothing; one that says what is missing sends the person to the box. These are the
@@ -16,7 +16,7 @@ const aSale = {
   driver: "জামাল",
   paymentMethod: "cash" as const,
   account: { farmAccountId: "", reference: "" },
-  baki: NO_BAKI,
+  receivable: NO_RECEIVABLE,
 };
 
 const NO_ACCOUNTS = new Set<"bkash" | "bank">();
@@ -30,18 +30,18 @@ describe("what a Sale still needs", () => {
   it("says the day the buyer promised to pay the rest by, and goes to it", () => {
     const owed = {
       ...aSale,
-      baki: { owed: true, paidNow: "100000", promisedBy: "" },
+      receivable: { owed: true, paidNow: "100000", promisedBy: "" },
     };
     expect(saleStillMissing(owed, NO_ACCOUNTS)).toEqual({
-      said: "refusal.bakiNeedsAPromise",
-      at: "sale-baki-promised-by",
+      said: "refusal.receivableNeedsAPromise",
+      at: "sale-receivable-promised-by",
     });
   });
 
   it("says what he paid now is more than the price", () => {
     const owed = {
       ...aSale,
-      baki: { owed: true, paidNow: "160000", promisedBy: "2027-04-30" },
+      receivable: { owed: true, paidNow: "160000", promisedBy: "2027-04-30" },
     };
     expect(saleStillMissing(owed, NO_ACCOUNTS)?.said).toBe(
       "refusal.paidMoreThanPrice"
@@ -76,7 +76,7 @@ describe("what a Sale still needs", () => {
     const nothingPaid = {
       ...aSale,
       paymentMethod: "bkash" as const,
-      baki: { owed: true, paidNow: "0", promisedBy: "2027-04-30" },
+      receivable: { owed: true, paidNow: "0", promisedBy: "2027-04-30" },
     };
     expect(saleStillMissing(nothingPaid, A_BKASH_NUMBER)).toBeNull();
   });

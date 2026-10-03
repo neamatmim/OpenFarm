@@ -1,10 +1,9 @@
 import { eq } from "@OpenFarm/db/operators";
 import { dispatch } from "@OpenFarm/db/schema/milk";
-import { bakiPutRight, farmDayOf, paidAtTheGate } from "@OpenFarm/domain";
+import { receivablePutRight, farmDayOf, paidAtTheGate } from "@OpenFarm/domain";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
-import { bakiOrRefuse, paidNowInput, promisedByInput } from "../baki-store";
 import {
   assertNotLater,
   bookDispatchMoney,
@@ -22,6 +21,11 @@ import {
   farmAccountShownOf,
   paymentMethodOf,
 } from "../money-store";
+import {
+  receivableOrRefuse,
+  paidNowInput,
+  promisedByInput,
+} from "../receivable-store";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput, somethingChanged } from "./correction";
 
@@ -82,7 +86,7 @@ export const dispatchCorrection: CorrectionKind<
     snfPercent: figureOf(row.snfPercent),
     note: row.note,
     paymentMethod: await paymentMethodOf(tx, row.farmId, "dispatch", row.id),
-    paidNowMoney: paidAtTheGate(worthOfDispatch(row), row.bakiMoney),
+    paidNowMoney: paidAtTheGate(worthOfDispatch(row), row.receivableMoney),
     promisedBy: row.promisedBy,
   }),
   shownAs: { buyer: (to) => to.name },
@@ -92,11 +96,11 @@ export const dispatchCorrection: CorrectionKind<
       assertNotLater(to.dispatchedAt, now);
     }
     // What he paid stands unless the Correction says otherwise: litres or a price mistyped is not cash handed back.
-    const baki = bakiOrRefuse(
-      bakiPutRight({
+    const receivable = receivableOrRefuse(
+      receivablePutRight({
         before: {
           worthMoney: worthOfDispatch(row),
-          bakiMoney: row.bakiMoney,
+          receivableMoney: row.receivableMoney,
           promisedBy: row.promisedBy,
         },
         worthMoney: worthOfDispatch({
@@ -109,10 +113,11 @@ export const dispatchCorrection: CorrectionKind<
         promiseRequired: false,
       })
     );
-    const bakiMoved =
-      baki.bakiMoney !== row.bakiMoney || baki.promisedBy !== row.promisedBy;
+    const receivableMoved =
+      receivable.receivableMoney !== row.receivableMoney ||
+      receivable.promisedBy !== row.promisedBy;
     const putRight = {
-      ...(bakiMoved ? baki : {}),
+      ...(receivableMoved ? receivable : {}),
       ...(to.dispatchedAt === undefined
         ? {}
         : { dispatchedAt: to.dispatchedAt }),

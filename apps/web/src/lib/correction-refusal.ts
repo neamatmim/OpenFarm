@@ -159,7 +159,7 @@ const WORDED_REFUSALS = {
   wage_is_the_farms: "refusal.wageIsTheFarms",
   venture_paid_in_full: "refusal.venturePaidInFull",
   paid_more_than_price: "refusal.paidMoreThanPrice",
-  baki_needs_a_promise: "refusal.bakiNeedsAPromise",
+  receivable_needs_a_promise: "refusal.receivableNeedsAPromise",
   promise_before_it_left: "refusal.promiseBeforeItLeft",
   paid_more_than_owed: "refusal.paidMoreThanOwed",
   no_such_buyer: "refusal.noSuchBuyer",

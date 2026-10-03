@@ -1,8 +1,8 @@
 import type { PaymentMethod } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 
-import type { BakiTyped } from "./baki";
-import { somethingPaid } from "./baki";
+import type { ReceivableTyped } from "./receivable";
+import { somethingPaid } from "./receivable";
 
 // What a Sale still needs before the farm will take it, in the order the sheet asks for it — so a Save pressed too
 // soon names the first thing missing and goes to its box, rather than standing grey with its reason out of sight.
@@ -18,7 +18,7 @@ export interface SaleTyped {
   driver: string;
   paymentMethod: PaymentMethod;
   account: { farmAccountId: string; reference: string };
-  baki: BakiTyped;
+  receivable: ReceivableTyped;
 }
 
 /** The first thing a Sale still needs: what to tell the person, and the box to send them to. */
@@ -31,19 +31,25 @@ const blank = (typed: string) => typed.trim() === "";
 
 /** What was paid at the gate, as far as the farm would take it: a figure, not above the price, and a promised day
  *  when some of it is still owed. The farm's own words where it would refuse the same. */
-const bakiMissing = (typed: SaleTyped): SaleMissing | null => {
-  if (!typed.baki.owed) {
+const receivableMissing = (typed: SaleTyped): SaleMissing | null => {
+  if (!typed.receivable.owed) {
     return null;
   }
-  const paid = Number(typed.baki.paidNow);
-  if (blank(typed.baki.paidNow) || Number.isNaN(paid) || paid < 0) {
-    return { said: "sale.missing.paidNow", at: "sale-baki-paid-now" };
+  const paid = Number(typed.receivable.paidNow);
+  if (blank(typed.receivable.paidNow) || Number.isNaN(paid) || paid < 0) {
+    return { said: "sale.missing.paidNow", at: "sale-receivable-paid-now" };
   }
   if (paid > Number(typed.priceMoney)) {
-    return { said: "refusal.paidMoreThanPrice", at: "sale-baki-paid-now" };
+    return {
+      said: "refusal.paidMoreThanPrice",
+      at: "sale-receivable-paid-now",
+    };
   }
-  if (typed.baki.promisedBy === "") {
-    return { said: "refusal.bakiNeedsAPromise", at: "sale-baki-promised-by" };
+  if (typed.receivable.promisedBy === "") {
+    return {
+      said: "refusal.receivableNeedsAPromise",
+      at: "sale-receivable-promised-by",
+    };
   }
   return null;
 };
@@ -57,7 +63,7 @@ const accountMissing = (
   const method = typed.paymentMethod;
   const asked =
     method !== "cash" &&
-    somethingPaid(typed.baki) &&
+    somethingPaid(typed.receivable) &&
     accountKindsOpen.has(method);
   if (!asked) {
     return null;
@@ -94,7 +100,8 @@ export const saleStillMissing = (
   if (!(Number(typed.weightKg) > 0)) {
     return { said: "sale.missing.weight", at: "sale-weight" };
   }
-  const money = bakiMissing(typed) ?? accountMissing(typed, accountKindsOpen);
+  const money =
+    receivableMissing(typed) ?? accountMissing(typed, accountKindsOpen);
   if (money) {
     return money;
   }

@@ -1,7 +1,7 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { dispatch } from "@OpenFarm/db/schema/milk";
 import {
-  bakiAtTheGate,
+  receivableAtTheGate,
   farmDayOf,
   farmDaysBetween,
   lactationView,
@@ -11,12 +11,6 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
-import {
-  bakiOrRefuse,
-  owingNowOf,
-  paidNowInput,
-  promisedByInput,
-} from "../baki-store";
 import { correct } from "../corrections/correction";
 import {
   dispatchCorrection,
@@ -45,6 +39,12 @@ import {
   referenceInput,
 } from "../money-inputs";
 import { accountSaid, bookingOf } from "../money-store";
+import {
+  receivableOrRefuse,
+  owingNowOf,
+  paidNowInput,
+  promisedByInput,
+} from "../receivable-store";
 import { requireRole } from "../roles";
 import { isPenInScope, requireLookUp } from "../scope";
 
@@ -97,7 +97,7 @@ export const milkRouter = {
         /** Its transaction ID, or the cheque's or slip's number. */
         reference: referenceInput,
         /** What the buyer paid there and then; left out, all of it. Less than the milk came to, and the rest is his
-         *  Baki. */
+         *  Receivable. */
         paidNowMoney: paidNowInput.optional(),
         /** The day he promised to pay the rest by, when he named one. A milk buyer who pays on a round often does
          *  not, so it is never asked for. */
@@ -111,8 +111,8 @@ export const milkRouter = {
         throw new ORPCError("FORBIDDEN");
       }
       assertNotLater(input.dispatchedAt, now);
-      const baki = bakiOrRefuse(
-        bakiAtTheGate({
+      const receivable = receivableOrRefuse(
+        receivableAtTheGate({
           worthMoney: worthOfDispatch(input),
           paidNowMoney: input.paidNowMoney,
           promisedBy: input.promisedBy,
@@ -145,7 +145,7 @@ export const milkRouter = {
             pricePerLitreMoney: input.pricePerLitreMoney.toFixed(2),
             fatPercent: twoPlaces(input.fatPercent),
             snfPercent: twoPlaces(input.snfPercent),
-            ...baki,
+            ...receivable,
             note: input.note ?? null,
             recordedBy: context.actor.id,
             recordedByRole,
@@ -204,7 +204,7 @@ export const milkRouter = {
       const owing = await owingNowOf(
         context.db,
         context.farm.id,
-        dispatches.filter((one) => one.bakiMoney > 0).map((one) => one.id)
+        dispatches.filter((one) => one.receivableMoney > 0).map((one) => one.id)
       );
       return {
         day: input.day,

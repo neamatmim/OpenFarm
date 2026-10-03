@@ -9,9 +9,9 @@ import { useLanguage } from "@/i18n/language-provider";
 import { amount, day, figure, note, words } from "@/lib/correcting";
 import { orpc } from "@/utils/orpc";
 
-/** A Baki Payment written up wrong — how much, the day it came, or the note — put right with the reason. Who paid and
+/** A Receivable Payment written up wrong — how much, the day it came, or the note — put right with the reason. Who paid and
  *  what for are not changed here: a payment against the wrong buyer is taken back and written again. */
-export const BakiPaymentCorrection = ({
+export const ReceivablePaymentCorrection = ({
   payment,
 }: {
   payment: {
@@ -27,7 +27,9 @@ export const BakiPaymentCorrection = ({
     paidOn: day(payment.paidOn),
     note: note(payment.note),
   });
-  const correct = useMutation(orpc.baki.correctPayment.mutationOptions({}));
+  const correct = useMutation(
+    orpc.receivable.correctPayment.mutationOptions({})
+  );
   return (
     <CorrectionDialog
       onOpen={correcting.handleOpen}
@@ -39,25 +41,25 @@ export const BakiPaymentCorrection = ({
         });
       }}
       ready={correcting.changed}
-      title={t("correct.bakiPayment")}
+      title={t("correct.receivablePayment")}
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <CorrectionAnswer
           inputMode="decimal"
-          label={t("baki.amount")}
+          label={t("receivable.amount")}
           onChange={(value) => correcting.set("amountMoney", value)}
           type="number"
           value={correcting.typed.amountMoney ?? ""}
         />
         <CorrectionAnswer
-          label={t("baki.paidOn")}
+          label={t("receivable.paidOn")}
           onChange={(value) => correcting.set("paidOn", value)}
           type="date"
           value={correcting.typed.paidOn ?? ""}
         />
       </div>
       <CorrectionAnswer
-        label={t("baki.note")}
+        label={t("receivable.note")}
         onChange={(value) => correcting.set("note", value)}
         value={correcting.typed.note ?? ""}
       />
@@ -76,7 +78,9 @@ export const WriteOffCorrection = ({
     amountMoney: figure(writeOff.amountMoney),
     why: words(writeOff.reason),
   });
-  const correct = useMutation(orpc.baki.correctWriteOff.mutationOptions({}));
+  const correct = useMutation(
+    orpc.receivable.correctWriteOff.mutationOptions({})
+  );
   return (
     <CorrectionDialog
       onOpen={correcting.handleOpen}
@@ -92,13 +96,13 @@ export const WriteOffCorrection = ({
     >
       <CorrectionAnswer
         inputMode="decimal"
-        label={t("baki.amount")}
+        label={t("receivable.amount")}
         onChange={(value) => correcting.set("amountMoney", value)}
         type="number"
         value={correcting.typed.amountMoney ?? ""}
       />
       <CorrectionAnswer
-        label={t("baki.writeOffWhy")}
+        label={t("receivable.writeOffWhy")}
         onChange={(value) => correcting.set("why", value)}
         value={correcting.typed.why ?? ""}
       />

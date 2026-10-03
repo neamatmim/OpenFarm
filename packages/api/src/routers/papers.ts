@@ -17,7 +17,6 @@ import { z } from "zod";
 
 import { herRecord } from "../animal-record";
 import { audited } from "../audit";
-import { owingNowOf } from "../baki-store";
 import type { ExportedPaper } from "../export-store";
 import { exportedPaper } from "../export-store";
 import { farmDay } from "../farm-clock";
@@ -30,6 +29,7 @@ import {
   sourceWords,
 } from "../paper-words";
 import { languageOf } from "../reader-language";
+import { owingNowOf } from "../receivable-store";
 import { requireRole } from "../roles";
 import { requireLookUp } from "../scope";
 import { shrinkOfSales } from "../shrink-store";
@@ -47,22 +47,22 @@ const LOAD_LIMIT = 200;
  * day is said as it is; several are said beside the tags they were promised for, since a paper that gave one day for
  * two promises would hold him to the wrong one.
  */
-const bakiOnTheReceipt = (
+const receivableOnTheReceipt = (
   rows: readonly {
     priceMoney: number;
-    bakiMoney: number;
+    receivableMoney: number;
     promisedBy: string | null;
     animal: { tagNumber: string };
   }[],
   totalMoney: number,
   language: Language
 ) => {
-  const owing = rows.filter((row) => row.bakiMoney > 0);
+  const owing = rows.filter((row) => row.receivableMoney > 0);
   if (owing.length === 0) {
     return null;
   }
   const owedMoney = roundMoney(
-    owing.reduce((sum, row) => sum + row.bakiMoney, 0)
+    owing.reduce((sum, row) => sum + row.receivableMoney, 0)
   );
   const dayOf = (day: string | null) =>
     day === null ? "—" : formatDate(startOfFarmDay(day), language, "date");
@@ -129,7 +129,7 @@ const salesWith = async (
     columns: {
       id: true,
       priceMoney: true,
-      bakiMoney: true,
+      receivableMoney: true,
       promisedBy: true,
       weightKg: true,
       destination: true,
@@ -311,7 +311,7 @@ export const papersRouter = {
           id: true,
           animalId: true,
           priceMoney: true,
-          bakiMoney: true,
+          receivableMoney: true,
           brokerMoney: true,
           promisedBy: true,
           weightKg: true,
@@ -328,7 +328,7 @@ export const papersRouter = {
       const owing = await owingNowOf(
         context.db,
         context.farm.id,
-        rows.filter((one) => one.bakiMoney > 0).map((one) => one.id)
+        rows.filter((one) => one.receivableMoney > 0).map((one) => one.id)
       );
       // What each lost between her last weighing on the farm and the sale's scale.
       const shrink = await shrinkOfSales(
@@ -378,7 +378,7 @@ export const papersRouter = {
       }));
       const totalMoney = rows.reduce((sum, row) => sum + row.priceMoney, 0);
       const text = saleReceipt({
-        baki: bakiOnTheReceipt(rows, totalMoney, language),
+        receivable: receivableOnTheReceipt(rows, totalMoney, language),
         farm: context.farm,
         buyerName: first.buyer.name,
         buyerAddress: first.buyer.address,

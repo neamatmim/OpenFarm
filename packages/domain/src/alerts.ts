@@ -26,7 +26,7 @@ export const ALERT_KINDS = [
   "medicine_low_stock",
   "expired_dose_given",
   "join_requested",
-  "baki_overdue",
+  "receivable_overdue",
   "animal_missing",
   "store_shortfall",
   "pen_sores_seen",

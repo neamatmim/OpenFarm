@@ -1,6 +1,6 @@
 import { eq } from "@OpenFarm/db/operators";
 import { sale } from "@OpenFarm/db/schema/fattening";
-import { bakiPutRight, farmDayOf, paidAtTheGate } from "@OpenFarm/domain";
+import { receivablePutRight, farmDayOf, paidAtTheGate } from "@OpenFarm/domain";
 import { z } from "zod";
 
 import {
@@ -8,7 +8,6 @@ import {
   tellIfSoldUnderCost,
 } from "../animal-price-store";
 import type { Tx } from "../audit";
-import { bakiOrRefuse, paidNowInput, promisedByInput } from "../baki-store";
 import { assertTheHand, handOfTheRecord } from "../cash-store";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmAccountChange, paymentMethodChange } from "../money-inputs";
@@ -18,6 +17,11 @@ import {
   farmAccountShownOf,
   paymentMethodOf,
 } from "../money-store";
+import {
+  receivableOrRefuse,
+  paidNowInput,
+  promisedByInput,
+} from "../receivable-store";
 import {
   bookSaleMoney,
   brokerInput,
@@ -36,7 +40,7 @@ const loadSale = (tx: Tx, farmId: string, id: string) =>
       id: true,
       farmId: true,
       priceMoney: true,
-      bakiMoney: true,
+      receivableMoney: true,
       brokerMoney: true,
       promisedBy: true,
       weightKg: true,
@@ -88,7 +92,7 @@ export const saleCorrection: CorrectionKind<
     priceMoney: row.priceMoney,
     buyer: row.buyer.name,
     paymentMethod: await paymentMethodOf(tx, row.farmId, "sale", row.id),
-    paidNowMoney: paidAtTheGate(row.priceMoney, row.bakiMoney),
+    paidNowMoney: paidAtTheGate(row.priceMoney, row.receivableMoney),
     promisedBy: row.promisedBy,
     brokerMoney: row.brokerMoney,
     weightKg: Number(row.weightKg),
@@ -98,11 +102,11 @@ export const saleCorrection: CorrectionKind<
   trail: (tx, row) => readSale(tx, row.id),
   apply: async (tx, row, to, { context, now }) => {
     // What he paid stands unless the Correction says otherwise: a price mistyped is not cash handed back.
-    const baki = bakiOrRefuse(
-      bakiPutRight({
+    const receivable = receivableOrRefuse(
+      receivablePutRight({
         before: {
           worthMoney: row.priceMoney,
-          bakiMoney: row.bakiMoney,
+          receivableMoney: row.receivableMoney,
           promisedBy: row.promisedBy,
         },
         worthMoney: to.priceMoney ?? row.priceMoney,
@@ -112,15 +116,16 @@ export const saleCorrection: CorrectionKind<
         promiseRequired: true,
       })
     );
-    const bakiMoved =
-      baki.bakiMoney !== row.bakiMoney || baki.promisedBy !== row.promisedBy;
+    const receivableMoved =
+      receivable.receivableMoney !== row.receivableMoney ||
+      receivable.promisedBy !== row.promisedBy;
     const putRight = {
       ...(to.priceMoney === undefined ? {} : { priceMoney: to.priceMoney }),
       ...(to.brokerMoney === undefined ? {} : { brokerMoney: to.brokerMoney }),
       ...(to.weightKg === undefined
         ? {}
         : { weightKg: to.weightKg.toFixed(2) }),
-      ...(bakiMoved ? baki : {}),
+      ...(receivableMoved ? receivable : {}),
       ...(to.buyer === undefined
         ? {}
         : {

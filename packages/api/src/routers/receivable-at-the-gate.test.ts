@@ -6,11 +6,11 @@ import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
 /**
- * Baki at the gate: a buyer who takes a bull or the milk and pays part of it, or none, now. Only what was paid is money
+ * Receivable at the gate: a buyer who takes a bull or the milk and pays part of it, or none, now. Only what was paid is money
  * that day; what he still owes, and the day he promised to pay it by, stay on the Sale or the Dispatch. A Venture's
  * animal leaves paid in full.
  */
-const suffix = `baki-${Date.now()}`;
+const suffix = `receivable-${Date.now()}`;
 
 const as = (role: "owner" | "manager", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
@@ -63,7 +63,7 @@ const bookedFor = async (sourceId: string) => {
 const saleRow = async (id: string) =>
   await scratchDb().query.sale.findFirst({
     where: { id },
-    columns: { priceMoney: true, bakiMoney: true, promisedBy: true },
+    columns: { priceMoney: true, receivableMoney: true, promisedBy: true },
   });
 
 beforeAll(async () => {
@@ -107,7 +107,7 @@ const ventureBull = (index: number) => {
   return bull;
 };
 
-describe("a bull sold on Baki", () => {
+describe("a bull sold on credit", () => {
   it("books only what the buyer paid, and keeps what he owes on the Sale", async () => {
     const bull = await buy("2048-03-02T04:00:00.000Z");
     const manager = await as("manager", "2048-03-10T06:00:00.000Z");
@@ -120,7 +120,7 @@ describe("a bull sold on Baki", () => {
     });
     expect(await saleRow(sold.id)).toEqual({
       priceMoney: 120_000,
-      bakiMoney: 20_000,
+      receivableMoney: 20_000,
       promisedBy: "2048-03-17",
     });
     const booked = await bookedFor(sold.id);
@@ -128,7 +128,7 @@ describe("a bull sold on Baki", () => {
     expect(booked[0]).toMatchObject({ amountMoney: 100_000, direction: "in" });
   });
 
-  it("books nothing when he took her all on Baki", async () => {
+  it("books nothing when he took her all on credit", async () => {
     const bull = await buy("2048-03-02T04:10:00.000Z");
     const manager = await as("manager", "2048-03-10T06:10:00.000Z");
     const sold = await manager.client.sale.record({
@@ -138,7 +138,7 @@ describe("a bull sold on Baki", () => {
       paidNowMoney: 0,
       promisedBy: "2048-03-20",
     });
-    expect(await saleRow(sold.id)).toMatchObject({ bakiMoney: 110_000 });
+    expect(await saleRow(sold.id)).toMatchObject({ receivableMoney: 110_000 });
     expect(await bookedFor(sold.id)).toHaveLength(0);
   });
 
@@ -152,14 +152,14 @@ describe("a bull sold on Baki", () => {
     });
     expect(await saleRow(sold.id)).toEqual({
       priceMoney: 115_000,
-      bakiMoney: 0,
+      receivableMoney: 0,
       promisedBy: null,
     });
     const [booked] = await bookedFor(sold.id);
     expect(booked).toMatchObject({ amountMoney: 115_000 });
   });
 
-  it("refuses more paid than the price, a Baki with no promise, and a promise before she left", async () => {
+  it("refuses more paid than the price, a Receivable with no promise, and a promise before she left", async () => {
     const bull = await buy("2048-03-02T04:30:00.000Z");
     const manager = await as("manager", "2048-03-10T06:30:00.000Z");
     const sell = (more: { paidNowMoney?: number; promisedBy?: string }) =>
@@ -173,7 +173,7 @@ describe("a bull sold on Baki", () => {
       data: { refusal: "paid_more_than_price" },
     });
     await expect(sell({ paidNowMoney: 50_000 })).rejects.toMatchObject({
-      data: { refusal: "baki_needs_a_promise" },
+      data: { refusal: "receivable_needs_a_promise" },
     });
     await expect(
       sell({ paidNowMoney: 50_000, promisedBy: "2048-03-09" })
@@ -212,7 +212,7 @@ describe("a Venture's bull", () => {
       priceMoney: 125_000,
       paidNowMoney: 125_000,
     });
-    expect(await saleRow(sold.id)).toMatchObject({ bakiMoney: 0 });
+    expect(await saleRow(sold.id)).toMatchObject({ receivableMoney: 0 });
   });
 
   it("is refused a Correction that would leave her buyer owing", async () => {
@@ -233,10 +233,10 @@ describe("a Venture's bull", () => {
         },
       })
     ).rejects.toMatchObject({ data: { refusal: "venture_paid_in_full" } });
-    expect(await saleRow(sold.id)).toMatchObject({ bakiMoney: 0 });
+    expect(await saleRow(sold.id)).toMatchObject({ receivableMoney: 0 });
   });
 
-  it("will not take a Farm bull sold on Baki as hers after the fact", async () => {
+  it("will not take a Farm bull sold on credit as hers after the fact", async () => {
     const bull = await buy("2048-03-02T05:20:00.000Z");
     const manager = await as("manager", "2048-03-11T06:20:00.000Z");
     await manager.client.sale.record({
@@ -246,7 +246,7 @@ describe("a Venture's bull", () => {
       paidNowMoney: 60_000,
       promisedBy: "2048-03-25",
     });
-    // The Owner's to make her a Venture's, paid from its account by bank: even so, a bull already sold on Baki is not
+    // The Owner's to make her a Venture's, paid from its account by bank: even so, a bull already sold on credit is not
     // taken.
     const owner = await as("owner", "2048-03-11T06:30:00.000Z");
     await expect(
@@ -281,7 +281,7 @@ describe("a Sale put right", () => {
     });
     expect(await saleRow(sold.id)).toEqual({
       priceMoney: 125_000,
-      bakiMoney: 25_000,
+      receivableMoney: 25_000,
       promisedBy: "2048-03-19",
     });
     const booked = await bookedFor(sold.id);
@@ -293,7 +293,7 @@ describe("a Sale put right", () => {
       reason: "সেদিন আরো দশ হাজার দিয়েছিল",
       changes: { paidNowMoney: { from: 100_000, to: 110_000 } },
     });
-    expect(await saleRow(sold.id)).toMatchObject({ bakiMoney: 15_000 });
+    expect(await saleRow(sold.id)).toMatchObject({ receivableMoney: 15_000 });
     const after = await bookedFor(sold.id);
     expect(after).toHaveLength(1);
     expect(after[0]).toMatchObject({ amountMoney: 110_000 });
@@ -312,7 +312,7 @@ describe("a Sale put right", () => {
       reason: "দাম ভুল লেখা হয়েছিল",
       changes: { priceMoney: { from: 100_000, to: 105_000 } },
     });
-    expect(await saleRow(sold.id)).toMatchObject({ bakiMoney: 0 });
+    expect(await saleRow(sold.id)).toMatchObject({ receivableMoney: 0 });
     const [booked] = await bookedFor(sold.id);
     expect(booked).toMatchObject({ amountMoney: 105_000 });
   });
@@ -347,7 +347,7 @@ describe("the receipt", () => {
     expect(receipt.text).toMatch(/To be paid by: .*21/u);
   });
 
-  it("says nothing of Baki to a buyer who paid in full", async () => {
+  it("says nothing of Receivable to a buyer who paid in full", async () => {
     const bull = await buy("2048-03-02T07:20:00.000Z");
     const manager = await as("manager", "2048-03-14T08:00:00.000Z");
     const sold = await manager.client.sale.record({
@@ -361,10 +361,10 @@ describe("the receipt", () => {
   });
 });
 
-describe("milk on Baki", () => {
+describe("milk on credit", () => {
   const milkBuyer = { name: `মিষ্টির দোকান ${suffix}`, address: "উল্লাপাড়া" };
 
-  it("books what the milk buyer paid, and takes Baki with no promised day", async () => {
+  it("books what the milk buyer paid, and takes Receivable with no promised day", async () => {
     const manager = await as("manager", "2048-03-15T03:00:00.000Z");
     const recorded = await manager.client.milk.dispatch({
       dispatchedAt: new Date("2048-03-15T02:00:00.000Z"),
@@ -375,16 +375,16 @@ describe("milk on Baki", () => {
     });
     const row = await scratchDb().query.dispatch.findFirst({
       where: { id: recorded.id },
-      columns: { bakiMoney: true, promisedBy: true },
+      columns: { receivableMoney: true, promisedBy: true },
     });
     // 45.5 litres at 68 comes to 3094.
-    expect(row).toEqual({ bakiMoney: 94, promisedBy: null });
+    expect(row).toEqual({ receivableMoney: 94, promisedBy: null });
     const booked = await bookedFor(recorded.id);
     expect(booked).toHaveLength(1);
     expect(booked[0]).toMatchObject({ amountMoney: 3000 });
   });
 
-  it("keeps what he paid when the litres are put right, and books nothing for milk taken all on Baki", async () => {
+  it("keeps what he paid when the litres are put right, and books nothing for milk taken all on credit", async () => {
     const manager = await as("manager", "2048-03-16T03:00:00.000Z");
     const recorded = await manager.client.milk.dispatch({
       dispatchedAt: new Date("2048-03-16T02:00:00.000Z"),
@@ -400,20 +400,20 @@ describe("milk on Baki", () => {
     });
     const row = await scratchDb().query.dispatch.findFirst({
       where: { id: recorded.id },
-      columns: { bakiMoney: true },
+      columns: { receivableMoney: true },
     });
-    expect(row).toEqual({ bakiMoney: 940 });
+    expect(row).toEqual({ receivableMoney: 940 });
     const [booked] = await bookedFor(recorded.id);
     expect(booked).toMatchObject({ amountMoney: 2000 });
 
-    const onBaki = await manager.client.milk.dispatch({
+    const onCredit = await manager.client.milk.dispatch({
       dispatchedAt: new Date("2048-03-16T02:30:00.000Z"),
       litres: 20,
       buyer: milkBuyer,
       pricePerLitreMoney: 70,
       paidNowMoney: 0,
     });
-    expect(await bookedFor(onBaki.id)).toHaveLength(0);
+    expect(await bookedFor(onCredit.id)).toHaveLength(0);
   });
 
   it("refuses more paid than the milk came to", async () => {

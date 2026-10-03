@@ -20,7 +20,6 @@ import type { LucideIcon } from "lucide-react";
 
 import { GivingLessGroup } from "@/components/giving-less";
 import { HeatWatchGroup } from "@/components/heat-watch";
-import { BakiOverdueGroup } from "@/components/home/baki-overdue";
 import { IllAgainGroup } from "@/components/home/ill-again";
 import { LowStockWords } from "@/components/home/low-stock-line";
 import { MissingAnimalsGroup } from "@/components/home/missing-animals";
@@ -31,6 +30,7 @@ import {
   QueueGroup,
   QueueRow,
 } from "@/components/home/queue";
+import { ReceivableOverdueGroup } from "@/components/home/receivable-overdue";
 import { StatusBadge, TagChip } from "@/components/page";
 import { PageTabs } from "@/components/page-kit";
 import { RepeatBreeder } from "@/components/repeat-breeder";
@@ -118,7 +118,7 @@ export const QUEUE_KINDS = [
   "meatWithdrawal",
   "lowStock",
   "monthlyCosts",
-  "bakiOverdue",
+  "receivableOverdue",
   "repeatBreeders",
   "illAgain",
   "heatWatch",
@@ -139,8 +139,8 @@ const countsOf = (queue: ManagerQueueData): Record<QueueKind, number> => ({
   monthlyCosts:
     (queue.monthlyCosts?.costs.length ?? 0) +
     (queue.monthlyCosts?.wages.length ?? 0),
-  // Missing from an answer a phone kept from before Baki was written down.
-  bakiOverdue: queue.bakiOverdue?.length ?? 0,
+  // Missing from an answer a phone kept from before Receivable was written down.
+  receivableOverdue: queue.receivableOverdue?.length ?? 0,
   repeatBreeders: queue.repeatBreeders.length,
   // Missing from an answer a phone kept from before illness was counted.
   illAgain: queue.illAgain?.length ?? 0,
@@ -322,9 +322,12 @@ const QueueKindList = ({
         />
       );
     }
-    case "bakiOverdue": {
+    case "receivableOverdue": {
       return (
-        <BakiOverdueGroup buyers={queue.bakiOverdue} headless={headless} />
+        <ReceivableOverdueGroup
+          buyers={queue.receivableOverdue}
+          headless={headless}
+        />
       );
     }
     case "missing": {
@@ -395,7 +398,7 @@ export const ManagerQueue = ({
     meatWithdrawal: { label: t("home.meatWithdrawal"), icon: ShieldAlert },
     lowStock: { label: t("home.lowStock"), icon: Wheat },
     monthlyCosts: { label: t("home.monthlyCosts"), icon: CalendarClock },
-    bakiOverdue: { label: t("home.bakiOverdue"), icon: HandCoins },
+    receivableOverdue: { label: t("home.receivableOverdue"), icon: HandCoins },
     repeatBreeders: { label: t("repeatBreeder.title"), icon: HeartPulse },
     illAgain: { label: t("home.illAgain"), icon: Repeat },
     heatWatch: { label: t("heatWatch.title"), icon: Flame },

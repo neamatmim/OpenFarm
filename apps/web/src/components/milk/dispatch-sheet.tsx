@@ -5,7 +5,6 @@ import type { ComponentProps } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { BakiFields, BuyerOwes } from "@/components/baki-fields";
 import { FormField, FormSheet } from "@/components/page-kit";
 import type { AccountTyped } from "@/components/payment-method";
 import {
@@ -13,9 +12,15 @@ import {
   NO_ACCOUNT,
   PaymentMethodField,
 } from "@/components/payment-method";
+import { ReceivableFields, BuyerOwes } from "@/components/receivable-fields";
 import { useLanguage } from "@/i18n/language-provider";
-import type { BakiTyped } from "@/lib/baki";
-import { NO_BAKI, bakiComplete, bakiSent, somethingPaid } from "@/lib/baki";
+import type { ReceivableTyped } from "@/lib/receivable";
+import {
+  NO_RECEIVABLE,
+  receivableComplete,
+  receivableSent,
+  somethingPaid,
+} from "@/lib/receivable";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
@@ -109,12 +114,12 @@ export const DispatchSheet = ({
   const [form, setForm] = useState(NOTHING_TYPED);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [account, setAccount] = useState<AccountTyped>(NO_ACCOUNT);
-  const [baki, setBaki] = useState<BakiTyped>(NO_BAKI);
+  const [receivable, setReceivable] = useState<ReceivableTyped>(NO_RECEIVABLE);
   const record = useMutation(
     orpc.milk.dispatch.mutationOptions({
       onSuccess: () => {
         setForm(NOTHING_TYPED);
-        setBaki(NO_BAKI);
+        setReceivable(NO_RECEIVABLE);
         toast.success(t("dispatch.recorded"));
         onOpenChange(false);
       },
@@ -128,7 +133,7 @@ export const DispatchSheet = ({
     Number(form.litres) > 0 &&
     Number(form.price) > 0 &&
     form.buyerName.trim() !== "" &&
-    bakiComplete(baki, worthMoney, false);
+    receivableComplete(receivable, worthMoney, false);
   const box = { draft: form, onType: handleType };
 
   return (
@@ -154,7 +159,7 @@ export const DispatchSheet = ({
           note: written(form.note),
           paymentMethod,
           ...accountSent(paymentMethod, account),
-          ...bakiSent(baki),
+          ...receivableSent(receivable),
         })
       }
       open={open}
@@ -205,16 +210,18 @@ export const DispatchSheet = ({
       />
       <BuyerOwes name={form.buyerName} />
 
-      <BakiFields
-        idPrefix="dispatch-baki"
-        onType={(patch) => setBaki((current) => ({ ...current, ...patch }))}
+      <ReceivableFields
+        idPrefix="dispatch-receivable"
+        onType={(patch) =>
+          setReceivable((current) => ({ ...current, ...patch }))
+        }
         promiseRequired={false}
-        typed={baki}
+        typed={receivable}
         worthMoney={worthMoney}
       />
       <div className="grid gap-4 sm:grid-cols-2">
         <DispatchInput {...box} label={t("dispatch.challan")} name="challan" />
-        {somethingPaid(baki) ? (
+        {somethingPaid(receivable) ? (
           <PaymentMethodField
             account={{ typed: account, onChange: setAccount }}
             id="dispatch-paid-by"

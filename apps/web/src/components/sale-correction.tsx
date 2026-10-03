@@ -24,8 +24,8 @@ export const SaleCorrection = ({
     id: string;
     priceMoney: number;
     buyerName: string;
-    // Left out of an answer cached before Baki was written down: paid in full, as every such Sale was.
-    bakiMoney?: number;
+    // Left out of an answer cached before Receivable was written down: paid in full, as every such Sale was.
+    receivableMoney?: number;
     promisedBy?: string | null;
     // Left out of an answer cached before a broker was written on a Sale: none was.
     brokerMoney?: number;
@@ -37,7 +37,9 @@ export const SaleCorrection = ({
   const correcting = useCorrecting({
     priceMoney: amount(sale.priceMoney),
     buyer: counterparty(sale.buyerName),
-    paidNowMoney: figure(paidAtTheGate(sale.priceMoney, sale.bakiMoney ?? 0)),
+    paidNowMoney: figure(
+      paidAtTheGate(sale.priceMoney, sale.receivableMoney ?? 0)
+    ),
     promisedBy: day(sale.promisedBy ?? null),
     brokerMoney: figure(sale.brokerMoney ?? 0),
     weightKg: amount(Number(sale.weightKg)),
@@ -78,13 +80,13 @@ export const SaleCorrection = ({
       <div className="grid gap-4 sm:grid-cols-2">
         <CorrectionAnswer
           inputMode="numeric"
-          label={t("baki.paidNow")}
+          label={t("receivable.paidNow")}
           onChange={(value) => correcting.set("paidNowMoney", value)}
           type="number"
           value={correcting.typed.paidNowMoney ?? ""}
         />
         <CorrectionAnswer
-          label={t("baki.promisedBy")}
+          label={t("receivable.promisedBy")}
           onChange={(value) => correcting.set("promisedBy", value)}
           type="date"
           value={correcting.typed.promisedBy ?? ""}

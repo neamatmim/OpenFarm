@@ -254,9 +254,9 @@ export const sale = pgTable(
       .notNull()
       .references(() => counterparty.id),
     priceMoney: numericMoney("price_money").notNull(),
-    /** What the buyer still owed when she left — her **Baki** at the gate. Nothing, for a buyer who paid in full, as
-     *  every Sale before Baki was written down did. Her Money Event is the price less this: only what was paid. */
-    bakiMoney: numericMoney("baki_money").notNull().default(0),
+    /** What the buyer still owed when she left — her **Receivable** at the gate. Nothing, for a buyer who paid in full, as
+     *  every Sale before Receivable was written down did. Her Money Event is the price less this: only what was paid. */
+    receivableMoney: numericMoney("receivable_money").notNull().default(0),
     /** What the broker at the haat took for this one sale, paid by the Farm: her own selling cost, beside the Selling
      *  Trip's share she carries. Nought where no broker was used. */
     brokerMoney: numericMoney("broker_money").notNull().default(0),

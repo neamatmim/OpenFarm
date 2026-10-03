@@ -125,7 +125,7 @@ const EXAMPLE: NoticeFacts = {
     investor: "আবুল হাশেম মিয়া",
     units: 4,
   },
-  baki_overdue: {
+  receivable_overdue: {
     counterpartyId: "buyer-1",
     buyer: "করিম ব্যাপারী",
     owingMoney: 20_000,
@@ -302,7 +302,7 @@ describe("how late something is, in hours", () => {
   });
 });
 
-describe("an overdue Baki's words", () => {
+describe("an overdue Receivable's words", () => {
   it("names the Investor, the Venture, what he has missed and the latest day, in the reader's digits", () => {
     const params = (language: "bn" | "en") =>
       noticeFilling("monthly_sum_missed", EXAMPLE.monthly_sum_missed, language);
@@ -316,12 +316,12 @@ describe("an overdue Baki's words", () => {
 
   it("names the buyer, what he owes and the day it went late, in the reader's digits", () => {
     const params = (language: "bn" | "en") =>
-      noticeFilling("baki_overdue", EXAMPLE.baki_overdue, language);
-    expect(translate("bn", "alerts.bakiOverdue", params("bn"))).toBe(
+      noticeFilling("receivable_overdue", EXAMPLE.receivable_overdue, language);
+    expect(translate("bn", "alerts.receivableOverdue", params("bn"))).toBe(
       "করিম ব্যাপারী-এর কাছে ৳২০,০০০ বাকি, ৯ মার্চ, ২০৩৮ থেকে মেয়াদোত্তীর্ণ"
     );
-    expect(translate("en", "alerts.bakiOverdue", params("en"))).toBe(
-      "Baki overdue since 9 March 2038: ৳20,000 from করিম ব্যাপারী"
+    expect(translate("en", "alerts.receivableOverdue", params("en"))).toBe(
+      "Receivable overdue since 9 March 2038: ৳20,000 from করিম ব্যাপারী"
     );
   });
 });

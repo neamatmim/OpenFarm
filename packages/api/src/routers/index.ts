@@ -5,7 +5,6 @@ import { alertsRouter } from "./alerts";
 import { animalsRouter } from "./animals";
 import { auditRouter } from "./audit";
 import { backupsRouter } from "./backups";
-import { bakiRouter } from "./baki";
 import { breedingRouter } from "./breeding";
 import { breedsRouter } from "./breeds";
 import { cashRouter } from "./cash";
@@ -38,6 +37,7 @@ import { portalPreviewRouter } from "./portal-preview";
 import { prescriptionsRouter } from "./prescriptions";
 import { pushRouter } from "./push";
 import { readyRouter } from "./ready";
+import { receivableRouter } from "./receivable";
 import { reportsRouter } from "./reports";
 import { returnsRouter } from "./returns";
 import { reviewRouter } from "./review";
@@ -95,7 +95,7 @@ type AppRouterShape = {
   inspector: typeof inspectorRouter;
   money: typeof moneyRouter;
   cash: typeof cashRouter;
-  baki: typeof bakiRouter;
+  receivable: typeof receivableRouter;
   reports: typeof reportsRouter;
   breeding: typeof breedingRouter;
   stock: typeof stockRouter;
@@ -150,7 +150,7 @@ export const appRouter: AppRouterShape = {
   inspector: inspectorRouter,
   money: moneyRouter,
   cash: cashRouter,
-  baki: bakiRouter,
+  receivable: receivableRouter,
   reports: reportsRouter,
   breeding: breedingRouter,
   stock: stockRouter,

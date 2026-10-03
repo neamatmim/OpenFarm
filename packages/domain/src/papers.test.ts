@@ -106,7 +106,7 @@ describe("the হিসাব নিকাশ's line on their capital", () => {
   });
 });
 
-const receipt = (baki: SaleReceipt["baki"]): SaleReceipt => ({
+const receipt = (receivable: SaleReceipt["receivable"]): SaleReceipt => ({
   farm: {
     name: "সবুজ খামার",
     address: "সাভার",
@@ -122,7 +122,7 @@ const receipt = (baki: SaleReceipt["baki"]): SaleReceipt => ({
   day: "১৬ জুন",
   animals: [{ tagNumber: "F-0012", weight: "৩৩০", price: "১,২০,০০০" }],
   total: "১,২০,০০০",
-  baki,
+  receivable,
   producedBy: "ম্যানেজার",
   producedAt: "১৬ জুন",
 });

@@ -237,9 +237,9 @@ const WhereItLeads = ({
       </Link>
     );
   }
-  if (notice.kind === "baki_overdue") {
+  if (notice.kind === "receivable_overdue") {
     return (
-      <Link className={LEADS_CLASS} search={{ tab: "baki" }} to="/money">
+      <Link className={LEADS_CLASS} search={{ tab: "receivable" }} to="/money">
         {t("alerts.seeWhoOwes")}
       </Link>
     );

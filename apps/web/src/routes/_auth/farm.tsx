@@ -247,7 +247,7 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
   // not, and a green "everything is fine" resting on a request that failed is the worst of the three.
   const heardAboutVentures = ventures.isSuccess;
   // The badge counts her decisions; "all fine" is said only when nothing at all waits — a missing animal, a store to
-  // count or Baki overdue is no decision of hers, but the farm is not all fine while one waits.
+  // count or Receivable overdue is no decision of hers, but the farm is not all fine while one waits.
   const waiting = decisionsWaiting(needsYou) + troubled.length;
   const allFine =
     anythingWaiting(needsYou) + troubled.length === 0 && heardAboutVentures;

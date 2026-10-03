@@ -65,15 +65,15 @@ export const RECORD_SOURCES = [
 ] as const;
 export type RecordSource = (typeof RECORD_SOURCES)[number];
 
-/** Where a Money Event came from: one of the records, a buyer paying his Baki, or entered by hand by the Manager —
+/** Where a Money Event came from: one of the records, a buyer paying his Receivable, or entered by hand by the Manager —
  *  wages, and everything no record catches, where the Money Event is the whole of it.
  *
- *  A Baki Payment is a record that makes money, but not one of `RECORD_SOURCES`: those each carry a Category of their
- *  own, and a Baki Payment books under the Category of what it paid for — milk sales or cattle sales — so a report's
+ *  A Receivable Payment is a record that makes money, but not one of `RECORD_SOURCES`: those each carry a Category of their
+ *  own, and a Receivable Payment books under the Category of what it paid for — milk sales or cattle sales — so a report's
  *  totals by Category stay what they were. */
 export const MONEY_SOURCES = [
   ...RECORD_SOURCES,
-  "baki_payment",
+  "receivable_payment",
   "by_hand",
 ] as const;
 export type MoneySource = (typeof MONEY_SOURCES)[number];
@@ -478,16 +478,16 @@ export const vetFeeAnimal = pgTable(
   (table) => [primaryKey({ columns: [table.vetFeeId, table.animalId] })]
 );
 
-/** What a buyer's **Baki** is for, and so which Category his payment books under. */
-export const BAKI_KINDS = ["cattle", "milk"] as const;
+/** What a buyer's **Receivable** is for, and so which Category his payment books under. */
+export const RECEIVABLE_KINDS = ["cattle", "milk"] as const;
 
 /**
- * One handover of money from a buyer towards his **Baki**, for his cattle or for his milk: its own Money Event on the
+ * One handover of money from a buyer towards his **Receivable**, for his cattle or for his milk: its own Money Event on the
  * day it came. Which Sales or Dispatches it cleared is worked out when it is read — oldest first — and never stored,
  * so a Correction to an old Sale re-flows without rewriting what a payment was for.
  */
-export const bakiPayment = pgTable(
-  "baki_payment",
+export const receivablePayment = pgTable(
+  "receivable_payment",
   {
     id: text("id").primaryKey(),
     farmId: text("farm_id")
@@ -496,7 +496,7 @@ export const bakiPayment = pgTable(
     counterpartyId: text("counterparty_id")
       .notNull()
       .references(() => counterparty.id),
-    kind: text("kind", { enum: BAKI_KINDS }).notNull(),
+    kind: text("kind", { enum: RECEIVABLE_KINDS }).notNull(),
     amountMoney: numericMoney("amount_money").notNull(),
     /** The farm day ("YYYY-MM-DD") the money came. */
     paidOn: text("paid_on").notNull(),
@@ -507,7 +507,7 @@ export const bakiPayment = pgTable(
     recordedAt: timestamp("recorded_at").notNull(),
   },
   (table) => [
-    index("baki_payment_buyer_idx").on(
+    index("receivable_payment_buyer_idx").on(
       table.farmId,
       table.counterpartyId,
       table.kind
@@ -515,22 +515,22 @@ export const bakiPayment = pgTable(
   ]
 );
 
-/** What a **Write-off** closes: a Sale's Baki or a Dispatch's. */
-export const BAKI_SOURCES = ["sale", "dispatch"] as const;
+/** What a **Write-off** closes: a Sale's Receivable or a Dispatch's. */
+export const RECEIVABLE_SOURCES = ["sale", "dispatch"] as const;
 
 /**
- * The Owner closing a **Baki** that will not be paid, with a reason: so much of one Sale's or one Dispatch's. What the
+ * The Owner closing a **Receivable** that will not be paid, with a reason: so much of one Sale's or one Dispatch's. What the
  * animal fetched — or the milk — is then its price less it, wherever a figure asks. A buyer who pays after all puts it
  * back: a payment beyond everything open goes to what was written off, oldest first. The Owner's alone.
  */
-export const bakiWriteOff = pgTable(
-  "baki_write_off",
+export const receivableWriteOff = pgTable(
+  "receivable_write_off",
   {
     id: text("id").primaryKey(),
     farmId: text("farm_id")
       .notNull()
       .references(() => farm.id, { onDelete: "cascade" }),
-    source: text("source", { enum: BAKI_SOURCES }).notNull(),
+    source: text("source", { enum: RECEIVABLE_SOURCES }).notNull(),
     /** The Sale or the Dispatch it closes. */
     sourceId: text("source_id").notNull(),
     counterpartyId: text("counterparty_id")
@@ -544,7 +544,7 @@ export const bakiWriteOff = pgTable(
     recordedAt: timestamp("recorded_at").notNull(),
   },
   (table) => [
-    index("baki_write_off_source_idx").on(
+    index("receivable_write_off_source_idx").on(
       table.farmId,
       table.source,
       table.sourceId

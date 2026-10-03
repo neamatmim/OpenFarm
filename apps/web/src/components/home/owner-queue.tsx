@@ -21,7 +21,6 @@ import {
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { BakiOverdueGroup } from "@/components/home/baki-overdue";
 import { FarmAccountsOutGroup } from "@/components/home/farm-accounts-out";
 import { LowStockWords } from "@/components/home/low-stock-line";
 import { MissingAnimalsGroup } from "@/components/home/missing-animals";
@@ -38,6 +37,7 @@ import {
   QueueRow,
   ROW_LINK,
 } from "@/components/home/queue";
+import { ReceivableOverdueGroup } from "@/components/home/receivable-overdue";
 import { VentureTroubles } from "@/components/home/venture-trouble";
 import { categoryName, useApproveMoney } from "@/components/money";
 import { ProgressBar, StatusBadge, TagChip } from "@/components/page";
@@ -443,7 +443,10 @@ const KindList = ({
         <div className="flex flex-col gap-6">
           <MoneyGroup headless={headless} needsYou={needsYou} />
           <MonthlyCostsGroup monthlyCosts={needsYou.monthlyCosts} />
-          <BakiOverdueGroup buyers={needsYou.bakiOverdue} forTheOwner />
+          <ReceivableOverdueGroup
+            buyers={needsYou.receivableOverdue}
+            forTheOwner
+          />
           <FarmAccountsOutGroup accounts={needsYou.farmAccountsOut} />
         </div>
       );

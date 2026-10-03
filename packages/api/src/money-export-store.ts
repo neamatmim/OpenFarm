@@ -9,8 +9,8 @@ import type {
 } from "@OpenFarm/domain";
 import { penHistoryOf, sidesOverTime } from "@OpenFarm/domain";
 
-import { bakiOfBuyers } from "./baki-store";
 import { THE_FARMS_PURSE } from "./money-store";
+import { receivableOfBuyers } from "./receivable-store";
 
 type Db = Pick<Database, "query">;
 
@@ -46,9 +46,9 @@ const splitAcross = (sides: readonly Side[]): RecordFacts["sides"] =>
     ? WHOLE_FARM
     : sides.map((side) => ({ side, part: 1 / sides.length }));
 
-/** The Baki Payments among a period's money: each one's kind and what it cleared, and every Sale it cleared, so the
+/** The Receivable Payments among a period's money: each one's kind and what it cleared, and every Sale it cleared, so the
  *  export can say which animals a cattle payment was for and which Side she stood on. */
-const bakiPaymentsOf = async (
+const receivablePaymentsOf = async (
   db: Db,
   farmId: string,
   ids: readonly string[]
@@ -57,7 +57,7 @@ const bakiPaymentsOf = async (
     return { payments: [], clearedSaleIds: [] };
   }
   const wanted = new Set(ids);
-  const book = await bakiOfBuyers(db, farmId, { settledToo: true });
+  const book = await receivableOfBuyers(db, farmId, { settledToo: true });
   const payments = book.flatMap((buyer) =>
     buyer.kinds.flatMap((kind) =>
       kind.payments
@@ -79,11 +79,11 @@ const bakiPaymentsOf = async (
 };
 
 /**
- * What a Baki Payment is known by and whose Side its money is. Milk is the Dairy side's, as a Dispatch's is. Cattle
+ * What a Receivable Payment is known by and whose Side its money is. Milk is the Dairy side's, as a Dispatch's is. Cattle
  * money is split across the Sides of the animals it paid for, by what it paid of each, their tags its reference; what
- * it paid beyond anything owed — credit held for next time — is the whole farm's until it pays for something.
+ * it paid beyond anything owed — paid ahead for next time — is the whole farm's until it pays for something.
  */
-const bakiPaymentFacts = (
+const receivablePaymentFacts = (
   payment: {
     kind: "cattle" | "milk";
     amountMoney: number;
@@ -129,7 +129,11 @@ const recordFactsOf = async (
   farmId: string,
   events: readonly { source: MoneySource; sourceId: string }[]
 ): Promise<Map<string, RecordFacts>> => {
-  const baki = await bakiPaymentsOf(db, farmId, idsOf(events, "baki_payment"));
+  const receivable = await receivablePaymentsOf(
+    db,
+    farmId,
+    idsOf(events, "receivable_payment")
+  );
   const [dispatches, intakes, sales, feedIns, medicines, fees] =
     await Promise.all([
       db.query.dispatch.findMany({
@@ -144,7 +148,7 @@ const recordFactsOf = async (
       db.query.sale.findMany({
         where: {
           farmId,
-          id: { in: [...idsOf(events, "sale"), ...baki.clearedSaleIds] },
+          id: { in: [...idsOf(events, "sale"), ...receivable.clearedSaleIds] },
         },
         columns: { id: true, soldAt: true },
         with: {
@@ -198,8 +202,8 @@ const recordFactsOf = async (
     ])
   );
   return new Map<string, RecordFacts>([
-    ...baki.payments.map(
-      (one) => [one.id, bakiPaymentFacts(one, saleFacts)] as const
+    ...receivable.payments.map(
+      (one) => [one.id, receivablePaymentFacts(one, saleFacts)] as const
     ),
     ...dispatches.map(
       (one) =>

@@ -5,7 +5,7 @@ import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
 /**
- * A cash Sale or Baki Payment names whose hand took the notes: the writer's, unless the Owner names another Owner or
+ * A cash Sale or Receivable Payment names whose hand took the notes: the writer's, unless the Owner names another Owner or
  * Manager. The Owner writing up the Manager's haat sale that evening puts the cash in the Manager's hand, where his
  * Friday count will look for it — not in her own, where it never was.
  */
@@ -110,7 +110,7 @@ describe("whose hand took the notes", () => {
     expect(await handOf("manager")).toBe(managerBefore);
   });
 
-  it("names the hand on a Baki Payment too", async () => {
+  it("names the hand on a Receivable Payment too", async () => {
     // Half paid at the gate into the Manager's hand, the rest promised.
     await sold("owner", tags[2] ?? "", {
       heldBy: thePerson("manager").id,
@@ -119,7 +119,7 @@ describe("whose hand took the notes", () => {
     });
     const managerBefore = await handOf("manager");
     const owner = await as("owner", `${DAY}T12:00:00.000Z`);
-    await owner.client.baki.pay({
+    await owner.client.receivable.pay({
       buyer: `ক্রেতা ${suffix}`,
       kind: "cattle",
       amountMoney: 10_000,

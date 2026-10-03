@@ -174,9 +174,9 @@ export const relations = defineRelations(schema, (r) => ({
       optional: false,
     }),
   },
-  bakiPayment: {
+  receivablePayment: {
     buyer: r.one.counterparty({
-      from: r.bakiPayment.counterpartyId,
+      from: r.receivablePayment.counterpartyId,
       to: r.counterparty.id,
       optional: false,
     }),

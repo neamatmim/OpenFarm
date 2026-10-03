@@ -144,9 +144,9 @@ const parameters = z
     /** The day of the month from which a Monthly Cost with nothing entered that month is named: no later than the 28th,
      *  which every month has. */
     monthlyCostsFromDay: z.number().int().min(1).max(28).optional(),
-    /** How many days a Baki with no promised day may run before it is overdue: a week at the least, four months at
+    /** How many days a Receivable with no promised day may run before it is overdue: a week at the least, four months at
      *  the most. */
-    bakiDays: z.number().int().min(7).max(120).optional(),
+    receivableDays: z.number().int().min(7).max(120).optional(),
     /** The taka a Stock Count may come up short by before the Owner and the Manager are told of it. */
     storeShortfallTellMoney: z.number().int().min(0).max(1_000_000).optional(),
     /** How many animals in one Pen with sores on the mouth or feet, within how many hours, before the farm is told. */
@@ -260,7 +260,7 @@ const WHAT_RETURNS_READ = ["returnYearFloorDays"] as const;
 const WHEN_MONTHLY_COSTS_ARE_LOOKED_FOR = ["monthlyCostsFromDay"] as const;
 
 /** How long a buyer may owe with no promised day: the Owner's to set, as whom the farm lends to is. */
-const HOW_LONG_BAKI_MAY_RUN = ["bakiDays"] as const;
+const HOW_LONG_RECEIVABLE_MAY_RUN = ["receivableDays"] as const;
 
 /** When the Owner is asked to write a missing animal off: the Owner's, as the write-off is. */
 const WHEN_A_MISSING_ANIMAL_IS_ASKED_ABOUT = ["missingWriteOffDays"] as const;
@@ -324,7 +324,7 @@ const refuseWhatIsTheOwners = (
       reason: "owner_only",
     });
   }
-  if (namesAny(input, HOW_LONG_BAKI_MAY_RUN)) {
+  if (namesAny(input, HOW_LONG_RECEIVABLE_MAY_RUN)) {
     throw forbidden({
       message: "How long a buyer may owe is the Owner's to set",
       reason: "owner_only",
@@ -820,7 +820,7 @@ export const farmRouter = {
                 returnYearFloorDays: true,
                 approvalThresholdMoney: true,
                 monthlyCostsFromDay: true,
-                bakiDays: true,
+                receivableDays: true,
                 storeShortfallTellMoney: true,
                 soresTellAnimals: true,
                 soresTellHours: true,

@@ -11,7 +11,6 @@ import {
   farmDaysApart,
 } from "@OpenFarm/domain";
 
-import { overdueBaki } from "../baki-store";
 import { heatWatchOn, repeatBreedersOn } from "../breeding-store";
 import { farmAccountsOut } from "../farm-account-store";
 import { illAgainOn } from "../health-store";
@@ -32,6 +31,7 @@ import { lostInAYear, missingNow } from "../missing-store";
 import { awaitingApproval } from "../money-store";
 import { monthByMonth } from "../month-store";
 import { monthlyCostsNow } from "../monthly-costs-store";
+import { overdueReceivable } from "../receivable-store";
 import { renewalDue } from "../registration-store";
 import { withTheirWork } from "../review-store";
 import { OWNER_ONLY, requireOnly, requireRole } from "../roles";
@@ -82,7 +82,7 @@ export const homeRouter = {
         repeatBreeders,
         lowStock,
         monthlyCosts,
-        bakiOverdue,
+        receivableOverdue,
         missing,
         illAgain,
         heatWatch,
@@ -117,8 +117,8 @@ export const homeRouter = {
         runningLow(context.db, context.farm, now),
         // The rent, the electricity and the wages the month has nothing entered for yet: the Manager enters the money.
         monthlyCostsNow(context.db, context.farm, now),
-        // Buyers whose Baki has gone past its day: the Manager rings them.
-        overdueBaki(context.db, context.farm, farmDayOf(now)),
+        // Buyers whose Receivable has gone past its day: the Manager rings them.
+        overdueReceivable(context.db, context.farm, farmDayOf(now)),
         // Animals the round could not find: the Manager walks the farm for them, and marks them Found.
         missingNow(context.db, farmId),
         // Animals the Vet has diagnosed again and again: listed, never pushed, as the repeat breeders are — whether to
@@ -184,7 +184,7 @@ export const homeRouter = {
           repeatBreeders: repeatBreeders.slice(0, QUEUE_LIMIT),
           lowStock,
           monthlyCosts,
-          bakiOverdue: bakiOverdue.slice(0, QUEUE_LIMIT),
+          receivableOverdue: receivableOverdue.slice(0, QUEUE_LIMIT),
           missing: missing.slice(0, QUEUE_LIMIT),
           illAgain: illAgain.slice(0, QUEUE_LIMIT),
           heatWatch: heatWatch.slice(0, QUEUE_LIMIT),
@@ -293,7 +293,7 @@ export const homeRouter = {
         moneyAwaiting,
         moneyAwaitingAll,
         monthlyCosts,
-        bakiOverdue,
+        receivableOverdue,
         missing,
         storeCount,
         lostYear,
@@ -373,8 +373,8 @@ export const homeRouter = {
         // The rent, the electricity and the wages the month has nothing entered for yet: a month missing is otherwise read as
         // a cheaper month.
         monthlyCostsNow(context.db, context.farm, now),
-        // Buyers whose Baki has gone past its day, and whether any was sold to on Baki again while late.
-        overdueBaki(context.db, context.farm, farmDayOf(now)),
+        // Buyers whose Receivable has gone past its day, and whether any was sold to on credit again while late.
+        overdueReceivable(context.db, context.farm, farmDayOf(now)),
         // Animals the round could not find: the Owner hears of each at once, and sees them here until found.
         missingNow(context.db, farmId),
         // The store not counted for more than a week: the count is the one check on the Manager's feed.
@@ -470,7 +470,7 @@ export const homeRouter = {
           /** All the money waiting for her word, counted and totalled, where the list above shows the oldest few. */
           moneyAwaitingAll,
           monthlyCosts,
-          bakiOverdue: bakiOverdue.slice(0, QUEUE_LIMIT),
+          receivableOverdue: receivableOverdue.slice(0, QUEUE_LIMIT),
           /** Animals the round could not find, until the Manager marks them Found — each asked about once she has been
            *  missing as long as the Owner said: whether to write her off as Lost. */
           missing: missing.slice(0, QUEUE_LIMIT).map((one) => {

@@ -34,7 +34,7 @@ export interface NoticeFacts {
   withdrawal_ending: { tag: string; animalId: string; until: string };
   withdrawal_changed: { tag: string; until: string };
   notifiable_diagnosis: { tag: string; disease: string };
-  /** One Baki gone past its day: who owes it, what is still owing on it, and the first day it was late. */
+  /** One Receivable gone past its day: who owes it, what is still owing on it, and the first day it was late. */
   milk_unaccounted: {
     /** Litres gone in the week that nobody can account for. */
     litres: number;
@@ -180,7 +180,7 @@ export interface NoticeFacts {
     /** The farm day ("YYYY-MM-DD") the round could not find her. */
     since: string;
   };
-  baki_overdue: {
+  receivable_overdue: {
     counterpartyId: string;
     buyer: string;
     owingMoney: number;

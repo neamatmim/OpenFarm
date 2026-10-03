@@ -1007,10 +1007,10 @@ export const en = {
   "params.keepRateGapDays": "Trust a gain between weigh-ins at least",
   "params.cullOpenDays": "Empty too long after calving",
   "params.monthlyCostsFromDay": "From this day of the month",
-  "params.baki": "Baki",
-  "params.bakiHint":
+  "params.receivable": "Receivables",
+  "params.receivableHint":
     "Money a buyer still owes with no day promised — a milk buyer who pays on a round — is overdue after this many days.",
-  "params.bakiDays": "Overdue with no promised day after",
+  "params.receivableDays": "Overdue with no promised day after",
   "params.cullMilkAfterDays": "Weigh milk against keep from, after calving",
   "params.cullCalfMilkDays": "A cow's milk is her calf's for the first",
   "params.cullMilkPriceDays": "Price milk from dispatches of the last",
@@ -1498,7 +1498,8 @@ export const en = {
   "refusal.venturePaidInFull":
     "A Venture's animal leaves paid in full — its Investors' money is never lent to a buyer",
   "refusal.paidMoreThanPrice": "That is more than it came to",
-  "refusal.bakiNeedsAPromise": "Write the day he promised to pay the rest by",
+  "refusal.receivableNeedsAPromise":
+    "Write the day he promised to pay the rest by",
   "refusal.promiseBeforeItLeft":
     "He cannot have promised to pay by a day before it left",
   "refusal.paidMoreThanOwed":
@@ -2249,8 +2250,8 @@ export const en = {
   "audit.entity.investment_agreement": "Investment Agreement",
   "audit.entity.amendment_offer": "Amendment offered in the app",
   "audit.entity.venture": "Venture",
-  "audit.entity.baki_payment": "Baki payment",
-  "audit.entity.baki_write_off": "Baki written off",
+  "audit.entity.receivable_payment": "Receivable payment",
+  "audit.entity.receivable_write_off": "Receivable written off",
   "audit.entity.buying_trip": "Buying outing",
   "audit.entity.selling_trip": "Selling day",
   "audit.entity.venture_movement": "Venture money",
@@ -2263,7 +2264,7 @@ export const en = {
   "audit.entity.lot": "Medicine lot",
   "audit.entity.treatment": "Treatment",
   "audit.entity.request_to_join": "Request to Join",
-  "audit.entity.baki": "Baki",
+  "audit.entity.receivable": "Receivable",
   "audit.entity.missing": "Missing animal",
   "audit.entity.farm_day": "Farm day",
   "audit.entity.intake": "Intake",
@@ -3728,8 +3729,8 @@ export const en = {
   "alerts.withdrawalChanged": "{tag} — her withdrawal has changed",
   "digest.withdrawalChanged":
     "{count, plural, one {# withdrawal} other {# withdrawals}} changed",
-  "digest.bakiOverdue":
-    "{count, plural, one {# baki} other {# bakis}} gone past the day",
+  "digest.receivableOverdue":
+    "{count, plural, one {# receivable} other {# receivables}} gone past the day",
   "digest.lowStock":
     "{count, plural, one {# feed} other {# feeds}} running low",
   "digest.investorStatementDue":
@@ -3741,8 +3742,8 @@ export const en = {
   "alerts.moneyAwaiting":
     "{currencySign}{amount} for {category} is awaiting your approval",
   "alerts.lowStock": "{feed} is running low — {onHand} {unit} left",
-  "alerts.bakiOverdue":
-    "Baki overdue since {since}: {currencySign}{amount} from {buyer}",
+  "alerts.receivableOverdue":
+    "Receivable overdue since {since}: {currencySign}{amount} from {buyer}",
   "alerts.monthlySumMissed":
     "{investor} has missed {currencySign}{amount} of Monthly Sums on {venture}, the latest due {day}",
   "digest.monthlySumMissed":
@@ -4067,7 +4068,7 @@ export const en = {
   "correct.dispatch": "Correct this dispatch",
   "correct.arrival": "Correct this arrival",
   "correct.intake": "Correct what she cost",
-  "correct.bakiPayment": "Correct this payment",
+  "correct.receivablePayment": "Correct this payment",
   "correct.writeOff": "Correct this write-off",
   "correct.abortion": "Correct this abortion",
   "correct.buyingTrip": "Correct this outing",
@@ -4869,7 +4870,7 @@ export const en = {
     "{kg} kg heavier than her last weighing: check the scale",
   "sale.shrinkStale":
     "(that weighing was {days, plural, one {# day} other {# days}} before)",
-  /** Baki at the gate: a buyer who paid part of it, or none, now. */
+  /** Receivable at the gate: a buyer who paid part of it, or none, now. */
   "calves.title": "Calves in the last 12 months",
   "calves.hint":
     "DLS counts more than one in ten lost before weaning as too many.",
@@ -4882,56 +4883,60 @@ export const en = {
   "calf.firstDayHint":
     "What was done for her in the hours after she was born: colostrum, navel, weight.",
   "calf.done": "Done",
-  "baki.someOwed": "Some of it is still owed (baki)",
-  "baki.paidNow": "Paid now ({currencySign})",
-  "baki.stillOwes": "Still owes {currencySign}{amount}",
-  "baki.promisedBy": "Promised to pay by",
-  "baki.promisedByOptional": "Promised to pay by, if he named a day",
-  "baki.owedBy": "{currencySign}{amount} still owed, promised by {day}",
-  "baki.owed": "{currencySign}{amount} still owed",
-  "baki.tab": "Baki",
-  "baki.nobody": "Nobody owes the farm anything",
-  "baki.nobodyHint":
+  "receivable.someOwed": "Some of it is still owed (on credit)",
+  "receivable.paidNow": "Paid now ({currencySign})",
+  "receivable.stillOwes": "Still owes {currencySign}{amount}",
+  "receivable.promisedBy": "Promised to pay by",
+  "receivable.promisedByOptional": "Promised to pay by, if he named a day",
+  "receivable.owedBy": "{currencySign}{amount} still owed, promised by {day}",
+  "receivable.owed": "{currencySign}{amount} still owed",
+  "receivable.tab": "Receivables",
+  "receivable.nobody": "Nobody owes the farm anything",
+  "receivable.nobodyHint":
     "A sale or milk left partly paid shows here until the buyer pays.",
-  "baki.owingTotal": "Owed to the farm",
-  "baki.owingTotalHint": "{count, plural, one {# buyer} other {# buyers}}",
-  "baki.since": "since {day}",
-  "baki.promised": "promised by {day}",
-  "baki.credit": "{currencySign}{amount} paid ahead",
-  "baki.kind.cattle": "Cattle",
-  "baki.kind.milk": "Milk",
-  "baki.itemOwes": "{currencySign}{owing} of {currencySign}{baki} still owed",
-  "baki.itemPaidOff": "Paid off",
-  "baki.litres": "{litres, plural, one {# litre} other {# litres}} of milk",
-  "baki.paymentLine": "{currencySign}{amount} paid on {day}",
-  "baki.writeOffLine": "{currencySign}{amount} written off on {day}",
-  "baki.record": "Record a payment",
-  "baki.paymentTitle": "Money received towards baki",
-  "baki.paymentDescription":
-    "What he paid, for what, and when. It clears his oldest baki first.",
-  "baki.buyer": "Buyer",
-  "baki.kind": "For",
-  "baki.amount": "Amount ({currencySign})",
-  "baki.paidOn": "Paid on",
-  "baki.note": "Note",
-  "baki.noteHint": "Needed if he paid more than he owes",
-  "baki.recorded": "Payment recorded",
-  "baki.buyerOwes": "{name} still owes {currencySign}{amount}, since {day}",
-  "baki.buyerOverdue":
-    "{name} owes {currencySign}{amount} and is overdue since {day} — think before selling on baki",
-  "home.bakiOverdue": "Baki overdue",
-  "baki.writeOff": "Write off",
-  "baki.writeOffTitle": "Write this baki off",
-  "baki.writeOffDescription":
+  "receivable.owingTotal": "Owed to the farm",
+  "receivable.owingTotalHint":
+    "{count, plural, one {# buyer} other {# buyers}}",
+  "receivable.since": "since {day}",
+  "receivable.promised": "promised by {day}",
+  "receivable.paidAhead": "{currencySign}{amount} paid ahead",
+  "receivable.kind.cattle": "Cattle",
+  "receivable.kind.milk": "Milk",
+  "receivable.itemOwes":
+    "{currencySign}{owing} of {currencySign}{receivable} still owed",
+  "receivable.itemPaidOff": "Paid off",
+  "receivable.litres":
+    "{litres, plural, one {# litre} other {# litres}} of milk",
+  "receivable.paymentLine": "{currencySign}{amount} paid on {day}",
+  "receivable.writeOffLine": "{currencySign}{amount} written off on {day}",
+  "receivable.record": "Record a payment",
+  "receivable.paymentTitle": "Money received towards a receivable",
+  "receivable.paymentDescription":
+    "What he paid, for what, and when. It clears his oldest receivable first.",
+  "receivable.buyer": "Buyer",
+  "receivable.kind": "For",
+  "receivable.amount": "Amount ({currencySign})",
+  "receivable.paidOn": "Paid on",
+  "receivable.note": "Note",
+  "receivable.noteHint": "Needed if he paid more than he owes",
+  "receivable.recorded": "Payment recorded",
+  "receivable.buyerOwes":
+    "{name} still owes {currencySign}{amount}, since {day}",
+  "receivable.buyerOverdue":
+    "{name} owes {currencySign}{amount} and is overdue since {day} — think before selling on credit",
+  "home.receivableOverdue": "Overdue receivables",
+  "receivable.writeOff": "Write off",
+  "receivable.writeOffTitle": "Write this receivable off",
+  "receivable.writeOffDescription":
     "Only when it will not be paid. What the animal or the milk fetched drops by it, and the buyer carries the mark. If he pays after all, it is put back.",
-  "baki.writeOffWhy": "Why it will not be paid",
-  "baki.writtenOff": "{currencySign}{amount} written off",
-  "baki.writtenOffDone": "Written off",
-  "baki.buyerWrittenOff":
+  "receivable.writeOffWhy": "Why it will not be paid",
+  "receivable.writtenOff": "{currencySign}{amount} written off",
+  "receivable.writtenOffDone": "Written off",
+  "receivable.buyerWrittenOff":
     "{currencySign}{amount} of {name}'s written off on {day}",
-  "home.bakiOverdueSince": "{currencySign}{amount} overdue since {day}",
-  "home.bakiSoldAgain": "Sold on baki again while overdue",
-  "money.from.bakiPayment": "Baki paid",
+  "home.receivableOverdueSince": "{currencySign}{amount} overdue since {day}",
+  "home.receivableSoldAgain": "Sold on credit again while overdue",
+  "money.from.receivablePayment": "Receivable paid",
   "sale.tab.ready": "Ready to go",
   "sale.sellThis": "Sell",
   "sale.noneReadyHint":

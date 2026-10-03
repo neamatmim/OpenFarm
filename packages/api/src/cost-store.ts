@@ -35,8 +35,8 @@ import {
   tripShares,
 } from "@OpenFarm/domain";
 
-import { writtenOffByItem } from "./baki-store";
 import { THE_FARMS_PURSE } from "./money-store";
+import { writtenOffByItem } from "./receivable-store";
 import { movementsByItem } from "./stock-store";
 import { tripCostOf } from "./trip-store";
 import { ownersOverTime } from "./venture-store";
@@ -233,7 +233,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
       },
     },
   });
-  // What she fetched is her price less whatever of her buyer's Baki stays written off — read here, once, so every sum
+  // What she fetched is her price less whatever of her buyer's Receivable stays written off — read here, once, so every sum
   // of what an animal fetched (her Margin, Return on Cost, a Season, the dairy herd's own) reads the same figure. A
   // Venture's animal never leaves owing, so nothing here can move a Venture's figures.
   const writtenOff = await writtenOffByItem(db, farmId);

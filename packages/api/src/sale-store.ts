@@ -16,7 +16,7 @@ export const readSale = async (tx: Tx, id: string) => {
     columns: {
       farmId: true,
       priceMoney: true,
-      bakiMoney: true,
+      receivableMoney: true,
       brokerMoney: true,
       promisedBy: true,
       weightKg: true,
@@ -77,7 +77,7 @@ const bookBrokerMoney = async (
 
 /**
  * Books what the buyer paid for her as the Sale now says it: her price, less whatever he still owed as she left. A
- * beast given away fetches nothing and books nothing, and nor does one taken all on Baki — unless she was booked at a
+ * beast given away fetches nothing and books nothing, and nor does one taken all on credit — unless she was booked at a
  * price before, which a Correction then puts right.
  *
  * A Venture's animal leaves paid in full, so one with anything owing is refused here, where every way a Sale is
@@ -99,7 +99,7 @@ export const bookSaleMoney = async (
   }
   const { priceMoney } = row;
   const ventureId = await ownerOf(tx, row.animalId);
-  if (ventureId && row.bakiMoney > 0) {
+  if (ventureId && row.receivableMoney > 0) {
     throw new ORPCError("BAD_REQUEST", {
       message: "A Venture's animal leaves paid in full",
       data: { refusal: "venture_paid_in_full" },
@@ -118,7 +118,7 @@ export const bookSaleMoney = async (
       data: { refusal: "venture_sale_not_by_bkash" },
     });
   }
-  const paidMoney = paidAtTheGate(priceMoney, row.bakiMoney);
+  const paidMoney = paidAtTheGate(priceMoney, row.receivableMoney);
   if (
     paidMoney > 0 ||
     (await moneySnapshotOf(tx, row.farmId, "sale", row.id))

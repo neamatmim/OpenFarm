@@ -1,15 +1,9 @@
 import { eq } from "@OpenFarm/db/operators";
-import { bakiPayment } from "@OpenFarm/db/schema/money";
+import { receivablePayment } from "@OpenFarm/db/schema/money";
 import { startOfFarmDay } from "@OpenFarm/domain";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
-import {
-  CATEGORY_OF_BAKI,
-  assertPaidNoMoreThanOwed,
-  owingOf,
-  readBakiPayment,
-} from "../baki-store";
 import { assertTheHand, handOfTheRecord } from "../cash-store";
 import { farmDay } from "../farm-clock";
 import { enteredOn } from "../money-by-hand-store";
@@ -26,15 +20,21 @@ import {
   farmAccountShownOf,
   paymentMethodOf,
 } from "../money-store";
+import {
+  CATEGORY_OF_RECEIVABLE,
+  assertPaidNoMoreThanOwed,
+  owingOf,
+  readReceivablePayment,
+} from "../receivable-store";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput, somethingChanged } from "./correction";
 
 const loadPayment = (tx: Tx, farmId: string, id: string) =>
-  tx.query.bakiPayment.findFirst({ where: { id, farmId } });
+  tx.query.receivablePayment.findFirst({ where: { id, farmId } });
 
-/** What putting a Baki Payment right may change: how much, the day it came, how it was paid, and the note. Who paid
+/** What putting a Receivable Payment right may change: how much, the day it came, how it was paid, and the note. Who paid
  *  and what for are not changed: a payment written against the wrong buyer is taken back and written again. */
-export const bakiPaymentCorrectionInput = correctionInput({
+export const receivablePaymentCorrectionInput = correctionInput({
   amountMoney: changeOf(amountInput, z.number()),
   paidOn: changeOf(farmDay, z.string()),
   paymentMethod: paymentMethodChange,
@@ -45,13 +45,13 @@ export const bakiPaymentCorrectionInput = correctionInput({
   heldBy: changeOf(z.string(), z.string().nullable()),
 });
 
-/** A Baki Payment put right — and with it its Money Event, rather than a second one. */
-export const bakiPaymentCorrection: CorrectionKind<
+/** A Receivable Payment put right — and with it its Money Event, rather than a second one. */
+export const receivablePaymentCorrection: CorrectionKind<
   NonNullable<Awaited<ReturnType<typeof loadPayment>>>,
-  z.infer<typeof bakiPaymentCorrectionInput>["changes"]
+  z.infer<typeof receivablePaymentCorrectionInput>["changes"]
 > = {
-  entity: "baki_payment",
-  table: bakiPayment,
+  entity: "receivable_payment",
+  table: receivablePayment,
   roles: ["owner", "manager"],
   missing: "No such payment",
   load: loadPayment,
@@ -60,7 +60,7 @@ export const bakiPaymentCorrection: CorrectionKind<
     farmAccount: await farmAccountShownOf(
       tx,
       row.farmId,
-      "baki_payment",
+      "receivable_payment",
       row.id
     ),
     amountMoney: row.amountMoney,
@@ -68,13 +68,13 @@ export const bakiPaymentCorrection: CorrectionKind<
     paymentMethod: await paymentMethodOf(
       tx,
       row.farmId,
-      "baki_payment",
+      "receivable_payment",
       row.id
     ),
     note: row.note,
-    heldBy: await handOfTheRecord(tx, row.farmId, "baki_payment", row.id),
+    heldBy: await handOfTheRecord(tx, row.farmId, "receivable_payment", row.id),
   }),
-  trail: (tx, row) => readBakiPayment(tx, row.id),
+  trail: (tx, row) => readReceivablePayment(tx, row.id),
   apply: async (tx, row, to, { context, now }) => {
     const amountMoney = to.amountMoney ?? row.amountMoney;
     const note = to.note === undefined ? row.note : to.note;
@@ -101,9 +101,9 @@ export const bakiPaymentCorrection: CorrectionKind<
     };
     if (somethingChanged(putRight)) {
       await tx
-        .update(bakiPayment)
+        .update(receivablePayment)
         .set(putRight)
-        .where(eq(bakiPayment.id, row.id));
+        .where(eq(receivablePayment.id, row.id));
     }
     await bookMoney(
       tx,
@@ -112,11 +112,11 @@ export const bakiPaymentCorrection: CorrectionKind<
         context.roleUsed,
         now,
         to.farmAccount
-          ? accountSaid(["baki_payment"], to.farmAccount)
+          ? accountSaid(["receivable_payment"], to.farmAccount)
           : undefined
       ),
       {
-        source: "baki_payment",
+        source: "receivable_payment",
         sourceId: row.id,
         amountMoney,
         occurredAt: startOfFarmDay(paidOn),
@@ -132,7 +132,7 @@ export const bakiPaymentCorrection: CorrectionKind<
                 to.heldBy
               ),
             }),
-        categoryKey: CATEGORY_OF_BAKI[row.kind],
+        categoryKey: CATEGORY_OF_RECEIVABLE[row.kind],
       }
     );
   },

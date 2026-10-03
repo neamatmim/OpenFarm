@@ -5,7 +5,6 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Truck } from "lucide-react";
 
-import { BakiOwed } from "@/components/baki-fields";
 import {
   CorrectionAnswer,
   CorrectionDialog,
@@ -21,6 +20,7 @@ import {
 import { Nothing, SaidDate } from "@/components/list-cells";
 import { EmptyState, Loaded } from "@/components/page";
 import { FilterBar } from "@/components/page-kit";
+import { ReceivableOwed } from "@/components/receivable-fields";
 import { useLanguage } from "@/i18n/language-provider";
 import {
   amount,
@@ -43,11 +43,11 @@ const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
     pricePerLitreMoney: amount(dispatch.pricePerLitreMoney),
     buyer: counterparty(dispatch.buyerName),
     challan: note(dispatch.challan),
-    // Left out of a day cached before Baki was written down: paid in full, as every such Dispatch was.
+    // Left out of a day cached before Receivable was written down: paid in full, as every such Dispatch was.
     paidNowMoney: figure(
       paidAtTheGate(
         worthOf(dispatch.litres, dispatch.pricePerLitreMoney),
-        dispatch.bakiMoney ?? 0
+        dispatch.receivableMoney ?? 0
       )
     ),
     promisedBy: promisedDay(dispatch.promisedBy ?? null),
@@ -95,13 +95,13 @@ const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
       <div className="grid gap-4 sm:grid-cols-2">
         <CorrectionAnswer
           inputMode="decimal"
-          label={t("baki.paidNow")}
+          label={t("receivable.paidNow")}
           onChange={(value) => correcting.set("paidNowMoney", value)}
           type="number"
           value={correcting.typed.paidNowMoney ?? ""}
         />
         <CorrectionAnswer
-          label={t("baki.promisedByOptional")}
+          label={t("receivable.promisedByOptional")}
           onChange={(value) => correcting.set("promisedBy", value)}
           type="date"
           value={correcting.typed.promisedBy ?? ""}
@@ -130,8 +130,8 @@ const WhenCell = ({ row }: { row: { original: DispatchRow } }) => (
 const BuyerCell = ({ row }: { row: { original: DispatchRow } }) => (
   <span className="flex flex-col">
     <span className="font-medium">{row.original.buyerName}</span>
-    <BakiOwed
-      bakiMoney={row.original.bakiMoney}
+    <ReceivableOwed
+      receivableMoney={row.original.receivableMoney}
       owingMoney={row.original.owingMoney}
       promisedBy={row.original.promisedBy}
     />
@@ -230,8 +230,8 @@ const DispatchCard = ({ row }: { row: DispatchRow }) => {
     <div className="flex items-start justify-between gap-3">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="font-medium">{row.buyerName}</span>
-        <BakiOwed
-          bakiMoney={row.bakiMoney}
+        <ReceivableOwed
+          receivableMoney={row.receivableMoney}
           owingMoney={row.owingMoney}
           promisedBy={row.promisedBy}
         />
