@@ -581,7 +581,13 @@ export const FormSheet = ({
             <SheetDescription>{description}</SheetDescription>
           ) : null}
         </SheetHeader>
-        <form className="flex min-h-0 flex-1 flex-col" onSubmit={submit}>
+        {/* A form that says what it is missing says it in the farm's words: the browser's own check of a required
+            box would stop the press first, and say nothing at the foot. */}
+        <form
+          className="flex min-h-0 flex-1 flex-col"
+          noValidate={saysWhy}
+          onSubmit={submit}
+        >
           <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-4">
             {children}
           </div>
