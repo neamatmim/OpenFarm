@@ -314,7 +314,7 @@ const RowActions = ({
           {t("ventures.takeCapital")}
         </Button>
       ) : null}
-      {row.hasPaper || row.cancelled || agreedInApp(row) ? null : (
+      {paperOnFile(row) || row.cancelled ? null : (
         <AgreementPaperButton agreementId={row.id} idPrefix={idPrefix} />
       )}
       {row.cancelled ? null : (

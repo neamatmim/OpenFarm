@@ -34,7 +34,7 @@ const whyNotThisPaper = (
   one: {
     capitalLeftBdt: number;
     hasPaper: boolean;
-    stamp?: { kind: string } | null;
+    paperOnFile?: boolean;
   },
   t: (key: MessageKey) => string
 ): string | undefined => {

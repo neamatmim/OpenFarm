@@ -64,7 +64,7 @@ import { protectedProcedure } from "../index";
 import { theOwnersOf } from "../intake-store";
 import { recordInternalSale } from "../internal-sale-store";
 import { tellTheOwnerAPaperIsDue } from "../investor-statement-notice";
-import { readAgreement, theFarmsShare } from "../investor-store";
+import { paperOnFile, readAgreement, theFarmsShare } from "../investor-store";
 import { farmAccountIdInput, monthInput } from "../money-inputs";
 import { accountSaid, bookMoney, bookingOf } from "../money-store";
 import { missedByEach } from "../monthly-sums-store";
@@ -1269,7 +1269,10 @@ export const venturesRouter = {
           on: one.stampedOn,
           serial: one.stampSerial,
         },
+        /** Whether the photograph of its stamped paper is kept. */
         hasPaper: kept.has(one.id),
+        /** Whether its paper is on file as capital needs it (`paperOnFile`): what says it may take capital. */
+        paperOnFile: paperOnFile(one, kept.has(one.id)),
       }));
     }),
 
@@ -1793,15 +1796,11 @@ export const venturesRouter = {
           // Asked after the count, which is the order these two were refused in before the count moved
           // inside the lock: a payment that is both unpapered and over its Units hears the same of the
           // two things it heard before.
-          // Agreed in the app, there is no stamped paper to photograph: the paper the Investor agreed to is kept with
-          // the offer it was approved from.
-          const paper =
-            agreement.stampKind === "in_app" ||
-            (await tx.query.agreementPaper.findFirst({
-              where: { agreementId: agreement.id, farmId: context.farm.id },
-              columns: { agreementId: true },
-            }));
-          if (!paper) {
+          const photo = await tx.query.agreementPaper.findFirst({
+            where: { agreementId: agreement.id, farmId: context.farm.id },
+            columns: { agreementId: true },
+          });
+          if (!paperOnFile(agreement, photo !== undefined)) {
             throw new ORPCError("BAD_REQUEST", {
               message: "The stamped Agreement is not on file yet",
               data: { refusal: "agreement_has_no_paper" },

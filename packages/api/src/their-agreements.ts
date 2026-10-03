@@ -1,5 +1,5 @@
 import type { Tx } from "./audit";
-import { theFarmsShare } from "./investor-store";
+import { paperOnFile, theFarmsShare } from "./investor-store";
 import { termsInForceOn } from "./venture-store";
 
 /** One line of an Investor's money, as the Owner reads it on their page: capital that came in or went back on one
@@ -193,7 +193,10 @@ export const theirAgreements = async (
         on: one.stampedOn,
         serial: one.stampSerial,
       },
+      /** Whether the photograph of its stamped paper is kept. */
       hasPaper: kept.has(one.id),
+      /** Whether its paper is on file as capital needs it (`paperOnFile`). */
+      paperOnFile: paperOnFile(one, kept.has(one.id)),
       /** Capital the Farm holds on this paper: what came in, less what went back. */
       capitalHeldBdt: heldOn.get(one.id) ?? 0,
       /** What an approved Settlement owes on this paper, and what became of it; null before one is approved. */
