@@ -26,7 +26,7 @@ export interface DispatchRow {
   litres: number;
   buyerName: string;
   buyerAddress: string | null;
-  challan: string | null;
+  deliveryNote: string | null;
   pricePerLitreMoney: number;
   fatPercent: number | null;
   snfPercent: number | null;
@@ -52,7 +52,7 @@ export const dispatchesBetween = async (
     litres: Number(row.litres),
     buyerName: row.buyerName,
     buyerAddress: row.buyerAddress,
-    challan: row.challan,
+    deliveryNote: row.deliveryNote,
     pricePerLitreMoney: Number(row.pricePerLitreMoney),
     fatPercent: row.fatPercent === null ? null : Number(row.fatPercent),
     snfPercent: row.snfPercent === null ? null : Number(row.snfPercent),
@@ -104,7 +104,7 @@ export const buyerInput = z.object({
 export const dispatchFields = {
   dispatchedAt: z.coerce.date(),
   litres: z.number().positive().max(100_000),
-  challan: z.string().trim().min(1).max(60),
+  deliveryNote: z.string().trim().min(1).max(60),
   pricePerLitreMoney: z.number().positive().max(10_000),
   fatPercent: z.number().min(0).max(20),
   snfPercent: z.number().min(0).max(20),

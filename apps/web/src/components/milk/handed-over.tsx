@@ -34,7 +34,7 @@ import { orpc } from "@/utils/orpc";
 import type { Dispatch, MilkDay } from "./milk-types";
 import { shiftDay, worthOf } from "./milk-types";
 
-/** The Manager puts a Dispatch right — litres, price, buyer, challan, what was paid then or the day promised — with the
+/** The Manager puts a Dispatch right — litres, price, buyer, delivery note, what was paid then or the day promised — with the
  *  reason. */
 const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
   const { t } = useLanguage();
@@ -42,7 +42,7 @@ const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
     litres: amount(dispatch.litres),
     pricePerLitreMoney: amount(dispatch.pricePerLitreMoney),
     buyer: counterparty(dispatch.buyerName),
-    challan: note(dispatch.challan),
+    deliveryNote: note(dispatch.deliveryNote),
     // Left out of a day cached before Receivable was written down: paid in full, as every such Dispatch was.
     paidNowMoney: figure(
       paidAtTheGate(
@@ -88,9 +88,9 @@ const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
         value={correcting.typed.buyer ?? ""}
       />
       <CorrectionAnswer
-        label={t("dispatch.challan")}
-        onChange={(value) => correcting.set("challan", value)}
-        value={correcting.typed.challan ?? ""}
+        label={t("dispatch.deliveryNote")}
+        onChange={(value) => correcting.set("deliveryNote", value)}
+        value={correcting.typed.deliveryNote ?? ""}
       />
       <div className="grid gap-4 sm:grid-cols-2">
         <CorrectionAnswer
@@ -138,9 +138,9 @@ const BuyerCell = ({ row }: { row: { original: DispatchRow } }) => (
   </span>
 );
 
-const ChallanCell = ({ row }: { row: { original: DispatchRow } }) =>
-  row.original.challan ? (
-    <span className="whitespace-nowrap">{row.original.challan}</span>
+const DeliveryNoteCell = ({ row }: { row: { original: DispatchRow } }) =>
+  row.original.deliveryNote ? (
+    <span className="whitespace-nowrap">{row.original.deliveryNote}</span>
   ) : (
     <Nothing />
   );
@@ -188,10 +188,10 @@ const dispatchColumns = column.columns([
     header: listHeader("dispatch.buyer"),
     cell: BuyerCell,
   }),
-  column.accessor((one) => one.challan ?? undefined, {
-    id: "challan",
-    header: listHeader("dispatch.challan"),
-    cell: ChallanCell,
+  column.accessor((one) => one.deliveryNote ?? undefined, {
+    id: "deliveryNote",
+    header: listHeader("dispatch.deliveryNote"),
+    cell: DeliveryNoteCell,
   }),
   column.accessor("litres", {
     header: listHeader("dispatch.litresField"),
@@ -223,7 +223,7 @@ const dispatchColumns = column.columns([
   }),
 ]);
 
-/** A Dispatch on a phone: the buyer on top, the litres large, and when, the challan and the price beneath. */
+/** A Dispatch on a phone: the buyer on top, the litres large, and when, the delivery note and the price beneath. */
 const DispatchCard = ({ row }: { row: DispatchRow }) => {
   const { t, language } = useLanguage();
   return (
@@ -245,7 +245,7 @@ const DispatchCard = ({ row }: { row: DispatchRow }) => {
         </span>
         <span className="text-muted-foreground text-xs">
           {formatDate(row.dispatchedAt, language, "dateTime")}
-          {row.challan ? ` · ${row.challan}` : ""}
+          {row.deliveryNote ? ` · ${row.deliveryNote}` : ""}
         </span>
       </div>
       {row.mayCorrect ? <DispatchCorrection dispatch={row} /> : null}

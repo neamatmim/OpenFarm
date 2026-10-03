@@ -242,7 +242,7 @@ describe("«আপনার তথ্য», handed over with the Agreement", () 
 });
 
 describe("stamp duty paid by e-challan", () => {
-  it("is kept against the Agreement, and the joining letter says it by its challan number", async () => {
+  it("is kept against the Agreement, and the joining letter says it by its e-challan number", async () => {
     const { client: owner } = await as("owner");
     const signed = await owner.ventures.sign({
       ...terms(),

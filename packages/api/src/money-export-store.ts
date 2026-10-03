@@ -21,7 +21,7 @@ export interface ExportedMoney extends MoneyToSummarise {
   paymentMethod: PaymentMethod;
   source: MoneySource;
   sourceId: string;
-  /** What the accountant can find the record by: a tag, a challan, a Feed Item, a product, a wage's month. */
+  /** What the accountant can find the record by: a tag, a delivery note, a Feed Item, a product, a wage's month. */
   reference: string | null;
   approval: MoneyApproval;
   note: string | null;
@@ -138,7 +138,7 @@ const recordFactsOf = async (
     await Promise.all([
       db.query.dispatch.findMany({
         where: { farmId, id: { in: idsOf(events, "dispatch") } },
-        columns: { id: true, challan: true },
+        columns: { id: true, deliveryNote: true },
       }),
       db.query.intake.findMany({
         where: { farmId, id: { in: idsOf(events, "intake") } },
@@ -210,7 +210,7 @@ const recordFactsOf = async (
         [
           one.id,
           {
-            reference: one.challan,
+            reference: one.deliveryNote,
             sides: [{ side: "dairy" as const, part: 1 }],
           },
         ] as const

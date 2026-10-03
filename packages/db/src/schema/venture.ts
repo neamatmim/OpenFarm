@@ -432,7 +432,7 @@ export const investmentAgreement = pgTable(
     /** The person both sides named to decide whether the Farm was negligent. */
     arbitrator: text("arbitrator").notNull(),
     /** The stamped instrument: how its duty was paid, what it came to, the day, and the stamp paper's serial —
-     *  or, paid by e-challan, the challan's number. */
+     *  or, paid by e-challan, the e-challan's number. */
     stampKind: text("stamp_kind", { enum: STAMP_KINDS })
       .notNull()
       .default("paper"),

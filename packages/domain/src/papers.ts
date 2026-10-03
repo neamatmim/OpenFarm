@@ -379,7 +379,7 @@ export interface DispatchLine {
   litres: string;
   buyerName: string;
   buyerAddress: string | null;
-  challan: string | null;
+  deliveryNote: string | null;
   fatPercent: string | null;
   snfPercent: string | null;
 }
@@ -396,7 +396,7 @@ export interface MilkDispatchRecord {
 
 /**
  * The milk dispatch record: every Dispatch in a period, with the buyer's name and address and the
- * challan — what the Safe Food Act (s.38) asks a producer to be able to show about who took its milk —
+ * delivery note — what the Safe Food Act (s.38) asks a producer to be able to show about who took its milk —
  * headed by the farm and stamped with who produced it and when.
  */
 export const milkDispatchRecord = (record: MilkDispatchRecord): string =>
@@ -413,7 +413,9 @@ export const milkDispatchRecord = (record: MilkDispatchRecord): string =>
           one.buyerAddress?.trim()
             ? `  ${field("ঠিকানা", "Address", one.buyerAddress)}`
             : null,
-          one.challan ? `  ${field("চালান", "Challan", one.challan)}` : null,
+          one.deliveryNote
+            ? `  ${field("চালান", "Delivery note", one.deliveryNote)}`
+            : null,
           one.fatPercent !== null || one.snfPercent !== null
             ? `  ${field("ফ্যাট / এসএনএফ", "Fat / SNF", `${one.fatPercent ?? "—"}% / ${one.snfPercent ?? "—"}%`)}`
             : null,
@@ -798,7 +800,7 @@ const agreedInTheAppLines = (stamp: StampLine): string[] => [
   field("সম্মত কাগজের নম্বর", "Agreed paper no.", stamp.serial),
 ];
 
-/** The stamp's three lines: stamp paper by its serial, or duty paid by e-challan by the challan's number — or, agreed
+/** The stamp's three lines: stamp paper by its serial, or duty paid by e-challan by the e-challan's number — or, agreed
  *  in the app, that it was. */
 export const stampLines = (stamp: StampLine): string[] => {
   if (stamp.kind === "in_app") {

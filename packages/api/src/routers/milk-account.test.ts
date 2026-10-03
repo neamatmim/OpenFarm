@@ -67,7 +67,7 @@ beforeAll(async () => {
       dispatchedAt: new Date(`${morning}T02:00:00.000Z`),
       litres: 9,
       buyer: { name: `মিষ্টির দোকান ${suffix}` },
-      challan: `CH-${day}`,
+      deliveryNote: `CH-${day}`,
       pricePerLitreMoney: 60,
       fatPercent: 4,
       snfPercent: 8.5,

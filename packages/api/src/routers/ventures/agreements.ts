@@ -55,7 +55,7 @@ const signInput = z.object({
     message: "A stamped paper has a stamp value",
   }),
   stampedOn: farmDay,
-  /** Stamp paper, or an e-challan paid into the treasury; the serial is the paper's or the challan's number. Agreed in
+  /** Stamp paper, or an e-challan paid into the treasury; the serial is the paper's or the e-challan's number. Agreed in
    *  the app is not signed here: it is offered, agreed and approved. */
   stampKind: z.enum(STAMPED_KINDS).default("paper"),
   stampSerial: z.string().trim().min(1).max(60),
