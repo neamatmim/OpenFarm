@@ -28,6 +28,7 @@ import { RecentIntakes } from "@/components/intake/recent-intakes";
 import { useIsOwner } from "@/components/money";
 import { Notice, Page, PageHeader } from "@/components/page";
 import { accountSent } from "@/components/payment-method";
+import { PastOutings } from "@/components/trips/past-outings";
 import { useT } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
@@ -245,6 +246,7 @@ const IntakePage = () => {
       />
 
       <RecentIntakes />
+      <PastOutings />
     </Page>
   );
 };

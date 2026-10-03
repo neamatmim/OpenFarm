@@ -138,6 +138,18 @@ describe("writing Baki off", () => {
     expect(list.find((one) => one.name === TRADER)).toMatchObject({
       writtenOffBdt: 20_000,
     });
+    // Each write-off listed under what it was written off of, by its own id, which is what the Owner puts right.
+    const items = list
+      .find((one) => one.name === TRADER)
+      ?.kinds.flatMap((kind) => kind.items);
+    expect(items?.find((one) => one.id === saleId)?.writeOffs).toEqual([
+      {
+        id: writeOffId,
+        amountBdt: 20_000,
+        reason: "ব্যাপারী আর ফোন ধরে না, এলাকা ছেড়েছে",
+        writtenOn: "2051-03-20",
+      },
+    ]);
   });
 
   it("is put back by a buyer who pays after all", async () => {

@@ -136,6 +136,13 @@ describe("a Buying Trip", () => {
     });
     expect(await costOf(first.tagNumber)).toMatchObject({ tripBdt: 2500 });
     expect(await costOf(second.tagNumber)).toMatchObject({ tripBdt: 2500 });
+    // Listed with each part as it now stands, which is what the screen puts right from.
+    const listed = await manager.client.trips.list();
+    expect(listed.find((one) => one.id === trip.id)?.parts).toEqual({
+      brokerBdt: 0,
+      transportBdt: 5000,
+      keepBdt: 0,
+    });
 
     // The same Money Event put right, never a second one.
     const money = await manager.client.money.list({

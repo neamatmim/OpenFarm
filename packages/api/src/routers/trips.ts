@@ -154,6 +154,12 @@ export const tripsRouter = {
           wentTo: one.wentTo,
           wentOn: one.wentOn,
           costBdt: tripCostOf(one),
+          /** What each part of it cost, which a Correction puts right one by one. */
+          parts: {
+            brokerBdt: one.brokerBdt,
+            transportBdt: one.transportBdt,
+            keepBdt: one.keepBdt,
+          },
           animals: one.intakes.length,
           /** Whether its Float — a Venture's, or the Farm's own — has been counted home: it then takes no animal
            *  and no change to what it cost. */

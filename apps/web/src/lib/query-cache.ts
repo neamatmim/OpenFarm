@@ -24,6 +24,8 @@ const KEEP_FOR_MS = 14 * 24 * 60 * 60 * 1000;
  *  made of, the one after that because a Venture says what it owes the Owner and whether it is running
  *  low, and this one because it says whether the bank agreed. */
 const CACHE_KEY = "kept-with-the-adjustments";
+/** The shape of what this phone keeps, written on everything it puts away, so nothing put away the old way is read. */
+export const CACHE_SHAPE = CACHE_KEY;
 
 /** The database the kept cache lives in, on this address. */
 const KEPT_DATABASE = "openfarm-queries";
@@ -162,6 +164,11 @@ export const forgetWhatThisPhoneRead = async (
   await cacheStore().delete(CACHE_KEY);
 };
 
+/** Whether a person's screens were put away in the shape this phone reads now: one put away before an update changed
+ *  that shape is left where it is, and their screens fill from the farm instead. */
+export const shelvedInThisShape = (kept: PersistedClient): boolean =>
+  kept.buster === CACHE_SHAPE;
+
 /** Where one person's screens are put away on a Shed Phone while somebody else works on it. */
 const shelfOf = (userId: string) => `person:${userId}`;
 
@@ -177,7 +184,7 @@ export const putAwayFor = async (
   if (typeof window !== "undefined" && userId) {
     const kept = {
       timestamp: Date.now(),
-      buster: "",
+      buster: CACHE_SHAPE,
       clientState: dehydrate(queryClient, {
         shouldDehydrateQuery: (query) => query.state.status === "success",
       }),
@@ -204,7 +211,7 @@ export const handOverThisPhone = async (
   try {
     const raw = await cacheStore().get(shelfOf(to));
     const kept = raw ? readKept(raw) : null;
-    if (kept) {
+    if (kept && shelvedInThisShape(kept)) {
       // Only what was actually read from the farm in the last fortnight: putting a screen away and bringing it back
       // does not make what is on it any newer.
       const fresh = kept.clientState.queries.filter(

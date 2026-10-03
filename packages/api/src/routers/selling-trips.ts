@@ -90,6 +90,8 @@ export const sellingTripsRouter = {
         wentTo: one.wentTo,
         wentOn: one.wentOn,
         costBdt: tripCostOf(one),
+        /** What each part of it cost, which a Correction puts right one by one. */
+        parts: { transportBdt: one.transportBdt, keepBdt: one.keepBdt },
         animals: carried.get(one.id) ?? 0,
         /** The weight those sold off it lost, together; nothing where none had both weights. */
         shrink: shrinkOfMany(

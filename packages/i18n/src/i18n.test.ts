@@ -10,6 +10,7 @@ import {
 import { resolveLanguage } from "./languages";
 import { bn } from "./messages/bn";
 import { en } from "./messages/en";
+import type { MessageKey } from "./translate";
 import { findTranslationGaps, translate } from "./translate";
 
 describe("language resolution", () => {
@@ -167,5 +168,15 @@ describe("a number as it is typed", () => {
   it("keeps a minus only at the front", () => {
     expect(numberAsTyped("-3")).toBe("-3");
     expect(numberAsTyped("3-")).toBe("3");
+  });
+});
+
+describe("a key with no words", () => {
+  // A key built by hand on a screen — `audit.calledOffBy.${why}` — is no type error when its words are missing: the
+  // screen says what it can rather than going blank.
+  it("says the English where Bangla has none, and the key itself where neither has", () => {
+    const missing = "audit.calledOffBy.nothing_like_it" as MessageKey;
+    expect(translate("bn", missing)).toBe("audit.calledOffBy.nothing_like_it");
+    expect(translate("en", missing)).toBe("audit.calledOffBy.nothing_like_it");
   });
 });

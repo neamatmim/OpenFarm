@@ -64,6 +64,16 @@ export interface OwedItem {
   /** What stays written off of it once his payments are counted. */
   writtenOffBdt: number;
   promisedBy: string | null;
+  /** Each time the Owner wrote some of it off, as written — what the Owner puts right, one by one. */
+  writeOffs: WriteOffWritten[];
+}
+
+/** One Write-off as the Owner wrote it: how much, why and the day. */
+export interface WriteOffWritten {
+  id: string;
+  amountBdt: number;
+  reason: string;
+  writtenOn: string;
 }
 
 /** One of his payments, and what it cleared. */
@@ -103,7 +113,8 @@ const owedItem = (
   leftAt: Date,
   label: Pick<OwedItem, "tagNumber" | "litres">,
   /** What the Owner wrote off of it, before any payment puts some back. */
-  writtenOffBdt: number
+  writtenOffBdt: number,
+  writeOffs: WriteOffWritten[]
 ): OwedItem => ({
   id: one.id,
   leftOn: farmDayOf(leftAt),
@@ -113,6 +124,7 @@ const owedItem = (
   owingBdt: one.bakiBdt,
   writtenOffBdt,
   promisedBy: one.promisedBy,
+  writeOffs,
 });
 
 type Db = Pick<Database, "query"> | Tx;
@@ -192,11 +204,14 @@ const readBook = async (
     db.query.bakiWriteOff.findMany({
       where: { farmId, ...whose, ...byThe("writtenOn") },
       columns: {
+        id: true,
         sourceId: true,
         counterpartyId: true,
         amountBdt: true,
+        reason: true,
         writtenOn: true,
       },
+      orderBy: { writtenOn: "asc", id: "asc" },
     }),
   ]);
   return { sales, dispatches, payments, writeOffs };
@@ -208,7 +223,17 @@ type Book = Awaited<ReturnType<typeof readBook>>;
 const writeOffsOf = (writeOffs: Book["writeOffs"]) => {
   const writtenOff = new Map<string, number>();
   const lastWrittenOff = new Map<string, string>();
+  const written = new Map<string, WriteOffWritten[]>();
   for (const one of writeOffs) {
+    written.set(one.sourceId, [
+      ...(written.get(one.sourceId) ?? []),
+      {
+        id: one.id,
+        amountBdt: one.amountBdt,
+        reason: one.reason,
+        writtenOn: one.writtenOn,
+      },
+    ]);
     writtenOff.set(
       one.sourceId,
       roundTaka((writtenOff.get(one.sourceId) ?? 0) + one.amountBdt)
@@ -218,7 +243,7 @@ const writeOffsOf = (writeOffs: Book["writeOffs"]) => {
       lastWrittenOff.set(one.counterpartyId, one.writtenOn);
     }
   }
-  return { writtenOff, lastWrittenOff };
+  return { writtenOff, lastWrittenOff, written };
 };
 
 interface BuyerItems {
@@ -230,7 +255,8 @@ interface BuyerItems {
 /** Everything each buyer was left owing on, by kind, with what was written off of each. */
 const itemsByBuyer = (
   { sales, dispatches, payments }: Book,
-  writtenOff: ReadonlyMap<string, number>
+  writtenOff: ReadonlyMap<string, number>,
+  written: ReadonlyMap<string, WriteOffWritten[]>
 ) => {
   const buyers = new Map<string, BuyerItems>();
   const add = (
@@ -254,7 +280,8 @@ const itemsByBuyer = (
         one,
         one.soldAt,
         { tagNumber: one.animal.tagNumber, litres: null },
-        writtenOff.get(one.id) ?? 0
+        writtenOff.get(one.id) ?? 0,
+        written.get(one.id) ?? []
       )
     );
   }
@@ -267,7 +294,8 @@ const itemsByBuyer = (
         one,
         one.dispatchedAt,
         { tagNumber: null, litres: roundLitres(Number(one.litres)) },
-        writtenOff.get(one.id) ?? 0
+        writtenOff.get(one.id) ?? 0,
+        written.get(one.id) ?? []
       )
     );
   }
@@ -339,8 +367,8 @@ export const bakiOfBuyers = async (
 ): Promise<BuyerBaki[]> => {
   const book = await readBook(db, farmId, only);
   const { payments, writeOffs } = book;
-  const { writtenOff, lastWrittenOff } = writeOffsOf(writeOffs);
-  const buyers = itemsByBuyer(book, writtenOff);
+  const { writtenOff, lastWrittenOff, written } = writeOffsOf(writeOffs);
+  const buyers = itemsByBuyer(book, writtenOff, written);
   const listed = [...buyers.entries()].flatMap(([counterpartyId, who]) => {
     const kinds = BAKI_KINDS.flatMap((kind) => {
       const paid = payments.filter(
