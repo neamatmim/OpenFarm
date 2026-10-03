@@ -19,7 +19,6 @@ import {
   LayoutDashboard,
   ListX,
   Milk,
-  MoonStar,
   PawPrint,
   Pill,
   ScrollText,
@@ -127,12 +126,6 @@ export const NAV_GROUPS: NavGroup[] = [
         to: "/fattening",
         label: "nav.fattening",
         icon: TrendingUp,
-        audience: "runsTheFarm",
-      },
-      {
-        to: "/eid-dates",
-        label: "nav.eid",
-        icon: MoonStar,
         audience: "runsTheFarm",
       },
       {

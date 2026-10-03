@@ -281,7 +281,11 @@ const EidPage = () => {
 
   return (
     <Page>
-      <PageHeader description={t("eid.listSubtitle")} title={t("nav.eid")} />
+      <PageHeader
+        description={t("eid.listSubtitle")}
+        eyebrow={t("nav.identity")}
+        title={t("settings.section.eid")}
+      />
 
       <Section>
         <Loaded
@@ -330,7 +334,7 @@ const EidPage = () => {
   );
 };
 
-export const Route = createFileRoute("/_authenticated/eid-dates")({
+export const Route = createFileRoute("/_authenticated/farm/eid-dates")({
   /** For those who run the farm: the Owner and the Farm Managers. */
   beforeLoad: onlyFor("runsTheFarm"),
   component: EidPage,
