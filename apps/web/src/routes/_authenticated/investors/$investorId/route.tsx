@@ -48,10 +48,18 @@ import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { initialsOf } from "@/lib/initials";
 import { useMoney } from "@/lib/money";
+import { useTabOfPath } from "@/lib/path-tabs";
 import { orpc } from "@/utils/orpc";
 
 const TABS = ["overview", "agreements", "money"] as const;
 type Tab = (typeof TABS)[number];
+
+/** Each tab at its own address, the first at the Investor's own. */
+const TAB_PATHS = {
+  overview: "/investors/$investorId",
+  agreements: "/investors/$investorId/agreements",
+  money: "/investors/$investorId/money",
+} as const satisfies Record<Tab, string>;
 
 /**
  * The four figures one Investor is read by: the capital the Farm holds of theirs now, the Units they hold in the
@@ -163,8 +171,7 @@ const TheInvestor = ({
           navigate({
             params: { investorId: investor.id },
             replace: true,
-            search: value === "overview" ? {} : { tab: value },
-            to: "/investors/$investorId",
+            to: TAB_PATHS[value],
           })
         }
         tabs={[
@@ -229,7 +236,7 @@ const TheInvestor = ({
 const InvestorPage = () => {
   const { t } = useLanguage();
   const { investorId } = Route.useParams();
-  const { tab = "overview" } = Route.useSearch();
+  const tab = useTabOfPath(TAB_PATHS, { investorId }) ?? "overview";
   const investors = useQuery(orpc.investors.list.queryOptions());
   if (investors.isPending) {
     return (
@@ -269,17 +276,8 @@ const InvestorPage = () => {
   );
 };
 
-/** What the address may say about this page: which tab she is reading. */
-interface InvestorSearch {
-  tab?: Tab;
-}
-
 export const Route = createFileRoute("/_authenticated/investors/$investorId")({
   /** The Owner's alone, as the list of Investors is. */
   beforeLoad: onlyFor("owner"),
   component: InvestorPage,
-  validateSearch: (search: Record<string, unknown>): InvestorSearch =>
-    TABS.includes(search.tab as Tab) && search.tab !== "overview"
-      ? { tab: search.tab as Tab }
-      : {},
 });

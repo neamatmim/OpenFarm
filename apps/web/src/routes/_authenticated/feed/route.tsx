@@ -36,6 +36,7 @@ import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { useMoney } from "@/lib/money";
+import { useTabOfPath } from "@/lib/path-tabs";
 import { orpc } from "@/utils/orpc";
 
 const TABS = [
@@ -47,6 +48,16 @@ const TABS = [
   "items",
 ] as const;
 type Tab = (typeof TABS)[number];
+
+/** Each tab at its own address, the first at the page's own. Feed come in is the one still kept in the query: the
+ *  glossary has no word yet for feed bought and feed harvested together (docs/research/route-naming-audit.md). */
+const TAB_PATHS = {
+  stock: "/feed",
+  counts: "/feed/stock-counts",
+  leftovers: "/feed/leftovers",
+  rations: "/feed/rations",
+  items: "/feed/items",
+} as const satisfies Record<Exclude<Tab, "arrivals">, string>;
 
 /** The Feed Items a Ration some Pen is on still feeds: a feed with none left matters only if one does. */
 const fedNow = (rations: RationRow[]): ReadonlySet<string> =>
@@ -121,12 +132,15 @@ const useStoreFigures = (
 /**
  * The store and what feeds from it, by what somebody came to do: see what is in the store, look back at what came in
  * or what a count found, put Pens on Rations, or keep the list of Feed Items. Feed coming in is one button away from
- * every tab. The tab is kept in the address, so a page comes back as it was left.
+ * every tab. Each tab has an address of its own, so a page comes back as it was left.
  */
 const FeedPage = () => {
   const { t } = useLanguage();
   const navigate = useNavigate({ from: Route.fullPath });
-  const { tab = "stock" } = Route.useSearch();
+  const { tab: inQuery } = Route.useSearch();
+  const onPath = useTabOfPath(TAB_PATHS) ?? "stock";
+  const tab: Tab =
+    onPath === "stock" && inQuery === "arrivals" ? "arrivals" : onPath;
   const [receiving, setReceiving] = useState<{ feedItemId?: string } | null>(
     null
   );
@@ -176,10 +190,11 @@ const FeedPage = () => {
 
       <PageTabs
         onChange={(value) =>
-          navigate({
-            replace: true,
-            search: value === "stock" ? {} : { tab: value },
-          })
+          navigate(
+            value === "arrivals"
+              ? { replace: true, search: { tab: "arrivals" }, to: "/feed" }
+              : { replace: true, search: {}, to: TAB_PATHS[value] }
+          )
         }
         tabs={[
           {
@@ -285,9 +300,7 @@ export const Route = createFileRoute("/_authenticated/feed")({
   /** For those who run the farm: the Owner and the Farm Managers. */
   beforeLoad: onlyFor("runsTheFarm"),
   component: FeedPage,
-  /** Which tab, kept in the address so the page comes back as it was left. */
-  validateSearch: (search: Record<string, unknown>): { tab?: Tab } =>
-    TABS.includes(search.tab as Tab) && search.tab !== "stock"
-      ? { tab: search.tab as Tab }
-      : {},
+  /** Feed come in, the one tab still kept in the query. */
+  validateSearch: (search: Record<string, unknown>): { tab?: "arrivals" } =>
+    search.tab === "arrivals" ? { tab: "arrivals" } : {},
 });

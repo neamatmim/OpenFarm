@@ -58,8 +58,7 @@ export const ReceivableOverdueGroup = ({
       title={
         <Link
           className="after:absolute after:inset-0 hover:underline"
-          search={{ tab: "receivable" }}
-          to="/money"
+          to="/money/receivables"
         >
           {buyer.name}
         </Link>
@@ -76,7 +75,7 @@ export const ReceivableOverdueGroup = ({
       icon={HandCoins}
       label={t("home.receivableOverdue")}
       more={
-        <Link className={MORE_LINK} search={{ tab: "receivable" }} to="/money">
+        <Link className={MORE_LINK} to="/money/receivables">
           {t("alerts.seeWhoOwes")}
         </Link>
       }

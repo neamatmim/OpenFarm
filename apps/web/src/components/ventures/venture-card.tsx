@@ -284,8 +284,7 @@ const MoneyLines = ({ venture }: { venture: Venture }) => {
       aria-label={t("ventures.movements")}
       className="rounded-md outline-none hover:underline focus-visible:ring-2"
       params={{ ventureId: venture.id }}
-      search={{ tab: "money" }}
-      to="/ventures/$ventureId"
+      to="/ventures/$ventureId/money"
     >
       {asMoney(venture.capitalInMoney)}
     </Link>

@@ -20,10 +20,19 @@ import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
+import { useTabOfPath } from "@/lib/path-tabs";
 import { orpc } from "@/utils/orpc";
 
 const TABS = ["handedOver", "mismatches", "givingLess", "records"] as const;
 type Tab = (typeof TABS)[number];
+
+/** Each tab at its own address, the first at the page's own. */
+const TAB_PATHS = {
+  handedOver: "/milk",
+  mismatches: "/milk/reconciliation",
+  givingLess: "/milk/giving-less",
+  records: "/milk/records",
+} as const satisfies Record<Tab, string>;
 
 /**
  * The figures a day of milk is judged by: what went into the tank, what was handed over at the gate and what it came
@@ -87,7 +96,7 @@ const useMilkFigures = ({
 const MilkPage = () => {
   const { t } = useLanguage();
   const navigate = useNavigate({ from: Route.fullPath });
-  const { tab = "handedOver" } = Route.useSearch();
+  const tab = useTabOfPath(TAB_PATHS) ?? "handedOver";
   const me = useQuery(orpc.people.me.queryOptions());
   const [day, setDay] = useState(() => farmDayOf(new Date()));
   const [recording, setRecording] = useState(false);
@@ -123,12 +132,7 @@ const MilkPage = () => {
       <SummaryFigures figures={figures} />
 
       <PageTabs
-        onChange={(value) =>
-          navigate({
-            replace: true,
-            search: value === "handedOver" ? {} : { tab: value },
-          })
-        }
+        onChange={(value) => navigate({ replace: true, to: TAB_PATHS[value] })}
         tabs={[
           {
             value: "handedOver",
@@ -185,9 +189,4 @@ const MilkPage = () => {
 export const Route = createFileRoute("/_authenticated/milk")({
   beforeLoad: onlyFor("runsTheFarm"),
   component: MilkPage,
-  /** Which tab, kept in the address so the page comes back as it was left. */
-  validateSearch: (search: Record<string, unknown>): { tab?: Tab } =>
-    TABS.includes(search.tab as Tab) && search.tab !== "handedOver"
-      ? { tab: search.tab as Tab }
-      : {},
 });

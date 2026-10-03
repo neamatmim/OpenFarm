@@ -143,7 +143,7 @@ const PLACES = {
   sop_proposed: {
     label: "alerts.readTheProposals",
     Way: ({ children }) => (
-      <Link className={LEADS_CLASS} search={{ tab: "proposals" }} to="/sops">
+      <Link className={LEADS_CLASS} to="/sops/proposals">
         {children}
       </Link>
     ),
@@ -189,7 +189,7 @@ const PLACES = {
   milk_unaccounted: {
     label: "alerts.openTheMilk",
     Way: ({ children }) => (
-      <Link className={LEADS_CLASS} search={{ tab: "mismatches" }} to="/milk">
+      <Link className={LEADS_CLASS} to="/milk/reconciliation">
         {children}
       </Link>
     ),
@@ -222,8 +222,7 @@ const WhereItLeads = ({
       <Link
         className={LEADS_CLASS}
         params={{ ventureId }}
-        search={{ tab: "investors" }}
-        to="/ventures/$ventureId"
+        to="/ventures/$ventureId/investors"
       >
         {t("alerts.makeThePaper")}
       </Link>
@@ -231,7 +230,7 @@ const WhereItLeads = ({
   }
   if (notice.kind === "receivable_overdue") {
     return (
-      <Link className={LEADS_CLASS} search={{ tab: "receivable" }} to="/money">
+      <Link className={LEADS_CLASS} to="/money/receivables">
         {t("alerts.seeWhoOwes")}
       </Link>
     );
@@ -256,8 +255,7 @@ const WhereItLeads = ({
       <Link
         className={LEADS_CLASS}
         params={{ ventureId }}
-        search={{ tab: "investors" }}
-        to="/ventures/$ventureId"
+        to="/ventures/$ventureId/investors"
       >
         {t("alerts.seeWhoIsBehind")}
       </Link>
@@ -286,14 +284,14 @@ const WhereItLeads = ({
   }
   if (notice.kind === "cash_short") {
     return (
-      <Link className={LEADS_CLASS} search={{ tab: "cash" }} to="/money">
+      <Link className={LEADS_CLASS} to="/money/cash">
         {t("alerts.openTheCash")}
       </Link>
     );
   }
   if (notice.kind === "store_shortfall") {
     return (
-      <Link className={LEADS_CLASS} search={{ tab: "counts" }} to="/feed">
+      <Link className={LEADS_CLASS} to="/feed/stock-counts">
         {t("alerts.openTheCounts")}
       </Link>
     );
@@ -305,8 +303,7 @@ const WhereItLeads = ({
         className={LEADS_CLASS}
         hash={REQUESTS_ANCHOR}
         params={{ ventureId }}
-        search={{ tab: "investors" }}
-        to="/ventures/$ventureId"
+        to="/ventures/$ventureId/investors"
       >
         {t("alerts.readTheRequests")}
       </Link>

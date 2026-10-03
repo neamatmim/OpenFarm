@@ -4,7 +4,7 @@ import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Outlet, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { BookOpen, GitPullRequestArrow, Hand, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -20,6 +20,7 @@ import { SopEditor } from "@/components/playbook/sop-editor";
 import { StandardSops } from "@/components/playbook/standard-sops";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
+import { useTabOfPath } from "@/lib/path-tabs";
 import { useRefused } from "@/lib/refused";
 import { emptySop } from "@/lib/sop-draft";
 import { orpc } from "@/utils/orpc";
@@ -33,6 +34,12 @@ const REFUSALS: Record<string, MessageKey> = {
   report_sop_exists: "sop.refused.reportExists",
 };
 type Tab = (typeof TABS)[number];
+
+/** Each tab at its own address, the first at the page's own. */
+const TAB_PATHS = {
+  procedures: "/sops",
+  proposals: "/sops/proposals",
+} as const satisfies Record<Tab, string>;
 
 /** The figures the Playbook is judged by: how many procedures are in force, how many changes wait on the Owner, and
  *  how many are raised by hand, which nobody's clock will bring round. */
@@ -78,7 +85,7 @@ const SopsPage = () => {
   const { t } = useLanguage();
   const refused = useRefused(REFUSALS);
   const navigate = useNavigate({ from: Route.fullPath });
-  const { tab = "procedures" } = Route.useSearch();
+  const tab = useTabOfPath(TAB_PATHS) ?? "procedures";
   const [draft, setDraft] = useState<{
     content: SopContent;
     definitionId: string | null;
@@ -222,12 +229,7 @@ const SopsPage = () => {
       <SummaryFigures figures={figures} />
 
       <PageTabs
-        onChange={(value) =>
-          navigate({
-            replace: true,
-            search: value === "procedures" ? {} : { tab: value },
-          })
-        }
+        onChange={(value) => navigate({ replace: true, to: TAB_PATHS[value] })}
         tabs={[
           {
             value: "procedures",
@@ -307,13 +309,11 @@ const SopsPage = () => {
   );
 };
 
-export const Route = createFileRoute("/_authenticated/sops/")({
+/** The Playbook on its own tabs; a page further down — an SOP's card — in their place. */
+const SopsLayout = () => (useTabOfPath(TAB_PATHS) ? <SopsPage /> : <Outlet />);
+
+export const Route = createFileRoute("/_authenticated/sops")({
   /** For those who run the farm: the Owner and the Farm Managers. */
   beforeLoad: onlyFor("runsTheFarm"),
-  component: SopsPage,
-  /** Which tab, kept in the address so the page comes back as it was left. */
-  validateSearch: (search: Record<string, unknown>): { tab?: Tab } =>
-    TABS.includes(search.tab as Tab) && search.tab !== "procedures"
-      ? { tab: search.tab as Tab }
-      : {},
+  component: SopsLayout,
 });

@@ -154,8 +154,7 @@ const HeldCell = ({ row }: Cell) => {
         aria-label={t("ventures.movements")}
         className="rounded-md tabular-nums underline-offset-4 outline-none hover:underline focus-visible:ring-2"
         params={{ ventureId: venture.id }}
-        search={{ tab: "money" }}
-        to="/ventures/$ventureId"
+        to="/ventures/$ventureId/money"
       >
         {asMoney(venture.capitalInMoney)}
       </Link>

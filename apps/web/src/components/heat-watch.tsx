@@ -69,8 +69,7 @@ export const HeatWatchGroup = ({
         <Link
           className="after:absolute after:inset-0 hover:underline"
           params={{ tagNumber: row.tag }}
-          search={{ tab: "breeding" }}
-          to="/animals/$tagNumber"
+          to="/animals/$tagNumber/breeding"
         >
           {row.tag}
         </Link>

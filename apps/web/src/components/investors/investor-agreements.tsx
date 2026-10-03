@@ -146,8 +146,7 @@ const VentureCell = ({ row }: AgreementCell) => {
       <Link
         className="font-medium underline-offset-4 hover:underline focus-visible:underline"
         params={{ ventureId: venture.id }}
-        search={{ tab: "investors" }}
-        to="/ventures/$ventureId"
+        to="/ventures/$ventureId/investors"
       >
         {venture.name}
       </Link>
@@ -420,8 +419,7 @@ const VentureLink = ({
     <Link
       className={className}
       params={{ ventureId: venture.id }}
-      search={{ tab: "money" }}
-      to="/ventures/$ventureId"
+      to="/ventures/$ventureId/money"
     >
       {venture.name}
     </Link>

@@ -41,8 +41,7 @@ export const InvestorRequests = ({ investorId }: { investorId: string }) => {
                 className="font-medium break-words hover:underline"
                 hash={REQUESTS_ANCHOR}
                 params={{ ventureId: one.ventureId }}
-                search={{ tab: "investors" }}
-                to="/ventures/$ventureId"
+                to="/ventures/$ventureId/investors"
               >
                 {one.ventureName}
               </Link>
