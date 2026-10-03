@@ -596,6 +596,66 @@ export const en = {
   "projection.lossAtLow":
     "At the low price this is a loss, and a loss comes off the Investors' capital.",
   "projection.switch.title": "Projections for Investors",
+  "agreeInApp.switch.title": "Agreements agreed in the app",
+  "agreeInApp.switch.show": "Turn on",
+  "agreeInApp.switch.hide": "Turn off",
+  "agreeInApp.switch.shownHint":
+    "Agreements and Amendments may be agreed in the app, with no stamp or e-challan: you offer, the Investor agrees in the portal, you approve.",
+  "agreeInApp.switch.hiddenHint":
+    "Off. Turn it on only once the lawyer and the Shariah scholar have confirmed it — their approval was of stamped Agreements.",
+  "agreeInApp.switch.confirmTitle": "Turn on agreeing in the app?",
+  "agreeInApp.switch.confirmWhy":
+    "Have the lawyer and the Shariah scholar confirmed the farm may rely on an Agreement with no stamp on it? Once on, new Agreements and Amendments may be agreed in the app.",
+  "agreeInApp.switch.shownDone": "Agreeing in the app is on",
+  "agreeInApp.switch.hiddenDone": "Agreeing in the app is off",
+  "agreeInApp.route": "Agreed in the app",
+  "agreeInApp.sheetHint":
+    "No stamp or e-challan. The Investor reads this Agreement's paper in the portal and agrees to it; once you approve, the Agreement is written.",
+  "agreeInApp.offer": "Send to agree",
+  "agreeInApp.offered": "The Agreement is sent",
+  "agreeInApp.offeredHint":
+    "Once the Investor agrees in the portal, it shows on the Venture's investors for you to approve.",
+  "agreeInApp.waitingTitle": "Waiting to be agreed in the app",
+  "agreeInApp.waitingHint":
+    "An Agreement sent is not an Agreement until you approve it — it holds no Units.",
+  "agreeInApp.offerTerms":
+    "{units, plural, one {# Unit} other {# Units}} · {percent}% to the Investor",
+  "agreeInApp.offeredOn": "Sent {on}",
+  "agreeInApp.agreedOn": "Agreed {on}",
+  "agreeInApp.standing.offered": "Waiting for them",
+  "agreeInApp.standing.agreed": "Agreed — approve it",
+  "agreeInApp.approve": "Approve",
+  "agreeInApp.withdraw": "Withdraw",
+  "agreeInApp.withdrawn": "The offer is withdrawn",
+  "agreeInApp.agreedBadge": "Agreed in the app",
+  "agreeInApp.refusal.agreements_in_app_off":
+    "Agreeing in the app is turned off on this farm.",
+  "agreeInApp.refusal.investor_not_in_portal":
+    "They have not joined the portal, or it is shut — they cannot agree in the app. Sign on stamp instead.",
+  "agreeInApp.refusal.offer_already_made":
+    "An Agreement is sent to them on this Venture already; withdraw it before sending another.",
+  "agreeInApp.refusal.offer_not_agreed": "The Investor has not agreed yet.",
+  "agreeInApp.refusal.offer_withdrawn": "This offer was withdrawn.",
+  "agreeInApp.refusal.offer_already_approved":
+    "This is approved — it is an Agreement now.",
+  "agreeInApp.refusal.venture_units_gone":
+    "This Venture has not that many Units left. Withdraw the offer and send it again for fewer.",
+  "agreeInApp.refusal.investor_cap_reached":
+    "The farm has as many Investors as it may.",
+  "agreeInApp.refusal.paper_changed_since":
+    "The paper you read is not the one sent. Open it again and read it.",
+  "agreeInApp.portal.title": "{venture}: your Agreement",
+  "agreeInApp.portal.hint":
+    "The farm has sent you an Agreement for {units, plural, one {# Unit} other {# Units}}, {percent}% of the profit yours. Read the whole paper and, if you agree, press below — no stamp is needed.",
+  "agreeInApp.portal.agreedHint":
+    "You have agreed. Once the farm approves it, it is your Agreement, and its Pay-in Code shows on your Venture.",
+  "agreeInApp.portal.read": "Read the Agreement",
+  "agreeInApp.portal.readAgain": "Read it again",
+  "agreeInApp.portal.paperTitle": "Mudaraba Investment Agreement",
+  "agreeInApp.portal.agreeHint":
+    "Read it all. Pressing “I agree” records your agreement to this paper, as it is.",
+  "agreeInApp.portal.agree": "I agree",
+  "agreeInApp.portal.agreedDone": "Your agreement has reached the farm",
   "projection.switch.shown": "Shown",
   "projection.switch.hidden": "Hidden",
   "projection.switch.show": "Show projections",
@@ -1351,7 +1411,7 @@ export const en = {
   "ventures.weighThemFirst":
     "Put {tags} on the scale first — a price is struck off her weight, and the farm strikes none it cannot defend.",
   "ventures.weighThemAgain":
-    "{tags} last weighed more than {days} days ago — weigh again before pricing; she has eaten since.",
+    "{tags} last weighed more than {days, plural, one {# day} other {# days}} ago — weigh again before pricing; she has eaten since.",
   "ventures.weighedOnDay": "weighed {day}",
   "ventures.weighAgainFirst": "weighing too old — weigh first",
   "ventures.neverWeighed": "Never weighed",
@@ -5014,7 +5074,7 @@ export const en = {
   "digest.cashShort":
     "{count, plural, one {# cash count} other {# cash counts}} came up short",
   "alerts.arrivalWeightShort":
-    "{tag} came off the lorry at {arrival} kg; at her first weighing {days} days on she was {weighed} kg, {percent}% under — bought from {seller}",
+    "{tag} came off the lorry at {arrival} kg; at her first weighing {days, plural, one {# day} other {# days}} on she was {weighed} kg, {percent}% under — bought from {seller}",
   "digest.arrivalWeightShort":
     "{count, plural, one {# bought animal} other {# bought animals}} weighed under what {count, plural, one {it was} other {they were}} bought at",
   "alerts.largeShrink":

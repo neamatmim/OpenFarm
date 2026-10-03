@@ -1,5 +1,5 @@
 import type { Database } from "@OpenFarm/db";
-import type { AdjustmentOutcome } from "@OpenFarm/db/schema/venture";
+import type { AdjustmentOutcome, StampKind } from "@OpenFarm/db/schema/venture";
 import type { PaperNominee } from "@OpenFarm/domain";
 import { exitOf, roundTaka, unitsHeld, whatUnitsTake } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -29,7 +29,7 @@ export interface HisAgreement {
   /** The day a paper everybody signed moved these, where one did. */
   amendedOn: string | null;
   arbitrator: string;
-  stampKind: "paper" | "e_challan";
+  stampKind: StampKind;
   stampValueBdt: number;
   stampedOn: string;
   stampSerial: string;

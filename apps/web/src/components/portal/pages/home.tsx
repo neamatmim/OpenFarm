@@ -13,6 +13,7 @@ import {
   PageHeader,
   Section,
 } from "@/components/page";
+import { AgreeInApp } from "@/components/portal/agree-in-app";
 import {
   Allocation,
   CapitalAccount,
@@ -196,6 +197,8 @@ export const PortalHome = () => {
         }
         title={t("portal.homeTitle")}
       />
+      {/* An Agreement offered to agree to here comes first: it is theirs to act on now. */}
+      <AgreeInApp />
       {/* The one answer they have to act on comes first: the farm will sign with them. */}
       <ComeAndSign />
       {/* Somebody in no Venture yet reads what the farm is raising capital for, and what they have asked, before being

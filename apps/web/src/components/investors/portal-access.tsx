@@ -288,6 +288,18 @@ const SHOWN = {
     shownDone: "projection.switch.shownDone",
     hiddenDone: "projection.switch.hiddenDone",
   },
+  agreements: {
+    set: orpc.investors.setAgreementsInApp,
+    title: "agreeInApp.switch.title",
+    show: "agreeInApp.switch.show",
+    hide: "agreeInApp.switch.hide",
+    shownHint: "agreeInApp.switch.shownHint",
+    hiddenHint: "agreeInApp.switch.hiddenHint",
+    confirmTitle: "agreeInApp.switch.confirmTitle",
+    confirmWhy: "agreeInApp.switch.confirmWhy",
+    shownDone: "agreeInApp.switch.shownDone",
+    hiddenDone: "agreeInApp.switch.hiddenDone",
+  },
   returns: {
     set: orpc.investors.setReturnsShown,
     title: "returns.switch.title",

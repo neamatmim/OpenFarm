@@ -381,8 +381,12 @@ export const requestToJoin = pgTable(
 );
 
 /** How the Agreement's stamp duty was paid: on stamp paper, or by e-challan into the treasury with no paper to
- *  stamp. Its own copy, as the schema's other enums are. */
-export const STAMP_KINDS = ["paper", "e_challan"] as const;
+ *  stamp — or none was, the Agreement agreed within the app by the Investor and approved by the Owner. Its own copy, as
+ *  the schema's other enums are. */
+export const STAMP_KINDS = ["paper", "e_challan", "in_app"] as const;
+export type StampKind = (typeof STAMP_KINDS)[number];
+/** The kinds a paper is signed and stamped by, as against agreed in the app. */
+export const STAMPED_KINDS = ["paper", "e_challan"] as const;
 
 /**
  * What one Investor signed for one Venture: the Units they took, the percentages the profit is split by,
@@ -448,6 +452,51 @@ export const investmentAgreement = pgTable(
     // One paper answers a Request at most once.
     uniqueIndex("investment_agreement_request_uidx").on(table.requestId),
   ]
+);
+
+/**
+ * An Agreement offered to an Investor to agree to in the app, instead of on stamped paper: the terms, the paper as it
+ * was laid out the moment it was offered — what the Investor reads and agrees to, kept as it was — and what became of
+ * it. Not an Agreement: nothing counts it until the Owner approves it, and then an Agreement is written from it.
+ */
+export const agreementOffer = pgTable(
+  "agreement_offer",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    ventureId: text("venture_id")
+      .notNull()
+      .references(() => venture.id, { onDelete: "cascade" }),
+    investorId: text("investor_id")
+      .notNull()
+      .references(() => investor.id),
+    units: integer("units").notNull(),
+    investorsPercent: integer("investors_percent").notNull(),
+    arbitrator: text("arbitrator").notNull(),
+    /** The Nominees it names, as the Owner wrote them; none for the list in force. */
+    nominees: jsonb("nominees"),
+    requestId: text("request_id").references(() => requestToJoin.id),
+    templateVersionId: text("template_version_id").references(
+      () => paperTemplateVersion.id
+    ),
+    /** The paper as laid out when it was offered: what the Investor read and agreed to, kept as it was. */
+    paper: jsonb("paper").notNull(),
+    /** Its fingerprint, which the Investor's agreement is recorded against. */
+    paperHash: text("paper_hash").notNull(),
+    offeredBy: text("offered_by").references(() => user.id),
+    offeredAt: timestamp("offered_at").notNull(),
+    /** The Investor agreeing, from their own portal sign-in. */
+    agreedBy: text("agreed_by").references(() => user.id),
+    agreedAt: timestamp("agreed_at"),
+    withdrawnAt: timestamp("withdrawn_at"),
+    approvedBy: text("approved_by").references(() => user.id),
+    approvedAt: timestamp("approved_at"),
+    /** The Agreement written from it on approval. */
+    agreementId: text("agreement_id").references(() => investmentAgreement.id),
+  },
+  (table) => [index("agreement_offer_venture_idx").on(table.ventureId)]
 );
 
 /** What an Investor did to their own Request. */

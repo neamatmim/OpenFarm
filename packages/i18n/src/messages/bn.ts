@@ -558,6 +558,64 @@ export const bn: Record<MessageKey, string> = {
   "projection.lossAtLow":
     "কম দামে এটি লোকসান, আর লোকসান বিনিয়োগকারীদের মূলধন থেকে কাটা যায়।",
   "projection.switch.title": "বিনিয়োগকারীদের জন্য আনুমানিক হিসাব",
+  "agreeInApp.switch.title": "অ্যাপেই চুক্তিতে সম্মতি",
+  "agreeInApp.switch.show": "চালু করুন",
+  "agreeInApp.switch.hide": "বন্ধ করুন",
+  "agreeInApp.switch.shownHint":
+    "স্ট্যাম্প বা ই-চালান ছাড়াই চুক্তি ও সংশোধনী অ্যাপে করা যাচ্ছে: আপনি প্রস্তাব দেন, বিনিয়োগকারী পোর্টালে সম্মতি দেন, আপনি অনুমোদন দেন।",
+  "agreeInApp.switch.hiddenHint":
+    "বন্ধ। আইনজীবী ও শরিয়াহ বিশেষজ্ঞ নিশ্চিত করলে তবেই চালু করুন — তাঁদের আগের অনুমোদন স্ট্যাম্প করা চুক্তির জন্য।",
+  "agreeInApp.switch.confirmTitle": "অ্যাপেই চুক্তিতে সম্মতি চালু করবেন?",
+  "agreeInApp.switch.confirmWhy":
+    "স্ট্যাম্প ছাড়া চুক্তির উপর খামার নির্ভর করতে পারবে কি না, তা আইনজীবী ও শরিয়াহ বিশেষজ্ঞ নিশ্চিত করেছেন তো? চালু করলে নতুন চুক্তি ও সংশোধনী অ্যাপে সম্মতি দিয়েই হবে।",
+  "agreeInApp.switch.shownDone": "অ্যাপেই চুক্তিতে সম্মতি চালু হয়েছে",
+  "agreeInApp.switch.hiddenDone": "অ্যাপেই চুক্তিতে সম্মতি বন্ধ হয়েছে",
+  "agreeInApp.route": "অ্যাপে সম্মতি",
+  "agreeInApp.sheetHint":
+    "স্ট্যাম্প বা ই-চালান লাগবে না। বিনিয়োগকারী পোর্টালে এই চুক্তির কাগজ পড়ে সম্মতি দেবেন; তারপর আপনি অনুমোদন দিলে চুক্তি লেখা হবে।",
+  "agreeInApp.offer": "সম্মতির জন্য পাঠান",
+  "agreeInApp.offered": "চুক্তি পাঠানো হয়েছে",
+  "agreeInApp.offeredHint":
+    "বিনিয়োগকারী পোর্টালে পড়ে সম্মতি দিলে ভেঞ্চারের বিনিয়োগকারী তালিকায় অনুমোদনের জন্য দেখাবে।",
+  "agreeInApp.waitingTitle": "অ্যাপে সম্মতির অপেক্ষায়",
+  "agreeInApp.waitingHint":
+    "পাঠানো চুক্তি অনুমোদন না হওয়া পর্যন্ত চুক্তি নয় — কোনো ইউনিট আটকে রাখে না।",
+  "agreeInApp.offerTerms": "{units} ইউনিট · বিনিয়োগকারী {percent}%",
+  "agreeInApp.offeredOn": "পাঠানো {on}",
+  "agreeInApp.agreedOn": "সম্মতি {on}",
+  "agreeInApp.standing.offered": "সম্মতির অপেক্ষায়",
+  "agreeInApp.standing.agreed": "সম্মত — অনুমোদন বাকি",
+  "agreeInApp.approve": "অনুমোদন দিন",
+  "agreeInApp.withdraw": "ফিরিয়ে নিন",
+  "agreeInApp.withdrawn": "চুক্তির প্রস্তাব ফিরিয়ে নেওয়া হয়েছে",
+  "agreeInApp.agreedBadge": "অ্যাপে সম্মত",
+  "agreeInApp.refusal.agreements_in_app_off":
+    "এই খামারে এখন অ্যাপে চুক্তিতে সম্মতি বন্ধ আছে।",
+  "agreeInApp.refusal.investor_not_in_portal":
+    "তিনি পোর্টালে যোগ দেননি, বা পোর্টাল বন্ধ — অ্যাপে সম্মতি দিতে পারবেন না। স্ট্যাম্পে সই করান।",
+  "agreeInApp.refusal.offer_already_made":
+    "এই ভেঞ্চারে তাঁকে একটি চুক্তি আগেই পাঠানো আছে; নতুন পাঠাতে আগেরটি ফিরিয়ে নিন।",
+  "agreeInApp.refusal.offer_not_agreed": "বিনিয়োগকারী এখনো সম্মতি দেননি।",
+  "agreeInApp.refusal.offer_withdrawn": "এই চুক্তির প্রস্তাব ফিরিয়ে নেওয়া হয়েছে।",
+  "agreeInApp.refusal.offer_already_approved": "এটি অনুমোদিত — এখন এটি চুক্তি।",
+  "agreeInApp.refusal.venture_units_gone":
+    "এই ভেঞ্চারে এত ইউনিট আর বাকি নেই। প্রস্তাবটি ফিরিয়ে নিয়ে কম ইউনিটে আবার পাঠান।",
+  "agreeInApp.refusal.investor_cap_reached":
+    "খামারের বিনিয়োগকারীর সংখ্যা সীমায় পৌঁছেছে।",
+  "agreeInApp.refusal.paper_changed_since":
+    "আপনি যে কাগজ পড়েছেন তা পাঠানো কাগজ নয়। পাতাটি আবার খুলে পড়ুন।",
+  "agreeInApp.portal.title": "{venture}: আপনার চুক্তি",
+  "agreeInApp.portal.hint":
+    "খামার আপনাকে {units} ইউনিটের চুক্তি পাঠিয়েছে, মুনাফার {percent}% আপনার। পুরো কাগজ পড়ে সম্মত হলে নিচে চাপুন — স্ট্যাম্প লাগবে না।",
+  "agreeInApp.portal.agreedHint":
+    "আপনি সম্মতি দিয়েছেন। খামার অনুমোদন দিলে চুক্তি হবে, আর জমার কোড আপনার ভেঞ্চারে দেখাবে।",
+  "agreeInApp.portal.read": "চুক্তি পড়ুন",
+  "agreeInApp.portal.readAgain": "আবার পড়ুন",
+  "agreeInApp.portal.paperTitle": "মুদারাবা বিনিয়োগ চুক্তি",
+  "agreeInApp.portal.agreeHint":
+    "পুরোটা পড়ুন। «আমি সম্মত» চাপলে এই কাগজেই আপনার সম্মতি লেখা থাকবে।",
+  "agreeInApp.portal.agree": "আমি সম্মত",
+  "agreeInApp.portal.agreedDone": "আপনার সম্মতি খামারে পৌঁছেছে",
   "projection.switch.shown": "দেখানো হচ্ছে",
   "projection.switch.hidden": "লুকানো",
   "projection.switch.show": "আনুমানিক হিসাব দেখান",
