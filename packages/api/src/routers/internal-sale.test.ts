@@ -341,6 +341,25 @@ describe("the Internal Sale", () => {
     });
   });
 
+  it("refuses a Venture whose Cattle Budget does not hold her price", async () => {
+    const hers = await bull("2047-02-04T06:00:00.000Z");
+    await weigh("2047-02-07", [[hers.tagNumber, 220]]);
+    const owner = await as("owner", "2047-02-07T09:00:00.000Z");
+    // Twenty-two lakh for a bull, against a Cattle Budget of ten: the buyer pays out of what it holds for cattle.
+    await expect(
+      owner.client.ventures.sellInternally({
+        tagNumber: hers.tagNumber,
+        toVentureId: ventureId,
+        rateBdtPerKg: 10_000,
+        note: `ভুল দর ${suffix}`,
+        soldOn: "2047-02-07",
+        paymentMethod: "bank",
+        reference: `INT-TOO-DEAR-${suffix}`,
+        priceBdt: 2_200_000,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "cattle_budget_short" } });
+  });
+
   it("refuses an animal nobody has weighed", async () => {
     const unweighed = await bull("2047-02-09T05:00:00.000Z");
     const owner = await as("owner", "2047-02-09T09:00:00.000Z");

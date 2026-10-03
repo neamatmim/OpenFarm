@@ -1323,3 +1323,33 @@ export const reachesSellingOnASale = async (
   // back into the notices and make a circle of the imports.
   return true;
 };
+
+/**
+ * Refuses money out of a Venture's Cattle Budget past what it holds — a Float drawn, a bull at the gate paid from the
+ * account, an Animal bought from another purse — less what this same payment already took, where it is being put
+ * right. Asked behind the Farm lock, inside the write: what the budget holds is only true until the next payment
+ * commits. The one place the rule is written.
+ */
+export const assertCattleBudgetHolds = async (
+  tx: Tx,
+  farmId: string,
+  run: Parameters<typeof budgetsOf>[0] & { id: string },
+  amountBdt: number,
+  { alreadyPaidBdt = 0 }: { alreadyPaidBdt?: number } = {}
+): Promise<void> => {
+  const held = await heldByEach(tx, farmId, [run.id]);
+  // Its signed Units too: paid by the month, its cattle money is what their Cattle Parts brought in.
+  const signed = await signedForEach(tx, farmId, [run.id]);
+  const { cattleBudgetHeldBdt } = budgetsOf(
+    run,
+    held.get(run.id),
+    signed.get(run.id)?.units ?? 0
+  );
+  const room = cattleBudgetHeldBdt + alreadyPaidBdt;
+  if (amountBdt > room) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `The Cattle Budget is holding ${room}`,
+      data: { refusal: "cattle_budget_short" },
+    });
+  }
+};

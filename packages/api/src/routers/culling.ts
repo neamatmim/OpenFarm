@@ -1,6 +1,6 @@
 import { cullList } from "../cull-store";
 import { protectedProcedure } from "../index";
-import { OWNER_ONLY, requireOnly } from "../roles";
+import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
 
 export const cullingRouter = {
   /**
@@ -10,6 +10,7 @@ export const cullingRouter = {
    */
   list: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
     .handler(
       async ({ context }) =>
         await cullList(context.db, context.farm, context.clock.now())

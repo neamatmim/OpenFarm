@@ -32,6 +32,7 @@ import { priceAtWeight } from "../venture-store";
 export const returnsRouter = {
   page: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
     .handler(({ context }) =>
       returnsPage(context.db, context.farm, context.clock.now())
     ),
@@ -39,6 +40,7 @@ export const returnsRouter = {
   /** The Seasons still going, for the strip above the Fattening board: the Owner's alone, as the animal prices are. */
   runningSeasons: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
     .handler(({ context }) =>
       runningSeasons(context.db, context.farm, context.clock.now())
     ),
@@ -49,6 +51,7 @@ export const returnsRouter = {
    */
   breakdown: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
     .input(z.object({ seasonKey: z.string(), by: z.enum(BREAKDOWNS) }))
     .handler(({ context, input }) =>
       seasonBreakdown(context.db, context.farm, input, context.clock.now())
@@ -57,6 +60,7 @@ export const returnsRouter = {
   /** One dairy Animal's return and her calves', for her own page: the Owner's alone. */
   animal: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
     .input(z.object({ animalId: z.string() }))
     .handler(({ context, input }) =>
       dairyAnimalReturns(
@@ -208,6 +212,7 @@ export const returnsRouter = {
   /** One Venture's returns, for the panel on its page: settled or still going; nothing before it has cattle. */
   venture: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
     .input(z.object({ ventureId: z.string() }))
     .handler(({ context, input }) =>
       ventureReturns(

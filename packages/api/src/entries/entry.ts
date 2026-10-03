@@ -9,7 +9,12 @@ import { audited } from "../audit";
 import type { Recorder } from "../completion-store";
 import { requireAnimal } from "../herd-store";
 import { isLate, lateEntry } from "../late";
-import { VISITING_VET, forbidden, roleFor } from "../roles";
+import {
+  forbidden,
+  PERSONAL_PHONE_ONLY,
+  roleFor,
+  VISITING_VET,
+} from "../roles";
 import { workingAs } from "../scope";
 
 /**
@@ -123,9 +128,7 @@ const assertFromTheRightPhone = <Input, Result>(
   input: Input
 ) => {
   if (context.device && kind.needsPersonalSession?.(input)) {
-    throw new ORPCError("FORBIDDEN", {
-      message: "This can only be done from your own phone, not a shed phone",
-    });
+    throw forbidden(PERSONAL_PHONE_ONLY);
   }
 };
 

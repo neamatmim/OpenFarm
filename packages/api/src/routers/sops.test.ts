@@ -210,9 +210,13 @@ describe("authoring an SOP", () => {
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
+    // Said as a word the screen puts in the reader's language, not as the server's English.
     await expect(
       ownerOnPhone.client.sops.create({ content: milkingSop() })
-    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      data: { refusal: "personal_phone_only" },
+    });
   });
 });
 

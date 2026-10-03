@@ -711,6 +711,7 @@ describe("review findings", () => {
       vetOnPhone.client.instances.claim({ id: mine.id })
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
+      data: { refusal: "personal_phone_only" },
     });
   });
 

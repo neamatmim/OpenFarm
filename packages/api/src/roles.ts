@@ -25,7 +25,8 @@ export type RefusalReason =
   | "vet_only"
   | "manager_only"
   | "owner_only"
-  | "staff_or_manager_only";
+  | "staff_or_manager_only"
+  | "personal_phone_only";
 
 /** Why a Role gate refused, for the gates whose answer a person needs to understand. */
 export interface Refusal {
@@ -102,6 +103,12 @@ export const requireRole = (...allowed: (RoleName | OpenToAVisit)[]) =>
     allowed.find((one): one is OpenToAVisit => typeof one === "object") ?? {}
   );
 
+/** What the farm says when an act is the Owner's alone. One refusal, because a reader is shown one line. */
+export const OWNER_ONLY = {
+  message: "This is the Owner's alone",
+  reason: "owner_only",
+} as const;
+
 /**
  * The same gate, for work exactly one Role may ever do — and which therefore owes an
  * explanation. A bare "forbidden" sends a Manager looking for a permission to change, and
@@ -111,26 +118,25 @@ export const requireRole = (...allowed: (RoleName | OpenToAVisit)[]) =>
  * the Role recorded is the one the work belongs to rather than the highest they happen to
  * have.
  */
-/** What the farm says when an act is the Owner's alone. One refusal, because a reader is shown one line. */
-export const OWNER_ONLY = {
-  message: "This is the Owner's alone",
-  reason: "owner_only",
-} as const;
-
 export const requireOnly = (
   role: RoleName,
   refusal: Refusal,
   openToAVisit: OpenToAVisit = {}
 ) => roleGate([role], { refusal, ...openToAVisit });
 
+/** Refused: this must come from the person's own phone, never a shared Shed Phone (ADR 0003). One refusal, with its
+ *  word, for the gate, the work a Vet signs and the Entries that may only come from a person's own phone. */
+export const PERSONAL_PHONE_ONLY: Refusal = {
+  message: "This can only be done from your own phone, not a shed phone",
+  reason: "personal_phone_only",
+};
+
 /** Some work must never come from a shared Shed Phone, whatever Role the active person
  *  holds: office work, and every clinical act a Vet signs (ADR 0003). */
 export const requirePersonalSession = () =>
   os.$context<Context & { actor: Actor }>().middleware(({ context, next }) => {
     if (context.device) {
-      throw new ORPCError("FORBIDDEN", {
-        message: "This can only be done from your own phone, not a shed phone",
-      });
+      throw forbidden(PERSONAL_PHONE_ONLY);
     }
     return next();
   });
