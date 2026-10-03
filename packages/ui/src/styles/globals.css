@@ -253,6 +253,11 @@
     html:has([data-slot="bottom-bar"]) {
       scroll-padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
     }
+    /* A Step being worked hides the bottom bar and pins its action instead: a field tabbed to stops above it too
+       (WCAG 2.4.11). */
+    html:has([data-slot="sticky-action"]) {
+      scroll-padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+    }
   }
   /* One line height for each size, the same in both languages, and tall enough for Bangla's vowel marks and
      conjuncts: a line of text is as tall in English as in Bangla, so changing the language changes the words and

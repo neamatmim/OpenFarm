@@ -1,4 +1,3 @@
-import { Toaster } from "@OpenFarm/ui/components/sonner";
 import { TooltipProvider } from "@OpenFarm/ui/components/tooltip";
 import type { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
@@ -15,6 +14,7 @@ import { evlogErrorHandler } from "evlog/nitro/v3";
 import { ThemeProvider } from "next-themes";
 import { useEffect } from "react";
 
+import { AppToaster } from "@/components/app-toaster";
 import { forgetShell } from "@/lib/install";
 import {
   COUNTRY_ATTRIBUTE,
@@ -89,12 +89,7 @@ const RootDocument = () => {
               </div>
             </TooltipProvider>
           </LanguageProvider>
-          {/* Top right on a desk, under the 56px bar, as Carbon and Fluent place them; on a phone Sonner spans the top. */}
-          <Toaster
-            offset={{ right: 16, top: 64 }}
-            position="top-right"
-            richColors
-          />
+          <AppToaster />
         </ThemeProvider>
         {SHOW_DEVTOOLS ? (
           <>
