@@ -228,7 +228,7 @@ const WorkPage = () => {
               <ClipboardList aria-hidden className="size-8" />
             </span>
             <div className="flex flex-col items-center gap-1.5">
-              <h1 className="text-2xl font-semibold tracking-tight">
+              <h1 className="text-2xl font-semibold">
                 <SopName name={content.name} />
               </h1>
               <PlaceLine pen={pen} />

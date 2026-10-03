@@ -1,0 +1,137 @@
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import path from "node:path";
+
+import { en } from "@OpenFarm/i18n/messages/en";
+import { describe, expect, it } from "vitest";
+
+/**
+ * The farm's English is in sentence case, its common nouns lowercase inside a sentence: "open a venture", "by her tag
+ * number", "ask the owner". A thing the farm has many of, or a role without a name, is not a proper noun (Microsoft,
+ * Google, Polaris and Atlassian alike; docs/research/english-typography.md §4). The glossary and the code keep their
+ * capitals; the screens do not.
+ *
+ * Left as they are: what an Investor reads and the papers, whose wording the advisers approved and whose capitals mark
+ * a contract's defined terms; a page or a tab named as where to go ("the Investors page"); and the parts of the product
+ * there is one of (the Investor Portal, the Shed Phone, the Playbook).
+ */
+const ADVISERS_WORDING = new Set([
+  "portal",
+  "agreeInApp",
+  "statements",
+  "projection",
+  "templates",
+  "papers",
+  "nominees",
+]);
+
+const COMMON_NOUNS = [
+  "Settlement Adjustment",
+  "Target Window",
+  "Head Price",
+  "Monthly Sum",
+  "Cattle Budget",
+  "Drug List",
+  "Feed Item",
+  "Wind-up Period",
+  "Tag Number",
+  "Barn Staff",
+  "Settlement",
+  "Registration",
+  "Floor",
+  "Quarantine",
+  "Capital",
+  "Reimbursement",
+  "Amendment",
+  "Adjustment",
+  "Correction",
+  "Diagnosis",
+  "Campaign",
+  "Arbitrator",
+  "Nomination",
+  "Nominee",
+  "Intake",
+  "Dispatch",
+  "Sale",
+  "Category",
+  "Dairy",
+  "Fattening",
+  "Venture",
+  "Investor",
+  "Unit",
+  "Agreement",
+  "Farm",
+  "Pen",
+  "Vet",
+  "Owner",
+  "Manager",
+  "Ration",
+  "Season",
+  "Version",
+  "Lot",
+  "Float",
+  "Step",
+  "Side",
+];
+
+/** Tabs a sentence sends somebody to, said as the tab says them. */
+const TAB_NAMES = ["Capital in", "Money in and out", "Feed Items tab"];
+
+/** Inside a sentence: after a word, a figure, a comma, a closing brace or bracket, a dash, a count's "#", or a
+ *  sentence's opening "A" or "An". */
+const MID_SENTENCE = String.raw`(?:(?<=[a-z0-9,;}\)%—–#’'] )|(?<=\()|(?<=\bAn? ))`;
+const CAPITALISED = new RegExp(
+  `${MID_SENTENCE}(?:${COMMON_NOUNS.join("|")})(?:s|'s|s')?\\b(?! page| tab| Portal| Ops)`,
+  "u"
+);
+
+const walk = (dir: string): string[] =>
+  readdirSync(dir).flatMap((name) => {
+    const full = path.join(dir, name);
+    if (statSync(full).isDirectory()) {
+      return walk(full);
+    }
+    return /\.tsx?$/u.test(name) ? [full] : [];
+  });
+
+/** A page's name as its menu says it, which a sentence sending somebody there writes as it is: "on the Agreement
+ *  templates page". One word is let through by the "page"/"tab" after it; a longer one is taken out whole. */
+const PAGE_NAMES = [
+  ...Object.entries(en)
+    .filter(([key, words]) => key.startsWith("nav.") && words.includes(" "))
+    .map(([, words]) => words),
+  ...TAB_NAMES,
+];
+
+const withoutPageNames = (words: string) => {
+  let left = words;
+  for (const name of PAGE_NAMES) {
+    left = left.replaceAll(name, "");
+  }
+  return left;
+};
+
+/** The words the portal's own screens read, which are the advisers' too. */
+const portalKeys = new Set(
+  ["src/components/portal", "src/routes/portal"]
+    .flatMap(walk)
+    .flatMap((file) => [
+      ...readFileSync(file, "utf-8").matchAll(
+        /["'`](?<key>[a-zA-Z]+\.[\w.]+)["'`]/gu
+      ),
+    ])
+    .map((match) => match.groups?.key)
+);
+
+describe("the farm's English", () => {
+  it("keeps common nouns lowercase inside a sentence", () => {
+    const capitalised = Object.entries(en)
+      .filter(
+        ([key]) =>
+          !ADVISERS_WORDING.has(key.split(".")[0] ?? "") && !portalKeys.has(key)
+      )
+      .filter(([, words]) => CAPITALISED.test(withoutPageNames(words)))
+      .map(([key, words]) => `${key}: ${words}`);
+
+    expect(capitalised).toEqual([]);
+  });
+});

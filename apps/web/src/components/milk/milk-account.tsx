@@ -44,9 +44,7 @@ export const MilkAccountCard = () => {
     week.notAccounted > 0 && week.notAccountedPercent > week.linePercent;
   return (
     <section className="surface flex flex-col p-4 md:p-5">
-      <h3 className="text-base font-semibold tracking-tight">
-        {t("milkAccount.title")}
-      </h3>
+      <h3 className="text-base font-semibold">{t("milkAccount.title")}</h3>
       <p className="text-muted-foreground pb-2 text-xs">
         {t("milkAccount.hint", {
           since: formatDate(startOfFarmDay(week.since), language, "date"),

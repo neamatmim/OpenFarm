@@ -23,7 +23,7 @@ const Figure = ({
     <dt className="text-muted-foreground text-xs">{label}</dt>
     <dd
       className={cn(
-        "text-lg font-semibold tracking-tight tabular-nums sm:text-xl",
+        "text-lg font-semibold tabular-nums sm:text-xl",
         loud && "text-danger"
       )}
     >

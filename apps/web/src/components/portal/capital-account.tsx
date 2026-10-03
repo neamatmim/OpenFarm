@@ -89,7 +89,7 @@ export const CapitalAccount = ({ theirs }: { theirs: TheirAgreements }) => {
           >
             {t("portal.heldNow")}
           </h2>
-          <p className="text-3xl font-semibold tracking-tight tabular-nums md:text-4xl">
+          <p className="text-3xl font-semibold tabular-nums md:text-4xl">
             {asMoney(sums.heldMoney)}
           </p>
         </div>

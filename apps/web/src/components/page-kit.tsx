@@ -160,7 +160,7 @@ export const SummaryFigures = ({
           <dd
             className={cn(
               "font-semibold tabular-nums",
-              figure.lead ? "text-2xl tracking-tight" : "text-lg",
+              figure.lead ? "text-2xl" : "text-lg",
               TONE_TEXT[figure.tone ?? "neutral"]
             )}
           >

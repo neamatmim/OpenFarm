@@ -1,5 +1,7 @@
 @import "tailwindcss";
-@import "@fontsource-variable/inter";
+/* Inter with its optical sizes: a title is set in Inter's display design and text in its text design, each by its
+   size (font-optical-sizing: auto), so no title is squeezed by hand (docs/research/english-typography.md §2). */
+@import "@fontsource-variable/inter/opsz.css";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
@@ -255,15 +257,17 @@
   /* One line height for each size, the same in both languages, and tall enough for Bangla's vowel marks and
      conjuncts: a line of text is as tall in English as in Bangla, so changing the language changes the words and
      nothing moves. A ratio would give each language its own height, since Bangla's letters are larger — which is
-     what made every page jump by a few pixels a line when the language changed. */
+     what made every page jump by a few pixels a line when the language changed. Each is as close to what Latin UI
+     type is set on (Carbon, Fluent, Material: 12/16, 14/20, 16/24, 20/28, 24/32) as Bangla's marks allow without two
+     lines' ink meeting (docs/research/english-typography.md §3). */
   :root {
-    --text-xs--line-height: 1.25rem;
+    --text-xs--line-height: 1.125rem;
     --text-sm--line-height: 1.375rem;
-    --text-base--line-height: 1.625rem;
-    --text-lg--line-height: 1.75rem;
-    --text-xl--line-height: 1.875rem;
-    --text-2xl--line-height: 2.25rem;
-    --text-3xl--line-height: 2.625rem;
+    --text-base--line-height: 1.5rem;
+    --text-lg--line-height: 1.625rem;
+    --text-xl--line-height: 1.75rem;
+    --text-2xl--line-height: 2.125rem;
+    --text-3xl--line-height: 2.5rem;
     --text-4xl--line-height: 3.125rem;
   }
   /* Bangla is read larger than Latin, so its letters are their own size: metadata never below 14px and body at 17px,
@@ -289,7 +293,6 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: "cv11", "ss01";
   }
   h1,
   h2,

@@ -53,7 +53,7 @@ const WIDTH = {
 } as const;
 
 /** The title of a part of a page — a Section, a card of its own — at one size and weight everywhere. */
-export const SECTION_TITLE = "text-base font-semibold tracking-tight";
+export const SECTION_TITLE = "text-base font-semibold";
 
 /** A heading inside a part of a page, under its title: smaller, and as heavy. */
 export const SUBHEADING = "text-sm font-semibold";
@@ -138,13 +138,13 @@ export const PageHeader = ({
           </p>
         ) : null}
         <h1
-          className="text-xl font-semibold tracking-tight md:text-2xl"
+          className="text-xl font-semibold md:text-2xl"
           data-slot="page-title"
         >
           {title}
         </h1>
         {description ? (
-          <p className="text-muted-foreground max-w-2xl text-sm md:text-base">
+          <p className="text-muted-foreground max-w-2xl text-sm">
             {description}
           </p>
         ) : null}
@@ -339,7 +339,7 @@ export const StatTile = ({
       className={cn(
         // Wrapped, not clipped: a Venture's balance carries its paisa, and the longest figure the farm
         // has ran off the side of its tile rather than taking a second line.
-        "font-semibold tracking-tight break-words tabular-nums",
+        "font-semibold break-words tabular-nums",
         lead ? "text-3xl md:text-4xl" : "text-2xl md:text-3xl",
         TILE_TONE[tone]
       )}

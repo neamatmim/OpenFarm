@@ -549,10 +549,7 @@ const untypedFeed = (
   );
 
 /** A field left as it was handed over means the figure that was handed over. */
-const numberOr = (
-  value: string | undefined,
-  fallback: number
-): number => {
+const numberOr = (value: string | undefined, fallback: number): number => {
   const typed = Number(value);
   return value === undefined || value.trim() === "" || Number.isNaN(typed)
     ? fallback
@@ -703,9 +700,7 @@ const FieldWithLabel = ({
 const twoDigits = (part: number) => String(part).padStart(2, "0");
 
 /** An instant as a `datetime-local` field holds it: the phone's own day and minute, no zone. */
-const asLocalField = (
-  value: boolean | number | string | undefined
-): string => {
+const asLocalField = (value: boolean | number | string | undefined): string => {
   if (typeof value !== "string" || value === "") {
     return "";
   }
@@ -748,7 +743,7 @@ const EvidenceControl = ({
         <p
           aria-hidden
           className={cn(
-            "text-center text-5xl font-bold tracking-tight tabular-nums",
+            "text-center text-5xl font-bold tabular-nums",
             typed === "" && "text-muted-foreground/50"
           )}
         >

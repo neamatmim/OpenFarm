@@ -110,9 +110,7 @@ const WallCard = ({ card }: { card: Card }) => {
         <span className="text-muted-foreground text-xs font-semibold">
           {t("card.title")}
         </span>
-        <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
-          {name.bn}
-        </h2>
+        <h2 className="text-2xl font-semibold md:text-3xl">{name.bn}</h2>
         <span className="text-muted-foreground text-sm">
           {t("card.version", {
             number: formatDigits(number, CARD_LANGUAGE),

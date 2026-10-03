@@ -58,9 +58,7 @@ export const ScaleBySeller = () => {
   }
   return (
     <section className="surface flex flex-col p-4 md:p-5">
-      <h3 className="text-base font-semibold tracking-tight">
-        {t("scale.title")}
-      </h3>
+      <h3 className="text-base font-semibold">{t("scale.title")}</h3>
       <p className="text-muted-foreground pb-2 text-xs">
         {sellers.data.length === 0 ? t("scale.none") : t("scale.hint")}
       </p>

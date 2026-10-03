@@ -79,7 +79,7 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
   return (
     <div className="surface flex flex-col gap-6 p-6 sm:p-8">
       <div className="flex flex-col gap-1.5">
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-2xl font-semibold">
           {t(firstFarm ? "auth.firstFarmTitle" : "auth.createAccount")}
         </h1>
         <p className="text-muted-foreground text-sm">

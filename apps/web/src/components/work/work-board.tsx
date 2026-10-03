@@ -250,7 +250,7 @@ export const WorkHeader = ({
     <header className="flex flex-col gap-3">
       <BackToToday />
       <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">
+        <h1 className="text-xl font-semibold md:text-2xl">
           <SopName name={name} />
         </h1>
         <PlaceLine pen={pen} />

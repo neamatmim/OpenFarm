@@ -65,7 +65,7 @@ export const DoorScreen = ({
         </span>
       </Link>
       <div className="relative flex max-w-xl flex-1 flex-col justify-center gap-8 py-10">
-        <p className="text-4xl font-semibold tracking-tight text-balance xl:text-[2.75rem]">
+        <p className="text-4xl font-semibold text-balance xl:text-[2.75rem]">
           {promise.title}
         </p>
         <ul className="flex flex-col gap-4">
