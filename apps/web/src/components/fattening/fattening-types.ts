@@ -13,7 +13,7 @@ import type { orpc } from "@/utils/orpc";
 
 /** One animal on the fattening side, as the board answers for it. */
 export type BoardRow = NonNullable<
-  Awaited<ReturnType<typeof orpc.fattening.board.call>>
+  Awaited<ReturnType<typeof orpc.fattening.list.call>>
 >[number];
 
 /** Short of the target first, then the ones with no rate to judge, then the rest: a screen that lists everything in

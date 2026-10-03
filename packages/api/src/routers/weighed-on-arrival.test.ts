@@ -75,7 +75,7 @@ describe("feed weighed on arrival", () => {
     );
     expect(await storeOf(bagged)).toBe(488);
     const manager = await as("manager");
-    const [lot] = await manager.client.stock.arrivals({ feedItemId: bagged });
+    const [lot] = await manager.client.stock.feedIn({ feedItemId: bagged });
     expect(lot).toMatchObject({
       quantity: 488,
       slipQuantity: 500,
@@ -88,7 +88,7 @@ describe("feed weighed on arrival", () => {
   it("claims no difference for a lot nobody weighed", async () => {
     await buy(loose, KAMAL, { quantity: 300 }, 9000);
     const manager = await as("manager");
-    const [lot] = await manager.client.stock.arrivals({ feedItemId: loose });
+    const [lot] = await manager.client.stock.feedIn({ feedItemId: loose });
     expect(lot).toMatchObject({ quantity: 300, slipQuantity: null });
   });
 

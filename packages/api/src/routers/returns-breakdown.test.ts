@@ -490,7 +490,7 @@ describe("a finished Season opened out", () => {
 
   it("adds up, every way it is opened, to the Season's own cost and result", async () => {
     const { client: owner } = await as("owner", "2028-06-01T04:00:00.000Z");
-    const { seasons } = await owner.returns.page();
+    const { seasons } = await owner.returns.list();
     const season = seasons.find((one) => one.key === "eid:2028-05-06");
     // Four head: the Venture's own V, sold in the same window, is in no line of the Farm's.
     expect(season?.head).toBe(4);

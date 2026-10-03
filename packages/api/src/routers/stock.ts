@@ -116,7 +116,7 @@ export const stockRouter = {
    * Everything that came into the store, newest first: what, how much — in maunds as well, for feed
    * weighed in kilos, because a trader's slip is in maunds — what it cost, who sold it, and when.
    */
-  arrivals: protectedProcedure
+  feedIn: protectedProcedure
     .use(requireRole("owner", "manager"))
     .input(z.object({ feedItemId: z.string().optional() }).default({}))
     .handler(async ({ context, input }) => {

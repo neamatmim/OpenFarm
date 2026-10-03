@@ -112,7 +112,7 @@ const IntakeButton = () => {
  */
 const FatteningPage = () => {
   const { t } = useLanguage();
-  const board = useQuery(orpc.fattening.board.queryOptions({ input: {} }));
+  const board = useQuery(orpc.fattening.list.queryOptions({ input: {} }));
   const { keeping = "all", standing = "all" } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   // Each filter kept in the address beside the other, and "all" as no filter at all.

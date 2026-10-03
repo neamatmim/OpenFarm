@@ -102,7 +102,7 @@ const bought = (feedItemId: string) => ({
 
 const arrivalOf = async (feedItemId: string) => {
   const manager = await as("manager");
-  const [newest] = await manager.client.stock.arrivals({ feedItemId });
+  const [newest] = await manager.client.stock.feedIn({ feedItemId });
   return newest;
 };
 

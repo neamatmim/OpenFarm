@@ -85,7 +85,7 @@ describe("a Feed Purchase's price per unit", () => {
     );
 
     const manager = await as("manager");
-    const [newest, first] = await manager.client.stock.arrivals({
+    const [newest, first] = await manager.client.stock.feedIn({
       feedItemId: concentrate,
     });
     expect(newest).toMatchObject({
@@ -124,7 +124,7 @@ describe("a Feed Purchase's price per unit", () => {
     });
     await buy(napier, "2067-02-03", { quantity: 100 }, 800);
     const manager = await as("manager");
-    const rows = await manager.client.stock.arrivals({ feedItemId: napier });
+    const rows = await manager.client.stock.feedIn({ feedItemId: napier });
     expect(rows.find((row) => row.id === cut.id)).toMatchObject({
       unitPriceMoney: null,
       priceChangePercent: null,
@@ -154,7 +154,7 @@ describe("a Feed Purchase's price per unit", () => {
       reason: `রশিদে ৬,১০০ টাকা, ৫,১০০ নয় ${suffix}`,
       changes: { priceMoney: { from: 5100, to: 6100 } },
     });
-    const [newest] = await manager.client.stock.arrivals({
+    const [newest] = await manager.client.stock.feedIn({
       feedItemId: item.id,
     });
     expect(newest).toMatchObject({

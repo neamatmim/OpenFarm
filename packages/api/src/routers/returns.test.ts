@@ -121,7 +121,7 @@ beforeAll(async () => {
 describe("what a Season of the Farm's own cattle returned", () => {
   it("works it as a Settlement is — the early sale and the dead in — and puts it a year", async () => {
     const { client: owner } = await as("owner", "2028-06-01T04:00:00.000Z");
-    const page = await owner.returns.page();
+    const page = await owner.returns.list();
     const season = page.seasons.find((one) => one.key === "eid:2028-05-06");
     expect(season).toMatchObject({
       eid: "2028-05-06",
@@ -143,7 +143,7 @@ describe("what a Season of the Farm's own cattle returned", () => {
 describe("which Seasons there are", () => {
   it("makes one Season of an Eid whichever of its days a bull carries, and says it is not finished while one stands", async () => {
     const { client: owner } = await as("owner", "2029-01-10T04:00:00.000Z");
-    const { seasons } = await owner.returns.page();
+    const { seasons } = await owner.returns.list();
     const eid2029 = seasons.filter((one) => one.eid === "2029-04-25");
     expect(eid2029).toHaveLength(1);
     expect(eid2029[0]).toMatchObject({
@@ -156,7 +156,7 @@ describe("which Seasons there are", () => {
 
   it("makes a window that is no Eid a Season of its own, named by its dates", async () => {
     const { client: owner } = await as("owner", "2029-01-10T04:00:00.000Z");
-    const { seasons } = await owner.returns.page();
+    const { seasons } = await owner.returns.list();
     expect(
       seasons.find((one) => one.key === "window:2028-12-15|2029-01-15")
     ).toMatchObject({ eid: null, head: 1, finished: true });
@@ -169,7 +169,7 @@ describe("the floor under a rate a year", () => {
     // Asked afresh each time, as each request reads the farm's Parameters as they then stand.
     const winter = async () => {
       const { client: asking } = await as("owner", "2029-01-10T04:00:00.000Z");
-      const { seasons } = await asking.returns.page();
+      const { seasons } = await asking.returns.list();
       return seasons.find((one) => one.key === "window:2028-12-15|2029-01-15")
         ?.returnOnCost;
     };
@@ -199,7 +199,7 @@ describe("the floor under a rate a year", () => {
 describe("whose the Returns page is", () => {
   it("is the Owner's alone", async () => {
     const { client: manager } = await as("manager", "2029-01-10T04:00:00.000Z");
-    await expect(manager.returns.page()).rejects.toMatchObject({
+    await expect(manager.returns.list()).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
   });
@@ -208,7 +208,7 @@ describe("whose the Returns page is", () => {
 describe("the Bank Rate beside a rate a year", () => {
   it("shows none while the Owner has typed none", async () => {
     const { client: owner } = await as("owner", "2029-01-10T04:00:00.000Z");
-    const { seasons, bankRates } = await owner.returns.page();
+    const { seasons, bankRates } = await owner.returns.list();
     expect(bankRates).toEqual([]);
     expect(
       seasons.find((one) => one.key === "eid:2028-05-06")?.bankRate
@@ -235,7 +235,7 @@ describe("the Bank Rate beside a rate a year", () => {
       fromDay: "2028-03-01",
     });
     const { client: reading } = await as("owner", "2029-01-10T04:00:00.000Z");
-    const { seasons, bankRates } = await reading.returns.page();
+    const { seasons, bankRates } = await reading.returns.list();
     expect(
       seasons.find((one) => one.key === "eid:2028-05-06")?.bankRate
     ).toEqual({
@@ -295,7 +295,7 @@ describe("the Bank Rate beside a rate a year", () => {
 describe("a Season still going, at today's price", () => {
   it("leaves out whole, and names, every bull it cannot value — here all of them, with no price a kilo set", async () => {
     const { client: owner } = await as("owner", "2029-01-10T04:00:00.000Z");
-    const { seasons } = await owner.returns.page();
+    const { seasons } = await owner.returns.list();
     const going = seasons.find((one) => one.eid === "2029-04-25");
     expect(going?.running).toBeNull();
     expect(going?.gaps).toHaveLength(2);
@@ -312,7 +312,7 @@ describe("a Season still going, at today's price", () => {
       highMoneyPerKg: 600,
     });
     const { client: reading } = await as("owner", "2029-01-10T04:00:00.000Z");
-    const { seasons } = await reading.returns.page();
+    const { seasons } = await reading.returns.list();
     const going = seasons.find((one) => one.eid === "2029-04-25");
     expect(going?.gaps).toEqual([]);
     expect(going?.running).toEqual({
@@ -393,7 +393,7 @@ describe("a Season still going with one bull sold and one standing", () => {
     // ৳1,40,000 spent, ৳90,000 back from the one sold and ৳1,00,000 to ৳1,20,000 standing: 35.7 to 50.0 on every
     // hundred. The money: ৳70,000 out 4 days and ৳70,000 out 9.17 days by 10 January, 6.6 days on average.
     const { client: owner } = await as("owner", "2029-01-10T04:00:00.000Z");
-    const { seasons } = await owner.returns.page();
+    const { seasons } = await owner.returns.list();
     const going = seasons.find((one) => one.eid === "2030-04-14");
     expect(going?.gaps).toEqual([]);
     expect(going?.running).toEqual({

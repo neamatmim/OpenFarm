@@ -324,7 +324,7 @@ beforeAll(async () => {
     evidence: [100],
   });
   const { client: pricing } = await as("owner", "2045-03-02T04:00:00.000Z");
-  const { crossings } = await pricing.returns.page();
+  const { crossings } = await pricing.returns.list();
   await pricing.returns.priceCrossing({
     joiningId: crossings.find((one) => one.tagNumber === tags.b)?.id ?? "",
     rateMoneyPerKg: 300,
@@ -365,7 +365,7 @@ const READ_AT = "2045-04-01T04:00:00.000Z";
 
 const dairyPage = async () => {
   const { client: owner } = await as("owner", READ_AT);
-  const { dairy } = await owner.returns.page();
+  const { dairy } = await owner.returns.list();
   const gone = (tagNumber: string) =>
     dairy.gone.find((one) => one.tagNumber === tagNumber);
   return { dairy, gone };

@@ -7,7 +7,7 @@ import type { client } from "@/utils/orpc";
  * a dairy run's figures she is read by. Plain functions, so the rule is tested without a page.
  */
 
-export type ReturnsPage = Awaited<ReturnType<typeof client.returns.page>>;
+export type ReturnsPage = Awaited<ReturnType<typeof client.returns.list>>;
 export type Season = ReturnsPage["seasons"][number];
 export type Venture = ReturnsPage["ventures"][number];
 export type Returned = NonNullable<Season["returnOnCost"]>;

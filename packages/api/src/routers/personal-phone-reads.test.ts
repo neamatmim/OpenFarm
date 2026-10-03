@@ -24,7 +24,7 @@ describe("the Owner's money, read on a Shed Phone", () => {
       ],
       ["ventures.projection", client.ventures.projection(venture)],
       ["ventures.movableAnimals", client.ventures.movableAnimals()],
-      ["returns.page", client.returns.page()],
+      ["returns.list", client.returns.list()],
       ["returns.runningSeasons", client.returns.runningSeasons()],
       [
         "returns.breakdown",
@@ -55,6 +55,6 @@ describe("the Owner's money, read on a Shed Phone", () => {
   it("is still the Owner's to read on her own phone", async () => {
     const { client } = await createTestClient(appRouter, { as: "owner" });
     await expect(client.cullList.list()).resolves.toBeDefined();
-    await expect(client.returns.page()).resolves.toBeDefined();
+    await expect(client.returns.list()).resolves.toBeDefined();
   });
 });

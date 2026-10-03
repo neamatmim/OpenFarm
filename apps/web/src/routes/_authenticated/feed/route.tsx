@@ -41,7 +41,7 @@ import { orpc } from "@/utils/orpc";
 
 const TABS = [
   "stock",
-  "arrivals",
+  "feedIn",
   "counts",
   "leftovers",
   "rations",
@@ -49,15 +49,15 @@ const TABS = [
 ] as const;
 type Tab = (typeof TABS)[number];
 
-/** Each tab at its own address, the first at the page's own. Feed come in is the one still kept in the query: the
- *  glossary has no word yet for feed bought and feed harvested together (docs/research/route-naming-audit.md). */
+/** Each tab at its own address, the first at the page's own. */
 const TAB_PATHS = {
   stock: "/feed",
+  feedIn: "/feed/feed-in",
   counts: "/feed/stock-counts",
   leftovers: "/feed/leftovers",
   rations: "/feed/rations",
   items: "/feed/items",
-} as const satisfies Record<Exclude<Tab, "arrivals">, string>;
+} as const satisfies Record<Tab, string>;
 
 /** The Feed Items a Ration some Pen is on still feeds: a feed with none left matters only if one does. */
 const fedNow = (rations: RationRow[]): ReadonlySet<string> =>
@@ -137,10 +137,7 @@ const useStoreFigures = (
 const FeedPage = () => {
   const { t } = useLanguage();
   const navigate = useNavigate({ from: Route.fullPath });
-  const { tab: inQuery } = Route.useSearch();
-  const onPath = useTabOfPath(TAB_PATHS) ?? "stock";
-  const tab: Tab =
-    onPath === "stock" && inQuery === "arrivals" ? "arrivals" : onPath;
+  const tab = useTabOfPath(TAB_PATHS) ?? "stock";
   const [receiving, setReceiving] = useState<{ feedItemId?: string } | null>(
     null
   );
@@ -150,7 +147,7 @@ const FeedPage = () => {
   const items = useQuery(orpc.feed.items.queryOptions());
   const rations = useQuery(orpc.feed.rations.queryOptions());
   const stock = useQuery(orpc.stock.onHand.queryOptions());
-  const arrivals = useQuery(orpc.stock.arrivals.queryOptions({ input: {} }));
+  const arrivals = useQuery(orpc.stock.feedIn.queryOptions({ input: {} }));
   const adjustments = useQuery(
     orpc.stock.adjustments.queryOptions({ input: {} })
   );
@@ -189,13 +186,7 @@ const FeedPage = () => {
       <SummaryFigures figures={figures} />
 
       <PageTabs
-        onChange={(value) =>
-          navigate(
-            value === "arrivals"
-              ? { replace: true, search: { tab: "arrivals" }, to: "/feed" }
-              : { replace: true, search: {}, to: TAB_PATHS[value] }
-          )
-        }
+        onChange={(value) => navigate({ replace: true, to: TAB_PATHS[value] })}
         tabs={[
           {
             value: "stock",
@@ -213,8 +204,8 @@ const FeedPage = () => {
             ),
           },
           {
-            value: "arrivals",
-            label: t("feed.tab.arrivals"),
+            value: "feedIn",
+            label: t("feed.tab.feedIn"),
             icon: Truck,
             content: (
               <Loaded query={arrivals}>
@@ -300,7 +291,4 @@ export const Route = createFileRoute("/_authenticated/feed")({
   /** For those who run the farm: the Owner and the Farm Managers. */
   beforeLoad: onlyFor("runsTheFarm"),
   component: FeedPage,
-  /** Feed come in, the one tab still kept in the query. */
-  validateSearch: (search: Record<string, unknown>): { tab?: "arrivals" } =>
-    search.tab === "arrivals" ? { tab: "arrivals" } : {},
 });

@@ -39,7 +39,7 @@ const NOTHING_YET: Day = {
 const orNothing = (value: string) =>
   value.trim() === "" ? undefined : Number(value);
 
-type Beast = Awaited<ReturnType<typeof orpc.fattening.board.call>>[number];
+type Beast = Awaited<ReturnType<typeof orpc.fattening.list.call>>[number];
 
 /** The fattening side pen by pen, each pen's animals in the board's order, since a lorry is loaded a pen at a time. */
 const penByPen = (board: Beast[]): [string, Beast[]][] => {
@@ -168,7 +168,7 @@ export const SellingTripForm = () => {
   const trips = useQuery(orpc.sellingTrips.list.queryOptions());
   // Every beast on the Fattening side, not only the ones already flagged Ready: at Eid the lorry takes
   // whoever is worth taking, and the day is often written up after they have sold.
-  const board = useQuery(orpc.fattening.board.queryOptions({ input: {} }));
+  const board = useQuery(orpc.fattening.list.queryOptions({ input: {} }));
   const record = useMutation(
     orpc.sellingTrips.record.mutationOptions({
       onError: refused,

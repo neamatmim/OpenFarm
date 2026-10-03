@@ -618,7 +618,7 @@ export const CullListReturn = ({
   const { t } = useLanguage();
   const owner = useIsOwner();
   const page = useQuery({
-    ...orpc.returns.page.queryOptions(),
+    ...orpc.returns.list.queryOptions(),
     enabled: owner,
   });
   const run = page.data

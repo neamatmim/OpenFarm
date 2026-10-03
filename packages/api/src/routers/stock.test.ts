@@ -294,7 +294,7 @@ describe("feed stock", () => {
     expect(right).toMatchObject({ onHand: 1500, averagePriceMoney: 43.17 });
 
     // And the list of what came in says it, in maunds too.
-    const arrivals = await manager.client.stock.arrivals({
+    const arrivals = await manager.client.stock.feedIn({
       feedItemId: world.concentrate.id,
     });
     expect(arrivals[0]).toMatchObject({

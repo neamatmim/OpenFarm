@@ -128,7 +128,7 @@ const RecentTable = ({ rows }: { rows: BoardRow[] }) => {
  */
 export const RecentIntakes = () => {
   const { t } = useLanguage();
-  const board = useQuery(orpc.fattening.board.queryOptions({ input: {} }));
+  const board = useQuery(orpc.fattening.list.queryOptions({ input: {} }));
   const recent = (board.data ?? [])
     .filter((row) => row.daysOnFeed !== null)
     .toSorted(

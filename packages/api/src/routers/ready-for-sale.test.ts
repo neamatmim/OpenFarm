@@ -338,7 +338,7 @@ describe("ready for sale", () => {
     expect(quiet.find((row) => row.tagNumber === tagOf(1))).toBeUndefined();
 
     // He is still on the board — set aside is not hidden, it is only no longer shouted.
-    const board = await manager.client.fattening.board({ penId: world.pen.id });
+    const board = await manager.client.fattening.list({ penId: world.pen.id });
     expect(board.find((row) => row.tagNumber === tagOf(1))).toBeDefined();
 
     // And when the farm has something new to say, it says it: he makes his target weight a

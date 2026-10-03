@@ -37,7 +37,7 @@ import { useMoney } from "@/lib/money";
 import { orpc } from "@/utils/orpc";
 
 /** What the money in the farm's cattle returned: the Owner's alone. */
-export const useReturns = () => useQuery(orpc.returns.page.queryOptions());
+export const useReturns = () => useQuery(orpc.returns.list.queryOptions());
 
 /** Newest window first, then by key, so two with one window keep one order. */
 const newestFirst = (
