@@ -22,7 +22,7 @@ import {
 } from "@/components/page";
 import { FilterBar } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 import { orpc } from "@/utils/orpc";
 
 type LeftoverRow = Awaited<ReturnType<typeof orpc.feed.leftovers.call>>[number];
@@ -114,13 +114,13 @@ const LeftBehind = ({ row }: { row: LeftoverRow }) => {
 /** What the feed left behind cost; feed never priced says so rather than costing nothing. */
 const Worth = ({ row }: { row: LeftoverRow }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   return row.worthMoney === null ? (
     <span className="text-muted-foreground text-xs">
       {t("leftovers.unpriced")}
     </span>
   ) : (
-    <span className="tabular-nums">{taka(row.worthMoney)}</span>
+    <span className="tabular-nums">{asMoney(row.worthMoney)}</span>
   );
 };
 
@@ -200,14 +200,14 @@ const leftoverCard = (row: LeftoverRow) => <LeftoverCard row={row} />;
 /** The sentence over the list: what all of it cost, over the days read. */
 const Summary = ({ rows, days }: { rows: LeftoverRow[]; days: Period }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const worth = rows.reduce((sum, one) => sum + (one.worthMoney ?? 0), 0);
   return (
     <div className="flex flex-col gap-1">
       <p className="font-medium">
         {t("leftovers.summary", {
           days: formatNumber(days, language),
-          worth: taka(worth),
+          worth: asMoney(worth),
         })}
       </p>
       <p className="text-muted-foreground text-sm">

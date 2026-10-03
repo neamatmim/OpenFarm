@@ -1,4 +1,3 @@
-// The Venture router's part for opening a Venture, showing it, its plan and projection, and moving it through its life.
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
 import { venture, ventureMovement } from "@OpenFarm/db/schema/venture";
@@ -7,9 +6,11 @@ import {
   farmDayOf,
   mayMoveTo,
   monthlyTermsOf,
-  roundTaka,
+  roundMoney,
   towardsTheFloor,
 } from "@OpenFarm/domain";
+// The Venture router's part for opening a Venture, showing it, its plan and projection, and moving it through its life.
+import { currencyWords } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -139,7 +140,7 @@ const assertReadyToBuy = async (
   );
   if (shortMoney > 0) {
     throw new ORPCError("BAD_REQUEST", {
-      message: `${shortMoney} taka of the signed Investors' cattle money has still to come`,
+      message: `${shortMoney} ${currencyWords("en").sum} of the signed Investors' cattle money has still to come`,
       data: { refusal: "cattle_money_short" },
     });
   }
@@ -328,7 +329,7 @@ export const lifecycleProcedures = {
           cattleBudgetHeldMoney: budgets.cattleBudgetHeldMoney,
           runningBudgetHeldMoney: budgets.runningBudgetHeldMoney,
           /** What its animals have cost it so far. */
-          spentMoney: roundTaka(held.get(row.id)?.spentMoney ?? 0),
+          spentMoney: roundMoney(held.get(row.id)?.spentMoney ?? 0),
           /** What its animals have cost the Farm since the last Reimbursement, and the Farm is still owed. */
           owedTheFarmMoney: owed.get(row.id) ?? 0,
           runningBudgetLow:

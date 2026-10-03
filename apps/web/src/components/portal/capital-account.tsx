@@ -6,7 +6,7 @@ import { portfolioOf } from "@/components/investors/investor-agreements";
 import { Section } from "@/components/page";
 import { FigureTerm } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 
 /** The colours the allocation is drawn in, from the design tokens, in the order the Ventures are listed. Each is
  *  named in words beside it too, so nothing rests on telling two colours apart. */
@@ -39,7 +39,7 @@ const PaidIn = ({
   promisedMoney: number;
 }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   if (promisedMoney <= 0) {
     return null;
   }
@@ -57,8 +57,8 @@ const PaidIn = ({
       </div>
       <p className="text-muted-foreground text-sm">
         {t("portal.sums.paidInOf", {
-          paid: taka(paidInMoney),
-          promised: taka(promisedMoney),
+          paid: asMoney(paidInMoney),
+          promised: asMoney(promisedMoney),
           percent: formatNumber(Math.round(share), language),
         })}
       </p>
@@ -74,7 +74,7 @@ const PaidIn = ({
  */
 export const CapitalAccount = ({ theirs }: { theirs: TheirAgreements }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const sums = portfolioOf(theirs);
   return (
     <section
@@ -90,7 +90,7 @@ export const CapitalAccount = ({ theirs }: { theirs: TheirAgreements }) => {
             {t("portal.heldNow")}
           </h2>
           <p className="text-3xl font-semibold tracking-tight tabular-nums md:text-4xl">
-            {taka(sums.heldMoney)}
+            {asMoney(sums.heldMoney)}
           </p>
         </div>
         {/* Of what they promised to the Ventures still running: one that has finished has nothing left to pay in, and a
@@ -102,7 +102,7 @@ export const CapitalAccount = ({ theirs }: { theirs: TheirAgreements }) => {
       </div>
       <dl className="grid grid-cols-2 gap-x-6 gap-y-5 border-t pt-5 lg:border-s lg:border-t-0 lg:ps-8 lg:pt-0">
         <FigureTerm size="xl" label={t("money.payouts")}>
-          {taka(sums.paidOutMoney)}
+          {asMoney(sums.paidOutMoney)}
         </FigureTerm>
         <FigureTerm
           size="xl"
@@ -114,7 +114,7 @@ export const CapitalAccount = ({ theirs }: { theirs: TheirAgreements }) => {
           label={t("portal.profit")}
           tone={sums.profitMoney < 0 ? "warning" : "neutral"}
         >
-          {taka(sums.profitMoney)}
+          {asMoney(sums.profitMoney)}
         </FigureTerm>
         <FigureTerm size="xl" label={t("investors.unitsHeld")}>
           {formatNumber(sums.runningUnits, language)}
@@ -138,7 +138,7 @@ export const CapitalAccount = ({ theirs }: { theirs: TheirAgreements }) => {
  */
 export const Allocation = ({ theirs }: { theirs: TheirAgreements }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const holding = theirs.agreements.filter(
     (one) => one.capitalHeldMoney > 0 && !one.settlement?.paidOn
   );
@@ -175,7 +175,7 @@ export const Allocation = ({ theirs }: { theirs: TheirAgreements }) => {
             />
             <span className="min-w-0 flex-1 truncate">{one.venture.name}</span>
             <span className="font-medium tabular-nums">
-              {taka(one.capitalHeldMoney)}
+              {asMoney(one.capitalHeldMoney)}
             </span>
             <span className="text-muted-foreground w-14 text-end tabular-nums">
               {t("portal.percent", {

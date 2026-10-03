@@ -63,7 +63,7 @@ const useMilkFigures = ({
       hint: milkDay
         ? t("dispatch.kpi.handedOverHint", {
             count: milkDay.dispatches.length,
-            taka: Math.round(worth),
+            amount: Math.round(worth),
           })
         : dayWord,
       icon: Truck,

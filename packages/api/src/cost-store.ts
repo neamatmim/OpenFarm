@@ -27,7 +27,7 @@ import {
   priceHistory,
   roundKg,
   roundLitres,
-  roundTaka,
+  roundMoney,
   roundedCosts,
   herdShares,
   startOfFarmDay,
@@ -243,7 +243,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
           ...one,
           sale: {
             ...one.sale,
-            priceMoney: roundTaka(
+            priceMoney: roundMoney(
               one.sale.priceMoney - (writtenOff.get(one.sale.id) ?? 0)
             ),
           },
@@ -702,7 +702,7 @@ export const economicsOfHerd = (
       tagNumber: one.tagNumber,
       ...economicsOfAnimal(costs, one),
     }));
-  const chargedMoney = roundTaka(
+  const chargedMoney = roundMoney(
     each.reduce((sum, one) => sum + chargedOf(one), 0)
   );
   const gainKg = roundKg(each.reduce((sum, one) => sum + (one.gainKg ?? 0), 0));
@@ -724,8 +724,10 @@ export const economicsOfHerd = (
     marginMoney:
       sold.length === 0
         ? null
-        : roundTaka(sold.reduce((sum, one) => sum + (one.marginMoney ?? 0), 0)),
-    costOfGainMoney: gainKg > 0 ? roundTaka(chargedMoney / gainKg) : null,
+        : roundMoney(
+            sold.reduce((sum, one) => sum + (one.marginMoney ?? 0), 0)
+          ),
+    costOfGainMoney: gainKg > 0 ? roundMoney(chargedMoney / gainKg) : null,
   };
 };
 
@@ -780,21 +782,23 @@ export const costsBySide = (
           marginMoney,
         })
       ),
-      marginMoney: roundTaka(
+      marginMoney: roundMoney(
         sold.reduce((sum, one) => sum + (one.marginMoney ?? 0), 0)
       ),
     },
     unallocated: {
-      feedMoney: roundTaka(
+      feedMoney: roundMoney(
         unallocated.reduce((sum, one) => sum + one.feedMoney, 0)
       ),
       unpricedKg: roundKg(
         unallocated.reduce((sum, one) => sum + one.unpricedKg, 0)
       ),
-      tripMoney: roundTaka(
+      tripMoney: roundMoney(
         strayTrips.reduce((sum, one) => sum + one.amount, 0)
       ),
-      herdMoney: roundTaka(strayHerd.reduce((sum, one) => sum + one.amount, 0)),
+      herdMoney: roundMoney(
+        strayHerd.reduce((sum, one) => sum + one.amount, 0)
+      ),
     },
   };
 };
@@ -806,7 +810,7 @@ const groupedLines = (charges: readonly Charge[]): ConsumedLine[] => {
     byId.set(one.fromId, (byId.get(one.fromId) ?? 0) + one.amount);
   }
   return [...byId]
-    .map(([id, amount]) => ({ id, amount: roundTaka(amount) }))
+    .map(([id, amount]) => ({ id, amount: roundMoney(amount) }))
     .filter((line) => line.amount > 0);
 };
 
@@ -888,12 +892,12 @@ export const consumedBy = (
     WHAT_THE_FARM_IS_OWED
   ).filter((one) => one.at >= from && one.at < until);
   const summed = costsOf(theirs);
-  const feedMoney = roundTaka(summed.feedMoney);
-  const medicineMoney = roundTaka(summed.medicineMoney);
-  const vetMoney = roundTaka(summed.vetMoney);
-  const herdMoney = roundTaka(summed.herdMoney);
+  const feedMoney = roundMoney(summed.feedMoney);
+  const medicineMoney = roundMoney(summed.medicineMoney);
+  const vetMoney = roundMoney(summed.vetMoney);
+  const herdMoney = roundMoney(summed.herdMoney);
   // Only the outings the Farm paid for: what the Farm is owed leaves the Buying Trips behind.
-  const tripsMoney = roundTaka(summed.tripMoney);
+  const tripsMoney = roundMoney(summed.tripMoney);
   const ofKind = (kind: Charge["kind"]) =>
     theirs.filter((one) => one.kind === kind);
   return {
@@ -905,7 +909,7 @@ export const consumedBy = (
     // The sum of the parts as they are shown, not of the parts before they were rounded: five lines
     // that do not add up to the figure beneath them is the farm arguing with itself in front of an
     // Investor.
-    totalMoney: roundTaka(
+    totalMoney: roundMoney(
       feedMoney + medicineMoney + vetMoney + herdMoney + tripsMoney
     ),
     /** Kilos fed that nothing can price, and doses nothing can cost: the figure is short by them until they are. */
@@ -970,14 +974,14 @@ export const owedByMonth = (
       .flatMap((one) => one.carried ?? [])
       .filter((line) => line.month === month)
       .reduce((sum, line) => sum + line.amount, 0);
-    const paidMoney = roundTaka(ownFigureMoney + carriedForMoney);
+    const paidMoney = roundMoney(ownFigureMoney + carriedForMoney);
     return {
       month,
       comesToMoney,
       /** Whether the month has had a Reimbursement of its own. */
       repaid: own !== undefined,
       paidMoney,
-      stillOwedMoney: roundTaka(comesToMoney - paidMoney),
+      stillOwedMoney: roundMoney(comesToMoney - paidMoney),
       unpricedKg: consumed.unpricedKg,
       uncostedDoses: consumed.uncostedDoses,
     };

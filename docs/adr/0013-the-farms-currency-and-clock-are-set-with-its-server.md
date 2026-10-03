@@ -18,7 +18,7 @@ OpenFarm was built for one farm in Bangladesh, and on 2026-10-03 the Owner decid
 
 **Consequences:**
 
-- Money is still kept to two decimal places (`numeric(12,2)`, `roundTaka`). A currency with no minor unit counts its zeros, and one with three minor digits cannot be kept exactly. Neither is supported until a farm needs it.
+- Money is still kept to two decimal places (`numeric(12,2)`, `roundMoney`). A currency with no minor unit counts its zeros, and one with three minor digits cannot be kept exactly. Neither is supported until a farm needs it.
 - **The Investor papers and the agreement templates stay Bangladesh's.** These are the joining letter, the statements, the stamp-duty lines and the standard agreements. Their wording was approved by a Bangladeshi lawyer and a Shariah scholar under Bangladesh law. A farm elsewhere needs its own adviser's papers, not these with another currency's sign. The standard procedures' "টাকা" step unit and the seed's demo farm stay as they are too.
 - The backup timers (`deploy/*.timer`, `deploy/crontab.example`) name their own zone. On a farm outside Bangladesh, write that farm's zone there as well.
 - Bangla and English are still the only languages, and Bangladesh's phone numbers and Eid-ul-Adha are still assumed. Each of those is its own decision, to be made when a farm outside Bangladesh needs it.

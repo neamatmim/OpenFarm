@@ -33,7 +33,7 @@ import {
 } from "@/components/returns/return-words";
 import { SeasonBreakdown } from "@/components/returns/season-breakdown";
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 import { orpc } from "@/utils/orpc";
 
 /** What the money in the farm's cattle returned: the Owner's alone. */
@@ -157,7 +157,7 @@ const VentureRow = ({
   floorDays: number;
 }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   if (!venture.returnOnCost) {
     return null;
   }
@@ -195,7 +195,9 @@ const VentureRow = ({
       ) : null}
       {venture.farmsShareMoney === null ? null : (
         <p className="text-muted-foreground text-sm tabular-nums">
-          {t("returns.farmsShare", { amount: taka(venture.farmsShareMoney) })}
+          {t("returns.farmsShare", {
+            amount: asMoney(venture.farmsShareMoney),
+          })}
         </p>
       )}
       <Link

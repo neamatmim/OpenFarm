@@ -47,7 +47,7 @@ import type { VentureActs } from "@/components/ventures/venture-card";
 import { Line, moneyOf } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
 import { agreedInApp, paperOnFile } from "@/lib/agreed-in-app";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 import type { Venture } from "@/lib/ventures";
 import { takesCapitalNow } from "@/lib/ventures";
 import type { client } from "@/utils/orpc";
@@ -214,7 +214,7 @@ const SplitCell = ({ row }: InvestorCell) => {
  */
 const SumsLine = ({ sums }: { sums: Agreement["sums"] | undefined }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   if (!sums) {
     return null;
   }
@@ -224,12 +224,12 @@ const SumsLine = ({ sums }: { sums: Agreement["sums"] | undefined }) => {
   });
   let then: string | null = null;
   if (sums.missedMoney > 0) {
-    then = t("ventures.sums.missed", { amount: taka(sums.missedMoney) });
+    then = t("ventures.sums.missed", { amount: asMoney(sums.missedMoney) });
   } else if (sums.dueMoney > 0) {
-    then = t("ventures.sums.due", { amount: taka(sums.dueMoney) });
+    then = t("ventures.sums.due", { amount: asMoney(sums.dueMoney) });
   } else if (sums.next) {
     then = t("ventures.sums.next", {
-      amount: taka(sums.next.amount),
+      amount: asMoney(sums.next.amount),
       day: formatDate(startOfFarmDay(sums.next.dueOn), language, "date"),
     });
   }
@@ -247,14 +247,14 @@ const SumsLine = ({ sums }: { sums: Agreement["sums"] | undefined }) => {
 
 /** What he has paid against what his Units are worth, the paid part in the warning's colour until they agree. */
 const PaidCell = ({ row }: InvestorCell) => {
-  const taka = useTaka();
+  const asMoney = useMoney();
   const { paidMoney, owedMoney, sums } = row.original;
   return (
     <>
       <span className={paidMoney === owedMoney ? undefined : "text-warning"}>
-        {taka(paidMoney)}
+        {asMoney(paidMoney)}
       </span>
-      <span className="text-muted-foreground">{` / ${taka(owedMoney)}`}</span>
+      <span className="text-muted-foreground">{` / ${asMoney(owedMoney)}`}</span>
       <SumsLine sums={sums} />
     </>
   );
@@ -277,9 +277,9 @@ const PaperCell = ({ row }: InvestorCell) => {
 };
 
 const PayoutCell = ({ row }: InvestorCell) => {
-  const taka = useTaka();
+  const asMoney = useMoney();
   const { share } = row.original;
-  return share ? <>{taka(share.payoutMoney)}</> : <Nothing />;
+  return share ? <>{asMoney(share.payoutMoney)}</> : <Nothing />;
 };
 
 /** What is done about one man's Agreement: his payout sent and his word on it written down, his capital taken, his

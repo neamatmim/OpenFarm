@@ -59,7 +59,7 @@ const when = (at: Date) => formatDate(at, "bn", "dateTime");
 const onDay = (day: string) => formatDate(new Date(`${day}T00:00:00Z`), "bn");
 
 /** Taka, in Bangla numerals. */
-const taka = (amount: number) =>
+const asMoney = (amount: number) =>
   `${currencySign()}${formatNumber(amount, "bn")}`;
 
 /** A figure, in Bangla numerals. */
@@ -313,7 +313,7 @@ const settlementWords = (
   >
 ) =>
   joined(
-    `হিসাব নিকাশে পাওনা ${taka(settlement.payoutMoney)} (মূলধন ${taka(settlement.capitalMoney)}, মুনাফায় অংশ ${taka(settlement.shareMoney)})`,
+    `হিসাব নিকাশে পাওনা ${asMoney(settlement.payoutMoney)} (মূলধন ${asMoney(settlement.capitalMoney)}, মুনাফায় অংশ ${asMoney(settlement.shareMoney)})`,
     settlement.paidOn
       ? `পরিশোধ ${onDay(settlement.paidOn)}`
       : "এখনো পরিশোধ হয়নি",
@@ -432,15 +432,15 @@ export const dataCopyOf = async (
       money.agreements.map((one) => ({
         label: { bn: one.venture.name, en: "" },
         value: joined(
-          `${inBangla(one.units)} ইউনিট, ${taka(one.promisedMoney)}`,
+          `${inBangla(one.units)} ইউনিট, ${asMoney(one.promisedMoney)}`,
           `আপনার অংশ ${inBangla(one.investorsPercent)}%`,
           `সময় ${onDay(one.targetWindow.start)} – ${onDay(one.targetWindow.end)}`,
           one.amendedOn ? `সংশোধিত ${onDay(one.amendedOn)}` : null,
           `সই ${when(one.signedAt)}`,
-          `স্ট্যাম্প ${one.stamp.serial} (${taka(one.stamp.valueMoney)}, ${onDay(one.stamp.on)})`,
+          `স্ট্যাম্প ${one.stamp.serial} (${asMoney(one.stamp.valueMoney)}, ${onDay(one.stamp.on)})`,
           `সালিস ${one.arbitrator}`,
           one.hasPaper ? "সই করা চুক্তির ছবি খামারে রাখা আছে" : null,
-          `খামারে মূলধন ${taka(one.capitalHeldMoney)}`,
+          `খামারে মূলধন ${asMoney(one.capitalHeldMoney)}`,
           one.settlement ? settlementWords(one.settlement) : null
         ),
       }))
@@ -451,7 +451,7 @@ export const dataCopyOf = async (
         label: { bn: onDay(one.movedOn), en: "" },
         value: joined(
           MOVEMENT_NAMES[one.kind].bn,
-          taka(one.amountMoney),
+          asMoney(one.amountMoney),
           ventureOf.get(one.agreementId),
           one.reference
         ),

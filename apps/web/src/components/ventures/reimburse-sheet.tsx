@@ -10,9 +10,9 @@ import { FormField, FormSheet } from "@/components/page-kit";
 import { FarmAccountField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
+import { useMoney } from "@/lib/money";
 import { lastMonth, saidMonth } from "@/lib/months";
 import { useRefused } from "@/lib/refused";
-import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 /** What a line is called in the reader's own language. */
@@ -49,12 +49,12 @@ const MadeOf = ({
   lines: readonly Named[];
   language: Language;
 }) => {
-  const taka = useTaka();
+  const asMoney = useMoney();
   return (
     <>
       {lines.map((one) => (
         <Line key={one.id} label={`· ${nameOf(one, language)}`}>
-          {taka(one.amount)}
+          {asMoney(one.amount)}
         </Line>
       ))}
     </>
@@ -106,7 +106,7 @@ const WhatItIsMadeOf = ({
   language: Language;
 }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   // Defaulted once rather than at every figure: the month is either answered or it is not, and ten
   // separate fallbacks only made the same statement ten times.
   const said = consumed ?? NOTHING_YET;
@@ -141,13 +141,13 @@ const WhatItIsMadeOf = ({
     <div className="bg-muted flex flex-col gap-1 rounded-md px-3 py-2 text-sm">
       {heads.map((head) => (
         <Fragment key={head.label}>
-          <Line label={t(head.label)}>{taka(head.amount)}</Line>
+          <Line label={t(head.label)}>{asMoney(head.amount)}</Line>
           <MadeOf language={language} lines={head.lines} />
         </Fragment>
       ))}
       <div className="mt-1 border-t pt-1 font-medium">
         <Line label={t("ventures.thatMonth")}>
-          {taka(said.ownMoney ?? said.totalMoney)}
+          {asMoney(said.ownMoney ?? said.totalMoney)}
         </Line>
       </div>
       {carried.length === 0 ? null : (
@@ -158,11 +158,15 @@ const WhatItIsMadeOf = ({
               key={line.month}
               label={`· ${saidMonth(line.month, language)}`}
             >
-              {line.amount < 0 ? `− ${taka(-line.amount)}` : taka(line.amount)}
+              {line.amount < 0
+                ? `− ${asMoney(-line.amount)}`
+                : asMoney(line.amount)}
             </Line>
           ))}
           <div className="mt-1 border-t pt-1 font-medium">
-            <Line label={t("ventures.toBeSent")}>{taka(said.totalMoney)}</Line>
+            <Line label={t("ventures.toBeSent")}>
+              {asMoney(said.totalMoney)}
+            </Line>
           </div>
         </>
       )}

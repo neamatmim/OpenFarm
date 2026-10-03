@@ -8,7 +8,7 @@ import {
 import {
   maskedDigits,
   monthOf,
-  roundTaka,
+  roundMoney,
   startOfFarmDay,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -218,7 +218,7 @@ export const farmAccountsRouter = {
               note: already.note,
               stale:
                 expectedMoney !== null &&
-                roundTaka(expectedMoney - already.expectedMoney) !== 0,
+                roundMoney(expectedMoney - already.expectedMoney) !== 0,
             }
           : null,
       };
@@ -286,7 +286,7 @@ export const farmAccountsRouter = {
           // A month found to disagree does not come right by being typed again: she says what she found out.
           const disagreed =
             already !== undefined &&
-            roundTaka(already.readMoney - already.expectedMoney) !== 0;
+            roundMoney(already.readMoney - already.expectedMoney) !== 0;
           if (disagreed && !input.note) {
             throw new ORPCError("BAD_REQUEST", {
               message:
@@ -294,7 +294,7 @@ export const farmAccountsRouter = {
               data: { refusal: "say_what_you_found_out" },
             });
           }
-          const agreesNow = roundTaka(input.readMoney - expectedMoney) === 0;
+          const agreesNow = roundMoney(input.readMoney - expectedMoney) === 0;
           await tx
             .insert(farmAccountCheck)
             .values({
@@ -325,7 +325,7 @@ export const farmAccountsRouter = {
       return {
         expectedMoney,
         readMoney: input.readMoney,
-        differenceMoney: roundTaka(input.readMoney - expectedMoney),
+        differenceMoney: roundMoney(input.readMoney - expectedMoney),
       };
     }),
 };

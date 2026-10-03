@@ -1,7 +1,7 @@
 import type { Kept } from "./animal-price";
 import { inTheKeepWindow } from "./animal-price";
 import { roundLitres } from "./milk";
-import { roundTaka } from "./money";
+import { roundMoney } from "./money";
 
 /**
  * Why the farm names a dairy cow to the Owner as one to think about letting go (the Owner, 2026-09-27): her milk earns
@@ -47,9 +47,9 @@ export const milkPriceOf = (
     0
   );
   return {
-    moneyPerLitre: roundTaka(amount / litres),
+    moneyPerLitre: roundMoney(amount / litres),
     litres: roundLitres(litres),
-    amount: roundTaka(amount),
+    amount: roundMoney(amount),
   };
 };
 
@@ -130,8 +130,8 @@ export const milkAgainstKeep = ({
   if (price === null) {
     return { known: false, because: "no_price" };
   }
-  const worthMoney = roundTaka(litres * price.moneyPerLitre);
-  const keepMoney = roundTaka(kept.amount);
+  const worthMoney = roundMoney(litres * price.moneyPerLitre);
+  const keepMoney = roundMoney(kept.amount);
   return {
     known: true,
     days: Math.round(kept.days),
@@ -141,8 +141,8 @@ export const milkAgainstKeep = ({
     worthMoney,
     keepMoney,
     // From the figures as they are shown, so what is left over is what the two lines come to.
-    overKeepMoney: roundTaka(worthMoney - keepMoney),
-    costPerLitreMoney: litres > 0 ? roundTaka(kept.amount / litres) : null,
+    overKeepMoney: roundMoney(worthMoney - keepMoney),
+    costPerLitreMoney: litres > 0 ? roundMoney(kept.amount / litres) : null,
     whole: kept.whole,
   };
 };

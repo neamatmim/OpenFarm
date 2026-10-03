@@ -6,8 +6,8 @@ import { EmptyState, Loaded, Section } from "@/components/page";
 import { FigureTerm } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useKg } from "@/lib/kg";
+import { useMoney } from "@/lib/money";
 import { useRange } from "@/lib/range";
-import { useTaka } from "@/lib/taka";
 import type { Venture } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
 import type { client } from "@/utils/orpc";
@@ -17,7 +17,7 @@ type Read = Awaited<ReturnType<typeof client.ventures.projection>>;
 /** What the projection comes to, at both ends, with what it is worked from. */
 const Figures = ({ read }: { read: Read }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const kg = useKg();
   const range = useRange();
   const { basis, projection } = read;
@@ -36,30 +36,33 @@ const Figures = ({ read }: { read: Read }) => {
       <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
         <FigureTerm label={t("projection.profit")} size="xl">
           {range(
-            taka(projection.low.profitMoney),
-            taka(projection.high.profitMoney)
+            asMoney(projection.low.profitMoney),
+            asMoney(projection.high.profitMoney)
           )}
         </FigureTerm>
         <FigureTerm label={t("projection.perUnit")} size="lg">
           {range(
-            taka(projection.low.perUnitMoney),
-            taka(projection.high.perUnitMoney)
+            asMoney(projection.low.perUnitMoney),
+            asMoney(projection.high.perUnitMoney)
           )}
         </FigureTerm>
       </dl>
       <dl className="grid gap-x-6 gap-y-4 border-t pt-3 sm:grid-cols-2 lg:grid-cols-4">
         <FigureTerm label={t("projection.prices")} size="sm">
-          {range(taka(basis.saleLowMoneyPerKg), taka(basis.saleHighMoneyPerKg))}
+          {range(
+            asMoney(basis.saleLowMoneyPerKg),
+            asMoney(basis.saleHighMoneyPerKg)
+          )}
         </FigureTerm>
         <FigureTerm label={t("projection.kgAtSale")} size="sm">
           {range(kg(lowKg), kg(highKg))}
         </FigureTerm>
         <FigureTerm label={t("projection.charged")} size="sm">
-          {taka(projection.chargedMoney)}
+          {asMoney(projection.chargedMoney)}
         </FigureTerm>
         {projection.realisedMoney > 0 ? (
           <FigureTerm label={t("projection.realised")} size="sm">
-            {taka(projection.realisedMoney)}
+            {asMoney(projection.realisedMoney)}
           </FigureTerm>
         ) : null}
       </dl>

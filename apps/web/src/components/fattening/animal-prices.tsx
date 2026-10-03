@@ -15,9 +15,9 @@ import { SUBHEADING, Section, StatusBadge } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useKg } from "@/lib/kg";
+import { useMoney, useMoneyRate } from "@/lib/money";
 import { useRange } from "@/lib/range";
 import { useRefused } from "@/lib/refused";
-import { useTaka, useTakaToThePaisa } from "@/lib/taka";
 import { aFigure, figureOf } from "@/lib/typed-figure";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
@@ -56,12 +56,12 @@ const useHerPrice = (tagNumber: string): AnimalPriced | null => {
 /** What her cost leaves unsaid and her break-even, after whatever `parts` open it, a line each. */
 const CostNotes = ({ one, parts }: { one: AnimalPriced; parts: string[] }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const lines = [
     ...parts,
     one.breakEvenMoneyPerKg === null
       ? null
-      : t("price.breakEven", { perKg: taka(one.breakEvenMoneyPerKg) }),
+      : t("price.breakEven", { perKg: asMoney(one.breakEvenMoneyPerKg) }),
     one.costIsWhole ? null : t("price.costShort"),
     one.bought ? null : t("price.born"),
   ].filter((part): part is string => part !== null);
@@ -83,11 +83,11 @@ const CostNotes = ({ one, parts }: { one: AnimalPriced; parts: string[] }) => {
  */
 const CostLine = ({ one }: { one: AnimalPriced }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   return (
     <CostNotes
       one={one}
-      parts={[t("price.cost", { cost: taka(one.costMoney) })]}
+      parts={[t("price.cost", { cost: asMoney(one.costMoney) })]}
     />
   );
 };
@@ -95,7 +95,7 @@ const CostLine = ({ one }: { one: AnimalPriced }) => {
 /** What she might fetch, low to high, and what that leaves over her cost — or that no price a kilo is set for her. */
 const EstimateLine = ({ one }: { one: AnimalPriced }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const range = useRange();
   if (!one.low || !one.high) {
     return (
@@ -108,7 +108,7 @@ const EstimateLine = ({ one }: { one: AnimalPriced }) => {
   return (
     <>
       <span className="font-medium tabular-nums">
-        {range(taka(one.low.priceMoney), taka(one.high.priceMoney))}
+        {range(asMoney(one.low.priceMoney), asMoney(one.high.priceMoney))}
       </span>
       <span
         className={cn(
@@ -117,8 +117,8 @@ const EstimateLine = ({ one }: { one: AnimalPriced }) => {
         )}
       >
         {t("price.margin", {
-          low: taka(one.low.marginMoney),
-          high: taka(one.high.marginMoney),
+          low: asMoney(one.low.marginMoney),
+          high: asMoney(one.high.marginMoney),
         })}
       </span>
     </>
@@ -169,8 +169,8 @@ const UNKNOWN_WORD = {
  */
 const KeepLine = ({ one, full }: { one: AnimalPriced; full: boolean }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
-  const perKg = useTakaToThePaisa();
+  const asMoney = useMoney();
+  const perKg = useMoneyRate();
   const range = useRange();
   const kg = useKg();
   // An answer this phone kept from before the farm weighed keeping has none.
@@ -191,7 +191,7 @@ const KeepLine = ({ one, full }: { one: AnimalPriced; full: boolean }) => {
   const gain = `${ahead.gainKg < 0 ? "−" : "+"}${kg(Math.abs(ahead.gainKg))}`;
   const details = [
     full || !look
-      ? t("keep.ahead", { gain, keep: taka(ahead.keepMoney) })
+      ? t("keep.ahead", { gain, keep: asMoney(ahead.keepMoney) })
       : null,
     (full || !look) && keep.costOfGainNowMoney !== null
       ? t("keep.perKg", { perKg: perKg(keep.costOfGainNowMoney) })
@@ -210,8 +210,8 @@ const KeepLine = ({ one, full }: { one: AnimalPriced; full: boolean }) => {
           {t("keep.over", {
             days: ahead.days,
             over: range(
-              taka(ahead.low.overKeepMoney),
-              taka(ahead.high.overKeepMoney)
+              asMoney(ahead.low.overKeepMoney),
+              asMoney(ahead.high.overKeepMoney)
             ),
           })}
         </span>
@@ -220,7 +220,7 @@ const KeepLine = ({ one, full }: { one: AnimalPriced; full: boolean }) => {
         <span className="text-danger text-xs tabular-nums">
           {t("keep.notGaining", {
             days: ahead.days,
-            keep: taka(ahead.keepMoney),
+            keep: asMoney(ahead.keepMoney),
           })}
         </span>
       )}
@@ -273,7 +273,7 @@ export const EstimateCell = ({ tagNumber }: { tagNumber: string }) => {
 
 /** What she has cost so far as the figure, with her break-even and what the cost leaves out beneath. */
 export const CostCell = ({ tagNumber }: { tagNumber: string }) => {
-  const taka = useTaka();
+  const asMoney = useMoney();
   const one = useHerPrice(tagNumber);
   if (!one) {
     return <Nothing />;
@@ -281,7 +281,7 @@ export const CostCell = ({ tagNumber }: { tagNumber: string }) => {
   return (
     <span className="flex flex-col items-end gap-0.5 text-end">
       <span className="font-medium whitespace-nowrap tabular-nums">
-        {taka(one.costMoney)}
+        {asMoney(one.costMoney)}
       </span>
       <CostNotes one={one} parts={[]} />
     </span>
@@ -459,7 +459,7 @@ const MarketSheet = ({
  */
 export const MarketPrice = ({ compact = false }: { compact?: boolean }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const owner = useIsOwner();
   const prices = usePrices();
   const [setting, setSetting] = useState(false);
@@ -483,8 +483,8 @@ export const MarketPrice = ({ compact = false }: { compact?: boolean }) => {
       <p className="text-sm">
         {market
           ? t("market.line", {
-              low: taka(market.lowMoneyPerKg),
-              high: taka(market.highMoneyPerKg),
+              low: asMoney(market.lowMoneyPerKg),
+              high: asMoney(market.highMoneyPerKg),
               day: market.setAt
                 ? formatDate(new Date(market.setAt), language, "date")
                 : "—",
@@ -495,7 +495,7 @@ export const MarketPrice = ({ compact = false }: { compact?: boolean }) => {
         {recent
           ? t("market.recent", {
               days: recent.days,
-              perKg: taka(recent.moneyPerKg),
+              perKg: asMoney(recent.moneyPerKg),
               animals: recent.animals,
             })
           : t("market.noRecent", { days: 60 })}

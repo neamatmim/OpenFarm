@@ -13,7 +13,7 @@ import { Line, moneyOf } from "@/components/ventures/venture-card";
 import { VenturePlanPanel } from "@/components/ventures/venture-plan";
 import { VentureProjectionPanel } from "@/components/ventures/venture-projection";
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 import type { Venture } from "@/lib/ventures";
 
 /**
@@ -23,7 +23,7 @@ import type { Venture } from "@/lib/ventures";
  */
 const TowardsTheFloor = ({ venture }: { venture: Venture }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   return (
     <Section title={t("ventures.page.raising")}>
       <div className="flex flex-col gap-2">
@@ -35,12 +35,14 @@ const TowardsTheFloor = ({ venture }: { venture: Venture }) => {
         />
         <div className="text-muted-foreground flex flex-wrap justify-between gap-2 text-sm tabular-nums">
           <span className="text-foreground font-medium">
-            {t("ventures.page.raised", { held: taka(venture.capitalInMoney) })}
+            {t("ventures.page.raised", {
+              held: asMoney(venture.capitalInMoney),
+            })}
           </span>
           <span>
             {t("ventures.page.floorAndTarget", {
-              floor: taka(venture.floorMoney),
-              target: taka(venture.targetCapitalMoney),
+              floor: asMoney(venture.floorMoney),
+              target: asMoney(venture.targetCapitalMoney),
             })}
           </span>
         </div>
@@ -55,29 +57,29 @@ const TowardsTheFloor = ({ venture }: { venture: Venture }) => {
  */
 const TheMoney = ({ venture }: { venture: Venture }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const money = moneyOf(venture);
   const running = isRunning(venture.state);
   return (
     <Section title={t("ventures.page.money")}>
       <div className="flex flex-col divide-y text-sm">
         <Line className="py-2" label={t("ventures.held")}>
-          {taka(venture.capitalInMoney)}
+          {asMoney(venture.capitalInMoney)}
         </Line>
         <Line className="py-2" label={t("ventures.balance")}>
-          {taka(money.balanceMoney)}
+          {asMoney(money.balanceMoney)}
         </Line>
         {running ? (
           <>
             <Line className="py-2" label={t("ventures.page.cattleLeft")}>
-              {taka(money.cattleBudgetHeldMoney)}
+              {asMoney(money.cattleBudgetHeldMoney)}
             </Line>
             <Line className="py-2" label={t("ventures.page.runningLeft")}>
-              {taka(money.runningBudgetHeldMoney)}
+              {asMoney(money.runningBudgetHeldMoney)}
             </Line>
             {money.owedTheFarmMoney > 0 ? (
               <Line className="py-2" label={t("ventures.owedTheFarm")}>
-                {taka(money.owedTheFarmMoney)}
+                {asMoney(money.owedTheFarmMoney)}
               </Line>
             ) : null}
           </>
@@ -85,26 +87,26 @@ const TheMoney = ({ venture }: { venture: Venture }) => {
         {venture.state === "open" ? null : (
           <>
             <Line className="py-2" label={t("ventures.page.spent")}>
-              {taka(money.spentMoney)}
+              {asMoney(money.spentMoney)}
             </Line>
             <Line className="py-2" label={t("ventures.page.paidOut")}>
-              {taka(money.paidOutMoney)}
+              {asMoney(money.paidOutMoney)}
             </Line>
           </>
         )}
         {money.openFloatMoney === 0 ? null : (
           <Line className="py-2" label={t("ventures.openFloat")}>
-            {taka(money.openFloatMoney)}
+            {asMoney(money.openFloatMoney)}
           </Line>
         )}
         {money.reimbursedMoney === 0 ? null : (
           <Line className="py-2" label={t("ventures.reimbursedSoFar")}>
-            {taka(money.reimbursedMoney)}
+            {asMoney(money.reimbursedMoney)}
           </Line>
         )}
         {money.advancedMoney === 0 ? null : (
           <Line className="py-2" label={t("ventures.owedToYou")}>
-            {taka(money.advancedMoney)}
+            {asMoney(money.advancedMoney)}
           </Line>
         )}
       </div>
@@ -119,7 +121,7 @@ const TheMoney = ({ venture }: { venture: Venture }) => {
  */
 const TheTerms = ({ venture }: { venture: Venture }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const day = (on: string) => formatDate(startOfFarmDay(on), language, "date");
   return (
     <Section title={t("ventures.page.terms")}>
@@ -127,11 +129,11 @@ const TheTerms = ({ venture }: { venture: Venture }) => {
         <FigureTerm size="sm" label={t("ventures.units")}>
           {t("ventures.unitsAt", {
             units: formatNumber(venture.units, language),
-            price: taka(venture.unitPriceMoney),
+            price: asMoney(venture.unitPriceMoney),
           })}
         </FigureTerm>
         <FigureTerm size="sm" label={t("ventures.target")}>
-          {taka(venture.targetCapitalMoney)}
+          {asMoney(venture.targetCapitalMoney)}
         </FigureTerm>
         {/* A Venture read before it could be paid by the month is one paid before buying. */}
         <FigureTerm
@@ -147,13 +149,13 @@ const TheTerms = ({ venture }: { venture: Venture }) => {
           />
         </FigureTerm>
         <FigureTerm size="sm" label={t("ventures.page.cattleBudget")}>
-          {taka(venture.cattleBudgetMoney)}
+          {asMoney(venture.cattleBudgetMoney)}
         </FigureTerm>
         <FigureTerm size="sm" label={t("ventures.page.runningBudget")}>
-          {taka(venture.runningBudgetMoney)}
+          {asMoney(venture.runningBudgetMoney)}
         </FigureTerm>
         <FigureTerm size="sm" label={t("ventures.floor")}>
-          {taka(venture.floorMoney)}
+          {asMoney(venture.floorMoney)}
         </FigureTerm>
         <FigureTerm size="sm" label={t("ventures.decideBy")}>
           {day(venture.decideBy)}

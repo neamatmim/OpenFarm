@@ -8,7 +8,7 @@ import { FigureTerm } from "@/components/page-kit";
 import { useLineBreedName } from "@/components/ventures/line-breed";
 import { useLanguage } from "@/i18n/language-provider";
 import { useKg } from "@/lib/kg";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 import type { Venture } from "@/lib/ventures";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
@@ -24,19 +24,19 @@ const CELL = "px-2 py-2 text-end tabular-nums";
 /** Some animals as a cell: how many, and what a kilo cost where any were bought. */
 const HeadsCell = ({ heads }: { heads: Heads }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   return heads.moneyPerKg === null
     ? t("plan.vs.count", { count: heads.animals })
     : t("plan.vs.heads", {
         count: heads.animals,
-        perKg: taka(heads.moneyPerKg),
+        perKg: asMoney(heads.moneyPerKg),
       });
 };
 
 /** What it bought in each band beside what the plan meant to buy there, anything outside every band, and the total. */
 const Buying = ({ measured }: { measured: Measured }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const breedOfLine = useLineBreedName();
   const { buying } = measured;
   return (
@@ -93,9 +93,9 @@ const Buying = ({ measured }: { measured: Measured }) => {
                 >
                   <HeadsCell heads={band.bought} />
                 </td>
-                <td className={CELL}>{taka(band.planned.costMoney)}</td>
+                <td className={CELL}>{asMoney(band.planned.costMoney)}</td>
                 <td className={`${CELL} pe-4 md:pe-5`}>
-                  {taka(band.bought.costMoney)}
+                  {asMoney(band.bought.costMoney)}
                 </td>
               </tr>
             ))}
@@ -114,7 +114,7 @@ const Buying = ({ measured }: { measured: Measured }) => {
                   <Nothing />
                 </td>
                 <td className={`${CELL} pe-4 md:pe-5`}>
-                  {taka(buying.outside.costMoney)}
+                  {asMoney(buying.outside.costMoney)}
                 </td>
               </tr>
             ) : null}
@@ -134,10 +134,10 @@ const Buying = ({ measured }: { measured: Measured }) => {
                 <HeadsCell heads={buying.total} />
               </td>
               <td className={CELL}>
-                {taka(measured.money.plannedCattleMoney)}
+                {asMoney(measured.money.plannedCattleMoney)}
               </td>
               <td className={`${CELL} pe-4 md:pe-5`}>
-                {taka(buying.total.costMoney)}
+                {asMoney(buying.total.costMoney)}
               </td>
             </tr>
           </tfoot>
@@ -184,23 +184,23 @@ const Growth = ({ measured }: { measured: Measured }) => {
 /** The cattle the plan costed against what they cost, the running budget against what is spent, and the result. */
 const Money = ({ measured }: { measured: Measured }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const { money } = measured;
   const range = (low: number, high: number) =>
-    t("projection.range", { low: taka(low), high: taka(high) });
+    t("projection.range", { low: asMoney(low), high: asMoney(high) });
   // Each row what the plan said beside what it is now: the cattle, the running and the result, one figure a cell.
   const rows = [
     {
       key: "cattle",
       label: t("plan.vs.row.cattle"),
-      planned: taka(money.plannedCattleMoney),
-      now: taka(money.boughtMoney),
+      planned: asMoney(money.plannedCattleMoney),
+      now: asMoney(money.boughtMoney),
     },
     {
       key: "running",
       label: t("plan.vs.row.running"),
-      planned: taka(money.plannedRunningMoney),
-      now: taka(money.runningSpentMoney),
+      planned: asMoney(money.plannedRunningMoney),
+      now: asMoney(money.runningSpentMoney),
     },
     {
       key: "result",

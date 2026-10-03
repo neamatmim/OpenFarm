@@ -43,9 +43,9 @@ import {
 import { PhotoField } from "@/components/photo-field";
 import { useLanguage } from "@/i18n/language-provider";
 import { amount, note } from "@/lib/correcting";
+import { useMoney } from "@/lib/money";
 import type { Photo } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
-import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 const SIDE_WORD = {
@@ -132,14 +132,14 @@ const EntrySummary = ({
   typedAmount: string;
 }) => {
   const { t, language } = useLanguage();
-  const taka = Number(typedAmount);
-  if (!(taka > 0)) {
+  const entered = Number(typedAmount);
+  if (!(entered > 0)) {
     return null;
   }
   return (
     <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm tabular-nums">
       {t(direction === "in" ? "byHand.in" : "byHand.out")} · {currencySign()}
-      {formatNumber(taka, language)}
+      {formatNumber(entered, language)}
     </p>
   );
 };
@@ -255,7 +255,7 @@ const LooksEnteredDialog = ({
   onSaveAgain: () => void;
 }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const me = useQuery(orpc.people.me.queryOptions());
   const theOwnerIsTold = !(me.data?.roles.includes("owner") ?? false);
   const category =
@@ -270,7 +270,7 @@ const LooksEnteredDialog = ({
           <>
             {t("byHand.looksEnteredSaid", {
               by: twin.recordedByName ?? t("byHand.somebody"),
-              amount: taka(twin.amountMoney),
+              amount: asMoney(twin.amountMoney),
               name: twin.name ?? "",
               day: formatDate(new Date(twin.day), language, "date"),
               category: category ?? "",

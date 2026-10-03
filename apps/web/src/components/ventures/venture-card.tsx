@@ -23,8 +23,8 @@ import type { ReactNode } from "react";
 import { StatusBadge } from "@/components/page";
 import type { RowAction } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useMoney } from "@/lib/money";
 import { saidMonth } from "@/lib/months";
-import { useTaka } from "@/lib/taka";
 import type { Venture } from "@/lib/ventures";
 import {
   cattleMoneyShort,
@@ -277,7 +277,7 @@ export const WhatStopsHer = ({
 const MoneyLines = ({ venture }: { venture: Venture }) => {
   const { t, language } = useLanguage();
   const money = moneyOf(venture);
-  const taka = useTaka();
+  const asMoney = useMoney();
   // What came in, as a way to the Venture's money, where every movement of it is listed.
   const held = (
     <Link
@@ -287,7 +287,7 @@ const MoneyLines = ({ venture }: { venture: Venture }) => {
       search={{ tab: "money" }}
       to="/ventures/$ventureId"
     >
-      {taka(venture.capitalInMoney)}
+      {asMoney(venture.capitalInMoney)}
     </Link>
   );
   return (
@@ -295,10 +295,10 @@ const MoneyLines = ({ venture }: { venture: Venture }) => {
       <Line label={t("ventures.held")}>{held}</Line>
       {venture.state === "open" ? (
         <Line label={t("ventures.target")}>
-          {taka(venture.targetCapitalMoney)}
+          {asMoney(venture.targetCapitalMoney)}
         </Line>
       ) : (
-        <Line label={t("ventures.balance")}>{taka(money.balanceMoney)}</Line>
+        <Line label={t("ventures.balance")}>{asMoney(money.balanceMoney)}</Line>
       )}
       <Line label={t("ventures.signedFor")}>
         {t("ventures.unitsOfUnits", {
@@ -310,32 +310,34 @@ const MoneyLines = ({ venture }: { venture: Venture }) => {
       {stillRunning(venture) ? (
         <Line label={t("ventures.budgetsHeld")}>
           {t("ventures.budgetSplit", {
-            cattle: taka(money.cattleBudgetHeldMoney),
-            running: taka(money.runningBudgetHeldMoney),
+            cattle: asMoney(money.cattleBudgetHeldMoney),
+            running: asMoney(money.runningBudgetHeldMoney),
           })}
         </Line>
       ) : null}
       {stillRunning(venture) && money.owedTheFarmMoney > 0 ? (
         <Line label={t("ventures.owedTheFarm")}>
-          {taka(money.owedTheFarmMoney)}
+          {asMoney(money.owedTheFarmMoney)}
         </Line>
       ) : null}
       {money.openFloatMoney === 0 ? null : (
         <Line label={t("ventures.openFloat")}>
-          {taka(money.openFloatMoney)}
+          {asMoney(money.openFloatMoney)}
         </Line>
       )}
       {money.advancedMoney === 0 ? null : (
-        <Line label={t("ventures.owedToYou")}>{taka(money.advancedMoney)}</Line>
+        <Line label={t("ventures.owedToYou")}>
+          {asMoney(money.advancedMoney)}
+        </Line>
       )}
       {venture.state === "open" ? null : (
         <Line label={t("ventures.outOfTheAccount")}>
-          {`${taka(money.spentMoney)} · ${taka(money.paidOutMoney)}`}
+          {`${asMoney(money.spentMoney)} · ${asMoney(money.paidOutMoney)}`}
         </Line>
       )}
       {money.reimbursedMoney === 0 ? null : (
         <Line label={t("ventures.reimbursedSoFar")}>
-          {taka(money.reimbursedMoney)}
+          {asMoney(money.reimbursedMoney)}
         </Line>
       )}
     </div>
@@ -351,18 +353,18 @@ const MoneyLines = ({ venture }: { venture: Venture }) => {
  */
 export const Terms = ({ venture }: { venture: Venture }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const day = (on: string) => formatDate(startOfFarmDay(on), language, "date");
   const said = [
     `${t("ventures.units")}: ${t("ventures.unitsAt", {
       units: formatNumber(venture.units, language),
-      price: taka(venture.unitPriceMoney),
+      price: asMoney(venture.unitPriceMoney),
     })}`,
     `${t("ventures.budgets")}: ${t("ventures.budgetSplit", {
-      cattle: taka(venture.cattleBudgetMoney),
-      running: taka(venture.runningBudgetMoney),
+      cattle: asMoney(venture.cattleBudgetMoney),
+      running: asMoney(venture.runningBudgetMoney),
     })}`,
-    `${t("ventures.floor")}: ${taka(venture.floorMoney)}`,
+    `${t("ventures.floor")}: ${asMoney(venture.floorMoney)}`,
     `${t("ventures.decideBy")}: ${day(venture.decideBy)}`,
     `${t("ventures.window")}: ${day(venture.targetWindow.start)} – ${day(
       venture.targetWindow.end

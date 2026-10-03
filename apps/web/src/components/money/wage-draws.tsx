@@ -32,8 +32,8 @@ import {
   figure,
   note as noteAnswer,
 } from "@/lib/correcting";
+import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
-import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 /** Money a person takes ahead of payday, written down: who, how much, the day, and how it was paid. */
@@ -221,7 +221,7 @@ export const DrawCorrection = ({
  */
 export const WageDrawsTab = () => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const [drawing, setDrawing] = useState(false);
   const open = useQuery(orpc.money.openDraws.queryOptions());
   const people = open.data ?? [];
@@ -249,7 +249,7 @@ export const WageDrawsTab = () => {
                 <span className="flex items-baseline justify-between gap-3">
                   <span className="font-medium">{person.name}</span>
                   <span className="font-semibold tabular-nums">
-                    {taka(person.openMoney)}
+                    {asMoney(person.openMoney)}
                   </span>
                 </span>
                 <ul className="flex flex-col gap-1">
@@ -259,7 +259,7 @@ export const WageDrawsTab = () => {
                       key={one.id}
                     >
                       <span>
-                        {`${formatDate(new Date(one.drawnAt), language, "date")} · ${taka(one.openMoney)}`}
+                        {`${formatDate(new Date(one.drawnAt), language, "date")} · ${asMoney(one.openMoney)}`}
                         {one.note ? ` · ${one.note}` : ""}
                       </span>
                       <DrawCorrection draw={{ ...one, name: person.name }} />
@@ -288,7 +288,7 @@ export const WageDrawsNote = ({
   wageMoney: number;
 }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const open = useQuery(orpc.money.openDraws.queryOptions());
   const person = (open.data ?? []).find((one) => one.name === name.trim());
   if (!person) {
@@ -300,12 +300,12 @@ export const WageDrawsNote = ({
   return (
     <p className="bg-muted rounded-md px-3 py-2 text-sm tabular-nums">
       {t("wageDraw.atPayday", {
-        owed: taka(person.openMoney),
-        taken: taka(taken),
-        paid: taka(Math.max(0, wageMoney - taken)),
+        owed: asMoney(person.openMoney),
+        taken: asMoney(taken),
+        paid: asMoney(Math.max(0, wageMoney - taken)),
       })}
       {carriesOver
-        ? ` ${t("wageDraw.carried", { amount: taka(carried) })}`
+        ? ` ${t("wageDraw.carried", { amount: asMoney(carried) })}`
         : ""}
     </p>
   );

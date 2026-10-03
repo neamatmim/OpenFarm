@@ -8,8 +8,8 @@ import { useInvestorNames } from "@/components/investors/investor-names";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
+import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
-import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 /** The day and the reference of the transfer that sends one movement's money back. */
@@ -39,7 +39,7 @@ export const CallOffSheet = ({
 }) => {
   const { t } = useLanguage();
   const refused = useRefused();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const [reason, setReason] = useState("");
   const [sentBack, setSentBack] = useState<Record<string, SentBack>>({});
   useFreshFor(venture?.id, () => {
@@ -117,7 +117,7 @@ export const CallOffSheet = ({
             key={one.id}
           >
             <p className="text-sm font-medium">
-              {`${nameOf(one.investorId)} · ${taka(one.amountMoney)} · ${one.reference}`}
+              {`${nameOf(one.investorId)} · ${asMoney(one.amountMoney)} · ${one.reference}`}
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <FormField

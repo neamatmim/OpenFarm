@@ -12,7 +12,7 @@ import {
   farmDayOf,
   monthsFromTo,
   payoutOf,
-  roundTaka,
+  roundMoney,
   splitOfProfit,
   unitsAltogether,
   unitsHeld,
@@ -142,10 +142,10 @@ export const sweptUp = (
   const isRounding = Math.abs(overMoney) < A_ROUNDING_MONEY;
   return {
     roundingMoney: isRounding
-      ? roundTaka(split.roundingMoney + overMoney)
+      ? roundMoney(split.roundingMoney + overMoney)
       : split.roundingMoney,
     farmMoney: isRounding
-      ? roundTaka(split.farmMoney + overMoney)
+      ? roundMoney(split.farmMoney + overMoney)
       : split.farmMoney,
   };
 };
@@ -216,10 +216,10 @@ const owedOf = ({
     neverRepaid: months
       .filter((one) => !one.repaid && one.comesToMoney !== 0)
       .map((one) => one.month),
-    carryMoney: roundTaka(
+    carryMoney: roundMoney(
       sumOf(months.filter((one) => one.repaid).map((one) => one.stillOwedMoney))
     ),
-    totalMoney: roundTaka(sumOf(months.map((one) => one.stillOwedMoney))),
+    totalMoney: roundMoney(sumOf(months.map((one) => one.stillOwedMoney))),
   };
 };
 
@@ -275,7 +275,7 @@ const whatBlocksIt = ({
       uncostedDoses: charged.uncostedDoses,
     });
   }
-  const openFloatMoney = roundTaka(held?.openFloatMoney ?? 0);
+  const openFloatMoney = roundMoney(held?.openFloatMoney ?? 0);
   if (openFloatMoney !== 0) {
     blocks.push({ word: "a_float_is_open", openFloatMoney });
   }
@@ -363,7 +363,7 @@ export const whatItWasCharged = (
   const charged = chargedTo(costs, ownedThenBy, ventureId);
   // What it paid to take its Animals on: their price at the haat where its own Float bought them, and
   // what it paid another purse for one bought in.
-  const purchaseMoney = roundTaka(
+  const purchaseMoney = roundMoney(
     sumOf(
       costs.animals.map((one) =>
         one.intake && ownedThenBy(one.id, one.intake.arrivedAt) === ventureId
@@ -457,7 +457,7 @@ export const settlementOf = async (
   const named = new Map(people.map((one) => [one.id, one.name]));
 
   // ---- what the run made ----
-  const proceedsMoney = roundTaka(what?.proceedsMoney ?? 0);
+  const proceedsMoney = roundMoney(what?.proceedsMoney ?? 0);
   const { charged, charges } = whatItWasCharged(
     costs,
     ownedThenBy,
@@ -466,12 +466,12 @@ export const settlementOf = async (
   );
   // The sum of the lines as they are shown, not of the figures behind them: lines that do not add up to
   // the total beneath them is the farm arguing with itself in front of an Investor.
-  const chargedMoney = roundTaka(sumOf(charges.map((one) => one.amount)));
-  const profitMoney = roundTaka(proceedsMoney - chargedMoney);
+  const chargedMoney = roundMoney(sumOf(charges.map((one) => one.amount)));
+  const profitMoney = roundMoney(proceedsMoney - chargedMoney);
 
   // ---- how it divides ----
   const capitalOf = (agreementId: string) =>
-    roundTaka(
+    roundMoney(
       sumOf(
         paidIn
           .filter(
@@ -514,9 +514,9 @@ export const settlementOf = async (
   // What the account would still be holding once the Owner's own money and every payout had left it. It
   // is the paisa the two roundings differ by, and it goes where the other remainder already goes: to the
   // Farm, on its own line, so that a settled account reads nothing.
-  const advanceMoney = roundTaka(what?.advancedMoney ?? 0);
-  const balanceMoney = roundTaka(balanceOf(what ?? NOTHING_HELD));
-  const overMoney = roundTaka(
+  const advanceMoney = roundMoney(what?.advancedMoney ?? 0);
+  const balanceMoney = roundMoney(balanceOf(what ?? NOTHING_HELD));
+  const overMoney = roundMoney(
     balanceMoney -
       advanceMoney -
       sumOf(payouts.map((one) => one.payoutMoney)) -
@@ -558,7 +558,7 @@ export const settlementOf = async (
     A_GUESS_BEFORE_THE_SUM.has(one.word)
   );
   // What the account holds for months still owed is the Farm's, and its own block says so.
-  const unexplainedMoney = roundTaka(
+  const unexplainedMoney = roundMoney(
     overMoney -
       owedOf({ costs, ownedThenBy, paidIn, today, venture }).totalMoney
   );
@@ -583,7 +583,7 @@ export const settlementOf = async (
      *  money: the Owner's own taka went in to feed their animals, and it is not a charge — what it paid
      *  for is already among the charges. */
     advanceMoney,
-    capitalMoney: roundTaka(
+    capitalMoney: roundMoney(
       (what?.capitalInMoney ?? 0) - (what?.refundedMoney ?? 0)
     ),
     /** What the account holds, which is what everything above has to add up to. */

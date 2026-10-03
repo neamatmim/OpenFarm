@@ -8,8 +8,8 @@ import type { OpenVenture } from "@/components/portal/open-ventures";
 import { usePreviewing } from "@/components/portal/portal-source";
 import { useLanguage } from "@/i18n/language-provider";
 import { useKg } from "@/lib/kg";
+import { useMoney } from "@/lib/money";
 import { useRange } from "@/lib/range";
-import { useTaka } from "@/lib/taka";
 import type { client } from "@/utils/orpc";
 
 type HisProjection = NonNullable<
@@ -27,11 +27,11 @@ const Range = ({
   low: number;
   high: number;
 }) => {
-  const taka = useTaka();
+  const asMoney = useMoney();
   const range = useRange();
   return (
     <FigureTerm label={label} size="lg">
-      {range(taka(low), taka(high))}
+      {range(asMoney(low), asMoney(high))}
     </FigureTerm>
   );
 };
@@ -99,15 +99,15 @@ export const HisProjectionSection = ({
   projection: HisProjection | null;
 }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   if (!projection) {
     return null;
   }
   return (
     <Said
       hint={t("portal.projection.hint", {
-        low: taka(projection.saleLowMoneyPerKg),
-        high: taka(projection.saleHighMoneyPerKg),
+        low: asMoney(projection.saleLowMoneyPerKg),
+        high: asMoney(projection.saleHighMoneyPerKg),
         day: formatDate(new Date(projection.setAt), language, "date"),
       })}
       deathsPercent={projection.deathsPercent}
@@ -137,7 +137,7 @@ export const OfferProjectionSection = ({
   projection: OfferedProjection | null;
 }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const weight = useKg();
   if (!projection) {
     return null;
@@ -146,11 +146,11 @@ export const OfferProjectionSection = ({
   return (
     <Said
       hint={t("portal.projection.offerHint", {
-        buy: taka(projection.buyMoneyPerKg ?? 0),
+        buy: asMoney(projection.buyMoneyPerKg ?? 0),
         weight: kg(projection.buyWeightKg),
         gain: kg(projection.dailyGainKg),
-        low: taka(projection.saleLowMoneyPerKg),
-        high: taka(projection.saleHighMoneyPerKg),
+        low: asMoney(projection.saleLowMoneyPerKg),
+        high: asMoney(projection.saleHighMoneyPerKg),
         day: formatDate(new Date(projection.setAt), language, "date"),
       })}
       deathsPercent={projection.deathsPercent}

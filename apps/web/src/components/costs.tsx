@@ -9,7 +9,7 @@ import { HerPrice } from "@/components/fattening/animal-prices";
 import { categoryName, useReadsMoney } from "@/components/money";
 import { SUBHEADING } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
-import { usePerHeadPerDay, useTaka, useTakaToThePaisa } from "@/lib/taka";
+import { usePerHeadPerDay, useMoney, useMoneyRate } from "@/lib/money";
 import { orpc } from "@/utils/orpc";
 
 const Line = ({ label, children }: { label: string; children: ReactNode }) => (
@@ -61,15 +61,15 @@ const WhatWasSpent = ({
   };
 }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   return (
     <>
-      <Line label={t("costs.feed")}>{taka(costs.feedMoney)}</Line>
-      <Line label={t("costs.medicine")}>{taka(costs.medicineMoney)}</Line>
-      <Line label={t("costs.vet")}>{taka(costs.vetMoney)}</Line>
-      <Line label={t("costs.hasil")}>{taka(costs.hasilMoney ?? 0)}</Line>
-      <Line label={t("costs.trips")}>{taka(costs.tripMoney ?? 0)}</Line>
-      <Line label={t("costs.herd")}>{taka(costs.herdMoney ?? 0)}</Line>
+      <Line label={t("costs.feed")}>{asMoney(costs.feedMoney)}</Line>
+      <Line label={t("costs.medicine")}>{asMoney(costs.medicineMoney)}</Line>
+      <Line label={t("costs.vet")}>{asMoney(costs.vetMoney)}</Line>
+      <Line label={t("costs.hasil")}>{asMoney(costs.hasilMoney ?? 0)}</Line>
+      <Line label={t("costs.trips")}>{asMoney(costs.tripMoney ?? 0)}</Line>
+      <Line label={t("costs.herd")}>{asMoney(costs.herdMoney ?? 0)}</Line>
       <Note amount={costs.unpricedKg} word="costs.unpricedNote" />
       <Note amount={costs.uncostedDoses} word="costs.uncostedNote" />
     </>
@@ -84,8 +84,8 @@ const WhatWasSpent = ({
  */
 export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
-  const rate = useTakaToThePaisa();
+  const asMoney = useMoney();
+  const rate = useMoneyRate();
   const readsMoney = useReadsMoney();
   const costs = useQuery({
     ...orpc.costs.ofAnimal.queryOptions({ input: { tagNumber } }),
@@ -96,7 +96,7 @@ export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
   }
   const her = costs.data;
   const orDash = (amount: number | null) =>
-    amount === null ? "—" : taka(amount);
+    amount === null ? "—" : asMoney(amount);
   // A cost of gain and a cost per litre are rates, not sums: rounded to the taka, two different ones
   // print the same.
   const rateOrDash = (amount: number | null) =>
@@ -114,7 +114,7 @@ export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
           <Line label={t("costs.margin")}>
             {her.marginMoney === null
               ? t("costs.notSold")
-              : taka(her.marginMoney)}
+              : asMoney(her.marginMoney)}
           </Line>
           <Line label={t("costs.costOfGain")}>
             {rateOrDash(her.costOfGainMoney)}
@@ -168,7 +168,7 @@ type Overheads = Awaited<
  */
 const OverheadsCard = ({ overheads }: { overheads: Overheads }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const perHead = usePerHeadPerDay();
   return (
     <CostCard title={t("costs.overheads")}>
@@ -177,11 +177,11 @@ const OverheadsCard = ({ overheads }: { overheads: Overheads }) => {
       </p>
       {overheads.lines.map((line) => (
         <Line key={line.categoryId} label={categoryName(line, language)}>
-          {taka(line.amount)}
+          {asMoney(line.amount)}
         </Line>
       ))}
       <Line label={t("costs.overheadsTotal")}>
-        <span className="font-semibold">{taka(overheads.totalMoney)}</span>
+        <span className="font-semibold">{asMoney(overheads.totalMoney)}</span>
       </Line>
       <Line label={t("costs.perHeadPerDay")}>
         {perHead(overheads.perHeadPerDayMoney)}
@@ -206,7 +206,7 @@ type StoreShortfall = Awaited<
  */
 const StoreShortfallCard = ({ shortfall }: { shortfall: StoreShortfall }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   return (
     <CostCard title={t("costs.storeShortfall")}>
       <p className="text-muted-foreground pb-1 text-xs">
@@ -218,10 +218,10 @@ const StoreShortfallCard = ({ shortfall }: { shortfall: StoreShortfall }) => {
             shortfall.shortMoney > 0 ? "text-danger font-semibold" : undefined
           }
         >
-          {taka(shortfall.shortMoney)}
+          {asMoney(shortfall.shortMoney)}
         </span>
       </Line>
-      <Line label={t("costs.storeOver")}>{taka(shortfall.overMoney)}</Line>
+      <Line label={t("costs.storeOver")}>{asMoney(shortfall.overMoney)}</Line>
       <p className="text-muted-foreground pt-2 text-xs">
         {t("costs.storeCounts", { count: shortfall.counts })}
       </p>
@@ -235,8 +235,8 @@ const StoreShortfallCard = ({ shortfall }: { shortfall: StoreShortfall }) => {
  */
 export const CostsBySide = ({ from, to }: { from: string; to: string }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
-  const rate = useTakaToThePaisa();
+  const asMoney = useMoney();
+  const rate = useMoneyRate();
   const report = useQuery(
     orpc.costs.bySide.queryOptions({ input: { from, to } })
   );
@@ -265,12 +265,12 @@ export const CostsBySide = ({ from, to }: { from: string; to: string }) => {
         <CostCard title={t("costs.soldInPeriod")}>
           {soldFattening.animals.map((one) => (
             <Line key={one.tagNumber} label={one.tagNumber}>
-              {one.marginMoney === null ? "—" : taka(one.marginMoney)}
+              {one.marginMoney === null ? "—" : asMoney(one.marginMoney)}
             </Line>
           ))}
           <Line label={t("costs.margin")}>
             <span className="font-semibold">
-              {taka(soldFattening.marginMoney)}
+              {asMoney(soldFattening.marginMoney)}
             </span>
           </Line>
         </CostCard>

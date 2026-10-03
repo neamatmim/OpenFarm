@@ -12,8 +12,8 @@ import { EmptyState } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import type { ReturnsPage } from "@/components/returns/return-figure";
 import { useLanguage } from "@/i18n/language-provider";
+import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
-import { useTaka } from "@/lib/taka";
 import { aFigure, figureOf } from "@/lib/typed-figure";
 import { orpc } from "@/utils/orpc";
 
@@ -27,7 +27,7 @@ const PriceCrossingSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const refused = useRefused();
   const [rate, setRate] = useState("");
   const [note, setNote] = useState("");
@@ -65,8 +65,8 @@ const PriceCrossingSheet = ({
           aFigure(rateMoneyPerKg)
             ? t("returns.priceWorks", {
                 kg: weightKg,
-                rate: taka(rateMoneyPerKg ?? 0),
-                price: taka(priceAtWeight(weightKg, rateMoneyPerKg ?? 0)),
+                rate: asMoney(rateMoneyPerKg ?? 0),
+                price: asMoney(priceAtWeight(weightKg, rateMoneyPerKg ?? 0)),
               })
             : undefined
         }
@@ -97,12 +97,12 @@ const PriceCrossingSheet = ({
 const crossingSaid = (
   one: Crossing,
   t: ReturnType<typeof useLanguage>["t"],
-  taka: (amount: number) => string
+  asMoney: (amount: number) => string
 ): string => {
   if (one.priceMoney !== null && one.priceMoney !== undefined) {
     return t("returns.crossingPriced", {
-      price: taka(one.priceMoney),
-      rate: taka(one.rateMoneyPerKg ?? 0),
+      price: asMoney(one.priceMoney),
+      rate: asMoney(one.rateMoneyPerKg ?? 0),
     });
   }
   return one.weightKg === null
@@ -117,7 +117,7 @@ const crossingSaid = (
  */
 export const CrossingsToPrice = ({ page }: { page: ReturnsPage }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const [pricing, setPricing] = useState<Crossing | null>(null);
   // An answer kept from before the list carried priced crossings has none, and prices nothing again.
   const crossings = page.crossings ?? [];
@@ -140,7 +140,7 @@ export const CrossingsToPrice = ({ page }: { page: ReturnsPage }) => {
                 })}
               </span>
               <span className="text-muted-foreground text-sm">
-                {crossingSaid(one, t, taka)}
+                {crossingSaid(one, t, asMoney)}
               </span>
             </span>
             {one.weightKg === null ? (

@@ -42,7 +42,7 @@ const PerDose = ({ typed }: { typed: Typed }) => {
   return (
     <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm tabular-nums">
       {t("drugs.perDose", {
-        taka: formatNumber(Math.round((price / doses) * 100) / 100, language),
+        amount: formatNumber(Math.round((price / doses) * 100) / 100, language),
       })}
     </p>
   );

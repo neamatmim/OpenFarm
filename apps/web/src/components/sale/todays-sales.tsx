@@ -72,12 +72,12 @@ interface SoldCell {
 const timeOf = (when: Date, language: "bn" | "en") =>
   formatDate(new Date(when), language, "time");
 
-/** Taka, in the reader's digits. */
-const Taka = ({ value }: { value: number }) => {
+/** Money, in the reader's digits. */
+const Money = ({ value }: { value: number }) => {
   const { t, language } = useLanguage();
   return (
     <span className="whitespace-nowrap">
-      {t("intake.taka", { taka: formatNumber(value, language) })}
+      {t("intake.money", { amount: formatNumber(value, language) })}
     </span>
   );
 };
@@ -133,12 +133,12 @@ const PriceCell = ({ row }: SoldCell) => {
   return (
     <div className="flex flex-col items-end">
       <span className="font-medium">
-        <Taka value={priceMoney} />
+        <Money value={priceMoney} />
       </span>
       {weightKg > 0 ? (
         <span className="text-muted-foreground text-xs whitespace-nowrap">
           {t("intake.perKg", {
-            taka: formatNumber(Math.round(priceMoney / weightKg), language),
+            amount: formatNumber(Math.round(priceMoney / weightKg), language),
           })}
         </span>
       ) : null}
@@ -213,7 +213,7 @@ const SoldCard = ({ row }: { row: SoldRow }) => {
           </span>
         </div>
         <span className="text-lg font-semibold tabular-nums">
-          <Taka value={row.priceMoney} />
+          <Money value={row.priceMoney} />
         </span>
         <BakiOwed
           bakiMoney={row.bakiMoney}

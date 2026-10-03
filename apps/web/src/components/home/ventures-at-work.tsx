@@ -6,7 +6,7 @@ import { Handshake } from "lucide-react";
 
 import { RecordList, RecordRow, Section, StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -24,7 +24,7 @@ import { orpc } from "@/utils/orpc";
 export const VenturesAtWork = () => {
   const { t, language } = useLanguage();
   const ventures = useQuery(orpc.ventures.running.queryOptions());
-  const taka = useTaka();
+  const asMoney = useMoney();
   const rows = ventures.data ?? [];
   if (rows.length === 0) {
     return null;
@@ -49,13 +49,15 @@ export const VenturesAtWork = () => {
                   {t("venturesAtWork.feedingLeft", {
                     // Less what its animals have cost the Farm since the last Reimbursement — missing from an
                     // answer cached before it was said.
-                    left: taka(
+                    left: asMoney(
                       one.runningBudgetHeldMoney - (one.owedTheFarmMoney ?? 0)
                     ),
                   })}
                 </span>
                 <span>
-                  {t("venturesAtWork.spent", { spent: taka(one.spentMoney) })}
+                  {t("venturesAtWork.spent", {
+                    spent: asMoney(one.spentMoney),
+                  })}
                 </span>
                 <span>
                   {t("venturesAtWork.standing", {

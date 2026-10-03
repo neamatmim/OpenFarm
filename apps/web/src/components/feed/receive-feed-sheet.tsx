@@ -156,7 +156,7 @@ const LastPurchase = ({
   return (
     <p className="text-muted-foreground text-sm tabular-nums">
       {t("stock.lastBought", {
-        taka: formatNumber(Math.round(unitPriceMoney * 100) / 100, language),
+        amount: formatNumber(Math.round(unitPriceMoney * 100) / 100, language),
         unit: feedUnitEach(item.unit, language),
         day: formatDate(new Date(receivedOn), language, "date"),
       })}
@@ -289,7 +289,7 @@ const LotSummary = ({
   if (draft.kind === "purchase" && price > 0) {
     parts.push(
       t("stock.averagePrice", {
-        taka: formatNumber(
+        amount: formatNumber(
           Math.round((price / (stored ?? amount)) * 100) / 100,
           language
         ),

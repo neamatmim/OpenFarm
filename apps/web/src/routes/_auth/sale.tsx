@@ -25,7 +25,7 @@ import type { Sold } from "@/components/sale/todays-sales";
 import { TodaysSales } from "@/components/sale/todays-sales";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 import { orpc } from "@/utils/orpc";
 
 const TABS = ["ready", "sold", "trip"] as const;
@@ -57,8 +57,8 @@ const SaleFigures = ({
     ) ?? 0;
   const weighed = sold?.reduce((sum, one) => sum + one.weightKg, 0) ?? 0;
   const buyers = new Set(sold?.map((one) => one.buyerName)).size;
-  const said = useTaka();
-  const taka = (value: number | undefined) =>
+  const said = useMoney();
+  const asMoney = (value: number | undefined) =>
     value === undefined ? "—" : said(value);
   return (
     <SummaryFigures
@@ -73,17 +73,17 @@ const SaleFigures = ({
         },
         {
           label: t("sale.kpi.takings"),
-          value: taka(taken),
+          value: asMoney(taken),
           hint:
             owingNow > 0
-              ? t("baki.owed", { taka: formatNumber(owingNow, language) })
+              ? t("baki.owed", { amount: formatNumber(owingNow, language) })
               : t("sale.kpi.takingsHint"),
           icon: Banknote,
           tone: (taken ?? 0) > 0 ? "success" : "neutral",
         },
         {
           label: t("sale.kpi.perKg"),
-          value: fetched && weighed > 0 ? taka(fetched / weighed) : "—",
+          value: fetched && weighed > 0 ? asMoney(fetched / weighed) : "—",
           hint: t("sale.kpi.perKgHint"),
           icon: Scale,
         },

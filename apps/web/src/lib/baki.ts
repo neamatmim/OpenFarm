@@ -1,4 +1,4 @@
-import { roundTaka } from "@OpenFarm/domain";
+import { roundMoney } from "@OpenFarm/domain";
 
 // What is typed about Baki on the Sale and Dispatch sheets, and what the farm is sent of it. Here rather than beside the
 // fields, because these are sums, and a sum is easier read — and checked — away from the markup.
@@ -58,6 +58,6 @@ export const stillOwes = (
   const paidIsAFigure =
     typed.paidNow.trim() !== "" && !Number.isNaN(paid) && paid >= 0;
   return paidIsAFigure && paid <= worthMoney
-    ? roundTaka(worthMoney - paid)
+    ? roundMoney(worthMoney - paid)
     : null;
 };

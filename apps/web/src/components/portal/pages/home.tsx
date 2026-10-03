@@ -35,7 +35,7 @@ import {
 import { StageMeter } from "@/components/portal/stage-meter";
 import { StillToPay } from "@/components/portal/still-to-pay";
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 
 type HisAgreement = TheirAgreements["agreements"][number];
 
@@ -50,7 +50,7 @@ const VentureCard = ({
   alone?: boolean;
 }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const { to, params } = usePortalPlaces().venture(one.id).link;
   return (
     <li>
@@ -78,7 +78,7 @@ const VentureCard = ({
               {t("portal.capital")}
             </dt>
             <dd className="font-semibold tabular-nums">
-              {taka(one.capitalHeldMoney)}
+              {asMoney(one.capitalHeldMoney)}
             </dd>
           </div>
           <div className="flex flex-col gap-0.5">

@@ -139,7 +139,7 @@ const PurchaseCard = ({ row }: { row: Purchase }) => {
         {t("drugs.dosesHeld", { doses: formatNumber(row.doses, language) })}
         {each === null
           ? ""
-          : ` · ${t("drugs.perDose", { taka: formatNumber(each, language) })}`}
+          : ` · ${t("drugs.perDose", { amount: formatNumber(each, language) })}`}
       </span>
       <LotAndExpiry
         expiresOn={row.expiresOn}
@@ -158,13 +158,13 @@ const BoughtSummary = ({ purchases }: { purchases: Purchase[] }) => {
   if (purchases.length === 0) {
     return null;
   }
-  const taka = purchases.reduce((sum, one) => sum + one.priceMoney, 0);
+  const amount = purchases.reduce((sum, one) => sum + one.priceMoney, 0);
   const doses = purchases.reduce((sum, one) => sum + one.doses, 0);
   return (
     <p className="text-muted-foreground text-sm tabular-nums">
       {t("drugs.boughtSummary", {
         count: formatNumber(purchases.length, language),
-        taka: formatNumber(taka, language),
+        amount: formatNumber(amount, language),
         doses: formatNumber(doses, language),
       })}
     </p>

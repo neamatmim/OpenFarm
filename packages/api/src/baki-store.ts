@@ -14,7 +14,7 @@ import {
   isBakiRefusal,
   overdueFrom,
   roundLitres,
-  roundTaka,
+  roundMoney,
   soldOnBakiWhileOverdue,
   startOfFarmDay,
 } from "@OpenFarm/domain";
@@ -236,7 +236,7 @@ const writeOffsOf = (writeOffs: Book["writeOffs"]) => {
     ]);
     writtenOff.set(
       one.sourceId,
-      roundTaka((writtenOff.get(one.sourceId) ?? 0) + one.amountMoney)
+      roundMoney((writtenOff.get(one.sourceId) ?? 0) + one.amountMoney)
     );
     const last = lastWrittenOff.get(one.counterpartyId);
     if (one.amountMoney > 0 && (!last || one.writtenOn > last)) {
@@ -394,10 +394,10 @@ export const bakiOfBuyers = async (
         counterpartyId,
         name: who.name,
         phone: who.phone,
-        owingMoney: roundTaka(
+        owingMoney: roundMoney(
           kinds.reduce((sum, one) => sum + one.owingMoney, 0)
         ),
-        writtenOffMoney: roundTaka(
+        writtenOffMoney: roundMoney(
           kinds.reduce((sum, one) => sum + one.writtenOffMoney, 0)
         ),
         lastWrittenOffOn: lastWrittenOff.get(counterpartyId) ?? null,
@@ -551,7 +551,7 @@ export const overdueOfBuyer = (
     counterpartyId: buyer.counterpartyId,
     name: buyer.name,
     phone: buyer.phone,
-    overdueMoney: roundTaka(
+    overdueMoney: roundMoney(
       items.reduce((sum, one) => sum + one.owingMoney, 0)
     ),
     owingMoney: buyer.owingMoney,

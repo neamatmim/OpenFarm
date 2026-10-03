@@ -3,7 +3,7 @@ import { farmDayOf, startOfFarmDay } from "./farm-clock";
 import type { TargetWindow } from "./fattening";
 import type { Charge, Left, OwnedThenBy, WhatHappened } from "./holding";
 import { chargesInHolding, howSheLeft } from "./holding";
-import { roundTaka } from "./money";
+import { roundMoney } from "./money";
 import type { Returned, RunningRange, Spent } from "./returns";
 import { returnOf, returnOnCapitalOf, runningRangeOf } from "./returns";
 
@@ -55,13 +55,13 @@ export const rateInForceOn = <Rate extends BankRate>(
  */
 export const bankRateFor = (
   rates: readonly BankRate[],
-  firstTaka: Date | null,
+  firstMoney: Date | null,
   returned: { perYear: number | null } | null
 ): BankRateSaid | null => {
-  if (returned === null || returned.perYear === null || firstTaka === null) {
+  if (returned === null || returned.perYear === null || firstMoney === null) {
     return null;
   }
-  const inForce = rateInForceOn(rates, farmDayOf(firstTaka));
+  const inForce = rateInForceOn(rates, farmDayOf(firstMoney));
   return inForce
     ? { perYear: inForce.perYear, note: inForce.note, fromDay: inForce.fromDay }
     : null;
@@ -594,7 +594,7 @@ export const ventureReturnOf = (
   const since =
     worked.returnOnCost === null
       ? 0
-      : roundTaka(worked.returnOnCost.resultMoney - settlement.profitMoney);
+      : roundMoney(worked.returnOnCost.resultMoney - settlement.profitMoney);
   return {
     ...common,
     settled: true,

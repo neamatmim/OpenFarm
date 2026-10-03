@@ -1,6 +1,7 @@
 import { eq } from "@OpenFarm/db/operators";
 import { ventureMovement } from "@OpenFarm/db/schema/venture";
 import { capitalItMayHold } from "@OpenFarm/domain";
+import { currencyWords } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -213,7 +214,7 @@ const assertWithinItsUnits = async (
   const already = paid.reduce((sum, one) => sum + one.amountMoney, 0);
   if (already + amountMoney > owed) {
     throw refuse(
-      `This Agreement is for ${owed - already} more taka`,
+      `This Agreement is for ${owed - already} more ${currencyWords("en").sum}`,
       cattlePartOnly ? "capital_over_cattle_part" : "capital_over_units"
     );
   }

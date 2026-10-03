@@ -2,7 +2,7 @@ import {
   farmDayOf,
   joiningLetter,
   progressStatement,
-  roundTaka,
+  roundMoney,
   settlementStatement,
   sumsStandingOf,
   termsOf,
@@ -117,26 +117,26 @@ export const joiningLetterFor = async (
   );
   const day = (on: string) =>
     formatDate(new Date(`${on}T00:00:00Z`), language, "date");
-  const taka = (amount: number) => formatNumber(amount, language);
+  const asMoney = (amount: number) => formatNumber(amount, language);
   // Paid by the month: the clauses it was signed with, and his Units' schedule under what he has paid.
   const { monthly } = paidForBy(standing.venture);
   const text = joiningLetter({
     farm: context.farm,
     him: standing.him,
     ventureName: standing.venture.name,
-    unitPrice: taka(standing.venture.unitPriceMoney),
+    unitPrice: asMoney(standing.venture.unitPriceMoney),
     units: formatNumber(standing.agreement.units, language),
     capital: standing.capital.map((one) => ({
       kind: one.kind,
-      amount: taka(one.amountMoney),
+      amount: asMoney(one.amountMoney),
       on: day(one.movedOn),
       reference: one.reference,
     })),
-    totalCapital: taka(standing.capitalMoney),
+    totalCapital: asMoney(standing.capitalMoney),
     monthlySums: monthly
       ? monthly.sums.map((one) => ({
           on: day(one.dueOn),
-          amount: taka(one.amount * standing.agreement.units),
+          amount: asMoney(one.amount * standing.agreement.units),
         }))
       : null,
     terms: termsOf(
@@ -161,7 +161,7 @@ export const joiningLetterFor = async (
       : null,
     stamp: {
       kind: standing.agreement.stampKind,
-      value: taka(standing.agreement.stampValueMoney),
+      value: asMoney(standing.agreement.stampValueMoney),
       on: day(standing.agreement.stampedOn),
       serial: standing.agreement.stampSerial,
     },
@@ -328,7 +328,7 @@ export const settlementStatementFor = async (
   const perUnitIn =
     settled.units > 0 ? settled.capitalMoney / settled.units : 0;
   const monthlyVenture = paidForBy(standing.venture).monthly !== null;
-  const unpaidMoney = roundTaka(
+  const unpaidMoney = roundMoney(
     standing.agreement.units * standing.venture.unitPriceMoney -
       settled.his.capitalMoney
   );

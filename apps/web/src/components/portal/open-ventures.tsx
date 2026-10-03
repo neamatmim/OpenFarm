@@ -16,7 +16,7 @@ import {
 } from "@/components/portal/portal-source";
 import { RequestStanding } from "@/components/portal/requests-to-join";
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 import type { orpc } from "@/utils/orpc";
 
 /** A Venture still raising capital, as an invited Investor is offered it: its terms and the farm's words, and
@@ -46,7 +46,7 @@ export const Fact = ({
  *  card leads to its own page, where the rules are read before anything is asked. */
 export const OpenVentureCard = ({ one }: { one: OpenVenture }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   // Their own live Request on it, said on the card, so a list of offers tells the ones they have asked about.
   const asked = (useTheirRequests().data ?? []).find(
     (each) => each.ventureId === one.id && isLiveRequest(each.state)
@@ -77,7 +77,9 @@ export const OpenVentureCard = ({ one }: { one: OpenVenture }) => {
           </Badge>
         )}
         <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-          <Fact label={t("portal.open.unit")}>{taka(one.unitPriceMoney)}</Fact>
+          <Fact label={t("portal.open.unit")}>
+            {asMoney(one.unitPriceMoney)}
+          </Fact>
           <Fact label={t("portal.open.decideBy")}>
             <SaidDate at={one.decideBy} />
           </Fact>

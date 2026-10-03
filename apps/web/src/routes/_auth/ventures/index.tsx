@@ -33,8 +33,8 @@ import type { VentureActs } from "@/components/ventures/venture-card";
 import { VenturesTable } from "@/components/ventures/ventures-table";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
+import { useMoney } from "@/lib/money";
 import { lastMonth } from "@/lib/months";
-import { useTaka } from "@/lib/taka";
 import type { Venture } from "@/lib/ventures";
 import { venturesNeedingHer } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
@@ -72,7 +72,7 @@ const useVentureFigures = (ventures: Venture[] | undefined): Figure[] => {
   );
   const needHer = venturesNeedingHer(ventures).length;
   const loading = <Skeleton className="h-8 w-24" />;
-  const taka = useTaka();
+  const asMoney = useMoney();
   return [
     {
       label: t("ventures.figure.running"),
@@ -81,12 +81,12 @@ const useVentureFigures = (ventures: Venture[] | undefined): Figure[] => {
     },
     {
       label: t("ventures.figure.held"),
-      value: ventures ? taka(held) : loading,
+      value: ventures ? asMoney(held) : loading,
       icon: Banknote,
     },
     {
       label: t("ventures.figure.balance"),
-      value: ventures ? taka(balance) : loading,
+      value: ventures ? asMoney(balance) : loading,
       icon: Wallet,
     },
     {

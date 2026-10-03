@@ -5,7 +5,7 @@ import { farmDayOf, startOfFarmDay } from "./farm-clock";
 import { chargesInHolding, howSheLeft } from "./holding";
 import type { Left } from "./holding";
 import { roundLitres } from "./milk";
-import { roundTaka } from "./money";
+import { roundMoney } from "./money";
 import type { Returned, RunningRange, Spent } from "./returns";
 import { returnOf, runningRangeOf } from "./returns";
 
@@ -245,7 +245,7 @@ const figuresOf = (
   floorDays: number
 ) => ({
   resultMoney: finished
-    ? roundTaka(
+    ? roundMoney(
         milkMoney +
           (finished.backMoney ?? 0) -
           spent.reduce((sum, one) => sum + one.amount, 0)
@@ -315,9 +315,9 @@ export const dairyRunOf = (
             on: went.on,
           }
         : null,
-      costMoney: roundTaka(spent.reduce((sum, one) => sum + one.amount, 0)),
+      costMoney: roundMoney(spent.reduce((sum, one) => sum + one.amount, 0)),
       milkLitres: roundLitres(milk?.litres ?? 0),
-      milkMoney: roundTaka(milkMoney),
+      milkMoney: roundMoney(milkMoney),
       endMoney: went?.backMoney ?? null,
       milkPricedEarlier: milk?.earlier ?? [],
       ...figuresOf(spent, milkMoney, finished, standing, floorDays),
@@ -341,7 +341,7 @@ export const herdNowOf = (
     counted.reduce((total, one) => total + of(one), 0);
   return {
     head: standing.length,
-    milkMoney: roundTaka(sum((run) => run.milkMoney)),
+    milkMoney: roundMoney(sum((run) => run.milkMoney)),
     running:
       counted.length === 0
         ? null

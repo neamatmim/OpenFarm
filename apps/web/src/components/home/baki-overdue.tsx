@@ -41,7 +41,7 @@ export const BakiOverdueGroup = ({
         <>
           <span className="text-warning tabular-nums">
             {t("home.bakiOverdueSince", {
-              taka: formatNumber(buyer.overdueMoney, language),
+              amount: formatNumber(buyer.overdueMoney, language),
               day: formatDate(
                 startOfFarmDay(buyer.overdueSince),
                 language,

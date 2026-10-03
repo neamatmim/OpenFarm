@@ -16,8 +16,8 @@ import { EmptyState, Notice, StatusBadge } from "@/components/page";
 import { SummaryFigures } from "@/components/page-kit";
 import { StateBadge } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
+import { usePerHeadPerDay, useMoney, useMoneyRate } from "@/lib/money";
 import { saidMonth } from "@/lib/months";
-import { usePerHeadPerDay, useTaka, useTakaToThePaisa } from "@/lib/taka";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
@@ -33,18 +33,18 @@ export const useByMonth = () => useQuery(orpc.home.byMonth.queryOptions());
  *  Margins on the fattening animals sold. */
 export const YearFigures = ({ year }: { year: Stretch }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
-  const perLitre = useTakaToThePaisa();
+  const asMoney = useMoney();
+  const perLitre = useMoneyRate();
   const { money, dairy, fattening } = year;
   return (
     <SummaryFigures
       figures={[
         {
           label: t("months.net"),
-          value: taka(money.netMoney),
+          value: asMoney(money.netMoney),
           hint: t("owner.inAndOut", {
-            in: taka(money.inMoney),
-            out: taka(money.outMoney),
+            in: asMoney(money.inMoney),
+            out: asMoney(money.outMoney),
           }),
           icon: Scale,
           tone: money.netMoney < 0 ? "danger" : "neutral",
@@ -52,7 +52,7 @@ export const YearFigures = ({ year }: { year: Stretch }) => {
         },
         {
           label: t("months.milkSold"),
-          value: taka(dairy.milkSoldMoney),
+          value: asMoney(dairy.milkSoldMoney),
           hint:
             dairy.fetchedPerLitreMoney === null
               ? undefined
@@ -64,7 +64,7 @@ export const YearFigures = ({ year }: { year: Stretch }) => {
         },
         {
           label: t("months.dairyCost"),
-          value: taka(dairy.chargedMoney),
+          value: asMoney(dairy.chargedMoney),
           hint:
             dairy.costPerLitreMoney === null
               ? undefined
@@ -78,7 +78,7 @@ export const YearFigures = ({ year }: { year: Stretch }) => {
           value:
             fattening.marginMoney === null
               ? t("months.nothingYet")
-              : taka(fattening.marginMoney),
+              : asMoney(fattening.marginMoney),
           hint: t("months.marginsHint", { count: fattening.sold }),
           icon: Beef,
           tone: (fattening.marginMoney ?? 0) < 0 ? "danger" : "neutral",
@@ -102,7 +102,7 @@ const shortMonth = (
  */
 export const NetChart = ({ months }: { months: Month[] }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const nets = months.map((one) => one.money.netMoney);
   const up = Math.max(0, ...nets);
   const down = Math.max(0, ...nets.map((net) => -net));
@@ -112,7 +112,7 @@ export const NetChart = ({ months }: { months: Month[] }) => {
   const columns = {
     gridTemplateColumns: `repeat(${months.length}, minmax(0, 1fr))`,
   };
-  const [widest] = [taka(up), taka(-down)].toSorted(
+  const [widest] = [asMoney(up), asMoney(-down)].toSorted(
     (a, b) => b.length - a.length
   );
   return (
@@ -124,7 +124,7 @@ export const NetChart = ({ months }: { months: Month[] }) => {
         <span className="invisible block">{widest}</span>
         {up > 0 ? (
           <span className="absolute end-0 top-0 -translate-y-1/2">
-            {taka(up)}
+            {asMoney(up)}
           </span>
         ) : null}
         <span
@@ -135,7 +135,7 @@ export const NetChart = ({ months }: { months: Month[] }) => {
         </span>
         {down > 0 ? (
           <span className="absolute end-0 top-full -translate-y-1/2">
-            {taka(-down)}
+            {asMoney(-down)}
           </span>
         ) : null}
       </div>
@@ -151,7 +151,7 @@ export const NetChart = ({ months }: { months: Month[] }) => {
               const net = one.money.netMoney;
               const said = t("months.chartSaid", {
                 month: saidMonth(one.month, language),
-                net: taka(net),
+                net: asMoney(net),
               });
               const height = `max(${span === 0 ? 0 : (Math.abs(net) / span) * 100}%, 2px)`;
               return (
@@ -219,8 +219,8 @@ const MonthNameCell = ({ row }: MonthCell) => (
 
 /** A sum in a column: in figures of one width, so a column of them lines up. */
 const Sum = ({ amount }: { amount: number }) => {
-  const taka = useTaka();
-  return <span className="tabular-nums">{taka(amount)}</span>;
+  const asMoney = useMoney();
+  return <span className="tabular-nums">{asMoney(amount)}</span>;
 };
 
 const InCell = ({ row }: MonthCell) => (
@@ -249,7 +249,7 @@ const DairyCostCell = ({ row }: MonthCell) => (
 /** What a litre fetched beside what it cost: either may be nothing, where no milk left or none went to Bulk. */
 const LitreCell = ({ row }: MonthCell) => {
   const { t } = useLanguage();
-  const perLitre = useTakaToThePaisa();
+  const perLitre = useMoneyRate();
   const { fetchedPerLitreMoney, costPerLitreMoney } = row.original.dairy;
   if (fetchedPerLitreMoney === null && costPerLitreMoney === null) {
     return <Nothing />;
@@ -267,7 +267,7 @@ const LitreCell = ({ row }: MonthCell) => {
 
 const SoldCell = ({ row }: MonthCell) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const { sold, marginMoney } = row.original.fattening;
   if (marginMoney === null) {
     return <Nothing />;
@@ -276,7 +276,7 @@ const SoldCell = ({ row }: MonthCell) => {
     <span className="tabular-nums">
       {t("months.pair", {
         first: formatNumber(sold, language),
-        second: taka(marginMoney),
+        second: asMoney(marginMoney),
       })}
     </span>
   );
@@ -290,7 +290,7 @@ const FatteningCostCell = ({ row }: MonthCell) => (
  *  kept from before there were Overheads. */
 const OverheadsCell = ({ row }: MonthCell) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const perHead = usePerHeadPerDay();
   const { overheads } = row.original;
   if (!overheads) {
@@ -299,7 +299,7 @@ const OverheadsCell = ({ row }: MonthCell) => {
   return (
     <span className="tabular-nums">
       {t("months.pair", {
-        first: taka(overheads.amount),
+        first: asMoney(overheads.amount),
         second: perHead(overheads.perHeadPerDayMoney),
       })}
     </span>
@@ -371,8 +371,8 @@ const monthColumns = column.columns([
 /** A month on a phone: its name and net on top, then its money, its milk and its fattening, each a line of words. */
 const MonthCard = ({ month }: { month: Month }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
-  const perLitre = useTakaToThePaisa();
+  const asMoney = useMoney();
+  const perLitre = useMoneyRate();
   const perHead = usePerHeadPerDay();
   const { money, dairy, fattening } = month;
   return (
@@ -385,19 +385,19 @@ const MonthCard = ({ month }: { month: Month }) => {
             money.netMoney < 0 && "text-danger"
           )}
         >
-          {taka(money.netMoney)}
+          {asMoney(money.netMoney)}
         </span>
       </div>
       <p className="text-muted-foreground text-sm">
         {t("owner.inAndOut", {
-          in: taka(money.inMoney),
-          out: taka(money.outMoney),
+          in: asMoney(money.inMoney),
+          out: asMoney(money.outMoney),
         })}
       </p>
       <p className="text-sm">
         {t("months.cardMilk", {
-          sold: taka(dairy.milkSoldMoney),
-          cost: taka(dairy.chargedMoney),
+          sold: asMoney(dairy.milkSoldMoney),
+          cost: asMoney(dairy.chargedMoney),
         })}
       </p>
       {dairy.fetchedPerLitreMoney !== null &&
@@ -411,17 +411,17 @@ const MonthCard = ({ month }: { month: Month }) => {
       ) : null}
       <p className="text-sm">
         {fattening.marginMoney === null
-          ? t("months.cardNoneSold", { cost: taka(fattening.chargedMoney) })
+          ? t("months.cardNoneSold", { cost: asMoney(fattening.chargedMoney) })
           : t("months.cardSold", {
               count: fattening.sold,
-              margin: taka(fattening.marginMoney),
-              cost: taka(fattening.chargedMoney),
+              margin: asMoney(fattening.marginMoney),
+              cost: asMoney(fattening.chargedMoney),
             })}
       </p>
       {month.overheads ? (
         <p className="text-muted-foreground text-sm">
           {t("months.cardOverheads", {
-            amount: taka(month.overheads.amount),
+            amount: asMoney(month.overheads.amount),
             perHead: perHead(month.overheads.perHeadPerDayMoney),
           })}
         </p>
@@ -445,7 +445,7 @@ export const MonthTable = ({
   year: Stretch;
 }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const perHead = usePerHeadPerDay();
   const newestFirst = months.toReversed();
   const table = useListTable({
@@ -461,7 +461,7 @@ export const MonthTable = ({
       {year.overheads ? (
         <p className="text-muted-foreground text-sm">
           {t("months.yearOverheads", {
-            amount: taka(year.overheads.amount),
+            amount: asMoney(year.overheads.amount),
             perHead: perHead(year.overheads.perHeadPerDayMoney),
           })}
         </p>
@@ -486,15 +486,15 @@ export const MonthTable = ({
 /** One Venture against its plan: its name and where it stands, what its plan said, and what it comes to now. */
 const VentureLine = ({ venture }: { venture: VentureAgainstPlan }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const range = (between: { lowMoney: number; highMoney: number }) =>
     t("projection.range", {
-      low: taka(between.lowMoney),
-      high: taka(between.highMoney),
+      low: asMoney(between.lowMoney),
+      high: asMoney(between.highMoney),
     });
   const now = (() => {
     if (venture.settledProfitMoney !== null) {
-      return t("months.made", { profit: taka(venture.settledProfitMoney) });
+      return t("months.made", { profit: asMoney(venture.settledProfitMoney) });
     }
     if (venture.projected) {
       return t("months.projectedNow", { range: range(venture.projected) });

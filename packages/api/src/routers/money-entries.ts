@@ -1,7 +1,7 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { MONEY_DIRECTIONS, moneyCategory } from "@OpenFarm/db/schema/money";
-import { farmDayOf, looksEnteredAlready, roundTaka } from "@OpenFarm/domain";
+import { farmDayOf, looksEnteredAlready, roundMoney } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -530,7 +530,7 @@ export const moneyEntryProcedures = {
             {
               source: "by_hand",
               sourceId: id,
-              amountMoney: roundTaka(input.amountMoney - draws.takenMoney),
+              amountMoney: roundMoney(input.amountMoney - draws.takenMoney),
               occurredAt,
               counterpartyId,
               paymentMethod: input.paymentMethod,

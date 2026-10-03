@@ -102,7 +102,7 @@ describe("messages", () => {
       "this",
       "ends",
       "owes",
-      // "{taka} less" is a sum of money, not a count.
+      // "{amount} less" is a sum of money, not a count.
       "less",
     ]);
     const countThenPlural =
@@ -193,9 +193,11 @@ describe("the farm's currency", () => {
   });
 
   it("says taka, with its sign, on a farm in Bangladesh", () => {
-    expect(translate("en", "intake.taka", { taka: 1200 })).toBe("1,200 taka");
-    expect(translate("bn", "intake.taka", { taka: 1200 })).toBe("১,২০০ টাকা");
-    expect(translate("en", "params.taka")).toBe("৳");
+    expect(translate("en", "intake.money", { amount: 1200 })).toBe(
+      "1,200 taka"
+    );
+    expect(translate("bn", "intake.money", { amount: 1200 })).toBe("১,২০০ টাকা");
+    expect(translate("en", "params.money")).toBe("৳");
     expect(translate("bn", "portal.promise.title")).toBe(
       "আপনার ভেঞ্চার, কাগজপত্র আর টাকার হিসাব — এক জায়গায়।"
     );
@@ -203,13 +205,13 @@ describe("the farm's currency", () => {
 
   it("says the farm's own currency where it counts in another, with the endings its words take", () => {
     setFarmLocale({ ...DEFAULT_FARM_LOCALE, currency: "USD" });
-    expect(translate("en", "intake.taka", { taka: 1200 })).toBe(
+    expect(translate("en", "intake.money", { amount: 1200 })).toBe(
       "1,200 dollars"
     );
     expect(translate("en", "portal.promise.money")).toBe(
       "Every dollar you paid in, and every dollar paid to you."
     );
-    expect(translate("en", "params.taka")).toBe("$");
+    expect(translate("en", "params.money")).toBe("$");
     expect(translate("bn", "portal.promise.title")).toBe(
       "আপনার ভেঞ্চার, কাগজপত্র আর ডলারের হিসাব — এক জায়গায়।"
     );

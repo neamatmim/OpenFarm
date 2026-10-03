@@ -1,4 +1,4 @@
-import { roundTaka } from "@OpenFarm/domain";
+import { roundMoney } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
@@ -166,7 +166,7 @@ export const BankCheckSheet = ({
   const typed = read !== "" && !Number.isNaN(readMoney);
   // Rounded the way the farm rounds, so what she reads here is what the farm will say.
   const differenceMoney =
-    typed && !firstReading ? roundTaka(readMoney - expectedMoney) : 0;
+    typed && !firstReading ? roundMoney(readMoney - expectedMoney) : 0;
   const already = expected?.checked ?? null;
   const ready = which !== null && typed;
   const words = wordsOf(t, venture, farmAccount);

@@ -29,11 +29,11 @@ import { categoryName } from "@/components/money";
 import type { Tone } from "@/components/page";
 import { Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
+import { useMoney } from "@/lib/money";
 import { moneyTotals } from "@/lib/money-totals";
-import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
-export { useTaka } from "@/lib/taka";
+export { useMoney } from "@/lib/money";
 
 /** How many kinds of spending the month's money names: the few that matter, not the whole register. */
 const TOP_SPENDING = 4;
@@ -114,7 +114,7 @@ const AllWell = ({ children }: { children: ReactNode }) => (
  */
 export const MoneyMonth = () => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const money = useQuery(orpc.money.list.queryOptions({ input: thisMonth() }));
   const rows = money.data?.events ?? [];
   // The month's totals as the farm tells them; where most went is read from the rows shown, and says so when cut short.
@@ -156,18 +156,18 @@ export const MoneyMonth = () => {
               className={MONEY_LINE}
               label={t("money.totalIn")}
               tone="success"
-              value={taka(moneyIn)}
+              value={asMoney(moneyIn)}
             />
             <Tally
               className={MONEY_LINE}
               label={t("money.totalOut")}
-              value={taka(moneyOut)}
+              value={asMoney(moneyOut)}
             />
             <Tally
               className={MONEY_LINE}
               label={t("money.net")}
               tone={moneyIn - moneyOut < 0 ? "danger" : "neutral"}
-              value={taka(moneyIn - moneyOut)}
+              value={asMoney(moneyIn - moneyOut)}
             />
           </dl>
           {top.length > 0 ? (
@@ -181,7 +181,7 @@ export const MoneyMonth = () => {
                     <div className="flex items-baseline justify-between gap-3">
                       <span className="truncate">{line.name}</span>
                       <span className="font-medium tabular-nums">
-                        {taka(line.amount)}
+                        {asMoney(line.amount)}
                       </span>
                     </div>
                     <span
@@ -270,7 +270,7 @@ export const HerdPanel = ({
   lostYear?: { count: number; costMoney: number };
 }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const animals = useQuery(
     orpc.animals.list.queryOptions({ input: { includeExited: false } })
   );
@@ -325,7 +325,7 @@ export const HerdPanel = ({
             <p className="text-danger text-sm">
               {t("owner.lostYear", {
                 count: lostYear.count,
-                amount: taka(lostYear.costMoney),
+                amount: asMoney(lostYear.costMoney),
               })}
             </p>
           ) : null}
@@ -437,7 +437,7 @@ export const FatteningPanel = () => {
 /** The store: what it is worth, and which feeds are running low or out, by name. */
 export const FeedPanel = () => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const stock = useQuery(orpc.stock.onHand.queryOptions());
   const live = (stock.data ?? []).filter((line) => !line.retiredAt);
   const short = live.filter((line) =>
@@ -469,7 +469,7 @@ export const FeedPanel = () => {
             <Tally
               className="col-span-2"
               label={t("feed.kpi.value")}
-              value={taka(worth)}
+              value={asMoney(worth)}
             />
           </dl>
           {short.length > 0 ? (

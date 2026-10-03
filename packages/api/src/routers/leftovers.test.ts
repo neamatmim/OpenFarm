@@ -17,7 +17,7 @@ const HOUR_MS = 60 * 60 * 1000;
 /** A week of feeding twice a day. */
 const WEEK_OF_SESSIONS = 14;
 /** What the farm paid for a kilo of straw. */
-const STRAW_TAKA_PER_KG = 10;
+const STRAW_MONEY_PER_KG = 10;
 
 const as = (role: "owner" | "manager" | "staff", instant = NOW) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
@@ -45,7 +45,7 @@ const setup = async () => {
     feedItemId: straw.id,
     kind: "purchase",
     quantity: 1000,
-    priceMoney: 1000 * STRAW_TAKA_PER_KG,
+    priceMoney: 1000 * STRAW_MONEY_PER_KG,
     seller: { name: `খড়ের ব্যাপারী ${suffix}` },
     receivedOn: "2035-02-01",
   });
@@ -166,7 +166,7 @@ describe("the Leftovers", () => {
       sessions: WEEK_OF_SESSIONS,
       sessionsWithLeftover: WEEK_OF_SESSIONS,
       // 28 kg of straw at the ten taka a kilo the farm paid for it.
-      worthMoney: 28 * STRAW_TAKA_PER_KG,
+      worthMoney: 28 * STRAW_MONEY_PER_KG,
       standing: "wasting",
     });
     // Wasted feed is what the Manager reads first.
@@ -205,7 +205,7 @@ describe("the Leftovers", () => {
       leftoverKg: 2,
       leftoverPercent: 1,
       sessionsWithLeftover: 4,
-      worthMoney: 2 * STRAW_TAKA_PER_KG,
+      worthMoney: 2 * STRAW_MONEY_PER_KG,
       standing: "fine",
     });
     expect(

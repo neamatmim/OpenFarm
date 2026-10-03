@@ -21,8 +21,8 @@ import { FarmAccountField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { allTyped } from "@/lib/all-typed";
 import { useFreshFor } from "@/lib/fresh-for";
+import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
-import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 /** One Animal still held, as the sheet lists her: her last weight, and when, where she has been weighed. */
@@ -54,7 +54,7 @@ const WhatIsLeft = ({
   stale: (one: Left) => boolean;
 }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const priced = Number.isNaN(rate) ? 0 : rate;
   const total = animals.reduce(
     (sum, one) => sum + Math.round((one.weightKg ?? 0) * priced),
@@ -79,7 +79,7 @@ const WhatIsLeft = ({
                         ),
                       })
                     : "",
-                  taka(one.weightKg * priced),
+                  asMoney(one.weightKg * priced),
                 ]
                   .filter(Boolean)
                   .join(" · ")}
@@ -88,7 +88,7 @@ const WhatIsLeft = ({
       ))}
       <div className="mt-1 flex justify-between gap-2 border-t pt-1 font-medium">
         <span>{t("ventures.total")}</span>
-        <span className="tabular-nums">{taka(total)}</span>
+        <span className="tabular-nums">{asMoney(total)}</span>
       </div>
     </div>
   );

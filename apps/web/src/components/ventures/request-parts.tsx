@@ -6,7 +6,7 @@ import { SaidDate } from "@/components/list-cells";
 import type { Tone } from "@/components/page";
 import { StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 import type { orpc } from "@/utils/orpc";
 
 // A Request to Join as the Owner reads it, wherever she reads it: on the Venture it was made on, beside the other
@@ -77,7 +77,7 @@ type Said = Pick<
  */
 export const WhatTheyAsked = ({ one }: { one: Said }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   // An answer this phone kept from before the Owner could answer, or the farm close, has none of these.
   const promised = one.answeredUnits ?? null;
   const line = one.answerLine ?? null;
@@ -85,9 +85,9 @@ export const WhatTheyAsked = ({ one }: { one: Said }) => {
   return (
     <>
       <span className="text-sm tabular-nums">
-        {t("ventures.requests.unitsAndTaka", {
+        {t("ventures.requests.unitsAndMoney", {
           units: formatNumber(one.units, language),
-          taka: taka(one.amount),
+          amount: asMoney(one.amount),
         })}
       </span>
       {one.note ? (

@@ -84,7 +84,7 @@ const OwedRow = ({
           {/* Missing from an answer a phone kept from before anything was written off. */}
           {(item.writtenOffMoney ?? 0) > 0 ? (
             <span className="text-danger text-xs tabular-nums">
-              {t("baki.writtenOff", { taka: item.writtenOffMoney })}
+              {t("baki.writtenOff", { amount: item.writtenOffMoney })}
             </span>
           ) : null}
           {mayWriteOff && item.owingMoney > 0 ? (
@@ -118,7 +118,7 @@ const WriteOffLines = ({ standing }: { standing: KindStanding }) => {
         >
           <span>
             {t("baki.writeOffLine", {
-              taka: one.amountMoney,
+              amount: one.amountMoney,
               day: day(one.writtenOn),
             })}
             {` — ${one.reason}`}
@@ -152,7 +152,7 @@ const KindPart = ({
             )}
             {" · "}
             <span className="tabular-nums">
-              {t("baki.owed", { taka: standing.owingMoney })}
+              {t("baki.owed", { amount: standing.owingMoney })}
             </span>
           </span>
           <span className="text-muted-foreground text-xs">
@@ -164,7 +164,7 @@ const KindPart = ({
                 ? null
                 : t("baki.promised", { day: day(standing.soonestPromise) }),
               standing.creditMoney > 0
-                ? t("baki.credit", { taka: standing.creditMoney })
+                ? t("baki.credit", { amount: standing.creditMoney })
                 : null,
             ]
               .filter(Boolean)
@@ -195,7 +195,7 @@ const KindPart = ({
             >
               <span>
                 {t("baki.paymentLine", {
-                  taka: payment.amountMoney,
+                  amount: payment.amountMoney,
                   day: day(payment.paidOn),
                 })}
                 {payment.note ? ` — ${payment.note}` : null}
@@ -229,12 +229,12 @@ const BuyerCard = ({
           {buyer.name}
           {buyer.owingMoney > 0 ? (
             <span className="text-warning text-sm font-medium tabular-nums">
-              {t("baki.owed", { taka: buyer.owingMoney })}
+              {t("baki.owed", { amount: buyer.owingMoney })}
             </span>
           ) : null}
           {(buyer.writtenOffMoney ?? 0) > 0 ? (
             <span className="text-danger text-sm font-medium tabular-nums">
-              {t("baki.writtenOff", { taka: buyer.writtenOffMoney })}
+              {t("baki.writtenOff", { amount: buyer.writtenOffMoney })}
             </span>
           ) : null}
         </span>

@@ -461,7 +461,7 @@ export {
   PAYMENT_METHODS,
   approvalOf,
   looksEnteredAlready,
-  roundTaka,
+  roundMoney,
   termsUnchanged,
 } from "./money";
 export type {

@@ -1,5 +1,5 @@
 import { farmDayOf, startOfFarmDay } from "./farm-clock";
-import { roundTaka } from "./money";
+import { roundMoney } from "./money";
 
 /**
  * **Baki** at the gate: what a buyer still owed for a Sale or a Dispatch when it left, and the day he promised to pay
@@ -36,7 +36,7 @@ export const isBakiRefusal = (
 
 /** What was paid when it left: what it came to, less what was still owed. */
 export const paidAtTheGate = (worthMoney: number, bakiMoney: number): number =>
-  roundTaka(worthMoney - bakiMoney);
+  roundMoney(worthMoney - bakiMoney);
 
 /** The checks every Baki passes, whichever way it was worked out. */
 const checked = ({
@@ -90,7 +90,7 @@ export const bakiAtTheGate = ({
 }): BakiOutcome =>
   checked({
     bakiMoney:
-      paidNowMoney === undefined ? 0 : roundTaka(worthMoney - paidNowMoney),
+      paidNowMoney === undefined ? 0 : roundMoney(worthMoney - paidNowMoney),
     promisedBy: promisedBy ?? null,
     leftOn,
     promiseRequired,
@@ -129,7 +129,7 @@ export const bakiPutRight = ({
       ? worthMoney
       : paidAtTheGate(before.worthMoney, before.bakiMoney));
   return checked({
-    bakiMoney: roundTaka(worthMoney - paid),
+    bakiMoney: roundMoney(worthMoney - paid),
     promisedBy: promisedBy === undefined ? before.promisedBy : promisedBy,
     leftOn,
     promiseRequired,
@@ -216,7 +216,7 @@ export const bakiStanding = (
   const open = new Map(
     owed.map((one) => [
       one.id,
-      roundTaka(Math.max(one.bakiMoney - (one.writtenOffMoney ?? 0), 0)),
+      roundMoney(Math.max(one.bakiMoney - (one.writtenOffMoney ?? 0), 0)),
     ])
   );
   const writtenOff = new Map(
@@ -235,9 +235,9 @@ export const bakiStanding = (
         break;
       }
       if (still > 0) {
-        const cleared = roundTaka(Math.min(still, left));
-        purse.set(item.id, roundTaka(still - cleared));
-        left = roundTaka(left - cleared);
+        const cleared = roundMoney(Math.min(still, left));
+        purse.set(item.id, roundMoney(still - cleared));
+        left = roundMoney(left - cleared);
         parts.push({ paymentId, itemId: item.id, amountMoney: cleared });
       }
     }
@@ -251,17 +251,17 @@ export const bakiStanding = (
     const stillWrittenOff = writtenOff.get(item.id) ?? 0;
     return {
       ...item,
-      paidMoney: roundTaka(item.bakiMoney - owingMoney - stillWrittenOff),
+      paidMoney: roundMoney(item.bakiMoney - owingMoney - stillWrittenOff),
       owingMoney,
       writtenOffMoney: stillWrittenOff,
     };
   });
   const total = (pick: (one: BakiItemStanding) => number) =>
-    roundTaka(standing.reduce((sum, one) => sum + pick(one), 0));
-  const paidIn = roundTaka(
+    roundMoney(standing.reduce((sum, one) => sum + pick(one), 0));
+  const paidIn = roundMoney(
     payments.reduce((sum, one) => sum + one.amountMoney, 0)
   );
-  const clearedMoney = roundTaka(
+  const clearedMoney = roundMoney(
     parts.reduce((sum, one) => sum + one.amountMoney, 0)
   );
   const stillOwing = standing.filter((one) => one.owingMoney > 0);
@@ -273,7 +273,7 @@ export const bakiStanding = (
     items: standing,
     parts,
     owingMoney: total((one) => one.owingMoney),
-    creditMoney: roundTaka(paidIn - clearedMoney),
+    creditMoney: roundMoney(paidIn - clearedMoney),
     writtenOffMoney: total((one) => one.writtenOffMoney),
     oldestOn: stillOwing[0]?.leftOn ?? null,
     soonestPromise: soonestPromise ?? null,

@@ -20,8 +20,8 @@ import {
 } from "@/components/payment-method";
 import { SellingTripCorrection } from "@/components/trips/trip-corrections";
 import { useLanguage } from "@/i18n/language-provider";
+import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
-import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 interface Day {
@@ -160,7 +160,7 @@ const WhoWent = ({
 export const SellingTripForm = () => {
   const { t, language } = useLanguage();
   const refused = useRefused();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const [day, setDay] = useState<Day>(NOTHING_YET);
   const [taken, setTaken] = useState<string[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
@@ -287,7 +287,7 @@ export const SellingTripForm = () => {
                   </span>
                 </span>
                 <span className="flex flex-col items-end gap-0.5 whitespace-nowrap tabular-nums">
-                  <span className="font-medium">{taka(one.costMoney)}</span>
+                  <span className="font-medium">{asMoney(one.costMoney)}</span>
                   <span className="text-muted-foreground text-xs">
                     {t("selling.tookAnimals", {
                       count: formatNumber(one.animals, language),

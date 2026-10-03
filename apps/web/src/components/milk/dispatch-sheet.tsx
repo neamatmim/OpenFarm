@@ -86,7 +86,7 @@ const Worth = ({ form }: { form: Typed }) => {
       {t("dispatch.worth", {
         litres,
         price,
-        taka: worthOf(litres, price),
+        amount: worthOf(litres, price),
       })}
     </p>
   );

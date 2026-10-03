@@ -162,7 +162,7 @@ export const en = {
   "portal.request.title": "Ask to join",
   "portal.request.units": "How many Units",
   "portal.request.comesTo":
-    "{units, plural, one {# Unit} other {# Units}} come to {taka}",
+    "{units, plural, one {# Unit} other {# Units}} come to {amount}",
   "portal.request.note": "A note for the farm, if you like",
   "portal.request.notePlaceholder": "Such as: I can pay after Eid",
   "portal.request.bindsNobody":
@@ -176,7 +176,7 @@ export const en = {
   "portal.request.changed": "Your request is changed",
   "portal.request.withdrawn": "Your request is withdrawn",
   "portal.request.yours":
-    "You asked for {units, plural, one {# Unit} other {# Units}} ({taka}) on {day}.",
+    "You asked for {units, plural, one {# Unit} other {# Units}} ({amount}) on {day}.",
   "portal.requests.all": "All your requests",
   "portal.requests.live": "Still open",
   "portal.requests.past": "Earlier",
@@ -185,7 +185,7 @@ export const en = {
     "Ask from a Venture the farm is raising capital for. A request binds nobody.",
   "portal.requests.failed": "Your requests could not be read",
   "portal.requests.comeAndSign": "The farm will sign with you for {venture}",
-  "portal.owed.line": "{taka} still to pay on {venture}.",
+  "portal.owed.line": "{amount} still to pay on {venture}.",
   "portal.owed.how": "How to pay",
   "portal.noVenturesHint":
     "A Venture shows here once you have signed its Agreement with the farm, in person.",
@@ -531,7 +531,7 @@ export const en = {
   "plan.gainPerDay": "Gain a day",
   "plan.unit.kg": "kg",
   "plan.unit.kgPerDay": "kg/day",
-  "plan.unit.takaPerKg": "{currencySign}/kg",
+  "plan.unit.moneyPerKg": "{currencySign}/kg",
   "plan.lineSum": "{kg} kg for {cost} · {saleKg} kg each by the window",
   "plan.sum.animals": "Animals",
   "plan.sum.cost": "Cattle cost",
@@ -1136,9 +1136,9 @@ export const en = {
   "ventures.unitsHeld": "{units, plural, one {# Unit} other {# Units}}",
   "ventures.unpricedKg": "{kg} kg at no price",
   "ventures.accountOver":
-    "{taka} would be left in the account once everybody is paid",
+    "{amount} would be left in the account once everybody is paid",
   "ventures.accountShort":
-    "The account would be {taka} short of paying everybody",
+    "The account would be {amount} short of paying everybody",
   "ventures.uncostedDoses":
     "{doses, plural, one {# dose} other {# doses}} nothing costs",
   "ventures.neverRead": "never read: {months}",
@@ -1271,7 +1271,7 @@ export const en = {
     "Money arriving for {venture}, against the paper the Investor signed. By bank only.",
   "ventures.capitalTaken": "The capital is recorded",
   "ventures.holdsUnits": "{units, plural, one {# Unit} other {# Units}}",
-  "ventures.capitalLeft": "{taka} left to pay in",
+  "ventures.capitalLeft": "{amount} left to pay in",
   /** The way back from signing without the stamped photo: without it capital is refused for good, and
    *  one Investor may hold only one Agreement per Venture, so there is no signing again. */
   "ventures.paperKept": "The paper is on the agreement",
@@ -1419,9 +1419,9 @@ export const en = {
   "ventures.toBeSent": "To be sent",
   "ventures.owedTheFarm": "Owed the Farm",
   "ventures.toCarry":
-    "{taka} more of months already repaid, to go with the next Reimbursement",
+    "{amount} more of months already repaid, to go with the next Reimbursement",
   "ventures.toCarryBack":
-    "{taka} less of months already repaid, to come off the next Reimbursement",
+    "{amount} less of months already repaid, to come off the next Reimbursement",
   "ventures.sellInternally": "Move an animal between purses",
   "ventures.internalSaleHint":
     "An animal sold between the farm's herd and a Venture, priced at her latest weigh-in times a rate you enter.",
@@ -1696,8 +1696,8 @@ export const en = {
   "ventures.requests.waiting": "Asked for and waiting",
   "ventures.requests.target": "Raising",
   "ventures.requests.floor": "Floor",
-  "ventures.requests.unitsAndTaka":
-    "{units, plural, one {# Unit} other {# Units}} · {taka}",
+  "ventures.requests.unitsAndMoney":
+    "{units, plural, one {# Unit} other {# Units}} · {amount}",
   "ventures.requests.col.when": "Asked",
   "ventures.requests.col.note": "Note",
   "ventures.requests.history": "What they did",
@@ -1990,7 +1990,7 @@ export const en = {
   "params.hours": "hours",
   "params.days": "days",
   "params.percent": "%",
-  "params.taka": "{currencySign}",
+  "params.money": "{currencySign}",
   "params.kg": "kg",
   "params.attempts": "attempts",
   "params.save": "Save parameters",
@@ -3023,7 +3023,7 @@ export const en = {
   "stock.noCounts": "No counts yet",
   "stock.noStock": "Nothing in the store — add a Feed Item first",
   "stock.adjustment": "expected {expected}, counted {counted}",
-  "stock.averagePrice": "{currencySign}{taka} per {unit}",
+  "stock.averagePrice": "{currencySign}{amount} per {unit}",
   "stock.weighed": "Weighed on the farm's scale (kg)",
   "stock.weighedHint":
     "Optional. Weigh the lot as it comes: the scale is what goes into the store, and the slip is kept beside it.",
@@ -3042,7 +3042,7 @@ export const en = {
     "No lot has been weighed in the last 90 days. Weigh one as it comes to see how short each seller runs.",
   "scale.lots": "{count, plural, one {# lot weighed} other {# lots weighed}}",
   "scale.slipAndScale": "slips {slip} kg · scale {weighed} kg",
-  "stock.lastBought": "Last bought at {currencySign}{taka} per {unit}, {day}",
+  "stock.lastBought": "Last bought at {currencySign}{amount} per {unit}, {day}",
   "stock.dearer": "{percent}% dearer than last time",
   "stock.cheaper": "{percent}% cheaper than last time",
   "stock.sameAsLast": "the same as last time",
@@ -3170,12 +3170,12 @@ export const en = {
   "dispatch.sheetDescription":
     "Milk from the tank handed to a buyer. Its price goes to the money register.",
   "dispatch.worth":
-    "{litres, plural, one {# litre} other {# litres}} × {currencySign}{price} = {currencySign}{taka}",
+    "{litres, plural, one {# litre} other {# litres}} × {currencySign}{price} = {currencySign}{amount}",
   "dispatch.dayBefore": "Day before",
   "dispatch.dayAfter": "Day after",
   "dispatch.tab.mismatches": "Tank mismatches",
   "dispatch.kpi.handedOverHint":
-    "{count, plural, one {# dispatch} other {# dispatches}} · {currencySign}{taka}",
+    "{count, plural, one {# dispatch} other {# dispatches}} · {currencySign}{amount}",
   "dispatch.kpi.mismatchesHint": "Waiting for you to look",
   "dispatch.reportsHint":
     "Choose the dates, then print the dispatch record a processor or BFSA asks for, or save the figures as a CSV.",
@@ -3606,7 +3606,7 @@ export const en = {
   "owner.herd": "Animals on the farm",
   "owner.bySide": "Dairy {dairy} · fattening {fattening}",
   "owner.entries": "{count, plural, one {# entry} other {# entries}}",
-  "owner.moneyTotal": "Total {taka}",
+  "owner.moneyTotal": "Total {amount}",
   "owner.onTheFarm": "On the farm today",
   "owner.onTheFarmHint": "The Manager is on these; they are here so you know.",
   "owner.nothingLate": "Nothing late and nothing running low",
@@ -3842,10 +3842,10 @@ export const en = {
     "The name as it is on the label. The Vet writes its days after.",
   "drugs.buyHint":
     "As the box and the slip say it. The money for the medicine is recorded from this.",
-  "drugs.perDose": "{currencySign}{taka} per dose",
+  "drugs.perDose": "{currencySign}{amount} per dose",
   "drugs.noneBought": "Nothing bought for this product yet",
   "drugs.boughtSummary":
-    "{count, plural, one {# purchase} other {# purchases}} · {currencySign}{taka} · {doses, plural, one {# dose} other {# doses}}",
+    "{count, plural, one {# purchase} other {# purchases}} · {currencySign}{amount} · {doses, plural, one {# dose} other {# doses}}",
   "vet.title": "The Vet's work",
   "vet.waiting": "Waiting for an answer",
   "vet.nothingWaiting": "Everything the rounds saw has been answered",
@@ -4356,7 +4356,7 @@ export const en = {
   "intake.age": "Estimated age",
   "intake.targetWeight": "Target weight",
   "intake.targetWindow": "Target Window",
-  "intake.taka": "{taka} {currencySum}",
+  "intake.money": "{amount} {currencySum}",
   "intake.kg": "{kg} kg",
   "intake.months": "{months, plural, one {# month} other {# months}}",
   "intake.pen": "Pen",
@@ -4400,11 +4400,11 @@ export const en = {
   "intake.groupTargetHint":
     "What it is being fed towards, and when the farm means to sell it.",
   "intake.lastBuys":
-    "the farm's {animals, plural, one {# buy} other {# buys}} near this weight in the last {days, plural, one {# day} other {# days}} averaged {currencySign}{taka} per kg",
+    "the farm's {animals, plural, one {# buy} other {# buys}} near this weight in the last {days, plural, one {# day} other {# days}} averaged {currencySign}{amount} per kg",
   "intake.lastBuysOver": "this one is {percent}% dearer",
   "intake.lastBuysUnder": "this one is {percent}% cheaper",
   "intake.lastBuysSame": "this one is about the same",
-  "intake.perKg": "{currencySign}{taka} per kg",
+  "intake.perKg": "{currencySign}{amount} per kg",
   "intake.summary": "What will be recorded",
   "intake.summaryHint":
     "Check it against the seller's slip before taking it in.",
@@ -4884,11 +4884,11 @@ export const en = {
   "calf.done": "Done",
   "baki.someOwed": "Some of it is still owed (baki)",
   "baki.paidNow": "Paid now ({currencySign})",
-  "baki.stillOwes": "Still owes {currencySign}{taka}",
+  "baki.stillOwes": "Still owes {currencySign}{amount}",
   "baki.promisedBy": "Promised to pay by",
   "baki.promisedByOptional": "Promised to pay by, if he named a day",
-  "baki.owedBy": "{currencySign}{taka} still owed, promised by {day}",
-  "baki.owed": "{currencySign}{taka} still owed",
+  "baki.owedBy": "{currencySign}{amount} still owed, promised by {day}",
+  "baki.owed": "{currencySign}{amount} still owed",
   "baki.tab": "Baki",
   "baki.nobody": "Nobody owes the farm anything",
   "baki.nobodyHint":
@@ -4897,14 +4897,14 @@ export const en = {
   "baki.owingTotalHint": "{count, plural, one {# buyer} other {# buyers}}",
   "baki.since": "since {day}",
   "baki.promised": "promised by {day}",
-  "baki.credit": "{currencySign}{taka} paid ahead",
+  "baki.credit": "{currencySign}{amount} paid ahead",
   "baki.kind.cattle": "Cattle",
   "baki.kind.milk": "Milk",
   "baki.itemOwes": "{currencySign}{owing} of {currencySign}{baki} still owed",
   "baki.itemPaidOff": "Paid off",
   "baki.litres": "{litres, plural, one {# litre} other {# litres}} of milk",
-  "baki.paymentLine": "{currencySign}{taka} paid on {day}",
-  "baki.writeOffLine": "{currencySign}{taka} written off on {day}",
+  "baki.paymentLine": "{currencySign}{amount} paid on {day}",
+  "baki.writeOffLine": "{currencySign}{amount} written off on {day}",
   "baki.record": "Record a payment",
   "baki.paymentTitle": "Money received towards baki",
   "baki.paymentDescription":
@@ -4916,20 +4916,20 @@ export const en = {
   "baki.note": "Note",
   "baki.noteHint": "Needed if he paid more than he owes",
   "baki.recorded": "Payment recorded",
-  "baki.buyerOwes": "{name} still owes {currencySign}{taka}, since {day}",
+  "baki.buyerOwes": "{name} still owes {currencySign}{amount}, since {day}",
   "baki.buyerOverdue":
-    "{name} owes {currencySign}{taka} and is overdue since {day} — think before selling on baki",
+    "{name} owes {currencySign}{amount} and is overdue since {day} — think before selling on baki",
   "home.bakiOverdue": "Baki overdue",
   "baki.writeOff": "Write off",
   "baki.writeOffTitle": "Write this baki off",
   "baki.writeOffDescription":
     "Only when it will not be paid. What the animal or the milk fetched drops by it, and the buyer carries the mark. If he pays after all, it is put back.",
   "baki.writeOffWhy": "Why it will not be paid",
-  "baki.writtenOff": "{currencySign}{taka} written off",
+  "baki.writtenOff": "{currencySign}{amount} written off",
   "baki.writtenOffDone": "Written off",
   "baki.buyerWrittenOff":
-    "{currencySign}{taka} of {name}'s written off on {day}",
-  "home.bakiOverdueSince": "{currencySign}{taka} overdue since {day}",
+    "{currencySign}{amount} of {name}'s written off on {day}",
+  "home.bakiOverdueSince": "{currencySign}{amount} overdue since {day}",
   "home.bakiSoldAgain": "Sold on baki again while overdue",
   "money.from.bakiPayment": "Baki paid",
   "sale.tab.ready": "Ready to go",

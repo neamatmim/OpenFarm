@@ -18,7 +18,7 @@ import {
   purchasePricesOf,
   sellersOnTheScale,
   roundKg,
-  roundTaka,
+  roundMoney,
   shortfallOf,
   startOfFarmDay,
   stockLedger,
@@ -680,7 +680,7 @@ const readTheCounts = async (
       valueMoney:
         averagePriceMoney === null
           ? null
-          : roundTaka(difference * averagePriceMoney),
+          : roundMoney(difference * averagePriceMoney),
     });
   }
   return out;
@@ -775,7 +775,7 @@ export const fodderValueOf = (
 ): number | null =>
   item.fodderPriceMoney === null
     ? null
-    : roundTaka(item.fodderPriceMoney * quantity);
+    : roundMoney(item.fodderPriceMoney * quantity);
 
 /**
  * A Purchase names what the lot cost and the seller it came from; a Harvest from the farm's own
@@ -937,8 +937,8 @@ export const tellIfTheFeedCameDearer = async (
       facts: {
         feed: arrival.feedItem.nameBn,
         unit: arrival.feedItem.unit,
-        unitPriceMoney: roundTaka(price.unitPriceMoney),
-        previousUnitPriceMoney: roundTaka(price.previousUnitPriceMoney),
+        unitPriceMoney: roundMoney(price.unitPriceMoney),
+        previousUnitPriceMoney: roundMoney(price.previousUnitPriceMoney),
         percent: price.changePercent ?? 0,
       },
     },

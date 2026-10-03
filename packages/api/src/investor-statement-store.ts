@@ -1,7 +1,7 @@
 import type { Database } from "@OpenFarm/db";
 import type { AdjustmentOutcome, StampKind } from "@OpenFarm/db/schema/venture";
 import type { PaperNominee } from "@OpenFarm/domain";
-import { exitOf, roundTaka, unitsHeld, whatUnitsTake } from "@OpenFarm/domain";
+import { exitOf, roundMoney, unitsHeld, whatUnitsTake } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
@@ -275,10 +275,10 @@ export const hisHolding = (
 };
 
 /** An average in taka, or nothing at all where there is nothing to average. */
-const meanTaka = (values: number[]) =>
+const meanMoney = (values: number[]) =>
   values.length === 0
     ? null
-    : roundTaka(values.reduce((sum, one) => sum + one, 0) / values.length);
+    : roundMoney(values.reduce((sum, one) => sum + one, 0) / values.length);
 
 /** The charge words that are the Running Budget's: what the animals cost while they stand here. */
 const KEEPING_THEM = new Set<ChargeWord>(["feed", "medicine", "vet", "herd"]);
@@ -329,7 +329,7 @@ export const theirSpend = async (
     charges,
     // The sum of the lines as they are shown, not of the figures behind them — as the Settlement does
     // it, because lines that do not add up to the total beneath them is the farm arguing with itself.
-    chargedMoney: roundTaka(charges.reduce((sum, one) => sum + one.amount, 0)),
+    chargedMoney: roundMoney(charges.reduce((sum, one) => sum + one.amount, 0)),
     signedUnits: signed.get(venture.id)?.units ?? 0,
     heldUnits: unitsHeld(
       (held.get(venture.id)?.capitalInMoney ?? 0) -
@@ -339,7 +339,7 @@ export const theirSpend = async (
     cattleBudgetMoney: budgets.cattleBudgetMoney,
     runningBudgetMoney: budgets.runningBudgetMoney,
     cattleBudgetLeftMoney: budgets.cattleBudgetDrawnAgainstMoney,
-    runningSpentMoney: roundTaka(
+    runningSpentMoney: roundMoney(
       charges
         .filter((one) => KEEPING_THEM.has(one.word))
         .reduce((sum, one) => sum + one.amount, 0)
@@ -586,9 +586,9 @@ export const theirHerdStory = async (
   }
   return {
     boughtCount: bought.length,
-    averageBoughtMoney: meanTaka(bought),
+    averageBoughtMoney: meanMoney(bought),
     soldCount: sold.length,
-    averageSoldMoney: meanTaka(sold),
+    averageSoldMoney: meanMoney(sold),
     boughtBackCount,
     diedCount,
   };

@@ -3,7 +3,7 @@ import { startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 
 /** How one Unit of a Venture is paid for, as every read of a Venture carries it. */
 export interface PaidFor {
@@ -18,13 +18,13 @@ export interface PaidFor {
  */
 export const PaidForBy = ({ paidFor }: { paidFor: PaidFor }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const { monthly } = paidFor;
   if (!monthly) {
     return (
       <>
         {t("ventures.paidFor.allBefore", {
-          price: taka(paidFor.unitPriceMoney),
+          price: asMoney(paidFor.unitPriceMoney),
         })}
       </>
     );
@@ -35,7 +35,7 @@ export const PaidForBy = ({ paidFor }: { paidFor: PaidFor }) => {
     return (
       <>
         {t("ventures.paidFor.allBefore", {
-          price: taka(paidFor.unitPriceMoney),
+          price: asMoney(paidFor.unitPriceMoney),
         })}
       </>
     );
@@ -43,8 +43,8 @@ export const PaidForBy = ({ paidFor }: { paidFor: PaidFor }) => {
   const month = (on: string) =>
     formatDate(startOfFarmDay(on), language, "monthYear");
   const said = {
-    cattle: taka(monthly.cattlePartMoney),
-    each: taka(first.amount),
+    cattle: asMoney(monthly.cattlePartMoney),
+    each: asMoney(first.amount),
     from: month(first.dueOn),
     to: month(last.dueOn),
   };
@@ -54,7 +54,7 @@ export const PaidForBy = ({ paidFor }: { paidFor: PaidFor }) => {
       {lastDiffers
         ? t("ventures.paidFor.monthlyLast", {
             ...said,
-            last: taka(last.amount),
+            last: asMoney(last.amount),
           })
         : t("ventures.paidFor.monthly", said)}
       <span className="text-muted-foreground">

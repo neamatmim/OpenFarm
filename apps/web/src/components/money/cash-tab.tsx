@@ -10,8 +10,8 @@ import { toast } from "sonner";
 import { EmptyState } from "@/components/page";
 import { FormDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
-import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 type Hand = Awaited<ReturnType<typeof orpc.cash.inHand.call>>[number];
@@ -209,7 +209,7 @@ const DepositDialog = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const onError = useRefused();
   const [ticked, setTicked] = useState<readonly string[]>(() =>
     sales.map((one) => one.saleId)
@@ -263,12 +263,12 @@ const DepositDialog = ({
               type="checkbox"
             />
             <span className="font-mono">{one.tagNumber}</span>
-            <span className="tabular-nums">{taka(one.amount)}</span>
+            <span className="tabular-nums">{asMoney(one.amount)}</span>
           </label>
         ))}
       </fieldset>
       <p className="text-sm font-medium">
-        {t("cash.depositTotal", { amount: taka(totalMoney) })}
+        {t("cash.depositTotal", { amount: asMoney(totalMoney) })}
       </p>
       <FormField id="deposit-slip" label={t("cash.slip")}>
         <Input
@@ -302,14 +302,14 @@ const VentureShare = ({
   mayDeposit: boolean;
 }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const [depositing, setDepositing] = useState(false);
   const amount = share.sales.reduce((sum, one) => sum + one.amount, 0);
   return (
     <div className="bg-muted flex flex-wrap items-center justify-between gap-2 rounded-md px-3 py-2 text-sm">
       <span>
         {t("cash.heldForVenture", {
-          amount: taka(amount),
+          amount: asMoney(amount),
           venture: share.name,
           tags: share.sales.map((one) => one.tagNumber).join(", "),
         })}
@@ -359,7 +359,7 @@ const MovementWhat = ({ one }: { one: Movement }) => {
 /** What moved cash into or out of one hand, newest first: the money that named it, and every Handover. */
 const Movements = ({ hand }: { hand: Hand }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const moved = useQuery(
     orpc.cash.movements.queryOptions({ input: { userId: hand.userId } })
   );
@@ -393,7 +393,7 @@ const Movements = ({ hand }: { hand: Hand }) => {
               one.amount < 0 ? "text-muted-foreground" : "font-medium"
             )}
           >
-            {one.amount < 0 ? `− ${taka(-one.amount)}` : taka(one.amount)}
+            {one.amount < 0 ? `− ${asMoney(-one.amount)}` : asMoney(one.amount)}
           </span>
         </li>
       ))}
@@ -405,7 +405,7 @@ const Movements = ({ hand }: { hand: Hand }) => {
  *  hand never counted — or on an answer kept from before counts were made. */
 const LastCount = ({ hand }: { hand: Hand }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const last = hand.lastCount ?? null;
   if (!last) {
     return (
@@ -418,8 +418,8 @@ const LastCount = ({ hand }: { hand: Hand }) => {
   const cameShort = short > 0;
   const said = t("cash.lastCount", {
     day: formatDate(new Date(last.at), language, "date"),
-    counted: taka(last.counted),
-    expected: taka(last.expected),
+    counted: asMoney(last.counted),
+    expected: asMoney(last.expected),
   });
   if (short === 0) {
     return <span className="text-muted-foreground text-xs">{said}</span>;
@@ -433,8 +433,8 @@ const LastCount = ({ hand }: { hand: Hand }) => {
         }
       >
         {cameShort
-          ? t("cash.countShort", { amount: taka(short) })
-          : t("cash.countOver", { amount: taka(-short) })}
+          ? t("cash.countShort", { amount: asMoney(short) })
+          : t("cash.countOver", { amount: asMoney(-short) })}
       </span>
     </span>
   );
@@ -449,7 +449,7 @@ const HandLine = ({
   mayHandOver: boolean;
 }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const [open, setOpen] = useState(false);
   const [handing, setHanding] = useState(false);
   const overdrawn = hand.amount < 0;
@@ -469,7 +469,7 @@ const HandLine = ({
               overdrawn && "text-danger"
             )}
           >
-            {overdrawn ? `− ${taka(-hand.amount)}` : taka(hand.amount)}
+            {overdrawn ? `− ${asMoney(-hand.amount)}` : asMoney(hand.amount)}
           </span>
           <LastCount hand={hand} />
         </button>
@@ -559,7 +559,7 @@ const CountHomeDialog = ({
 /** One float still out: where it went, who carried it, what went out, what it bought, and what is to come back. */
 const FloatLine = ({ float, isOwner }: { float: Float; isOwner: boolean }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const [counting, setCounting] = useState(false);
   const due = float.handedMoney - float.boughtMoney - float.backMoney;
   return (
@@ -572,9 +572,9 @@ const FloatLine = ({ float, isOwner }: { float: Float; isOwner: boolean }) => {
         <span className="text-muted-foreground text-xs tabular-nums">
           {t("cash.floatLine", {
             name: float.carrierName ?? "",
-            handed: taka(float.handedMoney),
-            bought: taka(float.boughtMoney),
-            due: taka(due),
+            handed: asMoney(float.handedMoney),
+            bought: asMoney(float.boughtMoney),
+            due: asMoney(due),
           })}
         </span>
       </span>

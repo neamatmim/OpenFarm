@@ -22,7 +22,7 @@ import {
   moneyOf,
 } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 import type { Venture } from "@/lib/ventures";
 import { decisionIsDue } from "@/lib/ventures";
 
@@ -92,10 +92,10 @@ const VentureCell = ({ row }: Cell) => {
 
 /** What the run is looking for: the capital its Units add up to. */
 const TargetCell = ({ row }: Cell) => {
-  const taka = useTaka();
+  const asMoney = useMoney();
   return (
     <span className="tabular-nums">
-      {taka(row.original.venture.targetCapitalMoney)}
+      {asMoney(row.original.venture.targetCapitalMoney)}
     </span>
   );
 };
@@ -146,7 +146,7 @@ const WindowCell = ({ row }: Cell) => {
  *  buying waits on. */
 const HeldCell = ({ row }: Cell) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const { venture } = row.original;
   return (
     <span className="flex flex-col items-end gap-0.5">
@@ -157,7 +157,7 @@ const HeldCell = ({ row }: Cell) => {
         search={{ tab: "money" }}
         to="/ventures/$ventureId"
       >
-        {taka(venture.capitalInMoney)}
+        {asMoney(venture.capitalInMoney)}
       </Link>
       {venture.state === "open" ? (
         <>
@@ -168,7 +168,7 @@ const HeldCell = ({ row }: Cell) => {
             targetMoney={venture.targetCapitalMoney}
           />
           <span className="text-muted-foreground text-xs whitespace-nowrap tabular-nums">
-            {t("ventures.ofTheFloor", { floor: taka(venture.floorMoney) })}
+            {t("ventures.ofTheFloor", { floor: asMoney(venture.floorMoney) })}
           </span>
         </>
       ) : null}
@@ -177,10 +177,10 @@ const HeldCell = ({ row }: Cell) => {
 };
 
 const BalanceCell = ({ row }: Cell) => {
-  const taka = useTaka();
+  const asMoney = useMoney();
   return (
     <span className="tabular-nums">
-      {taka(moneyOf(row.original.venture).balanceMoney)}
+      {asMoney(moneyOf(row.original.venture).balanceMoney)}
     </span>
   );
 };

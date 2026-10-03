@@ -61,7 +61,7 @@ export const approvalOf = ({
 export const termsUnchanged = sameTerms;
 
 /** Taka to the poisha, as money is kept. */
-export const roundTaka = (amount: number): number =>
+export const roundMoney = (amount: number): number =>
   Math.round(amount * 100) / 100;
 
 /** A name as two entries of the same person are compared: one Unicode form, trimmed, whatever the capitals. */
@@ -91,6 +91,6 @@ export const looksEnteredAlready = <Earlier extends EnteredBefore>(
     (one) =>
       one.name !== null &&
       personKey(one.name) === personKey(entry.name) &&
-      roundTaka(one.amountMoney) === roundTaka(entry.amountMoney) &&
+      roundMoney(one.amountMoney) === roundMoney(entry.amountMoney) &&
       one.day === entry.day
   );

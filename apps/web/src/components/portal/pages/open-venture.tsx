@@ -24,7 +24,7 @@ import { OfferProjectionSection } from "@/components/portal/projection";
 import { AskToJoin } from "@/components/portal/requests-to-join";
 import { PaidForBy } from "@/components/ventures/paid-for-by";
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 
 const WHOLE = 100;
 
@@ -35,7 +35,7 @@ const WHOLE = 100;
  */
 const TheOffer = ({ one }: { one: OpenVenture }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   return (
     <div className="flex min-w-0 flex-col gap-4 lg:col-span-2">
       {one.words ? (
@@ -45,11 +45,13 @@ const TheOffer = ({ one }: { one: OpenVenture }) => {
       ) : null}
       <Section title={t("ventures.page.terms")}>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-3">
-          <Fact label={t("portal.open.unit")}>{taka(one.unitPriceMoney)}</Fact>
-          <Fact label={t("portal.open.target")}>
-            {taka(one.targetCapitalMoney)}
+          <Fact label={t("portal.open.unit")}>
+            {asMoney(one.unitPriceMoney)}
           </Fact>
-          <Fact label={t("portal.open.floor")}>{taka(one.floorMoney)}</Fact>
+          <Fact label={t("portal.open.target")}>
+            {asMoney(one.targetCapitalMoney)}
+          </Fact>
+          <Fact label={t("portal.open.floor")}>{asMoney(one.floorMoney)}</Fact>
           <Fact label={t("portal.open.decideBy")}>
             <SaidDate at={one.decideBy} />
           </Fact>
@@ -65,10 +67,10 @@ const TheOffer = ({ one }: { one: OpenVenture }) => {
             })}
           </Fact>
           <Fact label={t("portal.open.cattleBudget")}>
-            {taka(one.cattleBudgetMoney)}
+            {asMoney(one.cattleBudgetMoney)}
           </Fact>
           <Fact label={t("portal.open.runningBudget")}>
-            {taka(one.runningBudgetMoney)}
+            {asMoney(one.runningBudgetMoney)}
           </Fact>
           {/* How a Unit is paid for, across the whole row: a schedule is read as one sentence. An answer cached before
               Ventures were paid by the month has no schedule, and is one paid before buying. */}
@@ -88,7 +90,7 @@ const TheOffer = ({ one }: { one: OpenVenture }) => {
         <ul className="flex list-disc flex-col gap-2 pl-5 text-sm">
           <li>
             {t("portal.open.ruleFloor", {
-              floor: taka(one.floorMoney),
+              floor: asMoney(one.floorMoney),
               day: formatDate(startOfFarmDay(one.decideBy), language, "date"),
             })}
           </li>

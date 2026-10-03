@@ -2,7 +2,7 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { useQuery } from "@tanstack/react-query";
 
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 import { orpc } from "@/utils/orpc";
 
 type Seller = Awaited<ReturnType<typeof orpc.stock.onTheScale.call>>[number];
@@ -10,7 +10,7 @@ type Seller = Awaited<ReturnType<typeof orpc.stock.onTheScale.call>>[number];
 /** One seller's lots on the scale: the slips against the scale, and what was short in kilos, percent and taka. */
 const SellerLine = ({ seller }: { seller: Seller }) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const runsShort = seller.shortKg > 0;
   return (
     <li className="flex flex-col gap-1 py-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
@@ -35,7 +35,7 @@ const SellerLine = ({ seller }: { seller: Seller }) => {
         {runsShort
           ? `${t("stock.shortOnScale", {
               kg: formatNumber(seller.shortKg, language),
-            })} (${formatNumber(seller.shortPercent, language)}%) · ${taka(
+            })} (${formatNumber(seller.shortPercent, language)}%) · ${asMoney(
               seller.shortMoney
             )}`
           : t("stock.overOnScale", {

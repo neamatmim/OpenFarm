@@ -43,8 +43,8 @@ import { categoryName, useApproveMoney } from "@/components/money";
 import { ProgressBar, StatusBadge, TagChip } from "@/components/page";
 import { PageTabs } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useMoney } from "@/lib/money";
 import { useRefused } from "@/lib/refused";
-import { useTaka } from "@/lib/taka";
 import type { VentureNeedingHer } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
 
@@ -104,12 +104,12 @@ const RenewalRow = ({
 /** Money waiting on the Owner: what it all comes to beside how many, the first few approved where they stand. */
 const MoneyGroup = ({ needsYou, headless }: GroupProps) => {
   const { t, language } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   const approveMoney = useApproveMoney();
   return (
     <QueueGroup
       aside={t("owner.moneyTotal", {
-        taka: taka(moneyAwaitingTotal(needsYou)),
+        amount: asMoney(moneyAwaitingTotal(needsYou)),
       })}
       firstShown={MONEY_FIRST_SHOWN}
       headless={headless}

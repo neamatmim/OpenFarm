@@ -10,7 +10,7 @@ import { Notice, Page, PageHeader } from "@/components/page";
 import { SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
-import { useTakaToThePaisa } from "@/lib/taka";
+import { useMoneyRate } from "@/lib/money";
 
 /** How many cows are named, and for each reason how many it names: a cow named twice counts under both. */
 const CullFigures = ({
@@ -83,7 +83,7 @@ const MilkPriceLine = ({
   days: number | undefined;
 }) => {
   const { t } = useLanguage();
-  const perLitre = useTakaToThePaisa();
+  const perLitre = useMoneyRate();
   if (!price) {
     return (
       <Notice

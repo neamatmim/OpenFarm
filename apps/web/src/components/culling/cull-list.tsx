@@ -22,7 +22,7 @@ import { EmptyState, StatusBadge } from "@/components/page";
 import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { CullListReturn } from "@/components/returns/dairy-returns";
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka, useTakaToThePaisa } from "@/lib/taka";
+import { useMoney, useMoneyRate } from "@/lib/money";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
@@ -97,8 +97,8 @@ const MilkLines = ({
   align: "start" | "end";
 }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
-  const perLitre = useTakaToThePaisa();
+  const asMoney = useMoney();
+  const perLitre = useMoneyRate();
   const box = cn(
     "flex flex-col gap-0.5",
     align === "end" ? "items-end text-end" : "items-start"
@@ -122,8 +122,8 @@ const MilkLines = ({
     <span className={box}>
       <span className="text-sm whitespace-nowrap tabular-nums">
         {t("cull.milk", {
-          worth: taka(milk.worthMoney),
-          keep: taka(milk.keepMoney),
+          worth: asMoney(milk.worthMoney),
+          keep: asMoney(milk.keepMoney),
         })}
       </span>
       <span
@@ -132,7 +132,7 @@ const MilkLines = ({
           short ? "text-danger" : "text-success"
         )}
       >
-        {t("cull.over", { over: taka(milk.overKeepMoney), days: milk.days })}
+        {t("cull.over", { over: asMoney(milk.overKeepMoney), days: milk.days })}
       </span>
       <span className="text-muted-foreground text-xs whitespace-nowrap tabular-nums">
         {milk.costPerLitreMoney === null

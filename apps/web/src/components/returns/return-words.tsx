@@ -17,7 +17,7 @@ import {
   wordFor,
 } from "@/components/returns/return-figure";
 import { useLanguage } from "@/i18n/language-provider";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 
 /** What every hundred taka made, the days it was out, and that scaled to a year: all a return line says. */
 type Shares = Pick<Returned, "per100" | "averageDays" | "perYear">;
@@ -98,7 +98,7 @@ export const ReturnLines = ({
 /** How a rate a year was reached, opened under it, signed as it was worked: a loss is a share below nothing. */
 export const Working = ({ returned }: { returned: Returned }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   return (
     <details className="text-muted-foreground text-sm">
       <summary className="cursor-pointer underline-offset-4 select-none hover:underline">
@@ -106,8 +106,8 @@ export const Working = ({ returned }: { returned: Returned }) => {
       </summary>
       <p className="mt-1 max-w-prose">
         {t("returns.workingText", {
-          cost: taka(returned.costMoney),
-          back: taka(returned.backMoney),
+          cost: asMoney(returned.costMoney),
+          back: asMoney(returned.backMoney),
           days: returned.averageDays,
         })}{" "}
         {returned.perYear === null
@@ -125,10 +125,10 @@ export const Working = ({ returned }: { returned: Returned }) => {
 /** The result in taka, said as made or lost. */
 export const Result = ({ amount }: { amount: number }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   return (
     <span className={cn("tabular-nums", isLoss(amount) && "text-danger")}>
-      {t(wordFor(SAID.result, amount), { amount: taka(Math.abs(amount)) })}
+      {t(wordFor(SAID.result, amount), { amount: asMoney(Math.abs(amount)) })}
     </span>
   );
 };
@@ -159,14 +159,14 @@ export const SinceSettlement = ({
   amount: number | null | undefined;
 }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   if (amount === null || amount === undefined) {
     return null;
   }
   return (
     <p className="text-warning text-sm tabular-nums">
       {t(wordFor(SAID.sinceSettlement, amount), {
-        amount: taka(Math.abs(amount)),
+        amount: asMoney(Math.abs(amount)),
       })}
     </p>
   );
@@ -204,7 +204,7 @@ export const TodayRange = ({ running }: { running: Running }) => {
  */
 export const RunningLines = ({ running }: { running: Running }) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   return (
     <div className="flex flex-col gap-0.5">
       <p className="flex flex-wrap items-center gap-2 font-medium tabular-nums">
@@ -214,15 +214,15 @@ export const RunningLines = ({ running }: { running: Running }) => {
       {running.soldCostMoney === 0 ? null : (
         <p className="text-muted-foreground text-sm tabular-nums">
           {t(wordFor(SAID.gone, running.soldResultMoney), {
-            amount: taka(Math.abs(running.soldResultMoney)),
+            amount: asMoney(Math.abs(running.soldResultMoney)),
           })}
         </p>
       )}
       <p className="text-muted-foreground text-sm tabular-nums">
         {t("returns.standingWorth", {
-          cost: taka(running.standingCostMoney),
-          low: taka(running.standingLowMoney),
-          high: taka(running.standingHighMoney),
+          cost: asMoney(running.standingCostMoney),
+          low: asMoney(running.standingLowMoney),
+          high: asMoney(running.standingHighMoney),
         })}
       </p>
       <p className="text-muted-foreground text-xs tabular-nums">

@@ -5,7 +5,7 @@ import {
   milkPriceOf,
   monthOf,
   monthsEndingIn,
-  roundTaka,
+  roundMoney,
   startOfFarmDay,
   summariseMoney,
 } from "@OpenFarm/domain";
@@ -129,7 +129,7 @@ const figuresOver = (
       /** What a litre fetched; nothing where no milk left. */
       fetchedPerLitreMoney: milk?.moneyPerLitre ?? null,
       /** Everything charged to the dairy side's animals in it. */
-      chargedMoney: roundTaka(chargedOf(sides.dairy)),
+      chargedMoney: roundMoney(chargedOf(sides.dairy)),
       litresToBulk: sides.dairy.litresToBulk,
       costPerLitreMoney: sides.dairy.costPerLitreMoney,
       unpricedKg: sides.dairy.unpricedKg,
@@ -137,7 +137,7 @@ const figuresOver = (
     },
     fattening: {
       /** Everything charged to the fattening side's animals in it, sold or standing. */
-      chargedMoney: roundTaka(chargedOf(sides.fattening)),
+      chargedMoney: roundMoney(chargedOf(sides.fattening)),
       sold: sold.length,
       /** The whole-life Margins of the fattening animals sold in it; nothing where none was. */
       marginMoney: sold.length === 0 ? null : sides.soldFattening.marginMoney,

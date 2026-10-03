@@ -21,7 +21,7 @@ import {
 import { Chip } from "@/components/saw-filter";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
-import { useTaka } from "@/lib/taka";
+import { useMoney } from "@/lib/money";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
@@ -118,12 +118,12 @@ const LineCell = ({ row }: BreakdownCell) => {
 
 const CostBackCell = ({ row }: BreakdownCell) => {
   const { t } = useLanguage();
-  const taka = useTaka();
+  const asMoney = useMoney();
   return (
     <span className="text-muted-foreground tabular-nums">
       {t("returns.costBack", {
-        cost: taka(row.original.costMoney),
-        back: taka(row.original.backMoney),
+        cost: asMoney(row.original.costMoney),
+        back: asMoney(row.original.backMoney),
       })}
     </span>
   );

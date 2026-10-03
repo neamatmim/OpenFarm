@@ -1,5 +1,5 @@
 import { roundKg } from "./feed";
-import { roundTaka } from "./money";
+import { roundMoney } from "./money";
 
 /**
  * What one animal might fetch against what she has cost the farm: the Owner's reference when a buyer names a price.
@@ -40,11 +40,11 @@ export const priceOfAnimal = ({
     return { breakEvenMoneyPerKg: null, low: null, high: null };
   }
   const at = (moneyPerKg: number): PriceEnd => {
-    const priceMoney = roundTaka(latestKg * moneyPerKg);
-    return { priceMoney, marginMoney: roundTaka(priceMoney - costMoney) };
+    const priceMoney = roundMoney(latestKg * moneyPerKg);
+    return { priceMoney, marginMoney: roundMoney(priceMoney - costMoney) };
   };
   return {
-    breakEvenMoneyPerKg: roundTaka(costMoney / latestKg),
+    breakEvenMoneyPerKg: roundMoney(costMoney / latestKg),
     low: range ? at(range.lowMoneyPerKg) : null,
     high: range ? at(range.highMoneyPerKg) : null,
   };
@@ -87,7 +87,7 @@ export const soldUnder = ({
   range: PriceRange | null;
 }): { underCost: boolean; underMarket: boolean; lowMoney: number | null } => {
   const lowMoney =
-    range && weightKg > 0 ? roundTaka(weightKg * range.lowMoneyPerKg) : null;
+    range && weightKg > 0 ? roundMoney(weightKg * range.lowMoneyPerKg) : null;
   return {
     underCost: priceMoney < costMoney,
     underMarket: lowMoney !== null && priceMoney < lowMoney,
@@ -108,7 +108,7 @@ export const perKgOfSales = (
     return null;
   }
   const amount = weighed.reduce((sum, one) => sum + one.priceMoney, 0);
-  return { moneyPerKg: roundTaka(amount / kg), animals: weighed.length };
+  return { moneyPerKg: roundMoney(amount / kg), animals: weighed.length };
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -294,18 +294,18 @@ export const keepOrSell = ({
   const perDay = kept.amount / kept.days;
   const costOfGainNow = dailyGainKg > 0 ? perDay / dailyGainKg : null;
   const gainKg = dailyGainKg * aheadDays;
-  const keepMoney = roundTaka(perDay * aheadDays);
+  const keepMoney = roundMoney(perDay * aheadDays);
   // Each end said from the figures as they are shown, so what is left over is what the two lines come to.
   const at = (moneyPerKg: number): AheadEnd => {
-    const worthMoney = roundTaka(gainKg * moneyPerKg);
-    return { worthMoney, overKeepMoney: roundTaka(worthMoney - keepMoney) };
+    const worthMoney = roundMoney(gainKg * moneyPerKg);
+    return { worthMoney, overKeepMoney: roundMoney(worthMoney - keepMoney) };
   };
   return {
     known: true,
-    keepMoneyPerDay: roundTaka(perDay),
+    keepMoneyPerDay: roundMoney(perDay),
     dailyGainKg,
     costOfGainNowMoney:
-      costOfGainNow === null ? null : roundTaka(costOfGainNow),
+      costOfGainNow === null ? null : roundMoney(costOfGainNow),
     ahead: {
       days: aheadDays,
       gainKg: roundKg(gainKg),
