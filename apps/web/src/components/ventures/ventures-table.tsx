@@ -260,7 +260,7 @@ const ventureColumns = column.columns([
     cell: PeopleCell,
     meta: {
       align: "end",
-      className: "hidden whitespace-nowrap 2xl:table-cell",
+      className: "hidden whitespace-nowrap xl:table-cell",
     },
   }),
   column.accessor((row) => row.venture.animalsStanding ?? undefined, {
@@ -269,7 +269,7 @@ const ventureColumns = column.columns([
     cell: AnimalsCell,
     meta: {
       align: "end",
-      className: "hidden whitespace-nowrap 2xl:table-cell",
+      className: "hidden whitespace-nowrap xl:table-cell",
     },
   }),
   column.accessor((row) => row.venture.targetWindow.start, {

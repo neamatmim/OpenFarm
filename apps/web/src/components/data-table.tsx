@@ -238,8 +238,20 @@ export const DataTable = <TData extends object>({
           className
         )}
       >
-        <Table style={{ minWidth }}>
-          <TableHeader>
+        <Table
+          // A long list read a page at a time keeps its headings in sight as it is scrolled (Fiori: a table's column
+          // headers are sticky). On a desk it scrolls inside a box the window's height, so the heading row has
+          // something to stick to; a phone reads the cards above.
+          containerClassName={
+            paged
+              ? "md:max-h-[calc(100dvh-12rem)] md:overflow-y-auto"
+              : undefined
+          }
+          style={{ minWidth }}
+        >
+          <TableHeader
+            className={cn(paged && "md:bg-card md:sticky md:top-0 md:z-10")}
+          >
             {table.getHeaderGroups().map((group) => (
               <TableRow key={group.id}>
                 {group.headers.map((header) => {

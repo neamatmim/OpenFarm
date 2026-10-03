@@ -311,6 +311,8 @@ const monthColumns = column.columns([
   column.accessor("month", {
     header: listHeader("months.col.month"),
     cell: MonthNameCell,
+    // Pinned as the year scrolls sideways at a laptop's width, so every figure still says which month it is.
+    meta: { className: "bg-card sticky left-0 z-[1]" },
   }),
   column.accessor((row) => row.money.inMoney, {
     id: "in",
