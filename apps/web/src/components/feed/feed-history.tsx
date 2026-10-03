@@ -1,5 +1,5 @@
 import { FEED_PACK_WORDS, feedUnitEach, feedUnitWord } from "@OpenFarm/domain";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { currencySign, formatDate, formatNumber } from "@OpenFarm/i18n";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { ClipboardList, Truck } from "lucide-react";
@@ -212,7 +212,8 @@ const PriceCell = ({ row }: { row: { original: ArrivalRow } }) => {
   ) : (
     <div className="flex flex-col items-end">
       <span className="whitespace-nowrap">
-        ৳{formatNumber(row.original.priceMoney, language)}
+        {currencySign()}
+        {formatNumber(row.original.priceMoney, language)}
       </span>
       <UnitPriceLine arrival={row.original} />
     </div>

@@ -1,6 +1,6 @@
 import { farmDayOf } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { currencySign, formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -38,7 +38,8 @@ const AmountCell = ({ row }: { row: { original: Fee } }) => {
   const { language } = useLanguage();
   return (
     <span className="font-medium whitespace-nowrap">
-      ৳{formatNumber(row.original.amountMoney, language)}
+      {currencySign()}
+      {formatNumber(row.original.amountMoney, language)}
     </span>
   );
 };
@@ -97,7 +98,8 @@ const FeeCard = ({ row }: { row: Fee }) => {
         {formatDate(row.visitedOn, language)}
       </span>
       <span className="text-lg font-semibold tabular-nums">
-        ৳{formatNumber(row.amountMoney, language)}
+        {currencySign()}
+        {formatNumber(row.amountMoney, language)}
       </span>
       {row.tagNumbers.length > 0 ? <Tags tags={row.tagNumbers} /> : null}
       {row.note ? (

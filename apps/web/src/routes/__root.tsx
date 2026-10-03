@@ -16,7 +16,13 @@ import { ThemeProvider } from "next-themes";
 import { useEffect } from "react";
 
 import { forgetShell } from "@/lib/install";
-import { HOST_ATTRIBUTE, pageHost } from "@/lib/page-context";
+import {
+  CURRENCY_ATTRIBUTE,
+  HOST_ATTRIBUTE,
+  TIME_ZONE_ATTRIBUTE,
+  pageFarmLocale,
+  pageHost,
+} from "@/lib/page-context";
 import type { orpc } from "@/utils/orpc";
 
 import { LanguageProvider, useT } from "../i18n/language-provider";
@@ -45,11 +51,18 @@ const RootDocument = () => {
   useNoShellOnThePortal();
   // The theme's inline script runs under the Investor address's policy only with the page's nonce.
   const { nonce } = useRouter().options.ssr ?? {};
-  // Which address this is, written on the page for the browser to read back (lib/page-context).
+  // Which address this is and where the farm is, written on the page for the browser to read back
+  // (lib/page-context).
   const host = pageHost();
+  const { currency, timeZone } = pageFarmLocale();
+  const written = {
+    [HOST_ATTRIBUTE]: host,
+    [CURRENCY_ATTRIBUTE]: currency,
+    [TIME_ZONE_ATTRIBUTE]: timeZone,
+  };
   return (
     // The theme class lands on the html element before React arrives, from what this device chose.
-    <html {...{ [HOST_ATTRIBUTE]: host }} lang="bn" suppressHydrationWarning>
+    <html {...written} lang="bn" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>

@@ -1,5 +1,5 @@
 import { feedUnitEach, feedUnitWord } from "@OpenFarm/domain";
-import { formatNumber } from "@OpenFarm/i18n";
+import { currencySign, formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation } from "@tanstack/react-query";
@@ -129,7 +129,8 @@ const ValueCell = ({ row }: { row: { original: StockRow } }) => {
   }
   return (
     <span className="whitespace-nowrap">
-      ৳{formatNumber(Math.round(value), language)}
+      {currencySign()}
+      {formatNumber(Math.round(value), language)}
     </span>
   );
 };

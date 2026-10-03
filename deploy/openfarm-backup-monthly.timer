@@ -2,6 +2,7 @@
 #
 #   sudo cp deploy/openfarm-backup-monthly.* /etc/systemd/system/
 #   sudo systemctl enable --now openfarm-backup-monthly.timer
+# On a farm outside Bangladesh, the zone here is its OPENFARM_TIME_ZONE (ADR 0013).
 [Unit]
 Description=Take a monthly copy of the farm, kept for ever
 

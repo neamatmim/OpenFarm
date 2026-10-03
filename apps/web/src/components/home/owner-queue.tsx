@@ -1,5 +1,5 @@
 import type { MessageKey } from "@OpenFarm/i18n";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { currencySign, formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -142,7 +142,8 @@ const MoneyGroup = ({ needsYou, headless }: GroupProps) => {
             <Link className="hover:underline" to="/money">
               {categoryName(row, language)} ·{" "}
               <span className="tabular-nums">
-                ৳{formatNumber(row.amountMoney, language)}
+                {currencySign()}
+                {formatNumber(row.amountMoney, language)}
               </span>
             </Link>
           }

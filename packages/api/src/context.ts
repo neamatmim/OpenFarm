@@ -14,6 +14,7 @@ import {
   SWITCH_TOKEN_HEADER,
   resolveDeviceSession,
 } from "./device";
+import { settleFarmLocale } from "./farm-locale";
 import type { PushTransport } from "./push";
 import { silentTransport } from "./push";
 import { webPush } from "./push-web";
@@ -21,6 +22,9 @@ import type { Scope } from "./scope";
 import type { SmsTransport } from "./sms";
 import { silentSms } from "./sms";
 import { smsGateway } from "./sms-gateway";
+
+// Where the farm is, before a request, the schedule or the seed reads a sum or a day.
+settleFarmLocale();
 
 export type Session = typeof auth.$Infer.Session;
 

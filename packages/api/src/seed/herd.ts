@@ -221,7 +221,7 @@ export const registerTheHerd = async (farm: Farm): Promise<Herd> => {
       bought ? "bought" : "born",
       cow.breed,
       born,
-      cow.calvedOn ? `${cow.calvedOn}T06:00:00+06:00` : undefined,
+      cow.calvedOn ? onFarm(cow.calvedOn, "06:00").toISOString() : undefined,
       cow.expectedCalving ?? undefined,
       NAMES[index % NAMES.length],
     ]);

@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
+import { DEFAULT_FARM_LOCALE, setFarmLocale } from "./farm-locale";
 import {
   formatDate,
   formatDigits,
@@ -11,7 +12,9 @@ import { resolveLanguage } from "./languages";
 import { bn } from "./messages/bn";
 import { en } from "./messages/en";
 import type { MessageKey } from "./translate";
-import { findTranslationGaps, translate } from "./translate";
+import { FARM_WORDS, findTranslationGaps, translate } from "./translate";
+
+const farmWord = new Set<string>(FARM_WORDS);
 
 describe("language resolution", () => {
   it("defaults to Bangla when a person has no setting", () => {
@@ -107,6 +110,8 @@ describe("messages", () => {
     const bare = Object.entries(en).flatMap(([key, message]) =>
       [...message.matchAll(countThenPlural)]
         .filter((match) => !notACount.has(match.groups?.word ?? ""))
+        // "every {currencyOne} comes back" is the farm's currency, not a count.
+        .filter((match) => !farmWord.has(match.groups?.name ?? ""))
         .map((match) => `${key}: ${match[0]}`)
     );
 
@@ -123,12 +128,13 @@ describe("messages", () => {
     const plural =
       /\{(?<name>\w+), plural, one \{[^{}]*\} other \{[^{}]*\}\}/gu;
     const fact = /\{(?<name>\w+)\}/gu;
+    // The farm's own words fill every message unasked, so a language may say its currency where the other does not.
     const factsIn = (message: string) =>
       [
         ...new Set(
-          [...message.replace(plural, "{$<name>}").matchAll(fact)].map(
-            (found) => found.groups?.name ?? ""
-          )
+          [...message.replace(plural, "{$<name>}").matchAll(fact)]
+            .map((found) => found.groups?.name ?? "")
+            .filter((name) => !farmWord.has(name))
         ),
       ].toSorted();
     const differ = (Object.keys(en) as (keyof typeof en)[]).flatMap((key) => {
@@ -178,5 +184,43 @@ describe("a key with no words", () => {
     const missing = "audit.calledOffBy.nothing_like_it" as MessageKey;
     expect(translate("bn", missing)).toBe("audit.calledOffBy.nothing_like_it");
     expect(translate("en", missing)).toBe("audit.calledOffBy.nothing_like_it");
+  });
+});
+
+describe("the farm's currency", () => {
+  afterEach(() => {
+    setFarmLocale(DEFAULT_FARM_LOCALE);
+  });
+
+  it("says taka, with its sign, on a farm in Bangladesh", () => {
+    expect(translate("en", "intake.taka", { taka: 1200 })).toBe("1,200 taka");
+    expect(translate("bn", "intake.taka", { taka: 1200 })).toBe("১,২০০ টাকা");
+    expect(translate("en", "params.taka")).toBe("৳");
+    expect(translate("bn", "portal.promise.title")).toBe(
+      "আপনার ভেঞ্চার, কাগজপত্র আর টাকার হিসাব — এক জায়গায়।"
+    );
+  });
+
+  it("says the farm's own currency where it counts in another, with the endings its words take", () => {
+    setFarmLocale({ ...DEFAULT_FARM_LOCALE, currency: "USD" });
+    expect(translate("en", "intake.taka", { taka: 1200 })).toBe(
+      "1,200 dollars"
+    );
+    expect(translate("en", "portal.promise.money")).toBe(
+      "Every dollar you paid in, and every dollar paid to you."
+    );
+    expect(translate("en", "params.taka")).toBe("$");
+    expect(translate("bn", "portal.promise.title")).toBe(
+      "আপনার ভেঞ্চার, কাগজপত্র আর ডলারের হিসাব — এক জায়গায়।"
+    );
+  });
+
+  it("refuses a currency it has no words for", () => {
+    expect(() =>
+      setFarmLocale({
+        ...DEFAULT_FARM_LOCALE,
+        currency: "XYZ" as typeof DEFAULT_FARM_LOCALE.currency,
+      })
+    ).toThrow("XYZ");
   });
 });

@@ -1,5 +1,5 @@
 import { farmDayOf, paidAtTheGate } from "@OpenFarm/domain";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { currencySign, formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";
@@ -158,7 +158,8 @@ const PriceCell = ({ row }: { row: { original: DispatchRow } }) => {
   const { language } = useLanguage();
   return (
     <span className="whitespace-nowrap">
-      ৳{formatNumber(row.original.pricePerLitreMoney, language)}
+      {currencySign()}
+      {formatNumber(row.original.pricePerLitreMoney, language)}
     </span>
   );
 };
@@ -238,7 +239,8 @@ const DispatchCard = ({ row }: { row: DispatchRow }) => {
           {formatNumber(row.litres, language)} {t("dispatch.litres")}
           <span className="text-muted-foreground text-xs font-normal">
             {" "}
-            · ৳{formatNumber(row.pricePerLitreMoney, language)}
+            · {currencySign()}
+            {formatNumber(row.pricePerLitreMoney, language)}
           </span>
         </span>
         <span className="text-muted-foreground text-xs">

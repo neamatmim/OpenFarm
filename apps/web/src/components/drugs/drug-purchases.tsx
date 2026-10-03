@@ -1,4 +1,4 @@
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { currencySign, formatDate, formatNumber } from "@OpenFarm/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { ShoppingCart } from "lucide-react";
 
@@ -40,7 +40,8 @@ const PriceCell = ({ row }: { row: { original: Purchase } }) => {
   const { language } = useLanguage();
   return (
     <span className="font-medium whitespace-nowrap">
-      ৳{formatNumber(row.original.priceMoney, language)}
+      {currencySign()}
+      {formatNumber(row.original.priceMoney, language)}
     </span>
   );
 };
@@ -52,7 +53,10 @@ const PerDoseCell = ({ row }: { row: { original: Purchase } }) => {
     return <Nothing />;
   }
   return (
-    <span className="whitespace-nowrap">৳{formatNumber(each, language)}</span>
+    <span className="whitespace-nowrap">
+      {currencySign()}
+      {formatNumber(each, language)}
+    </span>
   );
 };
 
@@ -127,7 +131,8 @@ const PurchaseCard = ({ row }: { row: Purchase }) => {
         </span>
       </div>
       <span className="text-lg font-semibold tabular-nums">
-        ৳{formatNumber(row.priceMoney, language)}
+        {currencySign()}
+        {formatNumber(row.priceMoney, language)}
       </span>
       <span className="text-muted-foreground text-xs tabular-nums">
         {row.quantity} ·{" "}

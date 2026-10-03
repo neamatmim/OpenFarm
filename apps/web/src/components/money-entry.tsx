@@ -1,7 +1,12 @@
 import type { PaymentMethod } from "@OpenFarm/domain";
 import { farmDayOf } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
-import { formatDate, formatDigits, formatNumber } from "@OpenFarm/i18n";
+import {
+  currencySign,
+  formatDate,
+  formatDigits,
+  formatNumber,
+} from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import {
   Dialog,
@@ -133,7 +138,7 @@ const EntrySummary = ({
   }
   return (
     <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm tabular-nums">
-      {t(direction === "in" ? "byHand.in" : "byHand.out")} · ৳
+      {t(direction === "in" ? "byHand.in" : "byHand.out")} · {currencySign()}
       {formatNumber(taka, language)}
     </p>
   );

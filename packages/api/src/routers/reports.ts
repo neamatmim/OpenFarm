@@ -8,7 +8,7 @@ import {
   startOfFarmDay,
   summariseMoney,
 } from "@OpenFarm/domain";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { currencySign, formatDate, formatNumber } from "@OpenFarm/i18n";
 import { z } from "zod";
 
 import { bakiOfBuyers } from "../baki-store";
@@ -42,7 +42,7 @@ const accountantPaper = async (
     from: formatDate(startOfFarmDay(period.from), language),
     to: formatDate(startOfFarmDay(period.to), language),
     summary,
-    taka: (amount) => `৳${formatNumber(amount, language)}`,
+    taka: (amount) => `${currencySign()}${formatNumber(amount, language)}`,
     bakiAtTheEnd: book
       .filter((buyer) => buyer.owingMoney > 0)
       .map((buyer) => ({ name: buyer.name, owingMoney: buyer.owingMoney }))

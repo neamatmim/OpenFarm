@@ -78,7 +78,7 @@ export {
   renewalOpensAt,
 } from "./farm";
 export {
-  FARM_UTC_OFFSET_MINUTES,
+  atFarmTime,
   farmDayOf,
   farmDaysApart,
   farmDaysBetween,

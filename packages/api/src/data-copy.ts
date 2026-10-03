@@ -16,7 +16,13 @@ import {
   phoneOfInvestorLogin,
 } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
-import { formatDate, formatNumber, translate } from "@OpenFarm/i18n";
+import {
+  currencySign,
+  currencyWords,
+  formatDate,
+  formatNumber,
+  translate,
+} from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
@@ -53,7 +59,8 @@ const when = (at: Date) => formatDate(at, "bn", "dateTime");
 const onDay = (day: string) => formatDate(new Date(`${day}T00:00:00Z`), "bn");
 
 /** Taka, in Bangla numerals. */
-const taka = (amount: number) => `৳${formatNumber(amount, "bn")}`;
+const taka = (amount: number) =>
+  `${currencySign()}${formatNumber(amount, "bn")}`;
 
 /** A figure, in Bangla numerals. */
 const inBangla = (value: number) => formatNumber(value, "bn");
@@ -439,7 +446,7 @@ export const dataCopyOf = async (
       }))
     ),
     facts(
-      { bn: "আপনার টাকার লেনদেন", en: "Your money moved" },
+      { bn: `আপনার ${currencyWords("bn").of} লেনদেন`, en: "Your money moved" },
       money.movements.map((one) => ({
         label: { bn: onDay(one.movedOn), en: "" },
         value: joined(

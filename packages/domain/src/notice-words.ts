@@ -1,5 +1,10 @@
 import type { Language, MessageParams } from "@OpenFarm/i18n";
-import { formatDate, formatNumber, translate } from "@OpenFarm/i18n";
+import {
+  currencySign,
+  formatDate,
+  formatNumber,
+  translate,
+} from "@OpenFarm/i18n";
 
 import type { AlertKind } from "./alerts";
 import { ALERT_KINDS } from "./alerts";
@@ -130,7 +135,7 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     cost: Number(facts.costMoney),
     low:
       typeof facts.lowMoney === "number"
-        ? `৳${formatNumber(facts.lowMoney, language)}`
+        ? `${currencySign()}${formatNumber(facts.lowMoney, language)}`
         : "—",
     basis: floorBasis(facts, language),
   }),

@@ -1,4 +1,4 @@
-import { formatDigits } from "@OpenFarm/i18n";
+import { currencyWords, formatDigits } from "@OpenFarm/i18n";
 
 import type { FarmIdentity, RegistrationStanding } from "./farm";
 import { farmOfOriginLines } from "./farm";
@@ -84,14 +84,23 @@ export const saleReceipt = (receipt: SaleReceipt): string => {
     "",
     "ট্যাগ নম্বর · ওজন · মূল্য / Tag · weight · price",
     ...receipt.animals.map(
-      (one) => `${one.tagNumber} · ${one.weight} কেজি · ${one.price} টাকা`
+      (one) =>
+        `${one.tagNumber} · ${one.weight} কেজি · ${one.price} ${currencyWords("bn").sum}`
     ),
     "",
-    field("মোট", "Total", `${receipt.total} টাকা`),
+    field("মোট", "Total", `${receipt.total} ${currencyWords("bn").sum}`),
     ...(receipt.baki
       ? [
-          field("পরিশোধ", "Paid", `${receipt.baki.paid} টাকা`),
-          field("বাকি", "Still owed", `${receipt.baki.owed} টাকা`),
+          field(
+            "পরিশোধ",
+            "Paid",
+            `${receipt.baki.paid} ${currencyWords("bn").sum}`
+          ),
+          field(
+            "বাকি",
+            "Still owed",
+            `${receipt.baki.owed} ${currencyWords("bn").sum}`
+          ),
           field("পরিশোধের তারিখ", "To be paid by", receipt.baki.toBePaidBy),
         ]
       : []),

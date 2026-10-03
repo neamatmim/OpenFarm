@@ -1,5 +1,5 @@
 import { startOfFarmDay } from "@OpenFarm/domain";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { currencySign, formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
 import { HandCoins, Plus } from "lucide-react";
@@ -280,7 +280,7 @@ export const BakiTab = () => {
             icon={HandCoins}
             label={t("baki.owingTotal")}
             tone={owing > 0 ? "warning" : "neutral"}
-            value={`৳${formatNumber(owing, language)}`}
+            value={`${currencySign()}${formatNumber(owing, language)}`}
           />
           {buyers.map((buyer) => (
             <BuyerCard

@@ -125,7 +125,7 @@ export const bn: Record<MessageKey, string> = {
   "portal.ventures.all": "আপনার সব ভেঞ্চার",
   "portal.yourVentures": "আপনার ভেঞ্চার",
   "portal.notice":
-    "এই পোর্টাল কোনো প্রকাশ্য প্রস্তাব নয়। ভেঞ্চারে যোগ দেওয়া যায় শুধু খামারের সঙ্গে সামনাসামনি সই করা চুক্তিতে, আর এই পোর্টালের মাধ্যমে কোনো টাকা লেনদেন হয় না।",
+    "এই পোর্টাল কোনো প্রকাশ্য প্রস্তাব নয়। ভেঞ্চারে যোগ দেওয়া যায় শুধু খামারের সঙ্গে সামনাসামনি সই করা চুক্তিতে, আর এই পোর্টালের মাধ্যমে কোনো {currencySum} লেনদেন হয় না।",
   "portal.nav.raising": "পুঁজি তোলা",
   "portal.open.new": "নতুন",
   "portal.open.newLine": "{name}-এ এখন পুঁজি তোলা হচ্ছে। সিদ্ধান্তের দিন {day}।",
@@ -145,21 +145,21 @@ export const bn: Record<MessageKey, string> = {
   "portal.open.fromTheFarm": "খামারের কথা",
   "portal.open.rules": "জিজ্ঞেস করার আগে",
   "portal.open.ruleFloor":
-    "{day}-এর মধ্যে {floor} না উঠলে প্রতিটি টাকা আপনাকে ফেরত দেওয়া হয়, কিছু কেনা হয় না।",
+    "{day}-এর মধ্যে {floor} না উঠলে প্রতিটি {currencySum} আপনাকে ফেরত দেওয়া হয়, কিছু কেনা হয় না।",
   "portal.open.ruleLoss":
     "লোকসান হলে তা একই হারে ভাগ হয়: আপনার অংশ আপনার মূলধন থেকে যায়।",
   "portal.open.ruleNoReturn": "কোনো মুনাফা নিশ্চিত নয়।",
   "portal.open.ruleSigning":
-    "যোগ দেওয়া যায় শুধু খামারের সঙ্গে সামনাসামনি স্ট্যাম্পে চুক্তি সই করে। এখানে কোনো টাকা দেওয়া বা সই করা হয় না।",
+    "যোগ দেওয়া যায় শুধু খামারের সঙ্গে সামনাসামনি স্ট্যাম্পে চুক্তি সই করে। এখানে কোনো {currencySum} দেওয়া বা সই করা হয় না।",
   "portal.open.back": "পুঁজি তোলার সব ভেঞ্চার",
   "portal.open.notFound": "এই ভেঞ্চার এখন দেখানো হচ্ছে না",
   "portal.request.title": "যোগ দিতে চাই",
   "portal.request.units": "কয়টি ইউনিট",
   "portal.request.comesTo": "{units}টি ইউনিটে মোট {taka}",
   "portal.request.note": "খামারকে কিছু বলার থাকলে",
-  "portal.request.notePlaceholder": "যেমন: ঈদের পরে টাকা দিতে পারব",
+  "portal.request.notePlaceholder": "যেমন: ঈদের পরে {currencySum} দিতে পারব",
   "portal.request.bindsNobody":
-    "অনুরোধ করলে আপনি বা খামার কেউ বাঁধা পড়েন না। এতে আপনার জন্য কোনো ইউনিট রাখা হয় না, কোনো টাকাও লেনদেন হয় না। যোগ দেওয়া যায় শুধু খামারের সঙ্গে সামনাসামনি স্ট্যাম্পে চুক্তি সই করে।",
+    "অনুরোধ করলে আপনি বা খামার কেউ বাঁধা পড়েন না। এতে আপনার জন্য কোনো ইউনিট রাখা হয় না, কোনো {currencySum}ও লেনদেন হয় না। যোগ দেওয়া যায় শুধু খামারের সঙ্গে সামনাসামনি স্ট্যাম্পে চুক্তি সই করে।",
   "portal.request.untilAnswered":
     "খামার উত্তর দেওয়ার আগ পর্যন্ত আপনি এটি বদলাতে বা তুলে নিতে পারবেন।",
   "portal.request.send": "অনুরোধ পাঠান",
@@ -186,7 +186,7 @@ export const bn: Record<MessageKey, string> = {
   "portal.open.noneHint":
     "খামার নতুন কোনো ভেঞ্চারের জন্য পুঁজি তুলে আপনাকে দেখালে তা এখানে দেখা যাবে।",
   "portal.money.noneHint":
-    "কোনো ভেঞ্চারের হিসাবে আপনার মূলধন এলে টাকার হিসাব এখানে দেখা যাবে।",
+    "কোনো ভেঞ্চারের হিসাবে আপনার মূলধন এলে {currencyOf} হিসাব এখানে দেখা যাবে।",
   "portal.requests.step.asked": "অনুরোধ",
   "portal.requests.step.answered": "খামারের উত্তর",
   "portal.requests.step.signed": "চুক্তি সই",
@@ -242,29 +242,29 @@ export const bn: Record<MessageKey, string> = {
   "portal.requests.closed.investor_retired":
     "খামার এই অনুরোধ বন্ধ করেছে। জানতে চাইলে খামারে ফোন করুন।",
 
-  "portal.pay.title": "কীভাবে টাকা দেবেন",
+  "portal.pay.title": "কীভাবে {currencySum} দেবেন",
   "portal.pay.hint":
     "নিজের ব্যাংক থেকে ট্রান্সফার, চেক বা জমার স্লিপে — কখনো নগদ নয়, আর এই পোর্টালের মাধ্যমে কখনো নয়।",
   "portal.pay.dueNow": "এখন দেওয়ার কথা",
   "portal.pay.owedAltogether": "সব মিলিয়ে আরও {owed} দেওয়া বাকি",
-  "portal.pay.next": "পরের মাসের টাকা",
+  "portal.pay.next": "পরের মাসের {currencySum}",
   "portal.pay.noneLeft": "আর বাকি নেই",
   "portal.pay.owed": "আরও দিতে হবে",
   "portal.pay.code": "আপনার জমার কোড",
-  "portal.pay.codeHint": "ট্রান্সফারে লিখুন, যাতে খামার বোঝে টাকাটা আপনার",
+  "portal.pay.codeHint": "ট্রান্সফারে লিখুন, যাতে খামার বোঝে {currencySum}টা আপনার",
   "portal.pay.decideBy": "খামারের সিদ্ধান্তের দিন",
-  "portal.pay.noAccount": "কোথায় টাকা দেবেন, খামার আপনাকে জানাবে।",
+  "portal.pay.noAccount": "কোথায় {currencySum} দেবেন, খামার আপনাকে জানাবে।",
   "portal.pay.onlyThisAccount":
-    "খামার আপনাকে শুধু ওপরে দেখানো ভেঞ্চারের ব্যাংক হিসাবেই টাকা দিতে বলবে। অন্য কেউ অন্য কোনো হিসাব দিলে টাকা দেবেন না।",
+    "খামার আপনাকে শুধু ওপরে দেখানো ভেঞ্চারের ব্যাংক হিসাবেই {currencySum} দিতে বলবে। অন্য কেউ অন্য কোনো হিসাব দিলে {currencySum} দেবেন না।",
   "portal.pay.onlyThisPage":
-    "কোথায় টাকা দেবেন, খামার এই পাতাতেই জানাবে, আর শুধু সেই হিসাবেই টাকা দিতে বলবে। অন্য কোনোভাবে কেউ হিসাব দিলে টাকা দেবেন না।",
+    "কোথায় {currencySum} দেবেন, খামার এই পাতাতেই জানাবে, আর শুধু সেই হিসাবেই {currencySum} দিতে বলবে। অন্য কোনোভাবে কেউ হিসাব দিলে {currencySum} দেবেন না।",
   "portal.pay.callTheFarm": "খামারকে {phone} নম্বরে ফোন করুন।",
   "portal.pay.callTheFarmNoPhone": "খামারকে ফোন করুন।",
 
   "portal.account.new": "নতুন পাসওয়ার্ড",
   "portal.money.hint":
-    "আপনার যত টাকা নড়েছে: মূলধন এসেছে, মূলধন ফেরত গেছে, আর পরিশোধ।",
-  "portal.money.none": "আপনার কোনো টাকা এখনো নড়েনি",
+    "আপনার যত {currencySum} নড়েছে: মূলধন এসেছে, মূলধন ফেরত গেছে, আর পরিশোধ।",
+  "portal.money.none": "আপনার কোনো {currencySum} এখনো নড়েনি",
   "portal.money.toYou": "আপনাকে ফেরত",
   "portal.percent": "{percent}%",
   "portal.farmTakes": "আপনার মূলধন সম্পূর্ণ ফেরতের পর খামার পায় {percent}%",
@@ -284,9 +284,9 @@ export const bn: Record<MessageKey, string> = {
   "portal.sums.paidInOf": "প্রতিশ্রুত {promised}-এর মধ্যে {paid} জমা · {percent}%",
   "portal.sums.running": "চলমান ভেঞ্চার",
   "portal.sums.settledCount": "{count}টি নিষ্পন্ন",
-  "portal.nav.money": "টাকা",
+  "portal.nav.money": "{currencySum}",
   "portal.nav.papers": "কাগজ",
-  "portal.moneyTitle": "আপনার টাকা",
+  "portal.moneyTitle": "আপনার {currencySum}",
   "portal.money.paidIn": "আপনার জমা দেওয়া মূলধন",
   "portal.noPapers": "এখনো কোনো কাগজ নেই",
   "portal.closed":
@@ -308,11 +308,11 @@ export const bn: Record<MessageKey, string> = {
   "portal.passwordSection": "পাসওয়ার্ড বেছে নিন",
   "portal.passwordLongEnough": "কমপক্ষে {min} অক্ষর",
   "portal.passwordsMatch": "দুটি পাসওয়ার্ড মিলেছে",
-  "portal.promise.title": "আপনার ভেঞ্চার, কাগজপত্র আর টাকার হিসাব — এক জায়গায়।",
+  "portal.promise.title": "আপনার ভেঞ্চার, কাগজপত্র আর {currencyOf} হিসাব — এক জায়গায়।",
   "portal.promise.progress":
     "প্রতিটি ভেঞ্চার কেমন চলছে: পশু, তাদের ওজন আর ভেঞ্চারের ধাপ।",
   "portal.promise.papers": "আপনার চুক্তি আর বিবৃতি, যখন খুশি পড়ুন।",
-  "portal.promise.money": "আপনার জমা দেওয়া আর আপনাকে দেওয়া প্রতিটি টাকা।",
+  "portal.promise.money": "আপনার জমা দেওয়া আর আপনাকে দেওয়া প্রতিটি {currencySum}।",
   "portal.promise.foot": "খামারের আমন্ত্রিত বিনিয়োগকারীদের জন্য।",
   "portal.fillBoth": "মোবাইল নম্বর আর পাসওয়ার্ড দুটোই দিন।",
   "portal.fillAll":
@@ -340,7 +340,8 @@ export const bn: Record<MessageKey, string> = {
     "একই ফোনের আরেকজন বিনিয়োগকারীর পোর্টাল আগেই আছে।",
   "portal.refused.retired": "আমন্ত্রণ জানানোর আগে তাঁকে ফিরিয়ে আনুন।",
   "portal.homeTitle": "আপনার পোর্টফোলিও",
-  "portal.homeHint": "আপনার টাকা যে সব ভেঞ্চারে আছে, আর প্রতিটি আজ কেমন চলছে।",
+  "portal.homeHint":
+    "আপনার {currencySum} যে সব ভেঞ্চারে আছে, আর প্রতিটি আজ কেমন চলছে।",
   "portal.noVentures": "আপনি এখনো কোনো ভেঞ্চারে নেই",
   "portal.units": "ইউনিট",
   "portal.unitsHeld": "{count}টি ইউনিট",
@@ -455,8 +456,8 @@ export const bn: Record<MessageKey, string> = {
   "market.line": "কেজি {low} থেকে {high}, {day} তারিখে ঠিক করা",
   "market.set": "বাজারদর ঠিক করুন",
   "market.change": "বাজারদর বদলান",
-  "market.low": "কম (জীবন্ত ওজনের কেজি প্রতি ৳)",
-  "market.high": "বেশি (জীবন্ত ওজনের কেজি প্রতি ৳)",
+  "market.low": "কম (জীবন্ত ওজনের কেজি প্রতি {currencySign})",
+  "market.high": "বেশি (জীবন্ত ওজনের কেজি প্রতি {currencySign})",
   "market.saved": "বাজারদর সংরক্ষণ হয়েছে",
   "plan.title": "ভেঞ্চারের পরিকল্পনা",
   "plan.hint":
@@ -467,7 +468,7 @@ export const bn: Record<MessageKey, string> = {
   "plan.band": "{from} থেকে {to} কেজি",
   "plan.col.band": "কেনার সময় ওজন",
   "plan.col.animals": "পশু",
-  "plan.col.price": "কেজি প্রতি ৳",
+  "plan.col.price": "কেজি প্রতি {currencySign}",
   "plan.col.cost": "খরচ",
   "plan.col.gain": "দিনে বৃদ্ধি",
   "plan.col.sale": "বিক্রির সময় প্রতিটি",
@@ -494,7 +495,7 @@ export const bn: Record<MessageKey, string> = {
   "plan.gainPerDay": "দিনে বৃদ্ধি",
   "plan.unit.kg": "কেজি",
   "plan.unit.kgPerDay": "কেজি/দিন",
-  "plan.unit.takaPerKg": "৳/কেজি",
+  "plan.unit.takaPerKg": "{currencySign}/কেজি",
   "plan.lineSum": "{kg} কেজি, {cost} · বিক্রির সময় প্রতিটি {saleKg} কেজি",
   "plan.sum.animals": "পশু",
   "plan.sum.cost": "গরু কেনার খরচ",
@@ -521,7 +522,7 @@ export const bn: Record<MessageKey, string> = {
   "plan.vs.title": "পরিকল্পনা বনাম বাস্তব",
   "plan.vs.buying": "কেনা",
   "plan.vs.growth": "বৃদ্ধি",
-  "plan.vs.money": "টাকা",
+  "plan.vs.money": "{currencySum}",
   "plan.vs.planned": "পরিকল্পনা",
   "plan.vs.bought": "কেনা হয়েছে",
   "plan.vs.plannedCost": "পরিকল্পিত খরচ",
@@ -690,7 +691,7 @@ export const bn: Record<MessageKey, string> = {
   "portal.tag": "ট্যাগ",
   "portal.intake": "আসার সময় (কেজি)",
   "portal.now": "এখন (কেজি)",
-  "portal.money": "টাকা কোথায় গেছে",
+  "portal.money": "{currencySum} কোথায় গেছে",
   "portal.moneyHint": "ভেঞ্চারের নামে যা খরচ হয়েছে, খাত অনুযায়ী, আর বাজেটের কত বাকি।",
   "portal.spentTotal": "মোট খরচ",
   "portal.cattleBudget": "পশু কেনার বাজেট",
@@ -703,9 +704,10 @@ export const bn: Record<MessageKey, string> = {
   "portal.paper.progress": "অগ্রগতি",
   "portal.paper.settlement": "হিসাব নিকাশ",
   "portal.paper.joiningHint": "আপনার মূলধনের স্বীকৃতি, আর যে শর্তে আপনি রাজি হয়েছেন।",
-  "portal.paper.progressHint": "ভেঞ্চার চলার সময়: পশুর ওজন কত, আর টাকা কোথায় গেছে।",
+  "portal.paper.progressHint":
+    "ভেঞ্চার চলার সময়: পশুর ওজন কত, আর {currencySum} কোথায় গেছে।",
   "portal.paper.settlementHint":
-    "শেষে: বিক্রির টাকা, প্রতিটি খরচ, ভাগ আর আপনার প্রাপ্য।",
+    "শেষে: বিক্রির {currencySum}, প্রতিটি খরচ, ভাগ আর আপনার প্রাপ্য।",
   "portal.paper.open": "খুলুন",
   "portal.paper.afterCapital": "আপনার মূলধন এলে পাওয়া যাবে",
   "portal.paper.afterSettlement": "ভেঞ্চারের হিসাব শেষ হলে পাওয়া যাবে",
@@ -773,7 +775,7 @@ export const bn: Record<MessageKey, string> = {
   "portal.why.lost_phone": "ফোন হারিয়ে গেছে",
   "portal.why.owner": "আমার নিজের সিদ্ধান্ত",
   "portal.why.withdrawHint":
-    "তুলে নেওয়া সম্মতি আর কখনো গণ্য হবে না: ফিরে আসতে হলে তাঁকে নতুন সম্মতিপত্রে সই করতে হবে। তাঁর চুক্তি আর টাকার হিসাব যেমন আছে থাকবে।",
+    "তুলে নেওয়া সম্মতি আর কখনো গণ্য হবে না: ফিরে আসতে হলে তাঁকে নতুন সম্মতিপত্রে সই করতে হবে। তাঁর চুক্তি আর {currencyOf} হিসাব যেমন আছে থাকবে।",
   "portal.why.keepsConsent":
     "তাঁর সম্মতি বহাল থাকবে: পরে নতুন কোড দিলেই হবে, নতুন সই লাগবে না।",
   "portal.withdrawnOn": "যেদিন তিনি জানিয়েছেন",
@@ -926,7 +928,7 @@ export const bn: Record<MessageKey, string> = {
   "params.alertsHint":
     "দিনের সারসংক্ষেপ কখন যাবে, নীরব সময়, আর কাজ কতটা দেরি হলে মালিককে জানানো হবে।",
   "params.recordsHint":
-    "কোনো মাপ কতটা সরে গেলে ধরা পড়বে, রেকর্ড কতদিন সংশোধন করা যাবে, আর কত টাকার খরচে মালিকের অনুমোদন লাগবে।",
+    "কোনো মাপ কতটা সরে গেলে ধরা পড়বে, রেকর্ড কতদিন সংশোধন করা যাবে, আর কত {currencyOf} খরচে মালিকের অনুমোদন লাগবে।",
   "params.breedingHint":
     "প্লেবুক প্রজননের কাজ যে দিনগুলো ধরে সাজায় — সব গাভীর জন্য একই।",
   "params.fatteningAndPapersHint":
@@ -945,10 +947,11 @@ export const bn: Record<MessageKey, string> = {
   "params.monthlyCosts": "প্রতি মাসের খরচ",
   "params.monthlyCostsHint":
     "মাসের এই তারিখ থেকে, প্রতি মাসের খরচ বলে চিহ্নিত যে খাতে সে মাসে কিছু লেখা হয়নি, তা ম্যানেজার আর আপনাকে দেখানো হবে; আগের মাসে মজুরি পেয়েছেন কিন্তু এ মাসে পাননি এমন কেউ থাকলে তাঁর নামও।",
-  "params.returns": "খাটানো টাকার ফল",
+  "params.returns": "খাটানো {currencyOf} ফল",
   "params.returnsHint":
-    "খাটানো টাকার ফলের পাতায় কখন বছরের হিসাব দেখানো হবে। টাকা গড়ে এর চেয়ে কম দিন খাটলে লাভের ভাগ আর দিন দেখানো হবে, বছরের হিসাব নয় — কয়েক সপ্তাহকে বছরে টানলে এমন সংখ্যা হয় যা কেউ আয় করেনি। পাতাটি যেমন শুধু আপনার, এটিও ঠিক করবেন শুধু আপনি।",
-  "params.returnYearFloorDays": "বছরের হিসাব দেখানো হবে টাকা গড়ে অন্তত এত দিন খাটলে",
+    "খাটানো {currencyOf} ফলের পাতায় কখন বছরের হিসাব দেখানো হবে। {currencySum} গড়ে এর চেয়ে কম দিন খাটলে লাভের ভাগ আর দিন দেখানো হবে, বছরের হিসাব নয় — কয়েক সপ্তাহকে বছরে টানলে এমন সংখ্যা হয় যা কেউ আয় করেনি। পাতাটি যেমন শুধু আপনার, এটিও ঠিক করবেন শুধু আপনি।",
+  "params.returnYearFloorDays":
+    "বছরের হিসাব দেখানো হবে {currencySum} গড়ে অন্তত এত দিন খাটলে",
   "params.keepReadDays": "পশুর রাখার খরচ ধরা হবে গত এত দিনের",
   "params.keepAheadDays": "আরও এত দিন রাখলে কী হয়, তা মাপা হবে",
   "params.keepNeedsDays": "খামারে এত দিন থাকার পর রাখার খরচের বিচার",
@@ -957,37 +960,38 @@ export const bn: Record<MessageKey, string> = {
   "params.monthlyCostsFromDay": "মাসের এই তারিখ থেকে",
   "params.baki": "বাকি",
   "params.bakiHint":
-    "কবে দেবে বলা নেই এমন বাকি — যেমন নিয়মিত হিসাবে টাকা দেওয়া দুধের ক্রেতার — এত দিন পরে মেয়াদোত্তীর্ণ ধরা হয়।",
+    "কবে দেবে বলা নেই এমন বাকি — যেমন নিয়মিত হিসাবে {currencySum} দেওয়া দুধের ক্রেতার — এত দিন পরে মেয়াদোত্তীর্ণ ধরা হয়।",
   "params.bakiDays": "তারিখ বলা না থাকলে মেয়াদোত্তীর্ণ",
   "params.cullMilkAfterDays": "বাছুর হওয়ার পর দুধ ও খরচ মাপা শুরু",
   "params.cullCalfMilkDays": "বাছুর হওয়ার পর প্রথম এত দিনের দুধ বাছুরের",
   "params.cullMilkPriceDays": "দুধের দাম ধরা হবে গত এত দিনের বিক্রি থেকে",
   "params.ventures": "ভেঞ্চার",
   "params.venturesHint":
-    "নতুন ভেঞ্চার খুললে যে নিয়মে পরিকল্পনা হয়: কত টাকায় শুরু করা অন্তত অর্থবহ, মূলধনের কত ভাগ গরু কেনার বদলে খাওয়ানোয় যায়, আর সময় শেষ হওয়ার পর কত দিন বিক্রি চলে।",
+    "নতুন ভেঞ্চার খুললে যে নিয়মে পরিকল্পনা হয়: কত {currencyIn} শুরু করা অন্তত অর্থবহ, মূলধনের কত ভাগ গরু কেনার বদলে খাওয়ানোয় যায়, আর সময় শেষ হওয়ার পর কত দিন বিক্রি চলে।",
   "params.ventureFloor": "ভেঞ্চারের সর্বনিম্ন সীমা, লক্ষ্যের কত ভাগ",
   "params.ventureRunning": "খাওয়ানোর জন্য রাখা, ভেঞ্চারের মূলধনের কত ভাগ",
   "params.ventureInvestors": "মুনাফায় বিনিয়োগকারীদের ভাগ, নতুন চুক্তি যেখান থেকে শুরু হয়",
   "params.windUp": "সময় শেষ হওয়ার পর কত দিন বিক্রি চলবে",
   "params.priceWeighIn":
     "ভেতরের বিক্রি বা কিনে নেওয়ার দামে শেষ ওজন কত দিনের পুরোনো চলবে",
-  "params.adjustmentThreshold": "যত টাকার সমন্বয় করার মতো",
+  "params.adjustmentThreshold": "যত {currencyOf} সমন্বয় করার মতো",
   "params.investorCap": "একসাথে সর্বোচ্চ কতজন বিনিয়োগকারী",
   "params.investorWarnAt": "কতজন হলে সতর্ক করবে",
-  "params.runningBudgetWarn": "খাওয়ানোর টাকা এর কম হলে সতর্ক করবে",
+  "params.runningBudgetWarn": "খাওয়ানোর {currencySum} এর কম হলে সতর্ক করবে",
   "params.people": "জন",
   "venturesAtWork.title": "ভেঞ্চার",
   "venturesAtWork.hint":
-    "যেসব ভেঞ্চারের গরু আপনি দেখছেন, আর কোনটির খাওয়ানোর টাকা কত বাকি।",
+    "যেসব ভেঞ্চারের গরু আপনি দেখছেন, আর কোনটির খাওয়ানোর {currencySum} কত বাকি।",
   "venturesAtWork.feedingLeft": "খাওয়াতে বাকি {left}",
   "venturesAtWork.spent": "খরচ হয়েছে {spent}",
   "venturesAtWork.standing": "{standing}টি গরু আছে",
   "venturesAtWork.sellingBy": "বিক্রি {day}-এর মধ্যে",
-  "venturesAtWork.runningLow": "খাওয়ানোর টাকা কমে আসছে",
+  "venturesAtWork.runningLow": "খাওয়ানোর {currencySum} কমে আসছে",
   "ventureTrouble.title": "যেসব ভেঞ্চারে আপনাকে লাগবে",
   "ventureTrouble.decisionDue":
-    "{day} সিদ্ধান্তের দিন, অথচ সর্বনিম্ন সীমার চেয়ে এখনো ৳{short} কম — বাকি টাকা আনুন, নয়তো ভেঞ্চার বাতিল করুন",
-  "ventureTrouble.runningBudgetLow": "খাওয়ানোর টাকা কমে আসছে — ৳{left} বাকি",
+    "{day} সিদ্ধান্তের দিন, অথচ সর্বনিম্ন সীমার চেয়ে এখনো {currencySign}{short} কম — বাকি {currencySum} আনুন, নয়তো ভেঞ্চার বাতিল করুন",
+  "ventureTrouble.runningBudgetLow":
+    "খাওয়ানোর {currencySum} কমে আসছে — {currencySign}{left} বাকি",
   "ventureTrouble.pastWindUp": "গুটিয়ে আনার সময় শেষ, তবু {standing}টি গরু অবিক্রীত",
   "ventureTrouble.bankStale":
     "{months} মাস আবার মিলিয়ে দেখতে হবে — ওই মাসগুলো নিয়ে খামারের হিসাব বদলেছে",
@@ -1019,7 +1023,7 @@ export const bn: Record<MessageKey, string> = {
     "আগে খামারের ডিএলএস নিবন্ধন নম্বর লিখুন — প্রতিটি কাগজে তা থাকে",
   "ventures.title": "ভেঞ্চার",
   "ventures.subtitle":
-    "বিনিয়োগকারীর টাকায় যা চলছে: কোন ভেঞ্চার কত খুঁজছে, কত উঠেছে, আর কবে বিক্রির কথা।",
+    "বিনিয়োগকারীর {currencyIn} যা চলছে: কোন ভেঞ্চার কত খুঁজছে, কত উঠেছে, আর কবে বিক্রির কথা।",
   "ventures.open": "নতুন ভেঞ্চার",
   "ventures.opened": "ভেঞ্চার খোলা হলো",
   "ventures.openHint":
@@ -1031,16 +1035,16 @@ export const bn: Record<MessageKey, string> = {
   "ventures.held": "এ পর্যন্ত উঠেছে",
   "ventures.floor": "সর্বনিম্ন সীমা",
   "ventures.decideBy": "সিদ্ধান্তের দিন",
-  "ventures.paidFor.choose": "বিনিয়োগকারীরা কীভাবে টাকা দেবেন",
+  "ventures.paidFor.choose": "বিনিয়োগকারীরা কীভাবে {currencySum} দেবেন",
   "ventures.paidFor.before_buying": "কেনা শুরুর আগে পুরোটা",
-  "ventures.paidFor.by_the_month": "আগে গরু কেনার টাকা, বাকিটা মাসে মাসে",
-  "ventures.paidFor.label": "প্রতি ইউনিটের টাকা",
+  "ventures.paidFor.by_the_month": "আগে গরু কেনার {currencySum}, বাকিটা মাসে মাসে",
+  "ventures.paidFor.label": "প্রতি ইউনিটের {currencySum}",
   "ventures.paidFor.allBefore": "{price}, কেনা শুরুর আগে পুরোটা",
   "ventures.paidFor.monthly":
     "কেনার আগে {cattle}, তারপর {from} থেকে {to} পর্যন্ত প্রতি মাসের ১০ তারিখে {each}",
   "ventures.paidFor.monthlyLast":
     "কেনার আগে {cattle}, তারপর {from} থেকে {to} পর্যন্ত প্রতি মাসের ১০ তারিখে {each}, শেষ মাসে {last}",
-  "ventures.paidFor.sums": "{count} মাসের টাকা",
+  "ventures.paidFor.sums": "{count} মাসের {currencySum}",
   "ventures.unitPrice": "এক ইউনিটের দাম",
   "ventures.units": "ইউনিট",
   "ventures.unitsAt": "{units}টি, প্রতিটি {price}",
@@ -1053,7 +1057,8 @@ export const bn: Record<MessageKey, string> = {
   "ventures.buyWhatIsLeft": "বাকিগুলো কিনে নিন",
   "ventures.buyWhatIsLeftHint":
     "গুটিয়ে আনার সময় শেষ। {venture}-এ এখনও {standing}টি গরু আছে; সময়মতো হিসাব শেষ করতে খামার ওজন দরে সেগুলো নিয়ে নেবে।",
-  "ventures.boughtWhatWasLeft": "{animals}টি গরু ৳{total} টাকায় কেনা হয়েছে",
+  "ventures.boughtWhatWasLeft":
+    "{animals}টি গরু {currencySign}{total} {currencyIn} কেনা হয়েছে",
   "ventures.windUpEnds": "গুটিয়ে আনার শেষ দিন",
   "ventures.pastWindUp": "গুটিয়ে আনার সময় শেষ, এখনও {standing}টি গরু আছে",
   "ventures.settlement": "হিসাব চূড়ান্ত",
@@ -1159,34 +1164,34 @@ export const bn: Record<MessageKey, string> = {
   "ventures.windowOutOfOrder": "বিক্রি শুরুর আগে শেষ হতে পারে না।",
   "ventures.startBuying": "কেনা শুরু করুন",
   "ventures.startBuyingHint":
-    "কেনা শুরু হলে ইউনিট আর বদলায় না: নতুন বিনিয়োগকারীও নেই, বাড়তি টাকাও নেই।",
+    "কেনা শুরু হলে ইউনিট আর বদলায় না: নতুন বিনিয়োগকারীও নেই, বাড়তি {currencySum}ও নেই।",
   "ventures.floorNotMetYet":
-    "কেনা শুরুর আগে আরও ৳{short} জমা হতে হবে (সর্বনিম্ন সীমা ৳{floor})।",
+    "কেনা শুরুর আগে আরও {currencySign}{short} জমা হতে হবে (সর্বনিম্ন সীমা {currencySign}{floor})।",
   "ventures.sums.paidOf": "{of} মাসের {paid}টি দেওয়া",
   "ventures.sums.missed": "{amount} বাকি পড়েছে",
   "ventures.sums.due": "{amount} দেওয়ার সময় হয়েছে",
   "ventures.sums.next": "পরেরটি {day}, {amount}",
   "ventures.sumsMissedAdvance":
-    "খাওয়ানোর টাকা কমে এসেছে, আর মাসের টাকার ৳{missed} বাকি পড়েছে — সে টাকা না আসা পর্যন্ত নিজের টাকা (অগ্রিম) দিয়ে পশুদের খাওয়ানো যায়।",
+    "খাওয়ানোর {currencySum} কমে এসেছে, আর মাসের {currencyOf} {currencySign}{missed} বাকি পড়েছে — সে {currencySum} না আসা পর্যন্ত নিজের {currencySum} (অগ্রিম) দিয়ে পশুদের খাওয়ানো যায়।",
   "ventures.cattleMoneyShort":
-    "কেনা শুরুর আগে সই করা বিনিয়োগকারীদের গরু কেনার টাকার আরও ৳{short} আসতে হবে।",
+    "কেনা শুরুর আগে সই করা বিনিয়োগকারীদের গরু কেনার {currencyOf} আরও {currencySign}{short} আসতে হবে।",
   "ventures.noUnitsLeft": "সব ইউনিট সই হয়ে গেছে।",
   "ventures.decisionDue": "সিদ্ধান্ত {day}-এর মধ্যে",
   "ventures.ofTheFloor": "সর্বনিম্ন সীমা {floor}",
   "ventures.signedWithoutPaper":
-    "সই হয়েছে, কিন্তু চুক্তির ছবি রাখা যায়নি — টাকা জমা থেকে ছবি যোগ করুন",
+    "সই হয়েছে, কিন্তু চুক্তির ছবি রাখা যায়নি — {currencySum} জমা থেকে ছবি যোগ করুন",
   "ventures.unitsLeft": "{left}টি ইউনিট বাকি",
   "ventures.nobodyLeftToSign":
     "খাতার সবাই এই ভেঞ্চারে আগেই সই করেছেন — আগে বিনিয়োগকারী পাতায় নতুন বিনিয়োগকারী যোগ করুন",
   "ventures.buyingStarted": "ভেঞ্চারে গরু কেনা শুরু হলো",
   "ventures.startFattening": "কেনা শেষ",
   "ventures.floatStillOut":
-    "আগে হাটের টাকা ফেরত এনে হিসাব মেলান — টাকা বাইরে থাকলে পরে আর মেলানো যাবে না।",
+    "আগে হাটের {currencySum} ফেরত এনে হিসাব মেলান — {currencySum} বাইরে থাকলে পরে আর মেলানো যাবে না।",
   "ventures.fatteningStarted": "ভেঞ্চার এখন মোটাতাজাকরণে",
-  "ventures.takeCapital": "টাকা জমা",
+  "ventures.takeCapital": "{currencySum} জমা",
   "ventures.capitalHint":
-    "{venture}-এর জন্য বিনিয়োগকারীর সই করা কাগজের বিপরীতে আসা টাকা। কেবল ব্যাংকে।",
-  "ventures.capitalTaken": "টাকা জমা লেখা হয়েছে",
+    "{venture}-এর জন্য বিনিয়োগকারীর সই করা কাগজের বিপরীতে আসা {currencySum}। কেবল ব্যাংকে।",
+  "ventures.capitalTaken": "{currencySum} জমা লেখা হয়েছে",
   "ventures.holdsUnits": "{units} ইউনিট",
   "ventures.capitalLeft": "আরও {taka} জমা দেওয়া যায়",
   "ventures.paperKept": "চুক্তির সাথে কাগজ যোগ হয়েছে",
@@ -1206,16 +1211,16 @@ export const bn: Record<MessageKey, string> = {
   "ventures.signRequestHint": "অনুরোধের সাথে না মিললেও কাগজের ইউনিটই থাকবে",
   "ventures.signedWithCode": "চুক্তি লেখা হয়েছে। জমার কোড {code}",
   "ventures.payInCodeHint":
-    "বিনিয়োগকারীকে দিন, ট্রান্সফারে লিখবেন — তাতে বোঝা যাবে টাকাটা কার",
-  "ventures.whosePaper": "কার টাকা",
+    "বিনিয়োগকারীকে দিন, ট্রান্সফারে লিখবেন — তাতে বোঝা যাবে {currencySum}টা কার",
+  "ventures.whosePaper": "কার {currencySum}",
   "ventures.whosePaperHint": "রেফারেন্সে জমার কোড থাকলে নিজেই বেছে নেয়",
   "ventures.pickedByCode": "রেফারেন্সের {code} {name}-এর",
   "ventures.codeButNotThisPaper":
-    "রেফারেন্সের {code} {name}-এর, কিন্তু এখন টাকা নেওয়া যায় না: {why}",
+    "রেফারেন্সের {code} {name}-এর, কিন্তু এখন {currencySum} নেওয়া যায় না: {why}",
   "ventures.codeNotChosen":
     "রেফারেন্সের {code} {name}-এর, এখানে বেছে নেওয়া কাগজের নয়",
   "ventures.noPaperYet": "ছবি জমা হয়নি",
-  "ventures.paidInFull": "পুরো টাকা জমা",
+  "ventures.paidInFull": "পুরো {currencySum} জমা",
   "ventures.approve": "হিসাব অনুমোদন করুন",
   "ventures.approved": "অনুমোদিত — হিসাব আর বদলাবে না",
   "ventures.approvedOn": "{day} অনুমোদিত",
@@ -1224,20 +1229,22 @@ export const bn: Record<MessageKey, string> = {
     "প্রত্যেক বিনিয়োগকারীর পাওনা বিনিয়োগকারী ট্যাবে তাঁর সারি থেকে পাঠান।",
   "ventures.send": "পাঠিয়ে দিন",
   "ventures.paid": "পাঠানো হয়েছে",
-  "ventures.allPaid": "সব টাকা পাঠানো হয়ে গেছে",
-  "ventures.payOutHint": "{who}-কে ৳{amount} ব্যাংকের মাধ্যমে পাঠানো হচ্ছে।",
+  "ventures.allPaid": "সব {currencySum} পাঠানো হয়ে গেছে",
+  "ventures.payOutHint":
+    "{who}-কে {currencySign}{amount} ব্যাংকের মাধ্যমে পাঠানো হচ্ছে।",
   "ventures.farmsLoss": "লোকসানে খামারের ভাগ",
   "ventures.payIn": "জমা দিন",
   "ventures.coverLossHint":
-    "খামার নিজের ৳{amount} ব্যাংকের মাধ্যমে ভেঞ্চারের হিসাবে জমা দিচ্ছে, যাতে সবার পাওনা মেটানো যায়।",
+    "খামার নিজের {currencySign}{amount} ব্যাংকের মাধ্যমে ভেঞ্চারের হিসাবে জমা দিচ্ছে, যাতে সবার পাওনা মেটানো যায়।",
   "ventures.acknowledge": "তিনি পেয়েছেন বলেছেন",
   "ventures.acknowledged": "লিখে রাখা হয়েছে",
-  "ventures.acknowledgeHint": "{who} টাকা পেয়েছেন বলে জানিয়েছেন, তা লিখে রাখা হচ্ছে।",
+  "ventures.acknowledgeHint":
+    "{who} {currencySum} পেয়েছেন বলে জানিয়েছেন, তা লিখে রাখা হচ্ছে।",
   "ventures.whatHeSaid": "তিনি কিছু বলেছেন কি",
   "ventures.heldWhenApproved": "অনুমোদনের দিন ছিল",
   "ventures.sent": "পাঠানো হয়েছে",
   "ventures.saidOn": "{day} জানিয়েছেন",
-  "ventures.sendTo": "{who}-কে টাকা পাঠান",
+  "ventures.sendTo": "{who}-কে {currencySum} পাঠান",
   "ventures.nothingHasLanded": "অনুমোদনের পর নতুন কিছু আসেনি",
   "ventures.raiseAdjustment": "যা এসেছে লিখে রাখুন",
   "ventures.raiseAdjustmentHint":
@@ -1249,7 +1256,7 @@ export const bn: Record<MessageKey, string> = {
   "ventures.wasWaived": "মকুব করা হয়েছে",
   "ventures.waive": "মকুব করুন",
   "ventures.waiveHint":
-    "এর জন্য টাকা পাঠানোর দরকার নেই বলে ঠিক করছেন। কেন, তা লিখুন — এ সিদ্ধান্ত আপনারই।",
+    "এর জন্য {currencySum} পাঠানোর দরকার নেই বলে ঠিক করছেন। কেন, তা লিখুন — এ সিদ্ধান্ত আপনারই।",
   "ventures.whyLetItGo": "কেন মকুব করছেন",
   "ventures.wouldBeNow": "এখন হতো {profit} · ইউনিটপ্রতি {perUnit}",
   "ventures.wasFrozenAt": "হিসাব হয়েছিল {profit} · ইউনিটপ্রতি {perUnit}",
@@ -1257,54 +1264,54 @@ export const bn: Record<MessageKey, string> = {
   "ventures.aUnitLost": "প্রতি ইউনিটে কমেছে {amount}",
   "ventures.alreadySentByAnEarlierOne": "আগের একটি সমন্বয়েই এটি পাঠানো হয়েছে",
   "ventures.everyInvestor": "সব বিনিয়োগকারী",
-  "ventures.theFarmMadeItGood": "খামার নিজের টাকা থেকে এটি দিয়েছে",
+  "ventures.theFarmMadeItGood": "খামার নিজের {currencySum} থেকে এটি দিয়েছে",
   "ventures.sendOnThis": "যা পাওনা তা পাঠান: {reason}",
   "ventures.waiveThis": "মকুব করুন: {reason}",
   "ventures.settlementAdjustments": "হিসাব সমন্বয়",
   "ventures.balance": "হিসাবে থাকার কথা",
-  "ventures.drawFloat": "টাকা তুলুন",
-  "ventures.movements": "টাকা আসা-যাওয়া",
+  "ventures.drawFloat": "{currencySum} তুলুন",
+  "ventures.movements": "{currencySum} আসা-যাওয়া",
   "ventures.kind.capitalIn": "মূলধন জমা",
   "ventures.kind.refund": "ফেরত",
-  "ventures.kind.floatOut": "হাটে নেওয়া টাকা",
+  "ventures.kind.floatOut": "হাটে নেওয়া {currencySum}",
   "ventures.kind.intakeOut": "কেনা (খামারের গেট)",
-  "ventures.kind.floatBack": "হাট থেকে ফেরত টাকা",
+  "ventures.kind.floatBack": "হাট থেকে ফেরত {currencySum}",
   "ventures.kind.internalBuy": "গরু কেনা",
   "ventures.kind.internalSell": "গরু বিক্রি",
   "ventures.kind.saleIn": "ক্রেতা নিয়ে গেছে",
   "ventures.kind.payout": "বিনিয়োগকারীকে দেওয়া হয়েছে",
-  "ventures.kind.advanceRepaid": "আপনার নিজের টাকা ফেরত",
+  "ventures.kind.advanceRepaid": "আপনার নিজের {currencySum} ফেরত",
   "ventures.kind.farmShare": "খামারের লাভের ভাগ",
   "ventures.kind.farmLossIn": "লোকসানে খামারের ভাগ, জমা",
   "ventures.kind.reimbursement": "খামারকে ফেরত",
-  "ventures.kind.advance": "আপনার নিজের টাকা",
+  "ventures.kind.advance": "আপনার নিজের {currencySum}",
   "ventures.correctMovement": "ঠিক করুন",
   "ventures.correctMovementHint":
     "এই লেনদেনে যা লেখা আছে — কত, ব্যাংক কোন দিন পাঠিয়েছে, রেফারেন্স। হয়েছিল কি না, তা নয়।",
   "ventures.checkTheBank": "ব্যাংকের সাথে মিলিয়ে দেখুন",
   "ventures.bankCheckHint":
     "মাস শেষে {venture}-এর হিসাবে আসলে কত ছিল, আর খামার কত মনে করে — দুটো মিলিয়ে দেখা।",
-  "ventures.farmThinks": "খামার মনে করে ছিল ৳{expected}",
+  "ventures.farmThinks": "খামার মনে করে ছিল {currencySign}{expected}",
   "ventures.whatTheStatementSaid": "স্টেটমেন্টে যা আছে",
   "ventures.readHint": "ব্যাংকের নিজের স্টেটমেন্টের শেষ ব্যালান্স",
-  "ventures.difference": "পার্থক্য: ৳{difference}",
+  "ventures.difference": "পার্থক্য: {currencySign}{difference}",
   "ventures.whatYouFoundOut": "আপনি যা জেনেছেন",
   "ventures.whatYouFoundOutHint":
     "না মিললে এবং কারণ জানা থাকলে — কোনো চার্জ, বা যে ট্রান্সফার তখনো ঢোকেনি",
   "ventures.bankAgrees": "ব্যাংকের সাথে মিলেছে",
-  "ventures.alreadyChecked": "আগে লেখা হয়েছিল ৳{read}",
+  "ventures.alreadyChecked": "আগে লেখা হয়েছিল {currencySign}{read}",
   "ventures.checkedAgainst":
-    "এই মাস আপনি ৳{expected} ধরে মিলিয়েছিলেন, খামার এখন তা মনে করে না",
-  "ventures.bankDiffers": "লেখা হয়েছে, ৳{difference} পার্থক্য আছে",
+    "এই মাস আপনি {currencySign}{expected} ধরে মিলিয়েছিলেন, খামার এখন তা মনে করে না",
+  "ventures.bankDiffers": "লেখা হয়েছে, {currencySign}{difference} পার্থক্য আছে",
   "ventures.bankDisagrees": "{month} মাসে ব্যাংকের সাথে মেলেনি",
   "ventures.bankStale": "{month} মাসে হিসাব বদলেছে; স্টেটমেন্ট আবার মিলিয়ে দেখুন",
   "ventures.bankUnreadSince": "{month} মাসের পর কেউ স্টেটমেন্ট মিলিয়ে দেখেননি",
   "ventures.bankStraight": "{month} পর্যন্ত ব্যাংকের সাথে মিলে আছে",
   "ventures.bankNeverChecked": "ব্যাংকের সাথে কখনো মিলিয়ে দেখা হয়নি",
-  "ventures.advance": "নিজের টাকা দিন",
+  "ventures.advance": "নিজের {currencySum} দিন",
   "ventures.advanceHint":
-    "{venture}-এ আপনার নিজের টাকা, যাতে গরু খেতে থাকে। সুদ নেই, ভেঞ্চারের খরচেও ধরা হয় না, আর মূলধনের আগেই যা দিয়েছেন তা-ই ফেরত পাবেন।",
-  "ventures.advanced": "টাকা দেওয়া লেখা হয়েছে",
+    "{venture}-এ আপনার নিজের {currencySum}, যাতে গরু খেতে থাকে। সুদ নেই, ভেঞ্চারের খরচেও ধরা হয় না, আর মূলধনের আগেই যা দিয়েছেন তা-ই ফেরত পাবেন।",
+  "ventures.advanced": "{currencySum} দেওয়া লেখা হয়েছে",
   "ventures.advanceEarnsNothing":
     "এতে কোনো লাভ নেই, ভেঞ্চারেরও খরচ নেই; যা দিয়েছেন তা-ই সবার আগে ফেরত",
   "ventures.owedToYou": "আপনার পাওনা",
@@ -1328,7 +1335,8 @@ export const bn: Record<MessageKey, string> = {
   "ventures.sellInternally": "গরু এক পার্স থেকে আরেক পার্সে",
   "ventures.internalSaleHint":
     "খামারের পাল আর ভেঞ্চারের মধ্যে গরু বিক্রি — দাম তার শেষ ওজন গুণ আপনার দেওয়া দর।",
-  "ventures.soldInternally": "৳{price} দামে বিক্রি হলো, গরুটি হাতবদল হয়েছে",
+  "ventures.soldInternally":
+    "{currencySign}{price} দামে বিক্রি হলো, গরুটি হাতবদল হয়েছে",
   "ventures.whichAnimal": "কোন গরু",
   "ventures.movableDetail": "{pen} · {purse} · {date}-এ {weight} কেজি",
   "ventures.noneMovable":
@@ -1349,28 +1357,28 @@ export const bn: Record<MessageKey, string> = {
   "ventures.weighAgainFirst": "শেষ ওজন পুরোনো — আগে ওজন নিন",
   "ventures.neverWeighed": "ওজন নেওয়া হয়নি",
   "ventures.soldOn": "বিক্রির দিন",
-  "ventures.priceFromWeight": "{weight} কেজি এই দরে · ৳{price}",
+  "ventures.priceFromWeight": "{weight} কেজি এই দরে · {currencySign}{price}",
   "ventures.whereTheRateCameFrom": "দর কোথা থেকে",
   "ventures.whereTheRateCameFromHint":
     "সকালের হাট, ক্রেতার প্রস্তাব, গত বিক্রি — বছর পরে বিনিয়োগকারী জিজ্ঞেস করলে কারণ দিতে হবে",
   "ventures.countFloat": "হিসাব মেলান",
   "ventures.countFloatHint":
-    "যত টাকা তোলা হয়েছিল, তার বিপরীতে কেনা গরু, যাত্রার খরচ আর ফেরত আসা টাকা।",
+    "যত {currencySum} তোলা হয়েছিল, তার বিপরীতে কেনা গরু, যাত্রার খরচ আর ফেরত আসা {currencySum}।",
   "ventures.floatCounted": "হিসাব মিলেছে",
   "ventures.floatSum":
-    "৳{went} তোলা হয়েছিল · গরু আর খরচ ৳{bought} · ফেরত আসার কথা ৳{back}",
-  "ventures.cashBack": "ফেরত আনা টাকা",
+    "{currencySign}{went} তোলা হয়েছিল · গরু আর খরচ {currencySign}{bought} · ফেরত আসার কথা {currencySign}{back}",
+  "ventures.cashBack": "ফেরত আনা {currencySum}",
   "ventures.cashBackHint": "যা বেঁচেছে, ব্যাংকে জমা হবে",
   "ventures.depositedOn": "জমার তারিখ",
   "ventures.slip": "জমার স্লিপ",
   "ventures.openFloat": "হাটে আছে",
   "ventures.floatHint":
-    "হাটে নেওয়ার টাকা — গরুর বাজেটে থাকা ৳{cattle} থেকে। হিসাবের বাকিটা গরু পালতে লাগবে।",
-  "ventures.floatDrawn": "টাকা তোলা হয়েছে",
+    "হাটে নেওয়ার {currencySum} — গরুর বাজেটে থাকা {currencySign}{cattle} থেকে। হিসাবের বাকিটা গরু পালতে লাগবে।",
+  "ventures.floatDrawn": "{currencySum} তোলা হয়েছে",
   "ventures.floatTrip": "কোন যাত্রা",
   "ventures.floatTripHint": "প্রতি যাত্রায় একবার, যাতে ফিরে এলে হিসাব মেলানো যায়",
-  "ventures.floatMost": "সর্বোচ্চ ৳{cattle}",
-  "money.purseWas": "{venture}-এর টাকা",
+  "ventures.floatMost": "সর্বোচ্চ {currencySign}{cattle}",
+  "money.purseWas": "{venture}-এর {currencySum}",
   "ventures.outOfTheAccount": "হিসাব থেকে গেছে · ফেরত দেওয়া",
   "ventures.reimbursedSoFar": "খামারকে খরচ ফেরত দেওয়া হয়েছে",
   "ventures.herdMargin": "পুরো পালের মুনাফা",
@@ -1381,36 +1389,39 @@ export const bn: Record<MessageKey, string> = {
   "refusal.milkWeighedTooSoon":
     "বাছুরের দুধের দিন আর রাখার খরচ যত দিন ধরা হয়, দুটো পেরোলে তবেই গাভীর দুধ মাপা হয়: সবচেয়ে আগে {soonestDays} দিনে। এগুলো একসঙ্গে বদলান।",
   "refusal.capitalOverCattlePart":
-    "এই চুক্তির গরু কেনার টাকার চেয়ে বেশি — বাকিটা কেনা শুরুর পর মাসে মাসে আসবে",
+    "এই চুক্তির গরু কেনার {currencyOf} চেয়ে বেশি — বাকিটা কেনা শুরুর পর মাসে মাসে আসবে",
   "refusal.cattleMoneyShort":
-    "সই করা কয়েকজনের গরু কেনার টাকা এখনো আসেনি — সবটা না এলে কেনা শুরু হবে না",
-  "refusal.capitalOverUnits": "এই চুক্তির ইউনিটের দামের চেয়ে বেশি টাকা",
-  "refusal.refundNotItsMoney": "এই ভেঞ্চার এই টাকা কখনো নেয়নি",
+    "সই করা কয়েকজনের গরু কেনার {currencySum} এখনো আসেনি — সবটা না এলে কেনা শুরু হবে না",
+  "refusal.capitalOverUnits": "এই চুক্তির ইউনিটের দামের চেয়ে বেশি {currencySum}",
+  "refusal.refundNotItsMoney": "এই ভেঞ্চার এই {currencySum} কখনো নেয়নি",
   "refusal.wageIsTheFarms": "মজুরি খামারের নিজের — লোক খামারই দেয়",
   "refusal.venturePaidInFull":
-    "ভেঞ্চারের পশু পুরো দাম পেয়েই যায় — বিনিয়োগকারীদের টাকা কাউকে বাকিতে দেওয়া হয় না",
+    "ভেঞ্চারের পশু পুরো দাম পেয়েই যায় — বিনিয়োগকারীদের {currencySum} কাউকে বাকিতে দেওয়া হয় না",
   "refusal.paidMoreThanPrice": "যা দাম হয়েছে, তার চেয়ে বেশি দেওয়া লেখা হয়েছে",
-  "refusal.bakiNeedsAPromise": "বাকি টাকা কবে দেবে, সেই তারিখ লিখুন",
+  "refusal.bakiNeedsAPromise": "বাকি {currencySum} কবে দেবে, সেই তারিখ লিখুন",
   "refusal.promiseBeforeItLeft":
     "যেদিন গেছে, তার আগের তারিখে বাকি দেওয়ার কথা হতে পারে না",
-  "refusal.paidMoreThanOwed": "বাকি ৳{owingMoney}; বেশি দিলে কেন, মন্তব্যে লিখুন",
+  "refusal.paidMoreThanOwed":
+    "বাকি {currencySign}{owingMoney}; বেশি দিলে কেন, মন্তব্যে লিখুন",
   "refusal.noSuchBuyer": "এই নামে কারো কাছে খামার কখনো বিক্রি করেনি",
   "refusal.aBullCalfIsNoHeifer":
     "এঁড়ে বাছুর বকনা হিসেবে থাকে না — তার মোটাতাজাকরণ পেন বাছুন",
-  "refusal.writtenOffMoreThanOwed": "এর ওপর এখন বাকি মাত্র ৳{owingMoney}",
+  "refusal.writtenOffMoreThanOwed":
+    "এর ওপর এখন বাকি মাত্র {currencySign}{owingMoney}",
   "refusal.nothingOwedOnIt": "এর ওপর কখনো কিছু বাকি ছিল না",
   "refusal.ventureOwnsHer":
     "এই গরু একটি ভেঞ্চারের, আর ভেঞ্চারের গরু দুধের দিকে যেতে পারে না",
   "refusal.notAVenturesAnimal": "ভেঞ্চার কেবল কিনে আনা মোটাতাজাকরণের গরুরই মালিক হয়",
-  "refusal.cattleBudgetShort": "গরুর বাজেটে এত টাকা নেই — হিসাবের বাকিটা গরু পালার জন্য",
-  "refusal.floatAlreadyDrawn": "এই যাত্রার জন্য টাকা আগেই দেওয়া হয়েছে",
+  "refusal.cattleBudgetShort":
+    "গরুর বাজেটে এত {currencySum} নেই — হিসাবের বাকিটা গরু পালার জন্য",
+  "refusal.floatAlreadyDrawn": "এই যাত্রার জন্য {currencySum} আগেই দেওয়া হয়েছে",
   "refusal.tripIsAnotherVentures": "এই যাত্রা অন্য ভেঞ্চারের গরু আনছে",
   "refusal.tripIsTheFarms": "এই যাত্রা খামারের নিজের গরু আনছে",
   "refusal.ventureBuysByBank":
     "যাত্রা ছাড়া কেনা ভেঞ্চারের গরুর দাম ভেঞ্চারের হিসাব থেকে ব্যাংকে দেওয়া হয়, চেক বা ট্রান্সফারের নম্বরসহ",
-  "refusal.notHeldHere": "এই বিক্রির টাকা এই হাতে এই ভেঞ্চারের জন্য রাখা নেই",
+  "refusal.notHeldHere": "এই বিক্রির {currencySum} এই হাতে এই ভেঞ্চারের জন্য রাখা নেই",
   "refusal.namesNoFarmAccount":
-    "বিকাশ বা ব্যাংকের টাকা খামারের কোন হিসাবে গেল বা এল, তা বেছে নিন",
+    "বিকাশ বা ব্যাংকের {currencySum} খামারের কোন হিসাবে গেল বা এল, তা বেছে নিন",
   "refusal.farmAccountNotThatKind": "এই হিসাবটি এই ধরনের লেনদেনের নয়",
   "refusal.farmAccountRetired": "এই হিসাবটি বন্ধ করা হয়েছে",
   "refusal.needsItsReference":
@@ -1419,19 +1430,19 @@ export const bn: Record<MessageKey, string> = {
   "refusal.farmAccountListedAlready": "এই নম্বরটি আগেই তালিকায় আছে",
   "refusal.beforeTheFirstReading":
     "এই মাসটি এই হিসাবের প্রথম স্টেটমেন্ট মেলানোর আগের",
-  "refusal.alreadyDeposited": "এই বিক্রির টাকা আগেই জমা হয়েছে",
+  "refusal.alreadyDeposited": "এই বিক্রির {currencySum} আগেই জমা হয়েছে",
   "refusal.ventureSaleNotByBkash":
     "ভেঞ্চারের গরুর দাম ব্যাংকে বা নগদে নেওয়া হয়, বিকাশে নয়",
   "refusal.saleCashInAHand":
-    "বিক্রির নগদ টাকা এখনও কারও হাতে, ভেঞ্চারের হিসাবে জমা হয়নি",
+    "বিক্রির নগদ {currencySum} এখনও কারও হাতে, ভেঞ্চারের হিসাবে জমা হয়নি",
   "refusal.floatAlreadyReconciled":
     "এই যাত্রার হিসাব মিলিয়ে ফেলা হয়েছে, আর কিছু যোগ করা যাবে না",
   "refusal.floatOver":
-    "গরু, যাত্রার খরচ আর ফেরত আসা টাকা মিলিয়ে যা তোলা হয়েছিল তার চেয়ে বেশি হচ্ছে",
+    "গরু, যাত্রার খরচ আর ফেরত আসা {currencySum} মিলিয়ে যা তোলা হয়েছিল তার চেয়ে বেশি হচ্ছে",
   "refusal.floatShort":
-    "গরু, যাত্রার খরচ আর ফেরত আসা টাকা মিলিয়ে যা তোলা হয়েছিল তার চেয়ে কম হচ্ছে",
+    "গরু, যাত্রার খরচ আর ফেরত আসা {currencySum} মিলিয়ে যা তোলা হয়েছিল তার চেয়ে কম হচ্ছে",
   "refusal.notWhoseFloatBoughtHer":
-    "এই যাত্রা অন্য পার্সের টাকায় হাটে গিয়েছিল, তাই গরুটি সেই পার্সের",
+    "এই যাত্রা অন্য পার্সের {currencyIn} হাটে গিয়েছিল, তাই গরুটি সেই পার্সের",
   "refusal.windowIsTheVentures":
     "ভেঞ্চারের পশুর বিক্রির সময় ভেঞ্চারেরই; তা বদলায় সংশোধনী দিয়ে, পশু তোলার সময় নয়",
   "refusal.windowNeeded":
@@ -1464,9 +1475,9 @@ export const bn: Record<MessageKey, string> = {
     "কোন বিক্রির সময়ের জন্য তাকে খাওয়ানো হচ্ছে তা বলুন; পরের ঈদ বের করা যায়নি",
   "refusal.anAnimalStillStands": "এই ভেঞ্চারের একটি গরু এখনও আছে",
   "refusal.aPriceIsMissing": "যে খাবার বা ওষুধ দেওয়া হয়েছে তার দাম জানা নেই",
-  "refusal.aFloatIsOpen": "হাটের টাকার হিসাব এখনও মেলানো হয়নি",
+  "refusal.aFloatIsOpen": "হাটের {currencyOf} হিসাব এখনও মেলানো হয়নি",
   "refusal.aReimbursementIsOwed": "কোনো মাসের ফেরত এখনও পাঠানো হয়নি",
-  "refusal.theAccountDoesNotAddUp": "অ্যাকাউন্টের টাকা হিসাবের সাথে মিলছে না",
+  "refusal.theAccountDoesNotAddUp": "অ্যাকাউন্টের {currencySum} হিসাবের সাথে মিলছে না",
   "refusal.theBankDisagrees": "কোনো মাস স্টেটমেন্টের সঙ্গে মেলানো হয়নি, বা মেলেনি",
   "refusal.nobodyHasSigned": "এই ভেঞ্চারে কেউ সই করেননি",
   "refusal.agreementsDisagree": "এই ভেঞ্চারের চুক্তিগুলোতে ভাগ এক নয়",
@@ -1474,10 +1485,10 @@ export const bn: Record<MessageKey, string> = {
   "refusal.notYetApproved": "হিসাব অনুমোদনের আগে কিছু পাওনা হয় না",
   "refusal.alreadyPaid": "এটি আগেই পাঠানো হয়েছে",
   "refusal.notWhatHeIsOwed": "এই হিসাবে তাঁর পাওনা এটি নয়",
-  "refusal.notYetPaid": "যে টাকা পাঠানোই হয়নি, তা তিনি পাবেন কী করে",
-  "refusal.noAdvanceToRepay": "এই ভেঞ্চারে আপনি নিজের টাকা দেননি",
+  "refusal.notYetPaid": "যে {currencySum} পাঠানোই হয়নি, তা তিনি পাবেন কী করে",
+  "refusal.noAdvanceToRepay": "এই ভেঞ্চারে আপনি নিজের {currencySum} দেননি",
   "refusal.noFarmShareToTake": "এই ভেঞ্চারে খামারের নেওয়ার মতো কিছু নেই",
-  "refusal.advanceComesFirst": "মূলধনের আগে আপনার নিজের টাকা ফেরত যায়",
+  "refusal.advanceComesFirst": "মূলধনের আগে আপনার নিজের {currencySum} ফেরত যায়",
   "refusal.alreadyAcknowledged": "তিনি আগেই বলেছেন যে পেয়েছেন",
   "refusal.nothingToPayHim":
     "তিনি যা দিয়েছিলেন তার চেয়ে বেশি লোকসান হয়েছে, পাঠানোর মতো কিছু নেই",
@@ -1487,7 +1498,7 @@ export const bn: Record<MessageKey, string> = {
   "refusal.weighedAgainSince":
     "আপনি দাম দেখার পর গরুটির ওজন আবার নেওয়া হয়েছে — নতুন দাম দেখুন",
   "refusal.notAFatteningAnimal":
-    "বিনিয়োগের টাকা মোটাতাজাকরণে যায়, আর দুধের গাভি খামারের নিজের",
+    "বিনিয়োগের {currencySum} মোটাতাজাকরণে যায়, আর দুধের গাভি খামারের নিজের",
   "refusal.buyerCannotTrade": "যে ভেঞ্চার নিচ্ছে, তার গরু নেওয়ার সময় পার হয়ে গেছে",
   "refusal.nothingToReimburse": "ওই মাসে এর গরু খামারের কিছুই খায়নি",
   "refusal.monthAlreadyReimbursed": "ওই মাসের হিসাব আগেই ফেরত হয়েছে",
@@ -1495,14 +1506,15 @@ export const bn: Record<MessageKey, string> = {
   "refusal.monthBeforeTheVenture": "এই ভেঞ্চার শুরুর আগের মাস",
   "refusal.sayWhatYouFoundOut": "যে মাসে মেলেনি, সে বিষয়ে কী জেনেছেন লিখুন",
   "refusal.ventureIsSettled":
-    "এই ভেঞ্চারের হিসাব শেষ — যে হিসাবে টাকা দেওয়া হয়েছে তা বদলানোর বদলে বণ্টন সমন্বয় করুন",
+    "এই ভেঞ্চারের হিসাব শেষ — যে হিসাবে {currencySum} দেওয়া হয়েছে তা বদলানোর বদলে বণ্টন সমন্বয় করুন",
   "refusal.ventureIsCancelled":
-    "এই ভেঞ্চার বাতিল হয়েছে, টাকাও ফেরত গেছে; যা এসেছিল তা এখন আর বদলানো যাবে না",
+    "এই ভেঞ্চার বাতিল হয়েছে, {currencySum}ও ফেরত গেছে; যা এসেছিল তা এখন আর বদলানো যাবে না",
   "refusal.oneSideOfASale": "এটি ভেতরের বেচাকেনার এক পাশ — বেচাকেনাটিই ঠিক করতে হবে",
   "refusal.reimbursementIsComputed":
     "মাসের ফেরত খরচের হিসাব থেকেই আসে; তারিখ আর রেফারেন্স এখনও আপনি ঠিক করতে পারেন",
   "refusal.sellerCannotTrade": "যে ভেঞ্চার দিচ্ছে, তার গরু দেওয়ার সময় পার হয়ে গেছে",
-  "refusal.cashBackNeedsASlip": "ফেরত আসা টাকার জমার তারিখ আর স্লিপ নম্বর দিন",
+  "refusal.cashBackNeedsASlip":
+    "ফেরত আসা {currencyOf} জমার তারিখ আর স্লিপ নম্বর দিন",
   "ventures.budgetsHeld": "তার মধ্যে গরু আর চলতি",
   "ventures.tab.running": "চলমান",
   "ventures.col.venture": "ভেঞ্চার",
@@ -1518,18 +1530,18 @@ export const bn: Record<MessageKey, string> = {
   "ventures.page.raising": "পুঁজি ওঠানো",
   "ventures.page.raised": "{held} উঠেছে",
   "ventures.page.floorAndTarget": "সর্বনিম্ন সীমা {floor} · লক্ষ্য {target}",
-  "ventures.page.money": "টাকার হিসাব",
+  "ventures.page.money": "{currencyOf} হিসাব",
   "ventures.page.terms": "শর্তাবলি",
   "ventures.account.title": "ভেঞ্চারের ব্যাংক হিসাব",
   "ventures.account.hint":
-    "সই করা বিনিয়োগকারীকে পোর্টালে তাঁর নিজের চুক্তিতে এখানেই টাকা দিতে বলা হয় — ভেঞ্চারের পাশে কখনো নয়।",
+    "সই করা বিনিয়োগকারীকে পোর্টালে তাঁর নিজের চুক্তিতে এখানেই {currencySum} দিতে বলা হয় — ভেঞ্চারের পাশে কখনো নয়।",
   "ventures.account.none":
-    "এখনো লেখা হয়নি। সই করা বিনিয়োগকারীকে বলা হয়, কোথায় টাকা দেবেন তা খামার জানাবে।",
+    "এখনো লেখা হয়নি। সই করা বিনিয়োগকারীকে বলা হয়, কোথায় {currencySum} দেবেন তা খামার জানাবে।",
   "ventures.account.write": "ব্যাংক হিসাব লিখুন",
   "ventures.account.change": "ব্যাংক হিসাব বদলান",
   "ventures.account.saved": "ভেঞ্চারের ব্যাংক হিসাব লেখা হয়েছে",
   "ventures.account.sheetHint":
-    "প্রতিটি বদল আগের লেখাসহ খাতায় থাকে। প্রতিটি অঙ্ক মিলিয়ে নিন: বিনিয়োগকারীদের টাকা এখানেই যায়।",
+    "প্রতিটি বদল আগের লেখাসহ খাতায় থাকে। প্রতিটি অঙ্ক মিলিয়ে নিন: বিনিয়োগকারীদের {currencySum} এখানেই যায়।",
   "ventures.account.bank": "ব্যাংক",
   "ventures.account.branch": "শাখা",
   "ventures.account.name": "হিসাবের নাম",
@@ -1599,8 +1611,8 @@ export const bn: Record<MessageKey, string> = {
   "ventures.requests.closed.taken_out_of_portal": "পোর্টাল থেকে সরানোয় বন্ধ হয়েছে",
   "ventures.requests.closed.investor_retired":
     "বিনিয়োগকারী অবসরে যাওয়ায় বন্ধ হয়েছে",
-  "ventures.page.cattleLeft": "গরু কেনার টাকা বাকি",
-  "ventures.page.runningLeft": "খাওয়ানোর টাকা বাকি",
+  "ventures.page.cattleLeft": "গরু কেনার {currencySum} বাকি",
+  "ventures.page.runningLeft": "খাওয়ানোর {currencySum} বাকি",
   "ventures.page.cattleBudget": "গরু কেনার বাজেট",
   "ventures.page.runningBudget": "খাওয়ানোর বাজেট",
   "ventures.page.spent": "খরচ হয়েছে",
@@ -1629,7 +1641,7 @@ export const bn: Record<MessageKey, string> = {
   "ventures.page.bought": "কেনা দাম",
   "ventures.page.fetched": "বিক্রির দাম",
   "ventures.page.margin": "লাভ",
-  "ventures.page.noMoney": "এই ভেঞ্চারে এখনো কোনো টাকা আসা-যাওয়া হয়নি",
+  "ventures.page.noMoney": "এই ভেঞ্চারে এখনো কোনো {currencySum} আসা-যাওয়া হয়নি",
   "ventures.page.showing": "কোন লেনদেন",
   "ventures.page.showAll": "সব",
   "ventures.page.showIn": "যা জমা হয়েছে",
@@ -1649,21 +1661,22 @@ export const bn: Record<MessageKey, string> = {
   "ventures.noneSettled": "এখনো কোনো ভেঞ্চারের হিসাব শেষ হয়নি",
   "ventures.noneCalledOff": "কোনো ভেঞ্চার বাতিল হয়নি",
   "ventures.noneRunningHint":
-    "“নতুন ভেঞ্চার” দিয়ে খুলুন: টাকা তোলা, কেনা, মোটাতাজা আর বিক্রির পুরো সময় এটি এখানে থাকে।",
+    "“নতুন ভেঞ্চার” দিয়ে খুলুন: {currencySum} তোলা, কেনা, মোটাতাজা আর বিক্রির পুরো সময় এটি এখানে থাকে।",
   "ventures.noneSettledHint":
-    "হিসাব নিকাশ অনুমোদনের পর শেষ টাকা পরিশোধ হলে ভেঞ্চার এখানে আসে।",
+    "হিসাব নিকাশ অনুমোদনের পর শেষ {currencySum} পরিশোধ হলে ভেঞ্চার এখানে আসে।",
   "ventures.noneCalledOffHint":
-    "সর্বনিম্ন সীমায় না পৌঁছানো, বা কেনার আগে বাতিল হওয়া ভেঞ্চার এখানে থাকে — সব টাকা ফেরত দিয়ে।",
+    "সর্বনিম্ন সীমায় না পৌঁছানো, বা কেনার আগে বাতিল হওয়া ভেঞ্চার এখানে থাকে — সব {currencySum} ফেরত দিয়ে।",
   "ventures.moreFor": "{venture}-এর আরও কাজ",
   "ventures.callOff": "বাতিল করুন",
   "ventures.callOffHint":
-    "{venture}-এ আর কিছু কেনা হবে না, এখানেই শেষ। সব টাকা ফেরত যাবে, প্রতিটির আলাদা রেফারেন্সসহ।",
+    "{venture}-এ আর কিছু কেনা হবে না, এখানেই শেষ। সব {currencySum} ফেরত যাবে, প্রতিটির আলাদা রেফারেন্সসহ।",
   "ventures.callOffReason": "কেন বাতিল হচ্ছে",
-  "ventures.calledOff": "ভেঞ্চার বাতিল হলো, টাকা ফেরত যাচ্ছে",
+  "ventures.calledOff": "ভেঞ্চার বাতিল হলো, {currencySum} ফেরত যাচ্ছে",
   "ventures.refundedOn": "ফেরত পাঠানোর দিন",
-  "ventures.nothingToSendBack": "কোনো টাকা আসেনি, তাই ফেরত দেওয়ার কিছু নেই",
+  "ventures.nothingToSendBack":
+    "কোনো {currencySum} আসেনি, তাই ফেরত দেওয়ার কিছু নেই",
   "investors.title": "বিনিয়োগকারী",
-  "investors.subtitle": "খামারের ভেঞ্চারে যাঁদের টাকা আছে",
+  "investors.subtitle": "খামারের ভেঞ্চারে যাঁদের {currencySum} আছে",
   "investors.record": "বিনিয়োগকারী যোগ করুন",
   "investors.recordHint": "একবার লিখলেই হয়, প্রতিটি ভেঞ্চারে এই নামই ব্যবহার হবে",
   "investors.recorded": "বিনিয়োগকারী লেখা হয়েছে",
@@ -1672,7 +1685,8 @@ export const bn: Record<MessageKey, string> = {
   "investors.address": "ঠিকানা",
   "investors.nid": "এনআইডি নম্বর",
   "investors.bank": "ব্যাংক হিসাব",
-  "investors.bankHint": "টাকা এই হিসাবেই যাবে — বিনিয়োগকারীকে খামার কখনো হাতে টাকা দেয় না",
+  "investors.bankHint":
+    "{currencySum} এই হিসাবেই যাবে — বিনিয়োগকারীকে খামার কখনো হাতে {currencySum} দেয় না",
   "investors.nominee": "নমিনি",
   "investors.relation.wife": "স্ত্রী",
   "investors.relation.husband": "স্বামী",
@@ -1684,7 +1698,7 @@ export const bn: Record<MessageKey, string> = {
   "investors.relation.sister": "বোন",
   "investors.relation.other": "অন্য কেউ",
   "investors.section.who": "পরিচয়",
-  "investors.section.money": "টাকা কোথায় যাবে",
+  "investors.section.money": "{currencySum} কোথায় যাবে",
   "investors.noVentures": "এখনো কোনো ভেঞ্চারে নেই।",
   "investors.bankPlaceholder": "হিসাবের নাম, হিসাব নম্বর, ব্যাংক ও শাখা",
   "investors.copyAccount": "কপি করুন",
@@ -1710,7 +1724,7 @@ export const bn: Record<MessageKey, string> = {
   "investors.bringBack": "ফিরিয়ে আনুন",
   "investors.broughtBack": "ফিরিয়ে আনা হয়েছে",
   "investors.stillIn":
-    "চলমান একটি ভেঞ্চারে তাঁর টাকা আছে, তাই ভেঞ্চারের হিসাব শেষ বা বাতিল না হওয়া পর্যন্ত বাদ দেওয়া যাবে না।",
+    "চলমান একটি ভেঞ্চারে তাঁর {currencySum} আছে, তাই ভেঞ্চারের হিসাব শেষ বা বাতিল না হওয়া পর্যন্ত বাদ দেওয়া যাবে না।",
   "investors.nomineeIs": "নমিনি: {name}",
   "investors.nomineesAre": "{name} ও আরও {more} জন",
   "nominees.title": "নমিনি",
@@ -1718,7 +1732,7 @@ export const bn: Record<MessageKey, string> = {
     "ভেঞ্চারের হিসাব শেষ হওয়ার আগে তিনি মারা গেলে যাঁরা তাঁর মূলধন ও প্রাপ্য সংগ্রহ করে আইনগত উত্তরাধিকারীদের বুঝিয়ে দেবেন। শুধু তাঁর সই করা কাগজেই বদলায়।",
   "nominees.none": "কোনো নমিনি নেই",
   "nominees.noneHint":
-    "তিনি মারা গেলে টাকা সরাসরি তাঁর আইনগত উত্তরাধিকারীদের দেওয়া হবে, সাধারণত উত্তরাধিকার সনদ দেখে।",
+    "তিনি মারা গেলে {currencySum} সরাসরি তাঁর আইনগত উত্তরাধিকারীদের দেওয়া হবে, সাধারণত উত্তরাধিকার সনদ দেখে।",
   "nominees.notSignedFor": "এখনো সই হয়নি",
   "nominees.notSignedForHint":
     "মনোনয়ন রাখা শুরুর আগে লেখা। তিনি মনোনয়নপত্রে বা এঁদের নাম থাকা চুক্তিতে সই করলে তবেই গণ্য হবে।",
@@ -1761,7 +1775,8 @@ export const bn: Record<MessageKey, string> = {
   "nominees.receiverRelation": "নমিনির সঙ্গে সম্পর্ক",
   "nominees.receiverPhone": "গ্রহণকারীর ফোন",
   "nominees.total": "এ পর্যন্ত অংশ: {total}%",
-  "nominees.noneYet": "কোনো নমিনি নেই: টাকা সরাসরি তাঁর উত্তরাধিকারীদের কাছে যাবে।",
+  "nominees.noneYet":
+    "কোনো নমিনি নেই: {currencySum} সরাসরি তাঁর উত্তরাধিকারীদের কাছে যাবে।",
   "nominees.print": "সইয়ের জন্য মনোনয়নপত্র ছাপুন",
   "nominees.printHint":
     "ওপরের নমিনিদের নিয়ে সাজানো, আপনার সামনে তিনি সই করে তারিখ দেবেন।",
@@ -1794,7 +1809,7 @@ export const bn: Record<MessageKey, string> = {
   "investors.page.notFound": "এই ঠিকানায় কোনো বিনিয়োগকারী নেই",
   "investors.page.tab.overview": "সারসংক্ষেপ",
   "investors.page.tab.agreements": "চুক্তি",
-  "investors.page.tab.money": "টাকা",
+  "investors.page.tab.money": "{currencySum}",
   "investors.requests.hint":
     "পোর্টাল থেকে যত ভেঞ্চারে যোগ দিতে চেয়েছেন, নতুনটি আগে, আর প্রতিটি এখন কোথায়।",
   "investors.page.heldNow": "এখন খামারের কাছে মূলধন",
@@ -1813,8 +1828,8 @@ export const bn: Record<MessageKey, string> = {
   "investors.page.paidNotSaid": "পরিশোধ হয়েছে, স্বীকার এখনো নয়",
   "investors.page.notPaidYet": "এখনো পরিশোধ হয়নি",
   "investors.page.moneyHint":
-    "তাঁর যত টাকা নড়েছে: মূলধন এসেছে, মূলধন ফেরত গেছে, আর পরিশোধ।",
-  "investors.page.noMoney": "তাঁর কোনো টাকা এখনো নড়েনি",
+    "তাঁর যত {currencySum} নড়েছে: মূলধন এসেছে, মূলধন ফেরত গেছে, আর পরিশোধ।",
+  "investors.page.noMoney": "তাঁর কোনো {currencySum} এখনো নড়েনি",
   "investors.page.toTheFarm": "এসেছে",
   "investors.page.toThem": "তাঁকে ফেরত",
   "portal.recordHint": "নিজের ভেঞ্চার আর কাগজ পড়তে তাঁর প্রবেশপথ।",
@@ -1839,7 +1854,7 @@ export const bn: Record<MessageKey, string> = {
   "params.hours": "ঘণ্টা",
   "params.days": "দিন",
   "params.percent": "%",
-  "params.taka": "টাকা",
+  "params.taka": "{currencySum}",
   "params.kg": "কেজি",
   "params.attempts": "বার",
   "params.save": "প্যারামিটার সংরক্ষণ",
@@ -1949,7 +1964,7 @@ export const bn: Record<MessageKey, string> = {
   "auditField.penId": "পেন",
   "auditField.id": "আইডি",
   "auditField.definitionId": "কার্যপ্রণালী",
-  "auditField.money": "টাকা",
+  "auditField.money": "{currencySum}",
   "auditField.recordedAt": "কখন লেখা হয়েছে",
   "auditField.farmId": "খামার",
   "auditField.recordedByRole": "যে ভূমিকায় লেখা",
@@ -1973,7 +1988,7 @@ export const bn: Record<MessageKey, string> = {
   "auditField.withdrawalShortenedReason": "আটকে রাখার সময় কমানোর কারণ",
   "auditField.photoUpdatedAt": "ছবি বদলানোর সময়",
   "auditField.stateChangedAt": "অবস্থা বদলের সময়",
-  "auditField.amountMoney": "টাকা (৳)",
+  "auditField.amountMoney": "{currencySum} ({currencySign})",
   "auditField.approval": "অনুমোদন",
   "auditField.approvedBy": "কে অনুমোদন করেছেন",
   "auditField.approvedAt": "কখন অনুমোদন হয়েছে",
@@ -1981,7 +1996,7 @@ export const bn: Record<MessageKey, string> = {
   "auditField.perYear": "বছরে হার",
   "auditField.fromDay": "যেদিন থেকে",
   "auditField.counterpartyId": "কার সাথে",
-  "auditField.priceMoney": "দাম (৳)",
+  "auditField.priceMoney": "দাম ({currencySign})",
   "auditField.kind": "ধরন",
   "auditField.receivedOn": "যেদিন এসেছে",
   "auditField.quantity": "পরিমাণ",
@@ -1989,7 +2004,7 @@ export const bn: Record<MessageKey, string> = {
   "auditField.dispatchedAt": "কখন গেল",
   "auditField.challan": "চালান নম্বর",
   "auditField.litres": "লিটার",
-  "auditField.pricePerLitreMoney": "প্রতি লিটার দাম (৳)",
+  "auditField.pricePerLitreMoney": "প্রতি লিটার দাম ({currencySign})",
   "auditField.fatPercent": "ফ্যাট %",
   "auditField.snfPercent": "এসএনএফ %",
   "auditField.buyerId": "ক্রেতা",
@@ -2074,7 +2089,7 @@ export const bn: Record<MessageKey, string> = {
   "audit.entity.animal": "পশু",
   "audit.entity.step_completion": "ধাপের রেকর্ড",
   "audit.entity.report": "প্রতিবেদন",
-  "audit.entity.money_event": "টাকার হিসাব",
+  "audit.entity.money_event": "{currencyOf} হিসাব",
   "audit.entity.sale": "বিক্রয়",
   "audit.entity.mortality": "মৃত্যু বা বাদ",
   "audit.entity.sync_entry": "ফোনের এন্ট্রি",
@@ -2096,7 +2111,7 @@ export const bn: Record<MessageKey, string> = {
   "audit.entity.baki_write_off": "বাকি বাদ দেওয়া",
   "audit.entity.buying_trip": "কেনার যাত্রা",
   "audit.entity.selling_trip": "বিক্রির দিন",
-  "audit.entity.venture_movement": "ভেঞ্চারের টাকা",
+  "audit.entity.venture_movement": "ভেঞ্চারের {currencySum}",
   "audit.entity.wage_draw": "মজুরি তোলা",
   "audit.entity.observation": "পর্যবেক্ষণ",
   "audit.entity.audit_event": "নথির এন্ট্রি",
@@ -2129,7 +2144,7 @@ export const bn: Record<MessageKey, string> = {
   "audit.entity.push_subscription": "নোটিফিকেশন",
   "audit.entity.pen": "পেন",
   "audit.entity.shed": "শেড",
-  "audit.entity.money_category": "টাকার খাত",
+  "audit.entity.money_category": "{currencyOf} খাত",
   "audit.entity.drug_product": "ওষুধ",
   "audit.entity.dispatch": "দুধ দেওয়া",
   "audit.entity.sop_training": "প্রশিক্ষণ",
@@ -2296,7 +2311,7 @@ export const bn: Record<MessageKey, string> = {
   "animals.tab.breeding": "প্রজনন",
   "animals.tab.health": "স্বাস্থ্য",
   "animals.tab.weight": "ওজন ও স্থানান্তর",
-  "animals.tab.money": "টাকা ও কাগজপত্র",
+  "animals.tab.money": "{currencySum} ও কাগজপত্র",
   "animals.papers": "কাগজপত্র",
   "animals.papersHint": "ক্রেতা বা পরিদর্শককে এর বিষয়ে খামার যা দেয়",
   "animals.about": "পশুর পরিচয়",
@@ -2802,7 +2817,7 @@ export const bn: Record<MessageKey, string> = {
   "feed.noItems": "আগে খাদ্য উপাদান যোগ করুন",
   "stock.recordArrival": "খাবার আসা রেকর্ড করুন",
   "stock.sheetDescription":
-    "কেনা খাবার বা নিজের জমির ফসল গুদামে তুলুন। কেনা হলে দাম টাকার হিসাবে যায়।",
+    "কেনা খাবার বা নিজের জমির ফসল গুদামে তুলুন। কেনা হলে দাম {currencyOf} হিসাবে যায়।",
   "stock.status.low": "কমে আসছে",
   "stock.status.out": "শেষ",
   "stock.status.ok": "যথেষ্ট আছে",
@@ -2815,7 +2830,7 @@ export const bn: Record<MessageKey, string> = {
   "stock.fodderPriceSaved": "নিজের ফসলের দাম রাখা হলো",
   "stock.fodderPriceHint":
     "খামার নিজে ফলালে এর এক এককের দাম কত — কিনলে যা লাগত, মোটামুটি তাই। এরপর থেকে কাটা প্রতিটি চালান এই দামে গুদামে আসে, তাই যে গরু খায় তার হিসাবেই খরচটা ওঠে। খামার যা ফলায় না, তার ঘর ফাঁকা থাক।",
-  "stock.perUnit": "প্রতি {unit} টাকা",
+  "stock.perUnit": "প্রতি {unit} {currencySum}",
   "stock.setLevel": "কমার সীমা ঠিক করুন",
   "stock.levelHint":
     "গুদামে এর নিচে নামলে ম্যানেজার ও মালিক জানবেন। খালি রাখলে জানানো হবে না।",
@@ -2826,7 +2841,7 @@ export const bn: Record<MessageKey, string> = {
   "stock.noCounts": "এখনো গণনা হয়নি",
   "stock.noStock": "গুদামে কিছু নেই — আগে খাদ্য উপাদান যোগ করুন",
   "stock.adjustment": "থাকার কথা {expected}, গোনা হয়েছে {counted}",
-  "stock.averagePrice": "প্রতি {unit} ৳{taka}",
+  "stock.averagePrice": "প্রতি {unit} {currencySign}{taka}",
   "stock.weighed": "খামারের পাল্লায় ওজন (কেজি)",
   "stock.weighedHint":
     "ইচ্ছা হলে দিন। মাল আসার সময় ওজন দিলে পাল্লার ওজন গুদামে যাবে, রশিদের ওজন পাশে থাকবে।",
@@ -2845,7 +2860,7 @@ export const bn: Record<MessageKey, string> = {
     "গত ৯০ দিনে কোনো মাল ওজন দেওয়া হয়নি। মাল আসার সময় ওজন দিলে দেখা যাবে কোন বিক্রেতা কত কম দেয়।",
   "scale.lots": "{count}টি চালান ওজন দেওয়া",
   "scale.slipAndScale": "রশিদে {slip} কেজি · পাল্লায় {weighed} কেজি",
-  "stock.lastBought": "শেষ কেনা {day}, প্রতি {unit} ৳{taka}",
+  "stock.lastBought": "শেষ কেনা {day}, প্রতি {unit} {currencySign}{taka}",
   "stock.dearer": "আগের বারের চেয়ে {percent}% বেশি",
   "stock.cheaper": "আগের বারের চেয়ে {percent}% কম",
   "stock.sameAsLast": "আগের বারের সমান দাম",
@@ -2858,7 +2873,7 @@ export const bn: Record<MessageKey, string> = {
   "stock.comesTo": "মোট {quantity} {unit}",
   "stock.countedIn": "কীসে গোনা",
   "stock.bagHolds": "এক বস্তায় {kg} কেজি",
-  "stock.price": "মোট দাম (৳)",
+  "stock.price": "মোট দাম ({currencySign})",
   "stock.seller": "যার কাছ থেকে কেনা",
   "stock.receivedOn": "যেদিন এসেছে",
   "stock.record": "আসা রেকর্ড করুন",
@@ -2887,10 +2902,11 @@ export const bn: Record<MessageKey, string> = {
   "refusal.requestNotLive": "এই অনুরোধ আর অপেক্ষায় নেই",
   "refusal.requestNotTheirs": "এই অনুরোধ অন্য বিনিয়োগকারীর, বা অন্য ভেঞ্চারের",
   "refusal.noSuchRequest": "এমন কোনো অনুরোধ নেই",
-  "refusal.ventureUnderFloor": "ভেঞ্চারে এখনো সর্বনিম্ন সীমার কম টাকা উঠেছে",
+  "refusal.ventureUnderFloor":
+    "ভেঞ্চারে এখনো সর্বনিম্ন সীমার কম {currencySum} উঠেছে",
   "refusal.ventureFloorOverTarget": "সর্বনিম্ন সীমা লক্ষ্যের চেয়ে বেশি হতে পারে না",
   "refusal.ventureFloorOverUnits":
-    "সর্বনিম্ন সীমা ইউনিটগুলো দিয়ে যত টাকা উঠতে পারে তার চেয়ে বেশি — সীমা কমান, নয়তো ইউনিট বাড়ান",
+    "সর্বনিম্ন সীমা ইউনিটগুলো দিয়ে যত {currencySum} উঠতে পারে তার চেয়ে বেশি — সীমা কমান, নয়তো ইউনিট বাড়ান",
   "refusal.ventureNoMonthToPayIn":
     "সিদ্ধান্তের তারিখের পরের মাস থেকে বিক্রির সময়ের আগে কোনো মাসের ১০ তারিখ পড়ে না — একটি তারিখ সরান, নয়তো কেনার আগে পুরোটা নিন",
   "refusal.ventureNothingToPayMonthly":
@@ -2909,14 +2925,15 @@ export const bn: Record<MessageKey, string> = {
   "refusal.rationInUse": "এই রেশনে এখনো পেন চলছে। আগে সেগুলো অন্য রেশনে দিন।",
   "refusal.rationRetired": "এই রেশনটি বাদ দেওয়া। কোনো পেনে দিতে আগে ফিরিয়ে আনুন।",
   "refusal.investorStillIn":
-    "চলমান একটি ভেঞ্চারে তাঁর টাকা আছে; ভেঞ্চারের হিসাব শেষ বা বাতিল হলে বাদ দেওয়া যাবে",
+    "চলমান একটি ভেঞ্চারে তাঁর {currencySum} আছে; ভেঞ্চারের হিসাব শেষ বা বাতিল হলে বাদ দেওয়া যাবে",
   "refusal.capitalMustBeByBank":
-    "ভেঞ্চারের টাকা ব্যাংকেই আসতে হবে — ট্রান্সফার, চেক বা জমার স্লিপ",
-  "refusal.agreementHasNoPaper": "স্ট্যাম্প করা চুক্তির ছবি আগে জমা দিন, তারপর টাকা",
+    "ভেঞ্চারের {currencySum} ব্যাংকেই আসতে হবে — ট্রান্সফার, চেক বা জমার স্লিপ",
+  "refusal.agreementHasNoPaper":
+    "স্ট্যাম্প করা চুক্তির ছবি আগে জমা দিন, তারপর {currencySum}",
   "refusal.capitalNotSentBack":
-    "ভেঞ্চার যত টাকা নিয়েছে, প্রতিটির আলাদা রেফারেন্সসহ ফেরত দিতে হবে",
+    "ভেঞ্চার যত {currencySum} নিয়েছে, প্রতিটির আলাদা রেফারেন্সসহ ফেরত দিতে হবে",
   "refusal.neverTheAnimals":
-    "মজুরি, শেড ভাড়া, বিদ্যুৎ-পানি, মেরামত, শেড পরিষ্কার, যন্ত্রপাতি আর আয়ের টাকা কখনো গরুর হিসাবে যায় না",
+    "মজুরি, শেড ভাড়া, বিদ্যুৎ-পানি, মেরামত, শেড পরিষ্কার, যন্ত্রপাতি আর আয়ের {currencySum} কখনো গরুর হিসাবে যায় না",
   "refusal.neverMonthly":
     "যে খরচ কোনো রেকর্ড থেকে আসে না, শুধু সেটাকেই প্রতি মাসের খরচ বলা যায়",
   "refusal.wagesWatchedByPerson": "মজুরি খোঁজা হয় মানুষ ধরে, খাত ধরে নয়",
@@ -2939,7 +2956,7 @@ export const bn: Record<MessageKey, string> = {
   "dispatch.buyerAddress": "ক্রেতার ঠিকানা",
   "dispatch.buyerPhone": "ক্রেতার ফোন",
   "dispatch.challan": "চালান নম্বর",
-  "dispatch.price": "প্রতি লিটার দাম (৳)",
+  "dispatch.price": "প্রতি লিটার দাম ({currencySign})",
   "dispatch.fat": "ফ্যাট %",
   "dispatch.snf": "এসএনএফ %",
   "dispatch.note": "মন্তব্য",
@@ -2952,27 +2969,29 @@ export const bn: Record<MessageKey, string> = {
   "dispatch.recordCsv": "দুধ হস্তান্তরের রেকর্ড (CSV)",
   "dispatch.productionCsv": "দুধ উৎপাদন (CSV)",
   "dispatch.recordAction": "দুধ দেওয়া রেকর্ড করুন",
-  "dispatch.sheetDescription": "ট্যাংকের দুধ ক্রেতাকে দেওয়া। দাম টাকার হিসাবে যায়।",
-  "dispatch.worth": "{litres} লিটার × ৳{price} = ৳{taka}",
+  "dispatch.sheetDescription":
+    "ট্যাংকের দুধ ক্রেতাকে দেওয়া। দাম {currencyOf} হিসাবে যায়।",
+  "dispatch.worth":
+    "{litres} লিটার × {currencySign}{price} = {currencySign}{taka}",
   "dispatch.dayBefore": "আগের দিন",
   "dispatch.dayAfter": "পরের দিন",
   "dispatch.tab.mismatches": "ট্যাংকের হিসাব মেলেনি",
-  "dispatch.kpi.handedOverHint": "{count}টি হস্তান্তর · ৳{taka}",
+  "dispatch.kpi.handedOverHint": "{count}টি হস্তান্তর · {currencySign}{taka}",
   "dispatch.kpi.mismatchesHint": "আপনার দেখার অপেক্ষায়",
   "dispatch.reportsHint":
     "তারিখ বেছে নিন, তারপর প্রসেসর বা বিএফএসএ যে হস্তান্তরের রেকর্ড চায় তা প্রিন্ট করুন, বা হিসাব CSV ফাইলে রাখুন।",
   "refusal.dispatchedInTheFuture": "দুধ এখনের পরে যেতে পারে না",
   "refusal.periodTooLong": "একটি রেকর্ডে এক বছরের বেশি থাকে না",
   "nav.ventures": "ভেঞ্চার",
-  "nav.money": "টাকার হিসাব",
+  "nav.money": "{currencyOf} হিসাব",
   "money.subtitle":
-    "খামারের নিজের রেকর্ড থেকে প্রতিটি টাকার আয়-ব্যয় — আর যা মালিকের অনুমোদনের অপেক্ষায়।",
+    "খামারের নিজের রেকর্ড থেকে প্রতিটি {currencyOf} আয়-ব্যয় — আর যা মালিকের অনুমোদনের অপেক্ষায়।",
   "money.period": "সময়কাল",
   "money.totalIn": "আয়",
   "money.totalOut": "ব্যয়",
   "money.net": "নিট",
   "money.awaitingCount": "অনুমোদনের অপেক্ষায়",
-  "money.register": "টাকার খাতা",
+  "money.register": "{currencyOf} খাতা",
   "money.col.date": "তারিখ",
   "money.col.what": "কী",
   "money.col.with": "কার সাথে",
@@ -2982,15 +3001,16 @@ export const bn: Record<MessageKey, string> = {
   "money.allCategories": "সব খাত",
   "money.anyStatus": "সব অবস্থা",
   "money.search": "কার সাথে, কী বা মন্তব্য খুঁজুন",
-  "byHand.hint": "যে টাকা অন্য কোনো রেকর্ড থেকে আসে না: মজুরি, গোবর বিক্রি, মেরামত।",
+  "byHand.hint":
+    "যে {currencySum} অন্য কোনো রেকর্ড থেকে আসে না: মজুরি, গোবর বিক্রি, মেরামত।",
   "money.partialTotals": "এই মোট শুধু দেখানো লেনদেনগুলোর",
   "money.partialHint":
     "এই সময়ে এক পাতার চেয়ে বেশি লেনদেন আছে। সময় ছোট করুন, অথবা পূর্ণ মোটের জন্য হিসাবরক্ষকের প্রতিবেদন দেখুন।",
   "money.shownOnly": "শুধু দেখানো লেনদেন",
-  "money.title": "টাকার হিসাব",
+  "money.title": "{currencyOf} হিসাব",
   "farmAccounts.title": "খামারের বিকাশ ও ব্যাংক হিসাব",
   "farmAccounts.why":
-    "খামারের নিজের বিকাশ নম্বর ও ব্যাংক হিসাব। কোনো এক ধরনের হিসাব তালিকায় থাকলে, সেই ধরনের প্রতিটি লেনদেনে কোন হিসাবে টাকা গেল বা এল আর তার ট্রানজ্যাকশন আইডি লিখতে হবে।",
+    "খামারের নিজের বিকাশ নম্বর ও ব্যাংক হিসাব। কোনো এক ধরনের হিসাব তালিকায় থাকলে, সেই ধরনের প্রতিটি লেনদেনে কোন হিসাবে {currencySum} গেল বা এল আর তার ট্রানজ্যাকশন আইডি লিখতে হবে।",
   "farmAccounts.none": "এখনো কোনো হিসাব তালিকায় নেই।",
   "farmAccounts.kind": "ধরন",
   "farmAccounts.name": "নাম",
@@ -3006,7 +3026,7 @@ export const bn: Record<MessageKey, string> = {
   "farmAccounts.outOnHome": "স্টেটমেন্টের সাথে মেলেনি",
   "farmAccounts.check": "স্টেটমেন্ট মেলান",
   "farmAccounts.neverRead": "এখনো কোনো স্টেটমেন্ট মেলানো হয়নি",
-  "farmAccounts.heldNow": "খামারের হিসাবে এখন ৳{amount}",
+  "farmAccounts.heldNow": "খামারের হিসাবে এখন {currencySign}{amount}",
   "farmAccounts.lastRead": "শেষ মেলানো {month}",
   "farmAccounts.disagrees":
     "{months} মাসে স্টেটমেন্টের সাথে মেলেনি — কী জেনেছেন লিখুন",
@@ -3027,7 +3047,7 @@ export const bn: Record<MessageKey, string> = {
   "money.approve": "অনুমোদন",
   "money.awaiting": "অনুমোদনের অপেক্ষায়",
   "money.approvedBy": "{name} অনুমোদন করেছেন",
-  "money.none": "এই সময়ে কোনো টাকার হিসাব নেই",
+  "money.none": "এই সময়ে কোনো {currencyOf} হিসাব নেই",
   "money.from.dispatch": "দুধ হস্তান্তর",
   "money.from.intake": "গরু আনা",
   "money.from.buyingTrip": "হাটে যাওয়ার খরচ",
@@ -3062,11 +3082,11 @@ export const bn: Record<MessageKey, string> = {
   "money.from.settlementAdjustment": "হিসাব সমন্বয়",
   "owner.enteredBy": "লিখেছেন {name}",
   "owner.inPieces": "একা সীমার নিচে, এই সপ্তাহে একই মানুষকে দেওয়া বাকি অংশসহ সীমার বেশি",
-  "owner.moneyAwaiting": "আপনার অনুমোদনের অপেক্ষায় টাকা",
+  "owner.moneyAwaiting": "আপনার অনুমোদনের অপেক্ষায় {currencySum}",
   "drugs.buy": "কেনা ওষুধ",
   "drugs.quantity": "কতটুকু (বাক্সে যেমন লেখা)",
   "drugs.doses": "মোটামুটি কত ডোজ",
-  "drugs.price": "দাম (৳)",
+  "drugs.price": "দাম ({currencySign})",
   "drugs.seller": "কার কাছ থেকে",
   "lots.lotNumber": "লট নম্বর",
   "lots.expiresOn": "মেয়াদ শেষের তারিখ",
@@ -3098,7 +3118,7 @@ export const bn: Record<MessageKey, string> = {
   "drugs.bought": "কেনা রেকর্ড হয়েছে",
   "drugs.dosesHeld": "{doses} ডোজ",
   "vetFee.title": "আমার ভিজিট ফি",
-  "vetFee.amount": "ফি (৳)",
+  "vetFee.amount": "ফি ({currencySign})",
   "vetFee.visitedOn": "ভিজিটের দিন",
   "vetFee.animals": "যে পশু দেখেছেন (ট্যাগ)",
   "vetFee.note": "মন্তব্য",
@@ -3109,17 +3129,18 @@ export const bn: Record<MessageKey, string> = {
   "vetFee.noAnimals": "খামারে এখনো কোনো গরু নেই যা ভেট দেখেছেন বলা যায়",
   "refusal.ownerOnly": "এটি শুধু মালিক করতে পারেন",
   "refusal.personalPhoneOnly": "এটি শেডের ফোন থেকে নয়, নিজের ফোন থেকে করুন",
-  "refusal.notAwaitingApproval": "এই টাকা অনুমোদনের অপেক্ষায় নেই",
+  "refusal.notAwaitingApproval": "এই {currencySum} অনুমোদনের অপেক্ষায় নেই",
   "refusal.visitedInTheFuture": "যে দিন আসেনি সেদিন ভিজিট হতে পারে না",
   "refusal.boughtInTheFuture": "যে দিন আসেনি সেদিন ওষুধ কেনা হতে পারে না",
   "refusal.drugRetired": "এই ওষুধ বাদ দেওয়া হয়েছে; আবার কেনার আগে ভেট ফিরিয়ে আনবেন",
-  "refusal.amountChanged": "আপনি দেখার পর টাকার অঙ্ক সংশোধন হয়েছে; আবার দেখুন",
+  "refusal.amountChanged":
+    "আপনি দেখার পর {currencyOf} অঙ্ক সংশোধন হয়েছে; আবার দেখুন",
   "money.from.byHand": "হাতে লেখা",
-  "byHand.title": "টাকার হিসাব লিখুন",
+  "byHand.title": "{currencyOf} হিসাব লিখুন",
   "byHand.category": "খাত",
   "byHand.in": "আয়",
   "byHand.out": "ব্যয়",
-  "byHand.amount": "টাকা (৳)",
+  "byHand.amount": "{currencySum} ({currencySign})",
   "byHand.on": "দিন",
   "byHand.counterparty": "কাকে দেওয়া বা কার কাছ থেকে",
   "byHand.wagePerson": "কার মজুরি",
@@ -3139,7 +3160,7 @@ export const bn: Record<MessageKey, string> = {
   "byHand.saveAgain": "আবার রাখুন",
   "byHand.somebody": "কেউ একজন",
   "refusal.looksEnteredAlready":
-    "এটা আগেই লেখা টাকার মতো: একই মানুষ, একই টাকা, একই দিন",
+    "এটা আগেই লেখা {currencyOf} মতো: একই মানুষ, একই {currencySum}, একই দিন",
   "byHand.entered": "লেখা হয়েছে",
   "byHand.categories": "খাতসমূহ",
   "byHand.retireTitle": "“{name}” খাত বাদ দেবেন?",
@@ -3161,16 +3182,18 @@ export const bn: Record<MessageKey, string> = {
   "byHand.categoryName": "নাম",
   "byHand.noCategories": "এখনো কোনো খাত নেই",
   "byHand.newCategoryHint":
-    "হাতে লেখা টাকার একটি খাত। যে খাত আর লাগে না তা বাদ দেওয়া হয়, মুছে ফেলা হয় না।",
+    "হাতে লেখা {currencyOf} একটি খাত। যে খাত আর লাগে না তা বাদ দেওয়া হয়, মুছে ফেলা হয় না।",
   "refusal.wageAlreadyEntered": "ওই মাসে তার মজুরি আগেই লেখা হয়েছে",
   "refusal.wageNeedsMonth": "মজুরিতে কোন মাসের তা লিখতে হয়",
   "refusal.monthIsForWages": "মাস শুধু মজুরির জন্য",
   "refusal.categoryExists": "এই খাত খামারে আগে থেকেই আছে",
   "refusal.feedItemExists": "এই নামে একটি খাদ্য উপাদান খামারে আগে থেকেই আছে",
   "refusal.categoryRetired": "এই খাত বাদ দেওয়া হয়েছে",
-  "refusal.categoryKeptByRecords": "এই খাতের টাকা নিজের রেকর্ড থেকে আসে",
-  "refusal.correctTheRecord": "এই টাকা একটি রেকর্ড থেকে এসেছে; রেকর্ডটি সংশোধন করুন",
-  "refusal.enteredInTheFuture": "যে দিন আসেনি সেদিন টাকা লেনদেন হতে পারে না",
+  "refusal.categoryKeptByRecords": "এই খাতের {currencySum} নিজের রেকর্ড থেকে আসে",
+  "refusal.correctTheRecord":
+    "এই {currencySum} একটি রেকর্ড থেকে এসেছে; রেকর্ডটি সংশোধন করুন",
+  "refusal.enteredInTheFuture":
+    "যে দিন আসেনি সেদিন {currencySum} লেনদেন হতে পারে না",
   "byHand.side": "দিক",
   "byHand.wholeFarm": "পুরো খামার",
   "byHand.correct": "সংশোধন",
@@ -3190,11 +3213,11 @@ export const bn: Record<MessageKey, string> = {
     "{amount} কেজি নিজের জমির ঘাস দাম ছাড়া খাওয়ানো হয়েছে, এখানে এর খরচ নেই",
   "costs.uncostedNote": "{amount}টি ডোজ খামারে না-কেনা ওষুধের, খরচ ধরা হয়নি",
   "costs.strayHerdNote":
-    "৳{amount} এমন মাসে ওই পাশের গরুর জন্য খরচ হয়েছে যখন সেখানে কোনো গরুই ছিল না, তাই তা কারো হিসাবে যায়নি",
+    "{currencySign}{amount} এমন মাসে ওই পাশের গরুর জন্য খরচ হয়েছে যখন সেখানে কোনো গরুই ছিল না, তাই তা কারো হিসাবে যায়নি",
   "costs.strayTripNote":
-    "৳{amount} খরচ হয়েছে এমন যাত্রায় যাতে কোনো গরু আসেনি, তাই তা কোনো গরুর হিসাবে যায়নি",
+    "{currencySign}{amount} খরচ হয়েছে এমন যাত্রায় যাতে কোনো গরু আসেনি, তাই তা কোনো গরুর হিসাবে যায়নি",
   "costs.unallocatedNote":
-    "৳{amount} খাদ্য এমন পেনে গেছে যেখানে কোনো পশু লেখা নেই, কারো খরচে ধরা হয়নি",
+    "{currencySign}{amount} খাদ্য এমন পেনে গেছে যেখানে কোনো পশু লেখা নেই, কারো খরচে ধরা হয়নি",
   "costs.vet": "ভেট ভিজিট",
   "costs.hasil": "হাটের হাসিল",
   "costs.trips": "কেনা-বেচার যাত্রা",
@@ -3210,9 +3233,9 @@ export const bn: Record<MessageKey, string> = {
   "costs.soldInPeriod": "এই সময়ে বিক্রি হওয়া মোটাতাজা পশু, প্রত্যেকের পুরো সময়ের হিসাব",
   "accountant.title": "হিসাবরক্ষকের জন্য",
   "accountant.summary": "আয় ও ব্যয়",
-  "accountant.csv": "সব টাকার হিসাব (CSV)",
+  "accountant.csv": "সব {currencyOf} হিসাব (CSV)",
   "accountant.hint":
-    "ওপরে বেছে নেওয়া সময়ের জন্য: প্রিন্ট করার আয়-ব্যয়ের হিসাব, আর হিসাবরক্ষকের খাতার জন্য সব টাকার হিসাব CSV ফাইলে।",
+    "ওপরে বেছে নেওয়া সময়ের জন্য: প্রিন্ট করার আয়-ব্যয়ের হিসাব, আর হিসাবরক্ষকের খাতার জন্য সব {currencyOf} হিসাব CSV ফাইলে।",
   "costs.bySideHint":
     "ওপরে বেছে নেওয়া সময়ে প্রতিটি দিকের পশুর খাদ্য, ওষুধ আর ভেট ভিজিটের খরচ, আর সেই সময়ে বিক্রি হওয়া মোটাতাজা পশু।",
   "work.wholeFarm": "পুরো খামার",
@@ -3368,8 +3391,8 @@ export const bn: Record<MessageKey, string> = {
   "owner.onTheFarm": "আজ খামারে",
   "owner.onTheFarmHint": "এগুলো ম্যানেজার দেখছেন; আপনার জানার জন্য এখানে।",
   "owner.nothingLate": "কিছু দেরি হয়নি, কোনো খাবার কমে আসেনি",
-  "owner.moneyMonth": "এই মাসের টাকা",
-  "owner.topSpending": "টাকা কোথায় গেল",
+  "owner.moneyMonth": "এই মাসের {currencySum}",
+  "owner.topSpending": "{currencySum} কোথায় গেল",
   "owner.open": "খুলুন",
   "owner.fatteningTitle": "মোটাতাজাকরণ ও বিক্রি",
   "owner.maySell": "{count}টি বিক্রি করা যায়",
@@ -3486,13 +3509,15 @@ export const bn: Record<MessageKey, string> = {
   "digest.investorStatementDue":
     "{count}টি ভেঞ্চারের বিনিয়োগকারীদের অগ্রগতিপত্র পাওনা",
   "digest.reimbursementDue": "{count}টি ভেঞ্চারের মাসের খরচ ফেরত পাওনা",
-  "digest.moneyAwaiting": "{count}টি টাকার হিসাব আপনার অনুমোদনের অপেক্ষায়",
-  "alerts.moneyAwaiting": "{category}: ৳{amount} আপনার অনুমোদনের অপেক্ষায়",
+  "digest.moneyAwaiting": "{count}টি {currencyOf} হিসাব আপনার অনুমোদনের অপেক্ষায়",
+  "alerts.moneyAwaiting":
+    "{category}: {currencySign}{amount} আপনার অনুমোদনের অপেক্ষায়",
   "alerts.lowStock": "{feed} কমে আসছে — {onHand} {unit} বাকি",
-  "alerts.bakiOverdue": "{buyer}-এর কাছে ৳{amount} বাকি, {since} থেকে মেয়াদোত্তীর্ণ",
+  "alerts.bakiOverdue":
+    "{buyer}-এর কাছে {currencySign}{amount} বাকি, {since} থেকে মেয়াদোত্তীর্ণ",
   "alerts.monthlySumMissed":
-    "{investor} {venture}-এ মাসের টাকা ৳{amount} দেননি, শেষটি {day} তারিখে দেওয়ার কথা ছিল",
-  "digest.monthlySumMissed": "{count} জন বিনিয়োগকারী মাসের টাকায় পিছিয়ে",
+    "{investor} {venture}-এ মাসের {currencySum} {currencySign}{amount} দেননি, শেষটি {day} তারিখে দেওয়ার কথা ছিল",
+  "digest.monthlySumMissed": "{count} জন বিনিয়োগকারী মাসের {currencyIn} পিছিয়ে",
   "alerts.seeWhoIsBehind": "কে পিছিয়ে দেখুন",
   "alerts.seeWhoOwes": "কার কাছে কত বাকি দেখুন",
   "alerts.lotExpiring":
@@ -3513,7 +3538,7 @@ export const bn: Record<MessageKey, string> = {
   "alerts.investorStatementDue":
     "{venture}: {investors} জন বিনিয়োগকারীর অগ্রগতিপত্র পাওনা ({occasion})",
   "alerts.reimbursementDue":
-    "{venture}: {month}-এর খরচ ফেরত দেওয়ার সময় হয়েছে — ৳{amount}",
+    "{venture}: {month}-এর খরচ ফেরত দেওয়ার সময় হয়েছে — {currencySign}{amount}",
   "alerts.reimburseNow": "খরচ ফেরত দিন",
   "alerts.joinRequested":
     "{investor} {units}টি ইউনিট নিয়ে {venture}-এ যোগ দিতে চান",
@@ -3576,10 +3601,11 @@ export const bn: Record<MessageKey, string> = {
   "drugs.daysSaved": "দিন লেখা হয়েছে",
   "drugs.added": "ওষুধ যোগ হয়েছে",
   "drugs.addHint": "লেবেলে যেমন লেখা সেই নাম। দিন পরে ভেট লিখবেন।",
-  "drugs.buyHint": "বাক্স আর রসিদে যেমন লেখা। ওষুধের টাকার হিসাব এখান থেকেই হয়।",
-  "drugs.perDose": "প্রতি ডোজ ৳{taka}",
+  "drugs.buyHint":
+    "বাক্স আর রসিদে যেমন লেখা। ওষুধের {currencyOf} হিসাব এখান থেকেই হয়।",
+  "drugs.perDose": "প্রতি ডোজ {currencySign}{taka}",
   "drugs.noneBought": "এই ওষুধ এখনও কেনা হয়নি",
-  "drugs.boughtSummary": "{count} বার কেনা · ৳{taka} · {doses} ডোজ",
+  "drugs.boughtSummary": "{count} বার কেনা · {currencySign}{taka} · {doses} ডোজ",
   "vet.title": "ভেটের কাজ",
   "vet.waiting": "উত্তরের অপেক্ষায়",
   "vet.nothingWaiting": "সব দেখা হয়েছে",
@@ -4044,12 +4070,12 @@ export const bn: Record<MessageKey, string> = {
   "intake.noTrip": "কোনো যাত্রা নয় — খামার থেকেই কেনা",
   "intake.owner": "গরুটি কার",
   "intake.ownerHint":
-    "যে ভেঞ্চারের টাকায় কেনা। যে ভেঞ্চার কিনছে, কেবল সেটিই গরু নিতে পারে।",
+    "যে ভেঞ্চারের {currencyIn} কেনা। যে ভেঞ্চার কিনছে, কেবল সেটিই গরু নিতে পারে।",
   "intake.ownerFromFloat":
-    "{venture}-এর হাটে নেওয়া টাকায় কেনা, তাই গরুটি {venture}-এর",
+    "{venture}-এর হাটে নেওয়া {currencyIn} কেনা, তাই গরুটি {venture}-এর",
   "intake.ownerFromFarmFloat":
-    "এই যাত্রা খামারের নিজের টাকায় হাটে গিয়েছিল, তাই গরুটি খামারের নিজের।",
-  "intake.farmFloat": "খামারের টাকায়",
+    "এই যাত্রা খামারের নিজের {currencyIn} হাটে গিয়েছিল, তাই গরুটি খামারের নিজের।",
+  "intake.farmFloat": "খামারের {currencyIn}",
   "intake.paidFromTheAccount": "ভেঞ্চারের হিসাব থেকে ব্যাংকে দেওয়া",
   "intake.reference": "চেক বা ট্রান্সফারের নম্বর",
   "intake.paidOn": "ব্যাংকে যেদিন গেল",
@@ -4060,7 +4086,7 @@ export const bn: Record<MessageKey, string> = {
   "intake.age": "আনুমানিক বয়স",
   "intake.targetWeight": "লক্ষ্য ওজন",
   "intake.targetWindow": "বিক্রির সময়",
-  "intake.taka": "{taka} টাকা",
+  "intake.taka": "{taka} {currencySum}",
   "intake.kg": "{kg} কেজি",
   "intake.months": "{months} মাস",
   "intake.pen": "পেন",
@@ -4099,11 +4125,11 @@ export const bn: Record<MessageKey, string> = {
     "কত দাম দেওয়া হলো, গাড়ি থেকে নামার পর পাল্লায় কত ওজন, আর বিক্রেতা কত বয়স বললেন।",
   "intake.groupTargetHint": "কত ওজন পর্যন্ত খাওয়ানো হবে, আর খামার কবে বিক্রি করতে চায়।",
   "intake.lastBuys":
-    "গত {days} দিনে কাছাকাছি ওজনের {animals}টি কেনা গড়ে কেজিপ্রতি ৳{taka}",
+    "গত {days} দিনে কাছাকাছি ওজনের {animals}টি কেনা গড়ে কেজিপ্রতি {currencySign}{taka}",
   "intake.lastBuysOver": "এটা {percent}% বেশি দামে",
   "intake.lastBuysUnder": "এটা {percent}% কম দামে",
   "intake.lastBuysSame": "এটা প্রায় একই দামে",
-  "intake.perKg": "কেজিপ্রতি ৳{taka}",
+  "intake.perKg": "কেজিপ্রতি {currencySign}{taka}",
   "intake.summary": "যা লেখা হবে",
   "intake.summaryHint": "তোলার আগে বিক্রেতার রসিদের সাথে মিলিয়ে নিন।",
   "intake.farmsOwn": "খামারের নির্ধারিত লক্ষ্য ওজন",
@@ -4220,7 +4246,7 @@ export const bn: Record<MessageKey, string> = {
   "nav.culling": "ছাঁটাই",
   "nav.months": "মাসে মাসে",
   "months.subtitle":
-    "গত এক বছরে খামার প্রতি মাসে কেমন চলেছে: টাকা, দুগ্ধ গাভীর খরচের পাশে দুধ বিক্রি, মোটাতাজা পশু বিক্রি, আর প্রতিটি ভেঞ্চার তার পরিকল্পনার পাশে।",
+    "গত এক বছরে খামার প্রতি মাসে কেমন চলেছে: {currencySum}, দুগ্ধ গাভীর খরচের পাশে দুধ বিক্রি, মোটাতাজা পশু বিক্রি, আর প্রতিটি ভেঞ্চার তার পরিকল্পনার পাশে।",
   "months.net": "বছরে নিট",
   "months.milkSold": "বছরে দুধ বিক্রি",
   "months.milkSoldHint": "{litres} লিটার · লিটারে পাওয়া গেছে {fetched}",
@@ -4229,13 +4255,13 @@ export const bn: Record<MessageKey, string> = {
   "months.margins": "বিক্রি হওয়া মোটাতাজা পশুর মার্জিন",
   "months.marginsHint": "{count}টি পশু বিক্রি",
   "months.nothingYet": "এখনো কিছু নেই",
-  "months.chartTitle": "প্রতি মাসে নিট টাকা",
+  "months.chartTitle": "প্রতি মাসে নিট {currencySum}",
   "months.chartHint":
-    "খামারের নিজের আয় থেকে ব্যয় বাদে; ভেঞ্চারের টাকা তার নিজের। এই মাস এখন পর্যন্ত।",
+    "খামারের নিজের আয় থেকে ব্যয় বাদে; ভেঞ্চারের {currencySum} তার নিজের। এই মাস এখন পর্যন্ত।",
   "months.chartSaid": "{month}: নিট {net}",
   "months.tableTitle": "প্রতি মাস",
   "months.tableHint":
-    "টাকা মানে খামারের নিজের তহবিলে যা এসেছে আর গেছে। কোনো দিকের খরচ মানে সে মাসে তার পশুদের খাবার, ওষুধ আর ভেটের খরচ, যখনই কেনা হোক। শুধু খামারের নিজের পশু: ভেঞ্চারের পশু নিচে তার নিজের সারিতে।",
+    "{currencySum} মানে খামারের নিজের তহবিলে যা এসেছে আর গেছে। কোনো দিকের খরচ মানে সে মাসে তার পশুদের খাবার, ওষুধ আর ভেটের খরচ, যখনই কেনা হোক। শুধু খামারের নিজের পশু: ভেঞ্চারের পশু নিচে তার নিজের সারিতে।",
   "months.col.month": "মাস",
   "months.col.milk": "দুধ বিক্রি",
   "months.col.dairyCost": "দুগ্ধ গাভীর খরচ",
@@ -4243,7 +4269,7 @@ export const bn: Record<MessageKey, string> = {
   "months.col.sold": "মোটাতাজা বিক্রি · মার্জিন",
   "months.col.fatteningCost": "মোটাতাজাকরণের খরচ",
   "returns.col.costBack": "খরচ → ফেরত",
-  "returns.col.share": "প্রতি ১০০ টাকায়",
+  "returns.col.share": "প্রতি ১০০ {currencyIn}",
   "months.col.overheads": "খামার চালানোর খরচ · প্রতি পশু প্রতিদিন",
   "months.cardOverheads": "খামার চালানোর খরচ {amount}, প্রতি পশু প্রতিদিন {perHead}",
   "months.yearOverheads":
@@ -4256,7 +4282,7 @@ export const bn: Record<MessageKey, string> = {
     "{count}টি মোটাতাজা পশু বিক্রি, মার্জিন {margin} · মোটাতাজা পশুর খরচ {cost}",
   "months.cardNoneSold": "কোনো মোটাতাজা পশু বিক্রি হয়নি · মোটাতাজা পশুর খরচ {cost}",
   "months.awaiting":
-    "আপনার অনুমোদনের অপেক্ষায় থাকা টাকাও ধরা হয়েছে, হিসাবরক্ষকের সারাংশে যেমন ধরা হয়।",
+    "আপনার অনুমোদনের অপেক্ষায় থাকা {currencySum}ও ধরা হয়েছে, হিসাবরক্ষকের সারাংশে যেমন ধরা হয়।",
   "months.venturesTitle": "পরিকল্পনার পাশে ভেঞ্চার",
   "months.venturesHint":
     "প্রতিটি পরিকল্পনা যা আয় হবে বলেছিল, তার পাশে এখনকার হিসাবে যা হতে পারে, বা নিষ্পত্তির পর যা হয়েছে।",
@@ -4267,12 +4293,12 @@ export const bn: Record<MessageKey, string> = {
   "months.nothingProjected": "কোনো হিসাব নেই",
   "months.noVentures": "এখনো কোনো ভেঞ্চার নেই",
   "months.returnsLink": "প্রতিটি মৌসুম আর ভেঞ্চার কী ফিরিয়েছে",
-  "nav.returns": "খাটানো টাকার ফল",
+  "nav.returns": "খাটানো {currencyOf} ফল",
   "returns.subtitle":
-    "খামারের গরুতে খাটানো টাকা কী ফিরিয়েছে — কত টাকা খাটল আর কত দিন। শুধু আপনার জন্য।",
+    "খামারের গরুতে খাটানো {currencySum} কী ফিরিয়েছে — কত {currencySum} খাটল আর কত দিন। শুধু আপনার জন্য।",
   "returns.chartTitle": "বছরের হিসাবে, শেষ হওয়া মৌসুম আর ভেঞ্চার",
   "returns.chartHint":
-    "প্রতি ১০০ টাকার লাভ, সরলভাবে বছরে টেনে — যে মৌসুম আর ভেঞ্চারের শেষ পশুটিও চলে গেছে আর টাকা যথেষ্ট দিন খেটেছে।",
+    "প্রতি ১০০ {currencyOf} লাভ, সরলভাবে বছরে টেনে — যে মৌসুম আর ভেঞ্চারের শেষ পশুটিও চলে গেছে আর {currencySum} যথেষ্ট দিন খেটেছে।",
   "returns.finishedTitle": "শেষ হয়েছে",
   "returns.finishedHint":
     "খামারের নিজের গরুর প্রতিটি মৌসুম আর যে ভেঞ্চারের শেষ পশুটিও চলে গেছে — হিসাব নিকাশ হয়ে থাকুক বা বাকি থাকুক — হিসাব নিকাশের মতো করেই: পশুগুলো যা এনেছে, তা থেকে কেনার দাম আর তাদের ওপর ধরা সব খরচ বাদ — মারা যাওয়াগুলোও তার মধ্যে।",
@@ -4287,26 +4313,29 @@ export const bn: Record<MessageKey, string> = {
   "returns.lostHead": "{count}টি হারিয়ে গেছে",
   "returns.made": "লাভ {amount}",
   "returns.lost": "ক্ষতি {amount}",
-  "returns.onCostGain": "প্রতি ১০০ টাকা খরচে {amount} টাকা লাভ",
-  "returns.onCostLoss": "প্রতি ১০০ টাকা খরচে {amount} টাকা ক্ষতি",
-  "returns.onCapitalGain": "প্রতি ১০০ টাকা মূলধনে {amount} টাকা লাভ",
-  "returns.onCapitalLoss": "প্রতি ১০০ টাকা মূলধনে {amount} টাকা ক্ষতি",
-  "returns.days": "প্রতিটি টাকা গড়ে {days} দিন খেটেছে",
-  "returns.perYearGain": "বছরের হিসাবে প্রতি ১০০ টাকায় {rate}",
-  "returns.perYearLoss": "বছরের হিসাবে প্রতি ১০০ টাকায় {rate} ক্ষতি",
+  "returns.onCostGain": "প্রতি ১০০ {currencySum} খরচে {amount} {currencySum} লাভ",
+  "returns.onCostLoss":
+    "প্রতি ১০০ {currencySum} খরচে {amount} {currencySum} ক্ষতি",
+  "returns.onCapitalGain":
+    "প্রতি ১০০ {currencySum} মূলধনে {amount} {currencySum} লাভ",
+  "returns.onCapitalLoss":
+    "প্রতি ১০০ {currencySum} মূলধনে {amount} {currencySum} ক্ষতি",
+  "returns.days": "প্রতিটি {currencySum} গড়ে {days} দিন খেটেছে",
+  "returns.perYearGain": "বছরের হিসাবে প্রতি ১০০ {currencyIn} {rate}",
+  "returns.perYearLoss": "বছরের হিসাবে প্রতি ১০০ {currencyIn} {rate} ক্ষতি",
   "returns.underFloor": "{floor} দিনের কম — বছরের হিসাব নেই",
   "returns.working": "হিসাবটা দেখুন",
   "returns.workingText":
-    "খরচ {cost}, ফেরত {back}। প্রতিটি টাকা খরচের দিন থেকে তার পশু চলে যাওয়ার দিন পর্যন্ত গোনা হয়েছে: গড়ে {days} দিন।",
+    "খরচ {cost}, ফেরত {back}। প্রতিটি {currencySum} খরচের দিন থেকে তার পশু চলে যাওয়ার দিন পর্যন্ত গোনা হয়েছে: গড়ে {days} দিন।",
   "returns.workingYear":
     "{share} × ৩৬৫ ÷ {days} = {rate}, সরল হিসাব, চক্রবৃদ্ধি নয়।",
   "returns.capitalTitle": "বিনিয়োগকারীদের মূলধনে",
   "returns.capitalHint":
-    "তাঁদের পুরো মূলধনের ওপর মুনাফার ভাগ — টাকা ভেঞ্চার হিসাবে পৌঁছানোর দিন থেকে ফেরত যাওয়ার দিন পর্যন্ত, অলস পড়ে থাকা দিনগুলোও ধরে।",
+    "তাঁদের পুরো মূলধনের ওপর মুনাফার ভাগ — {currencySum} ভেঞ্চার হিসাবে পৌঁছানোর দিন থেকে ফেরত যাওয়ার দিন পর্যন্ত, অলস পড়ে থাকা দিনগুলোও ধরে।",
   "returns.farmsShare": "খামারের ভাগ, কাজের জন্য: {amount}",
   "returns.settlementToCome": "হিসাব নিকাশ বাকি",
   "returns.settlementToComeHint":
-    "শেষ পশুটিও চলে গেছে, তাই এটিই এর ফল — হিসাব নিকাশ যেভাবে হবে সেভাবেই হিসাব করা। বিনিয়োগকারীদের মূলধনে লাভ আর খামারের ভাগ আসবে হিসাব নিকাশের টাকা দেওয়া হলে।",
+    "শেষ পশুটিও চলে গেছে, তাই এটিই এর ফল — হিসাব নিকাশ যেভাবে হবে সেভাবেই হিসাব করা। বিনিয়োগকারীদের মূলধনে লাভ আর খামারের ভাগ আসবে হিসাব নিকাশের {currencySum} দেওয়া হলে।",
   "returns.sinceSettlementLess":
     "হিসাব নিকাশের সময়ের চেয়ে {amount} কম — পরে আসা কোনো খরচ বা সংশোধনের কারণে। এর হিসাব সমন্বয় দেখুন।",
   "returns.sinceSettlementMore":
@@ -4315,16 +4344,16 @@ export const bn: Record<MessageKey, string> = {
   "returns.tab.fattening": "মোটাতাজা",
   "returns.tab.prices": "দাম",
   "returns.bankLine": "ব্যাংকের হার, বছরে: {rate} — {note}",
-  "returns.bankMark": "দাগ: সেই টাকা প্রথম খাটানোর দিনে চালু ব্যাংকের হার",
+  "returns.bankMark": "দাগ: সেই {currencySum} প্রথম খাটানোর দিনে চালু ব্যাংকের হার",
   "returns.bankTitle": "ব্যাংকের হার",
   "returns.bankHint":
-    "ব্যাংক যেমন বলে, করের আগে, বছরে ব্যাংকের হার: প্রতিটি শেষ হওয়া বছরের হিসাবের পাশে বসে, সেই টাকা প্রথম খাটানোর দিনে যেমন ছিল। শুধু আপনার জন্য — কোনো বিনিয়োগকারীকে কখনো দেখানো হয় না।",
+    "ব্যাংক যেমন বলে, করের আগে, বছরে ব্যাংকের হার: প্রতিটি শেষ হওয়া বছরের হিসাবের পাশে বসে, সেই {currencySum} প্রথম খাটানোর দিনে যেমন ছিল। শুধু আপনার জন্য — কোনো বিনিয়োগকারীকে কখনো দেখানো হয় না।",
   "returns.bankNone":
     "এখনো কোনো হার লেখা হয়নি। না লেখা পর্যন্ত ফলের পাশে কিছু বসানো হবে না।",
   "returns.bankFrom": "{day} থেকে",
   "returns.bankInForce": "চালু",
   "returns.bankSet": "হার লিখুন",
-  "returns.bankPerYear": "বছরে প্রতি ১০০ টাকায় হার",
+  "returns.bankPerYear": "বছরে প্রতি ১০০ {currencyIn} হার",
   "returns.bankNote": "কীসের হার",
   "returns.bankNoteHint":
     "কোন ব্যাংক, কোন হিসাব, সাময়িক না চূড়ান্ত — যেমন IBBL ১২ মাসের মুদারাবা, চূড়ান্ত ২০২৫",
@@ -4336,11 +4365,11 @@ export const bn: Record<MessageKey, string> = {
   "returns.stillGoingHint":
     "আজকের দামে: চলে যাওয়া পশুগুলো যা এনেছে, আর দাঁড়িয়ে থাকাগুলো প্রতি কেজির দামে যা আনবে — অনুমান, ফল নয়, আর কখনো বছরে টানা হয় না।",
   "returns.todayRangeGain":
-    "আজকের দামে প্রতি ১০০ টাকা খরচে {low} থেকে {high} টাকা লাভ",
+    "আজকের দামে প্রতি ১০০ {currencySum} খরচে {low} থেকে {high} {currencySum} লাভ",
   "returns.todayRangeLoss":
-    "আজকের দামে প্রতি ১০০ টাকা খরচে {least} থেকে {most} টাকা ক্ষতি",
+    "আজকের দামে প্রতি ১০০ {currencySum} খরচে {least} থেকে {most} {currencySum} ক্ষতি",
   "returns.todayRangeMixed":
-    "আজকের দামে প্রতি ১০০ টাকা খরচে {loss} টাকা ক্ষতি থেকে {gain} টাকা লাভ",
+    "আজকের দামে প্রতি ১০০ {currencySum} খরচে {loss} {currencySum} ক্ষতি থেকে {gain} {currencySum} লাভ",
   "returns.estimate": "অনুমান, ফল নয়",
   "returns.goneMade": "চলে গেছে: লাভ {amount}",
   "returns.goneLost": "চলে গেছে: ক্ষতি {amount}",
@@ -4355,7 +4384,7 @@ export const bn: Record<MessageKey, string> = {
     "{count}টি পশু নিচের হিসাবের বাইরে — আজ তাদের দাম ধরার কিছু নেই",
   "returns.missingHint":
     "প্রতিটি পুরোপুরি বাদ, খরচ আর দাম দুটোই — যাতে দাম না থাকাকে ক্ষতি বলে না পড়া হয়।",
-  "returns.panelTitle": "খাটানো টাকার ফল",
+  "returns.panelTitle": "খাটানো {currencyOf} ফল",
   "returns.panelHint":
     "হিসাব নিকাশের মতো করেই: গরুগুলো যা এনেছে, তা থেকে কেনার দাম আর তাদের ওপর ধরা সব খরচ বাদ।",
   "returns.seeAll": "সব মৌসুম আর ভেঞ্চার",
@@ -4473,18 +4502,20 @@ export const bn: Record<MessageKey, string> = {
   "returns.switch.show": "মূলধনে লাভ দেখান",
   "returns.switch.hide": "মূলধনে লাভ লুকান",
   "returns.switch.shownHint":
-    "শেষ হওয়া ভেঞ্চারের বিনিয়োগকারী দেখেন তাদের প্রতি ১০০ টাকা মূলধনে কত এল, কত দিনে — প্রাপ্য টাকার নিচে, পোর্টালে আর হিসাব নিকাশে। কখনো বছরের হিসাব নয়।",
+    "শেষ হওয়া ভেঞ্চারের বিনিয়োগকারী দেখেন তাদের প্রতি ১০০ {currencySum} মূলধনে কত এল, কত দিনে — প্রাপ্য {currencyOf} নিচে, পোর্টালে আর হিসাব নিকাশে। কখনো বছরের হিসাব নয়।",
   "returns.switch.hiddenHint":
     "আইনজীবী আর শরিয়াহ বিশেষজ্ঞ কথাগুলো দেখা পর্যন্ত লুকানো। এর মধ্যে পোর্টালের পূর্বরূপে আপনি পড়ে দেখতে পারেন।",
   "returns.switch.confirmTitle": "বিনিয়োগকারীদের মূলধনে লাভ দেখাবেন?",
   "returns.switch.confirmWhy":
-    "আইনজীবী আর শরিয়াহ বিশেষজ্ঞ কথাগুলো দেখার পরেই: ভেঞ্চারের দিনগুলোতে তাদের প্রতি ১০০ টাকা মূলধনে কত এল, প্রাপ্য টাকার নিচে। কখনো বছরের হিসাব নয়, কয়েকটি ভেঞ্চার মিলিয়ে নয়, কোনো প্রস্তাবের পাশে নয়।",
+    "আইনজীবী আর শরিয়াহ বিশেষজ্ঞ কথাগুলো দেখার পরেই: ভেঞ্চারের দিনগুলোতে তাদের প্রতি ১০০ {currencySum} মূলধনে কত এল, প্রাপ্য {currencyOf} নিচে। কখনো বছরের হিসাব নয়, কয়েকটি ভেঞ্চার মিলিয়ে নয়, কোনো প্রস্তাবের পাশে নয়।",
   "returns.switch.shownDone": "বিনিয়োগকারীরা এখন মূলধনে লাভ দেখছেন",
   "returns.switch.hiddenDone": "মূলধনে লাভ বিনিয়োগকারীদের কাছে লুকানো",
-  "portal.onCapitalGain": "প্রতি ১০০ টাকা মূলধনে {amount} টাকা লাভ, {days} দিনে",
-  "portal.onCapitalLoss": "প্রতি ১০০ টাকা মূলধনে {amount} টাকা ক্ষতি, {days} দিনে",
+  "portal.onCapitalGain":
+    "প্রতি ১০০ {currencySum} মূলধনে {amount} {currencySum} লাভ, {days} দিনে",
+  "portal.onCapitalLoss":
+    "প্রতি ১০০ {currencySum} মূলধনে {amount} {currencySum} ক্ষতি, {days} দিনে",
   "returns.leftOut":
-    "মজুরি, শেড, যন্ত্রপাতি, গোবর আর টাকার নিজের খরচ এতে ধরা নেই — তাই একই পশুর ওপর প্রকাশিত গবেষণার হিসাবের চেয়ে বেশি দেখায়।",
+    "মজুরি, শেড, যন্ত্রপাতি, গোবর আর {currencyOf} নিজের খরচ এতে ধরা নেই — তাই একই পশুর ওপর প্রকাশিত গবেষণার হিসাবের চেয়ে বেশি দেখায়।",
   "sale.title": "পশু বিক্রয়",
   "papers.passport": "পরিচয়পত্র",
   "papers.withdrawalSummary": "অপেক্ষমাণ সময়ের সারসংক্ষেপ",
@@ -4511,7 +4542,7 @@ export const bn: Record<MessageKey, string> = {
   "sale.buyerAddress": "ক্রেতার ঠিকানা",
   "sale.buyerPhone": "ক্রেতার মোবাইল",
   "sale.brokerPaid": "দালালের খরচ",
-  "sale.broker": "দালালের খরচ (৳)",
+  "sale.broker": "দালালের খরচ ({currencySign})",
   "sale.brokerHint":
     "হাটে দালাল থাকলে এই বিক্রিতে সে কত নিয়েছে। খামার দেয়; এটি এই পশুর খরচ।",
   "sale.price": "বিক্রয়মূল্য",
@@ -4537,7 +4568,7 @@ export const bn: Record<MessageKey, string> = {
   "sale.howSheLeft": "যেভাবে খামার ছেড়েছে",
   "sale.soldTo": "ক্রেতা",
   "sale.sheetDescription":
-    "কে নিল, কত দামে, আর কোন গাড়িতে গেল। দামটি টাকার হিসাবে যোগ হবে।",
+    "কে নিল, কত দামে, আর কোন গাড়িতে গেল। দামটি {currencyOf} হিসাবে যোগ হবে।",
   "sale.lastWeighedOn": "শেষ ওজন {kg} কেজি, {day}",
   "sale.shrinkLost": "আজ {kg} কেজি কম ({percent}%)",
   "sale.shrinkGained": "শেষ ওজনের চেয়ে {kg} কেজি বেশি: পাল্লাটা দেখে নিন",
@@ -4553,53 +4584,54 @@ export const bn: Record<MessageKey, string> = {
   "calf.firstDayHint":
     "জন্মের পরের কয়েক ঘণ্টায় বাছুরের জন্য যা করা হয়েছে: শাল দুধ, নাভি, ওজন।",
   "calf.done": "করা হয়েছে",
-  "baki.someOwed": "কিছু টাকা বাকি আছে",
-  "baki.paidNow": "এখন দিয়েছে (৳)",
-  "baki.stillOwes": "বাকি ৳{taka}",
+  "baki.someOwed": "কিছু {currencySum} বাকি আছে",
+  "baki.paidNow": "এখন দিয়েছে ({currencySign})",
+  "baki.stillOwes": "বাকি {currencySign}{taka}",
   "baki.promisedBy": "বাকি দেওয়ার তারিখ",
   "baki.promisedByOptional": "বাকি দেওয়ার তারিখ, যদি বলে থাকে",
-  "baki.owedBy": "৳{taka} বাকি, {day}-এর মধ্যে দেওয়ার কথা",
-  "baki.owed": "৳{taka} বাকি",
+  "baki.owedBy": "{currencySign}{taka} বাকি, {day}-এর মধ্যে দেওয়ার কথা",
+  "baki.owed": "{currencySign}{taka} বাকি",
   "baki.tab": "বাকি",
   "baki.nobody": "কারো কাছে খামারের কোনো বাকি নেই",
   "baki.nobodyHint":
-    "বিক্রি বা দুধের টাকা পুরো না পেলে, ক্রেতা শোধ না করা পর্যন্ত এখানে থাকে।",
+    "বিক্রি বা দুধের {currencySum} পুরো না পেলে, ক্রেতা শোধ না করা পর্যন্ত এখানে থাকে।",
   "baki.owingTotal": "খামারের পাওনা",
   "baki.owingTotalHint": "{count} জন ক্রেতা",
   "baki.since": "{day} থেকে",
   "baki.promised": "{day}-এর মধ্যে দেওয়ার কথা",
-  "baki.credit": "৳{taka} আগাম দেওয়া",
+  "baki.credit": "{currencySign}{taka} আগাম দেওয়া",
   "baki.kind.cattle": "গরু",
   "baki.kind.milk": "দুধ",
-  "baki.itemOwes": "৳{baki}-এর মধ্যে ৳{owing} বাকি",
+  "baki.itemOwes": "{currencySign}{baki}-এর মধ্যে {currencySign}{owing} বাকি",
   "baki.itemPaidOff": "শোধ হয়েছে",
   "baki.litres": "{litres} লিটার দুধ",
-  "baki.paymentLine": "{day}-এ ৳{taka} দিয়েছেন",
-  "baki.writeOffLine": "{day}-এ ৳{taka} বাদ দেওয়া হয়েছে",
-  "baki.record": "টাকা পাওয়া লিখুন",
-  "baki.paymentTitle": "বাকির টাকা পাওয়া গেল",
+  "baki.paymentLine": "{day}-এ {currencySign}{taka} দিয়েছেন",
+  "baki.writeOffLine": "{day}-এ {currencySign}{taka} বাদ দেওয়া হয়েছে",
+  "baki.record": "{currencySum} পাওয়া লিখুন",
+  "baki.paymentTitle": "বাকির {currencySum} পাওয়া গেল",
   "baki.paymentDescription":
     "কী বাবদ কত দিলেন, কবে। সবচেয়ে পুরনো বাকি আগে শোধ হয়।",
   "baki.buyer": "ক্রেতা",
   "baki.kind": "কী বাবদ",
-  "baki.amount": "টাকার পরিমাণ (৳)",
+  "baki.amount": "{currencyOf} পরিমাণ ({currencySign})",
   "baki.paidOn": "যেদিন দিলেন",
   "baki.note": "মন্তব্য",
   "baki.noteHint": "যা বাকি তার বেশি দিলে লিখতে হবে",
-  "baki.recorded": "টাকা পাওয়া লেখা হলো",
-  "baki.buyerOwes": "{name}-এর কাছে {day} থেকে ৳{taka} বাকি",
+  "baki.recorded": "{currencySum} পাওয়া লেখা হলো",
+  "baki.buyerOwes": "{name}-এর কাছে {day} থেকে {currencySign}{taka} বাকি",
   "baki.buyerOverdue":
-    "{name}-এর কাছে ৳{taka} বাকি, {day} থেকে মেয়াদোত্তীর্ণ — বাকিতে বিক্রির আগে ভাবুন",
+    "{name}-এর কাছে {currencySign}{taka} বাকি, {day} থেকে মেয়াদোত্তীর্ণ — বাকিতে বিক্রির আগে ভাবুন",
   "home.bakiOverdue": "মেয়াদোত্তীর্ণ বাকি",
   "baki.writeOff": "বাদ দিন",
   "baki.writeOffTitle": "এই বাকি বাদ দিন",
   "baki.writeOffDescription":
-    "শুধু যখন আর পাওয়া যাবে না। পশু বা দুধ যা দাম পেয়েছে তা এতটা কমবে, আর ক্রেতার নামে দাগ থাকবে। পরে টাকা দিলে আবার ফেরত আসবে।",
+    "শুধু যখন আর পাওয়া যাবে না। পশু বা দুধ যা দাম পেয়েছে তা এতটা কমবে, আর ক্রেতার নামে দাগ থাকবে। পরে {currencySum} দিলে আবার ফেরত আসবে।",
   "baki.writeOffWhy": "কেন আর পাওয়া যাবে না",
-  "baki.writtenOff": "৳{taka} বাদ দেওয়া হয়েছে",
+  "baki.writtenOff": "{currencySign}{taka} বাদ দেওয়া হয়েছে",
   "baki.writtenOffDone": "বাদ দেওয়া হলো",
-  "baki.buyerWrittenOff": "{name}-এর ৳{taka} {day}-এ বাদ দেওয়া হয়েছিল",
-  "home.bakiOverdueSince": "{day} থেকে ৳{taka} মেয়াদোত্তীর্ণ",
+  "baki.buyerWrittenOff":
+    "{name}-এর {currencySign}{taka} {day}-এ বাদ দেওয়া হয়েছিল",
+  "home.bakiOverdueSince": "{day} থেকে {currencySign}{taka} মেয়াদোত্তীর্ণ",
   "home.bakiSoldAgain": "মেয়াদোত্তীর্ণ অবস্থায় আবার বাকিতে বিক্রি",
   "money.from.bakiPayment": "বাকি পরিশোধ",
   "sale.tab.ready": "যাওয়ার জন্য প্রস্তুত",
@@ -4744,7 +4776,8 @@ export const bn: Record<MessageKey, string> = {
   "templates.partiesHint":
     "ড্যাশের আগের অংশ দিয়ে প্রতিটি পক্ষ সই করে, যেমন প্রথম পক্ষ — মুদারিব।",
   "templates.factLabel": "কী",
-  "templates.onlyByTheMonth": "শুধু মাসে মাসে টাকা দেওয়া ভেঞ্চারের কাগজে ছাপা হয়",
+  "templates.onlyByTheMonth":
+    "শুধু মাসে মাসে {currencySum} দেওয়া ভেঞ্চারের কাগজে ছাপা হয়",
   "templates.factValue": "কী বলে (বাংলায়, তথ্য বন্ধনীতে)",
   "templates.lineNumber": "লাইন {number}",
   "templates.addLine": "লাইন যোগ করুন",
@@ -4809,22 +4842,25 @@ export const bn: Record<MessageKey, string> = {
   "owner.storeNotCounted": "গুদাম গোনা হয়নি",
   "owner.storeLastCounted": "শেষ গোনা হয়েছে {day}",
   "owner.storeNeverCounted": "কখনো গোনা হয়নি",
-  "alerts.storeShortfall": "{day}-এর গুদাম গণনায় ৳{amount}-এর খাদ্য কম পাওয়া গেছে",
+  "alerts.storeShortfall":
+    "{day}-এর গুদাম গণনায় {currencySign}{amount}-এর খাদ্য কম পাওয়া গেছে",
   "alerts.openTheCounts": "গণনা খুলুন",
   "alerts.medicineShort":
-    "{day} তারিখের ওষুধ গণনায় ৳{amount}-এর ডোজ কম পাওয়া গেছে, যা কোনো চিকিৎসায় দেওয়া লেখা নেই",
+    "{day} তারিখের ওষুধ গণনায় {currencySign}{amount}-এর ডোজ কম পাওয়া গেছে, যা কোনো চিকিৎসায় দেওয়া লেখা নেই",
   "digest.medicineShort": "{count}টি ওষুধ গণনায় কম পাওয়া গেছে",
   "alerts.stillHereAfterEid":
     "{day} থেকে কোরবানি শেষ, তবু সেই ঈদের জন্য রাখা {animals}টি পশু এখনো খামারে (তার {inVentures}টি ভেঞ্চারের)",
   "digest.stillHereAfterEid": "{count}টি ঈদের পরেও পশু খামারে রয়ে গেছে",
   "alerts.soldUnderCost":
-    "{tag} বিক্রি হলো ৳{price}-তে; তার খরচ পড়েছিল ৳{cost}, আর কম দরে তার ওজনের দাম {low}{basis}",
+    "{tag} বিক্রি হলো {currencySign}{price}-তে; তার খরচ পড়েছিল {currencySign}{cost}, আর কম দরে তার ওজনের দাম {low}{basis}",
   "digest.soldUnderCost": "{count}টি পশু খরচ বা বাজারের চেয়ে কম দামে বিক্রি হয়েছে",
   "alerts.enteredTwice":
-    "{by} {day} তারিখে {name}-কে ৳{amount} দ্বিতীয়বার লিখেছেন, একই রকম একটি লেখা আছে জেনেও",
-  "digest.enteredTwice": "{count}টি টাকার হিসাব জেনেশুনে দ্বিতীয়বার লেখা হয়েছে",
-  "alerts.cashShort": "{day}-এর নগদ গণনায় {name}-এর হাতে ৳{amount} কম পাওয়া গেছে",
-  "digest.cashShort": "{count}টি নগদ গণনায় টাকা কম পাওয়া গেছে",
+    "{by} {day} তারিখে {name}-কে {currencySign}{amount} দ্বিতীয়বার লিখেছেন, একই রকম একটি লেখা আছে জেনেও",
+  "digest.enteredTwice":
+    "{count}টি {currencyOf} হিসাব জেনেশুনে দ্বিতীয়বার লেখা হয়েছে",
+  "alerts.cashShort":
+    "{day}-এর নগদ গণনায় {name}-এর হাতে {currencySign}{amount} কম পাওয়া গেছে",
+  "digest.cashShort": "{count}টি নগদ গণনায় {currencySum} কম পাওয়া গেছে",
   "alerts.arrivalWeightShort":
     "{tag} লরি থেকে নেমেছিল {arrival} কেজি; {days} দিন পর প্রথম ওজনে {weighed} কেজি, {percent}% কম — কেনা হয়েছিল {seller}-এর কাছ থেকে",
   "digest.arrivalWeightShort":
@@ -4833,7 +4869,7 @@ export const bn: Record<MessageKey, string> = {
     "{tag}-এর শেষ ওজন ছিল {last} কেজি ({day}); বিক্রির পাল্লায় {sale} কেজি — {percent}% কমেছে",
   "digest.largeShrink": "{count}টি পশুর বিক্রির সময় ওজন অনেক কমেছে",
   "alerts.mortalityRecorded":
-    "{tag}{venture} {how} — কারণ: {cause}; তার খরচ পড়েছিল ৳{cost}",
+    "{tag}{venture} {how} — কারণ: {cause}; তার খরচ পড়েছিল {currencySign}{cost}",
   "push.mortalityRecordedTitle": "একটি পশু চলে গেছে",
   "digest.mortalityRecorded": "{count}টি পশু মারা গেছে বা বাদ দেওয়া হয়েছে",
   "alerts.mortalityUndiagnosed":
@@ -4841,7 +4877,7 @@ export const bn: Record<MessageKey, string> = {
   "digest.mortalityUndiagnosed":
     "{count}টি পশু রোগ নির্ণয় ছাড়াই মারা গেছে বা বাদ দেওয়া হয়েছে",
   "alerts.openTheEids": "ঈদের তালিকা খুলুন",
-  "alerts.openTheMoney": "টাকার হিসাব খুলুন",
+  "alerts.openTheMoney": "{currencyOf} হিসাব খুলুন",
   "alerts.openTheCash": "হাতে নগদ খুলুন",
   "alerts.readTheProposals": "প্রস্তাবগুলো পড়ুন",
   "alerts.openTheProcedures": "কার্যপ্রণালী খুলুন",
@@ -4967,15 +5003,15 @@ export const bn: Record<MessageKey, string> = {
   "heatWatch.heiferAgeUnknown": "বকনা, বয়স জানা নেই, এখনো পাল দেওয়া হয়নি · {pen}",
   "refusal.notMissing": "পশুটি হারায়নি — কেউ তাকে খুঁজছে না",
   "refusal.gdNumberNeeded": "চুরি হলে থানার জিডি নম্বর লাগবে",
-  "refusal.noFloatOnTheTrip": "এই যাত্রার জন্য কোনো টাকা দেওয়া হয়নি",
+  "refusal.noFloatOnTheTrip": "এই যাত্রার জন্য কোনো {currencySum} দেওয়া হয়নি",
   "refusal.wageTookDraws":
-    "এই বেতন থেকে অগ্রিম কাটা হয়েছে, তাই এর টাকা, মানুষ আর মাস যেমন ছিল তেমনই থাকবে",
+    "এই বেতন থেকে অগ্রিম কাটা হয়েছে, তাই এর {currencySum}, মানুষ আর মাস যেমন ছিল তেমনই থাকবে",
   "refusal.drawAlreadyTaken":
     "এই অগ্রিমের এতটা বেতন থেকে কাটা হয়ে গেছে; এর চেয়ে কমানো বা অন্যের নামে নেওয়া যায় না",
   "wageDraw.tab": "বেতনের অগ্রিম",
   "wageDraw.record": "অগ্রিম লিখুন",
   "wageDraw.hint":
-    "বেতনের আগে কেউ যে টাকা নেন। যেদিন নেন সেদিনই বেতনের খরচ, আর পরের বেতন থেকে কাটা যায়।",
+    "বেতনের আগে কেউ যে {currencySum} নেন। যেদিন নেন সেদিনই বেতনের খরচ, আর পরের বেতন থেকে কাটা যায়।",
   "wageDraw.day": "যেদিন নিয়েছেন",
   "wageDraw.recorded": "অগ্রিম লেখা হলো",
   "wageDraw.none": "কারও কোনো অগ্রিম বাকি নেই",
@@ -4986,30 +5022,30 @@ export const bn: Record<MessageKey, string> = {
   "wageDraw.carried": "{amount} পরের বেতনে যাবে।",
   "wageDraw.correct": "এই অগ্রিম ঠিক করুন",
   "wageDraw.correctHint":
-    "যা ভুল তা ঠিক করুন। যে অগ্রিম আসলে নেওয়া হয়নি, টাকা শূন্য করে দিলে তা ফিরে যায়। বেতন থেকে যা কাটা হয়ে গেছে, তা কাটাই থাকে। আগের তথ্য অডিট লগে পড়া যাবে।",
+    "যা ভুল তা ঠিক করুন। যে অগ্রিম আসলে নেওয়া হয়নি, {currencySum} শূন্য করে দিলে তা ফিরে যায়। বেতন থেকে যা কাটা হয়ে গেছে, তা কাটাই থাকে। আগের তথ্য অডিট লগে পড়া যাবে।",
   "refusal.bankNeedsASlip": "ব্যাংকে জমা বা ব্যাংক থেকে তোলায় স্লিপ বা চেক লাগবে",
   "refusal.holdsNoCash": "খামারের নগদ শুধু মালিক বা ম্যানেজারের হাতে থাকে",
   "refusal.handoverGoesNowhere": "নগদ এক হাত থেকে আরেক হাতে, বা ব্যাংকে জমা বা তোলা হয়",
   "cash.tab": "হাতে নগদ",
   "cash.hint":
-    "খামারের নগদ কার হাতে কত: যে নগদ টাকায় তার নাম লেখা, তা থেকে যা খরচ ও হাতবদল করেছেন বাদে। বিকাশ আর ব্যাংকে কারও নাম থাকে না। কী কী এসেছে-গেছে দেখতে নামে চাপুন।",
+    "খামারের নগদ কার হাতে কত: যে নগদ {currencyIn} তার নাম লেখা, তা থেকে যা খরচ ও হাতবদল করেছেন বাদে। বিকাশ আর ব্যাংকে কারও নাম থাকে না। কী কী এসেছে-গেছে দেখতে নামে চাপুন।",
   "cash.nobody": "খামারের নগদ এখনো কারও হাতে নেই",
   "cash.none": "এই হাতে এখনো কোনো নগদ আসা-যাওয়া হয়নি।",
   "cash.heldBy": "{name}-এর হাতে",
   "cash.neverCounted": "এখনো গোনা হয়নি",
-  "cash.forTrip": "হাটে কেনার যাত্রার টাকা",
+  "cash.forTrip": "হাটে কেনার যাত্রার {currencySum}",
   "cash.forTripHint":
     "খামারের নিজের কোনো কেনার যাত্রার জন্য নগদ; গাড়ি ফিরলে যা কেনা হয়েছে তার সাথে মিলিয়ে দেখা হবে।",
   "cash.noTrip": "কোনো যাত্রার জন্য নয়",
-  "cash.floatsOut": "হাটে যাওয়া টাকা, এখনো মেলানো হয়নি",
+  "cash.floatsOut": "হাটে যাওয়া {currencySum}, এখনো মেলানো হয়নি",
   "cash.floatLine":
     "{name}-এর কাছে: দেওয়া {handed}, কেনা {bought}, ফেরত আসার কথা {due}",
   "cash.countHome": "মিলিয়ে নিন",
-  "cash.countHomeTitle": "যাত্রার টাকা মেলানো · {trip}",
+  "cash.countHomeTitle": "যাত্রার {currencySum} মেলানো · {trip}",
   "cash.countHomeHint":
-    "{name} যে নগদ ফেরত এনেছেন। যাত্রায় যা কেনা হয়েছে তার সাথে টাকায় টাকায় মিলতে হবে।",
-  "cash.cashBack": "ফেরত আনা নগদ (৳)",
-  "cash.countedHome": "যাত্রার টাকা মেলানো হলো",
+    "{name} যে নগদ ফেরত এনেছেন। যাত্রায় যা কেনা হয়েছে তার সাথে {currencyIn} {currencyIn} মিলতে হবে।",
+  "cash.cashBack": "ফেরত আনা নগদ ({currencySign})",
+  "cash.countedHome": "যাত্রার {currencySum} মেলানো হলো",
   "cash.lastCount": "{day} গোনা: পাওয়া গেছে {counted}, থাকার কথা {expected}",
   "cash.countShort": "{amount} কম",
   "cash.countOver": "{amount} বেশি",
@@ -5022,15 +5058,15 @@ export const bn: Record<MessageKey, string> = {
   "cash.deposit": "ভেঞ্চারের হিসাবে জমা",
   "cash.depositTitle": "{venture}-এর হিসাবে জমা",
   "cash.depositHint":
-    "হাটে নগদে বিক্রি হওয়া ভেঞ্চারের গরুর টাকা ব্যাংকে জমা দিন, জমার স্লিপের নম্বরসহ। জমা হলে তবেই টাকা ভেঞ্চারের হিসাবে ওঠে।",
+    "হাটে নগদে বিক্রি হওয়া ভেঞ্চারের গরুর {currencySum} ব্যাংকে জমা দিন, জমার স্লিপের নম্বরসহ। জমা হলে তবেই {currencySum} ভেঞ্চারের হিসাবে ওঠে।",
   "cash.depositTotal": "জমা হবে {amount}",
   "cash.depositDay": "যেদিন জমা হলো",
   "cash.deposited": "ভেঞ্চারের হিসাবে জমা হয়েছে",
   "cash.to": "কার কাছে",
-  "cash.whoseHand": "নগদ টাকা কার হাতে গেল",
+  "cash.whoseHand": "নগদ {currencySum} কার হাতে গেল",
   "cash.myOwnHand": "আমার নিজের হাতে",
   "cash.bank": "ব্যাংক",
-  "cash.amount": "টাকা (৳)",
+  "cash.amount": "{currencySum} ({currencySign})",
   "cash.slip": "জমার স্লিপ বা চেক",
   "cash.note": "মন্তব্য",
   "cash.handedTo": "{name}-কে দেওয়া",
@@ -5040,7 +5076,7 @@ export const bn: Record<MessageKey, string> = {
   "refusal.weighedNeedsAKiloSlip":
     "শুধু কেজিতে কেনা খাদ্যই রশিদের সাথে পাল্লায় মেলানো যায়",
   "alerts.feedPriceJump":
-    "{feed} কেনা হয়েছে প্রতি {unit} ৳{price}-এ, আগের বারের ৳{previous}-এর চেয়ে {percent}% বেশি",
+    "{feed} কেনা হয়েছে প্রতি {unit} {currencySign}{price}-এ, আগের বারের {currencySign}{previous}-এর চেয়ে {percent}% বেশি",
   "digest.feedPriceJump": "{count}টি খাদ্য আগের বারের চেয়ে বেশি দামে কেনা হয়েছে",
   "dose.give": "প্রেসক্রিপশন ছাড়া ওষুধ",
   "dose.hint":

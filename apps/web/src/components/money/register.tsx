@@ -1,5 +1,5 @@
 import type { MessageKey } from "@OpenFarm/i18n";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { currencySign, formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { cn } from "@OpenFarm/ui/lib/utils";
@@ -111,7 +111,8 @@ const Amount = ({
         className
       )}
     >
-      {event.direction === "in" ? "+" : "−"}৳
+      {event.direction === "in" ? "+" : "−"}
+      {currencySign()}
       {formatNumber(event.amountMoney, language)}
     </span>
   );
