@@ -108,3 +108,10 @@ still shipping, test-only reads (`sops.version`, `farm.certificates`, `ventures.
   connection at UTC and TZ=UTC in the unit (the full timestamptz migration left for a planned deploy); C5 traders found
   whatever the case, and written once when two phones name one; C8 three redundant indexes dropped, five added. Not
   done, for a planned deploy: C4 feeding_line, C6 ledger self-FKs, C7 version-pointer FKs, the timestamptz migration.
+- **F — done** (818f9a66): privateData and serverTime gone; the prototype route gone; 46 stacked doc comments fixed and
+  guarded by a test; the import's raw database message hidden; money awaiting counted on the farm; the work page in
+  five files. Not done: the test-only reads were kept (they are tested surface; nothing shows them yet).
+- **Follow-ups — done** (this branch): Units left from the farm; work held from somebody is one domain rule. Left on
+  purpose: the other Venture acts already ask state behind the lock, so moving them onto actOnVenture is style only;
+  powersOf stays a screen's role table (the server gates every act); farmCosts bounded per animal needs the cost model
+  reworked; E6 (an old SOP Version's screen) waits for somebody to ask for it.

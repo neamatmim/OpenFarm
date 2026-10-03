@@ -124,6 +124,10 @@ export const moneyOf = (venture: Venture) => ({
   openFloatBdt: venture.openFloatBdt ?? 0,
   paidOutBdt: venture.paidOutBdt ?? 0,
   signedFor: venture.signedFor ?? { units: 0, people: 0 },
+  /** The Units nobody has signed for yet, as the farm counts them; worked out from what it signed for in an answer
+   *  kept from before the farm said. */
+  unitsLeft:
+    venture.unitsLeft ?? venture.units - (venture.signedFor?.units ?? 0),
 });
 
 /**
@@ -138,8 +142,7 @@ export const moneyOf = (venture: Venture) => ({
 const stillRunning = (venture: Venture) => isRunning(venture.state);
 
 /** How many Units nobody has signed for yet. Nothing left is a Sign that can only be refused. */
-const unitsLeft = (venture: Venture) =>
-  venture.units - moneyOf(venture).signedFor.units;
+const unitsLeft = (venture: Venture) => moneyOf(venture).unitsLeft;
 
 /**
  * Whether its Settlement has been approved. From then every Investor is paid on figures written down, and

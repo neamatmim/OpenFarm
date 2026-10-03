@@ -363,6 +363,8 @@ export const ventureView = (
       isRunning(row.state) &&
       runningBudgetHeldBdt - alsoKnown.owedTheFarmBdt < alsoKnown.warnBelowBdt,
     signedFor: signedFor ?? NOBODY,
+    /** The Units nobody has signed for yet, as signing counts them before it refuses one too many. */
+    unitsLeft: row.units - (signedFor?.units ?? 0),
     /** How it stands against the bank: when it was last read, and whether any month is still out. */
     bank: alsoKnown.bank,
     /** The last day of the Wind-up Period: the days after the Target Window in which it keeps selling

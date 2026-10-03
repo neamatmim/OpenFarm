@@ -177,6 +177,9 @@ describe("an Agreement agreed in the app", () => {
     expect(await refusalOf(owner.ventures.approveOffer({ offerId: id }))).toBe(
       "venture_units_gone"
     );
+    // The farm says what is left, as it counts it when it refuses.
+    const listed = await owner.ventures.list();
+    expect(listed.find((one) => one.id === ventureId)?.unitsLeft).toBe(6);
   });
 
   it("is not approved before the Investor has agreed", async () => {

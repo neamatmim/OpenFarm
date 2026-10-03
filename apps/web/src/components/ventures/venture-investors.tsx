@@ -468,7 +468,7 @@ export const VentureInvestors = ({
   const movements = useQuery(orpc.ventures.movements.queryOptions(input));
   const paid = paidAgainst(movements.data ?? []);
   const signed = moneyOf(venture).signedFor;
-  const unitsLeft = venture.units - signed.units;
+  const { unitsLeft } = moneyOf(venture);
   const papers = useInvestorPapers();
   // Once the Settlement is approved, what each man is owed from it and whether it has gone — sent from his row,
   // as his capital and his papers are.
