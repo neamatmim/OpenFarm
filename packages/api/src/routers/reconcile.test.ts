@@ -45,7 +45,7 @@ const outingWithFloat = async (
   floatMoney: number,
   tripCostMoney: number
 ) => {
-  const trip = await owner.client.trips.record({
+  const trip = await owner.client.buyingTrips.record({
     wentTo: `হাট ${which} ${suffix}`,
     wentOn: "2047-01-05",
     brokerMoney: tripCostMoney,
@@ -89,8 +89,8 @@ const bull = async (
 
 beforeAll(async () => {
   const owner = await as("owner", "2047-01-01T04:00:00.000Z");
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -239,7 +239,7 @@ describe("the Float comes home", () => {
     // And so would the lorry turning out to have cost more.
     const manager = await as("manager", "2047-01-11T09:00:00.000Z");
     await expect(
-      manager.client.trips.correct({
+      manager.client.buyingTrips.correct({
         id: trip,
         reason: "লরির ভাড়া বেশি ছিল",
         changes: { transportMoney: { from: 0, to: 4000 } },

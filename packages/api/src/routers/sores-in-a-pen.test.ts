@@ -17,10 +17,10 @@ const as = (role: "owner" | "manager", instant: string) =>
 /** A Pen of its own with this many heifers in it. */
 const aPen = async (name: string, heifers: number) => {
   const owner = await as("owner", "2061-01-01T00:00:00.000Z");
-  const shed = await owner.client.herd.createShed({
+  const shed = await owner.client.sheds.createShed({
     name: `${suffix}-${name}`,
   });
-  const pen = await owner.client.herd.createPen({ shedId: shed.id, name });
+  const pen = await owner.client.sheds.createPen({ shedId: shed.id, name });
   const tags: string[] = [];
   for (let one = 0; one < heifers; one += 1) {
     // One after the other, so the Tag Numbers come in order.

@@ -58,16 +58,16 @@ const intakeOf = new Map<string, string>();
 /** The Pen's weighing on one morning: each tag with what the scale said. */
 const weigh = async (instant: string, readings: [string, number][]) => {
   const manager = await as("manager", instant);
-  await manager.client.instances.ensureDue();
-  const today = await manager.client.instances.today({ penId });
+  await manager.client.work.ensureDue();
+  const today = await manager.client.work.today({ penId });
   const work = today.find((row) => row.definitionId === weighingId);
   if (!work) {
     throw new Error("expected the weighing to be due");
   }
-  await manager.client.instances.claim({ id: work.id });
+  await manager.client.work.claim({ id: work.id });
   for (const [tagNumber, kg] of readings) {
     // oxlint-disable-next-line no-await-in-loop -- one animal at a time, as a round is walked
-    await manager.client.instances.completeStep({
+    await manager.client.work.completeStep({
       instanceId: work.id,
       stepId: "weigh",
       animalTag: tagNumber,
@@ -89,8 +89,8 @@ const toldOf = async (tag: string, role: "owner" | "manager" = "owner") =>
 beforeAll(async () => {
   const owner = await as("owner", ARRIVED);
   const manager = await as("manager", ARRIVED);
-  const shed = await manager.client.herd.createShed({ name: suffix });
-  const pen = await manager.client.herd.createPen({
+  const shed = await manager.client.sheds.createShed({ name: suffix });
+  const pen = await manager.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `নতুন ${suffix}`,

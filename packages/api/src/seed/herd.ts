@@ -296,7 +296,7 @@ export const takeInBulls = async (
     transportMoney: random.int(6000, 11_000),
     keepMoney: random.int(900, 1800),
   };
-  const trip = await farm.as.manager.trips.record({
+  const trip = await farm.as.manager.buyingTrips.record({
     wentTo: seller.address ?? "গাবতলী হাট, ঢাকা",
     ...costs,
     wentOn: onFarm(on, "06:00"),

@@ -29,10 +29,10 @@ beforeAll(async () => {
 /** A cow on the opening register, in milk since long ago, in a Pen of her own. */
 const aCowInMilk = async (name: string) => {
   const owner = await as("owner", "2064-01-01T00:00:00.000Z");
-  const shed = await owner.client.herd.createShed({
+  const shed = await owner.client.sheds.createShed({
     name: `${suffix}-${name}`,
   });
-  const pen = await owner.client.herd.createPen({ shedId: shed.id, name });
+  const pen = await owner.client.sheds.createPen({ shedId: shed.id, name });
   const imported = await owner.client.animals.importRegister({
     csv: [
       "sex,side,state,pen,source,calved_at",
@@ -57,14 +57,14 @@ const milkNineDays = async (
     // oxlint-disable-next-line no-await-in-loop
     const manager = await as("manager", at);
     // oxlint-disable-next-line no-await-in-loop
-    await manager.client.instances.ensureDue();
+    await manager.client.work.ensureDue();
     // oxlint-disable-next-line no-await-in-loop
-    const today = await manager.client.instances.today({ penId: cow.penId });
+    const today = await manager.client.work.today({ penId: cow.penId });
     const work = theMilking(today);
     // oxlint-disable-next-line no-await-in-loop
-    await manager.client.instances.claim({ id: work?.id ?? "" });
+    await manager.client.work.claim({ id: work?.id ?? "" });
     // oxlint-disable-next-line no-await-in-loop
-    await manager.client.instances.completeStep({
+    await manager.client.work.completeStep({
       instanceId: work?.id ?? "",
       stepId: "milk",
       animalTag: cow.tag,
@@ -75,7 +75,7 @@ const milkNineDays = async (
 
 const givingLessOn = async (instant: string) => {
   const manager = await as("manager", instant);
-  const home = await manager.client.home.manager();
+  const home = await manager.client.home.get();
   return home.queue.givingLess;
 };
 

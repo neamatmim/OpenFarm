@@ -45,7 +45,7 @@ export const AssignWork = ({
     enabled: runsTheFarm && mayAssign,
   });
   const assign = useMutation(
-    orpc.instances.assign.mutationOptions({
+    orpc.work.assign.mutationOptions({
       onSuccess: () => {
         toast.success(t("work.assigned"));
       },

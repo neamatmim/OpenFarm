@@ -44,7 +44,7 @@ const recordInput = z.object({
   reference: referenceInput,
 });
 
-export const tripsRouter = {
+export const buyingTripsRouter = {
   /**
    * The outings the farm has made lately, newest first, so an arrival can be put on the one it came home
    * on. Each says what it cost and how many animals name it.

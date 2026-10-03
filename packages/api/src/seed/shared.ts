@@ -33,7 +33,7 @@ export const raise = async (
   sop: keyof Farm["sops"],
   pen: PenKey
 ) => {
-  await farm.as.manager.instances.raiseNow({
+  await farm.as.manager.work.raiseNow({
     definitionId: farm.sops[sop],
     penId: farm.pens[pen],
   });

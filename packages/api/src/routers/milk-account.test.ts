@@ -27,8 +27,8 @@ beforeAll(async () => {
     content: standardPlaybook().morningMilking,
   });
   milkingId = milking.definitionId;
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const made = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const made = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `হিসাব পেন ${suffix}`,
   });
@@ -47,14 +47,14 @@ beforeAll(async () => {
     // oxlint-disable-next-line no-await-in-loop
     const manager = await as("manager", `${morning}T00:00:00.000Z`);
     // oxlint-disable-next-line no-await-in-loop
-    await manager.client.instances.ensureDue();
+    await manager.client.work.ensureDue();
     // oxlint-disable-next-line no-await-in-loop
-    const today = await manager.client.instances.today({ penId: pen.id });
+    const today = await manager.client.work.today({ penId: pen.id });
     const work = theMilking(today);
     // oxlint-disable-next-line no-await-in-loop
-    await manager.client.instances.claim({ id: work?.id ?? "" });
+    await manager.client.work.claim({ id: work?.id ?? "" });
     // oxlint-disable-next-line no-await-in-loop
-    await manager.client.instances.completeStep({
+    await manager.client.work.completeStep({
       instanceId: work?.id ?? "",
       stepId: "milk",
       animalTag: pen.tag,

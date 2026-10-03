@@ -78,15 +78,15 @@ const trailOf = async (instanceId: string) => {
 /** A milking pen with two cows, a fattening pen with one, and a Staff member on the first. */
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.client.herd.createShed({
+  const shed = await owner.client.sheds.createShed({
     name: `instances-${Date.now()}`,
   });
-  const milkingPen = await owner.client.herd.createPen({
+  const milkingPen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: "দোহন পেন",
   });
-  const fatteningPen = await owner.client.herd.createPen({
+  const fatteningPen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: "মোটা পেন",
@@ -148,8 +148,8 @@ const morning = () => new FakeClock("2026-09-12T05:30:00.000Z");
 
 const instanceForPen = async (clock: FakeClock) => {
   const owner = await createTestClient(appRouter, { as: "owner", clock });
-  await owner.client.instances.ensureDue();
-  const today = await owner.client.instances.today({
+  await owner.client.work.ensureDue();
+  const today = await owner.client.work.today({
     penId: world.milkingPen.id,
   });
   const instance = today.find(
@@ -175,10 +175,10 @@ describe("the scheduler", () => {
       clock: morning(),
     });
 
-    await owner.client.instances.ensureDue();
-    await owner.client.instances.ensureDue();
-    const today = await owner.client.instances.today();
-    const theirs = await staff.client.instances.today();
+    await owner.client.work.ensureDue();
+    await owner.client.work.ensureDue();
+    const today = await owner.client.work.today();
+    const theirs = await staff.client.work.today();
 
     const checks = today.filter((one) => one.definitionId === definitionId);
     expect(checks).toHaveLength(1);
@@ -192,12 +192,12 @@ describe("the scheduler", () => {
     const owner = await createTestClient(appRouter, { as: "owner", clock });
 
     // Twice, because raising the same day's work again must add nothing.
-    await owner.client.instances.ensureDue();
-    await owner.client.instances.ensureDue();
-    const inMilkingPen = await owner.client.instances.today({
+    await owner.client.work.ensureDue();
+    await owner.client.work.ensureDue();
+    const inMilkingPen = await owner.client.work.today({
       penId: world.milkingPen.id,
     });
-    const inFatteningPen = await owner.client.instances.today({
+    const inFatteningPen = await owner.client.work.today({
       penId: world.fatteningPen.id,
     });
     const mine = inMilkingPen.filter(
@@ -228,7 +228,7 @@ describe("the scheduler", () => {
       content: changed,
     });
 
-    const reloaded = await world.owner.client.instances.get({
+    const reloaded = await world.owner.client.work.get({
       id: instance.id,
     });
     expect(reloaded.versionId).toBe(before);
@@ -243,16 +243,16 @@ describe("claiming", () => {
     const staff = await createTestClient(appRouter, { as: "staff", clock });
     const manager = await createTestClient(appRouter, { as: "manager", clock });
 
-    await staff.client.instances.claim({ id: instance.id });
+    await staff.client.work.claim({ id: instance.id });
     // Claiming their own work again is the same fact, and the trail says it once.
     const claimed = await trailOf(instance.id);
-    await staff.client.instances.claim({ id: instance.id });
+    await staff.client.work.claim({ id: instance.id });
     expect(await trailOf(instance.id)).toBe(claimed);
 
     // Not a question of permission: somebody else is holding this work, which is the same
     // answer a phone gets when it claimed with no signal and arrived second.
     await expect(
-      manager.client.instances.claim({ id: instance.id })
+      manager.client.work.claim({ id: instance.id })
     ).rejects.toMatchObject({
       code: "CONFLICT",
     });
@@ -263,19 +263,19 @@ describe("claiming", () => {
     const { instance } = await instanceForPen(clock);
     const staff = await createTestClient(appRouter, { as: "staff", clock });
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    await staff.client.instances.claim({ id: instance.id });
+    await staff.client.work.claim({ id: instance.id });
 
-    await manager.client.instances.assign({
+    await manager.client.work.assign({
       id: instance.id,
       userId: thePerson("manager").id,
     });
 
     await expect(
-      staff.client.instances.claim({ id: instance.id })
+      staff.client.work.claim({ id: instance.id })
     ).rejects.toMatchObject({
       code: "CONFLICT",
     });
-    const reloaded = await manager.client.instances.get({ id: instance.id });
+    const reloaded = await manager.client.work.get({ id: instance.id });
     expect({
       assignedTo: reloaded.assignedTo,
       claimedBy: reloaded.claimedBy,
@@ -294,7 +294,7 @@ describe("claiming", () => {
     });
     const staff = await createTestClient(appRouter, { as: "staff", clock });
 
-    const visible = await staff.client.instances.today();
+    const visible = await staff.client.work.today();
 
     expect(visible.some((i) => i.penId === world.milkingPen.id)).toBe(true);
     expect(visible.some((i) => i.penId === world.fatteningPen.id)).toBe(false);
@@ -310,16 +310,16 @@ describe("working the pen board", () => {
       clock,
       onShedPhone: true,
     });
-    await phone.client.instances.claim({ id: instance.id });
+    await phone.client.work.claim({ id: instance.id });
 
-    await phone.client.instances.completeStep({
+    await phone.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: world.cows[0]?.tagNumber ?? "",
       evidence: [12.5],
     });
 
-    const loaded = await phone.client.instances.get({ id: instance.id });
+    const loaded = await phone.client.work.get({ id: instance.id });
     const completion = loaded.completions.find((c) => c.stepId === "milk");
     expect(completion).toMatchObject({
       status: "done",
@@ -337,16 +337,16 @@ describe("working the pen board", () => {
     const clock = new FakeClock("2026-09-19T05:30:00.000Z");
     const { instance } = await instanceForPen(clock);
     const staff = await createTestClient(appRouter, { as: "staff", clock });
-    await staff.client.instances.claim({ id: instance.id });
+    await staff.client.work.claim({ id: instance.id });
 
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: world.cows[0]?.tagNumber ?? "",
       skipReason: "অসুস্থ",
     });
 
-    const loaded = await staff.client.instances.get({ id: instance.id });
+    const loaded = await staff.client.work.get({ id: instance.id });
     const skipped = loaded.completions.find((c) => c.stepId === "milk");
     expect(skipped).toMatchObject({ status: "skipped", skipReason: "অসুস্থ" });
   });
@@ -355,9 +355,9 @@ describe("working the pen board", () => {
     const clock = new FakeClock("2026-09-20T05:30:00.000Z");
     const { instance } = await instanceForPen(clock);
     const staff = await createTestClient(appRouter, { as: "staff", clock });
-    await staff.client.instances.claim({ id: instance.id });
+    await staff.client.work.claim({ id: instance.id });
 
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: world.cows[0]?.tagNumber ?? "",
@@ -365,7 +365,7 @@ describe("working the pen board", () => {
       outOfRange: "above 40",
     });
 
-    const loaded = await staff.client.instances.get({ id: instance.id });
+    const loaded = await staff.client.work.get({ id: instance.id });
     const completion = loaded.completions.find((c) => c.stepId === "milk");
     expect(completion?.evidence).toEqual([95]);
     expect(completion?.outOfRange).toBe("above 40");
@@ -375,16 +375,16 @@ describe("working the pen board", () => {
     const clock = new FakeClock("2026-09-20T17:30:00.000Z");
     const { instance } = await instanceForPen(clock);
     const staff = await createTestClient(appRouter, { as: "staff", clock });
-    await staff.client.instances.claim({ id: instance.id });
+    await staff.client.work.claim({ id: instance.id });
     // Out of range, and the phone said nothing of it.
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: world.cows[0]?.tagNumber ?? "",
       evidence: [95],
     });
     // In range, and the phone said it was not.
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: world.cows[1]?.tagNumber ?? "",
@@ -392,7 +392,7 @@ describe("working the pen board", () => {
       outOfRange: "above 40",
     });
 
-    const loaded = await staff.client.instances.get({ id: instance.id });
+    const loaded = await staff.client.work.get({ id: instance.id });
     const said = loaded.completions
       .filter((c) => c.stepId === "milk")
       .map((c) => ({ evidence: c.evidence, outOfRange: c.outOfRange }));
@@ -408,22 +408,22 @@ describe("working the pen board", () => {
     const clock = new FakeClock("2026-09-21T05:30:00.000Z");
     const { instance } = await instanceForPen(clock);
     const staff = await createTestClient(appRouter, { as: "staff", clock });
-    await staff.client.instances.claim({ id: instance.id });
+    await staff.client.work.claim({ id: instance.id });
 
     // A Pen with cows nobody has recorded is not a finished shift — and to a phone that
     // finished on what it could see, it is the world having moved.
     await expect(
-      staff.client.instances.complete({ id: instance.id })
+      staff.client.work.complete({ id: instance.id })
     ).rejects.toMatchObject({
       code: "CONFLICT",
     });
 
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "prep",
       evidence: [true],
     });
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: world.cows[0]?.tagNumber ?? "",
@@ -432,33 +432,33 @@ describe("working the pen board", () => {
 
     // One cow still unrecorded.
     await expect(
-      staff.client.instances.complete({ id: instance.id })
+      staff.client.work.complete({ id: instance.id })
     ).rejects.toMatchObject({
       message: expect.stringContaining(world.cows[1]?.tagNumber ?? ""),
     });
 
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: world.cows[1]?.tagNumber ?? "",
       evidence: [11],
     });
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "bulk",
       evidence: [21],
     });
-    const finished = await staff.client.instances.complete({ id: instance.id });
+    const finished = await staff.client.work.complete({ id: instance.id });
 
     expect(finished.state).toBe("completed");
-    const loaded = await staff.client.instances.get({ id: instance.id });
+    const loaded = await staff.client.work.get({ id: instance.id });
     expect(loaded.completions).toHaveLength(4);
     expect(
       loaded.completions.every((c) => c.recordedBy === thePerson("staff").id)
     ).toBe(true);
     // Finished work is not open to a fresh entry — the world has moved past it.
     await expect(
-      staff.client.instances.completeStep({
+      staff.client.work.completeStep({
         instanceId: instance.id,
         stepId: "prep",
         evidence: [true],
@@ -470,17 +470,17 @@ describe("working the pen board", () => {
     const clock = new FakeClock("2026-09-22T05:30:00.000Z");
     const { instance } = await instanceForPen(clock);
     const staff = await createTestClient(appRouter, { as: "staff", clock });
-    await staff.client.instances.claim({ id: instance.id });
+    await staff.client.work.claim({ id: instance.id });
     const tag = world.cows[0]?.tagNumber ?? "";
 
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: tag,
       evidence: [10],
     });
     // The same entry again is the phone replaying its outbox: one fact, accepted quietly.
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: tag,
@@ -488,7 +488,7 @@ describe("working the pen board", () => {
     });
     // A different figure is a changed fact, and facts change only by Correction.
     await expect(
-      staff.client.instances.completeStep({
+      staff.client.work.completeStep({
         instanceId: instance.id,
         stepId: "milk",
         animalTag: tag,
@@ -496,7 +496,7 @@ describe("working the pen board", () => {
       })
     ).rejects.toMatchObject({ code: "CONFLICT" });
 
-    const loaded = await staff.client.instances.get({ id: instance.id });
+    const loaded = await staff.client.work.get({ id: instance.id });
     const forCow = loaded.completions.filter((c) => c.stepId === "milk");
     expect(forCow).toHaveLength(1);
     expect(forCow[0]?.evidence).toEqual([10]);
@@ -506,7 +506,7 @@ describe("working the pen board", () => {
       evidence: [12],
       reason: "কীপ্যাডে ভুল",
     });
-    const corrected = await staff.client.instances.get({ id: instance.id });
+    const corrected = await staff.client.work.get({ id: instance.id });
     const after = corrected.completions.filter((c) => c.stepId === "milk");
     expect(after).toHaveLength(1);
     expect(after[0]?.evidence).toEqual([12]);
@@ -516,10 +516,10 @@ describe("working the pen board", () => {
     const clock = new FakeClock("2026-09-23T05:30:00.000Z");
     const { instance } = await instanceForPen(clock);
     const staff = await createTestClient(appRouter, { as: "staff", clock });
-    await staff.client.instances.claim({ id: instance.id });
+    await staff.client.work.claim({ id: instance.id });
 
     await expect(
-      staff.client.instances.completeStep({
+      staff.client.work.completeStep({
         instanceId: instance.id,
         stepId: "milk",
         animalTag: world.steer.tagNumber,
@@ -527,7 +527,7 @@ describe("working the pen board", () => {
       })
     ).rejects.toMatchObject({ code: "CONFLICT" });
     await expect(
-      staff.client.instances.completeStep({
+      staff.client.work.completeStep({
         instanceId: instance.id,
         stepId: "milk",
         evidence: [10],
@@ -542,14 +542,14 @@ describe("review findings", () => {
     const clock = new FakeClock("2026-09-24T05:30:00.000Z");
     const { instance } = await instanceForPen(clock);
     const staff = await createTestClient(appRouter, { as: "staff", clock });
-    await staff.client.instances.claim({ id: instance.id });
+    await staff.client.work.claim({ id: instance.id });
 
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "bulk",
       evidence: [21],
     });
-    const first = await staff.client.instances.get({ id: instance.id });
+    const first = await staff.client.work.get({ id: instance.id });
     const original = first.completions.find((c) => c.stepId === "bulk");
     await correctStepAsShown(staff.client, {
       completionId: original?.id ?? "",
@@ -557,7 +557,7 @@ describe("review findings", () => {
       reason: "শূন্য বাদ পড়েছিল",
     });
 
-    const loaded = await staff.client.instances.get({ id: instance.id });
+    const loaded = await staff.client.work.get({ id: instance.id });
     const bulk = loaded.completions.filter((c) => c.stepId === "bulk");
     expect(bulk).toHaveLength(1);
     expect(bulk[0]?.evidence).toEqual([210]);
@@ -566,7 +566,7 @@ describe("review findings", () => {
   it("an animal that has left the farm is off the pen board and does not block finishing", async () => {
     const clock = new FakeClock("2026-09-25T05:30:00.000Z");
     const { instance, owner } = await instanceForPen(clock);
-    const before = await owner.client.instances.get({ id: instance.id });
+    const before = await owner.client.work.get({ id: instance.id });
     const doomed = before.animals[0]?.tagNumber ?? "";
 
     await owner.client.animals.recordMortality({
@@ -577,7 +577,7 @@ describe("review findings", () => {
       disposal: "buried",
     });
 
-    const after = await owner.client.instances.get({ id: instance.id });
+    const after = await owner.client.work.get({ id: instance.id });
     expect(after.animals.some((a) => a.tagNumber === doomed)).toBe(false);
     expect(after.animals.length).toBe(before.animals.length - 1);
   });
@@ -613,19 +613,19 @@ describe("review findings", () => {
     });
     const clock = new FakeClock("2026-09-26T07:30:00.000Z");
     const worker = await createTestClient(appRouter, { as: "owner", clock });
-    await worker.client.instances.ensureDue();
-    const today = await worker.client.instances.today({
+    await worker.client.work.ensureDue();
+    const today = await worker.client.work.today({
       penId: world.milkingPen.id,
     });
     const mine = today.find((i) => i.definitionId === sop.definitionId);
     if (!mine) {
       throw new Error("expected an instance");
     }
-    await worker.client.instances.claim({ id: mine.id });
+    await worker.client.work.claim({ id: mine.id });
 
     // Filling only the optional note leaves the required number and photo missing.
     await expect(
-      worker.client.instances.completeStep({
+      worker.client.work.completeStep({
         instanceId: mine.id,
         stepId: "evidence",
         evidence: ["just a note"],
@@ -634,7 +634,7 @@ describe("review findings", () => {
 
     // The number alone is still short of the required photo.
     await expect(
-      worker.client.instances.completeStep({
+      worker.client.work.completeStep({
         instanceId: mine.id,
         stepId: "evidence",
         evidence: ["note", 12],
@@ -642,16 +642,16 @@ describe("review findings", () => {
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
 
     // The Step says the photo for its slot is coming, and the photo follows on its own.
-    const recorded = await worker.client.instances.completeStep({
+    const recorded = await worker.client.work.completeStep({
       instanceId: mine.id,
       stepId: "evidence",
       evidence: ["note", 12],
       photoSlots: [2],
     });
-    const loaded = await worker.client.instances.get({ id: mine.id });
+    const loaded = await worker.client.work.get({ id: mine.id });
     expect(loaded.completions).toHaveLength(1);
     const completionId = loaded.completions[0]?.id ?? "";
-    await worker.client.instances.attachPhoto({
+    await worker.client.work.attachPhoto({
       completionId,
       slot: 2,
       contentType: "image/jpeg",
@@ -686,8 +686,8 @@ describe("review findings", () => {
     });
     const clock = new FakeClock("2026-09-27T08:30:00.000Z");
     const scheduler = await createTestClient(appRouter, { as: "owner", clock });
-    await scheduler.client.instances.ensureDue();
-    const today = await scheduler.client.instances.today({
+    await scheduler.client.work.ensureDue();
+    const today = await scheduler.client.work.today({
       penId: world.milkingPen.id,
     });
     const mine = today.find((i) => i.definitionId === vetSop.definitionId);
@@ -703,12 +703,12 @@ describe("review findings", () => {
     });
 
     await expect(
-      staff.client.instances.claim({ id: mine.id })
+      staff.client.work.claim({ id: mine.id })
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
     await expect(
-      vetOnPhone.client.instances.claim({ id: mine.id })
+      vetOnPhone.client.work.claim({ id: mine.id })
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
       data: { refusal: "personal_phone_only" },
@@ -720,16 +720,16 @@ describe("review findings", () => {
     const { instance } = await instanceForPen(clock);
     const staff = await createTestClient(appRouter, { as: "staff", clock });
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    await staff.client.instances.claim({ id: instance.id });
-    const loaded = await staff.client.instances.get({ id: instance.id });
-    await staff.client.instances.completeStep({
+    await staff.client.work.claim({ id: instance.id });
+    const loaded = await staff.client.work.get({ id: instance.id });
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "prep",
       evidence: [true],
     });
     await Promise.all(
       loaded.animals.map((beast) =>
-        staff.client.instances.completeStep({
+        staff.client.work.completeStep({
           instanceId: instance.id,
           stepId: "milk",
           animalTag: beast.tagNumber,
@@ -737,24 +737,24 @@ describe("review findings", () => {
         })
       )
     );
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "bulk",
       evidence: [20],
     });
-    await staff.client.instances.complete({ id: instance.id });
+    await staff.client.work.complete({ id: instance.id });
 
     // Finishing again changes nothing rather than refusing: a phone replaying its outbox
     // sends what it sent, and the second telling is the same fact (ADR 0002) — with nothing
     // in the trail for a transition that did not happen.
     const finished = await trailOf(instance.id);
-    await staff.client.instances.complete({ id: instance.id });
-    const after = await staff.client.instances.get({ id: instance.id });
+    await staff.client.work.complete({ id: instance.id });
+    const after = await staff.client.work.get({ id: instance.id });
     expect(after.state).toBe("completed");
     expect(await trailOf(instance.id)).toBe(finished);
 
     await expect(
-      manager.client.instances.assign({
+      manager.client.work.assign({
         id: instance.id,
         userId: thePerson("staff").id,
       })
@@ -769,7 +769,7 @@ describe("review findings", () => {
     await instanceForPen(clock);
     const staff = await createTestClient(appRouter, { as: "staff", clock });
 
-    const asked = await staff.client.instances.today({
+    const asked = await staff.client.work.today({
       penId: world.fatteningPen.id,
     });
 

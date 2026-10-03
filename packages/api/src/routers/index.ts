@@ -6,6 +6,7 @@ import { auditRouter } from "./audit";
 import { backupsRouter } from "./backups";
 import { breedingRouter } from "./breeding";
 import { breedsRouter } from "./breeds";
+import { buyingTripsRouter } from "./buying-trips";
 import { cashRouter } from "./cash";
 import { costsRouter } from "./costs";
 import { cullListRouter } from "./cull-list";
@@ -17,17 +18,18 @@ import { farmRouter } from "./farm";
 import { farmAccountsRouter } from "./farm-accounts";
 import { fatteningRouter } from "./fattening";
 import { feedRouter } from "./feed";
-import { herdRouter } from "./herd";
 import { homeRouter } from "./home";
-import { instancesRouter } from "./instances";
+import { inspectorViewRouter } from "./inspector-view";
 import { intakesRouter } from "./intakes";
 import { investorStatementsRouter } from "./investor-statements";
 import { investorsRouter } from "./investors";
 import { languageRouter } from "./language";
 import { milkRouter } from "./milk";
 import { moneyRouter } from "./money";
+import { monthlyReportRouter } from "./monthly-report";
 import { notifiableDiseasesRouter } from "./notifiable-diseases";
 import { observationsRouter } from "./observations";
+import { overviewRouter } from "./overview";
 import { papersRouter } from "./papers";
 import { peopleRouter } from "./people";
 import { portalRouter } from "./portal";
@@ -36,21 +38,21 @@ import { prescriptionsRouter } from "./prescriptions";
 import { pushRouter } from "./push";
 import { readyForSaleRouter } from "./ready-for-sale";
 import { receivablesRouter } from "./receivables";
-import { registrationCertificateRouter } from "./registration-certificate";
 import { reportsRouter } from "./reports";
 import { returnsRouter } from "./returns";
 import { reviewQueueRouter } from "./review-queue";
 import { salesRouter } from "./sales";
 import { sellingTripsRouter } from "./selling-trips";
+import { shedsRouter } from "./sheds";
 import { sopsRouter } from "./sops";
 import { stockRouter } from "./stock";
 import { syncRouter } from "./sync";
 import { templatesRouter } from "./templates";
 import { treatmentsRouter } from "./treatments";
-import { tripsRouter } from "./trips";
 import { venturesRouter } from "./ventures";
 import { vetCasesRouter } from "./vet-cases";
 import { withdrawalsRouter } from "./withdrawals";
+import { workRouter } from "./work";
 
 /**
  * The router's shape, spelled out as each part's own type. Left to inference, the whole of it is written into the
@@ -71,10 +73,12 @@ type AppRouterShape = {
   farmAccounts: typeof farmAccountsRouter;
   fattening: typeof fatteningRouter;
   feed: typeof feedRouter;
-  herd: typeof herdRouter;
+  sheds: typeof shedsRouter;
   home: typeof homeRouter;
+  overview: typeof overviewRouter;
+  monthlyReport: typeof monthlyReportRouter;
   returns: typeof returnsRouter;
-  instances: typeof instancesRouter;
+  work: typeof workRouter;
   intakes: typeof intakesRouter;
   language: typeof languageRouter;
   milk: typeof milkRouter;
@@ -87,7 +91,7 @@ type AppRouterShape = {
   readyForSale: typeof readyForSaleRouter;
   costs: typeof costsRouter;
   cullList: typeof cullListRouter;
-  registrationCertificate: typeof registrationCertificateRouter;
+  inspectorView: typeof inspectorViewRouter;
   money: typeof moneyRouter;
   cash: typeof cashRouter;
   receivables: typeof receivablesRouter;
@@ -96,7 +100,7 @@ type AppRouterShape = {
   stock: typeof stockRouter;
   reviewQueue: typeof reviewQueueRouter;
   sales: typeof salesRouter;
-  trips: typeof tripsRouter;
+  buyingTrips: typeof buyingTripsRouter;
   sellingTrips: typeof sellingTripsRouter;
   ventures: typeof venturesRouter;
   investorStatements: typeof investorStatementsRouter;
@@ -125,10 +129,12 @@ export const appRouter: AppRouterShape = {
   farmAccounts: farmAccountsRouter,
   fattening: fatteningRouter,
   feed: feedRouter,
-  herd: herdRouter,
+  sheds: shedsRouter,
   home: homeRouter,
+  overview: overviewRouter,
+  monthlyReport: monthlyReportRouter,
   returns: returnsRouter,
-  instances: instancesRouter,
+  work: workRouter,
   intakes: intakesRouter,
   language: languageRouter,
   milk: milkRouter,
@@ -141,7 +147,7 @@ export const appRouter: AppRouterShape = {
   readyForSale: readyForSaleRouter,
   costs: costsRouter,
   cullList: cullListRouter,
-  registrationCertificate: registrationCertificateRouter,
+  inspectorView: inspectorViewRouter,
   money: moneyRouter,
   cash: cashRouter,
   receivables: receivablesRouter,
@@ -150,7 +156,7 @@ export const appRouter: AppRouterShape = {
   stock: stockRouter,
   reviewQueue: reviewQueueRouter,
   sales: salesRouter,
-  trips: tripsRouter,
+  buyingTrips: buyingTripsRouter,
   sellingTrips: sellingTripsRouter,
   ventures: venturesRouter,
   investorStatements: investorStatementsRouter,

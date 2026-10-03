@@ -42,13 +42,13 @@ const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner", clock });
   const manager = await createTestClient(appRouter, { as: "manager", clock });
   const vet = await createTestClient(appRouter, { as: "vet", clock });
-  const shed = await owner.client.herd.createShed({ name: `pass-${suffix}` });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `pass-${suffix}` });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `পেন ক ${suffix}`,
   });
-  const second = await owner.client.herd.createPen({
+  const second = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `পেন খ ${suffix}`,
@@ -149,11 +149,11 @@ const asManager = (day: string) =>
 const vaccinate = async (day: string, penId: string, tagNumber: string) => {
   const clock = new FakeClock(`${day}T08:00:00.000Z`);
   const manager = await createTestClient(appRouter, { as: "manager", clock });
-  await manager.client.instances.raiseNow({
+  await manager.client.work.raiseNow({
     definitionId: world.campaign.definitionId,
     penId,
   });
-  const today = await manager.client.instances.today({ penId });
+  const today = await manager.client.work.today({ penId });
   const raised = today.find(
     (candidate) => candidate.definitionId === world.campaign.definitionId
   );
@@ -161,8 +161,8 @@ const vaccinate = async (day: string, penId: string, tagNumber: string) => {
     throw new Error("expected a vaccination instance");
   }
   const staff = await createTestClient(appRouter, { as: "staff", clock });
-  await staff.client.instances.claim({ id: raised.id });
-  await staff.client.instances.completeStep({
+  await staff.client.work.claim({ id: raised.id });
+  await staff.client.work.completeStep({
     instanceId: raised.id,
     stepId: "dose",
     animalTag: tagNumber,

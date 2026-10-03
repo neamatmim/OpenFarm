@@ -89,9 +89,9 @@ const setup = async () => {
   if (identity.registrationMissing) {
     await manager.client.farm.setIdentity({ registrationNumber: REGISTRATION });
   }
-  const shed = await owner.client.herd.createShed({ name: `r6-${suffix}` });
+  const shed = await owner.client.sheds.createShed({ name: `r6-${suffix}` });
   const pen = (name: string) =>
-    owner.client.herd.createPen({
+    owner.client.sheds.createPen({
       quarantine: true,
       shedId: shed.id,
       name: `${name} ${suffix}`,
@@ -199,8 +199,8 @@ beforeAll(async () => {
     disease: { bn: world.disease },
   });
   const reporter = await as("manager", "2046-02-06T05:00:00.000Z");
-  await reporter.client.instances.claim({ id: anthrax.reportInstanceId ?? "" });
-  await reporter.client.instances.completeStep({
+  await reporter.client.work.claim({ id: anthrax.reportInstanceId ?? "" });
+  await reporter.client.work.completeStep({
     instanceId: anthrax.reportInstanceId ?? "",
     stepId: "deliver",
     evidence: ["ULO/2046/০১২"],
@@ -233,16 +233,16 @@ beforeAll(async () => {
     as: "manager",
     clock,
   });
-  await roundManager.client.instances.ensureDue();
-  const listed = await roundManager.client.instances.today({
+  await roundManager.client.work.ensureDue();
+  const listed = await roundManager.client.work.today({
     penId: world.pens.calving.id,
   });
   const round = listed.find(
     (row) => row.definitionId === world.sops.round.definitionId
   );
   const staff = await createTestClient(appRouter, { as: "staff", clock });
-  await staff.client.instances.claim({ id: round?.id ?? "" });
-  await staff.client.instances.completeStep({
+  await staff.client.work.claim({ id: round?.id ?? "" });
+  await staff.client.work.completeStep({
     instanceId: round?.id ?? "",
     stepId: "calved",
     animalTag: world.dam.tagNumber,
@@ -258,7 +258,7 @@ beforeAll(async () => {
     ],
   });
   // The hour was written wrong: she calved at ten past six. Her calf's arrival and her death move with it.
-  const board = await roundManager.client.instances.get({
+  const board = await roundManager.client.work.get({
     id: round?.id ?? "",
   });
   await correctStepAsShown(staff.client, {
@@ -311,7 +311,7 @@ const ours = (tag: string) =>
 describe("the mortality register", () => {
   it("lists every death with its cause, disposal and DLS reference, a stillbirth awaiting its disposal", async () => {
     const manager = await as("manager", "2046-03-01T04:00:00.000Z");
-    const register = await manager.client.registrationCertificate.rows({
+    const register = await manager.client.inspectorView.rows({
       register: "mortality_register",
       ...FEBRUARY,
     });
@@ -354,7 +354,7 @@ describe("the mortality register", () => {
     ]);
     // A year to today unless asked, today counted.
     expect(
-      await manager.client.registrationCertificate.rows({
+      await manager.client.inspectorView.rows({
         register: "mortality_register",
       })
     ).toMatchObject({
@@ -362,7 +362,7 @@ describe("the mortality register", () => {
       to: "2046-03-01",
     });
 
-    const awaiting = await manager.client.registrationCertificate.print({
+    const awaiting = await manager.client.inspectorView.print({
       register: "mortality_register",
       format: "csv",
       ...FEBRUARY,
@@ -372,7 +372,7 @@ describe("the mortality register", () => {
     );
 
     await manager.client.language.set({ language: "bn" });
-    const paper = await manager.client.registrationCertificate.print({
+    const paper = await manager.client.inspectorView.print({
       register: "mortality_register",
       ...FEBRUARY,
     });
@@ -424,7 +424,7 @@ describe("the mortality register", () => {
     });
 
     const later = await as("manager", "2046-03-01T04:00:00.000Z");
-    const register = await later.client.registrationCertificate.rows({
+    const register = await later.client.inspectorView.rows({
       register: "mortality_register",
       ...FEBRUARY,
     });
@@ -435,7 +435,7 @@ describe("the mortality register", () => {
       disposalNote: "ছয় ফুট, বাছুরের ঘরের পেছনে",
     });
 
-    const sheet = await later.client.registrationCertificate.print({
+    const sheet = await later.client.inspectorView.print({
       register: "mortality_register",
       format: "csv",
       ...FEBRUARY,
@@ -468,7 +468,7 @@ describe("the mortality register", () => {
 describe("the movement log", () => {
   it("lists every Move, Side change, calving, intake, sale, death and cull in time order, as a CSV and an Export", async () => {
     const manager = await as("manager", "2046-03-01T04:00:00.000Z");
-    const log = await manager.client.registrationCertificate.print({
+    const log = await manager.client.inspectorView.print({
       register: "movement_log",
       format: "csv",
       ...FEBRUARY,
@@ -523,7 +523,7 @@ describe("the movement log", () => {
     const manager = await as("manager", "2046-03-01T04:00:00.000Z");
 
     await expect(
-      manager.client.registrationCertificate.print({
+      manager.client.inspectorView.print({
         register: "movement_log",
         ...FEBRUARY,
       })
@@ -533,13 +533,13 @@ describe("the movement log", () => {
   it("is the Owner's and the Manager's, never Barn Staff's", async () => {
     const staff = await as("staff", "2046-03-01T04:00:00.000Z");
     await expect(
-      staff.client.registrationCertificate.rows({
+      staff.client.inspectorView.rows({
         register: "mortality_register",
         ...FEBRUARY,
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(
-      staff.client.registrationCertificate.rows({
+      staff.client.inspectorView.rows({
         register: "movement_log",
         ...FEBRUARY,
       })

@@ -65,7 +65,7 @@ const handlingSop = (): SopContent => ({
 
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.client.herd.createShed({
+  const shed = await owner.client.sheds.createShed({
     name: `mortality-${Date.now()}`,
   });
   const sop = await owner.client.sops.create({ content: roundSop() });
@@ -100,7 +100,7 @@ afterAll(async () => {
 /** A Pen of her own, and a cow in it. */
 const aCowOfHerOwn = async (clock: FakeClock) => {
   const owner = await createTestClient(appRouter, { as: "owner", clock });
-  const pen = await owner.client.herd.createPen({
+  const pen = await owner.client.sheds.createPen({
     shedId: world.shedId,
     name: `মৃত্যু ${Date.now()}`,
   });
@@ -122,7 +122,7 @@ describe("a death and a cull", () => {
     const manager = await createTestClient(appRouter, { as: "manager", clock });
 
     // She was on the pen board this morning.
-    await manager.client.instances.ensureDue();
+    await manager.client.work.ensureDue();
     const before = await manager.client.animals.list({ penId: pen.id });
     expect(before.map((one) => one.id)).toContain(cow.id);
 
@@ -140,14 +140,14 @@ describe("a death and a cull", () => {
     expect(after.map((one) => one.id)).not.toContain(cow.id);
     // Asked as the Manager: Barn Staff see the Pens they are assigned to, and nobody is
     // assigned to a Pen made a minute ago.
-    const today = await manager.client.instances.today({ penId: pen.id });
+    const today = await manager.client.work.today({ penId: pen.id });
     const round = today.find(
       (row) => row.definitionId === world.sop.definitionId
     );
     if (!round) {
       throw new Error("expected the morning round in her pen");
     }
-    const board = await manager.client.instances.get({ id: round.id });
+    const board = await manager.client.work.get({ id: round.id });
     expect(board.animals.map((one) => one.id)).not.toContain(cow.id);
 
     // And her page still says everything it said, with how she went on it.
@@ -316,7 +316,7 @@ describe("a death and a cull", () => {
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     const owner = await createTestClient(appRouter, { as: "owner", clock });
 
-    const before = await owner.client.home.owner();
+    const before = await owner.client.overview.get();
     await manager.client.animals.recordMortality({
       photo: A_DEATH_PHOTO,
       tagNumber: cow.tagNumber,
@@ -327,7 +327,7 @@ describe("a death and a cull", () => {
 
     // One more than before — counted rather than compared against a total, because the tests
     // around this one bury their own animals on the same farm.
-    const after = await owner.client.home.owner();
+    const after = await owner.client.overview.get();
     expect(after.tiles.died).toBe(before.tiles.died + 1);
     expect(after.tiles.culled).toBe(before.tiles.culled);
   });
@@ -337,7 +337,7 @@ describe("a death and a cull", () => {
     const manager = await createTestClient(appRouter, { as: "manager", clock });
 
     // A check raised about her by her last Move: work about one animal, hers alone.
-    const other = await owner.client.herd.createPen({
+    const other = await owner.client.sheds.createPen({
       shedId: world.shedId,
       name: `আরেক ${Date.now()}`,
     });
@@ -346,8 +346,8 @@ describe("a death and a cull", () => {
       toPenId: other.id,
       reason: "দেখে রাখার জন্য",
     });
-    await manager.client.instances.ensureDue();
-    const hers = await manager.client.instances.today({ penId: other.id });
+    await manager.client.work.ensureDue();
+    const hers = await manager.client.work.today({ penId: other.id });
     const check = hers.find(
       (row) =>
         row.animalId === cow.id && row.definitionId === world.check.definitionId
@@ -365,7 +365,7 @@ describe("a death and a cull", () => {
     });
 
     // Work nobody can do is called off rather than left going late about a cow who is buried — and its trail says why.
-    const after = await manager.client.instances.get({ id: check.id });
+    const after = await manager.client.work.get({ id: check.id });
     expect(after.state).toBe("called_off");
     const [calledOff] = await manager.client.audit.list({
       entity: "sop_instance",
@@ -379,8 +379,8 @@ describe("a death and a cull", () => {
 
     // And the Playbook's own mortality handling is raised by her death: bury her to the depth
     // the rule names, and the Owner checks it.
-    await manager.client.instances.ensureDue();
-    const handling = await manager.client.instances.today({ penId: other.id });
+    await manager.client.work.ensureDue();
+    const handling = await manager.client.work.today({ penId: other.id });
     expect(
       handling.some(
         (row) =>

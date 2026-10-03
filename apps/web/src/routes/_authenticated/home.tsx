@@ -50,10 +50,10 @@ const ManagerHome = () => {
   const navigate = Route.useNavigate();
   const { queue: queueTab } = Route.useSearch();
   const queryClient = useQueryClient();
-  const ensureDue = useMutation(orpc.instances.ensureDue.mutationOptions({}));
+  const ensureDue = useMutation(orpc.work.ensureDue.mutationOptions({}));
   const sweep = useMutation(orpc.alerts.sweep.mutationOptions({}));
   const digest = useMutation(orpc.alerts.digest.mutationOptions({}));
-  const home = useQuery(orpc.home.manager.queryOptions());
+  const home = useQuery(orpc.home.get.queryOptions());
   const me = useQuery(orpc.people.me.queryOptions());
   // Answering a Repeat Breeder is the Manager's, the Vet's or the Owner's.
   const mayAnswer =
@@ -81,7 +81,7 @@ const ManagerHome = () => {
     };
     void run();
   }, [raise, tell, carry, queryClient]);
-  const sheds = useQuery(orpc.herd.list.queryOptions());
+  const sheds = useQuery(orpc.sheds.list.queryOptions());
   const penNames = new Map(
     (sheds.data ?? []).flatMap((shed) =>
       shed.pens.map((pen) => [pen.id, `${shed.name} / ${pen.name}`] as const)

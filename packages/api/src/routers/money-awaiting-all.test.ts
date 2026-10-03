@@ -55,7 +55,7 @@ beforeAll(async () => {
 describe("money waiting for the Owner", () => {
   it("lists the oldest fifty, and counts and totals all of it", async () => {
     const owner = await as("owner");
-    const { needsYou } = await owner.client.home.owner();
+    const { needsYou } = await owner.client.overview.get();
     expect(needsYou.moneyAwaiting).toHaveLength(50);
     expect(needsYou.moneyAwaitingAll).toEqual({
       count: WAITING,

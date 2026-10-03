@@ -54,8 +54,8 @@ beforeAll(async () => {
   await owner.client.ventures.startBuying({ id: ventureId });
   // The Owner's line, just under the two lakh.
   await owner.client.farm.setParameters({ runningBudgetWarnMoney: 199_000 });
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,

@@ -35,9 +35,9 @@ let world: {
 
 beforeAll(async () => {
   const owner = await as("owner", AT);
-  const shed = await owner.herd.createShed({ name: `রেকর্ড ${suffix}` });
+  const shed = await owner.sheds.createShed({ name: `রেকর্ড ${suffix}` });
   const pen = async (name: string) => {
-    const made = await owner.herd.createPen({
+    const made = await owner.sheds.createPen({
       quarantine: true,
       shedId: shed.id,
       name: `${name} ${suffix}`,

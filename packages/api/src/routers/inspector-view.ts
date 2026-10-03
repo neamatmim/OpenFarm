@@ -303,7 +303,7 @@ const handOver = async (
   };
 };
 
-export const registrationCertificateRouter = {
+export const inspectorViewRouter = {
   /**
    * The Inspector View: the one screen the Manager shows a DLS inspector on their own phone — the
    * Registration with its certificate, and the herd on the farm today by Side and State and by Pen. The

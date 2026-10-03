@@ -47,8 +47,8 @@ const weighInSop = (): SopContent => ({
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
   const manager = await createTestClient(appRouter, { as: "manager" });
-  const shed = await owner.client.herd.createShed({ name: `weigh-${suffix}` });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `weigh-${suffix}` });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `মোটাতাজা ${suffix}`,
@@ -90,8 +90,8 @@ beforeAll(async () => {
 const round = async (day: string) => {
   const clock = new FakeClock(`${day}T07:30:00.000Z`);
   const scheduler = await createTestClient(appRouter, { as: "owner", clock });
-  await scheduler.client.instances.ensureDue();
-  const today = await scheduler.client.instances.today({ penId: world.pen.id });
+  await scheduler.client.work.ensureDue();
+  const today = await scheduler.client.work.today({ penId: world.pen.id });
   const instance = today.find(
     (candidate) => candidate.definitionId === world.sop.definitionId
   );
@@ -99,7 +99,7 @@ const round = async (day: string) => {
     throw new Error("expected a weigh-in instance");
   }
   const staff = await createTestClient(appRouter, { as: "staff", clock });
-  await staff.client.instances.claim({ id: instance.id });
+  await staff.client.work.claim({ id: instance.id });
   const manager = await createTestClient(appRouter, { as: "manager", clock });
   return { instance, staff, manager, clock };
 };
@@ -110,7 +110,7 @@ describe("the fortnightly weigh-in", () => {
   it("keeps a reading per animal, and shows them on her page", async () => {
     const { instance, staff } = await round("2027-02-01");
 
-    const first = await staff.client.instances.completeStep({
+    const first = await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "weigh",
       animalTag: tagOf(0),
@@ -120,7 +120,7 @@ describe("the fortnightly weigh-in", () => {
 
     // The one that would not go up the crush is skipped with her reason, and the round is
     // still a round: the other animal is weighed and the work finishes.
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "weigh",
       animalTag: tagOf(1),
@@ -128,7 +128,7 @@ describe("the fortnightly weigh-in", () => {
     });
     // Every animal in the pen has been answered for — one weighed, one skipped — so the round
     // is finished rather than left open on the overdue list.
-    const board = await staff.client.instances.get({ id: instance.id });
+    const board = await staff.client.work.get({ id: instance.id });
     expect(board.completions).toHaveLength(2);
     expect(board.state).not.toBe("open");
 
@@ -146,7 +146,7 @@ describe("the fortnightly weigh-in", () => {
 
     // Fourteen days and sixty kilos: more than four a day, which no bull does. The barn wrote
     // it down, so it is kept (ADR 0002) — the farm does not throw away what somebody recorded.
-    const taken = await staff.client.instances.completeStep({
+    const taken = await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "weigh",
       animalTag: tagOf(0),
@@ -166,7 +166,7 @@ describe("the fortnightly weigh-in", () => {
     expect(her.weighIns[0]?.flaggedNote).toContain("kg/day");
 
     // And the Manager is asked rather than left to notice.
-    const board = await staff.client.instances.get({ id: instance.id });
+    const board = await staff.client.work.get({ id: instance.id });
     const entry = board.completions.find(
       (row) => row.stepId === "weigh" && row.animalId === her.id
     );
@@ -197,7 +197,7 @@ describe("the fortnightly weigh-in", () => {
       resolution: "স্কেল দেখে নিশ্চিত করা হয়েছে",
     });
 
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "weigh",
       animalTag: tagOf(1),

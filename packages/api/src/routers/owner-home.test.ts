@@ -38,8 +38,8 @@ const milkingSop = (): SopContent => ({
 
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.client.herd.createShed({ name: `owner-${suffix}` });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `owner-${suffix}` });
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: "দোহন পেন",
   });
@@ -74,23 +74,23 @@ describe("the Owner's home", () => {
   it("opens on what needs the Owner, and the litres the day actually came to", async () => {
     const clock = new FakeClock("2028-02-01T03:30:00.000Z");
     const owner = await createTestClient(appRouter, { as: "owner", clock });
-    await owner.client.instances.ensureDue();
-    const today = await owner.client.instances.today({ penId: world.pen.id });
+    await owner.client.work.ensureDue();
+    const today = await owner.client.work.today({ penId: world.pen.id });
     const morning = today.find(
       (row) => row.definitionId === world.sop.definitionId
     );
     if (!morning) {
       throw new Error("expected the morning milking");
     }
-    await owner.client.instances.claim({ id: morning.id });
-    await owner.client.instances.completeStep({
+    await owner.client.work.claim({ id: morning.id });
+    await owner.client.work.completeStep({
       instanceId: morning.id,
       stepId: "milk",
       animalTag: world.cow.tagNumber,
       evidence: [12],
     });
 
-    const home = await owner.client.home.owner();
+    const home = await owner.client.overview.get();
 
     // The litres are the farm's own record, not a figure anybody typed on a dashboard.
     expect(home.tiles.bulkToday).toBeGreaterThanOrEqual(12);
@@ -104,7 +104,7 @@ describe("the Owner's home", () => {
     expect(lateness).toEqual(lateness.toSorted((a, b) => b - a));
 
     // And this morning's milking is late, which the farm's own Overdue list says.
-    const late = await owner.client.instances.overdue();
+    const late = await owner.client.work.overdue();
     expect(late.map((row) => row.id)).toContain(morning.id);
   });
 
@@ -122,7 +122,7 @@ describe("the Owner's home", () => {
       note: "উদ্দেশ্য স্পষ্ট করা",
     });
 
-    const home = await owner.client.home.owner();
+    const home = await owner.client.overview.get();
     expect(
       home.needsYou.proposals.some(
         (row) => row.definitionId === world.sop.definitionId
@@ -130,7 +130,7 @@ describe("the Owner's home", () => {
     ).toBe(true);
 
     // The Owner's screen is the Owner's: a Manager asking for it is refused.
-    await expect(manager.client.home.owner()).rejects.toThrow();
+    await expect(manager.client.overview.get()).rejects.toThrow();
   });
 
   it("says the farm is fine by having nothing to say", async () => {
@@ -138,7 +138,7 @@ describe("the Owner's home", () => {
     const clock = new FakeClock("2028-02-03T20:00:00.000Z");
     const owner = await createTestClient(appRouter, { as: "owner", clock });
 
-    const home = await owner.client.home.owner();
+    const home = await owner.client.overview.get();
 
     // Nothing of this test's own making is waiting — the farm's own leftovers are other
     // tests' business, so this asserts the shape rather than a count of everything.
@@ -150,16 +150,16 @@ describe("the Owner's home", () => {
   it("adds the litres up the way the farm would, and no other way", async () => {
     const clock = new FakeClock("2028-02-04T03:30:00.000Z");
     const owner = await createTestClient(appRouter, { as: "owner", clock });
-    await owner.client.instances.ensureDue();
-    const today = await owner.client.instances.today({ penId: world.pen.id });
+    await owner.client.work.ensureDue();
+    const today = await owner.client.work.today({ penId: world.pen.id });
     const morning = today.find(
       (row) => row.definitionId === world.sop.definitionId
     );
     if (!morning) {
       throw new Error("expected the morning milking");
     }
-    await owner.client.instances.claim({ id: morning.id });
-    await owner.client.instances.completeStep({
+    await owner.client.work.claim({ id: morning.id });
+    await owner.client.work.completeStep({
       instanceId: morning.id,
       stepId: "milk",
       animalTag: world.cow.tagNumber,
@@ -167,7 +167,7 @@ describe("the Owner's home", () => {
       destination: "discard",
     });
 
-    const home = await owner.client.home.owner();
+    const home = await owner.client.overview.get();
     // Discarded milk never reached the tank, so it is not in what the tank got — the tile
     // is the farm's record of where the milk went, not of how much was drawn.
     expect(home.tiles.bulkToday).toBe(0);
@@ -176,10 +176,10 @@ describe("the Owner's home", () => {
   it("puts work the Owner is the checker of in front of them", async () => {
     const clock = new FakeClock("2028-02-05T03:30:00.000Z");
     const owner = await createTestClient(appRouter, { as: "owner", clock });
-    const shed = await owner.client.herd.createShed({
+    const shed = await owner.client.sheds.createShed({
       name: `checked-${Date.now()}`,
     });
-    const pen = await owner.client.herd.createPen({
+    const pen = await owner.client.sheds.createPen({
       shedId: shed.id,
       name: "মালিকের পেন",
     });
@@ -209,44 +209,44 @@ describe("the Owner's home", () => {
         ],
       },
     });
-    await owner.client.instances.ensureDue();
-    const today = await owner.client.instances.today({ penId: pen.id });
+    await owner.client.work.ensureDue();
+    const today = await owner.client.work.today({ penId: pen.id });
     const work = today.find((row) => row.definitionId === sop.definitionId);
     if (!work) {
       throw new Error("expected work the Owner checks");
     }
-    await owner.client.instances.claim({ id: work.id });
-    await owner.client.instances.completeStep({
+    await owner.client.work.claim({ id: work.id });
+    await owner.client.work.completeStep({
       instanceId: work.id,
       stepId: "look",
       evidence: [true],
     });
-    await owner.client.instances.complete({ id: work.id });
+    await owner.client.work.complete({ id: work.id });
 
-    const home = await owner.client.home.owner();
+    const home = await owner.client.overview.get();
     expect(home.needsYou.approvals.map((row) => row.id)).toContain(work.id);
   });
 
   it("counts a day of the farm's milk, not a row per Pen", async () => {
     const clock = new FakeClock("2028-02-06T03:30:00.000Z");
     const owner = await createTestClient(appRouter, { as: "owner", clock });
-    await owner.client.instances.ensureDue();
-    const today = await owner.client.instances.today({ penId: world.pen.id });
+    await owner.client.work.ensureDue();
+    const today = await owner.client.work.today({ penId: world.pen.id });
     const morning = today.find(
       (row) => row.definitionId === world.sop.definitionId
     );
     if (!morning) {
       throw new Error("expected the morning milking");
     }
-    await owner.client.instances.claim({ id: morning.id });
-    await owner.client.instances.completeStep({
+    await owner.client.work.claim({ id: morning.id });
+    await owner.client.work.completeStep({
       instanceId: morning.id,
       stepId: "milk",
       animalTag: world.cow.tagNumber,
       evidence: [7],
     });
 
-    const home = await owner.client.home.owner();
+    const home = await owner.client.overview.get();
     const todaysBar = home.tiles.days.at(-1);
     // One bar for the day, carrying every Pen's Sessions in it — and today's figure is the
     // same number, because they are the same question asked twice.

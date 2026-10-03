@@ -18,8 +18,8 @@ let fmdId = "";
 
 beforeAll(async () => {
   const owner = await as("owner");
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `রোগ পেন ${suffix}`,
   });

@@ -33,8 +33,8 @@ const weighing = (): SopContent => ({
 let world: { penId: string; definitionId: string };
 beforeAll(async () => {
   const { client: owner } = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.herd.createShed({ name: `weekdays-${suffix}` });
-  const pen = await owner.herd.createPen({
+  const shed = await owner.sheds.createShed({ name: `weekdays-${suffix}` });
+  const pen = await owner.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `পেন ${suffix}`,
@@ -62,8 +62,8 @@ const raisedOn = async (day: string) => {
     as: "manager",
     clock,
   });
-  await manager.instances.ensureDue();
-  const today = await manager.instances.today({ penId: world.penId });
+  await manager.work.ensureDue();
+  const today = await manager.work.today({ penId: world.penId });
   return today.some((row) => row.definitionId === world.definitionId);
 };
 

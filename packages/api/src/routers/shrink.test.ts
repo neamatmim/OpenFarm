@@ -78,8 +78,8 @@ const aBull = async (weightKg: number, into = penId) => {
 
 beforeAll(async () => {
   const owner = await as("owner", "2079-03-01T04:00:00.000Z");
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -90,11 +90,11 @@ beforeAll(async () => {
   unweighed = await aBull(260);
   // The first on the scale on the tenth: 320 kg. The second never weighed again after the lorry he came on.
   const manager = await as("manager", "2079-03-10T02:00:00.000Z");
-  await manager.client.instances.ensureDue();
-  const today = await manager.client.instances.today({ penId });
+  await manager.client.work.ensureDue();
+  const today = await manager.client.work.today({ penId });
   const work = today.find((row) => row.definitionId === weighing.definitionId);
-  await manager.client.instances.claim({ id: work?.id ?? "" });
-  await manager.client.instances.completeStep({
+  await manager.client.work.claim({ id: work?.id ?? "" });
+  await manager.client.work.completeStep({
     instanceId: work?.id ?? "",
     stepId: "weigh",
     animalTag: weighed,
@@ -218,8 +218,8 @@ describe("shrink past the farm's allowance", () => {
 
   beforeAll(async () => {
     const owner = await as("owner", "2079-03-01T04:00:00.000Z");
-    const shed = await owner.client.herd.createShed({ name: `বড় ${suffix}` });
-    const pen = await owner.client.herd.createPen({
+    const shed = await owner.client.sheds.createShed({ name: `বড় ${suffix}` });
+    const pen = await owner.client.sheds.createPen({
       quarantine: true,
       shedId: shed.id,
       name: `বড় পেন ${suffix}`,
@@ -242,18 +242,18 @@ describe("shrink past the farm's allowance", () => {
     bulls.cow = cow.tagNumber;
     // All four on the scale on the tenth at 400 kg.
     const manager = await as("manager", "2079-03-10T02:00:00.000Z");
-    await manager.client.instances.ensureDue();
-    const today = await manager.client.instances.today({ penId: pen.id });
+    await manager.client.work.ensureDue();
+    const today = await manager.client.work.today({ penId: pen.id });
     for (const [definitionId, tags] of [
       [fattening.definitionId, [bulls.twelve, bulls.five, bulls.stale]],
       [dairy.definitionId, [bulls.cow]],
     ] as const) {
       const work = today.find((row) => row.definitionId === definitionId);
       // oxlint-disable-next-line no-await-in-loop -- one round, then the other
-      await manager.client.instances.claim({ id: work?.id ?? "" });
+      await manager.client.work.claim({ id: work?.id ?? "" });
       for (const animalTag of tags) {
         // oxlint-disable-next-line no-await-in-loop -- one animal at a time, as a round is walked
-        await manager.client.instances.completeStep({
+        await manager.client.work.completeStep({
           instanceId: work?.id ?? "",
           stepId: "weigh",
           animalTag,

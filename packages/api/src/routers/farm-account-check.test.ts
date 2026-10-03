@@ -115,7 +115,7 @@ describe("a Farm Account's monthly check", () => {
     });
     // And the Owner's home names it until it agrees.
     const owner = await as("owner", "2083-06-02T11:00:00.000Z");
-    const home = await owner.client.home.owner();
+    const home = await owner.client.overview.get();
     expect(home.needsYou.farmAccountsOut).toEqual([
       expect.objectContaining({ id: accountId, monthsOut: ["2083-05"] }),
     ]);
@@ -148,7 +148,7 @@ describe("a Farm Account's monthly check", () => {
     );
     expect(await standing()).toMatchObject({ monthsOut: [], monthsStale: [] });
     const owner = await as("owner", "2083-06-03T11:00:00.000Z");
-    const home = await owner.client.home.owner();
+    const home = await owner.client.overview.get();
     expect(home.needsYou.farmAccountsOut).toEqual([]);
   });
 

@@ -54,8 +54,8 @@ const setup = async () => {
     name: { bn: `নেপিয়ার আঁটি ${suffix}` },
     unit: "bundle",
   });
-  const shed = await manager.client.herd.createShed({ name: suffix });
-  const pen = await manager.client.herd.createPen({
+  const shed = await manager.client.sheds.createShed({ name: suffix });
+  const pen = await manager.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: "আঁটির পেন",

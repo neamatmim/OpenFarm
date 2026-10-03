@@ -39,7 +39,7 @@ import type { orpc } from "@/utils/orpc";
 
 /** The Manager's queue as the farm answers it. */
 export type ManagerQueueData = Awaited<
-  ReturnType<typeof orpc.home.manager.call>
+  ReturnType<typeof orpc.home.get.call>
 >["queue"];
 
 /** A cow's Tag Number, opening her record. */

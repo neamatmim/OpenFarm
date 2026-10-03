@@ -53,12 +53,12 @@ const fedOn = async (
   beside: { feedItemId: string; givenKg: number }[] = []
 ) => {
   const scheduler = await as("owner", `${day}T00:30:00.000Z`);
-  await scheduler.client.instances.ensureDue();
-  const due = await scheduler.client.instances.today({ penId });
+  await scheduler.client.work.ensureDue();
+  const due = await scheduler.client.work.today({ penId });
   const round = due.find((one) => one.definitionId === definitionId);
   const staff = await as("staff", `${day}T00:30:00.000Z`);
-  await staff.client.instances.claim({ id: round?.id ?? "" });
-  await staff.client.instances.completeStep({
+  await staff.client.work.claim({ id: round?.id ?? "" });
+  await staff.client.work.completeStep({
     instanceId: round?.id ?? "",
     stepId: "feed",
     evidence: [true],
@@ -103,8 +103,8 @@ beforeAll(async () => {
     "2077-01-01"
   );
   await owner.client.ventures.startBuying({ id: ventureId });
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,

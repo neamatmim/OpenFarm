@@ -46,8 +46,8 @@ beforeAll(async () => {
     registrationNumber: `DLS/${suffix}`.slice(0, 40),
     phone: "01711-000999",
   });
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -90,7 +90,7 @@ beforeAll(async () => {
   // One bull, bought out of a Float that is drawn and closed the same day — so the Buying Trip is
   // paid for and settled between them before any of this begins.
   const buying = await as("owner", "2049-01-04T04:00:00.000Z");
-  const trip = await buying.client.trips.record({
+  const trip = await buying.client.buyingTrips.record({
     wentTo: `কেনার হাট ${suffix}`,
     wentOn: "2049-01-04",
     brokerMoney: 0,

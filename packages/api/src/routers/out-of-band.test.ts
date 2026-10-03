@@ -16,9 +16,9 @@ const as = (role: "owner" | "manager" | "staff", instant = LATER) =>
 
 const setup = async () => {
   const manager = await as("manager", ARRIVED);
-  const shed = await manager.client.herd.createShed({ name: suffix });
+  const shed = await manager.client.sheds.createShed({ name: suffix });
   const pen = async (name: string) =>
-    await manager.client.herd.createPen({
+    await manager.client.sheds.createPen({
       quarantine: true,
       shedId: shed.id,
       name,

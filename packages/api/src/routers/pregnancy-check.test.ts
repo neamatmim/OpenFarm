@@ -119,8 +119,8 @@ const checkSop = (): SopContent => ({
 const setup = async () => {
   const clock = new FakeClock("2030-01-01T00:00:00.000Z");
   const owner = await createTestClient(appRouter, { as: "owner", clock });
-  const shed = await owner.client.herd.createShed({ name: `pd-${suffix}` });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `pd-${suffix}` });
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `গর্ভ ${suffix}`,
   });
@@ -200,10 +200,10 @@ const workFor = async (
   const clock = new FakeClock(at);
   const client = await createTestClient(appRouter, { as, clock });
   const manager = await createTestClient(appRouter, { as: "manager", clock });
-  await manager.client.instances.ensureDue();
+  await manager.client.work.ensureDue();
   const her = await manager.client.animals.byTag({ tagNumber });
-  const today = await manager.client.instances.today({ penId: world.pen.id });
-  const late = await manager.client.instances.overdue();
+  const today = await manager.client.work.today({ penId: world.pen.id });
+  const late = await manager.client.work.overdue();
   const seen = new Set<string>();
   const rows = [...today, ...late].filter((row) => {
     const mine =
@@ -225,18 +225,18 @@ const heatAndServe = async (
 ): Promise<string> => {
   const clock = new FakeClock(`${day}T00:00:00.000Z`);
   const manager = await createTestClient(appRouter, { as: "manager", clock });
-  await manager.client.instances.raiseNow({
+  await manager.client.work.raiseNow({
     definitionId: world.watch.definitionId,
     penId: world.pen.id,
   });
-  const rounds = await manager.client.instances.today({ penId: world.pen.id });
+  const rounds = await manager.client.work.today({ penId: world.pen.id });
   const round = rounds.find(
     (row) =>
       row.definitionId === world.watch.definitionId && row.state !== "completed"
   );
   const staff = await createTestClient(appRouter, { as: "staff", clock });
-  await staff.client.instances.claim({ id: round?.id ?? "" });
-  await staff.client.instances.completeStep({
+  await staff.client.work.claim({ id: round?.id ?? "" });
+  await staff.client.work.completeStep({
     instanceId: round?.id ?? "",
     stepId: "look",
     animalTag: tagNumber,
@@ -255,25 +255,25 @@ const heatAndServe = async (
     clock: later,
     onShedPhone,
   });
-  await serving.client.instances.claim({ id: workId });
-  await serving.client.instances.completeStep({
+  await serving.client.work.claim({ id: workId });
+  await serving.client.work.completeStep({
     instanceId: workId,
     stepId: "first",
     evidence: ["ai", "HF-2231-BD", "রহিম", servedAt[0] ?? ""],
   });
   await (servedAt[1]
-    ? serving.client.instances.completeStep({
+    ? serving.client.work.completeStep({
         instanceId: workId,
         stepId: "second",
         evidence: ["ai", "HF-2231-BD", "রহিম", servedAt[1]],
       })
-    : serving.client.instances.completeStep({
+    : serving.client.work.completeStep({
         instanceId: workId,
         stepId: "second",
         evidence: [],
         skipReason: "একবারেই যথেষ্ট",
       }));
-  await serving.client.instances.complete({ id: workId });
+  await serving.client.work.complete({ id: workId });
   return workId;
 };
 
@@ -314,8 +314,8 @@ describe("the pregnancy check", () => {
       "vet"
     );
     const workId = rows[0]?.id ?? "";
-    await client.client.instances.claim({ id: workId });
-    await client.client.instances.completeStep({
+    await client.client.work.claim({ id: workId });
+    await client.client.work.completeStep({
       instanceId: workId,
       stepId: "check",
       evidence: ["positive"],
@@ -347,7 +347,7 @@ describe("the pregnancy check", () => {
       as: "manager",
       clock: new FakeClock("2030-01-06T00:00:00.000Z"),
     });
-    const board = await office.client.instances.get({ id: aiWork });
+    const board = await office.client.work.get({ id: aiWork });
     // The trail says which phone, and the record says it was the Manager's.
     expect(
       board.completions
@@ -362,8 +362,8 @@ describe("the pregnancy check", () => {
       "vet"
     );
     const workId = rows[0]?.id ?? "";
-    await client.client.instances.claim({ id: workId });
-    await client.client.instances.completeStep({
+    await client.client.work.claim({ id: workId });
+    await client.client.work.completeStep({
       instanceId: workId,
       stepId: "check",
       evidence: ["negative"],
@@ -412,8 +412,8 @@ describe("the pregnancy check", () => {
       "vet"
     );
     const workId = rows[0]?.id ?? "";
-    await client.client.instances.claim({ id: workId });
-    await client.client.instances.completeStep({
+    await client.client.work.claim({ id: workId });
+    await client.client.work.completeStep({
       instanceId: workId,
       stepId: "check",
       evidence: ["negative"],
@@ -445,7 +445,7 @@ describe("the pregnancy check", () => {
       as: "manager",
       clock: new FakeClock(nextDay),
     });
-    const board = await manager.client.instances.get({ id: workId });
+    const board = await manager.client.work.get({ id: workId });
     const entry = board.completions.find((row) => row.stepId === "first");
     await correctStepAsShown(manager.client, {
       completionId: entry?.id ?? "",
@@ -479,7 +479,7 @@ describe("the pregnancy check", () => {
       const other = await createTestClient(appRouter, { as, clock });
       // oxlint-disable-next-line no-await-in-loop
       await expect(
-        other.client.instances.completeStep({
+        other.client.work.completeStep({
           instanceId: workId,
           stepId: "check",
           evidence: ["positive"],
@@ -492,7 +492,7 @@ describe("the pregnancy check", () => {
     // And a milker is refused at the Step: the work is the Vet's.
     const milker = await createTestClient(appRouter, { as: "staff", clock });
     await expect(
-      milker.client.instances.completeStep({
+      milker.client.work.completeStep({
         instanceId: workId,
         stepId: "check",
         evidence: ["positive"],
@@ -533,8 +533,8 @@ describe("the pregnancy check", () => {
       "vet"
     );
     const workId = rows[0]?.id ?? "";
-    await client.client.instances.claim({ id: workId });
-    await client.client.instances.completeStep({
+    await client.client.work.claim({ id: workId });
+    await client.client.work.completeStep({
       instanceId: workId,
       stepId: "check",
       evidence: ["positive"],
@@ -542,7 +542,7 @@ describe("the pregnancy check", () => {
     const carrying = await client.client.animals.byTag({ tagNumber: tagOf(2) });
     expect(carrying.state).toBe("pregnant_heifer");
 
-    const board = await client.client.instances.get({ id: workId });
+    const board = await client.client.work.get({ id: workId });
     const entry = board.completions.find((row) => row.stepId === "check");
 
     // The finding is the Vet's: the Manager, who may put right most of the farm's entries, may not put right this one.

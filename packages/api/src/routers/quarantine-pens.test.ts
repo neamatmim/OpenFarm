@@ -46,8 +46,8 @@ describe("quarantine pens", () => {
 
   it("refuses an Intake on a farm with no quarantine pen, saying to mark one", async () => {
     const manager = await as("manager");
-    const shed = await manager.client.herd.createShed({ name: suffix });
-    const dairy = await manager.client.herd.createPen({
+    const shed = await manager.client.sheds.createShed({ name: suffix });
+    const dairy = await manager.client.sheds.createPen({
       shedId: shed.id,
       name: `দুধের পেন ${suffix}`,
     });
@@ -63,10 +63,10 @@ describe("quarantine pens", () => {
 
   it("refuses one into a pen that is not a quarantine pen, once the farm has one", async () => {
     const manager = await as("manager");
-    const shed = await manager.client.herd.createShed({
+    const shed = await manager.client.sheds.createShed({
       name: `কোয়ারেন্টিন ${suffix}`,
     });
-    const marked = await manager.client.herd.createPen({
+    const marked = await manager.client.sheds.createPen({
       shedId: shed.id,
       name: `কোয়ারেন্টিন পেন ${suffix}`,
       quarantine: true,
@@ -90,7 +90,7 @@ describe("quarantine pens", () => {
     await expect(
       owner.client.animals.register(registered(quarantinePen))
     ).resolves.toMatchObject({ tagNumber: expect.any(String) });
-    const listed = await manager.client.herd.list();
+    const listed = await manager.client.sheds.list();
     const pens = listed.flatMap((one) => one.pens);
     expect(pens.find((one) => one.id === quarantinePen)?.quarantine).toBe(true);
   });
@@ -98,24 +98,27 @@ describe("quarantine pens", () => {
   it("will not be unmarked while it holds a bull in Quarantine; an empty one may", async () => {
     const manager = await as("manager");
     await expect(
-      manager.client.herd.markQuarantine({
+      manager.client.sheds.markQuarantine({
         penId: quarantinePen,
         quarantine: false,
       })
     ).rejects.toMatchObject({ data: { refusal: "pen_holds_quarantine" } });
-    await manager.client.herd.markQuarantine({
+    await manager.client.sheds.markQuarantine({
       penId: dairyPen,
       quarantine: true,
     });
     await expect(
-      manager.client.herd.markQuarantine({ penId: dairyPen, quarantine: false })
+      manager.client.sheds.markQuarantine({
+        penId: dairyPen,
+        quarantine: false,
+      })
     ).resolves.toBeDefined();
   });
 
   it("is the Owner's or the Manager's to mark, not Barn Staff's", async () => {
     const staff = await as("staff");
     await expect(
-      staff.client.herd.markQuarantine({ penId: dairyPen, quarantine: true })
+      staff.client.sheds.markQuarantine({ penId: dairyPen, quarantine: true })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });
@@ -168,22 +171,22 @@ describe("a bull in Quarantine", () => {
   it("is walked only into a quarantine pen", async () => {
     const manager = await as("manager");
     const owner = await as("owner");
-    const shed = await manager.client.herd.createShed({
+    const shed = await manager.client.sheds.createShed({
       name: `দ্বিতীয় ${suffix}`,
     });
-    const firstPen = await manager.client.herd.createPen({
+    const firstPen = await manager.client.sheds.createPen({
       shedId: shed.id,
       name: `প্রথম কোয়ারেন্টিন ${suffix}`,
       quarantine: true,
     });
     pens.first = firstPen.id;
-    const secondPen = await manager.client.herd.createPen({
+    const secondPen = await manager.client.sheds.createPen({
       shedId: shed.id,
       name: `দ্বিতীয় কোয়ারেন্টিন ${suffix}`,
       quarantine: true,
     });
     pens.second = secondPen.id;
-    const fatteningPen = await manager.client.herd.createPen({
+    const fatteningPen = await manager.client.sheds.createPen({
       shedId: shed.id,
       name: `ষাঁড় পেন ${suffix}`,
     });
@@ -205,12 +208,12 @@ describe("a bull in Quarantine", () => {
   it("is not walked out of quarantine by a Step either", async () => {
     const tag = await intoQuarantine();
     const manager = await as("manager");
-    await manager.client.instances.ensureDue();
-    const today = await manager.client.instances.today({ penId: pens.first });
+    await manager.client.work.ensureDue();
+    const today = await manager.client.work.today({ penId: pens.first });
     const round = today.find((row) => row.definitionId === walking);
-    await manager.client.instances.claim({ id: round?.id ?? "" });
+    await manager.client.work.claim({ id: round?.id ?? "" });
     await expect(
-      manager.client.instances.completeStep({
+      manager.client.work.completeStep({
         instanceId: round?.id ?? "",
         stepId: "walk",
         animalTag: tag,
@@ -218,13 +221,13 @@ describe("a bull in Quarantine", () => {
       })
     ).rejects.toMatchObject({ data: { refusal: "stays_in_quarantine" } });
     // Walked to the other quarantine pen, then put right to say the fattening pen: refused all the same.
-    await manager.client.instances.completeStep({
+    await manager.client.work.completeStep({
       instanceId: round?.id ?? "",
       stepId: "walk",
       animalTag: tag,
       evidence: [pens.second],
     });
-    const board = await manager.client.instances.get({ id: round?.id ?? "" });
+    const board = await manager.client.work.get({ id: round?.id ?? "" });
     const walked = board.completions.find(
       (row) => row.stepId === "walk" && row.animalId !== null
     );
@@ -266,7 +269,7 @@ describe("a bull in Quarantine", () => {
       .set({ penId: pens.fattening })
       .where(and(eq(animal.farmId, theFarm().id), eq(animal.tagNumber, tag)));
     const manager = await as("manager");
-    const astray = await manager.client.herd.quarantineAstray();
+    const astray = await manager.client.sheds.quarantineAstray();
     expect(astray.map((one) => one.tagNumber)).toContain(tag);
     expect(
       astray.every((one) => one.tagNumber !== "" && one.penName !== "")

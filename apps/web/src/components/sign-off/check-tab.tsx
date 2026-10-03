@@ -176,7 +176,7 @@ export const CheckTab = ({ queue }: { queue: Asked<ToCheck> }) => {
     onError: refused,
   };
   const approve = useMutation(
-    orpc.instances.approve.mutationOptions({
+    orpc.work.approve.mutationOptions({
       ...tracked,
       onSuccess: () => {
         toast.success(t("signOff.approved"));
@@ -184,7 +184,7 @@ export const CheckTab = ({ queue }: { queue: Asked<ToCheck> }) => {
     })
   );
   const sendBack = useMutation(
-    orpc.instances.sendBack.mutationOptions({
+    orpc.work.sendBack.mutationOptions({
       ...tracked,
       onSuccess: () => {
         toast.success(t("signOff.sentBack"));

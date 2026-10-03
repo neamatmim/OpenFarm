@@ -74,10 +74,10 @@ let penId = "";
 
 beforeAll(async () => {
   const owner = await as("owner", RECORDED);
-  const shed = await owner.client.herd.createShed({
+  const shed = await owner.client.sheds.createShed({
     name: `correction-${suffix}`,
   });
-  const pen = await owner.client.herd.createPen({
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `সংশোধন ${suffix}`,
@@ -326,7 +326,7 @@ const KINDS: Kind[] = [
           ],
         },
       });
-      await owner.client.instances.raiseNow({
+      await owner.client.work.raiseNow({
         definitionId: sop.definitionId,
         penId,
       });
@@ -335,15 +335,15 @@ const KINDS: Kind[] = [
         .update(sopDefinition)
         .set({ retiredAt: new Date(RECORDED) })
         .where(eq(sopDefinition.id, sop.definitionId));
-      const listed = await manager.instances.today({ penId });
+      const listed = await manager.work.today({ penId });
       const work = listed.find((one) => one.definitionId === sop.definitionId);
-      await manager.instances.claim({ id: work?.id ?? "" });
-      await manager.instances.completeStep({
+      await manager.work.claim({ id: work?.id ?? "" });
+      await manager.work.completeStep({
         instanceId: work?.id ?? "",
         stepId: "count",
         evidence: [5],
       });
-      const loaded = await manager.instances.get({ id: work?.id ?? "" });
+      const loaded = await manager.work.get({ id: work?.id ?? "" });
       const completion = loaded.completions.find(
         (one) => one.stepId === "count"
       );
@@ -363,7 +363,7 @@ const KINDS: Kind[] = [
         unchanged: { evidence: [5] },
       };
     },
-    correct: (client, input) => client.instances.correctStep(input as never),
+    correct: (client, input) => client.work.correctStep(input as never),
   },
   {
     name: "a person's name",

@@ -11,19 +11,19 @@ import { appRouter } from "./index";
 /** One shed with a dairy pen, a fattening pen and a staff-assigned pen, made once. */
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const sheds = await owner.client.herd.list();
+  const sheds = await owner.client.sheds.list();
   let shedId = sheds[0]?.id;
   if (!shedId) {
-    const created = await owner.client.herd.createShed({ name: "শেড A" });
+    const created = await owner.client.sheds.createShed({ name: "শেড A" });
     shedId = created.id;
   }
   const named = async (name: string) => {
-    const all = await owner.client.herd.list();
+    const all = await owner.client.sheds.list();
     const found = all.flatMap((s) => s.pens).find((p) => p.name === name);
     if (found) {
       return found.id;
     }
-    const created = await owner.client.herd.createPen({
+    const created = await owner.client.sheds.createPen({
       quarantine: true,
       shedId,
       name,
@@ -68,17 +68,17 @@ const registerDairyCalf = (penId = pens.dairyPen) =>
 describe("sheds and pens", () => {
   it("creates and renames a shed and a pen", async () => {
     const { client } = pens.owner;
-    const shed = await client.herd.createShed({ name: `শেড ${Date.now()}` });
-    const pen = await client.herd.createPen({
+    const shed = await client.sheds.createShed({ name: `শেড ${Date.now()}` });
+    const pen = await client.sheds.createPen({
       quarantine: true,
       shedId: shed.id,
       name: "পেন ক",
     });
 
-    await client.herd.renameShed({ id: shed.id, name: "শেড খ" });
-    await client.herd.renamePen({ id: pen.id, name: "পেন গ" });
+    await client.sheds.renameShed({ id: shed.id, name: "শেড খ" });
+    await client.sheds.renamePen({ id: pen.id, name: "পেন গ" });
 
-    const listed = await client.herd.list();
+    const listed = await client.sheds.list();
     const found = listed.find((s) => s.id === shed.id);
     expect(found?.name).toBe("শেড খ");
     expect(found?.pens.map((p) => p.name)).toEqual(["পেন গ"]);

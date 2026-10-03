@@ -131,8 +131,8 @@ beforeAll(async () => {
     p256dh: "test-p256dh-key",
     auth: "test-auth-key",
   });
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `কোয়ারেন্টিন ${suffix}`,
     quarantine: true,
@@ -181,7 +181,7 @@ beforeAll(async () => {
     ...PAID_FROM_THE_ACCOUNT,
   });
   // A stillborn calf on the morning round: her Calving writes her death and tells nobody.
-  const calving = await owner.client.herd.createPen({
+  const calving = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `বাচ্চার ঘর ${suffix}`,
   });
@@ -196,11 +196,11 @@ beforeAll(async () => {
   });
   const sop = await owner.client.sops.create({ content: calvingRoundSop() });
   const manager = await as("manager", `${DAY}T01:30:00.000Z`);
-  await manager.client.instances.ensureDue();
-  const listed = await manager.client.instances.today({ penId: calving.id });
+  await manager.client.work.ensureDue();
+  const listed = await manager.client.work.today({ penId: calving.id });
   const round = listed.find((row) => row.definitionId === sop.definitionId);
-  await manager.client.instances.claim({ id: round?.id ?? "" });
-  await manager.client.instances.completeStep({
+  await manager.client.work.claim({ id: round?.id ?? "" });
+  await manager.client.work.completeStep({
     instanceId: round?.id ?? "",
     stepId: "calved",
     animalTag: dam.tagNumber,

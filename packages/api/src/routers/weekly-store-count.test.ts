@@ -23,11 +23,11 @@ const as = (role: "owner" | "manager" | "staff", instant: string) =>
 
 beforeAll(async () => {
   const owner = await as("owner", "2056-02-20T04:00:00.000Z");
-  const shed = await owner.client.herd.createShed({ name: suffix });
+  const shed = await owner.client.sheds.createShed({ name: suffix });
   // Two Pens standing full: the count is still one.
   await Promise.all(
     [`ক ${suffix}`, `খ ${suffix}`].map(async (name) => {
-      const pen = await owner.client.herd.createPen({ shedId: shed.id, name });
+      const pen = await owner.client.sheds.createPen({ shedId: shed.id, name });
       await owner.client.animals.register({
         sex: "female",
         side: "dairy",
@@ -49,8 +49,8 @@ beforeAll(async () => {
 /** The count's work on a morning, as the Manager's day raises it. */
 const countsOn = async (day: string) => {
   const manager = await as("manager", `${day}T03:30:00.000Z`);
-  await manager.client.instances.ensureDue();
-  const today = await manager.client.instances.today();
+  await manager.client.work.ensureDue();
+  const today = await manager.client.work.today();
   return today.filter((row) => row.definitionId === countId);
 };
 
@@ -100,7 +100,7 @@ describe("the Owner's home", () => {
     const [work] = await countsOn(FRIDAY);
     const ownerOn = async (instant: string) => {
       const owner = await as("owner", instant);
-      const home = await owner.client.home.owner();
+      const home = await owner.client.overview.get();
       return home.needsYou.storeCount;
     };
 
@@ -109,9 +109,9 @@ describe("the Owner's home", () => {
     });
 
     const manager = await as("manager", "2056-03-04T08:00:00.000Z");
-    await manager.client.instances.claim({ id: work?.id ?? "" });
-    const board = await manager.client.instances.get({ id: work?.id ?? "" });
-    await manager.client.instances.completeStep({
+    await manager.client.work.claim({ id: work?.id ?? "" });
+    const board = await manager.client.work.get({ id: work?.id ?? "" });
+    await manager.client.work.completeStep({
       instanceId: work?.id ?? "",
       stepId: "count",
       evidence: [true],

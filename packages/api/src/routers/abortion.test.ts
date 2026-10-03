@@ -107,8 +107,8 @@ const prepSop = (penId: string): SopContent => ({
 const setup = async () => {
   const clock = new FakeClock("2033-01-01T00:00:00.000Z");
   const owner = await createTestClient(appRouter, { as: "owner", clock });
-  const shed = await owner.client.herd.createShed({ name: `ab-${suffix}` });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `ab-${suffix}` });
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `প্রজনন ${suffix}`,
   });
@@ -190,17 +190,17 @@ afterAll(async () => {
 const heatAndServe = async (day: string, tagNumber: string) => {
   const clock = new FakeClock(`${day}T00:00:00.000Z`);
   const manager = await createTestClient(appRouter, { as: "manager", clock });
-  await manager.client.instances.raiseNow({
+  await manager.client.work.raiseNow({
     definitionId: world.watch.definitionId,
     penId: world.pen.id,
   });
-  const rounds = await manager.client.instances.today({ penId: world.pen.id });
+  const rounds = await manager.client.work.today({ penId: world.pen.id });
   const round = rounds.find(
     (row) => row.definitionId === world.watch.definitionId
   );
   const staff = await createTestClient(appRouter, { as: "staff", clock });
-  await staff.client.instances.claim({ id: round?.id ?? "" });
-  await staff.client.instances.completeStep({
+  await staff.client.work.claim({ id: round?.id ?? "" });
+  await staff.client.work.completeStep({
     instanceId: round?.id ?? "",
     stepId: "look",
     animalTag: tagNumber,
@@ -212,24 +212,24 @@ const heatAndServe = async (day: string, tagNumber: string) => {
     as: "manager",
     clock: later,
   });
-  await serving.client.instances.ensureDue();
+  await serving.client.work.ensureDue();
   const her = await serving.client.animals.byTag({ tagNumber });
   // Due at noon and late by evening, on the farm's previous day: it is on the Overdue list.
   const work = [
-    ...(await serving.client.instances.today({ penId: world.pen.id })),
-    ...(await serving.client.instances.overdue()),
+    ...(await serving.client.work.today({ penId: world.pen.id })),
+    ...(await serving.client.work.overdue()),
   ];
   const aiWork = work.find(
     (row) =>
       row.definitionId === world.ai.definitionId && row.animalId === her.id
   );
-  await serving.client.instances.claim({ id: aiWork?.id ?? "" });
-  await serving.client.instances.completeStep({
+  await serving.client.work.claim({ id: aiWork?.id ?? "" });
+  await serving.client.work.completeStep({
     instanceId: aiWork?.id ?? "",
     stepId: "serve",
     evidence: ["ai", "HF-2231-BD", "রহিম", `${day}T12:00:00.000Z`],
   });
-  await serving.client.instances.complete({ id: aiWork?.id ?? "" });
+  await serving.client.work.complete({ id: aiWork?.id ?? "" });
 };
 
 /** The Manager's queue of cows somebody has to decide about, as it reads at `at`. */
@@ -238,7 +238,7 @@ const repeatBreedersAt = async (at: string) => {
     as: "manager",
     clock: new FakeClock(at),
   });
-  const home = await manager.client.home.manager();
+  const home = await manager.client.home.get();
   return { rows: home.queue.repeatBreeders, manager };
 };
 
@@ -248,7 +248,7 @@ describe("the abortion", () => {
       as: "manager",
       clock: new FakeClock("2033-03-01T04:00:00.000Z"),
     });
-    await manager.client.instances.ensureDue();
+    await manager.client.work.ensureDue();
     const before = await manager.client.animals.byTag({
       tagNumber: world.carrying,
     });
@@ -288,7 +288,7 @@ describe("the abortion", () => {
     expect(her.abortions).toMatchObject([
       { stageMonths: 6, note: "ব্রুসেলোসিস সন্দেহ" },
     ]);
-    const closed = await manager.client.instances.get({ id: prep?.id ?? "" });
+    const closed = await manager.client.work.get({ id: prep?.id ?? "" });
     expect(closed.state).toBe("called_off");
 
     // The Vet puts the stage right, with a reason; the Manager may not.

@@ -38,18 +38,18 @@ const movingSop = (pens: { id: string; name: string }[]): SopContent => ({
 
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.client.herd.createShed({
+  const shed = await owner.client.sheds.createShed({
     name: `moves-${Date.now()}`,
   });
-  const milking = await owner.client.herd.createPen({
+  const milking = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: "দোহন পেন",
   });
-  const dry = await owner.client.herd.createPen({
+  const dry = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: "শুকনো পেন",
   });
-  const sick = await owner.client.herd.createPen({
+  const sick = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: "অসুস্থ পেন",
   });
@@ -80,15 +80,15 @@ const aCowIn = async (
 
 const instanceFor = async (clock: FakeClock, penId: string) => {
   const owner = await createTestClient(appRouter, { as: "owner", clock });
-  await owner.client.instances.ensureDue();
-  const today = await owner.client.instances.today({ penId });
+  await owner.client.work.ensureDue();
+  const today = await owner.client.work.today({ penId });
   const instance = today.find(
     (row) => row.definitionId === world.sop.definitionId
   );
   if (!instance) {
     throw new Error("expected the moving instance");
   }
-  await owner.client.instances.claim({ id: instance.id });
+  await owner.client.work.claim({ id: instance.id });
   return { owner, instance };
 };
 
@@ -99,7 +99,7 @@ describe("a Step that moves an animal", () => {
     const cow = await aCowIn(first, world.milking.id);
     const { owner, instance } = await instanceFor(clock, world.milking.id);
 
-    await owner.client.instances.completeStep({
+    await owner.client.work.completeStep({
       instanceId: instance.id,
       stepId: "walk",
       animalTag: cow.tagNumber,
@@ -125,7 +125,7 @@ describe("a Step that moves an animal", () => {
     const { owner, instance } = await instanceFor(clock, world.milking.id);
 
     await expect(
-      owner.client.instances.completeStep({
+      owner.client.work.completeStep({
         instanceId: instance.id,
         stepId: "walk",
         animalTag: cow.tagNumber,
@@ -229,7 +229,7 @@ describe("a Step the farm has moved past", () => {
     expect(after.moves.some((move) => move.toPenId === world.sick.id)).toBe(
       false
     );
-    const board = await owner.client.instances.get({ id: instance.id });
+    const board = await owner.client.work.get({ id: instance.id });
     expect(board.completions.filter((row) => row.stepId === "walk")).toEqual(
       []
     );
@@ -241,13 +241,13 @@ describe("correcting a Step that moved her", () => {
     const first = await createTestClient(appRouter, { as: "owner", clock });
     const cow = await aCowIn(first, world.milking.id);
     const { owner, instance } = await instanceFor(clock, world.milking.id);
-    await owner.client.instances.completeStep({
+    await owner.client.work.completeStep({
       instanceId: instance.id,
       stepId: "walk",
       animalTag: cow.tagNumber,
       evidence: [toPenId],
     });
-    const board = await owner.client.instances.get({ id: instance.id });
+    const board = await owner.client.work.get({ id: instance.id });
     const completion = board.completions.find(
       (row) => row.stepId === "walk" && row.animalId !== null
     );
@@ -330,13 +330,13 @@ describe("what the farm has learned since", () => {
     const first = await createTestClient(appRouter, { as: "owner", clock });
     const cow = await aCowIn(first, startPenId);
     const { owner, instance } = await instanceFor(clock, startPenId);
-    await owner.client.instances.completeStep({
+    await owner.client.work.completeStep({
       instanceId: instance.id,
       stepId: "walk",
       animalTag: cow.tagNumber,
       evidence: [chosenPenId],
     });
-    const board = await owner.client.instances.get({ id: instance.id });
+    const board = await owner.client.work.get({ id: instance.id });
     const completion = board.completions.find(
       (row) => row.stepId === "walk" && row.animalId !== null
     );
@@ -422,18 +422,18 @@ describe("what the farm has learned since", () => {
     const sop = await first.client.sops.create({
       content: movingSop([world.milking, ghostPen]),
     });
-    await first.client.instances.ensureDue();
-    const today = await first.client.instances.today({
+    await first.client.work.ensureDue();
+    const today = await first.client.work.today({
       penId: world.milking.id,
     });
     const instance = today.find((row) => row.definitionId === sop.definitionId);
     if (!instance) {
       throw new Error("expected the moving instance");
     }
-    await first.client.instances.claim({ id: instance.id });
+    await first.client.work.claim({ id: instance.id });
 
     await expect(
-      first.client.instances.completeStep({
+      first.client.work.completeStep({
         instanceId: instance.id,
         stepId: "walk",
         animalTag: cow.tagNumber,

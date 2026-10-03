@@ -60,8 +60,8 @@ beforeAll(async () => {
     categoryId: sprayId,
     chargedToAnimals: true,
   });
-  const shed = await owner.client.herd.createShed({ name: "মোটাতাজাকরণ" });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: "মোটাতাজাকরণ" });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: "ষাঁড় পেন",
@@ -169,7 +169,7 @@ describe("the Overhead", () => {
 
   it("is on Month by month, worked over the month, and the year over the year", async () => {
     const owner = await as("owner", "2045-04-05T04:00:00.000Z");
-    const { months, year } = await owner.client.home.byMonth();
+    const { months, year } = await owner.client.monthlyReport.get();
     const march = months.find((one) => one.month === "2045-03");
     expect(march?.overheads).toEqual({
       amount: 31_000,

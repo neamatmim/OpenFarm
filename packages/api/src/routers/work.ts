@@ -170,7 +170,7 @@ const countBoardsOf = async (
   return { stockCount, medicineCount };
 };
 
-export const instancesRouter = {
+export const workRouter = {
   /**
    * Raises the Instances the farm's day needs. Idempotent, so the phone and the office can
    * both call it on open; a scheduled job replaces that later.

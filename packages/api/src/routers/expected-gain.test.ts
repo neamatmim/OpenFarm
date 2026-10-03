@@ -66,16 +66,16 @@ const weigh = async (
   readings: [string, number][]
 ) => {
   const manager = await as("manager", instant);
-  await manager.client.instances.ensureDue();
-  const today = await manager.client.instances.today({ penId });
+  await manager.client.work.ensureDue();
+  const today = await manager.client.work.today({ penId });
   const work = today.find((row) => row.definitionId === weighingId);
   if (!work) {
     throw new Error("expected the weighing to be due");
   }
-  await manager.client.instances.claim({ id: work.id });
+  await manager.client.work.claim({ id: work.id });
   for (const [tagNumber, kg] of readings) {
     // oxlint-disable-next-line no-await-in-loop -- one animal at a time, as a round is walked
-    await manager.client.instances.completeStep({
+    await manager.client.work.completeStep({
       instanceId: work.id,
       stepId: "weigh",
       animalTag: tagNumber,
@@ -87,9 +87,9 @@ const weigh = async (
 const setup = async () => {
   const owner = await as("owner", ARRIVED);
   const manager = await as("manager", ARRIVED);
-  const shed = await manager.client.herd.createShed({ name: suffix });
+  const shed = await manager.client.sheds.createShed({ name: suffix });
   const pen = async (name: string) =>
-    await manager.client.herd.createPen({
+    await manager.client.sheds.createPen({
       quarantine: true,
       shedId: shed.id,
       name,

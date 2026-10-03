@@ -65,10 +65,10 @@ const treatmentSop = (): SopContent => ({
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
   const vet = await createTestClient(appRouter, { as: "vet" });
-  const shed = await owner.client.herd.createShed({
+  const shed = await owner.client.sheds.createShed({
     name: `sms-${Date.now()}`,
   });
-  const pen = await owner.client.herd.createPen({
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: "এসএমএস পেন",
   });
@@ -141,8 +141,8 @@ const aTreatedCow = async (clock: FakeClock) => {
   if (!dose) {
     throw new Error("expected the dose");
   }
-  await staff.client.instances.claim({ id: dose.instanceId });
-  await staff.client.instances.completeStep({
+  await staff.client.work.claim({ id: dose.instanceId });
+  await staff.client.work.completeStep({
     instanceId: dose.instanceId,
     stepId: "dose",
     evidence: [true],
@@ -307,7 +307,7 @@ describe("the two alerts worth a text message", () => {
     // And nothing else does. A round going late is worth a push and worth nothing else: the
     // farm pays for every message, and a farm texted about everything stops reading them.
     const before = gateway.sent.length;
-    await manager.client.instances.ensureDue();
+    await manager.client.work.ensureDue();
     await manager.client.alerts.sweep();
     const overdueTexts = gateway.sent
       .slice(before)

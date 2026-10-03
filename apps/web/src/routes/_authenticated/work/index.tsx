@@ -29,7 +29,7 @@ import { refreshTheScreen } from "@/lib/refresh";
 import { placeOfWork } from "@/lib/work-place";
 import { orpc } from "@/utils/orpc";
 
-type Work = Awaited<ReturnType<typeof orpc.instances.today.call>>[number];
+type Work = Awaited<ReturnType<typeof orpc.work.today.call>>[number];
 
 /** Where a piece of work stands for the person holding the phone, as one badge: its word, its icon, its colour. */
 interface Standing {
@@ -302,7 +302,7 @@ const useRaiseTheDay = (
     me?.roles.length === 1 && me.scopes?.vet?.kind === "cases";
   const raisesTheDay = me !== undefined && !onlyVisiting;
   const queryClient = useQueryClient();
-  const ensureDue = useMutation(orpc.instances.ensureDue.mutationOptions({}));
+  const ensureDue = useMutation(orpc.work.ensureDue.mutationOptions({}));
   const sweep = useMutation(orpc.alerts.sweep.mutationOptions({}));
   const digest = useMutation(orpc.alerts.digest.mutationOptions({}));
   // Raise whatever the day needs — the work, then the notices about work already late —
@@ -339,10 +339,10 @@ const TodayPage = () => {
   const { t, language } = useLanguage();
   const { pen } = Route.useSearch();
   const work = useQuery(
-    orpc.instances.today.queryOptions({ input: pen ? { penId: pen } : {} })
+    orpc.work.today.queryOptions({ input: pen ? { penId: pen } : {} })
   );
   // Everything this person works today, for the row of Pens: the same question as the list when no Pen is chosen.
-  const everything = useQuery(orpc.instances.today.queryOptions({ input: {} }));
+  const everything = useQuery(orpc.work.today.queryOptions({ input: {} }));
   const standingOf = useStanding();
   const me = useQuery(orpc.people.me.queryOptions());
   const runsTheFarm = (me.data?.roles ?? []).some(

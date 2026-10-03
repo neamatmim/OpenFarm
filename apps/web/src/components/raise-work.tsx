@@ -31,9 +31,9 @@ export const RaiseWork = ({
   const [sop, setSop] = useState(definitionId ?? "");
   const [pen, setPen] = useState(penId ?? "");
   const sops = useQuery({ ...orpc.sops.list.queryOptions(), enabled: open });
-  const sheds = useQuery({ ...orpc.herd.list.queryOptions(), enabled: open });
+  const sheds = useQuery({ ...orpc.sheds.list.queryOptions(), enabled: open });
   const raise = useMutation(
-    orpc.instances.raiseNow.mutationOptions({
+    orpc.work.raiseNow.mutationOptions({
       onSuccess: ({ raised }) => {
         toast.success(raised > 0 ? t("work.raised") : t("work.raisedAlready"));
         setOpen(false);

@@ -33,10 +33,10 @@ beforeAll(async () => {
 /** A cow in milk, in a Pen of her own. */
 const aCowInMilk = async (name: string) => {
   const owner = await as("owner", "2059-01-01T00:00:00.000Z");
-  const shed = await owner.client.herd.createShed({
+  const shed = await owner.client.sheds.createShed({
     name: `${suffix}-${name}`,
   });
-  const pen = await owner.client.herd.createPen({ shedId: shed.id, name });
+  const pen = await owner.client.sheds.createPen({ shedId: shed.id, name });
   const cow = await owner.client.animals.register({
     sex: "female",
     side: "dairy",
@@ -60,12 +60,12 @@ const milkHer = async (
   answer: { evidence: number[] } | { skipReason: string }
 ) => {
   const manager = await as("manager", `${day}T00:00:00.000Z`);
-  await manager.client.instances.ensureDue();
-  const today = await manager.client.instances.today({ penId: cow.penId });
+  await manager.client.work.ensureDue();
+  const today = await manager.client.work.today({ penId: cow.penId });
   const work = today.find((row) => row.definitionId === milkingId);
   const id = work?.id ?? "";
-  await manager.client.instances.claim({ id });
-  await manager.client.instances.completeStep({
+  await manager.client.work.claim({ id });
+  await manager.client.work.completeStep({
     instanceId: id,
     stepId: "milk",
     animalTag: cow.tag,
@@ -92,7 +92,7 @@ const seenOf = async (tag: string) => {
 
 const workFor = async (instant: string, tag: string) => {
   const manager = await as("manager", instant);
-  await manager.client.instances.ensureDue();
+  await manager.client.work.ensureDue();
   const her = await scratchDb().query.animal.findFirst({
     where: { farmId: theFarm().id, tagNumber: tag },
     columns: { id: true },
@@ -120,9 +120,9 @@ describe("a cow skipped at milking as unwell", () => {
     const { manager } = await milkHer("2059-01-03", cow, {
       skipReason: UNWELL,
     });
-    const today = await manager.client.instances.today({ penId: cow.penId });
+    const today = await manager.client.work.today({ penId: cow.penId });
     const work = today.find((row) => row.definitionId === milkingId);
-    await manager.client.instances.completeStep({
+    await manager.client.work.completeStep({
       instanceId: work?.id ?? "",
       stepId: "milk",
       animalTag: cow.tag,

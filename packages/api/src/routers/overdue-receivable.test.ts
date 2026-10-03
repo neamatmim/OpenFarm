@@ -52,8 +52,8 @@ const theTrader = (rows: readonly { name: string }[] | undefined) =>
 
 beforeAll(async () => {
   const owner = await as("owner", "2050-03-01T04:00:00.000Z");
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -89,13 +89,13 @@ describe("the farm's days for a Receivable with no promise", () => {
 describe("overdue Receivable on the homes", () => {
   it("is not named on the day he promised", async () => {
     const manager = await as("manager", "2050-03-08T06:00:00.000Z");
-    const home = await manager.client.home.manager();
+    const home = await manager.client.home.get();
     expect(theTrader(home.queue.receivableOverdue)).toBeUndefined();
   });
 
   it("is named to the Manager the day after, with what is late, since when and his phone", async () => {
     const manager = await as("manager", "2050-03-09T06:00:00.000Z");
-    const home = await manager.client.home.manager();
+    const home = await manager.client.home.get();
     expect(theTrader(home.queue.receivableOverdue)).toMatchObject({
       overdueMoney: 20_000,
       overdueSince: "2050-03-09",
@@ -108,7 +108,7 @@ describe("overdue Receivable on the homes", () => {
     // Fourteen days, as the Owner set them: the fifteenth of March is still inside them, the sixteenth is not.
     const on = async (instant: string) => {
       const manager = await as("manager", instant);
-      const home = await manager.client.home.manager();
+      const home = await manager.client.home.get();
       return home.queue.receivableOverdue.find((one) => one.name === SHOP);
     };
     expect(await on("2050-03-15T06:00:00.000Z")).toBeUndefined();
@@ -121,7 +121,7 @@ describe("overdue Receivable on the homes", () => {
   it("tells the Owner when he was sold to on credit again while late, and the sheets say he is overdue", async () => {
     await sellOnCredit("2050-03-10T05:00:00.000Z", "2050-03-20");
     const owner = await as("owner", "2050-03-10T08:00:00.000Z");
-    const home = await owner.client.home.owner();
+    const home = await owner.client.overview.get();
     expect(theTrader(home.needsYou.receivableOverdue)).toMatchObject({
       overdueMoney: 20_000,
       owingMoney: 40_000,
@@ -140,7 +140,7 @@ describe("overdue Receivable on the homes", () => {
       paidOn: "2050-03-11",
       paymentMethod: "cash",
     });
-    const home = await manager.client.home.manager();
+    const home = await manager.client.home.get();
     expect(theTrader(home.queue.receivableOverdue)).toBeUndefined();
   });
 });

@@ -53,7 +53,7 @@ export const BuyingTripSheet = ({
     useState<IntakeFields["paymentMethod"]>("cash");
   const [account, setAccount] = useState<AccountTyped>(NO_ACCOUNT);
   const record = useMutation(
-    orpc.trips.record.mutationOptions({
+    orpc.buyingTrips.record.mutationOptions({
       onError: refused,
       onSuccess: (made) => {
         setOuting(NOTHING_YET);

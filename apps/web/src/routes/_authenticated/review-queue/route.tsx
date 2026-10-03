@@ -32,9 +32,9 @@ const SignOffPage = () => {
   const navigate = useNavigate({ from: Route.fullPath });
   const tab = useTabOfPath(TAB_PATHS) ?? "check";
 
-  const queue = useQuery(orpc.instances.signOffQueue.queryOptions());
+  const queue = useQuery(orpc.work.signOffQueue.queryOptions());
   const review = useQuery(orpc.reviewQueue.open.queryOptions());
-  const late = useQuery(orpc.instances.overdue.queryOptions());
+  const late = useQuery(orpc.work.overdue.queryOptions());
 
   return (
     <Page>

@@ -38,7 +38,7 @@ export const usePens = (me: { scopes: MeScopes } | undefined): PenChoice[] => {
   const onlyVisiting =
     scopes.length > 0 && scopes.every((scope) => scope?.kind === "cases");
   const sheds = useQuery({
-    ...orpc.herd.list.queryOptions(),
+    ...orpc.sheds.list.queryOptions(),
     enabled: me !== undefined && !onlyVisiting,
   });
   return (

@@ -52,14 +52,14 @@ const goneDrySop = (): SopContent => ({
 
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.client.herd.createShed({
+  const shed = await owner.client.sheds.createShed({
     name: `triggers-${Date.now()}`,
   });
-  const from = await owner.client.herd.createPen({
+  const from = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: "পুরনো পেন",
   });
-  const to = await owner.client.herd.createPen({
+  const to = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: "নতুন পেন",
   });
@@ -104,18 +104,18 @@ describe("work that starts because something happened", () => {
     const owner = await createTestClient(appRouter, { as: "owner", clock });
 
     // Nothing yet: the SOP is published but nothing has happened to raise it.
-    await owner.client.instances.ensureDue();
+    await owner.client.work.ensureDue();
 
     await owner.client.animals.move({
       tagNumber: world.cow.tagNumber,
       toPenId: world.to.id,
       reason: "পেন পরিবর্তন",
     });
-    await owner.client.instances.ensureDue();
+    await owner.client.work.ensureDue();
 
     // Three days later it is on the list, in the Pen she moved to.
     clock.advance(3 * DAY);
-    const today = await owner.client.instances.today({ penId: world.to.id });
+    const today = await owner.client.work.today({ penId: world.to.id });
     const mine = today.filter(
       (row) => row.definitionId === world.sop.definitionId
     );
@@ -125,7 +125,7 @@ describe("work that starts because something happened", () => {
     expect(mine[0]?.dueAt.toISOString()).toBe("2026-10-03T18:00:00.000Z");
 
     // And it concerns her alone, not everything standing in that Pen.
-    const board = await owner.client.instances.get({ id: mine[0]?.id ?? "" });
+    const board = await owner.client.work.get({ id: mine[0]?.id ?? "" });
     expect(board.animals.map((beast) => beast.tagNumber)).toEqual([
       world.cow.tagNumber,
     ]);
@@ -136,19 +136,19 @@ describe("work that starts because something happened", () => {
     const owner = await createTestClient(appRouter, { as: "owner", clock });
 
     // The Move from the first test is still within the fortnight the farm looks back over.
-    await owner.client.instances.ensureDue();
-    await owner.client.instances.ensureDue();
+    await owner.client.work.ensureDue();
+    await owner.client.work.ensureDue();
 
     await owner.client.animals.move({
       tagNumber: world.cow.tagNumber,
       toPenId: world.from.id,
       reason: "আবার পেন পরিবর্তন",
     });
-    await owner.client.instances.ensureDue();
+    await owner.client.work.ensureDue();
 
     clock.advance(3 * DAY);
-    const back = await owner.client.instances.today({ penId: world.from.id });
-    const moved = await owner.client.instances.today({ penId: world.to.id });
+    const back = await owner.client.work.today({ penId: world.from.id });
+    const moved = await owner.client.work.today({ penId: world.to.id });
     const mine = [...back, ...moved].filter(
       (row) => row.definitionId === world.sop.definitionId
     );
@@ -160,7 +160,7 @@ describe("work that starts because something happened", () => {
     // Two Moves, two checks, and no third one for the first Move seen a second time. Other
     // test files share this database and move their own animals about, so this is counted on
     // this SOP's own Pens rather than on everything the farm has open.
-    const late = await owner.client.instances.overdue();
+    const late = await owner.client.work.overdue();
     const mineOnly = new Set([world.from.id, world.to.id]);
     const everything = new Map(
       [...back, ...moved, ...late]
@@ -201,14 +201,14 @@ describe("work that starts because an animal reached a State", () => {
     owner: Awaited<ReturnType<typeof milkingCow>>["owner"],
     tagNumber: string
   ) => {
-    const open = await owner.client.instances.today({ penId: world.to.id });
-    const late = await owner.client.instances.overdue();
+    const open = await owner.client.work.today({ penId: world.to.id });
+    const late = await owner.client.work.overdue();
     const byId = new Map([...open, ...late].map((row) => [row.id, row]));
     const mine = [...byId.values()].filter(
       (row) => row.definitionId === world.drySop.definitionId
     );
     const boards = await Promise.all(
-      mine.map((row) => owner.client.instances.get({ id: row.id }))
+      mine.map((row) => owner.client.work.get({ id: row.id }))
     );
     return boards.filter((board) =>
       board.animals.some((beast) => beast.tagNumber === tagNumber)
@@ -219,15 +219,15 @@ describe("work that starts because an animal reached a State", () => {
     const clock = new FakeClock("2026-11-01T03:00:00.000Z");
     const { owner, cow } = await milkingCow(clock);
 
-    await owner.client.instances.ensureDue();
+    await owner.client.work.ensureDue();
     expect(await dryChecksFor(owner, cow.tagNumber)).toHaveLength(0);
 
     await owner.client.animals.setState({
       tagNumber: cow.tagNumber,
       state: "dry",
     });
-    await owner.client.instances.ensureDue();
-    await owner.client.instances.ensureDue();
+    await owner.client.work.ensureDue();
+    await owner.client.work.ensureDue();
     const first = await dryChecksFor(owner, cow.tagNumber);
     expect(first).toHaveLength(1);
     expect(first[0]?.dueAt.toISOString()).toBe("2026-11-01T03:00:00.000Z");
@@ -244,7 +244,7 @@ describe("work that starts because an animal reached a State", () => {
       tagNumber: cow.tagNumber,
       state: "dry",
     });
-    await owner.client.instances.ensureDue();
+    await owner.client.work.ensureDue();
     const both = await dryChecksFor(owner, cow.tagNumber);
     expect(both.map((board) => board.dueAt.toISOString()).toSorted()).toEqual([
       "2026-11-01T03:00:00.000Z",
@@ -302,14 +302,14 @@ describe("arriving is not the same as being moved", () => {
       source: "bought",
       aliases: [],
     });
-    await owner.client.instances.ensureDue();
+    await owner.client.work.ensureDue();
 
     clock.advance(3 * DAY);
-    const today = await owner.client.instances.today({ penId: world.to.id });
+    const today = await owner.client.work.today({ penId: world.to.id });
     const boards = await Promise.all(
       today
         .filter((row) => row.definitionId === world.sop.definitionId)
-        .map((row) => owner.client.instances.get({ id: row.id }))
+        .map((row) => owner.client.work.get({ id: row.id }))
     );
     expect(
       boards.filter((board) =>
@@ -337,7 +337,7 @@ describe("work about one animal", () => {
       toPenId: world.to.id,
       reason: "প্রথম স্থানান্তর",
     });
-    await owner.client.instances.ensureDue();
+    await owner.client.work.ensureDue();
 
     // She is moved on again before the check comes due, so the Pen it was raised in is no
     // longer the Pen she is standing in.
@@ -350,11 +350,11 @@ describe("work about one animal", () => {
 
     clock.advance(2 * DAY);
     const staff = await createTestClient(appRouter, { as: "staff", clock });
-    const theirs = await staff.client.instances.today({ penId: world.from.id });
+    const theirs = await staff.client.work.today({ penId: world.from.id });
     const boards = await Promise.all(
       theirs
         .filter((row) => row.definitionId === world.sop.definitionId)
-        .map((row) => staff.client.instances.get({ id: row.id }))
+        .map((row) => staff.client.work.get({ id: row.id }))
     );
     const hers = boards.filter((board) =>
       board.animals.some((beast) => beast.tagNumber === cow.tagNumber)
@@ -409,15 +409,15 @@ describe("a Move that arrived from a phone", () => {
     const second = await phone.client.sync.batch(batch);
     expect(second).toEqual(first);
 
-    await owner.client.instances.ensureDue();
-    await owner.client.instances.ensureDue();
+    await owner.client.work.ensureDue();
+    await owner.client.work.ensureDue();
 
     clock.advance(3 * DAY);
-    const today = await owner.client.instances.today({ penId: world.to.id });
+    const today = await owner.client.work.today({ penId: world.to.id });
     const boards = await Promise.all(
       today
         .filter((row) => row.definitionId === world.sop.definitionId)
-        .map((row) => owner.client.instances.get({ id: row.id }))
+        .map((row) => owner.client.work.get({ id: row.id }))
     );
     expect(
       boards.filter((board) =>

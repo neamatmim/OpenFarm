@@ -48,8 +48,8 @@ beforeAll(async () => {
   });
   campaignId = campaign.definitionId;
   const manager = await as("manager", ARRIVED);
-  const shed = await manager.client.herd.createShed({ name: suffix });
-  const pen = await manager.client.herd.createPen({
+  const shed = await manager.client.sheds.createShed({ name: suffix });
+  const pen = await manager.client.sheds.createPen({
     shedId: shed.id,
     name: `কোয়ারেন্টিন ${suffix}`,
     quarantine: true,
@@ -75,7 +75,7 @@ beforeAll(async () => {
 /** The FMD work about him, oldest first, once the day is turned at `at`. */
 const hisFmd = async (at: string, tagNumber: string) => {
   const manager = await as("manager", at);
-  await manager.client.instances.ensureDue();
+  await manager.client.work.ensureDue();
   const him = await manager.client.animals.byTag({ tagNumber });
   return await scratchDb().query.sopInstance.findMany({
     where: { definitionId: fmdId, animalId: him.id },
@@ -92,13 +92,13 @@ const dose = async (
   { skipped }: { skipped: boolean }
 ) => {
   const manager = await as("manager", at);
-  await manager.client.instances.claim({ id: workId });
-  await manager.client.instances.completeStep({
+  await manager.client.work.claim({ id: workId });
+  await manager.client.work.completeStep({
     instanceId: workId,
     stepId: "lot",
     evidence: [`FMD-${suffix}`],
   });
-  await manager.client.instances.completeStep({
+  await manager.client.work.completeStep({
     instanceId: workId,
     stepId: "dose",
     animalTag: tagNumber,
@@ -147,7 +147,7 @@ describe("an arrival dose put off", () => {
     await dose(DOSE_DAY, work?.id ?? "", tags.corrected, { skipped: true });
     expect(again(await hisFmd(DOSE_DAY, tags.corrected))).toHaveLength(1);
     const manager = await as("manager", "2087-01-15T09:00:00.000Z");
-    const board = await manager.client.instances.get({ id: work?.id ?? "" });
+    const board = await manager.client.work.get({ id: work?.id ?? "" });
     const given = board.completions.find((row) => row.stepId === "dose");
     await correctStepAsShown(manager.client, {
       completionId: given?.id ?? "",
@@ -161,7 +161,7 @@ describe("an arrival dose put off", () => {
   it("is raised again when it is closed Missed", async () => {
     const [work] = await hisFmd(DOSE_DAY, tags.missed);
     const owner = await as("owner", "2087-01-17T05:00:00.000Z");
-    await owner.client.instances.closeAsMissed({
+    await owner.client.work.closeAsMissed({
       id: work?.id ?? "",
       reason: `কেউ দেয়নি ${suffix}`,
     });
@@ -172,11 +172,11 @@ describe("an arrival dose put off", () => {
 
   it("is not raised again for a Pen's Campaign dose skipped", async () => {
     const manager = await as("manager", DOSE_DAY);
-    await manager.client.instances.raiseNow({
+    await manager.client.work.raiseNow({
       definitionId: campaignId,
       penId,
     });
-    const listed = await manager.client.instances.today({ penId });
+    const listed = await manager.client.work.today({ penId });
     const campaign = listed.find((row) => row.definitionId === campaignId);
     await dose(DOSE_DAY, campaign?.id ?? "", tags.campaign, { skipped: true });
     const raised = await scratchDb().query.sopInstance.findMany({
@@ -188,7 +188,7 @@ describe("an arrival dose put off", () => {
 
   it("is not raised again once the Owner retires the procedure", async () => {
     const owner = await as("owner", "2087-01-12T05:00:00.000Z");
-    await owner.client.instances.ensureDue();
+    await owner.client.work.ensureDue();
     await owner.client.sops.retire({
       definitionId: fmdId,
       note: `ভেটের দিন আসেনি ${suffix}`,

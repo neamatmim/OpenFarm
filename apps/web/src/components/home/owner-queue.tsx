@@ -55,7 +55,7 @@ interface GroupProps {
 }
 
 /** The day's work as the farm counts it. */
-type Tiles = Awaited<ReturnType<typeof orpc.home.owner.call>>["tiles"];
+type Tiles = Awaited<ReturnType<typeof orpc.overview.get.call>>["tiles"];
 
 /** How many money rows show before the rest wait behind "show all": a pile of approvals is read by its total first. */
 const MONEY_FIRST_SHOWN = 3;

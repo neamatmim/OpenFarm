@@ -13,8 +13,8 @@ let penId: string;
 
 beforeAll(async () => {
   ({ client: owner } = await asOwner());
-  const shed = await owner.herd.createShed({ name: "জাতের শেড" });
-  ({ id: penId } = await owner.herd.createPen({
+  const shed = await owner.sheds.createShed({ name: "জাতের শেড" });
+  ({ id: penId } = await owner.sheds.createPen({
     shedId: shed.id,
     name: "জাতের পেন",
   }));

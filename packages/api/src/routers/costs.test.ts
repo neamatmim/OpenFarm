@@ -111,23 +111,23 @@ const setup = async () => {
   const owner = await as("owner", start);
   const manager = await as("manager", start);
   const vet = await as("vet", start);
-  const shed = await owner.client.herd.createShed({ name: `costs-${suffix}` });
-  const fattening = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `costs-${suffix}` });
+  const fattening = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `খরচ মোটাতাজা ${suffix}`,
   });
-  const dairy = await owner.client.herd.createPen({
+  const dairy = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `খরচ দুধ ${suffix}`,
   });
-  const empty = await owner.client.herd.createPen({
+  const empty = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `খরচ খালি ${suffix}`,
   });
-  const away = await owner.client.herd.createPen({
+  const away = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `খরচ অন্যত্র ${suffix}`,
@@ -266,14 +266,14 @@ let world: Awaited<ReturnType<typeof setup>>;
 /** One piece of this file's work in a Pen, due at this instant. */
 const workIn = async (penId: string, definitionId: string, instant: string) => {
   const owner = await as("owner", instant);
-  await owner.client.instances.ensureDue();
-  const today = await owner.client.instances.today({ penId });
+  await owner.client.work.ensureDue();
+  const today = await owner.client.work.today({ penId });
   const work = today.find((row) => row.definitionId === definitionId);
   if (!work) {
     throw new Error("expected the work to be due");
   }
   const staff = await as("staff", instant);
-  await staff.client.instances.claim({ id: work.id });
+  await staff.client.work.claim({ id: work.id });
   return { staff, id: work.id };
 };
 
@@ -288,7 +288,7 @@ const feed = async (
     world.sops.feeding.definitionId,
     instant
   );
-  await staff.client.instances.completeStep({
+  await staff.client.work.completeStep({
     instanceId: id,
     stepId: "feed",
     evidence: [true],
@@ -305,17 +305,17 @@ const dose = async (
   instant: string
 ) => {
   const manager = await as("manager", instant);
-  await manager.client.instances.raiseNow({
+  await manager.client.work.raiseNow({
     definitionId,
     penId: world.fattening.id,
   });
-  const today = await manager.client.instances.today({
+  const today = await manager.client.work.today({
     penId: world.fattening.id,
   });
   const raised = today.find((row) => row.definitionId === definitionId);
   const staff = await as("staff", instant);
-  await staff.client.instances.claim({ id: raised?.id ?? "" });
-  await staff.client.instances.completeStep({
+  await staff.client.work.claim({ id: raised?.id ?? "" });
+  await staff.client.work.completeStep({
     instanceId: raised?.id ?? "",
     stepId: "dose",
     animalTag: tagNumber,
@@ -356,18 +356,18 @@ beforeAll(async () => {
     world.sops.milking.definitionId,
     "2039-01-03T00:30:00.000Z"
   );
-  await milking.staff.client.instances.completeStep({
+  await milking.staff.client.work.completeStep({
     instanceId: milking.id,
     stepId: "milk",
     animalTag: world.cow.tagNumber,
     evidence: [10],
   });
-  await milking.staff.client.instances.completeStep({
+  await milking.staff.client.work.completeStep({
     instanceId: milking.id,
     stepId: "bulk",
     evidence: [10],
   });
-  await milking.staff.client.instances.complete({ id: milking.id });
+  await milking.staff.client.work.complete({ id: milking.id });
 
   // The next morning the two bulls share what the Pen is given; the cow eats 20 kg on her own.
   await feed(world.fattening.id, "2039-01-03T02:00:00.000Z", 10, 20);
@@ -386,7 +386,7 @@ beforeAll(async () => {
     reason: "অন্য পেনে",
   });
   const late = await as("staff", "2039-01-03T02:00:00.000Z");
-  await late.client.instances.completeStep({
+  await late.client.work.completeStep({
     instanceId: emptied.id,
     stepId: "feed",
     evidence: [true],
@@ -437,18 +437,18 @@ beforeAll(async () => {
     world.sops.milking.definitionId,
     "2039-01-05T00:30:00.000Z"
   );
-  await held.staff.client.instances.completeStep({
+  await held.staff.client.work.completeStep({
     instanceId: held.id,
     stepId: "milk",
     animalTag: world.cow.tagNumber,
     evidence: [6],
   });
-  await held.staff.client.instances.completeStep({
+  await held.staff.client.work.completeStep({
     instanceId: held.id,
     stepId: "bulk",
     evidence: [0],
   });
-  await held.staff.client.instances.complete({ id: held.id });
+  await held.staff.client.work.complete({ id: held.id });
   await scratchDb()
     .update(animal)
     .set({ milkWithdrawalUntil: null })

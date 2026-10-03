@@ -24,11 +24,11 @@ const as = (role: "owner" | "manager" | "staff", instant = NOW) =>
 
 const setup = async () => {
   const manager = await as("manager", "2035-02-01T04:00:00.000Z");
-  const shed = await manager.client.herd.createShed({
+  const shed = await manager.client.sheds.createShed({
     name: `উচ্ছিষ্ট ${suffix}`,
   });
   const pen = async (name: string) =>
-    await manager.client.herd.createPen({ shedId: shed.id, name });
+    await manager.client.sheds.createPen({ shedId: shed.id, name });
   const [wasting, fine, seldom, cleared] = await Promise.all([
     pen("ক পেন"),
     pen("খ পেন"),

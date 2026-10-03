@@ -14,7 +14,7 @@ import { orpc } from "@/utils/orpc";
 export const PastOutings = () => {
   const { t, language } = useLanguage();
   const asMoney = useMoney();
-  const trips = useQuery(orpc.trips.list.queryOptions());
+  const trips = useQuery(orpc.buyingTrips.list.queryOptions());
   const past = trips.data ?? [];
   if (past.length === 0) {
     return null;

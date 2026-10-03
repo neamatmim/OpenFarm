@@ -15,10 +15,10 @@ const as = (role: "owner" | "manager" | "vet", instant: string) =>
 /** A heifer in a Pen of her own. */
 const aHeifer = async (name: string) => {
   const owner = await as("owner", "2062-01-01T00:00:00.000Z");
-  const shed = await owner.client.herd.createShed({
+  const shed = await owner.client.sheds.createShed({
     name: `${suffix}-${name}`,
   });
-  const pen = await owner.client.herd.createPen({ shedId: shed.id, name });
+  const pen = await owner.client.sheds.createPen({ shedId: shed.id, name });
   const heifer = await owner.client.animals.register({
     sex: "female",
     side: "dairy",
@@ -41,7 +41,7 @@ const diagnosed = async (tag: string, day: string, disease: string) => {
 
 const illAgainOn = async (day: string) => {
   const manager = await as("manager", `${day}T06:00:00.000Z`);
-  const home = await manager.client.home.manager();
+  const home = await manager.client.home.get();
   return home.queue.illAgain;
 };
 

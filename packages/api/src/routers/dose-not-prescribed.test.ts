@@ -28,8 +28,8 @@ beforeAll(async () => {
   const owner = await as("owner");
   const vet = await as("vet");
   const manager = await as("manager");
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `গাভী পেন ${suffix}`,
   });
@@ -141,7 +141,7 @@ describe("a dose not prescribed", () => {
       givenAt: new Date(NOW),
       advice: `কাশি, ফার্মেসির পরামর্শে ${suffix}`,
     });
-    const rows = await manager.client.registrationCertificate.rows({
+    const rows = await manager.client.inspectorView.rows({
       register: "treatment_register",
       from: "2074-03-01",
       to: "2074-03-31",

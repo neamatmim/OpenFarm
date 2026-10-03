@@ -18,7 +18,7 @@ const category: Record<string, string> = {};
 
 const managerHome = async (instant: string) => {
   const manager = await as("manager", instant);
-  const home = await manager.client.home.manager();
+  const home = await manager.client.home.get();
   return home.queue.monthlyCosts;
 };
 
@@ -110,7 +110,7 @@ describe("a Monthly Cost", () => {
   it("is named for last month whatever the day, to the Owner as well as the Manager", async () => {
     // June had nothing entered, and on 1 July it is named although July's day is ten days off.
     const owner = await as("owner", "2044-07-01T04:00:00.000Z");
-    const home = await owner.client.home.owner();
+    const home = await owner.client.overview.get();
     const { monthlyCosts } = home.needsYou;
     expect(monthlyCosts.costs).toEqual([
       expect.objectContaining({ categoryId: category.rent, month: "2044-06" }),

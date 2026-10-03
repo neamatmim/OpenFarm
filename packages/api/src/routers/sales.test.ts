@@ -42,13 +42,13 @@ const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner", clock });
   const manager = await createTestClient(appRouter, { as: "manager", clock });
   const vet = await createTestClient(appRouter, { as: "vet", clock });
-  const shed = await owner.client.herd.createShed({ name: `sale-${suffix}` });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `sale-${suffix}` });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `বিক্রয় ${suffix}`,
   });
-  const treatedPen = await owner.client.herd.createPen({
+  const treatedPen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `চিকিৎসা ${suffix}`,
@@ -150,11 +150,11 @@ const asManager = (day: string) =>
 const worm = async (day: string) => {
   const clock = new FakeClock(`${day}T08:00:00.000Z`);
   const manager = await createTestClient(appRouter, { as: "manager", clock });
-  await manager.client.instances.raiseNow({
+  await manager.client.work.raiseNow({
     definitionId: world.campaign.definitionId,
     penId: world.treatedPen.id,
   });
-  const today = await manager.client.instances.today({
+  const today = await manager.client.work.today({
     penId: world.treatedPen.id,
   });
   const raised = today.find(
@@ -164,8 +164,8 @@ const worm = async (day: string) => {
     throw new Error("expected a worming instance");
   }
   const staff = await createTestClient(appRouter, { as: "staff", clock });
-  await staff.client.instances.claim({ id: raised.id });
-  await staff.client.instances.completeStep({
+  await staff.client.work.claim({ id: raised.id });
+  await staff.client.work.completeStep({
     instanceId: raised.id,
     stepId: "dose",
     animalTag: tagOf(2),

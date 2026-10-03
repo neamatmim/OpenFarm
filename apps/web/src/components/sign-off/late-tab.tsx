@@ -156,7 +156,7 @@ export const LateTab = ({ late }: { late: Asked<LateWork> }) => {
   const inFlight = useInFlight();
   const [closing, setClosing] = useState<LateWork | null>(null);
   const closeAsMissed = useMutation(
-    orpc.instances.closeAsMissed.mutationOptions({
+    orpc.work.closeAsMissed.mutationOptions({
       onMutate: ({ id }) => inFlight.start(id),
       onSettled: (_data, _error, { id }) => inFlight.end(id),
       onError: refused,

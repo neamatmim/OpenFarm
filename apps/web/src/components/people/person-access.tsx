@@ -326,7 +326,7 @@ interface PenChoice {
 
 /** The farm's Pens as the page names them: each with the shed it is in. */
 const usePens = (): PenChoice[] => {
-  const sheds = useQuery(orpc.herd.list.queryOptions());
+  const sheds = useQuery(orpc.sheds.list.queryOptions());
   return (sheds.data ?? []).flatMap((shed) =>
     shed.pens.map((pen) => ({ id: pen.id, name: pen.name, shed: shed.name }))
   );

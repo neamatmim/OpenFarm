@@ -44,7 +44,7 @@ export const RegisterAnimal = ({
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(blank);
-  const sheds = useQuery({ ...orpc.herd.list.queryOptions(), enabled: open });
+  const sheds = useQuery({ ...orpc.sheds.list.queryOptions(), enabled: open });
   const set = <K extends keyof typeof blank>(
     key: K,
     value: (typeof blank)[K]

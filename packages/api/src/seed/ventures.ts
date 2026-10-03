@@ -367,7 +367,7 @@ const buyOnTheVenture = async (
     transportMoney: farm.random.int(6000, 11_000),
     keepMoney: farm.random.int(900, 1800),
   };
-  const trip = await farm.as.manager.trips.record({
+  const trip = await farm.as.manager.buyingTrips.record({
     wentTo: "গাবতলী গরুর হাট, ঢাকা",
     ...day,
     wentOn: onFarm(on, "05:30"),

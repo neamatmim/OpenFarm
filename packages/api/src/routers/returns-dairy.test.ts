@@ -147,20 +147,20 @@ const workIn = async (
   instant: string
 ) => {
   const { client: scheduler } = await as("owner", instant);
-  await scheduler.instances.ensureDue();
-  const today = await scheduler.instances.today({ penId });
+  await scheduler.work.ensureDue();
+  const today = await scheduler.work.today({ penId });
   const work = today.find((row) => row.definitionId === definitionId);
   if (!work) {
     throw new Error("expected the work to be due");
   }
   const { client } = await as(role, instant);
-  await client.instances.claim({ id: work.id });
+  await client.work.claim({ id: work.id });
   return { client, id: work.id };
 };
 
 const feed = async (penId: string, instant: string, givenKg: number) => {
   const { client, id } = await workIn("manager", penId, sops.feeding, instant);
-  await client.instances.completeStep({
+  await client.work.completeStep({
     instanceId: id,
     stepId: "feed",
     evidence: [true],
@@ -177,19 +177,19 @@ const milk = async (instant: string) => {
   );
   for (const tagNumber of [tags.m, tags.u]) {
     // oxlint-disable-next-line no-await-in-loop -- one cow at a time, as she is milked
-    await client.instances.completeStep({
+    await client.work.completeStep({
       instanceId: id,
       stepId: "milk",
       animalTag: tagNumber,
       evidence: [20],
     });
   }
-  await client.instances.completeStep({
+  await client.work.completeStep({
     instanceId: id,
     stepId: "bulk",
     evidence: [40],
   });
-  await client.instances.complete({ id });
+  await client.work.complete({ id });
 };
 
 const dispatch = async (on: string, pricePerLitreMoney: number) => {
@@ -205,9 +205,9 @@ const dispatch = async (on: string, pricePerLitreMoney: number) => {
 beforeAll(async () => {
   const start = "2045-01-01T03:00:00.000Z";
   const { client: owner } = await as("owner", start);
-  const shed = await owner.herd.createShed({ name: `দুগ্ধ ${suffix}` });
+  const shed = await owner.sheds.createShed({ name: `দুগ্ধ ${suffix}` });
   const pen = async (name: string) => {
-    const made = await owner.herd.createPen({
+    const made = await owner.sheds.createPen({
       shedId: shed.id,
       name: `${name} ${suffix}`,
     });
@@ -315,7 +315,7 @@ beforeAll(async () => {
     sops.weighing,
     "2045-03-01T07:30:00.000Z"
   );
-  await staff.instances.completeStep({
+  await staff.work.completeStep({
     instanceId: round,
     stepId: "weigh",
     animalTag: tags.b,

@@ -89,12 +89,12 @@ const theCompletion = async (instanceId: string) => {
 /** A Pen fed once, for everybody standing in it. */
 const feedThePen = async (which: string, instant: string, givenKg: number) => {
   const manager = await as("manager", instant);
-  await manager.client.instances.ensureDue();
-  const today = await manager.client.instances.today({ penId: which });
+  await manager.client.work.ensureDue();
+  const today = await manager.client.work.today({ penId: which });
   const instance = today.find((one) => one.definitionId === feedSopId);
   const id = instance?.id ?? "";
-  await manager.client.instances.claim({ id });
-  await manager.client.instances.completeStep({
+  await manager.client.work.claim({ id });
+  await manager.client.work.completeStep({
     instanceId: id,
     stepId: "feed",
     evidence: [true],
@@ -136,7 +136,7 @@ const aVentureWithABull = async (owner: Owner, which: number) => {
   await owner.client.ventures.startBuying({ id: venture.id });
 
   const buying = await as("owner", "2049-01-04T04:00:00.000Z");
-  const trip = await buying.client.trips.record({
+  const trip = await buying.client.buyingTrips.record({
     wentTo: `হাট ${which} ${suffix}`,
     wentOn: "2049-01-04",
     brokerMoney: 0,
@@ -233,14 +233,14 @@ const payOut = async (ventureId: string) => {
 
 beforeAll(async () => {
   const owner = await as("owner", "2049-01-01T04:00:00.000Z");
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
   });
   penId = pen.id;
-  const elsewhere = await owner.client.herd.createPen({
+  const elsewhere = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `আলাদা ${suffix}`,

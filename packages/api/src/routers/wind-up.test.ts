@@ -136,17 +136,17 @@ const broughtIn = async (forVenture: string) => {
 
 const weigh = async (day: string, readings: [string, number][]) => {
   const scheduler = await as("owner", `${day}T07:30:00.000Z`);
-  await scheduler.client.instances.ensureDue();
-  const today = await scheduler.client.instances.today({ penId });
+  await scheduler.client.work.ensureDue();
+  const today = await scheduler.client.work.today({ penId });
   const instance = today.find((one) => one.definitionId === definitionId);
   if (!instance) {
     throw new Error("expected a weigh-in instance");
   }
   const staff = await as("staff", `${day}T07:30:00.000Z`);
-  await staff.client.instances.claim({ id: instance.id });
+  await staff.client.work.claim({ id: instance.id });
   for (const [tagNumber, kg] of readings) {
     // oxlint-disable-next-line no-await-in-loop -- the crush takes one animal at a time
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: instance.id,
       stepId: "weigh",
       animalTag: tagNumber,
@@ -157,8 +157,8 @@ const weigh = async (day: string, readings: [string, number][]) => {
 
 beforeAll(async () => {
   const owner = await as("owner", "2047-01-01T04:00:00.000Z");
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,

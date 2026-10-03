@@ -27,8 +27,8 @@ beforeAll(async () => {
   });
   countId = made.definitionId;
   // Work about the whole farm is raised while any Pen holds an animal.
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `বকনা পেন ${suffix}`,
   });
@@ -62,14 +62,14 @@ const managersHand = async (instant: string) => {
 /** The Manager's count on a Friday evening. */
 const countOn = async (day: string, counted: number, note?: string) => {
   const manager = await as("manager", fridayEvening(day));
-  await manager.client.instances.ensureDue();
-  const today = await manager.client.instances.today();
+  await manager.client.work.ensureDue();
+  const today = await manager.client.work.today();
   const work = today.find((row) => row.definitionId === countId);
   if (!work) {
     throw new Error("expected the weekly cash count");
   }
-  await manager.client.instances.claim({ id: work.id });
-  const done = await manager.client.instances.completeStep({
+  await manager.client.work.claim({ id: work.id });
+  const done = await manager.client.work.completeStep({
     instanceId: work.id,
     stepId: "count",
     evidence: [counted, note ?? ""],

@@ -68,8 +68,8 @@ const milkingSop = (): SopContent => ({
 const setup = async () => {
   const clock = new FakeClock("2036-01-01T00:00:00.000Z");
   const owner = await createTestClient(appRouter, { as: "owner", clock });
-  const shed = await owner.client.herd.createShed({ name: `dp-${suffix}` });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `dp-${suffix}` });
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `দোহনের ঘর ${suffix}`,
   });
@@ -125,32 +125,32 @@ const setup = async () => {
     as: "owner",
     clock: morning,
   });
-  await scheduler.client.instances.ensureDue();
-  const today = await scheduler.client.instances.today({ penId: pen.id });
+  await scheduler.client.work.ensureDue();
+  const today = await scheduler.client.work.today({ penId: pen.id });
   const work = today.find((row) => row.definitionId === sop.definitionId);
   const staff = await createTestClient(appRouter, {
     as: "staff",
     clock: morning,
   });
-  await staff.client.instances.claim({ id: work?.id ?? "" });
-  await staff.client.instances.completeStep({
+  await staff.client.work.claim({ id: work?.id ?? "" });
+  await staff.client.work.completeStep({
     instanceId: work?.id ?? "",
     stepId: "milk",
     animalTag: clear.tagNumber,
     evidence: [12],
   });
-  await staff.client.instances.completeStep({
+  await staff.client.work.completeStep({
     instanceId: work?.id ?? "",
     stepId: "milk",
     animalTag: held.tagNumber,
     evidence: [8],
   });
-  await staff.client.instances.completeStep({
+  await staff.client.work.completeStep({
     instanceId: work?.id ?? "",
     stepId: "bulk",
     evidence: [12],
   });
-  await staff.client.instances.complete({ id: work?.id ?? "" });
+  await staff.client.work.complete({ id: work?.id ?? "" });
   return { pen, sop, held };
 };
 

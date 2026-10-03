@@ -51,8 +51,8 @@ const milkingSop = (): SopContent => ({
 
 const setup = async () => {
   const { client: owner } = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.herd.createShed({ name: `attr-${suffix}` });
-  const pen = await owner.herd.createPen({
+  const shed = await owner.sheds.createShed({ name: `attr-${suffix}` });
+  const pen = await owner.sheds.createPen({
     shedId: shed.id,
     name: `পেন ${suffix}`,
   });
@@ -101,8 +101,8 @@ const morning = async (day: string) => {
     as: "owner",
     clock,
   });
-  await scheduler.instances.ensureDue();
-  const today = await scheduler.instances.today({ penId: world.pen.id });
+  await scheduler.work.ensureDue();
+  const today = await scheduler.work.today({ penId: world.pen.id });
   const instance = today.find(
     (row) => row.definitionId === world.sop.definitionId
   );
@@ -113,7 +113,7 @@ const morning = async (day: string) => {
     as: "staff",
     clock,
   });
-  await staff.instances.claim({ id: instance.id });
+  await staff.work.claim({ id: instance.id });
   // The Staff member's PIN on the shared phone, then the Manager switched in on it.
   await createTestClient(appRouter, {
     as: "staff",
@@ -176,7 +176,7 @@ describe("who recorded work on a Shed Phone", () => {
     });
 
     expect(sent.results[0]?.outcome).toBe("applied");
-    const board = await staff.instances.get({ id: instance.id });
+    const board = await staff.work.get({ id: instance.id });
     expect(board.completions[0]).toMatchObject({
       recordedBy: thePerson("staff").id,
       deviceId: PHONE.id,

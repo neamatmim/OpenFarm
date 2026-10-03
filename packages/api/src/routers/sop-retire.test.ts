@@ -26,8 +26,8 @@ const workOf = (definitionId: string) =>
 /** A heifer in a Pen, so the farm's whole-farm work has somewhere to be owed. */
 beforeAll(async () => {
   const { client } = await asOwner(onDay(1));
-  const shed = await client.herd.createShed({ name: `retire-${Date.now()}` });
-  const pen = await client.herd.createPen({ shedId: shed.id, name: "পেন" });
+  const shed = await client.sheds.createShed({ name: `retire-${Date.now()}` });
+  const pen = await client.sheds.createPen({ shedId: shed.id, name: "পেন" });
   await client.animals.register({
     sex: "female",
     side: "dairy",
@@ -44,9 +44,9 @@ describe("retiring a procedure", () => {
     const { definitionId } = await day1.client.sops.create({
       content: standardPlaybook().biosecurity,
     });
-    await day1.client.instances.ensureDue();
+    await day1.client.work.ensureDue();
     const day2 = await asOwner(onDay(2));
-    await day2.client.instances.ensureDue();
+    await day2.client.work.ensureDue();
     const [owed, taken] = await workOf(definitionId);
     if (!(owed && taken)) {
       throw new Error("expected two days of the check");
@@ -55,7 +55,7 @@ describe("retiring a procedure", () => {
       as: "manager",
       clock: onDay(2),
     });
-    await manager.client.instances.claim({ id: taken.id });
+    await manager.client.work.claim({ id: taken.id });
 
     const retired = await day2.client.sops.retire({
       definitionId,
@@ -80,7 +80,7 @@ describe("retiring a procedure", () => {
     expect(card.retired).toBe(true);
 
     const day3 = await asOwner(onDay(3));
-    await day3.client.instances.ensureDue();
+    await day3.client.work.ensureDue();
     expect(await workOf(definitionId)).toHaveLength(2);
   });
 
@@ -166,13 +166,13 @@ describe("bringing a procedure back", () => {
     const { definitionId } = await day6.client.sops.create({
       content: standardPlaybook().biosecurity,
     });
-    await day6.client.instances.ensureDue();
+    await day6.client.work.ensureDue();
     await day6.client.sops.retire({ definitionId });
     const [calledOff] = await workOf(definitionId);
 
     const day7 = await asOwner(onDay(7));
     await day7.client.sops.restore({ definitionId });
-    await day7.client.instances.ensureDue();
+    await day7.client.work.ensureDue();
 
     const work = await workOf(definitionId);
     expect(work.map((one) => one.state)).toEqual(["called_off", "due"]);

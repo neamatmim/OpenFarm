@@ -30,7 +30,7 @@ const SideFigure = ({ label, side }: { label: string; side: SideDeaths }) => {
  */
 export const AdultDeathsSection = () => {
   const { t, language } = useLanguage();
-  const deaths = useQuery(orpc.herd.deaths.queryOptions());
+  const deaths = useQuery(orpc.animals.deaths.queryOptions());
   const figure = deaths.data;
   const keptAny =
     figure !== undefined &&

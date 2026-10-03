@@ -317,16 +317,16 @@ const setup = async () => {
     as: "owner",
     clock: new FakeClock(SETUP),
   });
-  const shed = await owner.herd.createShed({ name: `parity-${suffix}` });
-  const penA = await owner.herd.createPen({
+  const shed = await owner.sheds.createShed({ name: `parity-${suffix}` });
+  const penA = await owner.sheds.createPen({
     shedId: shed.id,
     name: `ক ${suffix}`,
   });
-  const penB = await owner.herd.createPen({
+  const penB = await owner.sheds.createPen({
     shedId: shed.id,
     name: `খ ${suffix}`,
   });
-  const penC = await owner.herd.createPen({
+  const penC = await owner.sheds.createPen({
     shedId: shed.id,
     name: `গ ${suffix}`,
   });
@@ -376,8 +376,8 @@ const setup = async () => {
     clock: new FakeClock(SETUP),
   });
   const workIn = async (penId: string) => {
-    await manager.instances.raiseNow({ definitionId: sop.definitionId, penId });
-    const today = await manager.instances.today({ penId });
+    await manager.work.raiseNow({ definitionId: sop.definitionId, penId });
+    const today = await manager.work.today({ penId });
     return today.find((row) => row.definitionId === sop.definitionId)?.id ?? "";
   };
 
@@ -609,7 +609,7 @@ describe("a piece of work", () => {
   it("is claimed the same way either way, dated when it was taken", async () => {
     const [online, offline] = world.work;
     const now = await calling(world.staff, DONE);
-    await now.instances.claim({ id: online });
+    await now.work.claim({ id: online });
     const later = await sendLater(world.staff, {
       kind: "instance_claim",
       instanceId: offline,
@@ -625,7 +625,7 @@ describe("a piece of work", () => {
   it("has its Step recorded the same way either way", async () => {
     const [online, offline] = world.work;
     const now = await calling(world.staff, minutesIn(1));
-    await now.instances.completeStep({
+    await now.work.completeStep({
       instanceId: online,
       stepId: "look",
       evidence: [true],
@@ -660,7 +660,7 @@ describe("a piece of work", () => {
       data: "AAAA",
     };
     const now = await calling(world.staff, minutesIn(2));
-    await now.instances.attachPhoto({
+    await now.work.attachPhoto({
       completionId: there?.id ?? "",
       ...picture,
     });
@@ -682,7 +682,7 @@ describe("a piece of work", () => {
   it("is finished the same way either way, dated when it was finished", async () => {
     const [online, offline] = world.work;
     const now = await calling(world.staff, minutesIn(3));
-    await now.instances.complete({ id: online });
+    await now.work.complete({ id: online });
     const later = await sendLater(
       world.staff,
       { kind: "instance_complete", instanceId: offline },

@@ -70,14 +70,14 @@ beforeAll(async () => {
     lowMoneyPerKg: 500,
     highMoneyPerKg: 600,
   });
-  const shed = await owner.herd.createShed({ name: suffix });
-  const fattening = await owner.herd.createPen({
+  const shed = await owner.sheds.createShed({ name: suffix });
+  const fattening = await owner.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `মোটাতাজা ${suffix}`,
   });
   fatteningPenId = fattening.id;
-  const calves = await owner.herd.createPen({
+  const calves = await owner.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `বাছুর ${suffix}`,
@@ -137,15 +137,15 @@ beforeAll(async () => {
 
   // The morning's weigh-in reads A off the crush; B would not go on.
   const { client: scheduler } = await as("owner", "2030-10-01T07:30:00.000Z");
-  await scheduler.instances.ensureDue();
-  const today = await scheduler.instances.today({ penId: fattening.id });
+  await scheduler.work.ensureDue();
+  const today = await scheduler.work.today({ penId: fattening.id });
   const instance = today.find((one) => one.definitionId === definitionId);
   if (!instance) {
     throw new Error("expected a weigh-in instance");
   }
   const { client: staff } = await as("staff", "2030-10-01T07:30:00.000Z");
-  await staff.instances.claim({ id: instance.id });
-  await staff.instances.completeStep({
+  await staff.work.claim({ id: instance.id });
+  await staff.work.completeStep({
     instanceId: instance.id,
     stepId: "weigh",
     animalTag: calfA,

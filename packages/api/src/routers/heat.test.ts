@@ -73,8 +73,8 @@ const aiSop = (): SopContent => ({
 const setup = async () => {
   const clock = new FakeClock("2027-09-01T03:00:00.000Z");
   const owner = await createTestClient(appRouter, { as: "owner", clock });
-  const shed = await owner.client.herd.createShed({ name: `heat-${suffix}` });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `heat-${suffix}` });
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `বকনা ${suffix}`,
   });
@@ -158,11 +158,11 @@ const watchRound = async (
 ) => {
   const clock = new FakeClock(at);
   const manager = await createTestClient(appRouter, { as: "manager", clock });
-  await manager.client.instances.raiseNow({
+  await manager.client.work.raiseNow({
     definitionId: world.watch.definitionId,
     penId: world.pen.id,
   });
-  const today = await manager.client.instances.today({ penId: world.pen.id });
+  const today = await manager.client.work.today({ penId: world.pen.id });
   const round = today.find(
     (candidate) =>
       candidate.definitionId === world.watch.definitionId &&
@@ -172,7 +172,7 @@ const watchRound = async (
     throw new Error("expected a heat-watch round");
   }
   const staff = await createTestClient(appRouter, { as: "staff", clock });
-  await staff.client.instances.claim({ id: round.id });
+  await staff.client.work.claim({ id: round.id });
   const step = {
     instanceId: round.id,
     stepId: "look",
@@ -202,7 +202,7 @@ const watchRound = async (
       ],
     });
   } else {
-    await staff.client.instances.completeStep(step);
+    await staff.client.work.completeStep(step);
   }
   return { clock, manager, staff, roundId: round.id };
 };
@@ -211,13 +211,13 @@ const watchRound = async (
 const serve = async (at: string, workId: string) => {
   const clock = new FakeClock(at);
   const manager = await createTestClient(appRouter, { as: "manager", clock });
-  await manager.client.instances.claim({ id: workId });
-  await manager.client.instances.completeStep({
+  await manager.client.work.claim({ id: workId });
+  await manager.client.work.completeStep({
     instanceId: workId,
     stepId: "serve",
     evidence: [true],
   });
-  await manager.client.instances.complete({ id: workId });
+  await manager.client.work.complete({ id: workId });
 };
 
 /** Every open piece of AI work about one cow: today's, and anything from an earlier day that is
@@ -225,10 +225,10 @@ const serve = async (at: string, workId: string) => {
 const aiWorkFor = async (clockAt: string, tagNumber: string) => {
   const clock = new FakeClock(clockAt);
   const manager = await createTestClient(appRouter, { as: "manager", clock });
-  await manager.client.instances.ensureDue();
+  await manager.client.work.ensureDue();
   const her = await manager.client.animals.byTag({ tagNumber });
-  const today = await manager.client.instances.today({ penId: world.pen.id });
-  const late = await manager.client.instances.overdue();
+  const today = await manager.client.work.today({ penId: world.pen.id });
+  const late = await manager.client.work.overdue();
   const seen = new Set<string>();
   return [...today, ...late].filter((row) => {
     const mine =
@@ -343,13 +343,13 @@ describe("a heat, and the window it opens", () => {
       clock: new FakeClock("2027-09-14T01:00:00.000Z"),
     });
     const her = await manager.client.animals.byTag({ tagNumber: tagOf(4) });
-    const rounds = await manager.client.instances.today({
+    const rounds = await manager.client.work.today({
       penId: world.pen.id,
     });
     const round = rounds.find(
       (row) => row.definitionId === world.watch.definitionId
     );
-    const board = await manager.client.instances.get({ id: round?.id ?? "" });
+    const board = await manager.client.work.get({ id: round?.id ?? "" });
     const entry = board.completions.find(
       (row) => row.stepId === "look" && row.animalId === her.id
     );

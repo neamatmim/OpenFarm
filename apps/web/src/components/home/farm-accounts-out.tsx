@@ -14,7 +14,7 @@ import type { orpc } from "@/utils/orpc";
 
 /** The Farm Accounts with a month out against their statements, as the Owner's home is told them. */
 export type FarmAccountsOutData = Awaited<
-  ReturnType<typeof orpc.home.owner.call>
+  ReturnType<typeof orpc.overview.get.call>
 >["needsYou"]["farmAccountsOut"];
 
 /**

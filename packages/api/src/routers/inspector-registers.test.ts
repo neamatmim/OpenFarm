@@ -93,8 +93,8 @@ const setup = async () => {
   if (identity.registrationMissing) {
     await manager.client.farm.setIdentity({ registrationNumber: REGISTRATION });
   }
-  const shed = await owner.client.herd.createShed({ name: `reg4-${suffix}` });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `reg4-${suffix}` });
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `স্বাস্থ্য ${suffix}`,
   });
@@ -171,12 +171,12 @@ beforeAll(async () => {
     days: 2,
   });
   const staff = await as("staff", "2044-03-01T02:30:00.000Z");
-  const today = await staff.client.instances.today({ penId: world.pen.id });
+  const today = await staff.client.work.today({ penId: world.pen.id });
   const dose = today.find(
     (row) => row.definitionId === world.sops.treatment.definitionId
   );
-  await staff.client.instances.claim({ id: dose?.id ?? "" });
-  await staff.client.instances.completeStep({
+  await staff.client.work.claim({ id: dose?.id ?? "" });
+  await staff.client.work.completeStep({
     instanceId: dose?.id ?? "",
     stepId: "dose",
     evidence: [true],
@@ -189,8 +189,8 @@ beforeAll(async () => {
     disease: { bn: world.disease },
   });
   const manager = await as("manager", "2044-03-10T05:00:00.000Z");
-  await manager.client.instances.claim({ id: anthrax.reportInstanceId ?? "" });
-  await manager.client.instances.completeStep({
+  await manager.client.work.claim({ id: anthrax.reportInstanceId ?? "" });
+  await manager.client.work.completeStep({
     instanceId: anthrax.reportInstanceId ?? "",
     stepId: "deliver",
     evidence: ["ULO/2044/০০৭"],
@@ -225,17 +225,17 @@ beforeAll(async () => {
 
   // 20 March: the mastitis cow wormed on a campaign over her Pen, which nobody prescribed.
   const round = await as("manager", "2044-03-20T04:00:00.000Z");
-  await round.client.instances.raiseNow({
+  await round.client.work.raiseNow({
     definitionId: world.sops.campaign.definitionId,
     penId: world.pen.id,
   });
-  const listed = await round.client.instances.today({ penId: world.pen.id });
+  const listed = await round.client.work.today({ penId: world.pen.id });
   const campaign = listed.find(
     (row) => row.definitionId === world.sops.campaign.definitionId
   );
   const wormer = await as("staff", "2044-03-20T04:30:00.000Z");
-  await wormer.client.instances.claim({ id: campaign?.id ?? "" });
-  await wormer.client.instances.completeStep({
+  await wormer.client.work.claim({ id: campaign?.id ?? "" });
+  await wormer.client.work.completeStep({
     instanceId: campaign?.id ?? "",
     stepId: "dose",
     animalTag: world.mastitisCow.tagNumber,
@@ -265,7 +265,7 @@ const ours = (tag: string) =>
 describe("the health registers", () => {
   it("lists every dose in the period with its prescription and withdrawal, a campaign's without either", async () => {
     const manager = await as("manager", "2044-04-10T04:00:00.000Z");
-    const march = await manager.client.registrationCertificate.rows({
+    const march = await manager.client.inspectorView.rows({
       register: "treatment_register",
       ...MARCH,
     });
@@ -305,12 +305,12 @@ describe("the health registers", () => {
     ]);
 
     // Thirty days to today unless asked, today counted: the dose of 1 March is past it, the campaign is not.
-    const lately = await manager.client.registrationCertificate.rows({
+    const lately = await manager.client.inspectorView.rows({
       register: "treatment_register",
     });
     expect(lately).toMatchObject({ from: "2044-03-12", to: "2044-04-10" });
     // Asked only where to end, the thirty days end there (2044 is a leap year).
-    const back = await manager.client.registrationCertificate.rows({
+    const back = await manager.client.inspectorView.rows({
       register: "treatment_register",
       to: "2044-03-01",
     });
@@ -330,7 +330,7 @@ describe("the health registers", () => {
   it("takes an asked period's first and last days whole, and refuses one that runs backwards", async () => {
     const manager = await as("manager", "2044-04-10T04:00:00.000Z");
     const givenOn = async (period: { from: string; to: string }) => {
-      const doses = await manager.client.registrationCertificate.rows({
+      const doses = await manager.client.inspectorView.rows({
         register: "treatment_register",
         ...period,
       });
@@ -347,7 +347,7 @@ describe("the health registers", () => {
     expect(await givenOn({ from: "2044-03-02", to: "2044-03-19" })).toEqual([]);
 
     const diagnosedOn = async (period: { from: string; to: string }) => {
-      const history = await manager.client.registrationCertificate.rows({
+      const history = await manager.client.inspectorView.rows({
         register: "disease_history",
         ...period,
       });
@@ -363,7 +363,7 @@ describe("the health registers", () => {
     );
 
     await expect(
-      manager.client.registrationCertificate.rows({
+      manager.client.inspectorView.rows({
         register: "treatment_register",
         from: "2044-03-20",
         to: "2044-03-01",
@@ -375,7 +375,7 @@ describe("the health registers", () => {
     const manager = await as("manager", "2044-04-10T04:00:00.000Z");
     // A paper is in its producer's language, and other files choose the Manager's: this one says Bangla.
     await manager.client.language.set({ language: "bn" });
-    const paper = await manager.client.registrationCertificate.print({
+    const paper = await manager.client.inspectorView.print({
       register: "treatment_register",
       ...MARCH,
     });
@@ -397,7 +397,7 @@ describe("the health registers", () => {
       "  দুধ মুক্ত / Milk clear: ৫ মার্চ, ২০৪৪\n  মাংস মুক্ত / Meat clear: ২২ মার্চ, ২০৪৪"
     );
 
-    const sheet = await manager.client.registrationCertificate.print({
+    const sheet = await manager.client.inspectorView.print({
       register: "treatment_register",
       format: "csv",
       ...MARCH,
@@ -441,13 +441,13 @@ describe("the health registers", () => {
 
   it("lists every diagnosis with the notifiable ones marked, their reference, and what became of the animal", async () => {
     const owner = await as("owner", "2044-04-10T04:00:00.000Z");
-    const history = await owner.client.registrationCertificate.rows({
+    const history = await owner.client.inspectorView.rows({
       register: "disease_history",
     });
     // Six months back from today unless asked.
     expect(history).toMatchObject({ from: "2043-10-11", to: "2044-04-10" });
     // A month too short for the day ends it: six months before the 31st of August is the end of February.
-    const summer = await owner.client.registrationCertificate.rows({
+    const summer = await owner.client.inspectorView.rows({
       register: "disease_history",
       to: "2044-08-31",
     });
@@ -487,7 +487,7 @@ describe("the health registers", () => {
 
     // Other files choose the Owner's language too.
     await owner.client.language.set({ language: "bn" });
-    const paper = await owner.client.registrationCertificate.print({
+    const paper = await owner.client.inspectorView.print({
       register: "disease_history",
     });
     expect(paper.text).toContain("রোগের ইতিহাস / Disease history");
@@ -503,7 +503,7 @@ describe("the health registers", () => {
       `১৫ মার্চ, ২০৪৪ · ${world.mastitisCow.tagNumber} · জ্বর, কারণ অজানা\n`
     );
     await expect(
-      owner.client.registrationCertificate.print({
+      owner.client.inspectorView.print({
         register: "disease_history",
         format: "csv",
       })
@@ -532,14 +532,14 @@ describe("the health registers", () => {
   it("is the Owner's and the Manager's, never Barn Staff's", async () => {
     const staff = await as("staff", "2044-04-10T04:00:00.000Z");
     await expect(
-      staff.client.registrationCertificate.rows({
+      staff.client.inspectorView.rows({
         register: "treatment_register",
       })
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
     await expect(
-      staff.client.registrationCertificate.rows({ register: "disease_history" })
+      staff.client.inspectorView.rows({ register: "disease_history" })
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
     });

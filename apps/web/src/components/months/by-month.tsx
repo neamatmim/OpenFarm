@@ -21,13 +21,13 @@ import { saidMonth } from "@/lib/months";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
-export type ByMonth = Awaited<ReturnType<typeof client.home.byMonth>>;
+export type ByMonth = Awaited<ReturnType<typeof client.monthlyReport.get>>;
 type Month = ByMonth["months"][number];
 type Stretch = ByMonth["year"];
 type VentureAgainstPlan = ByMonth["ventures"][number];
 
 /** The farm month by month, the Owner's alone. */
-export const useByMonth = () => useQuery(orpc.home.byMonth.queryOptions());
+export const useByMonth = () => useQuery(orpc.monthlyReport.get.queryOptions());
 
 /** The year in four figures: what the Farm's own money came to, the milk sold beside what the dairy cows cost, and the
  *  Margins on the fattening animals sold. */

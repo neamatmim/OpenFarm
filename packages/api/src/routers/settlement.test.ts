@@ -105,8 +105,8 @@ const funded = async (owner: Owner, which: number) => {
 
 beforeAll(async () => {
   const owner = await as("owner", "2047-01-01T04:00:00.000Z");
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -128,7 +128,7 @@ beforeAll(async () => {
   // Two bulls bought on the Venture's own Float, so their price and the outing's costs are its charges.
   const manager = await as("manager", "2047-01-04T05:00:00.000Z");
   const buying = await as("owner", "2047-01-04T04:00:00.000Z");
-  const trip = await buying.client.trips.record({
+  const trip = await buying.client.buyingTrips.record({
     wentTo: `হাট ${suffix}`,
     wentOn: "2047-01-04",
     brokerMoney: 2000,
@@ -189,13 +189,13 @@ beforeAll(async () => {
   const sop = await owner.client.sops.create({ content: feedSop() });
   feedSopId = sop.definitionId;
   const scheduler = await as("owner", "2047-01-06T06:30:00.000Z");
-  await scheduler.client.instances.ensureDue();
-  const today = await scheduler.client.instances.today({ penId });
+  await scheduler.client.work.ensureDue();
+  const today = await scheduler.client.work.today({ penId });
   const instance = today.find((one) => one.definitionId === sop.definitionId);
   const staff = await as("staff", "2047-01-06T06:30:00.000Z");
-  await staff.client.instances.claim({ id: instance?.id ?? "" });
+  await staff.client.work.claim({ id: instance?.id ?? "" });
   // A thousand kilos at forty taka: forty thousand of feed, charged to the two of them.
-  await staff.client.instances.completeStep({
+  await staff.client.work.completeStep({
     instanceId: instance?.id ?? "",
     stepId: "feed",
     evidence: [true],
@@ -330,12 +330,12 @@ describe("what a Settlement is", () => {
     // They eat again in March, the month she means to settle in — a month that cannot be reimbursed
     // until it is over, and so a month the Settlement must not quietly promise its way past.
     const scheduler = await as("owner", "2047-03-10T06:30:00.000Z");
-    await scheduler.client.instances.ensureDue();
-    const due = await scheduler.client.instances.today({ penId });
+    await scheduler.client.work.ensureDue();
+    const due = await scheduler.client.work.today({ penId });
     const instance = due.find((one) => one.definitionId === feedSopId);
     const eating = await as("staff", "2047-03-10T06:30:00.000Z");
-    await eating.client.instances.claim({ id: instance?.id ?? "" });
-    await eating.client.instances.completeStep({
+    await eating.client.work.claim({ id: instance?.id ?? "" });
+    await eating.client.work.completeStep({
       instanceId: instance?.id ?? "",
       stepId: "feed",
       evidence: [true],
@@ -428,7 +428,7 @@ describe("what a Settlement is", () => {
     const owner = await as("owner", "2047-04-01T04:00:00.000Z");
     const second = await funded(owner, 2);
     const manager = await as("manager", "2047-04-02T05:00:00.000Z");
-    const trip = await owner.client.trips.record({
+    const trip = await owner.client.buyingTrips.record({
       wentTo: `হাট দুই ${suffix}`,
       wentOn: "2047-04-01",
       brokerMoney: 0,
@@ -476,12 +476,12 @@ describe("what a Settlement is", () => {
       rationId: ration.rationId,
     });
     const scheduler = await as("owner", "2047-04-02T06:30:00.000Z");
-    await scheduler.client.instances.ensureDue();
-    const due = await scheduler.client.instances.today({ penId });
+    await scheduler.client.work.ensureDue();
+    const due = await scheduler.client.work.today({ penId });
     const instance = due.find((one) => one.definitionId === feedSopId);
     const staff = await as("staff", "2047-04-02T06:30:00.000Z");
-    await staff.client.instances.claim({ id: instance?.id ?? "" });
-    await staff.client.instances.completeStep({
+    await staff.client.work.claim({ id: instance?.id ?? "" });
+    await staff.client.work.completeStep({
       instanceId: instance?.id ?? "",
       stepId: "feed",
       evidence: [true],
@@ -548,7 +548,7 @@ describe("what a Settlement is", () => {
     // thousand the account does not hold, and which the Farm pays in before the run can close.
     const owner = await as("owner", "2047-04-04T08:00:00.000Z");
     const losing = await funded(owner, 4);
-    const trip = await owner.client.trips.record({
+    const trip = await owner.client.buyingTrips.record({
       wentTo: `হাট তিন ${suffix}`,
       wentOn: "2047-04-04",
       brokerMoney: 0,

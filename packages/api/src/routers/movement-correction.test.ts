@@ -158,7 +158,7 @@ describe("putting a movement right", () => {
 
   it("refuses a movement the farm has already counted on", async () => {
     const owner = await as("owner", "2047-11-09T04:00:00.000Z");
-    const trip = await owner.client.trips.record({
+    const trip = await owner.client.buyingTrips.record({
       wentTo: `হাট ${suffix}`,
       wentOn: "2047-11-09",
       brokerMoney: 0,

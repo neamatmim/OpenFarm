@@ -96,7 +96,7 @@ describe("a bill in pieces", () => {
     await enter("manager", name, 12_000, "2077-05-09");
     const waiting = await enter("manager", name, 12_000, "2077-05-10");
     const owner = await as("owner");
-    const home = await owner.client.home.owner();
+    const home = await owner.client.overview.get();
     expect(
       home.needsYou.moneyAwaiting.find((one) => one.id === waiting.id)
     ).toMatchObject({

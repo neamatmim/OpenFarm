@@ -27,8 +27,8 @@ const as = (role: "owner" | "manager", instant = SOLD) =>
 
 beforeAll(async () => {
   const owner = await as("owner", "2078-03-01T04:00:00.000Z");
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -180,8 +180,8 @@ describe("a sale floored on her last weighing", () => {
 
   beforeAll(async () => {
     const owner = await as("owner", "2078-03-01T04:00:00.000Z");
-    const shed = await owner.client.herd.createShed({ name: `ওজন ${suffix}` });
-    const pen = await owner.client.herd.createPen({
+    const shed = await owner.client.sheds.createShed({ name: `ওজন ${suffix}` });
+    const pen = await owner.client.sheds.createPen({
       quarantine: true,
       shedId: shed.id,
       name: `ওজনের পেন ${suffix}`,
@@ -194,15 +194,15 @@ describe("a sale floored on her last weighing", () => {
     }
     const weigh = async (instant: string, readings: [string, number][]) => {
       const manager = await as("manager", instant);
-      await manager.client.instances.ensureDue();
-      const today = await manager.client.instances.today({ penId: pen.id });
+      await manager.client.work.ensureDue();
+      const today = await manager.client.work.today({ penId: pen.id });
       const work = today.find(
         (row) => row.definitionId === weighing.definitionId
       );
-      await manager.client.instances.claim({ id: work?.id ?? "" });
+      await manager.client.work.claim({ id: work?.id ?? "" });
       for (const [animalTag, kg] of readings) {
         // oxlint-disable-next-line no-await-in-loop -- one animal at a time, as a round is walked
-        await manager.client.instances.completeStep({
+        await manager.client.work.completeStep({
           instanceId: work?.id ?? "",
           stepId: "weigh",
           animalTag,

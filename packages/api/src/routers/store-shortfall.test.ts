@@ -47,8 +47,8 @@ const as = (role: "owner" | "manager", instant: string) =>
 
 beforeAll(async () => {
   const owner = await as("owner", "2057-01-01T04:00:00.000Z");
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `গুদাম ${suffix}`,
   });
@@ -86,16 +86,16 @@ const countOn = async (
   found: Record<string, { counted: number; reason: string }>
 ) => {
   const manager = await as("manager", `${day}T04:00:00.000Z`);
-  await manager.client.instances.raiseNow({ definitionId: countId, penId });
-  const today = await manager.client.instances.today({ penId });
+  await manager.client.work.raiseNow({ definitionId: countId, penId });
+  const today = await manager.client.work.today({ penId });
   const work = today.find(
     (row) => row.definitionId === countId && row.state === "due"
   );
   const id = work?.id ?? "";
-  await manager.client.instances.claim({ id });
-  const board = await manager.client.instances.get({ id });
+  await manager.client.work.claim({ id });
+  const board = await manager.client.work.get({ id });
   const stock = await manager.client.stock.onHand();
-  await manager.client.instances.completeStep({
+  await manager.client.work.completeStep({
     instanceId: id,
     stepId: "count",
     evidence: [true],

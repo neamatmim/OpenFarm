@@ -163,19 +163,19 @@ const cow = {
 /** The Pen's work of one SOP, due at this instant, claimed by the Manager. */
 const workIn = async (penId: string, definitionId: string, instant: string) => {
   const manager = await as("manager", instant);
-  await manager.client.instances.ensureDue();
-  const today = await manager.client.instances.today({ penId });
+  await manager.client.work.ensureDue();
+  const today = await manager.client.work.today({ penId });
   const work = today.find((row) => row.definitionId === definitionId);
   if (!work) {
     throw new Error("expected the work to be due");
   }
-  await manager.client.instances.claim({ id: work.id });
+  await manager.client.work.claim({ id: work.id });
   return { manager, id: work.id };
 };
 
 const feed = async (instant: string, givenKg: number) => {
   const { manager, id } = await workIn(milkPen, sops.feeding, instant);
-  await manager.client.instances.completeStep({
+  await manager.client.work.completeStep({
     instanceId: id,
     stepId: "feed",
     evidence: [true],
@@ -187,32 +187,32 @@ const milk = async (instant: string, litres: [string, number][]) => {
   const { manager, id } = await workIn(milkPen, sops.milking, instant);
   for (const [tagNumber, given] of litres) {
     // oxlint-disable-next-line no-await-in-loop -- one cow at a time, as she is milked
-    await manager.client.instances.completeStep({
+    await manager.client.work.completeStep({
       instanceId: id,
       stepId: "milk",
       animalTag: tagNumber,
       evidence: [given],
     });
   }
-  await manager.client.instances.completeStep({
+  await manager.client.work.completeStep({
     instanceId: id,
     stepId: "bulk",
     evidence: [litres.reduce((sum, [, given]) => sum + given, 0)],
   });
-  await manager.client.instances.complete({ id });
+  await manager.client.work.complete({ id });
 };
 
 /** Seen in heat on `day` and served that noon, on the AI work her heat raised. */
 const heatAndServe = async (day: string, tagNumber: string) => {
   const manager = await as("manager", `${day}T00:00:00.000Z`);
-  await manager.client.instances.raiseNow({
+  await manager.client.work.raiseNow({
     definitionId: sops.watch,
     penId: dryPen,
   });
-  const rounds = await manager.client.instances.today({ penId: dryPen });
+  const rounds = await manager.client.work.today({ penId: dryPen });
   const round = rounds.find((row) => row.definitionId === sops.watch);
-  await manager.client.instances.claim({ id: round?.id ?? "" });
-  await manager.client.instances.completeStep({
+  await manager.client.work.claim({ id: round?.id ?? "" });
+  await manager.client.work.completeStep({
     instanceId: round?.id ?? "",
     stepId: "look",
     animalTag: tagNumber,
@@ -220,34 +220,34 @@ const heatAndServe = async (day: string, tagNumber: string) => {
   });
 
   const serving = await as("manager", `${day}T20:00:00.000Z`);
-  await serving.client.instances.ensureDue();
+  await serving.client.work.ensureDue();
   const her = await serving.client.animals.byTag({ tagNumber });
   const work = [
-    ...(await serving.client.instances.today({ penId: dryPen })),
-    ...(await serving.client.instances.overdue()),
+    ...(await serving.client.work.today({ penId: dryPen })),
+    ...(await serving.client.work.overdue()),
   ];
   const aiWork = work.find(
     (row) => row.definitionId === sops.ai && row.animalId === her.id
   );
-  await serving.client.instances.claim({ id: aiWork?.id ?? "" });
-  await serving.client.instances.completeStep({
+  await serving.client.work.claim({ id: aiWork?.id ?? "" });
+  await serving.client.work.completeStep({
     instanceId: aiWork?.id ?? "",
     stepId: "serve",
     evidence: ["ai", "HF-2231-BD", "রহিম", `${day}T12:00:00.000Z`],
   });
-  await serving.client.instances.complete({ id: aiWork?.id ?? "" });
+  await serving.client.work.complete({ id: aiWork?.id ?? "" });
 };
 
 beforeAll(async () => {
   const start = "2040-12-01T03:00:00.000Z";
   const owner = await as("owner", start);
   const manager = await as("manager", start);
-  const shed = await owner.client.herd.createShed({ name: `cull-${suffix}` });
-  const milking = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: `cull-${suffix}` });
+  const milking = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `দোহন পেন ${suffix}`,
   });
-  const dry = await owner.client.herd.createPen({
+  const dry = await owner.client.sheds.createPen({
     shedId: shed.id,
     name: `শুকনো পেন ${suffix}`,
   });

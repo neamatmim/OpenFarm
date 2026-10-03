@@ -56,8 +56,8 @@ const PAID_BY_THE_VENTURE = {
 
 beforeAll(async () => {
   const owner = await as("owner", "2046-11-01T04:00:00.000Z");
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -173,10 +173,10 @@ describe("whose animal she is", () => {
   it("does not let her drift across to the dairy side", async () => {
     const owner = await as("owner", "2046-11-10T04:00:00.000Z");
     const theirs = await buy("2046-11-10T05:00:00.000Z", 60_000, ventureId);
-    const dairyShed = await owner.client.herd.createShed({
+    const dairyShed = await owner.client.sheds.createShed({
       name: `দুধ ${suffix}`,
     });
-    const dairyPen = await owner.client.herd.createPen({
+    const dairyPen = await owner.client.sheds.createPen({
       quarantine: true,
       shedId: dairyShed.id,
       name: `দুধের ঘর ${suffix}`,

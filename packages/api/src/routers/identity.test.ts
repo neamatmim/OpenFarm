@@ -36,10 +36,10 @@ describe("the farm's own identity", () => {
     // and ticket 32 could not give it.
     const owner = await createTestClient(appRouter, { as: "owner", clock });
     const vet = await createTestClient(appRouter, { as: "vet", clock });
-    const shed = await owner.client.herd.createShed({
+    const shed = await owner.client.sheds.createShed({
       name: `identity-${Date.now()}`,
     });
-    const pen = await owner.client.herd.createPen({
+    const pen = await owner.client.sheds.createPen({
       shedId: shed.id,
       name: "পরিচয় পেন",
     });

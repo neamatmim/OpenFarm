@@ -31,14 +31,14 @@ const setup = async () => {
   // Publishing the Playbook is the Owner's.
   const owner = await createTestClient(appRouter, { as: "owner" });
   await owner.client.sops.create({ content: feedingSop() });
-  const shed = await manager.client.herd.createShed({
+  const shed = await manager.client.sheds.createShed({
     name: `feed-${Date.now()}`,
   });
-  const pen = await manager.client.herd.createPen({
+  const pen = await manager.client.sheds.createPen({
     shedId: shed.id,
     name: "দোহন পেন",
   });
-  const empty = await manager.client.herd.createPen({
+  const empty = await manager.client.sheds.createPen({
     shedId: shed.id,
     name: "খালি পেন",
   });
@@ -113,10 +113,10 @@ describe("what a Pen is fed", () => {
   it("follows the herd and the Ration, and can still say what yesterday's was", async () => {
     const clock = new FakeClock("2027-06-01T02:00:00.000Z");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    const shed = await manager.client.herd.createShed({
+    const shed = await manager.client.sheds.createShed({
       name: `feed-version-${Date.now()}`,
     });
-    const pen = await manager.client.herd.createPen({
+    const pen = await manager.client.sheds.createPen({
       shedId: shed.id,
       name: "পরিবর্তনের পেন",
     });
@@ -211,14 +211,14 @@ describe("what a Pen is fed", () => {
   it("feeds two Pens from one Ration, so changing it is one change", async () => {
     const clock = new FakeClock("2027-07-01T02:00:00.000Z");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    const shed = await manager.client.herd.createShed({
+    const shed = await manager.client.sheds.createShed({
       name: `feed-shared-${Date.now()}`,
     });
-    const first = await manager.client.herd.createPen({
+    const first = await manager.client.sheds.createPen({
       shedId: shed.id,
       name: "দোহন ১",
     });
-    const second = await manager.client.herd.createPen({
+    const second = await manager.client.sheds.createPen({
       shedId: shed.id,
       name: "দোহন ২",
     });
@@ -269,10 +269,10 @@ describe("what a Pen is fed", () => {
 describe("retiring a Ration", () => {
   it("is refused while a Pen is fed on it, and done once the Pen is on another", async () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
-    const shed = await manager.client.herd.createShed({
+    const shed = await manager.client.sheds.createShed({
       name: `feed-retire-${Date.now()}`,
     });
-    const pen = await manager.client.herd.createPen({
+    const pen = await manager.client.sheds.createPen({
       shedId: shed.id,
       name: "পুরনো পেন",
     });

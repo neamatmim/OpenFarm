@@ -296,13 +296,13 @@ describe("a plan line's Breed", () => {
       as: "manager",
       clock: new FakeClock("2053-01-21T06:00:00.000Z"),
     });
-    const shed = await manager.herd.createShed({ name: `জাত-শেড ${suffix}` });
-    const pen = await manager.herd.createPen({
+    const shed = await manager.sheds.createShed({ name: `জাত-শেড ${suffix}` });
+    const pen = await manager.sheds.createPen({
       quarantine: true,
       shedId: shed.id,
       name: `জাত-পেন ${suffix}`,
     });
-    const trip = await manager.trips.record({
+    const trip = await manager.buyingTrips.record({
       wentTo: "পাবনা হাট",
       brokerMoney: 0,
       transportMoney: 0,

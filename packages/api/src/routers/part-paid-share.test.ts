@@ -67,8 +67,8 @@ const signedAndPaid = async (
 
 beforeAll(async () => {
   const owner = await as("owner", "2071-01-02T04:00:00.000Z");
-  const shed = await owner.herd.createShed({ name: `শেড ${suffix}` });
-  const pen = await owner.herd.createPen({
+  const shed = await owner.sheds.createShed({ name: `শেড ${suffix}` });
+  const pen = await owner.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -92,7 +92,7 @@ beforeAll(async () => {
 
   // One bull for a hundred thousand and nothing sold: a loss of a hundred thousand, sixty of it the Investors'.
   const buying = await as("owner", "2071-01-04T04:00:00.000Z");
-  const trip = await buying.trips.record({
+  const trip = await buying.buyingTrips.record({
     wentTo: `হাট ${suffix}`,
     wentOn: "2071-01-04",
     brokerMoney: 0,

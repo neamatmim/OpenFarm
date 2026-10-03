@@ -76,10 +76,10 @@ beforeAll(async () => {
 /** A cow on the opening register, in a Pen of her own: dry and due to calve, or already in milk. */
 const aCow = async (name: string, state: "dry" | "milking") => {
   const owner = await as("owner", "2060-01-01T00:00:00.000Z");
-  const shed = await owner.client.herd.createShed({
+  const shed = await owner.client.sheds.createShed({
     name: `${suffix}-${name}`,
   });
-  const pen = await owner.client.herd.createPen({ shedId: shed.id, name });
+  const pen = await owner.client.sheds.createPen({ shedId: shed.id, name });
   const due = state === "dry" ? "2060-02-03" : "";
   const imported = await owner.client.animals.importRegister({
     csv: [
@@ -93,11 +93,11 @@ const aCow = async (name: string, state: "dry" | "milking") => {
 /** The morning round in her Pen finds her calved at three. */
 const sheCalves = async (cow: { penId: string; tag: string }) => {
   const manager = await as("manager", "2060-02-02T00:30:00.000Z");
-  await manager.client.instances.ensureDue();
-  const today = await manager.client.instances.today({ penId: cow.penId });
+  await manager.client.work.ensureDue();
+  const today = await manager.client.work.today({ penId: cow.penId });
   const round = today.find((row) => row.definitionId === roundId);
-  await manager.client.instances.claim({ id: round?.id ?? "" });
-  await manager.client.instances.completeStep({
+  await manager.client.work.claim({ id: round?.id ?? "" });
+  await manager.client.work.completeStep({
     instanceId: round?.id ?? "",
     stepId: "calved",
     animalTag: cow.tag,
@@ -121,7 +121,7 @@ const checksOver = async (tag: string) => {
     // oxlint-disable-next-line no-await-in-loop
     const manager = await as("manager", `2060-02-0${day}T04:00:00.000Z`);
     // oxlint-disable-next-line no-await-in-loop
-    await manager.client.instances.ensureDue();
+    await manager.client.work.ensureDue();
   }
   const raised = await scratchDb().query.sopInstance.findMany({
     where: { animalId, definitionId: checkId },
@@ -154,22 +154,22 @@ describe("the cow after calving", () => {
     const cow = await aCow("বসা পেন", "dry");
     await sheCalves(cow);
     const manager = await as("manager", "2060-02-02T01:00:00.000Z");
-    await manager.client.instances.ensureDue();
+    await manager.client.work.ensureDue();
     const animalId = await idOf(cow.tag);
     const [first] = await scratchDb().query.sopInstance.findMany({
       where: { animalId, definitionId: checkId },
       columns: { id: true },
       orderBy: { dueAt: "asc" },
     });
-    await manager.client.instances.claim({ id: first?.id ?? "" });
-    await manager.client.instances.completeStep({
+    await manager.client.work.claim({ id: first?.id ?? "" });
+    await manager.client.work.completeStep({
       instanceId: first?.id ?? "",
       stepId: "look",
       animalTag: cow.tag,
       evidence: ["down_cow"],
     });
     const later = await as("manager", "2060-02-02T01:30:00.000Z");
-    await later.client.instances.ensureDue();
+    await later.client.work.ensureDue();
     const urgent = await scratchDb().query.sopInstance.findMany({
       where: { animalId, definitionId: urgentId },
       columns: { graceMinutes: true },

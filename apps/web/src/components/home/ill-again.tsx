@@ -8,7 +8,7 @@ import type { orpc } from "@/utils/orpc";
 
 /** An animal the Vet has diagnosed again and again, as the Manager's queue is told it. */
 export type IllAgainAnimals = Awaited<
-  ReturnType<typeof orpc.home.manager.call>
+  ReturnType<typeof orpc.home.get.call>
 >["queue"]["illAgain"];
 
 /**

@@ -61,7 +61,7 @@ const HandOverDialog = ({
   const [tripId, setTripId] = useState("");
   const toTheBank = to === BANK || toAnAccount;
   // The Farm's own outings a float may go on: none a Venture's Buying Float paid for.
-  const trips = useQuery(orpc.trips.list.queryOptions());
+  const trips = useQuery(orpc.buyingTrips.list.queryOptions());
   const farmsTrips = (trips.data ?? []).filter((one) => one.float === null);
   const handOver = useMutation(
     orpc.cash.handOver.mutationOptions({

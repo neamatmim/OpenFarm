@@ -81,8 +81,8 @@ beforeAll(async () => {
   secondFeedId = second.definitionId;
   const round = await owner.client.sops.create({ content: calvingRoundSop() });
   roundId = round.definitionId;
-  const shed = await owner.client.herd.createShed({ name: suffix });
-  const pen = await owner.client.herd.createPen({
+  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const pen = await owner.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `বাচ্চার ঘর ${suffix}`,
@@ -127,18 +127,18 @@ beforeAll(async () => {
 
   // The morning round finds the first cow with a live heifer calf and the second with a stillborn one.
   const early = await as("manager", RECORDED);
-  await early.client.instances.ensureDue();
-  const today = await early.client.instances.today({ penId });
+  await early.client.work.ensureDue();
+  const today = await early.client.work.today({ penId });
   const theRound = today.find((row) => row.definitionId === roundId);
   const staff = await as("staff", RECORDED);
-  await staff.client.instances.claim({ id: theRound?.id ?? "" });
+  await staff.client.work.claim({ id: theRound?.id ?? "" });
   const [live, dead] = cows;
   for (const [tag, outcome] of [
     [live, "alive"],
     [dead, "stillborn"],
   ] as const) {
     // oxlint-disable-next-line no-await-in-loop
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: theRound?.id ?? "",
       stepId: "calved",
       animalTag: tag ?? "",
@@ -157,8 +157,8 @@ beforeAll(async () => {
 /** The newborn work raised by now, as the Manager sees the Pen. */
 const newbornWork = async (instant: string) => {
   const manager = await as("manager", instant);
-  await manager.client.instances.ensureDue();
-  const today = await manager.client.instances.today({ penId });
+  await manager.client.work.ensureDue();
+  const today = await manager.client.work.today({ penId });
   return today.filter(
     (row) => row.definitionId === newbornId || row.definitionId === secondFeedId
   );
@@ -205,14 +205,14 @@ describe("newborn calf care", () => {
     const work = await newbornWork(`${BORN}T01:20:00.000Z`);
     const first = work.find((row) => row.definitionId === newbornId);
     const staff = await as("staff", `${BORN}T01:20:00.000Z`);
-    await staff.client.instances.claim({ id: first?.id ?? "" });
-    await staff.client.instances.completeStep({
+    await staff.client.work.claim({ id: first?.id ?? "" });
+    await staff.client.work.completeStep({
       instanceId: first?.id ?? "",
       stepId: "well",
       animalTag: tag,
       evidence: ["not_suckling"],
     });
-    await staff.client.instances.completeStep({
+    await staff.client.work.completeStep({
       instanceId: first?.id ?? "",
       stepId: "weigh",
       animalTag: tag,
@@ -248,7 +248,7 @@ describe("newborn calf care", () => {
 
   it("is late two hours after her Calving was recorded, and the second feed is not", async () => {
     const manager = await as("manager", `${BORN}T03:05:00.000Z`);
-    const home = await manager.client.home.manager();
+    const home = await manager.client.home.get();
     const late = home.queue.overdue.map((row) => row.id);
     const work = await newbornWork(`${BORN}T03:05:00.000Z`);
     const first = work.find((row) => row.definitionId === newbornId);
@@ -270,7 +270,7 @@ describe("what the farm loses in calves", () => {
       disposal: "buried",
     });
     const owner = await as("owner", "2052-04-01T04:00:00.000Z");
-    const losses = await owner.client.herd.calfLosses();
+    const losses = await owner.client.animals.calfLosses();
     expect(losses).toMatchObject({
       bornAlive: 1,
       stillborn: 1,

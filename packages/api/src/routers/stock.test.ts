@@ -39,8 +39,8 @@ const feedingSop = (): SopContent => ({
 const setup = async () => {
   const clock = new FakeClock("2034-01-01T00:00:00.000Z");
   const manager = await createTestClient(appRouter, { as: "manager", clock });
-  const shed = await manager.client.herd.createShed({ name: `st-${suffix}` });
-  const pen = await manager.client.herd.createPen({
+  const shed = await manager.client.sheds.createShed({ name: `st-${suffix}` });
+  const pen = await manager.client.sheds.createPen({
     quarantine: true,
     shedId: shed.id,
     name: `খাদ্যের পেন ${suffix}`,
@@ -131,12 +131,12 @@ const feedOn = async (
 ) => {
   const clock = new FakeClock(`${day}T01:00:00.000Z`);
   const owner = await createTestClient(appRouter, { as: "owner", clock });
-  await owner.client.instances.ensureDue();
-  const today = await owner.client.instances.today({ penId: world.pen.id });
+  await owner.client.work.ensureDue();
+  const today = await owner.client.work.today({ penId: world.pen.id });
   const work = today.find((row) => row.definitionId === world.sop.definitionId);
   const staff = await createTestClient(appRouter, { as: "staff", clock });
-  await staff.client.instances.claim({ id: work?.id ?? "" });
-  await staff.client.instances.completeStep({
+  await staff.client.work.claim({ id: work?.id ?? "" });
+  await staff.client.work.completeStep({
     instanceId: work?.id ?? "",
     stepId: "feed",
     evidence: [true],
