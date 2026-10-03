@@ -17,6 +17,7 @@ import {
 } from "react";
 
 import { authClient } from "@/lib/auth-client";
+import { markBanglaWhileEnglish } from "@/lib/mark-bangla";
 import { LANGUAGE_COOKIE, pageLanguage } from "@/lib/page-context";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
@@ -123,6 +124,11 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
     document.documentElement.lang = language;
     void keepInCookie(language);
   }, [language]);
+  // Bangla words on an English page are said to be Bangla, for a screen reader's voice.
+  useEffect(
+    () => (language === "en" ? markBanglaWhileEnglish() : undefined),
+    [language]
+  );
 
   const setLanguage = useCallback(
     async (next: Language) => {
