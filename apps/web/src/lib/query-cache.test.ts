@@ -1,11 +1,17 @@
 import type { PersistedClient } from "@tanstack/query-persist-client-core";
-import { describe, expect, it } from "vitest";
+import {
+  persistQueryClientRestore,
+  persistQueryClientSave,
+} from "@tanstack/query-persist-client-core";
+import { QueryClient, QueryObserver } from "@tanstack/react-query";
+import { describe, expect, it, vi } from "vitest";
 
 import { animalPhotoKey } from "@/components/portal/animal-photo-key";
 import { orpc } from "@/utils/orpc";
 
 import {
   keptOnDevice,
+  onDevice,
   readKept,
   shelvedInThisShape,
   writeKept,
@@ -139,5 +145,58 @@ describe("a person's screens put away on a Shed Phone", () => {
     // Put away before an update, brought back after it: a screen drawn from it would have no figures to write out.
     expect(shelvedInThisShape(shelf(""))).toBe(false);
     expect(shelvedInThisShape(shelf("kept-the-old-way"))).toBe(false);
+  });
+});
+
+/** The device's database, held in memory: what a test keeps and reads back goes through the same persister. */
+const memoryStorage = (): Parameters<typeof onDevice>[0] => {
+  const kept = new Map<string, unknown>();
+  return {
+    get: (key: string) => Promise.resolve(kept.get(key) ?? null),
+    set: (key: string, value: unknown) => {
+      kept.set(key, value);
+      return Promise.resolve();
+    },
+    delete: (key: string) => {
+      kept.delete(key);
+      return Promise.resolve();
+    },
+  } as Parameters<typeof onDevice>[0];
+};
+
+/** As the app counts an answer fresh: for a minute after it came. */
+const FRESH_FOR_MS = 60 * 1000;
+
+describe("a reload", () => {
+  it("draws what was kept at once, and asks the farm again however fresh it was when kept", async () => {
+    // Read a moment ago on this phone; since then somebody else recorded a draw on theirs.
+    const storage = memoryStorage();
+    const before = new QueryClient();
+    before.setQueryData(["openDraws"], ["Test worker ৳2,500"]);
+    await persistQueryClientSave({
+      queryClient: before,
+      persister: onDevice(storage),
+    });
+
+    const reloaded = new QueryClient();
+    await persistQueryClientRestore({
+      queryClient: reloaded,
+      persister: onDevice(storage),
+    });
+    const asked = vi.fn(() => Promise.resolve(["Test worker ৳2,600"]));
+    const screen = new QueryObserver(reloaded, {
+      queryKey: ["openDraws"],
+      queryFn: asked,
+      staleTime: FRESH_FOR_MS,
+    });
+    const drawnFirst = screen.getCurrentResult().data;
+    const stop = screen.subscribe(() => null);
+
+    await vi.waitFor(() =>
+      expect(screen.getCurrentResult().data).toEqual(["Test worker ৳2,600"])
+    );
+    stop();
+    expect(drawnFirst).toEqual(["Test worker ৳2,500"]);
+    expect(asked).toHaveBeenCalledOnce();
   });
 });
