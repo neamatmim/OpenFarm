@@ -16,7 +16,6 @@ import {
   PieChart,
   Plus,
   Scale,
-  Tags,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -24,7 +23,6 @@ import { AccountantExport } from "@/components/accountant-export";
 import { CostsBySide } from "@/components/costs";
 import { EnterMoneySheet } from "@/components/money-entry";
 import { CashTab } from "@/components/money/cash-tab";
-import { CategoriesTab } from "@/components/money/categories-tab";
 import { PeriodBar } from "@/components/money/period-bar";
 import { ReceivableTab } from "@/components/money/receivable-tab";
 import type { MoneyList } from "@/components/money/register";
@@ -47,7 +45,6 @@ const TABS = [
   "receivable",
   "costs",
   "accountant",
-  "categories",
 ] as const;
 type Tab = (typeof TABS)[number];
 
@@ -59,7 +56,6 @@ const TAB_PATHS = {
   receivable: "/money/receivables",
   costs: "/money/costs",
   accountant: "/money/accountant",
-  categories: "/money/categories",
 } as const satisfies Record<Tab, string>;
 
 /** The first of this month on the farm's clock, which is where an Owner starts reading money. */
@@ -215,12 +211,6 @@ const MoneyPage = () => {
             label: t("accountant.title"),
             icon: Calculator,
             content: <AccountantExport from={from} to={to} />,
-          },
-          {
-            value: "categories",
-            label: t("byHand.categories"),
-            icon: Tags,
-            content: <CategoriesTab />,
           },
         ]}
         value={tab}

@@ -83,11 +83,12 @@ const PersonPage = () => {
 
   return (
     <Page>
-      <BackLink to="/people">{t("nav.people")}</BackLink>
+      <BackLink to="/farm/people">{t("nav.people")}</BackLink>
       <Loaded query={person}>
         {them ? (
           <>
             <PageHeader
+              eyebrow={t("nav.identity")}
               actions={
                 isOwner ? (
                   <CorrectName name={them.name} userId={userId} />
@@ -178,7 +179,7 @@ const PersonPage = () => {
   );
 };
 
-export const Route = createFileRoute("/_authenticated/people/$userId")({
+export const Route = createFileRoute("/_authenticated/farm/people/$userId")({
   /** For those who run the farm: the Owner and the Farm Managers. */
   beforeLoad: onlyFor("runsTheFarm"),
   component: PersonPage,

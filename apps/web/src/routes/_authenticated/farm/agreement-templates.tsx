@@ -390,6 +390,7 @@ const TemplatesPage = () => {
   return (
     <Page>
       <PageHeader
+        eyebrow={t("nav.identity")}
         description={t("templates.pageHint")}
         title={t("templates.pageTitle")}
       />
@@ -433,7 +434,9 @@ const TemplatesPage = () => {
   );
 };
 
-export const Route = createFileRoute("/_authenticated/templates")({
+export const Route = createFileRoute(
+  "/_authenticated/farm/agreement-templates"
+)({
   component: TemplatesPage,
   beforeLoad: onlyFor("owner"),
 });

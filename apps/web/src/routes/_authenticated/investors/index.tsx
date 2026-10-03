@@ -3,7 +3,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { BadgeCheck, IdCard, Search, Users } from "lucide-react";
 import { useState } from "react";
 
@@ -13,8 +13,6 @@ import { matching } from "@/components/investors/investor-types";
 import { InvestorsTable } from "@/components/investors/investors-table";
 import type { PortalStanding } from "@/components/investors/portal-access";
 import {
-  PortalSwitch,
-  ShownToInvestorsSwitch,
   STANDING,
   portalInUse,
   standingOf,
@@ -193,29 +191,15 @@ const InvestorsPage = () => {
           </Section>
         )}
       </Loaded>
-      {/* The three switches for what invited Investors see, together and after the people: set once, read rarely. */}
-      {counted ? (
-        <Section id="what-they-see" title={t("investors.whatTheySee")}>
-          <div className="divide-border flex flex-col divide-y">
-            <PortalSwitch open={counted.portalOpen} />
-            {/* An answer this phone kept from before projections, or settled returns, could be shown says nothing
-                of them: hidden. */}
-            <ShownToInvestorsSwitch
-              shown={counted.projectionsShown ?? false}
-              what="projections"
-            />
-            <ShownToInvestorsSwitch
-              shown={counted.returnsShown ?? false}
-              what="returns"
-            />
-            {/* Missing from an answer kept from before Agreements could be agreed in the app: off. */}
-            <ShownToInvestorsSwitch
-              shown={counted.agreementsInApp ?? false}
-              what="agreements"
-            />
-          </div>
-        </Section>
-      ) : null}
+      {/* What invited Investors see is set with the farm's settings, once; the way there stays where they are listed. */}
+      <p className="text-muted-foreground text-sm">
+        <Link
+          className="text-foreground font-medium underline-offset-4 hover:underline"
+          to="/farm/portal"
+        >
+          {t("investors.whatTheySee")} →
+        </Link>
+      </p>
       <InvestorSheet onOpenChange={setRecording} open={recording} />
     </Page>
   );

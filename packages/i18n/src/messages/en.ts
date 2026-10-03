@@ -2798,7 +2798,7 @@ export const en = {
   "common.close": "Close",
   "nav.signOff": "Review",
   "nav.backups": "Backups",
-  "nav.settings": "Settings",
+  "nav.settings": "Your settings",
   "feed.subtitle":
     "What is in the store, what came in, and which ration each pen is on.",
   "feed.tab.stock": "Store",
@@ -3370,7 +3370,6 @@ export const en = {
   "refusal.looksEnteredAlready":
     "This looks like money already entered: the same person, the same {currencySum}, the same day",
   "byHand.entered": "Entered",
-  "byHand.categories": "Categories",
   "byHand.retireTitle": "Retire the “{name}” category?",
   "byHand.retireWhy":
     "New money can no longer be entered under it. What is already written under it stays as it is.",
@@ -3389,6 +3388,7 @@ export const en = {
   "byHand.retired": "Retired",
   "byHand.categoryName": "Name",
   "byHand.noCategories": "No categories yet",
+  "byHand.categories": "Categories",
   "byHand.newCategoryHint":
     "A heading for money the farm enters by hand. One no longer used is retired, never removed.",
   "refusal.wageAlreadyEntered":
@@ -4960,6 +4960,14 @@ export const en = {
   "sale.kpi.ready": "Ready to go",
   "sale.kpi.readyHint": "Confirmed, and clear of withdrawal",
   "nav.identity": "Farm settings",
+  "settings.section.farm": "Farm details",
+  "settings.section.rules": "Rules and alerts",
+  "settings.section.money": "Money",
+  "settings.section.portal": "Investor portal",
+  "settings.rulesWhy":
+    "How the farm behaves: when its digest goes and its quiet hours, how far a reading may drift, how long late work waits before somebody is told, and when a cow is put on the cull list.",
+  "settings.moneyWhy":
+    "The accounts the farm takes and pays through, the categories every entry is written under, and the market price its own animals are priced at.",
   "identity.why":
     "Every paper that leaves the farm — the transport card, the letter to the office — prints what is written here.",
   "identity.name": "Farm name",

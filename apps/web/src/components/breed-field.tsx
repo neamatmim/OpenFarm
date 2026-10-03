@@ -40,7 +40,7 @@ export const BreedField = ({
         noManage ? undefined : (
           <Link
             className="text-primary underline-offset-4 hover:underline"
-            to="/breeds"
+            to="/farm/breeds"
           >
             {t("breeds.manage")}
           </Link>
