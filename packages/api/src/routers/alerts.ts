@@ -15,18 +15,13 @@ const INBOX_LIMIT = 50;
 export const alertsRouter = {
   /**
    * Raises the Alerts the clock has earned. Idempotent, so the phone and the office can both
-   * call it on open and neither piles up duplicates; a scheduled job replaces that later,
-   * exactly as it will for ensureDue.
+   * call it on open and neither piles up duplicates; the farm's own scheduler calls it too, as it
+   * does ensureDue, so nothing waits for somebody to open the app.
    */
   sweep: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet"))
     .handler(({ context }) => theSweep(context)),
 
-  /**
-   * What this person is being told, newest first. Theirs alone — an Alert is personal.
-   * Narrowing to one thing answers the question a screen showing that thing actually has:
-   * is there anything waiting about this piece of work, and what does it say?
-   */
   /**
    * Carries the day's quieter notices — one push each, naming what is in it.
    *
@@ -40,6 +35,11 @@ export const alertsRouter = {
     .use(requireRole("owner", "manager", "staff", "vet"))
     .handler(({ context }) => theDigest(context)),
 
+  /**
+   * What this person is being told, newest first. Theirs alone — an Alert is personal.
+   * Narrowing to one thing answers the question a screen showing that thing actually has:
+   * is there anything waiting about this piece of work, and what does it say?
+   */
   mine: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(

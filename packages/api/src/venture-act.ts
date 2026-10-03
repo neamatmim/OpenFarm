@@ -48,7 +48,10 @@ export interface VentureAct {
 }
 
 /** This Farm's Venture, or nothing the caller may act on. */
-const ours = async (context: ActorContext, id: string): Promise<VentureRow> => {
+export const ours = async (
+  context: ActorContext,
+  id: string
+): Promise<VentureRow> => {
   const row = await context.db.query.venture.findFirst({
     where: { id, farmId: context.farm.id },
   });
@@ -59,7 +62,7 @@ const ours = async (context: ActorContext, id: string): Promise<VentureRow> => {
 };
 
 /** Refuses an act on a Venture whose Settlement the Owner has already approved. */
-const assertNotSettledUp = async (
+export const assertNotSettledUp = async (
   tx: Tx,
   farmId: string,
   ventureId: string
