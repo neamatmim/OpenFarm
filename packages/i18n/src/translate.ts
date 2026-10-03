@@ -1,14 +1,11 @@
+import { CATALOGS } from "#catalog";
+
 import { currencySign, currencyWords, farmCountryName } from "./farm-locale";
 import { formatNumber, numberAsTyped } from "./format";
 import type { Language } from "./languages";
-import { bn } from "./messages/bn";
-import { en } from "./messages/en";
+import type { MessageKey } from "./messages/en";
 
 export type { MessageKey } from "./messages/en";
-
-type MessageKey = keyof typeof en;
-
-const MESSAGES: Record<Language, Record<MessageKey, string>> = { bn, en };
 
 export type MessageParams = Record<string, string | number>;
 
@@ -26,9 +23,7 @@ const said = (value: string | number, language: Language): string =>
  *  has: a key a screen builds by hand is no type error when its words are missing, and a page says what it can rather
  *  than going blank. */
 const wordsFor = (language: Language, key: MessageKey): string =>
-  (MESSAGES[language] as Partial<Record<string, string>>)[key] ??
-  (MESSAGES.en as Partial<Record<string, string>>)[key] ??
-  key;
+  CATALOGS[language]?.[key] ?? CATALOGS.en?.[key] ?? key;
 
 /** What every message may say without being told: the farm's currency, as the sign before a figure
  *  (`{currencySign}`), one of it (`{currencyOne}`: every taka), a sum of it after its figure (`{currencySum}`: ২০০
@@ -83,16 +78,4 @@ export const translate = (
       const value = params[name];
       return value === undefined ? match : said(value, language);
     });
-};
-
-/** Every key with a missing or empty translation in a language, and keys that
- *  exist in the language but not in the English source. Empty means complete. */
-export const findTranslationGaps = (
-  language: Language
-): { missing: string[]; stray: string[] } => {
-  const source = Object.keys(en);
-  const target = MESSAGES[language] as Record<string, string | undefined>;
-  const missing = source.filter((key) => !target[key]?.trim());
-  const stray = Object.keys(target).filter((key) => !(key in en));
-  return { missing, stray };
 };

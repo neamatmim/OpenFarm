@@ -3,6 +3,13 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "sideEffects": false,
+  "imports": {
+    "#catalog": {
+      "browser": "./src/catalog.browser.ts",
+      "default": "./src/catalog.ts"
+    }
+  },
   "exports": {
     ".": "./src/index.ts",
     "./*": "./src/*.ts"

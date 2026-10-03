@@ -8,11 +8,12 @@ import {
   latinDigitsOf,
   numberAsTyped,
 } from "./format";
+import { findTranslationGaps } from "./gaps";
 import { resolveLanguage } from "./languages";
 import { bn } from "./messages/bn";
 import { en } from "./messages/en";
 import type { MessageKey } from "./translate";
-import { FARM_WORDS, findTranslationGaps, translate } from "./translate";
+import { FARM_WORDS, translate } from "./translate";
 
 const farmWord = new Set<string>(FARM_WORDS);
 

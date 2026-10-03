@@ -1,7 +1,7 @@
 import type { Language, MessageKey, MessageParams } from "@OpenFarm/i18n";
 import {
-  DEFAULT_LANGUAGE,
   isLanguage,
+  loadMessages,
   resolveLanguage,
   translate,
 } from "@OpenFarm/i18n";
@@ -17,6 +17,7 @@ import {
 } from "react";
 
 import { authClient } from "@/lib/auth-client";
+import { LANGUAGE_COOKIE, pageLanguage } from "@/lib/page-context";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
@@ -58,6 +59,36 @@ const writeStored = (language: Language) => {
   }
 };
 
+/** How long the language cookie lasts: a reader who has not been back in a year is asked the farm's default again. */
+const A_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+
+/** The language kept where the server can read it, so the next page is written in it from the start. Through the
+ *  Cookie Store API; a browser without it is written in the farm's default first, as before, then corrected. */
+const keepInCookie = async (language: Language) => {
+  const { cookieStore } = globalThis as {
+    cookieStore?: {
+      set: (cookie: {
+        name: string;
+        value: string;
+        path: string;
+        expires: number;
+        sameSite: "lax";
+      }) => Promise<void>;
+    };
+  };
+  try {
+    await cookieStore?.set({
+      name: LANGUAGE_COOKIE,
+      value: language,
+      path: "/",
+      expires: Date.now() + A_YEAR_MS,
+      sameSite: "lax",
+    });
+  } catch {
+    // Kept nowhere the server reads: the next page is corrected after it is drawn, as before.
+  }
+};
+
 /** Bangla first. A signed-in person's setting wins; then a choice remembered on this
  *  device; then the farm default. A choice made now applies immediately. */
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
@@ -65,14 +96,32 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const stored = useSyncExternalStore(subscribeStored, readStored, () => null);
   const [chosen, setChosen] = useState<Language | null>(null);
 
-  const language: Language =
+  const wanted: Language =
     chosen ??
     (session?.user
       ? resolveLanguage(session.user)
-      : (stored ?? DEFAULT_LANGUAGE));
+      : (stored ?? pageLanguage()));
+  // The page is drawn in the language whose words this browser has: one wanted but not yet fetched is drawn once it
+  // is, rather than in its keys.
+  const [shownLanguage, setShownLanguage] = useState<Language>(pageLanguage);
+  const language = shownLanguage;
+  useEffect(() => {
+    let current = true;
+    const fetchItsWords = async () => {
+      await loadMessages(wanted);
+      if (current) {
+        setShownLanguage(wanted);
+      }
+    };
+    void fetchItsWords();
+    return () => {
+      current = false;
+    };
+  }, [wanted]);
 
   useEffect(() => {
     document.documentElement.lang = language;
+    void keepInCookie(language);
   }, [language]);
 
   const setLanguage = useCallback(

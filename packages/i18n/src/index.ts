@@ -31,4 +31,6 @@ export {
   resolveLanguage,
 } from "./languages";
 export type { MessageKey, MessageParams } from "./translate";
-export { FARM_WORDS, findTranslationGaps, translate } from "./translate";
+export { loadMessages } from "#catalog";
+export { findTranslationGaps } from "./gaps";
+export { FARM_WORDS, translate } from "./translate";
