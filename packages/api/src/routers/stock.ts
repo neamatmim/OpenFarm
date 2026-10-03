@@ -291,7 +291,7 @@ export const stockRouter = {
       }
       if (item.retiredAt) {
         throw new ORPCError("BAD_REQUEST", {
-          message: "That feed is retired; bring it back before buying more",
+          message: "That feed is retired; restore it before buying more",
           data: { refusal: "feed_retired" },
         });
       }

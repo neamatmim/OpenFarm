@@ -109,7 +109,7 @@ const CategoryMenu = ({ row }: { row: CategoryRow }) => {
       <RowMenu
         actions={[
           {
-            label: t("byHand.bringBack"),
+            label: t("byHand.restore"),
             icon: ArchiveRestore,
             handleSelect: handleBringBack,
           },

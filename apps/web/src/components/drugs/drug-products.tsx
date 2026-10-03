@@ -309,7 +309,7 @@ const menuFor = (
   );
   if (product.retiredAt) {
     menu.push({
-      label: t("drugs.bringBack"),
+      label: t("drugs.restore"),
       icon: ArchiveRestore,
       handleSelect: () => actions.handleBringBack(product),
     });

@@ -99,7 +99,7 @@ export const refuseFeedsNotFed = (
   const retired = named.find(({ feed }) => feed?.retiredAt);
   if (retired?.feed) {
     throw new ORPCError("BAD_REQUEST", {
-      message: "A retired feed is not fed; bring it back first",
+      message: "A retired feed is not fed; restore it first",
       data: { refusal: "feed_retired", feed: retired.feed.nameBn },
     });
   }

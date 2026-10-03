@@ -366,7 +366,7 @@ export const en = {
     "Their phone is not a mobile number, which is what they sign in with. Put their number right first: one from outside {farmCountry} with + and its country code.",
   "portal.refused.phoneHasPortal":
     "Another Investor on the same phone already has the portal.",
-  "portal.refused.retired": "Bring them back before inviting them.",
+  "portal.refused.retired": "Restore them before inviting them.",
   "portal.homeTitle": "Your portfolio",
   "portal.homeHint":
     "Every Venture your money is in, and how each is doing today.",
@@ -963,7 +963,7 @@ export const en = {
   "setup.standard.skip": "Start empty",
   "setup.standard.done": "The farm has its standard lists",
   "setup.standard.feedRetired":
-    "The standard Rations feed {feed}, which this farm has retired: bring it back on the Feed Items tab first",
+    "The standard Rations feed {feed}, which this farm has retired: restore it on the Feed Items tab first",
   "setup.standard.bundlesByTheHead":
     "The standard Rations give {feed} by body weight, and this farm counts it in bundles: start without the Rations and write them by hand",
   "common.error": "Something went wrong",
@@ -1850,12 +1850,12 @@ export const en = {
   "investors.retire": "Retire",
   "investors.retireTitle": "Retire {name}?",
   "investors.retireWhy":
-    "They come off the people the farm may sign for a Venture. Nothing about them is deleted — their Agreements, payouts and statements are kept — and they can be brought back.",
+    "They come off the people the farm may sign for a Venture. Nothing about them is deleted — their Agreements, payouts and statements are kept — and they can be restored.",
   "investors.retiredToast": "Retired",
   "investors.retired": "Retired",
   "investors.retiredOn": "Retired on {day}",
-  "investors.bringBack": "Bring back",
-  "investors.broughtBack": "Brought back",
+  "investors.restore": "Restore",
+  "investors.restored": "Restored",
   "investors.stillIn":
     "Their money is in a Venture still running, so they cannot be retired until it settles or is called off.",
   "investors.nomineeIs": "Nominee: {name}",
@@ -2335,8 +2335,8 @@ export const en = {
   "breeds.retire": "Retire",
   "breeds.retireTitle": "Retire {name}?",
   "breeds.retireWhy":
-    "No new animal can be written down under it. The animals already of it keep it, and it can be brought back.",
-  "breeds.restore": "Bring back",
+    "No new animal can be written down under it. The animals already of it keep it, and it can be restored.",
+  "breeds.restore": "Restore",
   "breeds.none": "No breeds yet",
   "breeds.manage": "Add or rename breeds",
   "breeds.choose": "Not known",
@@ -2344,21 +2344,21 @@ export const en = {
   "common.retired": "Retired",
   "feed.retireTitle": "Retire “{name}”?",
   "feed.retireWhy":
-    "Nothing new is fed, bought or counted as it. What a Pen was fed with it keeps its name, and it can be brought back.",
-  "byHand.bringBack": "Bring back",
-  "notifiable.putBack": "Put back on the list",
-  "notifiable.putBackHint":
+    "Nothing new is fed, bought or counted as it. What a Pen was fed with it keeps its name, and it can be restored.",
+  "byHand.restore": "Restore",
+  "notifiable.restore": "Restore to the list",
+  "notifiable.restoreHint":
     "Say why it is reportable again: the office's word, and when.",
-  "notifiable.putBackDone": "Back on the list",
+  "notifiable.restored": "Restored to the list",
   "refusal.drugExists": "That product is already on the list",
   "refusal.drugExistsRetired":
-    "That product is on the list, retired — bring it back rather than adding it twice",
+    "That product is on the list, retired — restore it rather than adding it twice",
   "refusal.diseaseExists": "That disease is already on the list",
   "refusal.diseaseExistsRetired":
-    "That disease is on the list, taken off — put it back rather than adding it twice",
+    "That disease is on the list, taken off — restore it rather than adding it twice",
   "refusal.breedUnknown": "That breed is not on the farm's list",
   "refusal.breedRetired":
-    "That breed is retired. Bring it back on the Breeds page to write an animal under it.",
+    "That breed is retired. Restore it on the Breeds page to write an animal under it.",
   "herd.title": "Sheds & pens",
   "herd.addShed": "Add a shed",
   "herd.addPen": "Add a pen",
@@ -2688,18 +2688,17 @@ export const en = {
   "sop.noMatch": "No procedure has that name",
   "sop.retire": "Retire",
   "sop.retired": "Retired",
-  "sop.restore": "Bring back",
+  "sop.restore": "Restore",
   "sop.inForceNow": "In force",
   "sop.showing": "Which procedures",
   "sop.retireTitle": "Retire {name}?",
   "sop.retireWhy":
-    "The farm stops raising its work. Work nobody has started is called off; work somebody has taken is theirs to finish. Its versions, its card and everything done under it are kept, and it can be brought back.",
+    "The farm stops raising its work. Work nobody has started is called off; work somebody has taken is theirs to finish. Its versions, its card and everything done under it are kept, and it can be restored.",
   "sop.retiredDone":
     "Retired — {count, plural, one {# piece of work} other {# pieces of work}} called off",
-  "sop.restored":
-    "Brought back — its work is raised again the next time it is due",
+  "sop.restored": "Restored — its work is raised again the next time it is due",
   "sop.refused.retired":
-    "This procedure has been retired. Bring it back before changing it",
+    "This procedure has been retired. Restore it before changing it",
   "sop.refused.treatmentExists":
     "The farm already has a procedure a prescription raises. Retire that one first",
   "sop.refused.reportExists":
@@ -2780,9 +2779,9 @@ export const en = {
   "alerts.sopRetired": "{sop} was retired — its work is no longer raised",
   "digest.sopRetired":
     "{count, plural, one {# procedure} other {# procedures}} retired",
-  "alerts.sopRestored": "{sop} was brought back — its work is raised again",
+  "alerts.sopRestored": "{sop} was restored — its work is raised again",
   "digest.sopRestored":
-    "{count, plural, one {# procedure} other {# procedures}} brought back",
+    "{count, plural, one {# procedure} other {# procedures}} restored",
   "digest.sopProposed":
     "{count, plural, one {# proposal} other {# proposals}} waiting",
   "alerts.sopPublished": "{sop} — new version {number}",
@@ -2852,7 +2851,7 @@ export const en = {
   "feed.addItem": "Add a feed",
   "feed.retire": "Retire",
   "feed.retired": "Retired",
-  "feed.bringBack": "Bring back",
+  "feed.restore": "Restore",
   "feed.rename": "Rename",
   "feed.renameTitle": "Rename {name}",
   "feed.renameHint":
@@ -2870,7 +2869,7 @@ export const en = {
   "feed.retiredRationsHint":
     "Kept so past feedings still read by name. Bring one back to put a pen on it.",
   "feed.rationRetired": "Ration retired",
-  "feed.rationBroughtBack": "Ration brought back",
+  "feed.rationRestored": "Ration restored",
   "feed.pen": "Pen",
   "feed.noRation": "This pen has no ration",
   "feed.setRation": "Save the ration",
@@ -3113,11 +3112,11 @@ export const en = {
   "refusal.noFarmLossToCover":
     "This Venture made no loss for the Farm to carry",
   "refusal.investorRetired":
-    "This Investor is retired; bring them back from the Investors page first",
+    "This Investor is retired; restore them from the Investors page first",
   "refusal.rationInUse":
     "Pens are still fed on this ration. Put them on another ration first.",
   "refusal.rationRetired":
-    "That ration is retired. Bring it back to put a pen on it.",
+    "That ration is retired. Restore it to put a pen on it.",
   "refusal.investorStillIn":
     "Their money is in a Venture still running; they can be retired once it settles or is called off",
   "refusal.capitalMustBeByBank":
@@ -3340,7 +3339,7 @@ export const en = {
   "refusal.boughtInTheFuture":
     "Medicine cannot be bought on a day that has not come yet",
   "refusal.drugRetired":
-    "That product is retired; the Vet brings it back before more is bought",
+    "That product is retired; the Vet restores it before more is bought",
   "refusal.amountChanged":
     "The amount was corrected since you read it; read it again",
   "money.from.byHand": "Entered by hand",
@@ -3796,7 +3795,7 @@ export const en = {
   "drugs.blank": "Waiting for the Vet",
   "drugs.save": "Write the days",
   "drugs.setBy": "written by {name}, {date}",
-  "drugs.bringBack": "Bring it back",
+  "drugs.restore": "Restore",
   "drugs.rename": "Rename",
   "drugs.renameTitle": "Rename {name}",
   "drugs.renameHint":
@@ -3811,7 +3810,7 @@ export const en = {
   "drugs.managerAdds": "The Vet will write the days",
   "drugs.retireTitle": "Retire {name}?",
   "drugs.retireWhy":
-    "A retired product can no longer be prescribed or bought. Past treatments keep its name, and it can be brought back.",
+    "A retired product can no longer be prescribed or bought. Past treatments keep its name, and it can be restored.",
   "drugs.retire": "Retire",
   "drugs.retired": "Retired",
   "drugs.none": "Nothing on the list yet",

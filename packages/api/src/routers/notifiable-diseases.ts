@@ -48,7 +48,7 @@ const DISEASES = {
     whenRetired: {
       refusal: "disease_exists_retired",
       message:
-        "That disease is on the list, taken off; put it back rather than adding it twice",
+        "That disease is on the list, taken off; restore it rather than adding it twice",
     },
   },
 } satisfies FarmList & Parameters<typeof assertNameFree>[2];

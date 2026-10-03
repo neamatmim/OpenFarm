@@ -147,7 +147,7 @@ export const offerInApp = async (
   }
   if (him.retiredAt) {
     throw refused(
-      "This Investor is retired; bring them back before signing them for a Venture",
+      "This Investor is retired; restore them before signing them for a Venture",
       "investor_retired"
     );
   }

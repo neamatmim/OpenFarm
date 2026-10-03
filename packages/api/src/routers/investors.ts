@@ -87,7 +87,7 @@ const alreadyHere = (retired: boolean) =>
   retired
     ? new ORPCError("BAD_REQUEST", {
         message:
-          "This person is already an Investor here, retired; bring them back rather than writing them down twice",
+          "This person is already an Investor here, retired; restore them rather than writing them down twice",
         data: { refusal: "investor_retired" },
       })
     : new ORPCError("BAD_REQUEST", {
