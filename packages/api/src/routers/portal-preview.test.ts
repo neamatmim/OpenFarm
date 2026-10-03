@@ -122,8 +122,8 @@ describe("the Portal Preview", () => {
     expect(await owner.portalPreview.openVentures({ investorId })).toEqual(
       await rahim.portal.openVentures()
     );
-    expect(await owner.portalPreview.myRequests({ investorId })).toEqual(
-      await rahim.portal.myRequests()
+    expect(await owner.portalPreview.requests({ investorId })).toEqual(
+      await rahim.portal.requests()
     );
     expect(
       await owner.portalPreview.venture({ investorId, agreementId })

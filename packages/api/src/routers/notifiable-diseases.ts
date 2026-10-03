@@ -163,7 +163,7 @@ export const notifiableDiseasesRouter = {
    * Upazila Livestock Officer has told this farm — and the note is where that is written down,
    * because "why did you report this one" is a question with an answer.
    */
-  add: protectedProcedure
+  create: protectedProcedure
     .use(requireRole("owner", "manager", "vet"))
     .input(
       z.object({

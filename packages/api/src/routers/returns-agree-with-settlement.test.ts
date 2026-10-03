@@ -314,7 +314,7 @@ beforeAll(async () => {
   ventureA = a.ventureId;
   const [a1, a2] = a.tags;
   await sell(a1 ?? "", "2054-01-10T05:00:00.000Z", 115_000);
-  const spray = await owner.money.addCategory({
+  const spray = await owner.money.createCategory({
     nameBn: `মাছি স্প্রে ${suffix}`,
     direction: "out",
   });

@@ -469,7 +469,7 @@ export const priceTheDairyHerd = async (farm: Farm, herd: Herd) => {
   const bought = new Set<string>();
   for (const cow of cows) {
     // oxlint-disable-next-line no-await-in-loop -- one cow at a time, as the Owner reads the register
-    const her = await farm.as.owner.animals.byTag({ tagNumber: cow.tag });
+    const her = await farm.as.owner.animals.get({ tagNumber: cow.tag });
     if (her.source === "bought") {
       bought.add(cow.tag);
     }
@@ -480,7 +480,7 @@ export const priceTheDairyHerd = async (farm: Farm, herd: Herd) => {
       continue;
     }
     // oxlint-disable-next-line no-await-in-loop -- one cow at a time
-    const her = await farm.as.owner.animals.byTag({ tagNumber: cow.tag });
+    const her = await farm.as.owner.animals.get({ tagNumber: cow.tag });
     const [low, high] = OPENING_PRICE[cow.state];
     // oxlint-disable-next-line no-await-in-loop -- one price at a time, each its own line in the trail
     await farm.as.owner.returns.priceCow({

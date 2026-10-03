@@ -16,7 +16,7 @@ export const costsRouter = {
    * The Owner's and the Manager's (roles matrix: finance reports — R). Barn Staff and the Vet see none of
    * it: it is money.
    */
-  ofAnimal: protectedProcedure
+  forAnimal: protectedProcedure
     .use(requireRole("owner", "manager"))
     .input(z.object({ tagNumber: z.string().trim().min(1).max(32) }))
     .handler(async ({ context, input }) => {

@@ -69,10 +69,10 @@ describe("what a Pen is fed", () => {
     const clock = new FakeClock("2027-05-01T02:00:00.000Z");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
 
-    const concentrate = await manager.client.feed.addItem({
+    const concentrate = await manager.client.feed.createItem({
       name: { bn: "দানাদার", en: "Concentrate" },
     });
-    const straw = await manager.client.feed.addItem({ name: { bn: "খড়" } });
+    const straw = await manager.client.feed.createItem({ name: { bn: "খড়" } });
 
     const saved = await manager.client.feed.saveRation({
       name: { bn: `দোহন রেশন ${Date.now()}` },
@@ -120,7 +120,9 @@ describe("what a Pen is fed", () => {
       shedId: shed.id,
       name: "পরিবর্তনের পেন",
     });
-    const silage = await manager.client.feed.addItem({ name: { bn: "সাইলেজ" } });
+    const silage = await manager.client.feed.createItem({
+      name: { bn: "সাইলেজ" },
+    });
 
     const saved = await manager.client.feed.saveRation({
       name: { bn: `শুরুর রেশন ${Date.now()}` },
@@ -177,7 +179,7 @@ describe("what a Pen is fed", () => {
 
   it("keeps a retired Feed Item, because a Ration that fed it still names it", async () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
-    const molasses = await manager.client.feed.addItem({
+    const molasses = await manager.client.feed.createItem({
       name: { bn: `চিটাগুড়-${Date.now()}` },
     });
 
@@ -222,7 +224,7 @@ describe("what a Pen is fed", () => {
       shedId: shed.id,
       name: "দোহন ২",
     });
-    const hay = await manager.client.feed.addItem({
+    const hay = await manager.client.feed.createItem({
       name: { bn: `খড় ${Date.now()}` },
     });
     const shared = await manager.client.feed.saveRation({
@@ -276,7 +278,7 @@ describe("retiring a Ration", () => {
       shedId: shed.id,
       name: "পুরনো পেন",
     });
-    const hay = await manager.client.feed.addItem({
+    const hay = await manager.client.feed.createItem({
       name: { bn: `খড় পুরনো ${Date.now()}` },
     });
     const old = await manager.client.feed.saveRation({
@@ -316,7 +318,7 @@ describe("retiring a Ration", () => {
 
   it("puts no Pen on a retired Ration until it is brought back", async () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
-    const hay = await manager.client.feed.addItem({
+    const hay = await manager.client.feed.createItem({
       name: { bn: `খড় ফেরত ${Date.now()}` },
     });
     const retired = await manager.client.feed.saveRation({

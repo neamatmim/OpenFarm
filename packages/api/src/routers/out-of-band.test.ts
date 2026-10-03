@@ -26,7 +26,7 @@ const setup = async () => {
   const growers = await pen("গ্রোয়ার পেন");
   const finishers = await pen("ফিনিশার পেন");
   const unbanded = await pen("সাধারণ পেন");
-  const straw = await manager.client.feed.addItem({
+  const straw = await manager.client.feed.createItem({
     name: { bn: `খড় ${suffix}` },
   });
   const ration = async (

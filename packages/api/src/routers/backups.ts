@@ -18,7 +18,7 @@ export const backupsRouter = {
    * app answers rather than one somebody has to find a console for. A farm that has not been
    * copied for two nights is a farm one disk away from losing its own records.
    */
-  recent: protectedProcedure
+  list: protectedProcedure
     .use(requireRole("owner", "manager"))
     .input(
       z

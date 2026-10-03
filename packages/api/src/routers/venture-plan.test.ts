@@ -249,8 +249,8 @@ describe("a plan line's Breed", () => {
 
   it("refuses a retired Breed a new line names, and keeps one the version before already named", async () => {
     const owner = await asOwner();
-    const kept = await owner.breeds.add({ nameBn: `পুরনো জাত ${suffix}` });
-    const fresh = await owner.breeds.add({ nameBn: `অবসরের জাত ${suffix}` });
+    const kept = await owner.breeds.create({ nameBn: `পুরনো জাত ${suffix}` });
+    const fresh = await owner.breeds.create({ nameBn: `অবসরের জাত ${suffix}` });
     await owner.ventures.setPlan({
       ventureId,
       lines: [{ ...FIRST, breedId: kept.id }],

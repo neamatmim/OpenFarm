@@ -41,7 +41,7 @@ const buy = async (
 
 const costOf = async (tagNumber: string) => {
   const owner = await as("owner", "2041-02-01T04:00:00.000Z");
-  return await owner.client.costs.ofAnimal({ tagNumber });
+  return await owner.client.costs.forAnimal({ tagNumber });
 };
 
 beforeAll(async () => {

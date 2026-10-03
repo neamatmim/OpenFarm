@@ -163,7 +163,7 @@ export const feedRouter = {
       }));
     }),
 
-  addItem: protectedProcedure
+  createItem: protectedProcedure
     .use(requireRole("owner", "manager"))
     .input(
       z.object({

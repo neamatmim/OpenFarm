@@ -151,7 +151,7 @@ describe("the state machine", () => {
     await client.animals.setState({ tagNumber, state: "dry" });
     await client.animals.setState({ tagNumber, state: "milking" });
 
-    const animalRow = await client.animals.byTag({ tagNumber });
+    const animalRow = await client.animals.get({ tagNumber });
     expect(animalRow.state).toBe("milking");
   });
 
@@ -217,7 +217,7 @@ describe("moves", () => {
     });
 
     expect(moved.side).toBe("dairy");
-    const detail = await pens.owner.client.animals.byTag({ tagNumber });
+    const detail = await pens.owner.client.animals.get({ tagNumber });
     expect(detail.penId).toBe(pens.staffPen);
     expect(detail.moves[0]).toMatchObject({
       toPenId: pens.staffPen,
@@ -240,7 +240,7 @@ describe("moves", () => {
       reason: "not productive",
     });
 
-    const detail = await pens.owner.client.animals.byTag({ tagNumber });
+    const detail = await pens.owner.client.animals.get({ tagNumber });
     expect(detail.tagNumber).toBe(tagNumber);
     expect(detail.tagNumber.startsWith("D-")).toBe(true);
     expect({ side: detail.side, state: detail.state }).toEqual({
@@ -260,7 +260,7 @@ describe("re-tagging", () => {
       officialTag: "BINLI-9",
     });
 
-    const detail = await pens.owner.client.animals.byTag({ tagNumber });
+    const detail = await pens.owner.client.animals.get({ tagNumber });
     expect(detail.tagNumber).toBe(tagNumber);
     expect(detail.officialTag).toBe("BINLI-9");
     expect(detail.retags[0]?.reason).toBe("tag lost in the field");
@@ -277,7 +277,7 @@ describe("photos", () => {
       data: "AAAA",
     });
 
-    const detail = await pens.owner.client.animals.byTag({ tagNumber });
+    const detail = await pens.owner.client.animals.get({ tagNumber });
     expect(detail.photoUpdatedAt).toBeInstanceOf(Date);
     expect(await pens.owner.client.animals.photo({ tagNumber })).toEqual({
       contentType: "image/jpeg",
@@ -296,7 +296,7 @@ describe("staff scoping", () => {
 
     expect(listed.some((a) => a.tagNumber === mine.tagNumber)).toBe(true);
     expect(listed.some((a) => a.tagNumber === theirs.tagNumber)).toBe(false);
-    const looked = await staff.client.animals.byTag({
+    const looked = await staff.client.animals.get({
       tagNumber: theirs.tagNumber,
     });
     expect(looked.tagNumber).toBe(theirs.tagNumber);
@@ -347,7 +347,7 @@ describe("the opening register", () => {
     if (!first) {
       throw new Error("expected an imported row");
     }
-    const detail = await pens.owner.client.animals.byTag({
+    const detail = await pens.owner.client.animals.get({
       tagNumber: first.tagNumber,
     });
     expect(detail.aliases).toEqual(["লালি", "7"]);
@@ -389,7 +389,7 @@ describe("the opening register", () => {
     const result = await pens.owner.client.animals.importRegister({ csv });
 
     expect(result.failed).toEqual([]);
-    const cow = await pens.owner.client.animals.byTag({ tagNumber: "D-9201" });
+    const cow = await pens.owner.client.animals.get({ tagNumber: "D-9201" });
     expect(cow.aliases).toEqual(["লালি", "7"]);
     expect(cow.officialTag).toBe("BINLI-9");
     expect(cow.birthDate).not.toBeNull();
@@ -483,7 +483,7 @@ describe("review findings", () => {
 
     await pens.owner.client.animals.retag({ tagNumber, reason: "lost again" });
 
-    const detail = await pens.owner.client.animals.byTag({ tagNumber });
+    const detail = await pens.owner.client.animals.get({ tagNumber });
     expect(detail.officialTag).toBe("BINLI-7");
     const events = await scratchDb().query.auditEvent.findMany({
       where: { entity: "animal", entityId: detail.id },

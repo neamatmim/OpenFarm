@@ -91,7 +91,7 @@ export const portalPreviewRouter = {
     ),
 
   /** Their Requests to Join as they read them. The Owner answers them from the Owner's own side, not here. */
-  myRequests: ownersPreview
+  requests: ownersPreview
     .input(whose)
     .handler(async ({ context, input }) =>
       theirOwnRequests(await readerFor(context, input.investorId))

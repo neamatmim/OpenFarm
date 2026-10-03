@@ -83,7 +83,7 @@ const setup = async () => {
     await manager.client.readyForSale.confirm({ tagNumber: bull.tagNumber });
   }
 
-  const wormer = await vet.client.drugs.add({
+  const wormer = await vet.client.drugs.create({
     name: { bn: `আলবেন্ডাজল ${suffix}`, en: "Albendazole" },
     milkWithdrawalDays: 3,
     meatWithdrawalDays: 14,
@@ -195,7 +195,7 @@ describe("the sale", () => {
     });
     expect(sold.state).toBe("sold");
 
-    const her = await manager.client.animals.byTag({ tagNumber: tagOf(0) });
+    const her = await manager.client.animals.get({ tagNumber: tagOf(0) });
     expect(her.state).toBe("sold");
     // Her arrival is still on her page: an animal who has left keeps everything she was.
     expect(her.intake?.purchasePriceMoney).toBe(90_000);
@@ -314,7 +314,7 @@ describe("the sale", () => {
         soldAt: new Date("2027-04-21T09:00:00.000Z"),
       })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    const still = await manager.client.animals.byTag({ tagNumber: tagOf(1) });
+    const still = await manager.client.animals.get({ tagNumber: tagOf(1) });
     expect(still.state).not.toBe("sold");
   });
 
@@ -362,7 +362,7 @@ describe("the sale", () => {
       priceMoney: 130_000,
       weightKg: 300,
     });
-    const sold = await owner.client.animals.byTag({
+    const sold = await owner.client.animals.get({
       tagNumber: ownersBull.tagNumber,
     });
     expect(sold.state).toBe("sold");
@@ -393,7 +393,7 @@ describe("the sale", () => {
     });
     expect(sold.state).toBe("sold");
 
-    const her = await manager.client.animals.byTag({ tagNumber: tagOf(1) });
+    const her = await manager.client.animals.get({ tagNumber: tagOf(1) });
     expect(her.sale?.note).toContain("ওলান");
     // There is no second way out: a cull that went to a buyer is this record and no other.
     await expect(

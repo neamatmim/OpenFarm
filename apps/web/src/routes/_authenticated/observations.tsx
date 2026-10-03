@@ -26,7 +26,7 @@ import { orpc } from "@/utils/orpc";
 
 const WINDOW_DAYS = 7;
 
-type Seen = Awaited<ReturnType<typeof orpc.observations.recent.call>>[number];
+type Seen = Awaited<ReturnType<typeof orpc.observations.list.call>>[number];
 
 /** Where an Observation came from: the work that asked for it, or somebody saying so unasked. */
 const SeenFrom = ({ row }: { row: Seen }) => {
@@ -161,7 +161,7 @@ const ObservationsPage = () => {
 
   const kinds = useQuery(orpc.observations.kinds.queryOptions());
   const seen = useQuery(
-    orpc.observations.recent.queryOptions({
+    orpc.observations.list.queryOptions({
       input: { days: WINDOW_DAYS, ...(saw ? { saw } : {}) },
     })
   );

@@ -62,7 +62,7 @@ const AnimalPage = () => {
   const [act, setAct] = useState<AnimalAct | null>(null);
 
   const animal = useQuery(
-    orpc.animals.byTag.queryOptions({ input: { tagNumber } })
+    orpc.animals.get.queryOptions({ input: { tagNumber } })
   );
   const powers = useAnimalPowers(animal.data);
 

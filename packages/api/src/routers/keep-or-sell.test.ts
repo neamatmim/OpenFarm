@@ -194,7 +194,7 @@ beforeAll(async () => {
   hungryPen = hungry.id;
 
   // Concentrate at ৳30 a kilo, and more of it than the Pen will eat.
-  const item = await manager.client.feed.addItem({
+  const item = await manager.client.feed.createItem({
     name: { bn: `দানাদার ${suffix}` },
   });
   concentrate = item.id;
@@ -221,12 +221,12 @@ beforeAll(async () => {
 
   // A wormer at ৳2,800 for ten doses, ৳280 a dose; a tonic the farm has never bought.
   const vet = await as("vet", "2040-01-01T03:00:00.000Z");
-  const wormer = await vet.client.drugs.add({
+  const wormer = await vet.client.drugs.create({
     name: { bn: `কৃমিনাশক ${suffix}` },
     milkWithdrawalDays: 0,
     meatWithdrawalDays: 0,
   });
-  const tonic = await vet.client.drugs.add({
+  const tonic = await vet.client.drugs.create({
     name: { bn: `টনিক ${suffix}` },
     milkWithdrawalDays: 0,
     meatWithdrawalDays: 0,

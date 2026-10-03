@@ -164,7 +164,7 @@ describe("whose money was it", () => {
       shedId: shed.id,
       name: `ফ্যাটেনিং ${suffix}`,
     });
-    const spray = await owner.client.money.addCategory({
+    const spray = await owner.client.money.createCategory({
       nameBn: `মাছি স্প্রে ${suffix}`,
       nameEn: `Fly spray ${suffix}`,
       direction: "out",
@@ -186,14 +186,14 @@ describe("whose money was it", () => {
       targetWindowEnd: "2047-05-19",
     });
 
-    const before = await owner.client.costs.ofAnimal({
+    const before = await owner.client.costs.forAnimal({
       tagNumber: bull.tagNumber,
     });
     await theVenturesOwnSpend(60_000, "approved", {
       categoryId: spray.id,
       side: "fattening",
     });
-    const after = await owner.client.costs.ofAnimal({
+    const after = await owner.client.costs.forAnimal({
       tagNumber: bull.tagNumber,
     });
     // Sixty thousand taka of a Venture's own spending, and the Farm's bull carries none of it: a Herd

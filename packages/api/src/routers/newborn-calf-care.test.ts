@@ -167,7 +167,7 @@ const newbornWork = async (instant: string) => {
 /** The live calf's tag, read from her dam. */
 const theCalf = async () => {
   const manager = await as("manager", `${BORN}T02:00:00.000Z`);
-  const dam = await manager.client.animals.byTag({ tagNumber: cows[0] ?? "" });
+  const dam = await manager.client.animals.get({ tagNumber: cows[0] ?? "" });
   return dam.calvings[0]?.calves[0]?.tagNumber ?? "";
 };
 
@@ -236,7 +236,7 @@ describe("newborn calf care", () => {
 
     // And her own page says her first day, in the procedure's words.
     const manager = await as("manager", `${BORN}T02:00:00.000Z`);
-    const page = await manager.client.animals.byTag({ tagNumber: tag });
+    const page = await manager.client.animals.get({ tagNumber: tag });
     expect(page.firstDay.map((line) => line.step.en)).toEqual([
       expect.stringContaining("Breathing"),
       "Weigh her (scale or tape)",

@@ -58,7 +58,7 @@ beforeAll(async () => {
 const hisReleases = async (at: string, tagNumber: string) => {
   const manager = await as("manager", at);
   await manager.client.work.ensureDue();
-  const him = await manager.client.animals.byTag({ tagNumber });
+  const him = await manager.client.animals.get({ tagNumber });
   const rows = await scratchDb().query.sopInstance.findMany({
     where: { definitionId: releaseId, animalId: him.id },
     columns: { id: true, state: true, dueAt: true, cause: true },

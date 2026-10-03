@@ -284,7 +284,7 @@ beforeAll(async () => {
 
   // Feed bought, a ration the Pen is on, and the SOP that puts it out.
   const feeding = await as("manager", "2049-01-05T05:00:00.000Z");
-  const item = await feeding.client.feed.addItem({
+  const item = await feeding.client.feed.createItem({
     name: { bn: `দানাদার ${suffix}` },
   });
   feedItemId = item.id;
@@ -298,7 +298,7 @@ beforeAll(async () => {
   });
   arrivalId = arrival.id;
   // A second Feed Item that came in and was never put in front of anybody.
-  const straw = await feeding.client.feed.addItem({
+  const straw = await feeding.client.feed.createItem({
     name: { bn: `খড় ${suffix}` },
   });
   const untouched = await feeding.client.stock.receive({
@@ -344,7 +344,7 @@ beforeAll(async () => {
 
   // Money entered by hand under a Category the Owner marks as the herd's, so January's is split across
   // everybody standing that month — the two Ventures' bulls among them.
-  const spraying = await owner.client.money.addCategory({
+  const spraying = await owner.client.money.createCategory({
     nameBn: `মাছি স্প্রে ${suffix}`,
     direction: "out",
   });

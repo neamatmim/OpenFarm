@@ -51,7 +51,7 @@ beforeAll(async () => {
       category[one.key] = one.id;
     }
   }
-  const spray = await owner.client.money.addCategory({
+  const spray = await owner.client.money.createCategory({
     nameBn: "মাছি স্প্রে",
     direction: "out",
   });

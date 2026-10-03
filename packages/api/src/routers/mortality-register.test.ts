@@ -129,7 +129,7 @@ const setup = async () => {
     aliases: [],
   });
   const disease = `তড়কা ${suffix}`;
-  await manager.client.notifiableDiseases.add({ name: { bn: disease } });
+  await manager.client.notifiableDiseases.create({ name: { bn: disease } });
   const sops = {
     round: await owner.client.sops.create({ content: calvingRoundSop() }),
     report: await owner.client.sops.create({ content: reportSop() }),
@@ -276,7 +276,7 @@ beforeAll(async () => {
     ],
     reason: "সময় ভুল লেখা হয়েছিল",
   });
-  const dam = await roundManager.client.animals.byTag({
+  const dam = await roundManager.client.animals.get({
     tagNumber: world.dam.tagNumber,
   });
   tags.stillborn = dam.calvings[0]?.calves[0]?.tagNumber ?? "";

@@ -22,14 +22,14 @@ beforeAll(async () => {
   const owner = await as("owner");
   const manager = await as("manager");
   // Fifty-kilo bags.
-  const bagged = await manager.client.feed.addItem({
+  const bagged = await manager.client.feed.createItem({
     name: { bn: `দানাদার ${suffix}` },
     bagSizeKg: 50,
   });
-  const loose = await manager.client.feed.addItem({
+  const loose = await manager.client.feed.createItem({
     name: { bn: `ভুসি ${suffix}` },
   });
-  const grown = await manager.client.feed.addItem({
+  const grown = await manager.client.feed.createItem({
     name: { bn: `নেপিয়ার ${suffix}` },
   });
   await owner.client.feed.setFodderPrice({
@@ -142,7 +142,7 @@ describe("a Feed Purchase's price per unit", () => {
 
   it("reads a Correction afresh, and tells once it makes the lot dearer", async () => {
     const item = await as("manager").then((manager) =>
-      manager.client.feed.addItem({ name: { bn: `খৈল ${suffix}` } })
+      manager.client.feed.createItem({ name: { bn: `খৈল ${suffix}` } })
     );
     await buy(item.id, "2067-02-01", { quantity: 100 }, 5000);
     const typedLow = await buy(item.id, "2067-02-06", { quantity: 100 }, 5100);

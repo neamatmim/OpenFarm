@@ -208,7 +208,7 @@ describe("the day of the month", () => {
 describe("the mark", () => {
   it("is never put on a retired Category, and a retired one is not offered it", async () => {
     const owner = await as("owner", "2044-09-02T04:00:00.000Z");
-    const gone = await owner.client.money.addCategory({
+    const gone = await owner.client.money.createCategory({
       nameBn: "পুরোনো জেনারেটর",
       direction: "out",
     });
@@ -227,7 +227,7 @@ describe("the mark", () => {
 
   it("taken off and put back, starts again from the day it went back on", async () => {
     const owner = await as("owner", "2044-10-02T04:00:00.000Z");
-    const internet = await owner.client.money.addCategory({
+    const internet = await owner.client.money.createCategory({
       nameBn: "ইন্টারনেট",
       direction: "out",
     });

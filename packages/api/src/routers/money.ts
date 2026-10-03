@@ -341,7 +341,7 @@ export const moneyRouter = {
     }),
 
   /** The Vet's own fees, newest first — the only money the Vet sees. */
-  myFees: protectedProcedure
+  mine: protectedProcedure
     .use(requireOnly("vet", VET_ONLY))
     .handler(async ({ context }) => {
       const rows = await context.db.query.vetFee.findMany({

@@ -98,12 +98,12 @@ const setup = async () => {
     shedId: shed.id,
     name: `স্বাস্থ্য ${suffix}`,
   });
-  const oxytetracycline = await vet.client.drugs.add({
+  const oxytetracycline = await vet.client.drugs.create({
     name: { bn: `অক্সিটেট্রাসাইক্লিন ${suffix}`, en: "Oxytetracycline" },
     milkWithdrawalDays: 4,
     meatWithdrawalDays: 21,
   });
-  const wormer = await vet.client.drugs.add({
+  const wormer = await vet.client.drugs.create({
     name: { bn: `আলবেন্ডাজল ${suffix}`, en: "Albendazole" },
     milkWithdrawalDays: 3,
     meatWithdrawalDays: 14,
@@ -137,7 +137,7 @@ const setup = async () => {
   const mastitisCow = await cow();
   const anthraxCow = await cow();
   const disease = `তড়কা ${suffix}`;
-  await manager.client.notifiableDiseases.add({ name: { bn: disease } });
+  await manager.client.notifiableDiseases.create({ name: { bn: disease } });
   return {
     pen,
     sops,

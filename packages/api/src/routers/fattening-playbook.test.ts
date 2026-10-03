@@ -36,7 +36,7 @@ const setup = async () => {
   const quarantine = await pen("কোয়ারেন্টিন");
   const growers = await pen("গ্রোয়ার");
   const finishers = await pen("ফিনিশার");
-  const straw = await manager.client.feed.addItem({
+  const straw = await manager.client.feed.createItem({
     name: { bn: `খড় ${suffix}` },
   });
   const banded = async (
@@ -104,7 +104,7 @@ const workAbout = async (
 ) => {
   const manager = await as("manager", at);
   await manager.client.work.ensureDue();
-  const him = await manager.client.animals.byTag({ tagNumber });
+  const him = await manager.client.animals.get({ tagNumber });
   const rows = await scratchDb().query.sopInstance.findMany({
     where: { definitionId, animalId: him.id },
     columns: { id: true, state: true, dueAt: true },
@@ -135,7 +135,7 @@ const releaseHim = async (tagNumber: string, { kept = false } = {}) => {
       ...(skipping ? { skipReason: "অসুস্থ — কোয়ারেন্টিনে থাকবে" } : {}),
     });
   }
-  return await manager.client.animals.byTag({ tagNumber });
+  return await manager.client.animals.get({ tagNumber });
 };
 
 describe("the bought-in bull's chain", () => {

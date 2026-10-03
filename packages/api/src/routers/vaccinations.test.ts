@@ -78,12 +78,12 @@ const setup = async () => {
     shedId: shed.id,
     name: `টিকা ${suffix}`,
   });
-  const fmd = await vet.client.drugs.add({
+  const fmd = await vet.client.drugs.create({
     name: { bn: `এফএমডি টিকা ${suffix}`, en: "FMD vaccine" },
     milkWithdrawalDays: 0,
     meatWithdrawalDays: 0,
   });
-  const wormer = await vet.client.drugs.add({
+  const wormer = await vet.client.drugs.create({
     name: { bn: `লেভামিসোল ${suffix}`, en: "Levamisole" },
     milkWithdrawalDays: 3,
     meatWithdrawalDays: 7,

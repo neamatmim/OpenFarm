@@ -342,7 +342,7 @@ describe("the buy-back at wind-up", () => {
     });
 
     // Every one of them is the Farm's now.
-    const her = await owner.client.animals.byTag({ tagNumber: tags[0] ?? "" });
+    const her = await owner.client.animals.get({ tagNumber: tags[0] ?? "" });
     expect(her.owner).toBeNull();
 
     // And the Farm's own books say it bought two bulls.

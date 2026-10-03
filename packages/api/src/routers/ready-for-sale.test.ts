@@ -111,7 +111,7 @@ const setup = async () => {
     await bull(300, "2027-05-17", treatedPen.id),
   ];
 
-  const wormer = await vet.client.drugs.add({
+  const wormer = await vet.client.drugs.create({
     name: { bn: `আলবেন্ডাজল ${suffix}`, en: "Albendazole" },
     milkWithdrawalDays: 3,
     meatWithdrawalDays: 14,
@@ -265,10 +265,10 @@ describe("ready for sale", () => {
     ).not.toContain("weight");
 
     // Confirming is the State change. A suggestion on its own moves nothing.
-    const before = await manager.client.animals.byTag({ tagNumber: tagOf(0) });
+    const before = await manager.client.animals.get({ tagNumber: tagOf(0) });
     expect(before.state).toBe("fattening");
     await manager.client.readyForSale.confirm({ tagNumber: tagOf(0) });
-    const after = await manager.client.animals.byTag({ tagNumber: tagOf(0) });
+    const after = await manager.client.animals.get({ tagNumber: tagOf(0) });
     expect(after.state).toBe("ready_for_sale");
   });
 

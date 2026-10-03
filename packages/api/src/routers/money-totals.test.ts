@@ -23,7 +23,7 @@ const as = (role: "owner" | "manager") =>
 
 beforeAll(async () => {
   const owner = await as("owner");
-  const category = await owner.client.money.addCategory({
+  const category = await owner.client.money.createCategory({
     direction: "out",
     nameBn: `ঔষধ স্প্রে ${suffix}`,
   });

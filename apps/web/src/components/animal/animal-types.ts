@@ -10,7 +10,7 @@ import { orpc } from "@/utils/orpc";
 
 /** Her record as her page reads it. */
 export type AnimalDetail = NonNullable<
-  Awaited<ReturnType<typeof orpc.animals.byTag.call>>
+  Awaited<ReturnType<typeof orpc.animals.get.call>>
 >;
 
 /** A Pen somebody may move her to, with its shed's name. */

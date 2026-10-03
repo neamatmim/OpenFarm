@@ -154,7 +154,7 @@ const SopsPage = () => {
     })
   );
   const restore = useMutation(
-    orpc.sops.restore.mutationOptions({
+    orpc.sops.bringBack.mutationOptions({
       onSuccess: () => toast.success(t("sop.restored")),
       onError,
     })

@@ -191,12 +191,12 @@ export const openTheFarm = async (
   });
 
   // The Farm's own mobile money number and bank account, listed before any money is written, so all of it names them.
-  const mobileMoney = await owner.farmAccounts.add({
+  const mobileMoney = await owner.farmAccounts.create({
     kind: "mobile_money",
     name: "অফিস বিকাশ",
     number: "01711-482093",
   });
-  const bank = await owner.farmAccounts.add({
+  const bank = await owner.farmAccounts.create({
     kind: "bank",
     name: "সোনালী ব্যাংক চলতি হিসাব",
     number: "4402-0100-118273",
@@ -363,7 +363,7 @@ export const stockTheFarm = async (farm: Farm): Promise<void> => {
 
   // What the farm spends on the animals without naming any of them — fly spray, lime, a lab test. The
   // Owner marks it as one the animals of its Side carry, and the month's worth is split by their days.
-  const sundries = await as.manager.money.addCategory({
+  const sundries = await as.manager.money.createCategory({
     nameBn: HERD_SUNDRIES,
     nameEn: "Herd sundries",
     direction: "out",

@@ -188,7 +188,7 @@ beforeAll(async () => {
     shedId: shed.id,
     name: `মোটাতাজা ${suffix}`,
   });
-  const straw = await owner.feed.addItem({ name: { bn: `খড় ${suffix}` } });
+  const straw = await owner.feed.createItem({ name: { bn: `খড় ${suffix}` } });
   const ration = async (
     name: string,
     band: { fromKg: number | null; toKg: number | null }
@@ -216,7 +216,7 @@ beforeAll(async () => {
     })
     .onConflictDoNothing();
   const { definitionId } = await owner.sops.create({ content: weighInSop() });
-  const breed = await owner.breeds.add({ nameBn: SAHIWAL });
+  const breed = await owner.breeds.create({ nameBn: SAHIWAL });
   breedId = breed.id;
   const { client: onTheDay } = await as("owner", "2028-01-01T00:00:00.000Z");
   const trip = await onTheDay.buyingTrips.record({

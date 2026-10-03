@@ -107,7 +107,7 @@ export const breedsRouter = {
     }),
 
   /** A breed of the farm's own, deshi or not as the farm says — not, unless it says. */
-  add: protectedProcedure
+  create: protectedProcedure
     .use(requireRole("owner", "manager"))
     .use(requirePersonalSession())
     .input(
@@ -222,7 +222,7 @@ export const breedsRouter = {
     }),
 
   /** Brings a retired breed back onto the list animals are written down from. */
-  restore: protectedProcedure
+  bringBack: protectedProcedure
     .use(requireRole("owner", "manager"))
     .use(requirePersonalSession())
     .input(z.object({ id: z.string() }))

@@ -156,7 +156,7 @@ describe("a Venture that starts buying", () => {
 
     await owner.ventures.startBuying({ id: ventureId });
 
-    const [his] = await karim.client.portal.myRequests();
+    const [his] = await karim.client.portal.requests();
     expect([his?.state, his?.closedBecause, his?.answeredUnits]).toEqual([
       "closed",
       "venture_buying",
@@ -248,7 +248,7 @@ describe("a Venture taken out of the portal", () => {
       "taken_out_of_portal",
     ]);
     expect(now.get(promised.requestId)).toEqual(["come_and_sign", null]);
-    const [theirs] = await promised.client.portal.myRequests();
+    const [theirs] = await promised.client.portal.requests();
     expect([theirs?.state, theirs?.answeredUnits]).toEqual([
       "come_and_sign",
       2,

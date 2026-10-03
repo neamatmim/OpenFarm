@@ -39,7 +39,7 @@ beforeAll(async () => {
     })
   );
   // A farm that keeps feed, so there is a store to count.
-  await owner.client.feed.addItem({ name: { bn: `দানাদার ${suffix}` } });
+  await owner.client.feed.createItem({ name: { bn: `দানাদার ${suffix}` } });
   const sop = await owner.client.sops.create({
     content: standardPlaybook().stockCount,
   });

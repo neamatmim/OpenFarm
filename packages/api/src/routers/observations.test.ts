@@ -94,7 +94,7 @@ describe("what somebody saw on the round", () => {
       evidence: ["lame"],
     });
 
-    const her = await owner.client.animals.byTag({ tagNumber: cow.tagNumber });
+    const her = await owner.client.animals.get({ tagNumber: cow.tagNumber });
     expect(her.observations).toHaveLength(1);
     expect(her.observations[0]).toMatchObject({
       saw: "lame",
@@ -133,7 +133,7 @@ describe("what somebody saw on the round", () => {
     const sent = await phone.client.sync.batch(batch);
     expect(await phone.client.sync.batch(batch)).toEqual(sent);
 
-    const her = await owner.client.animals.byTag({ tagNumber: cow.tagNumber });
+    const her = await owner.client.animals.get({ tagNumber: cow.tagNumber });
     expect(her.observations.map((seen) => seen.saw)).toEqual(["bulling"]);
   });
 
@@ -159,7 +159,7 @@ describe("what somebody saw on the round", () => {
       reason: "খোঁড়াচ্ছিল না, গরমে ছিল",
     });
 
-    const her = await owner.client.animals.byTag({ tagNumber: cow.tagNumber });
+    const her = await owner.client.animals.get({ tagNumber: cow.tagNumber });
     // Both are there: the one that stands, and the one somebody said on the round.
     expect(
       her.observations.map((seen) => ({
@@ -198,7 +198,7 @@ describe("what somebody saw on the round", () => {
       reason: "ওই পশুটি সেদিন ছিল না",
     });
 
-    const her = await owner.client.animals.byTag({ tagNumber: cow.tagNumber });
+    const her = await owner.client.animals.get({ tagNumber: cow.tagNumber });
     expect(her.observations).toHaveLength(1);
     expect(her.observations[0]).toMatchObject({ saw: "lame", withdrawn: true });
   });
@@ -222,7 +222,7 @@ describe("what somebody saw on the round", () => {
       });
     }
 
-    const inHeat = await owner.client.observations.recent({ saw: "bulling" });
+    const inHeat = await owner.client.observations.list({ saw: "bulling" });
     const mine = inHeat.filter((seen) => seen.tagNumber === bulling.tagNumber);
     expect(mine).toHaveLength(1);
     expect(mine[0]).toMatchObject({

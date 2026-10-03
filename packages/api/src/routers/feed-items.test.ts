@@ -22,7 +22,7 @@ const itemNamed = async (nameBn: string) => {
 describe("the farm's list of Feed Items", () => {
   // First, because the farm must not have the standard feeds yet.
   it("adds the standard feeds the farm does not have, and leaves the ones it has", async () => {
-    await manager.feed.addItem({ name: { bn: "গমের ভুসি" }, unit: "kg" });
+    await manager.feed.createItem({ name: { bn: "গমের ভুসি" }, unit: "kg" });
     const missing = await manager.feed.standardMissing();
 
     const first = await manager.feed.addStandardItems();
@@ -43,16 +43,16 @@ describe("the farm's list of Feed Items", () => {
   });
 
   it("refuses a second feed by a name the farm already has, in either language", async () => {
-    await manager.feed.addItem({
+    await manager.feed.createItem({
       name: { bn: "সবুজ ঘাস", en: "Green grass" },
       unit: "kg",
     });
 
     const byBangla = await manager.feed
-      .addItem({ name: { bn: "সবুজ ঘাস" }, unit: "kg" })
+      .createItem({ name: { bn: "সবুজ ঘাস" }, unit: "kg" })
       .catch((error: unknown) => error);
     const byEnglish = await manager.feed
-      .addItem({ name: { bn: "অন্য ঘাস", en: "green GRASS" }, unit: "kg" })
+      .createItem({ name: { bn: "অন্য ঘাস", en: "green GRASS" }, unit: "kg" })
       .catch((error: unknown) => error);
 
     expect(refusal(byBangla)).toBe("feed_item_exists");
@@ -60,7 +60,7 @@ describe("the farm's list of Feed Items", () => {
   });
 
   it("renames a feed, and refuses a name another feed has", async () => {
-    const { id } = await manager.feed.addItem({
+    const { id } = await manager.feed.createItem({
       name: { bn: "ঝোলা গুড়" },
       unit: "litre",
     });
@@ -82,7 +82,7 @@ describe("the farm's list of Feed Items", () => {
   });
 
   it("brings a retired feed back onto the list", async () => {
-    const { id } = await manager.feed.addItem({
+    const { id } = await manager.feed.createItem({
       name: { bn: "খেসারি ভুসি" },
       unit: "kg",
     });

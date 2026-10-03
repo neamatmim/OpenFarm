@@ -150,7 +150,7 @@ export const portalRouter = {
     }),
 
   /** Their own Requests to Join and where each stands (`theirOwnRequests`). */
-  myRequests: investorProcedure.handler(({ context }) =>
+  requests: investorProcedure.handler(({ context }) =>
     theirOwnRequests(context)
   ),
 

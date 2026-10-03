@@ -236,7 +236,7 @@ const DevicePage = () => {
 
   const queryClient = useQueryClient();
   const switchUser = useMutation(orpc.devices.switchUser.mutationOptions({}));
-  const listenAgain = useMutation(orpc.push.listen.mutationOptions({}));
+  const listenAgain = useMutation(orpc.push.subscribe.mutationOptions({}));
 
   const submitPin = useCallback(
     async (entry: RosterEntry, typed: string) => {

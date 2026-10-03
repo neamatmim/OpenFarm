@@ -13,7 +13,7 @@ const RATION_NAMES = Object.values(STANDARD_RATIONS)
 describe("the standard Rations, asked for by a farm that has its own feeds", () => {
   it("are refused where the farm counts a feed they give by weight in bundles, and nothing is started", async () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
-    const own = await owner.client.feed.addItem({
+    const own = await owner.client.feed.createItem({
       name: { bn: STANDARD_FEED_ITEMS.napier.bn, en: "Our own Napier" },
       unit: "bundle",
     });

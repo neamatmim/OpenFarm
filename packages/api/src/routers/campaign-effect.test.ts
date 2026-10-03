@@ -45,7 +45,7 @@ const setup = async () => {
   const shed = await owner.client.sheds.createShed({
     name: `campaigns-${Date.now()}`,
   });
-  const wormer = await vet.client.drugs.add({
+  const wormer = await vet.client.drugs.create({
     name: { bn: `আলবেন্ডাজল ${Date.now()}`, en: "Albendazole" },
     milkWithdrawalDays: 3,
     meatWithdrawalDays: 14,
@@ -156,7 +156,7 @@ describe("a campaign over a Pen", () => {
     await staff.client.work.complete({ id: campaign.id });
 
     // Per animal, not per campaign: the treated cow carries the event and the hold it earns.
-    const treated = await staff.client.animals.byTag({
+    const treated = await staff.client.animals.get({
       tagNumber: first.tagNumber,
     });
     expect(treated.treatments).toHaveLength(1);
@@ -169,7 +169,7 @@ describe("a campaign over a Pen", () => {
     );
 
     // And the one nobody could find carries why, with nothing held against her.
-    const skipped = await staff.client.animals.byTag({
+    const skipped = await staff.client.animals.get({
       tagNumber: second.tagNumber,
     });
     expect(skipped.treatments).toEqual([]);
@@ -228,7 +228,7 @@ describe("a campaign over a Pen", () => {
 
     // Bought this morning, days not read off the label yet: a campaign that gave it would be
     // milk nobody could call safe, and the refusal comes now rather than in the shed.
-    const unread = await manager.client.drugs.add({
+    const unread = await manager.client.drugs.create({
       name: { bn: `অজানা টিকা ${Date.now()}` },
     });
     await expect(

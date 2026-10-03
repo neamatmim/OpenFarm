@@ -119,7 +119,7 @@ beforeAll(async () => {
   await as("manager", `${DAY}T01:00:00.000Z`);
   const vet = await as("vet", `${DAY}T01:00:00.000Z`);
   // The Vet's own phone is the one listening.
-  await vet.client.push.listen({
+  await vet.client.push.subscribe({
     endpoint: ENDPOINT,
     p256dh: "test-p256dh-key",
     auth: "test-auth-key",
@@ -186,7 +186,7 @@ beforeAll(async () => {
       "",
     ],
   });
-  const after = await manager.client.animals.byTag({
+  const after = await manager.client.animals.get({
     tagNumber: dam.tagNumber,
   });
   tags.stillborn = after.calvings[0]?.calves[0]?.tagNumber ?? "";

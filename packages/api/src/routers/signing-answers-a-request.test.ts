@@ -306,7 +306,7 @@ describe("signing with no Request", () => {
     const owner = await asOwner();
     const [agreement] = await owner.ventures.agreements({ ventureId });
     expect(agreement).toMatchObject({ id, units: 3, requestId: null });
-    expect(await karim.client.portal.myRequests()).toEqual([
+    expect(await karim.client.portal.requests()).toEqual([
       expect.objectContaining({ state: "signed", agreementId: id }),
     ]);
   });
@@ -335,7 +335,7 @@ describe("signing with no Request", () => {
     expect(await theRequest(ventureId, karim.requestId)).toMatchObject({
       state: "withdrawn",
     });
-    expect(await karim.client.portal.myRequests()).toEqual([
+    expect(await karim.client.portal.requests()).toEqual([
       expect.objectContaining({ state: "withdrawn", agreementId: null }),
     ]);
   });
@@ -349,7 +349,7 @@ describe("the Investor's own page", () => {
 
     const { id } = await sign(ventureId, karim.id, 4, karim.requestId);
 
-    const mine = await karim.client.portal.myRequests();
+    const mine = await karim.client.portal.requests();
     expect(mine).toEqual([
       expect.objectContaining({
         id: karim.requestId,
@@ -365,7 +365,7 @@ describe("the Investor's own page", () => {
     const ventureId = await aShownVenture("সই ছাড়া পাতার ভেঞ্চার");
     const karim = await asking("করিম সই ছাড়া", ventureId, 4);
 
-    const mine = await karim.client.portal.myRequests();
+    const mine = await karim.client.portal.requests();
     expect(mine).toEqual([
       expect.objectContaining({ state: "waiting", agreementId: null }),
     ]);

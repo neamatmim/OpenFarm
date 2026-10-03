@@ -184,7 +184,7 @@ describe("the Owner saying come and sign", () => {
     await comeAndSign(karim.requestId, 4);
 
     // The whole answer, so a count or a figure of anybody else's that crept in would show up here.
-    expect(await karim.client.portal.myRequests()).toEqual([
+    expect(await karim.client.portal.requests()).toEqual([
       {
         id: karim.requestId,
         ventureId,
@@ -218,7 +218,7 @@ describe("the Owner saying come and sign", () => {
     );
     await comeAndSign(salma.requestId, 3);
 
-    const [hers] = await salma.client.portal.myRequests();
+    const [hers] = await salma.client.portal.requests();
     expect([hers?.units, hers?.answeredUnits]).toEqual([5, 3]);
   });
 
@@ -349,7 +349,7 @@ describe("the Owner saying come and sign", () => {
       )
     ).toBe("request_already_answered");
     await nasir.client.portal.withdrawRequest({ requestId: nasir.requestId });
-    const [his] = await nasir.client.portal.myRequests();
+    const [his] = await nasir.client.portal.requests();
     expect(his?.state).toBe("withdrawn");
   });
 });
@@ -361,7 +361,7 @@ describe("the Owner saying not this time", () => {
 
     await notThisTime(jamal.requestId, "এবার ইউনিট শেষ, পরের বার");
 
-    const [his] = await jamal.client.portal.myRequests();
+    const [his] = await jamal.client.portal.requests();
     expect([his?.state, his?.answerLine, his?.answeredUnits]).toEqual([
       "not_this_time",
       "এবার ইউনিট শেষ, পরের বার",
@@ -462,7 +462,7 @@ describe("an answer", () => {
       })
     ).rejects.toThrow();
     const again = await signedInAs(babul.loginEmail, JANUARY);
-    const [still] = await again.portal.myRequests();
+    const [still] = await again.portal.requests();
     expect(still?.state).toBe("waiting");
   });
 });

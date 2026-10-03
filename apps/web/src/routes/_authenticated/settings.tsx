@@ -87,10 +87,10 @@ const BeingTold = () => {
   const onError = refused;
 
   const listen = useMutation(
-    orpc.push.listen.mutationOptions({ onSuccess: refresh, onError })
+    orpc.push.subscribe.mutationOptions({ onSuccess: refresh, onError })
   );
   const stop = useMutation(
-    orpc.push.stopListening.mutationOptions({ onSuccess: refresh, onError })
+    orpc.push.unsubscribe.mutationOptions({ onSuccess: refresh, onError })
   );
 
   const agree = useMutation({

@@ -53,10 +53,10 @@ const setup = async () => {
     source: "bought",
     aliases: [],
   });
-  const concentrate = await manager.client.feed.addItem({
+  const concentrate = await manager.client.feed.createItem({
     name: { bn: `দানাদার ${suffix}` },
   });
-  const grass = await manager.client.feed.addItem({
+  const grass = await manager.client.feed.createItem({
     name: { bn: `নেপিয়ার ঘাস ${suffix}` },
   });
   const ration = await manager.client.feed.saveRation({
@@ -314,7 +314,7 @@ describe("feed stock", () => {
       ownersView.some((line) => line.feedItemId === world.concentrate.id)
     ).toBe(true);
     // A feed of the Owner's own buying, so the store the other tests weigh is as they left it.
-    const hay = await owner.client.feed.addItem({
+    const hay = await owner.client.feed.createItem({
       name: { bn: `খড় মালিকের ${suffix}` },
     });
     await owner.client.stock.receive({
@@ -370,7 +370,7 @@ describe("feed stock", () => {
         receivedOn: "2034-02-01",
       })
     ).rejects.toMatchObject({ data: { refusal: "received_in_the_future" } });
-    const old = await manager.client.feed.addItem({
+    const old = await manager.client.feed.createItem({
       name: { bn: `পুরনো খাদ্য ${suffix}` },
     });
     await manager.client.feed.retireItem({ id: old.id });

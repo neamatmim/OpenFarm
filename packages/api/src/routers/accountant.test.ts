@@ -99,7 +99,7 @@ const setup = async () => {
     animalTags: [bull.tagNumber, cow.tagNumber],
   });
   // Concentrate for the store: the whole farm's.
-  const feed = await manager.client.feed.addItem({
+  const feed = await manager.client.feed.createItem({
     name: { bn: `হিসাবের দানাদার ${suffix}` },
   });
   const lorry = await manager.client.stock.receive({

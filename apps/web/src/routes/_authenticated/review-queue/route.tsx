@@ -33,7 +33,7 @@ const SignOffPage = () => {
   const tab = useTabOfPath(TAB_PATHS) ?? "check";
 
   const queue = useQuery(orpc.work.signOffQueue.queryOptions());
-  const review = useQuery(orpc.reviewQueue.open.queryOptions());
+  const review = useQuery(orpc.reviewQueue.list.queryOptions());
   const late = useQuery(orpc.work.overdue.queryOptions());
 
   return (

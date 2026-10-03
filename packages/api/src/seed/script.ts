@@ -323,7 +323,7 @@ const crossTwoCalves = ({ farm, on }: Script) => {
       }
       // The farm's own word on whether she is still here: a calf the script lost earlier is gone from the pens.
       // oxlint-disable-next-line no-await-in-loop -- one calf at a time
-      const her = await f.as.manager.animals.byTag({ tagNumber: one.tag });
+      const her = await f.as.manager.animals.get({ tagNumber: one.tag });
       if (her.state === "calf") {
         calves.push(one);
       }

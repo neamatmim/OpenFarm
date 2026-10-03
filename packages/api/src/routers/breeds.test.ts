@@ -37,7 +37,7 @@ const refusal = (error: unknown) =>
 describe("the farm's list of breeds", () => {
   // First, because the farm must not have opened its list yet.
   it("gives the standard breeds once, taking a name the farm already wrote as the standard one it is", async () => {
-    const { id: written } = await owner.breeds.add({ nameBn: "sahiwal" });
+    const { id: written } = await owner.breeds.create({ nameBn: "sahiwal" });
 
     const first = await owner.breeds.list();
     const second = await owner.breeds.list();
@@ -62,7 +62,7 @@ describe("the farm's list of breeds", () => {
     await scratchDb()
       .delete(breed)
       .where(and(eq(breed.farmId, theFarm().id), eq(breed.key, "brahman")));
-    const { id: written } = await owner.breeds.add({ nameBn: "ব্রাহমা" });
+    const { id: written } = await owner.breeds.create({ nameBn: "ব্রাহমা" });
 
     const listed = await owner.breeds.list();
 
@@ -79,14 +79,14 @@ describe("the farm's list of breeds", () => {
 
   it("refuses a second breed by a name the list already has, in either language and any capitals", async () => {
     const refused = await owner.breeds
-      .add({ nameBn: "নতুন জাত", nameEn: "red chittagong" })
+      .create({ nameBn: "নতুন জাত", nameEn: "red chittagong" })
       .catch((error: unknown) => error);
 
     expect(refusal(refused)).toBe("breed_exists");
   });
 
   it("renames a breed on every animal of it", async () => {
-    const { id } = await owner.breeds.add({ nameBn: "মিরকাদিম" });
+    const { id } = await owner.breeds.create({ nameBn: "মিরকাদিম" });
     const { tagNumber } = await registerCalf(id);
 
     await owner.breeds.rename({
@@ -95,29 +95,29 @@ describe("the farm's list of breeds", () => {
       nameEn: "Mirkadim",
     });
 
-    const her = await owner.animals.byTag({ tagNumber });
+    const her = await owner.animals.get({ tagNumber });
     expect(her.breed).toEqual({ nameBn: "মীরকাদিম", nameEn: "Mirkadim" });
   });
 
   it("writes nothing new under a retired breed, and the animals of it keep it", async () => {
-    const { id } = await owner.breeds.add({ nameBn: "অবসরের জাত" });
+    const { id } = await owner.breeds.create({ nameBn: "অবসরের জাত" });
     const { tagNumber } = await registerCalf(id);
     await owner.breeds.retire({ id });
 
     const refused = await registerCalf(id).catch((error: unknown) => error);
-    const her = await owner.animals.byTag({ tagNumber });
+    const her = await owner.animals.get({ tagNumber });
 
     expect(refusal(refused)).toBe("breed_retired");
     expect(her.breed?.nameBn).toBe("অবসরের জাত");
 
-    await owner.breeds.restore({ id });
+    await owner.breeds.bringBack({ id });
     await expect(registerCalf(id)).resolves.toMatchObject({
       tagNumber: expect.any(String),
     });
   });
 
   it("counts the animals on the farm of each breed", async () => {
-    const { id } = await owner.breeds.add({ nameBn: "গোনার জাত" });
+    const { id } = await owner.breeds.create({ nameBn: "গোনার জাত" });
     await registerCalf(id);
     await registerCalf(id);
 
@@ -132,7 +132,7 @@ describe("the farm's list of breeds", () => {
     });
 
     await expect(
-      staff.breeds.add({ nameBn: "কর্মীর জাত" })
+      staff.breeds.create({ nameBn: "কর্মীর জাত" })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });
@@ -152,7 +152,7 @@ describe("the opening register names a breed", () => {
     expect(result.failed[0]?.reason).toContain("Unicorn");
     const [jersey, chittagong] = await Promise.all(
       result.imported.map((row) =>
-        owner.animals.byTag({ tagNumber: row.tagNumber })
+        owner.animals.get({ tagNumber: row.tagNumber })
       )
     );
     expect(jersey?.breed?.nameBn).toBe("জার্সি ক্রস");

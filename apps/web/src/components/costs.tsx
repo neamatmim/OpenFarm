@@ -90,7 +90,7 @@ export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
   const rate = useMoneyRate();
   const readsMoney = useReadsMoney();
   const costs = useQuery({
-    ...orpc.costs.ofAnimal.queryOptions({ input: { tagNumber } }),
+    ...orpc.costs.forAnimal.queryOptions({ input: { tagNumber } }),
     enabled: readsMoney,
   });
   if (!costs.data) {

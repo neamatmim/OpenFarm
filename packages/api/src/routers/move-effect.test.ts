@@ -106,7 +106,7 @@ describe("a Step that moves an animal", () => {
       evidence: [world.dry.id],
     });
 
-    const after = await owner.client.animals.byTag({
+    const after = await owner.client.animals.get({
       tagNumber: cow.tagNumber,
     });
     expect(after.pen?.id).toBe(world.dry.id);
@@ -134,7 +134,7 @@ describe("a Step that moves an animal", () => {
     ).rejects.toThrow(/not one of the things this step offers/u);
 
     // And she has not gone anywhere.
-    const after = await owner.client.animals.byTag({
+    const after = await owner.client.animals.get({
       tagNumber: cow.tagNumber,
     });
     expect(after.pen?.id).toBe(world.milking.id);
@@ -171,7 +171,7 @@ describe("a Step that moves an animal", () => {
     const again = await phone.client.sync.batch(batch);
     expect(again).toEqual(sent);
 
-    const after = await owner.client.animals.byTag({
+    const after = await owner.client.animals.get({
       tagNumber: cow.tagNumber,
     });
     expect(after.pen?.id).toBe(world.dry.id);
@@ -222,7 +222,7 @@ describe("a Step the farm has moved past", () => {
     });
 
     expect(sent.results[0]?.outcome).toBe("kept");
-    const after = await owner.client.animals.byTag({
+    const after = await owner.client.animals.get({
       tagNumber: cow.tagNumber,
     });
     expect(after.pen?.id).toBe(world.dry.id);
@@ -267,7 +267,7 @@ describe("correcting a Step that moved her", () => {
       reason: "ভুল পেন লেখা হয়েছিল",
     });
 
-    const after = await owner.client.animals.byTag({
+    const after = await owner.client.animals.get({
       tagNumber: cow.tagNumber,
     });
     expect(after.pen?.id).toBe(world.milking.id);
@@ -286,7 +286,7 @@ describe("correcting a Step that moved her", () => {
       reason: "গাভী সরানো হয়নি",
     });
 
-    const after = await owner.client.animals.byTag({
+    const after = await owner.client.animals.get({
       tagNumber: cow.tagNumber,
     });
     expect(after.pen?.id).toBe(world.milking.id);
@@ -314,7 +314,7 @@ describe("correcting a Step that moved her", () => {
     });
 
     expect(corrected.needsReview).toBe(true);
-    const after = await owner.client.animals.byTag({
+    const after = await owner.client.animals.get({
       tagNumber: cow.tagNumber,
     });
     expect(after.pen?.id).toBe(world.milking.id);
@@ -377,7 +377,7 @@ describe("what the farm has learned since", () => {
     });
 
     expect(corrected.needsReview).toBe(true);
-    const after = await owner.client.animals.byTag({
+    const after = await owner.client.animals.get({
       tagNumber: cow.tagNumber,
     });
     // Where the farm last saw her — not the pen she started the morning in.
@@ -407,7 +407,7 @@ describe("what the farm has learned since", () => {
     });
 
     expect(corrected.needsReview).toBe(true);
-    const after = await owner.client.animals.byTag({
+    const after = await owner.client.animals.get({
       tagNumber: cow.tagNumber,
     });
     expect(after.pen?.id).toBe(world.dry.id);

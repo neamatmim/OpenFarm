@@ -147,7 +147,7 @@ describe("an animal the round could not find", () => {
     const owner = await as("owner", "2054-02-03T04:00:00.000Z");
     const ownerHome = await owner.client.overview.get();
     expect(ownerHome.needsYou.missing.map((one) => one.tag)).toContain(tag);
-    const page = await owner.client.animals.byTag({ tagNumber: tag });
+    const page = await owner.client.animals.get({ tagNumber: tag });
     expect(page.missing).toMatchObject({ penName: "খোঁজা পেন খ" });
   });
 
@@ -226,7 +226,7 @@ describe("who is told", () => {
     const post = listeningPost();
     const owner = await as("owner", "2054-02-08T02:00:00.000Z", post.transport);
     const endpoint = `https://fcm.googleapis.com/fcm/send/${suffix}`;
-    await owner.client.push.listen({
+    await owner.client.push.subscribe({
       endpoint,
       p256dh: "test-p256dh-key",
       auth: "test-auth-key",
@@ -262,7 +262,7 @@ describe("found", () => {
 
     await manager.client.animals.found({ tagNumber: tag });
     expect(await openFor(tag)).toHaveLength(0);
-    const page = await manager.client.animals.byTag({ tagNumber: tag });
+    const page = await manager.client.animals.get({ tagNumber: tag });
     expect(page.missing).toBeNull();
 
     await theRound("2054-02-10", penId, tag, { skipReason: NOT_FOUND });

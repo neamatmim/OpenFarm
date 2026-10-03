@@ -167,7 +167,7 @@ describe("an animal that leaves without dying", () => {
     // Bought for ৳80,000 and fed since: the year's lost animals cost at least that.
     expect(after.tiles.lostYear.count).toBeGreaterThanOrEqual(1);
     expect(after.tiles.lostYear.costMoney).toBeGreaterThanOrEqual(80_000);
-    const page = await owner.client.animals.byTag({
+    const page = await owner.client.animals.get({
       tagNumber: bull.tagNumber,
     });
     expect(page.missing?.writtenOff).toMatchObject(STOLEN);
@@ -247,7 +247,7 @@ describe("an animal that leaves without dying", () => {
     // Still in quarantine, as he was the morning he went.
     expect(back?.state).toBe("quarantine");
     expect(back?.stateChangedAt).toEqual(before?.stateChangedAt);
-    const page = await later.client.animals.byTag({
+    const page = await later.client.animals.get({
       tagNumber: bull.tagNumber,
     });
     expect(page.missing).toBeNull();

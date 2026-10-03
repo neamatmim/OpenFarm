@@ -107,9 +107,9 @@ describe("a visiting Vet", () => {
     const herd = await vet.animals.list({});
     expect(herd.map((beast) => beast.tagNumber)).toEqual([world.onCase]);
     await expect(
-      vet.animals.byTag({ tagNumber: world.notOnCase })
+      vet.animals.get({ tagNumber: world.notOnCase })
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
-    const her = await vet.animals.byTag({ tagNumber: world.onCase });
+    const her = await vet.animals.get({ tagNumber: world.onCase });
     expect(her.tagNumber).toBe(world.onCase);
     const mine = await vet.vetCases.mine();
     expect(mine.cases.map((row) => row.tagNumber)).toEqual([world.onCase]);
@@ -137,7 +137,7 @@ describe("a visiting Vet", () => {
     await expect(vet.breeding.repeatBreeders()).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
-    await expect(vet.observations.recent({})).rejects.toMatchObject({
+    await expect(vet.observations.list({})).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
   });
@@ -186,7 +186,7 @@ describe("a visiting Vet", () => {
     const closed = await calling(world.vetId, DURING);
     expect(await closed.diagnoses.mine({})).toEqual([]);
     await expect(
-      closed.animals.byTag({ tagNumber: world.onCase })
+      closed.animals.get({ tagNumber: world.onCase })
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     // Called in again for the rest of this file.
     await manager.vetCases.open({
@@ -201,7 +201,7 @@ describe("a visiting Vet", () => {
     const after = await later.people.me();
     expect(after.roles).toEqual([]);
     await expect(
-      later.animals.byTag({ tagNumber: world.onCase })
+      later.animals.get({ tagNumber: world.onCase })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
 
     const system = await buildContext({
@@ -272,7 +272,7 @@ describe("a visiting Vet who also works the barn", () => {
     });
     const herd = await withCase.animals.list({});
     expect(herd.map((beast) => beast.tagNumber)).toContain(world.onCase);
-    const her = await withCase.animals.byTag({ tagNumber: world.onCase });
+    const her = await withCase.animals.get({ tagNumber: world.onCase });
     expect(her.diagnoses.length + her.observations.length).toBeGreaterThan(0);
 
     // And the work raised about her is on their list for today, as she is on their herd list: what a visit reaches

@@ -123,7 +123,7 @@ beforeAll(async () => {
 
   // Grass cut on the farm's own land, which nobody has put a price on.
   const manager = await as("manager", "2077-01-01T05:00:00.000Z");
-  const grass = await manager.client.feed.addItem({
+  const grass = await manager.client.feed.createItem({
     name: { bn: `ঘাস ${suffix}` },
   });
   grassId = grass.id;
@@ -204,7 +204,7 @@ describe("a month with a price missing", () => {
   it("waits for the one feed nothing can price, though the rest of the month has a price", async () => {
     // Straw cut on the farm and never priced, fed beside the grass, which now has one.
     const manager = await as("manager", "2077-02-05T05:00:00.000Z");
-    const straw = await manager.client.feed.addItem({
+    const straw = await manager.client.feed.createItem({
       name: { bn: `খড় ${suffix}` },
     });
     await manager.client.stock.receive({

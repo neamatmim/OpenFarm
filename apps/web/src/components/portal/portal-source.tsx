@@ -75,8 +75,8 @@ export const useTheirRequests = () => {
   const input = useWhose();
   return useQuery(
     usePreviewing()
-      ? orpc.portalPreview.myRequests.queryOptions({ input })
-      : orpc.portal.myRequests.queryOptions()
+      ? orpc.portalPreview.requests.queryOptions({ input })
+      : orpc.portal.requests.queryOptions()
   );
 };
 

@@ -166,7 +166,7 @@ beforeAll(async () => {
 
   // Feed, so there is something for a month's Reimbursement to be about.
   const feeding = await as("manager", "2047-01-05T05:00:00.000Z");
-  const item = await feeding.client.feed.addItem({
+  const item = await feeding.client.feed.createItem({
     name: { bn: `দানাদার ${suffix}` },
   });
   feedItemId = item.id;
@@ -458,7 +458,7 @@ describe("what a Settlement is", () => {
     });
     // The farm's own fodder: harvested, never bought, so the store holds kilos at no price at all and
     // nothing can say what a kilo of it cost.
-    const fodder = await manager.client.feed.addItem({
+    const fodder = await manager.client.feed.createItem({
       name: { bn: `নিজের খড় ${suffix}` },
     });
     await manager.client.stock.receive({

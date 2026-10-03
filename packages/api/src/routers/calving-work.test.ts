@@ -268,7 +268,7 @@ const workFor = async (
   const client = await createTestClient(appRouter, { as, clock });
   const manager = await createTestClient(appRouter, { as: "manager", clock });
   await manager.client.work.ensureDue();
-  const her = await manager.client.animals.byTag({ tagNumber });
+  const her = await manager.client.animals.get({ tagNumber });
   const pens = [world.pen.id, world.calvingPen.id];
   const today = [];
   for (const penId of pens) {
@@ -363,7 +363,7 @@ describe("the work Expected Calving pulls towards it", () => {
       animalTag: world.homeBred,
       evidence: [true],
     });
-    const dried = await drying.manager.client.animals.byTag({
+    const dried = await drying.manager.client.animals.get({
       tagNumber: world.homeBred,
     });
     expect(dried.state).toBe("dry");
@@ -386,7 +386,7 @@ describe("the work Expected Calving pulls towards it", () => {
       animalTag: world.homeBred,
       evidence: [world.calvingPen.id],
     });
-    const walked = await prepping.manager.client.animals.byTag({
+    const walked = await prepping.manager.client.animals.get({
       tagNumber: world.homeBred,
     });
     expect(walked.penId).toBe(world.calvingPen.id);
@@ -560,7 +560,7 @@ describe("the work Expected Calving pulls towards it", () => {
       reason: "ভুল গাভী দেখা হয়েছিল",
     });
 
-    const her = await manager.client.animals.byTag({
+    const her = await manager.client.animals.get({
       tagNumber: world.mistaken,
     });
     expect(her.expectedCalvingAt).toBeNull();
@@ -725,7 +725,7 @@ describe("the work Expected Calving pulls towards it", () => {
       kind: "dry_off",
       standsAside: { because: "cannot_return_to_milk" },
     });
-    const her = await manager.client.animals.byTag({ tagNumber });
+    const her = await manager.client.animals.get({ tagNumber });
     expect(her.state).toBe("dry");
   });
 
@@ -734,7 +734,7 @@ describe("the work Expected Calving pulls towards it", () => {
     // puts it on 1 September; seven again puts it back.
     const clock = new FakeClock("2031-07-05T04:00:00.000Z");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    const her = await manager.client.animals.byTag({
+    const her = await manager.client.animals.get({
       tagNumber: world.alreadyCarrying,
     });
     const raisedPrep = await scratchDb().query.sopInstance.findFirst({

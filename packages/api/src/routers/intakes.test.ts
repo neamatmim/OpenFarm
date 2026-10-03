@@ -46,7 +46,7 @@ describe("intake", () => {
     expect(taken.tagNumber).toMatch(/^F-\d{4,}$/u);
     expect(taken.state).toBe("quarantine");
 
-    const her = await manager.client.animals.byTag({
+    const her = await manager.client.animals.get({
       tagNumber: taken.tagNumber,
     });
     expect(her.side).toBe("fattening");
@@ -113,7 +113,7 @@ describe("intake", () => {
       targetWindowEnd: "2027-05-16",
       targetWeightKg: 300,
     });
-    const her = await manager.client.animals.byTag({
+    const her = await manager.client.animals.get({
       tagNumber: taken.tagNumber,
     });
     expect(her.intake?.targetWindow).toEqual({
@@ -178,7 +178,7 @@ describe("intake", () => {
       estimatedAgeMonths: 20,
     });
 
-    const her = await manager.client.animals.byTag({
+    const her = await manager.client.animals.get({
       tagNumber: taken.tagNumber,
     });
     expect(her.intake).toMatchObject({
@@ -203,7 +203,7 @@ describe("intake", () => {
       weightKg: 190,
       estimatedAgeMonths: 18,
     });
-    const his = await manager.client.animals.byTag({
+    const his = await manager.client.animals.get({
       tagNumber: free.tagNumber,
     });
     expect(his.intake).toMatchObject({ marketTollMoney: 0 });
@@ -214,7 +214,7 @@ describe("intake", () => {
       reason: "হাটের রসিদ অনুযায়ী ঠিক করা হলো",
       changes: { marketTollMoney: { from: 2000, to: 2400 } },
     });
-    const afterwards = await manager.client.animals.byTag({
+    const afterwards = await manager.client.animals.get({
       tagNumber: taken.tagNumber,
     });
     expect(afterwards.intake).toMatchObject({ marketTollMoney: 2400 });
@@ -256,7 +256,7 @@ describe("intake", () => {
         weightKg: 175,
         estimatedAgeMonths: 18,
       });
-      const her = await manager.client.animals.byTag({
+      const her = await manager.client.animals.get({
         tagNumber: taken.tagNumber,
       });
       expect(her.intake?.targetWeightKg).toBe(420);
@@ -284,7 +284,7 @@ describe("intake", () => {
       arrivedAt: new Date("2027-01-19T04:00:00.000Z"),
     };
 
-    const his = await vet.client.animals.byTag({ tagNumber: taken.tagNumber });
+    const his = await vet.client.animals.get({ tagNumber: taken.tagNumber });
     expect(his.birthDate).toBeNull();
     expect(his.intake).toBeNull();
     expect(his.ageAtIntake).toEqual(told);

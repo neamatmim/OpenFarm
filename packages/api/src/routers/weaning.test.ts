@@ -128,9 +128,9 @@ describe("weaning", () => {
     await wean(bullCalf, fatteningPenId, 68);
 
     const manager = await as("manager", `${WEANING_DAY}T04:00:00.000Z`);
-    const her = await manager.client.animals.byTag({ tagNumber: heiferCalf });
+    const her = await manager.client.animals.get({ tagNumber: heiferCalf });
     expect(her).toMatchObject({ state: "heifer", side: "dairy" });
-    const him = await manager.client.animals.byTag({ tagNumber: bullCalf });
+    const him = await manager.client.animals.get({ tagNumber: bullCalf });
     expect(him).toMatchObject({ state: "fattening", side: "fattening" });
     expect(him.pen?.id).toBe(fatteningPenId);
 
@@ -166,13 +166,13 @@ describe("weaning", () => {
       reason: "ভুল বাছুর লেখা হয়েছিল",
     });
     expect(undone.needsReview).toBe(true);
-    const her = await manager.client.animals.byTag({ tagNumber: heiferCalf });
+    const her = await manager.client.animals.get({ tagNumber: heiferCalf });
     expect(her.state).toBe("heifer");
   });
 
   it("puts the bull calf on the Fattening board, his days counted from his weaning", async () => {
     const manager = await as("manager", "2053-04-20T04:00:00.000Z");
-    const him = await manager.client.animals.byTag({ tagNumber: bullCalf });
+    const him = await manager.client.animals.get({ tagNumber: bullCalf });
     expect(him.fattening?.daysOnFeed).toBe(10);
   });
 

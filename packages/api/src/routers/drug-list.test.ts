@@ -22,7 +22,9 @@ describe("the farm's list of medicines", () => {
   // First, because the farm must not have the standard medicines yet.
   it("adds the standard medicines the farm does not have, names only, and leaves the ones it has", async () => {
     const { meloxicam } = STANDARD_DRUGS;
-    await manager.drugs.add({ name: { bn: "মেলোক্সিক্যাম", en: meloxicam.en } });
+    await manager.drugs.create({
+      name: { bn: "মেলোক্সিক্যাম", en: meloxicam.en },
+    });
     const missing = await manager.drugs.standardMissing();
 
     const first = await manager.drugs.addStandard();
@@ -44,7 +46,7 @@ describe("the farm's list of medicines", () => {
 
   it("refuses a second medicine by a name the list has in either language, and says whether it is retired", async () => {
     const byEnglish = await manager.drugs
-      .add({ name: { bn: "নতুন নাম", en: "albendazole DRENCH" } })
+      .create({ name: { bn: "নতুন নাম", en: "albendazole DRENCH" } })
       .catch((error: unknown) => error);
 
     expect(byEnglish).toMatchObject({
@@ -54,7 +56,7 @@ describe("the farm's list of medicines", () => {
   });
 
   it("is renamed by the Vet, and every record of it says the new name", async () => {
-    const { id } = await manager.drugs.add({ name: { bn: "আইভারমেকটিন ১" } });
+    const { id } = await manager.drugs.create({ name: { bn: "আইভারমেকটিন ১" } });
 
     await vet.drugs.rename({
       id,
@@ -68,7 +70,7 @@ describe("the farm's list of medicines", () => {
   });
 
   it("refuses a rename to a name another medicine has", async () => {
-    const { id } = await manager.drugs.add({ name: { bn: "টেট্রা পাউডার" } });
+    const { id } = await manager.drugs.create({ name: { bn: "টেট্রা পাউডার" } });
 
     await expect(
       vet.drugs.rename({ id, name: { bn: STANDARD_DRUGS.calcium.bn } })
@@ -76,7 +78,7 @@ describe("the farm's list of medicines", () => {
   });
 
   it("is renamed by the Vet alone, as it is retired", async () => {
-    const { id } = await manager.drugs.add({ name: { bn: "ভিটামিন এডি৩ই" } });
+    const { id } = await manager.drugs.create({ name: { bn: "ভিটামিন এডি৩ই" } });
 
     await expect(
       manager.drugs.rename({ id, name: { bn: "ভিটামিন" } })

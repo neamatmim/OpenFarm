@@ -94,7 +94,7 @@ const brokerMoneyOf = async (saleId: string) =>
 
 const herCosts = async (tagNumber: string) => {
   const owner = await as("owner", "2070-03-21T06:00:00.000Z");
-  return await owner.client.costs.ofAnimal({ tagNumber });
+  return await owner.client.costs.forAnimal({ tagNumber });
 };
 
 describe("a broker's fee on a Sale", () => {

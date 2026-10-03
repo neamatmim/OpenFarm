@@ -78,7 +78,7 @@ describe("the letter that goes without delay", () => {
     const vet = await createTestClient(appRouter, { as: "vet", clock });
 
     // What the ULO confirmed must be reported.
-    const anthrax = await manager.client.notifiableDiseases.add({
+    const anthrax = await manager.client.notifiableDiseases.create({
       name: { bn: "তড়কা", en: "Anthrax" },
       note: "ইউএলও নিশ্চিত করেছেন, ২০২৬",
     });
@@ -139,7 +139,7 @@ describe("the letter that goes without delay", () => {
     const cow = await aCow(clock);
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     const vet = await createTestClient(appRouter, { as: "vet", clock });
-    await manager.client.notifiableDiseases.add({
+    await manager.client.notifiableDiseases.create({
       name: { bn: `ক্ষুরারোগ ${Date.now()}`, en: "Foot and mouth" },
     });
     const listed = await manager.client.notifiableDiseases.list();
@@ -182,7 +182,7 @@ describe("the letter that goes without delay", () => {
     const cow = await aCow(clock);
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     const vet = await createTestClient(appRouter, { as: "vet", clock });
-    await manager.client.notifiableDiseases.add({
+    await manager.client.notifiableDiseases.create({
       name: { bn: `তড়কা ${Date.now()}` },
     });
     const listed = await manager.client.notifiableDiseases.list();
@@ -252,7 +252,7 @@ describe("the letter that goes without delay", () => {
     const cow = await aCow(clock);
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     const vet = await createTestClient(appRouter, { as: "vet", clock });
-    await manager.client.notifiableDiseases.add({
+    await manager.client.notifiableDiseases.create({
       name: { bn: `জলাতঙ্ক ${Date.now()}` },
     });
     const listed = await manager.client.notifiableDiseases.list();
@@ -284,7 +284,7 @@ describe("the letter that goes without delay", () => {
     const cow = await aCow(clock);
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     const vet = await createTestClient(appRouter, { as: "vet", clock });
-    await manager.client.notifiableDiseases.add({
+    await manager.client.notifiableDiseases.create({
       name: { bn: `গলাফুলা ${Date.now()}` },
     });
     const listed = await manager.client.notifiableDiseases.list();
@@ -321,7 +321,7 @@ describe("the letter that goes without delay", () => {
     const cow = await aCow(clock);
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     const vet = await createTestClient(appRouter, { as: "vet", clock });
-    await manager.client.notifiableDiseases.add({
+    await manager.client.notifiableDiseases.create({
       name: { bn: `বাদলা ${Date.now()}` },
     });
     const listed = await manager.client.notifiableDiseases.list();
@@ -358,7 +358,7 @@ describe("the letter that goes without delay", () => {
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     const vet = await createTestClient(appRouter, { as: "vet", clock });
     const owner = await createTestClient(appRouter, { as: "owner", clock });
-    await manager.client.notifiableDiseases.add({
+    await manager.client.notifiableDiseases.create({
       name: { bn: `পিপিআর ${Date.now()}` },
     });
     const listed = await manager.client.notifiableDiseases.list();
@@ -416,7 +416,7 @@ describe("the letter that goes without delay", () => {
     const cow = await aCow(clock);
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     const vet = await createTestClient(appRouter, { as: "vet", clock });
-    await manager.client.notifiableDiseases.add({
+    await manager.client.notifiableDiseases.create({
       name: { bn: `তড়কা-রেজিস্টার ${Date.now()}` },
     });
     const listed = await manager.client.notifiableDiseases.list();
@@ -448,7 +448,7 @@ describe("the letter that goes without delay", () => {
       disposalNote: "ছয় ফুট গভীরে",
     });
 
-    const her = await manager.client.animals.byTag({
+    const her = await manager.client.animals.get({
       tagNumber: cow.tagNumber,
     });
     expect(her.mortality).toMatchObject({

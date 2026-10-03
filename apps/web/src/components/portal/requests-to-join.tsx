@@ -43,7 +43,7 @@ import { orpc } from "@/utils/orpc";
 
 /** One of the Investor's own Requests to Join, as the portal reads it back to them. */
 export type TheirRequest = Awaited<
-  ReturnType<typeof orpc.portal.myRequests.call>
+  ReturnType<typeof orpc.portal.requests.call>
 >[number];
 
 /** Why the farm would not take a Request, said to the Investor rather than in the Owner's words. */

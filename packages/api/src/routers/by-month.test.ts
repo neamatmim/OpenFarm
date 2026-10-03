@@ -80,7 +80,7 @@ beforeAll(async () => {
     shedId: shed.id,
     name: `মোটাতাজা ${suffix}`,
   });
-  const spray = await owner.money.addCategory({
+  const spray = await owner.money.createCategory({
     nameBn: `মাছি স্প্রে ${suffix}`,
     direction: "out",
   });
@@ -290,7 +290,7 @@ describe("the farm month by month", () => {
       format: "paper",
     });
     const sides = await owner.costs.bySide(MARCH);
-    const his = await owner.costs.ofAnimal({ tagNumber: farmsBull });
+    const his = await owner.costs.forAnimal({ tagNumber: farmsBull });
 
     expect(march?.dairy).toMatchObject({
       milkSoldMoney: 9300,
@@ -337,7 +337,7 @@ describe("the farm month by month", () => {
       outMoney: summary?.expenseMoney,
       netMoney: summary?.netMoney,
     });
-    const his = await owner.costs.ofAnimal({ tagNumber: farmsBull });
+    const his = await owner.costs.forAnimal({ tagNumber: farmsBull });
     expect(year).toMatchObject({
       money: { netMoney: 33_300 },
       dairy: { milkSoldMoney: 9300, fetchedPerLitreMoney: 62 },

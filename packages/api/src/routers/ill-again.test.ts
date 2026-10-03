@@ -76,7 +76,7 @@ describe("how it ended", () => {
     const made = await diagnosed(tag, "2062-03-01", "ক্ষুরে পচন");
     const vet = await as("vet", "2062-03-10T05:00:00.000Z");
     await vet.client.diagnoses.close({ id: made.id, outcome: "recovered" });
-    const page = await vet.client.animals.byTag({ tagNumber: tag });
+    const page = await vet.client.animals.get({ tagNumber: tag });
     expect(page.diagnoses[0]).toMatchObject({ outcome: "recovered" });
 
     await expect(
@@ -88,7 +88,7 @@ describe("how it ended", () => {
       changes: { outcome: { from: "recovered", to: "not_recovered" } },
       reason: "আবার খোঁড়াচ্ছে",
     });
-    const after = await vet.client.animals.byTag({ tagNumber: tag });
+    const after = await vet.client.animals.get({ tagNumber: tag });
     expect(after.diagnoses[0]).toMatchObject({ outcome: "not_recovered" });
   });
 

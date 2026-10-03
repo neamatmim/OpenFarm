@@ -52,19 +52,19 @@ beforeAll(async () => {
   await as("vet", `${DAY}T03:00:00.000Z`);
   const categories = await owner.client.money.categories();
   manureId = categories.find((one) => one.key === "manure_sales")?.id ?? "";
-  const office = await owner.client.farmAccounts.add({
+  const office = await owner.client.farmAccounts.create({
     kind: "mobile_money",
     name: `অফিস বিকাশ ${suffix}`,
     number: "01711000001",
   });
   accounts.office = office.id;
-  const spare = await owner.client.farmAccounts.add({
+  const spare = await owner.client.farmAccounts.create({
     kind: "mobile_money",
     name: `দ্বিতীয় বিকাশ ${suffix}`,
     number: "01711000002",
   });
   accounts.spare = spare.id;
-  const bank = await owner.client.farmAccounts.add({
+  const bank = await owner.client.farmAccounts.create({
     kind: "bank",
     name: `সোনালী চলতি ${suffix}`,
     number: "0123456789",
@@ -78,7 +78,7 @@ describe("the Farm Accounts", () => {
   it("are the Owner's to list; a Manager reads them, the number masked", async () => {
     const manager = await as("manager");
     await expect(
-      manager.client.farmAccounts.add({
+      manager.client.farmAccounts.create({
         kind: "mobile_money",
         name: `ম্যানেজারের বিকাশ ${suffix}`,
         number: "01711000009",

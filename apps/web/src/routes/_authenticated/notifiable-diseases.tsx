@@ -229,7 +229,7 @@ const AddDiseaseDialog = ({
   const [note, setNote] = useState("");
   const [otherNames, setOtherNames] = useState("");
   const add = useMutation(
-    orpc.notifiableDiseases.add.mutationOptions({
+    orpc.notifiableDiseases.create.mutationOptions({
       onSuccess: () => {
         setName("");
         setNameEn("");

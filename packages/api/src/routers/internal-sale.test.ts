@@ -197,7 +197,7 @@ describe("the Internal Sale", () => {
     });
 
     // She is the Venture's now, and the Venture's account is lighter by what she cost.
-    const her = await owner.client.animals.byTag({ tagNumber: hers.tagNumber });
+    const her = await owner.client.animals.get({ tagNumber: hers.tagNumber });
     expect(her.owner).toMatchObject({ id: ventureId });
     const after = await owner.client.ventures.list();
     const venture = after.find((one) => one.id === ventureId);
@@ -269,7 +269,7 @@ describe("the Internal Sale", () => {
       priceMoney: 63_000,
     });
     expect(back.priceMoney).toBe(63_000);
-    const her = await owner2.client.animals.byTag({
+    const her = await owner2.client.animals.get({
       tagNumber: hers.tagNumber,
     });
     expect(her.owner).toBeNull();
@@ -541,7 +541,7 @@ describe("the Internal Sale", () => {
     expect(after.find((one) => one.id === other)).toMatchObject({
       spentMoney: 72_000,
     });
-    const her = await selling.client.animals.byTag({
+    const her = await selling.client.animals.get({
       tagNumber: hers.tagNumber,
     });
     expect(her.owner).toMatchObject({ id: other });

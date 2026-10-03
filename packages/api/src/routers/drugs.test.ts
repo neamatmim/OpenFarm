@@ -11,7 +11,7 @@ describe("the Drug List", () => {
     const vet = await createTestClient(appRouter, { as: "vet", clock });
 
     // Bought this morning; the Vet is not here and the box is in the store.
-    const bought = await manager.client.drugs.add({
+    const bought = await manager.client.drugs.create({
       name: { bn: `অক্সিটেট্রাসাইক্লিন ${Date.now()}`, en: "Oxytetracycline" },
     });
 
@@ -44,7 +44,7 @@ describe("the Drug List", () => {
 
     // A Manager may write down what was bought, but not what it costs the milk.
     await expect(
-      manager.client.drugs.add({
+      manager.client.drugs.create({
         name: { bn: `পেনিসিলিন ${Date.now()}` },
         milkWithdrawalDays: 3,
         meatWithdrawalDays: 14,
@@ -53,13 +53,13 @@ describe("the Drug List", () => {
 
     // Nor half of it: one day on its own is half a Withdrawal.
     await expect(
-      manager.client.drugs.add({
+      manager.client.drugs.create({
         name: { bn: `অর্ধেক ${Date.now()}` },
         milkWithdrawalDays: 3,
       })
     ).rejects.toThrow();
 
-    const bought = await manager.client.drugs.add({
+    const bought = await manager.client.drugs.create({
       name: { bn: `পেনিসিলিন ${Date.now()}` },
     });
     await expect(
@@ -72,11 +72,11 @@ describe("the Drug List", () => {
 
     // The Owner does what the Manager does, and the days stay the Vet's all the same.
     const owner = await createTestClient(appRouter, { as: "owner" });
-    const ownersBox = await owner.client.drugs.add({
+    const ownersBox = await owner.client.drugs.create({
       name: { bn: `আইভারমেকটিন ${Date.now()}` },
     });
     await expect(
-      owner.client.drugs.add({
+      owner.client.drugs.create({
         name: { bn: `আইভারমেকটিন দিনসহ ${Date.now()}` },
         milkWithdrawalDays: 3,
         meatWithdrawalDays: 14,
@@ -97,7 +97,7 @@ describe("the Drug List", () => {
   it("keeps a retired product, because a Treatment given last March still names it", async () => {
     const vet = await createTestClient(appRouter, { as: "vet" });
     const bnName = `পুরনো ওষুধ ${Date.now()}`;
-    const old = await vet.client.drugs.add({
+    const old = await vet.client.drugs.create({
       name: { bn: bnName },
       milkWithdrawalDays: 2,
       meatWithdrawalDays: 7,
@@ -116,7 +116,7 @@ describe("the Drug List", () => {
     // Bought again under its own name: brought back rather than added twice, so the farm
     // does not end up with two rows for one product.
     await expect(
-      vet.client.drugs.add({ name: { bn: bnName } })
+      vet.client.drugs.create({ name: { bn: bnName } })
     ).rejects.toThrow(/already on the list, retired/u);
     await vet.client.drugs.bringBack({ id: old.id });
     const back = await vet.client.drugs.list();
@@ -125,7 +125,7 @@ describe("the Drug List", () => {
 
   it("refuses days that are not days", async () => {
     const vet = await createTestClient(appRouter, { as: "vet" });
-    const product = await vet.client.drugs.add({
+    const product = await vet.client.drugs.create({
       name: { bn: `ভুল দিন ${Date.now()}` },
     });
 
@@ -140,7 +140,7 @@ describe("the Drug List", () => {
 
   it("says why a product cannot be prescribed, in words", async () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
-    const bought = await manager.client.drugs.add({
+    const bought = await manager.client.drugs.create({
       name: { bn: `অপেক্ষায় ${Date.now()}` },
     });
 
@@ -151,7 +151,7 @@ describe("the Drug List", () => {
 
   it("writes down who said what the days are, and records the saying of it", async () => {
     const vet = await createTestClient(appRouter, { as: "vet" });
-    const product = await vet.client.drugs.add({
+    const product = await vet.client.drugs.create({
       name: { bn: `প্রমাণ ${Date.now()}` },
     });
 
@@ -182,7 +182,7 @@ describe("the Drug List", () => {
       phone: { id: "test-phone-drugs", name: "ওষুধের শেড ফোন" },
     });
     const vet = await createTestClient(appRouter, { as: "vet" });
-    const product = await vet.client.drugs.add({
+    const product = await vet.client.drugs.create({
       name: { bn: `ফোন থেকে ${Date.now()}` },
     });
 

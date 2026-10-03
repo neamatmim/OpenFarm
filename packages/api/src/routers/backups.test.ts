@@ -38,7 +38,7 @@ describe("whether the farm is being copied", () => {
       clock,
     });
 
-    const state = await manager.client.backups.recent({});
+    const state = await manager.client.backups.list({});
 
     expect(state.daysSince).toBe(1);
     expect(state.lastGoodAt).toEqual(lastNight);
@@ -51,7 +51,7 @@ describe("whether the farm is being copied", () => {
   it("is the Owner's and the Manager's business, not everyone's", async () => {
     const staff = await createTestClient(appRouter, { as: "staff" });
 
-    await expect(staff.client.backups.recent({})).rejects.toMatchObject({
+    await expect(staff.client.backups.list({})).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
   });

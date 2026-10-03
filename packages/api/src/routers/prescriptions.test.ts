@@ -48,7 +48,7 @@ const setup = async () => {
     name: "চিকিৎসা পেন",
   });
   const sop = await owner.client.sops.create({ content: treatmentSop() });
-  const product = await vet.client.drugs.add({
+  const product = await vet.client.drugs.create({
     name: { bn: `অক্সিটেট্রাসাইক্লিন ${Date.now()}`, en: "Oxytetracycline" },
     milkWithdrawalDays: 4,
     meatWithdrawalDays: 21,
@@ -67,7 +67,7 @@ const setup = async () => {
 
   /** Bought by the Manager, not yet read off the label: nothing may be prescribed from it. */
   const manager = await createTestClient(appRouter, { as: "manager" });
-  const unknown = await manager.client.drugs.add({
+  const unknown = await manager.client.drugs.create({
     name: { bn: `অজানা ${Date.now()}` },
   });
   return { shedId: shed.id, pen, sop, product, unknown };
@@ -378,7 +378,7 @@ describe("a Prescription, and a dose per Instance", () => {
       days: 2,
     });
 
-    const page = await vet.client.animals.byTag({ tagNumber: cow.tagNumber });
+    const page = await vet.client.animals.get({ tagNumber: cow.tagNumber });
     const conclusion = page.diagnoses.find((one) => one.id === diagnosis.id);
     expect(conclusion?.prescriptions).toHaveLength(1);
     expect(conclusion?.prescriptions.at(0)).toMatchObject({

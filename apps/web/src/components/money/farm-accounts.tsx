@@ -87,7 +87,7 @@ const AddAccount = () => {
   const [typed, setTyped] = useState<Typed>(NOTHING_TYPED);
   const edit = (patch: Partial<Typed>) => setTyped({ ...typed, ...patch });
   const add = useMutation(
-    orpc.farmAccounts.add.mutationOptions({
+    orpc.farmAccounts.create.mutationOptions({
       onSuccess: async () => {
         setTyped(NOTHING_TYPED);
         toast.success(t("farmAccounts.added"));

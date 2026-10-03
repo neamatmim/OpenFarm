@@ -226,7 +226,7 @@ const aiWorkFor = async (clockAt: string, tagNumber: string) => {
   const clock = new FakeClock(clockAt);
   const manager = await createTestClient(appRouter, { as: "manager", clock });
   await manager.client.work.ensureDue();
-  const her = await manager.client.animals.byTag({ tagNumber });
+  const her = await manager.client.animals.get({ tagNumber });
   const today = await manager.client.work.today({ penId: world.pen.id });
   const late = await manager.client.work.overdue();
   const seen = new Set<string>();
@@ -342,7 +342,7 @@ describe("a heat, and the window it opens", () => {
       as: "manager",
       clock: new FakeClock("2027-09-14T01:00:00.000Z"),
     });
-    const her = await manager.client.animals.byTag({ tagNumber: tagOf(4) });
+    const her = await manager.client.animals.get({ tagNumber: tagOf(4) });
     const rounds = await manager.client.work.today({
       penId: world.pen.id,
     });
@@ -380,7 +380,7 @@ describe("a heat, and the window it opens", () => {
       as: "manager",
       clock: new FakeClock("2027-09-16T19:30:00.000Z"),
     });
-    const queue = await manager.client.reviewQueue.open();
+    const queue = await manager.client.reviewQueue.list();
     const asked = queue.find(
       (row) => row.reason === "late_entry" && row.entityId === raised[0]?.id
     );
@@ -399,7 +399,7 @@ describe("a heat, and the window it opens", () => {
       as: "manager",
       clock: new FakeClock("2027-09-05T09:00:00.000Z"),
     });
-    const her = await manager.client.animals.byTag({ tagNumber: tagOf(0) });
+    const her = await manager.client.animals.get({ tagNumber: tagOf(0) });
     expect(her.heats).toHaveLength(2);
     // Newest first. The second sighting was of a heat already begun, so it raised nothing and
     // points to nothing; the first raised her AI work and links to it.

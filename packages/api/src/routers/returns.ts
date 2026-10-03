@@ -58,7 +58,7 @@ export const returnsRouter = {
     ),
 
   /** One dairy Animal's return and her calves', for her own page: the Owner's alone. */
-  animal: protectedProcedure
+  forAnimal: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())
     .input(z.object({ animalId: z.string() }))

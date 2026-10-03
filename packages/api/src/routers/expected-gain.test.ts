@@ -98,7 +98,7 @@ const setup = async () => {
   const newcomers = await pen("নতুন পেন");
   const strong = await pen("ভালো পেন");
   const plain = await pen("সাধারণ পেন");
-  const straw = await manager.client.feed.addItem({
+  const straw = await manager.client.feed.createItem({
     name: { bn: `খড় ${suffix}` },
   });
   const grower = await manager.client.feed.saveRation({
@@ -514,7 +514,7 @@ describe("which breeds are deshi", () => {
 
   it("is the farm's to say, for its own breeds and the standard ones, and not Staff's", async () => {
     const manager = await as("manager");
-    const added = await manager.client.breeds.add({
+    const added = await manager.client.breeds.create({
       nameBn: `শাহীওয়াল-দেশি ${suffix}`,
       deshi: true,
     });
@@ -602,7 +602,7 @@ describe("the target weight a bull is taken in towards", () => {
 describe("a Ration's Expected Gain", () => {
   it("is kept when a Ration is saved without it, and cleared by saying none", async () => {
     const manager = await as("manager");
-    const straw = await manager.client.feed.addItem({
+    const straw = await manager.client.feed.createItem({
       name: { bn: `ঘাস ${suffix}` },
     });
     const saved = await manager.client.feed.saveRation({
@@ -632,7 +632,7 @@ describe("a Ration's Expected Gain", () => {
 
   it("refuses a low above its high, and a gain no bull makes", async () => {
     const manager = await as("manager");
-    const straw = await manager.client.feed.addItem({
+    const straw = await manager.client.feed.createItem({
       name: { bn: `ভুসি ${suffix}` },
     });
     const saving = (expectedGain: { lowKg: number; highKg: number }) =>

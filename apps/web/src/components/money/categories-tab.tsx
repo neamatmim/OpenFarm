@@ -239,7 +239,7 @@ const AddCategoryDialog = ({
   const [nameBn, setNameBn] = useState("");
   const [direction, setDirection] = useState<Direction>("out");
   const add = useMutation(
-    orpc.money.addCategory.mutationOptions({
+    orpc.money.createCategory.mutationOptions({
       onSuccess: () => {
         setNameBn("");
         onOpenChange(false);
