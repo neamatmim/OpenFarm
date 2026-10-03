@@ -1,6 +1,6 @@
 // Build-time gate: fails when any English key lacks a non-empty Bangla translation
 // (or Bangla carries a key English doesn't). Run by the web build before bundling.
-import { findTranslationGaps } from "../src/translate";
+import { findTranslationGaps } from "../src/gaps";
 
 const { missing, stray } = findTranslationGaps("bn");
 if (missing.length > 0 || stray.length > 0) {

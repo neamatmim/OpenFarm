@@ -23,6 +23,7 @@ import {
   TIME_ZONE_ATTRIBUTE,
   pageFarmLocale,
   pageHost,
+  pageLanguage,
 } from "@/lib/page-context";
 import type { orpc } from "@/utils/orpc";
 
@@ -64,7 +65,7 @@ const RootDocument = () => {
   };
   return (
     // The theme class lands on the html element before React arrives, from what this device chose.
-    <html {...written} lang="bn" suppressHydrationWarning>
+    <html {...written} lang={pageLanguage()} suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>

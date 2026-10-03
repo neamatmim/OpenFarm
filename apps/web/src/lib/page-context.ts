@@ -1,7 +1,9 @@
 import type { Host } from "@OpenFarm/auth/hosts";
-import type { FarmLocale } from "@OpenFarm/i18n";
+import type { FarmLocale, Language } from "@OpenFarm/i18n";
 import {
   DEFAULT_FARM_LOCALE,
+  DEFAULT_LANGUAGE,
+  isLanguage,
   farmLocale,
   isCountry,
   isCurrencyCode,
@@ -11,6 +13,7 @@ import {
   createIsomorphicFn,
   getGlobalStartContext,
 } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 
 /**
  * What the server entry tells the app about the answer it is writing, in the request's own context — never read from
@@ -73,4 +76,26 @@ export const pageFarmLocale = createIsomorphicFn()
       timeZone: isTimeZone(timeZone) ? timeZone : DEFAULT_FARM_LOCALE.timeZone,
       country: isCountry(country) ? country : DEFAULT_FARM_LOCALE.country,
     };
+  });
+
+/** The cookie the reader's language is kept in beside the device's storage, so the server can write the page in it
+ *  from the start (`language-provider.tsx` writes it). */
+export const LANGUAGE_COOKIE = "openfarm.language";
+
+const LANGUAGE_IN_COOKIE = /(?:^|;\s*)openfarm\.language=(?<language>[a-z]+)/u;
+
+/**
+ * The language the page is written in: on the server, the reader's from their cookie (the farm's default for a first
+ * visit or a browser that keeps no such cookie); in the browser, what the server wrote on the page's root. An English
+ * reader's page was drawn in Bangla, then again in English, once the browser had read their choice.
+ */
+export const pageLanguage = createIsomorphicFn()
+  .server((): Language => {
+    const kept = getRequest().headers.get("cookie")?.match(LANGUAGE_IN_COOKIE)
+      ?.groups?.language;
+    return isLanguage(kept) ? kept : DEFAULT_LANGUAGE;
+  })
+  .client((): Language => {
+    const written = document.documentElement.lang;
+    return isLanguage(written) ? written : DEFAULT_LANGUAGE;
   });
