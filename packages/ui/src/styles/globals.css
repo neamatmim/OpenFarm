@@ -93,7 +93,8 @@
   --accent-foreground: oklch(0.3 0.06 160);
   --destructive: oklch(0.44 0.16 25);
   --border: oklch(0.91 0.005 165);
-  --input: oklch(0.86 0.006 165);
+  /* An input's border shows there is a box at all, so it is held to 3:1 against the card (WCAG 1.4.11). */
+  --input: oklch(0.62 0.006 165);
   --ring: oklch(0.55 0.09 160);
 
   --success: oklch(0.4 0.1 150);
@@ -146,7 +147,7 @@
   --accent-foreground: oklch(0.95 0.01 150);
   --destructive: oklch(0.72 0.16 25);
   --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 16%);
+  --input: oklch(1 0 0 / 40%);
   --ring: oklch(0.65 0.1 155);
 
   --success: oklch(0.78 0.12 150);
