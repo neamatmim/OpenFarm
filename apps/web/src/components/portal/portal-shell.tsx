@@ -206,7 +206,9 @@ const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
   const live = requests.filter((one) => isLiveRequest(one.state));
   return (
     <Sidebar collapsible="icon" data-app-chrome mobileTitle={t("nav.menu")}>
-      <SidebarHeader className="px-3 pt-4 pb-2 group-data-[collapsible=icon]:px-2.5">
+      {/* The top bar's height and hairline, so the line under it runs on across the sidebar and the farm's name sits
+          level with the bar beside it. */}
+      <SidebarHeader className="border-sidebar-border h-14 shrink-0 justify-center border-b px-3 py-0 group-data-[collapsible=icon]:px-2.5">
         <Link
           className="focus-visible:ring-sidebar-ring flex h-12 items-center gap-3 rounded-lg px-1 outline-none group-data-[collapsible=icon]:px-0 focus-visible:ring-2"
           onClick={close}
