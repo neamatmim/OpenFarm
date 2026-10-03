@@ -38,7 +38,7 @@ export const receivablePaymentCorrectionInput = correctionInput({
   amountMoney: changeOf(amountInput, z.number()),
   paidOn: changeOf(farmDay, z.string()),
   paymentMethod: paymentMethodChange,
-  /** Which Farm Account bKash or bank money names, and its transaction ID. */
+  /** Which Farm Account mobile money or bank money names, and its transaction ID. */
   farmAccount: farmAccountChange,
   note: changeOf(noteInput.nullable(), z.string().nullable()),
   /** Whose hand took the cash, put right on the rule a payment is written on (`assertTheHand`). */

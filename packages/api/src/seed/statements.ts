@@ -9,14 +9,14 @@ const monthsBefore = (day: string, back: number): string => {
 };
 
 /**
- * The Owner reads the office bKash number's statements: the first, three months back, is what it held; the next agrees
+ * The Owner reads the office mobile money number's statements: the first, three months back, is what it held; the next agrees
  * with the books; last month's is ৳1,500 short — a cash-in the Manager wrote that never reached the number — and she
  * writes down what she found out. It stays named on her home until it agrees.
  */
 export const readTheStatements = async (farm: Farm) => {
   farm.clock.set(onFarm(farm.today, "08:30"));
   const { owner } = farm.as;
-  const id = farm.farmAccounts.bkash;
+  const id = farm.farmAccounts.mobile_money;
   await owner.farmAccounts.check({
     id,
     month: monthsBefore(farm.today, 3),

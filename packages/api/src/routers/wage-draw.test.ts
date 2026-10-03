@@ -121,7 +121,7 @@ describe("a Wage Draw", () => {
       id: first.id,
       changes: {
         amountMoney: { from: 2000, to: 2500 },
-        paymentMethod: { from: "cash", to: "bkash" },
+        paymentMethod: { from: "cash", to: "mobile_money" },
       },
       reason: `আড়াই হাজার, বিকাশে ${suffix}`,
     });
@@ -130,7 +130,7 @@ describe("a Wage Draw", () => {
       columns: { amountMoney: true, paymentMethod: true, heldBy: true },
     });
     expect(money).toEqual([
-      { amountMoney: 2500, paymentMethod: "bkash", heldBy: null },
+      { amountMoney: 2500, paymentMethod: "mobile_money", heldBy: null },
     ]);
     expect(await openOf(name)).toBe(2500);
     await manager.client.money.correctDraw({

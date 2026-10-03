@@ -192,7 +192,7 @@ const WORDED_REFUSALS = {
   farm_account_listed_already: "refusal.farmAccountListedAlready",
   before_the_first_reading: "refusal.beforeTheFirstReading",
   already_deposited: "refusal.alreadyDeposited",
-  venture_sale_not_by_bkash: "refusal.ventureSaleNotByBkash",
+  venture_sale_not_by_mobile_money: "refusal.ventureSaleNotByMobileMoney",
   sale_cash_in_a_hand: "refusal.saleCashInAHand",
   float_already_reconciled: "refusal.floatAlreadyReconciled",
   float_over: "refusal.floatOver",

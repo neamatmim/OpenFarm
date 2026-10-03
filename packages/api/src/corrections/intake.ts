@@ -102,7 +102,7 @@ export const intakeCorrectionInput = correctionInput({
   ),
   seller: changeOf(sellerInput, z.string().nullable()),
   paymentMethod: paymentMethodChange,
-  /** Which Farm Account bKash or bank money names, and its transaction ID. */
+  /** Which Farm Account mobile money or bank money names, and its transaction ID. */
   farmAccount: farmAccountChange,
   /** For a Venture's bull with no outing, paid from its account by bank: the transfer or cheque. Asked when a
    *  Correction makes her one, and put right like any other slip. */

@@ -31,7 +31,7 @@ import {
 } from "../roles";
 import { lockTheFarm } from "../venture-store";
 
-// The Farm's own bKash numbers and bank accounts — its **Farm Accounts** — where its money by bKash or the bank goes in
+// The Farm's own mobile money numbers and bank accounts — its **Farm Accounts** — where its money by mobile money or the bank goes in
 // and comes out. The Owner's to list and retire; everyone who writes money picks one by its name and last digits.
 
 /** A Farm Account as the trail records it. */
@@ -105,7 +105,7 @@ export const farmAccountsRouter = {
         .toSorted((a, b) => Number(a.retired) - Number(b.retired));
     }),
 
-  /** One of the Farm's bKash numbers or bank accounts listed. One per kind and number, retired or not. */
+  /** One of the Farm's mobile money numbers or bank accounts listed. One per kind and number, retired or not. */
   add: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())

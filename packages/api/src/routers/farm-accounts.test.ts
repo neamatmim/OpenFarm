@@ -5,9 +5,9 @@ import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
 /**
- * The Farm's own bKash numbers and bank accounts — its **Farm Accounts** — are listed by the Owner. Once a kind is
+ * The Farm's own mobile money numbers and bank accounts — its **Farm Accounts** — are listed by the Owner. Once a kind is
  * listed, money by it names which one it went into or came out of, and its transaction ID: a Manager can no longer
- * write cash as bKash with nothing to read it against.
+ * write cash as mobile money with nothing to read it against.
  */
 const suffix = `accounts-${Date.now()}`;
 const DAY = "2082-04-05";
@@ -20,11 +20,11 @@ const as = (
 let manureId = "";
 const accounts = { office: "", spare: "", bank: "" };
 
-/** Manure sold for ৳amount, by bKash or the bank, written by the Manager. */
+/** Manure sold for ৳amount, by mobile money or the bank, written by the Manager. */
 const manureSold = async (
   amountMoney: number,
   sheet: {
-    paymentMethod: "cash" | "bkash" | "bank";
+    paymentMethod: "cash" | "mobile_money" | "bank";
     farmAccountId?: string;
     reference?: string;
   }
@@ -53,13 +53,13 @@ beforeAll(async () => {
   const categories = await owner.client.money.categories();
   manureId = categories.find((one) => one.key === "manure_sales")?.id ?? "";
   const office = await owner.client.farmAccounts.add({
-    kind: "bkash",
+    kind: "mobile_money",
     name: `অফিস বিকাশ ${suffix}`,
     number: "01711000001",
   });
   accounts.office = office.id;
   const spare = await owner.client.farmAccounts.add({
-    kind: "bkash",
+    kind: "mobile_money",
     name: `দ্বিতীয় বিকাশ ${suffix}`,
     number: "01711000002",
   });
@@ -79,7 +79,7 @@ describe("the Farm Accounts", () => {
     const manager = await as("manager");
     await expect(
       manager.client.farmAccounts.add({
-        kind: "bkash",
+        kind: "mobile_money",
         name: `ম্যানেজারের বিকাশ ${suffix}`,
         number: "01711000009",
       })
@@ -89,9 +89,9 @@ describe("the Farm Accounts", () => {
     expect(office?.number).toBe("•••••••0001");
   });
 
-  it("are named, with the transaction ID, on bKash money", async () => {
+  it("are named, with the transaction ID, on mobile money money", async () => {
     const { id } = await manureSold(2000, {
-      paymentMethod: "bkash",
+      paymentMethod: "mobile_money",
       farmAccountId: accounts.office,
       reference: `TRX-A-${suffix}`,
     });
@@ -101,13 +101,16 @@ describe("the Farm Accounts", () => {
     });
   });
 
-  it("refuses bKash money that names no account, the bank's, or one with no transaction ID", async () => {
+  it("refuses mobile money money that names no account, the bank's, or one with no transaction ID", async () => {
     await expect(
-      manureSold(1000, { paymentMethod: "bkash", reference: `TRX-B-${suffix}` })
+      manureSold(1000, {
+        paymentMethod: "mobile_money",
+        reference: `TRX-B-${suffix}`,
+      })
     ).rejects.toMatchObject({ data: { refusal: "names_no_farm_account" } });
     await expect(
       manureSold(1000, {
-        paymentMethod: "bkash",
+        paymentMethod: "mobile_money",
         farmAccountId: accounts.bank,
         reference: `TRX-C-${suffix}`,
       })
@@ -116,13 +119,13 @@ describe("the Farm Accounts", () => {
     });
     await expect(
       manureSold(1000, {
-        paymentMethod: "bkash",
+        paymentMethod: "mobile_money",
         farmAccountId: accounts.office,
       })
     ).rejects.toMatchObject({ data: { refusal: "needs_its_reference" } });
     await expect(
       manureSold(1000, {
-        paymentMethod: "bkash",
+        paymentMethod: "mobile_money",
         farmAccountId: `no-such-account-${suffix}`,
         reference: `TRX-B-${suffix}`,
       })
@@ -132,14 +135,14 @@ describe("the Farm Accounts", () => {
   it("takes a transaction ID once on one account, and again on another", async () => {
     await expect(
       manureSold(1500, {
-        paymentMethod: "bkash",
+        paymentMethod: "mobile_money",
         farmAccountId: accounts.office,
         reference: `TRX-A-${suffix}`,
       })
     ).rejects.toMatchObject({ data: { refusal: "reference_used_already" } });
     await expect(
       manureSold(1500, {
-        paymentMethod: "bkash",
+        paymentMethod: "mobile_money",
         farmAccountId: accounts.spare,
         reference: `TRX-A-${suffix}`,
       })
@@ -151,7 +154,7 @@ describe("the Farm Accounts", () => {
     await owner.client.farmAccounts.retire({ id: accounts.spare });
     await expect(
       manureSold(700, {
-        paymentMethod: "bkash",
+        paymentMethod: "mobile_money",
         farmAccountId: accounts.spare,
         reference: `TRX-D-${suffix}`,
       })
@@ -167,7 +170,7 @@ describe("the Farm Accounts", () => {
     });
   });
 
-  it("are named on a Receivable Payment by bKash, number and TrxID kept", async () => {
+  it("are named on a Receivable Payment by mobile money, number and TrxID kept", async () => {
     const owner = await as("owner", `${DAY}T07:00:00.000Z`);
     const shed = await owner.client.herd.createShed({ name: suffix });
     const pen = await owner.client.herd.createPen({
@@ -204,7 +207,7 @@ describe("the Farm Accounts", () => {
       kind: "cattle",
       amountMoney: 20_000,
       paidOn: DAY,
-      paymentMethod: "bkash",
+      paymentMethod: "mobile_money",
       farmAccountId: accounts.office,
       reference: `TRX-RECEIVABLE-${suffix}`,
     });
@@ -220,12 +223,12 @@ describe("the Farm Accounts", () => {
     });
   });
 
-  it("are named on the Vet's fee by bKash", async () => {
+  it("are named on the Vet's fee by mobile money", async () => {
     const vet = await as("vet");
     await vet.client.money.vetFee({
       amountMoney: 1500,
       visitedOn: DAY,
-      paymentMethod: "bkash",
+      paymentMethod: "mobile_money",
       farmAccountId: accounts.office,
       reference: `TRX-VET-${suffix}`,
     });
@@ -238,7 +241,7 @@ describe("the Farm Accounts", () => {
 
   it("are dropped by a Correction to cash", async () => {
     const { id } = await manureSold(800, {
-      paymentMethod: "bkash",
+      paymentMethod: "mobile_money",
       farmAccountId: accounts.office,
       reference: `TRX-CASH-${suffix}`,
     });
@@ -246,7 +249,7 @@ describe("the Farm Accounts", () => {
     await manager.client.money.correctEntered({
       id,
       reason: `নগদে দিয়েছিল ${suffix}`,
-      changes: { paymentMethod: { from: "bkash", to: "cash" } },
+      changes: { paymentMethod: { from: "mobile_money", to: "cash" } },
     });
     expect(await theEvent(id)).toMatchObject({
       paymentMethod: "cash",
@@ -257,12 +260,12 @@ describe("the Farm Accounts", () => {
 
   it("is put right by a Correction, and a TRX taken there is refused", async () => {
     const { id } = await manureSold(900, {
-      paymentMethod: "bkash",
+      paymentMethod: "mobile_money",
       farmAccountId: accounts.office,
       reference: `TRX-G-${suffix}`,
     });
     const manager = await as("manager", `${DAY}T11:00:00.000Z`);
-    // Written against the wrong transaction: the one the bKash message really said.
+    // Written against the wrong transaction: the one the mobile money message really said.
     await manager.client.money.correctEntered({
       id,
       reason: `ভুল ট্রানজ্যাকশন আইডি ${suffix}`,
@@ -297,7 +300,7 @@ describe("the Farm Accounts", () => {
     ).rejects.toMatchObject({ data: { refusal: "reference_used_already" } });
   });
 
-  it("takes cash into the bank account, and bKash to the bank, as Handovers", async () => {
+  it("takes cash into the bank account, and mobile money to the bank, as Handovers", async () => {
     const owner = await as("owner");
     await owner.client.cash.handOver({
       from: { userId: thePerson("owner").id },

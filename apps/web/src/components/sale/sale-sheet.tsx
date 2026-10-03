@@ -53,7 +53,7 @@ export interface SaleAnswers {
   paymentMethod: PaymentMethod;
   /** Whose hand took the cash, where the Owner names another's; empty for the writer's own. */
   heldBy: string;
-  /** Which Farm Account bKash or bank money went into, and its transaction ID. */
+  /** Which Farm Account mobile money or bank money went into, and its transaction ID. */
   account: AccountTyped;
   /** Whether the buyer still owes some of it, what he paid now, and the day he promised. */
   receivable: ReceivableTyped;

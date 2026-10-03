@@ -63,7 +63,7 @@ describe("money from the farm's records", () => {
       litres: 100,
       buyer: { name: `মিল্ক ভিটা ${suffix}` },
       pricePerLitreMoney: 55,
-      paymentMethod: "bkash",
+      paymentMethod: "mobile_money",
     });
     expect(await moneyOf(recorded.id)).toEqual([
       expect.objectContaining({
@@ -72,7 +72,7 @@ describe("money from the farm's records", () => {
         amountMoney: 5500,
         categoryEn: "Milk sales",
         counterpartyName: `মিল্ক ভিটা ${suffix}`,
-        paymentMethod: "bkash",
+        paymentMethod: "mobile_money",
         approval: "not_needed",
       }),
     ]);
@@ -157,18 +157,21 @@ describe("money from the farm's records", () => {
       id: sold.id,
       changes: {
         priceMoney: { from: 19_500, to: 19_000 },
-        paymentMethod: { from: "cash", to: "bkash" },
+        paymentMethod: { from: "cash", to: "mobile_money" },
       },
       reason: "বিকাশে দিয়েছেন, ৫০০ কম",
     });
     expect(await moneyOf(sold.id)).toEqual([
-      expect.objectContaining({ amountMoney: 19_000, paymentMethod: "bkash" }),
+      expect.objectContaining({
+        amountMoney: 19_000,
+        paymentMethod: "mobile_money",
+      }),
     ]);
     // How he paid, and nothing else. Every Correction of a record's money may name the payment method
     // alone, and that alone changes no column of the Sale itself.
     await manager.client.sale.correct({
       id: sold.id,
-      changes: { paymentMethod: { from: "bkash", to: "bank" } },
+      changes: { paymentMethod: { from: "mobile_money", to: "bank" } },
       reason: "ব্যাংকেই এসেছিল",
     });
     expect(await moneyOf(sold.id)).toEqual([

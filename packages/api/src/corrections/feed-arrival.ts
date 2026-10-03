@@ -56,7 +56,7 @@ export const feedArrivalCorrectionInput = correctionInput({
   seller: changeOf(sellerInput, z.string().nullable()),
   receivedOn: changeOf(farmDay, z.string()),
   paymentMethod: paymentMethodChange,
-  /** Which Farm Account bKash or bank money names, and its transaction ID. */
+  /** Which Farm Account mobile money or bank money names, and its transaction ID. */
   farmAccount: farmAccountChange,
 });
 

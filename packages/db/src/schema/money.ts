@@ -24,8 +24,8 @@ import { venture } from "./venture";
 export const MONEY_DIRECTIONS = ["in", "out"] as const;
 export type MoneyDirection = (typeof MONEY_DIRECTIONS)[number];
 
-/** How money changed hands. Cash at the gate, bKash on a phone, or through a bank. */
-export const PAYMENT_METHODS = ["cash", "bkash", "bank"] as const;
+/** How money changed hands. Cash at the gate, mobile money on a phone, or through a bank. */
+export const PAYMENT_METHODS = ["cash", "mobile_money", "bank"] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 /**
@@ -138,12 +138,12 @@ export const moneyCategory = pgTable(
   ]
 );
 
-/** What a Farm Account is: a bKash number, or an account at a bank. */
-export const FARM_ACCOUNT_KINDS = ["bkash", "bank"] as const;
+/** What a Farm Account is: a mobile money number, or an account at a bank. */
+export const FARM_ACCOUNT_KINDS = ["mobile_money", "bank"] as const;
 export type FarmAccountKind = (typeof FARM_ACCOUNT_KINDS)[number];
 
 /**
- * A **Farm Account**: one of the Farm's own bKash numbers or bank accounts, where its money by bKash or the bank goes in
+ * A **Farm Account**: one of the Farm's own mobile money numbers or bank accounts, where its money by mobile money or the bank goes in
  * and comes out — the pair of the Venture Account, which is the Investors'. The Owner's to list; retired, never removed,
  * since money booked last year still names it.
  */
@@ -157,9 +157,9 @@ export const farmAccount = pgTable(
     kind: text("kind", { enum: FARM_ACCOUNT_KINDS }).notNull(),
     /** What the farm calls it: "অফিস বিকাশ", "সোনালী ব্যাংক চলতি". */
     name: text("name").notNull(),
-    /** The bKash number, or the bank account's number. */
+    /** The mobile money number, or the bank account's number. */
     number: text("number").notNull(),
-    /** A bank account's bank and branch; nothing for bKash. */
+    /** A bank account's bank and branch; nothing for mobile money. */
     bank: text("bank"),
     branch: text("branch"),
     retiredAt: timestamp("retired_at"),
@@ -178,7 +178,7 @@ export const farmAccount = pgTable(
 );
 
 /**
- * One month's reading of a Farm Account's statement — the bank's or bKash's — against what the farm believed it held at
+ * One month's reading of a Farm Account's statement — the bank's or mobile money's — against what the farm believed it held at
  * that month's end: the **Bank Check** of the Farm's own money, the pair of `venture_bank_check`. Its first reading is
  * what the account held from then on; every month after is the farm's books against the statement.
  */
@@ -256,9 +256,9 @@ export const moneyEvent = pgTable(
     recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
     recordedAt: timestamp("recorded_at").notNull(),
     /** Whose **Cash in Hand** the notes went into, or came out of: only for cash, and only for money booked since the
-     *  farm began saying so — an older one, or one by bKash or the bank, names nobody. */
+     *  farm began saying so — an older one, or one by mobile money or the bank, names nobody. */
     heldBy: text("held_by").references(() => user.id),
-    /** The Farm Account bKash or bank money went into or came out of, and its transaction ID or reference: only the
+    /** The Farm Account mobile money or bank money went into or came out of, and its transaction ID or reference: only the
      *  Farm's own purse, only since the farm listed its accounts. Cash names none. */
     farmAccountId: text("farm_account_id").references(() => farmAccount.id),
     reference: text("reference"),
@@ -320,7 +320,7 @@ export const handover = pgTable(
     /** The Venture Account a deposit went into: a Venture's sale cash, held in a hand since the livestock market, banked with its
      *  slip. Nothing for the Farm's own cash. */
     ventureId: text("venture_id").references(() => venture.id),
-    /** The Farm Account at either bank end: cash deposited into it, drawn out of it, or bKash moved to the bank. */
+    /** The Farm Account at either bank end: cash deposited into it, drawn out of it, or mobile money moved to the bank. */
     fromAccountId: text("from_account_id").references(() => farmAccount.id),
     toAccountId: text("to_account_id").references(() => farmAccount.id),
     recordedBy: text("recorded_by")

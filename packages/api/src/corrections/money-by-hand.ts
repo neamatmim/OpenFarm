@@ -62,7 +62,7 @@ export const moneyByHandCorrectionInput = correctionInput({
   occurredOn: changeOf(farmDay, z.string()),
   counterparty: changeOf(counterpartyInput, z.string().nullable()),
   paymentMethod: paymentMethodChange,
-  /** Which Farm Account bKash or bank money names, and its transaction ID. */
+  /** Which Farm Account mobile money or bank money names, and its transaction ID. */
   farmAccount: farmAccountChange,
   note: changeOf(noteInput.nullable(), z.string().nullable()),
   wageMonth: changeOf(monthInput.nullable(), z.string().nullable()),

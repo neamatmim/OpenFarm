@@ -131,7 +131,7 @@ export const assertTheHand = async (
   return heldBy;
 };
 
-/** Whose hand a record's cash is in now, as its Money Event names it: nothing for bKash or the bank, or none named. */
+/** Whose hand a record's cash is in now, as its Money Event names it: nothing for mobile money or the bank, or none named. */
 export const handOfTheRecord = async (
   db: Db,
   farmId: string,
@@ -623,7 +623,7 @@ export const reconcileFarmFloat = async (
 export type HandEnd =
   | { userId: string }
   | { bank: true }
-  /** One of the Farm's own bKash numbers or bank accounts, named. */
+  /** One of the Farm's own mobile money numbers or bank accounts, named. */
   | { farmAccountId: string };
 
 /** A deposit of a Venture's sale cash into its Venture Account, naming the Sales whose notes it carries. */
@@ -639,7 +639,7 @@ const accountOf = (end: HandEnd): string | null =>
   "farmAccountId" in end ? end.farmAccountId : null;
 
 /**
- * Whether a Handover goes nowhere: a hand to itself, the bank to the bank unnamed, or one Farm Account to itself. bKash
+ * Whether a Handover goes nowhere: a hand to itself, the bank to the bank unnamed, or one Farm Account to itself. Mobile money
  * to the bank — two named accounts — is a Handover with no hand at either end.
  */
 const goesNowhere = (from: HandEnd, to: HandEnd): boolean => {

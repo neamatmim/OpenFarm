@@ -32,7 +32,7 @@ const sold = async (
   tagNumber: string,
   sheet: {
     heldBy?: string;
-    paymentMethod?: "cash" | "bkash" | "bank";
+    paymentMethod?: "cash" | "mobile_money" | "bank";
     paidNowMoney?: number;
     promisedBy?: string;
   } = {}
@@ -101,11 +101,11 @@ describe("whose hand took the notes", () => {
     ).rejects.toMatchObject({ data: { refusal: "holds_no_cash" } });
   });
 
-  it("names nobody for bKash, whatever is sent", async () => {
+  it("names nobody for mobile money, whatever is sent", async () => {
     const managerBefore = await handOf("manager");
     await sold("owner", tags[5] ?? "", {
       heldBy: thePerson("manager").id,
-      paymentMethod: "bkash",
+      paymentMethod: "mobile_money",
     });
     expect(await handOf("manager")).toBe(managerBefore);
   });

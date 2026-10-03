@@ -43,7 +43,7 @@ interface Draft {
   price: string;
   seller: string;
   paymentMethod: PaymentMethod;
-  /** Which Farm Account bKash or bank money came out of, and its transaction ID. */
+  /** Which Farm Account mobile money or bank money came out of, and its transaction ID. */
   account: AccountTyped;
   receivedOn: string;
   /** The bag's Lot Number and last day, where it prints them: concentrate and premix do, hay does not. */

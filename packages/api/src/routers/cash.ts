@@ -27,7 +27,7 @@ import {
 const handEnd = z.union([
   z.object({ userId: z.string() }),
   z.object({ bank: z.literal(true) }),
-  /** One of the Farm's own bKash numbers or bank accounts. */
+  /** One of the Farm's own mobile money numbers or bank accounts. */
   z.object({ farmAccountId: z.string().min(1) }),
 ]);
 

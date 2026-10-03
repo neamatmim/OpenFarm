@@ -75,7 +75,7 @@ export const seedFarm = async (db: Database) => {
   await liveTheDays(farm, herd, happenings, (line) => step(line));
   step("a visiting vet called in about a lame cow");
   await callInAVisitingVet(farm, db, clock, today);
-  step("the office bKash statements read, the last one short");
+  step("the office mobile money statements read, the last one short");
   await readTheStatements(farm);
   step("one bull left in Quarantine outside the quarantine pen");
   await leaveOneAstray(db, farm);

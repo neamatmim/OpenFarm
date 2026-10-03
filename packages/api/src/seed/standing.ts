@@ -109,8 +109,8 @@ export interface Farm {
   sops: Record<PlaybookKey, string>;
   /** The Pens each person works, so work goes to somebody whose Pen it is. */
   crews: Partial<Record<PersonKey, Set<string>>>;
-  /** The Farm's own bKash number and bank account, which its bKash and bank money names. */
-  farmAccounts: { bkash: string; bank: string };
+  /** The Farm's own mobile money number and bank account, which its mobile money and bank money names. */
+  farmAccounts: { mobile_money: string; bank: string };
   today: string;
   start: string;
 }
@@ -118,12 +118,12 @@ export interface Farm {
 let transactions = 0;
 
 /**
- * How the farm's own money was paid, with what bKash and the bank ask beside it: the Farm Account and a transaction ID
- * of its own — a bKash TrxID, or the bank's transfer reference — never the same one twice.
+ * How the farm's own money was paid, with what mobile money and the bank ask beside it: the Farm Account and a transaction ID
+ * of its own — a mobile money TrxID, or the bank's transfer reference — never the same one twice.
  */
 export const paidBy = (
   farm: Pick<Farm, "farmAccounts">,
-  paymentMethod: "cash" | "bkash" | "bank"
+  paymentMethod: "cash" | "mobile_money" | "bank"
 ) => {
   if (paymentMethod === "cash") {
     return { paymentMethod } as const;
@@ -133,7 +133,8 @@ export const paidBy = (
   return {
     paymentMethod,
     farmAccountId: farm.farmAccounts[paymentMethod],
-    reference: paymentMethod === "bkash" ? `BK7Q${serial}` : `NPSB${serial}`,
+    reference:
+      paymentMethod === "mobile_money" ? `BK7Q${serial}` : `NPSB${serial}`,
   } as const;
 };
 
@@ -189,9 +190,9 @@ export const openTheFarm = async (
     registrationRenewalLeadDays: 60,
   });
 
-  // The Farm's own bKash number and bank account, listed before any money is written, so all of it names them.
-  const bkash = await owner.farmAccounts.add({
-    kind: "bkash",
+  // The Farm's own mobile money number and bank account, listed before any money is written, so all of it names them.
+  const mobileMoney = await owner.farmAccounts.add({
+    kind: "mobile_money",
     name: "অফিস বিকাশ",
     number: "01711-482093",
   });
@@ -266,7 +267,7 @@ export const openTheFarm = async (
     drugs: {},
     sops: {} as Record<PlaybookKey, string>,
     crews,
-    farmAccounts: { bkash: bkash.id, bank: bank.id },
+    farmAccounts: { mobile_money: mobileMoney.id, bank: bank.id },
     today,
     start,
   };

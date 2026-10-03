@@ -27,7 +27,7 @@ export interface IntakeFields {
   /** A Venture's bull with no outing, paid from its account by bank: the transfer or cheque, and the day it moved. */
   reference: string;
   paidOn: string;
-  /** Which Farm Account the Farm's own bull was paid from by bKash or the bank. */
+  /** Which Farm Account the Farm's own bull was paid from by mobile money or the bank. */
   farmAccountId: string;
 }
 

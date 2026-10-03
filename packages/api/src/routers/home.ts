@@ -381,7 +381,7 @@ export const homeRouter = {
         storeCountLate(context.db, farmId, now),
         // Animals written off as Lost in the year, and what they had cost: beside the deaths, as the farm's losses.
         lostInAYear(context.db, farmId, now),
-        // The Farm's bKash numbers and bank accounts with a month their statement did not agree with, or one the farm
+        // The Farm's mobile money numbers and bank accounts with a month their statement did not agree with, or one the farm
         // has since changed its mind about.
         farmAccountsOut(context.db, farmId, now),
       ]);

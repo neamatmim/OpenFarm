@@ -8,7 +8,7 @@ import { appRouter } from "./index";
 /**
  * A Venture's bull sold for cash at the livestock market leaves her price in the hand that took it, as that Venture's money —
  * counted with the hand, and not in the Venture Account — until a Handover deposits it there with its slip. The
- * Venture Account takes no cash and no bKash: what it holds is what the bank holds.
+ * Venture Account takes no cash and no mobile money: what it holds is what the bank holds.
  */
 const suffix = `sale-cash-${Date.now()}`;
 
@@ -40,7 +40,7 @@ const aBull = async (price: number) => {
 const sold = async (
   tagNumber: string,
   priceMoney: number,
-  paymentMethod: "cash" | "bkash" | "bank",
+  paymentMethod: "cash" | "mobile_money" | "bank",
   instant = "2080-01-10T06:00:00.000Z",
   reference?: string
 ) => {
@@ -200,11 +200,11 @@ describe("a Venture's bull sold for cash", () => {
     ).rejects.toMatchObject({ data: { refusal: "not_held_here" } });
   });
 
-  it("is never taken by bKash", async () => {
+  it("is never taken by mobile money", async () => {
     await expect(
-      sold(tags[2] ?? "", 110_000, "bkash", "2080-01-13T06:00:00.000Z")
+      sold(tags[2] ?? "", 110_000, "mobile_money", "2080-01-13T06:00:00.000Z")
     ).rejects.toMatchObject({
-      data: { refusal: "venture_sale_not_by_bkash" },
+      data: { refusal: "venture_sale_not_by_mobile_money" },
     });
   });
 });

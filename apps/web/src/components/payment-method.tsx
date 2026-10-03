@@ -10,11 +10,11 @@ import { orpc } from "@/utils/orpc";
 /** How each way of paying is said to the reader. */
 export const PAYMENT_METHOD_WORD = {
   cash: "money.method.cash",
-  bkash: "money.method.bkash",
+  mobile_money: "money.method.mobile_money",
   bank: "money.method.bank",
 } as const satisfies Record<PaymentMethod, string>;
 
-/** Which Farm Account bKash or bank money named, and its transaction ID, as a form holds them while it is typed. */
+/** Which Farm Account mobile money or bank money named, and its transaction ID, as a form holds them while it is typed. */
 export interface AccountTyped {
   farmAccountId: string;
   reference: string;
@@ -37,7 +37,7 @@ export const accountSent = (
       };
 
 /**
- * Which of the Farm's own accounts of a kind — its bKash numbers, or its bank accounts — by name and last digits.
+ * Which of the Farm's own accounts of a kind — its mobile money numbers, or its bank accounts — by name and last digits.
  * Nothing at all where the Farm has listed none of that kind: there is nothing to name until the Owner lists one.
  */
 export const FarmAccountField = ({
@@ -47,7 +47,7 @@ export const FarmAccountField = ({
   onChange,
 }: {
   id: string;
-  kind: "bkash" | "bank";
+  kind: "mobile_money" | "bank";
   value: string;
   onChange: (farmAccountId: string) => void;
 }) => {
@@ -79,7 +79,7 @@ export const FarmAccountField = ({
   );
 };
 
-/** How the money changed hands, asked on every record that carries money. Cash unless somebody says. On bKash or the
+/** How the money changed hands, asked on every record that carries money. Cash unless somebody says. On mobile money or the
  *  bank, and where the form keeps one, which Farm Account and its transaction ID. */
 export const PaymentMethodField = ({
   id,
@@ -125,7 +125,7 @@ export const PaymentMethodField = ({
         <div className={row ? "contents" : "grid gap-2 pt-1"}>
           <FarmAccountField
             id={`${id}-account`}
-            kind={value === "bkash" ? "bkash" : "bank"}
+            kind={value === "mobile_money" ? "mobile_money" : "bank"}
             onChange={(farmAccountId) =>
               account.onChange({ ...account.typed, farmAccountId })
             }

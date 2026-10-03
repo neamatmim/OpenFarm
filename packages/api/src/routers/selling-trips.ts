@@ -41,7 +41,7 @@ const recordInput = z.object({
   animals: z.array(z.string().trim().min(1).max(32)).min(1).max(200),
   wentOn: z.coerce.date().optional(),
   paymentMethod: paymentMethodInput,
-  /** Which Farm Account bKash or bank money went into or came out of. */
+  /** Which Farm Account mobile money or bank money went into or came out of. */
   farmAccountId: farmAccountIdInput,
   /** Its transaction ID, or the cheque's or slip's number. */
   reference: referenceInput,

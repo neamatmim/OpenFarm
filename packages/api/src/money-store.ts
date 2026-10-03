@@ -397,7 +397,7 @@ export interface EnteredByHand {
   side: (typeof SIDES)[number] | null;
 }
 
-/** Which Farm Account a record's bKash or bank money names, and its transaction ID — as the form said it, for the one
+/** Which Farm Account a record's mobile money or bank money names, and its transaction ID — as the form said it, for the one
  *  Money Event of the record it is about. */
 export interface AccountSaid {
   /** The Money Events of the record it is about: a Sale's money, and not its broker's. */
@@ -453,7 +453,7 @@ export interface Booking {
 const HOLDS_CASH: ReadonlySet<RoleName> = new Set(["owner", "manager"]);
 
 /**
- * Whose **Cash in Hand** a Money Event names: nobody for bKash or the bank; the hand the record names, where it names
+ * Whose **Cash in Hand** a Money Event names: nobody for mobile money or the bank; the hand the record names, where it names
  * one; else the hand it already named. A new cash one is the person writing it — who took the buyer's notes or paid the
  * lorry — where they hold the farm's cash; and so is one put right to cash. One booked before hands were named, and
  * still cash, stays nobody's: the first Cash Count says what each hand really holds.
@@ -562,7 +562,7 @@ const assertTheReference = async (
   if (!reference) {
     throw refuse(
       "needs_its_reference",
-      "Money by bKash or the bank carries its transaction ID or reference"
+      "Money by mobile money or the bank carries its transaction ID or reference"
     );
   }
   const twice = await tx.query.moneyEvent.findFirst({
@@ -580,7 +580,7 @@ const assertTheReference = async (
 
 /**
  * Which Farm Account a Money Event names, and its transaction ID. Cash names none, nor does a Venture's purse — its
- * account is the Venture Account. bKash or the bank, in the Farm's purse, names one of that kind, not retired, with a
+ * account is the Venture Account. Mobile money or the bank, in the Farm's purse, names one of that kind, not retired, with a
  * reference used on it once — from the day the farm lists any of that kind: before then there is nothing to name, and
  * no start day goes back. A Correction that leaves the method alone keeps what was named.
  */
@@ -607,7 +607,7 @@ const farmAccountOf = async (
   const anyOfTheKind = await tx.query.farmAccount.findFirst({
     where: {
       farmId: booking.farm.id,
-      kind: method as "bkash" | "bank",
+      kind: method as "mobile_money" | "bank",
       retiredAt: { isNull: true },
     },
     columns: { id: true },
@@ -618,7 +618,7 @@ const farmAccountOf = async (
   if (!farmAccountId) {
     throw refuse(
       "names_no_farm_account",
-      "Money by bKash or the bank names which of the Farm's accounts it went into or came out of"
+      "Money by mobile money or the bank names which of the Farm's accounts it went into or came out of"
     );
   }
   await assertTheAccount(tx, booking.farm.id, farmAccountId, method, existing);

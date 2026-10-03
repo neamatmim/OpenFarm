@@ -18,7 +18,7 @@ export type FarmAccountsOutData = Awaited<
 >["needsYou"]["farmAccountsOut"];
 
 /**
- * The Farm's bKash numbers and bank accounts with a month their statement did not agree with, or one the farm has
+ * The Farm's mobile money numbers and bank accounts with a month their statement did not agree with, or one the farm has
  * since changed its mind about — named on the Owner's home until she has read it again or said what she found out.
  * Each opens the accounts, where the statement is checked.
  */

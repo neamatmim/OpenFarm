@@ -112,7 +112,7 @@ const useTheCheck = (
 
 /**
  * The month's bank check: what the statement said, against what the farm thinks the account held — a Venture
- * Account's, or one of the Farm's own bKash numbers and bank accounts. A Farm Account's first reading has nothing to
+ * Account's, or one of the Farm's own mobile money numbers and bank accounts. A Farm Account's first reading has nothing to
  * be held against: the statement is what it held, and every month after starts from it.
  *
  * The difference is worked out as she types, because the point of the act is the difference — and a

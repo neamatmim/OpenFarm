@@ -66,7 +66,7 @@ const recordInput = z
     arrivedAt: z.coerce.date().optional(),
     /** How the seller was paid. */
     paymentMethod: paymentMethodInput,
-    /** Which Farm Account bKash or bank money went into or came out of. */
+    /** Which Farm Account mobile money or bank money went into or came out of. */
     farmAccountId: farmAccountIdInput,
     /** A Venture's bull with no outing is paid from its account by bank: the transfer or cheque, and what it is
      *  numbered. */

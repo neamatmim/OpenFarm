@@ -1526,20 +1526,20 @@ export const en = {
   "refusal.notHeldHere":
     "That Sale's cash is not held in this hand for this Venture",
   "refusal.namesNoFarmAccount":
-    "Say which of the Farm's accounts the bKash or bank money went into or came out of",
+    "Say which of the Farm's accounts the mobile money or bank money went into or came out of",
   "refusal.farmAccountNotThatKind":
     "That Farm Account is not the kind the money moved by",
   "refusal.farmAccountRetired": "That Farm Account has been retired",
   "refusal.needsItsReference":
-    "bKash or bank money carries its transaction ID or reference",
+    "Mobile money or bank money carries its transaction ID or reference",
   "refusal.referenceUsedAlready":
     "That transaction ID is on this Farm Account already",
   "refusal.farmAccountListedAlready": "That number is listed already",
   "refusal.beforeTheFirstReading":
     "That month is before this account's first reading",
   "refusal.alreadyDeposited": "That Sale's money has been deposited already",
-  "refusal.ventureSaleNotByBkash":
-    "A Venture's animal is paid for by bank or in cash, never by bKash",
+  "refusal.ventureSaleNotByMobileMoney":
+    "A Venture's animal is paid for by bank or in cash, never by mobile money",
   "refusal.saleCashInAHand":
     "Sale cash is still in a hand, not yet deposited in the Venture Account",
   "refusal.floatAlreadyReconciled":
@@ -3209,7 +3209,7 @@ export const en = {
   "money.title": "Income & expenses",
   "farmAccounts.title": "Farm Accounts",
   "farmAccounts.why":
-    "The Farm's own bKash numbers and bank accounts. Once one of a kind is listed, money by it names which one it went into or came out of, with its transaction ID.",
+    "The Farm's own mobile money numbers and bank accounts. Once one of a kind is listed, money by it names which one it went into or came out of, with its transaction ID.",
   "farmAccounts.none": "No accounts listed yet.",
   "farmAccounts.kind": "Kind",
   "farmAccounts.name": "Name",
@@ -3242,7 +3242,7 @@ export const en = {
   "money.chooseAccount": "Choose an account",
   "money.reference": "Transaction ID or reference",
   "money.method.cash": "Cash",
-  "money.method.bkash": "bKash",
+  "money.method.mobile_money": "Mobile money",
   "money.method.bank": "Bank",
   "money.approve": "Approve",
   "money.awaiting": "awaiting approval",
@@ -5358,7 +5358,7 @@ export const en = {
     "Cash is handed from one hand to another, or to or from the bank",
   "cash.tab": "Cash in hand",
   "cash.hint":
-    "What each person holds of the farm's cash: the cash money that named their hand, less what they paid out and handed over. bKash and the bank name nobody. Tap a name to see what moved.",
+    "What each person holds of the farm's cash: the cash money that named their hand, less what they paid out and handed over. Mobile money and the bank name nobody. Tap a name to see what moved.",
   "cash.nobody": "Nobody holds the farm's cash yet",
   "cash.none": "No cash has moved through this hand yet.",
   "cash.heldBy": "in {name}'s hand",

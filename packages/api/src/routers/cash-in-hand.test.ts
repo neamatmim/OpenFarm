@@ -36,7 +36,7 @@ const handOf = async (role: "owner" | "manager") => {
 const manureSold = async (
   role: "owner" | "manager",
   amountMoney: number,
-  paymentMethod: "cash" | "bkash" = "cash"
+  paymentMethod: "cash" | "mobile_money" = "cash"
 ) => {
   const client = await as(role);
   return await client.client.money.enter({
@@ -49,19 +49,19 @@ const manureSold = async (
 };
 
 describe("cash in hand", () => {
-  it("names the hand of whoever took the notes, and never bKash", async () => {
+  it("names the hand of whoever took the notes, and never mobile money", async () => {
     const before = await handOf("manager");
     const cash = await manureSold("manager", 3000);
-    const bkash = await manureSold("manager", 1000, "bkash");
+    const mobileMoney = await manureSold("manager", 1000, "mobile_money");
     expect(await handOf("manager")).toBe(before + 3000);
     const hands = await scratchDb().query.moneyEvent.findMany({
-      where: { id: { in: [cash.id, bkash.id] } },
+      where: { id: { in: [cash.id, mobileMoney.id] } },
       columns: { id: true, heldBy: true },
     });
     expect(hands.find((one) => one.id === cash.id)?.heldBy).toBe(
       thePerson("manager").id
     );
-    expect(hands.find((one) => one.id === bkash.id)?.heldBy).toBeNull();
+    expect(hands.find((one) => one.id === mobileMoney.id)?.heldBy).toBeNull();
   });
 
   it("takes cash paid out of the hand that paid it", async () => {
@@ -129,13 +129,13 @@ describe("cash in hand", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("leaves the hand when a Correction says it was bKash after all", async () => {
+  it("leaves the hand when a Correction says it was mobile money after all", async () => {
     const entered = await manureSold("manager", 700);
     const before = await handOf("manager");
     const manager = await as("manager");
     await manager.client.money.correctEntered({
       id: entered.id,
-      changes: { paymentMethod: { from: "cash", to: "bkash" } },
+      changes: { paymentMethod: { from: "cash", to: "mobile_money" } },
       reason: `বিকাশে দিয়েছিল ${suffix}`,
     });
     expect(await handOf("manager")).toBe(before - 700);
