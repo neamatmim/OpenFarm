@@ -7,7 +7,7 @@ import { useState } from "react";
 
 import { useIsOwner } from "@/components/money";
 import { Section } from "@/components/page";
-import { FormField } from "@/components/page-kit";
+import { FormField, NativeSelect } from "@/components/page-kit";
 import { BankCheckSheet } from "@/components/ventures/bank-check-sheet";
 import { useLanguage } from "@/i18n/language-provider";
 import { saidMonth } from "@/lib/months";
@@ -118,8 +118,7 @@ const AddAccount = () => {
     >
       <div className="space-y-1">
         <Label htmlFor="farm-account-kind">{t("farmAccounts.kind")}</Label>
-        <select
-          className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
+        <NativeSelect
           id="farm-account-kind"
           onChange={(event) =>
             edit({
@@ -130,7 +129,7 @@ const AddAccount = () => {
         >
           <option value="mobile_money">{t("money.method.mobile_money")}</option>
           <option value="bank">{t("money.method.bank")}</option>
-        </select>
+        </NativeSelect>
       </div>
       <FormField id="farm-account-name" label={t("farmAccounts.name")}>
         <Input

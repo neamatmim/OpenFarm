@@ -4,6 +4,7 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { useQuery } from "@tanstack/react-query";
 
+import { NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -62,8 +63,7 @@ export const FarmAccountField = ({
   return (
     <div className="space-y-1">
       <Label htmlFor={id}>{t("money.whichAccount")}</Label>
-      <select
-        className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
+      <NativeSelect
         id={id}
         onChange={(event) => onChange(event.target.value)}
         value={value}
@@ -74,7 +74,7 @@ export const FarmAccountField = ({
             {one.name} · {one.number.slice(-4)}
           </option>
         ))}
-      </select>
+      </NativeSelect>
     </div>
   );
 };
@@ -103,8 +103,7 @@ export const PaymentMethodField = ({
     <div className={row ? "contents" : "space-y-1"}>
       <div className={row ? "space-y-1" : "contents"}>
         <Label htmlFor={id}>{t("money.paidBy")}</Label>
-        <select
-          className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
+        <NativeSelect
           id={id}
           onChange={(event) =>
             onChange(
@@ -119,7 +118,7 @@ export const PaymentMethodField = ({
               {t(PAYMENT_METHOD_WORD[method])}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </div>
       {named ? (
         <div className={row ? "contents" : "grid gap-2 pt-1"}>

@@ -336,17 +336,9 @@ export const SideTabs = <T extends string>({
   </Tabs>
 );
 
-const SELECT_CLASS =
-  "bg-card border-input focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-md border px-3 text-base outline-none focus-visible:ring-3 disabled:opacity-50 md:h-9 md:text-sm";
-
-/** The farm's dropdown: the phone's own picker, drawn to match the inputs beside it. Label it — with a `Label`, or
- *  `aria-label` in a filter bar. */
-export const NativeSelect = ({
-  className,
-  ...props
-}: ComponentProps<"select">) => (
-  <select className={cn(SELECT_CLASS, className)} {...props} />
-);
+/** The farm's dropdown: the phone's own picker, drawn as the input beside it is (the kit's NativeSelect, shadcn's).
+ *  Label it — with a `Label`, or `aria-label` in a filter bar. */
+export { NativeSelect } from "@OpenFarm/ui/components/native-select";
 
 /** The filters over a list, in a row above it where there is room and stacked on a phone. */
 export const FilterBar = ({
