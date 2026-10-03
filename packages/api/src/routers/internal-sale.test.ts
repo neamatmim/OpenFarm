@@ -144,8 +144,8 @@ const weigh = async (day: string, readings: [string, number][]) => {
 
 beforeAll(async () => {
   const owner = await as("owner", "2047-02-01T04:00:00.000Z");
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const pen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
@@ -549,10 +549,10 @@ describe("the Internal Sale", () => {
 
   it("refuses a dairy cow, whatever the rate", async () => {
     const owner = await as("owner", "2047-02-17T04:00:00.000Z");
-    const dairyShed = await owner.client.sheds.createShed({
+    const dairyShed = await owner.client.sheds.create({
       name: `দুধ ${suffix}`,
     });
-    const dairyPen = await owner.client.sheds.createPen({
+    const dairyPen = await owner.client.sheds.pens.create({
       quarantine: true,
       shedId: dairyShed.id,
       name: `দুধের ঘর ${suffix}`,

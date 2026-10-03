@@ -144,8 +144,8 @@ const FeedPage = () => {
 
   const me = useQuery(orpc.people.me.queryOptions());
   const sheds = useQuery(orpc.sheds.list.queryOptions());
-  const items = useQuery(orpc.feed.items.queryOptions());
-  const rations = useQuery(orpc.feed.rations.queryOptions());
+  const items = useQuery(orpc.feed.items.list.queryOptions());
+  const rations = useQuery(orpc.feed.rations.list.queryOptions());
   const stock = useQuery(orpc.stock.onHand.queryOptions());
   const arrivals = useQuery(orpc.stock.feedIn.queryOptions({ input: {} }));
   const adjustments = useQuery(

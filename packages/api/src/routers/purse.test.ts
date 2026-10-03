@@ -48,7 +48,7 @@ beforeAll(async () => {
       registrationNumber: `DLS-${suffix}`,
     });
   }
-  const categories = await owner.client.money.categories();
+  const categories = await owner.client.money.categories.list();
   categoryId = categories.find((each) => each.key === "utilities")?.id ?? "";
 });
 
@@ -158,18 +158,18 @@ describe("whose money was it", () => {
 
   it("charges the Farm's animals nothing of a Venture's own cost", async () => {
     const owner = await as("owner", "2046-10-15T04:00:00.000Z");
-    const shed = await owner.client.sheds.createShed({ name: suffix });
-    const pen = await owner.client.sheds.createPen({
+    const shed = await owner.client.sheds.create({ name: suffix });
+    const pen = await owner.client.sheds.pens.create({
       quarantine: true,
       shedId: shed.id,
       name: `ফ্যাটেনিং ${suffix}`,
     });
-    const spray = await owner.client.money.createCategory({
+    const spray = await owner.client.money.categories.create({
       nameBn: `মাছি স্প্রে ${suffix}`,
       nameEn: `Fly spray ${suffix}`,
       direction: "out",
     });
-    await owner.client.money.setChargedToAnimals({
+    await owner.client.money.categories.setChargedToAnimals({
       categoryId: spray.id,
       chargedToAnimals: true,
     });

@@ -67,24 +67,24 @@ const setup = async () => {
   const feeding = await owner.client.sops.create({ content: feedingSop() });
   const weighing = await owner.client.sops.create({ content: weighInSop() });
   const manager = await as("manager", ARRIVED);
-  const shed = await manager.client.sheds.createShed({ name: suffix });
-  const bulls = await manager.client.sheds.createPen({
+  const shed = await manager.client.sheds.create({ name: suffix });
+  const bulls = await manager.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: "ষাঁড় পেন",
   });
-  const heifers = await manager.client.sheds.createPen({
+  const heifers = await manager.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: "বকনা পেন",
   });
-  const napier = await manager.client.feed.createItem({
+  const napier = await manager.client.feed.items.create({
     name: { bn: `নেপিয়ার ${suffix}` },
   });
-  const minerals = await manager.client.feed.createItem({
+  const minerals = await manager.client.feed.items.create({
     name: { bn: `মিনারেল ${suffix}` },
   });
-  const ration = await manager.client.feed.saveRation({
+  const ration = await manager.client.feed.rations.save({
     name: { bn: `ওজনে রেশন ${suffix}` },
     items: [
       { feedItemId: napier.id, kgPer100KgPerDay: 3 },
@@ -93,7 +93,7 @@ const setup = async () => {
   });
   for (const pen of [bulls, heifers]) {
     // oxlint-disable-next-line no-await-in-loop -- two Pens, one after the other
-    await manager.client.feed.assignRation({
+    await manager.client.feed.rations.assign({
       penId: pen.id,
       rationId: ration.rationId,
     });

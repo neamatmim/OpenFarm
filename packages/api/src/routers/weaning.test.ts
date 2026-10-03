@@ -31,12 +31,12 @@ let bullCalf = "";
 
 beforeAll(async () => {
   const owner = await as("owner", BORN);
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const calves = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const calves = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: `বাছুর ${suffix}`,
   });
-  const fattening = await owner.client.sheds.createPen({
+  const fattening = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: `এঁড়ে ${suffix}`,
   });

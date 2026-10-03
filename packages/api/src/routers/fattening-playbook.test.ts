@@ -26,9 +26,9 @@ const setup = async () => {
     content: playbook.arrivalCheck,
   });
   const manager = await as("manager", ARRIVED);
-  const shed = await manager.client.sheds.createShed({ name: suffix });
+  const shed = await manager.client.sheds.create({ name: suffix });
   const pen = async (name: string) =>
-    await manager.client.sheds.createPen({
+    await manager.client.sheds.pens.create({
       quarantine: true,
       shedId: shed.id,
       name,
@@ -36,7 +36,7 @@ const setup = async () => {
   const quarantine = await pen("কোয়ারেন্টিন");
   const growers = await pen("গ্রোয়ার");
   const finishers = await pen("ফিনিশার");
-  const straw = await manager.client.feed.createItem({
+  const straw = await manager.client.feed.items.create({
     name: { bn: `খড় ${suffix}` },
   });
   const banded = async (
@@ -44,12 +44,12 @@ const setup = async () => {
     penId: string,
     band: { fromKg: number | null; toKg: number | null }
   ) => {
-    const saved = await manager.client.feed.saveRation({
+    const saved = await manager.client.feed.rations.save({
       name: { bn: `${name} ${suffix}` },
       items: [{ feedItemId: straw.id, kgPer100KgPerDay: 1 }],
       band,
     });
-    await manager.client.feed.assignRation({
+    await manager.client.feed.rations.assign({
       penId,
       rationId: saved.rationId,
     });

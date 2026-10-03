@@ -64,18 +64,18 @@ beforeAll(async () => {
     "2075-01-02"
   );
   await owner.client.ventures.startBuying({ id: ventureId });
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const pen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
   });
-  const spray = await owner.client.money.createCategory({
+  const spray = await owner.client.money.categories.create({
     nameBn: `মাছি স্প্রে ${suffix}`,
     direction: "out",
   });
   sprayId = spray.id;
-  await owner.client.money.setChargedToAnimals({
+  await owner.client.money.categories.setChargedToAnimals({
     categoryId: sprayId,
     chargedToAnimals: true,
   });

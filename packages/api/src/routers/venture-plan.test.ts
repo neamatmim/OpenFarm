@@ -296,8 +296,8 @@ describe("a plan line's Breed", () => {
       as: "manager",
       clock: new FakeClock("2053-01-21T06:00:00.000Z"),
     });
-    const shed = await manager.sheds.createShed({ name: `জাত-শেড ${suffix}` });
-    const pen = await manager.sheds.createPen({
+    const shed = await manager.sheds.create({ name: `জাত-শেড ${suffix}` });
+    const pen = await manager.sheds.pens.create({
       quarantine: true,
       shedId: shed.id,
       name: `জাত-পেন ${suffix}`,

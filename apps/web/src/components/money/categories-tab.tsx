@@ -39,7 +39,9 @@ import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
-type Category = Awaited<ReturnType<typeof orpc.money.categories.call>>[number];
+type Category = Awaited<
+  ReturnType<typeof orpc.money.categories.list.call>
+>[number];
 
 type Direction = "in" | "out";
 
@@ -239,7 +241,7 @@ const AddCategoryDialog = ({
   const [nameBn, setNameBn] = useState("");
   const [direction, setDirection] = useState<Direction>("out");
   const add = useMutation(
-    orpc.money.createCategory.mutationOptions({
+    orpc.money.categories.create.mutationOptions({
       onSuccess: () => {
         setNameBn("");
         onOpenChange(false);
@@ -288,13 +290,13 @@ const AddCategoryDialog = ({
 export const CategoriesTab = () => {
   const { t, language } = useLanguage();
   const onError = useRefused();
-  const categories = useQuery(orpc.money.categories.queryOptions());
+  const categories = useQuery(orpc.money.categories.list.queryOptions());
   const [adding, setAdding] = useState(false);
   const [retiring, setRetiring] = useState<{ id: string; name: string } | null>(
     null
   );
   const retire = useMutation(
-    orpc.money.retireCategory.mutationOptions({
+    orpc.money.categories.retire.mutationOptions({
       onSuccess: () => {
         setRetiring(null);
       },
@@ -302,15 +304,15 @@ export const CategoriesTab = () => {
     })
   );
   const bringBack = useMutation(
-    orpc.money.bringBackCategory.mutationOptions({ onError })
+    orpc.money.categories.restore.mutationOptions({ onError })
   );
   const mark = useMutation(
-    orpc.money.setChargedToAnimals.mutationOptions({
+    orpc.money.categories.setChargedToAnimals.mutationOptions({
       onError,
     })
   );
   const markMonthly = useMutation(
-    orpc.money.setPaidMonthly.mutationOptions({ onError })
+    orpc.money.categories.setPaidMonthly.mutationOptions({ onError })
   );
   const isOwner = useIsOwner();
   const table = useListTable({

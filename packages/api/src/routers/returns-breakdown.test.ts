@@ -182,18 +182,18 @@ const venturesTwo = async (penId: string) => {
 
 beforeAll(async () => {
   const { client: owner } = await as("owner", "2027-12-31T04:00:00.000Z");
-  const shed = await owner.sheds.createShed({ name: `ভাগ ${suffix}` });
-  const pen = await owner.sheds.createPen({
+  const shed = await owner.sheds.create({ name: `ভাগ ${suffix}` });
+  const pen = await owner.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `মোটাতাজা ${suffix}`,
   });
-  const straw = await owner.feed.createItem({ name: { bn: `খড় ${suffix}` } });
+  const straw = await owner.feed.items.create({ name: { bn: `খড় ${suffix}` } });
   const ration = async (
     name: string,
     band: { fromKg: number | null; toKg: number | null }
   ) =>
-    await owner.feed.saveRation({
+    await owner.feed.rations.save({
       name: { bn: `${name} ${suffix}` },
       items: [{ feedItemId: straw.id, kgPer100KgPerDay: 1 }],
       band,
@@ -201,9 +201,9 @@ beforeAll(async () => {
   const grower = await ration("গ্রোয়ার", { fromKg: 150, toKg: 250 });
   await ration("ফিনিশার", { fromKg: 250, toKg: null });
   const old = await ration("পুরনো", { fromKg: null, toKg: 400 });
-  await owner.feed.retireRation({ id: old.rationId });
+  await owner.feed.rations.retire({ id: old.rationId });
   // Put away since, as a farm's Rations are: the weight A was bought at still fell in its band.
-  await owner.feed.retireRation({ id: grower.rationId });
+  await owner.feed.rations.retire({ id: grower.rationId });
   // The crush is in this Pen, so the person reading the scale has to be assigned to it.
   await as("staff", "2027-12-31T04:00:00.000Z");
   await scratchDb()

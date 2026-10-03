@@ -59,8 +59,8 @@ beforeAll(async () => {
   const owner = await as("owner");
   await as("staff");
   await as("vet");
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const pen = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: `পেন ${suffix}`,
     quarantine: true,
@@ -78,7 +78,7 @@ beforeAll(async () => {
   };
   tags.bull = await bull();
   tags.other = await bull();
-  const calving = await owner.client.sheds.createPen({
+  const calving = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: `বাচ্চার ঘর ${suffix}`,
   });

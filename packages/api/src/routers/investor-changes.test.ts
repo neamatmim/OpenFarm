@@ -140,7 +140,7 @@ describe("an Investor's record", () => {
       data: { refusal: "investor_retired" },
     });
 
-    await owner.client.investors.bringBack({ id });
+    await owner.client.investors.restore({ id });
     const back = await owner.client.investors.list();
     expect(back.people.find((one) => one.id === id)?.retiredAt).toBeNull();
     await expect(
@@ -188,7 +188,7 @@ describe("an Investor's record", () => {
       { code: "FORBIDDEN" }
     );
     await expect(
-      manager.client.investors.bringBack({ id })
+      manager.client.investors.restore({ id })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

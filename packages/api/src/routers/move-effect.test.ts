@@ -38,18 +38,18 @@ const movingSop = (pens: { id: string; name: string }[]): SopContent => ({
 
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.client.sheds.createShed({
+  const shed = await owner.client.sheds.create({
     name: `moves-${Date.now()}`,
   });
-  const milking = await owner.client.sheds.createPen({
+  const milking = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: "দোহন পেন",
   });
-  const dry = await owner.client.sheds.createPen({
+  const dry = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: "শুকনো পেন",
   });
-  const sick = await owner.client.sheds.createPen({
+  const sick = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: "অসুস্থ পেন",
   });

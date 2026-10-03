@@ -81,8 +81,8 @@ beforeAll(async () => {
   secondFeedId = second.definitionId;
   const round = await owner.client.sops.create({ content: calvingRoundSop() });
   roundId = round.definitionId;
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const pen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `বাচ্চার ঘর ${suffix}`,

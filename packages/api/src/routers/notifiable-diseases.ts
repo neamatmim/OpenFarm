@@ -255,7 +255,7 @@ export const notifiableDiseasesRouter = {
     }),
 
   /** Puts a disease the farm took off the list back on it — the way to add one the list already had. */
-  bringBack: protectedProcedure
+  restore: protectedProcedure
     .use(requireRole("owner", "manager", "vet"))
     .input(z.object({ id: z.string(), reason: z.string().trim().max(300) }))
     .handler(async ({ context, input }) => {

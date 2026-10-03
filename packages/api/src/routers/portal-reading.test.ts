@@ -203,8 +203,8 @@ describe("the photographs of their animals", () => {
    *  Venture. Written straight in: how a bull came to be where he is is not what this asks. */
   beforeAll(async () => {
     const owner = await asOwner();
-    const shed = await owner.sheds.createShed({ name: `ছবি ${suffix}` });
-    const pen = await owner.sheds.createPen({
+    const shed = await owner.sheds.create({ name: `ছবি ${suffix}` });
+    const pen = await owner.sheds.pens.create({
       shedId: shed.id,
       name: `ছবির খোঁয়াড় ${suffix}`,
     });

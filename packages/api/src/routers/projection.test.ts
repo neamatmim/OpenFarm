@@ -371,8 +371,8 @@ describe("a Venture still buying", () => {
       "2052-01-01"
     );
     await owner.ventures.startBuying({ id: buying.id });
-    const shed = await owner.sheds.createShed({ name: `কেনা ${suffix}` });
-    const pen = await owner.sheds.createPen({
+    const shed = await owner.sheds.create({ name: `কেনা ${suffix}` });
+    const pen = await owner.sheds.pens.create({
       quarantine: true,
       shedId: shed.id,
       name: `কেনা ${suffix}`,

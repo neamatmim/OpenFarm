@@ -47,16 +47,16 @@ const as = (role: "owner" | "manager", instant: string) =>
 
 beforeAll(async () => {
   const owner = await as("owner", "2057-01-01T04:00:00.000Z");
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const pen = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: `গুদাম ${suffix}`,
   });
   penId = pen.id;
-  const branItem = await owner.client.feed.createItem({
+  const branItem = await owner.client.feed.items.create({
     name: { bn: `ভুসি ${suffix}` },
   });
-  const napierItem = await owner.client.feed.createItem({
+  const napierItem = await owner.client.feed.items.create({
     name: { bn: `নেপিয়ার ${suffix}` },
   });
   bran = branItem.id;

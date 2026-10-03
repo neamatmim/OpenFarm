@@ -78,15 +78,15 @@ const trailOf = async (instanceId: string) => {
 /** A milking pen with two cows, a fattening pen with one, and a Staff member on the first. */
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.client.sheds.createShed({
+  const shed = await owner.client.sheds.create({
     name: `instances-${Date.now()}`,
   });
-  const milkingPen = await owner.client.sheds.createPen({
+  const milkingPen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: "দোহন পেন",
   });
-  const fatteningPen = await owner.client.sheds.createPen({
+  const fatteningPen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: "মোটা পেন",

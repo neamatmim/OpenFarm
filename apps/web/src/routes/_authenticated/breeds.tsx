@@ -302,9 +302,7 @@ const BreedsPage = () => {
       onError,
     })
   );
-  const restore = useMutation(
-    orpc.breeds.bringBack.mutationOptions({ onError })
-  );
+  const restore = useMutation(orpc.breeds.restore.mutationOptions({ onError }));
   const setDeshi = useMutation(
     orpc.breeds.setDeshi.mutationOptions({ onError })
   );

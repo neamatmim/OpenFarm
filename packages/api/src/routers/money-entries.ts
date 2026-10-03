@@ -174,259 +174,264 @@ const CATEGORIES = {
 } satisfies FarmList & Parameters<typeof assertNameFree>[2];
 
 export const moneyEntryProcedures = {
-  /**
-   * The farm's Categories, retired ones included, standard ones first given to a farm that does not
-   * have them yet. The Owner's and the Manager's to keep.
-   */
-  categories: protectedProcedure
-    .use(requireRole("owner", "manager"))
-    .handler(async ({ context }) => {
-      // Given once, and recorded as what was actually given: a second request that finds them already there writes
-      // nothing, and says nothing.
-      await giveStandardOnce(context, {
-        entity: "money_category",
-        missing: () => missingStandardCategories(context.db, context.farm.id),
-        give: (tx, keys, now) =>
-          addStandardCategories(tx, context.farm.id, keys, now),
-      });
-      const rows = await context.db.query.moneyCategory.findMany({
-        where: { farmId: context.farm.id },
-        orderBy: { nameBn: "asc", id: "asc" },
-      });
-      return rows.map((row) => ({
-        id: row.id,
-        key: row.key,
-        nameBn: row.nameBn,
-        nameEn: row.nameEn,
-        direction: row.direction,
-        retiredAt: row.retiredAt,
-        /** Whether money may be entered by hand under it, and whether the farm may retire it. */
-        enterable: mayBeEnteredByHand(row.key),
-        retirable: mayBeRetired(row.key),
-        // Whether the animals of its Side carry money entered under it, and whether the Owner may say
-        // they do at all.
-        chargedToAnimals: row.chargedToAnimals,
-        chargeable: mayBeChargedToAnimals(row),
-        // Whether it is a Monthly Cost, and whether the Owner may make it one now: never a retired one, which takes
-        // nothing new.
-        paidMonthly: row.paidMonthlySince !== null,
-        monthlyMarkable: mayBePaidMonthly(row) && row.retiredAt === null,
-      }));
-    }),
-
-  /** A Category of the farm's own. The Owner's and the Manager's. */
-  createCategory: protectedProcedure
-    .use(requireRole("owner", "manager"))
-    .use(requirePersonalSession())
-    .input(
-      z.object({
-        nameBn: z.string().trim().min(1).max(80),
-        nameEn: z.string().trim().min(1).max(80).optional(),
-        direction: z.enum(MONEY_DIRECTIONS),
-      })
-    )
-    .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      const id = newId(now);
-      await audited(context).write(
-        {
+  /** The Categories money is entered under. */
+  categories: {
+    /**
+     * The farm's Categories, retired ones included, standard ones first given to a farm that does not
+     * have them yet. The Owner's and the Manager's to keep.
+     */
+    list: protectedProcedure
+      .use(requireRole("owner", "manager"))
+      .handler(async ({ context }) => {
+        // Given once, and recorded as what was actually given: a second request that finds them already there writes
+        // nothing, and says nothing.
+        await giveStandardOnce(context, {
           entity: "money_category",
-          entityId: id,
-          action: "create",
-          after: (tx) => readCategory(tx, context.farm.id, id),
-        },
-        async (tx) => {
-          // A standard Category's name is kept for it, even before the farm has been given it: a farm's
-          // own "milk sales" would leave the Dispatches nowhere to book.
-          const names = { bn: input.nameBn, en: input.nameEn };
-          if (isStandardName(names)) {
-            throw refusedByHand(
-              "The farm already has that Category",
-              "category_exists"
-            );
+          missing: () => missingStandardCategories(context.db, context.farm.id),
+          give: (tx, keys, now) =>
+            addStandardCategories(tx, context.farm.id, keys, now),
+        });
+        const rows = await context.db.query.moneyCategory.findMany({
+          where: { farmId: context.farm.id },
+          orderBy: { nameBn: "asc", id: "asc" },
+        });
+        return rows.map((row) => ({
+          id: row.id,
+          key: row.key,
+          nameBn: row.nameBn,
+          nameEn: row.nameEn,
+          direction: row.direction,
+          retiredAt: row.retiredAt,
+          /** Whether money may be entered by hand under it, and whether the farm may retire it. */
+          enterable: mayBeEnteredByHand(row.key),
+          retirable: mayBeRetired(row.key),
+          // Whether the animals of its Side carry money entered under it, and whether the Owner may say
+          // they do at all.
+          chargedToAnimals: row.chargedToAnimals,
+          chargeable: mayBeChargedToAnimals(row),
+          // Whether it is a Monthly Cost, and whether the Owner may make it one now: never a retired one, which takes
+          // nothing new.
+          paidMonthly: row.paidMonthlySince !== null,
+          monthlyMarkable: mayBePaidMonthly(row) && row.retiredAt === null,
+        }));
+      }),
+
+    /** A Category of the farm's own. The Owner's and the Manager's. */
+    create: protectedProcedure
+      .use(requireRole("owner", "manager"))
+      .use(requirePersonalSession())
+      .input(
+        z.object({
+          nameBn: z.string().trim().min(1).max(80),
+          nameEn: z.string().trim().min(1).max(80).optional(),
+          direction: z.enum(MONEY_DIRECTIONS),
+        })
+      )
+      .handler(async ({ context, input }) => {
+        const now = context.clock.now();
+        const id = newId(now);
+        await audited(context).write(
+          {
+            entity: "money_category",
+            entityId: id,
+            action: "create",
+            after: (tx) => readCategory(tx, context.farm.id, id),
+          },
+          async (tx) => {
+            // A standard Category's name is kept for it, even before the farm has been given it: a farm's
+            // own "milk sales" would leave the Dispatches nowhere to book.
+            const names = { bn: input.nameBn, en: input.nameEn };
+            if (isStandardName(names)) {
+              throw refusedByHand(
+                "The farm already has that Category",
+                "category_exists"
+              );
+            }
+            await assertNameFree(tx, context.farm.id, CATEGORIES, names);
+            await tx.insert(moneyCategory).values({
+              id,
+              farmId: context.farm.id,
+              key: null,
+              nameBn: input.nameBn,
+              nameEn: input.nameEn ?? null,
+              direction: input.direction,
+              createdAt: now,
+            });
           }
-          await assertNameFree(tx, context.farm.id, CATEGORIES, names);
-          await tx.insert(moneyCategory).values({
-            id,
-            farmId: context.farm.id,
-            key: null,
-            nameBn: input.nameBn,
-            nameEn: input.nameEn ?? null,
-            direction: input.direction,
-            createdAt: now,
-          });
+        );
+        return { id };
+      }),
+
+    /**
+     * Marks a Category as charged to the animals of its Side — a Vet visit that named nobody, lab tests, fly
+     * spray — or takes the mark off. The month's money under it is then split across the animals standing
+     * that month, by the days each stood.
+     *
+     * The Owner's alone, and from their own phone: it decides what every Margin on that Side carries.
+     */
+    setChargedToAnimals: protectedProcedure
+      .use(requireOnly("owner", OWNER_ONLY))
+      .use(requirePersonalSession())
+      .input(
+        z.object({ categoryId: z.string(), chargedToAnimals: z.boolean() })
+      )
+      .handler(async ({ context, input }) => {
+        const existing = await context.db.query.moneyCategory.findFirst({
+          where: { id: input.categoryId, farmId: context.farm.id },
+          columns: {
+            id: true,
+            key: true,
+            nameBn: true,
+            direction: true,
+            chargedToAnimals: true,
+          },
+        });
+        if (!existing) {
+          throw new ORPCError("NOT_FOUND", { message: "No such Category" });
         }
-      );
-      return { id };
-    }),
-
-  /**
-   * Marks a Category as charged to the animals of its Side — a Vet visit that named nobody, lab tests, fly
-   * spray — or takes the mark off. The month's money under it is then split across the animals standing
-   * that month, by the days each stood.
-   *
-   * The Owner's alone, and from their own phone: it decides what every Margin on that Side carries.
-   */
-  setChargedToAnimals: protectedProcedure
-    .use(requireOnly("owner", OWNER_ONLY))
-    .use(requirePersonalSession())
-    .input(z.object({ categoryId: z.string(), chargedToAnimals: z.boolean() }))
-    .handler(async ({ context, input }) => {
-      const existing = await context.db.query.moneyCategory.findFirst({
-        where: { id: input.categoryId, farmId: context.farm.id },
-        columns: {
-          id: true,
-          key: true,
-          nameBn: true,
-          direction: true,
-          chargedToAnimals: true,
-        },
-      });
-      if (!existing) {
-        throw new ORPCError("NOT_FOUND", { message: "No such Category" });
-      }
-      if (
-        input.chargedToAnimals &&
-        !(mayBeEnteredByHand(existing.key) && mayBeChargedToAnimals(existing))
-      ) {
-        throw refusedByHand(
-          "Wages, shed rent, utilities, repairs, shed hygiene, equipment, money coming in and money a record books are never the animals' to carry",
-          "never_the_animals"
-        );
-      }
-      await audited(context).write(
-        {
-          entity: "money_category",
-          entityId: existing.id,
-          action: "update",
-          before: {
-            nameBn: existing.nameBn,
-            chargedToAnimals: existing.chargedToAnimals,
+        if (
+          input.chargedToAnimals &&
+          !(mayBeEnteredByHand(existing.key) && mayBeChargedToAnimals(existing))
+        ) {
+          throw refusedByHand(
+            "Wages, shed rent, utilities, repairs, shed hygiene, equipment, money coming in and money a record books are never the animals' to carry",
+            "never_the_animals"
+          );
+        }
+        await audited(context).write(
+          {
+            entity: "money_category",
+            entityId: existing.id,
+            action: "update",
+            before: {
+              nameBn: existing.nameBn,
+              chargedToAnimals: existing.chargedToAnimals,
+            },
+            after: {
+              nameBn: existing.nameBn,
+              chargedToAnimals: input.chargedToAnimals,
+            },
           },
-          after: {
-            nameBn: existing.nameBn,
-            chargedToAnimals: input.chargedToAnimals,
-          },
-        },
-        (tx) =>
-          tx
-            .update(moneyCategory)
-            .set({ chargedToAnimals: input.chargedToAnimals })
-            .where(eq(moneyCategory.id, existing.id))
-      );
-      return { chargedToAnimals: input.chargedToAnimals };
-    }),
+          (tx) =>
+            tx
+              .update(moneyCategory)
+              .set({ chargedToAnimals: input.chargedToAnimals })
+              .where(eq(moneyCategory.id, existing.id))
+        );
+        return { chargedToAnimals: input.chargedToAnimals };
+      }),
 
-  /**
-   * Marks a Category as paid every month — shed rent, electricity — or takes the mark off (CONTEXT.md: **Monthly
-   * Cost**). From the farm's day of the month, a month with nothing entered under it is named to the Manager and the Owner,
-   * from the month the mark goes on and never before it. Taken off and put back, it starts again from that day.
-   *
-   * The Owner's alone, and from their own phone: it decides what the Manager is chased for.
-   */
-  setPaidMonthly: protectedProcedure
-    .use(requireOnly("owner", OWNER_ONLY))
-    .use(requirePersonalSession())
-    .input(z.object({ categoryId: z.string(), paidMonthly: z.boolean() }))
-    .handler(async ({ context, input }) => {
-      const existing = await context.db.query.moneyCategory.findFirst({
-        where: { id: input.categoryId, farmId: context.farm.id },
-        columns: {
-          id: true,
-          key: true,
-          nameBn: true,
-          direction: true,
-          retiredAt: true,
-          paidMonthlySince: true,
-        },
-      });
-      if (!existing) {
-        throw new ORPCError("NOT_FOUND", { message: "No such Category" });
-      }
-      if (input.paidMonthly && existing.key === "wages") {
-        throw refusedByHand(
-          "A wage is looked for by the person, not the Category",
-          "wages_watched_by_person"
+    /**
+     * Marks a Category as paid every month — shed rent, electricity — or takes the mark off (CONTEXT.md: **Monthly
+     * Cost**). From the farm's day of the month, a month with nothing entered under it is named to the Manager and the Owner,
+     * from the month the mark goes on and never before it. Taken off and put back, it starts again from that day.
+     *
+     * The Owner's alone, and from their own phone: it decides what the Manager is chased for.
+     */
+    setPaidMonthly: protectedProcedure
+      .use(requireOnly("owner", OWNER_ONLY))
+      .use(requirePersonalSession())
+      .input(z.object({ categoryId: z.string(), paidMonthly: z.boolean() }))
+      .handler(async ({ context, input }) => {
+        const existing = await context.db.query.moneyCategory.findFirst({
+          where: { id: input.categoryId, farmId: context.farm.id },
+          columns: {
+            id: true,
+            key: true,
+            nameBn: true,
+            direction: true,
+            retiredAt: true,
+            paidMonthlySince: true,
+          },
+        });
+        if (!existing) {
+          throw new ORPCError("NOT_FOUND", { message: "No such Category" });
+        }
+        if (input.paidMonthly && existing.key === "wages") {
+          throw refusedByHand(
+            "A wage is looked for by the person, not the Category",
+            "wages_watched_by_person"
+          );
+        }
+        if (input.paidMonthly && !mayBePaidMonthly(existing)) {
+          throw refusedByHand(
+            "Only money going out that no record books may be marked as paid every month",
+            "never_monthly"
+          );
+        }
+        if (input.paidMonthly && existing.retiredAt !== null) {
+          throw refusedByHand(
+            "A retired Category takes nothing new",
+            "category_retired"
+          );
+        }
+        // Marked again while it is marked keeps the day it was first marked: the months since are still owed.
+        if (input.paidMonthly === (existing.paidMonthlySince !== null)) {
+          return { paidMonthly: input.paidMonthly };
+        }
+        const paidMonthlySince = input.paidMonthly ? context.clock.now() : null;
+        await audited(context).write(
+          {
+            entity: "money_category",
+            entityId: existing.id,
+            action: "update",
+            before: {
+              nameBn: existing.nameBn,
+              paidMonthlySince: existing.paidMonthlySince,
+            },
+            after: { nameBn: existing.nameBn, paidMonthlySince },
+          },
+          (tx) =>
+            tx
+              .update(moneyCategory)
+              .set({ paidMonthlySince })
+              .where(eq(moneyCategory.id, existing.id))
         );
-      }
-      if (input.paidMonthly && !mayBePaidMonthly(existing)) {
-        throw refusedByHand(
-          "Only money going out that no record books may be marked as paid every month",
-          "never_monthly"
-        );
-      }
-      if (input.paidMonthly && existing.retiredAt !== null) {
-        throw refusedByHand(
-          "A retired Category takes nothing new",
-          "category_retired"
-        );
-      }
-      // Marked again while it is marked keeps the day it was first marked: the months since are still owed.
-      if (input.paidMonthly === (existing.paidMonthlySince !== null)) {
         return { paidMonthly: input.paidMonthly };
-      }
-      const paidMonthlySince = input.paidMonthly ? context.clock.now() : null;
-      await audited(context).write(
-        {
-          entity: "money_category",
-          entityId: existing.id,
-          action: "update",
-          before: {
-            nameBn: existing.nameBn,
-            paidMonthlySince: existing.paidMonthlySince,
+      }),
+
+    /**
+     * Retires a Category: nothing new goes under it, and everything entered under it keeps it. Never
+     * removed. A Category a record books under is not the farm's to retire, and nor is Wages, which the
+     * one-wage-a-month rule is kept by.
+     */
+    retire: protectedProcedure
+      .use(requireRole("owner", "manager"))
+      .use(requirePersonalSession())
+      .input(z.object({ id: z.string() }))
+      .handler(async ({ context, input }) => {
+        await retireFromList(context, CATEGORIES, input.id, {
+          refuseWhile: async (tx) => {
+            const category = await tx.query.moneyCategory.findFirst({
+              where: { id: input.id, farmId: context.farm.id },
+              columns: { key: true },
+            });
+            if (category && !mayBeRetired(category.key)) {
+              throw category.key === "wages"
+                ? refusedByHand(
+                    "Wages are kept: a wage is one per person per month under them",
+                    "category_kept_for_wages"
+                  )
+                : refusedByHand(
+                    "A record's money is booked under that Category",
+                    "category_kept_by_records"
+                  );
+            }
           },
-          after: { nameBn: existing.nameBn, paidMonthlySince },
-        },
-        (tx) =>
-          tx
-            .update(moneyCategory)
-            .set({ paidMonthlySince })
-            .where(eq(moneyCategory.id, existing.id))
-      );
-      return { paidMonthly: input.paidMonthly };
-    }),
+        });
+        return { id: input.id };
+      }),
 
-  /**
-   * Retires a Category: nothing new goes under it, and everything entered under it keeps it. Never
-   * removed. A Category a record books under is not the farm's to retire, and nor is Wages, which the
-   * one-wage-a-month rule is kept by.
-   */
-  retireCategory: protectedProcedure
-    .use(requireRole("owner", "manager"))
-    .use(requirePersonalSession())
-    .input(z.object({ id: z.string() }))
-    .handler(async ({ context, input }) => {
-      await retireFromList(context, CATEGORIES, input.id, {
-        refuseWhile: async (tx) => {
-          const category = await tx.query.moneyCategory.findFirst({
-            where: { id: input.id, farmId: context.farm.id },
-            columns: { key: true },
-          });
-          if (category && !mayBeRetired(category.key)) {
-            throw category.key === "wages"
-              ? refusedByHand(
-                  "Wages are kept: a wage is one per person per month under them",
-                  "category_kept_for_wages"
-                )
-              : refusedByHand(
-                  "A record's money is booked under that Category",
-                  "category_kept_by_records"
-                );
-          }
-        },
-      });
-      return { id: input.id };
-    }),
-
-  /** Puts a retired Category back: money may be entered under it again. */
-  bringBackCategory: protectedProcedure
-    .use(requireRole("owner", "manager"))
-    .use(requirePersonalSession())
-    .input(z.object({ id: z.string() }))
-    .handler(async ({ context, input }) => {
-      await bringBackToList(context, CATEGORIES, input.id);
-      return { id: input.id };
-    }),
+    /** Puts a retired Category back: money may be entered under it again. */
+    restore: protectedProcedure
+      .use(requireRole("owner", "manager"))
+      .use(requirePersonalSession())
+      .input(z.object({ id: z.string() }))
+      .handler(async ({ context, input }) => {
+        await bringBackToList(context, CATEGORIES, input.id);
+        return { id: input.id };
+      }),
+  },
 
   /**
    * Money no record catches, entered by hand: wages, electricity, repairs, manure sold. How much, the day,

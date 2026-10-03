@@ -222,7 +222,7 @@ export const breedsRouter = {
     }),
 
   /** Brings a retired breed back onto the list animals are written down from. */
-  bringBack: protectedProcedure
+  restore: protectedProcedure
     .use(requireRole("owner", "manager"))
     .use(requirePersonalSession())
     .input(z.object({ id: z.string() }))

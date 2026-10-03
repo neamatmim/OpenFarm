@@ -90,16 +90,16 @@ const toldOfBran = async (role: "owner" | "manager") => {
 beforeAll(async () => {
   const owner = await as("owner", morning(1));
   const manager = await as("manager", morning(1));
-  const branItem = await manager.client.feed.createItem({
+  const branItem = await manager.client.feed.items.create({
     name: { bn: `ভুসি ${suffix}` },
   });
-  const hayItem = await manager.client.feed.createItem({
+  const hayItem = await manager.client.feed.items.create({
     name: { bn: `খড় ${suffix}` },
   });
   bran = branItem.id;
   hay = hayItem.id;
-  const shed = await manager.client.sheds.createShed({ name: suffix });
-  const pen = await manager.client.sheds.createPen({
+  const shed = await manager.client.sheds.create({ name: suffix });
+  const pen = await manager.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `ভুসির পেন ${suffix}`,
@@ -116,11 +116,11 @@ beforeAll(async () => {
       aliases: [],
     });
   }
-  const ration = await manager.client.feed.saveRation({
+  const ration = await manager.client.feed.rations.save({
     name: { bn: `ভুসির রেশন ${suffix}` },
     items: [{ feedItemId: bran, kgPerAnimalPerDay: 50 }],
   });
-  await manager.client.feed.assignRation({
+  await manager.client.feed.rations.assign({
     penId,
     rationId: ration.rationId,
   });

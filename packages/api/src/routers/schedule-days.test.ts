@@ -33,8 +33,8 @@ const weighing = (): SopContent => ({
 let world: { penId: string; definitionId: string };
 beforeAll(async () => {
   const { client: owner } = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.sheds.createShed({ name: `weekdays-${suffix}` });
-  const pen = await owner.sheds.createPen({
+  const shed = await owner.sheds.create({ name: `weekdays-${suffix}` });
+  const pen = await owner.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `পেন ${suffix}`,

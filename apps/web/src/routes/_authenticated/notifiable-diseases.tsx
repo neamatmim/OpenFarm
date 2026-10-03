@@ -332,7 +332,7 @@ const ChangeDialog = ({
     orpc.notifiableDiseases.retire.mutationOptions(done("notifiable.takenOff"))
   );
   const putBack = useMutation(
-    orpc.notifiableDiseases.bringBack.mutationOptions(
+    orpc.notifiableDiseases.restore.mutationOptions(
       done("notifiable.putBackDone")
     )
   );

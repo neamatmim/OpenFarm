@@ -47,8 +47,8 @@ const weighInSop = (): SopContent => ({
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
   const manager = await createTestClient(appRouter, { as: "manager" });
-  const shed = await owner.client.sheds.createShed({ name: `weigh-${suffix}` });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: `weigh-${suffix}` });
+  const pen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `মোটাতাজা ${suffix}`,

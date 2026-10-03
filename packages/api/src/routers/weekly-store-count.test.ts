@@ -23,11 +23,14 @@ const as = (role: "owner" | "manager" | "staff", instant: string) =>
 
 beforeAll(async () => {
   const owner = await as("owner", "2056-02-20T04:00:00.000Z");
-  const shed = await owner.client.sheds.createShed({ name: suffix });
+  const shed = await owner.client.sheds.create({ name: suffix });
   // Two Pens standing full: the count is still one.
   await Promise.all(
     [`ক ${suffix}`, `খ ${suffix}`].map(async (name) => {
-      const pen = await owner.client.sheds.createPen({ shedId: shed.id, name });
+      const pen = await owner.client.sheds.pens.create({
+        shedId: shed.id,
+        name,
+      });
       await owner.client.animals.register({
         sex: "female",
         side: "dairy",
@@ -39,7 +42,7 @@ beforeAll(async () => {
     })
   );
   // A farm that keeps feed, so there is a store to count.
-  await owner.client.feed.createItem({ name: { bn: `দানাদার ${suffix}` } });
+  await owner.client.feed.items.create({ name: { bn: `দানাদার ${suffix}` } });
   const sop = await owner.client.sops.create({
     content: standardPlaybook().stockCount,
   });

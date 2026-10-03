@@ -227,7 +227,7 @@ describe("a Manager's proposal", () => {
     const created = await owner.client.sops.create({ content: milkingSop() });
 
     const changed = withStep(milkingSop(), 1, { evidence: [litres(0, 60)] });
-    const proposal = await manager.client.sops.propose({
+    const proposal = await manager.client.sops.proposals.create({
       definitionId: created.definitionId,
       content: changed,
       note: "high yielders go over 40",
@@ -237,10 +237,10 @@ describe("a Manager's proposal", () => {
       id: created.definitionId,
     });
     expect(beforeApproval.currentVersion?.number).toBe(1);
-    const pending = await owner.client.sops.proposals();
+    const pending = await owner.client.sops.proposals.list();
     expect(pending.some((p) => p.id === proposal.id)).toBe(true);
 
-    const approved = await owner.client.sops.approveProposal({
+    const approved = await owner.client.sops.proposals.approve({
       id: proposal.id,
       note: "agreed",
     });
@@ -251,7 +251,7 @@ describe("a Manager's proposal", () => {
     });
     const content = afterApproval.currentVersion?.content as SopContent;
     expect(content.steps[1]?.evidence[0]?.max).toBe(60);
-    const stillPending = await owner.client.sops.proposals();
+    const stillPending = await owner.client.sops.proposals.list();
     expect(stillPending.some((p) => p.id === proposal.id)).toBe(false);
   });
 
@@ -259,12 +259,12 @@ describe("a Manager's proposal", () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
     const manager = await createTestClient(appRouter, { as: "manager" });
     const created = await owner.client.sops.create({ content: milkingSop() });
-    const proposal = await manager.client.sops.propose({
+    const proposal = await manager.client.sops.proposals.create({
       definitionId: created.definitionId,
       content: milkingSop(),
     });
 
-    await owner.client.sops.rejectProposal({
+    await owner.client.sops.proposals.reject({
       id: proposal.id,
       note: "not now",
     });
@@ -274,7 +274,7 @@ describe("a Manager's proposal", () => {
     });
     expect(definition.currentVersion?.number).toBe(1);
     await expect(
-      owner.client.sops.approveProposal({ id: proposal.id })
+      owner.client.sops.proposals.approve({ id: proposal.id })
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
@@ -282,13 +282,13 @@ describe("a Manager's proposal", () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
     const manager = await createTestClient(appRouter, { as: "manager" });
     const created = await owner.client.sops.create({ content: milkingSop() });
-    const proposal = await manager.client.sops.propose({
+    const proposal = await manager.client.sops.proposals.create({
       definitionId: created.definitionId,
       content: milkingSop(),
     });
 
     await expect(
-      manager.client.sops.approveProposal({ id: proposal.id })
+      manager.client.sops.proposals.approve({ id: proposal.id })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

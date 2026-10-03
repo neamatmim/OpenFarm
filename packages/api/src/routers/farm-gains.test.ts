@@ -83,22 +83,22 @@ const DESHI_GAINS = [8.4, 11.2, 14, 16.8];
 const setup = async () => {
   const owner = await as("owner", ARRIVED);
   const manager = await as("manager", ARRIVED);
-  const shed = await manager.client.sheds.createShed({ name: suffix });
-  const growers = await manager.client.sheds.createPen({
+  const shed = await manager.client.sheds.create({ name: suffix });
+  const growers = await manager.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: "গ্রোয়ার পেন",
   });
-  const switched = await manager.client.sheds.createPen({
+  const switched = await manager.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: "বদলানো পেন",
   });
-  const straw = await manager.client.feed.createItem({
+  const straw = await manager.client.feed.items.create({
     name: { bn: `খড় ${suffix}` },
   });
   const ration = async (name: string) =>
-    await manager.client.feed.saveRation({
+    await manager.client.feed.rations.save({
       name: { bn: `${name} ${suffix}` },
       items: [{ feedItemId: straw.id, kgPer100KgPerDay: 1 }],
       band: { fromKg: 150, toKg: 250 },
@@ -108,7 +108,7 @@ const setup = async () => {
   const later = await ration("পরের রেশন");
   for (const penId of [growers.id, switched.id]) {
     // oxlint-disable-next-line no-await-in-loop -- two Pens, one after another
-    await manager.client.feed.assignRation({
+    await manager.client.feed.rations.assign({
       penId,
       rationId: grower.rationId,
     });
@@ -194,7 +194,7 @@ beforeAll(async () => {
     vehicle: "ঢাকা মেট্রো ট ১১-২২৩৩",
     driver: "করিম",
   });
-  await manager.client.feed.assignRation({
+  await manager.client.feed.rations.assign({
     penId: world.pens.switched.id,
     rationId: world.rations.later,
   });

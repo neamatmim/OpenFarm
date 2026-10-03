@@ -308,7 +308,7 @@ export const EnterMoneySheet = ({
 }) => {
   const { t, language } = useLanguage();
   const onError = useRefused();
-  const categories = useQuery(orpc.money.categories.queryOptions());
+  const categories = useQuery(orpc.money.categories.list.queryOptions());
   const [typed, setTyped] = useState(() => ({
     ...NOTHING_TYPED,
     ...startWith,

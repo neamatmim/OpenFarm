@@ -70,14 +70,14 @@ beforeAll(async () => {
     lowMoneyPerKg: 500,
     highMoneyPerKg: 600,
   });
-  const shed = await owner.sheds.createShed({ name: suffix });
-  const fattening = await owner.sheds.createPen({
+  const shed = await owner.sheds.create({ name: suffix });
+  const fattening = await owner.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `মোটাতাজা ${suffix}`,
   });
   fatteningPenId = fattening.id;
-  const calves = await owner.sheds.createPen({
+  const calves = await owner.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `বাছুর ${suffix}`,

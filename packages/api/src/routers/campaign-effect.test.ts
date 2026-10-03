@@ -42,7 +42,7 @@ const campaignSop = (productId: string): SopContent => ({
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
   const vet = await createTestClient(appRouter, { as: "vet" });
-  const shed = await owner.client.sheds.createShed({
+  const shed = await owner.client.sheds.create({
     name: `campaigns-${Date.now()}`,
   });
   const wormer = await vet.client.drugs.create({
@@ -72,7 +72,7 @@ beforeAll(async () => {
  */
 const aPenOfCows = async (clock: FakeClock, count: number) => {
   const owner = await createTestClient(appRouter, { as: "owner", clock });
-  const pen = await owner.client.sheds.createPen({
+  const pen = await owner.client.sheds.pens.create({
     shedId: world.shedId,
     name: `অভিযান ${Date.now()}`,
   });

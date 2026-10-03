@@ -317,16 +317,16 @@ const setup = async () => {
     as: "owner",
     clock: new FakeClock(SETUP),
   });
-  const shed = await owner.sheds.createShed({ name: `parity-${suffix}` });
-  const penA = await owner.sheds.createPen({
+  const shed = await owner.sheds.create({ name: `parity-${suffix}` });
+  const penA = await owner.sheds.pens.create({
     shedId: shed.id,
     name: `ক ${suffix}`,
   });
-  const penB = await owner.sheds.createPen({
+  const penB = await owner.sheds.pens.create({
     shedId: shed.id,
     name: `খ ${suffix}`,
   });
-  const penC = await owner.sheds.createPen({
+  const penC = await owner.sheds.pens.create({
     shedId: shed.id,
     name: `গ ${suffix}`,
   });

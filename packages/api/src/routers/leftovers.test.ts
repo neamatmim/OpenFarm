@@ -24,11 +24,11 @@ const as = (role: "owner" | "manager" | "staff", instant = NOW) =>
 
 const setup = async () => {
   const manager = await as("manager", "2035-02-01T04:00:00.000Z");
-  const shed = await manager.client.sheds.createShed({
+  const shed = await manager.client.sheds.create({
     name: `উচ্ছিষ্ট ${suffix}`,
   });
   const pen = async (name: string) =>
-    await manager.client.sheds.createPen({ shedId: shed.id, name });
+    await manager.client.sheds.pens.create({ shedId: shed.id, name });
   const [wasting, fine, seldom, cleared] = await Promise.all([
     pen("ক পেন"),
     pen("খ পেন"),
@@ -36,7 +36,7 @@ const setup = async () => {
     pen("ঘ পেন"),
   ]);
   const item = async (bn: string) =>
-    await manager.client.feed.createItem({ name: { bn: `${bn} ${suffix}` } });
+    await manager.client.feed.items.create({ name: { bn: `${bn} ${suffix}` } });
   const straw = await item("খড়");
   const concentrate = await item("দানাদার");
   // Never bought and never priced: what is left of it is worth a figure nobody knows.
@@ -49,7 +49,7 @@ const setup = async () => {
     seller: { name: `খড়ের ব্যাপারী ${suffix}` },
     receivedOn: "2035-02-01",
   });
-  const ration = await manager.client.feed.saveRation({
+  const ration = await manager.client.feed.rations.save({
     name: { bn: `মোটাতাজাকরণ ${suffix}` },
     items: [
       { feedItemId: straw.id, kgPerAnimalPerDay: 4 },

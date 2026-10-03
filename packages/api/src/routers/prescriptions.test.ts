@@ -40,10 +40,10 @@ const treatmentSop = (): SopContent => ({
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
   const vet = await createTestClient(appRouter, { as: "vet" });
-  const shed = await owner.client.sheds.createShed({
+  const shed = await owner.client.sheds.create({
     name: `prescriptions-${Date.now()}`,
   });
-  const pen = await owner.client.sheds.createPen({
+  const pen = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: "চিকিৎসা পেন",
   });
@@ -508,7 +508,7 @@ describe("a Prescription, and a dose per Instance", () => {
     const clock = new FakeClock("2028-06-11T02:00:00.000Z");
     const { cow, diagnosis, vet } = await aSickCow(clock);
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    const sickBay = await manager.client.sheds.createPen({
+    const sickBay = await manager.client.sheds.pens.create({
       shedId: world.shedId,
       name: `আইসোলেশন ${Date.now()}`,
     });

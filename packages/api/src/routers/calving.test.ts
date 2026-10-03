@@ -57,8 +57,8 @@ const calvingRoundSop = (): SopContent => ({
 const setup = async () => {
   const clock = new FakeClock("2032-03-01T00:00:00.000Z");
   const owner = await createTestClient(appRouter, { as: "owner", clock });
-  const shed = await owner.client.sheds.createShed({ name: `cv-${suffix}` });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: `cv-${suffix}` });
+  const pen = await owner.client.sheds.pens.create({
     shedId: shed.id,
     name: `বাচ্চার ঘর ${suffix}`,
   });

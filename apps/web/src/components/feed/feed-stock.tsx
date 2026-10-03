@@ -393,8 +393,10 @@ const FigureDialog = ({
   const held = line === null ? null : ofLine(line, kind);
   const [value, setValue] = useState(held === null ? "" : String(held));
   const words = WORDS[kind];
-  const level = useMutation(orpc.feed.setLowStock.mutationOptions({}));
-  const fodder = useMutation(orpc.feed.setFodderPrice.mutationOptions({}));
+  const level = useMutation(orpc.feed.items.setLowStock.mutationOptions({}));
+  const fodder = useMutation(
+    orpc.feed.items.setFodderPrice.mutationOptions({})
+  );
   const save = kind === "level" ? level : fodder;
   const onSaved = () => {
     toast.success(t(words.saved));

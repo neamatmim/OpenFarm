@@ -19,7 +19,7 @@ let repairsId = "";
 beforeAll(async () => {
   await as("owner");
   const manager = await as("manager");
-  const categories = await manager.client.money.categories();
+  const categories = await manager.client.money.categories.list();
   repairsId = categories.find((one) => one.key === "repairs")?.id ?? "";
 });
 

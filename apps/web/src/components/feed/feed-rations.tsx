@@ -236,7 +236,7 @@ const RationDialog = ({
     )
   );
   const save = useMutation(
-    orpc.feed.saveRation.mutationOptions({
+    orpc.feed.rations.save.mutationOptions({
       onSuccess: () => {
         onOpenChange(false);
       },
@@ -533,13 +533,13 @@ const useRationActs = (ration: RationRow, onEdit: () => void): RowAction[] => {
   const { t } = useLanguage();
   const refused = useRefused();
   const retire = useMutation(
-    orpc.feed.retireRation.mutationOptions({
+    orpc.feed.rations.retire.mutationOptions({
       onSuccess: () => toast.success(t("feed.rationRetired")),
       onError: refused,
     })
   );
   const bringBack = useMutation(
-    orpc.feed.bringBackRation.mutationOptions({
+    orpc.feed.rations.restore.mutationOptions({
       onSuccess: () => toast.success(t("feed.rationBroughtBack")),
       onError: refused,
     })
@@ -582,7 +582,7 @@ const RationFoot = ({
   const { t } = useLanguage();
   const refused = useRefused();
   const assign = useMutation(
-    orpc.feed.assignRation.mutationOptions({
+    orpc.feed.rations.assign.mutationOptions({
       onError: refused,
     })
   );

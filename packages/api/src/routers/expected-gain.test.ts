@@ -87,9 +87,9 @@ const weigh = async (
 const setup = async () => {
   const owner = await as("owner", ARRIVED);
   const manager = await as("manager", ARRIVED);
-  const shed = await manager.client.sheds.createShed({ name: suffix });
+  const shed = await manager.client.sheds.create({ name: suffix });
   const pen = async (name: string) =>
-    await manager.client.sheds.createPen({
+    await manager.client.sheds.pens.create({
       quarantine: true,
       shedId: shed.id,
       name,
@@ -98,16 +98,16 @@ const setup = async () => {
   const newcomers = await pen("নতুন পেন");
   const strong = await pen("ভালো পেন");
   const plain = await pen("সাধারণ পেন");
-  const straw = await manager.client.feed.createItem({
+  const straw = await manager.client.feed.items.create({
     name: { bn: `খড় ${suffix}` },
   });
-  const grower = await manager.client.feed.saveRation({
+  const grower = await manager.client.feed.rations.save({
     name: { bn: `গ্রোয়ার ${suffix}` },
     items: [{ feedItemId: straw.id, kgPer100KgPerDay: 1 }],
     band: { fromKg: 150, toKg: 250 },
     expectedGain: GROWER_GAIN,
   });
-  const plainRation = await manager.client.feed.saveRation({
+  const plainRation = await manager.client.feed.rations.save({
     name: { bn: `সাধারণ ${suffix}` },
     items: [{ feedItemId: straw.id, kgPer100KgPerDay: 1 }],
   });
@@ -118,7 +118,7 @@ const setup = async () => {
     [plain.id, plainRation.rationId],
   ] as const) {
     // oxlint-disable-next-line no-await-in-loop -- four Pens, one after another
-    await manager.client.feed.assignRation({ penId, rationId });
+    await manager.client.feed.rations.assign({ penId, rationId });
   }
   const weighing = await owner.client.sops.create({ content: weighInSop() });
   weighingId = weighing.definitionId;
@@ -602,26 +602,26 @@ describe("the target weight a bull is taken in towards", () => {
 describe("a Ration's Expected Gain", () => {
   it("is kept when a Ration is saved without it, and cleared by saying none", async () => {
     const manager = await as("manager");
-    const straw = await manager.client.feed.createItem({
+    const straw = await manager.client.feed.items.create({
       name: { bn: `ঘাস ${suffix}` },
     });
-    const saved = await manager.client.feed.saveRation({
+    const saved = await manager.client.feed.rations.save({
       name: { bn: `ফিনিশার ${suffix}` },
       items: [{ feedItemId: straw.id, kgPer100KgPerDay: 2 }],
       expectedGain: { lowKg: 0.8, highKg: 1.1 },
     });
     const listed = async () => {
-      const rations = await manager.client.feed.rations();
+      const rations = await manager.client.feed.rations.list();
       return rations.find((one) => one.id === saved.rationId)?.expectedGain;
     };
     expect(await listed()).toEqual({ lowKg: 0.8, highKg: 1.1 });
-    await manager.client.feed.saveRation({
+    await manager.client.feed.rations.save({
       rationId: saved.rationId,
       name: { bn: `ফিনিশার ${suffix}` },
       items: [{ feedItemId: straw.id, kgPer100KgPerDay: 2.5 }],
     });
     expect(await listed()).toEqual({ lowKg: 0.8, highKg: 1.1 });
-    await manager.client.feed.saveRation({
+    await manager.client.feed.rations.save({
       rationId: saved.rationId,
       name: { bn: `ফিনিশার ${suffix}` },
       items: [{ feedItemId: straw.id, kgPer100KgPerDay: 2.5 }],
@@ -632,11 +632,11 @@ describe("a Ration's Expected Gain", () => {
 
   it("refuses a low above its high, and a gain no bull makes", async () => {
     const manager = await as("manager");
-    const straw = await manager.client.feed.createItem({
+    const straw = await manager.client.feed.items.create({
       name: { bn: `ভুসি ${suffix}` },
     });
     const saving = (expectedGain: { lowKg: number; highKg: number }) =>
-      manager.client.feed.saveRation({
+      manager.client.feed.rations.save({
         name: { bn: `ভুল ${suffix}` },
         items: [{ feedItemId: straw.id, kgPer100KgPerDay: 1 }],
         expectedGain,

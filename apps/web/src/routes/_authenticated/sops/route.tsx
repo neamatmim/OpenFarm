@@ -107,7 +107,7 @@ const SopsPage = () => {
     .filter((one) => one.prescribable)
     .map((one) => ({ id: one.id, name: one.nameBn, vaccine: one.vaccine }));
   const sops = useQuery(orpc.sops.list.queryOptions());
-  const proposals = useQuery(orpc.sops.proposals.queryOptions());
+  const proposals = useQuery(orpc.sops.proposals.list.queryOptions());
   const isOwner = me.data?.roles.includes("owner") ?? false;
 
   const onError = refused;
@@ -123,7 +123,7 @@ const SopsPage = () => {
     orpc.sops.publish.mutationOptions({ onSuccess: onPublished, onError })
   );
   const propose = useMutation(
-    orpc.sops.propose.mutationOptions({
+    orpc.sops.proposals.create.mutationOptions({
       onSuccess: () => {
         toast.success(t("sop.proposed"));
         setDraft(null);
@@ -132,13 +132,13 @@ const SopsPage = () => {
     })
   );
   const approve = useMutation(
-    orpc.sops.approveProposal.mutationOptions({
+    orpc.sops.proposals.approve.mutationOptions({
       onSuccess: onPublished,
       onError,
     })
   );
   const reject = useMutation(
-    orpc.sops.rejectProposal.mutationOptions({ onError })
+    orpc.sops.proposals.reject.mutationOptions({ onError })
   );
   const [retiring, setRetiring] = useState<{
     definitionId: string;
@@ -154,7 +154,7 @@ const SopsPage = () => {
     })
   );
   const restore = useMutation(
-    orpc.sops.bringBack.mutationOptions({
+    orpc.sops.restore.mutationOptions({
       onSuccess: () => toast.success(t("sop.restored")),
       onError,
     })

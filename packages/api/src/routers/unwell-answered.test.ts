@@ -42,10 +42,10 @@ beforeAll(async () => {
 /** A cow in a Pen of her own, so each question's work is hers alone. */
 const aCow = async (name: string) => {
   const owner = await as("owner", "2058-03-01T00:00:00.000Z");
-  const shed = await owner.client.sheds.createShed({
+  const shed = await owner.client.sheds.create({
     name: `${suffix}-${name}`,
   });
-  const pen = await owner.client.sheds.createPen({ shedId: shed.id, name });
+  const pen = await owner.client.sheds.pens.create({ shedId: shed.id, name });
   const cow = await owner.client.animals.register({
     sex: "female",
     side: "dairy",

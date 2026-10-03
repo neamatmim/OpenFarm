@@ -37,15 +37,15 @@ const countSop = (): SopContent => ({
 const setup = async () => {
   const clock = new FakeClock("2035-01-01T04:00:00.000Z");
   const manager = await createTestClient(appRouter, { as: "manager", clock });
-  const shed = await manager.client.sheds.createShed({ name: `sc-${suffix}` });
-  const pen = await manager.client.sheds.createPen({
+  const shed = await manager.client.sheds.create({ name: `sc-${suffix}` });
+  const pen = await manager.client.sheds.pens.create({
     shedId: shed.id,
     name: `গুদাম ${suffix}`,
   });
-  const concentrate = await manager.client.feed.createItem({
+  const concentrate = await manager.client.feed.items.create({
     name: { bn: `দানাদার ${suffix}` },
   });
-  const grass = await manager.client.feed.createItem({
+  const grass = await manager.client.feed.items.create({
     name: { bn: `খড় ${suffix}` },
   });
   await manager.client.stock.receive({
@@ -361,7 +361,7 @@ describe("running low", () => {
   it("puts a Feed Item below its level in front of the Manager and the Owner, and tells the Manager each time it runs low", async () => {
     const manager = await managerAt("2035-01-11T04:00:00.000Z");
     // Concentrate at 1000 kg, and the farm wants to hear below 1200.
-    await manager.client.feed.setLowStock({
+    await manager.client.feed.items.setLowStock({
       feedItemId: world.concentrate.id,
       threshold: 1200,
     });
@@ -434,7 +434,7 @@ describe("running low", () => {
       ).not.toContain(world.concentrate.id);
     } finally {
       // The level goes back, so the rest of this file's tests read a store nobody is worried about.
-      await manager.client.feed.setLowStock({
+      await manager.client.feed.items.setLowStock({
         feedItemId: world.concentrate.id,
         threshold: null,
       });

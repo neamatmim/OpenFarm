@@ -179,13 +179,13 @@ beforeAll(async () => {
   const manager = await as("manager", "2040-01-01T03:00:00.000Z");
   // This farm reads a gain over a fortnight, the shortest it may: her gain now is her last fortnight's.
   await manager.client.farm.setParameters({ gainReadDays: 14 });
-  const shed = await owner.client.sheds.createShed({ name: `keep-${suffix}` });
-  const fed = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: `keep-${suffix}` });
+  const fed = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `খাওয়ানো পেন ${suffix}`,
   });
-  const hungry = await owner.client.sheds.createPen({
+  const hungry = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `অন্য পেন ${suffix}`,
@@ -194,7 +194,7 @@ beforeAll(async () => {
   hungryPen = hungry.id;
 
   // Concentrate at ৳30 a kilo, and more of it than the Pen will eat.
-  const item = await manager.client.feed.createItem({
+  const item = await manager.client.feed.items.create({
     name: { bn: `দানাদার ${suffix}` },
   });
   concentrate = item.id;
@@ -206,11 +206,11 @@ beforeAll(async () => {
     seller: { name: `দানাদারের দোকান ${suffix}` },
     receivedOn: "2040-01-01",
   });
-  const ration = await manager.client.feed.saveRation({
+  const ration = await manager.client.feed.rations.save({
     name: { bn: `রেশন ${suffix}` },
     items: [{ feedItemId: concentrate, kgPerAnimalPerDay: 10 }],
   });
-  await manager.client.feed.assignRation({
+  await manager.client.feed.rations.assign({
     penId: fedPen,
     rationId: ration.rationId,
   });

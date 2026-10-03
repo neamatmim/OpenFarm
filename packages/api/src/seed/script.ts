@@ -56,7 +56,7 @@ const keepTheStore = ({ farm, days, on }: Script) => {
       ["napier", 3],
       ["silage", 6.5],
     ] as [FeedKey, number][]) {
-      await f.as.owner.feed.setFodderPrice({
+      await f.as.owner.feed.items.setFodderPrice({
         feedItemId: f.feeds[key],
         fodderPriceMoney: price,
       });
@@ -399,7 +399,7 @@ const payTheMonth = async (
   { withRepair, last }: { withRepair: boolean; last: boolean }
 ) => {
   const { random } = f;
-  const categories = await f.as.manager.money.categories();
+  const categories = await f.as.manager.money.categories.list();
   const id = (key: string) =>
     categories.find((category) => category.key === key)?.id ?? "";
   const wageMonth = addDays(payday, -20).slice(0, 7);
@@ -574,11 +574,11 @@ const keepTheBooks = ({ farm, days, on }: Script) => {
   // The rent and the electricity are paid every month: the Owner marks them so a month with nothing under either is
   // named.
   on(start, "09:00", "monthly costs marked", async (f) => {
-    const categories = await f.as.owner.money.categories();
+    const categories = await f.as.owner.money.categories.list();
     for (const key of ["rent", "utilities"]) {
       const categoryId = categories.find((one) => one.key === key)?.id;
       if (categoryId) {
-        await f.as.owner.money.setPaidMonthly({
+        await f.as.owner.money.categories.setPaidMonthly({
           categoryId,
           paidMonthly: true,
         });
@@ -703,9 +703,9 @@ const organiseThePeople = ({ farm, on }: Script) => {
         with: { currentVersion: true },
       });
       const content = definition?.currentVersion?.content as Parameters<
-        ApiClient["sops"]["propose"]
+        ApiClient["sops"]["proposals"]["create"]
       >[0]["content"];
-      await f.as.manager.sops.propose({
+      await f.as.manager.sops.proposals.create({
         definitionId: f.sops.feeding,
         content: {
           ...content,

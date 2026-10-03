@@ -46,8 +46,8 @@ const costOf = async (tagNumber: string) => {
 
 beforeAll(async () => {
   const owner = await as("owner", "2041-01-01T04:00:00.000Z");
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const pen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: "কোয়ারেন্টিন",
@@ -225,7 +225,7 @@ describe("a Buying Trip", () => {
     ]);
 
     // Its Category is the Trip's own, so the same outing cannot be typed in again as an expense.
-    const categories = await manager.client.money.categories();
+    const categories = await manager.client.money.categories.list();
     const trips = categories.find((one) => one.key === "buying_trip");
     expect(trips?.enterable).toBe(false);
   });

@@ -36,10 +36,10 @@ beforeAll(async () => {
 /** A Pen of its own, with this many heifers in it, for each question. */
 const aPenOf = async (name: string, head: number) => {
   const owner = await as("owner", "2055-01-01T00:00:00.000Z");
-  const shed = await owner.client.sheds.createShed({
+  const shed = await owner.client.sheds.create({
     name: `${suffix}-${name}`,
   });
-  const pen = await owner.client.sheds.createPen({ shedId: shed.id, name });
+  const pen = await owner.client.sheds.pens.create({ shedId: shed.id, name });
   const tags: string[] = [];
   for (let one = 0; one < head; one += 1) {
     // One after another, as the register is written.

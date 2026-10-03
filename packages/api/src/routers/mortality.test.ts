@@ -65,7 +65,7 @@ const handlingSop = (): SopContent => ({
 
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.client.sheds.createShed({
+  const shed = await owner.client.sheds.create({
     name: `mortality-${Date.now()}`,
   });
   const sop = await owner.client.sops.create({ content: roundSop() });
@@ -100,7 +100,7 @@ afterAll(async () => {
 /** A Pen of her own, and a cow in it. */
 const aCowOfHerOwn = async (clock: FakeClock) => {
   const owner = await createTestClient(appRouter, { as: "owner", clock });
-  const pen = await owner.client.sheds.createPen({
+  const pen = await owner.client.sheds.pens.create({
     shedId: world.shedId,
     name: `মৃত্যু ${Date.now()}`,
   });
@@ -337,7 +337,7 @@ describe("a death and a cull", () => {
     const manager = await createTestClient(appRouter, { as: "manager", clock });
 
     // A check raised about her by her last Move: work about one animal, hers alone.
-    const other = await owner.client.sheds.createPen({
+    const other = await owner.client.sheds.pens.create({
       shedId: world.shedId,
       name: `আরেক ${Date.now()}`,
     });

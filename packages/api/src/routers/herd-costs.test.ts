@@ -65,19 +65,19 @@ const costOf = async (tagNumber: string) => {
 
 beforeAll(async () => {
   const owner = await as("owner", "2043-03-01T04:00:00.000Z");
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const pen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: "ফ্যাটেনিং",
   });
   penId = pen.id;
-  const spray = await owner.client.money.createCategory({
+  const spray = await owner.client.money.categories.create({
     nameBn: `মাছি স্প্রে ${suffix}`,
     direction: "out",
   });
   sprayId = spray.id;
-  const bits = await owner.client.money.createCategory({
+  const bits = await owner.client.money.categories.create({
     nameBn: `টুকিটাকি ${suffix}`,
     direction: "out",
   });
@@ -93,7 +93,7 @@ describe("Herd Costs", () => {
 
   it("splits a marked Category's month by the days each animal stood here", async () => {
     const owner = await as("owner", "2043-03-02T04:00:00.000Z");
-    await owner.client.money.setChargedToAnimals({
+    await owner.client.money.categories.setChargedToAnimals({
       categoryId: sprayId,
       chargedToAnimals: true,
     });
@@ -182,7 +182,7 @@ describe("Herd Costs", () => {
 
   it("starts every standard Category unmarked", async () => {
     const owner = await as("owner", "2043-03-02T04:00:00.000Z");
-    const categories = await owner.client.money.categories();
+    const categories = await owner.client.money.categories.list();
     const standard = categories.filter((one) => one.key !== null);
     expect(standard.length).toBeGreaterThan(0);
     expect(standard.every((one) => !one.chargedToAnimals)).toBe(true);
@@ -192,7 +192,7 @@ describe("Herd Costs", () => {
     // The six story 45 names, and the same six CONTEXT.md's Herd Cost entry names. Each is a standard
     // Category so that a farm records it without inventing a name the mark would then let through.
     const owner = await as("owner", "2043-03-02T04:30:00.000Z");
-    const categories = await owner.client.money.categories();
+    const categories = await owner.client.money.categories.list();
     const theFarms = ["wages", "utilities", "repairs", "hygiene", "equipment"];
 
     // Asked of all five at once: a loop that stops at the first failure names one and hides four.
@@ -201,7 +201,7 @@ describe("Herd Costs", () => {
       expect(one, `no standard Category for ${key}`).toBeDefined();
       expect(one?.chargeable, `${key} may be marked`).toBe(false);
       await expect(
-        owner.client.money.setChargedToAnimals({
+        owner.client.money.categories.setChargedToAnimals({
           categoryId: one?.id ?? "",
           chargedToAnimals: true,
         }),
@@ -231,11 +231,11 @@ describe("Herd Costs", () => {
   // for and not the one before it, at the turn of the year as anywhere else.
   it("charges a newcomer the month she arrived in, and not the month before", async () => {
     const owner = await as("owner", "2044-01-20T04:00:00.000Z");
-    const winter = await owner.client.money.createCategory({
+    const winter = await owner.client.money.categories.create({
       nameBn: `শীতের খরচ ${suffix}`,
       direction: "out",
     });
-    await owner.client.money.setChargedToAnimals({
+    await owner.client.money.categories.setChargedToAnimals({
       categoryId: winter.id,
       chargedToAnimals: true,
     });
@@ -263,7 +263,7 @@ describe("Herd Costs", () => {
   it("is the Owner's alone to mark", async () => {
     const manager = await as("manager", "2043-03-03T04:00:00.000Z");
     await expect(
-      manager.client.money.setChargedToAnimals({
+      manager.client.money.categories.setChargedToAnimals({
         categoryId: bitsId,
         chargedToAnimals: true,
       })

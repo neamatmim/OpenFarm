@@ -16,9 +16,9 @@ const as = (role: "owner" | "manager" | "staff", instant = LATER) =>
 
 const setup = async () => {
   const manager = await as("manager", ARRIVED);
-  const shed = await manager.client.sheds.createShed({ name: suffix });
+  const shed = await manager.client.sheds.create({ name: suffix });
   const pen = async (name: string) =>
-    await manager.client.sheds.createPen({
+    await manager.client.sheds.pens.create({
       quarantine: true,
       shedId: shed.id,
       name,
@@ -26,7 +26,7 @@ const setup = async () => {
   const growers = await pen("গ্রোয়ার পেন");
   const finishers = await pen("ফিনিশার পেন");
   const unbanded = await pen("সাধারণ পেন");
-  const straw = await manager.client.feed.createItem({
+  const straw = await manager.client.feed.items.create({
     name: { bn: `খড় ${suffix}` },
   });
   const ration = async (
@@ -34,12 +34,12 @@ const setup = async () => {
     penId: string,
     band?: { fromKg: number | null; toKg: number | null }
   ) => {
-    const saved = await manager.client.feed.saveRation({
+    const saved = await manager.client.feed.rations.save({
       name: { bn: `${name} ${suffix}` },
       items: [{ feedItemId: straw.id, kgPer100KgPerDay: 1 }],
       ...(band ? { band } : {}),
     });
-    await manager.client.feed.assignRation({
+    await manager.client.feed.rations.assign({
       penId,
       rationId: saved.rationId,
     });
@@ -144,12 +144,12 @@ describe("the bulls in the wrong Pen for their size", () => {
 
   it("keeps a Ration's band when it is written again without one, and says what it is", async () => {
     const manager = await as("manager");
-    await manager.client.feed.saveRation({
+    await manager.client.feed.rations.save({
       rationId: world.rations.grower,
       name: { bn: `গ্রোয়ার ${suffix}` },
       items: [{ feedItemId: world.straw.id, kgPer100KgPerDay: 1.2 }],
     });
-    const rations = await manager.client.feed.rations();
+    const rations = await manager.client.feed.rations.list();
     expect(
       rations.find((one) => one.id === world.rations.grower)?.band
     ).toEqual({ fromKg: 150, toKg: 250 });
@@ -158,7 +158,7 @@ describe("the bulls in the wrong Pen for their size", () => {
   it("refuses a band nobody fits", async () => {
     const manager = await as("manager");
     await expect(
-      manager.client.feed.saveRation({
+      manager.client.feed.rations.save({
         rationId: world.rations.grower,
         name: { bn: `গ্রোয়ার ${suffix}` },
         items: [{ feedItemId: world.straw.id, kgPer100KgPerDay: 1 }],

@@ -19,7 +19,7 @@ let wagesId = "";
 beforeAll(async () => {
   await as("owner", "2073-05-01T04:00:00.000Z");
   const manager = await as("manager", "2073-05-01T04:00:00.000Z");
-  const categories = await manager.client.money.categories();
+  const categories = await manager.client.money.categories.list();
   wagesId = categories.find((one) => one.key === "wages")?.id ?? "";
 });
 

@@ -64,7 +64,7 @@ const standing = async (instant = "2083-07-02T10:00:00.000Z") => {
 beforeAll(async () => {
   const owner = await as("owner", "2083-04-01T03:00:00.000Z");
   await as("manager", "2083-04-01T03:00:00.000Z");
-  const categories = await owner.client.money.categories();
+  const categories = await owner.client.money.categories.list();
   manureId = categories.find((one) => one.key === "manure_sales")?.id ?? "";
   repairsId = categories.find((one) => one.key === "repairs")?.id ?? "";
   const office = await owner.client.farmAccounts.create({

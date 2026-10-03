@@ -138,7 +138,7 @@ const OnFile = ({ investor }: { investor: Investor }) => {
     })
   );
   const bringingBack = useMutation(
-    orpc.investors.bringBack.mutationOptions({
+    orpc.investors.restore.mutationOptions({
       onError: refused,
       onSuccess: () => {
         toast.success(t("investors.broughtBack"));

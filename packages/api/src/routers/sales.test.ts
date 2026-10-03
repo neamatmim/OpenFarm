@@ -42,13 +42,13 @@ const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner", clock });
   const manager = await createTestClient(appRouter, { as: "manager", clock });
   const vet = await createTestClient(appRouter, { as: "vet", clock });
-  const shed = await owner.client.sheds.createShed({ name: `sale-${suffix}` });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: `sale-${suffix}` });
+  const pen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `বিক্রয় ${suffix}`,
   });
-  const treatedPen = await owner.client.sheds.createPen({
+  const treatedPen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `চিকিৎসা ${suffix}`,

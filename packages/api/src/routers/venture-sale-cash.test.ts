@@ -92,8 +92,8 @@ beforeAll(async () => {
     "2080-01-01"
   );
   await owner.client.ventures.startBuying({ id: ventureId });
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const pen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,

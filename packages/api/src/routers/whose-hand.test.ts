@@ -56,8 +56,8 @@ beforeAll(async () => {
   const owner = await as("owner", `${DAY}T03:00:00.000Z`);
   // The Vet has a Role on this farm, and holds none of its cash.
   await as("vet", `${DAY}T03:00:00.000Z`);
-  const shed = await owner.client.sheds.createShed({ name: suffix });
-  const pen = await owner.client.sheds.createPen({
+  const shed = await owner.client.sheds.create({ name: suffix });
+  const pen = await owner.client.sheds.pens.create({
     quarantine: true,
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,

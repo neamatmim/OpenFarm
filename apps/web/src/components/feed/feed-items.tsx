@@ -190,7 +190,7 @@ const BagSizeDialog = ({
     item?.bagSizeKg === null || item === null ? "" : String(item.bagSizeKg)
   );
   const setBagSize = useMutation(
-    orpc.feed.setBagSize.mutationOptions({
+    orpc.feed.items.setBagSize.mutationOptions({
       onSuccess: () => onOpenChange(false),
       onError: refused,
     })
@@ -246,7 +246,7 @@ const AddItemDialog = ({
   const [bagSize, setBagSize] = useState("");
   const bagSizeKg = unit === "kg" ? bagSizeOf(bagSize) : null;
   const addItem = useMutation(
-    orpc.feed.createItem.mutationOptions({
+    orpc.feed.items.create.mutationOptions({
       onSuccess: () => {
         setName("");
         setEnglish("");
@@ -339,7 +339,7 @@ const RenameItemDialog = ({
   const [name, setName] = useState(item?.nameBn ?? "");
   const [english, setEnglish] = useState(item?.nameEn ?? "");
   const rename = useMutation(
-    orpc.feed.renameItem.mutationOptions({
+    orpc.feed.items.rename.mutationOptions({
       onSuccess: onClose,
       onError: refused,
     })
@@ -395,10 +395,10 @@ const RenameItemDialog = ({
 const useStandardFeeds = () => {
   const { t, language } = useLanguage();
   const refused = useRefused();
-  const missing = useQuery(orpc.feed.standardMissing.queryOptions());
+  const missing = useQuery(orpc.feed.items.standardMissing.queryOptions());
   const [asking, setAsking] = useState(false);
   const add = useMutation(
-    orpc.feed.addStandardItems.mutationOptions({
+    orpc.feed.items.addStandard.mutationOptions({
       onSuccess: (done) => {
         toast.success(
           t("feed.addedStandard", {
@@ -445,7 +445,7 @@ export const ItemsTab = ({ items }: { items: FeedItemRow[] }) => {
   const [renaming, setRenaming] = useState<FeedItemRow | null>(null);
   const standard = useStandardFeeds();
   const retireItem = useMutation(
-    orpc.feed.retireItem.mutationOptions({
+    orpc.feed.items.retire.mutationOptions({
       onError: refused,
     })
   );
@@ -458,7 +458,7 @@ export const ItemsTab = ({ items }: { items: FeedItemRow[] }) => {
     confirmLabel: t("feed.retire"),
   });
   const bringBack = useMutation(
-    orpc.feed.bringBackItem.mutationOptions({
+    orpc.feed.items.restore.mutationOptions({
       onError: refused,
     })
   );

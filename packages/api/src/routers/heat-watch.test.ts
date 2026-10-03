@@ -15,10 +15,10 @@ const as = (role: Role, instant: string) =>
 /** A cow on the opening register, in milk, who calved on a day, in a Pen of her own. */
 const aCowWhoCalved = async (name: string, calvedOn: string) => {
   const owner = await as("owner", "2063-06-01T00:00:00.000Z");
-  const shed = await owner.client.sheds.createShed({
+  const shed = await owner.client.sheds.create({
     name: `${suffix}-${name}`,
   });
-  await owner.client.sheds.createPen({ shedId: shed.id, name });
+  await owner.client.sheds.pens.create({ shedId: shed.id, name });
   const imported = await owner.client.animals.importRegister({
     csv: [
       "sex,side,state,pen,source,calved_at",
@@ -71,10 +71,10 @@ describe("a heifer not yet served", () => {
   /** A heifer born on a day, of a breed deshi or not, in a Pen of her own. */
   const aHeifer = async (name: string, bornOn: string, deshi: boolean) => {
     const owner = await as("owner", "2063-06-01T00:00:00.000Z");
-    const shed = await owner.client.sheds.createShed({
+    const shed = await owner.client.sheds.create({
       name: `${suffix}-${name}`,
     });
-    const pen = await owner.client.sheds.createPen({ shedId: shed.id, name });
+    const pen = await owner.client.sheds.pens.create({ shedId: shed.id, name });
     const breed = await owner.client.breeds.create({
       nameBn: `${deshi ? "দেশি" : "সংকর"} ${name}`,
       deshi,
