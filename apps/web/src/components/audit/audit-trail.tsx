@@ -112,7 +112,7 @@ const RecordLink = ({
       <Link
         className={LINK_CLASS}
         params={{ userId: entityId }}
-        to="/admin/people/$userId"
+        to="/people/$userId"
       >
         {name}
       </Link>
@@ -168,7 +168,7 @@ const Who = ({
         <Link
           className={LINK_CLASS}
           params={{ userId: actorId }}
-          to="/admin/people/$userId"
+          to="/people/$userId"
         >
           {actor.name}
         </Link>

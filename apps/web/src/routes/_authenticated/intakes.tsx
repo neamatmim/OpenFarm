@@ -30,6 +30,7 @@ import { Notice, Page, PageHeader } from "@/components/page";
 import { accountSent } from "@/components/payment-method";
 import { PastOutings } from "@/components/trips/past-outings";
 import { useT } from "@/i18n/language-provider";
+import { onlyFor } from "@/lib/guard";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
@@ -181,7 +182,7 @@ const IntakePage = () => {
           {noQuarantinePen ? (
             <Notice
               action={
-                <Link className="underline" to="/admin/herd">
+                <Link className="underline" to="/sheds">
                   {t("intake.markAQuarantinePen")}
                 </Link>
               }
@@ -251,6 +252,8 @@ const IntakePage = () => {
   );
 };
 
-export const Route = createFileRoute("/_authenticated/admin/intakes")({
+export const Route = createFileRoute("/_authenticated/intakes")({
+  /** For those who run the farm: the Owner and the Farm Managers. */
+  beforeLoad: onlyFor("runsTheFarm"),
   component: IntakePage,
 });

@@ -1,335 +1,316 @@
-import { farmDayOf } from "@OpenFarm/domain";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { formatDate, formatDayField } from "@OpenFarm/i18n";
+import { Input } from "@OpenFarm/ui/components/input";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
-import { useQuery } from "@tanstack/react-query";
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { CircleCheck, Hourglass, Milk, Scale, Tractor } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { toast } from "sonner";
 
-import { AdultDeathsSection } from "@/components/home/adult-deaths";
-import { CalfLossesSection } from "@/components/home/calf-losses";
-import { EarlyLossesSection } from "@/components/home/early-losses";
+import { Certificate } from "@/components/certificate";
 import {
-  FatteningPanel,
-  FeedPanel,
-  HerdPanel,
-  MoneyMonth,
-  OpenWords,
-  thisMonth,
-  useMoney,
-} from "@/components/home/farm-panels";
-import { MilkWeek } from "@/components/home/milk-week";
-import {
-  anythingWaiting,
-  decisionsWaiting,
-  moneyAwaitingCount,
-  moneyAwaitingTotal,
-} from "@/components/home/owner-counts";
-import {
-  DECISION_KINDS,
-  FARM_TODAY_KINDS,
-  FarmToday,
-  NeedsYouTabs,
-} from "@/components/home/owner-queue";
-import type {
-  DecisionKind,
-  FarmTodayKind,
-} from "@/components/home/owner-queue";
-import { MORE_LINK } from "@/components/home/queue";
-import {
-  EmptyState,
-  Notice,
-  Page,
-  PageHeader,
-  Section,
-  StatusBadge,
-} from "@/components/page";
-import type { Figure } from "@/components/page-kit";
-import { SummaryFigures } from "@/components/page-kit";
-import { useLanguage, useT } from "@/i18n/language-provider";
+  FarmParameters,
+  PARAMETER_SECTIONS,
+  SettingsSection,
+} from "@/components/farm-parameters";
+import { useIsOwner } from "@/components/money";
+import { FarmAccounts } from "@/components/money/farm-accounts";
+import { Notice, Page, PageHeader } from "@/components/page";
+import { FormField } from "@/components/page-kit";
+import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
-import { moneyTotals } from "@/lib/money-totals";
-import { venturesNeedingHer } from "@/lib/ventures";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
-type OwnerAnswer = Awaited<ReturnType<typeof orpc.home.owner.call>>;
+type Identity = Awaited<ReturnType<typeof orpc.farm.identity.call>>;
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+/** How the farm is reached: the words under its name on every paper. */
+interface Contact {
+  address: string;
+  phone: string;
+}
 
-/** A figure still waiting for its list. */
-const loading = <Skeleton className="h-8 w-28" />;
+/** The DLS Registration as the certificate prints it. */
+interface Registration {
+  registrationNumber: string;
+  registrationOffice: string;
+  registrationIssuedOn: string;
+  registrationExpiresOn: string;
+}
 
-/** The milk figure: today's tank, read against yesterday — a whole day, where today may be half of one — and the
- *  week's average. */
-const useMilkFigure = (tiles: OwnerAnswer["tiles"]): Figure => {
-  const { t, language } = useLanguage();
-  const now = new Date();
-  const yesterday = farmDayOf(new Date(now.getTime() - DAY_MS));
-  const yesterdays = tiles.days.find((one) => one.day === yesterday);
-  const average = formatNumber(tiles.averageBulk, language, {
-    maximumFractionDigits: 1,
-  });
-  return {
-    label: t("owner.bulkToday"),
-    value: t("owner.litres", {
-      litres: formatNumber(tiles.bulkToday, language),
-    }),
-    hint: yesterdays
-      ? t("owner.milkHint", {
-          yesterday: formatNumber(yesterdays.litres, language),
-          average,
-        })
-      : t("owner.average", { litres: average }),
-    icon: Milk,
-  };
-};
-
-/** The four figures the Owner judges the farm by: the milk, the month's money, the herd, and the money waiting on
- *  their word. Each is worked out from what was recorded; the two from other lists wait for them without holding up
- *  the rest. */
-const useFarmFigures = (data: OwnerAnswer): Figure[] => {
-  const { t, language } = useLanguage();
-  const asMoney = useMoney();
-  const milk = useMilkFigure(data.tiles);
-  const money = useQuery(orpc.money.list.queryOptions({ input: thisMonth() }));
-  const animals = useQuery(
-    orpc.animals.list.queryOptions({ input: { includeExited: false } })
+/** Saving the farm's identity, a part at a time: a field the part does not hold is left as it is. */
+const useSaveIdentity = (onSaved: () => void) => {
+  const { t } = useLanguage();
+  const refused = useRefused();
+  return useMutation(
+    orpc.farm.setIdentity.mutationOptions({
+      onSuccess: () => {
+        toast.success(t("identity.saved"));
+        // Back to the record: what the farm holds is the answer, not what was typed at it.
+        onSaved();
+      },
+      onError: refused,
+    })
   );
-  const totals = moneyTotals(money.data ?? { events: [] });
-  const sum = (direction: "in" | "out") =>
-    direction === "in" ? totals.inMoney : totals.outMoney;
-  const net = sum("in") - sum("out");
-  const herd = animals.data ?? [];
-  const awaiting = moneyAwaitingCount(data.needsYou);
-  return [
-    milk,
-    {
-      label: t("owner.monthNet"),
-      value: money.data ? asMoney(net) : loading,
-      hint: money.data
-        ? t("owner.inAndOut", {
-            in: asMoney(sum("in")),
-            out: asMoney(sum("out")),
-          })
-        : undefined,
-      icon: Scale,
-      tone: net < 0 ? "danger" : "neutral",
-    },
-    {
-      label: t("owner.herd"),
-      value: animals.data ? formatNumber(herd.length, language) : loading,
-      hint: animals.data
-        ? t("owner.bySide", {
-            dairy: formatNumber(
-              herd.filter((one) => one.side === "dairy").length,
-              language
-            ),
-            fattening: formatNumber(
-              herd.filter((one) => one.side === "fattening").length,
-              language
-            ),
-          })
-        : undefined,
-      icon: Tractor,
-    },
-    {
-      label: t("money.awaitingCount"),
-      value: (
-        <Link className={FIGURE_LINK} to="/money">
-          {asMoney(moneyAwaitingTotal(data.needsYou))}
-        </Link>
-      ),
-      hint: t("owner.entries", { count: formatNumber(awaiting, language) }),
-      icon: Hourglass,
-      tone: awaiting > 0 ? "warning" : "neutral",
-    },
-  ];
 };
 
-/** A figure that is a way to the list it counts. */
-const FIGURE_LINK =
-  "focus-visible:ring-ring rounded-md underline-offset-4 outline-none hover:underline focus-visible:ring-2";
+const differs = <T extends object>(draft: T | null, saved: T): boolean =>
+  draft !== null &&
+  (Object.keys(saved) as (keyof T)[]).some((key) => draft[key] !== saved[key]);
+
+/** The farm's name, set when it was created, and how it is reached. */
+const ContactSection = ({ farm }: { farm: Identity }) => {
+  const { t } = useLanguage();
+  // Null until somebody types: the fields show the record until then.
+  const [draft, setDraft] = useState<Contact | null>(null);
+  const save = useSaveIdentity(() => setDraft(null));
+  const saved: Contact = {
+    address: farm.address ?? "",
+    phone: farm.phone ?? "",
+  };
+  const fields = draft ?? saved;
+  const edit = (patch: Partial<Contact>) => setDraft({ ...fields, ...patch });
+  return (
+    <SettingsSection
+      changed={differs(draft, saved)}
+      description={t("identity.contactHint")}
+      id="farm-contact"
+      onReset={() => setDraft(null)}
+      onSubmit={() =>
+        save.mutate({
+          address: fields.address || null,
+          phone: fields.phone || null,
+        })
+      }
+      pending={save.isPending}
+      saveLabel={t("identity.save")}
+      title={t("identity.contact")}
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        {/* The name is the farm's, set when it was created, and not changed from here. */}
+        <FormField
+          className="sm:col-span-2"
+          id="identity-name"
+          label={t("identity.name")}
+        >
+          <Input disabled id="identity-name" value={farm.name} />
+        </FormField>
+        <FormField
+          className="sm:col-span-2"
+          id="identity-address"
+          label={t("identity.address")}
+        >
+          <Input
+            id="identity-address"
+            maxLength={300}
+            onChange={(e) => edit({ address: e.target.value })}
+            value={fields.address}
+          />
+        </FormField>
+        <FormField id="identity-phone" label={t("identity.phone")}>
+          <Input
+            id="identity-phone"
+            inputMode="tel"
+            maxLength={20}
+            onChange={(e) => edit({ phone: e.target.value })}
+            value={fields.phone}
+          />
+        </FormField>
+      </div>
+    </SettingsSection>
+  );
+};
+
+/** The DLS Registration: its number, the office that issued it, and the days it runs between. */
+const RegistrationSection = ({ farm }: { farm: Identity }) => {
+  const { t } = useLanguage();
+  const [draft, setDraft] = useState<Registration | null>(null);
+  const save = useSaveIdentity(() => setDraft(null));
+  const saved: Registration = {
+    registrationNumber: farm.registrationNumber ?? "",
+    registrationOffice: farm.registrationOffice ?? "",
+    registrationIssuedOn: farm.registrationIssuedOn
+      ? formatDayField(farm.registrationIssuedOn)
+      : "",
+    registrationExpiresOn: farm.registrationExpiresOn
+      ? formatDayField(farm.registrationExpiresOn)
+      : "",
+  };
+  const fields = draft ?? saved;
+  const edit = (patch: Partial<Registration>) =>
+    setDraft({ ...fields, ...patch });
+  return (
+    <SettingsSection
+      changed={differs(draft, saved)}
+      description={t("identity.registrationHint")}
+      id="farm-registration"
+      onReset={() => setDraft(null)}
+      onSubmit={() =>
+        save.mutate({
+          registrationNumber: fields.registrationNumber || null,
+          registrationOffice: fields.registrationOffice || null,
+          registrationIssuedOn: fields.registrationIssuedOn || null,
+          registrationExpiresOn: fields.registrationExpiresOn || null,
+        })
+      }
+      pending={save.isPending}
+      saveLabel={t("identity.save")}
+      title={t("identity.registration")}
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField
+          id="identity-number"
+          label={t("identity.registrationNumber")}
+        >
+          <Input
+            id="identity-number"
+            maxLength={60}
+            onChange={(e) => edit({ registrationNumber: e.target.value })}
+            value={fields.registrationNumber}
+          />
+        </FormField>
+        <FormField
+          id="identity-office"
+          label={t("identity.registrationOffice")}
+        >
+          <Input
+            id="identity-office"
+            maxLength={200}
+            onChange={(e) => edit({ registrationOffice: e.target.value })}
+            value={fields.registrationOffice}
+          />
+        </FormField>
+        <FormField
+          id="identity-issued"
+          label={t("identity.registrationIssuedOn")}
+        >
+          <Input
+            id="identity-issued"
+            onChange={(e) => edit({ registrationIssuedOn: e.target.value })}
+            type="date"
+            value={fields.registrationIssuedOn}
+          />
+        </FormField>
+        <FormField
+          id="identity-expires"
+          label={t("identity.registrationExpiresOn")}
+        >
+          <Input
+            id="identity-expires"
+            onChange={(e) => edit({ registrationExpiresOn: e.target.value })}
+            type="date"
+            value={fields.registrationExpiresOn}
+          />
+        </FormField>
+      </div>
+    </SettingsSection>
+  );
+};
+
+/** What the farm should be told before an inspector tells it. */
+const RegistrationNotices = ({ farm }: { farm: Identity }) => {
+  const { t, language } = useLanguage();
+  const expiresOn = farm.registrationExpiresOn;
+  const when = expiresOn ? formatDate(expiresOn, language, "date") : "";
+  return (
+    <>
+      {farm.registrationMissing ? (
+        <Notice title={t("identity.missing")} tone="warning" />
+      ) : null}
+      {expiresOn && farm.registrationExpired ? (
+        <Notice title={t("identity.expired", { when })} tone="danger" />
+      ) : null}
+      {expiresOn && !farm.registrationExpired && farm.registrationEndingSoon ? (
+        <Notice title={t("identity.endingSoon", { when })} tone="warning" />
+      ) : null}
+    </>
+  );
+};
+
+/** The parts of the page, listed beside it where there is room, each a jump to its place. */
+const OnThisPage = () => {
+  const { t } = useLanguage();
+  const isOwner = useIsOwner();
+  const parts = [
+    { id: "farm-contact", title: t("identity.contact") },
+    { id: "farm-registration", title: t("identity.registration") },
+    { id: "farm-certificate", title: t("certificate.title") },
+    { id: "farm-accounts", title: t("farmAccounts.title") },
+    ...PARAMETER_SECTIONS.filter((part) => !part.owner || isOwner).map(
+      (part) => ({
+        id: part.id,
+        title: t(part.title),
+      })
+    ),
+  ];
+  return (
+    <nav
+      aria-label={t("identity.onThisPage")}
+      className="hidden lg:sticky lg:top-6 lg:block"
+    >
+      <p className="text-muted-foreground mb-2 px-3 text-xs font-semibold tracking-wider uppercase">
+        {t("identity.onThisPage")}
+      </p>
+      <ul className="flex flex-col gap-0.5 border-l">
+        {parts.map((part) => (
+          <li key={part.id}>
+            <a
+              className="text-muted-foreground hover:text-foreground hover:border-foreground focus-visible:ring-ring -ml-px block border-l-2 border-transparent px-3 py-1.5 text-sm outline-none focus-visible:ring-2"
+              href={`#${part.id}`}
+            >
+              {part.title}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+};
 
 /**
- * The Owner's home: the figures the farm is judged by, then what only the Owner can settle — and below it the farm
- * going about its day — and beside them the week's milk, the month's money, the herd, the fattening side and the store,
- * each a way into its own page.
+ * The farm's own identity and how it is tuned, a part at a time, each saved on its own: how it is reached, its DLS
+ * Registration and the certificate's photograph, and the Parameters in their groups.
  *
- * An empty list of decisions means the farm is fine, and that is the whole point of it — a screen that always has
- * something on it is a screen that stops meaning anything. Nothing here is typed by anybody: every figure is worked out
- * from what was recorded.
+ * The Owner's or the Manager's to write — the roles matrix gives farm parameters to both, and
+ * at go-live it is the Manager who has the certificate in hand. The identity is kept apart from the Parameters
+ * because those are numbers to tune and these are the words printed on papers that leave the farm.
  */
-const OwnerHome = () => {
-  const t = useT();
-  const home = useQuery(orpc.home.owner.queryOptions());
+const IdentityPage = () => {
+  const { t } = useLanguage();
+  const identity = useQuery(orpc.farm.identity.queryOptions());
 
-  // Cached first, error second. A phone with no signal has the farm as it last knew it,
-  // and a screen that throws that away to show the word "error" has taken away the only
-  // thing it had — the sync banner above already says how old it is.
-  if (!home.data) {
+  if (!identity.data) {
     return (
       <Page>
-        <PageHeader title={t("owner.title")} />
-        {home.isError ? (
+        <PageHeader
+          description={t("identity.why")}
+          title={t("identity.title")}
+        />
+        {identity.isError ? (
           <Notice title={t("common.error")} tone="danger" />
         ) : (
-          <Skeleton className="h-64 rounded-xl" />
+          <Skeleton className="h-96 rounded-xl" />
         )}
       </Page>
     );
   }
-  return <OwnerDay data={home.data} />;
-};
-
-/** The week's milk, with what the week averages and what today could not send to the tank. */
-const MilkPanel = ({ tiles }: { tiles: OwnerAnswer["tiles"] }) => {
-  const { t, language } = useLanguage();
-  return (
-    <Section
-      action={
-        <Link className={MORE_LINK} to="/milk">
-          <OpenWords />
-        </Link>
-      }
-      title={t("owner.weekTitle")}
-    >
-      <MilkWeek average={tiles.averageBulk} days={tiles.days} />
-      <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
-        <span className="flex items-center gap-2">
-          <span
-            aria-hidden
-            className="border-foreground/50 w-5 border-t border-dashed"
-          />
-          {t("owner.average", {
-            litres: formatNumber(tiles.averageBulk, language, {
-              maximumFractionDigits: 1,
-            }),
-          })}
-        </span>
-        <span className={tiles.discardToday > 0 ? "text-warning" : undefined}>
-          {t("owner.discardToday")}:{" "}
-          {t("owner.litres", {
-            litres: formatNumber(tiles.discardToday, language),
-          })}
-        </span>
-      </div>
-    </Section>
-  );
-};
-
-/**
- * The green word, said only when the farm has actually been asked everything it is said about.
- *
- * Its own component rather than a condition written inline where it is used: the guard against
- * untranslated JSX text reads whatever sits between one tag and the next as text, so a boolean operator
- * there — or a comment explaining one — fails the suite.
- */
-const AllFine = ({ shown }: { shown: boolean }) => {
-  const { t } = useLanguage();
-  return shown ? (
-    <StatusBadge tone="success">{t("owner.allFine")}</StatusBadge>
-  ) : null;
-};
-
-/** The Owner's day once the farm has answered. */
-const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
-  const { t, language } = useLanguage();
-  const { needsYou, tiles } = data;
-  const figures = useFarmFigures(data);
-  const { needs, onFarm } = Route.useSearch();
-  const navigate = Route.useNavigate();
-  // Asked here rather than folded into `home.owner`, because whether a Wind-up Period has run out is
-  // worked out where it is read — a cached `true` would tell her a run is over on the strength of a
-  // date that has since moved. Owner-only already, and a farm with no Venture gets an empty list.
-  const ventures = useQuery(orpc.ventures.list.queryOptions());
-  const troubled = venturesNeedingHer(ventures.data);
-  // Counted into the badge, so "all fine" cannot be said over a Venture that is not — and not claimed
-  // at all while the answer is still coming or did not come. An empty list is an answer; no answer is
-  // not, and a green "everything is fine" resting on a request that failed is the worst of the three.
-  const heardAboutVentures = ventures.isSuccess;
-  // The badge counts her decisions; "all fine" is said only when nothing at all waits — a missing animal, a store to
-  // count or Receivable overdue is no decision of hers, but the farm is not all fine while one waits.
-  const waiting = decisionsWaiting(needsYou) + troubled.length;
-  const allFine =
-    anythingWaiting(needsYou) + troubled.length === 0 && heardAboutVentures;
+  const farm = identity.data;
 
   return (
     <Page>
-      {/* No button to the money here: it is in the sidebar and the bottom bar, and the figure of what waits on
-          her is a link to it. */}
-      <PageHeader
-        description={t("owner.subtitle")}
-        eyebrow={formatDate(new Date(), language, "date")}
-        meta={
-          waiting > 0 ? (
-            <StatusBadge tone="warning">
-              {t("owner.waitingCount", {
-                count: formatNumber(waiting, language),
-              })}
-            </StatusBadge>
-          ) : (
-            <AllFine shown={allFine} />
-          )
-        }
-        title={t("owner.title")}
-      />
+      <PageHeader description={t("identity.why")} title={t("identity.title")} />
 
-      <SummaryFigures figures={figures} />
-
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+      <div className="grid items-start gap-8 lg:grid-cols-[12rem_minmax(0,1fr)]">
+        <OnThisPage />
         <div className="flex min-w-0 flex-col gap-6">
-          <Section id="needs-you" title={t("owner.needsYou")}>
-            {allFine ? (
-              <EmptyState
-                bare
-                description={t("owner.allFineHint")}
-                icon={CircleCheck}
-                title={t("owner.allFine")}
-              />
-            ) : (
-              <NeedsYouTabs
-                chosen={needs}
-                needsYou={needsYou}
-                onChoose={(kind) =>
-                  navigate({
-                    replace: true,
-                    search: (was) => ({ ...was, needs: kind }),
-                  })
-                }
-                ventures={troubled}
-              />
-            )}
-          </Section>
-          <Section
-            description={t("owner.onTheFarmHint")}
-            title={t("owner.onTheFarm")}
-          >
-            <FarmToday
-              chosen={onFarm}
-              needsYou={needsYou}
-              onChoose={(kind) =>
-                navigate({
-                  replace: true,
-                  search: (was) => ({ ...was, onFarm: kind }),
-                })
-              }
-              tiles={tiles}
-            />
-          </Section>
-          <MoneyMonth />
-        </div>
-
-        <div className="grid min-w-0 items-start gap-6 md:grid-cols-2 xl:grid-cols-1">
-          <MilkPanel tiles={tiles} />
-          <HerdPanel
-            culled={tiles.culled}
-            died={tiles.died}
-            lostYear={tiles.lostYear}
+          <RegistrationNotices farm={farm} />
+          <ContactSection farm={farm} />
+          <RegistrationSection farm={farm} />
+          <Certificate
+            id="farm-certificate"
+            updatedAt={farm.certificateUpdatedAt}
           />
-          <CalfLossesSection />
-          <AdultDeathsSection />
-          <EarlyLossesSection />
-          <FatteningPanel />
-          <FeedPanel />
+          <FarmAccounts id="farm-accounts" />
+          <FarmParameters />
         </div>
       </div>
     </Page>
@@ -337,18 +318,7 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
 };
 
 export const Route = createFileRoute("/_authenticated/farm")({
-  beforeLoad: onlyFor("owner"),
-  component: OwnerHome,
-  // Which kind of decision the Owner was reading, and which part of the farm's day, so the page comes back as it was
-  // left — the two tabs each keep their own.
-  validateSearch: (
-    search: Record<string, unknown>
-  ): { needs?: DecisionKind; onFarm?: FarmTodayKind } => ({
-    ...(DECISION_KINDS.includes(search.needs as DecisionKind)
-      ? { needs: search.needs as DecisionKind }
-      : {}),
-    ...(FARM_TODAY_KINDS.includes(search.onFarm as FarmTodayKind)
-      ? { onFarm: search.onFarm as FarmTodayKind }
-      : {}),
-  }),
+  /** For those who run the farm: the Owner and the Farm Managers. */
+  beforeLoad: onlyFor("runsTheFarm"),
+  component: IdentityPage,
 });

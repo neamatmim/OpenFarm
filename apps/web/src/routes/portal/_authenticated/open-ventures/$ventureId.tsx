@@ -9,7 +9,7 @@ const TheOpenVenture = () => {
 };
 
 export const Route = createFileRoute(
-  "/portal/_authenticated/offers/$ventureId"
+  "/portal/_authenticated/open-ventures/$ventureId"
 )({
   component: TheOpenVenture,
 });

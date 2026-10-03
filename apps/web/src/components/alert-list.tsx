@@ -126,7 +126,7 @@ const TO_THE_MEDICINES: Place = {
 const TO_THE_BACKUPS: Place = {
   label: "alerts.openTheBackups",
   Way: ({ children }) => (
-    <Link className={LEADS_CLASS} to="/admin/backups">
+    <Link className={LEADS_CLASS} to="/backups">
       {children}
     </Link>
   ),
@@ -143,11 +143,7 @@ const PLACES = {
   sop_proposed: {
     label: "alerts.readTheProposals",
     Way: ({ children }) => (
-      <Link
-        className={LEADS_CLASS}
-        search={{ tab: "proposals" }}
-        to="/admin/sops"
-      >
+      <Link className={LEADS_CLASS} search={{ tab: "proposals" }} to="/sops">
         {children}
       </Link>
     ),
@@ -155,7 +151,7 @@ const PLACES = {
   sop_published: {
     label: "alerts.openTheProcedures",
     Way: ({ children }) => (
-      <Link className={LEADS_CLASS} to="/admin/sops">
+      <Link className={LEADS_CLASS} to="/sops">
         {children}
       </Link>
     ),
@@ -173,7 +169,7 @@ const PLACES = {
   low_stock: {
     label: "alerts.openTheStore",
     Way: ({ children }) => (
-      <Link className={LEADS_CLASS} to="/admin/feed">
+      <Link className={LEADS_CLASS} to="/feed">
         {children}
       </Link>
     ),
@@ -181,11 +177,7 @@ const PLACES = {
   feed_price_jump: {
     label: "alerts.openTheArrivals",
     Way: ({ children }) => (
-      <Link
-        className={LEADS_CLASS}
-        search={{ tab: "arrivals" }}
-        to="/admin/feed"
-      >
+      <Link className={LEADS_CLASS} search={{ tab: "arrivals" }} to="/feed">
         {children}
       </Link>
     ),
@@ -280,7 +272,7 @@ const WhereItLeads = ({
   }
   if (notice.kind === "still_here_after_eid") {
     return (
-      <Link className={LEADS_CLASS} to="/admin/eid-dates">
+      <Link className={LEADS_CLASS} to="/eid-dates">
         {t("alerts.openTheEids")}
       </Link>
     );
@@ -301,7 +293,7 @@ const WhereItLeads = ({
   }
   if (notice.kind === "store_shortfall") {
     return (
-      <Link className={LEADS_CLASS} search={{ tab: "counts" }} to="/admin/feed">
+      <Link className={LEADS_CLASS} search={{ tab: "counts" }} to="/feed">
         {t("alerts.openTheCounts")}
       </Link>
     );

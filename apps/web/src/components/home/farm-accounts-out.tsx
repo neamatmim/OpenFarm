@@ -55,7 +55,7 @@ export const FarmAccountsOutGroup = ({
           <Link
             className="after:absolute after:inset-0 hover:underline"
             hash="farm-accounts"
-            to="/admin/farm"
+            to="/farm"
           >
             {one.name}
           </Link>
@@ -70,7 +70,7 @@ export const FarmAccountsOutGroup = ({
       icon={Landmark}
       label={t("farmAccounts.outOnHome")}
       more={
-        <Link className={MORE_LINK} hash="farm-accounts" to="/admin/farm">
+        <Link className={MORE_LINK} hash="farm-accounts" to="/farm">
           {t("home.openList")}
         </Link>
       }

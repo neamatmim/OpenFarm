@@ -19,6 +19,7 @@ import { ProposalsTab } from "@/components/playbook/proposals-tab";
 import { SopEditor } from "@/components/playbook/sop-editor";
 import { StandardSops } from "@/components/playbook/standard-sops";
 import { useLanguage } from "@/i18n/language-provider";
+import { onlyFor } from "@/lib/guard";
 import { useRefused } from "@/lib/refused";
 import { emptySop } from "@/lib/sop-draft";
 import { orpc } from "@/utils/orpc";
@@ -306,7 +307,9 @@ const SopsPage = () => {
   );
 };
 
-export const Route = createFileRoute("/_authenticated/admin/sops")({
+export const Route = createFileRoute("/_authenticated/sops/")({
+  /** For those who run the farm: the Owner and the Farm Managers. */
+  beforeLoad: onlyFor("runsTheFarm"),
   component: SopsPage,
   /** Which tab, kept in the address so the page comes back as it was left. */
   validateSearch: (search: Record<string, unknown>): { tab?: Tab } =>

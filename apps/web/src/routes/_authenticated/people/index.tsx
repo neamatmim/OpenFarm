@@ -37,6 +37,7 @@ import {
 } from "@/components/people/people-types";
 import { roleKey } from "@/components/role-choice";
 import { useLanguage } from "@/i18n/language-provider";
+import { onlyFor } from "@/lib/guard";
 import { useInFlight } from "@/lib/in-flight";
 import { orpc } from "@/utils/orpc";
 
@@ -271,6 +272,8 @@ const PeoplePage = () => {
   );
 };
 
-export const Route = createFileRoute("/_authenticated/admin/people/")({
+export const Route = createFileRoute("/_authenticated/people/")({
+  /** For those who run the farm: the Owner and the Farm Managers. */
+  beforeLoad: onlyFor("runsTheFarm"),
   component: PeoplePage,
 });

@@ -132,7 +132,7 @@ const PersonName = ({
         className
       )}
       params={{ userId }}
-      to="/admin/people/$userId"
+      to="/people/$userId"
     >
       {name}
     </Link>

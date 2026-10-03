@@ -8,6 +8,7 @@ import { PageTabs } from "@/components/page-kit";
 import { CheckTab } from "@/components/sign-off/check-tab";
 import { LateTab } from "@/components/sign-off/late-tab";
 import { useLanguage } from "@/i18n/language-provider";
+import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
 
 const TABS = ["check", "review", "late"] as const;
@@ -70,7 +71,9 @@ const SignOffPage = () => {
   );
 };
 
-export const Route = createFileRoute("/_authenticated/admin/review-queue")({
+export const Route = createFileRoute("/_authenticated/review-queue")({
+  /** For those who run the farm: the Owner and the Farm Managers. */
+  beforeLoad: onlyFor("runsTheFarm"),
   component: SignOffPage,
   /** Which queue, kept in the address so the page comes back as it was left. */
   validateSearch: (search: Record<string, unknown>): { tab?: Tab } =>

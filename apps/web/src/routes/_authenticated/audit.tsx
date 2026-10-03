@@ -172,6 +172,6 @@ const AuditPage = () => {
   );
 };
 
-export const Route = createFileRoute("/_authenticated/admin/audit")({
+export const Route = createFileRoute("/_authenticated/audit")({
   component: AuditPage,
 });

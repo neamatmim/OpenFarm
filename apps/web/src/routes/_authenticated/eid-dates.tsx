@@ -35,6 +35,7 @@ import {
 } from "@/components/page";
 import { ConfirmDialog, RowMenu } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { onlyFor } from "@/lib/guard";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
@@ -329,6 +330,8 @@ const EidPage = () => {
   );
 };
 
-export const Route = createFileRoute("/_authenticated/admin/eid-dates")({
+export const Route = createFileRoute("/_authenticated/eid-dates")({
+  /** For those who run the farm: the Owner and the Farm Managers. */
+  beforeLoad: onlyFor("runsTheFarm"),
   component: EidPage,
 });

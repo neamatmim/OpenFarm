@@ -91,7 +91,7 @@ const RenewalRow = ({
             {said}
           </Link>
         ) : (
-          <Link className={ROW_LINK} to="/admin/farm">
+          <Link className={ROW_LINK} to="/farm">
             {said}
           </Link>
         )
@@ -187,11 +187,7 @@ const ProposalGroup = ({ needsYou, headless }: GroupProps) => {
       icon={BookOpenCheck}
       label={t("owner.proposals")}
       more={
-        <Link
-          className={MORE_LINK}
-          search={{ tab: "proposals" }}
-          to="/admin/sops"
-        >
+        <Link className={MORE_LINK} search={{ tab: "proposals" }} to="/sops">
           {t("home.openList")}
         </Link>
       }
@@ -202,7 +198,7 @@ const ProposalGroup = ({ needsYou, headless }: GroupProps) => {
             <Link
               className="hover:underline"
               search={{ tab: "proposals" }}
-              to="/admin/sops"
+              to="/sops"
             >
               {row.note || t("owner.noNote")}
             </Link>
@@ -239,7 +235,7 @@ const ReviewGroup = ({ needsYou, headless }: GroupProps) => {
         <Link
           className={MORE_LINK}
           search={{ tab: "review" }}
-          to="/admin/review-queue"
+          to="/review-queue"
         >
           {t("home.openList")}
         </Link>
@@ -262,7 +258,7 @@ const ReviewGroup = ({ needsYou, headless }: GroupProps) => {
                 <Link
                   className={ROW_LINK}
                   search={{ tab: "review" }}
-                  to="/admin/review-queue"
+                  to="/review-queue"
                 >
                   {said}
                 </Link>
@@ -333,7 +329,7 @@ const StoreCountGroup = ({ needsYou, headless }: GroupProps) => {
                   <Link
                     className={ROW_LINK}
                     search={{ tab: "counts" }}
-                    to="/admin/feed"
+                    to="/feed"
                   >
                     {t("owner.storeNotCounted")}
                   </Link>
@@ -357,7 +353,7 @@ const ApprovalGroup = ({ needsYou, headless }: GroupProps) => {
       icon={BadgeCheck}
       label={t("owner.approvals")}
       more={
-        <Link className={MORE_LINK} to="/admin/review-queue">
+        <Link className={MORE_LINK} to="/review-queue">
           {t("home.openList")}
         </Link>
       }
@@ -630,7 +626,7 @@ const FarmTodayList = ({
             <Link
               className={MORE_LINK}
               search={{ tab: "late" }}
-              to="/admin/review-queue"
+              to="/review-queue"
             >
               {t("home.openList")}
             </Link>
@@ -670,7 +666,7 @@ const FarmTodayList = ({
           icon={Wheat}
           label={t("home.lowStock")}
           more={
-            <Link className={MORE_LINK} to="/admin/feed">
+            <Link className={MORE_LINK} to="/feed">
               {t("home.openList")}
             </Link>
           }
@@ -678,7 +674,7 @@ const FarmTodayList = ({
             <QueueRow
               key={line.feedItemId}
               title={
-                <Link className={ROW_LINK} to="/admin/feed">
+                <Link className={ROW_LINK} to="/feed">
                   <LowStockWords line={line} />
                 </Link>
               }
