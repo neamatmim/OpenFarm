@@ -100,7 +100,7 @@ export const DoorScreen = ({
 
 /** What a row under a door's form leads to: another page, or another card of the same door. */
 type DoorRowGoesTo =
-  | { to: "/device" | "/portal/join"; onClick?: never }
+  | { to: "/shed-phone" | "/portal/join"; onClick?: never }
   | { onClick: () => void; to?: never };
 
 const ROW =
@@ -165,7 +165,7 @@ export const BackToSignIn = ({
   children,
   ...goes
 }: { children: ReactNode } & (
-  | { to: "/login" | "/portal/login"; onClick?: never }
+  | { to: "/sign-in" | "/portal/sign-in"; onClick?: never }
   | { onClick: () => void; to?: never }
 )) => {
   const className =

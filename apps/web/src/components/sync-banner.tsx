@@ -138,7 +138,7 @@ export const SyncBanner = () => {
   // A Shed Phone signs its person back in with a PIN; a personal phone signs in. Sending a
   // milker to the wrong one of those, with a morning's work in the queue, is the kind of
   // dead end that ends with the work being re-typed on paper.
-  const signBackIn = getDeviceToken() ? "/device" : "/login";
+  const signBackIn = getDeviceToken() ? "/shed-phone" : "/sign-in";
   // Being out of signal is normal on a farm, so the calm state is calm: only something the person must act on —
   // signed out, or work the farm sent back — is drawn as needing attention.
   const hasSentBack = sentBack > 0;

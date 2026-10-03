@@ -32,6 +32,6 @@ export const onlyFor =
       !isFor(audience, context.me.roles as readonly Role[]) ||
       (!visitors && onlyAsVisitor)
     ) {
-      throw redirect({ to: "/dashboard" });
+      throw redirect({ to: "/" });
     }
   };

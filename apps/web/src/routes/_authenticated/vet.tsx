@@ -305,7 +305,7 @@ export const Route = createFileRoute("/_authenticated/vet")({
    *  refuse them — a Diagnosis is not a permission the farm can grant. */
   beforeLoad: ({ context }) => {
     if (!context.me.roles.includes("vet")) {
-      throw redirect({ to: "/dashboard" });
+      throw redirect({ to: "/" });
     }
   },
   component: VetPage,

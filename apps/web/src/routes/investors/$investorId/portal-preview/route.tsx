@@ -70,23 +70,23 @@ export const Route = createFileRoute("/investors/$investorId/portal-preview")({
   // business reading an Investor's portal.
   beforeLoad: async ({ context }) => {
     if (getDeviceToken()) {
-      throw redirect({ to: "/dashboard" });
+      throw redirect({ to: "/" });
     }
     let session: Awaited<ReturnType<typeof getUser>> = null;
     try {
       session = await getUser();
     } catch {
-      throw redirect({ to: "/login" });
+      throw redirect({ to: "/sign-in" });
     }
     if (!session) {
-      throw redirect({ to: "/login" });
+      throw redirect({ to: "/sign-in" });
     }
     const me = await context.queryClient.fetchQuery({
       ...context.orpc.people.me.queryOptions(),
       staleTime: 0,
     });
     if (!me.roles.includes("owner")) {
-      throw redirect({ to: "/dashboard" });
+      throw redirect({ to: "/" });
     }
   },
   component: PreviewLayout,

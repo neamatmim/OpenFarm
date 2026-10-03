@@ -246,9 +246,9 @@ permanent redirect to the same page on the Investor address.
 **Check it:**
 
 - `curl -I https://investors.farm.example.com/` answers 302 to `/portal`.
-- `curl -I https://investors.farm.example.com/login` answers 404.
-- `curl -I https://farm.example.com/portal/login` answers 301 to the Investor address.
-- `curl -sI https://investors.farm.example.com/portal/login | grep -i content-security`
+- `curl -I https://investors.farm.example.com/sign-in` answers 404.
+- `curl -I https://farm.example.com/portal/sign-in` answers 301 to the Investor address.
+- `curl -sI https://investors.farm.example.com/portal/sign-in | grep -i content-security`
   shows a policy with `script-src 'self' 'nonce-…'`.
 - Sign in as the Owner on the farm's address and as an Investor on the Investor address in one
   browser: both stay signed in, because each name keeps its own cookie.

@@ -88,7 +88,7 @@ const UserMenu = () => {
             onClick={() => {
               void lockAndPutAway(queryClient);
               void lockOnTheFarm();
-              void navigate({ to: "/device" });
+              void navigate({ to: "/shed-phone" });
             }}
           >
             <Lock aria-hidden />
@@ -105,7 +105,7 @@ const UserMenu = () => {
 
   if (!session) {
     return (
-      <Link className={buttonVariants({ variant: "outline" })} to="/login">
+      <Link className={buttonVariants({ variant: "outline" })} to="/sign-in">
         {t("auth.signIn")}
       </Link>
     );

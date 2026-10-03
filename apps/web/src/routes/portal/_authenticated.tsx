@@ -20,17 +20,17 @@ export const Route = createFileRoute("/portal/_authenticated")({
     try {
       session = await getUser();
     } catch {
-      throw redirect({ to: "/portal/login" });
+      throw redirect({ to: "/portal/sign-in" });
     }
     if (!session) {
-      throw redirect({ to: "/portal/login" });
+      throw redirect({ to: "/portal/sign-in" });
     }
     const me = await context.queryClient.fetchQuery({
       ...context.orpc.people.me.queryOptions(),
       staleTime: 0,
     });
     if (!me.investor) {
-      throw redirect({ to: "/dashboard" });
+      throw redirect({ to: "/" });
     }
     // A sign-in lasts a working day: past it, the portal ends it and they sign in again, told why.
     try {
@@ -42,7 +42,7 @@ export const Route = createFileRoute("/portal/_authenticated")({
       if (wordOf(error) === "signed_in_too_long") {
         // What they read in that day goes with it (lib/ended-sign-in).
         await leaveTheEndedSignIn(context.queryClient);
-        throw redirect({ search: { ended: true }, to: "/portal/login" });
+        throw redirect({ search: { ended: true }, to: "/portal/sign-in" });
       }
       throw error;
     }

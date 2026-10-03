@@ -391,7 +391,7 @@ const PortalUserMenu = ({ name, phone }: { name: string; phone: string }) => {
           <DropdownMenuItem
             onClick={async () => {
               await signOutOfThisPhone(queryClient);
-              await navigate({ to: "/portal/login" });
+              await navigate({ to: "/portal/sign-in" });
             }}
             variant="destructive"
           >
@@ -423,7 +423,7 @@ const useLeaveWhenTheDayIsDone = () => {
         }
         const leave = async () => {
           await leaveTheEndedSignIn(queryClient);
-          await navigate({ search: { ended: true }, to: "/portal/login" });
+          await navigate({ search: { ended: true }, to: "/portal/sign-in" });
         };
         void leave();
       }),

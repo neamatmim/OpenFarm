@@ -147,11 +147,11 @@ beforeAll(async () => {
 
 describe("which address a request came to", () => {
   it("is the portal's only where it has one and the request names its host", () => {
-    expect(hostOf(`${PORTAL}/portal/login`, HOSTS)).toBe("portal");
-    expect(hostOf(`${FARM}/portal/login`, HOSTS)).toBe("farm");
-    expect(hostOf(`${PORTAL}/portal/login`, { farm: FARM, portal: null })).toBe(
-      "farm"
-    );
+    expect(hostOf(`${PORTAL}/portal/sign-in`, HOSTS)).toBe("portal");
+    expect(hostOf(`${FARM}/portal/sign-in`, HOSTS)).toBe("farm");
+    expect(
+      hostOf(`${PORTAL}/portal/sign-in`, { farm: FARM, portal: null })
+    ).toBe("farm");
   });
 });
 
@@ -203,7 +203,7 @@ describe("the door, once the password is right", () => {
     expect(turned).toMatchObject({
       status: 403,
       leftBehind: 0,
-      body: { code: WRONG_ADDRESS, address: `${PORTAL}/portal/login` },
+      body: { code: WRONG_ADDRESS, address: `${PORTAL}/portal/sign-in` },
     });
     expect(turned.body.message).toContain("investors.two-addresses.test");
     expect(turned.body.message).toMatch(/[ঀ-৿]/u);
@@ -221,7 +221,7 @@ describe("the door, once the password is right", () => {
       leftBehind: 0,
       body: {
         code: WRONG_ADDRESS,
-        address: `${new URL(FARM).origin}/login`,
+        address: `${new URL(FARM).origin}/sign-in`,
       },
     });
     expect(turned.body.message).toContain(new URL(FARM).host);

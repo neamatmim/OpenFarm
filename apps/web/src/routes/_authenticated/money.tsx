@@ -231,7 +231,7 @@ export const Route = createFileRoute("/_authenticated/money")({
     // Barn Staff never see money, and the Vet's is on the Vet's own screen.
     const { roles } = context.me;
     if (!(roles.includes("owner") || roles.includes("manager"))) {
-      throw redirect({ to: "/dashboard" });
+      throw redirect({ to: "/" });
     }
   },
   component: MoneyPage,

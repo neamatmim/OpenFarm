@@ -33,7 +33,7 @@ const JoinPage = () => {
       onSuccess: async () => {
         toast.success(t("join.joined"));
         queryClient.removeQueries({ queryKey: orpc.people.me.queryKey() });
-        await navigate({ to: "/dashboard" });
+        await navigate({ to: "/" });
       },
       onError: refused,
     })

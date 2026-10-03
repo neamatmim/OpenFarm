@@ -27,7 +27,7 @@ describe("the Investor address", () => {
   it("serves the portal's pages, its sign-in and its own calls", () => {
     for (const [path, method] of [
       ["/portal", "GET"],
-      ["/portal/login", "GET"],
+      ["/portal/sign-in", "GET"],
       ["/portal/agreements/abc", "GET"],
       ["/assets/index-abc.js", "GET"],
       ["/icon.svg", "GET"],
@@ -48,8 +48,8 @@ describe("the Investor address", () => {
 
   it("serves nothing else of the farm app", () => {
     for (const path of [
-      "/login",
-      "/dashboard",
+      "/sign-in",
+      "/work",
       "/investors/abc/portal-preview",
       "/api/auth/sign-up/email",
       "/api/auth/request-password-reset",
@@ -81,7 +81,7 @@ describe("the farm's address", () => {
   it("serves everything else as it always has, the Owner's Preview included", () => {
     for (const path of [
       "/",
-      "/dashboard",
+      "/work",
       "/investors/abc/portal-preview",
       "/api/rpc/portalPreview/me",
       "/portalish",
@@ -94,7 +94,7 @@ describe("the farm's address", () => {
     const one = { farm: FARM, portal: null };
 
     expect(
-      atTheWrongAddress(new Request(`${FARM}/portal/login`), one)
+      atTheWrongAddress(new Request(`${FARM}/portal/sign-in`), one)
     ).toBeNull();
   });
 });

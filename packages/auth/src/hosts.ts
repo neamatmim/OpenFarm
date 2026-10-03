@@ -48,8 +48,8 @@ export const originOf = (host: Host, hosts: Hosts = HOSTS): string =>
 
 /** Where each address's people sign in, as the page that turned them away links to it. */
 const SIGN_IN_PAGE: Record<Host, string> = {
-  farm: "/login",
-  portal: "/portal/login",
+  farm: "/sign-in",
+  portal: "/portal/sign-in",
 };
 
 /** The sign-in page of an address: where somebody who signed in at the other is sent. */
