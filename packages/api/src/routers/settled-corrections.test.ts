@@ -194,7 +194,7 @@ beforeAll(async () => {
     disposal: "buried",
   });
 
-  // The other goes to the haat on a Selling Trip and is sold there.
+  // The other goes to the livestock market on a Selling Trip and is sold there.
   const selling = await as("manager", "2048-02-18T05:00:00.000Z");
   const outing = await selling.client.sellingTrips.record({
     wentTo: `বিক্রির হাট ${suffix}`,

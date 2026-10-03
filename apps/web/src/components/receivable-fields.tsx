@@ -127,7 +127,7 @@ export const ReceivableOwed = ({
 
 /**
  * What the buyer being typed still owes the farm, said before anything more is sold to him on credit. Never a refusal:
- * the Manager at the haat decides, but decides knowing. Nothing for a buyer who owes nothing, or a name the farm does
+ * the Manager at the livestock market decides, but decides knowing. Nothing for a buyer who owes nothing, or a name the farm does
  * not know.
  */
 export const BuyerOwes = ({ name }: { name: string }) => {

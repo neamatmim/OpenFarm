@@ -6,7 +6,7 @@ import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
 /**
- * A Venture's bull sold for cash at the haat leaves her price in the hand that took it, as that Venture's money —
+ * A Venture's bull sold for cash at the livestock market leaves her price in the hand that took it, as that Venture's money —
  * counted with the hand, and not in the Venture Account — until a Handover deposits it there with its slip. The
  * Venture Account takes no cash and no bKash: what it holds is what the bank holds.
  */
@@ -36,7 +36,7 @@ const aBull = async (price: number) => {
   });
 };
 
-/** The Manager sells him at the haat. */
+/** The Manager sells him at the livestock market. */
 const sold = async (
   tagNumber: string,
   priceMoney: number,

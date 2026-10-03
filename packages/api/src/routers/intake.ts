@@ -44,7 +44,7 @@ const recordInput = z
     /** Who the farm bought it from. A name is enough; the rest is what anyone remembers. */
     seller: sellerInput,
     purchasePriceMoney: purchasePriceInput,
-    /** The toll the haat took on her, as its slip gives it. None at a farm-gate sale. */
+    /** The toll the livestock market took on her, as its slip gives it. None at a farm-gate sale. */
     hasilMoney: hasilInput.optional(),
     /** The outing she came home on, when the farm wrote one. */
     buyingTripId: z.string().optional(),
@@ -93,7 +93,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export const intakeRouter = {
   /**
    * What the farm's own buys of the last two months near this weight cost a kilo, beside the price being typed — the
-   * Manager's check against paying over the odds at the haat. The Owner's and the Manager's: they buy, and know the
+   * Manager's check against paying over the odds at the livestock market. The Owner's and the Manager's: they buy, and know the
    * prices already. Nothing where the farm bought none near her weight.
    */
   lastBuys: protectedProcedure
@@ -118,7 +118,7 @@ export const intakeRouter = {
 
   /**
    * The animals bought over the last year that died, were culled or were diagnosed within their first thirty days, by
-   * seller and by haat, the most lost first. The Owner's alone: a pattern to ask a trader about, never an accusation
+   * seller and by livestock market, the most lost first. The Owner's alone: a pattern to ask a trader about, never an accusation
    * written on the animal.
    */
   earlyLosses: protectedProcedure

@@ -12,22 +12,22 @@ import { createTestClient } from "../test/client";
 import { A_DEATH_PHOTO } from "../test/death-photo";
 import { appRouter } from "./index";
 
-// A finished Season opened out, for the Owner judging the buying: by haat, by trader, by breed, by the Weight Band her
+// A finished Season opened out, for the Owner judging the buying: by livestock market, by trader, by breed, by the Weight Band her
 // buying weight fell in, and each animal. Every line is the Season's own sum narrowed to its animals, the dead in, and
 // only ever a share — never a rate a year.
 //
 // Worked by hand. Eid-ul-Adha 2028 (6 May). The Farm's Rations are written for 150 to 250 kg and from 250, and one for
 // anything up to 400 kg — a bull of 200 kg fell in the narrower. The first and the last are retired since. All bought
 // on 1 January:
-// - A, at the Gabtoli haat from Karim, no breed written, 200 kg, ৳1,00,000 and ৳1,000 of Hasil; sold at Eid for
+// - A, at the Gabtoli livestock market from Karim, no breed written, 200 kg, ৳1,00,000 and ৳1,000 of Hasil; sold at Eid for
 //   ৳1,30,000.
-// - B, at the Gabtoli haat from Rahim, a Sahiwal, 280 kg, ৳1,20,000; sold at Eid for ৳1,50,000.
+// - B, at the Gabtoli livestock market from Rahim, a Sahiwal, 280 kg, ৳1,20,000; sold at Eid for ৳1,50,000.
 // - C, at the farm gate from Karim, a Sahiwal, 260 kg, ৳60,000; dead on 15 February.
 // A Venture bought V and W on its own Float the same day, for the same Eid. V stays the Venture's and sells at Eid for
 // ৳1,50,000: in no line of the Farm's. W, weighed at 300 kg on 1 March, the Farm buys from the Venture on 2 March at
 // ৳400 a kilo — ৳1,20,000 — into this Season, and sells at Eid for ৳1,40,000: +৳20,000, 16.7.
 // The Season cost ৳4,01,000 and brought back ৳4,20,000: ৳19,000, 4.7 on the hundred.
-// - By haat: Gabtoli (A, B) ৳2,21,000 → ৳2,80,000, +৳59,000, 26.7; the farm gate (C) ৳60,000 → nothing, −100; bought
+// - By livestock market: Gabtoli (A, B) ৳2,21,000 → ৳2,80,000, +৳59,000, 26.7; the farm gate (C) ৳60,000 → nothing, −100; bought
 //   from a Venture (W) 16.7.
 // - By trader: Karim (A, C) ৳1,61,000 → ৳1,30,000, −৳31,000, −19.3; Rahim (B) ৳1,20,000 → ৳1,50,000, 25; bought from a
 //   Venture (W) 16.7.
@@ -332,7 +332,7 @@ beforeAll(async () => {
   await sell(tags.w, 140_000);
 });
 
-type By = "haat" | "trader" | "breed" | "band" | "animal";
+type By = "livestockMarket" | "trader" | "breed" | "band" | "animal";
 
 const breakdown = async (by: By, seasonKey = "eid:2028-05-06") => {
   const { client: owner } = await as("owner", "2028-06-01T04:00:00.000Z");
@@ -356,8 +356,8 @@ const animalRow = (
 });
 
 describe("a finished Season opened out", () => {
-  it("by haat: her Buying Trip's haat, and the farm gate for one bought on none", async () => {
-    expect(await breakdown("haat")).toEqual([
+  it("by livestock market: her Buying Trip's livestock market, and the farm gate for one bought on none", async () => {
+    expect(await breakdown("livestockMarket")).toEqual([
       {
         line: { kind: "named", id: GABTOLI, name: GABTOLI, nameEn: null },
         head: 2,
@@ -498,7 +498,13 @@ describe("a finished Season opened out", () => {
       costMoney: 401_000,
       resultMoney: 19_000,
     });
-    for (const by of ["haat", "trader", "breed", "band", "animal"] as const) {
+    for (const by of [
+      "livestockMarket",
+      "trader",
+      "breed",
+      "band",
+      "animal",
+    ] as const) {
       // oxlint-disable-next-line no-await-in-loop -- five ways, read one after the other
       const lines = await breakdown(by);
       expect({
@@ -510,7 +516,13 @@ describe("a finished Season opened out", () => {
   });
 
   it("says a share on every line, and never a rate a year", async () => {
-    for (const by of ["haat", "trader", "breed", "band", "animal"] as const) {
+    for (const by of [
+      "livestockMarket",
+      "trader",
+      "breed",
+      "band",
+      "animal",
+    ] as const) {
       // oxlint-disable-next-line no-await-in-loop -- five ways, read one after the other
       const lines = await breakdown(by);
       for (const one of lines) {
@@ -524,7 +536,7 @@ describe("a finished Season opened out", () => {
 describe("what cannot be opened", () => {
   it("refuses a Season still going: it is no result to judge the buying by", async () => {
     await expect(
-      breakdown("haat", `window:${WINTER.start}|${WINTER.end}`)
+      breakdown("livestockMarket", `window:${WINTER.start}|${WINTER.end}`)
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
       data: { refusal: "season_not_finished" },
@@ -532,7 +544,9 @@ describe("what cannot be opened", () => {
   });
 
   it("says there is no such Season", async () => {
-    await expect(breakdown("haat", "eid:1999-01-01")).rejects.toMatchObject({
+    await expect(
+      breakdown("livestockMarket", "eid:1999-01-01")
+    ).rejects.toMatchObject({
       code: "NOT_FOUND",
     });
   });
@@ -540,7 +554,10 @@ describe("what cannot be opened", () => {
   it("is the Owner's alone", async () => {
     const { client: manager } = await as("manager", "2028-06-01T04:00:00.000Z");
     await expect(
-      manager.returns.breakdown({ seasonKey: "eid:2028-05-06", by: "haat" })
+      manager.returns.breakdown({
+        seasonKey: "eid:2028-05-06",
+        by: "livestockMarket",
+      })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

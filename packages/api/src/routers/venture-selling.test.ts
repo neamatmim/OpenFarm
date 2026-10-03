@@ -534,10 +534,10 @@ describe("selling a Venture's animals", () => {
   });
 });
 
-describe("the lorry that took them to the haat", () => {
+describe("the lorry that took them to the livestock market", () => {
   it("is charged to the animals it carried, by who owned them then", async () => {
     // The Farm pays the lorry and the men who went, as it pays the feed merchant — and the Venture
-    // pays it back at the end of the month, because getting its animals to the haat is its cost and
+    // pays it back at the end of the month, because getting its animals to the livestock market is its cost and
     // not the Farm's. Nothing else moves that money: the Buying Float was closed months ago.
     const manager = await as("manager", "2047-05-02T05:00:00.000Z");
     await manager.client.sellingTrips.record({

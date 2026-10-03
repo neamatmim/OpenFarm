@@ -123,7 +123,7 @@ const whatItsAnimalsConsumed = async (
           categories.map((one) => [one.id, { bn: one.nameBn, en: one.nameEn }])
         )
       ),
-      /** Where each outing went. One name, not two: a haat is called what it is called. A broker at a Sale is named by
+      /** Where each outing went. One name, not two: a livestock market is called what it is called. A broker at a Sale is named by
        *  the animal sold. */
       trips: named(
         consumed.madeOf.trips,

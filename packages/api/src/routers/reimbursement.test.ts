@@ -316,7 +316,7 @@ describe("the monthly Reimbursement", () => {
       balanceMoney: heldBefore - 2000,
       // Five lakh of cattle money, less the bull bought at the gate by bank.
       cattleBudgetHeldMoney: 440_000,
-      // Its own figure, and not folded into what the Venture spent at the haat: what it paid the Farm
+      // Its own figure, and not folded into what the Venture spent at the livestock market: what it paid the Farm
       // back is the question an Investor asks, and buying is a different one.
       reimbursedMoney: reimbursedBefore + 2000,
       spentMoney: spentBefore,

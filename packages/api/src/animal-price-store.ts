@@ -300,7 +300,7 @@ export const tellIfSoldUnderCost = async (
 
 /**
  * Tells the Owner, in the evening's post, of a fattening animal that lost more than the farm allows between her last
- * trusted weighing and the sale's scale — the lorry, the haat, a night without water, or a weight typed low. Never on a
+ * trusted weighing and the sale's scale — the lorry, the livestock market, a night without water, or a weight typed low. Never on a
  * weighing older than the farm trusts for it; a cow culled to a butcher is not asked about. About the Sale, once.
  */
 export const tellIfShrankTooMuch = async (

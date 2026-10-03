@@ -44,7 +44,7 @@ export const findExpectedGainProblems = ({
 
 /**
  * How long a bought-in bull takes to settle after he arrives, before what he gains says anything about his Ration. He
- * comes off a lorry and a haat having lost gut fill, and makes it back in his first days; and he is stepped up to
+ * comes off a lorry and a livestock market having lost gut fill, and makes it back in his first days; and he is stepped up to
  * grain over three weeks at least (Merck), eating the arrival Ration meanwhile. Not a Farm Parameter: it is a fact
  * about cattle, not about this farm (docs/research/expected-daily-gain.md).
  */

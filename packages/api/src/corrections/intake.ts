@@ -84,14 +84,14 @@ const windowShown = async (
   };
 
 /**
- * What an Intake's Correction may change: what the farm paid, the haat's toll on her, the outing she came
+ * What an Intake's Correction may change: what the farm paid, the livestock market's toll on her, the outing she came
  * home on, who sold the animal, how he was paid, and — for the Farm's own — the window she is sold in.
  */
 export const intakeCorrectionInput = correctionInput({
   purchasePriceMoney: changeOf(purchasePriceInput, z.number()),
   hasilMoney: changeOf(hasilInput, z.number()),
   buyingTrip: changeOf(z.string().nullable(), z.string().nullable()),
-  /** Whose animal she is. A slip at the haat is fixable here and nowhere else: once the window has
+  /** Whose animal she is. A slip at the livestock market is fixable here and nowhere else: once the window has
    *  closed, only an Internal Sale moves her between owners. */
   owner: changeOf(z.string().nullable(), z.string().nullable()),
   /** The window the Farm sells her in. A Venture's animal is sold in its Venture's, which only an Amendment moves; one

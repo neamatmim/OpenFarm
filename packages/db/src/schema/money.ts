@@ -313,11 +313,11 @@ export const handover = pgTable(
     /** The deposit slip or the cheque, where the bank is one end. */
     reference: text("reference"),
     note: text("note"),
-    /** The Farm's own Buying Trip this cash was for: its **Buying Float** handed out before the haat, or the cash
+    /** The Farm's own Buying Trip this cash was for: its **Buying Float** handed out before the livestock market, or the cash
      *  brought back when it was counted home. Nothing for cash passed for any other reason. */
     buyingTripId: text("buying_trip_id").references(() => buyingTrip.id),
     float: text("float", { enum: ["out", "back"] }),
-    /** The Venture Account a deposit went into: a Venture's sale cash, held in a hand since the haat, banked with its
+    /** The Venture Account a deposit went into: a Venture's sale cash, held in a hand since the livestock market, banked with its
      *  slip. Nothing for the Farm's own cash. */
     ventureId: text("venture_id").references(() => venture.id),
     /** The Farm Account at either bank end: cash deposited into it, drawn out of it, or bKash moved to the bank. */

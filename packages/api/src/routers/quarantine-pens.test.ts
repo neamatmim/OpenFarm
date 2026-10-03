@@ -9,7 +9,7 @@ import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 /**
- * A bull off a haat lorry may carry FMD or lumpy skin into a pen of thirty. The farm marks the Pens it keeps newcomers
+ * A bull off a livestock market lorry may carry FMD or lumpy skin into a pen of thirty. The farm marks the Pens it keeps newcomers
  * in as quarantine pens, and a bought animal comes into Quarantine only through one of them.
  */
 const suffix = `quarantine-pens-${Date.now()}`;

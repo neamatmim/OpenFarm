@@ -48,11 +48,11 @@ export const buyerInput = z.object({
 
 export const salePriceInput = z.number().min(0).max(100_000_000);
 
-/** What a broker at the haat took for one Sale, in taka. */
+/** What a broker at the livestock market took for one Sale, in taka. */
 export const brokerInput = z.number().int().min(0).max(1_000_000);
 
 /**
- * Books what the broker at the haat took for this Sale as the Sale now says it: out of the Farm's own purse, as a
+ * Books what the broker at the livestock market took for this Sale as the Sale now says it: out of the Farm's own purse, as a
  * Selling Trip is, and repaid by a Venture in its Reimbursement where she was its animal. Nothing where there was no
  * broker — unless one was booked before, which a Correction then puts right.
  */

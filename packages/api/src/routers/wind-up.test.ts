@@ -193,7 +193,7 @@ beforeAll(async () => {
     [tags[2] ?? "", 280],
   ]);
   await owner.client.ventures.startFattening({ id: ventureId });
-  // One sold at the haat inside the window, which is what puts the Venture into Selling — the state the
+  // One sold at the livestock market inside the window, which is what puts the Venture into Selling — the state the
   // whole wind-up flow happens in. Two are left for the clock to deal with.
   const manager = await as("manager", "2047-04-20T05:00:00.000Z");
   await manager.client.sale.record({
@@ -225,7 +225,7 @@ describe("the buy-back at wind-up", () => {
     const owner = await as("owner", "2047-05-09T04:00:00.000Z");
     const left = await owner.client.ventures.whatIsLeft({ ventureId });
     // The two still standing, with what each last weighed, so the Owner works the price out before she
-    // commits. The one already sold at the haat is not among them.
+    // commits. The one already sold at the livestock market is not among them.
     expect(left.windUpEndsOn).toBe("2047-05-19");
     expect(left.animals.map((one) => one.weightKg).toSorted()).toEqual([
       300, 320,

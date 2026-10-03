@@ -11,7 +11,7 @@ import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
 // A Sale that fetched less than she cost the farm, or less than her weight at the market's low price a kilo, is told to
-// the Owner in the evening's post. Never refused: a bull with a bad leg goes cheap, and the haat is the Manager's call.
+// the Owner in the evening's post. Never refused: a bull with a bad leg goes cheap, and the livestock market is the Manager's call.
 
 const suffix = `sold-under-${Date.now()}`;
 const WINDOW = {

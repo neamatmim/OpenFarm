@@ -132,7 +132,7 @@ const NOBODY: SignedFor = { units: 0, people: 0 };
  *  what it has paid out. Spending and payouts arrive with the buying and settlement work; they are read
  *  as nothing until then, so every reader is already right for the day they do. */
 export interface Held {
-  /** What Floats are out at the haat, unreconciled. Money the farm has let go of and not yet counted. */
+  /** What Floats are out at the livestock market, unreconciled. Money the farm has let go of and not yet counted. */
   openFloatMoney: number;
   capitalInMoney: number;
   /** Money in that is not its Investors' capital: what it was paid for an Animal it let go. */
@@ -145,7 +145,7 @@ export interface Held {
   spentMoney: number;
   /** What it has paid the Farm back for what its animals consumed: every **Reimbursement** added up.
    *  Its own line rather than part of what was spent, because the Farm paying for the feed all month
-   *  and taking it back once is a different question from what the Venture spent at the haat. */
+   *  and taking it back once is a different question from what the Venture spent at the livestock market. */
   reimbursedMoney: number;
   paidOutMoney: number;
   /** What the Farm paid in to carry its share of a loss the Settlement split. Its own line, because it is
@@ -191,7 +191,7 @@ export const windUpEndsOn = (targetWindowEnd: string, windUpDays: number) =>
  *
  * The budgets are a plan for the whole capital, so what has actually arrived is split in the same
  * proportion — a Venture half funded holds half of each, rather than a full Cattle Budget and nothing to
- * feed the animals with. After that the two are spent from separately, so a **Buying Float** to the haat
+ * feed the animals with. After that the two are spent from separately, so a **Buying Float** to the livestock market
  * takes nothing from the money that keeps the animals.
  *
  * Worked out here rather than inside the Venture's own view, because an Investor's progress statement
@@ -245,7 +245,7 @@ export const budgetsOf = (
 
 /**
  * What a Venture paid by the month has still to take of its signed Units' Cattle Parts: the buying waits on all of it,
- * because a lorry that goes to the haat on part of the cattle money buys a herd the plan was not for. Nothing for a
+ * because a lorry that goes to the livestock market on part of the cattle money buys a herd the plan was not for. Nothing for a
  * Venture paid before buying. A payment is never let past its Agreement's Cattle Part while the Venture is Open, so
  * what is short altogether is what the Agreements are short between them.
  */
@@ -424,14 +424,14 @@ const WHAT_IT_DOES = {
   capital_in: { line: "capitalInMoney", sign: 1, cattle: 0 },
   refund: { line: "refundedMoney", sign: 1, cattle: 0 },
   // A Float is money out of the account the moment it is drawn: it is in the Manager's hand at the
-  // haat, not in the bank, and it is cattle money — it buys cattle or it comes home again.
+  // livestock market, not in the bank, and it is cattle money — it buys cattle or it comes home again.
   float_out: { line: "spentMoney", sign: 1, cattle: 1 },
   // What came home is the same line and the same budget, moving the other way: the unspent part was
   // never spent, and it is cattle money still.
   float_back: { line: "spentMoney", sign: -1, cattle: -1 },
   // A bull bought with no outing, paid straight from the account: cattle money spent, as a Float's is.
   intake_out: { line: "spentMoney", sign: 1, cattle: 1 },
-  // An Animal taken on is bought with cattle money, exactly as one bought at the haat is; one let go
+  // An Animal taken on is bought with cattle money, exactly as one bought at the livestock market is; one let go
   // gives that money back, and it is the Venture's own proceeds rather than anybody's capital.
   internal_buy: { line: "spentMoney", sign: 1, cattle: 1 },
   internal_sell: { line: "proceedsMoney", sign: 1, cattle: -1 },
@@ -586,7 +586,7 @@ export const assertTripIsOpen = async (
 
 /**
  * What a Buying Float has to account for: the Animals it brought home for its Venture — each one's price
- * and the haat's toll on her — and the outing's own costs, the broker, the lorry and keeping the men.
+ * and the livestock market's toll on her — and the outing's own costs, the broker, the lorry and keeping the men.
  *
  * Whatever is left of the Float is the cash the Manager should be bringing back.
  */
@@ -1062,7 +1062,7 @@ export const bookSaleProceeds = async (
     priceMoney: number;
     soldAt: Date;
     /** What the movement is looked up by: the transfer's reference where she was paid for by bank, as the account's
-     *  statement reads it; otherwise her tag, for money that came off a buyer at the haat. */
+     *  statement reads it; otherwise her tag, for money that came off a buyer at the livestock market. */
     reference: string;
     /** Taken in cash: held in the hand that took it, and not in the account, until a deposit carries it there. */
     inCash?: boolean;
@@ -1278,7 +1278,7 @@ export const readVenture = async (tx: Tx, farmId: string, id: string) => {
 /**
  * A Venture keeping up with its own animals: the first of them sold is what makes it Selling.
  *
- * A fact rather than a chore — the Owner is not asked to remember, and the Manager selling at the haat
+ * A fact rather than a chore — the Owner is not asked to remember, and the Manager selling at the livestock market
  * is not asked to know whose animal she is selling. Nothing to do once it is already Selling, so a
  * second Sale writes no second event.
  */

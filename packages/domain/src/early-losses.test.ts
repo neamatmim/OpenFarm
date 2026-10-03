@@ -5,22 +5,32 @@ import { earlyLosses } from "./early-losses";
 const at = (day: string) => new Date(`${day}T06:00:00.000Z`);
 const stretch = { from: at("2026-01-01"), until: at("2027-01-01") };
 
-describe("early losses by seller and by haat", () => {
+describe("early losses by seller and by livestock market", () => {
   const bought = [
     {
       animalId: "a",
       seller: "করিম",
-      haat: "গাবতলী",
+      livestockMarket: "গাবতলী",
       arrivedAt: at("2026-03-01"),
     },
     {
       animalId: "b",
       seller: "করিম",
-      haat: "গাবতলী",
+      livestockMarket: "গাবতলী",
       arrivedAt: at("2026-03-01"),
     },
-    { animalId: "c", seller: "করিম", haat: null, arrivedAt: at("2026-03-01") },
-    { animalId: "d", seller: "রহিম", haat: "সাভার", arrivedAt: at("2026-03-01") },
+    {
+      animalId: "c",
+      seller: "করিম",
+      livestockMarket: null,
+      arrivedAt: at("2026-03-01"),
+    },
+    {
+      animalId: "d",
+      seller: "রহিম",
+      livestockMarket: "সাভার",
+      arrivedAt: at("2026-03-01"),
+    },
   ];
 
   it("counts a death, a cull and a Diagnosis within thirty days of arrival, the most lost first", () => {
@@ -47,7 +57,7 @@ describe("early losses by seller and by haat", () => {
         weighedShort: 0,
       },
     ]);
-    expect(losses.byHaat).toEqual([
+    expect(losses.byLivestockMarket).toEqual([
       {
         name: "গাবতলী",
         bought: 2,
@@ -62,7 +72,7 @@ describe("early losses by seller and by haat", () => {
   it("names nobody where nothing was lost early", () => {
     expect(earlyLosses(bought, [], [], stretch)).toEqual({
       bySeller: [],
-      byHaat: [],
+      byLivestockMarket: [],
     });
   });
 
@@ -75,7 +85,7 @@ describe("early losses by seller and by haat", () => {
     ) => ({
       animalId,
       seller,
-      haat: "হাটহাজারী",
+      livestockMarket: "হাটহাজারী",
       arrivedAt: at("2026-03-01"),
       arrivalKg: 280,
       firstWeighIn: { weightKg, at: at(day) },
@@ -92,7 +102,7 @@ describe("early losses by seller and by haat", () => {
         {
           animalId: "i",
           seller: "জব্বার",
-          haat: null,
+          livestockMarket: null,
           arrivedAt: at("2026-03-01"),
         },
       ],
@@ -110,7 +120,7 @@ describe("early losses by seller and by haat", () => {
         weighedShort: 2,
       },
     ]);
-    expect(losses.byHaat).toEqual([
+    expect(losses.byLivestockMarket).toEqual([
       expect.objectContaining({ name: "হাটহাজারী", weighedShort: 2 }),
     ]);
   });

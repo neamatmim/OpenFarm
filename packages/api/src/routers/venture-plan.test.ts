@@ -308,8 +308,8 @@ describe("a plan line's Breed", () => {
       transportMoney: 0,
       keepMoney: 0,
     });
-    const atTheHaat = await asOwner("2053-01-21T06:00:00.000Z");
-    await atTheHaat.ventures.drawFloat({
+    const atTheLivestockMarket = await asOwner("2053-01-21T06:00:00.000Z");
+    await atTheLivestockMarket.ventures.drawFloat({
       ventureId: id,
       buyingTripId: trip.id,
       amountMoney: 230_000,

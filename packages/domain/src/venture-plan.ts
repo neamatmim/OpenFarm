@@ -16,7 +16,7 @@ export interface PlanLine {
   toKg: number;
   buyMoneyPerKg: number;
   dailyGainKg: number;
-  /** The Breed it buys; nothing for whatever Breed the haat offers. */
+  /** The Breed it buys; nothing for whatever Breed the livestock market offers. */
   breedId: string | null;
 }
 

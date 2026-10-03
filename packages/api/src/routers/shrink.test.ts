@@ -100,7 +100,7 @@ beforeAll(async () => {
     animalTag: weighed,
     evidence: [320],
   });
-  // One lorry, both on it, both sold at the haat.
+  // One lorry, both on it, both sold at the livestock market.
   const selling = await as("manager");
   await selling.client.sellingTrips.record({
     wentTo: `ঈদের হাট ${suffix}`,

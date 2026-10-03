@@ -38,7 +38,7 @@ const setup = async () => {
         : {}),
     });
   const ours = [await bull(), await bull()];
-  // Sold early at the haats before Eid: a market of the Manager's own choosing.
+  // Sold early at the livestock markets before Eid: a market of the Manager's own choosing.
   const typed = await bull({ start: "2027-05-01", end: "2027-05-05" });
   const theVentures = await bull();
   const gone = await bull();

@@ -340,7 +340,7 @@ export const ventureReturns = async (
 
 /** The ways a finished Season opens out. */
 export const BREAKDOWNS = [
-  "haat",
+  "livestockMarket",
   "trader",
   "breed",
   "band",
@@ -349,9 +349,9 @@ export const BREAKDOWNS = [
 export type BreakdownBy = (typeof BREAKDOWNS)[number];
 
 /**
- * What one line of a breakdown is: a haat, a trader or a breed by its name; a Weight Band by its weights; one with none
+ * What one line of a breakdown is: a livestock market, a trader or a breed by its name; a Weight Band by its weights; one with none
  * of it written — the farm gate, no seller, no breed, no band her weight fell in; one who joined the Season other than
- * by Intake, who had no haat or trader; or one Animal, how she came and how she left.
+ * by Intake, who had no livestock market or trader; or one Animal, how she came and how she left.
  */
 export type BreakdownLine =
   | { kind: "named"; id: string; name: string; nameEn: string | null }
@@ -486,12 +486,12 @@ const bandLineOf = (
   return band ? { kind: "band", ...band } : NONE;
 };
 
-/** Where she was bought, or from whom: an Intake's haat, from her Buying Trip, or her seller. */
+/** Where she was bought, or from whom: an Intake's livestock market, from her Buying Trip, or her seller. */
 const boughtLineOf = (
-  by: "haat" | "trader",
+  by: "livestockMarket" | "trader",
   intake: BoughtOn | undefined
 ): BreakdownLine => {
-  if (by === "haat") {
+  if (by === "livestockMarket") {
     const wentTo = intake?.buyingTrip?.wentTo.trim();
     return wentTo
       ? { kind: "named", id: wentTo, name: wentTo, nameEn: null }
@@ -541,7 +541,7 @@ const lineOf = (
   if (by === "band") {
     return bandLineOf(came, intake, facts);
   }
-  // A haat and a trader are an Intake's: one who joined had neither, and says how she came instead.
+  // A livestock market and a trader are an Intake's: one who joined had neither, and says how she came instead.
   return came.how === "intake" ? boughtLineOf(by, intake) : { kind: came.how };
 };
 
@@ -576,7 +576,7 @@ const byLine = (a: BreakdownLine, b: BreakdownLine): number => {
 };
 
 /**
- * A finished Season opened out by haat, trader, breed, the Weight Band her buying weight fell in, or each Animal: every
+ * A finished Season opened out by livestock market, trader, breed, the Weight Band her buying weight fell in, or each Animal: every
  * line the Season's own sum narrowed to its Animals — what they cost, what came back, the dead in — so the lines add up
  * to the Season, each rounded to the taka as the Season is, so a line's paisa may put their sum a taka off it. A share
  * only: never put a year, because a year on a handful of animals leads the eye astray. Refused for a Season still

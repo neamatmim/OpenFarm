@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
-// What the farm's own recent buys near a weight cost a kilo, beside the price the Manager is typing at the haat.
+// What the farm's own recent buys near a weight cost a kilo, beside the price the Manager is typing at the livestock market.
 
 const suffix = `last-buys-${Date.now()}`;
 const NOW = "2082-03-20T06:00:00.000Z";

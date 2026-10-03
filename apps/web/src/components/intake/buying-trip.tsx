@@ -84,10 +84,13 @@ export const BuyingTripSheet = ({
       submitLabel={t("intake.recordTrip")}
       title={t("intake.groupTrip")}
     >
-      <FormField id="trip-haat" label={t("intake.tripHaat")}>
+      <FormField
+        id="trip-livestock-market"
+        label={t("intake.tripLivestockMarket")}
+      >
         <Input
           autoComplete="off"
-          id="trip-haat"
+          id="trip-livestock-market"
           onChange={(event) =>
             setOuting({ ...outing, wentTo: event.target.value })
           }

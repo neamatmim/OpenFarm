@@ -9,7 +9,7 @@ export interface IntakeFields {
   sellerPlace: string;
   sellerPhone: string;
   purchasePriceMoney: string;
-  /** The haat's toll on this beast, as its slip gives it. Blank at a farm-gate sale. */
+  /** The livestock market's toll on this beast, as its slip gives it. Blank at a farm-gate sale. */
   hasilMoney: string;
   /** The outing she came home on, chosen from the ones the farm has written up lately. Blank for an
    *  animal bought at the farm gate, or one nobody wrote a Trip for. */

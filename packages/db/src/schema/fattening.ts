@@ -70,8 +70,8 @@ export const intake = pgTable(
     buyingTripId: text("buying_trip_id").references(() => buyingTrip.id),
     /** What the farm paid, in taka. One of the two money events in a fattening animal's life. */
     purchasePriceMoney: numericMoney("purchase_price_money").notNull(),
-    /** The toll the haat took on this beast, as its slip gives it. Part of what she cost the farm and
-     *  charged to her alone, because a haat takes it per animal and often on her price. Zero for one
+    /** The toll the livestock market took on this beast, as its slip gives it. Part of what she cost the farm and
+     *  charged to her alone, because a livestock market takes it per animal and often on her price. Zero for one
      *  bought at the farm gate, and for one born here. */
     hasilMoney: numericMoney("hasil_money").notNull().default(0),
     /** What it weighed when it came off the lorry: the first point every gain is measured from. */
@@ -257,7 +257,7 @@ export const sale = pgTable(
     /** What the buyer still owed when she left — her **Receivable** at the gate. Nothing, for a buyer who paid in full, as
      *  every Sale before Receivable was written down did. Her Money Event is the price less this: only what was paid. */
     receivableMoney: numericMoney("receivable_money").notNull().default(0),
-    /** What the broker at the haat took for this one sale, paid by the Farm: her own selling cost, beside the Selling
+    /** What the broker at the livestock market took for this one sale, paid by the Farm: her own selling cost, beside the Selling
      *  Trip's share she carries. Nought where no broker was used. */
     brokerMoney: numericMoney("broker_money").notNull().default(0),
     /** The farm day ("YYYY-MM-DD") the buyer promised to pay what he still owed by. Always set when he owed
@@ -314,7 +314,7 @@ export const internalSale = pgTable(
       scale: 2,
     }).notNull(),
     priceMoney: numericMoney("price_money").notNull(),
-    /** Where the rate came from: the haat that morning, a buyer's offer, the last sale. */
+    /** Where the rate came from: the livestock market that morning, a buyer's offer, the last sale. */
     note: text("note").notNull(),
     soldOn: text("sold_on").notNull(),
     recordedBy: text("recorded_by").references(() => user.id),

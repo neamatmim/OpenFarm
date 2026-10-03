@@ -103,7 +103,7 @@ export const heldSalesOf = async (
 
 /**
  * Whose hand a cash record names, where the writer names one: the Owner may name any Owner or Manager — writing up the
- * Manager's haat sale that evening — and a Manager only their own; and only a hand that holds the farm's cash. Left
+ * Manager's livestock market sale that evening — and a Manager only their own; and only a hand that holds the farm's cash. Left
  * out, the writer's, as it has always been.
  */
 export const assertTheHand = async (
@@ -711,7 +711,7 @@ const assertTheAccountEnds = async (
 };
 
 /**
- * A Venture's sale cash banked: from the hand that took it at the haat into its Venture Account, with the slip. Each Sale
+ * A Venture's sale cash banked: from the hand that took it at the livestock market into its Venture Account, with the slip. Each Sale
  * must be that Venture's, held in that hand and not deposited before; the amount is theirs to the taka. Their `sale_in`
  * movements are written now, dated the day it went in and carrying the slip — the account holds what the bank holds.
  */

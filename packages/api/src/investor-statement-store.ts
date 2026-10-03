@@ -291,7 +291,7 @@ const KEEPING_THEM = new Set<ChargeWord>(["feed", "medicine", "vet", "herd"]);
  * when it ends. A progress sheet that totalled differently from the settlement sheet would be the farm
  * arguing with itself in front of the man whose money it is.
  *
- * Both purses, because the costing covers both: what the Venture's own Float paid at the haat, and what
+ * Both purses, because the costing covers both: what the Venture's own Float paid at the livestock market, and what
  * the Farm bought for the whole herd and is repaid for through the monthly **Reimbursement**. A sum off
  * the Venture's own Money Events alone would understate feed and medicine badly.
  */

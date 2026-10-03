@@ -78,7 +78,7 @@ const IntakeCorrection = ({
   const { t } = useLanguage();
   // The runs an animal may be moved onto. `ventures.running` is exactly the three states a Correction
   // may hand her to — buying, fattening, selling — and is the one Venture reading a Manager may make,
-  // which matters because putting a slip at the haat right is his to do.
+  // which matters because putting a slip at the livestock market right is his to do.
   const running = useQuery(orpc.ventures.running.queryOptions());
   const itsWindow = targetWindow(intake.targetWindow, {
     askedAfresh: owner !== null,

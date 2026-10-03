@@ -361,7 +361,7 @@ export const whatItWasCharged = (
   paidIn: readonly { kind: string; amountMoney: number }[]
 ) => {
   const charged = chargedTo(costs, ownedThenBy, ventureId);
-  // What it paid to take its Animals on: their price at the haat where its own Float bought them, and
+  // What it paid to take its Animals on: their price at the livestock market where its own Float bought them, and
   // what it paid another purse for one bought in.
   const purchaseMoney = roundMoney(
     sumOf(

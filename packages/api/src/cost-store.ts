@@ -421,7 +421,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
     })
   );
 
-  // The haat's toll on one beast, charged to her alone from the day she came off the lorry.
+  // The livestock market's toll on one beast, charged to her alone from the day she came off the lorry.
   const hasil: CostShare[] = animals.flatMap((one) =>
     one.intake && one.intake.hasilMoney > 0
       ? [
@@ -921,7 +921,7 @@ export const consumedBy = (
       feed: groupedLines(ofKind("feed")),
       medicine: groupedLines(ofKind("dose")),
       herd: groupedLines(ofKind("herd")),
-      /** Which outings, so the line reads "the haat at Gabtoli" rather than an id — and the broker at each Sale, by
+      /** Which outings, so the line reads "the livestock market at Gabtoli" rather than an id — and the broker at each Sale, by
        *  the Sale, so the lines add up to the trips' figure. */
       trips: groupedLines([
         ...ofKind("selling_trip"),

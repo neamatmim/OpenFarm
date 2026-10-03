@@ -183,7 +183,7 @@ const saleView = (
         // What her buyer still owed as she left, and the day he promised to pay it by: her Receivable at the gate.
         receivableMoney: row.receivableMoney,
         promisedBy: row.promisedBy,
-        /** What the broker at the haat took for this sale; nothing where none was used. */
+        /** What the broker at the livestock market took for this sale; nothing where none was used. */
         brokerMoney: row.brokerMoney,
         weightKg: Number(row.weightKg),
         destination: row.destination,

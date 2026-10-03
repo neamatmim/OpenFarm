@@ -12,7 +12,7 @@ import {
 } from "./holding";
 
 // Bull ১০১ comes off the lorry for the Farm on 4 January 2030 and is sold by Internal Sale to Venture v1 on the 20th,
-// saved at ten in the morning. He is v1's from the start of the 20th. Sold at the haat on 15 February.
+// saved at ten in the morning. He is v1's from the start of the 20th. Sold at the livestock market on 15 February.
 const arrived = new Date("2030-01-04T05:00:00.000Z");
 const saleDay = startOfFarmDay("2030-01-20");
 const sold = new Date("2030-02-15T05:00:00.000Z");

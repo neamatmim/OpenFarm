@@ -69,7 +69,7 @@ describe("a Selling Trip", () => {
 
     // Two of them sold; two came home. All four paid for their place on the lorry.
     const selling = await as("manager", "2041-03-06T04:00:00.000Z");
-    // Two of them sold at the haat; two came home again.
+    // Two of them sold at the livestock market; two came home again.
     await Promise.all(
       herd.slice(0, 2).map((tagNumber, which) =>
         selling.client.sale.record({
@@ -160,7 +160,7 @@ describe("a Selling Trip", () => {
     const manager = await as("manager", "2041-03-21T04:00:00.000Z");
     const one = await buy(manager);
     const two = await buy(manager);
-    // The Eid order: the bulls sell at the haat, and the day's costs are written up that evening.
+    // The Eid order: the bulls sell at the livestock market, and the day's costs are written up that evening.
     await manager.client.sale.record({
       tagNumber: one,
       buyer: { name: `ঈদের ক্রেতা ${suffix}` },

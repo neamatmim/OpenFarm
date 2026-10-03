@@ -45,7 +45,7 @@ const setup = async () => {
     paymentMethod: "bank",
   });
   // A bull bought for 30,000 with 900 of Hasil on him: over the threshold, and not yet approved. What the
-  // export shows is what the farm handed over at the haat — 30,900 — on one line, not two.
+  // export shows is what the farm handed over at the livestock market — 30,900 — on one line, not two.
   const bull = await manager.client.intake.record({
     penId: pen.id,
     sex: "male",

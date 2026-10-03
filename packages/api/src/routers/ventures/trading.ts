@@ -310,7 +310,7 @@ export const tradingProcedures = {
             });
           }
           if (to !== null) {
-            // The buyer pays out of what it holds for cattle, exactly as it would at the haat.
+            // The buyer pays out of what it holds for cattle, exactly as it would at the livestock market.
             const buyer = await ours(context, to);
             await assertCattleBudgetHolds(
               tx,
@@ -440,7 +440,7 @@ export const tradingProcedures = {
         },
         async (tx) => {
           // Behind the lock every count of a Venture's money takes, and everything the act turns on is
-          // read after it: one of them may be sold at the haat, or the Venture called off, between
+          // read after it: one of them may be sold at the livestock market, or the Venture called off, between
           // reading which are left and buying them.
           await lockTheFarm(tx, context.farm.id);
           await assertNotSettledUp(tx, context.farm.id, row.id);

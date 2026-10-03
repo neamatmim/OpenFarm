@@ -142,7 +142,7 @@ export const bookIntakeMoney = async (
   if (!row) {
     return;
   }
-  // What the farm handed over for her: the price and the haat's toll on her, which is not a second
+  // What the farm handed over for her: the price and the livestock market's toll on her, which is not a second
   // payment to a second party but part of what she cost.
   const priceMoney = row.purchasePriceMoney + row.hasilMoney;
   if (
@@ -189,7 +189,7 @@ export const assertTripIsOurs = async (
  * That an animal bought on a funded outing belongs to the purse that funded it: the Venture whose Float went, or the
  * Farm where the Owner handed the Farm's own.
  *
- * The Manager went to the haat with one purse's money, so every beast she brought home on that lorry
+ * The Manager went to the livestock market with one purse's money, so every beast she brought home on that lorry
  * was bought with it. One written down as another purse's would be an animal one purse paid for and
  * another owns — and the Float could never be made to balance again.
  */
@@ -221,7 +221,8 @@ export const assertSheBelongsWithTheFloat = async (
   }
   if (paidBy !== undefined && paidBy !== (ventureId ?? null)) {
     throw new ORPCError("BAD_REQUEST", {
-      message: "That outing went to the haat on another purse's money",
+      message:
+        "That outing went to the livestock market on another purse's money",
       data: { refusal: "not_whose_float_bought_her" },
     });
   }
@@ -412,5 +413,5 @@ export const assertVentureIsBuying = async (
   }
 };
 
-/** The haat's toll on one beast, as its slip gives it. Taka, like everything else the arrival cost. */
+/** The livestock market's toll on one beast, as its slip gives it. Taka, like everything else the arrival cost. */
 export const hasilInput = z.number().min(0).max(10_000_000);

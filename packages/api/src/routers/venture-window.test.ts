@@ -223,7 +223,7 @@ describe("a Correction and the window she is sold in", () => {
     });
   });
 
-  it("puts a Farm animal's window right, as any other slip at the haat", async () => {
+  it("puts a Farm animal's window right, as any other slip at the livestock market", async () => {
     const OTHER = { start: "2047-09-10", end: "2047-09-12" };
     const hers = await bull("2047-02-04T05:00:00.000Z", {
       targetWindowStart: FARMS.start,

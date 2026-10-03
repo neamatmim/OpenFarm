@@ -435,7 +435,7 @@ const buyOnTheVenture = async (
     venture.tags.push(bull.tag);
   }
   farm.clock.set(onFarm(on, "19:30"));
-  // What went to the haat and did not get spent goes back in the same evening, and the Float is closed.
+  // What went to the livestock market and did not get spent goes back in the same evening, and the Float is closed.
   // The beasts *and* the day itself came out of it — the broker, the lorry and keeping the men who went
   // — and the app refuses a count that does not balance to the taka, which is the whole point of it.
   const spentOnTheDay = day.brokerMoney + day.transportMoney + day.keepMoney;
@@ -537,7 +537,7 @@ const keepTheMonth = async (
   await readTheStatement(farm, venture, month, on);
 };
 
-/** Takes a Venture's animals to the haat and sells them, one after another over a few days. */
+/** Takes a Venture's animals to the livestock market and sells them, one after another over a few days. */
 const sellTheVenture = async (
   farm: Farm,
   herd: Herd,
@@ -840,7 +840,7 @@ const payTheMonthlyVenture = (
 
 /**
  * What happens to the two Ventures as the ninety days go by: quarantine ends, the month's paperwork is
- * kept, one Venture's animals go to the haat and its books are closed, and the Owner puts her own money
+ * kept, one Venture's animals go to the livestock market and its books are closed, and the Owner puts her own money
  * into the other when its Running Budget gets thin.
  */
 export const runTheVentures = (

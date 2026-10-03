@@ -3,7 +3,7 @@ import type { Side } from "./lifecycle";
 
 /**
  * Every kind of charge an Animal carries, as the costing shares them out: what she ate, the doses she was given, her
- * part of the Vet's fees for visits that named her, the Hasil the haat took on her, her part of the Buying Trip that
+ * part of the Vet's fees for visits that named her, the Hasil the livestock market took on her, her part of the Buying Trip that
  * brought her and the Selling Trips that took her, the broker's fee on her own Sale, and her part of the Herd Costs. The one list of them: a sum names
  * which of these it counts, and a new kind is added here once.
  */
@@ -27,7 +27,7 @@ export interface Charge {
   at: Date;
   /** Nought for a dose of something the farm had not bought by then, which is shown, never charged. */
   amount: number;
-  /** What it came from — the Feed Item, the medicine, the haat's Intake, the outing, the Category of a Herd Cost — so a
+  /** What it came from — the Feed Item, the medicine, the livestock market's Intake, the outing, the Category of a Herd Cost — so a
    *  sum can be read back as what it was made of. */
   fromId: string;
   /** Home-grown fodder with no price: how much of it there was. Nought for anything but feed. */

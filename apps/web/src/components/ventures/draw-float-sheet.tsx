@@ -25,7 +25,7 @@ const NOTHING_YET: Drawing = {
 };
 
 /**
- * The Buying Float: what the Manager takes to the haat, drawn from one Venture for one outing.
+ * The Buying Float: what the Manager takes to the livestock market, drawn from one Venture for one outing.
  *
  * The sheet says what the Cattle Budget is holding, because that is the figure the Owner is spending
  * against — the rest of the account is what keeps the animals she is about to buy.

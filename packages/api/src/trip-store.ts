@@ -100,7 +100,7 @@ export const fundedBy = async (
 
 /**
  * Moves what an outing cost into the purse of the Venture whose Float has just been drawn for it. Written up before the
- * Float went, as a day at the haat usually is, it was booked as the Farm's; the Float is what paid it. Only the purse
+ * Float went, as a day at the livestock market usually is, it was booked as the Farm's; the Float is what paid it. Only the purse
  * moves: the amount and whether it waits for the Owner stand as they were.
  */
 export const paidFromTheFloat = async (

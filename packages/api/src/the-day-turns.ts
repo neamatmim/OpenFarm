@@ -492,7 +492,7 @@ const tellAboutDosesNotPrescribed = async (context: Turning, now: Date) => {
 
 /**
  * Animals the round could not find: each told once to the Owner and the Manager, and pushed at once — an animal gone
- * in the night may be on a lorry to a haat by noon. Keyed on the first one told about, with the rest named in the event.
+ * in the night may be on a lorry to a livestock market by noon. Keyed on the first one told about, with the rest named in the event.
  */
 const tellAboutMissing = async (context: Turning, now: Date) => {
   const untold = await missingToTell(context.db, context.farm.id);

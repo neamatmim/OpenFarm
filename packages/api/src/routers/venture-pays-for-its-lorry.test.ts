@@ -5,7 +5,7 @@ import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
 /**
- * The lorry that takes a Venture's animals to the haat, and who ends up paying for it.
+ * The lorry that takes a Venture's animals to the livestock market, and who ends up paying for it.
  *
  * The Farm pays the lorry and the men who went, on the day. A **Buying Trip** comes back out of the
  * Buying Float the same evening; a **Selling Trip** happens long after that Float is shut, so it has to
@@ -14,7 +14,7 @@ import { appRouter } from "./index";
  * Account that the glossary says should read nothing.
  *
  * One run, all the way through, with nothing in it but what this needs: buy one bull, take him to the
- * haat, sell him, and try to shut the books.
+ * livestock market, sell him, and try to shut the books.
  */
 const suffix = `lorry-${Date.now()}`;
 
@@ -128,7 +128,7 @@ beforeAll(async () => {
   });
   await buying.client.ventures.startFattening({ id: ventureId });
 
-  // February: the lorry to the haat, and the bull sold off it.
+  // February: the lorry to the livestock market, and the bull sold off it.
   const selling = await as("manager", "2049-02-10T05:00:00.000Z");
   await selling.client.sellingTrips.record({
     wentTo: `বিক্রির হাট ${suffix}`,
@@ -150,7 +150,7 @@ beforeAll(async () => {
   });
 });
 
-describe("the lorry that took them to the haat", () => {
+describe("the lorry that took them to the livestock market", () => {
   it("is the whole of what February owes, and the Venture owes it", async () => {
     const owner = await as("owner", "2049-03-01T04:00:00.000Z");
     const month = await owner.client.ventures.consumption({
