@@ -20,7 +20,7 @@ export const readTheStatements = async (farm: Farm) => {
   await owner.farmAccounts.check({
     id,
     month: monthsBefore(farm.today, 3),
-    readBdt: 38_600,
+    readMoney: 38_600,
   });
   const agreeing = monthsBefore(farm.today, 2);
   const believed = await owner.farmAccounts.expectedAtMonthEnd({
@@ -30,7 +30,7 @@ export const readTheStatements = async (farm: Farm) => {
   await owner.farmAccounts.check({
     id,
     month: agreeing,
-    readBdt: believed.expectedBdt ?? 0,
+    readMoney: believed.expectedMoney ?? 0,
   });
   const short = monthsBefore(farm.today, 1);
   const books = await owner.farmAccounts.expectedAtMonthEnd({
@@ -40,7 +40,7 @@ export const readTheStatements = async (farm: Farm) => {
   await owner.farmAccounts.check({
     id,
     month: short,
-    readBdt: (books.expectedBdt ?? 0) - 1500,
+    readMoney: (books.expectedMoney ?? 0) - 1500,
     note: "স্টেটমেন্টে একটি দেড় হাজার টাকার জমা নেই — ম্যানেজারকে জিজ্ঞেস করেছি, এজেন্টের রসিদ খুঁজছে",
   });
 };

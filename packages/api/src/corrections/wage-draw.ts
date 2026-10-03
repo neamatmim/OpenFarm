@@ -37,7 +37,7 @@ const loadDraw = (tx: Tx, farmId: string, id: string) =>
  * paid, and the note.
  */
 export const wageDrawCorrectionInput = correctionInput({
-  amountBdt: changeOf(z.number().min(0).max(100_000_000), z.number()),
+  amountMoney: changeOf(z.number().min(0).max(100_000_000), z.number()),
   counterparty: changeOf(counterpartyInput, z.string()),
   drawnOn: changeOf(farmDay, z.string()),
   paymentMethod: paymentMethodChange,
@@ -46,10 +46,10 @@ export const wageDrawCorrectionInput = correctionInput({
   note: changeOf(noteInput.nullable(), z.string().nullable()),
 });
 
-const refusedTaken = (takenBdt: number, message: string) =>
+const refusedTaken = (takenMoney: number, message: string) =>
   new ORPCError("BAD_REQUEST", {
     message,
-    data: { refusal: "draw_already_taken", takenBdt },
+    data: { refusal: "draw_already_taken", takenMoney },
   });
 
 /**
@@ -70,7 +70,7 @@ export const wageDrawCorrection: CorrectionKind<
   entry: (row) => ({ enteredAt: row.recordedAt, enteredBy: row.recordedBy }),
   shown: async (tx, row) => ({
     farmAccount: await farmAccountShownOf(tx, row.farmId, "wage_draw", row.id),
-    amountBdt: row.amountBdt,
+    amountMoney: row.amountMoney,
     counterparty: row.person.name,
     drawnOn: farmDayOf(row.drawnAt),
     paymentMethod: await paymentMethodOf(tx, row.farmId, "wage_draw", row.id),
@@ -79,16 +79,16 @@ export const wageDrawCorrection: CorrectionKind<
   shownAs: { counterparty: (to) => to.name },
   trail: (tx, row) => readWageDraw(tx, row.id),
   apply: async (tx, row, to, { context, now }) => {
-    const takenBdt = await takenOffDraw(tx, row.id);
-    if (to.amountBdt !== undefined && to.amountBdt < takenBdt) {
+    const takenMoney = await takenOffDraw(tx, row.id);
+    if (to.amountMoney !== undefined && to.amountMoney < takenMoney) {
       throw refusedTaken(
-        takenBdt,
+        takenMoney,
         "A payday has already taken more of this draw than that"
       );
     }
-    if (to.counterparty !== undefined && takenBdt > 0) {
+    if (to.counterparty !== undefined && takenMoney > 0) {
       throw refusedTaken(
-        takenBdt,
+        takenMoney,
         "A payday has already taken some of this draw; it stays that person's"
       );
     }
@@ -98,9 +98,9 @@ export const wageDrawCorrection: CorrectionKind<
         : await counterpartyNamed(tx, row.farmId, to.counterparty, now);
     const drawnAt =
       to.drawnOn === undefined ? row.drawnAt : enteredOn(to.drawnOn, now);
-    const amountBdt = to.amountBdt ?? row.amountBdt;
+    const amountMoney = to.amountMoney ?? row.amountMoney;
     const putRight = {
-      ...(to.amountBdt === undefined ? {} : { amountBdt }),
+      ...(to.amountMoney === undefined ? {} : { amountMoney }),
       ...(to.counterparty === undefined ? {} : { counterpartyId }),
       ...(to.drawnOn === undefined ? {} : { drawnAt }),
       ...(to.note === undefined ? {} : { note: to.note }),
@@ -120,7 +120,7 @@ export const wageDrawCorrection: CorrectionKind<
         source: "wage_draw",
         sourceId: row.id,
         categoryKey: "wages",
-        amountBdt,
+        amountMoney,
         occurredAt: drawnAt,
         counterpartyId,
         paymentMethod: to.paymentMethod,

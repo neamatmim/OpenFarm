@@ -13,22 +13,22 @@ import { sweptUp } from "./settlement-store";
  * The Owner's decision (2026-09-20) was that the Farm sweeps it, on the line that already carries the
  * other remainder — the taka the per-Unit flooring leaves behind.
  */
-const SPLIT = { roundingBdt: 5.64, farmBdt: 81_708.36 };
+const SPLIT = { roundingMoney: 5.64, farmMoney: 81_708.36 };
 
 describe("the remainder a settled account is left holding", () => {
   it("joins the one the flooring already left, and goes to the Farm", () => {
     const swept = sweptUp(SPLIT, 0.01);
 
-    expect(swept.roundingBdt).toBe(5.65);
-    expect(swept.farmBdt).toBe(81_708.37);
+    expect(swept.roundingMoney).toBe(5.65);
+    expect(swept.farmMoney).toBe(81_708.37);
   });
 
   it("takes it the other way when the two roundings went the other way", () => {
     // The gap could as easily be the other sign, and then the Farm is a paisa short rather than over.
     const swept = sweptUp(SPLIT, -0.01);
 
-    expect(swept.roundingBdt).toBe(5.63);
-    expect(swept.farmBdt).toBe(81_708.35);
+    expect(swept.roundingMoney).toBe(5.63);
+    expect(swept.farmMoney).toBe(81_708.35);
   });
 
   it("leaves a whole taka alone, because that is not rounding", () => {

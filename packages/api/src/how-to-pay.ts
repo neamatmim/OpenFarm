@@ -15,14 +15,14 @@ import { accountOf, paidForBy, takenAgainst } from "./venture-store";
 
 /** "How to pay" on one Agreement, while it is owed anything; the account is null until the Owner has written it. */
 export interface HowToPay {
-  owedBdt: number;
+  owedMoney: number;
   payInCode: string;
   decideBy: string;
   account: VentureAccount | null;
   /** Paid by the month, once the buying has started: what has fallen due and is not yet paid, and the next sum — its
    *  day and what his Units pay on it. Nothing while the Venture gathers its capital, which is paid by the decision
    *  date like any other. */
-  monthly: { dueBdt: number; next: MonthlySum | null } | null;
+  monthly: { dueMoney: number; next: MonthlySum | null } | null;
 }
 
 /**
@@ -40,8 +40,8 @@ export const howToPay = async (
     VentureRow,
     | "state"
     | "capitalPaid"
-    | "unitPriceBdt"
-    | "cattlePartBdt"
+    | "unitPriceMoney"
+    | "cattlePartMoney"
     | "monthlySums"
     | "firstSumDueOn"
     | "decideBy"
@@ -64,11 +64,11 @@ export const howToPay = async (
   if (!agreement) {
     return null;
   }
-  const paidBdt = await takenAgainst(db, farmId, agreementId);
+  const paidMoney = await takenAgainst(db, farmId, agreementId);
   // What he may pay now: his Units' whole price, or — for a Venture paid by the month, still gathering — their Cattle
   // Part, since a taka of the Monthly Sums sent early would be refused at the bank's own door.
-  const owedBdt = capitalItMayHold(agreement.units, run) - paidBdt;
-  if (owedBdt <= 0) {
+  const owedMoney = capitalItMayHold(agreement.units, run) - paidMoney;
+  if (owedMoney <= 0) {
     return null;
   }
   const { monthly } = paidForBy(run);
@@ -76,17 +76,19 @@ export const howToPay = async (
   const standing = running
     ? sumsStandingOf({
         units: agreement.units,
-        unitPriceBdt: run.unitPriceBdt,
+        unitPriceMoney: run.unitPriceMoney,
         monthly,
-        paidBdt,
+        paidMoney,
         today,
       })
     : null;
   return {
-    owedBdt,
+    owedMoney,
     payInCode: agreement.payInCode,
     decideBy: run.decideBy,
     account: accountOf(run),
-    monthly: standing ? { dueBdt: standing.dueBdt, next: standing.next } : null,
+    monthly: standing
+      ? { dueMoney: standing.dueMoney, next: standing.next }
+      : null,
   };
 };

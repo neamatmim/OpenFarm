@@ -110,7 +110,7 @@ const signAndPay = async (
     investorsPercent: 60,
     arbitrator: `সালিস ${suffix}`,
     stampKind: "paper",
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2054-01-02",
     stampSerial: `S-${phone}`,
   });
@@ -121,7 +121,7 @@ const signAndPay = async (
   });
   await owner.ventures.takeCapital({
     agreementId: signed.id,
-    amountBdt: units * 50_000,
+    amountMoney: units * 50_000,
     movedOn: "2054-01-03",
     paymentMethod: "bank",
     reference: `TRF-${phone}`,
@@ -140,14 +140,14 @@ beforeAll(async () => {
   });
   const venture = await owner.ventures.open({
     name: `ভেঞ্চার ${suffix}`,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2054-01-20",
     targetWindowStart: "2054-03-17",
     targetWindowEnd: "2054-03-19",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
-    cattleBudgetBdt: 800_000,
+    cattleBudgetMoney: 800_000,
   });
   const his = await signAndPay(venture.id, "রহিম", `0176${suffix}`, 3, {
     nid: NID,
@@ -208,11 +208,11 @@ describe("an Investor's portfolio", () => {
       expect.objectContaining({
         id: hisAgreement,
         units: 3,
-        capitalHeldBdt: 150_000,
+        capitalHeldMoney: 150_000,
       }),
     ]);
     expect(
-      theirs.movements.map((one) => [one.kind, one.amountBdt, one.reference])
+      theirs.movements.map((one) => [one.kind, one.amountMoney, one.reference])
     ).toEqual([["capital_in", 150_000, `TRF-0176${suffix}`]]);
     expect(JSON.stringify(theirs)).not.toContain(hersAgreement);
   });

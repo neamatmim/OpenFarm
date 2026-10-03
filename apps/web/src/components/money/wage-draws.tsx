@@ -71,7 +71,7 @@ const DrawDialog = ({
       onSubmit={() =>
         drawWage.mutate({
           counterparty: { name: name.trim() },
-          amountBdt: Number(amount),
+          amountMoney: Number(amount),
           drawnOn: day,
           paymentMethod,
           ...accountSent(paymentMethod, account),
@@ -143,7 +143,7 @@ export const DrawCorrection = ({
 }: {
   draw: {
     id: string;
-    amountBdt: number;
+    amountMoney: number;
     name: string;
     drawnAt: Date | string;
     paymentMethod: PaymentMethod;
@@ -154,7 +154,7 @@ export const DrawCorrection = ({
   const { t } = useLanguage();
   const answers: Answers = {
     // Nothing is a real answer: it takes the draw back.
-    amountBdt: figure(draw.amountBdt),
+    amountMoney: figure(draw.amountMoney),
     counterparty: counterparty(draw.name),
     drawnOn: farmDayAnswer(draw.drawnAt),
     paymentMethod: choice(draw.paymentMethod),
@@ -180,9 +180,9 @@ export const DrawCorrection = ({
       <CorrectionAnswer
         inputMode="numeric"
         label={t("cash.amount")}
-        onChange={(value) => correcting.set("amountBdt", value)}
+        onChange={(value) => correcting.set("amountMoney", value)}
         type="number"
-        value={correcting.typed.amountBdt ?? ""}
+        value={correcting.typed.amountMoney ?? ""}
       />
       <CorrectionAnswer
         label={t("byHand.wagePerson")}
@@ -249,7 +249,7 @@ export const WageDrawsTab = () => {
                 <span className="flex items-baseline justify-between gap-3">
                   <span className="font-medium">{person.name}</span>
                   <span className="font-semibold tabular-nums">
-                    {taka(person.openBdt)}
+                    {taka(person.openMoney)}
                   </span>
                 </span>
                 <ul className="flex flex-col gap-1">
@@ -259,7 +259,7 @@ export const WageDrawsTab = () => {
                       key={one.id}
                     >
                       <span>
-                        {`${formatDate(new Date(one.drawnAt), language, "date")} · ${taka(one.openBdt)}`}
+                        {`${formatDate(new Date(one.drawnAt), language, "date")} · ${taka(one.openMoney)}`}
                         {one.note ? ` · ${one.note}` : ""}
                       </span>
                       <DrawCorrection draw={{ ...one, name: person.name }} />
@@ -282,10 +282,10 @@ export const WageDrawsTab = () => {
  */
 export const WageDrawsNote = ({
   name,
-  wageBdt,
+  wageMoney,
 }: {
   name: string;
-  wageBdt: number;
+  wageMoney: number;
 }) => {
   const { t } = useLanguage();
   const taka = useTaka();
@@ -294,17 +294,19 @@ export const WageDrawsNote = ({
   if (!person) {
     return null;
   }
-  const taken = Math.min(person.openBdt, Math.max(0, wageBdt));
-  const carried = person.openBdt - taken;
+  const taken = Math.min(person.openMoney, Math.max(0, wageMoney));
+  const carried = person.openMoney - taken;
   const carriesOver = carried > 0;
   return (
     <p className="bg-muted rounded-md px-3 py-2 text-sm tabular-nums">
       {t("wageDraw.atPayday", {
-        owed: taka(person.openBdt),
+        owed: taka(person.openMoney),
         taken: taka(taken),
-        paid: taka(Math.max(0, wageBdt - taken)),
+        paid: taka(Math.max(0, wageMoney - taken)),
       })}
-      {carriesOver ? ` ${t("wageDraw.carried", { bdt: taka(carried) })}` : ""}
+      {carriesOver
+        ? ` ${t("wageDraw.carried", { amount: taka(carried) })}`
+        : ""}
     </p>
   );
 };

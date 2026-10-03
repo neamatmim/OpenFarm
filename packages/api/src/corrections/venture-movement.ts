@@ -27,7 +27,7 @@ const findMovement = (tx: Tx, farmId: string, id: string) =>
       internalSaleId: true,
       saleId: true,
       intakeId: true,
-      amountBdt: true,
+      amountMoney: true,
       movedOn: true,
       reference: true,
     },
@@ -151,7 +151,7 @@ const loadMovement = async (tx: Tx, farmId: string, id: string) => {
  * movement deleted in all but the row.
  */
 export const ventureMovementCorrectionInput = correctionInput({
-  amountBdt: changeOf(amountInput, z.number()),
+  amountMoney: changeOf(amountInput, z.number()),
   movedOn: changeOf(farmDay, z.string()),
   reference: changeOf(z.string().trim().min(1).max(120), z.string()),
 });
@@ -178,7 +178,7 @@ const assertTheFigureIsHersToChange = (row: MovementRow) => {
 const assertWithinItsUnits = async (
   tx: Tx,
   row: MovementRow,
-  amountBdt: number
+  amountMoney: number
 ) => {
   if (row.kind !== "capital_in" || !row.agreementId) {
     return;
@@ -192,8 +192,8 @@ const assertWithinItsUnits = async (
     columns: {
       state: true,
       capitalPaid: true,
-      unitPriceBdt: true,
-      cattlePartBdt: true,
+      unitPriceMoney: true,
+      cattlePartMoney: true,
     },
   });
   const paid = await tx.query.ventureMovement.findMany({
@@ -203,15 +203,15 @@ const assertWithinItsUnits = async (
       kind: "capital_in",
       id: { ne: row.id },
     },
-    columns: { amountBdt: true },
+    columns: { amountMoney: true },
   });
   // Its Units' whole price, or their Cattle Part while a Venture paid by the month gathers its capital — as the payment
   // itself was held to.
   const units = agreement?.units ?? 0;
   const owed = plan ? capitalItMayHold(units, plan) : 0;
-  const cattlePartOnly = plan ? owed < units * plan.unitPriceBdt : false;
-  const already = paid.reduce((sum, one) => sum + one.amountBdt, 0);
-  if (already + amountBdt > owed) {
+  const cattlePartOnly = plan ? owed < units * plan.unitPriceMoney : false;
+  const already = paid.reduce((sum, one) => sum + one.amountMoney, 0);
+  if (already + amountMoney > owed) {
     throw refuse(
       `This Agreement is for ${owed - already} more taka`,
       cattlePartOnly ? "capital_over_cattle_part" : "capital_over_units"
@@ -245,18 +245,18 @@ export const ventureMovementCorrection: CorrectionKind<
   entry: null,
   shown: (_tx, row) =>
     Promise.resolve({
-      amountBdt: row.amountBdt,
+      amountMoney: row.amountMoney,
       movedOn: row.movedOn,
       reference: row.reference,
     }),
   trail: (tx, row) => readMovement(tx, row.farmId, row.id),
   apply: async (tx, row, to) => {
-    if (to.amountBdt !== undefined) {
+    if (to.amountMoney !== undefined) {
       assertTheFigureIsHersToChange(row);
-      await assertWithinItsUnits(tx, row, to.amountBdt);
+      await assertWithinItsUnits(tx, row, to.amountMoney);
     }
     const putRight = {
-      ...(to.amountBdt === undefined ? {} : { amountBdt: to.amountBdt }),
+      ...(to.amountMoney === undefined ? {} : { amountMoney: to.amountMoney }),
       ...(to.movedOn === undefined ? {} : { movedOn: to.movedOn }),
       ...(to.reference === undefined ? {} : { reference: to.reference }),
     };

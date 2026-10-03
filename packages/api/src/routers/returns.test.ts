@@ -27,7 +27,7 @@ const buyer = {
   phone: "+8801711000056",
 };
 
-const sell = async (tagNumber: string, on: string, priceBdt: number) => {
+const sell = async (tagNumber: string, on: string, priceMoney: number) => {
   const { client } = await as("manager", `${on}T00:00:00.000Z`);
   await client.sale.record({
     tagNumber,
@@ -35,7 +35,7 @@ const sell = async (tagNumber: string, on: string, priceBdt: number) => {
     destination: "গাবতলী পশুর হাট",
     vehicle: "ঢাকা মেট্রো-ট ১১-২২৩৪",
     driver: "সোহেল",
-    priceBdt,
+    priceMoney,
     weightKg: 300,
   });
 };
@@ -48,14 +48,18 @@ beforeAll(async () => {
     shedId: shed.id,
     name: `মোটাতাজা ${suffix}`,
   });
-  const bought = async (on: string, purchasePriceBdt: number, hasilBdt = 0) => {
+  const bought = async (
+    on: string,
+    purchasePriceMoney: number,
+    hasilMoney = 0
+  ) => {
     const { client } = await as("manager", `${on}T00:00:00.000Z`);
     return await client.intake.record({
       penId: pen.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
-      purchasePriceBdt,
-      hasilBdt,
+      purchasePriceMoney,
+      hasilMoney,
       weightKg: 220,
       estimatedAgeMonths: 20,
       arrivedAt: new Date(`${on}T00:00:00Z`),
@@ -86,7 +90,7 @@ beforeAll(async () => {
       penId: pen.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
-      purchasePriceBdt: 70_000,
+      purchasePriceMoney: 70_000,
       weightKg: 200,
       estimatedAgeMonths: 18,
       arrivedAt: new Date("2028-10-01T00:00:00Z"),
@@ -104,7 +108,7 @@ beforeAll(async () => {
     penId: pen.id,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 100_000,
+    purchasePriceMoney: 100_000,
     weightKg: 250,
     estimatedAgeMonths: 24,
     arrivedAt: new Date("2028-11-01T00:00:00Z"),
@@ -125,9 +129,9 @@ describe("what a Season of the Farm's own cattle returned", () => {
       head: 3,
       died: 1,
       returnOnCost: {
-        costBdt: 241_000,
-        backBdt: 250_000,
-        resultBdt: 9000,
+        costMoney: 241_000,
+        backMoney: 250_000,
+        resultMoney: 9000,
         per100: 3.7,
         averageDays: 74,
         perYear: 18.5,
@@ -304,31 +308,31 @@ describe("a Season still going, at today's price", () => {
     // money has been out since 1 October: 101 days on 10 January.
     const { client: owner } = await as("owner", "2029-01-10T04:00:00.000Z");
     await owner.fattening.setMarketPrice({
-      lowBdtPerKg: 500,
-      highBdtPerKg: 600,
+      lowMoneyPerKg: 500,
+      highMoneyPerKg: 600,
     });
     const { client: reading } = await as("owner", "2029-01-10T04:00:00.000Z");
     const { seasons } = await reading.returns.page();
     const going = seasons.find((one) => one.eid === "2029-04-25");
     expect(going?.gaps).toEqual([]);
     expect(going?.running).toEqual({
-      soldCostBdt: 0,
-      soldResultBdt: 0,
-      standingCostBdt: 140_000,
-      standingLowBdt: 200_000,
-      standingHighBdt: 240_000,
+      soldCostMoney: 0,
+      soldResultMoney: 0,
+      standingCostMoney: 140_000,
+      standingLowMoney: 200_000,
+      standingHighMoney: 240_000,
       low: {
-        costBdt: 140_000,
-        backBdt: 200_000,
-        resultBdt: 60_000,
+        costMoney: 140_000,
+        backMoney: 200_000,
+        resultMoney: 60_000,
         per100: 42.9,
         averageDays: 101,
         perYear: null,
       },
       high: {
-        costBdt: 140_000,
-        backBdt: 240_000,
-        resultBdt: 100_000,
+        costMoney: 140_000,
+        backMoney: 240_000,
+        resultMoney: 100_000,
         per100: 71.4,
         averageDays: 101,
         perYear: null,
@@ -358,8 +362,8 @@ describe("a Season still going with one bull sold and one standing", () => {
     // ৳90,000; one standing, worth ৳1,00,000 to ৳1,20,000 at the market's ৳500–600 a kilo.
     const { client: owner } = await as("owner", "2029-01-01T00:00:00.000Z");
     await owner.fattening.setMarketPrice({
-      lowBdtPerKg: 500,
-      highBdtPerKg: 600,
+      lowMoneyPerKg: 500,
+      highMoneyPerKg: 600,
     });
     const shed = await owner.herd.createShed({ name: `২০৩০ ${suffix}` });
     const pen = await owner.herd.createPen({
@@ -373,7 +377,7 @@ describe("a Season still going with one bull sold and one standing", () => {
         penId: pen.id,
         sex: "male",
         seller: { name: `ব্যাপারী ${suffix}` },
-        purchasePriceBdt: 70_000,
+        purchasePriceMoney: 70_000,
         weightKg: 200,
         estimatedAgeMonths: 18,
         arrivedAt: new Date("2029-01-01T00:00:00Z"),
@@ -393,23 +397,23 @@ describe("a Season still going with one bull sold and one standing", () => {
     const going = seasons.find((one) => one.eid === "2030-04-14");
     expect(going?.gaps).toEqual([]);
     expect(going?.running).toEqual({
-      soldCostBdt: 70_000,
-      soldResultBdt: 20_000,
-      standingCostBdt: 70_000,
-      standingLowBdt: 100_000,
-      standingHighBdt: 120_000,
+      soldCostMoney: 70_000,
+      soldResultMoney: 20_000,
+      standingCostMoney: 70_000,
+      standingLowMoney: 100_000,
+      standingHighMoney: 120_000,
       low: {
-        costBdt: 140_000,
-        backBdt: 190_000,
-        resultBdt: 50_000,
+        costMoney: 140_000,
+        backMoney: 190_000,
+        resultMoney: 50_000,
         per100: 35.7,
         averageDays: 7,
         perYear: null,
       },
       high: {
-        costBdt: 140_000,
-        backBdt: 210_000,
-        resultBdt: 70_000,
+        costMoney: 140_000,
+        backMoney: 210_000,
+        resultMoney: 70_000,
         per100: 50,
         averageDays: 7,
         perYear: null,

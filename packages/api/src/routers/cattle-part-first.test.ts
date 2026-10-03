@@ -21,14 +21,14 @@ type Owner = Awaited<ReturnType<typeof asOwner>>;
 
 // A Unit of fifty thousand: forty thousand of cattle money, then 2,500 on the 10th, February to May.
 const TERMS = {
-  targetCapitalBdt: 1_000_000,
-  floorBdt: 0,
+  targetCapitalMoney: 1_000_000,
+  floorMoney: 0,
   decideBy: "2074-01-20",
   targetWindowStart: "2074-06-01",
   targetWindowEnd: "2074-06-10",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 20,
-  cattleBudgetBdt: 800_000,
+  cattleBudgetMoney: 800_000,
 };
 
 let phones = 0;
@@ -46,7 +46,7 @@ const signed = async (owner: Owner, ventureId: string, units: number) => {
     units,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2074-01-03",
     stampSerial: `CP ${phones} ${suffix}`,
   });
@@ -58,13 +58,13 @@ const signed = async (owner: Owner, ventureId: string, units: number) => {
   return agreement.id;
 };
 
-const pay = async (owner: Owner, agreementId: string, amountBdt: number) =>
+const pay = async (owner: Owner, agreementId: string, amountMoney: number) =>
   await owner.ventures.takeCapital({
     agreementId,
-    amountBdt,
+    amountMoney,
     movedOn: "2074-01-05",
     paymentMethod: "bank",
-    reference: `TRF-${agreementId.slice(-6)}-${amountBdt}`,
+    reference: `TRF-${agreementId.slice(-6)}-${amountMoney}`,
   });
 
 const listed = async (owner: Owner, id: string) => {
@@ -107,7 +107,7 @@ describe("a Venture paid by the month, while it gathers its capital", () => {
 
     const papers = await owner.ventures.agreements({ ventureId: monthly });
 
-    const left = new Map(papers.map((one) => [one.id, one.capitalLeftBdt]));
+    const left = new Map(papers.map((one) => [one.id, one.capitalLeftMoney]));
     expect(left.get(tenUnits)).toBe(0);
     // Three Units' cattle money is 1,20,000; a lakh is in.
     expect(left.get(threeUnits)).toBe(20_000);
@@ -117,7 +117,7 @@ describe("a Venture paid by the month, while it gathers its capital", () => {
     const owner = await asOwner();
 
     const venture = await listed(owner, monthly);
-    expect(venture?.cattleMoneyShortBdt).toBe(20_000);
+    expect(venture?.cattleMoneyShortMoney).toBe(20_000);
     await expect(
       owner.ventures.startBuying({ id: monthly })
     ).rejects.toMatchObject({ data: { refusal: "cattle_money_short" } });
@@ -131,7 +131,7 @@ describe("a Venture paid by the month, while it gathers its capital", () => {
       owner.ventures.correctMovement({
         id,
         reason: `বেশি লিখতে চাই ${suffix}`,
-        changes: { amountBdt: { from: 10_000, to: 30_000 } },
+        changes: { amountMoney: { from: 10_000, to: 30_000 } },
       })
     ).rejects.toMatchObject({ data: { refusal: "capital_over_cattle_part" } });
   });
@@ -143,15 +143,15 @@ describe("a Venture paid by the month, once every Cattle Part is in", () => {
     await pay(owner, threeUnits, 10_000);
 
     const allIn = await listed(owner, monthly);
-    expect(allIn?.cattleMoneyShortBdt).toBe(0);
+    expect(allIn?.cattleMoneyShortMoney).toBe(0);
     await owner.ventures.startBuying({ id: monthly });
 
     const venture = await listed(owner, monthly);
     // Five lakh twenty thousand in, every taka of it the signed Units' Cattle Parts.
     expect(venture).toMatchObject({
       state: "buying",
-      cattleBudgetHeldBdt: 520_000,
-      runningBudgetHeldBdt: 0,
+      cattleBudgetHeldMoney: 520_000,
+      runningBudgetHeldMoney: 0,
     });
   });
 
@@ -160,21 +160,21 @@ describe("a Venture paid by the month, once every Cattle Part is in", () => {
     const trip = await owner.trips.record({
       wentTo: `হাট ${suffix}`,
       wentOn: "2074-01-05",
-      brokerBdt: 0,
-      transportBdt: 0,
-      keepBdt: 0,
+      brokerMoney: 0,
+      transportMoney: 0,
+      keepMoney: 0,
     });
     // A lakh of the five lakh twenty thousand its signed Units' Cattle Parts brought in.
     await owner.ventures.drawFloat({
       ventureId: monthly,
       buyingTripId: trip.id,
-      amountBdt: 100_000,
+      amountMoney: 100_000,
       movedOn: "2074-01-05",
       paymentMethod: "bank",
       reference: `FLT-${suffix}`,
     });
     const venture = await listed(owner, monthly);
-    expect(venture?.cattleBudgetHeldBdt).toBe(420_000);
+    expect(venture?.cattleBudgetHeldMoney).toBe(420_000);
   });
 });
 
@@ -189,13 +189,13 @@ describe("a Venture paid before buying", () => {
     await pay(owner, paper, 300_000);
 
     const partPaid = await listed(owner, id);
-    expect(partPaid?.cattleMoneyShortBdt).toBe(0);
+    expect(partPaid?.cattleMoneyShortMoney).toBe(0);
     await owner.ventures.startBuying({ id });
 
     // Eighty per cent of it for cattle, as the plan is: 2,40,000 and 60,000.
     expect(await listed(owner, id)).toMatchObject({
-      cattleBudgetHeldBdt: 240_000,
-      runningBudgetHeldBdt: 60_000,
+      cattleBudgetHeldMoney: 240_000,
+      runningBudgetHeldMoney: 60_000,
     });
   });
 });
@@ -203,7 +203,7 @@ describe("a Venture paid before buying", () => {
 describe("a Venture paid by the month and its Floor", () => {
   const withTheFarmsFloor = async (owner: Owner, name: string) => {
     // No Floor of its own: the farm's percentage of the capital, which is more than the Cattle Parts can ever hold.
-    const { floorBdt: _none, ...rest } = TERMS;
+    const { floorMoney: _none, ...rest } = TERMS;
     const { id } = await owner.ventures.open({
       name: `${name} ${suffix}`,
       ...rest,

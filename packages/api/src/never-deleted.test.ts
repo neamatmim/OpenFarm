@@ -34,14 +34,14 @@ describe("a ledger row's parent, deleted", () => {
     });
     const opened = await client.ventures.open({
       name: `ভেঞ্চার ${suffix}`,
-      targetCapitalBdt: 1_000_000,
-      floorBdt: 0,
+      targetCapitalMoney: 1_000_000,
+      floorMoney: 0,
       decideBy: "2092-02-20",
       targetWindowStart: "2092-06-01",
       targetWindowEnd: "2092-06-05",
-      unitPriceBdt: 50_000,
+      unitPriceMoney: 50_000,
       units: 20,
-      cattleBudgetBdt: 800_000,
+      cattleBudgetMoney: 800_000,
     });
     // A plan and nothing more: before, deleting the Venture took its plan with it, unasked.
     await client.ventures.setPlan({
@@ -51,12 +51,12 @@ describe("a ledger row's parent, deleted", () => {
           animals: 10,
           fromKg: 200,
           toKg: 250,
-          buyBdtPerKg: 500,
+          buyMoneyPerKg: 500,
           dailyGainKg: 0.8,
         },
       ],
-      saleLowBdtPerKg: 550,
-      saleHighBdtPerKg: 600,
+      saleLowMoneyPerKg: 550,
+      saleHighMoneyPerKg: 600,
     });
     expect(
       await refusedCode(

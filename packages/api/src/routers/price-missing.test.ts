@@ -66,7 +66,11 @@ const fedOn = async (
   });
 };
 
-const reimburse = async (instant: string, month: string, amountBdt: number) => {
+const reimburse = async (
+  instant: string,
+  month: string,
+  amountMoney: number
+) => {
   const owner = await as("owner", instant);
   return await owner.client.ventures.reimburse({
     ventureId,
@@ -74,7 +78,7 @@ const reimburse = async (instant: string, month: string, amountBdt: number) => {
     movedOn: instant.slice(0, 10),
     paymentMethod: "bank",
     reference: `REI-${month}-${suffix}`,
-    amountBdt,
+    amountMoney,
   });
 };
 
@@ -82,19 +86,19 @@ beforeAll(async () => {
   const owner = await as("owner", "2077-01-01T04:00:00.000Z");
   const venture = await owner.client.ventures.open({
     name: `ভেঞ্চার ${suffix}`,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2077-01-01",
     targetWindowStart: "2077-09-01",
     targetWindowEnd: "2077-09-05",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
-    cattleBudgetBdt: 800_000,
+    cattleBudgetMoney: 800_000,
   });
   ventureId = venture.id;
   await putCapitalIn(
     owner.client,
-    { id: ventureId, units: 20, unitPriceBdt: 50_000 },
+    { id: ventureId, units: 20, unitPriceMoney: 50_000 },
     suffix,
     "2077-01-01"
   );
@@ -145,7 +149,7 @@ beforeAll(async () => {
     penId,
     sex: "male",
     seller: { name: `প্রতিবেশী ${suffix}` },
-    purchasePriceBdt: 60_000,
+    purchasePriceMoney: 60_000,
     weightKg: 200,
     estimatedAgeMonths: 20,
     arrivedAt: new Date("2077-01-02T05:00:00.000Z"),
@@ -164,7 +168,7 @@ describe("a month with a price missing", () => {
     });
     expect(january).toMatchObject({ unpricedKg: 20, uncostedDoses: 0 });
     await expect(
-      reimburse("2077-02-02T04:00:00.000Z", "2077-01", january.totalBdt)
+      reimburse("2077-02-02T04:00:00.000Z", "2077-01", january.totalMoney)
     ).rejects.toMatchObject({
       data: { refusal: "a_price_is_missing", unpricedKg: 20 },
     });
@@ -178,7 +182,7 @@ describe("a month with a price missing", () => {
       feedItemId: grassId,
       kind: "purchase",
       quantity: 100,
-      priceBdt: 500,
+      priceMoney: 500,
       seller: { name: `ঘাসওয়ালা ${suffix}` },
       receivedOn: "2077-01-01",
     });
@@ -188,13 +192,13 @@ describe("a month with a price missing", () => {
       month: "2077-01",
     });
     expect(january.unpricedKg).toBe(0);
-    expect(january.totalBdt).toBeGreaterThan(0);
+    expect(january.totalMoney).toBeGreaterThan(0);
     const taken = await reimburse(
       "2077-02-04T04:00:00.000Z",
       "2077-01",
-      january.totalBdt
+      january.totalMoney
     );
-    expect(taken.totalBdt).toBe(january.totalBdt);
+    expect(taken.totalMoney).toBe(january.totalMoney);
   });
 
   it("waits for the one feed nothing can price, though the rest of the month has a price", async () => {
@@ -228,10 +232,10 @@ describe("a month with a price missing", () => {
       month: "2077-02",
     });
     // The grass has a figure; the straw has none, and repaying the month now would leave it out for good.
-    expect(february.totalBdt).toBeGreaterThan(0);
+    expect(february.totalMoney).toBeGreaterThan(0);
     expect(february).toMatchObject({ unpricedKg: 5 });
     await expect(
-      reimburse("2077-03-02T04:00:00.000Z", "2077-02", february.totalBdt)
+      reimburse("2077-03-02T04:00:00.000Z", "2077-02", february.totalMoney)
     ).rejects.toMatchObject({
       data: { refusal: "a_price_is_missing", unpricedKg: 5 },
     });

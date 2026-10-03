@@ -67,7 +67,7 @@ const setup = async () => {
       penId: pen.id,
       sex: "male",
       seller: { name: `হাট ${suffix}` },
-      purchasePriceBdt: 90_000,
+      purchasePriceMoney: 90_000,
       weightKg: 200,
       estimatedAgeMonths: 22,
       targetWindowStart: "2027-05-17",

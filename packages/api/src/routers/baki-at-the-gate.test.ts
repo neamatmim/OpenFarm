@@ -35,7 +35,7 @@ const buy = async (instant: string, ventureFor?: string) => {
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 80_000,
+    purchasePriceMoney: 80_000,
     weightKg: 250,
     estimatedAgeMonths: 20,
     arrivedAt: new Date(instant),
@@ -63,7 +63,7 @@ const bookedFor = async (sourceId: string) => {
 const saleRow = async (id: string) =>
   await scratchDb().query.sale.findFirst({
     where: { id },
-    columns: { priceBdt: true, bakiBdt: true, promisedBy: true },
+    columns: { priceMoney: true, bakiMoney: true, promisedBy: true },
   });
 
 beforeAll(async () => {
@@ -77,17 +77,17 @@ beforeAll(async () => {
   penId = pen.id;
   const venture = await owner.client.ventures.open({
     name: `ভেঞ্চার ${suffix}`,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2048-03-02",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
     ...WINDOW,
   });
   // Capital in first: a bull at the gate is paid from what the account holds.
   await putCapitalIn(
     owner.client,
-    { id: venture.id, units: 20, unitPriceBdt: 50_000 },
+    { id: venture.id, units: 20, unitPriceMoney: 50_000 },
     `venture ${suffix}`,
     "2048-03-01"
   );
@@ -114,18 +114,18 @@ describe("a bull sold on Baki", () => {
     const sold = await manager.client.sale.record({
       tagNumber: bull.tagNumber,
       ...aTrader,
-      priceBdt: 120_000,
-      paidNowBdt: 100_000,
+      priceMoney: 120_000,
+      paidNowMoney: 100_000,
       promisedBy: "2048-03-17",
     });
     expect(await saleRow(sold.id)).toEqual({
-      priceBdt: 120_000,
-      bakiBdt: 20_000,
+      priceMoney: 120_000,
+      bakiMoney: 20_000,
       promisedBy: "2048-03-17",
     });
     const booked = await bookedFor(sold.id);
     expect(booked).toHaveLength(1);
-    expect(booked[0]).toMatchObject({ amountBdt: 100_000, direction: "in" });
+    expect(booked[0]).toMatchObject({ amountMoney: 100_000, direction: "in" });
   });
 
   it("books nothing when he took her all on Baki", async () => {
@@ -134,11 +134,11 @@ describe("a bull sold on Baki", () => {
     const sold = await manager.client.sale.record({
       tagNumber: bull.tagNumber,
       ...aTrader,
-      priceBdt: 110_000,
-      paidNowBdt: 0,
+      priceMoney: 110_000,
+      paidNowMoney: 0,
       promisedBy: "2048-03-20",
     });
-    expect(await saleRow(sold.id)).toMatchObject({ bakiBdt: 110_000 });
+    expect(await saleRow(sold.id)).toMatchObject({ bakiMoney: 110_000 });
     expect(await bookedFor(sold.id)).toHaveLength(0);
   });
 
@@ -148,35 +148,35 @@ describe("a bull sold on Baki", () => {
     const sold = await manager.client.sale.record({
       tagNumber: bull.tagNumber,
       ...aTrader,
-      priceBdt: 115_000,
+      priceMoney: 115_000,
     });
     expect(await saleRow(sold.id)).toEqual({
-      priceBdt: 115_000,
-      bakiBdt: 0,
+      priceMoney: 115_000,
+      bakiMoney: 0,
       promisedBy: null,
     });
     const [booked] = await bookedFor(sold.id);
-    expect(booked).toMatchObject({ amountBdt: 115_000 });
+    expect(booked).toMatchObject({ amountMoney: 115_000 });
   });
 
   it("refuses more paid than the price, a Baki with no promise, and a promise before she left", async () => {
     const bull = await buy("2048-03-02T04:30:00.000Z");
     const manager = await as("manager", "2048-03-10T06:30:00.000Z");
-    const sell = (more: { paidNowBdt?: number; promisedBy?: string }) =>
+    const sell = (more: { paidNowMoney?: number; promisedBy?: string }) =>
       manager.client.sale.record({
         tagNumber: bull.tagNumber,
         ...aTrader,
-        priceBdt: 100_000,
+        priceMoney: 100_000,
         ...more,
       });
-    await expect(sell({ paidNowBdt: 100_001 })).rejects.toMatchObject({
+    await expect(sell({ paidNowMoney: 100_001 })).rejects.toMatchObject({
       data: { refusal: "paid_more_than_price" },
     });
-    await expect(sell({ paidNowBdt: 50_000 })).rejects.toMatchObject({
+    await expect(sell({ paidNowMoney: 50_000 })).rejects.toMatchObject({
       data: { refusal: "baki_needs_a_promise" },
     });
     await expect(
-      sell({ paidNowBdt: 50_000, promisedBy: "2048-03-09" })
+      sell({ paidNowMoney: 50_000, promisedBy: "2048-03-09" })
     ).rejects.toMatchObject({
       data: { refusal: "promise_before_it_left" },
     });
@@ -196,8 +196,8 @@ describe("a Venture's bull", () => {
       manager.client.sale.record({
         tagNumber: bull.tagNumber,
         ...aTrader,
-        priceBdt: 125_000,
-        paidNowBdt: 100_000,
+        priceMoney: 125_000,
+        paidNowMoney: 100_000,
         promisedBy: "2048-03-18",
       })
     ).rejects.toMatchObject({ data: { refusal: "venture_paid_in_full" } });
@@ -209,10 +209,10 @@ describe("a Venture's bull", () => {
     const sold = await manager.client.sale.record({
       tagNumber: bull.tagNumber,
       ...aTrader,
-      priceBdt: 125_000,
-      paidNowBdt: 125_000,
+      priceMoney: 125_000,
+      paidNowMoney: 125_000,
     });
-    expect(await saleRow(sold.id)).toMatchObject({ bakiBdt: 0 });
+    expect(await saleRow(sold.id)).toMatchObject({ bakiMoney: 0 });
   });
 
   it("is refused a Correction that would leave her buyer owing", async () => {
@@ -221,19 +221,19 @@ describe("a Venture's bull", () => {
     const sold = await manager.client.sale.record({
       tagNumber: bull.tagNumber,
       ...aTrader,
-      priceBdt: 118_000,
+      priceMoney: 118_000,
     });
     await expect(
       manager.client.sale.correct({
         id: sold.id,
         reason: "পুরো টাকা দেয়নি",
         changes: {
-          paidNowBdt: { from: 118_000, to: 90_000 },
+          paidNowMoney: { from: 118_000, to: 90_000 },
           promisedBy: { from: null, to: "2048-03-20" },
         },
       })
     ).rejects.toMatchObject({ data: { refusal: "venture_paid_in_full" } });
-    expect(await saleRow(sold.id)).toMatchObject({ bakiBdt: 0 });
+    expect(await saleRow(sold.id)).toMatchObject({ bakiMoney: 0 });
   });
 
   it("will not take a Farm bull sold on Baki as hers after the fact", async () => {
@@ -242,8 +242,8 @@ describe("a Venture's bull", () => {
     await manager.client.sale.record({
       tagNumber: bull.tagNumber,
       ...aTrader,
-      priceBdt: 100_000,
-      paidNowBdt: 60_000,
+      priceMoney: 100_000,
+      paidNowMoney: 60_000,
       promisedBy: "2048-03-25",
     });
     // The Owner's to make her a Venture's, paid from its account by bank: even so, a bull already sold on Baki is not
@@ -270,33 +270,33 @@ describe("a Sale put right", () => {
     const sold = await manager.client.sale.record({
       tagNumber: bull.tagNumber,
       ...aTrader,
-      priceBdt: 120_000,
-      paidNowBdt: 100_000,
+      priceMoney: 120_000,
+      paidNowMoney: 100_000,
       promisedBy: "2048-03-19",
     });
     await manager.client.sale.correct({
       id: sold.id,
       reason: "দাম ভুল লেখা হয়েছিল",
-      changes: { priceBdt: { from: 120_000, to: 125_000 } },
+      changes: { priceMoney: { from: 120_000, to: 125_000 } },
     });
     expect(await saleRow(sold.id)).toEqual({
-      priceBdt: 125_000,
-      bakiBdt: 25_000,
+      priceMoney: 125_000,
+      bakiMoney: 25_000,
       promisedBy: "2048-03-19",
     });
     const booked = await bookedFor(sold.id);
     expect(booked).toHaveLength(1);
-    expect(booked[0]).toMatchObject({ amountBdt: 100_000 });
+    expect(booked[0]).toMatchObject({ amountMoney: 100_000 });
 
     await manager.client.sale.correct({
       id: sold.id,
       reason: "সেদিন আরো দশ হাজার দিয়েছিল",
-      changes: { paidNowBdt: { from: 100_000, to: 110_000 } },
+      changes: { paidNowMoney: { from: 100_000, to: 110_000 } },
     });
-    expect(await saleRow(sold.id)).toMatchObject({ bakiBdt: 15_000 });
+    expect(await saleRow(sold.id)).toMatchObject({ bakiMoney: 15_000 });
     const after = await bookedFor(sold.id);
     expect(after).toHaveLength(1);
-    expect(after[0]).toMatchObject({ amountBdt: 110_000 });
+    expect(after[0]).toMatchObject({ amountMoney: 110_000 });
   });
 
   it("keeps a buyer who paid in full paid in full at a corrected price", async () => {
@@ -305,16 +305,16 @@ describe("a Sale put right", () => {
     const sold = await manager.client.sale.record({
       tagNumber: bull.tagNumber,
       ...aTrader,
-      priceBdt: 100_000,
+      priceMoney: 100_000,
     });
     await manager.client.sale.correct({
       id: sold.id,
       reason: "দাম ভুল লেখা হয়েছিল",
-      changes: { priceBdt: { from: 100_000, to: 105_000 } },
+      changes: { priceMoney: { from: 100_000, to: 105_000 } },
     });
-    expect(await saleRow(sold.id)).toMatchObject({ bakiBdt: 0 });
+    expect(await saleRow(sold.id)).toMatchObject({ bakiMoney: 0 });
     const [booked] = await bookedFor(sold.id);
-    expect(booked).toMatchObject({ amountBdt: 105_000 });
+    expect(booked).toMatchObject({ amountMoney: 105_000 });
   });
 });
 
@@ -328,15 +328,15 @@ describe("the receipt", () => {
       tagNumber: first.tagNumber,
       ...aTrader,
       buyer,
-      priceBdt: 100_000,
-      paidNowBdt: 70_000,
+      priceMoney: 100_000,
+      paidNowMoney: 70_000,
       promisedBy: "2048-03-21",
     });
     await manager.client.sale.record({
       tagNumber: second.tagNumber,
       ...aTrader,
       buyer,
-      priceBdt: 90_000,
+      priceMoney: 90_000,
     });
     const owner = await as("owner", "2048-03-14T07:00:00.000Z");
     await owner.client.language.set({ language: "en" });
@@ -354,7 +354,7 @@ describe("the receipt", () => {
       tagNumber: bull.tagNumber,
       ...aTrader,
       buyer: { name: `নগদের ক্রেতা ${suffix}` },
-      priceBdt: 100_000,
+      priceMoney: 100_000,
     });
     const receipt = await manager.client.papers.receipt({ saleId: sold.id });
     expect(receipt.text).not.toContain("Still owed");
@@ -370,18 +370,18 @@ describe("milk on Baki", () => {
       dispatchedAt: new Date("2048-03-15T02:00:00.000Z"),
       litres: 45.5,
       buyer: milkBuyer,
-      pricePerLitreBdt: 68,
-      paidNowBdt: 3000,
+      pricePerLitreMoney: 68,
+      paidNowMoney: 3000,
     });
     const row = await scratchDb().query.dispatch.findFirst({
       where: { id: recorded.id },
-      columns: { bakiBdt: true, promisedBy: true },
+      columns: { bakiMoney: true, promisedBy: true },
     });
     // 45.5 litres at 68 comes to 3094.
-    expect(row).toEqual({ bakiBdt: 94, promisedBy: null });
+    expect(row).toEqual({ bakiMoney: 94, promisedBy: null });
     const booked = await bookedFor(recorded.id);
     expect(booked).toHaveLength(1);
-    expect(booked[0]).toMatchObject({ amountBdt: 3000 });
+    expect(booked[0]).toMatchObject({ amountMoney: 3000 });
   });
 
   it("keeps what he paid when the litres are put right, and books nothing for milk taken all on Baki", async () => {
@@ -390,8 +390,8 @@ describe("milk on Baki", () => {
       dispatchedAt: new Date("2048-03-16T02:00:00.000Z"),
       litres: 40,
       buyer: milkBuyer,
-      pricePerLitreBdt: 70,
-      paidNowBdt: 2000,
+      pricePerLitreMoney: 70,
+      paidNowMoney: 2000,
     });
     await manager.client.milk.correctDispatch({
       id: recorded.id,
@@ -400,18 +400,18 @@ describe("milk on Baki", () => {
     });
     const row = await scratchDb().query.dispatch.findFirst({
       where: { id: recorded.id },
-      columns: { bakiBdt: true },
+      columns: { bakiMoney: true },
     });
-    expect(row).toEqual({ bakiBdt: 940 });
+    expect(row).toEqual({ bakiMoney: 940 });
     const [booked] = await bookedFor(recorded.id);
-    expect(booked).toMatchObject({ amountBdt: 2000 });
+    expect(booked).toMatchObject({ amountMoney: 2000 });
 
     const onBaki = await manager.client.milk.dispatch({
       dispatchedAt: new Date("2048-03-16T02:30:00.000Z"),
       litres: 20,
       buyer: milkBuyer,
-      pricePerLitreBdt: 70,
-      paidNowBdt: 0,
+      pricePerLitreMoney: 70,
+      paidNowMoney: 0,
     });
     expect(await bookedFor(onBaki.id)).toHaveLength(0);
   });
@@ -423,8 +423,8 @@ describe("milk on Baki", () => {
         dispatchedAt: new Date("2048-03-17T02:00:00.000Z"),
         litres: 10,
         buyer: milkBuyer,
-        pricePerLitreBdt: 70,
-        paidNowBdt: 701,
+        pricePerLitreMoney: 70,
+        paidNowMoney: 701,
       })
     ).rejects.toMatchObject({ data: { refusal: "paid_more_than_price" } });
   });

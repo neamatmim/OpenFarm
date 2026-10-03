@@ -30,10 +30,12 @@ export const tellOfTheDeath = async (
   }
   const costs = await farmCosts(tx, farmId);
   const costed = costs.animals.find((one) => one.id === death.animalId);
-  const costBdt = costed
+  const costMoney = costed
     ? (() => {
         const economics = economicsOfAnimal(costs, costed);
-        return Math.round((economics.purchaseBdt ?? 0) + chargedOf(economics));
+        return Math.round(
+          (economics.purchaseMoney ?? 0) + chargedOf(economics)
+        );
       })()
     : 0;
   const about = { id: death.id, writtenBy: death.writtenBy };
@@ -47,7 +49,7 @@ export const tellOfTheDeath = async (
         tag: row.animal.tagNumber,
         kind: row.kind,
         cause: row.cause,
-        costBdt,
+        costMoney,
         venture: row.animal.owner?.name ?? null,
       },
     },

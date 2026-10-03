@@ -34,11 +34,11 @@ beforeAll(async () => {
   const owner = await as("owner", "2046-10-01T04:00:00.000Z");
   const one = await owner.client.ventures.open({
     name: `পার্স ${suffix}`,
-    targetCapitalBdt: 1_000_000,
+    targetCapitalMoney: 1_000_000,
     decideBy: "2046-11-20",
     targetWindowStart: "2047-05-17",
     targetWindowEnd: "2047-05-19",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
   });
   ventureId = one.id;
   // The accountant's export refuses a farm with no registration number, and this file asks for one.
@@ -54,7 +54,7 @@ beforeAll(async () => {
 
 /** One Money Event of a Venture's own, written where its writer will one day write it. */
 const theVenturesOwnSpend = async (
-  amountBdt: number,
+  amountMoney: number,
   approval: "approved" | "awaiting" = "approved",
   charged?: { categoryId: string; side: "dairy" | "fattening" }
 ) => {
@@ -65,7 +65,7 @@ const theVenturesOwnSpend = async (
       id,
       farmId: theFarm().id,
       direction: "out",
-      amountBdt,
+      amountMoney,
       occurredAt: new Date("2046-10-10T04:00:00.000Z"),
       categoryId: charged?.categoryId ?? categoryId,
       side: charged?.side,
@@ -86,7 +86,7 @@ describe("whose money was it", () => {
     const manager = await as("manager", "2046-10-02T04:00:00.000Z");
     const entered = await manager.client.money.enter({
       categoryId,
-      amountBdt: 4000,
+      amountMoney: 4000,
       occurredOn: "2046-10-02",
       counterparty: { name: `পল্লী বিদ্যুৎ ${suffix}` },
       paymentMethod: "bank",
@@ -96,7 +96,7 @@ describe("whose money was it", () => {
     const money = await owner.client.money.list(PERIOD);
     const mine = money.events.find((one) => one.id === entered.id);
     // Money entered the way the farm has always entered it is the Farm's, and says so by saying nothing.
-    expect(mine).toMatchObject({ amountBdt: 4000, purse: null });
+    expect(mine).toMatchObject({ amountMoney: 4000, purse: null });
   });
 
   it("keeps a Venture's money out of the Farm's list, and its figures where they were", async () => {
@@ -104,14 +104,14 @@ describe("whose money was it", () => {
     const before = await owner.client.money.list(PERIOD);
     const beforeOut = before.events
       .filter((one) => one.direction === "out")
-      .reduce((sum, one) => sum + one.amountBdt, 0);
+      .reduce((sum, one) => sum + one.amountMoney, 0);
 
     const theirs = await theVenturesOwnSpend(90_000);
 
     const after = await owner.client.money.list(PERIOD);
     const afterOut = after.events
       .filter((one) => one.direction === "out")
-      .reduce((sum, one) => sum + one.amountBdt, 0);
+      .reduce((sum, one) => sum + one.amountMoney, 0);
     expect(after.events.map((one) => one.id)).not.toContain(theirs);
     // Ninety thousand taka of somebody else's money, and the Farm's own expense to the poisha unmoved.
     expect(afterOut).toBe(beforeOut);
@@ -151,7 +151,7 @@ describe("whose money was it", () => {
     // Money waiting for her is work, not a figure: a Venture's waits for her as the Farm's does, and the
     // row says whose it is before she approves somebody else's spending.
     expect(mine).toMatchObject({
-      amountBdt: 120_000,
+      amountMoney: 120_000,
       purseName: `পার্স ${suffix}`,
     });
   });
@@ -178,7 +178,7 @@ describe("whose money was it", () => {
       penId: pen.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
-      purchasePriceBdt: 50_000,
+      purchasePriceMoney: 50_000,
       weightKg: 200,
       estimatedAgeMonths: 20,
       arrivedAt: new Date("2046-10-15T05:00:00.000Z"),
@@ -198,7 +198,7 @@ describe("whose money was it", () => {
     });
     // Sixty thousand taka of a Venture's own spending, and the Farm's bull carries none of it: a Herd
     // Cost is split across the Animals of its Side, and these are not that Venture's animals.
-    expect(after.herdBdt).toBe(before.herdBdt);
+    expect(after.herdMoney).toBe(before.herdMoney);
   });
 
   it("refuses a wage in anybody's purse but the Farm's", async () => {
@@ -212,7 +212,7 @@ describe("whose money was it", () => {
         bookMoney(
           tx,
           {
-            farm: { id: theFarm().id, approvalThresholdBdt: 100_000 },
+            farm: { id: theFarm().id, approvalThresholdMoney: 100_000 },
             actorId: thePerson("owner").id,
             role: "owner",
             byTheOwner: true,
@@ -221,7 +221,7 @@ describe("whose money was it", () => {
           {
             source: "by_hand",
             sourceId: id,
-            amountBdt: 9000,
+            amountMoney: 9000,
             occurredAt: when,
             counterpartyId: null,
             purseVentureId: ventureId,

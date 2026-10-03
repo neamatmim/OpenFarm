@@ -223,7 +223,7 @@ const RequestForm = ({
             <p>
               {t("portal.request.yours", {
                 units: formatNumber(live.units, language),
-                taka: taka(live.bdt),
+                taka: taka(live.amount),
                 // When it last said this, which is when it was made until they change it.
                 day: formatDate(new Date(live.changedAt), language, "date"),
               })}
@@ -243,7 +243,7 @@ const RequestForm = ({
                 whole
                   ? t("portal.request.comesTo", {
                       units: formatNumber(asked, language),
-                      taka: taka(asked * one.unitPriceBdt),
+                      taka: taka(asked * one.unitPriceMoney),
                     })
                   : undefined
               }
@@ -623,7 +623,7 @@ const RequestCard = ({
         <Fact label={t("portal.units")}>
           {formatNumber(one.units, language)}
         </Fact>
-        <Fact label={t("portal.requests.comesTo")}>{taka(one.bdt)}</Fact>
+        <Fact label={t("portal.requests.comesTo")}>{taka(one.amount)}</Fact>
         <Fact label={t("portal.requests.askedOn")}>
           <SaidDate at={one.madeAt} />
         </Fact>

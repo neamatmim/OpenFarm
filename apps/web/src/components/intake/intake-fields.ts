@@ -8,9 +8,9 @@ export interface IntakeFields {
   sellerName: string;
   sellerPlace: string;
   sellerPhone: string;
-  purchasePriceBdt: string;
+  purchasePriceMoney: string;
   /** The haat's toll on this beast, as its slip gives it. Blank at a farm-gate sale. */
-  hasilBdt: string;
+  hasilMoney: string;
   /** The outing she came home on, chosen from the ones the farm has written up lately. Blank for an
    *  animal bought at the farm gate, or one nobody wrote a Trip for. */
   buyingTripId: string;
@@ -73,8 +73,8 @@ export const EMPTY: IntakeFields = {
   sellerName: "",
   sellerPlace: "",
   sellerPhone: "",
-  purchasePriceBdt: "",
-  hasilBdt: "",
+  purchasePriceMoney: "",
+  hasilMoney: "",
   buyingTripId: "",
   ventureId: "",
   weightKg: "",
@@ -110,7 +110,7 @@ export const missingFrom = (fields: IntakeFields): MessageKey[] => {
   if (fields.sellerName.trim() === "") {
     missing.push("intake.sellerName");
   }
-  if (!(Number(fields.purchasePriceBdt) > 0)) {
+  if (!(Number(fields.purchasePriceMoney) > 0)) {
     missing.push("intake.price");
   }
   if (!(Number(fields.weightKg) > 0)) {

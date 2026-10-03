@@ -55,7 +55,7 @@ export const dairyEntryPrice = pgTable(
     animalId: text("animal_id")
       .notNull()
       .references(() => animal.id),
-    priceBdt: integer("price_bdt").notNull(),
+    priceMoney: integer("price_money").notNull(),
     /** The farm's day her stay counts from: the day she was registered, unless the Owner says. */
     asOf: text("as_of").notNull(),
     note: text("note").notNull(),
@@ -87,8 +87,8 @@ export const headPrice = pgTable(
       .notNull()
       .references(() => farm.id, { onDelete: "cascade" }),
     kind: text("kind", { enum: HEAD_PRICE_KINDS }).notNull(),
-    lowBdt: integer("low_bdt").notNull(),
-    highBdt: integer("high_bdt").notNull(),
+    lowMoney: integer("low_money").notNull(),
+    highMoney: integer("high_money").notNull(),
     setBy: text("set_by").references(() => user.id),
     setAt: timestamp("set_at").notNull(),
   },

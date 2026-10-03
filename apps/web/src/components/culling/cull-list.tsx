@@ -117,13 +117,13 @@ const MilkLines = ({
       </span>
     );
   }
-  const short = milk.overKeepBdt < 0;
+  const short = milk.overKeepMoney < 0;
   return (
     <span className={box}>
       <span className="text-sm whitespace-nowrap tabular-nums">
         {t("cull.milk", {
-          worth: taka(milk.worthBdt),
-          keep: taka(milk.keepBdt),
+          worth: taka(milk.worthMoney),
+          keep: taka(milk.keepMoney),
         })}
       </span>
       <span
@@ -132,14 +132,14 @@ const MilkLines = ({
           short ? "text-danger" : "text-success"
         )}
       >
-        {t("cull.over", { over: taka(milk.overKeepBdt), days: milk.days })}
+        {t("cull.over", { over: taka(milk.overKeepMoney), days: milk.days })}
       </span>
       <span className="text-muted-foreground text-xs whitespace-nowrap tabular-nums">
-        {milk.costPerLitreBdt === null
+        {milk.costPerLitreMoney === null
           ? t("cull.noneToBulk")
           : t("cull.rate", {
               litres: milk.litresPerDay,
-              cost: perLitre(milk.costPerLitreBdt),
+              cost: perLitre(milk.costPerLitreMoney),
             })}
       </span>
       {milk.whole ? null : (
@@ -228,7 +228,7 @@ const cullColumns = column.columns([
     cell: ReturnCell,
   }),
   column.accessor(
-    (row) => (row.milk?.known ? row.milk.overKeepBdt : undefined),
+    (row) => (row.milk?.known ? row.milk.overKeepMoney : undefined),
     {
       id: "milk",
       header: listHeader("cull.col.milk"),

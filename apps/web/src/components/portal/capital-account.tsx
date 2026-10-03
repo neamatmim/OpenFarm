@@ -32,18 +32,18 @@ const WHOLE = 100;
  * home, and what came back from one called off is on their money page.
  */
 const PaidIn = ({
-  paidInBdt,
-  promisedBdt,
+  paidInMoney,
+  promisedMoney,
 }: {
-  paidInBdt: number;
-  promisedBdt: number;
+  paidInMoney: number;
+  promisedMoney: number;
 }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
-  if (promisedBdt <= 0) {
+  if (promisedMoney <= 0) {
     return null;
   }
-  const share = Math.min(WHOLE, (paidInBdt / promisedBdt) * WHOLE);
+  const share = Math.min(WHOLE, (paidInMoney / promisedMoney) * WHOLE);
   return (
     <div className="flex flex-col gap-1.5">
       <div
@@ -57,8 +57,8 @@ const PaidIn = ({
       </div>
       <p className="text-muted-foreground text-sm">
         {t("portal.sums.paidInOf", {
-          paid: taka(paidInBdt),
-          promised: taka(promisedBdt),
+          paid: taka(paidInMoney),
+          promised: taka(promisedMoney),
           percent: formatNumber(Math.round(share), language),
         })}
       </p>
@@ -90,19 +90,19 @@ export const CapitalAccount = ({ theirs }: { theirs: TheirAgreements }) => {
             {t("portal.heldNow")}
           </h2>
           <p className="text-3xl font-semibold tracking-tight tabular-nums md:text-4xl">
-            {taka(sums.heldBdt)}
+            {taka(sums.heldMoney)}
           </p>
         </div>
         {/* Of what they promised to the Ventures still running: one that has finished has nothing left to pay in, and a
             bar kept full by it sat under a held figure of nothing. */}
         <PaidIn
-          paidInBdt={sums.runningPaidInBdt}
-          promisedBdt={sums.runningPromisedBdt}
+          paidInMoney={sums.runningPaidInMoney}
+          promisedMoney={sums.runningPromisedMoney}
         />
       </div>
       <dl className="grid grid-cols-2 gap-x-6 gap-y-5 border-t pt-5 lg:border-s lg:border-t-0 lg:ps-8 lg:pt-0">
         <FigureTerm size="xl" label={t("money.payouts")}>
-          {taka(sums.paidOutBdt)}
+          {taka(sums.paidOutMoney)}
         </FigureTerm>
         <FigureTerm
           size="xl"
@@ -112,9 +112,9 @@ export const CapitalAccount = ({ theirs }: { theirs: TheirAgreements }) => {
               : t("investors.page.noneSettled")
           }
           label={t("portal.profit")}
-          tone={sums.profitBdt < 0 ? "warning" : "neutral"}
+          tone={sums.profitMoney < 0 ? "warning" : "neutral"}
         >
-          {taka(sums.profitBdt)}
+          {taka(sums.profitMoney)}
         </FigureTerm>
         <FigureTerm size="xl" label={t("investors.unitsHeld")}>
           {formatNumber(sums.runningUnits, language)}
@@ -140,9 +140,9 @@ export const Allocation = ({ theirs }: { theirs: TheirAgreements }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
   const holding = theirs.agreements.filter(
-    (one) => one.capitalHeldBdt > 0 && !one.settlement?.paidOn
+    (one) => one.capitalHeldMoney > 0 && !one.settlement?.paidOn
   );
-  const whole = holding.reduce((sum, one) => sum + one.capitalHeldBdt, 0);
+  const whole = holding.reduce((sum, one) => sum + one.capitalHeldMoney, 0);
   if (holding.length < 2 || whole <= 0) {
     return null;
   }
@@ -159,7 +159,7 @@ export const Allocation = ({ theirs }: { theirs: TheirAgreements }) => {
           <span
             className={cn("h-full", SWATCHES[at % SWATCHES.length])}
             key={one.id}
-            style={{ width: `${shareOf(one.capitalHeldBdt, whole)}%` }}
+            style={{ width: `${shareOf(one.capitalHeldMoney, whole)}%` }}
           />
         ))}
       </div>
@@ -175,12 +175,12 @@ export const Allocation = ({ theirs }: { theirs: TheirAgreements }) => {
             />
             <span className="min-w-0 flex-1 truncate">{one.venture.name}</span>
             <span className="font-medium tabular-nums">
-              {taka(one.capitalHeldBdt)}
+              {taka(one.capitalHeldMoney)}
             </span>
             <span className="text-muted-foreground w-14 text-end tabular-nums">
               {t("portal.percent", {
                 percent: formatNumber(
-                  shareOf(one.capitalHeldBdt, whole),
+                  shareOf(one.capitalHeldMoney, whole),
                   language
                 ),
               })}

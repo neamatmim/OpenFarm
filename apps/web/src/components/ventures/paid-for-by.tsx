@@ -7,8 +7,8 @@ import { useTaka } from "@/lib/taka";
 
 /** How one Unit of a Venture is paid for, as every read of a Venture carries it. */
 export interface PaidFor {
-  unitPriceBdt: number;
-  monthly: { cattlePartBdt: number; sums: MonthlySum[] } | null;
+  unitPriceMoney: number;
+  monthly: { cattlePartMoney: number; sums: MonthlySum[] } | null;
 }
 
 /**
@@ -23,7 +23,9 @@ export const PaidForBy = ({ paidFor }: { paidFor: PaidFor }) => {
   if (!monthly) {
     return (
       <>
-        {t("ventures.paidFor.allBefore", { price: taka(paidFor.unitPriceBdt) })}
+        {t("ventures.paidFor.allBefore", {
+          price: taka(paidFor.unitPriceMoney),
+        })}
       </>
     );
   }
@@ -32,23 +34,28 @@ export const PaidForBy = ({ paidFor }: { paidFor: PaidFor }) => {
   if (!(first && last)) {
     return (
       <>
-        {t("ventures.paidFor.allBefore", { price: taka(paidFor.unitPriceBdt) })}
+        {t("ventures.paidFor.allBefore", {
+          price: taka(paidFor.unitPriceMoney),
+        })}
       </>
     );
   }
   const month = (on: string) =>
     formatDate(startOfFarmDay(on), language, "monthYear");
   const said = {
-    cattle: taka(monthly.cattlePartBdt),
-    each: taka(first.bdt),
+    cattle: taka(monthly.cattlePartMoney),
+    each: taka(first.amount),
     from: month(first.dueOn),
     to: month(last.dueOn),
   };
-  const lastDiffers = last.bdt !== first.bdt;
+  const lastDiffers = last.amount !== first.amount;
   return (
     <>
       {lastDiffers
-        ? t("ventures.paidFor.monthlyLast", { ...said, last: taka(last.bdt) })
+        ? t("ventures.paidFor.monthlyLast", {
+            ...said,
+            last: taka(last.amount),
+          })
         : t("ventures.paidFor.monthly", said)}
       <span className="text-muted-foreground">
         {" · "}

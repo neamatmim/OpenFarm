@@ -1,5 +1,5 @@
 import { feedUnitEach, feedUnitWord } from "@OpenFarm/domain";
-import { formatNumber } from "@OpenFarm/i18n";
+import { currencySign, formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation } from "@tanstack/react-query";
@@ -108,13 +108,13 @@ const DaysLeftCell = ({ row }: { row: { original: StockRow } }) => {
 const AveragePriceCell = ({ row }: { row: { original: StockRow } }) => {
   const { t, language } = useLanguage();
   const line = row.original;
-  if (line.averagePriceBdt === null) {
+  if (line.averagePriceMoney === null) {
     return <Nothing />;
   }
   return (
     <span className="whitespace-nowrap">
       {t("stock.averagePrice", {
-        taka: formatNumber(line.averagePriceBdt, language),
+        taka: formatNumber(line.averagePriceMoney, language),
         unit: feedUnitEach(line.unit, language),
       })}
     </span>
@@ -129,7 +129,8 @@ const ValueCell = ({ row }: { row: { original: StockRow } }) => {
   }
   return (
     <span className="whitespace-nowrap">
-      ৳{formatNumber(Math.round(value), language)}
+      {currencySign()}
+      {formatNumber(Math.round(value), language)}
     </span>
   );
 };
@@ -281,7 +282,7 @@ const stockColumns = column.columns([
     cell: LowAtCell,
     meta: { align: "end" },
   }),
-  column.accessor((line) => line.averagePriceBdt ?? undefined, {
+  column.accessor((line) => line.averagePriceMoney ?? undefined, {
     id: "averagePrice",
     header: listHeader("stock.col.averagePrice"),
     cell: AveragePriceCell,
@@ -334,10 +335,10 @@ const StockCard = ({ row }: { row: StockRow }) => {
           </span>
         )}
         <span className="text-muted-foreground text-xs tabular-nums">
-          {row.averagePriceBdt === null
+          {row.averagePriceMoney === null
             ? t("stock.harvest")
             : `${t("stock.averagePrice", {
-                taka: formatNumber(row.averagePriceBdt, language),
+                taka: formatNumber(row.averagePriceMoney, language),
                 unit: feedUnitEach(row.unit, language),
               })} · ${taka(value ?? 0)}`}
           {row.lowStockAt === null
@@ -371,7 +372,7 @@ const WORDS = {
 
 /** What the Feed Item holds for the figure being set. */
 const ofLine = (line: StockLine, kind: "level" | "fodderPrice") =>
-  kind === "level" ? line.lowStockAt : line.fodderPriceBdt;
+  kind === "level" ? line.lowStockAt : line.fodderPriceMoney;
 
 /**
  * One figure a Feed Item carries, set in a dialog: how low it may run before the Manager is told, or what
@@ -416,7 +417,7 @@ const FigureDialog = ({
           level.mutate({ feedItemId: line.feedItemId, threshold: typed }, done);
         } else {
           fodder.mutate(
-            { feedItemId: line.feedItemId, fodderPriceBdt: typed },
+            { feedItemId: line.feedItemId, fodderPriceMoney: typed },
             done
           );
         }

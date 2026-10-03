@@ -14,7 +14,7 @@ export interface PlanLine {
   /** The band's weights at purchase: the lower one in, the upper one out. */
   fromKg: number;
   toKg: number;
-  buyBdtPerKg: number;
+  buyMoneyPerKg: number;
   dailyGainKg: number;
   /** The Breed it buys; nothing for whatever Breed the haat offers. */
   breedId: string | null;
@@ -23,7 +23,7 @@ export interface PlanLine {
 /** An animal the Venture bought, as its plan is measured by: her weight and price at purchase, and her Breed. */
 export interface PlanBought {
   weightKg: number;
-  priceBdt: number;
+  priceMoney: number;
   breedId: string | null;
 }
 
@@ -40,11 +40,11 @@ export const middleOf = (line: PlanLine) => (line.fromKg + line.toKg) / 2;
  */
 export const planTotals = ({
   lines,
-  cattleBudgetBdt,
+  cattleBudgetMoney,
   daysOnFeed,
 }: {
   lines: readonly PlanLine[];
-  cattleBudgetBdt: number;
+  cattleBudgetMoney: number;
   /** From buying to the window's first day; none past it. */
   daysOnFeed: number;
 }) => {
@@ -54,19 +54,21 @@ export const planTotals = ({
     const saleKgEach = roundKg(middleOf(line) + line.dailyGainKg * days);
     return {
       boughtKg,
-      costBdt: roundTaka(boughtKg * line.buyBdtPerKg),
+      costMoney: roundTaka(boughtKg * line.buyMoneyPerKg),
       saleKgEach,
       saleKg: roundKg(saleKgEach * line.animals),
     };
   });
-  const costBdt = roundTaka(each.reduce((sum, one) => sum + one.costBdt, 0));
+  const costMoney = roundTaka(
+    each.reduce((sum, one) => sum + one.costMoney, 0)
+  );
   return {
     lines: each,
     animals: lines.reduce((sum, line) => sum + line.animals, 0),
     boughtKg: roundKg(each.reduce((sum, one) => sum + one.boughtKg, 0)),
-    costBdt,
+    costMoney,
     saleKg: roundKg(each.reduce((sum, one) => sum + one.saleKg, 0)),
-    overBudgetBdt: Math.max(0, roundTaka(costBdt - cattleBudgetBdt)),
+    overBudgetMoney: Math.max(0, roundTaka(costMoney - cattleBudgetMoney)),
   };
 };
 
@@ -112,12 +114,14 @@ export const baselineOf = (
 /** Some animals added up: how many, their kilos, what they cost, and so a kilo; no price a kilo for none. */
 const addUp = (bought: readonly PlanBought[]) => {
   const kg = roundKg(bought.reduce((sum, one) => sum + one.weightKg, 0));
-  const costBdt = roundTaka(bought.reduce((sum, one) => sum + one.priceBdt, 0));
+  const costMoney = roundTaka(
+    bought.reduce((sum, one) => sum + one.priceMoney, 0)
+  );
   return {
     animals: bought.length,
     kg,
-    costBdt,
-    bdtPerKg: kg > 0 ? roundTaka(costBdt / kg) : null,
+    costMoney,
+    moneyPerKg: kg > 0 ? roundTaka(costMoney / kg) : null,
   };
 };
 
@@ -149,8 +153,8 @@ export const buyingAgainstPlan = (
         planned: {
           animals: line.animals,
           kg,
-          costBdt: roundTaka(kg * line.buyBdtPerKg),
-          bdtPerKg: line.buyBdtPerKg,
+          costMoney: roundTaka(kg * line.buyMoneyPerKg),
+          moneyPerKg: line.buyMoneyPerKg,
         },
         bought: addUp(inBand[at] ?? []),
       };
@@ -184,25 +188,25 @@ export const plannedHeadKg = (
  *  still paid for. Before the Investors' split. */
 export const plannedResult = ({
   saleKg,
-  cattleBdt,
-  runningBudgetBdt,
-  saleLowBdtPerKg,
-  saleHighBdtPerKg,
+  cattleMoney,
+  runningBudgetMoney,
+  saleLowMoneyPerKg,
+  saleHighMoneyPerKg,
   deathsPercent = 0,
 }: {
   saleKg: number;
-  cattleBdt: number;
-  runningBudgetBdt: number;
-  saleLowBdtPerKg: number;
-  saleHighBdtPerKg: number;
+  cattleMoney: number;
+  runningBudgetMoney: number;
+  saleLowMoneyPerKg: number;
+  saleHighMoneyPerKg: number;
   deathsPercent?: number;
 }) => {
-  const spent = cattleBdt + runningBudgetBdt;
+  const spent = cattleMoney + runningBudgetMoney;
   return {
-    lowBdt: roundTaka(
-      livingKg(saleKg, deathsPercent) * saleLowBdtPerKg - spent
+    lowMoney: roundTaka(
+      livingKg(saleKg, deathsPercent) * saleLowMoneyPerKg - spent
     ),
-    highBdt: roundTaka(saleKg * saleHighBdtPerKg - spent),
+    highMoney: roundTaka(saleKg * saleHighMoneyPerKg - spent),
   };
 };
 
@@ -215,10 +219,10 @@ export const planAverages = (lines: readonly PlanLine[]) => {
     0
   );
   if (animals === 0 || kg === 0) {
-    return { buyBdtPerKg: null, buyWeightKg: null, dailyGainKg: null };
+    return { buyMoneyPerKg: null, buyWeightKg: null, dailyGainKg: null };
   }
   const cost = lines.reduce(
-    (sum, line) => sum + line.animals * middleOf(line) * line.buyBdtPerKg,
+    (sum, line) => sum + line.animals * middleOf(line) * line.buyMoneyPerKg,
     0
   );
   const gain = lines.reduce(
@@ -226,7 +230,7 @@ export const planAverages = (lines: readonly PlanLine[]) => {
     0
   );
   return {
-    buyBdtPerKg: roundTaka(cost / kg),
+    buyMoneyPerKg: roundTaka(cost / kg),
     buyWeightKg: roundKg(kg / animals),
     dailyGainKg: Math.round((gain / animals) * 100) / 100,
   };
@@ -246,15 +250,15 @@ export const stillToBuyOf = ({
   bought: readonly PlanBought[];
   /** From the day they are bought to the window's first day; none past it. */
   days: number;
-}): { kg: number; costBdt: number } => {
+}): { kg: number; costMoney: number } => {
   const { bands } = buyingAgainstPlan(lines, bought);
   const fed = Math.max(0, days);
   let kg = 0;
-  let costBdt = 0;
+  let costMoney = 0;
   for (const [at, line] of lines.entries()) {
     const left = Math.max(0, line.animals - (bands[at]?.bought.animals ?? 0));
     kg += left * (middleOf(line) + line.dailyGainKg * fed);
-    costBdt += left * middleOf(line) * line.buyBdtPerKg;
+    costMoney += left * middleOf(line) * line.buyMoneyPerKg;
   }
-  return { kg, costBdt: Math.round(costBdt) };
+  return { kg, costMoney: Math.round(costMoney) };
 };

@@ -21,13 +21,13 @@ const WhatItWasReadAgainst = ({
   checked,
 }: {
   // `stale` is absent from a fortnight-old cached answer, written before a month could go stale.
-  checked: { expectedBdt: number; stale?: boolean } | null;
+  checked: { expectedMoney: number; stale?: boolean } | null;
 }) => {
   const { t, language } = useLanguage();
   return checked?.stale ? (
     <p className="text-warning text-sm">
       {t("ventures.checkedAgainst", {
-        expected: formatNumber(checked.expectedBdt, language),
+        expected: formatNumber(checked.expectedMoney, language),
       })}
     </p>
   ) : null;
@@ -66,7 +66,7 @@ const useTheCheck = (
   venture: Named | null,
   farmAccount: Named | null,
   month: string,
-  onDone: (checked: { differenceBdt: number }) => void
+  onDone: (checked: { differenceMoney: number }) => void
 ) => {
   const refused = useRefused();
   const aMonth = /^\d{4}-\d{2}$/u.test(month);
@@ -94,7 +94,7 @@ const useTheCheck = (
       onSuccess: onDone,
     })
   );
-  const send = (said: { month: string; readBdt: number; note?: string }) => {
+  const send = (said: { month: string; readMoney: number; note?: string }) => {
     if (venture) {
       checkingTheBank.mutate({ ventureId: venture.id, ...said });
       return;
@@ -149,23 +149,24 @@ export const BankCheckSheet = ({
       setNote("");
       onOpenChange(false);
       toast.success(
-        checked.differenceBdt === 0
+        checked.differenceMoney === 0
           ? t("ventures.bankAgrees")
           : t("ventures.bankDiffers", {
               // Signed, because "five thousand apart" does not say which way.
-              difference: formatNumber(checked.differenceBdt, language),
+              difference: formatNumber(checked.differenceMoney, language),
             })
       );
     }
   );
   // Nothing for a Farm Account never read before this month: the statement itself is the figure.
-  const firstReading = expected !== undefined && expected.expectedBdt === null;
-  const expectedBdt = expected?.expectedBdt ?? 0;
-  const readBdt = Number(read);
-  const typed = read !== "" && !Number.isNaN(readBdt);
+  const firstReading =
+    expected !== undefined && expected.expectedMoney === null;
+  const expectedMoney = expected?.expectedMoney ?? 0;
+  const readMoney = Number(read);
+  const typed = read !== "" && !Number.isNaN(readMoney);
   // Rounded the way the farm rounds, so what she reads here is what the farm will say.
-  const differenceBdt =
-    typed && !firstReading ? roundTaka(readBdt - expectedBdt) : 0;
+  const differenceMoney =
+    typed && !firstReading ? roundTaka(readMoney - expectedMoney) : 0;
   const already = expected?.checked ?? null;
   const ready = which !== null && typed;
   const words = wordsOf(t, venture, farmAccount);
@@ -173,7 +174,7 @@ export const BankCheckSheet = ({
     <FormSheet
       description={words.description}
       onOpenChange={onOpenChange}
-      onSubmit={() => send({ month, readBdt, note: note || undefined })}
+      onSubmit={() => send({ month, readMoney, note: note || undefined })}
       open={open}
       pending={pending}
       ready={ready}
@@ -192,13 +193,13 @@ export const BankCheckSheet = ({
         {firstReading
           ? t("farmAccounts.firstReading")
           : t("ventures.farmThinks", {
-              expected: formatNumber(expectedBdt, language),
+              expected: formatNumber(expectedMoney, language),
             })}
       </p>
       {already ? (
         <p className="text-muted-foreground text-sm">
           {t("ventures.alreadyChecked", {
-            read: formatNumber(already.readBdt, language),
+            read: formatNumber(already.readMoney, language),
           })}
           {already.note ? ` · ${already.note}` : ""}
         </p>
@@ -217,10 +218,10 @@ export const BankCheckSheet = ({
           value={read}
         />
       </FormField>
-      {differenceBdt === 0 ? null : (
+      {differenceMoney === 0 ? null : (
         <p className="text-sm font-medium tabular-nums">
           {t("ventures.difference", {
-            difference: formatNumber(differenceBdt, language),
+            difference: formatNumber(differenceMoney, language),
           })}
         </p>
       )}

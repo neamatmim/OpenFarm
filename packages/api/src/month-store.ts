@@ -54,7 +54,7 @@ const venturesAgainstPlan = async (
         /** What it is projected to make now, low and high; nothing once it has ended. */
         projected: measured?.money.projected ?? null,
         /** What its approved Settlement says it made; nothing until then. */
-        settledProfitBdt: settled?.row.profitBdt ?? null,
+        settledProfitMoney: settled?.row.profitMoney ?? null,
       };
     })
   );
@@ -68,7 +68,7 @@ interface Read {
     id: string;
     dispatchedAt: Date;
     litres: string;
-    pricePerLitreBdt: string;
+    pricePerLitreMoney: string;
   }[];
   /** What stays written off of each Dispatch: milk a buyer never paid for did not fetch its price. */
   writtenOff: ReadonlyMap<string, number>;
@@ -105,7 +105,7 @@ const figuresOver = (
       .filter((one) => within(one.dispatchedAt))
       .map((one) => ({
         litres: Number(one.litres),
-        pricePerLitreBdt: fetchedPerLitre(one, writtenOff),
+        pricePerLitreMoney: fetchedPerLitre(one, writtenOff),
       }))
   );
   const sold = sides.soldFattening.animals;
@@ -117,37 +117,37 @@ const figuresOver = (
   );
   return {
     money: {
-      inBdt: cash.incomeBdt,
-      outBdt: cash.expenseBdt,
-      netBdt: cash.netBdt,
+      inMoney: cash.incomeMoney,
+      outMoney: cash.expenseMoney,
+      netMoney: cash.netMoney,
       /** Money Events in it still waiting for the Owner, counted in the figures above as the accountant's are. */
       awaitingCount: cash.awaiting.count,
     },
     dairy: {
-      milkSoldBdt: milk?.bdt ?? 0,
+      milkSoldMoney: milk?.amount ?? 0,
       litresSold: milk?.litres ?? 0,
       /** What a litre fetched; nothing where no milk left. */
-      fetchedPerLitreBdt: milk?.bdtPerLitre ?? null,
+      fetchedPerLitreMoney: milk?.moneyPerLitre ?? null,
       /** Everything charged to the dairy side's animals in it. */
-      chargedBdt: roundTaka(chargedOf(sides.dairy)),
+      chargedMoney: roundTaka(chargedOf(sides.dairy)),
       litresToBulk: sides.dairy.litresToBulk,
-      costPerLitreBdt: sides.dairy.costPerLitreBdt,
+      costPerLitreMoney: sides.dairy.costPerLitreMoney,
       unpricedKg: sides.dairy.unpricedKg,
       uncostedDoses: sides.dairy.uncostedDoses,
     },
     fattening: {
       /** Everything charged to the fattening side's animals in it, sold or standing. */
-      chargedBdt: roundTaka(chargedOf(sides.fattening)),
+      chargedMoney: roundTaka(chargedOf(sides.fattening)),
       sold: sold.length,
       /** The whole-life Margins of the fattening animals sold in it; nothing where none was. */
-      marginBdt: sold.length === 0 ? null : sides.soldFattening.marginBdt,
+      marginMoney: sold.length === 0 ? null : sides.soldFattening.marginMoney,
       unpricedKg: sides.fattening.unpricedKg,
       uncostedDoses: sides.fattening.uncostedDoses,
     },
     /** What running the place cost in it, and a head a day — charged to no Side above. */
     overheads: {
-      bdt: overheads.totalBdt,
-      perHeadPerDayBdt: overheads.perHeadPerDayBdt,
+      amount: overheads.totalMoney,
+      perHeadPerDayMoney: overheads.perHeadPerDayMoney,
     },
   };
 };
@@ -187,7 +187,7 @@ export const monthByMonth = async (
           id: true,
           dispatchedAt: true,
           litres: true,
-          pricePerLitreBdt: true,
+          pricePerLitreMoney: true,
         },
       }),
       venturesAgainstPlan(db, farm, now),

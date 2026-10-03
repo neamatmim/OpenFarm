@@ -44,7 +44,7 @@ const readMoney = async (tx: Tx, id: string) =>
   (await tx.query.moneyEvent.findFirst({
     where: { id },
     columns: {
-      amountBdt: true,
+      amountMoney: true,
       approval: true,
       approvedBy: true,
       approvedAt: true,
@@ -149,7 +149,7 @@ export const moneyRouter = {
         id: row.id,
         occurredAt: row.occurredAt,
         direction: row.direction,
-        amountBdt: row.amountBdt,
+        amountMoney: row.amountMoney,
         categoryKey: row.category.key,
         categoryBn: row.category.nameBn,
         categoryEn: row.category.nameEn,
@@ -199,12 +199,12 @@ export const moneyRouter = {
   approve: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())
-    .input(z.object({ id: z.string(), amountBdt: amountInput }))
+    .input(z.object({ id: z.string(), amountMoney: amountInput }))
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const waiting = await context.db.query.moneyEvent.findFirst({
         where: { id: input.id, farmId: context.farm.id },
-        columns: { id: true, approval: true, amountBdt: true },
+        columns: { id: true, approval: true, amountMoney: true },
       });
       if (!waiting) {
         throw new ORPCError("NOT_FOUND", { message: "No such money entry" });
@@ -212,12 +212,12 @@ export const moneyRouter = {
       if (waiting.approval !== "awaiting") {
         throw notWaiting();
       }
-      if (waiting.amountBdt !== input.amountBdt) {
+      if (waiting.amountMoney !== input.amountMoney) {
         throw new ORPCError("BAD_REQUEST", {
           message: "The amount has been corrected since it was read",
           data: {
             refusal: "amount_changed",
-            amountBdt: waiting.amountBdt,
+            amountMoney: waiting.amountMoney,
           },
         });
       }
@@ -243,7 +243,7 @@ export const moneyRouter = {
               and(
                 eq(moneyEvent.id, waiting.id),
                 eq(moneyEvent.approval, "awaiting"),
-                eq(moneyEvent.amountBdt, input.amountBdt)
+                eq(moneyEvent.amountMoney, input.amountMoney)
               )
             )
             .returning({ id: moneyEvent.id });
@@ -265,7 +265,7 @@ export const moneyRouter = {
     .use(requirePersonalSession())
     .input(
       z.object({
-        amountBdt: amountInput,
+        amountMoney: amountInput,
         visitedOn: farmDay,
         animalTags: z
           .array(z.string().trim().min(1).max(32))
@@ -306,7 +306,7 @@ export const moneyRouter = {
             id,
             farmId: context.farm.id,
             vetId: context.actor.id,
-            amountBdt: input.amountBdt,
+            amountMoney: input.amountMoney,
             visitedOn,
             note: input.note ?? null,
             recordedAt: now,
@@ -324,7 +324,7 @@ export const moneyRouter = {
             {
               source: "vet_fee",
               sourceId: id,
-              amountBdt: input.amountBdt,
+              amountMoney: input.amountMoney,
               occurredAt: visitedOn,
               counterpartyId: await counterpartyNamed(
                 tx,
@@ -356,7 +356,7 @@ export const moneyRouter = {
       });
       return rows.map((row) => ({
         id: row.id,
-        amountBdt: row.amountBdt,
+        amountMoney: row.amountMoney,
         visitedOn: row.visitedOn,
         note: row.note,
         tagNumbers: row.animals.map((one) => one.animal.tagNumber).toSorted(),

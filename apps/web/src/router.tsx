@@ -1,14 +1,17 @@
+import { setFarmLocale } from "@OpenFarm/i18n";
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
 
 import Loader from "./components/loader";
 import NotFound, { PageFailed } from "./components/not-found";
-import { pageHost, pageNonce } from "./lib/page-context";
+import { pageFarmLocale, pageHost, pageNonce } from "./lib/page-context";
 import { keepQueriesOnDevice } from "./lib/query-cache";
 import { routeTree } from "./routeTree.gen";
 import { createQueryClient, orpc } from "./utils/orpc";
 
 export const getRouter = () => {
+  // Where the farm is, before the page draws its first sum or day: in the browser, from what the server wrote on it.
+  setFarmLocale(pageFarmLocale());
   const queryClient = createQueryClient();
   // What the app has read is kept on the device, so a phone that opens with no signal opens
   // on what it last knew rather than on a spinner.

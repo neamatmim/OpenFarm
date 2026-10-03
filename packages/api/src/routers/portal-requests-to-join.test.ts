@@ -32,14 +32,14 @@ const signedInAs = (loginEmail: string, at = JANUARY) =>
 const invited = invitingInvestors({ prefix: "017", run: suffix }, JANUARY);
 
 const TERMS = {
-  targetCapitalBdt: 1_000_000,
-  floorBdt: 600_000,
+  targetCapitalMoney: 1_000_000,
+  floorMoney: 600_000,
   decideBy: "2052-01-20",
   targetWindowStart: "2052-06-01",
   targetWindowEnd: "2052-06-10",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 20,
-  cattleBudgetBdt: 800_000,
+  cattleBudgetMoney: 800_000,
 };
 
 /** An Open Venture of the farm's, shown in the portal unless asked otherwise. */
@@ -97,7 +97,7 @@ describe("an Investor asking to join", () => {
         ventureId,
         ventureName: `প্রথম ভেঞ্চার ${suffix}`,
         units: 4,
-        bdt: 200_000,
+        amount: 200_000,
         note: "ঈদের পরে টাকা দিতে পারব",
         state: "waiting",
         madeAt: new Date(JANUARY),
@@ -319,7 +319,7 @@ describe("the Owner reading a Venture's Requests", () => {
       investorsPercent: 60,
       arbitrator: `সালিস ${suffix}`,
       stampKind: "paper",
-      stampValueBdt: 300,
+      stampValueMoney: 300,
       stampedOn: "2052-01-02",
       stampSerial: `S-R${suffix}`,
     });
@@ -344,7 +344,7 @@ describe("the Owner reading a Venture's Requests", () => {
     expect(requests.find((one) => one.id === made.id)).toMatchObject({
       investorId: asker.id,
       units: 4,
-      bdt: 200_000,
+      amount: 200_000,
       note: "ফোন করবেন",
       state: "waiting",
       madeAt: new Date(JANUARY),
@@ -353,12 +353,12 @@ describe("the Owner reading a Venture's Requests", () => {
     expect(requests.find((one) => one.id === gone.id)?.state).toBe("withdrawn");
     expect(totals).toEqual({
       signedUnits: 5,
-      signedBdt: 250_000,
+      signedMoney: 250_000,
       promisedUnits: 0,
-      promisedBdt: 0,
+      promisedMoney: 0,
       promisableUnits: 15,
       waitingUnits: 7,
-      waitingBdt: 350_000,
+      waitingMoney: 350_000,
     });
   });
 
@@ -507,7 +507,7 @@ describe("a Request the farm refuses", () => {
       investorsPercent: 60,
       arbitrator: `সালিস ${suffix}`,
       stampKind: "paper",
-      stampValueBdt: 300,
+      stampValueMoney: 300,
       stampedOn: "2052-01-02",
       stampSerial: `S-N${suffix}`,
     });

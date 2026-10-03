@@ -61,7 +61,7 @@ const setup = async () => {
       penId: quarantine.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
-      purchasePriceBdt: 60_000,
+      purchasePriceMoney: 60_000,
       weightKg,
       estimatedAgeMonths: 18,
       arrivedAt: new Date(ARRIVED),

@@ -203,7 +203,7 @@ describe("the milk dispatch", () => {
       litres: 11.5,
       buyer,
       challan: "CH-0412",
-      pricePerLitreBdt: 55,
+      pricePerLitreMoney: 55,
       fatPercent: 4.1,
       snfPercent: 8.4,
     });
@@ -220,7 +220,7 @@ describe("the milk dispatch", () => {
           litres: 11.5,
           buyerName: buyer.name,
           challan: "CH-0412",
-          pricePerLitreBdt: 55,
+          pricePerLitreMoney: 55,
           fatPercent: 4.1,
           snfPercent: 8.4,
         }),
@@ -280,7 +280,7 @@ describe("the milk dispatch", () => {
       litres: 9,
       buyer: { name: `ঘোষ ${suffix}`, address: "উল্লাপাড়া" },
       challan: "CH-0999",
-      pricePerLitreBdt: 52,
+      pricePerLitreMoney: 52,
       snfPercent: 8.2,
       note: "অন্য গাড়ির",
     });
@@ -415,7 +415,7 @@ describe("the milk dispatch", () => {
       litres: 7,
       buyer: { name: `=HYPERLINK("x") ${suffix}` },
       challan: "-2+3",
-      pricePerLitreBdt: 50,
+      pricePerLitreMoney: 50,
     });
     const sheet = await manager.client.reports.milkDispatchRecord({
       from: "2036-02-06",
@@ -456,7 +456,7 @@ describe("the milk dispatch", () => {
       dispatchedAt: new Date("2036-02-03T02:00:00.000Z"),
       litres: 10,
       buyer,
-      pricePerLitreBdt: 55,
+      pricePerLitreMoney: 55,
     };
     const owner = await createTestClient(appRouter, { as: "owner", clock: at });
     await owner.client.milk.dispatch(dispatchIt);

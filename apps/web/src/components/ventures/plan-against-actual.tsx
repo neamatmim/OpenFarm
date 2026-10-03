@@ -25,11 +25,11 @@ const CELL = "px-2 py-2 text-end tabular-nums";
 const HeadsCell = ({ heads }: { heads: Heads }) => {
   const { t } = useLanguage();
   const taka = useTaka();
-  return heads.bdtPerKg === null
+  return heads.moneyPerKg === null
     ? t("plan.vs.count", { count: heads.animals })
     : t("plan.vs.heads", {
         count: heads.animals,
-        perKg: taka(heads.bdtPerKg),
+        perKg: taka(heads.moneyPerKg),
       });
 };
 
@@ -65,7 +65,7 @@ const Buying = ({ measured }: { measured: Measured }) => {
           </thead>
           <tbody className="divide-y">
             {buying.bands.map((band, at) => (
-              <tr key={`band-${band.planned.bdtPerKg}-${at}`}>
+              <tr key={`band-${band.planned.moneyPerKg}-${at}`}>
                 <td className="px-2 py-2 ps-4 md:ps-5">
                   {t("plan.lineOf", { number: formatNumber(at + 1, language) })}
                   {/* Its weights and Breed, so two Breeds bought at the same weights are told apart; an answer this
@@ -93,9 +93,9 @@ const Buying = ({ measured }: { measured: Measured }) => {
                 >
                   <HeadsCell heads={band.bought} />
                 </td>
-                <td className={CELL}>{taka(band.planned.costBdt)}</td>
+                <td className={CELL}>{taka(band.planned.costMoney)}</td>
                 <td className={`${CELL} pe-4 md:pe-5`}>
-                  {taka(band.bought.costBdt)}
+                  {taka(band.bought.costMoney)}
                 </td>
               </tr>
             ))}
@@ -114,7 +114,7 @@ const Buying = ({ measured }: { measured: Measured }) => {
                   <Nothing />
                 </td>
                 <td className={`${CELL} pe-4 md:pe-5`}>
-                  {taka(buying.outside.costBdt)}
+                  {taka(buying.outside.costMoney)}
                 </td>
               </tr>
             ) : null}
@@ -133,9 +133,11 @@ const Buying = ({ measured }: { measured: Measured }) => {
               <td className={CELL}>
                 <HeadsCell heads={buying.total} />
               </td>
-              <td className={CELL}>{taka(measured.money.plannedCattleBdt)}</td>
+              <td className={CELL}>
+                {taka(measured.money.plannedCattleMoney)}
+              </td>
               <td className={`${CELL} pe-4 md:pe-5`}>
-                {taka(buying.total.costBdt)}
+                {taka(buying.total.costMoney)}
               </td>
             </tr>
           </tfoot>
@@ -191,21 +193,21 @@ const Money = ({ measured }: { measured: Measured }) => {
     {
       key: "cattle",
       label: t("plan.vs.row.cattle"),
-      planned: taka(money.plannedCattleBdt),
-      now: taka(money.boughtBdt),
+      planned: taka(money.plannedCattleMoney),
+      now: taka(money.boughtMoney),
     },
     {
       key: "running",
       label: t("plan.vs.row.running"),
-      planned: taka(money.plannedRunningBdt),
-      now: taka(money.runningSpentBdt),
+      planned: taka(money.plannedRunningMoney),
+      now: taka(money.runningSpentMoney),
     },
     {
       key: "result",
       label: t("plan.vs.row.result"),
-      planned: range(money.planned.lowBdt, money.planned.highBdt),
+      planned: range(money.planned.lowMoney, money.planned.highMoney),
       now: money.projected
-        ? range(money.projected.lowBdt, money.projected.highBdt)
+        ? range(money.projected.lowMoney, money.projected.highMoney)
         : t("plan.vs.endedNoProjection"),
     },
   ];

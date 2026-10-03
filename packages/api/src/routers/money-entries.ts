@@ -86,7 +86,7 @@ const askIfEnteredAlready = async (
   entry: {
     id: string;
     name: string;
-    amountBdt: number;
+    amountMoney: number;
     occurredAt: Date;
     sameAgain: boolean;
     now: Date;
@@ -98,7 +98,7 @@ const askIfEnteredAlready = async (
       source: "by_hand",
       occurredAt: { eq: entry.occurredAt },
     },
-    columns: { id: true, amountBdt: true, occurredAt: true },
+    columns: { id: true, amountMoney: true, occurredAt: true },
     with: {
       counterparty: { columns: { name: true } },
       recorder: { columns: { name: true } },
@@ -108,7 +108,7 @@ const askIfEnteredAlready = async (
   });
   const day = farmDayOf(entry.occurredAt);
   const match = looksEnteredAlready(
-    { name: entry.name, amountBdt: entry.amountBdt, day },
+    { name: entry.name, amountMoney: entry.amountMoney, day },
     sameDay.map((one) => ({
       ...one,
       name: one.counterparty?.name ?? null,
@@ -127,7 +127,7 @@ const askIfEnteredAlready = async (
         match: {
           id: match.id,
           name: match.name,
-          amountBdt: match.amountBdt,
+          amountMoney: match.amountMoney,
           day,
           categoryBn: match.category?.nameBn ?? null,
           categoryEn: match.category?.nameEn ?? null,
@@ -145,7 +145,7 @@ const askIfEnteredAlready = async (
         about: { id: entry.id },
         facts: {
           name: entry.name,
-          amountBdt: entry.amountBdt,
+          amountMoney: entry.amountMoney,
           day,
           by: context.actor.name,
         },
@@ -443,7 +443,7 @@ export const moneyEntryProcedures = {
     .input(
       z.object({
         categoryId: z.string(),
-        amountBdt: amountInput,
+        amountMoney: amountInput,
         occurredOn: farmDay,
         counterparty: counterpartyInput,
         paymentMethod: paymentMethodInput,
@@ -471,7 +471,7 @@ export const moneyEntryProcedures = {
         { wageMonth, alreadyUnderIt: false }
       );
       const id = newId(now);
-      let takenBdt = 0;
+      let takenMoney = 0;
       await audited(context).write(
         {
           entity: "money_event",
@@ -497,7 +497,7 @@ export const moneyEntryProcedures = {
             enteredKnowing = await askIfEnteredAlready(tx, context, {
               id,
               name: input.counterparty.name,
-              amountBdt: input.amountBdt,
+              amountMoney: input.amountMoney,
               occurredAt,
               sameAgain: input.sameAgain ?? false,
               now,
@@ -515,10 +515,10 @@ export const moneyEntryProcedures = {
                 tx,
                 context.farm.id,
                 counterpartyId,
-                input.amountBdt
+                input.amountMoney
               )
-            : { parts: [], takenBdt: 0 };
-          ({ takenBdt } = draws);
+            : { parts: [], takenMoney: 0 };
+          ({ takenMoney } = draws);
           await bookMoney(
             tx,
             bookingOf(
@@ -530,7 +530,7 @@ export const moneyEntryProcedures = {
             {
               source: "by_hand",
               sourceId: id,
-              amountBdt: roundTaka(input.amountBdt - draws.takenBdt),
+              amountMoney: roundTaka(input.amountMoney - draws.takenMoney),
               occurredAt,
               counterpartyId,
               paymentMethod: input.paymentMethod,
@@ -549,7 +549,7 @@ export const moneyEntryProcedures = {
           }
         }
       );
-      return { id, drawsTakenBdt: takenBdt };
+      return { id, drawsTakenMoney: takenMoney };
     }),
 
   /**
@@ -562,7 +562,7 @@ export const moneyEntryProcedures = {
     .input(
       z.object({
         counterparty: counterpartyInput,
-        amountBdt: amountInput,
+        amountMoney: amountInput,
         drawnOn: farmDay,
         paymentMethod: paymentMethodInput,
         /** Which Farm Account bKash or bank money came out of, and its transaction ID. */
@@ -600,7 +600,7 @@ export const moneyEntryProcedures = {
             ),
             {
               counterpartyId,
-              amountBdt: input.amountBdt,
+              amountMoney: input.amountMoney,
               drawnAt,
               note: input.note ?? null,
               paymentMethod: input.paymentMethod,

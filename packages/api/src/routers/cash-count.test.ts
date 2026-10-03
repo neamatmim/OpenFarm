@@ -46,7 +46,7 @@ beforeAll(async () => {
   // Ten thousand in the Manager's hand from the manure sold.
   await manager.client.money.enter({
     categoryId: manureId,
-    amountBdt: 10_000,
+    amountMoney: 10_000,
     occurredOn: "2071-05-01",
     counterparty: { name: `গোবর ক্রেতা ${suffix}` },
     paymentMethod: "cash",
@@ -92,7 +92,7 @@ describe("the weekly cash count", () => {
     const { done } = await countOn("2071-05-15", 10_000);
     expect(done.effect).toEqual({ kind: "cash_count", differs: false });
     expect(await managersHand(fridayEvening("2071-05-15"))).toMatchObject({
-      bdt: 10_000,
+      amount: 10_000,
       lastCount: { counted: 10_000, expected: 10_000 },
     });
     expect(await shortTold()).toEqual([]);
@@ -106,13 +106,13 @@ describe("the weekly cash count", () => {
     );
     expect(done.effect).toEqual({ kind: "cash_count", differs: true });
     expect(await managersHand(fridayEvening("2071-05-22"))).toMatchObject({
-      bdt: 8000,
+      amount: 8000,
     });
     const told = await shortTold();
     expect(told).toHaveLength(1);
     expect(told[0]).toMatchObject({
       entityId: completionId,
-      params: { shortBdt: 2000, countedOn: "2071-05-22" },
+      params: { shortMoney: 2000, countedOn: "2071-05-22" },
     });
   });
 
@@ -121,12 +121,12 @@ describe("the weekly cash count", () => {
     await manager.client.cash.handOver({
       from: { userId: thePerson("manager").id },
       to: { userId: thePerson("owner").id },
-      amountBdt: 3000,
+      amountMoney: 3000,
     });
     // Five thousand left, and 4,500 found: short 500, under the Owner's ৳1,000.
     await countOn("2071-05-29", 4500);
     expect(await managersHand(fridayEvening("2071-05-29"))).toMatchObject({
-      bdt: 4500,
+      amount: 4500,
       lastCount: { counted: 4500, expected: 5000 },
     });
     expect(await shortTold()).toHaveLength(1);
@@ -149,7 +149,7 @@ describe("the weekly cash count", () => {
   it("is the Owner's line to move, not the Manager's", async () => {
     const manager = await as("manager", fridayEvening("2071-06-05"));
     await expect(
-      manager.client.farm.setParameters({ cashShortTellBdt: 50_000 })
+      manager.client.farm.setParameters({ cashShortTellMoney: 50_000 })
     ).rejects.toThrow("Owner");
   });
 });

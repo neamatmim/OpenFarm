@@ -209,13 +209,13 @@ export const BuyWhatIsLeftSheet = ({
         toast.success(
           t("ventures.boughtWhatWasLeft", {
             animals: formatNumber(done.animals.length, language),
-            total: formatNumber(done.totalBdt, language),
+            total: formatNumber(done.totalMoney, language),
           })
         );
       },
     })
   );
-  const rateBdtPerKg = Number(rate);
+  const rateMoneyPerKg = Number(rate);
   // The farm strikes no price it cannot defend: an Animal nobody has weighed has none, and the server
   // refuses the whole act over one of them. Said and stopped here rather than after she has typed a
   // rate, a reason, a day and a bank reference for nothing — the sheet has known since it opened.
@@ -229,7 +229,7 @@ export const BuyWhatIsLeftSheet = ({
   const ready =
     venture !== null &&
     weighFirst.length === 0 &&
-    aRate(rate, rateBdtPerKg) &&
+    aRate(rate, rateMoneyPerKg) &&
     allTyped(note, boughtOn, reference) &&
     windowReady(windowPick);
   return (
@@ -242,7 +242,7 @@ export const BuyWhatIsLeftSheet = ({
       onSubmit={() =>
         buying.mutate({
           ventureId: venture?.id ?? "",
-          rateBdtPerKg,
+          rateMoneyPerKg,
           note,
           boughtOn,
           paymentMethod: "bank",
@@ -269,7 +269,7 @@ export const BuyWhatIsLeftSheet = ({
     >
       <WhatIsLeft
         animals={left.data?.animals ?? []}
-        rate={rateBdtPerKg}
+        rate={rateMoneyPerKg}
         stale={isStale}
       />
       <WeighFirst days={days} stale={stale} unweighed={unweighed} />

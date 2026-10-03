@@ -20,19 +20,19 @@ export const BakiFields = ({
   idPrefix,
   typed,
   onType,
-  worthBdt,
+  worthMoney,
   promiseRequired,
 }: {
   idPrefix: string;
   typed: BakiTyped;
   onType: (patch: Partial<BakiTyped>) => void;
   /** What it came to — a Sale's price, a Dispatch's litres at its price — or nothing while it is not yet typed. */
-  worthBdt: number;
+  worthMoney: number;
   /** A trader promises a day; a milk buyer who pays on a round often does not. */
   promiseRequired: boolean;
 }) => {
   const { t, language } = useLanguage();
-  const owes = stillOwes(typed, worthBdt);
+  const owes = stillOwes(typed, worthMoney);
   return (
     <div className="flex flex-col gap-4">
       <label
@@ -94,17 +94,17 @@ export const BakiFields = ({
  * every one of those was.
  */
 export const BakiOwed = ({
-  bakiBdt = 0,
-  owingBdt,
+  bakiMoney = 0,
+  owingMoney,
   promisedBy = null,
 }: {
-  bakiBdt?: number;
+  bakiMoney?: number;
   /** What is still owed today, as his payments have left it; left out of an older answer, what was owed as it left. */
-  owingBdt?: number;
+  owingMoney?: number;
   promisedBy?: string | null;
 }) => {
   const { t, language } = useLanguage();
-  const owed = owingBdt ?? bakiBdt;
+  const owed = owingMoney ?? bakiMoney;
   if (owed <= 0) {
     return null;
   }
@@ -140,23 +140,23 @@ export const BuyerOwes = ({ name }: { name: string }) => {
   }
   const day = (value: string) =>
     formatDate(startOfFarmDay(value), language, "date");
-  const taka = formatNumber(owes.owingBdt, language);
+  const taka = formatNumber(owes.owingMoney, language);
   const lines = [
-    owes.owingBdt > 0 && owes.overdueSince
+    owes.owingMoney > 0 && owes.overdueSince
       ? t("baki.buyerOverdue", {
           name: owes.name,
           taka,
           day: day(owes.overdueSince),
         })
       : null,
-    owes.owingBdt > 0 && !owes.overdueSince && owes.oldestOn
+    owes.owingMoney > 0 && !owes.overdueSince && owes.oldestOn
       ? t("baki.buyerOwes", { name: owes.name, taka, day: day(owes.oldestOn) })
       : null,
     // His mark: the farm has lost money to him before. Missing from an answer kept from before write-offs.
-    (owes.writtenOffBdt ?? 0) > 0 && owes.lastWrittenOffOn
+    (owes.writtenOffMoney ?? 0) > 0 && owes.lastWrittenOffOn
       ? t("baki.buyerWrittenOff", {
           name: owes.name,
-          taka: formatNumber(owes.writtenOffBdt, language),
+          taka: formatNumber(owes.writtenOffMoney, language),
           day: day(owes.lastWrittenOffOn),
         })
       : null,
@@ -164,7 +164,7 @@ export const BuyerOwes = ({ name }: { name: string }) => {
   if (lines.length === 0) {
     return null;
   }
-  const loud = Boolean(owes.overdueSince) || (owes.writtenOffBdt ?? 0) > 0;
+  const loud = Boolean(owes.overdueSince) || (owes.writtenOffMoney ?? 0) > 0;
   return (
     <Notice title={lines.join(" · ")} tone={loud ? "danger" : "warning"} />
   );

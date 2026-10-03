@@ -85,12 +85,12 @@ beforeAll(async () => {
   penId = pen.id;
 });
 
-const intakeFor = (manager: Client, priceBdt: number) =>
+const intakeFor = (manager: Client, priceMoney: number) =>
   manager.intake.record({
     penId,
     sex: "male",
     seller: { name: `হাট ${suffix}` },
-    purchasePriceBdt: priceBdt,
+    purchasePriceMoney: priceMoney,
     weightKg: 240,
     estimatedAgeMonths: 18,
     targetWindowStart: "2039-12-01",
@@ -113,7 +113,7 @@ const KINDS: Kind[] = [
         dispatchedAt: new Date("2039-03-01T02:00:00.000Z"),
         litres: 100,
         buyer: { name: `ক্রেতা ${suffix}` },
-        pricePerLitreBdt: 50,
+        pricePerLitreMoney: 50,
       });
       return {
         id: made.id,
@@ -141,7 +141,7 @@ const KINDS: Kind[] = [
         id: made.intakeId,
         // Filed under the Animal it made, as the Intake itself was.
         trail: { entity: "animal", entityId: row?.animalId ?? "" },
-        field: "purchasePriceBdt",
+        field: "purchasePriceMoney",
         from: 20_000,
         to: 21_000,
         stale: 20_001,
@@ -158,7 +158,7 @@ const KINDS: Kind[] = [
       const made = await manager.sale.record({
         tagNumber: bull.tagNumber,
         buyer: { name: `কসাই ${suffix}` },
-        priceBdt: 30_000,
+        priceMoney: 30_000,
         weightKg: 260,
         destination: "গাবতলী",
         vehicle: "ট্রাক",
@@ -167,7 +167,7 @@ const KINDS: Kind[] = [
       return {
         id: made.id,
         trail: { entity: "sale", entityId: made.id },
-        field: "priceBdt",
+        field: "priceMoney",
         from: 30_000,
         to: 29_500,
         stale: 30_001,
@@ -188,7 +188,7 @@ const KINDS: Kind[] = [
         feedItemId: feed.id,
         kind: "purchase",
         quantity: 400,
-        priceBdt: 8000,
+        priceMoney: 8000,
         seller: { name: `খড়ের দোকান ${suffix}` },
         receivedOn: "2039-03-01",
       });
@@ -213,7 +213,7 @@ const KINDS: Kind[] = [
       const repairs = categories.find((one) => one.key === "repairs");
       const made = await manager.money.enter({
         categoryId: repairs?.id ?? "",
-        amountBdt: 1500,
+        amountMoney: 1500,
         occurredOn: "2039-03-01",
         // A mistri of their own each time: the same man, the same taka and the same day twice looks entered already.
         counterparty: { name: `মিস্ত্রি ${suffix} ${crypto.randomUUID()}` },
@@ -221,7 +221,7 @@ const KINDS: Kind[] = [
       return {
         id: made.id,
         trail: { entity: "money_event", entityId: made.id },
-        field: "amountBdt",
+        field: "amountMoney",
         from: 1500,
         to: 1800,
         stale: 1501,

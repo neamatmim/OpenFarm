@@ -16,12 +16,12 @@ const aCalf = (over: Partial<DairyRun>): DairyRun => ({
   came: "born",
   from: null,
   left: null,
-  costBdt: 0,
+  costMoney: 0,
   milkLitres: 0,
-  milkBdt: 0,
-  endBdt: null,
+  milkMoney: 0,
+  endMoney: null,
   milkPricedEarlier: [],
-  resultBdt: null,
+  resultMoney: null,
   returnOnCost: null,
   worthToday: null,
   running: null,
@@ -33,13 +33,13 @@ describe("a dairy run's figure", () => {
   it("is her result where she has gone having cost nothing, with no share to say", () => {
     const gone = aCalf({
       left: { how: "died", on: new Date("2026-09-01") },
-      resultBdt: 0,
+      resultMoney: 0,
     });
-    expect(dairyFigureOf(gone)).toEqual({ kind: "result", bdt: 0 });
+    expect(dairyFigureOf(gone)).toEqual({ kind: "result", amount: 0 });
   });
 
   it("is what a head of her kind would fetch where she is here with nothing spent on her", () => {
-    const worth = { lowBdt: 12_000, highBdt: 15_000 };
+    const worth = { lowMoney: 12_000, highMoney: 15_000 };
     expect(dairyFigureOf(aCalf({ worthToday: worth }))).toEqual({
       kind: "worth",
       worth,
@@ -48,18 +48,18 @@ describe("a dairy run's figure", () => {
 
   it("is her range while she is here and has cost something, before what a head would fetch", () => {
     const running: Running = {
-      soldCostBdt: 0,
-      soldResultBdt: 0,
-      standingCostBdt: 10_000,
-      standingLowBdt: 12_000,
-      standingHighBdt: 15_000,
+      soldCostMoney: 0,
+      soldResultMoney: 0,
+      standingCostMoney: 10_000,
+      standingLowMoney: 12_000,
+      standingHighMoney: 15_000,
       low: { per100: 20, averageDays: 30, perYear: null },
       high: { per100: 50, averageDays: 30, perYear: null },
     } as Running;
     const run = aCalf({
-      costBdt: 10_000,
+      costMoney: 10_000,
       running,
-      worthToday: { lowBdt: 12_000, highBdt: 15_000 },
+      worthToday: { lowMoney: 12_000, highMoney: 15_000 },
     });
     expect(dairyFigureOf(run)).toEqual({ kind: "running", running });
   });
@@ -71,7 +71,7 @@ describe("a dairy run's figure", () => {
 
   it("reads an answer kept from before the two were said as having neither", () => {
     const kept = aCalf({});
-    delete (kept as Partial<DairyRun>).resultBdt;
+    delete (kept as Partial<DairyRun>).resultMoney;
     delete (kept as Partial<DairyRun>).worthToday;
     expect(dairyFigureOf(kept)).toEqual({ kind: "none", gaps: [] });
   });

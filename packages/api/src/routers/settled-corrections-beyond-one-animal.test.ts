@@ -28,14 +28,14 @@ const as = (role: "owner" | "manager", instant: string) =>
 type Owner = Awaited<ReturnType<typeof as>>;
 
 const plan = {
-  targetCapitalBdt: 500_000,
-  floorBdt: 0,
+  targetCapitalMoney: 500_000,
+  floorMoney: 0,
   decideBy: "2049-01-03",
   targetWindowStart: "2049-01-18",
   targetWindowEnd: "2049-01-20",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 10,
-  cattleBudgetBdt: 400_000,
+  cattleBudgetMoney: 400_000,
 };
 
 /** One Step for the whole Pen: what went into the troughs, once, for everybody standing there. */
@@ -117,7 +117,7 @@ const aVentureWithABull = async (owner: Owner, which: number) => {
     units: 10,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2049-01-02",
     stampSerial: `AA ${which} ${suffix}`,
   });
@@ -128,7 +128,7 @@ const aVentureWithABull = async (owner: Owner, which: number) => {
   });
   await owner.client.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: 500_000,
+    amountMoney: 500_000,
     movedOn: "2049-01-03",
     paymentMethod: "bank",
     reference: `TRF-${suffix}-${which}`,
@@ -139,14 +139,14 @@ const aVentureWithABull = async (owner: Owner, which: number) => {
   const trip = await buying.client.trips.record({
     wentTo: `হাট ${which} ${suffix}`,
     wentOn: "2049-01-04",
-    brokerBdt: 0,
-    transportBdt: 0,
-    keepBdt: 0,
+    brokerMoney: 0,
+    transportMoney: 0,
+    keepMoney: 0,
   });
   await buying.client.ventures.drawFloat({
     ventureId: venture.id,
     buyingTripId: trip.id,
-    amountBdt: 200_000,
+    amountMoney: 200_000,
     movedOn: "2049-01-04",
     paymentMethod: "bank",
     reference: `FLT-${suffix}-${which}`,
@@ -156,7 +156,7 @@ const aVentureWithABull = async (owner: Owner, which: number) => {
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 100_000,
+    purchasePriceMoney: 100_000,
     weightKg: 200,
     estimatedAgeMonths: 20,
     buyingTripId: trip.id,
@@ -167,7 +167,7 @@ const aVentureWithABull = async (owner: Owner, which: number) => {
   });
   await buying.client.ventures.reconcileFloat({
     buyingTripId: trip.id,
-    cashBackBdt: 100_000,
+    cashBackMoney: 100_000,
     movedOn: "2049-01-04",
     reference: `DEP-${suffix}-${which}`,
   });
@@ -181,7 +181,7 @@ const settle = async (ventureId: string, month: string) => {
   await reading.client.ventures.checkTheBank({
     ventureId,
     month,
-    readBdt: held.find((one) => one.id === ventureId)?.balanceBdt ?? 0,
+    readMoney: held.find((one) => one.id === ventureId)?.balanceMoney ?? 0,
   });
   const paying = await as("owner", "2049-02-02T04:00:00.000Z");
   const consumed = await paying.client.ventures.consumption({
@@ -194,7 +194,7 @@ const settle = async (ventureId: string, month: string) => {
     movedOn: "2049-02-02",
     paymentMethod: "bank",
     reference: `REI-${suffix}-${ventureId.slice(-6)}`,
-    amountBdt: consumed.totalBdt,
+    amountMoney: consumed.totalMoney,
   });
 };
 
@@ -204,7 +204,7 @@ const payOut = async (ventureId: string) => {
   await settling.client.ventures.checkTheBank({
     ventureId,
     month: "2049-02",
-    readBdt: reading.find((one) => one.id === ventureId)?.balanceBdt ?? 0,
+    readMoney: reading.find((one) => one.id === ventureId)?.balanceMoney ?? 0,
   });
   await settling.client.ventures.approveSettlement({ ventureId });
   const approved = await settling.client.ventures.approvedSettlement({
@@ -215,13 +215,13 @@ const payOut = async (ventureId: string) => {
     await settling.client.ventures.paySettlement({
       ventureId,
       agreementId: his.agreementId,
-      amountBdt: his.payoutBdt,
+      amountMoney: his.payoutMoney,
       movedOn: "2049-03-02",
       paymentMethod: "bank",
       reference: `PAY-${suffix}-${his.agreementId.slice(-6)}`,
     });
   }
-  if ((approved?.farmBdt ?? 0) > 0) {
+  if ((approved?.farmMoney ?? 0) > 0) {
     await settling.client.ventures.takeTheFarmsShare({
       ventureId,
       movedOn: "2049-03-02",
@@ -262,7 +262,7 @@ beforeAll(async () => {
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 100_000,
+    purchasePriceMoney: 100_000,
     weightKg: 200,
     estimatedAgeMonths: 20,
     arrivedAt: new Date("2049-01-04T05:30:00.000Z"),
@@ -274,7 +274,7 @@ beforeAll(async () => {
     penId: elsewherePenId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 100_000,
+    purchasePriceMoney: 100_000,
     weightKg: 200,
     estimatedAgeMonths: 20,
     arrivedAt: new Date("2049-01-04T05:15:00.000Z"),
@@ -292,7 +292,7 @@ beforeAll(async () => {
     feedItemId,
     kind: "purchase",
     quantity: 5000,
-    priceBdt: 200_000,
+    priceMoney: 200_000,
     seller: { name: `ডিলার ${suffix}` },
     receivedOn: "2049-01-05",
   });
@@ -305,7 +305,7 @@ beforeAll(async () => {
     feedItemId: straw.id,
     kind: "purchase",
     quantity: 1000,
-    priceBdt: 10_000,
+    priceMoney: 10_000,
     seller: { name: `ডিলার ${suffix}` },
     receivedOn: "2049-01-05",
   });
@@ -335,7 +335,7 @@ beforeAll(async () => {
     feedItemId,
     kind: "purchase",
     quantity: 1000,
-    priceBdt: 60_000,
+    priceMoney: 60_000,
     seller: { name: `ডিলার ${suffix}` },
     receivedOn: "2049-01-06",
   });
@@ -356,7 +356,7 @@ beforeAll(async () => {
   const spending = await as("manager", "2049-01-10T04:00:00.000Z");
   const january = await spending.client.money.enter({
     categoryId: herdCostId,
-    amountBdt: 9000,
+    amountMoney: 9000,
     occurredOn: "2049-01-10",
     counterparty: { name: `দোকান ${suffix}` },
     paymentMethod: "cash",
@@ -372,7 +372,7 @@ beforeAll(async () => {
     await selling.client.sale.record({
       tagNumber,
       buyer: { name: `ক্রেতা ${at} ${suffix}` },
-      priceBdt: 300_000,
+      priceMoney: 300_000,
       weightKg: 320,
       destination: `ঢাকা ${suffix}`,
       vehicle: `ঢাকা মেট্রো ${suffix}`,
@@ -389,7 +389,7 @@ beforeAll(async () => {
   const later = await as("manager", "2049-02-11T04:00:00.000Z");
   const february = await later.client.money.enter({
     categoryId: herdCostId,
-    amountBdt: 4000,
+    amountMoney: 4000,
     occurredOn: "2049-02-11",
     counterparty: { name: `দোকান ${suffix}` },
     paymentMethod: "cash",
@@ -428,7 +428,7 @@ describe("a Correction that reaches past the record it names", () => {
       owner.client.stock.correct({
         id: arrivalId,
         reason: `দাম ভুল ছিল ${suffix}`,
-        changes: { priceBdt: { from: 200_000, to: 180_000 } },
+        changes: { priceMoney: { from: 200_000, to: 180_000 } },
       })
     ).rejects.toMatchObject(settledRefusal);
   });
@@ -439,7 +439,7 @@ describe("a Correction that reaches past the record it names", () => {
       .correct({
         id: arrivalId,
         reason: `দাম ভুল ছিল ${suffix}`,
-        changes: { priceBdt: { from: 200_000, to: 180_000 } },
+        changes: { priceMoney: { from: 200_000, to: 180_000 } },
       })
       .catch((error: unknown) => error);
     // Both of them ate out of that sack, so a Settlement Adjustment is owed on both — and she is told
@@ -455,7 +455,7 @@ describe("a Correction that reaches past the record it names", () => {
       owner.client.money.correctEntered({
         id: januaryMoneyId,
         reason: `রসিদে অন্য অঙ্ক ${suffix}`,
-        changes: { amountBdt: { from: 9000, to: 7500 } },
+        changes: { amountMoney: { from: 9000, to: 7500 } },
       })
     ).rejects.toMatchObject(settledRefusal);
   });
@@ -492,7 +492,7 @@ describe("a Correction that reaches past the record it names", () => {
     const put = await owner.client.stock.correct({
       id: untouchedArrivalId,
       reason: `খড়ের দাম ভুল ${suffix}`,
-      changes: { priceBdt: { from: 10_000, to: 9000 } },
+      changes: { priceMoney: { from: 10_000, to: 9000 } },
     });
     expect(put).toMatchObject({ id: untouchedArrivalId });
   });
@@ -502,7 +502,7 @@ describe("a Correction that reaches past the record it names", () => {
     const put = await owner.client.money.correctEntered({
       id: februaryMoneyId,
       reason: `রসিদে অন্য অঙ্ক ${suffix}`,
-      changes: { amountBdt: { from: 4000, to: 3500 } },
+      changes: { amountMoney: { from: 4000, to: 3500 } },
     });
     expect(put).toMatchObject({ id: februaryMoneyId });
   });

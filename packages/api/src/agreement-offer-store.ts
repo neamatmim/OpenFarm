@@ -311,7 +311,7 @@ export const approveOffer = async (
           arbitrator: offer.arbitrator,
           stamp: {
             kind: "in_app",
-            valueBdt: 0,
+            valueMoney: 0,
             on: farmDayOf(now),
             serial: offer.paperHash.slice(0, NUMBER_LENGTH).toUpperCase(),
           },

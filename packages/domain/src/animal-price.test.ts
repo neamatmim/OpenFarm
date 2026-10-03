@@ -16,45 +16,45 @@ describe("what an animal might fetch against what she cost", () => {
     // ৳1,36,800, ৳76,800 over. She pays for herself at ৳263.16 a kilo.
     expect(
       priceOfAnimal({
-        costBdt: 60_000,
+        costMoney: 60_000,
         latestKg: 228,
-        range: { lowBdtPerKg: 500, highBdtPerKg: 600 },
+        range: { lowMoneyPerKg: 500, highMoneyPerKg: 600 },
       })
     ).toEqual({
-      breakEvenBdtPerKg: 263.16,
-      low: { priceBdt: 114_000, marginBdt: 54_000 },
-      high: { priceBdt: 136_800, marginBdt: 76_800 },
+      breakEvenMoneyPerKg: 263.16,
+      low: { priceMoney: 114_000, marginMoney: 54_000 },
+      high: { priceMoney: 136_800, marginMoney: 76_800 },
     });
   });
 
   it("says a loss where a price does not cover her", () => {
     const priced = priceOfAnimal({
-      costBdt: 150_000,
+      costMoney: 150_000,
       latestKg: 250,
-      range: { lowBdtPerKg: 500, highBdtPerKg: 700 },
+      range: { lowMoneyPerKg: 500, highMoneyPerKg: 700 },
     });
     // ৳1,25,000 at the low price is ৳25,000 short of what she cost.
-    expect(priced.low?.marginBdt).toBe(-25_000);
-    expect(priced.breakEvenBdtPerKg).toBe(600);
+    expect(priced.low?.marginMoney).toBe(-25_000);
+    expect(priced.breakEvenMoneyPerKg).toBe(600);
   });
 
   it("gives a break-even but no price while no price a kilo is set, and neither without a weight", () => {
     expect(
-      priceOfAnimal({ costBdt: 60_000, latestKg: 240, range: null })
-    ).toEqual({ breakEvenBdtPerKg: 250, low: null, high: null });
+      priceOfAnimal({ costMoney: 60_000, latestKg: 240, range: null })
+    ).toEqual({ breakEvenMoneyPerKg: 250, low: null, high: null });
     expect(
       priceOfAnimal({
-        costBdt: 60_000,
+        costMoney: 60_000,
         latestKg: null,
-        range: { lowBdtPerKg: 500, highBdtPerKg: 600 },
+        range: { lowMoneyPerKg: 500, highMoneyPerKg: 600 },
       })
-    ).toEqual({ breakEvenBdtPerKg: null, low: null, high: null });
+    ).toEqual({ breakEvenMoneyPerKg: null, low: null, high: null });
   });
 });
 
 describe("the price a kilo an animal is priced at", () => {
-  const venture = { lowBdtPerKg: 550, highBdtPerKg: 650 };
-  const farm = { lowBdtPerKg: 500, highBdtPerKg: 600 };
+  const venture = { lowMoneyPerKg: 550, highMoneyPerKg: 650 };
+  const farm = { lowMoneyPerKg: 500, highMoneyPerKg: 600 };
 
   it("is her Venture's own for one of a Venture's animals, and the farm's market price for the farm's own", () => {
     expect(
@@ -81,22 +81,22 @@ describe("what a kilo fetched in the farm's own sales", () => {
     // mean of the two rates would say ৳550 and let the small bull count as much as the big one.
     expect(
       perKgOfSales([
-        { priceBdt: 100_000, weightKg: 200 },
-        { priceBdt: 360_000, weightKg: 600 },
+        { priceMoney: 100_000, weightKg: 200 },
+        { priceMoney: 360_000, weightKg: 600 },
       ])
-    ).toEqual({ bdtPerKg: 575, animals: 2 });
+    ).toEqual({ moneyPerKg: 575, animals: 2 });
   });
 
   it("says nothing where nothing was sold, or nothing weighed", () => {
     expect(perKgOfSales([])).toBeNull();
-    expect(perKgOfSales([{ priceBdt: 100_000, weightKg: 0 }])).toBeNull();
+    expect(perKgOfSales([{ priceMoney: 100_000, weightKg: 0 }])).toBeNull();
   });
 });
 
 /** Her share of one morning's Feeding. */
-const feeding = (day: string, bdt: number, priced = true) => ({
+const feeding = (day: string, amount: number, priced = true) => ({
   at: new Date(`${day}T02:00:00.000Z`),
-  bdt,
+  amount,
   fed: true,
   priced,
 });
@@ -115,7 +115,7 @@ describe("what her keep has cost over the days the farm reads it over", () => {
         feeding("2040-02-24", 4200),
         {
           at: new Date("2040-02-15T00:00:00.000Z"),
-          bdt: 140,
+          amount: 140,
           fed: false,
           priced: true,
         },
@@ -124,7 +124,7 @@ describe("what her keep has cost over the days the farm reads it over", () => {
       now,
       readDays: 28,
     });
-    expect(kept).toEqual({ bdt: 8540, days: 28, fed: true, whole: true });
+    expect(kept).toEqual({ amount: 8540, days: 28, fed: true, whole: true });
   });
 
   it("reads as many days back as the farm says", () => {
@@ -137,7 +137,7 @@ describe("what her keep has cost over the days the farm reads it over", () => {
           feeding("2040-02-24", 4200),
           {
             at: new Date("2040-02-15T00:00:00.000Z"),
-            bdt: 140,
+            amount: 140,
             fed: false,
             priced: true,
           },
@@ -146,7 +146,7 @@ describe("what her keep has cost over the days the farm reads it over", () => {
         now,
         readDays: 14,
       })
-    ).toEqual({ bdt: 4200, days: 14, fed: true, whole: true });
+    ).toEqual({ amount: 4200, days: 14, fed: true, whole: true });
   });
 
   it("counts only the days she was here, and a move between Pens is no gap", () => {
@@ -181,7 +181,7 @@ describe("what her keep has cost over the days the farm reads it over", () => {
       charges: [
         {
           at: new Date("2040-02-15T00:00:00.000Z"),
-          bdt: 140,
+          amount: 140,
           fed: false,
           priced: true,
         },
@@ -203,7 +203,7 @@ describe("what her keep has cost over the days the farm reads it over", () => {
 
 describe("keep her or sell her", () => {
   // ৳8,400 of keep over four weeks is ৳300 a day.
-  const kept: Kept = { bdt: 8400, days: 28, fed: true, whole: true };
+  const kept: Kept = { amount: 8400, days: 28, fed: true, whole: true };
 
   it("sets what a kilo she puts on now costs beside her price, and works the next fortnight at both ends", () => {
     // A kilo a day on ৳300 a day: each kilo costs ৳300. At ৳280 to ৳320 a kilo that is between the two, so what she
@@ -213,21 +213,21 @@ describe("keep her or sell her", () => {
       keepOrSell({
         kept,
         dailyGainKg: 1,
-        range: { lowBdtPerKg: 280, highBdtPerKg: 320 },
+        range: { lowMoneyPerKg: 280, highMoneyPerKg: 320 },
         aheadDays: 14,
         needsDays: 7,
       })
     ).toEqual({
       known: true,
-      keepBdtPerDay: 300,
+      keepMoneyPerDay: 300,
       dailyGainKg: 1,
-      costOfGainNowBdt: 300,
+      costOfGainNowMoney: 300,
       ahead: {
         days: 14,
         gainKg: 14,
-        keepBdt: 4200,
-        low: { worthBdt: 3920, overKeepBdt: -280 },
-        high: { worthBdt: 4480, overKeepBdt: 280 },
+        keepMoney: 4200,
+        low: { worthMoney: 3920, overKeepMoney: -280 },
+        high: { worthMoney: 4480, overKeepMoney: 280 },
       },
       keeping: "close",
       whole: true,
@@ -241,29 +241,29 @@ describe("keep her or sell her", () => {
       keepOrSell({
         kept,
         dailyGainKg: 1,
-        range: { lowBdtPerKg: 280, highBdtPerKg: 320 },
+        range: { lowMoneyPerKg: 280, highMoneyPerKg: 320 },
         aheadDays: 7,
         needsDays: 7,
       })
     ).toMatchObject({
-      costOfGainNowBdt: 300,
+      costOfGainNowMoney: 300,
       ahead: {
         days: 7,
         gainKg: 7,
-        keepBdt: 2100,
-        low: { worthBdt: 1960, overKeepBdt: -140 },
-        high: { worthBdt: 2240, overKeepBdt: 140 },
+        keepMoney: 2100,
+        low: { worthMoney: 1960, overKeepMoney: -140 },
+        high: { worthMoney: 2240, overKeepMoney: 140 },
       },
       keeping: "close",
     });
   });
 
   it("says keeping pays when a kilo costs no more than the low price, and costs more when it costs over the high", () => {
-    const at = (lowBdtPerKg: number, highBdtPerKg: number) =>
+    const at = (lowMoneyPerKg: number, highMoneyPerKg: number) =>
       keepOrSell({
         kept,
         dailyGainKg: 1,
-        range: { lowBdtPerKg, highBdtPerKg },
+        range: { lowMoneyPerKg, highMoneyPerKg },
         aheadDays: 14,
         needsDays: 7,
       });
@@ -275,7 +275,7 @@ describe("keep her or sell her", () => {
   });
 
   it("says a beast putting nothing on, or losing, costs more to keep at any price", () => {
-    const range = { lowBdtPerKg: 500, highBdtPerKg: 700 };
+    const range = { lowMoneyPerKg: 500, highMoneyPerKg: 700 };
     const still = keepOrSell({
       kept,
       dailyGainKg: 0,
@@ -285,12 +285,12 @@ describe("keep her or sell her", () => {
     });
     expect(still).toMatchObject({
       known: true,
-      costOfGainNowBdt: null,
+      costOfGainNowMoney: null,
       keeping: "costs_more",
       ahead: {
         gainKg: 0,
-        keepBdt: 4200,
-        low: { worthBdt: 0, overKeepBdt: -4200 },
+        keepMoney: 4200,
+        low: { worthMoney: 0, overKeepMoney: -4200 },
       },
     });
     const losing = keepOrSell({
@@ -303,7 +303,7 @@ describe("keep her or sell her", () => {
     // Half a kilo a day off her for a fortnight is 7 kg gone, and ৳4,200 spent on it.
     expect(losing).toMatchObject({
       keeping: "costs_more",
-      ahead: { gainKg: -7, low: { worthBdt: -3500, overKeepBdt: -7700 } },
+      ahead: { gainKg: -7, low: { worthMoney: -3500, overKeepMoney: -7700 } },
     });
   });
 
@@ -312,23 +312,23 @@ describe("keep her or sell her", () => {
     // ৳400 and ৳450. The fortnight's 11.9 kg fetch ৳4,760 (৳240 short of its keep) and ৳5,355 (৳355 over).
     expect(
       keepOrSell({
-        kept: { bdt: 10_000, days: 28, fed: true, whole: false },
+        kept: { amount: 10_000, days: 28, fed: true, whole: false },
         dailyGainKg: 0.85,
-        range: { lowBdtPerKg: 400, highBdtPerKg: 450 },
+        range: { lowMoneyPerKg: 400, highMoneyPerKg: 450 },
         aheadDays: 14,
         needsDays: 7,
       })
     ).toEqual({
       known: true,
-      keepBdtPerDay: 357.14,
+      keepMoneyPerDay: 357.14,
       dailyGainKg: 0.85,
-      costOfGainNowBdt: 420.17,
+      costOfGainNowMoney: 420.17,
       ahead: {
         days: 14,
         gainKg: 11.9,
-        keepBdt: 5000,
-        low: { worthBdt: 4760, overKeepBdt: -240 },
-        high: { worthBdt: 5355, overKeepBdt: 355 },
+        keepMoney: 5000,
+        low: { worthMoney: 4760, overKeepMoney: -240 },
+        high: { worthMoney: 5355, overKeepMoney: 355 },
       },
       keeping: "close",
       whole: false,
@@ -346,7 +346,7 @@ describe("keep her or sell her", () => {
       })
     ).toMatchObject({
       known: true,
-      costOfGainNowBdt: 300,
+      costOfGainNowMoney: 300,
       keeping: null,
       ahead: { low: null, high: null },
     });
@@ -354,8 +354,8 @@ describe("keep her or sell her", () => {
 
   it("judges an animal as soon as the farm says she has been here long enough", () => {
     // Five days of her at ৳300 a day: a farm that waits a week cannot tell yet, one that waits three days can.
-    const fiveDays = { ...kept, bdt: 1500, days: 5 };
-    const range = { lowBdtPerKg: 280, highBdtPerKg: 320 };
+    const fiveDays = { ...kept, amount: 1500, days: 5 };
+    const range = { lowMoneyPerKg: 280, highMoneyPerKg: 320 };
     expect(
       keepOrSell({
         kept: fiveDays,
@@ -373,11 +373,11 @@ describe("keep her or sell her", () => {
         aheadDays: 14,
         needsDays: 3,
       })
-    ).toMatchObject({ known: true, keepBdtPerDay: 300, keeping: "close" });
+    ).toMatchObject({ known: true, keepMoneyPerDay: 300, keeping: "close" });
   });
 
   it("says why it cannot tell: too few days here, no Feeding charged to her, or no rate to work from", () => {
-    const range = { lowBdtPerKg: 500, highBdtPerKg: 700 };
+    const range = { lowMoneyPerKg: 500, highMoneyPerKg: 700 };
     expect(
       keepOrSell({
         kept: { ...kept, days: 6.9 },

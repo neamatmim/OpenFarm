@@ -43,7 +43,7 @@ export const feedItem = pgTable(
     /** What a kilo of this is worth when the farm grows it itself: roughly what buying it would cost.
      *  A Harvest comes into the store at it, so the animals that eat home-grown fodder are charged for
      *  it. Null for anything the farm does not grow, which comes in at what it was bought for. */
-    fodderPriceBdt: taka("fodder_price_bdt"),
+    fodderPriceMoney: taka("fodder_price_money"),
     retiredAt: timestamp("retired_at"),
     createdBy: text("created_by").references(() => user.id),
     createdAt: timestamp("created_at").notNull(),
@@ -218,7 +218,7 @@ export const feedIn = pgTable(
     packKind: text("pack_kind", { enum: FEED_PACKS }),
     packCount: numeric("pack_count", { precision: 10, scale: 1 }),
     /** What the whole lot cost, in taka. Null for a harvest. */
-    priceBdt: taka("price_bdt"),
+    priceMoney: taka("price_money"),
     /** The seller: who the farm bought it from, as on an Intake. Null for a harvest. */
     counterpartyId: text("counterparty_id").references(() => counterparty.id),
     /** The farm's day it came in. */

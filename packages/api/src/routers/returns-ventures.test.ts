@@ -36,14 +36,14 @@ const as = (role: "owner" | "manager" | "staff", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 const TERMS = {
-  targetCapitalBdt: 1_000_000,
-  floorBdt: 0,
+  targetCapitalMoney: 1_000_000,
+  floorMoney: 0,
   decideBy: "2053-01-20",
   targetWindowStart: WINDOW.start,
   targetWindowEnd: WINDOW.end,
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 20,
-  cattleBudgetBdt: 800_000,
+  cattleBudgetMoney: 800_000,
 };
 
 let ventureId = "";
@@ -103,12 +103,12 @@ const weigh = async (
   });
 };
 
-const sell = async (tagNumber: string, at: string, priceBdt: number) => {
+const sell = async (tagNumber: string, at: string, priceMoney: number) => {
   const { client } = await as("manager", at);
   await client.sale.record({
     tagNumber,
     buyer: { name: `ক্রেতা ${suffix}` },
-    priceBdt,
+    priceMoney,
     weightKg: 320,
     destination: `ঢাকা ${suffix}`,
     vehicle: `ঢাকা মেট্রো ${suffix}`,
@@ -160,7 +160,7 @@ beforeAll(async () => {
     units: 20,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2053-01-02",
     stampSerial: `AA 1 ${suffix}`,
   });
@@ -172,7 +172,7 @@ beforeAll(async () => {
   });
   await owner.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: 1_000_000,
+    amountMoney: 1_000_000,
     movedOn: "2053-01-03",
     paymentMethod: "bank",
     reference: `TRF-${suffix}`,
@@ -184,25 +184,25 @@ beforeAll(async () => {
   const trip = await buying.trips.record({
     wentTo: `হাট ${suffix}`,
     wentOn: "2053-01-04",
-    brokerBdt: 0,
-    transportBdt: 0,
-    keepBdt: 0,
+    brokerMoney: 0,
+    transportMoney: 0,
+    keepMoney: 0,
   });
   await buying.ventures.drawFloat({
     ventureId,
     buyingTripId: trip.id,
-    amountBdt: 200_000,
+    amountMoney: 200_000,
     movedOn: "2053-01-04",
     paymentMethod: "bank",
     reference: `FLT-${suffix}`,
   });
   const { client: manager } = await as("manager", "2053-01-04T05:00:00.000Z");
-  const bull = async (priceBdt: number, forTheVenture: boolean) =>
+  const bull = async (priceMoney: number, forTheVenture: boolean) =>
     await manager.intake.record({
       penId: pen.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
-      purchasePriceBdt: priceBdt,
+      purchasePriceMoney: priceMoney,
       weightKg: 250,
       estimatedAgeMonths: 20,
       ...(forTheVenture ? { buyingTripId: trip.id, ventureId } : {}),
@@ -216,7 +216,7 @@ beforeAll(async () => {
   const x = await bull(80_000, false);
   await buying.ventures.reconcileFloat({
     buyingTripId: trip.id,
-    cashBackBdt: 0,
+    cashBackMoney: 0,
     movedOn: "2053-01-04",
     reference: `DEP-${suffix}`,
   });
@@ -227,12 +227,12 @@ beforeAll(async () => {
   await selling.ventures.sellInternally({
     tagNumber: x.tagNumber,
     toVentureId: ventureId,
-    rateBdtPerKg: 360,
+    rateMoneyPerKg: 360,
     note: `হাটের দর ${suffix}`,
     soldOn: "2053-01-20",
     paymentMethod: "bank",
     reference: `INT-${suffix}`,
-    priceBdt: 90_000,
+    priceMoney: 90_000,
   });
 
   await sell(farms.tagNumber, "2053-02-18T05:00:00.000Z", 100_000);
@@ -252,7 +252,7 @@ beforeAll(async () => {
     await reading.ventures.checkTheBank({
       ventureId,
       month,
-      readBdt: believed.expectedBdt,
+      readMoney: believed.expectedMoney,
     });
   }
   await reading.ventures.approveSettlement({ ventureId });
@@ -263,7 +263,7 @@ beforeAll(async () => {
     await paying.ventures.paySettlement({
       ventureId,
       agreementId: his.agreementId,
-      amountBdt: his.payoutBdt,
+      amountMoney: his.payoutMoney,
       movedOn: "2053-04-02",
       paymentMethod: "bank",
       reference: `PAY-${suffix}`,
@@ -284,14 +284,14 @@ describe("what a settled Venture returned", () => {
     expect(ventures.find((one) => one.id === ventureId)).toMatchObject({
       head: 3,
       returnOnCost: {
-        costBdt: 290_000,
-        backBdt: 317_000,
-        resultBdt: 27_000,
+        costMoney: 290_000,
+        backMoney: 317_000,
+        resultMoney: 27_000,
         per100: 9.3,
         averageDays: 65,
         perYear: 52.1,
       },
-      farmsShareBdt: 10_800,
+      farmsShareMoney: 10_800,
     });
   });
 
@@ -301,8 +301,8 @@ describe("what a settled Venture returned", () => {
     expect(
       ventures.find((one) => one.id === ventureId)?.returnOnCapital
     ).toEqual({
-      capitalBdt: 1_000_000,
-      shareBdt: 16_200,
+      capitalMoney: 1_000_000,
+      shareMoney: 16_200,
       per100: 1.6,
       averageDays: 89,
       perYear: 6.6,
@@ -314,8 +314,8 @@ describe("what a settled Venture returned", () => {
     const approved = await owner.ventures.approvedSettlement({ ventureId });
     const { ventures } = await owner.returns.page();
     const read = ventures.find((one) => one.id === ventureId)?.returnOnCost;
-    expect(read?.costBdt).toBe(approved?.chargedBdt);
-    expect(read?.backBdt).toBe(approved?.proceedsBdt);
+    expect(read?.costMoney).toBe(approved?.chargedMoney);
+    expect(read?.backMoney).toBe(approved?.proceedsMoney);
   });
 });
 
@@ -434,7 +434,11 @@ describe("a Season beside a Venture in the same window", () => {
     expect(season).toMatchObject({
       head: 2,
       finished: true,
-      returnOnCost: { costBdt: 170_000, backBdt: 190_000, resultBdt: 20_000 },
+      returnOnCost: {
+        costMoney: 170_000,
+        backMoney: 190_000,
+        resultMoney: 20_000,
+      },
     });
   });
 });
@@ -501,12 +505,12 @@ describe("a Venture still going, at today's price", () => {
           animals: 6,
           fromKg: 240,
           toKg: 260,
-          buyBdtPerKg: 400,
+          buyMoneyPerKg: 400,
           dailyGainKg: 0.8,
         },
       ],
-      saleLowBdtPerKg: 600,
-      saleHighBdtPerKg: 700,
+      saleLowMoneyPerKg: 600,
+      saleHighMoneyPerKg: 700,
     });
     const person = await owner.investors.record({
       name: `জসিম ${suffix}`,
@@ -518,7 +522,7 @@ describe("a Venture still going, at today's price", () => {
       units: 20,
       investorsPercent: 60,
       arbitrator: `মাওলানা ${suffix}`,
-      stampValueBdt: 300,
+      stampValueMoney: 300,
       stampedOn: "2053-01-02",
       stampSerial: `AA 2 ${suffix}`,
     });
@@ -529,7 +533,7 @@ describe("a Venture still going, at today's price", () => {
     });
     await owner.ventures.takeCapital({
       agreementId: agreement.id,
-      amountBdt: 1_000_000,
+      amountMoney: 1_000_000,
       movedOn: "2053-01-03",
       paymentMethod: "bank",
       reference: `TRF-2-${suffix}`,
@@ -539,14 +543,14 @@ describe("a Venture still going, at today's price", () => {
     const trip = await buying.trips.record({
       wentTo: `হাট ২ ${suffix}`,
       wentOn: "2053-01-04",
-      brokerBdt: 0,
-      transportBdt: 0,
-      keepBdt: 0,
+      brokerMoney: 0,
+      transportMoney: 0,
+      keepMoney: 0,
     });
     await buying.ventures.drawFloat({
       ventureId: goingId,
       buyingTripId: trip.id,
-      amountBdt: 100_000,
+      amountMoney: 100_000,
       movedOn: "2053-01-04",
       paymentMethod: "bank",
       reference: `FLT-2-${suffix}`,
@@ -556,7 +560,7 @@ describe("a Venture still going, at today's price", () => {
       penId: pen.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
-      purchasePriceBdt: 100_000,
+      purchasePriceMoney: 100_000,
       weightKg: 250,
       estimatedAgeMonths: 20,
       buyingTripId: trip.id,
@@ -575,12 +579,12 @@ describe("a Venture still going, at today's price", () => {
       head: 1,
       returnOnCost: null,
       returnOnCapital: null,
-      farmsShareBdt: null,
+      farmsShareMoney: null,
       gaps: [],
       running: {
-        soldCostBdt: 0,
-        soldResultBdt: 0,
-        standingCostBdt: 100_000,
+        soldCostMoney: 0,
+        soldResultMoney: 0,
+        standingCostMoney: 100_000,
         low: { per100: 50, averageDays: 96, perYear: null },
         high: { per100: 75, averageDays: 96, perYear: null },
       },
@@ -617,7 +621,7 @@ describe("a Venture buying, with no cattle yet", () => {
       units: 20,
       investorsPercent: 60,
       arbitrator: `মাওলানা ${suffix}`,
-      stampValueBdt: 300,
+      stampValueMoney: 300,
       stampedOn: "2053-01-02",
       stampSerial: `AA 3 ${suffix}`,
     });
@@ -628,7 +632,7 @@ describe("a Venture buying, with no cattle yet", () => {
     });
     await owner.ventures.takeCapital({
       agreementId: agreement.id,
-      amountBdt: 1_000_000,
+      amountMoney: 1_000_000,
       movedOn: "2053-01-03",
       paymentMethod: "bank",
       reference: `TRF-3-${suffix}`,

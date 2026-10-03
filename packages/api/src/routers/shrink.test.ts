@@ -67,7 +67,7 @@ const aBull = async (weightKg: number, into = penId) => {
     penId: into,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 90_000,
+    purchasePriceMoney: 90_000,
     weightKg,
     estimatedAgeMonths: 20,
     arrivedAt: new Date("2079-03-02T04:00:00.000Z"),
@@ -104,8 +104,8 @@ beforeAll(async () => {
   const selling = await as("manager");
   await selling.client.sellingTrips.record({
     wentTo: `ঈদের হাট ${suffix}`,
-    transportBdt: 4000,
-    keepBdt: 0,
+    transportMoney: 4000,
+    keepMoney: 0,
     animals: [weighed, unweighed],
     wentOn: new Date(SOLD),
     paymentMethod: "cash",
@@ -118,7 +118,7 @@ beforeAll(async () => {
     await selling.client.sale.record({
       tagNumber,
       buyer: { name: `ক্রেতা ${suffix}` },
-      priceBdt: 150_000,
+      priceMoney: 150_000,
       weightKg,
       destination: `গাবতলী ${suffix}`,
       vehicle: "ঢাকা মেট্রো-ট ১১-৪৪৫৭",
@@ -195,7 +195,7 @@ describe("shrink past the farm's allowance", () => {
     await manager.client.sale.record({
       tagNumber,
       buyer: { name: `ক্রেতা ${suffix}` },
-      priceBdt: 150_000,
+      priceMoney: 150_000,
       weightKg,
       destination: `গাবতলী ${suffix}`,
       vehicle: "ঢাকা মেট্রো-ট ১১-৪৪৫৭",

@@ -1,4 +1,4 @@
-import { formatDigits } from "@OpenFarm/i18n";
+import { currencyWords, formatDigits } from "@OpenFarm/i18n";
 
 import type { FarmIdentity, RegistrationStanding } from "./farm";
 import { farmOfOriginLines } from "./farm";
@@ -84,14 +84,23 @@ export const saleReceipt = (receipt: SaleReceipt): string => {
     "",
     "ট্যাগ নম্বর · ওজন · মূল্য / Tag · weight · price",
     ...receipt.animals.map(
-      (one) => `${one.tagNumber} · ${one.weight} কেজি · ${one.price} টাকা`
+      (one) =>
+        `${one.tagNumber} · ${one.weight} কেজি · ${one.price} ${currencyWords("bn").sum}`
     ),
     "",
-    field("মোট", "Total", `${receipt.total} টাকা`),
+    field("মোট", "Total", `${receipt.total} ${currencyWords("bn").sum}`),
     ...(receipt.baki
       ? [
-          field("পরিশোধ", "Paid", `${receipt.baki.paid} টাকা`),
-          field("বাকি", "Still owed", `${receipt.baki.owed} টাকা`),
+          field(
+            "পরিশোধ",
+            "Paid",
+            `${receipt.baki.paid} ${currencyWords("bn").sum}`
+          ),
+          field(
+            "বাকি",
+            "Still owed",
+            `${receipt.baki.owed} ${currencyWords("bn").sum}`
+          ),
           field("পরিশোধের তারিখ", "To be paid by", receipt.baki.toBePaidBy),
         ]
       : []),
@@ -424,7 +433,7 @@ export interface AccountantSummary {
   taka: (amount: number) => string;
   /** Who still owed the farm what on the period's last day — its **Baki** — biggest first. The money list is cash as
    *  it came; this is what had not come yet. */
-  bakiAtTheEnd: readonly { name: string; owingBdt: number }[];
+  bakiAtTheEnd: readonly { name: string; owingMoney: number }[];
   producedBy: string;
   producedAt: string;
 }
@@ -441,17 +450,17 @@ const SIDE_LABEL: Record<Side, [string, string]> = {
  */
 export const accountantSummary = (paper: AccountantSummary): string => {
   const { summary, taka } = paper;
-  const inAndOut = (line: { inBdt: number; outBdt: number }) =>
-    `আয় / in ${taka(line.inBdt)} · ব্যয় / out ${taka(line.outBdt)}`;
+  const inAndOut = (line: { inMoney: number; outMoney: number }) =>
+    `আয় / in ${taka(line.inMoney)} · ব্যয় / out ${taka(line.outMoney)}`;
   return [
     ...farmOfOriginLines(paper.farm),
     "",
     "আয় ও ব্যয় / Income and expense",
     field("সময়কাল", "Period", `${paper.from} — ${paper.to}`),
     "",
-    field("মোট আয়", "Income", taka(summary.incomeBdt)),
-    field("মোট ব্যয়", "Expense", taka(summary.expenseBdt)),
-    field("নিট", "Net", taka(summary.netBdt)),
+    field("মোট আয়", "Income", taka(summary.incomeMoney)),
+    field("মোট ব্যয়", "Expense", taka(summary.expenseMoney)),
+    field("নিট", "Net", taka(summary.netMoney)),
     summary.awaiting.count > 0
       ? field(
           "মালিকের অনুমোদনের অপেক্ষায়",
@@ -483,13 +492,13 @@ export const accountantSummary = (paper: AccountantSummary): string => {
       ? [
           "সময়কালের শেষে বাকি / Owed to the farm at the period's end",
           ...paper.bakiAtTheEnd.map(
-            (line) => `  ${line.name}: ${taka(line.owingBdt)}`
+            (line) => `  ${line.name}: ${taka(line.owingMoney)}`
           ),
           field(
             "মোট বাকি",
             "Total owed",
             taka(
-              paper.bakiAtTheEnd.reduce((sum, line) => sum + line.owingBdt, 0)
+              paper.bakiAtTheEnd.reduce((sum, line) => sum + line.owingMoney, 0)
             )
           ),
           "",

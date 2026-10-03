@@ -21,21 +21,21 @@ const as = (instant: string) =>
   });
 
 const plan = {
-  targetCapitalBdt: 1_000_000,
-  floorBdt: 0,
+  targetCapitalMoney: 1_000_000,
+  floorMoney: 0,
   decideBy: "2050-03-01",
   targetWindowStart: "2050-06-01",
   targetWindowEnd: "2050-06-03",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 20,
-  cattleBudgetBdt: 750_000,
+  cattleBudgetMoney: 750_000,
 };
 
 const paper = {
   units: 2,
   investorsPercent: 60,
   arbitrator: `মাওলানা আব্দুল হক ${suffix}`,
-  stampValueBdt: 300,
+  stampValueMoney: 300,
   stampedOn: "2050-01-02",
   stampSerial: `AA ${suffix}`,
 };

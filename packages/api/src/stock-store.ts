@@ -47,12 +47,12 @@ export interface StockLine {
   /** Below this much, the Manager is told. Null for a Feed Item nobody watches. */
   lowStockAt: number | null;
   /** What a kilo is worth when the farm grows it itself. Null for anything it does not grow. */
-  fodderPriceBdt: number | null;
+  fodderPriceMoney: number | null;
   /** Everything that came in, less everything the Feedings gave. Below nothing when the pens were fed
    *  from feed nobody wrote down arriving — shown, never refused. */
   onHand: number;
   /** Taka per unit, a moving weighted average over what is in the store; null for feed never bought. */
-  averagePriceBdt: number | null;
+  averagePriceMoney: number | null;
   lastInOn: Date | null;
   /** Holding less than the level the Manager set, or fewer days of it than the farm's line at the rate it is fed: what
    *  puts it on the queue and in the digest. */
@@ -101,7 +101,7 @@ export const movementsByItem = async (
     columns: {
       feedItemId: true,
       quantity: true,
-      priceBdt: true,
+      priceMoney: true,
       receivedOn: true,
     },
   });
@@ -139,7 +139,7 @@ export const movementsByItem = async (
       kind: "in",
       at: one.receivedOn,
       quantity: Number(one.quantity),
-      priceBdt: one.priceBdt === null ? null : one.priceBdt,
+      priceMoney: one.priceMoney === null ? null : one.priceMoney,
     });
   }
   for (const one of counts) {
@@ -250,7 +250,7 @@ export const stockOnHand = async (
         unit: true,
         retiredAt: true,
         lowStockAt: true,
-        fodderPriceBdt: true,
+        fodderPriceMoney: true,
       },
       orderBy: { nameBn: "asc", id: "asc" },
     }),
@@ -300,7 +300,8 @@ export const stockOnHand = async (
       unit: item.unit,
       retiredAt: item.retiredAt,
       lowStockAt: item.lowStockAt === null ? null : Number(item.lowStockAt),
-      fodderPriceBdt: item.fodderPriceBdt === null ? null : item.fodderPriceBdt,
+      fodderPriceMoney:
+        item.fodderPriceMoney === null ? null : item.fodderPriceMoney,
       ...ledger,
       ...lowOf(item, mine, ledger.onHand, reading),
       lastInOn: lastIn ?? null,
@@ -471,7 +472,7 @@ export interface StockAdjustment {
   feedItemId: string;
   difference: number;
   /** The store's average price when it was counted: what the difference is worth a unit. Null for feed never bought. */
-  priceBdt: number | null;
+  priceMoney: number | null;
 }
 
 /**
@@ -533,7 +534,7 @@ export const recordStockCount = async (
   });
   const lines = entry.counts.map((line) => {
     const counted = roundKg(line.counted);
-    const { onHand: expected, averagePriceBdt } = stockLedger(
+    const { onHand: expected, averagePriceMoney } = stockLedger(
       movements.get(line.feedItemId) ?? [],
       entry.countedAt
     );
@@ -541,7 +542,7 @@ export const recordStockCount = async (
       ...line,
       counted,
       expected,
-      priceBdt: averagePriceBdt,
+      priceMoney: averagePriceMoney,
       difference: roundKg(counted - expected),
       reason: line.reason?.trim() || null,
     };
@@ -597,7 +598,7 @@ export const recordStockCount = async (
     .map((line) => ({
       feedItemId: line.feedItemId,
       difference: line.difference,
-      priceBdt: line.priceBdt,
+      priceMoney: line.priceMoney,
     }));
 };
 
@@ -654,7 +655,7 @@ const readTheCounts = async (
   for (const row of rows) {
     // oxlint-disable-next-line no-await-in-loop
     const movements = await movementsWithout(row.completionId);
-    const { onHand: expected, averagePriceBdt } = stockLedger(
+    const { onHand: expected, averagePriceMoney } = stockLedger(
       movements.get(row.feedItemId) ?? [],
       row.countedAt
     );
@@ -674,12 +675,12 @@ const readTheCounts = async (
       difference,
       reason: row.reason,
       /** The store's average price when counted; null for feed never bought. */
-      priceBdt: averagePriceBdt,
+      priceMoney: averagePriceMoney,
       /** What the difference is worth at that price — below nothing for feed missing. */
-      valueBdt:
-        averagePriceBdt === null
+      valueMoney:
+        averagePriceMoney === null
           ? null
-          : roundTaka(difference * averagePriceBdt),
+          : roundTaka(difference * averagePriceMoney),
     });
   }
   return out;
@@ -706,7 +707,7 @@ export const shortfallIn = async (
   db: Pick<Database, "query" | "execute">,
   farmId: string,
   range: { from: Date; to: Date }
-): Promise<{ shortBdt: number; overBdt: number; counts: number }> => {
+): Promise<{ shortMoney: number; overMoney: number; counts: number }> => {
   const [rows, made] = await Promise.all([
     countRowsOf(db, farmId, range),
     db.query.stockCount.findMany({
@@ -754,11 +755,11 @@ export const bookPurchaseMoney = async (
   if (row?.kind === "harvest") {
     return;
   }
-  if (row?.priceBdt) {
+  if (row?.priceMoney) {
     await bookMoney(tx, booking, {
       source: "feed_in",
       sourceId: row.id,
-      amountBdt: row.priceBdt,
+      amountMoney: row.priceMoney,
       occurredAt: row.receivedOn,
       counterpartyId: row.counterpartyId,
       paymentMethod,
@@ -769,12 +770,12 @@ export const bookPurchaseMoney = async (
 /** What a cut lot is worth: the Feed Item's Fodder Price times the kilos, or nothing while the farm has
  *  put no price on its own fodder. */
 export const fodderValueOf = (
-  item: { fodderPriceBdt: number | null },
+  item: { fodderPriceMoney: number | null },
   quantity: number
 ): number | null =>
-  item.fodderPriceBdt === null
+  item.fodderPriceMoney === null
     ? null
-    : roundTaka(item.fodderPriceBdt * quantity);
+    : roundTaka(item.fodderPriceMoney * quantity);
 
 /**
  * A Purchase names what the lot cost and the seller it came from; a Harvest from the farm's own
@@ -862,7 +863,7 @@ export const purchasePricesIn = async (
       feedItemId: true,
       kind: true,
       quantity: true,
-      priceBdt: true,
+      priceMoney: true,
       receivedOn: true,
     },
   });
@@ -877,21 +878,21 @@ export const lastPurchaseOf = async (
   db: Db,
   farmId: string,
   feedItemId: string
-): Promise<{ unitPriceBdt: number; receivedOn: Date } | null> => {
+): Promise<{ unitPriceMoney: number; receivedOn: Date } | null> => {
   const bought = await db.query.feedIn.findMany({
     where: { farmId, feedItemId, kind: "purchase" },
-    columns: { quantity: true, priceBdt: true, receivedOn: true },
+    columns: { quantity: true, priceMoney: true, receivedOn: true },
     orderBy: { receivedOn: "desc", id: "desc" },
     limit: 5,
   });
   for (const one of bought) {
-    const unitPriceBdt = unitPriceOf({
+    const unitPriceMoney = unitPriceOf({
       kind: "purchase",
       quantity: Number(one.quantity),
-      priceBdt: one.priceBdt,
+      priceMoney: one.priceMoney,
     });
-    if (unitPriceBdt !== null) {
-      return { unitPriceBdt, receivedOn: one.receivedOn };
+    if (unitPriceMoney !== null) {
+      return { unitPriceMoney, receivedOn: one.receivedOn };
     }
   }
   return null;
@@ -921,7 +922,7 @@ export const tellIfTheFeedCameDearer = async (
   if (
     !(
       price &&
-      price.previousUnitPriceBdt !== null &&
+      price.previousUnitPriceMoney !== null &&
       priceJumped(price, farm.feedPriceJumpPercent)
     )
   ) {
@@ -936,8 +937,8 @@ export const tellIfTheFeedCameDearer = async (
       facts: {
         feed: arrival.feedItem.nameBn,
         unit: arrival.feedItem.unit,
-        unitPriceBdt: roundTaka(price.unitPriceBdt),
-        previousUnitPriceBdt: roundTaka(price.previousUnitPriceBdt),
+        unitPriceMoney: roundTaka(price.unitPriceMoney),
+        previousUnitPriceMoney: roundTaka(price.previousUnitPriceMoney),
         percent: price.changePercent ?? 0,
       },
     },
@@ -966,19 +967,19 @@ export const scaleBySeller = async (
       slipQuantity: { isNotNull: true },
       receivedOn: { gte: from },
     },
-    columns: { quantity: true, slipQuantity: true, priceBdt: true },
+    columns: { quantity: true, slipQuantity: true, priceMoney: true },
     with: { seller: { columns: { id: true, name: true } } },
   });
   return sellersOnTheScale(
     weighed.flatMap((lot) =>
-      lot.seller && lot.priceBdt !== null && lot.slipQuantity !== null
+      lot.seller && lot.priceMoney !== null && lot.slipQuantity !== null
         ? [
             {
               sellerId: lot.seller.id,
               sellerName: lot.seller.name,
               slipQuantity: Number(lot.slipQuantity),
               quantity: Number(lot.quantity),
-              priceBdt: lot.priceBdt,
+              priceMoney: lot.priceMoney,
             },
           ]
         : []

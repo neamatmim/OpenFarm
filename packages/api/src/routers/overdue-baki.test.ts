@@ -28,7 +28,7 @@ const sellOnBaki = async (instant: string, promisedBy: string) => {
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 80_000,
+    purchasePriceMoney: 80_000,
     weightKg: 250,
     estimatedAgeMonths: 20,
     arrivedAt: new Date(instant),
@@ -37,8 +37,8 @@ const sellOnBaki = async (instant: string, promisedBy: string) => {
   return await manager.client.sale.record({
     tagNumber: bull.tagNumber,
     buyer: { name: TRADER, phone: "+8801711000099" },
-    priceBdt: 120_000,
-    paidNowBdt: 100_000,
+    priceMoney: 120_000,
+    paidNowMoney: 100_000,
     promisedBy,
     weightKg: 330,
     destination: `গাবতলী ${suffix}`,
@@ -67,8 +67,8 @@ beforeAll(async () => {
     dispatchedAt: new Date("2050-03-01T03:00:00.000Z"),
     litres: 25,
     buyer: { name: SHOP },
-    pricePerLitreBdt: 70,
-    paidNowBdt: 0,
+    pricePerLitreMoney: 70,
+    paidNowMoney: 0,
   });
 });
 
@@ -97,7 +97,7 @@ describe("overdue Baki on the homes", () => {
     const manager = await as("manager", "2050-03-09T06:00:00.000Z");
     const home = await manager.client.home.manager();
     expect(theTrader(home.queue.bakiOverdue)).toMatchObject({
-      overdueBdt: 20_000,
+      overdueMoney: 20_000,
       overdueSince: "2050-03-09",
       phone: "+8801711000099",
       soldAgainWhileOverdue: false,
@@ -114,7 +114,7 @@ describe("overdue Baki on the homes", () => {
     expect(await on("2050-03-15T06:00:00.000Z")).toBeUndefined();
     expect(await on("2050-03-16T06:00:00.000Z")).toMatchObject({
       overdueSince: "2050-03-16",
-      overdueBdt: 1750,
+      overdueMoney: 1750,
     });
   });
 
@@ -123,8 +123,8 @@ describe("overdue Baki on the homes", () => {
     const owner = await as("owner", "2050-03-10T08:00:00.000Z");
     const home = await owner.client.home.owner();
     expect(theTrader(home.needsYou.bakiOverdue)).toMatchObject({
-      overdueBdt: 20_000,
-      owingBdt: 40_000,
+      overdueMoney: 20_000,
+      owingMoney: 40_000,
       soldAgainWhileOverdue: true,
     });
     const his = await owner.client.baki.ofBuyer({ name: TRADER });
@@ -136,7 +136,7 @@ describe("overdue Baki on the homes", () => {
     await manager.client.baki.pay({
       buyer: TRADER,
       kind: "cattle",
-      amountBdt: 20_000,
+      amountMoney: 20_000,
       paidOn: "2050-03-11",
       paymentMethod: "cash",
     });

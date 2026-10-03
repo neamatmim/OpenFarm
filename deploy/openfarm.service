@@ -12,7 +12,8 @@ Group=openfarm
 WorkingDirectory=/srv/openfarm/current
 EnvironmentFile=/etc/openfarm/app.env
 Environment=NODE_ENV=production
-# Every moment the farm keeps is UTC; the farm day is worked out from it in Asia/Dhaka by the code, never by the clock.
+# Every moment the farm keeps is UTC; the farm day is worked out from it on the farm's own clock by the code —
+# OPENFARM_TIME_ZONE, Asia/Dhaka unless app.env says otherwise (ADR 0013) — never by the server's.
 Environment=TZ=UTC
 Environment=HOST=127.0.0.1
 Environment=PORT=3001

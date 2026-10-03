@@ -45,7 +45,7 @@ export interface NoticeFacts {
   };
   medicine_short: {
     /** What the doses the count did not find had cost, to the taka. */
-    shortBdt: number;
+    shortMoney: number;
     /** The farm day ("YYYY-MM-DD") it was counted. */
     countedOn: string;
   };
@@ -60,11 +60,11 @@ export interface NoticeFacts {
   sold_under_cost: {
     tag: string;
     /** What she fetched. */
-    priceBdt: number;
+    priceMoney: number;
     /** What she had cost the farm, bought for and every charge on her, to the taka. */
-    costBdt: number;
+    costMoney: number;
     /** Her weight on the day at the low price a kilo — her Venture's or the farm's market price; null while unset. */
-    lowBdt: number | null;
+    lowMoney: number | null;
     /** The kilos the low price was worked on, and whose they were: her last weighing less the farm's allowance, or the
      *  weight typed on the day. Missing from a notice told before the floor read her weighing. */
     floorKg?: number;
@@ -73,7 +73,7 @@ export interface NoticeFacts {
   entered_twice: {
     /** Who the money went to or came from. */
     name: string;
-    amountBdt: number;
+    amountMoney: number;
     /** The farm day ("YYYY-MM-DD") it was for. */
     day: string;
     /** Who entered it the second time, knowing. */
@@ -84,7 +84,7 @@ export interface NoticeFacts {
     venture: string;
     investor: string;
     /** What he has missed altogether, his Units' sums past their seven days. */
-    missedBdt: number;
+    missedMoney: number;
     /** The farm day ("YYYY-MM-DD") the latest missed sum fell due. */
     dueOn: string;
   };
@@ -100,7 +100,7 @@ export interface NoticeFacts {
     /** The cause as the writer gave it. */
     cause: string;
     /** What she cost the farm, bought for and every charge on her, to the taka, when it was written. */
-    costBdt: number;
+    costMoney: number;
     /** Whose she was, where she was a Venture's; nothing for the Farm's own. */
     venture: string | null;
   };
@@ -130,7 +130,7 @@ export interface NoticeFacts {
     /** Whose hand was counted. */
     name: string;
     /** How far the count came under what the farm said the hand held, to the taka. */
-    shortBdt: number;
+    shortMoney: number;
     /** The farm day ("YYYY-MM-DD") it was counted. */
     countedOn: string;
   };
@@ -140,9 +140,9 @@ export interface NoticeFacts {
     /** The Feed Item's unit, said in the reader's language where it is read. */
     unit: string;
     /** What a unit of this purchase cost, to the paisa. */
-    unitPriceBdt: number;
+    unitPriceMoney: number;
     /** What a unit of the last purchase before it cost. */
-    previousUnitPriceBdt: number;
+    previousUnitPriceMoney: number;
     /** How far it rose, to a tenth of a percent. */
     percent: number;
   };
@@ -169,7 +169,7 @@ export interface NoticeFacts {
   };
   store_shortfall: {
     /** What the count found missing, in taka at the store's average price when it was counted. */
-    shortBdt: number;
+    shortMoney: number;
     /** The farm day ("YYYY-MM-DD") the store was counted. */
     countedOn: string;
   };
@@ -183,7 +183,7 @@ export interface NoticeFacts {
   baki_overdue: {
     counterpartyId: string;
     buyer: string;
-    owingBdt: number;
+    owingMoney: number;
     /** The farm day ("YYYY-MM-DD") it first went overdue. */
     overdueFrom: string;
   };
@@ -196,7 +196,7 @@ export interface NoticeFacts {
   };
   money_awaiting_approval: {
     moneyEventId: string;
-    amountBdt: number;
+    amountMoney: number;
     categoryBn: string;
     /** The English beside it, where the farm has one. */
     categoryEn: string | null;
@@ -217,7 +217,7 @@ export interface NoticeFacts {
     /** The month just over it owes for, "YYYY-MM": worded where it is read, in the reader's language. */
     month: string;
     /** What the transfer comes to: the month's own figure and every line it carries. */
-    owedBdt: number;
+    owedMoney: number;
   };
   entry_rejected: { count: number; reason: string };
   /** When the Day Turning last turned whole, as an ISO instant: the screen says it in the reader's own date. */

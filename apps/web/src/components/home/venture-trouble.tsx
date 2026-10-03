@@ -36,13 +36,13 @@ const SAYS: {
     key: "ventureTrouble.decisionDue",
     parts: (trouble, language) => ({
       day: formatDate(startOfFarmDay(trouble.decideBy), language),
-      short: formatNumber(trouble.shortBdt, language),
+      short: formatNumber(trouble.shortMoney, language),
     }),
   },
   running_budget_low: {
     key: "ventureTrouble.runningBudgetLow",
     parts: (trouble, language) => ({
-      left: formatNumber(trouble.leftBdt, language),
+      left: formatNumber(trouble.leftMoney, language),
     }),
   },
   past_wind_up: {

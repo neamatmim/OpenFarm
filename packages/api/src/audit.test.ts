@@ -231,14 +231,14 @@ describe("audit events", () => {
     });
     await owner.client.ventures.open({
       name: `গোপন ভেঞ্চার ${Date.now()}`,
-      targetCapitalBdt: 2_000_000,
-      floorBdt: 0,
+      targetCapitalMoney: 2_000_000,
+      floorMoney: 0,
       decideBy: "2046-08-15",
       targetWindowStart: "2047-05-17",
       targetWindowEnd: "2047-05-19",
-      unitPriceBdt: 50_000,
+      unitPriceMoney: 50_000,
       units: 40,
-      cattleBudgetBdt: 1_500_000,
+      cattleBudgetMoney: 1_500_000,
     });
 
     // Asked for by name, by the one record, or not at all, the Manager is shown none of it: the investors

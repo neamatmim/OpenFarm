@@ -30,7 +30,7 @@ export const overheadMoneyIn = async (
       occurredAt: { gte: from, lt: until },
     },
     columns: {
-      amountBdt: true,
+      amountMoney: true,
       occurredAt: true,
       side: true,
       categoryId: true,
@@ -55,14 +55,14 @@ export const overheadMoneyIn = async (
           side: one.side,
           categoryId: one.categoryId,
           chargedToAnimals: one.category.chargedToAnimals,
-          bdt: one.amountBdt,
+          amount: one.amountMoney,
         }) === null
     )
     .map((one) => ({
       categoryId: one.category.id,
       categoryBn: one.category.nameBn,
       categoryEn: one.category.nameEn,
-      bdt: one.amountBdt,
+      amount: one.amountMoney,
       occurredAt: one.occurredAt,
     }));
 };

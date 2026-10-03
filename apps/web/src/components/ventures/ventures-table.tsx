@@ -95,7 +95,7 @@ const TargetCell = ({ row }: Cell) => {
   const taka = useTaka();
   return (
     <span className="tabular-nums">
-      {taka(row.original.venture.targetCapitalBdt)}
+      {taka(row.original.venture.targetCapitalMoney)}
     </span>
   );
 };
@@ -157,18 +157,18 @@ const HeldCell = ({ row }: Cell) => {
         search={{ tab: "money" }}
         to="/ventures/$ventureId"
       >
-        {taka(venture.capitalInBdt)}
+        {taka(venture.capitalInMoney)}
       </Link>
       {venture.state === "open" ? (
         <>
           <RaisingBar
             className="h-1.5 w-28"
-            floorBdt={venture.floorBdt}
-            inBdt={venture.capitalInBdt}
-            targetBdt={venture.targetCapitalBdt}
+            floorMoney={venture.floorMoney}
+            inMoney={venture.capitalInMoney}
+            targetMoney={venture.targetCapitalMoney}
           />
           <span className="text-muted-foreground text-xs whitespace-nowrap tabular-nums">
-            {t("ventures.ofTheFloor", { floor: taka(venture.floorBdt) })}
+            {t("ventures.ofTheFloor", { floor: taka(venture.floorMoney) })}
           </span>
         </>
       ) : null}
@@ -180,7 +180,7 @@ const BalanceCell = ({ row }: Cell) => {
   const taka = useTaka();
   return (
     <span className="tabular-nums">
-      {taka(moneyOf(row.original.venture).balanceBdt)}
+      {taka(moneyOf(row.original.venture).balanceMoney)}
     </span>
   );
 };
@@ -229,19 +229,19 @@ const ventureColumns = column.columns([
     cell: VentureCell,
     meta: { className: "min-w-56" },
   }),
-  column.accessor((row) => row.venture.targetCapitalBdt, {
+  column.accessor((row) => row.venture.targetCapitalMoney, {
     id: "target",
     header: listHeader("ventures.target"),
     cell: TargetCell,
     meta: { align: "end", className: "whitespace-nowrap" },
   }),
-  column.accessor((row) => row.venture.capitalInBdt, {
+  column.accessor((row) => row.venture.capitalInMoney, {
     id: "held",
     header: listHeader("ventures.held"),
     cell: HeldCell,
     meta: { align: "end", className: "whitespace-nowrap" },
   }),
-  column.accessor((row) => moneyOf(row.venture).balanceBdt, {
+  column.accessor((row) => moneyOf(row.venture).balanceMoney, {
     id: "balance",
     header: listHeader("ventures.balance"),
     cell: BalanceCell,

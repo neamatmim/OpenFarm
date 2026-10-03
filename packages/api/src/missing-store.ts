@@ -318,7 +318,7 @@ export const lostInAYear = async (
   db: Database,
   farmId: string,
   now: Date
-): Promise<{ count: number; costBdt: number }> => {
+): Promise<{ count: number; costMoney: number }> => {
   const rows = await db.query.missing.findMany({
     where: {
       farmId,
@@ -329,16 +329,16 @@ export const lostInAYear = async (
     columns: { animalId: true },
   });
   if (rows.length === 0) {
-    return { count: 0, costBdt: 0 };
+    return { count: 0, costMoney: 0 };
   }
   const costs = await farmCosts(db, farmId);
   const gone = new Set(rows.map((row) => row.animalId));
-  let costBdt = 0;
+  let costMoney = 0;
   for (const her of costs.animals) {
     if (gone.has(her.id)) {
       const economics = economicsOfAnimal(costs, her);
-      costBdt += (economics.purchaseBdt ?? 0) + chargedOf(economics);
+      costMoney += (economics.purchaseMoney ?? 0) + chargedOf(economics);
     }
   }
-  return { count: rows.length, costBdt: Math.round(costBdt) };
+  return { count: rows.length, costMoney: Math.round(costMoney) };
 };

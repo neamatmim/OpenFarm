@@ -99,8 +99,8 @@ const BuyerCell = ({ row }: SoldCell) => (
   <span className="flex flex-col">
     <span className="font-medium">{row.original.buyerName}</span>
     <BakiOwed
-      bakiBdt={row.original.bakiBdt}
-      owingBdt={row.original.owingBdt}
+      bakiMoney={row.original.bakiMoney}
+      owingMoney={row.original.owingMoney}
       promisedBy={row.original.promisedBy}
     />
   </span>
@@ -129,16 +129,16 @@ const WeightCell = ({ row }: SoldCell) => {
 /** What she fetched, and what that came to a kilo beneath. */
 const PriceCell = ({ row }: SoldCell) => {
   const { t, language } = useLanguage();
-  const { priceBdt, weightKg } = row.original;
+  const { priceMoney, weightKg } = row.original;
   return (
     <div className="flex flex-col items-end">
       <span className="font-medium">
-        <Taka value={priceBdt} />
+        <Taka value={priceMoney} />
       </span>
       {weightKg > 0 ? (
         <span className="text-muted-foreground text-xs whitespace-nowrap">
           {t("intake.perKg", {
-            taka: formatNumber(Math.round(priceBdt / weightKg), language),
+            taka: formatNumber(Math.round(priceMoney / weightKg), language),
           })}
         </span>
       ) : null}
@@ -180,7 +180,7 @@ const soldColumns = column.columns([
     cell: WeightCell,
     meta: { align: "end" },
   }),
-  column.accessor("priceBdt", {
+  column.accessor("priceMoney", {
     header: listHeader("sale.price"),
     cell: PriceCell,
     meta: { align: "end" },
@@ -213,11 +213,11 @@ const SoldCard = ({ row }: { row: SoldRow }) => {
           </span>
         </div>
         <span className="text-lg font-semibold tabular-nums">
-          <Taka value={row.priceBdt} />
+          <Taka value={row.priceMoney} />
         </span>
         <BakiOwed
-          bakiBdt={row.bakiBdt}
-          owingBdt={row.owingBdt}
+          bakiMoney={row.bakiMoney}
+          owingMoney={row.owingMoney}
           promisedBy={row.promisedBy}
         />
         <span className="text-muted-foreground text-xs">

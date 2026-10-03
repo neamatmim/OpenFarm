@@ -11,7 +11,7 @@ import { somethingPaid } from "./baki";
 export interface SaleTyped {
   tagNumber: string;
   buyerName: string;
-  priceBdt: string;
+  priceMoney: string;
   weightKg: string;
   destination: string;
   vehicle: string;
@@ -39,7 +39,7 @@ const bakiMissing = (typed: SaleTyped): SaleMissing | null => {
   if (blank(typed.baki.paidNow) || Number.isNaN(paid) || paid < 0) {
     return { said: "sale.missing.paidNow", at: "sale-baki-paid-now" };
   }
-  if (paid > Number(typed.priceBdt)) {
+  if (paid > Number(typed.priceMoney)) {
     return { said: "refusal.paidMoreThanPrice", at: "sale-baki-paid-now" };
   }
   if (typed.baki.promisedBy === "") {
@@ -88,7 +88,7 @@ export const saleStillMissing = (
   if (blank(typed.buyerName)) {
     return { said: "sale.missing.buyer", at: "sale-buyer" };
   }
-  if (!(Number(typed.priceBdt) > 0)) {
+  if (!(Number(typed.priceMoney) > 0)) {
     return { said: "sale.missing.price", at: "sale-price" };
   }
   if (!(Number(typed.weightKg) > 0)) {

@@ -70,7 +70,7 @@ const paidAgainst = (
   movements: readonly {
     kind: string;
     agreementId: string | null;
-    amountBdt: number;
+    amountMoney: number;
   }[]
 ) => {
   const paid = new Map<string, number>();
@@ -81,7 +81,7 @@ const paidAgainst = (
     const sign = CAPITAL_SIGN[one.kind] ?? 0;
     paid.set(
       one.agreementId,
-      (paid.get(one.agreementId) ?? 0) + sign * one.amountBdt
+      (paid.get(one.agreementId) ?? 0) + sign * one.amountMoney
     );
   }
   return paid;
@@ -151,8 +151,8 @@ export const PapersMenu = ({
  *  Settlement, and what may be done from his row. */
 interface InvestorRow extends Agreement {
   name: string;
-  owedBdt: number;
-  paidBdt: number;
+  owedMoney: number;
+  paidMoney: number;
   share: Share | undefined;
   /** Whether the Settlement is approved, and so each row says what it pays. */
   approved: boolean;
@@ -223,13 +223,13 @@ const SumsLine = ({ sums }: { sums: Agreement["sums"] | undefined }) => {
     of: formatNumber(sums.sums, language),
   });
   let then: string | null = null;
-  if (sums.missedBdt > 0) {
-    then = t("ventures.sums.missed", { amount: taka(sums.missedBdt) });
-  } else if (sums.dueBdt > 0) {
-    then = t("ventures.sums.due", { amount: taka(sums.dueBdt) });
+  if (sums.missedMoney > 0) {
+    then = t("ventures.sums.missed", { amount: taka(sums.missedMoney) });
+  } else if (sums.dueMoney > 0) {
+    then = t("ventures.sums.due", { amount: taka(sums.dueMoney) });
   } else if (sums.next) {
     then = t("ventures.sums.next", {
-      amount: taka(sums.next.bdt),
+      amount: taka(sums.next.amount),
       day: formatDate(startOfFarmDay(sums.next.dueOn), language, "date"),
     });
   }
@@ -237,7 +237,7 @@ const SumsLine = ({ sums }: { sums: Agreement["sums"] | undefined }) => {
     <span
       className={cn(
         "block text-xs",
-        sums.missedBdt > 0 ? "text-warning" : "text-muted-foreground"
+        sums.missedMoney > 0 ? "text-warning" : "text-muted-foreground"
       )}
     >
       {then ? `${paidOf} · ${then}` : paidOf}
@@ -248,13 +248,13 @@ const SumsLine = ({ sums }: { sums: Agreement["sums"] | undefined }) => {
 /** What he has paid against what his Units are worth, the paid part in the warning's colour until they agree. */
 const PaidCell = ({ row }: InvestorCell) => {
   const taka = useTaka();
-  const { paidBdt, owedBdt, sums } = row.original;
+  const { paidMoney, owedMoney, sums } = row.original;
   return (
     <>
-      <span className={paidBdt === owedBdt ? undefined : "text-warning"}>
-        {taka(paidBdt)}
+      <span className={paidMoney === owedMoney ? undefined : "text-warning"}>
+        {taka(paidMoney)}
       </span>
-      <span className="text-muted-foreground">{` / ${taka(owedBdt)}`}</span>
+      <span className="text-muted-foreground">{` / ${taka(owedMoney)}`}</span>
       <SumsLine sums={sums} />
     </>
   );
@@ -279,7 +279,7 @@ const PaperCell = ({ row }: InvestorCell) => {
 const PayoutCell = ({ row }: InvestorCell) => {
   const taka = useTaka();
   const { share } = row.original;
-  return share ? <>{taka(share.payoutBdt)}</> : <Nothing />;
+  return share ? <>{taka(share.payoutMoney)}</> : <Nothing />;
 };
 
 /** What is done about one man's Agreement: his payout sent and his word on it written down, his capital taken, his
@@ -320,7 +320,7 @@ const RowActions = ({
       {row.cancelled ? null : (
         <PapersMenu
           agreementId={row.id}
-          hasPaid={row.paidBdt > 0}
+          hasPaid={row.paidMoney > 0}
           hasPhoto={row.hasPaper}
           name={row.name}
           papers={row.papers}
@@ -353,7 +353,7 @@ const splitColumn = column.accessor("investorsPercent", {
   cell: SplitCell,
   meta: { align: "end" },
 });
-const paidColumn = column.accessor("paidBdt", {
+const paidColumn = column.accessor("paidMoney", {
   id: "paid",
   header: listHeader("ventures.page.paidOfOwed"),
   cell: PaidCell,
@@ -364,7 +364,7 @@ const paperColumn = column.accessor((row) => (paperOnFile(row) ? 1 : 0), {
   header: listHeader("ventures.page.paper"),
   cell: PaperCell,
 });
-const payoutColumn = column.accessor((row) => row.share?.payoutBdt, {
+const payoutColumn = column.accessor((row) => row.share?.payoutMoney, {
   id: "payout",
   header: listHeader("ventures.page.payout"),
   cell: PayoutCell,
@@ -478,7 +478,7 @@ export const VentureInvestors = ({
     (approved?.shares ?? []).map((one) => [one.agreementId, one] as const)
   );
   const advanceFirst =
-    approved !== null && approved.advanceBdt !== 0 && !approved.advanceRepaid;
+    approved !== null && approved.advanceMoney !== 0 && !approved.advanceRepaid;
   const [paying, setPaying] =
     useState<Parameters<typeof PayOutSheet>[0]["what"]>(null);
   const [saying, setSaying] =
@@ -493,11 +493,11 @@ export const VentureInvestors = ({
   }
   const agreed = agreements.data ?? [];
   /** Whether a paper may take capital now: its stamped photo is on file and its Units are not all paid for. An answer
-   *  cached before `capitalLeftBdt` was sent works it out from what has come in against it. */
+   *  cached before `capitalLeftMoney` was sent works it out from what has come in against it. */
   const mayPayIn = (one: Agreement) =>
     paperOnFile(one) &&
-    (one.capitalLeftBdt ??
-      one.units * venture.unitPriceBdt - (paid.get(one.id) ?? 0)) > 0;
+    (one.capitalLeftMoney ??
+      one.units * venture.unitPriceMoney - (paid.get(one.id) ?? 0)) > 0;
   // Money that lands with only the bank's reference to go on is taken from over the table, where the reference's
   // Pay-in Code chooses whose it is; money already known to be one man's is taken from his row.
   const someoneMayPayIn = agreed.some(mayPayIn);
@@ -506,8 +506,8 @@ export const VentureInvestors = ({
     return {
       ...one,
       name: nameOf(one.investorId),
-      owedBdt: one.units * venture.unitPriceBdt,
-      paidBdt: paid.get(one.id) ?? 0,
+      owedMoney: one.units * venture.unitPriceMoney,
+      paidMoney: paid.get(one.id) ?? 0,
       share,
       approved: approved !== null,
       settled,
@@ -522,7 +522,7 @@ export const VentureInvestors = ({
             ventureId: venture.id,
             kind: "share",
             title: share.name,
-            amountBdt: share.payoutBdt,
+            amountMoney: share.payoutMoney,
             agreementId: one.id,
           });
         }

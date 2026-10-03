@@ -16,10 +16,10 @@ type TripSource = "buying_trip" | "selling_trip";
 /** What an outing cost the farm, its parts added up. A selling outing has no broker of its own: a broker's
  *  fee for one sale is recorded on that Sale. */
 export const tripCostOf = (trip: {
-  brokerBdt?: number;
-  transportBdt: number;
-  keepBdt: number;
-}): number => (trip.brokerBdt ?? 0) + trip.transportBdt + trip.keepBdt;
+  brokerMoney?: number;
+  transportMoney: number;
+  keepMoney: number;
+}): number => (trip.brokerMoney ?? 0) + trip.transportMoney + trip.keepMoney;
 
 /** What an outing's row and its animals come to, however the farm went: the trail's word for either kind. */
 const snapshotOf = async (
@@ -28,15 +28,15 @@ const snapshotOf = async (
     id: string;
     farmId: string;
     wentTo: string;
-    transportBdt: number;
-    keepBdt: number;
+    transportMoney: number;
+    keepMoney: number;
     wentOn: Date;
   },
   source: TripSource,
   animals: number
 ) => ({
   wentTo: row.wentTo,
-  costBdt: tripCostOf(row),
+  costMoney: tripCostOf(row),
   wentOn: row.wentOn,
   animals,
   money: await moneySnapshotOf(tx, row.farmId, source, row.id),
@@ -55,10 +55,10 @@ const bookOuting = async (
     | {
         id: string;
         farmId: string;
-        transportBdt: number;
-        keepBdt: number;
+        transportMoney: number;
+        keepMoney: number;
         wentOn: Date;
-        brokerBdt?: number;
+        brokerMoney?: number;
       }
     | undefined,
   source: TripSource,
@@ -68,12 +68,15 @@ const bookOuting = async (
   if (!row) {
     return;
   }
-  const costBdt = tripCostOf(row);
-  if (costBdt > 0 || (await moneySnapshotOf(tx, row.farmId, source, row.id))) {
+  const costMoney = tripCostOf(row);
+  if (
+    costMoney > 0 ||
+    (await moneySnapshotOf(tx, row.farmId, source, row.id))
+  ) {
     await bookMoney(tx, booking, {
       source,
       sourceId: row.id,
-      amountBdt: costBdt,
+      amountMoney: costMoney,
       occurredAt: row.wentOn,
       counterpartyId: null,
       paymentMethod,

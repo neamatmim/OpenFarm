@@ -188,7 +188,7 @@ describe("the state machine", () => {
     await manager.client.sale.record({
       tagNumber,
       buyer: { name: `বাজার ${Date.now()}` },
-      priceBdt: 90_000,
+      priceMoney: 90_000,
       weightKg: 220,
       destination: "হাট",
       vehicle: "ট ১১-২২৩৩",

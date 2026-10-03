@@ -13,7 +13,11 @@ import type {
 } from "@OpenFarm/domain";
 import {
   EXIT_STATES,
-  FARM_UTC_OFFSET_MINUTES,
+  addDays,
+  atFarmTime,
+  farmDayOf,
+  farmDaysBetween,
+  farmTimeOf,
   CALVED,
   HEAT,
   SAME_HEAT_WITHIN_HOURS,
@@ -61,25 +65,14 @@ export const isOnTheFarm = (row: { state: string }): boolean =>
   !(EXIT_STATES as readonly string[]).includes(row.state);
 
 /** The instant a "HH:MM" schedule time falls on, on the farm's day containing `now`. */
-export const dueAtFor = (now: Date, time: string): Date => {
-  const [hour = 0, minute = 0] = time.split(":").map(Number);
-  const farmNow = new Date(now.getTime() + FARM_UTC_OFFSET_MINUTES * MINUTE_MS);
-  const farmMidnight = Date.UTC(
-    farmNow.getUTCFullYear(),
-    farmNow.getUTCMonth(),
-    farmNow.getUTCDate()
-  );
-  return new Date(
-    farmMidnight -
-      FARM_UTC_OFFSET_MINUTES * MINUTE_MS +
-      (hour * 60 + minute) * MINUTE_MS
-  );
-};
+export const dueAtFor = (now: Date, time: string): Date =>
+  atFarmTime(farmDayOf(now), time);
 
 /** The farm-local day containing `now`, as a half-open range. */
 export const farmDayRange = (now: Date): { from: Date; to: Date } => {
-  const from = dueAtFor(now, "00:00");
-  return { from, to: new Date(from.getTime() + 24 * 60 * MINUTE_MS) };
+  const day = farmDayOf(now);
+  const { from, until } = farmDaysBetween(day, day);
+  return { from, to: until };
 };
 
 export interface DueSlot {
@@ -1109,9 +1102,13 @@ export const whatChangedFor = async (
 /** How far into the farm's own day an instant falls, in minutes. The farm's clock is the
  *  one everything about times of day is measured on — a shed in Dhaka, not UTC. */
 export const minuteOfFarmDay = (at: Date): number => {
-  const { from } = farmDayRange(at);
-  return Math.floor((at.getTime() - from.getTime()) / MINUTE_MS);
+  const [hour = 0, minute = 0] = farmTimeOf(at).split(":").map(Number);
+  return hour * 60 + minute;
 };
+
+/** A minute of the farm's day as its clock writes it, "HH:MM". */
+const clockAt = (minuteOfDay: number): string =>
+  `${String(Math.floor(minuteOfDay / 60)).padStart(2, "0")}:${String(minuteOfDay % 60).padStart(2, "0")}`;
 
 /**
  * When the farm's post was last due to be carried, as an instant — today's most recent
@@ -1125,16 +1122,16 @@ export const postDueAt = (
   times: readonly string[],
   quiet: QuietHours
 ): Date | null => {
-  const { from } = farmDayRange(now);
+  const day = farmDayOf(now);
   const today = lastCarryingMoment(minuteOfFarmDay(now), times, quiet);
   if (today !== null) {
-    return new Date(from.getTime() + today * MINUTE_MS);
+    return atFarmTime(day, clockAt(today));
   }
   // Before today's first moment: yesterday's last one is the one that has passed.
   const yesterday = carryingMoments(times, quiet).at(-1);
   return yesterday === undefined
     ? null
-    : new Date(from.getTime() - 24 * 60 * MINUTE_MS + yesterday * MINUTE_MS);
+    : atFarmTime(addDays(day, -1), clockAt(yesterday));
 };
 
 /** Entries the system could not settle on its own, oldest first. Asked the same way by

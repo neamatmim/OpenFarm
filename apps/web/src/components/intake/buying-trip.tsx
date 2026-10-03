@@ -19,16 +19,16 @@ import { orNothing } from "./intake-fields";
 
 interface Outing {
   wentTo: string;
-  brokerBdt: string;
-  transportBdt: string;
-  keepBdt: string;
+  brokerMoney: string;
+  transportMoney: string;
+  keepMoney: string;
 }
 
 const NOTHING_YET: Outing = {
   wentTo: "",
-  brokerBdt: "",
-  transportBdt: "",
-  keepBdt: "",
+  brokerMoney: "",
+  transportMoney: "",
+  keepMoney: "",
 };
 
 /**
@@ -71,9 +71,9 @@ export const BuyingTripSheet = ({
       onSubmit={() =>
         record.mutate({
           wentTo: outing.wentTo,
-          brokerBdt: orNothing(outing.brokerBdt),
-          transportBdt: orNothing(outing.transportBdt),
-          keepBdt: orNothing(outing.keepBdt),
+          brokerMoney: orNothing(outing.brokerMoney),
+          transportMoney: orNothing(outing.transportMoney),
+          keepMoney: orNothing(outing.keepMoney),
           paymentMethod,
           ...accountSent(paymentMethod, account),
         })
@@ -98,9 +98,9 @@ export const BuyingTripSheet = ({
       <div className="grid gap-4 sm:grid-cols-3">
         {(
           [
-            ["trip-broker", "intake.tripBroker", "brokerBdt"],
-            ["trip-transport", "intake.tripTransport", "transportBdt"],
-            ["trip-keep", "intake.tripKeep", "keepBdt"],
+            ["trip-broker", "intake.tripBroker", "brokerMoney"],
+            ["trip-transport", "intake.tripTransport", "transportMoney"],
+            ["trip-keep", "intake.tripKeep", "keepMoney"],
           ] as const
         ).map(([id, label, key]) => (
           <FormField id={id} key={id} label={t(label)}>

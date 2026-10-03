@@ -118,7 +118,7 @@ export const MoneyMonth = () => {
   const money = useQuery(orpc.money.list.queryOptions({ input: thisMonth() }));
   const rows = money.data?.events ?? [];
   // The month's totals as the farm tells them; where most went is read from the rows shown, and says so when cut short.
-  const { inBdt: moneyIn, outBdt: moneyOut } = moneyTotals(
+  const { inMoney: moneyIn, outMoney: moneyOut } = moneyTotals(
     money.data ?? { events: [] }
   );
   const out = rows.filter((row) => row.direction === "out");
@@ -130,7 +130,7 @@ export const MoneyMonth = () => {
       name: categoryName(row, language),
       amount: 0,
     };
-    line.amount += row.amountBdt;
+    line.amount += row.amountMoney;
     byCategory.set(key, line);
   }
   const top = [...byCategory.values()]
@@ -267,7 +267,7 @@ export const HerdPanel = ({
   died: number;
   culled: number;
   /** Written off as Lost in the last year, and what they had cost; missing from a cached answer from before. */
-  lostYear?: { count: number; costBdt: number };
+  lostYear?: { count: number; costMoney: number };
 }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
@@ -325,7 +325,7 @@ export const HerdPanel = ({
             <p className="text-danger text-sm">
               {t("owner.lostYear", {
                 count: lostYear.count,
-                bdt: taka(lostYear.costBdt),
+                amount: taka(lostYear.costMoney),
               })}
             </p>
           ) : null}

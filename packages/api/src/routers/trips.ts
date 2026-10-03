@@ -31,10 +31,10 @@ const OFFERED = 20;
 const recordInput = z.object({
   /** Where it went, as the farm says it: a haat's name, or a village's. */
   wentTo: z.string().trim().min(1).max(120),
-  brokerBdt: tripCostInput.optional(),
-  transportBdt: tripCostInput.optional(),
+  brokerMoney: tripCostInput.optional(),
+  transportMoney: tripCostInput.optional(),
   /** Keeping the men who went: their food, and a night's lodging when the haat runs late. */
-  keepBdt: tripCostInput.optional(),
+  keepMoney: tripCostInput.optional(),
   /** When the lorry went, for an outing written up the next morning. */
   wentOn: z.coerce.date().optional(),
   paymentMethod: paymentMethodInput,
@@ -109,7 +109,7 @@ export const tripsRouter = {
                 [
                   one.buyingTripId,
                   {
-                    amountBdt: one.amountBdt,
+                    amountMoney: one.amountMoney,
                     ventureId: one.ventureId,
                     ventureName: one.venture?.name ?? "",
                     /** When it was reconciled, or null while it is still out at the haat. */
@@ -143,7 +143,7 @@ export const tripsRouter = {
               buyingTripId: tripId,
               ventureId: float.ventureId,
             });
-            return [tripId, sum.animalsBdt + sum.tripBdt] as const;
+            return [tripId, sum.animalsMoney + sum.tripMoney] as const;
           })
         )
       );
@@ -153,12 +153,12 @@ export const tripsRouter = {
           id: one.id,
           wentTo: one.wentTo,
           wentOn: one.wentOn,
-          costBdt: tripCostOf(one),
+          costMoney: tripCostOf(one),
           /** What each part of it cost, which a Correction puts right one by one. */
           parts: {
-            brokerBdt: one.brokerBdt,
-            transportBdt: one.transportBdt,
-            keepBdt: one.keepBdt,
+            brokerMoney: one.brokerMoney,
+            transportMoney: one.transportMoney,
+            keepMoney: one.keepMoney,
           },
           animals: one.intakes.length,
           /** Whether its Float — a Venture's, or the Farm's own — has been counted home: it then takes no animal
@@ -170,7 +170,7 @@ export const tripsRouter = {
           farmFloat: farmFloated.has(one.id),
           /** The Buying Float this outing was given, where one was. */
           float: float
-            ? { ...float, boughtBdt: bought.get(one.id) ?? 0 }
+            ? { ...float, boughtMoney: bought.get(one.id) ?? 0 }
             : null,
         };
       });
@@ -206,9 +206,9 @@ export const tripsRouter = {
             id,
             farmId: context.farm.id,
             wentTo: input.wentTo,
-            brokerBdt: input.brokerBdt ?? 0,
-            transportBdt: input.transportBdt ?? 0,
-            keepBdt: input.keepBdt ?? 0,
+            brokerMoney: input.brokerMoney ?? 0,
+            transportMoney: input.transportMoney ?? 0,
+            keepMoney: input.keepMoney ?? 0,
             wentOn,
             recordedBy: context.actor.id,
             recordedByRole: context.roleUsed,

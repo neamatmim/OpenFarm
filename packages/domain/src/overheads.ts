@@ -28,7 +28,7 @@ export interface OverheadMoney {
   categoryId: string;
   categoryBn: string;
   categoryEn: string | null;
-  bdt: number;
+  amount: number;
 }
 
 /**
@@ -50,22 +50,22 @@ export const overheadsOver = ({
     const kept = byCategory.get(one.categoryId);
     byCategory.set(one.categoryId, {
       ...one,
-      bdt: (kept?.bdt ?? 0) + one.bdt,
+      amount: (kept?.amount ?? 0) + one.amount,
     });
   }
-  const totalBdt = money.reduce((sum, one) => sum + one.bdt, 0);
+  const totalMoney = money.reduce((sum, one) => sum + one.amount, 0);
   return {
-    totalBdt: roundTaka(totalBdt),
+    totalMoney: roundTaka(totalMoney),
     lines: [...byCategory.values()]
-      .map((one) => ({ ...one, bdt: roundTaka(one.bdt) }))
+      .map((one) => ({ ...one, amount: roundTaka(one.amount) }))
       .toSorted(
         (a, b) =>
-          b.bdt - a.bdt ||
+          b.amount - a.amount ||
           a.categoryBn.localeCompare(b.categoryBn) ||
           a.categoryId.localeCompare(b.categoryId)
       ),
     /** Days, to the tenth: what the figure below is over. */
     headDays: Math.round(headDays * 10) / 10,
-    perHeadPerDayBdt: headDays > 0 ? roundTaka(totalBdt / headDays) : null,
+    perHeadPerDayMoney: headDays > 0 ? roundTaka(totalMoney / headDays) : null,
   };
 };

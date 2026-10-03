@@ -24,14 +24,14 @@ const as = (role: "owner" | "manager" | "staff", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 const plan = {
-  targetCapitalBdt: 1_000_000,
-  floorBdt: 0,
+  targetCapitalMoney: 1_000_000,
+  floorMoney: 0,
   decideBy: "2047-02-20",
   targetWindowStart: "2047-05-17",
   targetWindowEnd: "2047-05-19",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 20,
-  cattleBudgetBdt: 1_000_000,
+  cattleBudgetMoney: 1_000_000,
 };
 
 const weighInSop = (): SopContent => ({
@@ -84,7 +84,7 @@ const funded = async (owner: Owner, which: number) => {
     units: 20,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2047-02-02",
     stampSerial: `AA ${which} ${suffix}`,
   });
@@ -95,7 +95,7 @@ const funded = async (owner: Owner, which: number) => {
   });
   await owner.client.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: 1_000_000,
+    amountMoney: 1_000_000,
     movedOn: "2047-02-03",
     paymentMethod: "bank",
     reference: `TRF-${suffix}-${which}`,
@@ -111,7 +111,7 @@ const bull = async (instant: string) => {
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 60_000,
+    purchasePriceMoney: 60_000,
     weightKg: 180,
     estimatedAgeMonths: 20,
     arrivedAt: new Date(instant),
@@ -178,22 +178,22 @@ describe("the Internal Sale", () => {
     const owner = await as("owner", "2047-02-06T09:00:00.000Z");
     const before = await owner.client.ventures.list();
     const heldBefore =
-      before.find((one) => one.id === ventureId)?.balanceBdt ?? 0;
+      before.find((one) => one.id === ventureId)?.balanceMoney ?? 0;
 
     const sold = await owner.client.ventures.sellInternally({
       tagNumber: hers.tagNumber,
       toVentureId: ventureId,
-      rateBdtPerKg: 350,
+      rateMoneyPerKg: 350,
       note: `আজকের হাটের দর ${suffix}`,
       soldOn: "2047-02-06",
       paymentMethod: "bank",
       reference: `INT-${suffix}`,
-      priceBdt: 77_000,
+      priceMoney: 77_000,
     });
     expect(sold).toMatchObject({
       weightKg: 220,
-      rateBdtPerKg: 350,
-      priceBdt: 77_000,
+      rateMoneyPerKg: 350,
+      priceMoney: 77_000,
     });
 
     // She is the Venture's now, and the Venture's account is lighter by what she cost.
@@ -202,8 +202,8 @@ describe("the Internal Sale", () => {
     const after = await owner.client.ventures.list();
     const venture = after.find((one) => one.id === ventureId);
     expect(venture).toMatchObject({
-      balanceBdt: heldBefore - 77_000,
-      spentBdt: 77_000,
+      balanceMoney: heldBefore - 77_000,
+      spentMoney: 77_000,
     });
     // Both sides of the money name her, so each leads to her page.
     const movements = await owner.client.ventures.movements({ ventureId });
@@ -229,7 +229,7 @@ describe("the Internal Sale", () => {
       owner.client.ventures.correctMovement({
         id: bought?.id ?? "",
         reason: `দর ভুল ছিল ${suffix}`,
-        changes: { amountBdt: { from: 77_000, to: 70_000 } },
+        changes: { amountMoney: { from: 77_000, to: 70_000 } },
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -248,27 +248,27 @@ describe("the Internal Sale", () => {
     await owner2.client.ventures.sellInternally({
       tagNumber: hers.tagNumber,
       toVentureId: ventureId,
-      rateBdtPerKg: 300,
+      rateMoneyPerKg: 300,
       note: `দর ${suffix}`,
       soldOn: "2047-02-08",
       paymentMethod: "bank",
       reference: `INT-${suffix}`,
-      priceBdt: 63_000,
+      priceMoney: 63_000,
     });
     const mid = await owner2.client.ventures.list();
-    const spentThen = mid.find((one) => one.id === ventureId)?.spentBdt ?? 0;
+    const spentThen = mid.find((one) => one.id === ventureId)?.spentMoney ?? 0;
 
     // And back to the Farm at the same weight and rate.
     const back = await owner2.client.ventures.sellInternally({
       tagNumber: hers.tagNumber,
-      rateBdtPerKg: 300,
+      rateMoneyPerKg: 300,
       note: `ফেরত ${suffix}`,
       soldOn: "2047-02-08",
       paymentMethod: "bank",
       reference: `INT-${suffix}`,
-      priceBdt: 63_000,
+      priceMoney: 63_000,
     });
-    expect(back.priceBdt).toBe(63_000);
+    expect(back.priceMoney).toBe(63_000);
     const her = await owner2.client.animals.byTag({
       tagNumber: hers.tagNumber,
     });
@@ -277,8 +277,8 @@ describe("the Internal Sale", () => {
     const venture = after.find((one) => one.id === ventureId);
     // What it was paid for her is the Venture's own proceeds, and its spending is unchanged.
     expect(venture).toMatchObject({
-      proceedsBdt: 63_000,
-      spentBdt: spentThen,
+      proceedsMoney: 63_000,
+      spentMoney: spentThen,
     });
   });
 
@@ -291,12 +291,12 @@ describe("the Internal Sale", () => {
     const owner = await as("owner", "2047-03-11T09:00:00.000Z");
     const sale = {
       tagNumber: hers.tagNumber,
-      rateBdtPerKg: 300,
+      rateMoneyPerKg: 300,
       note: `দর ${suffix}`,
       soldOn: "2047-03-11",
       paymentMethod: "bank" as const,
       reference: `INT-W-${suffix}`,
-      priceBdt: 63_000,
+      priceMoney: 63_000,
     };
     await owner.client.ventures.sellInternally({
       ...sale,
@@ -323,19 +323,19 @@ describe("the Internal Sale", () => {
     const later = await as("owner", "2047-03-12T09:00:00.000Z");
     await later.client.ventures.sellInternally({
       ...sale,
-      rateBdtPerKg: 320,
+      rateMoneyPerKg: 320,
       soldOn: "2047-03-12",
       reference: `INT-W2-${suffix}`,
-      priceBdt: 67_200,
+      priceMoney: 67_200,
       toVentureId: ventureId,
     });
     expect(await winterOf("2047-03-12T10:00:00.000Z")).toMatchObject({
       head: 1,
       finished: true,
       returnOnCost: {
-        costBdt: 63_000,
-        backBdt: 67_200,
-        resultBdt: 4200,
+        costMoney: 63_000,
+        backMoney: 67_200,
+        resultMoney: 4200,
         per100: 6.7,
       },
     });
@@ -350,12 +350,12 @@ describe("the Internal Sale", () => {
       owner.client.ventures.sellInternally({
         tagNumber: hers.tagNumber,
         toVentureId: ventureId,
-        rateBdtPerKg: 10_000,
+        rateMoneyPerKg: 10_000,
         note: `ভুল দর ${suffix}`,
         soldOn: "2047-02-07",
         paymentMethod: "bank",
         reference: `INT-TOO-DEAR-${suffix}`,
-        priceBdt: 2_200_000,
+        priceMoney: 2_200_000,
       })
     ).rejects.toMatchObject({ data: { refusal: "cattle_budget_short" } });
   });
@@ -367,12 +367,12 @@ describe("the Internal Sale", () => {
       owner.client.ventures.sellInternally({
         tagNumber: unweighed.tagNumber,
         toVentureId: ventureId,
-        rateBdtPerKg: 300,
+        rateMoneyPerKg: 300,
         note: `দর ${suffix}`,
         soldOn: "2047-02-09",
         paymentMethod: "bank",
         reference: `INT-${suffix}`,
-        priceBdt: 1,
+        priceMoney: 1,
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -391,12 +391,12 @@ describe("the Internal Sale", () => {
       owner.client.ventures.sellInternally({
         tagNumber,
         toVentureId: ventureId,
-        rateBdtPerKg: 300,
+        rateMoneyPerKg: 300,
         note: `দর ${suffix}`,
         soldOn: "2047-03-06",
         paymentMethod: "bank",
         reference: `INT-AGE-${tagNumber}-${suffix}`,
-        priceBdt: 75_000,
+        priceMoney: 75_000,
       });
     await expect(sold(stale.tagNumber)).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -428,12 +428,12 @@ describe("the Internal Sale", () => {
       owner.client.ventures.sellInternally({
         tagNumber: hers.tagNumber,
         toVentureId: ventureId,
-        rateBdtPerKg: 300,
+        rateMoneyPerKg: 300,
         note: `দর ${suffix}`,
         soldOn: "2047-02-11",
         paymentMethod: "bank",
         reference: `INT-${suffix}`,
-        priceBdt: 1,
+        priceMoney: 1,
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -457,12 +457,12 @@ describe("the Internal Sale", () => {
       later.client.ventures.sellInternally({
         tagNumber: hers.tagNumber,
         toVentureId: ventureId,
-        rateBdtPerKg: 300,
+        rateMoneyPerKg: 300,
         note: `দর ${suffix}`,
         soldOn: "2047-02-13",
         paymentMethod: "bank",
         reference: `INT-DEAD-${suffix}`,
-        priceBdt: 78_000,
+        priceMoney: 78_000,
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -477,24 +477,24 @@ describe("the Internal Sale", () => {
     await later.client.ventures.sellInternally({
       tagNumber: hers.tagNumber,
       toVentureId: ventureId,
-      rateBdtPerKg: 300,
+      rateMoneyPerKg: 300,
       note: `দর ${suffix}`,
       soldOn: "2047-02-13",
       paymentMethod: "bank",
       reference: `INT-${suffix}`,
-      priceBdt: 69_000,
+      priceMoney: 69_000,
     });
     // Already theirs.
     await expect(
       later.client.ventures.sellInternally({
         tagNumber: hers.tagNumber,
         toVentureId: ventureId,
-        rateBdtPerKg: 300,
+        rateMoneyPerKg: 300,
         note: `আবার ${suffix}`,
         soldOn: "2047-02-13",
         paymentMethod: "bank",
         reference: `INT-${suffix}`,
-        priceBdt: 69_000,
+        priceMoney: 69_000,
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -511,35 +511,35 @@ describe("the Internal Sale", () => {
     await selling.client.ventures.sellInternally({
       tagNumber: hers.tagNumber,
       toVentureId: ventureId,
-      rateBdtPerKg: 300,
+      rateMoneyPerKg: 300,
       note: `দর ${suffix}`,
       soldOn: "2047-02-16",
       paymentMethod: "bank",
       reference: `INT-${suffix}`,
-      priceBdt: 72_000,
+      priceMoney: 72_000,
     });
     const before = await selling.client.ventures.list();
     const firstSpent =
-      before.find((one) => one.id === ventureId)?.spentBdt ?? 0;
+      before.find((one) => one.id === ventureId)?.spentMoney ?? 0;
 
     // And on to the other Venture: one pays, the other is paid, on the one act.
     await selling.client.ventures.sellInternally({
       tagNumber: hers.tagNumber,
       toVentureId: other,
-      rateBdtPerKg: 300,
+      rateMoneyPerKg: 300,
       note: `দর ${suffix}`,
       soldOn: "2047-02-16",
       paymentMethod: "bank",
       reference: `INT2-${suffix}`,
-      priceBdt: 72_000,
+      priceMoney: 72_000,
     });
     const after = await selling.client.ventures.list();
     expect(after.find((one) => one.id === ventureId)).toMatchObject({
-      proceedsBdt: expect.any(Number),
-      spentBdt: firstSpent,
+      proceedsMoney: expect.any(Number),
+      spentMoney: firstSpent,
     });
     expect(after.find((one) => one.id === other)).toMatchObject({
-      spentBdt: 72_000,
+      spentMoney: 72_000,
     });
     const her = await selling.client.animals.byTag({
       tagNumber: hers.tagNumber,
@@ -569,12 +569,12 @@ describe("the Internal Sale", () => {
       owner.client.ventures.sellInternally({
         tagNumber: cow.tagNumber,
         toVentureId: ventureId,
-        rateBdtPerKg: 300,
+        rateMoneyPerKg: 300,
         note: `দর ${suffix}`,
         soldOn: "2047-02-17",
         paymentMethod: "bank",
         reference: `INT-${suffix}`,
-        priceBdt: 1,
+        priceMoney: 1,
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -600,12 +600,12 @@ describe("the Internal Sale", () => {
       later.client.ventures.sellInternally({
         tagNumber: hers.tagNumber,
         toVentureId: winding,
-        rateBdtPerKg: 300,
+        rateMoneyPerKg: 300,
         note: `দর ${suffix}`,
         soldOn: "2047-02-19",
         paymentMethod: "bank",
         reference: `INT-${suffix}`,
-        priceBdt: 75_000,
+        priceMoney: 75_000,
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -629,7 +629,7 @@ describe("the Internal Sale", () => {
     expect(sold.length).toBeGreaterThan(0);
     expect(sold.every((one) => one.direction === "in")).toBe(true);
     expect(bought).toEqual([
-      expect.objectContaining({ amountBdt: 63_000, direction: "out" }),
+      expect.objectContaining({ amountMoney: 63_000, direction: "out" }),
     ]);
     // And it is the Farm's own money: none of it carries a Venture's purse.
     expect([...sold, ...bought].every((one) => one.purse === null)).toBe(true);
@@ -641,12 +641,12 @@ describe("the Internal Sale", () => {
       manager.client.ventures.sellInternally({
         tagNumber: "F-0001",
         toVentureId: ventureId,
-        rateBdtPerKg: 300,
+        rateMoneyPerKg: 300,
         note: `দর ${suffix}`,
         soldOn: "2047-02-14",
         paymentMethod: "bank",
         reference: `INT-${suffix}`,
-        priceBdt: 1,
+        priceMoney: 1,
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
@@ -711,6 +711,6 @@ describe("what a paper may still take", () => {
     const owner = await as("owner", "2047-03-04T04:00:00.000Z");
     const [paper] = await owner.client.ventures.agreements({ ventureId });
     // Twenty Units at fifty thousand, paid in full when the Venture was funded.
-    expect(paper).toMatchObject({ capitalLeftBdt: 0 });
+    expect(paper).toMatchObject({ capitalLeftMoney: 0 });
   });
 });

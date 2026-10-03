@@ -23,14 +23,14 @@ let penId = "";
 const funded = async (owner: Owner) => {
   const venture = await owner.client.ventures.open({
     name: `ভেঞ্চার ${suffix}`,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2073-03-01",
     targetWindowStart: "2073-07-01",
     targetWindowEnd: "2073-07-05",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
-    cattleBudgetBdt: 750_000,
+    cattleBudgetMoney: 750_000,
   });
   const person = await owner.client.investors.record({
     name: `বিনিয়োগকারী ${suffix}`,
@@ -42,7 +42,7 @@ const funded = async (owner: Owner) => {
     units: 20,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2073-02-02",
     stampSerial: `AA ${suffix}`,
   });
@@ -53,7 +53,7 @@ const funded = async (owner: Owner) => {
   });
   await owner.client.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: 1_000_000,
+    amountMoney: 1_000_000,
     movedOn: "2073-02-03",
     paymentMethod: "bank",
     reference: `TRF-${suffix}`,
@@ -67,9 +67,9 @@ const outing = async (owner: Owner, which: string) => {
   const trip = await owner.client.trips.record({
     wentTo: `হাট ${which} ${suffix}`,
     wentOn: DAY,
-    brokerBdt: 0,
-    transportBdt: 2000,
-    keepBdt: 0,
+    brokerMoney: 0,
+    transportMoney: 2000,
+    keepMoney: 0,
   });
   return trip.id;
 };
@@ -81,7 +81,7 @@ const bull = async (sheet: { buyingTripId?: string; ventureId?: string }) => {
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 50_000,
+    purchasePriceMoney: 50_000,
     weightKg: 200,
     estimatedAgeMonths: 20,
     arrivedAt: new Date(`${DAY}T05:00:00.000Z`),
@@ -95,7 +95,7 @@ const drawFor = async (owner: Owner, tripId: string, reference: string) =>
   await owner.client.ventures.drawFloat({
     ventureId,
     buyingTripId: tripId,
-    amountBdt: 100_000,
+    amountMoney: 100_000,
     movedOn: DAY,
     paymentMethod: "bank",
     reference: `FLT-${suffix}-${reference}`,
@@ -106,7 +106,7 @@ const farmFloatFor = async (owner: Owner, tripId: string) =>
   await owner.client.cash.handOver({
     from: { userId: thePerson("owner").id },
     to: { userId: thePerson("manager").id },
-    amountBdt: 100_000,
+    amountMoney: 100_000,
     buyingTripId: tripId,
   });
 

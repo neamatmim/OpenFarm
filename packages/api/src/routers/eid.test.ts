@@ -29,7 +29,7 @@ const setup = async () => {
       penId: pen.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
-      purchasePriceBdt: 60_000,
+      purchasePriceMoney: 60_000,
       weightKg: 220,
       estimatedAgeMonths: 20,
       arrivedAt: new Date(JANUARY),
@@ -45,14 +45,14 @@ const setup = async () => {
   const owner = await as("owner");
   const venture = await owner.client.ventures.open({
     name: `ঈদ ২০২৭ ${suffix}`,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2027-01-20",
     targetWindowStart: "2027-05-17",
     targetWindowEnd: "2027-05-19",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
-    cattleBudgetBdt: 800_000,
+    cattleBudgetMoney: 800_000,
   });
   await scratchDb()
     .update(animal)
@@ -198,7 +198,7 @@ describe("an Eid past the end of the farm's list", () => {
       penId: world.pen.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
-      purchasePriceBdt: 60_000,
+      purchasePriceMoney: 60_000,
       weightKg: 220,
       estimatedAgeMonths: 20,
       arrivedAt: new Date(PAST_THE_TABLE),

@@ -14,6 +14,7 @@ import {
   SWITCH_TOKEN_HEADER,
   resolveDeviceSession,
 } from "./device";
+import { settleFarmLocale } from "./farm-locale";
 import type { PushTransport } from "./push";
 import { silentTransport } from "./push";
 import { webPush } from "./push-web";
@@ -21,6 +22,9 @@ import type { Scope } from "./scope";
 import type { SmsTransport } from "./sms";
 import { silentSms } from "./sms";
 import { smsGateway } from "./sms-gateway";
+
+// Where the farm is, before a request, the schedule or the seed reads a sum or a day.
+settleFarmLocale();
 
 export type Session = typeof auth.$Infer.Session;
 
@@ -115,13 +119,13 @@ export interface Context {
     /** The fewest days money must have been tied up, on average, before a return is put a year. */
     returnYearFloorDays: number;
     /** The taka above which a Money Event waits for the Owner. */
-    approvalThresholdBdt: number;
+    approvalThresholdMoney: number;
     /** The day of the month from which a Monthly Cost with nothing entered that month is named. */
     monthlyCostsFromDay: number;
     /** How many days a Baki with no promised day may run before it is overdue. */
     bakiDays: number;
     /** The taka a Stock Count may come up short by before the Owner and the Manager are told of it. */
-    storeShortfallTellBdt: number;
+    storeShortfallTellMoney: number;
     /** How many animals in one Pen seen with sores, within how many hours, before the farm is told at once. */
     soresTellAnimals: number;
     soresTellHours: number;
@@ -151,9 +155,9 @@ export interface Context {
     /** How many days after a Release or an arrival dose is put off it is raised again. */
     putOffDays: number;
     /** How far a Cash Count may come up short before the Owner is told. */
-    cashShortTellBdt: number;
+    cashShortTellMoney: number;
     /** How far a monthly medicine count may come up short, in taka, before the Owner is told. */
-    medicineShortTellBdt: number;
+    medicineShortTellMoney: number;
     /** What part of a Venture's target capital is the least worth starting on. */
     ventureFloorPercent: number;
     /** What part of a Venture's capital keeps the animals rather than buying them. */
@@ -165,12 +169,12 @@ export interface Context {
     /** How old her last Weigh-in may be for an Internal Sale or the buy-back to price her on. */
     priceWeighInDays: number;
     /** The taka above which a Settlement Adjustment has to be paid or waived rather than only noted. */
-    adjustmentThresholdBdt: number;
+    adjustmentThresholdMoney: number;
     /** How many Investors the Farm may have at a time, and where it starts warning. */
     investorCap: number;
     investorWarnAt: number;
     /** How little may be left to keep a Venture's animals with before the farm says so, in taka. */
-    runningBudgetWarnBdt: number;
+    runningBudgetWarnMoney: number;
     /** Whether invited Investors may sign in to the portal (ADR 0007). */
     investorPortal: boolean;
     /** Whether invited Investors are shown each Venture's Projection (ADR 0010). */
@@ -180,8 +184,8 @@ export interface Context {
     /** Whether Agreements and Amendments may be agreed within the app, instead of on stamped paper. */
     agreementsInApp: boolean;
     /** The market price a kilo of live weight, low and high, as the Owner last judged it; nothing until set. */
-    marketLowBdtPerKg: number | null;
-    marketHighBdtPerKg: number | null;
+    marketLowMoneyPerKg: number | null;
+    marketHighMoneyPerKg: number | null;
     marketPriceSetAt: Date | null;
     pinAutoLockMinutes: number;
     milkTolerancePercent: number;

@@ -41,7 +41,7 @@ beforeAll(async () => {
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 80_000,
+    purchasePriceMoney: 80_000,
     weightKg: 250,
     estimatedAgeMonths: 20,
     arrivedAt: new Date("2051-03-02T05:00:00.000Z"),
@@ -51,8 +51,8 @@ beforeAll(async () => {
   const sold = await manager.client.sale.record({
     tagNumber,
     buyer: { name: TRADER },
-    priceBdt: 120_000,
-    paidNowBdt: 100_000,
+    priceMoney: 120_000,
+    paidNowMoney: 100_000,
     promisedBy: "2051-03-09",
     weightKg: 330,
     destination: `গাবতলী ${suffix}`,
@@ -66,8 +66,8 @@ beforeAll(async () => {
     dispatchedAt: new Date("2051-03-03T03:00:00.000Z"),
     litres: 100,
     buyer: { name: SHOP },
-    pricePerLitreBdt: 70,
-    paidNowBdt: 0,
+    pricePerLitreMoney: 70,
+    paidNowMoney: 0,
   });
   dispatchId = milk.id;
 });
@@ -90,7 +90,7 @@ describe("writing Baki off", () => {
       manager.client.baki.writeOff({
         source: "sale",
         id: saleId,
-        amountBdt: 20_000,
+        amountMoney: 20_000,
         why: "পালিয়ে গেছে",
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
@@ -102,11 +102,11 @@ describe("writing Baki off", () => {
       owner.client.baki.writeOff({
         source: "sale",
         id: saleId,
-        amountBdt: 20_001,
+        amountMoney: 20_001,
         why: "পালিয়ে গেছে",
       })
     ).rejects.toMatchObject({
-      data: { refusal: "written_off_more_than_owed", owingBdt: 20_000 },
+      data: { refusal: "written_off_more_than_owed", owingMoney: 20_000 },
     });
   });
 
@@ -116,27 +116,27 @@ describe("writing Baki off", () => {
     ({ id: writeOffId } = await owner.client.baki.writeOff({
       source: "sale",
       id: saleId,
-      amountBdt: 20_000,
+      amountMoney: 20_000,
       why: "ব্যাপারী আর ফোন ধরে না, এলাকা ছেড়েছে",
     }));
     const after = await herSale();
-    expect(before.saleBdt).toBe(120_000);
-    expect(after.saleBdt).toBe(100_000);
-    expect((before.marginBdt ?? 0) - (after.marginBdt ?? 0)).toBe(20_000);
+    expect(before.saleMoney).toBe(120_000);
+    expect(after.saleMoney).toBe(100_000);
+    expect((before.marginMoney ?? 0) - (after.marginMoney ?? 0)).toBe(20_000);
   });
 
   it("marks the buyer: the sheets say what was written off, and he owes nothing more", async () => {
     const manager = await as("manager", "2051-03-21T06:00:00.000Z");
     const his = await manager.client.baki.ofBuyer({ name: TRADER });
     expect(his).toMatchObject({
-      owingBdt: 0,
-      writtenOffBdt: 20_000,
+      owingMoney: 0,
+      writtenOffMoney: 20_000,
       lastWrittenOffOn: "2051-03-20",
     });
     // Still listed, apart, for what was written off.
     const list = await manager.client.baki.list();
     expect(list.find((one) => one.name === TRADER)).toMatchObject({
-      writtenOffBdt: 20_000,
+      writtenOffMoney: 20_000,
     });
     // Each write-off listed under what it was written off of, by its own id, which is what the Owner puts right.
     const items = list
@@ -145,7 +145,7 @@ describe("writing Baki off", () => {
     expect(items?.find((one) => one.id === saleId)?.writeOffs).toEqual([
       {
         id: writeOffId,
-        amountBdt: 20_000,
+        amountMoney: 20_000,
         reason: "ব্যাপারী আর ফোন ধরে না, এলাকা ছেড়েছে",
         writtenOn: "2051-03-20",
       },
@@ -157,15 +157,15 @@ describe("writing Baki off", () => {
     await manager.client.baki.pay({
       buyer: TRADER,
       kind: "cattle",
-      amountBdt: 5000,
+      amountMoney: 5000,
       paidOn: "2051-03-22",
       paymentMethod: "cash",
       note: "হঠাৎ এসে পাঁচ হাজার দিয়ে গেলেন",
     });
     const after = await herSale();
-    expect(after.saleBdt).toBe(105_000);
+    expect(after.saleMoney).toBe(105_000);
     const his = await manager.client.baki.ofBuyer({ name: TRADER });
-    expect(his?.writtenOffBdt).toBe(15_000);
+    expect(his?.writtenOffMoney).toBe(15_000);
   });
 
   it("is taken back whole by the Owner as a Correction, and he owes again what stays unpaid", async () => {
@@ -173,29 +173,29 @@ describe("writing Baki off", () => {
     await owner.client.baki.correctWriteOff({
       id: writeOffId,
       reason: "ভুল করে লেখা হয়েছিল, ব্যাপারী টাকা দেবেন বলেছেন",
-      changes: { amountBdt: { from: 20_000, to: 0 } },
+      changes: { amountMoney: { from: 20_000, to: 0 } },
     });
     const after = await herSale();
-    expect(after.saleBdt).toBe(120_000);
+    expect(after.saleMoney).toBe(120_000);
     const his = await owner.client.baki.ofBuyer({ name: TRADER });
-    expect(his).toMatchObject({ owingBdt: 15_000, writtenOffBdt: 0 });
+    expect(his).toMatchObject({ owingMoney: 15_000, writtenOffMoney: 0 });
   });
 
   it("lowers what a litre fetched when milk is written off", async () => {
     const before = await march();
-    expect(before?.dairy).toMatchObject({ fetchedPerLitreBdt: 70 });
+    expect(before?.dairy).toMatchObject({ fetchedPerLitreMoney: 70 });
     const owner = await as("owner", "2051-03-25T06:00:00.000Z");
     await owner.client.baki.writeOff({
       source: "dispatch",
       id: dispatchId,
-      amountBdt: 7000,
+      amountMoney: 7000,
       why: "দোকান বন্ধ হয়ে গেছে",
     });
     const after = await march();
     // The milk still left the farm: its litres stand, and fetched nothing.
     expect(after?.dairy).toMatchObject({
-      milkSoldBdt: 0,
-      fetchedPerLitreBdt: 0,
+      milkSoldMoney: 0,
+      fetchedPerLitreMoney: 0,
     });
   });
 });

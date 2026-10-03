@@ -33,14 +33,14 @@ beforeAll(async () => {
   penId = pen.id;
   const venture = await owner.client.ventures.open({
     name: `ভেঞ্চার ${suffix}`,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2047-01-20",
     targetWindowStart: VENTURES.start,
     targetWindowEnd: VENTURES.end,
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
-    cattleBudgetBdt: 800_000,
+    cattleBudgetMoney: 800_000,
   });
   ventureId = venture.id;
   // Somebody has to have signed, or there is nobody to amend anything with.
@@ -54,7 +54,7 @@ beforeAll(async () => {
     units: 20,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2047-01-02",
     stampSerial: `AA ${suffix}`,
   });
@@ -65,7 +65,7 @@ beforeAll(async () => {
   });
   await owner.client.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: 1_000_000,
+    amountMoney: 1_000_000,
     movedOn: "2047-01-03",
     paymentMethod: "bank",
     reference: `TRF-${suffix}`,
@@ -88,7 +88,7 @@ const bull = async (
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 60_000,
+    purchasePriceMoney: 60_000,
     weightKg: 200,
     estimatedAgeMonths: 20,
     arrivedAt: new Date(instant),

@@ -24,7 +24,7 @@ const hashOf = (label: string) =>
  */
 export const putCapitalIn = async (
   client: RouterClient<typeof appRouter>,
-  venture: { id: string; units: number; unitPriceBdt: number },
+  venture: { id: string; units: number; unitPriceMoney: number },
   /** Tells this file's Investor, stamp and transfer apart from every other file's. */
   label: string,
   /** The day the paper was stamped and the money moved. */
@@ -42,7 +42,7 @@ export const putCapitalIn = async (
     units: venture.units,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${label}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: on,
     stampSerial: `AA ${label}`,
   });
@@ -53,7 +53,7 @@ export const putCapitalIn = async (
   });
   await client.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: venture.units * venture.unitPriceBdt,
+    amountMoney: venture.units * venture.unitPriceMoney,
     movedOn: on,
     paymentMethod: "bank",
     reference: `TRF ${label}`,

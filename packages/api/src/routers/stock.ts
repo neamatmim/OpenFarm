@@ -165,10 +165,10 @@ export const stockRouter = {
           pack: row.packKind
             ? { kind: row.packKind, count: Number(row.packCount) }
             : null,
-          priceBdt: row.priceBdt,
+          priceMoney: row.priceMoney,
           /** What a unit of it cost, and how far that moved on the last purchase of the same feed; nothing for a
            *  Harvest. */
-          unitPriceBdt: prices.get(row.id)?.unitPriceBdt ?? null,
+          unitPriceMoney: prices.get(row.id)?.unitPriceMoney ?? null,
           priceChangePercent: prices.get(row.id)?.changePercent ?? null,
           sellerName: seller?.name ?? null,
           receivedOn: row.receivedOn,
@@ -240,7 +240,7 @@ export const stockRouter = {
             count: z.number().positive().max(100_000),
           })
           .optional(),
-        priceBdt: feedPriceInput.optional(),
+        priceMoney: feedPriceInput.optional(),
         seller: sellerInput.optional(),
         /** What the farm's scale showed, in kilos, where the lot was weighed as it came: then what the store holds,
          *  and the slip's figure is kept beside it. */
@@ -263,7 +263,7 @@ export const stockRouter = {
       }
       assertShapeOf({
         kind: input.kind,
-        priced: input.priceBdt !== undefined,
+        priced: input.priceMoney !== undefined,
         seller: input.seller !== undefined,
       });
       const receivedOn = receivedDay(input.receivedOn, now);
@@ -281,7 +281,7 @@ export const stockRouter = {
         columns: {
           id: true,
           retiredAt: true,
-          fodderPriceBdt: true,
+          fodderPriceMoney: true,
           unit: true,
           bagSizeKg: true,
         },
@@ -320,10 +320,10 @@ export const stockRouter = {
             packCount: input.pack ? String(input.pack.count) : null,
             // A purchase is worth what the farm paid; a Harvest is worth what the farm says its own
             // fodder is worth, taken from the Feed Item rather than typed by whoever cut it.
-            priceBdt:
+            priceMoney:
               input.kind === "harvest"
                 ? fodderValueOf(item, quantity)
-                : (input.priceBdt ?? null),
+                : (input.priceMoney ?? null),
             counterpartyId: sellerId,
             receivedOn,
             lotNumber: input.lotNumber ?? null,

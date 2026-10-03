@@ -37,7 +37,7 @@ export interface PaperFacts {
   him?: PaperInvestor;
   ventureName?: string;
   units?: number;
-  unitPriceBdt?: number;
+  unitPriceMoney?: number;
   investorsPercent?: number;
   windowStart?: string;
   windowEnd?: string;
@@ -46,7 +46,7 @@ export interface PaperFacts {
   amendedOn?: string;
   reason?: string;
   /** Paid by the month: each Unit's Cattle Part and its Monthly Sums, as the Venture froze them. */
-  monthly?: { cattlePartBdt: number; sums: readonly MonthlySum[] } | null;
+  monthly?: { cattlePartMoney: number; sums: readonly MonthlySum[] } | null;
 }
 
 /**
@@ -59,10 +59,10 @@ const sumsSaid = (sums: readonly MonthlySum[]): Said | undefined => {
   if (!(first && last)) {
     return undefined;
   }
-  const lastDiffers = last.bdt !== first.bdt;
+  const lastDiffers = last.amount !== first.amount;
   return {
-    bn: `${formatNumber(sums.length, "bn")} মাস${lastDiffers ? `; শেষ মাসে ${formatNumber(last.bdt, "bn")} টাকা` : ""}`,
-    en: `${formatNumber(sums.length, "en")} months${lastDiffers ? `; the last ৳${formatNumber(last.bdt, "en")}` : ""}`,
+    bn: `${formatNumber(sums.length, "bn")} মাস${lastDiffers ? `; শেষ মাসে ${formatNumber(last.amount, "bn")} টাকা` : ""}`,
+    en: `${formatNumber(sums.length, "en")} months${lastDiffers ? `; the last ৳${formatNumber(last.amount, "en")}` : ""}`,
   };
 };
 
@@ -74,8 +74,8 @@ const monthlyValues = (monthly: PaperFacts["monthly"]): FieldValues => {
     return {};
   }
   return {
-    cattlePart: figure(monthly.cattlePartBdt),
-    monthlySum: figure(first.bdt),
+    cattlePart: figure(monthly.cattlePartMoney),
+    monthlySum: figure(first.amount),
     firstSumDue: day(first.dueOn),
     lastSumDue: day(last.dueOn),
     sums: sumsSaid(monthly.sums),
@@ -88,8 +88,8 @@ const monthlyValues = (monthly: PaperFacts["monthly"]): FieldValues => {
  */
 export const paperValues = (facts: PaperFacts): FieldValues => {
   const capital =
-    facts.units !== undefined && facts.unitPriceBdt !== undefined
-      ? facts.units * facts.unitPriceBdt
+    facts.units !== undefined && facts.unitPriceMoney !== undefined
+      ? facts.units * facts.unitPriceMoney
       : undefined;
   const values: FieldValues = {
     farmName: same(facts.farm.name),
@@ -107,7 +107,9 @@ export const paperValues = (facts: PaperFacts): FieldValues => {
     ventureName: same(facts.ventureName),
     units: facts.units === undefined ? undefined : figure(facts.units),
     unitPrice:
-      facts.unitPriceBdt === undefined ? undefined : figure(facts.unitPriceBdt),
+      facts.unitPriceMoney === undefined
+        ? undefined
+        : figure(facts.unitPriceMoney),
     capital: capital === undefined ? undefined : figure(capital),
     investorsPercent:
       facts.investorsPercent === undefined

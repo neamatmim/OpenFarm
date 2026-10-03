@@ -14,21 +14,21 @@ const as = (role: "owner" | "manager", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 const plan = {
-  targetCapitalBdt: 1_000_000,
-  floorBdt: 0,
+  targetCapitalMoney: 1_000_000,
+  floorMoney: 0,
   decideBy: "2046-12-20",
   targetWindowStart: "2047-05-17",
   targetWindowEnd: "2047-05-19",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 20,
   /** Three quarters for cattle, a quarter to keep them. */
-  cattleBudgetBdt: 750_000,
+  cattleBudgetMoney: 750_000,
 };
 
 const paper = {
   investorsPercent: 60,
   arbitrator: `মাওলানা ${suffix}`,
-  stampValueBdt: 300,
+  stampValueMoney: 300,
   stampedOn: "2046-12-02",
   stampSerial: `AA ${suffix}`,
 };
@@ -38,7 +38,7 @@ const photo = { contentType: "image/jpeg" as const, data: "aGVsbG8=" };
 type Owner = Awaited<ReturnType<typeof as>>;
 
 /** A Venture with capital in it, buying. */
-const funded = async (owner: Owner, which: number, capitalBdt: number) => {
+const funded = async (owner: Owner, which: number, capitalMoney: number) => {
   const venture = await owner.client.ventures.open({
     name: `ভেঞ্চার ${which} ${suffix}`,
     ...plan,
@@ -50,7 +50,7 @@ const funded = async (owner: Owner, which: number, capitalBdt: number) => {
   const agreement = await owner.client.ventures.sign({
     ventureId: venture.id,
     investorId: person.id,
-    units: capitalBdt / plan.unitPriceBdt,
+    units: capitalMoney / plan.unitPriceMoney,
     ...paper,
   });
   await owner.client.ventures.keepAgreementPaper({
@@ -59,7 +59,7 @@ const funded = async (owner: Owner, which: number, capitalBdt: number) => {
   });
   await owner.client.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: capitalBdt,
+    amountMoney: capitalMoney,
     movedOn: "2046-12-03",
     paymentMethod: "bank",
     reference: `TRF-${suffix}-${which}`,
@@ -73,9 +73,9 @@ const outing = async (owner: Owner, which: number) => {
   const trip = await owner.client.trips.record({
     wentTo: `হাট ${which} ${suffix}`,
     wentOn: "2046-12-05",
-    brokerBdt: 0,
-    transportBdt: 0,
-    keepBdt: 0,
+    brokerMoney: 0,
+    transportMoney: 0,
+    keepMoney: 0,
   });
   return trip.id;
 };
@@ -103,16 +103,16 @@ describe("the Buying Float", () => {
     const before = ventures.find((one) => one.id === ventureId);
     // Eight lakh in, three quarters of it for cattle.
     expect(before).toMatchObject({
-      balanceBdt: 800_000,
-      cattleBudgetHeldBdt: 600_000,
-      runningBudgetHeldBdt: 200_000,
-      spentBdt: 0,
+      balanceMoney: 800_000,
+      cattleBudgetHeldMoney: 600_000,
+      runningBudgetHeldMoney: 200_000,
+      spentMoney: 0,
     });
 
     await owner.client.ventures.drawFloat({
       ventureId,
       buyingTripId: trip,
-      amountBdt: 500_000,
+      amountMoney: 500_000,
       movedOn: "2046-12-05",
       paymentMethod: "bank",
       reference: `FLT-${suffix}-1`,
@@ -122,10 +122,10 @@ describe("the Buying Float", () => {
     const after = afterwards.find((one) => one.id === ventureId);
     // The money that keeps the animals is untouched: a Float is cattle money.
     expect(after).toMatchObject({
-      balanceBdt: 300_000,
-      cattleBudgetHeldBdt: 100_000,
-      runningBudgetHeldBdt: 200_000,
-      spentBdt: 500_000,
+      balanceMoney: 300_000,
+      cattleBudgetHeldMoney: 100_000,
+      runningBudgetHeldMoney: 200_000,
+      spentMoney: 500_000,
     });
   });
 
@@ -137,7 +137,7 @@ describe("the Buying Float", () => {
       owner.client.ventures.drawFloat({
         ventureId,
         buyingTripId: trip,
-        amountBdt: 150_000,
+        amountMoney: 150_000,
         movedOn: "2046-12-06",
         paymentMethod: "bank",
         reference: `FLT-${suffix}-2`,
@@ -154,7 +154,7 @@ describe("the Buying Float", () => {
     await owner.client.ventures.drawFloat({
       ventureId,
       buyingTripId: trip,
-      amountBdt: 50_000,
+      amountMoney: 50_000,
       movedOn: "2046-12-07",
       paymentMethod: "bank",
       reference: `FLT-${suffix}-3`,
@@ -163,7 +163,7 @@ describe("the Buying Float", () => {
       owner.client.ventures.drawFloat({
         ventureId,
         buyingTripId: trip,
-        amountBdt: 10_000,
+        amountMoney: 10_000,
         movedOn: "2046-12-07",
         paymentMethod: "bank",
         reference: `FLT-${suffix}-3b`,
@@ -185,7 +185,7 @@ describe("the Buying Float", () => {
       owner.client.ventures.drawFloat({
         ventureId: notYet.id,
         buyingTripId: trip,
-        amountBdt: 1000,
+        amountMoney: 1000,
         movedOn: "2046-12-08",
         paymentMethod: "bank",
         reference: `FLT-${suffix}-4`,
@@ -195,7 +195,7 @@ describe("the Buying Float", () => {
       owner.client.ventures.drawFloat({
         ventureId,
         buyingTripId: trip,
-        amountBdt: 1000,
+        amountMoney: 1000,
         movedOn: "2046-12-08",
         paymentMethod: "cash",
         reference: "হাতে হাতে",
@@ -211,7 +211,7 @@ describe("the Buying Float", () => {
     await owner.client.ventures.drawFloat({
       ventureId: other,
       buyingTripId: trip,
-      amountBdt: 60_000,
+      amountMoney: 60_000,
       movedOn: "2046-12-11",
       paymentMethod: "bank",
       reference: `FLT-${suffix}-other`,
@@ -221,7 +221,7 @@ describe("the Buying Float", () => {
       penId,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
-      purchasePriceBdt: 50_000,
+      purchasePriceMoney: 50_000,
       weightKg: 200,
       estimatedAgeMonths: 20,
       buyingTripId: trip,
@@ -235,7 +235,7 @@ describe("the Buying Float", () => {
       owner.client.ventures.drawFloat({
         ventureId,
         buyingTripId: trip,
-        amountBdt: 10_000,
+        amountMoney: 10_000,
         movedOn: "2046-12-11",
         paymentMethod: "bank",
         reference: `FLT-${suffix}-7`,
@@ -259,7 +259,7 @@ describe("the Buying Float", () => {
     await owner.client.ventures.drawFloat({
       ventureId,
       buyingTripId: trip,
-      amountBdt: 40_000,
+      amountMoney: 40_000,
       movedOn: "2046-12-10",
       paymentMethod: "bank",
       reference: `FLT-${suffix}-5`,
@@ -270,7 +270,7 @@ describe("the Buying Float", () => {
     await expect(
       manager.client.ventures.floatOf({ buyingTripId: trip })
     ).resolves.toMatchObject({
-      amountBdt: 40_000,
+      amountMoney: 40_000,
       reference: `FLT-${suffix}-5`,
       ventureName: `ভেঞ্চার 1 ${suffix}`,
     });
@@ -280,7 +280,7 @@ describe("the Buying Float", () => {
       manager.client.ventures.drawFloat({
         ventureId,
         buyingTripId: another,
-        amountBdt: 1000,
+        amountMoney: 1000,
         movedOn: "2046-12-10",
         paymentMethod: "bank",
         reference: `FLT-${suffix}-6`,
@@ -297,7 +297,7 @@ describe("the Buying Float", () => {
     await owner.client.ventures.drawFloat({
       ventureId: longRun,
       buyingTripId: early,
-      amountBdt: 100_000,
+      amountMoney: 100_000,
       movedOn: "2046-12-05",
       paymentMethod: "bank",
       reference: `FLT-${suffix}-early`,
@@ -307,9 +307,9 @@ describe("the Buying Float", () => {
       await owner.client.trips.record({
         wentTo: `পরের হাট ${which} ${suffix}`,
         wentOn: "2046-12-10",
-        brokerBdt: 0,
-        transportBdt: 0,
-        keepBdt: 0,
+        brokerMoney: 0,
+        transportMoney: 0,
+        keepMoney: 0,
       });
     }
 
@@ -319,7 +319,7 @@ describe("the Buying Float", () => {
     expect(stillOut.map((one) => one.id)).toEqual([early]);
     expect(stillOut[0]?.float).toMatchObject({
       ventureId: longRun,
-      amountBdt: 100_000,
+      amountMoney: 100_000,
       reconciledAt: null,
     });
   });
@@ -340,15 +340,15 @@ describe("an outing a Float paid for", () => {
     const trip = await manager.client.trips.record({
       wentTo: `ভাড়ার হাট ${suffix}`,
       wentOn: "2047-01-10",
-      brokerBdt: 1500,
-      transportBdt: 4000,
-      keepBdt: 800,
+      brokerMoney: 1500,
+      transportMoney: 4000,
+      keepMoney: 800,
     });
     paidFor = trip.id;
     await owner.client.ventures.drawFloat({
       ventureId: paying,
       buyingTripId: paidFor,
-      amountBdt: 50_000,
+      amountMoney: 50_000,
       movedOn: "2047-01-10",
       paymentMethod: "bank",
       reference: `FLT-${suffix}-paid`,
@@ -363,7 +363,7 @@ describe("an outing a Float paid for", () => {
     const booked = its.events.find((one) => one.sourceId === paidFor);
     expect(booked).toMatchObject({
       source: "buying_trip",
-      amountBdt: 6300,
+      amountMoney: 6300,
       purse: { id: paying },
     });
     // And the trail says where it was, and where the Float put it.
@@ -382,7 +382,7 @@ describe("an outing a Float paid for", () => {
     await manager.client.trips.correct({
       id: paidFor,
       reason: "লরির ভাড়া বেশি ছিল",
-      changes: { transportBdt: { from: 4000, to: 4500 } },
+      changes: { transportMoney: { from: 4000, to: 4500 } },
     });
 
     const owner = await as("owner", "2047-01-11T04:00:00.000Z");
@@ -393,7 +393,7 @@ describe("an outing a Float paid for", () => {
       ventureId: paying,
     });
     expect(its.events.find((one) => one.sourceId === paidFor)).toMatchObject({
-      amountBdt: 6800,
+      amountMoney: 6800,
       purse: { id: paying },
     });
   });
@@ -403,15 +403,15 @@ describe("an outing a Float paid for", () => {
     const written = await owner.client.trips.record({
       wentTo: `শেষে লেখা হাট ${suffix}`,
       wentOn: "2047-01-12",
-      brokerBdt: 0,
-      transportBdt: 0,
-      keepBdt: 0,
+      brokerMoney: 0,
+      transportMoney: 0,
+      keepMoney: 0,
     });
     const trip = written.id;
     await owner.client.ventures.drawFloat({
       ventureId: paying,
       buyingTripId: trip,
-      amountBdt: 40_000,
+      amountMoney: 40_000,
       movedOn: "2047-01-12",
       paymentMethod: "bank",
       reference: `FLT-${suffix}-late`,
@@ -420,7 +420,7 @@ describe("an outing a Float paid for", () => {
     await manager.client.trips.correct({
       id: trip,
       reason: "লরির ভাড়া লেখা হয়নি",
-      changes: { transportBdt: { from: 0, to: 3000 } },
+      changes: { transportMoney: { from: 0, to: 3000 } },
     });
 
     const farms = await owner.client.money.list(JANUARY);
@@ -430,7 +430,7 @@ describe("an outing a Float paid for", () => {
       ventureId: paying,
     });
     expect(its.events.find((one) => one.sourceId === trip)).toMatchObject({
-      amountBdt: 3000,
+      amountMoney: 3000,
       purse: { id: paying },
     });
   });
@@ -440,16 +440,16 @@ describe("an outing a Float paid for", () => {
     const trip = await manager.client.trips.record({
       wentTo: `খামারের হাট ${suffix}`,
       wentOn: "2047-01-13",
-      brokerBdt: 0,
-      transportBdt: 2500,
-      keepBdt: 0,
+      brokerMoney: 0,
+      transportMoney: 2500,
+      keepMoney: 0,
     });
 
     const owner = await as("owner", "2047-01-13T04:00:00.000Z");
     const farms = await owner.client.money.list(JANUARY);
     expect(farms.events.find((one) => one.sourceId === trip.id)).toMatchObject({
       source: "buying_trip",
-      amountBdt: 2500,
+      amountMoney: 2500,
       purse: null,
     });
   });

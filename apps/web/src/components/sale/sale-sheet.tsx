@@ -33,9 +33,9 @@ import { orpc } from "@/utils/orpc";
 
 /** The broker's fee as the Sale takes it: whole taka, and nothing sent where none was typed — or on answers a phone
  *  kept from before the fee was asked. */
-const brokerSent = (answers: SaleAnswers): { brokerBdt?: number } => {
-  const typed = Number(answers.brokerBdt ?? "");
-  return typed > 0 ? { brokerBdt: Math.round(typed) } : {};
+const brokerSent = (answers: SaleAnswers): { brokerMoney?: number } => {
+  const typed = Number(answers.brokerMoney ?? "");
+  return typed > 0 ? { brokerMoney: Math.round(typed) } : {};
 };
 
 /** What is typed into the sheet, before it is a Sale. */
@@ -44,7 +44,7 @@ export interface SaleAnswers {
   buyerName: string;
   buyerAddress: string;
   buyerPhone: string;
-  priceBdt: string;
+  priceMoney: string;
   weightKg: string;
   destination: string;
   vehicle: string;
@@ -58,7 +58,7 @@ export interface SaleAnswers {
   /** Whether the buyer still owes some of it, what he paid now, and the day he promised. */
   baki: BakiTyped;
   /** What the broker at the haat took for this sale, where one was used; empty where none was. */
-  brokerBdt: string;
+  brokerMoney: string;
 }
 
 export const NOTHING_TYPED: SaleAnswers = {
@@ -66,7 +66,7 @@ export const NOTHING_TYPED: SaleAnswers = {
   buyerName: "",
   buyerAddress: "",
   buyerPhone: "",
-  priceBdt: "",
+  priceMoney: "",
   weightKg: "",
   destination: "",
   vehicle: "",
@@ -76,7 +76,7 @@ export const NOTHING_TYPED: SaleAnswers = {
   heldBy: "",
   account: NO_ACCOUNT,
   baki: NO_BAKI,
-  brokerBdt: "",
+  brokerMoney: "",
 };
 
 /** A part of the sheet with a name, and — for the buyer — the button that fills it in from the last sale. */
@@ -233,7 +233,7 @@ const AnimalPart = ({
 /** What a kilo fetched, worked out as the price and weight are typed. */
 const PerKg = ({ answers }: { answers: SaleAnswers }) => {
   const { t, language } = useLanguage();
-  const price = Number(answers.priceBdt);
+  const price = Number(answers.priceMoney);
   const weight = Number(answers.weightKg);
   if (!(price > 0 && weight > 0)) {
     return null;
@@ -368,9 +368,9 @@ export const SaleSheet = ({
           ...answers,
           tagNumber: "",
           weightKg: "",
-          priceBdt: "",
+          priceMoney: "",
           baki: NO_BAKI,
-          brokerBdt: "",
+          brokerMoney: "",
         });
         onOpenChange(false);
       },
@@ -402,7 +402,7 @@ export const SaleSheet = ({
             address: answers.buyerAddress || undefined,
             phone: answers.buyerPhone || undefined,
           },
-          priceBdt: Number(answers.priceBdt),
+          priceMoney: Number(answers.priceMoney),
           weightKg: Number(answers.weightKg),
           destination: answers.destination,
           vehicle: answers.vehicle,
@@ -467,10 +467,10 @@ export const SaleSheet = ({
             id="sale-price"
             inputMode="numeric"
             label={t("sale.price")}
-            onChange={(priceBdt) => edit({ priceBdt })}
+            onChange={(priceMoney) => edit({ priceMoney })}
             required
             type="number"
-            value={answers.priceBdt}
+            value={answers.priceMoney}
           />
           <TextField
             hint={lastWeighed}
@@ -488,9 +488,9 @@ export const SaleSheet = ({
             id="sale-broker"
             inputMode="numeric"
             label={t("sale.broker")}
-            onChange={(brokerBdt) => edit({ brokerBdt })}
+            onChange={(brokerMoney) => edit({ brokerMoney })}
             type="number"
-            value={answers.brokerBdt ?? ""}
+            value={answers.brokerMoney ?? ""}
           />
         </div>
         <PerKg answers={answers} />
@@ -499,7 +499,7 @@ export const SaleSheet = ({
           onType={(patch) => edit({ baki: { ...answers.baki, ...patch } })}
           promiseRequired
           typed={answers.baki}
-          worthBdt={Number(answers.priceBdt)}
+          worthMoney={Number(answers.priceMoney)}
         />
         <div className="grid gap-4 sm:grid-cols-3">
           {somethingPaid(answers.baki) ? (

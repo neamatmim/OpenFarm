@@ -27,12 +27,12 @@ const tellIfTheStoreCameUpShort = async (
   input: StockCountFacts,
   adjustments: readonly StockAdjustment[]
 ) => {
-  const { shortBdt } = shortfallOf(adjustments);
+  const { shortMoney } = shortfallOf(adjustments);
   const farm = await tx.query.farm.findFirst({
     where: { id: input.instance.farmId },
-    columns: { storeShortfallTellBdt: true },
+    columns: { storeShortfallTellMoney: true },
   });
-  if (!farm || shortBdt <= farm.storeShortfallTellBdt) {
+  if (!farm || shortMoney <= farm.storeShortfallTellMoney) {
     return;
   }
   await tell(
@@ -43,7 +43,7 @@ const tellIfTheStoreCameUpShort = async (
       about: { id: input.completionId },
       // To the taka: a notice read on a phone, not a ledger.
       facts: {
-        shortBdt: Math.round(shortBdt),
+        shortMoney: Math.round(shortMoney),
         countedOn: farmDayOf(input.recordedAt),
       },
     },

@@ -64,6 +64,6 @@ export const standingOf = (line: StockLine): StockStanding => {
 
 /** What a line of the store is worth at the average price it was bought at; nothing for feed with no price. */
 export const valueOf = (line: StockLine): number | null =>
-  line.averagePriceBdt === null
+  line.averagePriceMoney === null
     ? null
-    : Math.max(line.onHand, 0) * line.averagePriceBdt;
+    : Math.max(line.onHand, 0) * line.averagePriceMoney;

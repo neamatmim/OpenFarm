@@ -31,7 +31,7 @@ const buy = async (instant: string, arrivedAt: string) => {
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 50_000,
+    purchasePriceMoney: 50_000,
     weightKg: 200,
     estimatedAgeMonths: 20,
     arrivedAt: new Date(arrivedAt),
@@ -43,13 +43,13 @@ const buy = async (instant: string, arrivedAt: string) => {
 const spend = async (
   instant: string,
   categoryId: string,
-  amountBdt: number,
+  amountMoney: number,
   occurredOn: string
 ) => {
   const manager = await as("manager", instant);
   return await manager.client.money.enter({
     categoryId,
-    amountBdt,
+    amountMoney,
     occurredOn,
     counterparty: { name: `দোকান ${suffix}` },
     paymentMethod: "cash",
@@ -88,7 +88,7 @@ beforeAll(async () => {
 describe("Herd Costs", () => {
   it("reaches nobody while the Owner has not marked the Category", async () => {
     await spend("2043-03-10T04:00:00.000Z", bitsId, 3000, "2043-03-10");
-    expect(await costOf(first)).toMatchObject({ herdBdt: 0 });
+    expect(await costOf(first)).toMatchObject({ herdMoney: 0 });
   });
 
   it("splits a marked Category's month by the days each animal stood here", async () => {
@@ -113,14 +113,14 @@ describe("Herd Costs", () => {
     const alsoHere = await costOf(first);
     // Everything spent that month reaches the animals of that Side — these three — and nothing is lost
     // between them.
-    expect(early.herdBdt + late.herdBdt + alsoHere.herdBdt).toBeCloseTo(
+    expect(early.herdMoney + late.herdMoney + alsoHere.herdMoney).toBeCloseTo(
       9000,
       0
     );
     // The ones who stood here all month carry about twice what the one who came on the 16th carries.
-    expect(early.herdBdt).toBeGreaterThan(late.herdBdt * 1.5);
+    expect(early.herdMoney).toBeGreaterThan(late.herdMoney * 1.5);
     // The two who stood here all month carry all but the hours between their arrivals apart.
-    expect(Math.abs(early.herdBdt - alsoHere.herdBdt)).toBeLessThan(20);
+    expect(Math.abs(early.herdMoney - alsoHere.herdMoney)).toBeLessThan(20);
   });
 
   it("comes off her Margin and her Cost of Gain", async () => {
@@ -129,7 +129,7 @@ describe("Herd Costs", () => {
       from: "2043-03-01",
       to: "2043-03-31",
     });
-    expect(report.fattening.herdBdt).toBeGreaterThan(0);
+    expect(report.fattening.herdMoney).toBeGreaterThan(0);
 
     // And on the animal herself: what she carries of the month comes off what she made.
     const sold = await buy("2043-03-02T06:00:00.000Z", "2043-03-02T00:00:00Z");
@@ -137,7 +137,7 @@ describe("Herd Costs", () => {
     await selling.client.sale.record({
       tagNumber: sold,
       buyer: { name: `ক্রেতা ${suffix}` },
-      priceBdt: 90_000,
+      priceMoney: 90_000,
       weightKg: 300,
       destination: "ঢাকা",
       vehicle: "ঢাকা মেট্রো ট-১১-৯৯৯৯",
@@ -145,17 +145,17 @@ describe("Herd Costs", () => {
       paymentMethod: "cash",
     });
     const hers = await costOf(sold);
-    expect(hers.herdBdt).toBeGreaterThan(0);
+    expect(hers.herdMoney).toBeGreaterThan(0);
     // Ninety thousand, less the fifty she cost and everything charged to her, herd costs included.
-    expect(hers.marginBdt).toBeCloseTo(
+    expect(hers.marginMoney).toBeCloseTo(
       90_000 -
         50_000 -
-        (hers.feedBdt +
-          hers.medicineBdt +
-          hers.vetBdt +
-          hers.hasilBdt +
-          hers.tripBdt +
-          hers.herdBdt),
+        (hers.feedMoney +
+          hers.medicineMoney +
+          hers.vetMoney +
+          hers.hasilMoney +
+          hers.tripMoney +
+          hers.herdMoney),
       0
     );
   });
@@ -167,7 +167,7 @@ describe("Herd Costs", () => {
     await selling.client.sale.record({
       tagNumber: gone,
       buyer: { name: `আরেক ক্রেতা ${suffix}` },
-      priceBdt: 88_000,
+      priceMoney: 88_000,
       weightKg: 295,
       destination: "ঢাকা",
       vehicle: "ঢাকা মেট্রো ট-১১-৮৮৮৮",
@@ -177,7 +177,7 @@ describe("Herd Costs", () => {
     const before = await costOf(gone);
     await spend("2043-04-04T04:00:00.000Z", sprayId, 4000, "2043-04-04");
     const after = await costOf(gone);
-    expect(after.herdBdt).toBeCloseTo(before.herdBdt, 2);
+    expect(after.herdMoney).toBeCloseTo(before.herdMoney, 2);
   });
 
   it("starts every standard Category unmarked", async () => {
@@ -222,8 +222,8 @@ describe("Herd Costs", () => {
       from: "2043-02-01",
       to: "2043-02-28",
     });
-    expect(february.fattening.herdBdt).toBe(0);
-    expect(february.unallocated.herdBdt).toBeGreaterThanOrEqual(1200);
+    expect(february.fattening.herdMoney).toBe(0);
+    expect(february.unallocated.herdMoney).toBeGreaterThanOrEqual(1200);
   });
 
   // A month added to the 31st of January lands on the 3rd of March, which once let February swallow the
@@ -250,14 +250,14 @@ describe("Herd Costs", () => {
     const afterDecember = await reader.client.costs.ofAnimal({
       tagNumber: newcomer,
     });
-    expect(afterDecember.herdBdt).toBe(0);
+    expect(afterDecember.herdMoney).toBe(0);
 
     // Money of the January she stood in: hers, with the others who were here.
     await spend("2044-01-31T04:00:00.000Z", winter.id, 2000, "2044-01-31");
     const afterJanuary = await reader.client.costs.ofAnimal({
       tagNumber: newcomer,
     });
-    expect(afterJanuary.herdBdt).toBeGreaterThan(0);
+    expect(afterJanuary.herdMoney).toBeGreaterThan(0);
   });
 
   it("is the Owner's alone to mark", async () => {
@@ -274,7 +274,7 @@ describe("Herd Costs", () => {
     const manager = await as("manager", "2043-03-25T04:00:00.000Z");
     await manager.client.money.enter({
       categoryId: sprayId,
-      amountBdt: 500,
+      amountMoney: 500,
       occurredOn: "2043-03-25",
       counterparty: { name: `দোকান ${suffix}` },
       paymentMethod: "cash",
@@ -283,6 +283,6 @@ describe("Herd Costs", () => {
     const owner = await as("owner", "2043-04-05T04:00:00.000Z");
     const report = await owner.client.costs.bySide(MARCH);
     // The 9,000 of March reached the animals; this 500 belongs to no Side and reaches nobody.
-    expect(report.fattening.herdBdt).toBeCloseTo(9000, 0);
+    expect(report.fattening.herdMoney).toBeCloseTo(9000, 0);
   });
 });

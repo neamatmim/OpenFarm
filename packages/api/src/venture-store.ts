@@ -65,16 +65,16 @@ export interface VentureRow {
   id: string;
   name: string;
   state: VentureState;
-  targetCapitalBdt: number;
-  floorBdt: number;
+  targetCapitalMoney: number;
+  floorMoney: number;
   decideBy: string;
   targetWindowStart: string;
   targetWindowEnd: string;
-  unitPriceBdt: number;
+  unitPriceMoney: number;
   units: number;
-  cattleBudgetBdt: number;
+  cattleBudgetMoney: number;
   capitalPaid: CapitalPaid;
-  cattlePartBdt: number | null;
+  cattlePartMoney: number | null;
   monthlySums: number | null;
   firstSumDueOn: string | null;
   cancelledReason: string | null;
@@ -133,52 +133,52 @@ const NOBODY: SignedFor = { units: 0, people: 0 };
  *  as nothing until then, so every reader is already right for the day they do. */
 export interface Held {
   /** What Floats are out at the haat, unreconciled. Money the farm has let go of and not yet counted. */
-  openFloatBdt: number;
-  capitalInBdt: number;
+  openFloatMoney: number;
+  capitalInMoney: number;
   /** Money in that is not its Investors' capital: what it was paid for an Animal it let go. */
-  proceedsBdt: number;
+  proceedsMoney: number;
   /** What the Owner has put in of her own, interest-free: every Advance added up, before anything is
    *  repaid. Owed back at cost before any capital returns, and never a charge against the Venture —
    *  it earns nothing and costs it nothing. */
-  advancedBdt: number;
-  refundedBdt: number;
-  spentBdt: number;
+  advancedMoney: number;
+  refundedMoney: number;
+  spentMoney: number;
   /** What it has paid the Farm back for what its animals consumed: every **Reimbursement** added up.
    *  Its own line rather than part of what was spent, because the Farm paying for the feed all month
    *  and taking it back once is a different question from what the Venture spent at the haat. */
-  reimbursedBdt: number;
-  paidOutBdt: number;
+  reimbursedMoney: number;
+  paidOutMoney: number;
   /** What the Farm paid in to carry its share of a loss the Settlement split. Its own line, because it is
    *  neither capital nor proceeds: counting it as proceeds would move the very profit it answers. */
-  farmCoveredBdt: number;
+  farmCoveredMoney: number;
   /** Of what has gone out, how much was drawn against the Cattle Budget. A Buying Float is cattle
    *  money: it buys cattle or it comes home again. */
-  cattleOutBdt: number;
+  cattleOutMoney: number;
 }
 
 /** What a Venture Account should be holding: everything that came in, less everything that left. */
 export const balanceOf = (held: Held) =>
-  held.capitalInBdt +
-  held.proceedsBdt +
-  held.advancedBdt +
-  held.farmCoveredBdt -
-  held.refundedBdt -
-  held.spentBdt -
-  held.reimbursedBdt -
-  held.paidOutBdt;
+  held.capitalInMoney +
+  held.proceedsMoney +
+  held.advancedMoney +
+  held.farmCoveredMoney -
+  held.refundedMoney -
+  held.spentMoney -
+  held.reimbursedMoney -
+  held.paidOutMoney;
 
 /** A Venture that has held nothing yet, and the one shape every reader of `Held` starts from. */
 export const NOTHING_HELD: Held = {
-  openFloatBdt: 0,
-  capitalInBdt: 0,
-  proceedsBdt: 0,
-  advancedBdt: 0,
-  refundedBdt: 0,
-  spentBdt: 0,
-  reimbursedBdt: 0,
-  paidOutBdt: 0,
-  farmCoveredBdt: 0,
-  cattleOutBdt: 0,
+  openFloatMoney: 0,
+  capitalInMoney: 0,
+  proceedsMoney: 0,
+  advancedMoney: 0,
+  refundedMoney: 0,
+  spentMoney: 0,
+  reimbursedMoney: 0,
+  paidOutMoney: 0,
+  farmCoveredMoney: 0,
+  cattleOutMoney: 0,
 };
 
 /** The last day of a Venture's Wind-up Period: the days after its Target Window in which it keeps
@@ -201,21 +201,21 @@ export const windUpEndsOn = (targetWindowEnd: string, windUpDays: number) =>
 export const budgetsOf = (
   row: Pick<
     VentureRow,
-    | "targetCapitalBdt"
-    | "cattleBudgetBdt"
+    | "targetCapitalMoney"
+    | "cattleBudgetMoney"
     | "state"
     | "capitalPaid"
-    | "cattlePartBdt"
+    | "cattlePartMoney"
   >,
   held: Held | undefined,
   /** Every Unit signed for: a Venture paid by the month takes each one's Cattle Part as cattle money, and no more. */
   signedUnits: number
 ) => {
   const what = held ?? NOTHING_HELD;
-  const target = row.targetCapitalBdt;
+  const target = row.targetCapitalMoney;
   // What of the capital arrived for cattle, less what has already been drawn against it.
   const cameInForCattle = cattleMoneyOf(
-    what.capitalInBdt - what.refundedBdt,
+    what.capitalInMoney - what.refundedMoney,
     row,
     signedUnits
   );
@@ -224,22 +224,22 @@ export const budgetsOf = (
   // while most of its capital sits idle on the other side would be told a thing that is not true.
   const stillBuying = isStillBuying(row.state);
   /** What the cattle side was drawn against, whether or not there is still buying to do with it. */
-  const cattleBudgetDrawnAgainstBdt = cameInForCattle - what.cattleOutBdt;
-  const cattleBudgetHeldBdt = stillBuying ? cattleBudgetDrawnAgainstBdt : 0;
+  const cattleBudgetDrawnAgainstMoney = cameInForCattle - what.cattleOutMoney;
+  const cattleBudgetHeldMoney = stillBuying ? cattleBudgetDrawnAgainstMoney : 0;
   return {
     // What it was planned as, which is a fact about the Venture for ever and does not move.
-    cattleBudgetBdt: row.cattleBudgetBdt,
-    runningBudgetBdt: target - row.cattleBudgetBdt,
-    cattleBudgetHeldBdt,
+    cattleBudgetMoney: row.cattleBudgetMoney,
+    runningBudgetMoney: target - row.cattleBudgetMoney,
+    cattleBudgetHeldMoney,
     /**
      * The same figure without the roll-over, for a reader asking what an Investor's buying money did
      * rather than what there is left to spend. An Investor's **অগ্রগতি** asks the first question: told
      * "nothing left" of a Cattle Budget that simply closed, he would read it as all of it spent.
      */
-    cattleBudgetDrawnAgainstBdt,
+    cattleBudgetDrawnAgainstMoney,
     // What is left to keep them with: the rest of the balance once the cattle side has its own. An
     // Advance is the Owner's own money landing on this side, which is why it raises what is left.
-    runningBudgetHeldBdt: balanceOf(what) - cattleBudgetHeldBdt,
+    runningBudgetHeldMoney: balanceOf(what) - cattleBudgetHeldMoney,
   };
 };
 
@@ -250,16 +250,16 @@ export const budgetsOf = (
  * what is short altogether is what the Agreements are short between them.
  */
 export const cattleMoneyShortOf = (
-  row: Pick<VentureRow, "capitalPaid" | "cattlePartBdt">,
+  row: Pick<VentureRow, "capitalPaid" | "cattlePartMoney">,
   held: Held,
   signedUnits: number
 ) =>
-  row.capitalPaid === "by_the_month" && row.cattlePartBdt !== null
+  row.capitalPaid === "by_the_month" && row.cattlePartMoney !== null
     ? Math.max(
         0,
         roundTaka(
-          signedUnits * row.cattlePartBdt -
-            (held.capitalInBdt - held.refundedBdt)
+          signedUnits * row.cattlePartMoney -
+            (held.capitalInMoney - held.refundedMoney)
         )
       )
     : 0;
@@ -272,16 +272,16 @@ export const paidForBy = (
   row: Pick<
     VentureRow,
     | "capitalPaid"
-    | "unitPriceBdt"
-    | "cattlePartBdt"
+    | "unitPriceMoney"
+    | "cattlePartMoney"
     | "monthlySums"
     | "firstSumDueOn"
   >
 ) => {
-  const { cattlePartBdt, monthlySums, firstSumDueOn } = row;
+  const { cattlePartMoney, monthlySums, firstSumDueOn } = row;
   const byTheMonth =
     row.capitalPaid === "by_the_month" &&
-    cattlePartBdt !== null &&
+    cattlePartMoney !== null &&
     monthlySums !== null &&
     firstSumDueOn !== null;
   if (!byTheMonth) {
@@ -290,9 +290,9 @@ export const paidForBy = (
   return {
     capitalPaid: "by_the_month" as const,
     monthly: {
-      cattlePartBdt,
-      sums: monthlySumsOf(row.unitPriceBdt, {
-        cattlePartBdt,
+      cattlePartMoney,
+      sums: monthlySumsOf(row.unitPriceMoney, {
+        cattlePartMoney,
         sums: monthlySums,
         firstDueOn: firstSumDueOn,
       }),
@@ -314,7 +314,7 @@ export const ventureView = (
    *  wherever a caller forgot it, the trail included. */
   alsoKnown: {
     /** The taka below which what is left to keep the animals with is said to be low. */
-    warnBelowBdt: number;
+    warnBelowMoney: number;
     /** How this Venture's account stands against the bank. */
     bank: BankStanding;
     /** The days a Venture keeps selling after its Target Window closes. */
@@ -323,45 +323,46 @@ export const ventureView = (
     stillHers: number;
     /** What its animals have cost the Farm and the Farm has not yet been repaid: money the account holds that is the
      *  Farm's, so not money left to keep them with (`owedTheFarmByEach`). */
-    owedTheFarmBdt: number;
+    owedTheFarmMoney: number;
   }
 ) => {
   const what = held ?? NOTHING_HELD;
-  const balanceBdt = balanceOf(what);
+  const balanceMoney = balanceOf(what);
   const budgets = budgetsOf(row, held, signedFor?.units ?? 0);
-  const { cattleBudgetHeldBdt, runningBudgetHeldBdt } = budgets;
+  const { cattleBudgetHeldMoney, runningBudgetHeldMoney } = budgets;
   return {
     id: row.id,
     name: row.name,
     state: row.state,
-    targetCapitalBdt: row.targetCapitalBdt,
-    floorBdt: row.floorBdt,
+    targetCapitalMoney: row.targetCapitalMoney,
+    floorMoney: row.floorMoney,
     decideBy: row.decideBy,
     targetWindow: { start: row.targetWindowStart, end: row.targetWindowEnd },
-    unitPriceBdt: row.unitPriceBdt,
+    unitPriceMoney: row.unitPriceMoney,
     units: row.units,
     /** How a Unit is paid for: all before buying, or its Cattle Part and then its Monthly Sums. */
     ...paidForBy(row),
     /** Paid by the month: the signed Units' Cattle Part still to come, which the buying waits on. Nothing for a Venture
      *  paid before buying, which starts on its Floor. */
-    cattleMoneyShortBdt: cattleMoneyShortOf(row, what, signedFor?.units ?? 0),
-    cattleBudgetBdt: budgets.cattleBudgetBdt,
-    runningBudgetBdt: budgets.runningBudgetBdt,
+    cattleMoneyShortMoney: cattleMoneyShortOf(row, what, signedFor?.units ?? 0),
+    cattleBudgetMoney: budgets.cattleBudgetMoney,
+    runningBudgetMoney: budgets.runningBudgetMoney,
     ...what,
-    balanceBdt,
+    balanceMoney,
     /** What of the balance is meant for buying animals, and what keeps them. The cattle side is read
      *  from its own money — what came in for it, less what has been drawn against it — and the running
      *  side is the rest of the balance, so the two always add to what the account should hold. */
-    cattleBudgetHeldBdt,
-    runningBudgetHeldBdt,
+    cattleBudgetHeldMoney,
+    runningBudgetHeldMoney,
     /** What its animals have cost the Farm since the last Reimbursement, and the Farm is still owed. */
-    owedTheFarmBdt: alsoKnown.owedTheFarmBdt,
+    owedTheFarmMoney: alsoKnown.owedTheFarmMoney,
     /** Whether what is left to keep the animals with has fallen below the level the Owner set. Said of
      *  a Venture that is running: one not yet buying has spent nothing, and one whose run is over is
      *  not feeding anybody. */
     runningBudgetLow:
       isRunning(row.state) &&
-      runningBudgetHeldBdt - alsoKnown.owedTheFarmBdt < alsoKnown.warnBelowBdt,
+      runningBudgetHeldMoney - alsoKnown.owedTheFarmMoney <
+        alsoKnown.warnBelowMoney,
     signedFor: signedFor ?? NOBODY,
     /** The Units nobody has signed for yet, as signing counts them before it refuses one too many. */
     unitsLeft: row.units - (signedFor?.units ?? 0),
@@ -420,40 +421,40 @@ export const signedForEach = async (
  * the same budget as the Float that took it, moving the other way.
  */
 const WHAT_IT_DOES = {
-  capital_in: { line: "capitalInBdt", sign: 1, cattle: 0 },
-  refund: { line: "refundedBdt", sign: 1, cattle: 0 },
+  capital_in: { line: "capitalInMoney", sign: 1, cattle: 0 },
+  refund: { line: "refundedMoney", sign: 1, cattle: 0 },
   // A Float is money out of the account the moment it is drawn: it is in the Manager's hand at the
   // haat, not in the bank, and it is cattle money — it buys cattle or it comes home again.
-  float_out: { line: "spentBdt", sign: 1, cattle: 1 },
+  float_out: { line: "spentMoney", sign: 1, cattle: 1 },
   // What came home is the same line and the same budget, moving the other way: the unspent part was
   // never spent, and it is cattle money still.
-  float_back: { line: "spentBdt", sign: -1, cattle: -1 },
+  float_back: { line: "spentMoney", sign: -1, cattle: -1 },
   // A bull bought with no outing, paid straight from the account: cattle money spent, as a Float's is.
-  intake_out: { line: "spentBdt", sign: 1, cattle: 1 },
+  intake_out: { line: "spentMoney", sign: 1, cattle: 1 },
   // An Animal taken on is bought with cattle money, exactly as one bought at the haat is; one let go
   // gives that money back, and it is the Venture's own proceeds rather than anybody's capital.
-  internal_buy: { line: "spentBdt", sign: 1, cattle: 1 },
-  internal_sell: { line: "proceedsBdt", sign: 1, cattle: -1 },
+  internal_buy: { line: "spentMoney", sign: 1, cattle: 1 },
+  internal_sell: { line: "proceedsMoney", sign: 1, cattle: -1 },
   // A buyer takes her away and pays for her. Not cattle money coming back, as an Internal Sale's
   // roughly is: an outside Sale returns what she cost and the whole profit of the run with it, and a
   // Venture that is selling up must not read that as money to go and buy more cattle with. It lands on
   // the side that keeps the animals, which is what the ones still standing are eating through.
-  sale_in: { line: "proceedsBdt", sign: 1, cattle: 0 },
+  sale_in: { line: "proceedsMoney", sign: 1, cattle: 0 },
   // What its Animals ate of the Farm's feed, repaid. Running-budget money: it is the cost of keeping
   // them, not of buying one.
-  reimbursement: { line: "reimbursedBdt", sign: 1, cattle: 0 },
+  reimbursement: { line: "reimbursedMoney", sign: 1, cattle: 0 },
   // The Owner's own money, in. It lands in the Running Budget, because it is there to keep the animals
   // fed and not to buy one more of them.
-  advance: { line: "advancedBdt", sign: 1, cattle: 0 },
+  advance: { line: "advancedMoney", sign: 1, cattle: 0 },
   // The Settlement paying up. An Investor's capital and his share of the profit leave together, the
   // Owner's Advance goes back to her at cost, and the Farm's own share leaves for the Farm's books —
   // none of them a cost of the run, all of them money the account no longer holds. The Farm's money
   // never stays in a Venture Account.
-  payout: { line: "paidOutBdt", sign: 1, cattle: 0 },
-  advance_repaid: { line: "paidOutBdt", sign: 1, cattle: 0 },
-  farm_share: { line: "paidOutBdt", sign: 1, cattle: 0 },
+  payout: { line: "paidOutMoney", sign: 1, cattle: 0 },
+  advance_repaid: { line: "paidOutMoney", sign: 1, cattle: 0 },
+  farm_share: { line: "paidOutMoney", sign: 1, cattle: 0 },
   // The Farm's share of a loss, paid in so the payouts the Settlement wrote down can all be made.
-  farm_loss_in: { line: "farmCoveredBdt", sign: 1, cattle: 0 },
+  farm_loss_in: { line: "farmCoveredMoney", sign: 1, cattle: 0 },
 } as const satisfies Record<
   VentureMovementKind,
   { line: keyof Held; sign: 1 | -1; cattle: 0 | 1 | -1 }
@@ -465,18 +466,18 @@ const folded = (
   soFar: Held,
   one: {
     kind: VentureMovementKind;
-    amountBdt: number;
+    amountMoney: number;
     reconciledAt: Date | null;
   }
 ): Held => {
   const does = WHAT_IT_DOES[one.kind];
-  const taka = one.amountBdt;
+  const taka = one.amountMoney;
   return {
     ...soFar,
     [does.line]: soFar[does.line] + does.sign * taka,
-    cattleOutBdt: soFar.cattleOutBdt + does.cattle * taka,
-    openFloatBdt:
-      soFar.openFloatBdt +
+    cattleOutMoney: soFar.cattleOutMoney + does.cattle * taka,
+    openFloatMoney:
+      soFar.openFloatMoney +
       (one.kind === "float_out" && one.reconciledAt === null ? taka : 0),
   };
 };
@@ -488,8 +489,9 @@ const folded = (
  * movements up line by line cannot reach a different balance from the one the farm keeps.
  */
 export const directionOf = (kind: VentureMovementKind): "in" | "out" =>
-  balanceOf(folded(NOTHING_HELD, { kind, amountBdt: 1, reconciledAt: null })) >
-  0
+  balanceOf(
+    folded(NOTHING_HELD, { kind, amountMoney: 1, reconciledAt: null })
+  ) > 0
     ? "in"
     : "out";
 
@@ -518,7 +520,7 @@ export const heldByEach = async (
     columns: {
       ventureId: true,
       kind: true,
-      amountBdt: true,
+      amountMoney: true,
       reconciledAt: true,
     },
   });
@@ -539,9 +541,9 @@ export const takenAgainst = async (
 ): Promise<number> => {
   const rows = await tx.query.ventureMovement.findMany({
     where: { farmId, agreementId, kind: "capital_in" },
-    columns: { amountBdt: true },
+    columns: { amountMoney: true },
   });
-  return rows.reduce((sum, one) => sum + one.amountBdt, 0);
+  return rows.reduce((sum, one) => sum + one.amountMoney, 0);
 };
 
 /**
@@ -605,19 +607,19 @@ export const whatTheFloatBought = async (
   });
   const brought = await tx.query.intake.findMany({
     where: { farmId, buyingTripId },
-    columns: { animalId: true, purchasePriceBdt: true, hasilBdt: true },
+    columns: { animalId: true, purchasePriceMoney: true, hasilMoney: true },
   });
   const owners = await tx.query.animal.findMany({
     where: { farmId, id: { in: brought.map((one) => one.animalId) } },
     columns: { id: true, ownerVentureId: true },
   });
   const whose = new Map(owners.map((one) => [one.id, one.ownerVentureId]));
-  const animalsBdt = brought
+  const animalsMoney = brought
     .filter((one) => whose.get(one.animalId) === ventureId)
-    .reduce((sum, one) => sum + one.purchasePriceBdt + one.hasilBdt, 0);
+    .reduce((sum, one) => sum + one.purchasePriceMoney + one.hasilMoney, 0);
   return {
-    animalsBdt,
-    tripBdt: trip ? tripCostOf(trip) : 0,
+    animalsMoney,
+    tripMoney: trip ? tripCostOf(trip) : 0,
     animals: brought.filter((one) => whose.get(one.animalId) === ventureId)
       .length,
   };
@@ -655,8 +657,8 @@ export const readInternalSale = async (tx: Tx, farmId: string, id: string) => {
         fromVentureId: row.fromVentureId,
         toVentureId: row.toVentureId,
         weightKg: Number(row.weightKg),
-        rateBdtPerKg: Number(row.rateBdtPerKg),
-        priceBdt: row.priceBdt,
+        rateMoneyPerKg: Number(row.rateMoneyPerKg),
+        priceMoney: row.priceMoney,
         note: row.note,
         soldOn: row.soldOn,
       }
@@ -974,7 +976,7 @@ const balancesAtMonthEnds = async (
     columns: {
       ventureId: true,
       kind: true,
-      amountBdt: true,
+      amountMoney: true,
       reconciledAt: true,
       movedOn: true,
     },
@@ -1057,7 +1059,7 @@ export const bookSaleProceeds = async (
     farmId: string;
     /** Whose Animal she was when she left, or nothing for the Farm's own. */
     ventureId: string | null;
-    priceBdt: number;
+    priceMoney: number;
     soldAt: Date;
     /** What the movement is looked up by: the transfer's reference where she was paid for by bank, as the account's
      *  statement reads it; otherwise her tag, for money that came off a buyer at the haat. */
@@ -1072,7 +1074,7 @@ export const bookSaleProceeds = async (
     where: { farmId: sale.farmId, saleId: sale.id },
     columns: { id: true },
   });
-  const itsOwn = sale.priceBdt > 0 ? sale.ventureId : null;
+  const itsOwn = sale.priceMoney > 0 ? sale.ventureId : null;
   if (already && itsOwn === null) {
     // Not a movement put right but a movement that should never have been written: a Correction saying
     // she was the Farm's, or that she was given away, says this money never reached the account. That
@@ -1101,7 +1103,7 @@ export const bookSaleProceeds = async (
     // what she fetched belongs where she did.
     await tx
       .update(ventureMovement)
-      .set({ ventureId: itsOwn, amountBdt: sale.priceBdt })
+      .set({ ventureId: itsOwn, amountMoney: sale.priceMoney })
       .where(
         and(
           eq(ventureMovement.id, already.id),
@@ -1116,7 +1118,7 @@ export const bookSaleProceeds = async (
     ventureId: itsOwn,
     kind: "sale_in",
     saleId: sale.id,
-    amountBdt: sale.priceBdt,
+    amountMoney: sale.priceMoney,
     movedOn: farmDayOf(sale.soldAt),
     reference: sale.reference,
     recordedBy,
@@ -1220,8 +1222,8 @@ export const readBankCheck = async (tx: Tx, farmId: string, id: string) => {
     ? {
         ventureId: row.ventureId,
         forMonth: row.forMonth,
-        readBdt: row.readBdt,
-        expectedBdt: row.expectedBdt,
+        readMoney: row.readMoney,
+        expectedMoney: row.expectedMoney,
         note: row.note,
       }
     : null;
@@ -1239,7 +1241,7 @@ export const readMovement = async (tx: Tx, farmId: string, id: string) => {
         kind: row.kind,
         agreementId: row.agreementId,
         buyingTripId: row.buyingTripId,
-        amountBdt: row.amountBdt,
+        amountMoney: row.amountMoney,
         movedOn: row.movedOn,
         reference: row.reference,
         refundsId: row.refundsId,
@@ -1258,18 +1260,18 @@ export const readVenture = async (tx: Tx, farmId: string, id: string) => {
   const signed = await signedForEach(tx, farmId, [row.id]);
   const farmRow = await tx.query.farm.findFirst({
     where: { id: farmId },
-    columns: { runningBudgetWarnBdt: true, windUpDays: true },
+    columns: { runningBudgetWarnMoney: true, windUpDays: true },
   });
   const bank = await bankStandingOf(tx, farmId, [row.id]);
   const stillHers = await stillHersByEach(tx, farmId, [row.id]);
   return ventureView(row, held.get(row.id), signed.get(row.id), {
-    warnBelowBdt: farmRow?.runningBudgetWarnBdt ?? 0,
+    warnBelowMoney: farmRow?.runningBudgetWarnMoney ?? 0,
     bank: bank.get(row.id) ?? NEVER_CHECKED,
     windUpDays: farmRow?.windUpDays ?? 0,
     stillHers: stillHers.get(row.id) ?? 0,
     // The trail keeps what the account holds. What the Farm is owed is the live costing's, read where it is shown —
     // and worked out here it would take the whole farm's costing for every act on a Venture.
-    owedTheFarmBdt: 0,
+    owedTheFarmMoney: 0,
   });
 };
 
@@ -1336,19 +1338,19 @@ export const assertCattleBudgetHolds = async (
   tx: Tx,
   farmId: string,
   run: Parameters<typeof budgetsOf>[0] & { id: string },
-  amountBdt: number,
-  { alreadyPaidBdt = 0 }: { alreadyPaidBdt?: number } = {}
+  amountMoney: number,
+  { alreadyPaidMoney = 0 }: { alreadyPaidMoney?: number } = {}
 ): Promise<void> => {
   const held = await heldByEach(tx, farmId, [run.id]);
   // Its signed Units too: paid by the month, its cattle money is what their Cattle Parts brought in.
   const signed = await signedForEach(tx, farmId, [run.id]);
-  const { cattleBudgetHeldBdt } = budgetsOf(
+  const { cattleBudgetHeldMoney } = budgetsOf(
     run,
     held.get(run.id),
     signed.get(run.id)?.units ?? 0
   );
-  const room = cattleBudgetHeldBdt + alreadyPaidBdt;
-  if (amountBdt > room) {
+  const room = cattleBudgetHeldMoney + alreadyPaidMoney;
+  if (amountMoney > room) {
     throw new ORPCError("BAD_REQUEST", {
       message: `The Cattle Budget is holding ${room}`,
       data: { refusal: "cattle_budget_short" },

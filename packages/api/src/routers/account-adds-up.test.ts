@@ -22,19 +22,19 @@ let sprayId = "";
 const balanceOf = async (instant: string) => {
   const owner = await as("owner", instant);
   const ventures = await owner.client.ventures.list();
-  return ventures.find((one) => one.id === ventureId)?.balanceBdt ?? 0;
+  return ventures.find((one) => one.id === ventureId)?.balanceMoney ?? 0;
 };
 
 /** A Herd Cost for the Fattening side, entered by the Manager on one day for another. */
 const sprayed = async (
   instant: string,
   occurredOn: string,
-  amountBdt: number
+  amountMoney: number
 ) => {
   const manager = await as("manager", instant);
   await manager.client.money.enter({
     categoryId: sprayId,
-    amountBdt,
+    amountMoney,
     occurredOn,
     counterparty: { name: `দোকান ${suffix}` },
     paymentMethod: "cash",
@@ -47,19 +47,19 @@ beforeAll(async () => {
   const owner = await as("owner", "2075-01-02T04:00:00.000Z");
   const venture = await owner.client.ventures.open({
     name: `ভেঞ্চার ${suffix}`,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2075-01-02",
     targetWindowStart: "2075-06-01",
     targetWindowEnd: "2075-06-05",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
-    cattleBudgetBdt: 800_000,
+    cattleBudgetMoney: 800_000,
   });
   ventureId = venture.id;
   await putCapitalIn(
     owner.client,
-    { id: ventureId, units: 20, unitPriceBdt: 50_000 },
+    { id: ventureId, units: 20, unitPriceMoney: 50_000 },
     suffix,
     "2075-01-02"
   );
@@ -86,7 +86,7 @@ beforeAll(async () => {
     penId: pen.id,
     sex: "male",
     seller: { name: `প্রতিবেশী ${suffix}` },
-    purchasePriceBdt: 60_000,
+    purchasePriceMoney: 60_000,
     weightKg: 200,
     estimatedAgeMonths: 20,
     arrivedAt: new Date("2075-01-05T05:00:00.000Z"),
@@ -102,7 +102,7 @@ beforeAll(async () => {
   await reading.client.ventures.checkTheBank({
     ventureId,
     month: "2075-01",
-    readBdt: await balanceOf("2075-02-01T04:00:00.000Z"),
+    readMoney: await balanceOf("2075-02-01T04:00:00.000Z"),
   });
   const paying = await as("owner", "2075-02-02T04:00:00.000Z");
   const january = await paying.client.ventures.consumption({
@@ -115,7 +115,7 @@ beforeAll(async () => {
     movedOn: "2075-02-02",
     paymentMethod: "bank",
     reference: `REI-${suffix}`,
-    amountBdt: january.totalBdt,
+    amountMoney: january.totalMoney,
   });
 
   // A second bill for January's spray turns up after January was repaid.
@@ -136,7 +136,7 @@ beforeAll(async () => {
   await march.client.ventures.checkTheBank({
     ventureId,
     month: "2075-02",
-    readBdt: await balanceOf("2075-03-01T04:00:00.000Z"),
+    readMoney: await balanceOf("2075-03-01T04:00:00.000Z"),
   });
 });
 
@@ -149,7 +149,7 @@ describe("a Settlement whose account does not add up", () => {
     expect(settlement.blocks).toContainEqual({
       word: "a_reimbursement_is_owed",
       months: [],
-      carryBdt: 2000,
+      carryMoney: 2000,
     });
     expect(settlement.blocks.map((one) => one.word)).not.toContain(
       "the_account_does_not_add_up"
@@ -166,7 +166,7 @@ describe("a Settlement whose account does not add up", () => {
         farmId: theFarm().id,
         ventureId,
         kind: "farm_share",
-        amountBdt: 1500,
+        amountMoney: 1500,
         movedOn: "2075-02-20",
         reference: `অজানা ${suffix}`,
         createdAt: new Date("2075-02-20T04:00:00.000Z"),
@@ -175,7 +175,7 @@ describe("a Settlement whose account does not add up", () => {
     const settlement = await owner.client.ventures.settlement({ ventureId });
     expect(settlement.blocks).toContainEqual({
       word: "the_account_does_not_add_up",
-      overBdt: -1500,
+      overMoney: -1500,
     });
     await expect(
       owner.client.ventures.approveSettlement({ ventureId })

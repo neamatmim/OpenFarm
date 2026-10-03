@@ -1,4 +1,4 @@
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { currencySign, formatDate, formatNumber } from "@OpenFarm/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { ShoppingCart } from "lucide-react";
 
@@ -23,7 +23,7 @@ const HISTORY_PAGE = 20;
 
 /** What one dose of a purchase came to. */
 const perDose = (one: Purchase) =>
-  one.doses > 0 ? Math.round((one.priceBdt / one.doses) * 100) / 100 : null;
+  one.doses > 0 ? Math.round((one.priceMoney / one.doses) * 100) / 100 : null;
 
 const BoughtOnCell = ({ row }: { row: { original: Purchase } }) => (
   <span className="whitespace-nowrap">
@@ -40,7 +40,8 @@ const PriceCell = ({ row }: { row: { original: Purchase } }) => {
   const { language } = useLanguage();
   return (
     <span className="font-medium whitespace-nowrap">
-      ৳{formatNumber(row.original.priceBdt, language)}
+      {currencySign()}
+      {formatNumber(row.original.priceMoney, language)}
     </span>
   );
 };
@@ -52,7 +53,10 @@ const PerDoseCell = ({ row }: { row: { original: Purchase } }) => {
     return <Nothing />;
   }
   return (
-    <span className="whitespace-nowrap">৳{formatNumber(each, language)}</span>
+    <span className="whitespace-nowrap">
+      {currencySign()}
+      {formatNumber(each, language)}
+    </span>
   );
 };
 
@@ -88,7 +92,7 @@ const purchaseColumns = column.columns([
     cell: DosesCell,
     meta: { align: "end" },
   }),
-  column.accessor("priceBdt", {
+  column.accessor("priceMoney", {
     header: listHeader("drugs.price"),
     cell: PriceCell,
     meta: { align: "end" },
@@ -127,7 +131,8 @@ const PurchaseCard = ({ row }: { row: Purchase }) => {
         </span>
       </div>
       <span className="text-lg font-semibold tabular-nums">
-        ৳{formatNumber(row.priceBdt, language)}
+        {currencySign()}
+        {formatNumber(row.priceMoney, language)}
       </span>
       <span className="text-muted-foreground text-xs tabular-nums">
         {row.quantity} ·{" "}
@@ -153,7 +158,7 @@ const BoughtSummary = ({ purchases }: { purchases: Purchase[] }) => {
   if (purchases.length === 0) {
     return null;
   }
-  const taka = purchases.reduce((sum, one) => sum + one.priceBdt, 0);
+  const taka = purchases.reduce((sum, one) => sum + one.priceMoney, 0);
   const doses = purchases.reduce((sum, one) => sum + one.doses, 0);
   return (
     <p className="text-muted-foreground text-sm tabular-nums">

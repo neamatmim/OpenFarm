@@ -1,14 +1,14 @@
 /** What a period's money comes to, as the farm totals it. */
 export interface MoneyTotals {
-  inBdt: number;
-  outBdt: number;
+  inMoney: number;
+  outMoney: number;
   awaiting: number;
 }
 
 interface ListedMoney {
   events: readonly {
     direction: "in" | "out";
-    amountBdt: number;
+    amountMoney: number;
     approval: string;
   }[];
   totals?: MoneyTotals;
@@ -20,12 +20,12 @@ interface ListedMoney {
  */
 export const moneyTotals = (list: ListedMoney): MoneyTotals =>
   list.totals ?? {
-    inBdt: list.events
+    inMoney: list.events
       .filter((row) => row.direction === "in")
-      .reduce((sum, row) => sum + row.amountBdt, 0),
-    outBdt: list.events
+      .reduce((sum, row) => sum + row.amountMoney, 0),
+    outMoney: list.events
       .filter((row) => row.direction === "out")
-      .reduce((sum, row) => sum + row.amountBdt, 0),
+      .reduce((sum, row) => sum + row.amountMoney, 0),
     awaiting: list.events.filter((row) => row.approval === "awaiting").length,
   };
 

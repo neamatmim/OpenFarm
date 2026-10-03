@@ -17,15 +17,15 @@ export const BuyingTripCorrection = ({
   trip: {
     id: string;
     wentTo: string;
-    parts: { brokerBdt: number; transportBdt: number; keepBdt: number };
+    parts: { brokerMoney: number; transportMoney: number; keepMoney: number };
   };
 }) => {
   const { t } = useLanguage();
   const correcting = useCorrecting({
     wentTo: words(trip.wentTo),
-    brokerBdt: figure(trip.parts.brokerBdt),
-    transportBdt: figure(trip.parts.transportBdt),
-    keepBdt: figure(trip.parts.keepBdt),
+    brokerMoney: figure(trip.parts.brokerMoney),
+    transportMoney: figure(trip.parts.transportMoney),
+    keepMoney: figure(trip.parts.keepMoney),
   });
   const correct = useMutation(orpc.trips.correct.mutationOptions({}));
   return (
@@ -50,23 +50,23 @@ export const BuyingTripCorrection = ({
         <CorrectionAnswer
           inputMode="numeric"
           label={t("intake.tripBroker")}
-          onChange={(value) => correcting.set("brokerBdt", value)}
+          onChange={(value) => correcting.set("brokerMoney", value)}
           type="number"
-          value={correcting.typed.brokerBdt ?? ""}
+          value={correcting.typed.brokerMoney ?? ""}
         />
         <CorrectionAnswer
           inputMode="numeric"
           label={t("intake.tripTransport")}
-          onChange={(value) => correcting.set("transportBdt", value)}
+          onChange={(value) => correcting.set("transportMoney", value)}
           type="number"
-          value={correcting.typed.transportBdt ?? ""}
+          value={correcting.typed.transportMoney ?? ""}
         />
         <CorrectionAnswer
           inputMode="numeric"
           label={t("intake.tripKeep")}
-          onChange={(value) => correcting.set("keepBdt", value)}
+          onChange={(value) => correcting.set("keepMoney", value)}
           type="number"
-          value={correcting.typed.keepBdt ?? ""}
+          value={correcting.typed.keepMoney ?? ""}
         />
       </div>
     </CorrectionDialog>
@@ -81,14 +81,14 @@ export const SellingTripCorrection = ({
   trip: {
     id: string;
     wentTo: string;
-    parts: { transportBdt: number; keepBdt: number };
+    parts: { transportMoney: number; keepMoney: number };
   };
 }) => {
   const { t } = useLanguage();
   const correcting = useCorrecting({
     wentTo: words(trip.wentTo),
-    transportBdt: figure(trip.parts.transportBdt),
-    keepBdt: figure(trip.parts.keepBdt),
+    transportMoney: figure(trip.parts.transportMoney),
+    keepMoney: figure(trip.parts.keepMoney),
   });
   const correct = useMutation(orpc.sellingTrips.correct.mutationOptions({}));
   return (
@@ -113,16 +113,16 @@ export const SellingTripCorrection = ({
         <CorrectionAnswer
           inputMode="numeric"
           label={t("selling.transport")}
-          onChange={(value) => correcting.set("transportBdt", value)}
+          onChange={(value) => correcting.set("transportMoney", value)}
           type="number"
-          value={correcting.typed.transportBdt ?? ""}
+          value={correcting.typed.transportMoney ?? ""}
         />
         <CorrectionAnswer
           inputMode="numeric"
           label={t("selling.keep")}
-          onChange={(value) => correcting.set("keepBdt", value)}
+          onChange={(value) => correcting.set("keepMoney", value)}
           type="number"
-          value={correcting.typed.keepBdt ?? ""}
+          value={correcting.typed.keepMoney ?? ""}
         />
       </div>
     </CorrectionDialog>

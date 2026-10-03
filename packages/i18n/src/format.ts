@@ -1,3 +1,4 @@
+import { farmTimeZone } from "./farm-locale";
 import type { Language } from "./languages";
 
 const LOCALE: Record<Language, string> = { bn: "bn-BD", en: "en-GB" };
@@ -47,10 +48,6 @@ export const numberAsTyped = (text: string): string => {
   return negative ? `-${figure}` : figure;
 };
 
-/** The farm's own clock, which is what every date shown to somebody on it is read on. Asia/Dhaka
- *  has no daylight saving; a farm parameter later. */
-const FARM_TIME_ZONE = "Asia/Dhaka";
-
 export type DateStyle =
   | "date"
   | "dateTime"
@@ -77,12 +74,13 @@ const DATE_OPTIONS: Record<DateStyle, Intl.DateTimeFormatOptions> = {
   monthShort: { month: "short" },
 };
 
-/** Gregorian dates; Bangla month names and numerals in Bangla. */
+/** Gregorian dates, read on the farm's own clock unless a zone is named; Bangla month names and numerals in
+ *  Bangla. */
 export const formatDate = (
   date: Date,
   language: Language,
   style: DateStyle = "date",
-  timeZone = FARM_TIME_ZONE
+  timeZone = farmTimeZone()
 ): string =>
   new Intl.DateTimeFormat(LOCALE[language], {
     ...DATE_OPTIONS[style],
@@ -93,7 +91,7 @@ export const formatDate = (
  * A date as an `<input type="date">` holds it: the farm's own day in plain digits, never Bangla
  * ones — the field itself is not translated, and a browser reads only this shape.
  */
-export const formatDayField = (date: Date, timeZone = FARM_TIME_ZONE): string =>
+export const formatDayField = (date: Date, timeZone = farmTimeZone()): string =>
   new Intl.DateTimeFormat("en-CA", {
     year: "numeric",
     month: "2-digit",

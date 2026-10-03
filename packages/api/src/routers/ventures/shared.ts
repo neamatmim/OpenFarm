@@ -13,20 +13,20 @@ export const money = z.number().min(0).max(1_000_000_000);
 export const openInput = z
   .object({
     name: z.string().trim().min(1).max(120),
-    targetCapitalBdt: money,
+    targetCapitalMoney: money,
     /** The least capital this is worth starting on. The farm's own percentage unless the Owner says. */
-    floorBdt: money.optional(),
+    floorMoney: money.optional(),
     /** The day the Floor must be met by. */
     decideBy: farmDay,
     targetWindowStart: farmDay,
     targetWindowEnd: farmDay,
-    unitPriceBdt: money,
+    unitPriceMoney: money,
     /** How many Units there are. As many as the unit price divides the capital into, unless the Owner
      *  says otherwise: a Venture may leave Units unsold and take less than it hoped. */
     units: z.number().int().min(1).max(10_000).optional(),
     /** The part of the capital meant for buying animals; the rest keeps them. The farm's own share
      *  unless the Owner says. */
-    cattleBudgetBdt: money.optional(),
+    cattleBudgetMoney: money.optional(),
     /** How its Investors pay: all before buying (as every Venture before it), or the Cattle Part first and the rest in
      *  Monthly Sums, worked from its budgets and dates. */
     capitalPaid: z.enum(CAPITAL_PAID).optional(),
@@ -40,16 +40,16 @@ export const planned = (
   input: z.infer<typeof openInput>,
   settings: { ventureFloorPercent: number; ventureRunningPercent: number }
 ) => ({
-  floorBdt:
-    input.floorBdt ??
-    Math.round((input.targetCapitalBdt * settings.ventureFloorPercent) / 100),
+  floorMoney:
+    input.floorMoney ??
+    Math.round((input.targetCapitalMoney * settings.ventureFloorPercent) / 100),
   units:
     input.units ??
-    Math.max(1, Math.round(input.targetCapitalBdt / input.unitPriceBdt)),
-  cattleBudgetBdt:
-    input.cattleBudgetBdt ??
+    Math.max(1, Math.round(input.targetCapitalMoney / input.unitPriceMoney)),
+  cattleBudgetMoney:
+    input.cattleBudgetMoney ??
     Math.round(
-      (input.targetCapitalBdt * (100 - settings.ventureRunningPercent)) / 100
+      (input.targetCapitalMoney * (100 - settings.ventureRunningPercent)) / 100
     ),
 });
 
@@ -81,7 +81,7 @@ export const theirs = async (context: Context, id: string) => {
 
 /** A line of a Reimbursement with the name of the thing it was, in both languages the farm keeps. */
 export const named = (
-  lines: readonly { id: string; bdt: number }[],
+  lines: readonly { id: string; amount: number }[],
   names: Map<string, { bn: string; en: string | null }>
 ) =>
   lines.map((line) => ({

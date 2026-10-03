@@ -23,25 +23,25 @@ beforeAll(async () => {
   wagesId = categories.find((one) => one.key === "wages")?.id ?? "";
 });
 
-const draw = async (name: string, amountBdt: number, day: string) => {
+const draw = async (name: string, amountMoney: number, day: string) => {
   const manager = await as("manager", `${day}T06:00:00.000Z`);
   return await manager.client.money.drawWage({
     counterparty: { name },
-    amountBdt,
+    amountMoney,
     drawnOn: day,
   });
 };
 
 const payWage = async (
   name: string,
-  amountBdt: number,
+  amountMoney: number,
   wageMonth: string,
   day: string
 ) => {
   const manager = await as("manager", `${day}T06:00:00.000Z`);
   return await manager.client.money.enter({
     categoryId: wagesId,
-    amountBdt,
+    amountMoney,
     occurredOn: day,
     counterparty: { name },
     wageMonth,
@@ -51,13 +51,13 @@ const payWage = async (
 const openOf = async (name: string) => {
   const manager = await as("manager", "2073-08-01T06:00:00.000Z");
   const open = await manager.client.money.openDraws();
-  return open.find((one) => one.name === name)?.openBdt ?? 0;
+  return open.find((one) => one.name === name)?.openMoney ?? 0;
 };
 
 const bookedOf = async (id: string) =>
   await scratchDb().query.moneyEvent.findFirst({
     where: { id },
-    columns: { amountBdt: true },
+    columns: { amountMoney: true },
     with: { category: { columns: { key: true } } },
   });
 
@@ -67,11 +67,11 @@ describe("a Wage Draw", () => {
     await draw(RAHIM, 1000, "2073-05-10");
     const money = await scratchDb().query.moneyEvent.findFirst({
       where: { source: "wage_draw", sourceId: first.id },
-      columns: { amountBdt: true, direction: true },
+      columns: { amountMoney: true, direction: true },
       with: { category: { columns: { key: true } } },
     });
     expect(money).toMatchObject({
-      amountBdt: 2000,
+      amountMoney: 2000,
       direction: "out",
       category: { key: "wages" },
     });
@@ -80,9 +80,9 @@ describe("a Wage Draw", () => {
 
   it("comes off the month's wage at payday, which books only what is paid now", async () => {
     const wage = await payWage(RAHIM, 12_000, "2073-05", "2073-06-01");
-    expect(wage.drawsTakenBdt).toBe(3000);
+    expect(wage.drawsTakenMoney).toBe(3000);
     expect(await bookedOf(wage.id)).toMatchObject({
-      amountBdt: 9000,
+      amountMoney: 9000,
       category: { key: "wages" },
     });
     expect(await openOf(RAHIM)).toBe(0);
@@ -91,12 +91,12 @@ describe("a Wage Draw", () => {
   it("carries over what a wage could not take, to the next payday", async () => {
     await draw(KARIM, 8000, "2073-05-05");
     const may = await payWage(KARIM, 5000, "2073-05", "2073-06-01");
-    expect(may.drawsTakenBdt).toBe(5000);
-    expect(await bookedOf(may.id)).toMatchObject({ amountBdt: 0 });
+    expect(may.drawsTakenMoney).toBe(5000);
+    expect(await bookedOf(may.id)).toMatchObject({ amountMoney: 0 });
     expect(await openOf(KARIM)).toBe(3000);
     const june = await payWage(KARIM, 10_000, "2073-06", "2073-07-01");
-    expect(june.drawsTakenBdt).toBe(3000);
-    expect(await bookedOf(june.id)).toMatchObject({ amountBdt: 7000 });
+    expect(june.drawsTakenMoney).toBe(3000);
+    expect(await bookedOf(june.id)).toMatchObject({ amountMoney: 7000 });
     expect(await openOf(KARIM)).toBe(0);
   });
 
@@ -107,7 +107,7 @@ describe("a Wage Draw", () => {
     await expect(
       manager.client.money.correctEntered({
         id: wage.id,
-        changes: { amountBdt: { from: 5000, to: 5500 } },
+        changes: { amountMoney: { from: 5000, to: 5500 } },
         reason: `ভুল লেখা ${suffix}`,
       })
     ).rejects.toMatchObject({ data: { refusal: "wage_took_draws" } });
@@ -120,22 +120,22 @@ describe("a Wage Draw", () => {
     await manager.client.money.correctDraw({
       id: first.id,
       changes: {
-        amountBdt: { from: 2000, to: 2500 },
+        amountMoney: { from: 2000, to: 2500 },
         paymentMethod: { from: "cash", to: "bkash" },
       },
       reason: `আড়াই হাজার, বিকাশে ${suffix}`,
     });
     const money = await scratchDb().query.moneyEvent.findMany({
       where: { source: "wage_draw", sourceId: first.id },
-      columns: { amountBdt: true, paymentMethod: true, heldBy: true },
+      columns: { amountMoney: true, paymentMethod: true, heldBy: true },
     });
     expect(money).toEqual([
-      { amountBdt: 2500, paymentMethod: "bkash", heldBy: null },
+      { amountMoney: 2500, paymentMethod: "bkash", heldBy: null },
     ]);
     expect(await openOf(name)).toBe(2500);
     await manager.client.money.correctDraw({
       id: first.id,
-      changes: { amountBdt: { from: 2500, to: 0 } },
+      changes: { amountMoney: { from: 2500, to: 0 } },
       reason: `অগ্রিম নেওয়াই হয়নি ${suffix}`,
     });
     expect(await openOf(name)).toBe(0);
@@ -154,7 +154,7 @@ describe("a Wage Draw", () => {
     expect(await openOf(wrong)).toBe(0);
     expect(await openOf(right)).toBe(1500);
     const wage = await payWage(right, 6000, "2073-06", "2073-07-01");
-    expect(wage.drawsTakenBdt).toBe(1500);
+    expect(wage.drawsTakenMoney).toBe(1500);
   });
 
   it("keeps what a payday took: never below it, and never moved to somebody else", async () => {
@@ -165,11 +165,11 @@ describe("a Wage Draw", () => {
     await expect(
       manager.client.money.correctDraw({
         id: one.id,
-        changes: { amountBdt: { from: 4000, to: 2000 } },
+        changes: { amountMoney: { from: 4000, to: 2000 } },
         reason: `কম লেখা ${suffix}`,
       })
     ).rejects.toMatchObject({
-      data: { refusal: "draw_already_taken", takenBdt: 3000 },
+      data: { refusal: "draw_already_taken", takenMoney: 3000 },
     });
     await expect(
       manager.client.money.correctDraw({
@@ -183,7 +183,7 @@ describe("a Wage Draw", () => {
     // Down to what was taken is the draw closed, and nothing is left to take.
     await manager.client.money.correctDraw({
       id: one.id,
-      changes: { amountBdt: { from: 4000, to: 3000 } },
+      changes: { amountMoney: { from: 4000, to: 3000 } },
       reason: `তিন হাজারই নিয়েছিল ${suffix}`,
     });
     expect(await openOf(name)).toBe(0);

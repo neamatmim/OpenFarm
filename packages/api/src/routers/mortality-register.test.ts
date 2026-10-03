@@ -174,7 +174,7 @@ beforeAll(async () => {
     penId: world.pens.fattening.id,
     sex: "male",
     seller: { name: `রহমান ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 90_000,
+    purchasePriceMoney: 90_000,
     weightKg: 220,
     estimatedAgeMonths: 24,
     targetWindowStart: "2046-05-01",
@@ -185,7 +185,7 @@ beforeAll(async () => {
   await fifth.client.sale.record({
     tagNumber: bought.tagNumber,
     buyer: { name: `কাদের কসাই ${suffix}`, address: "গাবতলী, ঢাকা" },
-    priceBdt: 120_000,
+    priceMoney: 120_000,
     weightKg: 240,
     destination: "গাবতলী পশুর হাট",
     vehicle: "ঢাকা মেট্রো-ট ১১-২২৩৩",

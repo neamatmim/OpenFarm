@@ -9,44 +9,44 @@ import { roundTaka } from "./money";
 
 /** A low and a high price a kilo of live weight. */
 export interface PriceRange {
-  lowBdtPerKg: number;
-  highBdtPerKg: number;
+  lowMoneyPerKg: number;
+  highMoneyPerKg: number;
 }
 
 /** One end of an animal's price: what she fetches at it, and what that leaves over her cost (negative short). */
 export interface PriceEnd {
-  priceBdt: number;
-  marginBdt: number;
+  priceMoney: number;
+  marginMoney: number;
 }
 
 export interface AnimalPrice {
   /** The price a kilo at which she pays for herself; nothing without a weight to divide by. */
-  breakEvenBdtPerKg: number | null;
+  breakEvenMoneyPerKg: number | null;
   low: PriceEnd | null;
   high: PriceEnd | null;
 }
 
 /** What she might fetch at the low and the high price a kilo, what each leaves over her cost, and her break-even. */
 export const priceOfAnimal = ({
-  costBdt,
+  costMoney,
   latestKg,
   range,
 }: {
-  costBdt: number;
+  costMoney: number;
   latestKg: number | null;
   range: PriceRange | null;
 }): AnimalPrice => {
   if (latestKg === null || latestKg <= 0) {
-    return { breakEvenBdtPerKg: null, low: null, high: null };
+    return { breakEvenMoneyPerKg: null, low: null, high: null };
   }
-  const at = (bdtPerKg: number): PriceEnd => {
-    const priceBdt = roundTaka(latestKg * bdtPerKg);
-    return { priceBdt, marginBdt: roundTaka(priceBdt - costBdt) };
+  const at = (moneyPerKg: number): PriceEnd => {
+    const priceMoney = roundTaka(latestKg * moneyPerKg);
+    return { priceMoney, marginMoney: roundTaka(priceMoney - costMoney) };
   };
   return {
-    breakEvenBdtPerKg: roundTaka(costBdt / latestKg),
-    low: range ? at(range.lowBdtPerKg) : null,
-    high: range ? at(range.highBdtPerKg) : null,
+    breakEvenMoneyPerKg: roundTaka(costMoney / latestKg),
+    low: range ? at(range.lowMoneyPerKg) : null,
+    high: range ? at(range.highMoneyPerKg) : null,
   };
 };
 
@@ -76,22 +76,22 @@ export const priceRangeFor = ({
  * Manager's call. The low price is her Venture's, or the farm's market price; nothing while neither is set.
  */
 export const soldUnder = ({
-  priceBdt,
-  costBdt,
+  priceMoney,
+  costMoney,
   weightKg,
   range,
 }: {
-  priceBdt: number;
-  costBdt: number;
+  priceMoney: number;
+  costMoney: number;
   weightKg: number;
   range: PriceRange | null;
-}): { underCost: boolean; underMarket: boolean; lowBdt: number | null } => {
-  const lowBdt =
-    range && weightKg > 0 ? roundTaka(weightKg * range.lowBdtPerKg) : null;
+}): { underCost: boolean; underMarket: boolean; lowMoney: number | null } => {
+  const lowMoney =
+    range && weightKg > 0 ? roundTaka(weightKg * range.lowMoneyPerKg) : null;
   return {
-    underCost: priceBdt < costBdt,
-    underMarket: lowBdt !== null && priceBdt < lowBdt,
-    lowBdt,
+    underCost: priceMoney < costMoney,
+    underMarket: lowMoney !== null && priceMoney < lowMoney,
+    lowMoney,
   };
 };
 
@@ -100,15 +100,15 @@ export const soldUnder = ({
  * heavy bull counts for his weight, not as one vote beside a light one. Nothing where nothing with a weight was sold.
  */
 export const perKgOfSales = (
-  sales: readonly { priceBdt: number; weightKg: number }[]
-): { bdtPerKg: number; animals: number } | null => {
+  sales: readonly { priceMoney: number; weightKg: number }[]
+): { moneyPerKg: number; animals: number } | null => {
   const weighed = sales.filter((one) => one.weightKg > 0);
   const kg = weighed.reduce((sum, one) => sum + one.weightKg, 0);
   if (kg === 0) {
     return null;
   }
-  const bdt = weighed.reduce((sum, one) => sum + one.priceBdt, 0);
-  return { bdtPerKg: roundTaka(bdt / kg), animals: weighed.length };
+  const amount = weighed.reduce((sum, one) => sum + one.priceMoney, 0);
+  return { moneyPerKg: roundTaka(amount / kg), animals: weighed.length };
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -145,7 +145,7 @@ export const keepRateOf = (
  */
 export interface KeepCharge {
   at: Date;
-  bdt: number;
+  amount: number;
   /** A Feeding: what says she was fed at all. */
   fed: boolean;
   /** False for feed with no price, or a dose of something the farm never bought: her keep is short by it. */
@@ -154,7 +154,7 @@ export interface KeepCharge {
 
 /** What keeping her has cost over the days her keep is read back over. */
 export interface Kept {
-  bdt: number;
+  amount: number;
   /** How many of those days she stood on the farm. */
   days: number;
   /** Whether any Feeding was charged to her in them: without one her keep is not known, which is not the same as free. */
@@ -199,7 +199,7 @@ export const keptOver = ({
     ms += Math.max(0, end - start);
   }
   return {
-    bdt: inside.reduce((sum, one) => sum + one.bdt, 0),
+    amount: inside.reduce((sum, one) => sum + one.amount, 0),
     days: ms / DAY_MS,
     fed: inside.some((one) => one.fed),
     whole: inside.every((one) => one.priced),
@@ -219,24 +219,24 @@ export type KeepUnknown = "too_new" | "not_fed" | "no_rate";
 
 /** What the days ahead's kilos fetch at one end of her price, and what that leaves over those days' keep. */
 export interface AheadEnd {
-  worthBdt: number;
-  overKeepBdt: number;
+  worthMoney: number;
+  overKeepMoney: number;
 }
 
 export type KeepOrSell =
   | { known: false; because: KeepUnknown }
   | {
       known: true;
-      keepBdtPerDay: number;
+      keepMoneyPerDay: number;
       /** The daily gain it was worked on. */
       dailyGainKg: number;
       /** What each kilo she is putting on now costs; nothing while she is putting none on. */
-      costOfGainNowBdt: number | null;
+      costOfGainNowMoney: number | null;
       /** The days ahead at the rate she is going: how many, the kilos, their keep, and what they fetch at each end. */
       ahead: {
         days: number;
         gainKg: number;
-        keepBdt: number;
+        keepMoney: number;
         low: AheadEnd | null;
         high: AheadEnd | null;
       };
@@ -251,10 +251,10 @@ const keepingAt = (
   range: PriceRange
 ): Keeping => {
   // A beast putting nothing on costs more to keep at any price.
-  if (costOfGainNow === null || range.highBdtPerKg < costOfGainNow) {
+  if (costOfGainNow === null || range.highMoneyPerKg < costOfGainNow) {
     return "costs_more";
   }
-  return costOfGainNow <= range.lowBdtPerKg ? "pays" : "close";
+  return costOfGainNow <= range.lowMoneyPerKg ? "pays" : "close";
 };
 
 /**
@@ -291,26 +291,27 @@ export const keepOrSell = ({
   if (dailyGainKg === null) {
     return { known: false, because: "no_rate" };
   }
-  const perDay = kept.bdt / kept.days;
+  const perDay = kept.amount / kept.days;
   const costOfGainNow = dailyGainKg > 0 ? perDay / dailyGainKg : null;
   const gainKg = dailyGainKg * aheadDays;
-  const keepBdt = roundTaka(perDay * aheadDays);
+  const keepMoney = roundTaka(perDay * aheadDays);
   // Each end said from the figures as they are shown, so what is left over is what the two lines come to.
-  const at = (bdtPerKg: number): AheadEnd => {
-    const worthBdt = roundTaka(gainKg * bdtPerKg);
-    return { worthBdt, overKeepBdt: roundTaka(worthBdt - keepBdt) };
+  const at = (moneyPerKg: number): AheadEnd => {
+    const worthMoney = roundTaka(gainKg * moneyPerKg);
+    return { worthMoney, overKeepMoney: roundTaka(worthMoney - keepMoney) };
   };
   return {
     known: true,
-    keepBdtPerDay: roundTaka(perDay),
+    keepMoneyPerDay: roundTaka(perDay),
     dailyGainKg,
-    costOfGainNowBdt: costOfGainNow === null ? null : roundTaka(costOfGainNow),
+    costOfGainNowMoney:
+      costOfGainNow === null ? null : roundTaka(costOfGainNow),
     ahead: {
       days: aheadDays,
       gainKg: roundKg(gainKg),
-      keepBdt,
-      low: range ? at(range.lowBdtPerKg) : null,
-      high: range ? at(range.highBdtPerKg) : null,
+      keepMoney,
+      low: range ? at(range.lowMoneyPerKg) : null,
+      high: range ? at(range.highMoneyPerKg) : null,
     },
     keeping: range ? keepingAt(costOfGainNow, range) : null,
     whole: kept.whole,

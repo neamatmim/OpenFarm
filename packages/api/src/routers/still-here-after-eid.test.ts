@@ -27,7 +27,7 @@ const aBull = async () => {
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 90_000,
+    purchasePriceMoney: 90_000,
     weightKg: 260,
     estimatedAgeMonths: 20,
     arrivedAt: new Date("2027-03-02T04:00:00.000Z"),
@@ -53,7 +53,7 @@ beforeAll(async () => {
   await manager.client.sale.record({
     tagNumber: soldTag,
     buyer: { name: `ক্রেতা ${suffix}` },
-    priceBdt: 150_000,
+    priceMoney: 150_000,
     weightKg: 330,
     destination: `গাবতলী ${suffix}`,
     vehicle: "ঢাকা মেট্রো-ট ১১-৪৪৫৭",

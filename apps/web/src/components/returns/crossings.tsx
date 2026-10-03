@@ -40,9 +40,9 @@ const PriceCrossingSheet = ({
       },
     })
   );
-  const rateBdtPerKg = figureOf(rate);
+  const rateMoneyPerKg = figureOf(rate);
   const weightKg = crossing.weightKg ?? 0;
-  const ready = aFigure(rateBdtPerKg) && note.trim().length > 0;
+  const ready = aFigure(rateMoneyPerKg) && note.trim().length > 0;
   return (
     <FormSheet
       description={t("returns.crossingsHint")}
@@ -50,7 +50,7 @@ const PriceCrossingSheet = ({
       onSubmit={() =>
         saving.mutate({
           joiningId: crossing.id,
-          rateBdtPerKg: rateBdtPerKg ?? 0,
+          rateMoneyPerKg: rateMoneyPerKg ?? 0,
           note: note.trim(),
         })
       }
@@ -62,11 +62,11 @@ const PriceCrossingSheet = ({
     >
       <FormField
         hint={
-          aFigure(rateBdtPerKg)
+          aFigure(rateMoneyPerKg)
             ? t("returns.priceWorks", {
                 kg: weightKg,
-                rate: taka(rateBdtPerKg ?? 0),
-                price: taka(priceAtWeight(weightKg, rateBdtPerKg ?? 0)),
+                rate: taka(rateMoneyPerKg ?? 0),
+                price: taka(priceAtWeight(weightKg, rateMoneyPerKg ?? 0)),
               })
             : undefined
         }
@@ -97,12 +97,12 @@ const PriceCrossingSheet = ({
 const crossingSaid = (
   one: Crossing,
   t: ReturnType<typeof useLanguage>["t"],
-  taka: (bdt: number) => string
+  taka: (amount: number) => string
 ): string => {
-  if (one.priceBdt !== null && one.priceBdt !== undefined) {
+  if (one.priceMoney !== null && one.priceMoney !== undefined) {
     return t("returns.crossingPriced", {
-      price: taka(one.priceBdt),
-      rate: taka(one.rateBdtPerKg ?? 0),
+      price: taka(one.priceMoney),
+      rate: taka(one.rateMoneyPerKg ?? 0),
     });
   }
   return one.weightKg === null
@@ -158,7 +158,7 @@ export const CrossingsToPrice = ({ page }: { page: ReturnsPage }) => {
                 size="sm"
                 variant="outline"
               >
-                {one.priceBdt === null
+                {one.priceMoney === null
                   ? t("returns.priceIt")
                   : t("returns.priceAgain")}
               </Button>

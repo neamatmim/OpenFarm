@@ -99,7 +99,7 @@ const MilkPriceLine = ({
   return (
     <p className="text-muted-foreground text-sm">
       {t("cull.price", {
-        price: perLitre(price.bdtPerLitre),
+        price: perLitre(price.moneyPerLitre),
         days: price.days,
       })}
     </p>

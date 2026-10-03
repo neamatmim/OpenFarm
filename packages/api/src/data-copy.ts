@@ -16,7 +16,13 @@ import {
   phoneOfInvestorLogin,
 } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
-import { formatDate, formatNumber, translate } from "@OpenFarm/i18n";
+import {
+  currencySign,
+  currencyWords,
+  formatDate,
+  formatNumber,
+  translate,
+} from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
@@ -53,7 +59,8 @@ const when = (at: Date) => formatDate(at, "bn", "dateTime");
 const onDay = (day: string) => formatDate(new Date(`${day}T00:00:00Z`), "bn");
 
 /** Taka, in Bangla numerals. */
-const taka = (bdt: number) => `৳${formatNumber(bdt, "bn")}`;
+const taka = (amount: number) =>
+  `${currencySign()}${formatNumber(amount, "bn")}`;
 
 /** A figure, in Bangla numerals. */
 const inBangla = (value: number) => formatNumber(value, "bn");
@@ -306,7 +313,7 @@ const settlementWords = (
   >
 ) =>
   joined(
-    `হিসাব নিকাশে পাওনা ${taka(settlement.payoutBdt)} (মূলধন ${taka(settlement.capitalBdt)}, মুনাফায় অংশ ${taka(settlement.shareBdt)})`,
+    `হিসাব নিকাশে পাওনা ${taka(settlement.payoutMoney)} (মূলধন ${taka(settlement.capitalMoney)}, মুনাফায় অংশ ${taka(settlement.shareMoney)})`,
     settlement.paidOn
       ? `পরিশোধ ${onDay(settlement.paidOn)}`
       : "এখনো পরিশোধ হয়নি",
@@ -425,26 +432,26 @@ export const dataCopyOf = async (
       money.agreements.map((one) => ({
         label: { bn: one.venture.name, en: "" },
         value: joined(
-          `${inBangla(one.units)} ইউনিট, ${taka(one.promisedBdt)}`,
+          `${inBangla(one.units)} ইউনিট, ${taka(one.promisedMoney)}`,
           `আপনার অংশ ${inBangla(one.investorsPercent)}%`,
           `সময় ${onDay(one.targetWindow.start)} – ${onDay(one.targetWindow.end)}`,
           one.amendedOn ? `সংশোধিত ${onDay(one.amendedOn)}` : null,
           `সই ${when(one.signedAt)}`,
-          `স্ট্যাম্প ${one.stamp.serial} (${taka(one.stamp.valueBdt)}, ${onDay(one.stamp.on)})`,
+          `স্ট্যাম্প ${one.stamp.serial} (${taka(one.stamp.valueMoney)}, ${onDay(one.stamp.on)})`,
           `সালিস ${one.arbitrator}`,
           one.hasPaper ? "সই করা চুক্তির ছবি খামারে রাখা আছে" : null,
-          `খামারে মূলধন ${taka(one.capitalHeldBdt)}`,
+          `খামারে মূলধন ${taka(one.capitalHeldMoney)}`,
           one.settlement ? settlementWords(one.settlement) : null
         ),
       }))
     ),
     facts(
-      { bn: "আপনার টাকার লেনদেন", en: "Your money moved" },
+      { bn: `আপনার ${currencyWords("bn").of} লেনদেন`, en: "Your money moved" },
       money.movements.map((one) => ({
         label: { bn: onDay(one.movedOn), en: "" },
         value: joined(
           MOVEMENT_NAMES[one.kind].bn,
-          taka(one.amountBdt),
+          taka(one.amountMoney),
           ventureOf.get(one.agreementId),
           one.reference
         ),

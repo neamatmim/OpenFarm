@@ -47,7 +47,7 @@ export const portfolioOf = (theirs: TheirAgreements) => {
   const moved = (kind: TheirAgreements["movements"][number]["kind"]) =>
     theirs.movements
       .filter((one) => one.kind === kind)
-      .reduce((sum, one) => sum + one.amountBdt, 0);
+      .reduce((sum, one) => sum + one.amountMoney, 0);
   // Counted as the Owner's page counts them: a Venture settled or called off is nobody's to pay into any more.
   const running = theirs.agreements.filter(
     (one) => !hasEnded(one.venture.state)
@@ -57,16 +57,22 @@ export const portfolioOf = (theirs: TheirAgreements) => {
      *  has been paid in. One that has finished has nothing left to pay in. */
     running: running.length,
     runningUnits: running.reduce((sum, one) => sum + one.units, 0),
-    runningPromisedBdt: running.reduce((sum, one) => sum + one.promisedBdt, 0),
-    runningPaidInBdt: running.reduce((sum, one) => sum + one.capitalHeldBdt, 0),
+    runningPromisedMoney: running.reduce(
+      (sum, one) => sum + one.promisedMoney,
+      0
+    ),
+    runningPaidInMoney: running.reduce(
+      (sum, one) => sum + one.capitalHeldMoney,
+      0
+    ),
     /** Capital that came in, and capital sent back when a Venture was called off. */
-    paidInBdt: moved("capital_in"),
-    returnedBdt: moved("refund"),
-    heldBdt: holding.reduce((sum, one) => sum + one.capitalHeldBdt, 0),
-    heldOn: holding.filter((one) => one.capitalHeldBdt > 0).length,
-    paidOutBdt: moved("payout"),
-    profitBdt: settled.reduce(
-      (sum, one) => sum + (one.settlement?.shareBdt ?? 0),
+    paidInMoney: moved("capital_in"),
+    returnedMoney: moved("refund"),
+    heldMoney: holding.reduce((sum, one) => sum + one.capitalHeldMoney, 0),
+    heldOn: holding.filter((one) => one.capitalHeldMoney > 0).length,
+    paidOutMoney: moved("payout"),
+    profitMoney: settled.reduce(
+      (sum, one) => sum + (one.settlement?.shareMoney ?? 0),
       0
     ),
     settled: settled.length,
@@ -115,7 +121,7 @@ const SettlementCell = ({ agreement }: { agreement: Agreement }) => {
   return (
     <span className="flex flex-col items-end gap-1">
       <span className="font-medium tabular-nums">
-        {taka(settlement.payoutBdt)}
+        {taka(settlement.payoutMoney)}
       </span>
       {said()}
     </span>
@@ -206,14 +212,14 @@ const SignedCell = ({ row }: AgreementCell) => (
  *  Venture still waits on some of it. */
 const HeldCell = ({ row }: AgreementCell) => {
   const taka = useTaka();
-  const { venture, capitalHeldBdt, promisedBdt } = row.original;
-  const short = venture.state === "open" && capitalHeldBdt < promisedBdt;
+  const { venture, capitalHeldMoney, promisedMoney } = row.original;
+  const short = venture.state === "open" && capitalHeldMoney < promisedMoney;
   return (
     <>
       <span className={cn(short && "text-warning")}>
-        {taka(capitalHeldBdt)}
+        {taka(capitalHeldMoney)}
       </span>
-      <span className="text-muted-foreground">{` / ${taka(promisedBdt)}`}</span>
+      <span className="text-muted-foreground">{` / ${taka(promisedMoney)}`}</span>
     </>
   );
 };
@@ -227,7 +233,7 @@ const PapersCell = ({ row }: AgreementCell) =>
   row.original.venture.state === "cancelled" ? null : (
     <PapersMenu
       agreementId={row.original.id}
-      hasPaid={row.original.capitalHeldBdt > 0}
+      hasPaid={row.original.capitalHeldMoney > 0}
       hasPhoto={row.original.hasPaper}
       name={row.original.investorName}
       papers={row.original.papers}
@@ -264,13 +270,13 @@ const agreementColumns = agreementColumn.columns([
     header: listHeader("investors.page.signed"),
     cell: SignedCell,
   }),
-  agreementColumn.accessor("capitalHeldBdt", {
+  agreementColumn.accessor("capitalHeldMoney", {
     id: "held",
     header: listHeader("investors.page.capitalHeld"),
     cell: HeldCell,
     meta: { align: "end" },
   }),
-  agreementColumn.accessor((row) => row.settlement?.payoutBdt, {
+  agreementColumn.accessor((row) => row.settlement?.payoutMoney, {
     id: "payout",
     header: listHeader("ventures.page.payout"),
     cell: PayoutCell,
@@ -459,7 +465,7 @@ const ReferenceCell = ({ row }: MovementCell) => (
 const IntoCell = ({ row }: MovementCell) => {
   const taka = useTaka();
   return INTO_THE_FARM[row.original.kind] ? (
-    <>{taka(row.original.amountBdt)}</>
+    <>{taka(row.original.amountMoney)}</>
   ) : (
     <Nothing />
   );
@@ -470,7 +476,7 @@ const BackCell = ({ row }: MovementCell) => {
   return INTO_THE_FARM[row.original.kind] ? (
     <Nothing />
   ) : (
-    <>{taka(row.original.amountBdt)}</>
+    <>{taka(row.original.amountMoney)}</>
   );
 };
 
@@ -498,7 +504,7 @@ const moneyColumnsFor = (back: MessageKey) =>
       enableSorting: false,
     }),
     moneyColumn.accessor(
-      (row) => (INTO_THE_FARM[row.kind] ? row.amountBdt : undefined),
+      (row) => (INTO_THE_FARM[row.kind] ? row.amountMoney : undefined),
       {
         id: "in",
         header: listHeader("investors.page.toTheFarm"),
@@ -507,7 +513,7 @@ const moneyColumnsFor = (back: MessageKey) =>
       }
     ),
     moneyColumn.accessor(
-      (row) => (INTO_THE_FARM[row.kind] ? undefined : row.amountBdt),
+      (row) => (INTO_THE_FARM[row.kind] ? undefined : row.amountMoney),
       {
         id: "back",
         header: listHeader(back),
@@ -545,7 +551,9 @@ const MovementCard = ({ row }: { row: MovementRow }) => {
         </span>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-0.5">
-        <span className="font-medium tabular-nums">{taka(row.amountBdt)}</span>
+        <span className="font-medium tabular-nums">
+          {taka(row.amountMoney)}
+        </span>
         <span className="text-muted-foreground text-xs">
           {into ? t("investors.page.toTheFarm") : t(words.back)}
         </span>
@@ -594,8 +602,8 @@ export const InvestorMoney = ({
   );
   // The same sums the totals above the ledger are read from: in is capital received, out is payouts and refunds.
   const sums = portfolioOf({ agreements, movements });
-  const inBdt = sums.paidInBdt;
-  const outBdt = sums.paidOutBdt + sums.returnedBdt;
+  const inMoney = sums.paidInMoney;
+  const outMoney = sums.paidOutMoney + sums.returnedMoney;
   return (
     // In the portal the page it stands on says what it is; on the Owner's page of an Investor it is one tab of several.
     <Section
@@ -622,8 +630,8 @@ export const InvestorMoney = ({
           />
           <MoneyTotals
             figures={[
-              { label: t("investors.page.toTheFarm"), value: taka(inBdt) },
-              { label: t(words.back), value: taka(outBdt) },
+              { label: t("investors.page.toTheFarm"), value: taka(inMoney) },
+              { label: t(words.back), value: taka(outMoney) },
             ]}
           />
         </div>

@@ -2,6 +2,7 @@ import { auth } from "@OpenFarm/auth";
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { session as sessionTable } from "@OpenFarm/db/schema/auth";
+import { atFarmTime } from "@OpenFarm/domain";
 import type { RouterClient } from "@orpc/server";
 import { createRouterClient } from "@orpc/server";
 
@@ -34,9 +35,9 @@ export class SeedClock implements Clock {
   }
 }
 
-/** A moment on the farm's own clock (Asia/Dhaka, UTC+6): a farm day and a time of day. */
+/** A moment on the farm's own clock: a farm day and a time of day. */
 export const onFarm = (day: string, time = "09:00"): Date =>
-  new Date(`${day}T${time}:00+06:00`);
+  atFarmTime(day, time);
 
 /** The farm day `days` after `day`. */
 export const addDays = (day: string, days: number): string =>

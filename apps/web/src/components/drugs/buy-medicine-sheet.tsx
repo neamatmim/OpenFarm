@@ -112,7 +112,7 @@ export const BuyMedicineSheet = ({
           drugProductId: chosen.id,
           quantity: typed.quantity.trim(),
           doses: Number(typed.doses),
-          priceBdt: Number(typed.price),
+          priceMoney: Number(typed.price),
           seller: { name: typed.seller.trim() },
           purchasedOn,
           paymentMethod,

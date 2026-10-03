@@ -18,30 +18,30 @@ import {
 // has changed since (ADR 0005), so these are the decisions that decide whether a person's correction is taken at all.
 
 const aSale = () => ({
-  priceBdt: figure(92_000),
+  priceMoney: figure(92_000),
   buyer: counterparty("রহমান ব্যাপারী"),
 });
 
 describe("what a Correction sends", () => {
   it("sends only the answers somebody actually changed", () => {
     const changes = changesFrom(aSale(), {
-      priceBdt: "95000",
+      priceMoney: "95000",
       buyer: "রহমান ব্যাপারী",
     });
     expect(changes).toEqual({
-      priceBdt: { from: 92_000, to: 95_000 },
+      priceMoney: { from: 92_000, to: 95_000 },
     });
   });
 
   it("says nothing changed when nothing did, so the farm is not asked to take it", () => {
-    const typed = { priceBdt: "92000", buyer: "রহমান ব্যাপারী" };
+    const typed = { priceMoney: "92000", buyer: "রহমান ব্যাপারী" };
     expect(changesFrom(aSale(), typed)).toEqual({});
     expect(readyToSend(aSale(), typed)).toBe(false);
   });
 
   it("starts every box from what the record says now", () => {
     expect(asShown(aSale())).toEqual({
-      priceBdt: "92000",
+      priceMoney: "92000",
       buyer: "রহমান ব্যাপারী",
     });
   });
@@ -56,13 +56,15 @@ describe("what a Correction sends", () => {
 
 describe("what the farm could take at all", () => {
   it("will not send a price of nothing, which the farm would store as nothing", () => {
-    const sale = { priceBdt: amount(92_000), buyer: counterparty("করিম") };
+    const sale = { priceMoney: amount(92_000), buyer: counterparty("করিম") };
     // Changed, and not something the farm should be asked to take.
-    expect(changesFrom(sale, { priceBdt: "0", buyer: "করিম" })).toEqual({
-      priceBdt: { from: 92_000, to: 0 },
+    expect(changesFrom(sale, { priceMoney: "0", buyer: "করিম" })).toEqual({
+      priceMoney: { from: 92_000, to: 0 },
     });
-    expect(readyToSend(sale, { priceBdt: "0", buyer: "করিম" })).toBe(false);
-    expect(readyToSend(sale, { priceBdt: "95000", buyer: "করিম" })).toBe(true);
+    expect(readyToSend(sale, { priceMoney: "0", buyer: "করিম" })).toBe(false);
+    expect(readyToSend(sale, { priceMoney: "95000", buyer: "করিম" })).toBe(
+      true
+    );
   });
 
   it("will not send a box somebody emptied where the farm holds a figure", () => {
@@ -77,8 +79,8 @@ describe("what the farm could take at all", () => {
   });
 
   it("puts a Sale paid in full right, though it holds no day he promised to pay by", () => {
-    const sale = { priceBdt: amount(180_000), promisedBy: day(null) };
-    expect(readyToSend(sale, { priceBdt: "182000", promisedBy: "" })).toBe(
+    const sale = { priceMoney: amount(180_000), promisedBy: day(null) };
+    expect(readyToSend(sale, { priceMoney: "182000", promisedBy: "" })).toBe(
       true
     );
   });
@@ -122,7 +124,7 @@ describe("the farm's kinds of field", () => {
   it("reads a figure the farm does not hold as nothing to correct", () => {
     // A feed arrival nobody priced: putting a price on it is not a Correction of the price it had.
     expect(
-      changesFrom({ priceBdt: figure(null) }, { priceBdt: "700" })
+      changesFrom({ priceMoney: figure(null) }, { priceMoney: "700" })
     ).toEqual({});
   });
 

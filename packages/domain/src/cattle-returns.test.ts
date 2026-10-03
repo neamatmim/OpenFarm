@@ -19,12 +19,12 @@ const WINDOW = {
 const bought = new Date("2031-01-04T05:00:00.000Z");
 const today = new Date("2031-06-10T06:00:00.000Z");
 
-const feed = (animalId: string, at: string, bdt: number): Charge => ({
+const feed = (animalId: string, at: string, amount: number): Charge => ({
   kind: "feed",
   animalId,
   side: "fattening",
   at: new Date(at),
-  bdt,
+  amount,
   fromId: "ভুসি",
   unpricedKg: 0,
   priced: true,
@@ -45,22 +45,22 @@ const books = (more: Partial<ReturnBooks> = {}): ReturnBooks => ({
   ...more,
 });
 
-const intake = (animalId: string, purchasePriceBdt: number) => ({
+const intake = (animalId: string, purchasePriceMoney: number) => ({
   id: `in-${animalId}`,
   animalId,
-  purchasePriceBdt,
+  purchasePriceMoney,
   arrivedAt: bought,
   ...WINDOW,
 });
 
 const animal = (
   id: string,
-  sale: { soldAt: string; priceBdt: number } | null = null
+  sale: { soldAt: string; priceMoney: number } | null = null
 ) => ({
   id,
   tagNumber: id,
   sale: sale
-    ? { soldAt: new Date(sale.soldAt), priceBdt: sale.priceBdt }
+    ? { soldAt: new Date(sale.soldAt), priceMoney: sale.priceMoney }
     : null,
 });
 
@@ -72,7 +72,7 @@ describe("a Season of the Farm's own", () => {
         animals: [
           animal("১", {
             soldAt: "2031-05-20T05:00:00.000Z",
-            priceBdt: 110_000,
+            priceMoney: 110_000,
           }),
           animal("২"),
         ],
@@ -88,9 +88,9 @@ describe("a Season of the Farm's own", () => {
     expect(season).toMatchObject({ finished: true, head: 2, died: 1 });
     // ৳1,75,000 in — two bulls and their feed — and ৳1,10,000 back: a loss, said as one.
     expect(season?.returnOnCost).toMatchObject({
-      costBdt: 175_000,
-      backBdt: 110_000,
-      resultBdt: -65_000,
+      costMoney: 175_000,
+      backMoney: 110_000,
+      resultMoney: -65_000,
     });
     expect(season?.returnOnCost?.perYear).toBeLessThan(0);
   });
@@ -106,10 +106,10 @@ describe("a Season of the Farm's own", () => {
         ]),
         values: new Map<
           string,
-          | { lowBdt: number; highBdt: number }
+          | { lowMoney: number; highMoney: number }
           | { tagNumber: string; why: "no_weight" }
         >([
-          ["৩", { lowBdt: 95_000, highBdt: 105_000 }],
+          ["৩", { lowMoney: 95_000, highMoney: 105_000 }],
           ["৪", { tagNumber: "৪", why: "no_weight" }],
         ]),
       }),
@@ -118,9 +118,9 @@ describe("a Season of the Farm's own", () => {
     );
     expect(season?.finished).toBe(false);
     expect(season?.running).toMatchObject({
-      standingCostBdt: 80_000,
-      standingLowBdt: 95_000,
-      standingHighBdt: 105_000,
+      standingCostMoney: 80_000,
+      standingLowMoney: 95_000,
+      standingHighMoney: 105_000,
     });
     expect(season?.gaps).toEqual([{ tagNumber: "৪", why: "no_weight" }]);
   });
@@ -137,18 +137,22 @@ describe("a Venture's cattle", () => {
       ownedThenBy: () => "v1",
       intakes: [intake("৫", 100_000)],
       animals: [
-        animal("৫", { soldAt: "2031-05-20T05:00:00.000Z", priceBdt: 120_000 }),
+        animal("৫", {
+          soldAt: "2031-05-20T05:00:00.000Z",
+          priceMoney: 120_000,
+        }),
       ],
       charges: new Map([["৫", [feed("৫", "2031-02-01T02:00:00.000Z", 6000)]]]),
     });
     const settlement = {
-      profitBdt: 14_000,
-      farmBdt: 5600,
+      profitMoney: 14_000,
+      farmMoney: 5600,
       shares: [],
       movements: [],
     };
     expect(
-      ventureReturnOf(theirs, venture, settlement, 60, today).sinceSettlementBdt
+      ventureReturnOf(theirs, venture, settlement, 60, today)
+        .sinceSettlementMoney
     ).toBeNull();
     // A Vet's fee of ৳1,200 for a visit in February, entered after the Settlement.
     const later = books({
@@ -167,12 +171,13 @@ describe("a Venture's cattle", () => {
       ]),
     });
     expect(
-      ventureReturnOf(later, venture, settlement, 60, today).sinceSettlementBdt
+      ventureReturnOf(later, venture, settlement, 60, today)
+        .sinceSettlementMoney
     ).toBe(-1200);
     expect(ventureReturnOf(later, venture, null, 60, today)).toMatchObject({
       settled: false,
-      sinceSettlementBdt: null,
-      returnOnCost: { resultBdt: 12_800 },
+      sinceSettlementMoney: null,
+      returnOnCost: { resultMoney: 12_800 },
     });
   });
 });
@@ -186,28 +191,28 @@ describe("the Investors' capital", () => {
           id: "c",
           kind: "capital_in",
           agreementId: "a1",
-          amountBdt: 500_000,
+          amountMoney: 500_000,
           movedOn: "2031-01-02",
         },
         {
           id: "adv",
           kind: "advance",
           agreementId: null,
-          amountBdt: 60_000,
+          amountMoney: 60_000,
           movedOn: "2031-02-02",
         },
         {
           id: "pay",
           kind: "payout",
           agreementId: "a1",
-          amountBdt: 540_000,
+          amountMoney: 540_000,
           movedOn: "2031-06-02",
         },
       ]
     );
     expect(capital).toEqual([
       {
-        bdt: 500_000,
+        amount: 500_000,
         arrived: startOfFarmDay("2031-01-02"),
         paidBack: startOfFarmDay("2031-06-02"),
       },
@@ -237,11 +242,14 @@ describe("how a Holding ended", () => {
   it("is her Sale only while she was this owner's", () => {
     const sold = {
       ...nothing,
-      sale: { soldAt: new Date("2031-05-01T05:00:00.000Z"), priceBdt: 99_000 },
+      sale: {
+        soldAt: new Date("2031-05-01T05:00:00.000Z"),
+        priceMoney: 99_000,
+      },
     };
     expect(howSheLeft(holding, sold, () => null)).toMatchObject({
       how: "sold",
-      backBdt: 99_000,
+      backMoney: 99_000,
     });
     expect(howSheLeft(holding, sold, () => "v1")).toBeNull();
   });
@@ -254,7 +262,7 @@ describe("how a Holding ended", () => {
         {
           id: "i1",
           fromVentureId: null,
-          priceBdt: 90_000,
+          priceMoney: 90_000,
           createdAt: new Date("2031-01-04T09:00:00.000Z"),
           on: sameDay,
         },
@@ -264,18 +272,18 @@ describe("how a Holding ended", () => {
     expect(howSheLeft(holding, away, () => null)).toMatchObject({
       how: "sold_to_venture",
       on: bought,
-      backBdt: 90_000,
+      backMoney: 90_000,
     });
   });
 
   it("is her crossing, for a Dairy Holding — priced or not yet", () => {
     const crossed = {
       ...nothing,
-      crossing: { on: new Date("2031-03-01T05:00:00.000Z"), priceBdt: null },
+      crossing: { on: new Date("2031-03-01T05:00:00.000Z"), priceMoney: null },
     };
     expect(
       howSheLeft({ ...holding, side: "dairy" }, crossed, () => null)
-    ).toMatchObject({ how: "crossed", backBdt: null });
+    ).toMatchObject({ how: "crossed", backMoney: null });
     // A crossing is no end of a Fattening Holding: that is where she went.
     expect(howSheLeft(holding, crossed, () => null)).toBeNull();
   });
@@ -284,7 +292,7 @@ describe("how a Holding ended", () => {
     const dead = { ...nothing, died: new Date("2031-03-01T05:00:00.000Z") };
     expect(howSheLeft(holding, dead, () => null)).toMatchObject({
       how: "died",
-      backBdt: 0,
+      backMoney: 0,
     });
   });
 
@@ -292,7 +300,7 @@ describe("how a Holding ended", () => {
     const gone = { ...nothing, lost: new Date("2031-03-01T05:00:00.000Z") };
     expect(howSheLeft(holding, gone, () => null)).toMatchObject({
       how: "lost",
-      backBdt: 0,
+      backMoney: 0,
     });
   });
 
@@ -300,7 +308,7 @@ describe("how a Holding ended", () => {
     const read = whatHappenedTo(
       books({
         animals: [
-          animal("৭", { soldAt: "2031-05-01T05:00:00.000Z", priceBdt: 1 }),
+          animal("৭", { soldAt: "2031-05-01T05:00:00.000Z", priceMoney: 1 }),
         ],
         joinings: [
           {
@@ -308,7 +316,7 @@ describe("how a Holding ended", () => {
             animalId: "৭",
             joinedAt: bought,
             how: "crossed",
-            priceBdt: 40_000,
+            priceMoney: 40_000,
             internalSaleId: null,
             ...WINDOW,
           },
@@ -316,7 +324,7 @@ describe("how a Holding ended", () => {
       }),
       "৭"
     );
-    expect(read.crossing).toEqual({ on: bought, priceBdt: 40_000 });
-    expect(read.sale?.priceBdt).toBe(1);
+    expect(read.crossing).toEqual({ on: bought, priceMoney: 40_000 });
+    expect(read.sale?.priceMoney).toBe(1);
   });
 });

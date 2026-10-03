@@ -59,28 +59,28 @@ describe("what the place cost", () => {
   it("adds up by Category, the largest first, and says what it comes to a head a day", () => {
     const figure = overheadsOver({
       money: [
-        { ...rent, bdt: 18_000 },
-        { ...wages, bdt: 14_000 },
-        { ...wages, bdt: 12_000 },
+        { ...rent, amount: 18_000 },
+        { ...wages, amount: 14_000 },
+        { ...wages, amount: 12_000 },
       ],
       // Twenty head all of September.
       headDays: 600,
     });
     expect(figure).toEqual({
-      totalBdt: 44_000,
+      totalMoney: 44_000,
       lines: [
-        { ...wages, bdt: 26_000 },
-        { ...rent, bdt: 18_000 },
+        { ...wages, amount: 26_000 },
+        { ...rent, amount: 18_000 },
       ],
       headDays: 600,
-      perHeadPerDayBdt: 73.33,
+      perHeadPerDayMoney: 73.33,
     });
   });
 
   it("says nothing a head a day where no animal stood", () => {
     expect(
-      overheadsOver({ money: [{ ...rent, bdt: 18_000 }], headDays: 0 })
-        .perHeadPerDayBdt
+      overheadsOver({ money: [{ ...rent, amount: 18_000 }], headDays: 0 })
+        .perHeadPerDayMoney
     ).toBeNull();
   });
 });

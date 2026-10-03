@@ -36,20 +36,20 @@ export const fewestDaysBeforeMilkIsWeighed = (
  * where no milk left.
  */
 export const milkPriceOf = (
-  dispatches: readonly { litres: number; pricePerLitreBdt: number }[]
-): { bdtPerLitre: number; litres: number; bdt: number } | null => {
+  dispatches: readonly { litres: number; pricePerLitreMoney: number }[]
+): { moneyPerLitre: number; litres: number; amount: number } | null => {
   const litres = dispatches.reduce((sum, one) => sum + one.litres, 0);
   if (litres <= 0) {
     return null;
   }
-  const bdt = dispatches.reduce(
-    (sum, one) => sum + one.litres * one.pricePerLitreBdt,
+  const amount = dispatches.reduce(
+    (sum, one) => sum + one.litres * one.pricePerLitreMoney,
     0
   );
   return {
-    bdtPerLitre: roundTaka(bdt / litres),
+    moneyPerLitre: roundTaka(amount / litres),
     litres: roundLitres(litres),
-    bdt: roundTaka(bdt),
+    amount: roundTaka(amount),
   };
 };
 
@@ -78,14 +78,14 @@ export type MilkAgainstKeep =
       litresPerDay: number;
       /** What a litre fetched in the farm's Dispatches over its milk price window (a Farm Parameter, 60 days unless the
        *  Owner says otherwise). */
-      bdtPerLitre: number;
+      moneyPerLitre: number;
       /** What her litres fetch at that. */
-      worthBdt: number;
-      keepBdt: number;
+      worthMoney: number;
+      keepMoney: number;
       /** What her milk leaves over her keep; negative where it falls short. */
-      overKeepBdt: number;
+      overKeepMoney: number;
       /** What a litre of hers costs to make lately; nothing while she sent none to Bulk. */
-      costPerLitreBdt: number | null;
+      costPerLitreMoney: number | null;
       /** False when some feed or a dose in her keep had no price: it is short by that, and so kinder to her. */
       whole: boolean;
     };
@@ -115,7 +115,7 @@ export const milkAgainstKeep = ({
   /** The Farm Parameter: how many days she must have been on this farm before her keep is judged — a cow bought in
    *  long in milk is weighed only once she has. */
   needsDays: number;
-  price: { bdtPerLitre: number } | null;
+  price: { moneyPerLitre: number } | null;
 }): MilkAgainstKeep => {
   const tooSoon =
     daysInMilk === null ||
@@ -130,19 +130,19 @@ export const milkAgainstKeep = ({
   if (price === null) {
     return { known: false, because: "no_price" };
   }
-  const worthBdt = roundTaka(litres * price.bdtPerLitre);
-  const keepBdt = roundTaka(kept.bdt);
+  const worthMoney = roundTaka(litres * price.moneyPerLitre);
+  const keepMoney = roundTaka(kept.amount);
   return {
     known: true,
     days: Math.round(kept.days),
     litres,
     litresPerDay: roundLitres(litres / kept.days),
-    bdtPerLitre: price.bdtPerLitre,
-    worthBdt,
-    keepBdt,
+    moneyPerLitre: price.moneyPerLitre,
+    worthMoney,
+    keepMoney,
     // From the figures as they are shown, so what is left over is what the two lines come to.
-    overKeepBdt: roundTaka(worthBdt - keepBdt),
-    costPerLitreBdt: litres > 0 ? roundTaka(kept.bdt / litres) : null,
+    overKeepMoney: roundTaka(worthMoney - keepMoney),
+    costPerLitreMoney: litres > 0 ? roundTaka(kept.amount / litres) : null,
     whole: kept.whole,
   };
 };
@@ -173,7 +173,7 @@ export const cullReasonsOf = ({
   const reasons: CullReason[] = [];
   const milkShort =
     state === "milking" && !inCalf && milk?.known === true
-      ? milk.overKeepBdt < 0
+      ? milk.overKeepMoney < 0
       : false;
   if (milkShort) {
     reasons.push("milk_short");

@@ -11,7 +11,7 @@ const endOf = (month: string): Date =>
 /** One movement of a Farm Account's money: a Money Event naming it, or a Handover into or out of it. */
 interface Moved {
   at: Date;
-  bdt: number;
+  amount: number;
 }
 
 /**
@@ -27,7 +27,7 @@ const movedSince = async (
   const [money, handovers] = await Promise.all([
     tx.query.moneyEvent.findMany({
       where: { farmId, farmAccountId, occurredAt: { gte: since } },
-      columns: { direction: true, amountBdt: true, occurredAt: true },
+      columns: { direction: true, amountMoney: true, occurredAt: true },
     }),
     tx.query.handover.findMany({
       where: {
@@ -38,7 +38,7 @@ const movedSince = async (
       columns: {
         fromAccountId: true,
         toAccountId: true,
-        amountBdt: true,
+        amountMoney: true,
         handedAt: true,
       },
     }),
@@ -46,13 +46,13 @@ const movedSince = async (
   return [
     ...money.map((one) => ({
       at: one.occurredAt,
-      bdt: one.direction === "in" ? one.amountBdt : -one.amountBdt,
+      amount: one.direction === "in" ? one.amountMoney : -one.amountMoney,
     })),
     ...handovers.map((one) => ({
       at: one.handedAt,
-      bdt:
-        (one.toAccountId === farmAccountId ? one.amountBdt : 0) -
-        (one.fromAccountId === farmAccountId ? one.amountBdt : 0),
+      amount:
+        (one.toAccountId === farmAccountId ? one.amountMoney : 0) -
+        (one.fromAccountId === farmAccountId ? one.amountMoney : 0),
     })),
   ].toSorted((a, b) => a.at.getTime() - b.at.getTime());
 };
@@ -60,7 +60,7 @@ const movedSince = async (
 /** A Farm Account's first reading: what its statement said it held at the end of that month. */
 interface FirstReading {
   forMonth: string;
-  readBdt: number;
+  readMoney: number;
 }
 
 /**
@@ -72,10 +72,10 @@ const heldAtEnd = (
   moved: readonly Moved[],
   until: Date
 ): number => {
-  let held = first.readBdt;
+  let held = first.readMoney;
   for (const one of moved) {
     if (one.at < until) {
-      held += one.bdt;
+      held += one.amount;
     }
   }
   return roundTaka(held);
@@ -89,7 +89,7 @@ export const firstReadingOf = async (
 ): Promise<FirstReading | null> => {
   const first = await tx.query.farmAccountCheck.findFirst({
     where: { farmId, farmAccountId },
-    columns: { forMonth: true, readBdt: true },
+    columns: { forMonth: true, readMoney: true },
     orderBy: { forMonth: "asc" },
   });
   return first ?? null;
@@ -121,7 +121,7 @@ export const believedAtMonthEnd = async (
 /** How a Farm Account stands against its statements, and what the farm believes it holds now. */
 export type FarmAccountStanding = BankStanding & {
   /** What the farm believes it holds today: its first reading and everything since. */
-  heldNowBdt: number;
+  heldNowMoney: number;
 };
 
 /**
@@ -152,7 +152,7 @@ export const farmAccountStandingOf = async (
     const moved = await movedSince(tx, farmId, id, endOf(first.forMonth));
     standing.set(id, {
       ...standingOf(its, (month) => heldAtEnd(first, moved, endOf(month))),
-      heldNowBdt: heldAtEnd(first, moved, new Date(now.getTime() + 1)),
+      heldNowMoney: heldAtEnd(first, moved, new Date(now.getTime() + 1)),
     });
   }
   return standing;

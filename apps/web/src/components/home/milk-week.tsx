@@ -1,4 +1,4 @@
-import { farmDayOf } from "@OpenFarm/domain";
+import { atFarmTime, farmDayOf } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { cn } from "@OpenFarm/ui/lib/utils";
 
@@ -37,11 +37,7 @@ export const MilkWeek = ({
   return (
     <ol className="grid grid-cols-7 items-end gap-1.5">
       {slots.map(({ day, litres }) => {
-        const when = formatDate(
-          new Date(`${day}T12:00:00+06:00`),
-          language,
-          "date"
-        );
+        const when = formatDate(atFarmTime(day, "12:00"), language, "date");
         const said =
           litres === undefined
             ? `${when}: ${t("owner.noRecord")}`

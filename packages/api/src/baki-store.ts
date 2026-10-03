@@ -58,11 +58,11 @@ export interface OwedItem {
   /** A Sale's animal by her tag; a Dispatch by its litres. */
   tagNumber: string | null;
   litres: number | null;
-  bakiBdt: number;
-  paidBdt: number;
-  owingBdt: number;
+  bakiMoney: number;
+  paidMoney: number;
+  owingMoney: number;
   /** What stays written off of it once his payments are counted. */
-  writtenOffBdt: number;
+  writtenOffMoney: number;
   promisedBy: string | null;
   /** Each time the Owner wrote some of it off, as written — what the Owner puts right, one by one. */
   writeOffs: WriteOffWritten[];
@@ -71,7 +71,7 @@ export interface OwedItem {
 /** One Write-off as the Owner wrote it: how much, why and the day. */
 export interface WriteOffWritten {
   id: string;
-  amountBdt: number;
+  amountMoney: number;
   reason: string;
   writtenOn: string;
 }
@@ -80,10 +80,10 @@ export interface WriteOffWritten {
 export interface PaidItem {
   id: string;
   paidOn: string;
-  amountBdt: number;
+  amountMoney: number;
   note: string | null;
   /** What of each Sale or Dispatch it cleared, oldest first. */
-  cleared: readonly { itemId: string; amountBdt: number }[];
+  cleared: readonly { itemId: string; amountMoney: number }[];
 }
 
 /** A buyer's Baki of one kind. */
@@ -98,9 +98,9 @@ export interface BuyerBaki {
   counterpartyId: string;
   name: string;
   phone: string | null;
-  owingBdt: number;
+  owingMoney: number;
   /** What stays written off of all he took, and the last day the Owner wrote any off: the sheets carry his mark. */
-  writtenOffBdt: number;
+  writtenOffMoney: number;
   lastWrittenOffOn: string | null;
   /** The day the oldest thing he still owes for left, whichever kind. */
   oldestOn: string | null;
@@ -109,20 +109,20 @@ export interface BuyerBaki {
 
 /** A Sale or a Dispatch as the Baki list names it, before any payment is set against it. */
 const owedItem = (
-  one: { id: string; bakiBdt: number; promisedBy: string | null },
+  one: { id: string; bakiMoney: number; promisedBy: string | null },
   leftAt: Date,
   label: Pick<OwedItem, "tagNumber" | "litres">,
   /** What the Owner wrote off of it, before any payment puts some back. */
-  writtenOffBdt: number,
+  writtenOffMoney: number,
   writeOffs: WriteOffWritten[]
 ): OwedItem => ({
   id: one.id,
   leftOn: farmDayOf(leftAt),
   ...label,
-  bakiBdt: one.bakiBdt,
-  paidBdt: 0,
-  owingBdt: one.bakiBdt,
-  writtenOffBdt,
+  bakiMoney: one.bakiMoney,
+  paidMoney: 0,
+  owingMoney: one.bakiMoney,
+  writtenOffMoney,
   promisedBy: one.promisedBy,
   writeOffs,
 });
@@ -156,14 +156,14 @@ const readBook = async (
     db.query.sale.findMany({
       where: {
         farmId,
-        bakiBdt: { gt: 0 },
+        bakiMoney: { gt: 0 },
         ...whose,
         ...(leftBy ? { soldAt: leftBy } : {}),
       },
       columns: {
         id: true,
         soldAt: true,
-        bakiBdt: true,
+        bakiMoney: true,
         promisedBy: true,
         counterpartyId: true,
       },
@@ -175,14 +175,14 @@ const readBook = async (
     db.query.dispatch.findMany({
       where: {
         farmId,
-        bakiBdt: { gt: 0 },
+        bakiMoney: { gt: 0 },
         ...(only?.counterpartyId ? { buyerId: only.counterpartyId } : {}),
         ...(leftBy ? { dispatchedAt: leftBy } : {}),
       },
       columns: {
         id: true,
         dispatchedAt: true,
-        bakiBdt: true,
+        bakiMoney: true,
         promisedBy: true,
         litres: true,
         buyerId: true,
@@ -195,7 +195,7 @@ const readBook = async (
         id: true,
         counterpartyId: true,
         kind: true,
-        amountBdt: true,
+        amountMoney: true,
         paidOn: true,
         note: true,
       },
@@ -207,7 +207,7 @@ const readBook = async (
         id: true,
         sourceId: true,
         counterpartyId: true,
-        amountBdt: true,
+        amountMoney: true,
         reason: true,
         writtenOn: true,
       },
@@ -229,17 +229,17 @@ const writeOffsOf = (writeOffs: Book["writeOffs"]) => {
       ...(written.get(one.sourceId) ?? []),
       {
         id: one.id,
-        amountBdt: one.amountBdt,
+        amountMoney: one.amountMoney,
         reason: one.reason,
         writtenOn: one.writtenOn,
       },
     ]);
     writtenOff.set(
       one.sourceId,
-      roundTaka((writtenOff.get(one.sourceId) ?? 0) + one.amountBdt)
+      roundTaka((writtenOff.get(one.sourceId) ?? 0) + one.amountMoney)
     );
     const last = lastWrittenOff.get(one.counterpartyId);
-    if (one.amountBdt > 0 && (!last || one.writtenOn > last)) {
+    if (one.amountMoney > 0 && (!last || one.writtenOn > last)) {
       lastWrittenOff.set(one.counterpartyId, one.writtenOn);
     }
   }
@@ -314,9 +314,9 @@ const kindStandingOf = (
 ): KindStanding | null => {
   const standing = bakiStanding(items, paid);
   const settled =
-    standing.owingBdt === 0 &&
-    standing.creditBdt === 0 &&
-    standing.writtenOffBdt === 0;
+    standing.owingMoney === 0 &&
+    standing.creditMoney === 0 &&
+    standing.writtenOffMoney === 0;
   if (settled && !(settledToo && paid.length > 0)) {
     return null;
   }
@@ -331,9 +331,9 @@ const kindStandingOf = (
         ? [
             {
               ...shown,
-              paidBdt: one.paidBdt,
-              owingBdt: one.owingBdt,
-              writtenOffBdt: one.writtenOffBdt,
+              paidMoney: one.paidMoney,
+              owingMoney: one.owingMoney,
+              writtenOffMoney: one.writtenOffMoney,
             },
           ]
         : [];
@@ -345,11 +345,11 @@ const kindStandingOf = (
       .map((one) => ({
         id: one.id,
         paidOn: one.paidOn,
-        amountBdt: one.amountBdt,
+        amountMoney: one.amountMoney,
         note: one.note,
         cleared: parts
           .filter((part) => part.paymentId === one.id)
-          .map(({ itemId, amountBdt }) => ({ itemId, amountBdt })),
+          .map(({ itemId, amountMoney }) => ({ itemId, amountMoney })),
       })),
   };
 };
@@ -394,9 +394,11 @@ export const bakiOfBuyers = async (
         counterpartyId,
         name: who.name,
         phone: who.phone,
-        owingBdt: roundTaka(kinds.reduce((sum, one) => sum + one.owingBdt, 0)),
-        writtenOffBdt: roundTaka(
-          kinds.reduce((sum, one) => sum + one.writtenOffBdt, 0)
+        owingMoney: roundTaka(
+          kinds.reduce((sum, one) => sum + one.owingMoney, 0)
+        ),
+        writtenOffMoney: roundTaka(
+          kinds.reduce((sum, one) => sum + one.writtenOffMoney, 0)
         ),
         lastWrittenOffOn: lastWrittenOff.get(counterpartyId) ?? null,
         oldestOn: oldest ?? null,
@@ -421,7 +423,7 @@ export const readBakiPayment = async (tx: Tx, id: string) => {
   }
   const money = await tx.query.moneyEvent.findFirst({
     where: { farmId: row.farmId, source: "baki_payment", sourceId: id },
-    columns: { amountBdt: true, paymentMethod: true, approval: true },
+    columns: { amountMoney: true, paymentMethod: true, approval: true },
   });
   return { ...row, money: money ?? null };
 };
@@ -434,7 +436,7 @@ export const owingOf = async (
   kind: BakiKind
 ): Promise<number> => {
   const [his] = await bakiOfBuyers(db, farmId, { counterpartyId });
-  return his?.kinds.find((one) => one.kind === kind)?.owingBdt ?? 0;
+  return his?.kinds.find((one) => one.kind === kind)?.owingMoney ?? 0;
 };
 
 /**
@@ -442,18 +444,18 @@ export const owingOf = async (
  * without one it is far more likely a figure typed wrong.
  */
 export const assertPaidNoMoreThanOwed = ({
-  amountBdt,
-  owingBdt,
+  amountMoney,
+  owingMoney,
   note,
 }: {
-  amountBdt: number;
-  owingBdt: number;
+  amountMoney: number;
+  owingMoney: number;
   note: string | null;
 }) => {
-  if (amountBdt > owingBdt && !note?.trim()) {
+  if (amountMoney > owingMoney && !note?.trim()) {
     throw new ORPCError("BAD_REQUEST", {
       message: "That is more than he owes; say in a note why he paid more",
-      data: { refusal: "paid_more_than_owed", owingBdt },
+      data: { refusal: "paid_more_than_owed", owingMoney },
     });
   }
 };
@@ -476,7 +478,7 @@ export const owingNowOf = async (
     for (const kind of buyer.kinds) {
       for (const item of kind.items) {
         if (owing.has(item.id)) {
-          owing.set(item.id, item.owingBdt);
+          owing.set(item.id, item.owingMoney);
         }
       }
     }
@@ -488,9 +490,9 @@ export const owingNowOf = async (
 export const owingOnHerSale = async (
   db: Db,
   farmId: string,
-  sale: { id: string; bakiBdt: number } | null | undefined
+  sale: { id: string; bakiMoney: number } | null | undefined
 ): Promise<number> => {
-  if (!sale || sale.bakiBdt <= 0) {
+  if (!sale || sale.bakiMoney <= 0) {
     return 0;
   }
   const owing = await owingNowOf(db, farmId, [sale.id]);
@@ -503,7 +505,7 @@ export interface OverdueItem {
   kind: BakiKind;
   leftOn: string;
   promisedBy: string | null;
-  owingBdt: number;
+  owingMoney: number;
   /** The first day it was overdue. */
   overdueFrom: string;
 }
@@ -514,8 +516,8 @@ export interface OverdueBuyer {
   name: string;
   phone: string | null;
   /** What of it is overdue, and what he owes in all. */
-  overdueBdt: number;
-  owingBdt: number;
+  overdueMoney: number;
+  owingMoney: number;
   /** The first day any of it was overdue. */
   overdueSince: string;
   /** Sold to on Baki again after something he owed was already overdue: the Owner hears of it. */
@@ -537,7 +539,7 @@ export const overdueOfBuyer = (
         kind: standing.kind,
         leftOn: item.leftOn,
         promisedBy: item.promisedBy,
-        owingBdt: item.owingBdt,
+        owingMoney: item.owingMoney,
         overdueFrom: overdueFrom(item, bakiDays),
       }))
   );
@@ -549,8 +551,10 @@ export const overdueOfBuyer = (
     counterpartyId: buyer.counterpartyId,
     name: buyer.name,
     phone: buyer.phone,
-    overdueBdt: roundTaka(items.reduce((sum, one) => sum + one.owingBdt, 0)),
-    owingBdt: buyer.owingBdt,
+    overdueMoney: roundTaka(
+      items.reduce((sum, one) => sum + one.owingMoney, 0)
+    ),
+    owingMoney: buyer.owingMoney,
     overdueSince: first,
     soldAgainWhileOverdue: buyer.kinds.some((standing) =>
       soldOnBakiWhileOverdue(standing.items, bakiDays)
@@ -640,7 +644,7 @@ export const raiseOverdueBaki = async (
         facts: {
           counterpartyId: buyer.counterpartyId,
           buyer: buyer.name,
-          owingBdt: item.owingBdt,
+          owingMoney: item.owingMoney,
           overdueFrom: item.overdueFrom,
         },
       },
@@ -674,8 +678,8 @@ export const writtenOffByItem = async (
     book.flatMap((buyer) =>
       buyer.kinds.flatMap((kind) =>
         kind.items
-          .filter((item) => item.writtenOffBdt > 0)
-          .map((item) => [item.id, item.writtenOffBdt] as const)
+          .filter((item) => item.writtenOffMoney > 0)
+          .map((item) => [item.id, item.writtenOffMoney] as const)
       )
     )
   );
@@ -689,12 +693,12 @@ export const fetchedPerLitre = (
   row: {
     id: string;
     litres: string | number;
-    pricePerLitreBdt: string | number;
+    pricePerLitreMoney: string | number;
   },
   writtenOff: ReadonlyMap<string, number>
 ): number => {
   const litres = Number(row.litres);
-  const price = Number(row.pricePerLitreBdt);
+  const price = Number(row.pricePerLitreMoney);
   const lost = writtenOff.get(row.id) ?? 0;
   return litres > 0 && lost > 0 ? (litres * price - lost) / litres : price;
 };
@@ -709,35 +713,35 @@ export const owingOnItem = async (
   farmId: string,
   source: "sale" | "dispatch",
   id: string
-): Promise<{ counterpartyId: string; owingBdt: number } | null> => {
+): Promise<{ counterpartyId: string; owingMoney: number } | null> => {
   const row =
     source === "sale"
       ? await db.query.sale.findFirst({
           where: { farmId, id },
-          columns: { counterpartyId: true, bakiBdt: true },
+          columns: { counterpartyId: true, bakiMoney: true },
         })
       : await db.query.dispatch.findFirst({
           where: { farmId, id },
-          columns: { buyerId: true, bakiBdt: true },
+          columns: { buyerId: true, bakiMoney: true },
         });
-  if (!row || row.bakiBdt <= 0) {
+  if (!row || row.bakiMoney <= 0) {
     return null;
   }
   const counterpartyId =
     "counterpartyId" in row ? row.counterpartyId : row.buyerId;
   const owing = await owingNowOf(db, farmId, [id]);
-  return { counterpartyId, owingBdt: owing.get(id) ?? 0 };
+  return { counterpartyId, owingMoney: owing.get(id) ?? 0 };
 };
 
 /** More written off than is still owing is not a write-off: it is money the farm would be saying it lost twice. */
 export const assertWrittenOffNoMoreThanOwed = (
-  amountBdt: number,
-  owingBdt: number
+  amountMoney: number,
+  owingMoney: number
 ) => {
-  if (amountBdt > owingBdt) {
+  if (amountMoney > owingMoney) {
     throw new ORPCError("BAD_REQUEST", {
       message: "That is more than is still owed on it",
-      data: { refusal: "written_off_more_than_owed", owingBdt },
+      data: { refusal: "written_off_more_than_owed", owingMoney },
     });
   }
 };

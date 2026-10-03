@@ -49,20 +49,20 @@ describe("the Fodder Price", () => {
     const owner = await as("owner", "2042-03-02T04:00:00.000Z");
     await owner.client.feed.setFodderPrice({
       feedItemId: grassId,
-      fodderPriceBdt: 4,
+      fodderPriceMoney: 4,
     });
     const manager = await as("manager", "2042-03-03T04:00:00.000Z");
     await harvest(manager, grassId, 100, "2042-03-03");
 
     const items = await manager.client.feed.items();
     const grass = items.find((one) => one.id === grassId);
-    expect(grass).toMatchObject({ fodderPriceBdt: 4 });
+    expect(grass).toMatchObject({ fodderPriceMoney: 4 });
 
     // A hundred kilos at four taka: the store holds four hundred taka of grass.
     const store = await manager.client.stock.onHand();
     expect(store.find((one) => one.feedItemId === grassId)).toMatchObject({
       onHand: 100,
-      averagePriceBdt: 4,
+      averagePriceMoney: 4,
     });
   });
 
@@ -80,7 +80,7 @@ describe("the Fodder Price", () => {
     const bran = store.find((one) => one.feedItemId === boughtId);
     // Nothing paid for and nothing valued: the store holds forty kilos worth nothing anybody can say,
     // exactly as a Harvest behaved before the farm could put a price on its own fodder.
-    expect(bran).toMatchObject({ onHand: 40, averagePriceBdt: null });
+    expect(bran).toMatchObject({ onHand: 40, averagePriceMoney: null });
   });
 
   it("blends with bought feed in the store's price", async () => {
@@ -91,14 +91,14 @@ describe("the Fodder Price", () => {
     const owner = await as("owner", "2042-03-10T04:00:00.000Z");
     await owner.client.feed.setFodderPrice({
       feedItemId: blended.id,
-      fodderPriceBdt: 10,
+      fodderPriceMoney: 10,
     });
     // A hundred kilos bought at 30, then a hundred cut at 10: two hundred kilos worth 4,000.
     await manager.client.stock.receive({
       feedItemId: blended.id,
       kind: "purchase",
       quantity: 100,
-      priceBdt: 3000,
+      priceMoney: 3000,
       seller: { name: `ডিলার ${suffix}` },
       receivedOn: "2042-03-10",
       paymentMethod: "cash",
@@ -108,7 +108,7 @@ describe("the Fodder Price", () => {
     const store = await manager.client.stock.onHand();
     expect(store.find((one) => one.feedItemId === blended.id)).toMatchObject({
       onHand: 200,
-      averagePriceBdt: 20,
+      averagePriceMoney: 20,
     });
   });
 
@@ -119,7 +119,7 @@ describe("the Fodder Price", () => {
     });
     await owner.client.feed.setFodderPrice({
       feedItemId: item.id,
-      fodderPriceBdt: 5,
+      fodderPriceMoney: 5,
     });
     const manager = await as("manager", "2042-03-06T04:00:00.000Z");
     // Five thousand kilos typed for five hundred: the thing a Correction exists to put right.
@@ -133,7 +133,7 @@ describe("the Fodder Price", () => {
     // Five hundred kilos, still worth five taka each — the price the day it came in.
     expect(store.find((one) => one.feedItemId === item.id)).toMatchObject({
       onHand: 500,
-      averagePriceBdt: 5,
+      averagePriceMoney: 5,
     });
     // And putting it right moved no money either.
     const money = await manager.client.money.list(MARCH);
@@ -144,7 +144,7 @@ describe("the Fodder Price", () => {
     const owner = await as("owner", "2042-03-18T04:00:00.000Z");
     const items = await owner.client.feed.items();
     const grass = items.find((one) => one.id === grassId);
-    expect(grass?.fodderPriceBdt).toBe(4);
+    expect(grass?.fodderPriceMoney).toBe(4);
     // The trail holds what the Owner did, as every change does.
     const trail = await owner.client.audit.list({
       entity: "feed_item",
@@ -158,7 +158,7 @@ describe("the Fodder Price", () => {
     await expect(
       manager.client.feed.setFodderPrice({
         feedItemId: grassId,
-        fodderPriceBdt: 9,
+        fodderPriceMoney: 9,
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
@@ -173,7 +173,7 @@ describe("the Fodder Price", () => {
     await harvest(manager, item.id, 100, "2042-03-15");
     await owner.client.feed.setFodderPrice({
       feedItemId: item.id,
-      fodderPriceBdt: 6,
+      fodderPriceMoney: 6,
     });
     const later = await as("manager", "2042-03-16T04:00:00.000Z");
     await harvest(later, item.id, 100, "2042-03-16");
@@ -181,7 +181,7 @@ describe("the Fodder Price", () => {
     // Two hundred kilos: a hundred at nothing and a hundred at six, so three taka a kilo.
     expect(store.find((one) => one.feedItemId === item.id)).toMatchObject({
       onHand: 200,
-      averagePriceBdt: 3,
+      averagePriceMoney: 3,
     });
   });
 });

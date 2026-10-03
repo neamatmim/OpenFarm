@@ -19,7 +19,7 @@ export const SUM_MISSED_AFTER_DAYS = 7;
 /** What a Venture paid by the month freezes when it opens. */
 export interface MonthlyTerms {
   /** What one Unit pays before the buying starts: its share of the Cattle Budget. */
-  cattlePartBdt: number;
+  cattlePartMoney: number;
   /** How many Monthly Sums there are. */
   sums: number;
   /** The day the first falls due, "YYYY-MM-DD"; each after it on the same day of the next month. */
@@ -56,20 +56,20 @@ const monthAfter = (day: string): string => {
  *   the day buying actually starts is not known then.
  */
 export const monthlyTermsOf = (venture: {
-  unitPriceBdt: number;
-  targetCapitalBdt: number;
-  cattleBudgetBdt: number;
+  unitPriceMoney: number;
+  targetCapitalMoney: number;
+  cattleBudgetMoney: number;
   decideBy: string;
   targetWindowStart: string;
 }): MonthlyTerms | NoMonthlyTerms => {
-  const cattlePartBdt =
-    venture.targetCapitalBdt > 0
+  const cattlePartMoney =
+    venture.targetCapitalMoney > 0
       ? Math.round(
-          (venture.unitPriceBdt * venture.cattleBudgetBdt) /
-            venture.targetCapitalBdt
+          (venture.unitPriceMoney * venture.cattleBudgetMoney) /
+            venture.targetCapitalMoney
         )
-      : venture.unitPriceBdt;
-  if (cattlePartBdt >= venture.unitPriceBdt) {
+      : venture.unitPriceMoney;
+  if (cattlePartMoney >= venture.unitPriceMoney) {
     return "nothing_to_pay_monthly";
   }
   const first = monthAfter(venture.decideBy);
@@ -80,13 +80,13 @@ export const monthlyTermsOf = (venture: {
   if (firstDueOn === undefined) {
     return "no_month_to_pay_in";
   }
-  return { cattlePartBdt, sums: due.length, firstDueOn };
+  return { cattlePartMoney, sums: due.length, firstDueOn };
 };
 
 /** One Monthly Sum of one Unit: the day it falls due and what it is. */
 export interface MonthlySum {
   dueOn: string;
-  bdt: number;
+  amount: number;
 }
 
 /**
@@ -94,12 +94,12 @@ export interface MonthlySum {
  * into whole taka, the last taking whatever the division left over so they add up to the price to the taka.
  */
 export const monthlySumsOf = (
-  unitPriceBdt: number,
+  unitPriceMoney: number,
   terms: MonthlyTerms
 ): MonthlySum[] => {
-  const restBdt = unitPriceBdt - terms.cattlePartBdt;
-  const eachBdt = Math.floor(restBdt / terms.sums);
-  const lastBdt = restBdt - eachBdt * (terms.sums - 1);
+  const restMoney = unitPriceMoney - terms.cattlePartMoney;
+  const eachMoney = Math.floor(restMoney / terms.sums);
+  const lastMoney = restMoney - eachMoney * (terms.sums - 1);
   const firstMonth = terms.firstDueOn.slice(0, 7);
   const months: string[] = [firstMonth];
   while (months.length < terms.sums) {
@@ -107,7 +107,7 @@ export const monthlySumsOf = (
   }
   return months.map((month, at) => ({
     dueOn: `${month}-${terms.firstDueOn.slice(8, 10)}`,
-    bdt: at === terms.sums - 1 ? lastBdt : eachBdt,
+    amount: at === terms.sums - 1 ? lastMoney : eachMoney,
   }));
 };
 
@@ -121,15 +121,15 @@ export const capitalItMayHold = (
   venture: {
     state: string;
     capitalPaid: CapitalPaid;
-    unitPriceBdt: number;
-    cattlePartBdt: number | null;
+    unitPriceMoney: number;
+    cattlePartMoney: number | null;
   }
 ) =>
   venture.capitalPaid === "by_the_month" &&
   venture.state === "open" &&
-  venture.cattlePartBdt !== null
-    ? units * venture.cattlePartBdt
-    : units * venture.unitPriceBdt;
+  venture.cattlePartMoney !== null
+    ? units * venture.cattlePartMoney
+    : units * venture.unitPriceMoney;
 
 /**
  * Of what a Venture holds, how much is cattle money. Paid before buying, the capital divides between the two budgets in
@@ -137,24 +137,24 @@ export const capitalItMayHold = (
  * every signed Unit's Cattle Part; past that it is Monthly Sums, which keep the animals.
  */
 export const cattleMoneyOf = (
-  capitalBdt: number,
+  capitalMoney: number,
   venture: {
     capitalPaid: CapitalPaid;
-    cattlePartBdt: number | null;
-    targetCapitalBdt: number;
-    cattleBudgetBdt: number;
+    cattlePartMoney: number | null;
+    targetCapitalMoney: number;
+    cattleBudgetMoney: number;
   },
   signedUnits: number
 ) => {
   if (
     venture.capitalPaid === "by_the_month" &&
-    venture.cattlePartBdt !== null
+    venture.cattlePartMoney !== null
   ) {
-    return Math.min(capitalBdt, signedUnits * venture.cattlePartBdt);
+    return Math.min(capitalMoney, signedUnits * venture.cattlePartMoney);
   }
-  return venture.targetCapitalBdt > 0
+  return venture.targetCapitalMoney > 0
     ? Math.round(
-        (capitalBdt * venture.cattleBudgetBdt) / venture.targetCapitalBdt
+        (capitalMoney * venture.cattleBudgetMoney) / venture.targetCapitalMoney
       )
     : 0;
 };
@@ -175,12 +175,12 @@ export const takesCapital = (venture: {
 /** How one Agreement of a Venture paid by the month stands against its schedule on a day. */
 export interface SumsStanding {
   /** What it still owes of its Units' whole price. */
-  owedBdt: number;
+  owedMoney: number;
   /** Of that, what has fallen due by the day and not been paid. */
-  dueBdt: number;
+  dueMoney: number;
   /** Of what is due, what fell due more than SUM_MISSED_AFTER_DAYS before the day: missed. It may still be paid until
    *  the selling starts. */
-  missedBdt: number;
+  missedMoney: number;
   /** The next Monthly Sum not yet due — its day and what his Units pay on it — or nothing once none is left. */
   next: MonthlySum | null;
   /** How many of the Monthly Sums his payments have cleared, whole, oldest first; and how many there are. */
@@ -197,41 +197,44 @@ export interface SumsStanding {
  */
 export const sumsStandingOf = ({
   units,
-  unitPriceBdt,
+  unitPriceMoney,
   monthly,
-  paidBdt,
+  paidMoney,
   today,
 }: {
   units: number;
-  unitPriceBdt: number;
-  monthly: { cattlePartBdt: number; sums: readonly MonthlySum[] };
-  paidBdt: number;
+  unitPriceMoney: number;
+  monthly: { cattlePartMoney: number; sums: readonly MonthlySum[] };
+  paidMoney: number;
   /** The farm day, "YYYY-MM-DD". */
   today: string;
 }): SumsStanding => {
   const dueBy = (passed: (dueOn: string) => boolean) =>
     units *
-    (monthly.cattlePartBdt +
+    (monthly.cattlePartMoney +
       monthly.sums
         .filter((one) => passed(one.dueOn))
-        .reduce((sum, one) => sum + one.bdt, 0));
+        .reduce((sum, one) => sum + one.amount, 0));
   const missedBefore = addDays(today, -SUM_MISSED_AFTER_DAYS);
   const upcoming = monthly.sums.find((one) => one.dueOn > today);
   // Each sum is cleared once everything due up to it is paid: the Cattle Part first, then the sums in their order.
-  let reached = units * monthly.cattlePartBdt;
+  let reached = units * monthly.cattlePartMoney;
   const cleared = monthly.sums.map((one) => {
-    reached += units * one.bdt;
-    return { dueOn: one.dueOn, cleared: reached <= paidBdt };
+    reached += units * one.amount;
+    return { dueOn: one.dueOn, cleared: reached <= paidMoney };
   });
   const missed = cleared.filter(
     (one) => !one.cleared && one.dueOn < missedBefore
   );
   return {
-    owedBdt: Math.max(0, units * unitPriceBdt - paidBdt),
-    dueBdt: Math.max(0, dueBy((dueOn) => dueOn <= today) - paidBdt),
-    missedBdt: Math.max(0, dueBy((dueOn) => dueOn < missedBefore) - paidBdt),
+    owedMoney: Math.max(0, units * unitPriceMoney - paidMoney),
+    dueMoney: Math.max(0, dueBy((dueOn) => dueOn <= today) - paidMoney),
+    missedMoney: Math.max(
+      0,
+      dueBy((dueOn) => dueOn < missedBefore) - paidMoney
+    ),
     next: upcoming
-      ? { dueOn: upcoming.dueOn, bdt: units * upcoming.bdt }
+      ? { dueOn: upcoming.dueOn, amount: units * upcoming.amount }
       : null,
     sumsPaid: cleared.filter((one) => one.cleared).length,
     sums: monthly.sums.length,
@@ -247,10 +250,10 @@ export const sumsStandingOf = ({
  */
 export const towardsTheFloor = (venture: {
   capitalPaid: CapitalPaid;
-  heldBdt: number;
+  heldMoney: number;
   signedUnits: number;
-  unitPriceBdt: number;
+  unitPriceMoney: number;
 }) =>
   venture.capitalPaid === "by_the_month"
-    ? venture.signedUnits * venture.unitPriceBdt
-    : venture.heldBdt;
+    ? venture.signedUnits * venture.unitPriceMoney
+    : venture.heldMoney;

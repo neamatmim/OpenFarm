@@ -15,15 +15,15 @@ const DAYS_A_YEAR = 365;
 
 /** One sum of money put in, the day it went out and the day it came back with its animal. */
 export interface Spent {
-  bdt: number;
+  amount: number;
   from: Date;
   until: Date;
 }
 
 export interface Returned {
-  costBdt: number;
-  backBdt: number;
-  resultBdt: number;
+  costMoney: number;
+  backMoney: number;
+  resultMoney: number;
   /** What every hundred taka made, to one place: below nothing for a loss. */
   per100: number;
   /** The days each taka was tied up, on average, weighted by the taka. */
@@ -46,34 +46,34 @@ const daysBetween = (from: Date, until: Date): number =>
  */
 export const returnOf = ({
   spent,
-  backBdt,
+  backMoney,
   floorDays,
   finished,
 }: {
   spent: readonly Spent[];
-  backBdt: number;
+  backMoney: number;
   floorDays: number;
   finished: boolean;
 }): Returned | null => {
-  const costBdt = spent.reduce((sum, one) => sum + one.bdt, 0);
-  if (costBdt <= 0) {
+  const costMoney = spent.reduce((sum, one) => sum + one.amount, 0);
+  if (costMoney <= 0) {
     return null;
   }
   const takaDays = spent.reduce(
-    (sum, one) => sum + one.bdt * daysBetween(one.from, one.until),
+    (sum, one) => sum + one.amount * daysBetween(one.from, one.until),
     0
   );
-  const averageDays = takaDays / costBdt;
-  const resultBdt = backBdt - costBdt;
-  const share = (resultBdt / costBdt) * 100;
+  const averageDays = takaDays / costMoney;
+  const resultMoney = backMoney - costMoney;
+  const share = (resultMoney / costMoney) * 100;
   // The floor is held against the days as they are shown, whole, so money said to have been out 60 days is never
   // refused a year by a floor of 60 for having been out 59.6.
   const scaled =
     finished && averageDays > 0 && Math.round(averageDays) >= floorDays;
   return {
-    costBdt: roundTaka(costBdt),
-    backBdt: roundTaka(backBdt),
-    resultBdt: roundTaka(resultBdt),
+    costMoney: roundTaka(costMoney),
+    backMoney: roundTaka(backMoney),
+    resultMoney: roundTaka(resultMoney),
     per100: oneDecimal(share),
     averageDays: Math.round(averageDays),
     perYear: scaled ? oneDecimal((share * DAYS_A_YEAR) / averageDays) : null,
@@ -82,7 +82,7 @@ export const returnOf = ({
 
 /** One Agreement's capital: when it reached the Venture Account and when it was paid back. */
 export interface CapitalIn {
-  bdt: number;
+  amount: number;
   arrived: Date;
   paidBack: Date;
 }
@@ -93,20 +93,20 @@ export interface CapitalIn {
  */
 export const returnOnCapitalOf = ({
   capital,
-  shareBdt,
+  shareMoney,
   floorDays,
 }: {
   capital: readonly CapitalIn[];
-  shareBdt: number;
+  shareMoney: number;
   floorDays: number;
 }) => {
   const returned = returnOf({
     spent: capital.map((one) => ({
-      bdt: one.bdt,
+      amount: one.amount,
       from: one.arrived,
       until: one.paidBack,
     })),
-    backBdt: capital.reduce((sum, one) => sum + one.bdt, 0) + shareBdt,
+    backMoney: capital.reduce((sum, one) => sum + one.amount, 0) + shareMoney,
     floorDays,
     finished: true,
   });
@@ -114,8 +114,8 @@ export const returnOnCapitalOf = ({
     return null;
   }
   return {
-    capitalBdt: returned.costBdt,
-    shareBdt: returned.resultBdt,
+    capitalMoney: returned.costMoney,
+    shareMoney: returned.resultMoney,
     per100: returned.per100,
     averageDays: returned.averageDays,
     perYear: returned.perYear,
@@ -124,19 +124,19 @@ export const returnOnCapitalOf = ({
 
 /** What some money spent came to, together: the taka of every line. */
 const costOf = (lines: readonly Spent[]) =>
-  lines.reduce((sum, one) => sum + one.bdt, 0);
+  lines.reduce((sum, one) => sum + one.amount, 0);
 
 /** What a Season or a Venture still going has in it: what it sold, and what stands at today's price, low and high. */
 export interface RunningRange {
   /** What the animals already gone cost: none gone, none. */
-  soldCostBdt: number;
+  soldCostMoney: number;
   /** What the animals already gone made: a fact. */
-  soldResultBdt: number;
+  soldResultMoney: number;
   /** What the animals still standing have cost so far. */
-  standingCostBdt: number;
+  standingCostMoney: number;
   /** What they would fetch today, at the low and the high price a kilo. */
-  standingLowBdt: number;
-  standingHighBdt: number;
+  standingLowMoney: number;
+  standingHighMoney: number;
   /** The whole, with the standing ones at the low and at the high price a kilo: an estimate, never put a year. */
   low: Returned;
   high: Returned;
@@ -152,28 +152,28 @@ export const runningRangeOf = ({
   sold,
   standing,
 }: {
-  sold: { spent: readonly Spent[]; backBdt: number };
-  standing: { spent: readonly Spent[]; lowBdt: number; highBdt: number };
+  sold: { spent: readonly Spent[]; backMoney: number };
+  standing: { spent: readonly Spent[]; lowMoney: number; highMoney: number };
 }): RunningRange | null => {
   const spent = [...sold.spent, ...standing.spent];
-  const at = (standingBdt: number) =>
+  const at = (standingMoney: number) =>
     returnOf({
       spent,
-      backBdt: sold.backBdt + standingBdt,
+      backMoney: sold.backMoney + standingMoney,
       floorDays: 0,
       finished: false,
     });
-  const low = at(standing.lowBdt);
-  const high = at(standing.highBdt);
+  const low = at(standing.lowMoney);
+  const high = at(standing.highMoney);
   if (!(low && high)) {
     return null;
   }
   return {
-    soldCostBdt: roundTaka(costOf(sold.spent)),
-    soldResultBdt: roundTaka(sold.backBdt - costOf(sold.spent)),
-    standingCostBdt: roundTaka(costOf(standing.spent)),
-    standingLowBdt: roundTaka(standing.lowBdt),
-    standingHighBdt: roundTaka(standing.highBdt),
+    soldCostMoney: roundTaka(costOf(sold.spent)),
+    soldResultMoney: roundTaka(sold.backMoney - costOf(sold.spent)),
+    standingCostMoney: roundTaka(costOf(standing.spent)),
+    standingLowMoney: roundTaka(standing.lowMoney),
+    standingHighMoney: roundTaka(standing.highMoney),
     low,
     high,
   };

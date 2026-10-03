@@ -1,5 +1,5 @@
 import { farmDayOf, paidAtTheGate } from "@OpenFarm/domain";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { currencySign, formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";
@@ -40,14 +40,14 @@ const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
   const { t } = useLanguage();
   const correcting = useCorrecting({
     litres: amount(dispatch.litres),
-    pricePerLitreBdt: amount(dispatch.pricePerLitreBdt),
+    pricePerLitreMoney: amount(dispatch.pricePerLitreMoney),
     buyer: counterparty(dispatch.buyerName),
     challan: note(dispatch.challan),
     // Left out of a day cached before Baki was written down: paid in full, as every such Dispatch was.
-    paidNowBdt: figure(
+    paidNowMoney: figure(
       paidAtTheGate(
-        worthOf(dispatch.litres, dispatch.pricePerLitreBdt),
-        dispatch.bakiBdt ?? 0
+        worthOf(dispatch.litres, dispatch.pricePerLitreMoney),
+        dispatch.bakiMoney ?? 0
       )
     ),
     promisedBy: promisedDay(dispatch.promisedBy ?? null),
@@ -77,9 +77,9 @@ const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
         <CorrectionAnswer
           inputMode="decimal"
           label={t("dispatch.price")}
-          onChange={(value) => correcting.set("pricePerLitreBdt", value)}
+          onChange={(value) => correcting.set("pricePerLitreMoney", value)}
           type="number"
-          value={correcting.typed.pricePerLitreBdt ?? ""}
+          value={correcting.typed.pricePerLitreMoney ?? ""}
         />
       </div>
       <CorrectionAnswer
@@ -96,9 +96,9 @@ const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
         <CorrectionAnswer
           inputMode="decimal"
           label={t("baki.paidNow")}
-          onChange={(value) => correcting.set("paidNowBdt", value)}
+          onChange={(value) => correcting.set("paidNowMoney", value)}
           type="number"
-          value={correcting.typed.paidNowBdt ?? ""}
+          value={correcting.typed.paidNowMoney ?? ""}
         />
         <CorrectionAnswer
           label={t("baki.promisedByOptional")}
@@ -131,8 +131,8 @@ const BuyerCell = ({ row }: { row: { original: DispatchRow } }) => (
   <span className="flex flex-col">
     <span className="font-medium">{row.original.buyerName}</span>
     <BakiOwed
-      bakiBdt={row.original.bakiBdt}
-      owingBdt={row.original.owingBdt}
+      bakiMoney={row.original.bakiMoney}
+      owingMoney={row.original.owingMoney}
       promisedBy={row.original.promisedBy}
     />
   </span>
@@ -158,7 +158,8 @@ const PriceCell = ({ row }: { row: { original: DispatchRow } }) => {
   const { language } = useLanguage();
   return (
     <span className="whitespace-nowrap">
-      ৳{formatNumber(row.original.pricePerLitreBdt, language)}
+      {currencySign()}
+      {formatNumber(row.original.pricePerLitreMoney, language)}
     </span>
   );
 };
@@ -197,7 +198,7 @@ const dispatchColumns = column.columns([
     cell: LitresCell,
     meta: { align: "end" },
   }),
-  column.accessor("pricePerLitreBdt", {
+  column.accessor("pricePerLitreMoney", {
     header: listHeader("dispatch.price"),
     cell: PriceCell,
     meta: { align: "end" },
@@ -230,15 +231,16 @@ const DispatchCard = ({ row }: { row: DispatchRow }) => {
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="font-medium">{row.buyerName}</span>
         <BakiOwed
-          bakiBdt={row.bakiBdt}
-          owingBdt={row.owingBdt}
+          bakiMoney={row.bakiMoney}
+          owingMoney={row.owingMoney}
           promisedBy={row.promisedBy}
         />
         <span className="font-semibold tabular-nums">
           {formatNumber(row.litres, language)} {t("dispatch.litres")}
           <span className="text-muted-foreground text-xs font-normal">
             {" "}
-            · ৳{formatNumber(row.pricePerLitreBdt, language)}
+            · {currencySign()}
+            {formatNumber(row.pricePerLitreMoney, language)}
           </span>
         </span>
         <span className="text-muted-foreground text-xs">

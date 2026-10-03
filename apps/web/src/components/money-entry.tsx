@@ -1,7 +1,12 @@
 import type { PaymentMethod } from "@OpenFarm/domain";
 import { farmDayOf } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
-import { formatDate, formatDigits, formatNumber } from "@OpenFarm/i18n";
+import {
+  currencySign,
+  formatDate,
+  formatDigits,
+  formatNumber,
+} from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import {
   Dialog,
@@ -133,7 +138,7 @@ const EntrySummary = ({
   }
   return (
     <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm tabular-nums">
-      {t(direction === "in" ? "byHand.in" : "byHand.out")} · ৳
+      {t(direction === "in" ? "byHand.in" : "byHand.out")} · {currencySign()}
       {formatNumber(taka, language)}
     </p>
   );
@@ -217,7 +222,7 @@ export type EnterMoneyStart = Partial<
 /** The entry the farm says this one looks like a second of, as it said it. */
 interface LooksLike {
   name: string | null;
-  amountBdt: number;
+  amountMoney: number;
   day: string;
   categoryBn: string | null;
   categoryEn: string | null;
@@ -265,7 +270,7 @@ const LooksEnteredDialog = ({
           <>
             {t("byHand.looksEnteredSaid", {
               by: twin.recordedByName ?? t("byHand.somebody"),
-              amount: taka(twin.amountBdt),
+              amount: taka(twin.amountMoney),
               name: twin.name ?? "",
               day: formatDate(new Date(twin.day), language, "date"),
               category: category ?? "",
@@ -350,7 +355,7 @@ export const EnterMoneySheet = ({
     chosen
       ? {
           categoryId: chosen.id,
-          amountBdt: Number(typed.amount),
+          amountMoney: Number(typed.amount),
           occurredOn,
           counterparty: { name: typed.counterparty.trim() },
           paymentMethod,
@@ -455,7 +460,7 @@ export const EnterMoneySheet = ({
           {isWage ? (
             <WageDrawsNote
               name={typed.counterparty}
-              wageBdt={Number(typed.amount)}
+              wageMoney={Number(typed.amount)}
             />
           ) : null}
 
@@ -548,11 +553,11 @@ export const ReceiptLink = ({ id }: { id: string }) => {
 export const CorrectEntered = ({
   entered,
 }: {
-  entered: { id: string; amountBdt: number; note: string | null };
+  entered: { id: string; amountMoney: number; note: string | null };
 }) => {
   const { t } = useLanguage();
   const correcting = useCorrecting({
-    amountBdt: amount(entered.amountBdt),
+    amountMoney: amount(entered.amountMoney),
     note: note(entered.note),
   });
   // A receipt that came later changes no figure, and is a Correction all the same.
@@ -579,9 +584,9 @@ export const CorrectEntered = ({
       <CorrectionAnswer
         inputMode="numeric"
         label={t("byHand.amount")}
-        onChange={(value) => correcting.set("amountBdt", value)}
+        onChange={(value) => correcting.set("amountMoney", value)}
         type="number"
-        value={correcting.typed.amountBdt ?? ""}
+        value={correcting.typed.amountMoney ?? ""}
       />
       <CorrectionAnswer
         label={t("byHand.note")}

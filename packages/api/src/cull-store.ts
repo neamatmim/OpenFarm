@@ -76,14 +76,14 @@ export const cullList = async (
   const since = new Date(now.getTime() - farm.cullMilkPriceDays * DAY_MS);
   const dispatched = await db.query.dispatch.findMany({
     where: { farmId: farm.id, dispatchedAt: { gte: since, lte: now } },
-    columns: { id: true, litres: true, pricePerLitreBdt: true },
+    columns: { id: true, litres: true, pricePerLitreMoney: true },
   });
   // Milk a buyer never paid for, and the Owner wrote off, did not fetch its price.
   const writtenOff = await writtenOffByItem(db, farm.id);
   const price = milkPriceOf(
     dispatched.map((one) => ({
       litres: Number(one.litres),
-      pricePerLitreBdt: fetchedPerLitre(one, writtenOff),
+      pricePerLitreMoney: fetchedPerLitre(one, writtenOff),
     }))
   );
   const stoodBy = groupedBy(costs.history, (line) => line.animalId);

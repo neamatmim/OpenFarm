@@ -68,7 +68,7 @@ const NextSum = ({ next }: { next: MonthlySum | null }) => {
       {next ? (
         <>
           <dd className="text-lg font-semibold tabular-nums">
-            {taka(next.bdt)}
+            {taka(next.amount)}
           </dd>
           <dd className="text-muted-foreground text-xs">
             <SaidDate at={next.dueOn} />
@@ -109,11 +109,11 @@ export const HowToPay = ({ paying }: { paying: Paying | null }) => {
                 {t("portal.pay.dueNow")}
               </dt>
               <dd className="text-lg font-semibold tabular-nums">
-                {taka(monthly.dueBdt)}
+                {taka(monthly.dueMoney)}
               </dd>
               <dd className="text-muted-foreground text-xs">
                 {t("portal.pay.owedAltogether", {
-                  owed: taka(paying.owedBdt),
+                  owed: taka(paying.owedMoney),
                 })}
               </dd>
             </div>
@@ -123,7 +123,7 @@ export const HowToPay = ({ paying }: { paying: Paying | null }) => {
                 {t("portal.pay.owed")}
               </dt>
               <dd className="text-lg font-semibold tabular-nums">
-                {taka(paying.owedBdt)}
+                {taka(paying.owedMoney)}
               </dd>
             </div>
           )}

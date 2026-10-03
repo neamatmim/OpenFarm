@@ -161,9 +161,9 @@ const saleView = (
   row:
     | {
         id: string;
-        priceBdt: number;
-        bakiBdt: number;
-        brokerBdt: number;
+        priceMoney: number;
+        bakiMoney: number;
+        brokerMoney: number;
         promisedBy: string | null;
         weightKg: string;
         destination: string;
@@ -179,12 +179,12 @@ const saleView = (
   row
     ? {
         id: row.id,
-        priceBdt: row.priceBdt,
+        priceMoney: row.priceMoney,
         // What her buyer still owed as she left, and the day he promised to pay it by: her Baki at the gate.
-        bakiBdt: row.bakiBdt,
+        bakiMoney: row.bakiMoney,
         promisedBy: row.promisedBy,
         /** What the broker at the haat took for this sale; nothing where none was used. */
-        brokerBdt: row.brokerBdt,
+        brokerMoney: row.brokerMoney,
         weightKg: Number(row.weightKg),
         destination: row.destination,
         vehicle: row.vehicle,
@@ -203,7 +203,7 @@ const saleShown = async (
 ) => {
   const shown = saleView(row);
   return shown
-    ? { ...shown, owingBdt: await owingOnHerSale(db, farmId, row) }
+    ? { ...shown, owingMoney: await owingOnHerSale(db, farmId, row) }
     : null;
 };
 
@@ -316,8 +316,8 @@ const intakeView = (
   row:
     | {
         id: string;
-        purchasePriceBdt: number;
-        hasilBdt: number;
+        purchasePriceMoney: number;
+        hasilMoney: number;
         buyingTrip: { id: string; wentTo: string } | null;
         weightKg: string;
         targetWeightKg: string;
@@ -333,8 +333,8 @@ const intakeView = (
   row
     ? {
         id: row.id,
-        purchasePriceBdt: row.purchasePriceBdt,
-        hasilBdt: row.hasilBdt,
+        purchasePriceMoney: row.purchasePriceMoney,
+        hasilMoney: row.hasilMoney,
         buyingTrip: row.buyingTrip
           ? { id: row.buyingTrip.id, wentTo: row.buyingTrip.wentTo }
           : null,

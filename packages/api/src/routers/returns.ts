@@ -82,7 +82,7 @@ export const returnsRouter = {
     .input(
       z.object({
         animalId: z.string(),
-        priceBdt: z.number().int().min(0).max(10_000_000),
+        priceMoney: z.number().int().min(0).max(10_000_000),
         asOf: farmDay.optional(),
         note: z.string().trim().min(1).max(300),
       })
@@ -109,7 +109,7 @@ export const returnsRouter = {
       }
       const asOf = input.asOf ?? farmDayOf(her.createdAt);
       const price = {
-        priceBdt: input.priceBdt,
+        priceMoney: input.priceMoney,
         asOf,
         note: input.note,
         setBy: context.actor.id,
@@ -122,12 +122,12 @@ export const returnsRouter = {
           action: her.entryPrice ? "update" : "create",
           before: her.entryPrice
             ? {
-                priceBdt: her.entryPrice.priceBdt,
+                priceMoney: her.entryPrice.priceMoney,
                 asOf: her.entryPrice.asOf,
                 note: her.entryPrice.note,
               }
             : undefined,
-          after: { priceBdt: input.priceBdt, asOf, note: input.note },
+          after: { priceMoney: input.priceMoney, asOf, note: input.note },
         },
         (tx) =>
           tx
@@ -157,13 +157,15 @@ export const returnsRouter = {
     .input(
       z.object({
         kind: z.enum(HEAD_PRICE_KINDS),
-        lowBdt: z.number().int().max(10_000_000),
-        highBdt: z.number().int().max(10_000_000),
+        lowMoney: z.number().int().max(10_000_000),
+        highMoney: z.number().int().max(10_000_000),
       })
     )
     .handler(async ({ context, input }) => {
       const inOrder =
-        input.lowBdt > 0 && input.highBdt > 0 && input.lowBdt <= input.highBdt;
+        input.lowMoney > 0 &&
+        input.highMoney > 0 &&
+        input.lowMoney <= input.highMoney;
       if (!inOrder) {
         throw new ORPCError("BAD_REQUEST", {
           message:
@@ -176,8 +178,8 @@ export const returnsRouter = {
         where: { farmId: context.farm.id, kind: input.kind },
       });
       const price = {
-        lowBdt: input.lowBdt,
-        highBdt: input.highBdt,
+        lowMoney: input.lowMoney,
+        highMoney: input.highMoney,
         setBy: context.actor.id,
         setAt: now,
       };
@@ -188,9 +190,9 @@ export const returnsRouter = {
           entityId: id,
           action: set ? "update" : "create",
           before: set
-            ? { lowBdt: set.lowBdt, highBdt: set.highBdt }
+            ? { lowMoney: set.lowMoney, highMoney: set.highMoney }
             : undefined,
-          after: { lowBdt: input.lowBdt, highBdt: input.highBdt },
+          after: { lowMoney: input.lowMoney, highMoney: input.highMoney },
         },
         (tx) =>
           tx
@@ -281,7 +283,7 @@ export const returnsRouter = {
     .input(
       z.object({
         joiningId: z.string(),
-        rateBdtPerKg: z.number().positive().max(100_000),
+        rateMoneyPerKg: z.number().positive().max(100_000),
         note: z.string().trim().min(1).max(300),
       })
     )
@@ -306,10 +308,10 @@ export const returnsRouter = {
         });
       }
       const price = {
-        priceBdt: priceAtWeight(weighed.weightKg, input.rateBdtPerKg),
+        priceMoney: priceAtWeight(weighed.weightKg, input.rateMoneyPerKg),
         weighInId: weighed.id,
         weightKg: weighed.weightKg,
-        rateBdtPerKg: input.rateBdtPerKg,
+        rateMoneyPerKg: input.rateMoneyPerKg,
         note: input.note,
         pricedBy: context.actor.id,
         pricedAt: now,
@@ -320,22 +322,22 @@ export const returnsRouter = {
           entityId: joining.id,
           action: "update",
           before: {
-            priceBdt: joining.priceBdt,
-            rateBdtPerKg:
-              joining.rateBdtPerKg === null
+            priceMoney: joining.priceMoney,
+            rateMoneyPerKg:
+              joining.rateMoneyPerKg === null
                 ? null
-                : Number(joining.rateBdtPerKg),
+                : Number(joining.rateMoneyPerKg),
             note: joining.note,
           },
           after: {
-            priceBdt: price.priceBdt,
-            rateBdtPerKg: price.rateBdtPerKg,
+            priceMoney: price.priceMoney,
+            rateMoneyPerKg: price.rateMoneyPerKg,
             weightKg: price.weightKg,
             note: price.note,
           },
         },
         (tx) => priceTheJoining(tx, joining.id, price)
       );
-      return { weightKg: price.weightKg, priceBdt: price.priceBdt };
+      return { weightKg: price.weightKg, priceMoney: price.priceMoney };
     }),
 };

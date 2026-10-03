@@ -15,20 +15,20 @@ const as = (role: "owner" | "manager", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 const plan = {
-  targetCapitalBdt: 1_000_000,
-  floorBdt: 0,
+  targetCapitalMoney: 1_000_000,
+  floorMoney: 0,
   decideBy: "2047-01-20",
   targetWindowStart: "2047-05-17",
   targetWindowEnd: "2047-05-19",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 20,
-  cattleBudgetBdt: 1_000_000,
+  cattleBudgetMoney: 1_000_000,
 };
 
 const paper = {
   investorsPercent: 60,
   arbitrator: `মাওলানা ${suffix}`,
-  stampValueBdt: 300,
+  stampValueMoney: 300,
   stampedOn: "2047-01-02",
   stampSerial: `AA ${suffix}`,
 };
@@ -42,20 +42,20 @@ let penId = "";
 const outingWithFloat = async (
   owner: Owner,
   which: number,
-  floatBdt: number,
-  tripCostBdt: number
+  floatMoney: number,
+  tripCostMoney: number
 ) => {
   const trip = await owner.client.trips.record({
     wentTo: `হাট ${which} ${suffix}`,
     wentOn: "2047-01-05",
-    brokerBdt: tripCostBdt,
-    transportBdt: 0,
-    keepBdt: 0,
+    brokerMoney: tripCostMoney,
+    transportMoney: 0,
+    keepMoney: 0,
   });
   await owner.client.ventures.drawFloat({
     ventureId,
     buyingTripId: trip.id,
-    amountBdt: floatBdt,
+    amountMoney: floatMoney,
     movedOn: "2047-01-05",
     paymentMethod: "bank",
     reference: `FLT-${suffix}-${which}`,
@@ -66,8 +66,8 @@ const outingWithFloat = async (
 /** One bull off that lorry, bought with the Venture's money. */
 const bull = async (
   buyingTripId: string,
-  priceBdt: number,
-  hasilBdt: number,
+  priceMoney: number,
+  hasilMoney: number,
   instant: string
 ) => {
   const manager = await as("manager", instant);
@@ -75,8 +75,8 @@ const bull = async (
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: priceBdt,
-    hasilBdt,
+    purchasePriceMoney: priceMoney,
+    hasilMoney,
     weightKg: 200,
     estimatedAgeMonths: 20,
     buyingTripId,
@@ -119,7 +119,7 @@ beforeAll(async () => {
   });
   await owner.client.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: 1_000_000,
+    amountMoney: 1_000_000,
     movedOn: "2047-01-03",
     paymentMethod: "bank",
     reference: `TRF-${suffix}`,
@@ -136,14 +136,14 @@ describe("the Float comes home", () => {
     // 185,000 of animals and 5,000 of lorry and broker, so 10,000 comes home.
     const counted = await owner.client.ventures.reconcileFloat({
       buyingTripId: trip,
-      cashBackBdt: 10_000,
+      cashBackMoney: 10_000,
       movedOn: "2047-01-06",
       reference: `DEP-${suffix}-1`,
     });
     expect(counted).toMatchObject({
-      animalsBdt: 185_000,
-      tripBdt: 5000,
-      cashBackBdt: 10_000,
+      animalsMoney: 185_000,
+      tripMoney: 5000,
+      cashBackMoney: 10_000,
       animals: 2,
     });
 
@@ -151,10 +151,10 @@ describe("the Float comes home", () => {
     const venture = ventures.find((one) => one.id === ventureId);
     // The ten thousand is back in the bank, and it is cattle money again.
     expect(venture).toMatchObject({
-      openFloatBdt: 0,
-      spentBdt: 190_000,
-      balanceBdt: 810_000,
-      cattleBudgetHeldBdt: 810_000,
+      openFloatMoney: 0,
+      spentMoney: 190_000,
+      balanceMoney: 810_000,
+      cattleBudgetHeldMoney: 810_000,
     });
   });
 
@@ -166,26 +166,26 @@ describe("the Float comes home", () => {
     await expect(
       owner.client.ventures.reconcileFloat({
         buyingTripId: trip,
-        cashBackBdt: 10_000,
+        cashBackMoney: 10_000,
         movedOn: "2047-01-08",
         reference: `DEP-${suffix}-2a`,
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
       // Thirty thousand nobody can account for, and the refusal says which way.
-      data: { refusal: "float_short", gapBdt: 30_000 },
+      data: { refusal: "float_short", gapMoney: 30_000 },
     });
     // And more back than went out is just as wrong.
     await expect(
       owner.client.ventures.reconcileFloat({
         buyingTripId: trip,
-        cashBackBdt: 50_000,
+        cashBackMoney: 50_000,
         movedOn: "2047-01-08",
         reference: `DEP-${suffix}-2b`,
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
-      data: { refusal: "float_over", gapBdt: 10_000 },
+      data: { refusal: "float_over", gapMoney: 10_000 },
     });
   });
 
@@ -193,11 +193,11 @@ describe("the Float comes home", () => {
     const owner = await as("owner", "2047-01-09T04:00:00.000Z");
     const before = await owner.client.ventures.list();
     const wasOut =
-      before.find((one) => one.id === ventureId)?.openFloatBdt ?? 0;
+      before.find((one) => one.id === ventureId)?.openFloatMoney ?? 0;
     await outingWithFloat(owner, 9, 25_000, 0);
     const after = await owner.client.ventures.list();
     // Money the farm has let go of and not yet counted is money the Venture is told about.
-    expect(after.find((one) => one.id === ventureId)?.openFloatBdt).toBe(
+    expect(after.find((one) => one.id === ventureId)?.openFloatMoney).toBe(
       wasOut + 25_000
     );
   });
@@ -208,12 +208,12 @@ describe("the Float comes home", () => {
     await bull(trip, 50_000, 0, "2047-01-10T06:00:00.000Z");
     await owner.client.ventures.reconcileFloat({
       buyingTripId: trip,
-      cashBackBdt: 0,
+      cashBackMoney: 0,
     });
     await expect(
       owner.client.ventures.reconcileFloat({
         buyingTripId: trip,
-        cashBackBdt: 0,
+        cashBackMoney: 0,
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -227,7 +227,7 @@ describe("the Float comes home", () => {
     await bull(trip, 70_000, 0, "2047-01-11T06:00:00.000Z");
     await owner.client.ventures.reconcileFloat({
       buyingTripId: trip,
-      cashBackBdt: 0,
+      cashBackMoney: 0,
     });
     // An animal written up late would falsify a sum the Owner has already signed.
     await expect(
@@ -242,7 +242,7 @@ describe("the Float comes home", () => {
       manager.client.trips.correct({
         id: trip,
         reason: "লরির ভাড়া বেশি ছিল",
-        changes: { transportBdt: { from: 0, to: 4000 } },
+        changes: { transportMoney: { from: 0, to: 4000 } },
       })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
@@ -257,7 +257,7 @@ describe("the Float comes home", () => {
         penId,
         sex: "male",
         seller: { name: `ব্যাপারী ${suffix}` },
-        purchasePriceBdt: 60_000,
+        purchasePriceMoney: 60_000,
         weightKg: 200,
         estimatedAgeMonths: 20,
         buyingTripId: trip,
@@ -274,14 +274,14 @@ describe("the Float comes home", () => {
     const her = await bull(trip, 60_000, 0, "2047-01-13T06:00:00.000Z");
     await owner.client.ventures.reconcileFloat({
       buyingTripId: trip,
-      cashBackBdt: 0,
+      cashBackMoney: 0,
     });
     const later = await as("manager", "2047-01-13T08:00:00.000Z");
     await expect(
       later.client.intake.correct({
         id: her.intakeId,
         reason: "দাম ভুল লেখা হয়েছিল",
-        changes: { purchasePriceBdt: { from: 60_000, to: 55_000 } },
+        changes: { purchasePriceMoney: { from: 60_000, to: 55_000 } },
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -296,7 +296,7 @@ describe("the Float comes home", () => {
     await expect(
       owner.client.ventures.reconcileFloat({
         buyingTripId: trip,
-        cashBackBdt: 10_000,
+        cashBackMoney: 10_000,
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -306,7 +306,7 @@ describe("the Float comes home", () => {
     await expect(
       manager.client.ventures.reconcileFloat({
         buyingTripId: trip,
-        cashBackBdt: 10_000,
+        cashBackMoney: 10_000,
         movedOn: "2047-01-12",
         reference: `DEP-${suffix}-5`,
       })

@@ -63,8 +63,8 @@ beforeAll(async () => {
   const manager = await as("manager", CAME);
   const trip = await manager.client.trips.record({
     wentTo: HAAT,
-    brokerBdt: 0,
-    transportBdt: 3000,
+    brokerMoney: 0,
+    transportMoney: 3000,
     wentOn: new Date(CAME),
   });
   const tags: string[] = [];
@@ -75,7 +75,7 @@ beforeAll(async () => {
       penId: pen.id,
       sex: "male",
       seller: { name: seller },
-      purchasePriceBdt: 90_000,
+      purchasePriceMoney: 90_000,
       weightKg: 250,
       estimatedAgeMonths: 20,
       arrivedAt: new Date(CAME),

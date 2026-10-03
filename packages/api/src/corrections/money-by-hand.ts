@@ -58,7 +58,7 @@ const loadEntered = async (tx: Tx, farmId: string, id: string) => {
  */
 export const moneyByHandCorrectionInput = correctionInput({
   categoryId: changeOf(z.string(), z.string()),
-  amountBdt: changeOf(amountInput, z.number()),
+  amountMoney: changeOf(amountInput, z.number()),
   occurredOn: changeOf(farmDay, z.string()),
   counterparty: changeOf(counterpartyInput, z.string().nullable()),
   paymentMethod: paymentMethodChange,
@@ -129,7 +129,7 @@ const venturesOfEntered = async (
       chargedToAnimals: charges.get(spot.categoryId) ?? false,
       // The amount decides nothing here: the question is which animals it is split across, not how much
       // each carries. A share of nothing still names the mouth it was charged to.
-      bdt: 0,
+      amount: 0,
     });
     return cost ? [cost] : [];
   });
@@ -163,7 +163,7 @@ export const moneyByHandCorrection: CorrectionKind<
   shown: (_tx, row) =>
     Promise.resolve({
       categoryId: row.categoryId,
-      amountBdt: row.amountBdt,
+      amountMoney: row.amountMoney,
       occurredOn: farmDayOf(row.occurredAt),
       counterparty: row.counterparty?.name ?? null,
       paymentMethod: row.paymentMethod,
@@ -182,7 +182,7 @@ export const moneyByHandCorrection: CorrectionKind<
     // A wage that took Wage Draws booked only what was paid on the day: its amount, the person or the month put right
     // alone would leave the draws taken against the wrong figure.
     const touchesTheWage =
-      to.amountBdt !== undefined ||
+      to.amountMoney !== undefined ||
       to.counterparty !== undefined ||
       to.wageMonth !== undefined;
     if (touchesTheWage && (await drawsTakenBy(tx, row.id)) > 0) {
@@ -220,7 +220,7 @@ export const moneyByHandCorrection: CorrectionKind<
       {
         source: "by_hand",
         sourceId: row.id,
-        amountBdt: to.amountBdt ?? row.amountBdt,
+        amountMoney: to.amountMoney ?? row.amountMoney,
         occurredAt:
           to.occurredOn === undefined
             ? row.occurredAt

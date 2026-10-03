@@ -31,14 +31,14 @@ const ACCOUNT = {
 };
 
 const TERMS = {
-  targetCapitalBdt: 500_000,
-  floorBdt: 300_000,
+  targetCapitalMoney: 500_000,
+  floorMoney: 300_000,
   decideBy: "2058-01-20",
   targetWindowStart: "2058-06-01",
   targetWindowEnd: "2058-06-10",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 10,
-  cattleBudgetBdt: 400_000,
+  cattleBudgetMoney: 400_000,
 };
 
 /** A Venture of ten Units at fifty thousand each, shown in the portal. */
@@ -66,7 +66,7 @@ const signedUp = async (name: string, ventureId: string, units: number) => {
     units,
     investorsPercent: 60,
     arbitrator: `সালিস ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2058-01-02",
     stampSerial: `S-${them.id.slice(-8)}`,
   });
@@ -78,11 +78,11 @@ const signedUp = async (name: string, ventureId: string, units: number) => {
   return { ...them, agreementId: agreement.id, payInCode: agreement.payInCode };
 };
 
-const paidIn = async (agreementId: string, amountBdt: number) => {
+const paidIn = async (agreementId: string, amountMoney: number) => {
   const owner = await as("owner");
   await owner.ventures.takeCapital({
     agreementId,
-    amountBdt,
+    amountMoney,
     movedOn: "2058-01-05",
     paymentMethod: "bank",
     reference: `BEFTN ${agreementId.slice(-6)}`,
@@ -193,7 +193,7 @@ describe("how to pay, on the Investor's own Agreement", () => {
     });
 
     expect(theirs.howToPay).toEqual({
-      owedBdt: 200_000,
+      owedMoney: 200_000,
       payInCode: karim.payInCode,
       decideBy: "2058-01-20",
       account: ACCOUNT,
@@ -212,7 +212,7 @@ describe("how to pay, on the Investor's own Agreement", () => {
     const theirs = await rahim.client.portal.venture({
       agreementId: rahim.agreementId,
     });
-    expect(theirs.howToPay?.owedBdt).toBe(150_000);
+    expect(theirs.howToPay?.owedMoney).toBe(150_000);
   });
 
   it("is gone once the capital is all in", async () => {
@@ -238,7 +238,7 @@ describe("how to pay, on the Investor's own Agreement", () => {
       agreementId: nasir.agreementId,
     });
     expect(theirs.howToPay).toEqual({
-      owedBdt: 50_000,
+      owedMoney: 50_000,
       payInCode: nasir.payInCode,
       decideBy: "2058-01-20",
       account: null,
@@ -291,8 +291,8 @@ describe("how to pay, on the Investor's own Agreement", () => {
     });
     expect(theirs.howToPay).toMatchObject({
       // Eight Units' Monthly Sums, none of them due on the first of January.
-      owedBdt: 80_000,
-      monthly: { dueBdt: 0, next: { dueOn: "2058-02-10", bdt: 20_000 } },
+      owedMoney: 80_000,
+      monthly: { dueMoney: 0, next: { dueOn: "2058-02-10", amount: 20_000 } },
     });
   });
 
@@ -323,13 +323,13 @@ describe("a Venture an Investor has not signed for", () => {
     expect(offered.find((one) => one.id === ventureId)).toEqual({
       id: ventureId,
       name: `দেখানো হিসাব ভেঞ্চার ${suffix}`,
-      unitPriceBdt: 50_000,
-      targetCapitalBdt: 500_000,
-      floorBdt: 300_000,
+      unitPriceMoney: 50_000,
+      targetCapitalMoney: 500_000,
+      floorMoney: 300_000,
       decideBy: "2058-01-20",
       targetWindow: { start: "2058-06-01", end: "2058-06-10" },
-      cattleBudgetBdt: 400_000,
-      runningBudgetBdt: 100_000,
+      cattleBudgetMoney: 400_000,
+      runningBudgetMoney: 100_000,
       // Paid all before buying: no Monthly Sums, and nothing of anybody's money.
       capitalPaid: "before_buying",
       monthly: null,

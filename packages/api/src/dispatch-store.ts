@@ -27,11 +27,11 @@ export interface DispatchRow {
   buyerName: string;
   buyerAddress: string | null;
   challan: string | null;
-  pricePerLitreBdt: number;
+  pricePerLitreMoney: number;
   fatPercent: number | null;
   snfPercent: number | null;
   /** What the buyer still owed for it as it left, and the farm day he promised to pay by, when he named one. */
-  bakiBdt: number;
+  bakiMoney: number;
   promisedBy: string | null;
   note: string | null;
 }
@@ -53,10 +53,10 @@ export const dispatchesBetween = async (
     buyerName: row.buyerName,
     buyerAddress: row.buyerAddress,
     challan: row.challan,
-    pricePerLitreBdt: Number(row.pricePerLitreBdt),
+    pricePerLitreMoney: Number(row.pricePerLitreMoney),
     fatPercent: row.fatPercent === null ? null : Number(row.fatPercent),
     snfPercent: row.snfPercent === null ? null : Number(row.snfPercent),
-    bakiBdt: row.bakiBdt,
+    bakiMoney: row.bakiMoney,
     promisedBy: row.promisedBy,
     note: row.note,
   }));
@@ -105,7 +105,7 @@ export const dispatchFields = {
   dispatchedAt: z.coerce.date(),
   litres: z.number().positive().max(100_000),
   challan: z.string().trim().min(1).max(60),
-  pricePerLitreBdt: z.number().positive().max(10_000),
+  pricePerLitreMoney: z.number().positive().max(10_000),
   fatPercent: z.number().min(0).max(20),
   snfPercent: z.number().min(0).max(20),
   note: z.string().trim().min(1).max(300),
@@ -122,8 +122,8 @@ export const readDispatch = async (tx: Tx, id: string) => {
 /** What a Dispatch's milk came to: its litres at its price, to the poisha. */
 export const worthOfDispatch = (row: {
   litres: string | number;
-  pricePerLitreBdt: string | number;
-}): number => roundTaka(Number(row.litres) * Number(row.pricePerLitreBdt));
+  pricePerLitreMoney: string | number;
+}): number => roundTaka(Number(row.litres) * Number(row.pricePerLitreMoney));
 
 /**
  * Books a Dispatch's milk sale as it now stands: what the buyer paid for it as it left — its litres at its price,
@@ -140,15 +140,15 @@ export const bookDispatchMoney = async (
   if (!row) {
     return;
   }
-  const paidBdt = paidAtTheGate(worthOfDispatch(row), row.bakiBdt);
+  const paidMoney = paidAtTheGate(worthOfDispatch(row), row.bakiMoney);
   if (
-    paidBdt > 0 ||
+    paidMoney > 0 ||
     (await moneySnapshotOf(tx, row.farmId, "dispatch", row.id))
   ) {
     await bookMoney(tx, booking, {
       source: "dispatch",
       sourceId: row.id,
-      amountBdt: paidBdt,
+      amountMoney: paidMoney,
       occurredAt: row.dispatchedAt,
       counterpartyId: row.buyerId,
       paymentMethod,

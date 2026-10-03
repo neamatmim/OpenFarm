@@ -80,9 +80,9 @@ const termsToOpenOn = (
     return null;
   }
   const terms = monthlyTermsOf({
-    unitPriceBdt: input.unitPriceBdt,
-    targetCapitalBdt: input.targetCapitalBdt,
-    cattleBudgetBdt: plan.cattleBudgetBdt,
+    unitPriceMoney: input.unitPriceMoney,
+    targetCapitalMoney: input.targetCapitalMoney,
+    cattleBudgetMoney: plan.cattleBudgetMoney,
     decideBy: input.decideBy,
     targetWindowStart: input.targetWindowStart,
   });
@@ -120,11 +120,11 @@ const assertReadyToBuy = async (
   const standing = held.get(row.id);
   const counted = towardsTheFloor({
     capitalPaid: row.capitalPaid,
-    heldBdt: standing ? balanceOf(standing) : 0,
+    heldMoney: standing ? balanceOf(standing) : 0,
     signedUnits,
-    unitPriceBdt: row.unitPriceBdt,
+    unitPriceMoney: row.unitPriceMoney,
   });
-  if (counted < row.floorBdt) {
+  if (counted < row.floorMoney) {
     throw new ORPCError("BAD_REQUEST", {
       message: "The Venture holds less than its Floor",
       data: { refusal: "venture_under_floor" },
@@ -132,14 +132,14 @@ const assertReadyToBuy = async (
   }
   // Paid by the month, the buying waits on every signed Unit's Cattle Part as well: the Monthly Sums keep the animals
   // and buy none, so a lorry sent on part of the cattle money buys a herd short of the one everybody signed for.
-  const shortBdt = cattleMoneyShortOf(
+  const shortMoney = cattleMoneyShortOf(
     row,
     standing ?? NOTHING_HELD,
     signedUnits
   );
-  if (shortBdt > 0) {
+  if (shortMoney > 0) {
     throw new ORPCError("BAD_REQUEST", {
-      message: `${shortBdt} taka of the signed Investors' cattle money has still to come`,
+      message: `${shortMoney} taka of the signed Investors' cattle money has still to come`,
       data: { refusal: "cattle_money_short" },
     });
   }
@@ -258,11 +258,11 @@ export const lifecycleProcedures = {
       );
       return rows.map((one) => ({
         ...ventureView(one, held.get(one.id), signed.get(one.id), {
-          warnBelowBdt: context.farm.runningBudgetWarnBdt,
+          warnBelowMoney: context.farm.runningBudgetWarnMoney,
           bank: checked.get(one.id) ?? NEVER_CHECKED,
           windUpDays: context.farm.windUpDays,
           stillHers: stillHers.get(one.id) ?? 0,
-          owedTheFarmBdt: owed.get(one.id) ?? 0,
+          owedTheFarmMoney: owed.get(one.id) ?? 0,
         }),
         /** Whether its Settlement has been approved. From then every Investor is being paid on figures
          *  written down, so the acts that would move them — a month reimbursed, the Owner's own money in,
@@ -270,7 +270,7 @@ export const lifecycleProcedures = {
         settlementApproved: approved.has(one.id),
         /** Paid by the month: what its Investors have missed of their Monthly Sums, past their seven days — which the
          *  Owner's own money may feed the animals through until it comes. Nothing for any other Venture. */
-        sumsMissedBdt: missed.get(one.id) ?? 0,
+        sumsMissedMoney: missed.get(one.id) ?? 0,
       }));
     }),
 
@@ -323,17 +323,17 @@ export const lifecycleProcedures = {
           name: row.name,
           state: row.state,
           /** What its capital was planned as, and what is left of each side of it. */
-          cattleBudgetBdt: budgets.cattleBudgetBdt,
-          runningBudgetBdt: budgets.runningBudgetBdt,
-          cattleBudgetHeldBdt: budgets.cattleBudgetHeldBdt,
-          runningBudgetHeldBdt: budgets.runningBudgetHeldBdt,
+          cattleBudgetMoney: budgets.cattleBudgetMoney,
+          runningBudgetMoney: budgets.runningBudgetMoney,
+          cattleBudgetHeldMoney: budgets.cattleBudgetHeldMoney,
+          runningBudgetHeldMoney: budgets.runningBudgetHeldMoney,
           /** What its animals have cost it so far. */
-          spentBdt: roundTaka(held.get(row.id)?.spentBdt ?? 0),
+          spentMoney: roundTaka(held.get(row.id)?.spentMoney ?? 0),
           /** What its animals have cost the Farm since the last Reimbursement, and the Farm is still owed. */
-          owedTheFarmBdt: owed.get(row.id) ?? 0,
+          owedTheFarmMoney: owed.get(row.id) ?? 0,
           runningBudgetLow:
-            budgets.runningBudgetHeldBdt - (owed.get(row.id) ?? 0) <
-            context.farm.runningBudgetWarnBdt,
+            budgets.runningBudgetHeldMoney - (owed.get(row.id) ?? 0) <
+            context.farm.runningBudgetWarnMoney,
           targetWindow: {
             start: row.targetWindowStart,
             end: row.targetWindowEnd,
@@ -359,7 +359,7 @@ export const lifecycleProcedures = {
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const plan = planned(input, context.farm);
-      if (plan.floorBdt > input.targetCapitalBdt) {
+      if (plan.floorMoney > input.targetCapitalMoney) {
         throw new ORPCError("BAD_REQUEST", {
           message:
             "The Floor cannot be more than the capital the Venture is after",
@@ -368,13 +368,13 @@ export const lifecycleProcedures = {
       }
       // What the Units can raise is all the capital the farm will take for it, so a Floor above that is one
       // no signature could ever reach: the run would stay Open for ever, waiting on money it may not accept.
-      if (plan.floorBdt > plan.units * input.unitPriceBdt) {
+      if (plan.floorMoney > plan.units * input.unitPriceMoney) {
         throw new ORPCError("BAD_REQUEST", {
           message: "The Floor cannot be more than the Units can raise",
           data: { refusal: "venture_floor_over_units" },
         });
       }
-      if (plan.cattleBudgetBdt > input.targetCapitalBdt) {
+      if (plan.cattleBudgetMoney > input.targetCapitalMoney) {
         throw new ORPCError("BAD_REQUEST", {
           message:
             "The Cattle Budget cannot be more than the capital it comes from",
@@ -398,16 +398,16 @@ export const lifecycleProcedures = {
             farmId: context.farm.id,
             ordinal: await nextVentureOrdinal(tx, context.farm.id),
             name: input.name,
-            targetCapitalBdt: input.targetCapitalBdt,
-            floorBdt: plan.floorBdt,
+            targetCapitalMoney: input.targetCapitalMoney,
+            floorMoney: plan.floorMoney,
             decideBy: input.decideBy,
             targetWindowStart: input.targetWindowStart,
             targetWindowEnd: input.targetWindowEnd,
-            unitPriceBdt: input.unitPriceBdt,
+            unitPriceMoney: input.unitPriceMoney,
             units: plan.units,
-            cattleBudgetBdt: plan.cattleBudgetBdt,
+            cattleBudgetMoney: plan.cattleBudgetMoney,
             capitalPaid: monthly ? "by_the_month" : "before_buying",
-            cattlePartBdt: monthly?.cattlePartBdt ?? null,
+            cattlePartMoney: monthly?.cattlePartMoney ?? null,
             monthlySums: monthly?.sums ?? null,
             firstSumDueOn: monthly?.firstDueOn ?? null,
             openedBy: context.actor.id,
@@ -556,7 +556,7 @@ export const lifecycleProcedures = {
                   animals: z.number().int().positive().max(500),
                   fromKg: z.number().positive().max(2000),
                   toKg: z.number().positive().max(2000),
-                  buyBdtPerKg: z.number().positive().max(100_000),
+                  buyMoneyPerKg: z.number().positive().max(100_000),
                   dailyGainKg: z.number().min(0).max(5),
                   /** The Breed the line buys; nothing for any Breed. */
                   breedId: z.string().min(1).nullable().default(null),
@@ -568,15 +568,15 @@ export const lifecycleProcedures = {
             )
             .min(1)
             .max(20),
-          saleLowBdtPerKg: z.number().positive().max(100_000),
-          saleHighBdtPerKg: z.number().positive().max(100_000),
+          saleLowMoneyPerKg: z.number().positive().max(100_000),
+          saleHighMoneyPerKg: z.number().positive().max(100_000),
           /** The share of its animals the Owner expects not to live to be sold. Half the herd is past planning. */
           deathsPercent: z.number().min(0).max(50).default(0),
           reason: z.string().trim().max(300).nullable().default(null),
         })
-        .refine((one) => one.saleLowBdtPerKg <= one.saleHighBdtPerKg, {
+        .refine((one) => one.saleLowMoneyPerKg <= one.saleHighMoneyPerKg, {
           message: "The low price is above the high one",
-          path: ["saleLowBdtPerKg"],
+          path: ["saleLowMoneyPerKg"],
         })
     )
     .handler(async ({ context, input }) => {
@@ -761,7 +761,7 @@ export const lifecycleProcedures = {
             ventureId: row.id,
             kind: "refund" as const,
             agreementId: one.agreementId,
-            amountBdt: one.amountBdt,
+            amountMoney: one.amountMoney,
             movedOn: sendingBack.get(one.id)?.movedOn ?? "",
             reference: sendingBack.get(one.id)?.reference ?? "",
             refundsId: one.id,

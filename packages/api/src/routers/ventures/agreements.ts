@@ -51,7 +51,7 @@ const signInput = z.object({
   investorsPercent: z.number().int().min(0).max(100),
   arbitrator: z.string().trim().min(1).max(200),
   /** What the stamp cost. A stamped instrument with no stamp on it is not one. */
-  stampValueBdt: money.refine((taka) => taka > 0, {
+  stampValueMoney: money.refine((taka) => taka > 0, {
     message: "A stamped paper has a stamp value",
   }),
   stampedOn: farmDay,
@@ -98,8 +98,8 @@ export const agreementsProcedures = {
         columns: {
           state: true,
           capitalPaid: true,
-          unitPriceBdt: true,
-          cattlePartBdt: true,
+          unitPriceMoney: true,
+          cattlePartMoney: true,
           monthlySums: true,
           firstSumDueOn: true,
         },
@@ -116,12 +116,12 @@ export const agreementsProcedures = {
           agreementId: { in: rows.map((row) => row.id) },
           kind: "capital_in",
         },
-        columns: { agreementId: true, amountBdt: true },
+        columns: { agreementId: true, amountMoney: true },
       })) {
         if (one.agreementId) {
           taken.set(
             one.agreementId,
-            (taken.get(one.agreementId) ?? 0) + one.amountBdt
+            (taken.get(one.agreementId) ?? 0) + one.amountMoney
           );
         }
       }
@@ -136,7 +136,7 @@ export const agreementsProcedures = {
         requestId: one.requestId,
         /** Capital this paper may still take: its Units' worth — their Cattle Part, while a Venture paid by the month
          *  gathers its capital — less what it has taken. */
-        capitalLeftBdt: Math.max(
+        capitalLeftMoney: Math.max(
           0,
           (run ? capitalItMayHold(one.units, run) : 0) -
             (taken.get(one.id) ?? 0)
@@ -146,9 +146,9 @@ export const agreementsProcedures = {
         sums: monthly
           ? sumsStandingOf({
               units: one.units,
-              unitPriceBdt: run?.unitPriceBdt ?? 0,
+              unitPriceMoney: run?.unitPriceMoney ?? 0,
               monthly,
-              paidBdt: taken.get(one.id) ?? 0,
+              paidMoney: taken.get(one.id) ?? 0,
               today,
             })
           : null,
@@ -161,7 +161,7 @@ export const agreementsProcedures = {
         arbitrator: one.arbitrator,
         stamp: {
           kind: one.stampKind,
-          valueBdt: one.stampValueBdt,
+          valueMoney: one.stampValueMoney,
           on: one.stampedOn,
           serial: one.stampSerial,
         },
@@ -233,7 +233,7 @@ export const agreementsProcedures = {
               arbitrator: input.arbitrator,
               stamp: {
                 kind: input.stampKind,
-                valueBdt: input.stampValueBdt,
+                valueMoney: input.stampValueMoney,
                 on: input.stampedOn,
                 serial: input.stampSerial,
               },

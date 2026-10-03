@@ -14,7 +14,7 @@ export const SIMILAR_WEIGHT_SHARE = 0.15;
 
 /** One animal the farm bought. */
 export interface Bought {
-  priceBdt: number;
+  priceMoney: number;
   weightKg: number;
   arrivedAt: Date;
 }
@@ -26,7 +26,7 @@ export interface Bought {
 export const lastBuysPerKg = (
   buys: readonly Bought[],
   { weightKg, now }: { weightKg: number; now: Date }
-): { bdtPerKg: number; animals: number; days: number } | null => {
+): { moneyPerKg: number; animals: number; days: number } | null => {
   if (weightKg <= 0) {
     return null;
   }
@@ -40,19 +40,19 @@ export const lastBuysPerKg = (
   if (near.length === 0) {
     return null;
   }
-  let bdt = 0;
+  let amount = 0;
   let kg = 0;
   for (const one of near) {
-    bdt += one.priceBdt;
+    amount += one.priceMoney;
     kg += one.weightKg;
   }
   return {
-    bdtPerKg: Math.round((bdt / kg) * 100) / 100,
+    moneyPerKg: Math.round((amount / kg) * 100) / 100,
     animals: near.length,
     days: LAST_BUYS_DAYS,
   };
 };
 
 /** How far this price a kilo is over (or, less than nothing, under) the last buys', a percent to a whole one. */
-export const againstLastBuys = (bdtPerKg: number, lastBdtPerKg: number) =>
-  Math.round(((bdtPerKg - lastBdtPerKg) / lastBdtPerKg) * 100);
+export const againstLastBuys = (moneyPerKg: number, lastMoneyPerKg: number) =>
+  Math.round(((moneyPerKg - lastMoneyPerKg) / lastMoneyPerKg) * 100);

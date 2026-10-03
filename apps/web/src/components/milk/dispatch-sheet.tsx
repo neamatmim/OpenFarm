@@ -123,12 +123,12 @@ export const DispatchSheet = ({
   );
   const handleType = (name: keyof Typed, value: string) =>
     setForm((current) => ({ ...current, [name]: value }));
-  const worthBdt = worthOf(Number(form.litres), Number(form.price));
+  const worthMoney = worthOf(Number(form.litres), Number(form.price));
   const complete =
     Number(form.litres) > 0 &&
     Number(form.price) > 0 &&
     form.buyerName.trim() !== "" &&
-    bakiComplete(baki, worthBdt, false);
+    bakiComplete(baki, worthMoney, false);
   const box = { draft: form, onType: handleType };
 
   return (
@@ -148,7 +148,7 @@ export const DispatchSheet = ({
             phone: written(form.buyerPhone),
           },
           challan: written(form.challan),
-          pricePerLitreBdt: Number(form.price),
+          pricePerLitreMoney: Number(form.price),
           fatPercent: typed(form.fat),
           snfPercent: typed(form.snf),
           note: written(form.note),
@@ -210,7 +210,7 @@ export const DispatchSheet = ({
         onType={(patch) => setBaki((current) => ({ ...current, ...patch }))}
         promiseRequired={false}
         typed={baki}
-        worthBdt={worthBdt}
+        worthMoney={worthMoney}
       />
       <div className="grid gap-4 sm:grid-cols-2">
         <DispatchInput {...box} label={t("dispatch.challan")} name="challan" />

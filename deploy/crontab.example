@@ -4,6 +4,7 @@
 #
 # cron has almost no environment, so the job sources its own before it runs. A missing
 # variable stops the script before it starts rather than halfway through.
+# On a farm outside Bangladesh, the zone here is its OPENFARM_TIME_ZONE (ADR 0013).
 CRON_TZ=Asia/Dhaka
 15 1 * * *  set -a; . /etc/openfarm/backup.env; set +a; cd /srv/openfarm && scripts/backup.sh nightly
 15 2 1 * *  set -a; . /etc/openfarm/backup.env; set +a; cd /srv/openfarm && scripts/backup.sh monthly

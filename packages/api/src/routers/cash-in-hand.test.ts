@@ -30,18 +30,18 @@ beforeAll(async () => {
 const handOf = async (role: "owner" | "manager") => {
   const owner = await as("owner");
   const hands = await owner.client.cash.inHand();
-  return hands.find((one) => one.userId === thePerson(role).id)?.bdt ?? 0;
+  return hands.find((one) => one.userId === thePerson(role).id)?.amount ?? 0;
 };
 
 const manureSold = async (
   role: "owner" | "manager",
-  amountBdt: number,
+  amountMoney: number,
   paymentMethod: "cash" | "bkash" = "cash"
 ) => {
   const client = await as(role);
   return await client.client.money.enter({
     categoryId: manureId,
-    amountBdt,
+    amountMoney,
     occurredOn: "2071-05-10",
     counterparty: { name: `গোবর ক্রেতা ${suffix}` },
     paymentMethod,
@@ -69,7 +69,7 @@ describe("cash in hand", () => {
     const manager = await as("manager");
     await manager.client.money.enter({
       categoryId: utilitiesId,
-      amountBdt: 1200,
+      amountMoney: 1200,
       occurredOn: "2071-05-10",
       counterparty: { name: `পল্লী বিদ্যুৎ ${suffix}` },
       paymentMethod: "cash",
@@ -84,14 +84,14 @@ describe("cash in hand", () => {
     await manager.client.cash.handOver({
       from: { userId: thePerson("manager").id },
       to: { userId: thePerson("owner").id },
-      amountBdt: 2000,
+      amountMoney: 2000,
     });
     expect(await handOf("manager")).toBe(managerBefore - 2000);
     expect(await handOf("owner")).toBe(ownerBefore + 2000);
     const mine = await manager.client.cash.movements({
       userId: thePerson("manager").id,
     });
-    expect(mine[0]).toMatchObject({ bdt: -2000, kind: "handover" });
+    expect(mine[0]).toMatchObject({ amount: -2000, kind: "handover" });
   });
 
   it("leaves a hand for the bank only with its slip", async () => {
@@ -100,14 +100,14 @@ describe("cash in hand", () => {
       owner.client.cash.handOver({
         from: { userId: thePerson("owner").id },
         to: { bank: true },
-        amountBdt: 1000,
+        amountMoney: 1000,
       })
     ).rejects.toMatchObject({ data: { refusal: "bank_needs_a_slip" } });
     const before = await handOf("owner");
     await owner.client.cash.handOver({
       from: { userId: thePerson("owner").id },
       to: { bank: true },
-      amountBdt: 1000,
+      amountMoney: 1000,
       reference: `জমা স্লিপ ${suffix}`,
     });
     expect(await handOf("owner")).toBe(before - 1000);
@@ -124,7 +124,7 @@ describe("cash in hand", () => {
       manager.client.cash.handOver({
         from: { userId: thePerson("owner").id },
         to: { userId: thePerson("manager").id },
-        amountBdt: 500,
+        amountMoney: 500,
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });

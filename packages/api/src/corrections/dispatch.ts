@@ -43,7 +43,7 @@ export const dispatchCorrectionInput = correctionInput({
   litres: changeOf(dispatchFields.litres, z.number()),
   buyer: changeOf(buyerInput, z.string()),
   challan: changeOf(dispatchFields.challan.nullable(), z.string().nullable()),
-  pricePerLitreBdt: changeOf(dispatchFields.pricePerLitreBdt, z.number()),
+  pricePerLitreMoney: changeOf(dispatchFields.pricePerLitreMoney, z.number()),
   fatPercent: changeOf(
     dispatchFields.fatPercent.nullable(),
     z.number().nullable()
@@ -56,7 +56,7 @@ export const dispatchCorrectionInput = correctionInput({
   paymentMethod: paymentMethodChange,
   /** Which Farm Account bKash or bank money names, and its transaction ID. */
   farmAccount: farmAccountChange,
-  paidNowBdt: changeOf(paidNowInput, z.number()),
+  paidNowMoney: changeOf(paidNowInput, z.number()),
   promisedBy: changeOf(promisedByInput.nullable(), z.string().nullable()),
 });
 
@@ -77,12 +77,12 @@ export const dispatchCorrection: CorrectionKind<
     litres: Number(row.litres),
     buyer: row.buyerName,
     challan: row.challan,
-    pricePerLitreBdt: Number(row.pricePerLitreBdt),
+    pricePerLitreMoney: Number(row.pricePerLitreMoney),
     fatPercent: figureOf(row.fatPercent),
     snfPercent: figureOf(row.snfPercent),
     note: row.note,
     paymentMethod: await paymentMethodOf(tx, row.farmId, "dispatch", row.id),
-    paidNowBdt: paidAtTheGate(worthOfDispatch(row), row.bakiBdt),
+    paidNowMoney: paidAtTheGate(worthOfDispatch(row), row.bakiMoney),
     promisedBy: row.promisedBy,
   }),
   shownAs: { buyer: (to) => to.name },
@@ -95,22 +95,22 @@ export const dispatchCorrection: CorrectionKind<
     const baki = bakiOrRefuse(
       bakiPutRight({
         before: {
-          worthBdt: worthOfDispatch(row),
-          bakiBdt: row.bakiBdt,
+          worthMoney: worthOfDispatch(row),
+          bakiMoney: row.bakiMoney,
           promisedBy: row.promisedBy,
         },
-        worthBdt: worthOfDispatch({
+        worthMoney: worthOfDispatch({
           litres: to.litres ?? row.litres,
-          pricePerLitreBdt: to.pricePerLitreBdt ?? row.pricePerLitreBdt,
+          pricePerLitreMoney: to.pricePerLitreMoney ?? row.pricePerLitreMoney,
         }),
-        paidNowBdt: to.paidNowBdt,
+        paidNowMoney: to.paidNowMoney,
         promisedBy: to.promisedBy,
         leftOn: farmDayOf(to.dispatchedAt ?? row.dispatchedAt),
         promiseRequired: false,
       })
     );
     const bakiMoved =
-      baki.bakiBdt !== row.bakiBdt || baki.promisedBy !== row.promisedBy;
+      baki.bakiMoney !== row.bakiMoney || baki.promisedBy !== row.promisedBy;
     const putRight = {
       ...(bakiMoved ? baki : {}),
       ...(to.dispatchedAt === undefined
@@ -118,9 +118,9 @@ export const dispatchCorrection: CorrectionKind<
         : { dispatchedAt: to.dispatchedAt }),
       ...(to.litres === undefined ? {} : { litres: to.litres.toFixed(2) }),
       ...(to.challan === undefined ? {} : { challan: to.challan }),
-      ...(to.pricePerLitreBdt === undefined
+      ...(to.pricePerLitreMoney === undefined
         ? {}
-        : { pricePerLitreBdt: to.pricePerLitreBdt.toFixed(2) }),
+        : { pricePerLitreMoney: to.pricePerLitreMoney.toFixed(2) }),
       ...(to.fatPercent === undefined
         ? {}
         : { fatPercent: twoPlaces(to.fatPercent) }),

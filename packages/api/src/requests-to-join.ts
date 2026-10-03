@@ -512,12 +512,12 @@ type RequestRow = Awaited<
  *  made and last changed. */
 const readAs = (
   one: RequestRow,
-  unitPriceBdt: number,
+  unitPriceMoney: number,
   history: readonly { at: Date }[]
 ) => ({
   id: one.id,
   units: one.units,
-  bdt: one.units * unitPriceBdt,
+  amount: one.units * unitPriceMoney,
   note: one.note,
   state: one.state,
   madeAt: one.createdAt,
@@ -775,7 +775,7 @@ export const requestsOf = async (
   const farmId = farm.id;
   const run = await db.query.venture.findFirst({
     where: { id: ventureId, farmId },
-    columns: { unitPriceBdt: true, units: true },
+    columns: { unitPriceMoney: true, units: true },
   });
   if (!run) {
     throw new ORPCError("NOT_FOUND", { message: "No such Venture" });
@@ -801,7 +801,7 @@ export const requestsOf = async (
     requests: rows.map((one) => {
       const history = changes.get(one.id) ?? [];
       return {
-        ...readAs(one, run.unitPriceBdt, history),
+        ...readAs(one, run.unitPriceMoney, history),
         investorId: one.investorId,
         /** For one still waiting, what saying yes would make the Investor count. */
         ifYes:
@@ -813,14 +813,14 @@ export const requestsOf = async (
     }),
     totals: {
       signedUnits: spokenFor.signed,
-      signedBdt: spokenFor.signed * run.unitPriceBdt,
+      signedMoney: spokenFor.signed * run.unitPriceMoney,
       /** Promised by a yes to somebody not yet signed. */
       promisedUnits: spokenFor.promised,
-      promisedBdt: spokenFor.promised * run.unitPriceBdt,
+      promisedMoney: spokenFor.promised * run.unitPriceMoney,
       /** What the Owner can still say yes to: the Units less those signed and those promised. */
       promisableUnits: spokenFor.promisable,
       waitingUnits,
-      waitingBdt: waitingUnits * run.unitPriceBdt,
+      waitingMoney: waitingUnits * run.unitPriceMoney,
     },
   };
 };
@@ -846,7 +846,7 @@ export const theirRequests = async (
       farmId,
       id: { in: [...new Set(rows.map((one) => one.ventureId))] },
     },
-    columns: { id: true, name: true, unitPriceBdt: true },
+    columns: { id: true, name: true, unitPriceMoney: true },
   });
   const ventureOf = new Map(ventures.map((one) => [one.id, one] as const));
   const changes = await changesOf(
@@ -870,7 +870,7 @@ export const theirRequests = async (
   return rows.map((one) => {
     const run = ventureOf.get(one.ventureId);
     return {
-      ...readAs(one, run?.unitPriceBdt ?? 0, changes.get(one.id) ?? []),
+      ...readAs(one, run?.unitPriceMoney ?? 0, changes.get(one.id) ?? []),
       ventureId: one.ventureId,
       ventureName: run?.name ?? "",
       /** The Agreement that answered it, for one signed: where their page leads. */

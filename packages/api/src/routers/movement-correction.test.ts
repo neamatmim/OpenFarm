@@ -15,14 +15,14 @@ const as = (role: "owner" | "manager", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 const plan = {
-  targetCapitalBdt: 1_000_000,
-  floorBdt: 500_000,
+  targetCapitalMoney: 1_000_000,
+  floorMoney: 500_000,
   decideBy: "2047-11-20",
   targetWindowStart: "2048-02-17",
   targetWindowEnd: "2048-02-19",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 20,
-  cattleBudgetBdt: 800_000,
+  cattleBudgetMoney: 800_000,
 };
 
 type Owner = Awaited<ReturnType<typeof as>>;
@@ -47,7 +47,7 @@ const signedUp = async (owner: Owner, which: number, forVenture: string) => {
     units: 20,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2047-11-02",
     stampSerial: `AA ${which} ${suffix}`,
   });
@@ -70,7 +70,7 @@ beforeAll(async () => {
   // Four lakh typed where five was sent: under the Floor, so the Venture cannot start buying.
   const taken = await owner.client.ventures.takeCapital({
     agreementId,
-    amountBdt: 400_000,
+    amountMoney: 400_000,
     movedOn: "2047-11-05",
     paymentMethod: "bank",
     reference: `TRF-${suffix}`,
@@ -83,9 +83,9 @@ describe("putting a movement right", () => {
     const owner = await as("owner", "2047-11-06T04:00:00.000Z");
     const before = await theVenture(owner);
     expect(before).toMatchObject({
-      capitalInBdt: 400_000,
-      balanceBdt: 400_000,
-      cattleBudgetHeldBdt: 320_000,
+      capitalInMoney: 400_000,
+      balanceMoney: 400_000,
+      cattleBudgetHeldMoney: 320_000,
     });
     // Under the Floor, so it may not start buying.
     await expect(
@@ -95,16 +95,16 @@ describe("putting a movement right", () => {
     await owner.client.ventures.correctMovement({
       id: capitalId,
       reason: `স্লিপে পাঁচ লাখ, লেখা হয়েছিল চার ${suffix}`,
-      changes: { amountBdt: { from: 400_000, to: 500_000 } },
+      changes: { amountMoney: { from: 400_000, to: 500_000 } },
     });
 
     const after = await theVenture(owner);
     // Capital, the balance and both budgets follow, and so does the Floor.
     expect(after).toMatchObject({
-      capitalInBdt: 500_000,
-      balanceBdt: 500_000,
-      cattleBudgetHeldBdt: 400_000,
-      runningBudgetHeldBdt: 100_000,
+      capitalInMoney: 500_000,
+      balanceMoney: 500_000,
+      cattleBudgetHeldMoney: 400_000,
+      runningBudgetHeldMoney: 100_000,
     });
     await expect(
       owner.client.ventures.startBuying({ id: ventureId })
@@ -128,10 +128,10 @@ describe("putting a movement right", () => {
       reason: `স্লিপে পাঁচ লাখ, লেখা হয়েছিল চার ${suffix}`,
     });
     expect(
-      (correction?.before as { amountBdt?: number } | null)?.amountBdt
+      (correction?.before as { amountMoney?: number } | null)?.amountMoney
     ).toBe(400_000);
     expect(
-      (correction?.after as { amountBdt?: number } | null)?.amountBdt
+      (correction?.after as { amountMoney?: number } | null)?.amountMoney
     ).toBe(500_000);
   });
 
@@ -139,7 +139,7 @@ describe("putting a movement right", () => {
     const owner = await as("owner", "2047-11-08T04:00:00.000Z");
     const advance = await owner.client.ventures.advance({
       ventureId,
-      amountBdt: 30_000,
+      amountMoney: 30_000,
       movedOn: "2047-11-08",
       paymentMethod: "bank",
       reference: `ADV-${suffix}`,
@@ -148,12 +148,12 @@ describe("putting a movement right", () => {
       id: advance.id,
       reason: `রেফারেন্স ভুল ছিল ${suffix}`,
       changes: {
-        amountBdt: { from: 30_000, to: 25_000 },
+        amountMoney: { from: 30_000, to: 25_000 },
         reference: { from: `ADV-${suffix}`, to: `ADV-RIGHT-${suffix}` },
       },
     });
     const venture = await theVenture(owner);
-    expect(venture?.advancedBdt).toBe(25_000);
+    expect(venture?.advancedMoney).toBe(25_000);
   });
 
   it("refuses a movement the farm has already counted on", async () => {
@@ -161,14 +161,14 @@ describe("putting a movement right", () => {
     const trip = await owner.client.trips.record({
       wentTo: `হাট ${suffix}`,
       wentOn: "2047-11-09",
-      brokerBdt: 0,
-      transportBdt: 0,
-      keepBdt: 0,
+      brokerMoney: 0,
+      transportMoney: 0,
+      keepMoney: 0,
     });
     const float = await owner.client.ventures.drawFloat({
       ventureId,
       buyingTripId: trip.id,
-      amountBdt: 100_000,
+      amountMoney: 100_000,
       movedOn: "2047-11-09",
       paymentMethod: "bank",
       reference: `FLT-${suffix}`,
@@ -177,13 +177,13 @@ describe("putting a movement right", () => {
     await owner.client.ventures.correctMovement({
       id: float.id,
       reason: `স্লিপ অনুযায়ী ${suffix}`,
-      changes: { amountBdt: { from: 100_000, to: 90_000 } },
+      changes: { amountMoney: { from: 100_000, to: 90_000 } },
     });
 
     // Counted home, it is part of a sum somebody signed.
     await owner.client.ventures.reconcileFloat({
       buyingTripId: trip.id,
-      cashBackBdt: 90_000,
+      cashBackMoney: 90_000,
       movedOn: "2047-11-10",
       reference: `DEP-${suffix}`,
     });
@@ -191,7 +191,7 @@ describe("putting a movement right", () => {
       owner.client.ventures.correctMovement({
         id: float.id,
         reason: `আবার বদলাতে চাই ${suffix}`,
-        changes: { amountBdt: { from: 90_000, to: 80_000 } },
+        changes: { amountMoney: { from: 90_000, to: 80_000 } },
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -207,7 +207,7 @@ describe("putting a movement right", () => {
       owner.client.ventures.correctMovement({
         id: capitalId,
         reason: `আরও বেশি লিখতে চাই ${suffix}`,
-        changes: { amountBdt: { from: 500_000, to: 1_200_000 } },
+        changes: { amountMoney: { from: 500_000, to: 1_200_000 } },
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -224,7 +224,7 @@ describe("putting a movement right", () => {
     const agreement = await signedUp(owner, 2, calledOff.id);
     const taken = await owner.client.ventures.takeCapital({
       agreementId: agreement,
-      amountBdt: 200_000,
+      amountMoney: 200_000,
       movedOn: "2047-11-14",
       paymentMethod: "bank",
       reference: `TRF2-${suffix}`,
@@ -246,7 +246,7 @@ describe("putting a movement right", () => {
       owner.client.ventures.correctMovement({
         id: taken.id,
         reason: `দুই লাখ নয়, তিন ${suffix}`,
-        changes: { amountBdt: { from: 200_000, to: 300_000 } },
+        changes: { amountMoney: { from: 200_000, to: 300_000 } },
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -257,13 +257,14 @@ describe("putting a movement right", () => {
   it("is the Owner's alone", async () => {
     const owner = await as("owner", "2047-11-15T04:00:00.000Z");
     const movements = await owner.client.ventures.movements({ ventureId });
-    const held = movements.find((one) => one.id === capitalId)?.amountBdt ?? 0;
+    const held =
+      movements.find((one) => one.id === capitalId)?.amountMoney ?? 0;
     const manager = await as("manager", "2047-11-15T05:00:00.000Z");
     await expect(
       manager.client.ventures.correctMovement({
         id: capitalId,
         reason: `আমি ঠিক করছি ${suffix}`,
-        changes: { amountBdt: { from: held, to: 400_000 } },
+        changes: { amountMoney: { from: held, to: 400_000 } },
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });

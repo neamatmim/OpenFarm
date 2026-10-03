@@ -148,15 +148,15 @@ const LastPurchase = ({
   const typedPrice = Number(draft.price);
   const unitPriceNow =
     amount !== null && typedPrice > 0 ? typedPrice / amount : null;
-  const { unitPriceBdt, receivedOn } = last.data;
+  const { unitPriceMoney, receivedOn } = last.data;
   const change =
-    unitPriceNow === null || unitPriceBdt === 0
+    unitPriceNow === null || unitPriceMoney === 0
       ? null
-      : changeOn(unitPriceBdt, unitPriceNow);
+      : changeOn(unitPriceMoney, unitPriceNow);
   return (
     <p className="text-muted-foreground text-sm tabular-nums">
       {t("stock.lastBought", {
-        taka: formatNumber(Math.round(unitPriceBdt * 100) / 100, language),
+        taka: formatNumber(Math.round(unitPriceMoney * 100) / 100, language),
         unit: feedUnitEach(item.unit, language),
         day: formatDate(new Date(receivedOn), language, "date"),
       })}
@@ -381,7 +381,7 @@ export const ReceiveFeedSheet = ({
           receivedOn: draft.receivedOn,
           ...(draft.kind === "purchase"
             ? {
-                priceBdt: Number(draft.price),
+                priceMoney: Number(draft.price),
                 seller: { name: draft.seller.trim() },
                 paymentMethod: draft.paymentMethod,
                 ...accountSent(draft.paymentMethod, draft.account),

@@ -69,7 +69,7 @@ export const BakiPaymentSheet = ({
           pay.mutate({
             buyer: paying.buyer,
             kind,
-            amountBdt: figure,
+            amountMoney: figure,
             paidOn,
             paymentMethod,
             ...accountSent(paymentMethod, account),

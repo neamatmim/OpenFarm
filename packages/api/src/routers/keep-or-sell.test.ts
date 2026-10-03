@@ -164,7 +164,7 @@ const bullInto = async (penId: string, instant: string) => {
     penId,
     sex: "male",
     seller: { name: `হাট ${suffix}` },
-    purchasePriceBdt: 50_000,
+    purchasePriceMoney: 50_000,
     weightKg: 250,
     estimatedAgeMonths: 20,
     arrivedAt: new Date(instant),
@@ -202,7 +202,7 @@ beforeAll(async () => {
     feedItemId: concentrate,
     kind: "purchase",
     quantity: 1000,
-    priceBdt: 30_000,
+    priceMoney: 30_000,
     seller: { name: `দানাদারের দোকান ${suffix}` },
     receivedOn: "2040-01-01",
   });
@@ -235,7 +235,7 @@ beforeAll(async () => {
     drugProductId: wormer.id,
     quantity: "১০ ডোজ",
     doses: 10,
-    priceBdt: 2800,
+    priceMoney: 2800,
     seller: { name: `ফার্মেসি ${suffix}` },
     purchasedOn: "2040-01-01",
   });
@@ -263,7 +263,7 @@ beforeAll(async () => {
   // The Vet saw both bulls on one visit on the 22nd, for ৳560: ৳280 each.
   const visiting = await as("vet", "2040-02-22T08:00:00.000Z");
   await visiting.client.money.vetFee({
-    amountBdt: 560,
+    amountMoney: 560,
     visitedOn: "2040-02-22",
     animalTags: [kept, unfed],
   });
@@ -280,8 +280,8 @@ beforeAll(async () => {
 
   const pricing = await as("owner", "2040-03-01T03:00:00.000Z");
   await pricing.client.fattening.setMarketPrice({
-    lowBdtPerKg: 280,
-    highBdtPerKg: 320,
+    lowMoneyPerKg: 280,
+    highMoneyPerKg: 320,
   });
 });
 
@@ -297,15 +297,15 @@ describe("keep her or sell her", () => {
     // by it.
     expect(hers?.keep).toEqual({
       known: true,
-      keepBdtPerDay: 320,
+      keepMoneyPerDay: 320,
       dailyGainKg: 1,
-      costOfGainNowBdt: 320,
+      costOfGainNowMoney: 320,
       ahead: {
         days: 14,
         gainKg: 14,
-        keepBdt: 4480,
-        low: { worthBdt: 3920, overKeepBdt: -560 },
-        high: { worthBdt: 4480, overKeepBdt: 0 },
+        keepMoney: 4480,
+        low: { worthMoney: 3920, overKeepMoney: -560 },
+        high: { worthMoney: 4480, overKeepMoney: 0 },
       },
       keeping: "close",
       whole: false,
@@ -315,16 +315,16 @@ describe("keep her or sell her", () => {
   it("says keeping pays once a kilo fetches more than it costs to put on", async () => {
     const owner = await as("owner", "2040-03-01T05:00:00.000Z");
     await owner.client.fattening.setMarketPrice({
-      lowBdtPerKg: 320,
-      highBdtPerKg: 380,
+      lowMoneyPerKg: 320,
+      highMoneyPerKg: 380,
     });
     const later = await as("owner", "2040-03-01T06:00:00.000Z");
     const { animals } = await later.client.fattening.prices();
     const hers = animals.find((one) => one.tagNumber === kept)?.keep;
     expect(hers?.known && hers.keeping).toBe("pays");
     await later.client.fattening.setMarketPrice({
-      lowBdtPerKg: 280,
-      highBdtPerKg: 320,
+      lowMoneyPerKg: 280,
+      highMoneyPerKg: 320,
     });
   });
 
@@ -341,12 +341,12 @@ describe("keep her or sell her", () => {
       expect(animals.find((one) => one.tagNumber === kept)?.keep).toMatchObject(
         {
           known: true,
-          keepBdtPerDay: 340,
-          costOfGainNowBdt: 340,
+          keepMoneyPerDay: 340,
+          costOfGainNowMoney: 340,
           ahead: {
-            keepBdt: 4760,
-            low: { overKeepBdt: -840 },
-            high: { overKeepBdt: -280 },
+            keepMoney: 4760,
+            low: { overKeepMoney: -840 },
+            high: { overKeepMoney: -280 },
           },
           keeping: "costs_more",
         }
@@ -378,13 +378,13 @@ describe("keep her or sell her", () => {
       // at ৳280 (৳280 short) and ৳2,240 at ৳320 (nothing over). A kilo still costs ৳320 to put on: the same verdict.
       expect(animals.find((one) => one.tagNumber === kept)?.keep).toMatchObject(
         {
-          costOfGainNowBdt: 320,
+          costOfGainNowMoney: 320,
           ahead: {
             days: 7,
             gainKg: 7,
-            keepBdt: 2240,
-            low: { worthBdt: 1960, overKeepBdt: -280 },
-            high: { worthBdt: 2240, overKeepBdt: 0 },
+            keepMoney: 2240,
+            low: { worthMoney: 1960, overKeepMoney: -280 },
+            high: { worthMoney: 2240, overKeepMoney: 0 },
           },
           keeping: "close",
         }
@@ -453,7 +453,7 @@ describe("keep her or sell her", () => {
       expect(animals.find((one) => one.tagNumber === kept)?.keep).toMatchObject(
         {
           dailyGainKg: 1.46,
-          costOfGainNowBdt: 219.18,
+          costOfGainNowMoney: 219.18,
           keeping: "pays",
         }
       );

@@ -238,11 +238,11 @@ const LastBuys = ({ price, weight }: { price: number; weight: number }) => {
   if (!last.data) {
     return null;
   }
-  const percent = againstLastBuys(price / weight, last.data.bdtPerKg);
+  const percent = againstLastBuys(price / weight, last.data.moneyPerKg);
   const said = t("intake.lastBuys", {
     animals: last.data.animals,
     days: last.data.days,
-    taka: formatNumber(last.data.bdtPerKg, language),
+    taka: formatNumber(last.data.moneyPerKg, language),
   });
   let against = t("intake.lastBuysSame");
   if (percent > 0) {
@@ -255,7 +255,7 @@ const LastBuys = ({ price, weight }: { price: number; weight: number }) => {
 
 /** Taka a kilo, in a quiet box under the price and the weight, once both are typed — and the farm's last buys beside. */
 const PerKgLine = ({ fields }: { fields: IntakeFields }) => {
-  const price = Number(fields.purchasePriceBdt);
+  const price = Number(fields.purchasePriceMoney);
   const weight = Number(fields.weightKg);
   if (!(price > 0 && weight > 0)) {
     return null;
@@ -315,7 +315,11 @@ export const PriceSection = ({
     /** The Farm's own Float went on it, so she is the Farm's. Missing from an answer cached before it was said. */
     farmFloat?: boolean;
     /** What the outing was given to buy with, where it was given one. */
-    float: { ventureId: string; ventureName: string; amountBdt: number } | null;
+    float: {
+      ventureId: string;
+      ventureName: string;
+      amountMoney: number;
+    } | null;
   }[];
   /** The Ventures that are buying: the only ones that may take an animal in. */
   ventures: { id: string; name: string }[];
@@ -359,15 +363,15 @@ export const PriceSection = ({
         <NumberField
           id="intake-price"
           label={t("intake.price")}
-          onChange={(purchasePriceBdt) => onEdit({ purchasePriceBdt })}
+          onChange={(purchasePriceMoney) => onEdit({ purchasePriceMoney })}
           required
-          value={fields.purchasePriceBdt}
+          value={fields.purchasePriceMoney}
         />
         <NumberField
           id="intake-hasil"
           label={t("intake.hasil")}
-          onChange={(hasilBdt) => onEdit({ hasilBdt })}
-          value={fields.hasilBdt}
+          onChange={(hasilMoney) => onEdit({ hasilMoney })}
+          value={fields.hasilMoney}
         />
         <NumberField
           decimal
@@ -410,7 +414,7 @@ export const PriceSection = ({
                 <option key={one.id} value={one.id}>
                   {one.wentTo} · {formatDate(one.wentOn, language, "date")}
                   {one.float
-                    ? ` · ${one.float.ventureName} ${taka(one.float.amountBdt)}`
+                    ? ` · ${one.float.ventureName} ${taka(one.float.amountMoney)}`
                     : ""}
                   {one.farmFloat ? ` · ${t("intake.farmFloat")}` : ""}
                 </option>

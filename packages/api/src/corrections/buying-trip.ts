@@ -27,9 +27,9 @@ const loadTrip = (tx: Tx, farmId: string, id: string) =>
       id: true,
       farmId: true,
       wentTo: true,
-      brokerBdt: true,
-      transportBdt: true,
-      keepBdt: true,
+      brokerMoney: true,
+      transportMoney: true,
+      keepMoney: true,
       recordedBy: true,
       createdAt: true,
     },
@@ -38,9 +38,9 @@ const loadTrip = (tx: Tx, farmId: string, id: string) =>
 /** What an outing's Correction may change: where it went, what each part of it cost, and how it was paid. */
 export const buyingTripCorrectionInput = correctionInput({
   wentTo: changeOf(z.string().trim().min(1).max(120), z.string()),
-  brokerBdt: changeOf(tripCostInput, z.number()),
-  transportBdt: changeOf(tripCostInput, z.number()),
-  keepBdt: changeOf(tripCostInput, z.number()),
+  brokerMoney: changeOf(tripCostInput, z.number()),
+  transportMoney: changeOf(tripCostInput, z.number()),
+  keepMoney: changeOf(tripCostInput, z.number()),
   paymentMethod: paymentMethodChange,
   /** Which Farm Account bKash or bank money names, and its transaction ID. */
   farmAccount: farmAccountChange,
@@ -76,9 +76,9 @@ export const buyingTripCorrection: CorrectionKind<
       row.id
     ),
     wentTo: row.wentTo,
-    brokerBdt: row.brokerBdt,
-    transportBdt: row.transportBdt,
-    keepBdt: row.keepBdt,
+    brokerMoney: row.brokerMoney,
+    transportMoney: row.transportMoney,
+    keepMoney: row.keepMoney,
     paymentMethod: await paymentMethodOf(tx, row.farmId, "buying_trip", row.id),
   }),
   trail: (tx, row) => readTrip(tx, row.farmId, row.id),
@@ -86,11 +86,11 @@ export const buyingTripCorrection: CorrectionKind<
     await assertTripIsOpen(tx, row.farmId, row.id);
     const putRight = {
       ...(to.wentTo === undefined ? {} : { wentTo: to.wentTo }),
-      ...(to.brokerBdt === undefined ? {} : { brokerBdt: to.brokerBdt }),
-      ...(to.transportBdt === undefined
+      ...(to.brokerMoney === undefined ? {} : { brokerMoney: to.brokerMoney }),
+      ...(to.transportMoney === undefined
         ? {}
-        : { transportBdt: to.transportBdt }),
-      ...(to.keepBdt === undefined ? {} : { keepBdt: to.keepBdt }),
+        : { transportMoney: to.transportMoney }),
+      ...(to.keepMoney === undefined ? {} : { keepMoney: to.keepMoney }),
     };
     // Nothing of the record itself may have changed: a Correction may name only how it was paid
     // for, and an update with no values to set is a database error rather than a no-op.

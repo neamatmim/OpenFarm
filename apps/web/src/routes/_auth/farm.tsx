@@ -96,7 +96,7 @@ const useFarmFigures = (data: OwnerAnswer): Figure[] => {
   );
   const totals = moneyTotals(money.data ?? { events: [] });
   const sum = (direction: "in" | "out") =>
-    direction === "in" ? totals.inBdt : totals.outBdt;
+    direction === "in" ? totals.inMoney : totals.outMoney;
   const net = sum("in") - sum("out");
   const herd = animals.data ?? [];
   const awaiting = moneyAwaitingCount(data.needsYou);

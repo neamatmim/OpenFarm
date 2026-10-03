@@ -29,7 +29,7 @@ export interface AgreementToWrite {
   investorsPercent: number;
   arbitrator: string;
   /** How its duty was paid, or that it was agreed in the app; the day, the taka and the paper's or the offer's number. */
-  stamp: { kind: StampKind; valueBdt: number; on: string; serial: string };
+  stamp: { kind: StampKind; valueMoney: number; on: string; serial: string };
   templateVersionId: string;
   /** The Request to Join it answers; left out, a Request the Investor had live reads signed all the same. */
   requestId?: string;
@@ -127,7 +127,7 @@ export const writeAgreement = async (
     targetWindowEnd: window.targetWindowEnd,
     arbitrator: agreement.arbitrator,
     stampKind: agreement.stamp.kind,
-    stampValueBdt: agreement.stamp.valueBdt,
+    stampValueMoney: agreement.stamp.valueMoney,
     stampedOn: agreement.stamp.on,
     stampSerial: agreement.stamp.serial,
     templateVersionId: agreement.templateVersionId,

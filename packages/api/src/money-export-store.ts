@@ -65,7 +65,7 @@ const bakiPaymentsOf = async (
         .map((one) => ({
           id: one.id,
           kind: kind.kind,
-          amountBdt: one.amountBdt,
+          amountMoney: one.amountMoney,
           cleared: one.cleared,
         }))
     )
@@ -86,8 +86,8 @@ const bakiPaymentsOf = async (
 const bakiPaymentFacts = (
   payment: {
     kind: "cattle" | "milk";
-    amountBdt: number;
-    cleared: readonly { itemId: string; amountBdt: number }[];
+    amountMoney: number;
+    cleared: readonly { itemId: string; amountMoney: number }[];
   },
   saleFacts: ReadonlyMap<string, { tagNumber: string; side: Side }>
 ): RecordFacts => {
@@ -96,16 +96,16 @@ const bakiPaymentFacts = (
   }
   const parts = payment.cleared.flatMap((part) => {
     const sold = saleFacts.get(part.itemId);
-    return sold ? [{ ...sold, amountBdt: part.amountBdt }] : [];
+    return sold ? [{ ...sold, amountMoney: part.amountMoney }] : [];
   });
-  const clearedBdt = parts.reduce((sum, one) => sum + one.amountBdt, 0);
-  const ahead = payment.amountBdt - clearedBdt;
+  const clearedMoney = parts.reduce((sum, one) => sum + one.amountMoney, 0);
+  const ahead = payment.amountMoney - clearedMoney;
   const sides = [
     ...parts.map((one) => ({
       side: one.side,
-      part: one.amountBdt / payment.amountBdt,
+      part: one.amountMoney / payment.amountMoney,
     })),
-    ...(ahead > 0 ? [{ side: null, part: ahead / payment.amountBdt }] : []),
+    ...(ahead > 0 ? [{ side: null, part: ahead / payment.amountMoney }] : []),
   ];
   return {
     reference:
@@ -263,16 +263,16 @@ const SIDE_ORDER: readonly (Side | null)[] = ["dairy", "fattening", null];
 
 /** The Sides a Money Event's amount falls to, the same Side's parts added together, in their order. */
 const sharesOf = (
-  amountBdt: number,
+  amountMoney: number,
   sides: RecordFacts["sides"]
 ): SideShare[] => {
   const bySide = new Map<Side | null, number>();
   for (const { side, part } of sides) {
-    bySide.set(side, (bySide.get(side) ?? 0) + part * amountBdt);
+    bySide.set(side, (bySide.get(side) ?? 0) + part * amountMoney);
   }
   return SIDE_ORDER.flatMap((side) => {
     const share = bySide.get(side);
-    return share === undefined ? [] : [{ side, amountBdt: share }];
+    return share === undefined ? [] : [{ side, amountMoney: share }];
   });
 };
 
@@ -300,12 +300,12 @@ export const moneyForTheAccountant = async (
   return events.map((one) => {
     const fact = facts.get(one.sourceId);
     const byHand = one.source === "by_hand";
-    const { amountBdt } = one;
+    const { amountMoney } = one;
     return {
       id: one.id,
       occurredAt: one.occurredAt,
       direction: one.direction,
-      amountBdt,
+      amountMoney,
       categoryBn: one.category.nameBn,
       categoryEn: one.category.nameEn,
       counterpartyName: one.counterparty?.name ?? null,
@@ -313,7 +313,7 @@ export const moneyForTheAccountant = async (
       source: one.source,
       sourceId: one.sourceId,
       sides: sharesOf(
-        amountBdt,
+        amountMoney,
         byHand ? [{ side: one.side, part: 1 }] : (fact?.sides ?? WHOLE_FARM)
       ),
       reference: byHand ? one.wageMonth : (fact?.reference ?? null),

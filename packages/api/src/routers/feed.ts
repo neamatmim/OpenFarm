@@ -158,7 +158,7 @@ export const feedRouter = {
       // every other figure is.
       return rows.map((row) => ({
         ...row,
-        fodderPriceBdt: row.fodderPriceBdt,
+        fodderPriceMoney: row.fodderPriceMoney,
         bagSizeKg: row.bagSizeKg === null ? null : Number(row.bagSizeKg),
       }));
     }),
@@ -263,18 +263,18 @@ export const feedRouter = {
     .input(
       z.object({
         feedItemId: z.string(),
-        fodderPriceBdt: z.number().min(0).max(100_000).nullable(),
+        fodderPriceMoney: z.number().min(0).max(100_000).nullable(),
       })
     )
     .handler(async ({ context, input }) => {
       const existing = await context.db.query.feedItem.findFirst({
         where: { id: input.feedItemId, farmId: context.farm.id },
-        columns: { id: true, nameBn: true, fodderPriceBdt: true },
+        columns: { id: true, nameBn: true, fodderPriceMoney: true },
       });
       if (!existing) {
         throw new ORPCError("NOT_FOUND", { message: "No such feed" });
       }
-      const { fodderPriceBdt } = input;
+      const { fodderPriceMoney } = input;
       await audited(context).write(
         {
           entity: "feed_item",
@@ -282,17 +282,17 @@ export const feedRouter = {
           action: "update",
           before: {
             nameBn: existing.nameBn,
-            fodderPriceBdt: existing.fodderPriceBdt,
+            fodderPriceMoney: existing.fodderPriceMoney,
           },
-          after: { nameBn: existing.nameBn, fodderPriceBdt },
+          after: { nameBn: existing.nameBn, fodderPriceMoney },
         },
         (tx) =>
           tx
             .update(feedItem)
-            .set({ fodderPriceBdt })
+            .set({ fodderPriceMoney })
             .where(eq(feedItem.id, existing.id))
       );
-      return { fodderPriceBdt: input.fodderPriceBdt };
+      return { fodderPriceMoney: input.fodderPriceMoney };
     }),
 
   /**

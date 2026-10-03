@@ -24,14 +24,14 @@ const FIRST = {
   animals: 8,
   fromKg: 200,
   toKg: 250,
-  buyBdtPerKg: 480,
+  buyMoneyPerKg: 480,
   dailyGainKg: 0.9,
 };
 const LINES = [
   FIRST,
-  { animals: 4, fromKg: 250, toKg: 300, buyBdtPerKg: 470, dailyGainKg: 0.8 },
+  { animals: 4, fromKg: 250, toKg: 300, buyMoneyPerKg: 470, dailyGainKg: 0.8 },
 ];
-const SALE = { saleLowBdtPerKg: 520, saleHighBdtPerKg: 600 };
+const SALE = { saleLowMoneyPerKg: 520, saleHighMoneyPerKg: 600 };
 
 let ventureId = "";
 
@@ -39,15 +39,15 @@ beforeAll(async () => {
   const owner = await asOwner();
   const venture = await owner.ventures.open({
     name: `পরিকল্পনার ভেঞ্চার ${suffix}`,
-    targetCapitalBdt: 1_800_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_800_000,
+    floorMoney: 0,
     // Bought from the 20th, sold from 30 April: a hundred days on feed.
     decideBy: "2053-01-20",
     targetWindowStart: "2053-04-30",
     targetWindowEnd: "2053-05-05",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 36,
-    cattleBudgetBdt: 1_400_000,
+    cattleBudgetMoney: 1_400_000,
   });
   ventureId = venture.id;
 });
@@ -101,9 +101,9 @@ describe("a Venture Plan", () => {
     expect(plan.latest?.totals).toMatchObject({
       animals: 12,
       boughtKg: 2900,
-      costBdt: 1_381_000,
+      costMoney: 1_381_000,
       saleKg: 3940,
-      overBudgetBdt: 0,
+      overBudgetMoney: 0,
     });
   });
 
@@ -119,7 +119,7 @@ describe("a Venture Plan", () => {
       units: 2,
       investorsPercent: 60,
       arbitrator: `সালিস ${suffix}`,
-      stampValueBdt: 300,
+      stampValueMoney: 300,
       stampedOn: "2053-01-02",
       stampSerial: `PL-${suffix}`,
     });
@@ -130,7 +130,7 @@ describe("a Venture Plan", () => {
     });
     await owner.ventures.takeCapital({
       agreementId: signed.id,
-      amountBdt: 100_000,
+      amountMoney: 100_000,
       movedOn: "2053-01-03",
       paymentMethod: "bank",
       reference: `TRF-PL-${suffix}`,
@@ -147,8 +147,8 @@ describe("a Venture Plan", () => {
     await buying.ventures.setPlan({
       ventureId,
       lines: LINES,
-      saleLowBdtPerKg: 540,
-      saleHighBdtPerKg: 620,
+      saleLowMoneyPerKg: 540,
+      saleHighMoneyPerKg: 620,
       reason: "হাটে দাম বেড়েছে",
     });
     const plan = await buying.ventures.plan({ ventureId });
@@ -156,10 +156,10 @@ describe("a Venture Plan", () => {
       version: 3,
       madeWhile: "buying",
       reason: "হাটে দাম বেড়েছে",
-      saleLowBdtPerKg: 540,
+      saleLowMoneyPerKg: 540,
     });
     // What it promised itself before a taka went on cattle is still what it is measured against.
-    expect(plan.baseline).toMatchObject({ version: 2, saleLowBdtPerKg: 520 });
+    expect(plan.baseline).toMatchObject({ version: 2, saleLowMoneyPerKg: 520 });
   });
 });
 
@@ -180,14 +180,14 @@ describe("a plan line's Breed", () => {
     const owner = await asOwner();
     const venture = await owner.ventures.open({
       name: `${name} ${suffix}`,
-      targetCapitalBdt: 1_800_000,
-      floorBdt: 0,
+      targetCapitalMoney: 1_800_000,
+      floorMoney: 0,
       decideBy: "2053-01-20",
       targetWindowStart: "2053-04-30",
       targetWindowEnd: "2053-05-05",
-      unitPriceBdt: 50_000,
+      unitPriceMoney: 50_000,
       units: 36,
-      cattleBudgetBdt: 1_400_000,
+      cattleBudgetMoney: 1_400_000,
     });
     // Its baseline: the plan made while it was still Open.
     await owner.ventures.setPlan({
@@ -205,7 +205,7 @@ describe("a plan line's Breed", () => {
       units: 6,
       investorsPercent: 60,
       arbitrator: `সালিস ${suffix}`,
-      stampValueBdt: 300,
+      stampValueMoney: 300,
       stampedOn: "2053-01-02",
       stampSerial: `PB-${name}-${suffix}`,
     });
@@ -216,7 +216,7 @@ describe("a plan line's Breed", () => {
     });
     await owner.ventures.takeCapital({
       agreementId: signed.id,
-      amountBdt: 300_000,
+      amountMoney: 300_000,
       movedOn: "2053-01-03",
       paymentMethod: "bank",
       reference: `TRF-PB-${name}-${suffix}`,
@@ -265,8 +265,8 @@ describe("a plan line's Breed", () => {
       owner.ventures.setPlan({
         ventureId,
         lines: [{ ...FIRST, breedId: kept.id }],
-        saleLowBdtPerKg: 530,
-        saleHighBdtPerKg: 610,
+        saleLowMoneyPerKg: 530,
+        saleHighMoneyPerKg: 610,
         reason: "দাম বদলেছে",
       })
     ).resolves.toMatchObject({ ventureId });
@@ -304,15 +304,15 @@ describe("a plan line's Breed", () => {
     });
     const trip = await manager.trips.record({
       wentTo: "পাবনা হাট",
-      brokerBdt: 0,
-      transportBdt: 0,
-      keepBdt: 0,
+      brokerMoney: 0,
+      transportMoney: 0,
+      keepMoney: 0,
     });
     const atTheHaat = await asOwner("2053-01-21T06:00:00.000Z");
     await atTheHaat.ventures.drawFloat({
       ventureId: id,
       buyingTripId: trip.id,
-      amountBdt: 230_000,
+      amountMoney: 230_000,
       movedOn: "2053-01-21",
       paymentMethod: "bank",
       reference: `FLT-PB-${suffix}`,
@@ -323,7 +323,7 @@ describe("a plan line's Breed", () => {
         penId: pen.id,
         sex: "male",
         seller: { name: `ব্যাপারী ${suffix}` },
-        purchasePriceBdt: 105_600,
+        purchasePriceMoney: 105_600,
         weightKg: 220,
         estimatedAgeMonths: 20,
         breedId,

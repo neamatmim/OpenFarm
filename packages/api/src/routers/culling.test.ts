@@ -293,7 +293,7 @@ beforeAll(async () => {
     feedItemId: concentrate,
     kind: "purchase",
     quantity: 1000,
-    priceBdt: 30_000,
+    priceMoney: 30_000,
     seller: { name: `দানাদারের দোকান ${suffix}` },
     receivedOn: "2040-12-01",
   });
@@ -345,14 +345,14 @@ beforeAll(async () => {
     dispatchedAt: new Date("2040-12-20T02:30:00.000Z"),
     litres: 100,
     buyer,
-    pricePerLitreBdt: 100,
+    pricePerLitreMoney: 100,
   });
   const february = await as("manager", "2041-02-21T03:00:00.000Z");
   await february.client.milk.dispatch({
     dispatchedAt: new Date("2041-02-21T02:30:00.000Z"),
     litres: 240,
     buyer,
-    pricePerLitreBdt: 55,
+    pricePerLitreMoney: 55,
   });
 });
 
@@ -381,7 +381,7 @@ describe("why the farm names a dairy cow to the Owner", () => {
     expect(list.milkAfterDays).toBe(35);
     expect(list.milkPriceDays).toBe(60);
     expect(list.milkPrice).toMatchObject({
-      bdtPerLitre: 55,
+      moneyPerLitre: 55,
       litres: 240,
       days: 60,
     });
@@ -397,18 +397,18 @@ describe("why the farm names a dairy cow to the Owner", () => {
         days: 28,
         litres: 40,
         litresPerDay: 1.43,
-        bdtPerLitre: 55,
-        worthBdt: 2200,
-        keepBdt: 4200,
-        overKeepBdt: -2000,
-        costPerLitreBdt: 105,
+        moneyPerLitre: 55,
+        worthMoney: 2200,
+        keepMoney: 4200,
+        overKeepMoney: -2000,
+        costPerLitreMoney: 105,
         whole: true,
       },
       reasons: ["milk_short"],
     });
     // 80 litres fetch ৳4,400: ৳200 over her keep, and nothing to say.
     expect(of(cow.paying)).toMatchObject({
-      milk: { worthBdt: 4400, overKeepBdt: 200 },
+      milk: { worthMoney: 4400, overKeepMoney: 200 },
       reasons: [],
     });
   });
@@ -417,13 +417,13 @@ describe("why the farm names a dairy cow to the Owner", () => {
     const { of } = await theList();
     expect(of(cow.emptyLong)).toMatchObject({
       daysSinceCalving: 181,
-      milk: { overKeepBdt: 200 },
+      milk: { overKeepMoney: 200 },
       reasons: ["open_long"],
     });
     // Her milk is as short as the first cow's and she is 212 days from calving, but she is carrying.
     expect(of(cow.inCalfShort)).toMatchObject({
       daysSinceCalving: 212,
-      milk: { overKeepBdt: -2000 },
+      milk: { overKeepMoney: -2000 },
       reasons: [],
     });
     expect(of(cow.dryEmpty)).toMatchObject({
@@ -485,7 +485,7 @@ describe("why the farm names a dairy cow to the Owner", () => {
       reasons: [],
     });
     // The one 181 days in is weighed as before.
-    expect(of(cow.emptyLong)?.milk).toMatchObject({ overKeepBdt: 200 });
+    expect(of(cow.emptyLong)?.milk).toMatchObject({ overKeepMoney: 200 });
     await owner.client.farm.setParameters({ cullMilkAfterDays: 35 });
   });
 
@@ -505,14 +505,14 @@ describe("why the farm names a dairy cow to the Owner", () => {
     const wide = await theList();
     expect(wide.list.milkPriceDays).toBe(90);
     expect(wide.list.milkPrice).toMatchObject({
-      bdtPerLitre: 68.24,
+      moneyPerLitre: 68.24,
       litres: 340,
       days: 90,
     });
     expect(wide.of(cow.short)?.milk).toMatchObject({
-      bdtPerLitre: 68.24,
-      worthBdt: 2729.6,
-      overKeepBdt: -1470.4,
+      moneyPerLitre: 68.24,
+      worthMoney: 2729.6,
+      overKeepMoney: -1470.4,
     });
 
     // A week back from the 1st of March holds no Dispatch at all: no litre has a price, and no cow's milk is weighed.
@@ -544,11 +544,11 @@ describe("why the farm names a dairy cow to the Owner", () => {
         days: 14,
         litres: 20,
         litresPerDay: 1.43,
-        bdtPerLitre: 55,
-        worthBdt: 1100,
-        keepBdt: 2100,
-        overKeepBdt: -1000,
-        costPerLitreBdt: 105,
+        moneyPerLitre: 55,
+        worthMoney: 1100,
+        keepMoney: 2100,
+        overKeepMoney: -1000,
+        costPerLitreMoney: 105,
         whole: true,
       });
     } finally {

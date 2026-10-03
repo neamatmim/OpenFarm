@@ -28,26 +28,26 @@ type Client = Awaited<ReturnType<typeof as>>;
 
 /** The run that made money: twenty Units, two men, two bulls. */
 const WON = {
-  targetCapitalBdt: 1_000_000,
-  floorBdt: 0,
+  targetCapitalMoney: 1_000_000,
+  floorMoney: 0,
   decideBy: "2053-01-20",
   targetWindowStart: "2053-02-17",
   targetWindowEnd: "2053-02-19",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 20,
-  cattleBudgetBdt: 800_000,
+  cattleBudgetMoney: 800_000,
 };
 
 /** The run that lost: ten Units, one man, one bull sold for half what he cost. */
 const LOST = {
-  targetCapitalBdt: 500_000,
-  floorBdt: 0,
+  targetCapitalMoney: 500_000,
+  floorMoney: 0,
   decideBy: "2053-01-20",
   targetWindowStart: "2053-02-17",
   targetWindowEnd: "2053-02-19",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 10,
-  cattleBudgetBdt: 400_000,
+  cattleBudgetMoney: 400_000,
 };
 
 let wonId = "";
@@ -75,7 +75,7 @@ const signOn = async (
     units,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2053-01-02",
     stampSerial: `AA ${which} ${suffix}`,
   });
@@ -86,7 +86,7 @@ const signOn = async (
   });
   await owner.client.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: units * 50_000,
+    amountMoney: units * 50_000,
     movedOn: "2053-01-03",
     paymentMethod: "bank",
     reference: `TRF-${which}-${suffix}`,
@@ -100,14 +100,14 @@ const aBull = async (ventureId: string, penId: string, which: string) => {
   const trip = await buying.client.trips.record({
     wentTo: `হাট ${which} ${suffix}`,
     wentOn: "2053-01-04",
-    brokerBdt: 0,
-    transportBdt: 0,
-    keepBdt: 0,
+    brokerMoney: 0,
+    transportMoney: 0,
+    keepMoney: 0,
   });
   await buying.client.ventures.drawFloat({
     ventureId,
     buyingTripId: trip.id,
-    amountBdt: 100_000,
+    amountMoney: 100_000,
     movedOn: "2053-01-04",
     paymentMethod: "bank",
     reference: `FLT-${which}-${suffix}`,
@@ -117,7 +117,7 @@ const aBull = async (ventureId: string, penId: string, which: string) => {
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 100_000,
+    purchasePriceMoney: 100_000,
     weightKg: 250,
     estimatedAgeMonths: 20,
     buyingTripId: trip.id,
@@ -128,19 +128,19 @@ const aBull = async (ventureId: string, penId: string, which: string) => {
   });
   await buying.client.ventures.reconcileFloat({
     buyingTripId: trip.id,
-    cashBackBdt: 0,
+    cashBackMoney: 0,
     movedOn: "2053-01-04",
     reference: `DEP-${which}-${suffix}`,
   });
   return her.tagNumber;
 };
 
-const sell = async (tagNumber: string, priceBdt: number, which: string) => {
+const sell = async (tagNumber: string, priceMoney: number, which: string) => {
   const selling = await as("manager", "2053-02-18T05:00:00.000Z");
   await selling.client.sale.record({
     tagNumber,
     buyer: { name: `ক্রেতা ${which} ${suffix}` },
-    priceBdt,
+    priceMoney,
     weightKg: 320,
     destination: `ঢাকা ${suffix}`,
     vehicle: `ঢাকা মেট্রো ${suffix}`,
@@ -155,7 +155,7 @@ const closeUp = async (ventureId: string, which: string) => {
   const lending = await as("owner", "2053-02-20T04:00:00.000Z");
   await lending.client.ventures.advance({
     ventureId,
-    amountBdt: 50_000,
+    amountMoney: 50_000,
     movedOn: "2053-02-20",
     paymentMethod: "bank",
     reference: `ADV-${which}-${suffix}`,
@@ -173,7 +173,7 @@ const closeUp = async (ventureId: string, which: string) => {
     await reading.client.ventures.checkTheBank({
       ventureId,
       month,
-      readBdt: believed.expectedBdt,
+      readMoney: believed.expectedMoney,
     });
   }
   const settling = await as("owner", "2053-03-02T04:00:00.000Z");
@@ -192,13 +192,13 @@ const closeUp = async (ventureId: string, which: string) => {
     await settling.client.ventures.paySettlement({
       ventureId,
       agreementId: his.agreementId,
-      amountBdt: his.payoutBdt,
+      amountMoney: his.payoutMoney,
       movedOn: "2053-03-02",
       paymentMethod: "bank",
       reference: `PAY-${his.agreementId.slice(-6)}-${suffix}`,
     });
   }
-  if ((approved?.farmBdt ?? 0) > 0) {
+  if ((approved?.farmMoney ?? 0) > 0) {
     await settling.client.ventures.takeTheFarmsShare({
       ventureId,
       movedOn: "2053-03-02",
@@ -417,7 +417,7 @@ describe("the sheet an Investor checks the whole run against", () => {
           event.action === "export" &&
           (event.after as { paper?: string })?.paper === "settlement_statement"
       )
-    ).toMatchObject({ after: { payoutBdt: 729_950 } });
+    ).toMatchObject({ after: { payoutMoney: 729_950 } });
 
     const manager = await as("manager", "2053-03-04T04:00:00.000Z");
     await expect(
@@ -440,7 +440,7 @@ describe("the sheet an Investor checks the whole run against", () => {
     const spending = await as("manager", "2053-03-05T05:00:00.000Z");
     await spending.client.money.enter({
       categoryId: category.id,
-      amountBdt: 20_000,
+      amountMoney: 20_000,
       occurredOn: "2053-01-20",
       counterparty: { name: `দোকান ${suffix}` },
       paymentMethod: "cash",
@@ -484,22 +484,22 @@ describe("an Investor's own page", () => {
       expect.objectContaining({
         id: hisWon,
         units: 13,
-        promisedBdt: 650_000,
-        capitalHeldBdt: 650_000,
+        promisedMoney: 650_000,
+        capitalHeldMoney: 650_000,
         hasPaper: true,
         investorsPercent: 60,
         farmPercent: 40,
         // Thirteen Units of the twenty: ৬,৫০,০০০ back and ৭৯,৯৫০ of profit, paid on the day it was.
         settlement: expect.objectContaining({
-          capitalBdt: 650_000,
-          shareBdt: 79_950,
-          payoutBdt: 729_950,
+          capitalMoney: 650_000,
+          shareMoney: 79_950,
+          payoutMoney: 729_950,
           paidOn: "2053-03-02",
         }),
       }),
     ]);
     expect(
-      his.movements.map((one) => [one.kind, one.amountBdt, one.movedOn])
+      his.movements.map((one) => [one.kind, one.amountMoney, one.movedOn])
     ).toEqual([
       ["payout", 729_950, "2053-03-02"],
       ["capital_in", 650_000, "2053-01-03"],

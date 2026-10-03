@@ -124,7 +124,7 @@ const setup = async () => {
       sex: "male",
       breedId,
       seller: { name: `ব্যাপারী ${suffix}` },
-      purchasePriceBdt: 60_000,
+      purchasePriceMoney: 60_000,
       weightKg: 195,
       estimatedAgeMonths: 20,
       arrivedAt: new Date(ARRIVED),
@@ -188,7 +188,7 @@ beforeAll(async () => {
   await manager.client.sale.record({
     tagNumber: fastest ?? "",
     buyer: { name: `কসাই ${suffix}` },
-    priceBdt: 120_000,
+    priceMoney: 120_000,
     weightKg: 225.2,
     destination: "গাবতলী",
     vehicle: "ঢাকা মেট্রো ট ১১-২২৩৩",

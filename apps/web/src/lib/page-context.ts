@@ -1,4 +1,11 @@
 import type { Host } from "@OpenFarm/auth/hosts";
+import type { FarmLocale } from "@OpenFarm/i18n";
+import {
+  DEFAULT_FARM_LOCALE,
+  farmLocale,
+  isCurrencyCode,
+  isTimeZone,
+} from "@OpenFarm/i18n";
 import {
   createIsomorphicFn,
   getGlobalStartContext,
@@ -39,3 +46,26 @@ export const pageHost = createIsomorphicFn()
       ? "portal"
       : "farm"
   );
+
+/** Where the server writes where the farm is — its currency and its time zone — for the browser to read back. */
+export const CURRENCY_ATTRIBUTE = "data-currency";
+export const TIME_ZONE_ATTRIBUTE = "data-time-zone";
+
+/**
+ * Where the farm is (ADR 0013): the server's own setting while it writes the page, and in the browser what it wrote on
+ * the page's root — so a phone opening the page it kept, with no signal, reads its sums and days as the server would.
+ * A page kept from before the server wrote either is read as a farm in Bangladesh, as it was then.
+ */
+export const pageFarmLocale = createIsomorphicFn()
+  .server((): FarmLocale => farmLocale())
+  .client((): FarmLocale => {
+    const root = document.documentElement;
+    const currency = root.getAttribute(CURRENCY_ATTRIBUTE) ?? "";
+    const timeZone = root.getAttribute(TIME_ZONE_ATTRIBUTE) ?? "";
+    return {
+      currency: isCurrencyCode(currency)
+        ? currency
+        : DEFAULT_FARM_LOCALE.currency,
+      timeZone: isTimeZone(timeZone) ? timeZone : DEFAULT_FARM_LOCALE.timeZone,
+    };
+  });

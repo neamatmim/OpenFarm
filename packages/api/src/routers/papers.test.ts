@@ -34,7 +34,7 @@ const setup = async () => {
       penId: pen.id,
       sex: "male",
       seller: { name: `হাট ${suffix}` },
-      purchasePriceBdt: 90_000,
+      purchasePriceMoney: 90_000,
       weightKg: 300,
       estimatedAgeMonths: 24,
       targetWeightKg: 280,
@@ -84,7 +84,7 @@ describe("the papers a buyer leaves with", () => {
       tagNumber: tagOf(0),
       buyer: BUYER,
       ...LORRY,
-      priceBdt: 145_000,
+      priceMoney: 145_000,
       weightKg: 312.5,
     });
     sold = first.id;
@@ -92,7 +92,7 @@ describe("the papers a buyer leaves with", () => {
       tagNumber: tagOf(1),
       buyer: BUYER,
       ...LORRY,
-      priceBdt: 132_000,
+      priceMoney: 132_000,
       weightKg: 298,
     });
 
@@ -102,7 +102,7 @@ describe("the papers a buyer leaves with", () => {
     expect(receipt.text).toContain(tagOf(1));
     expect(receipt.text).toContain(BUYER.name);
     expect(receipt.animals).toHaveLength(2);
-    expect(receipt.totalBdt).toBe(277_000);
+    expect(receipt.totalMoney).toBe(277_000);
     // And the farm it came from, which is what makes it a receipt rather than a note.
     expect(receipt.text).toContain("শিমুলিয়া");
   });
@@ -132,7 +132,7 @@ describe("the papers a buyer leaves with", () => {
       penId: world.pen.id,
       sex: "male",
       seller: { name: `হাট ${suffix}` },
-      purchasePriceBdt: 80_000,
+      purchasePriceMoney: 80_000,
       weightKg: 280,
       estimatedAgeMonths: 22,
       targetWeightKg: 260,
@@ -150,7 +150,7 @@ describe("the papers a buyer leaves with", () => {
       destination: "সাভার হাট, ঢাকা",
       vehicle: "ঢাকা মেট্রো-ট ২২-৭৭৮৮",
       driver: "রফিক",
-      priceBdt: 121_000,
+      priceMoney: 121_000,
       weightKg: 279,
     });
 
@@ -171,7 +171,7 @@ describe("the papers a buyer leaves with", () => {
     // The receipt, though, is one sheet for everything he took that morning.
     const receipt = await manager.client.papers.receipt({ saleId: sold });
     expect(receipt.animals).toHaveLength(3);
-    expect(receipt.totalBdt).toBe(398_000);
+    expect(receipt.totalMoney).toBe(398_000);
   });
 
   it("says what is missing rather than printing a card with a hole in it", async () => {

@@ -337,7 +337,7 @@ RESPONDERS.headCount = async (_step, _beast, { farm, board }) => {
 /** The Manager's hand holds what the farm says it does: the bank tops it up before it runs dry (script.ts). */
 RESPONDERS.cashCount = async (_step, _beast, { farm }) => {
   const [mine] = await farm.as.manager.cash.inHand();
-  return { evidence: [mine?.bdt ?? 0, ""] };
+  return { evidence: [mine?.amount ?? 0, ""] };
 };
 
 /** Half a litre at a time, as a bottle is filled. */

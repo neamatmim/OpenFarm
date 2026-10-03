@@ -1,3 +1,4 @@
+import { settleFarmLocale } from "@OpenFarm/api/farm-locale";
 import { hostOf } from "@OpenFarm/auth/hosts";
 import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
 
@@ -27,6 +28,9 @@ const withSecurityHeaders = (response: Response, policy: string): Response => {
     headers,
   });
 };
+
+// Where the farm is, before the first page is written out with its sums and its days on it.
+settleFarmLocale();
 
 /** A nonce nobody can guess, fresh for each answer. */
 const aNonce = () => {

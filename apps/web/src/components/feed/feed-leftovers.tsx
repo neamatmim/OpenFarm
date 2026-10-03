@@ -115,12 +115,12 @@ const LeftBehind = ({ row }: { row: LeftoverRow }) => {
 const Worth = ({ row }: { row: LeftoverRow }) => {
   const { t } = useLanguage();
   const taka = useTaka();
-  return row.worthBdt === null ? (
+  return row.worthMoney === null ? (
     <span className="text-muted-foreground text-xs">
       {t("leftovers.unpriced")}
     </span>
   ) : (
-    <span className="tabular-nums">{taka(row.worthBdt)}</span>
+    <span className="tabular-nums">{taka(row.worthMoney)}</span>
   );
 };
 
@@ -166,7 +166,7 @@ const leftoverColumns = column.columns([
     header: listHeader("leftovers.col.left"),
     cell: LeftCell,
   }),
-  column.accessor((row) => row.worthBdt ?? undefined, {
+  column.accessor((row) => row.worthMoney ?? undefined, {
     id: "worth",
     header: listHeader("leftovers.col.worth"),
     cell: WorthCell,
@@ -201,7 +201,7 @@ const leftoverCard = (row: LeftoverRow) => <LeftoverCard row={row} />;
 const Summary = ({ rows, days }: { rows: LeftoverRow[]; days: Period }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
-  const worth = rows.reduce((sum, one) => sum + (one.worthBdt ?? 0), 0);
+  const worth = rows.reduce((sum, one) => sum + (one.worthMoney ?? 0), 0);
   return (
     <div className="flex flex-col gap-1">
       <p className="font-medium">

@@ -82,7 +82,7 @@ const useFigures = (
   const terms: Figure[] = [
     {
       label: t("portal.capital"),
-      value: taka(today.his.capitalBdt),
+      value: taka(today.his.capitalMoney),
       // What investors open the page to see, as the portfolio sets its capital first and largest.
       lead: true,
       hint: t("portal.unitsShare", {
@@ -108,13 +108,13 @@ const useFigures = (
       ...terms,
       {
         label: t("portal.profit"),
-        value: taka(settlement.shareBdt),
+        value: taka(settlement.shareMoney),
         icon: TrendingUp,
-        tone: settlement.shareBdt < 0 ? "warning" : "neutral",
+        tone: settlement.shareMoney < 0 ? "warning" : "neutral",
       },
       {
         label: t("money.payout"),
-        value: taka(settlement.payoutBdt),
+        value: taka(settlement.payoutMoney),
         hint: settlement.paidOn
           ? t("portal.paidOnDay", {
               day: formatDate(startOfFarmDay(settlement.paidOn), language),
@@ -441,17 +441,17 @@ const Money = ({ today }: { today: Today }) => {
             className={cn(
               "flex justify-between gap-4 py-2",
               // Every kind of charge is listed, so nothing looks left out; one nothing was spent on reads quieter.
-              one.bdt === 0 && "text-muted-foreground"
+              one.amount === 0 && "text-muted-foreground"
             )}
             key={one.word}
           >
             <dt>{t(CHARGE_WORD[one.word])}</dt>
-            <dd className="tabular-nums">{taka(one.bdt)}</dd>
+            <dd className="tabular-nums">{taka(one.amount)}</dd>
           </div>
         ))}
         <div className="flex justify-between gap-4 py-2 font-semibold">
           <dt>{t("portal.spentTotal")}</dt>
-          <dd className="tabular-nums">{taka(spend.chargedBdt)}</dd>
+          <dd className="tabular-nums">{taka(spend.chargedMoney)}</dd>
         </div>
       </dl>
       <dl className="grid gap-3 text-sm sm:grid-cols-2">
@@ -459,8 +459,8 @@ const Money = ({ today }: { today: Today }) => {
           <dt className="text-muted-foreground">{t("portal.cattleBudget")}</dt>
           <dd className="font-medium tabular-nums">
             {t("portal.budgetLeft", {
-              left: taka(spend.cattleBudgetLeftBdt),
-              of: taka(spend.cattleBudgetBdt),
+              left: taka(spend.cattleBudgetLeftMoney),
+              of: taka(spend.cattleBudgetMoney),
             })}
           </dd>
         </div>
@@ -468,8 +468,8 @@ const Money = ({ today }: { today: Today }) => {
           <dt className="text-muted-foreground">{t("portal.runningBudget")}</dt>
           <dd className="font-medium tabular-nums">
             {t("portal.budgetSpent", {
-              spent: taka(spend.runningSpentBdt),
-              of: taka(spend.runningBudgetBdt),
+              spent: taka(spend.runningSpentMoney),
+              of: taka(spend.runningBudgetMoney),
             })}
           </dd>
         </div>
@@ -489,7 +489,7 @@ const Papers = ({ today }: { today: Today }) => {
     <Section description={t("portal.papersHint")} title={t("portal.papers")}>
       <PortalPapers
         agreementId={today.agreementId}
-        hasCapital={today.his.capitalBdt > 0 || Boolean(mine?.settlement)}
+        hasCapital={today.his.capitalMoney > 0 || Boolean(mine?.settlement)}
         settled={
           mine ? mine.settlement !== null : today.venture.state === "settled"
         }

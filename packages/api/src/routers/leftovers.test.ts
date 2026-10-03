@@ -45,7 +45,7 @@ const setup = async () => {
     feedItemId: straw.id,
     kind: "purchase",
     quantity: 1000,
-    priceBdt: 1000 * STRAW_TAKA_PER_KG,
+    priceMoney: 1000 * STRAW_TAKA_PER_KG,
     seller: { name: `খড়ের ব্যাপারী ${suffix}` },
     receivedOn: "2035-02-01",
   });
@@ -166,7 +166,7 @@ describe("the Leftovers", () => {
       sessions: WEEK_OF_SESSIONS,
       sessionsWithLeftover: WEEK_OF_SESSIONS,
       // 28 kg of straw at the ten taka a kilo the farm paid for it.
-      worthBdt: 28 * STRAW_TAKA_PER_KG,
+      worthMoney: 28 * STRAW_TAKA_PER_KG,
       standing: "wasting",
     });
     // Wasted feed is what the Manager reads first.
@@ -184,7 +184,7 @@ describe("the Leftovers", () => {
     // Pen ক clears its concentrate but leaves straw: fed enough of it.
     expect(concentrateIn(world.pens.wasting.id)).toMatchObject({
       leftoverKg: 0,
-      worthBdt: 0,
+      worthMoney: 0,
       standing: "fine",
     });
     // Pen ঘ clears everything, every time.
@@ -205,12 +205,12 @@ describe("the Leftovers", () => {
       leftoverKg: 2,
       leftoverPercent: 1,
       sessionsWithLeftover: 4,
-      worthBdt: 2 * STRAW_TAKA_PER_KG,
+      worthMoney: 2 * STRAW_TAKA_PER_KG,
       standing: "fine",
     });
     expect(
       inFine.find((one) => one.feedItemId === world.items.grass.id)
-    ).toMatchObject({ leftoverKg: 14, worthBdt: null, standing: "fine" });
+    ).toMatchObject({ leftoverKg: 14, worthMoney: null, standing: "fine" });
   });
 
   it("does not judge a Pen fed too seldom to say", async () => {

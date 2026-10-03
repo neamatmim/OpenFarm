@@ -20,14 +20,14 @@ const as = (role: "owner" | "manager" | "vet", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 const plan = {
-  targetCapitalBdt: 500_000,
-  floorBdt: 0,
+  targetCapitalMoney: 500_000,
+  floorMoney: 0,
   decideBy: "2048-01-20",
   targetWindowStart: "2048-02-17",
   targetWindowEnd: "2048-02-19",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 10,
-  cattleBudgetBdt: 400_000,
+  cattleBudgetMoney: 400_000,
 };
 
 /** The round that starts the health chain: somebody walks the pen and says what they saw. */
@@ -99,7 +99,7 @@ beforeAll(async () => {
     units: 10,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2048-01-02",
     stampSerial: `AA ${suffix}`,
   });
@@ -110,7 +110,7 @@ beforeAll(async () => {
   });
   await owner.client.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: 500_000,
+    amountMoney: 500_000,
     movedOn: "2048-01-03",
     paymentMethod: "bank",
     reference: `TRF-${suffix}`,
@@ -123,14 +123,14 @@ beforeAll(async () => {
   const trip = await buying.client.trips.record({
     wentTo: `হাট ${suffix}`,
     wentOn: "2048-01-04",
-    brokerBdt: 0,
-    transportBdt: 0,
-    keepBdt: 0,
+    brokerMoney: 0,
+    transportMoney: 0,
+    keepMoney: 0,
   });
   await buying.client.ventures.drawFloat({
     ventureId,
     buyingTripId: trip.id,
-    amountBdt: 200_000,
+    amountMoney: 200_000,
     movedOn: "2048-01-04",
     paymentMethod: "bank",
     reference: `FLT-${suffix}`,
@@ -141,7 +141,7 @@ beforeAll(async () => {
       penId,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
-      purchasePriceBdt: 100_000,
+      purchasePriceMoney: 100_000,
       weightKg: 200,
       estimatedAgeMonths: 20,
       buyingTripId: trip.id,
@@ -156,7 +156,7 @@ beforeAll(async () => {
   deadTag = await broughtIn();
   await buying.client.ventures.reconcileFloat({
     buyingTripId: trip.id,
-    cashBackBdt: 0,
+    cashBackMoney: 0,
     movedOn: "2048-01-04",
     reference: `DEP-${suffix}`,
   });
@@ -198,8 +198,8 @@ beforeAll(async () => {
   const selling = await as("manager", "2048-02-18T05:00:00.000Z");
   const outing = await selling.client.sellingTrips.record({
     wentTo: `বিক্রির হাট ${suffix}`,
-    transportBdt: 4000,
-    keepBdt: 0,
+    transportMoney: 4000,
+    keepMoney: 0,
     animals: [soldTag],
     paymentMethod: "cash",
   });
@@ -207,7 +207,7 @@ beforeAll(async () => {
   const sold = await selling.client.sale.record({
     tagNumber: soldTag,
     buyer: { name: `ক্রেতা ${suffix}` },
-    priceBdt: 300_000,
+    priceMoney: 300_000,
     weightKg: 320,
     destination: `ঢাকা ${suffix}`,
     vehicle: `ঢাকা মেট্রো ${suffix}`,
@@ -226,7 +226,7 @@ beforeAll(async () => {
   await reading.client.ventures.reimburse({
     ventureId,
     month: "2048-02",
-    amountBdt: owed.totalBdt,
+    amountMoney: owed.totalMoney,
     movedOn: "2048-03-01",
     paymentMethod: "bank",
     reference: `RMB-${suffix}`,
@@ -236,14 +236,14 @@ beforeAll(async () => {
   await reading.client.ventures.checkTheBank({
     ventureId,
     month: "2048-01",
-    readBdt: 300_000,
+    readMoney: 300_000,
   });
   await reading.client.ventures.checkTheBank({
     ventureId,
     month: "2048-02",
     // Unchanged: the money went back to the Farm on the first of March, so February ended on what
     // it ended on.
-    readBdt: 600_000,
+    readMoney: 600_000,
   });
   const settling = await as("owner", "2048-03-02T04:00:00.000Z");
   await settling.client.ventures.approveSettlement({ ventureId });
@@ -255,13 +255,13 @@ beforeAll(async () => {
     await settling.client.ventures.paySettlement({
       ventureId,
       agreementId: his.agreementId,
-      amountBdt: his.payoutBdt,
+      amountMoney: his.payoutMoney,
       movedOn: "2048-03-02",
       paymentMethod: "bank",
       reference: `PAY-${suffix}`,
     });
   }
-  if ((approved?.farmBdt ?? 0) > 0) {
+  if ((approved?.farmMoney ?? 0) > 0) {
     await settling.client.ventures.takeTheFarmsShare({
       ventureId,
       movedOn: "2048-03-02",
@@ -324,7 +324,7 @@ describe("a settled Venture's records", () => {
       manager.client.sellingTrips.correct({
         id: tripId,
         reason: `ভাড়া বেশি ছিল ${suffix}`,
-        changes: { transportBdt: { from: 4000, to: 6000 } },
+        changes: { transportMoney: { from: 4000, to: 6000 } },
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -337,11 +337,11 @@ describe("a settled Venture's records", () => {
     await owner.client.sale.correct({
       id: saleId,
       reason: `ক্রেতা বাকিটা দিয়েছে ${suffix}`,
-      changes: { priceBdt: { from: 300_000, to: 320_000 } },
+      changes: { priceMoney: { from: 300_000, to: 320_000 } },
     });
     // And the Settlement it was approved on has not moved a taka for it.
     const after = await owner.client.ventures.approvedSettlement({ ventureId });
-    expect(after?.proceedsBdt).toBe(300_000);
+    expect(after?.proceedsMoney).toBe(300_000);
   });
 
   it("refuses a record from its time even once she belongs to somebody else", async () => {
@@ -366,7 +366,7 @@ describe("a settled Venture's records", () => {
       units: 10,
       investorsPercent: 60,
       arbitrator: `মাওলানা ${suffix}`,
-      stampValueBdt: 300,
+      stampValueMoney: 300,
       stampedOn: "2048-03-04",
       stampSerial: `BB ${suffix}`,
     });
@@ -377,7 +377,7 @@ describe("a settled Venture's records", () => {
     });
     await owner.client.ventures.takeCapital({
       agreementId: paper.id,
-      amountBdt: 500_000,
+      amountMoney: 500_000,
       movedOn: "2048-03-04",
       paymentMethod: "bank",
       reference: `TRF2-${suffix}`,

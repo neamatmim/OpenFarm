@@ -19,8 +19,8 @@ export interface OpenDraw {
   id: string;
   counterpartyId: string;
   drawnAt: Date;
-  amountBdt: number;
-  openBdt: number;
+  amountMoney: number;
+  openMoney: number;
   note: string | null;
 }
 
@@ -36,19 +36,19 @@ export const openDrawsOf = async (
       id: true,
       counterpartyId: true,
       drawnAt: true,
-      amountBdt: true,
+      amountMoney: true,
       note: true,
     },
-    with: { taken: { columns: { bdt: true } } },
+    with: { taken: { columns: { amount: true } } },
     orderBy: { drawnAt: "asc", id: "asc" },
   });
   return draws.flatMap(({ taken, ...one }) => {
-    let takenBdt = 0;
+    let takenMoney = 0;
     for (const part of taken) {
-      takenBdt += part.bdt;
+      takenMoney += part.amount;
     }
-    const openBdt = roundTaka(one.amountBdt - takenBdt);
-    return openBdt > 0 ? [{ ...one, openBdt }] : [];
+    const openMoney = roundTaka(one.amountMoney - takenMoney);
+    return openMoney > 0 ? [{ ...one, openMoney }] : [];
   });
 };
 
@@ -87,18 +87,20 @@ export const drawsByPerson = async (db: Db, farmId: string) => {
   }
   return [...byPerson]
     .map(([counterpartyId, draws]) => {
-      let openBdt = 0;
+      let openMoney = 0;
       for (const one of draws) {
-        openBdt += one.openBdt;
+        openMoney += one.openMoney;
       }
       return {
         counterpartyId,
         name: nameOf.get(counterpartyId) ?? "",
-        openBdt: roundTaka(openBdt),
+        openMoney: roundTaka(openMoney),
         draws,
       };
     })
-    .toSorted((a, b) => b.openBdt - a.openBdt || a.name.localeCompare(b.name));
+    .toSorted(
+      (a, b) => b.openMoney - a.openMoney || a.name.localeCompare(b.name)
+    );
 };
 
 /**
@@ -110,7 +112,7 @@ export const recordWageDraw = async (
   booking: Booking,
   input: {
     counterpartyId: string;
-    amountBdt: number;
+    amountMoney: number;
     drawnAt: Date;
     note: string | null;
     paymentMethod: PaymentMethod | undefined;
@@ -121,7 +123,7 @@ export const recordWageDraw = async (
     id,
     farmId: booking.farm.id,
     counterpartyId: input.counterpartyId,
-    amountBdt: input.amountBdt,
+    amountMoney: input.amountMoney,
     drawnAt: input.drawnAt,
     note: input.note,
     recordedBy: booking.actorId,
@@ -131,7 +133,7 @@ export const recordWageDraw = async (
     source: "wage_draw",
     sourceId: id,
     categoryKey: "wages",
-    amountBdt: input.amountBdt,
+    amountMoney: input.amountMoney,
     occurredAt: input.drawnAt,
     counterpartyId: input.counterpartyId,
     paymentMethod: input.paymentMethod,
@@ -147,22 +149,25 @@ export const drawsToTake = async (
   tx: Tx,
   farmId: string,
   counterpartyId: string,
-  wageBdt: number
-): Promise<{ parts: { drawId: string; bdt: number }[]; takenBdt: number }> => {
+  wageMoney: number
+): Promise<{
+  parts: { drawId: string; amount: number }[];
+  takenMoney: number;
+}> => {
   // Behind the Farm lock a draw put right takes too, so a payday never takes what a Correction is taking back.
   await lockTheFarm(tx, farmId);
   const open = await openDrawsOf(tx, farmId, counterpartyId);
-  const parts: { drawId: string; bdt: number }[] = [];
-  let left = wageBdt;
+  const parts: { drawId: string; amount: number }[] = [];
+  let left = wageMoney;
   for (const one of open) {
     if (left <= 0) {
       break;
     }
-    const bdt = roundTaka(Math.min(left, one.openBdt));
-    parts.push({ drawId: one.id, bdt });
-    left = roundTaka(left - bdt);
+    const amount = roundTaka(Math.min(left, one.openMoney));
+    parts.push({ drawId: one.id, amount });
+    left = roundTaka(left - amount);
   }
-  return { parts, takenBdt: roundTaka(wageBdt - left) };
+  return { parts, takenMoney: roundTaka(wageMoney - left) };
 };
 
 /** Writes what a wage took off each draw. */
@@ -170,7 +175,7 @@ export const takeDraws = async (
   tx: Tx,
   farmId: string,
   wageEventId: string,
-  parts: readonly { drawId: string; bdt: number }[],
+  parts: readonly { drawId: string; amount: number }[],
   now: Date
 ): Promise<void> => {
   for (const part of parts) {
@@ -181,7 +186,7 @@ export const takeDraws = async (
       farmId,
       drawId: part.drawId,
       wageEventId,
-      bdt: part.bdt,
+      amount: part.amount,
     });
   }
 };
@@ -193,11 +198,11 @@ export const drawsTakenBy = async (
 ): Promise<number> => {
   const taken = await db.query.wageDrawTaken.findMany({
     where: { wageEventId },
-    columns: { bdt: true },
+    columns: { amount: true },
   });
   let total = 0;
   for (const one of taken) {
-    total += one.bdt;
+    total += one.amount;
   }
   return roundTaka(total);
 };
@@ -206,11 +211,11 @@ export const drawsTakenBy = async (
 export const takenOffDraw = async (db: Db, drawId: string): Promise<number> => {
   const taken = await db.query.wageDrawTaken.findMany({
     where: { drawId },
-    columns: { bdt: true },
+    columns: { amount: true },
   });
   let total = 0;
   for (const one of taken) {
-    total += one.bdt;
+    total += one.amount;
   }
   return roundTaka(total);
 };
@@ -221,5 +226,5 @@ export const readWageDraw = async (
   id: string
 ): Promise<SnapshotValue> => {
   const row = await db.query.wageDraw.findFirst({ where: { id } });
-  return row ? { ...row, takenBdt: await takenOffDraw(db, id) } : null;
+  return row ? { ...row, takenMoney: await takenOffDraw(db, id) } : null;
 };

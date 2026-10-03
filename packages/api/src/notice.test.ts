@@ -189,7 +189,7 @@ describe("who hears a Notice", () => {
         id: `money-${suffix}`,
         facts: {
           moneyEventId: `m-${suffix}`,
-          amountBdt: 40_000,
+          amountMoney: 40_000,
           categoryBn: "খাবার",
           categoryEn: "Feed",
         },

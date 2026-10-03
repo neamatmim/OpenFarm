@@ -55,7 +55,7 @@ const tags: Record<"a" | "b" | "c" | "w", string> = {
 };
 let breedId = "";
 
-const sell = async (tagNumber: string, priceBdt: number) => {
+const sell = async (tagNumber: string, priceMoney: number) => {
   const { client } = await as("manager", "2028-05-06T00:00:00.000Z");
   await client.sale.record({
     tagNumber,
@@ -63,7 +63,7 @@ const sell = async (tagNumber: string, priceBdt: number) => {
     destination: "গাবতলী পশুর হাট",
     vehicle: "ঢাকা মেট্রো-ট ১১-২২৩৪",
     driver: "সোহেল",
-    priceBdt,
+    priceMoney,
     weightKg: 300,
   });
 };
@@ -102,14 +102,14 @@ const venturesTwo = async (penId: string) => {
   const { client: owner } = await as("owner", "2027-12-31T04:00:00.000Z");
   const venture = await owner.ventures.open({
     name: `ভেঞ্চার ${suffix}`,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2028-01-10",
     targetWindowStart: EID_2028.start,
     targetWindowEnd: EID_2028.end,
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
-    cattleBudgetBdt: 800_000,
+    cattleBudgetMoney: 800_000,
   });
   const person = await owner.investors.record({
     name: `রফিক ${suffix}`,
@@ -121,7 +121,7 @@ const venturesTwo = async (penId: string) => {
     units: 20,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2027-12-30",
     stampSerial: `AA 1 ${suffix}`,
   });
@@ -132,7 +132,7 @@ const venturesTwo = async (penId: string) => {
   });
   await owner.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: 1_000_000,
+    amountMoney: 1_000_000,
     movedOn: "2027-12-31",
     paymentMethod: "bank",
     reference: `TRF-${suffix}`,
@@ -142,14 +142,14 @@ const venturesTwo = async (penId: string) => {
   const trip = await buying.trips.record({
     wentTo: `ভেঞ্চারের হাট ${suffix}`,
     wentOn: "2028-01-01",
-    brokerBdt: 0,
-    transportBdt: 0,
-    keepBdt: 0,
+    brokerMoney: 0,
+    transportMoney: 0,
+    keepMoney: 0,
   });
   await buying.ventures.drawFloat({
     ventureId: venture.id,
     buyingTripId: trip.id,
-    amountBdt: 200_000,
+    amountMoney: 200_000,
     movedOn: "2028-01-01",
     paymentMethod: "bank",
     reference: `FLT-${suffix}`,
@@ -160,7 +160,7 @@ const venturesTwo = async (penId: string) => {
       penId,
       sex: "male",
       seller: { name: `ভেঞ্চারের ব্যাপারী ${suffix}` },
-      purchasePriceBdt: 100_000,
+      purchasePriceMoney: 100_000,
       weightKg: 240,
       estimatedAgeMonths: 20,
       buyingTripId: trip.id,
@@ -173,7 +173,7 @@ const venturesTwo = async (penId: string) => {
   const w = await bull();
   await buying.ventures.reconcileFloat({
     buyingTripId: trip.id,
-    cashBackBdt: 0,
+    cashBackMoney: 0,
     movedOn: "2028-01-01",
     reference: `DEP-${suffix}`,
   });
@@ -222,16 +222,16 @@ beforeAll(async () => {
   const trip = await onTheDay.trips.record({
     wentTo: GABTOLI,
     wentOn: "2028-01-01",
-    brokerBdt: 0,
-    transportBdt: 0,
-    keepBdt: 0,
+    brokerMoney: 0,
+    transportMoney: 0,
+    keepMoney: 0,
   });
 
   const { client: manager } = await as("manager", "2028-01-01T00:00:00.000Z");
   const bought = async (one: {
     seller: string;
-    purchasePriceBdt: number;
-    hasilBdt?: number;
+    purchasePriceMoney: number;
+    hasilMoney?: number;
     weightKg: number;
     atGabtoli: boolean;
     sahiwal: boolean;
@@ -242,8 +242,8 @@ beforeAll(async () => {
       penId: pen.id,
       sex: "male",
       seller: { name: one.seller },
-      purchasePriceBdt: one.purchasePriceBdt,
-      hasilBdt: one.hasilBdt ?? 0,
+      purchasePriceMoney: one.purchasePriceMoney,
+      hasilMoney: one.hasilMoney ?? 0,
       weightKg: one.weightKg,
       estimatedAgeMonths: 20,
       arrivedAt: new Date("2028-01-01T00:00:00Z"),
@@ -256,22 +256,22 @@ beforeAll(async () => {
   };
   tags.a = await bought({
     seller: KARIM,
-    purchasePriceBdt: 100_000,
-    hasilBdt: 1000,
+    purchasePriceMoney: 100_000,
+    hasilMoney: 1000,
     weightKg: 200,
     atGabtoli: true,
     sahiwal: false,
   });
   tags.b = await bought({
     seller: RAHIM,
-    purchasePriceBdt: 120_000,
+    purchasePriceMoney: 120_000,
     weightKg: 280,
     atGabtoli: true,
     sahiwal: true,
   });
   tags.c = await bought({
     seller: KARIM,
-    purchasePriceBdt: 60_000,
+    purchasePriceMoney: 60_000,
     weightKg: 260,
     atGabtoli: false,
     sahiwal: true,
@@ -279,7 +279,7 @@ beforeAll(async () => {
   // A bull for a winter market, still standing when the Eid Season is read: a Season not yet a result.
   await bought({
     seller: RAHIM,
-    purchasePriceBdt: 90_000,
+    purchasePriceMoney: 90_000,
     weightKg: 220,
     atGabtoli: false,
     sahiwal: false,
@@ -317,12 +317,12 @@ beforeAll(async () => {
   const { client: takingOn } = await as("owner", "2028-03-02T04:00:00.000Z");
   await takingOn.ventures.sellInternally({
     tagNumber: tags.w,
-    rateBdtPerKg: 400,
+    rateMoneyPerKg: 400,
     note: `হাটের দর ${suffix}`,
     soldOn: "2028-03-02",
     paymentMethod: "bank",
     reference: `INT-${suffix}`,
-    priceBdt: 120_000,
+    priceMoney: 120_000,
     targetWindow: EID_2028,
   });
 
@@ -345,13 +345,13 @@ const animalRow = (
   came: "intake" | "bought_from_venture",
   since: string,
   left: "sold" | "died",
-  costBdt: number,
-  backBdt: number,
+  costMoney: number,
+  backMoney: number,
   per100: number
 ) => ({
   line: { kind: "animal", tagNumber, came, since, left },
-  costBdt,
-  backBdt,
+  costMoney,
+  backMoney,
   per100,
 });
 
@@ -363,9 +363,9 @@ describe("a finished Season opened out", () => {
         head: 2,
         died: 0,
         lost: 0,
-        costBdt: 221_000,
-        backBdt: 280_000,
-        resultBdt: 59_000,
+        costMoney: 221_000,
+        backMoney: 280_000,
+        resultMoney: 59_000,
         per100: 26.7,
       },
       {
@@ -373,9 +373,9 @@ describe("a finished Season opened out", () => {
         head: 1,
         died: 1,
         lost: 0,
-        costBdt: 60_000,
-        backBdt: 0,
-        resultBdt: -60_000,
+        costMoney: 60_000,
+        backMoney: 0,
+        resultMoney: -60_000,
         per100: -100,
       },
       {
@@ -383,9 +383,9 @@ describe("a finished Season opened out", () => {
         head: 1,
         died: 0,
         lost: 0,
-        costBdt: 120_000,
-        backBdt: 140_000,
-        resultBdt: 20_000,
+        costMoney: 120_000,
+        backMoney: 140_000,
+        resultMoney: 20_000,
         per100: 16.7,
       },
     ]);
@@ -413,15 +413,15 @@ describe("a finished Season opened out", () => {
         line: { kind: "named", id: breedId, name: SAHIWAL },
         head: 2,
         died: 1,
-        costBdt: 180_000,
-        resultBdt: -30_000,
+        costMoney: 180_000,
+        resultMoney: -30_000,
         per100: -16.7,
       },
       {
         line: { kind: "none" },
         head: 2,
-        costBdt: 221_000,
-        resultBdt: 49_000,
+        costMoney: 221_000,
+        resultMoney: 49_000,
         per100: 22.2,
       },
     ]);
@@ -455,10 +455,10 @@ describe("a finished Season opened out", () => {
   it("into each animal: how she came, her cost, what came back, and her share", async () => {
     const lines = await breakdown("animal");
     expect(
-      lines.map(({ line, costBdt, backBdt, per100 }) => ({
+      lines.map(({ line, costMoney, backMoney, per100 }) => ({
         line,
-        costBdt,
-        backBdt,
+        costMoney,
+        backMoney,
         per100,
       }))
     ).toEqual(
@@ -495,17 +495,17 @@ describe("a finished Season opened out", () => {
     // Four head: the Venture's own V, sold in the same window, is in no line of the Farm's.
     expect(season?.head).toBe(4);
     expect(season?.returnOnCost).toMatchObject({
-      costBdt: 401_000,
-      resultBdt: 19_000,
+      costMoney: 401_000,
+      resultMoney: 19_000,
     });
     for (const by of ["haat", "trader", "breed", "band", "animal"] as const) {
       // oxlint-disable-next-line no-await-in-loop -- five ways, read one after the other
       const lines = await breakdown(by);
       expect({
         by,
-        costBdt: lines.reduce((sum, one) => sum + one.costBdt, 0),
-        resultBdt: lines.reduce((sum, one) => sum + one.resultBdt, 0),
-      }).toEqual({ by, costBdt: 401_000, resultBdt: 19_000 });
+        costMoney: lines.reduce((sum, one) => sum + one.costMoney, 0),
+        resultMoney: lines.reduce((sum, one) => sum + one.resultMoney, 0),
+      }).toEqual({ by, costMoney: 401_000, resultMoney: 19_000 });
     }
   });
 

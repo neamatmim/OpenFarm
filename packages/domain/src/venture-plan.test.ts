@@ -18,7 +18,7 @@ const LINES = [
     animals: 8,
     fromKg: 200,
     toKg: 250,
-    buyBdtPerKg: 480,
+    buyMoneyPerKg: 480,
     dailyGainKg: 0.9,
     breedId: null,
   },
@@ -27,7 +27,7 @@ const LINES = [
     animals: 4,
     fromKg: 250,
     toKg: 300,
-    buyBdtPerKg: 470,
+    buyMoneyPerKg: 470,
     dailyGainKg: 0.8,
     breedId: null,
   },
@@ -39,29 +39,29 @@ describe("what a Venture Plan comes to", () => {
     // first line reaches 225 + 90 = 315 kg a head, the second 275 + 80 = 355 kg.
     const totals = planTotals({
       lines: LINES,
-      cattleBudgetBdt: 1_400_000,
+      cattleBudgetMoney: 1_400_000,
       daysOnFeed: 100,
     });
     expect(totals.lines).toEqual([
-      { boughtKg: 1800, costBdt: 864_000, saleKgEach: 315, saleKg: 2520 },
-      { boughtKg: 1100, costBdt: 517_000, saleKgEach: 355, saleKg: 1420 },
+      { boughtKg: 1800, costMoney: 864_000, saleKgEach: 315, saleKg: 2520 },
+      { boughtKg: 1100, costMoney: 517_000, saleKgEach: 355, saleKg: 1420 },
     ]);
     expect(totals).toMatchObject({
       animals: 12,
       boughtKg: 2900,
-      costBdt: 1_381_000,
+      costMoney: 1_381_000,
       saleKg: 3940,
-      overBudgetBdt: 0,
+      overBudgetMoney: 0,
     });
   });
 
   it("says by how much it spends past the cattle budget, without refusing it", () => {
     const totals = planTotals({
       lines: LINES,
-      cattleBudgetBdt: 1_300_000,
+      cattleBudgetMoney: 1_300_000,
       daysOnFeed: 100,
     });
-    expect(totals.overBudgetBdt).toBe(81_000);
+    expect(totals.overBudgetMoney).toBe(81_000);
   });
 });
 
@@ -84,8 +84,8 @@ describe("the line a bull of a Breed was bought in", () => {
   const BRAHMAN = "breed-brahman";
   // One weight band, two Breeds and any other: ten Pabna bulls at 0.55 a day, ten Sahiwal crosses at 0.8, and four of
   // whatever else the haat has. Then a heavier band of Pabna only.
-  const LIGHT = { fromKg: 200, toKg: 250, buyBdtPerKg: 480 };
-  const HEAVY = { fromKg: 250, toKg: 300, buyBdtPerKg: 470 };
+  const LIGHT = { fromKg: 200, toKg: 250, buyMoneyPerKg: 480 };
+  const HEAVY = { fromKg: 250, toKg: 300, buyMoneyPerKg: 470 };
   const BY_BREED = [
     { ...LIGHT, animals: 10, dailyGainKg: 0.55, breedId: PABNA },
     { ...LIGHT, animals: 10, dailyGainKg: 0.8, breedId: SAHIWAL_CROSS },
@@ -112,9 +112,9 @@ describe("the line a bull of a Breed was bought in", () => {
 
   it("counts what was bought line by line, and what has still to buy at each line's own gain", () => {
     const bought = [
-      { weightKg: 220, priceBdt: 105_600, breedId: PABNA },
-      { weightKg: 230, priceBdt: 110_400, breedId: SAHIWAL_CROSS },
-      { weightKg: 260, priceBdt: 122_200, breedId: BRAHMAN },
+      { weightKg: 220, priceMoney: 105_600, breedId: PABNA },
+      { weightKg: 230, priceMoney: 110_400, breedId: SAHIWAL_CROSS },
+      { weightKg: 260, priceMoney: 122_200, breedId: BRAHMAN },
     ];
     const against = buyingAgainstPlan(BY_BREED, bought);
     expect(against.bands.map((one) => one.bought.animals)).toEqual([
@@ -155,29 +155,29 @@ describe("what was bought against the plan", () => {
     // Bought: 210 kg for ৳1,00,800 and 240 kg for ৳1,15,200 (৳480 a kilo, both in the first band), 260 kg for ৳1,22,200
     // (the second band), and a 320 kg bull for ৳1,50,000 that no band planned.
     const bought = buyingAgainstPlan(LINES, [
-      { weightKg: 210, priceBdt: 100_800, breedId: null },
-      { weightKg: 240, priceBdt: 115_200, breedId: null },
-      { weightKg: 260, priceBdt: 122_200, breedId: null },
-      { weightKg: 320, priceBdt: 150_000, breedId: null },
+      { weightKg: 210, priceMoney: 100_800, breedId: null },
+      { weightKg: 240, priceMoney: 115_200, breedId: null },
+      { weightKg: 260, priceMoney: 122_200, breedId: null },
+      { weightKg: 320, priceMoney: 150_000, breedId: null },
     ]);
     expect(bought.bands[0]).toEqual({
       line: { fromKg: 200, toKg: 250, breedId: null },
-      planned: { animals: 8, kg: 1800, costBdt: 864_000, bdtPerKg: 480 },
-      bought: { animals: 2, kg: 450, costBdt: 216_000, bdtPerKg: 480 },
+      planned: { animals: 8, kg: 1800, costMoney: 864_000, moneyPerKg: 480 },
+      bought: { animals: 2, kg: 450, costMoney: 216_000, moneyPerKg: 480 },
     });
     expect(bought.bands[1]?.bought).toEqual({
       animals: 1,
       kg: 260,
-      costBdt: 122_200,
-      bdtPerKg: 470,
+      costMoney: 122_200,
+      moneyPerKg: 470,
     });
     expect(bought.outside).toEqual({
       animals: 1,
       kg: 320,
-      costBdt: 150_000,
-      bdtPerKg: 468.75,
+      costMoney: 150_000,
+      moneyPerKg: 468.75,
     });
-    expect(bought.total).toMatchObject({ animals: 4, costBdt: 488_200 });
+    expect(bought.total).toMatchObject({ animals: 4, costMoney: 488_200 });
   });
 
   it("says no price a kilo for a band nothing was bought in", () => {
@@ -185,8 +185,8 @@ describe("what was bought against the plan", () => {
     expect(bought.bands[0]?.bought).toEqual({
       animals: 0,
       kg: 0,
-      costBdt: 0,
-      bdtPerKg: null,
+      costMoney: 0,
+      moneyPerKg: null,
     });
   });
 });
@@ -206,12 +206,12 @@ describe("what the plan says the Venture makes", () => {
     expect(
       plannedResult({
         saleKg: 3940,
-        cattleBdt: 1_381_000,
-        runningBudgetBdt: 400_000,
-        saleLowBdtPerKg: 520,
-        saleHighBdtPerKg: 600,
+        cattleMoney: 1_381_000,
+        runningBudgetMoney: 400_000,
+        saleLowMoneyPerKg: 520,
+        saleHighMoneyPerKg: 600,
       })
-    ).toEqual({ lowBdt: 267_800, highBdt: 583_000 });
+    ).toEqual({ lowMoney: 267_800, highMoney: 583_000 });
   });
 
   it("sells fewer at the low end by the share the plan expects to die", () => {
@@ -219,13 +219,13 @@ describe("what the plan says the Venture makes", () => {
     expect(
       plannedResult({
         saleKg: 3940,
-        cattleBdt: 1_381_000,
-        runningBudgetBdt: 400_000,
-        saleLowBdtPerKg: 520,
-        saleHighBdtPerKg: 600,
+        cattleMoney: 1_381_000,
+        runningBudgetMoney: 400_000,
+        saleLowMoneyPerKg: 520,
+        saleHighMoneyPerKg: 600,
         deathsPercent: 5,
       })
-    ).toEqual({ lowBdt: 165_360, highBdt: 583_000 });
+    ).toEqual({ lowMoney: 165_360, highMoney: 583_000 });
   });
 });
 
@@ -234,12 +234,12 @@ describe("a plan's buying as one average", () => {
     // 8 × 225 kg = 1,800 kg at ৳480 and 4 × 275 kg = 1,100 kg at ৳470: ৳13,81,000 for 2,900 kg is ৳476.21 a kilo;
     // 2,900 kg over 12 head is 241.7 kg; 8 × 0.9 + 4 × 0.8 = 10.4 kg a day over 12 is 0.87.
     expect(planAverages(LINES)).toEqual({
-      buyBdtPerKg: 476.21,
+      buyMoneyPerKg: 476.21,
       buyWeightKg: 241.7,
       dailyGainKg: 0.87,
     });
     expect(planAverages([])).toEqual({
-      buyBdtPerKg: null,
+      buyMoneyPerKg: null,
       buyWeightKg: null,
       dailyGainKg: null,
     });
@@ -254,24 +254,24 @@ describe("what a plan has still to buy", () => {
       stillToBuyOf({
         lines: LINES,
         bought: [
-          { weightKg: 210, priceBdt: 100_800, breedId: null },
-          { weightKg: 240, priceBdt: 115_200, breedId: null },
-          { weightKg: 320, priceBdt: 150_000, breedId: null },
+          { weightKg: 210, priceMoney: 100_800, breedId: null },
+          { weightKg: 240, priceMoney: 115_200, breedId: null },
+          { weightKg: 320, priceMoney: 150_000, breedId: null },
         ],
         days: 50,
       })
-    ).toEqual({ kg: 2880, costBdt: 1_165_000 });
+    ).toEqual({ kg: 2880, costMoney: 1_165_000 });
   });
 
   it("never goes below nothing in a band bought past its plan", () => {
     const over = Array.from({ length: 10 }, () => ({
       weightKg: 230,
-      priceBdt: 110_000,
+      priceMoney: 110_000,
       breedId: null,
     }));
     expect(
       stillToBuyOf({ lines: LINES.slice(0, 1), bought: over, days: 50 })
-    ).toEqual({ kg: 0, costBdt: 0 });
+    ).toEqual({ kg: 0, costMoney: 0 });
   });
 });
 

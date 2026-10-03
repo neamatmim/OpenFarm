@@ -42,7 +42,7 @@ import { paidForBy } from "../venture-store";
 const copyMarksOf = (agreement: {
   stampKind: StampKind;
   stampSerial: string;
-  stampValueBdt: number;
+  stampValueMoney: number;
   stampedOn: string;
 }): { filled: string[]; copyOf: string } => {
   const day = dayInBangla(agreement.stampedOn);
@@ -55,7 +55,7 @@ const copyMarksOf = (agreement: {
   return {
     filled: [
       agreement.stampSerial,
-      `${formatNumber(agreement.stampValueBdt, "bn")} টাকা`,
+      `${formatNumber(agreement.stampValueMoney, "bn")} টাকা`,
       day,
     ],
     copyOf: `অনুলিপি — মূল নয় / COPY — not the original · স্ট্যাম্প ক্রমিক / Stamp serial ${agreement.stampSerial} · স্ট্যাম্পের তারিখ / Stamped ${day}`,
@@ -100,11 +100,11 @@ export const investorStatementsRouter = {
             id: true,
             name: true,
             state: true,
-            unitPriceBdt: true,
+            unitPriceMoney: true,
             targetWindowStart: true,
             targetWindowEnd: true,
             capitalPaid: true,
-            cattlePartBdt: true,
+            cattlePartMoney: true,
             monthlySums: true,
             firstSumDueOn: true,
           },
@@ -197,9 +197,9 @@ export const investorStatementsRouter = {
           columns: {
             id: true,
             name: true,
-            unitPriceBdt: true,
+            unitPriceMoney: true,
             capitalPaid: true,
-            cattlePartBdt: true,
+            cattlePartMoney: true,
             monthlySums: true,
             firstSumDueOn: true,
           },
@@ -247,7 +247,7 @@ export const investorStatementsRouter = {
             him: investor,
             ventureName: run.name,
             units: agreement.units,
-            unitPriceBdt: run.unitPriceBdt,
+            unitPriceMoney: run.unitPriceMoney,
             investorsPercent: agreement.investorsPercent,
             windowStart: agreement.targetWindowStart,
             windowEnd: agreement.targetWindowEnd,

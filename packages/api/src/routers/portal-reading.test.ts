@@ -89,7 +89,7 @@ const signAndPay = async (name: string, phone: string, units: number) => {
     investorsPercent: 60,
     arbitrator: `সালিস ${suffix}`,
     stampKind: "paper",
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2052-01-02",
     stampSerial: `S-${phone}`,
   });
@@ -100,7 +100,7 @@ const signAndPay = async (name: string, phone: string, units: number) => {
   });
   await owner.ventures.takeCapital({
     agreementId: signed.id,
-    amountBdt: units * 50_000,
+    amountMoney: units * 50_000,
     movedOn: "2052-01-03",
     paymentMethod: "bank",
     reference: `TRF-${phone}`,
@@ -120,14 +120,14 @@ beforeAll(async () => {
   });
   const venture = await owner.ventures.open({
     name: `ভেঞ্চার ${suffix}`,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2052-01-20",
     targetWindowStart: "2052-03-17",
     targetWindowEnd: "2052-03-19",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
-    cattleBudgetBdt: 800_000,
+    cattleBudgetMoney: 800_000,
   });
   ventureId = venture.id;
   const rahimId = await signAndPay("রহিম", `0172${suffix}`, 3);
@@ -158,7 +158,7 @@ describe("an Investor's Ventures", () => {
       expect.objectContaining({
         id: agreementOf["রহিম"],
         units: 3,
-        capitalHeldBdt: 150_000,
+        capitalHeldMoney: 150_000,
         investorsPercent: 60,
       }),
     ]);
@@ -169,7 +169,7 @@ describe("an Investor's Ventures", () => {
       agreementId: agreementOf["রহিম"] ?? "",
     });
 
-    expect(today.his).toMatchObject({ units: 3, capitalBdt: 150_000 });
+    expect(today.his).toMatchObject({ units: 3, capitalMoney: 150_000 });
     // Three of the eight Units signed, as a whole percent.
     expect(today.his.sharePercent).toBe(38);
     expect(today.window.daysTo).toBeGreaterThan(0);
@@ -210,14 +210,14 @@ describe("the photographs of their animals", () => {
     });
     const other = await owner.ventures.open({
       name: `অন্য ভেঞ্চার ${suffix}`,
-      targetCapitalBdt: 500_000,
-      floorBdt: 0,
+      targetCapitalMoney: 500_000,
+      floorMoney: 0,
       decideBy: "2052-01-20",
       targetWindowStart: "2052-03-17",
       targetWindowEnd: "2052-03-19",
-      unitPriceBdt: 50_000,
+      unitPriceMoney: 50_000,
       units: 10,
-      cattleBudgetBdt: 400_000,
+      cattleBudgetMoney: 400_000,
     });
     const db = scratchDb();
     const farmId = theFarm().id;

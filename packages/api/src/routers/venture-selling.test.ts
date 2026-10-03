@@ -15,14 +15,14 @@ const as = (role: "owner" | "manager", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 const plan = {
-  targetCapitalBdt: 1_000_000,
-  floorBdt: 0,
+  targetCapitalMoney: 1_000_000,
+  floorMoney: 0,
   decideBy: "2047-01-20",
   targetWindowStart: "2047-04-17",
   targetWindowEnd: "2047-04-19",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 20,
-  cattleBudgetBdt: 800_000,
+  cattleBudgetMoney: 800_000,
 };
 
 type Owner = Awaited<ReturnType<typeof as>>;
@@ -54,7 +54,7 @@ const funded = async (owner: Owner, which: number) => {
     units: 20,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2047-01-02",
     stampSerial: `AA ${which} ${suffix}`,
   });
@@ -65,7 +65,7 @@ const funded = async (owner: Owner, which: number) => {
   });
   await owner.client.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: 1_000_000,
+    amountMoney: 1_000_000,
     movedOn: "2047-01-03",
     paymentMethod: "bank",
     reference: `TRF-${suffix}-${which}`,
@@ -94,7 +94,7 @@ beforeAll(async () => {
       penId,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
-      purchasePriceBdt: 60_000,
+      purchasePriceMoney: 60_000,
       weightKg: 200,
       estimatedAgeMonths: 20,
       ventureId,
@@ -285,14 +285,14 @@ describe("the two budgets once buying is over", () => {
     const owner = await as("owner", "2047-01-06T04:00:00.000Z");
     const venture = await theVenture(owner);
     expect(venture?.state).toBe("fattening");
-    expect(venture?.cattleBudgetHeldBdt).toBe(0);
+    expect(venture?.cattleBudgetHeldMoney).toBe(0);
     // Stated as the rule rather than as a figure: once the cattle side is closed the whole of what the
     // account holds is there to keep them with.
-    expect(venture?.runningBudgetHeldBdt).toBe(venture?.balanceBdt);
+    expect(venture?.runningBudgetHeldMoney).toBe(venture?.balanceMoney);
     // And the plan itself does not move — what it was set up as is a fact about it for ever.
     expect(venture).toMatchObject({
-      cattleBudgetBdt: 800_000,
-      runningBudgetBdt: 200_000,
+      cattleBudgetMoney: 800_000,
+      runningBudgetMoney: 200_000,
     });
   });
 });
@@ -315,7 +315,7 @@ describe("selling a Venture's animals", () => {
     const sold = await manager.client.sale.record({
       tagNumber: tags[0] ?? "",
       buyer: { name: `ক্রেতা ${suffix}` },
-      priceBdt: 120_000,
+      priceMoney: 120_000,
       weightKg: 340,
       destination: `ঢাকা ${suffix}`,
       vehicle: `ঢাকা মেট্রো ${suffix}`,
@@ -348,7 +348,7 @@ describe("selling a Venture's animals", () => {
     const sold = await manager.client.sale.record({
       tagNumber: tags[1] ?? "",
       buyer: { name: `ক্রেতা দুই ${suffix}` },
-      priceBdt: 130_000,
+      priceMoney: 130_000,
       weightKg: 350,
       destination: `ঢাকা ${suffix}`,
       vehicle: `ঢাকা মেট্রো ${suffix}`,
@@ -378,21 +378,21 @@ describe("selling a Venture's animals", () => {
     // animals were, so its account holds the capital, less the sixty thousand each cost at the gate, and
     // what they fetched.
     expect(venture).toMatchObject({
-      proceedsBdt: 250_000,
-      balanceBdt: 1_130_000,
+      proceedsMoney: 250_000,
+      balanceMoney: 1_130_000,
       // Not money to go and buy more cattle with, and by now not money the Cattle Budget is holding
       // either: buying closed long ago, so the whole of the account is there to keep them with. What
       // they fetched lands on that side with the rest.
-      cattleBudgetHeldBdt: 0,
-      runningBudgetHeldBdt: 1_130_000,
+      cattleBudgetHeldMoney: 0,
+      runningBudgetHeldMoney: 1_130_000,
     });
     // And it reads as a movement of the Venture's money like any other.
     const movements = await owner.client.ventures.movements({ ventureId });
     const sales = movements.filter((one) => one.kind === "sale_in");
     expect(sales).toHaveLength(2);
-    expect(sales.map((one) => one.amountBdt).toSorted((a, b) => a - b)).toEqual(
-      [120_000, 130_000]
-    );
+    expect(
+      sales.map((one) => one.amountMoney).toSorted((a, b) => a - b)
+    ).toEqual([120_000, 130_000]);
     // Each names the animal it was for, so the row leads to her.
     expect(sales.map((one) => one.tagNumber).toSorted()).toEqual(
       tags.slice(0, 2).toSorted()
@@ -403,14 +403,14 @@ describe("selling a Venture's animals", () => {
     const owner = await as("owner", "2047-04-21T04:00:00.000Z");
     const movements = await owner.client.ventures.movements({ ventureId });
     const first = movements.find(
-      (one) => one.kind === "sale_in" && one.amountBdt === 120_000
+      (one) => one.kind === "sale_in" && one.amountMoney === 120_000
     );
     // The movement is the Sale's, so it is not hers to change here.
     await expect(
       owner.client.ventures.correctMovement({
         id: first?.id ?? "",
         reason: `দাম ভুল ছিল ${suffix}`,
-        changes: { amountBdt: { from: 120_000, to: 125_000 } },
+        changes: { amountMoney: { from: 120_000, to: 125_000 } },
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -421,12 +421,12 @@ describe("selling a Venture's animals", () => {
     await owner.client.sale.correct({
       id: saleIds[0] ?? "",
       reason: `স্লিপে এক লাখ পঁচিশ ${suffix}`,
-      changes: { priceBdt: { from: 120_000, to: 125_000 } },
+      changes: { priceMoney: { from: 120_000, to: 125_000 } },
     });
     const venture = await theVenture(owner);
     expect(venture).toMatchObject({
-      proceedsBdt: 255_000,
-      balanceBdt: 1_135_000,
+      proceedsMoney: 255_000,
+      balanceMoney: 1_135_000,
     });
   });
 
@@ -440,7 +440,7 @@ describe("selling a Venture's animals", () => {
       changes: { owner: { from: ventureId, to: null } },
     });
     const venture = await theVenture(owner);
-    expect(venture).toMatchObject({ proceedsBdt: 125_000 });
+    expect(venture).toMatchObject({ proceedsMoney: 125_000 });
     const movements = await owner.client.ventures.movements({ ventureId });
     expect(movements.filter((one) => one.kind === "sale_in")).toHaveLength(1);
   });
@@ -458,7 +458,7 @@ describe("selling a Venture's animals", () => {
       penId,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
-      purchasePriceBdt: 60_000,
+      purchasePriceMoney: 60_000,
       weightKg: 200,
       estimatedAgeMonths: 20,
       ventureId: slow,
@@ -471,7 +471,7 @@ describe("selling a Venture's animals", () => {
     await manager.client.sale.record({
       tagNumber: her.tagNumber,
       buyer: { name: `ক্রেতা তিন ${suffix}` },
-      priceBdt: 90_000,
+      priceMoney: 90_000,
       weightKg: 300,
       destination: `ঢাকা ${suffix}`,
       vehicle: `ঢাকা মেট্রো ${suffix}`,
@@ -493,7 +493,7 @@ describe("selling a Venture's animals", () => {
     await expect(
       owner.client.ventures.takeCapital({
         agreementId: agreements[0]?.id ?? "",
-        amountBdt: 1000,
+        amountMoney: 1000,
         movedOn: "2047-04-20",
         paymentMethod: "bank",
         reference: `LATE-${suffix}`,
@@ -505,12 +505,12 @@ describe("selling a Venture's animals", () => {
     await expect(
       owner.client.ventures.sellInternally({
         tagNumber: tags[0] ?? "",
-        rateBdtPerKg: 350,
+        rateMoneyPerKg: 350,
         note: `আজকের দর ${suffix}`,
         soldOn: "2047-04-20",
         paymentMethod: "bank",
         reference: `INT-${suffix}`,
-        priceBdt: 70_000,
+        priceMoney: 70_000,
       })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
 
@@ -526,7 +526,7 @@ describe("selling a Venture's animals", () => {
         units: 1,
         investorsPercent: 60,
         arbitrator: `মাওলানা ${suffix}`,
-        stampValueBdt: 300,
+        stampValueMoney: 300,
         stampedOn: "2047-04-20",
         stampSerial: `ZZ ${suffix}`,
       })
@@ -542,8 +542,8 @@ describe("the lorry that took them to the haat", () => {
     const manager = await as("manager", "2047-05-02T05:00:00.000Z");
     await manager.client.sellingTrips.record({
       wentTo: `হাট ${suffix}`,
-      transportBdt: 8000,
-      keepBdt: 1000,
+      transportMoney: 8000,
+      keepMoney: 1000,
       animals: [...tags],
       wentOn: new Date("2047-05-02T05:00:00.000Z"),
       paymentMethod: "cash",
@@ -558,14 +558,18 @@ describe("the lorry that took them to the haat", () => {
     // the Venture's by then, a Correction above having said the other was the Farm's all along. So the
     // Venture owes her half and not a taka more: whose an animal was is asked at the moment of the
     // cost, never now.
-    expect(month.tripsBdt).toBe(4500);
+    expect(month.tripsMoney).toBe(4500);
     // Said as its own line, named for where it went, so she can read it aloud rather than find it
     // inside a total.
     expect(month.madeOf.trips).toEqual([
-      expect.objectContaining({ bdt: 4500, nameBn: `হাট ${suffix}` }),
+      expect.objectContaining({ amount: 4500, nameBn: `হাট ${suffix}` }),
     ]);
-    expect(month.totalBdt).toBe(
-      month.feedBdt + month.medicineBdt + month.vetBdt + month.herdBdt + 4500
+    expect(month.totalMoney).toBe(
+      month.feedMoney +
+        month.medicineMoney +
+        month.vetMoney +
+        month.herdMoney +
+        4500
     );
   });
 });

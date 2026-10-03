@@ -62,7 +62,7 @@ const UnitsCell = ({ row }: { row: { original: HisAgreement } }) => {
 
 const CapitalCell = ({ row }: { row: { original: HisAgreement } }) => {
   const taka = useTaka();
-  return <>{taka(row.original.capitalHeldBdt)}</>;
+  return <>{taka(row.original.capitalHeldMoney)}</>;
 };
 
 const SplitCell = ({ row }: { row: { original: HisAgreement } }) => {
@@ -86,13 +86,13 @@ const WindowCell = ({ row }: { row: { original: HisAgreement } }) => (
 const ShareCell = ({ row }: { row: { original: HisAgreement } }) => {
   const taka = useTaka();
   const { settlement } = row.original;
-  return settlement ? <>{taka(settlement.shareBdt)}</> : <Nothing />;
+  return settlement ? <>{taka(settlement.shareMoney)}</> : <Nothing />;
 };
 
 const PayoutCell = ({ row }: { row: { original: HisAgreement } }) => {
   const taka = useTaka();
   const { settlement } = row.original;
-  return settlement ? <>{taka(settlement.payoutBdt)}</> : <Nothing />;
+  return settlement ? <>{taka(settlement.payoutMoney)}</> : <Nothing />;
 };
 
 const PaidOnCell = ({ row }: { row: { original: HisAgreement } }) => {
@@ -131,7 +131,7 @@ const units = columns.accessor("units", {
   cell: UnitsCell,
   meta: FIGURE,
 });
-const capital = columns.accessor("capitalHeldBdt", {
+const capital = columns.accessor("capitalHeldMoney", {
   header: listHeader("portal.capital"),
   cell: CapitalCell,
   meta: FIGURE,
@@ -163,13 +163,13 @@ const FINISHED = columns.columns([
   stage,
   units,
   capital,
-  columns.accessor((row) => row.settlement?.shareBdt ?? null, {
+  columns.accessor((row) => row.settlement?.shareMoney ?? null, {
     id: "share",
     header: listHeader("portal.profit"),
     cell: ShareCell,
     meta: FIGURE,
   }),
-  columns.accessor((row) => row.settlement?.payoutBdt ?? null, {
+  columns.accessor((row) => row.settlement?.payoutMoney ?? null, {
     id: "payout",
     header: listHeader("money.payout"),
     cell: PayoutCell,
@@ -203,7 +203,7 @@ const VentureRow = ({ one }: { one: HisAgreement }) => {
       </div>
       <div className="flex shrink-0 flex-col items-end gap-0.5">
         <span className="font-medium tabular-nums">
-          {taka(one.settlement?.payoutBdt ?? one.capitalHeldBdt)}
+          {taka(one.settlement?.payoutMoney ?? one.capitalHeldMoney)}
         </span>
         <span className="text-muted-foreground text-xs">
           {one.settlement ? (

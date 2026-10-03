@@ -21,12 +21,12 @@ const as = (role: "owner" | "manager", instant = NOW) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 const TERMS = {
-  targetCapitalBdt: 1_000_000,
-  floorBdt: 0,
+  targetCapitalMoney: 1_000_000,
+  floorMoney: 0,
   decideBy: "2044-04-20",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 20,
-  cattleBudgetBdt: 800_000,
+  cattleBudgetMoney: 800_000,
   targetWindowStart: "2044-06-01",
   targetWindowEnd: "2044-06-05",
 };
@@ -37,29 +37,29 @@ const PLAN = {
       animals: 6,
       fromKg: 240,
       toKg: 260,
-      buyBdtPerKg: 500,
+      buyMoneyPerKg: 500,
       dailyGainKg: 0.8,
     },
   ],
-  saleLowBdtPerKg: 600,
-  saleHighBdtPerKg: 700,
+  saleLowMoneyPerKg: 600,
+  saleHighMoneyPerKg: 700,
 };
 
 /** Everything charged to some animals, as Costs by Side lists it line by line. */
 const charged = (costs: {
-  feedBdt: number;
-  medicineBdt: number;
-  vetBdt: number;
-  hasilBdt: number;
-  tripBdt: number;
-  herdBdt: number;
+  feedMoney: number;
+  medicineMoney: number;
+  vetMoney: number;
+  hasilMoney: number;
+  tripMoney: number;
+  herdMoney: number;
 }) =>
-  costs.feedBdt +
-  costs.medicineBdt +
-  costs.vetBdt +
-  costs.hasilBdt +
-  costs.tripBdt +
-  costs.herdBdt;
+  costs.feedMoney +
+  costs.medicineMoney +
+  costs.vetMoney +
+  costs.hasilMoney +
+  costs.tripMoney +
+  costs.herdMoney;
 
 let plannedId = "";
 let fundedId = "";
@@ -94,7 +94,7 @@ beforeAll(async () => {
     penId: pen.id,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 50_000,
+    purchasePriceMoney: 50_000,
     weightKg: 200,
     estimatedAgeMonths: 20,
     arrivedAt: new Date("2044-03-02T00:00:00Z"),
@@ -104,7 +104,7 @@ beforeAll(async () => {
   const { client: spending } = await as("manager", "2044-03-10T04:00:00.000Z");
   await spending.money.enter({
     categoryId: spray.id,
-    amountBdt: 6000,
+    amountMoney: 6000,
     occurredOn: "2044-03-10",
     counterparty: { name: `দোকান ${suffix}` },
     paymentMethod: "cash",
@@ -119,13 +119,13 @@ beforeAll(async () => {
   await sending.milk.dispatch({
     dispatchedAt: new Date("2044-03-12T02:30:00.000Z"),
     litres: 100,
-    pricePerLitreBdt: 60,
+    pricePerLitreMoney: 60,
     buyer,
   });
   await sending.milk.dispatch({
     dispatchedAt: new Date("2044-03-12T03:30:00.000Z"),
     litres: 50,
-    pricePerLitreBdt: 66,
+    pricePerLitreMoney: 66,
     buyer,
   });
   const { client: selling } = await as("manager", "2044-03-15T06:00:00.000Z");
@@ -140,7 +140,7 @@ beforeAll(async () => {
     destination: "গাবতলী পশুর হাট",
     vehicle: "ঢাকা মেট্রো-ট ১১-২২৩৪",
     driver: "সোহেল",
-    priceBdt: 80_000,
+    priceMoney: 80_000,
     weightKg: 260,
   });
 
@@ -172,7 +172,7 @@ beforeAll(async () => {
     units: 20,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2044-03-01",
     stampSerial: `MB ${suffix}`,
   });
@@ -183,7 +183,7 @@ beforeAll(async () => {
   });
   await owner.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: 1_000_000,
+    amountMoney: 1_000_000,
     movedOn: "2044-03-01",
     paymentMethod: "bank",
     reference: `TRF-MB-${suffix}`,
@@ -193,15 +193,15 @@ beforeAll(async () => {
   const trip = await toTheHaat.trips.record({
     wentTo: `হাট ${suffix}`,
     wentOn: "2044-03-03",
-    brokerBdt: 0,
+    brokerMoney: 0,
     // Nothing spent on the lorry: what a Venture's outing costs is not what this file is about.
-    transportBdt: 0,
-    keepBdt: 0,
+    transportMoney: 0,
+    keepMoney: 0,
   });
   await toTheHaat.ventures.drawFloat({
     ventureId: fundedId,
     buyingTripId: trip.id,
-    amountBdt: 100_000,
+    amountMoney: 100_000,
     movedOn: "2044-03-03",
     paymentMethod: "bank",
     reference: `FLT-MB-${suffix}`,
@@ -214,7 +214,7 @@ beforeAll(async () => {
     penId: pen.id,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 70_000,
+    purchasePriceMoney: 70_000,
     weightKg: 210,
     estimatedAgeMonths: 20,
     buyingTripId: trip.id,
@@ -237,7 +237,7 @@ beforeAll(async () => {
     destination: "গাবতলী পশুর হাট",
     vehicle: "ঢাকা মেট্রো-ট ১১-২২৩৫",
     driver: "সোহেল",
-    priceBdt: 100_000,
+    priceMoney: 100_000,
     weightKg: 270,
   });
 });
@@ -272,9 +272,9 @@ describe("the farm month by month", () => {
     expect(months.at(-2)?.soFar).toBe(false);
     // A month nothing happened in says so, rather than a price or a Margin nobody made.
     expect(months.at(-2)).toMatchObject({
-      money: { inBdt: 0, outBdt: 0, netBdt: 0 },
-      dairy: { milkSoldBdt: 0, fetchedPerLitreBdt: null, chargedBdt: 0 },
-      fattening: { sold: 0, marginBdt: null, chargedBdt: 0 },
+      money: { inMoney: 0, outMoney: 0, netMoney: 0 },
+      dairy: { milkSoldMoney: 0, fetchedPerLitreMoney: null, chargedMoney: 0 },
+      fattening: { sold: 0, marginMoney: null, chargedMoney: 0 },
     });
   });
 
@@ -290,22 +290,22 @@ describe("the farm month by month", () => {
     const his = await owner.costs.ofAnimal({ tagNumber: farmsBull });
 
     expect(march?.dairy).toMatchObject({
-      milkSoldBdt: 9300,
+      milkSoldMoney: 9300,
       litresSold: 150,
-      fetchedPerLitreBdt: 62,
+      fetchedPerLitreMoney: 62,
     });
-    expect(march?.dairy.chargedBdt).toBe(charged(sides.dairy));
+    expect(march?.dairy.chargedMoney).toBe(charged(sides.dairy));
     expect(march?.money).toEqual({
-      inBdt: summary?.incomeBdt,
-      outBdt: summary?.expenseBdt,
-      netBdt: summary?.netBdt,
+      inMoney: summary?.incomeMoney,
+      outMoney: summary?.expenseMoney,
+      netMoney: summary?.netMoney,
       awaitingCount: summary?.awaiting.count,
     });
     // The milk and the Farm's bull in; the Farm's bull and the spray out. The Venture's bull moved its own purse.
     expect(march?.money).toMatchObject({
-      inBdt: 89_300,
-      outBdt: 56_000,
-      netBdt: 33_300,
+      inMoney: 89_300,
+      outMoney: 56_000,
+      netMoney: 33_300,
     });
     // Costs by Side reads the fattening side, whoever owns it: both bulls, and all the spray.
     expect(sides.soldFattening.animals).toHaveLength(2);
@@ -313,11 +313,11 @@ describe("the farm month by month", () => {
     // The Farm's month is its own bull alone: his Margin, and his share of the spray, which the Venture's bull halved.
     expect(march?.fattening).toMatchObject({
       sold: 1,
-      marginBdt: his.marginBdt,
-      chargedBdt: charged(his),
+      marginMoney: his.marginMoney,
+      chargedMoney: charged(his),
     });
-    expect(march?.fattening.marginBdt).toBeGreaterThan(24_000);
-    expect(march?.fattening.chargedBdt).toBeLessThan(6000);
+    expect(march?.fattening.marginMoney).toBeGreaterThan(24_000);
+    expect(march?.fattening.chargedMoney).toBeLessThan(6000);
   });
 
   it("says the year as the accountant says the same twelve months, worked over all of them", async () => {
@@ -330,15 +330,15 @@ describe("the farm month by month", () => {
     });
 
     expect(year.money).toMatchObject({
-      inBdt: summary?.incomeBdt,
-      outBdt: summary?.expenseBdt,
-      netBdt: summary?.netBdt,
+      inMoney: summary?.incomeMoney,
+      outMoney: summary?.expenseMoney,
+      netMoney: summary?.netMoney,
     });
     const his = await owner.costs.ofAnimal({ tagNumber: farmsBull });
     expect(year).toMatchObject({
-      money: { netBdt: 33_300 },
-      dairy: { milkSoldBdt: 9300, fetchedPerLitreBdt: 62 },
-      fattening: { sold: 1, marginBdt: his.marginBdt },
+      money: { netMoney: 33_300 },
+      dairy: { milkSoldMoney: 9300, fetchedPerLitreMoney: 62 },
+      fattening: { sold: 1, marginMoney: his.marginMoney },
     });
   });
 
@@ -354,8 +354,8 @@ describe("the farm month by month", () => {
       state: "open",
       planned: measured?.money.planned,
       projected: measured?.money.projected,
-      settledProfitBdt: null,
+      settledProfitMoney: null,
     });
-    expect(ventures[0]?.planned?.lowBdt).toBeDefined();
+    expect(ventures[0]?.planned?.lowMoney).toBeDefined();
   });
 });

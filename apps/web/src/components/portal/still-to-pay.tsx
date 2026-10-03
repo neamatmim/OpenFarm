@@ -16,7 +16,7 @@ type HisAgreement = TheirAgreements["agreements"][number];
 const owedOn = (one: HisAgreement) =>
   hasEnded(one.venture.state)
     ? 0
-    : Math.max(0, one.promisedBdt - one.capitalHeldBdt);
+    : Math.max(0, one.promisedMoney - one.capitalHeldMoney);
 
 /** One line for a Venture they still owe capital on, leading to its page, where the Venture Account is. */
 const OwedLine = ({ one }: { one: HisAgreement }) => {

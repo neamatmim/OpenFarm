@@ -26,8 +26,8 @@ export type DairyWent = Exclude<Left["how"], "sold_to_venture">;
 
 /** What a head of one kind would fetch today, low and high. */
 export interface HeadRange {
-  lowBdt: number;
-  highBdt: number;
+  lowMoney: number;
+  highMoney: number;
 }
 
 /** One dairy Animal's run, as the Returns page and her own page read it. */
@@ -41,16 +41,16 @@ export interface DairyRun {
   from: Date | null;
   left: { how: DairyWent; on: Date } | null;
   /** What she has cost: her price and every charge inside her Dairy Holding, to the day she left or today. */
-  costBdt: number;
+  costMoney: number;
   milkLitres: number;
-  milkBdt: number;
+  milkMoney: number;
   /** What she went for at the end; null while she stands. */
-  endBdt: number | null;
+  endMoney: number | null;
   /** The months her milk went at an earlier month's price, for want of a Dispatch in them. */
   milkPricedEarlier: string[];
   /** Once gone and counted: what came back less what she cost, in taka — said even where there is no share to say,
    *  for a calf who cost nothing and fetched nothing. */
-  resultBdt: number | null;
+  resultMoney: number | null;
   /** Once gone: her result, put a year past the floor. */
   returnOnCost: Returned | null;
   /** While here and counted: her kind's Head Price, what she would fetch today, low and high. */
@@ -71,7 +71,7 @@ export interface DairyAnimalRead {
   birthDate: Date | null;
   createdAt: Date;
   /** The price the Owner entered for one bought, or here before the books, and the day it holds from. */
-  entryPrice: { priceBdt: number; asOf: string } | null;
+  entryPrice: { priceMoney: number; asOf: string } | null;
 }
 
 /** Litres one cow sent to Bulk at one milking. */
@@ -111,12 +111,12 @@ export const milkPricesByMonth = (
   dispatches: readonly {
     dispatchedAt: Date;
     litres: number;
-    pricePerLitreBdt: number;
+    pricePerLitreMoney: number;
   }[]
 ): Map<string, number> => {
   const byMonth = new Map<
     string,
-    { litres: number; pricePerLitreBdt: number }[]
+    { litres: number; pricePerLitreMoney: number }[]
   >();
   for (const one of dispatches) {
     const key = monthKey(one.dispatchedAt);
@@ -126,7 +126,7 @@ export const milkPricesByMonth = (
   for (const [key, given] of byMonth) {
     const price = milkPriceOf(given);
     if (price) {
-      priced.set(key, price.bdtPerLitre);
+      priced.set(key, price.moneyPerLitre);
     }
   }
   return priced;
@@ -136,10 +136,10 @@ export const milkPricesByMonth = (
 const priceFor = (
   prices: ReadonlyMap<string, number>,
   month: string
-): { bdtPerLitre: number; earlier: boolean } | null => {
+): { moneyPerLitre: number; earlier: boolean } | null => {
   const own = prices.get(month);
   if (own !== undefined) {
-    return { bdtPerLitre: own, earlier: false };
+    return { moneyPerLitre: own, earlier: false };
   }
   const before = [...prices.keys()]
     .filter((key) => key < month)
@@ -147,7 +147,7 @@ const priceFor = (
     .at(-1);
   return before === undefined
     ? null
-    : { bdtPerLitre: prices.get(before) ?? 0, earlier: true };
+    : { moneyPerLitre: prices.get(before) ?? 0, earlier: true };
 };
 
 /** Her milk to Bulk between two moments, month by month at each month's price. Null where a month has no price at all. */
@@ -164,7 +164,7 @@ const milkOf = (
       byMonth.set(key, (byMonth.get(key) ?? 0) + one.litres);
     }
   }
-  let bdt = 0;
+  let amount = 0;
   let total = 0;
   const earlier: string[] = [];
   for (const [month, given] of [...byMonth].toSorted(([a], [b]) =>
@@ -177,27 +177,31 @@ const milkOf = (
     if (price.earlier) {
       earlier.push(month);
     }
-    bdt += given * price.bdtPerLitre;
+    amount += given * price.moneyPerLitre;
     total += given;
   }
-  return { litres: total, bdt, earlier };
+  return { litres: total, amount, earlier };
 };
 
 /** How she came to the herd: bred here from a dam the farm wrote down, or at the Owner's price, or not priced yet. */
 const cameOf = (
   her: DairyAnimalRead
-): { came: DairyCame; from: Date | null; priceBdt: number } => {
+): { came: DairyCame; from: Date | null; priceMoney: number } => {
   if (her.entryPrice) {
     return {
       came: "priced",
       from: startOfFarmDay(her.entryPrice.asOf),
-      priceBdt: her.entryPrice.priceBdt,
+      priceMoney: her.entryPrice.priceMoney,
     };
   }
   if (bredHere(her)) {
-    return { came: "born", from: her.birthDate ?? her.createdAt, priceBdt: 0 };
+    return {
+      came: "born",
+      from: her.birthDate ?? her.createdAt,
+      priceMoney: 0,
+    };
   }
-  return { came: "unpriced", from: null, priceBdt: 0 };
+  return { came: "unpriced", from: null, priceMoney: 0 };
 };
 
 /** Why her run is in no figure: not priced, milk with no price to go at, a crossing not priced, no Head Price. */
@@ -209,7 +213,7 @@ const whyUncounted = (
 ): Gap["why"][] => [
   ...(came === "unpriced" ? (["no_entry_price"] as const) : []),
   ...(milk ? [] : (["no_milk_price"] as const)),
-  ...(went && went.backBdt === null ? (["not_priced"] as const) : []),
+  ...(went && went.backMoney === null ? (["not_priced"] as const) : []),
   ...(went || head ? [] : (["no_head_price"] as const)),
 ];
 
@@ -217,16 +221,16 @@ const whyUncounted = (
 const whatSheCost = (
   books: DairyBooks,
   her: DairyAnimalRead,
-  priceBdt: number,
+  priceMoney: number,
   begun: Date,
   until: Date
 ): Spent[] => [
-  ...(priceBdt > 0 ? [{ bdt: priceBdt, from: begun, until }] : []),
+  ...(priceMoney > 0 ? [{ amount: priceMoney, from: begun, until }] : []),
   ...chargesInHolding(
     books.charges.get(her.id) ?? [],
     { animalId: her.id, owner: null, side: "dairy", from: begun, until },
     books.ownedThenBy
-  ).map((one) => ({ bdt: one.bdt, from: one.at, until })),
+  ).map((one) => ({ amount: one.amount, from: one.at, until })),
 ];
 
 /**
@@ -235,22 +239,22 @@ const whatSheCost = (
  */
 const figuresOf = (
   spent: Spent[],
-  milkBdt: number,
+  milkMoney: number,
   finished: Left | null,
   standing: HeadRange | null,
   floorDays: number
 ) => ({
-  resultBdt: finished
+  resultMoney: finished
     ? roundTaka(
-        milkBdt +
-          (finished.backBdt ?? 0) -
-          spent.reduce((sum, one) => sum + one.bdt, 0)
+        milkMoney +
+          (finished.backMoney ?? 0) -
+          spent.reduce((sum, one) => sum + one.amount, 0)
       )
     : null,
   returnOnCost: finished
     ? returnOf({
         spent,
-        backBdt: milkBdt + (finished.backBdt ?? 0),
+        backMoney: milkMoney + (finished.backMoney ?? 0),
         floorDays,
         finished: true,
       })
@@ -258,8 +262,12 @@ const figuresOf = (
   worthToday: standing,
   running: standing
     ? runningRangeOf({
-        sold: { spent: [], backBdt: milkBdt },
-        standing: { spent, lowBdt: standing.lowBdt, highBdt: standing.highBdt },
+        sold: { spent: [], backMoney: milkMoney },
+        standing: {
+          spent,
+          lowMoney: standing.lowMoney,
+          highMoney: standing.highMoney,
+        },
       })
     : null,
 });
@@ -273,7 +281,7 @@ export const dairyRunOf = (
   floorDays: number,
   now: Date
 ): { run: DairyRun; spent: Spent[] } => {
-  const { came, from, priceBdt } = cameOf(her);
+  const { came, from, priceMoney } = cameOf(her);
   const begun = from ?? her.createdAt;
   const went = howSheLeft(
     { animalId: her.id, owner: null, side: "dairy", from: begun },
@@ -281,14 +289,14 @@ export const dairyRunOf = (
     books.ownedThenBy
   );
   const until = went?.on ?? now;
-  const spent = whatSheCost(books, her, priceBdt, begun, until);
+  const spent = whatSheCost(books, her, priceMoney, begun, until);
   const milk = milkOf(books.litres.get(her.id) ?? [], milkPrices, begun, until);
   const head = went ? undefined : headPrices.get(her.state);
   const gaps = whyUncounted(came, milk, went, head).map((why) => ({
     tagNumber: her.tagNumber,
     why,
   }));
-  const milkBdt = milk?.bdt ?? 0;
+  const milkMoney = milk?.amount ?? 0;
   const counted = gaps.length === 0;
   const finished = counted && went ? went : null;
   const standing = counted && head ? head : null;
@@ -307,12 +315,12 @@ export const dairyRunOf = (
             on: went.on,
           }
         : null,
-      costBdt: roundTaka(spent.reduce((sum, one) => sum + one.bdt, 0)),
+      costMoney: roundTaka(spent.reduce((sum, one) => sum + one.amount, 0)),
       milkLitres: roundLitres(milk?.litres ?? 0),
-      milkBdt: roundTaka(milkBdt),
-      endBdt: went?.backBdt ?? null,
+      milkMoney: roundTaka(milkMoney),
+      endMoney: went?.backMoney ?? null,
       milkPricedEarlier: milk?.earlier ?? [],
-      ...figuresOf(spent, milkBdt, finished, standing, floorDays),
+      ...figuresOf(spent, milkMoney, finished, standing, floorDays),
       gaps,
     },
     spent,
@@ -333,16 +341,16 @@ export const herdNowOf = (
     counted.reduce((total, one) => total + of(one), 0);
   return {
     head: standing.length,
-    milkBdt: roundTaka(sum((run) => run.milkBdt)),
+    milkMoney: roundTaka(sum((run) => run.milkMoney)),
     running:
       counted.length === 0
         ? null
         : runningRangeOf({
-            sold: { spent: [], backBdt: sum((run) => run.milkBdt) },
+            sold: { spent: [], backMoney: sum((run) => run.milkMoney) },
             standing: {
               spent: counted.flatMap((one) => spentOf.get(one.animalId) ?? []),
-              lowBdt: sum((run) => run.worthToday?.lowBdt ?? 0),
-              highBdt: sum((run) => run.worthToday?.highBdt ?? 0),
+              lowMoney: sum((run) => run.worthToday?.lowMoney ?? 0),
+              highMoney: sum((run) => run.worthToday?.highMoney ?? 0),
             },
           }),
     gaps: standing.flatMap((one) => one.gaps),

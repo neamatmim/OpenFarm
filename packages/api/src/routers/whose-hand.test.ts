@@ -23,7 +23,7 @@ const tags: string[] = [];
 const handOf = async (role: "owner" | "manager") => {
   const owner = await as("owner");
   const hands = await owner.client.cash.inHand();
-  return hands.find((one) => one.userId === thePerson(role).id)?.bdt ?? 0;
+  return hands.find((one) => one.userId === thePerson(role).id)?.amount ?? 0;
 };
 
 /** One of the Farm's bulls sold, written by `who`, naming `heldBy` where given. */
@@ -33,7 +33,7 @@ const sold = async (
   sheet: {
     heldBy?: string;
     paymentMethod?: "cash" | "bkash" | "bank";
-    paidNowBdt?: number;
+    paidNowMoney?: number;
     promisedBy?: string;
   } = {}
 ) => {
@@ -41,7 +41,7 @@ const sold = async (
   return await writer.client.sale.record({
     tagNumber,
     buyer: { name: `ক্রেতা ${suffix}` },
-    priceBdt: 80_000,
+    priceMoney: 80_000,
     weightKg: 300,
     destination: `হাট ${suffix}`,
     vehicle: `ট্রাক ${suffix}`,
@@ -70,7 +70,7 @@ beforeAll(async () => {
       penId,
       sex: "male",
       seller: { name: `ব্যাপারী ${which} ${suffix}` },
-      purchasePriceBdt: 50_000,
+      purchasePriceMoney: 50_000,
       weightKg: 250,
       estimatedAgeMonths: 20,
       arrivedAt: new Date(`${DAY}T04:00:00.000Z`),
@@ -114,7 +114,7 @@ describe("whose hand took the notes", () => {
     // Half paid at the gate into the Manager's hand, the rest promised.
     await sold("owner", tags[2] ?? "", {
       heldBy: thePerson("manager").id,
-      paidNowBdt: 40_000,
+      paidNowMoney: 40_000,
       promisedBy: "2081-03-20",
     });
     const managerBefore = await handOf("manager");
@@ -122,7 +122,7 @@ describe("whose hand took the notes", () => {
     await owner.client.baki.pay({
       buyer: `ক্রেতা ${suffix}`,
       kind: "cattle",
-      amountBdt: 10_000,
+      amountMoney: 10_000,
       paidOn: DAY,
       paymentMethod: "cash",
       heldBy: thePerson("manager").id,

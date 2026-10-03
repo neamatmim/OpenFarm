@@ -22,18 +22,18 @@ const as = (role: "owner" | "manager", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 const plan = {
-  targetCapitalBdt: 500_000,
-  floorBdt: 0,
+  targetCapitalMoney: 500_000,
+  floorMoney: 0,
   decideBy: "2049-01-20",
   targetWindowStart: "2049-03-01",
   targetWindowEnd: "2049-03-10",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 10,
-  cattleBudgetBdt: 300_000,
+  cattleBudgetMoney: 300_000,
 };
 
 /** What the lorry cost, and what the one bull it carried therefore owes. */
-const LORRY_BDT = 7500;
+const LORRY_MONEY = 7500;
 
 let ventureId = "";
 let agreementId = "";
@@ -68,7 +68,7 @@ beforeAll(async () => {
     units: 10,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampSerial: `AA ${suffix}`,
     stampedOn: "2049-01-02",
   });
@@ -80,7 +80,7 @@ beforeAll(async () => {
   });
   await owner.client.ventures.takeCapital({
     agreementId,
-    amountBdt: 500_000,
+    amountMoney: 500_000,
     movedOn: "2049-01-03",
     paymentMethod: "bank",
     reference: `TRF-${suffix}`,
@@ -93,14 +93,14 @@ beforeAll(async () => {
   const trip = await buying.client.trips.record({
     wentTo: `কেনার হাট ${suffix}`,
     wentOn: "2049-01-04",
-    brokerBdt: 0,
-    transportBdt: 0,
-    keepBdt: 0,
+    brokerMoney: 0,
+    transportMoney: 0,
+    keepMoney: 0,
   });
   await buying.client.ventures.drawFloat({
     ventureId,
     buyingTripId: trip.id,
-    amountBdt: 200_000,
+    amountMoney: 200_000,
     movedOn: "2049-01-04",
     paymentMethod: "bank",
     reference: `FLT-${suffix}`,
@@ -110,7 +110,7 @@ beforeAll(async () => {
     penId: pen.id,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 150_000,
+    purchasePriceMoney: 150_000,
     weightKg: 200,
     estimatedAgeMonths: 20,
     buyingTripId: trip.id,
@@ -122,7 +122,7 @@ beforeAll(async () => {
   ({ tagNumber } = her);
   await buying.client.ventures.reconcileFloat({
     buyingTripId: trip.id,
-    cashBackBdt: 50_000,
+    cashBackMoney: 50_000,
     movedOn: "2049-01-04",
     reference: `DEP-${suffix}`,
   });
@@ -132,8 +132,8 @@ beforeAll(async () => {
   const selling = await as("manager", "2049-02-10T05:00:00.000Z");
   await selling.client.sellingTrips.record({
     wentTo: `বিক্রির হাট ${suffix}`,
-    transportBdt: LORRY_BDT,
-    keepBdt: 0,
+    transportMoney: LORRY_MONEY,
+    keepMoney: 0,
     animals: [tagNumber],
     wentOn: new Date("2049-02-10T05:00:00.000Z"),
     paymentMethod: "cash",
@@ -141,7 +141,7 @@ beforeAll(async () => {
   await selling.client.sale.record({
     tagNumber,
     buyer: { name: `ক্রেতা ${suffix}` },
-    priceBdt: 300_000,
+    priceMoney: 300_000,
     weightKg: 320,
     destination: `ঢাকা ${suffix}`,
     vehicle: `ঢাকা মেট্রো ${suffix}`,
@@ -159,16 +159,16 @@ describe("the lorry that took them to the haat", () => {
     });
     // Nothing was fed, dosed or seen by a Vet, and no Herd Cost was marked: the lorry is all there is.
     expect(month).toMatchObject({
-      feedBdt: 0,
-      medicineBdt: 0,
-      vetBdt: 0,
-      herdBdt: 0,
-      tripsBdt: LORRY_BDT,
-      totalBdt: LORRY_BDT,
+      feedMoney: 0,
+      medicineMoney: 0,
+      vetMoney: 0,
+      herdMoney: 0,
+      tripsMoney: LORRY_MONEY,
+      totalMoney: LORRY_MONEY,
     });
     expect(month.madeOf.trips).toEqual([
       expect.objectContaining({
-        bdt: LORRY_BDT,
+        amount: LORRY_MONEY,
         nameBn: `বিক্রির হাট ${suffix}`,
       }),
     ]);
@@ -194,14 +194,14 @@ describe("the lorry that took them to the haat", () => {
     await owner.client.ventures.reimburse({
       ventureId,
       month: "2049-02",
-      amountBdt: LORRY_BDT,
+      amountMoney: LORRY_MONEY,
       movedOn: "2049-03-03",
       paymentMethod: "bank",
       reference: `RMB-${suffix}`,
     });
     // Every month it ran, read against the bank and agreeing — a Settlement will not close over one
     // that is still out. What the statement said is what the farm believed it would say.
-    for (const [month, readBdt] of [
+    for (const [month, readMoney] of [
       ["2049-01", 350_000],
       ["2049-02", 650_000],
     ] as const) {
@@ -209,9 +209,9 @@ describe("the lorry that took them to the haat", () => {
       const said = await owner.client.ventures.checkTheBank({
         ventureId,
         month,
-        readBdt,
+        readMoney,
       });
-      expect(said.differenceBdt).toBe(0);
+      expect(said.differenceMoney).toBe(0);
     }
 
     await owner.client.ventures.approveSettlement({ ventureId });
@@ -222,7 +222,7 @@ describe("the lorry that took them to the haat", () => {
     await owner.client.ventures.paySettlement({
       ventureId,
       agreementId,
-      amountBdt: his?.payoutBdt ?? 0,
+      amountMoney: his?.payoutMoney ?? 0,
       movedOn: "2049-03-03",
       paymentMethod: "bank",
       reference: `PAY-${suffix}`,
@@ -240,7 +240,7 @@ describe("the lorry that took them to the haat", () => {
     const after = await owner.client.ventures.list();
     expect(after.find((one) => one.id === ventureId)).toMatchObject({
       state: "settled",
-      balanceBdt: 0,
+      balanceMoney: 0,
     });
   });
 });

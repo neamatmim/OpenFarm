@@ -36,8 +36,8 @@ beforeAll(async () => {
   penId = pen.id;
   // What a kilo is fetching, as the Owner judges the market.
   await owner.client.fattening.setMarketPrice({
-    lowBdtPerKg: 500,
-    highBdtPerKg: 560,
+    lowMoneyPerKg: 500,
+    highMoneyPerKg: 560,
   });
 });
 
@@ -48,8 +48,8 @@ const aBull = async (into = penId) => {
     penId: into,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 100_000,
-    hasilBdt: 1000,
+    purchasePriceMoney: 100_000,
+    hasilMoney: 1000,
     weightKg: 250,
     estimatedAgeMonths: 20,
     arrivedAt: new Date("2078-03-02T04:00:00.000Z"),
@@ -59,7 +59,7 @@ const aBull = async (into = penId) => {
 
 const sell = async (
   tagNumber: string,
-  priceBdt: number,
+  priceMoney: number,
   {
     weightKg = 300,
     instant = SOLD,
@@ -74,7 +74,7 @@ const sell = async (
     destination: `গাবতলী ${suffix}`,
     vehicle: "ঢাকা মেট্রো-ট ১১-৪৪৫৭",
     driver: `চালক ${suffix}`,
-    priceBdt,
+    priceMoney,
   });
   const her = await scratchDb().query.animal.findFirst({
     where: { farmId: theFarm().id, tagNumber },
@@ -99,9 +99,9 @@ describe("a sale under her cost or the market", () => {
         userId: thePerson("owner").id,
         params: expect.objectContaining({
           tag: bull.tagNumber,
-          priceBdt: 90_000,
-          costBdt: 101_000,
-          lowBdt: 150_000,
+          priceMoney: 90_000,
+          costMoney: 101_000,
+          lowMoney: 150_000,
         }),
       },
     ]);
@@ -126,7 +126,7 @@ describe("a sale under her cost or the market", () => {
     await manager.client.sale.correct({
       id: saleId,
       reason: `দাম ভুল লেখা হয়েছিল ${suffix}`,
-      changes: { priceBdt: { from: 160_000, to: 95_000 } },
+      changes: { priceMoney: { from: 160_000, to: 95_000 } },
     });
     expect(await toldOf(saleId)).toHaveLength(1);
   });
@@ -226,7 +226,7 @@ describe("a sale floored on her last weighing", () => {
       {
         userId: thePerson("owner").id,
         params: expect.objectContaining({
-          lowBdt: 184_000,
+          lowMoney: 184_000,
           floorKg: 368,
           floorFrom: "scale",
         }),

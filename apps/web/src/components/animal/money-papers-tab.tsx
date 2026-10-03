@@ -66,8 +66,8 @@ const IntakeCorrection = ({
 }: {
   intake: {
     id: string;
-    purchasePriceBdt: number;
-    hasilBdt: number;
+    purchasePriceMoney: number;
+    hasilMoney: number;
     sellerName: string | null;
     /** As her page shows it: her Venture's where she is one's. */
     targetWindow: { start: string; end: string };
@@ -84,10 +84,10 @@ const IntakeCorrection = ({
     askedAfresh: owner !== null,
   });
   const correcting = useCorrecting({
-    purchasePriceBdt: amount(intake.purchasePriceBdt),
+    purchasePriceMoney: amount(intake.purchasePriceMoney),
     // Nothing is a real answer here: an animal bought at the farm gate paid no toll, and one typed by
     // mistake is put back to nothing. `amount` would refuse it, and refuse the whole Correction with it.
-    hasilBdt: figure(intake.hasilBdt),
+    hasilMoney: figure(intake.hasilMoney),
     seller: counterparty(intake.sellerName),
     owner: whoseSheIs(owner?.id ?? null),
     targetWindow: itsWindow,
@@ -115,16 +115,16 @@ const IntakeCorrection = ({
       <CorrectionAnswer
         inputMode="numeric"
         label={t("intake.price")}
-        onChange={(value) => correcting.set("purchasePriceBdt", value)}
+        onChange={(value) => correcting.set("purchasePriceMoney", value)}
         type="number"
-        value={correcting.typed.purchasePriceBdt ?? ""}
+        value={correcting.typed.purchasePriceMoney ?? ""}
       />
       <CorrectionAnswer
         inputMode="numeric"
         label={t("intake.hasil")}
-        onChange={(value) => correcting.set("hasilBdt", value)}
+        onChange={(value) => correcting.set("hasilMoney", value)}
         type="number"
-        value={correcting.typed.hasilBdt ?? ""}
+        value={correcting.typed.hasilMoney ?? ""}
       />
       <CorrectionAnswer
         label={t("correct.seller")}
@@ -219,16 +219,16 @@ const HowSheArrived = ({
         </Fact>
         <Fact label={t("intake.price")}>
           {t("intake.taka", {
-            taka: formatNumber(intake.purchasePriceBdt, language),
+            taka: formatNumber(intake.purchasePriceMoney, language),
           })}
         </Fact>
         {intake.buyingTrip ? (
           <Fact label={t("intake.trip")}>{intake.buyingTrip.wentTo}</Fact>
         ) : null}
-        {intake.hasilBdt > 0 ? (
+        {intake.hasilMoney > 0 ? (
           <Fact label={t("intake.hasil")}>
             {t("intake.taka", {
-              taka: formatNumber(intake.hasilBdt, language),
+              taka: formatNumber(intake.hasilMoney, language),
             })}
           </Fact>
         ) : null}
@@ -280,18 +280,22 @@ const HowSheLeft = ({
         <Fact label={t("sale.soldTo")}>{sale.buyerName}</Fact>
         <Fact label={t("sale.price")}>
           <span className="flex flex-col">
-            {t("intake.taka", { taka: formatNumber(sale.priceBdt, language) })}
+            {t("intake.taka", {
+              taka: formatNumber(sale.priceMoney, language),
+            })}
             <BakiOwed
-              bakiBdt={sale.bakiBdt}
-              owingBdt={sale.owingBdt}
+              bakiMoney={sale.bakiMoney}
+              owingMoney={sale.owingMoney}
               promisedBy={sale.promisedBy}
             />
           </span>
         </Fact>
         {/* Only where a broker was used — or left out of an answer kept from before one was written. */}
-        {sale.brokerBdt ? (
+        {sale.brokerMoney ? (
           <Fact label={t("sale.brokerPaid")}>
-            {t("intake.taka", { taka: formatNumber(sale.brokerBdt, language) })}
+            {t("intake.taka", {
+              taka: formatNumber(sale.brokerMoney, language),
+            })}
           </Fact>
         ) : null}
         <Fact label={t("sale.weight")}>

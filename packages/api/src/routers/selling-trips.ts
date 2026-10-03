@@ -33,9 +33,9 @@ const OFFERED = 20;
 const recordInput = z.object({
   /** Where it went, as the farm says it. */
   wentTo: z.string().trim().min(1).max(120),
-  transportBdt: tripCostInput.optional(),
+  transportMoney: tripCostInput.optional(),
   /** The stall or the space, and keeping the men who went. */
-  keepBdt: tripCostInput.optional(),
+  keepMoney: tripCostInput.optional(),
   /** Every Animal that stood on the lorry, by Tag Number. Sold or brought home again, and at least one:
    *  an outing that carried nobody is a lorry the farm did not hire. */
   animals: z.array(z.string().trim().min(1).max(32)).min(1).max(200),
@@ -89,9 +89,9 @@ export const sellingTripsRouter = {
         id: one.id,
         wentTo: one.wentTo,
         wentOn: one.wentOn,
-        costBdt: tripCostOf(one),
+        costMoney: tripCostOf(one),
         /** What each part of it cost, which a Correction puts right one by one. */
-        parts: { transportBdt: one.transportBdt, keepBdt: one.keepBdt },
+        parts: { transportMoney: one.transportMoney, keepMoney: one.keepMoney },
         animals: carried.get(one.id) ?? 0,
         /** The weight those sold off it lost, together; nothing where none had both weights. */
         shrink: shrinkOfMany(
@@ -146,8 +146,8 @@ export const sellingTripsRouter = {
             id,
             farmId: context.farm.id,
             wentTo: input.wentTo,
-            transportBdt: input.transportBdt ?? 0,
-            keepBdt: input.keepBdt ?? 0,
+            transportMoney: input.transportMoney ?? 0,
+            keepMoney: input.keepMoney ?? 0,
             wentOn,
             recordedBy: context.actor.id,
             recordedByRole: context.roleUsed,

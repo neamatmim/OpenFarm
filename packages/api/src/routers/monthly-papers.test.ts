@@ -24,14 +24,14 @@ const asOwner = async (at = JANUARY) => {
 type Owner = Awaited<ReturnType<typeof asOwner>>;
 
 const TERMS = {
-  targetCapitalBdt: 1_000_000,
-  floorBdt: 0,
+  targetCapitalMoney: 1_000_000,
+  floorMoney: 0,
   decideBy: "2077-01-20",
   targetWindowStart: "2077-06-01",
   targetWindowEnd: "2077-06-10",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 20,
-  cattleBudgetBdt: 800_000,
+  cattleBudgetMoney: 800_000,
 };
 
 const M1 = "বিনিয়োগকারী তাঁর মূলধন দুই ভাগে দেবেন";
@@ -117,7 +117,7 @@ describe("a signed Agreement paid by the month", () => {
       units: 4,
       investorsPercent: 60,
       arbitrator: `মাওলানা ${suffix}`,
-      stampValueBdt: 300,
+      stampValueMoney: 300,
       stampedOn: "2077-01-04",
       stampSerial: `MP ${suffix}`,
     });
@@ -129,7 +129,7 @@ describe("a signed Agreement paid by the month", () => {
     });
     await owner.ventures.takeCapital({
       agreementId,
-      amountBdt: 160_000,
+      amountMoney: 160_000,
       movedOn: "2077-01-05",
       paymentMethod: "bank",
       reference: `TRF-${suffix}`,

@@ -27,19 +27,19 @@ export const saidMonth = (month: string, language: Language): string =>
 
 /** What a month holds, as far as whether it holds anything. */
 interface MonthFigures {
-  money: { inBdt: number; outBdt: number };
-  dairy: { milkSoldBdt: number; chargedBdt: number; litresToBulk: number };
-  fattening: { chargedBdt: number; sold: number };
+  money: { inMoney: number; outMoney: number };
+  dairy: { milkSoldMoney: number; chargedMoney: number; litresToBulk: number };
+  fattening: { chargedMoney: number; sold: number };
 }
 
 /** Whether anything at all happened in a month: money moved, milk left or went to Bulk, or an animal was charged or sold. */
 const holdsAnything = ({ money, dairy, fattening }: MonthFigures): boolean =>
-  money.inBdt !== 0 ||
-  money.outBdt !== 0 ||
-  dairy.milkSoldBdt !== 0 ||
-  dairy.chargedBdt !== 0 ||
+  money.inMoney !== 0 ||
+  money.outMoney !== 0 ||
+  dairy.milkSoldMoney !== 0 ||
+  dairy.chargedMoney !== 0 ||
   dairy.litresToBulk !== 0 ||
-  fattening.chargedBdt !== 0 ||
+  fattening.chargedMoney !== 0 ||
   fattening.sold !== 0;
 
 /**

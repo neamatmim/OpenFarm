@@ -27,7 +27,7 @@ let stillOpenId = "";
 /** One bull off the lorry, for a Venture or for the Farm. */
 const buy = async (
   instant: string,
-  priceBdt: number,
+  priceMoney: number,
   ventureFor?: string,
   arrivedAt = instant
 ) => {
@@ -37,8 +37,8 @@ const buy = async (
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: priceBdt,
-    hasilBdt: 1000,
+    purchasePriceMoney: priceMoney,
+    hasilMoney: 1000,
     weightKg: 200,
     estimatedAgeMonths: 20,
     arrivedAt: new Date(arrivedAt),
@@ -65,12 +65,12 @@ beforeAll(async () => {
   penId = pen.id;
 
   const plan = {
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2046-11-20",
     targetWindowStart: "2047-05-17",
     targetWindowEnd: "2047-05-19",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
   };
   const buying = await owner.client.ventures.open({
@@ -80,7 +80,7 @@ beforeAll(async () => {
   // Capital in first: a bull at the gate is paid from what the account holds.
   await putCapitalIn(
     owner.client,
-    { id: buying.id, units: 20, unitPriceBdt: 50_000 },
+    { id: buying.id, units: 20, unitPriceMoney: 50_000 },
     `buying ${suffix}`,
     "2046-11-01"
   );
@@ -102,7 +102,7 @@ describe("whose animal she is", () => {
     // And her cost is the Farm's, as every animal's has been until now.
     const money = await owner.client.money.list(PERIOD);
     const bought = money.events.find((one) => one.sourceId === hers.intakeId);
-    expect(bought).toMatchObject({ amountBdt: 61_000, purse: null });
+    expect(bought).toMatchObject({ amountMoney: 61_000, purse: null });
   });
 
   it("is the Venture's when the Intake names one, and so is what she cost", async () => {
@@ -124,7 +124,7 @@ describe("whose animal she is", () => {
     const itsOwn = await owner.client.money.list({ ...PERIOD, ventureId });
     expect(
       itsOwn.events.find((one) => one.sourceId === theirs.intakeId)
-    ).toMatchObject({ amountBdt: 81_000 });
+    ).toMatchObject({ amountMoney: 81_000 });
   });
 
   it("refuses a Venture that has not started buying, and one that is not this farm's", async () => {
@@ -197,18 +197,18 @@ describe("whose animal she is", () => {
     const owner = await as("owner", "2046-11-11T04:00:00.000Z");
     const movedOn = await owner.client.ventures.open({
       name: `মোটাতাজা ${suffix}`,
-      targetCapitalBdt: 1_000_000,
-      floorBdt: 0,
+      targetCapitalMoney: 1_000_000,
+      floorMoney: 0,
       decideBy: "2046-11-20",
       targetWindowStart: "2047-05-17",
       targetWindowEnd: "2047-05-19",
-      unitPriceBdt: 50_000,
+      unitPriceMoney: 50_000,
       units: 20,
     });
     // Capital in first: a bull at the gate is paid from what the account holds.
     await putCapitalIn(
       owner.client,
-      { id: movedOn.id, units: 20, unitPriceBdt: 50_000 },
+      { id: movedOn.id, units: 20, unitPriceMoney: 50_000 },
       `movedOn ${suffix}`,
       "2046-11-11"
     );
@@ -236,7 +236,7 @@ describe("whose animal she is", () => {
     const sold = await manager.client.sale.record({
       tagNumber: slip.tagNumber,
       buyer: { name: `ক্রেতা ${suffix}` },
-      priceBdt: 100_000,
+      priceMoney: 100_000,
       weightKg: 250,
       destination: `হাট ${suffix}`,
       vehicle: "ট্রাক",
@@ -301,7 +301,7 @@ describe("whose animal she is", () => {
     const sold = await manager.client.sale.record({
       tagNumber: theirs.tagNumber,
       buyer: { name: `ক্রেতা ${suffix}` },
-      priceBdt: 130_000,
+      priceMoney: 130_000,
       weightKg: 260,
       destination: `ঢাকার হাট ${suffix}`,
       vehicle: "ট্রাক ঢাকা-মেট্রো-ট ১১-২২৩৩",
@@ -313,7 +313,7 @@ describe("whose animal she is", () => {
     expect(theFarms.events.map((one) => one.sourceId)).not.toContain(sold.id);
     const itsOwn = await owner.client.money.list({ ...PERIOD, ventureId });
     expect(itsOwn.events.find((one) => one.sourceId === sold.id)).toMatchObject(
-      { amountBdt: 130_000, direction: "in" }
+      { amountMoney: 130_000, direction: "in" }
     );
   });
 });

@@ -61,7 +61,7 @@ export const KIND_WORDS = {
 type Said = Pick<
   ARequest,
   | "units"
-  | "bdt"
+  | "amount"
   | "note"
   | "state"
   | "answeredUnits"
@@ -87,7 +87,7 @@ export const WhatTheyAsked = ({ one }: { one: Said }) => {
       <span className="text-sm tabular-nums">
         {t("ventures.requests.unitsAndTaka", {
           units: formatNumber(one.units, language),
-          taka: taka(one.bdt),
+          taka: taka(one.amount),
         })}
       </span>
       {one.note ? (

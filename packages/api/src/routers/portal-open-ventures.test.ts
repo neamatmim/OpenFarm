@@ -92,14 +92,14 @@ const invited = async (name: string, phone: string) => {
 };
 
 const TERMS = {
-  targetCapitalBdt: 1_000_000,
-  floorBdt: 600_000,
+  targetCapitalMoney: 1_000_000,
+  floorMoney: 600_000,
   decideBy: "2052-01-20",
   targetWindowStart: "2052-06-01",
   targetWindowEnd: "2052-06-10",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 20,
-  cattleBudgetBdt: 800_000,
+  cattleBudgetMoney: 800_000,
 };
 
 const WORDS = "কোরবানির ষাঁড়, ঈদ ২০৫২";
@@ -131,13 +131,13 @@ describe("a Venture shown in the portal", () => {
       {
         id: ventureId,
         name: `ঈদের ভেঞ্চার ${suffix}`,
-        unitPriceBdt: 50_000,
-        targetCapitalBdt: 1_000_000,
-        floorBdt: 600_000,
+        unitPriceMoney: 50_000,
+        targetCapitalMoney: 1_000_000,
+        floorMoney: 600_000,
         decideBy: "2052-01-20",
         targetWindow: { start: "2052-06-01", end: "2052-06-10" },
-        cattleBudgetBdt: 800_000,
-        runningBudgetBdt: 200_000,
+        cattleBudgetMoney: 800_000,
+        runningBudgetMoney: 200_000,
         // Paid all before buying, as it opened: no Monthly Sums to tell him of.
         capitalPaid: "before_buying",
         monthly: null,
@@ -169,12 +169,12 @@ describe("what an invited Investor is offered", () => {
     expect(offered.find((one) => one.id === monthly.id)).toMatchObject({
       capitalPaid: "by_the_month",
       monthly: {
-        cattlePartBdt: 40_000,
+        cattlePartMoney: 40_000,
         sums: [
-          { dueOn: "2052-02-10", bdt: 2500 },
-          { dueOn: "2052-03-10", bdt: 2500 },
-          { dueOn: "2052-04-10", bdt: 2500 },
-          { dueOn: "2052-05-10", bdt: 2500 },
+          { dueOn: "2052-02-10", amount: 2500 },
+          { dueOn: "2052-03-10", amount: 2500 },
+          { dueOn: "2052-04-10", amount: 2500 },
+          { dueOn: "2052-05-10", amount: 2500 },
         ],
       },
     });
@@ -210,7 +210,7 @@ describe("what an invited Investor is offered", () => {
       investorsPercent: 60,
       arbitrator: `সালিস ${suffix}`,
       stampKind: "paper",
-      stampValueBdt: 300,
+      stampValueMoney: 300,
       stampedOn: "2052-01-02",
       stampSerial: `S-0175${suffix}`,
     });

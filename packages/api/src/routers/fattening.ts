@@ -94,12 +94,12 @@ export const fatteningRouter = {
     .input(
       z
         .object({
-          lowBdtPerKg: z.number().positive().max(100_000),
-          highBdtPerKg: z.number().positive().max(100_000),
+          lowMoneyPerKg: z.number().positive().max(100_000),
+          highMoneyPerKg: z.number().positive().max(100_000),
         })
-        .refine((one) => one.lowBdtPerKg <= one.highBdtPerKg, {
+        .refine((one) => one.lowMoneyPerKg <= one.highMoneyPerKg, {
           message: "The low price is above the high one",
-          path: ["lowBdtPerKg"],
+          path: ["lowMoneyPerKg"],
         })
     )
     .handler(async ({ context, input }) => {
@@ -110,20 +110,20 @@ export const fatteningRouter = {
           entityId: context.farm.id,
           action: "update",
           before: {
-            marketLowBdtPerKg: context.farm.marketLowBdtPerKg,
-            marketHighBdtPerKg: context.farm.marketHighBdtPerKg,
+            marketLowMoneyPerKg: context.farm.marketLowMoneyPerKg,
+            marketHighMoneyPerKg: context.farm.marketHighMoneyPerKg,
           },
           after: {
-            marketLowBdtPerKg: input.lowBdtPerKg,
-            marketHighBdtPerKg: input.highBdtPerKg,
+            marketLowMoneyPerKg: input.lowMoneyPerKg,
+            marketHighMoneyPerKg: input.highMoneyPerKg,
           },
         },
         (tx) =>
           tx
             .update(farm)
             .set({
-              marketLowBdtPerKg: input.lowBdtPerKg,
-              marketHighBdtPerKg: input.highBdtPerKg,
+              marketLowMoneyPerKg: input.lowMoneyPerKg,
+              marketHighMoneyPerKg: input.highMoneyPerKg,
               marketPriceSetAt: setAt,
             })
             .where(eq(farm.id, context.farm.id))

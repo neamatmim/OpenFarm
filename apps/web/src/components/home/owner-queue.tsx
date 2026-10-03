@@ -1,5 +1,5 @@
 import type { MessageKey } from "@OpenFarm/i18n";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { currencySign, formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -142,7 +142,8 @@ const MoneyGroup = ({ needsYou, headless }: GroupProps) => {
             <Link className="hover:underline" to="/money">
               {categoryName(row, language)} ·{" "}
               <span className="tabular-nums">
-                ৳{formatNumber(row.amountBdt, language)}
+                {currencySign()}
+                {formatNumber(row.amountMoney, language)}
               </span>
             </Link>
           }
@@ -151,7 +152,10 @@ const MoneyGroup = ({ needsYou, headless }: GroupProps) => {
               className={ROW_ACT}
               disabled={approveMoney.isPending}
               onClick={() =>
-                approveMoney.mutate({ id: row.id, amountBdt: row.amountBdt })
+                approveMoney.mutate({
+                  id: row.id,
+                  amountMoney: row.amountMoney,
+                })
               }
               size="sm"
               type="button"

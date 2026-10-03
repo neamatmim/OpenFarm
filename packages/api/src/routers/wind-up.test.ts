@@ -26,15 +26,15 @@ const as = (role: "owner" | "manager" | "staff", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
 const plan = {
-  targetCapitalBdt: 1_000_000,
-  floorBdt: 0,
+  targetCapitalMoney: 1_000_000,
+  floorMoney: 0,
   decideBy: "2047-01-20",
   targetWindowStart: "2047-04-17",
   /** Thirty days on from here is 2047-05-19, the last day of the Wind-up Period. */
   targetWindowEnd: "2047-04-19",
-  unitPriceBdt: 50_000,
+  unitPriceMoney: 50_000,
   units: 20,
-  cattleBudgetBdt: 800_000,
+  cattleBudgetMoney: 800_000,
 };
 
 const weighInSop = (): SopContent => ({
@@ -95,7 +95,7 @@ const funded = async (owner: Owner, which: number) => {
     units: 20,
     investorsPercent: 60,
     arbitrator: `মাওলানা ${suffix}`,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2047-01-02",
     stampSerial: `AA ${which} ${suffix}`,
   });
@@ -106,7 +106,7 @@ const funded = async (owner: Owner, which: number) => {
   });
   await owner.client.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: 1_000_000,
+    amountMoney: 1_000_000,
     movedOn: "2047-01-03",
     paymentMethod: "bank",
     reference: `TRF-${suffix}-${which}`,
@@ -122,7 +122,7 @@ const broughtIn = async (forVenture: string) => {
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: 60_000,
+    purchasePriceMoney: 60_000,
     weightKg: 200,
     estimatedAgeMonths: 20,
     ventureId: forVenture,
@@ -199,7 +199,7 @@ beforeAll(async () => {
   await manager.client.sale.record({
     tagNumber: tags[2] ?? "",
     buyer: { name: `ক্রেতা ${suffix}` },
-    priceBdt: 112_000,
+    priceMoney: 112_000,
     weightKg: 280,
     destination: `ঢাকা ${suffix}`,
     vehicle: `ঢাকা মেট্রো ${suffix}`,
@@ -214,7 +214,7 @@ beforeAll(async () => {
 });
 
 const buying = {
-  rateBdtPerKg: 400,
+  rateMoneyPerKg: 400,
   note: `আজকের হাটের দর ${suffix}`,
   paymentMethod: "bank" as const,
   reference: `WND-${suffix}`,
@@ -331,13 +331,13 @@ describe("the buy-back at wind-up", () => {
     // Three hundred kilos and three hundred and twenty, at four hundred taka the kilo.
     expect(bought.animals).toHaveLength(2);
     expect(
-      bought.animals.map((one) => one.priceBdt).toSorted((a, b) => a - b)
+      bought.animals.map((one) => one.priceMoney).toSorted((a, b) => a - b)
     ).toEqual([120_000, 128_000]);
-    expect(bought.totalBdt).toBe(248_000);
+    expect(bought.totalMoney).toBe(248_000);
 
     const after = await theVenture(owner);
     expect(after).toMatchObject({
-      balanceBdt: (before?.balanceBdt ?? 0) + 248_000,
+      balanceMoney: (before?.balanceMoney ?? 0) + 248_000,
       animalsStanding: 0,
     });
 
@@ -376,9 +376,9 @@ describe("the buy-back at wind-up", () => {
     const sold = movements.filter(
       (one) => one.kind === "internal_sell" && one.movedOn === "2047-05-20"
     );
-    expect(sold.map((one) => one.amountBdt).toSorted((a, b) => a - b)).toEqual([
-      120_000, 128_000,
-    ]);
+    expect(
+      sold.map((one) => one.amountMoney).toSorted((a, b) => a - b)
+    ).toEqual([120_000, 128_000]);
   });
 
   it("is refused on a Venture that has been called off", async () => {
@@ -500,7 +500,7 @@ describe("a Venture whose Target Window an Amendment moved", () => {
       units: 5,
       investorsPercent: 60,
       arbitrator: `মাওলানা ${suffix}`,
-      stampValueBdt: 300,
+      stampValueMoney: 300,
       stampedOn: "2047-02-11",
     };
     await owner.client.ventures.sign({

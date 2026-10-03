@@ -35,7 +35,7 @@ const loadPayment = (tx: Tx, farmId: string, id: string) =>
 /** What putting a Baki Payment right may change: how much, the day it came, how it was paid, and the note. Who paid
  *  and what for are not changed: a payment written against the wrong buyer is taken back and written again. */
 export const bakiPaymentCorrectionInput = correctionInput({
-  amountBdt: changeOf(amountInput, z.number()),
+  amountMoney: changeOf(amountInput, z.number()),
   paidOn: changeOf(farmDay, z.string()),
   paymentMethod: paymentMethodChange,
   /** Which Farm Account bKash or bank money names, and its transaction ID. */
@@ -63,7 +63,7 @@ export const bakiPaymentCorrection: CorrectionKind<
       "baki_payment",
       row.id
     ),
-    amountBdt: row.amountBdt,
+    amountMoney: row.amountMoney,
     paidOn: row.paidOn,
     paymentMethod: await paymentMethodOf(
       tx,
@@ -76,26 +76,26 @@ export const bakiPaymentCorrection: CorrectionKind<
   }),
   trail: (tx, row) => readBakiPayment(tx, row.id),
   apply: async (tx, row, to, { context, now }) => {
-    const amountBdt = to.amountBdt ?? row.amountBdt;
+    const amountMoney = to.amountMoney ?? row.amountMoney;
     const note = to.note === undefined ? row.note : to.note;
-    if (amountBdt > row.amountBdt) {
+    if (amountMoney > row.amountMoney) {
       // What he owes now already has this payment taken off it; only what it grows by is asked about.
-      const owingBdt = await owingOf(
+      const owingMoney = await owingOf(
         tx,
         row.farmId,
         row.counterpartyId,
         row.kind
       );
       assertPaidNoMoreThanOwed({
-        amountBdt: amountBdt - row.amountBdt,
-        owingBdt,
+        amountMoney: amountMoney - row.amountMoney,
+        owingMoney,
         note,
       });
     }
     const paidOn = to.paidOn ?? row.paidOn;
     enteredOn(paidOn, now);
     const putRight = {
-      ...(to.amountBdt === undefined ? {} : { amountBdt: to.amountBdt }),
+      ...(to.amountMoney === undefined ? {} : { amountMoney: to.amountMoney }),
       ...(to.paidOn === undefined ? {} : { paidOn: to.paidOn }),
       ...(to.note === undefined ? {} : { note: to.note }),
     };
@@ -118,7 +118,7 @@ export const bakiPaymentCorrection: CorrectionKind<
       {
         source: "baki_payment",
         sourceId: row.id,
-        amountBdt,
+        amountMoney,
         occurredAt: startOfFarmDay(paidOn),
         counterpartyId: row.counterpartyId,
         paymentMethod: to.paymentMethod,

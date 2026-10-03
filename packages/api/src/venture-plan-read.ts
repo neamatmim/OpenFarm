@@ -14,8 +14,8 @@ export interface PlanVersion {
   madeWhile: string;
   madeAt: Date;
   reason: string | null;
-  saleLowBdtPerKg: number;
-  saleHighBdtPerKg: number;
+  saleLowMoneyPerKg: number;
+  saleHighMoneyPerKg: number;
   /** The share of its animals it expects not to live to be sold, in per cent. */
   deathsPercent: number;
   lines: PlanLine[];
@@ -29,14 +29,14 @@ interface Row {
   madeWhile: string;
   madeAt: Date;
   reason: string | null;
-  saleLowBdtPerKg: number;
-  saleHighBdtPerKg: number;
+  saleLowMoneyPerKg: number;
+  saleHighMoneyPerKg: number;
   deathsPercent: string;
   lines: {
     animals: number;
     fromKg: string;
     toKg: string;
-    buyBdtPerKg: number;
+    buyMoneyPerKg: number;
     dailyGainKg: string;
     breedId: string | null;
   }[];
@@ -47,14 +47,14 @@ const versionOf = (row: Row): PlanVersion => ({
   madeWhile: row.madeWhile,
   madeAt: row.madeAt,
   reason: row.reason,
-  saleLowBdtPerKg: row.saleLowBdtPerKg,
-  saleHighBdtPerKg: row.saleHighBdtPerKg,
+  saleLowMoneyPerKg: row.saleLowMoneyPerKg,
+  saleHighMoneyPerKg: row.saleHighMoneyPerKg,
   deathsPercent: Number(row.deathsPercent),
   lines: row.lines.map((line): PlanLine => ({
     animals: line.animals,
     fromKg: Number(line.fromKg),
     toKg: Number(line.toKg),
-    buyBdtPerKg: line.buyBdtPerKg,
+    buyMoneyPerKg: line.buyMoneyPerKg,
     dailyGainKg: Number(line.dailyGainKg),
     breedId: line.breedId,
   })),

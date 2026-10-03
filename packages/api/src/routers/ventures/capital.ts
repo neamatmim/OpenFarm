@@ -32,7 +32,7 @@ import { assertByBank, money } from "./shared";
 
 const capitalInput = z.object({
   agreementId: z.string(),
-  amountBdt: money.refine((taka) => taka > 0, {
+  amountMoney: money.refine((taka) => taka > 0, {
     message: "Capital in is money arriving",
   }),
   /** The day the bank moved it, on the farm's own clock. */
@@ -99,7 +99,7 @@ export const capitalProcedures = {
       assertTakesCapital(row);
       // Its Units' whole price — or, for a Venture paid by the month, its Units' Cattle Part while it gathers its capital.
       const owed = capitalItMayHold(agreement.units, row);
-      const cattlePartOnly = owed < agreement.units * row.unitPriceBdt;
+      const cattlePartOnly = owed < agreement.units * row.unitPriceMoney;
       const id = uuidv7(now);
       await audited(context).write(
         {
@@ -127,7 +127,7 @@ export const capitalProcedures = {
             context.farm.id,
             agreement.id
           );
-          if (paidAlready + input.amountBdt > owed) {
+          if (paidAlready + input.amountMoney > owed) {
             // Paid by the month, the rest comes as Monthly Sums once the buying starts: said as that, not as a paper
             // that is full, because it is not.
             throw new ORPCError("BAD_REQUEST", {
@@ -160,7 +160,7 @@ export const capitalProcedures = {
             ventureId: agreement.ventureId,
             kind: "capital_in",
             agreementId: agreement.id,
-            amountBdt: input.amountBdt,
+            amountMoney: input.amountMoney,
             movedOn: input.movedOn,
             reference: input.reference,
             recordedBy: context.actor.id,
@@ -186,7 +186,7 @@ export const capitalProcedures = {
       z.object({
         ventureId: z.string(),
         buyingTripId: z.string(),
-        amountBdt: money.refine((taka) => taka > 0, {
+        amountMoney: money.refine((taka) => taka > 0, {
           message: "A Float is money going out",
         }),
         movedOn: farmDay,
@@ -256,7 +256,7 @@ export const capitalProcedures = {
             tx,
             context.farm.id,
             standing,
-            input.amountBdt
+            input.amountMoney
           );
           const already = await tx.query.ventureMovement.findFirst({
             where: {
@@ -287,7 +287,7 @@ export const capitalProcedures = {
             ventureId: row.id,
             kind: "float_out",
             buyingTripId: input.buyingTripId,
-            amountBdt: input.amountBdt,
+            amountMoney: input.amountMoney,
             movedOn: input.movedOn,
             reference: input.reference,
             recordedBy: context.actor.id,
@@ -320,7 +320,7 @@ export const capitalProcedures = {
       z.object({
         buyingTripId: z.string(),
         /** What came back and went into the bank. Nothing, when the whole Float was spent. */
-        cashBackBdt: money,
+        cashBackMoney: money,
         /** The day it was deposited, and the slip's number. Left out when nothing came back. */
         movedOn: farmDay.optional(),
         reference: z.string().trim().max(120).optional(),
@@ -328,14 +328,14 @@ export const capitalProcedures = {
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      if (input.cashBackBdt > 0 && !(input.movedOn && input.reference)) {
+      if (input.cashBackMoney > 0 && !(input.movedOn && input.reference)) {
         throw new ORPCError("BAD_REQUEST", {
           message: "Cash coming back needs the day and the deposit slip",
           data: { refusal: "cash_back_needs_a_slip" },
         });
       }
       const id = uuidv7(now);
-      let counted = { animalsBdt: 0, tripBdt: 0, animals: 0 };
+      let counted = { animalsMoney: 0, tripMoney: 0, animals: 0 };
       await audited(context).write(
         {
           entity: "venture_movement",
@@ -377,18 +377,18 @@ export const capitalProcedures = {
           });
           counted = bought;
           const accountedFor = roundTaka(
-            bought.animalsBdt + bought.tripBdt + input.cashBackBdt
+            bought.animalsMoney + bought.tripMoney + input.cashBackMoney
           );
-          const outBdt = roundTaka(float.amountBdt);
-          if (accountedFor !== outBdt) {
-            const gapBdt = roundTaka(Math.abs(accountedFor - outBdt));
+          const outMoney = roundTaka(float.amountMoney);
+          if (accountedFor !== outMoney) {
+            const gapMoney = roundTaka(Math.abs(accountedFor - outMoney));
             throw new ORPCError("BAD_REQUEST", {
-              message: `That is ${gapBdt} ${
-                accountedFor > outBdt ? "more than" : "short of"
+              message: `That is ${gapMoney} ${
+                accountedFor > outMoney ? "more than" : "short of"
               } the Float`,
               data: {
-                refusal: accountedFor > outBdt ? "float_over" : "float_short",
-                gapBdt,
+                refusal: accountedFor > outMoney ? "float_over" : "float_short",
+                gapMoney,
               },
             });
           }
@@ -400,7 +400,7 @@ export const capitalProcedures = {
             ventureId: float.ventureId,
             kind: "float_back",
             buyingTripId: input.buyingTripId,
-            amountBdt: input.cashBackBdt,
+            amountMoney: input.cashBackMoney,
             movedOn: input.movedOn ?? float.movedOn,
             reference: input.reference ?? "",
             refundsId: float.id,
@@ -413,7 +413,7 @@ export const capitalProcedures = {
             .where(eq(ventureMovement.id, float.id));
         }
       );
-      return { ...counted, cashBackBdt: input.cashBackBdt };
+      return { ...counted, cashBackMoney: input.cashBackMoney };
     }),
 
   /**
@@ -437,7 +437,7 @@ export const capitalProcedures = {
             id: row.id,
             ventureId: row.ventureId,
             ventureName: row.venture?.name ?? "",
-            amountBdt: row.amountBdt,
+            amountMoney: row.amountMoney,
             movedOn: row.movedOn,
             reference: row.reference,
           }

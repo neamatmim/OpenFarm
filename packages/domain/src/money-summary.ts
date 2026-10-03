@@ -4,13 +4,13 @@ import { roundTaka } from "./money";
 /** Part of a Money Event that belongs to a Side, or to the whole farm when the Side is null. */
 export interface SideShare {
   side: Side | null;
-  amountBdt: number;
+  amountMoney: number;
 }
 
 /** One Money Event as the accountant's summary adds it up. */
 export interface MoneyToSummarise {
   direction: "in" | "out";
-  amountBdt: number;
+  amountMoney: number;
   categoryBn: string;
   categoryEn: string | null;
   counterpartyName: string | null;
@@ -22,15 +22,15 @@ export interface MoneyToSummarise {
 
 /** Money in and money out. */
 export interface InAndOut {
-  inBdt: number;
-  outBdt: number;
+  inMoney: number;
+  outMoney: number;
 }
 
 /** The accountant's summary of a period: income against expense, by Category, Counterparty and Side. */
 export interface MoneySummary {
-  incomeBdt: number;
-  expenseBdt: number;
-  netBdt: number;
+  incomeMoney: number;
+  expenseMoney: number;
+  netMoney: number;
   byCategory: ({ nameBn: string; nameEn: string | null } & InAndOut)[];
   byCounterparty: ({ name: string | null } & InAndOut)[];
   bySide: ({ side: Side | null } & InAndOut)[];
@@ -46,20 +46,20 @@ const tally = <K>(
   totals: Map<K, InAndOut>,
   key: K,
   direction: "in" | "out",
-  amountBdt: number
+  amountMoney: number
 ): void => {
-  const running = totals.get(key) ?? { inBdt: 0, outBdt: 0 };
+  const running = totals.get(key) ?? { inMoney: 0, outMoney: 0 };
   if (direction === "in") {
-    running.inBdt += amountBdt;
+    running.inMoney += amountMoney;
   } else {
-    running.outBdt += amountBdt;
+    running.outMoney += amountMoney;
   }
   totals.set(key, running);
 };
 
 const rounded = (totals: InAndOut): InAndOut => ({
-  inBdt: roundTaka(totals.inBdt),
-  outBdt: roundTaka(totals.outBdt),
+  inMoney: roundTaka(totals.inMoney),
+  outMoney: roundTaka(totals.outMoney),
 });
 
 /**
@@ -78,28 +78,28 @@ export const summariseMoney = (
   const bySide = new Map<Side | null, InAndOut>();
   let awaitingCount = 0;
   for (const money of events) {
-    tally(all, "all", money.direction, money.amountBdt);
+    tally(all, "all", money.direction, money.amountMoney);
     if (money.awaitingApproval) {
       awaitingCount += 1;
-      tally(awaiting, "awaiting", money.direction, money.amountBdt);
+      tally(awaiting, "awaiting", money.direction, money.amountMoney);
     }
-    tally(byCategory, money.categoryBn, money.direction, money.amountBdt);
+    tally(byCategory, money.categoryBn, money.direction, money.amountMoney);
     categoryNames.set(money.categoryBn, money.categoryEn);
     tally(
       byCounterparty,
       money.counterpartyName,
       money.direction,
-      money.amountBdt
+      money.amountMoney
     );
     for (const share of money.sides) {
-      tally(bySide, share.side, money.direction, share.amountBdt);
+      tally(bySide, share.side, money.direction, share.amountMoney);
     }
   }
-  const totals = rounded(all.get("all") ?? { inBdt: 0, outBdt: 0 });
+  const totals = rounded(all.get("all") ?? { inMoney: 0, outMoney: 0 });
   return {
-    incomeBdt: totals.inBdt,
-    expenseBdt: totals.outBdt,
-    netBdt: roundTaka(totals.inBdt - totals.outBdt),
+    incomeMoney: totals.inMoney,
+    expenseMoney: totals.outMoney,
+    netMoney: roundTaka(totals.inMoney - totals.outMoney),
     byCategory: [...byCategory.entries()]
       .map(([nameBn, line]) => ({
         nameBn,
@@ -116,7 +116,7 @@ export const summariseMoney = (
     }),
     awaiting: {
       count: awaitingCount,
-      ...rounded(awaiting.get("awaiting") ?? { inBdt: 0, outBdt: 0 }),
+      ...rounded(awaiting.get("awaiting") ?? { inMoney: 0, outMoney: 0 }),
     },
   };
 };

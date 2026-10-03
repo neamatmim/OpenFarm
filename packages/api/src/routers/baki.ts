@@ -107,7 +107,7 @@ export const bakiRouter = {
       z.object({
         buyer: buyerNameInput,
         kind: z.enum(KINDS),
-        amountBdt: amountInput,
+        amountMoney: amountInput,
         paidOn: farmDay,
         paymentMethod: paymentMethodInput,
         /** Which Farm Account bKash or bank money went into or came out of. */
@@ -143,8 +143,13 @@ export const bakiRouter = {
             sql`select 1 from counterparty where id = ${known.id} for update`
           );
           assertPaidNoMoreThanOwed({
-            amountBdt: input.amountBdt,
-            owingBdt: await owingOf(tx, context.farm.id, known.id, input.kind),
+            amountMoney: input.amountMoney,
+            owingMoney: await owingOf(
+              tx,
+              context.farm.id,
+              known.id,
+              input.kind
+            ),
             note: input.note ?? null,
           });
           await tx.insert(bakiPayment).values({
@@ -152,7 +157,7 @@ export const bakiRouter = {
             farmId: context.farm.id,
             counterpartyId: known.id,
             kind: input.kind,
-            amountBdt: input.amountBdt,
+            amountMoney: input.amountMoney,
             paidOn: input.paidOn,
             note: input.note ?? null,
             recordedBy: context.actor.id,
@@ -170,7 +175,7 @@ export const bakiRouter = {
             {
               source: "baki_payment",
               sourceId: id,
-              amountBdt: input.amountBdt,
+              amountMoney: input.amountMoney,
               occurredAt,
               counterpartyId: known.id,
               paymentMethod: input.paymentMethod,
@@ -203,7 +208,7 @@ export const bakiRouter = {
       z.object({
         source: z.enum(BAKI_SOURCES),
         id: z.string(),
-        amountBdt: amountInput,
+        amountMoney: amountInput,
         why: noteInput,
       })
     )
@@ -234,14 +239,17 @@ export const bakiRouter = {
           await tx.execute(
             sql`select 1 from counterparty where id = ${standing.counterpartyId} for update`
           );
-          assertWrittenOffNoMoreThanOwed(input.amountBdt, standing.owingBdt);
+          assertWrittenOffNoMoreThanOwed(
+            input.amountMoney,
+            standing.owingMoney
+          );
           await tx.insert(bakiWriteOff).values({
             id,
             farmId: context.farm.id,
             source: input.source,
             sourceId: input.id,
             counterpartyId: standing.counterpartyId,
-            amountBdt: input.amountBdt,
+            amountMoney: input.amountMoney,
             reason: input.why,
             writtenOn: farmDayOf(now),
             recordedBy: context.actor.id,

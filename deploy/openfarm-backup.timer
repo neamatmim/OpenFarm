@@ -7,6 +7,7 @@
 # 01:15 Dhaka, which is the quiet hour after the evening milking is long recorded and well
 # before the morning one. Persistent, so a host that was off overnight takes the copy when
 # it comes back rather than skipping the night in silence.
+# On a farm outside Bangladesh, the zone here is its OPENFARM_TIME_ZONE (ADR 0013).
 [Unit]
 Description=Take a nightly copy of the farm off this machine
 

@@ -95,7 +95,7 @@ export const cashRouter = {
       z.object({
         from: handEnd,
         to: handTo,
-        amountBdt: amountInput,
+        amountMoney: amountInput,
         /** When it changed hands, if not now. */
         handedAt: z.coerce.date().optional(),
         /** The deposit slip or the cheque, where the bank is one end. */
@@ -135,7 +135,7 @@ export const cashRouter = {
             farmId: context.farm.id,
             from,
             to: input.to,
-            amountBdt: input.amountBdt,
+            amountMoney: input.amountMoney,
             handedAt,
             reference: input.reference ?? null,
             note: input.note ?? null,
@@ -167,7 +167,7 @@ export const cashRouter = {
       z.object({
         tripId: z.string(),
         /** The cash brought back, in taka; nothing where all of it was spent. */
-        cashBackBdt: z.number().min(0).max(100_000_000),
+        cashBackMoney: z.number().min(0).max(100_000_000),
       })
     )
     .handler(async ({ context, input }) => {
@@ -194,7 +194,7 @@ export const cashRouter = {
           reconcileFarmFloat(tx, {
             farmId: context.farm.id,
             tripId: input.tripId,
-            cashBackBdt: input.cashBackBdt,
+            cashBackMoney: input.cashBackMoney,
             ownerId: context.actor.id,
             role,
             now,

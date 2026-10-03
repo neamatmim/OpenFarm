@@ -17,7 +17,7 @@ const loadWriteOff = (tx: Tx, farmId: string, id: string) =>
 
 /** What putting a Write-off right may change: how much — nothing takes it back whole — and why. */
 export const writeOffCorrectionInput = correctionInput({
-  amountBdt: changeOf(z.number().min(0).max(100_000_000), z.number()),
+  amountMoney: changeOf(z.number().min(0).max(100_000_000), z.number()),
   why: changeOf(noteInput, z.string()),
 });
 
@@ -33,10 +33,10 @@ export const writeOffCorrection: CorrectionKind<
   load: loadWriteOff,
   entry: (row) => ({ enteredAt: row.recordedAt, enteredBy: row.recordedBy }),
   shown: (_tx, row) =>
-    Promise.resolve({ amountBdt: row.amountBdt, why: row.reason }),
+    Promise.resolve({ amountMoney: row.amountMoney, why: row.reason }),
   trail: (tx, row) => readWriteOff(tx, row.id),
   apply: async (tx, row, to) => {
-    if (to.amountBdt !== undefined && to.amountBdt > row.amountBdt) {
+    if (to.amountMoney !== undefined && to.amountMoney > row.amountMoney) {
       // What is owing now already has this write-off taken off it; only what it grows by is asked about.
       const standing = await owingOnItem(
         tx,
@@ -45,12 +45,12 @@ export const writeOffCorrection: CorrectionKind<
         row.sourceId
       );
       assertWrittenOffNoMoreThanOwed(
-        to.amountBdt - row.amountBdt,
-        standing?.owingBdt ?? 0
+        to.amountMoney - row.amountMoney,
+        standing?.owingMoney ?? 0
       );
     }
     const putRight = {
-      ...(to.amountBdt === undefined ? {} : { amountBdt: to.amountBdt }),
+      ...(to.amountMoney === undefined ? {} : { amountMoney: to.amountMoney }),
       ...(to.why === undefined ? {} : { reason: to.why }),
     };
     if (somethingChanged(putRight)) {

@@ -122,8 +122,8 @@ const CostBackCell = ({ row }: BreakdownCell) => {
   return (
     <span className="text-muted-foreground tabular-nums">
       {t("returns.costBack", {
-        cost: taka(row.original.costBdt),
-        back: taka(row.original.backBdt),
+        cost: taka(row.original.costMoney),
+        back: taka(row.original.backMoney),
       })}
     </span>
   );
@@ -143,7 +143,7 @@ const breakdownColumnsFor = (by: BreakdownBy) =>
       header: listHeader(BY_WORD[by]),
       cell: LineCell,
     }),
-    breakdownColumn.accessor("costBdt", {
+    breakdownColumn.accessor("costMoney", {
       id: "costBack",
       header: listHeader("returns.col.costBack"),
       cell: CostBackCell,

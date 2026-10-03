@@ -55,7 +55,7 @@ beforeAll(async () => {
   dewormer = worms.id;
   const manager = await as("manager", "2084-02-02T04:00:00.000Z");
   // Ten doses at ৳100 a dose, and five at ৳100.
-  for (const [drugProductId, doses, priceBdt] of [
+  for (const [drugProductId, doses, priceMoney] of [
     [oxy, 10, 1000],
     [dewormer, 5, 500],
   ] as const) {
@@ -64,7 +64,7 @@ beforeAll(async () => {
       drugProductId,
       quantity: `${doses} ডোজ`,
       doses,
-      priceBdt,
+      priceMoney,
       seller: { name: `ওষুধের দোকান ${suffix}` },
       purchasedOn: "2084-02-02",
       paymentMethod: "cash",
@@ -151,14 +151,14 @@ describe("the monthly medicine count", () => {
 
   it("wins, and tells the Owner of a shortfall past the line, at what the doses cost", async () => {
     const owner = await as("owner", "2084-04-01T04:00:00.000Z");
-    await owner.client.farm.setParameters({ medicineShortTellBdt: 300 });
+    await owner.client.farm.setParameters({ medicineShortTellMoney: 300 });
     const done = await count("2084-04-07", [
       { drugProductId: oxy, counted: 5, reason: `চারটি ডোজ পাওয়া যায়নি ${suffix}` },
       { drugProductId: dewormer, counted: 5 },
     ]);
     expect(done.effect).toEqual({
       kind: "medicine_count",
-      adjustments: [{ drugProductId: oxy, difference: -4, perDoseBdt: 100 }],
+      adjustments: [{ drugProductId: oxy, difference: -4, perDoseMoney: 100 }],
     });
     expect(await onHandOf(oxy)).toBe(5);
     const told = await scratchDb().query.alert.findMany({
@@ -166,14 +166,14 @@ describe("the monthly medicine count", () => {
       columns: { params: true },
     });
     expect(told).toEqual([
-      { params: { shortBdt: 400, countedOn: "2084-04-07" } },
+      { params: { shortMoney: 400, countedOn: "2084-04-07" } },
     ]);
   });
 
   it("is the Owner's line to move, not the Manager's", async () => {
     const manager = await as("manager", "2084-04-08T04:00:00.000Z");
     await expect(
-      manager.client.farm.setParameters({ medicineShortTellBdt: 50_000 })
+      manager.client.farm.setParameters({ medicineShortTellMoney: 50_000 })
     ).rejects.toThrow("Owner");
   });
 });

@@ -66,7 +66,7 @@ beforeAll(async () => {
     feedItemId: bran,
     kind: "purchase",
     quantity: 1000,
-    priceBdt: 40_000,
+    priceMoney: 40_000,
     seller: { name: `রহমান ফিডস ${suffix}` },
     receivedOn: "2057-01-01",
   });
@@ -140,17 +140,17 @@ describe("a count come up short", () => {
     );
     expect(branLine).toMatchObject({
       difference: -100,
-      priceBdt: 40,
-      valueBdt: -4000,
+      priceMoney: 40,
+      valueMoney: -4000,
     });
     // The farm's own grass was never bought: no price, and nothing in taka.
     const napierLine = lines.find(
       (line) => line.completionId === completionId && line.feedItemId === napier
     );
-    expect(napierLine).toMatchObject({ priceBdt: null, valueBdt: null });
+    expect(napierLine).toMatchObject({ priceMoney: null, valueMoney: null });
 
     expect(await toldOf(completionId, "owner")).toEqual([
-      { shortBdt: 4000, countedOn: "2057-01-05" },
+      { shortMoney: 4000, countedOn: "2057-01-05" },
     ]);
     expect(await toldOf(completionId, "manager")).toHaveLength(1);
   });
@@ -196,7 +196,8 @@ describe("a count read again", () => {
       const lines = await manager.client.stock.adjustments({
         feedItemId: bran,
       });
-      return lines.find((line) => line.completionId === completionId)?.valueBdt;
+      return lines.find((line) => line.completionId === completionId)
+        ?.valueMoney;
     };
     const before = await worth();
     // A delivery the store had that day, written up only afterwards: the count was shorter than it looked.
@@ -205,7 +206,7 @@ describe("a count read again", () => {
       feedItemId: bran,
       kind: "purchase",
       quantity: 100,
-      priceBdt: 4000,
+      priceMoney: 4000,
       seller: { name: `রহমান ফিডস ${suffix}` },
       receivedOn: "2057-02-08",
     });
@@ -221,8 +222,8 @@ describe("a period's shortfall", () => {
       to: "2057-01-31",
     });
     expect(report.storeShortfall.counts).toBe(4);
-    expect(report.storeShortfall.shortBdt).toBeGreaterThan(0);
-    expect(report.storeShortfall.overBdt).toBeGreaterThan(0);
+    expect(report.storeShortfall.shortMoney).toBeGreaterThan(0);
+    expect(report.storeShortfall.overMoney).toBeGreaterThan(0);
   });
 });
 
@@ -230,14 +231,14 @@ describe("the Owner's line", () => {
   it("is the Owner's to move, not the Manager's", async () => {
     const manager = await as("manager", "2057-02-02T04:00:00.000Z");
     await expect(
-      manager.client.farm.setParameters({ storeShortfallTellBdt: 100 })
+      manager.client.farm.setParameters({ storeShortfallTellMoney: 100 })
     ).rejects.toThrow("Owner");
     const owner = await as("owner", "2057-02-02T04:00:00.000Z");
-    await owner.client.farm.setParameters({ storeShortfallTellBdt: 5000 });
+    await owner.client.farm.setParameters({ storeShortfallTellMoney: 5000 });
     const farm = await scratchDb().query.farm.findFirst({
       where: { id: theFarm().id },
-      columns: { storeShortfallTellBdt: true },
+      columns: { storeShortfallTellMoney: true },
     });
-    expect(farm?.storeShortfallTellBdt).toBe(5000);
+    expect(farm?.storeShortfallTellMoney).toBe(5000);
   });
 });

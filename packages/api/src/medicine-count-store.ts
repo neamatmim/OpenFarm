@@ -21,7 +21,7 @@ export interface MedicineAdjustment {
   drugProductId: string;
   difference: number;
   /** What its purchases cost a dose, on average; nothing for a product never bought. */
-  perDoseBdt: number | null;
+  perDoseMoney: number | null;
 }
 
 /**
@@ -34,10 +34,10 @@ export const bookAt = async (
   farmId: string,
   at: Date,
   excludingCompletion: string
-): Promise<Map<string, { expected: number; perDoseBdt: number | null }>> => {
+): Promise<Map<string, { expected: number; perDoseMoney: number | null }>> => {
   const bought = await tx.query.medicinePurchase.findMany({
     where: { farmId, purchasedOn: { lte: at } },
-    columns: { drugProductId: true, doses: true, priceBdt: true },
+    columns: { drugProductId: true, doses: true, priceMoney: true },
   });
   const given = await tx.query.treatment.findMany({
     where: { farmId, givenAt: { lte: at } },
@@ -53,10 +53,10 @@ export const bookAt = async (
   });
   const book = new Map<
     string,
-    { doses: number; bdt: number; bought: number; expected: number }
+    { doses: number; amount: number; bought: number; expected: number }
   >();
   const of = (id: string) => {
-    const one = book.get(id) ?? { doses: 0, bdt: 0, bought: 0, expected: 0 };
+    const one = book.get(id) ?? { doses: 0, amount: 0, bought: 0, expected: 0 };
     book.set(id, one);
     return one;
   };
@@ -64,7 +64,7 @@ export const bookAt = async (
     const line = of(one.drugProductId);
     line.expected += one.doses;
     line.bought += one.doses;
-    line.bdt += one.priceBdt;
+    line.amount += one.priceMoney;
   }
   for (const one of given) {
     of(one.productId).expected -= 1;
@@ -77,7 +77,8 @@ export const bookAt = async (
       id,
       {
         expected: Math.max(0, line.expected),
-        perDoseBdt: line.bought > 0 ? roundTaka(line.bdt / line.bought) : null,
+        perDoseMoney:
+          line.bought > 0 ? roundTaka(line.amount / line.bought) : null,
       },
     ])
   );
@@ -147,7 +148,7 @@ export const recordMedicineCount = async (
       counted,
       expected,
       difference: counted - expected,
-      perDoseBdt: known?.perDoseBdt ?? null,
+      perDoseMoney: known?.perDoseMoney ?? null,
       reason: line.reason?.trim() || null,
     };
   });
@@ -202,18 +203,18 @@ export const recordMedicineCount = async (
     .map((line) => ({
       drugProductId: line.drugProductId,
       difference: line.difference,
-      perDoseBdt: line.perDoseBdt,
+      perDoseMoney: line.perDoseMoney,
     }));
 };
 
 /** What a count came up short by, in taka at what each dose cost: doses found are never set against doses gone. */
-export const medicineShortBdt = (
+export const medicineShortMoney = (
   adjustments: readonly MedicineAdjustment[]
 ): number => {
   let short = 0;
   for (const one of adjustments) {
-    if (one.difference < 0 && one.perDoseBdt !== null) {
-      short += -one.difference * one.perDoseBdt;
+    if (one.difference < 0 && one.perDoseMoney !== null) {
+      short += -one.difference * one.perDoseMoney;
     }
   }
   return roundTaka(short);

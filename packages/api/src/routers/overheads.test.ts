@@ -27,7 +27,7 @@ let sprayId = "";
 
 const spend = async (entry: {
   categoryId: string;
-  amountBdt: number;
+  amountMoney: number;
   side?: "dairy" | "fattening";
   wageMonth?: string;
   name?: string;
@@ -35,7 +35,7 @@ const spend = async (entry: {
   const manager = await as("manager", "2045-03-20T04:00:00.000Z");
   await manager.client.money.enter({
     categoryId: entry.categoryId,
-    amountBdt: entry.amountBdt,
+    amountMoney: entry.amountMoney,
     occurredOn: "2045-03-20",
     counterparty: { name: entry.name ?? "দোকান" },
     paymentMethod: "cash",
@@ -68,17 +68,17 @@ beforeAll(async () => {
   });
   const venture = await owner.client.ventures.open({
     name: "ঈদ ভেঞ্চার",
-    targetCapitalBdt: 500_000,
-    floorBdt: 0,
+    targetCapitalMoney: 500_000,
+    floorMoney: 0,
     decideBy: "2045-03-20",
     ...WINDOW,
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 10,
   });
   // Capital in first: a bull at the gate is paid from what the account holds.
   await putCapitalIn(
     owner.client,
-    { id: venture.id, units: 10, unitPriceBdt: 50_000 },
+    { id: venture.id, units: 10, unitPriceMoney: 50_000 },
     "overheads",
     "2045-02-27"
   );
@@ -97,7 +97,7 @@ beforeAll(async () => {
       penId: pen.id,
       sex: "male",
       seller: { name: "ব্যাপারী" },
-      purchasePriceBdt: 50_000,
+      purchasePriceMoney: 50_000,
       weightKg: 200,
       estimatedAgeMonths: 20,
       ventureId,
@@ -107,19 +107,19 @@ beforeAll(async () => {
     });
   }
 
-  await spend({ categoryId: category.rent ?? "", amountBdt: 18_000 });
+  await spend({ categoryId: category.rent ?? "", amountMoney: 18_000 });
   await spend({
     categoryId: category.wages ?? "",
-    amountBdt: 12_000,
+    amountMoney: 12_000,
     wageMonth: "2045-02",
     name: "করিম",
   });
   // A Herd Cost: the fattening animals carry it, so it is theirs and not the place's.
-  await spend({ categoryId: sprayId, amountBdt: 3000, side: "fattening" });
+  await spend({ categoryId: sprayId, amountMoney: 3000, side: "fattening" });
   // Under the same marked Category, but naming no Side: it reached no animal, so the place paid it.
-  await spend({ categoryId: sprayId, amountBdt: 1000 });
+  await spend({ categoryId: sprayId, amountMoney: 1000 });
   // Money coming in is not a cost at all.
-  await spend({ categoryId: category.manure_sales ?? "", amountBdt: 2500 });
+  await spend({ categoryId: category.manure_sales ?? "", amountMoney: 2500 });
   // The Venture's own money, entered by hand under the rent: never the Farm's, so never what the place cost it.
   // Nothing the app offers writes one yet, so it is written here as its writer would.
   const id = uuidv7(new Date());
@@ -129,7 +129,7 @@ beforeAll(async () => {
       id,
       farmId: theFarm().id,
       direction: "out",
-      amountBdt: 40_000,
+      amountMoney: 40_000,
       occurredAt: new Date("2045-03-20T04:00:00.000Z"),
       categoryId: category.rent ?? "",
       paymentMethod: "bank",
@@ -147,15 +147,15 @@ describe("the Overhead", () => {
     const owner = await as("owner", "2045-04-05T04:00:00.000Z");
     const { overheads } = await owner.client.costs.bySide(MARCH);
     expect(overheads).toEqual({
-      totalBdt: 31_000,
+      totalMoney: 31_000,
       lines: [
-        expect.objectContaining({ categoryEn: "Shed rent", bdt: 18_000 }),
-        expect.objectContaining({ categoryEn: "Wages", bdt: 12_000 }),
-        expect.objectContaining({ categoryBn: "মাছি স্প্রে", bdt: 1000 }),
+        expect.objectContaining({ categoryEn: "Shed rent", amount: 18_000 }),
+        expect.objectContaining({ categoryEn: "Wages", amount: 12_000 }),
+        expect.objectContaining({ categoryBn: "মাছি স্প্রে", amount: 1000 }),
       ],
       // The Venture's bull counts: the same people and sheds keep him.
       headDays: 62,
-      perHeadPerDayBdt: 500,
+      perHeadPerDayMoney: 500,
     });
   });
 
@@ -163,17 +163,23 @@ describe("the Overhead", () => {
     const owner = await as("owner", "2045-04-05T04:00:00.000Z");
     const report = await owner.client.costs.bySide(MARCH);
     // The spray the animals carry, and nothing of the rent or the wages.
-    expect(report.fattening.herdBdt).toBeCloseTo(3000, 0);
-    expect(report.dairy.herdBdt).toBe(0);
+    expect(report.fattening.herdMoney).toBeCloseTo(3000, 0);
+    expect(report.dairy.herdMoney).toBe(0);
   });
 
   it("is on Month by month, worked over the month, and the year over the year", async () => {
     const owner = await as("owner", "2045-04-05T04:00:00.000Z");
     const { months, year } = await owner.client.home.byMonth();
     const march = months.find((one) => one.month === "2045-03");
-    expect(march?.overheads).toEqual({ bdt: 31_000, perHeadPerDayBdt: 500 });
+    expect(march?.overheads).toEqual({
+      amount: 31_000,
+      perHeadPerDayMoney: 500,
+    });
     // The year is over every head-day up to now and not the rest of April: March's 62, and two bulls for the four days
     // and ten hours of April so far — 70⅚ in all.
-    expect(year.overheads).toEqual({ bdt: 31_000, perHeadPerDayBdt: 437.65 });
+    expect(year.overheads).toEqual({
+      amount: 31_000,
+      perHeadPerDayMoney: 437.65,
+    });
   });
 });

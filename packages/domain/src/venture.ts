@@ -13,8 +13,10 @@ import { roundTaka } from "./money";
  * holds and refuses a figure that disagrees, so a screen doing its own arithmetic would refuse her over
  * a rounding rather than over a re-weighing, which is the only thing that refusal is for.
  */
-export const priceAtWeight = (weightKg: number, rateBdtPerKg: number): number =>
-  roundTaka(weightKg * rateBdtPerKg);
+export const priceAtWeight = (
+  weightKg: number,
+  rateMoneyPerKg: number
+): number => roundTaka(weightKg * rateMoneyPerKg);
 
 /**
  * The months from one to another, both included, as "YYYY-MM". A Venture is asked about every month it
@@ -47,7 +49,7 @@ export const monthBefore = (day: string): string => {
 /** What a Venture's Agreements froze, and what its animals came to. */
 export interface ToSplit {
   /** What its Animals fetched, less everything it was charged. Negative when the run lost money. */
-  profitBdt: number;
+  profitMoney: number;
   /** The share of profit the Investors take, as their Agreements froze it. */
   investorsPercent: number;
   /** Every Unit held across those Agreements: what each paid in, over the Unit price. */
@@ -58,12 +60,12 @@ export interface ToSplit {
 
 /** How a Venture's profit divides: the Investors' share, what one Unit takes of it, and the Farm's. */
 export interface Split {
-  investorsBdt: number;
+  investorsMoney: number;
   /** Whole taka, floored: nothing is paid out that the account does not hold. */
-  perUnitBdt: number;
+  perUnitMoney: number;
   /** What flooring left over, which goes to the Farm rather than to nobody. */
-  roundingBdt: number;
-  farmBdt: number;
+  roundingMoney: number;
+  farmMoney: number;
 }
 
 /** Units held are kept to four places: enough that no taka of capital goes uncounted, few enough to print. */
@@ -75,9 +77,9 @@ const HELD_PLACES = 10_000;
  * never by the Units signed for, or he takes a share of the run for money he never put in and every taka that was put
  * in is diluted by it. Paid in full, they are the Units he signed for.
  */
-export const unitsHeld = (capitalBdt: number, unitPriceBdt: number) =>
-  unitPriceBdt > 0
-    ? Math.round((capitalBdt / unitPriceBdt) * HELD_PLACES) / HELD_PLACES
+export const unitsHeld = (capitalMoney: number, unitPriceMoney: number) =>
+  unitPriceMoney > 0
+    ? Math.round((capitalMoney / unitPriceMoney) * HELD_PLACES) / HELD_PLACES
     : 0;
 
 /** Holdings added up, to the same four places: 0.1 + 0.2 Units is 0.3 of them, not a hair over. */
@@ -90,8 +92,8 @@ export const unitsAltogether = (held: readonly number[]) =>
  * Units takes exactly so many of it, and a part of a Unit never takes a paisa the account does not hold. Worked to the
  * four places Units are held to first, so 3,750 × 9.6 is 36,000 and not a taka under it.
  */
-export const whatUnitsTake = (perUnitBdt: number, units: number) =>
-  Math.floor(Math.round(perUnitBdt * units * HELD_PLACES) / HELD_PLACES);
+export const whatUnitsTake = (perUnitMoney: number, units: number) =>
+  Math.floor(Math.round(perUnitMoney * units * HELD_PLACES) / HELD_PLACES);
 
 /**
  * The split by the percentages the Agreements froze, divided by Units held.
@@ -101,32 +103,32 @@ export const whatUnitsTake = (perUnitBdt: number, units: number) =>
  * own line rather than quietly kept. A loss divides the same way and comes off capital by Units held.
  */
 export const splitOfProfit = ({
-  profitBdt,
+  profitMoney,
   investorsPercent,
   units,
   held = [units],
 }: ToSplit): Split => {
-  const investorsBdt = Math.round((profitBdt * investorsPercent) / 100);
-  const perUnitBdt = units === 0 ? 0 : Math.floor(investorsBdt / units);
+  const investorsMoney = Math.round((profitMoney * investorsPercent) / 100);
+  const perUnitMoney = units === 0 ? 0 : Math.floor(investorsMoney / units);
   // What the holdings take between them, each floored on its own: whole Units take exactly perUnit × Units, and a
   // holding with part of a Unit leaves its paisa here, on the Farm's line, rather than paid out of nothing.
-  const takenBdt = held.reduce(
-    (sum, one) => sum + whatUnitsTake(perUnitBdt, one),
+  const takenMoney = held.reduce(
+    (sum, one) => sum + whatUnitsTake(perUnitMoney, one),
     0
   );
-  const roundingBdt = investorsBdt - takenBdt;
+  const roundingMoney = investorsMoney - takenMoney;
   return {
-    investorsBdt,
-    perUnitBdt,
-    roundingBdt,
-    farmBdt: profitBdt - investorsBdt + roundingBdt,
+    investorsMoney,
+    perUnitMoney,
+    roundingMoney,
+    farmMoney: profitMoney - investorsMoney + roundingMoney,
   };
 };
 
 /** What one Investor is paid: the capital they put in, back whole, and what their Units took of the
  *  profit — or lost of it, which comes off the capital they get back. */
 export const payoutOf = (
-  capitalBdt: number,
+  capitalMoney: number,
   units: number,
-  perUnitBdt: number
-) => capitalBdt + whatUnitsTake(perUnitBdt, units);
+  perUnitMoney: number
+) => capitalMoney + whatUnitsTake(perUnitMoney, units);

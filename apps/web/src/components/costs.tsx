@@ -48,28 +48,28 @@ const WhatWasSpent = ({
   costs,
 }: {
   costs: {
-    feedBdt: number;
+    feedMoney: number;
     unpricedKg: number;
-    medicineBdt: number;
+    medicineMoney: number;
     uncostedDoses: number;
-    vetBdt: number;
+    vetMoney: number;
     // An answer kept on the phone from before these existed carries none of them: default them, or a
     // fortnight of cached answers draws ৳NaN.
-    hasilBdt?: number;
-    tripBdt?: number;
-    herdBdt?: number;
+    hasilMoney?: number;
+    tripMoney?: number;
+    herdMoney?: number;
   };
 }) => {
   const { t } = useLanguage();
   const taka = useTaka();
   return (
     <>
-      <Line label={t("costs.feed")}>{taka(costs.feedBdt)}</Line>
-      <Line label={t("costs.medicine")}>{taka(costs.medicineBdt)}</Line>
-      <Line label={t("costs.vet")}>{taka(costs.vetBdt)}</Line>
-      <Line label={t("costs.hasil")}>{taka(costs.hasilBdt ?? 0)}</Line>
-      <Line label={t("costs.trips")}>{taka(costs.tripBdt ?? 0)}</Line>
-      <Line label={t("costs.herd")}>{taka(costs.herdBdt ?? 0)}</Line>
+      <Line label={t("costs.feed")}>{taka(costs.feedMoney)}</Line>
+      <Line label={t("costs.medicine")}>{taka(costs.medicineMoney)}</Line>
+      <Line label={t("costs.vet")}>{taka(costs.vetMoney)}</Line>
+      <Line label={t("costs.hasil")}>{taka(costs.hasilMoney ?? 0)}</Line>
+      <Line label={t("costs.trips")}>{taka(costs.tripMoney ?? 0)}</Line>
+      <Line label={t("costs.herd")}>{taka(costs.herdMoney ?? 0)}</Line>
       <Note amount={costs.unpricedKg} word="costs.unpricedNote" />
       <Note amount={costs.uncostedDoses} word="costs.uncostedNote" />
     </>
@@ -109,16 +109,18 @@ export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
       <WhatWasSpent costs={her} />
       {her.side === "fattening" ? (
         <>
-          <Line label={t("costs.bought")}>{orDash(her.purchaseBdt)}</Line>
-          <Line label={t("costs.sold")}>{orDash(her.saleBdt)}</Line>
+          <Line label={t("costs.bought")}>{orDash(her.purchaseMoney)}</Line>
+          <Line label={t("costs.sold")}>{orDash(her.saleMoney)}</Line>
           <Line label={t("costs.margin")}>
-            {her.marginBdt === null ? t("costs.notSold") : taka(her.marginBdt)}
+            {her.marginMoney === null
+              ? t("costs.notSold")
+              : taka(her.marginMoney)}
           </Line>
           <Line label={t("costs.costOfGain")}>
-            {rateOrDash(her.costOfGainBdt)}
+            {rateOrDash(her.costOfGainMoney)}
           </Line>
           {/* What she might fetch now, against all that — the Owner's alone, and only while she is unsold. */}
-          {her.saleBdt === null ? <HerPrice tagNumber={tagNumber} /> : null}
+          {her.saleMoney === null ? <HerPrice tagNumber={tagNumber} /> : null}
         </>
       ) : null}
       {her.lactation ? (
@@ -131,7 +133,7 @@ export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
             {formatNumber(her.lactation.litresToBulk, language)}
           </Line>
           <Line label={t("costs.perLitre")}>
-            {rateOrDash(her.lactation.costPerLitreBdt)}
+            {rateOrDash(her.lactation.costPerLitreMoney)}
           </Line>
         </>
       ) : null}
@@ -175,14 +177,14 @@ const OverheadsCard = ({ overheads }: { overheads: Overheads }) => {
       </p>
       {overheads.lines.map((line) => (
         <Line key={line.categoryId} label={categoryName(line, language)}>
-          {taka(line.bdt)}
+          {taka(line.amount)}
         </Line>
       ))}
       <Line label={t("costs.overheadsTotal")}>
-        <span className="font-semibold">{taka(overheads.totalBdt)}</span>
+        <span className="font-semibold">{taka(overheads.totalMoney)}</span>
       </Line>
       <Line label={t("costs.perHeadPerDay")}>
-        {perHead(overheads.perHeadPerDayBdt)}
+        {perHead(overheads.perHeadPerDayMoney)}
       </Line>
       <p className="text-muted-foreground pt-2 text-xs">
         {t("costs.headDays", {
@@ -213,13 +215,13 @@ const StoreShortfallCard = ({ shortfall }: { shortfall: StoreShortfall }) => {
       <Line label={t("costs.storeShort")}>
         <span
           className={
-            shortfall.shortBdt > 0 ? "text-danger font-semibold" : undefined
+            shortfall.shortMoney > 0 ? "text-danger font-semibold" : undefined
           }
         >
-          {taka(shortfall.shortBdt)}
+          {taka(shortfall.shortMoney)}
         </span>
       </Line>
-      <Line label={t("costs.storeOver")}>{taka(shortfall.overBdt)}</Line>
+      <Line label={t("costs.storeOver")}>{taka(shortfall.overMoney)}</Line>
       <p className="text-muted-foreground pt-2 text-xs">
         {t("costs.storeCounts", { count: shortfall.counts })}
       </p>
@@ -252,7 +254,9 @@ export const CostsBySide = ({ from, to }: { from: string; to: string }) => {
             {formatNumber(dairy.litresToBulk, language)}
           </Line>
           <Line label={t("costs.perLitre")}>
-            {dairy.costPerLitreBdt === null ? "—" : rate(dairy.costPerLitreBdt)}
+            {dairy.costPerLitreMoney === null
+              ? "—"
+              : rate(dairy.costPerLitreMoney)}
           </Line>
         </CostCard>
         <CostCard title={t("animals.side.fattening")}>
@@ -261,12 +265,12 @@ export const CostsBySide = ({ from, to }: { from: string; to: string }) => {
         <CostCard title={t("costs.soldInPeriod")}>
           {soldFattening.animals.map((one) => (
             <Line key={one.tagNumber} label={one.tagNumber}>
-              {one.marginBdt === null ? "—" : taka(one.marginBdt)}
+              {one.marginMoney === null ? "—" : taka(one.marginMoney)}
             </Line>
           ))}
           <Line label={t("costs.margin")}>
             <span className="font-semibold">
-              {taka(soldFattening.marginBdt)}
+              {taka(soldFattening.marginMoney)}
             </span>
           </Line>
         </CostCard>
@@ -282,9 +286,9 @@ export const CostsBySide = ({ from, to }: { from: string; to: string }) => {
           ) : null}
         </div>
       ) : null}
-      <Note amount={unallocated.feedBdt} word="costs.unallocatedNote" />
-      <Note amount={unallocated.tripBdt ?? 0} word="costs.strayTripNote" />
-      <Note amount={unallocated.herdBdt ?? 0} word="costs.strayHerdNote" />
+      <Note amount={unallocated.feedMoney} word="costs.unallocatedNote" />
+      <Note amount={unallocated.tripMoney ?? 0} word="costs.strayTripNote" />
+      <Note amount={unallocated.herdMoney ?? 0} word="costs.strayHerdNote" />
     </div>
   );
 };

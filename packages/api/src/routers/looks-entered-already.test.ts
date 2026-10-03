@@ -26,14 +26,14 @@ beforeAll(async () => {
 const enter = async (
   role: "owner" | "manager",
   name: string,
-  amountBdt: number,
+  amountMoney: number,
   occurredOn = DAY,
   sameAgain?: boolean
 ) => {
   const who = await as(role);
   return await who.client.money.enter({
     categoryId: repairsId,
-    amountBdt,
+    amountMoney,
     occurredOn,
     counterparty: { name },
     ...(sameAgain === undefined ? {} : { sameAgain }),
@@ -56,7 +56,7 @@ describe("money that looks entered already", () => {
         match: {
           id: first.id,
           name,
-          amountBdt: 1500,
+          amountMoney: 1500,
           day: DAY,
           recordedByName: thePerson("manager").name,
         },
@@ -95,7 +95,7 @@ describe("money that looks entered already", () => {
         userId: thePerson("owner").id,
         params: expect.objectContaining({
           name,
-          amountBdt: 4000,
+          amountMoney: 4000,
           day: DAY,
           by: thePerson("manager").name,
         }),

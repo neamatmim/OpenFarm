@@ -50,10 +50,10 @@ type NumberKey =
   | "cullCalfMilkDays"
   | "cullMilkPriceDays"
   | "returnYearFloorDays"
-  | "approvalThresholdBdt"
+  | "approvalThresholdMoney"
   | "monthlyCostsFromDay"
   | "bakiDays"
-  | "storeShortfallTellBdt"
+  | "storeShortfallTellMoney"
   | "soresTellAnimals"
   | "soresTellHours"
   | "illAgainDiagnoses"
@@ -70,17 +70,17 @@ type NumberKey =
   | "shrinkTellPercent"
   | "feedDaysLow"
   | "putOffDays"
-  | "cashShortTellBdt"
-  | "medicineShortTellBdt"
+  | "cashShortTellMoney"
+  | "medicineShortTellMoney"
   | "ventureFloorPercent"
   | "ventureRunningPercent"
   | "ventureInvestorsPercent"
   | "windUpDays"
   | "priceWeighInDays"
-  | "adjustmentThresholdBdt"
+  | "adjustmentThresholdMoney"
   | "investorCap"
   | "investorWarnAt"
-  | "runningBudgetWarnBdt";
+  | "runningBudgetWarnMoney";
 type TextKey = "digestTimes" | "quietFrom" | "quietUntil";
 type Key = NumberKey | TextKey;
 
@@ -163,7 +163,7 @@ const GROUPS: {
         max: 365,
       },
       {
-        key: "approvalThresholdBdt",
+        key: "approvalThresholdMoney",
         label: "params.approvalThreshold",
         unit: "params.taka",
         min: 0,
@@ -362,8 +362,8 @@ const GROUPS: {
     owner: true,
     fields: [
       {
-        key: "cashShortTellBdt",
-        label: "params.cashShortTellBdt",
+        key: "cashShortTellMoney",
+        label: "params.cashShortTellMoney",
         unit: "params.taka",
         min: 0,
         max: 1_000_000,
@@ -377,8 +377,8 @@ const GROUPS: {
     owner: true,
     fields: [
       {
-        key: "medicineShortTellBdt",
-        label: "params.medicineShortTellBdt",
+        key: "medicineShortTellMoney",
+        label: "params.medicineShortTellMoney",
         unit: "params.taka",
         min: 0,
         max: 1_000_000,
@@ -501,8 +501,8 @@ const GROUPS: {
     owner: true,
     fields: [
       {
-        key: "storeShortfallTellBdt",
-        label: "params.storeShortfallTellBdt",
+        key: "storeShortfallTellMoney",
+        label: "params.storeShortfallTellMoney",
         unit: "params.taka",
         min: 0,
         max: 1_000_000,
@@ -566,7 +566,7 @@ const GROUPS: {
         max: 60,
       },
       {
-        key: "adjustmentThresholdBdt",
+        key: "adjustmentThresholdMoney",
         label: "params.adjustmentThreshold",
         unit: "params.taka",
         min: 0,
@@ -587,7 +587,7 @@ const GROUPS: {
         max: 50,
       },
       {
-        key: "runningBudgetWarnBdt",
+        key: "runningBudgetWarnMoney",
         label: "params.runningBudgetWarn",
         unit: "params.taka",
         min: 0,

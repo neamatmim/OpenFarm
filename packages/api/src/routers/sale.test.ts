@@ -60,7 +60,7 @@ const setup = async () => {
       penId,
       sex: "male",
       seller: { name: `হাট ${suffix}` },
-      purchasePriceBdt: 90_000,
+      purchasePriceMoney: 90_000,
       weightKg: 300,
       estimatedAgeMonths: 24,
       targetWeightKg: 280,
@@ -190,7 +190,7 @@ describe("the sale", () => {
     const sold = await manager.client.sale.record({
       tagNumber: tagOf(0),
       ...aBuyer,
-      priceBdt: 145_000,
+      priceMoney: 145_000,
       weightKg: 312.5,
     });
     expect(sold.state).toBe("sold");
@@ -198,9 +198,9 @@ describe("the sale", () => {
     const her = await manager.client.animals.byTag({ tagNumber: tagOf(0) });
     expect(her.state).toBe("sold");
     // Her arrival is still on her page: an animal who has left keeps everything she was.
-    expect(her.intake?.purchasePriceBdt).toBe(90_000);
+    expect(her.intake?.purchasePriceMoney).toBe(90_000);
     expect(her.sale).toMatchObject({
-      priceBdt: 145_000,
+      priceMoney: 145_000,
       weightKg: 312.5,
       buyerName: aBuyer.buyer.name,
       destination: aBuyer.destination,
@@ -240,7 +240,7 @@ describe("the sale", () => {
       manager.client.sale.record({
         tagNumber: tagOf(2),
         ...aBuyer,
-        priceBdt: 120_000,
+        priceMoney: 120_000,
         weightKg: 290,
       })
     ).rejects.toMatchObject({
@@ -253,7 +253,7 @@ describe("the sale", () => {
       .record({
         tagNumber: tagOf(2),
         ...aBuyer,
-        priceBdt: 120_000,
+        priceMoney: 120_000,
         weightKg: 290,
       })
       .catch((error: { data?: { fitOn?: string } }) => error);
@@ -285,7 +285,7 @@ describe("the sale", () => {
       manager.client.sale.record({
         tagNumber: tagOf(2),
         ...aBuyer,
-        priceBdt: 120_000,
+        priceMoney: 120_000,
         weightKg: 290,
         soldAt: new Date("2027-04-10T09:00:00.000Z"),
       })
@@ -295,7 +295,7 @@ describe("the sale", () => {
     const sold = await manager.client.sale.record({
       tagNumber: tagOf(2),
       ...aBuyer,
-      priceBdt: 120_000,
+      priceMoney: 120_000,
       weightKg: 290,
       soldAt: new Date("2027-04-18T09:00:00.000Z"),
     });
@@ -309,7 +309,7 @@ describe("the sale", () => {
       manager.client.sale.record({
         tagNumber: tagOf(1),
         ...aBuyer,
-        priceBdt: 120_000,
+        priceMoney: 120_000,
         weightKg: 290,
         soldAt: new Date("2027-04-21T09:00:00.000Z"),
       })
@@ -327,7 +327,7 @@ describe("the sale", () => {
       staff.client.sale.record({
         tagNumber: tagOf(1),
         ...aBuyer,
-        priceBdt: 130_000,
+        priceMoney: 130_000,
         weightKg: 300,
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
@@ -342,7 +342,7 @@ describe("the sale", () => {
       penId: world.pen.id,
       sex: "male",
       seller: { name: `হাট ${suffix}` },
-      purchasePriceBdt: 90_000,
+      purchasePriceMoney: 90_000,
       weightKg: 300,
       estimatedAgeMonths: 24,
       targetWeightKg: 280,
@@ -357,7 +357,7 @@ describe("the sale", () => {
     await owner.client.sale.record({
       tagNumber: ownersBull.tagNumber,
       ...aBuyer,
-      priceBdt: 130_000,
+      priceMoney: 130_000,
       weightKg: 300,
     });
     const sold = await owner.client.animals.byTag({
@@ -372,7 +372,7 @@ describe("the sale", () => {
       manager.client.sale.record({
         tagNumber: tagOf(0),
         ...aBuyer,
-        priceBdt: 130_000,
+        priceMoney: 130_000,
         weightKg: 300,
       })
     ).rejects.toThrow();
@@ -385,7 +385,7 @@ describe("the sale", () => {
     const sold = await manager.client.sale.record({
       tagNumber: tagOf(1),
       ...aBuyer,
-      priceBdt: 60_000,
+      priceMoney: 60_000,
       weightKg: 240,
       note: "বারবার ওলান প্রদাহ — কসাইয়ের কাছে",
     });

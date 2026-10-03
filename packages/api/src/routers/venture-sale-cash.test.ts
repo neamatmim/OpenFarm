@@ -27,7 +27,7 @@ const aBull = async (price: number) => {
     penId,
     sex: "male",
     seller: { name: `প্রতিবেশী ${suffix}` },
-    purchasePriceBdt: price,
+    purchasePriceMoney: price,
     weightKg: 250,
     estimatedAgeMonths: 20,
     arrivedAt: new Date("2080-01-02T05:00:00.000Z"),
@@ -39,7 +39,7 @@ const aBull = async (price: number) => {
 /** The Manager sells him at the haat. */
 const sold = async (
   tagNumber: string,
-  priceBdt: number,
+  priceMoney: number,
   paymentMethod: "cash" | "bkash" | "bank",
   instant = "2080-01-10T06:00:00.000Z",
   reference?: string
@@ -48,7 +48,7 @@ const sold = async (
   return await manager.client.sale.record({
     tagNumber,
     buyer: { name: `ক্রেতা ${suffix}` },
-    priceBdt,
+    priceMoney,
     weightKg: 300,
     destination: `হাট ${suffix}`,
     vehicle: `ট্রাক ${suffix}`,
@@ -75,19 +75,19 @@ beforeAll(async () => {
   const owner = await as("owner", "2080-01-01T04:00:00.000Z");
   const venture = await owner.client.ventures.open({
     name: `ভেঞ্চার ${suffix}`,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2080-01-01",
     targetWindowStart: "2080-09-01",
     targetWindowEnd: "2080-09-05",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
-    cattleBudgetBdt: 800_000,
+    cattleBudgetMoney: 800_000,
   });
   ventureId = venture.id;
   await putCapitalIn(
     owner.client,
-    { id: ventureId, units: 20, unitPriceBdt: 50_000 },
+    { id: ventureId, units: 20, unitPriceMoney: 50_000 },
     suffix,
     "2080-01-01"
   );
@@ -115,7 +115,7 @@ describe("a Venture's bull sold for cash", () => {
     first = { saleId: sale.id, tagNumber };
     expect(await saleMoneyIn("2080-01-10T09:00:00.000Z")).toEqual([]);
     expect(await handOf("manager", "2080-01-10T09:00:00.000Z")).toMatchObject({
-      bdt: 150_000,
+      amount: 150_000,
     });
   });
 
@@ -132,10 +132,10 @@ describe("a Venture's bull sold for cash", () => {
     await manager.client.sale.correct({
       id: first.saleId,
       reason: `দাম আসলে কম ছিল ${suffix}`,
-      changes: { priceBdt: { from: 150_000, to: 148_000 } },
+      changes: { priceMoney: { from: 150_000, to: 148_000 } },
     });
     expect(await handOf("manager", "2080-01-10T12:00:00.000Z")).toMatchObject({
-      bdt: 148_000,
+      amount: 148_000,
     });
     expect(await saleMoneyIn("2080-01-10T12:00:00.000Z")).toEqual([]);
   });
@@ -147,27 +147,31 @@ describe("a Venture's bull sold for cash", () => {
       manager.client.cash.handOver({
         from: { userId: thePerson("manager").id },
         to: { ventureId, saleIds: [first.saleId] },
-        amountBdt: 148_000,
+        amountMoney: 148_000,
       })
     ).rejects.toMatchObject({ data: { refusal: "bank_needs_a_slip" } });
     await manager.client.cash.handOver({
       from: { userId: thePerson("manager").id },
       to: { ventureId, saleIds: [first.saleId] },
-      amountBdt: 148_000,
+      amountMoney: 148_000,
       reference: `DEP-${suffix}`,
     });
     expect(await saleMoneyIn("2080-01-11T06:00:00.000Z")).toMatchObject([
-      { amountBdt: 148_000, movedOn: "2080-01-11", reference: `DEP-${suffix}` },
+      {
+        amountMoney: 148_000,
+        movedOn: "2080-01-11",
+        reference: `DEP-${suffix}`,
+      },
     ]);
     expect(await handOf("manager", "2080-01-11T06:00:00.000Z")).toMatchObject({
-      bdt: 0,
+      amount: 0,
     });
     // Once only.
     await expect(
       manager.client.cash.handOver({
         from: { userId: thePerson("manager").id },
         to: { ventureId, saleIds: [first.saleId] },
-        amountBdt: 148_000,
+        amountMoney: 148_000,
         reference: `DEP2-${suffix}`,
       })
     ).rejects.toMatchObject({ data: { refusal: "already_deposited" } });
@@ -190,7 +194,7 @@ describe("a Venture's bull sold for cash", () => {
       owner.client.cash.handOver({
         from: { userId: thePerson("owner").id },
         to: { ventureId, saleIds: [sale.id] },
-        amountBdt: 120_000,
+        amountMoney: 120_000,
         reference: `DEP-O-${suffix}`,
       })
     ).rejects.toMatchObject({ data: { refusal: "not_held_here" } });

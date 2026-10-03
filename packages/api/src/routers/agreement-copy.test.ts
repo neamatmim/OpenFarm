@@ -58,14 +58,14 @@ beforeAll(async () => {
   });
   const venture = await owner.ventures.open({
     name: `ভেঞ্চার ${suffix}`,
-    targetCapitalBdt: 1_000_000,
-    floorBdt: 0,
+    targetCapitalMoney: 1_000_000,
+    floorMoney: 0,
     decideBy: "2066-01-20",
     targetWindowStart: "2066-03-17",
     targetWindowEnd: "2066-03-19",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 20,
-    cattleBudgetBdt: 800_000,
+    cattleBudgetMoney: 800_000,
   });
   const him = await owner.investors.record({
     name: HIM,
@@ -78,7 +78,7 @@ beforeAll(async () => {
     units: 3,
     investorsPercent: 60,
     arbitrator: ARBITRATOR,
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2066-01-10",
     stampSerial: SERIAL,
     nominees: [{ ...WIFE, sharePercent: 100 }],

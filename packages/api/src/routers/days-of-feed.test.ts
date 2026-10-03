@@ -50,7 +50,7 @@ const buy = async (feedItemId: string, day: number, quantity: number) => {
     feedItemId,
     kind: "purchase",
     quantity,
-    priceBdt: quantity * 30,
+    priceMoney: quantity * 30,
     seller: { name: `রহমান ফিডস ${suffix}` },
     receivedOn: `2069-04-${String(day).padStart(2, "0")}`,
   });

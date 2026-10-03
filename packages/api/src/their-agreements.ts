@@ -9,7 +9,7 @@ export interface TheirMovement {
   agreementId: string;
   ventureId: string;
   kind: "capital_in" | "refund" | "payout";
-  amountBdt: number;
+  amountMoney: number;
   movedOn: string;
   reference: string | null;
 }
@@ -19,9 +19,9 @@ export interface TheirMovement {
 const settlementOn = (
   share:
     | {
-        capitalBdt: number;
-        shareBdt: number;
-        payoutBdt: number;
+        capitalMoney: number;
+        shareMoney: number;
+        payoutMoney: number;
         paidMovementId: string | null;
         acknowledgedAt: Date | null;
       }
@@ -33,9 +33,9 @@ const settlementOn = (
   }
   const out = share.paidMovementId ? paidBy.get(share.paidMovementId) : null;
   return {
-    capitalBdt: share.capitalBdt,
-    shareBdt: share.shareBdt,
-    payoutBdt: share.payoutBdt,
+    capitalMoney: share.capitalMoney,
+    shareMoney: share.shareMoney,
+    payoutMoney: share.payoutMoney,
     paidOn: out?.movedOn ?? null,
     acknowledgedAt: share.acknowledgedAt,
   };
@@ -66,7 +66,7 @@ export const theirAgreements = async (
   const [ventures, papers, moved, shares, terms] = await Promise.all([
     db.query.venture.findMany({
       where: { farmId, id: { in: signed.map((one) => one.ventureId) } },
-      columns: { id: true, name: true, state: true, unitPriceBdt: true },
+      columns: { id: true, name: true, state: true, unitPriceMoney: true },
     }),
     db.query.agreementPaper.findMany({
       where: { farmId, agreementId: { in: agreementIds } },
@@ -83,7 +83,7 @@ export const theirAgreements = async (
         agreementId: true,
         ventureId: true,
         kind: true,
-        amountBdt: true,
+        amountMoney: true,
         movedOn: true,
         reference: true,
       },
@@ -92,9 +92,9 @@ export const theirAgreements = async (
       where: { farmId, agreementId: { in: agreementIds } },
       columns: {
         agreementId: true,
-        capitalBdt: true,
-        shareBdt: true,
-        payoutBdt: true,
+        capitalMoney: true,
+        shareMoney: true,
+        payoutMoney: true,
         paidMovementId: true,
         acknowledgedAt: true,
       },
@@ -113,7 +113,7 @@ export const theirAgreements = async (
           columns: {
             id: true,
             ventureId: true,
-            amountBdt: true,
+            amountMoney: true,
             movedOn: true,
             reference: true,
           },
@@ -133,14 +133,14 @@ export const theirAgreements = async (
     const sign = kind === "refund" ? -1 : 1;
     heldOn.set(
       one.agreementId,
-      (heldOn.get(one.agreementId) ?? 0) + sign * one.amountBdt
+      (heldOn.get(one.agreementId) ?? 0) + sign * one.amountMoney
     );
     movements.push({
       id: one.id,
       agreementId: one.agreementId,
       ventureId: one.ventureId,
       kind,
-      amountBdt: one.amountBdt,
+      amountMoney: one.amountMoney,
       movedOn: one.movedOn,
       reference: one.reference,
     });
@@ -153,7 +153,7 @@ export const theirAgreements = async (
         agreementId: share.agreementId,
         ventureId: out.ventureId,
         kind: "payout",
-        amountBdt: out.amountBdt,
+        amountMoney: out.amountMoney,
         movedOn: out.movedOn,
         reference: out.reference,
       });
@@ -177,7 +177,7 @@ export const theirAgreements = async (
       },
       units: one.units,
       /** What the Units are worth at the Venture's price: the capital this paper promised. */
-      promisedBdt: one.units * (run?.unitPriceBdt ?? 0),
+      promisedMoney: one.units * (run?.unitPriceMoney ?? 0),
       investorsPercent,
       farmPercent: theFarmsShare(investorsPercent),
       targetWindow: {
@@ -189,7 +189,7 @@ export const theirAgreements = async (
       arbitrator: one.arbitrator,
       stamp: {
         kind: one.stampKind,
-        valueBdt: one.stampValueBdt,
+        valueMoney: one.stampValueMoney,
         on: one.stampedOn,
         serial: one.stampSerial,
       },
@@ -198,7 +198,7 @@ export const theirAgreements = async (
       /** Whether its paper is on file as capital needs it (`paperOnFile`). */
       paperOnFile: paperOnFile(one, kept.has(one.id)),
       /** Capital the Farm holds on this paper: what came in, less what went back. */
-      capitalHeldBdt: heldOn.get(one.id) ?? 0,
+      capitalHeldMoney: heldOn.get(one.id) ?? 0,
       /** What an approved Settlement owes on this paper, and what became of it; null before one is approved. */
       settlement: settlementOn(shareOf.get(one.id), paidBy),
     };

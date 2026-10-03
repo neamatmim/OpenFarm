@@ -22,7 +22,7 @@ const accounts = { office: "", spare: "", bank: "" };
 
 /** Manure sold for ৳amount, by bKash or the bank, written by the Manager. */
 const manureSold = async (
-  amountBdt: number,
+  amountMoney: number,
   sheet: {
     paymentMethod: "cash" | "bkash" | "bank";
     farmAccountId?: string;
@@ -32,10 +32,10 @@ const manureSold = async (
   const manager = await as("manager");
   return await manager.client.money.enter({
     categoryId: manureId,
-    amountBdt,
+    amountMoney,
     occurredOn: DAY,
     counterparty: { name: `ক্রেতা ${suffix}` },
-    note: `গোবর ${amountBdt} ${suffix}`,
+    note: `গোবর ${amountMoney} ${suffix}`,
     ...sheet,
   });
 };
@@ -179,7 +179,7 @@ describe("the Farm Accounts", () => {
       penId: pen.id,
       sex: "male",
       seller: { name: `ব্যাপারী ${suffix}` },
-      purchasePriceBdt: 50_000,
+      purchasePriceMoney: 50_000,
       weightKg: 250,
       estimatedAgeMonths: 20,
       arrivedAt: new Date(`${DAY}T04:00:00.000Z`),
@@ -188,21 +188,21 @@ describe("the Farm Accounts", () => {
     await owner.client.sale.record({
       tagNumber: bull.tagNumber,
       buyer: { name: `বাকির ক্রেতা ${suffix}` },
-      priceBdt: 80_000,
+      priceMoney: 80_000,
       weightKg: 300,
       destination: `হাট ${suffix}`,
       vehicle: `ট্রাক ${suffix}`,
       driver: `চালক ${suffix}`,
       soldAt: new Date(`${DAY}T06:00:00.000Z`),
       paymentMethod: "cash",
-      paidNowBdt: 30_000,
+      paidNowMoney: 30_000,
       promisedBy: "2082-04-20",
     });
     const later = await as("owner", `${DAY}T08:00:00.000Z`);
     const { id } = await later.client.baki.pay({
       buyer: `বাকির ক্রেতা ${suffix}`,
       kind: "cattle",
-      amountBdt: 20_000,
+      amountMoney: 20_000,
       paidOn: DAY,
       paymentMethod: "bkash",
       farmAccountId: accounts.office,
@@ -223,7 +223,7 @@ describe("the Farm Accounts", () => {
   it("are named on the Vet's fee by bKash", async () => {
     const vet = await as("vet");
     await vet.client.money.vetFee({
-      amountBdt: 1500,
+      amountMoney: 1500,
       visitedOn: DAY,
       paymentMethod: "bkash",
       farmAccountId: accounts.office,
@@ -302,20 +302,20 @@ describe("the Farm Accounts", () => {
     await owner.client.cash.handOver({
       from: { userId: thePerson("owner").id },
       to: { farmAccountId: accounts.bank },
-      amountBdt: 5000,
+      amountMoney: 5000,
       reference: `SLIP-${suffix}`,
     });
     await owner.client.cash.handOver({
       from: { farmAccountId: accounts.office },
       to: { farmAccountId: accounts.bank },
-      amountBdt: 2000,
+      amountMoney: 2000,
       reference: `TRX-F-${suffix}`,
     });
     await expect(
       owner.client.cash.handOver({
         from: { farmAccountId: accounts.bank },
         to: { farmAccountId: accounts.bank },
-        amountBdt: 100,
+        amountMoney: 100,
         reference: `X-${suffix}`,
       })
     ).rejects.toMatchObject({ data: { refusal: "handover_goes_nowhere" } });
@@ -324,7 +324,7 @@ describe("the Farm Accounts", () => {
       owner.client.cash.handOver({
         from: { userId: thePerson("owner").id },
         to: { bank: true },
-        amountBdt: 100,
+        amountMoney: 100,
         reference: `SLIP-U-${suffix}`,
       })
     ).rejects.toMatchObject({ data: { refusal: "names_no_farm_account" } });
@@ -341,7 +341,7 @@ describe("the Farm Accounts", () => {
       owner.client.cash.handOver({
         from: { userId: thePerson("owner").id },
         to: { farmAccountId: accounts.bank },
-        amountBdt: 500,
+        amountMoney: 500,
         reference: `SLIP-2-${suffix}`,
       })
     ).rejects.toMatchObject({ data: { refusal: "farm_account_retired" } });
@@ -349,7 +349,7 @@ describe("the Farm Accounts", () => {
       owner.client.cash.handOver({
         from: { userId: thePerson("owner").id },
         to: { bank: true },
-        amountBdt: 500,
+        amountMoney: 500,
         reference: `SLIP-3-${suffix}`,
       })
     ).resolves.toBeDefined();

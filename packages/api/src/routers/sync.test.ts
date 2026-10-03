@@ -419,7 +419,7 @@ describe("what the farm makes of it", () => {
     await seller.client.sale.record({
       tagNumber: doomed.tagNumber,
       buyer: { name: `বাজার ${Date.now()}` },
-      priceBdt: 90_000,
+      priceMoney: 90_000,
       weightKg: 260,
       destination: "হাট",
       vehicle: "ট ১১-২২৩৩",

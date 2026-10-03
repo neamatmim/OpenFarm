@@ -79,14 +79,14 @@ const withAHistory = async () => {
   });
   const venture = await owner.ventures.open({
     name: `তথ্যের ভেঞ্চার ${suffix}`,
-    targetCapitalBdt: 500_000,
-    floorBdt: 50_000,
+    targetCapitalMoney: 500_000,
+    floorMoney: 50_000,
     decideBy: "2061-01-20",
     targetWindowStart: "2061-06-01",
     targetWindowEnd: "2061-06-10",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 10,
-    cattleBudgetBdt: 400_000,
+    cattleBudgetMoney: 400_000,
   });
   await owner.ventures.showInPortal({ id: venture.id, words: "" });
   const { id: requestId } = await them.client.portal.requestToJoin({
@@ -110,7 +110,7 @@ const withAHistory = async () => {
     investorsPercent: 60,
     arbitrator: `সালিস ${suffix}`,
     stampKind: "paper",
-    stampValueBdt: 300,
+    stampValueMoney: 300,
     stampedOn: "2061-01-02",
     stampSerial: `S-${suffix}`,
   });
@@ -121,7 +121,7 @@ const withAHistory = async () => {
   });
   await owner.ventures.takeCapital({
     agreementId: agreement.id,
-    amountBdt: 150_000,
+    amountMoney: 150_000,
     movedOn: "2061-01-03",
     paymentMethod: "bank",
     reference: `TRF-${suffix}`,

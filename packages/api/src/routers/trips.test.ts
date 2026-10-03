@@ -28,7 +28,7 @@ const buy = async (
     penId,
     sex: "male",
     seller: { name: `ব্যাপারী ${suffix}` },
-    purchasePriceBdt: price,
+    purchasePriceMoney: price,
     weightKg: 200,
     estimatedAgeMonths: 20,
     buyingTripId,
@@ -61,9 +61,9 @@ describe("a Buying Trip", () => {
     // A lorry to Gabtoli and back: 3,000 to the broker, 5,000 for the lorry, 1,000 to keep the men.
     const trip = await manager.client.trips.record({
       wentTo: `গাবতলী ${suffix}`,
-      brokerBdt: 3000,
-      transportBdt: 5000,
-      keepBdt: 1000,
+      brokerMoney: 3000,
+      transportMoney: 5000,
+      keepMoney: 1000,
       paymentMethod: "cash",
     });
     const first = await buy(manager, 50_000, trip.id);
@@ -75,7 +75,7 @@ describe("a Buying Trip", () => {
       [first, second, third].map((one) => costOf(one.tagNumber))
     );
     for (const one of each) {
-      expect(one).toMatchObject({ tripBdt: 3000 });
+      expect(one).toMatchObject({ tripMoney: 3000 });
     }
   });
 
@@ -83,29 +83,29 @@ describe("a Buying Trip", () => {
     const manager = await as("manager", "2041-01-06T04:00:00.000Z");
     const trip = await manager.client.trips.record({
       wentTo: `একলা হাট ${suffix}`,
-      transportBdt: 4000,
+      transportMoney: 4000,
       paymentMethod: "cash",
     });
     const alone = await buy(manager, 45_000, trip.id);
-    expect(await costOf(alone.tagNumber)).toMatchObject({ tripBdt: 4000 });
+    expect(await costOf(alone.tagNumber)).toMatchObject({ tripMoney: 4000 });
   });
 
   it("charges nothing to an animal that came home on no Trip", async () => {
     const manager = await as("manager", "2041-01-07T04:00:00.000Z");
     const gate = await buy(manager, 40_000);
-    expect(await costOf(gate.tagNumber)).toMatchObject({ tripBdt: 0 });
+    expect(await costOf(gate.tagNumber)).toMatchObject({ tripMoney: 0 });
   });
 
   it("re-splits when a Correction moves an animal off the Trip", async () => {
     const manager = await as("manager", "2041-01-08T04:00:00.000Z");
     const trip = await manager.client.trips.record({
       wentTo: `ভুল হাট ${suffix}`,
-      transportBdt: 6000,
+      transportMoney: 6000,
       paymentMethod: "cash",
     });
     const stays = await buy(manager, 50_000, trip.id);
     const leaves = await buy(manager, 50_000, trip.id);
-    expect(await costOf(stays.tagNumber)).toMatchObject({ tripBdt: 3000 });
+    expect(await costOf(stays.tagNumber)).toMatchObject({ tripMoney: 3000 });
 
     // He came home on his own legs from the next village, not on that lorry.
     await manager.client.intake.correct({
@@ -113,35 +113,35 @@ describe("a Buying Trip", () => {
       reason: "এই গরু ওই ট্রিপে আসেনি",
       changes: { buyingTrip: { from: trip.id, to: null } },
     });
-    expect(await costOf(leaves.tagNumber)).toMatchObject({ tripBdt: 0 });
-    expect(await costOf(stays.tagNumber)).toMatchObject({ tripBdt: 6000 });
+    expect(await costOf(leaves.tagNumber)).toMatchObject({ tripMoney: 0 });
+    expect(await costOf(stays.tagNumber)).toMatchObject({ tripMoney: 6000 });
   });
 
   it("puts right what an outing cost, and re-charges the animals at once", async () => {
     const manager = await as("manager", "2041-01-11T04:00:00.000Z");
     const trip = await manager.client.trips.record({
       wentTo: `ভুল ভাড়া ${suffix}`,
-      transportBdt: 4000,
+      transportMoney: 4000,
       paymentMethod: "cash",
     });
     const first = await buy(manager, 50_000, trip.id);
     const second = await buy(manager, 50_000, trip.id);
-    expect(await costOf(first.tagNumber)).toMatchObject({ tripBdt: 2000 });
+    expect(await costOf(first.tagNumber)).toMatchObject({ tripMoney: 2000 });
 
     // The lorry man's rate was 5,000, not 4,000.
     await manager.client.trips.correct({
       id: trip.id,
       reason: "গাড়ি ভাড়া ৫,০০০ ছিল",
-      changes: { transportBdt: { from: 4000, to: 5000 } },
+      changes: { transportMoney: { from: 4000, to: 5000 } },
     });
-    expect(await costOf(first.tagNumber)).toMatchObject({ tripBdt: 2500 });
-    expect(await costOf(second.tagNumber)).toMatchObject({ tripBdt: 2500 });
+    expect(await costOf(first.tagNumber)).toMatchObject({ tripMoney: 2500 });
+    expect(await costOf(second.tagNumber)).toMatchObject({ tripMoney: 2500 });
     // Listed with each part as it now stands, which is what the screen puts right from.
     const listed = await manager.client.trips.list();
     expect(listed.find((one) => one.id === trip.id)?.parts).toEqual({
-      brokerBdt: 0,
-      transportBdt: 5000,
-      keepBdt: 0,
+      brokerMoney: 0,
+      transportMoney: 5000,
+      keepMoney: 0,
     });
 
     // The same Money Event put right, never a second one.
@@ -150,7 +150,7 @@ describe("a Buying Trip", () => {
       to: "2041-01-31",
     });
     expect(money.events.filter((one) => one.sourceId === trip.id)).toEqual([
-      expect.objectContaining({ amountBdt: 5000 }),
+      expect.objectContaining({ amountMoney: 5000 }),
     ]);
   });
 
@@ -166,7 +166,7 @@ describe("a Buying Trip", () => {
     await expect(
       manager.client.trips.record({
         wentTo: `আগামীকাল ${suffix}`,
-        transportBdt: 1000,
+        transportMoney: 1000,
         wentOn: new Date("2041-02-01T04:00:00.000Z"),
         paymentMethod: "cash",
       })
@@ -177,37 +177,39 @@ describe("a Buying Trip", () => {
     const manager = await as("manager", "2041-01-09T04:00:00.000Z");
     await manager.client.trips.record({
       wentTo: `খালি হাত ${suffix}`,
-      transportBdt: 2500,
+      transportMoney: 2500,
       paymentMethod: "cash",
     });
     const owner = await as("owner", "2041-02-01T04:00:00.000Z");
     const report = await owner.client.costs.bySide(PERIOD);
-    expect(report.unallocated.tripBdt).toBeGreaterThanOrEqual(2500);
+    expect(report.unallocated.tripMoney).toBeGreaterThanOrEqual(2500);
 
     // And an outing whose only arrival is corrected off it becomes one of those too.
     const emptied = await manager.client.trips.record({
       wentTo: `সবাই সরানো ${suffix}`,
-      transportBdt: 1500,
+      transportMoney: 1500,
       paymentMethod: "cash",
     });
     const only = await buy(manager, 50_000, emptied.id);
-    expect(await costOf(only.tagNumber)).toMatchObject({ tripBdt: 1500 });
+    expect(await costOf(only.tagNumber)).toMatchObject({ tripMoney: 1500 });
     await manager.client.intake.correct({
       id: only.intakeId,
       reason: "এই গরু ওই ট্রিপে আসেনি",
       changes: { buyingTrip: { from: emptied.id, to: null } },
     });
-    expect(await costOf(only.tagNumber)).toMatchObject({ tripBdt: 0 });
+    expect(await costOf(only.tagNumber)).toMatchObject({ tripMoney: 0 });
     const after = await owner.client.costs.bySide(PERIOD);
-    expect(after.unallocated.tripBdt).toBe(report.unallocated.tripBdt + 1500);
+    expect(after.unallocated.tripMoney).toBe(
+      report.unallocated.tripMoney + 1500
+    );
   });
 
   it("reaches the farm's money once, and never a second time by hand", async () => {
     const manager = await as("manager", "2041-01-10T04:00:00.000Z");
     const trip = await manager.client.trips.record({
       wentTo: `হিসাবের হাট ${suffix}`,
-      brokerBdt: 1200,
-      transportBdt: 3800,
+      brokerMoney: 1200,
+      transportMoney: 3800,
       paymentMethod: "bank",
     });
     const money = await manager.client.money.list({
@@ -216,7 +218,7 @@ describe("a Buying Trip", () => {
     });
     expect(money.events.filter((one) => one.sourceId === trip.id)).toEqual([
       expect.objectContaining({
-        amountBdt: 5000,
+        amountMoney: 5000,
         direction: "out",
         paymentMethod: "bank",
       }),
@@ -239,7 +241,7 @@ describe("a Buying Trip", () => {
         expect(
           other.client.trips.record({
             wentTo: `না ${suffix}`,
-            transportBdt: 100,
+            transportMoney: 100,
             paymentMethod: "cash",
           })
         ).rejects.toMatchObject({ code: "FORBIDDEN" })

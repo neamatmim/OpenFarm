@@ -46,7 +46,7 @@ const useMilkFigures = ({
   const litres = (value: number) =>
     `${formatNumber(value, language)} ${t("dispatch.litres")}`;
   const worth = (milkDay?.dispatches ?? []).reduce(
-    (sum, one) => sum + worthOf(one.litres, one.pricePerLitreBdt),
+    (sum, one) => sum + worthOf(one.litres, one.pricePerLitreMoney),
     0
   );
   const dayWord = formatDate(new Date(`${day}T12:00:00`), language);

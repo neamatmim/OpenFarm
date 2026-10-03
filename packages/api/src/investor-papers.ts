@@ -62,7 +62,7 @@ const bn = (value: number) => formatNumber(value, "bn");
  */
 const sumsSaid = (
   venture: Parameters<typeof paidForBy>[0] & { state: string },
-  his: { units: number; capitalBdt: number },
+  his: { units: number; capitalMoney: number },
   today: string
 ): string | null => {
   const { monthly } = paidForBy(venture);
@@ -71,18 +71,18 @@ const sumsSaid = (
   }
   const standing = sumsStandingOf({
     units: his.units,
-    unitPriceBdt: venture.unitPriceBdt,
+    unitPriceMoney: venture.unitPriceMoney,
     monthly,
-    paidBdt: his.capitalBdt,
+    paidMoney: his.capitalMoney,
     today,
   });
   const parts = [`${bn(standing.sums)} মাসের ${bn(standing.sumsPaid)}টি দেওয়া`];
-  if (standing.missedBdt > 0) {
-    parts.push(`বাকি পড়েছে ${bn(standing.missedBdt)} টাকা`);
+  if (standing.missedMoney > 0) {
+    parts.push(`বাকি পড়েছে ${bn(standing.missedMoney)} টাকা`);
   }
   if (standing.next) {
     parts.push(
-      `পরেরটি ${formatDate(new Date(`${standing.next.dueOn}T00:00:00Z`), "bn", "date")}, ${bn(standing.next.bdt)} টাকা`
+      `পরেরটি ${formatDate(new Date(`${standing.next.dueOn}T00:00:00Z`), "bn", "date")}, ${bn(standing.next.amount)} টাকা`
     );
   }
   return parts.join(" · ");
@@ -117,26 +117,26 @@ export const joiningLetterFor = async (
   );
   const day = (on: string) =>
     formatDate(new Date(`${on}T00:00:00Z`), language, "date");
-  const taka = (bdt: number) => formatNumber(bdt, language);
+  const taka = (amount: number) => formatNumber(amount, language);
   // Paid by the month: the clauses it was signed with, and his Units' schedule under what he has paid.
   const { monthly } = paidForBy(standing.venture);
   const text = joiningLetter({
     farm: context.farm,
     him: standing.him,
     ventureName: standing.venture.name,
-    unitPrice: taka(standing.venture.unitPriceBdt),
+    unitPrice: taka(standing.venture.unitPriceMoney),
     units: formatNumber(standing.agreement.units, language),
     capital: standing.capital.map((one) => ({
       kind: one.kind,
-      amount: taka(one.amountBdt),
+      amount: taka(one.amountMoney),
       on: day(one.movedOn),
       reference: one.reference,
     })),
-    totalCapital: taka(standing.capitalBdt),
+    totalCapital: taka(standing.capitalMoney),
     monthlySums: monthly
       ? monthly.sums.map((one) => ({
           on: day(one.dueOn),
-          amount: taka(one.bdt * standing.agreement.units),
+          amount: taka(one.amount * standing.agreement.units),
         }))
       : null,
     terms: termsOf(
@@ -147,7 +147,7 @@ export const joiningLetterFor = async (
         him: standing.him,
         ventureName: standing.venture.name,
         units: standing.agreement.units,
-        unitPriceBdt: standing.venture.unitPriceBdt,
+        unitPriceMoney: standing.venture.unitPriceMoney,
         investorsPercent: standing.agreement.investorsPercent,
         windowStart: standing.agreement.targetWindowStart,
         windowEnd: standing.agreement.targetWindowEnd,
@@ -161,7 +161,7 @@ export const joiningLetterFor = async (
       : null,
     stamp: {
       kind: standing.agreement.stampKind,
-      value: taka(standing.agreement.stampValueBdt),
+      value: taka(standing.agreement.stampValueMoney),
       on: day(standing.agreement.stampedOn),
       serial: standing.agreement.stampSerial,
     },
@@ -180,7 +180,7 @@ export const joiningLetterFor = async (
         ventureId: standing.venture.id,
         investorId: standing.him.id,
         movements: standing.capital.length,
-        capitalBdt: standing.capitalBdt,
+        capitalMoney: standing.capitalMoney,
       }),
     },
     () => Promise.resolve()
@@ -212,7 +212,7 @@ export const progressStatementFor = async (
     theirSpend(context.db, context.farm.id, venture),
   ]);
   const holding = hisHolding(
-    { units: standing.agreement.units, capitalBdt: standing.capitalBdt },
+    { units: standing.agreement.units, capitalMoney: standing.capitalMoney },
     spend,
     venture
   );
@@ -223,7 +223,7 @@ export const progressStatementFor = async (
     ventureName: standing.venture.name,
     monthlySums: sumsSaid(
       standing.venture,
-      { units: standing.agreement.units, capitalBdt: standing.capitalBdt },
+      { units: standing.agreement.units, capitalMoney: standing.capitalMoney },
       farmDayOf(now)
     ),
     // His Units and his share of the Venture, which is his own Units over all of them — not a list of who holds the
@@ -250,17 +250,17 @@ export const progressStatementFor = async (
       })),
     spend: spend.charges.map((one) => ({
       label: chargeWords(one.word),
-      amount: said(one.bdt),
+      amount: said(one.amount),
     })),
-    spendTotal: said(spend.chargedBdt),
+    spendTotal: said(spend.chargedMoney),
     budgets: {
       cattle: {
-        planned: said(spend.cattleBudgetBdt),
-        left: said(spend.cattleBudgetLeftBdt),
+        planned: said(spend.cattleBudgetMoney),
+        left: said(spend.cattleBudgetLeftMoney),
       },
       running: {
-        planned: said(spend.runningBudgetBdt),
-        spent: said(spend.runningSpentBdt),
+        planned: said(spend.runningBudgetMoney),
+        spent: said(spend.runningSpentMoney),
       },
     },
     producedBy: context.actor.name,
@@ -281,7 +281,7 @@ export const progressStatementFor = async (
         ventureId: standing.venture.id,
         investorId: standing.him.id,
         standing: theirs.standingCount,
-        chargedBdt: spend.chargedBdt,
+        chargedMoney: spend.chargedMoney,
       }),
     },
     () => Promise.resolve()
@@ -325,36 +325,37 @@ export const settlementStatementFor = async (
   const day = (on: string) =>
     formatDate(new Date(`${on}T00:00:00Z`), language, "date");
   // Capital returned, by the Units it returns to.
-  const perUnitIn = settled.units > 0 ? settled.capitalBdt / settled.units : 0;
+  const perUnitIn =
+    settled.units > 0 ? settled.capitalMoney / settled.units : 0;
   const monthlyVenture = paidForBy(standing.venture).monthly !== null;
-  const unpaidBdt = roundTaka(
-    standing.agreement.units * standing.venture.unitPriceBdt -
-      settled.his.capitalBdt
+  const unpaidMoney = roundTaka(
+    standing.agreement.units * standing.venture.unitPriceMoney -
+      settled.his.capitalMoney
   );
   const text = settlementStatement({
     farm: context.farm,
     investorName: standing.him.name,
     ventureName: standing.venture.name,
     approvedOn: formatDate(settled.approvedAt, language, "date"),
-    proceeds: said(settled.proceedsBdt),
+    proceeds: said(settled.proceedsMoney),
     charges: settled.charges.map((one) => ({
       label: chargeWords(one.word),
-      amount: said(one.bdt),
+      amount: said(one.amount),
     })),
-    charged: said(settled.chargedBdt),
-    result: unsigned(settled.profitBdt),
-    inProfit: settled.profitBdt >= 0,
+    charged: said(settled.chargedMoney),
+    result: unsigned(settled.profitMoney),
+    inProfit: settled.profitMoney >= 0,
     investorsPercent: said(settled.investorsPercent),
     units: said(settled.units),
-    perUnit: unsigned(settled.perUnitBdt),
-    perUnitRose: settled.perUnitBdt >= 0,
+    perUnit: unsigned(settled.perUnitMoney),
+    perUnitRose: settled.perUnitMoney >= 0,
     // What one Unit put in and what one Unit comes back with, which is the line he reads first.
     perUnitIn: said(perUnitIn),
-    perUnitBack: said(perUnitIn + settled.perUnitBdt),
-    rounding: said(settled.roundingBdt),
-    farmShare: unsigned(settled.farmBdt),
-    farmShareRose: settled.farmBdt >= 0,
-    advance: settled.advanceBdt > 0 ? said(settled.advanceBdt) : null,
+    perUnitBack: said(perUnitIn + settled.perUnitMoney),
+    rounding: said(settled.roundingMoney),
+    farmShare: unsigned(settled.farmMoney),
+    farmShareRose: settled.farmMoney >= 0,
+    advance: settled.advanceMoney > 0 ? said(settled.advanceMoney) : null,
     advanceRepaid: settled.advanceRepaid,
     his: {
       units: said(settled.his.units),
@@ -364,11 +365,11 @@ export const settlementStatementFor = async (
         monthlyVenture && settled.his.units !== standing.agreement.units
           ? said(standing.agreement.units)
           : null,
-      sumsUnpaid: monthlyVenture && unpaidBdt > 0 ? said(unpaidBdt) : null,
-      capital: said(settled.his.capitalBdt),
-      share: unsigned(settled.his.shareBdt),
-      shareRose: settled.his.shareBdt >= 0,
-      payout: said(settled.his.payoutBdt),
+      sumsUnpaid: monthlyVenture && unpaidMoney > 0 ? said(unpaidMoney) : null,
+      capital: said(settled.his.capitalMoney),
+      share: unsigned(settled.his.shareMoney),
+      shareRose: settled.his.shareMoney >= 0,
+      payout: said(settled.his.payoutMoney),
       reference: settled.his.reference,
       paidOn: settled.his.paidOn ? day(settled.his.paidOn) : null,
     },
@@ -384,9 +385,9 @@ export const settlementStatementFor = async (
       reason: one.reason,
       raisedAt: formatDate(one.raisedAt, language, "date"),
       outcome: adjustmentWords(one.outcome),
-      amount: unsigned(one.differenceBdt),
-      rose: one.differenceBdt >= 0,
-      paid: said(one.paidBdt),
+      amount: unsigned(one.differenceMoney),
+      rose: one.differenceMoney >= 0,
+      paid: said(one.paidMoney),
     })),
     producedBy: context.actor.name,
     producedAt: formatDate(now, language, "dateTime"),
@@ -400,7 +401,7 @@ export const settlementStatementFor = async (
         ...madeIn(context),
         ventureId: standing.venture.id,
         investorId: standing.him.id,
-        payoutBdt: settled.his.payoutBdt,
+        payoutMoney: settled.his.payoutMoney,
         adjustments: settled.adjustments.length,
       }),
     },

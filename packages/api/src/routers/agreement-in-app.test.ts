@@ -41,14 +41,14 @@ const aVenture = async (name: string) => {
   const owner = await as("owner");
   const venture = await owner.ventures.open({
     name: `${name} ${suffix}`,
-    targetCapitalBdt: 500_000,
-    floorBdt: 0,
+    targetCapitalMoney: 500_000,
+    floorMoney: 0,
     decideBy: "2093-01-20",
     targetWindowStart: "2093-06-01",
     targetWindowEnd: "2093-06-10",
-    unitPriceBdt: 50_000,
+    unitPriceMoney: 50_000,
     units: 10,
-    cattleBudgetBdt: 400_000,
+    cattleBudgetMoney: 400_000,
   });
   return venture.id;
 };
@@ -142,7 +142,7 @@ describe("an Agreement agreed in the app", () => {
       investorsPercent: 60,
       stamp: {
         kind: "in_app",
-        valueBdt: 0,
+        valueMoney: 0,
         on: "2093-01-05",
         serial: offer?.paperHash.slice(0, 12).toUpperCase(),
       },
@@ -150,7 +150,7 @@ describe("an Agreement agreed in the app", () => {
 
     await owner.ventures.takeCapital({
       agreementId,
-      amountBdt: 150_000,
+      amountMoney: 150_000,
       movedOn: "2093-01-05",
       paymentMethod: "bank",
       reference: `TRF অ্যাপে ${suffix}`,
@@ -170,7 +170,7 @@ describe("an Agreement agreed in the app", () => {
     const owner = await as("owner");
     await owner.ventures.sign({
       ...terms(ventureId, other.id, 4),
-      stampValueBdt: 300,
+      stampValueMoney: 300,
       stampedOn: "2093-01-02",
       stampSerial: `AA ${suffix}`,
     });
@@ -319,7 +319,7 @@ describe("an Agreement agreed in the app", () => {
       const them = await invited(name);
       const signed = await owner.ventures.sign({
         ...terms(ventureId, them.id, 2),
-        stampValueBdt: 300,
+        stampValueMoney: 300,
         stampedOn: "2093-01-02",
         stampSerial: `AC ${them.id.slice(-8)}`,
       });
@@ -343,7 +343,7 @@ describe("an Agreement agreed in the app", () => {
         const taken = await owner.ventures
           .takeCapital({
             agreementId: one.id,
-            amountBdt: 50_000,
+            amountMoney: 50_000,
             movedOn: "2093-01-05",
             paymentMethod: "bank",
             reference: `TRF ${one.id.slice(-8)}`,
@@ -428,7 +428,7 @@ describe("an Agreement agreed in the app", () => {
       owner.ventures.sign({
         ...terms(ventureId, them.id),
         stampKind: "in_app" as never,
-        stampValueBdt: 300,
+        stampValueMoney: 300,
         stampedOn: "2093-01-02",
         stampSerial: `AB ${suffix}`,
       })
