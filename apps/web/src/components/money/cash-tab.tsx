@@ -6,6 +6,14 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Banknote, HandCoins } from "lucide-react";
 import { useState } from "react";
 
+import {
+  ActionsHeader,
+  DataTable,
+  createListColumns,
+  listHeader,
+  useListTable,
+} from "@/components/data-table";
+import { Nothing } from "@/components/list-cells";
 import { EmptyState } from "@/components/page";
 import { FormDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -599,6 +607,120 @@ const FloatLine = ({ float, isOwner }: { float: Float; isOwner: boolean }) => {
   );
 };
 
+interface FloatRow {
+  float: Float;
+  isOwner: boolean;
+}
+
+interface FloatCell {
+  row: { original: FloatRow };
+}
+
+const dueOf = (float: Float) =>
+  float.handedMoney - float.boughtMoney - float.backMoney;
+
+const FloatTripCell = ({ row }: FloatCell) => {
+  const { language } = useLanguage();
+  const { float } = row.original;
+  return (
+    <span className="flex flex-col">
+      <span className="font-medium">{float.wentTo}</span>
+      <span className="text-muted-foreground text-xs">
+        {formatDate(new Date(float.wentOn), language, "date")}
+      </span>
+    </span>
+  );
+};
+const FloatCarrierCell = ({ row }: FloatCell) =>
+  row.original.float.carrierName ?? <Nothing />;
+const FloatMoneyCell = ({ amount }: { amount: number }) => {
+  const asMoney = useMoney();
+  return <span>{asMoney(amount)}</span>;
+};
+const FloatHandedCell = ({ row }: FloatCell) => (
+  <FloatMoneyCell amount={row.original.float.handedMoney} />
+);
+const FloatBoughtCell = ({ row }: FloatCell) => (
+  <FloatMoneyCell amount={row.original.float.boughtMoney} />
+);
+const FloatDueCell = ({ row }: FloatCell) => (
+  <span className="font-medium">
+    <FloatMoneyCell amount={dueOf(row.original.float)} />
+  </span>
+);
+const FloatCountCell = ({ row }: FloatCell) => {
+  const { t } = useLanguage();
+  const [counting, setCounting] = useState(false);
+  const { float, isOwner } = row.original;
+  if (!isOwner) {
+    return null;
+  }
+  return (
+    <>
+      <Button
+        onClick={() => setCounting(true)}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        {t("cash.countHome")}
+      </Button>
+      <CountHomeDialog
+        float={float}
+        onOpenChange={setCounting}
+        open={counting}
+      />
+    </>
+  );
+};
+
+const floatColumn = createListColumns<FloatRow>();
+const floatColumns = floatColumn.columns([
+  floatColumn.accessor((row) => row.float.wentOn, {
+    id: "trip",
+    header: listHeader("intake.tripLivestockMarket"),
+    cell: FloatTripCell,
+  }),
+  floatColumn.accessor((row) => row.float.carrierName ?? undefined, {
+    id: "carrier",
+    header: listHeader("cash.col.carrier"),
+    cell: FloatCarrierCell,
+  }),
+  floatColumn.accessor((row) => row.float.handedMoney, {
+    id: "handed",
+    header: listHeader("cash.col.handed"),
+    cell: FloatHandedCell,
+    meta: { align: "end" },
+  }),
+  floatColumn.accessor((row) => row.float.boughtMoney, {
+    id: "bought",
+    header: listHeader("cash.col.bought"),
+    cell: FloatBoughtCell,
+    meta: { align: "end" },
+  }),
+  floatColumn.accessor((row) => dueOf(row.float), {
+    id: "due",
+    header: listHeader("cash.col.due"),
+    cell: FloatDueCell,
+    meta: { align: "end" },
+  }),
+  floatColumn.display({
+    id: "count",
+    header: ActionsHeader,
+    cell: FloatCountCell,
+    meta: { align: "end" },
+  }),
+]);
+
+const FloatsTable = ({ rows }: { rows: FloatRow[] }) => {
+  const table = useListTable({
+    columns: floatColumns,
+    data: rows,
+    getRowId: (row) => row.float.tripId,
+  });
+  return <DataTable table={table} />;
+};
+
 /** The Buying Floats the Farm handed out for its own outings and has not yet counted home. Nothing while none is out. */
 const FloatsOut = ({ isOwner }: { isOwner: boolean }) => {
   const { t } = useLanguage();
@@ -611,12 +733,137 @@ const FloatsOut = ({ isOwner }: { isOwner: boolean }) => {
       <h3 className="text-base font-semibold tracking-tight">
         {t("cash.floatsOut")}
       </h3>
-      <ul className="divide-y">
+      <ul className="divide-y md:hidden">
         {floats.data.map((float) => (
           <FloatLine float={float} isOwner={isOwner} key={float.tripId} />
         ))}
       </ul>
+      <div className="hidden pt-2 md:block">
+        <FloatsTable rows={floats.data.map((float) => ({ float, isOwner }))} />
+      </div>
     </section>
+  );
+};
+
+/** One hand as the desk's table reads it, with whether the reader may move its cash. */
+interface HandRow {
+  hand: Hand;
+  mayHandOver: boolean;
+}
+
+interface HandCell {
+  row: { original: HandRow };
+}
+
+/** What a hand holds, red where it has paid out more than it took. */
+const InHand = ({ amount }: { amount: number }) => {
+  const asMoney = useMoney();
+  const overdrawn = amount < 0;
+  return (
+    <span className={cn("font-medium", overdrawn && "text-danger")}>
+      {overdrawn ? `− ${asMoney(-amount)}` : asMoney(amount)}
+    </span>
+  );
+};
+
+/** What of a hand's cash is a Venture's, from its Sales, until it is deposited. */
+const ventureCashOf = (hand: Hand) =>
+  (hand.ventures ?? []).reduce((sum, one) => sum + one.amount, 0);
+
+const HandNameCell = ({ row }: HandCell) => (
+  <span className="font-medium">{row.original.hand.name}</span>
+);
+const HandAmountCell = ({ row }: HandCell) => (
+  <InHand amount={row.original.hand.amount} />
+);
+const HandCountCell = ({ row }: HandCell) => (
+  <LastCount hand={row.original.hand} />
+);
+const HandVentureCell = ({ row }: HandCell) => {
+  const asMoney = useMoney();
+  const amount = ventureCashOf(row.original.hand);
+  return amount > 0 ? <span>{asMoney(amount)}</span> : <Nothing />;
+};
+const HandOverCell = ({ row }: HandCell) => {
+  const { t } = useLanguage();
+  const [handing, setHanding] = useState(false);
+  const { hand, mayHandOver } = row.original;
+  if (!mayHandOver) {
+    return null;
+  }
+  return (
+    <>
+      <Button
+        onClick={() => setHanding(true)}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        <HandCoins aria-hidden data-icon="inline-start" />
+        {t("cash.handOver")}
+      </Button>
+      <HandOverDialog from={hand} onOpenChange={setHanding} open={handing} />
+    </>
+  );
+};
+
+const handColumn = createListColumns<HandRow>();
+const handColumns = handColumn.columns([
+  handColumn.accessor((row) => row.hand.name, {
+    id: "name",
+    header: listHeader("cash.col.hand"),
+    cell: HandNameCell,
+  }),
+  handColumn.accessor((row) => row.hand.lastCount?.at, {
+    id: "counted",
+    header: listHeader("cash.col.lastCount"),
+    cell: HandCountCell,
+  }),
+  handColumn.accessor((row) => ventureCashOf(row.hand), {
+    id: "ventures",
+    header: listHeader("cash.col.ventures"),
+    cell: HandVentureCell,
+    meta: { align: "end" },
+  }),
+  handColumn.accessor((row) => row.hand.amount, {
+    id: "amount",
+    header: listHeader("cash.col.inHand"),
+    cell: HandAmountCell,
+    meta: { align: "end" },
+  }),
+  handColumn.display({
+    id: "handOver",
+    header: ActionsHeader,
+    cell: HandOverCell,
+    meta: { align: "end" },
+  }),
+]);
+
+/** Under a hand's row: its Venture sale cash, each to deposit, and what moved through it. */
+const HandDetail = ({ row }: { row: HandRow }) => (
+  <div className="flex flex-col gap-3">
+    {ventureShares(row.hand.ventures ?? []).map((share) => (
+      <VentureShare
+        hand={row.hand}
+        key={share.ventureId}
+        mayDeposit={row.mayHandOver}
+        share={share}
+      />
+    ))}
+    <Movements hand={row.hand} />
+  </div>
+);
+
+/** On a desk, the hands as a table — who, last counted, what of it is a Venture's, and what is in hand — each opening
+ *  to what moved through it (Polaris's index table, Carbon's expandable rows). */
+const HandsTable = ({ rows }: { rows: HandRow[] }) => {
+  const table = useListTable({
+    columns: handColumns,
+    data: rows,
+    getRowId: (row) => row.hand.userId,
+  });
+  return (
+    <DataTable renderDetail={(row) => <HandDetail row={row} />} table={table} />
   );
 };
 
@@ -643,7 +890,7 @@ export const CashTab = ({
     <div className="flex flex-col gap-6">
       <section className="surface flex flex-col p-4 md:p-5">
         <p className="text-muted-foreground pb-2 text-xs">{t("cash.hint")}</p>
-        <ul className="divide-y">
+        <ul className="divide-y md:hidden">
           {hands.data.map((hand) => (
             <HandLine
               hand={hand}
@@ -652,6 +899,14 @@ export const CashTab = ({
             />
           ))}
         </ul>
+        <div className="hidden md:block">
+          <HandsTable
+            rows={hands.data.map((hand) => ({
+              hand,
+              mayHandOver: isOwner || hand.userId === myId,
+            }))}
+          />
+        </div>
       </section>
       <FloatsOut isOwner={isOwner} />
     </div>
