@@ -718,7 +718,7 @@ export const PortalAccess = ({
           )}
           params={{ investorId: investor.id }}
           title={t("portal.preview.seeAsTheyDoHint")}
-          to="/investors/$investorId/as-they-see-it"
+          to="/investors/$investorId/portal-preview"
         >
           <Eye aria-hidden data-icon="inline-start" />
           {t("portal.preview.seeAsTheyDo")}

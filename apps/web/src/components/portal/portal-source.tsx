@@ -195,7 +195,7 @@ export interface PortalPlace {
 export const usePortalPlaces = () => {
   const previewing = usePreviewing();
   const route = previewing
-    ? "/investors/$investorId/as-they-see-it"
+    ? "/investors/$investorId/portal-preview"
     : "/portal";
   const whose: Record<string, string> = previewing
     ? { investorId: previewing.investorId }
@@ -218,13 +218,14 @@ export const usePortalPlaces = () => {
     money: place("money"),
     papers: place("papers"),
     account: place("account"),
-    openVentures: place("open"),
-    ventures: place("ventures"),
+    openVentures: place("offers"),
+    ventures: place("agreements"),
     requests: place("requests"),
     yourData: place("your-data"),
     venture: (agreementId: string) =>
-      place("ventures/$agreementId", { agreementId }),
-    openVenture: (ventureId: string) => place("open/$ventureId", { ventureId }),
+      place("agreements/$agreementId", { agreementId }),
+    openVenture: (ventureId: string) =>
+      place("offers/$ventureId", { ventureId }),
   };
 };
 

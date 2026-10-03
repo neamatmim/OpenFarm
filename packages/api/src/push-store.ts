@@ -324,7 +324,7 @@ export const carryTheDigest = async (
             })
           )
           .join(" · "),
-        url: "/today",
+        url: "/work",
         // One digest replaces the last rather than stacking: a phone showing three evenings
         // of them tells nobody anything.
         tag: `digest:${theirs.userId}`,

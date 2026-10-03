@@ -9,10 +9,10 @@
  * and every write goes through the Outbox; a service worker quietly replaying a POST would
  * be a second write path, which ADR 0002 rules out.
  */
-const SHELL = "openfarm-shell-v3";
+const SHELL = "openfarm-shell-v4";
 const ASSETS = "openfarm-assets-v3";
 const KEEP = new Set([SHELL, ASSETS]);
-const SHELL_FILES = ["/", "/today", "/manifest.webmanifest", "/icon.svg"];
+const SHELL_FILES = ["/", "/work", "/manifest.webmanifest", "/icon.svg"];
 
 /** One at a time, so one file that will not cache does not take the rest with it. */
 const cacheEach = async (cache, urls) => {
@@ -85,7 +85,7 @@ const shellFor = async (request) => {
   } catch {
     const cache = await caches.open(SHELL);
     const cached = await cache.match(request);
-    return cached ?? (await cache.match("/today")) ?? Response.error();
+    return cached ?? (await cache.match("/work")) ?? Response.error();
   }
 };
 
@@ -130,7 +130,7 @@ self.addEventListener("push", (event) => {
       // not a history of being told.
       tag: notice.tag,
       renotify: Boolean(notice.tag),
-      data: { url: notice.url ?? "/today" },
+      data: { url: notice.url ?? "/work" },
       icon: "/icon.svg",
       badge: "/icon.svg",
       // The farm wrote these words and knows whose they are; the browser does not.
@@ -143,7 +143,7 @@ self.addEventListener("push", (event) => {
  *  phone with six copies of the app open is a phone nobody can work from. */
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = event.notification.data?.url ?? "/today";
+  const url = event.notification.data?.url ?? "/work";
   event.waitUntil(
     (async () => {
       const open = await self.clients.matchAll({

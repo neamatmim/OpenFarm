@@ -91,7 +91,7 @@ describe("the evening digest", () => {
     // file has left waiting for the Manager is not what this test is about.
     expect(mine).toHaveLength(1);
     expect(mine[0]?.message.body).toContain("যাচাই");
-    expect(mine[0]?.message.url).toBe("/today");
+    expect(mine[0]?.message.url).toBe("/work");
   });
 
   it("sends nothing when there is nothing to say", async () => {

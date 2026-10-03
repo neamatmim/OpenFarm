@@ -202,7 +202,10 @@ export const MoneyMonth = () => {
             <p className="text-muted-foreground text-sm">{t("money.none")}</p>
           ) : null}
           {/* This month is one of twelve: how it stands beside the months before it is a page of its own. */}
-          <Link className={cn(MORE_LINK, "self-start text-sm")} to="/months">
+          <Link
+            className={cn(MORE_LINK, "self-start text-sm")}
+            to="/monthly-report"
+          >
             {t("nav.months")}
             <ChevronRight aria-hidden className="size-4" />
           </Link>
@@ -332,7 +335,7 @@ export const HerdPanel = ({
           {mightCull > 0 ? (
             <Link
               className="bg-warning-surface text-warning hover:bg-warning-surface/80 focus-visible:ring-ring flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium outline-none focus-visible:ring-2"
-              to="/culling"
+              to="/cull-list"
             >
               <ListX aria-hidden className="size-4 shrink-0" />
               <span className="flex-1">
@@ -398,7 +401,7 @@ export const FatteningPanel = () => {
           {maySell > 0 ? (
             <Link
               className="bg-success-surface text-success hover:bg-success-surface/80 focus-visible:ring-ring flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium outline-none focus-visible:ring-2"
-              to="/ready"
+              to="/ready-for-sale"
             >
               <Store aria-hidden className="size-4 shrink-0" />
               <span className="flex-1">

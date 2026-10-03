@@ -28,11 +28,7 @@ import { useLanguage, useT } from "@/i18n/language-provider";
 
 import type { BoardRow, Standing } from "./fattening-types";
 import { ORDER, standingOf } from "./fattening-types";
-import {
-  StandingBadges,
-  StateBadge,
-  TagLink,
-} from "./fattening-words";
+import { StandingBadges, StateBadge, TagLink } from "./fattening-words";
 import { OnRationVerdict } from "./on-ration";
 
 /** How many animals the board shows before the next page. */
@@ -54,7 +50,7 @@ const SellHer = ({ row }: { row: BoardRow }) => {
     <Link
       className={buttonVariants({ size: "sm", variant: "outline" })}
       search={{ sell: row.tagNumber }}
-      to="/sale"
+      to="/sales"
     >
       <Store aria-hidden data-icon="inline-start" />
       {t("sale.record")}

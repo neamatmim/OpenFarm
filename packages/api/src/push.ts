@@ -52,7 +52,7 @@ const urlOf = (alert: {
   const tag = (alert.params as { tag?: unknown } | null)?.tag;
   return alert.entity === "mortality" && typeof tag === "string"
     ? `/animals/${tag}`
-    : "/today";
+    : "/work";
 };
 
 /** What a kind says in a pocket, and nothing for the kinds that do not travel that way: the farm's own table puts a

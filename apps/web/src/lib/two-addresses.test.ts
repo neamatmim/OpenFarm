@@ -28,7 +28,7 @@ describe("the Investor address", () => {
     for (const [path, method] of [
       ["/portal", "GET"],
       ["/portal/login", "GET"],
-      ["/portal/ventures/abc", "GET"],
+      ["/portal/agreements/abc", "GET"],
       ["/assets/index-abc.js", "GET"],
       ["/icon.svg", "GET"],
       ["/portal.webmanifest", "GET"],
@@ -50,7 +50,7 @@ describe("the Investor address", () => {
     for (const path of [
       "/login",
       "/dashboard",
-      "/investors/abc/as-they-see-it",
+      "/investors/abc/portal-preview",
       "/api/auth/sign-up/email",
       "/api/auth/request-password-reset",
       "/api/rpc/animals/list",
@@ -82,7 +82,7 @@ describe("the farm's address", () => {
     for (const path of [
       "/",
       "/dashboard",
-      "/investors/abc/as-they-see-it",
+      "/investors/abc/portal-preview",
       "/api/rpc/portalPreview/me",
       "/portalish",
     ]) {

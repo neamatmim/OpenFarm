@@ -1,7 +1,0 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import { PortalMoney } from "@/components/portal/pages/money";
-
-export const Route = createFileRoute("/portal/_in/money")({
-  component: PortalMoney,
-});

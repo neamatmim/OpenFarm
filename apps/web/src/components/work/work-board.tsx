@@ -43,7 +43,7 @@ export const SopName = ({ name }: { name: { bn: string; en?: string } }) => {
 export const BackToToday = () => {
   const { t } = useLanguage();
   return (
-    <BackLink className="mb-0 md:mb-0" search={{}} to="/today">
+    <BackLink className="mb-0 md:mb-0" search={{}} to="/work">
       {t("nav.today")}
     </BackLink>
   );

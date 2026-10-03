@@ -280,7 +280,7 @@ const WhereItLeads = ({
   }
   if (notice.kind === "still_here_after_eid") {
     return (
-      <Link className={LEADS_CLASS} to="/admin/eid">
+      <Link className={LEADS_CLASS} to="/admin/eid-dates">
         {t("alerts.openTheEids")}
       </Link>
     );
@@ -326,7 +326,7 @@ const WhereItLeads = ({
       <Link
         className={LEADS_CLASS}
         params={{ definitionId }}
-        to="/cards/$definitionId"
+        to="/sops/$definitionId/card"
       >
         {t("alerts.openTheCard")}
       </Link>

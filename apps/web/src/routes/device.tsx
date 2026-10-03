@@ -286,7 +286,7 @@ const DevicePage = () => {
         }
       }
       setChosen(null);
-      await navigate({ to: "/today" });
+      await navigate({ to: "/work" });
     },
     [switchUser, listenAgain, queryClient, t, navigate]
   );
@@ -358,7 +358,7 @@ const DevicePage = () => {
         </div>
         <Button
           className={BIG_BUTTON}
-          onClick={() => navigate({ to: "/today" })}
+          onClick={() => navigate({ to: "/work" })}
         >
           {t("device.startWork")}
           <ChevronRight data-icon="inline-end" />

@@ -21,7 +21,7 @@ export const PenProgress = ({
         <Link
           className="truncate font-medium hover:underline"
           search={{ pen: pen.penId }}
-          to="/today"
+          to="/work"
         >
           {name}
         </Link>
