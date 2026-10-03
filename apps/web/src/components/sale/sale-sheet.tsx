@@ -423,6 +423,7 @@ export const SaleSheet = ({
       ready={missing === null}
       submitLabel={t("sale.record")}
       title={t("sale.title")}
+      wide
     >
       <AnimalPart answers={answers} onEdit={edit} />
 
@@ -430,16 +431,18 @@ export const SaleSheet = ({
         action={<LastBuyerOfTheDay onUse={edit} />}
         title={t("sale.groupBuyer")}
       >
-        <TextField
-          id="sale-buyer"
-          label={t("sale.buyerName")}
-          maxLength={120}
-          onChange={(buyerName) => edit({ buyerName })}
-          required
-          value={answers.buyerName}
-        />
-        <BuyerOwes name={answers.buyerName} />
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="flex flex-col gap-2">
+            <TextField
+              id="sale-buyer"
+              label={t("sale.buyerName")}
+              maxLength={120}
+              onChange={(buyerName) => edit({ buyerName })}
+              required
+              value={answers.buyerName}
+            />
+            <BuyerOwes name={answers.buyerName} />
+          </div>
           <TextField
             id="sale-address"
             label={t("sale.buyerAddress")}
@@ -459,7 +462,7 @@ export const SaleSheet = ({
       </SheetPart>
 
       <SheetPart title={t("sale.groupPrice")}>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
           <TextField
             id="sale-price"
             inputMode="numeric"
@@ -480,6 +483,15 @@ export const SaleSheet = ({
             type="number"
             value={answers.weightKg}
           />
+          <TextField
+            hint={t("sale.brokerHint")}
+            id="sale-broker"
+            inputMode="numeric"
+            label={t("sale.broker")}
+            onChange={(brokerBdt) => edit({ brokerBdt })}
+            type="number"
+            value={answers.brokerBdt ?? ""}
+          />
         </div>
         <PerKg answers={answers} />
         <BakiFields
@@ -489,45 +501,39 @@ export const SaleSheet = ({
           typed={answers.baki}
           worthBdt={Number(answers.priceBdt)}
         />
-        {somethingPaid(answers.baki) ? (
-          <PaymentMethodField
-            account={{
-              typed: answers.account,
-              onChange: (account) => edit({ account }),
-            }}
-            id="sale-paid-by"
-            onChange={(paymentMethod) => edit({ paymentMethod })}
-            value={answers.paymentMethod}
-          />
-        ) : null}
-        {somethingPaid(answers.baki) && answers.paymentMethod === "cash" ? (
-          <WhoseHandField
-            id="sale-whose-hand"
-            onChange={(heldBy) => edit({ heldBy })}
-            value={answers.heldBy}
-          />
-        ) : null}
-        <TextField
-          hint={t("sale.brokerHint")}
-          id="sale-broker"
-          inputMode="numeric"
-          label={t("sale.broker")}
-          onChange={(brokerBdt) => edit({ brokerBdt })}
-          type="number"
-          value={answers.brokerBdt ?? ""}
-        />
+        <div className="grid gap-4 sm:grid-cols-3">
+          {somethingPaid(answers.baki) ? (
+            <PaymentMethodField
+              account={{
+                typed: answers.account,
+                onChange: (account) => edit({ account }),
+              }}
+              id="sale-paid-by"
+              onChange={(paymentMethod) => edit({ paymentMethod })}
+              row
+              value={answers.paymentMethod}
+            />
+          ) : null}
+          {somethingPaid(answers.baki) && answers.paymentMethod === "cash" ? (
+            <WhoseHandField
+              id="sale-whose-hand"
+              onChange={(heldBy) => edit({ heldBy })}
+              value={answers.heldBy}
+            />
+          ) : null}
+        </div>
       </SheetPart>
 
       <SheetPart title={t("sale.groupTransport")}>
-        <TextField
-          id="sale-destination"
-          label={t("sale.destination")}
-          maxLength={200}
-          onChange={(destination) => edit({ destination })}
-          required
-          value={answers.destination}
-        />
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <TextField
+            id="sale-destination"
+            label={t("sale.destination")}
+            maxLength={200}
+            onChange={(destination) => edit({ destination })}
+            required
+            value={answers.destination}
+          />
           <TextField
             id="sale-vehicle"
             label={t("sale.vehicle")}

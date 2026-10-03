@@ -86,37 +86,43 @@ export const PaymentMethodField = ({
   onChange,
   value,
   account,
+  row = false,
 }: {
   id: string;
   onChange: (method: PaymentMethod) => void;
   value: PaymentMethod;
   /** The Farm Account and reference, for a form that sends them. */
   account?: { typed: AccountTyped; onChange: (typed: AccountTyped) => void };
+  /** In a wide form, the method, the account and its transaction ID side by side, as boxes of the grid around it,
+   *  rather than one under another. */
+  row?: boolean;
 }) => {
   const { t } = useLanguage();
   const named = value !== "cash" && account;
   return (
-    <div className="space-y-1">
-      <Label htmlFor={id}>{t("money.paidBy")}</Label>
-      <select
-        className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
-        id={id}
-        onChange={(event) =>
-          onChange(
-            PAYMENT_METHODS.find((method) => method === event.target.value) ??
-              "cash"
-          )
-        }
-        value={value}
-      >
-        {PAYMENT_METHODS.map((method) => (
-          <option key={method} value={method}>
-            {t(PAYMENT_METHOD_WORD[method])}
-          </option>
-        ))}
-      </select>
+    <div className={row ? "contents" : "space-y-1"}>
+      <div className={row ? "space-y-1" : "contents"}>
+        <Label htmlFor={id}>{t("money.paidBy")}</Label>
+        <select
+          className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
+          id={id}
+          onChange={(event) =>
+            onChange(
+              PAYMENT_METHODS.find((method) => method === event.target.value) ??
+                "cash"
+            )
+          }
+          value={value}
+        >
+          {PAYMENT_METHODS.map((method) => (
+            <option key={method} value={method}>
+              {t(PAYMENT_METHOD_WORD[method])}
+            </option>
+          ))}
+        </select>
+      </div>
       {named ? (
-        <div className="grid gap-2 pt-1">
+        <div className={row ? "contents" : "grid gap-2 pt-1"}>
           <FarmAccountField
             id={`${id}-account`}
             kind={value === "bkash" ? "bkash" : "bank"}
