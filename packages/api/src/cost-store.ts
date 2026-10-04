@@ -1010,10 +1010,21 @@ export const owedByMonth = (
   ventureId: string,
   months: readonly string[],
   paid: readonly Reimbursed[]
-) =>
-  months.map((month) => {
+) => {
+  // The Venture's own charges picked out of the farm's once, not once a month: whose an animal was is asked of every
+  // charge, and a year on there are a million.
+  const theirs: FarmCosts = {
+    ...costs,
+    charges: chargesOfOwner(
+      costs.charges,
+      ventureId,
+      ownedThenBy,
+      WHAT_THE_FARM_IS_OWED
+    ),
+  };
+  return months.map((month) => {
     const consumed = consumedBy(
-      costs,
+      theirs,
       ownedThenBy,
       ventureId,
       monthOf(startOfFarmDay(`${month}-01`))
@@ -1040,3 +1051,4 @@ export const owedByMonth = (
       uncostedDoses: consumed.uncostedDoses,
     };
   });
+};
