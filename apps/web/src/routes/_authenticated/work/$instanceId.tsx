@@ -22,6 +22,7 @@ import {
   BoardPart,
   NextAnimal,
   roundOf,
+  nextInRound,
   WorkHeader,
   StepRow,
   AnimalTile,
@@ -66,7 +67,8 @@ const WorkPage = () => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [openAnimal, setOpenAnimal] = useState<Animal | null>(null);
+  // By id, and found among the animals the board draws, so she carries the Withdrawal the phone's herd says.
+  const [openAnimalId, setOpenAnimalId] = useState<string | null>(null);
   const [openStep, setOpenStep] = useState<Step | null>(null);
   const [outcome, setOutcome] = useState<BulkOutcome | null>(null);
 
@@ -100,8 +102,11 @@ const WorkPage = () => {
   const record = useMutation({
     mutationFn: (entry: StepRecord) =>
       recordStep(queryClient, instanceKey, entry),
-    onSuccess: () => {
-      setOpenAnimal(null);
+    onSuccess: (_id, entry) => {
+      // On to the next animal the round has not reached, not back to the board: a milker goes cow to cow.
+      setOpenAnimalId(
+        nextInRound(queryClient.getQueryData(instanceKey), entry.animalId)
+      );
       setOpenStep(null);
       // Not a refresh: the screen already shows what was recorded, and refetching now would
       // ask the farm about work it has not been told of yet.
@@ -124,14 +129,14 @@ const WorkPage = () => {
         if (needsReview) {
           toast.warning(t("review.corrected_after_sign_off"));
         }
-        setOpenAnimal(null);
+        setOpenAnimalId(null);
         setOpenStep(null);
       },
       onError: (error) => {
         onError(error);
         // Put right by somebody else since: read the work again, and start from what it says now.
         if (isChangedSince(error)) {
-          setOpenAnimal(null);
+          setOpenAnimalId(null);
           setOpenStep(null);
           refreshTheScreen(queryClient);
         }
@@ -171,7 +176,7 @@ const WorkPage = () => {
   };
   const openAnimalIfMine = (beast: Animal) => {
     if (!someoneElse) {
-      setOpenAnimal(beast);
+      setOpenAnimalId(beast.id);
     }
   };
   // The farm holds a Step's answers as a blob, so it says `unknown` of them and means it. This is the
@@ -193,6 +198,7 @@ const WorkPage = () => {
     underMilkWithdrawal:
       beast.underMilkWithdrawal || cachedWithdrawal(cached.get(beast.id), now),
   }));
+  const openAnimal = animals.find((beast) => beast.id === openAnimalId);
   const perAnimalStep = content.steps.find((step) => step.repeatPerAnimal);
   // The closing Step is the last one *and* not per-animal: a Playbook whose last Step
   // repeats per cow has no closing Step, and a one-Step SOP finishes on that Step.
@@ -291,7 +297,7 @@ const WorkPage = () => {
         animal={openAnimal}
         correcting={Boolean(existing)}
         key={openAnimal.id}
-        onCancel={() => setOpenAnimal(null)}
+        onCancel={() => setOpenAnimalId(null)}
         onRecord={(payload) =>
           send(perAnimalStep, existing, payload, openAnimal.tagNumber)
         }
@@ -416,7 +422,7 @@ const WorkPage = () => {
         {nextAnimal ? (
           <NextAnimal
             animal={nextAnimal}
-            onOpen={() => setOpenAnimal(nextAnimal)}
+            onOpen={() => setOpenAnimalId(nextAnimal.id)}
           />
         ) : (
           <ClosingAction

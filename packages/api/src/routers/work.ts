@@ -46,6 +46,7 @@ import {
   raiseDueInstances,
   whatChangedFor,
 } from "../instances-store";
+import { lastFiguresOfWork } from "../last-figures";
 import { tell } from "../notice";
 import { pushRaised } from "../push-send";
 import { raiseThePutOff } from "../put-off-store";
@@ -346,6 +347,13 @@ export const workRouter = {
             instance.animalId
           )
         : [];
+      // What each animal gave or weighed the time before, where the Step done at each reads a figure against it.
+      const lasts = await lastFiguresOfWork(
+        context.db,
+        context.farm.id,
+        { ...instance, content },
+        animals.map((beast) => beast.id)
+      );
       // The Session the Instance's effects wrote, so the reconciliation — and the flag the
       // Manager is meant to act on — is read where the work itself is read.
       const milkingSession = await context.db.query.milkingSession.findFirst({
@@ -497,6 +505,8 @@ export const workRouter = {
         animals: animals.map((beast) => ({
           ...beast,
           underMilkWithdrawal: underMilkWithdrawal(beast, now),
+          /** What she gave or weighed the time before; nothing where the Step reads no figure, or she has none. */
+          last: lasts.get(beast.id) ?? null,
         })),
       };
     }),

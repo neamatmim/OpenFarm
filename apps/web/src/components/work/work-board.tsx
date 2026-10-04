@@ -274,6 +274,37 @@ export const roundOf = (
   return { tally, nextAnimal };
 };
 
+/**
+ * After an animal's entry, the next one the round has not reached — from the one just done onwards, then from the
+ * start — or nothing once every one is done. Read from the work as the phone now holds it, the entry just made in it.
+ */
+export const nextInRound = (
+  work:
+    | {
+        content: { steps: Pick<Step, "id" | "repeatPerAnimal">[] };
+        animals: { id: string }[];
+        completions: { stepId: string; animalId: string | null }[];
+      }
+    | undefined,
+  after: string | null | undefined
+): string | null => {
+  const step = work?.content.steps.find((one) => one.repeatPerAnimal);
+  if (!work || !step || !after) {
+    return null;
+  }
+  const done = new Set(
+    work.completions
+      .filter((one) => one.stepId === step.id)
+      .map((one) => one.animalId)
+  );
+  const from = work.animals.findIndex((one) => one.id === after);
+  const inTurn = [
+    ...work.animals.slice(from + 1),
+    ...work.animals.slice(0, from + 1),
+  ];
+  return inTurn.find((one) => !done.has(one.id))?.id ?? null;
+};
+
 /** One count of the round — done, skipped or left — as a word with its icon, never its colour alone. */
 const TallyCount = ({
   icon: Icon,
