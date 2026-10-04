@@ -1,4 +1,10 @@
-import { farmDayOf, isExitState, startOfFarmDay } from "@OpenFarm/domain";
+import type { GrowthHolding } from "@OpenFarm/domain";
+import {
+  farmDayOf,
+  growthOf,
+  isExitState,
+  startOfFarmDay,
+} from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
 import {
@@ -91,7 +97,9 @@ export interface TheirProgress {
   averageIntakeKg: number | null;
   averageLatestKg: number | null;
   /**
-   * The herd's Average Daily Gain: everything it has put on, over everything it has spent on feed.
+   * The herd's Average Daily Gain: everything it has put on, over everything it has spent on feed — every animal it
+   * has had, a sold one to her weight at the gate and a dead one to her last weighing, not only those standing, or the
+   * figure would fall each time the fastest went to a buyer.
    *
    * Not the mean of the per-Animal rates, and the difference is deliberate. This says "these bulls put
    * on this much a day between them", which is what a man reading a whole-herd line means. Averaging
@@ -120,13 +128,7 @@ export interface TheirProgress {
 
 /** Kilogrammes, as the farm reads a weight. */
 const KG_SCALE = 10;
-/** Rates carry a decimal more, as the domain's own do: a fattening bull's whole day's work is the
- *  second decimal place. */
-const RATE_SCALE = 100;
-
 const roundedKg = (value: number) => Math.round(value * KG_SCALE) / KG_SCALE;
-const roundedRate = (value: number) =>
-  Math.round(value * RATE_SCALE) / RATE_SCALE;
 
 /** The later of two moments, either of which may be missing. */
 const laterOf = (one: Date | null, other: Date | null): Date | null =>
@@ -198,6 +200,8 @@ export const theirProgress = async (
           targetWindowStart: true,
         },
       },
+      /** What she weighed at the gate, where she went to a buyer: the end of her gain. */
+      sale: { columns: { weightKg: true, soldAt: true } },
       /** Newest first, as `fatteningOf` expects to sort them back. */
       weighIns: {
         orderBy: { weighedAt: "desc", id: "desc" },
@@ -211,8 +215,8 @@ export const theirProgress = async (
   const animals: HerProgress[] = [];
   const standingIntake: number[] = [];
   const standingLatest: number[] = [];
-  let gainKg = 0;
-  let gainDays = 0;
+  /** Every animal it has had, as the herd's gain reads her: standing, sold or dead. */
+  const holdings: GrowthHolding[] = [];
   let lastWeighedAt: Date | null = null;
   /** The animals the averages are over, with what they came off the lorry at. */
   const averaged: Learned[] = [];
@@ -222,6 +226,21 @@ export const theirProgress = async (
 
   for (const one of rows) {
     const view = fatteningOf(one.intake, one.weighIns, now, readDays);
+    if (one.intake) {
+      holdings.push({
+        takenOn: one.intake.arrivedAt,
+        until: one.sale?.soldAt ?? now,
+        cameKg: Number(one.intake.weightKg),
+        soldKg: one.sale ? Number(one.sale.weightKg) : null,
+        readings: one.weighIns
+          .filter((reading) => reading.flaggedNote === null)
+          .map((reading) => ({
+            kg: Number(reading.weightKg),
+            at: reading.weighedAt,
+          })),
+        chargedMoney: 0,
+      });
+    }
     const standing = !isExitState(one.state);
     const intakeKg = one.intake ? Number(one.intake.weightKg) : null;
     const since = view.sinceIntake;
@@ -240,24 +259,6 @@ export const theirProgress = async (
             at: one.intake.arrivedAt,
           });
         }
-      }
-      // The herd's own rate: kilogrammes on over days on feed. A beast nobody has weighed contributes
-      // neither, rather than a zero that would drag the figure down for a fact the farm does not have.
-      //
-      // The days are counted here rather than taken from `overDays`, which is rounded to whole days for
-      // the reader. Exact kilogrammes over rounded days is a third rate, agreeing with neither the
-      // animals' own nor the farm's own arithmetic; `sinceIntake` still decides *whether* she counts,
-      // because it holds the floor that keeps two weighings on one morning out of a daily rate.
-      if (
-        since &&
-        intakeKg !== null &&
-        view.latestKg !== null &&
-        one.intake &&
-        view.latestAt
-      ) {
-        gainKg += view.latestKg - intakeKg;
-        gainDays +=
-          (view.latestAt.getTime() - one.intake.arrivedAt.getTime()) / DAY_MS;
       }
     } else if (one.state === "sold") {
       soldCount += 1;
@@ -301,7 +302,10 @@ export const theirProgress = async (
     weighedCount: standingLatest.length,
     averageIntakeKg: meanOf(standingIntake),
     averageLatestKg: meanOf(standingLatest),
-    gainKgPerDay: gainDays > 0 ? roundedRate(gainKg / gainDays) : null,
+    // The herd's own rate, kilos on over days on feed, over every animal it has had — sold ones to the gate, dead ones
+    // to their last weighing — as a Season's is (domain `fattening-growth.ts`). Over those standing alone it would
+    // drift as the fast gainers went to buyers. A beast nobody weighed adds neither kilos nor days.
+    gainKgPerDay: growthOf(holdings).gainKgPerDay,
     lastWeighedAt,
     weights: weightsOverTime([
       ...averaged,

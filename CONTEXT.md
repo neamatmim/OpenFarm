@@ -174,7 +174,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Days on Feed**: How long a bought-in Animal has been on the Farm being fed, counted from its Intake. Derived, never entered — like Days in Milk. _Avoid_: Age on farm, feeding days
 
-**Average Daily Gain**: Kilogrammes an Animal puts on in a day, worked out between two Weigh-ins or between its Intake and its latest Weigh-in. The Farm reads both: the gap between them is how it sees a Ration that has stopped working. Read over at least four weeks and set beside her Ration's **Expected Gain**, it says whether she is gaining what that Ration should give her. Derived, never entered. _Avoid_: ADG on its own (say it in full), growth rate
+**Average Daily Gain**: Kilogrammes an Animal puts on in a day, worked out between two Weigh-ins or between its Intake and its latest Weigh-in. The Farm reads both: the gap between them is how it sees a Ration that has stopped working. Read over at least four weeks and set beside her Ration's **Expected Gain**, it says whether she is gaining what that Ration should give her. A group's — a **Season**'s, a **Venture**'s herd — is pooled, every kilo over every day, never the mean of the animals' own, and over every Animal it has had: a sold one to her weight at the gate, a dead one to her last Weigh-in, one never weighed adding neither; so is its **Cost of Gain**, over what was charged to those whose gain is known. Derived, never entered. _Avoid_: ADG on its own (say it in full), growth rate
 
 **Eid-ul-Adha**: The market the Fattening side is fed towards. Its three days of Qurbani start on 10 Dhul Hijjah, which Bangladesh's moon sighting committee fixes. The Farm's day for it is one of three:
 
