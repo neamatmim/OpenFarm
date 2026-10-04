@@ -106,6 +106,12 @@ describe("the Owner's home", () => {
     // And this morning's milking is late, which the farm's own Overdue list says.
     const late = await owner.client.work.overdue();
     expect(late.map((row) => row.id)).toContain(morning.id);
+    // Named, and no more: the list draws each by its name, and a year of late work with every Step of its procedure
+    // was megabytes to a phone.
+    const said = late.find((row) => row.id === morning.id);
+    expect(said?.version.content).toEqual({
+      name: expect.objectContaining({ bn: expect.any(String) }),
+    });
   });
 
   it("puts a Manager's proposal in front of the Owner, and nothing else in front of a Manager", async () => {
