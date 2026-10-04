@@ -431,7 +431,8 @@ export const EmptyState = ({
 
 /** An animal's Tag Number as the farm writes it on her ear: set apart, never translated, never broken. */
 export const TagChip = ({ children }: { children: ReactNode }) => (
-  <span className="bg-secondary text-secondary-foreground inline-flex w-fit items-center rounded-md px-2 py-0.5 font-mono text-[0.85em] font-semibold tracking-tight whitespace-nowrap tabular-nums">
+  // A little taller than a line, so drawn a little higher: its number sits on the line of the words beside it.
+  <span className="bg-secondary text-secondary-foreground -my-0.5 inline-flex w-fit items-center rounded-md px-2 py-0.5 font-mono text-[0.85em] font-semibold tracking-tight whitespace-nowrap tabular-nums">
     {children}
   </span>
 );

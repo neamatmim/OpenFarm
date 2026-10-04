@@ -63,7 +63,14 @@ const Lateness = ({ row }: { row: LateWork }) => {
   );
 };
 
-const MissedButton = ({ row }: { row: LateRow }) => {
+const MissedButton = ({
+  row,
+  size,
+}: {
+  row: LateRow;
+  /** "sm" in a table's row, whose buttons are the small size so their words sit on the row's line. */
+  size?: "sm";
+}) => {
   const { t } = useLanguage();
   const { busy, handleMissed } = row.actions;
   const waiting = busy(row.id);
@@ -71,6 +78,7 @@ const MissedButton = ({ row }: { row: LateRow }) => {
     <Button
       disabled={waiting}
       onClick={() => handleMissed(row)}
+      size={size}
       type="button"
       variant="outline"
     >
@@ -95,7 +103,7 @@ const LateCellView = ({ row }: LateCell) => <Lateness row={row.original} />;
 
 const MissedCell = ({ row }: LateCell) => (
   <div className="flex justify-end">
-    <MissedButton row={row.original} />
+    <MissedButton row={row.original} size="sm" />
   </div>
 );
 

@@ -1,5 +1,5 @@
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
-import { Button, buttonVariants } from "@OpenFarm/ui/components/button";
+import { Button } from "@OpenFarm/ui/components/button";
 import {
   Dialog,
   DialogContent,
@@ -101,14 +101,15 @@ const OpenWork = ({
 }) => {
   const { t } = useLanguage();
   return (
-    <Link
-      className={buttonVariants({ size, variant })}
-      params={{ instanceId }}
-      to="/work/$instanceId"
+    <Button
+      nativeButton={false}
+      render={<Link params={{ instanceId }} to="/work/$instanceId" />}
+      size={size}
+      variant={variant}
     >
       <ClipboardPen aria-hidden data-icon="inline-start" />
       {t("mismatch.openWork")}
-    </Link>
+    </Button>
   );
 };
 

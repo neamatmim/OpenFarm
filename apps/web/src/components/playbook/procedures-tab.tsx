@@ -228,7 +228,7 @@ const raisable = (row: ProcedureRow): boolean =>
 const ActionsCell = ({ row }: { row: { original: ProcedureRow } }) => (
   <div className="flex items-center justify-end gap-1">
     {raisable(row.original) ? (
-      <RaiseWork definitionId={row.original.id} />
+      <RaiseWork definitionId={row.original.id} size="sm" />
     ) : null}
     <ProcedureMenu row={row.original} />
   </div>

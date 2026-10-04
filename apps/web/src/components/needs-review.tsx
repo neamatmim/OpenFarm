@@ -71,7 +71,14 @@ const WhatHappened = ({ row }: { row: OpenReview }) => {
   );
 };
 
-const ResolveButton = ({ row }: { row: ReviewRow }) => {
+const ResolveButton = ({
+  row,
+  size,
+}: {
+  row: ReviewRow;
+  /** "sm" in a table's row, whose buttons are the small size so their words sit on the row's line. */
+  size?: "sm";
+}) => {
   const { t } = useLanguage();
   const { busy, handleResolve } = row.actions;
   const waiting = busy(row.id);
@@ -79,6 +86,7 @@ const ResolveButton = ({ row }: { row: ReviewRow }) => {
     <Button
       disabled={waiting}
       onClick={() => handleResolve(row)}
+      size={size}
       type="button"
       variant="outline"
     >
@@ -107,7 +115,7 @@ const WhyCell = ({ row }: ReviewCell) =>
 
 const ResolveCell = ({ row }: ReviewCell) => (
   <div className="flex justify-end">
-    <ResolveButton row={row.original} />
+    <ResolveButton row={row.original} size="sm" />
   </div>
 );
 

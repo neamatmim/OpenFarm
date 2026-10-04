@@ -135,7 +135,8 @@ export const ActionsHeader = () => (
 /**
  * One cell of a row. Cells start at their top, so a row of several lines reads across from its first. A column of
  * buttons (one headed by `ActionsHeader`) is drawn a little higher, so the words on a button sit on the row's first
- * line of text rather than below it — a button is taller than a line.
+ * line of text rather than below it — a button is taller than a line. A badge in a row is a line tall, for the same
+ * reason.
  */
 const BodyCell = <TData extends object>({
   cell,
@@ -147,14 +148,15 @@ const BodyCell = <TData extends object>({
   return (
     <TableCell
       className={cn(
-        "align-top whitespace-normal first:pl-4 last:pr-4 md:first:pl-5 md:last:pr-5",
+        "align-top whitespace-normal first:pl-4 last:pr-4 md:first:pl-5 md:last:pr-5 [&_[data-slot=badge]]:min-h-5 [&_[data-slot=badge]]:py-0",
         look?.middle && "align-middle",
         look?.align === "end" && "text-right tabular-nums",
         look?.className
       )}
     >
       {buttons ? (
-        <div className="-my-1.5">
+        // Only while it holds a button, or a link drawn as one: a column of buttons may say in words why a row has none.
+        <div className="[&:has(button,[data-slot=button])]:-my-1.5">
           <FlexRender cell={cell} />
         </div>
       ) : (
@@ -479,6 +481,8 @@ export const DataTable = <TData extends object>({
                       <TableCell className="w-12 pl-4 align-top md:pl-5">
                         <Button
                           aria-controls={detailId}
+                          // Drawn a little higher, as a row's buttons are, so it sits on the row's line of text.
+                          className="-my-1.5"
                           aria-expanded={isOpen}
                           aria-label={t(
                             isOpen ? "common.hideDetails" : "common.showDetails"

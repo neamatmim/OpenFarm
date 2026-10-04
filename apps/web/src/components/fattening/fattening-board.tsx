@@ -1,7 +1,7 @@
 import type { Keeping } from "@OpenFarm/domain";
 import { KEEPING } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
-import { buttonVariants } from "@OpenFarm/ui/components/button";
+import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Link } from "@tanstack/react-router";
 import { Beef, Store } from "lucide-react";
@@ -47,14 +47,15 @@ const SellHer = ({ row }: { row: BoardRow }) => {
     return null;
   }
   return (
-    <Link
-      className={buttonVariants({ size: "sm", variant: "outline" })}
-      search={{ sell: row.tagNumber }}
-      to="/sales"
+    <Button
+      nativeButton={false}
+      render={<Link search={{ sell: row.tagNumber }} to="/sales" />}
+      size="sm"
+      variant="outline"
     >
       <Store aria-hidden data-icon="inline-start" />
       {t("sale.record")}
-    </Link>
+    </Button>
   );
 };
 
