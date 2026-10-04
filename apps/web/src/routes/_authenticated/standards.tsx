@@ -81,9 +81,12 @@ const RationsTable = () => {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {/* Each cell from its top, as the app's lists read: the first cell runs to a second line. */}
+        {/* Each cell from its top, as the app's lists read: the first cell runs to a second line. A badge a line tall. */}
         {GAINING_RATIONS.map((one) => (
-          <TableRow className="[&>td]:align-top" key={one.name.en}>
+          <TableRow
+            className="[&_[data-slot=badge]]:min-h-5 [&_[data-slot=badge]]:py-0 [&>td]:align-top"
+            key={one.name.en}
+          >
             <TableCell className="whitespace-normal">
               <span className="flex flex-col gap-0.5">
                 <span>{one.name[language]}</span>

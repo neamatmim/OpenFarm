@@ -19,8 +19,11 @@ import { orpc } from "@/utils/orpc";
 export const RaiseWork = ({
   definitionId,
   penId,
+  size,
 }: {
   definitionId?: string;
+  /** "sm" in a table's row, whose buttons are the small size so their words sit on the row's line. */
+  size?: "sm";
   /** Raised from a page already narrowed to one Pen: that Pen, chosen already — still hers to change. */
   penId?: string;
 }) => {
@@ -65,6 +68,7 @@ export const RaiseWork = ({
     <>
       <Button
         onClick={() => setOpen(true)}
+        size={size}
         type="button"
         variant={definitionId ? "outline" : "default"}
       >

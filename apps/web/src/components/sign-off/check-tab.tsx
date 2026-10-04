@@ -60,7 +60,14 @@ const WorkName = ({ row }: { row: ToCheck }) => {
 };
 
 /** Approve, the act the queue is for, and send back beside it — each waiting only on its own row's answer. */
-const CheckButtons = ({ row }: { row: CheckRow }) => {
+const CheckButtons = ({
+  row,
+  size,
+}: {
+  row: CheckRow;
+  /** "sm" in a table's row, whose buttons are the small size so their words sit on the row's line. */
+  size?: "sm";
+}) => {
   const { t } = useLanguage();
   const { busy, handleApprove, handleSendBack, mayCheck } = row.actions;
   const waiting = busy(row.id);
@@ -77,6 +84,7 @@ const CheckButtons = ({ row }: { row: CheckRow }) => {
       <Button
         disabled={waiting}
         onClick={() => handleSendBack(row)}
+        size={size}
         type="button"
         variant="outline"
       >
@@ -86,6 +94,7 @@ const CheckButtons = ({ row }: { row: CheckRow }) => {
       <Button
         disabled={waiting}
         onClick={() => handleApprove(row.id)}
+        size={size}
         type="button"
       >
         {waiting ? <Spinner /> : <Check aria-hidden data-icon="inline-start" />}
@@ -114,7 +123,9 @@ const DueCell = ({ row }: CheckCell) => (
   </span>
 );
 
-const ButtonsCell = ({ row }: CheckCell) => <CheckButtons row={row.original} />;
+const ButtonsCell = ({ row }: CheckCell) => (
+  <CheckButtons row={row.original} size="sm" />
+);
 
 const column = createListColumns<CheckRow>();
 const checkColumns = column.columns([

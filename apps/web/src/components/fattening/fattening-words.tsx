@@ -22,11 +22,10 @@ import { ShortOfRationBadge } from "./on-ration";
  * short line. Said once here so the three pages agree.
  */
 
-/** Her Tag Number, which opens her own page. Its chip is a little taller than a line, so it is drawn a little
- *  higher, its number on the line of the words beside it. */
+/** Her Tag Number, which opens her own page. */
 export const TagLink = ({ tagNumber }: { tagNumber: string }) => (
   <Link
-    className="focus-visible:ring-ring -my-0.5 inline-flex w-fit rounded-md outline-none hover:underline focus-visible:ring-2"
+    className="focus-visible:ring-ring w-fit rounded-md outline-none hover:underline focus-visible:ring-2"
     params={{ tagNumber }}
     to="/animals/$tagNumber"
   >

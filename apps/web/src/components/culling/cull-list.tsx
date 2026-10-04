@@ -167,9 +167,13 @@ const CalvingLines = ({ cow }: { cow: CullCow }) => {
       : t("repeatBreeder.failedAttempts", { count: cow.failedAttempts }),
   ].filter((line): line is string => line !== null);
   return (
-    <span className="flex flex-col gap-0.5 text-xs">
+    // Her calving said first, at the row's size and on its line; the counts beneath it small.
+    <span className="flex flex-col gap-0.5">
       {lines.map((line, index) => (
-        <span className={cn(index > 0 && "text-muted-foreground")} key={line}>
+        <span
+          className={cn(index > 0 && "text-muted-foreground text-xs")}
+          key={line}
+        >
           {line}
         </span>
       ))}
