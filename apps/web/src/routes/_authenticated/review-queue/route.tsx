@@ -9,7 +9,7 @@ import { CheckTab } from "@/components/sign-off/check-tab";
 import { LateTab } from "@/components/sign-off/late-tab";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
-import { useTabOfPath } from "@/lib/path-tabs";
+import { TAB_SWITCH, useTabOfPath } from "@/lib/path-tabs";
 import { orpc } from "@/utils/orpc";
 
 const TABS = ["check", "review", "late"] as const;
@@ -44,7 +44,7 @@ const SignOffPage = () => {
       />
 
       <PageTabs
-        onChange={(value) => navigate({ replace: true, to: TAB_PATHS[value] })}
+        onChange={(value) => navigate({ ...TAB_SWITCH, to: TAB_PATHS[value] })}
         tabs={[
           {
             value: "check",

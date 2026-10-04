@@ -19,7 +19,7 @@ import { SopEditor } from "@/components/playbook/sop-editor";
 import { StandardSops } from "@/components/playbook/standard-sops";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
-import { useTabOfPath } from "@/lib/path-tabs";
+import { TAB_SWITCH, useTabOfPath } from "@/lib/path-tabs";
 import { useRefused } from "@/lib/refused";
 import { emptySop } from "@/lib/sop-draft";
 import { toast } from "@/lib/toast";
@@ -229,7 +229,7 @@ const SopsPage = () => {
       <SummaryFigures figures={figures} />
 
       <PageTabs
-        onChange={(value) => navigate({ replace: true, to: TAB_PATHS[value] })}
+        onChange={(value) => navigate({ ...TAB_SWITCH, to: TAB_PATHS[value] })}
         tabs={[
           {
             value: "procedures",

@@ -48,7 +48,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { initialsOf } from "@/lib/initials";
 import { useMoney } from "@/lib/money";
-import { useTabOfPath } from "@/lib/path-tabs";
+import { TAB_SWITCH, useTabOfPath } from "@/lib/path-tabs";
 import { orpc } from "@/utils/orpc";
 
 const TABS = ["overview", "agreements", "money"] as const;
@@ -170,7 +170,7 @@ const TheInvestor = ({
         onChange={(value) =>
           navigate({
             params: { investorId: investor.id },
-            replace: true,
+            ...TAB_SWITCH,
             to: TAB_PATHS[value],
           })
         }

@@ -37,6 +37,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { useMoney } from "@/lib/money";
 import { lastMonth } from "@/lib/months";
+import { TAB_SWITCH } from "@/lib/path-tabs";
 import type { Venture } from "@/lib/ventures";
 import { venturesNeedingHer } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
@@ -199,7 +200,7 @@ const VenturesPage = () => {
           <PageTabs
             onChange={(value) =>
               navigate({
-                replace: true,
+                ...TAB_SWITCH,
                 search: value === "running" ? {} : { tab: value },
                 to: "/ventures",
               })

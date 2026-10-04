@@ -35,7 +35,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { useMoney } from "@/lib/money";
 import { moneyTotals, totalsPartial } from "@/lib/money-totals";
-import { useTabOfPath } from "@/lib/path-tabs";
+import { TAB_SWITCH, useTabOfPath } from "@/lib/path-tabs";
 import { orpc } from "@/utils/orpc";
 
 const TABS = [
@@ -166,7 +166,7 @@ const MoneyPage = () => {
       </div>
 
       <PageTabs
-        onChange={(value) => navigate({ replace: true, to: TAB_PATHS[value] })}
+        onChange={(value) => navigate({ ...TAB_SWITCH, to: TAB_PATHS[value] })}
         tabs={[
           {
             value: "register",

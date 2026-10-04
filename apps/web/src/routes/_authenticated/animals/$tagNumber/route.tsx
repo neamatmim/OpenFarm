@@ -33,7 +33,7 @@ import { BackLink, EmptyState, Page } from "@/components/page";
 import type { PageTab } from "@/components/page-kit";
 import { PageTabs } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { useTabOfPath } from "@/lib/path-tabs";
+import { TAB_SWITCH, useTabOfPath } from "@/lib/path-tabs";
 import { orpc } from "@/utils/orpc";
 
 const TABS = ["overview", "breeding", "health", "weight", "money"] as const;
@@ -147,7 +147,7 @@ const AnimalPage = () => {
         onChange={(value) =>
           navigate({
             params: { tagNumber },
-            replace: true,
+            ...TAB_SWITCH,
             to: TAB_PATHS[value],
           })
         }

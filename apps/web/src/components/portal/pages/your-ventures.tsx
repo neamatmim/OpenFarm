@@ -27,6 +27,7 @@ import {
 import { StateBadge } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
+import { TAB_SWITCH } from "@/lib/path-tabs";
 
 type HisAgreement = TheirAgreements["agreements"][number];
 
@@ -277,7 +278,7 @@ const TheirVentures = ({
       onChange={(value) =>
         navigate({
           ...places.ventures.link,
-          replace: true,
+          ...TAB_SWITCH,
           // Said either way: unsaid, the page chooses for itself.
           search: { tab: value },
         })

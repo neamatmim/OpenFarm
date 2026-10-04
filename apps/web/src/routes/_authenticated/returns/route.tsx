@@ -21,7 +21,7 @@ import {
 } from "@/components/returns/returns-page";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
-import { useTabOfPath } from "@/lib/path-tabs";
+import { TAB_SWITCH, useTabOfPath } from "@/lib/path-tabs";
 
 const TABS = ["fattening", "dairy", "prices"] as const;
 type Tab = (typeof TABS)[number];
@@ -66,7 +66,7 @@ const ReturnsPage = () => {
       {header}
       <MissingPrices page={page} />
       <PageTabs
-        onChange={(value) => navigate({ replace: true, to: TAB_PATHS[value] })}
+        onChange={(value) => navigate({ ...TAB_SWITCH, to: TAB_PATHS[value] })}
         tabs={[
           {
             value: "fattening",

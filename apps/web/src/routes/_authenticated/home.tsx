@@ -35,6 +35,7 @@ import type { Figure } from "@/components/page-kit";
 import { SummaryFigures } from "@/components/page-kit";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
+import { TAB_SWITCH } from "@/lib/path-tabs";
 import { refreshTheScreen } from "@/lib/refresh";
 import { orpc } from "@/utils/orpc";
 
@@ -193,7 +194,7 @@ const ManagerHome = () => {
                 chosen={queueTab}
                 mayAnswer={mayAnswer}
                 onChoose={(kind) =>
-                  navigate({ replace: true, search: { queue: kind } })
+                  navigate({ ...TAB_SWITCH, search: { queue: kind } })
                 }
                 queue={queue}
               />

@@ -43,6 +43,7 @@ import { StageTrack } from "@/components/ventures/stage-track";
 import { useLanguage } from "@/i18n/language-provider";
 import { CHARGE_WORD } from "@/lib/charge-words";
 import { useMoney } from "@/lib/money";
+import { TAB_SWITCH } from "@/lib/path-tabs";
 import type { client } from "@/utils/orpc";
 
 type Today = Awaited<ReturnType<typeof client.portal.venture>>;
@@ -690,7 +691,7 @@ const VentureToday = ({
         onChange={(value) =>
           navigate({
             ...places.venture(today.agreementId).link,
-            replace: true,
+            ...TAB_SWITCH,
             search: value === "animals" ? {} : { tab: value },
           })
         }

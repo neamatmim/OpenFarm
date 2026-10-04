@@ -25,6 +25,7 @@ import { CasesTab, HeatWatchTab, RepeatTab } from "@/components/vet/vet-lists";
 import type { Made, Seen } from "@/components/vet/vet-types";
 import { WaitingTab } from "@/components/vet/vet-waiting";
 import { useLanguage } from "@/i18n/language-provider";
+import { TAB_SWITCH } from "@/lib/path-tabs";
 import { orpc } from "@/utils/orpc";
 
 const TABS = ["waiting", "mine", "repeat", "heat", "fee", "cases"] as const;
@@ -215,7 +216,7 @@ const VetTabs = ({
     <PageTabs
       onChange={(value) =>
         navigate({
-          replace: true,
+          ...TAB_SWITCH,
           search: value === "waiting" ? {} : { tab: value },
         })
       }

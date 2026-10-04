@@ -26,6 +26,7 @@ import { TodaysSales } from "@/components/sale/todays-sales";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { useMoney } from "@/lib/money";
+import { TAB_SWITCH } from "@/lib/path-tabs";
 import { orpc } from "@/utils/orpc";
 
 const TABS = ["ready", "sold", "trip"] as const;
@@ -152,7 +153,7 @@ const SalePage = () => {
 
       <PageTabs
         onChange={(value) =>
-          navigate({ replace: true, search: tabSearch(value) })
+          navigate({ ...TAB_SWITCH, search: tabSearch(value) })
         }
         tabs={[
           {

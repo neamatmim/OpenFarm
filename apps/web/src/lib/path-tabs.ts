@@ -34,3 +34,9 @@ export const useTabOfPath = <T extends string>(
     (tab) => decodeURIComponent(filledIn(paths[tab], params)) === here
   );
 };
+
+/**
+ * How a page's tabs change its address: in place, so Back leaves the page rather than stepping through its tabs, and
+ * without the router's jump to the top, because `PageTabs` puts the reader where they were in the tab they go to.
+ */
+export const TAB_SWITCH = { replace: true, resetScroll: false } as const;
