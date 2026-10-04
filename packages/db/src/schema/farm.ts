@@ -460,3 +460,41 @@ export const registrationRenewal = pgTable(
     uniqueIndex("registration_renewal_completion_uidx").on(table.completionId),
   ]
 );
+
+/**
+ * A **Year Change**: the Owner's record that the farm's Financial Year changes (ADR 0017) — the year that changes, by
+ * the month it begins, and the month the first year of the new rule begins, so the year between, the Transition Year,
+ * runs short or long. Both "YYYY-MM". The reason is required, as an accountant must say why a year is not twelve
+ * months.
+ *
+ * Never edited and never removed: a change put right is withdrawn, with why, and recorded again. Only the latest in
+ * force may be withdrawn, and neither a change nor its withdrawal may move a year that has ended. The years themselves
+ * are worked out on read and never stored.
+ */
+export const financialYearChange = pgTable(
+  "financial_year_change",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    changingFrom: text("changing_from").notNull(),
+    newFrom: text("new_from").notNull(),
+    /** Why: the law or the notice the farm's books follow, as its accountant will be asked. */
+    reason: text("reason").notNull(),
+    recordedBy: text("recorded_by").references(() => user.id),
+    recordedAt: timestamp("recorded_at").notNull(),
+    withdrawnBy: text("withdrawn_by").references(() => user.id),
+    withdrawnAt: timestamp("withdrawn_at"),
+    withdrawnReason: text("withdrawn_reason"),
+  },
+  (table) => [
+    index("financial_year_change_farm_idx").on(
+      table.farmId,
+      table.changingFrom
+    ),
+  ]
+);
+
+/** A Year Change still in force: never withdrawn. */
+export const YEAR_CHANGE_IN_FORCE = { withdrawnAt: { isNull: true } } as const;

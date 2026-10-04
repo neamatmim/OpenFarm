@@ -1,7 +1,9 @@
 ---
-status: accepted
+status: accepted, in part superseded by ADR 0017
 date: 2026-10-04
 ---
+
+> **Since 2026-10-05 (ADR 0017):** `OPENFARM_YEAR_STARTS` gives only the month the years began in before any change. The Owner records each change of the year in the app. A year is named by its first month (`?year=2025-07`), and the browser no longer reads the year from the page's root.
 
 # The farm's financial year is set with its server
 

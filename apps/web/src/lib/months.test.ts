@@ -1,10 +1,10 @@
-import { DEFAULT_FARM_LOCALE, setFarmLocale } from "@OpenFarm/i18n";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   fromTheFirstWithAnything,
   lastMonth,
-  saidFinancialYear,
+  financialYearName,
+  financialYearNamed,
   saidMonth,
 } from "./months";
 
@@ -75,21 +75,50 @@ describe("the months a farm is shown", () => {
   });
 });
 
+/** The words a name is said in, as the key and what fills it, so a test reads which words were asked for. */
+const t = (key: string, params?: Record<string, unknown>) =>
+  `${key} ${JSON.stringify(params)}`;
+
 describe("a financial year's name", () => {
-  afterEach(() => {
-    setFarmLocale(DEFAULT_FARM_LOCALE);
-  });
-
   it("is both its years, as the accountant writes the income year, in the reader's digits", () => {
-    expect(saidFinancialYear(2025, "en")).toBe("2025–26");
-    expect(saidFinancialYear(2025, "bn")).toBe("২০২৫–২৬");
-    expect(saidFinancialYear(2099, "en")).toBe("2099–00");
-    expect(saidFinancialYear(2008, "bn")).toBe("২০০৮–০৯");
+    const year = { start: "2025-07", last: "2026-06", months: 12 };
+
+    expect(financialYearName(year, t, "en")).toBe("2025–26");
+    expect(financialYearName(year, t, "bn")).toBe("২০২৫–২৬");
+    expect(
+      financialYearName(
+        { start: "2099-07", last: "2100-06", months: 12 },
+        t,
+        "en"
+      )
+    ).toBe("2099–00");
   });
 
-  it("is one year on a farm whose year is the calendar's", () => {
-    setFarmLocale({ ...DEFAULT_FARM_LOCALE, yearStarts: 1 });
+  it("is one year where it begins and ends in it", () => {
+    expect(
+      financialYearName(
+        { start: "2025-01", last: "2025-12", months: 12 },
+        t,
+        "bn"
+      )
+    ).toBe("২০২৫");
+  });
 
-    expect(saidFinancialYear(2025, "bn")).toBe("২০২৫");
+  it("says its length beside its name when it is not twelve months", () => {
+    expect(
+      financialYearName(
+        { start: "2027-07", last: "2028-03", months: 9 },
+        t,
+        "bn"
+      )
+    ).toBe('years.oddLength {"name":"২০২৭–২৮","months":9}');
+  });
+});
+
+describe("a financial year in the address", () => {
+  it("is a month a year begins in, or nothing", () => {
+    expect(financialYearNamed("2027-07")).toBe("2027-07");
+    expect(financialYearNamed("2027-13")).toBeUndefined();
+    expect(financialYearNamed(2027)).toBeUndefined();
   });
 });

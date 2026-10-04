@@ -18,6 +18,7 @@ import { sayWhy, wordOf } from "@/lib/saying";
 /** The refusal this page meets: a year asked for in the address that has not begun. */
 const REFUSALS = {
   financial_year_not_begun: "months.yearNotBegun",
+  no_such_financial_year: "months.noSuchYear",
 } as const;
 
 /**
@@ -112,8 +113,8 @@ const MonthsPage = () => {
 
 export const Route = createFileRoute("/_authenticated/monthly-report")({
   beforeLoad: onlyFor("owner"),
-  // The financial year picked, by the calendar year it began in; nothing for the last twelve months.
-  validateSearch: (search: Record<string, unknown>): { year?: number } => {
+  // The financial year picked, by the month it begins in; nothing for the last twelve months.
+  validateSearch: (search: Record<string, unknown>): { year?: string } => {
     const year = financialYearNamed(search.year);
     return year === undefined ? {} : { year };
   },

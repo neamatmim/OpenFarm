@@ -6,10 +6,10 @@ const settled = async (setting: Record<string, string | undefined>) => {
   for (const [name, value] of Object.entries(setting)) {
     vi.stubEnv(name, value);
   }
-  const { settleFarmLocale } = await import("./farm-locale");
+  const { firstYearStarts, settleFarmLocale } = await import("./farm-locale");
   const { farmLocale } = await import("@OpenFarm/i18n");
   settleFarmLocale();
-  return farmLocale();
+  return { ...farmLocale(), yearStarts: firstYearStarts() };
 };
 
 afterEach(() => {

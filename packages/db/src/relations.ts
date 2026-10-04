@@ -3,6 +3,16 @@ import { defineRelations } from "drizzle-orm";
 import * as schema from "./schema";
 
 export const relations = defineRelations(schema, (r) => ({
+  financialYearChange: {
+    recorder: r.one.user({
+      from: r.financialYearChange.recordedBy,
+      to: r.user.id,
+    }),
+    withdrawer: r.one.user({
+      from: r.financialYearChange.withdrawnBy,
+      to: r.user.id,
+    }),
+  },
   shed: {
     pens: r.many.pen({ from: r.shed.id, to: r.pen.shedId }),
   },

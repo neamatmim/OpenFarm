@@ -1,9 +1,5 @@
-import {
-  farmDayOf,
-  financialYearSpansTwo,
-  startOfFarmDay,
-} from "@OpenFarm/domain";
-import type { Language } from "@OpenFarm/i18n";
+import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
+import type { Language, MessageKey, MessageParams } from "@OpenFarm/i18n";
 import { formatDate, formatDigits, formatNumber } from "@OpenFarm/i18n";
 
 /**
@@ -29,33 +25,48 @@ export const lastMonth = (): string => {
 export const saidMonth = (month: string, language: Language): string =>
   formatDate(startOfFarmDay(`${month}-01`), language, "monthYear");
 
+const MONTHS_A_YEAR = 12;
+const A_MONTH = /^\d{4}-(?:0[1-9]|1[0-2])$/u;
+
+/** A financial year as the server hands it: its first and last months, "YYYY-MM", and how many months it has. */
+interface YearSpan {
+  start: string;
+  last: string;
+  months: number;
+}
+
 /**
- * A financial year as the farm names it, in the reader's digits: 2025–26 for July 2025 to June 2026, the way a
- * Bangladeshi accountant writes the income year (২০২৫–২৬), or 2025 alone on a farm whose year is the calendar's.
+ * A financial year as the farm names it, in the reader's digits (ADR 0017): by the calendar years it begins and ends
+ * in, as a Bangladeshi accountant writes the income year — 2025–26, ২০২৫–২৬ — or one year where it begins and ends in
+ * the same one. A year that is not twelve months says its length beside its name, «২০২৭–২৮ (৯ মাস)», so a Transition
+ * Year is never read as a full one, and two years that begin in the same calendar year are told apart.
  */
-export const saidFinancialYear = (year: number, language: Language): string => {
-  const first = formatDigits(year, language);
-  if (!financialYearSpansTwo()) {
-    return first;
-  }
-  const next = formatNumber((year + 1) % 100, language, {
-    minimumIntegerDigits: 2,
-    useGrouping: false,
-  });
-  return `${first}–${next}`;
+export const financialYearName = (
+  year: YearSpan,
+  t: (key: MessageKey, params?: MessageParams) => string,
+  language: Language
+): string => {
+  const begins = Number(year.start.slice(0, 4));
+  const ends = Number(year.last.slice(0, 4));
+  const name =
+    begins === ends
+      ? formatDigits(begins, language)
+      : `${formatDigits(begins, language)}–${formatNumber(
+          ends % 100,
+          language,
+          {
+            minimumIntegerDigits: 2,
+            useGrouping: false,
+          }
+        )}`;
+  return year.months === MONTHS_A_YEAR
+    ? name
+    : t("years.oddLength", { name, months: year.months });
 };
 
-/** The earliest and latest years an address may name: a typed `?year=1` is the last twelve months, not a refusal. */
-const FIRST_YEAR = 2000;
-const LAST_YEAR = 9999;
-
-/** The financial year an address names, by the calendar year it began in; nothing for one it does not name. */
-export const financialYearNamed = (value: unknown): number | undefined => {
-  const year = Number(value);
-  const inRange =
-    Number.isInteger(year) && year >= FIRST_YEAR && year <= LAST_YEAR;
-  return inRange ? year : undefined;
-};
+/** The financial year an address names, by the month it begins in, "YYYY-MM"; nothing for one it does not name. */
+export const financialYearNamed = (value: unknown): string | undefined =>
+  typeof value === "string" && A_MONTH.test(value) ? value : undefined;
 
 /** What a month holds, as far as whether it holds anything. */
 interface MonthFigures {

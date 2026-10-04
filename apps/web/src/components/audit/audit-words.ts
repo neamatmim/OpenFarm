@@ -54,6 +54,7 @@ export const ENTITIES = [
   "investor",
   "nomination",
   "bank_rate",
+  "financial_year_change",
   "fattening_joining",
   "dairy_entry_price",
   "head_price",

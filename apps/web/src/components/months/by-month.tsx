@@ -17,7 +17,7 @@ import { NativeSelect, SummaryFigures } from "@/components/page-kit";
 import { StateBadge } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
 import { usePerHeadPerDay, useMoney, useMoneyRate } from "@/lib/money";
-import { saidFinancialYear, saidMonth } from "@/lib/months";
+import { financialYearName, saidMonth } from "@/lib/months";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
@@ -26,9 +26,10 @@ type Month = ByMonth["months"][number];
 type Stretch = ByMonth["year"];
 type VentureAgainstPlan = ByMonth["ventures"][number];
 
-/** The farm month by month, the Owner's alone: the last twelve months, or the financial year asked for. The months
- *  already drawn stay while another year's are asked for, so the page does not empty and refill. */
-export const useByMonth = (financialYear?: number) =>
+/** The farm month by month, the Owner's alone: the last twelve months, or the financial year asked for by the month
+ *  it begins in. The months already drawn stay while another year's are asked for, so the page does not empty and
+ *  refill. */
+export const useByMonth = (financialYear?: string) =>
   useQuery({
     ...orpc.monthlyReport.get.queryOptions({
       input: financialYear === undefined ? {} : { financialYear },
@@ -36,41 +37,53 @@ export const useByMonth = (financialYear?: number) =>
     placeholderData: keepPreviousData,
   });
 
+type FinancialYear = ByMonth["financialYears"][number];
+
+const isAYear = (year: unknown): year is FinancialYear =>
+  typeof year === "object" && year !== null && "start" in year;
+
 /**
  * Which months the report reads: the last twelve, or one of the financial years the farm has kept money in, this one
- * so far. The phone's own picker, as the list grows a year at a time.
+ * so far, each named with its length where it is not twelve months. The phone's own picker, as the list grows a year
+ * at a time.
  */
 export const YearPicker = ({
-  years,
+  years: given,
   chosen,
   onChoose,
 }: {
-  years: readonly number[];
-  chosen: number | null;
-  onChoose: (year: number | null) => void;
+  years: readonly FinancialYear[];
+  chosen: string | null;
+  onChoose: (start: string | null) => void;
 }) => {
   const { t, language } = useLanguage();
+  // A phone's kept answer from before years were named by their months held them as bare numbers: drawn first, it
+  // offers none of them rather than failing, and the farm's answer brings them a moment later.
+  const years = given.filter(isAYear);
   const [thisYear] = years;
-  // A year asked for in the address that the farm does not list yet is still offered, so the picker says what is shown.
-  const offered =
-    chosen === null || years.includes(chosen) ? years : [chosen, ...years];
+  const listed = years.some((year) => year.start === chosen);
   return (
     <NativeSelect
       aria-label={t("months.whichYear")}
       className="sm:w-64"
       onChange={(event) =>
-        onChoose(event.target.value === "" ? null : Number(event.target.value))
+        onChoose(event.target.value === "" ? null : event.target.value)
       }
-      value={chosen === null ? "" : String(chosen)}
+      value={chosen ?? ""}
     >
       <option value="">{t("months.lastTwelve")}</option>
-      {offered.map((year) => (
-        <option key={year} value={String(year)}>
+      {/* A year asked for in the address that the farm does not list is still offered, so the picker says what is
+          shown. */}
+      {chosen !== null && !listed ? (
+        <option value={chosen}>{chosen}</option>
+      ) : null}
+      {years.map((year) => (
+        <option key={year.start} value={year.start}>
           {t(
-            year === thisYear
+            year.start === thisYear?.start
               ? "months.financialYearSoFar"
               : "months.financialYear",
-            { year: saidFinancialYear(year, language) }
+            { year: financialYearName(year, t, language) }
           )}
         </option>
       ))}

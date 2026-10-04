@@ -5,6 +5,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Archive,
   Building2,
+  CalendarRange,
   Dna,
   FileSignature,
   Globe,
@@ -24,6 +25,7 @@ interface SettingsSectionLink {
     | "/farm"
     | "/farm/rules"
     | "/farm/money"
+    | "/farm/financial-year"
     | "/farm/portal"
     | "/farm/agreement-templates"
     | "/farm/people"
@@ -47,6 +49,11 @@ const SECTIONS: readonly SettingsSectionLink[] = [
     icon: SlidersHorizontal,
   },
   { to: "/farm/money", label: "settings.section.money", icon: Wallet },
+  {
+    to: "/farm/financial-year",
+    label: "settings.section.years",
+    icon: CalendarRange,
+  },
   {
     to: "/farm/portal",
     label: "settings.section.portal",
