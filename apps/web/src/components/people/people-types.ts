@@ -10,7 +10,12 @@ export type Standing =
   | { kind: "visiting"; until: Date }
   | { kind: "gone" }
   | { kind: "waitingForTheOwner"; inviteId: string }
-  | { kind: "waitingToSignUp"; inviteId: string };
+  | {
+      kind: "waitingToSignUp";
+      inviteId: string;
+      /** A Vet called in for a visit, which a Manager may give a new code for as he may invite one. */
+      visiting: boolean;
+    };
 
 export type StandingKind = Standing["kind"];
 
@@ -100,7 +105,11 @@ export const listedFrom = (list: PeopleList | undefined): Listed[] => {
     email: one.email,
     roles: one.roles ?? [],
     pens: 0,
-    standing: { kind: "waitingToSignUp", inviteId: one.id },
+    standing: {
+      kind: "waitingToSignUp",
+      inviteId: one.id,
+      visiting: Boolean(one.accessUntil),
+    },
   }));
   return [...pending, ...waiting, ...people];
 };

@@ -351,7 +351,10 @@ export const peopleRouter = {
           action: "update",
           after: { code: "reissued" },
         },
-        (tx) => reissueInvite(tx, context.farm.id, input.id, codeHash)
+        (tx) =>
+          reissueInvite(tx, context.farm.id, input.id, codeHash, {
+            role: context.roleUsed,
+          })
       );
       return { id: input.id, code };
     }),

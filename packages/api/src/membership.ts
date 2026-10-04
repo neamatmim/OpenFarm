@@ -23,6 +23,7 @@ import {
 } from "@OpenFarm/db/schema/farm";
 import { ACTIVE_ASSIGNMENT, penAssignment } from "@OpenFarm/db/schema/herd";
 import {
+  aManagerMayInvite,
   derivePinHash,
   isPin,
   randomPinSalt,
@@ -555,9 +556,10 @@ export const planInvite = async (
       message: "Only a Vet is invited for a visit",
     });
   }
-  const managerMay =
-    asked.roles.every((role) => role === "staff") || visit !== undefined;
-  if (by.role === "manager" && !managerMay) {
+  if (
+    by.role === "manager" &&
+    !aManagerMayInvite(asked.roles, visit !== undefined)
+  ) {
     throw new ORPCError("FORBIDDEN", {
       message: "A Manager may only invite Staff or a visiting Vet",
     });
@@ -602,13 +604,30 @@ export const writeInvite = async (
 };
 
 /** A new code for an invitation not yet taken up — the first one lost, or never written down. The old code
- *  stops working at once, because the row holds one hash and this replaces it. */
+ *  stops working at once, because the row holds one hash and this replaces it. A Manager re-issues only what he
+ *  could have written: a new code for the Owner's invitation would let him sign up under its address and hold its
+ *  Roles himself. */
 export const reissueInvite = async (
   tx: Tx,
   farmId: string,
   id: string,
-  codeHash: string
+  codeHash: string,
+  by: { role: RoleName | null }
 ): Promise<void> => {
+  const waiting = await tx.query.invite.findFirst({
+    where: { id, farmId, acceptedAt: { isNull: true } },
+    columns: { roles: true, vetScope: true },
+  });
+  if (
+    by.role === "manager" &&
+    waiting &&
+    !aManagerMayInvite(waiting.roles, waiting.vetScope === "visiting")
+  ) {
+    throw new ORPCError("FORBIDDEN", {
+      message:
+        "A Manager may only re-issue the code of a Staff or visiting Vet invite",
+    });
+  }
   const [row] = await tx
     .update(invite)
     .set({ codeHash })
