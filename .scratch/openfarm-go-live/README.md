@@ -36,6 +36,7 @@ Decided with the Owner, 2026-09-28:
 - [ ] **Breeds, feed items and rations**: the farm's own added to the standard ones. — _Manager_
 - [ ] **Farm Parameters** read through once: the approval threshold, quiet hours, AI window, the day the month's costs are looked for, keep-or-sell and culling days. — _Owner, Manager_
 - [ ] **Money**: tick Shed rent and Utilities (and anything else paid monthly) as paid every month. — _Owner_
+- [ ] **Financial year**: ask the accountant whether the farm's books close on 30 June, and check **Farm settings → Financial year** shows the same years. If the books move with the government's April–March change (2027–28 a nine-month year), record the change there once the accountant says so (ADR 0017). — _Owner_
 
 ## 4. The tagging walk (ticket 07, [runbook](../../docs/runbooks/opening-register.md))
 
