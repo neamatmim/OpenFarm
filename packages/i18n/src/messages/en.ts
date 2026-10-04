@@ -972,13 +972,16 @@ export const en = {
   "params.title": "Farm parameters",
   "params.why": "How the farm is tuned. Every change is kept in the audit log.",
   "params.alerts": "Alerts and quiet hours",
-  "params.records": "Records and approvals",
+  "params.records": "Records",
   "params.breeding": "Breeding calendar",
   "params.fatteningAndPapers": "Fattening and papers",
   "params.alertsHint":
     "When the day's digest goes out, the quiet hours, and how long work may run late before the owner is told.",
   "params.recordsHint":
-    "How far a reading may drift before it is flagged, how long a record stays open to correction, and what spending the owner approves.",
+    "How far a reading may drift before it is flagged, and how long barn staff may correct their own records.",
+  "params.checks": "Checks on the manager",
+  "params.checksHint":
+    "How long the manager may correct records, and what spending waits for your approval. Yours to set: you are told when the manager changes any other setting.",
   "params.breedingHint":
     "The days the Playbook times breeding work from, the same for every cow.",
   "params.fatteningAndPapersHint":
@@ -5278,6 +5281,7 @@ export const en = {
   "alerts.openTheBackups": "Open the backups",
   "alerts.openTheStore": "Open the feed store",
   "alerts.openTheArrivals": "Open what came in",
+  "alerts.openTheTrail": "Open the trail",
   "alerts.openTheMedicines": "Open the medicines",
   "alerts.openTheMilk": "Open the milk that does not add up",
   "digest.storeShortfall":
@@ -5494,6 +5498,10 @@ export const en = {
     "Only feed bought by the kilo is weighed against the seller's slip",
   "alerts.feedPriceJump":
     "{feed} bought at {currencySign}{price} per {unit}, {percent}% over the last lot at {currencySign}{previous}",
+  "alerts.settingsChanged":
+    "{name} changed {count, plural, one {one of the farm's settings} other {# of the farm's settings}}",
+  "digest.settingsChanged":
+    "{count, plural, one {# change} other {# changes}} to the farm's settings",
   "digest.feedPriceJump":
     "{count, plural, one {# feed} other {# feeds}} bought dearer than last time",
   "dose.give": "Dose not prescribed",

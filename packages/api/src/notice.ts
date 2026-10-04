@@ -167,6 +167,12 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
     audience: [theManagers],
     entity: "sop_instance",
   },
+  // The settings are how the farm runs, and the Manager keeps most of them: the Owner hears of each change he makes. About
+  // the one change, so each is told once.
+  settings_changed: {
+    audience: [theOwner],
+    entity: "farm",
+  },
   // The Owner asks why; the Manager bought it. About the one arrival, so it is told once however often it is put right.
   feed_price_jump: {
     audience: [theOwner],

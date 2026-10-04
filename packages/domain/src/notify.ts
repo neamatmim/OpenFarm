@@ -106,6 +106,8 @@ export const DELIVERY = {
   dose_not_prescribed: { when: "immediate" },
   // Feed bought dearer than last time is a question for the Owner to ask the Manager tomorrow, not a buzz.
   feed_price_jump: { when: "digest" },
+  // The Manager changing how the farm runs is the evening's to read, with what each setting was and is now in the trail.
+  settings_changed: { when: "digest" },
   // A count short is the evening's question for the Owner to ask the Manager, as a short store is.
   cash_short: { when: "digest" },
   // A bull weighing under what he was bought at is the evening's question for the Owner to ask the Manager who bought him.
@@ -286,6 +288,10 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
   feed_price_jump: {
     app: "alerts.feedPriceJump",
     digest: "digest.feedPriceJump",
+  },
+  settings_changed: {
+    app: "alerts.settingsChanged",
+    digest: "digest.settingsChanged",
   },
   mortality_undiagnosed: {
     app: "alerts.mortalityUndiagnosed",

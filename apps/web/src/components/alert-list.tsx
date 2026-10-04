@@ -174,6 +174,14 @@ const PLACES = {
       </Link>
     ),
   },
+  settings_changed: {
+    label: "alerts.openTheTrail",
+    Way: ({ children }) => (
+      <Link className={LEADS_CLASS} to="/audit">
+        {children}
+      </Link>
+    ),
+  },
   feed_price_jump: {
     label: "alerts.openTheArrivals",
     Way: ({ children }) => (

@@ -194,6 +194,10 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     amount: Number(facts.shortMoney),
     day: saidDate(facts.countedOn, language),
   }),
+  settings_changed: (facts) => ({
+    name: facts.name,
+    count: Number(facts.count),
+  }),
   feed_price_jump: (facts, language) => ({
     feed: facts.feed,
     unit: feedUnitEach(facts.unit, language),

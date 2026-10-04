@@ -923,13 +923,16 @@ export const bn: Record<MessageKey, string> = {
   "params.title": "খামারের প্যারামিটার",
   "params.why": "খামার কীভাবে চলবে তার মাপ। প্রতিটি পরিবর্তন অডিট লগে থাকে।",
   "params.alerts": "সতর্কবার্তা ও নীরব সময়",
-  "params.records": "রেকর্ড ও অনুমোদন",
+  "params.records": "রেকর্ড",
   "params.breeding": "প্রজনন ক্যালেন্ডার",
   "params.fatteningAndPapers": "মোটাতাজাকরণ ও কাগজপত্র",
   "params.alertsHint":
     "দিনের সারসংক্ষেপ কখন যাবে, নীরব সময়, আর কাজ কতটা দেরি হলে মালিককে জানানো হবে।",
   "params.recordsHint":
-    "কোনো মাপ কতটা সরে গেলে ধরা পড়বে, রেকর্ড কতদিন সংশোধন করা যাবে, আর কত {currencyOf} খরচে মালিকের অনুমোদন লাগবে।",
+    "কোনো মাপ কতটা সরে গেলে ধরা পড়বে, আর খামারকর্মী নিজের রেকর্ড কতক্ষণ সংশোধন করতে পারবেন।",
+  "params.checks": "ম্যানেজারের ওপর নজর",
+  "params.checksHint":
+    "ম্যানেজার কতদিন রেকর্ড সংশোধন করতে পারবেন, আর কত {currencyOf} খরচে আপনার অনুমোদন লাগবে। এগুলো আপনি ঠিক করবেন; বাকি সেটিং ম্যানেজার বদলালে আপনাকে জানানো হবে।",
   "params.breedingHint":
     "প্লেবুক প্রজননের কাজ যে দিনগুলো ধরে সাজায় — সব গাভীর জন্য একই।",
   "params.fatteningAndPapersHint":
@@ -4953,6 +4956,7 @@ export const bn: Record<MessageKey, string> = {
   "alerts.openTheBackups": "ব্যাকআপ খুলুন",
   "alerts.openTheStore": "খাদ্যের গুদাম খুলুন",
   "alerts.openTheArrivals": "যা এসেছে খুলুন",
+  "alerts.openTheTrail": "পরিবর্তনের খাতা খুলুন",
   "alerts.openTheMedicines": "ওষুধ খুলুন",
   "alerts.openTheMilk": "যে দুধের হিসাব মেলেনি খুলুন",
   "digest.storeShortfall": "{count}টি গুদাম গণনায় খাদ্য কম পাওয়া গেছে",
@@ -5160,6 +5164,8 @@ export const bn: Record<MessageKey, string> = {
     "শুধু কেজিতে কেনা খাদ্যই রশিদের সাথে পাল্লায় মেলানো যায়",
   "alerts.feedPriceJump":
     "{feed} কেনা হয়েছে প্রতি {unit} {currencySign}{price}-এ, আগের বারের {currencySign}{previous}-এর চেয়ে {percent}% বেশি",
+  "alerts.settingsChanged": "{name} খামারের {count}টি সেটিং বদলেছেন",
+  "digest.settingsChanged": "খামারের সেটিং {count} বার বদলানো হয়েছে",
   "digest.feedPriceJump": "{count}টি খাদ্য আগের বারের চেয়ে বেশি দামে কেনা হয়েছে",
   "dose.give": "প্রেসক্রিপশন ছাড়া ওষুধ",
   "dose.hint":

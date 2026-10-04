@@ -38,6 +38,7 @@ export const ALERT_KINDS = [
   "still_here_after_eid",
   "medicine_short",
   "feed_price_jump",
+  "settings_changed",
   "cash_short",
   "arrival_weight_short",
   "large_shrink",
