@@ -4,6 +4,7 @@ import {
   receivableAtTheGate,
   farmDayOf,
   farmDaysBetween,
+  lactationSummary,
   lactationView,
   roundLitres,
 } from "@OpenFarm/domain";
@@ -331,11 +332,13 @@ export const milkRouter = {
               ? { isNull: true }
               : beast.lactationNumber,
         },
-        columns: { litres: true },
+        columns: { litres: true, recordedAt: true },
       });
       return {
         tagNumber: beast.tagNumber,
         ...lactationView(beast, context.clock.now()),
+        /** What she gave in it a farm day at a time: a day on average, her best day, and lately. */
+        summary: lactationSummary(wholeLactation),
         lactationLitres: roundLitres(
           wholeLactation.reduce(
             (total, record) => total + litresOf(record.litres),

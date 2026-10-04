@@ -265,6 +265,20 @@ const LitreCell = ({ row }: MonthCell) => {
   );
 };
 
+/** Litres to Bulk for each cow milked, a day; nothing where none went, or a phone's copy from before it was said. */
+const PerCowCell = ({ row }: MonthCell) => {
+  const { t, language } = useLanguage();
+  const litres = row.original.dairy.litresPerCowMilked;
+  if (litres === null || litres === undefined) {
+    return <Nothing />;
+  }
+  return (
+    <span className="tabular-nums">
+      {t("owner.litres", { litres: formatNumber(litres, language) })}
+    </span>
+  );
+};
+
 const SoldCell = ({ row }: MonthCell) => {
   const { t, language } = useLanguage();
   const asMoney = useMoney();
@@ -348,6 +362,13 @@ const monthColumns = column.columns([
     id: "litre",
     header: listHeader("months.col.litre"),
     cell: LitreCell,
+    meta: { align: "end" },
+  }),
+  column.accessor((row) => row.dairy.litresPerCowMilked ?? undefined, {
+    id: "perCow",
+    header: listHeader("months.col.perCow"),
+    cell: PerCowCell,
+    sortUndefined: "last",
     meta: { align: "end" },
   }),
   column.accessor((row) => row.fattening.marginMoney ?? undefined, {

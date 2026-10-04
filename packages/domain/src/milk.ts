@@ -293,3 +293,85 @@ export const milkAccountOf = (
       wentIn > 0 ? Math.round((notAccounted / wentIn) * 100) : 0,
   };
 };
+
+/** To a tenth of a litre, as the farm says milk. */
+const round1 = (value: number) => Math.round(value * 10) / 10;
+
+/** How many of her latest farm days the week's figure reads: what she is giving now, against the Lactation's mean. */
+const LATELY_DAYS = 7;
+
+/** One cow's current Lactation, from what she gave: in all, a day on average, at her best day, and lately. */
+export interface LactationSummary {
+  litres: number;
+  /** Farm days she gave milk on. */
+  daysMilked: number;
+  /** Litres a day over the days she gave milk on. */
+  perDay: number | null;
+  /** Her best farm day: what she gave on it, and when. */
+  peak: { day: string; litres: number } | null;
+  /** Litres a day over her latest week of milkings. */
+  latelyPerDay: number | null;
+}
+
+/**
+ * What one cow gave in her Lactation, a farm day at a time: every milking of a day added, whichever Destination it
+ * went to — what she gave, not what reached the tank. Per day over the days she was milked, so a cow bought in milk
+ * last week is not read against days nobody milked her here.
+ */
+export const lactationSummary = (
+  records: readonly { litres: string | number; recordedAt: Date }[]
+): LactationSummary => {
+  const byDay = new Map<string, number>();
+  for (const record of records) {
+    const day = farmDayOf(record.recordedAt);
+    byDay.set(day, (byDay.get(day) ?? 0) + Number(record.litres));
+  }
+  const days = [...byDay].toSorted(([a], [b]) => a.localeCompare(b));
+  const litres = days.reduce((sum, [, given]) => sum + given, 0);
+  let peak: [string, number] | null = null;
+  for (const one of days) {
+    if (peak === null || one[1] > peak[1]) {
+      peak = one;
+    }
+  }
+  const lately = days.slice(-LATELY_DAYS);
+  return {
+    litres: round1(litres),
+    daysMilked: days.length,
+    perDay: days.length === 0 ? null : round1(litres / days.length),
+    peak: peak ? { day: peak[0], litres: round1(peak[1]) } : null,
+    latelyPerDay:
+      lately.length === 0
+        ? null
+        : round1(
+            lately.reduce((sum, [, given]) => sum + given, 0) / lately.length
+          ),
+  };
+};
+
+/**
+ * Litres to Bulk for each cow milked, a day: a stretch's Bulk litres from the Dairy side over the cow-days they came
+ * from — each cow on each farm day she sent any. What the herd gives a cow, apart from how many cows it has; the tank's
+ * total alone rises with every heifer that calves.
+ */
+export const litresPerCowMilked = (
+  shares: readonly {
+    animalId: string;
+    side: string;
+    at: Date;
+    litres: number;
+  }[],
+  { from, until }: { from: Date; until: Date }
+): number | null => {
+  const cowDays = new Set<string>();
+  let litres = 0;
+  for (const share of shares) {
+    if (share.side === "dairy" && share.at >= from && share.at < until) {
+      cowDays.add(`${share.animalId}:${farmDayOf(share.at)}`);
+      litres += share.litres;
+    }
+  }
+  return cowDays.size === 0
+    ? null
+    : Math.round((litres / cowDays.size) * 10) / 10;
+};

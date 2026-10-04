@@ -216,6 +216,7 @@ export {
   prefixForOrigin,
 } from "./tag-number";
 export type {
+  LactationSummary,
   LactationView,
   MilkDestination,
   MilkAccount,
@@ -227,7 +228,9 @@ export {
   MILK_DESTINATIONS,
   daysInMilk,
   destinationFor,
+  lactationSummary,
   lactationView,
+  litresPerCowMilked,
   reconcile,
   litresTo,
   roundLitres,
