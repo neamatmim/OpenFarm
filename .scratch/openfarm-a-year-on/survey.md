@@ -178,3 +178,18 @@ The Owner said "Yes" to the recommended order on 2026-10-04. Each item was built
   30 days show.
 - `work.overdue` is still 1.3 MB on the padded copy. That is mostly the padding: each copy carries the seed's
   never-closed work, nine times over.
+
+### Round two (2026-10-04, "Go with recommendation")
+
+- **The costing rebuild measured.** About 1.04 s a year on.
+  - Half of it (523 ms) is `feedShares` making about 1.2 million feed shares, one per item per animal per Feeding. The
+    model needs those, and only date-bounding (Y5) shrinks them.
+  - The rest is the reads: milk about 110 ms, feed about 100 ms, Feedings 73 ms.
+  - `priceOf` already binary-searches.
+- **Who pays the rebuild** 1e266bfc. The sweep, on every opening of the staff's page and the shed phone's, asked again
+  about any Venture whose last month came to nothing. After any save that cost the whole rebuild. It now asks once a
+  farm day. Since then only the Owner's and the Manager's pages pay the rebuild after a save.
+- **Y6, measured first** a9a85210.
+  - `animals.photo` read the full photograph to send a thumbnail. It now reads the thumbnail alone.
+  - The whole-life weigh-in and herd-history reads measured 20–55 ms a year on, and were left.
+- **Y5** waits on the farm's first 30 days: is a one-second rebuild on the Owner's overview after a save felt?
