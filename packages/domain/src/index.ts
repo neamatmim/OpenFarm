@@ -341,6 +341,18 @@ export type { AdultDeaths, HeadRecord, SideDeaths } from "./adult-deaths";
 export { ADULT_DEATH_CAUSES, adultDeaths } from "./adult-deaths";
 export type { Bought } from "./last-buys";
 export { LAST_BUYS_DAYS, againstLastBuys, lastBuysPerKg } from "./last-buys";
+export type {
+  BreedingCycle,
+  CowBreeding,
+  CowSinceCalving,
+  HerdFertility,
+} from "./fertility";
+export {
+  FERTILITY_TARGETS,
+  cowsSinceCalving,
+  cyclesOf,
+  herdFertility,
+} from "./fertility";
 export type { LastFigureKind } from "./last-figure";
 export { farFromLast, readsAgainstLast } from "./last-figure";
 export type { BoughtIn, EarlyLosses } from "./early-losses";

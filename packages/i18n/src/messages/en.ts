@@ -4545,6 +4545,32 @@ export const en = {
   "ready.kpi.heldHint": "Cannot be confirmed or sold yet",
   "nav.sale": "Sales",
   "nav.culling": "Culling",
+  "nav.fertility": "Fertility",
+  "fertility.subtitle":
+    "How quickly the cows get back in calf over the last year, against what DLS asks of a dairy.",
+  "fertility.calvingInterval": "Calving interval",
+  "fertility.daysOpen": "Days open",
+  "fertility.toFirstService": "Calving to first service",
+  "fertility.conceptionRate": "Attempts that took",
+  "fertility.ageAtFirstCalving": "Age at first calving",
+  "fertility.days": "{days, plural, one {# day} other {# days}}",
+  "fertility.months": "{months, plural, one {# month} other {# months}}",
+  "fertility.target":
+    "DLS: {low}–{high, plural, one {# day} other {# days}} · from {count}",
+  "fertility.ofAttempts":
+    "Of {count, plural, one {# Attempt} other {# Attempts}} whose outcome is known",
+  "fertility.fromFirstCalvings":
+    "From {count, plural, one {# first calving} other {# first calvings}}",
+  "fertility.byMonth": "Month by month",
+  "fertility.cows": "Each cow since she calved",
+  "fertility.cowsHint":
+    "Cows in milk or dry, the longest open first. Past 85 days open is past what DLS asks.",
+  "fertility.attemptsCount":
+    "{count, plural, one {# Attempt} other {# Attempts}} since",
+  "fertility.col.month": "Month",
+  "fertility.col.calved": "Calved",
+  "fertility.col.attempts": "Attempts",
+  "fertility.col.lastInterval": "Last interval",
   "nav.months": "Monthly report",
   "months.subtitle":
     "How the farm has done each month over the last year: its money, the milk against what the dairy cows cost, the fattening animals sold, and each venture against its plan.",
@@ -4903,7 +4929,7 @@ export const en = {
   "calves.stillborn": "Born dead",
   "calves.lost": "Lost before weaning",
   "calves.lostShare":
-    "{share}% of the {count} calves old enough to wean were lost before weaning",
+    "{share}% of the {count, plural, one {# calf} other {# calves}} old enough to wean were lost before weaning",
   "calves.causes": "What they died of: {causes}",
   "calf.firstDay": "Her first day",
   "calf.firstDayHint":

@@ -18,6 +18,7 @@ import {
   abortionCorrectionInput,
 } from "../corrections/abortion";
 import { correct } from "../corrections/correction";
+import { fertilityOn } from "../fertility-store";
 import {
   entersState,
   forgetExpectedCalving,
@@ -125,6 +126,17 @@ export const breedingRouter = {
     .input(abortionCorrectionInput)
     .handler(({ context, input }) =>
       correct(context, abortionCorrection, input)
+    ),
+
+  /**
+   * How quickly the farm's cows get back in calf: calving interval, days open, days to first service, the share of
+   * Attempts that took and age at first calving, over the year and month by month, and each cow since she calved.
+   * Read by those who breed the herd — the Owner, the Manager and the Vet.
+   */
+  fertility: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .handler(({ context }) =>
+      fertilityOn(context.db, context.farm.id, context.clock.now())
     ),
 
   /** The heat watch: open cows the farm expects in heat and nobody has seen, for the Manager and the Vet. */

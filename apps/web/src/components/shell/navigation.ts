@@ -17,6 +17,7 @@ import {
   HeartPulse,
   House,
   LayoutDashboard,
+  HeartHandshake,
   ListX,
   Milk,
   PawPrint,
@@ -135,6 +136,12 @@ export const NAV_GROUPS: NavGroup[] = [
         audience: "runsTheFarm",
       },
       { to: "/sales", label: "nav.sale", icon: Store, audience: "runsTheFarm" },
+      {
+        to: "/fertility",
+        label: "nav.fertility",
+        icon: HeartHandshake,
+        audience: "vetOrRunsTheFarm",
+      },
       {
         to: "/cull-list",
         label: "nav.culling",
