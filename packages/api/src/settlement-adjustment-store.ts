@@ -1,7 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
-import type { AdjustmentOutcome } from "@OpenFarm/db/schema/venture";
-import { settlementAdjustment } from "@OpenFarm/db/schema/venture";
+import type { AdjustmentOutcome } from "@OpenFarm/db/schema/venture-account";
+import { settlementAdjustment } from "@OpenFarm/db/schema/venture-account";
 import { roundMoney, whatUnitsTake } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 

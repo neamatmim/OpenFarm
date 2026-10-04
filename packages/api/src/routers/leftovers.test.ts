@@ -1,7 +1,13 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { feeding } from "@OpenFarm/db/schema/feed";
-import type { FeedingLine } from "@OpenFarm/domain";
-import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
+import { sopInstance, stepCompletion } from "@OpenFarm/db/schema/instance";
+import type { FeedingLine, SopContent } from "@OpenFarm/domain";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -22,7 +28,35 @@ const STRAW_MONEY_PER_KG = 10;
 const as = (role: "owner" | "manager" | "staff", instant = NOW) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
 
+/** The feeding work a session is one Completion of: written straight in below, so only its shape matters here. */
+const feedingWork = (): SopContent => ({
+  name: { bn: `খাবার দেওয়া ${suffix}` },
+  purpose: { bn: "খাওয়ানো" },
+  triggers: [],
+  appliesTo: { side: "fattening" },
+  assignedRole: "staff",
+  checkerRole: null,
+  graceMinutes: 120,
+  steps: [
+    {
+      id: "feed",
+      text: { bn: "খাবার দিন" },
+      repeatPerAnimal: false,
+      evidence: [
+        {
+          type: "choice",
+          required: true,
+          choices: [{ value: "fed", label: { bn: "দেওয়া হয়েছে" } }],
+        },
+      ],
+      skipReasons: [{ bn: "খাবার নেই" }],
+    },
+  ],
+});
+
 const setup = async () => {
+  const owner = await as("owner", "2035-02-01T04:00:00.000Z");
+  const work = await owner.client.sops.create({ content: feedingWork() });
   const manager = await as("manager", "2035-02-01T04:00:00.000Z");
   const shed = await manager.client.sheds.create({
     name: `উচ্ছিষ্ট ${suffix}`,
@@ -65,6 +99,7 @@ const setup = async () => {
     pens: { wasting, fine, seldom, cleared },
     items: { straw, concentrate, grass },
     rationVersionId: saved?.currentVersionId ?? "",
+    work,
     rationName: `মোটাতাজাকরণ ${suffix}`,
   };
 };
@@ -80,6 +115,35 @@ const fed = async (
 ) => {
   const at = new Date(new Date(NOW).getTime() - hoursAgo * HOUR_MS);
   const id = uuidv7(at);
+  // The work and its Completion first, which a Feeding is the record of.
+  await scratchDb()
+    .insert(sopInstance)
+    .values({
+      id: `instance-${id}`,
+      farmId: theFarm().id,
+      definitionId: world.work.definitionId,
+      versionId: world.work.versionId,
+      penId,
+      state: "completed",
+      dueAt: at,
+      graceMinutes: 120,
+      assignedRole: "staff",
+      cause: `leftovers-test:${id}`,
+      createdAt: at,
+    });
+  await scratchDb()
+    .insert(stepCompletion)
+    .values({
+      id: `completion-${id}`,
+      farmId: theFarm().id,
+      instanceId: `instance-${id}`,
+      stepId: "feed",
+      status: "done",
+      evidence: {},
+      recordedBy: thePerson("manager").id,
+      recordedAt: at,
+      receivedAt: at,
+    });
   await scratchDb()
     .insert(feeding)
     .values({

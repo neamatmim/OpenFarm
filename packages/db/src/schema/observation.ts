@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import {
   index,
   pgTable,
@@ -47,7 +48,9 @@ export const observation = pgTable(
     seenAt: timestamp("seen_at").notNull(),
     /** When a Correction withdrew it, and what stands in its place. Nothing is deleted. */
     withdrawnAt: timestamp("withdrawn_at"),
-    supersededById: text("superseded_by_id"),
+    supersededById: text("superseded_by_id").references(
+      (): AnyPgColumn => observation.id
+    ),
     recordedAt: timestamp("recorded_at").notNull(),
   },
   (table) => [

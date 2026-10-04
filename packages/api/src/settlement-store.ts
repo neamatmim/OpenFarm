@@ -1,12 +1,12 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
+import { venture as ventureTable } from "@OpenFarm/db/schema/venture";
 import {
-  venture as ventureTable,
   ventureMovement,
   ventureSettlement,
   ventureSettlementShare,
-} from "@OpenFarm/db/schema/venture";
+} from "@OpenFarm/db/schema/venture-account";
 import type { Split } from "@OpenFarm/domain";
 import {
   farmDayOf,

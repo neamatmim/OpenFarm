@@ -424,7 +424,9 @@ export const medicineCount = pgTable(
     drugProductId: text("drug_product_id")
       .notNull()
       .references(() => drugProduct.id),
-    completionId: text("completion_id").notNull(),
+    completionId: text("completion_id")
+      .notNull()
+      .references(() => stepCompletion.id),
     countedAt: timestamp("counted_at").notNull(),
     /** What the store was thought to hold just before this count, in doses. */
     expected: integer("expected").notNull(),

@@ -1,7 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { PAYMENT_METHODS } from "@OpenFarm/db/schema/money";
-import { ventureMovement } from "@OpenFarm/db/schema/venture";
+import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
 import { capitalItMayHold, roundMoney, takesCapital } from "@OpenFarm/domain";
 // The Venture router's part for capital in, and the Buying Floats drawn and counted home.
 import { currencyWords } from "@OpenFarm/i18n";

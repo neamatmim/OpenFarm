@@ -165,10 +165,12 @@ const recordWhatWasSeen = async (
     return { kind: "observation", saw: chosen.value, supersedes: false };
   }
   const id = uuidv7(input.now);
+  // The old one withdrawn first, as only one stands per Completion; then the new one written; then the old one told
+  // which replaced it, once that one is there to point at.
   if (standing) {
     await tx
       .update(observation)
-      .set({ withdrawnAt: input.now, supersededById: id })
+      .set({ withdrawnAt: input.now })
       .where(eq(observation.id, standing.id));
     await unraiseWhatItRaised(tx, input.instance.farmId, standing, input.trail);
   }
@@ -184,6 +186,12 @@ const recordWhatWasSeen = async (
     seenAt: input.recordedAt,
     recordedAt: input.now,
   });
+  if (standing) {
+    await tx
+      .update(observation)
+      .set({ supersededById: id })
+      .where(eq(observation.id, standing.id));
+  }
   return {
     kind: "observation",
     saw: chosen.value,

@@ -1,3 +1,4 @@
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import {
   index,
   integer,
@@ -35,7 +36,11 @@ export const paperTemplate = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     kind: text("kind", { enum: TEMPLATE_KINDS }).notNull(),
     /** The Version papers are printed from now. */
-    currentVersionId: text("current_version_id"),
+    currentVersionId: text("current_version_id").references(
+      // A paper and its Versions point at each other; the reference is only read once both are made.
+      // oxlint-disable-next-line no-use-before-define
+      (): AnyPgColumn => paperTemplateVersion.id
+    ),
     createdAt: timestamp("created_at").notNull(),
   },
   (table) => [

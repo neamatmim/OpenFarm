@@ -1,5 +1,6 @@
 import type { Database } from "@OpenFarm/db";
-import type { AdjustmentOutcome, StampKind } from "@OpenFarm/db/schema/venture";
+import type { StampKind } from "@OpenFarm/db/schema/venture";
+import type { AdjustmentOutcome } from "@OpenFarm/db/schema/venture-account";
 import type { PaperNominee } from "@OpenFarm/domain";
 import { exitOf, roundMoney, unitsHeld, whatUnitsTake } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";

@@ -1,7 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
-import { ventureMovement } from "@OpenFarm/db/schema/venture";
+import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
 import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
