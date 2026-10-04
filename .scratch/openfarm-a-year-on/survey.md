@@ -128,3 +128,53 @@ growing year on year.
 3. **Y3 and Y4**: small and contained.
 4. Re-measure on `openfarm_year`, then decide on **Y5** and **Y6**.
 5. **Y7** only if the farm's 30 days show it is needed.
+
+## Progress
+
+The Owner said "Yes" to the recommended order on 2026-10-04. Each item was built test first, re-measured on
+`openfarm_year`, and merged. What the measurements showed changed the plan as it went:
+
+- **Y1** 099a1592: `farmCosts` is kept per farm until the next write.
+  - `writes-seen.ts` counts every audited write: once when its Audit Event is recorded, and again after its
+    transaction commits.
+  - A transaction always works the costing out afresh.
+  - While tests run, the kept copy is frozen, so a reader changing it in place would throw. None does.
+- **Y2 and Y3** d1e7c1e8: the feed store is kept the same way, through one shared keeper (`keptUntilAWrite`).
+  - Stock adjustments now filter the one kept read instead of re-reading once per count.
+  - The sweep's real cost was the store (437 ms of 640). The medicine-lot and receivable checks measured 3–6 ms, so
+    they were left as they are.
+  - The double sweep on the Work page is React's development StrictMode only.
+- **Feed rate** 2c87c97d: `fedPerDayOf` asked the farm's day of every Feeding through the time-zone formatter, 21 ms
+  per item. It now works out the fortnight's first moment once.
+- **Monthly report** 3a1abc59: `narrowedToEach` sorts the year's charges into the 13 periods in one pass, instead of
+  each period filtering all 1.26 million.
+- **Ventures** 2fe15997: a Venture's charges are picked out once, not once a month. The running Ventures share one pass
+  that sorts the charges by owner.
+- **Y4** 31abd86c: `work.overdue` sends each late job's procedure name only.
+- **Tried and dropped:** remembering the clock's UTC offset per quarter-hour. It was 3.5 times faster on repeats, but
+  no page got faster. Its Kathmandu and zone-switch tests were kept (5359f1b3).
+
+**A year on, after (ms, on repeat):**
+
+| Call                      | Before | After |
+| ------------------------- | -----: | ----: |
+| Monthly report            |  2,984 |   405 |
+| `returns.list`            |  2,428 |   512 |
+| `ventures.running`/`list` |  1,785 |   248 |
+| `alerts.sweep`            |  1,609 |   185 |
+| `costs.bySide`            |  1,586 |   229 |
+| `stock.adjustments`       |  1,376 |   195 |
+| `costs.forAnimal`         |  1,073 |    10 |
+| `fattening.prices`        |  1,068 |   132 |
+| `cullList.list`           |  1,048 |    51 |
+| `home.get`/`overview.get` |    469 |    51 |
+
+**Left:**
+- The first costing read after a save still rebuilds the costing once: about 1.1 s a year on. Everyone asking
+  meanwhile shares that one rebuild.
+- `farmCosts` keeps the whole history in memory, about a million charges a year on. Before Y1 it was built that size
+  four times at once.
+- Y5 (date-bounded costing), Y6 (the smaller whole-life reads) and Y7 (narrower refresh) wait on what the farm's first
+  30 days show.
+- `work.overdue` is still 1.3 MB on the padded copy. That is mostly the padding: each copy carries the seed's
+  never-closed work, nine times over.
