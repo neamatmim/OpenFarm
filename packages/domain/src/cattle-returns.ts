@@ -1,6 +1,8 @@
 import { seasonOf } from "./eid";
 import { farmDayOf, startOfFarmDay } from "./farm-clock";
 import type { TargetWindow } from "./fattening";
+import type { Growth } from "./fattening-growth";
+import { growthOf } from "./fattening-growth";
 import type { Charge, Left, OwnedThenBy, WhatHappened } from "./holding";
 import { chargesInHolding, howSheLeft } from "./holding";
 import { roundMoney } from "./money";
@@ -131,6 +133,13 @@ export interface ReturnBooks {
   values: ReadonlyMap<string, { lowMoney: number; highMoney: number } | Gap>;
   /** Every Bank Rate typed, the one that would be in force first: the latest day, then the latest typed. */
   bankRates: readonly BankRate[];
+  /** What the Animals weighed, for how a Season grew: each Intake's and each Joining's weight by its id, each sold
+   *  Animal's sale weight, and every Weigh-in the farm did not doubt. Nothing where the books were made without them. */
+  weights?: {
+    came: ReadonlyMap<string, number | null>;
+    sold: ReadonlyMap<string, number>;
+    readings: ReadonlyMap<string, readonly { kg: number; at: Date }[]>;
+  };
 }
 
 /** What happened to one Animal, as the Books say it. */
@@ -377,6 +386,40 @@ export const seasonGroupsOf = (books: ReturnBooks) => {
   return bySeason;
 };
 
+/** How some Season holdings grew while the Farm held them — pooled, priced ones only (a crossing not yet priced is no
+ *  part of any figure) — or nothing where the books carry no weights. */
+export const growthOfHoldings = (
+  books: ReturnBooks,
+  holdings: readonly SeasonHolding[],
+  today: Date
+): Growth | null => {
+  const { weights } = books;
+  if (!weights) {
+    return null;
+  }
+  return growthOf(
+    holdings
+      .filter((one) => !one.unpriced)
+      .map((one) => ({
+        takenOn: one.takenOn,
+        until: one.left?.on ?? today,
+        cameKg:
+          weights.came.get(
+            one.came.how === "intake" ? one.came.intakeId : one.came.joiningId
+          ) ?? null,
+        soldKg:
+          one.left?.how === "sold"
+            ? (weights.sold.get(one.animalId) ?? null)
+            : null,
+        readings: weights.readings.get(one.animalId) ?? [],
+        // Everything charged to her within it, her price apart.
+        chargedMoney: spentOn(books, null, one, today)
+          .slice(1)
+          .reduce((sum, spent) => sum + spent.amount, 0),
+      }))
+  );
+};
+
 /** A **Season** as the Owner reads it on the Returns page. */
 export interface SeasonReturn {
   key: string;
@@ -396,6 +439,8 @@ export interface SeasonReturn {
   gaps: Gap[];
   /** The Bank Rate in force on its first taka, beside its rate a year; none without one. */
   bankRate: BankRateSaid | null;
+  /** How its Animals grew: kilos a day, Days on Feed and Cost of Gain, pooled. Nothing without weights. */
+  growth: Growth | null;
 }
 
 /** The Farm's own fattening Animals, Season by Season: what each cost, what came back, and so every hundred taka. */
@@ -420,6 +465,7 @@ export const seasonsOf = (
           earliest(holdings.map((one) => one.takenOn)),
           worked.returnOnCost
         ),
+        growth: growthOfHoldings(books, holdings, today),
       };
     })
     .toSorted(

@@ -1,3 +1,4 @@
+import type { Growth } from "@OpenFarm/domain";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -41,6 +42,8 @@ import { SeasonBreakdown } from "@/components/returns/season-breakdown";
 import { useLanguage } from "@/i18n/language-provider";
 import { useMoney } from "@/lib/money";
 import { orpc } from "@/utils/orpc";
+
+import { GrowthSaid } from "./growth-said";
 
 /** What the money in the farm's cattle returned: the Owner's alone. */
 export const useReturns = () => useQuery(orpc.returns.list.queryOptions());
@@ -170,6 +173,7 @@ const SeasonRow = ({
       name={named(season)}
       returned={season.returnOnCost}
     >
+      <GrowthSaid growth={season.growth} />
       <SeasonBreakdown seasonKey={season.key} />
     </Row>
   );
@@ -451,7 +455,12 @@ const FinishedDetail = ({
   floorDays: number;
 }) => (
   <RowBody bank={row.bank} floorDays={floorDays} returned={row.returned}>
-    {row.season ? <SeasonBreakdown seasonKey={row.season.key} /> : null}
+    {row.season ? (
+      <>
+        <GrowthSaid growth={row.season.growth} />
+        <SeasonBreakdown seasonKey={row.season.key} />
+      </>
+    ) : null}
     {row.venture ? (
       <VentureExtras floorDays={floorDays} venture={row.venture} />
     ) : null}
@@ -621,6 +630,8 @@ interface StillGoingRow {
   ventureId: string | null;
   running: Running | null;
   gaps: Gap[];
+  /** How a Season's Animals are growing; nothing for a Venture, whose own page says. */
+  growth: Growth | null;
 }
 
 const StillGoingList = ({ rows }: { rows: StillGoingRow[] }) => {
@@ -636,6 +647,7 @@ const StillGoingList = ({ rows }: { rows: StillGoingRow[] }) => {
             <span className="font-medium">{row.name}</span>
             <StatusBadge tone="neutral">{t(row.kind)}</StatusBadge>
           </span>
+          <GrowthSaid growth={row.growth} />
           <StillGoingBody
             gaps={row.gaps}
             running={row.running}
@@ -661,6 +673,8 @@ export const StillGoing = ({ page }: { page: ReturnsPage }) => {
         ventureId: null,
         running: runningOf(one),
         gaps: gapsOf(one),
+        // A phone's copy of the page from before a Season said how it grew.
+        growth: one.growth ?? null,
       })),
     ...page.ventures
       .filter((one) => !isFinished(one))
@@ -672,6 +686,7 @@ export const StillGoing = ({ page }: { page: ReturnsPage }) => {
         ventureId: one.id,
         running: runningOf(one),
         gaps: gapsOf(one),
+        growth: null,
       })),
   ].toSorted(newestFirst);
   return <StillGoingList rows={rows} />;

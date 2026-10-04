@@ -367,6 +367,14 @@ describe("a finished Season opened out", () => {
         backMoney: 280_000,
         resultMoney: 59_000,
         per100: 26.7,
+        // A 200 to 300 kg and B 280 to 300 kg, each over the 126 days from 1 January to the Eid: 120 kg in 252 days.
+        // What they were charged is A's ৳1,000 of Market toll: ৳8.33 a kilo.
+        growth: {
+          gainKgPerDay: 0.48,
+          weighed: 2,
+          daysOnFeed: 126,
+          costOfGainMoney: 8.33,
+        },
       },
       {
         line: { kind: "none" },
@@ -377,6 +385,13 @@ describe("a finished Season opened out", () => {
         backMoney: 0,
         resultMoney: -60_000,
         per100: -100,
+        // C died on 15 February never weighed: 45 days fed, nothing put on that anybody saw.
+        growth: {
+          gainKgPerDay: null,
+          weighed: 0,
+          daysOnFeed: 45,
+          costOfGainMoney: null,
+        },
       },
       {
         line: { kind: "bought_from_venture" },
@@ -387,6 +402,13 @@ describe("a finished Season opened out", () => {
         backMoney: 140_000,
         resultMoney: 20_000,
         per100: 16.7,
+        // W joined at the 300 kg she was priced at and was sold at 300 kg: no kilos, so no Cost of Gain to say.
+        growth: {
+          gainKgPerDay: 0,
+          weighed: 1,
+          daysOnFeed: 65,
+          costOfGainMoney: null,
+        },
       },
     ]);
   });
