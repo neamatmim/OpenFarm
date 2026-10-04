@@ -29,6 +29,15 @@ const router = {
   broken: os.handler(() => {
     throw new Error("the database went away");
   }),
+  // As drizzle words a query that failed: the statement, then every value it was sent.
+  saved: os.handler(() => {
+    const failed = new Error(
+      `Failed query: insert into "investor" ("nid", "phone") values ($1, $2)\nparams: ধানমন্ডি\nরোড ৭,${NID},01712345678`,
+      { cause: new Error("duplicate key value violates unique constraint") }
+    );
+    failed.name = "DrizzleQueryError";
+    throw failed;
+  }),
 };
 
 const handler = new RPCHandler(router, {
@@ -73,6 +82,14 @@ describe("a failed call's line in the log", () => {
 
     expect(line).toContain("nid");
     expect(line).not.toContain(NID);
+  });
+
+  it("keeps which statement failed, never the values it was sent", async () => {
+    const line = await logged("saved");
+
+    expect(line).toContain('insert into "investor"');
+    expect(line).not.toContain(NID);
+    expect(line).not.toContain("01712345678");
   });
 
   it("keeps what an unexpected error was, and where it was thrown", async () => {

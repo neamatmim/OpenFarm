@@ -273,8 +273,8 @@ export const devicesRouter = {
           action: "login",
           after: { userId: person.id },
         },
-        () =>
-          openSwitch(context.db, {
+        (tx) =>
+          openSwitch(tx, {
             id: uuidv7(now),
             deviceId: device.id,
             userId: person.id,

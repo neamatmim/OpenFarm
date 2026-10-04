@@ -1,3 +1,4 @@
+import { asLogged } from "@OpenFarm/api/thrown";
 import { ORPCError, ValidationError } from "@orpc/server";
 
 /** What caused a failure, as much of it as may be written down: which fields failed, or the error that was thrown. */
@@ -17,9 +18,7 @@ const causeOf = (cause: unknown): Record<string, unknown> => {
     };
   }
   if (cause instanceof Error) {
-    return {
-      cause: { name: cause.name, message: cause.message, stack: cause.stack },
-    };
+    return { cause: asLogged(cause) };
   }
   return {};
 };
@@ -31,13 +30,13 @@ const causeOf = (cause: unknown): Record<string, unknown> => {
  * very input that failed, which on `portal.join` or a staff password code is somebody's password in plain text, and
  * on an answer that failed its own check is somebody's NID or bank account. So the log keeps the error's code, its
  * message and its refusal; for a validation failure only which fields failed and why; and for the
- * unexpected error behind a 500 its name, message and stack, which is what anybody reading the log needs.
+ * unexpected error behind a 500 its name, message and stack, which is what anybody reading the log needs — less the
+ * values a failed query was sent, which drizzle writes into both, and which on an Investor's or a nominee's row are their
+ * NID, bank account and phone.
  */
 export const logLineOf = (failure: unknown): Record<string, unknown> => {
   if (!(failure instanceof ORPCError)) {
-    return failure instanceof Error
-      ? { name: failure.name, message: failure.message, stack: failure.stack }
-      : { failure: typeof failure };
+    return asLogged(failure);
   }
   const refusal = (failure.data as { refusal?: unknown } | undefined)?.refusal;
   return {

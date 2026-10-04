@@ -1,6 +1,6 @@
 import type { EntryRefusal } from "@OpenFarm/api/entries/entry";
 import type { EntryInput, EntryResult } from "@OpenFarm/api/sync-entries";
-import { SYNC_BATCH_MAX } from "@OpenFarm/domain";
+import { SYNC_BATCH_MAX, SYNC_BATCH_MAX_BYTES } from "@OpenFarm/domain";
 import type {
   LeaderElection,
   OnlineDetector,
@@ -108,10 +108,6 @@ export interface OutboxState {
   paused: OutboxPause;
 }
 
-/** And the most it may weigh. A shed photo is a megabyte or so of base64, and two hundred of
- *  them would be a request no phone on a weak signal will ever finish. What does not fit
- *  goes in the next batch. */
-const SYNC_BATCH_MAX_BYTES = 4_000_000;
 const ENTRY = "entry:";
 const REJECTED = "rejected:";
 const NEEDS_REVIEW = "needs-review:";

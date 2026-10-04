@@ -1,4 +1,4 @@
-import { SYNC_BATCH_MAX } from "@OpenFarm/domain";
+import { SYNC_BATCH_MAX, heavierThanAPhoneSends } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -127,7 +127,14 @@ export const syncRouter = {
          *  is exactly what an outbox is for — but how far the phone thinks it is from the
          *  farm, at the same instant, says everything. */
         sentAt: z.coerce.date().optional(),
-        entries: z.array(entryInput).min(1).max(SYNC_BATCH_MAX),
+        // As much as a phone sends and no more: a request of two hundred photographs is not one a phone ever makes.
+        entries: z
+          .array(entryInput)
+          .min(1)
+          .max(SYNC_BATCH_MAX)
+          .refine((entries) => !heavierThanAPhoneSends(entries), {
+            message: "More than a phone sends in one batch",
+          }),
       })
     )
     .handler(async ({ context, input }) => {

@@ -47,6 +47,7 @@ import { textAgainWhatDidNotGo, textTheSafetyAlerts } from "./sms-send";
 import { contentOf } from "./sop-content";
 import { soresToTell, tellOfSores } from "./sores-store";
 import { lowStockToTell, raiseLowStockAlerts, runningLow } from "./stock-store";
+import { asLogged } from "./thrown";
 import { endExpiredVisits } from "./visits-store";
 import { heatThatRaised } from "./work-cause";
 
@@ -775,7 +776,7 @@ export const theDayTurns = async (
       wentWrong.push(piece);
       // What actually went wrong is for whoever reads a log; the Owner's page is told which piece it was.
       // oxlint-disable-next-line no-console
-      console.error(`the day turning: ${piece}`, error);
+      console.error(`the day turning: ${piece}`, asLogged(error));
       return null;
     }
   };
