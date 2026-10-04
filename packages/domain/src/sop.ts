@@ -49,6 +49,9 @@ export interface Choice {
 export interface Evidence {
   type: EvidenceType;
   required: boolean;
+  /** What this answer is, said above it: a Step asking several things — a calving's ease and each calf, a service's
+   *  straw and who gave it — would otherwise be a page of buttons and boxes nobody can tell apart. */
+  label?: Bilingual;
   /** number: what the figure is measured in, and the range outside which to warn. */
   unit?: Bilingual;
   min?: number;

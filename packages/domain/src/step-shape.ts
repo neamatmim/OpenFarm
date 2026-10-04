@@ -32,6 +32,8 @@ interface Asks {
   name: string;
   required: boolean | "either";
   says: string;
+  /** What the phone says above it, where a Step asks several things. */
+  label?: Bilingual;
 }
 
 /** A fixed choice: the words the record reads back, which the farm may label as it likes but not change. */
@@ -62,6 +64,8 @@ export interface Repeated {
   of: readonly Slot[];
   atLeast: number;
   upTo: number;
+  /** What the phone says above each slot of each turn — the second calf is not the first — one row per turn. */
+  turnLabels?: readonly (readonly Bilingual[])[];
 }
 
 /** What a Step asks for, in the order the record reads it. */
@@ -70,20 +74,41 @@ export type StepShape = readonly (Slot | Repeated)[];
 /** Where each slot of a shape sits in the Step's Evidence, flattened as an Owner's Version carries it. */
 export const slotsOf = (
   shape: StepShape
-): { slot: Slot; at: number; required: boolean | "either" }[] => {
-  const flat: { slot: Slot; at: number; required: boolean | "either" }[] = [];
+): {
+  slot: Slot;
+  at: number;
+  required: boolean | "either";
+  label?: Bilingual;
+}[] => {
+  const flat: {
+    slot: Slot;
+    at: number;
+    required: boolean | "either";
+    label?: Bilingual;
+  }[] = [];
   let at = 0;
   for (const asked of shape) {
     if (asked.kind === "repeat") {
       for (let turn = 0; turn < asked.upTo; turn += 1) {
-        for (const slot of asked.of) {
-          flat.push({ slot, at, required: turn < asked.atLeast });
+        for (const [offset, slot] of asked.of.entries()) {
+          const label = asked.turnLabels?.[turn]?.[offset];
+          flat.push({
+            slot,
+            at,
+            required: turn < asked.atLeast,
+            ...(label ? { label } : {}),
+          });
           at += 1;
         }
       }
       continue;
     }
-    flat.push({ slot: asked, at, required: asked.required });
+    flat.push({
+      slot: asked,
+      at,
+      required: asked.required,
+      ...(asked.label ? { label: asked.label } : {}),
+    });
     at += 1;
   }
   return flat;
@@ -145,18 +170,21 @@ export const SERVICE_STEP = [
     kind: "choice",
     values: SERVICE_METHODS,
     required: true,
+    label: { bn: "কীভাবে পাল দেওয়া হলো", en: "How she was served" },
     says: 'a service step first asks how she was served, offering "ai" and "natural"',
   },
   {
     name: "sire",
     kind: "note",
     required: true,
+    label: { bn: "স্ট্র নম্বর, বা কোন ষাঁড়", en: "Straw number, or which bull" },
     says: "a service step then asks for the sire, as a required note",
   },
   {
     name: "servedBy",
     kind: "note",
     required: "either",
+    label: { bn: "কে দিলেন (টেকনিশিয়ান)", en: "Who served her (technician)" },
     says: "a service step then asks who served her, as a note",
   },
   {
@@ -165,6 +193,7 @@ export const SERVICE_STEP = [
     name: "servedAt",
     kind: "datetime",
     required: true,
+    label: { bn: "কখন পাল দেওয়া হলো", en: "When she was served" },
     says: "a service step then asks when she was served, as a required date and time",
   },
 ] as const satisfies StepShape;
@@ -179,6 +208,7 @@ export const CALVING_STEP = [
     name: "calvedAt",
     kind: "datetime",
     required: true,
+    label: { bn: "কখন বাচ্চা দিয়েছে", en: "When she calved" },
     says: "a calving step first asks when she calved, as a required date and time",
   },
   {
@@ -186,6 +216,7 @@ export const CALVING_STEP = [
     kind: "choice",
     values: CALVING_EASES,
     required: true,
+    label: { bn: "কেমন হলো", en: "How it went" },
     says: 'a calving step then asks how it went, offering "unassisted", "assisted" and "vet"',
   },
   {
@@ -193,6 +224,20 @@ export const CALVING_STEP = [
     kind: "repeat",
     atLeast: 1,
     upTo: 3,
+    turnLabels: [
+      [
+        { bn: "প্রথম বাছুর", en: "First calf" },
+        { bn: "প্রথম বাছুর জীবিত কি না", en: "First calf, alive or not" },
+      ],
+      [
+        { bn: "দ্বিতীয় বাছুর (যমজ হলে)", en: "Second calf (twins)" },
+        { bn: "দ্বিতীয় বাছুর জীবিত কি না", en: "Second calf, alive or not" },
+      ],
+      [
+        { bn: "তৃতীয় বাছুর (তিনটি হলে)", en: "Third calf (triplets)" },
+        { bn: "তৃতীয় বাছুর জীবিত কি না", en: "Third calf, alive or not" },
+      ],
+    ],
     of: [
       {
         name: "sex",
@@ -327,16 +372,18 @@ export const draftFrom = <Shape extends StepShape>(
   shape: Shape,
   words: WordsFor<Shape>
 ): Evidence[] =>
-  slotsOf(shape).map(({ slot, required }) => {
+  slotsOf(shape).map(({ slot, required, label: above }) => {
     // A slot the farm decides about starts out not insisted on; the Owner may turn it on.
     const insisted = required === "either" ? false : required;
+    const labelled = above ? { label: above } : {};
     if (slot.kind !== "choice") {
-      return { type: slot.kind, required: insisted };
+      return { type: slot.kind, required: insisted, ...labelled };
     }
     const said = words as Record<string, Bilingual>;
     return {
       type: "choice",
       required: insisted,
+      ...labelled,
       choices: slot.values.map((value) => {
         const label = said[value];
         if (!label) {
