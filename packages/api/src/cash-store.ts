@@ -5,7 +5,7 @@ import { cashCount } from "@OpenFarm/db/schema/cash";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { handover } from "@OpenFarm/db/schema/money";
 import { buyingTrip } from "@OpenFarm/db/schema/trip";
-import { ventureMovement } from "@OpenFarm/db/schema/venture";
+import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
 import { farmDayOf, roundMoney } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 

@@ -4,7 +4,7 @@
  * farm's own. Each builder adds its part to the list of happenings the days are lived through.
  */
 import type { StandardDrugKey } from "@OpenFarm/domain";
-import { ROUND_WORDS } from "@OpenFarm/domain";
+import { ROUND_WORDS, monthBefore } from "@OpenFarm/domain";
 
 import { A_DEATH_PHOTO } from "./death-photo";
 import type { Cow, Herd } from "./herd";
@@ -402,7 +402,9 @@ const payTheMonth = async (
   const categories = await f.as.manager.money.categories.list();
   const id = (key: string) =>
     categories.find((category) => category.key === key)?.id ?? "";
-  const wageMonth = addDays(payday, -20).slice(0, 7);
+  // Paid for the month before payday's, as the farm pays: counting back a fixed number of days lands two paydays in one
+  // month whenever the seed starts late in a month.
+  const wageMonth = monthBefore(payday);
   // The month's mobile money money moved from the bank first, so the office number pays the wages and the Vet without
   // running dry: a Handover between two Farm Accounts.
   await f.as.owner.cash.handOver({

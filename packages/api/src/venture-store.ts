@@ -1,11 +1,10 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
 import { farm } from "@OpenFarm/db/schema/farm";
-import type {
-  VentureMovementKind,
-  VentureState,
-} from "@OpenFarm/db/schema/venture";
-import { venture, ventureMovement } from "@OpenFarm/db/schema/venture";
+import type { VentureState } from "@OpenFarm/db/schema/venture";
+import { venture } from "@OpenFarm/db/schema/venture";
+import type { VentureMovementKind } from "@OpenFarm/db/schema/venture-account";
+import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
 import {
   addDays,
   EXIT_STATES,

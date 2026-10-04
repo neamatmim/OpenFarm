@@ -1,3 +1,4 @@
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import {
   index,
   integer,
@@ -13,6 +14,7 @@ import { user } from "./auth";
 import { ROLES, farm } from "./farm";
 import { counterparty } from "./fattening";
 import { pen } from "./herd";
+import { sopInstance, stepCompletion } from "./instance";
 import { numericMoney } from "./numeric-columns";
 
 /** What a Feed Item is counted in. Its own copy, as `SIDES` and `ANIMAL_STATES` are: this package depends on
@@ -68,7 +70,11 @@ export const ration = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     nameBn: text("name_bn").notNull(),
     nameEn: text("name_en"),
-    currentVersionId: text("current_version_id"),
+    currentVersionId: text("current_version_id").references(
+      // A Ration and its Versions point at each other; the reference is only read once both are made.
+      // oxlint-disable-next-line no-use-before-define
+      (): AnyPgColumn => rationVersion.id
+    ),
     /** The weights it is written for — a grower's 150 to 250 kg — so a bull grown out of it, or one too small for it,
      *  is pointed out to be moved. On the Ration rather than a Version: it says who should eat it, not what they are
      *  fed, and moving it rewrites no Feeding. Null at either end for an end left open. */
@@ -153,8 +159,12 @@ export const feeding = pgTable(
     farmId: text("farm_id")
       .notNull()
       .references(() => farm.id, { onDelete: "cascade" }),
-    instanceId: text("instance_id").notNull(),
-    completionId: text("completion_id").notNull(),
+    instanceId: text("instance_id")
+      .notNull()
+      .references(() => sopInstance.id),
+    completionId: text("completion_id")
+      .notNull()
+      .references(() => stepCompletion.id),
     penId: text("pen_id")
       .notNull()
       .references(() => pen.id),
@@ -259,7 +269,9 @@ export const stockCount = pgTable(
     feedItemId: text("feed_item_id")
       .notNull()
       .references(() => feedItem.id),
-    completionId: text("completion_id").notNull(),
+    completionId: text("completion_id")
+      .notNull()
+      .references(() => stepCompletion.id),
     countedAt: timestamp("counted_at").notNull(),
     /** What the store was thought to hold, just before this count. */
     expected: numeric("expected", { precision: 12, scale: 1 }).notNull(),

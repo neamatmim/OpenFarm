@@ -1,7 +1,10 @@
 // The Venture router's part for its account read against the bank, its Advance, its Reimbursements and its movements.
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { PAYMENT_METHODS } from "@OpenFarm/db/schema/money";
-import { ventureBankCheck, ventureMovement } from "@OpenFarm/db/schema/venture";
+import {
+  ventureBankCheck,
+  ventureMovement,
+} from "@OpenFarm/db/schema/venture-account";
 import {
   farmDayOf,
   hasEnded,

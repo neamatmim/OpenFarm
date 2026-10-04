@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import {
   boolean,
   check,
@@ -161,9 +162,9 @@ export const animal = pgTable(
      *  No foreign key: the herd schema is read by the breeding one, not the other way about. */
     expectedCalvingServiceId: text("expected_calving_service_id"),
     /** Her mother and the Calving she was born in, for a calf born on this farm. Null for an animal
-     *  that arrived. No foreign keys: the herd schema is read by the breeding one, not the other way
-     *  about, and a calf and her mother are both rows of this table. */
-    damId: text("dam_id"),
+     *  that arrived. Her mother is a row of this table, and held to it; her Calving is by id, as the
+     *  herd schema is read by the breeding one, not the other way about. */
+    damId: text("dam_id").references((): AnyPgColumn => animal.id),
     calvingId: text("calving_id"),
     /** Where she came in her Calving — first, second of twins — and whether she was alive. Kept, not
      *  worked out from her State: a calf born alive who dies a week later was not stillborn. */

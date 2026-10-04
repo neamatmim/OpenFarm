@@ -5,7 +5,7 @@ import { PAYMENT_METHODS } from "@OpenFarm/db/schema/money";
 import {
   ventureSettlementShare,
   ventureSettlement,
-} from "@OpenFarm/db/schema/venture";
+} from "@OpenFarm/db/schema/venture-account";
 import type { PaymentMethod } from "@OpenFarm/domain";
 import {
   farmDayOf,

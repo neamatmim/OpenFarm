@@ -1,3 +1,4 @@
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import {
   index,
   integer,
@@ -42,7 +43,9 @@ export const auditEvent = pgTable(
     before: jsonb("before"),
     after: jsonb("after"),
     reason: text("reason"),
-    supersedesId: text("supersedes_id"),
+    supersedesId: text("supersedes_id").references(
+      (): AnyPgColumn => auditEvent.id
+    ),
   },
   (table) => [
     index("audit_event_entity_idx").on(

@@ -1,3 +1,4 @@
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import {
   index,
   integer,
@@ -21,7 +22,11 @@ export const sopDefinition = pgTable(
       .notNull()
       .references(() => farm.id, { onDelete: "cascade" }),
     /** The Version in force. Null only between creating a Definition and publishing its first. */
-    currentVersionId: text("current_version_id"),
+    currentVersionId: text("current_version_id").references(
+      // A procedure and its Versions point at each other; the reference is only read once both are made.
+      // oxlint-disable-next-line no-use-before-define
+      (): AnyPgColumn => sopVersion.id
+    ),
     /** Set when the Owner retires an SOP; history and past Instances stay. */
     retiredAt: timestamp("retired_at"),
     createdBy: text("created_by").references(() => user.id),

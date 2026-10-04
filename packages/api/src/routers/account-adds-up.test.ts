@@ -1,4 +1,4 @@
-import { ventureMovement } from "@OpenFarm/db/schema/venture";
+import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
 import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 

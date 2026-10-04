@@ -1,5 +1,5 @@
 import { eq } from "@OpenFarm/db/operators";
-import { ventureMovement } from "@OpenFarm/db/schema/venture";
+import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
 import { capitalItMayHold } from "@OpenFarm/domain";
 import { currencyWords } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";

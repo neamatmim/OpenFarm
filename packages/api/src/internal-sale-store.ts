@@ -3,7 +3,7 @@ import { eq } from "@OpenFarm/db/operators";
 import { internalSale } from "@OpenFarm/db/schema/fattening";
 import { animal } from "@OpenFarm/db/schema/herd";
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
-import { ventureMovement } from "@OpenFarm/db/schema/venture";
+import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
 import type { TargetWindow } from "@OpenFarm/domain";
 import { startOfFarmDay } from "@OpenFarm/domain";
 

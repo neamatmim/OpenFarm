@@ -1,6 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
-import { venture, ventureMovement } from "@OpenFarm/db/schema/venture";
+import { venture } from "@OpenFarm/db/schema/venture";
+import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
 import type { MonthlyTerms } from "@OpenFarm/domain";
 import {
   farmDayOf,

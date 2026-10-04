@@ -1,4 +1,4 @@
-import type { AdjustmentOutcome } from "@OpenFarm/db/schema/venture";
+import type { AdjustmentOutcome } from "@OpenFarm/db/schema/venture-account";
 
 import type { ChargeWord } from "./settlement-store";
 
