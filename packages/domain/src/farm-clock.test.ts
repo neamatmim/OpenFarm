@@ -86,6 +86,22 @@ describe("the farm's own clock, where the clocks change", () => {
   });
 });
 
+describe("a farm whose clock is not a whole hour from UTC", () => {
+  it("starts its day at its own midnight, a quarter past six UTC in Kathmandu", () => {
+    setFarmLocale({ ...DEFAULT_FARM_LOCALE, timeZone: "Asia/Kathmandu" });
+    expect(farmDayOf(at("2026-10-02T18:14:59Z"))).toBe("2026-10-02");
+    expect(farmDayOf(at("2026-10-02T18:15:00Z"))).toBe("2026-10-03");
+    expect(farmTimeOf(at("2026-10-02T18:44:59Z"))).toBe("00:29");
+    expect(startOfFarmDay("2026-10-03")).toEqual(at("2026-10-02T18:15:00Z"));
+  });
+
+  it("reads the same day again after reading another zone's", () => {
+    expect(farmDayOf(at("2026-10-02T18:00:00Z"))).toBe("2026-10-03");
+    inLondon();
+    expect(farmDayOf(at("2026-10-02T18:00:00Z"))).toBe("2026-10-02");
+  });
+});
+
 describe("where the farm is", () => {
   it("refuses a time zone nobody knows, rather than reading every day as UTC", () => {
     expect(() =>

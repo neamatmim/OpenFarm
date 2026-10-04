@@ -750,6 +750,42 @@ export const economicsOfHerd = (
 };
 
 /**
+ * The costing narrowed to each of several stretches at once: its charges and litres in each, every one read once. A
+ * report of thirteen stretches asked of the whole would read a year's million charges thirteen times; asked of these,
+ * each stretch reads its own. Everything else — the animals, each one's own charges — is the whole costing's, as
+ * `costsBySide` needs it.
+ */
+export const narrowedToEach = (
+  costs: FarmCosts,
+  ranges: readonly { from: Date; until: Date }[]
+): FarmCosts[] => {
+  // Plain loops over moments as numbers: a million charges a year, each asked of every stretch.
+  const slots = ranges.map((range) => ({
+    from: range.from.getTime(),
+    until: range.until.getTime(),
+    charges: [] as FarmCosts["charges"][number][],
+    litres: [] as FarmCosts["litres"][number][],
+  }));
+  for (const one of costs.charges) {
+    const at = one.at.getTime();
+    for (const slot of slots) {
+      if (at >= slot.from && at < slot.until) {
+        slot.charges.push(one);
+      }
+    }
+  }
+  for (const one of costs.litres) {
+    const at = one.at.getTime();
+    for (const slot of slots) {
+      if (at >= slot.from && at < slot.until) {
+        slot.litres.push(one);
+      }
+    }
+  }
+  return slots.map(({ charges, litres }) => ({ ...costs, charges, litres }));
+};
+
+/**
  * A period added up by Side. What each Side's animals were fed, dosed and visited for in the period, and
  * the litres the Dairy side sent to Bulk in it with what a litre cost. Apart from those, the fattening
  * animals sold in the period, each with her whole-life Margin — a different sum from the period's feed,
