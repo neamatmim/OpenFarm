@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { PAID_FROM_THE_ACCOUNT, putCapitalIn } from "../test/bought-by-bank";
 import { createTestClient } from "../test/client";
+import { workedOutAfresh } from "../writes-seen";
 import { appRouter } from "./index";
 
 /**
@@ -134,6 +135,19 @@ describe("a month's Reimbursement due", () => {
     expect(await toldOf("owner", "2078-03-01T10:00:00.000Z")).toEqual([
       { month: "2078-01", owedMoney: 3000 },
     ]);
+  });
+
+  it("asks of a month that came to nothing once a day, not at every opening of the staff's page", async () => {
+    // February came to nothing (above). Something is written — a shed — and the staff open the app again: the sweep
+    // does not work the farm's whole costing out again to find February still owing nothing.
+    const owner = await as("owner", "2078-03-01T11:00:00.000Z");
+    await owner.client.sheds.create({ name: `আরেক শেড ${suffix}` });
+    const before = workedOutAfresh("costs");
+    await sweptOn("2078-03-01T11:30:00.000Z");
+    expect(workedOutAfresh("costs")).toBe(before);
+    // The next farm day it is asked again, so a cost dated into February that arrives late is still told.
+    await sweptOn("2078-03-02T04:00:00.000Z");
+    expect(workedOutAfresh("costs")).toBe(before + 1);
   });
 
   it("is due for a month whose only figure is what it carries", async () => {
