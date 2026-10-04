@@ -4041,7 +4041,7 @@ export const en = {
   "work.restWell": "The other {count} are well",
   "work.restWellTitle": "Write the other {count} down as well?",
   "work.restWellBody":
-    "Each animal not yet looked at is written down as “{reason}”. Walk the whole Pen first.",
+    "Each animal not yet looked at is written down as “{reason}”. Walk the whole pen first.",
   "work.restWellConfirm": "Yes, all well",
   "work.doseOf": "Dose {number} of {of}",
   "work.putOffSince": "Again — first put off {day}",
