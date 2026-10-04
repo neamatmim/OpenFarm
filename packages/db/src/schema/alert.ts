@@ -38,11 +38,11 @@ export const alert = pgTable(
     /** What the message needs, snapshotted: the SOP's name, the Pen, a send-back reason.
      *  Held rather than joined so the notice still reads as it did when it was raised. */
     params: jsonb("params").notNull(),
-    createdAt: timestamp("created_at").notNull(),
-    dismissedAt: timestamp("dismissed_at"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    dismissedAt: timestamp("dismissed_at", { withTimezone: true }),
     /** When this was carried in a Digest. Null for one still waiting, and for the immediate
      *  ones that never travel that way. */
-    carriedAt: timestamp("carried_at"),
+    carriedAt: timestamp("carried_at", { withTimezone: true }),
   },
   (table) => [
     /** One Alert per person per thing per kind: the sweep that raises them runs as often as
@@ -82,7 +82,7 @@ export const textMessage = pgTable(
     /** What the gateway said. False is kept too: a message that did not go is the thing worth
      *  knowing. */
     delivered: boolean("delivered").notNull(),
-    sentAt: timestamp("sent_at").notNull(),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     /** One message per person per thing. Said once, however many times the farm is told. */

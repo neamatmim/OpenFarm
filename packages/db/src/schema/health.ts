@@ -43,18 +43,18 @@ export const drugProduct = pgTable(
     meatWithdrawalDays: integer("meat_withdrawal_days"),
     /** Who last said what the days are, and when. The days are evidence, so their author is. */
     daysSetBy: text("days_set_by").references(() => user.id),
-    daysSetAt: timestamp("days_set_at"),
+    daysSetAt: timestamp("days_set_at", { withTimezone: true }),
     /** The Vet's word that this is a vaccine: its doses go on the vaccination register, and each carries the Lot
      *  Number it came from. */
     vaccine: boolean("vaccine").notNull().default(false),
     /** Retired, never removed: a Treatment given last March still names its product. */
-    retiredAt: timestamp("retired_at"),
+    retiredAt: timestamp("retired_at", { withTimezone: true }),
     /** The doses on hand below which the store says it is running low, as a Feed Item's level does. Null for
      *  a product nobody has set one for. */
     lowStockAt: integer("low_stock_at"),
     addedBy: text("added_by").references(() => user.id),
     addedByRole: text("added_by_role", { enum: ROLES }),
-    createdAt: timestamp("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     // Its farm's rows are read by this unique index's own leading column; no second index on it.
@@ -102,11 +102,11 @@ export const diagnosis = pgTable(
       .notNull()
       .references(() => user.id),
     /** The farm's clock, not the phone's — the clinical record's own order. */
-    diagnosedAt: timestamp("diagnosed_at").notNull(),
-    recordedAt: timestamp("recorded_at").notNull(),
+    diagnosedAt: timestamp("diagnosed_at", { withTimezone: true }).notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
     /** How it ended, when the Vet has said: nothing while she is still being seen to. */
     outcome: text("outcome", { enum: DIAGNOSIS_OUTCOMES }),
-    closedAt: timestamp("closed_at"),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
     closedBy: text("closed_by").references(() => user.id),
   },
   (table) => [
@@ -168,8 +168,8 @@ export const prescription = pgTable(
     prescribedBy: text("prescribed_by")
       .notNull()
       .references(() => user.id),
-    prescribedAt: timestamp("prescribed_at").notNull(),
-    recordedAt: timestamp("recorded_at").notNull(),
+    prescribedAt: timestamp("prescribed_at", { withTimezone: true }).notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     index("prescription_animal_idx").on(table.animalId, table.prescribedAt),
@@ -221,13 +221,13 @@ export const treatment = pgTable(
     /** Which dose of the course this is — 1 of 6 — so the farm can say where it got to. One
      *  for a campaign, which gives each animal a single dose. */
     number: integer("number").notNull(),
-    dueAt: timestamp("due_at").notNull(),
+    dueAt: timestamp("due_at", { withTimezone: true }).notNull(),
     /** The Step that recorded giving it. Null until somebody does. */
     completionId: text("completion_id").references(() => stepCompletion.id, {
       onDelete: "set null",
     }),
     givenBy: text("given_by").references(() => user.id),
-    givenAt: timestamp("given_at"),
+    givenAt: timestamp("given_at", { withTimezone: true }),
     /** This dose's own Lot Number, when it came from a different vial than the rest of its Campaign. Null for a
      *  dose from the Campaign's Lot Number, which is read from the Campaign so a Correction to it reaches every
      *  dose. */
@@ -240,7 +240,7 @@ export const treatment = pgTable(
      *  writes for the product itself are the Drug List's word, and win. */
     milkWithdrawalDays: integer("milk_withdrawal_days"),
     meatWithdrawalDays: integer("meat_withdrawal_days"),
-    createdAt: timestamp("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     /** One dose per animal per piece of work: a Prescription's Instance is about one animal,
@@ -276,7 +276,7 @@ export const campaignLotNumber = pgTable(
       .notNull()
       .references(() => stepCompletion.id),
     recordedBy: text("recorded_by").references(() => user.id),
-    recordedAt: timestamp("recorded_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     /** One Lot Number to a Campaign: asked once. */
@@ -311,10 +311,10 @@ export const notifiableDisease = pgTable(
     note: text("note"),
     addedBy: text("added_by").references(() => user.id),
     addedByRole: text("added_by_role", { enum: ROLES }),
-    createdAt: timestamp("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
     /** Taken off the list, never deleted: a report made last year was made against the list as
      *  it stood then. */
-    retiredAt: timestamp("retired_at"),
+    retiredAt: timestamp("retired_at", { withTimezone: true }),
   },
   (table) => [
     // Its farm's rows are read by this unique index's own leading column; no second index on it.
@@ -349,7 +349,7 @@ export const dlsReport = pgTable(
      *  reported as — the answer to "why did you report that one". */
     diseaseId: text("disease_id").references(() => notifiableDisease.id),
     /** When the letter reached the office, as the person who took it says. Null until it has. */
-    deliveredAt: timestamp("delivered_at"),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
     /** What the office filed it under. The farm's evidence that it went. */
     reference: text("reference"),
     completionId: text("completion_id").references(() => stepCompletion.id, {
@@ -358,8 +358,8 @@ export const dlsReport = pgTable(
     deliveredBy: text("delivered_by").references(() => user.id),
     /** When a Correction to the Diagnosis left nothing to report — the disease it now names is
      *  not on the farm's list. Withdrawn, never deleted: a letter that went, went. */
-    withdrawnAt: timestamp("withdrawn_at"),
-    createdAt: timestamp("created_at").notNull(),
+    withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     uniqueIndex("dls_report_diagnosis_uidx").on(table.diagnosisId),
@@ -394,9 +394,9 @@ export const vetCase = pgTable(
     openedBy: text("opened_by")
       .notNull()
       .references(() => user.id),
-    openedAt: timestamp("opened_at").notNull(),
+    openedAt: timestamp("opened_at", { withTimezone: true }).notNull(),
     closedBy: text("closed_by").references(() => user.id),
-    closedAt: timestamp("closed_at"),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
   },
   (table) => [
     index("vet_case_vet_idx").on(table.farmId, table.vetId),
@@ -427,14 +427,14 @@ export const medicineCount = pgTable(
     completionId: text("completion_id")
       .notNull()
       .references(() => stepCompletion.id),
-    countedAt: timestamp("counted_at").notNull(),
+    countedAt: timestamp("counted_at", { withTimezone: true }).notNull(),
     /** What the store was thought to hold just before this count, in doses. */
     expected: integer("expected").notNull(),
     counted: integer("counted").notNull(),
     /** Why what was counted is not what was expected. Null when they match. */
     reason: text("reason"),
     countedBy: text("counted_by").references(() => user.id),
-    recordedAt: timestamp("recorded_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     uniqueIndex("medicine_count_line_uidx").on(
@@ -469,7 +469,7 @@ export const excusedDose = pgTable(
       .references(() => sopDefinition.id),
     reason: text("reason").notNull(),
     excusedBy: text("excused_by").references(() => user.id),
-    excusedAt: timestamp("excused_at").notNull(),
+    excusedAt: timestamp("excused_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     uniqueIndex("excused_dose_uidx").on(table.animalId, table.definitionId),

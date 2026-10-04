@@ -18,8 +18,9 @@ const POOL_MAX = 10;
 /**
  * What every session is set to the moment it opens, ahead of anything else on it:
  *
- * - Every moment is kept as its UTC wall clock in a column without its zone, as drizzle writes a Date, so each session
- *   reads and defaults (`DEFAULT now()`) at UTC too, whatever the server or the address would set.
+ * - Every moment carries its zone, so it is the same instant read in any session. Each session still runs at UTC,
+ *   whatever the server or the address would set, so a moment cut to its day in SQL (`::date`) falls on the UTC day
+ *   the code works in.
  * - No one statement runs past half a minute: a runaway report gives up rather than holding a connection, and with
  *   it a tenth of the pool, until the farm's requests queue behind it.
  * - No transaction is left open and idle past a minute, holding its locks and keeping vacuum from its work. The

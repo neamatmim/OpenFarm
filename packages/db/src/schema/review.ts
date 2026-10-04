@@ -40,8 +40,8 @@ export const needsReview = pgTable(
     auditEventId: text("audit_event_id")
       .notNull()
       .references(() => auditEvent.id),
-    raisedAt: timestamp("raised_at").notNull(),
-    resolvedAt: timestamp("resolved_at"),
+    raisedAt: timestamp("raised_at", { withTimezone: true }).notNull(),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
     resolvedBy: text("resolved_by").references(() => user.id),
     /** What the person decided. Required to resolve: a queue cleared without a word is a
      *  queue nobody can audit. */

@@ -37,9 +37,9 @@ export const auditEvent = pgTable(
     deviceId: text("device_id"),
     deviceSeq: integer("device_seq"),
     /** When the actor says it happened (device clock for offline entries). */
-    recordedAt: timestamp("recorded_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
     /** When the server accepted it — the authoritative audit order. */
-    receivedAt: timestamp("received_at").notNull(),
+    receivedAt: timestamp("received_at", { withTimezone: true }).notNull(),
     before: jsonb("before"),
     after: jsonb("after"),
     reason: text("reason"),

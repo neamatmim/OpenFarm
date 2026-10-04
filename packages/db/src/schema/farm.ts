@@ -56,8 +56,12 @@ export const farm = pgTable("farm", {
    *  increment 7; the facts an inspector asks for first are here from the start. */
   registrationNumber: text("registration_number"),
   registrationOffice: text("registration_office"),
-  registrationIssuedOn: timestamp("registration_issued_on"),
-  registrationExpiresOn: timestamp("registration_expires_on"),
+  registrationIssuedOn: timestamp("registration_issued_on", {
+    withTimezone: true,
+  }),
+  registrationExpiresOn: timestamp("registration_expires_on", {
+    withTimezone: true,
+  }),
   /** How long before the registration runs out the farm starts saying so. The renewal SOP is
    *  raised on the same lead (increment 7), so a farm that has not been told by then is a farm
    *  finding out from an inspector. */
@@ -266,7 +270,7 @@ export const farm = pgTable("farm", {
    *  the Owner's eyes; a Venture's animals are priced at their Venture's own figures instead. Nothing until it is set. */
   marketLowMoneyPerKg: numericMoney("market_low_money_per_kg"),
   marketHighMoneyPerKg: numericMoney("market_high_money_per_kg"),
-  marketPriceSetAt: timestamp("market_price_set_at"),
+  marketPriceSetAt: timestamp("market_price_set_at", { withTimezone: true }),
   /** Whether Investors are shown each Venture's **Projection** in the portal (ADR 0010). Off until the Owner turns it
    *  on — once the lawyer and the Shariah scholar have seen its wording — and the Owner's Portal Preview shows it
    *  either way, so it can be read before anybody else does. */
@@ -288,8 +292,10 @@ export const farm = pgTable("farm", {
   /** How far the Alert sweep has told people about. Everything that went late at or after
    *  this instant has been said; older work lives on the Overdue list, not in anyone's
    *  notifications. Null until the first sweep. */
-  alertsSweptFrom: timestamp("alerts_swept_from"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  alertsSweptFrom: timestamp("alerts_swept_from", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export const ROLES = ["owner", "manager", "staff", "vet"] as const;
@@ -314,14 +320,16 @@ export const roleAssignment = pgTable(
     grantedBy: text("granted_by").references(() => user.id),
     /** The Role the granter acted under — audit attribution until Audit Events arrive. */
     grantedByRole: text("granted_by_role", { enum: ROLES }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     /** Roles are never deleted; a revoked one keeps its history. */
-    revokedAt: timestamp("revoked_at"),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
     /** For the Vet role: "visiting" for a vet called in for a visit, who sees only the animals on their cases. Null
      *  is a full Vet. */
     scope: text("scope", { enum: VET_SCOPES }),
     /** When access granted for a visit ends. Null for a Role that does not run out. */
-    expiresAt: timestamp("expires_at"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
   },
   (table) => [
     uniqueIndex("role_assignment_user_role_uidx").on(
@@ -361,10 +369,12 @@ export const passwordCode = pgTable(
       .notNull()
       .references(() => user.id),
     issuedByRole: text("issued_by_role", { enum: ROLES }).notNull(),
-    expiresAt: timestamp("expires_at").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     /** When it was used, after which it is not a way in any more. */
-    usedAt: timestamp("used_at"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [uniqueIndex("password_code_user_uidx").on(table.userId)]
 );
@@ -391,20 +401,22 @@ export const invite = pgTable(
       .references(() => user.id),
     invitedByRole: text("invited_by_role", { enum: ROLES }).notNull(),
     approvedBy: text("approved_by").references(() => user.id),
-    approvedAt: timestamp("approved_at"),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
     /** The one-time code the invited person enters to take up the invite, hashed. Handed over by whoever invited
      *  them, so an invite is taken up by the person it was given to — not by whoever signs up first with that email.
      *  Cleared once used. */
     codeHash: text("code_hash"),
     /** When the invited person took it up with the code. */
-    acceptedAt: timestamp("accepted_at"),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
     /** For a Barn Staff member who works only on the Shed Phones: the person it was written for, already made, with
      *  no login. Taken up the moment it is approved — they have no code to enter. */
     forUserId: text("for_user_id").references(() => user.id),
     /** For a Vet invited for a visit: "visiting", and the day their access ends. */
     vetScope: text("vet_scope", { enum: VET_SCOPES }),
-    accessUntil: timestamp("access_until"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    accessUntil: timestamp("access_until", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [index("invite_email_idx").on(table.farmId, table.email)]
 );
@@ -428,7 +440,7 @@ export const registrationCertificate = pgTable(
      *  renewal replaces its own photograph rather than adding another. */
     completionId: text("completion_id"),
     takenBy: text("taken_by").references(() => user.id),
-    takenAt: timestamp("taken_at").notNull(),
+    takenAt: timestamp("taken_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     index("registration_certificate_farm_idx").on(table.farmId, table.takenAt),
@@ -451,10 +463,10 @@ export const registrationRenewal = pgTable(
       .notNull()
       .references(() => farm.id, { onDelete: "cascade" }),
     completionId: text("completion_id").notNull(),
-    previousExpiresOn: timestamp("previous_expires_on"),
-    expiresOn: timestamp("expires_on").notNull(),
+    previousExpiresOn: timestamp("previous_expires_on", { withTimezone: true }),
+    expiresOn: timestamp("expires_on", { withTimezone: true }).notNull(),
     renewedBy: text("renewed_by").references(() => user.id),
-    renewedAt: timestamp("renewed_at").notNull(),
+    renewedAt: timestamp("renewed_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     uniqueIndex("registration_renewal_completion_uidx").on(table.completionId),
@@ -483,9 +495,9 @@ export const financialYearChange = pgTable(
     /** Why: the law or the notice the farm's books follow, as its accountant will be asked. */
     reason: text("reason").notNull(),
     recordedBy: text("recorded_by").references(() => user.id),
-    recordedAt: timestamp("recorded_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
     withdrawnBy: text("withdrawn_by").references(() => user.id),
-    withdrawnAt: timestamp("withdrawn_at"),
+    withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
     withdrawnReason: text("withdrawn_reason"),
   },
   (table) => [

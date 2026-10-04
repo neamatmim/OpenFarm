@@ -110,10 +110,10 @@ export const ventureMovement = pgTable(
     /** When a Buying Float was reconciled, and by whom: what went out, counted against the animals it
      *  bought, the outing's own costs and the cash brought home. Only a Float has them, and until it
      *  has them the Float is open. */
-    reconciledAt: timestamp("reconciled_at"),
+    reconciledAt: timestamp("reconciled_at", { withTimezone: true }),
     reconciledBy: text("reconciled_by").references(() => user.id),
     recordedBy: text("recorded_by").references(() => user.id),
-    createdAt: timestamp("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     check(
@@ -165,7 +165,7 @@ export const ventureBankCheck = pgTable(
     /** What she found out about a difference, where she has found out anything. */
     note: text("note"),
     checkedBy: text("checked_by").references(() => user.id),
-    checkedAt: timestamp("checked_at").notNull(),
+    checkedAt: timestamp("checked_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     check(
@@ -228,7 +228,7 @@ export const ventureSettlement = pgTable(
       () => ventureMovement.id
     ),
     approvedBy: text("approved_by").references(() => user.id),
-    approvedAt: timestamp("approved_at").notNull(),
+    approvedAt: timestamp("approved_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     // One Settlement per Venture: approving twice is two answers to the same question.
@@ -269,10 +269,10 @@ export const ventureSettlementShare = pgTable(
       () => ventureMovement.id
     ),
     /** When he said he had it, and anything he said about it. */
-    acknowledgedAt: timestamp("acknowledged_at"),
+    acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }),
     acknowledgedNote: text("acknowledged_note"),
     acknowledgedBy: text("acknowledged_by").references(() => user.id),
-    createdAt: timestamp("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     // One share per Agreement, not per Investor: the same person may hold two papers on one Venture, and
@@ -336,10 +336,10 @@ export const settlementAdjustment = pgTable(
     /** What the Owner said when she waived it, which she stands behind. */
     waivedNote: text("waived_note"),
     /** When it stopped being outstanding, and who made it stop. */
-    closedAt: timestamp("closed_at"),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
     closedBy: text("closed_by").references(() => user.id),
     raisedBy: text("raised_by").references(() => user.id),
-    raisedAt: timestamp("raised_at").notNull(),
+    raisedAt: timestamp("raised_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     index("venture_settlement_adjustment_idx").on(

@@ -95,6 +95,14 @@ describe("what the database takes", () => {
     expect(unheld).toEqual([]);
   });
 
+  it("keeps every moment with its zone, so any session reads the same instant", async () => {
+    const result = await scratchDb().execute<{ column: string }>(
+      sql`select table_name || '.' || column_name as column from information_schema.columns
+          where table_schema = 'public' and data_type = 'timestamp without time zone'`
+    );
+    expect(result.rows.map((row) => row.column)).toEqual([]);
+  });
+
   it("has validated every check it keeps, so no row written before one breaks it", async () => {
     const result = await scratchDb().execute<{ name: string }>(
       sql`select conname as name from pg_constraint

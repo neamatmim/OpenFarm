@@ -41,7 +41,7 @@ export const paperTemplate = pgTable(
       // oxlint-disable-next-line no-use-before-define
       (): AnyPgColumn => paperTemplateVersion.id
     ),
-    createdAt: timestamp("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     uniqueIndex("paper_template_kind_uidx").on(table.farmId, table.kind),
@@ -71,7 +71,7 @@ export const paperTemplateVersion = pgTable(
     /** Nobody, for the standard wording the farm was given. */
     publishedBy: text("published_by").references(() => user.id),
     publishedByRole: text("published_by_role", { enum: ROLES }),
-    publishedAt: timestamp("published_at").notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true }).notNull(),
     /** The lawyer who approved this wording, and the day they did — as the Owner wrote it down. */
     reviewedBy: text("reviewed_by"),
     reviewedOn: text("reviewed_on"),

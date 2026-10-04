@@ -25,13 +25,17 @@ export const shedPhone = pgTable(
     tokenHash: text("token_hash").notNull(),
     /** One-time code the Manager reads out to the phone; cleared once it is claimed. */
     enrolmentCode: text("enrolment_code"),
-    enrolmentExpiresAt: timestamp("enrolment_expires_at"),
+    enrolmentExpiresAt: timestamp("enrolment_expires_at", {
+      withTimezone: true,
+    }),
     enrolledBy: text("enrolled_by").references(() => user.id),
     enrolledByRole: text("enrolled_by_role", { enum: ROLES }),
-    claimedAt: timestamp("claimed_at"),
-    lastSeenAt: timestamp("last_seen_at"),
-    revokedAt: timestamp("revoked_at"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
     uniqueIndex("shed_phone_token_uidx").on(table.tokenHash),
@@ -56,7 +60,7 @@ export const staffPin = pgTable(
     hash: text("hash").notNull(),
     setBy: text("set_by").references(() => user.id),
     setByRole: text("set_by_role", { enum: ROLES }),
-    updatedAt: timestamp("updated_at").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     uniqueIndex("staff_pin_user_farm_uidx").on(table.userId, table.farmId),
@@ -79,8 +83,8 @@ export const deviceSwitch = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     tokenHash: text("token_hash").notNull(),
-    expiresAt: timestamp("expires_at").notNull(),
-    createdAt: timestamp("created_at").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     uniqueIndex("device_switch_token_uidx").on(table.tokenHash),

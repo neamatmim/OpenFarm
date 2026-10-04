@@ -32,7 +32,7 @@ export const milkingSession = pgTable(
     penId: text("pen_id")
       .notNull()
       .references(() => pen.id),
-    dueAt: timestamp("due_at").notNull(),
+    dueAt: timestamp("due_at", { withTimezone: true }).notNull(),
     /** What the tank read; null until the closing Step is done. */
     bulkLitres: numeric("bulk_litres", { precision: 10, scale: 2 }),
     /** The sum of the per-cow records destined for Bulk, at the moment the total was taken. */
@@ -43,8 +43,8 @@ export const milkingSession = pgTable(
      *  explicable after the parameter is changed. */
     tolerancePercent: integer("tolerance_percent"),
     /** Set when the difference is beyond that tolerance — the Manager looks at it. */
-    flaggedAt: timestamp("flagged_at"),
-    createdAt: timestamp("created_at").notNull(),
+    flaggedAt: timestamp("flagged_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     uniqueIndex("milking_session_instance_uidx").on(table.instanceId),
@@ -81,7 +81,7 @@ export const milkRecord = pgTable(
     recordedBy: text("recorded_by")
       .notNull()
       .references(() => user.id),
-    recordedAt: timestamp("recorded_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     uniqueIndex("milk_record_completion_uidx").on(table.completionId),
@@ -108,7 +108,7 @@ export const dispatch = pgTable(
     farmId: text("farm_id")
       .notNull()
       .references(() => farm.id, { onDelete: "cascade" }),
-    dispatchedAt: timestamp("dispatched_at").notNull(),
+    dispatchedAt: timestamp("dispatched_at", { withTimezone: true }).notNull(),
     litres: numeric("litres", { precision: 10, scale: 2 }).notNull(),
     buyerId: text("buyer_id")
       .notNull()
@@ -134,7 +134,7 @@ export const dispatch = pgTable(
     note: text("note"),
     recordedBy: text("recorded_by").references(() => user.id),
     recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
-    recordedAt: timestamp("recorded_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
   (table) => [index("dispatch_farm_idx").on(table.farmId, table.dispatchedAt)]
 );

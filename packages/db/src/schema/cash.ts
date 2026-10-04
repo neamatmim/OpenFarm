@@ -36,8 +36,8 @@ export const cashCount = pgTable(
     expected: numericMoney("expected").notNull(),
     /** Why it differs, in the counter's words, where they gave one. */
     note: text("note"),
-    countedAt: timestamp("counted_at").notNull(),
-    recordedAt: timestamp("recorded_at").notNull(),
+    countedAt: timestamp("counted_at", { withTimezone: true }).notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     uniqueIndex("cash_count_completion_uidx").on(table.completionId),

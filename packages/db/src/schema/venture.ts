@@ -81,7 +81,7 @@ export const venture = pgTable(
     /** Why a Venture was called off, in the Owner's words. */
     cancelledReason: text("cancelled_reason"),
     /** When the Owner showed it to invited Investors in the portal; empty while it is not shown (ADR 0008). */
-    shownInPortalAt: timestamp("shown_in_portal_at"),
+    shownInPortalAt: timestamp("shown_in_portal_at", { withTimezone: true }),
     /** The Owner's few words on it for the portal, beside its terms. */
     portalWords: text("portal_words"),
     /** The Venture Account, as the Owner writes it: where a signed Investor is told to pay. The bank, the account's
@@ -94,7 +94,7 @@ export const venture = pgTable(
     accountRoutingNumber: text("account_routing_number"),
     openedBy: text("opened_by").references(() => user.id),
     openedByRole: text("opened_by_role", { enum: ROLES }).notNull(),
-    createdAt: timestamp("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     check(
@@ -142,7 +142,7 @@ export const venturePlan = pgTable(
       .default("0"),
     /** Why the plan was revised after buying began; nothing for one made before. */
     reason: text("reason"),
-    madeAt: timestamp("made_at").notNull(),
+    madeAt: timestamp("made_at", { withTimezone: true }).notNull(),
     madeBy: text("made_by").references(() => user.id),
   },
   (table) => [
@@ -199,10 +199,10 @@ export const investor = pgTable(
     /** Where their money goes: bank channels only, so the account is the way to pay them. */
     bankAccount: text("bank_account"),
     recordedBy: text("recorded_by").references(() => user.id),
-    createdAt: timestamp("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
     /** Retired, never removed: their Agreements, payouts and statements are kept for twelve years and every
      *  one of them names them. A retired Investor is not signed for another Venture until brought back. */
-    retiredAt: timestamp("retired_at"),
+    retiredAt: timestamp("retired_at", { withTimezone: true }),
   },
   (table) => [
     // A name is not an identity in Bangladesh — two Md. Abdul Karims are two people, and the farm may
@@ -251,18 +251,18 @@ export const investorAccess = pgTable(
     loginEmail: text("login_email").notNull(),
     /** The open invitation's code, hashed; cleared once it is used. */
     codeHash: text("code_hash"),
-    codeExpiresAt: timestamp("code_expires_at"),
+    codeExpiresAt: timestamp("code_expires_at", { withTimezone: true }),
     invitedBy: text("invited_by").references(() => user.id),
-    invitedAt: timestamp("invited_at").notNull(),
-    acceptedAt: timestamp("accepted_at"),
-    revokedAt: timestamp("revoked_at"),
+    invitedAt: timestamp("invited_at", { withTimezone: true }).notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
     /** Why it was taken away, with `revokedAt`: null for access taken away before the farm asked why. */
     revokedWhy: text("revoked_why", { enum: PORTAL_TAKEN_AWAY_WHY }),
     /** When they were last in the portal, to the hour: kept here because sessions end and are cleared. */
-    lastSeenAt: timestamp("last_seen_at"),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
     /** When they last looked at the Ventures offered to them: one the Owner has shown since is new to them. Theirs to
      *  set by looking; the Owner's Preview never sets it. */
-    offersSeenAt: timestamp("offers_seen_at"),
+    offersSeenAt: timestamp("offers_seen_at", { withTimezone: true }),
   },
   (table) => [
     uniqueIndex("investor_access_investor_uidx").on(table.investorId),
@@ -295,13 +295,13 @@ export const portalConsent = pgTable(
       .notNull()
       .references(() => paperTemplateVersion.id),
     /** The farm day they signed it. */
-    signedOn: timestamp("signed_on").notNull(),
+    signedOn: timestamp("signed_on", { withTimezone: true }).notNull(),
     recordedBy: text("recorded_by")
       .notNull()
       .references(() => user.id),
-    recordedAt: timestamp("recorded_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
     /** The day it was withdrawn, and how they asked: filled when they withdraw it, and it stops being in force. */
-    withdrawnOn: timestamp("withdrawn_on"),
+    withdrawnOn: timestamp("withdrawn_on", { withTimezone: true }),
     withdrawnHow: text("withdrawn_how", { enum: CONSENT_WITHDRAWN_HOW }),
   },
   (table) => [
@@ -368,7 +368,7 @@ export const requestToJoin = pgTable(
       .default("waiting"),
     /** The account that asked: the Investor's own, opened from their invitation. */
     madeBy: text("made_by").references(() => user.id),
-    createdAt: timestamp("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
     /** The Owner's answer. For "come and sign", the Units the farm will sign: those asked, or fewer. Held by no
      *  Agreement until one is signed, but no other yes may promise them. */
     answeredUnits: integer("answered_units"),
@@ -376,10 +376,10 @@ export const requestToJoin = pgTable(
     answerLine: text("answer_line"),
     /** Who answered, and when: the Owner, whose promise it is. */
     answeredBy: text("answered_by").references(() => user.id),
-    answeredAt: timestamp("answered_at"),
+    answeredAt: timestamp("answered_at", { withTimezone: true }),
     /** Why and when the farm closed it, for one closed by what happened to the Venture or the Investor. */
     closedBecause: text("closed_because", { enum: REQUEST_CLOSE_REASONS }),
-    closedAt: timestamp("closed_at"),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
   },
   (table) => [
     index("request_to_join_venture_idx").on(table.farmId, table.ventureId),
@@ -450,7 +450,7 @@ export const investmentAgreement = pgTable(
      *  joined by phone. Where the two disagree on Units, the paper is right. */
     requestId: text("request_id").references(() => requestToJoin.id),
     signedBy: text("signed_by").references(() => user.id),
-    createdAt: timestamp("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     check(
@@ -516,13 +516,13 @@ export const agreementOffer = pgTable(
     /** Its fingerprint, which the Investor's agreement is recorded against. */
     paperHash: text("paper_hash").notNull(),
     offeredBy: text("offered_by").references(() => user.id),
-    offeredAt: timestamp("offered_at").notNull(),
+    offeredAt: timestamp("offered_at", { withTimezone: true }).notNull(),
     /** The Investor agreeing, from their own portal sign-in. */
     agreedBy: text("agreed_by").references(() => user.id),
-    agreedAt: timestamp("agreed_at"),
-    withdrawnAt: timestamp("withdrawn_at"),
+    agreedAt: timestamp("agreed_at", { withTimezone: true }),
+    withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
     approvedBy: text("approved_by").references(() => user.id),
-    approvedAt: timestamp("approved_at"),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
     /** The Agreement written from it on approval. */
     agreementId: text("agreement_id").references(() => investmentAgreement.id),
   },
@@ -562,10 +562,10 @@ export const amendmentOffer = pgTable(
     paper: jsonb("paper").notNull(),
     paperHash: text("paper_hash").notNull(),
     offeredBy: text("offered_by").references(() => user.id),
-    offeredAt: timestamp("offered_at").notNull(),
-    withdrawnAt: timestamp("withdrawn_at"),
+    offeredAt: timestamp("offered_at", { withTimezone: true }).notNull(),
+    withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
     approvedBy: text("approved_by").references(() => user.id),
-    approvedAt: timestamp("approved_at"),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
     /** The Amendment written from it on approval: its rows' `amendedId`. */
     amendedId: text("amended_id"),
   },
@@ -601,7 +601,7 @@ export const amendmentOfferAnswer = pgTable(
       .notNull()
       .references(() => investmentAgreement.id),
     agreedBy: text("agreed_by").references(() => user.id),
-    agreedAt: timestamp("agreed_at").notNull(),
+    agreedAt: timestamp("agreed_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     uniqueIndex("amendment_offer_answer_uidx").on(
@@ -632,7 +632,7 @@ export const requestToJoinChange = pgTable(
     units: integer("units").notNull(),
     note: text("note"),
     madeBy: text("made_by").references(() => user.id),
-    createdAt: timestamp("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     index("request_to_join_change_idx").on(table.farmId, table.requestId),
@@ -676,7 +676,7 @@ export const agreementAmendment = pgTable(
       () => paperTemplateVersion.id
     ),
     amendedBy: text("amended_by").references(() => user.id),
-    createdAt: timestamp("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     check(
@@ -708,7 +708,7 @@ export const amendmentPaper = pgTable("amendment_paper", {
   contentType: text("content_type").notNull(),
   /** Downscaled on the device before upload, base64. */
   data: text("data").notNull(),
-  updatedAt: timestamp("updated_at").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
 });
 
 /**
@@ -749,7 +749,7 @@ export const nomination = pgTable(
     ),
     /** Nobody, for one carried over. */
     recordedBy: text("recorded_by").references(() => user.id),
-    recordedAt: timestamp("recorded_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     index("nomination_investor_idx").on(table.investorId),
@@ -806,7 +806,7 @@ export const nominationPaper = pgTable("nomination_paper", {
   contentType: text("content_type").notNull(),
   /** Downscaled on the device before upload, base64. */
   data: text("data").notNull(),
-  updatedAt: timestamp("updated_at").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
 });
 
 /** The photo of a stamped Investment Agreement, kept beside the paper it is a picture of: one per Agreement, the
@@ -821,5 +821,5 @@ export const agreementPaper = pgTable("agreement_paper", {
   contentType: text("content_type").notNull(),
   /** Downscaled on the device before upload, base64. */
   data: text("data").notNull(),
-  updatedAt: timestamp("updated_at").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
 });

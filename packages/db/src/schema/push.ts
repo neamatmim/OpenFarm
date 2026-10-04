@@ -37,11 +37,11 @@ export const pushSubscription = pgTable(
     /** The browser's own keys. Without them a message cannot be encrypted to it. */
     p256dh: text("p256dh").notNull(),
     auth: text("auth").notNull(),
-    createdAt: timestamp("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
     /** Set when the browser said it no longer wants to hear, or the push service said it is
      *  gone. Kept rather than deleted: who was told what, and who stopped being told, is
      *  part of the farm's record. */
-    revokedAt: timestamp("revoked_at"),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
   },
   (table) => [
     /** One row per endpoint per Farm: a browser that subscribes twice is one browser, and

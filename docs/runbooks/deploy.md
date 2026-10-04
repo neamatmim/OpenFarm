@@ -45,10 +45,10 @@ is the part that is easy to believe was done and was not:
       `/etc/openfarm/backup.env` and `PRODUCTION_DATABASE_URL` keep the owner's, which migrations and
       copies need.
 - [ ] **The database itself runs at UTC**: `ALTER DATABASE <name> SET timezone = 'UTC';` in the
-      provider's console, then `SHOW timezone;` in a new session says `UTC`. The app sets UTC on every
-      connection it opens, but the farm's moments are kept in columns without their zone, so the
-      provider's own console, `psql` and a restore drill would otherwise read and write them in
-      whatever zone the server keeps — six hours out, at Dhaka's.
+      provider's console, then `SHOW timezone;` in a new session says `UTC`. Every moment the farm keeps
+      carries its zone, so any session reads the same instant; but the app works in UTC days, and the
+      provider's own console, `psql` and a restore drill would otherwise cut a moment to its day — or
+      show it — at whatever zone the server keeps.
 - [ ] The off-site remote is on a **different provider**, not another bucket on the same one.
 - [ ] The nightly timer is installed and listed — see the restore runbook.
 - [ ] A first copy has run by hand and **Admin → Backups** shows it.

@@ -41,13 +41,13 @@ export const missing = pgTable(
     /** The round's Step that could not find her. A Correction of it that finds her after all takes the Missing back. */
     completionId: text("completion_id").references(() => stepCompletion.id),
     /** When the round says it looked: the phone's clock, as every Step's is. */
-    since: timestamp("since").notNull(),
-    recordedAt: timestamp("recorded_at").notNull(),
+    since: timestamp("since", { withTimezone: true }).notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
     /** The Manager's Found: when, and who. Nothing is deleted once she is found — that she went missing stays true. */
-    foundAt: timestamp("found_at"),
+    foundAt: timestamp("found_at", { withTimezone: true }),
     foundBy: text("found_by").references(() => user.id),
     /** The Owner's write-off: when, and who. She left the herd as Lost from `since`, when she was last looked for. */
-    writtenOffAt: timestamp("written_off_at"),
+    writtenOffAt: timestamp("written_off_at", { withTimezone: true }),
     writtenOffBy: text("written_off_by").references(() => user.id),
     /** What the farm believes became of her, in the Owner's words, as a Mortality's cause is. */
     lostCause: text("lost_cause"),
@@ -56,7 +56,9 @@ export const missing = pgTable(
     gdNumber: text("gd_number"),
     /** The State she was in when she was written off, and since when: what she comes back as if she is found. */
     stateBefore: text("state_before", { enum: ANIMAL_STATES }),
-    stateChangedBefore: timestamp("state_changed_before"),
+    stateChangedBefore: timestamp("state_changed_before", {
+      withTimezone: true,
+    }),
   },
   (table) => [
     index("missing_farm_idx").on(table.farmId, table.since),

@@ -127,10 +127,10 @@ export const moneyCategory = pgTable(
     chargedToAnimals: boolean("charged_to_animals").notNull().default(false),
     /** Since when the Owner has marked it as paid every month — a **Monthly Cost** — so that a month with nothing
      *  entered under it is named. Null while it is not; a month before this one is never named. */
-    paidMonthlySince: timestamp("paid_monthly_since"),
+    paidMonthlySince: timestamp("paid_monthly_since", { withTimezone: true }),
     /** Retired, never removed: a Money Event entered under it last year still names it. */
-    retiredAt: timestamp("retired_at"),
-    createdAt: timestamp("created_at").notNull(),
+    retiredAt: timestamp("retired_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     uniqueIndex("money_category_key_uidx").on(table.farmId, table.key),
@@ -162,11 +162,11 @@ export const farmAccount = pgTable(
     /** A bank account's bank and branch; nothing for mobile money. */
     bank: text("bank"),
     branch: text("branch"),
-    retiredAt: timestamp("retired_at"),
+    retiredAt: timestamp("retired_at", { withTimezone: true }),
     createdBy: text("created_by")
       .notNull()
       .references(() => user.id),
-    createdAt: timestamp("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     uniqueIndex("farm_account_number_uidx").on(
@@ -200,7 +200,7 @@ export const farmAccountCheck = pgTable(
     /** What she found out about a difference, where she has found out anything. */
     note: text("note"),
     checkedBy: text("checked_by").references(() => user.id),
-    checkedAt: timestamp("checked_at").notNull(),
+    checkedAt: timestamp("checked_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     check(
@@ -230,7 +230,7 @@ export const moneyEvent = pgTable(
     direction: text("direction", { enum: MONEY_DIRECTIONS }).notNull(),
     amountMoney: numericMoney("amount_money").notNull(),
     /** When the money moved, as the record that caused it says. */
-    occurredAt: timestamp("occurred_at").notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
     categoryId: text("category_id")
       .notNull()
       .references(() => moneyCategory.id),
@@ -251,10 +251,10 @@ export const moneyEvent = pgTable(
     purseVentureId: text("purse_venture_id").references(() => venture.id),
     approval: text("approval", { enum: MONEY_APPROVALS }).notNull(),
     approvedBy: text("approved_by").references(() => user.id),
-    approvedAt: timestamp("approved_at"),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
     recordedBy: text("recorded_by").references(() => user.id),
     recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
-    recordedAt: timestamp("recorded_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
     /** Whose **Cash in Hand** the notes went into, or came out of: only for cash, and only for money booked since the
      *  farm began saying so — an older one, or one by mobile money or the bank, names nobody. */
     heldBy: text("held_by").references(() => user.id),
@@ -309,7 +309,7 @@ export const handover = pgTable(
     /** Whose hand it went into; nothing for cash deposited in the bank. */
     toUserId: text("to_user_id").references(() => user.id),
     amountMoney: numericMoney("amount_money").notNull(),
-    handedAt: timestamp("handed_at").notNull(),
+    handedAt: timestamp("handed_at", { withTimezone: true }).notNull(),
     /** The deposit slip or the cheque, where the bank is one end. */
     reference: text("reference"),
     note: text("note"),
@@ -327,7 +327,7 @@ export const handover = pgTable(
       .notNull()
       .references(() => user.id),
     recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
-    recordedAt: timestamp("recorded_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
   (table) => [index("handover_farm_idx").on(table.farmId, table.handedAt)]
 );
@@ -349,12 +349,12 @@ export const wageDraw = pgTable(
       .notNull()
       .references(() => counterparty.id),
     amountMoney: numericMoney("amount_money").notNull(),
-    drawnAt: timestamp("drawn_at").notNull(),
+    drawnAt: timestamp("drawn_at", { withTimezone: true }).notNull(),
     note: text("note"),
     recordedBy: text("recorded_by")
       .notNull()
       .references(() => user.id),
-    recordedAt: timestamp("recorded_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     index("wage_draw_person_idx").on(table.farmId, table.counterpartyId),
@@ -395,7 +395,7 @@ export const moneyReceipt = pgTable("money_receipt", {
   contentType: text("content_type").notNull(),
   /** Downscaled on the device before upload, base64. */
   data: text("data").notNull(),
-  updatedAt: timestamp("updated_at").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
 });
 
 /**
@@ -421,7 +421,7 @@ export const medicinePurchase = pgTable(
       .notNull()
       .references(() => counterparty.id),
     /** The farm's day it was bought. */
-    purchasedOn: timestamp("purchased_on").notNull(),
+    purchasedOn: timestamp("purchased_on", { withTimezone: true }).notNull(),
     /** The Lot Number printed on the box, which traces a dose back to what was in it. Null for medicine
      *  written down before the farm asked. */
     lotNumber: text("lot_number"),
@@ -430,7 +430,7 @@ export const medicinePurchase = pgTable(
     expiresOn: text("expires_on"),
     recordedBy: text("recorded_by").references(() => user.id),
     recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
-    recordedAt: timestamp("recorded_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     index("medicine_purchase_product_idx").on(
@@ -457,9 +457,9 @@ export const vetFee = pgTable(
       .references(() => user.id),
     amountMoney: numericMoney("amount_money").notNull(),
     /** The farm's day of the visit. */
-    visitedOn: timestamp("visited_on").notNull(),
+    visitedOn: timestamp("visited_on", { withTimezone: true }).notNull(),
     note: text("note"),
-    recordedAt: timestamp("recorded_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
   (table) => [index("vet_fee_vet_idx").on(table.farmId, table.vetId)]
 );
@@ -504,7 +504,7 @@ export const receivablePayment = pgTable(
     note: text("note"),
     recordedBy: text("recorded_by").references(() => user.id),
     recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
-    recordedAt: timestamp("recorded_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     index("receivable_payment_buyer_idx").on(
@@ -541,7 +541,7 @@ export const receivableWriteOff = pgTable(
     /** The farm day ("YYYY-MM-DD") the Owner wrote it off. */
     writtenOn: text("written_on").notNull(),
     recordedBy: text("recorded_by").references(() => user.id),
-    recordedAt: timestamp("recorded_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     index("receivable_write_off_source_idx").on(
