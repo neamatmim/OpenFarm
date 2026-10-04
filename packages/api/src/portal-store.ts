@@ -32,6 +32,7 @@ import {
 import type { Owned } from "./portal-invitable";
 import { invitable, refused } from "./portal-invitable";
 import { whatTheyDidToTheirRequests } from "./requests-to-join";
+import { seenWhenDone } from "./writes-seen";
 
 // An Investor's way into the portal (ADR 0007): the Owner's invitation, the Investor taking it up with their phone
 // and a password of their own, and the Owner taking it away. The account it opens holds no Role on the farm.
@@ -244,49 +245,51 @@ export const takePortalAway = async (
   if (!(live || withdrawal)) {
     return;
   }
-  await context.db.transaction(async (tx) => {
-    // One change to their access, on the trail with what it was either side.
-    const changeAccess = async (change: () => Promise<unknown>) => {
-      const before = await readAccess(tx, farmId, investorId);
-      await change();
-      const after = await readAccess(tx, farmId, investorId);
-      await audited(context).recordEvent(
-        tx,
-        { entity: "investor_access", entityId: investorId, action: "update" },
-        { before, after }
-      );
-    };
-    if (live) {
-      await changeAccess(async () => {
-        await tx
-          .update(investorAccess)
-          .set({
-            revokedAt: now,
-            revokedWhy: why.reason,
-            codeHash: null,
-            codeExpiresAt: null,
-          })
-          .where(eq(investorAccess.id, live.id));
-        if (live.userId) {
+  await seenWhenDone(
+    context.db.transaction(async (tx) => {
+      // One change to their access, on the trail with what it was either side.
+      const changeAccess = async (change: () => Promise<unknown>) => {
+        const before = await readAccess(tx, farmId, investorId);
+        await change();
+        const after = await readAccess(tx, farmId, investorId);
+        await audited(context).recordEvent(
+          tx,
+          { entity: "investor_access", entityId: investorId, action: "update" },
+          { before, after }
+        );
+      };
+      if (live) {
+        await changeAccess(async () => {
           await tx
-            .update(user)
-            .set({ disabledAt: now })
-            .where(eq(user.id, live.userId));
-          await tx.delete(session).where(eq(session.userId, live.userId));
-        }
-      });
-    } else if (access && withdrawal) {
-      await changeAccess(() =>
-        tx
-          .update(investorAccess)
-          .set({ revokedWhy: "withdrew_consent" })
-          .where(eq(investorAccess.id, access.id))
-      );
-    }
-    if (withdrawal) {
-      await withdrawConsent(tx, context, investorId, withdrawal);
-    }
-  });
+            .update(investorAccess)
+            .set({
+              revokedAt: now,
+              revokedWhy: why.reason,
+              codeHash: null,
+              codeExpiresAt: null,
+            })
+            .where(eq(investorAccess.id, live.id));
+          if (live.userId) {
+            await tx
+              .update(user)
+              .set({ disabledAt: now })
+              .where(eq(user.id, live.userId));
+            await tx.delete(session).where(eq(session.userId, live.userId));
+          }
+        });
+      } else if (access && withdrawal) {
+        await changeAccess(() =>
+          tx
+            .update(investorAccess)
+            .set({ revokedWhy: "withdrew_consent" })
+            .where(eq(investorAccess.id, access.id))
+        );
+      }
+      if (withdrawal) {
+        await withdrawConsent(tx, context, investorId, withdrawal);
+      }
+    })
+  );
 };
 
 /** A phone and code that open no invitation: said the same whichever of the two is wrong. */

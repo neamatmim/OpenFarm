@@ -7,6 +7,7 @@ import { ORPCError } from "@orpc/server";
 
 import type { Context } from "./context";
 import type { AuditEntity } from "./whose-trail";
+import { aWriteWasSeen, seenWhenDone } from "./writes-seen";
 
 /** A transaction handle for the domain write. */
 export type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
@@ -90,6 +91,7 @@ export const audited = (
   ): Promise<string> => {
     const at = receivedAt ?? context.clock.now();
     const id = eventId ?? uuidv7(at);
+    aWriteWasSeen();
     // The event's own snapshots, unless the caller has already read them. `write` reads
     // them around `apply`; here there is nothing to read around, so whatever the event
     // carries is what happened — and dropping it would leave a trail entry that records
@@ -137,13 +139,15 @@ export const audited = (
     }
     const receivedAt = context.clock.now();
     const eventId = uuidv7(receivedAt);
-    return context.db.transaction(async (tx) => {
-      const before = await readSnapshot(tx, event.before);
-      const result = await apply(tx, eventId);
-      const after = await readSnapshot(tx, event.after);
-      await recordEvent(tx, event, { before, after, eventId, receivedAt });
-      return result;
-    });
+    return seenWhenDone(
+      context.db.transaction(async (tx) => {
+        const before = await readSnapshot(tx, event.before);
+        const result = await apply(tx, eventId);
+        const after = await readSnapshot(tx, event.after);
+        await recordEvent(tx, event, { before, after, eventId, receivedAt });
+        return result;
+      })
+    );
   };
 
   /** The most recent Audit Event for an entity — what a Correction supersedes. */

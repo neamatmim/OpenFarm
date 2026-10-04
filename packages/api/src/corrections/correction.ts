@@ -20,6 +20,7 @@ import type { Scope } from "../scope";
 import { workingAs } from "../scope";
 import { ownedThenByOf } from "../venture-store";
 import type { AuditEntity } from "../whose-trail";
+import { seenWhenDone } from "../writes-seen";
 
 /**
  * The Ventures one Animal's record touches, as `venturesOf` wants them.
@@ -395,109 +396,113 @@ export const correct = async <
   );
   const eventId = uuidv7(now);
   let corrector: Corrector | undefined;
-  const outcome = await context.db.transaction(async (tx) => {
-    await kind.lock?.(tx, context.farm.id);
-    await tx.execute(
-      sql`select 1 from ${kind.table} where ${kind.table.id} = ${input.id} for update`
-    );
-    const row = await kind.load(tx, context.farm.id, input.id);
-    if (!row) {
-      throw new ORPCError("NOT_FOUND", { message: kind.missing });
-    }
-    const theirs = (await kind.venturesOf?.(tx, row, input.changes)) ?? [];
-    if (theirs.length !== 0) {
-      const settled = await tx.query.venture.findMany({
-        where: {
-          id: { in: [...theirs] },
-          farmId: context.farm.id,
-          state: "settled",
-        },
-        columns: { id: true, name: true },
-        orderBy: { name: "asc", id: "asc" },
-      });
-      if (settled.length !== 0) {
-        throw new ORPCError("BAD_REQUEST", {
-          message:
-            "That Venture is settled; raise a Settlement Adjustment instead",
-          data: {
-            refusal: "venture_is_settled",
-            // Which ones, named, so that somebody told no has somewhere to go: a Settlement Adjustment is
-            // raised on one Venture at a time, and a feed arrival's price can stand in the way of several.
-            ventures: settled.map((one) => ({ id: one.id, name: one.name })),
+  const outcome = await seenWhenDone(
+    context.db.transaction(async (tx) => {
+      await kind.lock?.(tx, context.farm.id);
+      await tx.execute(
+        sql`select 1 from ${kind.table} where ${kind.table.id} = ${input.id} for update`
+      );
+      const row = await kind.load(tx, context.farm.id, input.id);
+      if (!row) {
+        throw new ORPCError("NOT_FOUND", { message: kind.missing });
+      }
+      const theirs = (await kind.venturesOf?.(tx, row, input.changes)) ?? [];
+      if (theirs.length !== 0) {
+        const settled = await tx.query.venture.findMany({
+          where: {
+            id: { in: [...theirs] },
+            farmId: context.farm.id,
+            state: "settled",
           },
+          columns: { id: true, name: true },
+          orderBy: { name: "asc", id: "asc" },
+        });
+        if (settled.length !== 0) {
+          throw new ORPCError("BAD_REQUEST", {
+            message:
+              "That Venture is settled; raise a Settlement Adjustment instead",
+            data: {
+              refusal: "venture_is_settled",
+              // Which ones, named, so that somebody told no has somewhere to go: a Settlement Adjustment is
+              // raised on one Venture at a time, and a feed arrival's price can stand in the way of several.
+              ventures: settled.map((one) => ({ id: one.id, name: one.name })),
+            },
+          });
+        }
+      }
+      const working = workingToCorrect(context, kind, row, now);
+      const role = working.roleUsed;
+      corrector = working;
+
+      const shown = await kind.shown(tx, row, { now });
+      if (changed.some(({ field, from }) => !same(from, shown[field]))) {
+        throw new ORPCError("CONFLICT", {
+          message: "That was corrected by someone else since you opened it",
+          data: { refusal: "changed_since", now: shown },
         });
       }
-    }
-    const working = workingToCorrect(context, kind, row, now);
-    const role = working.roleUsed;
-    corrector = working;
-
-    const shown = await kind.shown(tx, row, { now });
-    if (changed.some(({ field, from }) => !same(from, shown[field]))) {
-      throw new ORPCError("CONFLICT", {
-        message: "That was corrected by someone else since you opened it",
-        data: { refusal: "changed_since", now: shown },
-      });
-    }
-    const asShown = (field: keyof C, to: unknown): Comparable =>
-      kind.shownAs?.[field]?.(to as never, shown[field] as never) ??
-      (to as Comparable);
-    const changesAValue = changed.some(
-      ({ field, to }) => !same(asShown(field, to), shown[field])
-    );
-    if (!(changesAValue || kind.changesBeyondValues?.(extra, input.changes))) {
-      throw new ORPCError("BAD_REQUEST", {
-        message: "Nothing to correct",
-        data: { refusal: "nothing_to_correct" },
-      });
-    }
-
-    const entityId = kind.entityIdOf?.(row) ?? input.id;
-    const audit = audited(working);
-    const previous =
-      kind.supersedes === false
-        ? undefined
-        : await audit.latestEventFor(tx, kind.entity, entityId);
-    const before = await kind.trail(tx, row);
-    const to = Object.fromEntries(
-      changed.map(({ field, to: value }) => [field, value])
-    ) as NewValues<C>;
-    const cannotUndo: CannotUndo[] = [];
-    const applied = await kind.apply(tx, row, to, {
-      context: working,
-      now,
-      eventId,
-      extra,
-      cannotUndo: (one) => cannotUndo.push(one),
-    });
-    const after = await kind.trail(tx, row, applied);
-    for (const one of cannotUndo) {
-      // oxlint-disable-next-line no-await-in-loop
-      await tell(
-        tx,
-        context.farm.id,
-        {
-          kind: "needs_review",
-          about: { id: entityId, entity: kind.entity, auditEventId: eventId },
-          facts: { ...one.params, reason: one.reason },
-        },
-        now
+      const asShown = (field: keyof C, to: unknown): Comparable =>
+        kind.shownAs?.[field]?.(to as never, shown[field] as never) ??
+        (to as Comparable);
+      const changesAValue = changed.some(
+        ({ field, to }) => !same(asShown(field, to), shown[field])
       );
-    }
-    await audit.recordEvent(
-      tx,
-      {
-        entity: kind.entity,
-        entityId,
-        action: "correct",
-        reason: input.reason,
-        roleUsed: role,
-        supersedesId: previous?.id,
-      },
-      { before, after, eventId, receivedAt: now }
-    );
-    return applied;
-  });
+      if (
+        !(changesAValue || kind.changesBeyondValues?.(extra, input.changes))
+      ) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "Nothing to correct",
+          data: { refusal: "nothing_to_correct" },
+        });
+      }
+
+      const entityId = kind.entityIdOf?.(row) ?? input.id;
+      const audit = audited(working);
+      const previous =
+        kind.supersedes === false
+          ? undefined
+          : await audit.latestEventFor(tx, kind.entity, entityId);
+      const before = await kind.trail(tx, row);
+      const to = Object.fromEntries(
+        changed.map(({ field, to: value }) => [field, value])
+      ) as NewValues<C>;
+      const cannotUndo: CannotUndo[] = [];
+      const applied = await kind.apply(tx, row, to, {
+        context: working,
+        now,
+        eventId,
+        extra,
+        cannotUndo: (one) => cannotUndo.push(one),
+      });
+      const after = await kind.trail(tx, row, applied);
+      for (const one of cannotUndo) {
+        // oxlint-disable-next-line no-await-in-loop
+        await tell(
+          tx,
+          context.farm.id,
+          {
+            kind: "needs_review",
+            about: { id: entityId, entity: kind.entity, auditEventId: eventId },
+            facts: { ...one.params, reason: one.reason },
+          },
+          now
+        );
+      }
+      await audit.recordEvent(
+        tx,
+        {
+          entity: kind.entity,
+          entityId,
+          action: "correct",
+          reason: input.reason,
+          roleUsed: role,
+          supersedesId: previous?.id,
+        },
+        { before, after, eventId, receivedAt: now }
+      );
+      return applied;
+    })
+  );
   if (corrector && kind.afterwards) {
     await kind.afterwards(corrector, outcome);
   }
