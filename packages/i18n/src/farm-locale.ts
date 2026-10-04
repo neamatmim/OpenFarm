@@ -42,14 +42,17 @@ export const isCurrencyCode = (code: string): code is CurrencyCode =>
 
 /**
  * Where the farm is, as far as reading its figures goes: the currency its money is counted in, the IANA time zone its
- * own day and clock are read on, and the ISO 3166 country a phone number written without its country code is read in.
- * One for the whole server, fixed when it is set up — a farm that changed one would read every sum, every day or every
- * number it already kept differently.
+ * own day and clock are read on, the ISO 3166 country a phone number written without its country code is read in, and
+ * the month its financial year begins in. One for the whole server, fixed when it is set up — a farm that changed one
+ * would read every sum, every day, every number or every year it already kept differently.
  */
 export interface FarmLocale {
   currency: CurrencyCode;
   timeZone: string;
   country: string;
+  /** The month its financial year begins in, 1 for January to 12 for December: 7 in Bangladesh, whose income year
+   *  runs from July to June. */
+  yearStarts: number;
 }
 
 /** Where OpenFarm was first built: a farm in Bangladesh. */
@@ -57,7 +60,12 @@ export const DEFAULT_FARM_LOCALE: FarmLocale = {
   currency: "BDT",
   timeZone: "Asia/Dhaka",
   country: "BD",
+  yearStarts: 7,
 };
+
+/** Whether a figure is a month a financial year can begin in: a whole number from 1 to 12. */
+export const isYearStart = (month: number): boolean =>
+  Number.isInteger(month) && month >= 1 && month <= 12;
 
 let current: FarmLocale = DEFAULT_FARM_LOCALE;
 
@@ -99,16 +107,23 @@ export const setFarmLocale = (locale: FarmLocale): void => {
   if (!isCountry(locale.country)) {
     throw new Error(`${locale.country} is not a country this runtime knows`);
   }
+  if (!isYearStart(locale.yearStarts)) {
+    throw new Error(`${locale.yearStarts} is not a month a year can begin in`);
+  }
   current = {
     currency: locale.currency,
     timeZone: locale.timeZone,
     country: locale.country,
+    yearStarts: locale.yearStarts,
   };
 };
 
 export const farmLocale = (): FarmLocale => current;
 
 export const farmTimeZone = (): string => current.timeZone;
+
+/** The month the farm's financial year begins in: 7, July, for a farm in Bangladesh. */
+export const farmYearStarts = (): number => current.yearStarts;
 
 /** The country a phone number written without its country code is read in: BD for a farm in Bangladesh. */
 export const farmCountry = (): string => current.country;

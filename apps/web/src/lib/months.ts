@@ -1,6 +1,10 @@
-import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
+import {
+  farmDayOf,
+  financialYearSpansTwo,
+  startOfFarmDay,
+} from "@OpenFarm/domain";
 import type { Language } from "@OpenFarm/i18n";
-import { formatDate } from "@OpenFarm/i18n";
+import { formatDate, formatDigits, formatNumber } from "@OpenFarm/i18n";
 
 /**
  * The month before this one, on the farm's own clock: at one in the morning in Dhaka it is still
@@ -24,6 +28,34 @@ export const lastMonth = (): string => {
  */
 export const saidMonth = (month: string, language: Language): string =>
   formatDate(startOfFarmDay(`${month}-01`), language, "monthYear");
+
+/**
+ * A financial year as the farm names it, in the reader's digits: 2025–26 for July 2025 to June 2026, the way a
+ * Bangladeshi accountant writes the income year (২০২৫–২৬), or 2025 alone on a farm whose year is the calendar's.
+ */
+export const saidFinancialYear = (year: number, language: Language): string => {
+  const first = formatDigits(year, language);
+  if (!financialYearSpansTwo()) {
+    return first;
+  }
+  const next = formatNumber((year + 1) % 100, language, {
+    minimumIntegerDigits: 2,
+    useGrouping: false,
+  });
+  return `${first}–${next}`;
+};
+
+/** The earliest and latest years an address may name: a typed `?year=1` is the last twelve months, not a refusal. */
+const FIRST_YEAR = 2000;
+const LAST_YEAR = 9999;
+
+/** The financial year an address names, by the calendar year it began in; nothing for one it does not name. */
+export const financialYearNamed = (value: unknown): number | undefined => {
+  const year = Number(value);
+  const inRange =
+    Number.isInteger(year) && year >= FIRST_YEAR && year <= LAST_YEAR;
+  return inRange ? year : undefined;
+};
 
 /** What a month holds, as far as whether it holds anything. */
 interface MonthFigures {

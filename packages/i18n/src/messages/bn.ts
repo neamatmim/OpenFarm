@@ -3054,6 +3054,8 @@ export const bn: Record<MessageKey, string> = {
   "money.subtitle":
     "খামারের নিজের রেকর্ড থেকে প্রতিটি {currencyOf} আয়-ব্যয় — আর যা মালিকের অনুমোদনের অপেক্ষায়।",
   "money.period": "সময়কাল",
+  "money.thisFinancialYear": "এই অর্থবছর",
+  "money.lastFinancialYear": "গত অর্থবছর",
   "money.totalIn": "আয়",
   "money.totalOut": "ব্যয়",
   "money.net": "নিট",
@@ -4403,8 +4405,13 @@ export const bn: Record<MessageKey, string> = {
   "fertility.col.lastInterval": "আগের ব্যবধান",
   "nav.months": "মাসিক প্রতিবেদন",
   "months.subtitle":
-    "গত এক বছরে খামার প্রতি মাসে কেমন চলেছে: {currencySum}, দুগ্ধ গাভীর খরচের পাশে দুধ বিক্রি, মোটাতাজা পশু বিক্রি, আর প্রতিটি ভেঞ্চার তার পরিকল্পনার পাশে।",
+    "গত ১২ মাসে, বা যে অর্থবছর আপনি বেছে নেন তাতে, খামার প্রতি মাসে কেমন চলেছে: {currencySum}, দুগ্ধ গাভীর খরচের পাশে দুধ বিক্রি, মোটাতাজা পশু বিক্রি, আর প্রতিটি ভেঞ্চার তার পরিকল্পনার পাশে।",
   "months.net": "বছরে নিট",
+  "months.whichYear": "কোন মাসগুলো",
+  "months.lastTwelve": "গত ১২ মাস",
+  "months.financialYear": "{year} অর্থবছর",
+  "months.financialYearSoFar": "{year} অর্থবছর, এ পর্যন্ত",
+  "months.yearNotBegun": "সেই অর্থবছর এখনও শুরু হয়নি। ওপর থেকে অন্য একটি বেছে নিন।",
   "months.milkSold": "বছরে দুধ বিক্রি",
   "months.milkSoldHint": "{litres} লিটার · লিটারে পাওয়া গেছে {fetched}",
   "months.dairyCost": "দুগ্ধ গাভীর খরচ",
@@ -4414,6 +4421,8 @@ export const bn: Record<MessageKey, string> = {
   "months.nothingYet": "এখনো কিছু নেই",
   "months.chartTitle": "প্রতি মাসে নিট {currencySum}",
   "months.chartHint":
+    "খামারের নিজের আয় থেকে ব্যয় বাদে; ভেঞ্চারের {currencySum} তার নিজের।",
+  "months.chartHintSoFar":
     "খামারের নিজের আয় থেকে ব্যয় বাদে; ভেঞ্চারের {currencySum} তার নিজের। এই মাস এখন পর্যন্ত।",
   "months.chartSaid": "{month}: নিট {net}",
   "months.tableTitle": "প্রতি মাস",

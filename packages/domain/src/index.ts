@@ -531,6 +531,13 @@ export {
   roundedCosts,
   tripShares,
 } from "./costs";
+export {
+  daysOfFinancialYear,
+  financialYearOf,
+  financialYearSpansTwo,
+  monthHasBegun,
+  monthsOfFinancialYear,
+} from "./financial-year";
 export { groupedBy } from "./grouped-by";
 export type {
   Charge,

@@ -3265,6 +3265,8 @@ export const en = {
   "money.subtitle":
     "Every {currencyOne} in and out, as the farm's own records made it — and what waits for the owner's approval.",
   "money.period": "Period",
+  "money.thisFinancialYear": "This financial year",
+  "money.lastFinancialYear": "Last financial year",
   "money.totalIn": "Money in",
   "money.totalOut": "Money out",
   "money.net": "Net",
@@ -4709,8 +4711,14 @@ export const en = {
   "fertility.col.lastInterval": "Last interval",
   "nav.months": "Monthly report",
   "months.subtitle":
-    "How the farm has done each month over the last year: its money, the milk against what the dairy cows cost, the fattening animals sold, and each venture against its plan.",
+    "How the farm has done each month, over the last 12 months or a financial year you pick: its money, the milk against what the dairy cows cost, the fattening animals sold, and each venture against its plan.",
   "months.net": "Net over the year",
+  "months.whichYear": "Which months",
+  "months.lastTwelve": "Last 12 months",
+  "months.financialYear": "Financial year {year}",
+  "months.financialYearSoFar": "Financial year {year}, so far",
+  "months.yearNotBegun":
+    "That financial year has not begun yet. Pick another one above.",
   "months.milkSold": "Milk sold over the year",
   "months.milkSoldHint": "{litres} L · a litre fetched {fetched}",
   "months.dairyCost": "What the dairy cows cost",
@@ -4721,6 +4729,8 @@ export const en = {
   "months.nothingYet": "Nothing yet",
   "months.chartTitle": "Net money each month",
   "months.chartHint":
+    "The farm's own money in less money out; a venture's money is its own.",
+  "months.chartHintSoFar":
     "The farm's own money in less money out; a venture's money is its own. This month is so far.",
   "months.chartSaid": "{month}: net {net}",
   "months.tableTitle": "Each month",

@@ -2,14 +2,18 @@ import type { Database } from "@OpenFarm/db";
 import type { PenHistoryLine } from "@OpenFarm/domain";
 import {
   farmDayOf,
+  financialYearOf,
   litresPerCowMilked,
   milkPriceOf,
+  monthHasBegun,
   monthOf,
   monthsEndingIn,
+  monthsOfFinancialYear,
   roundMoney,
   startOfFarmDay,
   summariseMoney,
 } from "@OpenFarm/domain";
+import { ORPCError } from "@orpc/server";
 
 import {
   chargedOf,
@@ -19,6 +23,7 @@ import {
   theFarmsOwn,
 } from "./cost-store";
 import { moneyForTheAccountant } from "./money-export-store";
+import { THE_FARMS_PURSE } from "./money-store";
 import type { OverheadMoneyOn } from "./overhead-store";
 import { overheadMoneyIn, overheadsOf } from "./overhead-store";
 import { fetchedPerLitre, writtenOffByItem } from "./receivable-store";
@@ -162,8 +167,46 @@ const figuresOver = (
 };
 
 /**
- * The farm month by month, for the Owner: the last `MONTHS_READ` months, oldest first, this one so far, and the year
- * they make together.
+ * The financial years the farm has kept money in, newest first: this one, back to the year of the first taka its purse
+ * ever moved (ADR 0016). This year alone for a farm whose purse has moved nothing yet.
+ */
+const financialYearsKept = async (
+  db: Database,
+  farmId: string,
+  today: string
+): Promise<number[]> => {
+  const first = await db.query.moneyEvent.findFirst({
+    where: { farmId, purseVentureId: THE_FARMS_PURSE },
+    orderBy: { occurredAt: "asc" },
+    columns: { occurredAt: true },
+  });
+  const now = financialYearOf(today);
+  const since = first
+    ? Math.min(financialYearOf(farmDayOf(first.occurredAt)), now)
+    : now;
+  return Array.from({ length: now - since + 1 }, (_, index) => now - index);
+};
+
+/** The months a report reads: the last `MONTHS_READ`, or a financial year's months that have begun — all twelve of a
+ *  year gone by, and this year's up to this month. A year still to come has none, and is refused. */
+const monthsRead = (today: string, financialYear?: number): string[] => {
+  if (financialYear === undefined) {
+    return monthsEndingIn(today, MONTHS_READ);
+  }
+  if (financialYear > financialYearOf(today)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `The financial year ${financialYear} has not begun`,
+      data: { refusal: "financial_year_not_begun" },
+    });
+  }
+  return monthsOfFinancialYear(financialYear).filter((month) =>
+    monthHasBegun(month, today)
+  );
+};
+
+/**
+ * The farm month by month, for the Owner: the last `MONTHS_READ` months, or the financial year asked for, oldest
+ * first, this one so far, and the year they make together — with the financial years there are to ask for.
  *
  * Nothing here is a sum of its own. Each is the accountant's income and expense of the Farm's purse, the milk its
  * Dispatches sold with what a litre fetched, and Costs by Side — what the dairy cows and the fattening animals were
@@ -175,33 +218,43 @@ const figuresOver = (
 export const monthByMonth = async (
   db: Database,
   farm: { id: string; ventureInvestorsPercent: number },
-  now: Date
+  now: Date,
+  financialYear?: number
 ) => {
-  const months = monthsEndingIn(farmDayOf(now), MONTHS_READ);
+  const today = farmDayOf(now);
+  const months = monthsRead(today, financialYear);
   const span = {
     from: rangeOf(months[0] ?? "").from,
     until: rangeOf(months.at(-1) ?? "").until,
   };
-  const [costs, ownedThenBy, money, dispatched, ventures, overheadMoney] =
-    await Promise.all([
-      farmCosts(db, farm.id),
-      ownedThenByOf(db, farm.id),
-      moneyForTheAccountant(db, farm.id, span),
-      db.query.dispatch.findMany({
-        where: {
-          farmId: farm.id,
-          dispatchedAt: { gte: span.from, lt: span.until },
-        },
-        columns: {
-          id: true,
-          dispatchedAt: true,
-          litres: true,
-          pricePerLitreMoney: true,
-        },
-      }),
-      venturesAgainstPlan(db, farm, now),
-      overheadMoneyIn(db, farm.id, span),
-    ]);
+  const [
+    costs,
+    ownedThenBy,
+    money,
+    dispatched,
+    ventures,
+    overheadMoney,
+    financialYears,
+  ] = await Promise.all([
+    farmCosts(db, farm.id),
+    ownedThenByOf(db, farm.id),
+    moneyForTheAccountant(db, farm.id, span),
+    db.query.dispatch.findMany({
+      where: {
+        farmId: farm.id,
+        dispatchedAt: { gte: span.from, lt: span.until },
+      },
+      columns: {
+        id: true,
+        dispatchedAt: true,
+        litres: true,
+        pricePerLitreMoney: true,
+      },
+    }),
+    venturesAgainstPlan(db, farm, now),
+    overheadMoneyIn(db, farm.id, span),
+    financialYearsKept(db, farm.id, today),
+  ]);
   // The Farm's own animals alone, as its purse is the Farm's own money: a Venture's are on its own line below.
   const read: Read = {
     costs: theFarmsOwn(costs, ownedThenBy),
@@ -229,6 +282,10 @@ export const monthByMonth = async (
     }),
     /** The months together, worked over the whole of them. */
     year: over(span, months.length),
+    /** The financial year these months are, or nothing for the last `MONTHS_READ`. */
+    financialYear: financialYear ?? null,
+    /** The financial years there are to ask for, newest first: this one first. */
+    financialYears,
     ventures,
   };
 };
