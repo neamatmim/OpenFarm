@@ -13,6 +13,7 @@ import { useEffect } from "react";
 
 import { AdultDeathsSection } from "@/components/home/adult-deaths";
 import { CalfLossesSection } from "@/components/home/calf-losses";
+import { HerdHealthSection } from "@/components/home/herd-health";
 import type { QueueKind } from "@/components/home/manager-queue";
 import {
   ManagerQueue,
@@ -202,6 +203,7 @@ const ManagerHome = () => {
           <VenturesAtWork />
           <CalfLossesSection />
           <AdultDeathsSection />
+          <HerdHealthSection />
         </div>
 
         <Section

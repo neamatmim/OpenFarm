@@ -3689,6 +3689,18 @@ export const en = {
   "deaths.counts": "Died {died}, culled {culled}",
   "deaths.noneKept": "None kept",
   "deaths.causes": "What they died of: {causes}",
+  "herd.healthTitle": "The dairy herd's year, and sickness",
+  "herd.healthHint":
+    "Every way a cow left the milking herd — died, culled, sold, crossed to fattening — and the heifers that joined it, over the cows kept; and diagnoses over the head kept.",
+  "herd.leftTheHerd": "Cows that left the milking herd",
+  "herd.leftCounts":
+    "Died {died}, culled {culled}, sold {sold}, to fattening {crossed}, lost {lost}",
+  "herd.joinedTheHerd": "Heifers that joined it",
+  "herd.joinedCount":
+    "{count, plural, one {# heifer calved} other {# heifers calved}} her first",
+  "herd.sickDairy": "Sick in the dairy",
+  "herd.mastitis": "Mastitis, over the cows",
+  "herd.diseases": "What was found: {diseases}",
   "mortality.cause": "Cause, as far as the farm knows",
   "mortality.disposal": "What was done with the carcass",
   "mortality.stillbirth": "Stillbirth",

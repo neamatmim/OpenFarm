@@ -17,6 +17,7 @@ import {
   thisMonth,
   useMoney,
 } from "@/components/home/farm-panels";
+import { HerdHealthSection } from "@/components/home/herd-health";
 import { MilkWeek } from "@/components/home/milk-week";
 import {
   anythingWaiting,
@@ -327,6 +328,7 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
           />
           <CalfLossesSection />
           <AdultDeathsSection />
+          <HerdHealthSection />
           <EarlyLossesSection />
           <FatteningPanel />
           <FeedPanel />

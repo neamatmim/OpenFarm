@@ -365,6 +365,18 @@ export type { CheckSummary, WorkToCheck } from "./check-summary";
 export { checkSummaryOf } from "./check-summary";
 export type { Growth, GrowthHolding } from "./fattening-growth";
 export { growthOf } from "./fattening-growth";
+export type {
+  CowStay,
+  DairyTurnover,
+  DiagnosisSeen,
+  Sickness,
+} from "./herd-turnover";
+export {
+  COMMON_DISEASES,
+  MASTITIS,
+  dairyTurnover,
+  sicknessOf,
+} from "./herd-turnover";
 export type { LastFigureKind } from "./last-figure";
 export { farFromLast, readsAgainstLast } from "./last-figure";
 export type { BoughtIn, EarlyLosses } from "./early-losses";
