@@ -957,7 +957,7 @@ export interface ProgressStatement {
   weighed: string;
   averageIntake: string | null;
   averageLatest: string | null;
-  /** The herd's daily gain, or nothing where nobody has been weighed yet. */
+  /** The herd's daily gain over every animal it has had, or nothing where nobody has been weighed yet. */
   herdGain: string | null;
   daysToWindow: string;
   animals: ProgressAnimal[];
@@ -1017,8 +1017,14 @@ export const progressStatement = (sheet: ProgressStatement): string =>
             `${sheet.averageLatest} কেজি`
           )
         : null,
+      // Over every animal the Venture has had, not the weighed ones the averages above are over: said, so nobody
+      // reads it against them.
       sheet.herdGain
-        ? field("  দৈনিক বৃদ্ধি", "Daily gain", `${sheet.herdGain} কেজি`)
+        ? field(
+            "  দৈনিক বৃদ্ধি (বিক্রি ও মৃতসহ সব পশুর)",
+            "Daily gain (every animal so far, sold and dead included)",
+            `${sheet.herdGain} কেজি`
+          )
         : null,
       field(
         "  লক্ষ্য সময় বাকি",

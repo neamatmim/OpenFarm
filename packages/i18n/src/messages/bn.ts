@@ -689,6 +689,7 @@ export const bn: Record<MessageKey, string> = {
   "portal.averageIntake": "আসার সময় গড় ওজন",
   "portal.averageNow": "এখন গড় ওজন",
   "portal.dailyGain": "দৈনিক বৃদ্ধি",
+  "portal.dailyGainHint": "বিক্রি ও মৃতসহ এ পর্যন্ত সব পশুর",
   "portal.tag": "ট্যাগ",
   "portal.intake": "আসার সময় (কেজি)",
   "portal.now": "এখন (কেজি)",

@@ -286,6 +286,27 @@ const HerRow = ({ one }: { one: HerAnimal }) => {
   );
 };
 
+/** What the herd put on a day — not over the weighed animals the averages beside it are over, but every animal the
+ *  Venture has had, sold and dead included — and so still said once none stands. */
+const DailyGain = ({ gain }: { gain: number | null }) => {
+  const { t, language } = useLanguage();
+  return (
+    <div className={AVERAGE_BOX}>
+      <dt className="text-muted-foreground">{t("portal.dailyGain")}</dt>
+      <dd className="font-medium tabular-nums">
+        {gain === null ? (
+          <Nothing />
+        ) : (
+          t("units.kgADay", { kg: formatNumber(gain, language) })
+        )}
+      </dd>
+      <dd className="text-muted-foreground text-xs">
+        {t("portal.dailyGainHint")}
+      </dd>
+    </div>
+  );
+};
+
 /** How the animals are doing: what they came in at, what they weigh now, and what they put on a day. */
 const Herd = ({ today }: { today: Today }) => {
   const said = useLanguage();
@@ -311,6 +332,11 @@ const Herd = ({ today }: { today: Today }) => {
           icon={Beef}
           title={gone ? t("portal.herdGone") : t("portal.herdNoneYet")}
         />
+        {gain === null ? null : (
+          <dl className="grid gap-3 text-sm sm:grid-cols-3">
+            <DailyGain gain={gain} />
+          </dl>
+        )}
       </Section>
     );
   }
@@ -346,16 +372,7 @@ const Herd = ({ today }: { today: Today }) => {
             {kg(today.herd.averageLatestKg) ?? <Nothing />}
           </dd>
         </div>
-        <div className={AVERAGE_BOX}>
-          <dt className="text-muted-foreground">{t("portal.dailyGain")}</dt>
-          <dd className="font-medium tabular-nums">
-            {gain === null ? (
-              <Nothing />
-            ) : (
-              t("units.kgADay", { kg: formatNumber(gain, language) })
-            )}
-          </dd>
-        </div>
+        <DailyGain gain={gain} />
       </dl>
       {/* An answer this phone kept from before the portal drew the line has no days to draw it over. */}
       <WeightLine weights={today.herd.weights ?? []} />
