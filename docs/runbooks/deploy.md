@@ -40,6 +40,10 @@ is the part that is easy to believe was done and was not:
       provider's console and write down the window you saw — a provider that _offers_ PITR
       is not a database that _has_ it.
 - [ ] The database is in the Singapore region, and so is the app host.
+- [ ] **The app signs in as its own login, `openfarm_app`**, not the database's owner — see
+      [The app's own login](#the-apps-own-login). `/etc/openfarm/app.env` names it;
+      `/etc/openfarm/backup.env` and `PRODUCTION_DATABASE_URL` keep the owner's, which migrations and
+      copies need.
 - [ ] **The database itself runs at UTC**: `ALTER DATABASE <name> SET timezone = 'UTC';` in the
       provider's console, then `SHOW timezone;` in a new session says `UTC`. The app sets UTC on every
       connection it opens, but the farm's moments are kept in columns without their zone, so the
@@ -77,6 +81,36 @@ pnpm dlx web-push generate-vapid-keys
 # password manager and nowhere else, because it is the only thing that can read a backup.
 age-keygen -o backup-key.txt
 ```
+
+## The app's own login
+
+The farm's trail and every Version it agreed to are kept by the database itself: a change or a
+removal is refused whoever asks. But the database's owner can lift that, and the app should not be
+able to. So the app signs in as a login of its own that can read and write the farm's records and
+nothing more: it cannot change a table, lift a guard, or change or remove what is kept.
+
+Run once, in the provider's console as the owner, with a new password from the password manager:
+
+```sql
+CREATE ROLE openfarm_app LOGIN PASSWORD '…';
+GRANT CONNECT ON DATABASE "<name>" TO openfarm_app;
+GRANT USAGE ON SCHEMA public TO openfarm_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO openfarm_app;
+-- What is kept as written: read and added to, never changed or taken away. A paper's Version takes
+-- its review once, so it keeps UPDATE; the database's own guard lets nothing else through.
+REVOKE UPDATE, DELETE, TRUNCATE ON audit_event, sop_version, ration_version FROM openfarm_app;
+REVOKE DELETE, TRUNCATE ON paper_template_version FROM openfarm_app;
+-- Readiness asks which migration the database has applied.
+GRANT USAGE ON SCHEMA drizzle TO openfarm_app;
+GRANT SELECT ON drizzle.__drizzle_migrations TO openfarm_app;
+-- Tables a migration adds later are the app's to use too, as the owner makes them.
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO openfarm_app;
+```
+
+Then put `postgresql://openfarm_app:…@…` in `/etc/openfarm/app.env` as `DATABASE_URL`, restart,
+and check `/api/ready`. If a migration ever adds a table the app is refused, its grant was made by a
+login other than the owner's: run the `GRANT … ON ALL TABLES` line again.
 
 ## Every deploy
 

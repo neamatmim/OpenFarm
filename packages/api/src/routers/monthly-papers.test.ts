@@ -1,6 +1,11 @@
 import { paperTemplateVersion } from "@OpenFarm/db/schema/paper-template";
 import { STANDARD_AGREEMENT_BEFORE_MONTHLY } from "@OpenFarm/domain";
-import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  asTheFarmHeldItBefore,
+  scratchDb,
+  theFarm,
+} from "@OpenFarm/test-harness";
 import { eq } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -182,10 +187,13 @@ describe("a farm on the standard wording it was given", () => {
       throw new Error("expected the farm's Agreement wording");
     }
     // As a farm given its wording before 2026-10-02 holds it: the standard of then, published by nobody.
-    await db
-      .update(paperTemplateVersion)
-      .set({ content: STANDARD_AGREEMENT_BEFORE_MONTHLY })
-      .where(eq(paperTemplateVersion.id, template.currentVersionId));
+    const { currentVersionId } = template;
+    await asTheFarmHeldItBefore((tx) =>
+      tx
+        .update(paperTemplateVersion)
+        .set({ content: STANDARD_AGREEMENT_BEFORE_MONTHLY })
+        .where(eq(paperTemplateVersion.id, currentVersionId))
+    );
 
     await owner.templates.list();
 

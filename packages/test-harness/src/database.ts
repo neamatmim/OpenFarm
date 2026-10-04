@@ -1,5 +1,6 @@
 import type { Database } from "@OpenFarm/db";
 import { createDb } from "@OpenFarm/db";
+import { sql } from "@OpenFarm/db/operators";
 
 let shared: Database | undefined;
 
@@ -21,4 +22,21 @@ export const scratchDb = (): Database => {
     connectionTimeoutMs: TEST_TIMEOUT_MS,
   });
   return shared;
+};
+
+type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
+
+/**
+ * Writes what the database keeps as it was written — a Version's wording, the trail — the way a farm from before held
+ * it, with its guards lifted for this one transaction only. For a test that stands a farm where it was before a change
+ * reached it; never for a test of the app's own writes, which must meet the guards as the farm's do.
+ */
+export const asTheFarmHeldItBefore = async (
+  write: (tx: Transaction) => Promise<unknown>
+): Promise<void> => {
+  await scratchDb().transaction(async (tx) => {
+    // Replica sessions run no ordinary triggers: the guards stay on for every other connection.
+    await tx.execute(sql`set local session_replication_role = replica`);
+    await write(tx);
+  });
 };
