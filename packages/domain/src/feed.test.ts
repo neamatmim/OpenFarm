@@ -376,6 +376,21 @@ describe("how many days of a feed are left", () => {
     expect(perDay).toBe(30);
   });
 
+  it("counts a feeding from the first moment of the fortnight's first farm day, and not one a moment before", () => {
+    // At noon on 15 March in Dhaka's evening, the fortnight is the farm days 2 to 15 March: 2 March began at
+    // 18:00 on the 1st, London time.
+    const first = new Date("2040-03-01T18:00:00.000Z");
+    const before = new Date("2040-03-01T17:59:59.000Z");
+    const perDay = fedPerDayOf(
+      [
+        { kind: "out", at: first, quantity: 28 },
+        { kind: "out", at: before, quantity: 1000 },
+      ],
+      now
+    );
+    expect(perDay).toBe(2);
+  });
+
   it("says nothing of a feed not fed lately, and none left of a store below nothing", () => {
     expect(fedPerDayOf([fedDaysAgo(20, 50, now)], now)).toBe(0);
     expect(daysLeftOf(500, 0)).toBeNull();

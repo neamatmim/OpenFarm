@@ -1,4 +1,4 @@
-import { farmDayOf, farmDaysApart } from "./farm-clock";
+import { farmDayOf, farmDaysApart, startOfFarmDay } from "./farm-clock";
 import type { FeedUnit } from "./feed-units";
 import { MAUND_KG } from "./feed-units";
 
@@ -539,6 +539,8 @@ export const purchasePricesOf = (
   return prices;
 };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 /** The farm days a Feed Item's rate of feeding is read over: a fortnight, long enough to take in a week's changes of
  *  Ration and short enough to follow the herd as it grows. */
 export const FEED_RATE_DAYS = 14;
@@ -553,21 +555,31 @@ export const fedPerDayOf = (
   now: Date
 ): number => {
   const today = farmDayOf(now);
-  const outs = movements.filter((one) => one.kind === "out" && one.at <= now);
-  const recent = outs.filter(
-    (one) => farmDaysApart(farmDayOf(one.at), today) < FEED_RATE_DAYS
+  // The first moment of the fortnight's first farm day, worked out once: a year of Feedings is thousands, and the
+  // farm's calendar day of each is the dearest thing to ask of it.
+  const fortnightBegan = startOfFarmDay(
+    new Date(Date.parse(`${today}T00:00:00Z`) - (FEED_RATE_DAYS - 1) * DAY_MS)
+      .toISOString()
+      .slice(0, "YYYY-MM-DD".length)
   );
-  if (recent.length === 0) {
+  let firstFedAt = Number.POSITIVE_INFINITY;
+  let fed = 0;
+  let fedLately = false;
+  for (const one of movements) {
+    if (one.kind !== "out" || one.at > now) {
+      continue;
+    }
+    firstFedAt = Math.min(firstFedAt, one.at.getTime());
+    if (one.at >= fortnightBegan) {
+      fed += one.quantity;
+      fedLately = true;
+    }
+  }
+  if (!fedLately) {
     return 0;
   }
-  const firstFed = farmDayOf(
-    new Date(Math.min(...outs.map((one) => one.at.getTime())))
-  );
+  const firstFed = farmDayOf(new Date(firstFedAt));
   const days = Math.min(FEED_RATE_DAYS, farmDaysApart(firstFed, today) + 1);
-  let fed = 0;
-  for (const one of recent) {
-    fed += one.kind === "out" ? one.quantity : 0;
-  }
   return fed / days;
 };
 
