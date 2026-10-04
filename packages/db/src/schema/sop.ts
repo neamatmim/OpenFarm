@@ -28,9 +28,11 @@ export const sopDefinition = pgTable(
       (): AnyPgColumn => sopVersion.id
     ),
     /** Set when the Owner retires an SOP; history and past Instances stay. */
-    retiredAt: timestamp("retired_at"),
+    retiredAt: timestamp("retired_at", { withTimezone: true }),
     createdBy: text("created_by").references(() => user.id),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [index("sop_definition_farm_idx").on(table.farmId)]
 );
@@ -57,7 +59,7 @@ export const sopVersion = pgTable(
     note: text("note"),
     publishedBy: text("published_by").references(() => user.id),
     publishedByRole: text("published_by_role", { enum: ROLES }),
-    publishedAt: timestamp("published_at").notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     uniqueIndex("sop_version_number_uidx").on(table.definitionId, table.number),
@@ -89,9 +91,11 @@ export const sopProposal = pgTable(
     proposedBy: text("proposed_by").references(() => user.id),
     proposedByRole: text("proposed_by_role", { enum: ROLES }),
     decidedBy: text("decided_by").references(() => user.id),
-    decidedAt: timestamp("decided_at"),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
     decisionNote: text("decision_note"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [index("sop_proposal_status_idx").on(table.farmId, table.status)]
 );
@@ -122,7 +126,7 @@ export const sopTraining = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
     trainedBy: text("trained_by").references(() => user.id),
     trainedByRole: text("trained_by_role", { enum: ROLES }),
-    trainedAt: timestamp("trained_at").notNull(),
+    trainedAt: timestamp("trained_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     index("sop_training_person_idx").on(table.farmId, table.userId),

@@ -66,7 +66,7 @@ export const syncBatch = pgTable(
     requestHash: text("request_hash").notNull(),
     /** The answer, returned verbatim on a replay. */
     response: jsonb("response"),
-    receivedAt: timestamp("received_at").notNull(),
+    receivedAt: timestamp("received_at", { withTimezone: true }).notNull(),
   },
   (table) => [index("sync_batch_farm_idx").on(table.farmId, table.receivedAt)]
 );
@@ -108,8 +108,8 @@ export const syncEntry = pgTable(
       .references(() => syncBatch.key),
     /** When the phone says it happened, and when the server took it. The phone can never
      *  set the second (ADR 0002). */
-    recordedAt: timestamp("recorded_at").notNull(),
-    receivedAt: timestamp("received_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
+    receivedAt: timestamp("received_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     uniqueIndex("sync_entry_seq_uidx").on(table.sourceKey, table.seq),

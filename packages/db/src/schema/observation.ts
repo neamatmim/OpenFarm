@@ -45,13 +45,13 @@ export const observation = pgTable(
     /** What the person said about it, in their own words: always for "something else", and whenever they add one. */
     note: text("note"),
     seenBy: text("seen_by").references(() => user.id),
-    seenAt: timestamp("seen_at").notNull(),
+    seenAt: timestamp("seen_at", { withTimezone: true }).notNull(),
     /** When a Correction withdrew it, and what stands in its place. Nothing is deleted. */
-    withdrawnAt: timestamp("withdrawn_at"),
+    withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
     supersededById: text("superseded_by_id").references(
       (): AnyPgColumn => observation.id
     ),
-    recordedAt: timestamp("recorded_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     index("observation_animal_idx").on(table.animalId, table.seenAt),

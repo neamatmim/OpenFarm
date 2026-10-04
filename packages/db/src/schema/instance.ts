@@ -50,7 +50,7 @@ export const sopInstance = pgTable(
      *  the Registration's renewal, say. */
     penId: text("pen_id").references(() => pen.id),
     state: text("state", { enum: INSTANCE_STATES }).notNull().default("due"),
-    dueAt: timestamp("due_at").notNull(),
+    dueAt: timestamp("due_at", { withTimezone: true }).notNull(),
     graceMinutes: integer("grace_minutes").notNull(),
     /** The Role the Instance is assigned to, and optionally the person the Manager pinned. */
     assignedRole: text("assigned_role", { enum: ROLES }).notNull(),
@@ -68,9 +68,9 @@ export const sopInstance = pgTable(
     assignedTo: text("assigned_to").references(() => user.id),
     assignedBy: text("assigned_by").references(() => user.id),
     claimedBy: text("claimed_by").references(() => user.id),
-    claimedAt: timestamp("claimed_at"),
-    completedAt: timestamp("completed_at"),
-    createdAt: timestamp("created_at").notNull(),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     /** One Instance per SOP, Pen and due time, however often the scheduler runs. Scheduled
@@ -126,9 +126,9 @@ export const stepCompletion = pgTable(
       .references(() => user.id),
     deviceId: text("device_id").references(() => shedPhone.id),
     /** When the person says they did it (their phone's clock, offline). */
-    recordedAt: timestamp("recorded_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
     /** When the server accepted it — the authoritative order. */
-    receivedAt: timestamp("received_at").notNull(),
+    receivedAt: timestamp("received_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     /** One Completion per Step per animal — or one for the whole Pen. Recording again
@@ -164,7 +164,7 @@ export const completionPhoto = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     contentType: text("content_type").notNull(),
     data: text("data").notNull(),
-    createdAt: timestamp("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.completionId, table.slot] }),

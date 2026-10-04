@@ -29,13 +29,13 @@ export const buyingTrip = pgTable(
     transportMoney: numericMoney("transport_money").notNull().default(0),
     /** Keeping the men who went: their food, and a night's lodging when the livestock market runs late. */
     keepMoney: numericMoney("keep_money").notNull().default(0),
-    wentOn: timestamp("went_on").notNull(),
+    wentOn: timestamp("went_on", { withTimezone: true }).notNull(),
     recordedBy: text("recorded_by").references(() => user.id),
     recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
-    createdAt: timestamp("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
     /** When the Farm's own Buying Float for this outing was counted home, and by whom; nothing while it is out, or
      *  for an outing no Farm float went on. */
-    floatReconciledAt: timestamp("float_reconciled_at"),
+    floatReconciledAt: timestamp("float_reconciled_at", { withTimezone: true }),
     floatReconciledBy: text("float_reconciled_by").references(() => user.id),
   },
   (table) => [index("buying_trip_day_idx").on(table.farmId, table.wentOn)]
@@ -61,10 +61,10 @@ export const sellingTrip = pgTable(
     transportMoney: numericMoney("transport_money").notNull().default(0),
     /** The stall or the space, and keeping the men who went. */
     keepMoney: numericMoney("keep_money").notNull().default(0),
-    wentOn: timestamp("went_on").notNull(),
+    wentOn: timestamp("went_on", { withTimezone: true }).notNull(),
     recordedBy: text("recorded_by").references(() => user.id),
     recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
-    createdAt: timestamp("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [index("selling_trip_day_idx").on(table.farmId, table.wentOn)]
 );

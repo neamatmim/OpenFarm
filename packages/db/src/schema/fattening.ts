@@ -38,7 +38,9 @@ export const counterparty = pgTable(
     /** Where he is, as the farm would say it aloud — a hat, a village, a district. */
     address: text("address"),
     phone: text("phone"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
     // The same trader, named the same way, is one trader. Recorded once per Farm.
@@ -88,9 +90,11 @@ export const intake = pgTable(
       precision: 7,
       scale: 2,
     }).notNull(),
-    arrivedAt: timestamp("arrived_at").notNull(),
+    arrivedAt: timestamp("arrived_at", { withTimezone: true }).notNull(),
     recordedBy: text("recorded_by").references(() => user.id),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
     check(
@@ -130,7 +134,7 @@ export const eidAnnouncement = pgTable(
     /** Whether this row takes the announcement back: the Eid is on its expected day again, as nobody has announced
      *  it. Its `day` is the expected day. */
     withdrawn: boolean("withdrawn").notNull().default(false),
-    createdAt: timestamp("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [index("eid_announcement_idx").on(table.farmId, table.expectedDay)]
 );
@@ -184,9 +188,11 @@ export const weighIn = pgTable(
     /** What the farm found doubtful about this reading, in its own words, and null for one it
      *  did not doubt. The reading is kept either way: the barn wrote it down (ADR 0002). */
     flaggedNote: text("flagged_note"),
-    weighedAt: timestamp("weighed_at").notNull(),
+    weighedAt: timestamp("weighed_at", { withTimezone: true }).notNull(),
     recordedBy: text("recorded_by").references(() => user.id),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
     uniqueIndex("weigh_in_completion_uidx").on(table.completionId),
@@ -222,7 +228,7 @@ export const readySetAside = pgTable(
      *  queue nobody can audit. */
     reason: text("reason").notNull(),
     setAsideBy: text("set_aside_by").references(() => user.id),
-    setAsideAt: timestamp("set_aside_at").notNull(),
+    setAsideAt: timestamp("set_aside_at", { withTimezone: true }).notNull(),
   },
   (table) => [uniqueIndex("ready_set_aside_animal_uidx").on(table.animalId)]
 );
@@ -272,10 +278,12 @@ export const sale = pgTable(
     driver: text("driver").notNull(),
     /** Anything the farm wants said about why she went — a culled cow's reason lives here. */
     note: text("note"),
-    soldAt: timestamp("sold_at").notNull(),
+    soldAt: timestamp("sold_at", { withTimezone: true }).notNull(),
     recordedBy: text("recorded_by").references(() => user.id),
     recordedByRole: text("recorded_by_role"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
     uniqueIndex("sale_animal_uidx").on(table.animalId),
@@ -318,7 +326,7 @@ export const internalSale = pgTable(
     note: text("note").notNull(),
     soldOn: text("sold_on").notNull(),
     recordedBy: text("recorded_by").references(() => user.id),
-    createdAt: timestamp("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [index("internal_sale_idx").on(table.farmId, table.animalId)]
 );
@@ -349,7 +357,7 @@ export const fatteningJoining = pgTable(
     /** The farm day she joined. */
     joinedOn: text("joined_on").notNull(),
     /** When, on the farm's clock: what her Season counts her money out from. */
-    joinedAt: timestamp("joined_at").notNull(),
+    joinedAt: timestamp("joined_at", { withTimezone: true }).notNull(),
     how: text("how", { enum: JOINING_HOWS }).notNull(),
     /** The Move that walked her across; a Move taken back takes its joining with it. */
     moveId: text("move_id").references(() => animalMove.id, {
@@ -372,9 +380,9 @@ export const fatteningJoining = pgTable(
     /** Where the rate came from. */
     note: text("note"),
     pricedBy: text("priced_by").references(() => user.id),
-    pricedAt: timestamp("priced_at"),
+    pricedAt: timestamp("priced_at", { withTimezone: true }),
     recordedBy: text("recorded_by").references(() => user.id),
-    createdAt: timestamp("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     index("fattening_joining_animal_idx").on(table.animalId, table.joinedAt),

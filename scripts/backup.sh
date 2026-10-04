@@ -94,7 +94,7 @@ sql() {
 # restore drill must pass; a farm with a year of milk must get every litre of it back.
 cat > "$work/statement.sql" <<'SQL'
 insert into backup_run (id, kind, started_at, destination, ok, held)
-values (:'run_id', :'kind', :'started'::timestamp, :'destination', 'no',
+values (:'run_id', :'kind', :'started'::timestamptz, :'destination', 'no',
         jsonb_build_object(
           'farm', (select count(*) from farm),
           'user', (select count(*) from "user"),

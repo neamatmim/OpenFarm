@@ -56,12 +56,14 @@ export const service = pgTable(
     servedBy: text("served_by"),
     /** The Heat this service answered, when it was raised by one. How her page reads as a chain. */
     heatId: text("heat_id").references(() => observation.id),
-    servedAt: timestamp("served_at").notNull(),
+    servedAt: timestamp("served_at", { withTimezone: true }).notNull(),
     recordedBy: text("recorded_by").references(() => user.id),
     /** The Role the Service belongs to — always the Manager's — kept on the record because the
      *  Step it came through may have run under another Role the same person holds. */
     recordedByRole: text("recorded_by_role").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
     uniqueIndex("service_completion_uidx").on(table.completionId),
@@ -96,9 +98,11 @@ export const pregnancyCheck = pgTable(
       .notNull()
       .references(() => service.id),
     result: text("result", { enum: PREGNANCY_CHECK_RESULTS }).notNull(),
-    checkedAt: timestamp("checked_at").notNull(),
+    checkedAt: timestamp("checked_at", { withTimezone: true }).notNull(),
     recordedBy: text("recorded_by").references(() => user.id),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
     uniqueIndex("pregnancy_check_completion_uidx").on(table.completionId),
@@ -127,13 +131,15 @@ export const calving = pgTable(
     completionId: text("completion_id")
       .notNull()
       .references(() => stepCompletion.id),
-    calvedAt: timestamp("calved_at").notNull(),
+    calvedAt: timestamp("calved_at", { withTimezone: true }).notNull(),
     ease: text("ease", { enum: CALVING_EASES }).notNull(),
     /** The first service of the attempt she calved from, when this farm served her. */
     serviceId: text("service_id").references(() => service.id),
     lactationNumber: integer("lactation_number").notNull(),
     recordedBy: text("recorded_by").references(() => user.id),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
     uniqueIndex("calving_completion_uidx").on(table.completionId),
@@ -158,9 +164,13 @@ export const dryOff = pgTable(
       .notNull()
       .references(() => animal.id),
     lactationNumber: integer("lactation_number").notNull(),
-    lactationStartedAt: timestamp("lactation_started_at"),
-    driedAt: timestamp("dried_at").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    lactationStartedAt: timestamp("lactation_started_at", {
+      withTimezone: true,
+    }),
+    driedAt: timestamp("dried_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
     uniqueIndex("dry_off_lactation_uidx").on(
@@ -188,16 +198,18 @@ export const abortion = pgTable(
     animalId: text("animal_id")
       .notNull()
       .references(() => animal.id),
-    abortedAt: timestamp("aborted_at").notNull(),
+    abortedAt: timestamp("aborted_at", { withTimezone: true }).notNull(),
     /** How far along she was, in months, as the Vet judged it. */
     stageMonths: integer("stage_months").notNull(),
     note: text("note").notNull(),
     /** The first service of the attempt lost, when this farm served her. */
     serviceId: text("service_id").references(() => service.id),
     /** When she had been expected to calve. */
-    expectedCalvingAt: timestamp("expected_calving_at").notNull(),
+    expectedCalvingAt: timestamp("expected_calving_at", {
+      withTimezone: true,
+    }).notNull(),
     recordedBy: text("recorded_by").references(() => user.id),
-    recordedAt: timestamp("recorded_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
   (table) => [index("abortion_animal_idx").on(table.animalId, table.abortedAt)]
 );
@@ -224,7 +236,7 @@ export const repeatBreederAnswer = pgTable(
     failedAttempts: integer("failed_attempts").notNull(),
     answeredBy: text("answered_by").references(() => user.id),
     answeredByRole: text("answered_by_role", { enum: ROLES }).notNull(),
-    answeredAt: timestamp("answered_at").notNull(),
+    answeredAt: timestamp("answered_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     index("repeat_breeder_answer_animal_idx").on(
@@ -252,7 +264,7 @@ export const weaning = pgTable(
     animalId: text("animal_id")
       .notNull()
       .references(() => animal.id),
-    weanedAt: timestamp("weaned_at").notNull(),
+    weanedAt: timestamp("weaned_at", { withTimezone: true }).notNull(),
     /** Her latest Weigh-in when she was weaned, or nothing where nobody had weighed her. */
     weightKg: numeric("weight_kg", { precision: 7, scale: 2 }),
     to: text("to", { enum: WEANED_TO }).notNull(),
@@ -260,7 +272,7 @@ export const weaning = pgTable(
       onDelete: "set null",
     }),
     recordedBy: text("recorded_by").references(() => user.id),
-    createdAt: timestamp("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     uniqueIndex("weaning_animal_uidx").on(table.animalId),

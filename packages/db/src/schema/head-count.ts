@@ -39,11 +39,11 @@ export const headCount = pgTable(
     expected: integer("expected").notNull(),
     /** The animals the register put in the Pen when it was counted. */
     expectedIds: jsonb("expected_ids").$type<string[]>().notNull(),
-    countedAt: timestamp("counted_at").notNull(),
+    countedAt: timestamp("counted_at", { withTimezone: true }).notNull(),
     countedBy: text("counted_by")
       .notNull()
       .references(() => user.id),
-    recordedAt: timestamp("recorded_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     uniqueIndex("head_count_completion_uidx").on(table.completionId),

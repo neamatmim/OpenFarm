@@ -35,7 +35,7 @@ export const bankRate = pgTable(
     /** The farm's day it holds from. */
     fromDay: text("from_day").notNull(),
     recordedBy: text("recorded_by").references(() => user.id),
-    recordedAt: timestamp("recorded_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
   (table) => [index("bank_rate_farm_idx").on(table.farmId, table.fromDay)]
 );
@@ -60,7 +60,7 @@ export const dairyEntryPrice = pgTable(
     asOf: text("as_of").notNull(),
     note: text("note").notNull(),
     setBy: text("set_by").references(() => user.id),
-    setAt: timestamp("set_at").notNull(),
+    setAt: timestamp("set_at", { withTimezone: true }).notNull(),
   },
   (table) => [uniqueIndex("dairy_entry_price_animal_uidx").on(table.animalId)]
 );
@@ -90,7 +90,7 @@ export const headPrice = pgTable(
     lowMoney: integer("low_money").notNull(),
     highMoney: integer("high_money").notNull(),
     setBy: text("set_by").references(() => user.id),
-    setAt: timestamp("set_at").notNull(),
+    setAt: timestamp("set_at", { withTimezone: true }).notNull(),
   },
   (table) => [uniqueIndex("head_price_kind_uidx").on(table.farmId, table.kind)]
 );

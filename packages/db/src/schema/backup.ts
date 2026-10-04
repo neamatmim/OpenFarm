@@ -19,9 +19,9 @@ export const backupRun = pgTable(
   {
     id: text("id").primaryKey(),
     kind: text("kind", { enum: BACKUP_KINDS }).notNull(),
-    startedAt: timestamp("started_at").notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
     /** Null while it is still running, or if the job died without saying so. */
-    finishedAt: timestamp("finished_at"),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
     /** How big the encrypted copy came out. A copy that suddenly shrinks is worth seeing. */
     sizeBytes: text("size_bytes"),
     /** Where it went, in words — the bucket or host, never a credential. */

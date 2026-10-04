@@ -46,9 +46,9 @@ export const feedItem = pgTable(
      *  A Harvest comes into the store at it, so the animals that eat home-grown fodder are charged for
      *  it. Null for anything the farm does not grow, which comes in at what it was bought for. */
     fodderPriceMoney: numericMoney("fodder_price_money"),
-    retiredAt: timestamp("retired_at"),
+    retiredAt: timestamp("retired_at", { withTimezone: true }),
     createdBy: text("created_by").references(() => user.id),
-    createdAt: timestamp("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [uniqueIndex("feed_item_name_uidx").on(table.farmId, table.nameBn)]
 );
@@ -90,8 +90,8 @@ export const ration = pgTable(
       precision: 4,
       scale: 2,
     }),
-    retiredAt: timestamp("retired_at"),
-    createdAt: timestamp("created_at").notNull(),
+    retiredAt: timestamp("retired_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [uniqueIndex("ration_name_uidx").on(table.farmId, table.nameBn)]
 );
@@ -108,7 +108,7 @@ export const penRation = pgTable("pen_ration", {
     .notNull()
     .references(() => ration.id),
   assignedBy: text("assigned_by").references(() => user.id),
-  assignedAt: timestamp("assigned_at").notNull(),
+  assignedAt: timestamp("assigned_at", { withTimezone: true }).notNull(),
 });
 
 /** One published statement of a Ration. Never updated: the next change is the next Version. */
@@ -134,7 +134,7 @@ export const rationVersion = pgTable(
     note: text("note"),
     publishedBy: text("published_by").references(() => user.id),
     publishedByRole: text("published_by_role", { enum: ROLES }),
-    publishedAt: timestamp("published_at").notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     uniqueIndex("ration_version_number_uidx").on(table.rationId, table.number),
@@ -184,10 +184,10 @@ export const feeding = pgTable(
     lines: jsonb("lines").notNull(),
     /** How far under target the whole session came, and when that was worth saying. */
     shortfallPercent: integer("shortfall_percent").notNull().default(0),
-    flaggedAt: timestamp("flagged_at"),
+    flaggedAt: timestamp("flagged_at", { withTimezone: true }),
     fedBy: text("fed_by").references(() => user.id),
-    fedAt: timestamp("fed_at").notNull(),
-    recordedAt: timestamp("recorded_at").notNull(),
+    fedAt: timestamp("fed_at", { withTimezone: true }).notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     index("feeding_pen_idx").on(table.farmId, table.penId, table.fedAt),
@@ -232,7 +232,7 @@ export const feedIn = pgTable(
     /** The seller: who the farm bought it from, as on an Intake. Null for a harvest. */
     counterpartyId: text("counterparty_id").references(() => counterparty.id),
     /** The farm's day it came in. */
-    receivedOn: timestamp("received_on").notNull(),
+    receivedOn: timestamp("received_on", { withTimezone: true }).notNull(),
     /** The Lot Number on the bag, where there is one — bagged concentrate and premix carry one, hay and a
      *  harvest do not. */
     lotNumber: text("lot_number"),
@@ -240,7 +240,7 @@ export const feedIn = pgTable(
     expiresOn: text("expires_on"),
     recordedBy: text("recorded_by").references(() => user.id),
     recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
-    recordedAt: timestamp("recorded_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     index("feed_in_item_idx").on(
@@ -272,14 +272,14 @@ export const stockCount = pgTable(
     completionId: text("completion_id")
       .notNull()
       .references(() => stepCompletion.id),
-    countedAt: timestamp("counted_at").notNull(),
+    countedAt: timestamp("counted_at", { withTimezone: true }).notNull(),
     /** What the store was thought to hold, just before this count. */
     expected: numeric("expected", { precision: 12, scale: 1 }).notNull(),
     counted: numeric("counted", { precision: 12, scale: 1 }).notNull(),
     /** Why what was counted is not what was expected. Null when they match. */
     reason: text("reason"),
     countedBy: text("counted_by").references(() => user.id),
-    recordedAt: timestamp("recorded_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     uniqueIndex("stock_count_line_uidx").on(

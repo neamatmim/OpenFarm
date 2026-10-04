@@ -2,9 +2,8 @@ import { createDb } from "@OpenFarm/db";
 import { sql } from "@OpenFarm/db/operators";
 import { describe, expect, it } from "vitest";
 
-// Every moment the farm keeps is written as UTC — drizzle writes a Date as its UTC wall clock into a column kept without
-// its zone — so the database must read and default them at UTC too: a `DEFAULT now()` in a session set to the server's
-// own zone would write Dhaka's wall clock into a column read back as UTC, six hours out.
+// Every moment the farm keeps carries its zone, so it is the same instant in any session; each of the farm's sessions
+// still runs at UTC, so a moment cut to its day in SQL falls on the UTC day the code works in, not Dhaka's.
 
 describe("the database the farm talks to", () => {
   it("runs every connection at UTC, whatever its address or its server asks for", async () => {

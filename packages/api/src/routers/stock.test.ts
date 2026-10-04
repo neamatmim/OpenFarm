@@ -385,7 +385,7 @@ describe("feed stock", () => {
   });
 
   it("reads every Feeding at the moment it was fed, whatever the server's own time zone", async () => {
-    // Read in the database rather than through the tables, so a moment kept without its zone comes back as text; read
+    // Read in the database rather than through the tables, where a moment once came back as text with no zone; read
     // as the server's local time, a farm in Dhaka would see every Feeding six hours early — before a Stock Count it
     // came after, which the count then wipes out.
     const db = scratchDb();

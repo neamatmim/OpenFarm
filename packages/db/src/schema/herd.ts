@@ -44,7 +44,9 @@ export const shed = pgTable(
       .notNull()
       .references(() => farm.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [uniqueIndex("shed_name_uidx").on(table.farmId, table.name)]
 );
@@ -67,7 +69,9 @@ export const pen = pgTable(
     /** How many head the Pen was built to hold, as the Owner or the Manager reckons it. None until one of them says:
      *  a Pen of unknown size is never called full. */
     capacity: integer("capacity"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
     uniqueIndex("pen_name_uidx").on(table.shedId, table.name),
@@ -107,8 +111,8 @@ export const breed = pgTable(
      *  it is judged against the farm's deshi share of the Ration's Expected Gain. The standard local breeds come set;
      *  the farm says for its own. */
     deshi: boolean("deshi").notNull().default(false),
-    retiredAt: timestamp("retired_at"),
-    createdAt: timestamp("created_at").notNull(),
+    retiredAt: timestamp("retired_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     uniqueIndex("breed_key_uidx").on(table.farmId, table.key),
@@ -144,18 +148,20 @@ export const animal = pgTable(
     ownerVentureId: text("owner_venture_id").references(() => venture.id),
     /** Her breed, from the farm's list. */
     breedId: text("breed_id").references(() => breed.id),
-    birthDate: timestamp("birth_date"),
+    birthDate: timestamp("birth_date", { withTimezone: true }),
     /** Set when a photo exists; the client uses it to bust its cache. */
-    photoUpdatedAt: timestamp("photo_updated_at"),
+    photoUpdatedAt: timestamp("photo_updated_at", { withTimezone: true }),
     /** The lactation in progress: its number, and when it began. Derived from the lifecycle
      *  — set when a cow enters Milking — never typed. Breeding (increment 5) writes these
      *  from Calving instead. */
     lactationNumber: integer("lactation_number").notNull().default(0),
-    lactationStartedAt: timestamp("lactation_started_at"),
+    lactationStartedAt: timestamp("lactation_started_at", {
+      withTimezone: true,
+    }),
     /** When she is expected to calve: her last positive Pregnancy Check's attempt, carried the
      *  farm's gestation on. Derived and re-derived whenever a check or a service under it changes,
      *  never typed. Null while nobody has found her carrying. */
-    expectedCalvingAt: timestamp("expected_calving_at"),
+    expectedCalvingAt: timestamp("expected_calving_at", { withTimezone: true }),
     /** The first service Expected Calving counts from — null when the date was given at intake or
      *  on the opening register, where nobody on this farm served her. Only an entered date may be
      *  put right by hand; one worked out from a check is put right by correcting what it came from.
@@ -172,21 +178,31 @@ export const animal = pgTable(
     calfOutcome: text("calf_outcome", { enum: CALF_OUTCOMES }),
     /** While this is in the future, the cow's milk may not go to Bulk. Written from the last
      *  Treatment given, on the product's own days. */
-    milkWithdrawalUntil: timestamp("milk_withdrawal_until"),
+    milkWithdrawalUntil: timestamp("milk_withdrawal_until", {
+      withTimezone: true,
+    }),
     /** While this is in the future, she may not be sold for meat. The Sale SOP arrives in
      *  increment 4 and reads this same date; until then the farm records it and says so, so
      *  nobody sells a cow who is still carrying a drug. */
-    meatWithdrawalUntil: timestamp("meat_withdrawal_until"),
+    meatWithdrawalUntil: timestamp("meat_withdrawal_until", {
+      withTimezone: true,
+    }),
     /** What her Treatments alone say, whether or not a Vet has shortened the hold since.
      *  Two jobs: it is the figure a shortened Withdrawal was shortened *from* — which is what
      *  a slaughter vet asks — and it is how the farm knows whether a fresh reckoning found
      *  anything new, so a phone sending the same dose twice cannot undo the Vet's word. */
-    milkWithdrawalFromDoses: timestamp("milk_withdrawal_from_doses"),
-    meatWithdrawalFromDoses: timestamp("meat_withdrawal_from_doses"),
+    milkWithdrawalFromDoses: timestamp("milk_withdrawal_from_doses", {
+      withTimezone: true,
+    }),
+    meatWithdrawalFromDoses: timestamp("meat_withdrawal_from_doses", {
+      withTimezone: true,
+    }),
     /** When a Vet last shortened or ended a Withdrawal of hers, who, and why. Kept on the
      *  animal and not only in the trail: a shortened Withdrawal is exactly what a slaughter
      *  vet asks about, and the answer should not need an audit query. */
-    withdrawalShortenedAt: timestamp("withdrawal_shortened_at"),
+    withdrawalShortenedAt: timestamp("withdrawal_shortened_at", {
+      withTimezone: true,
+    }),
     withdrawalShortenedBy: text("withdrawal_shortened_by").references(
       () => user.id
     ),
@@ -194,9 +210,15 @@ export const animal = pgTable(
     /** When she reached the State she is in. A State-triggered SOP counts its days from
      *  here, and a cow who comes back to Milking next lactation reaches it afresh — which is
      *  what makes the work raised then a new occasion rather than one already done. */
-    stateChangedAt: timestamp("state_changed_at").defaultNow().notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    stateChangedAt: timestamp("state_changed_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
     uniqueIndex("animal_tag_uidx").on(table.farmId, table.tagNumber),
@@ -229,7 +251,7 @@ export const animalMove = pgTable(
      *  changes where she went rather than sending her on a second journey. */
     completionId: text("completion_id"),
     movedBy: text("moved_by").references(() => user.id),
-    movedAt: timestamp("moved_at").notNull(),
+    movedAt: timestamp("moved_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     index("animal_move_animal_idx").on(table.animalId, table.movedAt),
@@ -253,7 +275,7 @@ export const retag = pgTable(
       .references(() => animal.id),
     reason: text("reason").notNull(),
     retaggedBy: text("retagged_by").references(() => user.id),
-    retaggedAt: timestamp("retagged_at").notNull(),
+    retaggedAt: timestamp("retagged_at", { withTimezone: true }).notNull(),
   },
   (table) => [index("retag_animal_idx").on(table.animalId, table.retaggedAt)]
 );
@@ -272,7 +294,7 @@ export const animalPhoto = pgTable("animal_photo", {
   /** The same photo as a small JPEG, for the lists that draw it the size of a thumb: a herd page of them would
    *  otherwise fetch every photo whole. Null for a photo taken before thumbnails were made; it is then sent whole. */
   thumb: text("thumb"),
-  updatedAt: timestamp("updated_at").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
 });
 
 /** Which Pens a Staff person is responsible for. */
@@ -289,9 +311,11 @@ export const penAssignment = pgTable(
     penId: text("pen_id")
       .notNull()
       .references(() => pen.id),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     /** Assignments are never deleted; one taken away is ended, and handing the Pen back reopens it. */
-    endedAt: timestamp("ended_at"),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
   },
   (table) => [
     uniqueIndex("pen_assignment_user_pen_uidx").on(table.userId, table.penId),
@@ -333,7 +357,7 @@ export const mortality = pgTable(
       .references(() => animal.id),
     kind: text("kind", { enum: MORTALITY_KINDS }).notNull(),
     /** When she died or was culled, on the farm's clock — not when it was written down. */
-    happenedAt: timestamp("happened_at").notNull(),
+    happenedAt: timestamp("happened_at", { withTimezone: true }).notNull(),
     cause: text("cause").notNull(),
     /** The Diagnosis the farm attributes her death to, when there is one. This is the register's
      *  path to the report reference: a mortality of a notifiable disease reaches its DLS report
@@ -348,7 +372,7 @@ export const mortality = pgTable(
     disposalNote: text("disposal_note"),
     recordedBy: text("recorded_by").references(() => user.id),
     recordedByRole: text("recorded_by_role", { enum: ROLES }),
-    recordedAt: timestamp("recorded_at").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     /** She goes once. Recording it again is a Correction of what is there. */
@@ -376,9 +400,9 @@ export const mortalityPhoto = pgTable(
     /** Downscaled on the device before upload, base64. */
     data: text("data").notNull(),
     takenBy: text("taken_by").references(() => user.id),
-    takenAt: timestamp("taken_at").notNull(),
+    takenAt: timestamp("taken_at", { withTimezone: true }).notNull(),
     /** When a newer photograph replaced it; null for the one that stands. */
-    replacedAt: timestamp("replaced_at"),
+    replacedAt: timestamp("replaced_at", { withTimezone: true }),
   },
   (table) => [index("mortality_photo_mortality_idx").on(table.mortalityId)]
 );
