@@ -38,9 +38,12 @@ import { Fragment, useState } from "react";
 
 import { useLanguage, useT } from "@/i18n/language-provider";
 
-/** How a column sits in its table: figures line up on the right, and a column may carry its own classes. */
+/** How a column sits in its table: figures line up on the right, and a column may carry its own classes. Its cells
+ *  start at their top unless `middle`: for a table whose cells are each one line beside something taller, such as a
+ *  photo, they are set level with its middle. The heading stays at the foot of its cell either way. */
 interface ColumnLook {
   align?: "end";
+  middle?: boolean;
   className?: string;
 }
 
@@ -145,6 +148,7 @@ const BodyCell = <TData extends object>({
     <TableCell
       className={cn(
         "align-top whitespace-normal first:pl-4 last:pr-4 md:first:pl-5 md:last:pr-5",
+        look?.middle && "align-middle",
         look?.align === "end" && "text-right tabular-nums",
         look?.className
       )}
@@ -189,7 +193,8 @@ const Heading = <TData extends object>({
   return (
     <button
       className={cn(
-        "hover:text-foreground -mx-1 rounded px-1 text-start outline-none focus-visible:ring-2",
+        // To the foot of its line, not its baseline, so the space under a line's letters does not lift it off its rule.
+        "hover:text-foreground -mx-1 rounded px-1 text-start align-bottom outline-none focus-visible:ring-2",
         column.columnDef.meta?.align === "end" && "text-end",
         sorted && "text-foreground"
       )}
@@ -403,7 +408,7 @@ export const DataTable = <TData extends object>({
               <TableRow key={group.id}>
                 {selection ? (
                   // On the headings' line: they sit at the foot of their cells, so a long one may wrap above.
-                  <TableHead className="w-10 pl-4 align-bottom md:pl-5">
+                  <TableHead className="w-10 pb-2.5 pl-4 align-bottom md:pl-5">
                     {tickable.length > 0 ? (
                       <Checkbox
                         aria-label={t("common.selectPage")}
@@ -430,7 +435,8 @@ export const DataTable = <TData extends object>({
                         // short enough that the figures under them still say how wide a column is. (They wrapped while
                         // they were capitals, which pushed the Ventures table off its card; the table scrolls sideways
                         // on its own rather than the page, where one is still too wide.)
-                        "text-muted-foreground align-bottom text-xs whitespace-nowrap first:pl-4 last:pr-4 md:first:pl-5 md:last:pr-5",
+                        // At the foot of the cell, as far above the rule as a row's words sit below it.
+                        "text-muted-foreground pb-2.5 align-bottom text-xs whitespace-nowrap first:pl-4 last:pr-4 md:first:pl-5 md:last:pr-5",
                         look?.align === "end" && "text-right",
                         look?.className,
                         // Last, so a column that lets its figures wrap does not wrap its heading with them.
