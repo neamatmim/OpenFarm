@@ -2,15 +2,16 @@
 
 These are the tickets from [the spec](./spec.md). They build what the map [OpenFarm: what the money in cattle returns](../openfarm-roi/map.md) decided on 2026-09-27. The vocabulary is in the glossary's **Season**, **Return on Cost**, **Return on Capital**, **Bank Rate** and **Head Price** entries, and ADR 0012. The layout is variant B of the prototype on branch `prototype/owner-reads-returns`.
 
-| #   | Ticket                                          | Blocked by |
-| --- | ----------------------------------------------- | ---------- |
-| 01  | The Returns page: finished Seasons and Ventures | —          |
-| 02  | The Bank Rate                                   | 01         |
-| 03  | Still going, at today's price                   | 01         |
-| 04  | Joining a Season                                | 03         |
-| 05  | Breaking a Season down                          | 01         |
-| 06  | What the dairy herd returns                     | 04         |
-| 07  | Investors read a settled share                  | 01         |
+| #   | Ticket                                          | Blocked by                                         |
+| --- | ----------------------------------------------- | -------------------------------------------------- |
+| 01  | The Returns page: finished Seasons and Ventures | —                                                  |
+| 02  | The Bank Rate                                   | 01                                                 |
+| 03  | Still going, at today's price                   | 01                                                 |
+| 04  | Joining a Season                                | 03                                                 |
+| 05  | Breaking a Season down                          | 01                                                 |
+| 06  | What the dairy herd returns                     | 04                                                 |
+| 07  | Investors read a settled share                  | 01                                                 |
+| 08  | Across every Season                             | the first real Season finishing (Eid-ul-Adha 2027) |
 
 **There is one root, 01.** It builds the arithmetic, the Season and the page, with finished Seasons and settled Ventures only.
 
