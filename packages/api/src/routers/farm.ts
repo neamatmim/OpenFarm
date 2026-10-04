@@ -20,6 +20,7 @@ import type { CalvingWorkFollowed } from "../calving-work";
 import { dataKeepersInput, readKeepers } from "../data-keepers";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure, publicProcedure } from "../index";
+import { tell } from "../notice";
 import type { OwnersFigure } from "../owners-figures";
 import {
   A_VENTURES_OWN,
@@ -252,6 +253,13 @@ const WHAT_RETURNS_READ = ["returnYearFloorDays"] as const;
 /** When a month's Monthly Costs and wages are looked for: the Owner's to set, as the mark that makes a Monthly Cost is. */
 const WHEN_MONTHLY_COSTS_ARE_LOOKED_FOR = ["monthlyCostsFromDay"] as const;
 
+/** The checks on the Manager himself: what he may book before it waits for the Owner, and how long he may put his own
+ *  work right. The Owner's to set, as the lines his counts are told past are (the Owner's decision of 2026-10-04). */
+const THE_CHECKS_ON_THE_MANAGER = [
+  "approvalThresholdMoney",
+  "managerCorrectionDays",
+] as const;
+
 /** How long a buyer may owe with no promised day: the Owner's to set, as whom the farm lends to is. */
 const HOW_LONG_RECEIVABLE_MAY_RUN = ["receivableDays"] as const;
 
@@ -312,6 +320,13 @@ const refuseWhatIsTheOwners = (
       reason: "owner_only",
     });
   }
+  if (namesAny(input, THE_CHECKS_ON_THE_MANAGER)) {
+    throw forbidden({
+      message:
+        "What the Manager may book without the Owner, and how long he may put his own work right, are the Owner's to set",
+      reason: "owner_only",
+    });
+  }
   if (namesAny(input, WHEN_A_SHORT_STORE_IS_TOLD)) {
     throw forbidden({
       message:
@@ -319,6 +334,35 @@ const refuseWhatIsTheOwners = (
       reason: "owner_only",
     });
   }
+};
+
+/** The Owner hears of each change the Manager makes to the farm's settings — how many, and by whom; what each was and is
+ *  now is in the trail (the Owner's decision of 2026-10-04). Nothing for the Owner's own changes. */
+const tellTheOwnerOfTheChange = async (
+  context: {
+    roles: readonly RoleName[];
+    actor: { name: string };
+    farm: { id: string };
+    clock: { now: () => Date };
+  },
+  tx: Tx,
+  changes: Record<string, unknown>
+) => {
+  const count = Object.keys(changes).length;
+  if (count === 0 || context.roles.some((role) => role === "owner")) {
+    return;
+  }
+  const now = context.clock.now();
+  await tell(
+    tx,
+    context.farm.id,
+    {
+      kind: "settings_changed",
+      about: { id: uuidv7(now) },
+      facts: { name: context.actor.name, count },
+    },
+    now
+  );
 };
 
 /**
@@ -814,6 +858,7 @@ export const farmRouter = {
             .update(farm)
             .set(changes)
             .where(eq(farm.id, context.farm.id));
+          await tellTheOwnerOfTheChange(context, tx, changes);
           // A calving timed by a gestation or a lead that just changed is timed again, and its open
           // work goes to the new day — the same as a date that moves for any other reason.
           if (

@@ -186,6 +186,7 @@ const EXAMPLE: NoticeFacts = {
     day: "2038-03-09",
     by: "রফিকুল ইসলাম",
   },
+  settings_changed: { name: "করিম", count: 2 },
   feed_price_jump: {
     feed: "গমের ভুসি",
     unit: "kg",

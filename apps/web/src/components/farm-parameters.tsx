@@ -155,6 +155,15 @@ const GROUPS: {
         min: 0,
         max: 168,
       },
+    ],
+  },
+  {
+    id: "params-checks",
+    title: "params.checks",
+    hint: "params.checksHint",
+    // The checks on the Manager himself are the Owner's to set (the Owner's decision of 2026-10-04).
+    owner: true,
+    fields: [
       {
         key: "managerCorrectionDays",
         label: "params.managerCorrection",

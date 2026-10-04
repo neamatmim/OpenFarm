@@ -134,6 +134,12 @@ export interface NoticeFacts {
     /** The farm day ("YYYY-MM-DD") it was counted. */
     countedOn: string;
   };
+  settings_changed: {
+    /** Who changed them: the Manager, by name. */
+    name: string;
+    /** How many of the farm's settings the change named. */
+    count: number;
+  };
   feed_price_jump: {
     /** The Feed Item's Bangla name, as the store names it. */
     feed: string;
