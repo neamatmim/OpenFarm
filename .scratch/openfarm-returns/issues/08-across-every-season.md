@@ -17,7 +17,9 @@
 - [ ] **Web:** on the Fattening tab, under Finished, a "Across every Season" section with the same buttons and table as one Season's breakdown. It appears only once two Seasons have finished.
 - [ ] **Somebody opens it:** each breakdown with real Seasons, in both languages, on a desk and at phone width.
 
-## Open before the build
+## Decided 2026-10-05
 
-- **Ventures' cattle in it or not?** A Venture's animals also come from markets and traders, but they are worked in their Settlement, not in a Season. Adding them answers "which trader is best for cattle"; leaving them out answers "which is best for the Farm's own money". Ask the Owner.
-- **A minimum head per line?** A trader with two animals can top the table by luck. Either name the head count and let the Owner judge, or grey out lines under a size the Owner sets.
+The Owner told Claude to take its recommendation on both questions.
+
+- **Seasons only, no Ventures' cattle.** A Venture is worked in its Settlement, so leaving its animals out keeps this one sum with the finished Seasons on the page, as ticket 05's lines are. It answers what the Farm's own money did with each market, trader, breed and band. Bringing Ventures' cattle in would be a later choice on the same table, not a change to this one.
+- **No minimum head and no greying out.** Each line names its head and how many Seasons it drew from, and the Owner judges how much a small line is worth. No new Farm setting.
