@@ -9,6 +9,9 @@ export interface Animal {
   photoUpdatedAt: Date | null;
   /** Her milk cannot go to the tank: the tile locks and the sheet offers Discard only. */
   underMilkWithdrawal: boolean;
+  /** What she gave or weighed the time before, where the Step reads a figure against it. A phone's copy from before
+   *  the farm said it has none. */
+  last?: { figure: number; at: Date } | null;
 }
 
 /** What finishing says: only work somebody signs off waits for them; the rest is finished when it is finished. */

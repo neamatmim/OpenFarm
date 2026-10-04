@@ -3738,6 +3738,9 @@ export const bn: Record<MessageKey, string> = {
   "work.confirm": "হয়ে গেছে",
   "work.outOfRange": "এটি স্বাভাবিকের বাইরে। রাখবেন?",
   "work.keepAnyway": "হ্যাঁ, রাখুন",
+  "work.lastTime": "গতবার {figure} {unit}",
+  "work.tapWhenDone": "হয়ে গেলে চাপুন",
+  "work.farFromLast": "গতবার ছিল {figure} {unit}। এটা কি ঠিক?",
   "work.finish": "শেষ করুন",
   "work.finished": "শেষ — অনুমোদনের অপেক্ষায়",
   "work.finishedNoCheck": "শেষ হয়েছে",
@@ -3788,6 +3791,11 @@ export const bn: Record<MessageKey, string> = {
   "work.overdue": "দেরি",
   "work.putOff": "আবার — আগে পিছিয়ে দেওয়া হয়েছিল",
   "work.aboutTag": "ট্যাগ {tag}",
+  "work.restWell": "বাকি {count}টি সুস্থ",
+  "work.restWellTitle": "বাকি {count}টি পশুকে সুস্থ লিখবেন?",
+  "work.restWellBody":
+    "যে পশুগুলো এখনো দেখা হয়নি, প্রতিটিকে “{reason}” লেখা হবে। আগে পুরো পেন ঘুরে দেখে নিন।",
+  "work.restWellConfirm": "হ্যাঁ, সবাই সুস্থ",
   "work.doseOf": "ডোজ {number}/{of}",
   "work.putOffSince": "আবার — প্রথমবার পিছিয়েছে {day}",
   "work.releaseOwesDoses":

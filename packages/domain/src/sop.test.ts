@@ -5,7 +5,9 @@ import {
   describeChanges,
   findStructuralProblems,
   maySkip,
+  isOneTap,
   missingEvidence,
+  nothingToNoteOf,
 } from "./sop";
 import { standardPlaybook } from "./standard-playbook";
 
@@ -158,5 +160,65 @@ describe("work about the whole farm", () => {
     expect(describeChanges(biosecurity, perPen)).toContainEqual({
       kind: "now_per_pen",
     });
+  });
+});
+
+describe("passing an animal as well", () => {
+  it("is a tap on every round the standard Playbook walks, found by what the reason means, not its words", () => {
+    const rounds = Object.values(standardPlaybook()).flatMap((sop) =>
+      sop.steps.filter(
+        (step) =>
+          step.repeatPerAnimal &&
+          step.skipReasons.some((reason) => reason.en?.startsWith("Well"))
+      )
+    );
+    expect(rounds.length).toBeGreaterThan(0);
+    for (const step of rounds) {
+      expect(nothingToNoteOf(step)?.en).toMatch(/^Well — /u);
+    }
+    // A reason reworded next season is still the one passed in a tap.
+    expect(
+      nothingToNoteOf({
+        skipReasons: [
+          { bn: "পশু পাওয়া যায়নি", means: "not_found" },
+          { bn: "ঠিক আছে", means: "nothing_to_note" },
+        ],
+      })?.bn
+    ).toBe("ঠিক আছে");
+    expect(
+      nothingToNoteOf({ skipReasons: [{ bn: "সুস্থ — চোখে পড়ার মতো কিছু নেই" }] })
+    ).toBeNull();
+  });
+});
+
+describe("a Step done in one tap", () => {
+  const tick = { type: "tick" as const, required: true };
+  it("is a tick and nothing else, with nothing to skip it with and nothing it writes", () => {
+    expect(
+      isOneTap({ repeatPerAnimal: false, evidence: [tick], skipReasons: [] })
+    ).toBe(true);
+    expect(
+      isOneTap({ repeatPerAnimal: false, evidence: [], skipReasons: [] })
+    ).toBe(true);
+  });
+
+  it("is never a Step with a figure, a choice, a reason to skip, an Effect, or one done at each animal", () => {
+    const base = { repeatPerAnimal: false, evidence: [tick], skipReasons: [] };
+    expect(
+      isOneTap({
+        ...base,
+        evidence: [tick, { type: "photo" as const, required: false }],
+      })
+    ).toBe(false);
+    expect(isOneTap({ ...base, skipReasons: [{ bn: "ওষুধ শেষ" }] })).toBe(false);
+    expect(isOneTap({ ...base, effect: { kind: "treatment" } })).toBe(false);
+    expect(isOneTap({ ...base, repeatPerAnimal: true })).toBe(false);
+  });
+
+  it("is not the feed's hot-day Step, which says whether it was hot", () => {
+    const cool = standardPlaybook().feeding.steps.find(
+      (step) => step.id === "cool"
+    );
+    expect(cool && isOneTap(cool)).toBe(false);
   });
 });

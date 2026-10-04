@@ -9,8 +9,11 @@ import type {
 import {
   feedUnitWord,
   MILK_DESTINATIONS,
+  farFromLast,
   missingEvidence,
+  nothingToNoteOf,
   outsideItsRange,
+  readsAgainstLast,
 } from "@OpenFarm/domain";
 import {
   formatDate,
@@ -28,6 +31,7 @@ import {
   Camera,
   Check,
   ChevronLeft,
+  CircleCheck,
   Lock,
   Milk,
   SkipForward,
@@ -584,6 +588,41 @@ const typedFrom = (
     (lines ?? []).map((line) => [line.feedItemId, String(figure(line))])
   );
 
+/** The unit the Step's figure is typed in, in Bangla as the box says it. */
+const unitOf = (step: Step) =>
+  step.evidence.find((item) => item.type === "number")?.unit?.bn ?? "";
+
+/** What she gave or weighed the time before, under her tag: the figure a slip of the thumb is far from. */
+const LastTime = ({ step, last }: { step: Step; last: Animal["last"] }) => {
+  const { t, language } = useLanguage();
+  if (!last || !readsAgainstLast(step.effect?.kind)) {
+    return null;
+  }
+  return (
+    <p className="text-muted-foreground text-sm tabular-nums">
+      {t("work.lastTime", {
+        figure: formatNumber(last.figure, language),
+        unit: unitOf(step),
+      })}
+    </p>
+  );
+};
+
+/** Her last figure, where the one typed now is too far from it to take without asking; nothing otherwise. */
+const tooFarFromHerLast = (
+  step: Step,
+  last: Animal["last"],
+  values: Entered
+): number | null => {
+  const kind = step.effect?.kind;
+  const index = step.evidence.findIndex((item) => item.type === "number");
+  const typed = values[index];
+  if (!last || !readsAgainstLast(kind) || typed === undefined || typed === "") {
+    return null;
+  }
+  return farFromLast(kind, last.figure, Number(typed)) ? last.figure : null;
+};
+
 /** What the sheet is for, at its top: the animal and her photo, or the Step's picture; the Step's words; and whether
  *  this is a Correction or a cow whose milk is held. */
 const SheetHead = ({
@@ -614,6 +653,7 @@ const SheetHead = ({
       <div className="flex min-w-0 flex-col gap-1.5">
         {animal ? <TagChip>{animal.tagNumber}</TagChip> : null}
         <h1 className="text-xl font-semibold">{step.text.bn}</h1>
+        <LastTime last={animal?.last} step={step} />
         {correcting ? (
           <StatusBadge tone="info">{t("work.correcting")}</StatusBadge>
         ) : null}
@@ -714,6 +754,7 @@ const asLocalField = (value: boolean | number | string | undefined): string => {
 /** One piece of Evidence: a big number pad, a note, a choice, or the camera. A tick needs no
  *  control — confirming the Step is the tick. */
 const EvidenceControl = ({
+  first,
   evidence,
   language,
   value,
@@ -721,6 +762,8 @@ const EvidenceControl = ({
   onValue,
   onPhoto,
 }: {
+  /** The sheet's first figure, which takes the keypad as the sheet opens. */
+  first: boolean;
   evidence: Evidence;
   language: string;
   value: boolean | number | string | undefined;
@@ -756,6 +799,8 @@ const EvidenceControl = ({
           </span>
         </p>
         <Input
+          // oxlint-disable-next-line jsx-a11y/no-autofocus -- the sheet opens for this one figure, and is typed at once
+          autoFocus={first}
           inputMode="decimal"
           value={typed}
           onChange={(event) =>
@@ -859,6 +904,32 @@ const EvidenceControl = ({
   );
 };
 
+/** Most of a round's animals are well: passing one is a tap on the sheet, not Skip and a second screen of reasons.
+ *  Nothing for a Step with no such reason. Not offered on a Correction, which has to say why. */
+const PassAsWell = ({
+  step,
+  onRecord,
+}: {
+  step: Step;
+  onRecord: (payload: StepAnswer) => void;
+}) => {
+  const { language } = useLanguage();
+  const well = nothingToNoteOf(step);
+  if (!well) {
+    return null;
+  }
+  return (
+    <Button
+      className="mb-2 h-14 w-full text-lg md:h-12"
+      onClick={() => onRecord({ evidence: [], skipReason: well.bn })}
+      variant="outline"
+    >
+      <CircleCheck className="text-success" data-icon="inline-start" />
+      {language === "en" && well.en ? well.en : well.bn}
+    </Button>
+  );
+};
+
 /** The full-screen sheet: one control per piece of Evidence the Version asks for, skip with
  *  a reason for a per-animal Step, and a warning that must be acknowledged for an odd figure. */
 export const EvidenceSheet = ({
@@ -952,6 +1023,8 @@ export const EvidenceSheet = ({
   });
 
   const firstOutOfRange = () => outsideItsRange(step.evidence, values);
+  // The box the figure goes in takes the keypad as the sheet opens: one tap fewer for each cow.
+  const firstNumber = step.evidence.findIndex((item) => item.type === "number");
   // Asked of the answers as they will be sent, and by the farm's own rule: the button is offered when
   // the farm would take it, not when the boxes merely look filled.
   const ready = renewing.readyWith(
@@ -961,8 +1034,16 @@ export const EvidenceSheet = ({
 
   const submit = (force: boolean) => {
     const outside = firstOutOfRange();
-    if (outside && !force) {
-      setWarning(outside);
+    const far = tooFarFromHerLast(step, animal?.last, values);
+    if (!force && (outside || far !== null)) {
+      setWarning(
+        outside
+          ? t("work.outOfRange")
+          : t("work.farFromLast", {
+              figure: formatNumber(far ?? 0, language),
+              unit: unitOf(step),
+            })
+      );
       return;
     }
     onRecord({
@@ -1019,6 +1100,7 @@ export const EvidenceSheet = ({
       {step.evidence.map((item, index) => (
         <EvidenceControl
           key={`${step.id}-${index}`}
+          first={index === firstNumber}
           evidence={item}
           language={language}
           value={values[index]}
@@ -1082,7 +1164,7 @@ export const EvidenceSheet = ({
       ) : null}
 
       {warning ? (
-        <Notice title={t("work.outOfRange")} tone="warning">
+        <Notice title={warning} tone="warning">
           <Button
             className="mt-2 w-full"
             onClick={() => submit(true)}
@@ -1094,6 +1176,9 @@ export const EvidenceSheet = ({
       ) : null}
 
       <StickyAction>
+        {skippable && !correcting ? (
+          <PassAsWell onRecord={onRecord} step={step} />
+        ) : null}
         <div className="grid grid-cols-3 gap-2">
           <Button
             variant="ghost"

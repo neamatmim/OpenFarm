@@ -341,6 +341,8 @@ export type { AdultDeaths, HeadRecord, SideDeaths } from "./adult-deaths";
 export { ADULT_DEATH_CAUSES, adultDeaths } from "./adult-deaths";
 export type { Bought } from "./last-buys";
 export { LAST_BUYS_DAYS, againstLastBuys, lastBuysPerKg } from "./last-buys";
+export type { LastFigureKind } from "./last-figure";
+export { farFromLast, readsAgainstLast } from "./last-figure";
 export type { BoughtIn, EarlyLosses } from "./early-losses";
 export { EARLY_DAYS } from "./early-days";
 export { weighedTooLongAgo } from "./priced-weighing";
@@ -420,8 +422,10 @@ export {
   isClinicalStep,
   isClosingStep,
   mayRaiseByHand,
+  isOneTap,
   maySkip,
   meaningOfSkip,
+  nothingToNoteOf,
   missingEvidence,
   raisesItsOwnWork,
   sessionsPerDayOf,

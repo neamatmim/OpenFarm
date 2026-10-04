@@ -133,6 +133,8 @@ const WorkCard = ({
         work.overdue && "border-danger/40"
       )}
       params={{ instanceId: work.id }}
+      // Start means take it: the work page claims it as it opens.
+      search={free ? { start: true } : {}}
       to="/work/$instanceId"
     >
       <span

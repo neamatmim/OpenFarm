@@ -521,6 +521,7 @@ export const ConfirmDialog = ({
   onConfirm,
   pending = false,
   cancelLabel,
+  takesAway = true,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -531,6 +532,8 @@ export const ConfirmDialog = ({
   pending?: boolean;
   /** The words on the button that stays: "Cancel" unless the question wants its own ("Keep editing"). */
   cancelLabel?: ReactNode;
+  /** Whether the act takes something away, and is in red; an act that only writes many things at once is not. */
+  takesAway?: boolean;
 }) => {
   const { t } = useLanguage();
   return (
@@ -552,7 +555,7 @@ export const ConfirmDialog = ({
             disabled={pending}
             onClick={onConfirm}
             type="button"
-            variant="destructive"
+            variant={takesAway ? "destructive" : "default"}
           >
             {pending ? <Spinner /> : null}
             {confirmLabel}

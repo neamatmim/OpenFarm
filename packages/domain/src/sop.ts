@@ -179,8 +179,13 @@ export const STEP_EFFECT_KINDS = [
 
 /** What a skip reason means to the farm beyond its words, for the few the records have to act on. Stable where the
  *  words are not: the Owner may reword "Animal not found" next season, and the round must still open a Missing; a cow
- *  skipped at milking as unwell must still be seen to. */
-export const SKIP_MEANINGS = ["not_found", "unwell"] as const;
+ *  skipped at milking as unwell must still be seen to; and an animal passed on the round as well, with nothing to
+ *  note, is offered in one tap — most of a round's animals are. */
+export const SKIP_MEANINGS = [
+  "not_found",
+  "unwell",
+  "nothing_to_note",
+] as const;
 export type SkipMeaning = (typeof SKIP_MEANINGS)[number];
 
 /** Why an animal may be skipped, in the Owner's words, and what it means where the farm acts on it. */
@@ -198,6 +203,12 @@ export const meaningOfSkip = (
     ? (step.skipReasons.find((reason) => reason.bn === skipReason)?.means ??
       null)
     : null;
+
+/** The reason a Step's animal is passed as well, with nothing to note, where the Step has one. */
+export const nothingToNoteOf = (
+  step: Pick<Step, "skipReasons">
+): SkipReason | null =>
+  step.skipReasons.find((reason) => reason.means === "nothing_to_note") ?? null;
 
 export interface Step {
   id: string;
@@ -1196,6 +1207,16 @@ export const maySkip = (
 ): boolean =>
   step.repeatPerAnimal ||
   (step.effect !== undefined && EFFECTS_THAT_MAY_SKIP.has(step.effect.kind));
+
+/** A Step answered by doing it: a tick and nothing else — no figure, note, choice or photograph, nothing to skip it
+ *  with, and nothing it writes beyond the tick. Its row is done in one tap, without a sheet to confirm on. */
+export const isOneTap = (
+  step: Pick<Step, "repeatPerAnimal" | "evidence" | "skipReasons" | "effect">
+): boolean =>
+  !step.repeatPerAnimal &&
+  step.effect === undefined &&
+  step.skipReasons.length === 0 &&
+  step.evidence.every((item) => item.type === "tick");
 
 /** One thing that is different between two Versions of an SOP, in the terms somebody who
  *  does the work would put it. Rendered by the reader's app in their own language. */

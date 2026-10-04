@@ -1,7 +1,7 @@
 // The work page's board: its header, its tiles and step rows, who holds it, and how it closes.
 
 import type { Step } from "@OpenFarm/domain";
-import { heldFromThem } from "@OpenFarm/domain";
+import { heldFromThem, nothingToNoteOf } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -221,11 +221,17 @@ export const NextAnimal = ({
   );
 };
 
-const standingOf = (completion: Completion | undefined): Standing => {
+/** Where an animal stands in the round. One passed as well was looked at and found so: done, not skipped. */
+const standingOf = (
+  completion: Completion | undefined,
+  /** The Step's reason for passing an animal as well, where it has one. */
+  well?: string
+): Standing => {
   if (!completion) {
     return "left";
   }
-  return completion.status === "skipped" ? "skipped" : "done";
+  const passedAsWell = well !== undefined && completion.skipReason === well;
+  return completion.status === "skipped" && !passedAsWell ? "skipped" : "done";
 };
 
 /** How each standing looks on its tile: its word, its icon, and its colour — never the colour alone. */
@@ -263,15 +269,71 @@ export const roundOf = (
     return { tally: null, nextAnimal: undefined };
   }
   const tally = { done: 0, skipped: 0, left: 0 };
+  const well = nothingToNoteOf(perAnimalStep)?.bn;
   let nextAnimal: Animal | undefined;
   for (const beast of animals) {
-    const standing = standingOf(doneFor(perAnimalStep.id, beast.id));
+    const standing = standingOf(doneFor(perAnimalStep.id, beast.id), well);
     tally[standing] += 1;
     if (standing === "left" && !nextAnimal) {
       nextAnimal = beast;
     }
   }
   return { tally, nextAnimal };
+};
+
+/**
+ * After an animal's entry, the next one the round has not reached — from the one just done onwards, then from the
+ * start — or nothing once every one is done. Read from the work as the phone now holds it, the entry just made in it.
+ */
+export const nextInRound = (
+  work:
+    | {
+        content: { steps: Pick<Step, "id" | "repeatPerAnimal">[] };
+        animals: { id: string }[];
+        completions: { stepId: string; animalId: string | null }[];
+      }
+    | undefined,
+  after: string | null | undefined
+): string | null => {
+  const step = work?.content.steps.find((one) => one.repeatPerAnimal);
+  if (!work || !step || !after) {
+    return null;
+  }
+  const done = new Set(
+    work.completions
+      .filter((one) => one.stepId === step.id)
+      .map((one) => one.animalId)
+  );
+  const from = work.animals.findIndex((one) => one.id === after);
+  const inTurn = [
+    ...work.animals.slice(from + 1),
+    ...work.animals.slice(0, from + 1),
+  ];
+  return inTurn.find((one) => !done.has(one.id))?.id ?? null;
+};
+
+/** Whether every Step of the work has its entry — the one done at each animal for every animal — in the work as the
+ *  phone now holds it. */
+export const everythingRecorded = (
+  work:
+    | {
+        content: { steps: Pick<Step, "id" | "repeatPerAnimal">[] };
+        animals: { id: string }[];
+        completions: { stepId: string; animalId: string | null }[];
+      }
+    | undefined
+): boolean => {
+  if (!work) {
+    return false;
+  }
+  const done = new Set(
+    work.completions.map((one) => `${one.stepId}:${one.animalId ?? ""}`)
+  );
+  return work.content.steps.every((step) =>
+    step.repeatPerAnimal
+      ? work.animals.every((beast) => done.has(`${step.id}:${beast.id}`))
+      : done.has(`${step.id}:`)
+  );
 };
 
 /** One count of the round — done, skipped or left — as a word with its icon, never its colour alone. */
@@ -367,10 +429,13 @@ export const WorkHeader = ({
 export const StepRow = ({
   step,
   done,
+  oneTap = false,
   onOpen,
 }: {
   step: Step;
   done: boolean;
+  /** Done on the tap, with no sheet: drawn as a box to tick rather than a way in. */
+  oneTap?: boolean;
   onOpen: () => void;
 }) => {
   const { t } = useLanguage();
@@ -400,9 +465,15 @@ export const StepRow = ({
       <span className="flex-1 text-base font-medium">{step.text.bn}</span>
       {done ? (
         <StatusBadge tone="success">{t("work.stepDone")}</StatusBadge>
-      ) : (
+      ) : null}
+      {!done && oneTap ? (
+        <span className="text-muted-foreground text-sm">
+          {t("work.tapWhenDone")}
+        </span>
+      ) : null}
+      {!done && !oneTap ? (
         <ChevronRight aria-hidden className="text-muted-foreground size-5" />
-      )}
+      ) : null}
     </button>
   );
 };
@@ -412,16 +483,19 @@ export const StepRow = ({
 export const AnimalTile = ({
   animal,
   completion,
+  well,
   next,
   onOpen,
 }: {
   animal: Animal;
   completion: Completion | undefined;
+  /** The Step's reason for passing an animal as well, where it has one: an animal passed so is done. */
+  well?: string;
   next: boolean;
   onOpen: () => void;
 }) => {
   const { t } = useLanguage();
-  const standing = standingOf(completion);
+  const standing = standingOf(completion, well);
   const { icon: StateIcon, label, tile, text } = TILE_LOOK[standing];
   const held = animal.underMilkWithdrawal && standing === "left";
   return (

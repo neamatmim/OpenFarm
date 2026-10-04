@@ -3983,6 +3983,9 @@ export const en = {
   "work.confirm": "Done",
   "work.outOfRange": "That is outside the usual range. Keep it?",
   "work.keepAnyway": "Yes, keep it",
+  "work.lastTime": "Last time {figure} {unit}",
+  "work.tapWhenDone": "Tap when done",
+  "work.farFromLast": "Last time it was {figure} {unit}. Is this right?",
   "work.finish": "Finish",
   "work.finished": "Finished — waiting for sign-off",
   "work.finishedNoCheck": "Finished",
@@ -4035,6 +4038,11 @@ export const en = {
   "work.overdue": "Late",
   "work.putOff": "Again — put off before",
   "work.aboutTag": "Tag {tag}",
+  "work.restWell": "The other {count} are well",
+  "work.restWellTitle": "Write the other {count} down as well?",
+  "work.restWellBody":
+    "Each animal not yet looked at is written down as “{reason}”. Walk the whole pen first.",
+  "work.restWellConfirm": "Yes, all well",
   "work.doseOf": "Dose {number} of {of}",
   "work.putOffSince": "Again — first put off {day}",
   "work.releaseOwesDoses":
