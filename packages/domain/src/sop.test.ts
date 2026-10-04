@@ -10,6 +10,7 @@ import {
   nothingToNoteOf,
 } from "./sop";
 import { standardPlaybook } from "./standard-playbook";
+import { CALVING_STEP, SERVICE_STEP, draftFrom } from "./step-shape";
 
 // Which Steps may be skipped is asked by two readers — the server, refusing a skip it does not allow,
 // and the phone, deciding whether to draw the button at all. They used to answer differently. These are
@@ -220,5 +221,52 @@ describe("a Step done in one tap", () => {
       (step) => step.id === "cool"
     );
     expect(cool && isOneTap(cool)).toBe(false);
+  });
+});
+
+describe("a Step that asks several things", () => {
+  it("says what each answer is, on every one the standard Playbook writes", () => {
+    const unlabelled = Object.entries(standardPlaybook()).flatMap(
+      ([key, sop]) =>
+        sop.steps.flatMap((step) => {
+          const asked = step.evidence.filter((item) => item.type !== "tick");
+          return asked.length > 1
+            ? asked
+                .filter((item) => item.label === undefined)
+                .map(() => `${key}.${step.id}`)
+            : [];
+        })
+    );
+    expect([...new Set(unlabelled)]).toEqual([]);
+  });
+});
+
+/** What each answer is said to be, in order. */
+const labels = (evidence: readonly { label?: unknown }[]) =>
+  evidence.map((item) => item.label);
+
+describe("the words above a shaped Step's answers", () => {
+  it("are the same on the standard Playbook's Steps as on a Step the Owner drafts", () => {
+    const playbook = standardPlaybook();
+    const calving = playbook.calvingRecord.steps[0]?.evidence ?? [];
+    const service = playbook.insemination.steps[0]?.evidence ?? [];
+    // Only the labels are compared; the choices' own words are the farm's to word.
+    const any = { bn: "—" };
+    expect(labels(calving)).toEqual(
+      labels(
+        draftFrom(CALVING_STEP, {
+          unassisted: any,
+          assisted: any,
+          vet: any,
+          female: any,
+          male: any,
+          alive: any,
+          stillborn: any,
+        })
+      )
+    );
+    expect(labels(service)).toEqual(
+      labels(draftFrom(SERVICE_STEP, { ai: any, natural: any }))
+    );
   });
 });

@@ -751,6 +751,91 @@ const asLocalField = (value: boolean | number | string | undefined): string => {
   return `${at.getFullYear()}-${twoDigits(at.getMonth() + 1)}-${twoDigits(at.getDate())}T${twoDigits(at.getHours())}:${twoDigits(at.getMinutes())}`;
 };
 
+/** A figure, typed on the phone's own number pad and shown large above it, under what it is where the Step says. */
+const NumberPad = ({
+  evidence,
+  first,
+  language,
+  value,
+  onValue,
+}: {
+  evidence: Evidence;
+  first: boolean;
+  language: string;
+  value: boolean | number | string | undefined;
+  onValue: (value: string) => void;
+}) => {
+  const { t } = useLanguage();
+  const typed = String(value ?? "");
+  return (
+    <div className="surface flex flex-col gap-3 p-4">
+      {evidence.label ? (
+        <p className="text-sm font-medium">{evidence.label.bn}</p>
+      ) : null}
+      <p
+        aria-hidden
+        className={cn(
+          "text-center text-5xl font-bold tabular-nums",
+          typed === "" && "text-muted-foreground/50"
+        )}
+      >
+        {typed !== "" && Number.isFinite(Number(typed))
+          ? new Intl.NumberFormat(language === "bn" ? "bn-BD" : "en-GB").format(
+              Number(typed)
+            )
+          : "০"}{" "}
+        <span className="text-muted-foreground text-xl font-semibold">
+          {evidence.unit?.bn}
+        </span>
+      </p>
+      <Input
+        // oxlint-disable-next-line jsx-a11y/no-autofocus -- the sheet opens for this one figure, and is typed at once
+        autoFocus={first}
+        inputMode="decimal"
+        value={typed}
+        onChange={(event) =>
+          onValue(numberAsTyped(event.target.value).replaceAll("-", ""))
+        }
+        className="h-16 text-center text-3xl font-semibold tabular-nums md:h-16 md:text-3xl"
+        aria-label={
+          evidence.label?.bn ?? evidence.unit?.bn ?? t("work.confirm")
+        }
+      />
+    </div>
+  );
+};
+
+/** A choice's buttons, under what is being asked where the Step says: a calving asks how it went and then each calf, and
+ *  seven grids with nothing over them cannot be told apart. */
+const ChoiceButtons = ({
+  evidence,
+  value,
+  onValue,
+}: {
+  evidence: Evidence;
+  value: boolean | number | string | undefined;
+  onValue: (value: string) => void;
+}) => (
+  <fieldset className="flex min-w-0 flex-col gap-2">
+    {evidence.label ? (
+      <legend className="mb-2 text-sm font-medium">{evidence.label.bn}</legend>
+    ) : null}
+    <div className="grid grid-cols-2 gap-2">
+      {(evidence.choices ?? []).map((choice) => (
+        <Button
+          aria-pressed={value === choice.value}
+          key={choice.value}
+          variant={value === choice.value ? "default" : "outline"}
+          className="h-auto min-h-14 py-2 text-base whitespace-normal md:h-auto"
+          onClick={() => onValue(choice.value)}
+        >
+          {choice.label.bn}
+        </Button>
+      ))}
+    </div>
+  </fieldset>
+);
+
 /** One piece of Evidence: a big number pad, a note, a choice, or the camera. A tick needs no
  *  control — confirming the Step is the tick. */
 const EvidenceControl = ({
@@ -779,61 +864,26 @@ const EvidenceControl = ({
   }
 
   if (evidence.type === "number") {
-    const typed = String(value ?? "");
     return (
-      <div className="surface flex flex-col gap-3 p-4">
-        <p
-          aria-hidden
-          className={cn(
-            "text-center text-5xl font-bold tabular-nums",
-            typed === "" && "text-muted-foreground/50"
-          )}
-        >
-          {typed !== "" && Number.isFinite(Number(typed))
-            ? new Intl.NumberFormat(
-                language === "bn" ? "bn-BD" : "en-GB"
-              ).format(Number(typed))
-            : "০"}{" "}
-          <span className="text-muted-foreground text-xl font-semibold">
-            {evidence.unit?.bn}
-          </span>
-        </p>
-        <Input
-          // oxlint-disable-next-line jsx-a11y/no-autofocus -- the sheet opens for this one figure, and is typed at once
-          autoFocus={first}
-          inputMode="decimal"
-          value={typed}
-          onChange={(event) =>
-            onValue(numberAsTyped(event.target.value).replaceAll("-", ""))
-          }
-          className="h-16 text-center text-3xl font-semibold tabular-nums md:h-16 md:text-3xl"
-          aria-label={evidence.unit?.bn ?? t("work.confirm")}
-        />
-      </div>
+      <NumberPad
+        evidence={evidence}
+        first={first}
+        language={language}
+        onValue={onValue}
+        value={value}
+      />
     );
   }
 
   if (evidence.type === "choice") {
     return (
-      <div className="grid grid-cols-2 gap-2">
-        {(evidence.choices ?? []).map((choice) => (
-          <Button
-            aria-pressed={value === choice.value}
-            key={choice.value}
-            variant={value === choice.value ? "default" : "outline"}
-            className="h-auto min-h-14 py-2 text-base whitespace-normal md:h-auto"
-            onClick={() => onValue(choice.value)}
-          >
-            {choice.label.bn}
-          </Button>
-        ))}
-      </div>
+      <ChoiceButtons evidence={evidence} onValue={onValue} value={value} />
     );
   }
 
   if (evidence.type === "datetime") {
     return (
-      <FieldWithLabel htmlFor={id} label={t("work.when")}>
+      <FieldWithLabel htmlFor={id} label={evidence.label?.bn ?? t("work.when")}>
         <Input
           className="h-12 text-base md:h-12 md:text-base"
           id={id}
@@ -855,7 +905,7 @@ const EvidenceControl = ({
 
   if (evidence.type === "note") {
     return (
-      <FieldWithLabel htmlFor={id} label={t("work.note")}>
+      <FieldWithLabel htmlFor={id} label={evidence.label?.bn ?? t("work.note")}>
         <Input
           className="h-12 text-base md:h-12 md:text-base"
           id={id}

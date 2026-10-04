@@ -9,10 +9,13 @@ import { CALVED, STAYS_A_HEIFER, UNWELL, UNWELL_URGENT } from "./sop";
 
 const choice = (
   required: boolean,
-  options: [value: string, bn: string, en: string][]
+  options: [value: string, bn: string, en: string][],
+  /** What is being asked, said above the buttons. */
+  label?: [bn: string, en: string]
 ): Evidence => ({
   type: "choice",
   required,
+  ...(label ? { label: { bn: label[0], en: label[1] } } : {}),
   choices: options.map(([value, bn, en]) => ({ value, label: { bn, en } })),
 });
 
@@ -225,13 +228,29 @@ const healthRound = (): SopContent => ({
 });
 
 const serviceEvidence: Evidence[] = [
-  choice(true, [
-    ["ai", "কৃত্রিম প্রজনন", "Artificial insemination"],
-    ["natural", "ষাঁড় দিয়ে", "Natural service"],
-  ]),
-  { type: "note", required: true },
-  { type: "note", required: false },
-  { type: "datetime", required: true },
+  choice(
+    true,
+    [
+      ["ai", "কৃত্রিম প্রজনন", "Artificial insemination"],
+      ["natural", "ষাঁড় দিয়ে", "Natural service"],
+    ],
+    ["কীভাবে পাল দেওয়া হলো", "How she was served"]
+  ),
+  {
+    type: "note",
+    required: true,
+    label: { bn: "স্ট্র নম্বর, বা কোন ষাঁড়", en: "Straw number, or which bull" },
+  },
+  {
+    type: "note",
+    required: false,
+    label: { bn: "কে দিলেন (টেকনিশিয়ান)", en: "Who served her (technician)" },
+  },
+  {
+    type: "datetime",
+    required: true,
+    label: { bn: "কখন পাল দেওয়া হলো", en: "When she was served" },
+  },
 ];
 
 const artificialInsemination = (): SopContent => ({
@@ -362,18 +381,35 @@ const calvingRecord = (): SopContent => ({
       text: { bn: "বাচ্চা দিয়েছে কি?", en: "Has she calved?" },
       repeatPerAnimal: true,
       evidence: [
-        { type: "datetime", required: true },
-        choice(true, [
-          ["unassisted", "নিজে নিজে", "Unassisted"],
-          ["assisted", "সাহায্য লেগেছে", "Assisted"],
-          ["vet", "ভেট লেগেছে", "Vet needed"],
+        {
+          type: "datetime",
+          required: true,
+          label: { bn: "কখন বাচ্চা দিয়েছে", en: "When she calved" },
+        },
+        choice(
+          true,
+          [
+            ["unassisted", "নিজে নিজে", "Unassisted"],
+            ["assisted", "সাহায্য লেগেছে", "Assisted"],
+            ["vet", "ভেট লেগেছে", "Vet needed"],
+          ],
+          ["কেমন হলো", "How it went"]
+        ),
+        choice(true, calf, ["প্রথম বাছুর", "First calf"]),
+        choice(true, outcome, [
+          "প্রথম বাছুর জীবিত কি না",
+          "First calf, alive or not",
         ]),
-        choice(true, calf),
-        choice(true, outcome),
-        choice(false, calf),
-        choice(false, outcome),
-        choice(false, calf),
-        choice(false, outcome),
+        choice(false, calf, ["দ্বিতীয় বাছুর (যমজ হলে)", "Second calf (twins)"]),
+        choice(false, outcome, [
+          "দ্বিতীয় বাছুর জীবিত কি না",
+          "Second calf, alive or not",
+        ]),
+        choice(false, calf, ["তৃতীয় বাছুর (তিনটি হলে)", "Third calf (triplets)"]),
+        choice(false, outcome, [
+          "তৃতীয় বাছুর জীবিত কি না",
+          "Third calf, alive or not",
+        ]),
       ],
       skipReasons: [{ bn: "এখনো বাচ্চা দেয়নি", en: "Not calved yet" }],
       effect: { kind: "calving" },
@@ -382,13 +418,17 @@ const calvingRecord = (): SopContent => ({
 });
 
 /** Body condition on the common five-point scale. */
-const CONDITION_SCORE = choice(false, [
-  ["1", "১ — খুব রোগা", "1 — very thin"],
-  ["2", "২ — রোগা", "2 — thin"],
-  ["3", "৩ — ঠিক আছে", "3 — moderate"],
-  ["4", "৪ — ভালো গোশত", "4 — good flesh"],
-  ["5", "৫ — খুব মোটা", "5 — fat"],
-]);
+const CONDITION_SCORE = choice(
+  false,
+  [
+    ["1", "১ — খুব রোগা", "1 — very thin"],
+    ["2", "২ — রোগা", "2 — thin"],
+    ["3", "৩ — ঠিক আছে", "3 — moderate"],
+    ["4", "৪ — ভালো গোশত", "4 — good flesh"],
+    ["5", "৫ — খুব মোটা", "5 — fat"],
+  ],
+  ["শরীরের অবস্থা (জানলে)", "Body condition (if you can judge it)"]
+);
 
 const weighIn = (): SopContent => ({
   name: { bn: "ওজন নেওয়া", en: "Weigh-in" },
@@ -416,6 +456,7 @@ const weighIn = (): SopContent => ({
         {
           type: "number",
           required: true,
+          label: { bn: "ওজন", en: "Weight" },
           unit: { bn: "কেজি", en: "kg" },
           min: 20,
           max: 1200,
@@ -598,16 +639,24 @@ const seeToUnwell = (urgent: boolean): SopContent => ({
       text: { bn: "কী করা হলো?", en: "What was done?" },
       repeatPerAnimal: true,
       evidence: [
-        choice(true, [
-          ["vet_called", "ডাক্তারকে ডাকা হয়েছে", "The Vet has been called"],
+        choice(
+          true,
           [
-            "watching",
-            "আবার দেখা হয়েছে — নজরে রাখা হচ্ছে",
-            "Looked again — watching her",
+            ["vet_called", "ডাক্তারকে ডাকা হয়েছে", "The Vet has been called"],
+            [
+              "watching",
+              "আবার দেখা হয়েছে — নজরে রাখা হচ্ছে",
+              "Looked again — watching her",
+            ],
+            ["better", "ভালো হয়ে গেছে", "Better now"],
           ],
-          ["better", "ভালো হয়ে গেছে", "Better now"],
-        ]),
-        { type: "note", required: false },
+          ["কী করা হলো", "What was done"]
+        ),
+        {
+          type: "note",
+          required: false,
+          label: { bn: "আর যা বলার", en: "Anything else to say" },
+        },
       ],
       skipReasons: [],
     },
@@ -750,11 +799,16 @@ const cashCount = (): SopContent => ({
         {
           type: "number",
           required: true,
+          label: { bn: "হাতে কত টাকা", en: "Cash in hand" },
           unit: { bn: "টাকা", en: "taka" },
           min: 0,
           max: 10_000_000,
         },
-        { type: "note", required: false },
+        {
+          type: "note",
+          required: false,
+          label: { bn: "কম-বেশি হলে কেন", en: "Why, if it is over or short" },
+        },
       ],
       skipReasons: [],
       effect: { kind: "cash_count" },

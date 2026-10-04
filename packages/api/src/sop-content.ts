@@ -38,6 +38,7 @@ const bilingual = z.object({
 const evidence = z.object({
   type: z.enum(EVIDENCE_TYPES),
   required: z.boolean().default(true),
+  label: bilingual.optional(),
   unit: bilingual.optional(),
   min: z.number().optional(),
   max: z.number().optional(),
