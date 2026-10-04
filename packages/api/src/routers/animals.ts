@@ -1565,15 +1565,27 @@ export const animalsRouter = {
         input.tagNumber.toUpperCase()
       );
       requireLookUp(context.scope, target);
+      // The thumbnail alone where it is asked for and there is one: a herd page asks for one an animal, and reading
+      // each photo whole beside it is a page's worth of photographs out of the database to send none of them.
+      if (input.size === "thumb") {
+        const small = await context.db.query.animalPhoto.findFirst({
+          where: { animalId: target.id },
+          columns: { thumb: true },
+        });
+        if (!small) {
+          return null;
+        }
+        if (small.thumb) {
+          return { contentType: "image/jpeg", data: small.thumb };
+        }
+      }
       const photo = await context.db.query.animalPhoto.findFirst({
         where: { animalId: target.id },
+        columns: { contentType: true, data: true },
       });
-      if (!photo) {
-        return null;
-      }
-      return input.size === "thumb" && photo.thumb
-        ? { contentType: "image/jpeg", data: photo.thumb }
-        : { contentType: photo.contentType, data: photo.data };
+      return photo
+        ? { contentType: photo.contentType, data: photo.data }
+        : null;
     }),
 
   /** The opening register: one row per Animal, each keeping the number on her Ear Tag if it has one, old marks kept
