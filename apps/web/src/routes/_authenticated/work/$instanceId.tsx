@@ -9,6 +9,7 @@ import { useState } from "react";
 import { AssignWork } from "@/components/assign-work";
 import { Page } from "@/components/page";
 import { EvidenceSheet } from "@/components/work/evidence-sheet";
+import { PassTheRestWell } from "@/components/work/pass-the-rest-well";
 import {
   SopName,
   BackToToday,
@@ -396,6 +397,15 @@ const WorkPage = () => {
               </li>
             ))}
           </ul>
+          <PassTheRestWell
+            heldByAnother={someoneElse !== null}
+            instanceId={instanceId}
+            rest={animals.filter(
+              (beast) => !doneFor(perAnimalStep.id, beast.id)
+            )}
+            state={state}
+            step={perAnimalStep}
+          />
         </BoardPart>
       ) : null}
 

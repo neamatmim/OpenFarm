@@ -4035,6 +4035,11 @@ export const en = {
   "work.overdue": "Late",
   "work.putOff": "Again — put off before",
   "work.aboutTag": "Tag {tag}",
+  "work.restWell": "The other {count} are well",
+  "work.restWellTitle": "Write the other {count} down as well?",
+  "work.restWellBody":
+    "Each animal not yet looked at is written down as “{reason}”. Walk the whole Pen first.",
+  "work.restWellConfirm": "Yes, all well",
   "work.doseOf": "Dose {number} of {of}",
   "work.putOffSince": "Again — first put off {day}",
   "work.releaseOwesDoses":

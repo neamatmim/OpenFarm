@@ -179,8 +179,13 @@ export const STEP_EFFECT_KINDS = [
 
 /** What a skip reason means to the farm beyond its words, for the few the records have to act on. Stable where the
  *  words are not: the Owner may reword "Animal not found" next season, and the round must still open a Missing; a cow
- *  skipped at milking as unwell must still be seen to. */
-export const SKIP_MEANINGS = ["not_found", "unwell"] as const;
+ *  skipped at milking as unwell must still be seen to; and an animal passed on the round as well, with nothing to
+ *  note, is offered in one tap — most of a round's animals are. */
+export const SKIP_MEANINGS = [
+  "not_found",
+  "unwell",
+  "nothing_to_note",
+] as const;
 export type SkipMeaning = (typeof SKIP_MEANINGS)[number];
 
 /** Why an animal may be skipped, in the Owner's words, and what it means where the farm acts on it. */
@@ -198,6 +203,12 @@ export const meaningOfSkip = (
     ? (step.skipReasons.find((reason) => reason.bn === skipReason)?.means ??
       null)
     : null;
+
+/** The reason a Step's animal is passed as well, with nothing to note, where the Step has one. */
+export const nothingToNoteOf = (
+  step: Pick<Step, "skipReasons">
+): SkipReason | null =>
+  step.skipReasons.find((reason) => reason.means === "nothing_to_note") ?? null;
 
 export interface Step {
   id: string;

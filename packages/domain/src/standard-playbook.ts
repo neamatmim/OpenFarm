@@ -205,7 +205,11 @@ const healthRound = (): SopContent => ({
       // A well animal is passed with nothing written against her: the round's record is what was worth seeing,
       // and what the Vet reads is only that.
       skipReasons: [
-        { bn: "সুস্থ — চোখে পড়ার মতো কিছু নেই", en: "Well — nothing to note" },
+        {
+          bn: "সুস্থ — চোখে পড়ার মতো কিছু নেই",
+          en: "Well — nothing to note",
+          means: "nothing_to_note",
+        },
         // Means she may be gone: the farm opens a Missing and tells the Owner and the Manager.
         { bn: "পশু পাওয়া যায়নি", en: "Animal not found", means: "not_found" },
       ],
@@ -867,7 +871,11 @@ const arrivalCheck = (): SopContent => ({
           ]),
         ],
         skipReasons: [
-          { bn: "সুস্থ — চোখে পড়ার মতো কিছু নেই", en: "Well — nothing to note" },
+          {
+            bn: "সুস্থ — চোখে পড়ার মতো কিছু নেই",
+            en: "Well — nothing to note",
+            means: "nothing_to_note",
+          },
         ],
         effect: { kind: "observation" },
       }
@@ -1244,6 +1252,7 @@ const newbornCalfCare = (): SopContent => ({
           {
             bn: "সুস্থ — শ্বাস নিচ্ছে, দাঁড়িয়েছে, দুধ টানছে",
             en: "Well — breathing, standing and sucking",
+            means: "nothing_to_note",
           },
           NOT_NEWBORN,
         ],
@@ -1333,7 +1342,11 @@ const afterCalvingCheck = (): SopContent => ({
         ]),
       ],
       skipReasons: [
-        { bn: "সুস্থ — চোখে পড়ার মতো কিছু নেই", en: "Well — nothing to note" },
+        {
+          bn: "সুস্থ — চোখে পড়ার মতো কিছু নেই",
+          en: "Well — nothing to note",
+          means: "nothing_to_note",
+        },
       ],
       effect: { kind: "observation" },
     },

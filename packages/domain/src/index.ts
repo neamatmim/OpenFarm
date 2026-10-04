@@ -422,6 +422,7 @@ export {
   mayRaiseByHand,
   maySkip,
   meaningOfSkip,
+  nothingToNoteOf,
   missingEvidence,
   raisesItsOwnWork,
   sessionsPerDayOf,

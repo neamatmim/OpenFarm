@@ -10,6 +10,7 @@ import {
   feedUnitWord,
   MILK_DESTINATIONS,
   missingEvidence,
+  nothingToNoteOf,
   outsideItsRange,
 } from "@OpenFarm/domain";
 import {
@@ -28,6 +29,7 @@ import {
   Camera,
   Check,
   ChevronLeft,
+  CircleCheck,
   Lock,
   Milk,
   SkipForward,
@@ -859,6 +861,32 @@ const EvidenceControl = ({
   );
 };
 
+/** Most of a round's animals are well: passing one is a tap on the sheet, not Skip and a second screen of reasons.
+ *  Nothing for a Step with no such reason. Not offered on a Correction, which has to say why. */
+const PassAsWell = ({
+  step,
+  onRecord,
+}: {
+  step: Step;
+  onRecord: (payload: StepAnswer) => void;
+}) => {
+  const { language } = useLanguage();
+  const well = nothingToNoteOf(step);
+  if (!well) {
+    return null;
+  }
+  return (
+    <Button
+      className="mb-2 h-14 w-full text-lg md:h-12"
+      onClick={() => onRecord({ evidence: [], skipReason: well.bn })}
+      variant="outline"
+    >
+      <CircleCheck className="text-success" data-icon="inline-start" />
+      {language === "en" && well.en ? well.en : well.bn}
+    </Button>
+  );
+};
+
 /** The full-screen sheet: one control per piece of Evidence the Version asks for, skip with
  *  a reason for a per-animal Step, and a warning that must be acknowledged for an odd figure. */
 export const EvidenceSheet = ({
@@ -1094,6 +1122,9 @@ export const EvidenceSheet = ({
       ) : null}
 
       <StickyAction>
+        {skippable && !correcting ? (
+          <PassAsWell onRecord={onRecord} step={step} />
+        ) : null}
         <div className="grid grid-cols-3 gap-2">
           <Button
             variant="ghost"

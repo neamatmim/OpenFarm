@@ -6,6 +6,7 @@ import {
   findStructuralProblems,
   maySkip,
   missingEvidence,
+  nothingToNoteOf,
 } from "./sop";
 import { standardPlaybook } from "./standard-playbook";
 
@@ -158,5 +159,33 @@ describe("work about the whole farm", () => {
     expect(describeChanges(biosecurity, perPen)).toContainEqual({
       kind: "now_per_pen",
     });
+  });
+});
+
+describe("passing an animal as well", () => {
+  it("is a tap on every round the standard Playbook walks, found by what the reason means, not its words", () => {
+    const rounds = Object.values(standardPlaybook()).flatMap((sop) =>
+      sop.steps.filter(
+        (step) =>
+          step.repeatPerAnimal &&
+          step.skipReasons.some((reason) => reason.en?.startsWith("Well"))
+      )
+    );
+    expect(rounds.length).toBeGreaterThan(0);
+    for (const step of rounds) {
+      expect(nothingToNoteOf(step)?.en).toMatch(/^Well — /u);
+    }
+    // A reason reworded next season is still the one passed in a tap.
+    expect(
+      nothingToNoteOf({
+        skipReasons: [
+          { bn: "পশু পাওয়া যায়নি", means: "not_found" },
+          { bn: "ঠিক আছে", means: "nothing_to_note" },
+        ],
+      })?.bn
+    ).toBe("ঠিক আছে");
+    expect(
+      nothingToNoteOf({ skipReasons: [{ bn: "সুস্থ — চোখে পড়ার মতো কিছু নেই" }] })
+    ).toBeNull();
   });
 });
