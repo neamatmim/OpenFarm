@@ -278,7 +278,8 @@ export const theirProgress = async (
     });
   }
 
-  // Every reading of theirs, not the latest few the rates need: the line runs back to the day they came.
+  // Every reading of theirs, not the latest few the rates need: the line runs back to the day they came. Only those
+  // the farm did not doubt, as the averages beside it, or its last point and "average now" say two things.
   const readings =
     averaged.length === 0
       ? []
@@ -286,6 +287,7 @@ export const theirProgress = async (
           where: {
             farmId,
             animalId: { in: averaged.map((one) => one.animalId) },
+            flaggedNote: { isNull: true },
           },
           columns: { animalId: true, weightKg: true, weighedAt: true },
         });

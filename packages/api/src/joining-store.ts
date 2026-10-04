@@ -106,7 +106,7 @@ export const priceTheJoining = async (
 };
 
 /**
- * What she weighed for her crossing to be priced from: her latest Weigh-in by the end of the day she crossed — the
+ * What she weighed for her crossing to be priced from: her latest Weigh-in the farm did not doubt by the end of the day she crossed — the
  * morning's round after she was walked over counts — and none if nobody weighed her by then.
  */
 export const weighedForTheCrossing = async (
@@ -118,6 +118,7 @@ export const weighedForTheCrossing = async (
     where: {
       animalId,
       weighedAt: { lt: joiningWeighedBy(joinedOn) },
+      flaggedNote: { isNull: true },
     },
     columns: { id: true, weightKg: true },
     orderBy: { weighedAt: "desc", id: "desc" },

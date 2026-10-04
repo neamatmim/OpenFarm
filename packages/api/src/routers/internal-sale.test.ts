@@ -172,8 +172,9 @@ describe("the Internal Sale", () => {
   it("prices her at her latest Weigh-in and moves the money", async () => {
     const hers = await bull("2047-02-04T05:00:00.000Z");
     await weigh("2047-02-05", [[hers.tagNumber, 200]]);
-    // Weighed again, heavier: the price is struck on the latest reading and not the first.
-    await weigh("2047-02-06", [[hers.tagNumber, 220]]);
+    // Weighed again, heavier: the price is struck on the latest reading and not the first. A kilo in a day — more
+    // would be a reading the farm doubts, and no price is struck on one of those.
+    await weigh("2047-02-06", [[hers.tagNumber, 201]]);
 
     const owner = await as("owner", "2047-02-06T09:00:00.000Z");
     const before = await owner.client.ventures.list();
@@ -188,12 +189,12 @@ describe("the Internal Sale", () => {
       soldOn: "2047-02-06",
       paymentMethod: "bank",
       reference: `INT-${suffix}`,
-      priceMoney: 77_000,
+      priceMoney: 70_350,
     });
     expect(sold).toMatchObject({
-      weightKg: 220,
+      weightKg: 201,
       rateMoneyPerKg: 350,
-      priceMoney: 77_000,
+      priceMoney: 70_350,
     });
 
     // She is the Venture's now, and the Venture's account is lighter by what she cost.
@@ -202,8 +203,8 @@ describe("the Internal Sale", () => {
     const after = await owner.client.ventures.list();
     const venture = after.find((one) => one.id === ventureId);
     expect(venture).toMatchObject({
-      balanceMoney: heldBefore - 77_000,
-      spentMoney: 77_000,
+      balanceMoney: heldBefore - 70_350,
+      spentMoney: 70_350,
     });
     // Both sides of the money name her, so each leads to her page.
     const movements = await owner.client.ventures.movements.list({ ventureId });
@@ -229,7 +230,7 @@ describe("the Internal Sale", () => {
       owner.client.ventures.movements.correct({
         id: bought?.id ?? "",
         reason: `দর ভুল ছিল ${suffix}`,
-        changes: { amountMoney: { from: 77_000, to: 70_000 } },
+        changes: { amountMoney: { from: 70_350, to: 70_000 } },
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",

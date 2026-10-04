@@ -44,7 +44,13 @@ export interface CalfLosses {
   bornAlive: number;
   stillborn: number;
   diedBeforeWeaning: number;
-  /** Of the calves born alive, the part lost before weaning: 0.12 is twelve in a hundred. Nothing with none born. */
+  /** The calves born alive whose weeks of risk are over by the stretch's end: weaned, or past the weaning age. */
+  oldEnough: number;
+  /**
+   * Of the calves old enough, the part lost before weaning: 0.12 is twelve in a hundred. Nothing with none old enough.
+   * Not over every calf born alive: last week's calves have not yet lived through the weeks that kill calves, and
+   * counting them as safe would read the farm's losses low just where the line of one in ten is drawn.
+   */
   lostShare: number | null;
   /** What the lost calves died of, the commonest first; the same day by name. */
   causes: CalfCause[];
@@ -74,6 +80,15 @@ export const calfLosses = (
   );
   const alive = born.filter((calf) => !calf.stillborn);
   const lost = alive.filter((calf) => lostBeforeWeaning(calf, weaningDays));
+  const weaningAgeBy = until.getTime() - weaningDays * DAY_MS;
+  const oldEnough = alive.filter(
+    (calf) =>
+      calf.bornAt.getTime() <= weaningAgeBy ||
+      (calf.weanedAt !== null && calf.weanedAt < until)
+  );
+  const lostOfThem = oldEnough.filter((calf) =>
+    lostBeforeWeaning(calf, weaningDays)
+  );
   const byCause = new Map<string, number>();
   for (const calf of lost) {
     const cause = calf.cause?.trim() || "—";
@@ -83,7 +98,9 @@ export const calfLosses = (
     bornAlive: alive.length,
     stillborn: born.length - alive.length,
     diedBeforeWeaning: lost.length,
-    lostShare: alive.length === 0 ? null : lost.length / alive.length,
+    oldEnough: oldEnough.length,
+    lostShare:
+      oldEnough.length === 0 ? null : lostOfThem.length / oldEnough.length,
     causes: [...byCause.entries()]
       .map(([cause, count]) => ({ cause, count }))
       .toSorted((a, b) => b.count - a.count || a.cause.localeCompare(b.cause)),

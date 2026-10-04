@@ -4596,7 +4596,8 @@ export const bn: Record<MessageKey, string> = {
   "calves.bornAlive": "জীবিত জন্ম",
   "calves.stillborn": "মৃত জন্ম",
   "calves.lost": "দুধ ছাড়ানোর আগে মারা গেছে",
-  "calves.lostShare": "জীবিত জন্মানো বাছুরের {share}% দুধ ছাড়ানোর আগে মারা গেছে",
+  "calves.lostShare":
+    "দুধ ছাড়ানোর বয়স হয়েছে এমন {count}টি বাছুরের {share}% দুধ ছাড়ানোর আগে মারা গেছে",
   "calves.causes": "কী কারণে: {causes}",
   "calf.firstDay": "প্রথম দিন",
   "calf.firstDayHint":

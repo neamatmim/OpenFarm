@@ -227,6 +227,40 @@ describe("the Owner's home", () => {
     expect(home.needsYou.approvals.map((row) => row.id)).toContain(work.id);
   });
 
+  it("reads today against the days before it, not against an average today's half morning has pulled down", async () => {
+    const milk = async (instant: string, litres: number) => {
+      const owner = await createTestClient(appRouter, {
+        as: "owner",
+        clock: new FakeClock(instant),
+      });
+      await owner.client.work.ensureDue();
+      const today = await owner.client.work.today({ penId: world.pen.id });
+      const morning = today.find(
+        (row) => row.definitionId === world.sop.definitionId
+      );
+      if (!morning) {
+        throw new Error("expected the morning milking");
+      }
+      await owner.client.work.claim({ id: morning.id });
+      await owner.client.work.completeStep({
+        instanceId: morning.id,
+        stepId: "milk",
+        animalTag: world.cow.tagNumber,
+        evidence: [litres],
+      });
+      return owner;
+    };
+    // Twelve litres yesterday; this morning, by half past nine, two so far.
+    await milk("2097-05-10T03:30:00.000Z", 12);
+    const owner = await milk("2097-05-11T03:30:00.000Z", 2);
+
+    const home = await owner.client.overview.get();
+    // Today is a bar of its own, the darker one…
+    expect(home.tiles.days.at(-1)).toEqual({ day: "2097-05-11", litres: 2 });
+    // …and what it is read against is the days that are over: 12, not the 7 a mean with this morning in it would say.
+    expect(home.tiles.averageBulk).toBe(12);
+  });
+
   it("counts a day of the farm's milk, not a row per Pen", async () => {
     const clock = new FakeClock("2028-02-06T03:30:00.000Z");
     const owner = await createTestClient(appRouter, { as: "owner", clock });

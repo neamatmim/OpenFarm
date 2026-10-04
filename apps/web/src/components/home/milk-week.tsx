@@ -16,8 +16,8 @@ const weekEndingToday = (now: Date): string[] =>
 /** The week behind today, oldest on the left: a day is read against the week around it.
  *  Each bar is one day of the farm's milk — every Pen's Sessions added together, which is
  *  what somebody means when they ask what yesterday came to — with its litres above it, and
- *  the week's average drawn across as a dashed line. Today is the darker bar, and may be
- *  half a day yet. A day with nothing recorded is an outline, not a bar: no record is not
+ *  the average of the week before today drawn across as a dashed line. Today is the darker bar, and may be
+ *  half a day yet, which is why it is not in the average it is read against. A day with nothing recorded is an outline, not a bar: no record is not
  *  the same as no milk. */
 export const MilkWeek = ({
   days,

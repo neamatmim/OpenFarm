@@ -275,8 +275,17 @@ describe("what the farm loses in calves", () => {
       bornAlive: 1,
       stillborn: 1,
       diedBeforeWeaning: 1,
-      lostShare: 1,
+      // Three weeks old, she is not yet in the share: a calf that young has not lived through the weeks that kill
+      // calves, and the share is over those that have.
+      oldEnough: 0,
+      lostShare: null,
       causes: [{ cause: "পাতলা পায়খানা", count: 1 }],
+    });
+    // Once she would have reached her weaning age, she is in it.
+    const later = await as("owner", "2052-07-01T04:00:00.000Z");
+    expect(await later.client.animals.calfLosses()).toMatchObject({
+      oldEnough: 1,
+      lostShare: 1,
     });
   });
 });

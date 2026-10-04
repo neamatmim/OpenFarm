@@ -1,6 +1,12 @@
 import type { Database } from "@OpenFarm/db";
 import type { AdultDeaths } from "@OpenFarm/domain";
-import { WEANING_AFTER_DAYS, adultDeaths, exitOf } from "@OpenFarm/domain";
+import {
+  WEANING_AFTER_DAYS,
+  adultDeaths,
+  exitOf,
+  groupedBy,
+  penHistoryOf,
+} from "@OpenFarm/domain";
 
 /** The stretch the figure reads over: a year, as the calf-loss figure does. */
 export const DEATHS_DAYS = 365;
@@ -21,6 +27,7 @@ export const adultDeathsOf = async (
   const herd = await db.query.animal.findMany({
     where: { farmId },
     columns: {
+      id: true,
       side: true,
       birthDate: true,
       createdAt: true,
@@ -32,6 +39,28 @@ export const adultDeathsOf = async (
       mortality: { columns: { kind: true, happenedAt: true, cause: true } },
     },
   });
+  // Which Side each stood on when, from her Moves, as her costs are charged: a cull cow fattened for Eid keeps her
+  // years in milk on the Dairy side, and a death is the Side's she died on.
+  const moves = await db.query.animalMove.findMany({
+    where: { farmId },
+    columns: {
+      id: true,
+      animalId: true,
+      toPenId: true,
+      toSide: true,
+      movedAt: true,
+    },
+  });
+  const leftAt = new Map(
+    herd.flatMap((one) => {
+      const left = one.mortality?.happenedAt ?? exitOf(one)?.at;
+      return left ? [[one.id, left] as const] : [];
+    })
+  );
+  const sidesOf = groupedBy(
+    penHistoryOf(moves, leftAt),
+    (line) => line.animalId
+  );
   const deaths = adultDeaths(
     herd.map((one) => {
       const death = one.mortality
@@ -43,6 +72,7 @@ export const adultDeathsOf = async (
         : null;
       return {
         side: one.side,
+        sides: sidesOf.get(one.id) ?? [],
         bornAt: one.birthDate,
         arrivedAt: one.intake?.arrivedAt ?? one.birthDate ?? one.createdAt,
         // A death is dated by when it happened, not when it was written up.

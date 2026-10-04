@@ -4894,7 +4894,8 @@ export const en = {
   "calves.bornAlive": "Born alive",
   "calves.stillborn": "Born dead",
   "calves.lost": "Lost before weaning",
-  "calves.lostShare": "{share}% of those born alive were lost before weaning",
+  "calves.lostShare":
+    "{share}% of the {count} calves old enough to wean were lost before weaning",
   "calves.causes": "What they died of: {causes}",
   "calf.firstDay": "Her first day",
   "calf.firstDayHint":

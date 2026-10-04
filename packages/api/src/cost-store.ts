@@ -226,7 +226,9 @@ export const farmCosts = async (db: Db, farmId: string) => {
           brokerMoney: true,
         },
       },
+      // Her latest reading the farm did not doubt: a misweighing is no gain anybody paid for.
       weighIns: {
+        where: { flaggedNote: { isNull: true } },
         columns: { weightKg: true },
         orderBy: { weighedAt: "desc", id: "desc" },
         limit: 1,

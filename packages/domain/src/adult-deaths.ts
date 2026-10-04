@@ -29,9 +29,21 @@ export const ADULT_DEATH_CAUSES = [
   { bn: "কারণ জানা যায়নি", en: "Cause not known" },
 ] as const;
 
+type HeadSide = "dairy" | "fattening";
+
+/** One stretch of an animal's stay on one Side, from her Pen history; `until` is null while she stands there. */
+export interface SideStretch {
+  side: HeadSide;
+  from: Date;
+  until: Date | null;
+}
+
 /** One animal as the rate reads her: her Side, when she came to be grown here, when she left, and how she died. */
 export interface HeadRecord {
-  side: "dairy" | "fattening";
+  /** Her Side today: the one every day of hers is counted on where the farm has no stretches for her. */
+  side: HeadSide;
+  /** Which Side she stood on when, so a cow crossed to Fattening for Eid keeps her years in milk on the Dairy side. */
+  sides?: readonly SideStretch[];
   /** When she was born, where the farm knows; nothing for one bought in grown or on the opening register. */
   bornAt: Date | null;
   /** When she came onto the farm: her Intake, her birth, or the day she was registered. */
@@ -103,9 +115,19 @@ export const adultDeaths = (
     const grown = grownFrom(one, weaningDays);
     const start = later(grown, from);
     const end = earlier(one.leftAt ?? until, until);
-    const side = sides[one.side];
-    if (end > start) {
-      side.days += (end.getTime() - start.getTime()) / DAY_MS;
+    const stretches =
+      one.sides && one.sides.length > 0
+        ? one.sides
+        : [{ side: one.side, from: start, until: end }];
+    for (const stretch of stretches) {
+      const counted = {
+        from: later(stretch.from, start),
+        until: earlier(stretch.until ?? end, end),
+      };
+      if (counted.until > counted.from) {
+        sides[stretch.side].days +=
+          (counted.until.getTime() - counted.from.getTime()) / DAY_MS;
+      }
     }
     const { death } = one;
     const inTheStretch =
@@ -116,6 +138,12 @@ export const adultDeaths = (
     if (!(death && inTheStretch)) {
       continue;
     }
+    // On the Side she stood on when she died: her last stretch ends as she does.
+    const side =
+      sides[
+        stretches.findLast((stretch) => stretch.from < death.at)?.side ??
+          one.side
+      ];
     if (death.kind === "culled") {
       side.culled += 1;
       continue;

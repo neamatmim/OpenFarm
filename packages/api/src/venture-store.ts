@@ -633,8 +633,9 @@ export const whatTheFloatBought = async (
 };
 
 /**
- * What an Internal Sale is priced on: her latest Weigh-in. An Animal nobody has weighed has no price
- * anybody could defend, and the farm would rather refuse than let the Owner pick a number.
+ * What an Internal Sale is priced on: her latest Weigh-in the farm did not doubt. An Animal nobody has weighed has no
+ * price anybody could defend, and the farm would rather refuse than let the Owner pick a number; a misweighing would
+ * move money between the Farm and the Investors on a kilo nobody believes.
  */
 export const whatSheLastWeighed = async (
   tx: Pick<Tx, "query">,
@@ -642,7 +643,7 @@ export const whatSheLastWeighed = async (
   animalId: string
 ) => {
   const weighed = await tx.query.weighIn.findFirst({
-    where: { farmId, animalId },
+    where: { farmId, animalId, flaggedNote: { isNull: true } },
     orderBy: { weighedAt: "desc", id: "desc" },
     columns: { id: true, weightKg: true, weighedAt: true },
   });

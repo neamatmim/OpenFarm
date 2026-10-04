@@ -129,7 +129,9 @@ export const tradingProcedures = {
         with: {
           pen: { columns: { name: true } },
           owner: { columns: { id: true, name: true, state: true } },
+          // What her price would be struck on: her latest reading the farm did not doubt, as the sale reads it.
           weighIns: {
+            where: { flaggedNote: { isNull: true } },
             columns: { weightKg: true, weighedAt: true },
             orderBy: { weighedAt: "desc", id: "desc" },
             limit: 1,
