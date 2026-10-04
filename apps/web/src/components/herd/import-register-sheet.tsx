@@ -1,3 +1,4 @@
+import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
@@ -11,13 +12,77 @@ import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
-/** What the last import came to: how many were added, and every row the farm would not take, with its line. */
+/** The words for each refusal of a register row, as the server names it; one it does not know is said in its English. */
+const ROW_REFUSED: Partial<Record<string, MessageKey>> = {
+  register_date_unread: "herd.row.registerDateUnread",
+  register_value_unread: "herd.row.registerValueUnread",
+  register_unknown_pen: "herd.row.registerUnknownPen",
+  register_unknown_breed: "herd.row.registerUnknownBreed",
+  register_state_not_of_side: "herd.row.registerStateNotOfSide",
+  expected_calving_needed: "herd.row.expectedCalvingNeeded",
+  tag_taken: "herd.row.tagTaken",
+  tag_of_the_other_side: "herd.row.tagOfTheOtherSide",
+  not_a_tag_number: "herd.row.notATagNumber",
+  register_not_taken: "herd.row.registerNotTaken",
+};
+
+/** A row refused. `refusal` is missing from an answer kept from before the register named its refusals. */
+interface RowFailed {
+  line: number;
+  reason: string;
+  refusal?: string;
+  column?: string;
+  value?: string;
+}
+
+/** Why a row was refused, in the reader's language where the farm has the words. */
+const RowRefusal = ({ row }: { row: RowFailed }) => {
+  const { t } = useLanguage();
+  const key = row.refusal ? ROW_REFUSED[row.refusal] : undefined;
+  return key
+    ? t(key, { column: row.column ?? "", value: row.value ?? "" })
+    : row.reason;
+};
+
+/** The animals taken without something the farm needs, a line each: what to put right on her page. */
+const Warned = ({
+  rows,
+}: {
+  rows: { line: number; tagNumber: string; warning: string }[];
+}) => {
+  const { t, language } = useLanguage();
+  if (rows.length === 0) {
+    return null;
+  }
+  return (
+    <Notice
+      title={t("herd.warnedRows", {
+        count: formatNumber(rows.length, language),
+      })}
+      tone="info"
+    >
+      <ul className="flex flex-col gap-0.5">
+        {rows.map((row) => (
+          <li key={row.line}>
+            {t("herd.line", { line: formatNumber(row.line, language) })}:{" "}
+            {t("herd.row.registerNoCalvingDate", { tag: row.tagNumber })}
+          </li>
+        ))}
+      </ul>
+    </Notice>
+  );
+};
+
+/** What the last import came to: how many were added, every animal added without something the farm needs, and every
+ *  row the farm would not take, with its line. */
 const ImportResult = ({
   result,
 }: {
   result: {
     imported: { line: number }[];
-    failed: { line: number; reason: string }[];
+    failed: RowFailed[];
+    /** Missing from an answer kept from before the register warned of anything. */
+    warned?: { line: number; tagNumber: string; warning: string }[];
   };
 }) => {
   const { t, language } = useLanguage();
@@ -42,12 +107,13 @@ const ImportResult = ({
             {result.failed.map((row) => (
               <li key={row.line}>
                 {t("herd.line", { line: formatNumber(row.line, language) })}:{" "}
-                {row.reason}
+                <RowRefusal row={row} />
               </li>
             ))}
           </ul>
         </Notice>
       ) : null}
+      <Warned rows={result.warned ?? []} />
     </div>
   );
 };
@@ -64,15 +130,19 @@ export const ImportRegisterSheet = ({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const refused = useRefused();
   const [csv, setCsv] = useState("");
   const importRegister = useMutation(
     orpc.animals.importRegister.mutationOptions({
       onSuccess: (result) => {
-        toast.success(t("herd.imported", { count: result.imported.length }));
+        toast.success(
+          t("herd.imported", {
+            count: formatNumber(result.imported.length, language),
+          })
+        );
         setCsv("");
-        if (result.failed.length === 0) {
+        if (result.failed.length === 0 && (result.warned ?? []).length === 0) {
           onOpenChange(false);
         }
       },

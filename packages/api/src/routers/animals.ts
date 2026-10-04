@@ -473,6 +473,118 @@ const createAnimal = async (
   return { id, tagNumber };
 };
 
+/** Each field a register row is read into, by the template's column it came from: what a refusal names. */
+const COLUMN_OF: Record<string, string> = {
+  sex: "sex",
+  side: "side",
+  state: "state",
+  penId: "pen",
+  source: "source",
+  breedId: "breed",
+  birthDate: "birth_date",
+  calvedAt: "calved_at",
+  expectedCalvingOn: "expected_calving",
+  officialTag: "official_tag",
+  tagNumber: "tag",
+  aliases: "alias",
+};
+
+/** The template's columns that hold a day. */
+const DATE_COLUMNS = new Set(["birth_date", "calved_at", "expected_calving"]);
+
+/** A register row refused: the server's English, and the refusal, column and what was written there, for the screen to
+ *  say in the Manager's own language. */
+export interface RowRefused {
+  reason: string;
+  refusal: string;
+  column: string;
+  value: string;
+}
+
+/** The column each of the farm's own refusals of an Animal is about. */
+const COLUMN_OF_REFUSAL: Record<string, string> = {
+  expected_calving_needed: "expected_calving",
+  tag_taken: "tag",
+  tag_of_the_other_side: "tag",
+  not_a_tag_number: "tag",
+};
+
+/** A row the farm would not take when it came to make her: its own refusal, or that it could not. */
+const refusedByTheFarm = (
+  error: unknown,
+  values: Record<string, string>
+): RowRefused => {
+  if (!(error instanceof ORPCError)) {
+    return {
+      reason: "could not import",
+      refusal: "register_not_taken",
+      column: "",
+      value: "",
+    };
+  }
+  const refusal =
+    (error.data as { refusal?: string } | undefined)?.refusal ??
+    "register_not_taken";
+  const column = COLUMN_OF_REFUSAL[refusal] ?? "";
+  return {
+    reason: error.message,
+    refusal,
+    column,
+    value: values[column] ?? "",
+  };
+};
+
+/** A row with a value that cannot be read: the first, named by its column, and what was written there. */
+const unreadIn = (
+  issues: readonly { path: PropertyKey[]; message: string }[],
+  values: Record<string, string>
+): RowRefused => {
+  const [first] = issues;
+  const column = COLUMN_OF[String(first?.path[0] ?? "")] ?? "";
+  return {
+    reason: issues
+      .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+      .join("; "),
+    refusal: DATE_COLUMNS.has(column)
+      ? "register_date_unread"
+      : "register_value_unread",
+    column,
+    value: values[column] ?? "",
+  };
+};
+
+/** A row read, but naming what the farm does not have: a pen or a breed, or a state of the other side. */
+const refusedOnTheFarm = (
+  data: NewAnimal,
+  values: Record<string, string>
+): RowRefused | null => {
+  if (!data.penId) {
+    return {
+      reason: `unknown pen "${values.pen ?? ""}"`,
+      refusal: "register_unknown_pen",
+      column: "pen",
+      value: values.pen ?? "",
+    };
+  }
+  if (data.breedId === "") {
+    return {
+      reason: `unknown breed "${values.breed ?? ""}" — add it to the farm's list of breeds first`,
+      refusal: "register_unknown_breed",
+      column: "breed",
+      value: values.breed ?? "",
+    };
+  }
+  if (sideOfState(data.state) !== data.side) {
+    return {
+      reason: `state ${data.state} does not belong to the ${data.side} side`,
+      refusal: "register_state_not_of_side",
+      column: "state",
+      value: values.state ?? "",
+    };
+  }
+  return null;
+};
+
 /**
  * One row of the opening register as the Animal it describes, or why it cannot be one: a value the row cannot hold, a
  * Pen or a breed the farm does not have, or a State on the other Side's.
@@ -481,7 +593,7 @@ const readRegisterRow = (
   values: Record<string, string>,
   penByName: ReadonlyMap<string, string>,
   breeds: Parameters<typeof breedNamed>[0]
-): { data: NewAnimal } | { reason: string } => {
+): { data: NewAnimal } | RowRefused => {
   const parsed = importRowInput.safeParse({
     sex: values.sex,
     side: values.side,
@@ -502,26 +614,9 @@ const readRegisterRow = (
       .filter(Boolean),
   });
   if (!parsed.success) {
-    return {
-      reason: parsed.error.issues
-        .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
-        .join("; "),
-    };
+    return unreadIn(parsed.error.issues, values);
   }
-  if (!parsed.data.penId) {
-    return { reason: `unknown pen "${values.pen ?? ""}"` };
-  }
-  if (parsed.data.breedId === "") {
-    return {
-      reason: `unknown breed "${values.breed ?? ""}" — add it to the farm's list of breeds first`,
-    };
-  }
-  if (sideOfState(parsed.data.state) !== parsed.data.side) {
-    return {
-      reason: `state ${parsed.data.state} does not belong to the ${parsed.data.side} side`,
-    };
-  }
-  return { data: parsed.data };
+  return refusedOnTheFarm(parsed.data, values) ?? { data: parsed.data };
 };
 
 /** The Missing not yet found, as her page says it: where the round looked, and since when — and, once the Owner has
@@ -1621,14 +1716,16 @@ export const animalsRouter = {
       );
 
       const imported: { line: number; tagNumber: string }[] = [];
-      const failed: { line: number; reason: string }[] = [];
+      const failed: ({ line: number } & RowRefused)[] = [];
+      /** Taken, but missing what the farm cannot do without. */
+      const warned: { line: number; tagNumber: string; warning: string }[] = [];
       const now = context.clock.now();
 
       for (const record of records) {
         const { line, values } = record;
         const row = readRegisterRow(values, penByName, breeds);
         if ("reason" in row) {
-          failed.push({ line, reason: row.reason });
+          failed.push({ line, ...row });
           continue;
         }
         try {
@@ -1642,16 +1739,20 @@ export const animalsRouter = {
             "opening register"
           );
           imported.push({ line, tagNumber: created.tagNumber });
+          // A cow in milk with no calving day: nobody can say how long she has been in milk.
+          if (row.data.state === "milking" && !row.data.calvedAt) {
+            warned.push({
+              line,
+              tagNumber: created.tagNumber,
+              warning: "register_no_calving_date",
+            });
+          }
         } catch (error) {
           // The farm's own refusal says why in its words; anything else — the database, the network — is not for the
           // screen, which says only that the row could not be taken.
-          failed.push({
-            line,
-            reason:
-              error instanceof ORPCError ? error.message : "could not import",
-          });
+          failed.push({ line, ...refusedByTheFarm(error, values) });
         }
       }
-      return { imported, failed, total: records.length };
+      return { imported, failed, warned, total: records.length };
     }),
 };

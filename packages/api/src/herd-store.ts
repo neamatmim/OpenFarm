@@ -98,6 +98,7 @@ const claimTagNumber = async (
   if (!parsed) {
     throw new ORPCError("BAD_REQUEST", {
       message: `"${written}" is not a Tag Number, which is written like D-0001`,
+      data: { refusal: "not_a_tag_number" },
     });
   }
   const prefix = prefixForOrigin(origin);
@@ -105,6 +106,7 @@ const claimTagNumber = async (
   if (parsed.prefix !== prefix) {
     throw new ORPCError("BAD_REQUEST", {
       message: `${tagNumber} cannot go on the ${origin} side, whose numbers start with ${prefix}-`,
+      data: { refusal: "tag_of_the_other_side" },
     });
   }
   const holder = await tx.query.animal.findFirst({
@@ -114,6 +116,7 @@ const claimTagNumber = async (
   if (holder) {
     throw new ORPCError("CONFLICT", {
       message: `${tagNumber} is already another animal's number`,
+      data: { refusal: "tag_taken" },
     });
   }
   await tx
