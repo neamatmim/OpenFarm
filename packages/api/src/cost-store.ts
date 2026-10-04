@@ -687,8 +687,8 @@ export const chargedOf = (one: Costs) =>
  * anything out a second way. A beast still standing has no Margin at all, because she has not earned
  * anything yet; she still has a **Cost of Gain**, because she has eaten and grown.
  *
- * The herd's Cost of Gain is everything charged to all of them over everything they put on, not the mean
- * of their rates. `theirProgress` made the same choice for daily gain and said why: averaging rates lets
+ * The herd's Cost of Gain is everything charged to those weighed since they came over everything they put on, not
+ * the mean of their rates. `theirProgress` made the same choice for daily gain and said why: averaging rates lets
  * a bull who arrived last week count for as much as one who has been here since January.
  *
  * Added from the figures as each line shows them, so the total is what the column comes to rather than
@@ -707,7 +707,13 @@ export const economicsOfHerd = (
   const chargedMoney = roundMoney(
     each.reduce((sum, one) => sum + chargedOf(one), 0)
   );
-  const gainKg = roundKg(each.reduce((sum, one) => sum + (one.gainKg ?? 0), 0));
+  // Cost of Gain over the animals whose gain is known: one nobody has weighed since he came put on kilos nobody knows,
+  // and his feed set against none of them would read the herd's kilo dearer than it was. As a Season's growth does.
+  const weighed = each.filter((one) => one.gainKg !== null);
+  const gainKg = roundKg(
+    weighed.reduce((sum, one) => sum + (one.gainKg ?? 0), 0)
+  );
+  const chargedForGain = weighed.reduce((sum, one) => sum + chargedOf(one), 0);
   const sold = each.filter((one) => one.marginMoney !== null);
   return {
     // Worst first: the question is which bull did not earn, and he is the one worth finding. A beast
@@ -729,7 +735,7 @@ export const economicsOfHerd = (
         : roundMoney(
             sold.reduce((sum, one) => sum + (one.marginMoney ?? 0), 0)
           ),
-    costOfGainMoney: gainKg > 0 ? roundMoney(chargedMoney / gainKg) : null,
+    costOfGainMoney: gainKg > 0 ? roundMoney(chargedForGain / gainKg) : null,
   };
 };
 

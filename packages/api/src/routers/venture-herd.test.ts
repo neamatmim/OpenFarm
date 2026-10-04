@@ -403,7 +403,7 @@ describe("what a Venture's animals are doing", () => {
     expect(never?.overDays).toBeNull();
   });
 
-  it("averages over the animals standing, and works the herd's gain from the whole herd", async () => {
+  it("averages over the animals standing, and works the herd's gain from every animal it has had", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
     const theirs = await owner.client.ventures.herd({
       ventureId: firstVenture,
@@ -414,10 +414,12 @@ describe("what a Venture's animals are doing", () => {
     expect(theirs.weighedCount).toBe(2);
     expect(theirs.averageIntakeKg).toBe(200);
     expect(theirs.averageLatestKg).toBe(224.5);
-    // Forty-nine kilogrammes on over seventy days on feed — 28 kg in 28 days and 21 kg in 42. The
-    // herd's own rate, which is 0.7; the mean of the two animals' rates would be 0.75, and this test
-    // fails if anybody makes it that.
-    expect(theirs.gainKgPerDay).toBe(0.7);
+    // The herd's gain is over every bull it has had, not the three standing — or it would drift as the fast
+    // gainers went to buyers. The first, 28 kg to his weighing on 1 February at 07:30, 28.1 days on; the one who
+    // died, the same before he did; the fifth, 21 kg in 42.1 days; the one sold, 28 kg to his 228 at the gate on
+    // the 18th, 45 days. 105 kg over 143.3 days is 0.73. Over the two standing alone it was 0.7, and the mean of
+    // the animals' own rates would be 0.75: this test fails if anybody makes it either.
+    expect(theirs.gainKgPerDay).toBe(0.73);
   });
 
   it("says the day the averages were last read off the scale, from the animals they are over", async () => {
