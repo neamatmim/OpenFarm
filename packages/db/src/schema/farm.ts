@@ -398,6 +398,9 @@ export const invite = pgTable(
     codeHash: text("code_hash"),
     /** When the invited person took it up with the code. */
     acceptedAt: timestamp("accepted_at"),
+    /** For a Barn Staff member who works only on the Shed Phones: the person it was written for, already made, with
+     *  no login. Taken up the moment it is approved — they have no code to enter. */
+    forUserId: text("for_user_id").references(() => user.id),
     /** For a Vet invited for a visit: "visiting", and the day their access ends. */
     vetScope: text("vet_scope", { enum: VET_SCOPES }),
     accessUntil: timestamp("access_until"),

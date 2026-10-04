@@ -27,6 +27,7 @@ import {
   derivePinHash,
   isPin,
   randomPinSalt,
+  shedPhoneOnlyAddressOf,
   startOfFarmDay,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -702,6 +703,72 @@ export const acceptInvite = async (
   return roles;
 };
 
+/** A Barn Staff member who works only on the Shed Phones, made one of the farm's people: Barn Staff, and the invite
+ *  written for them taken up. */
+const takeUpForShedPhones = async (
+  tx: Tx,
+  farmId: string,
+  inviteId: string,
+  userId: string,
+  by: Acting,
+  now: Date
+): Promise<void> => {
+  await tx
+    .update(invite)
+    .set({ acceptedAt: now })
+    .where(and(eq(invite.id, inviteId), eq(invite.farmId, farmId)));
+  await grantRoles(tx, farmId, userId, ["staff"], by, now);
+};
+
+/**
+ * A Barn Staff member with no email of their own, added by name to work only on the farm's Shed Phones (ADR 0003). They
+ * are made with an address nothing is sent to and no password, so they never sign in; the invitation written for them
+ * is what the Owner approves, as any a Manager writes. The Owner's is approved, and taken up, at once.
+ */
+export const addForShedPhones = async (
+  tx: Tx,
+  farmId: string,
+  asked: { name: string },
+  by: Acting,
+  now: Date
+): Promise<{
+  userId: string;
+  inviteId: string;
+  status: "approved" | "pending";
+}> => {
+  const userId = uuidv7(now);
+  const inviteId = uuidv7(now);
+  const email = shedPhoneOnlyAddressOf(userId);
+  const approved = by.role === "owner";
+  await tx.insert(user).values({
+    id: userId,
+    name: asked.name,
+    email,
+    emailVerified: false,
+    createdAt: now,
+    updatedAt: now,
+  });
+  await tx.insert(invite).values({
+    id: inviteId,
+    farmId,
+    email,
+    name: asked.name,
+    roles: ["staff"],
+    status: approved ? "approved" : "pending",
+    invitedBy: by.id,
+    invitedByRole: by.role,
+    approvedBy: approved ? by.id : null,
+    approvedAt: approved ? now : null,
+    codeHash: null,
+    forUserId: userId,
+    createdAt: now,
+  });
+  if (approved) {
+    await takeUpForShedPhones(tx, farmId, inviteId, userId, by, now);
+  }
+  return { userId, inviteId, status: approved ? "approved" : "pending" };
+};
+
 /** The Owner approving an invitation a Manager wrote. Only a pending one of this Farm flips, so a second
  *  approver is told there is nothing to approve rather than approving it again — and, because throwing here
  *  rolls the transaction back, no Audit Event says they did. */
@@ -722,9 +789,13 @@ export const approveInvite = async (
         eq(invite.status, "pending")
       )
     )
-    .returning({ id: invite.id });
+    .returning({ id: invite.id, forUserId: invite.forUserId });
   if (!row) {
     throw new ORPCError("NOT_FOUND");
+  }
+  // Somebody who works only on the Shed Phones has no code to enter: approved, they are one of the farm's people.
+  if (row.forUserId) {
+    await takeUpForShedPhones(tx, farmId, id, row.forUserId, by, now);
   }
 };
 

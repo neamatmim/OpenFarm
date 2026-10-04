@@ -727,6 +727,7 @@ export const AccessTab = ({
   gone,
   isOwner,
   isSelf,
+  shedPhoneOnly = false,
 }: {
   userId: string;
   name: string;
@@ -736,6 +737,8 @@ export const AccessTab = ({
   gone: boolean;
   isOwner: boolean;
   isSelf: boolean;
+  /** Works only on the shed phones: a PIN, and no login to give a password code for. */
+  shedPhoneOnly?: boolean;
 }) => (
   <div className="flex flex-col gap-6">
     <Section>
@@ -752,7 +755,7 @@ export const AccessTab = ({
           <>
             {/* A PIN opens the Shed Phone, which holds Barn Staff alone. */}
             {roles.includes("staff") ? <PinRow userId={userId} /> : null}
-            <PasswordRow name={name} userId={userId} />
+            {shedPhoneOnly ? null : <PasswordRow name={name} userId={userId} />}
           </>
         ) : null}
       </div>

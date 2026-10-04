@@ -887,6 +887,12 @@ export const en = {
   "people.approve": "Approve",
   "people.invite": "Invite a person",
   "people.inviteSend": "Send invite",
+  "people.shedPhoneOnly": "Works only on the shed phones, with a PIN — no email",
+  "people.shedPhoneOnlyHint": "For someone with no email or phone of their own. They get no login; once given pens and a PIN, they work on the shed phones.",
+  "people.shedPhoneOnlyAdd": "Add",
+  "people.shedPhoneOnlyAdded": "Added — now give them their pens and a PIN",
+  "people.shedPhoneOnlyWaiting": "Added — they can start once the owner approves",
+  "people.shedPhoneOnlyShown": "Shed phone only",
   "people.inviteSent": "Invite recorded",
   "people.handOverTitle": "Give {name} this code",
   "people.handOverHow":
@@ -3374,6 +3380,7 @@ export const en = {
   "vetFee.none": "No fee recorded yet",
   "vetFee.noAnimals": "No animal on the farm yet to say the vet saw",
   "refusal.ownerOnly": "Only the owner can do this",
+  "refusal.shedPhoneOnly": "They work only on the shed phones and have no login, so there is no password to set.",
   "refusal.pinIsForStaff":
     "A PIN is for barn staff: the shed phone works as barn staff and nothing more.",
   "refusal.personalPhoneOnly":

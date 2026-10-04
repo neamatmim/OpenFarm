@@ -56,6 +56,52 @@ const InviteRoles = ({
   );
 };
 
+/** Whether the person works only on the shed phones, by PIN, with no email or login of their own (ADR 0003). */
+const ShedPhoneOnlyChoice = ({
+  shedPhoneOnly,
+  onShedPhoneOnly,
+}: {
+  shedPhoneOnly: boolean;
+  onShedPhoneOnly: (shedPhoneOnly: boolean) => void;
+}) => {
+  const t = useT();
+  return (
+    <div className="bg-muted/40 flex flex-col gap-1 rounded-lg border p-3">
+      <label className="inline-flex min-h-11 items-center gap-2 text-sm font-medium md:min-h-8">
+        <Checkbox
+          checked={shedPhoneOnly}
+          onCheckedChange={(checked) => onShedPhoneOnly(Boolean(checked))}
+        />
+        {t("people.shedPhoneOnly")}
+      </label>
+      <p className="text-muted-foreground text-sm">
+        {t("people.shedPhoneOnlyHint")}
+      </p>
+    </div>
+  );
+};
+
+/** Adding somebody who works only on the shed phones: by name alone, told whether the Owner still has to approve. */
+const useAddForShedPhones = (done: () => void) => {
+  const t = useT();
+  const refused = useRefused();
+  return useMutation(
+    orpc.people.addForShedPhones.mutationOptions({
+      onSuccess: ({ status }) => {
+        toast.success(
+          t(
+            status === "approved"
+              ? "people.shedPhoneOnlyAdded"
+              : "people.shedPhoneOnlyWaiting"
+          )
+        );
+        done();
+      },
+      onError: refused,
+    })
+  );
+};
+
 /** Whether the person invited is a vet called in for a visit, and the last day it lasts. */
 const VisitChoice = ({
   visiting,
@@ -101,7 +147,8 @@ const VisitChoice = ({
 /**
  * Inviting somebody to the farm, in a sheet beside the list: their name and email, and what they will do — Roles the
  * Owner picks, Barn Staff from a Manager, or a vet called in until a day. The code to hand them comes back once, and the
- * page shows it the moment the sheet closes.
+ * page shows it the moment the sheet closes. Or Barn Staff with no email, added by name to work only on the shed phones:
+ * no code, since they have no login.
  */
 export const InviteSheet = ({
   open,
@@ -121,7 +168,14 @@ export const InviteSheet = ({
   // A vet called in for a visit: invited as a Vet, until a day.
   const [visiting, setVisiting] = useState(false);
   const [visitUntil, setVisitUntil] = useState("");
+  // Somebody with no email of their own, added to work only on the shed phones.
+  const [shedPhoneOnly, setShedPhoneOnly] = useState(false);
   const refused = useRefused();
+  const addForShedPhones = useAddForShedPhones(() => {
+    setName("");
+    setShedPhoneOnly(false);
+    onOpenChange(false);
+  });
   const invite = useMutation(
     orpc.people.invite.mutationOptions({
       onSuccess: ({ code }) => {
@@ -134,27 +188,33 @@ export const InviteSheet = ({
       onError: refused,
     })
   );
-  const ready =
-    name.trim() !== "" &&
-    email.includes("@") &&
-    (visiting ? visitUntil !== "" : roles.length > 0);
+  const invitedReady =
+    email.includes("@") && (visiting ? visitUntil !== "" : roles.length > 0);
+  const ready = name.trim() !== "" && (shedPhoneOnly || invitedReady);
+  const handleSubmit = () => {
+    if (shedPhoneOnly) {
+      addForShedPhones.mutate({ name });
+      return;
+    }
+    invite.mutate(
+      visiting
+        ? { name, email, roles: ["vet"], visitUntil }
+        : { name, email, roles }
+    );
+  };
 
   return (
     <FormSheet
       wide
       description={t("people.inviteWhy")}
       onOpenChange={onOpenChange}
-      onSubmit={() =>
-        invite.mutate(
-          visiting
-            ? { name, email, roles: ["vet"], visitUntil }
-            : { name, email, roles }
-        )
-      }
+      onSubmit={handleSubmit}
       open={open}
-      pending={invite.isPending}
+      pending={invite.isPending || addForShedPhones.isPending}
       ready={ready}
-      submitLabel={t("people.inviteSend")}
+      submitLabel={
+        shedPhoneOnly ? t("people.shedPhoneOnlyAdd") : t("people.inviteSend")
+      }
       title={t("people.invite")}
     >
       <FormField id="invite-name" label={t("people.name")}>
@@ -166,29 +226,43 @@ export const InviteSheet = ({
           value={name}
         />
       </FormField>
-      <FormField id="invite-email" label={t("people.email")}>
-        <Input
-          autoComplete="off"
-          id="invite-email"
-          inputMode="email"
-          onChange={(event) => setEmail(event.target.value)}
-          required
-          type="email"
-          value={email}
-        />
-      </FormField>
-      <VisitChoice
-        onUntil={setVisitUntil}
-        onVisiting={setVisiting}
-        until={visitUntil}
-        visiting={visiting}
+      <ShedPhoneOnlyChoice
+        onShedPhoneOnly={setShedPhoneOnly}
+        shedPhoneOnly={shedPhoneOnly}
       />
-      {visiting ? null : (
+      {shedPhoneOnly ? (
         <InviteRoles
-          onToggle={(role) => setRoles((current) => toggled(current, role))}
-          ownerCanPickRoles={ownerCanPickRoles}
-          roles={roles}
+          onToggle={() => null}
+          ownerCanPickRoles={false}
+          roles={["staff"]}
         />
+      ) : (
+        <>
+          <FormField id="invite-email" label={t("people.email")}>
+            <Input
+              autoComplete="off"
+              id="invite-email"
+              inputMode="email"
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              type="email"
+              value={email}
+            />
+          </FormField>
+          <VisitChoice
+            onUntil={setVisitUntil}
+            onVisiting={setVisiting}
+            until={visitUntil}
+            visiting={visiting}
+          />
+          {visiting ? null : (
+            <InviteRoles
+              onToggle={(role) => setRoles((current) => toggled(current, role))}
+              ownerCanPickRoles={ownerCanPickRoles}
+              roles={roles}
+            />
+          )}
+        </>
       )}
     </FormSheet>
   );

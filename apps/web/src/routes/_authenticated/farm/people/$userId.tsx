@@ -1,3 +1,5 @@
+import type { RoleName } from "@OpenFarm/domain";
+import { worksOnlyOnShedPhones } from "@OpenFarm/domain";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -21,7 +23,7 @@ import {
   StatusBadge,
 } from "@/components/page";
 import { PageTabs } from "@/components/page-kit";
-import { RoleBadges } from "@/components/people/people-table";
+import { RoleBadges, useAddressShown } from "@/components/people/people-table";
 import { AccessTab } from "@/components/people/person-access";
 import { SignInsTab, TrainingTab } from "@/components/people/person-sign-ins";
 import { useT } from "@/i18n/language-provider";
@@ -63,6 +65,23 @@ const CorrectName = ({ userId, name }: { userId: string; name: string }) => {
   );
 };
 
+/** Whether their access is off, whether they work only on the shed phones — no login: nowhere signed in, and no
+ *  password to set — and so whether the viewer sees where they are signed in. */
+const howTheyStand = (
+  them:
+    | { disabledAt?: Date | null; email: string; roles?: RoleName[] }
+    | undefined,
+  isOwner: boolean
+) => {
+  const shedPhoneOnly = them ? worksOnlyOnShedPhones(them.email) : false;
+  return {
+    gone: Boolean(them?.disabledAt),
+    shedPhoneOnly,
+    seesSignIns:
+      reachesTheirAccess(isOwner, them?.roles ?? []) && !shedPhoneOnly,
+  };
+};
+
 /**
  * One person of the farm, by what somebody came to them for: what they may do and where — Roles, Pens, their PIN, a
  * forgotten password, and their access itself — where they are signed in, and what they have been taught. Who they are
@@ -78,8 +97,8 @@ const PersonPage = () => {
   const isOwner = me.data?.roles.includes("owner") ?? false;
   const isSelf = me.data?.id === userId;
   const them = person.data;
-  const gone = Boolean(them?.disabledAt);
-  const seesSignIns = reachesTheirAccess(isOwner, them?.roles ?? []);
+  const { gone, shedPhoneOnly, seesSignIns } = howTheyStand(them, isOwner);
+  const addressShown = useAddressShown();
 
   return (
     <Page>
@@ -111,7 +130,7 @@ const PersonPage = () => {
               }
               meta={
                 <>
-                  <span className="break-all">{them.email}</span>
+                  <span className="break-all">{addressShown(them.email)}</span>
                   {gone ? (
                     <StatusBadge icon={UserX} tone="danger">
                       {t("people.disabled")}
@@ -147,6 +166,7 @@ const PersonPage = () => {
                       name={them.name}
                       penIds={them.penIds ?? []}
                       roles={them.roles ?? []}
+                      shedPhoneOnly={shedPhoneOnly}
                       userId={userId}
                       visitUntil={them.visitUntil ?? null}
                     />

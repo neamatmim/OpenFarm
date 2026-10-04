@@ -51,7 +51,7 @@ const turnAwayWhoWasNotAsked = (db: Database) =>
         message: translate(DEFAULT_LANGUAGE, "auth.notInvited"),
       });
     }
-    const theFarm = await db.query.farm.findFirst({ columns: { id: true } });
+const theFarm = await db.query.farm.findFirst({ columns: { id: true } });
     if (!theFarm) {
       // Nobody has set the farm up yet, so there is nobody who could have invited them: the server names who may.
       const first = whoMayOpenTheFarm(email, {
@@ -78,9 +78,11 @@ const turnAwayWhoWasNotAsked = (db: Database) =>
         status: { in: ["pending", "approved"] },
         acceptedAt: { isNull: true },
       },
-      columns: { id: true },
+      columns: { id: true, forUserId: true },
     });
-    if (asked) {
+    // An invitation written for somebody who works only on the Shed Phones is taken up when it is approved, never by
+    // signing up: they have no login, and whoever signed up under its address would take their name on the records.
+    if (asked && !asked.forUserId) {
       return;
     }
     // Said in Bangla because nobody here has an account to have chosen a language on.

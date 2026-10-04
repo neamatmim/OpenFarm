@@ -6,6 +6,7 @@ import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { ACTIVE_ROLE, ROLES } from "@OpenFarm/db/schema/farm";
 import { ACTIVE_ASSIGNMENT } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
+import { worksOnlyOnShedPhones } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -19,6 +20,7 @@ import { farmDay } from "../farm-clock";
 import { protectedProcedure, publicProcedure } from "../index";
 import {
   acceptInvite,
+  addForShedPhones,
   accessIsTheirsToGive,
   approveInvite,
   endMembership,
@@ -239,8 +241,13 @@ export const peopleRouter = {
             .filter((row) => row.userId === p.id)
             .map((row) => row.penId),
           training: theirTraining.get(p.id) ?? [],
+          /** Works only on the Shed Phones, by PIN: no login, and the address shown is nobody's. */
+          shedPhoneOnly: worksOnlyOnShedPhones(p.email),
         })),
-        pendingInvites: pending,
+        pendingInvites: pending.map((one) => ({
+          ...one,
+          shedPhoneOnly: worksOnlyOnShedPhones(one.email),
+        })),
         /** Approved, but the person has not signed up yet — Roles are granted when they do. */
         awaitingSignup: approved.filter((i) => !i.acceptedAt),
       };
@@ -299,6 +306,48 @@ export const peopleRouter = {
           sopName: (version.content as SopContent).name,
         })),
       };
+    }),
+
+  /**
+   * A Barn Staff member with no email of their own, added by name to work only on the farm's Shed Phones (ADR 0003): no
+   * login, a PIN once they are one of the farm's people. The Owner's word adds them at once; a Manager's waits for the
+   * Owner, as a Manager's invitation does — somebody added by the Manager alone could sign work in a name nobody owns.
+   */
+  addForShedPhones: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(z.object({ name: z.string().trim().min(1).max(80) }))
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const by = { id: context.actor.id, role: context.roleUsed };
+      let added: Awaited<ReturnType<typeof addForShedPhones>> | undefined;
+      await audited(context).write(
+        {
+          entity: "invite",
+          entityId: () => added?.inviteId ?? "",
+          action: "create",
+          after: () =>
+            Promise.resolve({
+              name: input.name,
+              roles: ["staff"],
+              status: added?.status ?? null,
+              shedPhoneOnly: true,
+            }),
+        },
+        async (tx) => {
+          added = await addForShedPhones(
+            tx,
+            context.farm.id,
+            { name: input.name },
+            by,
+            now
+          );
+        }
+      );
+      if (!added) {
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
+      }
+      return added;
     }),
 
   /** Owner invites anyone with any Roles (approved at once); Manager invites Staff (pending). */
@@ -587,6 +636,17 @@ export const peopleRouter = {
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const by = { id: context.actor.id, role: context.roleUsed };
+      // Somebody who works only on the Shed Phones has no login to set a password for: a code would make one.
+      const them = await context.db.query.user.findFirst({
+        where: { id: input.userId },
+        columns: { email: true },
+      });
+      if (them && worksOnlyOnShedPhones(them.email)) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "They work only on the Shed Phones, and have no login",
+          data: { refusal: "shed_phone_only" },
+        });
+      }
       const minted = await newPasswordCode(now);
       await audited(context).write(
         {
