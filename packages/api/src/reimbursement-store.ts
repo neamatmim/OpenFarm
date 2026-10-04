@@ -172,6 +172,14 @@ export interface ReimbursementDue {
 }
 
 /**
+ * The months a running Venture was found owing nothing, by the farm day they were asked on. A month that came to
+ * nothing has no notice to stop the sweep asking, and the sweep runs at every opening of the staff's page: asked once a
+ * farm day, a cost dated into it that arrives late is still told, the next day. Kept by the process, which the farm
+ * runs on one of; a restart asks again.
+ */
+const foundOwingNothing = new Map<string, string>();
+
+/**
  * The running Ventures that owe the Farm the month just over and have not been told so: not repaid, coming to more
  * than nothing — its own figure and what it carries — and no Settlement approved.
  *
@@ -224,9 +232,11 @@ export const reimbursementsToTell = async (
     [...settled, ...repaid].map((one) => one.ventureId)
   );
   const told = new Set(already.map((one) => `${one.userId}|${one.entityId}`));
+  const today = farmDayOf(now);
   const asking = running.filter(
     (one) =>
       !settledOrRepaid.has(one.id) &&
+      foundOwingNothing.get(`${farmId}|${one.id}:${month}`) !== today &&
       owners.some((userId) => !told.has(`${userId}|${one.id}:${month}`))
   );
   if (asking.length === 0) {
@@ -250,6 +260,8 @@ export const reimbursementsToTell = async (
         owedMoney: figure.totalMoney,
         noticeId: `${venture.id}:${month}`,
       });
+    } else {
+      foundOwingNothing.set(`${farmId}|${venture.id}:${month}`, today);
     }
   }
   return due;
