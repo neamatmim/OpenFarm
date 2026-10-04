@@ -28,6 +28,7 @@ export const PassTheRestWell = ({
   rest,
   heldByAnother,
   state,
+  onPassed,
 }: {
   instanceId: string;
   step: Step;
@@ -37,6 +38,8 @@ export const PassTheRestWell = ({
   heldByAnother: boolean;
   /** Where the work stands: finished work is put right, not passed. */
   state: string;
+  /** Once every one is passed. */
+  onPassed: () => void;
 }) => {
   const { t, language } = useLanguage();
   const queryClient = useQueryClient();
@@ -65,6 +68,7 @@ export const PassTheRestWell = ({
     onSuccess: () => {
       setAsking(false);
       void queryClient.invalidateQueries({ queryKey: ["outbox"] });
+      onPassed();
     },
     onError: (error) => toast.error(error.message || t("common.error")),
   });

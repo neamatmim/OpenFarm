@@ -1,7 +1,7 @@
 // The work page's board: its header, its tiles and step rows, who holds it, and how it closes.
 
 import type { Step } from "@OpenFarm/domain";
-import { heldFromThem } from "@OpenFarm/domain";
+import { heldFromThem, nothingToNoteOf } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -221,11 +221,17 @@ export const NextAnimal = ({
   );
 };
 
-const standingOf = (completion: Completion | undefined): Standing => {
+/** Where an animal stands in the round. One passed as well was looked at and found so: done, not skipped. */
+const standingOf = (
+  completion: Completion | undefined,
+  /** The Step's reason for passing an animal as well, where it has one. */
+  well?: string
+): Standing => {
   if (!completion) {
     return "left";
   }
-  return completion.status === "skipped" ? "skipped" : "done";
+  const passedAsWell = well !== undefined && completion.skipReason === well;
+  return completion.status === "skipped" && !passedAsWell ? "skipped" : "done";
 };
 
 /** How each standing looks on its tile: its word, its icon, and its colour — never the colour alone. */
@@ -263,9 +269,10 @@ export const roundOf = (
     return { tally: null, nextAnimal: undefined };
   }
   const tally = { done: 0, skipped: 0, left: 0 };
+  const well = nothingToNoteOf(perAnimalStep)?.bn;
   let nextAnimal: Animal | undefined;
   for (const beast of animals) {
-    const standing = standingOf(doneFor(perAnimalStep.id, beast.id));
+    const standing = standingOf(doneFor(perAnimalStep.id, beast.id), well);
     tally[standing] += 1;
     if (standing === "left" && !nextAnimal) {
       nextAnimal = beast;
@@ -476,16 +483,19 @@ export const StepRow = ({
 export const AnimalTile = ({
   animal,
   completion,
+  well,
   next,
   onOpen,
 }: {
   animal: Animal;
   completion: Completion | undefined;
+  /** The Step's reason for passing an animal as well, where it has one: an animal passed so is done. */
+  well?: string;
   next: boolean;
   onOpen: () => void;
 }) => {
   const { t } = useLanguage();
-  const standing = standingOf(completion);
+  const standing = standingOf(completion, well);
   const { icon: StateIcon, label, tile, text } = TILE_LOOK[standing];
   const held = animal.underMilkWithdrawal && standing === "left";
   return (

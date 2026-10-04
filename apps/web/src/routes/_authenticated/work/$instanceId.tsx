@@ -1,5 +1,10 @@
 import type { Step } from "@OpenFarm/domain";
-import { isClosingStep, isFinished, isOneTap } from "@OpenFarm/domain";
+import {
+  isClosingStep,
+  isFinished,
+  isOneTap,
+  nothingToNoteOf,
+} from "@OpenFarm/domain";
 import { buttonVariants } from "@OpenFarm/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -439,6 +444,7 @@ const WorkPage = () => {
                 <AnimalTile
                   animal={beast}
                   completion={doneFor(perAnimalStep.id, beast.id)}
+                  well={nothingToNoteOf(perAnimalStep)?.bn}
                   next={beast.id === nextAnimal?.id}
                   onOpen={() => openAnimalIfMine(beast)}
                 />
@@ -448,6 +454,12 @@ const WorkPage = () => {
           <PassTheRestWell
             heldByAnother={someoneElse !== null}
             instanceId={instanceId}
+            onPassed={() => {
+              // As the last tap would: the work with nothing left undone is finished.
+              if (everythingRecorded(queryClient.getQueryData(instanceKey))) {
+                finish.mutate();
+              }
+            }}
             rest={animals.filter(
               (beast) => !doneFor(perAnimalStep.id, beast.id)
             )}
