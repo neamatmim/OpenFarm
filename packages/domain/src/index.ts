@@ -361,6 +361,8 @@ export {
   cyclesOf,
   herdFertility,
 } from "./fertility";
+export type { CheckSummary, WorkToCheck } from "./check-summary";
+export { checkSummaryOf } from "./check-summary";
 export type { LastFigureKind } from "./last-figure";
 export { farFromLast, readsAgainstLast } from "./last-figure";
 export type { BoughtIn, EarlyLosses } from "./early-losses";

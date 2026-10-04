@@ -3695,6 +3695,18 @@ export const bn: Record<MessageKey, string> = {
   "work.tallyDone": "{count}টি সম্পন্ন",
   "work.tallySkipped": "{count}টি বাদ",
   "work.tallyLeft": "{count}টি বাকি",
+  "signOff.approveClean": "পরিষ্কার {count}টি অনুমোদন করুন",
+  "signOff.approveCleanHint":
+    "পরিষ্কার মানে: সময়মতো শেষ, কোনো সতর্কতা নেই, সুস্থ লেখা ছাড়া কিছু বাদ নেই।",
+  "signOff.line.passedWell": "{count}টি সুস্থ",
+  "signOff.line.tankOver":
+    "ট্যাংকে {litres} লি, গাভীর হিসাবের চেয়ে {difference} লি বেশি",
+  "signOff.line.tankUnder":
+    "ট্যাংকে {litres} লি, গাভীর হিসাবের চেয়ে {difference} লি কম",
+  "signOff.line.tankEven": "ট্যাংকে {litres} লি, গাভীর হিসাবের সমান",
+  "signOff.line.shortFed": "{percent}% কম খাবার",
+  "signOff.line.outOfRange": "{count}টি সংখ্যা সীমার বাইরে",
+  "signOff.line.flagged": "দেখার মতো",
   "work.tileDone": "সম্পন্ন",
   "work.tileSkipped": "বাদ",
   "work.tileLeft": "বাকি",

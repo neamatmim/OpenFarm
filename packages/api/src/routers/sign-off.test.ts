@@ -326,6 +326,14 @@ describe("sign-off", () => {
 
     const queued = await manager.work.signOffQueue();
     expect(queued.some((row) => row.id === instance.id)).toBe(true);
+    // And says what it came to, so a checker on a phone need not open it: one Step done, on time, nothing flagged.
+    expect(queued.find((row) => row.id === instance.id)?.check).toMatchObject({
+      done: 1,
+      skipped: 0,
+      late: false,
+      flagged: false,
+      clean: true,
+    });
 
     const approved = await manager.work.approve({ id: instance.id });
 
