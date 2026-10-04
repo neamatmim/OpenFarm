@@ -193,6 +193,47 @@ describe("a Prescription, and a dose per Instance", () => {
     // And the doses nobody has given yet are still owed.
     expect(doses.slice(1).every((one) => one.givenAt === null)).toBe(true);
   });
+  it("names the cow, the drug and how much on the dose's work, on the list and on the work itself", async () => {
+    const clock = new FakeClock("2028-06-02T02:00:00.000Z");
+    const { cow, diagnosis, vet } = await aSickCow(clock);
+    const staff = await createTestClient(appRouter, { as: "staff", clock });
+    await vet.client.prescriptions.prescribe({
+      animalTag: cow.tagNumber,
+      diagnosisId: diagnosis.id,
+      productId: world.product.id,
+      dose: "১২ মিলি",
+      route: "intramuscular",
+      times: ["08:00", "20:00"],
+      days: 2,
+    });
+
+    // A Pen name and "give the dose" is a dose given to whichever cow is nearest.
+    const today = await staff.client.work.today({ penId: world.pen.id });
+    const listed = today.find(
+      (row) =>
+        row.definitionId === world.sop.definitionId && row.animalId === cow.id
+    );
+    const said = {
+      animal: { tagNumber: cow.tagNumber },
+      dose: {
+        number: 1,
+        of: 4,
+        drug: {
+          bn: expect.stringContaining("অক্সিটেট্রাসাইক্লিন"),
+          en: "Oxytetracycline",
+        },
+        amount: "১২ মিলি",
+        route: "intramuscular",
+      },
+    };
+    expect(listed).toMatchObject(said);
+    if (!listed) {
+      throw new Error("expected the first dose on today's list");
+    }
+    const work = await staff.client.work.get({ id: listed.id });
+    expect(work).toMatchObject(said);
+  });
+
   it("leaves a dose nobody gave on the day's work, late", async () => {
     // Seven in the morning; the dose is due at eight, with two hours' grace.
     const clock = new FakeClock("2028-06-03T01:00:00.000Z");

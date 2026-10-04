@@ -643,6 +643,11 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     /** The animal this work is about, when something that happened to her raised it. */
     animal: r.one.animal({ from: r.sopInstance.animalId, to: r.animal.id }),
+    /** The dose this work gives, when a Prescription raised it: one Treatment per piece of work. */
+    dose: r.one.treatment({
+      from: r.sopInstance.id,
+      to: r.treatment.instanceId,
+    }),
   },
   observation: {
     animal: r.one.animal({

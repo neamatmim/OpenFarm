@@ -53,6 +53,7 @@ import { requireRole } from "../roles";
 import { isWorkInScope, requireWorkInScope, workInScopeWhere } from "../scope";
 import { contentOf } from "../sop-content";
 import { theDaysWork } from "../the-day-turns";
+import { ABOUT_HER, aboutHer } from "../work-about";
 import { putOffOf, unwellThatRaised } from "../work-cause";
 import {
   readWork,
@@ -275,6 +276,7 @@ export const workRouter = {
             columns: { name: true },
             with: { shed: { columns: { name: true } } },
           },
+          ...ABOUT_HER,
         },
         orderBy: { dueAt: "asc" },
       });
@@ -296,6 +298,7 @@ export const workRouter = {
         const again = putOffOf(row.cause);
         return {
           ...row,
+          ...aboutHer(row),
           overdue: isOverdue(row, now),
           /** Raised again after it was put off: which time, and when the work it follows was first due. */
           putOff: again
@@ -326,6 +329,7 @@ export const workRouter = {
             with: { shed: { columns: { name: true } } },
           },
           completions: true,
+          ...ABOUT_HER,
         },
       });
       if (!instance) {
@@ -425,6 +429,7 @@ export const workRouter = {
         : undefined;
       return {
         ...instance,
+        ...aboutHer(instance),
         heldBy: holder ?? null,
         /** What the round saw, when this is the Manager's work on it. */
         seen: seen

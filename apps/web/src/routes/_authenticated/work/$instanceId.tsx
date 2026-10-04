@@ -13,6 +13,7 @@ import {
   SopName,
   BackToToday,
   PlaceLine,
+  AboutHerLines,
   useHeldByOther,
   ClaimOrWhose,
   HeldByNotice,
@@ -232,6 +233,7 @@ const WorkPage = () => {
                 <SopName name={content.name} />
               </h1>
               <PlaceLine pen={pen} />
+              <AboutHerLines about={instance.data} className="items-center" />
               <p className="text-muted-foreground mt-1 text-sm text-balance">
                 {t("work.claimHint")}
               </p>
@@ -320,7 +322,12 @@ const WorkPage = () => {
   if (isClosed(state)) {
     return (
       <Page className="mx-auto max-w-4xl pb-2">
-        <WorkHeader name={content.name} pen={pen} tally={tally} />
+        <WorkHeader
+          about={instance.data}
+          name={content.name}
+          pen={pen}
+          tally={tally}
+        />
         <WorkNotices runningOn={runningOn} shortFed={shortFed} state={state} />
         <Link
           className={buttonVariants({
@@ -339,7 +346,12 @@ const WorkPage = () => {
 
   return (
     <Page className="mx-auto max-w-4xl gap-5 pb-2 md:gap-6">
-      <WorkHeader name={content.name} pen={pen} tally={tally} />
+      <WorkHeader
+        about={instance.data}
+        name={content.name}
+        pen={pen}
+        tally={tally}
+      />
       <HeldByNotice someoneElse={someoneElse} />
       <AssignWork
         assignedRole={instance.data.assignedRole}
