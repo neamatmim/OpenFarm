@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Camera } from "lucide-react";
 
 import { useLanguage } from "@/i18n/language-provider";
-import { shrink } from "@/lib/photo";
+import { photoProblem, shrink } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
@@ -35,7 +35,7 @@ export const AgreementPaperButton = ({
     <>
       {/* The farm's own words on the button, as everywhere else a photograph is taken. */}
       <label
-        className="border-input bg-card hover:bg-muted has-[:focus-visible]:ring-ring/50 flex min-h-11 w-fit cursor-pointer items-center gap-2 rounded-md border px-3 text-sm font-medium whitespace-nowrap transition-colors has-[:focus-visible]:ring-[3px] md:min-h-8"
+        className="border-input bg-card hover:bg-muted has-[:focus-visible]:ring-ring flex min-h-11 w-fit cursor-pointer items-center gap-2 rounded-md border px-3 text-sm font-medium whitespace-nowrap transition-colors has-[:focus-visible]:ring-2 md:min-h-8"
         htmlFor={id}
       >
         <Camera aria-hidden className="size-4" />
@@ -54,8 +54,8 @@ export const AgreementPaperButton = ({
           }
           try {
             keeping.mutate({ agreementId, ...(await shrink(file)) });
-          } catch {
-            toast.error(t("photo.notRead"));
+          } catch (error) {
+            toast.error(t(photoProblem(error)));
           }
         }}
         type="file"

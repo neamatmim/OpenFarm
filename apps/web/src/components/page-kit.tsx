@@ -520,6 +520,7 @@ export const ConfirmDialog = ({
   confirmLabel,
   onConfirm,
   pending = false,
+  cancelLabel,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -528,6 +529,8 @@ export const ConfirmDialog = ({
   confirmLabel: ReactNode;
   onConfirm: () => void;
   pending?: boolean;
+  /** The words on the button that stays: "Cancel" unless the question wants its own ("Keep editing"). */
+  cancelLabel?: ReactNode;
 }) => {
   const { t } = useLanguage();
   return (
@@ -543,7 +546,7 @@ export const ConfirmDialog = ({
             type="button"
             variant="outline"
           >
-            {t("common.cancel")}
+            {cancelLabel ?? t("common.cancel")}
           </Button>
           <Button
             disabled={pending}
@@ -649,6 +652,7 @@ const useFormKeeping = ({
   const refused = refusal ? <Notice title={refusal} tone="danger" /> : null;
   const askToDiscard = (
     <ConfirmDialog
+      cancelLabel={t("form.keepEditing")}
       confirmLabel={t("form.discard")}
       description={t("form.discardWhy")}
       onConfirm={() => {

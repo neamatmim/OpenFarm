@@ -60,7 +60,7 @@ const GoToAnimalDialog = ({
   );
   const shown = Math.min(chosen, Math.max(offered.length - 1, 0));
 
-  const close = (now: boolean) => {
+  const handleOpenChange = (now: boolean) => {
     onOpenChange(now);
     if (!now) {
       setTyped("");
@@ -68,7 +68,7 @@ const GoToAnimalDialog = ({
     }
   };
   const go = (tag: string) => {
-    close(false);
+    handleOpenChange(false);
     navigate({ to: "/animals/$tagNumber", params: { tagNumber: tag } });
   };
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -90,7 +90,7 @@ const GoToAnimalDialog = ({
   };
 
   return (
-    <Dialog onOpenChange={close} open={open}>
+    <Dialog onOpenChange={handleOpenChange} open={open}>
       <DialogContent
         className="top-[20%] translate-y-0 sm:max-w-md"
         closeLabel={t("common.close")}
@@ -129,6 +129,7 @@ const GoToAnimalDialog = ({
                   at === shown && "bg-accent text-accent-foreground"
                 )}
                 onClick={() => go(tag)}
+                onFocus={() => setChosen(at)}
                 onMouseEnter={() => setChosen(at)}
                 type="button"
               >

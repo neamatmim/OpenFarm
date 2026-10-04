@@ -75,6 +75,21 @@ describe("what a phone keeps", () => {
         "farm"
       )
     ).toBe(true);
+    // Asked for as a thumbnail, but taken before there were any: it came back whole, and is not kept either.
+    expect(
+      keptOnDevice(
+        {
+          queryKey: orpc.animals.photo.queryKey({
+            input: { tagNumber: "D-0002", size: "thumb" },
+          }),
+          state: {
+            status: "success",
+            data: { contentType: "image/jpeg", data: "A".repeat(200_000) },
+          },
+        },
+        "farm"
+      )
+    ).toBe(false);
     for (const whole of [
       orpc.animals.photo.queryKey({ input: { tagNumber: "D-0001" } }),
       orpc.animals.deathPhotos.queryKey({ input: { tagNumber: "D-0001" } }),

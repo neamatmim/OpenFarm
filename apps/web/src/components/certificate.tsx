@@ -5,7 +5,7 @@ import { Camera, ImageOff } from "lucide-react";
 
 import { Section, StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
-import { shrink } from "@/lib/photo";
+import { photoProblem, shrink } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
@@ -67,7 +67,7 @@ export const Certificate = ({
       <div className="flex justify-end border-t pt-4">
         {/* The camera's own picker behind a button: the input stays in reach of the keyboard and a screen reader. */}
         <label
-          className="bg-primary text-primary-foreground hover:bg-primary/90 has-[:focus-visible]:ring-ring inline-flex h-11 cursor-pointer items-center gap-2 rounded-md px-4 text-sm font-medium shadow-xs has-[:disabled]:opacity-50 has-[:focus-visible]:ring-3 md:h-9 md:px-3.5"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 has-[:focus-visible]:ring-ring inline-flex h-11 cursor-pointer items-center gap-2 rounded-md px-4 text-sm font-medium shadow-xs has-[:disabled]:opacity-50 has-[:focus-visible]:ring-2 md:h-9 md:px-3.5"
           htmlFor="certificate-photo"
         >
           {take.isPending ? (
@@ -84,8 +84,13 @@ export const Certificate = ({
             id="certificate-photo"
             onChange={async (event) => {
               const file = event.target.files?.[0];
-              if (file) {
+              if (!file) {
+                return;
+              }
+              try {
                 take.mutate(await shrink(file));
+              } catch (error) {
+                toast.error(t(photoProblem(error)));
               }
             }}
             type="file"
