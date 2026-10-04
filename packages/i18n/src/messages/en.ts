@@ -4781,7 +4781,7 @@ export const en = {
     "What the money in the farm's cattle made, against what went in and how long it was out. Yours alone.",
   "returns.chartTitle": "A year's rate, finished seasons and ventures",
   "returns.chartHint":
-    "What every {currencySign}100 made, scaled simply to a year, for each season and venture whose last animal has gone and whose money was out long enough.",
+    "What every {currencySign}100 made, scaled simply to a year, for each season and venture whose last animal has gone and whose money was out long enough, the oldest first.",
   "returns.finishedTitle": "Finished",
   "returns.finishedHint":
     "Each season of the farm's own cattle and each venture whose last animal has gone — settled, or its settlement still to come — worked as a settlement is: what the animals fetched, less what they cost to take on and everything charged to them, the ones that died among them.",
