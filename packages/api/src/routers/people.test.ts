@@ -301,6 +301,44 @@ describe("review findings", () => {
     expect(taken.roles).toEqual(["staff"]);
   });
 
+  it("a Manager cannot re-issue the code of an invite he could not have written, so he cannot take its Roles", async () => {
+    const manager = await createTestClient(appRouter, { as: "manager" });
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    const email = `second-owner-${Date.now()}@test.openfarm`;
+    const { id } = await owner.client.people.invite({
+      email,
+      name: "দ্বিতীয় মালিক",
+      roles: ["owner"],
+    });
+
+    await expect(
+      manager.client.people.reissueInviteCode({ id })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    // The Owner's own re-issue still works, and is the one that is taken up.
+    const { code } = await owner.client.people.reissueInviteCode({ id });
+    const person = await signedUp(email);
+    const taken = await person.client.people.acceptInvite({ code });
+    expect(taken.roles).toEqual(["owner"]);
+  });
+
+  it("a Manager re-issues the code of a visiting Vet's invite, as he may write one", async () => {
+    const manager = await createTestClient(appRouter, { as: "manager" });
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    const email = `visiting-${Date.now()}@test.openfarm`;
+    const { id } = await manager.client.people.invite({
+      email,
+      name: "ভেট সফর",
+      roles: ["vet"],
+      visitUntil: "2046-04-03",
+    });
+    await owner.client.people.approveInvite({ id });
+
+    const { code } = await manager.client.people.reissueInviteCode({ id });
+    const person = await signedUp(email);
+    const taken = await person.client.people.acceptInvite({ code });
+    expect(taken.roles).toEqual(["vet"]);
+  });
+
   it("approving an invite is atomic: a second approval finds nothing and writes no audit row", async () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
     const owner = await createTestClient(appRouter, { as: "owner" });

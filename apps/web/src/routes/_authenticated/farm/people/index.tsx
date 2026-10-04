@@ -251,6 +251,7 @@ const PeoplePage = () => {
                 handleApprove: (id) => approve.mutate({ id }),
                 handleNewCode: (id) => reissue.mutate({ id }),
                 mayApprove: isOwner,
+                givesAnyCode: isOwner,
               }}
               rows={shown}
             />

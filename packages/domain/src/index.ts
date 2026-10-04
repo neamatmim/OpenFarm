@@ -380,7 +380,7 @@ export {
   withdrawalView,
 } from "./health";
 export type { RoleName } from "./roles";
-export { ROLES } from "./roles";
+export { ROLES, aManagerMayInvite } from "./roles";
 export type {
   AppliesTo,
   Bilingual,

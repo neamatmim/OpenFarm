@@ -1,4 +1,5 @@
 import type { RoleName } from "@OpenFarm/domain";
+import { aManagerMayInvite } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Badge } from "@OpenFarm/ui/components/badge";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -29,6 +30,8 @@ export interface PeopleActions {
   busy: (what: string) => boolean;
   /** Approving an invitation is the Owner's alone; a Manager sees it waiting and no button. */
   mayApprove: boolean;
+  /** The Owner gives a new code for any invitation; a Manager only for one he could have written. */
+  givesAnyCode: boolean;
 }
 
 interface PersonRow extends Listed {
@@ -94,10 +97,13 @@ const PersonRowMenu = ({ row }: { row: PersonRow }) => {
   const t = useT();
   const { standing, actions } = row;
   const { handleNewCode } = actions;
+  const mayGiveACode =
+    standing.kind === "waitingToSignUp" &&
+    (actions.givesAnyCode || aManagerMayInvite(row.roles, standing.visiting));
   return (
     <RowMenu
       actions={
-        standing.kind === "waitingToSignUp"
+        mayGiveACode
           ? [
               {
                 label: t("people.newCode"),
