@@ -800,6 +800,7 @@ export const bn: Record<MessageKey, string> = {
   "auth.invalidEmail": "সঠিক ইমেইল ঠিকানা দিন",
   "auth.showPassword": "পাসওয়ার্ড দেখুন",
   "auth.hidePassword": "পাসওয়ার্ড লুকান",
+  "auth.signUpRefused": "অ্যাকাউন্ট খোলা যায়নি",
   "auth.refused": "সাইন ইন করা যায়নি",
   "auth.passwordTooShort": "পাসওয়ার্ড কমপক্ষে {min} অক্ষরের হতে হবে",
   "auth.passwordTooCommon":
@@ -2460,6 +2461,8 @@ export const bn: Record<MessageKey, string> = {
   "device.noRoster": "এখনো কারো পিন নেই। ম্যানেজারকে বলুন।",
   "device.offlineRoster": "এই ফোনে সংরক্ষিত তালিকা ব্যবহার হচ্ছে",
   "people.pin": "পিন",
+  "people.changePin": "পিন বদলান",
+  "people.pinIsSet": "পিন দেওয়া আছে — শেডের ফোনে এটি দিয়ে নিজের নামে কাজ শুরু করেন। একবার দিলে আর দেখা যায় না; নতুন পিন দিলে পুরোনোটি বাদ যায়।",
   "people.setPin": "পিন দিন",
   "people.pinSet": "পিন সেট হয়েছে",
   "people.pinHelp": "চার সংখ্যা",

@@ -32,7 +32,12 @@ describe("Barn Staff who work only on a Shed Phone", () => {
       shedPhoneOnly: true,
     });
 
+    // Their page says whether they have a PIN yet.
+    const before = await owner.client.people.get({ userId: added.userId });
+    expect(before.pinSet).toBe(false);
     await owner.client.people.setPin({ userId: added.userId, pin: "5932" });
+    const after = await owner.client.people.get({ userId: added.userId });
+    expect(after.pinSet).toBe(true);
     const phone = await aShedPhone();
     const roster = await phone.client.people.roster();
     expect(roster.map((one) => one.userId)).toContain(added.userId);

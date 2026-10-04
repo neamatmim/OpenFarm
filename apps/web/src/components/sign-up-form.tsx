@@ -26,8 +26,8 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
   const { t, language } = useLanguage();
   // The first run: nobody invited whoever opens this account, and they become the farm's Owner.
   const firstFarm = useNoFarmYet();
-  // What the farm said when it refused, kept on the card as well as in the toast: a toast is gone before somebody
-  // who reads slowly has read it.
+  // What the farm said when it refused, kept on the card rather than in a toast: a toast is gone before somebody who
+  // reads slowly has read it, and both at once said the same thing twice.
   const [refused, setRefused] = useState<string | null>(null);
 
   const form = useForm({
@@ -52,7 +52,6 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
           },
           onError: (error) => {
             setRefused(error.error.message || error.error.statusText);
-            toast.error(error.error.message || error.error.statusText);
           },
         }
       );
@@ -98,7 +97,7 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
         noValidate
       >
         {refused ? (
-          <Notice title={t("auth.refused")} tone="danger">
+          <Notice title={t("auth.signUpRefused")} tone="danger">
             {refused}
           </Notice>
         ) : null}

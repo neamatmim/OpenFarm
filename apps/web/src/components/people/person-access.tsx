@@ -530,7 +530,7 @@ const PinDialog = ({
   );
 };
 
-const PinRow = ({ userId }: { userId: string }) => {
+const PinRow = ({ userId, pinSet }: { userId: string; pinSet: boolean }) => {
   const t = useT();
   const [setting, setSetting] = useState(false);
   return (
@@ -539,7 +539,7 @@ const PinRow = ({ userId }: { userId: string }) => {
         <>
           <ChangeButton
             icon={KeyRound}
-            label={t("people.setPin")}
+            label={t(pinSet ? "people.changePin" : "people.setPin")}
             onClick={() => setSetting(true)}
           />
           <PinDialog
@@ -550,7 +550,7 @@ const PinRow = ({ userId }: { userId: string }) => {
           />
         </>
       }
-      description={t("people.pinWhy")}
+      description={t(pinSet ? "people.pinIsSet" : "people.pinWhy")}
       title={t("people.pin")}
     />
   );
@@ -728,6 +728,7 @@ export const AccessTab = ({
   isOwner,
   isSelf,
   shedPhoneOnly = false,
+  pinSet = false,
 }: {
   userId: string;
   name: string;
@@ -739,6 +740,8 @@ export const AccessTab = ({
   isSelf: boolean;
   /** Works only on the shed phones: a PIN, and no login to give a password code for. */
   shedPhoneOnly?: boolean;
+  /** Has a PIN already. Missing from an answer kept from before a page said so. */
+  pinSet?: boolean;
 }) => (
   <div className="flex flex-col gap-6">
     <Section>
@@ -754,7 +757,9 @@ export const AccessTab = ({
         {reachesTheirAccess(isOwner, roles) ? (
           <>
             {/* A PIN opens the Shed Phone, which holds Barn Staff alone. */}
-            {roles.includes("staff") ? <PinRow userId={userId} /> : null}
+            {roles.includes("staff") ? (
+              <PinRow pinSet={pinSet} userId={userId} />
+            ) : null}
             {shedPhoneOnly ? null : <PasswordRow name={name} userId={userId} />}
           </>
         ) : null}
