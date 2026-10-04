@@ -91,3 +91,27 @@ The Owner said "Next" with every survey closed. I went through the checklist's s
 4. **R5 and R6** after.
 
 One question before R1: **do any Barn Staff have their own email or smartphone?** If all of them do, R1 can wait.
+
+## Progress
+
+The Owner said "Go with recommendation" on 2026-10-04 and did not answer the R1 question, so R1 was built on ADR 0003's
+premise that Barn Staff have no email or phone of their own. All six were merged the same day:
+
+- **R2** dfbba32f: pyrantel is on the Vet's sheet. The checklist hands the Vet both sheets and lists the 47 procedures
+  by group, with the 18 that wait on the Vet.
+- **R1** 4c856e40: "works only on the shed phones, with a PIN — no email" on the invite sheet (`people.addForShedPhones`).
+  - The person is made with a `shed-phone.openfarm.invalid` address and no password.
+  - The Owner's word adds them at once; a Manager's addition waits for the Owner, and is taken up on approval.
+  - They get no password code and no sign-ins tab, and sign-up under their address is refused.
+- **R3** 9a995e92: register refusals carry a key, the column and the value written, worded in Bangla. A milking cow
+  without `calved_at` is a warning, and the hint lists every column.
+- **R4** d4dbda6b: the Owner renames the farm (`farm.rename`), audited with what it said before.
+- **R5** 9b213e71: the overview's "setting the farm up" card, with seven steps that each go once done. The store is late
+  for a count only once feed has come in.
+- **R6** (this round's last merge):
+  - The sign-up refusal is titled for a sign-up, and said once.
+  - A person's page says whether they have a PIN.
+  - Left on purpose: an invited person is asked their name again at sign-up, because the form cannot know who they are
+    before the code.
+
+Rehearsal databases kept locally: `openfarm_rehearsal` and `openfarm_dayone`.
