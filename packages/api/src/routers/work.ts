@@ -623,6 +623,11 @@ export const workRouter = {
       return mine
         .map((row) => ({
           ...row,
+          // Its procedure by name, which is all the list shows: every Step of every late piece of work, a year on, was
+          // megabytes to a phone.
+          version: {
+            content: { name: (row.version.content as SopContent).name },
+          },
           minutesOverdue: minutesOverdue(row, now),
           escalated: isEscalated(row, context.farm.escalationMinutes, now),
         }))
