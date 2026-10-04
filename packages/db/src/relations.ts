@@ -70,6 +70,8 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     /** Every time she has calved. */
     calvings: r.many.calving({ from: r.animal.id, to: r.calving.damId }),
+    /** Every time she was dried off, a Lactation to each. */
+    dryOffs: r.many.dryOff({ from: r.animal.id, to: r.dryOff.animalId }),
     /** Her mother, for a calf born on this farm. */
     dam: r.one.animal({ from: r.animal.damId, to: r.animal.id }),
     /** Every time the Vet checked whether she was carrying, the negatives included. */

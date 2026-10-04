@@ -5,6 +5,7 @@ import {
   farmDayOf,
   farmDaysBetween,
   lactationSummary,
+  lactationsOf,
   lactationView,
   roundLitres,
 } from "@OpenFarm/domain";
@@ -308,6 +309,14 @@ export const milkRouter = {
             orderBy: { recordedAt: "desc" },
             limit: RECENT_RECORDS,
           },
+          calvings: { columns: { calvedAt: true, lactationNumber: true } },
+          dryOffs: {
+            columns: {
+              lactationNumber: true,
+              lactationStartedAt: true,
+              driedAt: true,
+            },
+          },
         },
       });
       if (!beast) {
@@ -339,6 +348,8 @@ export const milkRouter = {
         ...lactationView(beast, context.clock.now()),
         /** What she gave in it a farm day at a time: a day on average, her best day, and lately. */
         summary: lactationSummary(wholeLactation),
+        /** Every Lactation the farm knows of hers, latest first: how long she milked, and how long she stood dry. */
+        lactations: lactationsOf(beast, context.clock.now()),
         lactationLitres: roundLitres(
           wholeLactation.reduce(
             (total, record) => total + litresOf(record.litres),

@@ -4625,6 +4625,28 @@ export const en = {
     "Of {count, plural, one {# Attempt} other {# Attempts}} whose outcome is known",
   "fertility.fromFirstCalvings":
     "From {count, plural, one {# first calving} other {# first calvings}}",
+  "dryOff.title": "Dry-offs and dry periods",
+  "dryOff.hint":
+    "How long the cows stood dry before calving again, and how long they milked before it, over the last year. Only dry-offs recorded here count.",
+  "dryOff.dryPeriod": "Dry period",
+  "dryOff.lactationLength": "Milked before dry-off",
+  "dryOff.target":
+    "Aim {low}–{high, plural, one {# day} other {# days}} · from {count}",
+  "dryOff.outside":
+    "Dry periods outside {low}–{high, plural, one {# day} other {# days}}",
+  "dryOff.outsideLine":
+    "{days, plural, one {# day} other {# days}} dry after lactation {number}",
+  "milk.herLactations": "Her lactations",
+  "milk.herLactationsHint":
+    "How long she milked in each, and how long she stood dry before the next calving.",
+  "milk.calvedOn": "Calved {date}",
+  "milk.driedOn": "Dried off {date}",
+  "milk.inMilkNow": "In milk now",
+  "milk.dryOffUnknown": "Dry-off not recorded",
+  "milk.daysInMilkOf": "{days, plural, one {# day} other {# days}} in milk",
+  "milk.daysDry": "{days, plural, one {# day} other {# days}} dry",
+  "milk.daysDrySoFar":
+    "dry for {days, plural, one {# day} other {# days}} so far",
   "fertility.byMonth": "Month by month",
   "fertility.cows": "Each cow since she calved",
   "fertility.cowsHint":

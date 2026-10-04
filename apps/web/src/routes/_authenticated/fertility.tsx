@@ -4,6 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import {
   CowsSinceCalving,
+  DryOffFigures,
   FertilityByMonth,
   FertilityFigures,
 } from "@/components/fertility/fertility";
@@ -46,6 +47,7 @@ const FertilityPage = () => {
       {header}
       <FertilityFigures year={fertility.data.year} />
       <CowsSinceCalving cows={fertility.data.cows} />
+      <DryOffFigures dryOffs={fertility.data.dryOffs} />
       <FertilityByMonth months={fertility.data.months} />
     </Page>
   );
