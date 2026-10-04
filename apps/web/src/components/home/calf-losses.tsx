@@ -45,7 +45,11 @@ export const CalfLossesSection = () => {
     return null;
   }
   const share = figure.lostShare ?? 0;
-  const tooMany = share > TOO_MANY_LOST;
+  // The year's losses over every calf born alive can only rise as the young ones live through their weeks of risk, so
+  // past one in ten on that count is too many already, whatever the calves old enough say yet.
+  const lostSoFar =
+    figure.bornAlive === 0 ? 0 : figure.diedBeforeWeaning / figure.bornAlive;
+  const tooMany = share > TOO_MANY_LOST || lostSoFar > TOO_MANY_LOST;
   return (
     <Section description={t("calves.hint")} title={t("calves.title")}>
       <dl className="grid grid-cols-3 gap-4">
@@ -72,6 +76,8 @@ export const CalfLossesSection = () => {
         >
           {t("calves.lostShare", {
             share: formatNumber(Math.round(share * 100), language),
+            // A phone's copy from before the farm said which calves the share is over.
+            count: formatNumber(figure.oldEnough ?? figure.bornAlive, language),
           })}
         </p>
       )}

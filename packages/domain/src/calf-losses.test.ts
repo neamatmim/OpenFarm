@@ -82,11 +82,48 @@ describe("the calf-loss figure", () => {
       bornAlive: 7,
       stillborn: 1,
       diedBeforeWeaning: 3,
+      // The two August twins are past their ninety days by the year's end, so all seven are old enough.
+      oldEnough: 7,
       lostShare: 3 / 7,
       causes: [
         { cause: "পাতলা পায়খানা", count: 2 },
         { cause: "নিউমোনিয়া", count: 1 },
       ],
+    });
+  });
+
+  it("reads the share over the calves old enough to have been weaned, not last week's", () => {
+    // Two calves born in March, one of them lost; and nine born a fortnight before the stretch ends, all alive today.
+    // Nine calves who have not yet lived through their weeks of risk would read the farm's losses as one in eleven.
+    const losses = calfLosses(
+      [
+        calf(),
+        calf({ lostAt: day("2026-03-10"), cause: "নিউমোনিয়া" }),
+        ...Array.from({ length: 9 }, () => calf({ bornAt: day("2026-12-18") })),
+      ],
+      YEAR
+    );
+    expect(losses).toMatchObject({
+      bornAlive: 11,
+      diedBeforeWeaning: 1,
+      oldEnough: 2,
+      lostShare: 1 / 2,
+    });
+  });
+
+  it("counts a calf weaned early as old enough, and one lost young as lost but not yet in the share", () => {
+    const losses = calfLosses(
+      [
+        calf({ bornAt: day("2026-11-01"), weanedAt: day("2026-12-20") }),
+        calf({ bornAt: day("2026-12-01"), lostAt: day("2026-12-05") }),
+      ],
+      YEAR
+    );
+    expect(losses).toMatchObject({
+      bornAlive: 2,
+      diedBeforeWeaning: 1,
+      oldEnough: 1,
+      lostShare: 0,
     });
   });
 
