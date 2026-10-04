@@ -844,18 +844,20 @@ export const STORE_COUNT_LATE_DAYS = 8;
 
 /**
  * When the store was last counted, for the Owner's home when it has not been for longer than a week and a day — a
- * count retired, never adopted, or simply not made. Nothing when it was counted lately, or when the farm keeps no feed
- * to count.
+ * count retired, never adopted, or simply not made. Nothing when it was counted lately, nor before feed has come in at
+ * all: a farm set up this morning has the standard feed items and nothing in the store, and a week and a day after its
+ * first delivery is the first it can be late.
  */
 export const storeCountLate = async (
   db: Pick<Database, "query"> | Tx,
   farmId: string,
   now: Date
 ): Promise<{ lastCountedAt: Date | null } | null> => {
-  const [kept, last] = await Promise.all([
-    db.query.feedItem.findFirst({
-      where: { farmId, retiredAt: { isNull: true } },
-      columns: { id: true },
+  const [firstIn, last] = await Promise.all([
+    db.query.feedIn.findFirst({
+      where: { farmId },
+      columns: { receivedOn: true },
+      orderBy: { receivedOn: "asc" },
     }),
     db.query.stockCount.findFirst({
       where: { farmId },
@@ -863,11 +865,13 @@ export const storeCountLate = async (
       orderBy: { countedAt: "desc" },
     }),
   ]);
-  if (!kept) {
+  if (!firstIn) {
     return null;
   }
   const lateFrom = now.getTime() - STORE_COUNT_LATE_DAYS * 24 * 60 * 60 * 1000;
-  if (last && last.countedAt.getTime() > lateFrom) {
+  // Counted since lately, or never counted but the first feed came in too lately to have been.
+  const countedFrom = last?.countedAt ?? firstIn.receivedOn;
+  if (countedFrom.getTime() > lateFrom) {
     return null;
   }
   return { lastCountedAt: last?.countedAt ?? null };
