@@ -1,4 +1,4 @@
-import { namesTheDisease } from "@OpenFarm/domain";
+import { COMMON_DISEASES, namesTheDisease } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -182,6 +182,12 @@ export const DiagnosisSheet = ({
           {onTheList.map((one) => (
             <option key={one.id} value={one.nameBn}>
               {one.nameEn ?? one.nameBn}
+            </option>
+          ))}
+          {/* The common ones, written the same whoever picks them, so the farm's sickness figures count each once. */}
+          {COMMON_DISEASES.map((one) => (
+            <option key={one.bn} value={one.bn}>
+              {one.en}
             </option>
           ))}
         </datalist>

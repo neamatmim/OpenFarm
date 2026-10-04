@@ -48,7 +48,7 @@ import {
 } from "../corrections/mortality";
 import { parseCsvRecords } from "../csv";
 import { tellOfTheDeath } from "../death-notice";
-import { adultDeathsOf } from "../deaths-store";
+import { adultDeathsOf, herdHealthOf } from "../deaths-store";
 import { recordNow } from "../entries/entry";
 import { moveEntry, moveInput } from "../entries/move";
 import { farmDay } from "../farm-clock";
@@ -590,6 +590,17 @@ export const animalsRouter = {
     .use(requireRole("owner", "manager"))
     .handler(({ context }) =>
       adultDeathsOf(context.db, context.farm.id, context.clock.now())
+    ),
+
+  /**
+   * How the dairy herd turned over and how often the farm's animals fell sick, over the last year: every way a cow left
+   * the milking herd and the heifers that joined it, over the cows kept; Diagnoses over the head kept, and mastitis over
+   * the cows. The Owner's and the Manager's, as the deaths are; the Vet's too, whose cases they count.
+   */
+  herdHealth: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .handler(({ context }) =>
+      herdHealthOf(context.db, context.farm.id, context.clock.now())
     ),
 
   /**

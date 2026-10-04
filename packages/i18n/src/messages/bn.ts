@@ -3461,6 +3461,17 @@ export const bn: Record<MessageKey, string> = {
   "deaths.rate": "বছরে একশোতে {rate}টি",
   "deaths.counts": "মারা গেছে {died}টি, বাদ {culled}টি",
   "deaths.noneKept": "কোনো পশু ছিল না",
+  "herd.healthTitle": "দুগ্ধ খামারের বছর, আর অসুখ",
+  "herd.healthHint":
+    "দুধের দল থেকে গাভী যেভাবেই গেছে — মারা গেছে, ছাঁটাই, বিক্রি, মোটাতাজাকরণে গেছে — আর যে বকনারা যোগ দিয়েছে, রাখা গাভীর হিসাবে; আর রাখা পশুর হিসাবে রোগ নির্ণয়।",
+  "herd.leftTheHerd": "দুধের দল ছেড়ে যাওয়া গাভী",
+  "herd.leftCounts":
+    "মারা গেছে {died}, ছাঁটাই {culled}, বিক্রি {sold}, মোটাতাজাকরণে {crossed}, হারিয়েছে {lost}",
+  "herd.joinedTheHerd": "যোগ দেওয়া বকনা",
+  "herd.joinedCount": "{count}টি বকনা প্রথম বাছুর দিয়েছে",
+  "herd.sickDairy": "দুগ্ধ দলে অসুখ",
+  "herd.mastitis": "ওলান প্রদাহ, গাভীর হিসাবে",
+  "herd.diseases": "যা পাওয়া গেছে: {diseases}",
   "deaths.causes": "কীসে মারা গেছে: {causes}",
   "mortality.cause": "কারণ, যতটা জানা",
   "mortality.disposal": "মৃতদেহ কী করা হলো",
