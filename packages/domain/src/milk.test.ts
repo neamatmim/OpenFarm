@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   daysInMilk,
   destinationFor,
+  lactationSummary,
   lactationView,
+  litresPerCowMilked,
   litresTo,
   milkAccountOf,
   milkDropOf,
@@ -284,5 +286,79 @@ describe("the week's milk, accounted for", () => {
       NOW
     );
     expect(account.notAccounted).toBeLessThan(0);
+  });
+});
+
+describe("one cow's Lactation", () => {
+  // Dhaka is six hours ahead: 23:00 UTC on the 1st is the farm's 2nd.
+
+  it("adds each farm day's milkings, whatever Destination they went to, and reads her best day and her week", () => {
+    const summary = lactationSummary([
+      { litres: "6", recordedAt: new Date("2026-03-01T00:00:00Z") },
+      { litres: "4", recordedAt: new Date("2026-03-01T10:00:00Z") },
+      { litres: 7, recordedAt: new Date("2026-03-01T23:00:00Z") },
+      { litres: "5.5", recordedAt: new Date("2026-03-02T10:00:00Z") },
+      { litres: "8", recordedAt: new Date("2026-03-03T00:00:00Z") },
+    ]);
+    // The 1st gave 10; the farm's 2nd, 7 and 5.5; the 3rd, 8.
+    expect(summary).toEqual({
+      litres: 30.5,
+      daysMilked: 3,
+      perDay: 10.2,
+      peak: { day: "2026-03-02", litres: 12.5 },
+      latelyPerDay: 10.2,
+    });
+  });
+
+  it("says nothing of a cow never milked in it", () => {
+    expect(lactationSummary([])).toEqual({
+      litres: 0,
+      daysMilked: 0,
+      perDay: null,
+      peak: null,
+      latelyPerDay: null,
+    });
+  });
+});
+
+/** One cow's Bulk litres at one milking, on the Dairy side. */
+const share = (animalId: string, instant: string, litres: number) => ({
+  animalId,
+  side: "dairy",
+  at: new Date(instant),
+  litres,
+});
+
+describe("litres to Bulk for each cow milked, a day", () => {
+  it("is the stretch's litres over the cow-days they came from, morning and evening one day", () => {
+    const stretch = {
+      from: new Date("2026-03-01T00:00:00+06:00"),
+      until: new Date("2026-03-03T00:00:00+06:00"),
+    };
+    expect(
+      litresPerCowMilked(
+        [
+          // Asha, both milkings of the 1st and of the 2nd; Bela only the 1st: three cow-days, 36 litres.
+          share("asha", "2026-03-01T05:30:00+06:00", 7),
+          share("asha", "2026-03-01T16:30:00+06:00", 5),
+          share("bela", "2026-03-01T05:30:00+06:00", 6),
+          share("asha", "2026-03-02T05:30:00+06:00", 8),
+          share("asha", "2026-03-02T16:30:00+06:00", 10),
+          // Outside the stretch, and a fattening animal's: neither counts.
+          share("asha", "2026-03-03T05:30:00+06:00", 50),
+          {
+            ...share("chandra", "2026-03-01T05:30:00+06:00", 50),
+            side: "fattening",
+          },
+        ],
+        stretch
+      )
+    ).toBe(12);
+  });
+
+  it("says nothing of a stretch nobody milked in", () => {
+    expect(
+      litresPerCowMilked([], { from: new Date(0), until: new Date(1) })
+    ).toBeNull();
   });
 });

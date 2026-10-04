@@ -2,6 +2,7 @@ import type { Database } from "@OpenFarm/db";
 import type { PenHistoryLine } from "@OpenFarm/domain";
 import {
   farmDayOf,
+  litresPerCowMilked,
   milkPriceOf,
   monthOf,
   monthsEndingIn,
@@ -131,6 +132,8 @@ const figuresOver = (
       /** Everything charged to the dairy side's animals in it. */
       chargedMoney: roundMoney(chargedOf(sides.dairy)),
       litresToBulk: sides.dairy.litresToBulk,
+      /** Litres to Bulk for each cow milked, a day: what the herd gives a cow, apart from how many it has. */
+      litresPerCowMilked: litresPerCowMilked(costs.litres, { from, until }),
       costPerLitreMoney: sides.dairy.costPerLitreMoney,
       unpricedKg: sides.dairy.unpricedKg,
       uncostedDoses: sides.dairy.uncostedDoses,

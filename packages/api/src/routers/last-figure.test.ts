@@ -128,3 +128,18 @@ describe("her last figure, beside the box", () => {
     ).toBe(6);
   });
 });
+
+describe("her Lactation, on her page", () => {
+  it("adds each farm day's milkings, and reads her day on average and her best day", async () => {
+    const owner = await as("owner", "2098-01-05T04:00:00.000Z");
+    const hers = await owner.client.milk.forAnimal({ tagNumber: cowTag });
+    // Six and four on the 2nd, nothing written on the 3rd, seven on the 4th.
+    expect(hers.summary).toEqual({
+      litres: 17,
+      daysMilked: 2,
+      perDay: 8.5,
+      peak: { day: "2098-01-02", litres: 10 },
+      latelyPerDay: 8.5,
+    });
+  });
+});

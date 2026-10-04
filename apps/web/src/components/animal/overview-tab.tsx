@@ -10,6 +10,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { DeathPhotoField, DeathPhotos } from "@/components/animal/death-photo";
+import { HerLactation } from "@/components/animal/her-lactation";
 import {
   CorrectionAnswer,
   CorrectionChoice,
@@ -604,6 +605,7 @@ export const OverviewTab = ({
         >
           {detail.fattening ? <TwoProjections view={detail.fattening} /> : null}
           <HerFirstDay detail={detail} />
+          <HerLactation detail={detail} />
           <AboutHer detail={detail} />
         </div>
         {held ? (
