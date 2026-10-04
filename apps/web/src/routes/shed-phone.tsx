@@ -28,6 +28,8 @@ import { BackToSignIn, CODE_FIELD, DoorScreen } from "@/components/door-screen";
 import { EmptyState, Notice } from "@/components/page";
 import { PublicHeader } from "@/components/public-header";
 import { useLanguage, useT } from "@/i18n/language-provider";
+import type { LockedOn } from "@/lib/after-unlock";
+import { afterUnlock, insideTheApp } from "@/lib/after-unlock";
 import type { RosterEntry } from "@/lib/device";
 import {
   getActiveUser,
@@ -235,6 +237,7 @@ const DevicePage = () => {
   }, []);
 
   const queryClient = useQueryClient();
+  const lockedOn = Route.useSearch();
   const switchUser = useMutation(orpc.devices.switchUser.mutationOptions({}));
   const listenAgain = useMutation(orpc.push.subscribe.mutationOptions({}));
 
@@ -286,9 +289,9 @@ const DevicePage = () => {
         }
       }
       setChosen(null);
-      await navigate({ to: "/work" });
+      await navigate({ href: afterUnlock(lockedOn, entry.userId) });
     },
-    [switchUser, listenAgain, queryClient, t, navigate]
+    [switchUser, listenAgain, queryClient, t, navigate, lockedOn]
   );
 
   if (!token) {
@@ -530,4 +533,11 @@ const DeviceScreen = () => {
 
 export const Route = createFileRoute("/shed-phone")({
   component: DeviceScreen,
+  /** Where the phone was, and whose it was, when it locked: unlocked by the same person, it goes back there. */
+  validateSearch: (search: Record<string, unknown>): LockedOn => {
+    const back = insideTheApp(search.back);
+    return back && typeof search.for === "string"
+      ? { back, for: search.for }
+      : {};
+  },
 });

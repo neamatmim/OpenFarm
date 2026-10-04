@@ -53,6 +53,9 @@ const parameters = z
     digestTimes: z.array(z.string().trim()).min(1).max(6).optional(),
     quietFrom: z.string().trim().optional(),
     quietUntil: z.string().trim().optional(),
+    /** How long a Shed Phone sits untouched before it locks and asks for a PIN again: long enough for a cow milked
+     *  by hand, short enough that a phone left in the shed is nobody's for long. */
+    pinAutoLockMinutes: z.number().int().min(1).max(60).optional(),
     /** How long an Overdue Instance may stay open before the Owner is told as well. */
     escalationMinutes: z
       .number()
@@ -793,6 +796,7 @@ export const farmRouter = {
                 quietFrom: true,
                 quietUntil: true,
                 escalationMinutes: true,
+                pinAutoLockMinutes: true,
                 staffCorrectionHours: true,
                 managerCorrectionDays: true,
                 registrationRenewalLeadDays: true,

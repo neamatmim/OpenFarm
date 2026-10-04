@@ -25,6 +25,7 @@ type NumberKey =
   | "milkTolerancePercent"
   | "feedTolerancePercent"
   | "escalationMinutes"
+  | "pinAutoLockMinutes"
   | "staffCorrectionHours"
   | "managerCorrectionDays"
   | "registrationRenewalLeadDays"
@@ -147,6 +148,13 @@ const GROUPS: {
         unit: "params.percent",
         min: 0,
         max: 100,
+      },
+      {
+        key: "pinAutoLockMinutes",
+        label: "params.pinAutoLock",
+        unit: "params.minutes",
+        min: 1,
+        max: 60,
       },
       {
         key: "staffCorrectionHours",

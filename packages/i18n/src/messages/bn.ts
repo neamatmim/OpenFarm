@@ -924,6 +924,7 @@ export const bn: Record<MessageKey, string> = {
   "params.why": "খামার কীভাবে চলবে তার মাপ। প্রতিটি পরিবর্তন অডিট লগে থাকে।",
   "params.alerts": "সতর্কবার্তা ও নীরব সময়",
   "params.records": "রেকর্ড",
+  "params.pinAutoLock": "শেডের ফোন লক হবে",
   "params.breeding": "প্রজনন ক্যালেন্ডার",
   "params.fatteningAndPapers": "মোটাতাজাকরণ ও কাগজপত্র",
   "params.alertsHint":

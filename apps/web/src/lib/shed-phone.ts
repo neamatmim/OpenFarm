@@ -116,13 +116,21 @@ export const useShedPhoneKeeper = () => {
     const lockIfIdle = () => {
       // Tells any other tab sending this phone's Outbox that the PINs held here are still on their way.
       touchHeldSwitches();
-      if (isLocked(getActiveUser(), getAutoLockMinutes())) {
+      const active = getActiveUser();
+      if (isLocked(active, getAutoLockMinutes())) {
         const hadToken = Boolean(getSwitchToken());
         void lockAndPutAway(queryClient);
         if (hadToken) {
           void lockOnTheFarm();
         }
-        void navigate({ to: "/shed-phone" });
+        // Where they were, and who they were, so the same person's PIN takes them back there.
+        void navigate({
+          to: "/shed-phone",
+          search: {
+            back: `${window.location.pathname}${window.location.search}`,
+            for: active?.userId,
+          },
+        });
       }
     };
     const keepAwake = async () => {
