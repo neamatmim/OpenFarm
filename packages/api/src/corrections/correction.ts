@@ -19,6 +19,7 @@ import { pickRoleUsed } from "../roles";
 import type { Scope } from "../scope";
 import { workingAs } from "../scope";
 import { ownedThenByOf } from "../venture-store";
+import type { AuditEntity } from "../whose-trail";
 
 /**
  * The Ventures one Animal's record touches, as `venturesOf` wants them.
@@ -160,7 +161,7 @@ export interface CorrectionKind<
   Extra extends object = Record<never, never>,
 > {
   /** The entity its Audit Events are filed under. */
-  entity: string;
+  entity: AuditEntity;
   /** Its table, for the row to be held while it is put right. */
   table: PgTable & { id: AnyPgColumn };
   /** The Roles that may put it right — the procedure's Role check, and the Roles whose windows are asked about unless

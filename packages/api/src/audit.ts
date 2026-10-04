@@ -6,6 +6,7 @@ import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { ORPCError } from "@orpc/server";
 
 import type { Context } from "./context";
+import type { AuditEntity } from "./whose-trail";
 
 /** A transaction handle for the domain write. */
 export type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
@@ -17,7 +18,8 @@ type SnapshotReader = (tx: Tx) => Promise<SnapshotValue>;
 type Snapshot = SnapshotValue | SnapshotReader;
 
 export interface AuditedWrite {
-  entity: string;
+  /** What kind of record: named in `WHOSE_TRAIL`, so whose trail it is was decided before it was written. */
+  entity: AuditEntity;
   /** The row the event is about. A function when the id is only known once `apply` has run
    *  — an upsert keeps the existing row's id, and an event keyed on the id we hoped for
    *  would point at nothing. */

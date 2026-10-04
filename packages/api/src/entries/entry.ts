@@ -16,6 +16,7 @@ import {
   VISITING_VET,
 } from "../roles";
 import { workingAs } from "../scope";
+import type { AuditEntity } from "../whose-trail";
 
 /**
  * How the farm sorted an Entry it did not simply take (ADR 0004): late, when the world moved under it; not theirs, when
@@ -70,7 +71,7 @@ export interface EntryTimes {
 /** The Audit Event an Entry is written under: what it is about, what it did, and that thing as it stood either side.
  *  Readers run on the Entry's own transaction; the one after it, and the id, see what the Entry wrote. */
 export interface EntryTrail<Result> {
-  entity: string;
+  entity: AuditEntity;
   action: AuditAction;
   reason?: string;
   entityId: (result: Result) => string;

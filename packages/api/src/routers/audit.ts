@@ -3,29 +3,31 @@ import { z } from "zod";
 
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
+import {
+  saysMoreThanTheOwners,
+  withoutTheOwnersFigures,
+} from "../owners-figures";
 import { requireRole } from "../roles";
+import { OWNERS_TRAIL } from "../whose-trail";
 
 const LIMIT_MAX = 200;
 const LIMIT_DEFAULT = 50;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
-/**
- * The records whose trail is the Owner's alone, because the records are: who trusted her with money and on what
- * paper, how much each put in and was paid, what each Venture's Units are and what the run made. The investors
- * page and every Venture's money refuse the Manager (roles matrix); a trail that showed him every field of them
- * before and after would be the same pages by another door.
- */
-const OWNERS_TRAIL = [
-  "investor",
-  "investment_agreement",
-  "venture",
-  "venture_movement",
-  "venture_settlement",
-  "venture_bank_check",
-  // What the Farm's own accounts held, against their statements: the Owner's check, as a Venture's is.
-  "farm_account_check",
-  "request_to_join",
-] as const;
+/** A snapshot of the Farm's settings less the Owner's figures in it; anything else as it was written. */
+const lessTheOwners = (snapshot: unknown) =>
+  snapshot !== null && typeof snapshot === "object"
+    ? withoutTheOwnersFigures(snapshot as Record<string, unknown>)
+    : snapshot;
+
+/** Whether a Farm's settings event changed anything but the Owner's figures — the market price alone says nothing. */
+const saysMoreThanTheOwnersOf = (row: { before: unknown; after: unknown }) =>
+  [row.before, row.after].some(
+    (snapshot) =>
+      snapshot !== null &&
+      typeof snapshot === "object" &&
+      saysMoreThanTheOwners(snapshot as Record<string, unknown>)
+  );
 
 /** The audit log. Owner and Manager see everyone's actions, less the Owner's own records for the Manager; every
  *  other Role sees only their own actions. Day filters are farm-local, half-open: [fromDay 00:00, toDay + 1 day
@@ -105,7 +107,23 @@ export const auditRouter = {
       ]);
       const tagOf = new Map(animals.map((one) => [one.id, one.tagNumber]));
       const isWork = new Set(work.map((one) => one.id));
-      return rows.map((row) => ({
+      // The Farm's settings are the farm's trail, but the Owner's figures in them are the Owner's alone (owners-figures).
+      const shown = seesTheMoney
+        ? rows
+        : rows
+            .filter(
+              (row) => row.entity !== "farm" || saysMoreThanTheOwnersOf(row)
+            )
+            .map((row) =>
+              row.entity === "farm"
+                ? {
+                    ...row,
+                    before: lessTheOwners(row.before),
+                    after: lessTheOwners(row.after),
+                  }
+                : row
+            );
+      return shown.map((row) => ({
         ...row,
         /** Her tag, where the event is about an Animal. */
         tagNumber:

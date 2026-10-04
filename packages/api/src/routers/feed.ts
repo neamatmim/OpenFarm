@@ -156,11 +156,13 @@ export const feedRouter = {
           where: { farmId: context.farm.id },
           orderBy: { nameBn: "asc" },
         });
-        // The price lives in a numeric column and comes back as a string; it is turned at the edge, as
-        // every other figure is.
-        return rows.map((row) => ({
+        // What a kilo of fodder is worth is money, and money is not Barn Staff's or the Vet's to see (roles matrix).
+        const readsMoney = context.roles.some(
+          (role) => role === "owner" || role === "manager"
+        );
+        return rows.map(({ fodderPriceMoney, ...row }) => ({
           ...row,
-          fodderPriceMoney: row.fodderPriceMoney,
+          ...(readsMoney ? { fodderPriceMoney } : {}),
           bagSizeKg: row.bagSizeKg === null ? null : Number(row.bagSizeKg),
         }));
       }),
