@@ -126,7 +126,7 @@ const TO_THE_MEDICINES: Place = {
 const TO_THE_BACKUPS: Place = {
   label: "alerts.openTheBackups",
   Way: ({ children }) => (
-    <Link className={LEADS_CLASS} to="/backups">
+    <Link className={LEADS_CLASS} to="/farm/backups">
       {children}
     </Link>
   ),

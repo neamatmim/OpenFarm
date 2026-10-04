@@ -140,7 +140,17 @@ const FatteningPage = () => {
   const header = (
     <PageHeader
       actions={<IntakeButton />}
-      description={t("gain.subtitle")}
+      description={
+        <>
+          {t("gain.subtitle")}{" "}
+          <Link
+            className="text-primary underline-offset-4 hover:underline"
+            to="/standards"
+          >
+            {t("standards.link")}
+          </Link>
+        </>
+      }
       title={t("nav.fattening")}
     />
   );

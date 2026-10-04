@@ -18,6 +18,20 @@ describe("a refusal while a form is open", () => {
     expect(sheet).toEqual(["back in the sheet"]);
   });
 
+  it("carries the way to the page it is put right on", () => {
+    const said: unknown[] = [];
+    const close = holdOpenForm((words, way) => said.push({ words, way }));
+    const way = {
+      label: "Open the Agreement templates",
+      to: "/farm/agreement-templates",
+    } as const;
+
+    sayInOpenForm("facts not written down", way);
+    close();
+
+    expect(said).toEqual([{ words: "facts not written down", way }]);
+  });
+
   it("is left to a toast when no form is open", () => {
     expect(sayInOpenForm("nowhere to say it")).toBe(false);
   });

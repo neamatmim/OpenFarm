@@ -1,5 +1,5 @@
 import { formatNumber } from "@OpenFarm/i18n";
-import { Button } from "@OpenFarm/ui/components/button";
+import { Button, buttonVariants } from "@OpenFarm/ui/components/button";
 import {
   AlertDialog,
   Dialog,
@@ -33,6 +33,7 @@ import {
   TabsTrigger,
 } from "@OpenFarm/ui/components/tabs";
 import { cn } from "@OpenFarm/ui/lib/utils";
+import { Link } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import { ChevronDown, EllipsisVertical } from "lucide-react";
 import type { ComponentProps, FormEvent, ReactNode } from "react";
@@ -41,6 +42,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Tone } from "@/components/page";
 import { Notice, StatTile } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
+import type { RefusalWay } from "@/lib/open-form";
 import { holdOpenForm } from "@/lib/open-form";
 
 /**
@@ -597,7 +599,10 @@ const useFormKeeping = ({
   const top = useRef<HTMLDivElement>(null);
   // Pressed too soon at least once since it opened: from then on what is missing is said, and changes as it is given.
   const [asked, setAsked] = useState(false);
-  const [refusal, setRefusal] = useState<string | null>(null);
+  const [refusal, setRefusal] = useState<{
+    words: string;
+    way?: RefusalWay;
+  } | null>(null);
   const [changed, setChanged] = useState(false);
   const [discarding, setDiscarding] = useState(false);
   // Closed, it forgets: opened again, it says nothing until pressed too soon again.
@@ -615,8 +620,8 @@ const useFormKeeping = ({
     if (!open) {
       return;
     }
-    return holdOpenForm((words) => {
-      setRefusal(words);
+    return holdOpenForm((words, way) => {
+      setRefusal({ words, way });
       top.current?.scrollTo({ top: 0, behavior: "smooth" });
     });
   }, [open]);
@@ -652,7 +657,22 @@ const useFormKeeping = ({
   };
   const stillMissing =
     asked && !ready ? (missing?.said ?? t("form.notReady")) : null;
-  const refused = refusal ? <Notice title={refusal} tone="danger" /> : null;
+  const refused = refusal ? (
+    <Notice
+      action={
+        refusal.way ? (
+          <Link
+            className={buttonVariants({ size: "sm", variant: "outline" })}
+            to={refusal.way.to}
+          >
+            {refusal.way.label}
+          </Link>
+        ) : null
+      }
+      title={refusal.words}
+      tone="danger"
+    />
+  ) : null;
   const askToDiscard = (
     <ConfirmDialog
       cancelLabel={t("form.keepEditing")}

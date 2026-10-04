@@ -888,11 +888,14 @@ export const en = {
   "people.approve": "Approve",
   "people.invite": "Invite a person",
   "people.inviteSend": "Send invite",
-  "people.shedPhoneOnly": "Works only on the shed phones, with a PIN — no email",
-  "people.shedPhoneOnlyHint": "For someone with no email or phone of their own. They get no login; once given pens and a PIN, they work on the shed phones.",
+  "people.shedPhoneOnly":
+    "Works only on the shed phones, with a PIN — no email",
+  "people.shedPhoneOnlyHint":
+    "For someone with no email or phone of their own. They get no login; once given pens and a PIN, they work on the shed phones.",
   "people.shedPhoneOnlyAdd": "Add",
   "people.shedPhoneOnlyAdded": "Added — now give them their pens and a PIN",
-  "people.shedPhoneOnlyWaiting": "Added — they can start once the owner approves",
+  "people.shedPhoneOnlyWaiting":
+    "Added — they can start once the owner approves",
   "people.shedPhoneOnlyShown": "Shed phone only",
   "people.inviteSent": "Invite recorded",
   "people.handOverTitle": "Give {name} this code",
@@ -2422,18 +2425,28 @@ export const en = {
   "herd.imported": "{count} imported",
   "herd.failedRows":
     "{count, plural, one {# row} other {# rows}} could not be imported",
-  "herd.row.registerDateUnread": "the date “{value}” in {column} cannot be read — write it year-month-day, like 2025-03-15",
-  "herd.row.registerValueUnread": "“{value}” in {column} cannot be read — see the runbook for what goes in it",
-  "herd.row.registerUnknownPen": "no pen is called “{value}” — write the name as it is under sheds and pens",
-  "herd.row.registerUnknownBreed": "“{value}” is not on the breed list — add it to the farm's breeds first",
-  "herd.row.registerStateNotOfSide": "the state “{value}” does not belong to this row's side",
-  "herd.row.expectedCalvingNeeded": "a pregnant heifer needs her expected_calving date",
+  "herd.row.registerDateUnread":
+    "the date “{value}” in {column} cannot be read — write it year-month-day, like 2025-03-15",
+  "herd.row.registerValueUnread":
+    "“{value}” in {column} cannot be read — see the runbook for what goes in it",
+  "herd.row.registerUnknownPen":
+    "no pen is called “{value}” — write the name as it is under sheds and pens",
+  "herd.row.registerUnknownBreed":
+    "“{value}” is not on the breed list — add it to the farm's breeds first",
+  "herd.row.registerStateNotOfSide":
+    "the state “{value}” does not belong to this row's side",
+  "herd.row.expectedCalvingNeeded":
+    "a pregnant heifer needs her expected_calving date",
   "herd.row.tagTaken": "{value} is already another animal's number",
-  "herd.row.tagOfTheOtherSide": "{value} is a number of the other side — dairy numbers start D-, fattening F-",
-  "herd.row.notATagNumber": "“{value}” is not a tag number — write it like D-0001",
+  "herd.row.tagOfTheOtherSide":
+    "{value} is a number of the other side — dairy numbers start D-, fattening F-",
+  "herd.row.notATagNumber":
+    "“{value}” is not a tag number — write it like D-0001",
   "herd.row.registerNotTaken": "the farm could not take this row",
-  "herd.warnedRows": "{count, plural, one {# animal added without} other {# animals added without}} something the farm needs",
-  "herd.row.registerNoCalvingDate": "{tag} added with no calved_at — how long she has been in milk cannot be said",
+  "herd.warnedRows":
+    "{count, plural, one {# animal added without} other {# animals added without}} something the farm needs",
+  "herd.row.registerNoCalvingDate":
+    "{tag} added with no calved_at — how long she has been in milk cannot be said",
   "herd.line": "Line {line}",
   "herd.penCount": "{count, plural, one {# pen} other {# pens}}",
   "herd.noPens": "No pens in this shed yet",
@@ -2621,7 +2634,8 @@ export const en = {
   "device.offlineRoster": "Using the list saved on this phone",
   "people.pin": "PIN",
   "people.changePin": "Change PIN",
-  "people.pinIsSet": "Has a PIN, and switches in on the shed phones with it. Once given it is never shown again; a new one replaces it.",
+  "people.pinIsSet":
+    "Has a PIN, and switches in on the shed phones with it. Once given it is never shown again; a new one replaces it.",
   "people.setPin": "Set PIN",
   "people.pinSet": "PIN set",
   "people.pinHelp": "Four digits",
@@ -3395,7 +3409,8 @@ export const en = {
   "vetFee.none": "No fee recorded yet",
   "vetFee.noAnimals": "No animal on the farm yet to say the vet saw",
   "refusal.ownerOnly": "Only the owner can do this",
-  "refusal.shedPhoneOnly": "They work only on the shed phones and have no login, so there is no password to set.",
+  "refusal.shedPhoneOnly":
+    "They work only on the shed phones and have no login, so there is no password to set.",
   "refusal.pinIsForStaff":
     "A PIN is for barn staff: the shed phone works as barn staff and nothing more.",
   "refusal.personalPhoneOnly":
@@ -5151,7 +5166,8 @@ export const en = {
   "setupLeft.step.register": "Put the herd in with the opening register",
   "setupLeft.step.playbook": "Publish the procedures the farm follows",
   "identity.name": "Farm name",
-  "identity.nameHint": "Printed on every paper the farm sends out. Put right here, it is right on every paper from now on; those already sent keep what they said.",
+  "identity.nameHint":
+    "Printed on every paper the farm sends out. Put right here, it is right on every paper from now on; those already sent keep what they said.",
   "identity.address": "Address",
   "identity.phone": "Phone",
   "identity.registrationNumber": "Registration number",
@@ -5186,6 +5202,7 @@ export const en = {
   "standsAside.renewalSuperseded":
     "The registration has moved on since this renewal; put the newer one right instead",
   "templates.pageTitle": "Agreement templates",
+  "templates.open": "Open the Agreement templates",
   "templates.pageHint":
     "The wording of the papers an Investor signs. Each starts as OpenFarm's standard wording for your lawyer to read; changing it publishes a new version, and every paper already signed keeps the wording it was signed in.",
   "templates.none": "No templates yet",
