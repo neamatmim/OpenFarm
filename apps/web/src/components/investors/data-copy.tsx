@@ -5,6 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { FileText } from "lucide-react";
 import { useState } from "react";
 
+import { TO_THE_KEEPERS } from "@/components/templates/data-keepers";
 import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
@@ -28,7 +29,7 @@ export const DataCopyAct = ({
   name: string;
 }) => {
   const { t } = useLanguage();
-  const refused = useRefused(REFUSALS);
+  const refused = useRefused(REFUSALS, TO_THE_KEEPERS);
   const [copy, setCopy] = useState<PaperDocument | null>(null);
   const making = useMutation(
     orpc.investors.dataCopy.mutationOptions({

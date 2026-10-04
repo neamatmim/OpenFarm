@@ -249,6 +249,7 @@ const BackupsPage = () => {
     <Page>
       <PageHeader
         description={t("backups.subtitle")}
+        eyebrow={t("nav.identity")}
         title={t("nav.backups")}
       />
       <Loaded query={backups}>
@@ -271,7 +272,7 @@ const BackupsPage = () => {
   );
 };
 
-export const Route = createFileRoute("/_authenticated/backups")({
+export const Route = createFileRoute("/_authenticated/farm/backups")({
   /** For those who run the farm: the Owner and the Farm Managers. */
   beforeLoad: onlyFor("runsTheFarm"),
   component: BackupsPage,

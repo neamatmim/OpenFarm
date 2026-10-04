@@ -36,6 +36,7 @@ import {
   FormField,
   NativeSelect,
 } from "@/components/page-kit";
+import { TO_THE_KEEPERS } from "@/components/templates/data-keepers";
 import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
 import { portalAddress } from "@/lib/portal-address";
@@ -403,7 +404,7 @@ const CodeDialog = ({
   onClose: () => void;
 }) => {
   const { t, language } = useLanguage();
-  const refused = useRefused(REFUSALS);
+  const refused = useRefused(REFUSALS, TO_THE_KEEPERS);
   // The paper laid out round the code, set off the screen to print alone.
   const [laidOut, setLaidOut] = useState<HandedOverPaper | null>(null);
   const handing = useMutation(
@@ -524,7 +525,7 @@ const TakeAwayDialog = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
-  const refused = useRefused(REFUSALS);
+  const refused = useRefused(REFUSALS, TO_THE_KEEPERS);
   const [why, setWhy] = useState<Why | "">("");
   const [askedOn, setAskedOn] = useState(() => farmDayOf(new Date()));
   const [how, setHow] = useState<How | "">("");
@@ -651,7 +652,7 @@ export const PortalAccess = ({
   portalOpen: boolean;
 }) => {
   const { t } = useLanguage();
-  const refused = useRefused(REFUSALS);
+  const refused = useRefused(REFUSALS, TO_THE_KEEPERS);
   const [given, setGiven] = useState<GivenCode | null>(null);
   const [asking, setAsking] = useState(false);
   // The consent sheet on screen to print, before any code: nothing while the Investor has signed one already.

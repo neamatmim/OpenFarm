@@ -1,15 +1,16 @@
 import { hasEnded } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
-import { Button } from "@OpenFarm/ui/components/button";
+import { Button, buttonVariants } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRightLeft,
   Banknote,
   CircleAlert,
+  FileSignature,
   Handshake,
   Scale,
   Wallet,
@@ -165,6 +166,14 @@ const VenturesPage = () => {
       <PageHeader
         actions={
           <>
+            {/* The wording every Venture's papers are printed from, kept with the farm's settings. */}
+            <Link
+              className={buttonVariants({ variant: "ghost" })}
+              to="/farm/agreement-templates"
+            >
+              <FileSignature aria-hidden data-icon="inline-start" />
+              {t("nav.templates")}
+            </Link>
             <Button
               onClick={() => setSellingInternally(true)}
               type="button"

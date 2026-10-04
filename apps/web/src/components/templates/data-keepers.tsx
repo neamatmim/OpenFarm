@@ -7,12 +7,22 @@ import { useState } from "react";
 import { Section } from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import type { OwnWays } from "@/lib/refused";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
 type Keepers = Awaited<ReturnType<typeof client.farm.dataKeepers>>;
+
+/** Where a paper refused for want of these names is put right: on the Agreement templates page, where they are
+ *  written. Handed to the save of any paper that carries «আপনার তথ্য». */
+export const TO_THE_KEEPERS: OwnWays = {
+  notice_unwritten: {
+    label: "templates.open",
+    to: "/farm/agreement-templates",
+  },
+};
 
 /** The three names as the form holds them: what the farm has written down, or nothing yet. */
 const KeepersForm = ({ kept }: { kept: Keepers }) => {

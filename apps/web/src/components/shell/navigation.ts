@@ -2,8 +2,6 @@ import type { MessageKey } from "@OpenFarm/i18n";
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
-  Archive,
-  BookOpen,
   BookOpenCheck,
   BriefcaseBusiness,
   Building2,
@@ -160,12 +158,6 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: Pill,
         audience: "vetOrRunsTheFarm",
       },
-      {
-        to: "/notifiable-diseases",
-        label: "nav.notifiable",
-        icon: ShieldAlert,
-        audience: "vetOrRunsTheFarm",
-      },
     ],
   },
   {
@@ -177,12 +169,6 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "nav.feed",
         icon: Wheat,
         audience: "runsTheFarm",
-      },
-      {
-        to: "/standards",
-        label: "nav.standards",
-        icon: BookOpen,
-        audience: "vetOrRunsTheFarm",
       },
     ],
   },
@@ -231,6 +217,12 @@ export const NAV_GROUPS: NavGroup[] = [
         audience: "runsTheFarm",
       },
       {
+        to: "/notifiable-diseases",
+        label: "nav.notifiable",
+        icon: ShieldAlert,
+        audience: "vetOrRunsTheFarm",
+      },
+      {
         to: "/audit",
         label: "nav.audit",
         icon: ScrollText,
@@ -251,12 +243,6 @@ export const NAV_GROUPS: NavGroup[] = [
         to: "/sops",
         label: "nav.sops",
         icon: BookOpenCheck,
-        audience: "runsTheFarm",
-      },
-      {
-        to: "/backups",
-        label: "nav.backups",
-        icon: Archive,
         audience: "runsTheFarm",
       },
     ],

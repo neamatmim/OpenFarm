@@ -9,6 +9,7 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { SlidersHorizontal } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -104,6 +105,8 @@ const GROUPS: {
   hint: MessageKey;
   /** A group only the Owner is offered: a Venture's figures are hers, as the Venture is. */
   owner?: boolean;
+  /** A group whose figures the Standards and sources page explains, linked beneath what it is for. */
+  sourced?: boolean;
   fields: FieldSpec[];
 }[] = [
   {
@@ -672,6 +675,7 @@ const GROUPS: {
     id: "params-fattening",
     title: "params.fatteningAndPapers",
     hint: "params.fatteningAndPapersHint",
+    sourced: true,
     fields: [
       {
         key: "fatteningTargetWeightKg",
@@ -858,7 +862,21 @@ const ParameterGroup = ({
   return (
     <SettingsSection
       changed={changed}
-      description={t(group.hint)}
+      description={
+        group.sourced ? (
+          <>
+            {t(group.hint)}{" "}
+            <Link
+              className="text-primary underline-offset-4 hover:underline"
+              to="/standards"
+            >
+              {t("standards.link")}
+            </Link>
+          </>
+        ) : (
+          t(group.hint)
+        )
+      }
       id={group.id}
       onReset={() => setDraft(null)}
       onSubmit={() => save.mutate(changes as Parameters<typeof save.mutate>[0])}

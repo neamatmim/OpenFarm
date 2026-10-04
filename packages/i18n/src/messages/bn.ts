@@ -841,7 +841,8 @@ export const bn: Record<MessageKey, string> = {
   "people.invite": "নতুন কাউকে আমন্ত্রণ",
   "people.inviteSend": "আমন্ত্রণ পাঠান",
   "people.shedPhoneOnly": "শুধু শেডের ফোনে, পিন দিয়ে কাজ করবেন — ইমেইল লাগবে না",
-  "people.shedPhoneOnlyHint": "যাঁর ইমেইল বা নিজের ফোন নেই। তাঁর কোনো লগইন থাকবে না; পেন আর পিন দিলে শেডের ফোনে কাজ করবেন।",
+  "people.shedPhoneOnlyHint":
+    "যাঁর ইমেইল বা নিজের ফোন নেই। তাঁর কোনো লগইন থাকবে না; পেন আর পিন দিলে শেডের ফোনে কাজ করবেন।",
   "people.shedPhoneOnlyAdd": "যোগ করুন",
   "people.shedPhoneOnlyAdded": "যোগ হয়েছে — এখন তাঁর পেন আর পিন দিন",
   "people.shedPhoneOnlyWaiting": "যোগ হয়েছে — মালিক অনুমোদন দিলে কাজ শুরু করবেন",
@@ -2270,18 +2271,24 @@ export const bn: Record<MessageKey, string> = {
   "herd.importRun": "আমদানি",
   "herd.imported": "{count}টি যোগ হয়েছে",
   "herd.failedRows": "{count}টি সারি আমদানি করা যায়নি",
-  "herd.row.registerDateUnread": "{column} কলামের তারিখ «{value}» পড়া যায়নি — বছর-মাস-দিন লিখুন, যেমন 2025-03-15",
-  "herd.row.registerValueUnread": "{column} কলামের «{value}» পড়া যায়নি — কী লিখতে হয় তা নির্দেশিকায় দেখুন",
-  "herd.row.registerUnknownPen": "«{value}» নামে কোনো পেন নেই — শেড ও পেনে যে নাম আছে সেটাই লিখুন",
-  "herd.row.registerUnknownBreed": "«{value}» জাতের তালিকায় নেই — আগে খামারের জাতের তালিকায় যোগ করুন",
+  "herd.row.registerDateUnread":
+    "{column} কলামের তারিখ «{value}» পড়া যায়নি — বছর-মাস-দিন লিখুন, যেমন 2025-03-15",
+  "herd.row.registerValueUnread":
+    "{column} কলামের «{value}» পড়া যায়নি — কী লিখতে হয় তা নির্দেশিকায় দেখুন",
+  "herd.row.registerUnknownPen":
+    "«{value}» নামে কোনো পেন নেই — শেড ও পেনে যে নাম আছে সেটাই লিখুন",
+  "herd.row.registerUnknownBreed":
+    "«{value}» জাতের তালিকায় নেই — আগে খামারের জাতের তালিকায় যোগ করুন",
   "herd.row.registerStateNotOfSide": "অবস্থা «{value}» এই সারির বিভাগের নয়",
   "herd.row.expectedCalvingNeeded": "গর্ভবতী বকনার expected_calving তারিখ লাগবে",
   "herd.row.tagTaken": "{value} নম্বরটি আরেকটি পশুর",
-  "herd.row.tagOfTheOtherSide": "{value} অন্য বিভাগের নম্বর — দুগ্ধের নম্বর D- দিয়ে, মোটাতাজাকরণের F- দিয়ে শুরু",
+  "herd.row.tagOfTheOtherSide":
+    "{value} অন্য বিভাগের নম্বর — দুগ্ধের নম্বর D- দিয়ে, মোটাতাজাকরণের F- দিয়ে শুরু",
   "herd.row.notATagNumber": "«{value}» ট্যাগ নম্বর নয় — D-0001 এর মতো লিখুন",
   "herd.row.registerNotTaken": "খামার এই সারিটি নিতে পারেনি",
   "herd.warnedRows": "{count}টি পশু যোগ হয়েছে, কিন্তু খামারের দরকারি কিছু নেই",
-  "herd.row.registerNoCalvingDate": "{tag} যোগ হয়েছে, কিন্তু calved_at নেই — কত দিন দুধ দিচ্ছে বলা যাবে না",
+  "herd.row.registerNoCalvingDate":
+    "{tag} যোগ হয়েছে, কিন্তু calved_at নেই — কত দিন দুধ দিচ্ছে বলা যাবে না",
   "herd.line": "সারি {line}",
   "herd.penCount": "{count}টি পেন",
   "herd.noPens": "এই শেডে এখনো কোনো পেন নেই",
@@ -2462,7 +2469,8 @@ export const bn: Record<MessageKey, string> = {
   "device.offlineRoster": "এই ফোনে সংরক্ষিত তালিকা ব্যবহার হচ্ছে",
   "people.pin": "পিন",
   "people.changePin": "পিন বদলান",
-  "people.pinIsSet": "পিন দেওয়া আছে — শেডের ফোনে এটি দিয়ে নিজের নামে কাজ শুরু করেন। একবার দিলে আর দেখা যায় না; নতুন পিন দিলে পুরোনোটি বাদ যায়।",
+  "people.pinIsSet":
+    "পিন দেওয়া আছে — শেডের ফোনে এটি দিয়ে নিজের নামে কাজ শুরু করেন। একবার দিলে আর দেখা যায় না; নতুন পিন দিলে পুরোনোটি বাদ যায়।",
   "people.setPin": "পিন দিন",
   "people.pinSet": "পিন সেট হয়েছে",
   "people.pinHelp": "চার সংখ্যা",
@@ -3187,7 +3195,8 @@ export const bn: Record<MessageKey, string> = {
   "vetFee.noAnimals": "খামারে এখনো কোনো গরু নেই যা ভেট দেখেছেন বলা যায়",
   "refusal.ownerOnly": "এটি শুধু মালিক করতে পারেন",
   "refusal.personalPhoneOnly": "এটি শেডের ফোন থেকে নয়, নিজের ফোন থেকে করুন",
-  "refusal.shedPhoneOnly": "ইনি শুধু শেডের ফোনে কাজ করেন — লগইন নেই, তাই পাসওয়ার্ড দেওয়ার কিছু নেই।",
+  "refusal.shedPhoneOnly":
+    "ইনি শুধু শেডের ফোনে কাজ করেন — লগইন নেই, তাই পাসওয়ার্ড দেওয়ার কিছু নেই।",
   "refusal.pinIsForStaff": "পিন শুধু খামারকর্মীর জন্য: শেডের ফোনে শুধু খামারকর্মীর কাজ হয়।",
   "refusal.notAwaitingApproval": "এই {currencySum} অনুমোদনের অপেক্ষায় নেই",
   "refusal.visitedInTheFuture": "যে দিন আসেনি সেদিন ভিজিট হতে পারে না",
@@ -4831,7 +4840,8 @@ export const bn: Record<MessageKey, string> = {
   "setupLeft.step.register": "প্রারম্ভিক তালিকা দিয়ে পশুগুলো যোগ করুন",
   "setupLeft.step.playbook": "খামারের কার্যপ্রণালী প্রকাশ করুন",
   "identity.name": "খামারের নাম",
-  "identity.nameHint": "খামার থেকে যাওয়া প্রতিটি কাগজে ছাপা হয়। এখানে ঠিক করলে এখন থেকে সব কাগজে ঠিক থাকবে; আগে যাওয়া কাগজে যা ছিল তা-ই থাকবে।",
+  "identity.nameHint":
+    "খামার থেকে যাওয়া প্রতিটি কাগজে ছাপা হয়। এখানে ঠিক করলে এখন থেকে সব কাগজে ঠিক থাকবে; আগে যাওয়া কাগজে যা ছিল তা-ই থাকবে।",
   "identity.address": "ঠিকানা",
   "identity.phone": "মোবাইল",
   "identity.registrationNumber": "নিবন্ধন নম্বর",
@@ -4864,6 +4874,7 @@ export const bn: Record<MessageKey, string> = {
   "standsAside.renewalSuperseded":
     "এই নবায়নের পর নিবন্ধন বদলেছে; নতুনটি সংশোধন করুন",
   "templates.pageTitle": "চুক্তির নমুনা",
+  "templates.open": "চুক্তির নমুনা খুলুন",
   "templates.pageHint":
     "বিনিয়োগকারী যে কাগজে সই করেন তার ভাষা। প্রতিটি শুরু হয় OpenFarm-এর মানক ভাষা দিয়ে, আপনার আইনজীবীর পড়ার জন্য; বদলালে নতুন সংস্করণ প্রকাশ হয়, আর আগে সই হওয়া প্রতিটি কাগজ যে ভাষায় সই হয়েছিল সেটিই রাখে।",
   "templates.none": "এখনো কোনো নমুনা নেই",

@@ -19,6 +19,7 @@ import { SegmentedControl } from "@/components/page";
 import type { StillMissing } from "@/components/page-kit";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { PhotoField } from "@/components/photo-field";
+import { TO_THE_KEEPERS } from "@/components/templates/data-keepers";
 import type { WordingSaid } from "@/components/ventures/paper-dialog";
 import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
@@ -331,7 +332,7 @@ const PrintToSign = ({
 }) => {
   const { t } = useLanguage();
   const refused = useRefused();
-  const refusedNotice = useRefused(NOTICE_REFUSALS);
+  const refusedNotice = useRefused(NOTICE_REFUSALS, TO_THE_KEEPERS);
   const [shown, setShown] = useState<LaidOut | null>(null);
   const [notice, setNotice] = useState<LaidOut | null>(null);
   const laying = useMutation(
