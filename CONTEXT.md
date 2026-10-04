@@ -98,7 +98,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Shed**: A building on the Farm containing Pens. _Avoid_: Barn, house, unit
 
-**Pen**: A physical enclosure inside a Shed. Every Animal is in exactly one Pen; SOP Instances run per Pen or per Shed. A Pen may be marked a quarantine pen by the Owner or the Manager: where a bought animal comes in and is kept until she is released — never unmarked while it holds an animal in Quarantine. _Avoid_: Group (a Pen _is_ the group), lot, batch
+**Pen**: A physical enclosure inside a Shed. Every Animal is in exactly one Pen; SOP Instances run per Pen or per Shed. A Pen may be marked a quarantine pen by the Owner or the Manager: where a bought animal comes in and is kept until she is released — never unmarked while it holds an animal in Quarantine. Its **Capacity** is the head it was built to hold, as the Owner or the Manager reckons it from its space and trough; until one of them says, it has none and is never called full. A Pen over its Capacity is shown on the sheds page and to whoever moves an animal into it, never shut: a sick animal goes where there is shade. _Avoid_: Group (a Pen _is_ the group), lot, batch; stocking rate (a Capacity is head, not head per square metre)
 
 **Move**: The recorded event of an Animal changing Pen — including a change of Side. The only way an Animal's location changes. An Animal in Quarantine is walked only into a quarantine **Pen**, however the Move comes — by hand, from a phone's late Batch, or by a Step; one left outside one from before pens were marked is named for the Manager to walk in. _Avoid_: Transfer, relocation
 

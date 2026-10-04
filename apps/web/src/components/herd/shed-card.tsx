@@ -1,7 +1,8 @@
+import { stockingOf } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
-import { Fence, PencilLine, Plus, Warehouse } from "lucide-react";
+import { Fence, PencilLine, Plus, Ruler, Warehouse } from "lucide-react";
 
 import {
   ActionsHeader,
@@ -18,8 +19,15 @@ import { useLanguage } from "@/i18n/language-provider";
 export interface ShedRow {
   id: string;
   name: string;
-  /** `quarantine` is missing from an answer kept from before pens were marked: read as unmarked. */
-  pens: { id: string; name: string; quarantine?: boolean }[];
+  /** `quarantine` is missing from an answer kept from before pens were marked: read as unmarked; `head` and
+   *  `capacity` from one kept from before Pens were counted. */
+  pens: {
+    id: string;
+    name: string;
+    quarantine?: boolean;
+    head?: number;
+    capacity?: number | null;
+  }[];
 }
 
 /** What a Shed's card can ask the page for: a new Pen in it, or a new name for it or one of its Pens. */
@@ -29,6 +37,12 @@ export interface ShedActions {
   handleRenamePen: (pen: { id: string; name: string }) => void;
   /** Marked as a quarantine pen, or not. */
   handleMarkQuarantine: (pen: { id: string }, quarantine: boolean) => void;
+  /** How many head it holds. */
+  handleSetCapacity: (pen: {
+    id: string;
+    name: string;
+    capacity: number | null;
+  }) => void;
 }
 
 interface PenRow {
@@ -36,6 +50,7 @@ interface PenRow {
   name: string;
   quarantine: boolean;
   animals: number;
+  capacity: number | null;
   actions: ShedActions;
 }
 
@@ -43,29 +58,39 @@ interface PenCell {
   row: { original: PenRow };
 }
 
-/** How many animals, as the farm counts them. */
-const HeadCount = ({ count }: { count: number }) => {
+/** How many animals stand in a Pen — against the head it holds, once somebody has said, and how many over. */
+const HeadCount = ({
+  count,
+  capacity,
+}: {
+  count: number;
+  capacity: number | null;
+}) => {
   const { t, language } = useLanguage();
+  const stocking = stockingOf(count, capacity);
+  if (stocking === null) {
+    return (
+      <span className="text-muted-foreground whitespace-nowrap tabular-nums">
+        {t("herd.animalCount", { count: formatNumber(count, language) })}
+      </span>
+    );
+  }
   return (
-    <span className="text-muted-foreground whitespace-nowrap tabular-nums">
-      {t("herd.animalCount", { count: formatNumber(count, language) })}
+    <span className="inline-flex flex-wrap items-center justify-end gap-2 whitespace-nowrap tabular-nums">
+      <span className="text-muted-foreground">
+        {t("herd.headOfCapacity", {
+          head: formatNumber(stocking.head, language),
+          capacity: formatNumber(stocking.capacity, language),
+        })}
+      </span>
+      {stocking.over > 0 ? (
+        <StatusBadge tone="warning">
+          {t("herd.overCapacity", {
+            count: formatNumber(stocking.over, language),
+          })}
+        </StatusBadge>
+      ) : null}
     </span>
-  );
-};
-
-/** A Pen's one act: a new name. The word beside the pencil where there is room for it. */
-const RenamePen = ({ row }: { row: PenRow }) => {
-  const { t } = useLanguage();
-  return (
-    <Button
-      aria-label={`${t("herd.rename")}: ${row.name}`}
-      onClick={() => row.actions.handleRenamePen(row)}
-      type="button"
-      variant="ghost"
-    >
-      <PencilLine aria-hidden />
-      <span className="sr-only sm:not-sr-only">{t("herd.rename")}</span>
-    </Button>
   );
 };
 
@@ -98,16 +123,38 @@ const QuarantineMark = ({ row }: { row: PenRow }) => {
   );
 };
 
+/** What a Pen's row can ask for beyond marking it: the head it holds, and a new name. */
+const PenMenu = ({ row }: { row: PenRow }) => {
+  const { t } = useLanguage();
+  return (
+    <RowMenu
+      actions={[
+        {
+          label: t("herd.setCapacity"),
+          icon: Ruler,
+          handleSelect: () => row.actions.handleSetCapacity(row),
+        },
+        {
+          label: t("herd.rename"),
+          icon: PencilLine,
+          handleSelect: () => row.actions.handleRenamePen(row),
+        },
+      ]}
+      label={t("stock.rowActions", { name: row.name })}
+    />
+  );
+};
+
 const NameCell = ({ row }: PenCell) => <PenName row={row.original} />;
 
 const AnimalsCell = ({ row }: PenCell) => (
-  <HeadCount count={row.original.animals} />
+  <HeadCount capacity={row.original.capacity} count={row.original.animals} />
 );
 
 const RenameCell = ({ row }: PenCell) => (
   <div className="-my-1.5 flex items-center justify-end gap-3">
     <QuarantineMark row={row.original} />
-    <RenamePen row={row.original} />
+    <PenMenu row={row.original} />
   </div>
 );
 
@@ -130,17 +177,17 @@ const penColumns = column.columns([
   }),
 ]);
 
-/** A Pen on a phone: its name, how many are in it, and renaming it at the right. */
+/** A Pen on a phone: its name, how many are in it, and its menu at the right. */
 const PenCard = ({ row }: { row: PenRow }) => (
   <div className="flex items-center justify-between gap-3">
     <div className="flex min-w-0 flex-col gap-0.5">
       <PenName row={row} />
       <span className="text-sm">
-        <HeadCount count={row.animals} />
+        <HeadCount capacity={row.capacity} count={row.animals} />
       </span>
       <QuarantineMark row={row} />
     </div>
-    <RenamePen row={row} />
+    <PenMenu row={row} />
   </div>
 );
 
@@ -152,12 +199,9 @@ const penCard = (row: PenRow) => <PenCard row={row} />;
  */
 export const ShedCard = ({
   shed,
-  inPen,
   actions,
 }: {
   shed: ShedRow;
-  /** How many animals stand in each Pen, by the Pen's id. */
-  inPen: Map<string, number>;
   actions: ShedActions;
 }) => {
   const { t, language } = useLanguage();
@@ -165,7 +209,8 @@ export const ShedCard = ({
     id: pen.id,
     name: pen.name,
     quarantine: pen.quarantine === true,
-    animals: inPen.get(pen.id) ?? 0,
+    animals: pen.head ?? 0,
+    capacity: pen.capacity ?? null,
     actions,
   }));
   const table = useListTable({

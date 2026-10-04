@@ -20,6 +20,9 @@ export interface PenChoice {
   shedName: string;
   /** A quarantine pen. Missing from an answer kept from before pens were marked: read as not one. */
   quarantine?: boolean;
+  /** How many stand in it, and the head it holds — missing from an answer kept from before Pens were counted. */
+  head?: number;
+  capacity?: number | null;
 }
 
 /** A person's Scope under each Role they hold, as `people.me` tells a screen. */

@@ -2398,6 +2398,15 @@ export const en = {
   "herd.subtitle":
     "The farm's buildings and the pens inside them. Renaming keeps every animal where it is.",
   "herd.animalCount": "{count, plural, one {# animal} other {# animals}}",
+  "herd.headOfCapacity": "{head} of {capacity}",
+  "herd.overCapacity": "{count} over",
+  "herd.setCapacity": "Capacity",
+  "herd.capacityTitle": "How many head fit in {pen}",
+  "herd.capacityLabel": "Head it holds",
+  "herd.capacityHint":
+    "Count the stalls and the trough. Leave it empty if nobody has counted: a pen over its capacity is shown, never shut.",
+  "animals.penOverCapacity":
+    "After this move {head} will stand in {pen}, which is built for {capacity}.",
   "herd.import": "Opening register",
   "herd.importHelp":
     "Paste the CSV: tag, sex, side, state, pen, source, breed, alias, expected_calving (YYYY-MM-DD, for a cow already in calf). tag is the number on her ear tag, like D-0001; left blank, she is given the next number",

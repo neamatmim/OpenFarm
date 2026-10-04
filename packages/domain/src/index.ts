@@ -910,3 +910,5 @@ export type {
 export type { BetweenPursesRefusal } from "./between-purses";
 export { whyNotBetweenPurses } from "./between-purses";
 export { heldFromThem } from "./held-by";
+export type { Stocking } from "./stocking";
+export { stockingOf } from "./stocking";

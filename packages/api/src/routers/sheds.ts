@@ -1,6 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq } from "@OpenFarm/db/operators";
-import { pen, shed } from "@OpenFarm/db/schema/herd";
+import { and, eq, notInArray, sql } from "@OpenFarm/db/operators";
+import { animal, pen, shed } from "@OpenFarm/db/schema/herd";
+import { EXIT_STATES } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -11,18 +12,41 @@ import { protectedProcedure } from "../index";
 import { requireRole } from "../roles";
 
 const name = z.string().trim().min(1).max(80);
+/** No pen on a farm of a few hundred head holds more; a figure past it is a slip of the thumb. */
+const MOST_HEAD_A_PEN_HOLDS = 500;
 
 /** Sheds contain Pens; every Animal is in exactly one Pen. */
 export const shedsRouter = {
+  /** Each Shed with its Pens, and how many animals stand in each Pen today against the head it holds. */
   list: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet"))
-    .handler(({ context }) =>
-      context.db.query.shed.findMany({
-        where: { farmId: context.farm.id },
-        orderBy: { name: "asc" },
-        with: { pens: { orderBy: { name: "asc" } } },
-      })
-    ),
+    .handler(async ({ context }) => {
+      const [sheds, heads] = await Promise.all([
+        context.db.query.shed.findMany({
+          where: { farmId: context.farm.id },
+          orderBy: { name: "asc" },
+          with: { pens: { orderBy: { name: "asc" } } },
+        }),
+        context.db
+          .select({ penId: animal.penId, head: sql<number>`count(*)::int` })
+          .from(animal)
+          .where(
+            and(
+              eq(animal.farmId, context.farm.id),
+              notInArray(animal.state, [...EXIT_STATES])
+            )
+          )
+          .groupBy(animal.penId),
+      ]);
+      const headIn = new Map(heads.map((one) => [one.penId, one.head]));
+      return sheds.map((one) => ({
+        ...one,
+        pens: one.pens.map((each) => ({
+          ...each,
+          head: headIn.get(each.id) ?? 0,
+        })),
+      }));
+    }),
 
   /**
    * Animals in Quarantine standing outside every quarantine pen — put there before pens were marked — for the Manager to
@@ -171,6 +195,52 @@ export const shedsRouter = {
           }
         );
         return { id: input.id, name: input.name };
+      }),
+
+    /**
+     * How many head a Pen holds, as the Owner or the Manager reckons it from its stalls and trough — or none again, when
+     * it is rebuilt and nobody has counted. Nothing is refused for it: a Pen over its capacity is told, never shut.
+     */
+    setCapacity: protectedProcedure
+      .use(requireRole("owner", "manager"))
+      .input(
+        z.object({
+          penId: z.string(),
+          capacity: z
+            .number()
+            .int()
+            .min(1)
+            .max(MOST_HEAD_A_PEN_HOLDS)
+            .nullable(),
+        })
+      )
+      .handler(async ({ context, input }) => {
+        await audited(context).write(
+          {
+            entity: "pen",
+            entityId: input.penId,
+            action: "update",
+            before: async (tx) =>
+              (await tx.query.pen.findFirst({
+                where: { id: input.penId, farmId: context.farm.id },
+                columns: { capacity: true },
+              })) ?? null,
+            after: { capacity: input.capacity },
+          },
+          async (tx) => {
+            const [row] = await tx
+              .update(pen)
+              .set({ capacity: input.capacity })
+              .where(
+                and(eq(pen.id, input.penId), eq(pen.farmId, context.farm.id))
+              )
+              .returning({ id: pen.id });
+            if (!row) {
+              throw new ORPCError("NOT_FOUND", { message: "No such pen" });
+            }
+          }
+        );
+        return { penId: input.penId, capacity: input.capacity };
       }),
 
     /**

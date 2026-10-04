@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   index,
   integer,
   pgTable,
@@ -62,9 +63,15 @@ export const pen = pgTable(
     /** A quarantine pen: where a bought animal comes in, and is kept until she is released. Marked by the Owner or
      *  the Manager; never unmarked while it holds an animal in Quarantine. */
     quarantine: boolean("quarantine").notNull().default(false),
+    /** How many head the Pen was built to hold, as the Owner or the Manager reckons it. None until one of them says:
+     *  a Pen of unknown size is never called full. */
+    capacity: integer("capacity"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => [uniqueIndex("pen_name_uidx").on(table.shedId, table.name)]
+  (table) => [
+    uniqueIndex("pen_name_uidx").on(table.shedId, table.name),
+    check("pen_capacity_positive", sql`${table.capacity} > 0`),
+  ]
 );
 
 /** The next Tag Number per prefix. Sequences never rewind, so numbers are never reused. */
