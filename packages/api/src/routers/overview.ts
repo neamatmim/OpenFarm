@@ -178,16 +178,20 @@ export const overviewRouter = {
         );
         byDay.set(day, tally);
       }
-      const days = [...byDay]
-        .toSorted(([a], [b]) => a.localeCompare(b))
-        .slice(-SESSIONS_ON_THE_TILE);
+      const everyDay = [...byDay].toSorted(([a], [b]) => a.localeCompare(b));
+      const days = everyDay.slice(-SESSIONS_ON_THE_TILE);
       const todaysMilk = byDay.get(farmDayOf(now)) ?? { bulk: 0, discard: 0 };
+      // What today is read against is the week of days that are over: today's own half morning in the mean would pull
+      // it down every morning, and read today against a figure made partly of itself.
+      const over = everyDay
+        .filter(([day]) => day !== farmDayOf(now))
+        .slice(-SESSIONS_ON_THE_TILE);
       const average =
-        days.length === 0
+        over.length === 0
           ? 0
           : roundLitres(
-              days.reduce((total, [, tally]) => total + tally.bulk, 0) /
-                days.length
+              over.reduce((total, [, tally]) => total + tally.bulk, 0) /
+                over.length
             );
 
       return {
@@ -271,7 +275,7 @@ export const overviewRouter = {
           bulkToday: todaysMilk.bulk,
           discardToday: todaysMilk.discard,
           /** What the farm has been sending to the tank, a day at a time, oldest first —
-           *  and what that comes to on an average day, which is what today is read against. */
+           *  and what that came to on an average day of the week before today, which is what today is read against. */
           days: days.map(([day, tally]) => ({ day, litres: tally.bulk })),
           averageBulk: average,
           workDone: today.filter((instance) => isFinished(instance.state))
