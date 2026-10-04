@@ -3343,6 +3343,8 @@ export const en = {
   "vetFee.none": "No fee recorded yet",
   "vetFee.noAnimals": "No animal on the farm yet to say the vet saw",
   "refusal.ownerOnly": "Only the owner can do this",
+  "refusal.pinIsForStaff":
+    "A PIN is for barn staff: the shed phone works as barn staff and nothing more.",
   "refusal.personalPhoneOnly":
     "This is done from your own phone, not the shed's",
   "refusal.notAwaitingApproval": "That money is not waiting for approval",

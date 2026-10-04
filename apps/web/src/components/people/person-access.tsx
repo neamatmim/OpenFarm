@@ -750,7 +750,8 @@ export const AccessTab = ({
         {/* A PIN and a password code are both ways in, shown only to whoever may give them. */}
         {reachesTheirAccess(isOwner, roles) ? (
           <>
-            <PinRow userId={userId} />
+            {/* A PIN opens the Shed Phone, which holds Barn Staff alone. */}
+            {roles.includes("staff") ? <PinRow userId={userId} /> : null}
             <PasswordRow name={name} userId={userId} />
           </>
         ) : null}

@@ -161,19 +161,19 @@ describe("PINs", () => {
   it("rotating a PIN replaces the old one", async () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
     await owner.client.people.setPin({
-      userId: thePerson("manager").id,
+      userId: thePerson("staff").id,
       pin: "1111",
     });
     const first = await scratchDb().query.staffPin.findFirst({
-      where: { userId: thePerson("manager").id },
+      where: { userId: thePerson("staff").id },
     });
 
     await owner.client.people.setPin({
-      userId: thePerson("manager").id,
+      userId: thePerson("staff").id,
       pin: "2222",
     });
     const second = await scratchDb().query.staffPin.findFirst({
-      where: { userId: thePerson("manager").id },
+      where: { userId: thePerson("staff").id },
     });
 
     expect(second?.hash).not.toBe(first?.hash);
@@ -346,11 +346,11 @@ describe("review findings", () => {
   it("stops taking PINs for a person after five wrong ones, even the right one", async () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
     await owner.client.people.setPin({
-      userId: thePerson("manager").id,
+      userId: thePerson("staff").id,
       pin: "7314",
     });
     const phone = await createTestClient(appRouter, {
-      as: "manager",
+      as: "staff",
       onShedPhone: true,
       locked: true,
       phone: { id: `phone-guess-${Date.now()}`, name: "অনুমানের ফোন" },
@@ -360,14 +360,14 @@ describe("review findings", () => {
       // oxlint-disable-next-line no-await-in-loop
       await expect(
         phone.client.devices.switchUser({
-          userId: thePerson("manager").id,
+          userId: thePerson("staff").id,
           pin: guess,
         })
       ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
     }
     await expect(
       phone.client.devices.switchUser({
-        userId: thePerson("manager").id,
+        userId: thePerson("staff").id,
         pin: "7314",
       })
     ).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });

@@ -24,6 +24,7 @@ import {
   requireDevice,
 } from "../device";
 import { protectedProcedure, publicProcedure } from "../index";
+import { rolesOf } from "../membership";
 import { silenceDevice } from "../push-store";
 import { requirePersonalSession, requireRole } from "../roles";
 
@@ -253,6 +254,13 @@ export const devicesRouter = {
       if (!person || person.disabledAt) {
         throw new ORPCError("FORBIDDEN", {
           message: "That person cannot work here",
+        });
+      }
+      // A Shed Phone holds Barn Staff alone, whatever PIN somebody set before it did.
+      const held = await rolesOf(context.db, device.farmId, person.id);
+      if (!held.includes("staff")) {
+        throw new ORPCError("FORBIDDEN", {
+          message: "Only Barn Staff work on a Shed Phone",
         });
       }
       const token = randomToken();
