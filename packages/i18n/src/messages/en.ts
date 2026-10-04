@@ -5139,6 +5139,7 @@ export const en = {
   "identity.why":
     "Every paper that leaves the farm — the transport card, the letter to the office — prints what is written here.",
   "identity.name": "Farm name",
+  "identity.nameHint": "Printed on every paper the farm sends out. Put right here, it is right on every paper from now on; those already sent keep what they said.",
   "identity.address": "Address",
   "identity.phone": "Phone",
   "identity.registrationNumber": "Registration number",

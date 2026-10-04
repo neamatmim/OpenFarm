@@ -691,6 +691,31 @@ export const farmRouter = {
     }),
 
   /**
+   * The farm's name, put right. Typed once when the farm was set up and printed on every paper since, so a slip there
+   * would otherwise stay for good. The Owner's alone, and audited with what it said before: the papers already sent out
+   * said that.
+   */
+  rename: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ name: z.string().trim().min(1).max(120) }))
+    .handler(async ({ context, input }) => {
+      const farmId = context.farm.id;
+      await audited(context).write(
+        {
+          entity: "farm",
+          entityId: farmId,
+          action: "update",
+          before: (tx) => readIdentity(tx, farmId),
+          after: (tx) => readIdentity(tx, farmId),
+        },
+        (tx) =>
+          tx.update(farm).set({ name: input.name }).where(eq(farm.id, farmId))
+      );
+      return { id: farmId, name: input.name };
+    }),
+
+  /**
    * Who runs the server the farm's records are on, and who keeps the nightly encrypted copy and in which country: the
    * facts the privacy notice tells an Investor. The Owner's alone.
    */

@@ -16,8 +16,9 @@ import { orpc } from "@/utils/orpc";
 
 type Identity = Awaited<ReturnType<typeof orpc.farm.identity.call>>;
 
-/** How the farm is reached: the words under its name on every paper. */
+/** The farm's name, and how it is reached: the words under its name on every paper. */
 interface Contact {
+  name: string;
   address: string;
   phone: string;
 }
@@ -50,42 +51,77 @@ const differs = <T extends object>(draft: T | null, saved: T): boolean =>
   draft !== null &&
   (Object.keys(saved) as (keyof T)[]).some((key) => draft[key] !== saved[key]);
 
-/** The farm's name, set when it was created, and how it is reached. */
-const ContactSection = ({ farm }: { farm: Identity }) => {
+/** Putting the farm's name right: the Owner's alone. */
+const useRename = (onSaved: () => void) => {
+  const { t } = useLanguage();
+  const refused = useRefused();
+  return useMutation(
+    orpc.farm.rename.mutationOptions({
+      onSuccess: () => {
+        toast.success(t("identity.saved"));
+        onSaved();
+      },
+      onError: refused,
+    })
+  );
+};
+
+/** The farm's name, set when it was created and put right by the Owner, and how it is reached. */
+const ContactSection = ({
+  farm,
+  isOwner,
+}: {
+  farm: Identity;
+  isOwner: boolean;
+}) => {
   const { t } = useLanguage();
   // Null until somebody types: the fields show the record until then.
   const [draft, setDraft] = useState<Contact | null>(null);
   const save = useSaveIdentity(() => setDraft(null));
+  const rename = useRename(() => setDraft(null));
   const saved: Contact = {
+    name: farm.name,
     address: farm.address ?? "",
     phone: farm.phone ?? "",
   };
   const fields = draft ?? saved;
   const edit = (patch: Partial<Contact>) => setDraft({ ...fields, ...patch });
+  const handleSubmit = () => {
+    if (fields.name.trim() !== saved.name) {
+      rename.mutate({ name: fields.name });
+    }
+    if (fields.address !== saved.address || fields.phone !== saved.phone) {
+      save.mutate({
+        address: fields.address || null,
+        phone: fields.phone || null,
+      });
+    }
+  };
   return (
     <SettingsSection
       changed={differs(draft, saved)}
       description={t("identity.contactHint")}
       id="farm-contact"
       onReset={() => setDraft(null)}
-      onSubmit={() =>
-        save.mutate({
-          address: fields.address || null,
-          phone: fields.phone || null,
-        })
-      }
-      pending={save.isPending}
+      onSubmit={handleSubmit}
+      pending={save.isPending || rename.isPending}
       saveLabel={t("identity.save")}
       title={t("identity.contact")}
     >
       <div className="grid max-w-3xl gap-4 sm:grid-cols-2">
-        {/* The name is the farm's, set when it was created, and not changed from here. */}
+        {/* The name is put right by the Owner alone: it is on every paper the farm has sent out. */}
         <FormField
           className="sm:col-span-2"
+          hint={isOwner ? t("identity.nameHint") : undefined}
           id="identity-name"
           label={t("identity.name")}
         >
-          <Input disabled id="identity-name" value={farm.name} />
+          <Input
+            disabled={!isOwner}
+            id="identity-name"
+            onChange={(event) => edit({ name: event.target.value })}
+            value={fields.name}
+          />
         </FormField>
         <FormField
           className="sm:col-span-2"
@@ -229,6 +265,7 @@ const RegistrationNotices = ({ farm }: { farm: Identity }) => {
 const IdentityPage = () => {
   const { t } = useLanguage();
   const identity = useQuery(orpc.farm.identity.queryOptions());
+  const me = useQuery(orpc.people.me.queryOptions());
 
   if (!identity.data) {
     return (
@@ -247,6 +284,7 @@ const IdentityPage = () => {
     );
   }
   const farm = identity.data;
+  const isOwner = me.data?.roles.includes("owner") ?? false;
 
   return (
     <Page>
@@ -256,7 +294,7 @@ const IdentityPage = () => {
         title={t("settings.section.farm")}
       />
       <RegistrationNotices farm={farm} />
-      <ContactSection farm={farm} />
+      <ContactSection farm={farm} isOwner={isOwner} />
       <RegistrationSection farm={farm} />
       <Certificate
         id="farm-certificate"
