@@ -261,6 +261,8 @@ const VentureRow = ({
 /** One finished Season's or Venture's rate a year, as a bar. */
 interface Bar {
   key: string;
+  /** The first day of its Target Window, which puts it in its place in time. */
+  start: string;
   name: string;
   perYear: number;
   /** The Bank Rate it is set beside, marked on its bar. */
@@ -272,31 +274,45 @@ const CHART_HEADROOM = 1.25;
 
 /** A Season or a Venture's cattle as a bar: drawn only with a rate a year. */
 const barOf = (
-  key: string,
-  name: string,
+  one: { key: string; start: string; name: string },
   returned: Returned | null,
   bank: BankRateSaid | null
 ): Bar[] =>
   typeof returned?.perYear === "number"
-    ? [{ key, name, perYear: returned.perYear, bank: bank?.perYear ?? null }]
+    ? [{ ...one, perYear: returned.perYear, bank: bank?.perYear ?? null }]
     : [];
 
+/** Oldest window first, then by key, so the bars read down as the years went and two with one window keep one order. */
+const oldestFirst = (
+  a: { start: string; key: string },
+  b: { start: string; key: string }
+) => a.start.localeCompare(b.start) || a.key.localeCompare(b.key);
+
 /**
- * Each finished Season's and settled Venture's rate a year as a bar, longest first: one hue for a gain and the danger
- * hue for a loss, the figure beside it, so the sign is said in words as well as colour. One with no rate a year — out
- * fewer days than the floor, or not finished — is not drawn.
+ * Each finished Season's and settled Venture's rate a year as a bar, oldest first, so whether the farm is doing
+ * better reads down the page: one hue for a gain and the danger hue for a loss, the figure beside it, so the sign is
+ * said in words as well as colour. One with no rate a year — out fewer days than the floor, or not finished — is not
+ * drawn.
  */
 export const ReturnsChart = ({ page }: { page: ReturnsPage }) => {
   const { t } = useLanguage();
   const named = useSeasonName();
   const bars: Bar[] = [
     ...page.seasons.flatMap((one) =>
-      barOf(one.key, named(one), one.returnOnCost, one.bankRate)
+      barOf(
+        { key: one.key, start: one.window.start, name: named(one) },
+        one.returnOnCost,
+        one.bankRate
+      )
     ),
     ...page.ventures.flatMap((one) =>
-      barOf(one.id, one.name, one.returnOnCost, one.bankRate)
+      barOf(
+        { key: one.id, start: one.window.start, name: one.name },
+        one.returnOnCost,
+        one.bankRate
+      )
     ),
-  ].toSorted((a, b) => b.perYear - a.perYear);
+  ].toSorted(oldestFirst);
   if (bars.length === 0) {
     return null;
   }
