@@ -107,7 +107,7 @@ const HeldCell = ({ row }: { row: { original: HerdRow } }) => (
 );
 
 /** Every cell is one line, set level with the middle of her photo, which is taller than a line. */
-const ON_THE_PHOTO = { className: "align-middle" };
+const ON_THE_PHOTO = { middle: true };
 
 const column = createListColumns<HerdRow>();
 const herdColumns = column.columns([
