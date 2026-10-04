@@ -78,8 +78,17 @@ const milking =
 RESPONDERS.morningMilking = milking(0.56);
 RESPONDERS.eveningMilking = milking(0.44);
 
-RESPONDERS.feeding = (step, _beast, { farm, board }) => {
-  // The trough cleared first, the water after, backs wetted on a hot day: ticks. Only the feed itself is weighed.
+/** The months a Bangladeshi summer wets the bulls' backs: April to September. */
+const HOT_MONTHS = new Set(["04", "05", "06", "07", "08", "09"]);
+
+RESPONDERS.feeding = (step, _beast, { farm, board, day }) => {
+  // Backs wetted in the hot months, and said not to be on the rest.
+  if (step.id === "cool") {
+    return {
+      evidence: [HOT_MONTHS.has(day.slice(5, 7)) ? "wetted" : "not_hot"],
+    };
+  }
+  // The trough cleared first and the water after: ticks. Only the feed itself is weighed.
   if (step.id !== "feed") {
     return { evidence: [true] };
   }
