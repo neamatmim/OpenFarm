@@ -40,7 +40,7 @@ import { writtenOffByItem } from "./receivable-store";
 import { movementsByItem } from "./stock-store";
 import { tripCostOf } from "./trip-store";
 import { ownersOverTime } from "./venture-store";
-import { writesSeen } from "./writes-seen";
+import { insideATransaction, keptUntilAWrite } from "./writes-seen";
 
 type Db = Pick<Database, "query" | "execute">;
 type Side = PenHistoryLine["side"];
@@ -582,76 +582,14 @@ const workOutFarmCosts = async (db: Db, farmId: string) => {
 
 export type FarmCosts = Awaited<ReturnType<typeof workOutFarmCosts>>;
 
-/** The costing kept for each farm, and how many writes the process had seen when it was begun. */
-const kept = new Map<string, { seen: number; costs: Promise<FarmCosts> }>();
-let workedOut = 0;
-
-/** How many times the farm's costing has been worked out afresh in this process: what a test counts. */
-export const costingsWorkedOut = (): number => workedOut;
-
-/** A transaction, rather than the database: drizzle's has a `rollback`, the database has none. */
-const insideATransaction = (db: Db): boolean => "rollback" in db;
-
-/** Freezes a costing all the way down, leaving dates and maps as they are. */
-const freezeAll = (value: unknown): void => {
-  if (value === null || typeof value !== "object" || Object.isFrozen(value)) {
-    return;
-  }
-  if (value instanceof Date || value instanceof Map || value instanceof Set) {
-    return;
-  }
-  Object.freeze(value);
-  for (const inner of Object.values(value)) {
-    freezeAll(inner);
-  }
-};
-
 /**
- * Worked out and, while the tests run, frozen, so a reader that sorted or pushed onto the copy every other reader shares
- * throws there rather than quietly changing everybody's figures. Not in production, where freezing a year's costing
- * would cost what keeping it saves.
+ * The farm's costing (see `workOutFarmCosts`), kept until something is written: it is worked out from the whole
+ * history, and the Owner's overview alone asks for it four times at once. A transaction works it out afresh.
  */
-const workOutToKeep = async (db: Db, farmId: string): Promise<FarmCosts> => {
-  const costs = await workOutFarmCosts(db, farmId);
-  if (process.env.VITEST) {
-    freezeAll(costs);
-  }
-  return costs;
-};
-
-/** One that failed is not kept: the next asking tries again. */
-const forgetIfItFails = async (farmId: string, costs: Promise<FarmCosts>) => {
-  try {
-    await costs;
-  } catch {
-    if (kept.get(farmId)?.costs === costs) {
-      kept.delete(farmId);
-    }
-  }
-};
-
-/**
- * The farm's costing (see `workOutFarmCosts`), kept until something is written. It is worked out from the whole
- * history, and the Owner's overview alone asks for it four times at once; asked again with nothing written since, it
- * is the same answer. A write inside a transaction must read its own rows, so a transaction is always worked out
- * afresh and never kept. Kept per process: the farm runs on one.
- */
-export const farmCosts = (db: Db, farmId: string): Promise<FarmCosts> => {
-  if (insideATransaction(db)) {
-    workedOut += 1;
-    return workOutFarmCosts(db, farmId);
-  }
-  const seen = writesSeen();
-  const held = kept.get(farmId);
-  if (held && held.seen === seen) {
-    return held.costs;
-  }
-  workedOut += 1;
-  const costs = workOutToKeep(db, farmId);
-  kept.set(farmId, { seen, costs });
-  void forgetIfItFails(farmId, costs);
-  return costs;
-};
+export const farmCosts = (db: Db, farmId: string): Promise<FarmCosts> =>
+  insideATransaction(db)
+    ? workOutFarmCosts(db, farmId)
+    : keptUntilAWrite("costs", farmId, () => workOutFarmCosts(db, farmId));
 
 /**
  * What was charged to one animal's keep, as the costing shares it out: her feed, her doses, her part of the Vet's fees

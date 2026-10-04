@@ -362,8 +362,9 @@ export type StockMovement =
       priceMoney: number | null;
     }
   | { kind: "out"; at: Date; quantity: number }
-  /** A Stock Count: what was really there. It wins over whatever the store was thought to hold. */
-  | { kind: "count"; at: Date; counted: number };
+  /** A Stock Count: what was really there. It wins over whatever the store was thought to hold. The Step it was
+   *  recorded in, where it is known, so a count being recorded again can be left out of what it is compared against. */
+  | { kind: "count"; at: Date; counted: number; completionId?: string };
 
 /** Where a movement sorts among others at the same instant: what came in, then what went out, then
  *  the count that says what was left. */

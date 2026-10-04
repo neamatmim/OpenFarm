@@ -35,6 +35,7 @@ import type { Booking } from "./money-store";
 import { bookMoney, moneySnapshotOf } from "./money-store";
 import type { Raised } from "./notice";
 import { rememberingPeople, tell } from "./notice";
+import { insideATransaction, keptUntilAWrite } from "./writes-seen";
 
 /** One Feed Item as the store holds it. */
 export interface StockLine {
@@ -86,14 +87,10 @@ const MS_PER_SECOND = 1000;
  * Every movement in and out of the farm's store, by Feed Item: what came in, what each Feeding gave,
  * and what each Stock Count found. Feedings are read in the database, a line per item per session,
  * because a year of twice-daily feeding across a farm's Pens is thousands of sessions.
- *
- * A count being recorded again is left out of what it is compared against — otherwise a corrected
- * count would find the store already holding what it said the first time.
  */
-export const movementsByItem = async (
+const everyMovement = async (
   db: Pick<Database, "query" | "execute">,
-  farmId: string,
-  { excludingCount }: { excludingCount?: string } = {}
+  farmId: string
 ): Promise<Map<string, StockMovement[]>> => {
   // Corrections call this inside a transaction. Its PostgreSQL client may only execute one query at a time.
   const arrivals = await db.query.feedIn.findMany({
@@ -143,13 +140,12 @@ export const movementsByItem = async (
     });
   }
   for (const one of counts) {
-    if (one.completionId !== excludingCount) {
-      add(one.feedItemId, {
-        kind: "count",
-        at: one.countedAt,
-        counted: Number(one.counted),
-      });
-    }
+    add(one.feedItemId, {
+      kind: "count",
+      at: one.countedAt,
+      counted: Number(one.counted),
+      completionId: one.completionId,
+    });
   }
   for (const row of given.rows) {
     add(row.feed_item_id, {
@@ -159,6 +155,36 @@ export const movementsByItem = async (
     });
   }
   return byItem;
+};
+
+/**
+ * The farm's store, every movement by Feed Item (`everyMovement`), kept until something is written: Home, the overview,
+ * the Feed page and the sweep on every opening of the staff's page all read it. A transaction reads it afresh.
+ *
+ * A count being recorded again is left out of what it is compared against — otherwise a corrected
+ * count would find the store already holding what it said the first time.
+ */
+export const movementsByItem = async (
+  db: Pick<Database, "query" | "execute">,
+  farmId: string,
+  { excludingCount }: { excludingCount?: string } = {}
+): Promise<Map<string, StockMovement[]>> => {
+  const every = insideATransaction(db)
+    ? await everyMovement(db, farmId)
+    : await keptUntilAWrite("feedStore", farmId, () =>
+        everyMovement(db, farmId)
+      );
+  if (excludingCount === undefined) {
+    return every;
+  }
+  return new Map(
+    [...every].map(([feedItemId, movements]) => [
+      feedItemId,
+      movements.filter(
+        (one) => one.kind !== "count" || one.completionId !== excludingCount
+      ),
+    ])
+  );
 };
 
 /** The moment a store's days of feed are read at, and the farm's line under which it is Running Low. */
