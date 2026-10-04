@@ -22,7 +22,8 @@ import { LANGUAGE_COOKIE, pageLanguage } from "@/lib/page-context";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
-const STORAGE_KEY = "openfarm.language";
+/** The device's own note of the reader's language: the same name as the cookie the server reads it from. */
+const STORAGE_KEY = LANGUAGE_COOKIE;
 const STORAGE_EVENT = "openfarm:language";
 
 interface LanguageContextValue {

@@ -317,10 +317,11 @@ export const DataTable = <TData extends object>({
         <Table
           // A long list read a page at a time keeps its headings in sight as it is scrolled (Fiori: a table's column
           // headers are sticky). On a desk it scrolls inside a box the window's height, so the heading row has
-          // something to stick to; a phone reads the cards above.
+          // something to stick to; a phone reads the cards above. A row tabbed to stops below the pinned heading,
+          // not under it (WCAG 2.4.11): the box keeps the heading's height clear as it scrolls.
           containerClassName={
             paged
-              ? "md:max-h-[calc(100dvh-12rem)] md:overflow-y-auto"
+              ? "md:max-h-[calc(100dvh-12rem)] md:overflow-y-auto md:scroll-pt-10"
               : undefined
           }
           style={{ minWidth }}

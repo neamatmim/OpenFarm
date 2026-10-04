@@ -43,6 +43,29 @@ const encode = async (
   return asBase64(new Uint8Array(await blob.arrayBuffer()));
 };
 
+/** A photo that, shrunk as far as the farm shrinks one, is still too large to send. */
+export class PhotoTooLargeError extends Error {
+  constructor() {
+    super("That photo is too large to send");
+    this.name = "PhotoTooLargeError";
+  }
+}
+
+/** The words for what went wrong preparing a photo: too large, or not a picture this phone could read. */
+export const photoProblem = (
+  error: unknown
+): "photo.tooLarge" | "photo.notRead" =>
+  error instanceof PhotoTooLargeError ? "photo.tooLarge" : "photo.notRead";
+
+/** A decoded picture, shrunk to the farm's size and checked against what it may weigh. */
+const shrunk = async (bitmap: ImageBitmap): Promise<string> => {
+  const data = await encode(bitmap, MAX_EDGE);
+  if (data.length > MAX_BYTES) {
+    throw new PhotoTooLargeError();
+  }
+  return data;
+};
+
 /**
  * Shrinks a camera photo to something a phone on one bar can actually send.
  *
@@ -54,11 +77,7 @@ const encode = async (
 export const shrink = async (file: File): Promise<Photo> => {
   const bitmap = await createImageBitmap(file);
   try {
-    const data = await encode(bitmap, MAX_EDGE);
-    if (data.length > MAX_BYTES) {
-      throw new Error("That photo is too large to send");
-    }
-    return { contentType: "image/jpeg", data };
+    return { contentType: "image/jpeg", data: await shrunk(bitmap) };
   } finally {
     bitmap.close();
   }
@@ -73,13 +92,9 @@ export const shrinkAnimalPhoto = async (
 ): Promise<Photo & { thumb: string }> => {
   const bitmap = await createImageBitmap(file);
   try {
-    const data = await encode(bitmap, MAX_EDGE);
-    if (data.length > MAX_BYTES) {
-      throw new Error("That photo is too large to send");
-    }
     return {
       contentType: "image/jpeg",
-      data,
+      data: await shrunk(bitmap),
       thumb: await encode(bitmap, THUMB_EDGE),
     };
   } finally {

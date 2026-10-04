@@ -287,7 +287,7 @@ const TileFrame = ({
       aria-pressed={selected}
       className={cn(
         "surface flex h-full w-full flex-col gap-3 p-4 text-start transition-colors md:p-5",
-        "hover:bg-muted/40 focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]",
+        "hover:bg-muted/40 focus-visible:ring-ring outline-none focus-visible:ring-2",
         selected && "ring-primary ring-2"
       )}
       onClick={onSelect}
@@ -714,7 +714,7 @@ export const PeriodFilter = ({
       >
         {fromLabel}
         <input
-          className="bg-card border-input focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-44 rounded-md border px-3 text-base font-normal outline-none focus-visible:ring-[3px] md:h-9 md:text-sm"
+          className="bg-card border-input focus-visible:border-ring focus-visible:ring-ring h-11 w-44 rounded-md border px-3 text-base font-normal outline-none focus-visible:ring-2 md:h-9 md:text-sm"
           id={`${id}-from`}
           onChange={(event) => onFrom(event.target.value)}
           type="date"
@@ -728,7 +728,7 @@ export const PeriodFilter = ({
       >
         {toLabel}
         <input
-          className="bg-card border-input focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-44 rounded-md border px-3 text-base font-normal outline-none focus-visible:ring-[3px] md:h-9 md:text-sm"
+          className="bg-card border-input focus-visible:border-ring focus-visible:ring-ring h-11 w-44 rounded-md border px-3 text-base font-normal outline-none focus-visible:ring-2 md:h-9 md:text-sm"
           id={`${id}-to`}
           onChange={(event) => onTo(event.target.value)}
           type="date"

@@ -31,7 +31,7 @@ import type { RowAction } from "@/components/page-kit";
 import { ReportSighting } from "@/components/report-sighting";
 import { useLanguage } from "@/i18n/language-provider";
 import { breedName } from "@/lib/breed";
-import { shrinkAnimalPhoto } from "@/lib/photo";
+import { photoProblem, shrinkAnimalPhoto } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
@@ -353,8 +353,8 @@ export const AnimalProfile = ({
                     tagNumber: detail.tagNumber,
                     ...(await shrinkAnimalPhoto(file)),
                   });
-                } catch {
-                  toast.error(t("photo.notRead"));
+                } catch (error) {
+                  toast.error(t(photoProblem(error)));
                 }
               }}
               tabIndex={-1}

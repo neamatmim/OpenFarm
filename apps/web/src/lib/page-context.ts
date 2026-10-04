@@ -82,7 +82,10 @@ export const pageFarmLocale = createIsomorphicFn()
  *  from the start (`language-provider.tsx` writes it). */
 export const LANGUAGE_COOKIE = "openfarm.language";
 
-const LANGUAGE_IN_COOKIE = /(?:^|;\s*)openfarm\.language=(?<language>[a-z]+)/u;
+const LANGUAGE_IN_COOKIE = new RegExp(
+  String.raw`(?:^|;\s*)${LANGUAGE_COOKIE.replaceAll(".", String.raw`\.`)}=(?<language>[a-z]+)`,
+  "u"
+);
 
 /**
  * The language the page is written in: on the server, the reader's from their cookie (the farm's default for a first

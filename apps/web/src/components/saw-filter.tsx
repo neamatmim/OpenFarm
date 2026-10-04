@@ -15,7 +15,7 @@ export const Chip = ({
   <button
     aria-pressed={chosen}
     className={cn(
-      "focus-visible:ring-ring/50 inline-flex h-11 items-center rounded-full border px-4 text-sm font-medium transition-colors duration-150 outline-none focus-visible:ring-3 md:h-8 md:px-3",
+      "focus-visible:ring-ring inline-flex h-11 items-center rounded-full border px-4 text-sm font-medium transition-colors duration-150 outline-none focus-visible:ring-2 md:h-8 md:px-3",
       chosen
         ? "border-primary bg-primary text-primary-foreground"
         : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground"

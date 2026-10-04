@@ -49,11 +49,11 @@ import type {
 } from "@/components/work/work-types";
 import { useLanguage } from "@/i18n/language-provider";
 import type { Photo } from "@/lib/photo";
-import { shrink } from "@/lib/photo";
+import { photoProblem, shrink } from "@/lib/photo";
 import type { MedicineCountEntry, StockCountEntry } from "@/lib/record-offline";
-import { useRefused } from "@/lib/refused";
 import { skipReasonsOffered } from "@/lib/skipping";
 import type { StepAnswer } from "@/lib/step-answer";
+import { toast } from "@/lib/toast";
 
 /**
  * What a Step that counts the store is being told: the box for each Feed Item and why it differs,
@@ -729,7 +729,6 @@ const EvidenceControl = ({
   onPhoto: (photo: { contentType: "image/jpeg"; data: string }) => void;
 }) => {
   const { t } = useLanguage();
-  const refused = useRefused();
   const id = useId();
 
   if (evidence.type === "tick") {
@@ -851,7 +850,7 @@ const EvidenceControl = ({
             // morning of those would sit in the Outbox and time out on every attempt.
             onPhoto(await shrink(file));
           } catch (error) {
-            refused(error);
+            toast.error(t(photoProblem(error)));
           }
         }}
         type="file"

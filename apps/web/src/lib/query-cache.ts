@@ -1,4 +1,5 @@
 import type { Host } from "@OpenFarm/auth/hosts";
+import { THUMB_MAX_BYTES } from "@OpenFarm/domain";
 import { IndexedDBAdapter } from "@tanstack/offline-transactions";
 import type {
   PersistedClient,
@@ -94,6 +95,10 @@ const toBeAskedAgain = (kept: PersistedClient): PersistedClient => ({
   },
 });
 
+/** What writes the waiting cache out as the page is left, and whether the page is listened to for that yet. */
+let writeOnLeaving: (() => Promise<void>) | null = null;
+let listeningForLeaving = false;
+
 /** How long a change waits before the cache is written out, so a page that answers twenty queries at once is one
  *  write, not twenty: every write turns the whole fortnight into one string on the phone's only thread. */
 export const KEEP_AT_MOST_EVERY_MS = 1000;
@@ -121,10 +126,13 @@ export const onDevice = (
       await storage.set(CACHE_KEY, writeKept(client));
     }
   };
-  // Leaving the page writes what is waiting, so the last second's answers are not lost to a closed tab.
-  if (typeof window !== "undefined") {
+  // Leaving the page writes what is waiting, so the last second's answers are not lost to a closed tab — through one
+  // listener for the page, whichever persister was made last.
+  writeOnLeaving = writeOut;
+  if (typeof window !== "undefined" && !listeningForLeaving) {
+    listeningForLeaving = true;
     window.addEventListener("pagehide", () => {
-      void writeOut();
+      void writeOnLeaving?.();
     });
   }
   return {
@@ -160,8 +168,23 @@ const WHOLE_PHOTOS = new Set([
   "money.receipt",
 ]);
 
-const isWholePhoto = (queryKey: readonly unknown[]): boolean => {
-  const [path, options] = queryKey;
+/** An object's own fields, for reading a query's key and answer without asserting their shape. */
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+/** What an answer of `animals.photo` holds as its picture: its base64, when it holds one. */
+const pictureOf = (data: unknown): string | null =>
+  isRecord(data) && typeof data.data === "string" ? data.data : null;
+
+/**
+ * Whether an answer is a photo whole. An Animal's photo asked for as her thumbnail is one too when it came back whole:
+ * a photo taken before thumbnails were made is sent whole either way, so the answer, not the asking, is weighed.
+ */
+const isWholePhoto = (query: {
+  queryKey: readonly unknown[];
+  state: { data?: unknown };
+}): boolean => {
+  const [path, options] = query.queryKey;
   if (!Array.isArray(path)) {
     return false;
   }
@@ -169,8 +192,16 @@ const isWholePhoto = (queryKey: readonly unknown[]): boolean => {
   if (WHOLE_PHOTOS.has(name)) {
     return true;
   }
-  const input = (options as { input?: { size?: string } } | undefined)?.input;
-  return name === "animals.photo" && input?.size !== "thumb";
+  if (name !== "animals.photo") {
+    return false;
+  }
+  const input =
+    isRecord(options) && isRecord(options.input) ? options.input : null;
+  const picture = pictureOf(query.state.data);
+  return (
+    input?.size !== "thumb" ||
+    (picture !== null && picture.length > THUMB_MAX_BYTES)
+  );
 };
 
 /**
@@ -181,12 +212,15 @@ const isWholePhoto = (queryKey: readonly unknown[]): boolean => {
  * review, 2.5; ASVS 14.3.1). On the portal's own address nothing is kept at all, whoever's it is (ADR 0009).
  */
 export const keptOnDevice = (
-  query: { queryKey: readonly unknown[]; state: { status: string } },
+  query: {
+    queryKey: readonly unknown[];
+    state: { status: string; data?: unknown };
+  },
   host: Host
 ): boolean =>
   host === "farm" &&
   query.state.status === "success" &&
-  !isWholePhoto(query.queryKey) &&
+  !isWholePhoto(query) &&
   !isPortalQuery(query.queryKey);
 
 /**

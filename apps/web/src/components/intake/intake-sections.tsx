@@ -79,7 +79,7 @@ const PhotoField = ({
       <div className="flex flex-wrap items-center gap-3">
         {/* The browser's own file button speaks the browser's language; this one speaks the farm's. */}
         <label
-          className="border-input bg-card hover:bg-muted has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:border-ring flex min-h-11 w-fit cursor-pointer items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors has-[:focus-visible]:ring-[3px] md:min-h-9"
+          className="border-input bg-card hover:bg-muted has-[:focus-visible]:ring-ring has-[:focus-visible]:border-ring flex min-h-11 w-fit cursor-pointer items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors has-[:focus-visible]:ring-2 md:min-h-9"
           htmlFor="intake-photo"
         >
           <Camera aria-hidden className="size-4" />
