@@ -422,6 +422,7 @@ export {
   isClinicalStep,
   isClosingStep,
   mayRaiseByHand,
+  isOneTap,
   maySkip,
   meaningOfSkip,
   nothingToNoteOf,

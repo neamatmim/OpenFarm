@@ -110,8 +110,8 @@ const feeding = (): SopContent => ({
       evidence: [{ type: "tick", required: true }],
       skipReasons: [],
     },
-    // Bangladesh summers: wet the back, never the head (DLS GLPP 2023 §14.1.7). Asked every feed, answered on the
-    // days that are hot — there is no season a trigger can name.
+    // Bangladesh summers: wet the back, never the head (DLS GLPP 2023 §14.1.7). Asked every feed — there is no season
+    // a trigger can name — and answered either way.
     {
       id: "cool",
       text: {
@@ -119,7 +119,13 @@ const feeding = (): SopContent => ({
         en: "On a hot day, wet their backs — never the head",
       },
       repeatPerAnimal: false,
-      evidence: [{ type: "tick", required: false }],
+      // Said either way, so a winter's feed does not read as backs wetted.
+      evidence: [
+        choice(true, [
+          ["wetted", "পিঠে পানি দেওয়া হয়েছে", "Backs wetted"],
+          ["not_hot", "আজ গরম নয়", "Not hot today"],
+        ]),
+      ],
       skipReasons: [],
     },
   ],

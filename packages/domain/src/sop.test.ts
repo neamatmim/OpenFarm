@@ -5,6 +5,7 @@ import {
   describeChanges,
   findStructuralProblems,
   maySkip,
+  isOneTap,
   missingEvidence,
   nothingToNoteOf,
 } from "./sop";
@@ -187,5 +188,37 @@ describe("passing an animal as well", () => {
     expect(
       nothingToNoteOf({ skipReasons: [{ bn: "সুস্থ — চোখে পড়ার মতো কিছু নেই" }] })
     ).toBeNull();
+  });
+});
+
+describe("a Step done in one tap", () => {
+  const tick = { type: "tick" as const, required: true };
+  it("is a tick and nothing else, with nothing to skip it with and nothing it writes", () => {
+    expect(
+      isOneTap({ repeatPerAnimal: false, evidence: [tick], skipReasons: [] })
+    ).toBe(true);
+    expect(
+      isOneTap({ repeatPerAnimal: false, evidence: [], skipReasons: [] })
+    ).toBe(true);
+  });
+
+  it("is never a Step with a figure, a choice, a reason to skip, an Effect, or one done at each animal", () => {
+    const base = { repeatPerAnimal: false, evidence: [tick], skipReasons: [] };
+    expect(
+      isOneTap({
+        ...base,
+        evidence: [tick, { type: "photo" as const, required: false }],
+      })
+    ).toBe(false);
+    expect(isOneTap({ ...base, skipReasons: [{ bn: "ওষুধ শেষ" }] })).toBe(false);
+    expect(isOneTap({ ...base, effect: { kind: "treatment" } })).toBe(false);
+    expect(isOneTap({ ...base, repeatPerAnimal: true })).toBe(false);
+  });
+
+  it("is not the feed's hot-day Step, which says whether it was hot", () => {
+    const cool = standardPlaybook().feeding.steps.find(
+      (step) => step.id === "cool"
+    );
+    expect(cool && isOneTap(cool)).toBe(false);
   });
 });

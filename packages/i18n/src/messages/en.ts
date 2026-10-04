@@ -3984,6 +3984,7 @@ export const en = {
   "work.outOfRange": "That is outside the usual range. Keep it?",
   "work.keepAnyway": "Yes, keep it",
   "work.lastTime": "Last time {figure} {unit}",
+  "work.tapWhenDone": "Tap when done",
   "work.farFromLast": "Last time it was {figure} {unit}. Is this right?",
   "work.finish": "Finish",
   "work.finished": "Finished — waiting for sign-off",

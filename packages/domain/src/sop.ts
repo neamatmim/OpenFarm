@@ -1208,6 +1208,16 @@ export const maySkip = (
   step.repeatPerAnimal ||
   (step.effect !== undefined && EFFECTS_THAT_MAY_SKIP.has(step.effect.kind));
 
+/** A Step answered by doing it: a tick and nothing else — no figure, note, choice or photograph, nothing to skip it
+ *  with, and nothing it writes beyond the tick. Its row is done in one tap, without a sheet to confirm on. */
+export const isOneTap = (
+  step: Pick<Step, "repeatPerAnimal" | "evidence" | "skipReasons" | "effect">
+): boolean =>
+  !step.repeatPerAnimal &&
+  step.effect === undefined &&
+  step.skipReasons.length === 0 &&
+  step.evidence.every((item) => item.type === "tick");
+
 /** One thing that is different between two Versions of an SOP, in the terms somebody who
  *  does the work would put it. Rendered by the reader's app in their own language. */
 export type SopChange =

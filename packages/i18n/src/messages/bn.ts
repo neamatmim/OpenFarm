@@ -3739,6 +3739,7 @@ export const bn: Record<MessageKey, string> = {
   "work.outOfRange": "এটি স্বাভাবিকের বাইরে। রাখবেন?",
   "work.keepAnyway": "হ্যাঁ, রাখুন",
   "work.lastTime": "গতবার {figure} {unit}",
+  "work.tapWhenDone": "হয়ে গেলে চাপুন",
   "work.farFromLast": "গতবার ছিল {figure} {unit}। এটা কি ঠিক?",
   "work.finish": "শেষ করুন",
   "work.finished": "শেষ — অনুমোদনের অপেক্ষায়",

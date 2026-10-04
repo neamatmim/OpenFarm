@@ -305,6 +305,30 @@ export const nextInRound = (
   return inTurn.find((one) => !done.has(one.id))?.id ?? null;
 };
 
+/** Whether every Step of the work has its entry — the one done at each animal for every animal — in the work as the
+ *  phone now holds it. */
+export const everythingRecorded = (
+  work:
+    | {
+        content: { steps: Pick<Step, "id" | "repeatPerAnimal">[] };
+        animals: { id: string }[];
+        completions: { stepId: string; animalId: string | null }[];
+      }
+    | undefined
+): boolean => {
+  if (!work) {
+    return false;
+  }
+  const done = new Set(
+    work.completions.map((one) => `${one.stepId}:${one.animalId ?? ""}`)
+  );
+  return work.content.steps.every((step) =>
+    step.repeatPerAnimal
+      ? work.animals.every((beast) => done.has(`${step.id}:${beast.id}`))
+      : done.has(`${step.id}:`)
+  );
+};
+
 /** One count of the round — done, skipped or left — as a word with its icon, never its colour alone. */
 const TallyCount = ({
   icon: Icon,
@@ -398,10 +422,13 @@ export const WorkHeader = ({
 export const StepRow = ({
   step,
   done,
+  oneTap = false,
   onOpen,
 }: {
   step: Step;
   done: boolean;
+  /** Done on the tap, with no sheet: drawn as a box to tick rather than a way in. */
+  oneTap?: boolean;
   onOpen: () => void;
 }) => {
   const { t } = useLanguage();
@@ -431,9 +458,15 @@ export const StepRow = ({
       <span className="flex-1 text-base font-medium">{step.text.bn}</span>
       {done ? (
         <StatusBadge tone="success">{t("work.stepDone")}</StatusBadge>
-      ) : (
+      ) : null}
+      {!done && oneTap ? (
+        <span className="text-muted-foreground text-sm">
+          {t("work.tapWhenDone")}
+        </span>
+      ) : null}
+      {!done && !oneTap ? (
         <ChevronRight aria-hidden className="text-muted-foreground size-5" />
-      )}
+      ) : null}
     </button>
   );
 };

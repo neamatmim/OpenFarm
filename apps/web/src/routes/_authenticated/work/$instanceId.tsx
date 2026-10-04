@@ -1,10 +1,10 @@
 import type { Step } from "@OpenFarm/domain";
-import { isClosingStep, isFinished } from "@OpenFarm/domain";
+import { isClosingStep, isFinished, isOneTap } from "@OpenFarm/domain";
 import { buttonVariants } from "@OpenFarm/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ClipboardList } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { AssignWork } from "@/components/assign-work";
 import { Page } from "@/components/page";
@@ -23,6 +23,7 @@ import {
   NextAnimal,
   roundOf,
   nextInRound,
+  everythingRecorded,
   WorkHeader,
   StepRow,
   AnimalTile,
@@ -60,6 +61,29 @@ import { journeyOf } from "@/lib/step-answer";
 import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
+/** Work opened by Start on the day's list is taken as it opens, once, as the Claim button would take it: not work
+ *  somebody else holds, and not work already under way. */
+const useClaimOnOpen = ({
+  start,
+  work,
+  mine,
+  claim,
+}: {
+  start: true | undefined;
+  work: { state: string } | undefined;
+  mine: boolean;
+  claim: () => void;
+}) => {
+  const claimed = useRef(false);
+  const state = work?.state;
+  useEffect(() => {
+    if (start && state === "due" && mine && !claimed.current) {
+      claimed.current = true;
+      claim();
+    }
+  }, [start, state, mine, claim]);
+};
+
 /** The pen board: chips for the Steps that happen once, the Pen's animals as photo tiles in
  *  any order, and the closing Step only when everything else is done. */
 const WorkPage = () => {
@@ -76,6 +100,8 @@ const WorkPage = () => {
     orpc.work.get.queryOptions({ input: { id: instanceId } })
   );
   const someoneElse = useHeldByOther(instance.data);
+  // Opened by tapping Start on the day's list: taken as it opens, as the Claim button would take it.
+  const { start } = Route.useSearch();
   // What this phone last knew of the herd. With no signal the board still has to say which
   // cow may not go to the tank: a shed with no bars is exactly where that mistake is made.
   const herd = useQuery(herdCacheQuery);
@@ -94,20 +120,37 @@ const WorkPage = () => {
     },
     onError,
   });
+  const finish = useMutation({
+    mutationFn: () => finishInstance(queryClient, instanceKey, instanceId),
+    onSuccess: () => {
+      toast.success(t(finishedWord(instance.data?.checkerRole)));
+      navigate({ to: "/work" });
+    },
+    onError,
+  });
   /**
    * Recording goes into the Outbox and onto the screen, in that order, and the farm hears
    * about it when there is signal. A milker in a shed cannot wait for a round trip that may
    * not be possible for hours (ADR 0002).
    */
+  useClaimOnOpen({
+    start,
+    work: instance.data,
+    mine: someoneElse === null,
+    claim: claim.mutate,
+  });
   const record = useMutation({
     mutationFn: (entry: StepRecord) =>
       recordStep(queryClient, instanceKey, entry),
     onSuccess: (_id, entry) => {
       // On to the next animal the round has not reached, not back to the board: a milker goes cow to cow.
-      setOpenAnimalId(
-        nextInRound(queryClient.getQueryData(instanceKey), entry.animalId)
-      );
+      const held = queryClient.getQueryData(instanceKey);
+      setOpenAnimalId(nextInRound(held, entry.animalId));
       setOpenStep(null);
+      // The entry that leaves nothing undone finishes the work: a Finish of its own would be one more tap for nothing.
+      if (everythingRecorded(held)) {
+        finish.mutate();
+      }
       // Not a refresh: the screen already shows what was recorded, and refetching now would
       // ask the farm about work it has not been told of yet.
       void queryClient.invalidateQueries({ queryKey: ["outbox"] });
@@ -143,14 +186,6 @@ const WorkPage = () => {
       },
     })
   );
-  const finish = useMutation({
-    mutationFn: () => finishInstance(queryClient, instanceKey, instanceId),
-    onSuccess: () => {
-      toast.success(t(finishedWord(instance.data?.checkerRole)));
-      navigate({ to: "/work" });
-    },
-    onError,
-  });
 
   if (!instance.data) {
     return <WorkNotShown error={instance.error} />;
@@ -169,10 +204,16 @@ const WorkPage = () => {
     changed,
     runningOn,
   } = instance.data;
+  /** A Step answered by doing it is done on the tap; any other opens its sheet. Nothing for work held by another. */
   const openStepIfMine = (step: Step) => {
-    if (!someoneElse) {
-      setOpenStep(step);
+    if (someoneElse) {
+      return;
     }
+    if (isOneTap(step) && !doneFor(step.id)) {
+      send(step, undefined, { evidence: step.evidence.map(() => true) });
+      return;
+    }
+    setOpenStep(step);
   };
   const openAnimalIfMine = (beast: Animal) => {
     if (!someoneElse) {
@@ -381,6 +422,7 @@ const WorkPage = () => {
               <StepRow
                 done={Boolean(doneFor(step.id))}
                 key={step.id}
+                oneTap={isOneTap(step)}
                 onOpen={() => openStepIfMine(step)}
                 step={step}
               />
@@ -442,4 +484,7 @@ const WorkPage = () => {
 export const Route = createFileRoute("/_authenticated/work/$instanceId")({
   staticData: { focusedWork: true },
   component: WorkPage,
+  /** Opened by Start on the day's list, which means take it: the page claims it as it opens. */
+  validateSearch: (search: Record<string, unknown>): { start?: true } =>
+    search.start === true || search.start === "true" ? { start: true } : {},
 });
