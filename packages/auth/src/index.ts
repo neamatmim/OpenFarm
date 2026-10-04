@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 
 import type { Database } from "@OpenFarm/db";
-import { createDb } from "@OpenFarm/db";
+import { sharedDatabase } from "@OpenFarm/db";
 import * as schema from "@OpenFarm/db/schema/auth";
 import { env } from "@OpenFarm/env/server";
 import { DEFAULT_LANGUAGE, isLanguage, translate } from "@OpenFarm/i18n";
@@ -51,7 +51,7 @@ const turnAwayWhoWasNotAsked = (db: Database) =>
         message: translate(DEFAULT_LANGUAGE, "auth.notInvited"),
       });
     }
-const theFarm = await db.query.farm.findFirst({ columns: { id: true } });
+    const theFarm = await db.query.farm.findFirst({ columns: { id: true } });
     if (!theFarm) {
       // Nobody has set the farm up yet, so there is nobody who could have invited them: the server names who may.
       const first = whoMayOpenTheFarm(email, {
@@ -279,7 +279,7 @@ export const createAuth = (
   against?: Database,
   where: AnsweringOn = AT_THE_FARM
 ) => {
-  const db = against ?? createDb(env.DATABASE_URL);
+  const db = against ?? sharedDatabase(env.DATABASE_URL);
   const { baseURL, trustedOrigins } = originsFor(where);
 
   return betterAuth({

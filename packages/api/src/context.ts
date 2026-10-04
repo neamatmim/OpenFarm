@@ -1,6 +1,6 @@
 import { auth } from "@OpenFarm/auth";
 import type { Database } from "@OpenFarm/db";
-import { createDb } from "@OpenFarm/db";
+import { sharedDatabase } from "@OpenFarm/db";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
 import { ACTIVE_ASSIGNMENT } from "@OpenFarm/db/schema/herd";
@@ -241,12 +241,9 @@ const defaultPush = (): PushTransport => {
   return productionPush;
 };
 
-let productionDb: Database | undefined;
-/** The process-wide database pool used by requests, the scheduler, and readiness checks. */
-export const productionDatabase = (): Database => {
-  productionDb ??= createDb(env.DATABASE_URL);
-  return productionDb;
-};
+/** The process-wide database pool used by requests, the scheduler, the sign-in and readiness checks. */
+export const productionDatabase = (): Database =>
+  sharedDatabase(env.DATABASE_URL);
 
 /** The database and the ways a notice leaves the farm, as the running server has them — for work the server does on
  *  its own timer rather than for a request. */
