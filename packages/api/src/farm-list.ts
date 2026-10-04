@@ -6,6 +6,7 @@ import type { SnapshotValue, Tx } from "./audit";
 import { audited } from "./audit";
 import type { Context } from "./context";
 import { nameTaken } from "./names";
+import type { AuditEntity } from "./whose-trail";
 
 /**
  * A list the farm keeps — its breeds, its feeds, its medicines, its Categories, its Investors, its notifiable
@@ -19,7 +20,7 @@ import { nameTaken } from "./names";
  */
 export interface FarmList {
   /** What the trail calls an entry. */
-  entity: string;
+  entity: AuditEntity;
   table: PgTable & {
     id: PgColumn;
     farmId: PgColumn;
@@ -214,7 +215,7 @@ export const giveStandardOnce = async <Key extends string>(
     missing,
     give,
   }: {
-    entity: string;
+    entity: AuditEntity;
     /** Which standard entries the farm does not have. */
     missing: () => Promise<readonly Key[]>;
     /** Gives them, answering with the ones actually given. */

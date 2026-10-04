@@ -27,6 +27,7 @@ import type { SnapshotValue, Tx } from "./audit";
 import type { BankStanding } from "./bank-standing";
 import { NEVER_CHECKED, standingOf } from "./bank-standing";
 import { tripCostOf } from "./trip-store";
+import type { AuditEntity } from "./whose-trail";
 
 /** Struck in the domain, because the screen that shows the Owner the price strikes it too. */
 export { priceAtWeight } from "@OpenFarm/domain";
@@ -1298,7 +1299,7 @@ export const reachesSellingOnASale = async (
    *  transaction as the Sale that caused it. */
   trail: (
     tx: Tx,
-    event: { entity: string; entityId: string; action: "update" },
+    event: { entity: AuditEntity; entityId: string; action: "update" },
     snapshots: { before?: SnapshotValue; after?: SnapshotValue }
   ) => Promise<string>
 ) => {

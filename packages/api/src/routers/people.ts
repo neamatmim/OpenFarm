@@ -181,6 +181,9 @@ export const peopleRouter = {
       } as const;
       const [people, pending, approved] = await Promise.all([
         context.db.query.user.findMany({
+          // The farm's own people: those who hold or once held a Role on it. An Investor's portal account holds none,
+          // and who has money in a Venture is the Owner's business, not the People page's.
+          where: { roles: { farmId } },
           columns: { id: true, name: true, email: true, disabledAt: true },
           with: {
             roles: {

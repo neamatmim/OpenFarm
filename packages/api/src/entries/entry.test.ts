@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import type { Recorder } from "../completion-store";
 import { appRouter } from "../routers/index";
 import { createTestClient } from "../test/client";
+import type { AuditEntity } from "../whose-trail";
 import type { EntryKind } from "./entry";
 import { recordHeld } from "./entry";
 
@@ -27,7 +28,8 @@ describe("a visiting Vet", () => {
       roles: ["vet"],
       visitingVet: false,
       trail: () => ({
-        entity: "nothing",
+        // Refused before anything is written, so it names no kind of record the farm keeps.
+        entity: "nothing" as AuditEntity,
         action: "create",
         entityId: () => "nothing",
         after: () => Promise.resolve(null),

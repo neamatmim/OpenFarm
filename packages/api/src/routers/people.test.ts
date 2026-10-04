@@ -88,16 +88,18 @@ describe("invitations", () => {
       .insert(user)
       .values({ id: userId, name: "নতুন হাত", email, emailVerified: true });
 
+    // Signed up, but holding no Role: listed by the invitation they are waiting on, not as one of the farm's people.
     const before = await owner.client.people.list();
-    expect(before.people.find((p) => p.id === userId)?.roles).toEqual([]);
+    expect(before.people.some((p) => p.id === userId)).toBe(false);
     expect(before.pendingInvites.some((i) => i.id === invited.id)).toBe(true);
 
     await owner.client.people.approveInvite({ id: invited.id });
 
     // Approved, but not taken up: the Roles wait for the person to enter the code they were handed.
     const after = await owner.client.people.list();
-    expect(after.people.find((p) => p.id === userId)?.roles).toEqual([]);
+    expect(after.people.some((p) => p.id === userId)).toBe(false);
     expect(after.pendingInvites.some((i) => i.id === invited.id)).toBe(false);
+    expect(after.awaitingSignup.some((i) => i.id === invited.id)).toBe(true);
   });
 
   it("a Manager may not invite anyone but Staff", async () => {

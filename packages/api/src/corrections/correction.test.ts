@@ -12,6 +12,7 @@ import { appRouter } from "../routers/index";
 import { requireAnimalInScope } from "../scope";
 import { createTestClient } from "../test/client";
 import { A_DEATH_PHOTO } from "../test/death-photo";
+import type { AuditEntity } from "../whose-trail";
 import type { Change, CorrectionKind } from "./correction";
 import { correct } from "./correction";
 
@@ -639,7 +640,8 @@ describe("the Role a Correction is made under", () => {
       { note?: Change<string, string> },
       { roleUsed: string }
     > = {
-      entity: "correction_under_test",
+      // A kind of record that exists only in this test, so no list of the farm's names it.
+      entity: "correction_under_test" as AuditEntity,
       table: sale,
       roles: ["staff", "vet"],
       visitingVet: true,

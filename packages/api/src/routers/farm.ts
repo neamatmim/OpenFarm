@@ -20,6 +20,13 @@ import type { CalvingWorkFollowed } from "../calving-work";
 import { dataKeepersInput, readKeepers } from "../data-keepers";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure, publicProcedure } from "../index";
+import type { OwnersFigure } from "../owners-figures";
+import {
+  A_VENTURES_OWN,
+  WHEN_A_SHORT_STORE_IS_TOLD,
+  theOwnersFigures,
+  withoutTheOwnersFigures,
+} from "../owners-figures";
 import { photoInput } from "../photo-input";
 import { certificatesOf, keepCertificate } from "../registration-store";
 import type { RoleName } from "../roles";
@@ -226,20 +233,6 @@ const identity = z
     { message: "Nothing to change" }
   );
 
-/** The Parameters a Venture is planned and watched by, which are the Owner's to set as the Venture is
- *  hers. The rest are the running of the farm, which the Manager keeps. */
-const A_VENTURES_OWN = [
-  "ventureFloorPercent",
-  "ventureRunningPercent",
-  "ventureInvestorsPercent",
-  "windUpDays",
-  "priceWeighInDays",
-  "adjustmentThresholdMoney",
-  "investorCap",
-  "investorWarnAt",
-  "runningBudgetWarnMoney",
-] as const;
-
 /** What the Owner's keep-or-sell figures and list of cows to think about culling read: the Owner's to set, as the two
  *  are theirs to read. */
 const WHAT_KEEP_AND_CULL_READ = [
@@ -264,23 +257,6 @@ const HOW_LONG_RECEIVABLE_MAY_RUN = ["receivableDays"] as const;
 
 /** When the Owner is asked to write a missing animal off: the Owner's, as the write-off is. */
 const WHEN_A_MISSING_ANIMAL_IS_ASKED_ABOUT = ["missingWriteOffDays"] as const;
-
-/** When a count's shortfall is told: the Owner's to set, as the count is the one check on the Manager's feed. */
-const WHEN_A_SHORT_STORE_IS_TOLD = [
-  "storeShortfallTellMoney",
-  // Milk nobody can account for is checked on the Manager, as the store is.
-  "milkUnaccountedPercent",
-  // And what the Manager paid for the feed.
-  "feedPriceJumpPercent",
-  // And the weight the Manager bought a bull at.
-  "arrivalShortPercent",
-  // And the weight he sold one at.
-  "shrinkTellPercent",
-  // And the cash in the Manager's hand.
-  "cashShortTellMoney",
-  // And the medicine the Manager buys and counts.
-  "medicineShortTellMoney",
-] as const;
 
 type ParametersInput = z.infer<typeof parameters>;
 
@@ -524,40 +500,20 @@ export const farmRouter = {
     if (onlyOnAVisit(context) || context.roles.length === 0) {
       return { id: context.farm.id, name: context.farm.name };
     }
-    // The Approval Threshold is a money figure, and money is not Barn Staff's or the Vet's to see; the
-    // three a Venture is planned by are the Owner's alone, as a Venture is.
-    const {
-      approvalThresholdMoney,
-      ventureFloorPercent,
-      ventureRunningPercent,
-      ventureInvestorsPercent,
-      windUpDays,
-      priceWeighInDays,
-      adjustmentThresholdMoney,
-      investorCap,
-      investorWarnAt,
-      runningBudgetWarnMoney,
-      ...withoutMoney
-    } = context.farm;
-    const planning = context.roles.some((role) => role === "owner")
-      ? {
-          ventureFloorPercent,
-          ventureRunningPercent,
-          ventureInvestorsPercent,
-          windUpDays,
-          priceWeighInDays,
-          adjustmentThresholdMoney,
-          investorCap,
-          investorWarnAt,
-          runningBudgetWarnMoney,
-        }
+    // The Approval Threshold is a money figure, and money is not Barn Staff's or the Vet's to see. What a Venture is
+    // planned by, the market price and the lines the Manager's counts are told past are the Owner's alone to read.
+    const { approvalThresholdMoney, ...rest } = context.farm;
+    const isOwner = context.roles.some((role) => role === "owner");
+    const readsMoney =
+      isOwner || context.roles.some((role) => role === "manager");
+    const owners: Partial<Pick<typeof context.farm, OwnersFigure>> = isOwner
+      ? theOwnersFigures(context.farm)
       : {};
-    const readsMoney = context.roles.some(
-      (role) => role === "owner" || role === "manager"
-    );
-    return readsMoney
-      ? { ...withoutMoney, ...planning, approvalThresholdMoney }
-      : withoutMoney;
+    return {
+      ...withoutTheOwnersFigures(rest),
+      ...(readsMoney ? { approvalThresholdMoney } : {}),
+      ...owners,
+    };
   }),
 
   /**
