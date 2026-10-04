@@ -1,6 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { DEFAULT_FARM_LOCALE, setFarmLocale } from "@OpenFarm/i18n";
+import { afterEach, describe, expect, it } from "vitest";
 
-import { fromTheFirstWithAnything, lastMonth, saidMonth } from "./months";
+import {
+  fromTheFirstWithAnything,
+  lastMonth,
+  saidFinancialYear,
+  saidMonth,
+} from "./months";
 
 // A month is stored as 2026-08 and read as আগস্ট ২০২৬. Two screens say one — a Venture's bank badge and the line on
 // the Owner's own page — and a farm that has to decode a date format in the middle of a Bangla sentence has been
@@ -66,5 +72,24 @@ describe("the months a farm is shown", () => {
       month("2026-09", 0),
     ]);
     expect(shown.map((one) => one.name)).toEqual(["2026-09"]);
+  });
+});
+
+describe("a financial year's name", () => {
+  afterEach(() => {
+    setFarmLocale(DEFAULT_FARM_LOCALE);
+  });
+
+  it("is both its years, as the accountant writes the income year, in the reader's digits", () => {
+    expect(saidFinancialYear(2025, "en")).toBe("2025–26");
+    expect(saidFinancialYear(2025, "bn")).toBe("২০২৫–২৬");
+    expect(saidFinancialYear(2099, "en")).toBe("2099–00");
+    expect(saidFinancialYear(2008, "bn")).toBe("২০০৮–০৯");
+  });
+
+  it("is one year on a farm whose year is the calendar's", () => {
+    setFarmLocale({ ...DEFAULT_FARM_LOCALE, yearStarts: 1 });
+
+    expect(saidFinancialYear(2025, "bn")).toBe("২০২৫");
   });
 });

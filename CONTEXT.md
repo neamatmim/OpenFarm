@@ -413,6 +413,8 @@ One still gathering capital comes from its plan alone: every band bought at its 
 
 **Entered Twice**: Money entered by hand that looks like money already entered — the same person, whatever the capitals, the same taka, the same farm day. It is not kept until whoever entered it has seen the earlier one and said it really is a second; kept so, by anybody but the Owner, it is told to the Owner in the evening's post. A wage is never asked: one wage a person a month is its own rule. _Avoid_: Duplicate (it may be two real bills), double entry
 
+**Financial Year**: The farm's year for its books: twelve months from the month the farm's server says it begins in — July for a farm in Bangladesh, whose income year runs from July to June (ADR 0016). Named by the calendar year it begins in, and said as the accountant writes it: 2025–26, ২০২৫–২৬. The Monthly report reads one the Owner picks, this one up to this month; the money page's period is a press away from this one or the last. Fixed with the server, never a Farm Parameter: a farm that moved it would move every year it had already reported. _Avoid_: Fiscal year, FY, tax year, অর্থ বছর (two words)
+
 ## Access
 
 **Role**: One of Owner, Manager, Staff, Vet. A person may hold several; every recorded action names the Role it was done under. _Avoid_: Permission level, user type, group

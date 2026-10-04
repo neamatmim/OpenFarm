@@ -8,6 +8,7 @@ import {
   isCountry,
   isCurrencyCode,
   isTimeZone,
+  isYearStart,
 } from "@OpenFarm/i18n";
 import {
   createIsomorphicFn,
@@ -51,16 +52,17 @@ export const pageHost = createIsomorphicFn()
       : "farm"
   );
 
-/** Where the server writes where the farm is — its currency, its time zone and its country — for the browser to read
- *  back. */
+/** Where the server writes where the farm is — its currency, its time zone, its country and the month its year begins
+ *  in — for the browser to read back. */
 export const CURRENCY_ATTRIBUTE = "data-currency";
 export const TIME_ZONE_ATTRIBUTE = "data-time-zone";
 export const COUNTRY_ATTRIBUTE = "data-country";
+export const YEAR_STARTS_ATTRIBUTE = "data-year-starts";
 
 /**
  * Where the farm is (ADR 0013): the server's own setting while it writes the page, and in the browser what it wrote on
  * the page's root — so a phone opening the page it kept, with no signal, reads its sums and days as the server would.
- * A page kept from before the server wrote either is read as a farm in Bangladesh, as it was then.
+ * A page kept from before the server wrote any of them is read as a farm in Bangladesh, as it was then.
  */
 export const pageFarmLocale = createIsomorphicFn()
   .server((): FarmLocale => farmLocale())
@@ -69,12 +71,16 @@ export const pageFarmLocale = createIsomorphicFn()
     const currency = root.getAttribute(CURRENCY_ATTRIBUTE) ?? "";
     const timeZone = root.getAttribute(TIME_ZONE_ATTRIBUTE) ?? "";
     const country = root.getAttribute(COUNTRY_ATTRIBUTE) ?? "";
+    const yearStarts = Number(root.getAttribute(YEAR_STARTS_ATTRIBUTE));
     return {
       currency: isCurrencyCode(currency)
         ? currency
         : DEFAULT_FARM_LOCALE.currency,
       timeZone: isTimeZone(timeZone) ? timeZone : DEFAULT_FARM_LOCALE.timeZone,
       country: isCountry(country) ? country : DEFAULT_FARM_LOCALE.country,
+      yearStarts: isYearStart(yearStarts)
+        ? yearStarts
+        : DEFAULT_FARM_LOCALE.yearStarts,
     };
   });
 

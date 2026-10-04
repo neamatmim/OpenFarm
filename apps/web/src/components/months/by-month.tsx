@@ -1,7 +1,7 @@
 import { startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Beef, Briefcase, Milk, Receipt, Scale } from "lucide-react";
 
@@ -13,11 +13,11 @@ import {
 } from "@/components/data-table";
 import { Nothing } from "@/components/list-cells";
 import { EmptyState, Notice, StatusBadge } from "@/components/page";
-import { SummaryFigures } from "@/components/page-kit";
+import { NativeSelect, SummaryFigures } from "@/components/page-kit";
 import { StateBadge } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
 import { usePerHeadPerDay, useMoney, useMoneyRate } from "@/lib/money";
-import { saidMonth } from "@/lib/months";
+import { saidFinancialYear, saidMonth } from "@/lib/months";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
@@ -26,8 +26,57 @@ type Month = ByMonth["months"][number];
 type Stretch = ByMonth["year"];
 type VentureAgainstPlan = ByMonth["ventures"][number];
 
-/** The farm month by month, the Owner's alone. */
-export const useByMonth = () => useQuery(orpc.monthlyReport.get.queryOptions());
+/** The farm month by month, the Owner's alone: the last twelve months, or the financial year asked for. The months
+ *  already drawn stay while another year's are asked for, so the page does not empty and refill. */
+export const useByMonth = (financialYear?: number) =>
+  useQuery({
+    ...orpc.monthlyReport.get.queryOptions({
+      input: financialYear === undefined ? {} : { financialYear },
+    }),
+    placeholderData: keepPreviousData,
+  });
+
+/**
+ * Which months the report reads: the last twelve, or one of the financial years the farm has kept money in, this one
+ * so far. The phone's own picker, as the list grows a year at a time.
+ */
+export const YearPicker = ({
+  years,
+  chosen,
+  onChoose,
+}: {
+  years: readonly number[];
+  chosen: number | null;
+  onChoose: (year: number | null) => void;
+}) => {
+  const { t, language } = useLanguage();
+  const [thisYear] = years;
+  // A year asked for in the address that the farm does not list yet is still offered, so the picker says what is shown.
+  const offered =
+    chosen === null || years.includes(chosen) ? years : [chosen, ...years];
+  return (
+    <NativeSelect
+      aria-label={t("months.whichYear")}
+      className="sm:w-64"
+      onChange={(event) =>
+        onChoose(event.target.value === "" ? null : Number(event.target.value))
+      }
+      value={chosen === null ? "" : String(chosen)}
+    >
+      <option value="">{t("months.lastTwelve")}</option>
+      {offered.map((year) => (
+        <option key={year} value={String(year)}>
+          {t(
+            year === thisYear
+              ? "months.financialYearSoFar"
+              : "months.financialYear",
+            { year: saidFinancialYear(year, language) }
+          )}
+        </option>
+      ))}
+    </NativeSelect>
+  );
+};
 
 /** The year in four figures: what the Farm's own money came to, the milk sold beside what the dairy cows cost, and the
  *  Margins on the fattening animals sold. */

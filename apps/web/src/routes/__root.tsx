@@ -22,6 +22,7 @@ import {
   CURRENCY_ATTRIBUTE,
   HOST_ATTRIBUTE,
   TIME_ZONE_ATTRIBUTE,
+  YEAR_STARTS_ATTRIBUTE,
   pageFarmLocale,
   pageHost,
   pageLanguage,
@@ -57,12 +58,13 @@ const RootDocument = () => {
   // Which address this is and where the farm is, written on the page for the browser to read back
   // (lib/page-context).
   const host = pageHost();
-  const { currency, timeZone, country } = pageFarmLocale();
+  const { currency, timeZone, country, yearStarts } = pageFarmLocale();
   const written = {
     [HOST_ATTRIBUTE]: host,
     [CURRENCY_ATTRIBUTE]: currency,
     [TIME_ZONE_ATTRIBUTE]: timeZone,
     [COUNTRY_ATTRIBUTE]: country,
+    [YEAR_STARTS_ATTRIBUTE]: yearStarts,
   };
   return (
     // The theme class lands on the html element before React arrives, from what this device chose.
