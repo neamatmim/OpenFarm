@@ -75,3 +75,24 @@ proven by a failing test yet. That is the first step of any ticket built from th
   - Keep-or-sell, Margin and Return on Cost per Season and Venture.
   - The cull list, heat watch and heifer watch.
   - Death rate on head-years; calf losses with stillbirths apart; early losses by seller.
+
+## Progress
+
+The Owner said "go with recommendation" on 2026-10-04. Built that day in the recommended order, each red first where a
+test could go red, merged one at a time:
+
+| Plan | What was built                                                                                                                                                                                                      | Merge      |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| S1   | `aManagerMayInvite` in domain, read by `planInvite`, `reissueInvite` and the People page                                                                                                                            | `d16ad395` |
+| W3   | `work-about.ts`, `sopInstance.dose`: the work list, claim screen and board name her tag, the drug, the amount and the dose number                                                                                   | `0c0546cf` |
+| H1   | Doubted Weigh-ins left out of seven reads (the Internal Sale's price among them); the milk average of the days before today; the calf-loss share over calves `oldEnough`; deaths counted on the Side of each day    | `360911fe` |
+| S2   | `whose-trail.ts` (every audited record named farm or Owner, typed), `owners-figures.ts` (`farm.current` and `farm` events), People lists Role holders only, the fodder price kept from Staff and the Vet            | `e1db36fc` |
+| W1–4 | `nothing_to_note` and "the other N are well"; cow to cow with the box ready and her last figure (`last-figures.ts`, `farFromLast`); claimed on Start; one-tap Steps; finished on the last entry; the hot-day choice | `f6ed0ec3` |
+| H2   | `domain/fertility.ts`, `breeding.fertility`, the Fertility page                                                                                                                                                     | `d8ae2ede` |
+| H3   | Her Lactation on her page (`lactationSummary`); litres to Bulk per cow milked, a day, by month (`litresPerCowMilked`)                                                                                               | `1e04e291` |
+
+Not built yet:
+
+- **S3 and S4** wait for the Owner's answers to the questions above.
+- **H1(5)** was left as suspect: whether a Venture herd's ADG should count only the animals still standing.
+- **W5–W7, H4–H6 and S5** wait for the farm's 30 days.
