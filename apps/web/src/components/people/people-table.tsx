@@ -1,5 +1,5 @@
 import type { RoleName } from "@OpenFarm/domain";
-import { aManagerMayInvite } from "@OpenFarm/domain";
+import { aManagerMayInvite, worksOnlyOnShedPhones } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Badge } from "@OpenFarm/ui/components/badge";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -145,14 +145,25 @@ const PersonName = ({
   );
 };
 
-const NameCell = ({ row }: { row: { original: PersonRow } }) => (
-  <span className="flex min-w-0 flex-col gap-0.5">
-    <PersonName row={row.original} />
-    <span className="text-muted-foreground text-sm break-all">
-      {row.original.email}
+/** The address a person signs in with — or, for somebody who works only on the shed phones, that they do: the address
+ *  kept for them is nobody's to read. */
+export const useAddressShown = () => {
+  const t = useT();
+  return (email: string) =>
+    worksOnlyOnShedPhones(email) ? t("people.shedPhoneOnlyShown") : email;
+};
+
+const NameCell = ({ row }: { row: { original: PersonRow } }) => {
+  const addressShown = useAddressShown();
+  return (
+    <span className="flex min-w-0 flex-col gap-0.5">
+      <PersonName row={row.original} />
+      <span className="text-muted-foreground text-sm break-all">
+        {addressShown(row.original.email)}
+      </span>
     </span>
-  </span>
-);
+  );
+};
 
 const RolesCell = ({ row }: { row: { original: PersonRow } }) => (
   <RoleBadges roles={row.original.roles} />
@@ -212,6 +223,7 @@ const personColumns = column.columns([
 /** One name on the list, on a phone: who, how they stand, what they are and hold beneath, and what can be done. */
 const PersonCard = ({ row }: { row: PersonRow }) => {
   const t = useT();
+  const addressShown = useAddressShown();
   const roles = row.roles.map((role) => t(roleKey(role))).join(", ");
   return (
     <div className="flex items-start justify-between gap-3">
@@ -222,7 +234,7 @@ const PersonCard = ({ row }: { row: PersonRow }) => {
           {[
             roles,
             row.pens > 0 ? t("people.pensHeld", { count: row.pens }) : "",
-            row.email,
+            addressShown(row.email),
           ]
             .filter(Boolean)
             .join(" · ")}

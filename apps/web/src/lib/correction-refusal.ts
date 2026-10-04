@@ -270,6 +270,7 @@ const WORDED_REFUSALS = {
   period_backwards: "refusal.periodBackwards",
   personal_phone_only: "refusal.personalPhoneOnly",
   pin_is_for_staff: "refusal.pinIsForStaff",
+  shed_phone_only: "refusal.shedPhoneOnly",
   period_too_long: "refusal.periodTooLong",
   purchase_needs_price_and_seller: "refusal.purchaseNeedsPriceAndSeller",
   received_in_the_future: "refusal.receivedInTheFuture",
