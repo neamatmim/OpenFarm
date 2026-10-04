@@ -925,6 +925,13 @@ export const bn: Record<MessageKey, string> = {
   "params.alerts": "সতর্কবার্তা ও নীরব সময়",
   "params.records": "রেকর্ড",
   "params.pinAutoLock": "শেডের ফোন লক হবে",
+  "animals.groupTick": "{tag} সরানোর জন্য বাছুন",
+  "animals.groupChosen": "{count}টি পশু বাছা হয়েছে",
+  "animals.groupMove": "{count}টি পশু সরান",
+  "animals.groupMoved": "{count}টি পশু সরানো হয়েছে",
+  "animals.groupQueued": "{count}টি সরানো এই ফোনে রাখা আছে, নেটওয়ার্ক পেলে পাঠানো হবে",
+  "animals.groupAlreadyThere": "{count}টি পশু আগে থেকেই ওই পেনে আছে",
+  "animals.groupRefused": "{count}টি পশু সরানো যায়নি: কেন, তা তার পাতায় দেখুন",
   "params.breeding": "প্রজনন ক্যালেন্ডার",
   "params.fatteningAndPapers": "মোটাতাজাকরণ ও কাগজপত্র",
   "params.alertsHint":
