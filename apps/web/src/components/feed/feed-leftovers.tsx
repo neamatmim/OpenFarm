@@ -161,6 +161,7 @@ const leftoverColumns = column.columns([
   column.accessor("givenKg", {
     header: listHeader("leftovers.col.given"),
     cell: GivenCell,
+    meta: { align: "end" },
   }),
   column.accessor("leftoverPercent", {
     header: listHeader("leftovers.col.left"),

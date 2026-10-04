@@ -114,12 +114,7 @@ const DueCell = ({ row }: CheckCell) => (
   </span>
 );
 
-/** In the table the buttons sit level with the row's line of text, not below it. */
-const ButtonsCell = ({ row }: CheckCell) => (
-  <div className="-my-1.5">
-    <CheckButtons row={row.original} />
-  </div>
-);
+const ButtonsCell = ({ row }: CheckCell) => <CheckButtons row={row.original} />;
 
 const column = createListColumns<CheckRow>();
 const checkColumns = column.columns([

@@ -12,6 +12,7 @@ import {
 } from "@OpenFarm/ui/components/table";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import type {
+  Cell,
   CellData,
   Header,
   Table as TableInstance,
@@ -127,6 +128,37 @@ export const listHeader = (key: MessageKey) => {
 export const ActionsHeader = () => (
   <span className="sr-only">{useT()("common.col.actions")}</span>
 );
+
+/**
+ * One cell of a row. Cells start at their top, so a row of several lines reads across from its first. A column of
+ * buttons (one headed by `ActionsHeader`) is drawn a little higher, so the words on a button sit on the row's first
+ * line of text rather than below it — a button is taller than a line.
+ */
+const BodyCell = <TData extends object>({
+  cell,
+}: {
+  cell: Cell<typeof listFeatures, TData, CellData>;
+}) => {
+  const look = cell.column.columnDef.meta;
+  const buttons = cell.column.columnDef.header === ActionsHeader;
+  return (
+    <TableCell
+      className={cn(
+        "align-top whitespace-normal first:pl-4 last:pr-4 md:first:pl-5 md:last:pr-5",
+        look?.align === "end" && "text-right tabular-nums",
+        look?.className
+      )}
+    >
+      {buttons ? (
+        <div className="-my-1.5">
+          <FlexRender cell={cell} />
+        </div>
+      ) : (
+        <FlexRender cell={cell} />
+      )}
+    </TableCell>
+  );
+};
 
 const SORT_ICON = { asc: ArrowUp, desc: ArrowDown } as const;
 
@@ -460,21 +492,9 @@ export const DataTable = <TData extends object>({
                         </Button>
                       </TableCell>
                     ) : null}
-                    {row.getAllCells().map((cell) => {
-                      const look = cell.column.columnDef.meta;
-                      return (
-                        <TableCell
-                          className={cn(
-                            "align-top whitespace-normal first:pl-4 last:pr-4 md:first:pl-5 md:last:pr-5",
-                            look?.align === "end" && "text-right tabular-nums",
-                            look?.className
-                          )}
-                          key={cell.id}
-                        >
-                          <FlexRender cell={cell} />
-                        </TableCell>
-                      );
-                    })}
+                    {row.getAllCells().map((cell) => (
+                      <BodyCell cell={cell} key={cell.id} />
+                    ))}
                   </TableRow>
                   {renderDetail && isOpen ? (
                     <TableRow className="hover:bg-transparent" id={detailId}>

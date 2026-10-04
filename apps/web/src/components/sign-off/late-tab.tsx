@@ -94,7 +94,7 @@ const WhereCell = ({ row }: LateCell) => {
 const LateCellView = ({ row }: LateCell) => <Lateness row={row.original} />;
 
 const MissedCell = ({ row }: LateCell) => (
-  <div className="-my-1.5 flex justify-end">
+  <div className="flex justify-end">
     <MissedButton row={row.original} />
   </div>
 );

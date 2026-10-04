@@ -255,8 +255,9 @@ const WhatCell = ({ row }: { row: { original: MoneyRow } }) => (
 const WithCell = ({ row }: { row: { original: MoneyRow } }) =>
   row.original.event.counterpartyName ?? <Nothing />;
 
+/** Its Approval, and the button that gives it: drawn a little higher, so the words sit on the row's line of text. */
 const StatusCell = ({ row }: { row: { original: MoneyRow } }) => (
-  <div className="flex flex-wrap items-center gap-2">
+  <div className="-my-1.5 flex flex-wrap items-center gap-2">
     <Approval event={row.original.event} />
     <ApproveButton row={row.original} />
   </div>

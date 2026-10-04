@@ -106,7 +106,7 @@ const WhyCell = ({ row }: ReviewCell) =>
   );
 
 const ResolveCell = ({ row }: ReviewCell) => (
-  <div className="-my-1.5 flex justify-end">
+  <div className="flex justify-end">
     <ResolveButton row={row.original} />
   </div>
 );

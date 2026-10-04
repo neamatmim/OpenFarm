@@ -152,7 +152,7 @@ const AnimalsCell = ({ row }: PenCell) => (
 );
 
 const RenameCell = ({ row }: PenCell) => (
-  <div className="-my-1.5 flex items-center justify-end gap-3">
+  <div className="flex items-center justify-end gap-3">
     <QuarantineMark row={row.original} />
     <PenMenu row={row.original} />
   </div>
