@@ -2344,6 +2344,7 @@ export const en = {
   "audit.entity.investor": "Investor",
   "audit.entity.nomination": "Nomination",
   "audit.entity.bank_rate": "Bank rate",
+  "audit.entity.financial_year_change": "Change of financial year",
   "audit.entity.invite": "Invite",
   "audit.entity.farm": "Farm",
   "audit.system": "System",
@@ -5160,6 +5161,61 @@ export const en = {
   "settings.section.money": "Money",
   "settings.section.portal": "Investor portal",
   "settings.section.eid": "Eid-ul-Adha dates",
+  "settings.section.years": "Financial year",
+  "years.pageWhy":
+    "The year the farm's books are kept by, as its accountant closes them. The monthly report and the money page read their years from here. When the law moves the year, record the change: years that have ended keep their length.",
+  "years.oddLength":
+    "{name} ({months, plural, one {# month} other {# months}})",
+  "years.firstStarts":
+    "Before any change, the farm's years began in {month}, as its server was set up.",
+  "years.yearsTitle": "The years",
+  "years.yearsHint":
+    "Last year, this year and the years ahead. A year that is not twelve months is a transition year, and its figures are not comparable with a full year's.",
+  "years.col.year": "Year",
+  "years.col.runs": "Runs",
+  "years.col.months": "Months",
+  "years.runs": "{from} to {to}",
+  "years.lastYear": "Last year",
+  "years.thisYear": "This year",
+  "years.transition": "Transition year",
+  "years.changesTitle": "Changes",
+  "years.changesHint":
+    "Each change of the farm's year, with why. Only the latest can be withdrawn, and only while the years it changes have not ended.",
+  "years.noChanges":
+    "No change recorded. The farm's years run as its server was set up.",
+  "years.changeSaid":
+    "{name}: {from} to {to}, then the next year begins in {newFrom}.",
+  "years.recordedBy": "Recorded by {name}, {date}",
+  "years.withdrawnBy": "Withdrawn by {name}, {date}: {reason}",
+  "years.inForce": "In force",
+  "years.withdrawnBadge": "Withdrawn",
+  "years.record": "Record a change",
+  "years.recordWhy":
+    "For when the law moves the farm's year. The year you pick runs short or long, up to the month the new years begin.",
+  "years.changingFrom": "The year that changes",
+  "years.newFrom": "The next year begins in",
+  "years.reason": "Why",
+  "years.reasonHint":
+    "The law or notice the farm's books follow. An accountant must say why a year is not twelve months.",
+  "years.preview": "{name} will run from {from} to {to}.",
+  "years.save": "Record the change",
+  "years.recorded": "Change recorded",
+  "years.withdraw": "Withdraw",
+  "years.withdrawTitle": "Withdraw this change?",
+  "years.withdrawWhy":
+    "The years from it will run as they did before it. Say why it is withdrawn.",
+  "years.withdrawn": "Change withdrawn",
+  "years.refused.notAYear":
+    "Pick a year that begins under the years in force, after the last change.",
+  "years.refused.changesNothing":
+    "The next year begins in the same month of the year, so nothing would change.",
+  "years.refused.tooLong":
+    "The changing year must run from one month to under two years.",
+  "years.refused.endedYear":
+    "That would change a year that has ended. Years that have ended keep their length.",
+  "years.refused.notTheLast": "Only the latest change can be withdrawn.",
+  "months.noSuchYear":
+    "No financial year begins in that month. Pick one above.",
   "settings.rulesWhy":
     "How the farm behaves: when its digest goes and its quiet hours, how far a reading may drift, how long late work waits before somebody is told, and when a cow is put on the cull list.",
   "settings.moneyWhy":

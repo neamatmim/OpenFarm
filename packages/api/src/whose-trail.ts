@@ -99,6 +99,8 @@ export const WHOSE_TRAIL = {
   head_price: "owner",
   dairy_entry_price: "owner",
   bank_rate: "owner",
+  // When the farm's years change: the Owner's to record, everyone's to read the years by.
+  financial_year_change: "farm",
   fattening_joining: "owner",
 } as const satisfies Record<string, "farm" | "owner">;
 

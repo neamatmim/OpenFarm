@@ -348,7 +348,7 @@ describe("the farm month by month", () => {
   it("reads this financial year from July to this month, as the accountant reads the same days", async () => {
     const { client: owner } = await as("owner");
     const { months, year, financialYear } = await owner.monthlyReport.get({
-      financialYear: 2043,
+      financialYear: "2043-07",
     });
     const { summary } = await owner.reports.accountantExport({
       from: "2043-07-01",
@@ -356,7 +356,11 @@ describe("the farm month by month", () => {
       format: "paper",
     });
 
-    expect(financialYear).toBe(2043);
+    expect(financialYear).toMatchObject({
+      start: "2043-07",
+      to: "2044-06-30",
+      months: 12,
+    });
     expect(months.map((one) => one.month)).toEqual([
       "2043-07",
       "2043-08",
@@ -379,10 +383,10 @@ describe("the farm month by month", () => {
   it("reads a financial year gone by as its twelve months, July to June, none of this year's money in it", async () => {
     const { client: owner } = await as("owner");
     const { months, year, financialYear } = await owner.monthlyReport.get({
-      financialYear: 2042,
+      financialYear: "2042-07",
     });
 
-    expect(financialYear).toBe(2042);
+    expect(financialYear?.start).toBe("2042-07");
     expect(months.map((one) => one.month)).toEqual([
       "2042-07",
       "2042-08",
@@ -408,20 +412,33 @@ describe("the farm month by month", () => {
     const { client: aYearOn } = await as("owner", "2045-03-20T04:00:00.000Z");
     const later = await aYearOn.monthlyReport.get();
 
-    expect(lastTwelve).toMatchObject({
-      financialYear: null,
-      financialYears: [2043],
-    });
-    expect(later.financialYears).toEqual([2044, 2043]);
+    expect(lastTwelve.financialYear).toBeNull();
+    expect(lastTwelve.financialYears.map((one) => one.start)).toEqual([
+      "2043-07",
+    ]);
+    expect(later.financialYears.map((one) => one.start)).toEqual([
+      "2044-07",
+      "2043-07",
+    ]);
   });
 
   it("refuses a financial year that has not begun", async () => {
     const { client: owner } = await as("owner");
 
     await expect(
-      owner.monthlyReport.get({ financialYear: 2044 })
+      owner.monthlyReport.get({ financialYear: "2044-07" })
     ).rejects.toMatchObject({
       data: { refusal: "financial_year_not_begun" },
+    });
+  });
+
+  it("refuses a month no financial year begins in", async () => {
+    const { client: owner } = await as("owner");
+
+    await expect(
+      owner.monthlyReport.get({ financialYear: "2043-08" })
+    ).rejects.toMatchObject({
+      data: { refusal: "no_such_financial_year" },
     });
   });
 

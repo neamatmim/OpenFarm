@@ -531,12 +531,23 @@ export {
   roundedCosts,
   tripShares,
 } from "./costs";
+export type {
+  FinancialYear,
+  YearChange,
+  YearChangeRefusal,
+  YearRules,
+} from "./financial-year";
 export {
-  daysOfFinancialYear,
   financialYearOf,
-  financialYearSpansTwo,
+  financialYearStarting,
+  financialYearsBack,
+  isYearStart,
   monthHasBegun,
   monthsOfFinancialYear,
+  refusalOfChange,
+  refusalOfWithdrawal,
+  yearAfter,
+  yearBefore,
 } from "./financial-year";
 export { groupedBy } from "./grouped-by";
 export type {

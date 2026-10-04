@@ -52,6 +52,7 @@ export type DateStyle =
   | "date"
   | "dateTime"
   | "monthYear"
+  | "month"
   | "monthShort"
   | "time";
 
@@ -70,6 +71,8 @@ const DATE_OPTIONS: Record<DateStyle, Intl.DateTimeFormatOptions> = {
     hourCycle: "h23",
   },
   monthYear: { month: "long", year: "numeric" },
+  /** A month of any year, as a rule names it: years begin in July. */
+  month: { month: "long" },
   /** A month named short, under a chart's bar where a year of them stand side by side. */
   monthShort: { month: "short" },
 };

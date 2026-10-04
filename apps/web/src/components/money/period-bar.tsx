@@ -1,28 +1,17 @@
-import {
-  daysOfFinancialYear,
-  farmDayOf,
-  financialYearOf,
-} from "@OpenFarm/domain";
+import { farmDayOf } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
+import { useQuery } from "@tanstack/react-query";
 
 import { FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-
-/** The financial years a period can be set to in one press (ADR 0016): this one up to today, and the whole of the
- *  last — the year the accountant closes the books on. */
-const financialPeriods = (today: string) => {
-  const thisYear = financialYearOf(today);
-  return {
-    thisYear: { from: daysOfFinancialYear(thisYear).from, to: today },
-    lastYear: daysOfFinancialYear(thisYear - 1),
-  };
-};
+import { orpc } from "@/utils/orpc";
 
 /**
  * The period the whole money page reads — its figures, its register, its costs and the accountant's export — as two
  * days side by side, on a phone as much as at a desk, so the figures below them are never far from the dates they are
- * for. This financial year and the last are a press away, and say so while they are the period.
+ * for. This financial year up to today and the whole of the last are a press away, as the farm's years run (ADR 0017)
+ * — a Transition Year at its own length — and say so while they are the period.
  */
 export const PeriodBar = ({
   from,
@@ -36,11 +25,23 @@ export const PeriodBar = ({
   onToChange: (day: string) => void;
 }) => {
   const { t } = useLanguage();
-  const periods = financialPeriods(farmDayOf(new Date()));
-  const shortcuts = [
-    { label: t("money.thisFinancialYear"), period: periods.thisYear },
-    { label: t("money.lastFinancialYear"), period: periods.lastYear },
-  ];
+  const years = useQuery(orpc.financialYears.list.queryOptions());
+  const today = farmDayOf(new Date());
+  const shortcuts = years.data
+    ? [
+        {
+          label: t("money.thisFinancialYear"),
+          period: { from: years.data.current.from, to: today },
+        },
+        {
+          label: t("money.lastFinancialYear"),
+          period: {
+            from: years.data.previous.from,
+            to: years.data.previous.to,
+          },
+        },
+      ]
+    : [];
   return (
     <fieldset className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
       <legend className="sr-only">{t("money.period")}</legend>

@@ -18,6 +18,7 @@ import { farmRouter } from "./farm";
 import { farmAccountsRouter } from "./farm-accounts";
 import { fatteningRouter } from "./fattening";
 import { feedRouter } from "./feed";
+import { financialYearsRouter } from "./financial-years";
 import { homeRouter } from "./home";
 import { inspectorViewRouter } from "./inspector-view";
 import { intakesRouter } from "./intakes";
@@ -70,6 +71,7 @@ type AppRouterShape = {
   drugs: typeof drugsRouter;
   eidDates: typeof eidDatesRouter;
   farm: typeof farmRouter;
+  financialYears: typeof financialYearsRouter;
   farmAccounts: typeof farmAccountsRouter;
   fattening: typeof fatteningRouter;
   feed: typeof feedRouter;
@@ -126,6 +128,7 @@ export const appRouter: AppRouterShape = {
   drugs: drugsRouter,
   eidDates: eidDatesRouter,
   farm: farmRouter,
+  financialYears: financialYearsRouter,
   farmAccounts: farmAccountsRouter,
   fattening: fatteningRouter,
   feed: feedRouter,

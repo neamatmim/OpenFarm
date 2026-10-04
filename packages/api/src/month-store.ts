@@ -1,8 +1,13 @@
 import type { Database } from "@OpenFarm/db";
-import type { PenHistoryLine } from "@OpenFarm/domain";
+import type {
+  FinancialYear,
+  PenHistoryLine,
+  YearRules,
+} from "@OpenFarm/domain";
 import {
   farmDayOf,
-  financialYearOf,
+  financialYearStarting,
+  financialYearsBack,
   litresPerCowMilked,
   milkPriceOf,
   monthHasBegun,
@@ -30,6 +35,7 @@ import { fetchedPerLitre, writtenOffByItem } from "./receivable-store";
 import { approvedSettlementOf } from "./settlement-store";
 import { planAgainstActual } from "./venture-plan-store";
 import { ownedThenByOf } from "./venture-store";
+import { yearRulesOf } from "./year-store";
 
 /** How far back the Owner reads the farm month by month: a year, this month among them. */
 export const MONTHS_READ = 12;
@@ -168,40 +174,52 @@ const figuresOver = (
 
 /**
  * The financial years the farm has kept money in, newest first: this one, back to the year of the first taka its purse
- * ever moved (ADR 0016). This year alone for a farm whose purse has moved nothing yet.
+ * ever moved, each its own length (ADR 0016, 0017). This year alone for a farm whose purse has moved nothing yet.
  */
 const financialYearsKept = async (
   db: Database,
   farmId: string,
+  rules: YearRules,
   today: string
-): Promise<number[]> => {
+): Promise<FinancialYear[]> => {
   const first = await db.query.moneyEvent.findFirst({
     where: { farmId, purseVentureId: THE_FARMS_PURSE },
     orderBy: { occurredAt: "asc" },
     columns: { occurredAt: true },
   });
-  const now = financialYearOf(today);
-  const since = first
-    ? Math.min(financialYearOf(farmDayOf(first.occurredAt)), now)
-    : now;
-  return Array.from({ length: now - since + 1 }, (_, index) => now - index);
+  const firstDay = first ? farmDayOf(first.occurredAt) : today;
+  return financialYearsBack(rules, today, firstDay < today ? firstDay : today);
 };
 
-/** The months a report reads: the last `MONTHS_READ`, or a financial year's months that have begun — all twelve of a
- *  year gone by, and this year's up to this month. A year still to come has none, and is refused. */
-const monthsRead = (today: string, financialYear?: number): string[] => {
+/** The months a report reads: the last `MONTHS_READ`, or a financial year's months that have begun — all of a year
+ *  gone by, and this year's up to this month. A month no year begins in, or a year still to come, is refused. */
+const monthsRead = (
+  rules: YearRules,
+  today: string,
+  financialYear?: string
+): { months: string[]; year: FinancialYear | null } => {
   if (financialYear === undefined) {
-    return monthsEndingIn(today, MONTHS_READ);
+    return { months: monthsEndingIn(today, MONTHS_READ), year: null };
   }
-  if (financialYear > financialYearOf(today)) {
+  const year = financialYearStarting(rules, financialYear);
+  if (!year) {
     throw new ORPCError("BAD_REQUEST", {
-      message: `The financial year ${financialYear} has not begun`,
+      message: `No financial year begins in ${financialYear}`,
+      data: { refusal: "no_such_financial_year" },
+    });
+  }
+  if (!monthHasBegun(year.start, today)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `The financial year beginning ${financialYear} has not begun`,
       data: { refusal: "financial_year_not_begun" },
     });
   }
-  return monthsOfFinancialYear(financialYear).filter((month) =>
-    monthHasBegun(month, today)
-  );
+  return {
+    months: monthsOfFinancialYear(year).filter((month) =>
+      monthHasBegun(month, today)
+    ),
+    year,
+  };
 };
 
 /**
@@ -219,10 +237,11 @@ export const monthByMonth = async (
   db: Database,
   farm: { id: string; ventureInvestorsPercent: number },
   now: Date,
-  financialYear?: number
+  financialYear?: string
 ) => {
   const today = farmDayOf(now);
-  const months = monthsRead(today, financialYear);
+  const rules = await yearRulesOf(db, farm.id);
+  const { months, year: asked } = monthsRead(rules, today, financialYear);
   const span = {
     from: rangeOf(months[0] ?? "").from,
     until: rangeOf(months.at(-1) ?? "").until,
@@ -253,7 +272,7 @@ export const monthByMonth = async (
     }),
     venturesAgainstPlan(db, farm, now),
     overheadMoneyIn(db, farm.id, span),
-    financialYearsKept(db, farm.id, today),
+    financialYearsKept(db, farm.id, rules, today),
   ]);
   // The Farm's own animals alone, as its purse is the Farm's own money: a Venture's are on its own line below.
   const read: Read = {
@@ -283,7 +302,7 @@ export const monthByMonth = async (
     /** The months together, worked over the whole of them. */
     year: over(span, months.length),
     /** The financial year these months are, or nothing for the last `MONTHS_READ`. */
-    financialYear: financialYear ?? null,
+    financialYear: asked,
     /** The financial years there are to ask for, newest first: this one first. */
     financialYears,
     ventures,

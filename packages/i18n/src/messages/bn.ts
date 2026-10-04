@@ -2193,6 +2193,7 @@ export const bn: Record<MessageKey, string> = {
   "audit.entity.investor": "বিনিয়োগকারী",
   "audit.entity.nomination": "মনোনয়ন",
   "audit.entity.bank_rate": "ব্যাংকের হার",
+  "audit.entity.financial_year_change": "অর্থবছরের পরিবর্তন",
   "audit.entity.invite": "আমন্ত্রণ",
   "audit.entity.farm": "খামার",
   "audit.system": "সিস্টেম",
@@ -4833,6 +4834,57 @@ export const bn: Record<MessageKey, string> = {
   "settings.section.money": "আর্থিক",
   "settings.section.portal": "বিনিয়োগকারীর পোর্টাল",
   "settings.section.eid": "ঈদুল আজহার তারিখ",
+  "settings.section.years": "অর্থবছর",
+  "years.pageWhy":
+    "খামারের হিসাব যে বছর ধরে রাখা হয়, হিসাবরক্ষক যেভাবে বছর শেষ করেন। মাসিক প্রতিবেদন আর টাকার হিসাব এখান থেকে বছর পড়ে। আইনে বছর বদলালে পরিবর্তনটি লিখুন: যে বছরগুলো শেষ হয়েছে সেগুলোর দৈর্ঘ্য বদলায় না।",
+  "years.oddLength": "{name} ({months} মাস)",
+  "years.firstStarts":
+    "কোনো পরিবর্তনের আগে খামারের বছর শুরু হতো {month} মাসে, সার্ভার যেভাবে ঠিক করা হয়েছিল।",
+  "years.yearsTitle": "বছরগুলো",
+  "years.yearsHint":
+    "গত বছর, এই বছর আর সামনের বছরগুলো। যে বছর বারো মাসের নয় সেটি অন্তর্বর্তী বছর, আর তার হিসাব পুরো বছরের সাথে তুলনীয় নয়।",
+  "years.col.year": "বছর",
+  "years.col.runs": "সময়",
+  "years.col.months": "মাস",
+  "years.runs": "{from} থেকে {to}",
+  "years.lastYear": "গত বছর",
+  "years.thisYear": "এই বছর",
+  "years.transition": "অন্তর্বর্তী বছর",
+  "years.changesTitle": "পরিবর্তন",
+  "years.changesHint":
+    "খামারের বছরের প্রতিটি পরিবর্তন, কেন তা সহ। শুধু শেষেরটি প্রত্যাহার করা যায়, আর তা-ও যতক্ষণ এর বদলানো বছরগুলো শেষ হয়নি।",
+  "years.noChanges":
+    "কোনো পরিবর্তন লেখা নেই। খামারের বছর চলছে সার্ভার যেভাবে ঠিক করা হয়েছিল।",
+  "years.changeSaid":
+    "{name} চলবে {from} থেকে {to}, আর পরের বছর শুরু হবে {newFrom} থেকে।",
+  "years.recordedBy": "{name} লিখেছেন, {date}",
+  "years.withdrawnBy": "{name} প্রত্যাহার করেছেন, {date}: {reason}",
+  "years.inForce": "চালু",
+  "years.withdrawnBadge": "প্রত্যাহার করা",
+  "years.record": "পরিবর্তন লিখুন",
+  "years.recordWhy":
+    "আইনে খামারের বছর বদলালে। যে বছর বেছে নেবেন তা ছোট বা বড় হয়ে চলবে, নতুন বছর শুরুর মাস পর্যন্ত।",
+  "years.changingFrom": "যে বছর বদলাবে",
+  "years.newFrom": "পরের বছর শুরু হবে",
+  "years.reason": "কেন",
+  "years.reasonHint":
+    "খামারের হিসাব যে আইন বা প্রজ্ঞাপন মেনে চলে। কোনো বছর বারো মাসের না হলে হিসাবরক্ষককে তার কারণ বলতে হয়।",
+  "years.preview": "{name} চলবে {from} থেকে {to}।",
+  "years.save": "পরিবর্তন লিখুন",
+  "years.recorded": "পরিবর্তন লেখা হয়েছে",
+  "years.withdraw": "প্রত্যাহার",
+  "years.withdrawTitle": "এই পরিবর্তন প্রত্যাহার করবেন?",
+  "years.withdrawWhy": "এর পরের বছরগুলো আগের মতো চলবে। কেন প্রত্যাহার করছেন লিখুন।",
+  "years.withdrawn": "পরিবর্তন প্রত্যাহার হয়েছে",
+  "years.refused.notAYear":
+    "চালু নিয়মে শুরু হওয়া একটি বছর বেছে নিন, শেষ পরিবর্তনের পরের।",
+  "years.refused.changesNothing":
+    "পরের বছর বছরের একই মাসে শুরু হচ্ছে, তাই কিছুই বদলাবে না।",
+  "years.refused.tooLong": "বদলানো বছরটি এক মাস থেকে দুই বছরের কম হতে হবে।",
+  "years.refused.endedYear":
+    "এতে শেষ হয়ে যাওয়া একটি বছর বদলে যাবে। শেষ হওয়া বছরের দৈর্ঘ্য বদলায় না।",
+  "years.refused.notTheLast": "শুধু শেষ পরিবর্তনটি প্রত্যাহার করা যায়।",
+  "months.noSuchYear": "সেই মাসে কোনো অর্থবছর শুরু হয় না। ওপর থেকে একটি বেছে নিন।",
   "settings.rulesWhy":
     "খামার কীভাবে চলে: দিনের সারসংক্ষেপ কখন যায় আর নীরব সময় কখন, একটি পরিমাপ কতটা সরে যেতে পারে, দেরি হওয়া কাজ কতক্ষণ পরে জানানো হয়, আর কখন একটি গাভী বাদের তালিকায় ওঠে।",
   "settings.moneyWhy":
