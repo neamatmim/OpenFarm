@@ -16,8 +16,10 @@ import {
   ChevronRight,
   Lock,
   MapPin,
+  Pill,
   SkipForward,
   SprayCan,
+  Tag,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -65,6 +67,64 @@ export const PlaceLine = ({
       <MapPin aria-hidden className="size-4 shrink-0" />
       {placeOfWork(pen, t("work.wholeFarm"))}
     </p>
+  );
+};
+
+/** What the work says about the one animal it was raised for. */
+export interface AboutHer {
+  animal?: { tagNumber: string } | null;
+  dose?: {
+    number: number;
+    of: number;
+    drug: { bn: string; en: string | null };
+    amount: string;
+    route: string;
+  } | null;
+}
+
+/**
+ * The animal the work is for, by her Tag Number, and for a dose what goes into her: the drug, how much, how, and
+ * which dose of the course. Said as large as the work's place, because a dose read off a Pen name goes to whichever
+ * cow is nearest. Nothing for work about a Pen, or a phone's copy older than the farm's saying so.
+ */
+export const AboutHerLines = ({
+  about,
+  className,
+}: {
+  about: AboutHer;
+  className?: string;
+}) => {
+  const { t, language } = useLanguage();
+  const { animal, dose } = about;
+  if (!animal && !dose) {
+    return null;
+  }
+  return (
+    <div className={cn("flex flex-col gap-1", className)}>
+      {animal ? (
+        <p className="inline-flex items-center gap-1.5 text-base font-semibold">
+          <Tag aria-hidden className="size-4 shrink-0" />
+          {t("work.aboutTag", { tag: animal.tagNumber })}
+        </p>
+      ) : null}
+      {dose ? (
+        <>
+          <p className="inline-flex items-center gap-1.5 text-sm font-medium">
+            <Pill aria-hidden className="size-4 shrink-0" />
+            {language === "en" && dose.drug.en ? dose.drug.en : dose.drug.bn}
+          </p>
+          <p className="text-sm">
+            {dose.amount} · {t(`route.${dose.route}` as MessageKey)} ·{" "}
+            <span className="text-muted-foreground tabular-nums">
+              {t("work.doseOf", {
+                number: formatDigits(dose.number, language),
+                of: formatDigits(dose.of, language),
+              })}
+            </span>
+          </p>
+        </>
+      ) : null}
+    </div>
   );
 };
 
@@ -236,10 +296,12 @@ const TallyCount = ({
 export const WorkHeader = ({
   name,
   pen,
+  about,
   tally,
 }: {
   name: { bn: string; en?: string };
   pen: { name: string; shed: { name: string } } | null | undefined;
+  about: AboutHer;
   tally: { done: number; skipped: number; left: number } | null;
 }) => {
   const { t, language } = useLanguage();
@@ -254,6 +316,7 @@ export const WorkHeader = ({
           <SopName name={name} />
         </h1>
         <PlaceLine pen={pen} />
+        <AboutHerLines about={about} className="mt-1" />
       </div>
       {tally && total > 0 ? (
         <div className="surface flex flex-col gap-3 p-3.5 md:p-4">

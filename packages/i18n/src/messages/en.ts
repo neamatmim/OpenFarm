@@ -4034,6 +4034,8 @@ export const en = {
   "alerts.instanceSentBack": "{sop} in {pen} was sent back: {reason}",
   "work.overdue": "Late",
   "work.putOff": "Again — put off before",
+  "work.aboutTag": "Tag {tag}",
+  "work.doseOf": "Dose {number} of {of}",
   "work.putOffSince": "Again — first put off {day}",
   "work.releaseOwesDoses":
     "Still owed: {doses} — he cannot be let out until it is given, or the vet writes why it is not needed",

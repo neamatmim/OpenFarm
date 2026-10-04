@@ -3787,6 +3787,8 @@ export const bn: Record<MessageKey, string> = {
   "alerts.instanceSentBack": "{pen}-এ {sop} ফেরত পাঠানো হয়েছে: {reason}",
   "work.overdue": "দেরি",
   "work.putOff": "আবার — আগে পিছিয়ে দেওয়া হয়েছিল",
+  "work.aboutTag": "ট্যাগ {tag}",
+  "work.doseOf": "ডোজ {number}/{of}",
   "work.putOffSince": "আবার — প্রথমবার পিছিয়েছে {day}",
   "work.releaseOwesDoses":
     'এখনো দেওয়া বাকি: {doses} — দেওয়া হলে, বা ভেট "দরকার নেই" লিখলে, তবেই ছাড়া যাবে',

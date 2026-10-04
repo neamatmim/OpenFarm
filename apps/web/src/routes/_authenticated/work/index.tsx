@@ -24,6 +24,7 @@ import { AlertList } from "@/components/alert-list";
 import type { Tone } from "@/components/page";
 import { EmptyState, Page, PageHeader, StatusBadge } from "@/components/page";
 import { RaiseWork } from "@/components/raise-work";
+import { AboutHerLines } from "@/components/work/work-board";
 import { useLanguage } from "@/i18n/language-provider";
 import { refreshTheScreen } from "@/lib/refresh";
 import { placeOfWork } from "@/lib/work-place";
@@ -160,6 +161,7 @@ const WorkCard = ({
             {t("work.due", { time: dueWhen(new Date(work.dueAt), language) })}
           </span>
         </p>
+        <AboutHerLines about={work} />
         <PutOffLine work={work} />
         {/* Work simply due says so with its time; a badge is kept for what the time does not say — late, and whose. */}
         {work.overdue || standing ? (
