@@ -36,6 +36,7 @@ import type {
   FarmTodayKind,
 } from "@/components/home/owner-queue";
 import { MORE_LINK } from "@/components/home/queue";
+import { SetupLeft } from "@/components/home/setup-left";
 import {
   EmptyState,
   Notice,
@@ -274,6 +275,8 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
         title={t("nav.farm")}
       />
 
+      {/* Missing from an answer kept from before the overview said what was left to set up. */}
+      <SetupLeft steps={data.setupLeft ?? []} />
       <SummaryFigures figures={figures} />
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">

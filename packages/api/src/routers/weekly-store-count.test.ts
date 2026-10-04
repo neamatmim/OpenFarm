@@ -41,8 +41,18 @@ beforeAll(async () => {
       });
     })
   );
-  // A farm that keeps feed, so there is a store to count.
-  await owner.client.feed.items.create({ name: { bn: `দানাদার ${suffix}` } });
+  // A farm that keeps feed and has had some in, so there is a store to count.
+  const concentrate = await owner.client.feed.items.create({
+    name: { bn: `দানাদার ${suffix}` },
+  });
+  await owner.client.stock.receive({
+    feedItemId: concentrate.id,
+    kind: "purchase",
+    quantity: 100,
+    priceMoney: 4000,
+    seller: { name: `দোকান ${suffix}` },
+    receivedOn: "2056-02-20",
+  });
   const sop = await owner.client.sops.create({
     content: standardPlaybook().stockCount,
   });
@@ -118,9 +128,11 @@ describe("the Owner's home", () => {
       instanceId: work?.id ?? "",
       stepId: "count",
       evidence: [true],
+      // Counted blind, and the sacks found short of what came in, so the count says why.
       counts: (board.stockCount?.items ?? []).map((item) => ({
         feedItemId: item.feedItemId,
         counted: 0,
+        reason: `গুদাম খালি পাওয়া গেছে ${suffix}`,
       })),
     });
     expect(await ownerOn("2056-03-05T08:00:00.000Z")).toBeNull();
