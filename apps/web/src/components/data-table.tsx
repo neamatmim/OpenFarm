@@ -81,7 +81,36 @@ export interface RowSelection<TData> {
   onChange: (next: ReadonlySet<string>) => void;
   selectable: (row: TData) => boolean;
   label: (row: TData) => string;
+  /** How tall the first thing in a row is, where it is taller than a line of text — a photo beside a tag — so each
+   *  box sits level with it rather than at its top: in a desk's row, and in a phone's card. */
+  lead?: RowLead;
 }
+
+/** How tall a row's first line is, in CSS lengths: on a desk, and in a phone's card. */
+export interface RowLead {
+  desk: string;
+  phone: string;
+}
+
+/** A row that opens on a line of text: the small text a table's cells are, and a card's first line. */
+const TEXT_LEAD: RowLead = { desk: "1.25rem", phone: "1.5rem" };
+
+/** One row's box, centred on the row's first line so it sits level with whatever the row opens on. */
+const RowBox = ({
+  height,
+  label,
+  checked,
+  onTick,
+}: {
+  height: string;
+  label: string;
+  checked: boolean;
+  onTick: (on: boolean) => void;
+}) => (
+  <span className="flex shrink-0 items-center" style={{ height }}>
+    <Checkbox aria-label={label} checked={checked} onCheckedChange={onTick} />
+  </span>
+);
 
 /** The features every list table has, for a component that is handed one. */
 export type ListFeatures = typeof listFeatures;
@@ -303,11 +332,11 @@ export const DataTable = <TData extends object>({
             <li className="flex min-w-0 items-start gap-3 py-3" key={row.id}>
               {/* Ticked on a phone as at a desk: a job done to many is as much a phone's. */}
               {selection?.selectable(row.original) ? (
-                <Checkbox
-                  aria-label={selection.label(row.original)}
+                <RowBox
                   checked={selection.selected.has(row.id)}
-                  className="mt-1"
-                  onCheckedChange={(on) => tickRow(row.id, on)}
+                  height={(selection.lead ?? TEXT_LEAD).phone}
+                  label={selection.label(row.original)}
+                  onTick={(on) => tickRow(row.id, on)}
                 />
               ) : null}
               <div className="min-w-0 flex-1">{card(row.original)}</div>
@@ -341,7 +370,8 @@ export const DataTable = <TData extends object>({
             {table.getHeaderGroups().map((group) => (
               <TableRow key={group.id}>
                 {selection ? (
-                  <TableHead className="w-10 pl-4 md:pl-5">
+                  // On the headings' line: they sit at the foot of their cells, so a long one may wrap above.
+                  <TableHead className="w-10 pl-4 align-bottom md:pl-5">
                     {tickable.length > 0 ? (
                       <Checkbox
                         aria-label={t("common.selectPage")}
@@ -398,11 +428,11 @@ export const DataTable = <TData extends object>({
                     {selection ? (
                       <TableCell className="w-10 pl-4 align-top md:pl-5">
                         {selection.selectable(row.original) ? (
-                          <Checkbox
-                            aria-label={selection.label(row.original)}
+                          <RowBox
                             checked={selection.selected.has(row.id)}
-                            className="mt-0.5"
-                            onCheckedChange={(on) => tickRow(row.id, on)}
+                            height={(selection.lead ?? TEXT_LEAD).desk}
+                            label={selection.label(row.original)}
+                            onTick={(on) => tickRow(row.id, on)}
                           />
                         ) : null}
                       </TableCell>

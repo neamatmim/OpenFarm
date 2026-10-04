@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Beef, ChevronRight, Milk } from "lucide-react";
 
 import { AnimalPhoto } from "@/components/animal-photo";
-import type { RowSelection } from "@/components/data-table";
+import type { RowLead, RowSelection } from "@/components/data-table";
 import {
   DataTable,
   createListColumns,
@@ -17,6 +17,16 @@ import { HeldBadges, SideWord, StateBadge, ageWords } from "./animal-words";
 /** How many animals a page of the herd shows: enough for a Pen at a glance, few enough that a herd of five hundred
  *  does not fetch five hundred photographs at once. */
 const PAGE = 50;
+
+/** How big her photo is: beside her number in a desk's row, and leading a phone's card. */
+const TABLE_LIKENESS = 36;
+const CARD_LIKENESS = 44;
+
+/** A row opens on her photo, so a ticked row's box sits level with its middle. */
+const LIKENESS_LEAD: RowLead = {
+  desk: `${TABLE_LIKENESS}px`,
+  phone: `${CARD_LIKENESS}px`,
+};
 
 /** One animal as the herd lists her: what she is, where she stands, and anything holding her back. */
 export interface HerdRow {
@@ -65,7 +75,7 @@ const TagCell = ({ row }: { row: { original: HerdRow } }) => (
     params={{ tagNumber: row.original.tagNumber }}
     to="/animals/$tagNumber"
   >
-    <Likeness row={row.original} size={36} />
+    <Likeness row={row.original} size={TABLE_LIKENESS} />
     <span className="font-mono font-semibold tabular-nums underline-offset-4 group-hover:underline group-focus-visible:underline">
       {row.original.tagNumber}
     </span>
@@ -138,7 +148,7 @@ const HerdCard = ({ row }: { row: HerdRow }) => {
       params={{ tagNumber: row.tagNumber }}
       to="/animals/$tagNumber"
     >
-      <Likeness row={row} size={44} />
+      <Likeness row={row} size={CARD_LIKENESS} />
       <span className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="flex flex-wrap items-center gap-2">
           <span className="font-mono text-base font-bold tabular-nums">
@@ -183,7 +193,7 @@ export const HerdTable = ({
       card={herdCard}
       minWidth="56rem"
       pageSize={PAGE}
-      selection={selection}
+      selection={selection && { ...selection, lead: LIKENESS_LEAD }}
       table={table}
     />
   );
