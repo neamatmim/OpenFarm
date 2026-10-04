@@ -10,7 +10,11 @@ Decided with the Owner, 2026-09-28:
 
 ## 1. Now, side by side
 
-- [ ] **Vet: withdrawal days.** Print `vet-withdrawal-sheet.html` (open it in a browser, then Print) and hand it to the Vet. It lists the 14 drugs a new farm starts with, and asks for the **Default Withdrawal Days** for a dose from the pharmacy of a medicine not on the list (the Vet types these on **Drugs** too). When it comes back, the Vet types the days in on **Drugs**, signed in as themselves, because the days are theirs to answer for. Until then no dose procedure can be adopted. — _Owner, Vet_
+- [ ] **Vet: withdrawal days and the calf's doses.** Print both sheets (open each in a browser, then Print) and hand them to the Vet:
+  - `vet-withdrawal-sheet.html` lists the 15 medicines a new farm starts with. It also asks for the **Default Withdrawal Days**, for a pharmacy dose of a medicine not on the list.
+  - [`vet-calf-sheet.html`](../openfarm-calf-care/vet-calf-sheet.html) asks for the newborn calf's first day, the calf wormer and when to give it, and the calf vaccines' ages.
+
+  When they come back, the Vet types the days in on **Drugs**, signed in as themselves, because the days are theirs to answer for. Until then no dose procedure can be adopted. — _Owner, Vet_
 - [ ] **Tags.** Buy blank ear tags and a tag marker, not pre-numbered stock ([opening register runbook](../../docs/runbooks/opening-register.md), "Before the walk"). — _Manager_
 - [ ] **Server accounts.** Provision the server, the database with point-in-time recovery, the off-site copy on a different provider, and the domain. Put every value from `.env.example` into the password manager. — _Owner_
 
@@ -42,14 +46,23 @@ Decided with the Owner, 2026-09-28:
 
 ## 5. The Playbook
 
-- [ ] The standard procedures are adopted from **Templates**: dairy (milking, feeding, health and heat round, AI, pregnancy check, dry-off, calving preparation and record, weigh-in) and fattening (arrival check, quarantine release, shed disinfection, pre-sale check, stock count, biosecurity). — _Owner_
-- [ ] **Once the Vet's days are in**: the dose procedures (deworming, FMD, LSD, HS, BQ, anthrax, tick spray, boosters). — _Owner_
-- [ ] Each worker is trained on each procedure they do, and the training is recorded. — _Manager_
+The app offers 47 standard procedures under **Playbook → Standard procedures**. Each is read and published on its own. Publish what the farm does now; one the farm does not do is simply left. — _Owner_
+
+- [ ] **Every day, both sides:** morning and evening milking, feeding, the health and heat round, seeing to an unwell animal (and its urgent kind), treatment doses (raised by the Vet's prescriptions), carcass disposal, reporting to the Upazila office, and the evening head count.
+- [ ] **Counts:** the weekly store count, the monthly medicine count, the weekly cash count, the biosecurity check and shed disinfection.
+- [ ] **Breeding and calving (dairy):** AI, the pregnancy check, dry-off, calving preparation (it asks which pen is the calving pen), the calving record, newborn calf care, the calf's second colostrum, the cow after calving, weaning (it asks which pen weaned bull calves go to), and the heifer weigh-in.
+- [ ] **Fattening:** the fortnightly weigh-in, the arrival check, quarantine release and the pre-sale check.
+- [ ] **Once the Vet's days are in** (each asks which product on **Drugs** it gives):
+  - the herd's FMD, lumpy skin and deworming campaigns
+  - the calf's deworming, FMD and booster, anthrax, HS and BQ
+  - a new bull's deworming, FMD and lumpy skin
+  - HS, BQ and anthrax vaccinations, tick and fly spray, the FMD booster and the second deworming
+- [ ] Each worker is trained on each procedure they do, and the training is recorded on their page (**Farm settings → People → Training**). — _Manager_
 
 ## 6. Running on it
 
 - [ ] **30 days in a row with no paper register.** Write the first day here: ______. Anything the staff go back to paper for is written down: it is Release 2's list. — _Manager_
-- [ ] **All 26 procedures running**: every one adopted has raised and finished work in those 30 days. — _Manager_
+- [ ] **Every procedure published is running**: each has raised and finished work in those 30 days. — _Manager_
 
 ## 7. Declared
 
