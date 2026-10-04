@@ -1,5 +1,5 @@
 export { DAY, FakeClock, HOUR, MINUTE } from "./clock";
-export { scratchDb } from "./database";
+export { asTheFarmHeldItBefore, scratchDb } from "./database";
 export {
   createTestDevice,
   createTestPrincipal,

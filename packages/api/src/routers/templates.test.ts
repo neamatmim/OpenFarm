@@ -11,7 +11,12 @@ import {
   STANDARD_TEMPLATES,
   TEMPLATE_KINDS,
 } from "@OpenFarm/domain";
-import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  asTheFarmHeldItBefore,
+  scratchDb,
+  theFarm,
+} from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -148,10 +153,13 @@ describe("the farm's wording", () => {
       .update(investmentAgreement)
       .set({ templateVersionId: null })
       .where(eq(investmentAgreement.id, agreementId));
-    // Its Versions first: the farm never removes wording, so nothing removes them with it.
-    await scratchDb()
-      .delete(paperTemplateVersion)
-      .where(eq(paperTemplateVersion.farmId, theFarm().id));
+    // Its Versions first: the farm never removes wording, so nothing removes them with it — and the database refuses it,
+    // so it is done as a farm from before any wording was kept would have held it.
+    await asTheFarmHeldItBefore((tx) =>
+      tx
+        .delete(paperTemplateVersion)
+        .where(eq(paperTemplateVersion.farmId, theFarm().id))
+    );
     await scratchDb()
       .delete(paperTemplate)
       .where(eq(paperTemplate.farmId, theFarm().id));
