@@ -1,5 +1,5 @@
 import { maySignOff } from "@OpenFarm/domain";
-import { formatDate } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -23,6 +23,7 @@ import { toast } from "@/lib/toast";
 import { placeOfWork } from "@/lib/work-place";
 import { orpc } from "@/utils/orpc";
 
+import { CheckLine } from "./check-line";
 import { ReasonDialog } from "./reason-dialog";
 import type { Asked, ToCheck } from "./sign-off-types";
 import { titleOf } from "./sign-off-types";
@@ -94,7 +95,13 @@ const CheckButtons = ({ row }: { row: CheckRow }) => {
   );
 };
 
-const WorkCell = ({ row }: CheckCell) => <WorkName row={row.original} />;
+/** The work's name, and what it came to beneath: read in the row rather than by opening each. */
+const WorkCell = ({ row }: CheckCell) => (
+  <div className="flex flex-col gap-1">
+    <WorkName row={row.original} />
+    <CheckLine check={row.original.check} />
+  </div>
+);
 
 const WhereCell = ({ row }: CheckCell) => {
   const { t } = useLanguage();
@@ -153,12 +160,40 @@ const CheckCard = ({ row }: { row: CheckRow }) => {
           </span>
         </span>
       </div>
+      <CheckLine check={row.check} />
       <CheckButtons row={row} />
     </div>
   );
 };
 
 const checkCard = (row: CheckRow) => <CheckCard row={row} />;
+
+/** The clean ones approved together: how many, and what makes one clean. */
+const ApproveTheClean = ({
+  count,
+  handleApprove,
+  pending,
+}: {
+  count: number;
+  handleApprove: () => void;
+  pending: boolean;
+}) => {
+  const { t, language } = useLanguage();
+  return (
+    <div className="bg-accent text-accent-foreground flex flex-col gap-2 rounded-lg px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <span className="text-sm">{t("signOff.approveCleanHint")}</span>
+      <Button
+        className="h-12 sm:h-9"
+        disabled={pending}
+        onClick={handleApprove}
+        type="button"
+      >
+        {pending ? <Spinner /> : <Check aria-hidden data-icon="inline-start" />}
+        {t("signOff.approveClean", { count: formatNumber(count, language) })}
+      </Button>
+    </div>
+  );
+};
 
 /**
  * Work done and waiting on the checker: approve it where it stands, or send it back with what needs doing again. Each
@@ -211,10 +246,20 @@ export const CheckTab = ({ queue }: { queue: Asked<ToCheck> }) => {
   // A row that has left the queue — approved, sent back, or by somebody else — is no longer ticked.
   const inQueue = new Set((queue.data ?? []).map((row) => row.id));
   const chosen = [...ticked].filter((id) => inQueue.has(id));
-  const approveChosen = async () => {
+  // The clean ones — on time, nothing flagged, nothing skipped but animals passed as well — approved together, on a
+  // phone as on a desk: the rest are read before they are signed.
+  const clean = (queue.data ?? [])
+    .filter(
+      (row) =>
+        row.check?.clean && actions.mayCheck(row) && !inFlight.has(row.id)
+    )
+    .map((row) => row.id);
+  // Two or more of them, and nothing ticked by hand: one clean piece is approved where it stands.
+  const offerTheClean = clean.length > 1 && chosen.length === 0;
+  const approveAll = async (ids: readonly string[]) => {
     setApprovingMany(true);
     let done = 0;
-    for (const id of chosen) {
+    for (const id of ids) {
       try {
         // In turn, not all at once: the farm's answer to one comes before the next is asked.
         // oxlint-disable-next-line no-await-in-loop
@@ -240,8 +285,14 @@ export const CheckTab = ({ queue }: { queue: Asked<ToCheck> }) => {
       <Loaded query={queue}>
         {queue.data?.length ? (
           <div className="flex flex-col gap-3">
-            {/* Carbon's batch bar: over the table while rows are ticked, what is ticked and what to do with it. A phone
-                signs off one card at a time. */}
+            {offerTheClean ? (
+              <ApproveTheClean
+                count={clean.length}
+                handleApprove={() => approveAll(clean)}
+                pending={approvingMany}
+              />
+            ) : null}
+            {/* Carbon's batch bar: over the table while rows are ticked, what is ticked and what to do with it. */}
             {chosen.length > 0 ? (
               <div className="bg-accent text-accent-foreground hidden items-center justify-between gap-3 rounded-lg px-4 py-2 md:flex">
                 <span aria-live="polite" className="text-sm font-medium">
@@ -258,7 +309,7 @@ export const CheckTab = ({ queue }: { queue: Asked<ToCheck> }) => {
                   </Button>
                   <Button
                     disabled={approvingMany}
-                    onClick={approveChosen}
+                    onClick={() => approveAll(chosen)}
                     type="button"
                   >
                     {approvingMany ? (

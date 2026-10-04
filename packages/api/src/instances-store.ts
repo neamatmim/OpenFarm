@@ -35,6 +35,7 @@ import {
   AWAITING_SIGN_OFF,
   OPEN_INSTANCE_STATES,
   appliesToAnimal,
+  checkSummaryOf,
   scheduleFallsOn,
   isEscalated,
   isOverdue,
@@ -46,6 +47,7 @@ import type { Tx } from "./audit";
 import type { Raised } from "./notice";
 import { rememberingPeople, tell } from "./notice";
 import { renewalCause } from "./registration-store";
+import { contentOf } from "./sop-content";
 import {
   attemptKeyOf,
   calvingCauseOf,
@@ -1176,18 +1178,22 @@ export const heldByWithdrawal = async (
   return held.filter((beast) => isOnTheFarm(beast));
 };
 
+/** A numeric column's figure, or nothing. */
+const figure = (value: string | null) =>
+  value === null ? null : Number(value);
+
 /**
  * The work waiting on a checker's word, oldest done first: done, with a checker Role, and that Role one this person
  * holds. The one query every sign-off queue asks, so the Manager's home, the Owner's and the queue itself cannot
  * disagree about what waits.
  */
-export const workAwaitingSignOff = (
+export const workAwaitingSignOff = async (
   db: Pick<Database, "query">,
   farmId: string,
   roles: readonly RoleName[],
   limit: number
-) =>
-  db.query.sopInstance.findMany({
+) => {
+  const rows = await db.query.sopInstance.findMany({
     where: {
       farmId,
       state: AWAITING_SIGN_OFF,
@@ -1199,10 +1205,73 @@ export const workAwaitingSignOff = (
         columns: { name: true },
         with: { shed: { columns: { name: true } } },
       },
+      completions: {
+        columns: {
+          stepId: true,
+          status: true,
+          skipReason: true,
+          outOfRange: true,
+        },
+      },
     },
     orderBy: { completedAt: "asc", id: "asc" },
     limit,
   });
+  // What each came to, for a line on the checker's phone: the tank and the feed it wrote, read once for all of them.
+  const ids = rows.map((row) => row.id);
+  const [sessions, feedings] =
+    ids.length === 0
+      ? [[], []]
+      : await Promise.all([
+          db.query.milkingSession.findMany({
+            where: { farmId, instanceId: { in: ids } },
+            columns: {
+              instanceId: true,
+              bulkLitres: true,
+              differenceLitres: true,
+              flaggedAt: true,
+            },
+          }),
+          db.query.feeding.findMany({
+            where: { instanceId: { in: ids } },
+            columns: {
+              instanceId: true,
+              shortfallPercent: true,
+              flaggedAt: true,
+            },
+          }),
+        ]);
+  const milkOf = new Map(sessions.map((one) => [one.instanceId, one]));
+  const fedOf = new Map(feedings.map((one) => [one.instanceId, one]));
+  return rows.map(({ completions, ...row }) => {
+    const milk = milkOf.get(row.id);
+    const fed = fedOf.get(row.id);
+    return {
+      ...row,
+      /** What it came to: done and skipped, the tank and the feed, late or flagged, and whether it is clean. */
+      check: checkSummaryOf({
+        dueAt: row.dueAt,
+        graceMinutes: row.graceMinutes,
+        completedAt: row.completedAt,
+        steps: contentOf(row.version).steps,
+        completions,
+        milk: milk
+          ? {
+              bulkLitres: figure(milk.bulkLitres),
+              differenceLitres: figure(milk.differenceLitres),
+              flagged: milk.flaggedAt !== null,
+            }
+          : null,
+        fed: fed
+          ? {
+              shortfallPercent: fed.shortfallPercent,
+              flagged: fed.flaggedAt !== null,
+            }
+          : null,
+      }),
+    };
+  });
+};
 
 /** Every piece of work the farm's day holds, done or not — but not work Called Off, which it no longer owes. */
 export const daysWork = (

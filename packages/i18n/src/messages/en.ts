@@ -4078,6 +4078,20 @@ export const en = {
   "signOff.approved": "Approved",
   "signOff.selected": "{count} selected",
   "signOff.approveSelected": "Approve {count}",
+  "signOff.approveClean":
+    "Approve {count, plural, one {the # clean one} other {the # clean ones}}",
+  "signOff.approveCleanHint":
+    "Clean: done on time, nothing flagged, nothing skipped but animals passed as well.",
+  "signOff.line.passedWell": "{count} well",
+  "signOff.line.tankOver":
+    "tank {litres} L, {difference} L over what the cows gave",
+  "signOff.line.tankUnder":
+    "tank {litres} L, {difference} L under what the cows gave",
+  "signOff.line.tankEven": "tank {litres} L, as the cows gave",
+  "signOff.line.shortFed": "{percent}% short-fed",
+  "signOff.line.outOfRange":
+    "{count, plural, one {# figure} other {# figures}} out of range",
+  "signOff.line.flagged": "Flagged",
   "signOff.clearSelection": "Clear",
   "signOff.approvedMany":
     "{count, plural, one {# approved} other {# approved}}",
