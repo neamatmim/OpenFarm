@@ -11,7 +11,13 @@ import {
   summariseMoney,
 } from "@OpenFarm/domain";
 
-import { chargedOf, costsBySide, farmCosts, theFarmsOwn } from "./cost-store";
+import {
+  chargedOf,
+  costsBySide,
+  farmCosts,
+  narrowedToEach,
+  theFarmsOwn,
+} from "./cost-store";
 import { moneyForTheAccountant } from "./money-export-store";
 import type { OverheadMoneyOn } from "./overhead-store";
 import { overheadMoneyIn, overheadsOf } from "./overhead-store";
@@ -206,18 +212,23 @@ export const monthByMonth = async (
     everyAnimal: costs.history,
     now,
   };
+  // Each month's charges sorted out of the year's once, rather than every month reading all of them.
+  const ranges = months.map(rangeOf);
+  const narrowed = narrowedToEach(read.costs, [...ranges, span]);
+  const over = (range: { from: Date; until: Date }, index: number) =>
+    figuresOver(range, { ...read, costs: narrowed[index] ?? read.costs });
   return {
-    months: months.map((month) => {
-      const range = rangeOf(month);
+    months: months.map((month, index) => {
+      const range = ranges[index] ?? rangeOf(month);
       return {
         month,
         /** This month, still going: its figures are what it has come to so far. */
         soFar: range.until > now,
-        ...figuresOver(range, read),
+        ...over(range, index),
       };
     }),
     /** The months together, worked over the whole of them. */
-    year: figuresOver(span, read),
+    year: over(span, months.length),
     ventures,
   };
 };
