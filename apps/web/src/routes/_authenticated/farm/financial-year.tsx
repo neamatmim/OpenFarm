@@ -103,8 +103,9 @@ const YearsTable = ({ years }: { years: Years }) => {
         </TableRow>
       </TableHeader>
       <TableBody>
+        {/* Each cell from its top, as the app's lists read: the first cell runs to a second line. */}
         {rows.map((year) => (
-          <TableRow key={year.start}>
+          <TableRow className="[&>td]:align-top" key={year.start}>
             <TableCell className="whitespace-normal">
               <span className="flex flex-col gap-1">
                 <span className="font-medium">

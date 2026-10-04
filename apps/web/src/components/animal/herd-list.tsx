@@ -106,33 +106,45 @@ const HeldCell = ({ row }: { row: { original: HerdRow } }) => (
   />
 );
 
+/** Every cell is one line, set level with the middle of her photo, which is taller than a line. */
+const ON_THE_PHOTO = { className: "align-middle" };
+
 const column = createListColumns<HerdRow>();
 const herdColumns = column.columns([
   column.accessor("tagNumber", {
     header: listHeader("animals.col.tag"),
+    meta: ON_THE_PHOTO,
     cell: TagCell,
   }),
   column.accessor("state", {
     header: listHeader("animals.state"),
+    meta: ON_THE_PHOTO,
     cell: StateCell,
   }),
   column.accessor("side", {
     header: listHeader("animals.side"),
+    meta: ON_THE_PHOTO,
     cell: SideCell,
   }),
-  column.accessor("penName", { header: listHeader("animals.pen") }),
+  column.accessor("penName", {
+    header: listHeader("animals.pen"),
+    meta: ON_THE_PHOTO,
+  }),
   column.accessor((a) => a.breed ?? "—", {
     id: "breed",
     header: listHeader("animals.breed"),
+    meta: ON_THE_PHOTO,
   }),
   column.accessor((a) => a.age?.months ?? undefined, {
     id: "age",
     header: listHeader("animals.age"),
+    meta: ON_THE_PHOTO,
     cell: AgeCell,
   }),
   column.accessor((a) => Number(a.milkHeld) + Number(a.meatHeld), {
     id: "held",
     header: listHeader("animals.col.held"),
+    meta: ON_THE_PHOTO,
     cell: HeldCell,
   }),
 ]);

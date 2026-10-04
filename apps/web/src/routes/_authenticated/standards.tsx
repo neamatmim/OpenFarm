@@ -81,8 +81,9 @@ const RationsTable = () => {
         </TableRow>
       </TableHeader>
       <TableBody>
+        {/* Each cell from its top, as the app's lists read: the first cell runs to a second line. */}
         {GAINING_RATIONS.map((one) => (
-          <TableRow key={one.name.en}>
+          <TableRow className="[&>td]:align-top" key={one.name.en}>
             <TableCell className="whitespace-normal">
               <span className="flex flex-col gap-0.5">
                 <span>{one.name[language]}</span>
