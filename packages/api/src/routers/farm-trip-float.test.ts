@@ -182,3 +182,67 @@ describe("a Buying Float for the Farm's own outing", () => {
     ).rejects.toMatchObject({ data: { refusal: "float_already_reconciled" } });
   });
 });
+
+describe("a Farm float counted home twice at once", () => {
+  it("is counted home once: one count goes through, the other is refused, and the cash back is booked once", async () => {
+    const owner = await as("owner", "2072-03-01T04:00:00.000Z");
+    const manager = await as("manager", "2072-03-01T04:00:00.000Z");
+    // An outing that bought nothing but its lorry: ৳10,000 handed out, ৳1,000 spent, ৳9,000 to come back.
+    const trip = await manager.client.buyingTrips.record({
+      wentTo: `কাঁচপুর হাট ${suffix}`,
+      transportMoney: 1000,
+      wentOn: new Date("2072-03-01T04:00:00.000Z"),
+    });
+    await owner.client.cash.handOver({
+      from: { userId: thePerson("owner").id },
+      to: { userId: thePerson("manager").id },
+      amountMoney: 10_000,
+      buyingTripId: trip.id,
+    });
+    const ownerBefore = await handOf("owner");
+    // Two taps on Count home, from two tabs: sent together on purpose, the race is what is tested.
+    const tries = await Promise.allSettled([
+      owner.client.cash.countFloatHome({
+        tripId: trip.id,
+        cashBackMoney: 9000,
+      }),
+      owner.client.cash.countFloatHome({
+        tripId: trip.id,
+        cashBackMoney: 9000,
+      }),
+    ]);
+    expect(tries.filter((one) => one.status === "fulfilled")).toHaveLength(1);
+    expect(await handOf("owner")).toBe(ownerBefore + 9000);
+  });
+
+  it("is either counted home or given more float, never both at once", async () => {
+    const owner = await as("owner", "2072-03-02T04:00:00.000Z");
+    const manager = await as("manager", "2072-03-02T04:00:00.000Z");
+    const trip = await manager.client.buyingTrips.record({
+      wentTo: `মিরকাদিম হাট ${suffix}`,
+      transportMoney: 1000,
+      wentOn: new Date("2072-03-02T04:00:00.000Z"),
+    });
+    await owner.client.cash.handOver({
+      from: { userId: thePerson("owner").id },
+      to: { userId: thePerson("manager").id },
+      amountMoney: 10_000,
+      buyingTripId: trip.id,
+    });
+    // A second float handed out while the first is counted home, sent together on purpose. Whichever lands first, the
+    // other is refused: a float counted home takes no more, and one given more no longer balances at ৳9,000 back.
+    const tries = await Promise.allSettled([
+      owner.client.cash.handOver({
+        from: { userId: thePerson("owner").id },
+        to: { userId: thePerson("manager").id },
+        amountMoney: 5000,
+        buyingTripId: trip.id,
+      }),
+      owner.client.cash.countFloatHome({
+        tripId: trip.id,
+        cashBackMoney: 9000,
+      }),
+    ]);
+    expect(tries.filter((one) => one.status === "fulfilled")).toHaveLength(1);
+  });
+});

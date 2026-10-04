@@ -570,6 +570,9 @@ export const reconcileFarmFloat = async (
     now: Date;
   }
 ): Promise<void> => {
+  // Behind the Farm lock, as every money path is: two counts sent at once would both find the float open and both
+  // book what came back.
+  await lockTheFarm(tx, input.farmId);
   await requireOpenFarmTrip(tx, input.farmId, input.tripId);
   const float = await farmTripFloat(tx, input.farmId, input.tripId);
   if (!float) {
@@ -843,6 +846,9 @@ export const recordHandover = async (
     });
   }
   if (input.buyingTripId) {
+    // Behind the Farm lock, as counting the float home is: a float given while it is counted home would land on an
+    // outing already closed.
+    await lockTheFarm(tx, input.farmId);
     await requireOpenFarmTrip(tx, input.farmId, input.buyingTripId);
   }
   const fromUserId = userOf(input.from);
