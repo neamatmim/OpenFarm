@@ -29,6 +29,7 @@ const WORD_MAPS = [
   "REFUSALS",
   "TROUBLE_WORD",
   "SAYS",
+  "ROW_REFUSED",
 ];
 
 const walk = (dir: string): string[] =>

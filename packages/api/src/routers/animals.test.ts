@@ -456,6 +456,78 @@ describe("the opening register", () => {
   });
 });
 
+describe("what the opening register says of a row", () => {
+  it("names each refusal so the screen can say it in Bangla, with the column and what was written", async () => {
+    const csv = [
+      "tag,sex,side,state,pen,source,breed,birth_date,calved_at,expected_calving",
+      "D-9301,female,dairy,heifer,পেন ১,born,,15/03/2025,,",
+      "D-9302,female,dairy,heifer,গোয়াল,born,,,,",
+      "D-9303,female,dairy,heifer,পেন ১,born,Friesian Jersey,,,",
+      "D-9304,female,dairy,pregnant_heifer,পেন ১,born,,,,",
+      "D-9305,female,dairy,heifer,পেন ১,born,,,,",
+      "D-9305,female,dairy,heifer,পেন ১,born,,,,",
+      "F-9306,female,dairy,heifer,পেন ১,born,,,,",
+      "D-93x7,female,dairy,heifer,পেন ১,born,,,,",
+      "D-9308,female,dairy,fattening,পেন ১,born,,,,",
+      "D-9309,female,dairy,milking,পেন ১,born,,,,",
+    ].join("\n");
+
+    const result = await pens.owner.client.animals.importRegister({ csv });
+
+    expect(
+      result.failed.map(({ line, refusal, column, value }) => ({
+        line,
+        refusal,
+        column,
+        value,
+      }))
+    ).toEqual([
+      {
+        line: 2,
+        refusal: "register_date_unread",
+        column: "birth_date",
+        value: "15/03/2025",
+      },
+      {
+        line: 3,
+        refusal: "register_unknown_pen",
+        column: "pen",
+        value: "গোয়াল",
+      },
+      {
+        line: 4,
+        refusal: "register_unknown_breed",
+        column: "breed",
+        value: "Friesian Jersey",
+      },
+      {
+        line: 5,
+        refusal: "expected_calving_needed",
+        column: "expected_calving",
+        value: "",
+      },
+      { line: 7, refusal: "tag_taken", column: "tag", value: "D-9305" },
+      {
+        line: 8,
+        refusal: "tag_of_the_other_side",
+        column: "tag",
+        value: "F-9306",
+      },
+      { line: 9, refusal: "not_a_tag_number", column: "tag", value: "D-93x7" },
+      {
+        line: 10,
+        refusal: "register_state_not_of_side",
+        column: "state",
+        value: "fattening",
+      },
+    ]);
+    // Taken, but with what the farm cannot do without said: how long she has been in milk.
+    expect(result.warned).toEqual([
+      { line: 11, tagNumber: "D-9309", warning: "register_no_calving_date" },
+    ]);
+  });
+});
+
 describe("audit", () => {
   it("records the registration and the move under the animal's own id", async () => {
     const { tagNumber, id } = await registerDairyCalf();
