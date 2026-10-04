@@ -11,9 +11,9 @@
   },
   "scripts": {
     "check-types": "tsc --noEmit",
-    "db:push": "drizzle-kit push",
+    "db:push": "./scripts/push-local.sh",
     "db:generate": "drizzle-kit generate",
-    "db:migrate:deploy": "drizzle-kit migrate",
+    "db:migrate:deploy": "./scripts/migrate-deploy.sh",
     "db:studio": "drizzle-kit studio",
     "db:migrate": "drizzle-kit migrate"
   },

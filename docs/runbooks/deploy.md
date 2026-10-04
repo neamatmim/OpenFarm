@@ -40,6 +40,11 @@ is the part that is easy to believe was done and was not:
       provider's console and write down the window you saw — a provider that _offers_ PITR
       is not a database that _has_ it.
 - [ ] The database is in the Singapore region, and so is the app host.
+- [ ] **The database itself runs at UTC**: `ALTER DATABASE <name> SET timezone = 'UTC';` in the
+      provider's console, then `SHOW timezone;` in a new session says `UTC`. The app sets UTC on every
+      connection it opens, but the farm's moments are kept in columns without their zone, so the
+      provider's own console, `psql` and a restore drill would otherwise read and write them in
+      whatever zone the server keeps — six hours out, at Dhaka's.
 - [ ] The off-site remote is on a **different provider**, not another bucket on the same one.
 - [ ] The nightly timer is installed and listed — see the restore runbook.
 - [ ] A first copy has run by hand and **Admin → Backups** shows it.
@@ -87,7 +92,8 @@ pnpm release:check        # types, tests against PostgreSQL, then the production
 # What the farm runs now, and whether anything since then renames or drops what it reads.
 live="$(ssh openfarm@HOST 'basename "$(readlink /srv/openfarm/current)"')"
 git diff --name-only "${live##*-}" HEAD -- packages/db/src/migrations \
-  | grep 'migration.sql$' | xargs grep -liE '\b(drop|rename)\b'
+  | grep 'migration.sql$' \
+  | xargs grep -liE '\b(drop|rename)\b|alter column .* type|set not null|add constraint .* (check|unique)'
 ```
 
 On the very first deploy there is no `current` yet: skip the check and take the first path.
@@ -101,8 +107,9 @@ release="$(date -u +%Y%m%dT%H%MZ)-$(git rev-parse --short=8 HEAD)"
 # Copied in beside the running release, which it does not touch.
 rsync -a apps/web/.output/ "openfarm@HOST:/srv/openfarm/releases/$release/"
 
-# Migrations before the new app starts, never after: it expects the schema it was built for.
-pnpm --filter @OpenFarm/db db:migrate:deploy
+# Migrations before the new app starts, never after: it expects the schema it was built for. The farm's
+# database is named here, from the password manager; the script refuses this machine's own.
+PRODUCTION_DATABASE_URL='postgresql://…' pnpm --filter @OpenFarm/db db:migrate:deploy
 
 # The switch: one rename, then a restart.
 ssh openfarm@HOST "ln -sfn releases/$release /srv/openfarm/current.next \
@@ -117,8 +124,9 @@ curl --fail --silent --show-error --max-time 10 https://farm.example.com/api/rea
 ssh openfarm@HOST 'cd /srv/openfarm/releases && ls -1 | head -n -5 | xargs -r rm -rf --'
 ```
 
-**If it prints a migration**, it may rename or drop something the running app still reads, and
-then the app fails the moment it is applied. The check errs towards stopping: it also names a
+**If it prints a migration**, it may rename or drop something the running app still reads, or
+change a column's type or what a column will take, and then the app fails the moment it is
+applied. The check errs towards stopping: it also names a
 migration that only drops a `NOT NULL` or an index, which the old app would have lived with — but
 an index can be the unique one its inserts count on, and a minute stopped costs less than
 finding out which. Tell the Manager first: for a minute or two nobody
@@ -128,7 +136,7 @@ back. Then the same steps, with the app stopped across the migration:
 ```sh
 rsync -a apps/web/.output/ "openfarm@HOST:/srv/openfarm/releases/$release/"
 ssh openfarm@HOST 'sudo systemctl stop openfarm'
-pnpm --filter @OpenFarm/db db:migrate:deploy
+PRODUCTION_DATABASE_URL='postgresql://…' pnpm --filter @OpenFarm/db db:migrate:deploy
 ssh openfarm@HOST "ln -sfn releases/$release /srv/openfarm/current.next \
   && mv -T /srv/openfarm/current.next /srv/openfarm/current \
   && sudo systemctl start openfarm"

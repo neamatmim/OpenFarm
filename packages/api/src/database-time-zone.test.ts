@@ -18,4 +18,16 @@ describe("the database the farm talks to", () => {
     expect(result.rows[0]?.zone).toBe("UTC");
     await db.$client.end();
   });
+
+  it("lets no statement run past half a minute, nor a transaction sit idle past one", async () => {
+    const db = createDb(process.env.DATABASE_URL ?? "", {
+      allowExitOnIdle: true,
+    });
+    const result = await db.execute<{ statement: string; idle: string }>(
+      sql`select current_setting('statement_timeout') as statement,
+                 current_setting('idle_in_transaction_session_timeout') as idle`
+    );
+    expect(result.rows[0]).toEqual({ statement: "30s", idle: "1min" });
+    await db.$client.end();
+  });
 });

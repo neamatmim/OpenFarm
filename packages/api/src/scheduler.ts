@@ -197,6 +197,9 @@ const turnFarmDayWithLock = async ({
   try {
     await connection.query("begin");
     transactionOpen = true;
+    // This transaction holds the day's lock while the turning works on other connections, idle here on purpose for as
+    // long as the turning takes: the pool's minute for an idle transaction is not this one's.
+    await connection.query("set local idle_in_transaction_session_timeout = 0");
     const lock = await connection.query<{ acquired: boolean }>(
       "select pg_try_advisory_xact_lock($1) as acquired",
       [FARM_DAY_ADVISORY_LOCK]
