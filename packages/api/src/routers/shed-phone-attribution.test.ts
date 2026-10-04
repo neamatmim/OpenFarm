@@ -114,20 +114,20 @@ const morning = async (day: string) => {
     clock,
   });
   await staff.work.claim({ id: instance.id });
-  // The Staff member's PIN on the shared phone, then the Manager switched in on it.
+  // The Staff member's PIN on the shared phone, then another hand in the barn switched in on it.
   await createTestClient(appRouter, {
     as: "staff",
     clock,
     onShedPhone: true,
     phone: PHONE,
   });
-  const { client: manager } = await createTestClient(appRouter, {
-    as: "manager",
+  const { client: other } = await createTestClient(appRouter, {
+    as: "otherStaff",
     clock,
     onShedPhone: true,
     phone: PHONE,
   });
-  return { instance, clock, staff, manager };
+  return { instance, clock, staff, other };
 };
 
 /** That somebody entered their PIN on the shared phone at this moment, as `devices.switchUser` records it: the
@@ -167,10 +167,10 @@ const milked = (
 
 describe("who recorded work on a Shed Phone", () => {
   it("keeps the name of the person who recorded it, whoever is switched in when it is sent", async () => {
-    const { instance, clock, staff, manager } = await morning("2031-03-01");
+    const { instance, clock, staff, other } = await morning("2031-03-01");
     const token = await provedPin(thePerson("staff").id, clock.now());
 
-    const sent = await manager.sync.batch({
+    const sent = await other.sync.batch({
       key: `attr-${suffix}-${counted()}`,
       entries: [milked(instance.id, thePerson("staff").id, clock.now(), token)],
     });
@@ -197,7 +197,7 @@ describe("who recorded work on a Shed Phone", () => {
   });
 
   it("refuses work naming somebody without the token their PIN earned on this phone for it", async () => {
-    const { instance, clock, manager } = await morning("2031-03-04");
+    const { instance, clock, other } = await morning("2031-03-04");
     // They did enter their PIN here this morning — but whoever sends cannot just say so.
     const theirs = await provedPin(thePerson("staff").id, clock.now());
     // Nor reuse a token from two days ago for this morning's work.
@@ -206,7 +206,7 @@ describe("who recorded work on a Shed Phone", () => {
       new Date(clock.now().getTime() - 2 * 24 * 60 * 60_000)
     );
 
-    const sent = await manager.sync.batch({
+    const sent = await other.sync.batch({
       key: `attr-${suffix}-${counted()}`,
       entries: [
         milked(instance.id, thePerson("staff").id, clock.now()),
@@ -228,9 +228,9 @@ describe("who recorded work on a Shed Phone", () => {
   });
 
   it("refuses work naming somebody who has no PIN on this farm", async () => {
-    const { instance, clock, manager } = await morning("2031-03-02");
+    const { instance, clock, other } = await morning("2031-03-02");
 
-    const sent = await manager.sync.batch({
+    const sent = await other.sync.batch({
       key: `attr-${suffix}-${counted()}`,
       entries: [milked(instance.id, thePerson("newcomer").id, clock.now())],
     });

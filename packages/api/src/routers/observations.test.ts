@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
 import { correctStepAsShown } from "../test/correct-step";
+import { staffKeep } from "../test/staff-pens";
 import { appRouter } from "./index";
 
 /** The daily health walk: somebody walks the pen and says what they saw, cow by cow. */
@@ -67,7 +68,11 @@ const aCow = async (clock: FakeClock) => {
   });
 };
 
-const walkThePen = async (clock: FakeClock) => {
+/** The day's health walk in the Pen, claimed by whoever walks it: the Owner, or Barn Staff on a Shed Phone. */
+const walkThePen = async (
+  clock: FakeClock,
+  walkedBy: "owner" | "staff" = "owner"
+) => {
   const owner = await createTestClient(appRouter, { as: "owner", clock });
   await owner.client.work.ensureDue();
   const today = await owner.client.work.today({ penId: world.pen.id });
@@ -77,7 +82,11 @@ const walkThePen = async (clock: FakeClock) => {
   if (!instance) {
     throw new Error("expected the health walk");
   }
-  await owner.client.work.claim({ id: instance.id });
+  const walker =
+    walkedBy === "owner"
+      ? owner
+      : await createTestClient(appRouter, { as: "staff", clock });
+  await walker.client.work.claim({ id: instance.id });
   return { owner, instance };
 };
 
@@ -107,9 +116,11 @@ describe("what somebody saw on the round", () => {
   it("records what one round saw, however many times the phone sends it", async () => {
     const clock = new FakeClock("2027-04-02T02:00:00.000Z");
     const cow = await aCow(clock);
-    const { owner, instance } = await walkThePen(clock);
+    // Barn Staff walk it, on the barn's phone, in the Pen they keep.
+    await staffKeep(world.pen.id);
+    const { owner, instance } = await walkThePen(clock, "staff");
     const phone = await createTestClient(appRouter, {
-      as: "owner",
+      as: "staff",
       clock,
       onShedPhone: true,
       phone: { id: "test-phone-observations", name: "পরিদর্শন শেড ফোন" },

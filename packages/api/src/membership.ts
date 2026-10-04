@@ -454,6 +454,15 @@ export const setPin = async (
     by,
     "A Manager may only set a PIN for Barn Staff"
   );
+  // A PIN opens a Shed Phone, and a Shed Phone holds Barn Staff alone: anybody else's PIN would only put their hash on
+  // the barn's phone (the Owner's decision of 2026-10-04).
+  const held = await rolesOf(tx, farmId, userId);
+  if (!held.includes("staff")) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A PIN is for Barn Staff, who work on the Shed Phone",
+      data: { refusal: "pin_is_for_staff" },
+    });
+  }
   const set = {
     ...credential,
     setBy: by.id,
@@ -730,16 +739,22 @@ export interface OnTheRoster {
 /**
  * Who may PIN Switch on this farm's Shed Phones, and what the phone checks a PIN against.
  *
- * Everybody with a PIN whose Membership has not ended — a person the Owner has disabled is signed out of their
- * own phone and is nobody on a shared one either. The phone keeps this so a Switch works with no signal
- * (ADR 0003); what it holds is the salt and the hash, never a PIN.
+ * Everybody with a PIN whose Membership has not ended and who holds Barn Staff — a person the Owner has disabled is
+ * signed out of their own phone and is nobody on a shared one either, and a Shed Phone holds Barn Staff alone (the
+ * Owner's decision of 2026-10-04): the hash of anybody else's PIN on the barn's phone is a way into their Role for
+ * whoever holds the phone. The phone keeps this so a Switch works with no signal (ADR 0003); what it holds is the salt
+ * and the hash, never a PIN.
  */
 export const theRoster = async (
   tx: Reading,
   farmId: string
 ): Promise<OnTheRoster[]> => {
+  const staff = await tx.query.roleAssignment.findMany({
+    where: { farmId, role: "staff", ...ACTIVE_ROLE },
+    columns: { userId: true },
+  });
   const pins = await tx.query.staffPin.findMany({
-    where: { farmId },
+    where: { farmId, userId: { in: staff.map((one) => one.userId) } },
     columns: { userId: true, salt: true, hash: true },
   });
   const people = await tx.query.user.findMany({

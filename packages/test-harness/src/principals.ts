@@ -17,9 +17,10 @@ import { scratchDb } from "./database";
 /** The four Roles the roles matrix names. */
 export type Role = "owner" | "manager" | "staff" | "vet";
 /** A Role, a signed-in person who holds none ("newcomer"), or a second person holding a
- *  Role somebody else already holds ("otherVet") — a farm has more than one Vet, and the
- *  clinical record is each Vet's own. */
-export type Principal = Role | "newcomer" | "otherVet";
+ *  Role somebody else already holds — a farm has more than one Vet, and the clinical record is
+ *  each Vet's own ("otherVet"); and more than one hand in the barn, who share its Shed Phone
+ *  ("otherStaff"). */
+export type Principal = Role | "newcomer" | "otherVet" | "otherStaff";
 
 /**
  * The file vitest is running, as a name a Farm can be called after — its whole path below `src`, so two files of the
@@ -62,6 +63,7 @@ const NAME_OF: Record<Principal, string> = {
   vet: "ডা. করিম",
   newcomer: "নতুন",
   otherVet: "ডা. সালমা",
+  otherStaff: "জসিম",
 };
 
 /**
@@ -117,6 +119,7 @@ const ROLE_OF: Record<Principal, Role | null> = {
   staff: "staff",
   vet: "vet",
   otherVet: "vet",
+  otherStaff: "staff",
   newcomer: null,
 };
 

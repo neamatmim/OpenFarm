@@ -201,8 +201,12 @@ export interface Context {
     alertsSweptFrom: Date | null;
   } | null;
   person: Person | null;
-  /** Roles the signed-in person holds on the Farm; empty when signed out or disabled. */
+  /** Roles the signed-in person holds on the Farm; empty when signed out or disabled. On a Shed Phone, Barn Staff
+   *  alone, whatever else they hold. */
   roles: RoleName[];
+  /** On a Shed Phone, the Roles they hold away from it — so what they could do from their own phone is refused as
+   *  that, not as a Role they lack. Empty off a Shed Phone, where `roles` is all of them. */
+  rolesOffThePhone: RoleName[];
   /** Pens a Staff person is assigned to; used for scoping. */
   penIds: string[];
   /** A Vet called in for a visit, who reaches only the animals on their open Cases — and, for them, those animals. */
@@ -344,6 +348,25 @@ const accessOf = async (
   };
 };
 
+/**
+ * What a person may do as they work now. On a Shed Phone they are Barn Staff and nothing more, whatever else they hold:
+ * the barn's phone is picked up by whoever is there (the Owner's decision of 2026-10-04). What they hold away from it
+ * is kept beside, so what they could do from their own phone is refused as that.
+ */
+const asTheyWork = (
+  access: { roles: RoleName[]; visiting: boolean; caseAnimalIds: string[] },
+  // A personal session wins over a phone: the request is the person's own.
+  { device, session }: { device: unknown; session: unknown }
+) =>
+  device && !session
+    ? {
+        roles: access.roles.filter((role) => role === "staff"),
+        rolesOffThePhone: access.roles,
+        visiting: false,
+        caseAnimalIds: [],
+      }
+    : { ...access, rolesOffThePhone: [] };
+
 /** The one place a Context is assembled — production and tests both go through it.
  *  Resolves the Farm, the person, their Roles and Pen Assignments from the database. */
 export const buildContext = async ({
@@ -394,6 +417,7 @@ export const buildContext = async ({
     farm: null,
     person: null,
     roles: [],
+    rolesOffThePhone: [],
     penIds: [],
     visiting: false,
     caseAnimalIds: [],
@@ -435,10 +459,8 @@ export const buildContext = async ({
     actor: { id: row.id, name: row.name },
     farm,
     person,
-    roles,
+    ...asTheyWork({ roles, visiting, caseAnimalIds }, { device, session }),
     penIds: row.penAssignments.map((p) => p.penId),
-    visiting,
-    caseAnimalIds,
   };
 };
 

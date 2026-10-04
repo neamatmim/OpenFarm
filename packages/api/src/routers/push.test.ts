@@ -265,7 +265,7 @@ describe("review findings", () => {
     const post = listeningPost();
     const clock = new FakeClock("2027-03-10T05:00:00.000Z");
     const phone = await createTestClient(appRouter, {
-      as: "manager",
+      as: "staff",
       clock,
       onShedPhone: true,
       push: post.transport,

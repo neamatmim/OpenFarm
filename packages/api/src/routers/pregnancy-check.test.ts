@@ -6,7 +6,6 @@ import {
   scratchDb,
   theFarm,
   thePerson,
-  theShedPhone,
 } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -220,8 +219,7 @@ const workFor = async (
 const heatAndServe = async (
   day: string,
   tagNumber: string,
-  servedAt: string[],
-  { onShedPhone = false }: { onShedPhone?: boolean } = {}
+  servedAt: string[]
 ): Promise<string> => {
   const clock = new FakeClock(`${day}T00:00:00.000Z`);
   const manager = await createTestClient(appRouter, { as: "manager", clock });
@@ -250,10 +248,10 @@ const heatAndServe = async (
     tagNumber
   );
   const workId = rows[0]?.id ?? "";
+  // The service is the Manager's, recorded from his own phone: a Shed Phone holds Barn Staff alone.
   const serving = await createTestClient(appRouter, {
     as: "manager",
     clock: later,
-    onShedPhone,
   });
   await serving.client.work.claim({ id: workId });
   await serving.client.work.completeStep({
@@ -336,24 +334,20 @@ describe("the pregnancy check", () => {
   });
 
   it("counts a heat served twice and found empty as one failed attempt", async () => {
-    // Served twice, across the farm's midnight, from the Shed Phone.
-    const aiWork = await heatAndServe(
-      "2030-01-05",
-      tagOf(1),
-      ["2030-01-05T12:00:00.000Z", "2030-01-05T19:00:00.000Z"],
-      { onShedPhone: true }
-    );
+    // Served twice, across the farm's midnight.
+    const aiWork = await heatAndServe("2030-01-05", tagOf(1), [
+      "2030-01-05T12:00:00.000Z",
+      "2030-01-05T19:00:00.000Z",
+    ]);
     const office = await createTestClient(appRouter, {
       as: "manager",
       clock: new FakeClock("2030-01-06T00:00:00.000Z"),
     });
     const board = await office.client.work.get({ id: aiWork });
-    // The trail says which phone, and the record says it was the Manager's.
+    // Both services are on the one piece of work, either side of the farm's midnight.
     expect(
-      board.completions
-        .filter((row) => row.stepId !== "look")
-        .map((row) => row.deviceId)
-    ).toEqual([theShedPhone().id, theShedPhone().id]);
+      board.completions.filter((row) => row.stepId !== "look")
+    ).toHaveLength(2);
 
     const { rows, client } = await workFor(
       "2030-02-19T04:00:00.000Z",

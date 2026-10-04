@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
 import { correctStepAsShown } from "../test/correct-step";
+import { staffKeep } from "../test/staff-pens";
 import { appRouter } from "./index";
 
 /** The drying-off SOP: the cow stops milking and walks to the dry pen, and the walk is a
@@ -78,7 +79,12 @@ const aCowIn = async (
     aliases: [],
   });
 
-const instanceFor = async (clock: FakeClock, penId: string) => {
+/** The day's moving work in a Pen, claimed by whoever will do it: the Owner, or Barn Staff on a Shed Phone. */
+const instanceFor = async (
+  clock: FakeClock,
+  penId: string,
+  doneBy: "owner" | "staff" = "owner"
+) => {
   const owner = await createTestClient(appRouter, { as: "owner", clock });
   await owner.client.work.ensureDue();
   const today = await owner.client.work.today({ penId });
@@ -88,7 +94,11 @@ const instanceFor = async (clock: FakeClock, penId: string) => {
   if (!instance) {
     throw new Error("expected the moving instance");
   }
-  await owner.client.work.claim({ id: instance.id });
+  const claimer =
+    doneBy === "owner"
+      ? owner
+      : await createTestClient(appRouter, { as: "staff", clock });
+  await claimer.client.work.claim({ id: instance.id });
   return { owner, instance };
 };
 
@@ -144,10 +154,16 @@ describe("a Step that moves an animal", () => {
     const clock = new FakeClock("2027-02-03T02:00:00.000Z");
     const first = await createTestClient(appRouter, { as: "owner", clock });
     const cow = await aCowIn(first, world.milking.id);
-    const { owner, instance } = await instanceFor(clock, world.milking.id);
+    // Barn Staff walk her, on the barn's phone, in the Pens they keep.
+    await staffKeep(world.milking.id, world.dry.id, world.sick.id);
+    const { owner, instance } = await instanceFor(
+      clock,
+      world.milking.id,
+      "staff"
+    );
 
     const phone = await createTestClient(appRouter, {
-      as: "owner",
+      as: "staff",
       clock,
       onShedPhone: true,
       phone: { id: "test-phone-moves", name: "স্থানান্তর শেড ফোন" },
@@ -186,7 +202,13 @@ describe("a Step the farm has moved past", () => {
     const clock = new FakeClock("2027-02-07T02:00:00.000Z");
     const first = await createTestClient(appRouter, { as: "owner", clock });
     const cow = await aCowIn(first, world.milking.id);
-    const { owner, instance } = await instanceFor(clock, world.milking.id);
+    // Barn Staff walk her, on the barn's phone, in the Pens they keep.
+    await staffKeep(world.milking.id, world.dry.id, world.sick.id);
+    const { owner, instance } = await instanceFor(
+      clock,
+      world.milking.id,
+      "staff"
+    );
     const walkedAt = clock.now();
 
     // An hour on, somebody walks her to the dry pen by hand, with signal.
@@ -200,7 +222,7 @@ describe("a Step the farm has moved past", () => {
     // The phone that walked her to the sick pen an hour ago is only now in signal — a phone of this test's own, whose
     // sequence starts here.
     const phone = await createTestClient(appRouter, {
-      as: "owner",
+      as: "staff",
       clock,
       onShedPhone: true,
       phone: { id: "test-phone-moves-late", name: "দেরির শেড ফোন" },

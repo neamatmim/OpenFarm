@@ -76,12 +76,26 @@ export const roleFor = (
       )
     : null) ?? pickRoleUsed(person.roles, allowed);
 
+/** Refused: this must come from the person's own phone, never a shared Shed Phone (ADR 0003). One refusal, with its
+ *  word, for the gate, the work a Vet signs and the Entries that may only come from a person's own phone. */
+export const PERSONAL_PHONE_ONLY: Refusal = {
+  message: "This can only be done from your own phone, not a shed phone",
+  reason: "personal_phone_only",
+};
+
 const roleGate = (
   allowed: readonly RoleName[],
   { refusal, visitingVet = false }: { refusal?: Refusal } & OpenToAVisit = {}
 ) =>
   os.$context<Context & { actor: Actor }>().middleware(({ context, next }) => {
     const roleUsed = roleFor(context, allowed);
+    // On a Shed Phone a person is Barn Staff alone: what a Role they hold away from it may do is theirs from their
+    // own phone, and they are told so rather than that they lack the Role.
+    const fromTheirOwnPhone =
+      !roleUsed && pickRoleUsed(context.rolesOffThePhone, allowed) !== null;
+    if (fromTheirOwnPhone) {
+      throw forbidden(PERSONAL_PHONE_ONLY);
+    }
     if (!roleUsed || !context.farm) {
       throw refusal ? forbidden(refusal) : new ORPCError("FORBIDDEN");
     }
@@ -123,13 +137,6 @@ export const requireOnly = (
   refusal: Refusal,
   openToAVisit: OpenToAVisit = {}
 ) => roleGate([role], { refusal, ...openToAVisit });
-
-/** Refused: this must come from the person's own phone, never a shared Shed Phone (ADR 0003). One refusal, with its
- *  word, for the gate, the work a Vet signs and the Entries that may only come from a person's own phone. */
-export const PERSONAL_PHONE_ONLY: Refusal = {
-  message: "This can only be done from your own phone, not a shed phone",
-  reason: "personal_phone_only",
-};
 
 /** Some work must never come from a shared Shed Phone, whatever Role the active person
  *  holds: office work, and every clinical act a Vet signs (ADR 0003). */
