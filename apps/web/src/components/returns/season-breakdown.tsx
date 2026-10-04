@@ -25,6 +25,8 @@ import { useMoney } from "@/lib/money";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
+import { GrowthSaid } from "./growth-said";
+
 type BreakdownBy = Parameters<typeof client.returns.breakdown>[0]["by"];
 type BreakdownRow = Awaited<
   ReturnType<typeof client.returns.breakdown>
@@ -129,6 +131,10 @@ const CostBackCell = ({ row }: BreakdownCell) => {
   );
 };
 
+const GrowthCell = ({ row }: BreakdownCell) => (
+  <GrowthSaid growth={row.original.growth} />
+);
+
 const ShareCell = ({ row }: BreakdownCell) =>
   row.original.per100 === null ? null : (
     <ShareSaid on="onCost" per100={row.original.per100} />
@@ -153,6 +159,13 @@ const breakdownColumnsFor = (by: BreakdownBy) =>
       header: listHeader("returns.col.share"),
       cell: ShareCell,
     }),
+    // A seller whose bulls put on less is one to buy less from, whatever this Season's prices made of it.
+    breakdownColumn.accessor((row) => row.growth?.gainKgPerDay ?? undefined, {
+      id: "growth",
+      header: listHeader("returns.col.growth"),
+      cell: GrowthCell,
+      sortUndefined: "last",
+    }),
   ]);
 const BREAKDOWN_COLUMNS = {
   livestockMarket: breakdownColumnsFor("livestockMarket"),
@@ -171,6 +184,7 @@ const BreakdownCard = ({ row }: { row: BreakdownListRow }) => (
     <LineCell row={{ original: row }} />
     <CostBackCell row={{ original: row }} />
     <ShareCell row={{ original: row }} />
+    <GrowthCell row={{ original: row }} />
   </div>
 );
 

@@ -3,6 +3,7 @@ import type { JoiningHow } from "@OpenFarm/db/schema/fattening";
 import type {
   Came,
   DairyBooks,
+  Growth,
   Left,
   ReturnBooks,
   SeasonHolding,
@@ -21,6 +22,7 @@ import {
   returnOf,
   returnOfHoldings,
   returnOnCapitalOf,
+  growthOfHoldings,
   seasonGroupsOf,
   seasonsOf,
   spentOn,
@@ -95,6 +97,7 @@ const booksOf = async (
       arrivedAt: true,
       targetWindowStart: true,
       targetWindowEnd: true,
+      weightKg: true,
     },
   });
   const joinings = await db.query.fatteningJoining.findMany({
@@ -108,6 +111,7 @@ const booksOf = async (
       targetWindowEnd: true,
       priceMoney: true,
       internalSaleId: true,
+      weightKg: true,
     },
     orderBy: { joinedAt: "asc", id: "asc" },
   });
@@ -130,6 +134,17 @@ const booksOf = async (
     },
     orderBy: { createdAt: "asc", id: "asc" },
   });
+  // Every reading the farm did not doubt, for how a Season grew.
+  const readings = await db.query.weighIn.findMany({
+    where: { farmId, flaggedNote: { isNull: true } },
+    columns: { animalId: true, weightKg: true, weighedAt: true },
+  });
+  const readingsOf = new Map<string, { kg: number; at: Date }[]>();
+  for (const one of readings) {
+    const hers = readingsOf.get(one.animalId) ?? [];
+    hers.push({ kg: Number(one.weightKg), at: one.weighedAt });
+    readingsOf.set(one.animalId, hers);
+  }
   // What each standing Animal is worth today, exactly as the animal prices say it: never a third valuation.
   const priced = await pricesOnTheSide(db, farm, now);
   const values: Books["values"] = new Map(
@@ -149,6 +164,24 @@ const booksOf = async (
     litres: costs.ofAnimal.litres,
     animals: costs.animals,
     joinings,
+    weights: {
+      came: new Map([
+        ...intakes.map((one) => [one.id, Number(one.weightKg)] as const),
+        ...joinings.map(
+          (one) =>
+            [
+              one.id,
+              one.weightKg === null ? null : Number(one.weightKg),
+            ] as const
+        ),
+      ]),
+      sold: new Map(
+        costs.animals.flatMap((one) =>
+          one.sale ? [[one.id, Number(one.sale.weightKg)] as const] : []
+        )
+      ),
+      readings: readingsOf,
+    },
     values,
     bankRates,
     ownedThenBy,
@@ -380,6 +413,8 @@ export interface BreakdownRow {
   resultMoney: number;
   /** What every hundred taka made, to one place; null for a line that cost nothing. */
   per100: number | null;
+  /** How its Animals grew: kilos a day, Days on Feed and Cost of Gain, pooled. */
+  growth: Growth | null;
 }
 
 /** A band's From, an open one below every weight: what bands are ordered by. */
@@ -639,6 +674,8 @@ export const seasonBreakdown = async (
         backMoney: returned?.backMoney ?? backOf(holdings),
         resultMoney: returned?.resultMoney ?? backOf(holdings),
         per100: returned?.per100 ?? null,
+        /** How this line's Animals grew, pooled: a seller whose bulls put on less is a seller to buy less from. */
+        growth: growthOfHoldings(books, holdings, now),
       };
     });
 };

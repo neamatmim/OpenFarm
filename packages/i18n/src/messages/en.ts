@@ -974,6 +974,11 @@ export const en = {
   "params.alerts": "Alerts and quiet hours",
   "params.records": "Records",
   "params.pinAutoLock": "Shed phone locks after",
+  "returns.growth.perDay": "{kg} kg a day",
+  "returns.growth.daysOnFeed":
+    "{days, plural, one {# day} other {# days}} on feed",
+  "returns.growth.costOfGain": "{money} a kilo gained",
+  "returns.col.growth": "Growth",
   "animals.groupTick": "Choose {tag} to move",
   "animals.groupChosen":
     "{count, plural, one {# animal} other {# animals}} chosen",
