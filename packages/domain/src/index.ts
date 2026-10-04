@@ -247,7 +247,12 @@ export {
   randomPinSalt,
   verifyPin,
 } from "./pin";
-export { DEFAULT_AUTO_LOCK_MINUTES, SYNC_BATCH_MAX } from "./phone-limits";
+export {
+  DEFAULT_AUTO_LOCK_MINUTES,
+  SYNC_BATCH_MAX,
+  SYNC_BATCH_MAX_BYTES,
+  heavierThanAPhoneSends,
+} from "./phone-limits";
 export type { AlertKind, ReviewReason } from "./alerts";
 export type {
   CorrectionRefusal,

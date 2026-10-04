@@ -50,6 +50,10 @@ is the part that is easy to believe was done and was not:
       the caller sent (nginx: `proxy_set_header X-Forwarded-For $remote_addr;`). Sign-in and
       Shed Phone enrolment count wrong guesses per address, read from that header; a proxy
       that appends lets a script name a new address on every try.
+- [ ] The proxy takes a request of up to **8 MB** and no more (nginx: `client_max_body_size 8m;`).
+      nginx's own default is 1 MB, which refuses a Shed Phone's batch of photographs (up to 4 MB, as
+      a phone sends them); without any limit, one signed-in phone could send hundreds of megabytes
+      for the app to read.
 - [ ] The proxy passes the **Host** the browser asked for (nginx: `proxy_set_header Host $host;`).
       The app tells the farm's address from the Investor Portal's by it; a proxy that sends
       `127.0.0.1` makes every request the farm's.

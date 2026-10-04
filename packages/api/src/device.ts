@@ -142,7 +142,8 @@ export const checkPin = async (
  * through `audited()`. The *act* of switching is still audited, by the router.
  */
 export const openSwitch = async (
-  db: Database,
+  /** The transaction the switch is audited in, so the act and its record stand or fall together. */
+  db: Pick<Database, "insert">,
   {
     id,
     deviceId,

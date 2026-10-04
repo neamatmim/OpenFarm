@@ -17,6 +17,7 @@ import {
   tellTheOwnerAboutTheMachinery,
   untold,
 } from "./the-machinery-notices";
+import { asLogged } from "./thrown";
 
 export interface ScheduleStatus {
   lastRanAt: Date | null;
@@ -122,7 +123,7 @@ const tellTheOwnerIfItHasGoneQuiet = async (
     await pushRaised(context, raised, now);
   } catch (error) {
     // oxlint-disable-next-line no-console
-    console.error("telling the Owner the farm has gone quiet", error);
+    console.error("telling the Owner the farm has gone quiet", asLogged(error));
   }
 };
 

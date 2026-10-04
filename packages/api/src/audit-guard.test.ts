@@ -17,13 +17,20 @@ const DIRECT_WRITE = /context\.db\s*\.\s*(?:insert|update|delete)\s*\(/u;
 const RAW_TRANSACTION = /context\.db\s*\.\s*transaction\s*\(/u;
 const DB_DELETE = /\b(?:tx|db)\s*\.\s*delete\s*\(/u;
 
-const sources = readdirSync(ROUTERS)
+// Every router, those in a folder of their own as well: a Venture's routers live in `routers/ventures/`.
+const sources = readdirSync(ROUTERS, { recursive: true, encoding: "utf-8" })
   .filter((name) => name.endsWith(".ts") && !name.includes(".test."))
   .map(
     (name) => [name, readFileSync(path.join(ROUTERS, name), "utf-8")] as const
   );
 
 describe("write discipline", () => {
+  it("reads every router, those in folders too", () => {
+    expect(sources.map(([name]) => name)).toContain(
+      path.join("ventures", "trading.ts")
+    );
+  });
+
   it("no router writes to the database outside the audited helper", () => {
     expect(
       sources
