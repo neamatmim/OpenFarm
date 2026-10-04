@@ -731,6 +731,7 @@ export const en = {
   "portal.averageIntake": "Average weight on arrival",
   "portal.averageNow": "Average weight now",
   "portal.dailyGain": "Daily gain",
+  "portal.dailyGainHint": "Every animal so far, sold and dead included",
   "portal.tag": "Tag",
   "portal.intake": "On arrival (kg)",
   "portal.now": "Now (kg)",

@@ -775,6 +775,10 @@ describe("অগ্রগতি — the sheet while the run goes on", () => {
     // The bulls it has actually weighed, and what they average.
     expect(text).toContain("ওজন নেওয়া হয়েছে / Weighed: ২");
     expect(text).toContain("২২৪.৫");
+    // The herd's gain is over every bull it has had, not the two weighed above it, and says so.
+    expect(text).toContain(
+      "দৈনিক বৃদ্ধি (বিক্রি ও মৃতসহ সব পশুর) / Daily gain (every animal so far, sold and dead included): ০.৭৩ কেজি"
+    );
   });
 
   it("says in words that a Venture has bought nothing yet", async () => {
