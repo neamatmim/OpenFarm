@@ -27,6 +27,7 @@ import {
   reserveBatch,
   seqTaken,
 } from "./sync-store";
+import { seenWhenDone } from "./writes-seen";
 
 /** What to tell the phone about an entry the farm could not take. */
 const message = (error: unknown): string =>
@@ -375,48 +376,50 @@ export const applyBatch = async (
   /** The notice raised for whoever sent the batch, when the farm refused any of it. */
   told: RaisedAlert[];
 }> =>
-  await db.transaction(async (tx) => {
-    const reserved = await reserveBatch(tx, {
-      key: input.key,
-      farmId: context.farm.id,
-      actorId: context.actor.id,
-      requestHash,
-      receivedAt,
-    });
-    if (!reserved) {
-      throw new ORPCError("CONFLICT", {
-        message: "That batch is already being applied",
+  await seenWhenDone(
+    db.transaction(async (tx) => {
+      const reserved = await reserveBatch(tx, {
+        key: input.key,
+        farmId: context.farm.id,
+        actorId: context.actor.id,
+        requestHash,
+        receivedAt,
       });
-    }
-    const applied = await applyEntries(tx, context, input, {
-      receivedAt,
-      sourceKey,
-      recorderFor,
-    });
-    await recordBatchResponse(tx, input.key, context.farm.id, {
-      results: applied,
-    });
-    // An entry the farm would not take is work somebody believes they have done. They are told
-    // at once, in the app, because the alternative is a phone quietly holding an entry nobody
-    // will ever look at again.
-    const refused = applied.filter((one) => one.outcome === "rejected");
-    // The whole notice, not its id: whoever pushes it needs what it says, and rebuilding it at
-    // the call site is how the count and the reason got lost.
-    const told =
-      refused.length > 0
-        ? await tell(
-            tx,
-            context.farm.id,
-            {
-              kind: "entry_rejected",
-              about: { id: input.key, person: context.actor.id },
-              facts: {
-                count: refused.length,
-                reason: refused[0]?.reason ?? "",
+      if (!reserved) {
+        throw new ORPCError("CONFLICT", {
+          message: "That batch is already being applied",
+        });
+      }
+      const applied = await applyEntries(tx, context, input, {
+        receivedAt,
+        sourceKey,
+        recorderFor,
+      });
+      await recordBatchResponse(tx, input.key, context.farm.id, {
+        results: applied,
+      });
+      // An entry the farm would not take is work somebody believes they have done. They are told
+      // at once, in the app, because the alternative is a phone quietly holding an entry nobody
+      // will ever look at again.
+      const refused = applied.filter((one) => one.outcome === "rejected");
+      // The whole notice, not its id: whoever pushes it needs what it says, and rebuilding it at
+      // the call site is how the count and the reason got lost.
+      const told =
+        refused.length > 0
+          ? await tell(
+              tx,
+              context.farm.id,
+              {
+                kind: "entry_rejected",
+                about: { id: input.key, person: context.actor.id },
+                facts: {
+                  count: refused.length,
+                  reason: refused[0]?.reason ?? "",
+                },
               },
-            },
-            receivedAt
-          )
-        : [];
-    return { results: applied, told };
-  });
+              receivedAt
+            )
+          : [];
+      return { results: applied, told };
+    })
+  );

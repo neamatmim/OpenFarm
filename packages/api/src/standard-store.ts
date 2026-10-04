@@ -21,6 +21,7 @@ import {
   refuseFeedsNotFed,
 } from "./feed-store";
 import { nameTaken } from "./names";
+import { seenWhenDone } from "./writes-seen";
 
 /** Who is starting the farm with the standard lists, and when. */
 interface Starter {
@@ -297,7 +298,7 @@ export const startWithStandard = (
   starter: Starter,
   kinds: readonly StandardKind[]
 ): Promise<StandardAdded> =>
-  db.transaction((tx) => addStandard(tx, trail, starter, kinds));
+  seenWhenDone(db.transaction((tx) => addStandard(tx, trail, starter, kinds)));
 
 /**
  * Gives the farm the standard medicines it does not have yet — names only, as if added by hand the day they were
@@ -307,4 +308,5 @@ export const addStandardDrugs = (
   db: Database,
   trail: Trail,
   starter: Starter
-): Promise<string[]> => db.transaction((tx) => addDrugs(tx, trail, starter));
+): Promise<string[]> =>
+  seenWhenDone(db.transaction((tx) => addDrugs(tx, trail, starter)));
