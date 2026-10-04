@@ -93,6 +93,5 @@ test could go red, merged one at a time:
 
 Not built yet:
 
-- **S3 and S4** wait for the Owner's answers to the questions above.
 - **H1(5)** was left as suspect: whether a Venture herd's ADG should count only the animals still standing.
 - **W5–W7, H4–H6 and S5** wait for the farm's 30 days.
