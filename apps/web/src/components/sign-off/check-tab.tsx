@@ -197,9 +197,9 @@ const ApproveTheClean = ({
 
 /**
  * Work done and waiting on the checker: approve it where it stands, or send it back with what needs doing again. Each
- * row waits only for its own answer, so the rest of the queue stays usable while one is saving. On a desk rows may be
- * ticked and approved together, the job done most to many at once; sending back stays one at a time, as each needs
- * its own reason.
+ * row waits only for its own answer, so the rest of the queue stays usable while one is saving. Rows may be ticked and
+ * approved together, on a phone as at a desk, the job done most to many at once; sending back stays one at a time, as
+ * each needs its own reason.
  */
 export const CheckTab = ({ queue }: { queue: Asked<ToCheck> }) => {
   const { t, language } = useLanguage();
@@ -294,7 +294,7 @@ export const CheckTab = ({ queue }: { queue: Asked<ToCheck> }) => {
             ) : null}
             {/* Carbon's batch bar: over the table while rows are ticked, what is ticked and what to do with it. */}
             {chosen.length > 0 ? (
-              <div className="bg-accent text-accent-foreground hidden items-center justify-between gap-3 rounded-lg px-4 py-2 md:flex">
+              <div className="bg-accent text-accent-foreground flex flex-wrap items-center justify-between gap-3 rounded-lg px-4 py-2">
                 <span aria-live="polite" className="text-sm font-medium">
                   {t("signOff.selected", { count: chosen.length })}
                 </span>

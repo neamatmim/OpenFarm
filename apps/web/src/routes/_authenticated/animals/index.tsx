@@ -19,6 +19,7 @@ import {
 import { useState } from "react";
 
 import { stillHeld } from "@/components/animal/animal-words";
+import { GroupMove, useHerdTicking } from "@/components/animal/group-move";
 import type { HerdRow } from "@/components/animal/herd-list";
 import { HerdTable } from "@/components/animal/herd-list";
 import {
@@ -255,6 +256,7 @@ const AnimalsPage = () => {
   const figures = useHerdFigures(rows);
   const needle = q.trim().toUpperCase();
   const matching = narrowed(rows, search, needle);
+  const ticking = useHerdTicking(matching);
   const narrowing = [side, state, pen, held].filter(Boolean).length;
   const filtered = Boolean(needle) || narrowing > 0;
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -379,7 +381,18 @@ const AnimalsPage = () => {
           </div>
         ) : null}
 
-        {matching.length ? <HerdTable rows={matching} /> : null}
+        {ticking.chosen.length ? (
+          <GroupMove
+            chosen={ticking.chosen}
+            onClear={ticking.handleClear}
+            onDone={ticking.handleClear}
+            pens={ticking.movePens}
+          />
+        ) : null}
+
+        {matching.length ? (
+          <HerdTable rows={matching} selection={ticking.selection} />
+        ) : null}
 
         {animals.data && matching.length === 0 ? (
           <EmptyState

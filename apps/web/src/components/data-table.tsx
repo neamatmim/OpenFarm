@@ -300,8 +300,17 @@ export const DataTable = <TData extends object>({
       {card ? (
         <ul className="divide-border flex flex-col divide-y md:hidden">
           {rows.map((row) => (
-            <li className="min-w-0 py-3" key={row.id}>
-              {card(row.original)}
+            <li className="flex min-w-0 items-start gap-3 py-3" key={row.id}>
+              {/* Ticked on a phone as at a desk: a job done to many is as much a phone's. */}
+              {selection?.selectable(row.original) ? (
+                <Checkbox
+                  aria-label={selection.label(row.original)}
+                  checked={selection.selected.has(row.id)}
+                  className="mt-1"
+                  onCheckedChange={(on) => tickRow(row.id, on)}
+                />
+              ) : null}
+              <div className="min-w-0 flex-1">{card(row.original)}</div>
             </li>
           ))}
         </ul>

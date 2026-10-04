@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Beef, ChevronRight, Milk } from "lucide-react";
 
 import { AnimalPhoto } from "@/components/animal-photo";
+import type { RowSelection } from "@/components/data-table";
 import {
   DataTable,
   createListColumns,
@@ -164,13 +165,26 @@ const herdCard = (row: HerdRow) => <HerdCard row={row} />;
 
 /** The herd as a table where there is room — her number, State, Side, Pen, breed and age side by side, sortable —
  *  and as cards on a phone, a page at a time either way. */
-export const HerdTable = ({ rows }: { rows: HerdRow[] }) => {
+export const HerdTable = ({
+  rows,
+  selection,
+}: {
+  rows: HerdRow[];
+  /** Animals ticked to be moved together, where this person may move any. */
+  selection?: RowSelection<HerdRow>;
+}) => {
   const table = useListTable({
     columns: herdColumns,
     data: rows,
     getRowId: (row) => row.id,
   });
   return (
-    <DataTable card={herdCard} minWidth="56rem" pageSize={PAGE} table={table} />
+    <DataTable
+      card={herdCard}
+      minWidth="56rem"
+      pageSize={PAGE}
+      selection={selection}
+      table={table}
+    />
   );
 };

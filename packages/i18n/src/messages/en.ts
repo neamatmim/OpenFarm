@@ -974,6 +974,18 @@ export const en = {
   "params.alerts": "Alerts and quiet hours",
   "params.records": "Records",
   "params.pinAutoLock": "Shed phone locks after",
+  "animals.groupTick": "Choose {tag} to move",
+  "animals.groupChosen":
+    "{count, plural, one {# animal} other {# animals}} chosen",
+  "animals.groupMove": "Move {count, plural, one {# animal} other {# animals}}",
+  "animals.groupMoved":
+    "{count, plural, one {# animal} other {# animals}} moved",
+  "animals.groupQueued":
+    "{count, plural, one {# move} other {# moves}} held on this phone until it has signal",
+  "animals.groupAlreadyThere":
+    "{count, plural, one {# animal was} other {# animals were}} already in that pen",
+  "animals.groupRefused":
+    "{count, plural, one {# animal was} other {# animals were}} not moved: open her page to see why",
   "params.breeding": "Breeding calendar",
   "params.fatteningAndPapers": "Fattening and papers",
   "params.alertsHint":
