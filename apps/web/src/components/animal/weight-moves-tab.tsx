@@ -21,6 +21,7 @@ import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 import type { AnimalDetail, AnimalPowers, PenChoice } from "./animal-types";
+import { PenOverCapacity, usePenChoiceLabel } from "./pen-room";
 
 /** Across to Fattening — a bull calf, or an animal put on the wrong side — into a Pen there. A Move like any other, so
  *  whoever may move her may take her across, and a phone out of signal keeps it until it can send it. */
@@ -32,6 +33,7 @@ const ChangeSide = ({
   pens: PenChoice[];
 }) => {
   const { t } = useLanguage();
+  const penLabel = usePenChoiceLabel();
   const toSide = "fattening" as const;
   const [toPenId, setToPenId] = useState("");
   // The Season she joins on the Fattening side: the next Eid, worked out by the farm even for a phone out of signal,
@@ -77,11 +79,15 @@ const ChangeSide = ({
           <option value="">—</option>
           {pens.map((pen) => (
             <option key={pen.id} value={pen.id}>
-              {pen.shedName} / {pen.name}
+              {penLabel(pen)}
             </option>
           ))}
         </NativeSelect>
       </div>
+      <PenOverCapacity
+        coming={1}
+        pen={pens.find((pen) => pen.id === toPenId)}
+      />
       <WindowChoice
         id={`side-season-${tagNumber}`}
         onPick={setWindowPick}

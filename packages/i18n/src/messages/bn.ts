@@ -2247,6 +2247,15 @@ export const bn: Record<MessageKey, string> = {
   "herd.noShedsHint": "খামারের প্রথম শেড যোগ করুন, তারপর তার ভেতরের পেনগুলো।",
   "herd.subtitle": "খামারের শেড ও তার ভেতরের পেন। নাম বদলালে কোনো পশু জায়গা বদলায় না।",
   "herd.animalCount": "{count}টি পশু",
+  "herd.headOfCapacity": "{capacity}টির মধ্যে {head}টি",
+  "herd.overCapacity": "{count}টি বেশি",
+  "herd.setCapacity": "ধারণক্ষমতা",
+  "herd.capacityTitle": "{pen}-এ কয়টি পশু ধরে",
+  "herd.capacityLabel": "কয়টি পশু ধরে",
+  "herd.capacityHint":
+    "জায়গা আর খাবারের চাড়ি দেখে লিখুন। গোনা না হলে খালি রাখুন: ধারণক্ষমতার বেশি হলে দেখানো হবে, পেন বন্ধ হবে না।",
+  "animals.penOverCapacity":
+    "{pen}-এ {capacity}টি ধরে; এই স্থানান্তরের পরে সেখানে থাকবে {head}টি।",
   "herd.import": "প্রারম্ভিক তালিকা",
   "herd.importHelp":
     "CSV পেস্ট করুন: tag, sex, side, state, pen, source, breed, alias, expected_calving (YYYY-MM-DD, গাভী গর্ভবতী হলে)। tag হলো কানের ট্যাগে লেখা নম্বর, যেমন D-0001; খালি রাখলে পরের নম্বরটি দেওয়া হবে",

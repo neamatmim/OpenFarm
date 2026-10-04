@@ -3,6 +3,10 @@ import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 
 import type { PenChoice } from "@/components/animal/animal-types";
+import {
+  PenOverCapacity,
+  usePenChoiceLabel,
+} from "@/components/animal/pen-room";
 import { FormDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { queueMove } from "@/lib/record-offline";
@@ -31,6 +35,7 @@ export const MoveDialog = ({
 }) => {
   const { t } = useLanguage();
   const onError = useRefused();
+  const penLabel = usePenChoiceLabel();
   const [toPenId, setToPenId] = useState(chosenPenId);
   const [reason, setReason] = useState("");
   const finished = () => {
@@ -88,11 +93,15 @@ export const MoveDialog = ({
             .filter((pen) => pen.id !== animal.penId)
             .map((pen) => (
               <option key={pen.id} value={pen.id}>
-                {pen.shedName} / {pen.name}
+                {penLabel(pen)}
               </option>
             ))}
         </NativeSelect>
       </FormField>
+      <PenOverCapacity
+        coming={1}
+        pen={pens.find((pen) => pen.id === toPenId)}
+      />
       <FormField id="act-move-reason" label={t("animals.reason")}>
         <Input
           id="act-move-reason"

@@ -6,6 +6,7 @@ import { FileUp, Plus, Warehouse } from "lucide-react";
 import { useState } from "react";
 
 import { TagLink } from "@/components/fattening/fattening-words";
+import { CapacityDialog } from "@/components/herd/capacity-dialog";
 import { ImportRegisterSheet } from "@/components/herd/import-register-sheet";
 import { NameDialog } from "@/components/herd/name-dialog";
 import type { ShedActions, ShedRow } from "@/components/herd/shed-card";
@@ -86,7 +87,8 @@ const QuarantineAstray = () => {
 };
 
 /**
- * The farm's Sheds and the Pens inside them, a card to each Shed with its Pens and how many animals stand in each.
+ * The farm's Sheds and the Pens inside them, a card to each Shed with its Pens and how many animals stand in each —
+ * against the head each holds, once somebody has said.
  * Registering an animal is the page's own act; a new Shed and the opening register sit over the cards, and a name —
  * new or changed — is written in a dialog. Renaming moves no animal.
  */
@@ -94,9 +96,13 @@ const HerdPage = () => {
   const { t } = useLanguage();
   const refused = useRefused();
   const sheds = useQuery(orpc.sheds.list.queryOptions());
-  const animals = useQuery(orpc.animals.list.queryOptions({ input: {} }));
 
   const [naming, setNaming] = useState<Naming | null>(null);
+  const [sizing, setSizing] = useState<{
+    id: string;
+    name: string;
+    capacity: number | null;
+  } | null>(null);
   const [importing, setImporting] = useState(false);
   const words = useNamingWords(naming);
 
@@ -141,10 +147,6 @@ const HerdPage = () => {
     }
   };
 
-  const inPen = new Map<string, number>();
-  for (const animal of animals.data ?? []) {
-    inPen.set(animal.penId, (inPen.get(animal.penId) ?? 0) + 1);
-  }
   const actions: ShedActions = {
     handleAddPen: (shed) => setNaming({ kind: "newPen", shed }),
     handleRenameShed: (shed) =>
@@ -153,6 +155,7 @@ const HerdPage = () => {
       setNaming({ kind: "renamePen", id: pen.id, current: pen.name }),
     handleMarkQuarantine: (pen, quarantine) =>
       markQuarantine.mutate({ penId: pen.id, quarantine }),
+    handleSetCapacity: setSizing,
   };
 
   return (
@@ -212,12 +215,7 @@ const HerdPage = () => {
       {sheds.data?.length ? (
         <div className="grid items-start gap-4 lg:grid-cols-2">
           {sheds.data.map((shed) => (
-            <ShedCard
-              actions={actions}
-              inPen={inPen}
-              key={shed.id}
-              shed={shed}
-            />
+            <ShedCard actions={actions} key={shed.id} shed={shed} />
           ))}
         </div>
       ) : null}
@@ -242,6 +240,15 @@ const HerdPage = () => {
         pending={pending}
         submitLabel={words.submit}
         title={words.title}
+      />
+      <CapacityDialog
+        key={sizing?.id ?? "none"}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSizing(null);
+          }
+        }}
+        pen={sizing}
       />
       <ImportRegisterSheet onOpenChange={setImporting} open={importing} />
     </Page>

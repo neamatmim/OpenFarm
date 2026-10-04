@@ -8,6 +8,10 @@ import { useState } from "react";
 import type { PenChoice } from "@/components/animal/animal-types";
 import { pensOf, powersOf, usePens } from "@/components/animal/animal-types";
 import type { HerdRow } from "@/components/animal/herd-list";
+import {
+  PenOverCapacity,
+  usePenChoiceLabel,
+} from "@/components/animal/pen-room";
 import type { RowSelection } from "@/components/data-table";
 import { FormDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -36,6 +40,7 @@ export const GroupMove = ({
 }) => {
   const { t, language } = useLanguage();
   const queryClient = useQueryClient();
+  const penLabel = usePenChoiceLabel();
   const [open, setOpen] = useState(false);
   const [toPenId, setToPenId] = useState("");
   const [reason, setReason] = useState("");
@@ -133,11 +138,15 @@ export const GroupMove = ({
             <option value="">—</option>
             {offered.map((pen) => (
               <option key={pen.id} value={pen.id}>
-                {pen.shedName} / {pen.name}
+                {penLabel(pen)}
               </option>
             ))}
           </NativeSelect>
         </FormField>
+        <PenOverCapacity
+          coming={chosen.filter((one) => one.penId !== toPenId).length}
+          pen={offered.find((pen) => pen.id === toPenId)}
+        />
         <FormField id="group-move-reason" label={t("animals.reason")}>
           <Input
             id="group-move-reason"
