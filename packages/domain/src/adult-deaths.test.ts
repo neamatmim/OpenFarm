@@ -51,6 +51,37 @@ describe("deaths among grown animals", () => {
     expect(deaths.causes).toEqual([{ cause: "দুধ জ্বর", count: 1 }]);
   });
 
+  it("counts each day of a cow crossed to Fattening on the Side she stood on that day, and her death on her last", () => {
+    // In milk until 2 July, then fattened for Eid, and she died on the fattening side on 1 December.
+    const deaths = adultDeaths(
+      [
+        {
+          side: "fattening",
+          bornAt: null,
+          arrivedAt: day("2025-01-01"),
+          leftAt: day("2026-12-01"),
+          death: { kind: "died", at: day("2026-12-01"), cause: "পেট ফাঁপা" },
+          sides: [
+            {
+              side: "dairy",
+              from: day("2025-01-01"),
+              until: day("2026-07-02"),
+            },
+            {
+              side: "fattening",
+              from: day("2026-07-02"),
+              until: day("2026-12-01"),
+            },
+          ],
+        },
+      ],
+      year
+    );
+    // Half the year a cow, five months a bull for Eid — not the whole of her year on the fattening side.
+    expect(deaths.dairy).toMatchObject({ died: 0, headYears: 0.5 });
+    expect(deaths.fattening).toMatchObject({ died: 1, headYears: 0.4 });
+  });
+
   it("leaves a calf that died before weaning to the calf-loss figure", () => {
     const deaths = adultDeaths(
       [
