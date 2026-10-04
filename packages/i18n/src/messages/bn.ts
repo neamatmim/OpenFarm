@@ -4348,6 +4348,18 @@ export const bn: Record<MessageKey, string> = {
   "milk.daysInMilkOf": "{days} দিন দুধে",
   "milk.daysDry": "{days} দিন শুকনো",
   "milk.daysDrySoFar": "এ পর্যন্ত {days} দিন শুকনো",
+  "heifers.title": "বকনার বৃদ্ধি",
+  "heifers.hint":
+    "যে বকনা এখনো গর্ভবতী নয়, প্রত্যেকে DLS-এর প্রথম পালের ২৫০ কেজির পাশে — সংকর বকনা ১৮ মাসে, দেশি ৩০ মাসে — যে হারে সে বাড়ছে সেই হারে। যারা পিছিয়ে পড়বে তারা আগে।",
+  "heifers.col.age": "বয়স",
+  "heifers.col.weight": "শেষ ওজন",
+  "heifers.col.gain": "বাড়ছে",
+  "heifers.col.atService": "পালের বয়সে",
+  "heifers.behind": "পিছিয়ে পড়ছে",
+  "heifers.reached": "ওজন হয়েছে",
+  "heifers.onTrack": "ঠিক পথে",
+  "heifers.notWeighed": "এখনো ওজন নেওয়া হয়নি",
+  "heifers.atAge": "{months} বয়সে {kg}",
   "fertility.byMonth": "মাসে মাসে",
   "fertility.cows": "বাছুর দেওয়ার পর প্রতিটি গাভী",
   "fertility.cowsHint":

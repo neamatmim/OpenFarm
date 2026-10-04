@@ -8,6 +8,7 @@ import {
   FertilityByMonth,
   FertilityFigures,
 } from "@/components/fertility/fertility";
+import { HeiferGrowth } from "@/components/fertility/heifer-growth";
 import { Notice, Page, PageHeader } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
@@ -47,6 +48,7 @@ const FertilityPage = () => {
       {header}
       <FertilityFigures year={fertility.data.year} />
       <CowsSinceCalving cows={fertility.data.cows} />
+      <HeiferGrowth />
       <DryOffFigures dryOffs={fertility.data.dryOffs} />
       <FertilityByMonth months={fertility.data.months} />
     </Page>

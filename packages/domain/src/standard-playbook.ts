@@ -471,6 +471,53 @@ const weighIn = (): SopContent => ({
   ],
 });
 
+/** A heifer's weight worth a second look: below 60 kg or above 600. */
+const HEIFER_WEIGHT_KG = { min: 60, max: 600 } as const;
+
+// DLS: "Heifers' weight should be monitored regularly and adjusted the feed with supplements to get the target weights
+// for cross heifers about 250 and 300 kg at 18 months of age" (NG-GLPP §12.1.1.1(l)); "Puberty for heifers is governed by
+// size and weight, not age" (§12.1.1.1.1(b)(8)). Monthly, on the first Saturday, while the crush is out for the
+// fattening pens' weighing (docs/research/cow-watch.md §3).
+const heiferWeighIn = (): SopContent => ({
+  name: { bn: "বকনার ওজন", en: "Heifer weigh-in" },
+  purpose: {
+    bn: "প্রতি মাসে প্রতিটি বকনার ওজন নিন — দেড় বছরে ২৫০ কেজির দিকে সে ঠিকমতো বাড়ছে কিনা",
+    en: "Weigh each heifer every month — is she growing toward 250 kg by eighteen months",
+  },
+  triggers: [
+    {
+      kind: "schedule",
+      times: ["07:00"],
+      weekdays: [6],
+      firstOfTheMonth: true,
+    },
+  ],
+  appliesTo: { side: "dairy", states: ["heifer"] },
+  assignedRole: "staff",
+  checkerRole: "manager",
+  graceMinutes: 240,
+  steps: [
+    {
+      id: "weigh",
+      text: { bn: "ওজন নিন (দাঁড়িপাল্লা বা ফিতা)", en: "Weigh her (scale or tape)" },
+      repeatPerAnimal: true,
+      evidence: [
+        {
+          type: "number",
+          required: true,
+          label: { bn: "ওজন", en: "Weight" },
+          unit: { bn: "কেজি", en: "kg" },
+          min: HEIFER_WEIGHT_KG.min,
+          max: HEIFER_WEIGHT_KG.max,
+        },
+        CONDITION_SCORE,
+      ],
+      skipReasons: [{ bn: "দাঁড়িপাল্লা বা ফিতা নেই", en: "No scale or tape to hand" }],
+      effect: { kind: "weigh_in" },
+    },
+  ],
+});
+
 /** A campaign's dose of the product the farm named. Named nothing, it is a prescribed dose's shape, which the
  *  Playbook refuses to publish without a Prescription to raise it: the Owner is told to choose the product. */
 const campaignDose = (productId: string | undefined) =>
@@ -1665,6 +1712,7 @@ export type PlaybookKey =
   | "calfHs"
   | "calfBq"
   | "weighIn"
+  | "heiferWeighIn"
   | "fmdVaccination"
   | "lsdVaccination"
   | "deworming"
@@ -1770,6 +1818,7 @@ export const standardPlaybook = (
   calfHs: calfHs(chosen.hsVaccine),
   calfBq: calfBq(chosen.bqVaccine),
   weighIn: weighIn(),
+  heiferWeighIn: heiferWeighIn(),
   fmdVaccination: vaccination(
     chosen.fmdVaccine,
     "ক্ষুরা রোগের (এফএমডি) টিকা",

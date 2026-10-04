@@ -19,6 +19,7 @@ import {
 } from "../corrections/abortion";
 import { correct } from "../corrections/correction";
 import { fertilityOn } from "../fertility-store";
+import { heifersOn } from "../heifer-store";
 import {
   entersState,
   forgetExpectedCalving,
@@ -137,6 +138,16 @@ export const breedingRouter = {
     .use(requireRole("owner", "manager", "vet"))
     .handler(({ context }) =>
       fertilityOn(context.db, context.farm.id, context.clock.now())
+    ),
+
+  /**
+   * Each heifer not yet in calf, and how she is growing toward the weight DLS has her first served at: the gain she has
+   * kept up, and what it brings her to by the age she is due. For those who breed and feed the herd.
+   */
+  heifers: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .handler(({ context }) =>
+      heifersOn(context.db, context.farm.id, context.clock.now())
     ),
 
   /** The heat watch: open cows the farm expects in heat and nobody has seen, for the Manager and the Vet. */

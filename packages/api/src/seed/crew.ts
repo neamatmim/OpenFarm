@@ -27,6 +27,7 @@ export const CREW = {
   afterCalvingCheck: { worker: "milker", checker: "manager" },
   weaning: { worker: "stockman", checker: "manager" },
   weighIn: { worker: "stockman", checker: "manager" },
+  heiferWeighIn: { worker: "stockman", checker: "manager" },
   fmdVaccination: { worker: "stockman", checker: "vet" },
   lsdVaccination: { worker: "stockman", checker: "vet" },
   deworming: { worker: "stockman", checker: "vet" },
