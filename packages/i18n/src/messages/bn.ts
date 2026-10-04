@@ -4819,6 +4819,7 @@ export const bn: Record<MessageKey, string> = {
   "identity.why":
     "যে কাগজ খামার থেকে বাইরে যায় — পরিবহন কার্ড, দপ্তরের চিঠি — তাতে এই তথ্যই ছাপা হয়।",
   "identity.name": "খামারের নাম",
+  "identity.nameHint": "খামার থেকে যাওয়া প্রতিটি কাগজে ছাপা হয়। এখানে ঠিক করলে এখন থেকে সব কাগজে ঠিক থাকবে; আগে যাওয়া কাগজে যা ছিল তা-ই থাকবে।",
   "identity.address": "ঠিকানা",
   "identity.phone": "মোবাইল",
   "identity.registrationNumber": "নিবন্ধন নম্বর",
