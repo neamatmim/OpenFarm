@@ -1,10 +1,12 @@
 import type { HerdFertility } from "@OpenFarm/domain";
-import { FERTILITY_TARGETS } from "@OpenFarm/domain";
+import { DRY_OFF_TARGETS, FERTILITY_TARGETS } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import {
   CalendarClock,
   CalendarRange,
+  Milk,
   Repeat,
+  Sun,
   Timer,
   Users,
 } from "lucide-react";
@@ -121,6 +123,90 @@ export const FertilityFigures = ({ year }: { year: HerdFertility }) => {
         },
       ]}
     />
+  );
+};
+
+/** Outside its aim, either way: said in the warning colour. */
+const outsideAim = (
+  value: number | null,
+  aim: { low: number; high: number }
+): boolean => value !== null && (value < aim.low || value > aim.high);
+
+/**
+ * The year's Dry Periods and the Lactations they ended (domain `dry-offs.ts`), against what a dairy aims at, and each
+ * Dry Period outside it with its cow. Nothing from an answer kept from before Dry-offs were kept.
+ */
+export const DryOffFigures = ({
+  dryOffs,
+}: {
+  dryOffs: Fertility["dryOffs"] | undefined;
+}) => {
+  const { t, language } = useLanguage();
+  if (dryOffs === undefined) {
+    return null;
+  }
+  const days = (value: number | null) =>
+    value === null
+      ? "—"
+      : t("fertility.days", { days: formatNumber(value, language) });
+  const aim = (range: { low: number; high: number }, count: number) =>
+    t("dryOff.target", {
+      low: formatNumber(range.low, language),
+      high: formatNumber(range.high, language),
+      count: formatNumber(count, language),
+    });
+  const { dryPeriodDays, lactationDays } = DRY_OFF_TARGETS;
+  return (
+    <Section description={t("dryOff.hint")} title={t("dryOff.title")}>
+      <SummaryFigures
+        figures={[
+          {
+            label: t("dryOff.dryPeriod"),
+            value: days(dryOffs.dryPeriodDays),
+            hint: aim(dryPeriodDays, dryOffs.dryPeriods),
+            icon: Sun,
+            tone: outsideAim(dryOffs.dryPeriodDays, dryPeriodDays)
+              ? "warning"
+              : "neutral",
+          },
+          {
+            label: t("dryOff.lactationLength"),
+            value: days(dryOffs.lactationDays),
+            hint: aim(lactationDays, dryOffs.lactations),
+            icon: Milk,
+            tone: outsideAim(dryOffs.lactationDays, lactationDays)
+              ? "warning"
+              : "neutral",
+          },
+        ]}
+      />
+      {dryOffs.outsideTarget.length > 0 ? (
+        <div className="flex flex-col gap-1.5">
+          <h3 className="text-sm font-medium">
+            {t("dryOff.outside", {
+              low: formatNumber(dryPeriodDays.low, language),
+              high: formatNumber(dryPeriodDays.high, language),
+            })}
+          </h3>
+          <ul className="flex flex-col gap-1 text-sm">
+            {dryOffs.outsideTarget.map((one) => (
+              <li
+                className="flex flex-wrap items-center gap-2"
+                key={`${one.tagNumber}-${one.lactationNumber}`}
+              >
+                <TagLink tagNumber={one.tagNumber} />
+                <span className="text-muted-foreground">
+                  {t("dryOff.outsideLine", {
+                    days: formatNumber(one.dryDays, language),
+                    number: formatNumber(one.lactationNumber, language),
+                  })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </Section>
   );
 };
 

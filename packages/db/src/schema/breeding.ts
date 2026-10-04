@@ -142,6 +142,35 @@ export const calving = pgTable(
 );
 
 /**
+ * The day a cow was dried off: her Lactation ended there. Dry is her State, and the next calving overwrites it, so the
+ * day is kept here — one to each Lactation — for how long she milked and how long she stood dry. Written when she goes
+ * Dry from milk, by whatever said so; never typed. Carries when that Lactation began, as she had it on the day: one
+ * begun by a change of State rather than a recorded Calving has no calving to read it from.
+ */
+export const dryOff = pgTable(
+  "dry_off",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    animalId: text("animal_id")
+      .notNull()
+      .references(() => animal.id),
+    lactationNumber: integer("lactation_number").notNull(),
+    lactationStartedAt: timestamp("lactation_started_at"),
+    driedAt: timestamp("dried_at").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("dry_off_lactation_uidx").on(
+      table.animalId,
+      table.lactationNumber
+    ),
+  ]
+);
+
+/**
  * A pregnancy lost before she calved, as the Vet recorded it: when, how far along, and what the Vet
  * made of it.
  *

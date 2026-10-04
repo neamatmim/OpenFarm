@@ -9,6 +9,7 @@ import {
   notInArray,
   sql,
 } from "@OpenFarm/db/operators";
+import { dryOff } from "@OpenFarm/db/schema/breeding";
 import { animal, animalMove, tagSequence } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type {
@@ -652,7 +653,8 @@ const stillIn = (farmId: string, her: { id: string; state: AnimalState }) =>
 /**
  * She reaches a State on her own Side because of something the farm recorded: she was found in calf, she was dried
  * off, she lost the calf, she was confirmed ready for sale. When she reached it is `at`, not when somebody wrote it
- * down — anything a State raises counts from there. Every date about a pregnancy is breeding's to work out.
+ * down — anything a State raises counts from there. Every date about a pregnancy is breeding's to work out. Dried off
+ * from milk, the day is kept as her Lactation's Dry-off, which her next calving does not overwrite.
  *
  * Not calving, which is `calves`; not a way across to the other Side, which is a Move (`walkTo`); not out of the herd,
  * which is `leaves`. And nothing she has left may enter anything.
@@ -684,11 +686,30 @@ export const entersState = async (
     .update(animal)
     .set({ state, stateChangedAt: at, updatedAt: now })
     .where(stillIn(farmId, her))
-    .returning({ id: animal.id });
+    .returning({
+      id: animal.id,
+      lactationNumber: animal.lactationNumber,
+      lactationStartedAt: animal.lactationStartedAt,
+    });
   if (!reached) {
     throw new ORPCError("BAD_REQUEST", {
       message: "This animal is no longer where this was decided on",
     });
+  }
+  // Out of milk: the day her Lactation ended, kept past the calving that will overwrite her State.
+  if (state === "dry" && her.state === "milking") {
+    await tx
+      .insert(dryOff)
+      .values({
+        id: uuidv7(now),
+        farmId,
+        animalId: reached.id,
+        lactationNumber: reached.lactationNumber,
+        lactationStartedAt: reached.lactationStartedAt,
+        driedAt: at,
+        createdAt: now,
+      })
+      .onConflictDoNothing();
   }
 };
 

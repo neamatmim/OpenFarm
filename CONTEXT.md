@@ -156,7 +156,9 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Days in Milk**: How long a cow has been in her current Lactation, counted from the calving that started it. Derived, never entered. _Avoid_: DIM (in prose), lactation age
 
-**Dry-off**: The recorded end of a Lactation before the next calving. Moves the cow from Milking to Dry. _Avoid_: Drying, rest period
+**Dry-off**: The recorded end of a Lactation before the next calving. Moves the cow from Milking to Dry. Its day is kept for that Lactation, whatever dried her — the Dry-off SOP or a change of State — and her next calving does not overwrite it: how long she milked is read from it, and her **Dry Period** after it. Only Dry-offs the farm saw are known; a cow put on the register already Dry has none. _Avoid_: Drying, rest period
+
+**Dry Period**: The days from a cow's Dry-off to the calving that begins her next Lactation — counted to today while she is still Dry. Aimed at 45 to 60: shorter and her udder has not rebuilt for the next Lactation, longer and she is fat at calving and was fed for nothing. The herd's is read over the Dry Periods that ended in the year. _Avoid_: Dry days, rest period, drying
 
 ## Fattening
 

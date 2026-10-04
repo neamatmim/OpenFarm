@@ -1,8 +1,9 @@
 import type { Database } from "@OpenFarm/db";
-import type { CowBreeding, HerdFertility } from "@OpenFarm/domain";
+import type { CowBreeding, HerdDryOffs, HerdFertility } from "@OpenFarm/domain";
 import {
   cowsSinceCalving,
   farmDayOf,
+  herdDryOffs,
   herdFertility,
   startOfFarmDay,
 } from "@OpenFarm/domain";
@@ -35,6 +36,8 @@ export const fertilityOn = async (
   year: HerdFertility;
   months: (HerdFertility & { month: string })[];
   cows: ReturnType<typeof cowsSinceCalving>;
+  /** How the year's cows were dried off: their dry periods and how long they milked (domain `dry-offs.ts`). */
+  dryOffs: HerdDryOffs;
 }> => {
   const rows = await db.query.animal.findMany({
     where: { farmId, sex: "female" },
@@ -44,6 +47,7 @@ export const fertilityOn = async (
       birthDate: true,
       side: true,
       state: true,
+      lactationNumber: true,
       lactationStartedAt: true,
     },
     with: {
@@ -53,6 +57,13 @@ export const fertilityOn = async (
       },
       calvings: {
         columns: { calvedAt: true, serviceId: true, lactationNumber: true },
+      },
+      dryOffs: {
+        columns: {
+          lactationNumber: true,
+          lactationStartedAt: true,
+          driedAt: true,
+        },
       },
     },
   });
@@ -92,15 +103,14 @@ export const fertilityOn = async (
       .filter((one) => one.side === "dairy" && isOnTheFarm(one))
       .map((one) => one.id)
   );
+  const yearAgo = new Date(now.getTime() - FERTILITY_DAYS * DAY_MS);
   return {
-    year: herdFertility(herd, {
-      from: new Date(now.getTime() - FERTILITY_DAYS * DAY_MS),
-      until: now,
-    }),
+    year: herdFertility(herd, { from: yearAgo, until: now }),
     months,
     cows: cowsSinceCalving(
       herd.filter((one) => standing.has(one.id)),
       now
     ),
+    dryOffs: herdDryOffs(rows, { from: yearAgo, until: now }),
   };
 };

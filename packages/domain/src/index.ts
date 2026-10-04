@@ -912,3 +912,5 @@ export { whyNotBetweenPurses } from "./between-purses";
 export { heldFromThem } from "./held-by";
 export type { Stocking } from "./stocking";
 export { stockingOf } from "./stocking";
+export type { CowDryOffs, HerdDryOffs, LactationSpan } from "./dry-offs";
+export { DRY_OFF_TARGETS, herdDryOffs, lactationsOf } from "./dry-offs";
