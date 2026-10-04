@@ -18,6 +18,7 @@ import {
   shelfReason,
   sightings,
 } from "./shared";
+import type { Farm } from "./standing";
 
 const WELL = "সুস্থ — চোখে পড়ার মতো কিছু নেই";
 const NOT_CALVED = "এখনো বাচ্চা দেয়নি";
@@ -144,6 +145,59 @@ RESPONDERS.weighIn = (_step, beast, { farm, herd, day }) => {
     bull.weightKg + bull.dailyGainKg * daysBetween(bull.arrivedOn, day);
   return {
     evidence: [Math.round(expected * farm.random.between(0.996, 1.004))],
+  };
+};
+
+/** The gain each heifer keeps up, chosen the first time she is weighed: a few slowly enough to fall short of 250 kg by
+ *  eighteen months, so the farm's list of heifers has some to name. */
+const heiferGains = new WeakMap<Farm, Map<string, number>>();
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * A heifer's monthly weight, grown from what she last weighed — her weaning weight, for one weaned here — or, never
+ * weighed, from her birth at about 30 kg (18 for a deshi calf).
+ */
+RESPONDERS.heiferWeighIn = async (step, beast, { farm, day }) => {
+  if (!beast) {
+    return null;
+  }
+  if (step.id !== "weigh") {
+    return { evidence: [true] };
+  }
+  const her = await farm.db.query.animal.findFirst({
+    where: { farmId: farm.farmId, tagNumber: beast.tagNumber },
+    columns: { birthDate: true },
+    with: {
+      breed: { columns: { deshi: true } },
+      weighIns: {
+        where: { flaggedNote: { isNull: true } },
+        columns: { weightKg: true, weighedAt: true },
+        orderBy: { weighedAt: "desc" },
+        limit: 1,
+      },
+    },
+  });
+  const deshi = her?.breed?.deshi === true;
+  const gains = heiferGains.get(farm) ?? new Map<string, number>();
+  heiferGains.set(farm, gains);
+  const gainKg =
+    gains.get(beast.tagNumber) ??
+    (deshi ? farm.random.between(0.2, 0.35) : farm.random.between(0.3, 0.55));
+  gains.set(beast.tagNumber, gainKg);
+  const now = onFarm(day, "07:00").getTime();
+  const [last] = her?.weighIns ?? [];
+  let weightKg = deshi ? 230 : 260;
+  if (last) {
+    weightKg =
+      Number(last.weightKg) +
+      (gainKg * (now - last.weighedAt.getTime())) / DAY_MS;
+  } else if (her?.birthDate) {
+    weightKg =
+      (deshi ? 18 : 30) + (gainKg * (now - her.birthDate.getTime())) / DAY_MS;
+  }
+  return {
+    evidence: [Math.round(weightKg * farm.random.between(0.99, 1.01))],
   };
 };
 

@@ -4647,6 +4647,18 @@ export const en = {
   "milk.daysDry": "{days, plural, one {# day} other {# days}} dry",
   "milk.daysDrySoFar":
     "dry for {days, plural, one {# day} other {# days}} so far",
+  "heifers.title": "Heifers growing",
+  "heifers.hint":
+    "Each heifer not yet in calf, against the 250 kg DLS has her first served at — by 18 months for a cross, 30 for a deshi heifer — at the gain she has kept up. Those who will fall short first.",
+  "heifers.col.age": "Age",
+  "heifers.col.weight": "Last weighed",
+  "heifers.col.gain": "Gain",
+  "heifers.col.atService": "At service age",
+  "heifers.behind": "Falling short",
+  "heifers.reached": "Heavy enough",
+  "heifers.onTrack": "On track",
+  "heifers.notWeighed": "Not weighed yet",
+  "heifers.atAge": "{kg} at {months}",
   "fertility.byMonth": "Month by month",
   "fertility.cows": "Each cow since she calved",
   "fertility.cowsHint":

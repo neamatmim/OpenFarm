@@ -914,3 +914,5 @@ export type { Stocking } from "./stocking";
 export { stockingOf } from "./stocking";
 export type { CowDryOffs, HerdDryOffs, LactationSpan } from "./dry-offs";
 export { DRY_OFF_TARGETS, herdDryOffs, lactationsOf } from "./dry-offs";
+export type { HeiferGrowth, HeiferWeights } from "./heifer-growth";
+export { HEIFER_SERVICE, heiferGrowthOf } from "./heifer-growth";

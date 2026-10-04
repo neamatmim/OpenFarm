@@ -651,6 +651,7 @@ const organiseThePeople = ({ farm, on }: Script) => {
         "3690",
         [
           "weighIn",
+          "heiferWeighIn",
           "weaning",
           "treatmentDose",
           "fmdVaccination",
