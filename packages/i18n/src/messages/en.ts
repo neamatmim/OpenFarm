@@ -846,6 +846,7 @@ export const en = {
     "Enter an email address in the right form, like name@example.com",
   "auth.showPassword": "Show password",
   "auth.hidePassword": "Hide password",
+  "auth.signUpRefused": "The account could not be opened",
   "auth.refused": "Could not sign you in",
   "auth.passwordTooShort":
     "Password must be at least {min, plural, one {# character} other {# characters}}",
@@ -2619,6 +2620,8 @@ export const en = {
   "device.noRoster": "Nobody has a PIN yet. Ask the manager.",
   "device.offlineRoster": "Using the list saved on this phone",
   "people.pin": "PIN",
+  "people.changePin": "Change PIN",
+  "people.pinIsSet": "Has a PIN, and switches in on the shed phones with it. Once given it is never shown again; a new one replaces it.",
   "people.setPin": "Set PIN",
   "people.pinSet": "PIN set",
   "people.pinHelp": "Four digits",

@@ -166,6 +166,7 @@ const PersonPage = () => {
                       name={them.name}
                       penIds={them.penIds ?? []}
                       roles={them.roles ?? []}
+                      pinSet={them.pinSet ?? false}
                       shedPhoneOnly={shedPhoneOnly}
                       userId={userId}
                       visitUntil={them.visitUntil ?? null}

@@ -299,6 +299,13 @@ export const peopleRouter = {
           )?.expiresAt ?? null,
         /** The Pens whose work is theirs. */
         penIds: await pensOf(context.db, context.farm.id, input.userId),
+        /** Whether they have a PIN to switch in on a Shed Phone with; never the PIN. */
+        pinSet: Boolean(
+          await context.db.query.staffPin.findFirst({
+            where: { farmId: context.farm.id, userId: input.userId },
+            columns: { userId: true },
+          })
+        ),
         training: training.map(({ version, ...row }) => ({
           ...row,
           versionNumber: version.number,
