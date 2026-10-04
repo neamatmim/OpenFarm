@@ -973,6 +973,7 @@ export const en = {
   "params.why": "How the farm is tuned. Every change is kept in the audit log.",
   "params.alerts": "Alerts and quiet hours",
   "params.records": "Records",
+  "params.pinAutoLock": "Shed phone locks after",
   "params.breeding": "Breeding calendar",
   "params.fatteningAndPapers": "Fattening and papers",
   "params.alertsHint":

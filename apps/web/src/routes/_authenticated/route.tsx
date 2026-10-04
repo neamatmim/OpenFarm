@@ -66,7 +66,11 @@ export const Route = createFileRoute("/_authenticated")({
     if (getDeviceToken()) {
       const active = getActiveUser();
       if (isLocked(active, getAutoLockMinutes())) {
-        throw redirect({ to: "/shed-phone" });
+        // Where they were, and who they were, so the same person's PIN takes them back there.
+        throw redirect({
+          to: "/shed-phone",
+          search: { back: location.href, for: active?.userId },
+        });
       }
       if (known && known.id === active?.userId) {
         return { session: null, me: known };
