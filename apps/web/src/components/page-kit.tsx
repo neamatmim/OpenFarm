@@ -37,7 +37,7 @@ import { Link } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import { ChevronDown, EllipsisVertical } from "lucide-react";
 import type { ComponentProps, FormEvent, ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import type { Tone } from "@/components/page";
 import { Notice, StatTile } from "@/components/page";
@@ -200,6 +200,54 @@ export const SummaryFigures = ({
   </>
 );
 
+/** How long a tab's place is held while its content loads in, unless the reader scrolls first. */
+const SETTLE_MS = 3000;
+
+/** What the reader does to scroll for themselves, which ends any place being held for them. */
+const READER_SCROLLS = ["wheel", "touchstart", "keydown"] as const;
+
+/** How tall what is pinned over the page is: the page's scroll padding is kept to it (globals.css). */
+const pinnedTop = () =>
+  // A computed length reads "56px", which Number() makes NaN.
+  // oxlint-disable-next-line unicorn/prefer-number-coercion
+  Number.parseFloat(
+    getComputedStyle(document.documentElement).scrollPaddingTop
+  );
+
+/**
+ * Scrolls the window to `top`, and again as the page grows — a tab's content may still be loading, too short to
+ * scroll that far — until it is reached, the reader scrolls for themselves, or a moment has passed. Gives back what
+ * stops it early.
+ */
+const scrollOnceTall = (top: number) => {
+  window.scrollTo({ top });
+  const reached = () => window.scrollY >= Math.floor(top) - 1;
+  if (reached()) {
+    return;
+  }
+  const holding = new AbortController();
+  const stop = () => holding.abort();
+  const grows = new ResizeObserver(() => {
+    window.scrollTo({ top });
+    if (reached()) {
+      stop();
+    }
+  });
+  const timer = window.setTimeout(stop, SETTLE_MS);
+  holding.signal.addEventListener("abort", () => {
+    grows.disconnect();
+    window.clearTimeout(timer);
+  });
+  grows.observe(document.body);
+  for (const kind of READER_SCROLLS) {
+    window.addEventListener(kind, stop, {
+      passive: true,
+      signal: holding.signal,
+    });
+  }
+  return stop;
+};
+
 export interface PageTab<T extends string> {
   value: T;
   label: string;
@@ -213,7 +261,11 @@ export interface PageTab<T extends string> {
 
 /**
  * A page's tabs, by what somebody came to do. The page keeps the chosen tab in its address (`validateSearch`), so it
- * comes back as it was left; this only draws them. On a phone the row of tabs scrolls sideways under the page.
+ * comes back as it was left, and switches with `TAB_SWITCH` so the router leaves the scroll to this. On a phone the
+ * row of tabs scrolls sideways under the page.
+ *
+ * A tab gone back to comes back where it was scrolled to while the page has been open. One not yet read opens where
+ * the reader is, unless they had scrolled past the row of tabs: then at its start, the row just under the top bar.
  */
 export const PageTabs = <T extends string>({
   tabs,
@@ -226,6 +278,29 @@ export const PageTabs = <T extends string>({
 }) => {
   const { language } = useLanguage();
   const strip = useRef<HTMLDivElement>(null);
+  const scrolledTo = useRef(new Map<T, number>());
+  const shown = useRef(value);
+  // Before the new tab is painted, so it never shows at the old one's place first.
+  useLayoutEffect(() => {
+    const left = shown.current;
+    if (left === value) {
+      return;
+    }
+    shown.current = value;
+    const saved = scrolledTo.current.get(value);
+    const row = strip.current;
+    if (saved === undefined && !row) {
+      return;
+    }
+    const was = scrolledTo.current.get(left) ?? window.scrollY;
+    return scrollOnceTall(
+      saved ??
+        Math.min(
+          was,
+          window.scrollY + (row?.getBoundingClientRect().top ?? 0) - pinnedTop()
+        )
+    );
+  }, [value]);
   // A page opened on a tab far along the row — from its address — brings that tab into sight on a phone, sideways
   // only, so the page itself does not jump.
   useEffect(() => {
@@ -245,7 +320,10 @@ export const PageTabs = <T extends string>({
   return (
     <Tabs
       className="gap-4"
-      onValueChange={(next) => onChange(next as T)}
+      onValueChange={(next) => {
+        scrolledTo.current.set(value, window.scrollY);
+        onChange(next as T);
+      }}
       value={value}
     >
       <div

@@ -42,7 +42,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { useMoney } from "@/lib/money";
 import { lastMonth } from "@/lib/months";
-import { useTabOfPath } from "@/lib/path-tabs";
+import { TAB_SWITCH, useTabOfPath } from "@/lib/path-tabs";
 import type { Venture } from "@/lib/ventures";
 import { shortOfFloor } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
@@ -214,7 +214,7 @@ const TheVenture = ({
         onChange={(value) =>
           navigate({
             params: { ventureId: venture.id },
-            replace: true,
+            ...TAB_SWITCH,
             search: {},
             to: TAB_PATHS[value],
           })

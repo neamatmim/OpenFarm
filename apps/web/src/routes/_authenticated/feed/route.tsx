@@ -36,7 +36,7 @@ import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { useMoney } from "@/lib/money";
-import { useTabOfPath } from "@/lib/path-tabs";
+import { TAB_SWITCH, useTabOfPath } from "@/lib/path-tabs";
 import { orpc } from "@/utils/orpc";
 
 const TABS = [
@@ -186,7 +186,7 @@ const FeedPage = () => {
       <SummaryFigures figures={figures} />
 
       <PageTabs
-        onChange={(value) => navigate({ replace: true, to: TAB_PATHS[value] })}
+        onChange={(value) => navigate({ ...TAB_SWITCH, to: TAB_PATHS[value] })}
         tabs={[
           {
             value: "stock",

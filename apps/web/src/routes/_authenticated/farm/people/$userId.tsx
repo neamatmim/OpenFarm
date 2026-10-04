@@ -30,6 +30,7 @@ import { useT } from "@/i18n/language-provider";
 import { words } from "@/lib/correcting";
 import { onlyFor } from "@/lib/guard";
 import { initialsOf } from "@/lib/initials";
+import { TAB_SWITCH } from "@/lib/path-tabs";
 import { reachesTheirAccess } from "@/lib/their-access";
 import { orpc } from "@/utils/orpc";
 
@@ -149,7 +150,7 @@ const PersonPage = () => {
             <PageTabs
               onChange={(value) =>
                 navigate({
-                  replace: true,
+                  ...TAB_SWITCH,
                   search: value === "access" ? {} : { tab: value },
                 })
               }

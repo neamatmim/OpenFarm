@@ -21,6 +21,7 @@ import { Loaded, Page, PageHeader } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { TAB_SWITCH } from "@/lib/path-tabs";
 import { orpc } from "@/utils/orpc";
 
 const TABS = ["products", "bought"] as const;
@@ -139,7 +140,7 @@ const DrugsPage = () => {
         <PageTabs
           onChange={(value) =>
             navigate({
-              replace: true,
+              ...TAB_SWITCH,
               search: value === "products" ? {} : { tab: value },
             })
           }

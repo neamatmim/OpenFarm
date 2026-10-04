@@ -50,6 +50,7 @@ import { SummaryFigures } from "@/components/page-kit";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { moneyTotals } from "@/lib/money-totals";
+import { TAB_SWITCH } from "@/lib/path-tabs";
 import { venturesNeedingHer } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
 
@@ -295,7 +296,7 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
                 needsYou={needsYou}
                 onChoose={(kind) =>
                   navigate({
-                    replace: true,
+                    ...TAB_SWITCH,
                     search: (was) => ({ ...was, needs: kind }),
                   })
                 }
@@ -312,7 +313,7 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
               needsYou={needsYou}
               onChoose={(kind) =>
                 navigate({
-                  replace: true,
+                  ...TAB_SWITCH,
                   search: (was) => ({ ...was, onFarm: kind }),
                 })
               }

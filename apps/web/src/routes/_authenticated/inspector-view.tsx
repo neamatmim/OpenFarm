@@ -42,6 +42,7 @@ import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { Paper } from "@/components/paper";
 import type { PaperId } from "@/components/paper";
 import { useLanguage } from "@/i18n/language-provider";
+import { TAB_SWITCH } from "@/lib/path-tabs";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
@@ -449,7 +450,7 @@ const InspectorPage = () => {
       <PageTabs
         onChange={(value) =>
           navigate({
-            replace: true,
+            ...TAB_SWITCH,
             search: value === "registration" ? {} : { tab: value },
           })
         }
