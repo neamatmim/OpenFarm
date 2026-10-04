@@ -15,6 +15,7 @@ Decided with the Owner, 2026-09-28:
   - [`vet-calf-sheet.html`](../openfarm-calf-care/vet-calf-sheet.html) asks for the newborn calf's first day, the calf wormer and when to give it, and the calf vaccines' ages.
 
   When they come back, the Vet types the days in on **Drugs**, signed in as themselves, because the days are theirs to answer for. Until then no dose procedure can be adopted. — _Owner, Vet_
+
 - [ ] **Tags.** Buy blank ear tags and a tag marker, not pre-numbered stock ([opening register runbook](../../docs/runbooks/opening-register.md), "Before the walk"). — _Manager_
 - [ ] **Server accounts.** Provision the server, the database with point-in-time recovery, the off-site copy on a different provider, and the domain. Put every value from `.env.example` into the password manager. — _Owner_
 
