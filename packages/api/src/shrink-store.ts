@@ -9,7 +9,8 @@ import type { Tx } from "./audit";
 
 type Db = Pick<Database, "query"> | Tx;
 
-/** Each animal's last weighing before the moment asked for her: her last Weigh-in, or else her Intake's weight. */
+/** Each animal's last weighing before the moment asked for her: her last Weigh-in the farm did not doubt, or else her
+ *  Intake's weight. */
 export const lastWeighingsBefore = async (
   db: Db,
   farmId: string,
@@ -22,7 +23,7 @@ export const lastWeighingsBefore = async (
   const ids = [...new Set(wanted.map((one) => one.animalId))];
   const [readings, intakes] = [
     await db.query.weighIn.findMany({
-      where: { farmId, animalId: { in: ids } },
+      where: { farmId, animalId: { in: ids }, flaggedNote: { isNull: true } },
       columns: { animalId: true, weightKg: true, weighedAt: true },
       orderBy: { weighedAt: "asc", id: "asc" },
     }),

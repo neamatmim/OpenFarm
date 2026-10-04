@@ -42,7 +42,7 @@ export const earlyLossesOf = async (
   });
   // Every reading of these animals, oldest first, so the first of each is her first Weigh-in: one query, not one each.
   const readings = await db.query.weighIn.findMany({
-    where: { farmId, animalId: { in: ids } },
+    where: { farmId, animalId: { in: ids }, flaggedNote: { isNull: true } },
     columns: { animalId: true, weightKg: true, weighedAt: true },
     orderBy: { weighedAt: "asc", id: "asc" },
   });

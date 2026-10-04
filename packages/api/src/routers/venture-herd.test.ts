@@ -10,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
 import { A_DEATH_PHOTO } from "../test/death-photo";
+import { whatSheLastWeighed } from "../venture-store";
 import { appRouter } from "./index";
 
 /**
@@ -237,6 +238,9 @@ beforeAll(async () => {
   // bulls now gain at different rates over different spans, which is what tells the herd's own rate
   // from the average of theirs.
   await weigh("2052-02-15", [[4, 221]]);
+  // And on the 17th the scale says 400 kg for him: 179 kg in two days, which the farm doubts. Nothing an Investor
+  // reads or the Owner's sums are made of may move for it — not the averages, not the line, not his gain.
+  await weigh("2052-02-17", [[4, 400]]);
 
   // The third dies on the 5th of February.
   const losing = await asManager("2052-02-05T05:00:00.000Z");
@@ -354,6 +358,10 @@ describe("what a Venture's animals are doing", () => {
     // kilogram cost nothing. What a Venture's Cost of Gain is made of is proved where there are real
     // costs to make it of — see settlement.test.ts.
     expect(theirs.gainKg).toBeGreaterThan(0);
+    // The fifth put on 21 kg to his 221 on the 15th; the 400 the farm doubted on the 17th is not his gain.
+    expect(
+      theirs.animals.find((one) => one.tagNumber === tags[4])?.gainKg
+    ).toBe(21);
     expect(theirs.chargedMoney).toBe(0);
     expect(theirs.costOfGainMoney).toBe(0);
   });
@@ -440,6 +448,20 @@ describe("what a Venture's animals are doing", () => {
     // Its ends are the two averages the page says in words.
     expect(theirs.weights.at(0)?.averageKg).toBe(theirs.averageIntakeKg);
     expect(theirs.weights.at(-1)?.averageKg).toBe(theirs.averageLatestKg);
+  });
+
+  it("prices an Internal Sale on her last weighing the farm did not doubt", async () => {
+    const him = await scratchDb().query.animal.findFirst({
+      where: { farmId: theFarm().id, tagNumber: tags[4] ?? "" },
+      columns: { id: true },
+    });
+    const weighed = await whatSheLastWeighed(
+      scratchDb(),
+      theFarm().id,
+      him?.id ?? ""
+    );
+    // Not the 400 kg of the 17th, which at ৳500 a kilo would have moved ৳89,500 more from one purse to the other.
+    expect(weighed?.weightKg).toBe(221);
   });
 
   it("is projected from the animals it stands on, what it sold, and what it has been charged (ADR 0010)", async () => {
