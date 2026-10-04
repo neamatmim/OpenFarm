@@ -6,6 +6,7 @@ import {
   monthsFromTo,
   roundMoney,
   startOfFarmDay,
+  WHAT_THE_FARM_IS_OWED,
 } from "@OpenFarm/domain";
 
 import { holdersOf } from "./alerts-store";
@@ -132,9 +133,23 @@ export const owedTheFarmByEach = async (
       },
     }),
   ]);
+  // Each charge's owner then asked once for every running Venture together, not once by each of them.
+  const runningIds = new Set(running.map((one) => one.id));
+  const byOwner = new Map<string, FarmCosts["charges"]>();
+  for (const one of costs.charges) {
+    if (!WHAT_THE_FARM_IS_OWED.has(one.kind)) {
+      continue;
+    }
+    const owner = ownedThenBy(one.animalId, one.at);
+    if (owner !== null && runningIds.has(owner)) {
+      const theirs = byOwner.get(owner) ?? [];
+      theirs.push(one);
+      byOwner.set(owner, theirs);
+    }
+  }
   for (const venture of running) {
     const months = owedByMonth(
-      costs,
+      { ...costs, charges: byOwner.get(venture.id) ?? [] },
       ownedThenBy,
       venture.id,
       monthsFromTo(farmDayOf(venture.createdAt).slice(0, 7), today.slice(0, 7)),
