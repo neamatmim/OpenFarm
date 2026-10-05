@@ -50,9 +50,9 @@ The portal's footer ("no money moves through it") stays true.
 | #   | Ticket                                                                | Blocked by |
 | --- | --------------------------------------------------------------------- | ---------- |
 | 01  | [Words, ADR and the advisers' sheet](issues/01-words-and-advisers.md) | done       |
-| 02  | [An Investor sends a Pay-in Note](issues/02-send-a-note.md)           | 01         |
-| 03  | [The Owner answers it](issues/03-owner-answers.md)                    | 02         |
-| 04  | [The portal's screens](issues/04-portal-screens.md)                   | 02         |
-| 05  | [Seeded, and opened](issues/05-seed-and-open.md)                      | 03, 04     |
+| 02  | [An Investor sends a Pay-in Note](issues/02-send-a-note.md)           | done       |
+| 03  | [The Owner answers it](issues/03-owner-answers.md)                    | done       |
+| 04  | [The portal's screens](issues/04-portal-screens.md)                   | done       |
+| 05  | [Seeded, and opened](issues/05-seed-and-open.md)                      | done       |
 
 03 and 04 may be built side by side. Nothing needs the advisers' answer to be built — only to be switched on.

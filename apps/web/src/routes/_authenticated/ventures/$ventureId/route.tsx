@@ -37,6 +37,7 @@ import {
 import { VentureInvestors } from "@/components/ventures/venture-investors";
 import { VentureMoney } from "@/components/ventures/venture-money";
 import { VentureOverview } from "@/components/ventures/venture-overview";
+import { VenturePayInNotes } from "@/components/ventures/venture-pay-in-notes";
 import { VentureRequests } from "@/components/ventures/venture-requests";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
@@ -233,6 +234,7 @@ const TheVenture = ({
             content: (
               <div className="flex flex-col gap-4">
                 <VentureInvestors acts={acts} venture={venture} />
+                <VenturePayInNotes venture={venture} />
                 <VentureRequests venture={venture} />
               </div>
             ),

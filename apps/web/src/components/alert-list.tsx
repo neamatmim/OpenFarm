@@ -18,6 +18,7 @@ import { useState } from "react";
 
 import { StatusBadge } from "@/components/page";
 import { REQUESTS_ANCHOR } from "@/components/ventures/request-parts";
+import { PAY_IN_ANCHOR } from "@/components/ventures/venture-pay-in-notes";
 import { useLanguage } from "@/i18n/language-provider";
 import { STANDING_ASIDE_WORDS } from "@/lib/correction-refusal";
 import { orpc } from "@/utils/orpc";
@@ -208,6 +209,27 @@ const PLACES = {
 const placeOf = (kind: string): Place | undefined =>
   (PLACES as Partial<Record<string, Place>>)[kind];
 
+/** The notices that lead to a Venture's Investors tab — named by the Venture they carry — with what the link says and,
+ *  for a section further down the tab, where on it. */
+const TO_INVESTORS = {
+  investor_statement_due: { label: "alerts.makeThePaper", hash: undefined },
+  monthly_sum_missed: { label: "alerts.seeWhoIsBehind", hash: undefined },
+  pay_in_note_sent: {
+    label: "alerts.checkThePayInNotes",
+    hash: PAY_IN_ANCHOR,
+  },
+  join_requested: { label: "alerts.readTheRequests", hash: REQUESTS_ANCHOR },
+} as const satisfies Partial<
+  Record<AlertKind, { label: MessageKey; hash: string | undefined }>
+>;
+
+const investorsTabOf = (kind: string) =>
+  (
+    TO_INVESTORS as Partial<
+      Record<string, { label: MessageKey; hash: string | undefined }>
+    >
+  )[kind];
+
 /**
  * Where a notice leads: to what it is about, so the notice is a way there rather than a sentence to go and act on
  * somewhere else — the work that is late or was sent back, the animal it names, the Venture whose Investors are
@@ -223,18 +245,6 @@ const WhereItLeads = ({
   const place = placeOf(notice.kind);
   if (place) {
     return <place.Way>{t(place.label)}</place.Way>;
-  }
-  if (notice.kind === "investor_statement_due") {
-    const ventureId = ventureOf(notice.params);
-    return ventureId === null ? null : (
-      <Link
-        className={LEADS_CLASS}
-        params={{ ventureId }}
-        to="/ventures/$ventureId/investors"
-      >
-        {t("alerts.makeThePaper")}
-      </Link>
-    );
   }
   if (notice.kind === "receivable_overdue") {
     return (
@@ -254,18 +264,6 @@ const WhereItLeads = ({
         to="/ventures/$ventureId"
       >
         {t("alerts.reimburseNow")}
-      </Link>
-    );
-  }
-  if (notice.kind === "monthly_sum_missed") {
-    const ventureId = ventureOf(notice.params);
-    return ventureId === null ? null : (
-      <Link
-        className={LEADS_CLASS}
-        params={{ ventureId }}
-        to="/ventures/$ventureId/investors"
-      >
-        {t("alerts.seeWhoIsBehind")}
       </Link>
     );
   }
@@ -304,16 +302,17 @@ const WhereItLeads = ({
       </Link>
     );
   }
-  if (notice.kind === "join_requested") {
+  const toInvestors = investorsTabOf(notice.kind);
+  if (toInvestors) {
     const ventureId = ventureOf(notice.params);
     return ventureId === null ? null : (
       <Link
         className={LEADS_CLASS}
-        hash={REQUESTS_ANCHOR}
+        hash={toInvestors.hash}
         params={{ ventureId }}
         to="/ventures/$ventureId/investors"
       >
-        {t("alerts.readTheRequests")}
+        {t(toInvestors.label)}
       </Link>
     );
   }

@@ -33,7 +33,7 @@ import { photoInput } from "./photo-input";
 import { pushRaised } from "./push-send";
 import type { VentureRow } from "./venture-act";
 import { actOnVenture } from "./venture-act";
-import { takenAgainst } from "./venture-store";
+import { accountOf, takenAgainst } from "./venture-store";
 
 // A Pay-in Note (ADR 0018): an Investor's word, from the portal, that they sent money towards one of their Agreements
 // outside it. It moves no money and records no capital. The Investor changes it or withdraws it until the Owner
@@ -236,6 +236,14 @@ const mayNoteSay = async (
     throw refused(
       "venture_takes_no_capital",
       "This Venture takes no more capital"
+    );
+  }
+  // The portal tells an Investor never to pay anywhere it does not show: with no Venture Account written, there is
+  // nowhere they should have sent it.
+  if (!accountOf(standing)) {
+    throw refused(
+      "venture_has_no_account",
+      "The farm has not written this Venture's account yet"
     );
   }
   const photo = await tx.query.agreementPaper.findFirst({

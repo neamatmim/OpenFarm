@@ -87,7 +87,15 @@ const NextSum = ({ next }: { next: MonthlySum | null }) => {
  * written yet, that the farm will say where. Always with the warning, in both languages. Nothing is paid here: the
  * portal only says where.
  */
-export const HowToPay = ({ paying }: { paying: Paying | null }) => {
+export const HowToPay = ({
+  paying,
+  waitingMoney = 0,
+}: {
+  paying: Paying | null;
+  /** What their Pay-in Notes still waiting say they sent: being checked, so the figure owed does not read as
+   *  ignored (ADR 0018). */
+  waitingMoney?: number;
+}) => {
   const { t } = useLanguage();
   const asMoney = useMoney();
   const me = useTheirRecord();
@@ -151,6 +159,11 @@ export const HowToPay = ({ paying }: { paying: Paying | null }) => {
             </div>
           )}
         </dl>
+        {waitingMoney > 0 ? (
+          <p className="text-muted-foreground text-sm">
+            {t("portal.payIn.beingChecked", { amount: asMoney(waitingMoney) })}
+          </p>
+        ) : null}
         {account ? (
           <VentureAccountDetails
             account={account}

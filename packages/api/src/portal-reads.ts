@@ -287,10 +287,15 @@ export const theirVentureToday = async (
     },
     /** Where to pay and how much is left, while their capital is still owed; nothing once it is all in. */
     howToPay: paying,
-    /** Their Pay-in Notes on this Agreement, the latest first (ADR 0018), and whether they may send one now: while the
-     *  Owner has the switch on and something is owed — never in the Owner's Preview, which sends nothing. */
+    /** Their Pay-in Notes on this Agreement, the latest first (ADR 0018), and whether the portal offers to send one:
+     *  while something is owed into a Venture Account the page shows, and the Owner has the switch on — or, in the
+     *  Owner's Preview, either way, so it can be read before anybody else does. The Preview sends nothing; its screen
+     *  says whose act that is. */
     payIn: {
-      mayTell: farm.payInNotes && reader.previewing !== true && paying !== null,
+      mayTell:
+        (farm.payInNotes || reader.previewing === true) &&
+        paying !== null &&
+        paying.account !== null,
       notes: notes.filter((one) => one.agreementId === agreementId),
     },
     /** What it might come to for their own Units at the Owner's low and high sale prices (ADR 0010): an estimate,

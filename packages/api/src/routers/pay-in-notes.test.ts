@@ -45,8 +45,18 @@ const refusalOf = async (act: Promise<unknown>) => {
   return "not refused";
 };
 
-/** A Venture of ten Units at fifty thousand each, still gathering its capital. */
-const aVenture = async (name: string) => {
+/** The Venture Account the farm writes on a Venture: where it tells an Investor to pay. */
+const ACCOUNT = {
+  bank: "ডাচ-বাংলা ব্যাংক",
+  branch: "সাভার",
+  accountName: "মোঃ আব্দুল করিম (ভেঞ্চার হিসাব)",
+  accountNumber: `1101${suffix}`,
+  routingNumber: "090264321",
+};
+
+/** A Venture of ten Units at fifty thousand each, still gathering its capital, its Venture Account written unless
+ *  asked otherwise. */
+const aVenture = async (name: string, { withAccount = true } = {}) => {
   const owner = await as("owner");
   const venture = await owner.ventures.open({
     name: `${name} ${suffix}`,
@@ -59,6 +69,9 @@ const aVenture = async (name: string) => {
     units: 10,
     cattleBudgetMoney: 400_000,
   });
+  if (withAccount) {
+    await owner.ventures.setBankAccount({ id: venture.id, ...ACCOUNT });
+  }
   return venture.id;
 };
 
@@ -263,6 +276,20 @@ describe("a Pay-in Note, sent", () => {
         them.client.portal.sendPayInNote(saying(unpapered.agreementId, 10_000))
       )
     ).toBe("no_such_agreement");
+  });
+
+  it("is neither offered nor taken before the farm has written where to pay", async () => {
+    const ventureId = await aVenture("হিসাব ছাড়া", { withAccount: false });
+    const them = await signedUp("হিসাব নেই", ventureId, 1);
+    const today = await them.client.portal.venture({
+      agreementId: them.agreementId,
+    });
+    expect(today.payIn.mayTell).toBe(false);
+    expect(
+      await refusalOf(
+        them.client.portal.sendPayInNote(saying(them.agreementId, 10_000))
+      )
+    ).toBe("venture_has_no_account");
   });
 
   it("is refused once its Venture takes no more capital", async () => {

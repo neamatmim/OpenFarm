@@ -276,6 +276,74 @@ export const en = {
     "Write it on the transfer, so the farm knows the money is yours",
   "portal.pay.decideBy": "The farm decides by",
   "portal.pay.noAccount": "The farm will tell you where to pay.",
+  "portal.payIn.title": "Money you have sent",
+  "portal.payIn.hint":
+    "Sent money towards this Venture? Tell the farm here. The farm checks its account and records it — nothing is paid through the portal.",
+  "portal.payIn.tell": "I have sent money",
+  "portal.payIn.sheetTitle": "Tell the farm you have sent money",
+  "portal.payIn.sheetHint":
+    "Send the money to the Venture Account first, with your Pay-in Code {code} on it. This only tells the farm — it does not pay.",
+  "portal.payIn.amount": "How much you sent",
+  "portal.payIn.sentOn": "The day you sent it",
+  "portal.payIn.way": "How you sent it",
+  "portal.payIn.way.bank_transfer": "Bank transfer",
+  "portal.payIn.way.cheque": "Cheque",
+  "portal.payIn.way.deposit_slip": "Paid in at the bank",
+  "portal.payIn.way.mobile_money": "Mobile money to the Venture Account",
+  "portal.payIn.reference.bank_transfer": "The transfer's reference",
+  "portal.payIn.reference.cheque": "The cheque's number",
+  "portal.payIn.reference.deposit_slip": "The deposit slip's number",
+  "portal.payIn.reference.mobile_money": "The transaction ID (TrxID)",
+  "portal.payIn.referenceHint":
+    "As the bank or the app printed it, so the farm can find it.",
+  "portal.payIn.photo":
+    "A photo of the slip or the screenshot, if you have one",
+  "portal.payIn.takePhoto": "Add a photo",
+  "portal.payIn.send": "Tell the farm",
+  "portal.payIn.saveChange": "Save the change",
+  "portal.payIn.sent": "The farm has been told",
+  "portal.payIn.changed": "Your note is changed",
+  "portal.payIn.withdrawn": "Your note is withdrawn",
+  "portal.payIn.change": "Change",
+  "portal.payIn.withdraw": "Withdraw",
+  "portal.payIn.withdrawTitle": "Withdraw this note?",
+  "portal.payIn.withdrawWhy":
+    "The farm stops looking for this money. If you send it later, tell the farm again.",
+  "portal.payIn.state.waiting": "Being checked",
+  "portal.payIn.state.received": "Received",
+  "portal.payIn.state.not_found": "Not found",
+  "portal.payIn.state.withdrawn": "Withdrawn",
+  "portal.payIn.state.closed": "Closed",
+  "portal.payIn.said": "{amount} · {way}",
+  "portal.payIn.reference": "Reference {reference}",
+  "portal.payIn.withPhoto": "Photo sent",
+  "portal.payIn.waitingSay": "The farm will check its account and record it.",
+  "portal.payIn.receivedSay":
+    "The farm found it and recorded it as your capital.",
+  "portal.payIn.notFoundSay": "The farm did not find it in the account:",
+  "portal.payIn.closed.nothing_owed":
+    "Closed: nothing is owed on this Agreement any more.",
+  "portal.payIn.closed.venture_takes_no_capital":
+    "Closed: this Venture takes no more capital.",
+  "portal.payIn.closed.investor_retired": "Closed.",
+  "portal.payIn.beingChecked":
+    "{amount} of it you told the farm you sent — being checked.",
+  "portal.payIn.refused.pay_in_notes_off":
+    "The farm is not taking these notes in the portal just now.",
+  "portal.payIn.refused.pay_in_day_ahead": "That day has not come yet.",
+  "portal.payIn.refused.pay_in_over_owed":
+    "That is more than this Agreement still owes, counting the notes you have already sent.",
+  "portal.payIn.refused.agreement_has_no_paper":
+    "The farm has not filed your stamped Agreement yet. Please call the farm.",
+  "portal.payIn.refused.venture_takes_no_capital":
+    "This Venture takes no more capital.",
+  "portal.payIn.refused.investor_retired": "Please call the farm.",
+  "portal.payIn.refused.venture_has_no_account":
+    "The farm has not said where to pay for this Venture yet. Please call the farm.",
+  "portal.payIn.refused.no_such_agreement": "This Agreement is not yours.",
+  "portal.payIn.refused.no_such_pay_in_note": "This note is not yours.",
+  "portal.payIn.refused.pay_in_note_not_waiting":
+    "The farm has already answered this note.",
   "portal.pay.onlyThisAccount":
     "The farm will only ever ask you to pay into the Venture's bank account shown above. If anyone gives you another account, do not pay.",
   "portal.pay.onlyThisPage":
@@ -1319,6 +1387,34 @@ export const en = {
   "ventures.capitalHint":
     "Money arriving for {venture}, against the paper the investor signed. By bank only.",
   "ventures.capitalTaken": "The capital is recorded",
+  "ventures.payIn.title": "Pay-in notes",
+  "ventures.payIn.hint":
+    "What investors say they sent. Check each against the venture account: record it, or answer not found.",
+  "ventures.payIn.said": "{investor} says {amount}, {way}",
+  "ventures.payIn.way.bank_transfer": "by bank transfer",
+  "ventures.payIn.way.cheque": "by cheque",
+  "ventures.payIn.way.deposit_slip": "paid in at the bank",
+  "ventures.payIn.way.mobile_money": "by mobile money",
+  "ventures.payIn.facts": "Reference {reference} · pay-in code {code}",
+  "ventures.payIn.sentOn": "Sent",
+  "ventures.payIn.record": "Record it",
+  "ventures.payIn.notFound": "Not found",
+  "ventures.payIn.photo": "See the slip",
+  "ventures.payIn.photoTitle": "The slip {investor} sent",
+  "ventures.payIn.notFoundTitle": "Not in the venture account?",
+  "ventures.payIn.notFoundHint":
+    "The investor reads your line in the portal, and may send a new note.",
+  "ventures.payIn.line": "Your line to the investor",
+  "ventures.payIn.linePlaceholder":
+    "Not in the account by the 5th — please send me the slip",
+  "ventures.payIn.answered": "Answered: not found",
+  "ventures.payIn.state.waiting": "To check",
+  "ventures.payIn.state.received": "Recorded",
+  "ventures.payIn.state.not_found": "Not found",
+  "ventures.payIn.state.withdrawn": "Withdrawn",
+  "ventures.payIn.state.closed": "Closed",
+  "ventures.payIn.fromNote":
+    "From {investor}'s pay-in note. Check it against the bank's statement, and change what the bank says otherwise.",
   "ventures.holdsUnits": "{units, plural, one {# unit} other {# units}}",
   "ventures.capitalLeft": "{amount} left to pay in",
   /** The way back from signing without the stamped photo: without it capital is refused for good, and
@@ -2313,6 +2409,7 @@ export const en = {
   "audit.entity.lot": "Medicine lot",
   "audit.entity.treatment": "Treatment",
   "audit.entity.request_to_join": "Request to join",
+  "audit.entity.pay_in_note": "Pay-in note",
   "audit.entity.receivable": "Receivable",
   "audit.entity.missing": "Missing animal",
   "audit.entity.farm_day": "Farm day",
