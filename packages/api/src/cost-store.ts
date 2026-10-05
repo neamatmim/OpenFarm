@@ -868,25 +868,129 @@ const groupedLines = (charges: readonly Charge[]): ConsumedLine[] => {
     .filter((line) => line.amount > 0);
 };
 
+/** The last Internal Sale that put each animal where she is, by its price and day: what her owner now paid for her. */
+export const boughtInOf = async (
+  db: Pick<Database, "query">,
+  farmId: string
+): Promise<
+  Map<
+    string,
+    { toVentureId: string | null; priceMoney: number; soldOn: string }
+  >
+> => {
+  const sales = await db.query.internalSale.findMany({
+    where: { farmId },
+    columns: {
+      animalId: true,
+      toVentureId: true,
+      priceMoney: true,
+      soldOn: true,
+    },
+    orderBy: { soldOn: "asc", id: "asc" },
+  });
+  return new Map(
+    sales.map((one) => [
+      one.animalId,
+      {
+        toVentureId: one.toVentureId,
+        priceMoney: one.priceMoney,
+        soldOn: one.soldOn,
+      },
+    ])
+  );
+};
+
+/**
+ * When an owner — a Venture, or the Farm — took an animal on, and at what: by an Internal Sale, from that day at that
+ * price; else, where the owner's own buying brought her in, from the day she came off the lorry at her price; else, for
+ * the Farm, one bred or crossed here, from the start at nothing paid. Nothing for an owner who never paid for her.
+ */
+const takenOnBy = (
+  animal: Pick<FarmAnimal, "id" | "intake">,
+  owner: string | null,
+  ownedThenBy: OwnedThenBy,
+  boughtIn: { priceMoney: number; soldOn: string } | undefined
+): { at: Date; priceMoney: number } | null => {
+  if (boughtIn) {
+    return {
+      at: startOfFarmDay(boughtIn.soldOn),
+      priceMoney: boughtIn.priceMoney,
+    };
+  }
+  if (animal.intake) {
+    return ownedThenBy(animal.id, animal.intake.arrivedAt) === owner
+      ? {
+          at: animal.intake.arrivedAt,
+          priceMoney: animal.intake.purchasePriceMoney,
+        }
+      : null;
+  }
+  return owner === null ? { at: new Date(0), priceMoney: 0 } : null;
+};
+
+/**
+ * What an animal has cost one owner to date, to the taka: what they paid to take her on, and every charge on her since,
+ * while she was theirs — as that owner's Settlement or books count her. Never her life before they had her, which was
+ * somebody else's cost. Nothing for an owner who never paid for her.
+ */
+export const costToItsOwner = (
+  costs: Pick<FarmCosts, "charges">,
+  ownedThenBy: OwnedThenBy,
+  animal: Pick<FarmAnimal, "id" | "intake">,
+  owner: string | null,
+  /** The Internal Sale that last brought her to this owner, where one did. */
+  boughtIn?: { priceMoney: number; soldOn: string }
+): number | null => {
+  const takenOn = takenOnBy(animal, owner, ownedThenBy, boughtIn);
+  if (!takenOn) {
+    return null;
+  }
+  const charged = chargesOfOwner(
+    costs.charges.filter(
+      (one) => one.animalId === animal.id && one.at >= takenOn.at
+    ),
+    owner,
+    ownedThenBy
+  ).reduce((sum, one) => sum + one.amount, 0);
+  return roundMoney(takenOn.priceMoney + charged);
+};
+
 /**
  * The costing narrowed to what was the Farm's own at the time: each share of an Animal the Farm owned that day, and
  * each Animal the Farm owned when she was sold. A Venture's Animals, their charges and their Margins are its own and
  * its Settlement's; read as the Farm's as well, the same bull would be counted twice. Never a second sum — the same
- * charges, picked by whose she was that day, as a Venture's are for its Settlement.
+ * charges, picked by whose she was that day, as a Venture's are for its Settlement. An animal the Farm bought back from
+ * a Venture is at the price the Farm paid for her, not at what her first buyer did: her Margin is the Farm's own.
  */
 export const theFarmsOwn = (
   costs: FarmCosts,
-  ownedThenBy: OwnedThenBy
+  ownedThenBy: OwnedThenBy,
+  /** The Internal Sale that last put each animal where she is (`boughtInOf`); left out, every price is her first. */
+  boughtIn: ReadonlyMap<
+    string,
+    { toVentureId: string | null; priceMoney: number }
+  > = new Map()
 ): FarmCosts => {
   const charges = chargesOfOwner(costs.charges, null, ownedThenBy);
   const litres = costs.litres.filter(
     (one) => ownedThenBy(one.animalId, one.at) === null
   );
+  const atTheFarmsPrice = (one: FarmAnimal): FarmAnimal => {
+    const back = boughtIn.get(one.id);
+    return back && back.toVentureId === null && one.intake
+      ? {
+          ...one,
+          intake: { ...one.intake, purchasePriceMoney: back.priceMoney },
+        }
+      : one;
+  };
   return {
     ...costs,
-    animals: costs.animals.filter(
-      (one) => !one.sale || ownedThenBy(one.id, one.sale.soldAt) === null
-    ),
+    animals: costs.animals
+      .filter(
+        (one) => !one.sale || ownedThenBy(one.id, one.sale.soldAt) === null
+      )
+      .map(atTheFarmsPrice),
     charges,
     litres,
     ofAnimal: {

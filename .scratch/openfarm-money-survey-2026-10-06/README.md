@@ -44,5 +44,5 @@ Three read-only reviewers looked at the farm's own books, its reports, and the m
 | ----- | ------ | ------ |
 | A     | fix/cash-counts | Done   |
 | B     | fix/approval-line | Done   |
-| C     |        |        |
+| C     | fix/money-reports | Done (C5 left: a Herd Cost on a Side nobody stood on is unplaced on the Monthly report, though its money is in the books) |
 | D     |        |        |

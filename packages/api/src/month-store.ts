@@ -25,6 +25,7 @@ import {
   costsBySide,
   farmCosts,
   narrowedToEach,
+  boughtInOf,
   theFarmsOwn,
 } from "./cost-store";
 import { moneyForTheAccountant } from "./money-export-store";
@@ -276,7 +277,7 @@ export const monthByMonth = async (
   ]);
   // The Farm's own animals alone, as its purse is the Farm's own money: a Venture's are on its own line below.
   const read: Read = {
-    costs: theFarmsOwn(costs, ownedThenBy),
+    costs: theFarmsOwn(costs, ownedThenBy, await boughtInOf(db, farm.id)),
     money,
     dispatched,
     writtenOff: await writtenOffByItem(db, farm.id),

@@ -3,15 +3,16 @@ import { ORPCError } from "@orpc/server";
 
 import { farmDay } from "./farm-clock";
 
-/** The longest stretch one report or list covers. A year is what a processor, an inspector or an
- *  accountant asks for. */
-const LONGEST_PERIOD_DAYS = 366;
+/** The longest stretch one report or list covers: the longest year the farm can have. A year is what a processor, an
+ *  inspector or an accountant asks for, and a Transition Year may run to twenty-three months (ADR 0017), so the
+ *  accountant is handed it whole — two years at the most. */
+const LONGEST_PERIOD_DAYS = 731;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** A period of farm days, as an input carries it. */
 export const periodInput = { from: farmDay, to: farmDay };
 
-/** The farm days a period covers, refused when it runs backwards or is longer than a year. */
+/** The farm days a period covers, refused when it runs backwards or is longer than any year the farm can have. */
 export const periodOf = (period: { from: string; to: string }) => {
   if (period.to < period.from) {
     throw new ORPCError("BAD_REQUEST", {

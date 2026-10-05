@@ -3441,7 +3441,8 @@ export const en = {
   "dispatch.reportsHint":
     "Choose the dates, then print the dispatch record a processor or BFSA asks for, or save the figures as a CSV.",
   "refusal.dispatchedInTheFuture": "Milk cannot have left later than now",
-  "refusal.periodTooLong": "One report covers a year at most",
+  "refusal.periodTooLong":
+    "One report covers two years at most: the longest year the farm can have",
   "nav.ventures": "Ventures",
   "nav.money": "Income and expenses",
   "money.subtitle":

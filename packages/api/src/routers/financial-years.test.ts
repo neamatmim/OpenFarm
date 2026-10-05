@@ -184,3 +184,33 @@ describe("the farm's financial years", () => {
     expect(standing?.withdrawable).toBe(true);
   });
 });
+
+describe("a Transition Year longer than a calendar year", () => {
+  it("is listed and exported whole: a period runs to the longest year the farm can have", async () => {
+    const { client: owner } = await as("owner");
+    // Eighteen months, as a Year Change from July to January can make one: listed and exported as one year.
+    const listed = await owner.money.list({
+      from: "2027-07-01",
+      to: "2028-12-31",
+    });
+    expect(listed.events).toBeDefined();
+    await owner.farm.setIdentity({
+      address: "সাভার, ঢাকা",
+      phone: "+8801711000095",
+      registrationNumber: "DLS/SAV/2027/0018",
+      registrationOffice: "উপজেলা প্রাণিসম্পদ দপ্তর, সাভার",
+      registrationExpiresOn: "2030-03-31",
+    });
+    // A client reads the farm once, when it is made: a fresh one reads it registered.
+    const { client: registered } = await as("owner");
+    await registered.reports.accountantExport({
+      from: "2027-07-01",
+      to: "2028-12-31",
+      format: "csv",
+    });
+    // Longer than any year can be is still refused.
+    await expect(
+      owner.money.list({ from: "2027-07-01", to: "2029-08-01" })
+    ).rejects.toMatchObject({ data: { refusal: "period_too_long" } });
+  });
+});

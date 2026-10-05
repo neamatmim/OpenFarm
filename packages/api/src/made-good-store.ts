@@ -1,11 +1,11 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
-import { chargesOfOwner, farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
+import { farmDayOf } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
 import { audited } from "./audit";
 import type { Context } from "./context";
-import { farmCosts } from "./cost-store";
+import { boughtInOf, costToItsOwner, farmCosts } from "./cost-store";
 import { recordInternalSale } from "./internal-sale-store";
 import { accountSaid, bookMoney, bookingOf } from "./money-store";
 import {
@@ -26,30 +26,9 @@ type MakingGood = Context & {
 };
 
 /**
- * When the Venture took her on, and at what: by an Internal Sale, from that day at that price; else, where its own
- * buying brought her in, from the day she came off the lorry at her price. Nothing for one it never paid for.
- */
-const takenOnBy = (
-  boughtIn: { priceMoney: number; soldOn: string } | undefined,
-  intake: { arrivedAt: Date; purchasePriceMoney: number } | null | undefined,
-  arrivedAsItsOwn: boolean
-): { at: Date; priceMoney: number } | null => {
-  if (boughtIn) {
-    return {
-      at: startOfFarmDay(boughtIn.soldOn),
-      priceMoney: boughtIn.priceMoney,
-    };
-  }
-  if (intake && arrivedAsItsOwn) {
-    return { at: intake.arrivedAt, priceMoney: intake.purchasePriceMoney };
-  }
-  return null;
-};
-
-/**
- * What she had cost the Venture to date, to the taka, as its Settlement charges it: what it paid to take her on — her
- * price where its own buying brought her in, or what it paid the Farm or another Venture for her — and every charge on
- * her since, while she was its own. Never her life on the farm before it had her, which was somebody else's cost.
+ * What she had cost the Venture to date, to the taka, as its Settlement charges it (`costToItsOwner`): what it paid to
+ * take her on — her price where its own buying brought her in, or what it paid the Farm or another Venture for her —
+ * and every charge on her since, while she was its own. Never her life on the farm before it had her.
  */
 export const costToDateOf = async (
   tx: Parameters<typeof farmCosts>[0] & Pick<Tx, "query">,
@@ -60,29 +39,22 @@ export const costToDateOf = async (
   const [costs, ownedThenBy, boughtIn] = await Promise.all([
     farmCosts(tx, farmId),
     ownedThenByOf(tx, farmId),
-    tx.query.internalSale.findFirst({
-      where: { farmId, animalId, toVentureId: ventureId },
-      orderBy: { soldOn: "desc", id: "desc" },
-      columns: { priceMoney: true, soldOn: true },
-    }),
+    boughtInOf(tx, farmId),
   ]);
-  const intake = costs.animals.find((one) => one.id === animalId)?.intake;
-  const takenOn = takenOnBy(
-    boughtIn,
-    intake,
-    intake ? ownedThenBy(animalId, intake.arrivedAt) === ventureId : false
-  );
-  if (!takenOn) {
+  const animal = costs.animals.find((one) => one.id === animalId);
+  if (!animal) {
     return 0;
   }
-  const charged = chargesOfOwner(
-    costs.charges.filter(
-      (one) => one.animalId === animalId && one.at >= takenOn.at
-    ),
-    ventureId,
-    ownedThenBy
-  ).reduce((sum, one) => sum + one.amount, 0);
-  return Math.round(takenOn.priceMoney + charged);
+  const back = boughtIn.get(animalId);
+  return (
+    costToItsOwner(
+      costs,
+      ownedThenBy,
+      animal,
+      ventureId,
+      back && back.toVentureId === ventureId ? back : undefined
+    ) ?? 0
+  );
 };
 
 /**

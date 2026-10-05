@@ -3217,7 +3217,8 @@ export const bn: Record<MessageKey, string> = {
   "dispatch.reportsHint":
     "তারিখ বেছে নিন, তারপর প্রসেসর বা বিএফএসএ যে হস্তান্তরের রেকর্ড চায় তা প্রিন্ট করুন, বা হিসাব CSV ফাইলে রাখুন।",
   "refusal.dispatchedInTheFuture": "দুধ এখনের পরে যেতে পারে না",
-  "refusal.periodTooLong": "একটি রেকর্ডে এক বছরের বেশি থাকে না",
+  "refusal.periodTooLong":
+    "একটি রেকর্ডে দুই বছরের বেশি থাকে না: খামারের সবচেয়ে লম্বা বছরও এর মধ্যে",
   "nav.ventures": "ভেঞ্চার",
   "nav.money": "{currencyOf} হিসাব",
   "money.subtitle":

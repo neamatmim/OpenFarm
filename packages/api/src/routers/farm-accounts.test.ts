@@ -99,6 +99,27 @@ describe("the Farm Accounts", () => {
       farmAccountId: accounts.office,
       reference: `TRX-A-${suffix}`,
     });
+    // And on the accountant's export, which is what they read against the statement: the transaction ID and the
+    // account, as the register shows them.
+    const owner = await as("owner");
+    await owner.client.farm.setIdentity({
+      address: `সাভার, ঢাকা ${suffix}`,
+      phone: "+8801711000094",
+      registrationNumber: `DLS/SAV/2082/${suffix}`,
+      registrationOffice: "উপজেলা প্রাণিসম্পদ দপ্তর, সাভার",
+      registrationExpiresOn: "2085-03-31",
+    });
+    const registered = await as("owner");
+    const { csv } = await registered.client.reports.accountantExport({
+      from: DAY,
+      to: DAY,
+      format: "csv",
+    });
+    const [header, ...rows] = (csv ?? "").slice(1).trim().split("\r\n");
+    expect(header).toContain("transaction_id,farm_account");
+    expect(rows.find((row) => row.includes(id))).toContain(
+      `TRX-A-${suffix},অফিস বিকাশ ${suffix}`
+    );
   });
 
   it("refuses mobile money money that names no account, the bank's, or one with no transaction ID", async () => {

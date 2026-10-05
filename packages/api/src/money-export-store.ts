@@ -23,6 +23,10 @@ export interface ExportedMoney extends MoneyToSummarise {
   sourceId: string;
   /** What the accountant can find the record by: a tag, a delivery note, a Feed Item, a product, a wage's month. */
   reference: string | null;
+  /** The bank's or the mobile money provider's own transaction ID, and the Farm Account it moved through: what the
+   *  accountant reads the money against the statement by, as the register shows them. Nothing for cash. */
+  transactionId: string | null;
+  farmAccountName: string | null;
   approval: MoneyApproval;
   note: string | null;
 }
@@ -301,6 +305,17 @@ export const moneyForTheAccountant = async (
     orderBy: { occurredAt: "asc", id: "asc" },
   });
   const facts = await recordFactsOf(db, farmId, events);
+  const accountIds = [
+    ...new Set(events.flatMap((one) => one.farmAccountId ?? [])),
+  ];
+  const accounts =
+    accountIds.length === 0
+      ? []
+      : await db.query.farmAccount.findMany({
+          where: { farmId, id: { in: accountIds } },
+          columns: { id: true, name: true },
+        });
+  const accountName = new Map(accounts.map((one) => [one.id, one.name]));
   return events.map((one) => {
     const fact = facts.get(one.sourceId);
     const byHand = one.source === "by_hand";
@@ -321,6 +336,10 @@ export const moneyForTheAccountant = async (
         byHand ? [{ side: one.side, part: 1 }] : (fact?.sides ?? WHOLE_FARM)
       ),
       reference: byHand ? one.wageMonth : (fact?.reference ?? null),
+      transactionId: one.reference,
+      farmAccountName: one.farmAccountId
+        ? (accountName.get(one.farmAccountId) ?? null)
+        : null,
       approval: one.approval,
       awaitingApproval: one.approval === "awaiting",
       note: one.note,
