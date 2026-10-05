@@ -49,6 +49,19 @@ import { assertByBank } from "./shared";
 /** How the return part of the Farm's own payout marks the transfer's reference it shares with the capital back. */
 const RETURN_PART = " · return";
 
+/**
+ * One transfer's reference on each of the Money Events it is booked as, which a Farm Account takes once each: the
+ * reference as written for a transfer of one part, and marked with its place — "ADJ-1 · 2/3" — for one of several.
+ */
+const referenceOfPart = (
+  reference: string | undefined,
+  part: number,
+  parts: number
+) =>
+  reference === undefined || parts === 1
+    ? reference
+    : `${reference} · ${part + 1}/${parts}`;
+
 /** What one payment out of an approved Settlement is: how much, and what it marks off when it lands. */
 interface GoingOut {
   amountMoney: number;
@@ -782,22 +795,31 @@ export const settlementProcedures = {
                 columns: { id: true, name: true },
               });
               const nameOf = new Map(people.map((one) => [one.id, one.name]));
-              const booking = bookingOf(
-                context,
-                context.roleUsed,
-                now,
-                accountSaid(["settlement_adjustment"], input)
-              );
               // The Farm's own Units' part would be the Farm paying itself: it moves nothing, and is left out.
               const itsOwn = await farmsOwnOf(
                 tx,
                 context.farm.id,
                 approved.shares.map((one) => one.agreementId)
               );
-              let paidMoney = 0;
-              for (const his of approved.shares.filter(
+              const paying = approved.shares.filter(
                 (one) => !itsOwn.has(one.agreementId)
-              )) {
+              );
+              let paidMoney = 0;
+              for (const [part, his] of paying.entries()) {
+                // One transfer, one Money Event for each Investor: each carries the transfer's reference, marked.
+                const booking = bookingOf(
+                  context,
+                  context.roleUsed,
+                  now,
+                  accountSaid(["settlement_adjustment"], {
+                    ...input,
+                    reference: referenceOfPart(
+                      input.reference,
+                      part,
+                      paying.length
+                    ),
+                  })
+                );
                 const amountMoney = whatUnitsTake(perUnitToPay, his.units);
                 // oxlint-disable-next-line no-await-in-loop -- one transaction, one Investor at a time
                 const counterpartyId = await counterpartyNamed(
