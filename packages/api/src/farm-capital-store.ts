@@ -170,6 +170,26 @@ export const farmsOwnOf = async (
   return new Set(rows.map((one) => one.id));
 };
 
+/** The Farm's own Units in each of these Ventures, in one read: a Venture where it holds none is not in the map. */
+export const farmUnitsOfEach = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
+  ventureIds: readonly string[]
+): Promise<Map<string, number>> => {
+  if (ventureIds.length === 0) {
+    return new Map();
+  }
+  const own = await db.query.investmentAgreement.findMany({
+    where: {
+      farmId,
+      ventureId: { in: [...ventureIds] },
+      stampKind: "farm_own",
+    },
+    columns: { ventureId: true, units: true },
+  });
+  return new Map(own.map((one) => [one.ventureId, one.units]));
+};
+
 /**
  * How many of a Venture's Units the Farm holds with its own money: what every Investor's paper tells them before they
  * sign, and — the Farm taking its Units only before anybody signs — what it told every one of them. Nothing where it
@@ -180,9 +200,6 @@ export const farmUnitsOf = async (
   farmId: string,
   ventureId: string
 ): Promise<number> => {
-  const own = await db.query.investmentAgreement.findFirst({
-    where: { farmId, ventureId, stampKind: "farm_own" },
-    columns: { units: true },
-  });
-  return own?.units ?? 0;
+  const each = await farmUnitsOfEach(db, farmId, [ventureId]);
+  return each.get(ventureId) ?? 0;
 };
