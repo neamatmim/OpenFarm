@@ -11,14 +11,14 @@ import {
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useLocation } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { Banknote, Image, SearchX } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { SaidDate } from "@/components/list-cells";
 import { useIsOwner } from "@/components/money";
 import type { Tone } from "@/components/page";
-import { Section, StatusBadge } from "@/components/page";
+import { Notice, Section, StatusBadge } from "@/components/page";
 import { FormDialog, FormField } from "@/components/page-kit";
 import { TakeCapitalSheet } from "@/components/ventures/take-capital-sheet";
 import { useLanguage } from "@/i18n/language-provider";
@@ -324,5 +324,50 @@ export const VenturePayInNotes = ({ venture }: { venture: Venture }) => {
       <NotFoundDialog note={notFound} onClose={() => setNotFound(null)} />
       <PhotoDialog note={looking} onClose={() => setLooking(null)} />
     </div>
+  );
+};
+
+/**
+ * Every Venture with Pay-in Notes still to check, in one notice where the Owner keeps her Investors — each Venture a
+ * link to its notes. Nothing while none wait.
+ */
+export const NotesWaitingNotice = () => {
+  const { t } = useLanguage();
+  const ventures = useQuery(orpc.ventures.list.queryOptions());
+  // Missing from a list this phone kept from before notes were counted: none.
+  const waiting = (ventures.data ?? []).filter(
+    (one) => (one.payInNotesWaiting ?? 0) > 0
+  );
+  const total = waiting.reduce(
+    (sum, one) => sum + (one.payInNotesWaiting ?? 0),
+    0
+  );
+  if (total === 0) {
+    return null;
+  }
+  return (
+    <Notice
+      icon={Banknote}
+      title={t("ventures.payIn.waitingTitle", { count: total })}
+      tone="info"
+    >
+      <ul className="flex flex-col gap-0.5">
+        {waiting.map((one) => (
+          <li key={one.id}>
+            <Link
+              className="underline-offset-4 hover:underline"
+              hash={PAY_IN_ANCHOR}
+              params={{ ventureId: one.id }}
+              to="/ventures/$ventureId/investors"
+            >
+              {t("ventures.payIn.waitingOn", {
+                venture: one.name,
+                count: one.payInNotesWaiting ?? 0,
+              })}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </Notice>
   );
 };

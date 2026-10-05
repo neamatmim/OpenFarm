@@ -23,7 +23,7 @@ import { farmDay } from "../../farm-clock";
 import { protectedProcedure } from "../../index";
 import { tellTheOwnerAPaperIsDue } from "../../investor-statement-notice";
 import { missedByEach } from "../../monthly-sums-store";
-import { closePayInNotes } from "../../pay-in-notes";
+import { closePayInNotes, waitingNotesByVenture } from "../../pay-in-notes";
 import { projectionBasisOf, projectionOf } from "../../projection-store";
 import { owedTheFarmByEach } from "../../reimbursement-store";
 import {
@@ -272,6 +272,11 @@ export const lifecycleProcedures = {
         rows,
         farmDayOf(context.clock.now())
       );
+      const notes = await waitingNotesByVenture(
+        context.db,
+        context.farm.id,
+        ids
+      );
       return rows.map((one) => ({
         ...ventureView(one, held.get(one.id), signed.get(one.id), {
           warnBelowMoney: context.farm.runningBudgetWarnMoney,
@@ -287,6 +292,8 @@ export const lifecycleProcedures = {
         /** Paid by the month: what its Investors have missed of their Monthly Sums, past their seven days — which the
          *  Owner's own money may feed the animals through until it comes. Nothing for any other Venture. */
         sumsMissedMoney: missed.get(one.id) ?? 0,
+        /** How many of its Investors' Pay-in Notes wait for the Owner to check against the Venture Account (ADR 0018). */
+        payInNotesWaiting: notes.get(one.id) ?? 0,
       }));
     }),
 

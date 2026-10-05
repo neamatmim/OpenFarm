@@ -122,6 +122,7 @@ export const monthsStillOut = (bank: BankStanding | undefined) => {
  */
 export type VentureTrouble =
   | { word: "decision_due"; decideBy: string; shortMoney: number }
+  | { word: "pay_in_notes"; count: number }
   | { word: "running_budget_low"; leftMoney: number }
   | { word: "past_wind_up"; standing: number }
   | { word: "bank_disagrees"; months: string[] }
@@ -147,6 +148,12 @@ export const troubleWith = (venture: Venture): VentureTrouble[] => {
       decideBy: venture.decideBy,
       shortMoney: shortOfFloor(venture),
     });
+  }
+  // Investors who say they have sent money are waiting on her to find it (ADR 0018). Missing from an answer cached
+  // before notes were counted.
+  const notes = venture.payInNotesWaiting ?? 0;
+  if (notes > 0) {
+    troubles.push({ word: "pay_in_notes", count: notes });
   }
   if (venture.runningBudgetLow) {
     troubles.push({

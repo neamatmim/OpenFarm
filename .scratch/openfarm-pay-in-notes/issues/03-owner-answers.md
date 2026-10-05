@@ -29,4 +29,6 @@ and answers the note in its own transaction; notes close as `nothing_owed` when 
 `venture_takes_no_capital` on a state change that stops capital (`takesCapital`) or a call-off, `investor_retired` on
 retire. Web: `components/ventures/venture-pay-in-notes.tsx` on the Investors tab (anchor `#pay-in-notes`, waiting
 first, Record it opens `TakeCapitalSheet` with `fromNote`, Not found dialog, slip dialog); the alert links there.
-Not done: a count on the Investors page or home — the immediate alert and its link were judged enough.
+The count, added later the same day: `ventures.list` carries `payInNotesWaiting`; the Owner's home says it as a Venture
+trouble ("N pay-in notes to check against the bank", linking to the notes) and the Investors page has a notice listing
+each Venture with notes waiting.

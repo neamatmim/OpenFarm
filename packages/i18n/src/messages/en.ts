@@ -1390,6 +1390,10 @@ export const en = {
     "Money arriving for {venture}, against the paper the investor signed. By bank only.",
   "ventures.capitalTaken": "The capital is recorded",
   "ventures.payIn.title": "Pay-in notes",
+  "ventures.payIn.waitingTitle":
+    "{count, plural, one {# pay-in note} other {# pay-in notes}} from investors to check against the bank",
+  "ventures.payIn.waitingOn":
+    "{venture}: {count, plural, one {# note} other {# notes}}",
   "ventures.payIn.hint":
     "What investors say they sent. Check each against the venture account: record it, or answer not found.",
   "ventures.payIn.said": "{investor} says {amount}, {way}",
@@ -3975,6 +3979,8 @@ export const en = {
   "digest.monthlySumMissed":
     "{count, plural, one {# investor} other {# investors}} behind on their monthly sums",
   "alerts.seeWhoIsBehind": "See who is behind",
+  "ventureTrouble.payInNotes":
+    "{count, plural, one {# pay-in note} other {# pay-in notes}} to check against the bank",
   "alerts.payInNoteSent":
     "{investor} says they sent {currencySign}{amount} {way} on {day}, for {venture}",
   "push.payInNoteSentTitle": "An investor says they have paid",

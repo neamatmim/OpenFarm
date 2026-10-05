@@ -565,6 +565,37 @@ describe("a note nobody answered", () => {
   });
 });
 
+describe("the notes still to check", () => {
+  beforeAll(async () => {
+    await turn(true);
+  });
+
+  it("are counted on each Venture in the Owner's list: those waiting, and none answered or withdrawn", async () => {
+    const ventureId = await aVenture("গোনা");
+    const quiet = await aVenture("চুপচাপ");
+    const them = await signedUp("গোনার জন", ventureId, 2);
+    await them.client.portal.sendPayInNote(saying(them.agreementId, 10_000));
+    await them.client.portal.sendPayInNote(saying(them.agreementId, 20_000));
+    const withdrawn = await them.client.portal.sendPayInNote(
+      saying(them.agreementId, 5000)
+    );
+    await them.client.portal.withdrawPayInNote({ noteId: withdrawn.id });
+    const missing = await them.client.portal.sendPayInNote(
+      saying(them.agreementId, 7000)
+    );
+    const owner = await as("owner");
+    await owner.ventures.payInNotes.notFound({
+      noteId: missing.id,
+      line: "হিসাবে আসেনি",
+    });
+    const listed = await owner.ventures.list();
+    expect(listed.find((one) => one.id === ventureId)?.payInNotesWaiting).toBe(
+      2
+    );
+    expect(listed.find((one) => one.id === quiet)?.payInNotesWaiting).toBe(0);
+  });
+});
+
 describe("the words a note keeps to", () => {
   it("are the same in the database and on the screens", () => {
     expect([...PAY_IN_WAYS]).toEqual([...WAYS_KEPT]);

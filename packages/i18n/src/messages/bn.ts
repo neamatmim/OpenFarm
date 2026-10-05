@@ -1297,6 +1297,9 @@ export const bn: Record<MessageKey, string> = {
     "{venture}-এর জন্য বিনিয়োগকারীর সই করা কাগজের বিপরীতে আসা {currencySum}। কেবল ব্যাংকে।",
   "ventures.capitalTaken": "{currencySum} জমা লেখা হয়েছে",
   "ventures.payIn.title": "জমার খবর",
+  "ventures.payIn.waitingTitle":
+    "বিনিয়োগকারীদের {count}টি জমার খবর ব্যাংকের সঙ্গে মেলাতে হবে",
+  "ventures.payIn.waitingOn": "{venture}: {count}টি",
   "ventures.payIn.hint":
     "বিনিয়োগকারীরা যা পাঠিয়েছেন বলে জানিয়েছেন। প্রতিটি ভেঞ্চার হিসাবের সঙ্গে মিলিয়ে দেখুন: জমা লিখুন, না পেলে জানান।",
   "ventures.payIn.said": "{investor} বলছেন {amount}, {way}",
@@ -3724,6 +3727,7 @@ export const bn: Record<MessageKey, string> = {
     "{investor} {venture}-এ মাসের {currencySum} {currencySign}{amount} দেননি, শেষটি {day} তারিখে দেওয়ার কথা ছিল",
   "digest.monthlySumMissed": "{count} জন বিনিয়োগকারী মাসের {currencyIn} পিছিয়ে",
   "alerts.seeWhoIsBehind": "কে পিছিয়ে দেখুন",
+  "ventureTrouble.payInNotes": "{count}টি জমার খবর ব্যাংকের সঙ্গে মেলাতে হবে",
   "alerts.payInNoteSent":
     "{investor} জানিয়েছেন, তিনি {day} তারিখে {venture}-এর জন্য {way} {currencySign}{amount} পাঠিয়েছেন",
   "push.payInNoteSentTitle": "বিনিয়োগকারী টাকা পাঠিয়েছেন বলে জানিয়েছেন",

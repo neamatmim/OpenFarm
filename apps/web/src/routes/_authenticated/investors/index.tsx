@@ -28,6 +28,7 @@ import {
 } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { FilterBar, NativeSelect, SummaryFigures } from "@/components/page-kit";
+import { NotesWaitingNotice } from "@/components/ventures/venture-pay-in-notes";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
@@ -144,6 +145,8 @@ const InvestorsPage = () => {
         title={t("investors.title")}
       />
       <SummaryFigures figures={figures} />
+      {/* What Investors say they have sent, waiting for the Owner to find in the Venture Accounts (ADR 0018). */}
+      <NotesWaitingNotice />
       {counted?.nearingTheCap ? (
         <Notice
           title={t("investors.nearingTheCap", {

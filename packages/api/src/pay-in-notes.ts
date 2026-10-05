@@ -624,6 +624,26 @@ export const closePayInNotes = async (
   }
 };
 
+/** How many Pay-in Notes wait for the Owner to check on each of these Ventures: none answered, withdrawn or closed. */
+export const waitingNotesByVenture = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
+  ventureIds: readonly string[]
+): Promise<Map<string, number>> => {
+  if (ventureIds.length === 0) {
+    return new Map();
+  }
+  const rows = await db.query.payInNote.findMany({
+    where: { farmId, state: "waiting", ventureId: { in: [...ventureIds] } },
+    columns: { ventureId: true },
+  });
+  const counted = new Map<string, number>();
+  for (const one of rows) {
+    counted.set(one.ventureId, (counted.get(one.ventureId) ?? 0) + 1);
+  }
+  return counted;
+};
+
 /** A note as the Investor reads it back, and as the Owner does: never the photo itself, only whether there is one. */
 const noteAsRead = (
   row: typeof payInNote.$inferSelect,
