@@ -111,10 +111,18 @@ export const breed = pgTable(
      *  it is judged against the farm's deshi share of the Ration's Expected Gain. The standard local breeds come set;
      *  the farm says for its own. */
     deshi: boolean("deshi").notNull().default(false),
+    /** Its own share of a Ration's Expected Gain, as a percentage, where the farm has set one from what its own animals
+     *  of it put on: it stands in for the deshi share. Null judges an animal of it as before — at the deshi share when
+     *  it is deshi, at the Ration as written when not. From three tenths to a fifth over the Ration. */
+    gainPercent: integer("gain_percent"),
     retiredAt: timestamp("retired_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [
+    check(
+      "breed_gain_percent_range",
+      sql`${table.gainPercent} is null or ${table.gainPercent} between 30 and 120`
+    ),
     uniqueIndex("breed_key_uidx").on(table.farmId, table.key),
     uniqueIndex("breed_name_uidx").on(table.farmId, table.nameBn),
   ]

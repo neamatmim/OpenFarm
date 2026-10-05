@@ -105,7 +105,10 @@ export {
 export type {
   ExpectedGain,
   FarmGainFigure,
+  BreedShareFigure,
   GainAdjustment,
+  GainJudged,
+  MeasuredStay,
   GainGroup,
   GainOnRation,
   GainingBand,
@@ -113,6 +116,11 @@ export type {
   GainStanding,
 } from "./expected-gain";
 export {
+  BREED_GAIN_PERCENT,
+  breedShareFigureOf,
+  isBreedGainPercent,
+  shareToUse,
+  bullShareOf,
   FEWEST_FOR_A_FIGURE,
   GAIN_GROUPS,
   PEN_NEEDS_GAINS,

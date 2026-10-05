@@ -140,6 +140,9 @@ const Rules = () => {
           percent: number(gainSettingOf(figures, "deshiGainPercent")),
         })}
       </Rule>
+      <Rule label={t("standards.breedShare")}>
+        {t("standards.breedShareRule")}
+      </Rule>
       <Rule label={t("standards.female")}>
         {t("standards.shareSet", {
           percent: number(gainSettingOf(figures, "femaleGainPercent")),

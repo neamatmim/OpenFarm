@@ -1,10 +1,15 @@
+import {
+  BREED_GAIN_PERCENT,
+  isBreedGainPercent,
+  shareToUse,
+} from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Archive,
@@ -14,6 +19,8 @@ import {
   Home,
   Pencil,
   Plus,
+  Sparkles,
+  TrendingUp,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -47,15 +54,27 @@ import {
 } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { breedName } from "@/lib/breed";
+import { gainSettingOf } from "@/lib/gain-settings";
 import { onlyFor } from "@/lib/guard";
 import { useRefused } from "@/lib/refused";
+import { toast } from "@/lib/toast";
 import { orpc } from "@/utils/orpc";
 
 type Breed = Awaited<ReturnType<typeof orpc.breeds.list.call>>[number];
 
-/** A breed in the list, with its name in the reader's language and what may be done to it. */
+/** A breed in the list, with its name in the reader's language, the share of a Ration's Expected Gain an animal of it is
+ *  judged at and what the farm's own bulls of it put on, and what may be done to it. */
 interface BreedRow extends Breed {
   name: string;
+  /** The share an animal of it is judged at, said: its own, the deshi share, or the Ration as written. */
+  judgedAt: string;
+  /** What the farm's own bulls of it put on, said; nothing while fewer than five have been measured. */
+  figureSaid: string | null;
+  /** The farm's own figure to take with one press, inside the bounds — nothing when there is none, or it is already
+   *  the share used. */
+  usePercent: number | null;
+  handleUse: () => void;
+  handleGain: () => void;
   handleRename: () => void;
   handleDeshi: () => void;
   handleRetire: () => void;
@@ -99,6 +118,11 @@ const BreedMenu = ({ row }: { row: BreedRow }) => {
           icon: Home,
           handleSelect: row.handleDeshi,
         },
+        {
+          label: t("breeds.gain.set"),
+          icon: TrendingUp,
+          handleSelect: row.handleGain,
+        },
         row.retiredAt
           ? {
               label: t("breeds.restore"),
@@ -129,6 +153,29 @@ const AnimalsCell = ({ row }: { row: { original: BreedRow } }) => {
   return <span>{formatNumber(row.original.animals, language)}</span>;
 };
 
+/** The share an animal of it is judged at, and under it what the farm's own bulls of it put on, with the farm's figure
+ *  to take in one press. */
+const GainCell = ({ row }: { row: { original: BreedRow } }) => {
+  const { t, language } = useLanguage();
+  const { judgedAt, figureSaid, usePercent, handleUse } = row.original;
+  return (
+    <span className="flex flex-col items-start gap-0.5">
+      <span>{judgedAt}</span>
+      {figureSaid ? (
+        <span className="text-muted-foreground text-xs">{figureSaid}</span>
+      ) : null}
+      {usePercent === null ? null : (
+        <Button onClick={handleUse} size="xs" type="button" variant="ghost">
+          <Sparkles aria-hidden data-icon="inline-start" />
+          {t("breeds.gain.use", {
+            percent: formatNumber(usePercent, language),
+          })}
+        </Button>
+      )}
+    </span>
+  );
+};
+
 const StatusCell = ({ row }: { row: { original: BreedRow } }) => (
   <Badges row={row.original} />
 );
@@ -154,6 +201,11 @@ const breedColumns = column.columns([
     header: listHeader("herd.col.animals"),
     cell: AnimalsCell,
     meta: { align: "end" },
+  }),
+  column.accessor("judgedAt", {
+    id: "gain",
+    header: listHeader("breeds.col.gain"),
+    cell: GainCell,
   }),
   column.accessor(retiredLast, {
     id: "status",
@@ -186,6 +238,7 @@ const BreedCard = ({ row }: { row: BreedRow }) => {
             .join(" · ")}
         </span>
         <Badges row={row} />
+        <GainCell row={{ original: row }} />
       </div>
       <BreedMenu row={row} />
     </div>
@@ -284,6 +337,105 @@ const BreedDialog = ({
   );
 };
 
+/** What a breed's share is to be set to: which breed, and what its row says of it. */
+interface GainSetting {
+  breed: Breed;
+  name: string;
+  figureSaid: string | null;
+}
+
+/**
+ * A breed's own share of a Ration's Expected Gain, typed — from three tenths to a fifth over the Ration — or cleared, and
+ * an animal of it is judged as before. Beside it what the farm's own bulls of it put on, where five have been measured.
+ */
+const GainDialog = ({
+  setting,
+  onClose,
+}: {
+  setting: GainSetting | null;
+  onClose: () => void;
+}) => {
+  const { t, language } = useLanguage();
+  const onError = useRefused();
+  // A list this phone kept from before breeds had their own share has none: an empty box.
+  const own = setting?.breed.gainPercent ?? null;
+  const [typed, setTyped] = useState(own === null ? "" : String(own));
+  const save = useMutation(
+    orpc.breeds.setGainPercent.mutationOptions({
+      onSuccess: (done) => {
+        toast.success(
+          done.percent === null
+            ? t("breeds.gain.cleared")
+            : t("breeds.gain.used", {
+                percent: formatNumber(done.percent, language),
+              })
+        );
+        onClose();
+      },
+      onError,
+    })
+  );
+  const percent = Number(typed);
+  const inBounds = typed.trim() !== "" && isBreedGainPercent(percent);
+  const hasOwn = own !== null;
+  return (
+    <FormDialog
+      description={t("breeds.gain.hint")}
+      onOpenChange={(open) => {
+        if (!open) {
+          onClose();
+        }
+      }}
+      onSubmit={() => {
+        if (setting && inBounds) {
+          save.mutate({ id: setting.breed.id, percent });
+        }
+      }}
+      open={setting !== null}
+      pending={save.isPending}
+      ready={inBounds}
+      submitLabel={t("common.save")}
+      title={t("breeds.gain.title", { name: setting?.name ?? "" })}
+    >
+      <FormField
+        hint={
+          setting?.figureSaid
+            ? t("breeds.gain.farmHint", { figure: setting.figureSaid })
+            : t("breeds.gain.noFigure")
+        }
+        id="breed-gain-percent"
+        label={t("breeds.gain.label")}
+      >
+        <Input
+          className="max-w-32"
+          id="breed-gain-percent"
+          inputMode="numeric"
+          max={BREED_GAIN_PERCENT.most}
+          min={BREED_GAIN_PERCENT.least}
+          onChange={(event) => setTyped(event.target.value)}
+          type="number"
+          value={typed}
+        />
+      </FormField>
+      {hasOwn ? (
+        <Button
+          className="self-start"
+          disabled={save.isPending}
+          onClick={() => {
+            if (setting) {
+              save.mutate({ id: setting.breed.id, percent: null });
+            }
+          }}
+          type="button"
+          variant="outline"
+        >
+          {t("breeds.gain.clear")}
+        </Button>
+      ) : null}
+    </FormDialog>
+  );
+};
+
 /**
  * The farm's list of breeds: the standard ones it came with and its own, how many animals are of each, and the
  * retired. Kept by the Owner and the Manager; an animal is written down under one on the intake and register forms.
@@ -306,13 +458,66 @@ const BreedsPage = () => {
   const setDeshi = useMutation(
     orpc.breeds.setDeshi.mutationOptions({ onError })
   );
+  const [gainOf, setGainOf] = useState<GainSetting | null>(null);
+  // "Use it": the farm's own figure written through the same act, the same check and the same trail as typing it.
+  const takeFigure = useMutation(
+    orpc.breeds.setGainPercent.mutationOptions({
+      onSuccess: (done) =>
+        toast.success(
+          t("breeds.gain.used", {
+            percent: formatNumber(done.percent ?? 0, language),
+          })
+        ),
+      onError,
+    })
+  );
+  // What the farm's own bulls of each breed put on: its own read, since it weighs up every fattening animal.
+  const shares = useQuery(orpc.breeds.farmShares.queryOptions());
+  const farm = useQuery(orpc.farm.current.queryOptions());
+  const deshiPercent = gainSettingOf(farm.data, "deshiGainPercent");
+  /** The share an animal of a breed is judged at, said. A list cached before breeds had their own says none. */
+  const judgedAtOf = (one: Breed): string => {
+    const own = one.gainPercent ?? null;
+    if (own !== null) {
+      return t("breeds.gain.own", { percent: formatNumber(own, language) });
+    }
+    return one.deshi
+      ? t("breeds.gain.deshi", {
+          percent: formatNumber(deshiPercent, language),
+        })
+      : t("breeds.gain.asWritten");
+  };
+  const figureSaidOf = (one: Breed): string | null => {
+    const figure = shares.data?.[one.id] ?? null;
+    return figure
+      ? t("breeds.gain.farm", {
+          animals: figure.animals,
+          median: formatNumber(figure.medianPercent, language),
+          low: formatNumber(figure.lowPercent, language),
+          high: formatNumber(figure.highPercent, language),
+        })
+      : null;
+  };
   const table = useListTable({
     columns: breedColumns,
     data: (breeds.data ?? []).map((one) => {
       const name = breedName(one, language) ?? one.nameBn;
+      const figure = shares.data?.[one.id] ?? null;
+      const taken = figure ? shareToUse(figure) : null;
+      const figureSaid = figureSaidOf(one);
       return {
         ...one,
         name,
+        judgedAt: judgedAtOf(one),
+        figureSaid,
+        usePercent:
+          taken === null || taken === (one.gainPercent ?? null) ? null : taken,
+        handleUse: () => {
+          if (taken !== null) {
+            takeFigure.mutate({ id: one.id, percent: taken });
+          }
+        },
+        handleGain: () => setGainOf({ breed: one, name, figureSaid }),
         handleRename: () => setNaming({ kind: "rename", breed: one, name }),
         handleDeshi: () => setDeshi.mutate({ id: one.id, deshi: !one.deshi }),
         handleRetire: () => setRetiring({ id: one.id, name }),
@@ -355,6 +560,12 @@ const BreedsPage = () => {
         key={naming?.kind === "rename" ? naming.breed.id : "add"}
         naming={naming}
         onClose={() => setNaming(null)}
+      />
+      {/* Keyed by the breed, so the box starts from its own share and never another's. */}
+      <GainDialog
+        key={gainOf?.breed.id ?? "none"}
+        onClose={() => setGainOf(null)}
+        setting={gainOf}
       />
       <ConfirmDialog
         confirmLabel={t("breeds.retire")}

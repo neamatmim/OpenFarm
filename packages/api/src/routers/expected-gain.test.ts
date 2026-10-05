@@ -1,6 +1,6 @@
 import type { SopContent } from "@OpenFarm/domain";
 import { DESHI_BREEDS } from "@OpenFarm/domain";
-import { FakeClock } from "@OpenFarm/test-harness";
+import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -280,6 +280,7 @@ describe("the bulls gaining under their Ration's Expected Gain", () => {
       // Nobody wrote down his breed: judged as a cross, which the Ration's figures are written for.
       expectedGain: GROWER_GAIN,
       adjustedFor: {
+        breedPercent: null,
         deshiPercent: null,
         femalePercent: null,
         breedRecorded: false,
@@ -319,6 +320,7 @@ describe("the bulls gaining under their Ration's Expected Gain", () => {
     expect(onRationOf(world.tags.newcomer)).toEqual({
       expectedGain: GROWER_GAIN,
       adjustedFor: {
+        breedPercent: null,
         deshiPercent: null,
         femalePercent: null,
         breedRecorded: false,
@@ -362,6 +364,7 @@ describe("the bulls gaining under their Ration's Expected Gain", () => {
       pen: { expectedGain: GROWER_GAIN },
       expectedGain: { lowKg: 0.42, highKg: 0.63 },
       adjustedFor: {
+        breedPercent: null,
         deshiPercent: 70,
         femalePercent: null,
         breedRecorded: true,
@@ -375,6 +378,7 @@ describe("the bulls gaining under their Ration's Expected Gain", () => {
     ).toMatchObject({
       expectedGain: { lowKg: 0.48, highKg: 0.72 },
       adjustedFor: {
+        breedPercent: null,
         deshiPercent: null,
         femalePercent: 80,
         breedRecorded: false,
@@ -530,6 +534,95 @@ describe("which breeds are deshi", () => {
       staff.client.breeds.setDeshi({ id: added.id, deshi: true })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect(await deshiOf(added.id)).toBe(false);
+  });
+});
+
+describe("a Breed's own share of the Expected Gain", () => {
+  /** The standard deshi Breed the deshi bulls on this farm are written down under. */
+  const deshiBreed = async () => {
+    const owner = await as("owner");
+    const breeds = await owner.client.breeds.list();
+    return breeds.find((one) => one.key === "local");
+  };
+
+  it("judges a bull of it at its own share instead of the deshi share, and as before once cleared", async () => {
+    const manager = await as("manager");
+    const breed = await deshiBreed();
+    const id = breed?.id ?? "";
+    expect(breed?.gainPercent).toBe(null);
+    try {
+      // At half a kilo a day the deshi bull is within a deshi bull's 0.42–0.63, but under 90%'s 0.54–0.81.
+      await manager.client.breeds.setGainPercent({ id, percent: 90 });
+      const later = await as("manager");
+      const set = await deshiBreed();
+      expect(set?.gainPercent).toBe(90);
+      const rows = await later.client.fattening.underExpectedGain();
+      expect(
+        rows.find((one) => one.tagNumber === world.tags.deshiFine)
+      ).toMatchObject({
+        expectedGain: { lowKg: 0.54, highKg: 0.81 },
+        adjustedFor: { breedPercent: 90, deshiPercent: null },
+        standing: "under",
+      });
+    } finally {
+      await manager.client.breeds.setGainPercent({ id, percent: null });
+    }
+    const cleared = await as("manager");
+    const rows = await cleared.client.fattening.underExpectedGain();
+    expect(rows.map((one) => one.tagNumber)).not.toContain(
+      world.tags.deshiFine
+    );
+  });
+
+  it("moves the target a bull of it is taken in towards", async () => {
+    const manager = await as("manager");
+    const breed = await deshiBreed();
+    const id = breed?.id ?? "";
+    const asked = {
+      sex: "male" as const,
+      arrivedAt: new Date(ARRIVED),
+      targetWindowStart: "2037-10-01",
+      weightKg: 200,
+      breedId: id,
+    };
+    try {
+      await manager.client.breeds.setGainPercent({ id, percent: 50 });
+      const later = await as("manager");
+      // 200 + 0.3 × 101, and 200 + 0.45 × 101 = 245.45, weighed to a tenth of a kilo.
+      await expect(
+        later.client.intakes.suggestTarget(asked)
+      ).resolves.toMatchObject({ lowKg: 230.3, highKg: 245.4 });
+    } finally {
+      await manager.client.breeds.setGainPercent({ id, percent: null });
+    }
+  });
+
+  it("is the Owner's and the Manager's to set, from three tenths to a fifth over the Ration, each in the trail", async () => {
+    const owner = await as("owner");
+    const breed = await deshiBreed();
+    const id = breed?.id ?? "";
+    for (const percent of [29, 121, 85.5]) {
+      // oxlint-disable-next-line no-await-in-loop -- one refusal at a time
+      await expect(
+        owner.client.breeds.setGainPercent({ id, percent })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    }
+    const staff = await as("staff");
+    await expect(
+      staff.client.breeds.setGainPercent({ id, percent: 80 })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    try {
+      await owner.client.breeds.setGainPercent({ id, percent: 120 });
+      const set = await deshiBreed();
+      expect(set?.gainPercent).toBe(120);
+      const event = await scratchDb().query.auditEvent.findFirst({
+        where: { entity: "breed", entityId: id, action: "update" },
+        orderBy: { receivedAt: "desc", id: "desc" },
+      });
+      expect(event?.after).toMatchObject({ gainPercent: 120 });
+    } finally {
+      await owner.client.breeds.setGainPercent({ id, percent: null });
+    }
   });
 });
 

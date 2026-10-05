@@ -1,5 +1,6 @@
 import type { Database } from "@OpenFarm/db";
 import type {
+  BreedShareFigure,
   ExpectedGain,
   FarmGainFigure,
   GainAdjustment,
@@ -13,6 +14,8 @@ import {
   EXIT_STATES,
   GAIN_GROUPS,
   bandStanding,
+  breedShareFigureOf,
+  bullShareOf,
   exitOf,
   expectedGainFor,
   farmDayOf,
@@ -210,7 +213,7 @@ export const againstExpectedGains = async (
     orderBy: { tagNumber: "asc" },
     columns: { id: true, tagNumber: true, penId: true, sex: true },
     with: {
-      breed: { columns: { deshi: true } },
+      breed: { columns: { deshi: true, gainPercent: true } },
       intake: { columns: { weightKg: true, arrivedAt: true } },
       // The Move that put her in the Pen she stands in: the latest.
       moves: {
@@ -250,7 +253,11 @@ export const againstExpectedGains = async (
       weightKg !== null && bandStanding(weightKg, band) !== "fits";
     const { expectedGain, adjustedFor } = expectedGainFor(
       pen.expectedGain,
-      { deshi: one.breed?.deshi ?? null, sex: one.sex },
+      {
+        deshi: one.breed?.deshi ?? null,
+        sex: one.sex,
+        breedPercent: one.breed?.gainPercent ?? null,
+      },
       {
         deshiPercent: farm.deshiGainPercent,
         femalePercent: farm.femaleGainPercent,
@@ -357,7 +364,7 @@ export const suggestedTargetOf = async (
     bull.breedId
       ? db.query.breed.findFirst({
           where: { id: bull.breedId, farmId: farm.id },
-          columns: { deshi: true },
+          columns: { deshi: true, gainPercent: true },
         })
       : null,
   ]);
@@ -366,7 +373,11 @@ export const suggestedTargetOf = async (
     bull.weightKg,
     days,
     rungs,
-    { deshi: breed?.deshi ?? null, sex: bull.sex },
+    {
+      deshi: breed?.deshi ?? null,
+      sex: bull.sex,
+      breedPercent: breed?.gainPercent ?? null,
+    },
     {
       deshiPercent: farm.deshiGainPercent,
       femalePercent: farm.femaleGainPercent,
@@ -383,23 +394,27 @@ export interface FarmGainsOnRation {
 }
 
 /**
- * What the farm's own fattening animals have put on eating each of its Rations in use — the ones gone as well as the
- * ones standing — by kind: crossbred bulls, deshi bulls, bulls with no Breed written, cows and heifers. Each animal
- * counts once for a Ration, by her longest stay on it: from her first reading the farm did not doubt after she had
- * settled in and was on it, to her last before she moved on or left, when those are at least the Farm Parameter's days
- * apart. A stay counts only from when her Pen was put on the Ration it is on now: which Ration a Pen was on before that
- * is kept in the trail, not in the Pen, so time before it is left out rather than guessed at. A kind is said once
- * `FEWEST_FOR_A_FIGURE` animals have a gain.
+ * Every fattening animal's longest measured stay on each of the farm's Rations in use — the ones gone as well as the
+ * ones standing: from her first reading the farm did not doubt after she had settled in and was on it, to her last
+ * before she moved on or left, when those are at least the Farm Parameter's days apart. A stay counts only from when her
+ * Pen was put on the Ration it is on now: which Ration a Pen was on before that is kept in the trail, not in the Pen, so
+ * time before it is left out rather than guessed at. The one reading both the farm's gains by Ration and by Breed take,
+ * so the two cannot read a stay two ways.
  */
-export const farmGainsByRation = async (
+const measuredStaysOf = async (
   db: Pick<Database, "query">,
   farm: { id: string; gainReadDays: number },
   now: Date
-): Promise<FarmGainsOnRation[]> => {
+) => {
   const rations = await db.query.ration.findMany({
     where: { farmId: farm.id, retiredAt: { isNull: true } },
     orderBy: { weightFromKg: "asc", nameBn: "asc", id: "asc" },
-    columns: { id: true, nameBn: true },
+    columns: {
+      id: true,
+      nameBn: true,
+      expectedGainLowKg: true,
+      expectedGainHighKg: true,
+    },
     with: { pens: { columns: { penId: true, assignedAt: true } } },
   });
   const onRation = new Map(
@@ -414,11 +429,17 @@ export const farmGainsByRation = async (
     )
   );
   if (onRation.size === 0) {
-    return [];
+    return { rations, animals: [] };
   }
   const animals = await db.query.animal.findMany({
     where: { farmId: farm.id, side: "fattening" },
-    columns: { id: true, sex: true, state: true, stateChangedAt: true },
+    columns: {
+      id: true,
+      sex: true,
+      breedId: true,
+      state: true,
+      stateChangedAt: true,
+    },
     with: {
       breed: { columns: { deshi: true } },
       intake: { columns: { arrivedAt: true } },
@@ -429,42 +450,64 @@ export const farmGainsByRation = async (
       },
     },
   });
+  return {
+    rations,
+    animals: animals.map((one) => {
+      const readings = one.weighIns.map((reading) => ({
+        weightKg: Number(reading.weightKg),
+        weighedAt: reading.weighedAt,
+      }));
+      const spells = penSpellsOf(
+        one.moves.map((move) => ({ ...move, toPen: move.toPenId })),
+        exitOf(one)?.at ?? null
+      );
+      // Her longest measured stay on each Ration.
+      const best = new Map<string, { dailyGainKg: number; overDays: number }>();
+      for (const spell of spells) {
+        const placed = onRation.get(spell.pen);
+        if (!placed) {
+          continue;
+        }
+        const gain = gainOverStayOf(readings, {
+          from: gainCountsFrom({
+            arrivedAt: one.intake?.arrivedAt ?? null,
+            onRationSince:
+              spell.from > placed.assignedAt ? spell.from : placed.assignedAt,
+          }),
+          until: spell.until ?? now,
+          readDays: farm.gainReadDays,
+        });
+        const had = best.get(placed.rationId);
+        if (gain && (!had || gain.overDays > had.overDays)) {
+          best.set(placed.rationId, gain);
+        }
+      }
+      return {
+        sex: one.sex,
+        breedId: one.breedId,
+        deshi: one.breed?.deshi ?? null,
+        best,
+      };
+    }),
+  };
+};
+
+/**
+ * What the farm's own fattening animals have put on eating each of its Rations in use — the ones gone as well as the
+ * ones standing — by kind: crossbred bulls, deshi bulls, bulls with no Breed written, cows and heifers. Each animal
+ * counts once for a Ration, by her longest measured stay on it (`measuredStaysOf`). A kind is said once
+ * `FEWEST_FOR_A_FIGURE` animals have a gain.
+ */
+export const farmGainsByRation = async (
+  db: Pick<Database, "query">,
+  farm: { id: string; gainReadDays: number },
+  now: Date
+): Promise<FarmGainsOnRation[]> => {
+  const { rations, animals } = await measuredStaysOf(db, farm, now);
   const gains = new Map<string, Map<GainGroup, number[]>>();
   for (const one of animals) {
-    const readings = one.weighIns.map((reading) => ({
-      weightKg: Number(reading.weightKg),
-      weighedAt: reading.weighedAt,
-    }));
-    const group = gainGroupOf({
-      sex: one.sex,
-      deshi: one.breed?.deshi ?? null,
-    });
-    const spells = penSpellsOf(
-      one.moves.map((move) => ({ ...move, toPen: move.toPenId })),
-      exitOf(one)?.at ?? null
-    );
-    // Her longest measured stay on each Ration.
-    const best = new Map<string, { dailyGainKg: number; overDays: number }>();
-    for (const spell of spells) {
-      const placed = onRation.get(spell.pen);
-      if (!placed) {
-        continue;
-      }
-      const gain = gainOverStayOf(readings, {
-        from: gainCountsFrom({
-          arrivedAt: one.intake?.arrivedAt ?? null,
-          onRationSince:
-            spell.from > placed.assignedAt ? spell.from : placed.assignedAt,
-        }),
-        until: spell.until ?? now,
-        readDays: farm.gainReadDays,
-      });
-      const had = best.get(placed.rationId);
-      if (gain && (!had || gain.overDays > had.overDays)) {
-        best.set(placed.rationId, gain);
-      }
-    }
-    for (const [rationId, gain] of best) {
+    const group = gainGroupOf({ sex: one.sex, deshi: one.deshi });
+    for (const [rationId, gain] of one.best) {
       const byGroup = gains.get(rationId) ?? new Map<GainGroup, number[]>();
       const inGroup = byGroup.get(group) ?? [];
       inGroup.push(gain.dailyGainKg);
@@ -483,4 +526,48 @@ export const farmGainsByRation = async (
     }
     return { rationId: one.id, rationName: one.nameBn, figures };
   });
+};
+
+/**
+ * What the farm's own bulls of each Breed have put on, as a share of what their Rations should give a crossbred bull:
+ * one share a bull, from his longest measured stay on a Ration with an Expected Gain, against the middle of its range
+ * as written — never cut for his Breed, since the Breed is what is being measured — pooled over every Ration
+ * (`bullShareOf`). Bulls only: a cow or heifer carries the female share too, and would measure that, not her Breed. A
+ * Breed with fewer than `FEWEST_FOR_A_FIGURE` such bulls has none.
+ */
+export const farmGainsByBreed = async (
+  db: Pick<Database, "query">,
+  farm: { id: string; gainReadDays: number },
+  now: Date
+): Promise<Map<string, BreedShareFigure>> => {
+  const { rations, animals } = await measuredStaysOf(db, farm, now);
+  const writtenFor = new Map(
+    rations.flatMap((one) => {
+      const expectedGain = expectedGainOf(one);
+      return expectedGain ? [[one.id, expectedGain] as const] : [];
+    })
+  );
+  const shares = new Map<string, number[]>();
+  for (const one of animals) {
+    if (one.sex !== "male" || one.breedId === null) {
+      continue;
+    }
+    const share = bullShareOf(
+      [...one.best].flatMap(([rationId, gain]) => {
+        const expectedGain = writtenFor.get(rationId);
+        return expectedGain ? [{ ...gain, expectedGain }] : [];
+      })
+    );
+    if (share !== null) {
+      const ofBreed = shares.get(one.breedId) ?? [];
+      ofBreed.push(share);
+      shares.set(one.breedId, ofBreed);
+    }
+  }
+  return new Map(
+    [...shares].flatMap(([breedId, ofBreed]) => {
+      const figure = breedShareFigureOf(ofBreed);
+      return figure ? [[breedId, figure] as const] : [];
+    })
+  );
 };

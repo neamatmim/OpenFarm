@@ -1,0 +1,2 @@
+ALTER TABLE "breed" ADD COLUMN "gain_percent" integer;--> statement-breakpoint
+ALTER TABLE "breed" ADD CONSTRAINT "breed_gain_percent_range" CHECK ("gain_percent" is null or "gain_percent" between 30 and 120);
