@@ -53,6 +53,8 @@ export const herdStoryWords = (
     averageSoldMoney: number | null;
     boughtBackCount: number;
     diedCount: number;
+    /** Missing from a story told before a lost animal could be made good. */
+    lostCount?: number;
   },
   said: (value: number) => string
 ): string[] =>
@@ -70,7 +72,10 @@ export const herdStoryWords = (
     story.boughtBackCount > 0
       ? `খামার কিনে নিয়েছে / Bought back by the Farm: ${said(story.boughtBackCount)}`
       : null,
-    `মারা গেছে / Lost: ${said(story.diedCount)}`,
+    `মারা গেছে / Died: ${said(story.diedCount)}`,
+    (story.lostCount ?? 0) > 0
+      ? `হারিয়ে গেছে, খামার ক্ষতিপূরণ দিয়েছে / Lost, made good by the Farm: ${said(story.lostCount ?? 0)}`
+      : null,
   ].filter((line) => line !== null);
 
 /**

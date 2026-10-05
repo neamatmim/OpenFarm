@@ -70,6 +70,7 @@ import {
   requireAnimal,
 } from "../herd-store";
 import { protectedProcedure } from "../index";
+import { makeGood } from "../made-good-store";
 import {
   markFound,
   markWrittenOff,
@@ -1481,8 +1482,9 @@ export const animalsRouter = {
   /**
    * The Owner writes a missing animal off as **Lost**: she leaves the herd from the morning she was last looked for —
    * off the boards, the rounds and the head counts, her work called off — and everything recorded about her stays.
-   * Stolen asks for the thana's GD number. A Venture's animal is refused until its Investors' agreement says what a
-   * loss is to them.
+   * Stolen asks for the thana's GD number. A Venture's animal is made good by the Farm in the same act, at what she had
+   * cost the Venture to date: the Farm's own money, by bank into the Venture Account, with the transfer's reference —
+   * so a theft or a stray costs its Investors nothing (lose-less A-04).
    */
   writeOff: protectedProcedure
     .use(requireRole("owner"))
@@ -1493,6 +1495,14 @@ export const animalsRouter = {
         cause: z.string().trim().min(1).max(300),
         stolen: z.boolean().default(false),
         gdNumber: z.string().trim().min(1).max(60).optional(),
+        /** For a Venture's animal: the transfer that makes her good, from the Farm into the Venture Account. */
+        madeGood: z
+          .object({
+            reference: z.string().trim().min(1).max(120),
+            /** The Farm Account it left, where the farm lists its accounts. */
+            farmAccountId: z.string().optional(),
+          })
+          .optional(),
       })
     )
     .handler(async ({ context, input }) => {
@@ -1520,11 +1530,19 @@ export const animalsRouter = {
         },
         async (tx) => {
           const her = await loadLiveAnimal(tx, context.farm.id, tagNumber);
-          if (her.ownerVentureId) {
+          if (her.ownerVentureId && !input.madeGood) {
             throw new ORPCError("BAD_REQUEST", {
               message:
-                "A Venture's animal cannot be written off until its agreement says what a loss is",
-              data: { refusal: "venture_owns_her" },
+                "A Venture's lost animal is made good by the Farm: give the transfer's reference",
+              data: { refusal: "made_good_needs_reference" },
+            });
+          }
+          if (her.ownerVentureId && input.madeGood) {
+            await makeGood(tx, context, {
+              animalId: her.id,
+              ventureId: her.ownerVentureId,
+              now,
+              ...input.madeGood,
             });
           }
           const written = await markWrittenOff(tx, {

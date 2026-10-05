@@ -120,6 +120,11 @@ const booksOf = async (
     columns: { animalId: true, happenedAt: true },
   });
   const lost = await lostSince(db, farmId);
+  // What the Farm paid each Venture to make its lost animals good: what came back for her.
+  const madeGood = await db.query.ventureMovement.findMany({
+    where: { farmId, kind: "made_good", animalId: { isNotNull: true } },
+    columns: { animalId: true, amountMoney: true },
+  });
   const bankRates = await bankRatesOf(db, farmId);
   const internal = await db.query.internalSale.findMany({
     where: { farmId },
@@ -188,6 +193,11 @@ const booksOf = async (
     intakes,
     died: new Map(deaths.map((one) => [one.animalId, one.happenedAt])),
     lost,
+    madeGood: new Map(
+      madeGood.flatMap((one) =>
+        one.animalId ? [[one.animalId, one.amountMoney] as const] : []
+      )
+    ),
     internal: internal.map(({ soldOn, ...one }) => ({
       ...one,
       on: startOfFarmDay(soldOn),

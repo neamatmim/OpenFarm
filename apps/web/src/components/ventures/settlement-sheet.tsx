@@ -51,6 +51,7 @@ const asFigures = (approved: Approved): Figures => ({
 const BLOCK_WORD = {
   agreements_disagree: "refusal.agreementsDisagree",
   an_animal_still_stands: "refusal.anAnimalStillStands",
+  an_animal_is_missing: "refusal.anAnimalIsMissing",
   a_price_is_missing: "refusal.aPriceIsMissing",
   a_float_is_open: "refusal.aFloatIsOpen",
   sale_cash_in_a_hand: "refusal.saleCashInAHand",
@@ -151,7 +152,8 @@ const WhatItIsAbout = ({ block }: { block: Block }) => {
   const asMoney = useMoney();
   const count = (howMany: number) => formatNumber(howMany, language);
   switch (block.word) {
-    case "an_animal_still_stands": {
+    case "an_animal_still_stands":
+    case "an_animal_is_missing": {
       return (
         <span className="flex flex-wrap gap-1">
           {/* Each a way to her page, where what stands in the way is dealt with. */}

@@ -784,7 +784,7 @@ export interface JoiningLetter {
 /** How an Agreement's stamp duty was paid, as a paper prints it. */
 export interface StampLine {
   /** Agreed in the app, there is no stamp: the day is the Owner's approval and the number the agreed paper's. */
-  kind: "paper" | "e_challan" | "in_app";
+  kind: "paper" | "e_challan" | "in_app" | "farm_own";
   /** Taka and the day, formatted for the reader. */
   value: string;
   on: string;
@@ -803,6 +803,10 @@ const agreedInTheAppLines = (stamp: StampLine): string[] => [
 /** The stamp's three lines: stamp paper by its serial, or duty paid by e-challan by the e-challan's number — or, agreed
  *  in the app, that it was. */
 export const stampLines = (stamp: StampLine): string[] => {
+  // The Farm's own Units are no Agreement with anybody: no stamp, and no paper is ever made of them.
+  if (stamp.kind === "farm_own") {
+    return [field("চুক্তি", "Agreement", "খামারের নিজের মূলধন — চুক্তি নেই")];
+  }
   if (stamp.kind === "in_app") {
     return agreedInTheAppLines(stamp);
   }
@@ -947,12 +951,17 @@ export interface ProgressStatement {
   /** His Units, and what share of the Venture they are — his own, never anybody else's. */
   units: string;
   share: string;
+  /** The Units the Farm holds with its own money, of all the Venture's, formatted — as his Agreement told him; nothing
+   *  where it holds none. */
+  farmUnits?: string | null;
   /** Paid by the month: where he stands against his Monthly Sums, in Bangla with its own numerals; nothing otherwise. */
   monthlySums?: string | null;
   /** Standing, sold and lost, formatted for the reader. */
   standing: string;
   sold: string;
   died: string;
+  /** Lost and made good by the Farm, formatted; nothing when none were. */
+  lost?: string | null;
   /** Averages over the animals that have been weighed, and how many that is. */
   weighed: string;
   averageIntake: string | null;
@@ -994,6 +1003,9 @@ export const progressStatement = (sheet: ProgressStatement): string =>
       field("বিনিয়োগকারী", "Investor", sheet.investorName),
       field("ভেঞ্চার", "Venture", sheet.ventureName),
       field("ইউনিট", "Units held", `${sheet.units} (${sheet.share}%)`),
+      sheet.farmUnits
+        ? field("খামারের নিজের ইউনিট", "The Farm's own Units", sheet.farmUnits)
+        : null,
       sheet.monthlySums
         ? field("মাসের টাকা", "Monthly Sums", sheet.monthlySums)
         : null,
@@ -1001,7 +1013,14 @@ export const progressStatement = (sheet: ProgressStatement): string =>
       "পশুর অবস্থা / The cattle",
       field("  দাঁড়িয়ে আছে", "Standing", sheet.standing),
       field("  বিক্রি হয়েছে", "Sold", sheet.sold),
-      field("  মারা গেছে", "Lost", sheet.died),
+      field("  মারা গেছে", "Died", sheet.died),
+      sheet.lost
+        ? field(
+            "  হারিয়ে গেছে, খামার ক্ষতিপূরণ দিয়েছে",
+            "Lost, made good by the Farm",
+            sheet.lost
+          )
+        : null,
       field("  ওজন নেওয়া হয়েছে", "Weighed", sheet.weighed),
       sheet.averageIntake
         ? field(

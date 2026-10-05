@@ -9,6 +9,7 @@ import type { TemplateContent, TemplateKind } from "@OpenFarm/domain";
 import {
   FIRST_PRINTED_AGREEMENT,
   STANDARD_AGREEMENT_BEFORE_MONTHLY,
+  STANDARD_AGREEMENT_PAID_BY_THE_MONTH,
   STANDARD_TEMPLATES,
   TEMPLATE_KINDS,
 } from "@OpenFarm/domain";
@@ -155,9 +156,17 @@ const canonical = (value: unknown): string =>
       : inner
   );
 
-/** Why the farm's Investment Agreement moved on without the Owner publishing it, as its Version's note says. */
-const CAUGHT_UP_NOTE =
-  "OpenFarm's standard wording: the clauses for capital paid by the month, approved by the lawyer and the Shariah scholar on 2026-10-02. Printed only on a Venture paid by the month.";
+/** What the 2026-10-05 standard adds: a lost animal made good, and the Farm's own capital — built on Claude's
+ *  recommendation at the Owner's word, ahead of the advisers. */
+const LOST_AND_FARM_CAPITAL =
+  "A lost or stolen animal is made good by the Farm, and the Farm's own capital in a Venture is told to its Investors (2026-10-05, not yet seen by the advisers).";
+
+/** Why the farm's Investment Agreement moved on without the Owner publishing it, as its Version's note says — by the
+ *  standard it was still on. */
+const CAUGHT_UP_NOTES = {
+  before_monthly: `OpenFarm's standard wording: the clauses for capital paid by the month, approved by the lawyer and the Shariah scholar on 2026-10-02, printed only on a Venture paid by the month. ${LOST_AND_FARM_CAPITAL}`,
+  paid_by_the_month: `OpenFarm's standard wording. ${LOST_AND_FARM_CAPITAL}`,
+} as const;
 
 /**
  * Catches a farm's Investment Agreement up to the standard wording, when the wording in force is still exactly the
@@ -175,14 +184,22 @@ const catchUpTheStandardAgreement = async (
   });
   const current = template?.currentVersion;
   // Given by nobody and never changed: the Owner publishing the same words herself is a choice of hers, and kept.
-  const stillTheOldStandard =
-    current !== null &&
-    current !== undefined &&
-    current.publishedBy === null &&
-    canonical(current.content) === canonical(STANDARD_AGREEMENT_BEFORE_MONTHLY);
-  if (!(template && current && stillTheOldStandard)) {
+  const onStandard = (() => {
+    if (!current || current.publishedBy !== null) {
+      return null;
+    }
+    const words = canonical(current.content);
+    if (words === canonical(STANDARD_AGREEMENT_BEFORE_MONTHLY)) {
+      return "before_monthly" as const;
+    }
+    return words === canonical(STANDARD_AGREEMENT_PAID_BY_THE_MONTH)
+      ? ("paid_by_the_month" as const)
+      : null;
+  })();
+  if (!(template && current && onStandard)) {
     return;
   }
+  const note = CAUGHT_UP_NOTES[onStandard];
   const now = context.clock.now();
   const versionId = uuidv7(now);
   await audited(context)
@@ -192,8 +209,8 @@ const catchUpTheStandardAgreement = async (
         entityId: template.id,
         action: "update",
         after: () =>
-          Promise.resolve({ caughtUpTo: "paid_by_the_month", versionId }),
-        reason: CAUGHT_UP_NOTE,
+          Promise.resolve({ caughtUpTo: "lost_and_farm_capital", versionId }),
+        reason: note,
       },
       async (tx) => {
         // Behind the farm's lock and read again inside it: two requests at once catch it up once.
@@ -211,7 +228,7 @@ const catchUpTheStandardAgreement = async (
           templateId: template.id,
           number: current.number + 1,
           content: STANDARD_TEMPLATES.investment_agreement,
-          note: CAUGHT_UP_NOTE,
+          note,
           publishedAt: now,
         });
         await tx

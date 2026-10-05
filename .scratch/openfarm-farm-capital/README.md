@@ -25,4 +25,39 @@ Not the same as the Owner investing personally (an ordinary Investor with an Agr
       Settlement, the split and every Investor paper counting them with the approved disclosure, the farm's Returns
       and Months showing it as the farm's own investment.
 
-Do not build any of it before the answers.
+~~Do not build any of it before the answers.~~ The Owner, 2026-10-05: "Don't wait for advisor, implement as your
+recommendation". Built on the answers below, which are Claude's recommendation, not the advisers'.
+
+## Decided 2026-10-05 (Claude's recommendation, at the Owner's word, ahead of the advisers)
+
+1. **Permissible, under the current mudarabah with an added clause.** AAOIFI SS 13 §8/9: a mudarib that mixes in
+   its own money is a partner for that money and mudarib for the rest.
+2. **Profit:** the Farm's Units earn the Investors' share like anyone's, and the Farm takes its mudarib share of the
+   whole profit as today.
+3. **Loss:** the Farm's capital bears loss in proportion to its Units, exactly as an Investor's.
+4. **Limits:** same Unit price and terms as everyone; **at most half** of a Venture's Units, so a Venture stays its
+   Investors'.
+5. **Documented:** no Agreement with itself — the Farm's Units are a record the Owner writes on the Venture (an
+   Agreement of its own kind, `farm_own`, with no stamp), and a **declaration clause** in every Investor's Agreement
+   that names them.
+6. **Told:** in the Agreement before they sign, on the যোগদানপত্র and অগ্রগতি, and in the portal beside the Venture's
+   terms.
+7. **New Ventures only, in effect:** the Farm takes its Units only while a Venture is open and **before any Investor has
+   signed**, so every Investor signs knowing. No Amendment route.
+8. **Companies Act s.4:** the Farm is the Owner's own business; the Owner is already one of the twenty, so the Farm's
+   Units add no one to the Investor Cap.
+9. **Books:** the capital leaves the Farm's books as money out ("The Farm's capital into a Venture"), comes back at
+   Settlement or on a call-off as money in ("The Farm's capital back from a Venture"), and its share of the profit
+   as income ("The Farm's return on its own capital"); a loss shows as capital back short. No tax point is taken.
+10. **Caution:** the Farm's own Units get no papers, no Nominee, no portal and no Pay-in Notes — it is not a person.
+
+## Tickets
+
+| #   | Ticket                                   | Status |
+| --- | ---------------------------------------- | ------ |
+| 01  | The Farm's Units on a Venture            | Done   |
+| 02  | Its money, out and back                  | Done   |
+| 03  | Told to the Investors                    | Done   |
+
+All three built 2026-10-05 on branch `feat/farm-capital` (ADR 0019). The advisers' sheet still stands: when they answer,
+the clause wording, the half-share limit and the booking follow them.

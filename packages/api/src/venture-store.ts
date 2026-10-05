@@ -400,13 +400,14 @@ export const signedForEach = async (
   }
   const signed = await tx.query.investmentAgreement.findMany({
     where: { farmId, ventureId: { in: [...ids] } },
-    columns: { ventureId: true, units: true },
+    columns: { ventureId: true, units: true, stampKind: true },
   });
   for (const one of signed) {
     const soFar = summary.get(one.ventureId) ?? NOBODY;
+    // The Farm's own Units are taken like anybody's, but the Farm is no person signed.
     summary.set(one.ventureId, {
       units: soFar.units + one.units,
-      people: soFar.people + 1,
+      people: soFar.people + (one.stampKind === "farm_own" ? 0 : 1),
     });
   }
   return summary;
@@ -455,6 +456,9 @@ const WHAT_IT_DOES = {
   farm_share: { line: "paidOutMoney", sign: 1, cattle: 0 },
   // The Farm's share of a loss, paid in so the payouts the Settlement wrote down can all be made.
   farm_loss_in: { line: "farmCoveredMoney", sign: 1, cattle: 0 },
+  // A lost animal made good by the Farm at what she had cost: she comes back to the Venture as her price would have
+  // from a buyer, on the side that keeps the animals, so the run neither gains nor loses on her.
+  made_good: { line: "proceedsMoney", sign: 1, cattle: 0 },
 } as const satisfies Record<
   VentureMovementKind,
   { line: keyof Held; sign: 1 | -1; cattle: 0 | 1 | -1 }

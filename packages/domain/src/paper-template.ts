@@ -66,6 +66,11 @@ export const TEMPLATE_FIELDS = {
   firstSumDue: { bn: "প্রথম মাসের টাকার দিন", en: "First Monthly Sum due" },
   lastSumDue: { bn: "শেষ মাসের টাকার দিন", en: "Last Monthly Sum due" },
   sums: { bn: "কত মাস", en: "How many months" },
+  farmUnits: {
+    bn: "খামারের নিজের ইউনিট",
+    en: "The Farm's own Units",
+  },
+  ventureUnits: { bn: "ভেঞ্চারের মোট ইউনিট", en: "The Venture's Units" },
 } as const satisfies Record<string, Said>;
 export type TemplateField = keyof typeof TEMPLATE_FIELDS;
 
@@ -113,6 +118,9 @@ const PAID_BY_THE_MONTH: readonly TemplateField[] = [
   "lastSumDue",
   "sums",
 ];
+
+/** A Venture in which the Farm holds Units with its own money: how many of how many, filled only on its papers. */
+const FARM_CAPITAL: readonly TemplateField[] = ["farmUnits", "ventureUnits"];
 
 /** An Investor's part in one Venture. */
 const HIS_PART: readonly TemplateField[] = [
@@ -180,7 +188,13 @@ const AN_AGREEMENT = {
 const RULES: Record<TemplateKind, PaperRules> = {
   investment_agreement: {
     ...AN_AGREEMENT,
-    fields: [...WHO, ...HIS_PART, ...PAID_BY_THE_MONTH, "arbitrator"],
+    fields: [
+      ...WHO,
+      ...HIS_PART,
+      ...PAID_BY_THE_MONTH,
+      ...FARM_CAPITAL,
+      "arbitrator",
+    ],
   },
   master_agreement: {
     ...AN_AGREEMENT,
@@ -263,11 +277,12 @@ export const isTemplateField = (name: string): name is TemplateField =>
   Object.hasOwn(TEMPLATE_FIELDS, name);
 
 /**
- * When a line of wording is printed at all: on the paper of a Venture paid by the month, and only there. A line with no
- * condition is printed on every paper of its kind.
+ * When a line of wording is printed at all: on the paper of a Venture paid by the month, and only there; or on the
+ * paper of a Venture in which the Farm holds Units with its own money, and only there. A line with no condition is
+ * printed on every paper of its kind.
  */
-export type PaperCondition = "by_the_month";
-export const PAPER_CONDITIONS = ["by_the_month"] as const;
+export const PAPER_CONDITIONS = ["by_the_month", "farm_capital"] as const;
+export type PaperCondition = (typeof PAPER_CONDITIONS)[number];
 
 /** One fact of the paper's own, as the Owner words its line: what it is called, and what it says. */
 export interface FactLine {
@@ -308,6 +323,8 @@ export type TemplateSectionKind = TemplateSection["kind"];
 /** What one paper is about that decides which of its wording's lines it prints. */
 export interface PaperFor {
   paidByTheMonth: boolean;
+  /** Whether the Farm holds Units of the Venture with its own money; left out, it does not. */
+  farmCapital?: boolean;
 }
 
 /**
@@ -319,8 +336,15 @@ export const wordingFor = (
   content: TemplateContent,
   paper: PaperFor
 ): TemplateContent => {
-  const prints = (line: { only?: PaperCondition }) =>
-    line.only === undefined || paper.paidByTheMonth;
+  const prints = (line: { only?: PaperCondition }) => {
+    if (line.only === "by_the_month") {
+      return paper.paidByTheMonth;
+    }
+    if (line.only === "farm_capital") {
+      return paper.farmCapital === true;
+    }
+    return true;
+  };
   return {
     ...content,
     sections: content.sections.map((section) => {

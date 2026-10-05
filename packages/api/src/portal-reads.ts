@@ -257,6 +257,7 @@ export const theirVentureToday = async (
       standing: theirs.standingCount,
       sold: theirs.soldCount,
       died: theirs.diedCount,
+      lost: theirs.lostCount,
       weighed: theirs.weighedCount,
       averageIntakeKg: theirs.averageIntakeKg,
       averageLatestKg: theirs.averageLatestKg,

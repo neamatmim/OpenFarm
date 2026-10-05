@@ -38,7 +38,8 @@ export const readInvestor = async (tx: Tx, farmId: string, id: string) => {
 /**
  * Who is in, and how much of each Venture they hold. Counted across every Venture that is not settled or
  * called off, because the law counts people in a business for gain, not people in one run of it — and the
- * Owner counts among them when her own money is in.
+ * Owner counts among them when her own money is in. The Farm's own Units count nobody: the Farm is the Owner's own
+ * business, and she is one of the twenty already.
  */
 export const countedInvestors = async (
   tx: Pick<Tx, "query">,
@@ -53,7 +54,7 @@ export const countedInvestors = async (
     return { standing: 0, unitsOf: new Map() };
   }
   const signed = await tx.query.investmentAgreement.findMany({
-    where: { farmId, ventureId: { in: ids } },
+    where: { farmId, ventureId: { in: ids }, stampKind: { ne: "farm_own" } },
     columns: { investorId: true, units: true },
   });
   const unitsOf = new Map<string, number>();
@@ -100,13 +101,17 @@ export const unitsTaken = async (
 
 /**
  * Whether an Agreement's paper is on file as capital needs it: the photograph of its stamped paper kept, or — agreed in
- * the app — no stamped paper to photograph, the paper agreed to kept with the offer it was approved from. The one place
- * this is decided: capital is refused on it, and every list that says whether a paper may take capital reads it.
+ * the app — no stamped paper to photograph, the paper agreed to kept with the offer it was approved from; or the Farm's
+ * own Units, which are no Agreement with anybody and have no paper to keep. The one place this is decided: capital is
+ * refused on it, and every list that says whether a paper may take capital reads it.
  */
 export const paperOnFile = (
   agreement: { stampKind: StampKind },
   photoKept: boolean
-): boolean => agreement.stampKind === "in_app" || photoKept;
+): boolean =>
+  agreement.stampKind === "in_app" ||
+  agreement.stampKind === "farm_own" ||
+  photoKept;
 
 /** One Agreement as the trail records it: what was taken, on what terms, and against what paper. */
 export const readAgreement = async (tx: Tx, farmId: string, id: string) => {

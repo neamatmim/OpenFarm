@@ -13,6 +13,7 @@ import { agreedPaperOf } from "../agreement-offer-store";
 import { agreementLaidOut, amendmentLaidOut } from "../agreement-paper";
 import { audited } from "../audit";
 import { assertRegistered, exportedPaper } from "../export-store";
+import { farmUnitsOf } from "../farm-capital-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import {
@@ -101,6 +102,7 @@ export const investorStatementsRouter = {
             name: true,
             state: true,
             unitPriceMoney: true,
+            units: true,
             targetWindowStart: true,
             targetWindowEnd: true,
             capitalPaid: true,
@@ -110,7 +112,12 @@ export const investorStatementsRouter = {
           },
         }),
         context.db.query.investor.findFirst({
-          where: { id: input.investorId, farmId: context.farm.id },
+          // The Farm's own partner record is no person: it is handed no paper.
+          where: {
+            id: input.investorId,
+            farmId: context.farm.id,
+            isFarm: false,
+          },
         }),
       ]);
       if (!(run && him)) {
@@ -152,6 +159,7 @@ export const investorStatementsRouter = {
         wording: wording.content,
         today,
         producedAt: producedAt(now, language),
+        farmUnits: await farmUnitsOf(context.db, context.farm.id, run.id),
       });
       await audited(context).write(
         {
@@ -198,6 +206,7 @@ export const investorStatementsRouter = {
             id: true,
             name: true,
             unitPriceMoney: true,
+            units: true,
             capitalPaid: true,
             cattlePartMoney: true,
             monthlySums: true,
@@ -205,7 +214,12 @@ export const investorStatementsRouter = {
           },
         }),
         context.db.query.investor.findFirst({
-          where: { id: agreement.investorId, farmId: context.farm.id },
+          // The Farm's own Units were signed on no paper, so there is none to copy.
+          where: {
+            id: agreement.investorId,
+            farmId: context.farm.id,
+            isFarm: false,
+          },
         }),
         agreement.signedBy
           ? context.db.query.user.findFirst({
@@ -232,8 +246,15 @@ export const investorStatementsRouter = {
       );
       // As it was signed: a Venture paid by the month printed its clauses and schedule; no other did.
       const { monthly } = paidForBy(run);
+      // The Farm's own Units, which it takes only before anybody signs: as this paper told him.
+      const farmUnits = await farmUnitsOf(context.db, context.farm.id, run.id);
+      const farmCapital =
+        farmUnits > 0 ? { farmUnits, ventureUnits: run.units } : null;
       const document = paperFrom(
-        wordingFor(wording.content, { paidByTheMonth: monthly !== null }),
+        wordingFor(wording.content, {
+          paidByTheMonth: monthly !== null,
+          farmCapital: farmCapital !== null,
+        }),
         {
           kind: "investment_agreement",
           parties: {
@@ -254,6 +275,7 @@ export const investorStatementsRouter = {
             windUpDays: context.farm.windUpDays,
             arbitrator: agreement.arbitrator,
             monthly,
+            farmCapital,
           }),
           producedBy: context.actor.name,
           producedAt: producedAt(now, language),
@@ -309,7 +331,12 @@ export const investorStatementsRouter = {
           columns: { id: true },
         }),
         context.db.query.investor.findFirst({
-          where: { id: input.investorId, farmId: context.farm.id },
+          // The Farm's own partner record is no person: it is handed no paper.
+          where: {
+            id: input.investorId,
+            farmId: context.farm.id,
+            isFarm: false,
+          },
         }),
       ]);
       if (!(run && him)) {

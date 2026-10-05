@@ -129,6 +129,9 @@ export interface ReturnBooks {
   died: ReadonlyMap<string, Date>;
   /** Every Animal written off as Lost, and when she went missing for good. */
   lost: ReadonlyMap<string, Date>;
+  /** What the Farm paid a Venture to make each of its lost Animals good, by the Animal. Left out where the books were
+   *  made without them. */
+  madeGood?: ReadonlyMap<string, number>;
   /** What each standing fattening Animal is worth today, low and high — or why not. */
   values: ReadonlyMap<string, { lowMoney: number; highMoney: number } | Gap>;
   /** Every Bank Rate typed, the one that would be in force first: the latest day, then the latest typed. */
@@ -146,7 +149,7 @@ export interface ReturnBooks {
 export const whatHappenedTo = (
   books: Pick<
     ReturnBooks,
-    "animals" | "internal" | "died" | "lost" | "joinings"
+    "animals" | "internal" | "died" | "lost" | "joinings" | "madeGood"
   >,
   animalId: string
 ): WhatHappened => {
@@ -161,6 +164,7 @@ export const whatHappenedTo = (
       : null,
     died: books.died.get(animalId) ?? null,
     lost: books.lost.get(animalId) ?? null,
+    madeGoodMoney: books.madeGood?.get(animalId) ?? null,
   };
 };
 

@@ -47,6 +47,8 @@ export interface PaperFacts {
   reason?: string;
   /** Paid by the month: each Unit's Cattle Part and its Monthly Sums, as the Venture froze them. */
   monthly?: { cattlePartMoney: number; sums: readonly MonthlySum[] } | null;
+  /** The Farm's own Units in the Venture, and all its Units, where the Farm holds some with its own money. */
+  farmCapital?: { farmUnits: number; ventureUnits: number } | null;
 }
 
 /**
@@ -81,6 +83,17 @@ const monthlyValues = (monthly: PaperFacts["monthly"]): FieldValues => {
     sums: sumsSaid(monthly.sums),
   };
 };
+
+/** How many of the Venture's Units the Farm holds with its own money; nothing where it holds none. */
+const farmCapitalValues = (
+  farmCapital: PaperFacts["farmCapital"]
+): FieldValues =>
+  farmCapital
+    ? {
+        farmUnits: figure(farmCapital.farmUnits),
+        ventureUnits: figure(farmCapital.ventureUnits),
+      }
+    : {};
 
 /**
  * Every field a paper can fill, in both languages, from the facts the farm has: a number in each language's own
@@ -127,6 +140,7 @@ export const paperValues = (facts: PaperFacts): FieldValues => {
     amendedOn: facts.amendedOn ? day(facts.amendedOn) : undefined,
     reason: same(facts.reason),
     ...monthlyValues(facts.monthly),
+    ...farmCapitalValues(facts.farmCapital),
   };
   return Object.fromEntries(
     Object.entries(values).filter(([, value]) => value !== undefined)

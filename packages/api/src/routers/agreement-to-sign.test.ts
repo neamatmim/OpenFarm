@@ -94,12 +94,13 @@ describe("the Investment Agreement, laid out to be signed", () => {
     expect(said).toContain("১,৫০,০০০ টাকা");
     // The terms unnumbered — the page numbers them — and the joining letter's own words.
     const { clauses } = partOf(document, "clauses");
-    // Seven terms, the heirs clause with its five rules before the last of them, the Arbitrator.
-    expect(clauses).toHaveLength(13);
+    // Eight terms — a loss or theft made good by the Farm beside a death — the heirs clause with its five rules before the
+    // last of them, the Arbitrator.
+    expect(clauses).toHaveLength(14);
     expect(clauses[1]?.bn).toContain("বিনিয়োগকারী ৬০% এবং খামার ৪০%");
     expect(clauses[1]?.en).toContain("60% to the Investor");
-    expect(clauses[6]?.bn).toContain("নমিনি থাকলে তাঁদের মাধ্যমে");
-    expect(clauses[12]?.bn).toContain(ARBITRATOR);
+    expect(clauses[7]?.bn).toContain("নমিনি থাকলে তাঁদের মাধ্যমে");
+    expect(clauses[13]?.bn).toContain(ARBITRATOR);
     expect(
       partOf(document, "signatures").signers.map((one) => one.name)
     ).toContain(HIM);

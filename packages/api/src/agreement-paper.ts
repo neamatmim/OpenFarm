@@ -36,12 +36,14 @@ export const agreementLaidOut = ({
   wording,
   today,
   producedAt,
+  farmUnits = 0,
 }: {
   farm: FarmIdentity & { windUpDays: number };
   ownerName: string;
   run: Pick<
     VentureRow,
     | "name"
+    | "units"
     | "unitPriceMoney"
     | "targetWindowStart"
     | "targetWindowEnd"
@@ -61,32 +63,43 @@ export const agreementLaidOut = ({
   wording: TemplateContent;
   today: string;
   producedAt: string;
+  /** The Farm's own Units in the Venture: told to every Investor before they sign, where it holds any. */
+  farmUnits?: number;
 }): PaperDocument => {
   const investor = paperInvestor(
     him,
     paperNominees({ nominees: [...nominees] }, today)
   );
   const { monthly } = paidForBy(run);
-  return paperFrom(wordingFor(wording, { paidByTheMonth: monthly !== null }), {
-    kind: "investment_agreement",
-    parties: { farm, ownerName, investors: [investor] },
-    values: paperValues({
-      farm,
-      ownerName,
-      him: investor,
-      ventureName: run.name,
-      units: terms.units,
-      unitPriceMoney: run.unitPriceMoney,
-      investorsPercent: terms.investorsPercent,
-      windowStart: run.targetWindowStart,
-      windowEnd: run.targetWindowEnd,
-      windUpDays: farm.windUpDays,
-      arbitrator: terms.arbitrator,
-      monthly,
+  const farmCapital =
+    farmUnits > 0 ? { farmUnits, ventureUnits: run.units } : null;
+  return paperFrom(
+    wordingFor(wording, {
+      paidByTheMonth: monthly !== null,
+      farmCapital: farmCapital !== null,
     }),
-    producedBy: ownerName,
-    producedAt,
-  });
+    {
+      kind: "investment_agreement",
+      parties: { farm, ownerName, investors: [investor] },
+      values: paperValues({
+        farm,
+        ownerName,
+        him: investor,
+        ventureName: run.name,
+        units: terms.units,
+        unitPriceMoney: run.unitPriceMoney,
+        investorsPercent: terms.investorsPercent,
+        windowStart: run.targetWindowStart,
+        windowEnd: run.targetWindowEnd,
+        windUpDays: farm.windUpDays,
+        arbitrator: terms.arbitrator,
+        monthly,
+        farmCapital,
+      }),
+      producedBy: ownerName,
+      producedAt,
+    }
+  );
 };
 
 /** The terms an Amendment moves an Agreement's to, and why. */
@@ -131,8 +144,13 @@ export const amendmentLaidOut = async (
   if (!run) {
     throw new ORPCError("NOT_FOUND", { message: "No such Venture" });
   }
+  // Every Investor signs it; the Farm's own Units move with them, and sign nothing with the Farm.
   const signed = await db.query.investmentAgreement.findMany({
-    where: { farmId: farm.id, ventureId: run.id },
+    where: {
+      farmId: farm.id,
+      ventureId: run.id,
+      stampKind: { ne: "farm_own" },
+    },
     columns: { investorId: true },
     orderBy: { createdAt: "asc", id: "asc" },
   });

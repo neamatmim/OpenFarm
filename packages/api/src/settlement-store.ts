@@ -80,6 +80,8 @@ export type Block =
   | { word: "nobody_has_signed" }
   | { word: "agreements_disagree"; percents: number[] }
   | { word: "an_animal_still_stands"; tagNumbers: string[] }
+  /** One of its animals the farm cannot find: written off, the Farm makes her good; found, she is one still standing. */
+  | { word: "an_animal_is_missing"; tagNumbers: string[] }
   | { word: "a_price_is_missing"; unpricedKg: number; uncostedDoses: number }
   | { word: "a_float_is_open"; openFloatMoney: number }
   /** A Venture's animals sold for cash whose price is still in the hand that took it, not yet deposited. */
@@ -123,6 +125,7 @@ const A_GUESS_BEFORE_THE_SUM: ReadonlySet<Block["word"]> = new Set([
   "nobody_has_signed",
   "agreements_disagree",
   "an_animal_still_stands",
+  "an_animal_is_missing",
   "a_price_is_missing",
   "a_float_is_open",
   "sale_cash_in_a_hand",
@@ -172,7 +175,9 @@ interface Grounds {
     amountMoney: number;
     carried: readonly CarriedLine[] | null;
   }[];
-  standing: readonly { tagNumber: string }[];
+  standing: readonly { id: string; tagNumber: string }[];
+  /** Which of those standing the farm cannot find now: an open Missing on each. */
+  missing: ReadonlySet<string>;
   today: string;
   venture: { id: string; createdAt: Date };
   withTheBank: BankStanding;
@@ -238,6 +243,7 @@ const whatBlocksIt = ({
   ownedThenBy,
   paidIn,
   standing,
+  missing,
   today,
   venture,
   withTheBank,
@@ -260,10 +266,20 @@ const whatBlocksIt = ({
   if (percents.size > 1) {
     blocks.push({ word: "agreements_disagree", percents: [...percents] });
   }
-  if (standing.length !== 0) {
+  // One the round could not find is not standing in a Pen to be sold: she is said apart, for the Owner to find her or
+  // write her off.
+  const notFound = standing.filter((one) => missing.has(one.id));
+  const inThePens = standing.filter((one) => !missing.has(one.id));
+  if (inThePens.length !== 0) {
     blocks.push({
       word: "an_animal_still_stands",
-      tagNumbers: standing.map((one) => one.tagNumber),
+      tagNumbers: inThePens.map((one) => one.tagNumber),
+    });
+  }
+  if (notFound.length !== 0) {
+    blocks.push({
+      word: "an_animal_is_missing",
+      tagNumbers: notFound.map((one) => one.tagNumber),
     });
   }
   if (charged.unpricedKg !== 0 || charged.uncostedDoses !== 0) {
@@ -524,6 +540,16 @@ export const settlementOf = async (
   );
   const swept = sweptUp(split, overMoney);
 
+  // Which of its animals still standing the round could not find: said apart, as missing.
+  const notFound = await db.query.missing.findMany({
+    where: {
+      farmId,
+      animalId: { in: standing.map((one) => one.id) },
+      foundAt: { isNull: true },
+      writtenOffAt: { isNull: true },
+    },
+    columns: { animalId: true },
+  });
   const blocks: Block[] = whatBlocksIt({
     agreements,
     charged,
@@ -532,6 +558,7 @@ export const settlementOf = async (
     ownedThenBy,
     paidIn,
     standing,
+    missing: new Set(notFound.map((one) => one.animalId)),
     today,
     venture,
     withTheBank: bank.get(venture.id) ?? NEVER_CHECKED,

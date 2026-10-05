@@ -308,11 +308,13 @@ const SUMS_AFTER_DEATH = {
 };
 
 /**
- * The standard Investment Agreement since 2026-10-02: the one before it, with the rows and clauses for capital paid by
- * the month in the places the advisers approved them — printed only on such a Venture's Agreement, so every other
- * Agreement reads exactly as it did.
+ * The standard Investment Agreement from 2026-10-02 until a lost animal made good and the Farm's own capital were added
+ * (2026-10-05): the one before it, with the rows and clauses for capital paid by the month in the places the advisers
+ * approved them — printed only on such a Venture's Agreement, so every other Agreement reads exactly as it did. Kept
+ * whole, so a farm still on exactly these words is caught up to the standard that followed, and a farm that changed
+ * them is left with its own.
  */
-const investmentAgreement: TemplateContent = {
+export const STANDARD_AGREEMENT_PAID_BY_THE_MONTH: TemplateContent = {
   ...STANDARD_AGREEMENT_BEFORE_MONTHLY,
   sections: STANDARD_AGREEMENT_BEFORE_MONTHLY.sections.map((section) => {
     if (section.kind === "facts") {
@@ -343,6 +345,42 @@ const investmentAgreement: TemplateContent = {
         ...section.clauses.slice(window, heirs + 1),
         SUMS_AFTER_DEATH,
         ...section.clauses.slice(heirs + 1),
+      ],
+    };
+  }),
+};
+
+/** A lost or stolen animal of a Venture, made good by the Farm at her cost to date (lose-less A-04, 2026-10-05). */
+const LOST_CLAUSE = {
+  bn: "কোনো পশু হারিয়ে গেলে বা চুরি হলে খামার এই ভেঞ্চারকে সেদিন পর্যন্ত তার পেছনে যত খরচ হয়েছে তা ব্যাংকে ফিরিয়ে দেবে; তা বিনিয়োগকারীদের কোনো ক্ষতি নয়।",
+  en: "If an animal is lost or stolen, the Farm makes it good to this Venture by bank at what it has cost to date; it is no loss to the Investors.",
+};
+
+/** The Farm's own capital in the Venture, told to every Investor before they sign; printed only where the Farm holds
+ *  Units (2026-10-05). */
+const FARM_CAPITAL_CLAUSE = {
+  bn: "খামার নিজেও নিজের টাকায় এই ভেঞ্চারের {ventureUnits}টি ইউনিটের মধ্যে {farmUnits}টি নিয়েছে, সবার মতো একই দামে ও একই শর্তে। সেই টাকার জন্য খামার অন্য যেকোনো বিনিয়োগকারীর মতোই মুনাফা ও ক্ষতির ভাগ নেবে, আর পরিচালনার জন্য তার ভাগ আগের মতোই থাকবে।",
+  en: "The Farm itself holds {farmUnits} of this Venture's {ventureUnits} Units with its own money, at the same price and on the same terms as everyone. On that money it shares profit and loss as any Investor does, and takes its share for managing the Venture as before.",
+  only: "farm_capital" as const,
+};
+
+/** The standard Investment Agreement today: the paid-by-the-month standard, with the two clauses after the death clause. */
+const investmentAgreement: TemplateContent = {
+  ...STANDARD_AGREEMENT_PAID_BY_THE_MONTH,
+  sections: STANDARD_AGREEMENT_PAID_BY_THE_MONTH.sections.map((section) => {
+    if (section.kind !== "clauses" || section.heading.en !== "Terms") {
+      return section;
+    }
+    const death = section.clauses.findIndex((clause) =>
+      clause.en.startsWith("An animal that dies")
+    );
+    return {
+      ...section,
+      clauses: [
+        ...section.clauses.slice(0, death + 1),
+        LOST_CLAUSE,
+        FARM_CAPITAL_CLAUSE,
+        ...section.clauses.slice(death + 1),
       ],
     };
   }),

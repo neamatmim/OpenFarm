@@ -1,0 +1,8 @@
+ALTER TABLE "investor" ADD COLUMN "is_farm" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "investor_farm_uidx" ON "investor" ("farm_id") WHERE "is_farm";--> statement-breakpoint
+ALTER TABLE "investment_agreement" DROP CONSTRAINT "investment_agreement_stamp_kind_known";--> statement-breakpoint
+ALTER TABLE "investment_agreement" ADD CONSTRAINT "investment_agreement_stamp_kind_known" CHECK ("stamp_kind" IN ('paper', 'e_challan', 'in_app', 'farm_own'));--> statement-breakpoint
+ALTER TABLE "money_event" DROP CONSTRAINT "money_event_source_known";--> statement-breakpoint
+ALTER TABLE "money_event" ADD CONSTRAINT "money_event_source_known" CHECK ("source" IN ('dispatch', 'intake', 'buying_trip', 'selling_trip', 'sale', 'sale_broker', 'wage_draw', 'feed_in', 'medicine_purchase', 'vet_fee', 'internal_sale_in', 'internal_sale_out', 'reimbursement', 'settlement_adjustment', 'farm_share', 'farm_loss', 'venture_made_good', 'venture_capital_out', 'venture_capital_back', 'venture_capital_return', 'receivable_payment', 'by_hand'));--> statement-breakpoint
+ALTER TABLE "money_category" DROP CONSTRAINT "money_category_key_known";--> statement-breakpoint
+ALTER TABLE "money_category" ADD CONSTRAINT "money_category_key_known" CHECK ("key" IN ('dispatch', 'intake', 'buying_trip', 'selling_trip', 'sale', 'sale_broker', 'wage_draw', 'feed_in', 'medicine_purchase', 'vet_fee', 'internal_sale_in', 'internal_sale_out', 'reimbursement', 'settlement_adjustment', 'farm_share', 'farm_loss', 'venture_made_good', 'venture_capital_out', 'venture_capital_back', 'venture_capital_return', 'wages', 'rent', 'utilities', 'repairs', 'hygiene', 'equipment', 'transport', 'manure_sales'));

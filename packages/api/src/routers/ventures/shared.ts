@@ -67,10 +67,11 @@ export const assertByBank = (paymentMethod: string) => {
 };
 
 /** This Farm's Investor, or nothing the caller may sign for. Without this, another Farm's Investor could
- *  be signed onto our Venture: they would count against our cap and never appear on our own list. */
+ *  be signed onto our Venture: they would count against our cap and never appear on our own list. Nor the Farm's own
+ *  partner record, whose Units are taken as the Farm's own capital and never signed for on stamp. */
 export const theirs = async (context: Context, id: string) => {
   const row = await context.db.query.investor.findFirst({
-    where: { id, farmId: context.farm.id },
+    where: { id, farmId: context.farm.id, isFarm: false },
     columns: { id: true },
   });
   if (!row) {

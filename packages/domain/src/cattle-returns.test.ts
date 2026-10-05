@@ -304,6 +304,18 @@ describe("how a Holding ended", () => {
     });
   });
 
+  it("is a Venture's lost animal made good, with what the Farm paid for her back", () => {
+    const madeGood = {
+      ...nothing,
+      lost: new Date("2031-03-01T05:00:00.000Z"),
+      madeGoodMoney: 82_500,
+    };
+    expect(howSheLeft(holding, madeGood, () => null)).toMatchObject({
+      how: "lost",
+      backMoney: 82_500,
+    });
+  });
+
   it("is read from the Books as they stand", () => {
     const read = whatHappenedTo(
       books({

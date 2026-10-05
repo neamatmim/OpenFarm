@@ -438,6 +438,7 @@ export const bn: Record<MessageKey, string> = {
   "portal.unitsShare": "{count}টি ইউনিট · ভেঞ্চারের {share}%",
   "portal.animals": "দাঁড়িয়ে থাকা পশু",
   "portal.animalsHint": "{sold}টি বিক্রি · {died}টি মারা গেছে",
+  "portal.animalsLost": "{lost}টি হারিয়ে গেছে, খামার ক্ষতিপূরণ দিয়েছে",
   "portal.daysToWindow": "বিক্রয়ের সময় পর্যন্ত দিন",
   "portal.windowHint": "দিনের হিসাব, কোনো প্রতিশ্রুতি নয়",
   "portal.herd": "পশুগুলো",
@@ -1194,6 +1195,23 @@ export const bn: Record<MessageKey, string> = {
   "ventures.state.selling": "বিক্রি চলছে",
   "ventures.state.settled": "হিসাব শেষ",
   "ventures.state.cancelled": "বাতিল",
+  "farmCapital.theFarm": "খামার (নিজের মূলধন)",
+  "farmCapital.ownCapital": "নিজের মূলধন",
+  "farmCapital.take": "খামার ইউনিট নেবে",
+  "farmCapital.takeHint":
+    "খামার নিজের টাকা {venture}-এ দেবে, সবার মতো একই ইউনিটের দামে ও একই শর্তে। সেই টাকায় খামার অন্য বিনিয়োগকারীর মতোই মুনাফা ও ক্ষতির ভাগ নেবে, আর সই করার আগেই প্রত্যেক বিনিয়োগকারীর চুক্তিতে খামারের ইউনিটের কথা লেখা থাকবে।",
+  "farmCapital.units": "খামারের ইউনিট",
+  "farmCapital.unitsHint": "ভেঞ্চারের ইউনিটের সর্বোচ্চ অর্ধেক: {most}",
+  "farmCapital.splitIs": "খামারের ভাগ অনুযায়ী: বিনিয়োগকারী {investors}%, খামার {farm}%",
+  "farmCapital.taken": "খামারের ইউনিট লেখা হলো",
+  "farmCapital.refused.farmHasUnitsAlready": "এই ভেঞ্চারে খামারের ইউনিট আগেই আছে",
+  "farmCapital.refused.investorsSignedAlready":
+    "একজন বিনিয়োগকারী আগেই সই করেছেন। খামার কেউ সই করার আগেই ইউনিট নেয়, যাতে সবাই জেনে সই করেন",
+  "farmCapital.refused.overHalf":
+    "খামার একটি ভেঞ্চারের সর্বোচ্চ অর্ধেক ইউনিট নিতে পারে",
+  "farmCapital.refused.unitsGone": "এই ভেঞ্চারে এতগুলো ইউনিট বাকি নেই",
+  "portal.offers.farmHolds":
+    "খামার নিজেও নিজের টাকায় এর {units}টি ইউনিটের মধ্যে {farmUnits}টি নিয়েছে, আপনার মতো একই শর্তে",
   "ventures.sign": "চুক্তি সই",
   "ventures.missing.investor": "কে সই করবেন বেছে নিন।",
   "ventures.missing.units": "কত ইউনিট নিচ্ছেন লিখুন।",
@@ -1417,6 +1435,7 @@ export const bn: Record<MessageKey, string> = {
   "ventures.kind.advanceRepaid": "আপনার নিজের {currencySum} ফেরত",
   "ventures.kind.farmShare": "খামারের লাভের ভাগ",
   "ventures.kind.farmLossIn": "লোকসানে খামারের ভাগ, জমা",
+  "ventures.kind.madeGood": "হারানো পশুর ক্ষতিপূরণ, খামার থেকে জমা",
   "ventures.kind.reimbursement": "খামারকে ফেরত",
   "ventures.kind.advance": "আপনার নিজের {currencySum}",
   "ventures.correctMovement": "ঠিক করুন",
@@ -1609,6 +1628,18 @@ export const bn: Record<MessageKey, string> = {
   "refusal.joiningNeedsAWindow":
     "কোন বিক্রির সময়ের জন্য তাকে খাওয়ানো হচ্ছে তা বলুন; পরের ঈদ বের করা যায়নি",
   "refusal.anAnimalStillStands": "এই ভেঞ্চারের একটি গরু এখনও আছে",
+  "refusal.anAnimalIsMissing":
+    "এই ভেঞ্চারের একটি গরু খুঁজে পাওয়া যাচ্ছে না: খুঁজে পান, নয়তো হারানো লিখুন — খামার তার ক্ষতিপূরণ দেবে",
+  "refusal.madeGoodWithTheFarmsMoney":
+    "এটি খামারের নিজের টাকায় হারানো পশুর ক্ষতিপূরণ; শুধু ভেঞ্চারের দিকে এটি ঠিক করা যায় না",
+  "refusal.theFarmsOwnCapital":
+    "এটি খামারের নিজের মূলধন, যা খামারের নিজের হিসাবেও আছে; শুধু ভেঞ্চারের দিকে এটি ঠিক করা যায় না",
+  "refusal.splitNotTheFarms":
+    "এই ভেঞ্চারে খামারের নিজের ইউনিট {investorsPercent}% ভাগে নেওয়া; প্রত্যেক বিনিয়োগকারী একই ভাগে সই করবেন",
+  "refusal.theFarmsOwnUnits":
+    "খামারের নিজের ইউনিট তার নিজের মূলধন: মানুষের মতো তাতে সই, কাগজ বা চিঠি হয় না",
+  "refusal.madeGoodNeedsReference":
+    "ভেঞ্চারের হারানো পশুর ক্ষতিপূরণ খামার দেয়: ব্যাংক ট্রান্সফারের রেফারেন্স দিন",
   "refusal.aPriceIsMissing": "যে খাবার বা ওষুধ দেওয়া হয়েছে তার দাম জানা নেই",
   "refusal.aFloatIsOpen": "হাটের {currencyOf} হিসাব এখনও মেলানো হয়নি",
   "refusal.aReimbursementIsOwed": "কোনো মাসের ফেরত এখনও পাঠানো হয়নি",
@@ -3277,6 +3308,10 @@ export const bn: Record<MessageKey, string> = {
   "money.from.reimbursement": "ভেঞ্চারের খরচ ফেরত",
   "money.from.farmShare": "ভেঞ্চার পরিচালনার ভাগ",
   "money.from.farmLoss": "ভেঞ্চারের লোকসানে খামারের ভাগ",
+  "money.from.ventureMadeGood": "ভেঞ্চারের হারানো পশুর ক্ষতিপূরণ",
+  "money.from.ventureCapitalOut": "ভেঞ্চারে খামারের মূলধন",
+  "money.from.ventureCapitalBack": "ভেঞ্চার থেকে খামারের মূলধন ফেরত",
+  "money.from.ventureCapitalReturn": "খামারের নিজের মূলধনে মুনাফা",
   "money.from.settlementAdjustment": "হিসাব সমন্বয়",
   "owner.enteredBy": "লিখেছেন {name}",
   "owner.inPieces": "একা সীমার নিচে, এই সপ্তাহে একই মানুষকে দেওয়া বাকি অংশসহ সীমার বেশি",
@@ -5534,8 +5569,11 @@ export const bn: Record<MessageKey, string> = {
   "animals.writeOffStolen": "চুরি হয়েছে",
   "animals.writeOffGd": "থানার জিডি নম্বর",
   "animals.writeOffDone": "{tag} হারিয়ে গেছে বলে বাদ দেওয়া হলো",
-  "animals.writeOffVenture":
-    "ভেঞ্চারের পশু এখনো বাদ দেওয়া যাবে না: বিনিয়োগকারীদের চুক্তিতে হারানো পশুর কথা বলা নেই",
+  "animals.writeOffVentureHint":
+    "রাউন্ডে শেষ যেদিন খোঁজা হয়েছিল সেদিন থেকে পশুটি হারিয়ে গেছে বলে বাদ যাবে। এটি {venture}-এর, তাই খামার ক্ষতিপূরণ দেবে: সেদিন পর্যন্ত ভেঞ্চারের যত খরচ হয়েছে তা খামার থেকে ব্যাংকে ভেঞ্চার হিসাবে যাবে, বিনিয়োগকারীদের কোনো ক্ষতি হবে না।",
+  "animals.madeGoodReference": "ট্রান্সফারের রেফারেন্স",
+  "animals.madeGoodReferenceHint":
+    "খামার থেকে ভেঞ্চার হিসাবে যে ব্যাংক ট্রান্সফারে ক্ষতিপূরণ যাচ্ছে।",
   "animals.writeOffAsk": "{days} দিন পাওয়া যাচ্ছে না — হারিয়ে গেছে বলে বাদ দেবেন?",
   "animals.writtenOff": "{day} তারিখে হারিয়ে গেছে বলে বাদ দেওয়া হয়েছে",
   "animals.writtenOffStolen": "চুরি · জিডি {gd}",

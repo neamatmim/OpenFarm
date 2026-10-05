@@ -23,6 +23,7 @@ import {
   FormSheet,
   NativeSelect,
 } from "@/components/page-kit";
+import { FarmAccountField } from "@/components/payment-method";
 import { InternalSaleSheet } from "@/components/ventures/internal-sale-sheet";
 import { useLanguage } from "@/i18n/language-provider";
 import type { Photo } from "@/lib/photo";
@@ -664,14 +665,18 @@ const NotFoundDialog = ({ detail, open, onOpenChange }: ActProps) => {
 
 /**
  * The Owner writes her off as Lost: the round could not find her and nobody has since. What became of her in the
- * Owner's words, and — stolen — the thana's GD number, which the farm asks for.
+ * Owner's words, and — stolen — the thana's GD number, which the farm asks for. A Venture's animal is made good by the
+ * Farm in the same act, by bank into the Venture Account: the transfer's reference, and the account it left.
  */
 const WriteOffDialog = ({ detail, open, onOpenChange }: ActProps) => {
   const { t } = useLanguage();
-  const onError = useRefused({ venture_owns_her: "animals.writeOffVenture" });
+  const onError = useRefused();
   const [cause, setCause] = useState("");
   const [stolen, setStolen] = useState(false);
   const [gdNumber, setGdNumber] = useState("");
+  const [reference, setReference] = useState("");
+  const [farmAccountId, setFarmAccountId] = useState("");
+  const venture = detail.owner ?? null;
   const writeOff = useMutation(
     orpc.animals.writeOff.mutationOptions({
       onSuccess: () => {
@@ -679,15 +684,22 @@ const WriteOffDialog = ({ detail, open, onOpenChange }: ActProps) => {
         setCause("");
         setStolen(false);
         setGdNumber("");
+        setReference("");
+        setFarmAccountId("");
         onOpenChange(false);
       },
       onError,
     })
   );
   const gdSaid = gdNumber.trim() !== "";
+  const referenceSaid = reference.trim() !== "";
   return (
     <FormDialog
-      description={t("animals.writeOffHint")}
+      description={
+        venture
+          ? t("animals.writeOffVentureHint", { venture: venture.name })
+          : t("animals.writeOffHint")
+      }
       onOpenChange={onOpenChange}
       onSubmit={() =>
         writeOff.mutate({
@@ -695,11 +707,23 @@ const WriteOffDialog = ({ detail, open, onOpenChange }: ActProps) => {
           cause: cause.trim(),
           stolen,
           ...(stolen && gdSaid ? { gdNumber: gdNumber.trim() } : {}),
+          ...(venture
+            ? {
+                madeGood: {
+                  reference: reference.trim(),
+                  ...(farmAccountId === "" ? {} : { farmAccountId }),
+                },
+              }
+            : {}),
         })
       }
       open={open}
       pending={writeOff.isPending}
-      ready={cause.trim() !== "" && (!stolen || gdSaid)}
+      ready={
+        cause.trim() !== "" &&
+        (!stolen || gdSaid) &&
+        (venture === null || referenceSaid)
+      }
       submitLabel={t("animals.writeOff")}
       title={`${t("animals.writeOff")} · ${detail.tagNumber}`}
     >
@@ -731,6 +755,29 @@ const WriteOffDialog = ({ detail, open, onOpenChange }: ActProps) => {
             value={gdNumber}
           />
         </FormField>
+      ) : null}
+      {venture ? (
+        <>
+          <FormField
+            hint={t("animals.madeGoodReferenceHint")}
+            id="write-off-made-good"
+            label={t("animals.madeGoodReference")}
+          >
+            <Input
+              autoComplete="off"
+              id="write-off-made-good"
+              onChange={(event) => setReference(event.target.value)}
+              required
+              value={reference}
+            />
+          </FormField>
+          <FarmAccountField
+            id="write-off-account"
+            kind="bank"
+            onChange={setFarmAccountId}
+            value={farmAccountId}
+          />
+        </>
       ) : null}
     </FormDialog>
   );

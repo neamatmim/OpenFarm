@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import { useInvestorNames } from "@/components/investors/investor-names";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
+import { FarmAccountField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { paperOnFile } from "@/lib/agreed-in-app";
 import { useFreshFor } from "@/lib/fresh-for";
@@ -20,6 +21,8 @@ interface Arrival {
   amountMoney: string;
   movedOn: string;
   reference: string;
+  /** The Farm's own bank account its own capital left from, where the paper is the Farm's own Units. */
+  farmAccountId: string;
 }
 
 const NOTHING_YET: Arrival = {
@@ -27,6 +30,7 @@ const NOTHING_YET: Arrival = {
   amountMoney: "",
   movedOn: "",
   reference: "",
+  farmAccountId: "",
 };
 
 /** Why a paper takes no capital now, as its option says it — paid up, or not yet papered — or nothing. */
@@ -43,6 +47,31 @@ const whyNotThisPaper = (
   }
   return paperOnFile(one) ? undefined : t("ventures.noPaperYet");
 };
+
+/** The Farm's own bank account its capital left from, where the paper is the Farm's own Units and one was chosen. */
+const farmsAccountOf = (
+  paper: { isFarm?: boolean } | undefined,
+  farmAccountId: string
+) => (paper?.isFarm && farmAccountId ? { farmAccountId } : {});
+
+/** The Farm's own capital leaves the Farm's own books: from which of its bank accounts. Nothing for anybody else's. */
+const FarmsOwnAccount = ({
+  paper,
+  value,
+  onChange,
+}: {
+  paper: { isFarm?: boolean } | undefined;
+  value: string;
+  onChange: (farmAccountId: string) => void;
+}) =>
+  paper?.isFarm ? (
+    <FarmAccountField
+      id="capital-farm-account"
+      kind="bank"
+      onChange={onChange}
+      value={value}
+    />
+  ) : null;
 
 /**
  * What the choice of paper says under it. Whose Pay-in Code the reference carries, and — when that is not the paper
@@ -120,6 +149,7 @@ export const TakeCapitalSheet = ({
           amountMoney: String(fromNote.amountMoney),
           movedOn: fromNote.sentOn,
           reference: fromNote.reference,
+          farmAccountId: "",
         }
       : { ...NOTHING_YET, agreementId: agreementId ?? "" };
   // A new subject is another Venture, another man's paper or another note: what was typed for one is not the other's.
@@ -196,6 +226,7 @@ export const TakeCapitalSheet = ({
           paymentMethod: "bank",
           reference: arrival.reference,
           ...(fromNote ? { payInNoteId: fromNote.id } : {}),
+          ...farmsAccountOf(paper, arrival.farmAccountId),
         })
       }
       open={open}
@@ -281,6 +312,11 @@ export const TakeCapitalSheet = ({
           />
         </FormField>
       </div>
+      <FarmsOwnAccount
+        onChange={(farmAccountId) => setArrival({ ...arrival, farmAccountId })}
+        paper={paper}
+        value={arrival.farmAccountId}
+      />
     </FormSheet>
   );
 };

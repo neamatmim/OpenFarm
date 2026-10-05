@@ -8,6 +8,7 @@ import {
   mayMoveTo,
   monthlyTermsOf,
   roundMoney,
+  startOfFarmDay,
   takesCapital,
   towardsTheFloor,
 } from "@OpenFarm/domain";
@@ -19,9 +20,11 @@ import { z } from "zod";
 import type { Tx } from "../../audit";
 import { audited } from "../../audit";
 import { NEVER_CHECKED } from "../../bank-standing";
+import { farmsOwnOf } from "../../farm-capital-store";
 import { farmDay } from "../../farm-clock";
 import { protectedProcedure } from "../../index";
 import { tellTheOwnerAPaperIsDue } from "../../investor-statement-notice";
+import { accountSaid, bookMoney, bookingOf } from "../../money-store";
 import { missedByEach } from "../../monthly-sums-store";
 import { closePayInNotes, waitingNotesByVenture } from "../../pay-in-notes";
 import { projectionBasisOf, projectionOf } from "../../projection-store";
@@ -723,6 +726,8 @@ export const lifecycleProcedures = {
           )
           .max(200)
           .default([]),
+        /** The Farm Account the Farm's own capital comes back into, where it holds Units and lists its accounts. */
+        farmAccountId: z.string().optional(),
       })
     )
     .handler(async ({ context, input }) => {
@@ -799,6 +804,39 @@ export const lifecycleProcedures = {
           }));
           if (refunds.length > 0) {
             await tx.insert(ventureMovement).values(refunds);
+          }
+          // The Farm's own capital goes home to the Farm's own books, as it left them.
+          const farmsOwn = await farmsOwnOf(
+            tx,
+            context.farm.id,
+            refunds.flatMap((one) => (one.agreementId ? [one.agreementId] : []))
+          );
+          for (const one of refunds) {
+            if (one.agreementId && farmsOwn.has(one.agreementId)) {
+              // oxlint-disable-next-line no-await-in-loop -- one transaction, one statement at a time
+              await bookMoney(
+                tx,
+                bookingOf(
+                  context,
+                  "owner",
+                  now,
+                  accountSaid(["venture_capital_back"], {
+                    reference: one.reference,
+                    ...(input.farmAccountId === undefined
+                      ? {}
+                      : { farmAccountId: input.farmAccountId }),
+                  })
+                ),
+                {
+                  source: "venture_capital_back",
+                  sourceId: one.id,
+                  amountMoney: one.amountMoney,
+                  occurredAt: startOfFarmDay(one.movedOn),
+                  counterpartyId: null,
+                  paymentMethod: "bank",
+                }
+              );
+            }
           }
           // One Audit Event per refund: "where is my money" is answered by the trail, a line per
           // transfer. They go one at a time because they share the transaction the cancel holds.

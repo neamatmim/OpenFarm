@@ -22,7 +22,8 @@ export type Owned = Context & {
  */
 export const invitable = async (context: Owned, investorId: string) => {
   const who = await context.db.query.investor.findFirst({
-    where: { id: investorId, farmId: context.farm.id },
+    // The Farm's own partner record is no person, and has no portal.
+    where: { id: investorId, farmId: context.farm.id, isFarm: false },
   });
   if (!who) {
     throw new ORPCError("NOT_FOUND", { message: "No such Investor" });

@@ -335,7 +335,8 @@ export const dataCopyOf = async (
   const { db, farm } = context;
   const now = context.clock.now();
   const them = await db.query.investor.findFirst({
-    where: { id: investorId, farmId: farm.id },
+    // The Farm's own partner record is no person, and holds no personal data to copy.
+    where: { id: investorId, farmId: farm.id, isFarm: false },
   });
   if (!them) {
     throw new ORPCError("NOT_FOUND", { message: "No such Investor" });

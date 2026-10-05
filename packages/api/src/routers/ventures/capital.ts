@@ -2,17 +2,24 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { PAYMENT_METHODS } from "@OpenFarm/db/schema/money";
 import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
-import { capitalItMayHold, roundMoney, takesCapital } from "@OpenFarm/domain";
+import {
+  capitalItMayHold,
+  roundMoney,
+  startOfFarmDay,
+  takesCapital,
+} from "@OpenFarm/domain";
 // The Venture router's part for capital in, and the Buying Floats drawn and counted home.
 import { currencyWords } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../../audit";
+import { isTheFarmsOwn } from "../../farm-capital-store";
 import { farmDay } from "../../farm-clock";
 import { protectedProcedure } from "../../index";
 import { theOwnersOf } from "../../intake-store";
 import { paperOnFile } from "../../investor-store";
+import { accountSaid, bookMoney, bookingOf } from "../../money-store";
 import {
   answerNotFound,
   closePayInNotes,
@@ -54,6 +61,8 @@ const capitalInput = z.object({
   /** The Investor's Pay-in Note this is the money of, when the Owner records it from one: it answers the note
    *  received (ADR 0018). */
   payInNoteId: z.string().optional(),
+  /** For the Farm's own Units: the Farm Account its capital left, where the farm lists its accounts. */
+  farmAccountId: z.string().optional(),
 });
 
 /** Open, any Venture; paid by the month, its Monthly Sums too while it buys and fattens. Once it sells, a sum not yet
@@ -178,6 +187,31 @@ export const capitalProcedures = {
             recordedBy: context.actor.id,
             createdAt: now,
           });
+          // The Farm's own Units are paid for with the Farm's own money: it leaves the Farm's books as it lands here.
+          if (isTheFarmsOwn(agreement)) {
+            await bookMoney(
+              tx,
+              bookingOf(
+                context,
+                "owner",
+                now,
+                accountSaid(["venture_capital_out"], {
+                  reference: input.reference,
+                  ...(input.farmAccountId === undefined
+                    ? {}
+                    : { farmAccountId: input.farmAccountId }),
+                })
+              ),
+              {
+                source: "venture_capital_out",
+                sourceId: id,
+                amountMoney: input.amountMoney,
+                occurredAt: startOfFarmDay(input.movedOn),
+                counterpartyId: null,
+                paymentMethod: "bank",
+              }
+            );
+          }
           if (input.payInNoteId) {
             await receiveTheNote(context, tx, {
               noteId: input.payInNoteId,

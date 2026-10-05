@@ -17,6 +17,7 @@ import { writeAgreement } from "./agreement-write";
 import type { Tx } from "./audit";
 import { audited } from "./audit";
 import { assertRegistered } from "./export-store";
+import { farmUnitsOf } from "./farm-capital-store";
 import { readAgreement, unitsTaken } from "./investor-store";
 import { assertReadAsKept, keepPaper, stillAsKept } from "./kept-paper";
 import { assertNamable, nomineesToSign } from "./nominations";
@@ -140,7 +141,8 @@ export const offerInApp = async (
   assertRegistered(context.farm, "an Investment Agreement");
   const run = await openVenture(context, input.ventureId);
   const him = await context.db.query.investor.findFirst({
-    where: { id: input.investorId, farmId: context.farm.id },
+    // The Farm's own Units are taken, never offered: its partner record is no person.
+    where: { id: input.investorId, farmId: context.farm.id, isFarm: false },
   });
   if (!him) {
     throw new ORPCError("NOT_FOUND", { message: "No such Investor" });
@@ -185,6 +187,7 @@ export const offerInApp = async (
     wording: wording.content,
     today,
     producedAt: producedAt(now, await languageOf(context.db, context.actor.id)),
+    farmUnits: await farmUnitsOf(context.db, context.farm.id, run.id),
   });
   const kept = keepPaper(paper);
   const id = uuidv7(now);

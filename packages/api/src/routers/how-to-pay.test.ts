@@ -340,6 +340,9 @@ describe("a Venture an Investor has not signed for", () => {
       projection: null,
       // Shown since they last looked at what they are offered, which they never have.
       isNew: true,
+      // The Farm holds none of its Units with its own money.
+      farmUnits: 0,
+      units: 10,
     });
     expect(JSON.stringify(offered)).not.toContain(ACCOUNT.accountNumber);
   });

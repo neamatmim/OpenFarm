@@ -771,7 +771,7 @@ describe("অগ্রগতি — the sheet while the run goes on", () => {
     expect(text).toContain("৬ (৬০%)");
     // Three standing, one sold to a buyer, one lost.
     expect(text).toContain("দাঁড়িয়ে আছে / Standing: ৩");
-    expect(text).toContain("মারা গেছে / Lost: ১");
+    expect(text).toContain("মারা গেছে / Died: ১");
     // The bulls it has actually weighed, and what they average.
     expect(text).toContain("ওজন নেওয়া হয়েছে / Weighed: ২");
     expect(text).toContain("২২৪.৫");

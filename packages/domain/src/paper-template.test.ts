@@ -143,7 +143,7 @@ describe("a paper filled from a Version", () => {
     if (terms?.kind !== "clauses") {
       throw new Error("expected the terms");
     }
-    expect(terms.clauses[4]?.bn).toBe(
+    expect(terms.clauses[5]?.bn).toBe(
       "বিক্রয়ের লক্ষ্য সময়: ____________ থেকে ____________।"
     );
   });
@@ -207,8 +207,8 @@ describe("the terms a letter repeats", () => {
       farmPercent: { bn: "৪৫", en: "45" },
     });
 
-    // Seven terms and the heirs clause with its five rules, then the data section's heading and its six clauses.
-    expect(terms).toHaveLength(20);
+    // Eight terms and the heirs clause with its five rules, then the data section's heading and its six clauses.
+    expect(terms).toHaveLength(21);
     expect(terms[1]).toBe(
       "২. মুনাফা ভাগ হবে বিনিয়োগকারী ৫৫% এবং খামার ৪৫%, মূলধন সম্পূর্ণ ফেরতের পর।"
     );
@@ -217,10 +217,10 @@ describe("the terms a letter repeats", () => {
   it("repeat each later part under its own heading, numbered as the Agreement numbers it", () => {
     const terms = termsOf(agreement, {});
 
-    expect(terms[12]).toMatch(/^১৩\. মতভেদ হলে সালিস/u);
-    expect(terms[13]).toBe("তথ্য");
-    expect(terms[14]).toMatch(/^১\. এই চুক্তি পালন করতে/u);
-    expect(terms[18]).toMatch(/^৫\. বিনিয়োগকারী যেকোনো সময় মালিককে লিখে/u);
+    expect(terms[13]).toMatch(/^১৪\. মতভেদ হলে সালিস/u);
+    expect(terms[14]).toBe("তথ্য");
+    expect(terms[15]).toMatch(/^১\. এই চুক্তি পালন করতে/u);
+    expect(terms[19]).toMatch(/^৫\. বিনিয়োগকারী যেকোনো সময় মালিককে লিখে/u);
   });
 
   it("never repeat the lines under the nominee, which are about who signs", () => {

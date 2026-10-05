@@ -60,7 +60,8 @@ export const handOver = async (
   const farmId = context.farm.id;
   const now = context.clock.now();
   const who = await context.db.query.investor.findFirst({
-    where: { id: investorId, farmId },
+    // The Farm's own partner record is no person and is never asked into the portal.
+    where: { id: investorId, farmId, isFarm: false },
     columns: { id: true, name: true, phone: true },
   });
   if (!who) {
