@@ -209,10 +209,12 @@ export const writeAmendment = async (
   }
   const signed = await tx.query.investmentAgreement.findMany({
     where: { farmId, ventureId: amendment.ventureId },
-    columns: { id: true },
+    columns: { id: true, stampKind: true },
     orderBy: { createdAt: "asc", id: "asc" },
   });
-  if (signed.length === 0) {
+  // Written against every Agreement, the Farm's own Units included, which move with the rest — but signed by the
+  // Investors alone: the Farm signs nothing with itself, so a Venture only it holds Units of has nobody to sign one.
+  if (signed.every((one) => one.stampKind === "farm_own")) {
     throw new ORPCError("BAD_REQUEST", {
       message: "Nobody has signed for this Venture yet",
       data: { refusal: "nobody_has_signed" },
