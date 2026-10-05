@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import type { Tx } from "./audit";
 import { audited } from "./audit";
-import { farmUnitsOf } from "./farm-capital-store";
+import { farmUnitsOfEach } from "./farm-capital-store";
 import { offerProjectionOf, offeredProjection } from "./projection-store";
 import { closeRequests } from "./requests-to-join";
 import type { VentureRow } from "./venture-act";
@@ -201,6 +201,12 @@ export const openVenturesFor = async (
     columns: { ventureId: true },
   });
   const theirs = new Set(signed.map((one) => one.ventureId));
+  // The Farm's own Units in every one of them, read once rather than once a Venture.
+  const farmUnits = await farmUnitsOfEach(
+    db,
+    farm.id,
+    shown.map((one) => one.id)
+  );
   return Promise.all(
     shown
       .filter((one) => !theirs.has(one.id))
@@ -222,7 +228,7 @@ export const openVenturesFor = async (
           offersSeenAt === null ||
             (one.shownInPortalAt !== null &&
               one.shownInPortalAt > offersSeenAt),
-          await farmUnitsOf(db, farm.id, one.id)
+          farmUnits.get(one.id) ?? 0
         );
       })
   );
