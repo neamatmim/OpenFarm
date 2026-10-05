@@ -126,17 +126,19 @@ const lineOf = (typed: TypedLine) => {
 const middleGainOf = ({ lowKg, highKg }: { lowKg: number; highKg: number }) =>
   Math.round(((lowKg + highKg) / 2) * 100) / 100;
 
-/** The Breed a line buys, as the gain offer needs it: what to call it, and whether it is deshi. */
+/** The Breed a line buys, as the gain offer needs it: what to call it, whether it is deshi, and its own share of a
+ *  Ration's Expected Gain where the farm has set one. */
 interface LineBreed {
   name: string;
   deshi: boolean;
+  gainPercent: number | null;
 }
 
 /**
  * What the farm's own Rations say a bull of the line's Breed bought in the middle of its band should gain, under the
  * band's gain box, with a button to write in the middle of that range: a crossbred bull's, as the Rations are written,
- * unless the line names a deshi Breed, when it is cut to the farm's deshi share — the share he is judged at once he is
- * bought. The Owner's plan still says what the Owner types: this only offers. Nothing while the band's weights are not
+ * unless the line names a Breed with its own share, or a deshi one, when it is cut to that share or the farm's deshi
+ * share — the share he is judged at once he is bought. The Owner's plan still says what the Owner types: this only offers. Nothing while the band's weights are not
  * both typed, or no Ration by weight holds a bull that size.
  */
 const RationsSay = ({
@@ -165,7 +167,11 @@ const RationsSay = ({
   }
   const { expectedGain } = expectedGainFor(
     rung.expectedGain,
-    { deshi: breed?.deshi ?? false, sex: "male" },
+    {
+      deshi: breed?.deshi ?? false,
+      sex: "male",
+      breedPercent: breed?.gainPercent ?? null,
+    },
     { deshiPercent, femalePercent: 100 }
   );
   const middle = middleGainOf(expectedGain);
@@ -174,7 +180,13 @@ const RationsSay = ({
     range: expectedGainSaid(expectedGain, { t, language }) ?? "",
   };
   let words = t("plan.rationsSay", said);
-  if (breed?.deshi) {
+  if (breed && breed.gainPercent !== null) {
+    words = t("plan.rationsSayBreedShare", {
+      ...said,
+      breed: breed.name,
+      percent: formatNumber(breed.gainPercent, language),
+    });
+  } else if (breed?.deshi) {
     words = t("plan.rationsSayDeshi", {
       ...said,
       breed: breed.name,
@@ -518,7 +530,12 @@ const PlanSheet = ({
   const breedOf = (breedId: string): LineBreed | null => {
     const found = breeds.find((one) => one.id === breedId);
     return found
-      ? { name: breedName(found, language) ?? "", deshi: found.deshi }
+      ? {
+          name: breedName(found, language) ?? "",
+          deshi: found.deshi,
+          // Missing from a list this phone kept from before a Breed could have its own share: none.
+          gainPercent: found.gainPercent ?? null,
+        }
       : null;
   };
   const [sale, setSale] = useState({

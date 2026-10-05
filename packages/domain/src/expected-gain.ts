@@ -152,37 +152,70 @@ export interface GainShares {
   femalePercent: number;
 }
 
-/** What her own range was worked from: the share it was cut to for being deshi or female, and whether anybody wrote
- *  down her breed — one nobody did is judged as a cross, as the Ration's figures are written for. */
+/** What her own range was worked from: the share it was cut to for her Breed — its own, or the deshi share — or for
+ *  being female, and whether anybody wrote down her breed — one nobody did is judged as a cross, as the Ration's
+ *  figures are written for. */
 export interface GainAdjustment {
-  /** The deshi share, when she is deshi; null when she is not, or nobody knows. */
+  /** Her Breed's own share, when the farm has set one for it; it stands in for the deshi share. */
+  breedPercent: number | null;
+  /** The deshi share, when she is deshi and her Breed has no share of its own; null otherwise, or when nobody knows. */
   deshiPercent: number | null;
   /** The female share, when she is a cow or heifer; null for a bull. */
   femalePercent: number | null;
   breedRecorded: boolean;
 }
 
+/** The least and the most a Breed's own share may be: as low as the deshi and female shares go, and up to a fifth over
+ *  the Ration as written — a Breed whose bulls beat the Ration may say so; past that, the Ration is what is wrong. */
+export const BREED_GAIN_PERCENT = { least: 30, most: 120 } as const;
+
+/** The share a Breed takes from the farm's own figure with one press: its middle, to the whole percent, held inside the
+ *  bounds — a Breed whose bulls beat the Ration by more than a fifth is offered the fifth. */
+export const shareToUse = (figure: { medianPercent: number }): number =>
+  Math.min(
+    BREED_GAIN_PERCENT.most,
+    Math.max(BREED_GAIN_PERCENT.least, Math.round(figure.medianPercent))
+  );
+
+/** Whether a figure may be a Breed's own share: a whole percent inside the bounds. */
+export const isBreedGainPercent = (percent: number): boolean =>
+  Number.isInteger(percent) &&
+  percent >= BREED_GAIN_PERCENT.least &&
+  percent <= BREED_GAIN_PERCENT.most;
+
+/** What an animal's range is cut for: her Breed — deshi or not, and its own share if the farm set one — and her sex. */
+export interface GainJudged {
+  /** Whether her breed is deshi; null when nobody wrote down her breed. */
+  deshi: boolean | null;
+  sex: "male" | "female";
+  /** Her Breed's own share of a Ration's Expected Gain, as a percentage; null or left out when it has none. */
+  breedPercent?: number | null;
+}
+
 /**
- * The Expected Gain one animal is judged against: her Ration's, which is written for a crossbred bull, cut to the
- * farm's deshi share when she is deshi and to its female share when she is a cow or heifer — both, when she is both.
- * Each end is cut alike and kept to the hundredth, as the Ration's are.
+ * The Expected Gain one animal is judged against: her Ration's, which is written for a crossbred bull, cut to her
+ * Breed's own share where the farm has set one — else to the farm's deshi share when she is deshi — and to its female
+ * share when she is a cow or heifer, on top. A Breed's own share stands in for the deshi share, never beside it: it is
+ * what the farm's own animals of that Breed put on, deshi or not. Each end is cut alike and kept to the hundredth, as
+ * the Ration's are.
  */
 export const expectedGainFor = (
   asWritten: ExpectedGain,
-  animal: {
-    /** Whether her breed is deshi; null when nobody wrote down her breed. */
-    deshi: boolean | null;
-    sex: "male" | "female";
-  },
+  animal: GainJudged,
   shares: GainShares
 ): { expectedGain: ExpectedGain; adjustedFor: GainAdjustment } => {
+  const breedPercent = animal.breedPercent ?? null;
   const adjustedFor: GainAdjustment = {
-    deshiPercent: animal.deshi === true ? shares.deshiPercent : null,
+    breedPercent,
+    deshiPercent:
+      breedPercent === null && animal.deshi === true
+        ? shares.deshiPercent
+        : null,
     femalePercent: animal.sex === "female" ? shares.femalePercent : null,
     breedRecorded: animal.deshi !== null,
   };
   const share =
-    ((adjustedFor.deshiPercent ?? PERCENT) / PERCENT) *
+    ((breedPercent ?? adjustedFor.deshiPercent ?? PERCENT) / PERCENT) *
     ((adjustedFor.femalePercent ?? PERCENT) / PERCENT);
   const cut = (kg: number) => Math.round(kg * share * RATE_SCALE) / RATE_SCALE;
   return {
@@ -226,7 +259,7 @@ export const grownWeightFor = (
   arrivalKg: number,
   days: number,
   rungs: readonly GainingBand[],
-  animal: { deshi: boolean | null; sex: "male" | "female" },
+  animal: GainJudged,
   shares: GainShares
 ): { lowKg: number; highKg: number } | null => {
   if (!gainingBandFor(arrivalKg, rungs)) {
@@ -388,3 +421,54 @@ export const isUnderPenmates = (
   percent: number
 ): boolean =>
   penShare !== null && penShare > 0 && share < (penShare * percent) / PERCENT;
+
+/** One measured stay of a bull on a Ration, and what that Ration is written to give a crossbred bull. */
+export interface MeasuredStay {
+  dailyGainKg: number;
+  overDays: number;
+  /** The Ration's Expected Gain as written — never cut for his Breed: a Breed's share is what is being measured. */
+  expectedGain: ExpectedGain;
+}
+
+/**
+ * What one bull put on as a percentage of what his Ration should give a crossbred bull: read off his longest measured
+ * stay on a Ration with an Expected Gain, against the middle of its range as written. One figure a bull, however many
+ * Rations he ate, so a Breed reaches a figure of its own across Rations. Nothing for a bull with no measured stay.
+ */
+export const bullShareOf = (stays: readonly MeasuredStay[]): number | null => {
+  let longest: MeasuredStay | null = null;
+  for (const one of stays) {
+    if (!longest || one.overDays > longest.overDays) {
+      longest = one;
+    }
+  }
+  return longest
+    ? gainShareOf(longest.dailyGainKg, longest.expectedGain) * PERCENT
+    : null;
+};
+
+/** What a Breed's bulls on the farm put on, as a share of what their Rations should give them: how many, the middle
+ *  one, and the middle half, each to the whole percent. */
+export interface BreedShareFigure {
+  animals: number;
+  medianPercent: number;
+  lowPercent: number;
+  highPercent: number;
+}
+
+/** What these bulls' shares come to as a figure of the farm's own for their Breed, or nothing from fewer than
+ *  `FEWEST_FOR_A_FIGURE`: the same middle and middle half as a Ration's figure. */
+export const breedShareFigureOf = (
+  shares: readonly number[]
+): BreedShareFigure | null => {
+  if (shares.length < FEWEST_FOR_A_FIGURE) {
+    return null;
+  }
+  const sorted = shares.toSorted((a, b) => a - b);
+  return {
+    animals: shares.length,
+    medianPercent: Math.round(atShare(sorted, HALF)),
+    lowPercent: Math.round(atShare(sorted, QUARTER)),
+    highPercent: Math.round(atShare(sorted, THREE_QUARTERS)),
+  };
+};

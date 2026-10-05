@@ -11,6 +11,7 @@ import {
   QueueRow,
   ROW_LINK,
 } from "@/components/home/queue";
+import { PAY_IN_ANCHOR } from "@/components/ventures/venture-pay-in-notes";
 import { useLanguage } from "@/i18n/language-provider";
 import { saidMonth } from "@/lib/months";
 import type { VentureNeedingHer, VentureTrouble } from "@/lib/ventures";
@@ -39,6 +40,10 @@ const SAYS: {
       short: formatNumber(trouble.shortMoney, language),
     }),
   },
+  pay_in_notes: {
+    key: "ventureTrouble.payInNotes",
+    parts: (trouble) => ({ count: trouble.count }),
+  },
   running_budget_low: {
     key: "ventureTrouble.runningBudgetLow",
     parts: (trouble, language) => ({
@@ -65,14 +70,34 @@ const SAYS: {
   },
 };
 
-/** One thing wrong with one Venture, in the reader's own language and numerals. */
-const TroubleLine = ({ trouble }: { trouble: VentureTrouble }) => {
+/** One thing wrong with one Venture, in the reader's own language and numerals — Pay-in Notes leading straight to
+ *  where they are checked. */
+const TroubleLine = ({
+  trouble,
+  ventureId,
+}: {
+  trouble: VentureTrouble;
+  ventureId: string;
+}) => {
   const { t, language } = useLanguage();
   const says = SAYS[trouble.word];
   // Narrowed by the word it was looked up by; the table's own types keep the two in step.
   const parts = (
     says.parts as (one: VentureTrouble, language: Language) => MessageParams
   )(trouble, language);
+  if (trouble.word === "pay_in_notes") {
+    return (
+      // Above the row's own link, which is stretched over the whole row: otherwise a tap here opens the Venture's page.
+      <Link
+        className="relative z-10 underline-offset-4 hover:underline"
+        hash={PAY_IN_ANCHOR}
+        params={{ ventureId }}
+        to="/ventures/$ventureId/investors"
+      >
+        {t(says.key, parts)}
+      </Link>
+    );
+  }
   return <>{t(says.key, parts)}</>;
 };
 
@@ -112,7 +137,7 @@ export const VentureTroubles = ({
             <span className="flex flex-col gap-0.5">
               {one.troubles.map((trouble) => (
                 <span key={trouble.word}>
-                  <TroubleLine trouble={trouble} />
+                  <TroubleLine trouble={trouble} ventureId={one.id} />
                 </span>
               ))}
             </span>

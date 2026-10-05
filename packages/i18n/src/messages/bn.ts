@@ -549,6 +549,8 @@ export const bn: Record<MessageKey, string> = {
   "plan.rationsSayBreed": "আপনার রেশন: {kg} কেজির {breed} ষাঁড়ের {range}",
   "plan.rationsSayDeshi":
     "আপনার রেশন: {kg} কেজির {breed} ষাঁড়ের {range} — দেশি, খামারের হার {percent}%",
+  "plan.rationsSayBreedShare":
+    "আপনার রেশন: {kg} কেজির {breed} ষাঁড়ের {range} — এই জাতের নিজের হার {percent}%",
   "plan.anyBreed": "যেকোনো জাত",
   "plan.buying": "কেনা",
   "plan.selling": "বিক্রি",
@@ -1295,6 +1297,9 @@ export const bn: Record<MessageKey, string> = {
     "{venture}-এর জন্য বিনিয়োগকারীর সই করা কাগজের বিপরীতে আসা {currencySum}। কেবল ব্যাংকে।",
   "ventures.capitalTaken": "{currencySum} জমা লেখা হয়েছে",
   "ventures.payIn.title": "জমার খবর",
+  "ventures.payIn.waitingTitle":
+    "বিনিয়োগকারীদের {count}টি জমার খবর ব্যাংকের সঙ্গে মেলাতে হবে",
+  "ventures.payIn.waitingOn": "{venture}: {count}টি",
   "ventures.payIn.hint":
     "বিনিয়োগকারীরা যা পাঠিয়েছেন বলে জানিয়েছেন। প্রতিটি ভেঞ্চার হিসাবের সঙ্গে মিলিয়ে দেখুন: জমা লিখুন, না পেলে জানান।",
   "ventures.payIn.said": "{investor} বলছেন {amount}, {way}",
@@ -2316,6 +2321,24 @@ export const bn: Record<MessageKey, string> = {
   "breeds.standard": "প্রচলিত",
   "breeds.deshi": "দেশি",
   "breeds.markDeshi": "দেশি হিসেবে চিহ্নিত করুন",
+  "breeds.col.gain": "যে হারে মাপা হয়",
+  "breeds.gain.own": "নিজের হার {percent}%",
+  "breeds.gain.deshi": "দেশির হার, {percent}%",
+  "breeds.gain.asWritten": "রেশনের হিসাবেই",
+  "breeds.gain.farm":
+    "এখানে {animals}টি ষাঁড়: {median}% (মাঝের অর্ধেক {low}–{high}%)",
+  "breeds.gain.use": "{percent}% নিন",
+  "breeds.gain.used": "এখন {percent}% হারে মাপা হবে",
+  "breeds.gain.cleared": "আগের মতো মাপা হবে",
+  "breeds.gain.set": "বৃদ্ধির হার ঠিক করুন",
+  "breeds.gain.title": "{name}: প্রত্যাশিত বৃদ্ধির কত ভাগ",
+  "breeds.gain.hint":
+    "এই জাতের পশু তার রেশনের প্রত্যাশিত বৃদ্ধির এই ভাগে মাপা হবে, দেশির হারের বদলে। গাভী বা বকনার বেলায় স্ত্রী পশুর হারও এর ওপর ধরা হবে। ৩০% থেকে ১২০%।",
+  "breeds.gain.label": "রেশনের প্রত্যাশিত বৃদ্ধির কত ভাগ (%)",
+  "breeds.gain.farmHint": "{figure}। শুধু ষাঁড় থেকে — গাভী বা বকনায় স্ত্রী পশুর হারও থাকে।",
+  "breeds.gain.noFigure":
+    "প্রত্যাশিত বৃদ্ধি লেখা রেশনে যথেষ্ট দিন ওজন নেওয়া এর ষাঁড় পাঁচটির কম, তাই এখনো বলা যায় না।",
+  "breeds.gain.clear": "আগের মতো মাপুন",
   "breeds.markCross": "দেশি নয় হিসেবে চিহ্নিত করুন",
   "breeds.deshiChoice": "দেশি — দেশের নিজস্ব গরু",
   "breeds.deshiHint":
@@ -2915,6 +2938,9 @@ export const bn: Record<MessageKey, string> = {
   "standards.readOver": "বৃদ্ধি মাপা হয়",
   "standards.readOverDays": "অন্তত {days} দিনের ওজনে — আপনার ঠিক করা",
   "standards.deshi": "দেশি পশু",
+  "standards.breedShare": "জাতের নিজের হার",
+  "standards.breedShareRule":
+    "খামার নিজের ষাঁড়গুলো যা বেড়েছে তা দেখে কোনো জাতের নিজের হার ঠিক করলে, সেই জাতের বেলায় তা মানক হিসাব আর দেশির হারের জায়গা নেয় — জাতের পাতায় ঠিক করা হয়।",
   "standards.female": "গাভী ও বকনা",
   "standards.shareSet": "রেশনের প্রত্যাশিত বৃদ্ধির {percent}% — আপনার ঠিক করা",
   "standards.penmates": "পেনের সঙ্গীদের চেয়ে পিছিয়ে",
@@ -2955,6 +2981,7 @@ export const bn: Record<MessageKey, string> = {
   "gainOnRation.expects": "{pen}-এ · {ration}-এ বাড়ার কথা {range}",
   "gainOnRation.expectsShort": "বাড়ার কথা {range}",
   "gainOnRation.forDeshi": "দেশি, {percent}%",
+  "gainOnRation.forBreed": "জাতের নিজের হার {percent}%",
   "gainOnRation.forFemale": "স্ত্রী পশু, {percent}%",
   "gainOnRation.breedUnknown": "জাত লেখা হয়নি",
   "gainOnRation.outsideBand": "বিচার হয়নি: এই রেশনের ওজনসীমার বাইরে",
@@ -3700,6 +3727,7 @@ export const bn: Record<MessageKey, string> = {
     "{investor} {venture}-এ মাসের {currencySum} {currencySign}{amount} দেননি, শেষটি {day} তারিখে দেওয়ার কথা ছিল",
   "digest.monthlySumMissed": "{count} জন বিনিয়োগকারী মাসের {currencyIn} পিছিয়ে",
   "alerts.seeWhoIsBehind": "কে পিছিয়ে দেখুন",
+  "ventureTrouble.payInNotes": "{count}টি জমার খবর ব্যাংকের সঙ্গে মেলাতে হবে",
   "alerts.payInNoteSent":
     "{investor} জানিয়েছেন, তিনি {day} তারিখে {venture}-এর জন্য {way} {currencySign}{amount} পাঠিয়েছেন",
   "push.payInNoteSentTitle": "বিনিয়োগকারী টাকা পাঠিয়েছেন বলে জানিয়েছেন",

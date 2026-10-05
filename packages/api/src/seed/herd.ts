@@ -58,7 +58,17 @@ const BULL_BREEDS = [
   "পাবনা ক্যাটল",
   "শাহীওয়াল ক্রস",
   "হলস্টেইন ফ্রিজিয়ান ক্রস",
-];
+] as const;
+
+/** How fast a bull of each Breed grows beside a crossbred one, so the Breeds page has the farm's own figure to show:
+ *  the deshi Breeds at about seven tenths, a Brahman cross a little over, the dairy crosses near the Rations. */
+const BREED_PACE: Record<(typeof BULL_BREEDS)[number], number> = {
+  "ব্রাহমা ক্রস": 1.1,
+  দেশি: 0.7,
+  "পাবনা ক্যাটল": 0.75,
+  "শাহীওয়াল ক্রস": 0.95,
+  "হলস্টেইন ফ্রিজিয়ান ক্রস": 1,
+};
 const NAMES = [
   "লক্ষ্মী",
   "ধলি",
@@ -345,7 +355,9 @@ export const takeInBulls = async (
       pen,
       breed,
       weightKg,
-      dailyGainKg: random.between(0.55, 1.05) + (heavier > 0 ? 0.2 : 0),
+      dailyGainKg:
+        (random.between(0.55, 1.05) + (heavier > 0 ? 0.2 : 0)) *
+        BREED_PACE[breed],
       arrivedOn: on,
       state: "quarantine",
       // The second off the same lorry is weighed once, then will not go up the crush again.

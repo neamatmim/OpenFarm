@@ -79,3 +79,31 @@ describe("a run past its Wind-up Period", () => {
     expect(pastWindUp(running({ windUpEndsOn: "9999-01-01" }))).toBe(false);
   });
 });
+
+describe("Pay-in Notes still to check", () => {
+  it("are a trouble that wants the Owner, with how many", () => {
+    const waiting = open({
+      decideBy: "2099-09-30",
+      bank: undefined,
+      payInNotesWaiting: 2,
+    });
+    expect(troubleWith(waiting)).toContainEqual({
+      word: "pay_in_notes",
+      count: 2,
+    });
+  });
+
+  it("are no trouble when none wait, or on a list kept from before they were counted", () => {
+    const none = open({
+      decideBy: "2099-09-30",
+      bank: undefined,
+      payInNotesWaiting: 0,
+    });
+    const before = open({ decideBy: "2099-09-30", bank: undefined });
+    for (const one of [none, before]) {
+      expect(troubleWith(one).map((trouble) => trouble.word)).not.toContain(
+        "pay_in_notes"
+      );
+    }
+  });
+});

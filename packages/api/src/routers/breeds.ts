@@ -1,7 +1,7 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { breed } from "@OpenFarm/db/schema/herd";
-import { LIVE_STATES } from "@OpenFarm/domain";
+import { BREED_GAIN_PERCENT, LIVE_STATES } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -9,6 +9,7 @@ import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { addStandardBreeds, missingStandardBreeds } from "../breed-store";
 import type { Context } from "../context";
+import { farmGainsByBreed } from "../expected-gain-store";
 import type { FarmList } from "../farm-list";
 import {
   assertNameFree,
@@ -100,10 +101,28 @@ export const breedsRouter = {
         nameBn: row.nameBn,
         nameEn: row.nameEn,
         deshi: row.deshi,
+        /** Its own share of a Ration's Expected Gain, where the farm has set one; null judges it as before. */
+        gainPercent: row.gainPercent,
         retiredAt: row.retiredAt,
         /** How many animals on the farm now are of it. */
         animals: counted.get(row.id) ?? 0,
       }));
+    }),
+
+  /**
+   * What the farm's own bulls of each breed have put on, as a share of what their Rations should give a crossbred bull,
+   * by breed id: only the breeds with five measured. Its own procedure, asked for by the Breeds page alone — it reads
+   * every fattening animal's weighings, which the breed pickers on the intake and register forms have no need of.
+   */
+  farmShares: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(async ({ context }) => {
+      const figures = await farmGainsByBreed(
+        context.db,
+        context.farm,
+        context.clock.now()
+      );
+      return Object.fromEntries(figures);
     }),
 
   /** A breed of the farm's own, deshi or not as the farm says — not, unless it says. */
@@ -209,6 +228,45 @@ export const breedsRouter = {
             .where(eq(breed.id, existing.id))
       );
       return { id: existing.id, deshi: input.deshi };
+    }),
+
+  /**
+   * Sets a breed's own share of a Ration's Expected Gain, from what the farm's own animals of it put on — or clears it,
+   * and an animal of it is judged as before. It stands in for the deshi share; the female share still applies on top.
+   * From three tenths to a fifth over the Ration: past that the Ration's own figures are wrong, and the Ration is what
+   * to put right. A retired breed keeps its own.
+   */
+  setGainPercent: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        id: z.string(),
+        percent: z
+          .number()
+          .int()
+          .min(BREED_GAIN_PERCENT.least)
+          .max(BREED_GAIN_PERCENT.most)
+          .nullable(),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const existing = await requireOurs(context.db, context.farm.id, input.id);
+      await audited(context).write(
+        {
+          entity: "breed",
+          entityId: existing.id,
+          action: "update",
+          before: (tx) => readBreed(tx, context.farm.id, existing.id),
+          after: (tx) => readBreed(tx, context.farm.id, existing.id),
+        },
+        (tx) =>
+          tx
+            .update(breed)
+            .set({ gainPercent: input.percent })
+            .where(eq(breed.id, existing.id))
+      );
+      return { id: existing.id, percent: input.percent };
     }),
 
   /** Retires a breed: nothing new is written down under it, and every animal already of it keeps it. */

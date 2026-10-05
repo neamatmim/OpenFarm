@@ -3,7 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   SETTLING_IN_DAYS,
   FEWEST_FOR_A_FIGURE,
+  breedShareFigureOf,
+  bullShareOf,
   expectedGainFor,
+  isBreedGainPercent,
+  shareToUse,
   farmGainFigureOf,
   findExpectedGainProblems,
   PEN_NEEDS_GAINS,
@@ -196,6 +200,7 @@ describe("the Expected Gain one animal is judged against", () => {
     ).toEqual({
       expectedGain: grower,
       adjustedFor: {
+        breedPercent: null,
         deshiPercent: null,
         femalePercent: null,
         breedRecorded: true,
@@ -231,11 +236,66 @@ describe("the Expected Gain one animal is judged against", () => {
     ).toEqual({
       expectedGain: grower,
       adjustedFor: {
+        breedPercent: null,
         deshiPercent: null,
         femalePercent: null,
         breedRecorded: false,
       },
     });
+  });
+
+  it("is cut to a Breed's own share where the farm has set one", () => {
+    // A Jersey cross the farm judges at 85%: 0.6 × 0.85 and 0.9 × 0.85.
+    expect(
+      expectedGainFor(
+        grower,
+        { deshi: false, sex: "male", breedPercent: 85 },
+        shares
+      )
+    ).toEqual({
+      expectedGain: { lowKg: 0.51, highKg: 0.77 },
+      adjustedFor: {
+        breedPercent: 85,
+        deshiPercent: null,
+        femalePercent: null,
+        breedRecorded: true,
+      },
+    });
+  });
+
+  it("takes a deshi Breed's own share instead of the deshi share, never both", () => {
+    // Its own 90%, not 70% × 90%.
+    expect(
+      expectedGainFor(
+        grower,
+        { deshi: true, sex: "male", breedPercent: 90 },
+        shares
+      )
+    ).toMatchObject({
+      expectedGain: { lowKg: 0.54, highKg: 0.81 },
+      adjustedFor: { breedPercent: 90, deshiPercent: null },
+    });
+  });
+
+  it("still cuts a cow of it to the female share on top", () => {
+    // 0.6 × 0.9 × 0.8 = 0.432, and 0.9 × 0.72 = 0.648.
+    expect(
+      expectedGainFor(
+        grower,
+        { deshi: true, sex: "female", breedPercent: 90 },
+        shares
+      ).expectedGain
+    ).toEqual({ lowKg: 0.43, highKg: 0.65 });
+  });
+
+  it("may judge a Breed above the Ration as written", () => {
+    expect(
+      expectedGainFor(
+        grower,
+        { deshi: false, sex: "male", breedPercent: 120 },
+        shares
+      ).expectedGain
+    ).toEqual({ lowKg: 0.72, highKg: 1.08 });
   });
 
   it("follows the farm's own shares", () => {
@@ -276,6 +336,19 @@ describe("what a bull should weigh when his Target Window opens", () => {
     expect(
       grownWeightFor(180, 120, rungs, { deshi: true, sex: "male" }, shares)
     ).toEqual({ lowKg: 221.6, highKg: 242.4 });
+  });
+
+  it("grows a bull of a Breed with its own share at that share", () => {
+    // At 50%: low 0.3 a day for 99 days.
+    expect(
+      grownWeightFor(
+        180,
+        120,
+        rungs,
+        { deshi: false, sex: "male", breedPercent: 50 },
+        shares
+      )?.lowKg
+    ).toBe(209.7);
   });
 
   it("grows him not at all within the settling-in weeks", () => {
@@ -389,5 +462,60 @@ describe("a bull against his penmates", () => {
     // A Pen too small to be a group says nothing, nor one that is going backwards.
     expect(isUnderPenmates(0.1, null, 80)).toBe(false);
     expect(isUnderPenmates(-0.5, -0.2, 80)).toBe(false);
+  });
+});
+
+describe("what the farm's own bulls of a Breed put on, as a share", () => {
+  const grower = { lowKg: 0.6, highKg: 0.9 };
+  const finisher = { lowKg: 0.8, highKg: 1.2 };
+
+  it("reads each bull by his longest measured stay, against the middle of that Ration as written", () => {
+    // 28 days on the growers at 0.6 — 80% of its 0.75 — and 56 on the finishers at 1.0, all of its 1.0: the longer.
+    expect(
+      bullShareOf([
+        { dailyGainKg: 0.6, overDays: 28, expectedGain: grower },
+        { dailyGainKg: 1, overDays: 56, expectedGain: finisher },
+      ])
+    ).toBe(100);
+    expect(
+      bullShareOf([{ dailyGainKg: 0.6, overDays: 28, expectedGain: grower }])
+    ).toBe(80);
+    expect(bullShareOf([])).toBe(null);
+  });
+
+  it("is said from five bulls: the middle one and the middle half, to the whole percent", () => {
+    expect(breedShareFigureOf([120, 80, 100, 80, 100])).toEqual({
+      animals: 5,
+      medianPercent: 100,
+      lowPercent: 80,
+      highPercent: 100,
+    });
+    expect(breedShareFigureOf([60, 70, 70, 80, 80.4])).toEqual({
+      animals: 5,
+      medianPercent: 70,
+      lowPercent: 70,
+      highPercent: 80,
+    });
+  });
+
+  it("says nothing from four", () => {
+    expect(breedShareFigureOf([80, 80, 100, 100])).toBe(null);
+  });
+});
+
+describe("a Breed's own share", () => {
+  it("is a whole percent from three tenths to a fifth over the Ration", () => {
+    expect([30, 85, 120].map(isBreedGainPercent)).toEqual([true, true, true]);
+    expect([29, 121, 85.5].map(isBreedGainPercent)).toEqual([
+      false,
+      false,
+      false,
+    ]);
+  });
+
+  it("is taken from the farm's own figure as its middle, held inside the bounds", () => {
+    expect(shareToUse({ medianPercent: 72 })).toBe(72);
+    expect(shareToUse({ medianPercent: 128 })).toBe(120);
+    expect(shareToUse({ medianPercent: 25 })).toBe(30);
   });
 });

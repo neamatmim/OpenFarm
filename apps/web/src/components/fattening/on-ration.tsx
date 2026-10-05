@@ -34,8 +34,8 @@ const outsideBandOf = (onRation: OnRation): boolean =>
 
 type Words = Pick<ReturnType<typeof useLanguage>, "t" | "language">;
 
-/** Why her range is not the Ration's as written — deshi, female, or nobody wrote her breed — in the reader's words, or
- *  nothing for a crossbred bull. Nothing too on a board cached before ranges were cut. */
+/** Why her range is not the Ration's as written — her Breed's own share, deshi, female, or nobody wrote her breed — in
+ *  the reader's words, or nothing for a crossbred bull. Nothing too on a board cached before ranges were cut. */
 export const adjustmentSaid = (
   adjustedFor: GainAdjustment | undefined,
   { t, language }: Words
@@ -43,7 +43,14 @@ export const adjustmentSaid = (
   if (!adjustedFor) {
     return null;
   }
+  // A board cached before a Breed could have its own share says none.
+  const breedPercent = adjustedFor.breedPercent ?? null;
   const said = [
+    breedPercent === null
+      ? null
+      : t("gainOnRation.forBreed", {
+          percent: formatNumber(breedPercent, language),
+        }),
     adjustedFor.deshiPercent === null
       ? null
       : t("gainOnRation.forDeshi", {

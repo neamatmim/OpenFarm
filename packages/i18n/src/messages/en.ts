@@ -590,6 +590,8 @@ export const en = {
   "plan.rationsSayBreed": "Your rations: {range} for a {breed} bull of {kg} kg",
   "plan.rationsSayDeshi":
     "Your rations: {range} for a {breed} bull of {kg} kg — deshi, at the farm's {percent}%",
+  "plan.rationsSayBreedShare":
+    "Your rations: {range} for a {breed} bull of {kg} kg — at its own {percent}%",
   "plan.anyBreed": "Any breed",
   "plan.buying": "Buying",
   "plan.selling": "Selling",
@@ -1388,6 +1390,10 @@ export const en = {
     "Money arriving for {venture}, against the paper the investor signed. By bank only.",
   "ventures.capitalTaken": "The capital is recorded",
   "ventures.payIn.title": "Pay-in notes",
+  "ventures.payIn.waitingTitle":
+    "{count, plural, one {# pay-in note} other {# pay-in notes}} from investors to check against the bank",
+  "ventures.payIn.waitingOn":
+    "{venture}: {count, plural, one {# note} other {# notes}}",
   "ventures.payIn.hint":
     "What investors say they sent. Check each against the venture account: record it, or answer not found.",
   "ventures.payIn.said": "{investor} says {amount}, {way}",
@@ -2474,6 +2480,25 @@ export const en = {
   "breeds.standard": "Standard",
   "breeds.deshi": "Deshi",
   "breeds.markDeshi": "Mark as deshi",
+  "breeds.col.gain": "Judged at",
+  "breeds.gain.own": "Its own {percent}%",
+  "breeds.gain.deshi": "The deshi share, {percent}%",
+  "breeds.gain.asWritten": "The ration as written",
+  "breeds.gain.farm":
+    "{animals, plural, one {# bull} other {# bulls}} here: {median}% (middle half {low}–{high}%)",
+  "breeds.gain.use": "Use {percent}%",
+  "breeds.gain.used": "Judged at {percent}% now",
+  "breeds.gain.cleared": "Judged as before",
+  "breeds.gain.set": "Set its gain share",
+  "breeds.gain.title": "{name}: its share of the expected gain",
+  "breeds.gain.hint":
+    "An animal of this breed is judged at this share of its ration's expected gain, in place of the deshi share. A cow or heifer is still judged at the female share on top. From 30% to 120%.",
+  "breeds.gain.label": "Share of the ration's expected gain (%)",
+  "breeds.gain.farmHint":
+    "{figure}. From bulls only — a cow or heifer carries the female share too.",
+  "breeds.gain.noFigure":
+    "Fewer than five of its bulls have been weighed long enough on a ration with an expected gain to say what they put on.",
+  "breeds.gain.clear": "Judge it as before",
   "breeds.markCross": "Mark as not deshi",
   "breeds.deshiChoice": "Deshi — the country's own cattle",
   "breeds.deshiHint":
@@ -3111,6 +3136,9 @@ export const en = {
   "standards.readOverDays":
     "at least {days, plural, one {# day} other {# days}} of weigh-ins — your setting",
   "standards.deshi": "Deshi animals",
+  "standards.breedShare": "A breed's own share",
+  "standards.breedShareRule":
+    "Where the farm has set a breed's own share from what its own bulls of it put on, that share replaces the standard figure and the deshi share for it — set on the breeds page.",
   "standards.female": "Cows and heifers",
   "standards.shareSet": "{percent}% of a ration's expected gain — your setting",
   "standards.penmates": "Behind his penmates",
@@ -3154,6 +3182,7 @@ export const en = {
   "gainOnRation.expects": "In {pen} · {ration} should give {range}",
   "gainOnRation.expectsShort": "Should give {range}",
   "gainOnRation.forDeshi": "deshi, {percent}%",
+  "gainOnRation.forBreed": "its breed's own {percent}%",
   "gainOnRation.forFemale": "female, {percent}%",
   "gainOnRation.breedUnknown": "breed not recorded",
   "gainOnRation.outsideBand": "Not judged: outside this ration's weights",
@@ -3950,6 +3979,8 @@ export const en = {
   "digest.monthlySumMissed":
     "{count, plural, one {# investor} other {# investors}} behind on their monthly sums",
   "alerts.seeWhoIsBehind": "See who is behind",
+  "ventureTrouble.payInNotes":
+    "{count, plural, one {# pay-in note} other {# pay-in notes}} to check against the bank",
   "alerts.payInNoteSent":
     "{investor} says they sent {currencySign}{amount} {way} on {day}, for {venture}",
   "push.payInNoteSentTitle": "An investor says they have paid",

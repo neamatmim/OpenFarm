@@ -34,9 +34,9 @@ female — never by Breed. That is the gap this closes.
 
 | #   | Ticket                                    | Blocked by |
 | --- | ----------------------------------------- | ---------- |
-| 01  | The farm's own gain share by Breed        | —          |
-| 02  | A Breed judged at its own share           | —          |
-| 03  | "Use it", the seed, and somebody opens it | 01, 02     |
+| 01  | The farm's own gain share by Breed        | done       |
+| 02  | A Breed judged at its own share           | done       |
+| 03  | "Use it", the seed, and somebody opens it | done       |
 
 01 and 02 are independent; 03 joins them.
 
