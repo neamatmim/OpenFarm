@@ -15,7 +15,9 @@ import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { priceTheJoining, weighedForTheCrossing } from "../joining-store";
 import {
+  ACROSS_BREAKDOWNS,
   BREAKDOWNS,
+  breakdownAcross,
   dairyAnimalReturns,
   returnsPage,
   runningSeasons,
@@ -55,6 +57,18 @@ export const returnsRouter = {
     .input(z.object({ seasonKey: z.string(), by: z.enum(BREAKDOWNS) }))
     .handler(({ context, input }) =>
       seasonBreakdown(context.db, context.farm, input, context.clock.now())
+    ),
+
+  /**
+   * Every finished Season opened out together by livestock market, trader, breed or buying weight, each line saying how
+   * many Seasons it drew from: what has returned best over the years. A share only. The Owner's alone.
+   */
+  breakdownAcross: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ by: z.enum(ACROSS_BREAKDOWNS) }))
+    .handler(({ context, input }) =>
+      breakdownAcross(context.db, context.farm, input.by, context.clock.now())
     ),
 
   /** One dairy Animal's return and her calves', for her own page: the Owner's alone. */

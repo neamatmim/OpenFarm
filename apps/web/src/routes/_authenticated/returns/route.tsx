@@ -19,6 +19,7 @@ import {
   StillGoing,
   useReturns,
 } from "@/components/returns/returns-page";
+import { AcrossSeasons } from "@/components/returns/season-breakdown";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { TAB_SWITCH, useTabOfPath } from "@/lib/path-tabs";
@@ -61,6 +62,8 @@ const ReturnsPage = () => {
     );
   }
   const page = returns.data;
+  // Read together only once two Seasons have finished: one read against itself shows nothing.
+  const twoFinished = page.seasons.filter((one) => one.finished).length > 1;
   return (
     <Page>
       {header}
@@ -86,6 +89,14 @@ const ReturnsPage = () => {
                 >
                   <FinishedReturns page={page} />
                 </Section>
+                {twoFinished ? (
+                  <Section
+                    description={t("returns.acrossHint")}
+                    title={t("returns.acrossTitle")}
+                  >
+                    <AcrossSeasons />
+                  </Section>
+                ) : null}
                 <Section
                   description={t("returns.stillGoingHint")}
                   title={t("returns.stillGoingTitle")}
