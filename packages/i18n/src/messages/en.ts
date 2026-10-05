@@ -5039,6 +5039,12 @@ export const en = {
   "returns.left.sold_to_venture": "sold to a venture",
   "returns.costBack": "{cost} → {back}",
   "returns.breakdownNone": "Nothing to show this way.",
+  "returns.acrossTitle": "Across every season",
+  "returns.acrossHint":
+    "Every finished season read together: which livestock market, trader, breed or buying weight has returned best over the years. The farm's own seasons only — a venture is worked in its settlement.",
+  "returns.acrossNote":
+    "Each line pools its animals from every finished season, the dead in, and says how many seasons it drew from. A share only, never a rate a year. A line seen in one season is a small one: judge it by its head.",
+  "returns.seasonsCount": "{count, plural, one {# season} other {# seasons}}",
   "returns.breakdownNote":
     "Each line is the season's own sum for its animals, the dead in. A share only: a rate a year on a few animals leads the eye astray.",
   "refusal.seasonNotFinished":

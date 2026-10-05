@@ -611,6 +611,57 @@ const byLine = (a: BreakdownLine, b: BreakdownLine): number => {
 };
 
 /**
+ * Holdings grouped into the lines of a breakdown, each line worked as a Season is — what its Animals cost, what came
+ * back, the dead in, a share only — in the breakdown's own order. One Season's breakdown and every Season's together
+ * are both this, so the two cannot drift apart.
+ */
+const linesOf = (
+  books: Books,
+  farm: ReturnsFarm,
+  holdings: readonly SeasonHolding[],
+  by: BreakdownBy,
+  facts: BuyingFacts,
+  now: Date
+): { row: BreakdownRow; holdings: SeasonHolding[] }[] => {
+  const lines = new Map<
+    string,
+    { line: BreakdownLine; holdings: SeasonHolding[] }
+  >();
+  for (const holding of holdings) {
+    const line = lineOf(by, holding, facts);
+    const key = JSON.stringify(line);
+    const one = lines.get(key) ?? { line, holdings: [] };
+    one.holdings.push(holding);
+    lines.set(key, one);
+  }
+  return [...lines.values()]
+    .toSorted((a, b) => byLine(a.line, b.line))
+    .map(({ line, holdings: its }) => {
+      const returned = returnOf({
+        spent: its.flatMap((one) => spentOn(books, null, one, now)),
+        backMoney: backOf(its),
+        floorDays: farm.returnYearFloorDays,
+        finished: true,
+      });
+      return {
+        holdings: its,
+        row: {
+          line,
+          head: its.length,
+          died: its.filter((one) => one.left?.how === "died").length,
+          lost: its.filter((one) => one.left?.how === "lost").length,
+          costMoney: returned?.costMoney ?? 0,
+          backMoney: returned?.backMoney ?? backOf(its),
+          resultMoney: returned?.resultMoney ?? backOf(its),
+          per100: returned?.per100 ?? null,
+          /** How this line's Animals grew, pooled: a seller whose bulls put on less is a seller to buy less from. */
+          growth: growthOfHoldings(books, its, now),
+        },
+      };
+    });
+};
+
+/**
  * A finished Season opened out by livestock market, trader, breed, the Weight Band her buying weight fell in, or each Animal: every
  * line the Season's own sum narrowed to its Animals — what they cost, what came back, the dead in — so the lines add up
  * to the Season, each rounded to the taka as the Season is, so a line's paisa may put their sum a taka off it. A share
@@ -645,39 +696,65 @@ export const seasonBreakdown = async (
     });
   }
   const facts = await buyingFactsOf(db, farm.id, group.holdings);
-  const lines = new Map<
-    string,
-    { line: BreakdownLine; holdings: SeasonHolding[] }
-  >();
-  for (const holding of group.holdings) {
-    const line = lineOf(input.by, holding, facts);
-    const key = JSON.stringify(line);
-    const one = lines.get(key) ?? { line, holdings: [] };
-    one.holdings.push(holding);
-    lines.set(key, one);
-  }
-  return [...lines.values()]
-    .toSorted((a, b) => byLine(a.line, b.line))
-    .map(({ line, holdings }) => {
-      const returned = returnOf({
-        spent: holdings.flatMap((one) => spentOn(books, null, one, now)),
-        backMoney: backOf(holdings),
-        floorDays: farm.returnYearFloorDays,
-        finished: true,
-      });
-      return {
-        line,
-        head: holdings.length,
-        died: holdings.filter((one) => one.left?.how === "died").length,
-        lost: holdings.filter((one) => one.left?.how === "lost").length,
-        costMoney: returned?.costMoney ?? 0,
-        backMoney: returned?.backMoney ?? backOf(holdings),
-        resultMoney: returned?.resultMoney ?? backOf(holdings),
-        per100: returned?.per100 ?? null,
-        /** How this line's Animals grew, pooled: a seller whose bulls put on less is a seller to buy less from. */
-        growth: growthOfHoldings(books, holdings, now),
-      };
-    });
+  return linesOf(books, farm, group.holdings, input.by, facts, now).map(
+    ({ row }) => row
+  );
+};
+
+/** The ways every finished Season opens out together: not into each Animal, since one line an animal over every year
+ *  is a list, not a comparison. */
+export const ACROSS_BREAKDOWNS = [
+  "livestockMarket",
+  "trader",
+  "breed",
+  "band",
+] as const satisfies readonly BreakdownBy[];
+
+/** One line across every finished Season: a Season's breakdown line, and how many Seasons its Animals came from — so a
+ *  trader seen once does not read like one seen every Eid. */
+export interface AcrossRow extends BreakdownRow {
+  seasons: number;
+}
+
+/**
+ * Every finished Season opened out together by livestock market, trader, breed or buying weight: each line pools its
+ * Animals from all of them, worked by the same rule one Season's breakdown is, so the lines add up to the finished
+ * Seasons on the page. The Farm's own Seasons only: a Venture is worked in its Settlement. A Season still going is in
+ * no line. A share only, never put a year.
+ */
+export const breakdownAcross = async (
+  db: Database,
+  farm: ReturnsFarm,
+  by: (typeof ACROSS_BREAKDOWNS)[number],
+  now: Date
+): Promise<{ seasons: number; lines: AcrossRow[] }> => {
+  const books = await booksOf(db, farm, now);
+  const finished = [...seasonGroupsOf(books).entries()].filter(
+    ([, group]) =>
+      returnOfHoldings(
+        books,
+        null,
+        group.holdings,
+        now,
+        farm.returnYearFloorDays
+      ).finished
+  );
+  const seasonOf = new Map<SeasonHolding, string>(
+    finished.flatMap(([key, group]) =>
+      group.holdings.map((one) => [one, key] as const)
+    )
+  );
+  const holdings = [...seasonOf.keys()];
+  const facts = await buyingFactsOf(db, farm.id, holdings);
+  return {
+    seasons: finished.length,
+    lines: linesOf(books, farm, holdings, by, facts, now).map(
+      ({ row, holdings: its }) => ({
+        ...row,
+        seasons: new Set(its.map((one) => seasonOf.get(one))).size,
+      })
+    ),
+  };
 };
 
 /** One dairy Animal's run and her calves', for her own page; nothing for one never on the Dairy side. */

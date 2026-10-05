@@ -78,9 +78,11 @@ const useLineSaid = () => {
   };
 };
 
-/** A breakdown line as the table reads it, with what it is called in the reader's words. */
+/** A breakdown line as the table reads it, with what it is called in the reader's words — and, read across every
+ *  Season, how many Seasons it drew from. */
 interface BreakdownListRow extends BreakdownRow {
   said: string;
+  seasons?: number;
 }
 
 interface BreakdownCell {
@@ -90,7 +92,7 @@ interface BreakdownCell {
 /** What the line is — an animal leading to her page — and under it her coming and going, or the head and the dead. */
 const LineCell = ({ row }: BreakdownCell) => {
   const { t } = useLanguage();
-  const { line, said, head, died, lost } = row.original;
+  const { line, said, head, died, lost, seasons } = row.original;
   return (
     <span className="flex flex-col font-medium">
       {line.kind === "animal" ? (
@@ -112,7 +114,11 @@ const LineCell = ({ row }: BreakdownCell) => {
             })
           : `${t("returns.head", { count: head })}${
               died > 0 ? ` · ${t("returns.died", { count: died })}` : ""
-            }${lost > 0 ? ` · ${t("returns.lostHead", { count: lost })}` : ""}`}
+            }${lost > 0 ? ` · ${t("returns.lostHead", { count: lost })}` : ""}${
+              seasons === undefined
+                ? ""
+                : ` · ${t("returns.seasonsCount", { count: seasons })}`
+            }`}
       </span>
     </span>
   );
@@ -195,7 +201,7 @@ const BreakdownTable = ({
   rows,
   by,
 }: {
-  rows: BreakdownRow[];
+  rows: (BreakdownRow & { seasons?: number })[];
   by: BreakdownBy;
 }) => {
   const said = useLineSaid();
@@ -251,6 +257,63 @@ export const SeasonBreakdown = ({ seasonKey }: { seasonKey: string }) => {
           )}
           <p className="text-muted-foreground max-w-prose text-xs">
             {t("returns.breakdownNote")}
+          </p>
+        </>
+      ) : null}
+    </div>
+  );
+};
+
+type AcrossBy = Parameters<typeof client.returns.breakdownAcross>[0]["by"];
+
+/** The ways every finished Season opens out together: not into each animal, which over every year is a list. */
+const ACROSS_BY = OPEN_BY.filter((one): one is AcrossBy => one !== "animal");
+
+/**
+ * Every finished Season opened out together by livestock market, trader, breed or buying weight — asked for only when
+ * the Owner picks a way. Each line pools its animals from every finished Season and says how many it drew from, so a
+ * trader seen once does not read like one seen every Eid. A share only, never a rate a year.
+ */
+export const AcrossSeasons = () => {
+  const { t } = useLanguage();
+  const [by, setBy] = useState<AcrossBy | null>(null);
+  const opened = useQuery({
+    ...orpc.returns.breakdownAcross.queryOptions({
+      input: { by: by ?? "livestockMarket" },
+    }),
+    enabled: by !== null,
+  });
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-muted-foreground text-sm">{t("returns.openBy")}</p>
+      <div className="flex flex-wrap gap-2">
+        {ACROSS_BY.map((one) => (
+          <Chip
+            chosen={by === one}
+            key={one}
+            label={t(BY_WORD[one])}
+            onChoose={() => setBy(by === one ? null : one)}
+          />
+        ))}
+      </div>
+      {by !== null && opened.error ? (
+        <p className="text-danger text-sm">
+          {wordedRefusal(opened.error, t) ?? t("returns.breakdownFailed")}
+        </p>
+      ) : null}
+      {by !== null && opened.data ? (
+        <>
+          {opened.data.lines.length === 0 ? (
+            <EmptyState
+              bare
+              icon={ChartColumn}
+              title={t("returns.breakdownNone")}
+            />
+          ) : (
+            <BreakdownTable by={by} rows={opened.data.lines} />
+          )}
+          <p className="text-muted-foreground max-w-prose text-xs">
+            {t("returns.acrossNote")}
           </p>
         </>
       ) : null}
