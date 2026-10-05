@@ -125,6 +125,15 @@ const EXAMPLE: NoticeFacts = {
     investor: "আবুল হাশেম মিয়া",
     units: 4,
   },
+  pay_in_note_sent: {
+    noteId: "note-1",
+    ventureId: "venture-1",
+    venture: "কোরবানি ২০৩৮",
+    investor: "আবুল হাশেম মিয়া",
+    amountMoney: 60_000,
+    sentOn: "2038-01-05",
+    way: "mobile_money",
+  },
   receivable_overdue: {
     counterpartyId: "buyer-1",
     buyer: "করিম ব্যাপারী",

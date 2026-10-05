@@ -45,6 +45,7 @@ export const ALERT_KINDS = [
   "mortality_recorded",
   "mortality_undiagnosed",
   "monthly_sum_missed",
+  "pay_in_note_sent",
 ] as const;
 export type AlertKind = (typeof ALERT_KINDS)[number];
 

@@ -3853,6 +3853,12 @@ export const en = {
   "digest.monthlySumMissed":
     "{count, plural, one {# investor} other {# investors}} behind on their monthly sums",
   "alerts.seeWhoIsBehind": "See who is behind",
+  "alerts.payInNoteSent":
+    "{investor} says they sent {currencySign}{amount} {way} on {day}, for {venture}",
+  "push.payInNoteSentTitle": "An investor says they have paid",
+  "digest.payInNoteSent":
+    "{count, plural, one {# pay-in note} other {# pay-in notes}} to check against the bank",
+  "alerts.checkThePayInNotes": "Check it against the bank",
   "alerts.seeWhoOwes": "See who owes what",
   "alerts.lotExpiring":
     "{item}, lot {lot}: expires on {date}, with {left} left",

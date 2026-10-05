@@ -121,6 +121,10 @@ export const DELIVERY = {
   mortality_undiagnosed: { when: "immediate" },
   // A Monthly Sum missed is the evening's for the Owner, who rings the man: the farm reminds him, the app never does.
   monthly_sum_missed: { when: "digest" },
+  // An Investor who says they have sent money is waiting to hear, and a decide-by day or a Monthly Sum's tenth may be
+  // close: the Owner hears at once, by push, so the Venture Account can be checked today (the Owner, 2026-10-05). Not
+  // at night — the bank is checked in the morning.
+  pay_in_note_sent: { when: "immediate" },
   // Money entered twice on purpose is the evening's question for the Owner, not a buzz: it may well be two bills.
   entered_twice: { when: "digest" },
   // A sale gone cheap is the evening's question for the Owner to ask about, never a buzz at the livestock market.
@@ -320,6 +324,11 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
   cash_short: {
     app: "alerts.cashShort",
     digest: "digest.cashShort",
+  },
+  pay_in_note_sent: {
+    app: "alerts.payInNoteSent",
+    push: { title: "push.payInNoteSentTitle", body: "alerts.payInNoteSent" },
+    digest: "digest.payInNoteSent",
   },
   monthly_sum_missed: {
     app: "alerts.monthlySumMissed",

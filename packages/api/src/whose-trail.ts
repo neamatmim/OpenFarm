@@ -83,6 +83,7 @@ export const WHOSE_TRAIL = {
   amendment_offer: "owner",
   portal_consent: "owner",
   request_to_join: "owner",
+  pay_in_note: "owner",
   paper_template: "owner",
   paper_template_version: "owner",
   // What each Venture holds, spends, buys across and made.

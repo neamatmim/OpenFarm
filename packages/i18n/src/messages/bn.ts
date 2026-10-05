@@ -3610,6 +3610,11 @@ export const bn: Record<MessageKey, string> = {
     "{investor} {venture}-এ মাসের {currencySum} {currencySign}{amount} দেননি, শেষটি {day} তারিখে দেওয়ার কথা ছিল",
   "digest.monthlySumMissed": "{count} জন বিনিয়োগকারী মাসের {currencyIn} পিছিয়ে",
   "alerts.seeWhoIsBehind": "কে পিছিয়ে দেখুন",
+  "alerts.payInNoteSent":
+    "{investor} জানিয়েছেন, তিনি {day} তারিখে {venture}-এর জন্য {way} {currencySign}{amount} পাঠিয়েছেন",
+  "push.payInNoteSentTitle": "বিনিয়োগকারী টাকা পাঠিয়েছেন বলে জানিয়েছেন",
+  "digest.payInNoteSent": "{count}টি জমার খবর ব্যাংকের সঙ্গে মেলাতে হবে",
+  "alerts.checkThePayInNotes": "ব্যাংকের সঙ্গে মিলিয়ে দেখুন",
   "alerts.seeWhoOwes": "কার কাছে কত বাকি দেখুন",
   "alerts.lotExpiring":
     "{item}, লট {lot}: {date}-এ মেয়াদ শেষ হবে, এখনো {left} বাকি",

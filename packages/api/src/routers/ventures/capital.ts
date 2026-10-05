@@ -14,6 +14,14 @@ import { protectedProcedure } from "../../index";
 import { theOwnersOf } from "../../intake-store";
 import { paperOnFile } from "../../investor-store";
 import {
+  answerNotFound,
+  closePayInNotes,
+  notFoundInput,
+  notePhoto,
+  notesOnVenture,
+  receiveTheNote,
+} from "../../pay-in-notes";
+import {
   OWNER_ONLY,
   requireOnly,
   requirePersonalSession,
@@ -43,6 +51,9 @@ const capitalInput = z.object({
   paymentMethod: z.enum(PAYMENT_METHODS),
   /** The transfer, cheque or deposit slip, and what it is numbered. */
   reference: z.string().trim().min(1).max(120),
+  /** The Investor's Pay-in Note this is the money of, when the Owner records it from one: it answers the note
+   *  received (ADR 0018). */
+  payInNoteId: z.string().optional(),
 });
 
 /** Open, any Venture; paid by the month, its Monthly Sums too while it buys and fattens. Once it sells, a sum not yet
@@ -167,10 +178,54 @@ export const capitalProcedures = {
             recordedBy: context.actor.id,
             createdAt: now,
           });
+          if (input.payInNoteId) {
+            await receiveTheNote(context, tx, {
+              noteId: input.payInNoteId,
+              agreementId: agreement.id,
+              movementId: id,
+            });
+          }
+          // Nothing left owing: a note still waiting is for money the paper cannot take.
+          if (paidAlready + input.amountMoney >= owed) {
+            await closePayInNotes(
+              tx,
+              audited(context).recordEvent,
+              context.farm.id,
+              { agreementId: agreement.id },
+              "nothing_owed",
+              now
+            );
+          }
         }
       );
       return { id };
     }),
+
+  /** The Investors' Pay-in Notes on a Venture, the Owner's to check against the Venture Account (ADR 0018). */
+  payInNotes: {
+    /** Every note on a Venture, the latest first, with whose it is and the Pay-in Code of the paper it is for. */
+    list: protectedProcedure
+      .use(requireOnly("owner", OWNER_ONLY))
+      .use(requirePersonalSession())
+      .input(z.object({ ventureId: z.string() }))
+      .handler(({ context, input }) =>
+        notesOnVenture(context, input.ventureId)
+      ),
+
+    /** The Venture Account does not show it: the note is answered not found, with a line to the Investor. */
+    notFound: protectedProcedure
+      .use(requireOnly("owner", OWNER_ONLY))
+      .use(requirePersonalSession())
+      .input(notFoundInput)
+      .handler(({ context, input }) => answerNotFound(context, input)),
+
+    /** The photo an Investor sent with a note, to look at beside the bank's statement; opening it is in the trail. */
+    photo: protectedProcedure
+      .use(requireOnly("owner", OWNER_ONLY))
+      .use(requirePersonalSession())
+      .input(z.object({ noteId: z.string() }))
+      .handler(({ context, input }) => notePhoto(context, input.noteId)),
+  },
 
   /** A Venture's Buying Floats: the cash an outing takes, and what it brings back. */
   floats: {

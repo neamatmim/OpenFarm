@@ -30,6 +30,7 @@ import {
   nomineesInput,
   recordNomination,
 } from "../nominations";
+import { closePayInNotes } from "../pay-in-notes";
 import { photoInput } from "../photo-input";
 import type { ConsentWithdrawnSaid } from "../portal-consent";
 import {
@@ -480,6 +481,14 @@ export const investorsRouter = {
         // A retired Investor is not signed for another Venture, so nothing they asked for is waiting any more.
         alsoWrite: async (tx) => {
           await closeRequests(
+            tx,
+            audited(context).recordEvent,
+            context.farm.id,
+            { investorId: input.id },
+            "investor_retired",
+            context.clock.now()
+          );
+          await closePayInNotes(
             tx,
             audited(context).recordEvent,
             context.farm.id,

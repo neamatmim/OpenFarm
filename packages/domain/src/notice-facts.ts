@@ -256,6 +256,18 @@ export interface NoticeFacts {
     investor: string;
     units: number;
   };
+  /** An Investor saying, through the portal, that they sent money towards one of their Agreements (ADR 0018): who,
+   *  which Venture, how much, the day and the way, as the note now stands. Kept up to date as the note changes. */
+  pay_in_note_sent: {
+    noteId: string;
+    ventureId: string;
+    venture: string;
+    investor: string;
+    amountMoney: number;
+    /** The farm day ("YYYY-MM-DD") they say it went. */
+    sentOn: string;
+    way: "bank_transfer" | "cheque" | "deposit_slip" | "mobile_money";
+  };
 }
 
 /** What a notice about a Lot carries. */

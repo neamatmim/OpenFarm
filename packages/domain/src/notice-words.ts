@@ -42,6 +42,15 @@ const floorBasis = (
     : ` — on the day's ${kg} kg`;
 };
 
+/** How a Pay-in Note's money went, as a notice says it in either language: Mobile Money is বিকাশ on the Bangla
+ *  screens, as the farm calls it (ADR 0014). */
+const WAY_WORDS = {
+  bank_transfer: { bn: "ব্যাংক ট্রান্সফারে", en: "by bank transfer" },
+  cheque: { bn: "চেকে", en: "by cheque" },
+  deposit_slip: { bn: "জমার স্লিপে", en: "by deposit slip" },
+  mobile_money: { bn: "বিকাশে", en: "by mobile money" },
+} as const;
+
 /** A day or an instant the Notice carries, said in the reader's own calendar; nothing when it carries none. */
 const saidDate = (
   value: unknown,
@@ -294,6 +303,13 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     investor: facts.investor,
     venture: facts.venture,
     units: Number(facts.units),
+  }),
+  pay_in_note_sent: (facts, language) => ({
+    investor: facts.investor,
+    venture: facts.venture,
+    amount: Number(facts.amountMoney),
+    day: saidDate(facts.sentOn, language),
+    way: named(WAY_WORDS[facts.way].bn, WAY_WORDS[facts.way].en, language),
   }),
 };
 
