@@ -1,11 +1,13 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { investmentAgreement, investor } from "@OpenFarm/db/schema/venture";
+import type { TemplateContent } from "@OpenFarm/domain";
 import { farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import type { Context } from "./context";
 import { nextPayInCode, readAgreement, unitsTaken } from "./investor-store";
+import { currentWording, giveStandardTemplates } from "./template-store";
 import { actOnVenture } from "./venture-act";
 import { windowInForceOn } from "./venture-store";
 
@@ -51,6 +53,21 @@ export const farmPartnerOf = async (
   return id;
 };
 
+/** Whether an exported paper, as the trail keeps it, was an Agreement laid out for an Investor to sign. */
+const isADraft = (event: { after: unknown }): boolean =>
+  typeof event.after === "object" &&
+  event.after !== null &&
+  "paper" in event.after &&
+  event.after.paper === "agreement_draft";
+
+/** Whether a wording of the Investment Agreement has a clause printed where the Farm holds Units of its own. */
+const tellsOfFarmCapital = (content: TemplateContent): boolean =>
+  content.sections.some(
+    (section) =>
+      section.kind === "clauses" &&
+      section.clauses.some((clause) => clause.only === "farm_capital")
+  );
+
 /** Whether an Agreement is the Farm's own Units. */
 export const isTheFarmsOwn = (agreement: { stampKind: string }): boolean =>
   agreement.stampKind === "farm_own";
@@ -71,6 +88,20 @@ export const farmTakesUnits = async (
   const farmId = context.farm.id;
   const now = context.clock.now();
   const id = uuidv7(now);
+  // Every Investor is told of the Farm's Units by their Agreement: wording that has no clause for it — the Owner's own,
+  // published before there was one — would have them sign knowing nothing.
+  await giveStandardTemplates(context);
+  const wording = await currentWording(
+    context.db,
+    farmId,
+    "investment_agreement"
+  );
+  if (!tellsOfFarmCapital(wording.content)) {
+    throw refused(
+      "wording_tells_no_farm_capital",
+      "The Investment Agreement in force has no clause telling the Investors of the Farm's own Units; publish one first"
+    );
+  }
   await actOnVenture(context, {
     ventureId: input.ventureId,
     from: ["open"],
@@ -103,10 +134,33 @@ export const farmTakesUnits = async (
         },
         columns: { id: true },
       });
-      if (signed.length > 0 || offered) {
+      if (signed.length > 0) {
         throw refused(
           "investors_signed_already",
-          "An Investor has signed already, or been offered an Agreement; the Farm takes its Units before anybody signs, so all sign knowing"
+          "An Investor has signed already; the Farm takes its Units before anybody signs, so all sign knowing"
+        );
+      }
+      if (offered) {
+        throw refused(
+          "an_offer_is_standing",
+          "An Agreement offered in the app is standing, laid out without the Farm's Units; withdraw it first"
+        );
+      }
+      // A paper printed for an Investor to sign was laid out without the Farm's Units, and is signed as printed: the
+      // record of what each was handed is the Venture's own trail.
+      const handed = await tx.query.auditEvent.findMany({
+        where: {
+          farmId,
+          entity: "venture",
+          entityId: standing.id,
+          action: "export",
+        },
+        columns: { after: true },
+      });
+      if (handed.some(isADraft)) {
+        throw refused(
+          "paper_laid_out_already",
+          "A paper has been printed for an Investor to sign without the Farm's Units; the Farm takes its Units before any is"
         );
       }
       if (input.units > Math.floor(standing.units * FARM_SHARE_MOST)) {
@@ -202,4 +256,31 @@ export const farmUnitsOf = async (
 ): Promise<number> => {
   const each = await farmUnitsOfEach(db, farmId, [ventureId]);
   return each.get(ventureId) ?? 0;
+};
+
+/**
+ * Refuses terms on a split other than the Farm's own Units': they are on the same terms as everyone's, so every
+ * Investor is signed on that split — or the Settlement could not divide the run. Asked wherever terms are first put to an
+ * Investor — the paper laid out to sign, the offer in the app — and again where they are signed. Nothing where the Farm
+ * holds no Units.
+ */
+export const assertTheFarmsSplit = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
+  ventureId: string,
+  investorsPercent: number
+): Promise<void> => {
+  const farmsOwn = await db.query.investmentAgreement.findFirst({
+    where: { farmId, ventureId, stampKind: "farm_own" },
+    columns: { investorsPercent: true },
+  });
+  if (farmsOwn && farmsOwn.investorsPercent !== investorsPercent) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `The Farm's own Units in this Venture are on a ${farmsOwn.investorsPercent}% split; every Investor signs on the same`,
+      data: {
+        refusal: "split_not_the_farms",
+        investorsPercent: farmsOwn.investorsPercent,
+      },
+    });
+  }
 };

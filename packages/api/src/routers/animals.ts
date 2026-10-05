@@ -70,7 +70,7 @@ import {
   requireAnimal,
 } from "../herd-store";
 import { protectedProcedure } from "../index";
-import { makeGood } from "../made-good-store";
+import { costToDateOf, makeGood, takenOnByTheFarm } from "../made-good-store";
 import {
   markFound,
   markWrittenOff,
@@ -1436,6 +1436,14 @@ export const animalsRouter = {
               now,
             });
           }
+          // A Venture's animal the Farm made good is the Farm's once found: it paid the Venture for her.
+          if (writtenOff && target.ownerVentureId) {
+            await takenOnByTheFarm(tx, context, {
+              animalId: target.id,
+              ventureId: target.ownerVentureId,
+              now,
+            });
+          }
         }
       );
       return { tagNumber };
@@ -1477,6 +1485,33 @@ export const animalsRouter = {
         }
       );
       return { tagNumber, opened };
+    }),
+
+  /**
+   * What the Farm will make a Venture's animal good at if the Owner writes her off now — her cost to the Venture to
+   * date, the figure the write-off books — so the transfer is made for that amount. Nothing for the Farm's own animal.
+   * The Owner's alone, as writing her off is.
+   */
+  madeGoodAmount: protectedProcedure
+    .use(requireRole("owner"))
+    .input(z.object({ tagNumber: tagInput }))
+    .handler(async ({ context, input }) => {
+      const target = await requireAnimal(
+        context.db,
+        context.farm.id,
+        input.tagNumber.toUpperCase()
+      );
+      if (!target.ownerVentureId) {
+        return null;
+      }
+      return {
+        amountMoney: await costToDateOf(
+          context.db,
+          context.farm.id,
+          target.id,
+          target.ownerVentureId
+        ),
+      };
     }),
 
   /**

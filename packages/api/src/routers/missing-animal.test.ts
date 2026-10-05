@@ -186,6 +186,30 @@ describe("an animal the round could not find", () => {
     expect(home.queue.missing.map((one) => one.tag)).not.toContain(tag);
   });
 
+  it("stays written off when the round is put right after the Owner wrote her off: only Found brings her back", async () => {
+    const { penId, tag } = await aPenWithHer("খোঁজা পেন বাদ দেওয়া");
+    const { manager, completionId } = await theRound("2054-02-08", penId, tag, {
+      skipReason: NOT_FOUND,
+    });
+    const owner = await as("owner", "2054-02-09T06:00:00.000Z");
+    await owner.client.animals.writeOff({ tagNumber: tag, cause: "চুরি" });
+
+    await correctStepAsShown(manager.client, {
+      completionId,
+      reason: "ভুল পেনে খোঁজা হয়েছিল",
+      skipReason: WELL,
+    });
+
+    // Written off, she is the Owner's decision, and the record of it stands: she can still be Found.
+    expect(await openFor(tag)).toHaveLength(1);
+    await owner.client.animals.found({ tagNumber: tag });
+    const her = await scratchDb().query.animal.findFirst({
+      where: { farmId: theFarm().id, tagNumber: tag },
+      columns: { state: true },
+    });
+    expect(her?.state).not.toBe("lost");
+  });
+
   it("is not listed once she has left the farm", async () => {
     const { penId, tag } = await aPenWithHer("খোঁজা পেন চ");
     const { manager } = await theRound("2054-02-07", penId, tag, {

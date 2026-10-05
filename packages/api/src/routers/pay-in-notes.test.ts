@@ -11,6 +11,7 @@ import {
 import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { PAID_FROM_THE_ACCOUNT } from "../test/bought-by-bank";
 import { createTestClient } from "../test/client";
 import { invitingInvestors } from "../test/portal-client";
 import { appRouter } from "./index";
@@ -178,7 +179,8 @@ describe("the switch", () => {
     const today = await them.client.portal.venture({
       agreementId: them.agreementId,
     });
-    expect(today.payIn.mayTell).toBe(false);
+    // Nor is a note changed while it is off: the portal offers neither.
+    expect(today.payIn).toMatchObject({ mayTell: false, mayChange: false });
   });
 });
 
@@ -193,7 +195,13 @@ describe("a Pay-in Note, sent", () => {
     const before = await them.client.portal.venture({
       agreementId: them.agreementId,
     });
-    expect(before.payIn).toEqual({ mayTell: true, notes: [] });
+    // Two Units at ৳50,000, nothing paid and nothing told yet: room for all of it.
+    expect(before.payIn).toEqual({
+      mayTell: true,
+      mayChange: true,
+      roomMoney: 100_000,
+      notes: [],
+    });
 
     const sent = await them.client.portal.sendPayInNote({
       ...saying(them.agreementId, 60_000),
@@ -271,11 +279,42 @@ describe("a Pay-in Note, sent", () => {
         )
       )
     ).toBe("agreement_has_no_paper");
+    // Refused, and so not offered: the portal asks what the note is refused by.
+    const notOnFile = await unpapered.client.portal.venture({
+      agreementId: unpapered.agreementId,
+    });
+    expect(notOnFile.payIn.mayTell).toBe(false);
     expect(
       await refusalOf(
         them.client.portal.sendPayInNote(saying(unpapered.agreementId, 10_000))
       )
     ).toBe("no_such_agreement");
+  });
+
+  it("is offered only where it would be taken, and for no more than is left once the notes waiting are counted", async () => {
+    const ventureId = await aVenture("দেওয়ার মতো");
+    const them = await signedUp("জায়গা আছে", ventureId, 2);
+    // Two Units at ৳50,000, nothing paid: room for ৳1,00,000.
+    const before = await them.client.portal.venture({
+      agreementId: them.agreementId,
+    });
+    expect(before.payIn).toMatchObject({ mayTell: true, roomMoney: 100_000 });
+    // A note of ৳70,000 waiting leaves room for ৳30,000; one of the rest leaves none to tell.
+    await them.client.portal.sendPayInNote(saying(them.agreementId, 70_000));
+    const partly = await them.client.portal.venture({
+      agreementId: them.agreementId,
+    });
+    expect(partly.payIn).toMatchObject({ mayTell: true, roomMoney: 30_000 });
+    await them.client.portal.sendPayInNote(saying(them.agreementId, 30_000));
+    const full = await them.client.portal.venture({
+      agreementId: them.agreementId,
+    });
+    // No room for another, but the ones waiting may still be changed.
+    expect(full.payIn).toMatchObject({
+      mayTell: false,
+      mayChange: true,
+      roomMoney: 0,
+    });
   });
 
   it("is neither offered nor taken before the farm has written where to pay", async () => {
@@ -562,6 +601,74 @@ describe("a note nobody answered", () => {
       state: "closed",
       closedBecause: "venture_takes_no_capital",
     });
+  });
+  it("closes by itself when a Venture paid by the month makes its first Sale, and takes no more Monthly Sums", async () => {
+    const owner = await as("owner");
+    const venture = await owner.ventures.open({
+      name: `মাসে মাসে ${suffix}`,
+      targetCapitalMoney: 500_000,
+      floorMoney: 0,
+      decideBy: "2094-01-25",
+      targetWindowStart: "2094-06-01",
+      targetWindowEnd: "2094-06-10",
+      unitPriceMoney: 50_000,
+      units: 10,
+      cattleBudgetMoney: 400_000,
+      capitalPaid: "by_the_month",
+    });
+    await owner.ventures.setBankAccount({ id: venture.id, ...ACCOUNT });
+    const them = await signedUp("মাসিক", venture.id, 1);
+    // The Cattle Part in, buying started: the Monthly Sums still come in, and a note of one waits.
+    await owner.ventures.takeCapital({
+      agreementId: them.agreementId,
+      amountMoney: 40_000,
+      movedOn: TODAY,
+      paymentMethod: "bank",
+      reference: "BEFTN গরুর অংশ",
+    });
+    await owner.ventures.startBuying({ id: venture.id });
+    const sent = await them.client.portal.sendPayInNote(
+      saying(them.agreementId, 2000)
+    );
+    expect(await theirNote(them, sent.id)).toMatchObject({ state: "waiting" });
+
+    // The first Sale turns it to selling: no Monthly Sum is taken after that, so the note waits for nothing.
+    const shed = await owner.sheds.create({ name: `মাসিক ${suffix}` });
+    const pen = await owner.sheds.pens.create({
+      quarantine: true,
+      shedId: shed.id,
+      name: `মাসিক পেন ${suffix}`,
+    });
+    const bull = await owner.intakes.record({
+      penId: pen.id,
+      sex: "male",
+      seller: { name: `প্রতিবেশী ${suffix}` },
+      purchasePriceMoney: 30_000,
+      weightKg: 200,
+      estimatedAgeMonths: 20,
+      arrivedAt: new Date(JANUARY),
+      ventureId: venture.id,
+      targetWindowStart: "2094-06-01",
+      targetWindowEnd: "2094-06-10",
+      ...PAID_FROM_THE_ACCOUNT,
+    });
+    await owner.sales.record({
+      tagNumber: bull.tagNumber,
+      buyer: { name: `কসাই ${suffix}` },
+      destination: "গাবতলী",
+      vehicle: "ঢাকা মেট্রো-ট ১১-২২৩৫",
+      driver: "সোহেল",
+      priceMoney: 40_000,
+      weightKg: 210,
+      paymentMethod: "bank",
+      reference: `SALE-MONTHLY-${suffix}`,
+    });
+
+    expect(await theirNote(them, sent.id)).toMatchObject({
+      state: "closed",
+      closedBecause: "venture_takes_no_capital",
+    });
+    expect(await toldAbout("owner", venture.id)).toEqual([]);
   });
 });
 

@@ -1,13 +1,18 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { ventureMovement } from "@OpenFarm/db/schema/venture-account";
-import { farmDayOf } from "@OpenFarm/domain";
+import { chargesOfOwner, farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
 import { audited } from "./audit";
 import type { Context } from "./context";
-import { chargedOf, economicsOfAnimal, farmCosts } from "./cost-store";
+import { farmCosts } from "./cost-store";
+import { recordInternalSale } from "./internal-sale-store";
 import { accountSaid, bookMoney, bookingOf } from "./money-store";
-import { readMovement } from "./venture-store";
+import {
+  ownedThenByOf,
+  readMovement,
+  whatSheLastWeighed,
+} from "./venture-store";
 
 // A Venture's lost animal made good by the Farm (lose-less A-04): the Farm pays the Venture what she had cost it to
 // date — her price and every charge on her — by bank into its account, so a theft or a stray costs its Investors
@@ -21,21 +26,63 @@ type MakingGood = Context & {
 };
 
 /**
- * What she had cost the Venture to date, to the taka: her price and every charge on her, as the costing has them —
- * the same figure the death notice gives the Owner, so a lost animal and a dead one are costed one way.
+ * When the Venture took her on, and at what: by an Internal Sale, from that day at that price; else, where its own
+ * buying brought her in, from the day she came off the lorry at her price. Nothing for one it never paid for.
+ */
+const takenOnBy = (
+  boughtIn: { priceMoney: number; soldOn: string } | undefined,
+  intake: { arrivedAt: Date; purchasePriceMoney: number } | null | undefined,
+  arrivedAsItsOwn: boolean
+): { at: Date; priceMoney: number } | null => {
+  if (boughtIn) {
+    return {
+      at: startOfFarmDay(boughtIn.soldOn),
+      priceMoney: boughtIn.priceMoney,
+    };
+  }
+  if (intake && arrivedAsItsOwn) {
+    return { at: intake.arrivedAt, priceMoney: intake.purchasePriceMoney };
+  }
+  return null;
+};
+
+/**
+ * What she had cost the Venture to date, to the taka, as its Settlement charges it: what it paid to take her on — her
+ * price where its own buying brought her in, or what it paid the Farm or another Venture for her — and every charge on
+ * her since, while she was its own. Never her life on the farm before it had her, which was somebody else's cost.
  */
 export const costToDateOf = async (
-  tx: Tx,
+  tx: Parameters<typeof farmCosts>[0] & Pick<Tx, "query">,
   farmId: string,
-  animalId: string
+  animalId: string,
+  ventureId: string
 ): Promise<number> => {
-  const costs = await farmCosts(tx, farmId);
-  const costed = costs.animals.find((one) => one.id === animalId);
-  if (!costed) {
+  const [costs, ownedThenBy, boughtIn] = await Promise.all([
+    farmCosts(tx, farmId),
+    ownedThenByOf(tx, farmId),
+    tx.query.internalSale.findFirst({
+      where: { farmId, animalId, toVentureId: ventureId },
+      orderBy: { soldOn: "desc", id: "desc" },
+      columns: { priceMoney: true, soldOn: true },
+    }),
+  ]);
+  const intake = costs.animals.find((one) => one.id === animalId)?.intake;
+  const takenOn = takenOnBy(
+    boughtIn,
+    intake,
+    intake ? ownedThenBy(animalId, intake.arrivedAt) === ventureId : false
+  );
+  if (!takenOn) {
     return 0;
   }
-  const economics = economicsOfAnimal(costs, costed);
-  return Math.round((economics.purchaseMoney ?? 0) + chargedOf(economics));
+  const charged = chargesOfOwner(
+    costs.charges.filter(
+      (one) => one.animalId === animalId && one.at >= takenOn.at
+    ),
+    ventureId,
+    ownedThenBy
+  ).reduce((sum, one) => sum + one.amount, 0);
+  return Math.round(takenOn.priceMoney + charged);
 };
 
 /**
@@ -55,7 +102,12 @@ export const makeGood = async (
   }
 ): Promise<void> => {
   const farmId = context.farm.id;
-  const amountMoney = await costToDateOf(tx, farmId, made.animalId);
+  const amountMoney = await costToDateOf(
+    tx,
+    farmId,
+    made.animalId,
+    made.ventureId
+  );
   if (amountMoney <= 0) {
     return;
   }
@@ -99,4 +151,69 @@ export const makeGood = async (
     { entity: "venture_movement", entityId: id, action: "create" },
     { after: await readMovement(tx, farmId, id) }
   );
+};
+
+/**
+ * A Venture's lost animal found after the Farm made her good comes back as the Farm's own: the made-good transfer was
+ * the Farm paying the Venture for her, so she is handed over on the day she is found, at what was made good — an
+ * Internal Sale that moves no money of its own — and joins the Farm's Fattening at that price, fed towards the window
+ * she was bought for. Nothing for an animal that was never made good.
+ */
+export const takenOnByTheFarm = async (
+  tx: Tx,
+  context: MakingGood,
+  found: { animalId: string; ventureId: string; now: Date }
+): Promise<void> => {
+  const farmId = context.farm.id;
+  const made = await tx.query.ventureMovement.findFirst({
+    where: {
+      farmId,
+      ventureId: found.ventureId,
+      animalId: found.animalId,
+      kind: "made_good",
+    },
+    orderBy: { createdAt: "desc", id: "desc" },
+    columns: { amountMoney: true, reference: true },
+  });
+  if (!made) {
+    return;
+  }
+  const arrived = await tx.query.intake.findFirst({
+    where: { farmId, animalId: found.animalId },
+    columns: {
+      weightKg: true,
+      targetWindowStart: true,
+      targetWindowEnd: true,
+    },
+  });
+  const weighed = (await whatSheLastWeighed(tx, farmId, found.animalId)) ?? {
+    id: null,
+    weightKg: Number(arrived?.weightKg ?? 0),
+  };
+  const priceMoney = made.amountMoney;
+  const day = farmDayOf(found.now);
+  await recordInternalSale(tx, bookingOf(context, "owner", found.now), {
+    id: uuidv7(found.now),
+    animalId: found.animalId,
+    from: found.ventureId,
+    to: null,
+    weighed: { id: weighed.id, weightKg: weighed.weightKg },
+    rateMoneyPerKg:
+      weighed.weightKg > 0
+        ? Math.round((priceMoney / weighed.weightKg) * 100) / 100
+        : 0,
+    ...(arrived
+      ? {
+          targetWindow: {
+            start: arrived.targetWindowStart,
+            end: arrived.targetWindowEnd,
+          },
+        }
+      : {}),
+    note: `Made good when lost (${made.reference}); found ${day}`,
+    soldOn: day,
+    paymentMethod: "bank",
+    reference: made.reference ?? "",
+    madeGood: { priceMoney },
+  });
 };

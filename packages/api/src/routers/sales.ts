@@ -28,6 +28,7 @@ import {
   referenceInput,
 } from "../money-inputs";
 import { accountSaid, bookingOf } from "../money-store";
+import { closePayInNotes } from "../pay-in-notes";
 import { fatteningRows } from "../ready-store";
 import {
   receivableOrRefuse,
@@ -282,6 +283,16 @@ export const salesRouter = {
               audited(context).recordEvent
             );
             if (started) {
+              // Selling, a Venture paid by the month takes no more Monthly Sums: a note of one sent is waiting for
+              // nothing the farm can still record (ADR 0018), as when any Venture stops taking capital.
+              await closePayInNotes(
+                tx,
+                audited(context).recordEvent,
+                context.farm.id,
+                { ventureId: her.ownerVentureId },
+                "venture_takes_no_capital",
+                now
+              );
               // The first Sale: one of the four moments an Investor hears at.
               const its = await tx.query.venture.findFirst({
                 where: { id: her.ownerVentureId, farmId: context.farm.id },

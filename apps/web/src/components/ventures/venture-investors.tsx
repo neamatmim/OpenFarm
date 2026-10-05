@@ -91,10 +91,30 @@ const paidAgainst = (
   return paid;
 };
 
+/** Whether an Agreement offered in the app is standing on an open Venture — offered or agreed, and not yet approved or
+ *  withdrawn: it was laid out without the Farm's own Units. */
+const useOfferStanding = (venture: Venture) => {
+  const offers = useQuery({
+    ...orpc.ventures.agreements.offers.list.queryOptions({
+      input: { ventureId: venture.id },
+    }),
+    enabled: venture.state === "open",
+  });
+  return (offers.data ?? []).some(
+    (one) => one.standing === "offered" || one.standing === "agreed"
+  );
+};
+
 /** Whether the Farm may take Units of its own now: open, a Unit or more to spare for it under half, and only before
  *  anybody signs, so every Investor signs knowing the Farm's own Units. */
-const farmMayTake = (venture: Venture, signed: number, unitsLeft: number) =>
-  venture.state === "open" && signed === 0 && unitsLeft > 1;
+const farmMayTake = (
+  venture: Venture,
+  signed: number,
+  unitsLeft: number,
+  /** An Agreement offered in the app and not yet approved or withdrawn: laid out without the Farm's Units. */
+  offerStanding: boolean
+) =>
+  venture.state === "open" && signed === 0 && unitsLeft > 1 && !offerStanding;
 
 /** One Investor's papers, in a menu on his row: his three statements, each offered only once it can be made and saying
  *  why not until then — the joining letter and the progress statement once capital has come in, the settlement
@@ -485,6 +505,7 @@ export const VentureInvestors = ({
     orpc.ventures.agreements.list.queryOptions(input)
   );
   const movements = useQuery(orpc.ventures.movements.list.queryOptions(input));
+  const offerStanding = useOfferStanding(venture);
   const paid = paidAgainst(movements.data ?? []);
   const signed = moneyOf(venture).signedFor;
   const { unitsLeft } = moneyOf(venture);
@@ -575,7 +596,7 @@ export const VentureInvestors = ({
           {t("ventures.takeCapital")}
         </Button>
       ) : null}
-      {farmMayTake(venture, agreed.length, unitsLeft) ? (
+      {farmMayTake(venture, agreed.length, unitsLeft, offerStanding) ? (
         <Button
           onClick={() => setFarmTaking(true)}
           size="sm"

@@ -106,12 +106,15 @@ interface Saying {
 const NoteSheet = ({
   agreementId,
   paying,
+  roomMoney,
   changing,
   open,
   onOpenChange,
 }: {
   agreementId: string;
   paying: Paying;
+  /** What a new note may still tell of, the notes waiting counted; an answer kept from before says none. */
+  roomMoney: number | undefined;
   /** The note being changed; none for a new one. */
   changing: TheirNote | null;
   open: boolean;
@@ -120,8 +123,10 @@ const NoteSheet = ({
   const { t } = useLanguage();
   const acting = useCanAct();
   const refused = useRefused(REFUSALS);
-  // What is due now leads where it is paid by the month; what is owed otherwise.
-  const due = paying.monthly?.dueMoney || paying.owedMoney;
+  // What is due now leads where it is paid by the month; what is owed otherwise — never more than the notes already
+  // waiting leave room for, which the farm would refuse.
+  const owing = paying.monthly?.dueMoney || paying.owedMoney;
+  const due = Math.min(owing, roomMoney ?? owing);
   const fresh = (): Saying =>
     changing
       ? {
@@ -314,9 +319,12 @@ const WhatBecameOfIt = ({ note }: { note: TheirNote }) => {
  *  withdraw. */
 const NoteCard = ({
   note,
+  mayChange,
   onChange,
 }: {
   note: TheirNote;
+  /** Whether the farm still takes a change to it: not once the switch is off or nothing is owed. */
+  mayChange: boolean;
   onChange: (note: TheirNote) => void;
 }) => {
   const { t } = useLanguage();
@@ -363,16 +371,18 @@ const NoteCard = ({
       <WhatBecameOfIt note={note} />
       {waiting ? (
         <div className="flex flex-wrap gap-2">
-          <Button
-            disabled={!acting.can}
-            onClick={() => onChange(note)}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            <PenLine aria-hidden data-icon="inline-start" />
-            {t("portal.payIn.change")}
-          </Button>
+          {mayChange ? (
+            <Button
+              disabled={!acting.can}
+              onClick={() => onChange(note)}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              <PenLine aria-hidden data-icon="inline-start" />
+              {t("portal.payIn.change")}
+            </Button>
+          ) : null}
           <Button
             disabled={!acting.can || withdraw.isPending}
             onClick={() => setAsking(true)}
@@ -418,6 +428,8 @@ export const PayInNotes = ({
   const [changing, setChanging] = useState<TheirNote | null>(null);
   const notes = payIn?.notes ?? [];
   const mayTell = (payIn?.mayTell ?? false) && paying !== null;
+  // An answer kept from before the farm said so reads as it did then: a waiting note changed wherever one is paying.
+  const mayChange = (payIn?.mayChange ?? true) && paying !== null;
   if (notes.length === 0 && !mayTell) {
     return null;
   }
@@ -449,6 +461,7 @@ export const PayInNotes = ({
             {notes.map((note) => (
               <NoteCard
                 key={note.id}
+                mayChange={mayChange}
                 note={note}
                 onChange={(one) => {
                   setChanging(one);
@@ -471,6 +484,7 @@ export const PayInNotes = ({
           }}
           open={open}
           paying={paying}
+          roomMoney={payIn?.roomMoney}
         />
       ) : null}
     </Section>

@@ -204,6 +204,31 @@ const waitingMoneyOn = async (
 };
 
 /**
+ * What a new note on one Agreement may say: whether its stamped paper is on file — a note on one that is not is
+ * refused — and how much it may still tell of, being what is owed less the notes already waiting. The one answer the
+ * portal offers the form by and a note is refused by, so the portal never offers what it would refuse.
+ */
+export const whatANoteMaySay = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  agreement: { id: string; stampKind: StampKind },
+  owedMoney: number,
+  leavingOut: string | null = null
+): Promise<{ paperOnFile: boolean; roomMoney: number }> => {
+  const photo = await tx.query.agreementPaper.findFirst({
+    where: { agreementId: agreement.id, farmId },
+    columns: { agreementId: true },
+  });
+  return {
+    paperOnFile: paperOnFile(agreement, photo !== undefined),
+    roomMoney: roomForANote({
+      owedMoney,
+      waitingMoney: await waitingMoneyOn(tx, farmId, agreement.id, leavingOut),
+    }),
+  };
+};
+
+/**
  * Whether a note may say this much now, behind the lock: the Investor is not retired, the Venture still takes capital,
  * the stamped paper is on file — no capital is taken without it, so none is looked for — and the amount fits what the
  * Agreement still owes, less what its other notes still waiting say. Answers with the Investor's name, for the
@@ -246,23 +271,22 @@ const mayNoteSay = async (
       "The farm has not written this Venture's account yet"
     );
   }
-  const photo = await tx.query.agreementPaper.findFirst({
-    where: { agreementId: agreement.id, farmId },
-    columns: { agreementId: true },
-  });
-  if (!paperOnFile(agreement, photo !== undefined)) {
+  const owedMoney =
+    capitalItMayHold(agreement.units, standing) -
+    (await takenAgainst(tx, farmId, agreement.id));
+  const { paperOnFile: onFile, roomMoney } = await whatANoteMaySay(
+    tx,
+    farmId,
+    agreement,
+    owedMoney,
+    leavingOut
+  );
+  if (!onFile) {
     throw refused(
       "agreement_has_no_paper",
       "The stamped Agreement is not on file yet"
     );
   }
-  const owedMoney =
-    capitalItMayHold(agreement.units, standing) -
-    (await takenAgainst(tx, farmId, agreement.id));
-  const roomMoney = roomForANote({
-    owedMoney,
-    waitingMoney: await waitingMoneyOn(tx, farmId, agreement.id, leavingOut),
-  });
   if (amountMoney > roomMoney) {
     throw refused(
       "pay_in_over_owed",

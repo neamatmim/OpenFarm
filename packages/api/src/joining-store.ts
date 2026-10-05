@@ -10,10 +10,11 @@ import type { Tx } from "./audit";
 import { farmsNextEid } from "./eid-store";
 import { joiningWeighedBy } from "./fattening-store";
 
-/** The price an Animal joined at: her weight that day, from a Weigh-in, times a rate a kilo. */
+/** The price an Animal joined at: her weight that day, from a Weigh-in, times a rate a kilo. A Venture's lost animal
+ *  found after the Farm made her good joins at what it paid, and — never weighed since her Intake — on no Weigh-in. */
 export interface JoiningPrice {
   priceMoney: number;
-  weighInId: string;
+  weighInId: string | null;
   weightKg: number;
   rateMoneyPerKg: number;
   note: string;

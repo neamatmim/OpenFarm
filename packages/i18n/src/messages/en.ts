@@ -1289,6 +1289,12 @@ export const en = {
     "The farm holds units of this venture already",
   "farmCapital.refused.investorsSignedAlready":
     "An investor has signed already. The farm takes its units before anybody signs, so all sign knowing",
+  "farmCapital.refused.offerStanding":
+    "An agreement offered in the app is waiting, laid out without the farm's units. Withdraw it first",
+  "farmCapital.refused.paperLaidOut":
+    "A paper has already been printed for an investor to sign without the farm's units. The farm takes its units before any is",
+  "farmCapital.refused.wordingTellsNothing":
+    "The investment agreement in force has no clause telling investors of the farm's own units. Publish one first",
   "farmCapital.refused.overHalf":
     "The farm may hold at most half of a venture's units",
   "farmCapital.refused.unitsGone":
@@ -5953,6 +5959,8 @@ export const en = {
   "animals.writeOffVentureHint":
     "It leaves the herd as lost from the morning the round last looked for it. It is {venture}'s, so the farm makes it good: what it has cost the venture to date goes from the farm into the venture account by bank, and its investors lose nothing.",
   "animals.madeGoodReference": "The transfer's reference",
+  "animals.madeGoodAmount":
+    "Transfer {amount} into the venture's account: what she has cost it so far",
   "animals.madeGoodReferenceHint":
     "The bank transfer from the farm into the venture account that pays for it.",
   "animals.writeOffAsk":

@@ -29,7 +29,7 @@ import {
 } from "./investor-statement-store";
 import { signedInOn } from "./membership";
 import { nominationInForce, paperNominees } from "./nomination-store";
-import { theirPayInNotes } from "./pay-in-notes";
+import { theirPayInNotes, whatANoteMaySay } from "./pay-in-notes";
 import { ownerNameOf, requireTheirs } from "./portal-store";
 import { hisProjection, projectionOf } from "./projection-store";
 import { theirRequests } from "./requests-to-join";
@@ -232,6 +232,18 @@ export const theirVentureToday = async (
       : null,
     theirPayInNotes(db, farm.id, investor.id),
   ]);
+  // While the farm takes notes, something is owed and the page says where to pay it.
+  const mayNote =
+    (farm.payInNotes || reader.previewing === true) &&
+    paying !== null &&
+    paying.account !== null;
+  // Asked as a note is refused, so the portal never offers one the farm would turn away.
+  const noting = await whatANoteMaySay(
+    db,
+    farm.id,
+    { id: agreementId, stampKind: standing.agreement.stampKind },
+    paying?.owedMoney ?? 0
+  );
   return {
     agreementId,
     venture: { name: standing.venture.name, state: run.state },
@@ -293,10 +305,12 @@ export const theirVentureToday = async (
      *  Owner's Preview, either way, so it can be read before anybody else does. The Preview sends nothing; its screen
      *  says whose act that is. */
     payIn: {
-      mayTell:
-        (farm.payInNotes || reader.previewing === true) &&
-        paying !== null &&
-        paying.account !== null,
+      mayTell: mayNote && noting.paperOnFile && noting.roomMoney > 0,
+      /** Whether a note still waiting may be changed: the room it takes up is its own to say again, so only the
+       *  switch, the money still owed and the account written decide it. */
+      mayChange: mayNote,
+      /** How much a note may still tell of, the notes waiting counted: what the form starts from. */
+      roomMoney: noting.roomMoney,
       notes: notes.filter((one) => one.agreementId === agreementId),
     },
     /** What it might come to for their own Units at the Owner's low and high sale prices (ADR 0010): an estimate,

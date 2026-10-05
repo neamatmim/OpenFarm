@@ -12,7 +12,6 @@ import {
   farmsOwnPayout,
   roundMoney,
   startOfFarmDay,
-  whatUnitsTake,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -29,6 +28,7 @@ import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../../roles";
 import {
   adjustmentAgainst,
   adjustmentsOf,
+  whatAnAdjustmentSends,
   closeAdjustment,
   raiseAdjustment,
   theAdjustment,
@@ -801,8 +801,10 @@ export const settlementProcedures = {
                 context.farm.id,
                 approved.shares.map((one) => one.agreementId)
               );
-              const paying = approved.shares.filter(
-                (one) => !itsOwn.has(one.agreementId)
+              const paying = whatAnAdjustmentSends(
+                perUnitToPay,
+                approved.shares,
+                itsOwn
               );
               let paidMoney = 0;
               for (const [part, his] of paying.entries()) {
@@ -820,7 +822,7 @@ export const settlementProcedures = {
                     ),
                   })
                 );
-                const amountMoney = whatUnitsTake(perUnitToPay, his.units);
+                const { amountMoney } = his;
                 // oxlint-disable-next-line no-await-in-loop -- one transaction, one Investor at a time
                 const counterpartyId = await counterpartyNamed(
                   tx,

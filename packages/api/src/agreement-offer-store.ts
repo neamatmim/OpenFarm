@@ -17,7 +17,7 @@ import { writeAgreement } from "./agreement-write";
 import type { Tx } from "./audit";
 import { audited } from "./audit";
 import { assertRegistered } from "./export-store";
-import { farmUnitsOf } from "./farm-capital-store";
+import { assertTheFarmsSplit, farmUnitsOf } from "./farm-capital-store";
 import { readAgreement, unitsTaken } from "./investor-store";
 import { assertReadAsKept, keepPaper, stillAsKept } from "./kept-paper";
 import { assertNamable, nomineesToSign } from "./nominations";
@@ -171,6 +171,13 @@ export const offerInApp = async (
     input.nominees
   );
   assertNamable(nominees, today);
+  // On the Farm's own Units' split, where it holds any: an offer agreed on another could never be approved.
+  await assertTheFarmsSplit(
+    context.db,
+    context.farm.id,
+    run.id,
+    input.investorsPercent
+  );
   await giveStandardTemplates(context);
   const wording = await currentWording(
     context.db,

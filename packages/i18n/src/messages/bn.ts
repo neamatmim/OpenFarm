@@ -1207,6 +1207,12 @@ export const bn: Record<MessageKey, string> = {
   "farmCapital.refused.farmHasUnitsAlready": "এই ভেঞ্চারে খামারের ইউনিট আগেই আছে",
   "farmCapital.refused.investorsSignedAlready":
     "একজন বিনিয়োগকারী আগেই সই করেছেন। খামার কেউ সই করার আগেই ইউনিট নেয়, যাতে সবাই জেনে সই করেন",
+  "farmCapital.refused.offerStanding":
+    "অ্যাপে দেওয়া একটি চুক্তির প্রস্তাব অপেক্ষায় আছে, খামারের ইউনিটের কথা ছাড়া। আগে সেটি তুলে নিন",
+  "farmCapital.refused.paperLaidOut":
+    "খামারের ইউনিটের কথা ছাড়াই একজন বিনিয়োগকারীর সইয়ের কাগজ ছাপা হয়ে গেছে। কোনো কাগজ ছাপার আগেই খামার ইউনিট নেয়",
+  "farmCapital.refused.wordingTellsNothing":
+    "চালু বিনিয়োগ চুক্তিতে খামারের নিজের ইউনিটের কথা বিনিয়োগকারীদের জানানোর কোনো ধারা নেই। আগে সেটি প্রকাশ করুন",
   "farmCapital.refused.overHalf":
     "খামার একটি ভেঞ্চারের সর্বোচ্চ অর্ধেক ইউনিট নিতে পারে",
   "farmCapital.refused.unitsGone": "এই ভেঞ্চারে এতগুলো ইউনিট বাকি নেই",
@@ -5572,6 +5578,8 @@ export const bn: Record<MessageKey, string> = {
   "animals.writeOffVentureHint":
     "রাউন্ডে শেষ যেদিন খোঁজা হয়েছিল সেদিন থেকে পশুটি হারিয়ে গেছে বলে বাদ যাবে। এটি {venture}-এর, তাই খামার ক্ষতিপূরণ দেবে: সেদিন পর্যন্ত ভেঞ্চারের যত খরচ হয়েছে তা খামার থেকে ব্যাংকে ভেঞ্চার হিসাবে যাবে, বিনিয়োগকারীদের কোনো ক্ষতি হবে না।",
   "animals.madeGoodReference": "ট্রান্সফারের রেফারেন্স",
+  "animals.madeGoodAmount":
+    "ভেঞ্চারের হিসাবে {amount} পাঠান: এ পর্যন্ত তার পেছনে ভেঞ্চারের যত খরচ হয়েছে",
   "animals.madeGoodReferenceHint":
     "খামার থেকে ভেঞ্চার হিসাবে যে ব্যাংক ট্রান্সফারে ক্ষতিপূরণ যাচ্ছে।",
   "animals.writeOffAsk": "{days} দিন পাওয়া যাচ্ছে না — হারিয়ে গেছে বলে বাদ দেবেন?",

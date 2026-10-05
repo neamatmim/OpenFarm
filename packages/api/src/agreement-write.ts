@@ -9,6 +9,7 @@ import { farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Trail, Tx } from "./audit";
+import { assertTheFarmsSplit } from "./farm-capital-store";
 import { countedInvestors, nextPayInCode, unitsTaken } from "./investor-store";
 import { nominationBySigning } from "./nominations";
 import { answerBySigning } from "./requests-to-join";
@@ -112,21 +113,12 @@ export const writeAgreement = async (
       data: { refusal: "venture_units_gone" },
     });
   }
-  // The Farm's own Units are on the same terms as everyone's: every Investor signs on the split they were taken on, or
-  // the Settlement could not divide the run at all.
-  const farmsOwn = await tx.query.investmentAgreement.findFirst({
-    where: { farmId: farm.id, ventureId: venture.id, stampKind: "farm_own" },
-    columns: { investorsPercent: true },
-  });
-  if (farmsOwn && farmsOwn.investorsPercent !== agreement.investorsPercent) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: `The Farm's own Units in this Venture are on a ${farmsOwn.investorsPercent}% split; every Investor signs on the same`,
-      data: {
-        refusal: "split_not_the_farms",
-        investorsPercent: farmsOwn.investorsPercent,
-      },
-    });
-  }
+  await assertTheFarmsSplit(
+    tx,
+    farm.id,
+    venture.id,
+    agreement.investorsPercent
+  );
   const counted = await countedInvestors(tx, farm.id);
   const newcomer = !counted.unitsOf.has(agreement.investorId);
   if (newcomer && counted.standing >= farm.investorCap) {

@@ -715,3 +715,41 @@ describe("what a paper may still take", () => {
     expect(paper).toMatchObject({ capitalLeftMoney: 0 });
   });
 });
+
+describe("a Venture's animal it bought in, lost and made good", () => {
+  it("is made good at what she cost the Venture — her price to it and its charges — not her life on the farm", async () => {
+    // Bought by the Farm at ৳60,000; sold on to the Venture at 182 kg × ৳400 = ৳72,800; nothing charged since.
+    const hers = await bull("2047-03-08T05:00:00.000Z");
+    await weigh("2047-03-10", [[hers.tagNumber, 182]]);
+    const owner = await as("owner", "2047-03-10T09:00:00.000Z");
+    await owner.client.ventures.sellInternally({
+      tagNumber: hers.tagNumber,
+      toVentureId: ventureId,
+      rateMoneyPerKg: 400,
+      note: `আজকের হাটের দর ${suffix}`,
+      soldOn: "2047-03-10",
+      paymentMethod: "bank",
+      reference: `INT-LOST-${suffix}`,
+      priceMoney: 72_800,
+    });
+    const manager = await as("manager", "2047-03-11T05:00:00.000Z");
+    await manager.client.animals.notFound({ tagNumber: hers.tagNumber });
+    const writing = await as("owner", "2047-03-12T05:00:00.000Z");
+    await writing.client.animals.writeOff({
+      tagNumber: hers.tagNumber,
+      cause: "জানা নেই",
+      madeGood: { reference: `MG-INT-${suffix}` },
+    });
+
+    const made = await scratchDb().query.ventureMovement.findMany({
+      where: {
+        farmId: theFarm().id,
+        ventureId,
+        kind: "made_good",
+        reference: `MG-INT-${suffix}`,
+      },
+      columns: { amountMoney: true },
+    });
+    expect(made).toEqual([{ amountMoney: 72_800 }]);
+  });
+});

@@ -29,6 +29,25 @@ const alreadyAdjustedPerUnitMoney = (
 };
 
 /**
+ * What one Adjustment sends to each share it is paid to, at so much a Unit: every Investor's, by their Units, and never
+ * the Farm's own — the Farm paying itself moves nothing. The one answer the payout books from and the screen says
+ * before it is sent, so the two cannot disagree.
+ */
+export const whatAnAdjustmentSends = <
+  Share extends { agreementId: string; units: number },
+>(
+  perUnitMoney: number,
+  shares: readonly Share[],
+  farmsOwn: ReadonlySet<string>
+): (Share & { amountMoney: number })[] =>
+  shares
+    .filter((one) => !farmsOwn.has(one.agreementId))
+    .map((one) => ({
+      ...one,
+      amountMoney: whatUnitsTake(perUnitMoney, one.units),
+    }));
+
+/**
  * The Settlement Adjustments raised against a Venture's Settlement, oldest first.
  *
  * Kept apart from the Settlement itself because they answer a different question: a Settlement is what
